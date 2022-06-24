@@ -130,3 +130,17 @@ This prevents unnesissarily loading the Docker container every time a simulation
 
 		singularity run -B$(pwd):/data sfincs-cpu.img
 	
+	
+Contributing
+=======
+
+Documentation 
+----------------------	
+
+The docs code has been moved to https://github.com/Deltares/SFINCS as of 24-06-2022.
+Get in touch if you have suggestions how to improve this manual!
+
+Code 
+----------------------	
+
+The SFINCS code as of now is on a closed community bases, get in touch if you would like to join us in developing the SFINCS code!
