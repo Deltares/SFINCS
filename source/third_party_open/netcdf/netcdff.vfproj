@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VisualStudioProject ProjectType="typeStaticLibrary" ProjectCreator="Intel Fortran" Keyword="Static Library" Version="11.0" ProjectIdGuid="{C29AA190-5BE8-4674-AA8A-E858964D3C08}">
+	<Platforms>
+		<Platform Name="Win32"/>
+		<Platform Name="x64"/></Platforms>
+	<Configurations>
+		<Configuration Name="Debug|Win32" ConfigurationType="typeStaticLibrary">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" HeapArrays="100" Preprocess="preprocessYes" AdditionalIncludeDirectories="netcdf-fortran-4.4.4\libsrc" WarnInterfaces="true" Traceback="true" BoundsCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL" Interfaces="true"/>
+				<Tool Name="VFLibrarianTool"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/></Configuration>
+		<Configuration Name="Release|Win32" ConfigurationType="typeStaticLibrary">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" HeapArrays="100" Preprocess="preprocessYes" AdditionalIncludeDirectories="netcdf-fortran-4.4.4\libsrc" RuntimeLibrary="rtMultiThreadedDLL"/>
+				<Tool Name="VFLibrarianTool"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/></Configuration>
+		<Configuration Name="Debug|x64" ConfigurationType="typeStaticLibrary">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" HeapArrays="100" Preprocess="preprocessYes" AdditionalIncludeDirectories="netcdf-fortran-4.4.4\libsrc" WarnInterfaces="true" Traceback="true" BoundsCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL" Interfaces="true"/>
+				<Tool Name="VFLibrarianTool"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/></Configuration>
+		<Configuration Name="Release|x64" ConfigurationType="typeStaticLibrary">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" HeapArrays="100" Preprocess="preprocessYes" AdditionalIncludeDirectories="netcdf-fortran-4.4.4\libsrc" RuntimeLibrary="rtMultiThreadedDLL"/>
+				<Tool Name="VFLibrarianTool"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/></Configuration></Configurations>
+	<Files>
+		<Filter Name="Header Files" Filter="fi;fd">
+		<File RelativePath=".\netcdf-fortran-4.4.4\libsrc\nfconfig.inc"/></Filter>
+		<Filter Name="Resource Files" Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"/>
+		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
+		<File RelativePath=".\netcdf-fortran-4.4.4\fortran\module_netcdf4_nc_interfaces.f90"/>
+		<File RelativePath=".\netcdf-fortran-4.4.4\fortran\module_netcdf4_nf_interfaces.F90"/>
+		<File RelativePath=".\netcdf-fortran-4.4.4\fortran\module_netcdf_nc_data.F90"/>
+		<File RelativePath=".\netcdf-fortran-4.4.4\fortran\module_netcdf_nc_interfaces.f90"/>
+		<File RelativePath=".\netcdf-fortran-4.4.4\fortran\module_netcdf_nf_data.F90"/>
+		<File RelativePath=".\netcdf-fortran-4.4.4\fortran\netcdf4.f90"/>
+		<File RelativePath=".\netcdf-fortran-4.4.4\fortran\netcdf4_func.f90">
+			<FileConfiguration Name="Debug|x64">
+				<Tool Name="VFFortranCompilerTool" WarnInterfaces="false"/></FileConfiguration></File>
+		<File RelativePath=".\netcdf-fortran-4.4.4\fortran\netcdf4_visibility.f90"/>
+		<File RelativePath=".\netcdf-fortran-4.4.4\fortran\nf_attio.F90"/>
+		<File RelativePath=".\netcdf-fortran-4.4.4\fortran\nf_control.F90"/>
+		<File RelativePath=".\netcdf-fortran-4.4.4\fortran\nf_dim.f90"/>
+		<File RelativePath=".\netcdf-fortran-4.4.4\fortran\nf_genatt.f90"/>
+		<File RelativePath=".\netcdf-fortran-4.4.4\fortran\nf_geninq.f90"/>
+		<File RelativePath=".\netcdf-fortran-4.4.4\fortran\nf_genvar.f90"/>
+		<File RelativePath=".\netcdf-fortran-4.4.4\fortran\nf_misc.f90"/>
+		<File RelativePath=".\netcdf-fortran-4.4.4\fortran\nf_nc4.f90">
+			<FileConfiguration Name="Debug|Win32">
+				<Tool Name="VFFortranCompilerTool" WarnInterfaces="false"/></FileConfiguration>
+			<FileConfiguration Name="Debug|x64">
+				<Tool Name="VFFortranCompilerTool" WarnInterfaces="false"/></FileConfiguration></File>
+		<File RelativePath=".\netcdf-fortran-4.4.4\fortran\nf_par_dummy.f90"/>
+		<File RelativePath=".\netcdf-fortran-4.4.4\fortran\nf_var1io.F90"/>
+		<File RelativePath=".\netcdf-fortran-4.4.4\fortran\nf_varaio.F90"/>
+		<File RelativePath=".\netcdf-fortran-4.4.4\fortran\nf_varmio.F90"/>
+		<File RelativePath=".\netcdf-fortran-4.4.4\fortran\nf_varsio.F90"/>
+		<File RelativePath=".\netcdf-fortran-4.4.4\fortran\typeSizes.f90"/></Filter></Files>
+	<Globals/></VisualStudioProject>
