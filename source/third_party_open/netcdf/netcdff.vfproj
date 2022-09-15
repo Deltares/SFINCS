@@ -23,7 +23,7 @@
 				<Tool Name="VFPreBuildEventTool"/>
 				<Tool Name="VFPostBuildEventTool"/></Configuration>
 		<Configuration Name="Debug|x64" ConfigurationType="typeStaticLibrary">
-				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" HeapArrays="100" Preprocess="preprocessYes" AdditionalIncludeDirectories="netcdf-fortran-4.4.4\libsrc" WarnInterfaces="true" Traceback="true" BoundsCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL" Interfaces="true"/>
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeFull" HeapArrays="100" Preprocess="preprocessYes" AdditionalIncludeDirectories="netcdf-fortran-4.4.4\libsrc" WarnInterfaces="true" Traceback="true" BoundsCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL" Interfaces="true"/>
 				<Tool Name="VFLibrarianTool"/>
 				<Tool Name="VFResourceCompilerTool"/>
 				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
@@ -32,7 +32,7 @@
 				<Tool Name="VFPreBuildEventTool"/>
 				<Tool Name="VFPostBuildEventTool"/></Configuration>
 		<Configuration Name="Release|x64" ConfigurationType="typeStaticLibrary">
-				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" HeapArrays="100" Preprocess="preprocessYes" AdditionalIncludeDirectories="netcdf-fortran-4.4.4\libsrc" RuntimeLibrary="rtMultiThreadedDLL"/>
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" Optimization="optimizeFull" Parallelization="true" HeapArrays="100" Preprocess="preprocessYes" AdditionalIncludeDirectories="netcdf-fortran-4.4.4\libsrc" RuntimeLibrary="rtMultiThreadedDLL"/>
 				<Tool Name="VFLibrarianTool"/>
 				<Tool Name="VFResourceCompilerTool"/>
 				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
