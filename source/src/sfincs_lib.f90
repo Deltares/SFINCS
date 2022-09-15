@@ -82,12 +82,11 @@ module sfincs_lib
    ierr = 0
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   ! These are only updated if the sfincs.f90 file is changed somewehere (any change) after commiting changes in Subversion:
-   build_revision = '$Rev: 407 $'
-   build_date     = '$Date: 2022-08-26$'
+   build_revision = '$Rev: v0.0.1-alpha$'
+   build_date     = '$Date: 2022-09-15$'
    !
    write(*,'(a)')''
-   write(*,*)'--- Welcome to SFINCS 2.0 ---'
+   write(*,*)'--- Welcome to SFINCS ---'
    write(*,'(a)')''
    write(*,*)'Build-Revision: ',trim(build_revision)
    write(*,*)'Build-Date: ',trim(build_date)
