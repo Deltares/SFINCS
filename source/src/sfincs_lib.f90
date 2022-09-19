@@ -230,10 +230,11 @@ module sfincs_lib
       ! Avoid this, by not not changing time step dt (used in momentum equation), but only changing dtt,
       ! which is used in the time updating and continuity equation.
       !
-      dtt = min(tmapout - t, dt)
-      dtt = min(tmaxout - t, dt)
-      dtt = min(trstout - t, dt)
-      dtt = min(thisout - t, dt)
+      dtt = dt
+      dtt = min(tmapout - t, dtt)
+      dtt = min(tmaxout - t, dtt)
+      dtt = min(trstout - t, dtt)
+      dtt = min(thisout - t, dtt)
       !
 !      if (history_fixed_intervals) then
 !         !
