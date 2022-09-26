@@ -406,7 +406,7 @@ module snapwave_solver
             !
             if (depth(k)>1.1*hmin) then
                !
-               if (.not. ok(k)) then
+               if (ok(k) == 0) then
                   !
                   ! Only perform computations on wet inner points that are not yet converged (ok)
                   !
@@ -935,7 +935,7 @@ module snapwave_solver
 
    integer                            :: i,j
 
-   open(11,file=filename,status='replace',form='binary')
+   open(11,file=filename,status='replace',form='unformatted')
    do j=1,n
       write(11)(var(i,j),i=1,m)
    enddo

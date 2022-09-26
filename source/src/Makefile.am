@@ -20,13 +20,15 @@ libsfincs_la_SOURCES = \
 	sfincs_data.f90 \
 	geometry.f90 \
 	quadtree.f90 \
-        snapwave_data.f90 \
-        snapwave_boundaries.f90 \
-        snapwave_date.f90 \
-        snapwave_domain.f90 \
-        snapwave_input.f90 \
-        snapwave_results.f90 \
-        snapwave_solver.f90 \
+	snapwave/interp.F90 \
+	snapwave/snapwave_results.f90 \
+	snapwave/snapwave_data.f90 \
+	snapwave/snapwave_boundaries.f90 \
+	snapwave/snapwave_date.f90 \
+	snapwave/snapwave_ncoutput.F90 \
+	snapwave/snapwave_domain.f90 \
+	snapwave/snapwave_input.f90 \
+	snapwave/snapwave_solver.f90 \
 	sfincs_snapwave.f90 \
 	sfincs_input.f90 \
 	sfincs_ncinput.F90 \

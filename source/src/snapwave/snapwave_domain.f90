@@ -55,9 +55,9 @@ contains
       endif
       !
       open(112, file='masktest.txt')
-      write(112,'(3i)')no_nodes,no_faces,0
+      write(112,'(3i8)')no_nodes,no_faces,0
       do k = 1, no_nodes
-         write(112,'(f12.1,f12.1,f12.3,i)')x(k),y(k),zb(k),msk(k)
+         write(112,'(f12.1,f12.1,f12.3,i8)')x(k),y(k),zb(k),msk(k)
       enddo   
       do k = 1, no_faces
          write(112,'(4i8)')(face_nodes(j, k), j = 1, 4)

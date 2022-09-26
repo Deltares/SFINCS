@@ -32,7 +32,7 @@ contains
    call read_char_input(500,'tstop',tstopstr,'20000101 000000')
    call read_real_input(500,'timestep',timestep,3600.0)
    call read_real_input(500,'gamma',gamma,0.7)
-   call read_real_input(500,'alpha',alpha,1.0)
+   call read_real_input(500,'alpha',snapwave_alpha,1.0)
    call read_real_input(500,'hmin',hmin,0.1)
    call read_char_input(500,'gridfile',gridfile,'.txt')
    call read_int_input(500,'sferic',sferic,0)
