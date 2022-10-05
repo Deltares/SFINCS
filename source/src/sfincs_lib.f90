@@ -83,7 +83,7 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    build_revision = '$Rev: v0.0.1-alpha$'
-   build_date     = '$Date: 2022-09-15$'
+   build_date     = '$Date: 2022-10-05$'
    !
    write(*,'(a)')''
    write(*,*)'--- Welcome to SFINCS ---'
@@ -202,9 +202,6 @@ module sfincs_lib
    write(*,'(a)')''
    !
    call system_clock(count00, count_rate, count_max)
-!   write(*,*)count_rate,count_max
-!   !
-!   open(333, file='timesteps.txt')
    !
    do while (t<t1)
       !

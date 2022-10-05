@@ -1,5 +1,7 @@
 module sfincs_snapwave
-   
+   !
+   implicit none
+   !     
    integer                                   :: snapwave_no_nodes
    integer                                   :: snapwave_no_cells
    real*8,    dimension(:), allocatable      :: snapwave_x
@@ -27,9 +29,9 @@ module sfincs_snapwave
    integer*4, dimension(:),     allocatable   :: index_sw_in_qt
    integer*4, dimension(:),     allocatable   :: index_qt_in_sw
    real*4                                     :: snapwave_tpmean
-
+   !
 contains
-   
+   !
    subroutine couple_snapwave()
    !
    use snapwave_data
