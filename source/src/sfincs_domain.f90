@@ -209,17 +209,20 @@ contains
    ! Temporary index arrays
    !
    allocate(z_index_md(np))
+   allocate(z_index_mu(np))
+   allocate(z_index_nd(np))
+   allocate(z_index_nu(np))
    allocate(z_index_md1(np))
    allocate(z_index_md2(np))
-   allocate(z_index_mu(np))
    allocate(z_index_mu1(np))
    allocate(z_index_mu2(np))
-   allocate(z_index_nd(np))
    allocate(z_index_nd1(np))
    allocate(z_index_nd2(np))
-   allocate(z_index_nu(np))
    allocate(z_index_nu1(np))
    allocate(z_index_nu2(np))
+   !
+   allocate(z_index_z_n(np))
+   allocate(z_index_z_m(np))
    !
    z_index_md    = 0
    z_index_mu    = 0
@@ -235,7 +238,7 @@ contains
    z_index_nu2   = 0
    z_index_z_n   = 0
    z_index_z_m   = 0
-   z_index_z_nm  = 0
+!   z_index_z_nm  = 0
    !
    ! Permanent index arrays
    !      
@@ -247,8 +250,6 @@ contains
    allocate(z_index_uv_nd2(np))
    allocate(z_index_uv_nu1(np))
    allocate(z_index_uv_nu2(np))
-   allocate(z_index_z_n(np))
-   allocate(z_index_z_m(np))
    !
    z_index_uv_md1   = 0
    z_index_uv_md2   = 0
@@ -1036,7 +1037,7 @@ contains
    !
    if (use_quadtree) then
       do iref = 1, nref
-         write(*,'(a,i3,a,i)')' Number of cells in level ', iref, ' : ', quadtree_last_point_per_level(iref) - quadtree_first_point_per_level(iref) + 1
+         write(*,'(a,i3,a,i8)')' Number of cells in level ', iref, ' : ', quadtree_last_point_per_level(iref) - quadtree_first_point_per_level(iref) + 1
       enddo
    endif
    !

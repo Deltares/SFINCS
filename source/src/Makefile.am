@@ -29,7 +29,6 @@ libsfincs_la_SOURCES = \
 	snapwave/snapwave_domain.f90 \
 	snapwave/snapwave_input.f90 \
 	snapwave/snapwave_solver.f90 \
-	sfincs_snapwave.f90 \
 	sfincs_input.f90 \
 	sfincs_ncinput.F90 \
 	sfincs_boundaries.f90 \
@@ -39,12 +38,12 @@ libsfincs_la_SOURCES = \
 	sfincs_domain.f90 \
 	sfincs_structures.f90 \
 	sfincs_obspoints.f90 \
+	sfincs_snapwave.f90 \
 	deg2utm.f90 \
 	sfincs_meteo.f90 \
 	sfincs_ncoutput.F90 \
 	sfincs_output.f90 \
 	sfincs_momentum.f90 \
-	sfincs_snapwave.f90 \
 	sfincs_wavemaker.f90 \
 	sfincs_lib.f90 \
 	sfincs_bmi.f90

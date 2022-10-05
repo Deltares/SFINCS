@@ -217,7 +217,7 @@ module sfincs_data
 !      integer*4,          dimension(:,:), allocatable :: z_index
       integer*4,          dimension(:), allocatable   :: z_index_z_n
       integer*4,          dimension(:), allocatable   :: z_index_z_m
-      integer*4,          dimension(:), allocatable   :: z_index_z_nm
+!      integer*4,          dimension(:), allocatable   :: z_index_z_nm
       integer*4,          dimension(:),   allocatable :: z_index_uv_md1
       integer*4,          dimension(:),   allocatable :: z_index_uv_md2
       integer*4,          dimension(:),   allocatable :: z_index_uv_mu1

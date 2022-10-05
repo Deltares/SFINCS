@@ -359,13 +359,10 @@ module sfincs_lib
       !
       ! Update boundary conditions
       !
-!      write(*,*)'boundaries'
       call update_boundaries(t, dt, tloopbnd)
-!      write(*,*)'boundaries done'
       !
       ! Update discharges
       !
-!      write(*,*)'discharges'
       call update_discharges(t, dt, tloopsrc)
       !
       if (snapwave .and. update_waves) then
@@ -386,17 +383,15 @@ module sfincs_lib
       !
       ! First compute fluxes
       !
-!      write(*,*)'momentum',t
 !      call compute_fluxes_simple(dt, mindt, tloopflux)
       call compute_fluxes(dt, mindt, tloopflux)
-!      write(*,*)'momentum done'
       !
       if (wavemaker) then
          !
          call update_wavemaker_fluxes(t, dt, tloopwavemaker)
          !         
       endif   
-      
+
       if (nrstructures>0) then
          !
          call compute_fluxes_over_structures(tloopstruc)

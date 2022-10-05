@@ -296,7 +296,7 @@ contains
                   ysect=[y(ind1), y(ind2)]
                   call intersect_angle(x(k), y(k), theta(itheta) + pi, xsect, ysect, ww, dss, xi, yi)
                else
-                  xsect=[x(ind1)-x(k), x(ind2)-x(k)]*circumf_eq/360.0*cosd(y(k))
+                  xsect=[x(ind1)-x(k), x(ind2)-x(k)]*circumf_eq/360.0*cos(y(k)*180.0/pi)
                   ysect=[y(ind1)-y(k), y(ind2)-y(k)]*circumf_pole/360.0
                   call intersect_angle(0.d0, 0.d0, theta(itheta) + pi, xsect, ysect, ww, dss, xi, yi)
                endif               
@@ -485,7 +485,7 @@ contains
                sx2=sx2+(xp(j)-xn(kn))**2
                sy2=sy2+(yp(j)-yn(kn))**2
             else
-               dxp=(xp(j)-xn(kn))*circumf_eq/360.0*cosd(yn(kn))
+               dxp=(xp(j)-xn(kn))*circumf_eq/360.0*cos(yn(kn)*180.0/pi)
                dyp=(yp(j)-yn(kn))*circumf_pole/360.0
                sxz=sxz+dxp*(zp(j)-zn(kn))
                syz=syz+(yp(j)-yn(kn))*(zp(j)-zn(kn))
@@ -1005,12 +1005,12 @@ contains
    !
    ! Check if qtr file has already been loaded by other model (sfincs)
    !
-   if (load_quadtree) then
-      !
-      write(*,*)'Reading SnapWave quadtree file ', trim(gridfile), ' ...'
-      call quadtree_read_file(gridfile)
-      !
-   endif   
+!   if (load_quadtree) then
+!      !
+!      write(*,*)'Reading SnapWave quadtree file ', trim(gridfile), ' ...'
+!      call quadtree_read_file(gridfile)
+!      !
+!   endif
    !
    allocate(index_snapwave_in_quadtree(quadtree_nr_points)) ! Needed for mapping to sfincs
    !

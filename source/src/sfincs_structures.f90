@@ -415,6 +415,7 @@
       open(500, file=trim(thdfile))
       do while(.true.)
          read(500,*,iostat = stat)cdummy
+         if (stat<0) exit
          read(500,*,iostat = stat)nrows,ncols
          if (stat<0) exit
          nthd = nthd + 1
@@ -431,6 +432,7 @@
       do ithd = 1, nthd
          !
          read(500,*,iostat = stat)cdummy
+         if (stat<0) exit
          read(500,*,iostat = stat)nrows,ncols
          if (stat<0) exit
          allocate(xthd(nrows))
@@ -474,8 +476,8 @@
    implicit none
    !
    integer                       :: ip
-   integer*4                       :: nm
-   integer*4                       :: nmu
+   integer*4                     :: nm
+   integer*4                     :: nmu
    integer                       :: istruc
    integer                       :: ikf
    integer                       :: idir
