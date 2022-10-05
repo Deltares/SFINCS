@@ -1036,7 +1036,7 @@ contains
    !
    if (use_quadtree) then
       do iref = 1, nref
-         write(*,'(a,i3,a,i)')' Number of cells in level ', iref, ' : ', quadtree_last_point_per_level(iref) - quadtree_first_point_per_level(iref) + 1
+         write(*,'(a,i3,a,i3)')' Number of cells in level ', iref, ' : ', quadtree_last_point_per_level(iref) - quadtree_first_point_per_level(iref) + 1
       enddo
    endif
    !

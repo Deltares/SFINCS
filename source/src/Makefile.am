@@ -44,7 +44,6 @@ libsfincs_la_SOURCES = \
 	sfincs_ncoutput.F90 \
 	sfincs_output.f90 \
 	sfincs_momentum.f90 \
-	sfincs_snapwave.f90 \
 	sfincs_wavemaker.f90 \
 	sfincs_lib.f90 \
 	sfincs_bmi.f90
