@@ -6,6 +6,9 @@ WORKDIR /usr/src/sfincs
 # Install software into /usr/local
 # No OpenACC for GNU/CPU build
 # RUN autoreconf -ivf && ./autogen.sh && FFLAGS="-w -fallow-argument-mismatch -O2" && FCFLAGS="-w -fallow-argument-mismatch -O2 -fopenmp -O3" ./configure --disable-openacc && make && make install
+cd source
+chmod -R 777 autogen.sh
+
 RUN autoreconf -ivf && ./autogen.sh && FCFLAGS="-fopenmp -O3" ./configure --disable-openacc && make && make install
 
 # Make a new container and copy /usr/local so we only have the source
