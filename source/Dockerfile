@@ -13,7 +13,7 @@ ENV FFLAGS="-fopenmp -O3 -fallow-argument-mismatch -w"
 RUN autoreconf -ivf && ./autogen.sh && ./configure --disable-openacc && make && make install
 
 # Make a new container and copy /usr/local so we only have the source
-FROM ubuntu:20.04
+FROM ubuntu:jammy
 ENV DEBIAN_FRONTEND=noninteractive
 # install netcdf
 RUN apt update && apt install -y libnetcdf-dev build-essential
