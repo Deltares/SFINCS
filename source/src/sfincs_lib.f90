@@ -202,9 +202,6 @@ module sfincs_lib
    write(*,'(a)')''
    !
    call system_clock(count00, count_rate, count_max)
-!   write(*,*)count_rate,count_max
-!   !
-!   open(333, file='timesteps.txt')
    !
    do while (t<t1)
       !
