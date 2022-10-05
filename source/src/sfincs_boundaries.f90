@@ -609,6 +609,7 @@ contains
          endif
          !
          zsetup = 0.0
+         zig = 0.0         
          !
          ! Incoming IG waves from file (this will overrule IG signal computed before)
          !
