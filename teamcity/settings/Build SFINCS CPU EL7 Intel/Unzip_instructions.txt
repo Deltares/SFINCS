@@ -1,0 +1,16 @@
+1) Open Putty
+
+2) Go to wanted directory:
+cd /p/11202255-sfincs/executables/linux
+
+3) make and go to new folder 
+mkdir sfincs_Build_SFINCS_CPU_EL7_Intel_206_artifacts
+cd sfincs_Build_SFINCS_CPU_EL7_Intel_206_artifacts
+
+4) copy your latest linux build there yourself
+
+5) Unzip latest linux build:
+unzip sfincs_Build_SFINCS_CPU_EL7_Intel_206_artifacts.zip
+
+6) Change acces rights:
+chmod -R 777 /p/11202255-sfincs/executables/linux/sfincs_Build_SFINCS_CPU_EL7_Intel_206_artifacts
