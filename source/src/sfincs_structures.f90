@@ -119,7 +119,7 @@
       if (stat<0) exit
       nthd = nthd + 1
       do irow = 1, nrows
-         read(500,*)dummy
+         read(500,*,iostat = stat)dummy
       enddo
    enddo
    rewind(500)
