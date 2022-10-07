@@ -35,5 +35,9 @@
 /source/m4/ltsugar.m4
 /source/m4/ltoptions.m4
 /source/m4/libtool.m4
+/source/third_party_open/netcdf/netcdf-fortran-4.4.4/m4/lt~obsolete.m4
+/source/third_party_open/netcdf/netcdf-fortran-4.4.4/m4/ltversion.m4
+/source/third_party_open/netcdf/netcdf-fortran-4.4.4/m4/ltsugar.m4
+/source/third_party_open/netcdf/netcdf-fortran-4.4.4/m4/ltoptions.m4
+/source/third_party_open/netcdf/netcdf-fortran-4.4.4/m4/libtool.m4
 Makefile.in
-/source/third_party_open/netcdf/netcdf-fortran-4.4.4/m4
