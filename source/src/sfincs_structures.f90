@@ -500,7 +500,7 @@
    !   
    call system_clock(count0, count_rate, count_max)
    !
-   !$acc kernels, present(zs,index_v_nmu,index_v_num,qx,qy,kfu,kfv,struc_uv,struc_type,struc_pars,struc_nm)
+   !$acc kernels, present(zs, q, uv, structure_uv_index, uv_index_z_nm, uv_index_z_nmu, structure_parameters, structure_type, structure_length), async(1)
    !$acc loop independent
    do istruc = 1, nrstructures
       !
@@ -567,7 +567,6 @@
       q(ip)  = qstruc*idir ! Add relaxation here !!!
       !
    enddo
-!   !$acc end serial
    !$acc end kernels
    !
    call system_clock(count1, count_rate, count_max)

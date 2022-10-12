@@ -1124,7 +1124,7 @@
 
 !     Netcdf version 4 fortran interface.
 
-!     $Id: netcdf.inc 59820 2018-08-15 12:49:57Z markus $
+!     $Id: netcdf4.inc 59820 2018-08-15 12:49:57Z markus $
 
 !     New netCDF-4 types.
       integer nf_ubyte
@@ -1738,3 +1738,7 @@
       parameter (fillong = -2147483647)
       parameter (filfloat = 9.9692099683868690e+36)
       parameter (fildoub = 9.9692099683868690e+36)
+
+!     This is to turn on netCDF internal logging.
+      integer nf_set_log_level
+      external nf_set_log_level

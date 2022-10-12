@@ -267,7 +267,9 @@ contains
       itw1 = itw0 + 1
       itw1 = min(itw1, spw_nt)
       !
-      twfac  = (meteo_t - spw_times(itw0))/max(spw_times(itw1) - spw_times(itw0), 1.0e-9)
+      meteo_t = min(meteo_t, spw_times(itw1))
+      !
+      twfac  = (meteo_t - spw_times(itw0))/max(spw_times(itw1) - spw_times(itw0), 1.0e-6)
       !
       ! Eye
       ! 
@@ -552,7 +554,9 @@ contains
       itw1 = itw0 + 1
       itw1 = min(itw1, amuv_nt)
       !
-      twfac  = (meteo_t - amuv_times(itw0))/max(amuv_times(itw1) - amuv_times(itw0), 1.0e-9)
+      meteo_t = min(meteo_t, amuv_times(itw1))
+      !
+      twfac  = (meteo_t - amuv_times(itw0))/max(amuv_times(itw1) - amuv_times(itw0), 1.0e-6)
       !
       do irow = 1, amuv_nrows
          do icol = 1, amuv_ncols
@@ -721,7 +725,9 @@ contains
       itw1 = itw0 + 1
       itw1 = min(itw1, amp_nt)
       !
-      twfac  = (meteo_t - amp_times(itw0))/max(amp_times(itw1) - amp_times(itw0),1.0e-9)
+      meteo_t = min(meteo_t, amp_times(itw1))
+      !
+      twfac  = (meteo_t - amp_times(itw0))/max(amp_times(itw1) - amp_times(itw0), 1.0e-6)
       !
       do irow = 1, amp_nrows
          do icol = 1, amp_ncols
@@ -843,7 +849,9 @@ contains
       itw1 = itw0 + 1
       itw1 = min(itw1, ampr_nt)
       !
-      twfac  = (meteo_t - ampr_times(itw0))/max(ampr_times(itw1) - ampr_times(itw0),1.0e-9)
+      meteo_t = min(meteo_t, ampr_times(itw1))
+      !
+      twfac  = (meteo_t - ampr_times(itw0))/max(ampr_times(itw1) - ampr_times(itw0), 1.0e-6)
       !
       if (ampr_block) then
          !
@@ -969,7 +977,9 @@ contains
       !$omp private ( nm ) &
       !$omp shared ( tauwu,tauwv,patm,prcp,tauwu0,tauwv0,patm0,prcp0,tauwu1,tauwv1,patm1,prcp1 )
       !$omp do
-      !$acc kernels, present(tauwu,tauwv,patm,prcp,tauwu0,tauwv0,patm0,prcp0,tauwu1,tauwv1,patm1,prcp1,patmb,nmindbnd )
+      !$acc kernels, present(tauwu, tauwv,  tauwu0, tauwv0, tauwu1, tauwv1, &
+      !$acc                  windu, windv, windu0, windv0, windu1, windv1, windmax, &
+      !$acc                  patm, patm0, patm1, prcp, prcp0, prcp1 ), async(1)
       !$acc loop independent, private(nm)
       do nm = 1, np
          !
@@ -1010,7 +1020,7 @@ contains
          !$omp private ( nm ) &
          !$omp shared ( tauwu,tauwv,patm,prcp )
          !$omp do
-         !$acc kernels, present(tauwu,tauwv,patm,prcp )
+         !$acc kernels, present(tauwu, tauwv, patm, prcp ), async(1)
          !$acc loop independent, private(nm)
          do nm = 1, np
             !
@@ -1036,7 +1046,7 @@ contains
       !   
       if (patmos .and. pavbnd>0.0) then
          !
-         !$acc serial, present( patmb,nmindbnd,patm ) 
+         !$acc serial, present( patmb, nmindbnd, patm ), async(1) 
          do ib = 1, ngbnd
             patmb(ib) = patm(nmindbnd(ib))
          enddo
@@ -1044,7 +1054,7 @@ contains
          !
          ! patmb is used at boundary points in the CPU part of update_boundary_conditions (should try to make this faster)
          !
-         !$acc update host(patmb)
+         !$acc update host(patmb), async(1)
          !
       endif
       !   
@@ -1129,7 +1139,7 @@ contains
          !$omp private ( nm ) &
          !$omp shared ( tauwu,tauwv )
          !$omp do
-         !$acc kernels, present(tauwu,tauwv)
+         !$acc kernels, present( tauwu, tauwv ), async(1)
          !$acc loop independent, private(nm)
          do nm = 1, np
             tauwu(nm) = twu
@@ -1174,11 +1184,11 @@ contains
 !         !$omp private ( nm ) &
 !         !$omp shared ( prcp )
 !         !$omp do
-         !$acc kernels present(prcp)
+!         !$acc kernels present( prcp )
          do nm = 1, np
             prcp(nm) = ptmp
          enddo   
-         !$acc end kernels
+!         !$acc end kernels
 !         !$omp end do
          !
          itprcplast = itp - 1
@@ -1205,11 +1215,10 @@ contains
    !$omp private ( nm ) &
    !$omp shared ( cumprcp,prcp )
    !$omp do
-   !$acc kernels present( cumprcp,prcp )
+   !$acc kernels present( cumprcp, prcp ), async(1)
    !$acc loop independent, private( nm )
    do nm = 1, np
-!       cumprcp(nm) = cumprcp(nm) + prcp(nm)*dtwindupd
-       cumprcp(nm) = cumprcp(nm) + prcp(nm)*dt
+      cumprcp(nm) = cumprcp(nm) + prcp(nm)*dt
    enddo      
    !$acc end kernels
    !$omp end do
@@ -1236,11 +1245,11 @@ contains
       !
       ! Determine infiltration rate with Curve Number (old method; no recovery)
       !
-      !$acc update host(cumprcp)
+      !$acc update host(cumprcp), async(1)
       !
       !$omp parallel &
       !$omp private ( Qq,I,nm ) &
-      !$omp shared ( cumprcp,cuminf,qinfmap,qinffield )
+      !$omp shared ( cumprcp, cuminf, qinfmap, qinffield )
       !$omp do
       do nm = 1, np
          !
@@ -1268,7 +1277,8 @@ contains
       !$omp end do
       !$omp end parallel
       !
-      !$acc update device(qinfmap)
+      !$acc update device(qinfmap), async(1)
+      !$acc update device(cuminf), async(1)
       !
       ! Provide update to user
       !write(*,'(a,f5.3,a,f10.3,a)') '  update from SCS-CN method: Average cumulative rainfall of ',sum(cumprcp)/size(cumprcp),' meter and infiltration rate of ',sum(qinfmap*3.6e3*1.0e3)/size(qinfmap) ,' mm/hour'
@@ -1277,7 +1287,7 @@ contains
    elseif (inftype == 'cnb') then
       !
       ! Determine infiltration rate with Curve Number with recovery
-      !$acc update host(cumprcp)
+      !$acc update host(cumprcp), async(1)
       !
       !$omp parallel &
       !$omp private ( Qq,I,nm ) &
@@ -1346,6 +1356,8 @@ contains
       !$omp end do
       !$omp end parallel
       !
+      !$acc update device(qinfmap), async(1)
+      !
    endif
    !
    end subroutine   
@@ -1375,7 +1387,7 @@ contains
       !
       call update_amuv_data()
       !
-      !$acc update device(tauwu0,tauwu1,tauwv0,tauwv1)
+      !$acc update device(tauwu0,tauwu1,tauwv0,tauwv1), async(1)
       !
    endif
    !
@@ -1383,7 +1395,7 @@ contains
       !
       call update_amp_data()
       !
-      !$acc update device(patm0,patm1)
+      !$acc update device(patm0,patm1), async(1)
       !
    endif
    !
@@ -1391,7 +1403,7 @@ contains
       !
       call update_ampr_data()
       !
-      !$acc update device(prcp0,prcp1)
+      !$acc update device(prcp0,prcp1), async(1)
       !
    endif
    !      
@@ -1399,11 +1411,11 @@ contains
       !
       call update_spiderweb_data()
       !
-      !$acc update device(tauwu0,tauwu1,tauwv0,tauwv1,patm0,patm1)
+      !$acc update device(tauwu0,tauwu1,tauwv0,tauwv1,patm0,patm1), async(1)
       !
       if (precip) then
          !
-         !$acc update device(prcp0,prcp1)
+         !$acc update device(prcp0,prcp1), async(1)
          !
       endif
       !

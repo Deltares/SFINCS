@@ -245,6 +245,8 @@ contains
       !
    enddo
    !
+   !$acc update device(fwuv), async(1)
+   !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
    !

@@ -1455,14 +1455,16 @@ contains
          enddo
          !
          subgrid_z_dep(1,:) = max(subgrid_z_zmin(:), -20.0)
-         do ip = 1, subgrid_nbins - 1
+         do ibin = 1, subgrid_nbins - 1
             read(500)rtmpz
-            subgrid_z_dep(ip + 1,:) = rtmpz
-         enddo
+            do nm = 1, np
+               subgrid_z_dep(ibin + 1, nm) = rtmpz(nm)
+            enddo
+         enddo   
          !
          ! U zmin
          !
-         read(500)rtmpz
+         read(500) rtmpz
          !
          do nm = 1, np
             !
@@ -1527,9 +1529,11 @@ contains
                !
             enddo
             !
-            subgrid_uv_navg(1, :) = subgrid_uv_navg(2, :)
-            !
          enddo
+         !
+         do nm = 1, np
+            subgrid_uv_navg(1, nm) = subgrid_uv_navg(2, nm)
+         enddo 
          !
          ! V zmin
          !
@@ -1609,8 +1613,10 @@ contains
                !
             enddo
             !
-            subgrid_uv_navg(1, :) = subgrid_uv_navg(2, :)
-            !
+         enddo
+         !
+         do nm = 1, np
+            subgrid_uv_navg(1, nm) = subgrid_uv_navg(2, nm)
          enddo
          !
          close(500)

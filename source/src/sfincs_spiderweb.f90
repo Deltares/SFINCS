@@ -345,7 +345,7 @@ contains
       !
       ! Read input file
       !
-      open(888,file=filename)   
+      open(888, file=filename)   
       !
       call read_int_input(888,'n_cols',ncols,0)
       call read_int_input(888,'n_rows',nrows,0)
@@ -359,11 +359,12 @@ contains
       !
       ! Open AMU file
       !
-      open(888,file=filename)   
+      open(888, file=filename)   
       !
       ! Read header
       nheader = 0
       do ip = 1, 30     !read first 30 lines to find first TIME block
+         !
          read(888,'(a)')line
          !
          id=index(line,'TIME')

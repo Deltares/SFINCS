@@ -39,7 +39,7 @@ contains
    !   
    write(*,*)'Reading input file ...'
    !
-   open(500,file='sfincs.inp')   
+   open(500, file='sfincs.inp')   
    !
    call read_int_input(500,'mmax',mmax,0)
    call read_int_input(500,'nmax',nmax,0)

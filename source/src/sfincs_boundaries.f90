@@ -661,8 +661,6 @@ contains
       endif
    enddo
    !
-   !$acc update device(zsb0,zsb), async(1)
-   !
    end subroutine
 
 
@@ -680,9 +678,12 @@ contains
    !
    real*4 ui, ub, dzuv, facint, zsuv, depthuv
    !
+   !$acc update device( zsb0, zsb ), async(1)
+   !
    factime = min(dt/btfilter, 1.0)
    !
-   !$acc kernels present(nmkcu2,nmikcu2,nmbkcu2,ibkcu2,nmkcv2,nmikcv2,nmbkcv2,ibkcv2,zs,z_volume,qx,qy,umean,vmean,zb,zbu,zbv,zsb,zsb0,subgrid_u_zmin,subgrid_u_zmax,subgrid_u_hrep,subgrid_v_zmin,subgrid_v_zmax,subgrid_v_hrep,subgrid_z_zmin,ibudir,ibvdir,huu,hvv), async(1)
+   !$acc kernels present(index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, kcuv, zs, z_volume, q, uvmean, uv, zb, zbuv, zsb, zsb0, &
+   !$acc                 subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_hrep, subgrid_uv_hrep_zmax, subgrid_z_zmin, ibuvdir), async(1)
    !
    ! UV fluxes at boundaries
    !

@@ -92,7 +92,7 @@ contains
    ! Should try to do this in a smart way for openacc
    !
    if (nsrcdrn>0) then
-      !$acc serial, present( zs,nmindsrc,qtsrc,zb ), async(1) 
+      !$acc serial, present( zs,nmindsrc,qtsrc,zb ), async(1)
       do isrc = 1, nsrcdrn
          nm = nmindsrc(isrc)
          zs(nmindsrc(isrc))   = max(zs(nm) + qtsrc(isrc)*dt/cell_area(z_flags_iref(nm)), zb(nm))
@@ -104,7 +104,10 @@ contains
    !$omp private ( nm,dvol,nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,nmd,nmu,ndm,num,qnmd,qnmu,qndm,qnum,iwm )
 !   !$omp shared ( kcs,kfuv,zs,zb,cumprcp,cumprcpt,prcp,qinfmap,q,z_flags_type,zsmax,vmax,z_flags_iref,dxrinv,dyrinv,twet )
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels present( kcs,kfu,kfv,zs,cumprcp,cumprcpt,prcp,qx,qy,index_v_nmd,index_v_ndm,zsmax,vmax,huu,hvv ), async(1)
+   !$acc kernels present( kcs, kfuv, zs, zb, cumprcp, cumprcpt, prcp, q, qinfmap, z_flags_type, z_flags_iref, uv_flags_iref, &
+   !$acc                  z_index_uv_md1, z_index_uv_md2, z_index_uv_nd1, z_index_uv_nd2, z_index_uv_mu1, z_index_uv_mu2, z_index_uv_nu1, z_index_uv_nu2, &
+   !$acc                  dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area, zsmax, twet, z_index_wavemaker, cell_area, &
+   !$acc                  wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, zsm), async(1)
    !$acc loop independent, private( nm )
    do nm = 1, np
       !
@@ -430,7 +433,7 @@ contains
    ! Should try to do this in a smart way for openacc
    !
    if (nsrcdrn>0) then
-      !$acc serial, present( z_volume,nmindsrc,qtsrc ), async(1) 
+      !$acc serial, present( z_volume, nmindsrc, qtsrc ), async(1)
       do isrc = 1, nsrcdrn
          if (nmindsrc(isrc)>0) then ! should really let this happen
             z_volume(nmindsrc(isrc)) = max(z_volume(nmindsrc(isrc)) + qtsrc(isrc)*dt, 0.0)         
@@ -443,7 +446,12 @@ contains
    !$omp private ( dvol,nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind )
 !   !$omp shared ( kcs,kfuv,zs,cumprcp,cumprcpt,prcp,q,z_index,z_flags,uv_flags,zsmax,vmax )
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels present( kcs,kfu,kfv,zs,cumprcp,cumprcpt,prcp,qx,qy,index_v_nmd,index_v_ndm,zsmax,vmax,huu,hvv ), async(1)
+   !$acc kernels present( kcs, zs, zb, z_volume, zsmax, twet, zsm, &
+   !$acc                  subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
+   !$acc                  cumprcp, cumprcpt, prcp, q, qinfmap, z_flags_type, z_flags_iref, uv_flags_iref, &
+   !$acc                  z_index_uv_md1, z_index_uv_md2, z_index_uv_nd1, z_index_uv_nd2, z_index_uv_mu1, z_index_uv_mu2, z_index_uv_nu1, z_index_uv_nu2, &
+   !$acc                  dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area, &
+   !$acc                  z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num), async(1)
    !$acc loop independent, private( nm )
    do nm = 1, np
       !

@@ -1413,8 +1413,12 @@
       !
    endif      
    !
-   !$acc kernels present(nmkcu2,nmikcu2,nmbkcu2,ibkcu2,nmkcv2,nmikcv2,nmbkcv2,ibkcv2,zs,z_volume,qx,qy,umean,vmean,zb,zbu,zbv,zsb,zsb0,subgrid_u_zmin,subgrid_u_zmax,subgrid_u_hrep,subgrid_v_zmin,subgrid_v_zmax,subgrid_v_hrep,subgrid_z_zmin,ibudir,ibvdir,huu,hvv), async(1)
-   !
+   !$acc kernels present( wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, &
+   !$acc                  zs, q, hm0_ig, zb, zbuv, &
+   !$acc                  wmf_hm0_ig_t, wmf_setup_t, wavemaker_index_wmfp1, wavemaker_index_wmfp2, wavemaker_fac_wmfp, &
+   !$acc                  wavemaker_uvmean, wavemaker_idir, wavemaker_angfac, wavemaker_freduv, wavemaker_uvtrend, & 
+   !$acc                  subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_hrep, subgrid_uv_navg, subgrid_z_zmin, subgrid_uv_hrep_zmax), async(1)
+   ! 
    ! UV fluxes at boundaries
    !
    !$acc loop independent, private(ib)
@@ -1498,52 +1502,11 @@
          !
          q(ip) = ub*hnmb + wavemaker_uvmean(ib)
          !
-!          if (subgrid) then
-!             !
-!             ! Sub-grid
-!             !
-!             if (z_volume(nmi)<=0.0) then
-!                if (wavemaker_idir(ib)==1) then
-!                   q(nm) = max(q(nm), 0.0) ! Nothing can flow out
-!                else
-!                   q(nm) = min(q(nm), 0.0) ! Nothing can flow out
-!                endif
-!             endif
-!             if (zsnmb - subgrid_z_zmin(nmb)<huthresh) then
-!                  if (ibuvdir(ib)==1) then
-!                     q(nm) = min(q(nm), 0.0) ! Nothing can flow in
-!                  else
-!                     q(nm) = max(q(nm), 0.0) ! Nothing can flow in
-!                  endif
- !              endif
- !              !
- !           else
-!               !
-!               ! Regular
-!               !
- !              if (zsnmi - zb(nmi)<=huthresh) then                  
-!                  if (ibuvdir(ib)==1) then
-!                     q(ip) = max(q(ip), 0.0) ! Nothing can flow out
-!                  else
-!                     q(ip) = min(q(ip), 0.0) ! Nothing can flow out
-!                  endif
-!               endif
-!               if (zsnmb - zb(nmb)<huthresh) then
-!                  if (ibuvdir(ib)==1) then
-!                     q(ip) = min(q(ip), 0.0) ! Nothing can flow in
-!                  else
-!                     q(ip) = max(q(ip), 0.0) ! Nothing can flow in
-!                  endif
-!               endif
-!            endif
-!            !
       endif
       !
       if (wmtfilter>=0.0) then
          !
          ! Use double exponential time filter
-         !
-!         wavemaker_uvmean(ib) = factime*q(ip) + (1.0 - factime)*wavemaker_uvmean(ib)
          !
          uvm0 = wavemaker_uvmean(ib) ! Previous time step
          wavemaker_uvmean(ib)  = alpha*q(ip)   + wavemaker_freduv*(1.0 - alpha)*(wavemaker_uvmean(ib) + wavemaker_uvtrend(ib))
@@ -1560,10 +1523,6 @@
 !      if (z_index_nm(1, nmb)==1 .and. z_index_nm(2, nmb)==300) then
 !         write(*,'(5i8,20e14.4)')ib,ip,ibuvdir(ib),nmi,nmb,q(ip),hnmb,zsnmi,zs0nmb,ub,uvmean(ib)
 !      endif
-      !
-      ! Set value on kcs=2 point to boundary condition
-      !
-!      zs(nmb) = zsb(indb)
       !
    enddo
    !
