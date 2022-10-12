@@ -6,7 +6,7 @@ RUN cd /opt/nvidia/hpc_sdk/Linux_x86_64/20.11/REDIST/compilers && tar -czvhf /ro
 WORKDIR /usr/src/sfincs
 COPY . /usr/src/sfincs
 # ccall ->  Generate code for all compute capabilities supported by this platform and by the selected or default CUDA Toolkit.
-RUN autoreconf -vif && FCFLAGS="-acc -Minfo=accel -fast -O3 -gpu=ccall" FC=nvfortran ./configure --disable-shared --disable-openmp  && make && make install
+RUN autoreconf -vif && FCFLAGS="-acc -Minfo=accel -fast -O3 -gpu=ccall -DSIZEOF_PTRDIFF_T=8" FC=nvfortran ./configure --disable-shared --disable-openmp  && make && make install
 
 FROM nvidia/cuda:11.2.2-runtime-ubuntu20.04
 ENV DEBIAN_FRONTEND=noninteractive
