@@ -7,30 +7,26 @@
    ! Computes fluxes over subgrid u and v points
    !
    use sfincs_data
-!   use omp_lib
    !
    implicit none
    !
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
+   integer   :: count0
+   integer   :: count1
+   integer   :: count_rate
+   integer   :: count_max
+   real      :: tloop
    !
    real*4    :: dt
    !
    integer   :: ip
    integer   :: nm
    integer   :: nmu
-!   integer*1  :: idir
-!   integer*1  :: iref
-!   integer*1  :: itype
-!   integer*1  :: iuv
-   integer  :: idir
-   integer  :: iref
-   integer  :: itype
-   integer  :: iuv
-   integer  :: ind
+
+   integer   :: idir
+   integer   :: iref
+   integer   :: itype
+   integer   :: iuv
+   integer   :: ind
    !
    real*4    :: huv
    real*4    :: dxuvinv
@@ -51,18 +47,12 @@
    real*4    :: qx0_nmu
    real*4    :: qx0_ndm
    real*4    :: qx0_num
-
-   
+   !   
    real*4    :: qy0_nm
    real*4    :: qy0_nmu
    real*4    :: qy0_ndm
    real*4    :: qy0_ndmu
-
-!   real*4    :: v0_nm
-!   real*4    :: v0_nmu
-!   real*4    :: v0_ndm
-!   real*4    :: v0_ndmu
-   
+   !
    real*4    :: u0_nm
    real*4    :: u0_nmd
    real*4    :: u0_nmu
@@ -81,8 +71,8 @@
    real*4    :: zmin
    real*4    :: one_minus_facint 
    !
-   real*4, parameter :: expo=1.0/3.0
-!   integer, parameter :: expo=1
+   real*4, parameter :: expo = 1.0/3.0
+!   integer, parameter :: expo = 1
    !
    logical   :: iadv, ivis, icorio, iok
    !
@@ -90,32 +80,37 @@
    !
    min_dt = 1.0e6
    !
-   !$acc update device(maxdepth), async(1)
+   !$acc update device(min_dt), async(1)
    !
-   q0(:)  = q(:)
-   uv0(:) = uv(:)
+!   q0(:)  = q(:)
+!   uv0(:) = uv(:)
    !
-!   !$omp parallel &
-!   !$omp private ( ip ) &
-!   !$omp shared ( q,q0,uv,uv0 )
-!   !$omp do
-!   !$acc kernels, present(qx,qy,qx0,qy0,huu,hvv,huu0,hvv0), async(1)
-!   !$acc loop independent, private(nm)
-!   do ip = 1, npuv
-!      q0(ip)  = q(ip)
-!      uv0(ip) = uv(ip)
-!   enddo
-!   !$acc end kernels
-!   !$omp end do
-!   !$omp end parallel
+   !$omp parallel &
+   !$omp private ( ip ) &
+   !$omp shared ( q,q0,uv,uv0 )
+   !$omp do
+   !$acc kernels, present(q, q0, uv, uv0), async(1)
+   !$acc loop independent, private(nm)
+   do ip = 1, npuv
+      q0(ip)  = q(ip)
+      uv0(ip) = uv(ip)
+   enddo
+   !$acc end kernels
+   !$omp end do
+   !$omp end parallel
    !
    !$omp parallel &
    !$omp private ( ip,huv,qx0_nm,nm,nmu,frc,adv,idir,itype,iadv,ivis,icorio,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv,qx0_nmd,qx0_nmu,qx0_ndm,qx0_num,u0_nm,u0_nmd,u0_nmu,u0_num,u0_ndm,v0_ndm,v0_ndmu,v0_nm,v0_nmu,fcoriouv,gnavg2,iok,zsuv,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint ) &
    !$omp shared ( q,uv ) &
    !$omp reduction ( min : min_dt )
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels, present(kfu,kfv,kcu,kcv,qx,qy,qx0,qy0,huu,hvv,huu0,hvv0,zs,index_v_nmu,index_v_nmd,index_v_num,index_v_ndm,zb,zbu,zbv,zbumx,zbvmx,tauwu,tauwv,patm,gn2u,gn2v, maxdepth), async(1)
-   !$acc loop independent, reduction(max:maxdepth), private(huv,q2t,nmu,nmd,nm,num,ndm,numd,ndmu,adv,zsuv,dzuv,iuv,facint,maxhuv,frc)
+   !$acc kernels, present( kcuv, zs, q, q0, uv, uv0, min_dt, &
+   !$acc                   uv_flags_iref, uv_flags_type, uv_flags_vis, uv_flags_adv, uv_flags_dir, &
+   !$acc                   subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_hrep, subgrid_uv_navg, subgrid_uv_hrep_zmax, subgrid_uv_navg_zmax, &
+   !$acc                   uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
+   !$acc                   uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
+   !$acc                   zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, fcorio2d ), async(1)
+   !$acc loop independent, reduction( min : min_dt )
    do ip = 1, npuv
       !
       if (kcuv(ip)==1) then
@@ -209,23 +204,23 @@
                   ! Regular
                   !
                   if (idir==0) then
-                    !
-                    ! U point
-                    !
+                     !
+                     ! U point
+                     !
                      dxuvinv  = dxminv(ip)
                      dyuvinv  = dyrinv(iref)
                      dxuv2inv = dxm2inv(ip)
                      dyuv2inv = dyr2inv(iref)
-                    !
+                     !
                   else
-                    !
-                    ! V point
-                    !
+                     !
+                     ! V point
+                     !
                      dyuvinv  = dxminv(ip)
                      dxuvinv  = dyrinv(iref)
                      dyuv2inv = dxm2inv(ip)
                      dxuv2inv = dyr2inv(iref)
-                    !
+                     !
                   endif   
                else   
                   !
@@ -315,9 +310,9 @@
             if (ivis) then
                !
                if (.not. iadv) then
-                  u0_nm   = uv0(ip)
-                  u0_nmd   = uv0(uv_index_u_nmd(ip))
-                  u0_nmu   = uv0(uv_index_u_nmu(ip))
+                  u0_nm  = uv0(ip)
+                  u0_nmd = uv0(uv_index_u_nmd(ip))
+                  u0_nmu = uv0(uv_index_u_nmu(ip))
                endif
                !
                u0_ndm  = uv0(uv_index_u_ndm(ip))
@@ -369,6 +364,7 @@
             ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
             !
             min_dt = min(min_dt, 1.0/(sqrt(g*huv)*dxuvinv))
+!            write(*,*)ip,huv, min_dt, 1.0/(sqrt(g*huv)*dxuvinv)
             !
             ! FORCING TERMS
             !
@@ -527,6 +523,9 @@
    enddo   
    !$omp end do
    !$omp end parallel
+   !$acc end kernels
+   !
+   !$acc update host(min_dt), async(1)
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
@@ -607,15 +606,12 @@
    call system_clock(count0, count_rate, count_max)
    !
    min_dt = 1.0e6
-!   min_dt = 14.0
    !
    !$omp parallel &
    !$omp private ( ip,huv,qx0_nm,nm,nmu,frc,dxuvinv,gnavg2,iok,zsuv,dzuv,iuv,facint,ahrep,anavg,zmin,zmax,one_minus_facint,iuvr,ind ) &
    !$omp shared ( kcuv,q,zs,subgrid_uv_zmin,subgrid_uv_zmax,subgrid_uv_hrep,subgrid_uv_navg,uv_index_z_nm,uv_index_z_nmu,subgrid_uv_hrep_zmax,subgrid_uv_navg_zmax ) &
    !$omp reduction ( min : min_dt )
    !$omp do
-   !$acc kernels, present(kfu,kfv,kcu,kcv,qx,qy,qx0,qy0,huu,hvv,huu0,hvv0,zs,index_v_nmu,index_v_nmd,index_v_num,index_v_ndm,zb,zbu,zbv,zbumx,zbvmx,tauwu,tauwv,patm,gn2u,gn2v, maxdepth), async(1)
-   !$acc loop independent, reduction(max:maxdepth), private(huv,q2t,nmu,nmd,nm,num,ndm,numd,ndmu,adv,zsuv,dzuv,iuv,facint,maxhuv,frc)
    do ip = 1, npuv
       !
       if (kcuv(ip)==1) then

@@ -48,7 +48,7 @@ module sfincs_lib
    real*8   :: t
    real*4   :: dt
    real*4   :: dtt
-   real*4   :: mindt
+   real*4   :: min_dt
    real*8   :: tmapout
    real*8   :: tmaxout
    real*8   :: trstout
@@ -141,7 +141,7 @@ module sfincs_lib
    dtavg       = 0.0    ! average time step
    maxdepth    = 999.0  ! maximum depth over time step
    maxmaxdepth = 0.0    ! maximum depth over entire simulation
-   mindt       = 0.0    ! minimum time step from compute_fluxes
+   min_dt       = 0.0    ! minimum time step from compute_fluxes
    nt          = 0      ! number of time steps
    ntmapout    = 0      ! number of map time steps
    ntmaxout    = 0      ! number of max time steps
@@ -188,10 +188,27 @@ module sfincs_lib
    !
    ierr = -1
    !
-   !$acc data copyin(kfu,kfv,kcu,kcv,kcs,qx,qy,qx0,qy0,huu,hvv,huu0,hvv0,zs,z_volume,index_v_nmu,index_v_nmd,index_v_num,index_v_ndm,zb,zbu,zbv,zbumx,zbvmx,tauwu,tauwv,tauwavu,tauwavv,patm,gn2u,gn2v,subgrd_u_zmin,subgrd_u_zmax,subgrd_u_dhdz,subgrd_u_hrep,subgrd_v_zmin,subgrd_v_zmax,subgrd_v_dhdz,subgrd_v_hrep,cumprcpt,prcp,zsmax,subgrd_z_zmin,subgrd_z_zmax,subgrd_z_volmax,subgrd_z_dep,tauwu0,tauwv0,patm0,prcp0,tauwu1,tauwv1,patm1,prcp1,zsb0,zsb,maxdepth,nmkcu2,nmikcu2,nmbkcu2,ibkcu2,nmkcv2,nmikcv2,nmbkcv2,ibkcv2,umean,vmean,ibudir,ibvdir,nmindbnd,nmindsrc,qtsrc,qinfmap,struc_type,struc_uv,struc_pars,struc_nm,cumprcp)
+   !$acc data, copyin( kcs, kcuv, zs, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, twet, zsm, z_volume, &
+   !$acc               z_flags_iref, z_flags_type, uv_flags_iref, uv_flags_type, uv_flags_vis, uv_flags_adv, uv_flags_dir, &
+   !$acc               index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, zsb, zsb0, ibuvdir, uvmean, &
+   !$acc               subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_hrep, subgrid_uv_navg, subgrid_uv_hrep_zmax, subgrid_uv_navg_zmax, &
+   !$acc               subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
+   !$acc               z_index_uv_md1, z_index_uv_md2, z_index_uv_nd1, z_index_uv_nd2, z_index_uv_mu1, z_index_uv_mu2, z_index_uv_nu1, z_index_uv_nu2, &
+   !$acc               uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
+   !$acc               uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
+   !$acc               nmindsrc, qtsrc, drainage_type, drainage_params, &
+   !$acc               z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, &
+   !$acc               fwuv, &
+   !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
+   !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, & 
+   !$acc               patm, patm0, patm1, patmb, nmindbnd, &
+   !$acc               prcp, prcp0, prcp1, cumprcp, cumprcpt, prcp, q, qinfmap, cuminf, & 
+   !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
+   !$acc               gn2uv, fcorio2d, min_dt ) 
    !
    ! Set target time: if dt range is negative, do not modify t1
-   if( dtrange > 0.0 ) then
+   !
+   if ( dtrange > 0.0 ) then
        t1 = t + dtrange
    endif
    !
@@ -215,7 +232,7 @@ module sfincs_lib
       ! New time step
       !
       nt = nt + 1
-      dt = alfa*mindt ! mindt was computed in sfincs_momentum.f90 without alfa
+      dt = alfa*min_dt ! min_dt was computed in sfincs_momentum.f90 without alfa
       dt = min(dt, dtmax)
       !
       ! Ensure that we don't go beyond end time of simulation
@@ -380,8 +397,7 @@ module sfincs_lib
       !
       ! First compute fluxes
       !
-!      call compute_fluxes_simple(dt, mindt, tloopflux)
-      call compute_fluxes(dt, mindt, tloopflux)
+      call compute_fluxes(dt, min_dt, tloopflux)
       !
       if (wavemaker) then
          !
@@ -561,7 +577,7 @@ module sfincs_lib
    ierr = 0
    !
    write(*,*)'---Closing off SFINCS completely---'
-   
+   !
    end function sfincs_finalize
    !
 end module sfincs_lib

@@ -121,20 +121,12 @@ module sfincs_output
       !
       if (write_rst) then
          !$acc update host(q)
-         !$acc update host(q)
       endif   
       !      
    endif
    !
    if (write_map) then
       !
-!      if (store_velocity) then
-!         do nm = 1, np
-!            u(nm) = qx(nm)/huu(nm)
-!            v(nm) = qy(nm)/hvv(nm)
-!         enddo   
-!      endif   
-      !      
       if (outputtype_map == 'net') then
          !
          if (use_quadtree) then
@@ -165,7 +157,7 @@ module sfincs_output
          !$acc update host(twet)
       endif
       !
-      if (store_cumulative_precipitation) then
+      if (precip .and. store_cumulative_precipitation) then
          !$acc update host(cumprcp)
       endif
       !
@@ -197,7 +189,7 @@ module sfincs_output
          !$acc update device(vmax)
       endif
       !
-      if (store_cumulative_precipitation) then
+      if (precip .and. store_cumulative_precipitation) then
          cumprcp = 0.0 ! Set cumprcp back to a 0.0
          !$acc update device(cumprcp)
       endif            
