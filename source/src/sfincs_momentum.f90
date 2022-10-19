@@ -364,7 +364,6 @@
             ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
             !
             min_dt = min(min_dt, 1.0/(sqrt(g*huv)*dxuvinv))
-!            write(*,*)ip,huv, min_dt, 1.0/(sqrt(g*huv)*dxuvinv)
             !
             ! FORCING TERMS
             !
@@ -491,7 +490,7 @@
             endif   
             !
             ! Compute new flux for this uv point (Bates et al., 2010)
-            !
+            ! 
             qx0_nm = (qx0_nm + frc*dt ) / (1.0 + gnavg2*dt*abs(qx0_nm)/(huv**2*huv**expo))
             !
 !            if (zs(nm)<=zb(nm)) then
@@ -499,7 +498,7 @@
 !               qx0_nm = min(qx0_nm, 0.0)
 !               !
 !            endif
-!               !
+!            !
 !            if (zs(nmu)<=zb(nmu)) then
 !               !
 !               qx0_nm = max(qx0_nm, 0.0)

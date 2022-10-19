@@ -90,6 +90,8 @@ Module netcdf_nc_data
  Integer, Parameter :: C_PTRDIFF_T = C_INT32_T
 #elif (SIZEOF_PTRDIFF_T == 8)
  Integer, Parameter :: C_PTRDIFF_T = C_INT64_T
+#elif (SIZEOF_PTRDIFF_T == 999)
+ Integer, Parameter :: C_PTRDIFF_T = C_INTPTR_T
 #else
 ! Integer, Parameter :: C_PTRDIFF_T = C_INTPTR_T
 #endif

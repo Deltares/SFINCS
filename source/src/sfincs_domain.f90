@@ -134,16 +134,61 @@ contains
       !
    else
       !
-      ! Read 'old' binary index file and make quadtree with those
-      !
-      ! Read index file (first time, only read number of active points)
-      !
-      write(*,*)'Reading ', trim(indexfile), ' ...'
-      open(unit = 500, file = trim(indexfile), form = 'unformatted', access = 'stream')
-      read(500)np
-      allocate(indices(np))
-      read(500)indices
-      close(500)
+      if (inputtype=='asc') then
+         !
+         ! Read ASCII input
+         !
+         write(*,*)'Reading ASCII input ...'
+         !
+         allocate(kcsg(nmax,  mmax))       ! KCS
+         !
+         kcsg = 0      
+         !
+         ! Read mask file
+         !
+         open(500, file=trim(mskfile))
+         do n = 1, nmax
+            read(500,*)(kcsg(n, m), m = 1, mmax)
+         enddo
+         close(500)
+         !
+         ! Count active points
+         !
+         np = 0
+         do m = 1, mmax
+            do n = 1, nmax
+               if (kcsg(n,m)>0) then
+                  np = np + 1
+               endif
+            enddo
+         enddo
+         !
+         allocate(indices(np))
+         !
+         ip = 0
+         do m = 1, mmax
+            do n = 1, nmax
+               if (kcsg(n,m)>0) then
+                  ip = ip + 1
+                  indices(ip) = (m - 1)*nmax + n
+               endif
+            enddo
+         enddo
+         !
+      else
+         !
+         ! Read 'old' binary index file and make quadtree with those
+         !
+         ! Read index file (first time, only read number of active points)
+         !
+         write(*,*)'Reading ', trim(indexfile), ' ...'
+         open(unit = 500, file = trim(indexfile), form = 'unformatted', access = 'stream')
+         read(500)np
+         allocate(indices(np))
+         read(500)indices
+         close(500)
+         !
+      endif
       !
       call make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, rotation)
       !
@@ -173,9 +218,26 @@ contains
    ! Read mask file (must have same number of cells as quadtree file !)
    !
    write(*,*)'Reading ', trim(mskfile), ' ...'
-   open(unit = 500, file = trim(mskfile), form = 'unformatted', access = 'stream')
-   read(500)msk
-   close(500)
+   !
+   if (inputtype=='asc') then
+      !
+      ip = 0
+      do m = 1, mmax
+         do n = 1, nmax
+            if (kcsg(n, m) > 0) then
+               ip = ip + 1
+               msk(ip) = kcsg(n, m)
+            endif
+         enddo
+      enddo
+      !
+   else
+      !
+      open(unit = 500, file = trim(mskfile), form = 'unformatted', access = 'stream')
+      read(500)msk
+      close(500)
+      !
+   endif
    !
    ! Now first get rid of all the points that have msk==0
    !
@@ -184,7 +246,7 @@ contains
    np = 0
    !
    do ip = 1, quadtree_nr_points
-      if (msk(ip)>0) then
+      if (msk(ip) > 0) then
          np = np + 1
       endif
    enddo
@@ -1212,13 +1274,41 @@ contains
             enddo   
             !
          endif
+         !
       else
          !
          write(*,*)'Reading ',trim(depfile)
-         open(unit = 500, file = trim(depfile), form = 'unformatted', access = 'stream')
-         read(500)zb
-         close(500)
          !
+         if (inputtype=='asc') then
+            !
+            allocate(zbg(nmax, mmax))
+            !
+            open(500, file=trim(depfile))
+            do n = 1, nmax
+               read(500,*)(zbg(n, m), m = 1, mmax)
+            enddo
+            close(500)
+            !
+            ip = 0
+            do m = 1, mmax
+               do n = 1, nmax
+                  if (kcsg(n, m) > 0) then
+                     ip = ip + 1
+                     zb(ip)      = zbg(n, m)
+                  endif
+               enddo
+            enddo
+            !
+            deallocate(zbg)
+            deallocate(kcsg)
+            !
+         else
+            !
+            open(unit = 500, file = trim(depfile), form = 'unformatted', access = 'stream')
+            read(500)zb
+            close(500)
+            !
+         endif 
       endif   
       !
       ! Determine depths at u and v points
@@ -1826,11 +1916,13 @@ contains
       !      
    enddo      
    !
-   ! Turn off advection near the boundaries
+   ! Turn off advection in some cells (next to inactive points and boundaries)
    !
-   if (advection .or. coriolis) then
+   if ((advection .or. coriolis) .and. nmax/=1) then
       !
       do ip = 1, npuv
+         !
+         ! Turn off advection near inactive points
          !
          if (uv_index_u_nmd(ip) == 0)  uv_flags_adv(ip) = 0
          if (uv_index_u_nmu(ip) == 0)  uv_flags_adv(ip) = 0
@@ -1840,6 +1932,8 @@ contains
          if (uv_index_v_nm(ip) == 0)   uv_flags_adv(ip) = 0
          if (uv_index_v_nmu(ip) == 0)  uv_flags_adv(ip) = 0
          if (uv_index_v_ndmu(ip) == 0) uv_flags_adv(ip) = 0
+         !
+         ! Turn off advection near the boundaries
          !
          if (uv_index_u_nmd(ip)>0) then
             if (kcuv(uv_index_u_nmd(ip)) == 2)  uv_flags_adv(ip) = 0
@@ -1866,7 +1960,8 @@ contains
             if (kcuv(uv_index_v_ndmu(ip)) == 2) uv_flags_adv(ip) = 0
          endif   
          !
-      enddo      
+      enddo
+      !
    endif
    !
    ! FRICTION COEFFICIENTS
