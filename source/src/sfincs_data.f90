@@ -179,7 +179,8 @@ module sfincs_data
       logical       :: usehuv0
       logical       :: write_time_output
       logical       :: bziwaves
-      logical       :: infiltration2d
+      logical       :: infiltration
+      logical       :: infiltration2d      
       logical       :: debug
       logical       :: radstr
       logical       :: crsgeo

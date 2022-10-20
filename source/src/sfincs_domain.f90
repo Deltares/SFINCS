@@ -2020,22 +2020,33 @@ contains
    endif
    !
    ! INFILTRATION
+   ! Note, infiltration methods not designed to be stacked
    !
+   infiltration = .false.   
    infiltration2d = .false.
    !
-   if (qinffile /= 'none') then
+   if (qinf > 0.0) then   
+      !
+      ! Spatially-uniform constant infiltration (specified as +mm/hr)
+      !
+      inftype='con'
+      infiltration = .true.
+      infiltration2d = .false.
+      write(*,*)'Turning on process: Spatially-uniform constant infiltration'        
+      ! 
+   elseif (qinffile /= 'none') then
       !
       ! Spatially-varying constant infiltration
       !
       inftype='con'
+      infiltration = .true.      
       infiltration2d = .true.
-      write(*,*)'Turning on process: Infiltration'      
+      write(*,*)'Turning on process: Spatially-varying constant infiltration'      
       !
       allocate(qinfmap(np))
       qinfmap = 0.0
       allocate(qinffield(np))
       qinffield = 0.0
-      !
       !
       ! Read spatially-varying infiltration (only binary, specified in +mm/hr)
       !
@@ -2045,35 +2056,40 @@ contains
       close(500)
       !
       do nm = 1, np
-         qinfmap(nm) = qinffield(nm)/3.6e3/1.0e3   !to +m/s
+         qinfmap(nm) = qinffield(nm)/3.6e3/1.0e3   ! convert to +m/s
       enddo
       !
    elseif (scsfile /= 'none') then
       !
-      ! Spatially-varying infiltration with CN numbers
-      !
-      inftype='scs'
-      infiltration2d = .true.
-      write(*,*)'Turning on process: Infiltration'            
-      !
-      allocate(qinfmap(np))
-      qinfmap = 0.0
-      allocate(qinffield(np))
-      qinffield = 0.0
-      allocate(cuminf(np))
-      cuminf = 0.0
-      !
-      write(*,*)'Reading ',trim(scsfile)
-      open(unit = 500, file = trim(scsfile), form = 'unformatted', access = 'stream')
-      read(500)qinffield
-      close(500)
-      !
-      ! already convert qinffield from inches to m here
-      do nm = 1, np
-         qinffield(nm) = qinffield(nm)*0.0254   !to m
-      enddo      
-      !
-      store_cumulative_precipitation = .true.
+      if (precip) then   ! (Curve number only when there is rainfall)             
+         !
+         ! Spatially-varying infiltration with CN numbers
+         !
+         inftype='scs'
+         infiltration = .true.      
+         infiltration2d = .true.
+         write(*,*)'Turning on process: Spatially-varying infiltration with CN numbers'            
+         !
+         allocate(qinfmap(np))
+         qinfmap = 0.0
+         allocate(qinffield(np))
+         qinffield = 0.0
+         allocate(cuminf(np))
+         cuminf = 0.0
+         !
+         write(*,*)'Reading ',trim(scsfile)
+         open(unit = 500, file = trim(scsfile), form = 'unformatted', access = 'stream')
+         read(500)qinffield
+         close(500)
+         !
+         ! already convert qinffield from inches to m here
+         do nm = 1, np
+            qinffield(nm) = qinffield(nm)*0.0254   !to m
+         enddo      
+         !
+         store_cumulative_precipitation = .true.
+         !
+      endif
       !
    endif   
    !
@@ -2387,10 +2403,13 @@ contains
       allocate(prcp(np))
       allocate(prcp0(np))
       allocate(prcp1(np))
-      allocate(cumprcpt(np))
       prcp    = 0.0
       prcp0   = 0.0
       prcp1   = 0.0
+   endif
+   !
+   if (infiltration .or. precip) then
+      allocate(cumprcpt(np))      
       cumprcpt = 0.0
       if (store_cumulative_precipitation) then
          allocate(cumprcp(np))

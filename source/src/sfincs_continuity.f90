@@ -117,21 +117,30 @@ contains
          !
          if (precip) then
             !
-            ! Rainfall and infiltration
+            ! Rainfall only
+            !
+            cumprcpt(nm) = cumprcpt(nm) + (prcp(nm)*dt)
+            !
+         endif
+         !          
+         if (infiltration) then
+            ! 
+            ! Infiltration
             !
             if (infiltration2d) then
                !
-               cumprcpt(nm) = cumprcpt(nm) + (prcp(nm) - qinfmap(nm))*dt
-               !
+               cumprcpt(nm) = cumprcpt(nm) - (qinfmap(nm)*dt)
             else   
+               cumprcpt(nm) = cumprcpt(nm) - (qinf*dt) 
                !
-               cumprcpt(nm) = cumprcpt(nm) + (prcp(nm) - qinf)*dt
-               !
-            endif
+            endif             
             !
-            ! Add rain and infiltration only when cumulative effect over last interval exceeds 0.001 m
-            ! Otherwise single precision may miss a lot of the rainfall/infiltration
-            !
+         endif   
+         !
+         ! Add rain and/or infiltration only when cumulative effect over last interval exceeds 0.001 m
+         ! Otherwise single precision may miss a lot of the rainfall/infiltration
+         !
+         if (precip .or. infiltration) then            
             if (cumprcpt(nm)>0.001 .or. cumprcpt(nm)<-0.001) then
                !
                zs(nm) = zs(nm) + cumprcpt(nm)
@@ -467,21 +476,31 @@ contains
          !
          if (precip) then
             !
-            ! Rainfall and infiltration
+            ! Rainfall only
+            !
+            cumprcpt(nm) = cumprcpt(nm) + (prcp(nm)*dt)
+            !
+         endif
+         !
+         if (infiltration) then
+            ! 
+            ! Infiltration only
             !
             if (infiltration2d) then
                !
-               cumprcpt(nm) = cumprcpt(nm) + (prcp(nm) - qinfmap(nm))*dt
-               !
+               cumprcpt(nm) = cumprcpt(nm) - (qinfmap(nm)*dt)
             else   
+               cumprcpt(nm) = cumprcpt(nm) - (qinf*dt)
                !
-               cumprcpt(nm) = cumprcpt(nm) + (prcp(nm) - qinf)*dt
-               !
-            endif
+            endif         
             !
-            ! Add rain and infiltration only when cumulative effect over last interval exceeds 0.001 m
-            ! Otherwise single precision may miss a lot of the rainfall/infiltration
-            !
+         endif            
+         !
+         ! Add rain and/or infiltration only when cumulative effect over last interval exceeds 0.001 m
+         ! Otherwise single precision may miss a lot of the rainfall/infiltration
+         !
+         if (precip .or. infiltration) then   
+            ! 
             if (cumprcpt(nm)>0.001 .or. cumprcpt(nm)<-0.001) then
                !
                z_volume(nm) = z_volume(nm) + cumprcpt(nm)*a
