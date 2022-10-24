@@ -1868,32 +1868,32 @@ contains
    !
    allocate(zstmp(nmax,mmax))
    !
-   ! Write maximum water level
    zstmp = FILL_VALUE
+   !
    if (subgrid) then   
-       do nm = 1, np
-           !
-           n    = z_index_z_n(nm)
-           m    = z_index_z_m(nm)             
-           !
-           if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
-               zstmp(n, m) = zsmax(nm)
-           endif
-           !
-       enddo
+      do nm = 1, np
+         !
+         n    = z_index_z_n(nm)
+         m    = z_index_z_m(nm)
+         !      
+         if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
+            zstmp(n, m) = zsmax(nm) 
+         endif
+      enddo
    else
-       do nm = 1, np       
-           !
-           n    = z_index_z_n(nm)
-           m    = z_index_z_m(nm)
-           !      
-           if ( (zsmax(nm) - zb(nm)) > huthresh) then
-               zstmp(n, m) = zsmax(nm) 
-           endif      
-       enddo
-   endif 
+      do nm = 1, np       
+         !
+         n    = z_index_z_n(nm)
+         m    = z_index_z_m(nm)
+         !      
+         if ( (zsmax(nm) - zb(nm)) > huthresh) then
+            zstmp(n, m) = zsmax(nm) 
+         endif      
+      enddo
+   endif
+   !
    NF90(nf90_put_var(map_file%ncid, map_file%timemax_varid, t, (/ntmaxout/))) ! write time_max
-   NF90(nf90_put_var(map_file%ncid, map_file%zsmax_varid, zstmp, (/1, ntmaxout/))) ! write zsmax   
+   NF90(nf90_put_var(map_file%ncid, map_file%zsmax_varid, zstmp, (/1, 1, ntmaxout/))) ! write zsmax      
    !
    ! Write maximum water depth (optional)
    if (subgrid == .false. .or. store_hsubgrid == .true.) then
