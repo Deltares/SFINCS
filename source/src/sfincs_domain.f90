@@ -2063,12 +2063,12 @@ contains
       !
       if (precip) then   ! (Curve number only when there is rainfall)             
          !
-         ! Spatially-varying infiltration with CN numbers
+         ! Spatially-varying infiltration with CN numbers (old)
          !
          inftype='scs'
          infiltration = .true.      
          infiltration2d = .true.
-         write(*,*)'Turning on process: Spatially-varying infiltration with CN numbers'            
+         write(*,*)'Turning on process: Infiltration (via CN method - A)'               
          !
          allocate(qinfmap(np))
          qinfmap = 0.0
@@ -2091,6 +2091,56 @@ contains
          !
       endif
       !
+   elseif (scsfile_Se /= 'none') then  
+         !
+         ! Spatially-varying infiltration with CN numbers (new)
+         inftype='cnb'
+         infiltration2d = .true.
+         write(*,*)'Turning on process: Infiltration (via CN method - B)'            
+         !
+         ! Allocate qinfmap (time-space varying inf rate) and cuminf
+         allocate(qinfmap(np))
+         qinfmap = 0.0
+         allocate(cuminf(np))
+         cuminf = 0.0
+         ! 
+         ! Allocate Smax
+         allocate(qinffield(np))
+         qinffield = 0.0
+         write(*,*)'Reading ',trim(scsfile_Smax)
+         open(unit = 500, file = trim(scsfile_Smax), form = 'unformatted', access = 'stream')
+         read(500)qinffield
+         close(500)
+         !
+         ! Allocate Se
+         allocate(qinffield2(np))
+         qinffield2 = 0.0
+         write(*,*)'Reading ',trim(scsfile_Se)
+         open(unit = 501, file = trim(scsfile_Se), form = 'unformatted', access = 'stream')
+         read(501)qinffield2
+         close(501)
+         !
+         ! Allocate kr
+         allocate(scs_kr(np))
+         scs_kr = 0.0
+         write(*,*)'Reading ',trim(scsfile_kr)
+         open(unit = 502, file = trim(scsfile_kr), form = 'unformatted', access = 'stream')
+         read(502)scs_kr
+         close(502)
+         !
+         ! Allocate support variables
+         allocate(scs_P1(np))
+         scs_P1 = 0.0
+         allocate(scs_F1(np))
+         scs_F1 = 0.0
+         allocate(scs_Se(np))
+         scs_Se = 0.0
+         allocate(scs_rain(np))
+         scs_rain = 0
+         !
+         ! Done here
+         store_cumulative_precipitation = .true.
+         !
    endif   
    !
    end subroutine

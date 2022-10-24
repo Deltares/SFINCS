@@ -792,8 +792,12 @@ contains
    do while(low <= high .and. .not.found)
       !
       middle = (low + high)/2
-      !
-      if (val == x(middle)) then
+      ! 
+      if (middle==0) then
+         !
+         low = middle + 1
+         !
+      elseif (val == x(middle) ) then
          !
          found = .true.
          indx  = middle
