@@ -168,6 +168,7 @@ module sfincs_data
       logical       :: store_maximum_velocity
       logical       :: store_velocity
       logical       :: store_twet
+      logical       :: store_hsubgrid
       logical       :: store_qdrain
       logical       :: store_zvolume
       logical       :: store_meteo

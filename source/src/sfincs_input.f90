@@ -19,6 +19,7 @@ contains
    integer storeqdrain
    integer storezvolume
    integer storemeteo
+   integer storehsubgrid
    integer wrttimeoutput
    integer idebug
    integer iradstr
@@ -175,6 +176,7 @@ contains
    call read_int_input(500,'storevel',storevel,0)
    call read_int_input(500,'storecumprcp',storecumprcp,0)
    call read_int_input(500,'storetwet',storetwet,0)
+   call read_int_input(500,'storehsubgrid',storehsubgrid,0)
    call read_real_input(500,'twet_threshold',twet_threshold,0.01)
    call read_int_input(500,'store_tsunami_arrival_time',itsunamitime,0)
    call read_real_input(500,'tsunami_arrival_threshold',tsunami_arrival_threshold,0.01)
@@ -306,6 +308,11 @@ contains
    if (storevel==1) then
       store_velocity = .true.
    endif
+   !
+   store_hsubgrid = .false.
+   if (storehsubgrid==1) then
+      store_hsubgrid = .true.
+   endif   
    !
    store_meteo = .false.
    store_wind_max = .false.
