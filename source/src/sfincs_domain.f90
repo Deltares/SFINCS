@@ -2358,6 +2358,27 @@ contains
       deallocate(inizs)
       deallocate(iniq)
       !
+   elseif (zsinifile(1:4) /= 'none') then ! Read binary (!) initial water level file
+      !
+      allocate(inizs(np))
+      !       
+      write(*,*)'Reading ',trim(zsinifile)
+      open(unit = 500, file = trim(zsinifile), form = 'unformatted', access = 'stream')
+      read(500)inizs
+      close(500)       
+      !
+      do nm = 1, np
+         !
+         if (subgrid) then
+            zs(nm) = max(subgrid_z_zmin(nm), inizs(nm)) ! Water level at zini or bed level (whichever is higher)
+         else
+            zs(nm) = max(zb(nm), inizs(nm)) ! Water level at zini or bed level (whichever is higher)
+         endif
+         !
+      enddo       
+      !
+      deallocate(inizs)    
+      !
    else
       !
       ! No initial conditions file
