@@ -85,14 +85,22 @@ module sfincs_lib
    build_revision = '$Rev: v0.0.1-alpha$'
    build_date     = '$Date: 2022-10-25$'
    !
-
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
+   write(*,'(a)')''   
+   write(*,*)' @@@@@  @@@@@@@ @@ @@  @@   @@@@   @@@@@ '
+   write(*,*)'@@@ @@@ @@@@@@@ @@ @@@ @@ @@@@@@@ @@@ @@@'
+   write(*,*)'@@@     @@      @@ @@@ @@ @@   @@ @@@    '
+   write(*,*)' @@@@@  @@@@@@  @@ @@@@@@ @@       @@@@@ '
+   write(*,*)'    @@@ @@      @@ @@ @@@ @@   @@     @@@'
+   write(*,*)'@@@ @@@ @@      @@ @@  @@  @@@@@@ @@@ @@@'
+   write(*,*)' @@@@@  @@      @@ @@   @   @@@@   @@@@@ '   
+   write(*,'(a)')''      
+   write(*,*)'-----------------------------------------'      
    write(*,'(a)')''
    write(*,*)'Build-Revision: ',trim(build_revision)
    write(*,*)'Build-Date:     ',trim(build_date)
    write(*,'(a)')''
-
    !
    call system_clock(count0, count_rate, count_max)
    !
@@ -216,17 +224,7 @@ module sfincs_lib
    !
    ! Start computational loop
    !
-   write(*,'(a)')''      
-   write(*,*)'-----------------------------------------'   
    write(*,'(a)')''   
-   write(*,*)' @@@@@  @@@@@@@ @@ @@  @@   @@@@   @@@@@ '
-   write(*,*)'@@@ @@@ @@@@@@@ @@ @@@ @@ @@@@@@@ @@@ @@@'
-   write(*,*)'@@@     @@      @@ @@@ @@ @@   @@ @@@    '
-   write(*,*)' @@@@@  @@@@@@  @@ @@@@@@ @@       @@@@@ '
-   write(*,*)'    @@@ @@      @@ @@ @@@ @@   @@     @@@'
-   write(*,*)'@@@ @@@ @@      @@ @@  @@  @@@@@@ @@@ @@@'
-   write(*,*)' @@@@@  @@      @@ @@   @   @@@@   @@@@@ '     
-   write(*,'(a)')''
    write(*,*)'---------- Starting simulation ----------'
    write(*,'(a)')''   
    !
