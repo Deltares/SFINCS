@@ -197,7 +197,7 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'standard_name', 'sea_surface_height_above_mean_sea_level')) 
    NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'long_name', 'water_level'))  
    !
-   if (subgrid == .false. .or. store_hsubgrid == .true.) then   
+   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then   
       NF90(nf90_def_var(map_file%ncid, 'h', NF90_FLOAT, (/map_file%n_dimid, map_file%m_dimid, map_file%time_dimid/), map_file%h_varid)) ! time-varying water depth map
       NF90(nf90_put_att(map_file%ncid, map_file%h_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(map_file%ncid, map_file%h_varid, 'units', 'm'))
@@ -266,7 +266,7 @@ contains
    endif
    !
    if (store_maximum_waterlevel) then
-      if (subgrid == .false. .or. store_hsubgrid == .true.) then   
+      if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then   
          NF90(nf90_def_var(map_file%ncid, 'hmax', NF90_FLOAT, (/map_file%n_dimid, map_file%m_dimid, map_file%timemax_dimid/), map_file%hmax_varid)) ! time-varying maximum water depth map
          NF90(nf90_put_att(map_file%ncid, map_file%hmax_varid, '_FillValue', FILL_VALUE))   
          NF90(nf90_put_att(map_file%ncid, map_file%hmax_varid, 'units', 'm'))
@@ -963,7 +963,7 @@ contains
    NF90(nf90_put_att(his_file%ncid, his_file%zs_varid, 'standard_name', 'sea_surface_height_above_mean_sea_level')) 
    NF90(nf90_put_att(his_file%ncid, his_file%zs_varid, 'long_name', 'water_level'))  
    !
-   if (subgrid == .false. .or. store_hsubgrid == .true.) then   
+   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then   
       NF90(nf90_def_var(his_file%ncid, 'point_h', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%h_varid)) ! time-varying water depth map
       NF90(nf90_put_att(his_file%ncid, his_file%h_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(his_file%ncid, his_file%h_varid, 'units', 'm'))
@@ -1206,7 +1206,7 @@ contains
       endif
    enddo
    !
-   if (subgrid == .false. .or. store_hsubgrid == .true.) then   
+   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then   
       ! 
       NF90(nf90_put_var(map_file%ncid, map_file%h_varid, zsg, (/1, 1, ntmapout/))) ! write h
       !
@@ -1773,7 +1773,7 @@ contains
    !   
    NF90(nf90_put_var(his_file%ncid, his_file%zs_varid, zobs, (/1, nthisout/))) ! write point_zs
    !
-   if (subgrid == .false. .or. store_hsubgrid == .true.) then   
+   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then   
       !
       NF90(nf90_put_var(his_file%ncid, his_file%h_varid, hobs, (/1, nthisout/))) ! write point_h   
       !
@@ -1896,7 +1896,7 @@ contains
    NF90(nf90_put_var(map_file%ncid, map_file%zsmax_varid, zstmp, (/1, 1, ntmaxout/))) ! write zsmax      
    !
    ! Write maximum water depth (optional)
-   if (subgrid == .false. .or. store_hsubgrid == .true.) then
+   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
       zstmp = FILL_VALUE
       if (subgrid) then   
          do nm = 1, np
@@ -2041,7 +2041,7 @@ contains
    NF90(nf90_put_var(map_file%ncid, map_file%zsmax_varid, zstmp, (/1, ntmaxout/))) ! write zsmax   
    !
    ! Write maximum water depth
-   if (subgrid == .false. .or. store_hsubgrid == .true.) then
+   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
       zstmp = FILL_VALUE
       !        
       if (subgrid) then   
@@ -2062,7 +2062,7 @@ contains
       endif  
    endif
    !   
-   if (subgrid == .false. .or. store_hsubgrid == .true.) then
+   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
       NF90(nf90_put_var(map_file%ncid, map_file%hmax_varid, zstmp, (/1, ntmaxout/))) ! write hmax   
    endif
    !

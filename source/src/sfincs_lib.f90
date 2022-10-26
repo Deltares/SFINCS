@@ -216,6 +216,7 @@ module sfincs_lib
    !
    ! Start computational loop
    !
+   write(*,'(a)')''      
    write(*,*)'-----------------------------------------'   
    write(*,'(a)')''   
    write(*,*)' @@@@@  @@@@@@@ @@ @@  @@   @@@@   @@@@@ '
