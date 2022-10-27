@@ -1920,7 +1920,7 @@ contains
             endif      
          enddo
       endif 
-      NF90(nf90_put_var(map_file%ncid, map_file%hmax_varid, zstmp, (/1, ntmaxout/))) ! write hmax   
+      NF90(nf90_put_var(map_file%ncid, map_file%hmax_varid, zstmp, (/1, 1, ntmaxout/))) ! write hmax   
    endif
    !
    ! Write cumulative rainfall
