@@ -1515,7 +1515,7 @@ contains
          !
          ! Subgrid file on regular grid
          !
-         write(*,*)'Reading ',trim(sbgfile)
+         write(*,*)'Reading ', trim(sbgfile), ' ...'
          open(unit = 500, file = trim(sbgfile), form = 'unformatted', access = 'stream')
          read(500)idummy ! nr cells
          read(500)idummy ! option
