@@ -12,29 +12,7 @@ contains
    implicit none
    !
    integer dtsec
-   integer storevelmax
-   integer storevel
-   integer storecumprcp
-   integer storetwet
-   integer storeqdrain
-   integer storezvolume
-   integer storemeteo
-   integer storehsubgrid
-   integer wrttimeoutput
-   integer idebug
-   integer iradstr
-   integer igeo
-   integer icorio
-   integer iamprblock
-   integer iglobal
-   integer itsunamitime
-   integer ispinupmeteo
-   integer isnapwave
-   integer iwindmax
-!   integer ihisfix
-   integer iadvection
-   integer istorefw
-   integer istorewavdir
+
    !
    character*256 wmsigstr 
    !   
@@ -98,12 +76,11 @@ contains
    call read_real_input(500,'qinf_zmin',qinf_zmin,0.0)
    call read_real_input(500,'horton_decay',horton_decay,0.00005)
    call read_real_input(500,'horton_time',horton_time,0.0)
-   call read_char_input(500,'dttype',dttype,'max')   
    call read_real_input(500,'btfilter',btfilter,600.0)
    call read_real_input(500,'sfacinf',sfacinf,0.2)
    call read_int_input(500,'radstr',iradstr,0)
    call read_int_input(500,'crsgeo',igeo,0)
-   call read_int_input(500,'coriolis',icorio,1)
+   call read_int_input(500,'coriolis',icoriolis,1)
    call read_int_input(500,'amprblock',iamprblock,1)
    call read_real_input(500,'spwmergefrac',spw_merge_frac,0.5)
    call read_int_input(500,'global',iglobal,0)
@@ -252,8 +229,10 @@ contains
    dyinv = 1.0/dy
    !
    manning2d = .false.
+   imanning2d = 0
    if (manningfile/='none') then
-      manning2d = .true.       
+      manning2d = .true. 
+      imanning2d = 1
    endif   
    !
    ! Coriolis parameter
@@ -270,7 +249,7 @@ contains
    if (igeo==1) then
       coriolis = .true.
       crsgeo   = .true.
-      if (icorio==1) then
+      if (icoriolis==1) then
          use_coriolis = .true.
          write(*,*)'Turning on process: Coriolis'               
       else
@@ -373,10 +352,12 @@ contains
    if (sbgfile(1:4) /= 'none') then
       !
       subgrid = .true.
+      isubgrid = 1
       !
    else
       !
       subgrid = .false.
+      isubgrid = 0
       !
    endif
    !
@@ -394,8 +375,10 @@ contains
    !
    if (nuvisc>0.0) then
       viscosity = .true.
+      iviscosity = 1
    else
       viscosity = .false.
+      iviscosity = 0      
    endif   
    !
    spinup_meteo = .true. ! Default use data in ampr file as block rather than linear interpolation
@@ -427,9 +410,11 @@ contains
    wavemaker_spectrum = .true.
    if (wvmfile(1:4) /= 'none') then
       wavemaker = .true.
+      iwavemaker = 1
       if (wmsigstr(1:3) == 'mon') then
          ! Monochromatic
          wavemaker_spectrum = .false.
+         wavemaker_spectrum = 1
       endif   
    endif
    !

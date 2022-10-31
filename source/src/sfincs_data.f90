@@ -148,7 +148,6 @@ module sfincs_data
       character*3   :: outputtype_map
       character*3   :: outputtype_his
       character*3   :: utmzone
-      character*3   :: dttype
       character*3   :: inftype
       integer       :: epsg
       character*15  :: epsg_code
@@ -201,6 +200,37 @@ module sfincs_data
       logical       :: interpolate_zst
       logical       :: advection
 !      logical       :: history_fixed_intervals
+      !!!
+      !!! sfincs_input.f90 switches
+      integer storevelmax
+      integer storevel
+      integer storecumprcp
+      integer storetwet
+      integer storeqdrain
+      integer storezvolume
+      integer storemeteo
+      integer storehsubgrid
+      integer wrttimeoutput
+      integer idebug
+      integer iradstr
+      integer igeo
+      integer icoriolis
+      integer iamprblock
+      integer iglobal
+      integer itsunamitime
+      integer ispinupmeteo
+      integer isnapwave
+      integer iwindmax
+   !   integer ihisfix
+      integer iadvection
+      integer istorefw
+      integer istorewavdir   
+      integer imanning2d
+      integer iviscosity   
+      integer isubgrid  
+      integer iwavemaker      
+      integer iwavemaker_spectrum      
+      
       !!!
       !!! Static data
       !!!

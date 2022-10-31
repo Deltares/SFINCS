@@ -874,7 +874,7 @@ contains
    NF90(nf90_put_att(his_file%ncid,nf90_global, "Build-Date", trim(build_date)))
    NF90(nf90_put_att(his_file%ncid,nf90_global, "title", "SFINCS his point netcdf output"))     
    !
-   ! add input params for reproducability
+   ! add input params for reproducability   
    call ncoutput_add_params(his_file%ncid,his_file%inp_varid)   
    !
    ! Create variables
@@ -2230,8 +2230,6 @@ contains
    !  
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   !TODO: add names netcdf input types
-   !
    subroutine ncoutput_add_params(ncid, varid)
    ! Add user params to netcdf file
    use sfincs_data   
@@ -2255,28 +2253,35 @@ contains
         NF90(nf90_put_att(ncid, varid, 'tstop', tstopstr))   
         NF90(nf90_put_att(ncid, varid, 'tspinup', tspinup))   
         NF90(nf90_put_att(ncid, varid, 't0out', t0out))   
+        NF90(nf90_put_att(ncid, varid, 't1out', t1out))   
         NF90(nf90_put_att(ncid, varid, 'dtout', dtmapout))    
-        NF90(nf90_put_att(ncid, varid, 'dtmaxout', dtmaxout))        
-        NF90(nf90_put_att(ncid, varid, 'dthisout', dthisout))                
+        NF90(nf90_put_att(ncid, varid, 'dtmaxout', dtmaxout))    
+        NF90(nf90_put_att(ncid, varid, 'dtrstout', dtrstout))
+        NF90(nf90_put_att(ncid, varid, 'trstout', trst))        
+        NF90(nf90_put_att(ncid, varid, 'dthisout', dtwave))
+        NF90(nf90_put_att(ncid, varid, 'dtwave',dtwindupd))        
         NF90(nf90_put_att(ncid, varid, 'dtwnd',dtwindupd))        
         NF90(nf90_put_att(ncid, varid, 'alpha',alfa))        
         NF90(nf90_put_att(ncid, varid, 'theta',theta))        
         NF90(nf90_put_att(ncid, varid, 'manning',manning))        
-        NF90(nf90_put_att(ncid, varid, 'manning_land',manning_land))        
+        NF90(nf90_put_att(ncid, varid, 'manning_land',manning_land))
         NF90(nf90_put_att(ncid, varid, 'manning_sea',manning_sea))        
         NF90(nf90_put_att(ncid, varid, 'rgh_lev_land',rghlevland))        
         NF90(nf90_put_att(ncid, varid, 'zsini',zini))        
         NF90(nf90_put_att(ncid, varid, 'qinf',qinf))        
         NF90(nf90_put_att(ncid, varid, 'igperiod',tig))        
         NF90(nf90_put_att(ncid, varid, 'dtmax',dtmax))        
+        NF90(nf90_put_att(ncid, varid, 'dtmin',dtmin))        
         NF90(nf90_put_att(ncid, varid, 'huthresh',huthresh))        
         NF90(nf90_put_att(ncid, varid, 'rhoa',rhoa))        
         NF90(nf90_put_att(ncid, varid, 'rhow',rhow))        
         NF90(nf90_put_att(ncid, varid, 'maxlev',max_elev))        
         NF90(nf90_put_att(ncid, varid, 'inputformat',inputtype))        
-        NF90(nf90_put_att(ncid, varid, 'outputformat',outputtype))        
+        NF90(nf90_put_att(ncid, varid, 'outputformat',outputtype))   
+        NF90(nf90_put_att(ncid, varid, 'outputtype_map',outputtype_map))
+        NF90(nf90_put_att(ncid, varid, 'outputtype_his',outputtype_his))
         NF90(nf90_put_att(ncid, varid, 'bndtype',bndtype))
-!        NF90(nf90_put_att(ncid, varid, 'advection',advection))  
+        NF90(nf90_put_att(ncid, varid, 'advection',iadvection))  
         NF90(nf90_put_att(ncid, varid, 'nfreqsig',nfreqsig))  
         NF90(nf90_put_att(ncid, varid, 'freqminig',freqminig))  
         NF90(nf90_put_att(ncid, varid, 'freqmaxig',freqmaxig))  
@@ -2286,17 +2291,33 @@ contains
         NF90(nf90_put_att(ncid, varid, 'baro',baro))  
         NF90(nf90_put_att(ncid, varid, 'utmzone',utmzone))  
         NF90(nf90_put_att(ncid, varid, 'epsg',epsg))  
+        NF90(nf90_put_att(ncid, varid, 'epsg_code',epsg_code))  
         NF90(nf90_put_att(ncid, varid, 'stopdepth',stopdepth))  
         NF90(nf90_put_att(ncid, varid, 'advlim',advlim))  
         NF90(nf90_put_att(ncid, varid, 'qinf_zmin',qinf_zmin))    
         NF90(nf90_put_att(ncid, varid, 'horton_decay', horton_decay))  
-        NF90(nf90_put_att(ncid, varid, 'horton_time', horton_time))                                
-        NF90(nf90_put_att(ncid, varid, 'dttype', dttype))                                
+        NF90(nf90_put_att(ncid, varid, 'horton_time', horton_time))     
+        NF90(nf90_put_att(ncid, varid, 'btfilter', btfilter))                     
+        NF90(nf90_put_att(ncid, varid, 'sfacinf', sfacinf))  
+        NF90(nf90_put_att(ncid, varid, 'radstr', iradstr)) 
+        NF90(nf90_put_att(ncid, varid, 'crsgeo',igeo)) 
+        NF90(nf90_put_att(ncid, varid, 'coriolis',icoriolis)) 
+        NF90(nf90_put_att(ncid, varid, 'amprblock',iamprblock)) 
+        NF90(nf90_put_att(ncid, varid, 'spwmergefrac',spw_merge_frac)) 
+        NF90(nf90_put_att(ncid, varid, 'global',iglobal)) 
+        NF90(nf90_put_att(ncid, varid, 'nuvisc',nuvisc)) 
+        NF90(nf90_put_att(ncid, varid, 'spinup_meteo', ispinupmeteo)) 
+        NF90(nf90_put_att(ncid, varid, 'waveage',waveage)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave', isnapwave)) 
+        NF90(nf90_put_att(ncid, varid, 'wmtfilter', wmtfilter))         
+        NF90(nf90_put_att(ncid, varid, 'wmfred',wavemaker_freduv))         
         !
         ! Domain
         !
+        NF90(nf90_put_att(ncid, varid, 'qtrfile',qtrfile))        
         NF90(nf90_put_att(ncid, varid, 'depfile',depfile))        
         NF90(nf90_put_att(ncid, varid, 'inifile',zsinifile))        
+        NF90(nf90_put_att(ncid, varid, 'rstfile',rstfile))        
         NF90(nf90_put_att(ncid, varid, 'mskfile',mskfile))        
         NF90(nf90_put_att(ncid, varid, 'indexfile',indexfile))        
         NF90(nf90_put_att(ncid, varid, 'cstfile',cstfile))             
@@ -2304,7 +2325,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'thdfile',thdfile))        
         NF90(nf90_put_att(ncid, varid, 'weirfile',weirfile))        
         NF90(nf90_put_att(ncid, varid, 'manningfile',manningfile))    
-        NF90(nf90_put_att(ncid, varid, 'qinffile',qinffile))     
+        NF90(nf90_put_att(ncid, varid, 'drnfile',drnfile))    
         !
         ! Forcing
         !
@@ -2315,6 +2336,11 @@ contains
         NF90(nf90_put_att(ncid, varid, 'bhsfile',bhsfile))        
         NF90(nf90_put_att(ncid, varid, 'btpfile',btpfile))        
         NF90(nf90_put_att(ncid, varid, 'bwdfile',bwdfile))  
+        NF90(nf90_put_att(ncid, varid, 'bdsfile',bdsfile))   
+        NF90(nf90_put_att(ncid, varid, 'wfpfile',wfpfile))   
+        NF90(nf90_put_att(ncid, varid, 'whifile',whifile))   
+        NF90(nf90_put_att(ncid, varid, 'wtifile',wtifile))   
+        NF90(nf90_put_att(ncid, varid, 'wstfile',wstfile))   
         NF90(nf90_put_att(ncid, varid, 'srcfile',srcfile))        
         NF90(nf90_put_att(ncid, varid, 'disfile',disfile))        
         NF90(nf90_put_att(ncid, varid, 'spwfile',spwfile))        
@@ -2323,21 +2349,56 @@ contains
         NF90(nf90_put_att(ncid, varid, 'amufile',amufile))        
         NF90(nf90_put_att(ncid, varid, 'amvfile',amvfile))  
         NF90(nf90_put_att(ncid, varid, 'ampfile',amvfile))              
-        NF90(nf90_put_att(ncid, varid, 'amprfile',amprfile))        
-        NF90(nf90_put_att(ncid, varid, 'cdnrb', cd_nr))   
-        NF90(nf90_put_att(ncid, varid, 'cdwnd', cd_wnd))        
-        NF90(nf90_put_att(ncid, varid, 'cdval', cd_val))             
+        NF90(nf90_put_att(ncid, varid, 'amprfile',amprfile))  
+        NF90(nf90_put_att(ncid, varid, 'qinffile',qinffile))   
+        NF90(nf90_put_att(ncid, varid, 'scsfile',scsfile)) 
+        NF90(nf90_put_att(ncid, varid, 'scsfile_Smax',scsfile_Smax)) 
+        NF90(nf90_put_att(ncid, varid, 'scsfile_Se',scsfile_Se)) 
+        NF90(nf90_put_att(ncid, varid, 'scsfile_kr',scsfile_kr)) 
+        NF90(nf90_put_att(ncid, varid, 'z0lfile',z0lfile)) 
+        NF90(nf90_put_att(ncid, varid, 'wvmfile',wvmfile)) 
         !
         ! Netcdf input
-        NF90(nf90_put_att(ncid, varid, 'netbndbzsbzifile',netbndbzsbzifile))        
-        NF90(nf90_put_att(ncid, varid, 'netamuamvfile',netamuamvfile))        
-        NF90(nf90_put_att(ncid, varid, 'netamprfile',netamprfile))                   
+        NF90(nf90_put_att(ncid, varid, 'netbndbzsbzifile',netbndbzsbzifile))
+        NF90(nf90_put_att(ncid, varid, 'netsrcdisfile',netsrcdisfile))     
+        NF90(nf90_put_att(ncid, varid, 'netamuamvfile',netamuamvfile))     
+        NF90(nf90_put_att(ncid, varid, 'netamprfile',netamprfile))  
+        NF90(nf90_put_att(ncid, varid, 'netampfile',netampfile))        
+        !
         ! Output
         !
         NF90(nf90_put_att(ncid, varid, 'obsfile',obsfile))   
-        NF90(nf90_put_att(ncid, varid, 'nobs',nobs))                  
-        NF90(nf90_put_att(ncid, varid, 'restartfile',restartfile))                   
+        NF90(nf90_put_att(ncid, varid, 'nobs',nobs))                    
+        NF90(nf90_put_att(ncid, varid, 'crsfile',crsfile))   
         !
+        NF90(nf90_put_att(ncid, varid, 'storevelmax',storevelmax)) 
+        NF90(nf90_put_att(ncid, varid, 'storevel',storevel)) 
+        NF90(nf90_put_att(ncid, varid, 'storecumprcp',storecumprcp)) 
+        NF90(nf90_put_att(ncid, varid, 'storetwet',storetwet)) 
+        NF90(nf90_put_att(ncid, varid, 'storehsubgrid',storehsubgrid)) 
+        NF90(nf90_put_att(ncid, varid, 'twet_threshold',twet_threshold)) 
+        NF90(nf90_put_att(ncid, varid, 'store_tsunami_arrival_time',itsunamitime)) 
+        NF90(nf90_put_att(ncid, varid, 'tsunami_arrival_threshold',tsunami_arrival_threshold)) 
+        NF90(nf90_put_att(ncid, varid, 'storeqdrain',storeqdrain)) 
+        NF90(nf90_put_att(ncid, varid, 'storezvolume',storezvolume)) 
+        NF90(nf90_put_att(ncid, varid, 'writeruntime',wrttimeoutput)) 
+        NF90(nf90_put_att(ncid, varid, 'restartfile',restartfile))         
+        NF90(nf90_put_att(ncid, varid, 'debug',idebug)) 
+        NF90(nf90_put_att(ncid, varid, 'storemeteo',storemeteo)) 
+        NF90(nf90_put_att(ncid, varid, 'storemaxwind',iwindmax)) 
+        NF90(nf90_put_att(ncid, varid, 'storefw',istorefw))         
+        NF90(nf90_put_att(ncid, varid, 'storewavdir', istorewavdir)) 
+        !
+        NF90(nf90_put_att(ncid, varid, 'cdnrb', cd_nr))   
+        NF90(nf90_put_att(ncid, varid, 'cdwnd', cd_wnd))        
+        NF90(nf90_put_att(ncid, varid, 'cdval', cd_val))  
+        !
+        ! Internal code switches - note, you can't store logicals in netcdf, only integers for these type of switches
+        NF90(nf90_put_att(ncid, varid, 'manning2d', imanning2d))   
+        NF90(nf90_put_att(ncid, varid, 'subgrid', isubgrid))   
+        NF90(nf90_put_att(ncid, varid, 'viscosity', iviscosity))   
+        NF90(nf90_put_att(ncid, varid, 'wavemaker', iwavemaker))         
+        NF90(nf90_put_att(ncid, varid, 'wavemaker_spectrum', iwavemaker_spectrum))         
    end subroutine
    !   
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
