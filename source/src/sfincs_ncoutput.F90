@@ -2093,102 +2093,14 @@ contains
       NF90(nf90_put_var(map_file%ncid, map_file%windmax_varid, zstmp, (/1, ntmaxout/))) ! write windmax   
    endif
    !   
-   end subroutine
-   
-   !
-   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
-   !
-   subroutine ncoutput_max_output()
-   ! write hmax, vmax and cumprcp over whole simulation
-   !
-   use sfincs_data   
-   !
-   implicit none   
-   !
-   integer                      :: nm, n, m
-   !
-   real*4, dimension(:,:), allocatable :: vtmp
-   !
-   allocate(vtmp(nmax, mmax))
-   !
-   if (dtmaxout>0.0) then    ! only write hmax if there's not asked for zsmax output in time (for now)
-       vtmp = FILL_VALUE
-       !
-       ! First set max inundation depths to zero where bed level is lower than threshold
-       !
-!       do nm = 1, np
-!          if (zb(nm)<min_lev_hmax) then
-!             hmax(nm) = 0.0 
-!          endif
-!       enddo       
-       !
-       do nm = 1, np
-!          vtmp(index_v_n(nm),index_v_m(nm)) = hmax(nm) 
-         !
-         n    = z_index_z_n(nm)
-         m    = z_index_z_m(nm)
-         !      
-          vtmp(n, m) = 0.0
-       enddo
-       !
-       NF90(nf90_put_var(map_file%ncid, map_file%hmax_varid, vtmp, (/1, 1/))) 
-   endif
-   !
-   ! Store cumulative rainfall (optional)
-!   vtmp = FILL_VALUE
-!   if (precip .and. store_cumulative_precipitation) then
-!      do nm = 1, np
-!         !
-!         n    = z_index_z_n(nm)
-!         m    = z_index_z_m(nm)
-!         !      
-!         vtmp(n, m) = cumprcp(nm) 
-!      enddo
-!      !
-!      NF90(nf90_put_var(map_file%ncid, map_file%cumprcp_varid, vtmp, (/1, 1/))) ! write cumprcp if precip present
-!      !
-!   endif 
-   ! 
-   ! Store cumulative infiltration (only for curve number)
-   vtmp = FILL_VALUE
-   if (scsfile(1:4) /= 'none') then
+   ! Cumulative infiltration
+   if (infiltration2d) then
+      zstmp = FILL_VALUE
       do nm = 1, np
-         !
-         n    = z_index_z_n(nm)
-         m    = z_index_z_m(nm)
-         !      
-         vtmp(n, m) = cuminf(nm) 
+         zstmp(nm) = cuminf(nm) 
       enddo
-      NF90(nf90_put_var(map_file%ncid, map_file%cuminf_varid, vtmp, (/1, 1/))) ! write cuminf if scsfile is present
-   endif 
-   !
-   if (wind .and. store_wind_max .and. meteo3d) then  
-      do nm = 1, np
-         !
-         n    = z_index_z_n(nm)
-         m    = z_index_z_m(nm)
-         !      
-         vtmp(n, m) = windmax(nm)
-      enddo
-      !
-      NF90(nf90_put_var(map_file%ncid, map_file%windmax_varid, vtmp, (/1, 1/)))
-      !
+      NF90(nf90_put_var(map_file%ncid, map_file%cuminf_varid, zstmp, (/1, ntmaxout/))) ! write cuminf   
    endif
-   !   
-   end subroutine   
-   !
-   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
-   !
-   subroutine ncoutput_max_finalize() 
-   ! TODO: Remove empty data since nr of output + determine maxmax over whole simulation per grid cell
-   !
-   use sfincs_data
-   !   
-   implicit none   
-   !   
-   !NF90(nf90_put_var(map_file%ncid, map_file%zsmax_varid, zstmp(2:nmax-1, 2:mmax-1), (/1, 1, ntmaxout/))) ! clean up zsmax 
-   !
-   !NF90(nf90_put_var(map_file%ncid, map_file%zsmax_varid, zstmp(2:nmax-1, 2:mmax-1), (/1, 1, ntmaxout/))) ! write zsmaxmax / hmaxmax   
    !
    end subroutine   
    !
@@ -2217,7 +2129,7 @@ contains
    !   
    implicit none   
    !   
-   if (nobs==0 .and. nrcrosssections==0) then ! If no observation points his file is not created        
+   if (nobs==0 .and. nrcrosssections==0) then ! If no observation points nor cross-sections his file is not created        
         return
    endif   
    !
@@ -2231,7 +2143,7 @@ contains
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
    subroutine ncoutput_add_params(ncid, varid)
-   ! Add user params to netcdf file
+   ! Add user params to netcdf file (both map & his)
    use sfincs_data   
    !
    implicit none   

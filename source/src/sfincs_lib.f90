@@ -532,7 +532,7 @@ module sfincs_lib
    tstart_all = 0.0
    tfinish_all = 1.0*(count1- count00)/count_rate
    !
-   call finalize_output(t,ntmaxout)
+   call finalize_output(t,ntmaxout,tloopoutput)
    !
    ! Write restart-file of water levels at last time-step if wanted
    !

@@ -231,7 +231,7 @@ module sfincs_output
    !   
    end subroutine
    
-   subroutine finalize_output(t, ntmaxout)
+   subroutine finalize_output(t, ntmaxout, tloopoutput)
    !
    use sfincs_data
    !
@@ -239,24 +239,22 @@ module sfincs_output
    !
    integer  :: ntmaxout
    real*8   :: t   
+   real     :: tloopoutput 
    !   
+   if (dtmaxout>1.e-6 .and. ntmaxout == 0) then
+      write(*,'(a)')''       
+      write(*,*)'Info : Write maximum values of final timestep since t=dtmaxout was not reached yet...'
+      ntmaxout = 1
+      call write_output(t,.false.,.false.,.true.,.false.,0,ntmaxout,0,tloopoutput)
+   endif
+   !
    if (outputtype_map == 'net') then
       !
-!      if (dtmaxout>1.e-6 .and. ntmaxout == 0) then    
-!         write(*,*)'Write maximum values of final timestep since t=dtmaxout was not reached yet'
-!         call ncoutput_update_max(t,1) ! update max output at end of simulation when max output is wanted (>0) but end time is not reached yet (t<dtmaxout), now consistent with asc/bin output
-!      endif
-!      call ncoutput_max_output()
       call ncoutput_map_finalize()
       !
    else
       !
       call close_map_output()
-      !
-!      if (dtmaxout>1.e-6) then
-!         write(*,*)'Write maximum values of final timestep since t=dtmaxout was not reached yet'          
-!         call write_max_output()
-!      endif
       !
       call close_max_output()
       !

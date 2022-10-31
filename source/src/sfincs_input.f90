@@ -34,7 +34,7 @@ contains
    call read_real_input(500,'t0out',t0out,-999.0)
    call read_real_input(500,'t1out',t1out,-999.0)
    call read_real_input(500,'dtout',dtmapout,0.0)
-   call read_real_input(500,'dtmaxout',dtmaxout,86400.0)
+   call read_real_input(500,'dtmaxout',dtmaxout,9999999.0)
    call read_real_input(500,'dtrstout',dtrstout,0.0)
    call read_real_input(500,'trstout',trst,-999.0)
    call read_real_input(500,'dthisout',dthisout,600.0)
@@ -272,11 +272,6 @@ contains
    if (dtmaxout>0.0) then
       store_maximum_waterlevel = .true.
    endif
-   !
-   store_maximum_waterdepth = .false.
-   if (dtmaxout==0.0) then
-      store_maximum_waterdepth = .true.
-   endif   
    !
    store_maximum_velocity = .false.
    if (storevelmax==1 .and. dtmaxout>0.0) then
