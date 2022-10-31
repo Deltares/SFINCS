@@ -353,11 +353,13 @@ contains
       !
       subgrid = .true.
       isubgrid = 1
+      write(*,*)'Info : Running SFINCS in subgrid mode ...'         
       !
    else
       !
       subgrid = .false.
       isubgrid = 0
+      write(*,*)'Info : Running SFINCS in regular mode ...'               
       !
    endif
    !

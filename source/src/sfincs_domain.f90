@@ -63,6 +63,9 @@ contains
    use_quadtree = .false.
    if (qtrfile(1:4) /= 'none') then
       use_quadtree = .true.
+      write(*,*)'Info : Preparing SFINCS grid on quadtree mesh ...'   
+   else
+       write(*,*)'Info : Preparing SFINCS grid on regular mesh ...'      
    endif
    !
    ! Always turn off waves at boundaries. Using wave makers for that sort of thing now.
