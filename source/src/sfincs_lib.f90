@@ -263,7 +263,6 @@ module sfincs_lib
       !
       nt = nt + 1
       dt = alfa*min_dt ! min_dt was computed in sfincs_momentum.f90 without alfa
-      dt = min(dt, dtmax)
       !
       ! Ensure that we don't go beyond end time of simulation
       !

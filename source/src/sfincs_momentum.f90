@@ -78,7 +78,7 @@
    !
    call system_clock(count0, count_rate, count_max)
    !
-   min_dt = 1.0e6
+   min_dt = dtmax
    !
    !$acc update device(min_dt), async(1)
    !

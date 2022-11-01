@@ -57,6 +57,7 @@ contains
    integer*4,          dimension(:),   allocatable :: indices
    !
    real*4 :: ylat
+   real*4 :: dxymin
    !
    ! Set some flags
    !
@@ -1140,6 +1141,8 @@ contains
    !
    ! And now the grid spacing in metres
    !
+   dxymin = 1.0e6
+   !
    if (crsgeo) then
       !
       ! dxr and dyr are now in degrees. Must convert to metres.
@@ -1171,6 +1174,10 @@ contains
          dxminv(ip)  = 1.0/dxm(ip)
          dxm2inv(ip) = dxminv(ip)**2
          !
+         ! Minimum grid spacing to determine dtmax 
+         !  
+         dxymin = min(dxymin, dxm(iref))
+         !
       enddo   
       !
       do iref = 1, nref
@@ -1184,6 +1191,10 @@ contains
             dyrinvc(iref) = 1.0*(3*dyrm(iref)/2)
             !
          endif   
+         !
+         ! Minimum grid spacing to determine dtmax 
+         !  
+         dxymin = min(dxymin, dyrm(iref))
          !
       enddo   
       !
@@ -1243,9 +1254,18 @@ contains
             !
          endif   
          !
+         ! Minimum grid spacing to determine dtmax 
+         !  
+         dxymin = min(dxymin, dxr(iref))
+         dxymin = min(dxymin, dyr(iref))
+         !
       enddo   
       !
    endif   
+   !
+   ! Determine maximum time step
+   !
+   dtmax = min(dtmax, dxymin/(sqrt(9.81*0.1)))
    !
    ! DEPTHS
    !
@@ -2095,55 +2115,59 @@ contains
       endif
       !
    elseif (scsfile_Se /= 'none') then  
-         !
-         ! Spatially-varying infiltration with CN numbers (new)
-         inftype='cnb'
-         infiltration2d = .true.
-         write(*,*)'Turning on process: Infiltration (via CN method - B)'            
-         !
-         ! Allocate qinfmap (time-space varying inf rate) and cuminf
-         allocate(qinfmap(np))
-         qinfmap = 0.0
-         allocate(cuminf(np))
-         cuminf = 0.0
-         ! 
-         ! Allocate Smax
-         allocate(qinffield(np))
-         qinffield = 0.0
-         write(*,*)'Reading ',trim(scsfile_Smax)
-         open(unit = 500, file = trim(scsfile_Smax), form = 'unformatted', access = 'stream')
-         read(500)qinffield
-         close(500)
-         !
-         ! Allocate Se
-         allocate(qinffield2(np))
-         qinffield2 = 0.0
-         write(*,*)'Reading ',trim(scsfile_Se)
-         open(unit = 501, file = trim(scsfile_Se), form = 'unformatted', access = 'stream')
-         read(501)qinffield2
-         close(501)
-         !
-         ! Allocate kr
-         allocate(scs_kr(np))
-         scs_kr = 0.0
-         write(*,*)'Reading ',trim(scsfile_kr)
-         open(unit = 502, file = trim(scsfile_kr), form = 'unformatted', access = 'stream')
-         read(502)scs_kr
-         close(502)
-         !
-         ! Allocate support variables
-         allocate(scs_P1(np))
-         scs_P1 = 0.0
-         allocate(scs_F1(np))
-         scs_F1 = 0.0
-         allocate(scs_Se(np))
-         scs_Se = 0.0
-         allocate(scs_rain(np))
-         scs_rain = 0
-         !
-         ! Done here
-         store_cumulative_precipitation = .true.
-         !
+      !
+      ! Spatially-varying infiltration with CN numbers (new)
+      !
+      inftype='cnb'
+      infiltration2d = .true.
+      write(*,*)'Turning on process: Infiltration (via CN method - B)'            
+      !
+      ! Allocate qinfmap (time-space varying inf rate) and cuminf
+      allocate(qinfmap(np))
+      qinfmap = 0.0
+      allocate(cuminf(np))
+      cuminf = 0.0
+      ! 
+      ! Allocate Smax
+      ! 
+      allocate(qinffield(np))
+      qinffield = 0.0
+      write(*,*)'Reading ',trim(scsfile_Smax)
+      open(unit = 500, file = trim(scsfile_Smax), form = 'unformatted', access = 'stream')
+      read(500)qinffield
+      close(500)
+      !
+      ! Allocate Se
+      !
+      allocate(qinffield2(np))
+      qinffield2 = 0.0
+      write(*,*)'Reading ',trim(scsfile_Se)
+      open(unit = 501, file = trim(scsfile_Se), form = 'unformatted', access = 'stream')
+      read(501)qinffield2
+      close(501)
+      !
+      ! Allocate kr
+      !
+      allocate(scs_kr(np))
+      scs_kr = 0.0
+      write(*,*)'Reading ',trim(scsfile_kr)
+      open(unit = 502, file = trim(scsfile_kr), form = 'unformatted', access = 'stream')
+      read(502)scs_kr
+      close(502)
+      !
+      ! Allocate support variables
+      !
+      allocate(scs_P1(np))
+      scs_P1 = 0.0
+      allocate(scs_F1(np))
+      scs_F1 = 0.0
+      allocate(scs_Se(np))
+      scs_Se = 0.0
+      allocate(scs_rain(np))
+      scs_rain = 0
+      !
+      store_cumulative_precipitation = .true.
+      !
    endif   
    !
    end subroutine
