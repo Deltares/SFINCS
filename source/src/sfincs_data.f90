@@ -180,7 +180,6 @@ module sfincs_data
       logical       :: write_time_output
       logical       :: bziwaves
       logical       :: infiltration
-      logical       :: infiltration2d      
       logical       :: debug
       logical       :: radstr
       logical       :: crsgeo
@@ -485,6 +484,7 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: patm
       real*4, dimension(:),   allocatable :: prcp
       real*4, dimension(:),   allocatable :: cumprcp
+      real*4, dimension(:),   allocatable :: netprcp
       real*4, dimension(:),   allocatable :: cumprcpt
       real*4, dimension(:),   allocatable :: cuminf
       real*4, dimension(:),   allocatable :: tauwu0

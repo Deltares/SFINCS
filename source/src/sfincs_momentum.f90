@@ -47,6 +47,7 @@
    real*4    :: qx0_nmu
    real*4    :: qx0_ndm
    real*4    :: qx0_num
+   real*4    :: qsm
    !   
    real*4    :: qy0_nm
    real*4    :: qy0_nmu
@@ -100,7 +101,7 @@
    !$omp end parallel
    !
    !$omp parallel &
-   !$omp private ( ip,huv,qx0_nm,nm,nmu,frc,adv,idir,itype,iadv,ivis,icorio,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv,qx0_nmd,qx0_nmu,qx0_ndm,qx0_num,u0_nm,u0_nmd,u0_nmu,u0_num,u0_ndm,v0_ndm,v0_ndmu,v0_nm,v0_nmu,fcoriouv,gnavg2,iok,zsuv,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint ) &
+   !$omp private ( ip,huv,qsm,qx0_nm,nm,nmu,frc,adv,idir,itype,iadv,ivis,icorio,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv,qx0_nmd,qx0_nmu,qx0_ndm,qx0_num,u0_nm,u0_nmd,u0_nmu,u0_num,u0_ndm,v0_ndm,v0_ndmu,v0_nm,v0_nmu,fcoriouv,gnavg2,iok,zsuv,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint ) &
    !$omp shared ( q,uv ) &
    !$omp reduction ( min : min_dt )
    !$omp do schedule ( dynamic, 256 )
@@ -327,7 +328,12 @@
                v0_ndmu  = uv0(uv_index_v_ndmu(ip))
                v0_nmu   = uv0(uv_index_v_nmu(ip))
                !
-            endif   
+            endif
+            !
+            if (theta<0.9999) then ! for backward compatibility
+               qx0_nmd  = q0(uv_index_u_nmd(ip))
+               qx0_nmu  = q0(uv_index_u_nmu(ip))
+            endif
             !
             ! Compute water depth at uv point
             !
@@ -489,9 +495,17 @@
                !
             endif   
             !
+            ! Apply some smoothing if theta < 1.0 (not recommended anymore!)
+            !
+            if (theta<0.9999) then
+               qsm = theta*qx0_nm + 0.5*(1.0 - theta)*(qx0_nmu + qx0_nmd)             
+            else
+               qsm = qx0_nm
+            endif            
+            !
             ! Compute new flux for this uv point (Bates et al., 2010)
             ! 
-            qx0_nm = (qx0_nm + frc*dt ) / (1.0 + gnavg2*dt*abs(qx0_nm)/(huv**2*huv**expo))
+            qx0_nm = (qsm + frc*dt ) / (1.0 + gnavg2*dt*abs(qx0_nm)/(huv**2*huv**expo))
             !
 !            if (zs(nm)<=zb(nm)) then
 !               !

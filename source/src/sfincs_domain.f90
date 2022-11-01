@@ -2043,62 +2043,123 @@ contains
    endif
    !
    ! INFILTRATION
+   !
+   ! Infiltration only works when rainfall is activated ! If you want infiltration without rainfall, use a precip file with 0.0s
+   !
    ! Note, infiltration methods not designed to be stacked
    !
-   infiltration = .false.   
-   infiltration2d = .false.
+   infiltration   = .false.
    !
-   if (qinf > 0.0) then   
+   ! Four options for infiltration:
+   !
+   ! 1) Spatially-uniform constant infiltration
+   !    Requires: -
+   ! 2) Spatially-varying constant infiltration
+   !    Requires: qinfmap (does not require qinffield !)
+   ! 3) Spatially-varying infiltration with CN numbers (old)
+   !    Requires: cumprcp, cuminf, qinfmap, qinffield
+   ! 4) Spatially-varying infiltration with CN numbers (new)
+   !    Requires: qinfmap, qinffield, qinffield, scs_kr, scs_P1, scs_F1, scs_Se and scs_rain (but not necessarily cuminf and cumprcp)
+   !
+   ! cumprcp and cuminf are stored in the netcdf output if store_cumulative_precipitation == .true. which is the default
+   !
+   ! We need to keep cumprcp and cuminf in memory when:
+   !   a) store_cumulative_precipitation == .true.
+   ! or:  
+   !   b) inftype == 'cna' or inftype == 'cnb'
+   !
+   ! First we determine precipitation type
+   !
+   if (precip) then
       !
-      ! Spatially-uniform constant infiltration (specified as +mm/hr)
-      !
-      inftype='con'
-      infiltration = .true.
-      infiltration2d = .false.
-      write(*,*)'Turning on process: Spatially-uniform constant infiltration'        
-      ! 
-   elseif (qinffile /= 'none') then
-      !
-      ! Spatially-varying constant infiltration
-      !
-      inftype='con'
-      infiltration = .true.      
-      infiltration2d = .true.
-      write(*,*)'Turning on process: Spatially-varying constant infiltration'      
-      !
-      allocate(qinfmap(np))
-      qinfmap = 0.0
-      allocate(qinffield(np))
-      qinffield = 0.0
-      !
-      ! Read spatially-varying infiltration (only binary, specified in +mm/hr)
-      !
-      write(*,*)'Reading ',trim(qinffile)
-      open(unit = 500, file = trim(qinffile), form = 'unformatted', access = 'stream')
-      read(500)qinffield
-      close(500)
-      !
-      do nm = 1, np
-         qinfmap(nm) = qinffield(nm)/3.6e3/1.0e3   ! convert to +m/s
-      enddo
-      !
-   elseif (scsfile /= 'none') then
-      !
-      if (precip) then   ! (Curve number only when there is rainfall)             
+      if (qinf > 0.0) then   
+         !
+         ! Spatially-uniform constant infiltration (specified as +mm/hr)
+         !
+         inftype = 'con'
+         infiltration = .true.
+         ! 
+      elseif (qinffile /= 'none') then
+         !
+         ! Spatially-varying constant infiltration
+         !
+         inftype = 'c2d'
+         infiltration = .true.      
+         !
+      elseif (scsfile /= 'none') then
          !
          ! Spatially-varying infiltration with CN numbers (old)
          !
-         inftype='scs'
+         inftype = 'cna'
          infiltration = .true.      
-         infiltration2d = .true.
-         write(*,*)'Turning on process: Infiltration (via CN method - A)'               
+         !
+      elseif (scsfile_Se /= 'none') then  
+         !
+         ! Spatially-varying infiltration with CN numbers (new)
+         !
+         inftype = 'cnb'
+         infiltration = .true.      
+         !
+      endif
+      !
+      if (precip) then
+         !
+         ! We need cumprcp and cuminf
+         !
+         allocate(cumprcp(np))
+         cumprcp = 0.0
+         !
+         allocate(cuminf(np))
+         cuminf = 0.0
+         ! 
+      endif
+      !
+      ! Now allocate and read spatially-varying inputs 
+      !
+      if (infiltration) then
          !
          allocate(qinfmap(np))
          qinfmap = 0.0
+         ! 
+      endif
+      !
+      if (inftype == 'con') then   
+         !
+         ! Spatially-uniform constant infiltration (specified as +mm/hr)
+         !
+         write(*,*)'Turning on process: Spatially-uniform constant infiltration'        
+         !
+         allocate(qinffield(np))
+         do nm = 1, np
+            qinffield(nm) = qinf/3.6e3/1.0e3   ! convert to +m/s
+         enddo
+         !
+      elseif (inftype == 'c2d') then
+         !
+         ! Spatially-varying constant infiltration
+         !
+         write(*,*)'Turning on process: Spatially-varying constant infiltration'      
+         !
+         ! Read spatially-varying infiltration (only binary, specified in +mm/hr)
+         !
+         write(*,*)'Reading ', trim(qinffile), ' ...'
+         allocate(qinffield(np))
+         open(unit = 500, file = trim(qinffile), form = 'unformatted', access = 'stream')
+         read(500)qinffield
+         close(500)
+         !
+         do nm = 1, np
+            qinffield(nm) = qinffield(nm)/3.6e3/1.0e3   ! convert to +m/s
+         enddo
+         !
+      elseif (inftype == 'cna') then
+         !
+         ! Spatially-varying infiltration with CN numbers (old)
+         !
+         write(*,*)'Turning on process: Infiltration (via CN method - A)'               
+         !
          allocate(qinffield(np))
          qinffield = 0.0
-         allocate(cuminf(np))
-         cuminf = 0.0
          !
          write(*,*)'Reading ',trim(scsfile)
          open(unit = 500, file = trim(scsfile), form = 'unformatted', access = 'stream')
@@ -2110,65 +2171,59 @@ contains
             qinffield(nm) = qinffield(nm)*0.0254   !to m
          enddo      
          !
-         store_cumulative_precipitation = .true.
+      elseif (inftype == 'cnb') then  
+         !
+         ! Spatially-varying infiltration with CN numbers (new)
+         !
+         write(*,*)'Turning on process: Infiltration (via CN method - B)'            
+         ! 
+         ! Allocate Smax
+         ! 
+         allocate(qinffield(np))
+         qinffield = 0.0
+         write(*,*)'Reading ',trim(scsfile_Smax)
+         open(unit = 500, file = trim(scsfile_Smax), form = 'unformatted', access = 'stream')
+         read(500)qinffield
+         close(500)
+         !
+         ! Allocate Se
+         !
+         allocate(qinffield2(np))
+         qinffield2 = 0.0
+         write(*,*)'Reading ',trim(scsfile_Se)
+         open(unit = 501, file = trim(scsfile_Se), form = 'unformatted', access = 'stream')
+         read(501)qinffield2
+         close(501)
+         !
+         ! Allocate kr
+         !
+         allocate(scs_kr(np))
+         scs_kr = 0.0
+         write(*,*)'Reading ',trim(scsfile_kr)
+         open(unit = 502, file = trim(scsfile_kr), form = 'unformatted', access = 'stream')
+         read(502)scs_kr
+         close(502)
+         !
+         ! Allocate support variables
+         !
+         allocate(scs_P1(np))
+         scs_P1 = 0.0
+         allocate(scs_F1(np))
+         scs_F1 = 0.0
+         allocate(scs_Se(np))
+         scs_Se = 0.0
+         allocate(scs_rain(np))
+         scs_rain = 0
          !
       endif
       !
-   elseif (scsfile_Se /= 'none') then  
+   else
       !
-      ! Spatially-varying infiltration with CN numbers (new)
+      ! Overrule input
       !
-      inftype='cnb'
-      infiltration2d = .true.
-      write(*,*)'Turning on process: Infiltration (via CN method - B)'            
+      store_cumulative_precipitation = .false.
       !
-      ! Allocate qinfmap (time-space varying inf rate) and cuminf
-      allocate(qinfmap(np))
-      qinfmap = 0.0
-      allocate(cuminf(np))
-      cuminf = 0.0
-      ! 
-      ! Allocate Smax
-      ! 
-      allocate(qinffield(np))
-      qinffield = 0.0
-      write(*,*)'Reading ',trim(scsfile_Smax)
-      open(unit = 500, file = trim(scsfile_Smax), form = 'unformatted', access = 'stream')
-      read(500)qinffield
-      close(500)
-      !
-      ! Allocate Se
-      !
-      allocate(qinffield2(np))
-      qinffield2 = 0.0
-      write(*,*)'Reading ',trim(scsfile_Se)
-      open(unit = 501, file = trim(scsfile_Se), form = 'unformatted', access = 'stream')
-      read(501)qinffield2
-      close(501)
-      !
-      ! Allocate kr
-      !
-      allocate(scs_kr(np))
-      scs_kr = 0.0
-      write(*,*)'Reading ',trim(scsfile_kr)
-      open(unit = 502, file = trim(scsfile_kr), form = 'unformatted', access = 'stream')
-      read(502)scs_kr
-      close(502)
-      !
-      ! Allocate support variables
-      !
-      allocate(scs_P1(np))
-      scs_P1 = 0.0
-      allocate(scs_F1(np))
-      scs_F1 = 0.0
-      allocate(scs_Se(np))
-      scs_Se = 0.0
-      allocate(scs_rain(np))
-      scs_rain = 0
-      !
-      store_cumulative_precipitation = .true.
-      !
-   endif   
+   endif
    !
    end subroutine
 
@@ -2504,15 +2559,11 @@ contains
       prcp    = 0.0
       prcp0   = 0.0
       prcp1   = 0.0
-   endif
-   !
-   if (infiltration .or. precip) then
+      !
       allocate(cumprcpt(np))      
       cumprcpt = 0.0
-      if (store_cumulative_precipitation) then
-         allocate(cumprcp(np))
-         cumprcp = 0.0
-      endif
+      allocate(netprcp(np))      
+      netprcp  = 0.0
       !
    endif
    !

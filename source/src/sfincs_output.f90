@@ -157,7 +157,7 @@ module sfincs_output
          !$acc update host(twet)
       endif
       !
-      if (precip .and. store_cumulative_precipitation) then
+      if (store_cumulative_precipitation) then
          !$acc update host(cumprcp)
       endif
       !
@@ -189,10 +189,10 @@ module sfincs_output
          !$acc update device(vmax)
       endif
       !
-      if (precip .and. store_cumulative_precipitation) then
-         cumprcp = 0.0 ! Set cumprcp back to a 0.0
-         !$acc update device(cumprcp)
-      endif            
+!      if (precip .and. store_cumulative_precipitation) then
+!         cumprcp = 0.0 ! Set cumprcp back to a 0.0
+!         !$acc update device(cumprcp)
+!      endif            
       !
       if (store_twet) then
          twet = 0.0 ! Set twet back to 0.0
@@ -314,7 +314,7 @@ module sfincs_output
       open(unit = 853, status = 'replace', file = 'cumprcp.dat', form = 'unformatted')
    endif
    !
-   if (infiltration2d) then
+   if (infiltration) then
       open(unit = 854, status = 'replace', file = 'cuminf.dat', form = 'unformatted')
    endif
    !
@@ -453,7 +453,7 @@ module sfincs_output
       write(853)cumprcp
    endif
    ! 
-   if (infiltration2d) then
+   if (infiltration) then
       write(854)cuminf
    endif
    ! 
@@ -499,7 +499,7 @@ module sfincs_output
       close(853)
    endif
    !
-   if (infiltration2d) then
+   if (infiltration) then
       close(854)
    endif
    !

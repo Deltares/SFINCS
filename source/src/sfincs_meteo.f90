@@ -1078,21 +1078,21 @@ contains
       !
    endif
    !
-   ! removed cumprcp update of every timestep
-   ! and added it again
-   !
-   if (precip .and. store_cumulative_precipitation) then
-      !        
-      call update_cumprcp_map(dt)
+   if (infiltration) then
       !
-   endif
-   !
-   if (infiltration2d) then
-   !if (precip .and. infiltration2d) then > in principle already covered in sfincs_domain.f90 now
+      ! Compute infiltration rates
       !
       call update_infiltration_map(dt)
       !
    endif   
+   !
+   if (precip) then
+      !
+      ! Update cumulative precipitation and infiltration (cumprcp, cuminf, and netprcp) 
+      !
+      call update_cumprcp_map(dt)
+      !
+   endif
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
@@ -1202,6 +1202,8 @@ contains
 
    subroutine update_cumprcp_map(dt)
    !
+   ! Update cumulative precipitation and infiltration for each cell
+   !
    use sfincs_data
    !
    implicit none
@@ -1212,15 +1214,37 @@ contains
    ! Compute cumulative precipitation
    !
    !$omp parallel &
-   !$omp private ( nm ) &
-   !$omp shared ( cumprcp,prcp )
+   !$omp private ( nm )
    !$omp do
-   !$acc kernels present( cumprcp, prcp ), async(1)
-   !$acc loop independent, private( nm )
+!   !$acc kernels present( cumprcp, prcp ), async(1)
+!   !$acc loop independent, private( nm )
    do nm = 1, np
+      !
       cumprcp(nm) = cumprcp(nm) + prcp(nm)*dt
+      netprcp(nm) = prcp(nm)
+      !
+      if (infiltration) then 
+         !
+         if (subgrid) then
+            if (z_volume(nm)<=0.0) then
+               qinfmap(nm) = 0.0
+            else
+               netprcp(nm) = netprcp(nm) - qinfmap(nm)
+               cuminf(nm) = cuminf(nm) + qinfmap(nm)*dt
+            endif
+         else
+            if (zs(nm) + huthresh<=zb(nm)) then
+               qinfmap(nm) = 0.0
+            else
+               netprcp(nm) = netprcp(nm) - qinfmap(nm)
+               cuminf(nm) = cuminf(nm) + qinfmap(nm)*dt
+            endif
+         endif
+         !      
+      endif
+      !
    enddo      
-   !$acc end kernels
+!   !$acc end kernels
    !$omp end do
    !$omp end parallel
    !
@@ -1229,7 +1253,7 @@ contains
 
    subroutine update_infiltration_map(dt)
    !
-   ! Update values at boundary points
+   ! Update infiltration rates in each grid cell
    !
    use sfincs_data
    !
@@ -1241,11 +1265,17 @@ contains
    real*4  :: I
    real*4  :: dt   
    !
-   if (inftype == 'cna') then
+   if (inftype == 'con' .or. inftype == 'c2d') then
+      !
+      ! Infiltration rate map stays constant
+      !
+      qinfmap = qinffield
+      !
+   elseif (inftype == 'cna') then
       !
       ! Determine infiltration rate with Curve Number (old method; no recovery)
       !
-      !$acc update host(cumprcp), async(1)
+!      !$acc update host(cumprcp), async(1)
       !
       !$omp parallel &
       !$omp private ( Qq,I,nm ) &
@@ -1260,16 +1290,16 @@ contains
             ! Compute runoff as function of rain
             !
             Qq  = (cumprcp(nm) - sfacinf*qinffield(nm))**2 / (cumprcp(nm) + (1.0 - sfacinf)*qinffield(nm))  ! cumulative runoff in m
-            I   = cumprcp(nm) - Qq                                                ! cumulative infiltration in m
-            qinfmap(nm) = ((I) - cuminf(nm))/dt                          ! infiltration in m/s
-            cuminf(nm) = I                                                      ! cumulative infiltration in m
+            I   = cumprcp(nm) - Qq                      ! cumulative infiltration in m
+            qinfmap(nm) = (I - cuminf(nm))/dt           ! infiltration in m/s
+!            cuminf(nm) = I                              ! cumulative infiltration in m
             !
          else
             !
             ! Everything still infiltrating
             !
             qinfmap(nm) = prcp(nm)
-            cuminf(nm) = cumprcp(nm)
+!            cuminf(nm)  = cumprcp(nm)
             !
          endif   
          !
@@ -1278,16 +1308,17 @@ contains
       !$omp end parallel
       !
       !$acc update device(qinfmap), async(1)
-      !$acc update device(cuminf), async(1)
+      !
+      ! For now, curve number infiltration is done on the CPU 
+!      !$acc update device(cuminf), async(1)
       !
       ! Provide update to user
       !write(*,'(a,f5.3,a,f10.3,a)') '  update from SCS-CN method: Average cumulative rainfall of ',sum(cumprcp)/size(cumprcp),' meter and infiltration rate of ',sum(qinfmap*3.6e3*1.0e3)/size(qinfmap) ,' mm/hour'
-      !
-   
+      !   
    elseif (inftype == 'cnb') then
       !
       ! Determine infiltration rate with Curve Number with recovery
-      !$acc update host(cumprcp), async(1)
+!      !$acc update host(cumprcp), async(1)
       !
       !$omp parallel &
       !$omp private ( Qq,I,nm ) &
@@ -1296,62 +1327,63 @@ contains
       do nm = 1, np
          !
          ! If there is precip in this grid cell for this time step  
-         if (prcp(nm) > 0) then
-             !
-             ! Is raining now
-             !
-             if (scs_rain(nm) == 1) then
-                ! if it was raining before; do nothing
-             else
-                ! initalise these variables 
-                scs_P1(nm)          = 0.0               ! cumulative rainfall for this 'event'
-                scs_F1(nm)          = 0.0               ! cumulative infiltration for this 'event'
-                scs_Se(nm)          = qinffield2(nm)    ! S for this 'event'
-                scs_rain(nm)        = 1                 ! logic used to determine if there is an event ongoing
-             endif
-             ! 
-             !  Compute cum rainfall
-             scs_P1(nm) = scs_P1(nm) + prcp(nm)*dt
-             ! 
-             ! Compute runoff
-             if (scs_P1(nm) > (sfacinf* scs_Se(nm)) ) then ! scs_Se is S
-                 Qq              = (scs_P1(nm) - sfacinf*scs_Se(nm))**2 / (scs_P1(nm) + (1.0 - sfacinf)*scs_Se(nm))  ! cumulative runoff in m
-                 I              = scs_P1(nm) - Qq                       ! cum infiltration this event
-                 qinfmap(nm)    = ((I) - scs_F1(nm))/dt                ! infiltration in m/s
-                 cuminf(nm)     = cuminf(nm) + (I - scs_F1(nm))        ! cumulative infiltration in m
-                 scs_F1(nm)     = I                                    ! cum infiltration this event
-             else
-                 Qq              = 0.0                               ! no runoff
-                 scs_F1(nm)     = scs_P1(nm)                        ! all rainfall is infiltrated
-                 qinfmap(nm)    = prcp(nm)                          ! infiltration rate = rainfall rate
-                 cuminf(nm)     = cuminf(nm) + prcp(nm)*dt          ! cumulative infiltration in m
-             endif
-             ! 
-             ! Compute "remaining S", but note that qinffield2 is not used in computation
-             qinffield2(nm)  = qinffield2(nm) - qinfmap(nm)*dt
-             qinffield2(nm)  = max(qinffield2(nm), 0.0)
-             qinfmap(nm)     = max(qinfmap(nm), 0.0)
-             !
+         if (prcp(nm) > 0.0) then
+            !
+            ! Is raining now
+            !
+            if (scs_rain(nm) == 1) then
+               ! if it was raining before; do nothing
+            else
+               ! initalise these variables 
+               scs_P1(nm)          = 0.0               ! cumulative rainfall for this 'event'
+               scs_F1(nm)          = 0.0               ! cumulative infiltration for this 'event'
+               scs_Se(nm)          = qinffield2(nm)    ! S for this 'event'
+               scs_rain(nm)        = 1                 ! logic used to determine if there is an event ongoing
+            endif
+            ! 
+            !  Compute cum rainfall
+            scs_P1(nm) = scs_P1(nm) + prcp(nm)*dt
+            ! 
+            ! Compute runoff
+            if (scs_P1(nm) > (sfacinf* scs_Se(nm)) ) then ! scs_Se is S
+               Qq              = (scs_P1(nm) - sfacinf*scs_Se(nm))**2 / (scs_P1(nm) + (1.0 - sfacinf)*scs_Se(nm))  ! cumulative runoff in m
+               I              = scs_P1(nm) - Qq                       ! cum infiltration this event
+               qinfmap(nm)    = (I - scs_F1(nm))/dt                ! infiltration in m/s
+!               cuminf(nm)     = cuminf(nm) + (I - scs_F1(nm))        ! cumulative infiltration in m
+               scs_F1(nm)     = I                                    ! cum infiltration this event
+            else
+               Qq              = 0.0                               ! no runoff
+               scs_F1(nm)     = scs_P1(nm)                        ! all rainfall is infiltrated
+               qinfmap(nm)    = prcp(nm)                          ! infiltration rate = rainfall rate
+!               cuminf(nm)     = cuminf(nm) + prcp(nm)*dt          ! cumulative infiltration in m
+            endif
+            ! 
+            ! Compute "remaining S", but note that qinffield2 is not used in computation
+            qinffield2(nm)  = qinffield2(nm) - qinfmap(nm)*dt
+            qinffield2(nm)  = max(qinffield2(nm), 0.0)
+            qinfmap(nm)     = max(qinfmap(nm), 0.0)
+            !
          else
-             ! 
-             ! It is not raining here
-             if (scs_rain(nm) == 1) then
-                 !
-                 ! if it was raining before
-                 ! change logic and set rate to 0
-                 scs_rain(nm)   = 0
-                 qinfmap(nm)    = 0.0
-                 !
-             endif
-             ! 
-             ! It is not raining and stil not raining
-             ! compute recovery of S (not larger than Smax)
-             ! note that qinffield2 is S and qinffield is Smax
-             qinffield2(nm) = qinffield2(nm) + (scs_kr(nm) * qinffield(nm) * dt / 3600)  ! scs_kr is recovery % in hours 
-             qinffield2(nm) = min(qinffield2(nm), qinffield(nm))
-             !
-        endif
-        !
+            ! 
+            ! It is not raining here
+            ! 
+            if (scs_rain(nm) == 1) then
+               !
+               ! if it was raining before
+               ! change logic and set rate to 0
+               scs_rain(nm)   = 0
+               qinfmap(nm)    = 0.0
+               !
+            endif
+            ! 
+            ! It is not raining and stil not raining
+            ! compute recovery of S (not larger than Smax)
+            ! note that qinffield2 is S and qinffield is Smax
+            qinffield2(nm) = qinffield2(nm) + (scs_kr(nm) * qinffield(nm) * dt / 3600)  ! scs_kr is recovery % in hours 
+            qinffield2(nm) = min(qinffield2(nm), qinffield(nm))
+            !
+         endif
+         !
       enddo
       !$omp end do
       !$omp end parallel

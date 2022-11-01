@@ -102,9 +102,8 @@ contains
    !
    !$omp parallel &
    !$omp private ( nm,dvol,nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,nmd,nmu,ndm,num,qnmd,qnmu,qndm,qnum,iwm )
-!   !$omp shared ( kcs,kfuv,zs,zb,cumprcp,cumprcpt,prcp,qinfmap,q,z_flags_type,zsmax,vmax,z_flags_iref,dxrinv,dyrinv,twet )
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels present( kcs, kfuv, zs, zb, cumprcp, cumprcpt, prcp, q, qinfmap, z_flags_type, z_flags_iref, uv_flags_iref, &
+   !$acc kernels present( kcs, kfuv, zs, zb, netprcp, cumprcpt, prcp, q, z_flags_type, z_flags_iref, uv_flags_iref, &
    !$acc                  z_index_uv_md1, z_index_uv_md2, z_index_uv_nd1, z_index_uv_nd2, z_index_uv_mu1, z_index_uv_mu2, z_index_uv_nu1, z_index_uv_nu2, &
    !$acc                  dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area, zsmax, twet, z_index_wavemaker, cell_area, &
    !$acc                  wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, zsm), async(1)
@@ -117,35 +116,16 @@ contains
          !
          if (precip) then
             !
-            ! Rainfall only
+            cumprcpt(nm) = cumprcpt(nm) + netprcp(nm)*dt
             !
-            cumprcpt(nm) = cumprcpt(nm) + (prcp(nm)*dt)
+            ! Add rain and/or infiltration only when cumulative effect over last interval exceeds 0.001 m
+            ! Otherwise single precision may miss a lot of the rainfall/infiltration
             !
-         endif
-         !          
-         if (infiltration) then
-            ! 
-            ! Infiltration
-            !
-            if (infiltration2d) then
-               !
-               cumprcpt(nm) = cumprcpt(nm) - (qinfmap(nm)*dt)
-            else   
-               cumprcpt(nm) = cumprcpt(nm) - (qinf*dt) 
-               !
-            endif             
-            !
-         endif   
-         !
-         ! Add rain and/or infiltration only when cumulative effect over last interval exceeds 0.001 m
-         ! Otherwise single precision may miss a lot of the rainfall/infiltration
-         !
-         if (precip .or. infiltration) then            
             if (cumprcpt(nm)>0.001 .or. cumprcpt(nm)<-0.001) then
                !
                zs(nm) = zs(nm) + cumprcpt(nm)
                cumprcpt(nm) = 0.0
-               zs(nm) = max(zs(nm), zb(nm)) ! don't allow negative water levels due to infiltration
+!               zs(nm) = max(zs(nm), zb(nm)) ! don't allow negative water levels due to infiltration
                !
             endif
             !
@@ -393,7 +373,6 @@ contains
    implicit none
    !
    real*4           :: dt
-!   real*8 :: t
    !
    integer          :: nm
    integer          :: isrc
@@ -453,11 +432,10 @@ contains
    !
    !$omp parallel &
    !$omp private ( dvol,nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind )
-!   !$omp shared ( kcs,kfuv,zs,cumprcp,cumprcpt,prcp,q,z_index,z_flags,uv_flags,zsmax,vmax )
    !$omp do schedule ( dynamic, 256 )
    !$acc kernels present( kcs, zs, zb, z_volume, zsmax, twet, zsm, &
    !$acc                  subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
-   !$acc                  cumprcp, cumprcpt, prcp, q, qinfmap, z_flags_type, z_flags_iref, uv_flags_iref, &
+   !$acc                  netprcp, cumprcpt, prcp, q, z_flags_type, z_flags_iref, uv_flags_iref, &
    !$acc                  z_index_uv_md1, z_index_uv_md2, z_index_uv_nd1, z_index_uv_nd2, z_index_uv_mu1, z_index_uv_mu2, z_index_uv_nu1, z_index_uv_nu2, &
    !$acc                  dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area, &
    !$acc                  z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num), async(1)
@@ -476,31 +454,11 @@ contains
          !
          if (precip) then
             !
-            ! Rainfall only
+            cumprcpt(nm) = cumprcpt(nm) + netprcp(nm)*dt
             !
-            cumprcpt(nm) = cumprcpt(nm) + (prcp(nm)*dt)
+            ! Add rain and/or infiltration only when cumulative effect over last interval exceeds 0.001 m
+            ! Otherwise single precision may miss a lot of the rainfall/infiltration
             !
-         endif
-         !
-         if (infiltration) then
-            ! 
-            ! Infiltration only
-            !
-            if (infiltration2d) then
-               !
-               cumprcpt(nm) = cumprcpt(nm) - (qinfmap(nm)*dt)
-            else   
-               cumprcpt(nm) = cumprcpt(nm) - (qinf*dt)
-               !
-            endif         
-            !
-         endif            
-         !
-         ! Add rain and/or infiltration only when cumulative effect over last interval exceeds 0.001 m
-         ! Otherwise single precision may miss a lot of the rainfall/infiltration
-         !
-         if (precip .or. infiltration) then   
-            ! 
             if (cumprcpt(nm)>0.001 .or. cumprcpt(nm)<-0.001) then
                !
                z_volume(nm) = z_volume(nm) + cumprcpt(nm)*a

@@ -158,20 +158,23 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'long_name', 'msk_active_cells')) 
    NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'description', 'inactive=0, active=1, normal_boundary=2, outflow_boundary=3'))    
    !
-   ! infiltration map
-   if (infiltration2d) then
+   ! Infiltration map
+   !
+   if (infiltration) then
        NF90(nf90_def_var(map_file%ncid, 'qinf', NF90_FLOAT, (/map_file%n_dimid, map_file%m_dimid/), map_file%qinf_varid)) 
        NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, '_FillValue', FILL_VALUE))     
-       NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'm'))
        if (inftype == 'cna') then
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'S')) 
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'moisture storage (S) capacity as computed from the curve number')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'm'))
        elseif (inftype == 'cnb') then
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'Smax')) 
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'maximum moisture storage (Smax) capacity as computed from the curve number')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'm'))
        else
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'qinf')) 
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'infiltration rate - constant in time')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'mm h-1'))
        endif
    endif
    !
@@ -223,6 +226,7 @@ contains
    endif
    !
    ! Store S_effective (only for CN method with recovery)
+   !
    if (inftype == 'cnb') then
       NF90(nf90_def_var(map_file%ncid, 'Seff', NF90_FLOAT, (/map_file%corner_n_dimid, map_file%corner_m_dimid, map_file%time_dimid/), map_file%Seff_varid)) ! time-varying S
       NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, '_FillValue', FILL_VALUE))   
@@ -232,6 +236,7 @@ contains
    endif
    !
    ! Time varying spatial output max
+   !
    if (store_maximum_waterlevel) then
       NF90(nf90_def_var(map_file%ncid, 'timemax', NF90_FLOAT, (/map_file%timemax_dimid/), map_file%timemax_varid)) ! time
       NF90(nf90_put_att(map_file%ncid, map_file%timemax_varid, 'units', 'seconds since ' // trim(trefstr_iso8601) ))  ! time stamp following ISO 8601
@@ -247,7 +252,7 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%zsmax_varid, 'long_name', 'maximum_water_level'))        
    endif
    !
-   if (precip .and. store_cumulative_precipitation) then  
+   if (store_cumulative_precipitation) then
       NF90(nf90_def_var(map_file%ncid, 'cumprcp', NF90_FLOAT, (/map_file%n_dimid, map_file%m_dimid, map_file%timemax_dimid/), map_file%cumprcp_varid)) ! time-varying maximum water level map
       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, '_FillValue', FILL_VALUE))          
       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'units', 'mm'))
@@ -285,7 +290,7 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%vmax_varid, 'cell_methods', 'time: maximum'))
    endif
    !
-   if (infiltration2d) then
+   if (store_cumulative_precipitation) then
        NF90(nf90_def_var(map_file%ncid, 'cuminf', NF90_FLOAT, (/map_file%n_dimid, map_file%m_dimid, map_file%timemax_dimid/), map_file%cuminf_varid)) ! time-varying cumulative infiltration map
        NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, '_FillValue', FILL_VALUE))          
        NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, 'units', 'm'))
@@ -448,15 +453,13 @@ contains
       !      
       zsg(n, m) = kcs(nm)
       !
-!      write(*,'(a,20i8)')'ncout',nm,n,m,kcs(nm)
-!       zsg(index_v_n(nm),index_v_m(nm)) = kcs_incl3(nm) ! use kcs array that still included the msk=3 values
    enddo
    !
    NF90(nf90_put_var(map_file%ncid, map_file%msk_varid, zsg, (/1, 1/))) ! write msk     
    !   
    ! Write infiltration map
    !
-   if (infiltration2d) then
+   if (infiltration) then
       !
       zsg = FILL_VALUE       
       !
@@ -465,7 +468,12 @@ contains
          n    = z_index_z_n(nm)
          m    = z_index_z_m(nm)
          !      
-         zsg(n, m) = qinffield(nm)       ! field variable read by SFINCS                               
+         if (inftype == 'con' .or. inftype == 'c2d') then
+            zsg(n, m) = qinffield(nm)*3600*1000
+         else
+            zsg(n, m) = qinffield(nm)
+         endif
+         ! 
       enddo
       !
       NF90(nf90_put_var(map_file%ncid, map_file%qinf_varid, zsg, (/1, 1/))) ! write infiltration map
@@ -484,7 +492,6 @@ contains
    ! 1. Initialise dimensions/variables/attributes
    ! 2. write grid/msk/zb to file
    !
-!   use sfincs_domain
    use sfincs_date
    use sfincs_data   
    !
@@ -664,6 +671,7 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'long_name', 'water_level'))  
    !
    if (store_velocity) then
+      !
       NF90(nf90_def_var(map_file%ncid, 'u', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%u_varid)) ! time-varying u map 
       NF90(nf90_put_att(map_file%ncid, map_file%u_varid, '_FillValue', FILL_VALUE))   
       NF90(nf90_put_att(map_file%ncid, map_file%u_varid, 'units', 'm s-1'))
@@ -712,24 +720,29 @@ contains
    endif
    !
    ! Store cumulative rainfall 
-   if (precip .and. store_cumulative_precipitation) then  
-       NF90(nf90_def_var(map_file%ncid, 'cumprcp', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%timemax_dimid/), map_file%cumprcp_varid)) ! cumulative precipitation map
-       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, '_FillValue', FILL_VALUE))          
-       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'units', 'mm'))
-       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'long_name', 'cumulative_precipitation_depth')) 
-       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'cell_methods', 'time: sum'))       
-   endif
-   !   
-   ! Storm cumulative infiltration
-   if (infiltration2d) then
-       NF90(nf90_def_var(map_file%ncid, 'cuminf', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%timemax_dimid/), map_file%cuminf_varid)) ! cumulative infiltration map
-       NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, '_FillValue', FILL_VALUE))          
-       NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, 'units', 'm'))
-       NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, 'long_name', 'cumulative_infiltration_depth')) 
-       NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, 'cell_methods', 'time: sum'))     
+   !
+   if (store_cumulative_precipitation) then  
+      !   
+      ! Cumulative precipitation
+      !
+      NF90(nf90_def_var(map_file%ncid, 'cumprcp', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%timemax_dimid/), map_file%cumprcp_varid)) ! cumulative precipitation map
+      NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, '_FillValue', FILL_VALUE))          
+      NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'units', 'mm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'long_name', 'cumulative_precipitation_depth')) 
+      NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'cell_methods', 'time: sum'))       
+      !   
+      ! Cumulative infiltration
+      !
+      NF90(nf90_def_var(map_file%ncid, 'cuminf', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%timemax_dimid/), map_file%cuminf_varid)) ! cumulative infiltration map
+      NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, '_FillValue', FILL_VALUE))          
+      NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, 'units', 'm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, 'long_name', 'cumulative_infiltration_depth')) 
+      NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, 'cell_methods', 'time: sum'))     
+      !
    endif
    !
    ! Store maximum wind speed
+   !
    if (wind .and. store_wind_max .and. meteo3d) then 
       NF90(nf90_def_var(map_file%ncid, 'windmax', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%timemax_dimid/), map_file%windmax_varid)) ! maximum wind speed m/s
       NF90(nf90_put_att(map_file%ncid, map_file%windmax_varid, '_FillValue', FILL_VALUE))
@@ -780,6 +793,24 @@ contains
       !
    endif
    !
+   if (infiltration) then
+       NF90(nf90_def_var(map_file%ncid, 'qinf', NF90_FLOAT, (/map_file%nmesh2d_face_dimid/), map_file%qinf_varid)) 
+       NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, '_FillValue', FILL_VALUE))     
+       if (inftype == 'cna') then
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'S')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'moisture storage (S) capacity as computed from the curve number')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'm'))
+       elseif (inftype == 'cnb') then
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'Smax')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'maximum moisture storage (Smax) capacity as computed from the curve number')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'm'))
+       else
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'qinf')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'infiltration rate - constant in time')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'mm h-1'))
+       endif
+   endif
+   !
    ! Add for final output:
    NF90(nf90_def_var(map_file%ncid, 'total_runtime', NF90_FLOAT, (/map_file%runtime_dimid/),map_file%total_runtime_varid))
    NF90(nf90_put_att(map_file%ncid, map_file%total_runtime_varid, 'units', 's'))   
@@ -816,8 +847,13 @@ contains
    NF90(nf90_put_var(map_file%ncid, map_file%msk_varid, kcs)) ! write msk     
    !   
    ! Write infiltration map
-   if (infiltration2d) then
-      NF90(nf90_put_var(map_file%ncid, map_file%qinf_varid, qinffield)) ! write infiltration map
+   !   
+   if (infiltration) then
+      if (inftype == 'con' .or. inftype == 'c2d') then
+         NF90(nf90_put_var(map_file%ncid, map_file%qinf_varid, qinfmap(nm)*3600*1000)) ! write infiltration map
+      else
+         NF90(nf90_put_var(map_file%ncid, map_file%qinf_varid, qinffield)) ! write infiltration map
+      endif
    endif
    !
    ! write away intermediate data
@@ -993,7 +1029,7 @@ contains
    endif
    ! 
    ! Add infiltration
-   if (infiltration2d) then      
+   if (infiltration) then      
       NF90(nf90_def_var(his_file%ncid, 'point_qinf', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%qinf_varid)) ! time-varying infiltration point 
       NF90(nf90_put_att(his_file%ncid, his_file%qinf_varid, '_FillValue', FILL_VALUE))   
       NF90(nf90_put_att(his_file%ncid, his_file%qinf_varid, 'units', 'mm hr-1'))
@@ -1071,7 +1107,7 @@ contains
          !
       endif
       !
-      if (patmos .and. store_meteo) then      
+      if (patmos) then      
          !
          NF90(nf90_def_var(his_file%ncid, 'point_patm', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%patm_varid)) ! time-varying patm point 
          NF90(nf90_put_att(his_file%ncid, his_file%patm_varid, '_FillValue', FILL_VALUE))   
@@ -1411,6 +1447,7 @@ contains
 
    
    subroutine ncoutput_update_quadtree_map(t,ntmapout)
+      !
       ! Write time, zs, u, v  
       !
       use sfincs_data   
@@ -1720,7 +1757,7 @@ contains
             tprcp(iobs) = prcp(nm)*3.6e3*1.0e3 ! show as mm/hr
          endif
          !
-         if (infiltration2d) then
+         if (infiltration) then
             tqinf(iobs) = qinfmap(nm)*3.6e3*1.0e3 ! show as mm/hr
          endif  
          ! 
@@ -1736,7 +1773,7 @@ contains
             !
          endif   
          !
-         if (meteo3d .and. store_meteo) then
+         if (wind) then
             !
             twndmag(iobs) = sqrt(windu(nm)**2 + windv(nm)**2)
             twnddir(iobs) = 270.0 - atan2(windv(nm), windu(nm))*180/pi
@@ -1787,7 +1824,7 @@ contains
        NF90(nf90_put_var(his_file%ncid, his_file%prcp_varid, tprcp, (/1, nthisout/))) ! write prcp
    endif
    !
-   if (infiltration2d) then
+   if (infiltration) then
       NF90(nf90_put_var(his_file%ncid, his_file%qinf_varid, tqinf, (/1, nthisout/))) ! write qinf
       if (inftype == 'cnb') then
          NF90(nf90_put_var(his_file%ncid, his_file%S_varid, tS_effective, (/1, nthisout/))) ! write S
@@ -1924,8 +1961,11 @@ contains
    endif
    !
    ! Write cumulative rainfall
-   if (precip .and. store_cumulative_precipitation) then  
+   ! 
+   if (store_cumulative_precipitation) then  
       !
+      ! Precipitation
+      ! 
       zstmp = FILL_VALUE
       !
       do nm = 1, np       
@@ -1939,9 +1979,22 @@ contains
       !
       NF90(nf90_put_var(map_file%ncid, map_file%cumprcp_varid, zstmp, (/1, 1, ntmaxout/))) ! write zsmax   
       !
+      ! Infiltration
+      !
+      zstmp = FILL_VALUE
+      !
+      do nm = 1, np
+         n              = z_index_z_n(nm)
+         m              = z_index_z_m(nm)
+         zstmp(n,m)     = cuminf(nm) 
+      enddo
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%cuminf_varid, zstmp, (/1, 1, ntmaxout/))) ! write cuminf   
+      !
    endif
    !
    ! Maximum flow velocity
+   !
    if (store_maximum_velocity) then
       zstmp = FILL_VALUE
       do nm = 1, np   
@@ -1952,18 +2005,8 @@ contains
       NF90(nf90_put_var(map_file%ncid, map_file%vmax_varid, zstmp, (/1, 1, ntmaxout/))) ! write vmax
    endif
    !
-   ! Write cumulative rainfall
-   if (precip .and. store_cumulative_precipitation) then  
-      zstmp = FILL_VALUE
-      do nm = 1, np   
-         n              = z_index_z_n(nm)
-         m              = z_index_z_m(nm)
-         zstmp(n, m)    = cumprcp(nm)*1000
-      enddo
-      NF90(nf90_put_var(map_file%ncid, map_file%cumprcp_varid, zstmp, (/1, 1, ntmaxout/))) ! write cumprcp
-   endif
-   !
    ! Duration wet cell
+   !
    if (store_twet) then
       zstmp = FILL_VALUE
       do nm = 1, np
@@ -1984,21 +2027,11 @@ contains
       enddo
       NF90(nf90_put_var(map_file%ncid, map_file%windmax_varid, zstmp, (/1, 1, ntmaxout/))) ! write windmax   
    endif
-   !
-   ! Cumulative infiltration
-   if (infiltration2d) then
-      zstmp = FILL_VALUE
-      do nm = 1, np
-         n              = z_index_z_n(nm)
-         m              = z_index_z_m(nm)
-         zstmp(n,m)     = cuminf(nm) 
-      enddo
-      NF90(nf90_put_var(map_file%ncid, map_file%cuminf_varid, zstmp, (/1, 1, ntmaxout/))) ! write cuminf   
-   endif
    !   
    end subroutine
 
-   !
+
+   
    subroutine ncoutput_update_quadtree_max(t,ntmaxout)
    !
    ! write zsmax per dtmaxout
@@ -2066,13 +2099,22 @@ contains
       NF90(nf90_put_var(map_file%ncid, map_file%hmax_varid, zstmp, (/1, ntmaxout/))) ! write hmax   
    endif
    !
-   ! Write cumulative rainfall
-   if (precip .and. store_cumulative_precipitation) then  
+   ! Write cumulative rainfall and precipitation
+   !
+   if (store_cumulative_precipitation) then  
+       !
        zstmp = FILL_VALUE       
        do nm = 1, np
           zstmp(nm) = cumprcp(nm)*1000
        enddo
        NF90(nf90_put_var(map_file%ncid, map_file%cumprcp_varid, zstmp, (/1, ntmaxout/))) ! write cumprcp
+       !
+       zstmp = FILL_VALUE       
+       do nm = 1, np
+          zstmp(nm) = cuminf(nm)*1000
+       enddo
+       NF90(nf90_put_var(map_file%ncid, map_file%cuminf_varid, zstmp, (/1, ntmaxout/))) ! write cumprcp
+       !
    endif   
    !
    ! Duration wet cell
@@ -2094,7 +2136,7 @@ contains
    endif
    !   
    ! Cumulative infiltration
-   if (infiltration2d) then
+   if (infiltration) then
       zstmp = FILL_VALUE
       do nm = 1, np
          zstmp(nm) = cuminf(nm) 

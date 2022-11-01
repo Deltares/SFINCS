@@ -292,6 +292,7 @@ module sfincs_lib
       !
       t = t + dtt
       dtavg = dtavg + dt
+!      write(*,*)t,dt,dtt
       !
       ! Check whether map output is required at this time step (if so, change dt)
       !
@@ -433,7 +434,7 @@ module sfincs_lib
          call update_wavemaker_fluxes(t, dt, tloopwavemaker)
          !         
       endif   
-
+      !
       if (nrstructures>0) then
          !
          call compute_fluxes_over_structures(tloopstruc)
