@@ -86,7 +86,7 @@ contains
    call read_int_input(500,'spinup_meteo', ispinupmeteo, 0)
    call read_real_input(500,'waveage',waveage,-999.0)
    call read_int_input(500,'snapwave', isnapwave, 0)
-!   call read_int_input(500,'hisdtfixed', ihisfix, 0)
+   call read_int_input(500,'dtoutfixed', ioutfixed, 1)
    call read_real_input(500,'wmtfilter',wmtfilter,600.0)
    call read_real_input(500,'wmfred',wavemaker_freduv,0.99)
    call read_char_input(500,'wmsignal',wmsigstr,'spectrum')   
@@ -386,10 +386,10 @@ contains
       snapwave = .true.
    endif      
    !
-!   history_fixed_intervals = .false.
-!   if (ihisfix==1) then
-!      history_fixed_intervals = .true.
-!   endif      
+   fixed_output_intervals = .true.
+   if (ioutfixed==0) then
+      fixed_output_intervals = .false.
+   endif      
    !
    advection = .false.
    if (iadvection>0) then

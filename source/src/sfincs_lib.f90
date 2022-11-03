@@ -435,6 +435,8 @@ module sfincs_lib
       !
       if (write_map .or. write_his .or. write_max .or. write_rst) then
          !
+         if (.not. fixed_output_intervals) tout = t
+         !
          call write_output(tout, write_map, write_his, write_max, write_rst, ntmapout, ntmaxout, nthisout, tloopoutput)
          !
       endif

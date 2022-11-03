@@ -198,7 +198,7 @@ module sfincs_data
       logical       :: use_quadtree
       logical       :: interpolate_zst
       logical       :: advection
-!      logical       :: history_fixed_intervals
+      logical       :: fixed_output_intervals
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
@@ -220,7 +220,7 @@ module sfincs_data
       integer ispinupmeteo
       integer isnapwave
       integer iwindmax
-   !   integer ihisfix
+      integer ioutfixed
       integer iadvection
       integer istorefw
       integer istorewavdir   
