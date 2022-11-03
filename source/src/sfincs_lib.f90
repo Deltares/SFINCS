@@ -39,7 +39,7 @@ module sfincs_lib
    integer*8  :: count1
    integer*8  :: count_rate
    integer*8  :: count_max
-   integer  :: nt
+   integer    :: nt
    !
    integer  :: ntmapout
    integer  :: ntmaxout
@@ -264,10 +264,6 @@ module sfincs_lib
       nt = nt + 1
       dt = alfa*min_dt ! min_dt was computed in sfincs_momentum.f90 without alfa
       !
-      ! Ensure that we don't go beyond end time of simulation
-      !
-      dt = min(t1 - t, dt)
-      !
       ! A bit unclear why this happens, but large jumps in the time step lead to weird oscillations.
       ! In the 'original' sfincs v11 version, this behavior was supressed by the use of theta.
       ! Avoid this, by not not changing time step dt (used in momentum equation), but only changing dtt,
@@ -292,7 +288,6 @@ module sfincs_lib
       !
       t = t + dtt
       dtavg = dtavg + dt
-!      write(*,*)t,dt,dtt
       !
       ! Check whether map output is required at this time step (if so, change dt)
       !
@@ -453,41 +448,19 @@ module sfincs_lib
          !
       endif
       !
-      ! Stop loop in case of instabilities (Make sure water depth does not exceed stopdepth)
+      ! Stop loop in case of instabilities (make sure water depth does not exceed stopdepth)
       !
-!      if (maxdepth>stopdepth) then
-!         hmx = 0.0
-!         !$acc update host(zs)
-!         if (subgrid) then
-!            do nm = 1, np
-!               if (zs(nm) - subgrd_z_zmin(nm)>hmx) then
-!                  hmx = zs(nm) - subgrd_z_zmin(nm)
-!                  mmx = index_v_m(nm)
-!                  nmx = index_v_n(nm)
-!               endif
-!            enddo
-!         else
-!            do nm = 1, np
-!               if (zs(nm) - zb(nm)>hmx) then
-!                  hmx = zs(nm) - zb(nm)
-!                  mmx = index_v_m(nm)
-!                  nmx = index_v_n(nm)
-!               endif
-!            enddo
-!         endif
-!         !
-!         write(*,'(a,f0.1,a)')'Maximum depth of ',stopdepth,' m reached!!! Simulation stopped.'
-!         write(*,'(a,i5,a,i5,a,f10.1,a,f10.1,a)')'Maximum depth occurs at (n,m)=(',nmx,',',mmx,'), (x,y)=(',xz(nmx,mmx),',',yz(nmx,mmx),').'
-!         !
-!         if (outputtype == 'net') then
-!            call ncoutput_update_map(t, ntmapout + 1)
-!         else
-!            call write_map_output()
-!         endif
-!         !
-!         t = t1 + 1.0
-!         !
-!      endif
+      if (dt<dtmin .and. nt>1) then
+         !
+         write(*,'(a,f0.1,a)')'Maximum depth of ', stopdepth, ' m reached!!! Simulation stopped.'
+         !
+         ! Write map output at last time step 
+         !
+         call write_output(t, .true., .true., .true., .false., ntmapout + 1, ntmaxout + 1, nthisout + 1, tloopoutput)
+         !
+         t = t1 + 1.0
+         !
+      endif
       !
       percdone = min(100*(t - t0)/(t1 - t0), 100.0)
       !
@@ -505,13 +478,8 @@ module sfincs_lib
          !
       endif
       !
-!      call system_clock(countdt1, count_rate, count_max)
-!      time_per_timestep = 1.0*(countdt1- countdt0)/count_rate      
-!      write(333,'(3e14.4,4i)')t,dt,time_per_timestep,countdt0,countdt1,count_rate,count_max
-      !
    enddo
    !
-!   close(333)
    !
    !$acc end data
    !
@@ -582,7 +550,6 @@ module sfincs_lib
    endif
    write(*,'(a)')''
    write(*,'(a,20f10.3)')        ' Average time step (s)  : ',dtavg
-!   write(*,'(a,20f10.3)')        ' Maximum depth (m)      : ',maxmaxdepth
    write(*,'(a)')''
    !
    if (write_time_output) then

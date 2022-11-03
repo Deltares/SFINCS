@@ -17,7 +17,7 @@ module sfincs_ncoutput
       integer :: time_varid, timemax_varid
       integer :: zs_varid, zsmax_varid, h_varid, u_varid, v_varid, tmax_varid, Seff_varid 
       integer :: hmax_varid, vmax_varid, cumprcp_varid, cuminf_varid, windmax_varid
-      integer :: patm_varid, wind_u_varid, wind_v_varid       
+      integer :: patm_varid, wind_u_varid, wind_v_varid, precip_varid        
       integer :: hm0_varid, hm0ig_varid
       integer :: fwx_varid, fwy_varid
       integer :: zsm_varid
@@ -45,7 +45,7 @@ module sfincs_ncoutput
       integer :: structure_height_varid, structure_x_varid, structure_y_varid
       integer :: zb_varid
       integer :: time_varid
-      integer :: zs_varid, h_varid, u_varid, v_varid, prcp_varid, discharge_varid
+      integer :: zs_varid, h_varid, u_varid, v_varid, prcp_varid, discharge_varid, uvmag_varid, uvdir_varid
       integer :: patm_varid, wind_speed_varid, wind_dir_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid  
       integer :: hm0_varid, hm0ig_varid, zsm_varid, tp_varid, wavdir_varid, dirspr_varid
@@ -331,6 +331,16 @@ contains
          NF90(nf90_put_att(map_file%ncid, map_file%patm_varid, 'units', 'N m-2'))
          NF90(nf90_put_att(map_file%ncid, map_file%patm_varid, 'standard_name', 'surface_air_pressure'))
          NF90(nf90_put_att(map_file%ncid, map_file%patm_varid, 'long_name', 'surface_air_pressure')) 
+         !
+      endif   
+      !
+      if (precip) then
+         !
+         NF90(nf90_def_var(map_file%ncid, 'precipitation_rate', NF90_FLOAT, (/map_file%n_dimid, map_file%m_dimid, map_file%time_dimid/), map_file%precip_varid)) ! cumulative precipitation map
+         NF90(nf90_put_att(map_file%ncid, map_file%precip_varid, '_FillValue', FILL_VALUE))          
+         NF90(nf90_put_att(map_file%ncid, map_file%precip_varid, 'units', 'mm h-1'))
+         NF90(nf90_put_att(map_file%ncid, map_file%precip_varid, 'standard_name', 'precipitation_rate'))
+         NF90(nf90_put_att(map_file%ncid, map_file%precip_varid, 'long_name', 'precipitation_rate')) 
          !
       endif   
       !
@@ -924,6 +934,7 @@ contains
    if (nrcrosssections>0) then
       NF90(nf90_def_var(his_file%ncid, 'crosssection_name', NF90_CHAR, (/his_file%pointnamelength_dimid, his_file%crosssections_dimid/), his_file%crosssection_name_varid))
    endif   
+   !
    !NF90(nf90_put_att(his_file%ncid, his_file%station_name_varid, 'units', '-')) !not wanted in fews   
    !
    ! Domain
@@ -965,6 +976,7 @@ contains
    NF90(nf90_put_att(his_file%ncid, his_file%zb_varid, 'long_name', 'bed_level_above_reference_level'))  
    !
    if (nrstructures>0) then
+      !
       NF90(nf90_def_var(his_file%ncid, 'structure_x', NF90_FLOAT, (/his_file%structures_dimid/), his_file%structure_x_varid))  ! snapped coordinate as used in sfincs
       NF90(nf90_put_att(his_file%ncid, his_file%structure_x_varid, 'units', 'm'))
       NF90(nf90_put_att(his_file%ncid, his_file%structure_x_varid, 'standard_name', 'projection_x_coordinate'))
@@ -982,6 +994,7 @@ contains
       NF90(nf90_put_att(his_file%ncid, his_file%structure_height_varid, 'units', 'm'))
       NF90(nf90_put_att(his_file%ncid, his_file%structure_height_varid, 'standard_name', 'altitude'))
       NF90(nf90_put_att(his_file%ncid, his_file%structure_height_varid, 'long_name', 'interpolated_structure_height_above_reference_level'))      
+      !
    endif         
    !
    ! Time variables 
@@ -993,13 +1006,14 @@ contains
    NF90(nf90_put_att(his_file%ncid, his_file%time_varid, 'long_name', 'time_in_seconds_since_' // trim(trefstr_iso8601) ))   !--> add  trefstr from sfincs_input
    !
    ! Time varying map output
+   !
    NF90(nf90_def_var(his_file%ncid, 'point_zs', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%zs_varid)) ! time-varying water level point
    NF90(nf90_put_att(his_file%ncid, his_file%zs_varid, '_FillValue', FILL_VALUE))
    NF90(nf90_put_att(his_file%ncid, his_file%zs_varid, 'units', 'm'))
    NF90(nf90_put_att(his_file%ncid, his_file%zs_varid, 'standard_name', 'sea_surface_height_above_mean_sea_level')) 
    NF90(nf90_put_att(his_file%ncid, his_file%zs_varid, 'long_name', 'water_level'))  
    !
-   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then   
+   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
       NF90(nf90_def_var(his_file%ncid, 'point_h', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%h_varid)) ! time-varying water depth map
       NF90(nf90_put_att(his_file%ncid, his_file%h_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(his_file%ncid, his_file%h_varid, 'units', 'm'))
@@ -1007,41 +1021,54 @@ contains
       NF90(nf90_put_att(his_file%ncid, his_file%h_varid, 'long_name', 'water_depth'))     
    endif
    !
-   NF90(nf90_def_var(his_file%ncid, 'point_u', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%u_varid)) ! time-varying u point 
-   NF90(nf90_put_att(his_file%ncid, his_file%u_varid, '_FillValue', FILL_VALUE))   
-   NF90(nf90_put_att(his_file%ncid, his_file%u_varid, 'units', 'm s-1'))
-   NF90(nf90_put_att(his_file%ncid, his_file%u_varid, 'standard_name', 'sea_water_x_velocity')) ! not truly eastward when rotated, eastward_sea_water_velocity
-   NF90(nf90_put_att(his_file%ncid, his_file%u_varid, 'long_name', 'flow_velocity_x_direction_in_cell_corner'))     
-   !
-   NF90(nf90_def_var(his_file%ncid, 'point_v', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%v_varid)) ! time-varying u point 
-   NF90(nf90_put_att(his_file%ncid, his_file%v_varid, '_FillValue', FILL_VALUE))   
-   NF90(nf90_put_att(his_file%ncid, his_file%v_varid, 'units', 'm s-1'))
-   NF90(nf90_put_att(his_file%ncid, his_file%v_varid, 'standard_name', 'sea_water_x_velocity')) ! not truly northward when rotated, northward_sea_water_velocity
-   NF90(nf90_put_att(his_file%ncid, his_file%v_varid, 'long_name', 'flow_velocity_y_direction_in_cell_corner'))     
-   !
-   ! Add now precipitation rate if needed 
-   !
-   if (precip) then      
-      NF90(nf90_def_var(his_file%ncid, 'point_prcp', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%prcp_varid)) ! time-varying prcp point 
-      NF90(nf90_put_att(his_file%ncid, his_file%prcp_varid, '_FillValue', FILL_VALUE))   
-      NF90(nf90_put_att(his_file%ncid, his_file%prcp_varid, 'units', 'mm hr-1'))
-      NF90(nf90_put_att(his_file%ncid, his_file%prcp_varid, 'long_name', 'precipitation_rate'))        
+   if (store_velocity) then
+      !
+      NF90(nf90_def_var(his_file%ncid, 'point_u', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%u_varid)) ! time-varying u point 
+      NF90(nf90_put_att(his_file%ncid, his_file%u_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(his_file%ncid, his_file%u_varid, 'units', 'm s-1'))
+      NF90(nf90_put_att(his_file%ncid, his_file%u_varid, 'standard_name', 'sea_water_x_velocity')) ! not truly eastward when rotated, eastward_sea_water_velocity
+      NF90(nf90_put_att(his_file%ncid, his_file%u_varid, 'long_name', 'flow_velocity_x_direction'))     
+      !
+      NF90(nf90_def_var(his_file%ncid, 'point_v', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%v_varid)) ! time-varying u point 
+      NF90(nf90_put_att(his_file%ncid, his_file%v_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(his_file%ncid, his_file%v_varid, 'units', 'm s-1'))
+      NF90(nf90_put_att(his_file%ncid, his_file%v_varid, 'standard_name', 'sea_water_x_velocity')) ! not truly northward when rotated, northward_sea_water_velocity
+      NF90(nf90_put_att(his_file%ncid, his_file%v_varid, 'long_name', 'flow_velocity_y_direction'))     
+      !
+      NF90(nf90_def_var(his_file%ncid, 'point_uvmag', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%uvmag_varid)) ! time-varying flow velocity magnitude 
+      NF90(nf90_put_att(his_file%ncid, his_file%uvmag_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(his_file%ncid, his_file%uvmag_varid, 'units', 'm s-1'))
+      NF90(nf90_put_att(his_file%ncid, his_file%uvmag_varid, 'standard_name', 'sea_water_velocity'))
+      NF90(nf90_put_att(his_file%ncid, his_file%uvmag_varid, 'long_name', 'flow_velocity_magnitude'))     
+      !
+      NF90(nf90_def_var(his_file%ncid, 'point_uvdir', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%uvdir_varid)) ! time-varying flow velocity direction 
+      NF90(nf90_put_att(his_file%ncid, his_file%uvdir_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(his_file%ncid, his_file%uvdir_varid, 'units', 'degrees'))
+      NF90(nf90_put_att(his_file%ncid, his_file%uvdir_varid, 'standard_name', 'sea_water_velocity_direction'))
+      NF90(nf90_put_att(his_file%ncid, his_file%uvdir_varid, 'long_name', 'flow_velocity_direction'))     
+      !
    endif
-   ! 
+   !
    ! Add infiltration
-   if (infiltration) then      
+   !
+   if (infiltration) then
+      !
       NF90(nf90_def_var(his_file%ncid, 'point_qinf', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%qinf_varid)) ! time-varying infiltration point 
       NF90(nf90_put_att(his_file%ncid, his_file%qinf_varid, '_FillValue', FILL_VALUE))   
       NF90(nf90_put_att(his_file%ncid, his_file%qinf_varid, 'units', 'mm hr-1'))
       NF90(nf90_put_att(his_file%ncid, his_file%qinf_varid, 'long_name', 'infiltration_rate'))        
+      !
    endif
    ! 
    ! More output for CN method with recovery
+   !
    if (inftype == 'cnb') then
+      !
       NF90(nf90_def_var(his_file%ncid, 'point_S', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%S_varid)) ! time-varying S
       NF90(nf90_put_att(his_file%ncid, his_file%S_varid, '_FillValue', FILL_VALUE))   
       NF90(nf90_put_att(his_file%ncid, his_file%S_varid, 'units', 'm'))
       NF90(nf90_put_att(his_file%ncid, his_file%S_varid, 'long_name', 'current moisture storage (Se) capacity')) 
+      !
    endif
    !
    if (snapwave) then  
@@ -1116,13 +1143,22 @@ contains
          !
       endif
       !
+      if (precip) then      
+         NF90(nf90_def_var(his_file%ncid, 'point_prcp', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%prcp_varid)) ! time-varying prcp point 
+         NF90(nf90_put_att(his_file%ncid, his_file%prcp_varid, '_FillValue', FILL_VALUE))   
+         NF90(nf90_put_att(his_file%ncid, his_file%prcp_varid, 'units', 'mm hr-1'))
+         NF90(nf90_put_att(his_file%ncid, his_file%prcp_varid, 'long_name', 'precipitation_rate'))        
+      endif
+      ! 
    endif   
    !   
    if (nrcrosssections>0) then
+      !
       NF90(nf90_def_var(his_file%ncid, 'crosssection_discharge', NF90_FLOAT, (/his_file%crosssections_dimid, his_file%time_dimid/), his_file%discharge_varid)) ! time-varying crossection discharge 
       NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, '_FillValue', FILL_VALUE))   
       NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'units', 'm3 s-1'))
       NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'long_name', 'discharge'))        
+      !
    endif
    !
    ! Add for final output:
@@ -1359,6 +1395,23 @@ contains
          enddo
          !
          NF90(nf90_put_var(map_file%ncid, map_file%patm_varid, zsg, (/1, 1, ntmapout/)))
+         !
+      endif   
+      !
+      if (precip) then
+         !
+         zsg = FILL_VALUE
+         !
+         do nm = 1, np
+            !
+            n    = z_index_z_n(nm)
+            m    = z_index_z_m(nm)
+            !      
+            zsg(n, m) = prcp(nm)*3600000
+            !
+         enddo
+         !
+         NF90(nf90_put_var(map_file%ncid, map_file%precip_varid, zsg, (/1, 1, ntmapout/)))
          !
       endif   
       !
@@ -1704,11 +1757,15 @@ contains
    integer :: iobs, nm, icrs, ip
    !
    integer :: nthisout      
+   integer :: nmd1, nmu1, ndm1, num1, nmd2, nmu2, ndm2, num2
    !
+   real*4                  :: u1, u2, v1, v2, uz, vz
    real*8                  :: t
 !   real*4, dimension(nobs) :: zobs, hobs
-   !real*4, dimension(nobs) :: uobs
-   !real*4, dimension(nobs) :: vobs   
+   real*4, dimension(nobs) :: uobs
+   real*4, dimension(nobs) :: vobs   
+   real*4, dimension(nobs) :: uvmag   
+   real*4, dimension(nobs) :: uvdir   
    real*4, dimension(nobs) :: tprcp
    real*4, dimension(nobs) :: tqinf
    real*4, dimension(nobs) :: tS_effective
@@ -1745,42 +1802,131 @@ contains
       if (nm>0) then
          !
          zobs(iobs)  = zs(nm)
+         !
          if (subgrid) then
             hobs(iobs)  = zs(nm) - subgrid_z_zmin(nm)
          else
             hobs(iobs)  = zs(nm) - zb(nm)
-         endif   
-         !uobs(iobs)  = u(nm)                 
-         !vobs(iobs)  = v(nm)                 
-         !         
-         if (precip) then
-            tprcp(iobs) = prcp(nm)*3.6e3*1.0e3 ! show as mm/hr
+         endif
+         !
+         if (store_velocity) then
+            !
+            if (z_flags_type(nm) == 0) then
+               !
+               ! Regular point with four surrounding cells of the same size
+               !
+               nmd1 = z_index_uv_md1(nm)
+               nmu1 = z_index_uv_mu1(nm)
+               ndm1 = z_index_uv_nd1(nm)
+               num1 = z_index_uv_mu1(nm)
+               uz  = 0.5*(uv(nmd1) + uv(nmu1))
+               vz  = 0.5*(uv(ndm1) + uv(num1))
+               !
+            else
+               !
+               ! Bit more complicated
+               !
+               nmd1 = z_index_uv_md1(nm)
+               nmu1 = z_index_uv_mu1(nm)
+               ndm1 = z_index_uv_nd1(nm)
+               num1 = z_index_uv_mu1(nm)
+               nmd2 = z_index_uv_md2(nm)
+               nmu2 = z_index_uv_mu2(nm)
+               ndm2 = z_index_uv_nd2(nm)
+               num2 = z_index_uv_nu2(nm)
+               !
+               ! Left
+               !
+               u1 = 0.0
+               if (nmd1>0 .and. nmd2==0) then   
+                  u1 = uv(nmd1)
+               elseif (nmd1>0 .and. nmd2>0) then
+                  u1 = 0.5*uv(nmd1) + 0.5*uv(nmd2)
+               elseif (nmd1==0 .and. nmd2>0) then   
+                  u1 = uv(nmd2)
+               endif   
+               !
+               ! Right
+               !
+               u2 = 0.0
+               if (nmu1>0  .and. nmu2==0) then   
+                  u2 = uv(nmu1)
+               elseif (nmu1>0 .and. nmu2>0) then
+                  u2 = 0.5*uv(nmu1) + 0.5*uv(nmu2)
+               elseif (nmu2==0  .and. nmu2>0) then   
+                  u2 = uv(nmu2)
+               endif   
+               !
+               ! Bottom
+               !
+               v1 = 0.0
+               if (ndm1>0 .and. ndm2==0) then   
+                  v1 = uv(ndm1)
+               elseif (ndm1>0 .and. ndm2>0) then
+                  v1 = 0.5*uv(ndm1) + 0.5*uv(ndm2)
+               elseif (ndm1==0 .and. ndm2>0) then   
+                  v1 = uv(ndm2)
+               endif   
+               !
+               ! Right
+               !
+               v2 = 0.0
+               if (num1>0  .and. num2==0) then   
+                  v2 = uv(num1)
+               elseif (num1>0 .and. num2>0) then
+                  v2 = 0.5*uv(num1) + 0.5*uv(num2)
+               elseif (num2==0  .and. num2>0) then   
+                  v2 = uv(num2)
+               endif   
+               !
+               uz = 0.5*(u1 + u2)
+               vz = 0.5*(v1 + v2)
+               !
+            endif   
+            !
+            uobs(iobs)  = cosrot*uz - sinrot*vz                         
+            vobs(iobs)  = sinrot*uz + cosrot*vz
+            uvmag(iobs) = sqrt(uobs(iobs)**2 + vobs(iobs)**2)
+            uvdir(iobs) = atan2(vobs(iobs), uobs(iobs))*180/pi
+            !
          endif
          !
          if (infiltration) then
+            !
             tqinf(iobs) = qinfmap(nm)*3.6e3*1.0e3 ! show as mm/hr
+            ! 
+            ! Output for CN method
+            !
+            if (inftype == 'cnb') then
+               tS_effective(iobs) = qinffield2(nm)
+            endif
+            !
          endif  
-         ! 
-         ! Output for CN method
          !
-         if (inftype == 'cnb') then
-            tS_effective(iobs) = qinffield2(nm)
+         if (store_meteo) then
+            !
+            if (wind) then
+               !
+               twndmag(iobs) = sqrt(windu(nm)**2 + windv(nm)**2)
+               twnddir(iobs) = 270.0 - atan2(windv(nm), windu(nm))*180/pi
+               if (twnddir(iobs)<0.0) twnddir(iobs) = twnddir(iobs) + 360.0
+               if (twnddir(iobs)>360.0) twnddir(iobs) = twnddir(iobs) - 360.0
+               !
+            endif   
+            !
+            if (patmos) then
+               !
+               tpatm(iobs) = patm(nm)
+               !
+            endif   
+            !
+            if (precip) then
+               !
+               tprcp(iobs) = prcp(nm)*3600000 ! show as mm/hr
+               !
+            endif
+            !         
          endif
-         !
-         if (patmos) then
-            !
-            tpatm(iobs) = patm(nm)
-            !
-         endif   
-         !
-         if (wind) then
-            !
-            twndmag(iobs) = sqrt(windu(nm)**2 + windv(nm)**2)
-            twnddir(iobs) = 270.0 - atan2(windv(nm), windu(nm))*180/pi
-            if (twnddir(iobs)<0.0) twnddir(iobs) = twnddir(iobs) + 360.0
-            if (twnddir(iobs)>360.0) twnddir(iobs) = twnddir(iobs) - 360.0
-            !
-         endif   
          !
          if (snapwave) then
             !
@@ -1816,19 +1962,14 @@ contains
       !
    endif
    !
-   !NF90(nf90_put_var(his_file%ncid, his_file%u_varid, uobs, (/1, nthisout/))) ! write point_u
-   !
-   !NF90(nf90_put_var(his_file%ncid, his_file%v_varid, vobs, (/1, nthisout/))) ! write point_v
-   !   
-   if (precip) then
-       NF90(nf90_put_var(his_file%ncid, his_file%prcp_varid, tprcp, (/1, nthisout/))) ! write prcp
-   endif
-   !
    if (infiltration) then
+      !
       NF90(nf90_put_var(his_file%ncid, his_file%qinf_varid, tqinf, (/1, nthisout/))) ! write qinf
+      !
       if (inftype == 'cnb') then
          NF90(nf90_put_var(his_file%ncid, his_file%S_varid, tS_effective, (/1, nthisout/))) ! write S
       endif
+      !
    endif
    !
    if (snapwave) then  
@@ -1867,6 +2008,12 @@ contains
          !
       endif   
       !
+      if (precip) then
+         !
+         NF90(nf90_put_var(his_file%ncid, his_file%prcp_varid, tprcp, (/1, nthisout/))) ! write prcp
+         !
+      endif
+      !   
    endif
    !
    if (nrcrosssections>0) then
@@ -1878,6 +2025,15 @@ contains
       call get_discharges_through_crosssections(qq)
       !
       NF90(nf90_put_var(his_file%ncid, his_file%discharge_varid, qq, (/1, nthisout/))) ! write prcp
+      !
+   endif
+   !
+   if (store_velocity) then
+      !
+      NF90(nf90_put_var(his_file%ncid, his_file%u_varid, uobs, (/1, nthisout/)))
+      NF90(nf90_put_var(his_file%ncid, his_file%v_varid, vobs, (/1, nthisout/)))   
+      NF90(nf90_put_var(his_file%ncid, his_file%uvmag_varid, uvmag, (/1, nthisout/)))   
+      NF90(nf90_put_var(his_file%ncid, his_file%uvdir_varid, uvdir, (/1, nthisout/)))   
       !
    endif
    !

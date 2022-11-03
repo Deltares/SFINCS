@@ -1263,9 +1263,10 @@ contains
       !
    endif   
    !
-   ! Determine maximum time step
+   ! Determine minimum and maximum time step
    !
    dtmax = min(dtmax, dxymin/(sqrt(9.81*0.1)))
+   dtmin = alfa*dxymin/(sqrt(9.81*stopdepth)) ! If dt falls below this value, the simulation will stop
    !
    ! DEPTHS
    !

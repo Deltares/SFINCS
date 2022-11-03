@@ -974,8 +974,7 @@ contains
       onemintwfact = 1.0 - twfact
       !
       !$omp parallel &
-      !$omp private ( nm ) &
-      !$omp shared ( tauwu,tauwv,patm,prcp,tauwu0,tauwv0,patm0,prcp0,tauwu1,tauwv1,patm1,prcp1 )
+      !$omp private ( nm )
       !$omp do
       !$acc kernels, present(tauwu, tauwv,  tauwu0, tauwv0, tauwu1, tauwv1, &
       !$acc                  windu, windv, windu0, windv0, windu1, windv1, windmax, &
@@ -984,15 +983,21 @@ contains
       do nm = 1, np
          !
          if (wind) then
+            !
             tauwu(nm) = tauwu0(nm)*onemintwfact + tauwu1(nm)*twfact
             tauwv(nm) = tauwv0(nm)*onemintwfact + tauwv1(nm)*twfact
+            !
             if (store_meteo) then
+               !
                windu(nm) = windu0(nm)*onemintwfact + windu1(nm)*twfact
                windv(nm) = windv0(nm)*onemintwfact + windv1(nm)*twfact
+               !
                if (store_wind_max) then
                   windmax(nm) = max(windmax(nm), sqrt(windu(nm)**2 + windv(nm)**2))
                endif   
-            endif               
+               !
+            endif
+            !
          endif   
          !
          if (patmos) then
@@ -1000,14 +1005,17 @@ contains
          endif   
          !
          if (precip) then
-            prcp(nm)  = prcp0(nm)*onemintwfact  + prcp1(nm)*twfact  ! rainfall in m/s !!!
+            !
+            prcp(nm)    = prcp0(nm)*onemintwfact  + prcp1(nm)*twfact  ! rainfall in m/s !!!
+            netprcp(nm) = prcp(nm)
+            cumprcp(nm) = cumprcp(nm) + prcp(nm)*dt
+            !
          endif   
          !
       enddo   
       !$omp end do
       !$omp end parallel
       !$acc end kernels
-      !
       !
       ! Apply spin-up factor
       !
@@ -1017,8 +1025,7 @@ contains
          oneminsmfac = 1.0 - smfac
          !
          !$omp parallel &
-         !$omp private ( nm ) &
-         !$omp shared ( tauwu,tauwv,patm,prcp )
+         !$omp private ( nm )
          !$omp do
          !$acc kernels, present(tauwu, tauwv, patm, prcp ), async(1)
          !$acc loop independent, private(nm)
@@ -1034,7 +1041,7 @@ contains
             endif   
             !
             if (precip) then
-               prcp(nm)  = prcp(nm)*smfac
+               netprcp(nm) = netprcp(nm)*smfac
             endif   
             !
          enddo   
@@ -1074,7 +1081,7 @@ contains
    !
    if (prcpfile(1:4) /= 'none') then
       !
-      call update_precipitation_from_timeseries(t) 
+      call update_precipitation_from_timeseries(t, dt) 
       !
    endif
    !
@@ -1085,14 +1092,6 @@ contains
       call update_infiltration_map(dt)
       !
    endif   
-   !
-   if (precip) then
-      !
-      ! Update cumulative precipitation and infiltration (cumprcp, cuminf, and netprcp) 
-      !
-      call update_cumprcp_map(dt)
-      !
-   endif
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
@@ -1158,7 +1157,7 @@ contains
    !
    end subroutine   
 
-   subroutine update_precipitation_from_timeseries(t)
+   subroutine update_precipitation_from_timeseries(t, dt)
    !
    ! Update values at boundary points
    !
@@ -1169,6 +1168,7 @@ contains
    integer itp, nm
    !
    real*8  :: t
+   real*4  :: dt
    real*4  :: twfac
    real*4  :: ptmp
    !
@@ -1181,12 +1181,13 @@ contains
          ptmp = (tprcpv(itp - 1)*(1.0 - twfac) + tprcpv(itp)*twfac)/(1000*3600) ! rain in m/s
          !
 !         !$omp parallel &
-!         !$omp private ( nm ) &
-!         !$omp shared ( prcp )
+!         !$omp private ( nm )
 !         !$omp do
 !         !$acc kernels present( prcp )
          do nm = 1, np
-            prcp(nm) = ptmp
+            prcp(nm)    = ptmp
+            netprcp(nm) = ptmp
+            cumprcp(nm) = cumprcp(nm) + prcp(nm)*dt
          enddo   
 !         !$acc end kernels
 !         !$omp end do
@@ -1195,61 +1196,11 @@ contains
          !
          exit
          !
-       endif
+      endif
    enddo
    !
    end subroutine   
 
-   subroutine update_cumprcp_map(dt)
-   !
-   ! Update cumulative precipitation and infiltration for each cell
-   !
-   use sfincs_data
-   !
-   implicit none
-   !
-   real*4                           :: dt
-   integer nm
-   !
-   ! Compute cumulative precipitation
-   !
-   !$omp parallel &
-   !$omp private ( nm )
-   !$omp do
-!   !$acc kernels present( cumprcp, prcp ), async(1)
-!   !$acc loop independent, private( nm )
-   do nm = 1, np
-      !
-      cumprcp(nm) = cumprcp(nm) + prcp(nm)*dt
-      netprcp(nm) = prcp(nm)
-      !
-      if (infiltration) then 
-         !
-         if (subgrid) then
-            if (z_volume(nm)<=0.0) then
-               qinfmap(nm) = 0.0
-            else
-               netprcp(nm) = netprcp(nm) - qinfmap(nm)
-               cuminf(nm) = cuminf(nm) + qinfmap(nm)*dt
-            endif
-         else
-            if (zs(nm) + huthresh<=zb(nm)) then
-               qinfmap(nm) = 0.0
-            else
-               netprcp(nm) = netprcp(nm) - qinfmap(nm)
-               cuminf(nm) = cuminf(nm) + qinfmap(nm)*dt
-            endif
-         endif
-         !      
-      endif
-      !
-   enddo      
-!   !$acc end kernels
-   !$omp end do
-   !$omp end parallel
-   !
-   end subroutine 
-   
 
    subroutine update_infiltration_map(dt)
    !
@@ -1269,7 +1220,31 @@ contains
       !
       ! Infiltration rate map stays constant
       !
-      qinfmap = qinffield
+      !$omp parallel &
+      !$omp private ( nm )
+      !$omp do
+      do nm = 1, np
+         !
+         qinfmap(nm) = qinffield(nm)
+         !
+         ! No infiltration if there is no water
+         !  
+         if (subgrid) then
+            if (z_volume(nm)<=0.0) then
+               qinfmap(nm) = 0.0
+            endif
+         else
+            if (zs(nm)<=zb(nm)) then
+               qinfmap(nm) = 0.0
+            endif
+         endif
+         !
+         cuminf(nm) = cuminf(nm) + qinfmap(nm)*dt
+         netprcp(nm) = netprcp(nm) - qinfmap(nm)
+         !
+      enddo
+      !$omp end do
+      !$omp end parallel
       !
    elseif (inftype == 'cna') then
       !
@@ -1278,8 +1253,7 @@ contains
 !      !$acc update host(cumprcp), async(1)
       !
       !$omp parallel &
-      !$omp private ( Qq,I,nm ) &
-      !$omp shared ( cumprcp, cuminf, qinfmap, qinffield )
+      !$omp private ( Qq,I,nm )
       !$omp do
       do nm = 1, np
          !
@@ -1292,16 +1266,17 @@ contains
             Qq  = (cumprcp(nm) - sfacinf*qinffield(nm))**2 / (cumprcp(nm) + (1.0 - sfacinf)*qinffield(nm))  ! cumulative runoff in m
             I   = cumprcp(nm) - Qq                      ! cumulative infiltration in m
             qinfmap(nm) = (I - cuminf(nm))/dt           ! infiltration in m/s
-!            cuminf(nm) = I                              ! cumulative infiltration in m
             !
          else
             !
             ! Everything still infiltrating
             !
             qinfmap(nm) = prcp(nm)
-!            cuminf(nm)  = cumprcp(nm)
             !
          endif   
+         ! 
+         cuminf(nm) = cuminf(nm) + qinfmap(nm)*dt
+         netprcp(nm) = netprcp(nm) - qinfmap(nm)
          !
       enddo
       !$omp end do
@@ -1327,6 +1302,7 @@ contains
       do nm = 1, np
          !
          ! If there is precip in this grid cell for this time step  
+         !
          if (prcp(nm) > 0.0) then
             !
             ! Is raining now
@@ -1342,23 +1318,24 @@ contains
             endif
             ! 
             !  Compute cum rainfall
+            ! 
             scs_P1(nm) = scs_P1(nm) + prcp(nm)*dt
             ! 
             ! Compute runoff
+            ! 
             if (scs_P1(nm) > (sfacinf* scs_Se(nm)) ) then ! scs_Se is S
                Qq              = (scs_P1(nm) - sfacinf*scs_Se(nm))**2 / (scs_P1(nm) + (1.0 - sfacinf)*scs_Se(nm))  ! cumulative runoff in m
                I              = scs_P1(nm) - Qq                       ! cum infiltration this event
                qinfmap(nm)    = (I - scs_F1(nm))/dt                ! infiltration in m/s
-!               cuminf(nm)     = cuminf(nm) + (I - scs_F1(nm))        ! cumulative infiltration in m
                scs_F1(nm)     = I                                    ! cum infiltration this event
             else
                Qq              = 0.0                               ! no runoff
                scs_F1(nm)     = scs_P1(nm)                        ! all rainfall is infiltrated
                qinfmap(nm)    = prcp(nm)                          ! infiltration rate = rainfall rate
-!               cuminf(nm)     = cuminf(nm) + prcp(nm)*dt          ! cumulative infiltration in m
             endif
             ! 
             ! Compute "remaining S", but note that qinffield2 is not used in computation
+            ! 
             qinffield2(nm)  = qinffield2(nm) - qinfmap(nm)*dt
             qinffield2(nm)  = max(qinffield2(nm), 0.0)
             qinfmap(nm)     = max(qinfmap(nm), 0.0)
@@ -1371,18 +1348,23 @@ contains
                !
                ! if it was raining before
                ! change logic and set rate to 0
+               !
                scs_rain(nm)   = 0
                qinfmap(nm)    = 0.0
                !
             endif
-            ! 
+            !
             ! It is not raining and stil not raining
             ! compute recovery of S (not larger than Smax)
             ! note that qinffield2 is S and qinffield is Smax
+            ! 
             qinffield2(nm) = qinffield2(nm) + (scs_kr(nm) * qinffield(nm) * dt / 3600)  ! scs_kr is recovery % in hours 
             qinffield2(nm) = min(qinffield2(nm), qinffield(nm))
             !
          endif
+         ! 
+         cuminf(nm) = cuminf(nm) + qinfmap(nm)*dt
+         netprcp(nm) = netprcp(nm) - qinfmap(nm)
          !
       enddo
       !$omp end do
