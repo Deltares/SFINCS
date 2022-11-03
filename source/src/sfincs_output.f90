@@ -644,8 +644,10 @@ module sfincs_output
    character*256 :: file_name
    character*15  :: tstring
    real*8        :: t
+   real*8        :: tt
    !
-   tstring = time_to_string(t, trefstr)
+   tt = 1.0*int(t)
+   tstring = time_to_string(tt, trefstr)
    write(file_name,'(A,A,A)')'sfincs.',tstring,'.rst'
    !
    open(unit = 911, status = 'replace', file = trim(file_name), form = 'unformatted')

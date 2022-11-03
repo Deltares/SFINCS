@@ -282,7 +282,7 @@ CONTAINS
        !
        call YMD(jd, yyyy, mm, dd, zfraction)
        hh = int(secs_time/3600)
-       mn = int(secs_time - hh*3600)
+       mn = int((secs_time - hh*3600)/60)
        ss = int(secs_time - hh*3600 - mn*60)
        !
        ! return a formatted date
