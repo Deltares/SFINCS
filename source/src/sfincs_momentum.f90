@@ -505,7 +505,7 @@
             !
             ! Compute new flux for this uv point (Bates et al., 2010)
             ! 
-            qx0_nm = (qsm + frc*dt ) / (1.0 + gnavg2*dt*abs(qx0_nm)/(huv**2*huv**expo))
+            qx0_nm = (qsm + frc*dt) / (1.0 + gnavg2*dt*abs(qx0_nm)/(huv**2*huv**expo))
             !
 !            if (zs(nm)<=zb(nm)) then
 !               !

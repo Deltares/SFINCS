@@ -46,8 +46,8 @@ module sfincs_lib
    integer  :: nthisout
    !
    real*8   :: t
+   real*8   :: tout
    real*4   :: dt
-   real*4   :: dtt
    real*4   :: min_dt
    real*8   :: tmapout
    real*8   :: tmaxout
@@ -167,6 +167,7 @@ module sfincs_lib
    ! Initialize some parameters
    !
    t           = t0     ! start time
+   tout        = t0
    dt          = 1.0e-6 ! First time step very small
    dtavg       = 0.0    ! average time step
    maxdepth    = 999.0  ! maximum depth over time step
@@ -269,62 +270,39 @@ module sfincs_lib
       ! Avoid this, by not not changing time step dt (used in momentum equation), but only changing dtt,
       ! which is used in the time updating and continuity equation.
       !
-      dtt = dt
-      dtt = min(tmapout - t, dtt)
-      dtt = min(tmaxout - t, dtt)
-      dtt = min(trstout - t, dtt)
-      dtt = min(thisout - t, dtt)
-      !
-!      if (history_fixed_intervals) then
-!         !
-!         ! Limit time step if t+dt>tout
-!         !
-!         dt = min(thisout - t, dt)
-!         dtt = dt
-!         !
-!      endif   
-      !
       ! Update time
       !
-      t = t + dtt
+      t = t + dt
       dtavg = dtavg + dt
       !
       ! Check whether map output is required at this time step (if so, change dt)
       !
-      if (debug .and. t>=t0out) then
-         !
-         ! Write every time step to map file when in debug mode
+      if (t >= tmapout) then
          !
          write_map = .true.
          ntmapout  = ntmapout + 1
-         !
-      else
-         !
-         if (t > tmapout - 1.0e-3) then
-            !
-            write_map = .true.
-            ntmapout  = ntmapout + 1
-            tmapout   = tmapout + dtmapout
-            !
-         endif
+         tout      = tmapout 
+         tmapout   = tmapout + dtmapout
          !
       endif
       !
-      ! Check whether max map output is required at this time step (if so, change dt)
+      ! Check whether max map output is required at this time step
       !
-      if (t > tmaxout - 1.0e-3) then
+      if (t >= tmaxout) then
          !
          write_max = .true.
          ntmaxout  = ntmaxout + 1    ! now also keep track of nr of max output
+         tout      = tmaxout 
          tmaxout   = tmaxout + dtmaxout
          !
       endif
       !
-      ! Check whether restart output is required at this time step (if so, change dt)
+      ! Check whether restart output is required at this time step
       !
-      if (t > trstout - 1.0e-3) then
+      if (t >= trstout) then
          !
          write_rst = .true.
+         tout      = trstout 
          !
          if (dtrstout>1.0e-6) then
             !
@@ -344,11 +322,24 @@ module sfincs_lib
       !
       ! Check whether history output is required at this time step
       !
-      if (t>thisout - 1.0e-3 .or. t>t1 - 1.0e-3) then
+      if (t>=thisout) then
          !
          write_his = .true.
-         nthisout  = nthisout + 1    ! now also keep track of nr of his output
-         thisout   = t + dthisout
+         nthisout  = nthisout + 1
+         tout      = thisout 
+         thisout   = thisout + dthisout
+         !
+      endif
+      !
+      if (debug .and. t>=t0out) then
+         !
+         ! Write every time step to map and his file when in debug mode
+         !
+         tout = t
+         write_map = .true.
+         ntmapout  = ntmapout + 1
+         write_his = .true.
+         nthisout  = nthisout + 1
          !
       endif
       !
@@ -392,7 +383,7 @@ module sfincs_lib
          ! Update forcing used in momentum and continuity equations (this does happen every time step)
          ! Interpolate in time
          !
-         call update_meteo_forcing(t, dtt, tloopwnd2)
+         call update_meteo_forcing(t, dt, tloopwnd2)
          !
       endif
       !
@@ -444,7 +435,7 @@ module sfincs_lib
       !
       if (write_map .or. write_his .or. write_max .or. write_rst) then
          !
-         call write_output(t,write_map,write_his,write_max,write_rst,ntmapout,ntmaxout,nthisout,tloopoutput)
+         call write_output(tout, write_map, write_his, write_max, write_rst, ntmapout, ntmaxout, nthisout, tloopoutput)
          !
       endif
       !

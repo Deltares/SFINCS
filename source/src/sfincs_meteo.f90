@@ -1173,31 +1173,29 @@ contains
    real*4  :: ptmp
    !
    do itp = itprcplast, ntprcp ! Loop in time
-      !
       if (tprcpt(itp)>t) then
-         !
-         twfac  = (t - tprcpt(itp - 1))/(tprcpt(itp) - tprcpt(itp - 1))
-         !
-         ptmp = (tprcpv(itp - 1)*(1.0 - twfac) + tprcpv(itp)*twfac)/(1000*3600) ! rain in m/s
-         !
-!         !$omp parallel &
-!         !$omp private ( nm )
-!         !$omp do
-!         !$acc kernels present( prcp )
-         do nm = 1, np
-            prcp(nm)    = ptmp
-            netprcp(nm) = ptmp
-            cumprcp(nm) = cumprcp(nm) + prcp(nm)*dt
-         enddo   
-!         !$acc end kernels
-!         !$omp end do
-         !
-         itprcplast = itp - 1
-         !
          exit
-         !
       endif
    enddo
+   !
+   twfac  = (t - tprcpt(itp - 1))/(tprcpt(itp) - tprcpt(itp - 1))
+   !
+   ptmp = (tprcpv(itp - 1)*(1.0 - twfac) + tprcpv(itp)*twfac)/(1000*3600) ! rain in m/s
+   !
+   !$omp parallel &
+   !$omp private ( nm )
+   !$omp do
+   !$acc kernels present( prcp, cumprcp, netprcp )
+   do nm = 1, np
+      prcp(nm)    = ptmp
+      netprcp(nm) = ptmp
+      cumprcp(nm) = cumprcp(nm) + prcp(nm)*dt
+   enddo   
+   !$acc end kernels
+   !$omp end do
+   !$omp end parallel
+   !
+   itprcplast = itp - 1
    !
    end subroutine   
 

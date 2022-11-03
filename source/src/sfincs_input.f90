@@ -33,7 +33,7 @@ contains
    call read_real_input(500,'t0out',t0out,-999.0)
    call read_real_input(500,'t1out',t1out,-999.0)
    call read_real_input(500,'dtout',dtmapout,0.0)
-   call read_real_input(500,'dtmaxout',dtmaxout,9999999.0)
+   call read_real_input(500,'dtmaxout',dtmaxout,0.0)
    call read_real_input(500,'dtrstout',dtrstout,0.0)
    call read_real_input(500,'trstout',trst,-999.0)
    call read_real_input(500,'dthisout',dthisout,600.0)

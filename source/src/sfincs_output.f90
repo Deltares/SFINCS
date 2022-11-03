@@ -261,7 +261,9 @@ module sfincs_output
    endif
    !
    if (outputtype_his == 'net') then 
+      !
       call ncoutput_his_finalize()
+      !
    endif
    !
    end subroutine

@@ -2132,7 +2132,7 @@ contains
          !
          allocate(qinffield(np))
          do nm = 1, np
-            qinffield(nm) = qinf/3.6e3/1.0e3   ! convert to +m/s
+            qinffield(nm) = qinf
          enddo
          !
       elseif (inftype == 'c2d') then
