@@ -6,44 +6,71 @@
 Welcome to SFINCS's documentation!
 ======================================
 
-'SFINCS' is the reduced-complexity model designed for super-fast modelling of compound flooding events in a dynamic way!
+'SFINCS' is Deltares' new reduced-complexity model designed for super-fast modelling of compound flooding in a dynamic way!
+This online documentation describes the input files and parameters of the SFINCS model (Super-Fast INundation of CoastS), model output and how to get started.
 
-This online documentation describes the input files and parameters of the SFINCS model (Super-Fast INundation of CoastS).
-The documentation is however still under construction, mail 'tim.leijnse@deltares.nl' for questions that are not answered yet by this documentation.
-Also let us know when you are not yet a user of SFINCS, but are interested to get started!
-The SFINCS executable is not yet shared open source, but will be in the future, and maybe in the meantime a collaboration is possible.
-
-.. figure:: ./figures/FloSup_final_RDhighlights.jpg
-   :width: 600px
+.. figure:: ./figures/SFINCS_logo.png
+   :width: 300px
    :align: center
    
-* For an introduction of the model see the journal publication: https://doi.org/10.1016/j.coastaleng.2020.103796
+**Contact:** 
 
-* For a second application in tsunami modelling see the journal publication: https://doi.org/10.3390/jmse9050453
+Mail 'sfincs@deltares.nl' for questions that are not answered yet by this documentation.
 
-* More information regarding recent advancements with subgrid features can be seen in this online poster: https://agu2020fallmeeting-agu.ipostersessions.com/Default.aspx?s=9C-05-18-CF-F1-2B-17-F0-7A-21-93-E6-13-AE-F3-24
+**License:** 
 
-* More information regarding recent comparisons using SFINCS to model waves can be seen in this online poster: https://agu2020fallmeeting-agu.ipostersessions.com/?s=30-38-5A-0C-8E-22-C8-84-CC-46-3C-95-18-80-C2-76&token=5r05NKrASrFrnkybTgXa4Y_XvgfV233Dazers0d2Zzo
+SFINCS has been made freely available open source for you to use under the standard GNU GPL-v3.0 license (see: https://choosealicense.com/licenses/gpl-3.0/ for more information).
+  
+**Quick information:**
 
-Documentation
-=============
+* For an introduction of the SFINCS model see the introduction journal publication, see: https://doi.org/10.1016/j.coastaleng.2020.103796
 
-**Introduction**
+* For more general information about SFINCS and Deltares, see: https://deltares.nl/en/software/sfincs/
 
-* :doc:`overview`
+* To download a free pre-compiled windows executable of SFINCS, see: https://download.deltares.nl/en/download/sfincs/ 
+
+* To collaborate with us on improving the model, see: https://github.com/Deltares/SFINCS
+
+* To raise possible issues with the latest version of the model, see: https://github.com/Deltares/SFINCS/issues 
+
+* For a background on SFINCS, application areas, performed international projects and publiscations, see "Introduction" in this manual.
+   
+**Outline manual:**
+This manual is outlined containing the following parts, see also the overview bar on the left:
+
+* Introduction
+* Developments
+* Getting started
+* User manual
+* Input parameters and files
+* Model output and messages
+
+Acknowledgements
+================
+
+SFINCS is developed at Deltares and initiated by Maarten van Ormondt.
+This documentation is developed and maintained by Tim Leijnse and Roel de Goede.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :hidden:   
    :caption: Introduction:
    
    overview
-   
-**User manual**  
 
-* :doc:`input`
-* :doc:`input_forcing`
-* :doc:`input_structures`
+.. toctree::
+   :maxdepth: 3
+   :hidden:   
+   :caption: Developments:
+   
+   developments
+
+.. toctree::
+   :maxdepth: 3   
+   :hidden:
+   :caption: Getting started:
+   
+   example   
 
 .. toctree::
    :maxdepth: 3
@@ -52,47 +79,18 @@ Documentation
    
    input
    input_forcing
-   input_structures
-   
-**Overview input parameters and files**   
-
-* :doc:`parameters`
+   input_structures     
 
 .. toctree::
    :maxdepth: 3   
    :hidden:
    :caption: Input parameters and files:
    
-   parameters
-   
-**Overview model output and messages**   
-
-* :doc:`output`
+   parameters   
 
 .. toctree::
    :maxdepth: 3   
    :hidden:
    :caption: Model output and messages:
    
-   output
-   
-**Getting started**    
-
-* :doc:`example`
-
-.. toctree::
-   :maxdepth: 3   
-   :hidden:
-   :caption: Getting started:
-   
-   example
-   
-    
-Acknowledgements
-================
-
-SFINCS is developed at Deltares and initiated by Maarten van Ormondt.
-This documentation is developed and maintained by Tim Leijnse and Roel de Goede.
-
-
-
+   output   

@@ -1,14 +1,16 @@
 User manual - structures
-======================
+=====
 
 Overview
-----------------------
+-----
 
 The input for SFINCS is supplied using various text and binary files, which are linked through the main input file: sfincs.inp.
 Within this section of the user manual all different types of structures to reduce flood hazards with input settings and files are discussed.
 The figure below gives an overview of all different types of input files and whether they are required or not.
 Below an example is given of this file, which uses a keyword/value layout. 
 For more information regarding specific parameters see the pages 'Input parameters' or 'Output parameters'.
+
+Note that in the manual below, blocks named Matlab example using OET are included, referring to easy setup scripts included in the SFINCS’ Open Earth Tools Matlab set of scripts: https://svn.oss.deltares.nl/repos/openearthtools/trunk/matlab/applications/sfincs
 
 .. figure:: ./figures/SFINCS_documentation_structures.png
    :width: 800px
@@ -17,12 +19,12 @@ For more information regarding specific parameters see the pages 'Input paramete
    Overview of input file of SFINCS with indication whther they are required or not
 
 Structures
-----------------------
+-----
 
 SFINCS consists of multiple options for adding structures that can divert or block flow of water, which can be used to simulate flood hazard reduction methods.
 
 Thin dam
-^^^^^^^^^^^^^^^^^^
+^^^^^
 
 With a thin dam flow through certain grid cells is completely blocked (i.e. an infinitely high wall).
 One can provide multiple polylines within one file, a maximum of 5000 supplied points is supported.
@@ -77,7 +79,7 @@ The supplied polylines are snapped onto the SFINCS grid within the model.
 	sfincs_write_thin_dams(inp.thdfile,thindams);
 
 Weirs
-^^^^^^^^^^^^^^^^^^
+^^^^^
 
 Weirs are in principle the same as a thin dam, but then with a certain height (levee).
 When the water level on either or both sides of the weir are higher than that of the weir, a flux over the weir is calculated.
@@ -130,7 +132,7 @@ The supplied polylines are snapped onto the SFINCS grid within the model.
 	sfincs_write_obstacle_file_1par(inp.weirfile,weirs)	
 	
 Drainage pump and Culvert
-^^^^^^^^^^^^^^^^^^
+^^^^^
 
 Drainage pumps and culverts are both specified using the same format file, put with a different indication of the type (type=1 is drainage pump, type=2 is culvert).
 A drainage pump can move water from one location to another with a certain prescribed discharge given that there is sufficient water at the retraction location.

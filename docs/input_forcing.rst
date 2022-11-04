@@ -10,6 +10,8 @@ The figure below gives an overview of all different types of input files and whe
 Below an example is given of this file, which uses a keyword/value layout. 
 For more information regarding specific parameters see the pages 'Input parameters' or 'Output parameters'.
 
+Note that in the manual below, blocks named Matlab example using OET are included, referring to easy setup scripts included in the SFINCS’ Open Earth Tools Matlab set of scripts: https://svn.oss.deltares.nl/repos/openearthtools/trunk/matlab/applications/sfincs
+
 .. figure:: ./figures/SFINCS_documentation_forcing.png
    :width: 800px
    :align: center
@@ -69,6 +71,7 @@ Water level time-series
 
 Then in the file 'sfincs.bzs' the water level time-series are specified per input location.
 Times are specified in seconds with respect to SFINCS' internal reference time 'tref', as specified in sfincs.inp.
+**Note** that the time and length of values you prescibe per boundary input location should be all the same in the bzsfile.
 
 **bzsfile = sfincs.bzs**
 
@@ -147,7 +150,8 @@ Discharges
 ---------
 
 A simple implementation of discharge points is added to SFINCS, specify values in m^3/s. 
-First specify the locations in 'sfincs.src'.
+First specify the locations in 'sfincs.src' and then the discharge time-series in 'sfincs.dis'.
+Alternatively, you can provide this as netcdf file in the Delft-FEWS format.
 
 .. figure:: ./figures/SFINCS_discharge_input_grid.png
    :width: 400px
@@ -210,6 +214,34 @@ Times are specified in seconds with respect to SFINCS' internal reference time '
 	
 	sfincs_write_boundary_conditions(inp.disfile,time,discharge)
 	
+Netcdf format input
+^^^^^^^^^
+
+As alternative, the src/dis data can also be specified using a single Netcdf file with FEWS input type format 'netsrcdisfile'.
+SFINCS assumes that the input variables 'x', 'y', 'time', 'discharge' and 'stations' are available in the netcdf file, including a reference time as UNIT in variable 'time' of the Fews time format: "minutes since 1970-01-01 00:00:00.0 +0000"  
+
+**Matlab example using OET**
+
+.. code-block:: text
+
+	inp.netsrcdisfile = 'sfincs_netsrcdisfile.nc';
+	 
+	x = [0, 100, 200];
+	y = [50, 150, 250];
+	 
+	EPSGcode = 32631;
+	UTMname = 'UTM31N';
+	 
+	refdate  = '1970-01-01 00:00:00'; 
+	% possibly use formatOut = 'yyyy-mm-dd HH:MM:SS'; datestr(tref, formatOut); 
+	
+	time = [0, 60];
+	
+	rng('default');
+	dis = -1 * randi([0 10],length(time),length(x));
+	
+	sfincs_write_netcdf_srcdisfile(inp.netsrcdisfile, x, y, EPSGcode, UTMname, refdate, time, dis)
+	
 Meteo
 ---------
 
@@ -219,7 +251,7 @@ There are a few different options to specify wind and rain input:
 
 2) Use a spatially varying grid input (as in Delft3D) for u- and v- wind velocities and/or the rain and/or pressure input. 
 
-3) Use a spatially varying grid input using a netcdf file based on a FEWS input type format for wind or rain input.
+3) Use a spatially varying grid input using a netcdf file based on a FEWS input type format for wind, rain and/or atmospheric pressure input.
 
 4) Use a spatially uniform input for wind and rain, which is faster but also more simplified.
 
@@ -323,8 +355,6 @@ Only use 1 quantity per file:
 **Matlab example using OET**
 
 .. code-block:: text	
-
-	TODO: STILL TEST THIS BLOCK and varargin (gridded?) !
 	
 	data.parameter.time = datenum(2018,01,01):3/24:datenum(2018,01,02);
 	data.parameter.x = 0:5000:25000;
@@ -340,11 +370,9 @@ Spatially varying gridded netcdf
 ^^^^^^^^^
 
 The same spatially varying gridded input as using Delft3d' ascii input files can be specified using FEWS compatible Netcdf input files.
-Here for the wind the amu&amv files are combined into 1 Netcdf file (netamuamvfile), the precipitation is in a separate input file (netamprfile).
+Here for the wind the amu&amv files are combined into 1 Netcdf file (netamuamvfile), the precipitation is in a separate input file (netamprfile) as well as the atmospheric pressure (netampfile).
 
-**Note, that for very large Netcdf files (in size), an out-of-memory might occur when running SFINCS.**
-If this is the case, switch to Delft3D ascii type input as described above or get in touch with us to find a solution.
-Making this format netcdf file can be easily done using the OET Matlab scripts 'sfincs_write_netcdf_amuamvfile.m' and 'sfincs_write_netcdf_amprfile.m'.
+Making this format netcdf file can be easily done using the OET Matlab scripts 'sfincs_write_netcdf_amuamvfile.m', 'sfincs_write_netcdf_amprfile.m'and 'sfincs_write_netcdf_ampfile.m'.
 See those files for more information.
 
 **Matlab example using OET - netamuamvfile**
@@ -390,7 +418,29 @@ See those files for more information.
 	rng('default');
 	ampr = -1 * randi([0 10],length(time),length(y),length(x));
 	
-	sfincs_write_netcdf_amuamvfile(inp.netamprfile, x, y, EPSGcode, UTMname, refdate, time, ampr)	
+	sfincs_write_netcdf_amprfile(inp.netamprfile, x, y, EPSGcode, UTMname, refdate, time, ampr)	
+
+**Matlab example using OET - netampfile**
+
+.. code-block:: text
+
+	inp.netampfile = 'sfincs_netampfiles.nc';
+	 
+	x = [0, 100, 200];
+	y = [50, 150, 250];
+	 
+	EPSGcode = 32631;
+	UTMname = 'UTM31N';
+	 
+	refdate  = '1970-01-01 00:00:00'; 
+	% possibly use formatOut = 'yyyy-mm-dd HH:MM:SS'; datestr(tref, formatOut); 
+	
+	time = [0, 60];
+	
+	rng('default');
+	amp = -1 * randi([0 10],length(time),length(y),length(x));
+	
+	sfincs_write_netcdf_ampfile(inp.netampfile, x, y, EPSGcode, UTMname, refdate, time, amp)		
 	
 Spatially uniform
 ^^^^^^^^^
