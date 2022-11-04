@@ -475,14 +475,6 @@ module sfincs_lib
    !
    call finalize_output(t,ntmaxout,tloopoutput)
    !
-   ! Write restart-file of water levels at last time-step if wanted
-   !
-   if (restartfile(1:4) /= 'none') then
-      !
-      call write_restartfile()
-      !
-   endif
-   !
    if (store_tsunami_arrival_time) then
       !
       call write_tsunami_arrival_file()   

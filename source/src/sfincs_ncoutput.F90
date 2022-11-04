@@ -2492,7 +2492,6 @@ contains
         NF90(nf90_put_att(ncid, varid, 'storeqdrain',storeqdrain)) 
         NF90(nf90_put_att(ncid, varid, 'storezvolume',storezvolume)) 
         NF90(nf90_put_att(ncid, varid, 'writeruntime',wrttimeoutput)) 
-        NF90(nf90_put_att(ncid, varid, 'restartfile',restartfile))         
         NF90(nf90_put_att(ncid, varid, 'debug',idebug)) 
         NF90(nf90_put_att(ncid, varid, 'storemeteo',storemeteo)) 
         NF90(nf90_put_att(ncid, varid, 'storemaxwind',iwindmax)) 

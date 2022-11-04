@@ -158,7 +158,6 @@ contains
    call read_int_input(500,'storeqdrain',storeqdrain,1)
    call read_int_input(500,'storezvolume',storezvolume,0)
    call read_int_input(500,'writeruntime',wrttimeoutput,0)
-   call read_char_input(500,'restartfile',restartfile,'none')
    call read_int_input(500,'debug',idebug,0)
    call read_int_input(500,'storemeteo',storemeteo,0)
    call read_int_input(500,'storemaxwind',iwindmax,0)
