@@ -231,7 +231,51 @@ Parameters for model output
 	  :description:		Choice whether the SFINCS model output is given in binary 'bin', ascii 'asc' or netcdf files 'net' (default). In case of netcdf output, global output is given in 'sfincs_map.nc', point output in 'sfincs_his.nc' in case observation points are specified.
 	  :units:		-
 	  :default:		net
-	  
+	twet_threshold
+	  :description:		Threshold value of water depth to count cell as flooded for keeping track of wet cells with storetwet = 1
+	  :units:		m
+	  :default:		0.01	  
+	storetwet
+	  :description:		Flag to turn on writing away duration that a cell was wet during simulation (storetwet = 1)
+	  :units:		-
+	  :default:		0	  
+	storevel
+	  :description:		Flag to turn on writing away velocities on 'dtout' interval during simulation (storevel = 1)
+	  :units:		-
+	  :default:		0	
+	storevelmax
+	  :description:		Flag to turn on writing away maximum velocities on 'dtmaxout' interval during simulation (storevelmax = 1)
+	  :units:		-
+	  :default:		0	
+	storecumprcp
+	  :description:		Flag to turn on writing away cumulative precipitation on 'dtmaxout' interval during simulation (storecumprcp = 1)
+	  :units:		-
+	  :default:		0		
+	storehsubgrid
+	  :description:		Flag to turn on writing away unaccurate water depth estimate for subgrid mode on 'dtmaxout' interval during simulation (storehsubgrid = 1)
+	  :units:		-
+	  :default:		0		    	  
+	storeqdrain
+	  :description:		Flag to turn on writing away drainage discharge during simulation (storeqdrain = 1)
+	  :units:		-
+	  :default:		0	
+	storezvolume
+	  :description:		Flag to turn on writing away water volumes for the subgrid mode during simulation (storezvolume = 1)
+	  :units:		-
+	  :default:		0		  
+	storemeteo
+	  :description:		Flag to turn on writing away meteo input data during simulation (storemeteo = 1)
+	  :units:		-
+	  :default:		0	
+	storemaxwind
+	  :description:		Flag to turn on writing away maximum wind speed during simulation (storemaxwind = 1)
+	  :units:		-
+	  :default:		0	
+	debug
+	  :description:		Flag to turn on writing away every timestep to output as debug mode (debug = 1)
+	  :units:		-
+	  :default:		0	
+
 Input files
 =====	 
 
