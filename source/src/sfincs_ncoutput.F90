@@ -157,12 +157,14 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'standard_name', 'land_binary_mask')) ! land_binary_mask but with added boundary=2
    NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'long_name', 'msk_active_cells')) 
    NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'description', 'inactive=0, active=1, normal_boundary=2, outflow_boundary=3'))    
+   NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'coordinates', 'x y'))
    !
    ! Infiltration map
    !
    if (infiltration) then
        NF90(nf90_def_var(map_file%ncid, 'qinf', NF90_FLOAT, (/map_file%n_dimid, map_file%m_dimid/), map_file%qinf_varid)) 
-       NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, '_FillValue', FILL_VALUE))     
+       NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, '_FillValue', FILL_VALUE))
+       NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'coordinates', 'x y'))
        if (inftype == 'cna') then
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'S')) 
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'moisture storage (S) capacity as computed from the curve number')) 
@@ -183,6 +185,7 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'units', 'm'))
    NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'standard_name', 'altitude'))
    NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'long_name', 'bed_level_above_reference_level'))   
+   NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'coordinates', 'x y'))   
    !
    ! Time variables   
    !
@@ -199,6 +202,7 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'units', 'm'))
    NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'standard_name', 'sea_surface_height_above_mean_sea_level')) 
    NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'long_name', 'water_level'))  
+   NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'coordinates', 'x y'))
    !
    if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then   
       NF90(nf90_def_var(map_file%ncid, 'h', NF90_FLOAT, (/map_file%n_dimid, map_file%m_dimid, map_file%time_dimid/), map_file%h_varid)) ! time-varying water depth map
@@ -206,6 +210,7 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%h_varid, 'units', 'm'))
       NF90(nf90_put_att(map_file%ncid, map_file%h_varid, 'standard_name', 'depth')) 
       NF90(nf90_put_att(map_file%ncid, map_file%h_varid, 'long_name', 'water_depth'))     
+      NF90(nf90_put_att(map_file%ncid, map_file%h_varid, 'coordinates', 'x y'))
    endif
    !
    ! Velocity is optional
@@ -217,12 +222,14 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%u_varid, 'units', 'm s-1'))
       NF90(nf90_put_att(map_file%ncid, map_file%u_varid, 'standard_name', 'eastward_sea_water_velocity')) ! not truly eastward when rotated, eastward_sea_water_velocity
       NF90(nf90_put_att(map_file%ncid, map_file%u_varid, 'long_name', 'flow_velocity_x_direction'))     
+      NF90(nf90_put_att(map_file%ncid, map_file%u_varid, 'coordinates', 'x y'))
       !
       NF90(nf90_def_var(map_file%ncid, 'v', NF90_FLOAT, (/map_file%n_dimid, map_file%m_dimid, map_file%time_dimid/), map_file%v_varid)) ! time-varying u map 
       NF90(nf90_put_att(map_file%ncid, map_file%v_varid, '_FillValue', FILL_VALUE))   
       NF90(nf90_put_att(map_file%ncid, map_file%v_varid, 'units', 'm s-1'))
       NF90(nf90_put_att(map_file%ncid, map_file%v_varid, 'standard_name', 'northward_sea_water_velocity')) ! not truly eastward when rotated, eastward_sea_water_velocity
       NF90(nf90_put_att(map_file%ncid, map_file%v_varid, 'long_name', 'flow_velocity_y_direction'))     
+      NF90(nf90_put_att(map_file%ncid, map_file%v_varid, 'coordinates', 'x y'))
    endif
    !
    ! Store S_effective (only for CN method with recovery)
@@ -249,7 +256,8 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%zsmax_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(map_file%ncid, map_file%zsmax_varid, 'units', 'm'))
       NF90(nf90_put_att(map_file%ncid, map_file%zsmax_varid, 'standard_name', 'maximum of sea_surface_height_above_mean_sea_level')) 
-      NF90(nf90_put_att(map_file%ncid, map_file%zsmax_varid, 'long_name', 'maximum_water_level'))        
+      NF90(nf90_put_att(map_file%ncid, map_file%zsmax_varid, 'long_name', 'maximum_water_level'))
+      NF90(nf90_put_att(map_file%ncid, map_file%zsmax_varid, 'coordinates', 'x y'))
    endif
    !
    if (store_cumulative_precipitation) then
@@ -259,6 +267,7 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'long_name', 'cumulative_precipitation_depth')) 
       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid,   'standard_name', 'cumulative_precipitation_depth')) 
       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'cell_methods', 'time: sum'))       
+      NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'coordinates', 'x y'))
    endif
    !
    if (store_twet) then
@@ -268,6 +277,7 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%tmax_varid, 'standard_name', 'duration cell is considered wet')) 
       NF90(nf90_put_att(map_file%ncid, map_file%tmax_varid, 'long_name', 'duration_wet_cell'))  
       NF90(nf90_put_att(map_file%ncid, map_file%tmax_varid, 'cell_methods', 'time: sum'))    
+      NF90(nf90_put_att(map_file%ncid, map_file%tmax_varid, 'coordinates', 'x y'))
    endif
    !
    if (store_maximum_waterlevel) then
@@ -288,6 +298,7 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%vmax_varid, 'standard_name', 'maximum_flow_velocity')) ! no standard name available
       NF90(nf90_put_att(map_file%ncid, map_file%vmax_varid, 'long_name', 'maximum_flow_velocity')) 
       NF90(nf90_put_att(map_file%ncid, map_file%vmax_varid, 'cell_methods', 'time: maximum'))
+      NF90(nf90_put_att(map_file%ncid, map_file%vmax_varid, 'coordinates', 'x y'))
    endif
    !
    if (store_cumulative_precipitation) then
@@ -296,6 +307,7 @@ contains
        NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, 'units', 'm'))
        NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, 'long_name', 'cumulative_infiltration_depth')) 
        NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, 'cell_methods', 'time: sum'))     
+       NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, 'coordinates', 'x y'))
    endif
    !
    if (store_meteo) then  
