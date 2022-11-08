@@ -973,7 +973,8 @@ contains
    NF90(nf90_put_att(his_file%ncid, his_file%zb_varid, '_FillValue', FILL_VALUE))   
    NF90(nf90_put_att(his_file%ncid, his_file%zb_varid, 'units', 'm'))
    NF90(nf90_put_att(his_file%ncid, his_file%zb_varid, 'standard_name', 'altitude'))
-   NF90(nf90_put_att(his_file%ncid, his_file%zb_varid, 'long_name', 'bed_level_above_reference_level'))  
+   NF90(nf90_put_att(his_file%ncid, his_file%zb_varid, 'long_name', 'bed_level_above_reference_level'))
+   NF90(nf90_put_att(his_file%ncid, his_file%zb_varid, 'coordinates', 'station_id station_name station_x station_y point_x point_y'))
    !
    if (nrstructures>0) then
       !
