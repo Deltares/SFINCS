@@ -427,6 +427,54 @@ Also, names of a station can be provided with quotes '' (maximum of 256 characte
 	
 	sfincs_write_obsfile(inp.obsfile,obs)
 	 	
+Cross-sections for discharge output
+^^^^^
+
+Cross-sections for discharge output can be specified.
+SFINCS will keep track of the discharge in m3/s flowing through the specified cross-section(s).
+Per cross-section as minimal a name, the number of points (size data) and the x-and y- coordinates are stated, using the Delft3D 'tekal' format:
+
+**crsfile = sfincs.crs**
+
+.. code-block:: text
+
+	NAME1 
+	2 2 %size data
+	<x0> <y0> %start of polyline 1
+	<xend> <yend> %end of polyline 1
+	
+	NAME2 
+	2 2 %size data
+	<x0> <y0> %start of polyline 2
+	<xend> <yend>  %end of polyline 1
+	
+	e.g.
+	
+	CRS01
+	3 2
+	0 100
+	10 100
+	20 100
+	CRS02
+	2 2
+	20 200
+	25 200	
+	
+**Matlab example using OET**
+
+.. code-block:: text
+
+	inp.thdfile = 'sfincs.thd';
+	
+	cross_sections(1).x = [0 10 20]; 
+	cross_sections(1).y = [100 100 100]; 
+	cross_sections(1).name = {'CRS01'};	
+	cross_sections(2).x = [20 25]; 
+	cross_sections(2).y = [200 200]; 
+	cross_sections(2).name = {'CRS02'};
+	cross_sections.length = length(thindams.x1);
+	
+	sfincs_write_cross_sections(inp.crsfile,cross_sections);		
  	
 Initial water level
 ^^^^^

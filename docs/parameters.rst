@@ -340,6 +340,11 @@ Domain
 	  :units:		m in projected UTM zone
 	  :required:		no (only if point output is wanted)
 	  :format:		asc		  
+	crsfile = sfincs.crs
+	  :description:		To get output time-series of discharge through a cross-section, cross_sections have to be specified.
+	  :units:		m in projected UTM zone
+	  :required:		no (only if cross-section output is wanted)
+	  :format:		tekal		  	  
 	inifile = sfincs.ini
 	  :description:		For spatially varying initial water level per cell, with the same grid based input as the depfile using a **binary file**. In older version this was an ascii file still, not from official release v0.0.1 onwards!
 	  :units:		m above reference level
