@@ -5,7 +5,7 @@ Introduction to SFINCS
 ----------------------
 
 What is SFINCS?
-^^^^^^^^^
+^^^^^
 
 SFINCS (Super-Fast Inundation of CoastS) is a reduced-complexity model capable of simulating compound flooding with a high computational efficiency balanced with an adequate accuracy.
 In SFINCS a set of momentum and continuity equations are solved with a first order explicit scheme based on Bates et al. (2010).
@@ -15,7 +15,7 @@ For this purpose, the SFINCS-SSWE version can be used (including advection).
 For more information see Leijnse et al. (2020): https://doi.org/10.1016/j.coastaleng.2020.103796
 
 Why SFINCS?
-^^^^^^^^^
+^^^^^
 Compound flooding during tropical cyclones and other extreme events result in tremendous amounts of property damage and loss of life. Early warning systems and multi-hazard risk analysis can reduce these impacts. 
 However, large numbers of computations need to be run in a probabilistic approach and in a short time due to uncertainties in the meteorological forcing. 
 Current modelling approaches are either fast but too simple (bathtub approach) or models are very accurate but too slow (e.g. Delft3D, XBeach).
@@ -31,7 +31,7 @@ When very high-detailed simulations are needed with a lot of detailed features (
    The goal of SFINCS: speed! (Icon made by https://www.flaticon.com/authors/vectors-market)
 
 Compound flooding?
-^^^^^^^^^
+^^^^^
 Compound flooding is described as events occurring in coastal areas where the interaction of high sea levels, large river discharges and local precipitation causes (extreme) flooding (Wahl et al., 2015).
 To simulate compound flooding events, a model needs to be able to model all these types of forcings. Therefore, SFINCS includes fluvial, pluvial, tidal, wind- and wave-driven processes!
 
@@ -39,7 +39,7 @@ Application areas
 -----
 
 Coastal model
-^^^^^^^^^
+^^^^^
 
 A SFINCS model in coastal regions can be forced with marine forcings like tides, storm surge, local wind setup and wave driven processes.
 Generally a model is setup with the offshore boundary in the swash zone, good practice is in about 2 meters water depth.
@@ -54,7 +54,7 @@ In some cases local rainfall might be relevant too for a coastal model.
    
    
 Coral reef model
-^^^^^^^^^
+^^^^^
 SFINCS models have also been setup in coral reef type environments, where individual waves are forced to compute wave-driven flooding.
 This generally has a large contribution to flooding for Small Island Developping States (SIDS) or other coasts/islands with coral reef type coasts.
 
@@ -65,7 +65,7 @@ This generally has a large contribution to flooding for Small Island Developping
    SFINCS model for Majuro.
    
 Tsunami model
-^^^^^^^^^
+^^^^^
 As an additional type of coastal model, SFINCS has also been used for modelling tsunami's.
 Generally this would be an overland model forced with a tsunami wave as computed by an offshore hydrodynamic model.
 However, in the paper of Robke et al. 2021 SFINCS was also used for the first time to calculate the offshore propagation in a very short amount of time too.
@@ -78,12 +78,12 @@ Get in touch to hear more about possibilities for tsunami modelling with SFINCS.
    Overland and offshore SFINCS models modelling the 2011 Tohoku tsunami near Japan, figure from: https://doi.org/10.3390/jmse9050453
    
 Storm surge model
-^^^^^^^^^
+^^^^^
 Since speed is wanted everywhere, also tests have been done to let SFINCS model offshore storm surge during tropical cyclones.
 Get in touch to hear more about possibilities for storm surge modelling with SFINCS.
 
 Riverine model
-^^^^^^^^^
+^^^^^
 For inland riverine types of environments, boundary conditions are generally different than for coastal models.
 Generally at the upstream end of rivers, one can provide discharge points with discharge time-series.
 At the downstream end of rivers, water level time-series need to be specified, which in case of sub-critical flow conditions will influence the flow upstream.
@@ -96,7 +96,7 @@ Additionaly, besides the general river discharge, local rainfall adding water to
    SFINCS model for Vientiane, Laos.
    
 Urban model
-^^^^^^^^^
+^^^^^
 For urban environments the local situation of varying land use conditions can heavily influence the local flow.
 Therefore spatially varying input of manning roughness and infiltration is possible.
 The curve number method of infiltration will distinguish what part of falling precipitation can infiltrate or will run-off.
@@ -110,7 +110,7 @@ These can be thin dams, levees, sea walls, simple drainage pumps or culverts.
    SFINCS model for Houston, TX, during Hurricane Harvey (2017)
 
 Flash flood model
-^^^^^^^^^
+^^^^^
 In recent tests, SFINCS has also been used to model flash floods.
 In these events, a short but intense rainfall event falls onto a domain and together with a steep profile can lead to significant water depths and flow velocities.
 Get in touch to hear more about possibilities for fast flash-flood modelling with SFINCS.
@@ -123,7 +123,7 @@ Get in touch to hear more about possibilities for fast flash-flood modelling wit
 
 
 Compound flooding model
-^^^^^^^^^
+^^^^^
 In a compound flooding model, all relevant types of forcing from either coastal, coral, riverine or urban models can be combined into 1 domain.
 Hereby the joint effect of multiple flood drivers that can enhance flooding can be taken into account.
 

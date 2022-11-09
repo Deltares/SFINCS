@@ -321,6 +321,11 @@ The Curve Number is a generally used method to determine what parts of falling r
 
 Infiltration is specified with either constant in time values in mm/hr (both uniform and spatially varying), or using a Curve Number method (only spatially varying).
 
+**NOTE - Infiltration in SFINCS is only turned on when any rainfall is forced, see 'User manual - forcing'** 
+
+**NOTE - infiltration methods in SFINCS are not designed to be stacked**
+
+
 Spatially uniform constant in time:
 %%%%%
 
