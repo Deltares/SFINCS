@@ -214,9 +214,9 @@ Parameters for model output
 	  :units:		s
 	  :default:		600
 	dtmaxout
-	  :description:		Time-step interval of global map output of maximum water level. If not specified, the maximum over the entire simulation is calculated.
+	  :description:		Time-step interval of global map output of maximum water level. If not specified, the maximum over the entire simulation is calculated. If no output is wanted, specify 'dtmaxout = 0'.
 	  :units:		s
-	  :default:		0
+	  :default:		999999
 	  :min:			0
 	  :max:			'tstop - start in seconds'  
 	dtrstout
