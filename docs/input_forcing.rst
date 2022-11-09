@@ -10,7 +10,7 @@ The figure below gives an overview of all different types of input files and whe
 Below an example is given of this file, which uses a keyword/value layout. 
 For more information regarding specific parameters see the pages 'Input parameters' or 'Output parameters'.
 
-Note that in the manual below, blocks named Matlab example using OET are included, referring to easy setup scripts included in the SFINCS’ Open Earth Tools Matlab set of scripts: https://svn.oss.deltares.nl/repos/openearthtools/trunk/matlab/applications/sfincs
+**NOTE - In the manual below, blocks named Matlab example using OET are included, referring to easy setup scripts included in the SFINCS’ Open Earth Tools Matlab set of scripts: https://svn.oss.deltares.nl/repos/openearthtools/trunk/matlab/applications/sfincs**
 
 .. figure:: ./figures/SFINCS_documentation_forcing.png
    :width: 800px
@@ -71,7 +71,8 @@ Water level time-series
 
 Then in the file 'sfincs.bzs' the water level time-series are specified per input location.
 Times are specified in seconds with respect to SFINCS' internal reference time 'tref', as specified in sfincs.inp.
-**Note** that the time and length of values you prescibe per boundary input location should be all the same in the bzsfile.
+
+**NOTE - The time and length of values you prescibe per boundary input location should be all the same in the bzsfile**
 
 **bzsfile = sfincs.bzs**
 
@@ -102,7 +103,8 @@ When forcing waves, besides providing a bzsfile with slowly varying water level 
 This can contain infragravity and/or short waves.
 Do note that the forced signal should be the incoming wave component only, not including the reflecting one, since this is computed by SFINCS internally as well.
 The signal should be around 0.
-**Do note that the input timestep should be the same in both the bzs and bzi files!**
+
+**NOTE - Specified time should be the same in both the bzs and bzi files**
 
 **bzifile = sfincs.bzi**
 

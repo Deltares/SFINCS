@@ -10,7 +10,7 @@ The figure below gives an overview of all different types of input files and whe
 Below an example is given of this file, which uses a keyword/value layout. 
 For more information regarding specific parameters see the pages 'Input parameters' or 'Output parameters'.
 
-Note that in the manual below, blocks named Matlab example using OET are included, referring to easy setup scripts included in the SFINCS’ Open Earth Tools Matlab set of scripts: https://svn.oss.deltares.nl/repos/openearthtools/trunk/matlab/applications/sfincs
+**NOTE - In the manual below, blocks named Matlab example using OET are included, referring to easy setup scripts included in the SFINCS’ Open Earth Tools Matlab set of scripts: https://svn.oss.deltares.nl/repos/openearthtools/trunk/matlab/applications/sfincs**
 
 .. figure:: ./figures/SFINCS_documentation_structures.png
    :width: 800px

@@ -10,8 +10,7 @@ The figure below gives an overview of all different types of input files and whe
 Below an example is given of this file, which uses a keyword/value layout. 
 For more information regarding specific parameters see the pages 'Input parameters' or 'Output parameters'.
 
-Note that in the manual below, blocks named **Matlab example using OET** are included, referring to easy setup scripts included in the SFINCS' Open Earth Tools Matlab set of scripts:
-https://svn.oss.deltares.nl/repos/openearthtools/trunk/matlab/applications/sfincs
+**NOTE - In the manual below, blocks named 'Matlab example using OET' are included, referring to easy setup scripts included in the SFINCS' Open Earth Tools Matlab set of scripts: https://svn.oss.deltares.nl/repos/openearthtools/trunk/matlab/applications/sfincs**
 
 .. figure:: ./figures/SFINCS_documentation_figure1.png
    :width: 800px
@@ -118,7 +117,7 @@ The elevation is described in the cell centres of the grid.
 The elevation is defined in sfincs.dep based on the specified grid, positive is upwards with respect to a certain reference level (topography has positive values, bathymetry has negative values).
 The reference level is not known to SFINCS (and not relevant for the computation), so a user itself must be consistent in the use of specifying elevations in different files (elevation, initial water level, boundary conditions) always to the same vertical reference level (whether it is local MSL, NAP, EGM96 etc. etc.).
 
-**Note**, the depfile is not used when running SFINCS in the subgrid mode (see below)
+**NOTE - The depfile is not used when running SFINCS in the subgrid mode (see below)**
 
 **depfile = sfincs.dep**
 
@@ -321,9 +320,9 @@ The Curve Number is a generally used method to determine what parts of falling r
 
 Infiltration is specified with either constant in time values in mm/hr (both uniform and spatially varying), or using a Curve Number method (only spatially varying).
 
-**NOTE - Infiltration in SFINCS is only turned on when any rainfall is forced, see 'User manual - forcing'** 
+**NOTE - Infiltration in SFINCS is only turned on when any rainfall is forced'** 
 
-**NOTE - infiltration methods in SFINCS are not designed to be stacked**
+**NOTE - Infiltration methods in SFINCS are not designed to be stacked**
 
 
 Spatially uniform constant in time:
@@ -367,7 +366,9 @@ Spatially varying Curve Number:
 %%%%%
 
 For spatially varying infiltration values per cell using the Curve Number method use the scsfile option, with the same grid based input as the depfile using a binary file.
-Note here that in pre-processing the wanted CN values should be converted to S values following: **S = (1000./CN - 10)**
+Note here that in pre-processing the wanted CN values should be converted to S values following:
+
+**S = (1000./CN - 10)**
 
 There is also an advanced version of the Curve Number method that also allows for the recharge of soil capacity after time progresses.
 Get it touch if you would like to know more information.
@@ -434,7 +435,8 @@ The water level is by default initiated at 0 meters above mean water level, but 
 In the initialisation phase within the model, all cells with an elevation below specified user value are given the specified value of 'zsini', thereby starting without a completely dry bed.
 For more flexibility, this can also be prescribed spatially varying which can be relevant for coastal, riverine and tsunami cases.
 This 'inifile' is now only supported using a **binary** file.
-(Note, in pre-release version of SFINCS this was an ascii type file)
+
+**NOTE - In pre-release versions of SFINCS this was an ascii type file)**
 
 Alternatively, you can specify initial conditions using a restart file, see below:
 
