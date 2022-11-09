@@ -240,6 +240,7 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'units', 'm'))
       NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'standard_name', 'Se')) 
       NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'long_name', 'current moisture storage (Se) capacity'))     
+      NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'coordinates', 'corner_x corner_y'))
    endif
    !
    ! Time varying spatial output max
@@ -288,6 +289,7 @@ contains
          NF90(nf90_put_att(map_file%ncid, map_file%hmax_varid, 'standard_name', 'sea_floor_depth_below_sea_surface')) 
          NF90(nf90_put_att(map_file%ncid, map_file%hmax_varid, 'long_name', 'maximum_water_depth')) 
          NF90(nf90_put_att(map_file%ncid, map_file%hmax_varid, 'cell_methods', 'time: maximum'))    
+         NF90(nf90_put_att(map_file%ncid, map_file%hmax_varid, 'coordinates', 'x y'))
       endif
    endif
    !
@@ -319,12 +321,14 @@ contains
          NF90(nf90_put_att(map_file%ncid, map_file%wind_u_varid, 'units', 'm s-1'))
          NF90(nf90_put_att(map_file%ncid, map_file%wind_u_varid, 'standard_name', 'eastward_wind'))
          NF90(nf90_put_att(map_file%ncid, map_file%wind_u_varid, 'long_name', 'wind_speed_u')) 
+         NF90(nf90_put_att(map_file%ncid, map_file%wind_u_varid, 'coordinates', 'x y'))
          !
          NF90(nf90_def_var(map_file%ncid, 'wind_v', NF90_FLOAT, (/map_file%n_dimid, map_file%m_dimid, map_file%time_dimid/), map_file%wind_v_varid)) ! cumulative precipitation map
          NF90(nf90_put_att(map_file%ncid, map_file%wind_v_varid, '_FillValue', FILL_VALUE))          
          NF90(nf90_put_att(map_file%ncid, map_file%wind_v_varid, 'units', 'm s-1'))
          NF90(nf90_put_att(map_file%ncid, map_file%wind_v_varid, 'standard_name', 'northward_wind'))
          NF90(nf90_put_att(map_file%ncid, map_file%wind_v_varid, 'long_name', 'wind_speed_v')) 
+         NF90(nf90_put_att(map_file%ncid, map_file%wind_v_varid, 'coordinates', 'x y'))
          !
          if (meteo3d .and. store_wind_max) then  
             NF90(nf90_def_var(map_file%ncid, 'windmax', NF90_FLOAT, (/map_file%n_dimid, map_file%m_dimid/), map_file%windmax_varid)) ! maximum wind speed 
@@ -332,6 +336,7 @@ contains
             NF90(nf90_put_att(map_file%ncid, map_file%windmax_varid, 'units', 'm s-1'))
             NF90(nf90_put_att(map_file%ncid, map_file%windmax_varid, 'long_name', 'maximum_wind_speed')) 
             NF90(nf90_put_att(map_file%ncid, map_file%windmax_varid, 'cell_methods', 'time: sum'))       
+            NF90(nf90_put_att(map_file%ncid, map_file%windmax_varid, 'coordinates', 'x y'))
         endif
          !
       endif
@@ -343,6 +348,7 @@ contains
          NF90(nf90_put_att(map_file%ncid, map_file%patm_varid, 'units', 'N m-2'))
          NF90(nf90_put_att(map_file%ncid, map_file%patm_varid, 'standard_name', 'surface_air_pressure'))
          NF90(nf90_put_att(map_file%ncid, map_file%patm_varid, 'long_name', 'surface_air_pressure')) 
+         NF90(nf90_put_att(map_file%ncid, map_file%patm_varid, 'coordinates', 'x y'))
          !
       endif   
       !
@@ -353,6 +359,7 @@ contains
          NF90(nf90_put_att(map_file%ncid, map_file%precip_varid, 'units', 'mm h-1'))
          NF90(nf90_put_att(map_file%ncid, map_file%precip_varid, 'standard_name', 'precipitation_rate'))
          NF90(nf90_put_att(map_file%ncid, map_file%precip_varid, 'long_name', 'precipitation_rate')) 
+         NF90(nf90_put_att(map_file%ncid, map_file%precip_varid, 'coordinates', 'x y'))
          !
       endif   
       !
@@ -365,12 +372,14 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%hm0_varid, 'units', 'm'))
       NF90(nf90_put_att(map_file%ncid, map_file%hm0_varid, 'standard_name', 'hm0_wave_height'))
       NF90(nf90_put_att(map_file%ncid, map_file%hm0_varid, 'long_name', 'Hm0 wave height')) 
+      NF90(nf90_put_att(map_file%ncid, map_file%hm0_varid, 'coordinates', 'x y'))
       !
       NF90(nf90_def_var(map_file%ncid, 'hm0ig', NF90_FLOAT, (/map_file%n_dimid, map_file%m_dimid, map_file%time_dimid/), map_file%hm0ig_varid))
       NF90(nf90_put_att(map_file%ncid, map_file%hm0ig_varid, '_FillValue', FILL_VALUE))          
       NF90(nf90_put_att(map_file%ncid, map_file%hm0ig_varid, 'units', 'm'))
       NF90(nf90_put_att(map_file%ncid, map_file%hm0ig_varid, 'standard_name', 'hm0_ig_wave_height'))
       NF90(nf90_put_att(map_file%ncid, map_file%hm0ig_varid, 'long_name', 'Hm0 infragravity wave height')) 
+      NF90(nf90_put_att(map_file%ncid, map_file%hm0ig_varid, 'coordinates', 'x y'))
       !
       if (store_wave_forces) then
          !
@@ -379,12 +388,14 @@ contains
          NF90(nf90_put_att(map_file%ncid, map_file%fwx_varid, 'units', 'm'))
          NF90(nf90_put_att(map_file%ncid, map_file%fwx_varid, 'standard_name', 'wave_force_x'))
          NF90(nf90_put_att(map_file%ncid, map_file%fwx_varid, 'long_name', 'Wave force in x-direction')) 
+         NF90(nf90_put_att(map_file%ncid, map_file%fwx_varid, 'coordinates', 'x y'))
          !
          NF90(nf90_def_var(map_file%ncid, 'fwy', NF90_FLOAT, (/map_file%n_dimid, map_file%m_dimid, map_file%time_dimid/), map_file%fwy_varid))
          NF90(nf90_put_att(map_file%ncid, map_file%fwy_varid, '_FillValue', FILL_VALUE))          
          NF90(nf90_put_att(map_file%ncid, map_file%fwy_varid, 'units', 'm'))
          NF90(nf90_put_att(map_file%ncid, map_file%fwy_varid, 'standard_name', 'wave_force_y'))
          NF90(nf90_put_att(map_file%ncid, map_file%fwy_varid, 'long_name', 'Wave force in y-direction')) 
+         NF90(nf90_put_att(map_file%ncid, map_file%fwy_varid, 'coordinates', 'x y'))
          !
       endif
       !
@@ -395,6 +406,7 @@ contains
          NF90(nf90_put_att(map_file%ncid, map_file%zsm_varid, 'units', 'm'))
          NF90(nf90_put_att(map_file%ncid, map_file%zsm_varid, 'standard_name', 'mean_water_level'))
          NF90(nf90_put_att(map_file%ncid, map_file%zsm_varid, 'long_name', 'Filtered water level')) 
+         NF90(nf90_put_att(map_file%ncid, map_file%zsm_varid, 'coordinates', 'x y'))
          !
       endif
       !
@@ -1076,6 +1088,7 @@ contains
       NF90(nf90_put_att(his_file%ncid, his_file%qinf_varid, '_FillValue', FILL_VALUE))   
       NF90(nf90_put_att(his_file%ncid, his_file%qinf_varid, 'units', 'mm hr-1'))
       NF90(nf90_put_att(his_file%ncid, his_file%qinf_varid, 'long_name', 'infiltration_rate'))        
+      NF90(nf90_put_att(his_file%ncid, his_file%qinf_varid, 'coordinates', 'station_id station_name station_x station_y point_x point_y'))
       !
    endif
    ! 
@@ -1087,6 +1100,7 @@ contains
       NF90(nf90_put_att(his_file%ncid, his_file%S_varid, '_FillValue', FILL_VALUE))   
       NF90(nf90_put_att(his_file%ncid, his_file%S_varid, 'units', 'm'))
       NF90(nf90_put_att(his_file%ncid, his_file%S_varid, 'long_name', 'current moisture storage (Se) capacity')) 
+      NF90(nf90_put_att(his_file%ncid, his_file%S_varid, 'coordinates', 'station_id station_name station_x station_y point_x point_y'))
       !
    endif
    !
@@ -1097,18 +1111,21 @@ contains
       NF90(nf90_put_att(his_file%ncid, his_file%hm0_varid, 'units', 'm'))
       NF90(nf90_put_att(his_file%ncid, his_file%hm0_varid, 'standard_name', 'hm0_wave_height')) 
       NF90(nf90_put_att(his_file%ncid, his_file%hm0_varid, 'long_name', 'Hm0 wave height'))  
+      NF90(nf90_put_att(his_file%ncid, his_file%hm0_varid, 'coordinates', 'station_id station_name station_x station_y point_x point_y'))
       !
       NF90(nf90_def_var(his_file%ncid, 'hm0ig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%hm0ig_varid)) ! time-varying water level point
       NF90(nf90_put_att(his_file%ncid, his_file%hm0ig_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(his_file%ncid, his_file%hm0ig_varid, 'units', 'm'))
       NF90(nf90_put_att(his_file%ncid, his_file%hm0ig_varid, 'standard_name', 'hm0_ig_wave_height')) 
       NF90(nf90_put_att(his_file%ncid, his_file%hm0ig_varid, 'long_name', 'Hm0 infragravity wave height'))  
+      NF90(nf90_put_att(his_file%ncid, his_file%hm0ig_varid, 'coordinates', 'station_id station_name station_x station_y point_x point_y'))
       !
       NF90(nf90_def_var(his_file%ncid, 'tp', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%tp_varid)) ! time-varying water level point
       NF90(nf90_put_att(his_file%ncid, his_file%tp_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(his_file%ncid, his_file%tp_varid, 'units', 's'))
       NF90(nf90_put_att(his_file%ncid, his_file%tp_varid, 'standard_name', 'peak_wave_period')) 
       NF90(nf90_put_att(his_file%ncid, his_file%tp_varid, 'long_name', 'Peak wave period'))  
+      NF90(nf90_put_att(his_file%ncid, his_file%tp_varid, 'coordinates', 'station_id station_name station_x station_y point_x point_y'))
       !
       if (store_wave_direction) then
          !
@@ -1117,12 +1134,14 @@ contains
          NF90(nf90_put_att(his_file%ncid, his_file%wavdir_varid, 'units', 's'))
          NF90(nf90_put_att(his_file%ncid, his_file%wavdir_varid, 'standard_name', 'mean_wave_direction')) 
          NF90(nf90_put_att(his_file%ncid, his_file%wavdir_varid, 'long_name', 'Mean wave direction'))  
+         NF90(nf90_put_att(his_file%ncid, his_file%wavdir_varid, 'coordinates', 'station_id station_name station_x station_y point_x point_y'))
          !
          NF90(nf90_def_var(his_file%ncid, 'dirspr', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dirspr_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%dirspr_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%dirspr_varid, 'units', 's'))
          NF90(nf90_put_att(his_file%ncid, his_file%dirspr_varid, 'standard_name', 'wave_directional_spreading')) 
          NF90(nf90_put_att(his_file%ncid, his_file%dirspr_varid, 'long_name', 'Wave directional spreading'))  
+         NF90(nf90_put_att(his_file%ncid, his_file%dirspr_varid, 'coordinates', 'station_id station_name station_x station_y point_x point_y'))
          !
       endif   
       !
@@ -1133,6 +1152,7 @@ contains
          NF90(nf90_put_att(his_file%ncid, his_file%zsm_varid, 'units', 'm'))
          NF90(nf90_put_att(his_file%ncid, his_file%zsm_varid, 'standard_name', 'filtered_water_level')) 
          NF90(nf90_put_att(his_file%ncid, his_file%zsm_varid, 'long_name', 'Filtered water level'))  
+         NF90(nf90_put_att(his_file%ncid, his_file%zsm_varid, 'coordinates', 'station_id station_name station_x station_y point_x point_y'))
          !
       endif   
    endif
@@ -1145,11 +1165,13 @@ contains
          NF90(nf90_put_att(his_file%ncid, his_file%wind_speed_varid, '_FillValue', FILL_VALUE))   
          NF90(nf90_put_att(his_file%ncid, his_file%wind_speed_varid, 'units', 'm s-1'))
          NF90(nf90_put_att(his_file%ncid, his_file%wind_speed_varid, 'long_name', 'wind_speed'))        
+         NF90(nf90_put_att(his_file%ncid, his_file%wind_speed_varid, 'coordinates', 'station_id station_name station_x station_y point_x point_y'))
          !
          NF90(nf90_def_var(his_file%ncid, 'point_wind_direction', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%wind_dir_varid)) ! time-varying patm point 
          NF90(nf90_put_att(his_file%ncid, his_file%wind_dir_varid, '_FillValue', FILL_VALUE))   
          NF90(nf90_put_att(his_file%ncid, his_file%wind_dir_varid, 'units', 'degrees'))
          NF90(nf90_put_att(his_file%ncid, his_file%wind_dir_varid, 'long_name', 'wind_direction'))        
+         NF90(nf90_put_att(his_file%ncid, his_file%wind_dir_varid, 'coordinates', 'station_id station_name station_x station_y point_x point_y'))
          !
       endif
       !
@@ -1159,6 +1181,7 @@ contains
          NF90(nf90_put_att(his_file%ncid, his_file%patm_varid, '_FillValue', FILL_VALUE))   
          NF90(nf90_put_att(his_file%ncid, his_file%patm_varid, 'units', 'Pa'))
          NF90(nf90_put_att(his_file%ncid, his_file%patm_varid, 'long_name', 'surface_air_pressure'))        
+         NF90(nf90_put_att(his_file%ncid, his_file%patm_varid, 'coordinates', 'station_id station_name station_x station_y point_x point_y'))
          !
       endif
       !
@@ -1167,6 +1190,7 @@ contains
          NF90(nf90_put_att(his_file%ncid, his_file%prcp_varid, '_FillValue', FILL_VALUE))   
          NF90(nf90_put_att(his_file%ncid, his_file%prcp_varid, 'units', 'mm hr-1'))
          NF90(nf90_put_att(his_file%ncid, his_file%prcp_varid, 'long_name', 'precipitation_rate'))        
+         NF90(nf90_put_att(his_file%ncid, his_file%prcp_varid, 'coordinates', 'station_id station_name station_x station_y point_x point_y'))
       endif
       ! 
    endif   
@@ -1176,7 +1200,8 @@ contains
       NF90(nf90_def_var(his_file%ncid, 'crosssection_discharge', NF90_FLOAT, (/his_file%crosssections_dimid, his_file%time_dimid/), his_file%discharge_varid)) ! time-varying crossection discharge 
       NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, '_FillValue', FILL_VALUE))   
       NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'units', 'm3 s-1'))
-      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'long_name', 'discharge'))        
+      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'long_name', 'discharge'))
+      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'coordinates', 'crosssection_name'))
       !
    endif
    !
