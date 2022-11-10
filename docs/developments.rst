@@ -7,10 +7,10 @@ Hereby some examples regarding subgrid features and GPU computing.
 Releases
 -----
 
-Official open source version: v2.0.0 St. Martin release
+Official open source version: v2.0.0 Sint Maarten release
 ^^^^^
 
-On the 16th of November 2022, we have made SFINCS open source available as the SFINCS v2.0.0 St. Martin release, build on the 11th of the 11th.
+On the 16th of November 2022, we have made SFINCS open source available as the SFINCS v2.0.0 Sint Maarten release, build on the 11th of the 11th.
 This contains open access to the source code and executables from Github: https://github.com/Deltares/SFINCS.
 The code consists of all functionality of v1, with the large addition of the subgrid mode and first GPU functionality using openacc.
 For more details, see below.
