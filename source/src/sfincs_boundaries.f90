@@ -650,14 +650,6 @@ contains
             !
          endif
          !
-         if (subgrid) then
-            zsb0(ib) = max(zsb0(ib), subgrid_z_zmin(nmindbnd(ib)))
-            zsb(ib)  = max(zsb(ib),  subgrid_z_zmin(nmindbnd(ib)))
-         else
-            zsb0(ib) = max(zsb0(ib), zb(nmindbnd(ib)))
-            zsb(ib)  = max(zsb(ib),  zb(nmindbnd(ib)))
-         endif
-         !
       endif
    enddo
    !
@@ -700,46 +692,53 @@ contains
       zsnmb  = zsb(indb)        ! total water level at boundary
       zs0nmb = zsb0(indb)       ! average water level inside model (without waves)
       !
-      if (subgrid) then
-         !
-         zsuv = max(zsnmb, zsnmi)
-         !
-         if (zsuv>=subgrid_uv_zmax(ip) - 1.0e-4) then
-            !
-            ! Entire cell is wet, no interpolation from table needed
-            !
-            depthuv  = subgrid_uv_hrep_zmax(ip) + zsuv
-            !
-         elseif (zsuv>subgrid_uv_zmin(ip)) then
-            !
-            ! Interpolation required
-            !
-            dzuv    = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nbins - 1)
-            iuv     = int((zsuv - subgrid_uv_zmin(ip))/dzuv) + 1
-            facint  = (zsuv - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv
-            depthuv = subgrid_uv_hrep(iuv, ip) + (subgrid_uv_hrep(iuv + 1, ip) - subgrid_uv_hrep(iuv, ip))*facint
-            !
-         else
-            !
-            depthuv = 0.0
-            !
-         endif
-         !
-         hnmb   = max(depthuv, huthresh)
-         zsnmb  = max(zsnmb,  subgrid_z_zmin(nmb))
-         zs0nmb = max(zs0nmb, subgrid_z_zmin(nmb))
-         !
-      else
-         !
-         hnmb   = max(0.5*(zsnmb + zsnmi) - zbuv(ip), huthresh)
-         zsnmb  = max(zsnmb,  zb(nmb))
-         zs0nmb = max(zs0nmb, zb(nmb))
-         !
-      endif
-      !
       if (bndtype==1) then
          !
          ! Weakly reflective boundary (default)
+         !          
+         if (subgrid) then
+            !
+            ! check on waterlevels minimally equal to z_zmin
+            zs0nmb = max(zs0nmb, subgrid_z_zmin(indb))
+            zsnmb  = max(zsnmb,  subgrid_z_zmin(indb))
+            !
+            zsuv = max(zsnmb, zsnmi)
+            !
+            if (zsuv>=subgrid_uv_zmax(ip) - 1.0e-4) then
+               !
+               ! Entire cell is wet, no interpolation from table needed
+               !
+               depthuv  = subgrid_uv_hrep_zmax(ip) + zsuv
+               !
+            elseif (zsuv>subgrid_uv_zmin(ip)) then
+               !
+               ! Interpolation required
+               !
+               dzuv    = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nbins - 1)
+               iuv     = int((zsuv - subgrid_uv_zmin(ip))/dzuv) + 1
+               facint  = (zsuv - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv
+               depthuv = subgrid_uv_hrep(iuv, ip) + (subgrid_uv_hrep(iuv + 1, ip) - subgrid_uv_hrep(iuv, ip))*facint
+               !
+            else
+               !
+               depthuv = 0.0
+               !
+            endif
+            !
+            hnmb   = max(depthuv, huthresh)
+            zsnmb  = max(zsnmb,  subgrid_z_zmin(nmb))
+            zs0nmb = max(zs0nmb, subgrid_z_zmin(nmb))
+            !
+         else
+            !check on waterlevels minimally equal to zb
+            zs0nmb = max(zs0nmb, zb(indb))
+            zsnmb  = max(zsnmb,  zb(indb))
+            !
+            hnmb   = max(0.5*(zsnmb + zsnmi) - zbuv(ip), huthresh)
+            zsnmb  = max(zsnmb,  zb(nmb))
+            zs0nmb = max(zs0nmb, zb(nmb))
+            !
+         endif      
          !
          if (hnmb<huthresh .or. kcuv(ip)==3) then
             !
@@ -811,6 +810,10 @@ contains
             !
          endif
          !
+         ! Set value on kcs=2 point to boundary condition
+         !
+         zs(nmb) = zsb(indb)        
+         !
       elseif (bndtype==2) then ! Don't use in combination with waves
          !
          ! Velocity
@@ -824,10 +827,6 @@ contains
          q(ip) = zsnmb
          !
       endif
-      !
-      ! Set value on kcs=2 point to boundary condition
-      !
-      zs(nmb) = zsb(indb)
       !
    enddo
    !
