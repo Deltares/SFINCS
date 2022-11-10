@@ -122,10 +122,8 @@ In case the following message is written to the screen, it means that something 
 .. code-block:: text
 
 	Maximum depth of 100.0 m reached!!! Simulation stopped.
-	Maximum depth occurs at (n,m)=(  705,  690), (x,y)=(  511087.5,14252488.0).
 
 This means that a too large water depth has occured somewhere in the domain, indicating that some input is probably not optimal.
-As bonus, the grid cell indices and x&y location is given for faster debugging.
 
 Possible problems can be:
 
