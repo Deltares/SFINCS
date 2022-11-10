@@ -4,7 +4,25 @@ Developments
 SFINCS has continuely being developed since 2017, and many great features have been added over the years.
 Hereby some examples regarding subgrid features and GPU computing.
 
-Recent advancements in accuracy: subgrid features
+Releases
+-----
+
+Official open source version: v2.0.0 St. Martin release
+^^^^^
+
+On the 16th of November 2022, we have made SFINCS open source available as the SFINCS v2.0.0 St. Martin release, build on the 11th of the 11th.
+This contains open access to the source code and executables from Github: https://github.com/Deltares/SFINCS.
+The code consists of all functionality of v1, with the large addition of the subgrid mode and first GPU functionality using openacc.
+For more details, see below.
+
+Pre-release version(s): v1 revision XXX
+^^^^^
+
+Before making SFINCS open source, version history was controlled using subversion numbering.
+Therefore papers using pre-release versions of SFINCS for instance refer to 'trunk revision 141', as in Leijnse et al. 2021.
+These version 1 revisions contained all standard SFINCS functionality for the regular mode.
+
+Recent advancements in accuracy: subgrid mode
 -----
 
 What are subgrid features?

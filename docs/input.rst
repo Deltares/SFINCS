@@ -464,7 +464,7 @@ Per cross-section as minimal a name, the number of points (size data) and the x-
 
 .. code-block:: text
 
-	inp.thdfile = 'sfincs.thd';
+	inp.crsfile = 'sfincs.crs';
 	
 	cross_sections(1).x = [0 10 20]; 
 	cross_sections(1).y = [100 100 100]; 
@@ -472,7 +472,7 @@ Per cross-section as minimal a name, the number of points (size data) and the x-
 	cross_sections(2).x = [20 25]; 
 	cross_sections(2).y = [200 200]; 
 	cross_sections(2).name = {'CRS02'};
-	cross_sections.length = length(thindams.x1);
+	cross_sections.length = length(cross_sections);
 	
 	sfincs_write_cross_sections(inp.crsfile,cross_sections);		
  	
@@ -484,7 +484,7 @@ In the initialisation phase within the model, all cells with an elevation below 
 For more flexibility, this can also be prescribed spatially varying which can be relevant for coastal, riverine and tsunami cases.
 This 'inifile' is now only supported using a **binary** file.
 
-**NOTE - In pre-release versions of SFINCS this was an ascii type file)**
+**NOTE - In pre-release versions of SFINCS this was an ascii type file**
 
 Alternatively, you can specify initial conditions using a restart file, see below:
 
