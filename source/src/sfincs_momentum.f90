@@ -146,7 +146,7 @@
             !
             if (use_quadtree) then
                iref  = uv_flags_iref(ip) ! refinement level
-               itype = uv_flags_type(ip) ! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
+               itype = uv_flags_type(ip) ! -1 is fine to coarse, 0 is normal, 1 is coarse to fine
             else
                iref  = 1
                itype = 0
@@ -497,7 +497,7 @@
             !
             ! Apply some smoothing if theta < 1.0 (not recommended anymore!)
             !
-            if (theta<0.9999) then
+            if (theta<1.0) then
                qsm = theta*qx0_nm + 0.5*(1.0 - theta)*(qx0_nmu + qx0_nmd)             
             else
                qsm = qx0_nm

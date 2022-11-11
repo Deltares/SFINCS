@@ -34,7 +34,7 @@
 
    subroutine read_structure_file(filename,itype,npars)
    !
-   ! Reads thd file
+   ! Reads structures file
    !
    use sfincs_data
    use quadtree
@@ -238,11 +238,6 @@
             !
          endif   
          !
-!         write(600,'(a)')'BL01'
-!         write(600,'(a)')'2 2'
-!         write(600,*)xuv1,yuv1
-!         write(600,*)xuv2,yuv2
-         !
          ! Length
          !
          d = distance_between_points_projected_on_line_segment(xuv1, yuv1, xuv2, yuv2, xthd(irow), ythd(irow), xthd(irow + 1), ythd(irow + 1), 999999.0)
@@ -270,7 +265,6 @@
    enddo
    !
    close(500)
-!   close(600)
    !
    ! Count number of structures
    !
