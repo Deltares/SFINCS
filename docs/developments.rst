@@ -10,7 +10,7 @@ Releases
 Official open source version: v2.0.0 Sint Maarten release
 ^^^^^
 
-On the 16th of November 2022, we have made SFINCS open source available as the SFINCS v2.0.0 Sint Maarten release, build on the 11th of the 11th.
+On the 16th of November 2022, we have made SFINCS open source available as the SFINCS v2.0.0 Aspin release, 'Moving mountains' in compound flood modelling.
 This contains open access to the source code and executables from Github: https://github.com/Deltares/SFINCS.
 The code consists of all functionality of v1, with the large addition of the subgrid mode and first GPU functionality using openacc.
 For more details, see below.
@@ -51,7 +51,7 @@ The makes is possible to compute on a coarser grid resolution (improvement of ef
 
 Increase in computational efficiency?
 ^^^^^
-Due to this time step limitation, if one can calculate fluxes on a 100 m grid instead of a 200m grid, the computational speedup is a factor 8. 
+Due to this time step limitation, if one can calculate fluxes on a 200 m grid instead of a 100m grid, the computational speedup is a factor 8. 
 Our case study in Houston shows that even larger increases in speed are possible!
 See: https://agu2020fallmeeting-agu.ipostersessions.com/Default.aspx?s=9C-05-18-CF-F1-2B-17-F0-7A-21-93-E6-13-AE-F3-24
 
