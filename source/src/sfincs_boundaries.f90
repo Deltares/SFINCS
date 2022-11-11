@@ -650,6 +650,14 @@ contains
             !
          endif
          !
+         if (subgrid) then                  ! Check on waterlevels minimally equal to z_zmin
+            zsb0(ib) = max(zsb0(ib), subgrid_z_zmin(nmindbnd(ib)))
+            zsb(ib)  = max(zsb(ib),  subgrid_z_zmin(nmindbnd(ib)))
+         else                               ! Check on waterlevels minimally equal to zb           
+            zsb0(ib) = max(zsb0(ib), zb(nmindbnd(ib)))
+            zsb(ib)  = max(zsb(ib),  zb(nmindbnd(ib)))
+         endif
+         !         
       endif
    enddo
    !
@@ -698,10 +706,6 @@ contains
          !          
          if (subgrid) then
             !
-            ! check on waterlevels minimally equal to z_zmin
-            zs0nmb = max(zs0nmb, subgrid_z_zmin(indb))
-            zsnmb  = max(zsnmb,  subgrid_z_zmin(indb))
-            !
             zsuv = max(zsnmb, zsnmi)
             !
             if (zsuv>=subgrid_uv_zmax(ip) - 1.0e-4) then
@@ -730,9 +734,6 @@ contains
             zs0nmb = max(zs0nmb, subgrid_z_zmin(nmb))
             !
          else
-            !check on waterlevels minimally equal to zb
-            zs0nmb = max(zs0nmb, zb(indb))
-            zsnmb  = max(zsnmb,  zb(indb))
             !
             hnmb   = max(0.5*(zsnmb + zsnmi) - zbuv(ip), huthresh)
             zsnmb  = max(zsnmb,  zb(nmb))
