@@ -7,10 +7,10 @@ Hereby some examples regarding subgrid features and GPU computing.
 Releases
 -----
 
-Official open source version: v2.0.0 Sint Maarten release
+Official open source version: v2.0.0 Alpe d'Huez release
 ^^^^^
 
-On the 16th of November 2022, we have made SFINCS open source available as the SFINCS v2.0.0 Aspin release, 'Moving mountains' in compound flood modelling.
+On the 16th of November 2022, we have made SFINCS open source available as the SFINCS v2.0.0 Alpe d'Huez release, 'Moving Dutch Mountains' in compound flood modelling.
 This contains open access to the source code and executables from Github: https://github.com/Deltares/SFINCS.
 The code consists of all functionality of v1, with the large addition of the subgrid mode and first GPU functionality using openacc.
 For more details, see below.
