@@ -82,8 +82,8 @@ module sfincs_lib
    ierr = 0
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   build_revision = '$Rev: v2.0.0$'
-   build_date     = '$Date: 2022-11-16'
+   build_revision = "$Rev: v2.0.0 Alpe d'Huez$"
+   build_date     = "$Date: 2022-11-16"
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
