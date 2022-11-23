@@ -598,11 +598,10 @@ contains
    NF90(nf90_def_var(map_file%ncid, 'mesh2d', NF90_INT, (/map_file%runtime_dimid/), map_file%mesh2d_varid)) ! location of zb, zs etc. in cell centre
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'cf_role', 'mesh_topology'))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'long_name', 'Topology data of 2D network'))
-   NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'topology_dimension', 2))
+   NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'topology_dimension', 2.0))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'node_coordinates', 'mesh2d_node_x mesh2d_node_y'))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'node_dimension', 'nmesh2d_node'))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'max_face_nodes_dimension', 'max_nmesh2d_face_nodes'))
-   NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'node_dimension', 'nmesh2d_node'))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'face_node_connectivity', 'mesh2d_face_nodes'))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'face_dimension', 'nmesh2d_face'))
    !

@@ -612,6 +612,7 @@ contains
    if (nm>0) then      
       !
       indx = binary_search(quadtree_nm_indices(i1:i2), i2 - i1 + 1, nm)
+      indx = indx + i1 - 1
       !
    endif
    !
@@ -655,6 +656,8 @@ contains
       ypa = ypol(ipol)
       xpb = xpol(ipol + 1)
       ypb = ypol(ipol + 1)
+      !
+      ! First rotate line segement to quadtree coordinate system in order to find nearby cells
       !
       xtmpa =   quadtree_cosrot*(xpa - x0) + quadtree_sinrot*(ypa - y0)
       ytmpa = - quadtree_sinrot*(xpa - x0) + quadtree_cosrot*(ypa - y0)

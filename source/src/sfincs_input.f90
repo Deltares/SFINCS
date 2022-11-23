@@ -74,7 +74,7 @@ contains
    call read_real_input(500,'qinf_zmin',qinf_zmin,0.0)
    call read_real_input(500,'horton_decay',horton_decay,0.00005)
    call read_real_input(500,'horton_time',horton_time,0.0)
-   call read_real_input(500,'btfilter',btfilter,600.0)
+   call read_real_input(500,'btfilter',btfilter,60.0)
    call read_real_input(500,'sfacinf',sfacinf,0.2)
    call read_int_input(500,'radstr',iradstr,0)
    call read_int_input(500,'crsgeo',igeo,0)
