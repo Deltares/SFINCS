@@ -146,7 +146,7 @@
             !
             if (use_quadtree) then
                iref  = uv_flags_iref(ip) ! refinement level
-               itype = uv_flags_type(ip) ! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
+               itype = uv_flags_type(ip) ! -1 is fine to coarse, 0 is normal, 1 is coarse to fine
             else
                iref  = 1
                itype = 0
@@ -331,6 +331,7 @@
             endif
             !
             if (theta<0.9999) then ! for backward compatibility
+               ! Note, for reliability in terms of precision, is written as 0.9999
                qx0_nmd  = q0(uv_index_u_nmd(ip))
                qx0_nmu  = q0(uv_index_u_nmu(ip))
             endif
@@ -496,6 +497,7 @@
             endif   
             !
             ! Apply some smoothing if theta < 1.0 (not recommended anymore!)
+            ! Note, for reliability in terms of precision, is written as 0.9999
             !
             if (theta<0.9999) then
                qsm = theta*qx0_nm + 0.5*(1.0 - theta)*(qx0_nmu + qx0_nmd)             

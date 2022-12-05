@@ -1,0 +1,87 @@
+LICENSING CONDITIONS
+For the Free Trial Copy
+
+Read this agreement
+
+This is a legal agreement between the prospective user, either an individual or an entity, (hereafter: Licensee) and Stichting Deltares hereafter: Deltares. This Software [SFINCS v2.0.0 AlpeDHuez release 16-11-2022] is provided to you on the suspensive condition that you accept the following agreement. You are not allowed to copy, distribute, install or use the software without an agreement with Deltares. If you do not agree to the terms of this agreement, you must promptly stop installing this software and/or do not download the software from our site. Any further actions with respect to the software without an agreement with Deltares are in violation of copyright law.  Downloading, installation and/or use of the Software implies acceptance of this agreement.
+
+
+Article 1: Evaluation license
+Deltares grants Licensee a conditional, time-limited, non-exclusive, non-transferable evaluation license, without the right to sublicense or modify, to use the enclosed Software at a single location for evaluation purposes only. This evaluation license is provided solely under the condition that Licensee complies with the following provisions.
+
+
+Article 2: License fee
+The evaluation license is provided to Licensee without a monetary charge.
+
+
+Article 3: Property
+All rights, including the intellectual property rights, to this software are owned by Deltares. Licensee acknowledges that this evaluation license does not provide Licensee with any rights or ownership to the software, including any rights to the intellectual property.
+
+
+Article 4 Use of the software
+
+4.1
+Licensee may only install and use this software on one computer which must meet the minimum specifications of article 9.
+
+4.2
+Licensee is not allowed to modify and/or adjust the Software and/or (otherwise) carry out alterations to it and/or integrate the Software into other software or hardware.
+
+4.3
+Licensee is not allowed to copy the software or have it copied in any manner.
+
+4.4
+The Software may be used only for a time period of one year after the installation. After this trial period, Licensee will delete (uninstall) the Software.
+
+4.5
+Licensee is not allowed to re-install the Software on any machine after the first installation.
+
+4.6
+Licensee may not distribute the Software to third parties. Licensee may not rent, lease, sell or otherwise commercially or non-commercially exploit this software.
+
+
+Article 5: No guarantee
+
+5.1
+The Software is provided to Licensee as is without any support from Deltares. Use of the software is at the risk of Licensee.
+
+5.2
+The Software is provided for evaluation of the functionality of the software only and is not fit for use besides evaluation. Deltares does not guarantee the correctness of the results of the software in any manner.
+
+5.3
+Licensee shall indemnify, hold harmless and defend Deltares against any action brought by a third party against Deltares to the extent that such a claim is connected to the use of the software by Licensee, including use of the results of such use, and the installation of the software by Licensee.
+
+
+Article 6: Limitation of Liability
+
+6.1
+Licensee agrees that Deltares (including its personnel and non-employees who (have) undertake(n) activities for Deltares) shall not be responsible to Licensee for any loss-of-profit, direct, indirect, incidental, special, or consequential damages arising out of this agreement or the installation or the use of the software, except for damages caused by willful act/conduct or gross negligence of Deltares.
+
+
+Article 7: Termination
+
+7.1
+Without prejudice to its right to possible indemnification, Deltares may terminate this agreement by registered letter, out of court, if Licensee fails to perform or comply with this agreement or any provision thereof.
+
+7.2
+In the event of termination of this agreement, Licensee is obliged within 10 days to discontinue the use of this software, delete this software from all computers on which Licensee has installed the software, and either return the physical medium (CD-ROM or disk) on which user has received this software to Deltares by registered post or destroy the physical medium.
+
+
+Article 8: Law, court
+
+8.1
+Any dispute arising from this agreement and/or in connection with this agreement shall be submitted to the competent court in The Hague.
+
+8.2
+This agreement is subject to Dutch Law.
+
+
+Article 9: Minimum hardware and software requirements
+The minimum hardware and software specifications for proper use of the software:
+
+[Microsoft Windows 10 64bits
+Intel i5 Single Core > 1.0 GHz processor
+1 GB or more (depending on model sizes) internal memory
+20 Gb available hard disk memory]
+
+
+Deltares is registered with the trade register of the Chamber of Commerce Haaglanden under number 41146461, as Foundation 'Stichting Deltares'. You can contact us under tel +31 88 335 81 88 or software@deltares.nl.

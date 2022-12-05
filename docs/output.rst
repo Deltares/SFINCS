@@ -1,8 +1,8 @@
 Output messages
-======================
+=====
 
 Interpreting the information on the screen
-----------------------
+-----
 
 When running SFINCS, some information will be written to the screen.
 This consists of what version was run (number/date not always completely up to date), some files that were read in and the number of active points.
@@ -23,101 +23,133 @@ This does not make it efficient to runs multiple SFINCS runs in parallel, it is 
 
 .. code-block:: text
 
-	 ---Welcome to SFINCS---
 
-	 Build-Revision: $Rev: 220 $
-	 Build-Date: $Date: 2021-01-15$
+	 ----------- Welcome to SFINCS -----------
+	
+	  @@@@@  @@@@@@@ @@ @@  @@   @@@@   @@@@@ 
+	 @@@ @@@ @@@@@@@ @@ @@@ @@ @@@@@@@ @@@ @@@
+	 @@@     @@      @@ @@@ @@ @@   @@ @@@    
+	  @@@@@  @@@@@@  @@ @@@@@@ @@       @@@@@ 
+	     @@@ @@      @@ @@ @@@ @@   @@     @@@
+	 @@@ @@@ @@      @@ @@  @@  @@@@@@ @@@ @@@
+	  @@@@@  @@      @@ @@   @   @@@@   @@@@@ 
 
-	 Reading input file ...
-	 Reading sfincs.ind
-	 Reading sfincs.dep
-	 Reading sfincs.msk
-	      330418  active points
-	 Determining m and n indices ...
-	 Finding neighboring cell indices ...
-	 Reading sfincs.man
-	 Reading sfincs.scs
-	 Reading water level boundaries ...
-	 Reading observation points ...
-	 Starting computation ...
-	   0% complete,     Inf s remaining ...
-	   5% complete,    42.9 s remaining ...
-	  10% complete,    40.1 s remaining ...
-	  15% complete,    36.1 s remaining ...
-	  20% complete,    33.3 s remaining ...
-	  25% complete,    31.1 s remaining ...
-	  30% complete,    29.4 s remaining ...
-	  35% complete,    27.3 s remaining ...
-	  40% complete,    25.4 s remaining ...
-	  45% complete,    23.3 s remaining ...
-	  50% complete,    21.2 s remaining ...
-	  55% complete,    19.1 s remaining ...
-	  60% complete,    16.8 s remaining ...
-	  65% complete,    14.7 s remaining ...
-	  70% complete,    12.5 s remaining ...
-	  75% complete,    10.4 s remaining ...
-	  80% complete,     8.2 s remaining ...
-	  85% complete,     6.1 s remaining ...
-	  90% complete,     4.1 s remaining ...
-	  95% complete,     2.0 s remaining ...
+ 	-----------------------------------------
+
+ 	Build-Revision: $Rev: v0.0.1-alpha$
+ 	Build-Date:     $Date: 2022-10-25$
+
+	Reading input file ...
+ 	Info : Running SFINCS in subgrid mode ...
+ 	Reading meteo data ...
+ 	Info : Preparing SFINCS grid on regular mesh ...
+ 	Reading sfincs.ind ...
+ 	Reading sfincs.msk ...
+ 	Number of active z points    :         4055
+ 	Number of active u/v points  :         7972
+ 	Reading sfincs.sbg ...
+ 	Reading water level boundaries ...
+ 	Reading observation points ...
+ 	Initializing output ...
+
+	 ---------- Starting simulation ----------
+
+	   0% complete,       - s remaining ...
+	   5% complete,     0.9 s remaining ...
+	  10% complete,     0.9 s remaining ...
+	  15% complete,     0.9 s remaining ...
+	  20% complete,     0.9 s remaining ...
+	  25% complete,     0.8 s remaining ...
+	  30% complete,     0.8 s remaining ...
+	  35% complete,     0.7 s remaining ...
+	  40% complete,     0.7 s remaining ...
+	  45% complete,     0.6 s remaining ...
+	  50% complete,     0.6 s remaining ...
+	  55% complete,     0.5 s remaining ...
+	  60% complete,     0.5 s remaining ...
+	  65% complete,     0.4 s remaining ...
+	  70% complete,     0.4 s remaining ...
+	  75% complete,     0.3 s remaining ...
+	  80% complete,     0.2 s remaining ...
+	  85% complete,     0.2 s remaining ...
+	  90% complete,     0.1 s remaining ...
+	  95% complete,     0.1 s remaining ...
 	 100% complete,     0.0 s remaining ...
-	 ---Simulation is finished---
 
-	 Total run time          :     40.624
-	 Time in input           :      0.118
-	 Time in boundary loop   :      1.445 (  3.6%)
-	 Time in discharges      :      0.004 (  0.0%)
-	 Time in meteo (1)       :      0.016 (  0.0%)
-	 Time in meteo (2)       :      5.293 ( 13.0%)
-	 Time in flux loop       :     22.789 ( 56.1%)
-	 Time in structures loop :      0.000 (  0.0%)
-	 Time in continuity loop :      6.351 ( 15.6%)
-	 Time in output          :      4.682 ( 11.5%)
+	 Info : Write maximum values of final timestep since t=dtmaxout was not reached 
+	 yet...
 
-	 Average time step (s)   :      3.329
-	 Maximum depth (m)       :     17.391
+	 ---------- Simulation finished ----------
+	              ..............              
+	          ......:@@@@@@@@:......          
+	       ..::::..@@........@@.:::::..       
+	     ..:::::..@@..::..::..@@.::::::..     
+    	.::::::..@@............@@.:::::::.    
+	   .::::::..@@..............@@.:::::::.   
+	  .::::::::..@@............@@..::::::::.  
+	 .:::::::::...@@.@..@@..@.@@..::::::::::. 
+	 .:::::::::...:@@@..@@..@@@:..:::::::::.. 
+	 ............@@.@@..@@..@@.@@............ 
+	 ^^^~~^^~~^^@@..............@@^^^~^^^~~^^ 
+	 .::::::::::@@..............@@.:::::::::. 
+	  .......:.@@.....@.....@....@@.:.......  
+	   .::....@@......@.@@@.@....@@.....::.   
+    	.:::~@@.:...:.@@...@@.:.:.@@~::::.    
+	     .::~@@@@@@@@@@.....@@@@@@@@@~::.     
+	       ..:~~~~~~~:.......:~~~~~~~:..      
+	          ......................          
+	              ..............              
+	 -----------------------------------------
 
-	 ---Closing off SFINCS---
+	 Total time             :      1.211
+	 Total simulation time  :      1.198
+	 Time in input          :      0.013
+	 Time in boundaries     :      0.042 (  3.5%)
+	 Time in momentum       :      0.881 ( 73.5%)
+	 Time in continuity     :      0.207 ( 17.3%)
+	 Time in output         :      0.055 (  4.6%)
+
+	 Average time step (s)  :     22.031
+
+	 ---------- Closing off SFINCS -----------
 
 
 Possible error messages and possible solutions
-----------------------
+-----
 
 In case the following message is written to the screen, it means that something in the simulation has gone wrong.
 
 .. code-block:: text
 
 	Maximum depth of 100.0 m reached!!! Simulation stopped.
-	Maximum depth occurs at (n,m)=(  705,  690), (x,y)=(  511087.5,14252488.0).
 
 This means that a too large water depth has occured somewhere in the domain, indicating that some input is probably not optimal.
-As bonus, the grid cell indices and x&y location is given for faster debugging.
 
 Possible problems can be:
 
-- The provided elevation file has very rapid changes in elevation, that locally lead to large water level gradients and fluxes. Possible solution: locally smooth the elevation data and provide this as a new depfile
+* The provided elevation file has very rapid changes in elevation, that locally lead to large water level gradients and fluxes. Possible solution: locally smooth the elevation data and provide this as a new depfile
 
-- In general the internal timesteps of SFINCS might be too large. Possible solution: reduce timesteps by supplying a lower value of alpha (e.g. 0.5) or set a low enough value of 'dtmax'.
+* In general the internal timesteps of SFINCS might be too large. Possible solution: reduce timesteps by supplying a lower value of alpha (e.g. 0.5) or set a low enough value of 'dtmax'.
 
-- Sometimes a simulation might contain too large water depths are start in too deep water. This can potentially create problems as SFINCS is intented as a shallow water model.
+* Sometimes a simulation might contain too large water depths are start in too deep water. This can potentially create problems as SFINCS is intented as a shallow water model.
 
-- When only forcing discharges in a for the rest entirely dry domain, the initial time steps can be too coarse to account for the needed timesteps when the discharge starts to flow. Possible solution: Make sure that part of the river/domain initially has water (limiting the time step) by specifying either 'zsini' or an 'inifile'.
+* When only forcing discharges in a for the rest entirely dry domain, the initial time steps can be too coarse to account for the needed timesteps when the discharge starts to flow. Possible solution: Make sure that part of the river/domain initially has water (limiting the time step) by specifying either 'zsini' or an 'inifile'.
 
-- When forcing waves, the bzifile time-series might contain too rapid changes in water level, the internal timesteps of SFINCS are too large. Possible solution: reduce timesteps by supplying a lower value of alpha (e.g. 0.5).
+* When forcing waves, the bzifile time-series might contain too rapid changes in water level, the internal timesteps of SFINCS are too large. Possible solution: reduce timesteps by supplying a lower value of alpha (e.g. 0.5).
 
-- **Tip to check your model**: specify netcdf output and load in the sfincs_map.nc file (e.g. Quickplot, Panoply, Matlab, Python) and have a look at the variables 'zb' and 'msk'. Then you can see how SFINCS has interpreted the prodivided depfile and mskfile. Does map plots of these variables look weird? Probably something in your input file is not entirely correct!
+* **Tip to check your model**: specify netcdf output and load in the sfincs_map.nc file (e.g. Quickplot, Panoply, Matlab, Python) and have a look at the variables 'zb' and 'msk'. Then you can see how SFINCS has interpreted the prodivided depfile and mskfile. Does map plots of these variables look weird? Probably something in your input file is not entirely correct!
 
 
 Besides model instabilities, other recurring problems might be:
 
-- A specified (forcing) file/parameters is not read in > check whether you specified the name (e.g. netamuamvfile   = netamuamv.nc ) with **ONLY SPACES** in between the keyword and argument. SFINCS does not interpret a mixture of spaces and tabs well. This may cause a file or parameter to be read in as 'none', whereafter this is not used in the model simulation as wanted.
+* A specified (forcing) file/parameters is not read in > check whether you specified the name (e.g. netamuamvfile   = netamuamv.nc ) with **ONLY SPACES** in between the keyword and argument. SFINCS does not interpret a mixture of spaces and tabs well. This may cause a file or parameter to be read in as 'none', whereafter this is not used in the model simulation as wanted.
 
 
 Output description
-======================
+=====
 
 Parameters netcdf file global (sfincs_map.nc)
-----------------------
+-----
 
 In case of netcdf output, the given parameters mean the following:
 
@@ -182,7 +214,7 @@ In case of netcdf output, the given parameters mean the following:
 	  :units:		s	
 	  
 Parameters netcdf file observation points (sfincs_his.nc)
-----------------------		
+-----	
 
 This file is only created if observation points are supplied in the 'obsfile'.
 
@@ -216,7 +248,7 @@ This file is only created if observation points are supplied in the 'obsfile'.
 	  :units:		m above reference level
 	point_h
 	  :description:		Instantaneous water depth per 'dthisout' timestep of observation points, corresponding with netcdf variable 'time'.
-	  :standard_name:	depth	  
+	  :standard_name:	point_h	  
 	  :units:		m
 	point_prcp
 	  :description:		Instantaneous precipitation rate 'dthisout' timestep, corresponding with netcdf variable 'time'.
@@ -224,5 +256,9 @@ This file is only created if observation points are supplied in the 'obsfile'.
 	  :units:		m above reference level
 	point_qinf
 	  :description:		Instantaneous infiltration rate per 'dthisout' timestep, corresponding with netcdf variable 'time'.
-	  :standard_name:	depth	  
+	  :standard_name:	point_qinf	  
 	  :units:		m
+	crosssection_discharge
+	  :description:		Discharge through cross-section per 'dthisout' timestep, corresponding with netcdf variable 'time'.
+	  :standard_name:	discharge	  
+	  :units:		m3/s

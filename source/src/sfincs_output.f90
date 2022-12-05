@@ -597,42 +597,6 @@ module sfincs_output
    endif
    !
    end subroutine
-
-
-   subroutine write_restartfile()
-   !
-   ! ASCII restart file (only water levels)
-   !
-   use sfincs_data
-   !   
-   implicit none   
-   !    
-   real*4, dimension(:,:), allocatable :: zsg
-   !      
-   integer                      :: nm, n, m
-   !   
-!   allocate(zsg(nmax,mmax))
-!   !
-!   do n = 1, nmax  ! First initiate whole grid with zeroes 
-!      do m = 1, mmax
-!         zsg(n,m) = 0.0
-!      enddo
-!   enddo
-!   !
-!   do nm = 1, np  ! Read in water levels of last time-step 
-!      zsg(index_v_n(nm),index_v_m(nm)) = zs(nm)
-!   enddo
-!   !
-!   open(unit = 701, file = trim(restartfile))
-!   !
-!   do n = 2, nmax - 1
-!      write(701,'(10000f9.3)')(zsg(n,m), m = 2, mmax - 1)   !TL: what nr of decimals wanted? this or 10000f7.2?
-!   enddo       
-!   !   
-!   close(701)     
-   !
-   end subroutine
-
    
    subroutine write_rst_file(t)
    !

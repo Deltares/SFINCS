@@ -4,7 +4,7 @@ contains
 
    subroutine read_meteo_data()  
    !
-   ! Read spw file
+   ! Read different meteo input types
    !
    use sfincs_data
    use sfincs_spiderweb

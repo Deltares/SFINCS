@@ -1,5 +1,5 @@
 Input parameters
-======================
+=====
 
 Different parameters for model input and output of SFINCS can be changed in **sfincs.inp**, see below. 
 
@@ -7,9 +7,7 @@ Traditionally SFINCS neglects the advection term in the SFINCS-LIE version ('adv
 For super-critical flow conditions or modelling waves, the SFINCS-SSWE version can be used ('advection = 1' for 1D modelling and 'advection = 2' for 2D modelling) for better performance.        
      
 Parameters for model input
-----------------------
-
-.. partable:: Overview of available keywords related to *
+-----
 
 	mmax
 	  :description:		Number of grid cells in x-direction
@@ -70,13 +68,13 @@ Parameters for model input
 	  :units:		m
 	  :default:		0.05
 	  :min:			0.001 (recommended)
-	  :max:			0.2 (recommended)
+	  :max:			0.1 (recommended)
 	theta
-	  :description:		Smoothing factor in momentum equation. Advised not too change and to use 0.9 for regular SFINCS and 0.95 for subgrid version of SFINCS.
+	  :description:		Smoothing factor in momentum equation. Advised not too change and to use 1.0 by default.
 	  :units:		-
-	  :default:		0.9
+	  :default:		1.0
 	  :min:			0.8
-	  :max:			0.99
+	  :max:			1.0
 	zsini
 	  :description:		Initial water level.
 	  :units:		m above reference level
@@ -88,13 +86,13 @@ Parameters for model input
 	  :units:		mm/hr
 	  :default:		0
 	  :min:			0
-	  :max:			Inf  
+	  :max:			100  
 	manning
 	  :description:		Uniform manning roughness, specify in s/m^(1/3).
 	  :units:		s/m^(1/3)
 	  :default:		0.04
 	  :min:			0
-	  :max:			Inf  	
+	  :max:			0.1 (advised)  	
 	rgh_level_land
 	  :description:		Elevation level to distinguish land and sea roughness (when using 'manning_land' and 'manning_sea').
 	  :units:		m above reference level
@@ -106,32 +104,32 @@ Parameters for model input
 	  :units:		s/m^(1/3)
 	  :default:		-999 (=not used)
 	  :min:			0
-	  :max:			Inf  		  
+	  :max:			0.1 (advised)    		  
 	manning_sea
 	  :description:		Varying manning roughness based on elevation (below 'rgh_level_land', overules uniform 'manning', specify in s/m^(1/3).
 	  :units:		s/m^(1/3)
 	  :default:		-999 (=not used)
 	  :min:			0
-	  :max:			Inf  	  
+	  :max:			0.1 (advised)    	  
 	  
 More parameters for model input (only for advanced users)
-----------------------
+-----
 
 	bndtype        
-	  :description:		Boundary type for interpretation of 'sfincs.bzs' time-series. bndtype=1 is for water levels, bndtype=2 is for horizontal velocities (in m/s) and bndtype=3 for horizontal discharges (in m2/s).
+	  :description:		Boundary type for interpretation of 'sfincs.bzs' time-series. bndtype=1 is for water levels, bndtype=2 (advanced) is for horizontal velocities (in m/s) and bndtype=3 (advanced) for horizontal discharges (in m2/s).
 	  :units:		-
 	  :default:		1
 	  :min:			1
 	  :max:			3
 	rhoa
 	  :description:		Density of the air
-	  :units:		-
+	  :units:		kg/m3
 	  :default:		1.25
 	  :min:			-
 	  :max:			-
 	rhow
 	  :description:		Density of the water
-	  :units:		-
+	  :units:		kg/m3
 	  :default:		1024
 	  :min:			-
 	  :max:			-
@@ -162,7 +160,7 @@ More parameters for model input (only for advanced users)
 	tspinup
 	  :description:		Duration of internal spinup period before tstart
 	  :units:		s
-	  :default:		0
+	  :default:		60
 	  :min:			0
 	  :max:			Inf
 	  
@@ -189,7 +187,7 @@ More parameters for model input (only for advanced users)
 Different parameters influencing the given output by SFINCS can be changed, see below. 
 
 Parameters for model output
-----------------------
+-----
 
 	tref
 	  :description:		Reference date in 'yyyymmdd HHMMSS'
@@ -203,6 +201,10 @@ Parameters for model output
 	  :description:		Stop date in 'yyyymmdd HHMMSS'
 	  :units:		m
 	  :default:		20000101 000000
+	trstout
+	  :description:		Specific time in seconds since 'tref' for binary restart file output being written away, turned of by default.
+	  :units:		s
+	  :default:		-999.0	  	  
 	dtout
 	  :description:		Time-step global map output.
 	  :units:		s
@@ -212,11 +214,15 @@ Parameters for model output
 	  :units:		s
 	  :default:		600
 	dtmaxout
-	  :description:		Time-step interval of global map output of maximum water level. If dtmaxout=0, no maximum water level output is given by SFINCS
+	  :description:		Time-step interval of global map output of maximum water level. If not specified, the maximum over the entire simulation is calculated. If no output is wanted, specify 'dtmaxout = 0'.
 	  :units:		s
-	  :default:		0
+	  :default:		999999
 	  :min:			0
-	  :max:			'tstop - start in seconds'  	  
+	  :max:			'tstop - start in seconds'  
+	dtrstout
+	  :description:		Time-step for binary restart file output being written away, turned of by default.
+	  :units:		s
+	  :default:		0	  	  
 	dtwnd
 	  :description:		Time-interval wind update (only for spiderweb)
 	  :units:		s
@@ -225,13 +231,53 @@ Parameters for model output
 	  :description:		Choice whether the SFINCS model output is given in binary 'bin', ascii 'asc' or netcdf files 'net' (default). In case of netcdf output, global output is given in 'sfincs_map.nc', point output in 'sfincs_his.nc' in case observation points are specified.
 	  :units:		-
 	  :default:		net
-	restartfile = sfincs.restart	  
-	  :description:		Specify a filename for 'restartfile' to get an ascii output file with water levels at the last time step, that can be forced as inifile.
-	  :units:		string
-	  :default:		off		
-	  
+	twet_threshold
+	  :description:		Threshold value of water depth to count cell as flooded for keeping track of wet cells with storetwet = 1
+	  :units:		m
+	  :default:		0.01	  
+	storetwet
+	  :description:		Flag to turn on writing away duration that a cell was wet during simulation (storetwet = 1)
+	  :units:		-
+	  :default:		0	  
+	storevel
+	  :description:		Flag to turn on writing away velocities on 'dtout' interval during simulation (storevel = 1)
+	  :units:		-
+	  :default:		0	
+	storevelmax
+	  :description:		Flag to turn on writing away maximum velocities on 'dtmaxout' interval during simulation (storevelmax = 1)
+	  :units:		-
+	  :default:		0	
+	storecumprcp
+	  :description:		Flag to turn on writing away cumulative precipitation on 'dtmaxout' interval during simulation (storecumprcp = 1)
+	  :units:		-
+	  :default:		0		
+	storehsubgrid
+	  :description:		Flag to turn on writing away unaccurate water depth estimate for subgrid mode on 'dtmaxout' interval during simulation (storehsubgrid = 1)
+	  :units:		-
+	  :default:		0		    	  
+	storeqdrain
+	  :description:		Flag to turn on writing away drainage discharge during simulation (storeqdrain = 1)
+	  :units:		-
+	  :default:		0	
+	storezvolume
+	  :description:		Flag to turn on writing away water volumes for the subgrid mode during simulation (storezvolume = 1)
+	  :units:		-
+	  :default:		0		  
+	storemeteo
+	  :description:		Flag to turn on writing away meteo input data during simulation (storemeteo = 1)
+	  :units:		-
+	  :default:		0	
+	storemaxwind
+	  :description:		Flag to turn on writing away maximum wind speed during simulation (storemaxwind = 1)
+	  :units:		-
+	  :default:		0	
+	debug
+	  :description:		Flag to turn on writing away every timestep to output as debug mode (debug = 1)
+	  :units:		-
+	  :default:		0	
+
 Input files
-======================	 
+=====	 
 
 SFINCS consists of many different input files, this overview gives a description, whether they are required or not, unit and format (bin = binary, asc = ascii and net = netcdf).
 
@@ -243,7 +289,7 @@ SFINCS consists of many different input files, this overview gives a description
 	
 
 Domain
-----------------------
+-----
 
 	sfincs.inp
 	  :description:		General input file of SFINCS describing all model settings, the domain, forcing and structures.
@@ -252,7 +298,7 @@ Domain
 	depfile = sfincs.dep
 	  :description:		Elevation (bathymetry and topography) at grid cell centres above a reference level. 
 	  :units:		m above reference level
-	  :required:		yes
+	  :required:		yes in case of regular mode, no in case of subgrid mode
 	  :format:		bin or asc
 	mskfile = sfincs.msk
 	  :description:		This mask indicates for every cell whether it is an inactive cell (msk=0), active cell (msk=1), boundary cell (msk=2) or outflow boundary cell msk=3).
@@ -260,19 +306,19 @@ Domain
 	  :required:		yes	  
 	  :format:		bin or asc
 	indexfile = sfincs.ind
-	  :description:		file describing the indices of active grid cells within the overall grid
+	  :description:		File describing the indices of active grid cells within the overall grid. Not used by SFINCS with ascii input.
 	  :units:		-
 	  :required:		Only if 'inputformat = bin'
 	  :format:		bin	  
 	mskfile = sfincs.msk
-	  :description:		This mask indicates for every cell whether it is an inactive cell (msk=0), active cell (msk=1), boundary cell (msk=2) or outflow boundary cell msk=3).
+	  :description:		This mask indicates for every cell whether it is an inactive cell (msk=0), active cell (msk=1), water level boundary cell (msk=2) or outflow boundary cell msk=3).
 	  :units:		-
 	  :required:		yes	  
 	  :format:		bin or asc	  
 	manningfile = sfincs.man
-	  :description:		For spatially varying friction values per cell use the manningfile option, with the same grid based input as the depfile using a binary file.
+	  :description:		For spatially varying friction values per cell use the manningfile option, with the same grid based input as the depfile using a binary file. Not used by SFINCS in subgrid mode.
 	  :units:		s/m^(1/3)
-	  :required:		no	  
+	  :required:		no in case of regular mode, ignored in case of subgrid mode	  
 	  :format:		bin	 
 	qinffile = sfincs.qinf
 	  :description:		For spatially varying constant in time infiltration values per cell use the qinffile option, with the same grid based input as the depfile using a binary file.
@@ -285,7 +331,7 @@ Domain
 	  :required:		no	  
 	  :format:		bin	  	  
 	sbgfile = sfincs.sbg
-	  :description:		Using subgrid tables with the sbgfile is an advanced option.
+	  :description:		File containing subgrid tables, only needed by SFINCS if you want to run your model in the subgrid mode.
 	  :units:		-
 	  :required:		Only for running SFINCS in subgrid mode	  
 	  :format:		bin		  
@@ -294,14 +340,24 @@ Domain
 	  :units:		m in projected UTM zone
 	  :required:		no (only if point output is wanted)
 	  :format:		asc		  
+	crsfile = sfincs.crs
+	  :description:		To get output time-series of discharge through a cross-section, cross_sections have to be specified.
+	  :units:		m in projected UTM zone
+	  :required:		no (only if cross-section output is wanted)
+	  :format:		tekal		  	  
 	inifile = sfincs.ini
-	  :description:		For spatially varying initial water level per cell, with the same grid based input as the depfile using a ascii file.
+	  :description:		For spatially varying initial water level per cell, with the same grid based input as the depfile using a **binary file**. In older version this was an ascii file still, not from official release v0.0.1 onwards!
 	  :units:		m above reference level
 	  :required:		no
-	  :format:		asc		
-	  
+	  :format:		**bin**		
+	rstfile = sfincs.rst
+	  :description:		More advanced restartfile that can also contain fluxes and velocities. As produced by SFINCS if dtrstout > 0 OR trstout > 0. Type of restart - 1: zs, qx, qy, umean and vmean  - 2: zs, qx, qy - 3: zs
+	  :units:		-
+	  :required:		no 
+	  :format:		bin	
+
 Forcing - Water levels and waves
-----------------------
+-----
 
 	bndfile = sfincs.bnd
 	  :description:		To specify water-level time-series to the boundary cells (msk=2), first the input locations have to be specified in 'sfincs.bnd'.
@@ -318,14 +374,14 @@ Forcing - Water levels and waves
 	  :units:		m around mean water level of bzsfile
 	  :required:		Only when specifying waves.
 	  :format:		asc		
-	netbndbbzsbzifile = sfincs_netbndbzsbzifile.nc
+	netbndbzsbzifile = sfincs_netbndbzsbzifile.nc
 	  :description:		To specify all bnd, bzs (and bzi) input in 1 FEWS compatible netcdf input file. Specify either the netcdf version or ascii, not both.
 	  :units:		m in projected UTM zone, m above reference level & m around mean water level of bzsfile
 	  :required:		Only when specifying water levels and waves using netcdf input file.
 	  :format:		net	 
 	  
 Forcing - Discharges
-----------------------
+-----
 
 	srcfile = sfincs.src
 	  :description:		To specify discharge points, first the input locations have to be specified in 'sfincs.src'.
@@ -337,9 +393,14 @@ Forcing - Discharges
 	  :units:		m^3/s
 	  :required:		Only when specifying discharges.
 	  :format:		asc	 	
-	  
+	netsrcdisfile = sfincs_netsrcdisfile.nc
+	  :description:		To specify all src & dis input in 1 FEWS compatible netcdf input file. Specify either the netcdf version or ascii, not both.
+	  :units:		m in projected UTM zone, discharge in m3/s
+	  :required:		Only when specifying discharges.
+	  :format:		net	 
+
 Forcing - Meteo
-----------------------
+-----
 
 	spwfile = sfincs.spw
 	  :description:		Spiderweb file including wind speed, direction, pressure (and possibly rainfall).
@@ -356,7 +417,7 @@ Forcing - Meteo
 	  :units:		coordinates: m in projected UTM zone, data: m/s
 	  :required:		no
 	  :format:		asc	 	  
-	amprfile = sfincs.amp
+	ampfile = sfincs.amp
 	  :description:		Delft3D-meteo ascii type input of atmospheric pressure.
 	  :units:		coordinates: m in projected UTM zone, data: Pa
 	  :required:		no
@@ -381,14 +442,19 @@ Forcing - Meteo
 	  :units:		coordinates: m in projected UTM zone, data: m/s
 	  :required:		no
 	  :format:		net	 	
+	netampfile = sfincs_netampfile.nc
+	  :description:		FEWS type netcdf meteo input with atmospheric pressure in Pa.
+	  :units:		coordinates: m in projected UTM zone, data: Pa
+	  :required:		no
+	  :format:		net	 		
 	netamprfile = sfincs_netamprfile.nc
 	  :description:		FEWS type netcdf meteo input with precipitation in mm/hr.
 	  :units:		coordinates: m in projected UTM zone, data: mm/hr
 	  :required:		no
-	  :format:		net	 		  
+	  :format:		net	 			    
 	  
 Structures
-----------------------
+-----
 
 	thdfile = sfincs.thd
 	  :description:		With a thin dam flow through certain grid cells is completely blocked (i.e. an infinitely high wall).
