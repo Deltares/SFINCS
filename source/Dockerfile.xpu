@@ -1,0 +1,21 @@
+FROM ubuntu:latest
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt update && apt install -y libnetcdf-dev build-essential autoconf automake libtool pkg-config tzdata
+# copy the compilers
+COPY aocc-compiler-4.0.0_1_amd64.deb .
+RUN apt install -y ./aocc-compiler-4.0.0_1_amd64.deb
+WORKDIR /usr/src/sfincs
+COPY . /usr/src/sfincs
+# Compile with the AMD fortran compiler
+ENV PATH="/opt/AMD/aocc-compiler-4.0.0/bin:${PATH}"
+RUN autoreconf -vif && FCFLAGS="-O3" FC=flang ./configure --disable-shared --disable-openmp  && make && make install
+
+# Copy the files to empty docker container
+FROM ubuntu:latest
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt update && apt install -y libnetcdf-dev tzdata
+# copy nvidia SDK (REDIST folder contains symlinks)
+COPY --from=0 /usr/local /usr/local
+VOLUME /data
+WORKDIR /data
+CMD ["sfincs"]
