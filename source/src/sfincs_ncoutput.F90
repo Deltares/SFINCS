@@ -100,6 +100,8 @@ contains
    NF90(nf90_put_att(map_file%ncid,nf90_global, "Build-Revision", trim(build_revision))) 
    NF90(nf90_put_att(map_file%ncid,nf90_global, "Build-Date", trim(build_date)))
    NF90(nf90_put_att(map_file%ncid,nf90_global, "title", "SFINCS map netcdf output"))   
+   NF90(nf90_put_att(map_file%ncid,nf90_global, "onetwothree_integer", 123))   
+   NF90(nf90_put_att(map_file%ncid,nf90_global, "onetwothree_string", "123"))   
    !
    ! add input params for reproducability
    call ncoutput_add_params(map_file%ncid,map_file%inp_varid)   
@@ -113,6 +115,8 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%face_x_varid, 'long_name', 'face_x'))   
    NF90(nf90_put_att(map_file%ncid, map_file%face_x_varid, 'grid_mapping', 'crs'))   
    NF90(nf90_put_att(map_file%ncid, map_file%face_x_varid, 'grid', 'sfincsgrid'))   
+   NF90(nf90_put_att(map_file%ncid, map_file%face_x_varid, 'twoint', 2))   
+   NF90(nf90_put_att(map_file%ncid, map_file%face_x_varid, 'twostr', 'two'))   
    !
    NF90(nf90_def_var(map_file%ncid, 'y', NF90_FLOAT, (/map_file%n_dimid, map_file%m_dimid/), map_file%face_y_varid)) ! location of zb, zs etc. in cell centre  
    NF90(nf90_put_att(map_file%ncid, map_file%face_y_varid, '_FillValue', FILL_VALUE))            
@@ -532,6 +536,7 @@ contains
    implicit none   
    !   
    integer    :: nm, n, m, ntmx, n_nodes, n_faces, ip, iref
+   integer*8  :: two
    real*4     :: dxdy
    !
    real*4,    dimension(:),   allocatable :: nodes_x
@@ -546,6 +551,8 @@ contains
    nodes_x = 0.0
    nodes_y = 0.0
    face_nodes = 0
+   !
+   two = 2
    !
    allocate(nodes_x(n_nodes))
    allocate(nodes_y(n_nodes))
@@ -587,7 +594,7 @@ contains
       endif
    enddo   
    !  
-   NF90(nf90_create('sfincs_map.nc', NF90_CLOBBER, map_file%ncid))
+   NF90(nf90_create('sfincs_map.nc', ior(NF90_CLOBBER, NF90_64BIT_OFFSET), map_file%ncid))
    !
    ! Create dimensions
    ! grid, time, points
@@ -605,7 +612,9 @@ contains
    NF90(nf90_def_dim(map_file%ncid, 'runtime', 1, map_file%runtime_dimid)) ! total_runtime, average_dt       
    !
    ! Some metadata attributes 
-   NF90(nf90_put_att(map_file%ncid,nf90_global, "Conventions", "Conventions = 'CF-1.6, SGRID-0.3")) 
+
+
+   NF90(nf90_put_att(map_file%ncid,nf90_global, "Conventions", "Conventions = 'CF-1.8 UGRID-1.0 Deltares-0.10'")) 
    NF90(nf90_put_att(map_file%ncid,nf90_global, "Build-Revision-Date-Netcdf-library", trim(nf90_inq_libvers()))) ! version of netcdf library
    NF90(nf90_put_att(map_file%ncid,nf90_global, "Producer", "SFINCS model: Super-Fast INundation of CoastS"))
    NF90(nf90_put_att(map_file%ncid,nf90_global, "Build-Revision", trim(build_revision))) 
@@ -622,7 +631,7 @@ contains
    NF90(nf90_def_var(map_file%ncid, 'mesh2d', NF90_INT, (/map_file%runtime_dimid/), map_file%mesh2d_varid)) ! location of zb, zs etc. in cell centre
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'cf_role', 'mesh_topology'))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'long_name', 'Topology data of 2D network'))
-   NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'topology_dimension', 2.0))
+   NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'topology_dimension', 2))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'node_coordinates', 'mesh2d_node_x mesh2d_node_y'))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'node_dimension', 'nmesh2d_node'))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'max_face_nodes_dimension', 'max_nmesh2d_face_nodes'))
@@ -680,8 +689,8 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'standard_name', 'altitude'))
    NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'long_name', 'bed_level_above_reference_level'))   
    !
-   NF90(nf90_def_var(map_file%ncid, 'msk', NF90_FLOAT, (/map_file%nmesh2d_face_dimid/), map_file%msk_varid)) ! input msk value in cell centre
-   NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, '_FillValue', FILL_VALUE))      
+   NF90(nf90_def_var(map_file%ncid, 'msk', NF90_INT, (/map_file%nmesh2d_face_dimid/), map_file%msk_varid)) ! input msk value in cell centre
+   NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, '_FillValue', -999))      
    NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'units', '-'))
    NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'standard_name', 'mask'))
    NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'long_name', 'msk_active_cells')) 
@@ -860,7 +869,7 @@ contains
    !
    NF90(nf90_put_var(map_file%ncid, map_file%mesh2d_node_y_varid, nodes_y)) ! write node y
    ! 
-   NF90(nf90_put_var(map_file%ncid, map_file%mesh2d_face_nodes_varid, face_nodes)) ! write node y
+   NF90(nf90_put_var(map_file%ncid, map_file%mesh2d_face_nodes_varid, face_nodes))
    !
 !   ! now for cell edges
 !   NF90(nf90_put_var(map_file%ncid, map_file%face_x_varid, xz(2:nmax+1-1, 2:mmax+1-1), (/1, 1/))) ! write xz of edges

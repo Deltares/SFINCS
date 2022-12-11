@@ -45,50 +45,35 @@ contains
    call read_snapwave_input()            ! Reads snapwave.inp
    !
    call initialize_snapwave_domain()     ! Read mesh, finds upwind neighbors, etc.
-   !      
+   !
    call read_boundary_data()
    !
    snapwave_no_nodes = no_nodes
    !
-   allocate(index_qt_in_sw(no_nodes))
-   index_sw_in_qt = 0
    allocate(snapwave_z(no_nodes))
    allocate(snapwave_depth(no_nodes))
-   !
-!   write(*,*)'Reading ', trim(indexfile), ' ...'
-   write(*,*)'Reading snapwave.ind ...'
-   open(unit = 500, file = 'snapwave.ind', form = 'unformatted', access = 'stream')
-   read(500)nr_quadtree_points
-   read(500)index_qt_in_sw
-   close(500)
-   !
-   allocate(index_sw_in_qt(nr_quadtree_points))
-   !
-   do ipsw = 1, snapwave_no_nodes
-      iq   = index_qt_in_sw(ipsw)
-      index_sw_in_qt(iq) = ipsw
-   enddo
    !
    snapwave_z     = zb
    snapwave_depth = 0.0
    !
    snapwave_tpmean = 0.0
    !   
-   call find_matching_cells()
+   call find_matching_cells(index_quadtree_in_snapwave, index_snapwave_in_quadtree)
    !
    ! No longer need any of these
-   !
-   deallocate(index_sw_in_qt)
-   deallocate(index_qt_in_sw)
    !
    end subroutine
    
 
-   subroutine find_matching_cells()
+   subroutine find_matching_cells(index_quadtree_in_snapwave, index_snapwave_in_quadtree)
    !
    use sfincs_data
+   use quadtree
    !
    implicit none
+   !
+   integer, dimension(snapwave_no_nodes), intent(in) :: index_quadtree_in_snapwave
+   integer, dimension(quadtree_nr_points), intent(in) :: index_snapwave_in_quadtree
    !
    integer :: nm, n, m, ipsw, ipsf, iq
    !
@@ -101,7 +86,7 @@ contains
    ! Loop through SnapWave points
    !
    do ipsw = 1, snapwave_no_nodes
-      iq   = index_qt_in_sw(ipsw)
+      iq   = index_quadtree_in_snapwave(ipsw)
       ipsf = index_sfincs_in_quadtree(iq)
       index_sfincs_in_snapwave(ipsw) = ipsf
    enddo   
@@ -110,7 +95,7 @@ contains
    !
    do ipsf = 1, np
       iq   = index_quadtree_in_sfincs(ipsf)
-      ipsw = index_sw_in_qt(iq)
+      ipsw = index_snapwave_in_quadtree(iq)
       index_snapwave_in_sfincs(ipsf) = ipsw
    enddo   
    !

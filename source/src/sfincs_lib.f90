@@ -83,7 +83,7 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    build_revision = '$Rev: v0.0.2-alpha$'
-   build_date     = '$Date: 2022-11-23$'
+   build_date     = '$Date: 2022-12-11$'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
@@ -494,14 +494,6 @@ module sfincs_lib
    tfinish_all = 1.0*(count1- count00)/count_rate
    !
    call finalize_output(t,ntmaxout,tloopoutput)
-   !
-   ! Write restart-file of water levels at last time-step if wanted
-   !
-   if (restartfile(1:4) /= 'none') then
-      !
-      call write_restartfile()
-      !
-   endif
    !
    if (store_tsunami_arrival_time) then
       !

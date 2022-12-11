@@ -1,5 +1,5 @@
 #if 0
-    $Id: nfconfig.in,v 1.11 1997/12/03 17:41:42 steve Exp $ 
+    $Id: nfconfig.inc 59820 2018-08-15 12:49:57Z markus $ 
 #endif
 
 
@@ -32,8 +32,8 @@
     If your FORTRAN system does not have the respective supplementary
     datatype, then do not define the corresponding macro.
 #endif
-#undef NF_INT1_T
-#undef NF_INT2_T
+#define NF_INT1_T byte
+#define NF_INT2_T integer*2
 
 
 #if 0
@@ -43,18 +43,18 @@
    FORTRAN datatype, respectively.  If the respective FORTRAN datatype
    does not exist, then do not define the corresponding macro.
 #endif
-#undef NF_INT1_IS_C_SIGNED_CHAR
+#define NF_INT1_IS_C_SIGNED_CHAR 1
 #undef NF_INT1_IS_C_SHORT
 #undef NF_INT1_IS_C_INT
 #undef NF_INT1_IS_C_LONG
-#undef NF_INT2_IS_C_SHORT
+#define NF_INT2_IS_C_SHORT 1
 #undef NF_INT2_IS_C_INT
 #undef NF_INT2_IS_C_LONG
-#undef NF_INT_IS_C_INT
+#define NF_INT_IS_C_INT 1
 #undef NF_INT_IS_C_LONG
-#undef NF_REAL_IS_C_FLOAT
+#define NF_REAL_IS_C_FLOAT 1
 #undef NF_REAL_IS_C_DOUBLE
-#undef NF_DOUBLEPRECISION_IS_C_DOUBLE
+#define NF_DOUBLEPRECISION_IS_C_DOUBLE 1
 #undef NF_DOUBLEPRECISION_IS_C_FLOAT
 
 
@@ -75,8 +75,8 @@
     data types (e.g. INTEGER*1, INTEGER*2).  See file "ftest.F" for usage.
 #endif
 #if !defined(NO_NETCDF_2)
-#   undef NCBYTE_T
-#   undef NCSHORT_T
+#   define NCBYTE_T byte
+#   define NCSHORT_T integer*2
 #endif
 
 #if 0
@@ -91,7 +91,7 @@
 #if 0
   Set USE_NETCDF4 to defined - include netCDF4 code
 #endif
-#undef USE_NETCDF4
+#define USE_NETCDF4 1
 
 #if 0
   Set HAVE_TS29113_SUPPORT to defined - TS29113 types (like CPTRDIFF_T) defined

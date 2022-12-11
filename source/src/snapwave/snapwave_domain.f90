@@ -39,6 +39,7 @@ contains
    gridfile = 'test3_net.nc'
    j=index(gridfile,'.')
    ext = gridfile(j+1:j+2)
+   ext = 'qt'
    !
    if (ext=='nc') then
       !
@@ -54,15 +55,15 @@ contains
          call read_snapwave_quadtree_mesh(.true.)
       endif
       !
-      open(112, file='masktest.txt')
-      write(112,'(3i8)')no_nodes,no_faces,0
-      do k = 1, no_nodes
-         write(112,'(f12.1,f12.1,f12.3,i8)')x(k),y(k),zb(k),msk(k)
-      enddo   
-      do k = 1, no_faces
-         write(112,'(4i8)')(face_nodes(j, k), j = 1, 4)
-      enddo
-      close(112)
+!      open(112, file='masktest.txt')
+!      write(112,'(3i8)')no_nodes,no_faces,0
+!      do k = 1, no_nodes
+!         write(112,'(f12.1,f12.1,f12.3,i8)')x(k),y(k),zb(k),msk(k)
+!      enddo   
+!      do k = 1, no_faces
+!         write(112,'(4i8)')(face_nodes(j, k), j = 1, 4)
+!      enddo
+!      close(112)
       !
    elseif (ext=='tx') then
       !
@@ -197,13 +198,14 @@ contains
       !
       ! Read polygon outlining valid boundary points
       !
-      call read_boundary_enclosure ()
+      call read_boundary_enclosure()
       !
       do k=1,no_nodes
+          if (msk(k)==3) msk(k) = 1 ! Set outflow points to regular points
           do itheta=1,ntheta360
               if (ds360d0(itheta,k)==0.d0) then
                   call ipon(x_bndenc,y_bndenc,n_bndenc,x(k),y(k),inout)
-                  if (inout>0) msk(k)=2
+                  if (inout>0) msk(k) = 2
               endif
           enddo
       enddo
