@@ -892,7 +892,7 @@ contains
    !   
    if (infiltration) then
       if (inftype == 'con' .or. inftype == 'c2d') then
-         NF90(nf90_put_var(map_file%ncid, map_file%qinf_varid, qinfmap(nm)*3600*1000)) ! write infiltration map
+         NF90(nf90_put_var(map_file%ncid, map_file%qinf_varid, qinffield*3600*1000)) ! write infiltration map
       else
          NF90(nf90_put_var(map_file%ncid, map_file%qinf_varid, qinffield)) ! write infiltration map
       endif

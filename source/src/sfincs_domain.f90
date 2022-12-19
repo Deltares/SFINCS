@@ -2132,7 +2132,19 @@ contains
          !
          allocate(qinffield(np))
          do nm = 1, np
-            qinffield(nm) = qinf
+             if (subgrid) then
+                 if (subgrid_z_zmin(nm) > qinf_zmin) then
+                    qinffield(nm) = qinf
+                 else
+                    qinffield(nm) = 0.0
+                 endif
+             else
+                 if (zb(nm) > qinf_zmin) then
+                    qinffield(nm) = qinf
+                 else
+                    qinffield(nm) = 0.0
+                 endif
+             endif
          enddo
          !
       elseif (inftype == 'c2d') then
