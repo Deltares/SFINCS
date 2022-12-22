@@ -261,6 +261,7 @@ contains
    if (t0out<-900.0) then
       t0out = t0
    endif    
+   t0out = max(t0out, t0)
    if (t1out<-900.0) then
       t1out = t1
    endif    
