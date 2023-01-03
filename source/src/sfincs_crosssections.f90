@@ -94,7 +94,7 @@ contains
             nmu = uv_index_z_nmu(indx)
             !
             phiuv = atan2(z_yz(nmu) - z_yz(nm), z_xz(nmu) - z_xz(nm))
-            phic  = atan2(yp(irow + 1) - yp(irow), xp(irow + 1) - xp(irow))
+            phic  = atan2(ycrs(irow + 1) - ycrs(irow), xcrs(irow + 1) - xcrs(irow))
             dphi  = phiuv - phic
             if (dphi<0.0)  dphi = dphi + 2*pi
             if (dphi>2*pi) dphi = dphi - 2*pi
