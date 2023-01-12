@@ -408,11 +408,11 @@
                !
                if (idir==0) then
                   !
-                  frc = frc + 0.25*fcoriouv*hu*vu ! U
+                  frc = frc + fcoriouv*hu*vu ! U
                   !
                else
                   !
-                  frc = frc - 0.25*fcoriouv*hu*vu ! V
+                  frc = frc - fcoriouv*hu*vu ! V
                   !
                endif
                !
