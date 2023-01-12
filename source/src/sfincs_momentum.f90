@@ -28,7 +28,7 @@
    integer   :: iuv
    integer   :: ind
    !
-   real*4    :: huv
+   real*4    :: hu
    real*4    :: dxuvinv
    real*4    :: dxuv2inv
    real*4    :: dyuvinv
@@ -42,31 +42,23 @@
    real*4    :: wsumax
    real*4    :: tp
    !
-   real*4    :: qx0_nm
-   real*4    :: qx0_nmd
-   real*4    :: qx0_nmu
-   real*4    :: qx0_ndm
-   real*4    :: qx0_num
+   real*4    :: qx_nm
+   real*4    :: qx_nmd
+   real*4    :: qx_nmu
    real*4    :: qsm
    !   
-   real*4    :: qy0_nm
-   real*4    :: qy0_nmu
-   real*4    :: qy0_ndm
-   real*4    :: qy0_ndmu
+   real*4    :: uu_nm
+   real*4    :: uu_nmd
+   real*4    :: uu_nmu
+   real*4    :: uu_ndm
+   real*4    :: uu_num
+   real*4    :: vu
+   real*4    :: qvt
    !
-   real*4    :: u0_nm
-   real*4    :: u0_nmd
-   real*4    :: u0_nmu
-   real*4    :: u0_ndm
-   real*4    :: u0_num
-   real*4    :: zsuv
+   real*4    :: zsu
    real*4    :: dzuv
    real*4    :: facint
    real*4    :: gnavg2
-   real*4    :: v0_nm
-   real*4    :: v0_nmu
-   real*4    :: v0_ndm
-   real*4    :: v0_ndmu
    real*4    :: fwmax
    real*4    :: zmax
    real*4    :: zmin
@@ -83,26 +75,25 @@
    !
    !$acc update device(min_dt), async(1)
    !
-!   q0(:)  = q(:)
-!   uv0(:) = uv(:)
-   !
    !$omp parallel &
-   !$omp private ( ip ) &
-   !$omp shared ( q,q0,uv,uv0 )
+   !$omp private ( ip )
    !$omp do
    !$acc kernels, present(q, q0, uv, uv0), async(1)
    !$acc loop independent, private(nm)
    do ip = 1, npuv
-      q0(ip)  = q(ip)
-      uv0(ip) = uv(ip)
+      !
+      q0(ip)   = q(ip)
+      uv0(ip)  = uv(ip)
+      !
    enddo
    !$acc end kernels
    !$omp end do
    !$omp end parallel
    !
    !$omp parallel &
-   !$omp private ( ip,huv,qsm,qx0_nm,nm,nmu,frc,adv,idir,itype,iadv,ivis,icorio,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv,qx0_nmd,qx0_nmu,qx0_ndm,qx0_num,u0_nm,u0_nmd,u0_nmu,u0_num,u0_ndm,v0_ndm,v0_ndmu,v0_nm,v0_nmu,fcoriouv,gnavg2,iok,zsuv,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint ) &
-   !$omp shared ( q,uv ) &
+   !$omp private ( ip,hu,qsm,qx_nm,nm,nmu,frc,adv,idir,itype,iadv,ivis,icorio,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
+   !$omp           qx_nmd,qx_nmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,qvt ) &
    !$omp reduction ( min : min_dt )
    !$omp do schedule ( dynamic, 256 )
    !$acc kernels, present( kcuv, zs, q, q0, uv, uv0, min_dt, &
@@ -123,20 +114,20 @@
          !
          iok  = .false.
          !
-         zsuv = max(zs(nm), zs(nmu)) ! water level at u point
+         zsu = max(zs(nm), zs(nmu)) ! water level at u point
          !
          if (subgrid) then
             !
             zmin = subgrid_uv_zmin(ip)
             zmax = subgrid_uv_zmax(ip)
             !            
-            if (zsuv>zmin + huthresh) then
+            if (zsu>zmin + huthresh) then
                iok = .true.
             endif   
             !
          else
             !            
-            if (zsuv>zbuvmx(ip)) then
+            if (zsu>zbuvmx(ip)) then
                iok = .true.
             endif   
             !            
@@ -285,66 +276,50 @@
             !
             ! Get fluxes and velocities from previous time step
             !
-            qx0_nm = q0(ip)
+            qx_nm = q0(ip)
             !
             if (iadv) then
                !
                ! First term
                !
-               qx0_nmd  = q0(uv_index_u_nmd(ip))
-               qx0_nmu  = q0(uv_index_u_nmu(ip))
-               u0_nm    = uv0(ip)
-               u0_nmd   = uv0(uv_index_u_nmd(ip))
-               u0_nmu   = uv0(uv_index_u_nmu(ip))
-               !
-               ! Second term
-               !
-               qx0_ndm  = q0(uv_index_u_ndm(ip))
-               qx0_num  = q0(uv_index_u_num(ip))
-               v0_ndm   = uv0(uv_index_v_ndm(ip))
-               v0_ndmu  = uv0(uv_index_v_ndmu(ip))
-               v0_nm    = uv0(uv_index_v_nm(ip))
-               v0_nmu   = uv0(uv_index_v_nmu(ip))
+               qx_nmd   = q0(uv_index_u_nmd(ip))
+               qx_nmu   = q0(uv_index_u_nmu(ip))
+               uu_nm    = uv0(ip)
+               uu_nmd   = uv0(uv_index_u_nmd(ip))
+               uu_nmu   = uv0(uv_index_u_nmu(ip))
+               uu_ndm   = uv0(uv_index_u_ndm(ip))
+               uu_num   = uv0(uv_index_u_num(ip))
                !
             endif
             !
             if (ivis) then
                !
                if (.not. iadv) then
-                  u0_nm  = uv0(ip)
-                  u0_nmd = uv0(uv_index_u_nmd(ip))
-                  u0_nmu = uv0(uv_index_u_nmu(ip))
+                  uu_nm  = uv0(ip)
+                  uu_nmd = uv0(uv_index_u_nmd(ip))
+                  uu_nmu = uv0(uv_index_u_nmu(ip))
                endif
                !
-               u0_ndm  = uv0(uv_index_u_ndm(ip))
-               u0_num  = uv0(uv_index_u_num(ip))
+               uu_ndm  = uv0(uv_index_u_ndm(ip))
+               uu_num  = uv0(uv_index_u_num(ip))
                !
             endif
             !
-            if (icorio .and. .not.iadv) then
-               !
-               v0_nm    = uv0(uv_index_v_nm(ip))
-               v0_ndm   = uv0(uv_index_v_ndm(ip))
-               v0_ndmu  = uv0(uv_index_v_ndmu(ip))
-               v0_nmu   = uv0(uv_index_v_nmu(ip))
-               !
-            endif
-            !
-            if (theta<0.9999) then ! for backward compatibility
+            if (theta<0.9999 .and. .not.iadv) then ! for backward compatibility
                ! Note, for reliability in terms of precision, is written as 0.9999
-               qx0_nmd  = q0(uv_index_u_nmd(ip))
-               qx0_nmu  = q0(uv_index_u_nmu(ip))
+               qx_nmd  = q0(uv_index_u_nmd(ip))
+               qx_nmu  = q0(uv_index_u_nmu(ip))
             endif
             !
             ! Compute water depth at uv point
             !
             if (subgrid) then
                !
-               if (zsuv>zmax - 1.0e-4) then
+               if (zsu > zmax - 1.0e-4) then
                   !
                   ! Entire cell is wet, no interpolation from table needed
                   !
-                  huv    = subgrid_uv_hrep_zmax(ip) + zsuv
+                  hu     = subgrid_uv_hrep_zmax(ip) + zsu
                   gnavg2 = subgrid_uv_navg_zmax(ip)
                   !
                else
@@ -352,31 +327,31 @@
                   ! Interpolation required
                   !
                   dzuv   = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nbins - 1)
-                  iuv    = int((zsuv - subgrid_uv_zmin(ip))/dzuv) + 1
-                  facint = (zsuv - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv
-                  huv    = subgrid_uv_hrep(iuv, ip) + (subgrid_uv_hrep(iuv + 1, ip) - subgrid_uv_hrep(iuv, ip))*facint
+                  iuv    = int((zsu - subgrid_uv_zmin(ip))/dzuv) + 1
+                  facint = (zsu - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv
+                  hu     = subgrid_uv_hrep(iuv, ip) + (subgrid_uv_hrep(iuv + 1, ip) - subgrid_uv_hrep(iuv, ip))*facint
                   gnavg2 = subgrid_uv_navg(iuv, ip) + (subgrid_uv_navg(iuv + 1, ip) - subgrid_uv_navg(iuv, ip))*facint
                   !
                endif
                !
-               huv    = max(huv, huthresh)
+               hu = max(hu, huthresh)
                !
             else
                !
-               huv    = max(zsuv - zbuv(ip), huthresh)
+               hu     = max(zsu - zbuv(ip), huthresh)
                gnavg2 = gn2uv(ip)
                !
             endif
             !
             ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
             !
-            min_dt = min(min_dt, 1.0/(sqrt(g*huv)*dxuvinv))
+            min_dt = min(min_dt, 1.0/(sqrt(g*hu)*dxuvinv))
             !
             ! FORCING TERMS
             !
             ! Pressure term
             !
-            frc = -g*huv*(zs(nmu) - zs(nm))*dxuvinv
+            frc = -g*hu*(zs(nmu) - zs(nm))*dxuvinv
             !
             ! Advection term
             !
@@ -384,13 +359,13 @@
                !
                ! 1D upwind advection slightly more robust than central scheme
                !
-               if (qx0_nm>1.0e-6) then
+               if (qx_nm>1.0e-6) then
                   !
-                  adv = ( qx0_nm*u0_nm - qx0_nmd*u0_nmd ) * dxuvinv                  
+                  adv = - (qx_nm + qx_nmd) * (uu_nm - uu_nmd) * dxuvinv / 2
+                  ! 
+               elseif (qx_nm<-1.0e-6) then
                   !
-               elseif (qx0_nm<-1.0e-6) then
-                  !
-                  adv = ( qx0_nmu*u0_nmu - qx0_nm*u0_nm ) * dxuvinv
+                  adv = - (qx_nmu + qx_nm) * (uu_nmu - uu_nm) * dxuvinv / 2
                   !
                else
                   !
@@ -398,20 +373,22 @@
                   !
                endif
                !
-               if ( (v0_nmu + v0_nm > 0.0) .and. (v0_ndm + v0_ndmu > 0.0) ) then
-                  !
-                  adv = adv + ( (v0_ndm + v0_ndmu) * (qx0_nm - qx0_ndm) ) * dyuvinv / 2
-                  !
-               elseif ( (v0_nmu + v0_nm < 0.0) .and. (v0_ndm + v0_ndmu < 0.0) ) then
-                  !
-                  adv = adv + ( (v0_nm + v0_nmu) * (qx0_num - qx0_nm) ) * dyuvinv / 2
-                  !
-               endif   
-               !   
-               ! Let's try without the advection limiter  
-               ! adv = min(max(adv, -advlim), advlim)
+               qvt = q0(uv_index_v_ndm(ip)) + q0(uv_index_v_ndmu(ip)) + q0(uv_index_v_nm(ip)) + q0(uv_index_v_nmu(ip))
                !
-               frc = frc - adv
+               if ( qvt > 1.0e-6 ) then
+                  !
+                  adv = adv - (q0(uv_index_v_ndm(ip)) + q0(uv_index_v_ndmu(ip))) * (uu_nm - uu_ndm) * dyuvinv / 2
+                  !
+               elseif ( qvt < -1.0e-6 ) then
+                  !
+                  adv = adv - (q0(uv_index_v_nm(ip)) + q0(uv_index_v_nmu(ip))) * (uu_num - uu_nm) * dyuvinv / 2
+                  !
+               endif
+               !
+               ! Let's try without the advection limiter  
+!               adv = min(max(adv, -advlim), advlim)
+               !
+               frc = frc + adv
                !   
             endif   
             !
@@ -419,21 +396,23 @@
             !
             if (ivis) then
                !
-               frc = frc + nuvisc * huv * ( (u0_nmu - 2*u0_nm + u0_nmd )*dxuv2inv + (u0_num - 2*u0_nm + u0_ndm )*dyuv2inv )
+               frc = frc + nuvisc * hu * ( (uu_nmu - 2*uu_nm + uu_nmd )*dxuv2inv + (uu_num - 2*uu_nm + uu_ndm )*dyuv2inv )
                !
             endif
             !
             ! Coriolis term
             !
             if (icorio) then
+               ! 
+               vu = (uv(uv_index_v_ndm(ip)) + uv(uv_index_v_ndmu(ip)) + uv(uv_index_v_nm(ip)) + uv(uv_index_v_nmu(ip))) / 4
                !
                if (idir==0) then
                   !
-                  frc = frc + 0.25*fcoriouv*huv*(v0_nm + v0_ndm + v0_nmu + v0_ndmu)! U
+                  frc = frc + 0.25*fcoriouv*hu*vu ! U
                   !
                else
                   !
-                  frc = frc - 0.25*fcoriouv*huv*(v0_nm + v0_ndm + v0_nmu + v0_ndmu)! U
+                  frc = frc - 0.25*fcoriouv*hu*vu ! V
                   !
                endif
                !
@@ -443,7 +422,7 @@
             !
             if (wind) then
                !
-               if (huv>0.25) then
+               if (hu>0.25) then
                   !
                   if (idir==0) then
                      !
@@ -461,11 +440,11 @@
                   !
                   if (idir==0) then
                      !
-                     frc = frc + tauwu(nm)*huv*4
+                     frc = frc + tauwu(nm)*hu*4
                      !
                   else
                      !
-                     frc = frc + tauwv(nm)*huv*4
+                     frc = frc + tauwv(nm)*hu*4
                      !
                   endif   
                   !
@@ -477,7 +456,7 @@
             !
             if (patmos) then
                !
-               frc = frc - huv*(patm(nmu) - patm(nm))*dxuvinv/rhow
+               frc = frc + hu*(patm(nm) - patm(nmu))*dxuvinv/rhow
                !
             endif
             !
@@ -488,49 +467,35 @@
                ! Limited wave forces in shallow water 
                !
                ! facmax = 0.25*sqrt(g)*rhow*gammax**2
-               ! fmax = facmax*huv*sqrt(huv)/tp/rhow (we already divided by rhow in sfincs_snapwave)
+               ! fmax = facmax*hu*sqrt(hu)/tp/rhow (we already divided by rhow in sfincs_snapwave)
                !
-               fwmax = 0.8*huv*sqrt(huv)/15
+               fwmax = 0.8*hu*sqrt(hu)/15
                !
                frc = frc + sign(min(abs(fwuv(ip)), fwmax), fwuv(ip))
                !
-            endif   
+            endif
             !
             ! Apply some smoothing if theta < 1.0 (not recommended anymore!)
             ! Note, for reliability in terms of precision, is written as 0.9999
             !
             if (theta<0.9999) then
-               qsm = theta*qx0_nm + 0.5*(1.0 - theta)*(qx0_nmu + qx0_nmd)             
+               qsm = theta*qx_nm + 0.5*(1.0 - theta)*(qx_nmu + qx_nmd)             
             else
-               qsm = qx0_nm
+               qsm = qx_nm
             endif            
             !
             ! Compute new flux for this uv point (Bates et al., 2010)
             ! 
-            qx0_nm = (qsm + frc*dt) / (1.0 + gnavg2*dt*abs(qx0_nm)/(huv**2*huv**expo))
+            q(ip) = (qsm + frc*dt) / (1.0 + gnavg2*dt*abs(qx_nm)/(hu**2*hu**expo))
             !
-!            if (zs(nm)<=zb(nm)) then
-!               !
-!               qx0_nm = min(qx0_nm, 0.0)
-!               !
-!            endif
-!            !
-!            if (zs(nmu)<=zb(nmu)) then
-!               !
-!               qx0_nm = max(qx0_nm, 0.0)
-!               !
-!            endif
+            ! Limit velocities (this does not change fluxes, but may prevent advection term from exploding in the next time step)
             !
-            q(ip) = qx0_nm
-            !
-            ! Limit velocities (this does not change fluxes, but may prevent advection term to explode in the next time step)
-            !
-            uv(ip) = max(min(qx0_nm/huv, 4.0), -4.0)
+            uv(ip)  = max(min(q(ip)/hu, 4.0), -4.0)
             !
          else
             !
-            q(ip)  = 0.0
-            uv(ip) = 0.0
+            q(ip)   = 0.0
+            uv(ip)  = 0.0
             !
          endif
          !
@@ -573,7 +538,7 @@
    integer   :: iuv
    integer   :: ind
    !
-   real*4    :: huv
+   real*4    :: hu
    real*4    :: dxuvinv
    real*4    :: dxuv2inv
    real*4    :: dyuvinv
@@ -623,7 +588,7 @@
    min_dt = 1.0e6
    !
    !$omp parallel &
-   !$omp private ( ip,huv,qx0_nm,nm,nmu,frc,dxuvinv,gnavg2,iok,zsuv,dzuv,iuv,facint,ahrep,anavg,zmin,zmax,one_minus_facint,iuvr,ind ) &
+   !$omp private ( ip,hu,qx0_nm,nm,nmu,frc,dxuvinv,gnavg2,iok,zsuv,dzuv,iuv,facint,ahrep,anavg,zmin,zmax,one_minus_facint,iuvr,ind ) &
    !$omp shared ( kcuv,q,zs,subgrid_uv_zmin,subgrid_uv_zmax,subgrid_uv_hrep,subgrid_uv_navg,uv_index_z_nm,uv_index_z_nmu,subgrid_uv_hrep_zmax,subgrid_uv_navg_zmax ) &
    !$omp reduction ( min : min_dt )
    !$omp do
@@ -669,7 +634,7 @@
                   !
                   ! Entire cell is wet, no interpolation from table needed
                   !
-                  huv    = subgrid_uv_hrep_zmax(ip) + zsuv
+                  hu     = subgrid_uv_hrep_zmax(ip) + zsuv
                   gnavg2 = subgrid_uv_navg_zmax(ip)
                   !
                else
@@ -679,14 +644,14 @@
                   dzuv   = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nbins - 1)
                   iuv    = int((zsuv - subgrid_uv_zmin(ip))/dzuv) + 1
                   facint = (zsuv - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv
-                  huv    = subgrid_uv_hrep(iuv, ip) + (subgrid_uv_hrep(iuv + 1, ip) - subgrid_uv_hrep(iuv, ip))*facint
+                  hu     = subgrid_uv_hrep(iuv, ip) + (subgrid_uv_hrep(iuv + 1, ip) - subgrid_uv_hrep(iuv, ip))*facint
                   gnavg2 = subgrid_uv_navg(iuv, ip) + (subgrid_uv_navg(iuv + 1, ip) - subgrid_uv_navg(iuv, ip))*facint
                   !
                endif
                !
             else
                !
-               huv  = max(zsuv - zbuv(ip), huthresh)
+               hu   = max(zsuv - zbuv(ip), huthresh)
                gnavg2 = gn2uv(ip)
                !
             endif
@@ -699,15 +664,15 @@
             !
             ! Pressure term
             !
-            frc = -g*huv*(zs(nmu) - zs(nm))*dxuvinv
+            frc = -g*hu*(zs(nmu) - zs(nm))*dxuvinv
             !
             ! Compute new flux for this uv point (Bates et al., 2010)
             !
-            qx0_nm  = (qx0_nm + frc*dt ) / (1.0 + gnavg2*dt*abs(qx0_nm)/(huv**2*huv**expo))
+            qx0_nm  = (qx0_nm + frc*dt ) / (1.0 + gnavg2*dt*abs(qx0_nm)/(hu**2*hu**expo))
             !
             q(ip) = qx0_nm
             !
-            min_dt = min(min_dt, 1.0/(sqrt(g*huv)*dxuvinv))
+            min_dt = min(min_dt, 1.0/(sqrt(g*hu)*dxuvinv))
             !
          else
             !
