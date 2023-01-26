@@ -812,8 +812,12 @@ contains
          endif
          !
          ! Set value on kcs=2 point to boundary condition
+         zs(nmb) = zsb(indb)
          !
-         zs(nmb) = zsb(indb)        
+         ! Store maximum water levels also on the boundary
+         if (store_maximum_waterlevel) then
+            zsmax(nmb) = max(zsmax(nmb), zs(nmb))
+         endif
          !
       elseif (bndtype==2) then ! Don't use in combination with waves
          !
