@@ -13,7 +13,7 @@ contains
    !
    real*4 xtmp, ytmp, dummy, di1, dj1
    !
-   integer iobs, nm, m, n, stat, j1, j2, jdq, iref
+   integer iobs, nm, m, n, nmq, stat, j1, j2, jdq, iref
    !
    character(len=256)        :: line
    character(len=256)        :: line2
@@ -95,10 +95,11 @@ contains
          ygobs(iobs)    = -999.0
          zbobs(iobs)    = -999.0 
          !
-         nm = find_quadtree_cell(xobs(iobs), yobs(iobs))
+         nmq = find_quadtree_cell(xobs(iobs), yobs(iobs))
          !
-         if (nm>0) then
+         if (nmq>0) then
             !
+            nm             = index_sfincs_in_quadtree(nmq)
             nmindobs(iobs) = nm
             n              = z_index_z_n(nm)
             m              = z_index_z_m(nm)

@@ -1317,6 +1317,7 @@
    ! Update fluxes qx and qy at wave maker points
    !
    use sfincs_data
+   use sfincs_snapwave
    !
    implicit none
    !
@@ -1335,7 +1336,6 @@
    integer  :: count_rate
    integer  :: count_max
    real     :: tloop
-   !
    !
    call system_clock(count0, count_rate, count_max)
    !
@@ -1373,6 +1373,11 @@
             !
          endif
       enddo
+   else
+      !
+      ! Use mean peak period from SnapWave boundary conditions
+      !
+      tp = snapwave_tpmean*6
       !
    endif      
    !
@@ -1517,12 +1522,6 @@
          wavemaker_uvmean(ib) = 0.0
          !
       endif
-      !
-!      write(*,'(2i8,20e14.4)')ib,wavemaker_idir(ib),zs0nmb,zsnmb,zsnmi,zwav,wavemaker_angfac(ib),wavemaker_uvmean(ib),ui,ub,hnmb,q(ip),t
-      !
-!      if (z_index_nm(1, nmb)==1 .and. z_index_nm(2, nmb)==300) then
-!         write(*,'(5i8,20e14.4)')ib,ip,ibuvdir(ib),nmi,nmb,q(ip),hnmb,zsnmi,zs0nmb,ub,uvmean(ib)
-!      endif
       !
    enddo
    !

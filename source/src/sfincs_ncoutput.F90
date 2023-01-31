@@ -551,21 +551,24 @@ contains
    !
    use sfincs_date
    use sfincs_data   
+   use quadtree   
    !
    implicit none   
    !   
-   integer    :: nm, n, m, ntmx, n_nodes, n_faces, ip, iref
+   integer    :: nm, nmq, n, m, nn, ntmx, n_nodes, n_faces, ip, iref
    integer*8  :: two
    real*4     :: dxdy
    !
    real*4,    dimension(:),   allocatable :: nodes_x
    real*4,    dimension(:),   allocatable :: nodes_y
    integer*4, dimension(:,:), allocatable :: face_nodes
+   real*4,    dimension(:),   allocatable :: vtmp
+   integer*4, dimension(:),   allocatable :: vtmpi
    !
    ! Very lazy for now
    !
-   n_faces = np
-   n_nodes = np*4
+   n_faces = quadtree_nr_points
+   n_nodes = quadtree_nr_points*4
    !
    nodes_x = 0.0
    nodes_y = 0.0
@@ -576,41 +579,44 @@ contains
    allocate(nodes_x(n_nodes))
    allocate(nodes_y(n_nodes))
    allocate(face_nodes(4, n_faces))
+   allocate(vtmp(n_faces))
+   allocate(vtmpi(n_faces))
    !
-   n = 0
+   nn = 0
    !
-   do nm = 1, np
+   do nmq = 1, quadtree_nr_points
       !
-      if (kcs(nm)>0) then
+      n = quadtree_n(nmq)
+      m = quadtree_m(nmq)
          !
-         iref = z_flags_iref(nm)
-         dxdy  = dxr(iref)
+         iref = quadtree_level(nmq)
+         dxdy  = quadtree_dxr(iref)
          !         
-         n = n + 1
+         nn = nn + 1
          !
-         nodes_x(n) = x0 + cosrot*(z_index_z_m(nm) - 1)*dxdy - sinrot*(z_index_z_n(nm) - 1)*dxdy
-         nodes_y(n) = y0 + sinrot*(z_index_z_m(nm) - 1)*dxdy + cosrot*(z_index_z_n(nm) - 1)*dxdy
-         face_nodes(1, nm) = n
+         nodes_x(nn) = x0 + cosrot*(m - 1)*dxdy - sinrot*(n - 1)*dxdy
+         nodes_y(nn) = y0 + sinrot*(m - 1)*dxdy + cosrot*(n - 1)*dxdy
+         face_nodes(1, nmq) = nn
          !         
-         n = n + 1
+         nn = nn + 1
          !
-         nodes_x(n) = x0 + cosrot*(z_index_z_m(nm)    )*dxdy - sinrot*(z_index_z_n(nm) - 1)*dxdy
-         nodes_y(n) = y0 + sinrot*(z_index_z_m(nm)    )*dxdy + cosrot*(z_index_z_n(nm) - 1)*dxdy
-         face_nodes(2, nm) = n
+         nodes_x(nn) = x0 + cosrot*(m    )*dxdy - sinrot*(n - 1)*dxdy
+         nodes_y(nn) = y0 + sinrot*(m    )*dxdy + cosrot*(n - 1)*dxdy
+         face_nodes(2, nmq) = nn
          !         
-         n = n + 1
+         nn = nn + 1
          !
-         nodes_x(n) = x0 + cosrot*(z_index_z_m(nm)    )*dxdy - sinrot*(z_index_z_n(nm)    )*dxdy
-         nodes_y(n) = y0 + sinrot*(z_index_z_m(nm)    )*dxdy + cosrot*(z_index_z_n(nm)    )*dxdy
-         face_nodes(3, nm) = n
+         nodes_x(nn) = x0 + cosrot*(m    )*dxdy - sinrot*(n    )*dxdy
+         nodes_y(nn) = y0 + sinrot*(m    )*dxdy + cosrot*(n    )*dxdy
+         face_nodes(3, nmq) = nn
          !         
-         n = n + 1
+         nn = nn + 1
          !
-         nodes_x(n) = x0 + cosrot*(z_index_z_m(nm) - 1)*dxdy - sinrot*(z_index_z_n(nm)    )*dxdy
-         nodes_y(n) = y0 + sinrot*(z_index_z_m(nm) - 1)*dxdy + cosrot*(z_index_z_n(nm)    )*dxdy
-         face_nodes(4, nm) = n
+         nodes_x(nn) = x0 + cosrot*(m - 1)*dxdy - sinrot*(n    )*dxdy
+         nodes_y(nn) = y0 + sinrot*(m - 1)*dxdy + cosrot*(n    )*dxdy
+         face_nodes(4, nmq) = nn
          !
-      endif
+!      endif
    enddo   
    !  
    NF90(nf90_create('sfincs_map.nc', ior(NF90_CLOBBER, NF90_64BIT_OFFSET), map_file%ncid))
@@ -631,8 +637,7 @@ contains
    NF90(nf90_def_dim(map_file%ncid, 'runtime', 1, map_file%runtime_dimid)) ! total_runtime, average_dt       
    !
    ! Some metadata attributes 
-
-
+   !
    NF90(nf90_put_att(map_file%ncid,nf90_global, "Conventions", "Conventions = 'CF-1.8 UGRID-1.0 Deltares-0.10'")) 
    NF90(nf90_put_att(map_file%ncid,nf90_global, "Build-Revision-Date-Netcdf-library", trim(nf90_inq_libvers()))) ! version of netcdf library
    NF90(nf90_put_att(map_file%ncid,nf90_global, "Producer", "SFINCS model: Super-Fast INundation of CoastS"))
@@ -640,7 +645,8 @@ contains
    NF90(nf90_put_att(map_file%ncid,nf90_global, "Build-Date", trim(build_date)))
    NF90(nf90_put_att(map_file%ncid,nf90_global, "title", "SFINCS map netcdf output"))   
    !
-   ! add input params for reproducability
+   ! Add input params for reproducability
+   !
    call ncoutput_add_params(map_file%ncid,map_file%inp_varid)   
    !
    ! Create variables
@@ -883,7 +889,7 @@ contains
    ! 
    ! Finish definitions
    NF90(nf90_enddef(map_file%ncid))
-   ! 
+   !
    NF90(nf90_put_var(map_file%ncid, map_file%mesh2d_node_x_varid, nodes_x)) ! write node x 
    !
    NF90(nf90_put_var(map_file%ncid, map_file%mesh2d_node_y_varid, nodes_y)) ! write node y
@@ -899,28 +905,67 @@ contains
    !
    NF90(nf90_put_var(map_file%ncid, map_file%crs_varid, epsg))
    !
+   vtmp = FILL_VALUE
+   !
    if (subgrid) then
-      NF90(nf90_put_var(map_file%ncid, map_file%zb_varid, subgrid_z_zmin))
+      do nmq = 1, quadtree_nr_points
+         nm = index_sfincs_in_quadtree(nmq)
+         if (nm>0) then
+            vtmp(nmq) = subgrid_z_zmin(nm)
+         endif
+      enddo 
+      NF90(nf90_put_var(map_file%ncid, map_file%zb_varid, vtmp))
    else
-      NF90(nf90_put_var(map_file%ncid, map_file%zb_varid, zb))
+      do nmq = 1, quadtree_nr_points
+         nm = index_sfincs_in_quadtree(nmq)
+         if (nm>0) then
+            vtmp(nmq) = zb(nm)
+         endif
+      enddo 
+      NF90(nf90_put_var(map_file%ncid, map_file%zb_varid, vtmp))
    endif
    !
-   NF90(nf90_put_var(map_file%ncid, map_file%msk_varid, kcs)) ! write msk     
+   vtmpi = 0
+   !
+   do nmq = 1, quadtree_nr_points
+      nm = index_sfincs_in_quadtree(nmq)
+      if (nm>0) then
+         vtmpi(nmq) = kcs(nm)
+      endif
+   enddo 
+   !
+   NF90(nf90_put_var(map_file%ncid, map_file%msk_varid, vtmpi)) ! write msk 
    !   
    ! Write infiltration map
    !   
+   vtmp = FILL_VALUE
+   !
    if (infiltration) then
+      !
       if (inftype == 'con' .or. inftype == 'c2d') then
-         NF90(nf90_put_var(map_file%ncid, map_file%qinf_varid, qinfmap(nm)*3600*1000)) ! write infiltration map
+         do nmq = 1, quadtree_nr_points
+            nm = index_sfincs_in_quadtree(nmq)
+            if (nm>0) then
+               vtmp(nmq) = qinfmap(nm)*3600*1000
+            endif
+         enddo 
       else
-         NF90(nf90_put_var(map_file%ncid, map_file%qinf_varid, qinffield)) ! write infiltration map
+         do nmq = 1, quadtree_nr_points
+            nm = index_sfincs_in_quadtree(nmq)
+            if (nm>0) then
+               vtmp(nmq) = qinffield(nm)
+            endif
+         enddo 
       endif
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%qinf_varid, vtmp)) ! write infiltration map
+      !
    endif
    !
    ! write away intermediate data
    !
    NF90(nf90_sync(map_file%ncid)) !write away intermediate data
-   !   
+   !
    end subroutine
    
    
@@ -1575,6 +1620,9 @@ contains
       ! Write time, zs, u, v  
       !
       use sfincs_data   
+      use sfincs_snapwave
+      use quadtree
+!      use snapwave_data
       !
       implicit none   
       !
@@ -1582,36 +1630,35 @@ contains
       !
       integer  :: ntmapout       
       !
-      integer   :: nm, n, m, nmu1, nmd1, num1, ndm1, nmu2, nmd2, num2, ndm2
-      real*4    :: uz, vz, u1, u2, v1, v2
+      integer   :: nm, nmq, n, m, nmu1, nmd1, num1, ndm1, nmu2, nmd2, num2, ndm2
+      real*4    :: uz, vz, u1, u2, v1, v2, sq2
       !
       real*4, dimension(:), allocatable :: utmp, vtmp 
       !
       NF90(nf90_put_var(map_file%ncid, map_file%time_varid, t, (/ntmapout/))) ! write time
       !  
-      allocate(utmp(np))
-      allocate(vtmp(np))
+      allocate(utmp(quadtree_nr_points))
+      allocate(vtmp(quadtree_nr_points))
+      !
+      sq2 = sqrt(2.0)
       !
       vtmp = FILL_VALUE
       !
-      do nm = 1, np
-        if (subgrid) then
-!           if (subgrid_z_zmin(nm)>10.0) then
-!              write(*,'(i8,20e18.8)')nm,zs(nm),subgrid_z_zmin(nm),huthresh,subgrid_z_zmin(nm) + huthresh
-!           endif   
-           if ( (zs(nm) - subgrid_z_zmin(nm)) > huthresh) then
-              vtmp(nm) = zs(nm)
+      do nmq = 1, quadtree_nr_points
+        !
+        nm = index_sfincs_in_quadtree(nmq)
+        !
+        if (kcs(nm)>0) then
+           if (subgrid) then
+              if ( (zs(nm) - subgrid_z_zmin(nm)) > huthresh) then
+                 vtmp(nmq) = zs(nm)
+              endif
            else
-              vtmp(nm) = FILL_VALUE
-           endif
-        else
-           if ( (zs(nm) - zb(nm)) > huthresh) then
-              vtmp(nm) = zs(nm)
-           else
-              vtmp(nm) = FILL_VALUE
+              if ( (zs(nm) - zb(nm)) > huthresh) then
+                 vtmp(nmq) = zs(nm)
+              endif
            endif
         endif
-        !zsg(z_index_nm(1,nm),z_index_nm(2,nm)) = zs(nm)
       enddo
       !
       NF90(nf90_put_var(map_file%ncid, map_file%zs_varid, vtmp, (/1, ntmapout/))) ! write zs
@@ -1635,83 +1682,89 @@ contains
          utmp = FILL_VALUE
          vtmp = FILL_VALUE
          !
-         do nm = 1, np
+         do nmq = 1, quadtree_nr_points
             !
-            if (z_flags_type(nm) == 0) then
-               !
-               ! Regular point with four surrounding cells of the same size
-               !
-               nmd1 = z_index_uv_md1(nm)
-               nmu1 = z_index_uv_mu1(nm)
-               ndm1 = z_index_uv_nd1(nm)
-               num1 = z_index_uv_mu1(nm)
-               uz  = 0.5*(uv(nmd1) + uv(nmu1))
-               vz  = 0.5*(uv(ndm1) + uv(num1))
-               !
-            else
-               !
-               ! Bit more complicated
-               !
-               nmd1 = z_index_uv_md1(nm)
-               nmu1 = z_index_uv_mu1(nm)
-               ndm1 = z_index_uv_nd1(nm)
-               num1 = z_index_uv_mu1(nm)
-               nmd2 = z_index_uv_md2(nm)
-               nmu2 = z_index_uv_mu2(nm)
-               ndm2 = z_index_uv_nd2(nm)
-               num2 = z_index_uv_nu2(nm)
-               !
-               ! Left
-               !
-               u1 = 0.0
-               if (nmd1>0 .and. nmd2==0) then   
-                  u1 = uv(nmd1)
-               elseif (nmd1>0 .and. nmd2>0) then
-                  u1 = 0.5*uv(nmd1) + 0.5*uv(nmd2)
-               elseif (nmd1==0 .and. nmd2>0) then   
-                  u1 = uv(nmd2)
-               endif   
-               !
-               ! Right
-               !
-               u2 = 0.0
-               if (nmu1>0  .and. nmu2==0) then   
-                  u2 = uv(nmu1)
-               elseif (nmu1>0 .and. nmu2>0) then
-                  u2 = 0.5*uv(nmu1) + 0.5*uv(nmu2)
-               elseif (nmu2==0  .and. nmu2>0) then   
-                  u2 = uv(nmu2)
-               endif   
-               !
-               ! Bottom
-               !
-               v1 = 0.0
-               if (ndm1>0 .and. ndm2==0) then   
-                  v1 = uv(ndm1)
-               elseif (ndm1>0 .and. ndm2>0) then
-                  v1 = 0.5*uv(ndm1) + 0.5*uv(ndm2)
-               elseif (ndm1==0 .and. ndm2>0) then   
-                  v1 = uv(ndm2)
-               endif   
-               !
-               ! Right
-               !
-               v2 = 0.0
-               if (num1>0  .and. num2==0) then   
-                  v2 = uv(num1)
-               elseif (num1>0 .and. num2>0) then
-                  v2 = 0.5*uv(num1) + 0.5*uv(num2)
-               elseif (num2==0  .and. num2>0) then   
-                  v2 = uv(num2)
-               endif   
-               !
-               uz = 0.5*(u1 + u2)
-               vz = 0.5*(v1 + v2)
-               !
-            endif   
+            nm = index_sfincs_in_quadtree(nmq)
             !
-            utmp(nm) = cosrot*uz - sinrot*vz            
-            vtmp(nm) = sinrot*uz + cosrot*vz  
+            if (nm>0) then
+               !
+               if (z_flags_type(nm) == 0) then
+                  !
+                  ! Regular point with four surrounding cells of the same size
+                  !
+                  nmd1 = z_index_uv_md1(nm)
+                  nmu1 = z_index_uv_mu1(nm)
+                  ndm1 = z_index_uv_nd1(nm)
+                  num1 = z_index_uv_mu1(nm)
+                  uz  = 0.5*(uv(nmd1) + uv(nmu1))
+                  vz  = 0.5*(uv(ndm1) + uv(num1))
+                  !
+               else
+                  !
+                  ! Bit more complicated
+                  !
+                  nmd1 = z_index_uv_md1(nm)
+                  nmu1 = z_index_uv_mu1(nm)
+                  ndm1 = z_index_uv_nd1(nm)
+                  num1 = z_index_uv_mu1(nm)
+                  nmd2 = z_index_uv_md2(nm)
+                  nmu2 = z_index_uv_mu2(nm)
+                  ndm2 = z_index_uv_nd2(nm)
+                  num2 = z_index_uv_nu2(nm)
+                  !
+                  ! Left
+                  !
+                  u1 = 0.0
+                  if (nmd1>0 .and. nmd2==0) then   
+                     u1 = uv(nmd1)
+                  elseif (nmd1>0 .and. nmd2>0) then
+                     u1 = 0.5*uv(nmd1) + 0.5*uv(nmd2)
+                  elseif (nmd1==0 .and. nmd2>0) then   
+                     u1 = uv(nmd2)
+                  endif   
+                  !
+                  ! Right
+                  !
+                  u2 = 0.0
+                  if (nmu1>0  .and. nmu2==0) then   
+                     u2 = uv(nmu1)
+                  elseif (nmu1>0 .and. nmu2>0) then
+                     u2 = 0.5*uv(nmu1) + 0.5*uv(nmu2)
+                  elseif (nmu2==0  .and. nmu2>0) then   
+                     u2 = uv(nmu2)
+                  endif   
+                  !
+                  ! Bottom
+                  !
+                  v1 = 0.0
+                  if (ndm1>0 .and. ndm2==0) then   
+                     v1 = uv(ndm1)
+                  elseif (ndm1>0 .and. ndm2>0) then
+                     v1 = 0.5*uv(ndm1) + 0.5*uv(ndm2)
+                  elseif (ndm1==0 .and. ndm2>0) then   
+                     v1 = uv(ndm2)
+                  endif   
+                  !
+                  ! Right
+                  !
+                  v2 = 0.0
+                  if (num1>0  .and. num2==0) then   
+                     v2 = uv(num1)
+                  elseif (num1>0 .and. num2>0) then
+                     v2 = 0.5*uv(num1) + 0.5*uv(num2)
+                  elseif (num2==0  .and. num2>0) then   
+                     v2 = uv(num2)
+                  endif   
+                  !
+                  uz = 0.5*(u1 + u2)
+                  vz = 0.5*(v1 + v2)
+                  !
+               endif   
+               !
+               utmp(nmq) = cosrot*uz - sinrot*vz            
+               vtmp(nmq) = sinrot*uz + cosrot*vz  
+               !
+            endif
             !
          enddo
          !
@@ -1724,91 +1777,74 @@ contains
          !
          vtmp = FILL_VALUE
          !
-         do nm = 1, np
-            if (subgrid) then
-               if ( (zs(nm) - subgrid_z_zmin(nm)) > 0.1) then
-                  vtmp(nm) = hm0(nm)
-               endif
-            else
-               if ( (zs(nm) - zb(nm)) > huthresh) then
-                  vtmp(nm) = hm0(nm)
-               endif
-           endif
+         do nmq = 1, quadtree_nr_points
+            !
+            nm = index_sw_in_qt(nmq)
+            !
+            if (nm>0) then
+               ! 
+               vtmp(nmq) = snapwave_H(nm)*sq2
+               !
+            endif   
          enddo
          !
-         NF90(nf90_put_var(map_file%ncid, map_file%hm0_varid, vtmp, (/1, ntmapout/))) ! write h
+         NF90(nf90_put_var(map_file%ncid, map_file%hm0_varid, vtmp, (/1, ntmapout/)))
          !
          vtmp = FILL_VALUE
          !
-         do nm = 1, np
-            if (subgrid) then
-               if ( (zs(nm) - subgrid_z_zmin(nm)) > 0.1) then
-                  vtmp(nm) = hm0_ig(nm)
-               endif
-            else
-               if ( (zs(nm) - zb(nm)) > huthresh) then
-                  vtmp(nm) = hm0_ig(nm)
-               endif
-           endif
+         do nmq = 1, quadtree_nr_points
+            !
+            nm = index_sw_in_qt(nmq)
+            !
+            if (nm>0) then
+               ! 
+               vtmp(nmq) = snapwave_H_ig(nm)*sq2
+               ! 
+            endif   
          enddo
          !
-         NF90(nf90_put_var(map_file%ncid, map_file%hm0ig_varid, vtmp, (/1, ntmapout/))) ! write h
+         NF90(nf90_put_var(map_file%ncid, map_file%hm0ig_varid, vtmp, (/1, ntmapout/)))
          !            
          if (store_wave_forces) then
             !      
-            NF90(nf90_put_var(map_file%ncid, map_file%fwx_varid, fwx, (/1, ntmapout/))) ! write h
-            NF90(nf90_put_var(map_file%ncid, map_file%fwy_varid, fwy, (/1, ntmapout/))) ! write h
+            utmp = FILL_VALUE
+            vtmp = FILL_VALUE
+            !
+            do nmq = 1, quadtree_nr_points
+               !
+               nm = index_sfincs_in_quadtree(nmq)
+               !
+               if (nm>0) then
+                  utmp(nmq) = fwx(nm)
+                  vtmp(nmq) = fwy(nm)
+               endif
+               !
+            enddo
+            !
+            NF90(nf90_put_var(map_file%ncid, map_file%fwx_varid, utmp, (/1, ntmapout/)))
+            NF90(nf90_put_var(map_file%ncid, map_file%fwy_varid, vtmp, (/1, ntmapout/)))
             !
          endif
          !
          if (wavemaker) then
-            NF90(nf90_put_var(map_file%ncid, map_file%zsm_varid, zsm, (/1, ntmapout/))) ! write h
+            !
+            vtmp = FILL_VALUE
+            !
+            do nmq = 1, quadtree_nr_points
+               !
+               nm = index_sfincs_in_quadtree(nmq)
+               !
+               if (nm>0) then
+                  vtmp(nmq) = zsm(nm)
+               endif
+               !
+            enddo
+            !
+            NF90(nf90_put_var(map_file%ncid, map_file%zsm_varid, vtmp, (/1, ntmapout/)))
+            !
          endif            
          !            
       endif         
-      !      if (snapwave) then
-!         ! 
-!         zsg = FILL_VALUE       
-!         !
-!         do nm = 1, np
-!             zsg(z_index_nm(1,nm),z_index_nm(2,nm)) = hm0(nm)
-!         enddo
-!         !
-!         NF90(nf90_put_var(map_file%ncid, map_file%hm0_varid, zsg(2:nmax-1, 2:mmax-1), (/1, 1, ntmapout/))) ! write h
-!         ! 
-!         zsg = FILL_VALUE       
-!         !
-!         do nm = 1, np
-!             zsg(z_index_nm(1,nm),z_index_nm(2,nm)) = hm0_ig(nm)
-!         enddo
-!         !
-!         NF90(nf90_put_var(map_file%ncid, map_file%hm0ig_varid, zsg(2:nmax-1, 2:mmax-1), (/1, 1, ntmapout/))) ! write h
-!         !            
-!         zsg = FILL_VALUE       
-!         !
-!         do nm = 1, np
-!             zsg(z_index_nm(1,nm),z_index_nm(2,nm)) = fwx(nm)
-!         enddo
-!         !
-!         NF90(nf90_put_var(map_file%ncid, map_file%fwx_varid, zsg(2:nmax-1, 2:mmax-1), (/1, 1, ntmapout/))) ! write h
-!         !            
-!         zsg = FILL_VALUE       
-!         !
-!         do nm = 1, np
-!             zsg(z_index_nm(1,nm),z_index_nm(2,nm)) = fwy(nm)
-!         enddo
-!         !
-!         NF90(nf90_put_var(map_file%ncid, map_file%fwy_varid, zsg(2:nmax-1, 2:mmax-1), (/1, 1, ntmapout/))) ! write h
-!         !            
-!         zsg = FILL_VALUE       
-!         !
-!         do nm = 1, np
-!             zsg(z_index_nm(1,nm),z_index_nm(2,nm)) = zsm(nm)
-!         enddo
-!         !
-!         NF90(nf90_put_var(map_file%ncid, map_file%zsm_varid, zsg(2:nmax-1, 2:mmax-1), (/1, 1, ntmapout/))) ! write h
-!         !            
-!      endif   
       !           
       NF90(nf90_sync(map_file%ncid)) !write away intermediate data ! TL: in first test it seems to be faster to let the file update than keep in memory
       !      

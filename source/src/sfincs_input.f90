@@ -409,7 +409,6 @@ contains
       if (wmsigstr(1:3) == 'mon') then
          ! Monochromatic
          wavemaker_spectrum = .false.
-         wavemaker_spectrum = 1
       endif   
    endif
    !
