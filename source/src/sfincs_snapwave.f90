@@ -4,31 +4,21 @@ module sfincs_snapwave
    !     
    integer                                   :: snapwave_no_nodes
    integer                                   :: snapwave_no_cells
-   real*8,    dimension(:), allocatable      :: snapwave_x
-   real*8,    dimension(:), allocatable      :: snapwave_y
-   real*4,    dimension(:), allocatable      :: snapwave_z
-   real*4,    dimension(:), allocatable      :: snapwave_depth
-   real*4,    dimension(:), allocatable      :: snapwave_H
-   real*4,    dimension(:), allocatable      :: snapwave_H_ig
-   real*4,    dimension(:), allocatable      :: snapwave_mean_direction
-   real*4,    dimension(:), allocatable      :: snapwave_directional_spreading
-   real*4,    dimension(:), allocatable      :: snapwave_Fx
-   real*4,    dimension(:), allocatable      :: snapwave_Fy
- !  real*8,    dimension(:,:), allocatable    :: w_sf2sn
- !  integer*4, dimension(:,:), allocatable    :: i_sf2sn
- !  real*8,    dimension(:,:), allocatable    :: w_sn2sf
- !  integer*4, dimension(:,:), allocatable    :: i_sn2sf
+   real*8,    dimension(:),   allocatable    :: snapwave_x
+   real*8,    dimension(:),   allocatable    :: snapwave_y
+   real*4,    dimension(:),   allocatable    :: snapwave_z
+   real*4,    dimension(:),   allocatable    :: snapwave_depth
+   real*4,    dimension(:),   allocatable    :: snapwave_H
+   real*4,    dimension(:),   allocatable    :: snapwave_H_ig
+   real*4,    dimension(:),   allocatable    :: snapwave_mean_direction
+   real*4,    dimension(:),   allocatable    :: snapwave_directional_spreading
+   real*4,    dimension(:),   allocatable    :: snapwave_Fx
+   real*4,    dimension(:),   allocatable    :: snapwave_Fy
    integer,   dimension(:,:), allocatable    :: snapwave_connected_nodes
-!   integer*4, dimension(:), allocatable      :: index_sf2sn
-!   integer*4, dimension(:), allocatable      :: index_sn2sf
-!   integer*4, dimension(:), allocatable      :: snapwave_index_v_n
-!   integer*4, dimension(:), allocatable      :: snapwave_index_v_m
-!   integer*4, dimension(:,:), allocatable    :: snapwave_index_g_nm
-   integer*4, dimension(:),     allocatable   :: index_snapwave_in_sfincs
-   integer*4, dimension(:),     allocatable   :: index_sfincs_in_snapwave
-   integer*4, dimension(:),     allocatable   :: index_sw_in_qt
-   integer*4, dimension(:),     allocatable   :: index_qt_in_sw
-   real*4                                     :: snapwave_tpmean
+   integer*4, dimension(:),   allocatable    :: index_snapwave_in_sfincs
+   integer*4, dimension(:),   allocatable    :: index_sfincs_in_snapwave
+   integer*4, dimension(:),   allocatable    :: index_sw_in_qt ! used in sfincs_ncoutput (copy of index_snapwave_in_quadtree from snapwave_data)
+   real*4                                    :: snapwave_tpmean
    !
 contains
    !
@@ -72,16 +62,18 @@ contains
    !
    implicit none
    !
-   integer, dimension(snapwave_no_nodes), intent(in) :: index_quadtree_in_snapwave
+   integer, dimension(snapwave_no_nodes),  intent(in) :: index_quadtree_in_snapwave
    integer, dimension(quadtree_nr_points), intent(in) :: index_snapwave_in_quadtree
    !
    integer :: nm, n, m, ipsw, ipsf, iq
    !
    allocate(index_sfincs_in_snapwave(snapwave_no_nodes))
    allocate(index_snapwave_in_sfincs(np))
+   allocate(index_sw_in_qt(quadtree_nr_points))
    !
    index_sfincs_in_snapwave = 0
    index_snapwave_in_sfincs = 0
+   index_sw_in_qt = 0
    !
    ! Loop through SnapWave points
    !
@@ -89,6 +81,7 @@ contains
       iq   = index_quadtree_in_snapwave(ipsw)
       ipsf = index_sfincs_in_quadtree(iq)
       index_sfincs_in_snapwave(ipsw) = ipsf
+      index_sw_in_qt(iq) = ipsw
    enddo   
    !
    ! Loop through SFINCS points
@@ -310,7 +303,7 @@ contains
    call read_char_input(500,'snapwave_bdsfile',bdsfile,'') 
    call read_char_input(500,'snapwave_upwfile',upwfile,'')
    call read_char_input(500,'snapwave_mskfile',mskfile,'')
-   call read_char_input(500,'snapwave_depfile',depfile,'')   
+   call read_char_input(500,'snapwave_depfile',depfile,'none')   
    call read_char_input(500,'snapwave_ncfile', gridfile,'snapwave_net.nc')   
    !
    close(500)

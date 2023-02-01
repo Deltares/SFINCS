@@ -1910,7 +1910,8 @@ contains
          !
          ! Set node values
          !
-         zb(nac)  = zb_tmp(ip)
+!         zb(nac)  = zb_tmp(ip)
+         zb(nac)  = quadtree_zz(ip)
          x(nac)   = quadtree_xz(ip)
          y(nac)   = quadtree_yz(ip)
          xs(nac)  = quadtree_xz(ip)
