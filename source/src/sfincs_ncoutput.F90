@@ -930,10 +930,22 @@ contains
    !
    use sfincs_date
    use sfincs_data   
+   use sfincs_structures
    !
    implicit none   
    !
-   integer                      :: nm, istruc  
+   integer                      :: nm, n, m, istruc, struc_nm, npars
+   
+   integer*4,          dimension(:),   allocatable :: index_u_m
+   integer*4,          dimension(:),   allocatable :: index_u_n
+   integer*4,          dimension(:),   allocatable :: index_v_m
+   integer*4,          dimension(:),   allocatable :: index_v_n
+     
+   real*4, dimension(:,:), allocatable :: struc_info
+   real*4, dimension(:), allocatable :: struc_x
+   real*4, dimension(:), allocatable :: struc_y
+   real*4, dimension(:), allocatable :: struc_height
+   
    !
    if (nobs==0 .and. nrcrosssections==0) then ! If no observation points his file is not created        
         return
@@ -1254,28 +1266,29 @@ contains
       NF90(nf90_put_var(his_file%ncid, his_file%crosssection_name_varid, namecrs))  ! write station_name      ! , (/1, nobs/)
    endif   
    !
-!   if (nrstructures>0) then
-!      !
-!      allocate(struc_x(nrstructures))
-!      allocate(struc_y(nrstructures))
-!      allocate(struc_height(nrstructures))
-!      !
-!      do istruc = 1, nrstructures
-!         nm   = struc_nm(istruc)
-!         !
-!         struc_x(istruc) = xg(index_v_n(nm),index_v_m(nm))
-!         struc_y(istruc) = yg(index_v_n(nm),index_v_m(nm))
-!         struc_height(istruc) = struc_pars(istruc,1)
-!         !
-!      enddo
-!      !
-!      NF90(nf90_put_var(his_file%ncid,  his_file%structure_x_varid, struc_x)) ! write structure_x, input struc_x
-!      !
-!      NF90(nf90_put_var(his_file%ncid,  his_file%structure_y_varid, struc_y)) ! write structure_y, input struc_y
-!      !
-!      NF90(nf90_put_var(his_file%ncid,  his_file%structure_height_varid, struc_height)) ! write structure_height, input struc_height
-!      !      
-!   endif
+   if (nrstructures>0) then
+      !
+      ! Allocate structure
+      call give_structure_information(struc_info)
+      allocate(struc_x(nrstructures))
+      allocate(struc_y(nrstructures))
+      allocate(struc_height(nrstructures))
+      !
+      do istruc = 1, nrstructures
+         !
+         struc_x(istruc)        = struc_info(istruc,1)
+         struc_y(istruc)        = struc_info(istruc,2)
+         struc_height(istruc)   = struc_info(istruc,3)
+         !
+      enddo
+      !
+      NF90(nf90_put_var(his_file%ncid,  his_file%structure_x_varid, struc_x)) ! write structure_x, input struc_x
+      !
+      NF90(nf90_put_var(his_file%ncid,  his_file%structure_y_varid, struc_y)) ! write structure_y, input struc_y
+      !
+      NF90(nf90_put_var(his_file%ncid,  his_file%structure_height_varid, struc_height)) ! write structure_height, input struc_height
+      !      
+   endif
    !   
    NF90(nf90_put_var(his_file%ncid, his_file%station_x_varid, xobs)) ! write station_x, input xobs
    !    
