@@ -4,10 +4,10 @@ module load netcdf/v4.7.4_v4.5.3_intel18.0.3
 
 cd source
 
-chmod -R 777 autogen.sh
+chmod +x autogen.sh
 
 autoreconf -ivf
 
 readlink -f .
 ./autogen.sh &&
-CPPFLAGS=-I/opt/apps/netcdf/v4.7.4_v4.5.3_intel18.0.3/include FC=ifort F77=ifort FCFLAGS=-O3 ./configure --prefix $(pwd)/opt/sfincs
+CPPFLAGS=-I/opt/apps/netcdf/v4.7.4_v4.5.3_intel18.0.3/include FC=ifort F77=ifort FCFLAGS=-O3 ./configure --with-netcdf --prefix $(pwd)/opt/sfincs

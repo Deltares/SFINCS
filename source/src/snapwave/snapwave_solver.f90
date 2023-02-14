@@ -27,7 +27,7 @@ module snapwave_solver
       !
       Tpb     = tpmean_bwv
       sigm    = 2*pi/Tpb
-      Tpb_ig  = 7*Tpb
+      Tpb_ig  = Tinc2ig*Tpb ! default is Tinc2ig = 7.0 as before      
       sigm_ig = 2*pi/Tpb_ig
       !
 !      call timer(t0)
@@ -82,7 +82,7 @@ module snapwave_solver
       call solve_energy_balance2Dstat (x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                        theta,ntheta,thetamean,                                    &
                                        depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,50000.,rho,snapwave_alpha,gamma,                 &
-                                       H,H_ig,Dw,F,Df,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin)
+                                       H,H_ig,Dw,F,Df,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, finc2ig, eeinc2ig)
       !
 !      call timer(t3)
       !
@@ -98,7 +98,7 @@ module snapwave_solver
    subroutine solve_energy_balance2Dstat(x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                          theta,ntheta,thetamean,                                    &
                                          depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,T,dt,rho,alfa,gamma,                 &
-                                         H,H_ig,Dw,F,Df,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin)
+                                         H,H_ig,Dw,F,Df,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, finc2ig, eeinc2ig)
    !
    implicit none
    !
@@ -204,6 +204,8 @@ module snapwave_solver
    logical                                    :: igwaves
    real*4                                     :: crit           ! relative accuracy
    real*4                                     :: gamma_ig
+   real*4                                     :: Tinc2ig
+   real*4                                     :: eeinc2ig
    !
    integer  :: count0
    integer  :: count1
@@ -256,9 +258,9 @@ module snapwave_solver
       costh(itheta) = cos(theta(itheta))
    enddo   
    !
-   finc2ig = 0.20
+   !finc2ig = 0.20 --> now user defineable
    !
-   T_ig = 7.0*T
+   T_ig = Tinc2ig*T ! default is Tinc2ig = 7.0 as before
    !   
    df   = 0.0
    dw   = 0.0
@@ -276,12 +278,12 @@ module snapwave_solver
    oneoverdt      = 1.0/dt
    oneover2dtheta = 1.0/2.0/dtheta
    rhog8          = 0.125*rho*g
-   shinc2ig       = 0.8
+   !shinc2ig       = 0.8 --> now user defineable
    thetam         = 0.0
    H              = 0.0
    H_ig           = 0.0
    !
-   gamma_ig = gamma
+   !gamma_ig = gamma --> now user defineable
    !   
    if (igwaves) then
       !
@@ -313,7 +315,7 @@ module snapwave_solver
          !
          if (igwaves) then
             !
-            ee_ig(:, k)  = 0.01*ee(:,k)
+            ee_ig(:, k)  = eeinc2ig*ee(:,k) ! default is eeinc2ig = 0.01 as before
             E_ig(k)      = sum(ee_ig(:, k))*dtheta
             H_ig(k)      = sqrt(8*E_ig(k)/rho/g)
             !
@@ -336,8 +338,9 @@ module snapwave_solver
                   !
                   beta  = max((w(1, itheta, k)*(depth(k1) - depth(k)) + w(2, itheta, k)*(depth(k2) - depth(k)))/ds(itheta, k), 0.0)
                   betan = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin))
-                  fbr   = 1.0
-                  fsh   = fbr*exp(-4.0*sqrt(betan))
+                  fbr   = 1.0 ! TL: Is this the fraction of breaking waves? And does SnapWave not calculate that?
+                  fsh   = fbr*exp(-4.0*sqrt(betan)) !TL: why different than Hurrywave? -  fsh = shinc2ig * facbr(nm) * max(exp(-fexp*betan**eexp), alphamin)
+                  ! Make something like: fsh   = shinc2ig*fbr*max(exp(-fexp*betan**eexp), alphamin) ! with fexp = 4.0, eexp = 0.5, alphamin = 0.1  ?
                   !
                   cgprev(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
                   !         
