@@ -335,7 +335,7 @@ module snapwave_solver
                if (k1*k2>0) then
                   !
                   beta  = max((w(1, itheta, k)*(depth(k1) - depth(k)) + w(2, itheta, k)*(depth(k2) - depth(k)))/ds(itheta, k), 0.0)
-                  betan = (beta/sigm_ig)*sqrt(9.81/max(depth(k), 0.1))
+                  betan = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin))
                   fbr   = 1.0
                   fsh   = fbr*exp(-4.0*sqrt(betan))
                   !
