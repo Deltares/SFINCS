@@ -82,7 +82,7 @@ module snapwave_solver
       call solve_energy_balance2Dstat (x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                        theta,ntheta,thetamean,                                    &
                                        depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,50000.,rho,snapwave_alpha,gamma,                 &
-                                       H,H_ig,Dw,F,Df,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit)
+                                       H,H_ig,Dw,F,Df,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin)
       !
 !      call timer(t3)
       !
@@ -98,7 +98,7 @@ module snapwave_solver
    subroutine solve_energy_balance2Dstat(x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                          theta,ntheta,thetamean,                                    &
                                          depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,T,dt,rho,alfa,gamma,                 &
-                                         H,H_ig,Dw,F,Df,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit)
+                                         H,H_ig,Dw,F,Df,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin)
    !
    implicit none
    !
@@ -170,7 +170,7 @@ module snapwave_solver
    real*4                                     :: pi = 4.*atan(1.0)
    real*4                                     :: g=9.81
    real*4                                     :: sigm
-   real*4                                     :: hmin=0.1             ! minimum water depth
+   real*4                                     :: hmin                   ! minimum water depth! TL: make user changeable also here according to 'snapwave_hmin' in sfincs.inp
    real*4                                     :: fac=0.25             ! underrelaxation factor for DoverE
    real*4                                     :: oneoverdt
    real*4                                     :: oneover2dtheta
@@ -335,7 +335,7 @@ module snapwave_solver
                if (k1*k2>0) then
                   !
                   beta  = max((w(1, itheta, k)*(depth(k1) - depth(k)) + w(2, itheta, k)*(depth(k2) - depth(k)))/ds(itheta, k), 0.0)
-                  betan = (beta/sigm_ig)*sqrt(9.81/max(depth(k), 0.1))
+                  betan = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin))
                   fbr   = 1.0
                   fsh   = fbr*exp(-4.0*sqrt(betan))
                   !

@@ -309,7 +309,12 @@ contains
    close(500)
    !
    igwaves             = .true.
-   if (iig==0) igwaves = .false.
+   if (iig==0) then
+      igwaves = .false.
+      write(*,*)'SnapWave: IG waves turned OFF!'
+   else
+      write(*,*)'SnapWave: IG waves turned ON!'
+   endif
    !
    restart           = .true.
    coupled_to_sfincs = .true.

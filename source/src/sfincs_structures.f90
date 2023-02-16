@@ -461,6 +461,53 @@
    end subroutine
 
    
+   subroutine give_structure_information(struc_info)
+   !
+   ! Subroutine to provide structure information to output
+   use sfincs_data
+   !
+   implicit none
+   !
+   integer                      :: n, m, istruc, nm, nmu, ip
+   real*4, dimension(:,:), allocatable   :: struc_info
+   real*4, dimension(:,:), allocatable :: xg
+   real*4, dimension(:,:), allocatable :: yg
+   
+   ! Make empty struc_info
+   allocate(struc_info(nrstructures,3))
+   struc_info = 0.0
+   ! 
+   ! Define the grid 
+   !
+   allocate(xg(mmax + 1, nmax + 1))
+   allocate(yg(mmax + 1, nmax + 1))
+   !
+   do n = 1, nmax + 1
+       do m = 1, mmax + 1
+           xg(m, n) = x0 + cosrot*(1.0*(m - 1))*dx - sinrot*(1.0*(n - 1))*dy
+           yg(m, n) = y0 + sinrot*(1.0*(m - 1))*dx + cosrot*(1.0*(n - 1))*dy
+       enddo
+   enddo
+   !
+   ! Get coordinates and height
+   !
+   do istruc = 1, nrstructures
+       !
+       ! Get index
+       ip       = structure_uv_index(istruc)
+       nmu      = uv_index_z_nmu(ip)
+       ! 
+       ! Get coordinates => not sure how to do this
+       struc_info(istruc,1) = z_xz(nmu)
+       struc_info(istruc,2) = z_yz(nmu)
+       !
+       ! Save height
+       struc_info(istruc,3) = structure_parameters(1, istruc)
+   enddo
+   !
+   end subroutine
+   
+   
    subroutine compute_fluxes_over_structures(tloop)
    !
    ! Computes fluxes over structures (THIS HAS TO BE SERIOUSLY IMPROVED!!!)

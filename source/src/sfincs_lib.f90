@@ -82,7 +82,8 @@ module sfincs_lib
    ierr = 0
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   build_revision = '$Rev: v0.0.4-alpha$'
+   !
+   build_revision = '$Rev: v2.0.2-beta$'
    build_date     = '$Date: 2023-02-16$'
    !
    write(*,'(a)')''   
