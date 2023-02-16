@@ -82,8 +82,9 @@ module sfincs_lib
    ierr = 0
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   build_revision = '$Rev: v2.0.1-beta$'
-   build_date     = '$Date: 2023-01-31$'
+   !
+   build_revision = '$Rev: v2.0.2-beta$'
+   build_date     = '$Date: 2023-02-16$'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
@@ -233,7 +234,7 @@ module sfincs_lib
    !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
    !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, & 
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
-   !$acc               prcp, prcp0, prcp1, cumprcp, cumprcpt, prcp, q, qinfmap, cuminf, & 
+   !$acc               prcp, prcp0, prcp1, cumprcp, cumprcpt, netprcp, prcp, q, qinfmap, cuminf, & 
    !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
    !$acc               gn2uv, fcorio2d, min_dt ) 
    !
