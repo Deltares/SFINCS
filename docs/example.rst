@@ -14,7 +14,7 @@ To make the setting up of basic models easier, making a SFINCS model is supporte
 
 If you need a more tailor-made solution for setting up your SFINCS models get in touch with us!
 
-.. figure:: ./figures/SFINCS_model_setup_diagram_external.drawio.pdf
+.. figure:: ./figures/SFINCS_model_setup_diagram.drawio.png
    :width: 800px
    :align: center
 
