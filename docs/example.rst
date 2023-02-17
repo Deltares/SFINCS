@@ -14,6 +14,12 @@ To make the setting up of basic models easier, making a SFINCS model is supporte
 
 If you need a more tailor-made solution for setting up your SFINCS models get in touch with us!
 
+.. figure:: ./figures/SFINCS_model_setup_diagram_external.drawio.pdf
+   :width: 800px
+   :align: center
+
+   Overview of input file of SFINCS with indication whther they are required or not		
+
 Delft Dashboard 
 -----
 
