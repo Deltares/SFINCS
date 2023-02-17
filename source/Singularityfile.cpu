@@ -1,0 +1,35 @@
+BootStrap: library
+From: library://library/default/ubuntu:jammy
+
+#
+# The source files of sfincs
+#
+
+%files
+  source  /usr/src/sfincs
+
+#
+# Compiler flags
+# -fallow-argument-mismatch needed for https://github.com/Unidata/netcdf-fortran/issues/212
+#
+
+%environment
+  FCFLAGS="-fopenmp -O3 -fallow-argument-mismatch -w"
+  FFLAGS="-fopenmp -O3 -fallow-argument-mismatch -w"
+
+#
+# Installing compilers
+# Compiling sfincs
+#
+
+%post
+  apt clean && apt autoclean && apt update --fix-missing && apt upgrade -y && apt install -y libnetcdf-dev build-essential autoconf automake libtool gfortran gdb m4
+
+# Install software into /usr/local by default
+# No OpenACC for GNU/CPU build
+
+  autoreconf -ivf && ./autogen.sh && FFLAGS="-w -fallow-argument-mismatch -O2" && FCFLAGS="-w -fallow-argument-mismatch -O2 -fopenmp -O3" ./configure --disable-openacc && make && make install
+  chmod -R 777 autogen.sh
+
+  autoreconf -ivf && ./autogen.sh && ./configure --disable-openacc && make && make install
+
