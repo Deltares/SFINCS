@@ -103,10 +103,11 @@ contains
    !$omp parallel &
    !$omp private ( nm,dvol,nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,nmd,nmu,ndm,num,qnmd,qnmu,qndm,qnum,iwm )
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels present( kcs, kfuv, zs, zb, netprcp, cumprcpt, prcp, q, z_flags_type, z_flags_iref, uv_flags_iref, &
+   !$acc kernels present( kcs, zs, zb, netprcp, cumprcpt, prcp, q, zsmax, twet, zsm, &
+   !$acc                  z_flags_type, z_flags_iref, uv_flags_iref, &
    !$acc                  z_index_uv_md1, z_index_uv_md2, z_index_uv_nd1, z_index_uv_nd2, z_index_uv_mu1, z_index_uv_mu2, z_index_uv_nu1, z_index_uv_nu2, &
-   !$acc                  dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area, zsmax, twet, z_index_wavemaker, cell_area, &
-   !$acc                  wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, zsm), async(1)
+   !$acc                  dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area,  &
+   !$acc                  z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num), async(1)
    !$acc loop independent, private( nm )
    do nm = 1, np
       !
@@ -139,8 +140,6 @@ contains
             nmu = z_index_uv_mu1(nm)
             ndm = z_index_uv_nd1(nm)
             num = z_index_uv_nu1(nm)
-            !
-!            if (kfuv(nmd) + kfuv(nmu) + kfuv(ndm) + kfuv(num)>0) then
             !
             if (crsgeo) then
                zs(nm)   = zs(nm) + (((q(nmd) - q(nmu))*dxminv(nmu) + (q(ndm) - q(num))*dyrinv(z_flags_iref(nm))))*dt
