@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Output messages &mdash; SFINCS 1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Input parameters" href="parameters.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> SFINCS
+          </a>
+              <div class="version">
+                1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Introduction</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developments:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="developments.html">Developments</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Getting started:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="example.html">Setting up models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#executable">Executable</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#compiling-yourself">Compiling yourself</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#running-sfincs">Running SFINCS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#courses-learning-sfincs">Courses learning SFINCS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#questions-and-support">Questions and support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#contributing">Contributing</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User manual:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="input.html">User manual - general</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input_forcing.html">User manual - forcing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input_structures.html">User manual - structures</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input parameters and files:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html">Input parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html#input-files">Input files</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Model output and messages:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Output messages</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#interpreting-the-information-on-the-screen">Interpreting the information on the screen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#possible-error-messages-and-possible-solutions">Possible error messages and possible solutions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#output-description">Output description</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#parameters-netcdf-file-global-sfincs-map-nc">Parameters netcdf file global (sfincs_map.nc)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#parameters-netcdf-file-observation-points-sfincs-his-nc">Parameters netcdf file observation points (sfincs_his.nc)</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SFINCS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Output messages</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/output.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="output-messages">
+<h1>Output messages<a class="headerlink" href="#output-messages" title="Permalink to this headline">¶</a></h1>
+<section id="interpreting-the-information-on-the-screen">
+<h2>Interpreting the information on the screen<a class="headerlink" href="#interpreting-the-information-on-the-screen" title="Permalink to this headline">¶</a></h2>
+<p>When running SFINCS, some information will be written to the screen.
+This consists of what version was run (number/date not always completely up to date), some files that were read in and the number of active points.
+After ‘Starting computation …’ appears the initialisation phase is finished.</p>
+<p>Once ‘0% complete,     Inf s remaining …’ appears, the model has actually started computing.
+The following times the percentual progress % is shown, a rough estimate of the time remaining untill completion of the model run is given.</p>
+<p>Once ‘—Simulation is finished—’, your model has run succesfully and is writing away the model output files.
+Additionaly some information is written to the screen regarding total runtime, time consumption per section, the average time step, and the maximum occured water depth in the entire computation.
+If you know the initial water depth, this can give an indication whether the model has encountered instabilities or not.
+Hereafter SFINCS is closed off, ready to start a new simulation.</p>
+<p>Normally SFINCS runs using OpenMP, utilising all computing power of available cores (e.g. all 4).
+This does not make it efficient to runs multiple SFINCS runs in parallel, it is advised to just run multiple simulations in series.</p>
+<p><strong>Example</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span> ----------- Welcome to SFINCS -----------
+
+  @@@@@  @@@@@@@ @@ @@  @@   @@@@   @@@@@
+ @@@ @@@ @@@@@@@ @@ @@@ @@ @@@@@@@ @@@ @@@
+ @@@     @@      @@ @@@ @@ @@   @@ @@@
+  @@@@@  @@@@@@  @@ @@@@@@ @@       @@@@@
+     @@@ @@      @@ @@ @@@ @@   @@     @@@
+ @@@ @@@ @@      @@ @@  @@  @@@@@@ @@@ @@@
+  @@@@@  @@      @@ @@   @   @@@@   @@@@@
+
+-----------------------------------------
+
+Build-Revision: $Rev: v0.0.1-alpha$
+Build-Date:     $Date: 2022-10-25$
+
+Reading input file ...
+Info : Running SFINCS in subgrid mode ...
+Reading meteo data ...
+Info : Preparing SFINCS grid on regular mesh ...
+Reading sfincs.ind ...
+Reading sfincs.msk ...
+Number of active z points    :         4055
+Number of active u/v points  :         7972
+Reading sfincs.sbg ...
+Reading water level boundaries ...
+Reading observation points ...
+Initializing output ...
+
+ ---------- Starting simulation ----------
+
+   0% complete,       - s remaining ...
+   5% complete,     0.9 s remaining ...
+  10% complete,     0.9 s remaining ...
+  15% complete,     0.9 s remaining ...
+  20% complete,     0.9 s remaining ...
+  25% complete,     0.8 s remaining ...
+  30% complete,     0.8 s remaining ...
+  35% complete,     0.7 s remaining ...
+  40% complete,     0.7 s remaining ...
+  45% complete,     0.6 s remaining ...
+  50% complete,     0.6 s remaining ...
+  55% complete,     0.5 s remaining ...
+  60% complete,     0.5 s remaining ...
+  65% complete,     0.4 s remaining ...
+  70% complete,     0.4 s remaining ...
+  75% complete,     0.3 s remaining ...
+  80% complete,     0.2 s remaining ...
+  85% complete,     0.2 s remaining ...
+  90% complete,     0.1 s remaining ...
+  95% complete,     0.1 s remaining ...
+ 100% complete,     0.0 s remaining ...
+
+ Info : Write maximum values of final timestep since t=dtmaxout was not reached
+ yet...
+
+ ---------- Simulation finished ----------
+              ..............
+          ......:@@@@@@@@:......
+       ..::::..@@........@@.:::::..
+     ..:::::..@@..::..::..@@.::::::..
+.::::::..@@............@@.:::::::.
+   .::::::..@@..............@@.:::::::.
+  .::::::::..@@............@@..::::::::.
+ .:::::::::...@@.@..@@..@.@@..::::::::::.
+ .:::::::::...:@@@..@@..@@@:..:::::::::..
+ ............@@.@@..@@..@@.@@............
+ ^^^~~^^~~^^@@..............@@^^^~^^^~~^^
+ .::::::::::@@..............@@.:::::::::.
+  .......:.@@.....@.....@....@@.:.......
+   .::....@@......@.@@@.@....@@.....::.
+.:::~@@.:...:.@@...@@.:.:.@@~::::.
+     .::~@@@@@@@@@@.....@@@@@@@@@~::.
+       ..:~~~~~~~:.......:~~~~~~~:..
+          ......................
+              ..............
+ -----------------------------------------
+
+ Total time             :      1.211
+ Total simulation time  :      1.198
+ Time in input          :      0.013
+ Time in boundaries     :      0.042 (  3.5%)
+ Time in momentum       :      0.881 ( 73.5%)
+ Time in continuity     :      0.207 ( 17.3%)
+ Time in output         :      0.055 (  4.6%)
+
+ Average time step (s)  :     22.031
+
+ ---------- Closing off SFINCS -----------
+</pre></div>
+</div>
+</section>
+<section id="possible-error-messages-and-possible-solutions">
+<h2>Possible error messages and possible solutions<a class="headerlink" href="#possible-error-messages-and-possible-solutions" title="Permalink to this headline">¶</a></h2>
+<p>In case the following message is written to the screen, it means that something in the simulation has gone wrong.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Maximum depth of 100.0 m reached!!! Simulation stopped.
+</pre></div>
+</div>
+<p>This means that a too large water depth has occured somewhere in the domain, indicating that some input is probably not optimal.</p>
+<p>Possible problems can be:</p>
+<ul class="simple">
+<li><p>The provided elevation file has very rapid changes in elevation, that locally lead to large water level gradients and fluxes. Possible solution: locally smooth the elevation data and provide this as a new depfile</p></li>
+<li><p>In general the internal timesteps of SFINCS might be too large. Possible solution: reduce timesteps by supplying a lower value of alpha (e.g. 0.5) or set a low enough value of ‘dtmax’.</p></li>
+<li><p>Sometimes a simulation might contain too large water depths are start in too deep water. This can potentially create problems as SFINCS is intented as a shallow water model.</p></li>
+<li><p>When only forcing discharges in a for the rest entirely dry domain, the initial time steps can be too coarse to account for the needed timesteps when the discharge starts to flow. Possible solution: Make sure that part of the river/domain initially has water (limiting the time step) by specifying either ‘zsini’ or an ‘inifile’.</p></li>
+<li><p>When forcing waves, the bzifile time-series might contain too rapid changes in water level, the internal timesteps of SFINCS are too large. Possible solution: reduce timesteps by supplying a lower value of alpha (e.g. 0.5).</p></li>
+<li><p><strong>Tip to check your model</strong>: specify netcdf output and load in the sfincs_map.nc file (e.g. Quickplot, Panoply, Matlab, Python) and have a look at the variables ‘zb’ and ‘msk’. Then you can see how SFINCS has interpreted the prodivided depfile and mskfile. Does map plots of these variables look weird? Probably something in your input file is not entirely correct!</p></li>
+</ul>
+<p>Besides model instabilities, other recurring problems might be:</p>
+<ul class="simple">
+<li><p>A specified (forcing) file/parameters is not read in &gt; check whether you specified the name (e.g. netamuamvfile   = netamuamv.nc ) with <strong>ONLY SPACES</strong> in between the keyword and argument. SFINCS does not interpret a mixture of spaces and tabs well. This may cause a file or parameter to be read in as ‘none’, whereafter this is not used in the model simulation as wanted.</p></li>
+</ul>
+</section>
+</section>
+<section id="output-description">
+<h1>Output description<a class="headerlink" href="#output-description" title="Permalink to this headline">¶</a></h1>
+<section id="parameters-netcdf-file-global-sfincs-map-nc">
+<h2>Parameters netcdf file global (sfincs_map.nc)<a class="headerlink" href="#parameters-netcdf-file-global-sfincs-map-nc" title="Permalink to this headline">¶</a></h2>
+<p>In case of netcdf output, the given parameters mean the following:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>x</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>x coordinate of cell centers in projected reference system</p>
+</dd>
+<dt class="field-even">standard_name</dt>
+<dd class="field-even"><p>projection_x_coordinate</p>
+</dd>
+<dt class="field-odd">units</dt>
+<dd class="field-odd"><p>m in projected reference system</p>
+</dd>
+</dl>
+</dd>
+<dt>y</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>y coordinate of cell centers in projected reference system</p>
+</dd>
+<dt class="field-even">standard_name</dt>
+<dd class="field-even"><p>projection_y_coordinate</p>
+</dd>
+<dt class="field-odd">units</dt>
+<dd class="field-odd"><p>m in projected reference system</p>
+</dd>
+</dl>
+</dd>
+<dt>edge_x</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>x coordinate of cell corners in projected reference system</p>
+</dd>
+<dt class="field-even">standard_name</dt>
+<dd class="field-even"><p>projection_x_coordinate</p>
+</dd>
+<dt class="field-odd">units</dt>
+<dd class="field-odd"><p>m in projected reference system</p>
+</dd>
+</dl>
+</dd>
+<dt>edge_y</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>y coordinate of cell corners in projected reference system</p>
+</dd>
+<dt class="field-even">standard_name</dt>
+<dd class="field-even"><p>projection_y_coordinate</p>
+</dd>
+<dt class="field-odd">units</dt>
+<dd class="field-odd"><p>m in projected reference system</p>
+</dd>
+</dl>
+</dd>
+<dt>zb</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>Bed level elevation (in case of subgrid version of SFINCS, this elevation is not used in the model but the sbgfile with subgrid tables is used instead).</p>
+</dd>
+<dt class="field-even">standard_name</dt>
+<dd class="field-even"><p>altitude</p>
+</dd>
+<dt class="field-odd">units</dt>
+<dd class="field-odd"><p>m above reference level</p>
+</dd>
+</dl>
+</dd>
+<dt>msk</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>Time-step global map output.</p>
+</dd>
+<dt class="field-even">standard_name</dt>
+<dd class="field-even"><p>land_binary_mask</p>
+</dd>
+<dt class="field-odd">units</dt>
+<dd class="field-odd"><ul class="simple">
+<li></li>
+</ul>
+</dd>
+</dl>
+</dd>
+<dt>time</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>Time of global map output.</p>
+</dd>
+<dt class="field-even">standard_name</dt>
+<dd class="field-even"><p>time</p>
+</dd>
+<dt class="field-odd">units</dt>
+<dd class="field-odd"><p>seconds since ‘tref’</p>
+</dd>
+</dl>
+</dd>
+<dt>zs</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>Instantaneous water level per ‘dtout’ timestep, corresponding with netcdf variable ‘time’.</p>
+</dd>
+<dt class="field-even">standard_name</dt>
+<dd class="field-even"><p>sea_surface_height_above_mean_sea_level</p>
+</dd>
+<dt class="field-odd">units</dt>
+<dd class="field-odd"><p>m above reference level</p>
+</dd>
+</dl>
+</dd>
+<dt>h</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>Instantaneous water depth per ‘dtout’ timestep, corresponding with netcdf variable ‘time’.</p>
+</dd>
+<dt class="field-even">standard_name</dt>
+<dd class="field-even"><p>depth</p>
+</dd>
+<dt class="field-odd">units</dt>
+<dd class="field-odd"><p>m</p>
+</dd>
+</dl>
+</dd>
+<dt>timemax</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>Time of global map output per ‘dtmaxout’ timestep.</p>
+</dd>
+<dt class="field-even">standard_name</dt>
+<dd class="field-even"><p>time</p>
+</dd>
+<dt class="field-odd">units</dt>
+<dd class="field-odd"><p>seconds since ‘tref’</p>
+</dd>
+</dl>
+</dd>
+<dt>zsmax</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>Maximum water level per ‘dtmaxout’ timestep, only given if dtmaxout&gt;0, corresponding with netcdf variable ‘timemax’.</p>
+</dd>
+<dt class="field-even">standard_name</dt>
+<dd class="field-even"><p>maximum of sea_surface_height_above_mean_sea_level</p>
+</dd>
+<dt class="field-odd">units</dt>
+<dd class="field-odd"><p>m above reference level</p>
+</dd>
+</dl>
+</dd>
+<dt>cuminf</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>Cumulative infiltration depth over whole simulation.</p>
+</dd>
+<dt class="field-even">units</dt>
+<dd class="field-even"><p>m</p>
+</dd>
+</dl>
+</dd>
+<dt>cumprcp</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>Cumulative precipitation depth over whole simulation.</p>
+</dd>
+<dt class="field-even">units</dt>
+<dd class="field-even"><p>m</p>
+</dd>
+</dl>
+</dd>
+<dt>inp</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>Copy of all the supplied input to SFINCS from ‘sfincs.inp’.</p>
+</dd>
+<dt class="field-even">units</dt>
+<dd class="field-even"><ul class="simple">
+<li></li>
+</ul>
+</dd>
+</dl>
+</dd>
+<dt>total_runtime</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>Total model runtime in seconds, as displayed by SFINCS to the screen.</p>
+</dd>
+<dt class="field-even">units</dt>
+<dd class="field-even"><p>s</p>
+</dd>
+</dl>
+</dd>
+<dt>average_dt</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>Model average timestep in seconds, as displayed by SFINCS to the screen.</p>
+</dd>
+<dt class="field-even">units</dt>
+<dd class="field-even"><p>s</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</div></blockquote>
+</section>
+<section id="parameters-netcdf-file-observation-points-sfincs-his-nc">
+<h2>Parameters netcdf file observation points (sfincs_his.nc)<a class="headerlink" href="#parameters-netcdf-file-observation-points-sfincs-his-nc" title="Permalink to this headline">¶</a></h2>
+<p>This file is only created if observation points are supplied in the ‘obsfile’.</p>
+<blockquote>
+<div><dl class="simple">
+<dt>point_x</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>x coordinate of interpreted observation points in projected reference system</p>
+</dd>
+<dt class="field-even">standard_name</dt>
+<dd class="field-even"><p>projection_x_coordinate</p>
+</dd>
+<dt class="field-odd">units</dt>
+<dd class="field-odd"><p>m in projected reference system</p>
+</dd>
+</dl>
+</dd>
+<dt>point_y</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>y coordinate of interpreted observation points in projected reference system</p>
+</dd>
+<dt class="field-even">standard_name</dt>
+<dd class="field-even"><p>projection_y_coordinate</p>
+</dd>
+<dt class="field-odd">units</dt>
+<dd class="field-odd"><p>m in projected reference system</p>
+</dd>
+</dl>
+</dd>
+<dt>station_x</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>x coordinate of specified observation points in projected reference system</p>
+</dd>
+<dt class="field-even">standard_name</dt>
+<dd class="field-even"><p>projection_x_coordinate</p>
+</dd>
+<dt class="field-odd">units</dt>
+<dd class="field-odd"><p>m in projected reference system</p>
+</dd>
+</dl>
+</dd>
+<dt>station_y</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>y coordinate of specified observation points in projected reference system</p>
+</dd>
+<dt class="field-even">standard_name</dt>
+<dd class="field-even"><p>projection_y_coordinate</p>
+</dd>
+<dt class="field-odd">units</dt>
+<dd class="field-odd"><p>m in projected reference system</p>
+</dd>
+</dl>
+</dd>
+<dt>point_zb</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>Bed level elevation of observation points.</p>
+</dd>
+<dt class="field-even">standard_name</dt>
+<dd class="field-even"><p>altitude</p>
+</dd>
+<dt class="field-odd">units</dt>
+<dd class="field-odd"><p>m above reference level</p>
+</dd>
+</dl>
+</dd>
+<dt>time</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>Time of his output.</p>
+</dd>
+<dt class="field-even">standard_name</dt>
+<dd class="field-even"><p>time</p>
+</dd>
+<dt class="field-odd">units</dt>
+<dd class="field-odd"><p>seconds since ‘tref’</p>
+</dd>
+</dl>
+</dd>
+<dt>point_zs</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>Instantaneous water level per ‘dthisout’ timestep of observation points, corresponding with netcdf variable ‘time’.</p>
+</dd>
+<dt class="field-even">standard_name</dt>
+<dd class="field-even"><p>sea_surface_height_above_mean_sea_level</p>
+</dd>
+<dt class="field-odd">units</dt>
+<dd class="field-odd"><p>m above reference level</p>
+</dd>
+</dl>
+</dd>
+<dt>point_h</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>Instantaneous water depth per ‘dthisout’ timestep of observation points, corresponding with netcdf variable ‘time’.</p>
+</dd>
+<dt class="field-even">standard_name</dt>
+<dd class="field-even"><p>point_h</p>
+</dd>
+<dt class="field-odd">units</dt>
+<dd class="field-odd"><p>m</p>
+</dd>
+</dl>
+</dd>
+<dt>point_prcp</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>Instantaneous precipitation rate ‘dthisout’ timestep, corresponding with netcdf variable ‘time’.</p>
+</dd>
+<dt class="field-even">standard_name</dt>
+<dd class="field-even"><p>sea_surface_height_above_mean_sea_level</p>
+</dd>
+<dt class="field-odd">units</dt>
+<dd class="field-odd"><p>m above reference level</p>
+</dd>
+</dl>
+</dd>
+<dt>point_qinf</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>Instantaneous infiltration rate per ‘dthisout’ timestep, corresponding with netcdf variable ‘time’.</p>
+</dd>
+<dt class="field-even">standard_name</dt>
+<dd class="field-even"><p>point_qinf</p>
+</dd>
+<dt class="field-odd">units</dt>
+<dd class="field-odd"><p>m</p>
+</dd>
+</dl>
+</dd>
+<dt>crosssection_discharge</dt><dd><dl class="field-list simple">
+<dt class="field-odd">description</dt>
+<dd class="field-odd"><p>Discharge through cross-section per ‘dthisout’ timestep, corresponding with netcdf variable ‘time’.</p>
+</dd>
+<dt class="field-even">standard_name</dt>
+<dd class="field-even"><p>discharge</p>
+</dd>
+<dt class="field-odd">units</dt>
+<dd class="field-odd"><p>m3/s</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</div></blockquote>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="parameters.html" class="btn btn-neutral float-left" title="Input parameters" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2018, Tim Leijnse.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

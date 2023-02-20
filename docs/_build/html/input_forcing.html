@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User manual - forcing &mdash; SFINCS 1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="User manual - structures" href="input_structures.html" />
+    <link rel="prev" title="User manual - general" href="input.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> SFINCS
+          </a>
+              <div class="version">
+                1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Introduction</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developments:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="developments.html">Developments</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Getting started:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="example.html">Setting up models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#executable">Executable</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#compiling-yourself">Compiling yourself</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#running-sfincs">Running SFINCS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#courses-learning-sfincs">Courses learning SFINCS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#questions-and-support">Questions and support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#contributing">Contributing</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User manual:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="input.html">User manual - general</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">User manual - forcing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#forcing">Forcing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#water-levels">Water levels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#water-level-points">Water level points</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#water-level-time-series">Water level time-series</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#waves">Waves</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#netcdf-format-input">Netcdf format input</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#discharges">Discharges</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#discharge-points">Discharge points</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#discharge-time-series">Discharge time-series</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Netcdf format input</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#meteo">Meteo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#spatially-varying-spiderweb">Spatially varying spiderweb</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#spatially-varying-gridded">Spatially varying gridded</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#spatially-varying-gridded-netcdf">Spatially varying gridded netcdf</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#spatially-uniform">Spatially uniform</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="input_structures.html">User manual - structures</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input parameters and files:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html">Input parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html#input-files">Input files</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Model output and messages:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="output.html">Output messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output.html#output-description">Output description</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SFINCS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>User manual - forcing</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/input_forcing.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="user-manual-forcing">
+<h1>User manual - forcing<a class="headerlink" href="#user-manual-forcing" title="Permalink to this headline">¶</a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>The input for SFINCS is supplied using various text and binary files, which are linked through the main input file: sfincs.inp.
+Within this section of the user manual all different types of forcing settings and files are discussed.
+The figure below gives an overview of all different types of input files and whether they are required or not.
+Below an example is given of this file, which uses a keyword/value layout.
+For more information regarding specific parameters see the pages ‘Input parameters’ or ‘Output parameters’.</p>
+<p><strong>NOTE - In the manual below, blocks named ‘Matlab example using OET’ are included, referring to easy setup scripts included in the SFINCS’ Open Earth Tools Matlab set of scripts: https://svn.oss.deltares.nl/repos/openearthtools/trunk/matlab/applications/sfincs</strong></p>
+<figure class="align-center" id="id2">
+<a class="reference internal image-reference" href="_images/SFINCS_documentation_forcing.png"><img alt="_images/SFINCS_documentation_forcing.png" src="_images/SFINCS_documentation_forcing.png" style="width: 800px;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 13 </span><span class="caption-text">Overview of input file of SFINCS with indication whther they are required or not</span><a class="headerlink" href="#id2" title="Permalink to this image">¶</a></p>
+</figcaption>
+</figure>
+<section id="forcing">
+<h3>Forcing<a class="headerlink" href="#forcing" title="Permalink to this headline">¶</a></h3>
+<p>SFINCS has different functionalities regarding different relevant physical processes for compound flooding and what type of model is required.
+At first nearshore/offshore water levels can be specified at the different locations along the coast to include tides and storm surge levels.
+Inland drivers of flooding like precipitation and wind can be specified in a number of ways.
+This varies from simple spatially uniform time-series to spatially varying spiderwebs or grid input types.
+Furthermore, simple implementations for discharges are included.</p>
+<p>Discussed in this user manual are the water-level boundaries, discharge points, wind, pressure, rain and waves.</p>
+</section>
+</section>
+<section id="water-levels">
+<h2>Water levels<a class="headerlink" href="#water-levels" title="Permalink to this headline">¶</a></h2>
+<p>To specify water-level time-series to the boundary cells (msk=2), first the input locations have to be specified in ‘sfincs.bnd’.
+For every boundary point there is interpolated with a weighted average between the two closest input locations.</p>
+<figure class="align-center" id="id3">
+<a class="reference internal image-reference" href="_images/SFINCS_boundary_input_grid.PNG"><img alt="_images/SFINCS_boundary_input_grid.PNG" src="_images/SFINCS_boundary_input_grid.PNG" style="width: 400px;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 14 </span><span class="caption-text">Example of the weighted interpolation of boundary input locations to the msk=2 boundary cells.</span><a class="headerlink" href="#id3" title="Permalink to this image">¶</a></p>
+</figcaption>
+</figure>
+<section id="water-level-points">
+<h3>Water level points<a class="headerlink" href="#water-level-points" title="Permalink to this headline">¶</a></h3>
+<p><strong>bndfile = sfincs.bnd</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;bnd1 x1&gt; &lt;bnd1 y1&gt;
+
+&lt;bnd2 x2&gt; &lt;bnd2 y2&gt;
+
+e.g.
+400000  1200000
+480000  1250000
+</pre></div>
+</div>
+<p><strong>Matlab example using OET</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>points.x(1) = 400000;
+points.y(1) = 1200000;
+points.x(2) = 480000;
+points.y(2) = 1250000;
+
+sfincs_write_boundary_points(inp.bndfile,points)
+</pre></div>
+</div>
+</section>
+<section id="water-level-time-series">
+<h3>Water level time-series<a class="headerlink" href="#water-level-time-series" title="Permalink to this headline">¶</a></h3>
+<p>Then in the file ‘sfincs.bzs’ the water level time-series are specified per input location.
+Times are specified in seconds with respect to SFINCS’ internal reference time ‘tref’, as specified in sfincs.inp.</p>
+<p><strong>NOTE - The time and length of values you prescibe per boundary input location should be all the same in the bzsfile</strong></p>
+<p><strong>bzsfile = sfincs.bzs</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;time 1&gt; &lt;zs1 bnd1&gt; &lt;zs1 bnd2&gt;
+
+&lt;time 2&gt; &lt;zs2 bnd1&gt; &lt;zs2 bnd2&gt;
+
+e.g.
+0       0.50    0.75
+3600    0.60    0.80
+7200    0.45    0.85
+</pre></div>
+</div>
+<p><strong>Matlab example using OET</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>time = [0, 3600, 7200];
+waterlevels = [0.5, 0.75; 0.6, 0.8; 0.45, 0.85];
+
+sfincs_write_boundary_conditions(inp.bzsfile,time,waterlevels)
+</pre></div>
+</div>
+</section>
+</section>
+<section id="waves">
+<h2>Waves<a class="headerlink" href="#waves" title="Permalink to this headline">¶</a></h2>
+<p>When forcing waves, besides providing a bzsfile with slowly varying water level time-series, also the same type of file with the quickly varying water level component due to waves can be prescribed.
+This can contain infragravity and/or short waves.
+Do note that the forced signal should be the incoming wave component only, not including the reflecting one, since this is computed by SFINCS internally as well.
+The signal should be around 0.</p>
+<p><strong>NOTE - Specified time should be the same in both the bzs and bzi files</strong></p>
+<p><strong>bzifile = sfincs.bzi</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;time 1&gt; &lt;zi1 bnd1&gt; &lt;zi1 bnd2&gt;
+
+&lt;time 2&gt; &lt;zi2 bnd1&gt; &lt;zi2 bnd2&gt;
+
+e.g.
+0       0.05    0.07
+2       -0.02   -0.04
+4       0.10    0.03
+</pre></div>
+</div>
+<section id="netcdf-format-input">
+<h3>Netcdf format input<a class="headerlink" href="#netcdf-format-input" title="Permalink to this headline">¶</a></h3>
+<p>As alternative, the bnd/bzs/bzi data can also be specified using a single Netcdf file with FEWS input type format ‘netbndbzsbzifile’.
+Making this format netcdf file can be easily done using the OET Matlab script ‘sfincs_write_netcdf_bndbzsbzifile.m’</p>
+<p><strong>Matlab example using OET</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>inp.netbndbzsbzifile = &#39;sfincs_netbndbzsbzifile.nc&#39;;
+
+x = [0, 100, 200];
+y = [50, 150, 250];
+
+EPSGcode = 32631;
+UTMname = &#39;UTM31N&#39;;
+
+refdate  = &#39;1970-01-01 00:00:00&#39;;
+% possibly use formatOut = &#39;yyyy-mm-dd HH:MM:SS&#39;; datestr(tref, formatOut);
+
+time = [0, 60];
+
+rng(&#39;default&#39;);
+bzs = -1 * randi([0 10],length(time),length(x));
+bzi = -1 * randi([0 10],length(time),length(x));
+
+sfincs_write_netcdf_bndbzsbzifile(inp.netbndbzsbzifile, x, y, EPSGcode, UTMname, refdate, time, bzs, bzi)
+</pre></div>
+</div>
+</section>
+</section>
+<section id="discharges">
+<h2>Discharges<a class="headerlink" href="#discharges" title="Permalink to this headline">¶</a></h2>
+<p>A simple implementation of discharge points is added to SFINCS, specify values in m^3/s.
+First specify the locations in ‘sfincs.src’ and then the discharge time-series in ‘sfincs.dis’.
+Alternatively, you can provide this as netcdf file in the Delft-FEWS format.</p>
+<figure class="align-center" id="id4">
+<a class="reference internal image-reference" href="_images/SFINCS_discharge_input_grid.png"><img alt="_images/SFINCS_discharge_input_grid.png" src="_images/SFINCS_discharge_input_grid.png" style="width: 400px;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 15 </span><span class="caption-text">Example of how discharge input points from 2 different sources are snapped to the grid of SFINCS.</span><a class="headerlink" href="#id4" title="Permalink to this image">¶</a></p>
+</figcaption>
+</figure>
+<section id="discharge-points">
+<h3>Discharge points<a class="headerlink" href="#discharge-points" title="Permalink to this headline">¶</a></h3>
+<p><strong>srcfile = sfincs.src</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;src1 x1&gt; &lt;src1 y1&gt;
+
+&lt;src2 x2&gt; &lt;src2 y2&gt;
+
+e.g.
+300000  1500000
+380000  1650000
+</pre></div>
+</div>
+<p><strong>Matlab example using OET</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>points.x(1) = 300000;
+points.y(1) = 1500000;
+points.x(2) = 380000;
+points.y(2) = 1650000;
+
+sfincs_write_boundary_points(inp.srcfile,points)
+</pre></div>
+</div>
+</section>
+<section id="discharge-time-series">
+<h3>Discharge time-series<a class="headerlink" href="#discharge-time-series" title="Permalink to this headline">¶</a></h3>
+<p>Then in the file ‘sfincs.dis’ the discharge time-series are specified per input location.
+Times are specified in seconds with respect to SFINCS’ internal reference time ‘tref’, as specified in sfincs.inp.</p>
+<p><strong>disfile = sfincs.dis</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;time 1&gt; &lt;dis1 src1&gt; &lt;dis1 src2&gt;
+
+&lt;time 2&gt; &lt;dis2 src1&gt; &lt;dis2 src2&gt;
+
+e.g.
+0       100     1000
+3600    300     1100
+7200    0       1300
+</pre></div>
+</div>
+<p><strong>Matlab example using OET</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>time = [0, 3600, 7200];
+discharge = [100, 1000; 300, 1100; 0, 1300];
+
+sfincs_write_boundary_conditions(inp.disfile,time,discharge)
+</pre></div>
+</div>
+</section>
+<section id="id1">
+<h3>Netcdf format input<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>As alternative, the src/dis data can also be specified using a single Netcdf file with FEWS input type format ‘netsrcdisfile’.
+SFINCS assumes that the input variables ‘x’, ‘y’, ‘time’, ‘discharge’ and ‘stations’ are available in the netcdf file, including a reference time as UNIT in variable ‘time’ of the Fews time format: “minutes since 1970-01-01 00:00:00.0 +0000”</p>
+<p><strong>Matlab example using OET</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>inp.netsrcdisfile = &#39;sfincs_netsrcdisfile.nc&#39;;
+
+x = [0, 100, 200];
+y = [50, 150, 250];
+
+EPSGcode = 32631;
+UTMname = &#39;UTM31N&#39;;
+
+refdate  = &#39;1970-01-01 00:00:00&#39;;
+% possibly use formatOut = &#39;yyyy-mm-dd HH:MM:SS&#39;; datestr(tref, formatOut);
+
+time = [0, 60];
+
+rng(&#39;default&#39;);
+dis = -1 * randi([0 10],length(time),length(x));
+
+sfincs_write_netcdf_srcdisfile(inp.netsrcdisfile, x, y, EPSGcode, UTMname, refdate, time, dis)
+</pre></div>
+</div>
+</section>
+</section>
+<section id="meteo">
+<h2>Meteo<a class="headerlink" href="#meteo" title="Permalink to this headline">¶</a></h2>
+<p>There are a few different options to specify wind and rain input:</p>
+<ol class="arabic simple">
+<li><p>Use a spatially varying spiderweb input (as in Delft3D/Delft3D FM) for forcing tropical cyclones only the wind and pressure input, or for the wind as well as the rain input.</p></li>
+<li><p>Use a spatially varying grid input (as in Delft3D) for u- and v- wind velocities and/or the rain and/or pressure input.</p></li>
+<li><p>Use a spatially varying grid input using a netcdf file based on a FEWS input type format for wind, rain and/or atmospheric pressure input.</p></li>
+<li><p>Use a spatially uniform input for wind and rain, which is faster but also more simplified.</p></li>
+<li><p>Make a combination, for instance use a spiderweb for the wind input and a spatially uniform rain-input. When combining, test whether the forcing is as wanted since not all combinations of the above options might be possible and/or changing depending on specific code version.</p></li>
+</ol>
+<figure class="align-center" id="id5">
+<a class="reference internal image-reference" href="_images/SFINCS_documentation_forcing_meteo.png"><img alt="_images/SFINCS_documentation_forcing_meteo.png" src="_images/SFINCS_documentation_forcing_meteo.png" style="width: 300px;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 16 </span><span class="caption-text">Overview of possible meteo input file options and names</span><a class="headerlink" href="#id5" title="Permalink to this image">¶</a></p>
+</figcaption>
+</figure>
+<section id="spatially-varying-spiderweb">
+<h3>Spatially varying spiderweb<a class="headerlink" href="#spatially-varying-spiderweb" title="Permalink to this headline">¶</a></h3>
+<p>The option of forcing spiderweb files is only relevant for tropical cyclones, best is to put grid units in the same projected coordinate reference system (UTM zone) as the SFINCS grid.
+For generation of these spiderweb files use Deltares’ Wind Enhancement Scheme tool (WES, see <a class="reference external" href="https://content.oss.deltares.nl/delft3d/manuals/Delft3D-WES_User_Manual.pdf">https://content.oss.deltares.nl/delft3d/manuals/Delft3D-WES_User_Manual.pdf</a> or OET Matlab equivalent) or get in touch.</p>
+<p><strong>Spiderweb-input:</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>spwfile = tropical_cyclone.spw
+</pre></div>
+</div>
+</section>
+<section id="spatially-varying-gridded">
+<h3>Spatially varying gridded<a class="headerlink" href="#spatially-varying-gridded" title="Permalink to this headline">¶</a></h3>
+<p>Spatially varying meteo input on constant grid can be forced using the native Delft3D type meteo input files, using the same file conventions.
+For wind this is wind in x-&amp;y-direction (amu, amv), precipitation (ampr) and atmospheric pressure (amp).
+The grid has a constant resolution dx&amp;dy, which can be in the native (usually coarser than your SFINCS grid) resolution of the meteo data.
+Within SFINCS this is interpolated onto the actual SFINCS grid.</p>
+<p><strong>Wind:</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>**amufile = sfincs.amu**
+
+within amufile:
+
+quantity1        = x_wind
+unit1            = m s-1
+
+**amvfile = sfincs.amv**
+
+within amvfile:
+
+quantity1        = y_wind
+unit1            = m s-1
+</pre></div>
+</div>
+<p><strong>Rain:</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>**amprfile = sfincs.ampr**
+
+within amprfile:
+
+quantity1        = precipitation
+unit1            = mm/hr
+</pre></div>
+</div>
+<p><strong>Atmospheric pressure:</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>**ampfile = sfincs.amp**
+
+within ampfile:
+
+quantity1        = air_pressure
+unit1            = Pa
+</pre></div>
+</div>
+<p><strong>Delft3D-meteo ascii type input:</strong></p>
+<p>These files have this general header of <strong>13 lines</strong> which SFINCS expects (<strong>Check this after creating your input files!</strong>), after which the TIME and data blocks are given per time frame.
+Only use 1 quantity per file:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>FileVersion      = 1.03
+filetype         = meteo_on_equidistant_grid
+n_cols           = 2
+n_rows           = 4
+grid_unit        = m
+x_llcorner       = 417328
+y_llcorner       = 3495537
+dx               = 5000
+dy               = 5000
+n_quantity       = 1
+quantity1        = x_wind
+unit1            = m s-1
+NODATA_value     = -999
+TIME = 90831.0 hours since 1970-01-01 00:00:00 +00:00  # 1980-05-12 15:00:00
+0 0 0 0
+0 0 0 0
+TIME = 90831.0 hours since 1970-01-01 00:00:00 +00:00  # 1980-05-12 15:00:00
+0 0 0 0
+0 0 0 0
+</pre></div>
+</div>
+<p><strong>Matlab example using OET</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>data.parameter.time = datenum(2018,01,01):3/24:datenum(2018,01,02);
+data.parameter.x = 0:5000:25000;
+data.parameter.y = 10000:5000:40000;
+
+data.parameter.val = ones(length(data.parameter.time), length(data.parameter.y), length(data.parameter.x));
+
+write_meteo_file_delft3d(inp.amufile, data, &#39;x_wind&#39;, &#39;m s-1&#39;, datenum(1970,01,01), varargin);
+
+see &#39;write_meteo_file_delft3d.m&#39; for more information.
+</pre></div>
+</div>
+</section>
+<section id="spatially-varying-gridded-netcdf">
+<h3>Spatially varying gridded netcdf<a class="headerlink" href="#spatially-varying-gridded-netcdf" title="Permalink to this headline">¶</a></h3>
+<p>The same spatially varying gridded input as using Delft3d’ ascii input files can be specified using FEWS compatible Netcdf input files.
+Here for the wind the amu&amp;amv files are combined into 1 Netcdf file (netamuamvfile), the precipitation is in a separate input file (netamprfile) as well as the atmospheric pressure (netampfile).</p>
+<p>Making this format netcdf file can be easily done using the OET Matlab scripts ‘sfincs_write_netcdf_amuamvfile.m’, ‘sfincs_write_netcdf_amprfile.m’and ‘sfincs_write_netcdf_ampfile.m’.
+See those files for more information.</p>
+<p><strong>Matlab example using OET - netamuamvfile</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>inp.netamuamvfile = &#39;sfincs_netamuamvfile.nc&#39;;
+
+x = [0, 100, 200];
+y = [50, 150, 250];
+
+EPSGcode = 32631;
+UTMname = &#39;UTM31N&#39;;
+
+refdate  = &#39;1970-01-01 00:00:00&#39;;
+% possibly use formatOut = &#39;yyyy-mm-dd HH:MM:SS&#39;; datestr(tref, formatOut);
+
+time = [0, 60];
+
+rng(&#39;default&#39;);
+amu = -1 * randi([0 10],length(time),length(y),length(x));
+amv = 1 * randi([0 10],length(time),length(y),length(x));
+
+sfincs_write_netcdf_amuamvfile(inp.netamuamvfile, x, y, EPSGcode, UTMname, refdate, time, amu, amv)
+</pre></div>
+</div>
+<p><strong>Matlab example using OET - netamprfile</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>inp.netamprfile = &#39;sfincs_netamprfiles.nc&#39;;
+
+x = [0, 100, 200];
+y = [50, 150, 250];
+
+EPSGcode = 32631;
+UTMname = &#39;UTM31N&#39;;
+
+refdate  = &#39;1970-01-01 00:00:00&#39;;
+% possibly use formatOut = &#39;yyyy-mm-dd HH:MM:SS&#39;; datestr(tref, formatOut);
+
+time = [0, 60];
+
+rng(&#39;default&#39;);
+ampr = -1 * randi([0 10],length(time),length(y),length(x));
+
+sfincs_write_netcdf_amprfile(inp.netamprfile, x, y, EPSGcode, UTMname, refdate, time, ampr)
+</pre></div>
+</div>
+<p><strong>Matlab example using OET - netampfile</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>inp.netampfile = &#39;sfincs_netampfiles.nc&#39;;
+
+x = [0, 100, 200];
+y = [50, 150, 250];
+
+EPSGcode = 32631;
+UTMname = &#39;UTM31N&#39;;
+
+refdate  = &#39;1970-01-01 00:00:00&#39;;
+% possibly use formatOut = &#39;yyyy-mm-dd HH:MM:SS&#39;; datestr(tref, formatOut);
+
+time = [0, 60];
+
+rng(&#39;default&#39;);
+amp = -1 * randi([0 10],length(time),length(y),length(x));
+
+sfincs_write_netcdf_ampfile(inp.netampfile, x, y, EPSGcode, UTMname, refdate, time, amp)
+</pre></div>
+</div>
+</section>
+<section id="spatially-uniform">
+<h3>Spatially uniform<a class="headerlink" href="#spatially-uniform" title="Permalink to this headline">¶</a></h3>
+<p><strong>Spatially uniform wind:</strong></p>
+<p>‘vmag’ is the wind speed in m/s, ‘vdir’ is the wind direction in nautical from where the wind is coming. The file can be make using OET Matlab script ‘sfincs_write_boundary_conditions.m’.
+Times are specified in seconds with respect to SFINCS’ internal reference time ‘tref’, as specified in sfincs.inp.</p>
+<p><strong>wndfile = sfincs.wnd</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;time 1&gt; &lt;vmag1&gt; &lt;vdir1&gt;
+
+&lt;time 2&gt; &lt;vmag2&gt; &lt;vdir2&gt;
+
+e.g.
+0       5       120
+3600    15      180
+7200    10      165
+</pre></div>
+</div>
+<p><strong>Spatially uniform rain:</strong></p>
+<p>Rain input in mm/hr, times are specified in seconds with respect to SFINCS’ internal reference time ‘tref’, as specified in sfincs.inp.
+The file can be make using OET Matlab script ‘sfincs_write_boundary_conditions.m’.</p>
+<p><strong>precipfile = sfincs.prcp</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;time 1&gt; &lt;prcp0&gt;
+
+&lt;time 2&gt; &lt;prcp1&gt;
+
+e.g.
+0       0
+3600    15
+7200    10
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="input.html" class="btn btn-neutral float-left" title="User manual - general" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="input_structures.html" class="btn btn-neutral float-right" title="User manual - structures" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2018, Tim Leijnse.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

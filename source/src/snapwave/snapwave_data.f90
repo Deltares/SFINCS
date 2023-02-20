@@ -137,7 +137,6 @@ module snapwave_data
    real*4                                    :: gamma_ig        ! gamma breaking for 
    real*4                                    :: Tinc2ig         ! ratio compared to period Tinc to estimate Tig
    real*4                                    :: shinc2ig        ! TO ADD
-   real*4                                    :: finc2ig         ! TO ADD 
    real*4                                    :: eeinc2ig        ! ratio of incident wave energy as first estimate of IG wave energy at boundary
    real*4                                    :: hmin            ! minimum water depth
    character*256                             :: gridfile        ! name of gridfile (Delft3D .grd format)

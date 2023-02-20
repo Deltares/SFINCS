@@ -135,11 +135,11 @@ contains
          !
          if (wavemaker) then
             !
-            snapwave_depth(nm) = max(zsm(ip) - snapwave_z(nm), 0.01)      
+            snapwave_depth(nm) = max(zsm(ip) - snapwave_z(nm), 0.001)      
             !
          else   
             !
-            snapwave_depth(nm) = max(zs(ip) - snapwave_z(nm), 0.01)      
+            snapwave_depth(nm) = max(zs(ip) - snapwave_z(nm), 0.001)      
             !
          endif   
          !
@@ -288,7 +288,6 @@ contains
    call read_real_input(500,'snapwave_gammaig',gamma_ig,0.7)   
    call read_real_input(500,'snapwave_Tinc2ig',Tinc2ig,7.0)   
    call read_real_input(500,'snapwave_shinc2ig',shinc2ig,0.8)   
-   call read_real_input(500,'snapwave_finc2ig',finc2ig,0.2)   
    call read_real_input(500,'snapwave_eeinc2ig',eeinc2ig,0.01)      
 !   call read_int_input(500,'ntheta',ntheta,36)
 !   call read_int_input(500,'nHrel',nHrel,1)

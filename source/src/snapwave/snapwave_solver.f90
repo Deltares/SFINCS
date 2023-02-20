@@ -82,7 +82,7 @@ module snapwave_solver
       call solve_energy_balance2Dstat (x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                        theta,ntheta,thetamean,                                    &
                                        depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,50000.,rho,snapwave_alpha,gamma,                 &
-                                       H,H_ig,Dw,F,Df,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, finc2ig, eeinc2ig)
+                                       H,H_ig,Dw,F,Df,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig)
       !
 !      call timer(t3)
       !
@@ -98,7 +98,7 @@ module snapwave_solver
    subroutine solve_energy_balance2Dstat(x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                          theta,ntheta,thetamean,                                    &
                                          depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,T,dt,rho,alfa,gamma,                 &
-                                         H,H_ig,Dw,F,Df,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, finc2ig, eeinc2ig)
+                                         H,H_ig,Dw,F,Df,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig)
    !
    implicit none
    !
@@ -188,7 +188,6 @@ module snapwave_solver
    real*4                                     :: Ek_ig
    real*4                                     :: Hk_ig
    real*4                                     :: Fk_ig
-   real*4                                     :: finc2ig
    real*4                                     :: shinc2ig
    real*4                                     :: fbr
    real*4                                     :: fsh
@@ -257,8 +256,6 @@ module snapwave_solver
       sinth(itheta) = sin(theta(itheta))
       costh(itheta) = cos(theta(itheta))
    enddo   
-   !
-   !finc2ig = 0.20 --> now user defineable
    !
    T_ig = Tinc2ig*T ! default is Tinc2ig = 7.0 as before
    !   

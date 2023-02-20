@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Numerical implementation &mdash; SFINCS 1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> SFINCS
+          </a>
+              <div class="version">
+                1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Introduction</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developments:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="developments.html">Developments</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Getting started:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="example.html">Setting up models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#executable">Executable</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#compiling-yourself">Compiling yourself</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#running-sfincs">Running SFINCS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#courses-learning-sfincs">Courses learning SFINCS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#questions-and-support">Questions and support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#contributing">Contributing</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User manual:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="input.html">User manual - general</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input_forcing.html">User manual - forcing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input_structures.html">User manual - structures</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input parameters and files:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html">Input parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html#input-files">Input files</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Model output and messages:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="output.html">Output messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output.html#output-description">Output description</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SFINCS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Numerical implementation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/numerical_implementation.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="numerical-implementation">
+<h1>Numerical implementation<a class="headerlink" href="#numerical-implementation" title="Permalink to this headline">¶</a></h1>
+<section id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>Based on Leijnse (2018)</p>
+</section>
+<section id="flow-related-processes">
+<h2>Flow-related processes<a class="headerlink" href="#flow-related-processes" title="Permalink to this headline">¶</a></h2>
+<section id="shallow-water-equations">
+<h3>Shallow water equations<a class="headerlink" href="#shallow-water-equations" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="numerical-grid">
+<h3>Numerical grid<a class="headerlink" href="#numerical-grid" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="momentum-equations">
+<h3>Momentum equations<a class="headerlink" href="#momentum-equations" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="advection">
+<h3>Advection<a class="headerlink" href="#advection" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="continuity-equation">
+<h3>Continuity equation<a class="headerlink" href="#continuity-equation" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="stability-conditions">
+<h3>Stability conditions<a class="headerlink" href="#stability-conditions" title="Permalink to this headline">¶</a></h3>
+</section>
+</section>
+<section id="wave-related-processes">
+<h2>Wave-related processes<a class="headerlink" href="#wave-related-processes" title="Permalink to this headline">¶</a></h2>
+<section id="swash-zone-modelling-approach">
+<h3>Swash zone modelling approach<a class="headerlink" href="#swash-zone-modelling-approach" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="weakly-reflective-generating-absorbing-boundary-condition">
+<h3>Weakly reflective generating-absorbing boundary condition<a class="headerlink" href="#weakly-reflective-generating-absorbing-boundary-condition" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="wave-generation">
+<h3>Wave generation<a class="headerlink" href="#wave-generation" title="Permalink to this headline">¶</a></h3>
+<p>(Work in progress)</p>
+</section>
+<section id="wave-induced-setup">
+<h3>Wave-induced setup<a class="headerlink" href="#wave-induced-setup" title="Permalink to this headline">¶</a></h3>
+<p>(Work in progress)</p>
+</section>
+</section>
+<section id="other-processes">
+<h2>Other processes<a class="headerlink" href="#other-processes" title="Permalink to this headline">¶</a></h2>
+<section id="infiltration">
+<h3>Infiltration<a class="headerlink" href="#infiltration" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="precipitation">
+<h3>Precipitation<a class="headerlink" href="#precipitation" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="discharge-points">
+<h3>Discharge points<a class="headerlink" href="#discharge-points" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="wind-forcing">
+<h3>Wind forcing<a class="headerlink" href="#wind-forcing" title="Permalink to this headline">¶</a></h3>
+</section>
+</section>
+<section id="model-limitations">
+<h2>Model limitations<a class="headerlink" href="#model-limitations" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="computational-efficiency">
+<h2>Computational efficiency<a class="headerlink" href="#computational-efficiency" title="Permalink to this headline">¶</a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2018, Tim Leijnse.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User manual - structures &mdash; SFINCS 1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Input parameters" href="parameters.html" />
+    <link rel="prev" title="User manual - forcing" href="input_forcing.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> SFINCS
+          </a>
+              <div class="version">
+                1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Introduction</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developments:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="developments.html">Developments</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Getting started:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="example.html">Setting up models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#executable">Executable</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#compiling-yourself">Compiling yourself</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#running-sfincs">Running SFINCS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#courses-learning-sfincs">Courses learning SFINCS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#questions-and-support">Questions and support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example.html#contributing">Contributing</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User manual:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="input.html">User manual - general</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input_forcing.html">User manual - forcing</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">User manual - structures</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#structures">Structures</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#thin-dam">Thin dam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#weirs">Weirs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#drainage-pump-and-culvert">Drainage pump and Culvert</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input parameters and files:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html">Input parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html#input-files">Input files</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Model output and messages:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="output.html">Output messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output.html#output-description">Output description</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SFINCS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>User manual - structures</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/input_structures.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="user-manual-structures">
+<h1>User manual - structures<a class="headerlink" href="#user-manual-structures" title="Permalink to this headline">¶</a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>The input for SFINCS is supplied using various text and binary files, which are linked through the main input file: sfincs.inp.
+Within this section of the user manual all different types of structures to reduce flood hazards with input settings and files are discussed.
+The figure below gives an overview of all different types of input files and whether they are required or not.
+Below an example is given of this file, which uses a keyword/value layout.
+For more information regarding specific parameters see the pages ‘Input parameters’ or ‘Output parameters’.</p>
+<p><strong>NOTE - In the manual below, blocks named ‘Matlab example using OET’ are included, referring to easy setup scripts included in the SFINCS’ Open Earth Tools Matlab set of scripts: https://svn.oss.deltares.nl/repos/openearthtools/trunk/matlab/applications/sfincs</strong></p>
+<figure class="align-center" id="id1">
+<a class="reference internal image-reference" href="_images/SFINCS_documentation_structures.png"><img alt="_images/SFINCS_documentation_structures.png" src="_images/SFINCS_documentation_structures.png" style="width: 800px;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 17 </span><span class="caption-text">Overview of input file of SFINCS with indication whther they are required or not</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="structures">
+<h2>Structures<a class="headerlink" href="#structures" title="Permalink to this headline">¶</a></h2>
+<p>SFINCS consists of multiple options for adding structures that can divert or block flow of water, which can be used to simulate flood hazard reduction methods.</p>
+<section id="thin-dam">
+<h3>Thin dam<a class="headerlink" href="#thin-dam" title="Permalink to this headline">¶</a></h3>
+<p>With a thin dam flow through certain grid cells is completely blocked (i.e. an infinitely high wall).
+One can provide multiple polylines within one file, a maximum of 5000 supplied points is supported.
+The supplied polylines are snapped onto the SFINCS grid within the model.</p>
+<figure class="align-center" id="id2">
+<a class="reference internal image-reference" href="_images/SFINCS_thindam_grid.png"><img alt="_images/SFINCS_thindam_grid.png" src="_images/SFINCS_thindam_grid.png" style="width: 400px;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 18 </span><span class="caption-text">Example of how thin dam/weir input points from 2 different polylines are snapped to the grid of SFINCS.</span><a class="headerlink" href="#id2" title="Permalink to this image">¶</a></p>
+</figcaption>
+</figure>
+<p><strong>thdfile = sfincs.thd</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>NAME1
+2 2 %size data
+&lt;x0&gt; &lt;y0&gt; %start of polyline 1
+&lt;xend&gt; &lt;yend&gt; %end of polyline 1
+
+NAME2
+2 2 %size data
+&lt;x0&gt; &lt;y0&gt; %start of polyline 2
+&lt;xend&gt; &lt;yend&gt;  %end of polyline 1
+
+e.g.
+
+THD01
+3 2
+0 100
+10 100
+20 100
+THD02
+2 2
+20 200
+25 200
+</pre></div>
+</div>
+<p><strong>Matlab example using OET</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>inp.thdfile = &#39;sfincs.thd&#39;;
+
+thindams(1).x = [0 10 20];
+thindams(1).y = [100 100 100];
+thindams(1).name = {&#39;THD01&#39;};
+thindams(2).x = [20 25];
+thindams(2).y = [200 200];
+thindams(2).name = {&#39;THD02&#39;};
+thindams.length = length(thindams.x1);
+
+sfincs_write_thin_dams(inp.thdfile,thindams);
+</pre></div>
+</div>
+</section>
+<section id="weirs">
+<h3>Weirs<a class="headerlink" href="#weirs" title="Permalink to this headline">¶</a></h3>
+<p>Weirs are in principle the same as a thin dam, but then with a certain height (levee).
+When the water level on either or both sides of the weir are higher than that of the weir, a flux over the weir is calculated.
+Hereby a situation where the weir is partly or fully submerged is distinguished.
+One can provide multiple polylines within one file, a maximum of 5000 supplied points is supported.
+Besides the x&amp;y locations per points, also the elevation z and a Cd coefficient for the weir formula (recommended to use 0.6).
+The supplied polylines are snapped onto the SFINCS grid within the model.</p>
+<p><strong>weirfile = sfincs.weir</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>NAME1
+2 4 %size data
+&lt;x0&gt; &lt;y0&gt; &lt;z0&gt; &lt;cd1&gt; %start of polyline 1
+&lt;x2&gt; &lt;y2&gt; &lt;z2&gt; &lt;cd2&gt; %end of polyline 1
+
+NAME2
+2 4 %size data
+&lt;x0&gt; &lt;y0&gt; &lt;z0&gt; &lt;cd1&gt; %start of polyline 2
+&lt;x2&gt; &lt;y2&gt; &lt;z2&gt; &lt;cd2&gt; %end of polyline 2
+
+e.g.
+
+weir01
+3 4
+0 100 5.1 0.6
+10 100 5.2 0.6
+20 100 5.0 0.6
+weir02
+2 4
+20 200 5.1 0.6
+25 200 5.1 0.6
+</pre></div>
+</div>
+<p><strong>Matlab example using OET</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>inp.weirfile = &#39;sfincs.weir&#39;;
+
+weirs(1).x = [0 10 20];
+weirs(1).y = [100 100 100];
+weirs(1).z = [5.1 5.2 5.0];
+weirs(1).par1 = [0.6 0.6 0.6];
+weirs(2).x = [20 25];
+weirs(2).y = [200 200];
+weirs(2).z = [5.1 5.2];
+weirs(2).par1 = [0.6 0.6];
+
+sfincs_write_obstacle_file_1par(inp.weirfile,weirs)
+</pre></div>
+</div>
+</section>
+<section id="drainage-pump-and-culvert">
+<h3>Drainage pump and Culvert<a class="headerlink" href="#drainage-pump-and-culvert" title="Permalink to this headline">¶</a></h3>
+<p>Drainage pumps and culverts are both specified using the same format file, put with a different indication of the type (type=1 is drainage pump, type=2 is culvert).
+A drainage pump can move water from one location to another with a certain prescribed discharge given that there is sufficient water at the retraction location.
+For culverts also a certain discharge capacity of the culvert is prescribed, but then the actual water level gradient is used to determine how much water will actually flow through the culvert.
+Input consists of the x&amp;y locations of the sink (retraction point) and source points (outflow point) followed by the type.
+The discharge capacity is prescribed using the par1 parameter, parameters par2&lt;&gt;par5 are not used right now but included for future flexibility for implementing other structure types.</p>
+<figure class="align-center" id="id3">
+<a class="reference internal image-reference" href="_images/SFINCS_drainage_grid.png"><img alt="_images/SFINCS_drainage_grid.png" src="_images/SFINCS_drainage_grid.png" style="width: 400px;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 19 </span><span class="caption-text">Example of how drainage pump/culvert input points with sink and source locations from 2 different structures are snapped to the grid of SFINCS.</span><a class="headerlink" href="#id3" title="Permalink to this image">¶</a></p>
+</figcaption>
+</figure>
+<p><strong>drnfile = sfincs.drn</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;xsnk1&gt; &lt;ysnk1&gt; &lt;xsrc1&gt; &lt;ysrc1&gt; &lt;type1&gt; &lt;par1-1&gt; par2-1 par3-1 par4-1 par5-1
+&lt;xsnk2&gt; &lt;ysnk2&gt; &lt;xsrc2&gt; &lt;ysrc2&gt; &lt;type2&gt; &lt;par1-2&gt; par2-2 par3-2 par4-2 par5-2
+
+e.g. pump:
+50.00        25.00       150.00        25.00 1    0.345    0.000    0.000    0.000    0.000
+75.00        25.00       125.00        25.00 1    0.345    0.000    0.000    0.000    0.000
+
+e.g. culvert:
+50.00        25.00       150.00        25.00 2    0.345    0.000    0.000    0.000    0.000
+75.00        25.00       125.00        25.00 2    0.345    0.000    0.000    0.000    0.000
+</pre></div>
+</div>
+<p><strong>Matlab example using OET</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>inp.drnfile = &#39;sfincs.drn&#39;;
+
+jj=1;
+drain(jj).xsnk = 75;    % sink x-coordinate(s), from where water is taken
+drain(jj).ysnk = 25;    % sink y-coordinate(s)
+drain(jj).xsrc = 125;   % source x-coordinate(s), to where water is discharged
+drain(jj).ysrc = 25;    % source x-coordinate(s)
+drain(jj).type = 1;     % 1= pump, 2=culvert
+drain(jj).par1 = 0.345; % possible drainage discharge in m3/s
+drain(jj).par2 = 0;     % not used yet
+drain(jj).par3 = 0;     % not used yet
+drain(jj).par4 = 0;     % not used yet
+drain(jj).par5 = 0;     % not used yet
+
+sfincs_write_drainage_file(inp.drnfile,drain)
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="input_forcing.html" class="btn btn-neutral float-left" title="User manual - forcing" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="parameters.html" class="btn btn-neutral float-right" title="Input parameters" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2018, Tim Leijnse.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
