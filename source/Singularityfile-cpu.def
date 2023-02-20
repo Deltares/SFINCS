@@ -1,12 +1,13 @@
 BootStrap: library
 From: library://library/default/ubuntu:jammy
+Stage: build
 
 #
 # The source files of sfincs
 #
 
 %files
-  source  /usr/src/sfincs
+  .  /usr/src/sfincs
 
 #
 # Compiler flags
@@ -23,13 +24,32 @@ From: library://library/default/ubuntu:jammy
 #
 
 %post
-  apt clean && apt autoclean && apt update --fix-missing && apt upgrade -y && apt install -y libnetcdf-dev build-essential autoconf automake libtool gfortran gdb m4
+  apt clean && apt autoclean && apt -y update --fix-missing && apt -y upgrade -y && apt install -y libnetcdf-dev build-essential autoconf automake libtool gfortran gdb m4
 
 # Install software into /usr/local by default
 # No OpenACC for GNU/CPU build
 
+  cd /usr/src/sfincs  
   autoreconf -ivf && ./autogen.sh && FFLAGS="-w -fallow-argument-mismatch -O2" && FCFLAGS="-w -fallow-argument-mismatch -O2 -fopenmp -O3" ./configure --disable-openacc && make && make install
   chmod -R 777 autogen.sh
 
   autoreconf -ivf && ./autogen.sh && ./configure --disable-openacc && make && make install
 
+# Install binary in a much smaller image
+
+BootStrap: library
+From: library://library/default/ubuntu:jammy
+Stage: final
+
+# install binary from stage one
+%files from build
+  /usr/local/bin/sfincs /usr/local/bin/sfincs
+
+%files
+  run-sfincs.sh /usr/local/bin/run-sfincs.sh
+
+%post
+  apt clean && apt autoclean && apt update --fix-missing && apt upgrade -y 
+  apt install -y libnetcdf19 libgfortran5 libgomp1
+  apt clean && apt autoclean
+  chmod +x /usr/local/bin/run-sfincs.sh
