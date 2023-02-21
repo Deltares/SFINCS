@@ -2295,6 +2295,10 @@ contains
          allocate(fwy(np))
          fwx = 0.0
          fwy = 0.0
+         allocate(dw(np))
+         allocate(df(np))
+         dw = 0.0
+         df = 0.0         
       endif
       !
       if (store_wave_direction) then

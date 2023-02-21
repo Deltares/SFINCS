@@ -14,6 +14,8 @@ module sfincs_snapwave
    real*4,    dimension(:),   allocatable    :: snapwave_directional_spreading
    real*4,    dimension(:),   allocatable    :: snapwave_Fx
    real*4,    dimension(:),   allocatable    :: snapwave_Fy
+   real*4,    dimension(:),   allocatable    :: snapwave_Dw
+   real*4,    dimension(:),   allocatable    :: snapwave_Df   
    integer,   dimension(:,:), allocatable    :: snapwave_connected_nodes
    integer*4, dimension(:),   allocatable    :: index_snapwave_in_sfincs
    integer*4, dimension(:),   allocatable    :: index_sfincs_in_snapwave
@@ -111,6 +113,8 @@ contains
    real*4,    dimension(snapwave_no_cells, 4) :: hc
    real*4,    dimension(:), allocatable       :: fwx0
    real*4,    dimension(:), allocatable       :: fwy0
+   real*4,    dimension(:), allocatable       :: dw0
+   real*4,    dimension(:), allocatable       :: df0   
    integer   :: ip, ii, m, n, nm, nmu, idir
    real*4    :: f
    real*8    :: t
@@ -119,9 +123,13 @@ contains
    !
    allocate(fwx0(np))
    allocate(fwy0(np))
+   allocate(dw0(np))
+   allocate(df0(np))   
    !
    fwx0 = 0.0
    fwy0 = 0.0
+   dw0 = 0.0
+   df0 = 0.0   
    !
    ! Determine SnapWave water depth
    !
@@ -164,7 +172,9 @@ contains
          hm0(nm)    = snapwave_H(ip)   
          hm0_ig(nm) = snapwave_H_ig(ip)   
          fwx0(nm)   = snapwave_Fx(ip)   
-         fwy0(nm)   = snapwave_Fy(ip)   
+         fwy0(nm)   = snapwave_Fy(ip) 
+         dw0(nm)   = snapwave_Dw(ip)   
+         df0(nm)   = snapwave_Df(ip)            
          if (store_wave_direction) then
             mean_wave_direction(nm)        = 270.0 - snapwave_mean_direction(ip)*180/pi   
             wave_directional_spreading(nm) = snapwave_directional_spreading(ip)*180/pi   
@@ -178,6 +188,8 @@ contains
          hm0_ig(nm) = 0.0
          fwx0(nm)   = 0.0
          fwy0(nm)   = 0.0   
+         dw0(nm)    = 0.0
+         df0(nm)    = 0.0         
          if (store_wave_direction) then
             mean_wave_direction(nm)        = 0.0
             wave_directional_spreading(nm) = 0.0  
@@ -189,6 +201,8 @@ contains
          !
          fwx(nm) = fwx0(nm)
          fwy(nm) = fwy0(nm)
+         dw(nm) = dw0(nm)
+         df(nm) = df0(nm)         
          !
       endif   
       !
@@ -254,7 +268,9 @@ contains
    snapwave_mean_direction        = thetam
    snapwave_directional_spreading = thetam
    snapwave_Fx                    = Fx
-   snapwave_Fy                    = Fy   
+   snapwave_Fy                    = Fy 
+   snapwave_Dw                    = Dw
+   snapwave_Df                    = Df
    !
    end subroutine
 
