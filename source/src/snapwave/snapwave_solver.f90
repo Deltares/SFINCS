@@ -82,7 +82,7 @@ module snapwave_solver
       call solve_energy_balance2Dstat (x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                        theta,ntheta,thetamean,                                    &
                                        depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,50000.,rho,snapwave_alpha,gamma,                 &
-                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, baldock_opt, baldock_ratio)
+                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, battjesjanssen_opt)
       !
 !      call timer(t3)
       !
@@ -98,7 +98,7 @@ module snapwave_solver
    subroutine solve_energy_balance2Dstat(x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                          theta,ntheta,thetamean,                                    &
                                          depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,T,dt,rho,alfa,gamma,                 &
-                                         H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, baldock_opt, baldock_ratio)
+                                         H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, battjesjanssen_opt)
    !
    implicit none
    !
@@ -132,6 +132,8 @@ module snapwave_solver
    real*4, intent(in)                         :: alfa,gamma             ! coefficients in Baldock wave breaking dissipation
    integer                                    :: baldock_opt            ! option of Baldock wave breaking dissipation model (opt=1 is without gamma&depth, else is including)  
    real*4, intent(in)                         :: baldock_ratio          ! option controlling from what depth wave breaking should take place: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio=0.2
+   integer                                    :: battjesjanssen_opt     ! option of Battjes Janssen wave breaking dissipation model (opt=1 is breaking everywhere, opt=2 is if H larger than gamma*depth)  
+   integer                                    :: ig_opt                 ! option of breaking dissipation model for IG waves (1 is Baldock = default, 2 is BattjesJanssen)
    real*4, dimension(no_nodes), intent(out)         :: H                      ! wave height
    real*4, dimension(no_nodes), intent(out)         :: H_ig                      ! wave height
    real*4, dimension(no_nodes), intent(out)         :: Dw                     ! wave breaking dissipation
@@ -369,8 +371,15 @@ module snapwave_solver
             Ek_ig    = sum(ee_ig(:, k))*dtheta                  
             Hk_ig    = min(sqrt(Ek_ig/rhog8), gamma*depth(k))
             Ek_ig    = rhog8*Hk_ig**2
-            Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*Hk*Ek_ig
-            call baldock(g, rho, alfa, gamma, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
+            Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*Hk*Ek_ig !org
+            !Dfk_ig      = fw_ig(k)*1025*(9.81/depth(k))**(3.0/2.0)*(Hk/sqrt(8.0))*Hk_ig**(2.0)/8 -> TL: seems to give same result    
+            !
+            if (ig_opt == 1) then                
+               call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
+            elseif (ig_opt == 2) then
+               call battjesjanssen(rho,g,alfa,gamma_ig,depth(k),Hk_ig,T_ig,battjesjanssen_opt,Dwk_ig)
+            endif
+            !
             DoverE_ig(k) = (Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0e-6)
             !
          endif
@@ -562,19 +571,24 @@ module snapwave_solver
                      !
                      ee_ig(:, k) = max(ee_ig(:, k), 0.0)
                      Ek_ig       = sum(ee_ig(:, k))*dtheta                  
-!                     Hk_ig       = min(sqrt(Ek_ig/rhog8), gamma*depth(k))
+!                     Hk_ig       = min(sqrt(Ek_ig/rhog8), gamma_ig*depth(k))  !TL: Question - why not this one?
                      Hk_ig       = sqrt(Ek_ig/rhog8)
                      Ek_ig       = rhog8*Hk_ig**2
                      ! 
                      ! Bottom friction Henderson and Bowen (2002) - D = 0.015*rhow*(9.81/depth(k))**1.5*(Hk/sqrt(8.0))*Hk_ig**2/8
                      !
-                     Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*Hk*Ek_ig
+                     Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*Hk*Ek_ig !original
+                     !Dfk_ig      = fw_ig(k)*1025*(9.81/depth(k))**(3.0/2.0)*(Hk/sqrt(8.0))*Hk_ig**(2.0)/8 -> TL: seems to give same result                     
                      !
                      ! Breaking of infragravity waves (should probably find another formulation for this)
                      !
                      if (Hk_ig>baldock_ratio*Hmx_ig(k)) then
                         !
-                        call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
+                        if (ig_opt == 1) then                
+                           call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
+                        elseif (ig_opt == 2) then
+                           call battjesjanssen(rho,g,alfa,gamma_ig,depth(k),Hk_ig,T_ig,battjesjanssen_opt,Dwk_ig)
+                        endif                        
                         !
                         DoverE_ig(k) = (1.0 - fac)*DoverE_ig(k) + fac*(Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0e-6)
                         !
@@ -591,9 +605,15 @@ module snapwave_solver
 !                        Hk_ig      = min(sqrt(Ek_ig/rhog8), gamma*depth(k))
                         Hk_ig      = sqrt(Ek_ig/rhog8)
                         Ek_ig      = rhog8*Hk_ig**2
-                        Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*Hk*Ek_ig
+                        Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*Hk*Ek_ig !org
+                        !Dfk_ig      = fw_ig(k)*1025*(9.81/depth(k))**(3.0/2.0)*(Hk/sqrt(8.0))*Hk_ig**(2.0)/8 -> TL: seems to give same result                  
                         !                     
-                        call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
+                        if (ig_opt == 1) then                
+                           call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
+                        elseif (ig_opt == 2) then
+                           call battjesjanssen(rho,g,alfa,gamma_ig,depth(k),Hk_ig,T_ig,battjesjanssen_opt,Dwk_ig)
+                        endif                    
+                        !
                         Dw_ig(k) = Dwk_ig                     
                         !                     
                         DoverE_ig(k) = (1.0 - fac)*DoverE_ig(k) + fac*(Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0)
@@ -686,9 +706,14 @@ module snapwave_solver
                E_ig(k)      = sum(ee_ig(:,k))*dtheta
                H_ig(k)      = sqrt(8*E_ig(k)/rho/g)
                !
-               Df_ig(k)      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*H(k)*E_ig(k)
+               Df_ig(k)      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*H(k)*E_ig(k) !org
+               !Df_ig(k)      = fw_ig(k)*1025*(9.81/depth(k))**(3.0/2.0)*(H(k)/sqrt(8.0))*H_ig(k)**(2.0)/8 -> TL: seems to give same result               
                !
-               call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), H_ig(k), T_ig, baldock_opt, Dw_ig(k), Hmx_ig(k)) 
+               if (ig_opt == 1) then                
+                  call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), H_ig(k), T_ig, baldock_opt, Dw_ig(k), Hmx_ig(k))
+               elseif (ig_opt == 2) then
+                  call battjesjanssen(rho,g,alfa,gamma_ig,depth(k),H_ig(k),T_ig,battjesjanssen_opt,Dw_ig(k))
+               endif               
                !
             endif
             !
@@ -767,7 +792,34 @@ module snapwave_solver
    !
    end subroutine baldock
 
-   
+   subroutine battjesjanssen(rho,g,alfa,gamma,depth,H,T,opt,Dw)
+   !
+   real*4, intent(in)                :: rho
+   real*4, intent(in)                :: g
+   real*4, intent(in)                :: alfa
+   real*4, intent(in)                :: gamma
+   real*4, intent(in)                :: depth   
+   real*4, intent(in)                :: H
+   real*4, intent(in)                :: T
+   integer, intent(in)               :: opt   
+   real*4, intent(out)               :: Dw
+   real*4                            :: Hloc
+   !
+   ! Compute dissipation according to Battjes and Janssen (1978), as in Van Dongeren et al. (2007) eq. 10
+   !
+   Hloc=max(H,1.e-6)
+   !
+   if (opt==1) then
+      Dw = alfa * 1 / T * rho * g * Hloc**(2.0) / 4.0                     
+   elseif (opt==2) then
+       if (Hloc / depth / gamma > 1.0) then
+          Dw = alfa * 1 / T * rho * g * Hloc**(2.0) / 4.0                     
+       else
+          Dw = 0
+       endif 
+   endif
+   !
+   end subroutine battjesjanssen   
    
    subroutine disper_approx(h,T,k,n,C,Cg,no_nodes)
    integer, intent(in)                :: no_nodes
