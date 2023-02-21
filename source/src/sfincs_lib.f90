@@ -82,7 +82,7 @@ module sfincs_lib
    ierr = 0
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   build_revision = '$Rev: v2.0.1-beta$'
+   build_revision = '$Rev: v2.0.1-beta: branch-sfincs_snapwave_ig$'
    build_date     = '$Date: 2023-02-14$'
    !
    write(*,'(a)')''   

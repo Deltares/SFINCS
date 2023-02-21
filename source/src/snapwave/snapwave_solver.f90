@@ -82,7 +82,7 @@ module snapwave_solver
       call solve_energy_balance2Dstat (x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                        theta,ntheta,thetamean,                                    &
                                        depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,50000.,rho,snapwave_alpha,gamma,                 &
-                                       H,H_ig,Dw,F,Df,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig)
+                                       H,H_ig,Dw,F,Df,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, baldock_opt, baldock_ratio)
       !
 !      call timer(t3)
       !
@@ -98,7 +98,7 @@ module snapwave_solver
    subroutine solve_energy_balance2Dstat(x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                          theta,ntheta,thetamean,                                    &
                                          depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,T,dt,rho,alfa,gamma,                 &
-                                         H,H_ig,Dw,F,Df,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig)
+                                         H,H_ig,Dw,F,Df,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, baldock_opt, baldock_ratio)
    !
    implicit none
    !
@@ -130,6 +130,8 @@ module snapwave_solver
    real*4, intent(in)                         :: dt                     ! time step (s)
    real*4, intent(in)                         :: rho                    ! water density
    real*4, intent(in)                         :: alfa,gamma             ! coefficients in Baldock wave breaking dissipation
+   integer                                    :: baldock_opt            ! option of Baldock wave breaking dissipation model (opt=1 is without gamma&depth, else is including)  
+   real*4, intent(in)                         :: baldock_ratio          ! option controlling from what depth wave breaking should take place: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio=0.2
    real*4, dimension(no_nodes), intent(out)         :: H                      ! wave height
    real*4, dimension(no_nodes), intent(out)         :: H_ig                      ! wave height
    real*4, dimension(no_nodes), intent(out)         :: Dw                     ! wave breaking dissipation
@@ -357,7 +359,7 @@ module snapwave_solver
          Ek       = rhog8*Hk**2
          uorbi    = pi*Hk/T/sinhkh(k)
          Dfk      = 0.28*rho*fw(k)*uorbi**3
-         call baldock(g, rho, alfa, gamma, kwav(k), depth(k), Hk, T, 1, Dwk, Hmx(k))
+         call baldock(g, rho, alfa, gamma, kwav(k), depth(k), Hk, T, baldock_opt, Dwk, Hmx(k))
          DoverE(k) = (Dwk + Dfk)/max(Ek, 1.0e-6)
          !
          if (igwaves) then
@@ -366,7 +368,7 @@ module snapwave_solver
             Hk_ig    = min(sqrt(Ek_ig/rhog8), gamma*depth(k))
             Ek_ig    = rhog8*Hk_ig**2
             Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*Hk*Ek_ig
-            call baldock(g, rho, alfa, gamma, kwav_ig(k), depth(k), Hk_ig, T_ig, 1, Dwk_ig, Hmx_ig(k))
+            call baldock(g, rho, alfa, gamma, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
             DoverE_ig(k) = (Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0e-6)
             !
          endif
@@ -477,10 +479,10 @@ module snapwave_solver
                   !
                   ! Dissipation of incident waves
                   !
-                  if (Hk>0.2*Hmx(k)) then
+                  if (Hk>baldock_ratio*Hmx(k)) then
                      !
 !                     call baldock(g,rho,alfa,gamma,kwav(k),depth(k),Hk,T,1,Dwk,Hmx(k))
-                     call baldock(g,rho,alfa,gamma,kwav(k),depth(k),Hk0,T,1,Dwk,Hmx(k))
+                     call baldock(g,rho,alfa,gamma,kwav(k),depth(k),Hk0,T,baldock_opt,Dwk,Hmx(k))
                      !
                      DoverE(k) = (1.0 - fac)*DoverE(k) + fac*(Dwk + Dfk)/max(Ek, 1.0e-6)
                      !
@@ -502,7 +504,7 @@ module snapwave_solver
 !         write(*,'(a,20e14.4)')'b',Hk,depth(k),Hmx(k),Dwk
 !      endif   
                      !                     
-                     call baldock(g, rho, alfa, gamma, kwav(k), depth(k), Hk, T, 1, Dwk, Hmx(k))
+                     call baldock(g, rho, alfa, gamma, kwav(k), depth(k), Hk, T, baldock_opt, Dwk, Hmx(k))
                      Dw(k) = Dwk
                      !                     
                      DoverE(k) = (1.0 - fac)*DoverE(k) + fac*(Dwk + Dfk)/max(Ek, 1.0e-6)
@@ -568,9 +570,9 @@ module snapwave_solver
                      !
                      ! Breaking of infragravity waves (should probably find another formulation for this)
                      !
-                     if (Hk_ig>0.2*Hmx_ig(k)) then
+                     if (Hk_ig>baldock_ratio*Hmx_ig(k)) then
                         !
-                        call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, 1, Dwk_ig, Hmx_ig(k))
+                        call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
                         !
                         DoverE_ig(k) = (1.0 - fac)*DoverE_ig(k) + fac*(Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0e-6)
                         !
@@ -589,7 +591,7 @@ module snapwave_solver
                         Ek_ig      = rhog8*Hk_ig**2
                         Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*Hk*Ek_ig
                         !                     
-                        call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, 1, Dwk_ig, Hmx_ig(k))
+                        call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
                         !                     
                         DoverE_ig(k) = (1.0 - fac)*DoverE_ig(k) + fac*(Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0)
                         !                     
@@ -671,7 +673,7 @@ module snapwave_solver
             uorbi     = pi*H(k)/T/sinhkh(k)
             Df(k)     = 0.28*rho*fw(k)*uorbi**3
             !                     
-            call baldock(g, rho, alfa, gamma, kwav(k), depth(k), H(k), T, 1, Dw(k), Hmx(k))
+            call baldock(g, rho, alfa, gamma, kwav(k), depth(k), H(k), T, baldock_opt, Dw(k), Hmx(k))
             F(k) = (Dw(k) + Df(k))*kwav(k)/sigm
             !
             if (igwaves) then

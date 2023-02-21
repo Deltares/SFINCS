@@ -133,7 +133,9 @@ module snapwave_data
    real*4                                    :: fw0             ! uniform wave friction factor
    real*4                                    :: fw0_ig          ! uniform wave friction factor (ig waves)
    real*4                                    :: fwcutoff        ! depth below which to apply space-varying fw
-   real*4                                    :: snapwave_alpha,gamma     ! coefficients in Baldock breaking dissipation model
+   real*4                                    :: snapwave_alpha,gamma     ! coefficients in Baldock wave breaking dissipation model
+   integer                                   :: baldock_opt     ! option of Baldock wave breaking dissipation model (opt=1 is without gamma&depth, else is including)
+   real*4                                    :: baldock_ratio   ! option controlling from what depth wave breaking should take place: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio=0.2 
    real*4                                    :: gamma_ig        ! gamma breaking for 
    real*4                                    :: Tinc2ig         ! ratio compared to period Tinc to estimate Tig
    real*4                                    :: shinc2ig        ! TO ADD
