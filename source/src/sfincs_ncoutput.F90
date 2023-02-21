@@ -48,7 +48,8 @@ module sfincs_ncoutput
       integer :: zs_varid, h_varid, u_varid, v_varid, prcp_varid, discharge_varid, uvmag_varid, uvdir_varid
       integer :: patm_varid, wind_speed_varid, wind_dir_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid  
-      integer :: hm0_varid, hm0ig_varid, zsm_varid, tp_varid, wavdir_varid, dirspr_varid, dw_varid, df_varid
+      integer :: hm0_varid, hm0ig_varid, zsm_varid, tp_varid, wavdir_varid, dirspr_varid
+      integer :: dw_varid, df_varid, dwig_varid, dfig_varid
       !
    end type
    !
@@ -1249,14 +1250,27 @@ contains
          NF90(nf90_put_att(his_file%ncid, his_file%dw_varid, 'long_name', 'wave breaking dissipation'))  
          NF90(nf90_put_att(his_file%ncid, his_file%dw_varid, 'coordinates', 'station_id station_name point_x point_y'))
          !      
-         !
          NF90(nf90_def_var(his_file%ncid, 'df', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%df_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%df_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%df_varid, 'units', 'm'))
          NF90(nf90_put_att(his_file%ncid, his_file%df_varid, 'standard_name', 'wave_friction_dissipation')) 
          NF90(nf90_put_att(his_file%ncid, his_file%df_varid, 'long_name', 'wave friction dissipation'))  
          NF90(nf90_put_att(his_file%ncid, his_file%df_varid, 'coordinates', 'station_id station_name point_x point_y'))
-         !                  
+         !       
+         NF90(nf90_def_var(his_file%ncid, 'dwig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dwig_varid)) ! time-varying water level point
+         NF90(nf90_put_att(his_file%ncid, his_file%dwig_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(his_file%ncid, his_file%dwig_varid, 'units', 'm'))
+         NF90(nf90_put_att(his_file%ncid, his_file%dwig_varid, 'standard_name', 'wave_breaking_dissipation_ig')) 
+         NF90(nf90_put_att(his_file%ncid, his_file%dwig_varid, 'long_name', 'wave breaking dissipation ig'))  
+         NF90(nf90_put_att(his_file%ncid, his_file%dwig_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         !      
+         NF90(nf90_def_var(his_file%ncid, 'dfig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dfig_varid)) ! time-varying water level point
+         NF90(nf90_put_att(his_file%ncid, his_file%dfig_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(his_file%ncid, his_file%dfig_varid, 'units', 'm'))
+         NF90(nf90_put_att(his_file%ncid, his_file%dfig_varid, 'standard_name', 'wave_friction_dissipation_ig')) 
+         NF90(nf90_put_att(his_file%ncid, his_file%dfig_varid, 'long_name', 'wave friction dissipation ig'))  
+         NF90(nf90_put_att(his_file%ncid, his_file%dfig_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         !               
       endif
    endif
    !
@@ -1919,6 +1933,8 @@ contains
    real*4, dimension(nobs) :: dirsprobs
    real*4, dimension(nobs) :: dwobs
    real*4, dimension(nobs) :: dfobs
+   real*4, dimension(nobs) :: dwigobs
+   real*4, dimension(nobs) :: dfigobs
    real*4, dimension(:), allocatable :: qq
    !
    zobs         = FILL_VALUE
@@ -2094,6 +2110,8 @@ contains
                !
                dwobs(iobs)   = dw(nm)
                dfobs(iobs)   = df(nm)
+               dwigobs(iobs)   = dwig(nm)
+               dfigobs(iobs)   = dfig(nm)
                ! 
             endif
             !
@@ -2146,6 +2164,9 @@ contains
          NF90(nf90_put_var(his_file%ncid, his_file%dw_varid, dwobs, (/1, nthisout/)))
          NF90(nf90_put_var(his_file%ncid, his_file%df_varid, dfobs, (/1, nthisout/)))        
          ! 
+         NF90(nf90_put_var(his_file%ncid, his_file%dwig_varid, dwigobs, (/1, nthisout/)))
+         NF90(nf90_put_var(his_file%ncid, his_file%dfig_varid, dfigobs, (/1, nthisout/)))        
+         !
       endif
       !      
    endif

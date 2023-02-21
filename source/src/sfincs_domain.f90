@@ -2298,7 +2298,11 @@ contains
          allocate(dw(np))
          allocate(df(np))
          dw = 0.0
-         df = 0.0         
+         df = 0.0
+         allocate(dwig(np))
+         allocate(dfig(np))
+         dwig = 0.0
+         dfig = 0.0         
       endif
       !
       if (store_wave_direction) then

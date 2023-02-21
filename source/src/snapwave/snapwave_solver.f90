@@ -82,7 +82,7 @@ module snapwave_solver
       call solve_energy_balance2Dstat (x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                        theta,ntheta,thetamean,                                    &
                                        depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,50000.,rho,snapwave_alpha,gamma,                 &
-                                       H,H_ig,Dw,F,Df,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, baldock_opt, baldock_ratio)
+                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, baldock_opt, baldock_ratio)
       !
 !      call timer(t3)
       !
@@ -98,7 +98,7 @@ module snapwave_solver
    subroutine solve_energy_balance2Dstat(x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                          theta,ntheta,thetamean,                                    &
                                          depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,T,dt,rho,alfa,gamma,                 &
-                                         H,H_ig,Dw,F,Df,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, baldock_opt, baldock_ratio)
+                                         H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, baldock_opt, baldock_ratio)
    !
    implicit none
    !
@@ -135,8 +135,10 @@ module snapwave_solver
    real*4, dimension(no_nodes), intent(out)         :: H                      ! wave height
    real*4, dimension(no_nodes), intent(out)         :: H_ig                      ! wave height
    real*4, dimension(no_nodes), intent(out)         :: Dw                     ! wave breaking dissipation
+   real*4, dimension(no_nodes), intent(out)         :: Dw_ig                  ! wave breaking dissipation IG
    real*4, dimension(no_nodes), intent(out)         :: F                      ! wave force Dw/C/rho/h
    real*4, dimension(no_nodes), intent(out)         :: Df                     ! wave friction dissipation
+   real*4, dimension(no_nodes), intent(out)         :: Df_ig                  ! wave friction dissipation IG   
    real*4, dimension(no_nodes), intent(out)         :: thetam                 ! mean wave direction
    real*4, dimension(no_nodes), intent(in)          :: sinhkh                 ! sinh(k*depth)
    real*4, dimension(no_nodes), intent(in)          :: Hmx                    ! Hmax
@@ -592,6 +594,7 @@ module snapwave_solver
                         Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*Hk*Ek_ig
                         !                     
                         call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
+                        Dw_ig(k) = Dwk_ig                     
                         !                     
                         DoverE_ig(k) = (1.0 - fac)*DoverE_ig(k) + fac*(Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0)
                         !                     
@@ -679,9 +682,13 @@ module snapwave_solver
             if (igwaves) then
                !
                ! IG wave height
-               !
+               !                       
                E_ig(k)      = sum(ee_ig(:,k))*dtheta
                H_ig(k)      = sqrt(8*E_ig(k)/rho/g)
+               !
+               Df_ig(k)      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*H(k)*E_ig(k)
+               !
+               call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), H_ig(k), T_ig, baldock_opt, Dw_ig(k), Hmx_ig(k)) 
                !
             endif
             !

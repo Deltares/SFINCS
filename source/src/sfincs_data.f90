@@ -512,7 +512,9 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: wave_directional_spreading
       real*4, dimension(:),   allocatable :: dw
       real*4, dimension(:),   allocatable :: df      
-!      real*4, dimension(:),   allocatable :: tauwavv
+      real*4, dimension(:),   allocatable :: dwig
+      real*4, dimension(:),   allocatable :: dfig
+      !      real*4, dimension(:),   allocatable :: tauwavv
       !
       !!!
       !!! Boundary data
