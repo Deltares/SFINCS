@@ -779,15 +779,28 @@ module snapwave_solver
    real*4, intent(out)               :: Dw
    real*4, intent(in)                :: Hmax
    real*4                            :: Hloc
+   real*4                            :: gamma2   
    !
    ! Compute dissipation according to Baldock
    !
 !   Hmax=0.88/k*tanh(gamma*k*depth/0.88)
    Hloc=max(H,1.e-6)
+   gamma2 = 0.3 ! = Default of XBeach > later make user defineable
+   !
    if (opt==1) then
       Dw=0.25*alfa*rho*g/T*exp(-(Hmax/Hloc)**2)*(Hmax**2+Hloc**2)
-   else
+   elseif (opt==2) then
       Dw=0.25*alfa*rho*g/T*exp(-(Hmax/Hloc)**2)*(Hmax**3+Hloc**3)/gamma/depth
+   elseif (opt==3) then    
+      
+      !if (Hloc < gamma2 * depth) then
+      !    Dw = 0.0          
+      !else
+      if (Hloc > gamma * depth) then 
+          Dw=0.25*alfa*rho*g/T*exp(-(Hmax/Hloc)**2)*(Hmax**2+Hloc**2)
+      else
+          Dw = 0.0
+      endif       
    endif
    !
    end subroutine baldock
