@@ -1931,14 +1931,16 @@ contains
    !
    ! Set flags to turn off viscosity in some cells
    !
-   do ip = 1, npuv
-      !      
-      if (uv_index_u_nmd(ip) == 0)  uv_flags_vis(ip) = 0
-      if (uv_index_u_nmu(ip) == 0)  uv_flags_vis(ip) = 0
-      if (uv_index_u_num(ip) == 0)  uv_flags_vis(ip) = 0
-      if (uv_index_u_ndm(ip) == 0)  uv_flags_vis(ip) = 0
-      !      
-   enddo      
+   if (nmax/=1) then
+      do ip = 1, npuv
+         ! 
+         if (uv_index_u_nmd(ip) == 0)  uv_flags_vis(ip) = 0  
+         if (uv_index_u_nmu(ip) == 0)  uv_flags_vis(ip) = 0
+         if (uv_index_u_num(ip) == 0)  uv_flags_vis(ip) = 0
+         if (uv_index_u_ndm(ip) == 0)  uv_flags_vis(ip) = 0
+         !      
+      enddo      
+   endif 
    !
    ! Turn off advection in some cells (next to inactive points and boundaries)
    !
