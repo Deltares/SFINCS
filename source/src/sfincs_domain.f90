@@ -14,7 +14,7 @@ contains
    integer ip, n, m, nm, nmu, num, ib, iref, npu, npv, ipuv, ipu, ipv, iud, iuu, ndm, nmd, j, iq, nmx, ibin, ind
    integer ikcuv2
    integer npac, idummy
-   integer npuvq, npuvs
+   integer npuvq, npuvs, npzq
    !
    ! Temporary arrays
    !
@@ -1376,11 +1376,11 @@ contains
          ! This means that the subgrid file contains data for the entire quadtree. So also for points with kcs==0 !
          ! This also means that the data needs to be re-mapped to the active cell indices.
          !
-         write(*,*)'Reading ',trim(sbgfile)
+         write(*,*)'Reading ',trim(sbgfile), ' ...'
          open(unit = 500, file = trim(sbgfile), form = 'unformatted', access = 'stream')
          read(500)idummy ! version
-         read(500)idummy ! nr cells
-         read(500)idummy ! nr uv points
+         read(500)npzq ! nr cells
+         read(500)npuvq ! nr uv points
          read(500)subgrid_nbins
          subgrid_nbins = subgrid_nbins + 1
          allocate(subgrid_z_zmin(np))
@@ -1395,8 +1395,8 @@ contains
          allocate(subgrid_uv_hrep_zmax(npuv))
          allocate(subgrid_uv_navg_zmax(npuv))
          !
-         allocate(rtmpz(np))
-         allocate(rtmpuv(npuv))
+         allocate(rtmpz(npzq))
+         allocate(rtmpuv(npuvq))
          allocate(uv_index_qt_in_sf(npuv))
          !
          write(*,*)'Number of subgrid bins : ',subgrid_nbins - 1
