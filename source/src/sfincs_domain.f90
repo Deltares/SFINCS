@@ -1416,24 +1416,30 @@ contains
             if (quadtree_mu(ip)<1) then
                if (quadtree_mu1(ip)>0) then
                   npuvq = npuvq + 1
-                  if (msk(ip)>0) then
-                     npuvs = npuvs + 1
-                     uv_index_qt_in_sf(npuvs) = npuvq
-                  endif   
+                  if (nm>0) then
+                     if (z_index_uv_mu1(nm)>0) then
+                        npuvs = npuvs + 1
+                        uv_index_qt_in_sf(npuvs) = npuvq
+                     endif   
+                  endif
                endif   
             else
                if (quadtree_mu1(ip)>0) then
                   npuvq = npuvq + 1
-                  if (msk(ip)>0) then
-                     npuvs = npuvs + 1
-                     uv_index_qt_in_sf(npuvs) = npuvq
+                  if (nm>0) then
+                     if (z_index_uv_mu1(nm)>0) then
+                        npuvs = npuvs + 1
+                        uv_index_qt_in_sf(npuvs) = npuvq
+                     endif   
                   endif   
                endif   
                if (quadtree_mu2(ip)>0) then
                   npuvq = npuvq + 1
-                  if (msk(ip)>0) then
-                     npuvs = npuvs + 1
-                     uv_index_qt_in_sf(npuvs) = npuvq
+                  if (nm>0) then
+                     if (z_index_uv_mu2(nm)>0) then
+                        npuvs = npuvs + 1
+                        uv_index_qt_in_sf(npuvs) = npuvq
+                     endif   
                   endif   
                endif   
             endif   
@@ -1443,24 +1449,30 @@ contains
             if (quadtree_nu(ip)<1) then
                if (quadtree_nu1(ip)>0) then
                   npuvq = npuvq + 1
-                  if (msk(ip)>0) then
-                     npuvs = npuvs + 1
-                     uv_index_qt_in_sf(npuvs) = npuvq
+                  if (nm>0) then
+                     if (z_index_uv_nu1(nm)>0) then
+                        npuvs = npuvs + 1
+                        uv_index_qt_in_sf(npuvs) = npuvq
+                     endif   
                   endif   
                endif   
             else
                if (quadtree_nu1(ip)>0) then
                   npuvq = npuvq + 1
-                  if (msk(ip)>0) then
-                     npuvs = npuvs + 1
-                     uv_index_qt_in_sf(npuvs) = npuvq
+                  if (nm>0) then
+                     if (z_index_uv_nu1(nm)>0) then
+                        npuvs = npuvs + 1
+                        uv_index_qt_in_sf(npuvs) = npuvq
+                     endif   
                   endif   
                endif   
                if (quadtree_nu2(ip)>0) then
                   npuvq = npuvq + 1
-                  if (msk(ip)>0) then
-                     npuvs = npuvs + 1
-                     uv_index_qt_in_sf(npuvs) = npuvq
+                  if (nm>0) then
+                     if (z_index_uv_nu2(nm)>0) then
+                        npuvs = npuvs + 1
+                        uv_index_qt_in_sf(npuvs) = npuvq
+                     endif   
                   endif   
                endif   
             endif   
