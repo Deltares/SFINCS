@@ -18,6 +18,7 @@ module sfincs_snapwave
    real*4,    dimension(:),   allocatable    :: snapwave_Df 
    real*4,    dimension(:),   allocatable    :: snapwave_Dwig
    real*4,    dimension(:),   allocatable    :: snapwave_Dfig
+   real*4,    dimension(:),   allocatable    :: snapwave_cg   
    integer,   dimension(:,:), allocatable    :: snapwave_connected_nodes
    integer*4, dimension(:),   allocatable    :: index_snapwave_in_sfincs
    integer*4, dimension(:),   allocatable    :: index_sfincs_in_snapwave
@@ -119,6 +120,7 @@ contains
    real*4,    dimension(:), allocatable       :: df0   
    real*4,    dimension(:), allocatable       :: dwig0
    real*4,    dimension(:), allocatable       :: dfig0   
+   real*4,    dimension(:), allocatable       :: cg0   
    integer   :: ip, ii, m, n, nm, nmu, idir
    real*4    :: f
    real*8    :: t
@@ -130,7 +132,8 @@ contains
    allocate(dw0(np))
    allocate(df0(np))   
    allocate(dwig0(np))
-   allocate(dfig0(np))   
+   allocate(dfig0(np))  
+   allocate(cg0(np))   
    !
    fwx0 = 0.0
    fwy0 = 0.0
@@ -138,6 +141,7 @@ contains
    df0 = 0.0   
    dwig0 = 0.0
    dfig0 = 0.0
+   cg0 = 0.0
    !
    ! Determine SnapWave water depth
    !
@@ -185,6 +189,7 @@ contains
          df0(nm)    = snapwave_Df(ip)     
          dwig0(nm)  = snapwave_Dwig(ip)   
          dfig0(nm)  = snapwave_Dfig(ip)
+         cg0(nm)    = snapwave_cg(ip)         
          if (store_wave_direction) then
             mean_wave_direction(nm)        = 270.0 - snapwave_mean_direction(ip)*180/pi   
             wave_directional_spreading(nm) = snapwave_directional_spreading(ip)*180/pi   
@@ -202,6 +207,7 @@ contains
          df0(nm)    = 0.0         
          dwig0(nm)    = 0.0
          dfig0(nm)    = 0.0
+         cg0(nm)    = 0.0
          if (store_wave_direction) then
             mean_wave_direction(nm)        = 0.0
             wave_directional_spreading(nm) = 0.0  
@@ -217,6 +223,7 @@ contains
          df(nm) = df0(nm)         
          dwig(nm) = dwig0(nm)
          dfig(nm) = dfig0(nm)
+         cg(nm) = cg0(nm)         
          !
       endif   
       !
@@ -287,6 +294,7 @@ contains
    snapwave_Df                    = Df
    snapwave_Dwig                  = Dw_ig
    snapwave_Dfig                  = Df_ig
+   snapwave_cg                    = cg   
    !
    end subroutine
 

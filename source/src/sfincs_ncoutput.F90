@@ -49,7 +49,7 @@ module sfincs_ncoutput
       integer :: patm_varid, wind_speed_varid, wind_dir_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid  
       integer :: hm0_varid, hm0ig_varid, zsm_varid, tp_varid, wavdir_varid, dirspr_varid
-      integer :: dw_varid, df_varid, dwig_varid, dfig_varid
+      integer :: dw_varid, df_varid, dwig_varid, dfig_varid, cg_varid
       !
    end type
    !
@@ -1271,6 +1271,13 @@ contains
          NF90(nf90_put_att(his_file%ncid, his_file%dfig_varid, 'long_name', 'wave friction dissipation ig'))  
          NF90(nf90_put_att(his_file%ncid, his_file%dfig_varid, 'coordinates', 'station_id station_name point_x point_y'))
          !               
+         NF90(nf90_def_var(his_file%ncid, 'cg', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%cg_varid)) ! time-varying water level point
+         NF90(nf90_put_att(his_file%ncid, his_file%cg_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(his_file%ncid, his_file%cg_varid, 'units', 'm/s'))
+         NF90(nf90_put_att(his_file%ncid, his_file%cg_varid, 'standard_name', 'wave_group_velocity')) 
+         NF90(nf90_put_att(his_file%ncid, his_file%cg_varid, 'long_name', 'wave group velocity'))  
+         NF90(nf90_put_att(his_file%ncid, his_file%cg_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         !
       endif
    endif
    !
@@ -1935,6 +1942,7 @@ contains
    real*4, dimension(nobs) :: dfobs
    real*4, dimension(nobs) :: dwigobs
    real*4, dimension(nobs) :: dfigobs
+   real*4, dimension(nobs) :: cgobs   
    real*4, dimension(:), allocatable :: qq
    !
    zobs         = FILL_VALUE
@@ -1952,7 +1960,8 @@ contains
    twndmag      = FILL_VALUE
    twnddir      = FILL_VALUE
    dwobs       = FILL_VALUE         
-   dfobs       = FILL_VALUE         
+   dfobs       = FILL_VALUE  
+   cgobs       = FILL_VALUE            
    !
    do iobs = 1, nobs ! determine zs and prcp of obervation points at required timestep
       !
@@ -2112,6 +2121,7 @@ contains
                dfobs(iobs)   = df(nm)
                dwigobs(iobs)   = dwig(nm)
                dfigobs(iobs)   = dfig(nm)
+               cgobs(iobs)   = cg(nm)               
                ! 
             endif
             !
@@ -2166,6 +2176,8 @@ contains
          ! 
          NF90(nf90_put_var(his_file%ncid, his_file%dwig_varid, dwigobs, (/1, nthisout/)))
          NF90(nf90_put_var(his_file%ncid, his_file%dfig_varid, dfigobs, (/1, nthisout/)))        
+         !
+         NF90(nf90_put_var(his_file%ncid, his_file%cg_varid, cgobs, (/1, nthisout/)))
          !
       endif
       !      
