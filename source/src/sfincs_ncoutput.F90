@@ -49,7 +49,7 @@ module sfincs_ncoutput
       integer :: patm_varid, wind_speed_varid, wind_dir_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid  
       integer :: hm0_varid, hm0ig_varid, zsm_varid, tp_varid, wavdir_varid, dirspr_varid
-      integer :: dw_varid, df_varid, dwig_varid, dfig_varid, cg_varid
+      integer :: dw_varid, df_varid, dwig_varid, dfig_varid, cg_varid, qb_varid, betan_varid, fsh_varid
       !
    end type
    !
@@ -1277,6 +1277,27 @@ contains
          NF90(nf90_put_att(his_file%ncid, his_file%cg_varid, 'standard_name', 'wave_group_velocity')) 
          NF90(nf90_put_att(his_file%ncid, his_file%cg_varid, 'long_name', 'wave group velocity'))  
          NF90(nf90_put_att(his_file%ncid, his_file%cg_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         !               
+         NF90(nf90_def_var(his_file%ncid, 'qb', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%qb_varid)) ! time-varying water level point
+         NF90(nf90_put_att(his_file%ncid, his_file%qb_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(his_file%ncid, his_file%qb_varid, 'units', '-'))
+         NF90(nf90_put_att(his_file%ncid, his_file%qb_varid, 'standard_name', 'fraction_breaking_waves')) 
+         NF90(nf90_put_att(his_file%ncid, his_file%qb_varid, 'long_name', 'fraction breaking waves'))  
+         NF90(nf90_put_att(his_file%ncid, his_file%qb_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         !               
+         NF90(nf90_def_var(his_file%ncid, 'betan', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%betan_varid)) ! time-varying water level point
+         NF90(nf90_put_att(his_file%ncid, his_file%betan_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(his_file%ncid, his_file%betan_varid, 'units', '-'))
+         NF90(nf90_put_att(his_file%ncid, his_file%betan_varid, 'standard_name', 'normalised_bed_slope')) 
+         NF90(nf90_put_att(his_file%ncid, his_file%betan_varid, 'long_name', 'normalised bed slope'))  
+         NF90(nf90_put_att(his_file%ncid, his_file%betan_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         !               
+         NF90(nf90_def_var(his_file%ncid, 'fsh', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%fsh_varid)) ! time-varying water level point
+         NF90(nf90_put_att(his_file%ncid, his_file%fsh_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(his_file%ncid, his_file%fsh_varid, 'units', '-'))
+         NF90(nf90_put_att(his_file%ncid, his_file%fsh_varid, 'standard_name', 'infragravity_waves_shoaling_factor')) 
+         NF90(nf90_put_att(his_file%ncid, his_file%fsh_varid, 'long_name', 'infragravity waves shoaling factor'))  
+         NF90(nf90_put_att(his_file%ncid, his_file%fsh_varid, 'coordinates', 'station_id station_name point_x point_y'))         
          !
       endif
    endif
@@ -1942,7 +1963,10 @@ contains
    real*4, dimension(nobs) :: dfobs
    real*4, dimension(nobs) :: dwigobs
    real*4, dimension(nobs) :: dfigobs
-   real*4, dimension(nobs) :: cgobs   
+   real*4, dimension(nobs) :: cgobs
+   real*4, dimension(nobs) :: qbobs
+   real*4, dimension(nobs) :: betanobs
+   real*4, dimension(nobs) :: fshobs
    real*4, dimension(:), allocatable :: qq
    !
    zobs         = FILL_VALUE
@@ -1959,9 +1983,12 @@ contains
    tpatm        = FILL_VALUE
    twndmag      = FILL_VALUE
    twnddir      = FILL_VALUE
-   dwobs       = FILL_VALUE         
-   dfobs       = FILL_VALUE  
-   cgobs       = FILL_VALUE            
+   dwobs        = FILL_VALUE
+   dfobs        = FILL_VALUE
+   cgobs        = FILL_VALUE
+   qbobs        = FILL_VALUE
+   betanobs     = FILL_VALUE
+   fshobs       = FILL_VALUE   
    !
    do iobs = 1, nobs ! determine zs and prcp of obervation points at required timestep
       !
@@ -2117,11 +2144,14 @@ contains
             !
             if (store_wave_forces) then
                !
-               dwobs(iobs)   = dw(nm)
-               dfobs(iobs)   = df(nm)
-               dwigobs(iobs)   = dwig(nm)
-               dfigobs(iobs)   = dfig(nm)
-               cgobs(iobs)   = cg(nm)               
+               dwobs(iobs)    = dw(nm)
+               dfobs(iobs)    = df(nm)
+               dwigobs(iobs)  = dwig(nm)
+               dfigobs(iobs)  = dfig(nm)
+               cgobs(iobs)    = cg(nm) 
+               qbobs(iobs)    = qb(nm)               
+               betanobs(iobs) = betan(nm)               
+               fshobs(iobs)   = fsh(nm)                              
                ! 
             endif
             !
@@ -2179,6 +2209,10 @@ contains
          !
          NF90(nf90_put_var(his_file%ncid, his_file%cg_varid, cgobs, (/1, nthisout/)))
          !
+         NF90(nf90_put_var(his_file%ncid, his_file%qb_varid, qbobs, (/1, nthisout/)))
+         NF90(nf90_put_var(his_file%ncid, his_file%betan_varid, betanobs, (/1, nthisout/)))
+         NF90(nf90_put_var(his_file%ncid, his_file%fsh_varid, fshobs, (/1, nthisout/)))         
+         !            
       endif
       !      
    endif

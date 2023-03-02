@@ -2304,7 +2304,13 @@ contains
          dwig = 0.0
          dfig = 0.0   
          allocate(cg(np))
-         cg = 0.0         
+         cg = 0.0
+         allocate(Qb(np))
+         qb = 0.0  
+         allocate(betan(np))
+         betan = 0.0          
+         allocate(fsh(np))
+         fsh = 0.0            
       endif
       !
       if (store_wave_direction) then

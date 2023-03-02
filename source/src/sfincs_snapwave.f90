@@ -18,7 +18,10 @@ module sfincs_snapwave
    real*4,    dimension(:),   allocatable    :: snapwave_Df 
    real*4,    dimension(:),   allocatable    :: snapwave_Dwig
    real*4,    dimension(:),   allocatable    :: snapwave_Dfig
-   real*4,    dimension(:),   allocatable    :: snapwave_cg   
+   real*4,    dimension(:),   allocatable    :: snapwave_cg
+   real*4,    dimension(:),   allocatable    :: snapwave_Qb
+   real*4,    dimension(:),   allocatable    :: snapwave_betan  
+   real*4,    dimension(:),   allocatable    :: snapwave_fsh   
    integer,   dimension(:,:), allocatable    :: snapwave_connected_nodes
    integer*4, dimension(:),   allocatable    :: index_snapwave_in_sfincs
    integer*4, dimension(:),   allocatable    :: index_sfincs_in_snapwave
@@ -121,6 +124,9 @@ contains
    real*4,    dimension(:), allocatable       :: dwig0
    real*4,    dimension(:), allocatable       :: dfig0   
    real*4,    dimension(:), allocatable       :: cg0   
+   real*4,    dimension(:), allocatable       :: qb0   
+   real*4,    dimension(:), allocatable       :: betan0   
+   real*4,    dimension(:), allocatable       :: fsh0   
    integer   :: ip, ii, m, n, nm, nmu, idir
    real*4    :: f
    real*8    :: t
@@ -133,7 +139,10 @@ contains
    allocate(df0(np))   
    allocate(dwig0(np))
    allocate(dfig0(np))  
-   allocate(cg0(np))   
+   allocate(cg0(np))  
+   allocate(qb0(np))   
+   allocate(betan0(np))   
+   allocate(fsh0(np))      
    !
    fwx0 = 0.0
    fwy0 = 0.0
@@ -142,6 +151,9 @@ contains
    dwig0 = 0.0
    dfig0 = 0.0
    cg0 = 0.0
+   qb0 = 0.0
+   betan0 = 0.0
+   fsh0 = 0.0   
    !
    ! Determine SnapWave water depth
    !
@@ -189,7 +201,10 @@ contains
          df0(nm)    = snapwave_Df(ip)     
          dwig0(nm)  = snapwave_Dwig(ip)   
          dfig0(nm)  = snapwave_Dfig(ip)
-         cg0(nm)    = snapwave_cg(ip)         
+         cg0(nm)    = snapwave_cg(ip)
+         qb0(nm)    = snapwave_Qb(ip)
+         betan0(nm) = snapwave_betan(ip)
+         fsh0(nm)   = snapwave_fsh(ip)
          if (store_wave_direction) then
             mean_wave_direction(nm)        = 270.0 - snapwave_mean_direction(ip)*180/pi   
             wave_directional_spreading(nm) = snapwave_directional_spreading(ip)*180/pi   
@@ -208,6 +223,9 @@ contains
          dwig0(nm)    = 0.0
          dfig0(nm)    = 0.0
          cg0(nm)    = 0.0
+         qb0(nm)    = 0.0
+         betan0(nm)    = 0.0
+         fsh0(nm)    = 0.0         
          if (store_wave_direction) then
             mean_wave_direction(nm)        = 0.0
             wave_directional_spreading(nm) = 0.0  
@@ -223,7 +241,10 @@ contains
          df(nm) = df0(nm)         
          dwig(nm) = dwig0(nm)
          dfig(nm) = dfig0(nm)
-         cg(nm) = cg0(nm)         
+         cg(nm) = cg0(nm)   
+         qb(nm) = qb0(nm)         
+         betan(nm) = betan0(nm)         
+         fsh(nm) = fsh0(nm)                  
          !
       endif   
       !
@@ -294,7 +315,10 @@ contains
    snapwave_Df                    = Df
    snapwave_Dwig                  = Dw_ig
    snapwave_Dfig                  = Df_ig
-   snapwave_cg                    = cg   
+   snapwave_cg                    = cg
+   snapwave_Qb                    = Qb
+   snapwave_betan                 = betan
+   snapwave_fsh                   = fsh   
    !
    end subroutine
 
@@ -325,10 +349,16 @@ contains
    call read_real_input(500,'snapwave_crit',crit,0.01)
    call read_int_input(500,'snapwave_igwaves',iig,1)
    call read_int_input(500,'snapwave_nrsweeps',nr_sweeps,1)
+   
+   ! Settings related to IG waves:   
    call read_real_input(500,'snapwave_gammaig',gamma_ig,0.7)   
    call read_real_input(500,'snapwave_Tinc2ig',Tinc2ig,7.0)   
    call read_real_input(500,'snapwave_shinc2ig',shinc2ig,0.8)   
+   call read_real_input(500,'snapwave_shpercig',shpercig,0.25)         
    call read_real_input(500,'snapwave_eeinc2ig',eeinc2ig,0.01)     
+   call read_real_input(500,'snapwave_fshalphamin',fshalphamin,0.1)     
+   call read_real_input(500,'snapwave_fshfac',fshfac,15.0)     
+   call read_real_input(500,'snapwave_fshexp',fshexp,1.0)          
    call read_int_input(500,'snapwave_ig_opt',ig_opt,1)     
    call read_int_input(500,'snapwave_baldock_opt',baldock_opt,1)     
    call read_real_input(500,'snapwave_baldock_ratio',baldock_ratio,0.2)           

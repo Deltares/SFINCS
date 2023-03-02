@@ -53,6 +53,10 @@ module snapwave_data
    real*4,  dimension(:,:),     allocatable    :: ee                      ! directional energy density
    real*4,  dimension(:,:),     allocatable    :: ee_ig                   ! directional infragravity energy density
    !
+   real*4,  dimension(:),       allocatable    :: Qb
+   real*4,  dimension(:),       allocatable    :: betan
+   real*4,  dimension(:),       allocatable    :: fsh   
+   !
    integer*4,  dimension(:),     allocatable    :: index_snapwave_in_quadtree
    integer*4,  dimension(:),     allocatable    :: index_quadtree_in_snapwave
    
@@ -142,6 +146,10 @@ module snapwave_data
    real*4                                    :: gamma_ig        ! gamma breaking for 
    real*4                                    :: Tinc2ig         ! ratio compared to period Tinc to estimate Tig
    real*4                                    :: shinc2ig        ! TO ADD
+   real*4                                    :: shpercig        ! TO ADD
+   real*4                                    :: fshalphamin     ! TO ADD
+   real*4                                    :: fshfac     ! TO ADD
+   real*4                                    :: fshexp     ! TO ADD
    real*4                                    :: eeinc2ig        ! ratio of incident wave energy as first estimate of IG wave energy at boundary
    real*4                                    :: hmin            ! minimum water depth
    character*256                             :: gridfile        ! name of gridfile (Delft3D .grd format)
