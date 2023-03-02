@@ -3,19 +3,40 @@
 Introduction
 ============
 
-To quickly and conveniently provide for a way to give a demo, the GEOLib and some of the applications are provided as Docker containers.
-The GEOLibs are platform independent (python) libraries that provide an object-oriented interface to (for example) stix and flox files. That means that you can
-create a Linux Docker image for this interface.
+This documentation descibes the following:
 
-The last phase in a python implementation of a model however is an execute() subroutine, which calls for the Console version of the model initiator (for example:
-DStabilityConsole.exe or DGeoFlowConsole.exe). As you can see, here lies a challenge, because Delphi interfaces cannot run as a default under Linux (let alone
-a Linux Container).
+o howto build the sfincs-cpu container on (for example the v-hydrax001.directory.intra). 
 
-Docker on Windows is an upcoming feature since Windows 10 and Windows Server 2016. This guide installs Docker-Desktop for Windows 10 and set things up so that
-it becomes possible to run Windows-native containers.
+o howto automate the build process in TeamCity.
 
-Prerequisites on Docker Desktop
-===============================
+o In the "Tutorial" chapter of this document, I show how to run a simple simulation on the cluster with singularity.
+
+
+Prerequisites on cluster user account
+=====================================
+
+To build a singularity cluster as well as using singularity runtime, you need to add the following modules information
+to your **/home/${USER}/.bashrc file::
+
+  # .bashrc
+
+  # User specific aliases and functions
+
+  alias rm='rm -i'
+  alias cp='cp -i'
+  alias mv='mv -i'
+
+  # Source global definitions
+  if [ -f /etc/bashrc ]; then
+        . /etc/bashrc
+  fi
+
+  # Modules
+  module load singularity
+  module load squashfs-tools
+
+
+
 
 For more information and docker-desktop itself, see https://www.docker.com/products/docker-desktop/.
 
