@@ -198,6 +198,7 @@ module snapwave_solver
    real*4                                     :: Dwk_ig
    real*4                                     :: Ek_ig
    real*4                                     :: Hk_ig
+   real*4                                     :: Hk_ig0   
    real*4                                     :: Fk_ig
    real*4                                     :: shinc2ig
    real*4                                     :: shpercig   
@@ -361,6 +362,8 @@ module snapwave_solver
                   cgprev(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
                   !         
                   srcsh(itheta, k)  = - fsh_local(itheta,k)*((cg(k) - cgprev(itheta))/ds(itheta, k))
+                  !srcsh(itheta, k)  = - fsh_local(itheta,k)*abs((cg(k) - cgprev(itheta))/ds(itheta, k))
+                  
                   srcsh(itheta, k)  = max(srcsh(itheta, k), 0.0)
                   !
                endif
@@ -583,9 +586,9 @@ module snapwave_solver
                      call solve_tridiag(A_ig, B_ig, C_ig, R_ig, ee_ig(:,k), ntheta)
                      !
                      ee_ig(:, k) = max(ee_ig(:, k), 0.0)
-                     Ek_ig       = sum(ee_ig(:, k))*dtheta                  
-!                     Hk_ig0       = min(sqrt(Ek_ig/rhog8), gamma_ig*depth(k))  !TL: Question - why not this one?
-                     Hk_ig       = sqrt(Ek_ig/rhog8)
+                     Ek_ig       = sum(ee_ig(:, k))*dtheta   
+                     Hk_ig0      = sqrt(Ek_ig/rhog8)
+                     Hk_ig       = min(sqrt(Ek_ig/rhog8), gamma_ig*depth(k))  !TL: Question - why not this one?                                          
                      Ek_ig       = rhog8*Hk_ig**2
                      ! 
                      ! Bottom friction Henderson and Bowen (2002) - D = 0.015*rhow*(9.81/depth(k))**1.5*(Hk/sqrt(8.0))*Hk_ig**2/8
@@ -595,12 +598,12 @@ module snapwave_solver
                      !
                      ! Breaking of infragravity waves (should probably find another formulation for this)
                      !
-                     if (Hk_ig>baldock_ratio*Hmx_ig(k)) then !TL: NOTE, requirement here is different than for incident waves! hk vs Hk0
+                     if (Hk_ig>baldock_ratio*Hmx_ig(k)) then
                         !
                         if (ig_opt == 1) then                
-                           call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
+                           call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig0, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
                         elseif (ig_opt == 2) then
-                           call battjesjanssen(rho,g,alfa,gamma_ig,depth(k),Hk_ig,T_ig,battjesjanssen_opt,Dwk_ig)
+                           call battjesjanssen(rho,g,alfa,gamma_ig,depth(k),Hk_ig0,T_ig,battjesjanssen_opt,Dwk_ig)
                         endif                        
                         !
                         DoverE_ig(k) = (1.0 - fac)*DoverE_ig(k) + fac*(Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0e-6)
@@ -615,8 +618,8 @@ module snapwave_solver
                         !                     
                         ee_ig(:,k) = max(ee_ig(:, k), 0.0)
                         Ek_ig      = sum(ee_ig(:, k))*dtheta
-!                        Hk_ig      = min(sqrt(Ek_ig/rhog8), gamma*depth(k))
-                        Hk_ig      = sqrt(Ek_ig/rhog8)
+                        Hk_ig      = min(sqrt(Ek_ig/rhog8), gamma_ig*depth(k))
+!                        Hk_ig      = sqrt(Ek_ig/rhog8)
                         Ek_ig      = rhog8*Hk_ig**2
                         Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*Hk*Ek_ig !org
                         !Dfk_ig      = fw_ig(k)*1025*(9.81/depth(k))**(3.0/2.0)*(Hk/sqrt(8.0))*Hk_ig**(2.0)/8 -> TL: seems to give same result                  
@@ -713,7 +716,9 @@ module snapwave_solver
             F(k) = (Dw(k) + Df(k))*kwav(k)/sigm
             !
             ! Fraction of breaking waves, based on H(k)
-            Qb(k) = min(max(exp(-(Hmx(k)/H(k))**2), 0.0), 1.0) ! Qb percentage of breaking waves according to Baldock's formulation, between 0 and 1             
+            Qb(k) = min(max(exp(-(Hmx(k)/H(k))**2), 0.0), 1.0) ! Qb percentage of breaking waves according to Baldock's formulation, between 0 and 1     
+            !Qb(k) = min(max( 1 - exp(-(H(k)/Hmx(k))**2), 0.0), 1.0) ! Qb percentage of breaking waves according to Baldock's formulation, between 0 and 1             
+            
             !            
             if (igwaves) then
                !
