@@ -2315,110 +2315,85 @@ contains
    !
    ! write zsmax per dtmaxout
    !
-   use sfincs_data   
+   use sfincs_data  
+   use sfincs_snapwave
+   use quadtree
    !
    implicit none   
    !
-   integer :: nm, n, m
+   integer                              :: nmq, nm, n, m, ntmaxout
+   real*8                               :: t  
    !
-   real*8                       :: t  
-   !
-   integer  :: ntmaxout   
-   !
-   real*4, dimension(:), allocatable :: zstmp
-   !
-   allocate(zstmp(np))
+   real*4, dimension(:), allocatable    :: zstmp
+   allocate(zstmp(quadtree_nr_points))
    !
    zstmp = FILL_VALUE
    !
    ! Write maximum water level
-   if (subgrid) then   
-      do nm = 1, np
-         !
-         if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
-            zstmp(nm) = zsmax(nm) 
-         endif
-         !
-      enddo
-   else
-      do nm = 1, np       
-         !
-         if ( (zsmax(nm) - zb(nm)) > huthresh) then
-            zstmp(nm) = zsmax(nm) 
-         endif      
-      enddo
-   endif
-   !
-   NF90(nf90_put_var(map_file%ncid, map_file%timemax_varid, t, (/ntmaxout/))) ! write time_max
-   NF90(nf90_put_var(map_file%ncid, map_file%zsmax_varid, zstmp, (/1, ntmaxout/))) ! write zsmax   
-   !
-   ! Write maximum water depth
-   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
-      zstmp = FILL_VALUE
-      !        
-      if (subgrid) then   
-         do nm = 1, np
-            !
-            if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
-               zstmp(nm) = zsmax(nm) - subgrid_z_zmin(nm)           
-            endif
-            !
-         enddo
-      else
-         do nm = 1, np       
-            !
-            if ( (zsmax(nm) - zb(nm)) > huthresh) then
-               zstmp(nm) = zsmax(nm) - zb(nm)                       
-            endif      
-         enddo
-      endif  
-   endif
-   !   
-   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
-      NF90(nf90_put_var(map_file%ncid, map_file%hmax_varid, zstmp, (/1, ntmaxout/))) ! write hmax   
-   endif
-   !
-   ! Write cumulative rainfall and precipitation
-   !
-   if (store_cumulative_precipitation) then  
+   do nmq = 1, quadtree_nr_points
        !
+       nm = index_sfincs_in_quadtree(nmq)
+       !
+       if (kcs(nm)>0) then
+           if (subgrid) then
+               if ( (zs(nm) - subgrid_z_zmin(nm)) > huthresh) then
+                   zstmp(nmq) = zs(nm)
+               endif
+           else
+              if ( (zs(nm) - zb(nm)) > huthresh) then
+                  zstmp(nmq) = zs(nm)
+              endif
+           endif
+       endif
+   enddo
+   !
+   NF90(nf90_put_var(map_file%ncid, map_file%timemax_varid, t, (/ntmaxout/)))       ! write time_max
+   NF90(nf90_put_var(map_file%ncid, map_file%zsmax_varid, zstmp, (/1, ntmaxout/)))  ! write zsmax   
+   !
+   ! Write cumulative precipitation
+   if (store_cumulative_precipitation) then  
        zstmp = FILL_VALUE       
-       do nm = 1, np
-          zstmp(nm) = cumprcp(nm)*1000
+       do nmq = 1, quadtree_nr_points
+           nm = index_sfincs_in_quadtree(nmq)
+           if (kcs(nm)>0) then
+               zstmp(nmq) = cumprcp(nm)*1000
+           endif
        enddo
        NF90(nf90_put_var(map_file%ncid, map_file%cumprcp_varid, zstmp, (/1, ntmaxout/))) ! write cumprcp
-       !
-       zstmp = FILL_VALUE       
-       do nm = 1, np
-          zstmp(nm) = cuminf(nm)*1000
-       enddo
-       NF90(nf90_put_var(map_file%ncid, map_file%cuminf_varid, zstmp, (/1, ntmaxout/))) ! write cumprcp
-       !
    endif   
    !
    ! Duration wet cell
    if (store_twet) then
-      zstmp = FILL_VALUE
-      do nm = 1, np
-         zstmp(nm) = twet(nm) 
-      enddo
+       zstmp = FILL_VALUE       
+       do nmq = 1, quadtree_nr_points
+           nm = index_sfincs_in_quadtree(nmq)
+           if (kcs(nm)>0) then
+               zstmp(nmq) = twet(nm)
+           endif
+       enddo
       NF90(nf90_put_var(map_file%ncid, map_file%tmax_varid, zstmp, (/1, ntmaxout/))) ! write tmax   
    endif
    !
    ! Maximum wind speed
    if (wind .and. store_wind_max .and. meteo3d) then 
-      zstmp = FILL_VALUE
-      do nm = 1, np
-         zstmp(nm) = windmax(nm) 
-      enddo
+       zstmp = FILL_VALUE       
+       do nmq = 1, quadtree_nr_points
+           nm = index_sfincs_in_quadtree(nmq)
+           if (kcs(nm)>0) then
+               zstmp(nmq) = windmax(nm)
+           endif
+       enddo
       NF90(nf90_put_var(map_file%ncid, map_file%windmax_varid, zstmp, (/1, ntmaxout/))) ! write windmax   
    endif
    !   
    ! Cumulative infiltration
    if (infiltration) then
       zstmp = FILL_VALUE
-      do nm = 1, np
-         zstmp(nm) = cuminf(nm) 
+      do nmq = 1, quadtree_nr_points
+          nm = index_sfincs_in_quadtree(nmq)
+          if (kcs(nm)>0) then
+              zstmp(nmq) = cuminf(nm)
+          endif
       enddo
       NF90(nf90_put_var(map_file%ncid, map_file%cuminf_varid, zstmp, (/1, ntmaxout/))) ! write cuminf   
    endif
