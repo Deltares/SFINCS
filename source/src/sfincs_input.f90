@@ -203,6 +203,11 @@ contains
    !
    close(500)
    !
+   ! Check whether epsg code has been specified:
+   if (epsg == 0) then
+       write(*,*)'WARNING: no epsg code defined' 
+   endif   
+   !
    ! Compute simulation time
    !
    call time_difference(trefstr,tstartstr,dtsec)  ! time difference in seconds between tstart and tref
