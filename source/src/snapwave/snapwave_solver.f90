@@ -82,7 +82,7 @@ module snapwave_solver
       call solve_energy_balance2Dstat (x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                        theta,ntheta,thetamean,                                    &
                                        depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,50000.,rho,snapwave_alpha,gamma,                 &
-                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, shpercig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, battjesjanssen_opt, fshalphamin, fshfac, fshexp, Qb, betan, fsh)
+                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, shpercig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, battjesjanssen_opt, depthforcerelease,fshalphamin, fshfac, fshexp, Qb, betan, fsh)
       !
 !      call timer(t3)
       !
@@ -98,7 +98,7 @@ module snapwave_solver
    subroutine solve_energy_balance2Dstat(x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                          theta,ntheta,thetamean,                                    &
                                          depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,T,dt,rho,alfa,gamma,                 &
-                                         H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, shpercig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, battjesjanssen_opt, fshalphamin, fshfac, fshexp, Qb, betan, fsh)
+                                         H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, shpercig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, battjesjanssen_opt, depthforcerelease,fshalphamin, fshfac, fshexp, Qb, betan, fsh)
    !
    implicit none
    !
@@ -202,6 +202,7 @@ module snapwave_solver
    real*4                                     :: Fk_ig
    real*4                                     :: shinc2ig
    real*4                                     :: shpercig   
+   real*4                                     :: depthforcerelease   
    real*4                                     :: fshalphamin   
    real*4                                     :: fshfac   
    real*4                                     :: fshexp   
@@ -355,15 +356,18 @@ module snapwave_solver
                   betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin))
                   !fbr   = 1.0 ! TL: Is this the fraction of breaking waves? And does SnapWave not calculate that? > jawel, maar al impliciet in baldock subroutine
                   !fsh   = fbr*exp(-15.0*betan)
-                  fsh_local(itheta,k)   = shinc2ig * (1.0 - Qb(k)) * max(exp(-fshfac*betan_local(itheta,k)**fshexp), fshalphamin)  ! fshalphamin is as alphamin in HurryWave, named differently to avoid confusion with the other alphas we have
+                  fsh_local(itheta,k)   = shinc2ig * max(exp(-fshfac*betan_local(itheta,k)**fshexp), fshalphamin)  ! fshalphamin is as alphamin in HurryWave, named differently to avoid confusion with the other alphas we have
                   ! fshfac = fexp of Hurrywave = 15 by default, fshexp = eexp of Hurrywave = 1.0 by default                  
                   !fsh   = fbr*exp(-4.0*sqrt(betan)) !TL: why different than Hurrywave? -  fsh = shinc2ig * facbr(nm) * max(exp(-fexp*betan**eexp), alphamin)
                   !
                   cgprev(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
                   !         
-                  srcsh(itheta, k)  = - fsh_local(itheta,k)*((cg(k) - cgprev(itheta))/ds(itheta, k))
-                  !srcsh(itheta, k)  = - fsh_local(itheta,k)*abs((cg(k) - cgprev(itheta))/ds(itheta, k))
-                  
+                  if (depth(k) >= depthforcerelease) then !depthforcerelease = 0.2 default
+                      srcsh(itheta, k)  = - fsh_local(itheta,k)*((cg(k) - cgprev(itheta))/ds(itheta, k))
+                  else
+                      srcsh(itheta, k) = 0.0
+                  endif
+                  !                  
                   srcsh(itheta, k)  = max(srcsh(itheta, k), 0.0)
                   !
                endif
