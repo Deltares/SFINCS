@@ -600,7 +600,7 @@ module snapwave_solver
                      Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*Hk*Ek_ig !original
                      !Dfk_ig      = fw_ig(k)*1025*(9.81/depth(k))**(3.0/2.0)*(Hk/sqrt(8.0))*Hk_ig**(2.0)/8 -> TL: seems to give same result                     
                      !
-                     ! Breaking of infragravity waves (should probably find another formulation for this)
+                     ! Breaking of infragravity waves (Maarten: should probably find another formulation for this)
                      !
                      if (Hk_ig>baldock_ratio*Hmx_ig(k)) then
                         !
@@ -862,7 +862,9 @@ module snapwave_solver
    if (opt==1) then
       Dw = alfa * 1 / T * rho * g * Hloc**(2.0) / 4.0                     
    elseif (opt==2) then
-       if (Hloc / depth / gamma > 1.0) then
+!       if (Hloc / depth / gamma > 1.0) then
+       if (depth < 0.2) then
+           
           Dw = alfa * 1 / T * rho * g * Hloc**(2.0) / 4.0                     
        else
           Dw = 0
