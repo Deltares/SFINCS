@@ -237,3 +237,118 @@ Now for a run of this model::
 	
 Of course, the output are the **sfincs_his.nc** and the **sfincs_map.nc** files. If you run it like this, this output is 
 written to the model directory and obtainable outside the **sfincs-cpu.sif** container.
+
+Using HPC Tooling to set up a SFINCS modelqueue
+=========================================================
+
+Premises
+--------
+
+The last part of the last seection was fine-and-dandy, but it does not use one thing of the HPC. In this section we set up a numnber of models for running
+in the HPC's queuing mechanism.
+
+Setup a model directory
+-----------------------
+
+Inside our environment, we set up a directory with models::
+
+  $ tree models
+  models
+  ├── Blizard-Hazzard01
+  ├── Blizard-Hazzard02
+  ├── Charleston-subgrid01
+  └── Charleston-subgrid02
+
+Of course, **models** coould be any name here. Inside the subdirectory, you should have the usual sfincs configuration files, for example::
+
+  $ tree Charleston-subgrid/
+  Charleston-subgrid01
+  ├── sfincs.bnd
+  ├── sfincs.bzs
+  ├── sfincs.dep
+  ├── sfincs.dis
+  ├── sfincs.ind
+  ├── sfincs.inp
+  ├── sfincs.msk
+  ├── sfincs.obs
+  ├── sfincs.sbg
+  ├── sfincs.src
+  └── sfincs.weir
+
+Setting up the HPC Control Scripts
+----------------------------------
+
+The HPC Control Scripts really are two simple bash scripts which make it easier to run all the models in our **model** directory, submitting a job to a
+HPC queueu for each model. 
+
+The first shell script is a script to run a job (called test-job.sh, but you may call it whatever you want)::
+
+  #!/bin/bash
+
+  MODELDIR=$1
+  MODEL=$2
+
+  #
+  # -- SGE options :
+  #
+
+  #$ -S /bin/bash
+  #$ -cwd
+  #$ -q test-c7
+  #$ -V
+
+  cd $SGE_O_WORKDIR
+
+  #
+  # -- the commands to be executed (programs to be run) :
+  #
+
+  echo $HOSTNAME 
+
+  # Modules
+  module load singularity
+
+  echo "Running model $MODEL."
+  singularity run -B ${MODELDIR}/${MODEL}:/data sfincs-cpu.sif
+  echo finished 
+
+  exit
+  
+This script isn't meant to run on its own and we get many errors if you attempt so. It is really to use for formatting an HPC job correctly. The 
+second job is meant to use this script and submit the jobs to the queue (called sge-loop.sh)::
+
+  #!/usr/bin/bash
+
+  DIR=$1
+
+  if [ -z ${DIR} ]
+  then
+    echo "Usage: $0 <model directory>"
+    exit 0
+  fi
+
+  # Cleaning
+
+  find . -name "*.nc" -delete
+  find . -name "*.log" -delete
+  find . -name "SFINCStest-*" -delete
+
+  # Running qsub tasks
+
+  for MODEL in `\ls $DIR`
+  do
+    echo "Running model in $MODEL"
+    qsub -N SFINCStest-${MODEL} test-job.sh ${DIR} ${MODEL}
+  done
+
+  exit
+
+
+
+
+
+
+
+
+
+
