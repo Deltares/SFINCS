@@ -314,8 +314,8 @@ The first shell script is a script to run a job (called test-job.sh, but you may
 
   exit
   
-This script isn't meant to run on its own and we get many errors if you attempt so. It is really to use for formatting an HPC job correctly. The 
-second job is meant to use this script and submit the jobs to the queue (called sge-loop.sh)::
+This script isn't meant to run on its own and we get many errors if you attempt so (it is not user friendly either, since if you forget one parameter, it 
+still tries something!). It is really to use for formatting an HPC job correctly. The second job is meant to use this script and submit the jobs to the queue (called sge-loop.sh)::
 
   #!/usr/bin/bash
 
@@ -342,6 +342,171 @@ second job is meant to use this script and submit the jobs to the queue (called 
   done
 
   exit
+
+This is also not very hard to understand. After **# Cleaning** there are some Unix commands that deletes old NetCDF output and old logfiles. Then it simply submits jobs to the HPC using **test-job.sh** as a template.
+
+
+Tutorial run
+============
+
+Setup
+-----
+
+We have set some models up as follows::
+
+  noorduin@v-hydrax001 ~/development/model-test $ find sums/
+  sums/
+  sums/Charleston-subgrid01
+  sums/Charleston-subgrid01/sfincs.dis
+  sums/Charleston-subgrid01/sfincs.bzs
+  sums/Charleston-subgrid01/sfincs.msk
+  sums/Charleston-subgrid01/sfincs.dep
+  sums/Charleston-subgrid01/sfincs.sbg
+  sums/Charleston-subgrid01/sfincs.bnd
+  sums/Charleston-subgrid01/sfincs.src
+  sums/Charleston-subgrid01/sfincs.weir
+  sums/Charleston-subgrid01/sfincs.inp
+  sums/Charleston-subgrid01/sfincs.ind
+  sums/Charleston-subgrid01/sfincs.obs
+  sums/Charleston-subgrid02
+  sums/Charleston-subgrid02/sfincs.bnd
+  sums/Charleston-subgrid02/sfincs.inp
+  sums/Charleston-subgrid02/sfincs.ind
+  sums/Charleston-subgrid02/sfincs.src
+  sums/Charleston-subgrid02/sfincs.obs
+  sums/Charleston-subgrid02/sfincs.weir
+  sums/Charleston-subgrid02/sfincs.dep
+  sums/Charleston-subgrid02/sfincs.sbg
+  sums/Charleston-subgrid02/sfincs.bzs
+  sums/Charleston-subgrid02/sfincs.msk
+
+In this case it is rather lame (two times the same model), but you get the drift. I have used different names so that it is clear that the name **models** can also be changed. After this copy the shell scripts to th parent directory, so that things look like this::
+
+  noorduin@v-hydrax001 ~/development/model-test $ ls -l
+
+  drwxrwxr-x 5 noorduin domain users        5 Mar 16 08:39 models
+  -rw-rw-r-- 1 noorduin domain users 66707456 Mar 14 11:59 sfincs-cpu.sif
+  -rwxrwxr-x 1 noorduin domain users      354 Mar 16 08:45 sge-loop.sh
+  -rwxrwxr-x 1 noorduin domain users      350 Mar 15 10:29 test-job.sh
+  
+Of course the **sfincs-cpu.sif** singualarity image can be in another directory, but then you have to adjust the **test-job.sh** script, so that it can find the image.
+
+Run
+---
+
+This is simple::
+
+noorduin@v-hydrax001 ~/development/model-test $ ./sge-loop.sh sums
+Running model in Charleston-subgrid01
+Your job 847944 ("SFINCStest-Charleston-subgrid01") has been submitted
+Running model in Charleston-subgrid02
+Your job 847945 ("SFINCStest-Charleston-subgrid02") has been submitted
+
+and then::
+
+  noorduin@v-hydrax001 ~/development/model-test $ qstat
+  job-ID  prior   name       user         state submit/start at     queue                          slots ja-task-ID
+  -----------------------------------------------------------------------------------------------------------------
+  ...
+   847944 0.05500 SFINCStest noorduin     r     03/16/2023 09:07:10 test-c7@v-mcs055.directory.int     1
+   847945 0.05500 SFINCStest noorduin     r     03/16/2023 09:07:10 test-c7@v-mcs056.directory.int     1
+  ...
+
+After a while you should see the usual error and info logs::
+
+  noorduin@v-hydrax001 ~/development/model-test $ ls -l SFINCStest-*
+  -rw-r--r-- 1 noorduin domain users  0 Mar 16 09:07 SFINCStest-Charleston-subgrid01.e847944
+  -rw-r--r-- 1 noorduin domain users 74 Mar 16 09:07 SFINCStest-Charleston-subgrid01.o847944
+  -rw-r--r-- 1 noorduin domain users  0 Mar 16 09:07 SFINCStest-Charleston-subgrid02.e847945
+  -rw-r--r-- 1 noorduin domain users 74 Mar 16 09:07 SFINCStest-Charleston-subgrid02.o847945
+
+and (for example)::
+
+  noorduin@v-hydrax001 ~/development/model-test $ cat SFINCStest-Charleston-subgrid01.o847944
+  v-mcs055.directory.intra 
+  Running model Charleston-subgrid01.
+  finished 
+
+
+Exploring logfiles and result datasets
+--------------------------------------
+
+The system is designed so that logfiles as well as the result (NetCDF) datasets are written to the directory of the configuration of a model. So, for example::
+
+  noorduin@v-hydrax001 ~/development/model-test $ ls -l sums/Charleston-subgrid01
+  total 23048
+  -rw-rw-r-- 1 noorduin domain users        0 Mar 16 09:07 error.log
+  -rw-rw-r-- 1 noorduin domain users     2985 Mar 16 09:07 info.log
+  -rwxrwxr-x 1 noorduin domain users      207 Nov 25  2021 sfincs.bnd
+  -rwxrwxr-x 1 noorduin domain users   152179 Oct 24 11:29 sfincs.bzs
+  -rwxrwxr-x 1 noorduin domain users   479456 Oct 29  2021 sfincs.dep
+  -rwxrwxr-x 1 noorduin domain users    47848 Oct 24 11:29 sfincs.dis
+  -rw-rw-r-- 1 noorduin domain users    10424 Mar 16 09:07 sfincs_his.nc
+  -rwxrwxr-x 1 noorduin domain users   479460 Oct 29  2021 sfincs.ind
+  -rwxrwxr-x 1 noorduin domain users      775 Nov  7 16:17 sfincs.inp
+  -rw-rw-r-- 1 noorduin domain users 41832724 Mar 16 09:07 sfincs_map.nc
+  -rwxrwxr-x 1 noorduin domain users   119864 Oct 29  2021 sfincs.msk
+  -rwxrwxr-x 1 noorduin domain users      131 Oct 24 11:25 sfincs.obs
+  -rwxrwxr-x 1 noorduin domain users 16301516 Oct 26  2021 sfincs.sbg
+  -rwxrwxr-x 1 noorduin domain users       20 Oct 24 11:29 sfincs.src
+  -rwxrwxr-x 1 noorduin domain users    59531 Oct 28  2021 sfincs.weir
+
+Of course **sfincs_his.nc** and **sfincs_map.nc** are the result datasets, and **info.log** should contain the usual information about this run::
+
+  noorduin@v-hydrax001 ~/development/model-test $ cat sums/Charleston-subgrid01/info.log
+
+   ----------- Welcome to SFINCS -----------
+
+    @@@@@  @@@@@@@ @@ @@  @@   @@@@   @@@@@
+   @@@ @@@ @@@@@@@ @@ @@@ @@ @@@@@@@ @@@ @@@  
+   @@@     @@      @@ @@@ @@ @@   @@ @@@
+    @@@@@  @@@@@@  @@ @@@@@@ @@       @@@@@
+       @@@ @@      @@ @@ @@@ @@   @@     @@@
+   @@@ @@@ @@      @@ @@  @@  @@@@@@ @@@ @@@
+    @@@@@  @@      @@ @@   @   @@@@   @@@@@
+
+  ...
+
+   Build-Revision: $Rev: v2.0.3-beta$
+   Build-Date:     $Date: 2023-02-24$
+
+   Reading input file ...
+   Info : Running SFINCS in subgrid mode ...
+   Reading meteo data ...
+   Info : Preparing SFINCS grid on regular mesh ...
+   Reading sfincs.ind ...
+   Reading sfincs.msk ...
+   Number of active z points    :       119864
+   Number of active u/v points  :       238715
+   Reading sfincs.sbg ...
+   Reading water level boundaries ...
+   Reading observation points ...
+   Initializing output ...
+
+   ---------- Starting simulation ----------
+
+     0% complete,       - s remaining ...
+     5% complete,    26.1 s remaining ...
+    10% complete,    24.9 s remaining ...
+    ... 
+    95% complete,     1.5 s remaining ...
+   100% complete,     0.0 s remaining ...
+
+   ---------- Simulation finished ----------
+
+   Total time             :     30.172
+   Total simulation time  :     30.084
+   Time in input          :      0.088
+   Time in boundaries     :      1.640 (  5.5%)
+   Time in momentum       :     20.108 ( 66.8%)
+   Time in continuity     :      8.159 ( 27.1%)
+   Time in output         :      0.153 (  0.5%)
+
+   Average time step (s)  :      6.878
+
+   ---------- Closing off SFINCS -----------
+
+
 
 
 
