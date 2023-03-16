@@ -102,8 +102,8 @@ To easy a sfincs run, a shell-script **run-sfincs.sh** is provided. The script w
   For example: ./run-sfincs.sh /data if the Singularity container is started as: ./sfincs-cpu --bind <input>:/data
 
 
-Running a tutorial model inside sfincs on the HPC-cluster
-=========================================================
+Running a standalone tutorial model inside sfincs on the HPC-cluster
+====================================================================
 
 Setup a run directory
 ---------------------
@@ -238,7 +238,7 @@ Now for a run of this model::
 Of course, the output are the **sfincs_his.nc** and the **sfincs_map.nc** files. If you run it like this, this output is 
 written to the model directory and obtainable outside the **sfincs-cpu.sif** container.
 
-Using HPC Tooling to set up a SFINCS modelqueue
+Using HPC Tooling to set up a SFINCS model queue
 =========================================================
 
 Premises
