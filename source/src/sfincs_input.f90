@@ -388,7 +388,7 @@ contains
          if (qtrfile(1:4) == 'none') then ! this works only for a regular grid model, for quadtree use 'nuvisc' option
             viscosity = .true.         
             !
-            if (crsgeo == .true.) then ! simplified conversion for spherical grids
+            if (crsgeo .eqv. .true.) then ! simplified conversion for spherical grids
                 nuvisc = max(nuviscdim * min(dx,dy) / 0.001, 0.0) ! take min of dx and dy, don't allow to be negative  
                 ! dx = 1 degree ~ 100km
                 ! dx = 0.001 degree~ 100m > nuvisc = 1.0              
