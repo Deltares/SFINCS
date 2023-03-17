@@ -403,7 +403,7 @@ contains
          endif          
       endif    
       !
-      if (viscosity == .true.) then
+      if (viscosity .eqv. .true.) then
          write(*,*)'Turning on process: Viscosity, with nuvisc= ',nuvisc
       endif      
       !
