@@ -75,6 +75,7 @@ module sfincs_data
       real*4 tsunami_arrival_threshold
       real*4 dtwave
       real*4 wmtfilter
+      real*4 Tinc2ig
       !
       real*4 freqminig
       real*4 freqmaxig
