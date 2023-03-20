@@ -2308,7 +2308,9 @@ contains
          allocate(Qb(np))
          qb = 0.0  
          allocate(betan(np))
-         betan = 0.0          
+         betan = 0.0     
+         allocate(srcsh(np))
+         srcsh = 0.0           
          allocate(fsh(np))
          fsh = 0.0            
       endif

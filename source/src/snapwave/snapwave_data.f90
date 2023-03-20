@@ -55,6 +55,7 @@ module snapwave_data
    !
    real*4,  dimension(:),       allocatable    :: Qb
    real*4,  dimension(:),       allocatable    :: betan
+   real*4,  dimension(:),       allocatable    :: srcsh
    real*4,  dimension(:),       allocatable    :: fsh   
    !
    integer*4,  dimension(:),     allocatable    :: index_snapwave_in_quadtree

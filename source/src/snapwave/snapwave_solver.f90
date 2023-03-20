@@ -82,7 +82,7 @@ module snapwave_solver
       call solve_energy_balance2Dstat (x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                        theta,ntheta,thetamean,                                    &
                                        depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,50000.,rho,snapwave_alpha,gamma,                 &
-                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, shpercig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, battjesjanssen_opt, depthforcerelease,fshalphamin, fshfac, fshexp, Qb, betan, fsh)
+                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, shpercig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, battjesjanssen_opt, depthforcerelease,fshalphamin, fshfac, fshexp, Qb, betan, srcsh, fsh)
       !
 !      call timer(t3)
       !
@@ -98,7 +98,7 @@ module snapwave_solver
    subroutine solve_energy_balance2Dstat(x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                          theta,ntheta,thetamean,                                    &
                                          depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,T,dt,rho,alfa,gamma,                 &
-                                         H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, shpercig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, battjesjanssen_opt, depthforcerelease,fshalphamin, fshfac, fshexp, Qb, betan, fsh)
+                                         H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, shpercig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, battjesjanssen_opt, depthforcerelease,fshalphamin, fshfac, fshexp, Qb, betan, srcsh, fsh)
    !
    implicit none
    !
@@ -127,6 +127,7 @@ module snapwave_solver
    real*4, dimension(no_nodes), intent(in)          :: fw_ig                  ! wave friction factor
    real*4, dimension(no_nodes), intent(out)       :: Qb                     ! Fraction of breaking waves according to Baldock's formulation
    real*4, dimension(no_nodes), intent(out)       :: betan                  ! Normalised local bed slope parameter  
+   real*4, dimension(no_nodes), intent(out)       :: srcsh                  ! Directionally averaged incident wave sink/infragravity source term 
    real*4, dimension(no_nodes), intent(out)       :: fsh                    ! Total shoaling factor for inc wave energy sink 
    real*4, intent(in)                         :: T                      ! wave period
    real*4                                     :: T_ig                   ! wave period
@@ -162,7 +163,7 @@ module snapwave_solver
 !   real*4, dimension(:,:), allocatable        :: ee,eeold               ! wave energy density, energy density previous iteration
 !   real*4, dimension(:,:), allocatable        :: ee_ig                  ! wave energy density
    real*4, dimension(:,:), allocatable        :: eeold               ! wave energy density, energy density previous iteration
-   real*4, dimension(:,:), allocatable        :: srcsh                  ! 
+   real*4, dimension(:,:), allocatable        :: srcsh_local                  ! 
    real*4, dimension(:,:), allocatable        :: betan_local            ! 
    real*4, dimension(:,:), allocatable        :: fsh_local              ! 
    real*4, dimension(:), allocatable          :: dee                    ! difference with energy previous iteration
@@ -251,7 +252,7 @@ module snapwave_solver
    allocate(E(no_nodes))
    allocate(diff(no_nodes))
    allocate(ra(no_nodes))
-   allocate(srcsh(ntheta,no_nodes))
+   allocate(srcsh_local(ntheta,no_nodes))
    !
    if (igwaves) then
       !
@@ -278,7 +279,7 @@ module snapwave_solver
    df   = 0.0
    dw   = 0.0
    F    = 0.0
-   srcsh = 0.0
+   srcsh_local = 0.0
    betan_local = 0.0
    fsh_local = 0.0   
    !
@@ -363,12 +364,12 @@ module snapwave_solver
                   cgprev(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
                   !         
                   if (depth(k) >= depthforcerelease) then !depthforcerelease = 0.2 default
-                      srcsh(itheta, k)  = - fsh_local(itheta,k)*((cg(k) - cgprev(itheta))/ds(itheta, k))
+                      srcsh_local(itheta, k)  = - fsh_local(itheta,k)*((cg(k) - cgprev(itheta))/ds(itheta, k))
                   else
-                      srcsh(itheta, k) = 0.0
+                      srcsh_local(itheta, k) = 0.0
                   endif
                   !                  
-                  srcsh(itheta, k)  = max(srcsh(itheta, k), 0.0)
+                  srcsh_local(itheta, k)  = max(srcsh_local(itheta, k), 0.0)
                   !
                endif
                !
@@ -464,7 +465,7 @@ module snapwave_solver
                      A(itheta) = -ctheta(itheta - 1, k)*oneover2dtheta
                      B(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverE(k)
                      C(itheta) = ctheta(itheta + 1, k)*oneover2dtheta
-                     R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta)*eeprev(itheta)/ds(itheta, k) - srcsh(itheta, k)*ee(itheta,k)
+                     R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta)*eeprev(itheta)/ds(itheta, k) - srcsh_local(itheta, k)*ee(itheta,k)
                      !
                   enddo
                   !
@@ -472,7 +473,7 @@ module snapwave_solver
                      A(1) = 0.0
                      B(1) = oneoverdt - ctheta(1, k)/dtheta + cg(k)/ds(1, k) + DoverE(k)
                      C(1) = ctheta(2, k)/dtheta
-                     R(1) = oneoverdt*ee(1, k) + cgprev(1)*eeprev(1)/ds(1, k) - srcsh(1, k)*ee(1, k)
+                     R(1) = oneoverdt*ee(1, k) + cgprev(1)*eeprev(1)/ds(1, k) - srcsh_local(1, k)*ee(1, k)
                   else
                      A(1) = 0.0
                      B(1) = 1.0/dt
@@ -484,7 +485,7 @@ module snapwave_solver
                      A(ntheta) = -ctheta(ntheta - 1, k)/dtheta
                      B(ntheta) = oneoverdt + ctheta(ntheta, k)/dtheta + cg(k)/ds(ntheta, k) + DoverE(k)
                      C(ntheta) = 0.0
-                     R(ntheta) = oneoverdt*ee(ntheta,k) + cgprev(ntheta)*eeprev(ntheta)/ds(ntheta, k) - srcsh(ntheta, k)*ee(ntheta, k)
+                     R(ntheta) = oneoverdt*ee(ntheta,k) + cgprev(ntheta)*eeprev(ntheta)/ds(ntheta, k) - srcsh_local(ntheta, k)*ee(ntheta, k)
                   else
                      A(ntheta) = 0.0
                      B(ntheta) = oneoverdt
@@ -557,7 +558,7 @@ module snapwave_solver
                         A_ig(itheta) = -ctheta_ig(itheta - 1, k)*oneover2dtheta
                         B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
                         C_ig(itheta) = ctheta_ig(itheta + 1, k)*oneover2dtheta
-                        R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta)*eeprev_ig(itheta)/ds(itheta, k) + shpercig*srcsh(itheta, k)*ee(itheta,k) ! added shpercig controls what part of the dissipated inc energy actually ends up in the IG energy band
+                        R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta)*eeprev_ig(itheta)/ds(itheta, k) + shpercig*srcsh_local(itheta, k)*ee(itheta,k) ! added shpercig controls what part of the dissipated inc energy actually ends up in the IG energy band
                         !
                      enddo
                      !
@@ -565,7 +566,7 @@ module snapwave_solver
                         A_ig(1) = 0.0
                         B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k)
                         C_ig(1) = ctheta_ig(2, k)/dtheta
-                        R_ig(1) = oneoverdt*ee_ig(1, k) + cgprev_ig(1)*eeprev_ig(1)/ds(1, k) + shpercig*srcsh(1, k)*ee(1,k)
+                        R_ig(1) = oneoverdt*ee_ig(1, k) + cgprev_ig(1)*eeprev_ig(1)/ds(1, k) + shpercig*srcsh_local(1, k)*ee(1,k)
                      else
                         A_ig(1)=0.0
                         B_ig(1)=1.0/dt
@@ -577,7 +578,7 @@ module snapwave_solver
                         A_ig(ntheta) = -ctheta_ig(ntheta - 1, k)/dtheta
                         B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
                         C_ig(ntheta) = 0.0
-                        R_ig(ntheta) = oneoverdt*ee_ig(ntheta,k) + cgprev_ig(ntheta)*eeprev_ig(ntheta)/ds(ntheta,k) + shpercig*srcsh(ntheta, k)*ee(ntheta,k)
+                        R_ig(ntheta) = oneoverdt*ee_ig(ntheta,k) + cgprev_ig(ntheta)*eeprev_ig(ntheta)/ds(ntheta,k) + shpercig*srcsh_local(ntheta, k)*ee(ntheta,k)
                      else
                         A_ig(ntheta) = 0.0
                         B_ig(ntheta) = oneoverdt
@@ -740,9 +741,10 @@ module snapwave_solver
                   call battjesjanssen(rho,g,alfa,gamma_ig,depth(k),H_ig(k),T_ig,battjesjanssen_opt,Dw_ig(k))
                endif               
                !
-               ! average betan and fsh over directions
+               ! average betan, fsh, srcsh over directions
                betan(k)     = sum(betan_local(:,k))*dtheta
-               fsh(k)       = sum(fsh_local(:,k))*dtheta               
+               fsh(k)       = sum(fsh_local(:,k))*dtheta  
+               srcsh(k)       = sum(srcsh_local(:,k))*dtheta                              
                !
             endif
             !
