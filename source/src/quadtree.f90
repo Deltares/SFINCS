@@ -209,6 +209,16 @@ contains
       !
    enddo   
    !
+   ! Some write statements of interpreted quadtree grid to output for user:
+   write(*,*)'Quadtree grid info - nr_levels:',quadtree_nr_levels
+   write(*,*)'Quadtree grid info -        x0:',quadtree_x0
+   write(*,*)'Quadtree grid info -        y0:',quadtree_y0
+   write(*,*)'Quadtree grid info -        dx:',quadtree_dx
+   write(*,*)'Quadtree grid info -        dy:',quadtree_dy
+   write(*,*)'Quadtree grid info -      mmax:',quadtree_mmax
+   write(*,*)'Quadtree grid info -      nmax:',quadtree_nmax
+   write(*,*)'Quadtree grid info -  rotation:',quadtree_rotation
+   !
    end subroutine
 
    
