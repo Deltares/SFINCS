@@ -83,8 +83,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.0.1-beta$'
-   build_date     = '$Date: 2023-02-24$'
+   build_revision = '$Rev: v2.0.1-branch:main_fixes_18_21_22_combined_$'
+   build_date     = '$Date: 2023-03-23$'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
