@@ -229,8 +229,8 @@ module sfincs_data
       integer iviscosity   
       integer isubgrid  
       integer iwavemaker      
-      integer iwavemaker_spectrum      
-      
+      integer iwavemaker_spectrum  
+      integer ispwprecip
       !!!
       !!! Static data
       !!!

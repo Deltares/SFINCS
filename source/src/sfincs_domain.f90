@@ -86,7 +86,7 @@ contains
       !
       if (spw_precip) then
           precip = .true.
-          write(*,*)'Turning on process: Precipitation'
+          write(*,*)'Turning on process: Precipitation from spwfile'
       endif
    endif
    !
