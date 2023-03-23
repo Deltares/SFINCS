@@ -203,12 +203,12 @@ CONTAINS
        !
    end subroutine
    ! 
-   subroutine time_difference_in_days(datespw,datesim,dtsec)
+   subroutine time_difference_in_days(datespw,datesim,dtdays)
        !
        integer ijul1, ijul2     
        integer yyyy1,mm1,dd1,hh1,mn1,ss1,yyyy2,mm2,dd2,hh2,mn2,ss2
        integer sec1,sec2
-       real dtsec
+       real dtdays
        !
        character*15  :: datespw
        character*15  :: datesim
@@ -223,7 +223,7 @@ CONTAINS
        !
        sec1  = hh1/3600 + mn1*60 + ss1
        sec2  = hh2/3600 + mn2*60 + ss2
-       dtsec = (ijul2 - ijul1) + (sec2 - sec1) / 86400
+       dtdays = (ijul2 - ijul1) + (sec2 - sec1) / 86400
        !
    end subroutine   
    !

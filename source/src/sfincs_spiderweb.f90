@@ -81,21 +81,10 @@ contains
       !
       read(888,'(a)')line
       !
+      ! Compute difference in seconds between spiderweb reference time and simulation start time     
+      !
       call compute_time_in_seconds(line,trefstr,dtsec)
-!      j=index(line,'=')      
-!      j2=index(line,'m')      
-!      keystr = trim(line(1:j-1))
-!      valstr = trim(line(j+1:j2-1))
-!      timstr = trim(line(j2+14:j2+24))
-!      read(valstr,*)time(it)
-!      !
-!      ! Compute difference in seconds between spiderweb reference time and simulation start time
-!      !
-!      read(timstr,'(A,1X,A,1X,A)')cyspw,cmspw,cdspw
-!      datespw = cyspw // cmspw // cdspw // ' 000000'
-!      call time_difference(datespw,trefstr,dtsec)
-!      !
-!      time(it) = time(it)*60 - dtsec*1.0 ! Convert to seconds w.r.t. reference time
+      !
       time(it) = dtsec*1.0 ! Convert to seconds w.r.t. reference time
       !
       ! Xe
@@ -206,23 +195,10 @@ contains
       !
       read(888,'(a)')line
       !
+      ! Compute difference in seconds between spiderweb reference time and simulation start time
+      !
       call compute_time_in_seconds(line,trefstr,dtsec)
       !
-!      write(*,*)line
-!      j=index(line,'=')      
-!      j2=index(line,'m')      
-!      keystr = trim(line(1:j-1))
-!      valstr = trim(line(j+1:j2-1))
-!      timstr = trim(line(j2+14:j2+24))
-!      read(valstr,*)time(it)
-!      !
-!      ! Compute difference in seconds between spiderweb reference time and simulation start time
-!      !
-!      read(timstr,'(A,1X,A,1X,A)')cyspw,cmspw,cdspw
-!      datespw = cyspw // cmspw // cdspw // ' 000000'
-!      call time_difference(datespw,trefstr,dtsec)
-!      !
-!      time(it) = time(it)*60 - dtsec*1.0 ! Convert to seconds w.r.t. reference time
       time(it) = dtsec*1.0
       !
       do n = 1, nrows 
@@ -513,12 +489,12 @@ contains
    !
    read(valstr,*)tim
    !
-   ! Compute difference in seconds between spiderweb reference time and simulation start time
+   ! Compute difference in days between spiderweb reference time and simulation start time
    !
    read(timstr,'(A,1X,A,1X,A)')cyspw,cmspw,cdspw
+   !
    datespw = cyspw // cmspw // cdspw // ' 000000'
-   !call time_difference(datespw,trefstr,dtsec)
-   
+   !   
    call time_difference_in_days(datespw,trefstr,dtdays)   
    !
    if (iopt==1) then
@@ -528,9 +504,10 @@ contains
    endif
    !
    ! Only now convert to seconds w.r.t. reference time
+   ! TL: added this to overcome problem with rounding error when dates are very far (10-100s of years) apart and calculating differences directly in seconds lead to problems. Calculating in days is only done for spws.
    !
    dtsec = dtdays * 24 * 3600
    !
    end subroutine
-   
+   !
 end module        
