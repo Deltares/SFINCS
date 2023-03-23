@@ -81,6 +81,7 @@ contains
    call read_int_input(500,'coriolis',icoriolis,1)
    call read_int_input(500,'amprblock',iamprblock,1)
    call read_real_input(500,'spwmergefrac',spw_merge_frac,0.5)
+   call read_int_input(500,'usespwprecip',ispwprecip,1)   
    call read_int_input(500,'global',iglobal,0)
    call read_real_input(500,'nuvisc',nuviscinp,-999.0)
    call read_real_input(500,'nuviscdim',nuviscdim,1.0)   
