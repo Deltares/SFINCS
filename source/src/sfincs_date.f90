@@ -202,6 +202,30 @@ CONTAINS
        dtsec = (ijul2 - ijul1)*86400 + sec2 - sec1
        !
    end subroutine
+   ! 
+   subroutine time_difference_in_days(datespw,datesim,dtsec)
+       !
+       integer ijul1, ijul2     
+       integer yyyy1,mm1,dd1,hh1,mn1,ss1,yyyy2,mm2,dd2,hh2,mn2,ss2
+       integer sec1,sec2
+       real dtsec
+       !
+       character*15  :: datespw
+       character*15  :: datesim
+       !
+       read(datespw,'(I4,2I2,1X,3I2)')yyyy1,mm1,dd1,hh1,mn1,ss1
+       read(datesim,'(I4,2I2,1X,3I2)')yyyy2,mm2,dd2,hh2,mn2,ss2
+       !
+       ! Compute Julian days
+       !
+       ijul1 = julian_date (yyyy1,mm1,dd1)
+       ijul2 = julian_date (yyyy2,mm2,dd2)
+       !
+       sec1  = hh1/3600 + mn1*60 + ss1
+       sec2  = hh2/3600 + mn2*60 + ss2
+       dtsec = (ijul2 - ijul1) + (sec2 - sec1) / 86400
+       !
+   end subroutine   
    !
    FUNCTION julian_date (yyyy, mm, dd) RESULT (julian)
        ! converts calendar date to Julian date

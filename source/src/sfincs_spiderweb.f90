@@ -486,6 +486,7 @@ contains
    character*15  :: datespw
    character*256 :: timstr
    real          :: tim   
+   real          :: dtdays   
    !
    j=index(line,'=')      
    j2=index(line,'minutes')    
@@ -516,13 +517,19 @@ contains
    !
    read(timstr,'(A,1X,A,1X,A)')cyspw,cmspw,cdspw
    datespw = cyspw // cmspw // cdspw // ' 000000'
-   call time_difference(datespw,trefstr,dtsec)
+   !call time_difference(datespw,trefstr,dtsec)
+   
+   call time_difference_in_days(datespw,trefstr,dtdays)   
    !
    if (iopt==1) then
-      dtsec = tim*60 - dtsec ! Convert to seconds w.r.t. reference time
+      dtdays = tim/60/24 - dtdays ! Convert from minutes to days w.r.t. reference time
    else
-      dtsec = tim*3600 - dtsec ! Convert to seconds w.r.t. reference time
+      dtdays = tim/24 - dtdays ! Convert from hours to days w.r.t. reference time
    endif
+   !
+   ! Only now convert to seconds w.r.t. reference time
+   !
+   dtsec = dtdays * 24 * 3600
    !
    end subroutine
    
