@@ -221,9 +221,9 @@ CONTAINS
        ijul1 = julian_date (yyyy1,mm1,dd1)
        ijul2 = julian_date (yyyy2,mm2,dd2)
        !
-       sec1  = hh1/3600 + mn1*60 + ss1
-       sec2  = hh2/3600 + mn2*60 + ss2
-       dtdays = (ijul2 - ijul1) + (sec2 - sec1) / 86400
+       sec1  = hh1*3600 + mn1*60 + ss1
+       sec2  = hh2*3600 + mn2*60 + ss2
+       dtdays = (ijul2 - ijul1) + (sec2 - sec1) / 86400.0
        !
    end subroutine   
    !
