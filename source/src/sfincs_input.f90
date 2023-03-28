@@ -47,7 +47,6 @@ contains
    call read_real_input(500,'rgh_lev_land',rghlevland,0.0)
    call read_real_input(500,'zsini',zini,0.0)
    call read_real_input(500,'qinf',qinf,0.0)
-   call read_real_input(500,'igperiod',tig,120.0)
    call read_real_input(500,'dtmax',dtmax,60.0)
    call read_real_input(500,'huthresh',huthresh,0.05)
    call read_real_input(500,'rhoa',rhoa,1.25)

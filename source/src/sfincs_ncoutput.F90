@@ -2617,7 +2617,6 @@ contains
         NF90(nf90_put_att(ncid, varid, 'rgh_lev_land',rghlevland))        
         NF90(nf90_put_att(ncid, varid, 'zsini',zini))        
         NF90(nf90_put_att(ncid, varid, 'qinf',qinf))        
-        NF90(nf90_put_att(ncid, varid, 'igperiod',tig))        
         NF90(nf90_put_att(ncid, varid, 'dtmax',dtmax))        
         NF90(nf90_put_att(ncid, varid, 'dtmin',dtmin))        
         NF90(nf90_put_att(ncid, varid, 'huthresh',huthresh))        

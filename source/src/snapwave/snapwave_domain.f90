@@ -236,6 +236,8 @@ contains
          endif   
       enddo   
       !
+      write(*,*)'Number of boundary SnapWave nodes : ',nb
+      !
       ! Write upwind neighbors to file
       !
       if (upwfile=='') then
