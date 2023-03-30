@@ -361,11 +361,11 @@
                !
                if (qx_nm>1.0e-6) then
                   !
-                  adv = - (qx_nm + qx_nmd) * (uu_nm - uu_nmd) * dxuvinv / 2
+                  adv = - ( qx_nm*uu_nm - qx_nmd*uu_nmd ) * dxuvinv                  
                   ! 
                elseif (qx_nm<-1.0e-6) then
                   !
-                  adv = - (qx_nmu + qx_nm) * (uu_nmu - uu_nm) * dxuvinv / 2
+                  adv = - ( qx_nmu*uu_nmu - qx_nm*uu_nm ) * dxuvinv
                   !
                else
                   !
