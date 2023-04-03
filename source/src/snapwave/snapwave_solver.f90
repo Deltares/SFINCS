@@ -357,7 +357,19 @@ module snapwave_solver
                   betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin))
                   !fbr   = 1.0 ! TL: Is this the fraction of breaking waves? And does SnapWave not calculate that? > jawel, maar al impliciet in baldock subroutine
                   !fsh   = fbr*exp(-15.0*betan)
-                  fsh_local(itheta,k)   = shinc2ig * max(exp(-fshfac*betan_local(itheta,k)**fshexp), fshalphamin)  ! fshalphamin is as alphamin in HurryWave, named differently to avoid confusion with the other alphas we have
+                  if (ig_opt == 1) then                
+                     !  
+                     fsh_local(itheta,k)   = shinc2ig * max(exp(-fshfac*betan_local(itheta,k)**fshexp), fshalphamin)  ! fshalphamin is as alphamin in HurryWave, named differently to avoid confusion with the other alphas we have
+                     ! 
+                  elseif (ig_opt == 2) then                  
+                     ! 
+                     call estimate_shoaling_rate(betan_local(itheta,k), H(k), T, fsh_local(itheta,k)) ! [input, input, input, output]                     
+                     !  
+                  elseif (ig_opt == 3) then                  
+                     ! 
+                     fsh_local(itheta,k)   = shinc2ig * max(exp(-fshfac*betan_local(itheta,k)**fshexp), fshalphamin)  ! fshalphamin is as alphamin in HurryWave, named differently to avoid confusion with the other alphas we have
+                     !
+                  endif
                   ! fshfac = fexp of Hurrywave = 15 by default, fshexp = eexp of Hurrywave = 1.0 by default                  
                   !fsh   = fbr*exp(-4.0*sqrt(betan)) !TL: why different than Hurrywave? -  fsh = shinc2ig * facbr(nm) * max(exp(-fexp*betan**eexp), alphamin)
                   !
@@ -398,6 +410,8 @@ module snapwave_solver
             if (ig_opt == 1) then                
                call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
             elseif (ig_opt == 2) then
+               call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
+            elseif (ig_opt == 3) then
                call battjesjanssen(rho,g,alfa,gamma_ig,depth(k),Hk_ig,T_ig,battjesjanssen_opt,Dwk_ig)
             endif
             !
@@ -608,6 +622,8 @@ module snapwave_solver
                         if (ig_opt == 1) then                
                            call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig0, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
                         elseif (ig_opt == 2) then
+                           call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig0, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
+                        elseif (ig_opt == 3) then
                            call battjesjanssen(rho,g,alfa,gamma_ig,depth(k),Hk_ig0,T_ig,battjesjanssen_opt,Dwk_ig)
                         endif                        
                         !
@@ -632,6 +648,8 @@ module snapwave_solver
                         if (ig_opt == 1) then                
                            call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
                         elseif (ig_opt == 2) then
+                           call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
+                        elseif (ig_opt == 3) then
                            call battjesjanssen(rho,g,alfa,gamma_ig,depth(k),Hk_ig,T_ig,battjesjanssen_opt,Dwk_ig)
                         endif                    
                         !
@@ -738,6 +756,8 @@ module snapwave_solver
                if (ig_opt == 1) then                
                   call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), H_ig(k), T_ig, baldock_opt, Dw_ig(k), Hmx_ig(k))
                elseif (ig_opt == 2) then
+                  call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), H_ig(k), T_ig, baldock_opt, Dw_ig(k), Hmx_ig(k))
+               elseif (ig_opt == 3) then
                   call battjesjanssen(rho,g,alfa,gamma_ig,depth(k),H_ig(k),T_ig,battjesjanssen_opt,Dw_ig(k))
                endif               
                !
@@ -875,6 +895,37 @@ module snapwave_solver
    !
    end subroutine battjesjanssen   
    
+   subroutine estimate_shoaling_rate(betan, H, T, fsh)
+   real*4, intent(in)                :: betan
+   real*4, intent(in)                :: H
+   real*4, intent(in)                :: T
+   real*4, intent(out)               :: fsh
+   real*4                            :: L0
+   real*4                            :: x
+   real*4                            :: fshalphamin
+   real*4                            :: fshfac
+   real*4                            :: shinc2ig
+   real*4                            :: eexp
+   real*4                            :: alpha
+   !
+   ! Estimate local wave steepness
+   L0 = 9.81 * T **2 / (2 * pi); ! deep water wave length
+   !   
+   x = H / L0 ! local wave steepness                    
+   !
+   ! Estimate parameters going into shoaling rate formula
+   fshalphamin = 180.8556 * x**2 + 3.5123 * x + 0.0736
+   fshfac = 1.0e+04 * -2.1107 * x**2 + 1.0e+04 *  0.1367 * x + 1.0e+04 *  0.0003
+   shinc2ig = 1.0e+06 * 6.5499 * x**3 + 1.0e+06 * -0.4539 * x**2 + 1.0e+06 * 0.0085 * x - 15.2673
+   eexp = 1;
+   !
+   ! Actually calculate shoaling rate
+   alpha = shinc2ig * exp(-fshfac * betan ** eexp)
+   !
+   fsh =  max(alpha, fshalphamin);
+   !             
+   end subroutine estimate_shoaling_rate   
+    
    subroutine disper_approx(h,T,k,n,C,Cg,no_nodes)
    integer, intent(in)                :: no_nodes
    real*4, dimension(no_nodes), intent(in)  :: h
