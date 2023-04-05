@@ -280,8 +280,10 @@ contains
    endif
    !
    store_maximum_velocity = .false.
+   store_maximum_flux = .false.
    if (storevelmax==1 .and. dtmaxout>0.0) then
       store_maximum_velocity = .true.
+      store_maximum_flux = .true.
    endif
    !
    store_velocity = .false.

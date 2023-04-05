@@ -434,7 +434,7 @@ contains
    !$omp do schedule ( dynamic, 256 )
    !$acc kernels present( kcs, zs, zb, z_volume, zsmax, twet, zsm, &
    !$acc                  subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
-   !$acc                  netprcp, cumprcpt, prcp, q, z_flags_type, z_flags_iref, uv_flags_iref, &
+   !$acc                  netprcp, cumprcpt, prcp, q, qmax, z_flags_type, z_flags_iref, uv_flags_iref, &
    !$acc                  z_index_uv_md1, z_index_uv_md2, z_index_uv_nd1, z_index_uv_nd2, z_index_uv_mu1, z_index_uv_mu2, z_index_uv_nu1, z_index_uv_nu2, &
    !$acc                  dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area, &
    !$acc                  z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num), async(1)
@@ -640,6 +640,12 @@ contains
             !
          endif
          !
+         if (store_maximum_flux) then
+           !             
+           !qmax(nm) =  max(qmax(nm), q(nm))
+           qmax(nm) =  sign(max(abs(q(nm)), abs(qmax(nm))), qmax(nm))
+           !
+         endif         
          !
       endif
       !       

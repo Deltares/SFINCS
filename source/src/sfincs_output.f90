@@ -153,6 +153,10 @@ module sfincs_output
          !$acc update host(vmax)
       endif
       !
+      if (store_maximum_flux) then
+         !$acc update host(qmax)
+      endif      
+      !
       if (store_twet) then
          !$acc update host(twet)
       endif
@@ -188,6 +192,11 @@ module sfincs_output
          vmax = 0.0 ! Set vmax back to 0.0
          !$acc update device(vmax)
       endif
+      !
+      if (store_maximum_flux) then
+         qmax = 0.0 ! Set qmax back to 0.0
+         !$acc update device(qmax)
+      endif      
       !
 !      if (precip .and. store_cumulative_precipitation) then
 !         cumprcp = 0.0 ! Set cumprcp back to a 0.0

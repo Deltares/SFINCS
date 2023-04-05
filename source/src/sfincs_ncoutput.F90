@@ -16,7 +16,7 @@ module sfincs_ncoutput
       integer :: zb_varid, msk_varid, qinf_varid
       integer :: time_varid, timemax_varid
       integer :: zs_varid, zsmax_varid, h_varid, u_varid, v_varid, tmax_varid, Seff_varid 
-      integer :: hmax_varid, vmax_varid, cumprcp_varid, cuminf_varid, windmax_varid
+      integer :: hmax_varid, vmax_varid, qmax_varid, cumprcp_varid, cuminf_varid, windmax_varid
       integer :: patm_varid, wind_u_varid, wind_v_varid, precip_varid        
       integer :: hm0_varid, hm0ig_varid
       integer :: fwx_varid, fwy_varid
@@ -324,6 +324,14 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%vmax_varid, 'long_name', 'maximum_flow_velocity')) 
       NF90(nf90_put_att(map_file%ncid, map_file%vmax_varid, 'cell_methods', 'time: maximum'))
       NF90(nf90_put_att(map_file%ncid, map_file%vmax_varid, 'coordinates', 'x y'))
+      !
+      NF90(nf90_def_var(map_file%ncid, 'qmax', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%timemax_dimid/), map_file%qmax_varid)) ! maximum flow flux map
+      NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'units', 'm^2 s-1'))
+      NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'standard_name', 'maximum_flow_flux')) ! no standard name available
+      NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'long_name', 'maximum_flow_flux')) 
+      NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'cell_methods', 'time: maximum'))
+      NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'coordinates', 'x y'))      
    endif
    !
    if (store_cumulative_precipitation) then
@@ -2283,6 +2291,18 @@ contains
       enddo
       NF90(nf90_put_var(map_file%ncid, map_file%vmax_varid, zstmp, (/1, 1, ntmaxout/))) ! write vmax
    endif
+   !
+   ! Maximum flow flux
+   !
+   if (store_maximum_flux) then
+      zstmp = FILL_VALUE
+      do nm = 1, np   
+         n              = z_index_z_n(nm)
+         m              = z_index_z_m(nm)
+         zstmp(m, n)    = qmax(nm)
+      enddo
+      NF90(nf90_put_var(map_file%ncid, map_file%qmax_varid, zstmp, (/1, 1, ntmaxout/))) ! write qmax
+   endif   
    !
    ! Duration wet cell
    !

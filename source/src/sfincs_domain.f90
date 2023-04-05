@@ -2331,6 +2331,11 @@ contains
    if (store_maximum_velocity) then
       allocate(vmax(np))
    endif
+   !
+   if (store_maximum_flux) then
+      allocate(qmax(np))      
+   endif
+   !
    if (store_twet) then
        allocate(twet(np))
    endif
@@ -2517,6 +2522,10 @@ contains
    if (store_maximum_velocity) then
       vmax = 0.0
    endif
+   !
+   if (store_maximum_flux) then
+      qmax = 0.0
+   endif   
    !
    if (store_twet) then
       twet = 0.0
