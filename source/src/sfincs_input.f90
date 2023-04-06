@@ -40,7 +40,7 @@ contains
    call read_real_input(500,'dtwave',dtwave,3600.0)
    call read_real_input(500,'dtwnd',dtwindupd,1800.0)
    call read_real_input(500,'alpha',alfa,0.50)
-   call read_real_input(500,'theta',theta,1.0)
+   call read_real_input(500,'theta',theta,0.9)
    call read_real_input(500,'manning',manning,0.04)
    call read_real_input(500,'manning_land',manning_land,-999.0)
    call read_real_input(500,'manning_sea',manning_sea,-999.0)
