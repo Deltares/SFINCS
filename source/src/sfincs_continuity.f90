@@ -407,6 +407,7 @@ contains
    real*4           :: quz
    real*4           :: qvz
    real*4           :: qz
+   real*4           :: uvz
    !
    integer          :: iuv
    real*4           :: dzvol
@@ -433,7 +434,7 @@ contains
    endif   
    !
    !$omp parallel &
-   !$omp private ( dvol,nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,quz,qvz,qz )
+   !$omp private ( dvol,nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,quz,qvz,qz,uvz )
    !$omp do schedule ( dynamic, 256 )
    !$acc kernels present( kcs, zs, zb, z_volume, zsmax, qmax, twet, zsm, &
    !$acc                  subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
@@ -447,6 +448,7 @@ contains
       ! And now water level changes due to horizontal fluxes
       !
       qz = 0.0
+      uvz = 0.0
       !
       if (kcs(nm)==1 .or. kcs(nm)==4) then
          !
@@ -494,6 +496,12 @@ contains
                endif   
                !
             endif   
+            !
+            if (store_maximum_velocity) then
+               quz = (uv(nmd) + uv(nmu)) / 2   
+               qvz = (uv(ndm) + uv(num)) / 2      
+               uvz = sqrt(quz**2 + qvz**2)
+            endif
             !
             if (store_maximum_flux) then
                quz = (q(nmd) + q(nmu)) / 2   
@@ -649,6 +657,12 @@ contains
             zsmax(nm) = max(zsmax(nm), zs(nm))
             !
          endif
+         !
+         if (store_maximum_velocity) then
+            !             
+            vmax(nm) = max(vmax(nm), uvz)
+            !
+         endif      
          !
          if (store_maximum_flux) then
             !             
