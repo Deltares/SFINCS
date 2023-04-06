@@ -11,7 +11,7 @@ contains
    !
    implicit none
    !
-   integer dtsec
+   integer*8 dtsec
    !
    character*256 wmsigstr 
    !   

@@ -182,9 +182,9 @@ CONTAINS
    ! 
    subroutine time_difference(datespw,datesim,dtsec)
        !
-       integer ijul1, ijul2     
-       integer yyyy1,mm1,dd1,hh1,mn1,ss1,yyyy2,mm2,dd2,hh2,mn2,ss2
-       integer dtsec,sec1,sec2
+       integer*8 ijul1, ijul2     
+       integer*4 yyyy1,mm1,dd1,hh1,mn1,ss1,yyyy2,mm2,dd2,hh2,mn2,ss2
+       integer*8 dtsec,sec1,sec2
        !
        character*15  :: datespw
        character*15  :: datesim
