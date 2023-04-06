@@ -410,6 +410,9 @@ contains
    real*4           :: facint
    real*4           :: a
    !
+   real*4           :: u1, u2, v1, v2, uz, vz   
+   real*4           :: utmp, vtmp, uvmag
+   !   
    if (wavemaker) then
       !
       factime = min(dt/wmtfilter, 1.0)
@@ -430,7 +433,7 @@ contains
    endif   
    !
    !$omp parallel &
-   !$omp private ( dvol,nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind )
+   !$omp private ( dvol,nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,u1,u2,v1,v2,uz,vz,utmp,vtmp,uvmag)
    !$omp do schedule ( dynamic, 256 )
    !$acc kernels present( kcs, zs, zb, z_volume, zsmax, twet, zsm, &
    !$acc                  subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
@@ -640,10 +643,169 @@ contains
             !
          endif
          !
+         if (store_maximum_velocity) then
+           !             
+           if (z_flags_type(nm) == 0) then
+               !
+               ! Regular point with four surrounding cells of the same size
+               !
+               nmd1 = z_index_uv_md1(nm)
+               nmu1 = z_index_uv_mu1(nm)
+               ndm1 = z_index_uv_nd1(nm)
+               num1 = z_index_uv_mu1(nm)
+               uz  = 0.5*(uv(nmd1) + uv(nmu1))
+               vz  = 0.5*(uv(ndm1) + uv(num1))
+               !
+           else
+               !
+               ! Bit more complicated
+               !
+               nmd1 = z_index_uv_md1(nm)
+               nmu1 = z_index_uv_mu1(nm)
+               ndm1 = z_index_uv_nd1(nm)
+               num1 = z_index_uv_mu1(nm)
+               nmd2 = z_index_uv_md2(nm)
+               nmu2 = z_index_uv_mu2(nm)
+               ndm2 = z_index_uv_nd2(nm)
+               num2 = z_index_uv_nu2(nm)
+               !
+               ! Left
+               !
+               u1 = 0.0
+               if (nmd1>0 .and. nmd2==0) then   
+                  u1 = uv(nmd1)
+               elseif (nmd1>0 .and. nmd2>0) then
+                  u1 = 0.5*uv(nmd1) + 0.5*uv(nmd2)
+               elseif (nmd1==0 .and. nmd2>0) then   
+                  u1 = uv(nmd2)
+               endif   
+               !
+               ! Right
+               !
+               u2 = 0.0
+               if (nmu1>0  .and. nmu2==0) then   
+                  u2 = uv(nmu1)
+               elseif (nmu1>0 .and. nmu2>0) then
+                  u2 = 0.5*uv(nmu1) + 0.5*uv(nmu2)
+               elseif (nmu2==0  .and. nmu2>0) then   
+                  u2 = uv(nmu2)
+               endif   
+               !
+               ! Bottom
+               !
+               v1 = 0.0
+               if (ndm1>0 .and. ndm2==0) then   
+                  v1 = uv(ndm1)
+               elseif (ndm1>0 .and. ndm2>0) then
+                  v1 = 0.5*uv(ndm1) + 0.5*uv(ndm2)
+               elseif (ndm1==0 .and. ndm2>0) then   
+                  v1 = uv(ndm2)
+               endif   
+               !
+               ! Right
+               !
+               v2 = 0.0
+               if (num1>0  .and. num2==0) then   
+                  v2 = uv(num1)
+               elseif (num1>0 .and. num2>0) then
+                  v2 = 0.5*uv(num1) + 0.5*uv(num2)
+               elseif (num2==0  .and. num2>0) then   
+                  v2 = uv(num2)
+               endif   
+               !
+               uz = 0.5*(u1 + u2)
+               vz = 0.5*(v1 + v2)
+               !
+           endif   
+           !
+           utmp  = cosrot*uz - sinrot*vz                         
+           vtmp  = sinrot*uz + cosrot*vz
+           uvmag = sqrt(utmp**2 + vtmp**2)
+           !uvdir(nm) = atan2(vobs(nm), uobs(nm))*180/pi                         
+           vmax(nm) =  max(vmax(nm), uvmag)
+           !
+         endif         
+         !
          if (store_maximum_flux) then
            !             
-           !qmax(nm) =  max(qmax(nm), q(nm))
-           qmax(nm) =  sign(max(abs(q(nm)), abs(qmax(nm))), qmax(nm))
+           if (z_flags_type(nm) == 0) then
+               !
+               ! Regular point with four surrounding cells of the same size
+               !
+               nmd1 = z_index_uv_md1(nm)
+               nmu1 = z_index_uv_mu1(nm)
+               ndm1 = z_index_uv_nd1(nm)
+               num1 = z_index_uv_mu1(nm)
+               uz  = 0.5*(q(nmd1) + q(nmu1))
+               vz  = 0.5*(q(ndm1) + q(num1))
+               !
+           else
+               !
+               ! Bit more complicated
+               !
+               nmd1 = z_index_uv_md1(nm)
+               nmu1 = z_index_uv_mu1(nm)
+               ndm1 = z_index_uv_nd1(nm)
+               num1 = z_index_uv_mu1(nm)
+               nmd2 = z_index_uv_md2(nm)
+               nmu2 = z_index_uv_mu2(nm)
+               ndm2 = z_index_uv_nd2(nm)
+               num2 = z_index_uv_nu2(nm)
+               !
+               ! Left
+               !
+               u1 = 0.0
+               if (nmd1>0 .and. nmd2==0) then   
+                  u1 = q(nmd1)
+               elseif (nmd1>0 .and. nmd2>0) then
+                  u1 = 0.5*q(nmd1) + 0.5*q(nmd2)
+               elseif (nmd1==0 .and. nmd2>0) then   
+                  u1 = q(nmd2)
+               endif   
+               !
+               ! Right
+               !
+               u2 = 0.0
+               if (nmu1>0  .and. nmu2==0) then   
+                  u2 = q(nmu1)
+               elseif (nmu1>0 .and. nmu2>0) then
+                  u2 = 0.5*q(nmu1) + 0.5*q(nmu2)
+               elseif (nmu2==0  .and. nmu2>0) then   
+                  u2 = q(nmu2)
+               endif   
+               !
+               ! Bottom
+               !
+               v1 = 0.0
+               if (ndm1>0 .and. ndm2==0) then   
+                  v1 = q(ndm1)
+               elseif (ndm1>0 .and. ndm2>0) then
+                  v1 = 0.5*q(ndm1) + 0.5*q(ndm2)
+               elseif (ndm1==0 .and. ndm2>0) then   
+                  v1 = q(ndm2)
+               endif   
+               !
+               ! Right
+               !
+               v2 = 0.0
+               if (num1>0  .and. num2==0) then   
+                  v2 = q(num1)
+               elseif (num1>0 .and. num2>0) then
+                  v2 = 0.5*q(num1) + 0.5*q(num2)
+               elseif (num2==0  .and. num2>0) then   
+                  v2 = q(num2)
+               endif   
+               !
+               uz = 0.5*(u1 + u2)
+               vz = 0.5*(v1 + v2)
+               !
+           endif   
+           !
+           utmp  = cosrot*uz - sinrot*vz                         
+           vtmp  = sinrot*uz + cosrot*vz
+           uvmag = sqrt(utmp**2 + vtmp**2)  !TL: here all uz/vz/u1/u2/v1/v2 are fluxes 'q'
+           !uvdir(nm) = atan2(vobs(nm), uobs(nm))*180/pi                
+           qmax(nm) =  max(qmax(nm), uvmag)    
            !
          endif         
          !
