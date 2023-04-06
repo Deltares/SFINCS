@@ -404,6 +404,9 @@ contains
    real*4           :: qyndm
    real*4           :: factime
    real*4           :: dvol
+   real*4           :: quz
+   real*4           :: qvz
+   real*4           :: qz
    !
    integer          :: iuv
    real*4           :: dzvol
@@ -430,9 +433,9 @@ contains
    endif   
    !
    !$omp parallel &
-   !$omp private ( dvol,nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind )
+   !$omp private ( dvol,nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,quz,qvz,qz )
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels present( kcs, zs, zb, z_volume, zsmax, twet, zsm, &
+   !$acc kernels present( kcs, zs, zb, z_volume, zsmax, qmax, twet, zsm, &
    !$acc                  subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
    !$acc                  netprcp, cumprcpt, prcp, q, qmax, z_flags_type, z_flags_iref, uv_flags_iref, &
    !$acc                  z_index_uv_md1, z_index_uv_md2, z_index_uv_nd1, z_index_uv_nd2, z_index_uv_mu1, z_index_uv_mu2, z_index_uv_nu1, z_index_uv_nu2, &
@@ -442,6 +445,8 @@ contains
    do nm = 1, np
       !
       ! And now water level changes due to horizontal fluxes
+      !
+      qz = 0.0
       !
       if (kcs(nm)==1 .or. kcs(nm)==4) then
          !
@@ -489,6 +494,12 @@ contains
                endif   
                !
             endif   
+            !
+            if (store_maximum_flux) then
+               quz = (q(nmd) + q(nmu)) / 2   
+               qvz = (q(ndm) + q(num)) / 2      
+               qz = sqrt(quz**2 + qvz**2)
+            endif
             !
          else
             !
@@ -574,7 +585,6 @@ contains
                !
                dvol = 0.0
                !
-               !
                ! U
                !
                if (nmd>0) then
@@ -641,10 +651,9 @@ contains
          endif
          !
          if (store_maximum_flux) then
-           !             
-           !qmax(nm) =  max(qmax(nm), q(nm))
-           qmax(nm) =  sign(max(abs(q(nm)), abs(qmax(nm))), qmax(nm))
-           !
+            !             
+            qmax(nm) = max(qmax(nm), qz)
+            !
          endif         
          !
       endif

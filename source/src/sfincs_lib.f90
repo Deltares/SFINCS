@@ -220,7 +220,7 @@ module sfincs_lib
    !
    ierr = -1
    !
-   !$acc data, copyin( kcs, kcuv, zs, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, twet, zsm, z_volume, &
+   !$acc data, copyin( kcs, kcuv, zs, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, qmax, twet, zsm, z_volume, &
    !$acc               z_flags_iref, z_flags_type, uv_flags_iref, uv_flags_type, uv_flags_vis, uv_flags_adv, uv_flags_dir, &
    !$acc               index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, zsb, zsb0, ibuvdir, uvmean, &
    !$acc               subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_hrep, subgrid_uv_navg, subgrid_uv_hrep_zmax, subgrid_uv_navg_zmax, &

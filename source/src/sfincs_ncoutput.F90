@@ -324,12 +324,14 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%vmax_varid, 'long_name', 'maximum_flow_velocity')) 
       NF90(nf90_put_att(map_file%ncid, map_file%vmax_varid, 'cell_methods', 'time: maximum'))
       NF90(nf90_put_att(map_file%ncid, map_file%vmax_varid, 'coordinates', 'x y'))
+   endif 
       !
-      NF90(nf90_def_var(map_file%ncid, 'qmax', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%timemax_dimid/), map_file%qmax_varid)) ! maximum flow flux map
+   if (store_maximum_flux) then
+      NF90(nf90_def_var(map_file%ncid, 'qmax', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%timemax_dimid/), map_file%qmax_varid)) ! maximum flux map
       NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, '_FillValue', FILL_VALUE))   
       NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'units', 'm^2 s-1'))
-      NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'standard_name', 'maximum_flow_flux')) ! no standard name available
-      NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'long_name', 'maximum_flow_flux')) 
+      NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'standard_name', 'maximum_flux')) ! no standard name available
+      NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'long_name', 'maximum_flux')) 
       NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'cell_methods', 'time: maximum'))
       NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'coordinates', 'x y'))      
    endif
