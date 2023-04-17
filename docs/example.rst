@@ -129,7 +129,7 @@ After downloading Docker desktop for your operating system (https://www.docker.c
 	(here 'C:/Users/../SFINCS' is the folder where the SFINCS input files to be used are located)
 
 Instead of using the latest automatically cmpiled version, you can also pull a verified tagged release from: https://hub.docker.com/r/deltares/sfincs-cpu/tags
-This can be for instance the open source release version 'build-v0.0.1-2022-11-16'.
+This can be for instance the open source release version 'sfincs-v2.0.0-AlpeDHuez'.
 
 Cloud based cluster
 ^^^^^
