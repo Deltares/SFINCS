@@ -11,7 +11,7 @@ contains
    !
    implicit none
    !
-   integer dtsec
+   integer*8 dtsec
    !
    character*256 wmsigstr 
    !   
@@ -39,8 +39,8 @@ contains
    call read_real_input(500,'dthisout',dthisout,600.0)
    call read_real_input(500,'dtwave',dtwave,3600.0)
    call read_real_input(500,'dtwnd',dtwindupd,1800.0)
-   call read_real_input(500,'alpha',alfa,0.75)
-   call read_real_input(500,'theta',theta,1.0)
+   call read_real_input(500,'alpha',alfa,0.50)
+   call read_real_input(500,'theta',theta,0.9)
    call read_real_input(500,'manning',manning,0.04)
    call read_real_input(500,'manning_land',manning_land,-999.0)
    call read_real_input(500,'manning_sea',manning_sea,-999.0)
@@ -81,8 +81,11 @@ contains
    call read_int_input(500,'coriolis',icoriolis,1)
    call read_int_input(500,'amprblock',iamprblock,1)
    call read_real_input(500,'spwmergefrac',spw_merge_frac,0.5)
+   call read_int_input(500,'usespwprecip',ispwprecip,1)   
    call read_int_input(500,'global',iglobal,0)
-   call read_real_input(500,'nuvisc',nuvisc,-999.0)
+   call read_real_input(500,'nuvisc',nuviscinp,-999.0)
+   call read_real_input(500,'nuviscdim',nuviscdim,1.0)   
+   call read_int_input(500,'viscosity',iviscosity,0)
    call read_int_input(500,'spinup_meteo', ispinupmeteo, 0)
    call read_real_input(500,'waveage',waveage,-999.0)
    call read_int_input(500,'snapwave', isnapwave, 0)
@@ -200,6 +203,11 @@ contains
    endif   
    !
    close(500)
+   !
+   ! Check whether epsg code has been specified:
+   if (epsg == 0) then
+       write(*,*)'WARNING: no epsg code defined' 
+   endif   
    !
    ! Compute simulation time
    !
@@ -368,12 +376,38 @@ contains
       store_tsunami_arrival_time = .true.
    endif      
    !
-   if (nuvisc>0.0) then
-      viscosity = .true.
-      iviscosity = 1
-   else
-      viscosity = .false.
-      iviscosity = 0      
+   viscosity = .false.   
+   if (nuviscinp>0.0 .or. iviscosity==1)then
+      !
+      if (nuviscinp>0.0) then ! if nuvisc given by user, this overrules the dimensionless default use of nuvisc, for backwards compatability
+         !
+         nuvisc = nuviscinp
+         viscosity = .true.         
+         !
+      else ! user defined viscosity=1:
+         !
+         if (qtrfile(1:4) == 'none') then ! this works only for a regular grid model, for quadtree use 'nuvisc' option
+            viscosity = .true.         
+            !
+            if (crsgeo .eqv. .true.) then ! simplified conversion for spherical grids
+                nuvisc = max(nuviscdim * min(dx,dy) / 0.001, 0.0) ! take min of dx and dy, don't allow to be negative  
+                ! dx = 1 degree ~ 100km
+                ! dx = 0.001 degree~ 100m > nuvisc = 1.0              
+            else                 
+                nuvisc = max(nuviscdim * min(dx,dy) / 100.0, 0.0) ! take min of dx and dy, don't allow to be negative    
+                ! dx = 50 > nuvisc = 0.5
+                ! dx = 100 > nuvisc = 1.0
+                ! dx = 500 > nuvisc = 5.0
+                ! nuviscdim = 1.0
+                ! nuvisc = nuviscdim * dx / 100 
+            endif
+         endif          
+      endif    
+      !
+      if (viscosity .eqv. .true.) then
+         write(*,*)'Turning on process: Viscosity, with nuvisc= ',nuvisc
+      endif      
+      !
    endif   
    !
    spinup_meteo = .true. ! Default use data in ampr file as block rather than linear interpolation

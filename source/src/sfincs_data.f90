@@ -71,6 +71,8 @@ module sfincs_data
       real*4 dym
       real*4 dym2
       real*4 nuvisc
+      real*4 nuviscdim
+      real*4 nuviscinp      
       real*4 spw_merge_frac
       real*4 tsunami_arrival_threshold
       real*4 dtwave
@@ -227,8 +229,8 @@ module sfincs_data
       integer iviscosity   
       integer isubgrid  
       integer iwavemaker      
-      integer iwavemaker_spectrum      
-      
+      integer iwavemaker_spectrum  
+      integer ispwprecip
       !!!
       !!! Static data
       !!!

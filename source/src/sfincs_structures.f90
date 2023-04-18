@@ -586,11 +586,11 @@
                h2 = zsnm  - structure_parameters(1, istruc)
             endif
             !
-            if (h1>0.0 .and. h2>0.0) then
+            if (h2 > 2.0 / 3.0 * h1) then
                !
                ! fully submerged
                !
-               qstruc = Cd*cweir*h1*sqrt((h1 - h2)/(1.0 - m))
+               qstruc = Cd*h2*sqrt(2.0 * 9.81 * (h1 - h2)/(1.0 - m))
                !
             else
                !
