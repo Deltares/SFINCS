@@ -2560,9 +2560,9 @@ contains
         NF90(nf90_put_att(ncid, varid, 'amprfile',amprfile))  
         NF90(nf90_put_att(ncid, varid, 'qinffile',qinffile))   
         NF90(nf90_put_att(ncid, varid, 'scsfile',scsfile)) 
-        NF90(nf90_put_att(ncid, varid, 'scsfile_Smax',scsfile_Smax)) 
-        NF90(nf90_put_att(ncid, varid, 'scsfile_Se',scsfile_Se)) 
-        NF90(nf90_put_att(ncid, varid, 'scsfile_kr',scsfile_kr)) 
+        NF90(nf90_put_att(ncid, varid, 'smaxfile',smaxfile)) 
+        NF90(nf90_put_att(ncid, varid, 'sefffile',sefffile)) 
+        NF90(nf90_put_att(ncid, varid, 'krfile',krfile)) 
         NF90(nf90_put_att(ncid, varid, 'z0lfile',z0lfile)) 
         NF90(nf90_put_att(ncid, varid, 'wvmfile',wvmfile)) 
         !

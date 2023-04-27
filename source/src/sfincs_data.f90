@@ -131,9 +131,9 @@ module sfincs_data
       character*256 :: netampfile
       character*256 :: netamprfile
       character*256 :: scsfile
-      character*256 :: scsfile_Smax
-      character*256 :: scsfile_Se
-      character*256 :: scsfile_kr
+      character*256 :: smaxfile
+      character*256 :: sefffile
+      character*256 :: krfile
       character*256 :: z0lfile
       character*256 :: wvmfile
       character*256 :: qtrfile
@@ -342,6 +342,7 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: scs_kr          ! recovery kr
       real*4, dimension(:),   allocatable :: scs_P1          ! rainfall of this 'event'
       real*4, dimension(:),   allocatable :: scs_F1          ! infiltration of this 'event'
+      real*4, dimension(:),   allocatable :: scs_T1          ! time that it is not raining
       real*4, dimension(:),   allocatable :: scs_Se          ! S for this 'event'
       !
       ! Wind reduction for spiderweb winds

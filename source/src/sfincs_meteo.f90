@@ -1300,7 +1300,7 @@ contains
       !
       !$omp parallel &
       !$omp private ( Qq,I,nm ) &
-      !$omp shared ( scs_P1,scs_F1,scs_Se,scs_rain,cuminf,qinfmap,qinffield,qinffield2 )
+      !$omp shared ( scs_P1,scs_T1,scs_F1,scs_Se,scs_rain,cuminf,qinfmap,qinffield,qinffield2 )
       !$omp do
       do nm = 1, np
          !
@@ -1346,7 +1346,6 @@ contains
          else
             ! 
             ! It is not raining here
-            ! 
             if (scs_rain(nm) == 1) then
                !
                ! if it was raining before
@@ -1354,15 +1353,20 @@ contains
                !
                scs_rain(nm)   = 0
                qinfmap(nm)    = 0.0
+               scs_T1(nm)     = 0.0
                !
             endif
             !
-            ! It is not raining and stil not raining
-            ! compute recovery of S (not larger than Smax)
-            ! note that qinffield2 is S and qinffield is Smax
-            ! 
-            qinffield2(nm) = qinffield2(nm) + (scs_kr(nm) * qinffield(nm) * dt / 3600)  ! scs_kr is recovery % in hours 
-            qinffield2(nm) = min(qinffield2(nm), qinffield(nm))
+            ! Add to recovery time
+            scs_T1(nm)     = scs_T1(nm) + dt / 3600
+            !
+            ! compute recovery of S if time is larger than this
+            if (scs_T1(nm) >  (0.06 / scs_kr(nm)) ) then			! Equation 4-37 from SWMM
+                ! note that qinffield2 is S and qinffield is Smax
+                qinffield2(nm) = qinffield2(nm) + (scs_kr(nm) * qinffield(nm) * dt / 3600)  ! scs_kr is recovery in hours 
+                qinffield2(nm) = min(qinffield2(nm), qinffield(nm))
+                !
+            endif
             !
          endif
          ! 

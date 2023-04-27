@@ -2108,7 +2108,7 @@ contains
          inftype = 'cna'
          infiltration = .true.      
          !
-      elseif (scsfile_Se /= 'none') then  
+      elseif (sefffile /= 'none') then  
          !
          ! Spatially-varying infiltration with CN numbers (new)
          !
@@ -2208,8 +2208,8 @@ contains
          ! 
          allocate(qinffield(np))
          qinffield = 0.0
-         write(*,*)'Reading ',trim(scsfile_Smax)
-         open(unit = 500, file = trim(scsfile_Smax), form = 'unformatted', access = 'stream')
+         write(*,*)'Reading ',trim(smaxfile)
+         open(unit = 500, file = trim(smaxfile), form = 'unformatted', access = 'stream')
          read(500)qinffield
          close(500)
          !
@@ -2217,8 +2217,8 @@ contains
          !
          allocate(qinffield2(np))
          qinffield2 = 0.0
-         write(*,*)'Reading ',trim(scsfile_Se)
-         open(unit = 501, file = trim(scsfile_Se), form = 'unformatted', access = 'stream')
+         write(*,*)'Reading ',trim(sefffile)
+         open(unit = 501, file = trim(sefffile), form = 'unformatted', access = 'stream')
          read(501)qinffield2
          close(501)
          !
@@ -2226,8 +2226,8 @@ contains
          !
          allocate(scs_kr(np))
          scs_kr = 0.0
-         write(*,*)'Reading ',trim(scsfile_kr)
-         open(unit = 502, file = trim(scsfile_kr), form = 'unformatted', access = 'stream')
+         write(*,*)'Reading ',trim(krfile)
+         open(unit = 502, file = trim(krfile), form = 'unformatted', access = 'stream')
          read(502)scs_kr
          close(502)
          !
@@ -2237,6 +2237,8 @@ contains
          scs_P1 = 0.0
          allocate(scs_F1(np))
          scs_F1 = 0.0
+         allocate(scs_T1(np))
+         scs_T1 = 0.0
          allocate(scs_Se(np))
          scs_Se = 0.0
          allocate(scs_rain(np))

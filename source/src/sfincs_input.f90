@@ -134,9 +134,9 @@ contains
    call read_char_input(500,'amprfile',amprfile,'none')
    call read_char_input(500,'qinffile',qinffile,'none')
    call read_char_input(500,'scsfile',scsfile,'none')
-   call read_char_input(500,'scsfile_Smax',scsfile_Smax,'none')
-   call read_char_input(500,'scsfile_Se',scsfile_Se,'none')
-   call read_char_input(500,'scsfile_kr',scsfile_kr,'none')
+   call read_char_input(500,'smaxfile',smaxfile,'none')
+   call read_char_input(500,'sefffile',sefffile,'none')
+   call read_char_input(500,'krfile',krfile,'none')
    call read_char_input(500,'z0lfile',z0lfile,'none')
    call read_char_input(500,'wvmfile',wvmfile,'none')
    !
