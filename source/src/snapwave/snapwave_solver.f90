@@ -367,7 +367,7 @@ module snapwave_solver
                      !  
                   elseif (ig_opt == 3) then                  
                      ! 
-                     fsh_local(itheta,k)   = shinc2ig * max(exp(-fshfac*betan_local(itheta,k)**fshexp), fshalphamin)  ! fshalphamin is as alphamin in HurryWave, named differently to avoid confusion with the other alphas we have
+                     call estimate_shoaling_rate_v02(betan_local(itheta,k), H(k), T, fsh_local(itheta,k)) ! [input, input, input, output]
                      !
                   endif
                   ! fshfac = fexp of Hurrywave = 15 by default, fshexp = eexp of Hurrywave = 1.0 by default                  
@@ -925,7 +925,41 @@ module snapwave_solver
    fsh =  max(alpha, fshalphamin);
    !             
    end subroutine estimate_shoaling_rate   
-    
+   
+   subroutine estimate_shoaling_rate_v02(betan, H, T, fsh)
+   real*4, intent(in)                :: betan
+   real*4, intent(in)                :: H
+   real*4, intent(in)                :: T
+   real*4, intent(out)               :: fsh
+   real*4                            :: L0
+   real*4                            :: x
+   real*4                            :: fshalphamin
+   real*4                            :: fshalphamax
+   real*4                            :: fshfac
+   real*4                            :: shinc2ig
+   real*4                            :: eexp
+   real*4                            :: alpha
+   !
+   ! Estimate local wave steepness
+   L0 = 9.81 * T **2 / (2 * pi); ! deep water wave length
+   !   
+   x = H / L0 ! local wave steepness                    
+   !
+   ! Estimate parameters going into shoaling rate formula
+   fshalphamin = 180.8556 * x**2 + 3.5123 * x + 0.0736
+   fshalphamax = min(1.0e+04 * 3.4167 * x ** 2 + 1.0e+04 * 0.3852 * x + 1.0e+04 * 0.0003, 50.0)
+   fshfac = 1.0e+04 *  -6.2071 * x**2 + 1.0e+04 *  0.3391 * x + 1.0e+04 *  0.0009
+   shinc2ig = 50.0
+   eexp = 1.0;
+   !
+   ! Actually calculate shoaling rate
+   alpha = shinc2ig * exp(-fshfac * betan ** eexp)
+   !
+   fsh =  max(alpha, fshalphamin)
+   fsh =  min(alpha, fshalphamax)   
+   !             
+   end subroutine estimate_shoaling_rate_v02   
+   
    subroutine disper_approx(h,T,k,n,C,Cg,no_nodes)
    integer, intent(in)                :: no_nodes
    real*4, dimension(no_nodes), intent(in)  :: h
