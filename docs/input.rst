@@ -640,6 +640,26 @@ Generally it is only needed to turn on advection in case of modelling waves or s
 	theta 		= 1.0
 	advection 	= 0
 
+**viscosity**
+
+'viscosity' turns on the viscosity term in the momentum equation (viscosity = 1).
+The recommended value of viscosity 'nuvisc' to add the your model (only when you set theta = 1.0), depends on your grid size.
+For ease, SFINCS internally automatically determines the optimal value for you, which is displayed when running the model:	'Turning on process: Viscosity, with nuvisc=   0.5000000'. In this case corresponding to a grid resolution of 50 meters.
+In case you would want to increase the viscosity term, you can either specify the exact value you want 'nuvisc = XXX', or e.g. multiply it by a factor 2: 	nuviscdim = 2.0 (default = 1.0, dimensionless)
+By default the value is nuvisc is determined like this:
+
+	dx = 50 > nuvisc = 0.5
+	
+        dx = 100 > nuvisc = 1.0
+	
+        dx = 500 > nuvisc = 5.0	
+	
+.. code-block:: text
+
+	viscosity 	= 1
+	nuviscdim 	= 1.0 (default)
+	nuvisc 		= XXX (automatically determined, or specify a value yourself that overrules this)
+	
 **Drag Coefficients:**
 
 The wind drag coefficients are varying with wind speed and implemented as in Delft3D. 
