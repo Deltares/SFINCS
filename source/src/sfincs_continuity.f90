@@ -280,13 +280,15 @@ contains
          endif
          !
          ! No continuity update but keeping track of variables
-         ! to do is vmax
-         ! 1. store Twet
-         if (store_twet) then
-            if ( (zs(nm) - zb(nm)) > twet_threshold) then
+         if ( (zs(nm) - zb(nm)) > twet_threshold) then
+            ! 1. store Twet
+            if (store_twet) then
                 twet(nm) = twet(nm) + dt
             endif
-          endif
+            ! 
+            ! 2. store vmax
+            ! to do
+         endif
          !
       endif
       !
@@ -397,6 +399,8 @@ contains
    integer          :: ndm2
    !
    integer          :: ip
+   integer          :: n
+   integer          :: m
    !
    real*4           :: qxnm
    real*4           :: qxnmd
@@ -409,6 +413,8 @@ contains
    real*4           :: dzvol
    real*4           :: facint
    real*4           :: a
+   real*4           :: uz
+   real*4           :: vz
    !
    if (wavemaker) then
       !
@@ -644,12 +650,44 @@ contains
       endif
       !       
       ! No continuity update but keeping track of variables
-      ! to do is vmax
-      ! 1. store Twet
-      if (store_twet) then
-        if ( (zs(nm) - subgrid_z_zmin(nm)) > twet_threshold) then
-            twet(nm) = twet(nm) + dt
-        endif
+      if ( (zs(nm) - subgrid_z_zmin(nm)) > twet_threshold) then
+          !
+          ! 1. store twet
+          if (store_twet) then
+                twet(nm) = twet(nm) + dt
+          endif
+          !
+          ! 2. store vmax
+          if (store_maximum_velocity) then
+              !
+              ! Compute u and v first
+              n    = z_index_z_n(nm)
+              m    = z_index_z_m(nm)
+              !
+              nmd1 = z_index_uv_md1(nm)
+              nmu1 = z_index_uv_mu1(nm)
+              uz = 0.0
+              if (nmd1>0) then
+                  uz = uz + 0.5*uv(nmd1)
+              endif   
+              if (nmu1>0) then
+                  uz = uz + 0.5*uv(nmu1)
+              endif   
+              !
+              ndm1 = z_index_uv_nd1(nm)
+              num1 = z_index_uv_nu1(nm)
+              vz = 0.0
+              if (ndm1>0) then
+                  vz = vz + 0.5*uv(ndm1)
+              endif   
+              if (num1>0) then
+                  vz = vz + 0.5*uv(num1)
+              endif 
+              !
+              ! Compute vmax
+              vmax(nm) = max(vmax(nm), sqrt(uz**2 + vz**2))
+              !
+          endif
       endif
       !
       if (wavemaker) then
