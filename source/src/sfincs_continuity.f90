@@ -73,6 +73,10 @@ contains
    real*4           :: qndm
    real*4           :: factime
    real*4           :: dvol
+   real*4           :: quz
+   real*4           :: qvz
+   real*4           :: qz
+   real*4           :: uvz      
    !
    real*4           :: zs0
    real*4           :: zsm0
@@ -101,7 +105,7 @@ contains
    endif   
    !
    !$omp parallel &
-   !$omp private ( nm,dvol,nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,nmd,nmu,ndm,num,qnmd,qnmu,qndm,qnum,iwm )
+   !$omp private ( nm,dvol,nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,nmd,nmu,ndm,num,qnmd,qnmu,qndm,qnum,iwm,quz,qvz,qz,uvz )
    !$omp do schedule ( dynamic, 256 )
    !$acc kernels present( kcs, zs, zb, netprcp, cumprcpt, prcp, q, zsmax, twet, zsm, &
    !$acc                  z_flags_type, z_flags_iref, uv_flags_iref, &
@@ -112,6 +116,9 @@ contains
    do nm = 1, np
       !
       ! And now water level changes due to horizontal fluxes
+      !
+      qz = 0.0
+      uvz = 0.0    
       !
       if (kcs(nm)==1) then
          !
@@ -146,6 +153,18 @@ contains
             else   
                zs(nm)   = zs(nm) + (((q(nmd) - q(nmu))*dxrinv(z_flags_iref(nm)) + (q(ndm) - q(num))*dyrinv(z_flags_iref(nm))))*dt
             endif   
+            !
+            if (store_maximum_velocity) then
+               quz = (uv(nmd) + uv(nmu)) / 2   
+               qvz = (uv(ndm) + uv(num)) / 2      
+               uvz = sqrt(quz**2 + qvz**2)
+            endif
+            !
+            if (store_maximum_flux) then
+               quz = (q(nmd) + q(nmu)) / 2   
+               qvz = (q(ndm) + q(num)) / 2      
+               qz = sqrt(quz**2 + qvz**2)
+            endif
             !
          else
             !
@@ -279,6 +298,18 @@ contains
             zsmax(nm) = max(zsmax(nm), zs(nm))
          endif
          !
+         if (store_maximum_velocity) then
+            !             
+            vmax(nm) = max(vmax(nm), uvz)
+            !
+         endif      
+         !
+         if (store_maximum_flux) then
+            !             
+            qmax(nm) = max(qmax(nm), qz)
+            !
+         endif      
+         !
          ! No continuity update but keeping track of variables
          ! to do is vmax
          ! 1. store Twet
@@ -286,7 +317,7 @@ contains
             if ( (zs(nm) - zb(nm)) > twet_threshold) then
                 twet(nm) = twet(nm) + dt
             endif
-          endif
+         endif
          !
       endif
       !
