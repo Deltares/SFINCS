@@ -41,6 +41,7 @@ contains
       open(500, file=trim(crsfile))
       do while(.true.)
          read(500,*,iostat = stat)cdummy
+         if (stat<0) exit         
          read(500,*,iostat = stat)nrows,ncols
          if (stat<0) exit
          ncrs = ncrs + 1
