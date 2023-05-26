@@ -133,7 +133,9 @@ module sfincs_data
       character*256 :: scsfile
       character*256 :: smaxfile
       character*256 :: sefffile
-      character*256 :: krfile
+      character*256 :: psifile
+      character*256 :: sigmafile
+      character*256 :: ksfile
       character*256 :: z0lfile
       character*256 :: wvmfile
       character*256 :: qtrfile
@@ -337,14 +339,20 @@ module sfincs_data
       ! Rainfall and infiltration
       !      
       real*4, dimension(:),   allocatable :: qinfmap
-      real*4, dimension(:),   allocatable :: qinffield       ! infiltration map or Smax for SCS method
+      real*4, dimension(:),   allocatable :: qinffield       ! infiltration map
       real*4, dimension(:),   allocatable :: qinffield2      ! effective S (Se) used in SCS method
-      real*4, dimension(:),   allocatable :: scs_kr          ! recovery kr
+      real*4, dimension(:),   allocatable :: ksfield         ! saturated hydraulic conductivity
+      real*4, dimension(:),   allocatable :: scs_kr          ! recovery concept - used both in cnd and gai
       real*4, dimension(:),   allocatable :: scs_P1          ! rainfall of this 'event'
-      real*4, dimension(:),   allocatable :: scs_F1          ! infiltration of this 'event'
+      real*4, dimension(:),   allocatable :: scs_F1          ! infiltration of this 'event'- used both in cnd and gai
       real*4, dimension(:),   allocatable :: scs_T1          ! time that it is not raining
       real*4, dimension(:),   allocatable :: scs_Se          ! S for this 'event'
-      !
+      real*4, dimension(:),   allocatable :: GA_head         ! XXX
+      real*4, dimension(:),   allocatable :: GA_sigma_max    ! XXX
+      real*4, dimension(:),   allocatable :: GA_sigma        ! XXX
+      real*4, dimension(:),   allocatable :: GA_F            ! XXX
+      real*4, dimension(:),   allocatable :: GA_Lu           ! XXX
+
       ! Wind reduction for spiderweb winds
       !
       real*4, dimension(:,:), allocatable :: z0land          ! z0 values over land for spiderweb wind speed reduction   
@@ -818,7 +826,7 @@ module sfincs_data
     if(allocated(qinfmap)) deallocate(qinfmap)
     if(allocated(qinffield)) deallocate(qinffield)
     if(allocated(qinffield2)) deallocate(qinffield2)
-    if(allocated(scs_kr)) deallocate(scs_kr)
+    if(allocated(ksfield)) deallocate(ksfield)
     !
     ! Boundary velocity points
     !

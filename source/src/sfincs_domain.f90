@@ -117,9 +117,9 @@ contains
    !
    ! If not meteo3d, then also no storage of meteo data in netcdf output
    !
-   if (.not. meteo3d) then
-      store_meteo = .false.
-   endif
+   !if (.not. meteo3d) then
+   !   store_meteo = .false.
+   !endif
    !
    ! READ MESH
    !
@@ -2074,7 +2074,7 @@ contains
    ! 3) Spatially-varying infiltration with CN numbers (old)
    !    Requires: cumprcp, cuminf, qinfmap, qinffield
    ! 4) Spatially-varying infiltration with CN numbers (new)
-   !    Requires: qinfmap, qinffield, qinffield, scs_kr, scs_P1, scs_F1, scs_Se and scs_rain (but not necessarily cuminf and cumprcp)
+   !    Requires: qinfmap, qinffield, qinffield, ksfield, scs_P1, scs_F1, scs_Se and scs_rain (but not necessarily cuminf and cumprcp)
    !
    ! cumprcp and cuminf are stored in the netcdf output if store_cumulative_precipitation == .true. which is the default
    !
@@ -2113,6 +2113,13 @@ contains
          ! Spatially-varying infiltration with CN numbers (new)
          !
          inftype = 'cnb'
+         infiltration = .true.      
+         !
+      elseif (psifile /= 'none') then  
+         !
+         ! The Green-Ampt (GA) model for infiltration
+         !
+         inftype = 'gai'
          infiltration = .true.      
          !
       endif
@@ -2205,7 +2212,6 @@ contains
          write(*,*)'Turning on process: Infiltration (via CN method - B)'            
          ! 
          ! Allocate Smax
-         ! 
          allocate(qinffield(np))
          qinffield = 0.0
          write(*,*)'Reading ',trim(smaxfile)
@@ -2214,7 +2220,6 @@ contains
          close(500)
          !
          ! Allocate Se
-         !
          allocate(qinffield2(np))
          qinffield2 = 0.0
          write(*,*)'Reading ',trim(sefffile)
@@ -2222,17 +2227,19 @@ contains
          read(501)qinffield2
          close(501)
          !
-         ! Allocate kr
-         !
-         allocate(scs_kr(np))
-         scs_kr = 0.0
-         write(*,*)'Reading ',trim(krfile)
-         open(unit = 502, file = trim(krfile), form = 'unformatted', access = 'stream')
-         read(502)scs_kr
+         ! Allocate Ks
+         allocate(ksfield(np))
+         ksfield = 0.0
+         write(*,*)'Reading ',trim(ksfile)
+         open(unit = 502, file = trim(ksfile), form = 'unformatted', access = 'stream')
+         read(502)ksfield
          close(502)
          !
-         ! Allocate support variables
+         ! Compute recovery                     ! Equation 4-36
+         allocate(scs_kr(np))
+         scs_kr = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr
          !
+         ! Allocate support variables
          allocate(scs_P1(np))
          scs_P1 = 0.0
          allocate(scs_F1(np))
@@ -2243,6 +2250,59 @@ contains
          scs_Se = 0.0
          allocate(scs_rain(np))
          scs_rain = 0
+         !
+      elseif (inftype == 'gai') then  
+         !
+         ! Spatially-varying infiltration with the Green-Ampt (GA) model
+         !
+         write(*,*)'Turning on process: Infiltration (via Green-Ampt)'            
+         ! 
+         ! Allocate suction head at the wetting front 
+         allocate(GA_head(np))
+         GA_head = 0.0
+         write(*,*)'Reading ',trim(psifile)
+         open(unit = 500, file = trim(psifile), form = 'unformatted', access = 'stream')
+         read(500)GA_head
+         close(500)
+         !
+         ! Allocate maximum soil moisture deficit
+         allocate(GA_sigma_max(np))
+         GA_sigma_max = 0.0
+         write(*,*)'Reading ',trim(sigmafile)
+         open(unit = 501, file = trim(sigmafile), form = 'unformatted', access = 'stream')
+         read(501)GA_sigma_max
+         close(501)
+         !
+         ! Allocate saturated hydraulic conductivity
+         allocate(ksfield(np))
+         ksfield = 0.0
+         write(*,*)'Reading ',trim(ksfile)
+         open(unit = 502, file = trim(ksfile), form = 'unformatted', access = 'stream')
+         read(502)ksfield
+         close(502)
+         !
+         ! Compute recovery                         ! Equation 4-36
+         allocate(scs_kr(np))
+         scs_kr     = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr
+         !
+         ! Allocate support variables
+         allocate(GA_sigma(np))                     ! variable for sigma_max_du
+         GA_sigma   = GA_sigma_max
+         allocate(GA_F(np))                         ! total infiltration
+         GA_F       =0.0
+         allocate(scs_T1(np))                       ! minimum amount of time that a soil must remain in recovery 
+         scs_T1     = 0.0
+         allocate(GA_Lu(np))                        ! depth of upper soil recovery zone
+         GA_Lu      = 4 *sqrt(25.4) * sqrt(ksfield)  ! Equation 4-33
+         !
+         ! Input values for green-ampt are in mm and mm/hr, but computation is in m a m/s
+         GA_head        = GA_head/1000              ! from mm to m
+         GA_Lu          = GA_Lu/1000                ! from mm to m
+         ksfield        = ksfield/1000/3600         ! from mm/hr to m/s
+         ! 
+         ! TMP: fix this later
+         allocate(qinffield(np))
+         qinffield = GA_sigma_max
          !
       endif
       !

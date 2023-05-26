@@ -1370,14 +1370,70 @@ contains
             !
          endif
          ! 
-         cuminf(nm) = cuminf(nm) + qinfmap(nm)*dt
-         netprcp(nm) = netprcp(nm) - qinfmap(nm)
+         cuminf(nm)     = cuminf(nm) + qinfmap(nm)*dt
+         netprcp(nm)    = netprcp(nm) - qinfmap(nm)
          !
       enddo
       !$omp end do
       !$omp end parallel
       !
       !$acc update device(qinfmap), async(1)
+      !
+   elseif (inftype == 'gai') then
+      !
+      ! Determine infiltration rate with  with the Green-Ampt (GA) model
+      do nm = 1, np
+         !
+         ! If there is precip in this grid cell for this time step?
+         if (prcp(nm) > 0.0) then
+            !
+            ! Is raining now
+            if ( (prcp(nm)) < ksfield(nm)) then
+                !
+                ! Small amounts of rainfall - infiltration is same as soil
+                qinfmap(nm)    = prcp(nm)                       ! infiltration is same as rainfall
+                !
+            else
+                !
+                ! Larger amounts of rainfall - Equation 4-27 from SWMM manual
+                qinfmap(nm)    = (ksfield(nm) * (1 +  (GA_head(np)*GA_sigma(np)) / GA_F(nm)))
+                qinfmap(nm)    = min(qinfmap(nm), prcp(nm))     ! never more than rainfall
+                qinfmap(nm)    = max(qinfmap(nm), 0.0)          ! and never negative
+                !
+            endif
+            !
+            ! Update sigma 
+            GA_sigma(nm) = GA_sigma(nm) - (qinfmap(nm)*dt/GA_Lu(nm))
+            GA_sigma(nm) = max(GA_sigma(nm),0.00)
+            ! 
+            ! Update internal cumulative rainfall from Green-Ampt
+            GA_F(nm)    = GA_F(nm) + qinfmap(nm)*dt
+            !
+         else
+            ! Not raining here
+            !
+            ! Add to recovery time
+            scs_T1(nm)     = scs_T1(nm) + dt / 3600
+            !
+            ! compute recovery of S if time is larger than this
+            if (scs_T1(nm) >  (0.06 / scs_kr(nm)) ) then			! Equation 4-37 from SWMM
+                ! 
+                ! Update sigma 
+                GA_sigma(nm) = GA_sigma(nm) + (scs_kr(nm) * GA_sigma_max(nm) * dt/3600)         ! Equation 4-35
+                GA_sigma(nm) = min(GA_sigma(nm), GA_sigma_max(nm))                              ! never more than max
+                !
+                ! Update internal cumulative rainfall
+                GA_F(nm)    = GA_F(nm) - (scs_kr(nm) * GA_sigma_max(nm) * dt/3600*GA_Lu(nm))    ! Page 112 SWMM
+                GA_F(nm)    = max(GA_F(nm), 0.0)                                                ! never negative
+            endif
+         endif
+         ! 
+         ! Compute cumulative values
+         qinffield(nm)  = qinfmap(nm)
+         cuminf(nm)     = cuminf(nm) + qinfmap(nm)*dt
+         netprcp(nm)    = netprcp(nm) - qinfmap(nm)
+         !
+      enddo
       !
    endif
    !
