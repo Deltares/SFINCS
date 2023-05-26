@@ -315,7 +315,7 @@ contains
    snapwave_H                     = H
    snapwave_H_ig                  = H_ig
    snapwave_mean_direction        = thetam
-   snapwave_directional_spreading = thetam
+   snapwave_directional_spreading = thetam  ! CORRECT? > is not spreading but mean direction
    snapwave_Fx                    = Fx
    snapwave_Fy                    = Fy 
    snapwave_Dw                    = Dw
@@ -361,8 +361,8 @@ contains
    ! Settings related to IG waves:   
    call read_real_input(500,'snapwave_gammaig',gamma_ig,0.7)   
    call read_real_input(500,'snapwave_Tinc2ig',Tinc2ig,7.0)   
-   call read_real_input(500,'snapwave_shinc2ig',shinc2ig,0.8)   
-   call read_real_input(500,'snapwave_shpercig',shpercig,0.25)         
+   call read_real_input(500,'snapwave_shinc2ig',shinc2ig,1.0)   
+   call read_real_input(500,'snapwave_shpercig',shpercig,1.0)         
    call read_real_input(500,'snapwave_eeinc2ig',eeinc2ig,0.01)     
    call read_real_input(500,'snapwave_depthforcerelease',depthforcerelease,0.2)         
    call read_real_input(500,'snapwave_fshalphamin',fshalphamin,0.1)     

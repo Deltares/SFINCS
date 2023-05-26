@@ -369,6 +369,20 @@ module snapwave_solver
                      ! 
                      call estimate_shoaling_rate_v02(betan_local(itheta,k), H(k), T, fsh_local(itheta,k)) ! [input, input, input, output]
                      !
+                  elseif (ig_opt == 4) then                  
+                     ! 
+                     if (betan_local(itheta,k) > 0.015) then !Beta_b_split = 0.015
+                        !
+                        fsh_local(itheta,k) = shinc2ig * max(exp(-fshfac*betan_local(itheta,k)**fshexp), fshalphamin)
+                        !fsh_local(itheta,k) = 30.0 * max(exp(-fshfac*betan_local(itheta,k)**0.25), 0.1)
+                        ! 
+                     else
+                        ! 
+                        fsh_local(itheta,k) = shinc2ig * 4500.0 * betan_local(itheta,k)**2.0
+                        !fsh_local(itheta,k) = 30.0 * 4500.0 * betan_local(itheta,k)**2.0
+                        !
+                     endif                                           
+                     !
                   endif
                   ! fshfac = fexp of Hurrywave = 15 by default, fshexp = eexp of Hurrywave = 1.0 by default                  
                   !fsh   = fbr*exp(-4.0*sqrt(betan)) !TL: why different than Hurrywave? -  fsh = shinc2ig * facbr(nm) * max(exp(-fexp*betan**eexp), alphamin)
@@ -413,6 +427,8 @@ module snapwave_solver
                call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
             elseif (ig_opt == 3) then
                call battjesjanssen(rho,g,alfa,gamma_ig,depth(k),Hk_ig,T_ig,battjesjanssen_opt,Dwk_ig)
+            elseif (ig_opt == 4) then
+               call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))               
             endif
             !
             DoverE_ig(k) = (Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0e-6)
@@ -625,6 +641,8 @@ module snapwave_solver
                            call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig0, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
                         elseif (ig_opt == 3) then
                            call battjesjanssen(rho,g,alfa,gamma_ig,depth(k),Hk_ig0,T_ig,battjesjanssen_opt,Dwk_ig)
+                        elseif (ig_opt == 4) then
+                           call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig0, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))                           
                         endif                        
                         !
                         DoverE_ig(k) = (1.0 - fac)*DoverE_ig(k) + fac*(Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0e-6)
@@ -651,6 +669,8 @@ module snapwave_solver
                            call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
                         elseif (ig_opt == 3) then
                            call battjesjanssen(rho,g,alfa,gamma_ig,depth(k),Hk_ig,T_ig,battjesjanssen_opt,Dwk_ig)
+                        elseif (ig_opt == 4) then
+                           call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))                           
                         endif                    
                         !
                         Dw_ig(k) = Dwk_ig                     
@@ -759,6 +779,8 @@ module snapwave_solver
                   call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), H_ig(k), T_ig, baldock_opt, Dw_ig(k), Hmx_ig(k))
                elseif (ig_opt == 3) then
                   call battjesjanssen(rho,g,alfa,gamma_ig,depth(k),H_ig(k),T_ig,battjesjanssen_opt,Dw_ig(k))
+               elseif (ig_opt == 4) then
+                  call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), H_ig(k), T_ig, baldock_opt, Dw_ig(k), Hmx_ig(k))                  
                endif               
                !
                ! average betan, fsh, srcsh over directions
