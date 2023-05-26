@@ -1406,14 +1406,16 @@ contains
             GA_sigma(nm) = GA_sigma(nm) - (qinfmap(nm)*dt/GA_Lu(nm))
             GA_sigma(nm) = max(GA_sigma(nm),0.00)
             ! 
-            ! Update internal cumulative rainfall from Green-Ampt
-            GA_F(nm)    = GA_F(nm) + qinfmap(nm)*dt
+            ! Update others
+            GA_F(nm)    = GA_F(nm) + qinfmap(nm)*dt     ! internal cumulative rainfall from Green-Ampt
+            scs_T1(nm)  = 0.0                           ! recovery time not started
             !
          else
+            ! 
             ! Not raining here
             !
             ! Add to recovery time
-            scs_T1(nm)     = scs_T1(nm) + dt / 3600
+            scs_T1(nm)     = scs_T1(nm) + dt / 3600      
             !
             ! compute recovery of S if time is larger than this
             if (scs_T1(nm) >  (0.06 / scs_kr(nm)) ) then			! Equation 4-37 from SWMM
