@@ -14,13 +14,9 @@ Find the user manual and more information on: https://sfincs.readthedocs.io/en/l
 
 .. figure:: https://user-images.githubusercontent.com/28528822/200898347-d4016571-f3c7-4257-b59c-86aa1e97a699.png
    :width: 800px
-   :align: center
+   :align: center   
    
-.. figure:: https://github.com/Deltares/SFINCS/blob/main/docs/figures/Deltares_logo_D-blauw_RGB.svg
-   :width: 800px
-   :align: center
-   
-.. |website| image:: https://github.com/Deltares/SFINCS/blob/main/docs/figures/SFINCS_logo.svg
+.. |website| image:: https://github.com/Deltares/SFINCS/blob/main/docs/figures/Deltares_logo_D-blauw_RGB.svg
     :target: https://www.deltares.nl/en/software-and-data/products/sfincs
     :alt: Website
     :width: 20px
