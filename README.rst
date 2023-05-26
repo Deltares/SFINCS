@@ -12,9 +12,11 @@ Download the latest windows executable here: https://download.deltares.nl/en/dow
 
 Find the user manual and more information on: https://sfincs.readthedocs.io/en/latest/
 
-![SFINCS_text_logo](https://user-images.githubusercontent.com/28528822/200898347-d4016571-f3c7-4257-b59c-86aa1e97a699.png)
-
-.. |website| image:: https://github.com/Deltares/SFINCS/blob/main/docs/figures/SFINCS_logo.png
+.. figure:: https://user-images.githubusercontent.com/28528822/200898347-d4016571-f3c7-4257-b59c-86aa1e97a699.png
+   :width: 800px
+   :align: center
+   
+.. |website| image:: https://github.com/Deltares/SFINCS/blob/main/docs/figures/sfincs_logo_mHv_icon.ico
     :target: https://www.deltares.nl/en/software-and-data/products/sfincs
     :alt: Website
 
@@ -30,6 +32,6 @@ Find the user manual and more information on: https://sfincs.readthedocs.io/en/l
     :alt: License
     :target: https://github.com/Deltares/SFINCS/blob/main/LICENSE    
         
-.. |doi| image:: https://github.com/Deltares/SFINCS/blob/main/docs/figures/SFINCS_logo.png
+.. |doi| image:: https://github.com/Deltares/SFINCS/blob/main/docs/figures/sfincs_logo_mHv_icon.ico
     :alt: Elsevier
     :target: https://doi.org/10.1016/j.coastaleng.2020.103796    
