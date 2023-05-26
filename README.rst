@@ -16,7 +16,7 @@ Find the user manual and more information on: https://sfincs.readthedocs.io/en/l
    :width: 800px
    :align: center
    
-.. |website| image:: https://github.com/Deltares/SFINCS/blob/main/docs/figures/sfincs_logo_mHv_icon.ico
+.. |website| image:: https://github.com/Deltares/SFINCS/blob/main/docs/figures/SFINCS_logo.svg
     :target: https://www.deltares.nl/en/software-and-data/products/sfincs
     :alt: Website
 
@@ -32,6 +32,6 @@ Find the user manual and more information on: https://sfincs.readthedocs.io/en/l
     :alt: License
     :target: https://github.com/Deltares/SFINCS/blob/main/LICENSE    
         
-.. |doi| image:: https://github.com/Deltares/SFINCS/blob/main/docs/figures/sfincs_logo_mHv_icon.ico
+.. |doi| image:: https://github.com/Deltares/SFINCS/blob/main/docs/figures/SFINCS_logo.svg
     :alt: Elsevier
     :target: https://doi.org/10.1016/j.coastaleng.2020.103796    
