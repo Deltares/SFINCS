@@ -27,7 +27,7 @@ Get the Docker of version of SFINCS to run on Mac, Linux or HPC here: https://hu
 
 How to cite?
 ------------
-To reference the software please use the the DOI provided in the SFINCS badge that points to the latest release |doi|.
+To reference the software please use the the DOI provided in the SFINCS badge that points to the latest release: |doi|
 
 The following paper presents the introduction of SFINCS:
 
