@@ -38,7 +38,7 @@ How to contribute?
 If you find any issues in the code or documentation feel free to leave an issue on the `github issue tracker. <https://github.com/Deltares/SFINCS/issues>`_
 You can find information about how to contribute to the SFINCS model at our `contributing page. <https://sfincs.readthedocs.io/en/latest/example.html#contributing>`_
 
-SFINCS seeks active contribution from the hydro modelling community, so feel free to add something to our docs or model code, are reach out to 'sfincs@deltares.nl'!
+SFINCS seeks active contribution from the hydro modelling community, so feel free to add something to our docs or model code, or reach out to 'sfincs@deltares.nl'!
 
 .. figure:: https://user-images.githubusercontent.com/28528822/200898347-d4016571-f3c7-4257-b59c-86aa1e97a699.png
    :width: 800px
