@@ -151,6 +151,7 @@ contains
    call read_char_input(500,'obsfile',obsfile,'none')
    call read_char_input(500,'crsfile',crsfile,'none')
    call read_int_input(500,'storevelmax',storevelmax,0)
+   call read_int_input(500,'storefluxmax',storefluxmax,0)
    call read_int_input(500,'storevel',storevel,0)
    call read_int_input(500,'storecumprcp',storecumprcp,0)
    call read_int_input(500,'storetwet',storetwet,0)
@@ -283,6 +284,11 @@ contains
    if (storevelmax==1 .and. dtmaxout>0.0) then
       store_maximum_velocity = .true.
    endif
+   !
+   store_maximum_flux = .false.   
+   if (storefluxmax==1 .and. dtmaxout>0.0) then
+      store_maximum_flux = .true.      
+   endif   
    !
    store_velocity = .false.
    if (storevel==1) then

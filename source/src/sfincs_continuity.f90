@@ -29,6 +29,13 @@ contains
       !
    endif  
    !
+   ! Put non-default store options in a separate subroutine (all but zsmax) to save computation time when not used (both regular and subgrid):
+   if (store_maximum_velocity .eqv. .true. .or. store_maximum_flux .eqv. .true. .or. store_twet .eqv. .true.) then
+      ! 
+      call compute_store_variables(dt)       
+      !    
+   endif
+   !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
    !
@@ -72,7 +79,7 @@ contains
    real*4           :: qnum
    real*4           :: qndm
    real*4           :: factime
-   real*4           :: dvol
+   real*4           :: dvol    
    !
    real*4           :: zs0
    real*4           :: zsm0
@@ -101,18 +108,16 @@ contains
    endif   
    !
    !$omp parallel &
-   !$omp private ( nm,dvol,nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,nmd,nmu,ndm,num,qnmd,qnmu,qndm,qnum,iwm )
+   !$omp private ( nm,dvol,nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,nmd,nmu,ndm,num,qnmd,qnmu,qndm,qnum,iwm)
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels present( kcs, zs, zb, netprcp, cumprcpt, prcp, q, zsmax, twet, zsm, &
+   !$acc kernels present( kcs, zs, zb, netprcp, cumprcpt, prcp, q, zsmax, zsm, &
    !$acc                  z_flags_type, z_flags_iref, uv_flags_iref, &
    !$acc                  z_index_uv_md1, z_index_uv_md2, z_index_uv_nd1, z_index_uv_nd2, z_index_uv_mu1, z_index_uv_mu2, z_index_uv_nu1, z_index_uv_nu2, &
    !$acc                  dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area,  &
    !$acc                  z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num), async(1)
    !$acc loop independent, private( nm )
    do nm = 1, np
-      !
-      ! And now water level changes due to horizontal fluxes
-      !
+      ! 
       if (kcs(nm)==1) then
          !
          if (precip) then
@@ -275,19 +280,12 @@ contains
             !
          endif
          !
+         ! No continuity update but keeping track of variables         
+         ! zsmax used by default, therefore keep in standard continuity loop:
          if (store_maximum_waterlevel) then
-            zsmax(nm) = max(zsmax(nm), zs(nm))
-         endif
-         !
-         ! No continuity update but keeping track of variables
-         if ( (zs(nm) - zb(nm)) > twet_threshold) then
-            ! 1. store Twet
-            if (store_twet) then
-                twet(nm) = twet(nm) + dt
-            endif
             ! 
-            ! 2. store vmax
-            ! to do
+            zsmax(nm) = max(zsmax(nm), zs(nm))
+            !
          endif
          !
       endif
@@ -407,7 +405,7 @@ contains
    real*4           :: qynm
    real*4           :: qyndm
    real*4           :: factime
-   real*4           :: dvol
+   real*4           :: dvol  
    !
    integer          :: iuv
    real*4           :: dzvol
@@ -436,9 +434,9 @@ contains
    endif   
    !
    !$omp parallel &
-   !$omp private ( dvol,nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind )
+   !$omp private ( dvol,nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind)
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels present( kcs, zs, zb, z_volume, zsmax, twet, zsm, &
+   !$acc kernels present( kcs, zs, zb, z_volume, zsmax, zsm, &
    !$acc                  subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
    !$acc                  netprcp, cumprcpt, prcp, q, z_flags_type, z_flags_iref, uv_flags_iref, &
    !$acc                  z_index_uv_md1, z_index_uv_md2, z_index_uv_nd1, z_index_uv_nd2, z_index_uv_mu1, z_index_uv_mu2, z_index_uv_nu1, z_index_uv_nu2, &
@@ -446,9 +444,7 @@ contains
    !$acc                  z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num), async(1)
    !$acc loop independent, private( nm )
    do nm = 1, np
-      !
-      ! And now water level changes due to horizontal fluxes
-      !
+      !    
       if (kcs(nm)==1 .or. kcs(nm)==4) then
          !
          if (crsgeo) then
@@ -495,7 +491,7 @@ contains
                endif   
                !
             endif   
-            !
+            !            
          else
             !
             if (use_quadtree) then   
@@ -580,7 +576,6 @@ contains
                !
                dvol = 0.0
                !
-               !
                ! U
                !
                if (nmd>0) then
@@ -640,56 +635,16 @@ contains
             !
          endif
          !
+         ! No continuity update but keeping track of variables         
+         ! zsmax used by default, therefore keep in standard continuity loop:         
          if (store_maximum_waterlevel) then
             !
             zsmax(nm) = max(zsmax(nm), zs(nm))
             !
          endif
          !
-         !
       endif
       !       
-      ! No continuity update but keeping track of variables
-      if ( (zs(nm) - subgrid_z_zmin(nm)) > twet_threshold) then
-          !
-          ! 1. store twet
-          if (store_twet) then
-                twet(nm) = twet(nm) + dt
-          endif
-          !
-          ! 2. store vmax
-          if (store_maximum_velocity) then
-              !
-              ! Compute u and v first
-              n    = z_index_z_n(nm)
-              m    = z_index_z_m(nm)
-              !
-              nmd1 = z_index_uv_md1(nm)
-              nmu1 = z_index_uv_mu1(nm)
-              uz = 0.0
-              if (nmd1>0) then
-                  uz = uz + 0.5*uv(nmd1)
-              endif   
-              if (nmu1>0) then
-                  uz = uz + 0.5*uv(nmu1)
-              endif   
-              !
-              ndm1 = z_index_uv_nd1(nm)
-              num1 = z_index_uv_nu1(nm)
-              vz = 0.0
-              if (ndm1>0) then
-                  vz = vz + 0.5*uv(ndm1)
-              endif   
-              if (num1>0) then
-                  vz = vz + 0.5*uv(num1)
-              endif 
-              !
-              ! Compute vmax
-              vmax(nm) = max(vmax(nm), sqrt(uz**2 + vz**2))
-              !
-          endif
-      endif
-      !
       if (wavemaker) then
          !
          zsm(nm) = factime*zs(nm) + (1.0 - factime)*zsm(nm)
@@ -704,5 +659,110 @@ contains
    !         
    end subroutine
    
+   subroutine compute_store_variables(dt)
+   !
+   use sfincs_data
+   !
+   implicit none
+   !
+   real*4           :: dt
+   !   
+   integer          :: nm
+   !   
+   integer          :: nmu
+   integer          :: nmd
+   integer          :: num
+   integer          :: ndm
+   !
+   real*4           :: quz
+   real*4           :: qvz
+   real*4           :: qz
+   real*4           :: uvz      
+   !      
+   ! when quadtree added add back in $omp private: nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,
+   !
+   !$omp parallel &
+   !$omp private (nmd,nmu,ndm,num,quz,qvz,qz,uvz )
+   !$omp do schedule ( dynamic, 256 )
+   !$acc kernels present( kcs, zs, zb, subgrid_z_zmin, q, z_flags_type)
+   !$acc                  z_index_uv_md1, z_index_uv_nd1, z_index_uv_mu1, z_index_uv_nu1), async(1)
+   !$acc loop independent, private( nm )   
+   do nm = 1, np
+      !
+      ! And now water level changes due to horizontal fluxes
+      !
+      qz = 0.0
+      uvz = 0.0    
+      !
+      if (kcs(nm)==1 .or. kcs(nm)==4) then ! TL: kcs(nm)==4 also correct for regular?
+         !      
+         if (z_flags_type(nm) == 0) then
+            ! 
+            ! Regular point with four surrounding cells of the same size
+            !
+            nmd = z_index_uv_md1(nm)
+            nmu = z_index_uv_mu1(nm)
+            ndm = z_index_uv_nd1(nm)
+            num = z_index_uv_nu1(nm)
+            !
+            if (store_maximum_velocity) then
+               quz = (uv(nmd) + uv(nmu)) / 2   
+               qvz = (uv(ndm) + uv(num)) / 2      
+               uvz = sqrt(quz**2 + qvz**2)
+            endif
+            !
+            if (store_maximum_flux) then
+               quz = (q(nmd) + q(nmu)) / 2   
+               qvz = (q(ndm) + q(num)) / 2      
+               qz = sqrt(quz**2 + qvz**2)
+            endif   
+            !
+         else
+            !
+            !if (use_quadtree) then    
+            !    ! TODO    
+            !endif
+         endif 
+         !
+         ! No continuity update but keeping track of variables
+         ! 1. store vmax
+         if (store_maximum_velocity) then
+            !             
+            vmax(nm) = max(vmax(nm), uvz)
+            !
+         endif      
+         !
+         ! 2. store qmax         
+         if (store_maximum_flux) then
+            !             
+            qmax(nm) = max(qmax(nm), qz)
+            !
+         endif      
+         !
+         ! 3. store Twet
+         if (store_twet) then
+            if (subgrid) then
+              !
+              if ( (zs(nm) - subgrid_z_zmin(nm)) > twet_threshold) then
+                 twet(nm) = twet(nm) + dt
+              endif
+              !
+            else
+              !
+              if ( (zs(nm) - zb(nm)) > twet_threshold) then
+                 twet(nm) = twet(nm) + dt
+              endif
+              !
+            endif               
+         endif         
+         !
+      endif   
+   enddo   
+   !$omp end do
+   !$omp end parallel
+   !$acc end kernels
+   !$acc wait(1)
+   !       
+   end subroutine
    
 end module
