@@ -397,6 +397,8 @@ contains
    integer          :: ndm2
    !
    integer          :: ip
+   integer          :: n
+   integer          :: m
    !
    real*4           :: qxnm
    real*4           :: qxnmd
@@ -409,6 +411,8 @@ contains
    real*4           :: dzvol
    real*4           :: facint
    real*4           :: a
+   real*4           :: uz
+   real*4           :: vz
    !
    if (wavemaker) then
       !
@@ -641,7 +645,6 @@ contains
          !
       endif
       !       
-      !
       if (wavemaker) then
          !
          zsm(nm) = factime*zs(nm) + (1.0 - factime)*zsm(nm)

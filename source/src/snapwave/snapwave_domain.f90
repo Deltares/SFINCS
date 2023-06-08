@@ -1611,10 +1611,10 @@ contains
                nfaces           = nfaces + 1
                faces(1, nfaces) = ip
                faces(2, nfaces) = mu1
-               faces(3, nfaces) = nu1
+               faces(3, nfaces) = mu2
                msk_tmp2(ip)     = 1
                msk_tmp2(mu1)    = 1
-               msk_tmp2(nu1)    = 1
+               msk_tmp2(mu2)    = 1
             endif
             !
             if (mu2>0 .and. mnu1>0 .and. nu1>0) then
