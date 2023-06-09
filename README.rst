@@ -54,7 +54,7 @@ SFINCS seeks active contribution from the hydro modelling community, so feel fre
     :alt: Latest developers docs
 
 .. |docs_stable| image:: https://img.shields.io/badge/docs-stable-brightgreen.svg
-    :target: https://sfincs.readthedocs.io/en/v2.0.1
+    :target: https://sfincs.readthedocs.io/en/v2.0.2_blockhaus_release/
     :alt: Stable docs last release
 
 .. |license| image:: https://img.shields.io/github/license/Deltares/SFINCS
