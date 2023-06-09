@@ -215,6 +215,8 @@ There have been various journal publications and conference posters where SFINCS
 
 * "Developing a real-time data and modelling framework for operational flood inundation forecasting in Australia". De Kleermaeker et al. (2022). https://search.informit.org/doi/abs/10.3316/informit.916755150845355
 
+* "Flooding at the Fringe: A Reduced-physics Model for Assessing Compound Flooding from Pluvial, Fluvial, and Coastal Hazards". Grimley et al. (2022). https://ui.adsabs.harvard.edu/abs/2022AGUFMNH36A..03G/abstract
+
 * "Tropical cyclones or extratropical storms: What drives the compound flood hazard, impact and risk for the US Southeast Atlantic coast?" Nederhoff et al. (2023). https://eartharxiv.org/repository/view/5123/.
 
 * "Dynamic modeling of coastal compound flooding hazards due to tides, extratropical storms, waves, and sea-level rise: a case study in the Salish Sea, Washington (USA)". Nederhoff et al. (2023). https://eartharxiv.org/repository/view/5140/
