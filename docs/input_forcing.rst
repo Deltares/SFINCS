@@ -259,12 +259,13 @@ There are a few different options to specify wind and rain input:
 
 5) Make a combination, for instance use a spiderweb for the wind input and a spatially uniform rain-input. When combining, test whether the forcing is as wanted since not all combinations of the above options might be possible and/or changing depending on specific code version.
 
+You can know how much rainfall / wind is added to the model in the output by specifying 'storecumprcp=1' and/or 'storemeteo=1', see the description in "Input parameters".
+
 .. figure:: ./figures/SFINCS_documentation_forcing_meteo.png
    :width: 300px
    :align: center
 
    Overview of possible meteo input file options and names
-
 
 Spatially varying spiderweb
 ^^^^^^^^^

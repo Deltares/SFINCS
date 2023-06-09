@@ -88,6 +88,8 @@ One can provide multiple polylines within one file, a maximum of 5000 supplied p
 Besides the x&y locations per points, also the elevation z and a Cd coefficient for the weir formula (recommended to use 0.6).
 The supplied polylines are snapped onto the SFINCS grid within the model.
 
+The snapped coordinates are available in sfincs_his.nc as structure_x, structure_y & structure_height from SFINCS v2.0.2 onwards.
+
 **weirfile = sfincs.weir**
 
 .. code-block:: text
@@ -139,6 +141,8 @@ A drainage pump can move water from one location to another with a certain presc
 For culverts also a certain discharge capacity of the culvert is prescribed, but then the actual water level gradient is used to determine how much water will actually flow through the culvert.
 Input consists of the x&y locations of the sink (retraction point) and source points (outflow point) followed by the type.
 The discharge capacity is prescribed using the par1 parameter, parameters par2<>par5 are not used right now but included for future flexibility for implementing other structure types.
+
+You can know how much discharge is extracted by the model in the sfincs_his.nc output by specifying 'storeqdrain=1' from SFINCS v2.0.2 onwards, see the description in "Input parameters".
 
 .. figure:: ./figures/SFINCS_drainage_grid.png
    :width: 400px
