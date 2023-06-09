@@ -762,7 +762,7 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%v_varid, 'units', 'm s-1'))
       NF90(nf90_put_att(map_file%ncid, map_file%v_varid, 'standard_name', 'sea_water_y_velocity')) ! not truly eastward when rotated, eastward_sea_water_velocity
       NF90(nf90_put_att(map_file%ncid, map_file%v_varid, 'long_name', 'flow_velocity_y_direction_in_cell_edge'))     
-   endif   
+   endif
    !
    ! Time varying spatial output
    if (store_maximum_waterlevel) then
@@ -1160,7 +1160,7 @@ contains
       NF90(nf90_def_var(his_file%ncid, 'point_v', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%v_varid)) ! time-varying u point 
       NF90(nf90_put_att(his_file%ncid, his_file%v_varid, '_FillValue', FILL_VALUE))   
       NF90(nf90_put_att(his_file%ncid, his_file%v_varid, 'units', 'm s-1'))
-      NF90(nf90_put_att(his_file%ncid, his_file%v_varid, 'standard_name', 'sea_water_x_velocity')) ! not truly northward when rotated, northward_sea_water_velocity
+      NF90(nf90_put_att(his_file%ncid, his_file%v_varid, 'standard_name', 'sea_water_y_velocity')) ! not truly northward when rotated, northward_sea_water_velocity
       NF90(nf90_put_att(his_file%ncid, his_file%v_varid, 'long_name', 'flow_velocity_y_direction'))     
       NF90(nf90_put_att(his_file%ncid, his_file%v_varid, 'coordinates', 'station_id station_name point_x point_y'))
       !
@@ -2567,6 +2567,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'coriolis',icoriolis)) 
         NF90(nf90_put_att(ncid, varid, 'amprblock',iamprblock)) 
         NF90(nf90_put_att(ncid, varid, 'spwmergefrac',spw_merge_frac)) 
+        NF90(nf90_put_att(ncid, varid, 'usespwprecip',ispwprecip))         
         NF90(nf90_put_att(ncid, varid, 'global',iglobal)) 
         NF90(nf90_put_att(ncid, varid, 'nuvisc',nuvisc)) 
         NF90(nf90_put_att(ncid, varid, 'spinup_meteo', ispinupmeteo)) 
@@ -2635,6 +2636,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'crsfile',crsfile))   
         !
         NF90(nf90_put_att(ncid, varid, 'storevelmax',storevelmax)) 
+        NF90(nf90_put_att(ncid, varid, 'storefluxmax',storefluxmax)) spwmergefrac        
         NF90(nf90_put_att(ncid, varid, 'storevel',storevel)) 
         NF90(nf90_put_att(ncid, varid, 'storecumprcp',storecumprcp)) 
         NF90(nf90_put_att(ncid, varid, 'storetwet',storetwet)) 
