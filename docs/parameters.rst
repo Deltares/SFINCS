@@ -368,7 +368,7 @@ Domain
 	  :required:		no (only if cross-section output is wanted)
 	  :format:		tekal		  	  
 	inifile = sfincs.ini
-	  :description:		For spatially varying initial water level per cell, with the same grid based input as the depfile using a **binary file**. In older version this was an ascii file still, not from official release v0.0.1 onwards!
+	  :description:		For spatially varying initial water level per cell, with the same grid based input as the depfile using a **binary file**. In older version this was an ascii file still, not from official release v2.0.0 onwards!
 	  :units:		m above reference level
 	  :required:		no
 	  :format:		**bin**		
