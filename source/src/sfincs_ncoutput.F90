@@ -2636,7 +2636,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'crsfile',crsfile))   
         !
         NF90(nf90_put_att(ncid, varid, 'storevelmax',storevelmax)) 
-        NF90(nf90_put_att(ncid, varid, 'storefluxmax',storefluxmax)) spwmergefrac        
+        NF90(nf90_put_att(ncid, varid, 'storefluxmax',storefluxmax))        
         NF90(nf90_put_att(ncid, varid, 'storevel',storevel)) 
         NF90(nf90_put_att(ncid, varid, 'storecumprcp',storecumprcp)) 
         NF90(nf90_put_att(ncid, varid, 'storetwet',storetwet)) 
