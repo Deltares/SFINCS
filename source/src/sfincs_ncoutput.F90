@@ -1498,7 +1498,7 @@ contains
          n    = z_index_z_n(nm)
          m    = z_index_z_m(nm)
          !      
-         zsg(m, n) = qinffield2(nm)
+         zsg(m, n) = scs_Se(nm)
          !
       enddo
       !
@@ -2061,10 +2061,10 @@ contains
             !
             tqinf(iobs) = qinfmap(nm)*3.6e3*1.0e3 ! show as mm/hr
             ! 
-            ! Output for CN method
+            ! Output for CN and GA method
             !
             if (inftype == 'cnb') then
-               tS_effective(iobs) = qinffield2(nm)
+               tS_effective(iobs) = scs_Se(nm)
             elseif (inftype == 'gai') then
                tS_effective(iobs) = GA_sigma(nm)
             endif

@@ -2220,11 +2220,11 @@ contains
          close(500)
          !
          ! Allocate Se
-         allocate(qinffield2(np))
-         qinffield2 = 0.0
+         allocate(scs_Se(np))
+         scs_Se = 0.0
          write(*,*)'Reading ',trim(sefffile)
          open(unit = 501, file = trim(sefffile), form = 'unformatted', access = 'stream')
-         read(501)qinffield2
+         read(501)scs_Se
          close(501)
          !
          ! Allocate Ks
@@ -2236,18 +2236,18 @@ contains
          close(502)
          !
          ! Compute recovery                     ! Equation 4-36
-         allocate(scs_kr(np))
-         scs_kr = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr
+         allocate(inf_kr(np))
+         inf_kr = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr
          !
          ! Allocate support variables
          allocate(scs_P1(np))
          scs_P1 = 0.0
          allocate(scs_F1(np))
          scs_F1 = 0.0
-         allocate(scs_T1(np))
-         scs_T1 = 0.0
-         allocate(scs_Se(np))
-         scs_Se = 0.0
+         allocate(rain_T1(np))
+         rain_T1 = 0.0
+         allocate(scs_S1(np))
+         scs_S1 = 0.0
          allocate(scs_rain(np))
          scs_rain = 0
          !
@@ -2282,16 +2282,16 @@ contains
          close(502)
          !
          ! Compute recovery                         ! Equation 4-36
-         allocate(scs_kr(np))
-         scs_kr     = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr
-         !
+         allocate(inf_kr(np))
+         inf_kr     = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr
+         allocate(rain_T1(np))                      ! minimum amount of time that a soil must remain in recovery 
+         rain_T1     = 0.0
+         
          ! Allocate support variables
          allocate(GA_sigma(np))                     ! variable for sigma_max_du
          GA_sigma   = GA_sigma_max
          allocate(GA_F(np))                         ! total infiltration
          GA_F       =0.0
-         allocate(scs_T1(np))                       ! minimum amount of time that a soil must remain in recovery 
-         scs_T1     = 0.0
          allocate(GA_Lu(np))                        ! depth of upper soil recovery zone
          GA_Lu      = 4 *sqrt(25.4) * sqrt(ksfield)  ! Equation 4-33
          !
