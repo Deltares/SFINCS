@@ -579,14 +579,14 @@ contains
    !
    ! Very lazy for now
    !
+   n_faces = quadtree_nr_points
+   n_nodes = quadtree_nr_points*4
+   !
    allocate(nodes_x(n_nodes))
    allocate(nodes_y(n_nodes))
    allocate(face_nodes(4, n_faces))
    allocate(vtmp(n_faces))
-   allocate(vtmpi(n_faces))
-   !
-   n_faces = quadtree_nr_points
-   n_nodes = quadtree_nr_points*4
+   allocate(vtmpi(n_faces))   
    !
    nodes_x = 0.0
    nodes_y = 0.0
