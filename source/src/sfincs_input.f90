@@ -312,7 +312,6 @@ contains
    store_twet = .false.
    if (storetwet==1) then
       store_twet = .true.
-      twet      = 0.0
    endif
    !
    store_cumulative_precipitation = .false.
