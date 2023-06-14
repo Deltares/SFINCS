@@ -579,6 +579,12 @@ contains
    !
    ! Very lazy for now
    !
+   allocate(nodes_x(n_nodes))
+   allocate(nodes_y(n_nodes))
+   allocate(face_nodes(4, n_faces))
+   allocate(vtmp(n_faces))
+   allocate(vtmpi(n_faces))
+   !
    n_faces = quadtree_nr_points
    n_nodes = quadtree_nr_points*4
    !
@@ -587,12 +593,7 @@ contains
    face_nodes = 0
    !
    two = 2
-   !
-   allocate(nodes_x(n_nodes))
-   allocate(nodes_y(n_nodes))
-   allocate(face_nodes(4, n_faces))
-   allocate(vtmp(n_faces))
-   allocate(vtmpi(n_faces))
+
    !
    nn = 0
    !
@@ -631,8 +632,7 @@ contains
 !      endif
    enddo   
    !  
-   !NF90(nf90_create('sfincs_map.nc', ior(NF90_CLOBBER, NF90_64BIT_OFFSET), map_file%ncid))
-   NF90(nf90_create('sfincs_map.nc', NF90_CLOBBER, map_file%ncid))   
+   NF90(nf90_create('sfincs_map.nc', ior(NF90_CLOBBER, NF90_64BIT_OFFSET), map_file%ncid))
    !
    ! Create dimensions
    ! grid, time, points
