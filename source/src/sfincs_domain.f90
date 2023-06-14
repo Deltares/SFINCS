@@ -132,8 +132,6 @@ contains
       ! 
       ! Read quadtree file
       !
-      write(*,*)'Reading quadtree file ', trim(qtrfile), ' ...'
-      !
       call quadtree_read_file(qtrfile)
       !
    else
@@ -237,9 +235,21 @@ contains
       !
    else
       !
-      open(unit = 500, file = trim(mskfile), form = 'unformatted', access = 'stream')
-      read(500)msk
-      close(500)
+      if (use_quadtree .and. quadtree_netcdf) then
+         !
+         ! Mask is stored in netcdf file 
+         !
+         msk = quadtree_mask
+         !
+      else
+         !
+         ! Mask in separate file
+         !
+         open(unit = 500, file = trim(mskfile), form = 'unformatted', access = 'stream')
+         read(500)msk
+         close(500)
+         !
+      endif
       !
    endif
    !
@@ -2253,6 +2263,22 @@ contains
       store_cumulative_precipitation = .false.
       !
    endif
+   ! 
+   if (use_storage_volume) then 
+      !
+      ! Spatially-varying storage volume for green infra
+      !
+      write(*,*)'Turning on process: Storage Green Infrastructure'      
+      !
+      ! Read spatially-varying storage per cell (m3)
+      !
+      write(*,*)'Reading ', trim(volfile), ' ...'
+      allocate(storage_volume(np))
+      open(unit = 500, file = trim(volfile), form = 'unformatted', access = 'stream')
+      read(500)storage_volume
+      close(500)
+      !
+   endif
    !
    end subroutine
 
@@ -2629,6 +2655,14 @@ contains
             dzvol  = subgrid_z_volmax(nm) / (subgrid_nbins - 1)
             facint = (zs(nm) - subgrid_z_dep(ivol, nm)) / max(subgrid_z_dep(ivol + 1, nm) - subgrid_z_dep(ivol, nm), 0.001)
             z_volume(nm) = (ivol - 1)*dzvol + facint*dzvol
+            !
+         endif
+         !
+         if (use_storage_volume) then
+            !
+            ! Make sure wet cells do not have initial storage
+            !
+            storage_volume(nm) = max(storage_volume(nm) - z_volume(nm), 0.0)
             !
          endif
          !

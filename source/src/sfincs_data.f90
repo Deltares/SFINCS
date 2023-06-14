@@ -137,6 +137,7 @@ module sfincs_data
       character*256 :: z0lfile
       character*256 :: wvmfile
       character*256 :: qtrfile
+      character*256 :: volfile
       !
       character*256 :: trefstr_iso8601
       character*41  :: treftimefews
@@ -200,6 +201,7 @@ module sfincs_data
       logical       :: interpolate_zst
       logical       :: advection
       logical       :: fixed_output_intervals
+      logical       :: use_storage_volume
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
@@ -344,6 +346,10 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: scs_F1          ! infiltration of this 'event'
       real*4, dimension(:),   allocatable :: scs_T1          ! time that it is not raining
       real*4, dimension(:),   allocatable :: scs_Se          ! S for this 'event'
+      !
+      ! Storage volume
+      !
+      real*4, dimension(:),   allocatable :: storage_volume  ! Storage volume green infra
       !
       ! Wind reduction for spiderweb winds
       !

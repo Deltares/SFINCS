@@ -1,7 +1,11 @@
+#define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)
 module quadtree
-
+   !
+   use netcdf       
+   !
    integer*4                                       :: quadtree_nr_points
    integer*1                                       :: quadtree_nr_levels
+   logical                                         :: quadtree_netcdf 
    real*4                                          :: quadtree_x0
    real*4                                          :: quadtree_y0
    real*4                                          :: quadtree_dx
@@ -36,9 +40,22 @@ module quadtree
    integer*4,          dimension(:),   allocatable :: quadtree_last_point_per_level      
    real*4,             dimension(:),   allocatable :: quadtree_dxr
    real*4,             dimension(:),   allocatable :: quadtree_dyr
-   
+   integer*1,          dimension(:),   allocatable :: quadtree_mask
+   integer*1,          dimension(:),   allocatable :: quadtree_snapwave_mask
+   !
+   type net_type_qtr
+       integer :: ncid
+       integer :: np_dimid
+       integer :: n_varid, m_varid
+       integer :: level_varid
+       integer :: nu_varid, mu_varid, nd_varid, md_varid
+       integer :: nu1_varid, mu1_varid, nd1_varid, md1_varid, nu2_varid, mu2_varid, nd2_varid, md2_varid
+       integer :: z_varid, mask_varid, snapwave_mask_varid     
+   end type      
+   type(net_type_qtr) :: net_file_qtr              
+   !
 contains
-
+   !
    subroutine quadtree_read_file(qtrfile)
    !
    ! Reads quadtree file
@@ -56,7 +73,126 @@ contains
    !
    pi = 3.141592653589793
    !
+   quadtree_netcdf = .true.
+   quadtree_nmax = 0
+   quadtree_mmax = 0
+   !
+   if (quadtree_netcdf) then
+      quadtree_netcdf = .true.
+      call quadtree_read_file_netcdf(qtrfile)
+   else
+      quadtree_netcdf = .false.
+      call quadtree_read_file_binary(qtrfile)
+   endif
+   !
+   quadtree_rotation = quadtree_rotation*pi/180
+   cosrot            = cos(quadtree_rotation)
+   sinrot            = sin(quadtree_rotation)
+   quadtree_cosrot   = cosrot
+   quadtree_sinrot   = sinrot
+   !
+   allocate(dxr(quadtree_nr_levels))
+   allocate(dyr(quadtree_nr_levels))
+   allocate(quadtree_dxr(quadtree_nr_levels))
+   allocate(quadtree_dyr(quadtree_nr_levels))
+   !
+   do iref = 1, quadtree_nr_levels
+      dxr(iref) = quadtree_dx / 2**(iref - 1)
+      dyr(iref) = quadtree_dy / 2**(iref - 1)
+   enddo   
+   !
+   quadtree_dxr = dxr
+   quadtree_dyr = dyr
+   !
+   do nm = 1, quadtree_nr_points
+      !      
+      n    = quadtree_n(nm)
+      m    = quadtree_m(nm)
+      iref = quadtree_level(nm)
+      !
+      quadtree_xz(nm) = quadtree_x0 + cosrot*(1.0*(m - 0.5))*dxr(iref) - sinrot*(1.0*(n - 0.5))*dyr(iref)
+      quadtree_yz(nm) = quadtree_y0 + sinrot*(1.0*(m - 0.5))*dxr(iref) + cosrot*(1.0*(n - 0.5))*dyr(iref)
+      !
+      ! Check for odd or even
+      !
+      if (mod(n, 2)>0) then
+         quadtree_n_oddeven(nm) = 1         
+      else
+         quadtree_n_oddeven(nm) = 2         
+      endif   
+      !
+      if (mod(m, 2)>0) then
+         quadtree_m_oddeven(nm) = 1         
+      else
+         quadtree_m_oddeven(nm) = 2         
+      endif   
+      !
+   enddo
+   !
+   ! Make some arrays for easy searching
+   !
+   allocate(quadtree_nm_indices(quadtree_nr_points))
+   allocate(quadtree_first_point_per_level(quadtree_nr_levels))
+   allocate(quadtree_last_point_per_level(quadtree_nr_levels))
+   quadtree_first_point_per_level = 0
+   quadtree_last_point_per_level = 0
+   quadtree_nm_indices = 0
+   !
+   ! First count
+   !
+   ireflast = 0
+   !
+   do ip = 1, quadtree_nr_points
+      !
+      iref = quadtree_level(ip)
+      n    = quadtree_n(ip)
+      m    = quadtree_m(ip)
+      nmx  = quadtree_nmax*2**(iref - 1)
+      nm   = (m - 1)*nmx + n
+      !
+      quadtree_nm_indices(ip) = nm
+      !
+      if (iref>ireflast) then
+         !
+         ! Found new level
+         !
+         quadtree_first_point_per_level(iref) = ip
+         ireflast = iref
+         !
+      endif   
+      !
+      quadtree_last_point_per_level(iref) = ip
+      !
+   enddo   
+   !
+   ! Some write statements of interpreted quadtree grid to output for user:
+   !
+   write(*,*)'Quadtree grid info - nr_levels :', quadtree_nr_levels
+   write(*,*)'Quadtree grid info -        x0 :', quadtree_x0
+   write(*,*)'Quadtree grid info -        y0 :', quadtree_y0
+   write(*,*)'Quadtree grid info -        dx :', quadtree_dx
+   write(*,*)'Quadtree grid info -        dy :', quadtree_dy
+   write(*,*)'Quadtree grid info -      mmax :', quadtree_mmax
+   write(*,*)'Quadtree grid info -      nmax :', quadtree_nmax
+   write(*,*)'Quadtree grid info -  rotation :', quadtree_rotation
+   !
+   end subroutine
+
+
+   subroutine quadtree_read_file_binary(qtrfile)
+   !
+   ! Reads quadtree file
+   !
+   implicit none
+   !
+   character*256, intent(in)                       :: qtrfile
+   !
+   integer*1 :: iversion
+   integer :: np, ip, iepsg
+   !
    ! Read quadtree file (first time, only read number of active points)
+   !
+   write(*,*)'Reading QuadTree binary file ...'
    !
    open(unit = 500, file = trim(qtrfile), form = 'unformatted', access = 'stream')
    read(500)iversion
@@ -123,106 +259,132 @@ contains
    !
    close(500)
    !
-   quadtree_rotation = quadtree_rotation*pi/180
-   cosrot            = cos(quadtree_rotation)
-   sinrot            = sin(quadtree_rotation)
-   quadtree_cosrot   = cosrot
-   quadtree_sinrot   = sinrot
+   end subroutine
+
+
+   subroutine quadtree_read_file_netcdf(qtrfile)
    !
-   allocate(dxr(quadtree_nr_levels))
-   allocate(dyr(quadtree_nr_levels))
-   allocate(quadtree_dxr(quadtree_nr_levels))
-   allocate(quadtree_dyr(quadtree_nr_levels))
+   ! Reads quadtree file from netcdf file
    !
-   do iref = 1, quadtree_nr_levels
-      dxr(iref) = quadtree_dx / 2**(iref - 1)
-      dyr(iref) = quadtree_dy / 2**(iref - 1)
-   enddo   
+   implicit none
    !
-   quadtree_dxr = dxr
-   quadtree_dyr = dyr
+   character*256, intent(in) :: qtrfile
    !
-   quadtree_nmax = 0
-   quadtree_mmax = 0
+   integer*1 :: iversion
+   integer   :: np, ip, iepsg
    !
-   do nm = 1, quadtree_nr_points
-      !
-      n    = quadtree_n(nm)
-      m    = quadtree_m(nm)
-      iref = quadtree_level(nm)
-      !
-      quadtree_nmax = max(quadtree_nmax, int( (1.0*(n - 1) + 0.01) / (2**(iref - 1))) + 2)
-      quadtree_mmax = max(quadtree_mmax, int( (1.0*(m - 1) + 0.01) / (2**(iref - 1))) + 2)
-      !
-      quadtree_xz(nm) = quadtree_x0 + cosrot*(1.0*(m - 0.5))*dxr(iref) - sinrot*(1.0*(n - 0.5))*dyr(iref)
-      quadtree_yz(nm) = quadtree_y0 + sinrot*(1.0*(m - 0.5))*dxr(iref) + cosrot*(1.0*(n - 0.5))*dyr(iref)
-      !
-      ! Check for odd or even
-      !
-      if (mod(n, 2)>0) then
-         quadtree_n_oddeven(nm) = 1         
-      else
-         quadtree_n_oddeven(nm) = 2         
-      endif   
-      !
-      if (mod(m, 2)>0) then
-         quadtree_m_oddeven(nm) = 1         
-      else
-         quadtree_m_oddeven(nm) = 2         
-      endif   
-      !
-   enddo
+   write(*,*)'Reading QuadTree netCDF file ...'
    !
-   ! Make some arrays for easy searching
+   NF90(nf90_open(trim(qtrfile), NF90_CLOBBER, net_file_qtr%ncid))
+   !          
+   ! Get dimensions id's: nr points  
    !
-   allocate(quadtree_nm_indices(quadtree_nr_points))
-   allocate(quadtree_first_point_per_level(quadtree_nr_levels))
-   allocate(quadtree_last_point_per_level(quadtree_nr_levels))
-   quadtree_first_point_per_level = 0
-   quadtree_last_point_per_level = 0
-   quadtree_nm_indices = 0
+   NF90(nf90_inq_dimid(net_file_qtr%ncid, "mesh2d_nFaces", net_file_qtr%np_dimid))
    !
-   ! First count
+   ! Get dimensions sizes    
    !
-   ireflast = 0
+   NF90(nf90_inquire_dimension(net_file_qtr%ncid, net_file_qtr%np_dimid, len = np))   ! nr of cells
    !
-   do ip = 1, quadtree_nr_points
-      !
-      iref = quadtree_level(ip)
-      n    = quadtree_n(ip)
-      m    = quadtree_m(ip)
-      nmx  = quadtree_nmax*2**(iref - 1)
-      nm   = (m - 1)*nmx + n
-      !
-      quadtree_nm_indices(ip) = nm
-      !
-      if (iref>ireflast) then
-         !
-         ! Found new level
-         !
-         quadtree_first_point_per_level(iref) = ip
-         ireflast = iref
-         !
-      endif   
-      !
-      quadtree_last_point_per_level(iref) = ip
-      !
-   enddo   
+   quadtree_nr_points = np
    !
-   ! Some write statements of interpreted quadtree grid to output for user:
-   write(*,*)'Quadtree grid info - nr_levels:',quadtree_nr_levels
-   write(*,*)'Quadtree grid info -        x0:',quadtree_x0
-   write(*,*)'Quadtree grid info -        y0:',quadtree_y0
-   write(*,*)'Quadtree grid info -        dx:',quadtree_dx
-   write(*,*)'Quadtree grid info -        dy:',quadtree_dy
-   write(*,*)'Quadtree grid info -      mmax:',quadtree_mmax
-   write(*,*)'Quadtree grid info -      nmax:',quadtree_nmax
-   write(*,*)'Quadtree grid info -  rotation:',quadtree_rotation
+   ! Get variable id's
+   !
+   NF90(nf90_inq_varid(net_file_qtr%ncid, 'n',     net_file_qtr%n_varid))
+   NF90(nf90_inq_varid(net_file_qtr%ncid, 'm',     net_file_qtr%m_varid))
+   NF90(nf90_inq_varid(net_file_qtr%ncid, 'level', net_file_qtr%level_varid))
+   NF90(nf90_inq_varid(net_file_qtr%ncid, 'md',    net_file_qtr%md_varid))
+   NF90(nf90_inq_varid(net_file_qtr%ncid, 'md1',   net_file_qtr%md1_varid))
+   NF90(nf90_inq_varid(net_file_qtr%ncid, 'md2',   net_file_qtr%md2_varid))
+   NF90(nf90_inq_varid(net_file_qtr%ncid, 'mu',    net_file_qtr%mu_varid))
+   NF90(nf90_inq_varid(net_file_qtr%ncid, 'mu1',   net_file_qtr%mu1_varid))
+   NF90(nf90_inq_varid(net_file_qtr%ncid, 'mu2',   net_file_qtr%mu2_varid))
+   NF90(nf90_inq_varid(net_file_qtr%ncid, 'nd',    net_file_qtr%nd_varid))
+   NF90(nf90_inq_varid(net_file_qtr%ncid, 'nd1',   net_file_qtr%nd1_varid))
+   NF90(nf90_inq_varid(net_file_qtr%ncid, 'nd2',   net_file_qtr%nd2_varid))
+   NF90(nf90_inq_varid(net_file_qtr%ncid, 'nu',    net_file_qtr%nu_varid))
+   NF90(nf90_inq_varid(net_file_qtr%ncid, 'nu1',   net_file_qtr%nu1_varid))
+   NF90(nf90_inq_varid(net_file_qtr%ncid, 'nu2',   net_file_qtr%nu2_varid))
+   NF90(nf90_inq_varid(net_file_qtr%ncid, 'z',     net_file_qtr%z_varid))
+   NF90(nf90_inq_varid(net_file_qtr%ncid, 'mask',  net_file_qtr%mask_varid))
+   NF90(nf90_inq_varid(net_file_qtr%ncid, 'snapwave_mask',  net_file_qtr%snapwave_mask_varid))
+   !
+   ! Allocate variables   
+   !
+   allocate(quadtree_level(np))
+   allocate(quadtree_md(np))
+   allocate(quadtree_md1(np))
+   allocate(quadtree_md2(np))
+   allocate(quadtree_mu(np))
+   allocate(quadtree_mu1(np))
+   allocate(quadtree_mu2(np))
+   allocate(quadtree_nd(np))
+   allocate(quadtree_nd1(np))
+   allocate(quadtree_nd2(np))
+   allocate(quadtree_nu(np))
+   allocate(quadtree_nu1(np))
+   allocate(quadtree_nu2(np))
+   allocate(quadtree_n(np))
+   allocate(quadtree_m(np))
+   allocate(quadtree_n_oddeven(np))
+   allocate(quadtree_m_oddeven(np))
+   allocate(quadtree_xz(np))
+   allocate(quadtree_yz(np))
+   allocate(quadtree_zz(np))
+   allocate(quadtree_mask(np))
+   allocate(quadtree_snapwave_mask(np))
+   !
+   ! Read values
+   ! 
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%n_varid,     quadtree_n(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%m_varid,     quadtree_m(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%level_varid, quadtree_level(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%md_varid,    quadtree_md(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%md1_varid,   quadtree_md1(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%md2_varid,   quadtree_md2(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mu_varid,    quadtree_mu(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mu1_varid,   quadtree_mu1(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mu2_varid,   quadtree_mu2(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nd_varid,    quadtree_nd(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nd1_varid,   quadtree_nd1(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nd2_varid,   quadtree_nd2(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nu_varid,    quadtree_nu(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nu1_varid,   quadtree_nu1(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nu2_varid,   quadtree_nu2(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%z_varid,     quadtree_zz(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mask_varid,  quadtree_mask(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%snapwave_mask_varid,  quadtree_snapwave_mask(:)))
+   !
+   ! Indices in netcdf file are zero-based so add 1
+   !
+   quadtree_level = quadtree_level + 1
+   quadtree_n     = quadtree_n + 1
+   quadtree_m     = quadtree_m + 1
+   quadtree_md1   = quadtree_md1 + 1
+   quadtree_md2   = quadtree_md2 + 1
+   quadtree_mu1   = quadtree_mu1 + 1
+   quadtree_mu2   = quadtree_mu2 + 1
+   quadtree_nd1   = quadtree_nd1 + 1
+   quadtree_nd2   = quadtree_nd2 + 1
+   quadtree_nu1   = quadtree_nu1 + 1
+   quadtree_nu2   = quadtree_nu2 + 1
+   !   
+   ! Read attibute (should read EPSG code here ?)
+   !
+   NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'x0', quadtree_x0))
+   NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'y0', quadtree_y0))
+   NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'dx', quadtree_dx))
+   NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'dy', quadtree_dy))
+   NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'nmax', quadtree_nmax))
+   NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'mmax', quadtree_mmax))
+   NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'rotation', quadtree_rotation))
+   NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'nr_levels', quadtree_nr_levels))
+   !      
+   NF90(nf90_close(net_file_qtr%ncid))       
    !
    end subroutine
 
-   
-   subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, rotation)
+
+subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, rotation)
    !
    implicit none
    !
@@ -252,6 +414,7 @@ contains
    logical :: global
    !
    global = .false.
+   quadtree_netcdf = .false.
    !
    allocate(quadtree_level(np))
    allocate(quadtree_md(np))
@@ -859,4 +1022,18 @@ contains
    !
    end subroutine   
 
+
+
+   subroutine handle_err(status,file,line)
+      !
+      integer, intent ( in)    :: status
+      character(*), intent(in) :: file
+      integer, intent ( in)    :: line
+      integer :: status2
+      !   
+      if(status /= nf90_noerr) then
+         write(0,'("NETCDF ERROR: ",a,i6,":",a)') file,line,trim(nf90_strerror(status))
+      end if
+   end subroutine handle_err
+   !
 end module
