@@ -2,7 +2,7 @@
 SFINCS: Super-Fast INundation of CoastS 
 =========================================
 
-|website| |docs_latest| |docs_stable| |license| |doi|
+|website| |docs_latest| |docs_stable| |license| |doi| |journal|
 
 What is SFINCS?
 ------------
@@ -60,8 +60,12 @@ SFINCS seeks active contribution from the hydro modelling community, so feel fre
 .. |license| image:: https://img.shields.io/github/license/Deltares/SFINCS
     :alt: License
     :target: https://github.com/Deltares/SFINCS/blob/main/LICENSE    
-        
-.. |doi| image:: https://github.com/Deltares/SFINCS/blob/main/docs/figures/SFINCS_logo.svg
+
+.. |doi| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.8038565.svg
+    :alt: Zenodo
+    :target: https://doi.org/10.5281/zenodo.8038565
+
+.. |journal| image:: https://github.com/Deltares/SFINCS/blob/main/docs/figures/SFINCS_logo.svg
     :alt: Elsevier
     :target: https://doi.org/10.1016/j.coastaleng.2020.103796    
     :width: 30px
