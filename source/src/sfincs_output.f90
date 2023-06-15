@@ -615,10 +615,21 @@ module sfincs_output
    write(file_name,'(A,A,A)')'sfincs.',tstring,'.rst'
    !
    open(unit = 911, status = 'replace', file = trim(file_name), form = 'unformatted')
-   write(911)1    ! 1: zs, qx, qy, umean and vmean  - 2: zs, qx, qy - 3: zs 
+   write(911)4    ! 1: zs, qx, qy, umean and vmean  - 2: zs, qx, qy - 3: zs   4. zs, qx+qy, umean+vmean and infiltration
    write(911)zs
    write(911)q
    write(911)uvmean
+
+   #    Infiltration methods     
+    if (inftype == 'cnb' .or. inftype == 'gai') then
+        if (inftype == 'cnb') then
+            write(911)scs_Se
+        elseif (inftype == 'gai') then
+            write(911)GA_sigma
+            write(911)GA_F
+        endif
+    endif
+
    close(911)
    !
    end subroutine

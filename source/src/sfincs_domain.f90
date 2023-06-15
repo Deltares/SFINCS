@@ -2432,18 +2432,32 @@ contains
       read(500)inizs
       read(500)rdummy
       !      
-      if (rsttype==1 .or. rsttype==2) then     
+      if (rsttype==1 .or. rsttype==2.or. rsttype==3) then     
          read(500)rdummy
          read(500)iniq
          read(500)rdummy
       endif
       !
-      if (rsttype==1) then     
+      if (rsttype==1 .or. rsttype==3) then     
          read(500)rdummy
          read(500)uvmean
          read(500)rdummy
       endif
-      !   
+      
+      #    Infiltration methods     
+      if (rsttype==4) then     
+        if (inftype == 'cnb' .or. inftype == 'gai') then
+            if (inftype == 'cnb') then
+                read(500)rdummy
+                read(500)scs_Se
+            elseif (inftype == 'gai') then
+                read(500)rdummy
+                read(500)GA_sigma
+                read(500)rdummy
+                read(500)GA_F
+            endif
+        endif
+      endif
       close(500)      
       !
       do nm = 1, np
