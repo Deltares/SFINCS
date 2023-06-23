@@ -21,7 +21,7 @@ Find the user manual and more information on: https://sfincs.readthedocs.io/en/l
 
 How do I get SFINCS?
 ------------
-Download the latest windows executable here: https://download.deltares.nl/en/download/sfincs/
+Download the latest windows executable here: https://download.deltares.nl/sfincs
 
 Get the Docker of version of SFINCS to run on Mac, Linux or HPC here: https://hub.docker.com/r/deltares/sfincs-cpu
 
