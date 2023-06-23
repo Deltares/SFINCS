@@ -10,7 +10,7 @@ Releases
 Official open source version Q2 2023: v2.0.2 Blockhaus release
 ^^^^^
 
-As the first out of 2 official 2023 releases, the v2.0.2 Blockhaus release, 'Smoothly cycling over challenges in compound flood modelling', is now available as Windows executable: https://download.deltares.nl/en/download/sfincs/
+As the first out of 2 official 2023 releases, the v2.0.2 Blockhaus release, 'Smoothly cycling over challenges in compound flood modelling', is now available as Windows executable: https://download.deltares.nl/en/sfincs
 
 And Docker container: docker pull deltares/sfincs-cpu:sfincs-v2.0.2-Blockhaus
 
