@@ -1012,7 +1012,6 @@ contains
          if (precip) then
             !
             prcp(nm)    = prcp0(nm)*onemintwfact  + prcp1(nm)*twfact  ! rainfall in m/s !!!
-            netprcp(nm) = prcp(nm)
             !
             ! don't allow negative prcp (e.g. hardfixing infiltration/evaporation on model when forcing effective rainfall) when there's no water in the cell (same as check for constant infiltration)
             if (prcp(nm) < 0) then
@@ -1029,6 +1028,7 @@ contains
                  endif            
             endif
             !
+            netprcp(nm) = prcp(nm)            
             cumprcp(nm) = cumprcp(nm) + prcp(nm)*dt
             !
          endif   
@@ -1038,6 +1038,10 @@ contains
       !$omp end parallel
       !$acc end kernels
       !
+      !if (t > 1716.0) then
+      !
+      !    write(*,*)'
+      !endif
       ! Apply spin-up factor
       !
       if (t<tspinup - 1.0e-3 .and. spinup_meteo) then
