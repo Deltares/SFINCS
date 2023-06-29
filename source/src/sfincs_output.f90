@@ -615,21 +615,37 @@ module sfincs_output
    write(file_name,'(A,A,A)')'sfincs.',tstring,'.rst'
    !
    open(unit = 911, status = 'replace', file = trim(file_name), form = 'unformatted')
-   write(911)4    ! 1: zs, qx, qy, umean and vmean  - 2: zs, qx, qy - 3: zs   4. zs, qx+qy, umean+vmean and infiltration
-   write(911)zs
-   write(911)q
-   write(911)uvmean
-
-   #    Infiltration methods     
+   !
+   ! Restartfile flavours:
+   ! 1: zs, qx, qy, umean and vmean  
+   ! 2: zs, qx, qy 
+   ! 3: zs  - 
+   ! 4: zs, qx+qy, umean+vmean and cnb infiltration (writing scs_Se)
+   ! 5: zs, qx+qy, umean+vmean and gai infiltration (writing GA_sigma+GA_F)
+   !
+   !    Infiltration methods     
     if (inftype == 'cnb' .or. inftype == 'gai') then
         if (inftype == 'cnb') then
+            write(911)4
+            write(911)zs
+            write(911)q
+            write(911)uvmean            
             write(911)scs_Se
         elseif (inftype == 'gai') then
+            write(911)5
+            write(911)zs
+            write(911)q
+            write(911)uvmean              
             write(911)GA_sigma
             write(911)GA_F
         endif
-    endif
-
+    else ! default option remains type 1 without infiltration in restart
+        write(911)1    
+        write(911)zs
+        write(911)q
+        write(911)uvmean        
+   endif   
+   ! 
    close(911)
    !
    end subroutine

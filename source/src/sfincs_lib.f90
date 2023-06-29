@@ -83,8 +83,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.0.2_alpha'
-   build_date     = '$Date: 2023-05-03$'
+   build_revision = '$Rev: v2.0.3_alpha:branch-GreenAmpt-infiltration'
+   build_date     = '$Date: 2023-06-29$'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   

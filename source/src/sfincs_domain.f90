@@ -2420,7 +2420,12 @@ contains
       !
       open(unit = 500, file = trim(rstfile), form = 'unformatted', access = 'stream')
       !
-      ! Type of restart - 1: zs, qx, qy, umean and vmean  - 2: zs, qx, qy - 3: zs
+      ! Restartfile flavours:
+      ! 1: zs, qx, qy, umean and vmean  
+      ! 2: zs, qx, qy 
+      ! 3: zs  - 
+      ! 4: zs, qx+qy, umean+vmean and cnb infiltration (writing scs_Se)
+      ! 5: zs, qx+qy, umean+vmean and gai infiltration (writing GA_sigma+GA_F)
       !
       read(500)rdummy
       read(500)rsttype
@@ -2432,32 +2437,30 @@ contains
       read(500)inizs
       read(500)rdummy
       !      
-      if (rsttype==1 .or. rsttype==2.or. rsttype==3) then     
+      if (rsttype==1 .or. rsttype==2 .or. rsttype==4 .or. rsttype==5) then     
          read(500)rdummy
          read(500)iniq
          read(500)rdummy
       endif
       !
-      if (rsttype==1 .or. rsttype==3) then     
+      if (rsttype==1 .or. rsttype==3 .or. rsttype==4 .or. rsttype==5) then     
          read(500)rdummy
          read(500)uvmean
          read(500)rdummy
       endif
       
-      #    Infiltration methods     
-      if (rsttype==4) then     
-        if (inftype == 'cnb' .or. inftype == 'gai') then
-            if (inftype == 'cnb') then
-                read(500)rdummy
-                read(500)scs_Se
-            elseif (inftype == 'gai') then
-                read(500)rdummy
-                read(500)GA_sigma
-                read(500)rdummy
-                read(500)GA_F
-            endif
-        endif
+      if (rsttype==4) then ! Infiltration method cnb      
+         read(500)rdummy
+         read(500)scs_Se
       endif
+      
+      if (rsttype==5) then ! Infiltration method gai    
+        read(500)rdummy
+        read(500)GA_sigma
+        read(500)rdummy
+        read(500)GA_F
+      endif
+      !
       close(500)      
       !
       do nm = 1, np
