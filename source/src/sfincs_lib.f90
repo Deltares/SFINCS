@@ -83,7 +83,7 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.0.2-Blockhaus'
+   build_revision = '$Rev: v2.0.2-Blockhaus+branch:36-quick-fix-allowing-negative-rainfall-with-volume-check-for-forcing-effective-rainfall'
    build_date     = '$Date: 2023-06-09'
    !
    write(*,'(a)')''   
