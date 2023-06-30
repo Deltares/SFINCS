@@ -430,9 +430,12 @@ Also, names of a station can be provided with quotes '' (maximum of 256 characte
 Cross-sections for discharge output
 ^^^^^
 
-Cross-sections for discharge output can be specified.
+Cross-sections to get the discharge flowing through as output can be specified.
 SFINCS will keep track of the discharge in m3/s flowing through the specified cross-section(s).
-Per cross-section as minimal a name, the number of points (size data) and the x-and y- coordinates are stated, using the Delft3D 'tekal' format:
+Per cross-section as minimal a name, the number of points (size data) and the x-and y- coordinates are stated, using the Delft3D 'tekal' format.
+You can specify more than 2 points per cross-section.
+
+The output is available as 'crosssection_discharge' in sfincs_his.nc, see the description in "Output description".
 
 **crsfile = sfincs.crs**
 
@@ -643,10 +646,10 @@ Generally it is only needed to turn on advection in case of modelling waves or s
 **viscosity**
 
 'viscosity' turns on the viscosity term in the momentum equation (viscosity = 1).
-The recommended value of viscosity 'nuvisc' to add the your model (only when you set theta = 1.0), depends on your grid size.
-For ease, SFINCS internally automatically determines the optimal value for you, which is displayed when running the model:	'Turning on process: Viscosity, with nuvisc=   0.5000000'. In this case corresponding to a grid resolution of 50 meters.
-In case you would want to increase the viscosity term, you can either specify the exact value you want 'nuvisc = XXX', or e.g. multiply it by a factor 2: 	nuviscdim = 2.0 (default = 1.0, dimensionless)
-By default the value is nuvisc is determined like this:
+The recommended value of viscosity 'nuvisc' to add to your model (only advised to use when you set theta = 1.0), depends on your grid size.
+For ease, SFINCS internally automatically determines the optimal value for you, which is displayed when running the model:	'Turning on process: Viscosity, with nuvisc=   0.5000000'. In this example corresponding to a grid resolution of 50 meters.
+In case you would want to increase the viscosity term, you can either specify the exact value you want 'nuvisc = XXX', or e.g. multiply it by a factor 2: 	nuviscdim = 2.0 (default = 1.0, dimensionless).
+By default the value of nuvisc is determined like this:
 
 	dx = 50 > nuvisc = 0.5
 	

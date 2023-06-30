@@ -33,7 +33,7 @@ contains
    call read_real_input(500,'t0out',t0out,-999.0)
    call read_real_input(500,'t1out',t1out,-999.0)
    call read_real_input(500,'dtout',dtmapout,0.0)
-   call read_real_input(500,'dtmaxout',dtmaxout,999999.0)
+   call read_real_input(500,'dtmaxout',dtmaxout,9999999.0)
    call read_real_input(500,'dtrstout',dtrstout,0.0)
    call read_real_input(500,'trstout',trst,-999.0)
    call read_real_input(500,'dthisout',dthisout,600.0)
@@ -152,6 +152,7 @@ contains
    call read_char_input(500,'obsfile',obsfile,'none')
    call read_char_input(500,'crsfile',crsfile,'none')
    call read_int_input(500,'storevelmax',storevelmax,0)
+   call read_int_input(500,'storefluxmax',storefluxmax,0)
    call read_int_input(500,'storevel',storevel,0)
    call read_int_input(500,'storecumprcp',storecumprcp,0)
    call read_int_input(500,'storetwet',storetwet,0)
@@ -285,6 +286,11 @@ contains
       store_maximum_velocity = .true.
    endif
    !
+   store_maximum_flux = .false.   
+   if (storefluxmax==1 .and. dtmaxout>0.0) then
+      store_maximum_flux = .true.      
+   endif   
+   !
    store_velocity = .false.
    if (storevel==1) then
       store_velocity = .true.
@@ -307,7 +313,6 @@ contains
    store_twet = .false.
    if (storetwet==1) then
       store_twet = .true.
-      twet      = 0.0
    endif
    !
    store_cumulative_precipitation = .false.

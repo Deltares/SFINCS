@@ -60,7 +60,7 @@ Parameters for model input
 	alpha	
 	  :description:		CFL-condition reduction. Decrease for additional numerical stability, minimum value is 0.1 and maximum is 0.75.
 	  :units:		-	
-	  :default:		0.75		
+	  :default:		0.5		
 	  :min:			0.1 (recommended)	
 	  :max:			0.75 (recommended)		  
 	huthresh	
@@ -70,11 +70,29 @@ Parameters for model input
 	  :min:			0.001 (recommended)
 	  :max:			0.1 (recommended)
 	theta
-	  :description:		Smoothing factor in momentum equation. Advised not too change and to use 1.0 by default.
+	  :description:		Smoothing factor in momentum equation.
 	  :units:		-
-	  :default:		1.0
+	  :default:		0.9
 	  :min:			0.8
 	  :max:			1.0
+	viscosity
+	  :description:		Turns on the viscosity term in the momentum equation (viscosity = 1), advised to combine with theta = 1.0. Value of viscosity term 'nuvisc' automatically determined based on grid size..
+	  :units:		-
+	  :default:		0
+	  :min:			0
+	  :max:			1
+	nuviscdim
+	  :description:		Dimensionless viscosity coefficient, multiplies the automatically determined value for 'nuvisc' with the specified factor for 'nuviscdim'.
+	  :units:		-
+	  :default:		1.0
+	  :min:			0.0
+	  :max:			Inf	  
+	nuvisc
+	  :description:		Viscosity coefficient, by default turned off, but automatically determined if 'viscosity=1'. specifying a value for 'nuvisc' overrule default value.
+	  :units:		-
+	  :default:		-999.0 (=off)
+	  :min:			0.0
+	  :max:			Inf	  	  	  
 	zsini
 	  :description:		Initial water level.
 	  :units:		m above reference level
@@ -116,11 +134,11 @@ More parameters for model input (only for advanced users)
 -----
 
 	bndtype        
-	  :description:		Boundary type for interpretation of 'sfincs.bzs' time-series. bndtype=1 is for water levels, bndtype=2 (advanced) is for horizontal velocities (in m/s) and bndtype=3 (advanced) for horizontal discharges (in m2/s).
+	  :description:		Boundary type for interpretation of 'sfincs.bzs' time-series. bndtype=1 is for water levels, old types 2&3 have been removed from SFINCS v2.0.2 onwards.
 	  :units:		-
 	  :default:		1
 	  :min:			1
-	  :max:			3
+	  :max:			1
 	rhoa
 	  :description:		Density of the air
 	  :units:		kg/m3
@@ -216,7 +234,7 @@ Parameters for model output
 	dtmaxout
 	  :description:		Time-step interval of global map output of maximum water level. If not specified, the maximum over the entire simulation is calculated. If no output is wanted, specify 'dtmaxout = 0'.
 	  :units:		s
-	  :default:		999999
+	  :default:		9999999
 	  :min:			0
 	  :max:			'tstop - start in seconds'  
 	dtrstout
@@ -247,6 +265,10 @@ Parameters for model output
 	  :description:		Flag to turn on writing away maximum velocities on 'dtmaxout' interval during simulation (storevelmax = 1)
 	  :units:		-
 	  :default:		0	
+	storefluxmax
+	  :description:		Flag to turn on writing away maximum flux on 'dtmaxout' interval during simulation (storefluxmax = 1)
+	  :units:		-
+	  :default:		0		  
 	storecumprcp
 	  :description:		Flag to turn on writing away cumulative precipitation on 'dtmaxout' interval during simulation (storecumprcp = 1)
 	  :units:		-
@@ -346,7 +368,7 @@ Domain
 	  :required:		no (only if cross-section output is wanted)
 	  :format:		tekal		  	  
 	inifile = sfincs.ini
-	  :description:		For spatially varying initial water level per cell, with the same grid based input as the depfile using a **binary file**. In older version this was an ascii file still, not from official release v0.0.1 onwards!
+	  :description:		For spatially varying initial water level per cell, with the same grid based input as the depfile using a **binary file**. In older version this was an ascii file still, not from official release v2.0.0 onwards!
 	  :units:		m above reference level
 	  :required:		no
 	  :format:		**bin**		

@@ -167,6 +167,7 @@ module sfincs_data
       logical       :: store_maximum_waterlevel
       logical       :: store_maximum_waterdepth
       logical       :: store_maximum_velocity
+      logical       :: store_maximum_flux      
       logical       :: store_velocity
       logical       :: store_twet
       logical       :: store_hsubgrid
@@ -205,6 +206,7 @@ module sfincs_data
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
+      integer storefluxmax
       integer storevel
       integer storecumprcp
       integer storetwet
@@ -477,6 +479,7 @@ module sfincs_data
       !
       real*4, dimension(:),   allocatable :: zsmax
       real*4, dimension(:),   allocatable :: vmax
+      real*4, dimension(:),   allocatable :: qmax
       real*4, dimension(:),   allocatable :: zs
       real*4, dimension(:),   allocatable :: zsm
       real*4, dimension(:),   allocatable :: q
@@ -873,6 +876,7 @@ module sfincs_data
     !!!
     if(allocated(zsmax)) deallocate(zsmax)
     if(allocated(vmax)) deallocate(vmax)
+    if(allocated(qmax)) deallocate(qmax)
     if(allocated(zs)) deallocate(zs)
     !if(allocated(z_volume)) deallocate(z_volume) > this one seems to cause an error, not sure why
     if(allocated(q)) deallocate(q)

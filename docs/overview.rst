@@ -197,35 +197,38 @@ Publications
 -----
 There have been various journal publications and conference posters where SFINCS has been used and/or validated:
 
-"Modeling compound flooding in coastal systems using a computationally efficient reduced-physics solver: including fluvial, pluvial, tidal, wind- and wave-driven processes" - Leijnse et al. 2021 - https://doi.org/10.1016/j.coastaleng.2020.103796.
-Introduction paper of SFINCS, performed tests are:
+* Introduction paper of SFINCS:  "Modeling compound flooding in coastal systems using a computationally efficient reduced-physics solver: including fluvial, pluvial, tidal, wind- and wave-driven processes". Leijnse et al. (2021). https://doi.org/10.1016/j.coastaleng.2020.103796.
 
-* Environmental Agency test 2: Filling of floodplain depressions
+* "Uncertainties in coastal flood risk assessments in small island developing states" - Parodi et al. (2020) https://nhess.copernicus.org/articles/20/2397/2020/
 
-* Environmental Agency test 5: River valley flooding
+* "Hindcast of Pluvial, Fluvial, and Coastal Flood Damage in Houston, Texas during Hurricane Harvey (2017) using SFINCS". Sebastian et al. (2021). Sebastian et al. https://doi.org/10.1007/s11069-021-04922-3
 
-* Dam-break test with an initial wet bed
+* "Rapid Assessment of Tsnuami offshore propagation and Inundation with D-FLOW Flexible Mesh and SFINCS for the 2011 Tohoku Tsunami in Japan": Röbke et al. (2021) https://doi.org/10.3390/jmse9050453
 
-* Carrier and Greenspan (1958) wave runup
+* "Efficient and accurate modeling of wave-driven flooding on coral reef-lined coasts: Case Study of Majuro Atoll, Republic of the Marshall Islands". Bertoncelj et al. (2021). https://doi.org/10.5194/egusphere-egu21-5418 
 
-* Compound flooding during Hurricane Irma at Jacksonville, Florida
+* "Multilevel multifidelity Monte Carlo methods for assessing coastal flood risk". Clare et al. (2022) https://doi.org/10.5194/nhess-22-2491-2022
 
-* Wave-driven flooding during Typhoon Haiyan at Hernani, the Philippines
+* "A globally-applicable framework for compound flood hazard modeling". Eilander et al. (2022) https://doi.org/10.5194/egusphere-2022-149
 
-"Hindcast of Pluvial, Fluvial, and Coastal Flood Damage in Houston, Texas during Hurricane Harvey (2017) using SFINCS" Sebastian et al. (2021). Sebastian et al. https://doi.org/10.1007/s11069-021-04922-3
+* "Developing large scale and fast compound flood models for Australian coastlines". Leijnse et al. (2022). 'International Conference on Coastal Engineering 2022, Sydney'
 
-"Rapid Assessment of Tsnuami offshore propagation and Inundation with D-FLOW Flexible Mesh and SFINCS for the 2011 Tohoku Tsunami in Japan": Röbke et al. https://doi.org/10.3390/jmse9050453
+* "Developing a real-time data and modelling framework for operational flood inundation forecasting in Australia". De Kleermaeker et al. (2022). https://search.informit.org/doi/abs/10.3316/informit.916755150845355
 
-"Uncertainties in coastal flood risk assessments in small island developing states" - Parodi et al. (2020) https://nhess.copernicus.org/articles/20/2397/2020/
+* "Flooding at the Fringe: A Reduced-physics Model for Assessing Compound Flooding from Pluvial, Fluvial, and Coastal Hazards". Grimley et al. (2022). https://ui.adsabs.harvard.edu/abs/2022AGUFMNH36A..03G/abstract
 
-"Multilevel multifidelity Monte Carlo methods for assessing coastal flood risk" (2022). Clare et al. https://doi.org/10.5194/nhess-22-2491-2022
+* "Tropical cyclones or extratropical storms: What drives the compound flood hazard, impact and risk for the US Southeast Atlantic coast?" Nederhoff et al. (2023). https://eartharxiv.org/repository/view/5123/.
 
-"A globally-applicable framework for compound flood hazard modeling" (2022). Eilander et al. https://doi.org/10.5194/egusphere-2022-149
+* "Dynamic modeling of coastal compound flooding hazards due to tides, extratropical storms, waves, and sea-level rise: a case study in the Salish Sea, Washington (USA)". Nederhoff et al. (2023). https://eartharxiv.org/repository/view/5140/
 
-"Efficient and accurate modeling of wave-driven flooding on coral reef-lined coasts: Case Study of Majuro Atoll, Republic of the Marshall Islands". Bertoncelj et al. (2021). https://doi.org/10.5194/egusphere-egu21-5418 
+* "RAPID MODELING OF COMPOUND FLOODING ACROSS BROAD COASTAL REGIONS AND THE NECESSITY TO INCLUDE RAINFALL DRIVEN PROCESSES: A CASE STUDY OF HURRICANE FLORENCE (2018)". Leijnse et al. (2023). https://doi.org/10.1142/9789811275135_0235 
 
-More information regarding recent advancements with subgrid features can be seen in this online poster: https://agu2020fallmeeting-agu.ipostersessions.com/Default.aspx?s=9C-05-18-CF-F1-2B-17-F0-7A-21-93-E6-13-AE-F3-24
+* "FORECASTING HURRICANE IMPACTS ON COASTS USING COASTAL STORM MODELING SYSTEM (COSMOS)". Van Dongeren et al. (2023). https://doi.org/10.1142/9789811275135_0242
+
+* "An Integrated Assessment of Climate Change Impacts and Implications on Bonaire". Van Oosterhout (2023). https://link.springer.com/article/10.1007/s41885-023-00127-z
+
+* More information regarding recent advancements with subgrid features can be seen in this online poster: https://agu2020fallmeeting-agu.ipostersessions.com/Default.aspx?s=9C-05-18-CF-F1-2B-17-F0-7A-21-93-E6-13-AE-F3-24
 Leijnse et al. (2020)
 
-More information regarding recent comparisons using SFINCS to model waves can be seen in this online poster: https://agu2020fallmeeting-agu.ipostersessions.com/?s=30-38-5A-0C-8E-22-C8-84-CC-46-3C-95-18-80-C2-76&token=5r05NKrASrFrnkybTgXa4Y_XvgfV233Dazers0d2Zzo
+* More information regarding recent comparisons using SFINCS to model waves can be seen in this online poster: https://agu2020fallmeeting-agu.ipostersessions.com/?s=30-38-5A-0C-8E-22-C8-84-CC-46-3C-95-18-80-C2-76&token=5r05NKrASrFrnkybTgXa4Y_XvgfV233Dazers0d2Zzo
 Lasserre et al. (2020)
