@@ -73,15 +73,17 @@ contains
    !
    pi = 3.141592653589793
    !
-   quadtree_netcdf = .true.
    quadtree_nmax = 0
    quadtree_mmax = 0
+   ! 
+   quadtree_netcdf = .false.
+   if (index(qtrfile, '.nc') > 0) then
+      quadtree_netcdf = .true.
+   endif
    !
    if (quadtree_netcdf) then
-      quadtree_netcdf = .true.
       call quadtree_read_file_netcdf(qtrfile)
    else
-      quadtree_netcdf = .false.
       call quadtree_read_file_binary(qtrfile)
    endif
    !
