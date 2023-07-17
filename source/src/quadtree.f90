@@ -112,6 +112,13 @@ contains
       m    = quadtree_m(nm)
       iref = quadtree_level(nm)
       !
+      ! Determine quadtree_nmax and quadtree_mmax (these are needed for binary search of nm indices)
+      !
+      quadtree_nmax = max(quadtree_nmax, int( (1.0*(n - 1) + 0.01) / (2**(iref - 1))) + 2)
+      quadtree_mmax = max(quadtree_mmax, int( (1.0*(m - 1) + 0.01) / (2**(iref - 1))) + 2)
+      !
+      ! Coordinates of cell centres
+      ! 
       quadtree_xz(nm) = quadtree_x0 + cosrot*(1.0*(m - 0.5))*dxr(iref) - sinrot*(1.0*(n - 0.5))*dyr(iref)
       quadtree_yz(nm) = quadtree_y0 + sinrot*(1.0*(m - 0.5))*dxr(iref) + cosrot*(1.0*(n - 0.5))*dyr(iref)
       !

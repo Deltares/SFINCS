@@ -478,10 +478,24 @@
             ! Apply some smoothing if theta < 1.0 (not recommended anymore!)
             ! Note, for reliability in terms of precision, is written as 0.9999
             !
+            qsm = qx_nm
+            !
             if (theta<0.9999) then
-               qsm = theta*qx_nm + 0.5*(1.0 - theta)*(qx_nmu + qx_nmd)             
-            else
-               qsm = qx_nm
+               ! 
+               ! Apply theta smoothing 
+               ! 
+               if (uv_flags_adv(ip)==1) then
+                  ! 
+                  ! But only at regular points
+                  ! 
+                  if (abs(qx_nmu) > 1.0e-6 .and. abs(qx_nmd) > 1.0e-6) then
+                     !
+                     ! And if both uv neighbors are active
+                     ! 
+                     qsm = theta*qx_nm + 0.5*(1.0 - theta)*(qx_nmu + qx_nmd)             
+                     ! 
+                  endif
+               endif
             endif            
             !
             ! Compute new flux for this uv point (Bates et al., 2010)
