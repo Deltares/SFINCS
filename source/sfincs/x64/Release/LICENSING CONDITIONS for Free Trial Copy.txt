@@ -3,7 +3,7 @@ For the Free Trial Copy
 
 Read this agreement
 
-This is a legal agreement between the prospective user, either an individual or an entity, (hereafter: Licensee) and Stichting Deltares hereafter: Deltares. This Software [SFINCS v2.0.0 AlpeDHuez release 16-11-2022] is provided to you on the suspensive condition that you accept the following agreement. You are not allowed to copy, distribute, install or use the software without an agreement with Deltares. If you do not agree to the terms of this agreement, you must promptly stop installing this software and/or do not download the software from our site. Any further actions with respect to the software without an agreement with Deltares are in violation of copyright law.  Downloading, installation and/or use of the Software implies acceptance of this agreement.
+This is a legal agreement between the prospective user, either an individual or an entity, (hereafter: Licensee) and Stichting Deltares hereafter: Deltares. This Software [SFINCS v2.0.2 Blockhaus release 09-06-2023] is provided to you on the suspensive condition that you accept the following agreement. You are not allowed to copy, distribute, install or use the software without an agreement with Deltares. If you do not agree to the terms of this agreement, you must promptly stop installing this software and/or do not download the software from our site. Any further actions with respect to the software without an agreement with Deltares are in violation of copyright law.  Downloading, installation and/or use of the Software implies acceptance of this agreement.
 
 
 Article 1: Evaluation license
