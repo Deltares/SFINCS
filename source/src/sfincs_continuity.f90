@@ -441,10 +441,14 @@ contains
    !$acc                  netprcp, cumprcpt, prcp, q, z_flags_type, z_flags_iref, uv_flags_iref, &
    !$acc                  z_index_uv_md1, z_index_uv_md2, z_index_uv_nd1, z_index_uv_nd2, z_index_uv_mu1, z_index_uv_mu2, z_index_uv_nu1, z_index_uv_nu2, &
    !$acc                  dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area, &
-   !$acc                  z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num), async(1)
+   !$acc                  z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, storage_volume), async(1)
    !$acc loop independent, private( nm )
    do nm = 1, np
-      !    
+      !
+      ! And now water level changes due to horizontal fluxes
+      !
+      dvol = 0.0
+      !
       if (kcs(nm)==1 .or. kcs(nm)==4) then
          !
          if (crsgeo) then
@@ -462,7 +466,8 @@ contains
             !
             if (cumprcpt(nm)>0.001 .or. cumprcpt(nm)<-0.001) then
                !
-               z_volume(nm) = z_volume(nm) + cumprcpt(nm)*a
+!               z_volume(nm) = z_volume(nm) + cumprcpt(nm)*a
+               dvol = dvol + cumprcpt(nm)*a
                cumprcpt(nm) = 0.0
                !
             endif
@@ -480,14 +485,17 @@ contains
             !
             if (crsgeo) then
                !
-               z_volume(nm) = z_volume(nm) + ( (q(nmd) - q(nmu))*dyrm(uv_flags_iref(nm)) + (q(ndm) - q(num))*dxm(nm) ) * dt
+               dvol = dvol + ( (q(nmd) - q(nmu))*dyrm(uv_flags_iref(nm)) + (q(ndm) - q(num))*dxm(nm) ) * dt
+!               z_volume(nm) = z_volume(nm) + ( (q(nmd) - q(nmu))*dyrm(uv_flags_iref(nm)) + (q(ndm) - q(num))*dxm(nm) ) * dt
                !
             else
                !
                if (use_quadtree) then   
-                  z_volume(nm) = z_volume(nm) + ( (q(nmd) - q(nmu))*dyrm(uv_flags_iref(nm)) + (q(ndm) - q(num))*dxrm(uv_flags_iref(nm)) ) * dt
+                  dvol = dvol + ( (q(nmd) - q(nmu))*dyrm(uv_flags_iref(nm)) + (q(ndm) - q(num))*dxrm(uv_flags_iref(nm)) ) * dt
+!                  z_volume(nm) = z_volume(nm) + ( (q(nmd) - q(nmu))*dyrm(uv_flags_iref(nm)) + (q(ndm) - q(num))*dxrm(uv_flags_iref(nm)) ) * dt
                else
-                  z_volume(nm) = z_volume(nm) + ( (q(nmd) - q(nmu))*dy + (q(ndm) - q(num))*dx ) * dt
+                  dvol = dvol + ( (q(nmd) - q(nmu))*dy + (q(ndm) - q(num))*dx ) * dt
+!                  z_volume(nm) = z_volume(nm) + ( (q(nmd) - q(nmu))*dy + (q(ndm) - q(num))*dx ) * dt
                endif   
                !
             endif   
@@ -507,24 +515,22 @@ contains
                ndm2 = z_index_uv_nd2(nm)
                num2 = z_index_uv_nu2(nm)
                !
-               dvol = 0.0
-               !
                ! U
                !
                if (nmd1>0) then
-                  dvol = dvol + q(nmd1)*dyrm(uv_flags_iref(nmd1))
+                  dvol = dvol + q(nmd1)*dyrm(uv_flags_iref(nmd1))*dt
                endif   
                !
                if (nmd2>0) then
-                  dvol = dvol + q(nmd2)*dyrm(uv_flags_iref(nmd2))
+                  dvol = dvol + q(nmd2)*dyrm(uv_flags_iref(nmd2))*dt
                endif
                !
                if (nmu1>0) then
-                  dvol = dvol - q(nmu1)*dyrm(uv_flags_iref(nmu1))
+                  dvol = dvol - q(nmu1)*dyrm(uv_flags_iref(nmu1))*dt
                endif   
                !
                if (nmu2>0) then
-                  dvol = dvol - q(nmu2)*dyrm(uv_flags_iref(nmu2))
+                  dvol = dvol - q(nmu2)*dyrm(uv_flags_iref(nmu2))*dt
                endif
                !
                ! V
@@ -532,37 +538,37 @@ contains
                if (crsgeo) then
                   !
                   if (ndm1>0) then                     
-                     dvol = dvol + q(ndm1)*dxm(ndm1)
+                     dvol = dvol + q(ndm1)*dxm(ndm1)*dt
                   endif   
                   !
                   if (ndm2>0) then
-                     dvol = dvol + q(ndm2)*dxm(ndm2)
+                     dvol = dvol + q(ndm2)*dxm(ndm2)*dt
                   endif 
                   !
                   if (num1>0) then
-                     dvol = dvol - q(num1)*dxm(num1)
+                     dvol = dvol - q(num1)*dxm(num1)*dt
                   endif   
                   !
                   if (num2>0) then
-                     dvol = dvol - q(num2)*dxm(num2)
+                     dvol = dvol - q(num2)*dxm(num2)*dt
                   endif
                   !
                else
                   !
                   if (ndm1>0) then
-                     dvol = dvol + q(ndm1)*dxrm(uv_flags_iref(ndm1))
+                     dvol = dvol + q(ndm1)*dxrm(uv_flags_iref(ndm1))*dt
                   endif   
                   !
                   if (ndm2>0) then
-                    dvol = dvol + q(ndm2)*dxrm(uv_flags_iref(ndm2))
+                    dvol = dvol + q(ndm2)*dxrm(uv_flags_iref(ndm2))*dt
                   endif 
                   !
                   if (num1>0) then
-                     dvol = dvol - q(num1)*dxrm(uv_flags_iref(num1))
+                     dvol = dvol - q(num1)*dxrm(uv_flags_iref(num1))*dt
                   endif   
                   !
                   if (num2>0) then
-                     dvol = dvol - q(num2)*dxrm(uv_flags_iref(num2))
+                     dvol = dvol - q(num2)*dxrm(uv_flags_iref(num2))*dt
                   endif
                   !
                endif               
@@ -574,16 +580,16 @@ contains
                ndm = z_index_uv_nd1(nm)
                num = z_index_uv_nu1(nm)
                !
-               dvol = 0.0
+!               dvol = 0.0
                !
                ! U
                !
                if (nmd>0) then
-                  dvol = dvol + q(nmd)*dyrm(1)
+                  dvol = dvol + q(nmd)*dyrm(1)*dt
                endif   
                !
                if (nmu>0) then
-                  dvol = dvol - q(nmu)*dyrm(1)
+                  dvol = dvol - q(nmu)*dyrm(1)*dt
                endif   
                !
                ! V
@@ -591,28 +597,52 @@ contains
                if (crsgeo) then
                   !
                   if (ndm>0) then
-                     dvol = dvol + q(ndm)*dxm(ndm)
+                     dvol = dvol + q(ndm)*dxm(ndm)*dt
                   endif   
                   !
                   if (num>0) then
-                     dvol = dvol - q(num)*dxm(num)
+                     dvol = dvol - q(num)*dxm(num)*dt
                   endif   
                   !
                else
                   !
                   if (ndm>0) then
-                     dvol = dvol + q(ndm)*dxrm(1)
+                     dvol = dvol + q(ndm)*dxrm(1)*dt
                   endif   
                   !
                   if (num>0) then
-                     dvol = dvol - q(num)*dxrm(1)
+                     dvol = dvol - q(num)*dxrm(1)*dt
                   endif   
                   !
                endif   
                !
             endif   
             !
-            z_volume(nm) = z_volume(nm) + dvol*dt
+         endif
+         !
+         if (use_storage_volume) then
+            !
+            if (storage_volume(nm)>1.0e-6) then
+               !
+               ! Still some storage left
+               ! 
+               z_volume(nm) = z_volume(nm) + dvol - storage_volume(nm)
+               !
+               ! Compute remaining storage volume
+               ! 
+               storage_volume(nm) =  max(storage_volume(nm) - dvol, 0.0)
+               !
+            else
+               ! 
+               ! Storage is full 
+               !
+               z_volume(nm) = z_volume(nm) + dvol
+               !
+            endif
+            !
+         else
+            !
+            z_volume(nm) = z_volume(nm) + dvol
             !
          endif
          !
