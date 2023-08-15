@@ -37,13 +37,16 @@ module snapwave_solver
 !      write(*,*)'max depth=',maxval(depth),' min depth = ',minval(depth)
       call disper_approx(depth, Tpb,    kwav,    nwav,    C,    Cg,    no_nodes)
       call disper_approx(depth, Tpb_ig, kwav_ig, nwav_ig, C_ig, Cg_ig, no_nodes)
-      cg_ig = cg   !TL: ??? is Cg = cg? And why put cg_ig equal to normal cg?
+      cg_ig = cg   !TL: ??? is Cg = cg?    
+      Sxx = 0
       !
       do k = 1, no_nodes
          sinhkh(k)    = sinh(min(kwav(k)*depth(k), 100.0))
          Hmx(k)       = 0.88/kwav(k)*tanh(gamma*kwav(k)*depth(k)/0.88)
          sinhkh_ig(k) = sinh(min(kwav_ig(k)*depth(k), 50.0))
          Hmx_ig(k)    = 0.88/kwav_ig(k)*tanh(gamma_ig*kwav_ig(k)*depth(k)/0.88)
+         !
+         Sxx(k) = ((2.0 * nwav(k)) - 0.5) * sum(ee(:, k))*dtheta ! Radiation stress Sxx = ((2 .* n) - 0.5) .* Einc                   
       enddo
       !   
       do itheta = 1, ntheta
@@ -165,7 +168,10 @@ module snapwave_solver
    real*4, dimension(:,:), allocatable        :: eeold               ! wave energy density, energy density previous iteration
    real*4, dimension(:,:), allocatable        :: srcsh_local                  ! 
    real*4, dimension(:,:), allocatable        :: betan_local            ! 
-   real*4, dimension(:,:), allocatable        :: fsh_local              ! 
+   real*4, dimension(:,:), allocatable        :: betar_local            !    
+   real*4, dimension(:,:), allocatable        :: alphaig_local          ! 
+   real*4, dimension(:), allocatable          :: steepness_bc           ! deep water incident wave length
+   real*4, dimension(:), allocatable          :: reldepth               ! relative water depth (h / Hinc,0)
    real*4, dimension(:), allocatable          :: dee                    ! difference with energy previous iteration
    real*4, dimension(:), allocatable          :: eeprev, cgprev         ! energy density and group velocity at upwind intersection point
    real*4, dimension(:), allocatable          :: eeprev_ig, cgprev_ig         ! energy density and group velocity at upwind intersection point
@@ -204,6 +210,7 @@ module snapwave_solver
    real*4                                     :: shinc2ig
    real*4                                     :: shpercig   
    real*4                                     :: depthforcerelease   
+   real*4                                     :: L0
    real*4                                     :: fshalphamin   
    real*4                                     :: fshfac   
    real*4                                     :: fshexp   
@@ -265,7 +272,10 @@ module snapwave_solver
       allocate(DoverE_ig(no_nodes))
       allocate(E_ig(no_nodes))
       allocate(betan_local(ntheta,no_nodes))
-      allocate(fsh_local(ntheta,no_nodes))         
+      allocate(betar_local(ntheta,no_nodes))
+      allocate(alphaig_local(ntheta,no_nodes))  
+      allocate(steepness_bc(ntheta))
+      allocate(reldepth(ntheta))      
       !
    endif
    !   
@@ -281,7 +291,10 @@ module snapwave_solver
    F    = 0.0
    srcsh_local = 0.0
    betan_local = 0.0
-   fsh_local = 0.0   
+   betar_local = 0.0
+   steepness_bc = 0.0
+   reldepth = 0.0   
+   alphaig_local = 0.0   
    !
    ok             = 0
    indx           = 0
@@ -342,12 +355,22 @@ module snapwave_solver
       if (inner(k)) then
          !
          if (igwaves) then
-            !            !
-            ! Qb is based on wave heights of last timestep, at this point only the wave height at the boundary is known              
+            !
+            ! calculate incident wave steepness (for now using local Hm0,inc; not at offshore boundary)
+            ! Estimate local wave steepness
+            L0 = 9.81 * T **2 / (2 * pi); ! deep water incident wave length
+            !   
+            steepness_bc(k) = H(k) / L0 ! local wave steepness                
+            !
+            ! calculate relative water depth (for now using local Hm0,inc; not at offshore boundary)
+            reldepth(k) = depth(k) / H(k)
+            !            
+            ! calculate depthforcerelease (should be using value of Hm0,inc at offshore boundary)
+            ! TODO: depthforcerelease(k) = H(k) / gamma            
             !
             ! Compute exchange source term inc to ig waves - per direction            
             do itheta = 1, ntheta
-               !
+               !s
                k1 = prev(1, itheta, k)
                k2 = prev(2, itheta, k)
                !
@@ -355,44 +378,62 @@ module snapwave_solver
                   !
                   beta  = max((w(1, itheta, k)*(depth(k1) - depth(k)) + w(2, itheta, k)*(depth(k2) - depth(k)))/ds(itheta, k), 0.0)
                   betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin))
-                  !fbr   = 1.0 ! TL: Is this the fraction of breaking waves? And does SnapWave not calculate that? > jawel, maar al impliciet in baldock subroutine
-                  !fsh   = fbr*exp(-15.0*betan)
+                  !  
+                  betar_local(itheta,k) = betan_local(itheta,k) * sqrt(steepness_bc(k)) / reldepth(k) 
+                  !
                   if (ig_opt == 1) then                
                      !  
-                     fsh_local(itheta,k)   = shinc2ig * max(exp(-fshfac*betan_local(itheta,k)**fshexp), fshalphamin)  ! fshalphamin is as alphamin in HurryWave, named differently to avoid confusion with the other alphas we have
+                     alphaig_local(itheta,k)   = shinc2ig * max(exp(-fshfac*betan_local(itheta,k)**fshexp), fshalphamin)  ! fshalphamin is as alphamin in HurryWave, named differently to avoid confusion with the other alphas we have
                      ! 
                   elseif (ig_opt == 2) then                  
                      ! 
-                     call estimate_shoaling_rate(betan_local(itheta,k), H(k), T, fsh_local(itheta,k)) ! [input, input, input, output]                     
+                     call estimate_shoaling_rate(betan_local(itheta,k), H(k), T, alphaig_local(itheta,k)) ! [input, input, input, output]
                      !  
                   elseif (ig_opt == 3) then                  
                      ! 
-                     call estimate_shoaling_rate_v02(betan_local(itheta,k), H(k), T, fsh_local(itheta,k)) ! [input, input, input, output]
+                     call estimate_shoaling_rate_v02(betan_local(itheta,k), H(k), T, alphaig_local(itheta,k)) ! [input, input, input, output]
                      !
                   elseif (ig_opt == 4) then                  
                      ! 
                      if (betan_local(itheta,k) > 0.015) then !Beta_b_split = 0.015
                         !
-                        fsh_local(itheta,k) = shinc2ig * max(exp(-fshfac*betan_local(itheta,k)**fshexp), fshalphamin)
-                        !fsh_local(itheta,k) = 30.0 * max(exp(-fshfac*betan_local(itheta,k)**0.25), 0.1)
+                        alphaig_local(itheta,k) = shinc2ig * max(exp(-fshfac*betan_local(itheta,k)**fshexp), fshalphamin)
+                        !alphaig_local(itheta,k) = 30.0 * max(exp(-fshfac*betan_local(itheta,k)**0.25), 0.1)
                         ! 
                      else
                         ! 
-                        fsh_local(itheta,k) = shinc2ig * 4500.0 * betan_local(itheta,k)**2.0
-                        !fsh_local(itheta,k) = 30.0 * 4500.0 * betan_local(itheta,k)**2.0
+                        alphaig_local(itheta,k) = shinc2ig * 4500.0 * betan_local(itheta,k)**2.0
+                        !alphaig_local(itheta,k) = 30.0 * 4500.0 * betan_local(itheta,k)**2.0
                         !
                      endif                                           
                      !
+                  elseif (ig_opt == 5) then                  
+                     !
+                     call estimate_shoaling_rate_v03(betar_local(itheta,k), alphaig_local(itheta,k)) ! [input, output]
+                     !                      
                   endif
-                  ! fshfac = fexp of Hurrywave = 15 by default, fshexp = eexp of Hurrywave = 1.0 by default                  
-                  !fsh   = fbr*exp(-4.0*sqrt(betan)) !TL: why different than Hurrywave? -  fsh = shinc2ig * facbr(nm) * max(exp(-fexp*betan**eexp), alphamin)
                   !
+                  ! TL - Note: cg_ig = cg
                   cgprev(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
                   !         
-                  if (depth(k) >= depthforcerelease) then !depthforcerelease = 0.2 default
-                      srcsh_local(itheta, k)  = - fsh_local(itheta,k)*((cg(k) - cgprev(itheta))/ds(itheta, k))
-                  else
-                      srcsh_local(itheta, k) = 0.0
+                  if (ig_opt == 5) then       
+                     ! New dSxx/dx based method
+                     !
+                     if (depth(k) >= depthforcerelease) then !depthforcerelease = 0.2 default
+                         srcsh_local(itheta, k)  = - alphaig_local(itheta,k)*((cg(k) - cgprev(itheta))/ds(itheta, k))
+                     else
+                         srcsh_local(itheta, k) = 0.0
+                     endif
+                     !                                        
+                  else 
+                     ! Old E*dCg/dc based method  
+                     !
+                     if (depth(k) >= depthforcerelease) then !depthforcerelease = 0.2 default
+                         srcsh_local(itheta, k)  = - alphaig_local(itheta,k)*((cg(k) - cgprev(itheta))/ds(itheta, k))
+                     else
+                         srcsh_local(itheta, k) = 0.0
+                     endif
+                     !
                   endif
                   !                  
                   srcsh_local(itheta, k)  = max(srcsh_local(itheta, k), 0.0)
@@ -785,7 +826,7 @@ module snapwave_solver
                !
                ! average betan, fsh, srcsh over directions
                betan(k)     = sum(betan_local(:,k))*dtheta
-               fsh(k)       = sum(fsh_local(:,k))*dtheta  
+               fsh(k)       = sum(alphaig_local(:,k))*dtheta  
                srcsh(k)       = sum(srcsh_local(:,k))*dtheta                              
                !
             endif
@@ -981,6 +1022,21 @@ module snapwave_solver
    fsh =  min(alpha, fshalphamax)   
    !             
    end subroutine estimate_shoaling_rate_v02   
+   
+   subroutine estimate_shoaling_rate_v03(betar, alphaig)
+   real*4, intent(in)                :: betar
+   real*4, intent(out)               :: alphaig
+   !                 
+   ! Eestimatif shoaling rate alphaig - as in Leijnse et al. (2023)
+   if (betar >= 0 .and. betar <= 0.0066) then
+      alphaig = 17.9*betar**3-36.8*betar**2+19.9*betar
+   elseif (betar > 0.0066) then
+      alphaig = 8.0
+   else
+      alphaig = 0.0
+   endif 
+   !             
+   end subroutine estimate_shoaling_rate_v03 
    
    subroutine disper_approx(h,T,k,n,C,Cg,no_nodes)
    integer, intent(in)                :: no_nodes

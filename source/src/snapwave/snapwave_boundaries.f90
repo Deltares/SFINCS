@@ -479,7 +479,7 @@ subroutine update_boundary_conditions(t)
    !write(*,*)' thetamean = ',thetamean*180./pi
    !write(*,'(a,18f7.1)')'theta = ',theta*180./pi
    do ib = 1, nwbnd ! Loop along boundary points
-      E0   = 0.0625*rho*g*hst_bwv(ib)**2  !QUESTION TL: why 1/16 instead of 1/8?
+      E0   = 0.0625*rho*g*hst_bwv(ib)**2
       ms   = 1.0/dst_bwv(ib)**2-1
       dist = (cos(theta - thetamean))**ms
 !      where (abs(mod(pi + theta - thetamean, 2*pi) - pi)>pi/2) dist = 0.0
