@@ -181,7 +181,8 @@ module snapwave_solver
    real*4, dimension(:), allocatable          :: dee                    ! difference with energy previous iteration
    real*4, dimension(:), allocatable          :: eeprev, cgprev         ! energy density and group velocity at upwind intersection point
    real*4, dimension(:), allocatable          :: eeprev_ig, cgprev_ig         ! energy density and group velocity at upwind intersection point
-   real*4, dimension(:), allocatable          :: Sxxprev                ! radiation stress at upwind intersection point   
+   real*4, dimension(:), allocatable          :: Sxxprev                ! radiation stress at upwind intersection point  
+   real*4, dimension(:), allocatable          :: E_igprev               ! IG wave energy at upwind intersection point        
    real*4, dimension(:), allocatable          :: A,B,C,R                ! coefficients in the tridiagonal matrix solved per point
    real*4, dimension(:), allocatable          :: A_ig,B_ig,C_ig,R_ig    ! coefficients in the tridiagonal matrix solved per point
    real*4, dimension(:), allocatable          :: DoverE                 ! ratio of mean wave dissipation over mean wave energy
@@ -282,7 +283,8 @@ module snapwave_solver
       allocate(alphaig_local(ntheta,no_nodes))  
       allocate(steepness_bc(no_nodes))
       allocate(reldepth(no_nodes))    
-      allocate(Sxxprev(ntheta))            
+      allocate(Sxxprev(ntheta))       
+      allocate(E_igprev(ntheta))                   
       !
    endif
    !   
@@ -372,12 +374,13 @@ module snapwave_solver
             steepness_bc(k) = 1.81 / L0 ! local wave steepness                
             !
             ! calculate relative water depth (for now using local Hm0,inc; not at offshore boundary)
-            if (H(k) > 0) then
+            !if (H(k) > 0) then
                 !reldepth(k) = depth(k) / H(k)
-                reldepth(k) = depth(k) / 1.81
-            else
-                reldepth(k) = 1.0 ! to prevent the relative depth to become Infinity (to be reviewed still) 
-            endif
+            reldepth(k) = depth(k) / 1.81
+            !else
+                !reldepth(k) = 1.0 ! to prevent the relative depth to become Infinity if H=0 (to be reviewed still)
+                !reldepth(k) = 100000.0
+            !endif
             !            
             ! calculate depthforcerelease (should be using value of Hm0,inc at offshore boundary)
             ! TODO: depthforcerelease(k) = H(k) / gamma            
@@ -432,21 +435,26 @@ module snapwave_solver
                   !
                   ! TL - Note: cg_ig = cg
                   cgprev(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
-                  Sxxprev(itheta) = w(1, itheta, k)*Sxx(k1) + w(2, itheta, k)*Sxx(k2)                  
+                  Sxxprev(itheta) = w(1, itheta, k)*Sxx(k1) + w(2, itheta, k)*Sxx(k2)               
+                  E_igprev(itheta) = w(1, itheta, k)*H_ig_old(k1) + w(2, itheta, k)*H_ig_old(k2)                                    
                   !         
                   if (ig_opt == 5) then       
                      ! New dSxx/dx based method
                      !
                      if (depth(k) >= depthforcerelease) then !depthforcerelease = 0.2 default
                          ! srcsh = alphaig,1 * sqrt(Eig,1) * Cg1 / h1 * abs(Sxx2-Sxx1)
-                         !if (.not.inner(k1) .or. .not.inner(k2)) then > didn't work because for this we would need to know in downwind direction
+                         !if (.not.inner(k1) .or. .not.inner(k2)) then > didn't work
                          !if (Sxxprev(itheta)<=0.0 .or. Sxx(k)<=0.0) then               
-                         if (Sxx(k)<=0.0) then                                                      
-                            srcsh_local(itheta, k) = 0.0 !Avoid big jumps in dSxx that can happen if either upwind points is a boundary point with Hinc=0
+                         !if (Sxx(k)<=0.0) then                                                      
+                         if (Sxxprev(itheta)<=0.0 .or. Sxx(k)<=0.0) then                                                      
+                            srcsh_local(itheta, k) = 0.0 !Avoid big jumps in dSxx that can happen if a points is a boundary point with Hinc=0
                          else
                             !srcsh_local(itheta, k) = alphaig_local(itheta,k) * sqrt(E_ig(k)) * cg(k) / depth(k) * abs(Sxxprev(itheta) - Sxx(k))
-                            srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * H_ig_old(k) * cg(k) / depth(k) * abs(Sxxprev(itheta) - Sxx(k))                            
-                            
+                            !srcsh_local(itheta, k) = 8.0 * 0.25 * H_ig_old(k) * cg(k) / depth(k) * abs(Sxxprev(itheta) - Sxx(k))
+                            !srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * H_ig_old(k) * cg(k) / depth(k) * abs(Sxxprev(itheta) - Sxx(k))   
+                            !srcsh_local(itheta, k) = alphaig_local(itheta,k) * sqrt(E_igprev(itheta)) * cg(k) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))  
+                            !srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (E_igprev(itheta)) * sqrt(2.0) * cg(k) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))   
+                            srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (E_igprev(itheta)) * cg(k) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))                              
                          endif
                      else
                          srcsh_local(itheta, k) = 0.0
