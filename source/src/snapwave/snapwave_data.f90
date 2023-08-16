@@ -5,7 +5,7 @@ module snapwave_data
    real*8                                      :: xmn, ymn                
    integer*1, dimension(:),     allocatable    :: msk                     ! mask array (0=land, 1=inner point, 2=boundary)
    real*4,  dimension(:),       allocatable    :: zb                      ! bed level
-   real*8,  dimension(:),       allocatable    :: depth                   ! water depth
+   real*4,  dimension(:),       allocatable    :: depth                   ! water depth
    real*4,  dimension(:),       allocatable    :: dhdx, dhdy              ! water depth gradients
    real*4,  dimension(:),       allocatable    :: kwav, nwav              ! wave number, ratio Cg/C
    real*4,  dimension(:),       allocatable    :: kwav_ig, nwav_ig        ! wave number, ratio Cg/C
@@ -35,7 +35,7 @@ module snapwave_data
    integer, dimension(:,:,:),   allocatable    :: prev360                 ! two upwind grid points per grid point and wave direction
    real*4,  dimension(:,:,:),   allocatable    :: w                       ! weights of upwind grid points, 2 per grid point and per wave direction
    real*4,  dimension(:,:,:),   allocatable    :: w360                    ! weights of upwind grid points, 2 per grid point and per wave direction
-   real*8,  dimension(:,:),     allocatable    :: ds                      ! distance to interpolated upwind point, per grid point and direction
+   real*4,  dimension(:,:),     allocatable    :: ds                      ! distance to interpolated upwind point, per grid point and direction
    real*4,  dimension(:,:),     allocatable    :: ds360                   ! distance to interpolated upwind point, per grid point and direction
    real*4,  dimension(:,:),     allocatable    :: ctheta                  ! refraction speed, per grid point and direction
    real*4,  dimension(:,:),     allocatable    :: ctheta_ig               ! refraction speed, per grid point and direction

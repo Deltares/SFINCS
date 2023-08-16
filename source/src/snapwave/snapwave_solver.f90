@@ -114,14 +114,14 @@ module snapwave_solver
    real*8, dimension(no_nodes),intent(in)           :: x,y                    ! x,y coordinates of grid
    integer, intent(in)                        :: no_nodes,ntheta              ! number of grid points, number of directions
    real*4,  dimension(2,ntheta,no_nodes),intent(in) :: w                      ! weights of upwind grid points, 2 per grid point and per wave direction
-   real*8, dimension(ntheta,no_nodes), intent(in)   :: ds                     ! distance to interpolated upwind point, per grid point and direction
+   real*4, dimension(ntheta,no_nodes), intent(in)   :: ds                     ! distance to interpolated upwind point, per grid point and direction
    real*4, intent(in)                         :: thetamean              ! mean offshore wave direction (rad)
    real*4, dimension(ntheta), intent(in)      :: theta                  ! distribution of wave angles and offshore wave energy density
 !   real*4, dimension(ntheta), intent(in)      :: ee0_ig                 ! distribution of wave angles and offshore wave energy density
    logical, dimension(no_nodes), intent(in)         :: inner                  ! mask of inner grid points (not on boundary)
    integer, dimension(2,ntheta,no_nodes),intent(in) :: prev                   ! two upwind grid points per grid point and wave direction
    integer, dimension(no_nodes),intent(in)          :: neumannconnected       ! number of neumann boundary point if connected to inner point
-   real*8, dimension(no_nodes), intent(in)          :: depth                  ! water depth
+   real*4, dimension(no_nodes), intent(in)          :: depth                  ! water depth
    real*4, dimension(no_nodes), intent(in)          :: kwav                   ! wave number
    real*4, dimension(no_nodes), intent(in)          :: kwav_ig                ! wave number
    real*4, dimension(no_nodes), intent(in)          :: cg                     ! group velocity
@@ -173,8 +173,8 @@ module snapwave_solver
 !   real*4, dimension(:,:), allocatable        :: ee_ig                  ! wave energy density
    real*4, dimension(:,:), allocatable        :: eeold               ! wave energy density, energy density previous iteration
    real*4, dimension(:,:), allocatable        :: srcsh_local                  ! 
-   real*8, dimension(:,:), allocatable        :: betan_local            ! 
-   real*8, dimension(:,:), allocatable        :: betar_local            !    
+   real*4, dimension(:,:), allocatable        :: betan_local            ! 
+   real*4, dimension(:,:), allocatable        :: betar_local            !    
    real*4, dimension(:,:), allocatable        :: alphaig_local          ! 
    real*4, dimension(:), allocatable          :: steepness_bc           ! deep water incident wave length
    real*4, dimension(:), allocatable          :: reldepth               ! relative water depth (h / Hinc,0)
@@ -222,7 +222,7 @@ module snapwave_solver
    real*4                                     :: fshfac   
    real*4                                     :: fshexp   
    real*4                                     :: sigm_ig
-   real*8                                     :: beta
+   real*4                                     :: beta
    character*20                               :: fname
    integer, save                              :: callno=1
    !
@@ -920,7 +920,7 @@ module snapwave_solver
    real*4, intent(in)                :: alfa
    real*4, intent(in)                :: gamma
    real*4, intent(in)                :: k
-   real*8, intent(in)                :: depth
+   real*4, intent(in)                :: depth
    real*4, intent(in)                :: H
    real*4, intent(in)                :: T
    integer, intent(in)               :: opt
@@ -967,7 +967,7 @@ module snapwave_solver
    real*4, intent(in)                :: g
    real*4, intent(in)                :: alfa
    real*4, intent(in)                :: gamma
-   real*8, intent(in)                :: depth   
+   real*4, intent(in)                :: depth   
    real*4, intent(in)                :: H
    real*4, intent(in)                :: T
    integer, intent(in)               :: opt   
@@ -993,7 +993,7 @@ module snapwave_solver
    end subroutine battjesjanssen   
    
    subroutine estimate_shoaling_rate(betan, H, T, alphaig)
-   real*8, intent(in)                :: betan
+   real*4, intent(in)                :: betan
    real*4, intent(in)                :: H
    real*4, intent(in)                :: T
    real*4, intent(out)               :: alphaig
@@ -1024,7 +1024,7 @@ module snapwave_solver
    end subroutine estimate_shoaling_rate   
    
    subroutine estimate_shoaling_rate_v02(betan, H, T, alphaig)
-   real*8, intent(in)                :: betan
+   real*4, intent(in)                :: betan
    real*4, intent(in)                :: H
    real*4, intent(in)                :: T
    real*4, intent(out)               :: alphaig
@@ -1058,8 +1058,8 @@ module snapwave_solver
    end subroutine estimate_shoaling_rate_v02   
    
    subroutine estimate_shoaling_rate_v03(betar, depth, alphaig)
-   real*8, intent(in)                :: betar
-   real*8, intent(in)                :: depth   
+   real*4, intent(in)                :: betar
+   real*4, intent(in)                :: depth   
    real*4, intent(out)               :: alphaig
    !                 
    ! Estimate shoaling rate alphaig - as in Leijnse et al. (2023)
@@ -1085,7 +1085,7 @@ module snapwave_solver
    
    subroutine disper_approx(h,T,k,n,C,Cg,no_nodes)
    integer, intent(in)                :: no_nodes
-   real*8, dimension(no_nodes), intent(in)  :: h
+   real*4, dimension(no_nodes), intent(in)  :: h
    real*4, intent(in)                 :: T
    real*4, dimension(no_nodes), intent(out) :: k,n,C,Cg
    real*4                             :: sigma,g,pi
