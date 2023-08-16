@@ -369,21 +369,21 @@ module snapwave_solver
             ! Estimate local wave steepness
             L0 = 9.81 * T**2 / (2 * pi) ! deep water incident wave length
             !   
-            !steepness_bc(k) = H(k) / L0 ! local wave steepness                
-            !steepness_bc(k) = H(1) / L0 ! local wave steepness                
-            steepness_bc(k) = 1.81 / L0 ! local wave steepness                
+            steepness_bc(k) = 1.81 / L0 ! local wave steepness 
+            !TODO: replace 1.81 by weighted nearest Hinc,0
             !
             ! calculate relative water depth (for now using local Hm0,inc; not at offshore boundary)
             !if (H(k) > 0) then
                 !reldepth(k) = depth(k) / H(k)
             reldepth(k) = depth(k) / 1.81
+            !TODO: replace 1.81 by weighted nearest Hinc,0
             !else
                 !reldepth(k) = 1.0 ! to prevent the relative depth to become Infinity if H=0 (to be reviewed still)
                 !reldepth(k) = 100000.0
             !endif
             !            
             ! calculate depthforcerelease (should be using value of Hm0,inc at offshore boundary)
-            ! TODO: depthforcerelease(k) = H(k) / gamma            
+            ! TODO: depthforcerelease(k) = Hinc,0 / gamma            
             !
             ! Compute exchange source term inc to ig waves - per direction            
             do itheta = 1, ntheta
@@ -429,7 +429,7 @@ module snapwave_solver
                      !
                   elseif (ig_opt == 5) then                  
                      !
-                     call estimate_shoaling_rate_v03(betar_local(itheta,k), alphaig_local(itheta,k)) ! [input, output]
+                     call estimate_shoaling_rate_v03(betar_local(itheta,k), depth(k), alphaig_local(itheta,k)) ! [input, output]
                      !                      
                   endif
                   !
@@ -859,7 +859,8 @@ module snapwave_solver
                !
                ! average betan, alphaig, srcsh over directions
                betan(k)   = sum(betan_local(:,k))*dtheta
-               alphaig(k) = sum(alphaig_local(:,k))*dtheta                 
+               !alphaig(k) = sum(alphaig_local(:,k))*dtheta  
+               alphaig(k) = maxval(alphaig_local(:,k))                             
                srcsh(k)   = sum(srcsh_local(:,k))*dtheta                              
                !
             endif
@@ -1056,19 +1057,30 @@ module snapwave_solver
    !             
    end subroutine estimate_shoaling_rate_v02   
    
-   subroutine estimate_shoaling_rate_v03(betar, alphaig)
+   subroutine estimate_shoaling_rate_v03(betar, depth, alphaig)
    real*8, intent(in)                :: betar
+   real*8, intent(in)                :: depth   
    real*4, intent(out)               :: alphaig
    !                 
    ! Estimate shoaling rate alphaig - as in Leijnse et al. (2023)
-   if (betar > 0 .and. betar <= 0.0066) then
-      alphaig = 17.9*betar**3-36.8*betar**2+19.9*betar
-   elseif (betar > 0.0066) then
-      alphaig = 8.0
+   if (depth <= 4 * 1.81) then !TODO: replace 1.81 by weighted nearest Hinc,0
+   
+       if (betar > 0 .and. betar <= 0.0066) then
+          alphaig = 17.9*betar**3-36.8*betar**2+19.9*betar
+       elseif (betar > 0.0066) then
+          alphaig = 8.0
+       else
+          alphaig = 0.0
+       endif 
    else
-      alphaig = 0.0
-   endif 
+       if (betar > 0.0) then
+           alphaig = 8.0
+       else
+          alphaig = 0.0           
+       endif
+   endif
    !             
+   !write(*,*)'betar alphaig',betar,alphaig
    end subroutine estimate_shoaling_rate_v03 
    
    subroutine disper_approx(h,T,k,n,C,Cg,no_nodes)
