@@ -399,7 +399,7 @@ module snapwave_solver
                   betar_local(itheta,k) = betan_local(itheta,k) * sqrt(steepness_bc(k)) / reldepth(k) 
                   !
                   if (beta > 0) then
-                    !write(*,*)'beta betan betar',beta,betan_local(itheta,k),betar_local(itheta,k)
+                     !write(*,*)'dh dx beta sigm_ig betan steepness_bc reldepth betar',(w(1, itheta, k)*(depth(k1) - depth(k)) + w(2, itheta, k)*(depth(k2) - depth(k))),ds(itheta, k),beta,sigm_ig,betan_local(itheta,k),steepness_bc(k),reldepth(k),betar_local(itheta,k)
                   endif
                   if (ig_opt == 1) then                
                      !  
@@ -448,7 +448,9 @@ module snapwave_solver
                             srcsh_local(itheta, k) = 0.0 !Avoid big jumps in dSxx that can happen if a points is a boundary point with Hinc=0
                          else
                             !srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * sqrt(2.0) * cg(k) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))   ! Open question is whether sqrt(2) needs to be included since nowwe calculate with Hrms instead of Hm0 
-                            srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * cg(k) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))                              
+                            !srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * cg(k) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))      
+                            srcsh_local(itheta, k) = 8.0 * 0.25 * (H_igprev(itheta)) * cg(k) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))                                 
+                            !Q: moet alles met prev? (cg, depth, betar)
                          endif
                      else
                          srcsh_local(itheta, k) = 0.0
@@ -658,7 +660,7 @@ module snapwave_solver
                         A_ig(itheta) = -ctheta_ig(itheta - 1, k)*oneover2dtheta
                         B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
                         C_ig(itheta) = ctheta_ig(itheta + 1, k)*oneover2dtheta
-                        R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta)*eeprev_ig(itheta)/ds(itheta, k) + srcsh_local(itheta, k)!*ee(itheta,k) ! added shpercig controls what part of the dissipated inc energy actually ends up in the IG energy band
+                        R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta)*eeprev_ig(itheta)/ds(itheta, k) + srcsh_local(itheta, k) / cg_ig(k)
                         !
                      enddo
                      !
@@ -666,7 +668,7 @@ module snapwave_solver
                         A_ig(1) = 0.0
                         B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k)
                         C_ig(1) = ctheta_ig(2, k)/dtheta
-                        R_ig(1) = oneoverdt*ee_ig(1, k) + cgprev_ig(1)*eeprev_ig(1)/ds(1, k) + srcsh_local(1, k)!*ee(1,k)
+                        R_ig(1) = oneoverdt*ee_ig(1, k) + cgprev_ig(1)*eeprev_ig(1)/ds(1, k) + srcsh_local(1, k) / cg_ig(k)
                      else
                         A_ig(1)=0.0
                         B_ig(1)=1.0/dt
@@ -678,7 +680,7 @@ module snapwave_solver
                         A_ig(ntheta) = -ctheta_ig(ntheta - 1, k)/dtheta
                         B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
                         C_ig(ntheta) = 0.0
-                        R_ig(ntheta) = oneoverdt*ee_ig(ntheta,k) + cgprev_ig(ntheta)*eeprev_ig(ntheta)/ds(ntheta,k) + srcsh_local(ntheta, k)!*ee(ntheta,k)
+                        R_ig(ntheta) = oneoverdt*ee_ig(ntheta,k) + cgprev_ig(ntheta)*eeprev_ig(ntheta)/ds(ntheta,k) + srcsh_local(ntheta, k) / cg_ig(k)
                      else
                         A_ig(ntheta) = 0.0
                         B_ig(ntheta) = oneoverdt

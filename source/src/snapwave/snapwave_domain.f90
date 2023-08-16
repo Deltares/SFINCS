@@ -278,7 +278,7 @@ contains
    integer,                               intent(in)        :: no_nodes,ntheta     ! length of x,y; length of theta
    integer,                               intent(in)        :: sferic             ! sferic (1) or cartesian (0) grid
    real*8,  dimension(no_nodes),          intent(in)        :: x,y                 ! x, y coordinates of grid
-   integer, dimension(np,no_nodes),       intent(in)        :: kp                  ! grid indices of surrounfing points per grid point
+   integer, dimension(np,no_nodes),       intent(in)        :: kp                  ! grid indices of surrounding points per grid point
    real*8,  dimension(ntheta),            intent(in)        :: theta               ! array of wave angles
    real*8,  dimension(2,ntheta,no_nodes), intent(out)       :: w                   ! per grid point and direction, weight of upwind points
    integer, dimension(2,ntheta,no_nodes), intent(out)       :: prev                ! per grid point and direction, indices of upwind points
