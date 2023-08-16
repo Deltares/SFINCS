@@ -22,7 +22,7 @@ module sfincs_snapwave
    real*4,    dimension(:),   allocatable    :: snapwave_Qb
    real*4,    dimension(:),   allocatable    :: snapwave_betan  
    real*4,    dimension(:),   allocatable    :: snapwave_srcsh  
-   real*4,    dimension(:),   allocatable    :: snapwave_fsh   
+   real*4,    dimension(:),   allocatable    :: snapwave_alphaig   
    integer,   dimension(:,:), allocatable    :: snapwave_connected_nodes
    integer*4, dimension(:),   allocatable    :: index_snapwave_in_sfincs
    integer*4, dimension(:),   allocatable    :: index_sfincs_in_snapwave
@@ -128,7 +128,7 @@ contains
    real*4,    dimension(:), allocatable       :: qb0   
    real*4,    dimension(:), allocatable       :: betan0 
    real*4,    dimension(:), allocatable       :: srcsh0      
-   real*4,    dimension(:), allocatable       :: fsh0   
+   real*4,    dimension(:), allocatable       :: alphaig0   
    integer   :: ip, ii, m, n, nm, nmu, idir
    real*4    :: f
    real*8    :: t
@@ -145,7 +145,7 @@ contains
    allocate(qb0(np))   
    allocate(betan0(np))   
    allocate(srcsh0(np))      
-   allocate(fsh0(np))      
+   allocate(alphaig0(np))      
    !
    fwx0 = 0.0
    fwy0 = 0.0
@@ -157,7 +157,7 @@ contains
    qb0 = 0.0
    betan0 = 0.0
    srcsh0 = 0.0
-   fsh0 = 0.0   
+   alphaig0 = 0.0   
    !
    ! Determine SnapWave water depth
    !
@@ -209,7 +209,7 @@ contains
          qb0(nm)    = snapwave_Qb(ip)
          betan0(nm) = snapwave_betan(ip)
          srcsh0(nm) = snapwave_srcsh(ip)
-         fsh0(nm)   = snapwave_fsh(ip)
+         alphaig0(nm)   = snapwave_alphaig(ip)
          if (store_wave_direction) then
             mean_wave_direction(nm)        = 270.0 - snapwave_mean_direction(ip)*180/pi   
             wave_directional_spreading(nm) = snapwave_directional_spreading(ip)*180/pi   
@@ -231,7 +231,7 @@ contains
          qb0(nm)    = 0.0
          betan0(nm)    = 0.0
          srcsh0(nm)    = 0.0
-         fsh0(nm)    = 0.0         
+         alphaig0(nm)    = 0.0         
          if (store_wave_direction) then
             mean_wave_direction(nm)        = 0.0
             wave_directional_spreading(nm) = 0.0  
@@ -251,7 +251,7 @@ contains
          qb(nm) = qb0(nm)         
          betan(nm) = betan0(nm)         
          srcsh(nm) = srcsh0(nm)         
-         fsh(nm) = fsh0(nm)                  
+         alphaig(nm) = alphaig0(nm)                  
          !
       endif   
       !
@@ -315,7 +315,7 @@ contains
    snapwave_H                     = H
    snapwave_H_ig                  = H_ig
    snapwave_mean_direction        = thetam
-   snapwave_directional_spreading = thetam  ! CORRECT? > is not spreading but mean direction
+   snapwave_directional_spreading = thetam  ! CORRECT? > is not spreading but mean direction?
    snapwave_Fx                    = Fx
    snapwave_Fy                    = Fy 
    snapwave_Dw                    = Dw
@@ -325,8 +325,9 @@ contains
    snapwave_cg                    = cg
    snapwave_Qb                    = Qb
    snapwave_betan                 = betan
+   !snapwave_betan                 = betar
    snapwave_srcsh                 = srcsh
-   snapwave_fsh                   = fsh   
+   snapwave_alphaig               = alphaig   
    !
    end subroutine
 

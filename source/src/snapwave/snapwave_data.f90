@@ -13,7 +13,7 @@ module snapwave_data
    real*4,  dimension(:),       allocatable    :: Sxx                     ! radiation stress Sxx
    real*4,  dimension(:),       allocatable    :: fw                      ! friction coefficient
    real*4,  dimension(:),       allocatable    :: fw_ig                   ! friction coefficient
-   real*4,  dimension(:),       allocatable    :: H, H_ig                 ! rms wave height
+   real*4,  dimension(:),       allocatable    :: H, H_ig, H_ig_old       ! rms wave height
    real*4,  dimension(:),       allocatable    :: Dw,Df                   ! dissipation due to breaking, bed friction
    real*4,  dimension(:),       allocatable    :: Dw_ig,Df_ig             ! dissipation due to breaking, bed friction for IG   
    real*4,  dimension(:),       allocatable    :: F                       ! wave force Dw/C/rho/depth
@@ -57,7 +57,7 @@ module snapwave_data
    real*4,  dimension(:),       allocatable    :: Qb
    real*4,  dimension(:),       allocatable    :: betan
    real*4,  dimension(:),       allocatable    :: srcsh
-   real*4,  dimension(:),       allocatable    :: fsh   
+   real*4,  dimension(:),       allocatable    :: alphaig   
    !
    integer*4,  dimension(:),     allocatable    :: index_snapwave_in_quadtree
    integer*4,  dimension(:),     allocatable    :: index_quadtree_in_snapwave

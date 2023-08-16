@@ -120,6 +120,7 @@ contains
    allocate(Hmx_ig(no_nodes))
    allocate(fw_ig(no_nodes))
    allocate(H_ig(no_nodes))   
+   allocate(H_ig_old(no_nodes))         
    allocate(Dw(no_nodes))
    allocate(Dw_ig(no_nodes))   
    allocate(F(no_nodes))
@@ -131,7 +132,7 @@ contains
    allocate(Qb(no_nodes))
    allocate(betan(no_nodes))
    allocate(srcsh(no_nodes))
-   allocate(fsh(no_nodes))
+   allocate(alphaig(no_nodes))
 !   allocate(uorb(no_nodes))
    allocate(ctheta(ntheta,no_nodes))
    allocate(ctheta_ig(ntheta,no_nodes))
@@ -188,6 +189,7 @@ contains
    ds360d0 = 0.d0
    w360d0  = 0.d0
    prev360 = 0
+   H_ig_old = 0.0
    !
    if (upwfile=='') then   
       !

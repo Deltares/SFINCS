@@ -2311,8 +2311,8 @@ contains
          betan = 0.0     
          allocate(srcsh(np))
          srcsh = 0.0           
-         allocate(fsh(np))
-         fsh = 0.0            
+         allocate(alphaig(np))
+         alphaig = 0.0            
       endif
       !
       if (store_wave_direction) then

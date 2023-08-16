@@ -49,7 +49,7 @@ module sfincs_ncoutput
       integer :: patm_varid, wind_speed_varid, wind_dir_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid  
       integer :: hm0_varid, hm0ig_varid, zsm_varid, tp_varid, wavdir_varid, dirspr_varid
-      integer :: dw_varid, df_varid, dwig_varid, dfig_varid, cg_varid, qb_varid, betan_varid, srcsh_varid, fsh_varid
+      integer :: dw_varid, df_varid, dwig_varid, dfig_varid, cg_varid, qb_varid, betan_varid, srcsh_varid, alphaig_varid
       !
    end type
    !
@@ -1299,12 +1299,12 @@ contains
          NF90(nf90_put_att(his_file%ncid, his_file%srcsh_varid, 'long_name', 'directionally averaged ig energy source'))  
          NF90(nf90_put_att(his_file%ncid, his_file%srcsh_varid, 'coordinates', 'station_id station_name point_x point_y'))
          !                   
-         NF90(nf90_def_var(his_file%ncid, 'fsh', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%fsh_varid)) ! time-varying water level point
-         NF90(nf90_put_att(his_file%ncid, his_file%fsh_varid, '_FillValue', FILL_VALUE))
-         NF90(nf90_put_att(his_file%ncid, his_file%fsh_varid, 'units', '-'))
-         NF90(nf90_put_att(his_file%ncid, his_file%fsh_varid, 'standard_name', 'directionally_averaged_infragravity_waves_shoaling_factor')) 
-         NF90(nf90_put_att(his_file%ncid, his_file%fsh_varid, 'long_name', 'directionally averaged infragravity waves shoaling factor'))  
-         NF90(nf90_put_att(his_file%ncid, his_file%fsh_varid, 'coordinates', 'station_id station_name point_x point_y'))         
+         NF90(nf90_def_var(his_file%ncid, 'alphaig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%alphaig_varid)) ! time-varying water level point
+         NF90(nf90_put_att(his_file%ncid, his_file%alphaig_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(his_file%ncid, his_file%alphaig_varid, 'units', '-'))
+         NF90(nf90_put_att(his_file%ncid, his_file%alphaig_varid, 'standard_name', 'directionally_averaged_infragravity_waves_shoaling_factor')) 
+         NF90(nf90_put_att(his_file%ncid, his_file%alphaig_varid, 'long_name', 'directionally averaged infragravity waves shoaling factor'))  
+         NF90(nf90_put_att(his_file%ncid, his_file%alphaig_varid, 'coordinates', 'station_id station_name point_x point_y'))         
          !
       endif
    endif
@@ -1974,7 +1974,7 @@ contains
    real*4, dimension(nobs) :: qbobs
    real*4, dimension(nobs) :: betanobs
    real*4, dimension(nobs) :: srcshobs
-   real*4, dimension(nobs) :: fshobs
+   real*4, dimension(nobs) :: alphaigobs
    real*4, dimension(:), allocatable :: qq
    !
    zobs         = FILL_VALUE
@@ -1997,7 +1997,7 @@ contains
    qbobs        = FILL_VALUE
    betanobs     = FILL_VALUE
    srcshobs     = FILL_VALUE
-   fshobs       = FILL_VALUE   
+   alphaigobs       = FILL_VALUE   
    !
    do iobs = 1, nobs ! determine zs and prcp of obervation points at required timestep
       !
@@ -2161,7 +2161,7 @@ contains
                qbobs(iobs)    = qb(nm)               
                betanobs(iobs) = betan(nm)               
                srcshobs(iobs) = srcsh(nm)               
-               fshobs(iobs)   = fsh(nm)                              
+               alphaigobs(iobs) = alphaig(nm)                              
                ! 
             endif
             !
@@ -2222,7 +2222,7 @@ contains
          NF90(nf90_put_var(his_file%ncid, his_file%qb_varid, qbobs, (/1, nthisout/)))
          NF90(nf90_put_var(his_file%ncid, his_file%betan_varid, betanobs, (/1, nthisout/)))
          NF90(nf90_put_var(his_file%ncid, his_file%srcsh_varid, srcshobs, (/1, nthisout/)))                  
-         NF90(nf90_put_var(his_file%ncid, his_file%fsh_varid, fshobs, (/1, nthisout/)))         
+         NF90(nf90_put_var(his_file%ncid, his_file%alphaig_varid, alphaigobs, (/1, nthisout/)))         
          !            
       endif
       !      
