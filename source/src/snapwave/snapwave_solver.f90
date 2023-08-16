@@ -369,13 +369,13 @@ module snapwave_solver
             ! Estimate local wave steepness
             L0 = 9.81 * T**2 / (2 * pi) ! deep water incident wave length
             !   
-            steepness_bc(k) = 1.81 / L0 ! local wave steepness 
+            steepness_bc(k) = 1.81 / sqrt(2.0) / L0 ! local wave steepness 
             !TODO: replace 1.81 by weighted nearest Hinc,0
             !
             ! calculate relative water depth (for now using local Hm0,inc; not at offshore boundary)
             !if (H(k) > 0) then
                 !reldepth(k) = depth(k) / H(k)
-            reldepth(k) = depth(k) / 1.81
+            reldepth(k) = depth(k) / 1.81 / sqrt(2.0)
             !TODO: replace 1.81 by weighted nearest Hinc,0
             !else
                 !reldepth(k) = 1.0 ! to prevent the relative depth to become Infinity if H=0 (to be reviewed still)
@@ -1063,7 +1063,7 @@ module snapwave_solver
    real*4, intent(out)               :: alphaig
    !                 
    ! Estimate shoaling rate alphaig - as in Leijnse et al. (2023)
-   if (depth <= 4 * 1.81) then !TODO: replace 1.81 by weighted nearest Hinc,0
+   if (depth <= 4 * 1.81 / sqrt(2.0)) then !TODO: replace 1.81 by weighted nearest Hinc,0
    
        if (betar > 0 .and. betar <= 0.0066) then
           alphaig = 17.9*betar**3-36.8*betar**2+19.9*betar
