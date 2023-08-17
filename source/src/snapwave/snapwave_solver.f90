@@ -378,8 +378,7 @@ module snapwave_solver
             reldepth(k) = depth(k) / 1.81 / sqrt(2.0)
             !TODO: replace 1.81 by weighted nearest Hinc,0
             !else
-                !reldepth(k) = 1.0 ! to prevent the relative depth to become Infinity if H=0 (to be reviewed still)
-                !reldepth(k) = 100000.0
+                !reldepth(k) = 100000.0 !to prevent the relative depth to become Infinity if H=0 > then we want betar to be (close to) 0
             !endif
             !            
             ! calculate depthforcerelease (should be using value of Hm0,inc at offshore boundary)
@@ -443,14 +442,19 @@ module snapwave_solver
                      !
                      if (depth(k) >= depthforcerelease) then !depthforcerelease = 0.2 default
                          ! srcsh = alphaig,1 * sqrt(Eig,1) * Cg1 / h1 * abs(Sxx2-Sxx1)    
-                         if (Sxxprev(itheta)<=0.0) then                                                      
-                             
+                         if (Sxxprev(itheta)<=0.0) then 
+                         !if (Sxxprev(itheta)<=0.0 .or. Sxx(k)<=0.0) then ! > this didn't help
+                            !
                             srcsh_local(itheta, k) = 0.0 !Avoid big jumps in dSxx that can happen if a points is a boundary point with Hinc=0
                          else
                             !srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * sqrt(2.0) * cg(k) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))   ! Open question is whether sqrt(2) needs to be included since nowwe calculate with Hrms instead of Hm0 
-                            srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * cg(k) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))      
+                             
+                            !srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * cg(k) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))    
+                            
+                            srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * cgprev(itheta) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))  !deze
+                            
                             !srcsh_local(itheta, k) = 8.0 * 0.25 * (H_igprev(itheta)) * cg(k) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))                                 
-                            !Q: moet alles met prev? (cg, depth, betar)
+                            !Q: moet alles met prev? (cg, depth, betar)                            
                          endif
                      else
                          srcsh_local(itheta, k) = 0.0
@@ -1073,7 +1077,9 @@ module snapwave_solver
           alphaig = 0.0
        endif 
    else
-       if (betar > 0.0) then
+       !if (betar > 0.0) then
+       if (betar > 1.0e-03) then           
+       !if (betar > 0.0066k) then           
            alphaig = 8.0
        else
           alphaig = 0.0           
