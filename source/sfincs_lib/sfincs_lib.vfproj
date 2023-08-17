@@ -61,6 +61,8 @@
 		<File RelativePath="..\src\geometry.f90"/>
 		<File RelativePath="..\src\quadtree.f90">
 			<FileConfiguration Name="Release|x64">
+				<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/></FileConfiguration>
+			<FileConfiguration Name="Debug|x64">
 				<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/></FileConfiguration></File>
 		<File RelativePath="..\src\sfincs_boundaries.f90"/>
 		<File RelativePath="..\src\sfincs_continuity.f90"/>

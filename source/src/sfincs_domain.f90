@@ -235,13 +235,13 @@ contains
       !
    else
       !
-      if (use_quadtree .and. quadtree_netcdf) then
+      !if (use_quadtree .and. quadtree_netcdf) then
          !
          ! Mask is stored in netcdf file 
          !
-         msk = quadtree_mask
+         !msk = quadtree_mask
          !
-      else
+      !else
          !
          ! Mask in separate file
          !
@@ -249,7 +249,7 @@ contains
          read(500)msk
          close(500)
          !
-      endif
+      !endif
       !
    endif
    !

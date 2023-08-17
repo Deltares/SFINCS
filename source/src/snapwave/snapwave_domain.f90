@@ -1030,13 +1030,13 @@ contains
    !
    ! STEP 2 - Read mask file
    !
-   if (quadtree_netcdf) then
+   !if (quadtree_netcdf) then
       !
       ! Mask is stored in netcdf file 
       !
-      msk_tmp = quadtree_snapwave_mask
+      !msk_tmp = quadtree_snapwave_mask
       !
-   else    
+   !else    
       !
       if (mskfile /= 'none') then
          !       
@@ -1046,7 +1046,7 @@ contains
          close(500)
          !
       endif    
-   endif
+   !endif
    !
    ! STEP 3 - Read depth file
    !

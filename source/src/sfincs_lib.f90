@@ -83,8 +83,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.0.2-Blockhaus'
-   build_date     = '$Date: 2023-06-09'
+   build_revision = '$Rev: v2.0.2-Blockhaus_branch:39-the-return-code-of-the-sfincs-model-is-always-0-even-if-the-model-fails'
+   build_date     = '$Date: 2023-08-17'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
@@ -448,11 +448,14 @@ module sfincs_lib
          !
          write(*,'(a,f0.1,a)')'Maximum depth of ', stopdepth, ' m reached!!! Simulation stopped.'
          !
+         ! change error code if simulation stopped
+         ierr = -999               
+         !
          ! Write map output at last time step 
          !
          call write_output(t, .true., .true., .true., .false., ntmapout + 1, ntmaxout + 1, nthisout + 1, tloopoutput)
          !
-         t = t1 + 1.0
+         t = t1 + 1.0   
          !
       endif
       !
@@ -477,7 +480,11 @@ module sfincs_lib
    !
    !$acc end data
    !
-   ierr = 0
+   if (ierr == -999) then
+      ierr = -1 ! simulation was stopped because of instabilities
+   else       
+      ierr = 0 ! simulation ran succesfully
+   endif
    !
    end function sfincs_update
    !
