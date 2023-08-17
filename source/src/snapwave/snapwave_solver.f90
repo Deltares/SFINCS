@@ -46,7 +46,7 @@ module snapwave_solver
          sinhkh_ig(k) = sinh(min(kwav_ig(k)*depth(k), 50.0))
          Hmx_ig(k)    = 0.88/kwav_ig(k)*tanh(gamma_ig*kwav_ig(k)*depth(k)/0.88)
          !
-         ! Calculate radiation stress Sxx = ((2 .* n) - 0.5) .* Einc
+         ! Calculate radiation stress Sxx = ((2 .* n) - 0.5) .* Einc > is off energy of previous timestep
          Sxx(k) = ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5) * sum(ee(:, k)) * dtheta ! limit so value of nwav is between 0 and 1, and Sxx therefore doesn't become NaN for nwav=Infinite
       enddo
       !   
@@ -218,6 +218,7 @@ module snapwave_solver
    real*4                                     :: shinc2ig
    real*4                                     :: depthforcerelease   
    real*4                                     :: L0
+   real*4                                     :: dSxx
    real*4                                     :: fshalphamin   
    real*4                                     :: fshfac   
    real*4                                     :: fshexp   
@@ -451,8 +452,12 @@ module snapwave_solver
                              
                             !srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * cg(k) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))    
                             
-                            srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * cgprev(itheta) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))  !deze
-                            
+                            !dSxx = min(abs(Sxx(k) - Sxxprev(itheta)),0.1) !try limit dSxx > is generally large in the Hinc shadow zone
+                            dSxx = Sxx(k) - Sxxprev(itheta)
+                            dSxx = max(dSxx, 0.0)
+                            srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * cgprev(itheta) / depth(k) * dSxx  !deze
+                             !srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * cgprev(itheta) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))  !deze werkt
+                             
                             !srcsh_local(itheta, k) = 8.0 * 0.25 * (H_igprev(itheta)) * cg(k) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))                                 
                             !Q: moet alles met prev? (cg, depth, betar)                            
                          endif
@@ -1077,8 +1082,9 @@ module snapwave_solver
           alphaig = 0.0
        endif 
    else
-       !if (betar > 0.0) then
-       if (betar > 1.0e-03) then           
+       if (betar > 0.0) then
+       !if (betar > 1.0e-03) then           
+       !if (betar > 1.0e-06) then           
        !if (betar > 0.0066k) then           
            alphaig = 8.0
        else
