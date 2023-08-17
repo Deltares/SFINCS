@@ -454,7 +454,8 @@ module snapwave_solver
                             
                             !dSxx = min(abs(Sxx(k) - Sxxprev(itheta)),0.1) !try limit dSxx > is generally large in the Hinc shadow zone
                             dSxx = Sxx(k) - Sxxprev(itheta)
-                            dSxx = max(dSxx, 0.0)
+                            !dSxx = min(dSxx, 100.0)
+                            !dSxx = max(dSxx, 0.0)
                             srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * cgprev(itheta) / depth(k) * dSxx  !deze
                              !srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * cgprev(itheta) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))  !deze werkt
                              
