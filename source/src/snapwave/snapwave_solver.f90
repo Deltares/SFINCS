@@ -426,7 +426,7 @@ module snapwave_solver
                      !
                   elseif (ig_opt == 5) then                  
                      !
-                     call estimate_shoaling_rate_v03(betar_local(itheta,k), depth(k), H_rep(k), alphaig_local(itheta,k)) ! [input, input, input, output]
+                     call estimate_shoaling_parameter(betar_local(itheta,k), reldepth(k), H_rep(k), alphaig_local(itheta,k)) ! [input, input, input, output]
                      !                      
                   endif
                   !
@@ -442,25 +442,17 @@ module snapwave_solver
                      if (depth(k) >= depthforcerelease) then !depthforcerelease = 0.2 default
                          ! srcsh = alphaig,1 * sqrt(Eig,1) * Cg1 / h1 * abs(Sxx2-Sxx1)    
                          if (Sxxprev(itheta)<=0.0) then 
-                         !if (Sxxprev(itheta)<=0.0 .or. Sxx(k)<=0.0) then ! > this didn't help
                             !
                             srcsh_local(itheta, k) = 0.0 !Avoid big jumps in dSxx that can happen if a points is a boundary point with Hinc=0
-                         else
-                            !srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * sqrt(2.0) * cg(k) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))   
-                             
-                             ! Open question is whether sqrt(2) needs to be included since nowwe calculate with Hrms instead of Hm0 
-                             
-                            !srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * cg(k) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))    
-                            
-                            !dSxx = min(abs(Sxx(k) - Sxxprev(itheta)),0.1) !try limit dSxx > is generally large in the Hinc shadow zone
+                         else                             
+                                                  
                             dSxx = Sxx(k) - Sxxprev(itheta)
-                            !dSxx = min(dSxx, 100.0)
+                            !dSxx = min(dSxx, 100.0) !try limit dSxx > is generally large in the Hinc shadow zone
                             dSxx = max(dSxx, 0.0)
-                            srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / cg_ig(k) !for clarity already divide by cg_ig(k) here
-                             !srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * cgprev(itheta) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))  !deze werkt
-                             
-                            !srcsh_local(itheta, k) = 8.0 * 0.25 * (H_igprev(itheta)) * cg(k) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))                                 
-                            !Q: moet alles met prev? (cg, depth, betar)                            
+                            srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25  * (H_igprev(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / cg_ig(k) !for clarity already divide by cg_ig(k) here
+                            ! * 0.25 because the *4 in 4sqrt(E) is already absorbed in alphaig, so here we want just sqrt(E), which is then 0.25*Hig
+                            ! Open question is whether *sqrt(2.0) needs to be included since now we calculate with Hrms instead of Hm0        
+                                                        
                          endif
                      else
                          srcsh_local(itheta, k) = 0.0
@@ -1067,15 +1059,15 @@ module snapwave_solver
    !             
    end subroutine estimate_shoaling_rate_v02   
    
-   subroutine estimate_shoaling_rate_v03(betar, depth, H_rep, alphaig)
+   subroutine estimate_shoaling_parameter(betar, reldepth, H_rep, alphaig)
    real*4, intent(in)                :: betar
-   real*4, intent(in)                :: depth   
+   real*4, intent(in)                :: reldepth   
    real*4, intent(in)                :: H_rep   
    real*4, intent(out)               :: alphaig
    !                 
    ! Estimate shoaling rate alphaig - as in Leijnse et al. (2023)
-   if (depth <= 4 * H_rep / sqrt(2.0)) then
-   
+   if (reldepth <= 4.0) then
+       !
        if (betar > 0 .and. betar <= 0.0066) then
           alphaig = 17.9*betar**3-36.8*betar**2+19.9*betar
        elseif (betar > 0.0066) then
@@ -1083,7 +1075,9 @@ module snapwave_solver
        else
           alphaig = 0.0
        endif 
-   else
+       !
+   else ! Deep water
+       !
        if (betar > 0.0) then
        !if (betar > 1.0e-03) then  !limit in deep water that super shallow slopes still get alphaig=8         
        !if (betar > 1.0e-04) then           
@@ -1092,6 +1086,7 @@ module snapwave_solver
        else
           alphaig = 0.0           
        endif
+       !
    endif
    !             
    end subroutine estimate_shoaling_rate_v03 
