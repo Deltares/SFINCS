@@ -183,7 +183,8 @@ module snapwave_solver
    real*4, dimension(:), allocatable          :: eeprev, cgprev         ! energy density and group velocity at upwind intersection point
    real*4, dimension(:), allocatable          :: eeprev_ig, cgprev_ig         ! energy density and group velocity at upwind intersection point
    real*4, dimension(:), allocatable          :: Sxxprev                ! radiation stress at upwind intersection point  
-   real*4, dimension(:), allocatable          :: H_igprev               ! IG wave height at upwind intersection point        
+   real*4, dimension(:), allocatable          :: H_igprev               ! IG wave height at upwind intersection point  
+   real*4, dimension(:), allocatable          :: depthprev               ! water depth at upwind intersection point       
    real*4, dimension(:), allocatable          :: A,B,C,R                ! coefficients in the tridiagonal matrix solved per point
    real*4, dimension(:), allocatable          :: A_ig,B_ig,C_ig,R_ig    ! coefficients in the tridiagonal matrix solved per point
    real*4, dimension(:), allocatable          :: DoverE                 ! ratio of mean wave dissipation over mean wave energy
@@ -286,7 +287,8 @@ module snapwave_solver
       allocate(steepness_bc(no_nodes))
       allocate(reldepth(no_nodes))    
       allocate(Sxxprev(ntheta))       
-      allocate(H_igprev(ntheta))                   
+      allocate(H_igprev(ntheta))  
+      allocate(depthprev(ntheta))                         
       !
    endif
    !   
@@ -431,7 +433,8 @@ module snapwave_solver
                   ! TL - Note: cg_ig = cg
                   cgprev(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
                   Sxxprev(itheta) = w(1, itheta, k)*Sxx(k1) + w(2, itheta, k)*Sxx(k2)               
-                  H_igprev(itheta) = w(1, itheta, k)*H_ig_old(k1) + w(2, itheta, k)*H_ig_old(k2)                                    
+                  H_igprev(itheta) = w(1, itheta, k)*H_ig_old(k1) + w(2, itheta, k)*H_ig_old(k2)       
+                  depthprev(itheta) = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)
                   !         
                   if (ig_opt == 5) then       
                      ! New dSxx/dx based method
@@ -453,7 +456,7 @@ module snapwave_solver
                             dSxx = Sxx(k) - Sxxprev(itheta)
                             !dSxx = min(dSxx, 100.0)
                             dSxx = max(dSxx, 0.0)
-                            srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * cgprev(itheta) / depth(k) * dSxx / cg_ig(k) !for clarity already divide by cg_ig(k) here
+                            srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / cg_ig(k) !for clarity already divide by cg_ig(k) here
                              !srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * cgprev(itheta) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))  !deze werkt
                              
                             !srcsh_local(itheta, k) = 8.0 * 0.25 * (H_igprev(itheta)) * cg(k) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))                                 
