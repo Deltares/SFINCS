@@ -365,7 +365,6 @@ contains
    call read_real_input(500,'snapwave_shinc2ig',shinc2ig,1.0)   
    call read_real_input(500,'snapwave_shpercig',shpercig,1.0)         
    call read_real_input(500,'snapwave_eeinc2ig',eeinc2ig,0.01)     
-   call read_real_input(500,'snapwave_depthforcerelease',depthforcerelease,0.2)         
    call read_real_input(500,'snapwave_fshalphamin',fshalphamin,0.1)     
    call read_real_input(500,'snapwave_fshfac',fshfac,15.0)     
    call read_real_input(500,'snapwave_fshexp',fshexp,1.0)          

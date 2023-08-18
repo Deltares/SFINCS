@@ -157,7 +157,6 @@ module snapwave_data
    real*4                                    :: shinc2ig        ! TO ADD
    real*4                                    :: shpercig        ! TO ADD
    real*4                                    :: fshalphamin     ! TO ADD
-   real*4                                    :: depthforcerelease     ! TO ADD     
    real*4                                    :: fshfac     ! TO ADD
    real*4                                    :: fshexp     ! TO ADD
    real*4                                    :: eeinc2ig        ! ratio of incident wave energy as first estimate of IG wave energy at boundary

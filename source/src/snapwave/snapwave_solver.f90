@@ -86,7 +86,7 @@ module snapwave_solver
       call solve_energy_balance2Dstat (x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                        theta,ntheta,thetamean,                                    &
                                        depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,50000.,rho,snapwave_alpha,gamma,                 &
-                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, battjesjanssen_opt, depthforcerelease,fshalphamin, fshfac, fshexp, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_rep)
+                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, battjesjanssen_opt, fshalphamin, fshfac, fshexp, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_rep)
       !
 !      call timer(t3)
       !
@@ -105,7 +105,7 @@ module snapwave_solver
    subroutine solve_energy_balance2Dstat(x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                          theta,ntheta,thetamean,                                    &
                                          depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,T,dt,rho,alfa,gamma,                 &
-                                         H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, battjesjanssen_opt, depthforcerelease,fshalphamin, fshfac, fshexp, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_rep)
+                                         H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, battjesjanssen_opt, fshalphamin, fshfac, fshexp, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_rep)
    !
    implicit none
    !
@@ -217,7 +217,7 @@ module snapwave_solver
    real*4                                     :: Hk_ig0   
    real*4                                     :: Fk_ig
    real*4                                     :: shinc2ig
-   real*4                                     :: depthforcerelease   
+   real*4                                     :: depthforcerelease ! Incident wave breaking point, after which no additional IG wave energy transfer is included     
    real*4                                     :: L0
    real*4                                     :: dSxx
    real*4                                     :: fshalphamin   
@@ -381,7 +381,7 @@ module snapwave_solver
             !endif
             !            
             ! calculate depthforcerelease (should be using value of Hm0,inc at offshore boundary)
-            ! TODO: depthforcerelease(k) = Hinc,0 / gamma            
+            depthforcerelease = H_rep(k) / gamma            
             !
             ! Compute exchange source term inc to ig waves - per direction            
             do itheta = 1, ntheta
@@ -443,7 +443,9 @@ module snapwave_solver
                             !
                             srcsh_local(itheta, k) = 0.0 !Avoid big jumps in dSxx that can happen if a points is a boundary point with Hinc=0
                          else
-                            !srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * sqrt(2.0) * cg(k) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))   ! Open question is whether sqrt(2) needs to be included since nowwe calculate with Hrms instead of Hm0 
+                            !srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * sqrt(2.0) * cg(k) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))   
+                             
+                             ! Open question is whether sqrt(2) needs to be included since nowwe calculate with Hrms instead of Hm0 
                              
                             !srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * cg(k) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))    
                             
@@ -464,7 +466,7 @@ module snapwave_solver
                   else 
                      ! Old E*dCg/dc based method  
                      !
-                     if (depth(k) >= depthforcerelease) then !depthforcerelease = 0.2 default
+                     if (depth(k) >= depthforcerelease) then
                          srcsh_local(itheta, k)  = - alphaig_local(itheta,k)*((cg(k) - cgprev(itheta))/ds(itheta, k))
                      else
                          srcsh_local(itheta, k) = 0.0
@@ -1069,7 +1071,7 @@ module snapwave_solver
    real*4, intent(out)               :: alphaig
    !                 
    ! Estimate shoaling rate alphaig - as in Leijnse et al. (2023)
-   if (depth <= 4 * H_rep) then
+   if (depth <= 4 * H_rep / sqrt(2.0)) then
    
        if (betar > 0 .and. betar <= 0.0066) then
           alphaig = 17.9*betar**3-36.8*betar**2+19.9*betar

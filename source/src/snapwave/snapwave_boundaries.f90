@@ -624,8 +624,8 @@ subroutine update_boundaries()
       do k = 1, no_nodes
          if (inner(k)) then
             !
-            H_rep(k) = (hs_bwv(1,ind1_awv_cst(k))*fac_awv_cst(k)  + hs_bwv(1,ind2_awv_cst(k))*(1.0 - fac_awv_cst(k))) / sqrt(2.0)
-            ! Also convert from Hm0 to Hrms directly
+            H_rep(k) = (hs_bwv(1,ind1_awv_cst(k))*fac_awv_cst(k)  + hs_bwv(1,ind2_awv_cst(k))*(1.0 - fac_awv_cst(k)))
+            ! Don't convert from Hm0 to Hrms yet!
             ! 
          endif         
       enddo               
