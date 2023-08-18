@@ -16,6 +16,7 @@ module snapwave_data
    real*4,  dimension(:),       allocatable    :: fw_ig                   ! friction coefficient
    real*4,  dimension(:),       allocatable    :: H, H_ig                 ! rms wave height
    real*4,  dimension(:),       allocatable    :: H_ig_old                ! IG wave height at previous timestep  
+   real*4,  dimension(:),       allocatable    :: H_rep                   ! Representative weighted offshore incident wave height for anywhere in the active grid
    real*4,  dimension(:),       allocatable    :: Dw,Df                   ! dissipation due to breaking, bed friction
    real*4,  dimension(:),       allocatable    :: Dw_ig,Df_ig             ! dissipation due to breaking, bed friction for IG   
    real*4,  dimension(:),       allocatable    :: F                       ! wave force Dw/C/rho/depth
@@ -113,8 +114,12 @@ module snapwave_data
    integer*4,          dimension(:),   allocatable :: nmindbnd            ! index of grid point at grid boundary
    integer*4,          dimension(:),   allocatable :: ind1_bwv_cst        ! index to closest wave boundary point
    integer*4,          dimension(:),   allocatable :: ind2_bwv_cst        ! index to second closest wave boundary point
-   real*4,             dimension(:),   allocatable :: fac_bwv_cst         ! weight of closest point
-   
+   real*4,             dimension(:),   allocatable :: fac_bwv_cst         ! weight of closest wave boundary point
+   integer*4,          dimension(:),   allocatable :: nmindact            ! index of grid point at active grid    
+   integer*4,          dimension(:),   allocatable :: ind1_awv_cst        ! index to closest wave active point
+   integer*4,          dimension(:),   allocatable :: ind2_awv_cst        ! index to second closest wave active point
+   real*4,             dimension(:),   allocatable :: fac_awv_cst         ! weight of closest wave active point
+   !   
    integer*4 mmax
    integer*4 nmax
    real*4 dx

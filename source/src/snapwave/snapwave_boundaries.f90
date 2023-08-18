@@ -270,6 +270,9 @@ contains
    ! For tide and surge, these are the indices and weights of the points in the bnd file
    ! For waves, these are the indices and weights of the points in the cst file
    !
+   ! Now do also the same for grid active point (kcs=1) in case of IG waves:
+   ! Used for calculate e.g. relevant offshore wave steepness, representative waterdepth, incident wave breaking point, alphaig shoaling parameter depth cutoff
+   !
    integer k, m, n, ib1, ib2, ib, ic
    !
    real xgb, ygb, dst1, dst2, dst
@@ -296,7 +299,7 @@ contains
       ! Loop through all grid points
       !
       do k = 1, no_nodes
-         !
+         !         
          ! Check if this point is a boundary point
          !
          if (msk(k) == 2) then
@@ -354,12 +357,100 @@ contains
                fac_bwv_cst(nb)   = 1.0
                !
             endif
-            !
+            !        
          endif
       enddo
    endif
    !
+   ! Now do the same in case of IG waves, for normal active points (msk=1)
+   if (igwaves) then   
+       if (nwbnd>0) then  !nbnd
+          !
+          ! Count number of boundary points
+          !
+          ! Allocate active cell arrays
+          !
+          ! Water levels at boundary
+          !
+          ! Wave arrays
+          !
+          allocate(ind1_awv_cst(no_nodes))
+          allocate(ind2_awv_cst(no_nodes))
+          allocate(fac_awv_cst(no_nodes))
+          !
+          ! Find two closest boundary condition points for each active grid point
+          ! And the two closest coastline points
+          !
+          ! Loop through all grid points
+          !
+          do k = 1, no_nodes
+             !         
+             ! Check if this point is a active grid point
+             !
+             if (msk(k) == 1) then
+                !
+                xgb = x(k)
+                ygb = y(k)
+                !
+                ! Indices and weights for wave boundaries
+                !
+                if (nwbnd>1) then
+                   !
+                   dst1 = 1.0e10
+                   dst2 = 1.0e10
+                   ib1 = 0
+                   ib2 = 0
+                   !
+                   ! Loop through all water level boundary points
+                   !
+                   do ic = 1, nwbnd
+                      !
+                      ! Compute distance of this point to grid boundary point
+                      !
+                      dst = sqrt((x_bwv(ic) - xgb)**2 + (y_bwv(ic) - ygb)**2)
+                      !
+                      if (dst<dst1) then
+                         !
+                         ! Nearest point found
+                         !
+                         dst2 = dst1
+                         ib2  = ib1
+                         dst1 = dst
+                         ib1  = ic
+                         !
+                      elseif (dst<dst2) then
+                         !
+                         ! Second nearest point found
+                         !
+                         dst2 = dst
+                         ib2  = ic
+                         !
+                      endif
+                   enddo
+                   !
+                   ind1_awv_cst(k)  = ib1
+                   ind2_awv_cst(k)  = ib2
+                   fac_awv_cst(k) = dst2/(dst1 + dst2)
+                   !
+                else
+                   !
+                   ind1_awv_cst(k)  = 1
+                   ind2_awv_cst(k)  = 1
+                   fac_awv_cst(k)   = 1.0
+                   !
+                endif
+                !  
+             else ! just to fill array, for now, set to 1 for not msk=1 points
+                ind1_awv_cst(k)  = 1
+                ind2_awv_cst(k)  = 1
+                fac_awv_cst(k)   = 1.0                 
+             endif
+          enddo
+       endif
+   endif           
+   !
    end subroutine   
+   
    
 subroutine update_boundary_conditions(t)
    !
@@ -526,6 +617,19 @@ subroutine update_boundaries()
       enddo
       !
    enddo
+   !
+   ! Set representative incident wave height in all active points on grid
+   ! 
+   if (igwaves) then
+      do k = 1, no_nodes
+         if (inner(k)) then
+            !
+            H_rep(k) = (hs_bwv(1,ind1_awv_cst(k))*fac_awv_cst(k)  + hs_bwv(1,ind2_awv_cst(k))*(1.0 - fac_awv_cst(k))) / sqrt(2.0)
+            ! Also convert from Hm0 to Hrms directly
+            ! 
+         endif         
+      enddo               
+   endif   
    !
    end subroutine   
    

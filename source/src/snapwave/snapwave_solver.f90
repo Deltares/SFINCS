@@ -86,7 +86,7 @@ module snapwave_solver
       call solve_energy_balance2Dstat (x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                        theta,ntheta,thetamean,                                    &
                                        depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,50000.,rho,snapwave_alpha,gamma,                 &
-                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, battjesjanssen_opt, depthforcerelease,fshalphamin, fshfac, fshexp, Qb, betan, srcsh, alphaig, Sxx, H_ig_old)
+                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, battjesjanssen_opt, depthforcerelease,fshalphamin, fshfac, fshexp, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_rep)
       !
 !      call timer(t3)
       !
@@ -105,7 +105,7 @@ module snapwave_solver
    subroutine solve_energy_balance2Dstat(x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                          theta,ntheta,thetamean,                                    &
                                          depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,T,dt,rho,alfa,gamma,                 &
-                                         H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, battjesjanssen_opt, depthforcerelease,fshalphamin, fshfac, fshexp, Qb, betan, srcsh, alphaig, Sxx, H_ig_old)
+                                         H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, battjesjanssen_opt, depthforcerelease,fshalphamin, fshfac, fshexp, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_rep)
    !
    implicit none
    !
@@ -158,7 +158,8 @@ module snapwave_solver
    real*4, dimension(no_nodes), intent(in)          :: Hmx                    ! Hmax
    real*4, dimension(no_nodes), intent(in)          :: sinhkh_ig              ! sinh(k*depth)
    real*4, dimension(no_nodes), intent(in)          :: Hmx_ig                 ! Hmax
-   real*4, dimension(no_nodes), intent(in)          :: H_ig_old                      ! wave height of previous timestep      
+   real*4, dimension(no_nodes), intent(in)          :: H_ig_old               ! wave height of previous timestep     
+   real*4, dimension(no_nodes), intent(in)          :: H_rep                  ! Representative weighted offshore incident wave height for anywhere in the active grid        
    !
    ! Local variables and arrays
    !
@@ -366,18 +367,15 @@ module snapwave_solver
          !
          if (igwaves) then
             !
-            ! calculate incident wave steepness (for now using local Hm0,inc; not at offshore boundary)
-            ! Estimate local wave steepness
+            ! Estimate offshore wave steepness
             L0 = 9.81 * T**2 / (2 * pi) ! deep water incident wave length
             !   
-            steepness_bc(k) = 1.81 / sqrt(2.0) / L0 ! local wave steepness 
-            !TODO: replace 1.81 by weighted nearest Hinc,0
+            steepness_bc(k) = H_rep(k) / L0 ! weighted nearest offshore wave steepness 
             !
-            ! calculate relative water depth (for now using local Hm0,inc; not at offshore boundary)
+            ! calculate relative water depth using weighted nearest offshore wave height
             !if (H(k) > 0) then
                 !reldepth(k) = depth(k) / H(k)
-            reldepth(k) = depth(k) / 1.81 / sqrt(2.0)
-            !TODO: replace 1.81 by weighted nearest Hinc,0
+            reldepth(k) = depth(k) / H_rep(k)
             !else
                 !reldepth(k) = 100000.0 !to prevent the relative depth to become Infinity if H=0 > then we want betar to be (close to) 0
             !endif
@@ -398,9 +396,6 @@ module snapwave_solver
                   !  
                   betar_local(itheta,k) = betan_local(itheta,k) * sqrt(steepness_bc(k)) / reldepth(k) 
                   !
-                  if (beta > 0) then
-                     !write(*,*)'dh dx beta sigm_ig betan steepness_bc reldepth betar',(w(1, itheta, k)*(depth(k1) - depth(k)) + w(2, itheta, k)*(depth(k2) - depth(k))),ds(itheta, k),beta,sigm_ig,betan_local(itheta,k),steepness_bc(k),reldepth(k),betar_local(itheta,k)
-                  endif
                   if (ig_opt == 1) then                
                      !  
                      alphaig_local(itheta,k)   = shinc2ig * max(exp(-fshfac*betan_local(itheta,k)**fshexp), fshalphamin)  ! fshalphamin is as alphamin in HurryWave, named differently to avoid confusion with the other alphas we have
@@ -429,7 +424,7 @@ module snapwave_solver
                      !
                   elseif (ig_opt == 5) then                  
                      !
-                     call estimate_shoaling_rate_v03(betar_local(itheta,k), depth(k), alphaig_local(itheta,k)) ! [input, output]
+                     call estimate_shoaling_rate_v03(betar_local(itheta,k), depth(k), H_rep(k), alphaig_local(itheta,k)) ! [input, input, input, output]
                      !                      
                   endif
                   !
@@ -455,7 +450,7 @@ module snapwave_solver
                             !dSxx = min(abs(Sxx(k) - Sxxprev(itheta)),0.1) !try limit dSxx > is generally large in the Hinc shadow zone
                             dSxx = Sxx(k) - Sxxprev(itheta)
                             !dSxx = min(dSxx, 100.0)
-                            !dSxx = max(dSxx, 0.0)
+                            dSxx = max(dSxx, 0.0)
                             srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * cgprev(itheta) / depth(k) * dSxx / cg_ig(k) !for clarity already divide by cg_ig(k) here
                              !srcsh_local(itheta, k) = alphaig_local(itheta,k) * 0.25 * (H_igprev(itheta)) * cgprev(itheta) / depth(k) * abs(Sxx(k) - Sxxprev(itheta))  !deze werkt
                              
@@ -1067,13 +1062,14 @@ module snapwave_solver
    !             
    end subroutine estimate_shoaling_rate_v02   
    
-   subroutine estimate_shoaling_rate_v03(betar, depth, alphaig)
+   subroutine estimate_shoaling_rate_v03(betar, depth, H_rep, alphaig)
    real*4, intent(in)                :: betar
    real*4, intent(in)                :: depth   
+   real*4, intent(in)                :: H_rep   
    real*4, intent(out)               :: alphaig
    !                 
    ! Estimate shoaling rate alphaig - as in Leijnse et al. (2023)
-   if (depth <= 4 * 1.81 / sqrt(2.0)) then !TODO: replace 1.81 by weighted nearest Hinc,0
+   if (depth <= 4 * H_rep) then
    
        if (betar > 0 .and. betar <= 0.0066) then
           alphaig = 17.9*betar**3-36.8*betar**2+19.9*betar
@@ -1084,16 +1080,15 @@ module snapwave_solver
        endif 
    else
        if (betar > 0.0) then
-       !if (betar > 1.0e-03) then           
-       !if (betar > 1.0e-06) then           
+       !if (betar > 1.0e-03) then  !limit in deep water that super shallow slopes still get alphaig=8         
+       !if (betar > 1.0e-04) then           
        !if (betar > 0.0066k) then           
-           alphaig = 8.0
+          alphaig = 8.0
        else
           alphaig = 0.0           
        endif
    endif
    !             
-   !write(*,*)'betar alphaig',betar,alphaig
    end subroutine estimate_shoaling_rate_v03 
    
    subroutine disper_approx(h,T,k,n,C,Cg,no_nodes)

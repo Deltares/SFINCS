@@ -579,7 +579,7 @@ module sfincs_data
       real*4, dimension(:),     allocatable :: zig_cst
       real*4, dimension(:),     allocatable :: fac_bwv_cst
       integer*4, dimension(:),  allocatable :: ind1_bwv_cst
-      integer*4, dimension(:),  allocatable :: ind2_bwv_cst
+      integer*4, dimension(:),  allocatable :: ind2_bwv_cst 
       !
       ! IG frequencies
       !
