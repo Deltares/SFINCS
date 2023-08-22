@@ -159,6 +159,7 @@ module snapwave_data
    real*4                                    :: fshalphamin     ! TO ADD
    real*4                                    :: fshfac     ! TO ADD
    real*4                                    :: fshexp     ! TO ADD
+   real*4                                    :: alphaigfac     ! TO ADD   
    real*4                                    :: eeinc2ig        ! ratio of incident wave energy as first estimate of IG wave energy at boundary
    real*4                                    :: hmin            ! minimum water depth
    character*256                             :: gridfile        ! name of gridfile (Delft3D .grd format)
