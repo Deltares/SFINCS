@@ -379,12 +379,13 @@ module snapwave_solver
             !if (H(k) > 0) then
                 !reldepth(k) = depth(k) / H(k)
             reldepth(k) = depth(k) / H_rep(k) !(H in Hm0)
+            !write(*,*)'k H_rep(k)',k,H_rep(k) !> gaat goed
             !else
                 !reldepth(k) = 100000.0 !to prevent the relative depth to become Infinity if H=0 > then we want betar to be (close to) 0
             !endif
             !            
             ! calculate depthforcerelease (should be using value of Hm0,inc at offshore boundary)
-            !depthforcerelease = H_rep(k) / gamma            
+            depthforcerelease = H_rep(k) / gamma            
             !
             ! Compute exchange source term inc to ig waves - per direction            
             do itheta = 1, ntheta
@@ -393,8 +394,9 @@ module snapwave_solver
                k2 = prev(2, itheta, k)
                !
                if (k1*k2>0) then
-                  !
+                  !                   
                   beta  = max((w(1, itheta, k)*(depth(k1) - depth(k)) + w(2, itheta, k)*(depth(k2) - depth(k)))/ds(itheta, k), 0.0)
+                  !
                   betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin))
                   !  
                   betar_local(itheta,k) = betan_local(itheta,k) * sqrt(steepness_bc(k)) / reldepth(k) 
@@ -427,7 +429,7 @@ module snapwave_solver
                      !
                   elseif (ig_opt == 5) then                  
                      !
-                     call estimate_shoaling_parameter(betar_local(itheta,k), reldepth(k), alphaig_local(itheta,k)) ! [input, input, input, output]
+                     call estimate_shoaling_parameter(betar_local(itheta,k), reldepth(k), alphaig_local(itheta,k)) ! [input, input, output]
                      !                      
                   endif
                   !
@@ -440,12 +442,12 @@ module snapwave_solver
                   if (ig_opt == 5) then       
                      ! New dSxx/dx based method
                      !
-                     !if (depth(k) >= depthforcerelease) then !depthforcerelease = 0.2 default
-                     if (depth(k) >= hmin) then !depthforcerelease = 0.2 default                                                  
+                     if (depth(k) >= depthforcerelease) then !depthforcerelease = 0.2 default
+                     !if (depth(k) >= hmin) then !depthforcerelease = 0.2 default                                                  
                          ! srcsh = alphaig,1 * sqrt(Eig,1) * Cg1 / h1 * abs(Sxx2-Sxx1)    
                          if (Sxxprev(itheta)<=0.0) then 
                             !
-                            srcsh_local(itheta, k) = 0.0 !Avoid big jumps in dSxx that can happen if a points is a boundary point with Hinc=0
+                            srcsh_local(itheta, k) = 0.0 !Avoid big jumps in dSxx that can happen if a upwind point is a boundary point with Hinc=0
                          else                             
                                                   
                             dSxx = Sxx(k) - Sxxprev(itheta)
@@ -862,7 +864,15 @@ module snapwave_solver
                endif               
                !
                ! average betan, alphaig, srcsh over directions
-               betan(k)   = sum(betan_local(:,k))*dtheta
+               !betan(k)   = sum(betan_local(:,k))*dtheta
+               betan(k)   = sum(betar_local(:,k))*dtheta
+               !betan(k)   = maxval(betar_local(:,k))
+               
+               !if (betan(k) == 0 .and. depth(k) < 5 .and. depth(k) > 2) then
+               !    write(*,*)'k depth(k) betar(k)',k ,depth(k) ,betan(k)
+               !endif 
+               
+               
                !alphaig(k) = sum(alphaig_local(:,k))*dtheta  
                alphaig(k) = maxval(alphaig_local(:,k))                             
                srcsh(k)   = sum(srcsh_local(:,k))*dtheta                              
@@ -1065,12 +1075,20 @@ module snapwave_solver
    real*4, intent(in)                :: betar
    real*4, intent(in)                :: reldepth   
    real*4, intent(out)               :: alphaig
+   real*4                            :: xbeta   
+   real*4                            :: ybeta   
    !                 
    ! Estimate shoaling rate alphaig - as in Leijnse et al. (2023)
    if (reldepth <= 4.0) then ! determined using (H in Hm0)
        !
        if (betar > 0 .and. betar <= 0.0066) then
-          alphaig = 17.9*betar**3-36.8*betar**2+19.9*betar
+          !     
+          xbeta = betar / 0.0066
+          ! 
+          ybeta = 17.9*xbeta**3-36.8*xbeta**2+19.9*xbeta
+          !
+          alphaig = ybeta * 8.0
+          !
        elseif (betar > 0.0066) then
           alphaig = 8.0
        else
