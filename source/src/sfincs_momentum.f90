@@ -338,7 +338,7 @@
                !
             else
                !
-               hu     = max(zsu - zbuv(ip), huthresh)
+               hu     = max(zsu - zbuvmx(ip), huthresh)
                gnavg2 = gn2uv(ip)
                !
             endif
