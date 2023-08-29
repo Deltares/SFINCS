@@ -81,14 +81,14 @@ module snapwave_solver
          !
       endif
       !
-!      call timer(t2)
+      call timer(t2)
       !
       call solve_energy_balance2Dstat (x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                        theta,ntheta,thetamean,                                    &
                                        depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,50000.,rho,snapwave_alpha,gamma,                 &
                                        H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, battjesjanssen_opt, fshalphamin, fshfac, fshexp, alphaigfac, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_rep)
       !
-!      call timer(t3)
+      call timer(t3)
       !
       Fx = F*cos(thetam)
       Fy = F*sin(thetam)
@@ -96,7 +96,7 @@ module snapwave_solver
       ! IG wave height after solving energy balance
       H_ig_old = H_ig
       !
-!      write(*,*)'computation:               ', t3 - t2, ' seconds'
+      write(*,*)'computation:               ', t3 - t2, ' seconds'
       !
    end subroutine
    
@@ -1095,16 +1095,17 @@ module snapwave_solver
           alphaig = 0.0
        endif 
        !
-   else ! Deep water
+   elseif (reldepth > 4.0 .and. reldepth <= 10.0) then! Deep water (but not too deep, so we include extra IG growth still)
        !
-       if (betar > 0.0) then
-       !if (betar > 1.0e-03) then  !limit in deep water that super shallow slopes still get alphaig=8         
-       !if (betar > 1.0e-04) then           
-       !if (betar > 0.0066k) then           
+       if (betar > 0.0) then      
           alphaig = 8.0
        else
           alphaig = 0.0           
        endif
+       !
+   else
+       ! Super deep water, don't initiate IG development here
+       alphaig = 0.0
        !
    endif
    !             
