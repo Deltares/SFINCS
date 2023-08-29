@@ -435,15 +435,14 @@ module snapwave_solver
                   !
                   ! TL - Note: cg_ig = cg
                   cgprev(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
-                  Sxxprev(itheta) = w(1, itheta, k)*Sxx(k1) + w(2, itheta, k)*Sxx(k2)               
-                  H_igprev(itheta) = w(1, itheta, k)*H_ig_old(k1) + w(2, itheta, k)*H_ig_old(k2)       
+                  Sxxprev(itheta) = w(1, itheta, k)*Sxx(k1) + w(2, itheta, k)*Sxx(k2)
+                  H_igprev(itheta) = w(1, itheta, k)*H_ig_old(k1) + w(2, itheta, k)*H_ig_old(k2)
                   depthprev(itheta) = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)
                   !         
                   if (ig_opt == 5) then       
                      ! New dSxx/dx based method
                      !
-                     if (depth(k) >= depthforcerelease) then !depthforcerelease = 0.2 default
-                     !if (depth(k) >= hmin) then !depthforcerelease = 0.2 default                                                  
+                     if (depth(k) >= depthforcerelease) then                                 
                          ! srcsh = alphaig,1 * sqrt(Eig,1) * Cg1 / h1 * abs(Sxx2-Sxx1)    
                          if (Sxxprev(itheta)<=0.0) then 
                             !
@@ -454,9 +453,8 @@ module snapwave_solver
                             !dSxx = min(dSxx, 100.0) !try limit dSxx > is generally large in the Hinc shadow zone
                             dSxx = max(dSxx, 0.0)
                             srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * 0.25  * (H_igprev(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / cg_ig(k) !for clarity already divide by cg_ig(k) here
-                            ! * 0.25 because the *4 in 4sqrt(E) is already absorbed in alphaig, so here we want just sqrt(E), which is then 0.25*Hig
-                            ! Open question is whether *sqrt(2.0) needs to be included since now we calculate with Hrms instead of Hm0        
-                                                        
+                            ! * 0.25 because the *4 in 4sqrt(E) is already absorbed in alphaig, so here we want just sqrt(E), which is then 0.25*Hig       
+                            !
                          endif
                      else
                          srcsh_local(itheta, k) = 0.0
@@ -506,7 +504,9 @@ module snapwave_solver
             elseif (ig_opt == 3) then
                call battjesjanssen(rho,g,alfa,gamma_ig,depth(k),Hk_ig,T_ig,battjesjanssen_opt,Dwk_ig)
             elseif (ig_opt == 4) then
-               call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))               
+               call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))  
+            elseif (ig_opt == 5) then
+               call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
             endif
             !
             DoverE_ig(k) = (Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0e-6)
@@ -720,7 +720,9 @@ module snapwave_solver
                         elseif (ig_opt == 3) then
                            call battjesjanssen(rho,g,alfa,gamma_ig,depth(k),Hk_ig0,T_ig,battjesjanssen_opt,Dwk_ig)
                         elseif (ig_opt == 4) then
-                           call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig0, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))                           
+                           call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig0, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))        
+                        elseif (ig_opt == 5) then
+                           call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig0, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))                              
                         endif                        
                         !
                         DoverE_ig(k) = (1.0 - fac)*DoverE_ig(k) + fac*(Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0e-6)
@@ -748,7 +750,9 @@ module snapwave_solver
                         elseif (ig_opt == 3) then
                            call battjesjanssen(rho,g,alfa,gamma_ig,depth(k),Hk_ig,T_ig,battjesjanssen_opt,Dwk_ig)
                         elseif (ig_opt == 4) then
-                           call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))                           
+                           call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))        
+                        elseif (ig_opt == 5) then
+                           call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))                            
                         endif                    
                         !
                         Dw_ig(k) = Dwk_ig                     
@@ -860,7 +864,7 @@ module snapwave_solver
                elseif (ig_opt == 4) then
                   call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), H_ig(k), T_ig, baldock_opt, Dw_ig(k), Hmx_ig(k))   
                elseif (ig_opt == 5) then
-                  call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), H_ig(k), T_ig, baldock_opt, Dw_ig(k), Hmx_ig(k))         
+                  call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), H_ig(k), T_ig, baldock_opt, Dw_ig(k), Hmx_ig(k))
                endif               
                !
                ! average betan, alphaig, srcsh over directions
