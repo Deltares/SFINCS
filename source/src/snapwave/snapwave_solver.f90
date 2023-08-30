@@ -452,8 +452,8 @@ module snapwave_solver
                             dSxx = Sxx(k) - Sxxprev(itheta)
                             !dSxx = min(dSxx, 100.0) !try limit dSxx > is generally large in the Hinc shadow zone
                             dSxx = max(dSxx, 0.0)
-                            !srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * 0.25  * (H_igprev(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / cg_ig(k) 
-                            srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * 0.25  * (H_igprev(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / ds(itheta, k) 
+                            srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * 0.25  * (H_igprev(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / cg_ig(k) 
+                            !srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * 0.25  * (H_igprev(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / ds(itheta, k) 
                             !srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * 0.25  * (H_igprev(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx                           
                             
                             
@@ -1104,8 +1104,8 @@ module snapwave_solver
           alphaig = 0.0
        endif 
        !
-   elseif (reldepth > 4.0 .and. reldepth <= 20.0) then! Deep water (but not too deep, so we include extra IG growth still)
-   !elseif (reldepth > 4.0 .and. reldepth <= 10.0) then! Deep water (but not too deep, so we include extra IG growth still)
+   !elseif (reldepth > 4.0 .and. reldepth <= 20.0) then! Deep water (but not too deep, so we include extra IG growth still)
+   elseif (reldepth > 4.0 .and. reldepth <= 10.0) then! Deep water (but not too deep, so we include extra IG growth still)
    !elseif (reldepth > 4.0 .and. reldepth <= 6.0) then! Deep water (but not too deep, so we include extra IG growth still)
        !
        if (betar > 0.0) then      
