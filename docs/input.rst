@@ -314,14 +314,17 @@ For spatially varying friction values per cell use the manningfile option, with 
 Infiltration
 ^^^^^
 
-Infiltration can significantly alter the amount of flooding when including precipitation.
-SFINCS allows the specification of a uniform constant value, spatially varying constant value or the Curve Number method.
-The Curve Number is a generally used method to determine what parts of falling rainfall can infiltrate or will run-off, hereby a limited time component is taken into account as well.
+Infiltration processes play a critical role in flood mitigation as they determine the proportion of rainfall that is absorbed into the soil versus that which becomes surface runoff. The capacity of the ground to infiltrate rainwater is influenced by various factors such as soil type, vegetation cover, and land use, thereby directly influencing flood risk. If the infiltration capacity is exceeded during high-intensity rainfall events, the excess water may lead to rapid surface runoff and potential flooding, thus making it crucial to consider infiltration processes when modeling and predicting flood scenarios.
 
-Infiltration is specified with either constant in time values in mm/hr (both uniform and spatially varying), or using a Curve Number method (only spatially varying).
+SFINCS allows the specification of the following options for accounting for infiltration:
+1.	Uniform constant-in-time value
+2.	Spatially varying constant -in-time value 
+3.	The Curve Number method: empirical rainfall-runoff model 
+4.	The Green-Ampt method: empirical rainfall-runoff model
+
+Infiltration is specified with either constant in time values in mm/hr (both uniform and spatially varying), or using more detailed parameters for the Curve Number method and The Green-Ampt method.
 
 **NOTE - Infiltration in SFINCS is only turned on when any rainfall is forced'** 
-
 **NOTE - Infiltration methods in SFINCS are not designed to be stacked**
 
 
@@ -334,6 +337,9 @@ Specify the keyword:
 
 	qinf = 1.0
 	
+**NOTE - To have some control that no infiltration is added an areas like the sea for this spatially uniform constant in time infiltration method, only infiltration is added to cells above a certain elevation above the bed level reference height **
+**NOTE - By default this is set to 0, qinf_zmin = 0 (default), so below e.g. MSL, no infiltration is added
+
 Spatially varying constant in time:
 %%%%%
 
@@ -362,18 +368,22 @@ For spatially varying infiltration values per cell use the qinffile option, with
 	
 	sfincs_write_binary_inputs(infiltration,msk,inp.indexfile,inp.qinffile,inp.mskfile)
 
-Spatially varying Curve Number:
+The Curve Number method:
 %%%%%
 
-For spatially varying infiltration values per cell using the Curve Number method use the scsfile option, with the same grid based input as the depfile using a binary file.
-Note here that in pre-processing the wanted CN values should be converted to S values following:
+The Curve Number (CN) method is a popular empirical procedure developed by the USDA Soil Conservation Service for estimating direct runoff volume and peak discharge rate from rainfall events. The method takes into account characteristics of the watershed, such as land use, soil type, and hydrologic conditions, expressed as a single 'Curve Number'. This CN is used to calculate a runoff coefficient, which is then used in determining the volume of runoff from a rainfall event. Within SFINCS, the options of the Curve Number method have been included: without recovery and without recovery during dry periods. Both are described in this manual.
+In its classic form, the Curve Number model uses the following equation to relate total event runoff Q to total event precipitation P. 
 
 **S = (1000./CN - 10)**
 
-There is also an advanced version of the Curve Number method that also allows for the recharge of soil capacity after time progresses.
-Get it touch if you would like to know more information.
+**Q = (P^2./(P+Smax)**
 
-**scsfile = sfincs.scs**
+where Smax = the soil's maximum moisture storage capacity. Smax typically derived from a tabulated 'curve number' CN that varies with soil type and antecedent condition. It should be emphasized that these equations use units of inches while in SFINCS we apply the metric system. 
+
+
+**Without recovery**
+For spatially varying infiltration values per cell using the Curve Number method without recovery use the scsfile option, with the same grid based input as the depfile using a binary file. Note here that in pre-processing the wanted CN values should be converted to S values following:
+* scsfile: maximum soil moisture storage capacity in inches
 
 .. code-block:: text
 
@@ -384,17 +394,44 @@ Get it touch if you would like to know more information.
 	e.g.
 	0 	10
 	5	20
-	
-**Matlab example using OET**
 
-.. code-block:: text
+The user can also specify the sfacinf which control the initial abstraction or the amount of water before runoff, such as infiltration, or rainfall interception by vegetation; historically, it has generally been assumed that sfacinf = 0.2 (default, however, for urbanized watersheds lower values can be expected (e.g. 0.05). 
+
+This option doesn't support restart functionality. 
+
+**With recovery**
+
+Within SFINCS, the Curve number method with recovery can be used as follows. The user needs to provide the following variables. For all variables, one needs to specify these values per cell with the same grid based input as the depfile using a binary file:
+* smaxfile: maximum soil moisture storage capacity in m
+* sefffile: soil moisture storage capacity at the start in m
+* ksfile: saturated hydraulic conductivity in mm/hr
+
+Using the saturated hydraulic conductivity, a recovery variables recovery constant (kr) and minimum recovery time before a new rainfall event occurs (hours) are computed similar to SWMM. 
+The Curve Number has been implemented in hydromt-SFINCS. See https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.SfincsModel.setup_cn_infiltration_with_kr.html for more information.
+
+This option does support restart functionality. 
 	
-	CN_values = 50 * ones(nmax,mmax);
-	S_values = (1000./CN - 10)
-	msk = ones(nmax,mmax);
 	
-	sfincs_write_binary_inputs(S_values,msk,inp.indexfile,inp.scsfile,inp.mskfile)
-	
+The Green-Ampt method:
+%%%%%
+
+The Green-Ampt method is a hydrological model extensively used to predict soil infiltration rates under ponded conditions, i.e., when water is freely available on the surface. This method considers important parameters such as initial soil moisture content, hydraulic conductivity, and soil capillary suction head. 
+
+The basic form of the Green-Ampt equation is expressed as follows: 
+**f(t) = K(1+ delta_theta (sigma + h0) / F(t) )**
+
+
+In which t is time, K is the saturated hydraulic conductivity, delta_theta is defined as the soil capacity (the difference between the saturated and initial moisture content) and sigma is the soil suction head.
+
+Within SFINCS, the Green-Ampt method can be used as follows. The user needs to provide the following variables. For a range of typically values see Table 1. For all variables, one needs to specify these values per cell with the same grid based input as the depfile using a binary file:
+* ksfile: saturated hydraulic conductivity in mm/hr
+* sigmafile: suction head at the wetting front in mm
+* sifile: soil moisture deficit in [-]
+
+Using the saturated hydraulic conductivity, recovery variables such as the moisture deficit recovery constant (kr), depth of upper soil recovery zone (Lu) and minimum recovery time before a new rainfall event occurs (hours) are computed similar to SWMM. The Green-Ampt method has not been implemented yet in hydromt-SFINCS. 
+
+This option does support restart functionality. 
+
 
 Observation points
 ^^^^^

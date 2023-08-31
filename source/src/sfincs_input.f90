@@ -1,4 +1,4 @@
-module sfincs_input
+﻿module sfincs_input
 
 contains
 
@@ -137,7 +137,9 @@ contains
    call read_char_input(500,'scsfile',scsfile,'none')
    call read_char_input(500,'smaxfile',smaxfile,'none')
    call read_char_input(500,'sefffile',sefffile,'none')
-   call read_char_input(500,'krfile',krfile,'none')
+   call read_char_input(500,'psifile',psifile,'none')           ! suction head [mm]
+   call read_char_input(500,'sigmafile',sigmafile,'none')       ! maximum moisture deficit θdmax [-]
+   call read_char_input(500,'ksfile',ksfile,'none')             ! saturated hydraulic conductivity [mm/hr]
    call read_char_input(500,'z0lfile',z0lfile,'none')
    call read_char_input(500,'wvmfile',wvmfile,'none')
    !

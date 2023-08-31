@@ -133,7 +133,9 @@ module sfincs_data
       character*256 :: scsfile
       character*256 :: smaxfile
       character*256 :: sefffile
-      character*256 :: krfile
+      character*256 :: psifile
+      character*256 :: sigmafile
+      character*256 :: ksfile
       character*256 :: z0lfile
       character*256 :: wvmfile
       character*256 :: qtrfile
@@ -340,14 +342,20 @@ module sfincs_data
       !
       ! Rainfall and infiltration
       !      
-      real*4, dimension(:),   allocatable :: qinfmap
-      real*4, dimension(:),   allocatable :: qinffield       ! infiltration map or Smax for SCS method
-      real*4, dimension(:),   allocatable :: qinffield2      ! effective S (Se) used in SCS method
-      real*4, dimension(:),   allocatable :: scs_kr          ! recovery kr
-      real*4, dimension(:),   allocatable :: scs_P1          ! rainfall of this 'event'
+      real*4, dimension(:),   allocatable :: qinffield       ! infiltration map prescribed by user and typically not updated
+      real*4, dimension(:),   allocatable :: ksfield         ! saturated hydraulic conductivity
+      real*4, dimension(:),   allocatable :: qinfmap         ! infiltration used in the computation
+      real*4, dimension(:),   allocatable :: rain_T1         ! time that it is not raining - used both in cnb and gai
+      real*4, dimension(:),   allocatable :: inf_kr          ! recovery concept - used both in cnb and gai
+      real*4, dimension(:),   allocatable :: scs_Se          ! effective S (Se) used in SCS method
+      real*4, dimension(:),   allocatable :: scs_P1          ! cumulative rainfall of this 'event'
       real*4, dimension(:),   allocatable :: scs_F1          ! infiltration of this 'event'
-      real*4, dimension(:),   allocatable :: scs_T1          ! time that it is not raining
-      real*4, dimension(:),   allocatable :: scs_Se          ! S for this 'event'
+      real*4, dimension(:),   allocatable :: scs_S1          ! S for this 'event'
+      real*4, dimension(:),   allocatable :: GA_head         ! the soil suction head in mm
+      real*4, dimension(:),   allocatable :: GA_sigma_max    ! the maximum soil capacity (porosity) in [-]
+      real*4, dimension(:),   allocatable :: GA_sigma        ! the current soil capacity (porosity) in [-]
+      real*4, dimension(:),   allocatable :: GA_F            ! cumulative infiltration for green-ampt
+      real*4, dimension(:),   allocatable :: GA_Lu           ! depth of upper soil recovery zone (computed from ksfield)
       !
       ! Storage volume
       !
@@ -826,8 +834,10 @@ module sfincs_data
 !    if(allocated(gn2v)) deallocate(gn2v)
     if(allocated(qinfmap)) deallocate(qinfmap)
     if(allocated(qinffield)) deallocate(qinffield)
-    if(allocated(qinffield2)) deallocate(qinffield2)
-    if(allocated(scs_kr)) deallocate(scs_kr)
+    if(allocated(ksfield)) deallocate(ksfield)
+
+    if(allocated(scs_Se)) deallocate(scs_Se)
+
     !
     ! Boundary velocity points
     !
