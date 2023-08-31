@@ -326,10 +326,36 @@ Domain
 	  :required:		no	  
 	  :format:		bin	  
 	scsfile = sfincs.scs
-	  :description:		For spatially varying infiltration values per cell using the Curve Number method use the scsfile option, with the same grid based input as the depfile using a binary file.
+	  :description:		For spatially varying infiltration values per cell using the Curve Number method A (without recovery) use the scsfile option, with the same grid based input as the depfile using a binary file.
 	  :units:		-
 	  :required:		no	  
 	  :format:		bin	  	  
+	smaxfile = sfincs.smax
+	  :description:		For spatially varying infiltration values per cell using the Curve Number method B (with recovery) provide the smaxfile (as well as the sefffile and ksfile) as maximum soil moisture storage capacity in m, with the same grid based input as the depfile using a binary file.
+	  :units:		m
+	  :required:		no	  
+	  :format:		bin	  	
+	sefffile = sfincs.seff
+	  :description:		For spatially varying infiltration values per cell using the Curve Number method B (with recovery) provide the sefffile (as well as the smaxfile and ksfile) as soil moisture storage capacity at the start in m, with the same grid based input as the depfile using a binary file.
+	  :units:		m
+	  :required:		no	  
+	  :format:		bin	  
+	ksfile = sfincs.ks
+	  :description:		For spatially varying infiltration values per cell using the Curve Number method B (with recovery) provide the ksfile (as well as the smaxfile and sefffile) as saturated hydraulic conductivity in mm/hr, with the same grid based input as the depfile using a binary file.
+	  :description:		For spatially varying infiltration values per cell using the Green & Ampt method (with recovery) provide the ksfile (as well as the sigmafile and psifile) as saturated hydraulic conductivity in mm/hr, with the same grid based input as the depfile using a binary file.
+	  :units:		mm/hr
+	  :required:		no	  
+	  :format:		bin	  
+	sigmafile = sfincs.sigma
+	  :description:		For spatially varying infiltration values per cell using the Green & Ampt method (with recovery) provide the sigmafile (as well as the psifile and ksfile) as suction head at the wetting front in mm, with the same grid based input as the depfile using a binary file.
+	  :units:		mm
+	  :required:		no	  
+	  :format:		bin	 
+	psifile = sfincs.psi
+	  :description:		For spatially varying infiltration values per cell using the Green & Ampt method (with recovery) provide the psifile (as well as the sigmafile and ksfile) as soil moisture deficit in [-], with the same grid based input as the depfile using a binary file.
+	  :units:		-
+	  :required:		no	  
+	  :format:		bin	 
 	sbgfile = sfincs.sbg
 	  :description:		File containing subgrid tables, only needed by SFINCS if you want to run your model in the subgrid mode.
 	  :units:		-
