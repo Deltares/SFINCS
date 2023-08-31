@@ -338,7 +338,7 @@
                !
             else
                !
-               hu     = max(zsu - zbuv(ip), huthresh)
+               hu     = max(zsu - zbuvmx(ip), huthresh)
                gnavg2 = gn2uv(ip)
                !
             endif
@@ -478,10 +478,24 @@
             ! Apply some smoothing if theta < 1.0 (not recommended anymore!)
             ! Note, for reliability in terms of precision, is written as 0.9999
             !
+            qsm = qx_nm
+            !
             if (theta<0.9999) then
-               qsm = theta*qx_nm + 0.5*(1.0 - theta)*(qx_nmu + qx_nmd)             
-            else
-               qsm = qx_nm
+               ! 
+               ! Apply theta smoothing 
+               ! 
+               if (uv_flags_adv(ip)==1) then
+                  ! 
+                  ! But only at regular points
+                  ! 
+                  if (abs(qx_nmu) > 1.0e-6 .and. abs(qx_nmd) > 1.0e-6) then
+                     !
+                     ! And if both uv neighbors are active
+                     ! 
+                     qsm = theta*qx_nm + 0.5*(1.0 - theta)*(qx_nmu + qx_nmd)             
+                     ! 
+                  endif
+               endif
             endif            
             !
             ! Compute new flux for this uv point (Bates et al., 2010)
@@ -510,184 +524,6 @@
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
    !         
-   end subroutine
-
-   
-   subroutine compute_fluxes_simple(dt, min_dt, tloop)
-   !
-   ! Computes fluxes over subgrid u and v points
-   !
-   use sfincs_data
-   !
-   implicit none
-   !
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
-   !
-   real*4    :: dt
-   !
-   integer   :: ip
-   integer   :: nm
-   integer   :: nmu
-   integer   :: idir
-   integer   :: iref
-   integer   :: itype
-   integer   :: iuv
-   integer   :: ind
-   !
-   real*4    :: hu
-   real*4    :: dxuvinv
-   real*4    :: dxuv2inv
-   real*4    :: dyuvinv
-   real*4    :: dyuv2inv
-   real*4    :: adv
-   real*4    :: fcoriouv
-   real*4    :: frc
-   real*4    :: min_dt
-   real*4    :: gammax
-   real*4    :: facmax
-   real*4    :: wsumax
-   real*4    :: tp
-   !
-   real*4    :: qx0_nm
-   real*4    :: qx0_nmd
-   real*4    :: qx0_nmu
-   real*4    :: qy0_nm
-   real*4    :: qy0_nmu
-   real*4    :: qy0_ndm
-   real*4    :: qy0_ndmu
-   real*4    :: u0_nm
-   real*4    :: u0_nmd
-   real*4    :: u0_nmu
-   real*4    :: u0_ndm
-   real*4    :: u0_num
-   real*4    :: zsuv
-   real*4    :: dzuv
-   real*4    :: facint
-   real*4    :: gnavg2
-   real*4    :: v0_nm
-   real*4    :: v0_nmu
-   real*4    :: v0_ndm
-   real*4    :: v0_ndmu
-   real*4, dimension(1:subgrid_nbins) :: ahrep
-   real*4, dimension(1:subgrid_nbins) :: anavg
-   real*4    :: zmin
-   real*4    :: zmax
-   real*4    :: iuvr
-   real*4    :: one_minus_facint
-   !
-   real*4, parameter :: expo=1.0/3.0
-   !
-   logical   :: iadv, ivis, icorio, iok
-   !
-   call system_clock(count0, count_rate, count_max)
-   !
-   min_dt = 1.0e6
-   !
-   !$omp parallel &
-   !$omp private ( ip,hu,qx0_nm,nm,nmu,frc,dxuvinv,gnavg2,iok,zsuv,dzuv,iuv,facint,ahrep,anavg,zmin,zmax,one_minus_facint,iuvr,ind ) &
-   !$omp shared ( kcuv,q,zs,subgrid_uv_zmin,subgrid_uv_zmax,subgrid_uv_hrep,subgrid_uv_navg,uv_index_z_nm,uv_index_z_nmu,subgrid_uv_hrep_zmax,subgrid_uv_navg_zmax ) &
-   !$omp reduction ( min : min_dt )
-   !$omp do
-   do ip = 1, npuv
-      !
-      if (kcuv(ip)==1) then
-         !
-         ! Indices of surrounding water level points
-         !
-         nm  = uv_index_z_nm(ip)
-         nmu = uv_index_z_nmu(ip)
-         !
-         iok  = .false.
-         !
-         zsuv = max(zs(nm), zs(nmu)) ! water level at u point
-         !
-         if (subgrid) then
-            !            
-            if (zsuv>subgrid_uv_zmin(ip) + huthresh) then
-               iok = .true.
-            endif   
-            !
-         else
-            !            
-            if (zsuv>zbuvmx(ip)) then
-               iok = .true.
-            endif   
-            !            
-         endif   
-         !
-         if (iok) then
-            !
-            dxuvinv = 1.0/dx
-            !
-            ! Compute water depth at uv point
-            !
-            if (subgrid) then
-               !
-               zmin = subgrid_uv_zmin(ip)
-               zmax = subgrid_uv_zmax(ip)
-               !            
-               if (zsuv>zmax - 0.001) then
-                  !
-                  ! Entire cell is wet, no interpolation from table needed
-                  !
-                  hu     = subgrid_uv_hrep_zmax(ip) + zsuv
-                  gnavg2 = subgrid_uv_navg_zmax(ip)
-                  !
-               else
-                  !
-                  ! Interpolation required
-                  !
-                  dzuv   = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nbins - 1)
-                  iuv    = int((zsuv - subgrid_uv_zmin(ip))/dzuv) + 1
-                  facint = (zsuv - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv
-                  hu     = subgrid_uv_hrep(iuv, ip) + (subgrid_uv_hrep(iuv + 1, ip) - subgrid_uv_hrep(iuv, ip))*facint
-                  gnavg2 = subgrid_uv_navg(iuv, ip) + (subgrid_uv_navg(iuv + 1, ip) - subgrid_uv_navg(iuv, ip))*facint
-                  !
-               endif
-               !
-            else
-               !
-               hu   = max(zsuv - zbuv(ip), huthresh)
-               gnavg2 = gn2uv(ip)
-               !
-            endif
-            !
-            ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
-            !   
-            qx0_nm = q(ip)
-            !
-            ! FORCING TERMS
-            !
-            ! Pressure term
-            !
-            frc = -g*hu*(zs(nmu) - zs(nm))*dxuvinv
-            !
-            ! Compute new flux for this uv point (Bates et al., 2010)
-            !
-            qx0_nm  = (qx0_nm + frc*dt ) / (1.0 + gnavg2*dt*abs(qx0_nm)/(hu**2*hu**expo))
-            !
-            q(ip) = qx0_nm
-            !
-            min_dt = min(min_dt, 1.0/(sqrt(g*hu)*dxuvinv))
-            !
-         else
-            !
-            q(ip) = 0.0
-            !
-         endif
-         !
-      endif
-   enddo   
-   !$omp end do
-   !$omp end parallel
-   !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
-   !         
-   end subroutine
+   end subroutine      
    
 end module

@@ -1012,7 +1012,23 @@ contains
          if (precip) then
             !
             prcp(nm)    = prcp0(nm)*onemintwfact  + prcp1(nm)*twfact  ! rainfall in m/s !!!
-            netprcp(nm) = prcp(nm)
+            !
+            ! don't allow negative prcp (e.g. hardfixing infiltration/evaporation on model when forcing effective rainfall) when there's no water in the cell (same as check for constant infiltration)
+            if (prcp(nm) < 0) then
+                 ! No effective infiltration if there is no water
+                 !  
+                 if (subgrid) then
+                    if (z_volume(nm)<=0.0) then
+                       prcp(nm) = 0.0
+                    endif
+                 else
+                    if (zs(nm)<=zb(nm)) then
+                       prcp(nm) = 0.0
+                    endif
+                 endif            
+            endif
+            !
+            netprcp(nm) = prcp(nm)            
             cumprcp(nm) = cumprcp(nm) + prcp(nm)*dt
             !
          endif   
@@ -1047,6 +1063,21 @@ contains
             !
             if (precip) then
                netprcp(nm) = netprcp(nm)*smfac
+               
+                ! don't allow negative netprcp during spinup (e.g. hardfixing infiltration/evaporation on model when forcing effective rainfall) when there's no water in the cell (same as check for constant infiltration)
+                if (netprcp(nm) < 0) then
+                     ! No effective infiltration if there is no water
+                     !  
+                     if (subgrid) then
+                        if (z_volume(nm)<=0.0) then
+                           netprcp(nm) = 0.0
+                        endif
+                     else
+                        if (zs(nm)<=zb(nm)) then
+                           netprcp(nm) = 0.0
+                        endif
+                     endif            
+                endif               
             endif   
             !
          enddo   

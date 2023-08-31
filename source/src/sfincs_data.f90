@@ -139,6 +139,7 @@ module sfincs_data
       character*256 :: z0lfile
       character*256 :: wvmfile
       character*256 :: qtrfile
+      character*256 :: volfile
       !
       character*256 :: trefstr_iso8601
       character*41  :: treftimefews
@@ -168,6 +169,7 @@ module sfincs_data
       logical       :: store_maximum_waterlevel
       logical       :: store_maximum_waterdepth
       logical       :: store_maximum_velocity
+      logical       :: store_maximum_flux      
       logical       :: store_velocity
       logical       :: store_twet
       logical       :: store_hsubgrid
@@ -202,9 +204,11 @@ module sfincs_data
       logical       :: interpolate_zst
       logical       :: advection
       logical       :: fixed_output_intervals
+      logical       :: use_storage_volume
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
+      integer storefluxmax
       integer storevel
       integer storecumprcp
       integer storetwet
@@ -352,7 +356,11 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: GA_sigma        ! the current soil capacity (porosity) in [-]
       real*4, dimension(:),   allocatable :: GA_F            ! cumulative infiltration for green-ampt
       real*4, dimension(:),   allocatable :: GA_Lu           ! depth of upper soil recovery zone (computed from ksfield)
-
+      !
+      ! Storage volume
+      !
+      real*4, dimension(:),   allocatable :: storage_volume  ! Storage volume green infra
+      !
       ! Wind reduction for spiderweb winds
       !
       real*4, dimension(:,:), allocatable :: z0land          ! z0 values over land for spiderweb wind speed reduction   
@@ -479,6 +487,7 @@ module sfincs_data
       !
       real*4, dimension(:),   allocatable :: zsmax
       real*4, dimension(:),   allocatable :: vmax
+      real*4, dimension(:),   allocatable :: qmax
       real*4, dimension(:),   allocatable :: zs
       real*4, dimension(:),   allocatable :: zsm
       real*4, dimension(:),   allocatable :: q
@@ -877,6 +886,7 @@ module sfincs_data
     !!!
     if(allocated(zsmax)) deallocate(zsmax)
     if(allocated(vmax)) deallocate(vmax)
+    if(allocated(qmax)) deallocate(qmax)
     if(allocated(zs)) deallocate(zs)
     !if(allocated(z_volume)) deallocate(z_volume) > this one seems to cause an error, not sure why
     if(allocated(q)) deallocate(q)

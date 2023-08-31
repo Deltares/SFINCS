@@ -1030,13 +1030,22 @@ contains
    !
    ! STEP 2 - Read mask file
    !
-   if (mskfile /= 'none') then
+   if (quadtree_netcdf) then
       !
-      write(*,*)'Reading SnapWave mask file ',trim(mskfile),' ...'
-      open(unit = 500, file = trim(mskfile), form = 'unformatted', access = 'stream')
-      read(500)msk_tmp
-      close(500)
+      ! Mask is stored in netcdf file 
       !
+      msk_tmp = quadtree_snapwave_mask
+      !
+   else    
+      !
+      if (mskfile /= 'none') then
+         !       
+         write(*,*)'Reading SnapWave mask file ',trim(mskfile),' ...'
+         open(unit = 500, file = trim(mskfile), form = 'unformatted', access = 'stream')
+         read(500)msk_tmp
+         close(500)
+         !
+      endif    
    endif
    !
    ! STEP 3 - Read depth file
@@ -1611,10 +1620,10 @@ contains
                nfaces           = nfaces + 1
                faces(1, nfaces) = ip
                faces(2, nfaces) = mu1
-               faces(3, nfaces) = nu1
+               faces(3, nfaces) = mu2
                msk_tmp2(ip)     = 1
                msk_tmp2(mu1)    = 1
-               msk_tmp2(nu1)    = 1
+               msk_tmp2(mu2)    = 1
             endif
             !
             if (mu2>0 .and. mnu1>0 .and. nu1>0) then
