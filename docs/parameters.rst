@@ -87,6 +87,12 @@ Parameters for model input
 	  :default:		0
 	  :min:			0
 	  :max:			100  
+	qinf_zmin
+	  :description:		Minimum elevation level above for what cells the spatially uniform, constant in time infiltration rate 'qinf' is added.
+	  :units:		m above reference level
+	  :default:		0
+	  :min:			-100
+	  :max:			100  	  
 	manning
 	  :description:		Uniform manning roughness, specify in s/m^(1/3).
 	  :units:		s/m^(1/3)

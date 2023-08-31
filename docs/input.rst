@@ -337,6 +337,9 @@ Specify the keyword:
 
 	qinf = 1.0
 	
+**NOTE - To have some control that no infiltration is added an areas like the sea for this spatially uniform constant in time infiltration method, only infiltration is added to cells above a certain elevation above the bed level reference height **
+**NOTE - By default this is set to 0, qinf_zmin = 0 (default), so below e.g. MSL, no infiltration is added
+
 Spatially varying constant in time:
 %%%%%
 
@@ -375,12 +378,12 @@ In its classic form, the Curve Number model uses the following equation to relat
 
 **Q = (P^2./(P+Smax)**
 
-where Smax = the soil’s maximum moisture storage capacity. Smax typically derived from a tabulated “curve number” CN that varies with soil type and antecedent condition. It should be emphasized that these equations use units of inches while in SFINCS we apply the metric system. 
+where Smax = the soil's maximum moisture storage capacity. Smax typically derived from a tabulated 'curve number' CN that varies with soil type and antecedent condition. It should be emphasized that these equations use units of inches while in SFINCS we apply the metric system. 
 
 
 **Without recovery**
 For spatially varying infiltration values per cell using the Curve Number method without recovery use the scsfile option, with the same grid based input as the depfile using a binary file. Note here that in pre-processing the wanted CN values should be converted to S values following:
-•	scsfile: maximum soil moisture storage capacity in inches
+* scsfile: maximum soil moisture storage capacity in inches
 
 .. code-block:: text
 
@@ -394,14 +397,14 @@ For spatially varying infiltration values per cell using the Curve Number method
 
 The user can also specify the sfacinf which control the initial abstraction or the amount of water before runoff, such as infiltration, or rainfall interception by vegetation; historically, it has generally been assumed that sfacinf = 0.2 (default, however, for urbanized watersheds lower values can be expected (e.g. 0.05). 
 
-This option doesn’t support restart functionality. 
+This option doesn't support restart functionality. 
 
 **With recovery**
 
 Within SFINCS, the Curve number method with recovery can be used as follows. The user needs to provide the following variables. For all variables, one needs to specify these values per cell with the same grid based input as the depfile using a binary file:
-•	smaxfile: maximum soil moisture storage capacity in m
-•	sefffile: soil moisture storage capacity at the start in m
-•	ksfile: saturated hydraulic conductivity in mm/hr
+* smaxfile: maximum soil moisture storage capacity in m
+* sefffile: soil moisture storage capacity at the start in m
+* ksfile: saturated hydraulic conductivity in mm/hr
 
 Using the saturated hydraulic conductivity, a recovery variables recovery constant (kr) and minimum recovery time before a new rainfall event occurs (hours) are computed similar to SWMM. 
 The Curve Number has been implemented in hydromt-SFINCS. See https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.SfincsModel.setup_cn_infiltration_with_kr.html for more information.
@@ -421,9 +424,9 @@ The basic form of the Green-Ampt equation is expressed as follows:
 In which t is time, K is the saturated hydraulic conductivity, delta_theta is defined as the soil capacity (the difference between the saturated and initial moisture content) and sigma is the soil suction head.
 
 Within SFINCS, the Green-Ampt method can be used as follows. The user needs to provide the following variables. For a range of typically values see Table 1. For all variables, one needs to specify these values per cell with the same grid based input as the depfile using a binary file:
-•	ksfile: saturated hydraulic conductivity in mm/hr
-•	sigmafile: suction head at the wetting front in mm
-•	psifile: soil moisture deficit in [-]
+* ksfile: saturated hydraulic conductivity in mm/hr
+* sigmafile: suction head at the wetting front in mm
+* sifile: soil moisture deficit in [-]
 
 Using the saturated hydraulic conductivity, recovery variables such as the moisture deficit recovery constant (kr), depth of upper soil recovery zone (Lu) and minimum recovery time before a new rainfall event occurs (hours) are computed similar to SWMM. The Green-Ampt method has not been implemented yet in hydromt-SFINCS. 
 
