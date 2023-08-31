@@ -1038,10 +1038,6 @@ contains
       !$omp end parallel
       !$acc end kernels
       !
-      !if (t > 1716.0) then
-      !
-      !    write(*,*)'
-      !endif
       ! Apply spin-up factor
       !
       if (t<tspinup - 1.0e-3 .and. spinup_meteo) then
