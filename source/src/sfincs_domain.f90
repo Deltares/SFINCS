@@ -2190,7 +2190,7 @@ contains
          !
          ! Spatially-varying infiltration with CN numbers (old)
          !
-         write(*,*)'Turning on process: Infiltration (via CN method - A)'               
+         write(*,*)'Turning on process: Infiltration (via Curve Number method - A)'               
          !
          allocate(qinffield(np))
          qinffield = 0.0
@@ -2209,7 +2209,7 @@ contains
          !
          ! Spatially-varying infiltration with CN numbers (new)
          !
-         write(*,*)'Turning on process: Infiltration (via CN method - B)'            
+         write(*,*)'Turning on process: Infiltration (via Curve Number method - B)'            
          ! 
          ! Allocate Smax
          allocate(qinffield(np))
@@ -2285,20 +2285,19 @@ contains
          allocate(inf_kr(np))
          inf_kr     = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr
          allocate(rain_T1(np))                      ! minimum amount of time that a soil must remain in recovery 
-         rain_T1     = 0.0
-         
+         rain_T1    = 0.0         
          ! Allocate support variables
          allocate(GA_sigma(np))                     ! variable for sigma_max_du
          GA_sigma   = GA_sigma_max
          allocate(GA_F(np))                         ! total infiltration
-         GA_F       =0.0
+         GA_F       = 0.0
          allocate(GA_Lu(np))                        ! depth of upper soil recovery zone
-         GA_Lu      = 4 *sqrt(25.4) * sqrt(ksfield)  ! Equation 4-33
+         GA_Lu      = 4 *sqrt(25.4) * sqrt(ksfield) ! Equation 4-33
          !
          ! Input values for green-ampt are in mm and mm/hr, but computation is in m a m/s
-         GA_head        = GA_head/1000              ! from mm to m
-         GA_Lu          = GA_Lu/1000                ! from mm to m
-         ksfield        = ksfield/1000/3600         ! from mm/hr to m/s
+         GA_head    = GA_head/1000                  ! from mm to m
+         GA_Lu      = GA_Lu/1000                    ! from mm to m
+         ksfield    = ksfield/1000/3600             ! from mm/hr to m/s
          ! 
          ! TMP: fix this later
          allocate(qinffield(np))
@@ -2421,130 +2420,148 @@ contains
       open(unit = 500, file = trim(rstfile), form = 'unformatted', access = 'stream')
       !
       ! Restartfile flavours:
-      ! 1: zs, qx, qy, umean and vmean  
-      ! 2: zs, qx, qy 
+      ! 1: zs, q, uvmean  
+      ! 2: zs, q 
       ! 3: zs  - 
-      ! 4: zs, qx+qy, umean+vmean and cnb infiltration (writing scs_Se)
-      ! 5: zs, qx+qy, umean+vmean and gai infiltration (writing GA_sigma+GA_F)
+      ! 4: zs, q, uvmean and cnb infiltration (writing scs_Se)
+      ! 5: zs, q, uvmean and gai infiltration (writing GA_sigma & GA_F)
       !
       read(500)rdummy
       read(500)rsttype
       read(500)rdummy
       !
-      ! Always read in inizs
-      !
-      read(500)rdummy
-      read(500)inizs
-      read(500)rdummy
-      !      
-      if (rsttype==1 .or. rsttype==2 .or. rsttype==4 .or. rsttype==5) then     
-         read(500)rdummy
-         read(500)iniq
-         read(500)rdummy
+      if (rsttype<1 .or. rsttype >5) then
+          !
+          ! Give warning, rstfile input rsttype not recognized
+          !
+          write(*,*)'WARNING! rstfile not recognized, skipping restartfile input! rsttype should be 1-5, but found rsttype= ', rsttype 
+          !          
+          close(500)      
+          !          
+      else
+          ! Always read in inizs
+          !
+          read(500)rdummy
+          read(500)inizs
+          read(500)rdummy
+          !      
+          ! Read fluxes q
+          !
+          if (rsttype==1 .or. rsttype==2 .or. rsttype==4 .or. rsttype==5) then     
+             read(500)rdummy
+             read(500)iniq
+             read(500)rdummy
+             !
+             read(500)rdummy
+             read(500)uvmean
+             read(500)rdummy
+          endif
+          !
+          if (rsttype==4) then ! Infiltration method cnb      
+             read(500)rdummy
+             read(500)scs_Se
+             !
+             write(*,*)'Reading scs_Se from rstfile, overwrites input values of: ',trim(sefffile)         
+             !
+          endif
+          !
+          if (rsttype==5) then ! Infiltration method gai    
+            read(500)rdummy
+            read(500)GA_sigma
+            read(500)rdummy
+            read(500)GA_F
+            !
+            write(*,*)'Reading GA_sigma from rstfile, overwrites input values of: ',trim(sigmafile)        
+            !
+          endif
+          !
+          close(500)      
+          !
+          ! zs is always read in, process it:
+          do nm = 1, np
+             !
+             if (subgrid) then
+                zs(nm) = max(subgrid_z_zmin(nm), inizs(nm)) ! Water level at zini or bed level (whichever is higher)
+             else
+                zs(nm) = max(zb(nm), inizs(nm)) ! Water level at zini or bed level (whichever is higher)
+             endif
+             !
+          enddo      
+          !
+          ! q is read in for some cases, process it:      
+          if (rsttype==1 .or. rsttype==2 .or. rsttype==4 .or. rsttype==5) then
+             !
+             do ip = 1, npuv
+                !
+                q(ip) = iniq(ip)
+                !
+                ! Also need to compute initial uv
+                ! Use same method as used in sfincs_momentum.f90
+                !
+                nm  = uv_index_z_nm(ip)
+                nmu = uv_index_z_nmu(ip)
+                !
+                zsuv = max(zs(nm), zs(nmu)) ! water level at uv point 
+                !
+                iok = .false.
+                !
+                if (subgrid) then
+                   !
+                   zmin = subgrid_uv_zmin(ip)
+                   zmax = subgrid_uv_zmax(ip)
+                   !            
+                   if (zsuv>zmin + huthresh) then
+                      iok = .true.
+                   endif   
+                   !
+                else
+                   !            
+                   if (zsuv>zbuvmx(ip)) then
+                      iok = .true.
+                   endif   
+                   !            
+                endif   
+                !
+                if (iok) then
+                   !
+                   if (subgrid) then
+                      !
+                      if (zsuv>zmax - 1.0e-4) then
+                         !
+                         ! Entire cell is wet, no interpolation from table needed
+                         !
+                         huv    = subgrid_uv_hrep_zmax(ip) + zsuv
+                         !
+                      else
+                         !
+                         ! Interpolation required
+                         !
+                         dzuv   = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nbins - 1)
+                         iuv    = int((zsuv - subgrid_uv_zmin(ip))/dzuv) + 1
+                         facint = (zsuv - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv
+                         huv    = subgrid_uv_hrep(iuv, ip) + (subgrid_uv_hrep(iuv + 1, ip) - subgrid_uv_hrep(iuv, ip))*facint
+                         !                      
+                      endif
+                      !
+                      huv    = max(huv, huthresh)
+                      !
+                   else
+                      !
+                      huv    = max(zsuv - zbuv(ip), huthresh)
+                      !
+                   endif
+                   !
+                   uv(ip)   = max(min(q(ip)/huv, 5.0), -5.0)   
+                   !
+                endif   
+                !
+             enddo
+             !         
+          endif   
+          !
+          deallocate(inizs)
+          deallocate(iniq)
       endif
-      !
-      if (rsttype==1 .or. rsttype==3 .or. rsttype==4 .or. rsttype==5) then     
-         read(500)rdummy
-         read(500)uvmean
-         read(500)rdummy
-      endif
-      
-      if (rsttype==4) then ! Infiltration method cnb      
-         read(500)rdummy
-         read(500)scs_Se
-      endif
-      
-      if (rsttype==5) then ! Infiltration method gai    
-        read(500)rdummy
-        read(500)GA_sigma
-        read(500)rdummy
-        read(500)GA_F
-      endif
-      !
-      close(500)      
-      !
-      do nm = 1, np
-         !
-         if (subgrid) then
-            zs(nm) = max(subgrid_z_zmin(nm), inizs(nm)) ! Water level at zini or bed level (whichever is higher)
-         else
-            zs(nm) = max(zb(nm), inizs(nm)) ! Water level at zini or bed level (whichever is higher)
-         endif
-         !
-      enddo      
-      !
-      if (rsttype==1 .or. rsttype==2) then
-         !
-         do ip = 1, npuv
-            !
-            q(ip) = iniq(ip)
-            !
-            ! Also need to compute initial uv
-            ! Use same method as used in sfincs_momentum.f90
-            !
-            nm  = uv_index_z_nm(ip)
-            nmu = uv_index_z_nmu(ip)
-            !
-            zsuv = max(zs(nm), zs(nmu)) ! water level at uv point 
-            !
-            iok = .false.
-            !
-            if (subgrid) then
-               !
-               zmin = subgrid_uv_zmin(ip)
-               zmax = subgrid_uv_zmax(ip)
-               !            
-               if (zsuv>zmin + huthresh) then
-                  iok = .true.
-               endif   
-               !
-            else
-               !            
-               if (zsuv>zbuvmx(ip)) then
-                  iok = .true.
-               endif   
-               !            
-            endif   
-            !
-            if (iok) then
-               !
-               if (subgrid) then
-                  !
-                  if (zsuv>zmax - 1.0e-4) then
-                     !
-                     ! Entire cell is wet, no interpolation from table needed
-                     !
-                     huv    = subgrid_uv_hrep_zmax(ip) + zsuv
-                     !
-                  else
-                     !
-                     ! Interpolation required
-                     !
-                     dzuv   = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nbins - 1)
-                     iuv    = int((zsuv - subgrid_uv_zmin(ip))/dzuv) + 1
-                     facint = (zsuv - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv
-                     huv    = subgrid_uv_hrep(iuv, ip) + (subgrid_uv_hrep(iuv + 1, ip) - subgrid_uv_hrep(iuv, ip))*facint
-                     !                      
-                  endif
-                  !
-                  huv    = max(huv, huthresh)
-                  !
-               else
-                  !
-                  huv    = max(zsuv - zbuv(ip), huthresh)
-                  !
-               endif
-               !
-               uv(ip)   = max(min(q(ip)/huv, 5.0), -5.0)   
-               !
-            endif   
-            !
-         enddo
-         !         
-      endif   
-      !
-      deallocate(inizs)
-      deallocate(iniq)
       !
    elseif (zsinifile(1:4) /= 'none') then ! Read binary (!) initial water level file
       !
