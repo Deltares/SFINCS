@@ -1297,6 +1297,9 @@ contains
       !
       ! Determine infiltration rate with Curve Number with recovery
       !
+      !$omp parallel &
+      !$omp private ( Qq,I,nm )       
+      !$omp do       
       do nm = 1, np
          !
          ! If there is precip in this grid cell for this time step  
@@ -1368,10 +1371,17 @@ contains
          netprcp(nm)    = netprcp(nm) - qinfmap(nm)
          !
       enddo
+      !$omp end do
+      !$omp end parallel 
+      !
+      !$acc update device(qinfmap), async(1)      
       !
    elseif (inftype == 'gai') then
       !
       ! Determine infiltration rate with  with the Green-Ampt (GA) model
+      !$omp parallel &
+      !$omp private ( nm )
+      !$omp do              
       do nm = 1, np
          !
          ! If there is precip in this grid cell for this time step?
@@ -1426,6 +1436,10 @@ contains
          netprcp(nm)    = netprcp(nm) - qinfmap(nm)
          !
       enddo
+      !$omp end do
+      !$omp end parallel       
+      !
+      !$acc update device(qinfmap), async(1)        
       !
    endif
    !
