@@ -59,7 +59,11 @@
 		<File RelativePath="..\src\snapwave\snapwave_solver.f90"/></Filter>
 		<File RelativePath="..\src\deg2utm.f90"/>
 		<File RelativePath="..\src\geometry.f90"/>
-		<File RelativePath="..\src\quadtree.f90"/>
+		<File RelativePath="..\src\quadtree.F90">
+			<FileConfiguration Name="Release|x64">
+				<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/></FileConfiguration>
+			<FileConfiguration Name="Debug|x64">
+				<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/></FileConfiguration></File>
 		<File RelativePath="..\src\sfincs_boundaries.f90"/>
 		<File RelativePath="..\src\sfincs_continuity.f90"/>
 		<File RelativePath="..\src\sfincs_crosssections.f90"/>

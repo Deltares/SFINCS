@@ -108,6 +108,7 @@ contains
    call read_char_input(500,'weirfile',weirfile,'none')
    call read_char_input(500,'manningfile',manningfile,'none')   
    call read_char_input(500,'drnfile',drnfile,'none')
+   call read_char_input(500,'volfile',volfile,'none')
    !
    ! Forcing
    !
@@ -455,6 +456,11 @@ contains
    if (istorewavdir==1) then
       store_wave_direction = .true.
    endif      
+   !
+   use_storage_volume = .false.
+   if (volfile(1:4) /= 'none') then
+      use_storage_volume = .true.
+   endif
    !
    end subroutine
 

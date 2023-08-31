@@ -53,7 +53,7 @@ Executable
 
 We provide pre-compiled versions of SFINCS for you to use directly:
 
-* Windows: https://download.deltares.nl/en/download/sfincs/  
+* Windows: https://download.deltares.nl/en/sfincs  
 * Platform independent through Docker (Windows/linux/singularity/HPC): https://hub.docker.com/r/deltares/sfincs-cpu 
 
 Compiling yourself
@@ -129,7 +129,7 @@ After downloading Docker desktop for your operating system (https://www.docker.c
 	(here 'C:/Users/../SFINCS' is the folder where the SFINCS input files to be used are located)
 
 Instead of using the latest automatically cmpiled version, you can also pull a verified tagged release from: https://hub.docker.com/r/deltares/sfincs-cpu/tags
-This can be for instance the open source release version 'sfincs-v2.0.0-AlpeDHuez'.
+This can be for instance the open source release version 'docker pull deltares/sfincs-cpu:sfincs-v2.0.2-Blockhaus-Release-Q2-2023'.
 
 Cloud based cluster
 ^^^^^

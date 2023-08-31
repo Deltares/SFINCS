@@ -138,9 +138,10 @@ Drainage pump and Culvert
 
 Drainage pumps and culverts are both specified using the same format file, put with a different indication of the type (type=1 is drainage pump, type=2 is culvert).
 A drainage pump can move water from one location to another with a certain prescribed discharge given that there is sufficient water at the retraction location.
-For culverts also a certain discharge capacity of the culvert is prescribed, but then the actual water level gradient is used to determine how much water will actually flow through the culvert.
+For culverts also a certain discharge capacity parameter of the culvert is prescribed, but then the actual water level gradient is used to determine how much water will actually flow through the culvert.
 Input consists of the x&y locations of the sink (retraction point) and source points (outflow point) followed by the type.
 The discharge capacity is prescribed using the par1 parameter, parameters par2<>par5 are not used right now but included for future flexibility for implementing other structure types.
+For the culvert, par1 can be calculated as par1 = mu*a*sqrt(2g), with mu=dimensionless culvert loss coefficient [-], A=area of the culvert opening in [m^2] and g=9.81m/s^2.
 
 You can know how much discharge is extracted by the model in the sfincs_his.nc output by specifying 'storeqdrain=1' from SFINCS v2.0.2 onwards, see the description in "Input parameters".
 
@@ -177,7 +178,7 @@ You can know how much discharge is extracted by the model in the sfincs_his.nc o
 	drain(jj).xsrc = 125; 	% source x-coordinate(s), to where water is discharged
 	drain(jj).ysrc = 25; 	% source x-coordinate(s)
 	drain(jj).type = 1; 	% 1= pump, 2=culvert
-	drain(jj).par1 = 0.345; % possible drainage discharge in m3/s
+	drain(jj).par1 = 0.345; % drainage discharge capacity parameter par1 = mu*a*sqrt(2g)
 	drain(jj).par2 = 0; 	% not used yet
 	drain(jj).par3 = 0; 	% not used yet
 	drain(jj).par4 = 0; 	% not used yet

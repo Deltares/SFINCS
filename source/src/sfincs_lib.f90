@@ -83,8 +83,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.0.2-Blockhaus+branch:36-quick-fix-allowing-negative-rainfall-with-volume-check-for-forcing-effective-rainfall'
-   build_date     = '$Date: 2023-06-29'
+   build_revision = '$Rev: v2.0.3-alpha'
+   build_date     = '$Date: 2023-08-25'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
@@ -236,7 +236,7 @@ module sfincs_lib
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
    !$acc               prcp, prcp0, prcp1, cumprcp, cumprcpt, netprcp, prcp, q, qinfmap, cuminf, & 
    !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
-   !$acc               gn2uv, fcorio2d, min_dt ) 
+   !$acc               gn2uv, fcorio2d, min_dt, storage_volume ) 
    !
    ! Set target time: if dt range is negative, do not modify t1
    !
