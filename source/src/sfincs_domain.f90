@@ -117,9 +117,9 @@ contains
    !
    ! If not meteo3d, then also no storage of meteo data in netcdf output
    !
-   !if (.not. meteo3d) then
-   !   store_meteo = .false.
-   !endif
+   if (.not. meteo3d) then
+      store_meteo = .false.
+   endif
    !
    ! READ MESH
    !

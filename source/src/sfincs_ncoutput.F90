@@ -2612,6 +2612,8 @@ contains
         NF90(nf90_put_att(ncid, varid, 'smaxfile',smaxfile)) 
         NF90(nf90_put_att(ncid, varid, 'sefffile',sefffile)) 
         NF90(nf90_put_att(ncid, varid, 'ksfile',ksfile)) 
+        NF90(nf90_put_att(ncid, varid, 'psifile',psifile)) 
+        NF90(nf90_put_att(ncid, varid, 'sigmafile',sigmafile))         
         NF90(nf90_put_att(ncid, varid, 'z0lfile',z0lfile)) 
         NF90(nf90_put_att(ncid, varid, 'wvmfile',wvmfile)) 
         !
