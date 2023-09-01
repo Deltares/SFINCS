@@ -37,7 +37,7 @@ module snapwave_solver
 !      write(*,*)'max depth=',maxval(depth),' min depth = ',minval(depth)
       call disper_approx(depth, Tpb,    kwav,    nwav,    C,    Cg,    no_nodes)
       call disper_approx(depth, Tpb_ig, kwav_ig, nwav_ig, C_ig, Cg_ig, no_nodes)
-      cg_ig = cg   !TL: ??? is Cg = cg?    
+      cg_ig = cg
       Sxx = 0
       !
       do k = 1, no_nodes
@@ -46,8 +46,11 @@ module snapwave_solver
          sinhkh_ig(k) = sinh(min(kwav_ig(k)*depth(k), 50.0))
          Hmx_ig(k)    = 0.88/kwav_ig(k)*tanh(gamma_ig*kwav_ig(k)*depth(k)/0.88)
          !
-         ! Calculate radiation stress Sxx = ((2 .* n) - 0.5) .* Einc > is off energy of previous timestep
-         Sxx(k) = ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5) * sum(ee(:, k)) * dtheta ! limit so value of nwav is between 0 and 1, and Sxx therefore doesn't become NaN for nwav=Infinite
+         ! Calculate radiation stress Sxx = ((2 .* n) - 0.5) .* Einc > is from energy of previous timestep, and directional!
+         do itheta = 1, ntheta
+            ! old, non-directional: Sxx(itheta,k) = ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5) * sum(ee(:, k)) * dtheta 
+            Sxx(itheta,k) = ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5) * ee(itheta, k) ! limit so value of nwav is between 0 and 1, and Sxx therefore doesn't become NaN for nwav=Infinite
+         enddo
       enddo
       !   
       do itheta = 1, ntheta
@@ -127,7 +130,7 @@ module snapwave_solver
    real*4, dimension(no_nodes), intent(in)          :: cg                     ! group velocity
    real*4, dimension(ntheta,no_nodes), intent(in)   :: ctheta                 ! refractioon speed
    real*4, dimension(no_nodes), intent(in)          :: cg_ig                  ! group velocity
-   real*4, dimension(no_nodes), intent(in)          :: Sxx                    ! Radiation Stress
+   real*4, dimension(ntheta,no_nodes), intent(in)      :: Sxx                    ! Radiation Stress
    real*4, dimension(ntheta,no_nodes), intent(inout)   :: ee                  ! 
    real*4, dimension(ntheta,no_nodes), intent(inout)   :: ee_ig                 ! 
    real*4, dimension(ntheta,no_nodes), intent(in)   :: ctheta_ig              ! refractioon speed
@@ -435,7 +438,7 @@ module snapwave_solver
                   !
                   ! TL - Note: cg_ig = cg
                   cgprev(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
-                  Sxxprev(itheta) = w(1, itheta, k)*Sxx(k1) + w(2, itheta, k)*Sxx(k2)
+                  Sxxprev(itheta) = w(1, itheta, k)*Sxx(itheta,k1) + w(2, itheta, k)*Sxx(itheta,k2)
                   H_igprev(itheta) = w(1, itheta, k)*H_ig_old(k1) + w(2, itheta, k)*H_ig_old(k2)
                   depthprev(itheta) = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)
                   !         
@@ -449,13 +452,13 @@ module snapwave_solver
                             srcsh_local(itheta, k) = 0.0 !Avoid big jumps in dSxx that can happen if a upwind point is a boundary point with Hinc=0
                          else                             
                                                   
-                            dSxx = Sxx(k) - Sxxprev(itheta)
+                            dSxx = Sxx(itheta,k) - Sxxprev(itheta)
                             !dSxx = min(dSxx, 100.0) !try limit dSxx > is generally large in the Hinc shadow zone
                             dSxx = max(dSxx, 0.0)
-                            srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * 0.25  * (H_igprev(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / cg_ig(k) 
+                            !srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * 0.25  * (H_igprev(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / cg_ig(k) 
                             !srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * 0.25  * (H_igprev(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / ds(itheta, k) 
                             !srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * 0.25  * (H_igprev(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx                           
-                            
+                            srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * 0.25  * (H_igprev(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / ds(itheta, k)
                             
                             !for clarity already divide by cg_ig(k) here
                             ! * 0.25 because the *4 in 4sqrt(E) is already absorbed in alphaig, so here we want just sqrt(E), which is then 0.25*Hig       
@@ -569,6 +572,7 @@ module snapwave_solver
                      if (igwaves) then
                         eeprev_ig(itheta) = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)
                         cgprev_ig(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
+                        !depthprev(itheta) = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)                        
                      endif
                      !
                   enddo
@@ -666,12 +670,15 @@ module snapwave_solver
                      !
                      ! IG
                      !
+                     ! Extra IG transfer term:
+                      
+                     ! 
                      do itheta = 2, ntheta - 1
                         !
                         A_ig(itheta) = -ctheta_ig(itheta - 1, k)*oneover2dtheta
                         B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
                         C_ig(itheta) = ctheta_ig(itheta + 1, k)*oneover2dtheta
-                        R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta)*eeprev_ig(itheta)/ds(itheta, k) + srcsh_local(itheta, k)
+                        R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta)*eeprev_ig(itheta)/ds(itheta, k) + srcsh_local(itheta, k)! * sqrt(eeprev_ig(itheta))/ds(itheta, k)
                         !
                      enddo
                      !
@@ -679,7 +686,7 @@ module snapwave_solver
                         A_ig(1) = 0.0
                         B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k)
                         C_ig(1) = ctheta_ig(2, k)/dtheta
-                        R_ig(1) = oneoverdt*ee_ig(1, k) + cgprev_ig(1)*eeprev_ig(1)/ds(1, k) + srcsh_local(1, k)
+                        R_ig(1) = oneoverdt*ee_ig(1, k) + cgprev_ig(1)*eeprev_ig(1)/ds(1, k) + srcsh_local(1, k)! * sqrt(eeprev_ig(1))/ds(1, k)
                      else
                         A_ig(1)=0.0
                         B_ig(1)=1.0/dt
@@ -691,7 +698,7 @@ module snapwave_solver
                         A_ig(ntheta) = -ctheta_ig(ntheta - 1, k)/dtheta
                         B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
                         C_ig(ntheta) = 0.0
-                        R_ig(ntheta) = oneoverdt*ee_ig(ntheta,k) + cgprev_ig(ntheta)*eeprev_ig(ntheta)/ds(ntheta,k) + srcsh_local(ntheta, k)
+                        R_ig(ntheta) = oneoverdt*ee_ig(ntheta,k) + cgprev_ig(ntheta)*eeprev_ig(ntheta)/ds(ntheta,k) + srcsh_local(ntheta, k)! * sqrt(eeprev_ig(ntheta))/ds(ntheta,k)
                      else
                         A_ig(ntheta) = 0.0
                         B_ig(ntheta) = oneoverdt

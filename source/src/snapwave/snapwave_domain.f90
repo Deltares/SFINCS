@@ -115,7 +115,7 @@ contains
    allocate(nwav_ig(no_nodes))
    allocate(C_ig(no_nodes))
    allocate(Cg_ig(no_nodes))
-   allocate(Sxx(no_nodes))   
+   allocate(Sxx(ntheta,no_nodes))   
    allocate(sinhkh_ig(no_nodes))
    allocate(Hmx_ig(no_nodes))
    allocate(fw_ig(no_nodes))

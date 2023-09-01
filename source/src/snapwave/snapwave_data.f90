@@ -11,7 +11,7 @@ module snapwave_data
    real*4,  dimension(:),       allocatable    :: kwav_ig, nwav_ig        ! wave number, ratio Cg/C
    real*4,  dimension(:),       allocatable    :: C, Cg                   ! wave celerity, group velocity0
    real*4,  dimension(:),       allocatable    :: C_ig, Cg_ig             ! wave celerity, group velocity0
-   real*4,  dimension(:),       allocatable    :: Sxx                     ! radiation stress Sxx
+   real*4,  dimension(:,:),     allocatable    :: Sxx                     ! directional radiation stress Sxx
    real*4,  dimension(:),       allocatable    :: fw                      ! friction coefficient
    real*4,  dimension(:),       allocatable    :: fw_ig                   ! friction coefficient
    real*4,  dimension(:),       allocatable    :: H, H_ig                 ! rms wave height
