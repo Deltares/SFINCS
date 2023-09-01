@@ -1095,9 +1095,9 @@ module snapwave_solver
    real*4                            :: ybeta   
    !                 
    ! Estimate shoaling rate alphaig - as in Leijnse et al. (2023)
-   if (reldepth <= 4.0) then ! determined using (H in Hm0)
+   if (reldepth > 0.0 .and. reldepth <= 4.0) then ! determined using (H in Hm0)
        !
-       if (betar > 0 .and. betar <= 0.0066) then
+       if (betar > 0.0 .and. betar <= 0.0066) then
           !     
           xbeta = betar / 0.0066
           ! 
@@ -1111,8 +1111,9 @@ module snapwave_solver
           alphaig = 0.0
        endif 
        !
+   elseif (reldepth > 4.0 ) then       
    !elseif (reldepth > 4.0 .and. reldepth <= 20.0) then! Deep water (but not too deep, so we include extra IG growth still)
-   elseif (reldepth > 4.0 .and. reldepth <= 10.0) then! Deep water (but not too deep, so we include extra IG growth still)
+   !elseif (reldepth > 4.0 .and. reldepth <= 10.0) then! Deep water (but not too deep, so we include extra IG growth still)
    !elseif (reldepth > 4.0 .and. reldepth <= 6.0) then! Deep water (but not too deep, so we include extra IG growth still)
        !
        if (betar > 0.0) then      
