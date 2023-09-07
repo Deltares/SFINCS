@@ -1101,7 +1101,8 @@ module snapwave_solver
           !     
           xbeta = betar / 0.0066
           ! 
-          ybeta = 17.9*xbeta**3-36.8*xbeta**2+19.9*xbeta
+          !ybeta = 17.9*xbeta**3-36.8*xbeta**2+19.9*xbeta
+          ybeta = 20.147*xbeta**3-41.2940*xbeta**2+22.147*xbeta
           !
           alphaig = ybeta * 8.0
           !
