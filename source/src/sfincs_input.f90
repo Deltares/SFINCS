@@ -57,6 +57,7 @@ contains
    call read_char_input(500,'outputformat',outputtype,'asc')
    call read_char_input(500,'outputtype_map',outputtype_map,'nil')
    call read_char_input(500,'outputtype_his',outputtype_his,'nil')
+   call read_int_input(500,'nc_deflate_level',nc_deflate_level,2)
    call read_int_input(500,'bndtype',bndtype,1)
    call read_int_input(500,'advection',iadvection,0)
    call read_int_input(500,'nfreqsig',nfreqsig,100)
