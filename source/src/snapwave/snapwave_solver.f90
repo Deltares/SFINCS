@@ -361,7 +361,7 @@ module snapwave_solver
          !
          if (igwaves) then
             !
-            ee_ig(:, k)  = eeinc2ig*ee(:,k) ! default is eeinc2ig = 0.01 as before
+            ee_ig(:, k)  = eeinc2ig*ee(:,k) / 2.0 !divide by 2 because we want to reduce H_ig by sqrt(2) ! default is eeinc2ig = 0.01 as before
             E_ig(k)      = sum(ee_ig(:, k))*dtheta
             H_ig(k)      = sqrt(8*E_ig(k)/rho/g)
             !
@@ -1097,16 +1097,19 @@ module snapwave_solver
    ! Estimate shoaling rate alphaig - as in Leijnse et al. (2023)
    if (reldepth > 0.0 .and. reldepth <= 4.0) then ! determined using (H in Hm0)
        !
-       if (betar > 0.0 .and. betar <= 0.0066) then
+       if (betar > 0.0 .and. betar <= 0.015) then
           !     
-          xbeta = betar / 0.0066
+          xbeta = betar / 0.015
           ! 
           !ybeta = 17.9*xbeta**3-36.8*xbeta**2+19.9*xbeta
-          ybeta = 20.147*xbeta**3-41.2940*xbeta**2+22.147*xbeta
+          !ybeta = 20.147*xbeta**3-41.2940*xbeta**2+22.147*xbeta          
+          !alphaig = ybeta * 8.0
           !
-          alphaig = ybeta * 8.0
+          alphaig = 728.1081 * xbeta * exp(-10.0*xbeta) + 8*xbeta**3.0 - 24.0 * xbeta**2.0 + 24.0 * xbeta
+          !728.1081 = 80 / exp(-1) * 3.3482
+          ! alpha = 80 /exp(-1) * 3.3482  .* xval .* exp(- 10  .* xval) + 8* (xval.^3-3*xval.^2+3.*xval)
           !
-       elseif (betar > 0.0066) then
+       elseif (betar > 0.015) then
           alphaig = 8.0
        else
           alphaig = 0.0
