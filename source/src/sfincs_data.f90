@@ -136,6 +136,8 @@ module sfincs_data
       character*256 :: psifile
       character*256 :: sigmafile
       character*256 :: ksfile
+      character*256 :: f0file
+      character*256 :: fcfile
       character*256 :: z0lfile
       character*256 :: wvmfile
       character*256 :: qtrfile
@@ -356,6 +358,8 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: GA_sigma        ! the current soil capacity (porosity) in [-]
       real*4, dimension(:),   allocatable :: GA_F            ! cumulative infiltration for green-ampt
       real*4, dimension(:),   allocatable :: GA_Lu           ! depth of upper soil recovery zone (computed from ksfield)
+      real*4, dimension(:),   allocatable :: horton_f0       ! initial infiltration capacity
+      real*4, dimension(:),   allocatable :: horton_fc       ! final infiltration capacity 
       !
       ! Storage volume
       !

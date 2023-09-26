@@ -2132,6 +2132,14 @@ contains
          inftype = 'gai'
          infiltration = .true.      
          !
+      elseif (f0file /= 'none') then  
+         !
+         ! The Horton Equation model for infiltration
+         !
+         inftype        = 'hor'
+         infiltration   = .true.
+         store_meteo    = .true.
+         !
       endif
       !
       if (precip) then
@@ -2312,6 +2320,43 @@ contains
          ! TMP: fix this later
          allocate(qinffield(np))
          qinffield = GA_sigma_max
+         !
+      elseif (inftype == 'hor') then  
+         !
+         ! Spatially-varying infiltration with the modified Horton Equation 
+         !
+         write(*,*)'Turning on process: Infiltration (via modified Horton)'            
+         ! 
+         ! Horton: initial infiltration capacity
+         allocate(horton_f0(np))
+         horton_f0 = 0.0
+         write(*,*)'Reading ',trim(f0file)
+         open(unit = 500, file = trim(f0file), form = 'unformatted', access = 'stream')
+         read(500)horton_f0
+         close(500)
+         !
+         ! Horton: final infiltration capacity 
+         allocate(horton_fc(np))
+         horton_fc = 0.0
+         write(*,*)'Reading ',trim(fcfile)
+         open(unit = 501, file = trim(fcfile), form = 'unformatted', access = 'stream')
+         read(501)horton_fc
+         close(501)
+         !
+         ! Prescribe the current estimate 
+         qinffield = horton_fc/3600/1000
+         !
+         ! Empirical constant (1/hr) k => note that this is different than ks used in Curve Number and Green-Ampt
+         allocate(ksfield(np))
+         ksfield = 0.0
+         write(*,*)'Reading ',trim(ksfile)
+         open(unit = 502, file = trim(ksfile), form = 'unformatted', access = 'stream')
+         read(502)ksfield
+         close(502)
+         ! 
+         ! Estimate of time
+         allocate(rain_T1(np))
+         rain_T1 = 0.0
          !
       endif
       !

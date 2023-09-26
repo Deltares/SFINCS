@@ -71,6 +71,7 @@
 		<File RelativePath="..\src\sfincs_date.f90"/>
 		<File RelativePath="..\src\sfincs_discharges.f90"/>
 		<File RelativePath="..\src\sfincs_domain.f90"/>
+		<File RelativePath="..\src\sfincs_infiltration.f90"/>
 		<File RelativePath="..\src\sfincs_input.f90"/>
 		<File RelativePath="..\src\sfincs_lib.f90"/>
 		<File RelativePath="..\src\sfincs_meteo.f90"/>
