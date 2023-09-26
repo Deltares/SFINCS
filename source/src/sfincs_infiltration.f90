@@ -14,6 +14,7 @@ contains
    !
    real*4  :: Qq
    real*4  :: I
+   real*4  :: hh_local, a
    real*4  :: dt   
    !
    if (inftype == 'con' .or. inftype == 'c2d') then
@@ -243,72 +244,63 @@ contains
       ! Determine infiltration rate with with the Horton model
       do nm = 1, np
          !
-         ! If there is precip OR water in this grid cell for this time step?
+         ! Get local water depth estimate
          if (subgrid) then
+             if (crsgeo) then
+                a = cell_area_m2(nm)
+             else   
+                a = cell_area(z_flags_iref(nm))
+             endif
+             hh_local = z_volume(nm)/a
+         else
+             hh_local = zs(nm) - zb(nm)
+         endif
+         !
+         ! Check if there is water
+          if (hh_local> 0.0 .OR. prcp(nm) > 0.0) then
             !
-            ! For subgrid SFINCS models
-            if (z_volume(nm)>=0.0 .OR. prcp(nm) > 0.0) then
-                !
-                ! Infiltrating here
-                ! 
-                ! Count how long this is already going
-                if (rain_T1(nm) > 0.0) then 
-                    rain_T1(nm) = 0
-                endif
-                rain_T1(nm) = rain_T1(nm) - dt          ! negative amount of how long it is infiltrating
-                ! 
-                ! Compute estimate of infiltration
-                Qq             = ksfield(nm)*rain_T1(nm)/3600       ! note that ksfield is factor in hours while dt is seconds
-                Qq             = exp(Qq)
-                qinfmap(nm)    = horton_fc(nm) + (horton_fc(nm) - horton_f0(nm))*Qq
-                !
-                ! Check how much there can infiltrate
+            ! Infiltrating here
+            !
+            ! Count how long this is already going
+            if (rain_T1(nm) > 0) then
+                rain_T1 = 0.0
+            endif
+            rain_T1(nm)     = rain_T1(nm) - dt                                              ! negative amount of how long it is infiltrating
+            ! 
+            ! Compute estimate of infiltration                                              ! Note that qinffield = horton_fc
+            I               = exp(horton_kd(nm)*rain_T1(nm)/3600)                             ! note that horton_kd is factor in hours while dt is seconds
+            !
+            ! Stop keeping track of this when less than 1% left (same for time)
+            if (I < 0.01) then
+                I              = 0.0                        ! which reduces qinfmap to horton_fc
+                rain_T1(nm)     = rain_T1(nm) + dt          ! also make sure time doesnt further decrease
+                qinfmap(nm)     = (horton_fc(nm))/3600/1000 ! from mm/hr to m/s
+            else
+                qinfmap(nm)     = (horton_fc(nm) + (horton_f0(nm) - horton_fc(nm))*I)/3600/1000 ! from mm/hr to m/s
+            endif
+            !
+            ! Check how much there can infiltrate
+            if (hh_local > 0.00) then
+                Qq              = prcp(nm)*dt + (zs(nm) - zb(nm))                           ! Qq is estimate in meter of how much water there is
+            else
+                Qq              = prcp(nm)*dt                                               ! if no water; only compare with rainfall
+            endif
+            !
+            ! Compare how much Horton want to infiltrate
+            I               = qinfmap(nm) * dt                                              ! I is estimate in meter of how much Horton allows
+            if (I > Qq) then
+                qinfmap(nm) = qinfmap(nm) * Qq/I                                            ! scale Horton if capacity > available
+            endif
+            !
             else
                 !
-                ! Not raining here OR no ponding
-                !
-                ! Count how long this is already going
-                if (rain_T1(nm) < 0.0) then 
-                    rain_T1(nm) = 0
-                endif
-                rain_T1(nm) = rain_T1(nm) + dt          ! positive amount of how long it is infiltrating
-                !
-            endif
-            ! 
-            !
-         else
-            ! for non-subgrid SFINCS models
-            if (zs(nm)> zb(nm) .OR. prcp(nm) > 0.0) then
-                !
-                ! Infiltrating here
-                ! Count how long this is already going
-                if (rain_T1(nm) > 0) then
-                    rain_T1 = 0.0
-                endif
-                rain_T1(nm)     = rain_T1(nm) - dt                                              ! negative amount of how long it is infiltrating
-                ! 
-                ! Compute estimate of infiltration
-                I               = exp(ksfield(nm)*rain_T1(nm)/3600)                             ! note that ksfield is factor in hours while dt is seconds
-                qinfmap(nm)     = (horton_fc(nm) + (horton_f0(nm) - horton_fc(nm))*I)/3600/1000 ! from mm/hr to m/s
-                !
-                ! Check how much there can infiltrate
-                Qq              = prcp(nm)*dt + (zs(nm) - zb(nm))                               ! Qq is estimate in meter of how much water there is
-                I               = qinfmap(nm) * dt                                              ! I is estimate in meter of how much Horton allows
-                if (I > Qq) then
-                    qinfmap(nm) = qinfmap(nm) * Qq/I                                            ! scale Horton if capacity > available
-                endif
-                !
-         else
-                !
                 ! Not raining here NOR ponding
-                rain_T1(nm)     = rain_T1(nm) + dt                                              ! check this
+                rain_T1(nm)     = rain_T1(nm) + dt/horton_ks_kd                                 ! positive amount of how long it is infiltrating
                 qinfmap(nm)     = 0.0
                 !
             endif
-         endif
          ! 
          ! Compute cumulative values
-         qinffield(nm)  = qinfmap(nm)
          cuminf(nm)     = cuminf(nm) + qinfmap(nm)*dt
          netprcp(nm)    = netprcp(nm) - qinfmap(nm)
          !

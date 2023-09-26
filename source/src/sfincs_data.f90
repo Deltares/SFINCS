@@ -64,8 +64,6 @@ module sfincs_data
       real*4, dimension(:), allocatable :: cd_wnd
       real*4, dimension(:), allocatable :: cd_val
       real*4 qinf_zmin
-      real*4 horton_decay
-      real*4 horton_time
       real*4 btfilter
       real*4 sfacinf
       real*4 dym
@@ -77,6 +75,7 @@ module sfincs_data
       real*4 tsunami_arrival_threshold
       real*4 dtwave
       real*4 wmtfilter
+      real*4 horton_ks_kd
       !
       real*4 freqminig
       real*4 freqmaxig
@@ -138,6 +137,7 @@ module sfincs_data
       character*256 :: ksfile
       character*256 :: f0file
       character*256 :: fcfile
+      character*256 :: kdfile
       character*256 :: z0lfile
       character*256 :: wvmfile
       character*256 :: qtrfile
@@ -358,8 +358,9 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: GA_sigma        ! the current soil capacity (porosity) in [-]
       real*4, dimension(:),   allocatable :: GA_F            ! cumulative infiltration for green-ampt
       real*4, dimension(:),   allocatable :: GA_Lu           ! depth of upper soil recovery zone (computed from ksfield)
-      real*4, dimension(:),   allocatable :: horton_f0       ! initial infiltration capacity
-      real*4, dimension(:),   allocatable :: horton_fc       ! final infiltration capacity 
+      real*4, dimension(:),   allocatable :: horton_fc       ! final infiltration capacity - Horton
+      real*4, dimension(:),   allocatable :: horton_f0       ! initial infiltration capacity 
+      real*4, dimension(:),   allocatable :: horton_kd       ! coefficient of the exponential term
       !
       ! Storage volume
       !
@@ -839,7 +840,6 @@ module sfincs_data
     if(allocated(qinfmap)) deallocate(qinfmap)
     if(allocated(qinffield)) deallocate(qinffield)
     if(allocated(ksfield)) deallocate(ksfield)
-
     if(allocated(scs_Se)) deallocate(scs_Se)
 
     !

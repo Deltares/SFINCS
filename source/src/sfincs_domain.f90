@@ -2255,7 +2255,8 @@ contains
          !
          ! Compute recovery                     ! Equation 4-36
          allocate(inf_kr(np))
-         inf_kr = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr
+         inf_kr = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr (/25.4)
+                                                ! /75 is conversion to recovery rate (in days)
          !
          ! Allocate support variables
          allocate(scs_P1(np))
@@ -2301,7 +2302,9 @@ contains
          !
          ! Compute recovery                         ! Equation 4-36
          allocate(inf_kr(np))
-         inf_kr     = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr
+         inf_kr     = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr (/25.4)
+                                                    ! /75 is conversion to recovery rate (in days)
+         
          allocate(rain_T1(np))                      ! minimum amount of time that a soil must remain in recovery 
          rain_T1    = 0.0         
          ! Allocate support variables
@@ -2317,9 +2320,9 @@ contains
          GA_Lu      = GA_Lu/1000                    ! from mm to m
          ksfield    = ksfield/1000/3600             ! from mm/hr to m/s
          ! 
-         ! TMP: fix this later
+         ! First time step doesnt have an estimate yet
          allocate(qinffield(np))
-         qinffield = GA_sigma_max
+         qinffield(nm) = 0.00
          !
       elseif (inftype == 'hor') then  
          !
@@ -2327,33 +2330,35 @@ contains
          !
          write(*,*)'Turning on process: Infiltration (via modified Horton)'            
          ! 
-         ! Horton: initial infiltration capacity
-         allocate(horton_f0(np))
-         horton_f0 = 0.0
-         write(*,*)'Reading ',trim(f0file)
-         open(unit = 500, file = trim(f0file), form = 'unformatted', access = 'stream')
-         read(500)horton_f0
-         close(500)
-         !
-         ! Horton: final infiltration capacity 
+         ! Horton: final infiltration capacity (fc)
+         ! Note that qinffield = horton_fc
          allocate(horton_fc(np))
          horton_fc = 0.0
          write(*,*)'Reading ',trim(fcfile)
-         open(unit = 501, file = trim(fcfile), form = 'unformatted', access = 'stream')
-         read(501)horton_fc
+         open(unit = 500, file = trim(fcfile), form = 'unformatted', access = 'stream')
+         read(500)horton_fc
+         close(500)
+         !
+         ! Horton: initial infiltration capacity (f0)
+         allocate(horton_f0(np))
+         horton_f0 = 0.0
+         write(*,*)'Reading ',trim(f0file)
+         open(unit = 501, file = trim(f0file), form = 'unformatted', access = 'stream')
+         read(501)horton_f0
          close(501)
          !
-         ! Prescribe the current estimate 
-         qinffield = horton_fc/3600/1000
+         ! Prescribe the current estimate (for output only; initial capacity)
+         qinffield = horton_f0/3600/1000
          !
          ! Empirical constant (1/hr) k => note that this is different than ks used in Curve Number and Green-Ampt
-         allocate(ksfield(np))
-         ksfield = 0.0
-         write(*,*)'Reading ',trim(ksfile)
-         open(unit = 502, file = trim(ksfile), form = 'unformatted', access = 'stream')
-         read(502)ksfield
+         allocate(horton_kd(np))
+         horton_kd = 0.0
+         write(*,*)'Reading ',trim(kdfile)
+         open(unit = 502, file = trim(kdfile), form = 'unformatted', access = 'stream')
+         read(502)horton_kd
          close(502)
-         ! 
+         write(*,*)'Using constant recovery rate that is based on constant factor relative to ',trim(kdfile)
+         !
          ! Estimate of time
          allocate(rain_T1(np))
          rain_T1 = 0.0
