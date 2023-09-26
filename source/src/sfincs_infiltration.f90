@@ -242,6 +242,9 @@ contains
    elseif (inftype == 'hor') then
       !
       ! Determine infiltration rate with with the Horton model
+      !$omp parallel &
+      !$omp private  ( Qq,I,nm,a,hh_local)       
+      !$omp do              
       do nm = 1, np
          !
          ! Get local water depth estimate
@@ -295,7 +298,7 @@ contains
             else
                 !
                 ! Not raining here NOR ponding
-                rain_T1(nm)     = rain_T1(nm) + dt/horton_ks_kd                                 ! positive amount of how long it is infiltrating
+                rain_T1(nm)     = rain_T1(nm) + dt/horton_kr_kd                                 ! positive amount of how long it is infiltrating
                 qinfmap(nm)     = 0.0
                 !
             endif
@@ -305,6 +308,8 @@ contains
          netprcp(nm)    = netprcp(nm) - qinfmap(nm)
          !
       enddo
+      !$omp end do
+      !$omp end parallel 
       !
    endif
    !

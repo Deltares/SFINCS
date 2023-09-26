@@ -2654,7 +2654,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'snapwave', isnapwave)) 
         NF90(nf90_put_att(ncid, varid, 'wmtfilter', wmtfilter))         
         NF90(nf90_put_att(ncid, varid, 'wmfred',wavemaker_freduv))         
-        NF90(nf90_put_att(ncid, varid, 'horton_ks_kd',horton_ks_kd))         
+        NF90(nf90_put_att(ncid, varid, 'horton_kr_kd',horton_kr_kd))         
         !
         ! Domain
         !

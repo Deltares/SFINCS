@@ -146,7 +146,7 @@ contains
    call read_char_input(500,'f0file',f0file,'none')             ! Maximum (Initial) Infiltration Capacity, F0
    call read_char_input(500,'fcfile',fcfile,'none')             ! Minimum (Asymptotic) Infiltration Rate, Fc
    call read_char_input(500,'kdfile',kdfile,'none')             ! k = empirical constant (hr-1) of decay
-   call read_real_input(500,'horton_ks_kd',horton_ks_kd,10.0)   ! recovery goes 10 times as SLOW as decay
+   call read_real_input(500,'horton_kr_kd',horton_kr_kd,10.0)   ! recovery goes 10 times as SLOW as decay
    ! Netcdf input
    call read_char_input(500,'netbndbzsbzifile',netbndbzsbzifile,'none')  
    call read_char_input(500,'netsrcdisfile',netsrcdisfile,'none')  

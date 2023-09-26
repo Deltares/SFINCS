@@ -2538,11 +2538,17 @@ contains
              read(500)rdummy
           endif
           !
-          if (rsttype==4) then ! Infiltration method cnb      
+          if (rsttype==4) then ! 
              read(500)rdummy
-             read(500)scs_Se
-             !
-             write(*,*)'Reading scs_Se from rstfile, overwrites input values of: ',trim(sefffile)         
+             if (inftype == 'cnb') then
+                 ! Infiltration method cnb
+                 read(500)scs_Se
+                 write(*,*)'Reading scs_Se from rstfile, overwrites input values of: ',trim(sefffile)
+             elseif (inftype == 'hor') then
+                 ! Infiltration method horton
+                 read(500)rain_T1
+                write(*,*)'Reading rain_T1 from rstfile, complements input values of: ',trim(fcfile)        
+             endif
              !
           endif
           !
