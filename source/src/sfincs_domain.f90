@@ -79,7 +79,7 @@ contains
    meteo3d = .false.
    include_boundaries = .false.   
    !
-   if (spwfile(1:4) /= 'none' .or. wndfile(1:4) /= 'none' .or. amufile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none') then
+   if (spwfile(1:4) /= 'none' .or. wndfile(1:4) /= 'none' .or. amufile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       !
       wind = .true.
       write(*,*)'Turning on process: Wind'
@@ -90,7 +90,7 @@ contains
       endif
    endif
    !
-   if ((ampfile(1:4) /= 'none' .or. netampfile(1:4) /= 'none' .or. spwfile(1:4) /= 'none') .and. baro==1) then
+   if ((ampfile(1:4) /= 'none' .or. netampfile(1:4) /= 'none' .or. spwfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') .and. baro==1) then
        patmos = .true.
        write(*,*)'Turning on process: Atmospheric pressure'       
    endif
@@ -102,13 +102,13 @@ contains
    !
    ! Check for time-spatially varying meteo
    !
-   if (spwfile(1:4) /= 'none' .or. amufile(1:4) /= 'none' .or. amprfile(1:4) /= 'none' .or. ampfile(1:4) /= 'none' .or. netampfile(1:4) /= 'none' .or. netamprfile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none') then
+   if (spwfile(1:4) /= 'none' .or. amufile(1:4) /= 'none' .or. amprfile(1:4) /= 'none' .or. ampfile(1:4) /= 'none' .or. netampfile(1:4) /= 'none' .or. netamprfile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       meteo3d = .true.
       write(*,*)'Turning on flag: meteo3d'
    endif
    !
    wind_reduction = .false.
-   if (spwfile(1:4) /= 'none') then
+   if (spwfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       if (z0lfile(1:4) /= 'none') then
          wind_reduction = .true.
          write(*,*)'Turning on process: wind reduction over land'

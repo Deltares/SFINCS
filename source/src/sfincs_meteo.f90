@@ -1562,7 +1562,7 @@ contains
       !
    endif
    !      
-   if (spwfile(1:4) /= 'none') then
+   if (spwfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       !
       call update_spiderweb_data()
       !
