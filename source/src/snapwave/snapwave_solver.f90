@@ -362,10 +362,8 @@ module snapwave_solver
          !
          if (igwaves) then
             !
-            ee_ig(:, k)  = eeinc2ig*ee(:,k) / 2.0 !divide by 2 because we want to reduce H_ig by sqrt(2) to go from Hm0 estimate to Hrms ! default is eeinc2ig = 0.01 as before
-            
-            ! QUESTION - TL - Is this correct when ee is already in Hrms (I suppose)
-            
+            ee_ig(:, k)  = eeinc2ig*ee(:,k) ! ee is already in Hrms;  we can apply the Hig/Hinc ratio based on Hm0 directly to ee, and get the right IG value as Hrms
+            ! default is eeinc2ig = 0.01 as before                        
             E_ig(k)      = sum(ee_ig(:, k))*dtheta
             H_ig(k)      = sqrt(8*E_ig(k)/rho/g)
             !
