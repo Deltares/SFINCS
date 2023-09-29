@@ -349,6 +349,7 @@ contains
    !
    call read_real_input(500,'snapwave_gamma',gamma,0.7)
    call read_real_input(500,'snapwave_alpha',snapwave_alpha,1.0)
+   call read_real_input(500,'snapwave_alpha_ig',snapwave_alpha_ig,1.0)
    call read_real_input(500,'snapwave_hmin',hmin,0.1)
    call read_real_input(500,'snapwave_fw',fw0,0.01)
    call read_real_input(500,'snapwave_fwig',fw0_ig,0.015)
@@ -371,7 +372,8 @@ contains
    call read_real_input(500,'snapwave_alphaigfac',alphaigfac,1.0)            
    call read_int_input(500,'snapwave_ig_opt',ig_opt,1)     
    call read_int_input(500,'snapwave_baldock_opt',baldock_opt,1)     
-   call read_real_input(500,'snapwave_baldock_ratio',baldock_ratio,0.2)           
+   call read_real_input(500,'snapwave_baldock_ratio',baldock_ratio,0.2)    
+   call read_real_input(500,'snapwave_baldock_ratio',baldock_ratio_ig,0.2)       
    call read_int_input(500,'snapwave_battjesjanssen_opt',battjesjanssen_opt,1)        
 !   call read_int_input(500,'ntheta',ntheta,36)
 !   call read_int_input(500,'nHrel',nHrel,1)

@@ -3,5 +3,5 @@
 	<Configurations>
 		<Configuration Name="Debug|Win32"/>
 		<Configuration Name="Release|Win32"/>
-		<Configuration Name="Debug|x64" CommandArguments="sfincs.inp -autostartstop -t 1" WorkingDirectory="d:\repos\SFINCS_testbed_branch\CDR_test\Drainage_culvert\Input_10m\"/>
+		<Configuration Name="Debug|x64" CommandArguments="sfincs.inp -autostartstop -t 1" WorkingDirectory="d:\repos\phd_waves\paper_IG_parametrisation\07_application_case\Duck_NC\01_modelsetup\ext_delilah_02_ig_snapwave_alpha_1\"/>
 		<Configuration Name="Release|x64" WorkingDirectory="d:\repos\phd_waves\paper_IG_parametrisation\07_application_case\Duck_NC\01_modelsetup\ext_delilah_02_ig\"/></Configurations></VisualStudioUserFile>

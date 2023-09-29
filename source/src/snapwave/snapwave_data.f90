@@ -150,9 +150,10 @@ module snapwave_data
    real*4                                    :: snapwave_alpha,gamma     ! coefficients in Baldock wave breaking dissipation model
    integer                                   :: baldock_opt     ! option of Baldock wave breaking dissipation model (opt=1 is without gamma&depth, else is including)
    real*4                                    :: baldock_ratio   ! option controlling from what depth wave breaking should take place: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio=0.2 
+   real*4                                    :: baldock_ratio_ig   ! option controlling from what depth wave breaking should take place for IG waves: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio_ig=0.2    
    integer                                   :: battjesjanssen_opt     ! option of Battjes Janssen wave breaking dissipation model (opt=1 is breaking everywhere, opt=2 is if H larger than gamma*depth)  
    integer                                   :: ig_opt                 ! option of breaking dissipation model for IG waves (1 is Baldock = default, 2 is BattjesJanssen)
-   real*4                                    :: gamma_ig        ! gamma breaking for 
+   real*4                                    :: snapwave_alpha_ig,gamma_ig     ! coefficients in Baldock wave breaking dissipation model for IG waves
    real*4                                    :: Tinc2ig         ! ratio compared to period Tinc to estimate Tig
    real*4                                    :: shinc2ig        ! TO ADD
    real*4                                    :: shpercig        ! TO ADD

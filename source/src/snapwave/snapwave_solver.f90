@@ -88,8 +88,8 @@ module snapwave_solver
       !
       call solve_energy_balance2Dstat (x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                        theta,ntheta,thetamean,                                    &
-                                       depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,50000.,rho,snapwave_alpha,gamma,                 &
-                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, battjesjanssen_opt, fshalphamin, fshfac, fshexp, alphaigfac, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_rep)
+                                       depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,50000.,rho,snapwave_alpha,snapwave_alpha_ig,gamma,                 &
+                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, baldock_ratio_ig, battjesjanssen_opt, fshalphamin, fshfac, fshexp, alphaigfac, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_rep)
       !
       call timer(t3)
       !
@@ -107,8 +107,8 @@ module snapwave_solver
    
    subroutine solve_energy_balance2Dstat(x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                          theta,ntheta,thetamean,                                    &
-                                         depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,T,dt,rho,alfa,gamma,                 &
-                                         H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, battjesjanssen_opt, fshalphamin, fshfac, fshexp, alphaigfac, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_rep)
+                                         depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,T,dt,rho,alfa,alfa_ig,gamma,                 &
+                                         H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, baldock_ratio_ig, battjesjanssen_opt, fshalphamin, fshfac, fshexp, alphaigfac, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_rep)
    !
    implicit none
    !
@@ -147,6 +147,7 @@ module snapwave_solver
    real*4, intent(in)                         :: alfa,gamma             ! coefficients in Baldock wave breaking dissipation
    integer                                    :: baldock_opt            ! option of Baldock wave breaking dissipation model (opt=1 is without gamma&depth, else is including)  
    real*4, intent(in)                         :: baldock_ratio          ! option controlling from what depth wave breaking should take place: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio=0.2
+   real*4, intent(in)                         :: baldock_ratio_ig          ! option controlling from what depth wave breaking should take place for IG waves: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio_ig=0.2      
    integer                                    :: battjesjanssen_opt     ! option of Battjes Janssen wave breaking dissipation model (opt=1 is breaking everywhere, opt=2 is if H larger than gamma*depth)  
    integer                                    :: ig_opt                 ! option of breaking dissipation model for IG waves (1 is Baldock = default, 2 is BattjesJanssen)
    real*4, dimension(no_nodes), intent(out)         :: H                      ! wave height
@@ -177,8 +178,8 @@ module snapwave_solver
 !   real*4, dimension(:,:), allocatable        :: ee_ig                  ! wave energy density
    real*4, dimension(:,:), allocatable        :: eeold               ! wave energy density, energy density previous iteration
    real*4, dimension(:,:), allocatable        :: srcsh_local                  ! 
-   real*4, dimension(:,:), allocatable        :: betan_local            ! 
-   real*4, dimension(:,:), allocatable        :: betar_local            !    
+   real*8, dimension(:,:), allocatable        :: betan_local            ! 
+   real*8, dimension(:,:), allocatable        :: betar_local            !    
    real*4, dimension(:,:), allocatable        :: alphaig_local          ! 
    real*4, dimension(:), allocatable          :: steepness_bc           ! deep water incident wave length
    real*4, dimension(:), allocatable          :: reldepth               ! relative water depth (h / Hinc,0), with H in Hm0
@@ -229,7 +230,7 @@ module snapwave_solver
    real*4                                     :: fshexp   
    real*4                                     :: alphaigfac         
    real*4                                     :: sigm_ig
-   real*4                                     :: beta
+   real*8                                     :: beta
    character*20                               :: fname
    integer, save                              :: callno=1
    !
@@ -238,7 +239,7 @@ module snapwave_solver
    integer                                    :: nr_sweeps
    logical                                    :: igwaves
    real*4                                     :: crit           ! relative accuracy
-   real*4                                     :: gamma_ig
+   real*4                                     :: alfa_ig,gamma_ig
    real*4                                     :: Tinc2ig
    real*4                                     :: eeinc2ig
    !
@@ -361,7 +362,10 @@ module snapwave_solver
          !
          if (igwaves) then
             !
-            ee_ig(:, k)  = eeinc2ig*ee(:,k) / 2.0 !divide by 2 because we want to reduce H_ig by sqrt(2) ! default is eeinc2ig = 0.01 as before
+            ee_ig(:, k)  = eeinc2ig*ee(:,k) / 2.0 !divide by 2 because we want to reduce H_ig by sqrt(2) to go from Hm0 estimate to Hrms ! default is eeinc2ig = 0.01 as before
+            
+            ! QUESTION - TL - Is this correct when ee is already in Hrms (I suppose)
+            
             E_ig(k)      = sum(ee_ig(:, k))*dtheta
             H_ig(k)      = sqrt(8*E_ig(k)/rho/g)
             !
@@ -388,7 +392,7 @@ module snapwave_solver
             !endif
             !            
             ! calculate depthforcerelease (should be using value of Hm0,inc at offshore boundary)
-            depthforcerelease = H_rep(k) / gamma            
+            depthforcerelease = H_rep(k) / gamma
             !
             ! Compute exchange source term inc to ig waves - per direction            
             do itheta = 1, ntheta
@@ -398,7 +402,7 @@ module snapwave_solver
                !
                if (k1*k2>0) then
                   !                   
-                  beta  = max((w(1, itheta, k)*(depth(k1) - depth(k)) + w(2, itheta, k)*(depth(k2) - depth(k)))/ds(itheta, k), 0.0)
+                  beta  = max((w(1, itheta, k)*(depth(k1) - depth(k)) + w(2, itheta, k)*(depth(k2) - depth(k)))/ds(itheta, k), 0.0) !beta=0 means a horizontal or decreasing slope > need alphaig=0 then
                   !
                   betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin))
                   !  
@@ -406,33 +410,15 @@ module snapwave_solver
                   !
                   if (ig_opt == 1) then                
                      !  
-                     alphaig_local(itheta,k)   = shinc2ig * max(exp(-fshfac*betan_local(itheta,k)**fshexp), fshalphamin)  ! fshalphamin is as alphamin in HurryWave, named differently to avoid confusion with the other alphas we have
-                     ! 
-                  elseif (ig_opt == 2) then                  
-                     ! 
-                     call estimate_shoaling_rate(betan_local(itheta,k), H(k), T, alphaig_local(itheta,k)) ! [input, input, input, output]
-                     !  
-                  elseif (ig_opt == 3) then                  
-                     ! 
-                     call estimate_shoaling_rate_v02(betan_local(itheta,k), H(k), T, alphaig_local(itheta,k)) ! [input, input, input, output]
-                     !
-                  elseif (ig_opt == 4) then                  
-                     ! 
-                     if (betan_local(itheta,k) > 0.015) then !Beta_b_split = 0.015
-                        !
-                        alphaig_local(itheta,k) = shinc2ig * max(exp(-fshfac*betan_local(itheta,k)**fshexp), fshalphamin)
-                        !alphaig_local(itheta,k) = 30.0 * max(exp(-fshfac*betan_local(itheta,k)**0.25), 0.1)
-                        ! 
-                     else
-                        ! 
-                        alphaig_local(itheta,k) = shinc2ig * 4500.0 * betan_local(itheta,k)**2.0
-                        !alphaig_local(itheta,k) = 30.0 * 4500.0 * betan_local(itheta,k)**2.0
-                        !
-                     endif                                           
+                     alphaig_local(itheta,k) = 8.0                                        
                      !
                   elseif (ig_opt == 5) then                  
                      !
                      call estimate_shoaling_parameter(betar_local(itheta,k), reldepth(k), alphaig_local(itheta,k)) ! [input, input, output]
+                     
+                     !if (depth(k) < 4 .and. depth(k) > 2.5) then
+                     !    write(*,*)'k, itheta, depth(k), reldepth(k), beta, betar_local(itheta,k), alphaig_local(itheta,k)',k, itheta, depth(k), reldepth(k), beta, betar_local(itheta,k), alphaig_local(itheta,k)
+                     !endif                     
                      !                      
                   endif
                   !
@@ -455,13 +441,9 @@ module snapwave_solver
                             dSxx = Sxx(itheta,k) - Sxxprev(itheta)
                             !dSxx = min(dSxx, 100.0) !try limit dSxx > is generally large in the Hinc shadow zone
                             dSxx = max(dSxx, 0.0)
-                            !srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * 0.25  * (H_igprev(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / cg_ig(k) 
-                            !srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * 0.25  * (H_igprev(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / ds(itheta, k) 
-                            !srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * 0.25  * (H_igprev(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx                           
+                       
                             srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * 0.25  * (H_igprev(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / ds(itheta, k)
-                            
-                            !for clarity already divide by cg_ig(k) here
-                            ! * 0.25 because the *4 in 4sqrt(E) is already absorbed in alphaig, so here we want just sqrt(E), which is then 0.25*Hig       
+                            ! vardens: * 0.25 because the *4 in 4sqrt(E) is already absorbed in alphaig, so here we want just sqrt(E), which is then 0.25*Hig       
                             !
                          endif
                      else
@@ -505,16 +487,8 @@ module snapwave_solver
             Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*Hk*Ek_ig !org
             !Dfk_ig      = fw_ig(k)*1025*(9.81/depth(k))**(3.0/2.0)*(Hk/sqrt(8.0))*Hk_ig**(2.0)/8 -> TL: seems to give same result    
             !
-            if (ig_opt == 1) then                
-               call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
-            elseif (ig_opt == 2) then
-               call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
-            elseif (ig_opt == 3) then
-               call battjesjanssen(rho,g,alfa,gamma_ig,depth(k),Hk_ig,T_ig,battjesjanssen_opt,Dwk_ig)
-            elseif (ig_opt == 4) then
-               call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))  
-            elseif (ig_opt == 5) then
-               call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
+            if (ig_opt == 1 .or. ig_opt == 5) then                
+               call baldock(g, rho, alfa_ig, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
             endif
             !
             DoverE_ig(k) = (Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0e-6)
@@ -723,18 +697,10 @@ module snapwave_solver
                      !
                      ! Breaking of infragravity waves (Maarten: should probably find another formulation for this)
                      !
-                     if (Hk_ig>baldock_ratio*Hmx_ig(k)) then
+                     if (Hk_ig>baldock_ratio_ig*Hmx_ig(k)) then
                         !
-                        if (ig_opt == 1) then                
-                           call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig0, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
-                        elseif (ig_opt == 2) then
-                           call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig0, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
-                        elseif (ig_opt == 3) then
-                           call battjesjanssen(rho,g,alfa,gamma_ig,depth(k),Hk_ig0,T_ig,battjesjanssen_opt,Dwk_ig)
-                        elseif (ig_opt == 4) then
-                           call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig0, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))        
-                        elseif (ig_opt == 5) then
-                           call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig0, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))                              
+                        if (ig_opt == 1 .or. ig_opt == 5) then                
+                           call baldock(g, rho, alfa_ig, gamma_ig, kwav_ig(k), depth(k), Hk_ig0, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))   
                         endif                        
                         !
                         DoverE_ig(k) = (1.0 - fac)*DoverE_ig(k) + fac*(Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0e-6)
@@ -755,16 +721,8 @@ module snapwave_solver
                         Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*Hk*Ek_ig !org
                         !Dfk_ig      = fw_ig(k)*1025*(9.81/depth(k))**(3.0/2.0)*(Hk/sqrt(8.0))*Hk_ig**(2.0)/8 -> TL: seems to give same result                  
                         !                     
-                        if (ig_opt == 1) then                
-                           call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
-                        elseif (ig_opt == 2) then
-                           call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
-                        elseif (ig_opt == 3) then
-                           call battjesjanssen(rho,g,alfa,gamma_ig,depth(k),Hk_ig,T_ig,battjesjanssen_opt,Dwk_ig)
-                        elseif (ig_opt == 4) then
-                           call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))        
-                        elseif (ig_opt == 5) then
-                           call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))                            
+                        if (ig_opt == 1 .or. ig_opt == 5) then                
+                           call baldock(g, rho, alfa_ig, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
                         endif                    
                         !
                         Dw_ig(k) = Dwk_ig                     
@@ -867,22 +825,14 @@ module snapwave_solver
                Df_ig(k)      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*H(k)*E_ig(k) !org
                !Df_ig(k)      = fw_ig(k)*1025*(9.81/depth(k))**(3.0/2.0)*(H(k)/sqrt(8.0))*H_ig(k)**(2.0)/8 -> TL: seems to give same result               
                !
-               if (ig_opt == 1) then                
-                  call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), H_ig(k), T_ig, baldock_opt, Dw_ig(k), Hmx_ig(k))
-               elseif (ig_opt == 2) then
-                  call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), H_ig(k), T_ig, baldock_opt, Dw_ig(k), Hmx_ig(k))
-               elseif (ig_opt == 3) then
-                  call battjesjanssen(rho,g,alfa,gamma_ig,depth(k),H_ig(k),T_ig,battjesjanssen_opt,Dw_ig(k))
-               elseif (ig_opt == 4) then
-                  call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), H_ig(k), T_ig, baldock_opt, Dw_ig(k), Hmx_ig(k))   
-               elseif (ig_opt == 5) then
-                  call baldock(g, rho, alfa, gamma_ig, kwav_ig(k), depth(k), H_ig(k), T_ig, baldock_opt, Dw_ig(k), Hmx_ig(k))
+               if (ig_opt == 1 .or. ig_opt == 5) then                
+                  call baldock(g, rho, alfa_ig, gamma_ig, kwav_ig(k), depth(k), H_ig(k), T_ig, baldock_opt, Dw_ig(k), Hmx_ig(k))  
                endif               
                !
                ! average betan, alphaig, srcsh over directions
                !betan(k)   = sum(betan_local(:,k))*dtheta
-               betan(k)   = sum(betar_local(:,k))*dtheta
-               !betan(k)   = maxval(betar_local(:,k))
+               !betan(k)   = sum(betar_local(:,k))*dtheta
+               betan(k)   = maxval(betar_local(:,k))
                
                !if (betan(k) == 0 .and. depth(k) < 5 .and. depth(k) > 2) then
                !    write(*,*)'k depth(k) betar(k)',k ,depth(k) ,betan(k)
@@ -1022,77 +972,11 @@ module snapwave_solver
    !
    end subroutine battjesjanssen   
    
-   subroutine estimate_shoaling_rate(betan, H, T, alphaig)
-   real*4, intent(in)                :: betan
-   real*4, intent(in)                :: H
-   real*4, intent(in)                :: T
-   real*4, intent(out)               :: alphaig
-   real*4                            :: L0
-   real*4                            :: x
-   real*4                            :: fshalphamin
-   real*4                            :: fshfac
-   real*4                            :: shinc2ig
-   real*4                            :: eexp
-   real*4                            :: alpha
-   !
-   ! Estimate local wave steepness
-   L0 = 9.81 * T **2 / (2 * pi); ! deep water wave length
-   !   
-   x = H / L0 ! local wave steepness                    
-   !
-   ! Estimate parameters going into shoaling rate formula
-   fshalphamin = 180.8556 * x**2 + 3.5123 * x + 0.0736
-   fshfac = 1.0e+04 * -2.1107 * x**2 + 1.0e+04 *  0.1367 * x + 1.0e+04 *  0.0003
-   shinc2ig = 1.0e+06 * 6.5499 * x**3 + 1.0e+06 * -0.4539 * x**2 + 1.0e+06 * 0.0085 * x - 15.2673
-   eexp = 1;
-   !
-   ! Actually calculate shoaling rate
-   alpha = shinc2ig * exp(-fshfac * betan ** eexp)
-   !
-   alphaig =  max(alpha, fshalphamin);
-   !             
-   end subroutine estimate_shoaling_rate   
-   
-   subroutine estimate_shoaling_rate_v02(betan, H, T, alphaig)
-   real*4, intent(in)                :: betan
-   real*4, intent(in)                :: H
-   real*4, intent(in)                :: T
-   real*4, intent(out)               :: alphaig
-   real*4                            :: L0
-   real*4                            :: x
-   real*4                            :: fshalphamin
-   real*4                            :: fshalphamax
-   real*4                            :: fshfac
-   real*4                            :: shinc2ig
-   real*4                            :: eexp
-   real*4                            :: alpha
-   !
-   ! Estimate local wave steepness
-   L0 = 9.81 * T **2 / (2 * pi); ! deep water wave length
-   !   
-   x = H / L0 ! local wave steepness                    
-   !
-   ! Estimate parameters going into shoaling rate formula
-   fshalphamin = 180.8556 * x**2 + 3.5123 * x + 0.0736
-   fshalphamax = min(1.0e+04 * 3.4167 * x ** 2 + 1.0e+04 * 0.3852 * x + 1.0e+04 * 0.0003, 50.0)
-   fshfac = 1.0e+04 *  -6.2071 * x**2 + 1.0e+04 *  0.3391 * x + 1.0e+04 *  0.0009
-   shinc2ig = 50.0
-   eexp = 1.0;
-   !
-   ! Actually calculate shoaling rate
-   alpha = shinc2ig * exp(-fshfac * betan ** eexp)
-   !
-   alphaig =  max(alpha, fshalphamin)
-   alphaig =  min(alpha, fshalphamax)   
-   !             
-   end subroutine estimate_shoaling_rate_v02   
-   
    subroutine estimate_shoaling_parameter(betar, reldepth, alphaig)
-   real*4, intent(in)                :: betar
+   real*8, intent(in)                :: betar
    real*4, intent(in)                :: reldepth   
    real*4, intent(out)               :: alphaig
    real*4                            :: xbeta   
-   real*4                            :: ybeta   
    !                 
    ! Estimate shoaling rate alphaig - as in Leijnse et al. (2023)
    if (reldepth > 0.0 .and. reldepth <= 4.0) then ! determined using (H in Hm0)
@@ -1101,10 +985,6 @@ module snapwave_solver
           !     
           xbeta = betar / 0.015
           ! 
-          !ybeta = 17.9*xbeta**3-36.8*xbeta**2+19.9*xbeta
-          !ybeta = 20.147*xbeta**3-41.2940*xbeta**2+22.147*xbeta          
-          !alphaig = ybeta * 8.0
-          !
           alphaig = 728.1081 * xbeta * exp(-10.0*xbeta) + 8*xbeta**3.0 - 24.0 * xbeta**2.0 + 24.0 * xbeta
           !728.1081 = 80 / exp(-1) * 3.3482
           ! alpha = 80 /exp(-1) * 3.3482  .* xval .* exp(- 10  .* xval) + 8* (xval.^3-3*xval.^2+3.*xval)
@@ -1112,23 +992,16 @@ module snapwave_solver
        elseif (betar > 0.015) then
           alphaig = 8.0
        else
-          alphaig = 0.0
+          alphaig = 0.0 ! means flat or negative slope
        endif 
        !
    elseif (reldepth > 4.0 ) then       
-   !elseif (reldepth > 4.0 .and. reldepth <= 20.0) then! Deep water (but not too deep, so we include extra IG growth still)
-   !elseif (reldepth > 4.0 .and. reldepth <= 10.0) then! Deep water (but not too deep, so we include extra IG growth still)
-   !elseif (reldepth > 4.0 .and. reldepth <= 6.0) then! Deep water (but not too deep, so we include extra IG growth still)
        !
        if (betar > 0.0) then      
           alphaig = 8.0
        else
-          alphaig = 0.0           
+          alphaig = 0.0 ! means flat or negative slope          
        endif
-       !
-   else
-       ! Super deep water, don't initiate extra IG energy transfer here besides possible conservative shoaling
-       alphaig = 0.0
        !
    endif
    !             
