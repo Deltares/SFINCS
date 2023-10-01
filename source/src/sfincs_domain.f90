@@ -398,7 +398,7 @@ contains
       endif
       !
    enddo   
-   !
+   ! 
    ! Loop through quadtree to count the number of u and v points
    !
    npu = 0
@@ -2336,6 +2336,15 @@ contains
       open(unit = 500, file = trim(volfile), form = 'unformatted', access = 'stream')
       read(500)storage_volume
       close(500)
+      !
+   endif
+   !
+   if (nref==1 .and. use_quadtree) then
+      !
+      ! Only one refinement level found in quadtree file. Reverting to use_quadtree is false.
+      ! This means netcdf output will be written to a regular grid.
+      !
+      use_quadtree = .false.
       !
    endif
    !

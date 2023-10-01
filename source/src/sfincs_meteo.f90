@@ -59,12 +59,12 @@ contains
       enddo
       !
       if (spw_nquant==4) then
-          if (ispwprecip==0) then
-             spw_precip = .false.
-             write(*,*)'Info : Overruled to not use precipitation from spiderweb input ...'
-          else
-             spw_precip = .true.
-          endif
+         if (use_spw_precip) then
+            spw_precip = .true.
+         else
+            write(*,*)'Info : Overruled to not use precipitation from spiderweb input ...'
+            spw_precip = .false.
+         endif
       endif
       !
       if (utmzone/='nil') then

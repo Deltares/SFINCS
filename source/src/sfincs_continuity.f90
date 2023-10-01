@@ -119,6 +119,7 @@ contains
    do nm = 1, np
       ! 
       if (kcs(nm)==1) then
+!      if (kcs(nm)==1 .or. kcs(nm)==4) then
          !
          if (precip) then
             !
@@ -282,8 +283,9 @@ contains
          !
          ! No continuity update but keeping track of variables         
          ! zsmax used by default, therefore keep in standard continuity loop:
+         !
          if (store_maximum_waterlevel) then
-            ! 
+            !
             zsmax(nm) = max(zsmax(nm), zs(nm))
             !
          endif

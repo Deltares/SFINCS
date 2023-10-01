@@ -606,7 +606,6 @@ contains
    face_nodes = 0
    !
    two = 2
-
    !
    nn = 0
    !
@@ -834,14 +833,34 @@ contains
       !
    endif
    !
-   ! Store maximum wind speed
-   !
-   if (wind .and. store_wind_max .and. meteo3d) then 
-      NF90(nf90_def_var(map_file%ncid, 'windmax', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%timemax_dimid/), map_file%windmax_varid)) ! maximum wind speed m/s
-      NF90(nf90_put_att(map_file%ncid, map_file%windmax_varid, '_FillValue', FILL_VALUE))
-      NF90(nf90_put_att(map_file%ncid, map_file%windmax_varid, 'units', 'm s-1'))
-      NF90(nf90_put_att(map_file%ncid, map_file%windmax_varid, 'long_name', 'maximum_wind_speed')) 
-      NF90(nf90_put_att(map_file%ncid, map_file%windmax_varid, 'cell_methods', 'time: maximum'))         
+   if (store_meteo) then  
+      !
+      if (wind) then
+         !
+         NF90(nf90_def_var(map_file%ncid, 'wind_u', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%wind_u_varid)) ! time-varying wind_u map 
+         NF90(nf90_put_att(map_file%ncid, map_file%wind_u_varid, '_FillValue', FILL_VALUE))   
+         NF90(nf90_put_att(map_file%ncid, map_file%wind_u_varid, 'units', 'm s-1'))
+         NF90(nf90_put_att(map_file%ncid, map_file%wind_u_varid, 'standard_name', 'eastward_wind')) ! not truly eastward when rotated, eastward_sea_water_velocity
+         NF90(nf90_put_att(map_file%ncid, map_file%wind_u_varid, 'long_name', 'wind_speed_u'))     
+         !
+         NF90(nf90_def_var(map_file%ncid, 'wind_v', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%wind_v_varid)) ! time-varying wind_u map 
+         NF90(nf90_put_att(map_file%ncid, map_file%wind_v_varid, '_FillValue', FILL_VALUE))   
+         NF90(nf90_put_att(map_file%ncid, map_file%wind_v_varid, 'units', 'm s-1'))
+         NF90(nf90_put_att(map_file%ncid, map_file%wind_v_varid, 'standard_name', 'northward_wind')) ! not truly eastward when rotated, eastward_sea_water_velocity
+         NF90(nf90_put_att(map_file%ncid, map_file%wind_v_varid, 'long_name', 'wind_speed_v'))     
+         !
+         if (store_wind_max) then  
+            !
+            ! Store maximum wind speed
+            ! 
+            NF90(nf90_def_var(map_file%ncid, 'windmax', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%timemax_dimid/), map_file%windmax_varid)) ! maximum wind speed m/s
+            NF90(nf90_put_att(map_file%ncid, map_file%windmax_varid, '_FillValue', FILL_VALUE))
+            NF90(nf90_put_att(map_file%ncid, map_file%windmax_varid, 'units', 'm s-1'))
+            NF90(nf90_put_att(map_file%ncid, map_file%windmax_varid, 'long_name', 'maximum_wind_speed')) 
+            NF90(nf90_put_att(map_file%ncid, map_file%windmax_varid, 'cell_methods', 'time: maximum'))         
+         endif
+         !
+      endif
    endif
    !
    if (snapwave) then  
@@ -1858,6 +1877,28 @@ contains
          NF90(nf90_put_var(map_file%ncid, map_file%v_varid, vtmp, (/1, ntmapout/)))
          !
       endif
+      ! 
+      if (store_meteo .and. wind) then  
+         !
+         utmp = FILL_VALUE
+         vtmp = FILL_VALUE
+         !
+         do nmq = 1, quadtree_nr_points
+            !
+            nm = index_sfincs_in_quadtree(nmq)
+            !
+            if (nm>0) then
+               ! 
+               utmp(nmq) = windu(nm)
+               vtmp(nmq) = windv(nm)
+               !
+            endif   
+         enddo
+         !
+         NF90(nf90_put_var(map_file%ncid, map_file%wind_u_varid, utmp, (/1, ntmapout/)))
+         NF90(nf90_put_var(map_file%ncid, map_file%wind_v_varid, vtmp, (/1, ntmapout/)))
+         !
+      endif
       !
       if (snapwave) then
          !
@@ -2441,12 +2482,12 @@ contains
        !
        if (kcs(nm)>0) then
            if (subgrid) then
-               if ( (zs(nm) - subgrid_z_zmin(nm)) > huthresh) then
-                   zstmp(nmq) = zs(nm)
+               if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
+                   zstmp(nmq) = zsmax(nm)
                endif
            else
-              if ( (zs(nm) - zb(nm)) > huthresh) then
-                  zstmp(nmq) = zs(nm)
+              if ( (zsmax(nm) - zb(nm)) > huthresh) then
+                  zstmp(nmq) = zsmax(nm)
               endif
            endif
        endif
@@ -2594,7 +2635,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'outputtype_map',outputtype_map))
         NF90(nf90_put_att(ncid, varid, 'outputtype_his',outputtype_his))
         NF90(nf90_put_att(ncid, varid, 'bndtype',bndtype))
-        NF90(nf90_put_att(ncid, varid, 'advection',iadvection))  
+!        NF90(nf90_put_att(ncid, varid, 'advection',iadvection))  
         NF90(nf90_put_att(ncid, varid, 'nfreqsig',nfreqsig))  
         NF90(nf90_put_att(ncid, varid, 'freqminig',freqminig))  
         NF90(nf90_put_att(ncid, varid, 'freqmaxig',freqmaxig))  
@@ -2612,17 +2653,17 @@ contains
         NF90(nf90_put_att(ncid, varid, 'horton_time', horton_time))     
         NF90(nf90_put_att(ncid, varid, 'btfilter', btfilter))                     
         NF90(nf90_put_att(ncid, varid, 'sfacinf', sfacinf))  
-        NF90(nf90_put_att(ncid, varid, 'radstr', iradstr)) 
-        NF90(nf90_put_att(ncid, varid, 'crsgeo',igeo)) 
-        NF90(nf90_put_att(ncid, varid, 'coriolis',icoriolis)) 
-        NF90(nf90_put_att(ncid, varid, 'amprblock',iamprblock)) 
+!        NF90(nf90_put_att(ncid, varid, 'radstr', iradstr)) 
+!        NF90(nf90_put_att(ncid, varid, 'crsgeo',igeo)) 
+!        NF90(nf90_put_att(ncid, varid, 'coriolis',icoriolis)) 
+!        NF90(nf90_put_att(ncid, varid, 'amprblock',iamprblock)) 
         NF90(nf90_put_att(ncid, varid, 'spwmergefrac',spw_merge_frac)) 
-        NF90(nf90_put_att(ncid, varid, 'usespwprecip',ispwprecip))         
-        NF90(nf90_put_att(ncid, varid, 'global',iglobal)) 
+!        NF90(nf90_put_att(ncid, varid, 'usespwprecip',ispwprecip))         
+!        NF90(nf90_put_att(ncid, varid, 'global',iglobal)) 
         NF90(nf90_put_att(ncid, varid, 'nuvisc',nuvisc)) 
-        NF90(nf90_put_att(ncid, varid, 'spinup_meteo', ispinupmeteo)) 
+!        NF90(nf90_put_att(ncid, varid, 'spinup_meteo', ispinupmeteo)) 
         NF90(nf90_put_att(ncid, varid, 'waveage',waveage)) 
-        NF90(nf90_put_att(ncid, varid, 'snapwave', isnapwave)) 
+!        NF90(nf90_put_att(ncid, varid, 'snapwave', isnapwave)) 
         NF90(nf90_put_att(ncid, varid, 'wmtfilter', wmtfilter))         
         NF90(nf90_put_att(ncid, varid, 'wmfred',wavemaker_freduv))         
         !
@@ -2694,27 +2735,27 @@ contains
         NF90(nf90_put_att(ncid, varid, 'storetwet',storetwet)) 
         NF90(nf90_put_att(ncid, varid, 'storehsubgrid',storehsubgrid)) 
         NF90(nf90_put_att(ncid, varid, 'twet_threshold',twet_threshold)) 
-        NF90(nf90_put_att(ncid, varid, 'store_tsunami_arrival_time',itsunamitime)) 
+!        NF90(nf90_put_att(ncid, varid, 'store_tsunami_arrival_time',itsunamitime)) 
         NF90(nf90_put_att(ncid, varid, 'tsunami_arrival_threshold',tsunami_arrival_threshold)) 
         NF90(nf90_put_att(ncid, varid, 'storeqdrain',storeqdrain)) 
         NF90(nf90_put_att(ncid, varid, 'storezvolume',storezvolume)) 
         NF90(nf90_put_att(ncid, varid, 'writeruntime',wrttimeoutput)) 
-        NF90(nf90_put_att(ncid, varid, 'debug',idebug)) 
+        NF90(nf90_put_att(ncid, varid, 'debug',logical2int(debug))) 
         NF90(nf90_put_att(ncid, varid, 'storemeteo',storemeteo)) 
-        NF90(nf90_put_att(ncid, varid, 'storemaxwind',iwindmax)) 
-        NF90(nf90_put_att(ncid, varid, 'storefw',istorefw))         
-        NF90(nf90_put_att(ncid, varid, 'storewavdir', istorewavdir)) 
+!        NF90(nf90_put_att(ncid, varid, 'storemaxwind',iwindmax)) 
+!        NF90(nf90_put_att(ncid, varid, 'storefw',istorefw))         
+!        NF90(nf90_put_att(ncid, varid, 'storewavdir', istorewavdir)) 
         !
         NF90(nf90_put_att(ncid, varid, 'cdnrb', cd_nr))   
         NF90(nf90_put_att(ncid, varid, 'cdwnd', cd_wnd))        
         NF90(nf90_put_att(ncid, varid, 'cdval', cd_val))  
         !
         ! Internal code switches - note, you can't store logicals in netcdf, only integers for these type of switches
-        NF90(nf90_put_att(ncid, varid, 'manning2d', imanning2d))   
-        NF90(nf90_put_att(ncid, varid, 'subgrid', isubgrid))   
-        NF90(nf90_put_att(ncid, varid, 'viscosity', iviscosity))   
-        NF90(nf90_put_att(ncid, varid, 'wavemaker', iwavemaker))         
-        NF90(nf90_put_att(ncid, varid, 'wavemaker_spectrum', iwavemaker_spectrum))         
+!        NF90(nf90_put_att(ncid, varid, 'manning2d', imanning2d))   
+!        NF90(nf90_put_att(ncid, varid, 'subgrid', isubgrid))   
+!        NF90(nf90_put_att(ncid, varid, 'viscosity', iviscosity))   
+!        NF90(nf90_put_att(ncid, varid, 'wavemaker', iwavemaker))         
+!        NF90(nf90_put_att(ncid, varid, 'wavemaker_spectrum', iwavemaker_spectrum))         
    end subroutine
    !   
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -2736,5 +2777,22 @@ contains
          end if
       end if
    end subroutine handle_err
+   !
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !   
+   function logical2int(lgc) result (i)
+   !
+   implicit none
+   !
+   logical              :: lgc
+   integer              :: i
+   !
+   if (lgc) then
+      i = 1
+   else
+      i = 0
+   endif
+   !
+   end function   
    !
    end module

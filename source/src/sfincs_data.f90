@@ -205,6 +205,8 @@ module sfincs_data
       logical       :: advection
       logical       :: fixed_output_intervals
       logical       :: use_storage_volume
+      logical       :: output_irregular_grid
+      logical       :: use_spw_precip
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
@@ -217,26 +219,6 @@ module sfincs_data
       integer storemeteo
       integer storehsubgrid
       integer wrttimeoutput
-      integer idebug
-      integer iradstr
-      integer igeo
-      integer icoriolis
-      integer iamprblock
-      integer iglobal
-      integer itsunamitime
-      integer ispinupmeteo
-      integer isnapwave
-      integer iwindmax
-      integer ioutfixed
-      integer iadvection
-      integer istorefw
-      integer istorewavdir   
-      integer imanning2d
-      integer iviscosity   
-      integer isubgrid  
-      integer iwavemaker      
-      integer iwavemaker_spectrum  
-      integer ispwprecip
       !!!
       !!! Static data
       !!!
