@@ -600,7 +600,6 @@ module sfincs_ncinput
     NF90(nf90_inq_varid(net_file_spw%ncid, "azimuth",           net_file_spw%azimuth_varid) )
     NF90(nf90_inq_varid(net_file_spw%ncid, "longitude_eye",     net_file_spw%xeye_varid) )  
     NF90(nf90_inq_varid(net_file_spw%ncid, "latitude_eye",      net_file_spw%yeye_varid) )  
-    NF90(nf90_inq_varid(net_file_spw%ncid, "eye_pressure",      net_file_spw%peye_varid) )  
     NF90(nf90_inq_varid(net_file_spw%ncid, "wind_x",            net_file_spw%wind_x_varid) )  
     NF90(nf90_inq_varid(net_file_spw%ncid, "wind_y",            net_file_spw%wind_y_varid) )  
     NF90(nf90_inq_varid(net_file_spw%ncid, "pressure",          net_file_spw%pressure_varid) )  
@@ -644,7 +643,6 @@ module sfincs_ncinput
     NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%time_varid, spw_times(:)))
     NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%xeye_varid, spw_xe(:)))
     NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%yeye_varid, spw_ye(:)))
-    NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%peye_varid, spw_pressure_eye(:)))
     NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%range_varid, spw_radia(:)))
     !
     ! We only need to now the maxima
