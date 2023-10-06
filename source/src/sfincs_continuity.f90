@@ -714,7 +714,7 @@ contains
    !$omp parallel &
    !$omp private (nmd,nmu,ndm,num,quz,qvz,qz,uvz )
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels present( kcs, zs, zb, subgrid_z_zmin, q, z_flags_type)
+   !$acc kernels present( kcs, zs, zb, subgrid_z_zmin, q, z_flags_type, &
    !$acc                  z_index_uv_md1, z_index_uv_nd1, z_index_uv_mu1, z_index_uv_nu1), async(1)
    !$acc loop independent, private( nm )   
    do nm = 1, np
