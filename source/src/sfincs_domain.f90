@@ -2236,7 +2236,11 @@ contains
          open(unit = 501, file = trim(sefffile), form = 'unformatted', access = 'stream')
          read(501)scs_Se
          close(501)
-         !
+         
+         ! Compute recovery                     ! Equation 4-36
+        
+
+         if (ksfile /= 'none') then 
          ! Allocate Ks
          allocate(ksfield(np))
          ksfield = 0.0
@@ -2244,11 +2248,13 @@ contains
          open(unit = 502, file = trim(ksfile), form = 'unformatted', access = 'stream')
          read(502)ksfield
          close(502)
-         !
-         ! Compute recovery                     ! Equation 4-36
-         allocate(inf_kr(np))
          inf_kr = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr
+         else
+            allocate(inf_kr(np))
+            inf_kr = 0!sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr
+         endif
          !
+
          ! Allocate support variables
          allocate(scs_P1(np))
          scs_P1 = 0.0
