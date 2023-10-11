@@ -2884,6 +2884,7 @@ contains
       !
    endif
    !
+
    if (precip) then
       !
       allocate(prcp(np))
@@ -2948,5 +2949,56 @@ contains
    endif
    !
    end subroutine
+
+   subroutine deallocate_quadtree()
    !
+   ! De-allocate arrays that are no longer necessary
+   !
+   use sfincs_data
+   use quadtree
+   !
+   ! In sfincs_data
+   !
+   if (allocated(z_index_uv_md1)) deallocate(z_index_uv_md1)
+   if (allocated(z_index_uv_md2)) deallocate(z_index_uv_md2)
+   if (allocated(z_index_uv_mu1)) deallocate(z_index_uv_mu1)
+   if (allocated(z_index_uv_mu2)) deallocate(z_index_uv_mu2)
+   if (allocated(z_index_uv_nd1)) deallocate(z_index_uv_nd1)
+   if (allocated(z_index_uv_nd2)) deallocate(z_index_uv_nd2)
+   if (allocated(z_index_uv_nu1)) deallocate(z_index_uv_nu1)
+   if (allocated(z_index_uv_nu2)) deallocate(z_index_uv_nu2)
+   !
+   ! In quadtree
+   !
+   if (allocated(quadtree_level)) deallocate(quadtree_level)
+   if (allocated(quadtree_md)) deallocate(quadtree_md)
+   if (allocated(quadtree_md1)) deallocate(quadtree_md1)
+   if (allocated(quadtree_md2)) deallocate(quadtree_md2)
+   if (allocated(quadtree_mu)) deallocate(quadtree_mu)
+   if (allocated(quadtree_mu1)) deallocate(quadtree_mu1)
+   if (allocated(quadtree_mu2)) deallocate(quadtree_mu2)
+   if (allocated(quadtree_nd)) deallocate(quadtree_nd)
+   if (allocated(quadtree_nd1)) deallocate(quadtree_nd1)
+   if (allocated(quadtree_nd2)) deallocate(quadtree_nd2)
+   if (allocated(quadtree_nu)) deallocate(quadtree_nu)
+   if (allocated(quadtree_nu1)) deallocate(quadtree_nu1)
+   if (allocated(quadtree_nu2)) deallocate(quadtree_nu2)
+   if (allocated(quadtree_n)) deallocate(quadtree_n)
+   if (allocated(quadtree_m)) deallocate(quadtree_m)
+   if (allocated(quadtree_n_oddeven)) deallocate(quadtree_n_oddeven)
+   if (allocated(quadtree_m_oddeven)) deallocate(quadtree_m_oddeven)
+   if (allocated(quadtree_xz)) deallocate(quadtree_xz)
+   if (allocated(quadtree_yz)) deallocate(quadtree_yz)
+   if (allocated(quadtree_zz)) deallocate(quadtree_zz)
+   if (allocated(quadtree_nm_indices)) deallocate(quadtree_nm_indices)
+   if (allocated(quadtree_first_point_per_level)) deallocate(quadtree_first_point_per_level)  
+   if (allocated(quadtree_last_point_per_level)) deallocate(quadtree_last_point_per_level)      
+   if (allocated(quadtree_dxr)) deallocate(quadtree_dxr)
+   if (allocated(quadtree_dyr)) deallocate(quadtree_dyr)
+   if (allocated(quadtree_mask)) deallocate(quadtree_mask)
+   if (allocated(quadtree_snapwave_mask)) deallocate(quadtree_snapwave_mask)
+   !
+   end subroutine
+   
+
 end module
