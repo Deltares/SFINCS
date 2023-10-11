@@ -108,7 +108,7 @@ contains
    endif   
    !
    !$omp parallel &
-   !$omp private ( nm,dvol,nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,nmd,nmu,ndm,num,qnmd,qnmu,qndm,qnum,iwm)
+   !$omp private ( nm,dvol,nmd,nmu,ndm,num,qnmd,qnmu,qndm,qnum,iwm)
    !$omp do schedule ( dynamic, 256 )
    !$acc kernels present( kcs, zs, zb, netprcp, cumprcpt, prcp, q, zsmax, zsm, &
    !$acc                  z_flags_iref, uv_flags_iref, &
@@ -283,6 +283,11 @@ contains
    real*4           :: factime
    real*4           :: dvol  
    !
+   real*4           :: qnmu
+   real*4           :: qnmd
+   real*4           :: qnum
+   real*4           :: qndm
+   !
    integer          :: iuv
    real*4           :: dzvol
    real*4           :: facint
@@ -310,12 +315,12 @@ contains
    endif   
    !
    !$omp parallel &
-   !$omp private ( dvol,nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind)
+   !$omp private ( dvol,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,iwm,qnmd,qnmu,qndm,qnum)
    !$omp do schedule ( dynamic, 256 )
    !$acc kernels present( kcs, zs, zb, z_volume, zsmax, zsm, &
    !$acc                  subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
-   !$acc                  netprcp, cumprcpt, prcp, q, z_flags_type, z_flags_iref, uv_flags_iref, &
-   !$acc                  z_index_uv_md1, z_index_uv_md2, z_index_uv_nd1, z_index_uv_nd2, z_index_uv_mu1, z_index_uv_mu2, z_index_uv_nu1, z_index_uv_nu2, &
+   !$acc                  netprcp, cumprcpt, prcp, q, z_flags_iref, uv_flags_iref, &
+   !$acc                  z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
    !$acc                  dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area, &
    !$acc                  z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, storage_volume), async(1)
    !$acc loop independent, private( nm )
@@ -325,7 +330,7 @@ contains
       !
       dvol = 0.0
       !
-      if (kcs(nm)==1 .or. kcs(nm)==4) then
+      if (kcs(nm)==1) then
          !
          if (crsgeo) then
             a = cell_area_m2(nm)
@@ -342,7 +347,6 @@ contains
             !
             if (cumprcpt(nm)>0.001 .or. cumprcpt(nm)<-0.001) then
                !
-!               z_volume(nm) = z_volume(nm) + cumprcpt(nm)*a
                dvol = dvol + cumprcpt(nm)*a
                cumprcpt(nm) = 0.0
                !
@@ -368,7 +372,76 @@ contains
             endif   
             !
          endif   
-         !            
+      endif ! kcs==1    
+      !
+      if (wavemaker .and. kcs(nm)==4) then
+         !
+         ! Wave maker point (seaward of wave maker)
+         ! Here we use the mean flux at the location of the wave maker 
+         !
+         iwm = z_index_wavemaker(nm)
+         !
+         if (wavemaker_nmd(iwm)>0) then
+            !
+            ! Wave paddle on the left
+            !
+            qnmd = wavemaker_uvmean(wavemaker_nmd(iwm))
+            !
+         else
+            !
+            qnmd = q(z_index_uv_md(nm))
+            !
+         endif   
+         !
+         if (wavemaker_nmu(iwm)>0) then
+            !
+            ! Wave paddle on the right
+            !
+            qnmu = wavemaker_uvmean(wavemaker_nmu(iwm))
+            !
+         else
+            !
+            qnmu = q(z_index_uv_mu(nm))
+            !
+         endif   
+         !
+         if (wavemaker_ndm(iwm)>0) then
+            !
+            ! Wave paddle below
+            !
+            qndm = wavemaker_uvmean(wavemaker_ndm(iwm))
+            !
+         else
+            !
+            qndm = q(z_index_uv_nd(nm))
+            !
+         endif   
+         !
+         if (wavemaker_num(iwm)>0) then
+            !
+            ! Wave paddle above
+            !
+            qnum = wavemaker_uvmean(wavemaker_num(iwm))
+            !
+         else
+            !
+            qnum = q(z_index_uv_nu(nm))
+            !
+         endif   
+         !
+         if (use_quadtree) then   
+            dvol = dvol + ( (qnmd - qnmu)*dyrm(uv_flags_iref(nm)) + (qndm - qnum)*dxrm(uv_flags_iref(nm)) ) * dt
+         else
+            dvol = dvol + ( (qnmd - qnmu)*dy + (qndm - qnum)*dx ) * dt
+         endif   
+         !
+      endif
+      !
+      ! We got the volume change dvol in each active cell
+      ! Now update the volume and compute new water level           
+      !
+      if (kcs(nm) == 1 .or. kcs(nm) == 4) then 
+         !      
          if (use_storage_volume) then
             !
             if (storage_volume(nm)>1.0e-6) then
@@ -420,21 +493,25 @@ contains
             !
          endif
          !
-         ! No continuity update but keeping track of variables         
-         ! zsmax used by default, therefore keep in standard continuity loop:         
-         if (store_maximum_waterlevel) then
-            !
-            zsmax(nm) = max(zsmax(nm), zs(nm))
-            !
-         endif
-         !
       endif
-      !       
-      if (wavemaker) then
+      !
+      if (snapwave) then
+         !
+         ! Time-averaged water level used for SnapWave using exponential filter
+         !
+         ! Would double exponential filtering be better?
          !
          zsm(nm) = factime*zs(nm) + (1.0 - factime)*zsm(nm)
          !
-      endif   
+      endif 
+      !
+      ! No continuity update but keeping track of variables         
+      ! zsmax used by default, therefore keep in standard continuity loop:         
+      if (store_maximum_waterlevel) then
+         !
+         zsmax(nm) = max(zsmax(nm), zs(nm))
+         !
+      endif
       !
    enddo
    !$omp end do
