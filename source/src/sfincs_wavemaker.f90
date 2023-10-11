@@ -152,6 +152,7 @@
             !
             ! Check right and above
             !
+!            nmu = z_index_uv_mu(ip)    ! index of 1st uv neighbor to the right
             nmu = z_index_uv_mu1(ip)    ! index of 1st uv neighbor to the right
             !
             if (nmu>0) then
@@ -753,6 +754,8 @@
    iwm = 0
    nok = 0
    !
+   write(*,*)'Setting wave makers ...' 
+   !
    do ip = 1, np
       !
       if (kcs(ip)==4) then
@@ -1124,6 +1127,8 @@
    !
    ! Set flags for kcuv points
    !
+   write(*,*)'Setting wave maker flags ...'
+   !
    do iwm = 1, wavemaker_nr_uv_points
       !
       ip = wavemaker_index_uv(iwm)
@@ -1137,14 +1142,16 @@
       !
       do ip = 1, npuv
          !
-         if (kcuv(uv_index_u_nmd(ip)) == 4)  uv_flags_adv(ip) = 0
-         if (kcuv(uv_index_u_nmu(ip)) == 4)  uv_flags_adv(ip) = 0
-         if (kcuv(uv_index_u_num(ip)) == 4)  uv_flags_adv(ip) = 0
-         if (kcuv(uv_index_u_ndm(ip)) == 4)  uv_flags_adv(ip) = 0
-         if (kcuv(uv_index_v_ndm(ip)) == 4)  uv_flags_adv(ip) = 0
-         if (kcuv(uv_index_v_nm(ip)) == 4)   uv_flags_adv(ip) = 0
-         if (kcuv(uv_index_v_nmu(ip)) == 4)  uv_flags_adv(ip) = 0
-         if (kcuv(uv_index_v_ndmu(ip)) == 4) uv_flags_adv(ip) = 0
+         ! TODO: re-implement uv_flags_adv ?
+         !
+!         if (kcuv(uv_index_u_nmd(ip)) == 4)  uv_flags_adv(ip) = 0
+!         if (kcuv(uv_index_u_nmu(ip)) == 4)  uv_flags_adv(ip) = 0
+!         if (kcuv(uv_index_u_num(ip)) == 4)  uv_flags_adv(ip) = 0
+!         if (kcuv(uv_index_u_ndm(ip)) == 4)  uv_flags_adv(ip) = 0
+!         if (kcuv(uv_index_v_ndm(ip)) == 4)  uv_flags_adv(ip) = 0
+!         if (kcuv(uv_index_v_nm(ip)) == 4)   uv_flags_adv(ip) = 0
+!         if (kcuv(uv_index_v_nmu(ip)) == 4)  uv_flags_adv(ip) = 0
+!         if (kcuv(uv_index_v_ndmu(ip)) == 4) uv_flags_adv(ip) = 0
          !
       enddo      
    endif
@@ -1308,6 +1315,8 @@
 !      call RANDOM_NUMBER(r)
       dphiig(ifreq) = 1.0e-6*2*3.1416/freqig(ifreq)
    enddo
+   ! 
+   write(*,*)'Wavemakers initialized !'
    !
    end subroutine
 

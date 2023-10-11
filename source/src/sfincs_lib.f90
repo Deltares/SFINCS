@@ -131,7 +131,7 @@ module sfincs_lib
    !
    call initialize_domain()     ! Reads dep, msk, index files. Creates index, flag and depth arrays
    !
-   call initialize_hydro()      ! Initializes water levels, fluxes, flags
+!   call initialize_hydro()      ! Initializes water levels, fluxes, flags
    !
    call read_structures()       ! Reads thd files. Sets kcuv to zero where necessary
    !

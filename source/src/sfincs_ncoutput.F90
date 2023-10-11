@@ -775,6 +775,7 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%v_varid, 'units', 'm s-1'))
       NF90(nf90_put_att(map_file%ncid, map_file%v_varid, 'standard_name', 'sea_water_y_velocity')) ! not truly eastward when rotated, eastward_sea_water_velocity
       NF90(nf90_put_att(map_file%ncid, map_file%v_varid, 'long_name', 'flow_velocity_y_direction_in_cell_edge'))     
+      !
    endif
    !
    ! Time varying spatial output
@@ -1500,8 +1501,8 @@ contains
          n    = z_index_z_n(nm)
          m    = z_index_z_m(nm)
          !
-         nmd1 = z_index_uv_md1(nm)
-         nmu1 = z_index_uv_mu1(nm)
+         nmd1 = z_index_uv_md(nm)
+         nmu1 = z_index_uv_mu(nm)
          uz = 0.0
          if (nmd1>0) then
             uz = uz + 0.5*uv(nmd1)
@@ -1510,8 +1511,8 @@ contains
             uz = uz + 0.5*uv(nmu1)
          endif   
          !
-         ndm1 = z_index_uv_nd1(nm)
-         num1 = z_index_uv_nu1(nm)
+         ndm1 = z_index_uv_nd(nm)
+         num1 = z_index_uv_nu(nm)
          vz = 0.0
          if (ndm1>0) then
             vz = vz + 0.5*uv(ndm1)
@@ -1793,78 +1794,16 @@ contains
             !
             if (nm>0) then
                !
-               if (z_flags_type(nm) == 0) then
-                  !
-                  ! Regular point with four surrounding cells of the same size
-                  !
-                  nmd1 = z_index_uv_md1(nm)
-                  nmu1 = z_index_uv_mu1(nm)
-                  ndm1 = z_index_uv_nd1(nm)
-                  num1 = z_index_uv_mu1(nm)
-                  uz  = 0.5*(uv(nmd1) + uv(nmu1))
-                  vz  = 0.5*(uv(ndm1) + uv(num1))
-                  !
-               else
-                  !
-                  ! Bit more complicated
-                  !
-                  nmd1 = z_index_uv_md1(nm)
-                  nmu1 = z_index_uv_mu1(nm)
-                  ndm1 = z_index_uv_nd1(nm)
-                  num1 = z_index_uv_mu1(nm)
-                  nmd2 = z_index_uv_md2(nm)
-                  nmu2 = z_index_uv_mu2(nm)
-                  ndm2 = z_index_uv_nd2(nm)
-                  num2 = z_index_uv_nu2(nm)
-                  !
-                  ! Left
-                  !
-                  u1 = 0.0
-                  if (nmd1>0 .and. nmd2==0) then   
-                     u1 = uv(nmd1)
-                  elseif (nmd1>0 .and. nmd2>0) then
-                     u1 = 0.5*uv(nmd1) + 0.5*uv(nmd2)
-                  elseif (nmd1==0 .and. nmd2>0) then   
-                     u1 = uv(nmd2)
-                  endif   
-                  !
-                  ! Right
-                  !
-                  u2 = 0.0
-                  if (nmu1>0  .and. nmu2==0) then   
-                     u2 = uv(nmu1)
-                  elseif (nmu1>0 .and. nmu2>0) then
-                     u2 = 0.5*uv(nmu1) + 0.5*uv(nmu2)
-                  elseif (nmu2==0  .and. nmu2>0) then   
-                     u2 = uv(nmu2)
-                  endif   
-                  !
-                  ! Bottom
-                  !
-                  v1 = 0.0
-                  if (ndm1>0 .and. ndm2==0) then   
-                     v1 = uv(ndm1)
-                  elseif (ndm1>0 .and. ndm2>0) then
-                     v1 = 0.5*uv(ndm1) + 0.5*uv(ndm2)
-                  elseif (ndm1==0 .and. ndm2>0) then   
-                     v1 = uv(ndm2)
-                  endif   
-                  !
-                  ! Right
-                  !
-                  v2 = 0.0
-                  if (num1>0  .and. num2==0) then   
-                     v2 = uv(num1)
-                  elseif (num1>0 .and. num2>0) then
-                     v2 = 0.5*uv(num1) + 0.5*uv(num2)
-                  elseif (num2==0  .and. num2>0) then   
-                     v2 = uv(num2)
-                  endif   
-                  !
-                  uz = 0.5*(u1 + u2)
-                  vz = 0.5*(v1 + v2)
-                  !
-               endif   
+               ! Regular point with four surrounding cells of the same size
+               !
+               n = z_index_z_n(nm)
+               m = z_index_z_m(nm)
+               nmd1 = z_index_uv_md(nm)
+               nmu1 = z_index_uv_mu(nm)
+               ndm1 = z_index_uv_nd(nm)
+               num1 = z_index_uv_nu(nm)
+               uz = 0.5*(uv(nmd1) + uv(nmu1))
+               vz = 0.5*(uv(ndm1) + uv(num1))
                !
                utmp(nmq) = cosrot*uz - sinrot*vz            
                vtmp(nmq) = sinrot*uz + cosrot*vz  
@@ -2047,78 +1986,14 @@ contains
          !
          if (store_velocity) then
             !
-            if (z_flags_type(nm) == 0) then
-               !
-               ! Regular point with four surrounding cells of the same size
-               !
-               nmd1 = z_index_uv_md1(nm)
-               nmu1 = z_index_uv_mu1(nm)
-               ndm1 = z_index_uv_nd1(nm)
-               num1 = z_index_uv_mu1(nm)
-               uz  = 0.5*(uv(nmd1) + uv(nmu1))
-               vz  = 0.5*(uv(ndm1) + uv(num1))
-               !
-            else
-               !
-               ! Bit more complicated
-               !
-               nmd1 = z_index_uv_md1(nm)
-               nmu1 = z_index_uv_mu1(nm)
-               ndm1 = z_index_uv_nd1(nm)
-               num1 = z_index_uv_mu1(nm)
-               nmd2 = z_index_uv_md2(nm)
-               nmu2 = z_index_uv_mu2(nm)
-               ndm2 = z_index_uv_nd2(nm)
-               num2 = z_index_uv_nu2(nm)
-               !
-               ! Left
-               !
-               u1 = 0.0
-               if (nmd1>0 .and. nmd2==0) then   
-                  u1 = uv(nmd1)
-               elseif (nmd1>0 .and. nmd2>0) then
-                  u1 = 0.5*uv(nmd1) + 0.5*uv(nmd2)
-               elseif (nmd1==0 .and. nmd2>0) then   
-                  u1 = uv(nmd2)
-               endif   
-               !
-               ! Right
-               !
-               u2 = 0.0
-               if (nmu1>0  .and. nmu2==0) then   
-                  u2 = uv(nmu1)
-               elseif (nmu1>0 .and. nmu2>0) then
-                  u2 = 0.5*uv(nmu1) + 0.5*uv(nmu2)
-               elseif (nmu2==0  .and. nmu2>0) then   
-                  u2 = uv(nmu2)
-               endif   
-               !
-               ! Bottom
-               !
-               v1 = 0.0
-               if (ndm1>0 .and. ndm2==0) then   
-                  v1 = uv(ndm1)
-               elseif (ndm1>0 .and. ndm2>0) then
-                  v1 = 0.5*uv(ndm1) + 0.5*uv(ndm2)
-               elseif (ndm1==0 .and. ndm2>0) then   
-                  v1 = uv(ndm2)
-               endif   
-               !
-               ! Right
-               !
-               v2 = 0.0
-               if (num1>0  .and. num2==0) then   
-                  v2 = uv(num1)
-               elseif (num1>0 .and. num2>0) then
-                  v2 = 0.5*uv(num1) + 0.5*uv(num2)
-               elseif (num2==0  .and. num2>0) then   
-                  v2 = uv(num2)
-               endif   
-               !
-               uz = 0.5*(u1 + u2)
-               vz = 0.5*(v1 + v2)
-               !
-            endif   
+            ! Regular point with four surrounding cells of the same size
+            !
+            nmd1 = z_index_uv_md(nm)
+            nmu1 = z_index_uv_mu(nm)
+            ndm1 = z_index_uv_nd(nm)
+            num1 = z_index_uv_mu(nm)
+            uz  = 0.5*(uv(nmd1) + uv(nmu1))
+            vz  = 0.5*(uv(ndm1) + uv(num1))
             !
             uobs(iobs)  = cosrot*uz - sinrot*vz                         
             vobs(iobs)  = sinrot*uz + cosrot*vz

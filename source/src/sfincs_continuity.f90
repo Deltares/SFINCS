@@ -111,15 +111,14 @@ contains
    !$omp private ( nm,dvol,nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,nmd,nmu,ndm,num,qnmd,qnmu,qndm,qnum,iwm)
    !$omp do schedule ( dynamic, 256 )
    !$acc kernels present( kcs, zs, zb, netprcp, cumprcpt, prcp, q, zsmax, zsm, &
-   !$acc                  z_flags_type, z_flags_iref, uv_flags_iref, &
-   !$acc                  z_index_uv_md1, z_index_uv_md2, z_index_uv_nd1, z_index_uv_nd2, z_index_uv_mu1, z_index_uv_mu2, z_index_uv_nu1, z_index_uv_nu2, &
+   !$acc                  z_flags_iref, uv_flags_iref, &
+   !$acc                  z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
    !$acc                  dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area,  &
    !$acc                  z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num), async(1)
    !$acc loop independent, private( nm )
    do nm = 1, np
       ! 
-      if (kcs(nm)==1) then
-!      if (kcs(nm)==1 .or. kcs(nm)==4) then
+      if (kcs(nm)==1) then ! Regular point
          !
          if (precip) then
             !
@@ -138,157 +137,16 @@ contains
             !
          endif
          !
-         if (z_flags_type(nm) == 0) then
-            !
-            ! Regular point with four surrounding cells of the same size
-            !
-            nmd = z_index_uv_md1(nm)
-            nmu = z_index_uv_mu1(nm)
-            ndm = z_index_uv_nd1(nm)
-            num = z_index_uv_nu1(nm)
-            !
-            if (crsgeo) then
-               zs(nm)   = zs(nm) + (((q(nmd) - q(nmu))*dxminv(nmu) + (q(ndm) - q(num))*dyrinv(z_flags_iref(nm))))*dt
-            else   
-               zs(nm)   = zs(nm) + (((q(nmd) - q(nmu))*dxrinv(z_flags_iref(nm)) + (q(ndm) - q(num))*dyrinv(z_flags_iref(nm))))*dt
-            endif   
-            !
-         else
-            !
-            if (use_quadtree) then   
-               !
-               ! More complicated
-               !
-               nmd1 = z_index_uv_md1(nm)
-               nmu1 = z_index_uv_mu1(nm)
-               ndm1 = z_index_uv_nd1(nm)
-               num1 = z_index_uv_nu1(nm)
-               nmd2 = z_index_uv_md2(nm)
-               nmu2 = z_index_uv_mu2(nm)
-               ndm2 = z_index_uv_nd2(nm)
-               num2 = z_index_uv_nu2(nm)
-               !
-               dvol = 0.0
-               !
-               ! U
-               !
-               if (nmd1>0) then
-                  dvol = dvol + q(nmd1)*dyrm(uv_flags_iref(nmd1))
-               endif   
-               !
-               if (nmd2>0) then
-                  dvol = dvol + q(nmd2)*dyrm(uv_flags_iref(nmd2))
-               endif
-               !
-               if (nmu1>0) then
-                  dvol = dvol - q(nmu1)*dyrm(uv_flags_iref(nmu1))
-               endif   
-               !
-               if (nmu2>0) then
-                  dvol = dvol - q(nmu2)*dyrm(uv_flags_iref(nmu2))
-               endif
-               !
-               ! V
-               !
-               if (crsgeo) then
-                  !
-                  if (ndm1>0) then                     
-                     dvol = dvol + q(ndm1)*dxm(ndm1)
-                  endif   
-                  !
-                  if (ndm2>0) then
-                     dvol = dvol + q(ndm2)*dxm(ndm2)
-                  endif 
-                  !
-                  if (num1>0) then
-                     dvol = dvol - q(num1)*dxm(num1)
-                  endif   
-                  !
-                  if (num2>0) then
-                     dvol = dvol - q(num2)*dxm(num2)
-                  endif
-                  !
-               else
-                  !
-                  if (ndm1>0) then
-                     dvol = dvol + q(ndm1)*dxrm(uv_flags_iref(ndm1))
-                  endif   
-                  !
-                  if (ndm2>0) then
-                    dvol = dvol + q(ndm2)*dxrm(uv_flags_iref(ndm2))
-                  endif 
-                  !
-                  if (num1>0) then
-                     dvol = dvol - q(num1)*dxrm(uv_flags_iref(num1))
-                  endif   
-                  !
-                  if (num2>0) then
-                     dvol = dvol - q(num2)*dxrm(uv_flags_iref(num2))
-                  endif
-                  !
-               endif               
-               !
-            else
-               !
-               nmd = z_index_uv_md1(nm)
-               nmu = z_index_uv_mu1(nm)
-               ndm = z_index_uv_nd1(nm)
-               num = z_index_uv_nu1(nm)
-               !
-               dvol = 0.0
-               !
-               ! U
-               !
-               if (nmd>0) then
-                  dvol = dvol + q(nmd)*dyrm(1)
-               endif   
-               !
-               if (nmu>0) then
-                  dvol = dvol - q(nmu)*dyrm(1)
-               endif   
-               !
-               ! V
-               !
-               if (crsgeo) then
-                  !
-                  if (ndm>0) then
-                     dvol = dvol + q(ndm)*dxm(ndm)
-                  endif   
-                  !
-                  if (num>0) then
-                     dvol = dvol - q(num)*dxm(num)
-                  endif   
-                  !
-               else
-                  !
-                  if (ndm>0) then
-                     dvol = dvol + q(ndm)*dxrm(1)
-                  endif   
-                  !
-                  if (num>0) then
-                     dvol = dvol - q(num)*dxrm(1)
-                  endif   
-                  !
-               endif   
-               !
-            endif   
-            !
-            if (crsgeo) then
-               zs(nm) = zs(nm) + dvol*dt/cell_area_m2(nm)
-            else                  
-               zs(nm) = zs(nm) + dvol*dt/cell_area(z_flags_iref(nm))
-            endif
-            !
-         endif
+         nmd = z_index_uv_md(nm)
+         nmu = z_index_uv_mu(nm)
+         ndm = z_index_uv_nd(nm)
+         num = z_index_uv_nu(nm)
          !
-         ! No continuity update but keeping track of variables         
-         ! zsmax used by default, therefore keep in standard continuity loop:
-         !
-         if (store_maximum_waterlevel) then
-            !
-            zsmax(nm) = max(zsmax(nm), zs(nm))
-            !
-         endif
+         if (crsgeo) then
+            zs(nm)   = zs(nm) + (((q(nmd) - q(nmu))*dxminv(nmu) + (q(ndm) - q(num))*dyrinv(z_flags_iref(nm))))*dt
+         else   
+            zs(nm)   = zs(nm) + (((q(nmd) - q(nmu))*dxrinv(z_flags_iref(nm)) + (q(ndm) - q(num))*dyrinv(z_flags_iref(nm))))*dt
+         endif   
          !
       endif
       !
@@ -296,7 +154,8 @@ contains
          !      
          if (kcs(nm)==4) then
             !
-            ! Wave maker point
+            ! Wave maker point (seaward of wave maker)
+            ! Here we use the mean flux at the location of the wave maker 
             !
             iwm = z_index_wavemaker(nm)
             !
@@ -308,7 +167,7 @@ contains
                !
             else
                !
-               qnmd = q(z_index_uv_md1(nm))
+               qnmd = q(z_index_uv_md(nm))
                !
             endif   
             !
@@ -320,7 +179,7 @@ contains
                !
             else
                !
-               qnmu = q(z_index_uv_mu1(nm))
+               qnmu = q(z_index_uv_mu(nm))
                !
             endif   
             !
@@ -332,7 +191,7 @@ contains
                !
             else
                !
-               qndm = q(z_index_uv_nd1(nm))
+               qndm = q(z_index_uv_nd(nm))
                !
             endif   
             !
@@ -344,7 +203,7 @@ contains
                !
             else
                !
-               qnum = q(z_index_uv_nu1(nm))
+               qnum = q(z_index_uv_nu(nm))
                !
             endif   
             !
@@ -352,11 +211,26 @@ contains
             !
          endif   
          !
+      endif
+      !
+      if (snapwave) then
+         !
+         ! Time-averaged water level used for SnapWave using exponential filter
+         !
          ! Would double exponential filtering be better?
          !
          zsm(nm) = factime*zs(nm) + (1.0 - factime)*zsm(nm)
          !
-      endif   
+      endif 
+      !
+      ! No continuity update but keeping track of variables         
+      ! zsmax used by default, therefore keep in standard continuity loop:
+      !
+      if (store_maximum_waterlevel) then
+         !
+         zsmax(nm) = max(zsmax(nm), zs(nm))
+         !
+      endif
       !
    enddo
    !$omp end do
@@ -476,152 +350,25 @@ contains
             !
          endif
          !
-         if (z_flags_type(nm) == 0) then
+         nmd = z_index_uv_md(nm)
+         nmu = z_index_uv_mu(nm)
+         ndm = z_index_uv_nd(nm)
+         num = z_index_uv_nu(nm)
+         !
+         if (crsgeo) then
             !
-            ! Regular point with four surrounding cells of the same size
+            dvol = dvol + ( (q(nmd) - q(nmu))*dyrm(uv_flags_iref(nm)) + (q(ndm) - q(num))*dxm(nm) ) * dt
             !
-            nmd = z_index_uv_md1(nm)
-            nmu = z_index_uv_mu1(nm)
-            ndm = z_index_uv_nd1(nm)
-            num = z_index_uv_nu1(nm)
-            !
-            if (crsgeo) then
-               !
-               dvol = dvol + ( (q(nmd) - q(nmu))*dyrm(uv_flags_iref(nm)) + (q(ndm) - q(num))*dxm(nm) ) * dt
-!               z_volume(nm) = z_volume(nm) + ( (q(nmd) - q(nmu))*dyrm(uv_flags_iref(nm)) + (q(ndm) - q(num))*dxm(nm) ) * dt
-               !
-            else
-               !
-               if (use_quadtree) then   
-                  dvol = dvol + ( (q(nmd) - q(nmu))*dyrm(uv_flags_iref(nm)) + (q(ndm) - q(num))*dxrm(uv_flags_iref(nm)) ) * dt
-!                  z_volume(nm) = z_volume(nm) + ( (q(nmd) - q(nmu))*dyrm(uv_flags_iref(nm)) + (q(ndm) - q(num))*dxrm(uv_flags_iref(nm)) ) * dt
-               else
-                  dvol = dvol + ( (q(nmd) - q(nmu))*dy + (q(ndm) - q(num))*dx ) * dt
-!                  z_volume(nm) = z_volume(nm) + ( (q(nmd) - q(nmu))*dy + (q(ndm) - q(num))*dx ) * dt
-               endif   
-               !
-            endif   
-            !            
          else
             !
             if (use_quadtree) then   
-               !
-               ! More complicated
-               !
-               nmd1 = z_index_uv_md1(nm)
-               nmu1 = z_index_uv_mu1(nm)
-               ndm1 = z_index_uv_nd1(nm)
-               num1 = z_index_uv_nu1(nm)
-               nmd2 = z_index_uv_md2(nm)
-               nmu2 = z_index_uv_mu2(nm)
-               ndm2 = z_index_uv_nd2(nm)
-               num2 = z_index_uv_nu2(nm)
-               !
-               ! U
-               !
-               if (nmd1>0) then
-                  dvol = dvol + q(nmd1)*dyrm(uv_flags_iref(nmd1))*dt
-               endif   
-               !
-               if (nmd2>0) then
-                  dvol = dvol + q(nmd2)*dyrm(uv_flags_iref(nmd2))*dt
-               endif
-               !
-               if (nmu1>0) then
-                  dvol = dvol - q(nmu1)*dyrm(uv_flags_iref(nmu1))*dt
-               endif   
-               !
-               if (nmu2>0) then
-                  dvol = dvol - q(nmu2)*dyrm(uv_flags_iref(nmu2))*dt
-               endif
-               !
-               ! V
-               !
-               if (crsgeo) then
-                  !
-                  if (ndm1>0) then                     
-                     dvol = dvol + q(ndm1)*dxm(ndm1)*dt
-                  endif   
-                  !
-                  if (ndm2>0) then
-                     dvol = dvol + q(ndm2)*dxm(ndm2)*dt
-                  endif 
-                  !
-                  if (num1>0) then
-                     dvol = dvol - q(num1)*dxm(num1)*dt
-                  endif   
-                  !
-                  if (num2>0) then
-                     dvol = dvol - q(num2)*dxm(num2)*dt
-                  endif
-                  !
-               else
-                  !
-                  if (ndm1>0) then
-                     dvol = dvol + q(ndm1)*dxrm(uv_flags_iref(ndm1))*dt
-                  endif   
-                  !
-                  if (ndm2>0) then
-                    dvol = dvol + q(ndm2)*dxrm(uv_flags_iref(ndm2))*dt
-                  endif 
-                  !
-                  if (num1>0) then
-                     dvol = dvol - q(num1)*dxrm(uv_flags_iref(num1))*dt
-                  endif   
-                  !
-                  if (num2>0) then
-                     dvol = dvol - q(num2)*dxrm(uv_flags_iref(num2))*dt
-                  endif
-                  !
-               endif               
-               !
+               dvol = dvol + ( (q(nmd) - q(nmu))*dyrm(uv_flags_iref(nm)) + (q(ndm) - q(num))*dxrm(uv_flags_iref(nm)) ) * dt
             else
-               !
-               nmd = z_index_uv_md1(nm)
-               nmu = z_index_uv_mu1(nm)
-               ndm = z_index_uv_nd1(nm)
-               num = z_index_uv_nu1(nm)
-               !
-!               dvol = 0.0
-               !
-               ! U
-               !
-               if (nmd>0) then
-                  dvol = dvol + q(nmd)*dyrm(1)*dt
-               endif   
-               !
-               if (nmu>0) then
-                  dvol = dvol - q(nmu)*dyrm(1)*dt
-               endif   
-               !
-               ! V
-               !
-               if (crsgeo) then
-                  !
-                  if (ndm>0) then
-                     dvol = dvol + q(ndm)*dxm(ndm)*dt
-                  endif   
-                  !
-                  if (num>0) then
-                     dvol = dvol - q(num)*dxm(num)*dt
-                  endif   
-                  !
-               else
-                  !
-                  if (ndm>0) then
-                     dvol = dvol + q(ndm)*dxrm(1)*dt
-                  endif   
-                  !
-                  if (num>0) then
-                     dvol = dvol - q(num)*dxrm(1)*dt
-                  endif   
-                  !
-               endif   
-               !
+               dvol = dvol + ( (q(nmd) - q(nmu))*dy + (q(ndm) - q(num))*dx ) * dt
             endif   
             !
-         endif
-         !
+         endif   
+         !            
          if (use_storage_volume) then
             !
             if (storage_volume(nm)>1.0e-6) then
@@ -647,6 +394,8 @@ contains
             z_volume(nm) = z_volume(nm) + dvol
             !
          endif
+         ! 
+         ! Obtain new water level from subgrid tables 
          !
          if (z_volume(nm)>=subgrid_z_volmax(nm) - 1.0e-6) then
             !
@@ -656,9 +405,13 @@ contains
             !
          elseif (z_volume(nm)<=1.0e-6) then
             !
+            ! No water in this cell. Set zs to z_zmin.
+            !
             zs(nm) = max(subgrid_z_zmin(nm), -20.0)
             !
          else
+            !
+            ! Interpolation from subgrid tables needed.
             !
             dzvol    = subgrid_z_volmax(nm) / (subgrid_nbins - 1)
             iuv      = min(int(z_volume(nm)/dzvol) + 1, subgrid_nbins - 1)
@@ -728,33 +481,24 @@ contains
       !
       if (kcs(nm)==1 .or. kcs(nm)==4) then ! TL: kcs(nm)==4 also correct for regular?
          !      
-         if (z_flags_type(nm) == 0) then
-            ! 
-            ! Regular point with four surrounding cells of the same size
-            !
-            nmd = z_index_uv_md1(nm)
-            nmu = z_index_uv_mu1(nm)
-            ndm = z_index_uv_nd1(nm)
-            num = z_index_uv_nu1(nm)
-            !
-            if (store_maximum_velocity) then
-               quz = (uv(nmd) + uv(nmu)) / 2   
-               qvz = (uv(ndm) + uv(num)) / 2      
-               uvz = sqrt(quz**2 + qvz**2)
-            endif
-            !
-            if (store_maximum_flux) then
-               quz = (q(nmd) + q(nmu)) / 2   
-               qvz = (q(ndm) + q(num)) / 2      
-               qz = sqrt(quz**2 + qvz**2)
-            endif   
-            !
-         else
-            !
-            !if (use_quadtree) then    
-            !    ! TODO    
-            !endif
-         endif 
+         ! Regular point with four surrounding cells of the same size
+         !
+         nmd = z_index_uv_md(nm)
+         nmu = z_index_uv_mu(nm)
+         ndm = z_index_uv_nd(nm)
+         num = z_index_uv_nu(nm)
+         !
+         if (store_maximum_velocity) then
+            quz = (uv(nmd) + uv(nmu)) / 2   
+            qvz = (uv(ndm) + uv(num)) / 2      
+            uvz = sqrt(quz**2 + qvz**2)
+         endif
+         !
+         if (store_maximum_flux) then
+            quz = (q(nmd) + q(nmu)) / 2   
+            qvz = (q(ndm) + q(num)) / 2      
+            qz = sqrt(quz**2 + qvz**2)
+         endif   
          !
          ! No continuity update but keeping track of variables
          ! 1. store vmax
