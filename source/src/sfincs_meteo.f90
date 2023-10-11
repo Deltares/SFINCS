@@ -1317,18 +1317,6 @@ contains
       !
    endif
    !
-!   if (precip .and. store_cumulative_precipitation) then
-!      !        
-!      call update_cumprcp_map()
-!      !
-!   endif
-!   !
-!   if (infiltration2d) then
-!      !
-!      call update_infiltration_map()
-!      !
-!   endif
-   !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
    !         

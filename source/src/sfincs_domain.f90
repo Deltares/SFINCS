@@ -112,18 +112,17 @@ contains
 
    subroutine initialize_mesh()
    !
-   ! Initialize SFINCS domain (indices, flags and depths)
+   ! Initialize SFINCS domain (indices, flags and neighbors)
    !
    use sfincs_data
    use quadtree
    !
    implicit none
    !
-   integer ip, n, m, nm, nmu, num, ib, iref, npu, npv, ipuv, ipu, ipv, iud, iuu, ndm, nmd, j, iq, nmx, ibin, ind
+   integer ip, n, m, nm, nmu, num, ib, iref, npu, npv, ipuv, ipu, ipv, iud, iuu, ndm, nmd, j, iq, nmx, ind
    integer ndmu, nmdu, numu
    integer ikcuv2
    integer npac, idummy
-   integer npuvq, npuvs, npzq
    integer nrefuv, irefuv, npuvtotal, icuv
    !
    ! Temporary arrays
@@ -2522,7 +2521,7 @@ contains
    real*4, dimension(:),   allocatable :: inizs
    real*4, dimension(:),   allocatable :: iniq
    !
-   integer    :: nm, m, n, ivol, num, nmu, ibin, rsttype, ip, ind, iuv
+   integer    :: nm, m, n, ivol, num, nmu, ibin, rsttype, ip, ind, iuv, icuv
    real*4     :: dzvol
    real*4     :: facint
    real*4     :: rdummy
@@ -2536,6 +2535,9 @@ contains
    logical   :: iok
    !
    allocate(zs(np))
+   !
+   ! q, q0, uv, and uv0 also contain the combined values at quadtree transition cells. Plus 1 for dummy values set to 0.0.
+   !
    allocate(q(npuv + ncuv + 1))
    allocate(q0(npuv + ncuv + 1))
    allocate(uv(npuv + ncuv + 1))
@@ -2796,6 +2798,17 @@ contains
       endif
       !
    endif
+   !
+   ! Loop through combined uv points and determine average uv and q (this also happens at the end of sfincs_momentum.f90).
+   !
+   do icuv = 1, ncuv
+      !
+      ! Average of the two uv points
+      !
+      q(cuv_index_uv(icuv))  = 0.5*(q(cuv_index_uv1(icuv)) + q(cuv_index_uv2(icuv)))
+      uv(cuv_index_uv(icuv)) = 0.5*(uv(cuv_index_uv1(icuv)) + uv(cuv_index_uv2(icuv)))
+      !
+   enddo
    !
    if (wavemaker) then
       !      
