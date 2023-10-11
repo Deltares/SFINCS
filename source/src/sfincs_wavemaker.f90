@@ -1183,7 +1183,7 @@
       rewind(500)
       allocate(x_wmfp(nwmfp))
       allocate(y_wmfp(nwmfp))
-      do n = 1, nwbnd
+      do n = 1, nwmfp
          read(500,*)x_wmfp(n),y_wmfp(n)
       enddo
       close(500)

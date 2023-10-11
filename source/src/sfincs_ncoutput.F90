@@ -191,15 +191,19 @@ contains
        NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'coordinates', 'x y'))
        if (inftype == 'cna') then
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'S')) 
-           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'moisture storage (S) capacity as computed from the curve number')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'moisture storage (S) capacity - Curve number')) 
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'm'))
        elseif (inftype == 'cnb') then
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'Smax')) 
-           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'maximum moisture storage (Smax) capacity as computed from the curve number')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'maximum moisture storage (Smax) capacity - Curve number')) 
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'm'))
        elseif (inftype == 'gai') then
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'psi')) 
-           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'suction head at the wetting front as provided to Green and Ampt')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'suction head at the wetting front - Green and Ampt')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'm'))
+       elseif (inftype == 'hor') then
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'f0')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'initial infiltration rate - Horton')) 
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'm'))
        else
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'qinf')) 
@@ -270,13 +274,23 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'coordinates', 'corner_x corner_y'))
    endif
    !
-   ! Store S_effective (only for CN method with recovery)
+   ! Store sigma (only for Green-Ampt)
    if (inftype == 'gai') then
       NF90(nf90_def_var(map_file%ncid, 'sigma', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%Seff_varid)) ! time-varying sigma
       NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, '_FillValue', FILL_VALUE))   
       NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'units', '-'))
       NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'standard_name', 'sigma')) 
       NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'long_name', 'maximum soil moisture deficit'))     
+      NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'coordinates', 'corner_x corner_y'))
+   endif
+   !
+   ! Store current infiltration (only for Horton)
+   if (inftype == 'hor') then
+      NF90(nf90_def_var(map_file%ncid, 'f', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%Seff_varid)) ! time-varying sigma
+      NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'units', 'mm h-1'))
+      NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'standard_name', 'sigma')) 
+      NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'long_name', 'current infiltration capacity'))     
       NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'coordinates', 'corner_x corner_y'))
    endif
    !
@@ -911,16 +925,20 @@ contains
        NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, '_FillValue', FILL_VALUE))     
        if (inftype == 'cna') then
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'S')) 
-           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'moisture storage (S) capacity as computed from the curve number')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'moisture storage (S) capacity - Curve number')) 
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'm'))
        elseif (inftype == 'cnb') then
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'Smax')) 
-           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'maximum moisture storage (Smax) capacity as computed from the curve number')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'maximum moisture storage (Smax) capacity - Curve number')) 
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'm'))
        elseif (inftype == 'gai') then
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'psi')) 
-           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'suction head at the wetting front as provided to Green and Ampt')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'suction head at the wetting front - Green and Ampt')) 
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'm'))
+       elseif (inftype == 'hor') then
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'f0')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'initial infiltration rate - Horton')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'mm h-1'))
        else
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'qinf')) 
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'infiltration rate - constant in time')) 
@@ -1233,25 +1251,21 @@ contains
    ! More output for CN method with recovery
    !
    if (inftype == 'cnb') then
-      !
       NF90(nf90_def_var(his_file%ncid, 'point_S', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%S_varid)) ! time-varying S
       NF90(nf90_put_att(his_file%ncid, his_file%S_varid, '_FillValue', FILL_VALUE))   
       NF90(nf90_put_att(his_file%ncid, his_file%S_varid, 'units', 'm'))
       NF90(nf90_put_att(his_file%ncid, his_file%S_varid, 'long_name', 'current moisture storage (Se) capacity')) 
       NF90(nf90_put_att(his_file%ncid, his_file%S_varid, 'coordinates', 'station_id station_name point_x point_y'))
-      !
    endif
    ! 
    ! More output for CN method with recovery
    !
    if (inftype == 'gai') then
-      !
       NF90(nf90_def_var(his_file%ncid, 'point_S', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%S_varid)) ! time-varying S
       NF90(nf90_put_att(his_file%ncid, his_file%S_varid, '_FillValue', FILL_VALUE))   
       NF90(nf90_put_att(his_file%ncid, his_file%S_varid, 'units', 'm'))
       NF90(nf90_put_att(his_file%ncid, his_file%S_varid, 'long_name', 'maximum soil moisture deficit')) 
       NF90(nf90_put_att(his_file%ncid, his_file%S_varid, 'coordinates', 'station_id station_name point_x point_y'))
-      !
    endif
    !
    if (snapwave) then  
@@ -1551,10 +1565,9 @@ contains
       !
       NF90(nf90_put_var(map_file%ncid, map_file%Seff_varid, zsg, (/1, 1, ntmapout/)))
       !
-   endif
    !
    ! Store maximum soil moisture deficit (only for green-ampt)
-   if (inftype == 'gai') then
+   elseif (inftype == 'gai') then
       !
       zsg = FILL_VALUE
       !
@@ -1569,6 +1582,24 @@ contains
       !
       NF90(nf90_put_var(map_file%ncid, map_file%Seff_varid, zsg, (/1, 1, ntmapout/)))
       !
+   !
+   ! Store current infiltration from Horton
+   elseif (inftype == 'hor') then
+      !
+      zsg = FILL_VALUE
+      !
+      do nm = 1, np
+         !
+         n    = z_index_z_n(nm)
+         m    = z_index_z_m(nm)
+         !      
+         zsg(m, n) = qinfmap(nm)
+         !
+      enddo
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%Seff_varid, zsg, (/1, 1, ntmapout/)))
+      !
+   !
    endif
    !           
    if (store_meteo) then
@@ -2524,8 +2555,6 @@ contains
         NF90(nf90_put_att(ncid, varid, 'stopdepth',stopdepth))  
         NF90(nf90_put_att(ncid, varid, 'advlim',advlim))  
         NF90(nf90_put_att(ncid, varid, 'qinf_zmin',qinf_zmin))    
-        NF90(nf90_put_att(ncid, varid, 'horton_decay', horton_decay))  
-        NF90(nf90_put_att(ncid, varid, 'horton_time', horton_time))     
         NF90(nf90_put_att(ncid, varid, 'btfilter', btfilter))                     
         NF90(nf90_put_att(ncid, varid, 'sfacinf', sfacinf))  
 !        NF90(nf90_put_att(ncid, varid, 'radstr', iradstr)) 
@@ -2541,6 +2570,7 @@ contains
 !        NF90(nf90_put_att(ncid, varid, 'snapwave', isnapwave)) 
         NF90(nf90_put_att(ncid, varid, 'wmtfilter', wmtfilter))         
         NF90(nf90_put_att(ncid, varid, 'wmfred',wavemaker_freduv))         
+        NF90(nf90_put_att(ncid, varid, 'horton_kr_kd',horton_kr_kd))         
         !
         ! Domain
         !

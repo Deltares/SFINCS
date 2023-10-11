@@ -633,22 +633,30 @@ module sfincs_output
    ! 5: zs, q, uvmean and gai infiltration (writing GA_sigma & GA_F)
    !
    ! Write for Infiltration methods (rsttype 4 or 5)
-    if (inftype == 'cnb' .or. inftype == 'gai') then
+    if (inftype == 'cnb' .or. inftype == 'gai' .or. inftype == 'hor') then
         !
         if (inftype == 'cnb') then
             !
             write(911)4
             write(911)zs
             write(911)q
-            write(911)uvmean            
+            write(911)uvmean
             write(911)scs_Se
+            !
+        elseif (inftype == 'hor') then
+            !
+            write(911)4
+            write(911)zs
+            write(911)q
+            write(911)uvmean
+            write(911)rain_T1
             !
         elseif (inftype == 'gai') then
             !
             write(911)5
             write(911)zs
             write(911)q
-            write(911)uvmean              
+            write(911)uvmean
             write(911)GA_sigma
             write(911)GA_F
             !

@@ -9,6 +9,7 @@ module sfincs_lib
    use sfincs_crosssections
    use sfincs_discharges
    use sfincs_meteo
+   use sfincs_infiltration
    use sfincs_data
    use sfincs_date
    use sfincs_output
@@ -382,11 +383,17 @@ module sfincs_lib
          endif
          !
          ! Update forcing used in momentum and continuity equations (this does happen every time step)
-         ! Interpolate in time
          !
          call update_meteo_forcing(t, dt, tloopwnd2)
          !
-      endif
+         ! Update infiltration
+         if (infiltration) then
+             !
+             ! Compute infiltration rates
+             call update_infiltration_map(dt)
+         endif
+      !
+      endif   
       !
       ! Update boundary conditions
       !

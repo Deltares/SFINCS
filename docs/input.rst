@@ -321,8 +321,9 @@ SFINCS allows the specification of the following options for accounting for infi
 2.	Spatially varying constant -in-time value 
 3.	The Curve Number method: empirical rainfall-runoff model 
 4.	The Green-Ampt method: empirical rainfall-runoff model
+5.	The Horton infiltration method
 
-Infiltration is specified with either constant in time values in mm/hr (both uniform and spatially varying), or using more detailed parameters for the Curve Number method and The Green-Ampt method.
+Infiltration is specified with either constant in time values in mm/hr (both uniform and spatially varying), or using more detailed parameters for the Curve Number method, The Green-Ampt method or Horton method.
 
 **NOTE - Infiltration in SFINCS is only turned on when any rainfall is forced'** 
 
@@ -435,6 +436,28 @@ Within SFINCS, the Green-Ampt method can be used as follows. The user needs to p
 Using the saturated hydraulic conductivity, recovery variables such as the moisture deficit recovery constant (kr), depth of upper soil recovery zone (Lu) and minimum recovery time before a new rainfall event occurs (hours) are computed similar to SWMM. The Green-Ampt method has not been implemented yet in hydromt-SFINCS. 
 
 This option does support restart functionality. 
+
+
+The Horton method:
+%%%%%
+
+The Horton Method is a conceptual approach used primarily in hydrology to model the rate of infiltration of water into the soil. This method was developed by Robert E. Horton in 1939, and it is foundational in the field of hydrology.
+
+According to the Horton Method, initially, the infiltration capacity is high, but it decreases exponentially over time until it reaches a stable, steady-state value, known as the final infiltration rate. This phenomenon occurs due to the gradual saturation of the soil, and the reduction in infiltration rate continues until it equals the soil’s hydraulic conductivity.
+
+The basic form of the Horton equation is expressed as follows: 
+**f_t = f_c + (f_0 - f_c) e^{-kt}
+
+In which f_t is the infiltration rate at time, f_c is the final, constant infiltration rate, f_0 is the initial infiltration rate, k is a decay constant and t is the time since the start of infiltration.
+
+Within SFINCS, the Horton method can be used as follows. The user needs to provide the following variables. For all variables, one needs to specify these values per cell with the same grid based input as the depfile using a binary file:
+* f0file: maximum (Initial) Infiltration Capacity in mm/hr
+* fcfile: Minimum (Asymptotic) Infiltration Rate in mm/hr
+* kdfile: empirical constant (hr-1) of decay
+
+The recovery of the infiltration rate during dry weather (kr) is calculated as factor of the empirical decay constant. By default, this keyword (horton_kr_kd) is set to 10.0 meaning that the recovery goes 10 times as slow as the decay.
+
+This option also supports restart functionality. 
 
 
 Observation points

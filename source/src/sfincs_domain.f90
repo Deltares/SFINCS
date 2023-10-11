@@ -2241,6 +2241,14 @@ contains
          inftype = 'gai'
          infiltration = .true.      
          !
+      elseif (f0file /= 'none') then  
+         !
+         ! The Horton Equation model for infiltration
+         !
+         inftype        = 'hor'
+         infiltration   = .true.
+         store_meteo    = .true.
+         !
       endif
       !
       if (precip) then
@@ -2356,7 +2364,8 @@ contains
          !
          ! Compute recovery                     ! Equation 4-36
          allocate(inf_kr(np))
-         inf_kr = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr
+         inf_kr = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr (/25.4)
+                                                ! /75 is conversion to recovery rate (in days)
          !
          ! Allocate support variables
          allocate(scs_P1(np))
@@ -2402,7 +2411,9 @@ contains
          !
          ! Compute recovery                         ! Equation 4-36
          allocate(inf_kr(np))
-         inf_kr     = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr
+         inf_kr     = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr (/25.4)
+                                                    ! /75 is conversion to recovery rate (in days)
+         
          allocate(rain_T1(np))                      ! minimum amount of time that a soil must remain in recovery 
          rain_T1    = 0.0         
          ! Allocate support variables
@@ -2418,9 +2429,48 @@ contains
          GA_Lu      = GA_Lu/1000                    ! from mm to m
          ksfield    = ksfield/1000/3600             ! from mm/hr to m/s
          ! 
-         ! TMP: fix this later
+         ! First time step doesnt have an estimate yet
          allocate(qinffield(np))
-         qinffield = GA_sigma_max
+         qinffield(nm) = 0.00
+         !
+      elseif (inftype == 'hor') then  
+         !
+         ! Spatially-varying infiltration with the modified Horton Equation 
+         !
+         write(*,*)'Turning on process: Infiltration (via modified Horton)'            
+         ! 
+         ! Horton: final infiltration capacity (fc)
+         ! Note that qinffield = horton_fc
+         allocate(horton_fc(np))
+         horton_fc = 0.0
+         write(*,*)'Reading ',trim(fcfile)
+         open(unit = 500, file = trim(fcfile), form = 'unformatted', access = 'stream')
+         read(500)horton_fc
+         close(500)
+         !
+         ! Horton: initial infiltration capacity (f0)
+         allocate(horton_f0(np))
+         horton_f0 = 0.0
+         write(*,*)'Reading ',trim(f0file)
+         open(unit = 501, file = trim(f0file), form = 'unformatted', access = 'stream')
+         read(501)horton_f0
+         close(501)
+         !
+         ! Prescribe the current estimate (for output only; initial capacity)
+         qinffield = horton_f0/3600/1000
+         !
+         ! Empirical constant (1/hr) k => note that this is different than ks used in Curve Number and Green-Ampt
+         allocate(horton_kd(np))
+         horton_kd = 0.0
+         write(*,*)'Reading ',trim(kdfile)
+         open(unit = 502, file = trim(kdfile), form = 'unformatted', access = 'stream')
+         read(502)horton_kd
+         close(502)
+         write(*,*)'Using constant recovery rate that is based on constant factor relative to ',trim(kdfile)
+         !
+         ! Estimate of time
+         allocate(rain_T1(np))
+         rain_T1 = 0.0
          !
       endif
       !
@@ -2598,11 +2648,17 @@ contains
              read(500)rdummy
           endif
           !
-          if (rsttype==4) then ! Infiltration method cnb      
+          if (rsttype==4) then ! 
              read(500)rdummy
-             read(500)scs_Se
-             !
-             write(*,*)'Reading scs_Se from rstfile, overwrites input values of: ',trim(sefffile)         
+             if (inftype == 'cnb') then
+                 ! Infiltration method cnb
+                 read(500)scs_Se
+                 write(*,*)'Reading scs_Se from rstfile, overwrites input values of: ',trim(sefffile)
+             elseif (inftype == 'hor') then
+                 ! Infiltration method horton
+                 read(500)rain_T1
+                write(*,*)'Reading rain_T1 from rstfile, complements input values of: ',trim(fcfile)        
+             endif
              !
           endif
           !

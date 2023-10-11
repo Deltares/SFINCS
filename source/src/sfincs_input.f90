@@ -94,8 +94,6 @@ contains
    call read_real_input(500,'stopdepth',stopdepth,100.0)
    call read_real_input(500,'advlim',advlim,9999.9)
    call read_real_input(500,'qinf_zmin',qinf_zmin,0.0)
-   call read_real_input(500,'horton_decay',horton_decay,0.00005)
-   call read_real_input(500,'horton_time',horton_time,0.0)
    call read_real_input(500,'btfilter',btfilter,60.0)
    call read_real_input(500,'sfacinf',sfacinf,0.2)
    call read_int_input(500,'radstr',iradstr,0)
@@ -155,16 +153,22 @@ contains
    call read_char_input(500,'amvfile',amvfile,'none')
    call read_char_input(500,'ampfile',ampfile,'none')
    call read_char_input(500,'amprfile',amprfile,'none')
+   call read_char_input(500,'z0lfile',z0lfile,'none')
+   call read_char_input(500,'wvmfile',wvmfile,'none')
    call read_char_input(500,'qinffile',qinffile,'none')
-   call read_char_input(500,'scsfile',scsfile,'none')
+   ! Curve Number files
+   call read_char_input(500,'scsfile',scsfile,'none')           
    call read_char_input(500,'smaxfile',smaxfile,'none')
    call read_char_input(500,'sefffile',sefffile,'none')
+   ! Green and Ampt files
    call read_char_input(500,'psifile',psifile,'none')           ! suction head [mm]
    call read_char_input(500,'sigmafile',sigmafile,'none')       ! maximum moisture deficit θdmax [-]
    call read_char_input(500,'ksfile',ksfile,'none')             ! saturated hydraulic conductivity [mm/hr]
-   call read_char_input(500,'z0lfile',z0lfile,'none')
-   call read_char_input(500,'wvmfile',wvmfile,'none')
-   !
+   ! Horton file
+   call read_char_input(500,'f0file',f0file,'none')             ! Maximum (Initial) Infiltration Capacity, F0
+   call read_char_input(500,'fcfile',fcfile,'none')             ! Minimum (Asymptotic) Infiltration Rate, Fc
+   call read_char_input(500,'kdfile',kdfile,'none')             ! k = empirical constant (hr-1) of decay
+   call read_real_input(500,'horton_kr_kd',horton_kr_kd,10.0)   ! recovery goes 10 times as SLOW as decay
    ! Netcdf input
    call read_char_input(500,'netbndbzsbzifile',netbndbzsbzifile,'none')  
    call read_char_input(500,'netsrcdisfile',netsrcdisfile,'none')  
