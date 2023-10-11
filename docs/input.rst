@@ -326,6 +326,7 @@ SFINCS allows the specification of the following options for accounting for infi
 Infiltration is specified with either constant in time values in mm/hr (both uniform and spatially varying), or using more detailed parameters for the Curve Number method, The Green-Ampt method or Horton method.
 
 **NOTE - Infiltration in SFINCS is only turned on when any rainfall is forced'** 
+
 **NOTE - Infiltration methods in SFINCS are not designed to be stacked**
 
 
@@ -338,8 +339,9 @@ Specify the keyword:
 
 	qinf = 1.0
 	
-**NOTE - To have some control that no infiltration is added an areas like the sea for this spatially uniform constant in time infiltration method, only infiltration is added to cells above a certain elevation above the bed level reference height **
-**NOTE - By default this is set to 0, qinf_zmin = 0 (default), so below e.g. MSL, no infiltration is added
+**NOTE - To have some control that no infiltration is added an areas like the sea for this spatially uniform constant in time infiltration method, only infiltration is added to cells above a certain elevation above the bed level reference height**
+
+**NOTE - By default this is set to 0, qinf_zmin = 0 (default), so below e.g. MSL, no infiltration is added**
 
 Spatially varying constant in time:
 %%%%%
@@ -383,6 +385,7 @@ where Smax = the soil's maximum moisture storage capacity. Smax typically derive
 
 
 **Without recovery**
+
 For spatially varying infiltration values per cell using the Curve Number method without recovery use the scsfile option, with the same grid based input as the depfile using a binary file. Note here that in pre-processing the wanted CN values should be converted to S values following:
 * scsfile: maximum soil moisture storage capacity in inches
 
@@ -408,7 +411,8 @@ Within SFINCS, the Curve number method with recovery can be used as follows. The
 * ksfile: saturated hydraulic conductivity in mm/hr
 
 Using the saturated hydraulic conductivity, a recovery variables recovery constant (kr) and minimum recovery time before a new rainfall event occurs (hours) are computed similar to SWMM. 
-The Curve Number has been implemented in hydromt-SFINCS. See https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.SfincsModel.setup_cn_infiltration_with_kr.html for more information.
+The Curve Number has been implemented in hydromt-SFINCS. 
+See https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.SfincsModel.setup_cn_infiltration_with_kr.html for more information.
 
 This option does support restart functionality. 
 	

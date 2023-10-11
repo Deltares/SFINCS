@@ -247,6 +247,7 @@ contains
    real*4 meteo_t
    real*4 twfac
    real*4 merge_frac
+   real*4 tspinup_fac
    real*4 wa
    real*4 z0marine
    real*4 z0l
@@ -264,6 +265,7 @@ contains
          meteo_t = meteo_t1
       endif
       !
+      itw0 = 1
       do itspw = 1, spw_nt
          if (spw_times(itspw)<=meteo_t) then
             itw0 = itspw
@@ -275,6 +277,33 @@ contains
       meteo_t = min(meteo_t, spw_times(itw1))
       !
       twfac  = (meteo_t - spw_times(itw0))/max(spw_times(itw1) - spw_times(itw0), 1.0e-6)
+      tspinup_fac = 1.0 
+      !
+      ! Check if spw data is not yet available
+      ! If so, use first time in spw 
+      !
+      if (meteo_t < spw_times(1)) then
+         !
+         itw0 = 1
+         itw1 = 1
+         twfac = 1.0         
+         !
+         tspinup_fac = max(1.0 - (spw_times(1) - meteo_t) / 21600.0, 0.0)
+         !
+      endif
+      !
+      ! Check if spw data is no longer available
+      ! If so, use last time in spw 
+      !
+      if (meteo_t > spw_times(spw_nt)) then
+         !
+         itw0 = spw_nt
+         itw1 = spw_nt
+         twfac = 1.0         
+         !
+         tspinup_fac = max(1.0 - (meteo_t - spw_times(spw_nt)) / 21600.0, 0.0)
+         !
+      endif
       !
       ! Eye
       ! 
@@ -453,6 +482,8 @@ contains
          else
             merge_frac = 1.0
          endif
+         ! 
+         merge_frac = merge_frac * tspinup_fac
          !
          if (wind_reduction) then
             !
