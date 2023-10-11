@@ -1137,7 +1137,7 @@
       !
       do ip = 1, npuv
          !
-         if (kcuv(uv_index_u_nmd(ip)) == 4)  uv_flags_adv(ip) = 0
+         if (kcuv(uv_index_u_nmd(ip)) == 4)  uv_flags_adv(ip) = 0 !QUESTION - TL: goes wrong if you don't specify a quadtree grid !? > should make this clear in documentation
          if (kcuv(uv_index_u_nmu(ip)) == 4)  uv_flags_adv(ip) = 0
          if (kcuv(uv_index_u_num(ip)) == 4)  uv_flags_adv(ip) = 0
          if (kcuv(uv_index_u_ndm(ip)) == 4)  uv_flags_adv(ip) = 0
@@ -1176,7 +1176,7 @@
       rewind(500)
       allocate(x_wmfp(nwmfp))
       allocate(y_wmfp(nwmfp))
-      do n = 1, nwbnd
+      do n = 1, nwmfp
          read(500,*)x_wmfp(n),y_wmfp(n)
       enddo
       close(500)
