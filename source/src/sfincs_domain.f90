@@ -2884,7 +2884,6 @@ contains
       !
    endif
    !
-
    if (precip) then
       !
       allocate(prcp(np))
