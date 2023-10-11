@@ -70,7 +70,7 @@
    real*4    :: one_minus_facint 
    !
    real*4, parameter :: expo = 1.0/3.0
-!   integer, parameter :: expo = 1
+   ! integer, parameter :: expo = 1
    !
    logical   :: iok
    !
@@ -338,7 +338,8 @@
                endif
                !
                ! Let's try without the advection limiter  
-!               adv = min(max(adv, -advlim), advlim)
+               !
+               ! adv = min(max(adv, -advlim), advlim)
                !
                frc = frc + adv
                !   
