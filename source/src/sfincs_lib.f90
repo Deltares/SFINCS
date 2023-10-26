@@ -126,7 +126,7 @@ module sfincs_lib
    !
    call system_clock(count0, count_rate, count_max)
    !
-   call read_sfincs_input()     ! Reads sfincs.inp
+   call read_sfincs_input(config_file)     ! Reads sfincs.inp
    !
    call read_meteo_data()       ! Reads meteo data (amu, amv, spw file etc.)
    !
