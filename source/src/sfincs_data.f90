@@ -326,8 +326,8 @@ module sfincs_data
       !
       ! Z-points
       !
-      real*4,             dimension(:),   allocatable :: z_xz
-      real*4,             dimension(:),   allocatable :: z_yz
+      real*4,             dimension(:),   allocatable, target :: z_xz
+      real*4,             dimension(:),   allocatable, target :: z_yz
       real*4,             dimension(:),   allocatable :: cell_area_m2
       !
       ! UV-points
@@ -337,7 +337,7 @@ module sfincs_data
 !      integer*4,          dimension(:), allocatable   :: uv_index_nmu
 !      integer*1,          dimension(:,:), allocatable :: uv_flags
       !
-      real*4, dimension(:),   allocatable :: zb
+      real*4, dimension(:),   allocatable, target :: zb
       real*4, dimension(:),   allocatable :: zbuv
       real*4, dimension(:),   allocatable :: zbuvmx
       real*4, dimension(:),   allocatable :: gn2uv
@@ -475,7 +475,7 @@ module sfincs_data
       !
       integer                             :: subgrid_nbins
       !
-      real*4, dimension(:),   allocatable :: subgrid_z_zmin
+      real*4, dimension(:),   allocatable, target :: subgrid_z_zmin
       real*4, dimension(:),   allocatable :: subgrid_z_zmax
       real*4, dimension(:),   allocatable :: subgrid_z_zmean
       real*4, dimension(:),   allocatable :: subgrid_z_volmax
@@ -493,7 +493,7 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: zsmax
       real*4, dimension(:),   allocatable :: vmax
       real*4, dimension(:),   allocatable :: qmax
-      real*4, dimension(:),   allocatable :: zs
+      real*4, dimension(:),   allocatable, target :: zs
       real*4, dimension(:),   allocatable :: zsm
       real*4, dimension(:),   allocatable :: q
       real*4, dimension(:),   allocatable :: q0
@@ -566,7 +566,7 @@ module sfincs_data
       real*4, dimension(:),     allocatable :: t_bnd
       real*4, dimension(:,:),   allocatable :: zs_bnd
       real*4, dimension(:,:),   allocatable :: zsi_bnd
-      real*4, dimension(:),     allocatable :: zst_bnd
+      real*4, dimension(:),     allocatable, target :: zst_bnd
       real*4, dimension(:),     allocatable :: zsit_bnd
       !
       ! Wave boundary points
@@ -703,7 +703,7 @@ module sfincs_data
       integer                               :: itsrclast
       real*4, dimension(:),     allocatable :: tsrc
       real*4, dimension(:,:),   allocatable :: qsrc
-      real*4, dimension(:),     allocatable :: qtsrc
+      real*4, dimension(:),     allocatable, target :: qtsrc
       integer*4, dimension(:),  allocatable :: nmindsrc
       integer*1, dimension(:),  allocatable :: drainage_type
       real*4, dimension(:,:),   allocatable :: drainage_params
