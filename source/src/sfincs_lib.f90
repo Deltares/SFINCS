@@ -84,8 +84,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.0.3-alpha'
-   build_date     = '$Date: 2023-08-31'
+   build_revision = '$Rev: v2.0.3-alpha:PR-48_update-sfincs-bmi'
+   build_date     = '$Date: 2023-10-27'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
