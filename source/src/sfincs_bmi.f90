@@ -14,6 +14,7 @@
    public :: get_end_time
    public :: get_current_time
    public :: get_time_step
+   public :: get_time_units
    
    public :: get_var
    public :: get_var_shape
@@ -106,6 +107,7 @@
    real(c_double), intent(out) :: tcurrent
 
    tcurrent = t
+   
    end subroutine get_current_time
    
 !-----------------------------------------------------------------------------------------------------!  
@@ -118,6 +120,17 @@
    deltat = dt
    
    end subroutine get_time_step
+   
+!-----------------------------------------------------------------------------------------------------!  
+      
+   subroutine get_time_units(c_time_units) bind(C, name="get_time_units")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_time_units
+
+   character(kind=c_char), intent(out) :: c_time_units(maxstrlen)
+   
+   c_time_units = string_to_char_array("s", 1)
+   
+   end subroutine get_time_units
    
 !-----------------------------------------------------------------------------------------------------!
    
@@ -184,24 +197,24 @@
    
 !-----------------------------------------------------------------------------------------------------!
    
-   subroutine get_var_type(c_var_name, c_type) bind(C, name="get_var_type")
+   subroutine get_var_type(c_var_name, c_var_type) bind(C, name="get_var_type")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_var_type
    
    character(kind=c_char), intent(in)  :: c_var_name(*)
-   character(kind=c_char), intent(out) ::  c_type(maxstrlen)
-   character(len=maxstrlen)            :: type_name, var_name
+   character(kind=c_char), intent(out) :: c_var_type(maxstrlen)
+   character(len=maxstrlen)            :: var_name, var_type
 
    var_name = char_array_to_string(c_var_name, strlen(c_var_name))
 
    select case(var_name)
    case("z_xz", "z_yz","zs","zb","qtsrc","zst_bnd")      
-      type_name = "float"
+      var_type = "float"
    case default
      write(*,*) 'get_var_type error'
      ! nullptr
    end select
    
-   c_type = string_to_char_array(trim(type_name), len(trim(type_name)))
+   c_var_type = string_to_char_array(trim(var_type), len(trim(var_type)))
    
    end subroutine get_var_type
    
@@ -248,7 +261,6 @@
    call c_f_pointer(c_var_ptr, f_var_ptr, [np])
    
    select case(var_name)
-	! can set "zs","zb","qtsrc","zst_bnd"
    case("zs")
      do i = 1, np
        f_var_ptr(i) = zs(i)
@@ -312,7 +324,7 @@
    subroutine get_grid_size(grid_size) bind(C, name="get_grid_size")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_grid_size
    integer(c_int), intent(out) :: grid_size
-   grid_size = size(z_xz)
+   grid_size = np
    end subroutine get_grid_size
    
    subroutine get_grid_x(grid_x_c_ptr) bind(C, name="get_grid_x")
