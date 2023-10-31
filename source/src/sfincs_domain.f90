@@ -2244,11 +2244,8 @@ contains
          open(unit = 501, file = trim(sefffile), form = 'unformatted', access = 'stream')
          read(501)scs_Se
          close(501)
-         
-         ! Compute recovery                     ! Equation 4-36
-        
-
-         if (ksfile /= 'none') then 
+         !
+         ! Compute recovery                     ! Equation 4-36        
          ! Allocate Ks
          allocate(ksfield(np))
          ksfield = 0.0
@@ -2262,7 +2259,6 @@ contains
          inf_kr = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr (/25.4)
                                                 ! /75 is conversion to recovery rate (in days)
          !
-
          ! Allocate support variables
          allocate(scs_P1(np))
          scs_P1 = 0.0
