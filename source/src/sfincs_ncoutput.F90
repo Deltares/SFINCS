@@ -2763,6 +2763,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'netamuamvfile',netamuamvfile))     
         NF90(nf90_put_att(ncid, varid, 'netamprfile',netamprfile))  
         NF90(nf90_put_att(ncid, varid, 'netampfile',netampfile))        
+        NF90(nf90_put_att(ncid, varid, 'netspwfile',netspwfile))                    
         !
         ! Output
         !

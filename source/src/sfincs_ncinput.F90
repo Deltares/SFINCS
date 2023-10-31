@@ -645,7 +645,7 @@ module sfincs_ncinput
     NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%yeye_varid, spw_ye(:)))
     NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%range_varid, spw_radia(:)))
     !
-    ! We only need to now the maxima
+    ! We only need to know the maxima
     spw_radius  = spw_radia(spw_nrows)
     dradspw     = spw_radius/spw_nrows
     dphispw     = 2*pi/spw_ncols
