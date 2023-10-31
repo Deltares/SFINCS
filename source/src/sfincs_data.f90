@@ -129,6 +129,7 @@ module sfincs_data
       character*256 :: netamuamvfile
       character*256 :: netampfile
       character*256 :: netamprfile
+      character*256 :: netspwfile
       character*256 :: scsfile
       character*256 :: smaxfile
       character*256 :: sefffile
@@ -615,9 +616,11 @@ module sfincs_data
       integer                                 :: spw_ncols
       integer                                 :: spw_nquant
       real*4                                  :: spw_radius
+      real*4, dimension(:),     allocatable   :: spw_radia
       real*4, dimension(:),     allocatable   :: spw_times
       real*4, dimension(:),     allocatable   :: spw_xe
       real*4, dimension(:),     allocatable   :: spw_ye
+      real*4, dimension(:),     allocatable   :: spw_pressure_eye
       real*4, dimension(:,:,:),   allocatable :: spw_vmag
       real*4, dimension(:,:,:),   allocatable :: spw_vdir
       real*4, dimension(:,:,:),   allocatable :: spw_wu

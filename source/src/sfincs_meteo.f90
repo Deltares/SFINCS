@@ -80,7 +80,17 @@ contains
       endif
       !
    endif
-   ! 
+   !
+   if (netspwfile(1:4) /= 'none') then
+      ! 
+      ! Write statement to log
+      write(*,*)'Reading netcdf spiderweb file ...'
+      ! 
+      ! Read information
+      call read_netcdf_spw_data()
+      !
+   endif
+   !
    if (amufile(1:4) /= 'none') then
       !
       write(*,*)'Reading amu and amv file ...'
@@ -1303,7 +1313,7 @@ contains
       !
    endif
    !      
-   if (spwfile(1:4) /= 'none') then
+   if (spwfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       !
       call update_spiderweb_data()
       !

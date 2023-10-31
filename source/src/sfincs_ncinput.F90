@@ -42,6 +42,15 @@ module sfincs_ncinput
        integer :: px_varid, py_varid
        integer :: time_varid
        integer :: prcp_varid     
+   end type    
+   type net_type_spw
+       integer :: ncid
+       integer :: ncols_dimid, nrows_dimid
+       integer :: time_dimid
+       integer :: time_varid
+       integer :: range_varid,azimuth_varid
+       integer :: xeye_varid, yeye_varid, peye_varid
+       integer :: wind_x_varid, wind_y_varid, pressure_varid, precip_varid
    end type      
    !
    type(net_type_bndbzsbzi) :: net_file_bndbzsbzi        
@@ -49,6 +58,7 @@ module sfincs_ncinput
    type(net_type_amuv)      :: net_file_amuv     
    type(net_type_amp)       :: net_file_amp 
    type(net_type_ampr)      :: net_file_ampr              
+   type(net_type_spw)       :: net_file_spw              
 
    contains   
    
@@ -551,6 +561,128 @@ module sfincs_ncinput
    !       
    NF90(nf90_close(net_file_ampr%ncid))     
    !
+   end subroutine
+   !
+   ! 
+   subroutine read_netcdf_spw_data()
+    !
+    ! Read the orginal (Bert) implementation
+    ! 
+    use sfincs_date   
+    use netcdf
+    use sfincs_data   
+    use sfincs_spiderweb
+
+    implicit none   
+    !
+    integer nt, status
+    real*4, dimension(:,:,:),   allocatable :: prtmp 
+    real*4, dimension(:,:,:),   allocatable :: ampr_prtmp 
+   
+    write(*,*)'subroutine NetCDF spiderweb ...'
+    !
+    ! Actual reading of data
+    NF90(nf90_open(trim(netspwfile), NF90_CLOBBER, net_file_spw%ncid))     
+    !
+    ! Get dimensions id's: time, range and azimuth
+    NF90(nf90_inq_dimid(net_file_spw%ncid, "time",    net_file_spw%time_dimid))
+    NF90(nf90_inq_dimid(net_file_spw%ncid, "range",   net_file_spw%nrows_dimid)) 
+    NF90(nf90_inq_dimid(net_file_spw%ncid, "azimuth", net_file_spw%ncols_dimid))
+    !
+    ! Get dimensions sizes: time, cols, rows      
+    NF90(nf90_inquire_dimension(net_file_spw%ncid, net_file_spw%time_dimid,  len = spw_nt))      !nr of timesteps in file
+    NF90(nf90_inquire_dimension(net_file_spw%ncid, net_file_spw%nrows_dimid, len = spw_nrows))   !nr of rows    
+    NF90(nf90_inquire_dimension(net_file_spw%ncid, net_file_spw%ncols_dimid, len = spw_ncols))   !nr of cols    
+
+    ! Get variable id's
+    NF90(nf90_inq_varid(net_file_spw%ncid, "time",              net_file_spw%time_varid) )
+    NF90(nf90_inq_varid(net_file_spw%ncid, "range",             net_file_spw%range_varid) )
+    NF90(nf90_inq_varid(net_file_spw%ncid, "azimuth",           net_file_spw%azimuth_varid) )
+    NF90(nf90_inq_varid(net_file_spw%ncid, "longitude_eye",     net_file_spw%xeye_varid) )  
+    NF90(nf90_inq_varid(net_file_spw%ncid, "latitude_eye",      net_file_spw%yeye_varid) )  
+    NF90(nf90_inq_varid(net_file_spw%ncid, "wind_x",            net_file_spw%wind_x_varid) )  
+    NF90(nf90_inq_varid(net_file_spw%ncid, "wind_y",            net_file_spw%wind_y_varid) )  
+    NF90(nf90_inq_varid(net_file_spw%ncid, "pressure",          net_file_spw%pressure_varid) )  
+    !
+    ! Attempt to get the variable ID for "precipitation"
+    status = NF90_INQ_VARID(net_file_spw%ncid, "precipitation", net_file_spw%precip_varid)
+    !
+    ! Check the status
+    if (status /= NF90_NOERR) then
+       ! Handle error: variable does not exist
+       write(*,*) "Error: Variable 'precipitation' does not exist in the NetCDF file."
+       spw_precip   = .false.
+       precip       = .false.
+    else
+       NF90(nf90_inq_varid(net_file_spw%ncid, "precipitation",          net_file_spw%precip_varid) )
+       spw_precip   = .true.
+       precip       = .true.
+       write(*,*)'Turning on process: Precipitation from spwfile'
+    endif
+    !
+    ! Allocate
+    allocate(spw_times(spw_nt))
+    allocate(spw_xe(spw_nt))
+    allocate(spw_ye(spw_nt))
+    allocate(spw_pressure_eye(spw_nt))
+    allocate(spw_radia(spw_nrows))
+    allocate(spw_wu(spw_nt, spw_nrows, spw_ncols))
+    allocate(spw_wv(spw_nt, spw_nrows, spw_ncols))
+    allocate(spw_pdrp(spw_nt, spw_nrows, spw_ncols))
+    allocate(spw_prcp(spw_nt, spw_nrows, spw_ncols))
+    allocate(spw_pdrp01(spw_nrows, spw_ncols))
+    allocate(spw_prcp01(spw_nrows, spw_ncols))
+    allocate(spw_wu01(spw_nrows, spw_ncols))
+    allocate(spw_wv01(spw_nrows, spw_ncols))
+      
+    ! Support variables
+    allocate(prtmp(spw_nrows, spw_ncols,1))
+    allocate(ampr_prtmp(1, spw_nrows, spw_ncols))   
+    !
+    ! Read values from netcdf
+    NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%time_varid, spw_times(:)))
+    NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%xeye_varid, spw_xe(:)))
+    NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%yeye_varid, spw_ye(:)))
+    NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%range_varid, spw_radia(:)))
+    !
+    ! We only need to now the maxima
+    spw_radius  = spw_radia(spw_nrows)
+    dradspw     = spw_radius/spw_nrows
+    dphispw     = 2*pi/spw_ncols
+    !
+    ! Read matrix values
+    do nt = 1, spw_nt 
+    !      
+        ! Read wind_x
+        NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%wind_x_varid, prtmp, start = (/ 1, 1, nt /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
+        ampr_prtmp = reshape( prtmp, (/ 1, spw_nrows, spw_ncols /), ORDER = (/ 3, 2, 1 /))            
+        spw_wu(nt,:,:) = ampr_prtmp(1,:,:)
+        !
+        ! Read wind_y
+        NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%wind_y_varid, prtmp, start = (/ 1, 1, nt /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
+        ampr_prtmp = reshape( prtmp, (/ 1, spw_nrows, spw_ncols /), ORDER = (/ 3, 2, 1 /))            
+        spw_wv(nt,:,:) = ampr_prtmp(1,:,:)
+        !
+        ! Read pressure
+        NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%pressure_varid, prtmp, start = (/ 1, 1, nt /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
+        ampr_prtmp = reshape( prtmp, (/ 1, spw_nrows, spw_ncols /), ORDER = (/ 3, 2, 1 /))            
+        spw_pdrp(nt,:,:) = ampr_prtmp(1,:,:)
+        !
+        ! Read rainfall
+        if (spw_precip) then
+            NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%precip_varid, prtmp, start = (/ 1, 1, nt /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
+            ampr_prtmp = reshape( prtmp, (/ 1, spw_nrows, spw_ncols /), ORDER = (/ 3, 2, 1 /))            
+            spw_prcp(nt,:,:) = ampr_prtmp(1,:,:)
+        endif
+    enddo
+    ! 
+    ! Read time attibute and convert time
+    NF90(nf90_get_att(net_file_spw%ncid, net_file_spw%time_varid,'units', treftimefews))
+    spw_times = convert_spw_nc_date(spw_times, spw_nt, treftimefews, trefstr)
+    !       
+    ! Close netcdf
+    NF90(nf90_close(net_file_spw%ncid))     
+
    end subroutine
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
