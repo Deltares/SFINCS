@@ -2245,6 +2245,7 @@ contains
          read(501)scs_Se
          close(501)
          !
+         ! Compute recovery                     ! Equation 4-36        
          ! Allocate Ks
          allocate(ksfield(np))
          ksfield = 0.0
