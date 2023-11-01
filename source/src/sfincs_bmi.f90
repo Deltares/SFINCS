@@ -8,6 +8,8 @@
 
    public :: initialize
    public :: finalize
+
+   public :: update_until
    public :: update
    
    public :: get_start_time
@@ -65,70 +67,81 @@
    ierr = sfincs_finalize()
    
    end function finalize
-   
+
 !-----------------------------------------------------------------------------------------------------!
    
-   function update(dt) result(ierr) bind(C, name="update")
-   !DEC$ ATTRIBUTES DLLEXPORT :: update
+   function update_until(t) result(ierr) bind(C, name="update_until")
+   !DEC$ ATTRIBUTES DLLEXPORT :: update_until
    
-   real(kind=c_double), value, intent(in)  :: dt
+   real(kind=c_double), value, intent(in)  :: t
    integer(kind=c_int)                     :: ierr
    
-   ierr = sfincs_update(dt)
+   ierr = sfincs_update(t)
+   
+   end function update_until
+
+!-----------------------------------------------------------------------------------------------------!
+   
+   function update() result(ierr) bind(C, name="update")
+   !DEC$ ATTRIBUTES DLLEXPORT :: update
+   
+   integer(kind=c_int) :: ierr
+   
+   ierr = sfincs_update(real(dt, 8)) ! this is bad
    
    end function update
    
 !-----------------------------------------------------------------------------------------------------!  
       
-   subroutine get_start_time(tstart) bind(C, name="get_start_time")
+   subroutine get_start_time(start_time) bind(C, name="get_start_time")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_start_time
-   real(c_double), intent(out) :: tstart
+   real(c_double), intent(out) :: start_time
 
-   tstart = t0
+   start_time = t0
    
    end subroutine get_start_time
 
 !-----------------------------------------------------------------------------------------------------!  
       
-   subroutine get_end_time(tend) bind(C, name="get_end_time")
+   subroutine get_end_time(end_time) bind(C, name="get_end_time")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_end_time
    
-   real(c_double), intent(out) :: tend
+   real(c_double), intent(out) :: end_time
 
-   tend = t1
+   end_time = t1
    
    end subroutine get_end_time
    
 !-----------------------------------------------------------------------------------------------------!  
       
-   subroutine get_current_time(tcurrent) bind(C, name="get_current_time")
+   subroutine get_current_time(current_time) bind(C, name="get_current_time")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_current_time
    
-   real(c_double), intent(out) :: tcurrent
+   real(c_double), intent(out) :: current_time
 
-   tcurrent = t
+   current_time = t
    
    end subroutine get_current_time
    
 !-----------------------------------------------------------------------------------------------------!  
       
-   subroutine get_time_step(deltat) bind(C, name="get_time_step")
+   subroutine get_time_step(time_step) bind(C, name="get_time_step")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_time_step
 
-   real(c_double), intent(out) :: deltat
+   real(c_double), intent(out) :: time_step
 
-   deltat = dt
+   time_step = dt
    
    end subroutine get_time_step
    
 !-----------------------------------------------------------------------------------------------------!  
       
-   subroutine get_time_units(c_time_units) bind(C, name="get_time_units")
+   subroutine get_time_units(time_units) bind(C, name="get_time_units")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_time_units
 
-   character(kind=c_char), intent(out) :: c_time_units(maxstrlen)
+   character(kind=c_char), intent(out) :: time_units(maxstrlen)
    
-   c_time_units = string_to_char_array("s", 1)
+   time_units = string_to_char_array("s", 1)
    
    end subroutine get_time_units
    
