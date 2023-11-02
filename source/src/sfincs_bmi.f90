@@ -223,10 +223,30 @@
          f_ptr(i) = subgrid_z_zmin(i)
 	   end do
      end if
-   case("qtsrc")
-	 call c_f_pointer(ptr, f_ptr, [np])
-     do i = 1, np
-       f_ptr(i) = qtsrc(i)
+   case("qsrc_1")
+	 call c_f_pointer(ptr, f_ptr, [nsrc])
+     do i = 1, nsrc 
+       f_ptr(i) = qsrc(i, 1)
+	 end do
+   case("qsrc_2")
+	 call c_f_pointer(ptr, f_ptr, [nsrc])
+     do i = 1, nsrc 
+       f_ptr(i) = qsrc(i, 2)
+	 end do
+   case("xsrc")
+	 call c_f_pointer(ptr, f_ptr, [nsrc])
+     do i = 1, nsrc 
+       f_ptr(i) = xsrc(i)
+	 end do
+   case("ysrc")
+	 call c_f_pointer(ptr, f_ptr, [nsrc])
+     do i = 1, nsrc 
+       f_ptr(i) = ysrc(i)
+	 end do
+   case("tsrc")
+	 call c_f_pointer(ptr, f_ptr, [ntsrc])
+     do i = 1, ntsrc 
+       f_ptr(i) = tsrc(i)
 	 end do
    case("zst_bnd")
 	 call c_f_pointer(ptr, f_ptr, [np])
@@ -261,29 +281,24 @@
    
    ! get the name
    f_var_name = char_array_to_string(var_name, strlen(var_name))
+   
+   call c_f_pointer(dest, f_dest, [count])
+   call c_f_pointer(inds, f_inds, [count])
       
    select case(f_var_name)
    case("z_xz") ! x grid cell centre
-	 call c_f_pointer(dest, f_dest, [count])
-     call c_f_pointer(inds, f_inds, [count])
      do i = 1, count
        f_dest(i) = z_xz(f_inds(i))
 	 end do
    case("z_yz") ! y grid cell centre
-	 call c_f_pointer(dest, f_dest, [count])
-     call c_f_pointer(inds, f_inds, [count])
      do i = 1, count
        f_dest(i) = z_yz(f_inds(i))
 	 end do
    case("zs") ! water level
-	 call c_f_pointer(dest, f_dest, [count])
-     call c_f_pointer(inds, f_inds, [count])
      do i = 1, count
        f_dest(i) = zs(f_inds(i))
 	 end do
    case("zb") ! bed level
-   	 call c_f_pointer(dest, f_dest, [count])
-     call c_f_pointer(inds, f_inds, [count])
 	 if(subgrid) then
 	   do i = 1, count
          f_dest(i) = subgrid_z_zmin(f_inds(i))
@@ -293,15 +308,27 @@
          f_dest(i) = subgrid_z_zmin(f_inds(i))
 	   end do
      end if
-   case("qtsrc")
-	 call c_f_pointer(dest, f_dest, [count])
-     call c_f_pointer(inds, f_inds, [count])
+   case("qsrc_1")
      do i = 1, count
-       f_dest(i) = qtsrc(f_inds(i))
+       f_dest(i) = qsrc(f_inds(i), 1)
+	 end do
+   case("qsrc_2")
+     do i = 1, count
+       f_dest(i) = qsrc(f_inds(i), 2)
+	 end do
+   case("xsrc") ! water level
+     do i = 1, count
+       f_dest(i) = xsrc(f_inds(i))
+	 end do
+   case("ysrc") ! water level
+     do i = 1, count
+       f_dest(i) = ysrc(f_inds(i))
+	 end do
+   case("tsrc") ! water level
+     do i = 1, count
+       f_dest(i) = tsrc(f_inds(i))
 	 end do
    case("zst_bnd")
-	 call c_f_pointer(dest, f_dest, [count])
-     call c_f_pointer(inds, f_inds, [count])
      do i = 1, count
        f_dest(i) = zst_bnd(f_inds(i))
 	 end do
@@ -342,8 +369,16 @@
       else
         ptr = c_loc(zb)
       end if
-   case("qtsrc")
-     ptr = c_loc(qtsrc)
+   case("qsrc_1")
+       ptr = c_loc(qsrc(:, 1))
+   case("qsrc_2")
+       ptr = c_loc(qsrc(:, 2))
+   case("xsrc")
+       ptr = c_loc(xsrc)
+   case("ysrc")
+       ptr = c_loc(ysrc)
+   case("tsrc")
+       ptr = c_loc(tsrc)
    case("zst_bnd")
      ptr = c_loc(zst_bnd)
    case default
@@ -365,14 +400,18 @@
    
    character(len=strlen(var_name))  :: f_var_name
 
+   ierr = ret_code%success
+   
    f_var_name = char_array_to_string(var_name, strlen(var_name))
    var_shape = (/0/)
    
    select case(f_var_name)
-   case("z_xz", "z_yz","zs","zb","qtsrc","zst_bnd")     
-      ! inverted shapes (fortran to c)
+   case("z_xz", "z_yz","zs","zb","zst_bnd")     
       var_shape(1) = np
-      ierr = ret_code%success
+   case("qsrc_1", "qsrc_2", "xsrc", "ysrc")     
+      var_shape(1) = nsrc
+   case("tsrc")     
+      var_shape(1) = ntsrc
    case default
      write(*,*) 'get_var_shape error'
      ierr = ret_code%failure
@@ -393,11 +432,11 @@
 
    f_var_name = char_array_to_string(var_name, strlen(var_name))
 
+   ierr = ret_code%success
    select case(f_var_name)
-   case("z_xz", "z_yz", "zs", "zb", "qtsrc", "zst_bnd")      
+   case("z_xz", "z_yz", "zs", "zb" ,"qsrc_1", "qsrc_2", "xsrc", "ysrc", "tsrc", "zst_bnd")      
       f_var_type = "float"
       var_type = string_to_char_array(trim(f_var_type), len(trim(f_var_type)))
-      ierr = ret_code%success
    case default
      write(*,*) 'get_var_type error'
      ierr = ret_code%failure
@@ -419,7 +458,7 @@
    f_var_name = char_array_to_string(var_name, strlen(var_name))
    
    select case(f_var_name)
-   case("z_xz", "z_yz", "zs", "zb" ,"qtsrc", "zst_bnd") 
+   case("z_xz", "z_yz", "zs", "zb" ,"qsrc_1", "qsrc_2", "xsrc", "ysrc", "tsrc", "zst_bnd") 
       rank = 1
       ierr = ret_code%success
    case default
@@ -448,22 +487,44 @@
    
    f_var_name = char_array_to_string(var_name, strlen(var_name))
    
-   call c_f_pointer(ptr, f_ptr, [np])
-   
    select case(f_var_name)
    case("zs")
+     call c_f_pointer(ptr, f_ptr, [np])
      do i = 1, np
        zs(i) = f_ptr(i)
      end do
    case("zb")
+     call c_f_pointer(ptr, f_ptr, [np])
      do i = 1, np
        zb(i) = f_ptr(i)
      end do
-   case("qtsrc")
-     do i = 1, np
-       qtsrc(i) = f_ptr(i)
+   case("qsrc_1")
+	 call c_f_pointer(ptr, f_ptr, [nsrc])
+     do i = 1, nsrc
+       qsrc(i, 1) = f_ptr(i)
+     end do
+   case("qsrc_2")
+	 call c_f_pointer(ptr, f_ptr, [nsrc])
+     do i = 1, nsrc
+       qsrc(i, 2) = f_ptr(i)
+     end do
+   case("xsrc")
+	 call c_f_pointer(ptr, f_ptr, [nsrc])
+     do i = 1, nsrc
+       xsrc(i) = f_ptr(i)
+     end do
+   case("ysrc")
+	 call c_f_pointer(ptr, f_ptr, [nsrc])
+     do i = 1, nsrc
+       ysrc(i) = f_ptr(i)
+     end do
+   case("tsrc")
+	 call c_f_pointer(ptr, f_ptr, [ntsrc])
+     do i = 1, ntsrc
+       tsrc(i) = f_ptr(i)
      end do
    case("zst_bnd")
+     call c_f_pointer(ptr, f_ptr, [np])
      do i = 1, np
        zst_bnd(i) = f_ptr(i)
      end do
@@ -507,9 +568,25 @@
      do i = 1, count
        zb(f_inds(i)) = f_src(i)
      end do
-   case("qtsrc")
+   case("qsrc_1")
      do i = 1, count
-       qtsrc(f_inds(i)) = f_src(i)
+       qsrc(f_inds(i), 1) = f_src(i)
+     end do
+   case("qsrc_2")
+     do i = 1, count
+       qsrc(f_inds(i), 2) = f_src(i)
+     end do
+   case("xsrc")
+     do i = 1, count
+       xsrc(f_inds(i)) = f_src(i)
+     end do
+   case("ysrc")
+     do i = 1, count
+       ysrc(f_inds(i)) = f_src(i)
+     end do
+   case("tsrc")
+     do i = 1, count
+       tsrc(f_inds(i)) = f_src(i)
      end do
    case("zst_bnd")
      do i = 1, count

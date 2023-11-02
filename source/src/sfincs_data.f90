@@ -701,14 +701,14 @@ module sfincs_data
       integer                               :: nsrcdrn
       integer                               :: ntsrc
       integer                               :: itsrclast
-      real*4, dimension(:),     allocatable :: tsrc
-      real*4, dimension(:,:),   allocatable :: qsrc
-      real*4, dimension(:),     allocatable, target :: qtsrc
+      real*4, dimension(:),     allocatable, target :: tsrc
+      real*4, dimension(:,:),   allocatable, target :: qsrc
+      real*4, dimension(:),     allocatable :: qtsrc
       integer*4, dimension(:),  allocatable :: nmindsrc
       integer*1, dimension(:),  allocatable :: drainage_type
       real*4, dimension(:,:),   allocatable :: drainage_params
-      real*4, dimension(:),     allocatable :: xsrc
-      real*4, dimension(:),     allocatable :: ysrc
+      real*4, dimension(:),     allocatable, target :: xsrc
+      real*4, dimension(:),     allocatable, target :: ysrc
       !!!
       !!! Structures
       !!!
