@@ -18,7 +18,8 @@
    public :: get_time_step
    public :: get_time_units
    
-   public :: get_var
+   public :: get_value
+   public :: get_value_ptr
    public :: get_var_shape
    public :: get_var_type
    public :: get_var_rank
@@ -147,43 +148,101 @@
    
 !-----------------------------------------------------------------------------------------------------!
    
-   subroutine get_var(c_var_name, x) bind(C, name="get_var")
-   !DEC$ ATTRIBUTES DLLEXPORT :: get_var
+   subroutine get_value(var_name, ptr) bind(C, name="get_value")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_value
    
-   character(kind=c_char), intent(in)       :: c_var_name(*)
-   type(c_ptr), intent(inout)               :: x
+   character(kind=c_char), intent(in)       :: var_name(*)
+   type(c_ptr), intent(inout)               :: ptr
+ 
+   ! The fortran name of the attribute name
+   character(len=strlen(var_name)) :: f_var_name
+   real(c_float), pointer:: f_ptr(:)
+   integer :: i
+   
+   ! get the name
+   f_var_name = char_array_to_string(var_name,strlen(var_name))
+      
+   select case(f_var_name)
+   case("z_xz") ! x grid cell centre
+	 call c_f_pointer(ptr, f_ptr, [np])
+     do i = 1, np
+       f_ptr(i) = z_xz(i)
+	 end do
+   case("z_yz") ! y grid cell centre
+	 call c_f_pointer(ptr, f_ptr, [np])
+     do i = 1, np
+       f_ptr(i) = z_yz(i)
+	 end do
+   case("zs") ! water level
+	 call c_f_pointer(ptr, f_ptr, [np])
+     do i = 1, np
+       f_ptr(i) = zs(i)
+	 end do
+   case("zb") ! bed level
+   	 call c_f_pointer(ptr, f_ptr, [np]) 
+	 if(subgrid) then
+	   do i = 1, np
+         f_ptr(i) = subgrid_z_zmin(i)
+	   end do
+	 else
+	   do i = 1, np
+         f_ptr(i) = subgrid_z_zmin(i)
+	   end do
+     end if
+   case("qtsrc")
+	 call c_f_pointer(ptr, f_ptr, [np])
+     do i = 1, np
+       f_ptr(i) = qtsrc(i)
+	 end do
+   case("zst_bnd")
+	 call c_f_pointer(ptr, f_ptr, [np])
+     do i = 1, np
+       f_ptr(i) = zst_bnd(i)
+	 end do
+   case default
+	 write(*,*) 'get_value error'
+     ptr = c_null_ptr
+   end select
+ 
+   end subroutine get_value
+   
+!-----------------------------------------------------------------------------------------------------!
+   
+   subroutine get_value_ptr(var_name, ptr) bind(C, name="get_value_ptr")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_value_ptr
+   
+   character(kind=c_char), intent(in)       :: var_name(*)
+   type(c_ptr), intent(inout)               :: ptr
 
    ! The fortran name of the attribute name
-   character(len=strlen(c_var_name)) :: var_name
+   character(len=strlen(var_name)) :: f_var_name
    
    ! Store the name
-   var_name = char_array_to_string(c_var_name,strlen(c_var_name))
+   f_var_name = char_array_to_string(var_name,strlen(var_name))
    
-   select case(var_name)
-   case("z_xz") ! x grid cell centre z_xz
-       x = c_loc(z_xz)
-	! x grid cell centre z_yz
-   case("z_yz")
-       x = c_loc(z_yz)
-   ! water level zs
-   case("zs")
-      x = c_loc(zs)
+   select case(f_var_name)
+   case("z_xz") ! x grid cell centre
+       ptr = c_loc(z_xz)
+   case("z_yz") ! y grid cell centre
+       ptr = c_loc(z_yz)
+   case("zs") ! water level
+      ptr = c_loc(zs)
    case("zb") ! bed level
       if(subgrid) then
-        x = c_loc(subgrid_z_zmin)
+        ptr = c_loc(subgrid_z_zmin)
       else
-        x = c_loc(zb)
+        ptr = c_loc(zb)
       end if
    case("qtsrc")
-     x = c_loc(qtsrc)
+     ptr = c_loc(qtsrc)
    case("zst_bnd")
-     x = c_loc(zst_bnd)
+     ptr = c_loc(zst_bnd)
    case default
-	 write(*,*) 'get_var error'
-     ! nullptr
+	 write(*,*) 'get_value_ptr error'
+     ptr = c_null_ptr
    end select
 
-   end subroutine get_var
+   end subroutine get_value_ptr
    
    !-----------------------------------------------------------------------------------------------------!
    
@@ -298,23 +357,6 @@
    end subroutine set_var
    
 !-----------------------------------------------------------------------------------------------------!
-   
-   !subroutine get_grid_x(grid_x_c_ptr) bind(C, name="get_grid_x")
-   !!DEC$ ATTRIBUTES DLLEXPORT :: get_grid_x
-   !
-   !type(c_ptr), intent(inout) :: grid_x_c_ptr
-   !real(c_float), pointer:: grid_x_f_ptr(:)
-   !integer i, z_xz_size
-   !   
-   !if(allocated(z_xz)) then
-   !  z_xz_size = size(z_xz)
-   !  call c_f_pointer(grid_x_c_ptr, grid_x_f_ptr, [z_xz_size])
-   !  do i = 1, z_xz_size
-   !    grid_x_f_ptr(i) = z_xz(i)
-   !  end do
-   !end if
-   !
-   !end subroutine get_grid_x
 
    subroutine get_grid_type(grid_type) bind(C, name="get_grid_type")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_grid_rtype
@@ -339,6 +381,23 @@
    integer(c_int), intent(out) :: grid_size
    grid_size = np
    end subroutine get_grid_size
+   
+   !subroutine get_grid_x(grid_x_c_ptr) bind(C, name="get_grid_x")
+   !!DEC$ ATTRIBUTES DLLEXPORT :: get_grid_x
+   !
+   !type(c_ptr), intent(inout) :: grid_x_c_ptr
+   !real(c_float), pointer:: grid_x_f_ptr(:)
+   !integer i, z_xz_size
+   !   
+   !if(allocated(z_xz)) then
+   !  z_xz_size = size(z_xz)
+   !  call c_f_pointer(grid_x_c_ptr, grid_x_f_ptr, [z_xz_size])
+   !  do i = 1, z_xz_size
+   !    grid_x_f_ptr(i) = z_xz(i)
+   !  end do
+   !end if
+   !
+   !end subroutine get_grid_x
    
    subroutine get_grid_x(grid_x_c_ptr) bind(C, name="get_grid_x")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_grid_x
