@@ -508,16 +508,6 @@
      do i = 1, nsrc
        qsrc(i, 2) = f_ptr(i)
      end do
-   case("xsrc")
-	 call c_f_pointer(ptr, f_ptr, [nsrc])
-     do i = 1, nsrc
-       xsrc(i) = f_ptr(i)
-     end do
-   case("ysrc")
-	 call c_f_pointer(ptr, f_ptr, [nsrc])
-     do i = 1, nsrc
-       ysrc(i) = f_ptr(i)
-     end do
    case("tsrc")
 	 call c_f_pointer(ptr, f_ptr, [ntsrc])
      do i = 1, ntsrc
@@ -575,14 +565,6 @@
    case("qsrc_2")
      do i = 1, count
        qsrc(f_inds(i), 2) = f_src(i)
-     end do
-   case("xsrc")
-     do i = 1, count
-       xsrc(f_inds(i)) = f_src(i)
-     end do
-   case("ysrc")
-     do i = 1, count
-       ysrc(f_inds(i)) = f_src(i)
      end do
    case("tsrc")
      do i = 1, count
