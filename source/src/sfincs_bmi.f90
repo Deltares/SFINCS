@@ -433,31 +433,22 @@
    
    !-----------------------------------------------------------------------------------------------------!
    
-   !subroutine get_grid_x(grid_x_c_ptr) bind(C, name="get_grid_x")
-   !!DEC$ ATTRIBUTES DLLEXPORT :: get_grid_x
-   !
-   !type(c_ptr), intent(inout) :: grid_x_c_ptr
-   !real(c_float), pointer:: grid_x_f_ptr(:)
-   !integer i, z_xz_size
-   !   
-   !if(allocated(z_xz)) then
-   !  z_xz_size = size(z_xz)
-   !  call c_f_pointer(grid_x_c_ptr, grid_x_f_ptr, [z_xz_size])
-   !  do i = 1, z_xz_size
-   !    grid_x_f_ptr(i) = z_xz(i)
-   !  end do
-   !end if
-   !
-   !end subroutine get_grid_x
-   
    function get_grid_x(ptr) result(ierr) bind(C, name="get_grid_x")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_grid_x
    
    type(c_ptr), intent(inout) :: ptr
    integer(kind=c_int) :: ierr
    
+   real(c_float), pointer:: f_ptr(:)
+
+   integer i, sz
+      
    if(allocated(z_xz)) then
-     ptr = c_loc(z_xz)
+     sz = size(z_xz)
+     call c_f_pointer(ptr, f_ptr, [sz])
+     do i = 1, sz
+       f_ptr(i) = z_xz(i)
+     end do
      ierr = ret_code%success
    else
      write(*,*) 'get_grid_x error'
@@ -467,6 +458,7 @@
    
    end function get_grid_x
    
+   !-----------------------------------------------------------------------------------------------------!
    
    function get_grid_y(ptr) result(ierr) bind(C, name="get_grid_y")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_grid_y
@@ -474,11 +466,19 @@
    type(c_ptr), intent(inout) :: ptr
    integer(kind=c_int) :: ierr
    
-   if(allocated(z_xz)) then
-     ptr = c_loc(z_xz)
+   real(c_float), pointer:: f_ptr(:)
+
+   integer i, sz
+      
+   if(allocated(z_yz)) then
+     sz = size(z_yz)
+     call c_f_pointer(ptr, f_ptr, [sz])
+     do i = 1, sz
+       f_ptr(i) = z_yz(i)
+     end do
      ierr = ret_code%success
    else
-     write(*,*) 'get_grid_x error'
+     write(*,*) 'get_grid_y error'
      ptr = c_null_ptr
      ierr = ret_code%failure
    end if
