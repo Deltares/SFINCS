@@ -37,6 +37,13 @@
 
    integer(c_int), bind(C, name="maxstrlen") :: maxstrlen = 1024
    
+   type return_code_type
+     integer(c_int) :: success = 0
+     integer(c_int) :: failure = 1
+   end type return_code_type
+   
+   type (return_code_type) :: ret_code
+   
    contains
    
 !-----------------------------------------------------------------------------------------------------!
@@ -47,15 +54,10 @@
    character(kind=c_char), intent(in)   :: c_config_file(*)
    character(len=strlen(c_config_file)) :: config_file
    integer(kind=c_int) :: ierr
-   
-   write(*,*) "BMI init start"
 
    config_file = char_array_to_string(c_config_file, strlen(c_config_file))
-   write(*,*) "config file: ", config_file
    ierr = sfincs_initialize(config_file)
 
-   write(*,*) "BMI init end"
-   
    end function initialize
    
 !-----------------------------------------------------------------------------------------------------!
@@ -94,70 +96,84 @@
    
 !-----------------------------------------------------------------------------------------------------!  
       
-   subroutine get_start_time(start_time) bind(C, name="get_start_time")
+   function get_start_time(start_time) result(ierr) bind(C, name="get_start_time")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_start_time
+   
    real(c_double), intent(out) :: start_time
+   integer(kind=c_int) :: ierr
 
    start_time = t0
+   ierr = ret_code%success
    
-   end subroutine get_start_time
+   end function get_start_time
 
 !-----------------------------------------------------------------------------------------------------!  
       
-   subroutine get_end_time(end_time) bind(C, name="get_end_time")
+   function get_end_time(end_time) result(ierr) bind(C, name="get_end_time")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_end_time
    
    real(c_double), intent(out) :: end_time
+   integer(kind=c_int) :: ierr
 
    end_time = t1
+   ierr = ret_code%success
    
-   end subroutine get_end_time
+   end function get_end_time
    
 !-----------------------------------------------------------------------------------------------------!  
       
-   subroutine get_current_time(current_time) bind(C, name="get_current_time")
+   function get_current_time(current_time) result(ierr) bind(C, name="get_current_time")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_current_time
    
    real(c_double), intent(out) :: current_time
+   integer(kind=c_int) :: ierr
 
    current_time = t
+   ierr = ret_code%success
    
-   end subroutine get_current_time
+   end function get_current_time
    
 !-----------------------------------------------------------------------------------------------------!  
       
-   subroutine get_time_step(time_step) bind(C, name="get_time_step")
+   function get_time_step(time_step) result(ierr) bind(C, name="get_time_step")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_time_step
 
    real(c_double), intent(out) :: time_step
+   integer(kind=c_int) :: ierr
 
    time_step = dt
+   ierr = ret_code%success
    
-   end subroutine get_time_step
+   end function get_time_step
    
 !-----------------------------------------------------------------------------------------------------!  
       
-   subroutine get_time_units(time_units) bind(C, name="get_time_units")
+   function get_time_units(time_units) result(ierr) bind(C, name="get_time_units")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_time_units
 
    character(kind=c_char), intent(out) :: time_units(maxstrlen)
+   integer(kind=c_int) :: ierr
    
    time_units = string_to_char_array("s", 1)
+   ierr = ret_code%success
    
-   end subroutine get_time_units
+   end function get_time_units
    
 !-----------------------------------------------------------------------------------------------------!
    
-   subroutine get_value(var_name, ptr) bind(C, name="get_value")
+   function get_value(var_name, ptr) result(ierr) bind(C, name="get_value")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_value
    
-   character(kind=c_char), intent(in) :: var_name(*)
+   character(kind=c_char), intent(inout) :: var_name(*)
    type(c_ptr), intent(inout) :: ptr
+   integer(kind=c_int) :: ierr
  
    ! The fortran name of the attribute name
    character(len=strlen(var_name)) :: f_var_name
    real(c_float), pointer:: f_ptr(:)
    integer :: i
+   
+   ierr = ret_code%success
    
    ! get the name
    f_var_name = char_array_to_string(var_name, strlen(var_name))
@@ -200,22 +216,26 @@
        f_ptr(i) = zst_bnd(i)
 	 end do
    case default
-	 write(*,*) 'get_value error'
+     write(*,*) 'get_value error'
+     ierr = ret_code%failure
      ptr = c_null_ptr
    end select
  
-   end subroutine get_value
+   end function get_value
    
 !-----------------------------------------------------------------------------------------------------!
    
-   subroutine get_value_ptr(var_name, ptr) bind(C, name="get_value_ptr")
+   function get_value_ptr(var_name, ptr) result(ierr) bind(C, name="get_value_ptr")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_value_ptr
    
-   character(kind=c_char), intent(in) :: var_name(*)
+   character(kind=c_char), intent(inout) :: var_name(*)
    type(c_ptr), intent(inout) :: ptr
+   integer(kind=c_int) :: ierr
 
    ! The fortran name of the attribute name
    character(len=strlen(var_name)) :: f_var_name
+   
+   ierr = ret_code%success
    
    ! Store the name
    f_var_name = char_array_to_string(var_name, strlen(var_name))
@@ -239,88 +259,95 @@
      ptr = c_loc(zst_bnd)
    case default
 	 write(*,*) 'get_value_ptr error'
+     ierr = ret_code%failure
      ptr = c_null_ptr
    end select
 
-   end subroutine get_value_ptr
+   end function get_value_ptr
    
    !-----------------------------------------------------------------------------------------------------!
    
-   subroutine get_var_shape(c_var_name, var_shape) bind(C, name="get_var_shape")
+   function get_var_shape(var_name, var_shape) result(ierr) bind(C, name="get_var_shape")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_var_shape
    
-   character(kind=c_char), intent(in) :: c_var_name(*)
-   integer(c_int), intent(inout)      :: var_shape(1)
-   character(len=strlen(c_var_name))  :: var_name
+   character(kind=c_char), intent(in) :: var_name(*)
+   integer(c_int), intent(inout) :: var_shape(1)
+   integer(kind=c_int) :: ierr
+   
+   character(len=strlen(var_name))  :: f_var_name
 
-   var_name = char_array_to_string(c_var_name, strlen(c_var_name))
+   f_var_name = char_array_to_string(var_name, strlen(var_name))
    var_shape = (/0/)
    
-   select case(var_name)
+   select case(f_var_name)
    case("z_xz", "z_yz","zs","zb","qtsrc","zst_bnd")     
       ! inverted shapes (fortran to c)
       var_shape(1) = np
+      ierr = ret_code%success
    case default
      write(*,*) 'get_var_shape error'
-     ! nullptr
+     ierr = ret_code%failure
    end select
    
-   end subroutine get_var_shape
+   end function get_var_shape
    
 !-----------------------------------------------------------------------------------------------------!
    
-   subroutine get_var_type(c_var_name, c_var_type) bind(C, name="get_var_type")
+   function get_var_type(var_name, var_type) result(ierr) bind(C, name="get_var_type")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_var_type
    
-   character(kind=c_char), intent(in)  :: c_var_name(*)
-   character(kind=c_char), intent(out) :: c_var_type(maxstrlen)
-   character(len=maxstrlen)            :: var_name, var_type
+   character(kind=c_char), intent(in)  :: var_name(*)
+   character(kind=c_char), intent(out) :: var_type(maxstrlen)
+   integer(kind=c_int) :: ierr
+   
+   character(len=maxstrlen) :: f_var_name, f_var_type
 
-   var_name = char_array_to_string(c_var_name, strlen(c_var_name))
+   f_var_name = char_array_to_string(var_name, strlen(var_name))
 
-   select case(var_name)
-   case("z_xz", "z_yz","zs","zb","qtsrc","zst_bnd")      
-      var_type = "float"
+   select case(f_var_name)
+   case("z_xz", "z_yz", "zs", "zb", "qtsrc", "zst_bnd")      
+      f_var_type = "float"
+      var_type = string_to_char_array(trim(f_var_type), len(trim(f_var_type)))
+      ierr = ret_code%success
    case default
      write(*,*) 'get_var_type error'
-     ! nullptr
+     ierr = ret_code%failure
    end select
    
-   c_var_type = string_to_char_array(trim(var_type), len(trim(var_type)))
-   
-   end subroutine get_var_type
+   end function get_var_type
    
 !-----------------------------------------------------------------------------------------------------!
    
-   subroutine get_var_rank(c_var_name, rank) bind(C, name="get_var_rank")
+   function get_var_rank(var_name, rank) result(ierr) bind(C, name="get_var_rank")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_var_rank
    
-   character(kind=c_char), intent(in) :: c_var_name(*)
+   character(kind=c_char), intent(in) :: var_name(*)
    integer(c_int), intent(out) :: rank
+   integer(kind=c_int) :: ierr
 
-   ! The fortran name of the attribute name
-   character(len=strlen(c_var_name)) :: var_name
-   
+   character(len=strlen(var_name)) :: f_var_name
 
-   var_name = char_array_to_string(c_var_name, strlen(c_var_name))
+   f_var_name = char_array_to_string(var_name, strlen(var_name))
    
-   select case(var_name)
-   case("z_xz", "z_yz","zs","zb","qtsrc","zst_bnd") 
+   select case(f_var_name)
+   case("z_xz", "z_yz", "zs", "zb" ,"qtsrc", "zst_bnd") 
       rank = 1
+      ierr = ret_code%success
    case default
      write(*,*) 'get_var_rank error'
-     !rank  = some_invalid_val
+     ierr = ret_code%failure
    end select
 
-   end subroutine get_var_rank
+   end function get_var_rank
    
 !-----------------------------------------------------------------------------------------------------!   
 
-   subroutine set_value(var_name, ptr) bind(C, name="set_value")
+   function set_value(var_name, ptr) result(ierr) bind(C, name="set_value")
    !DEC$ ATTRIBUTES DLLEXPORT :: set_value
 
    character(kind=c_char), intent(in) :: var_name(*)
    type(c_ptr), value, intent(in) :: ptr
+   integer(kind=c_int) :: ierr
 
    real(c_float), pointer  :: f_ptr(:)
 
@@ -328,6 +355,8 @@
    character(len=strlen(var_name)) :: f_var_name
    integer :: i
 
+   ierr = ret_code%success
+   
    f_var_name = char_array_to_string(var_name, strlen(var_name))
    
    call c_f_pointer(ptr, f_ptr, [np])
@@ -351,35 +380,58 @@
      end do
    case default
      write(*,*) 'set_value error'
+     ierr = ret_code%failure
    end select
          
-   end subroutine set_value
+   end function set_value
    
 !-----------------------------------------------------------------------------------------------------!
 
-   subroutine get_grid_type(grid_type) bind(C, name="get_grid_type")
+   function get_grid_type(grid_type) result(ierr) bind(C, name="get_grid_type")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_grid_rtype
+   
    character(kind=c_char), intent(out) :: grid_type(maxstrlen)
+   integer(kind=c_int) :: ierr
+   
    character(len=maxstrlen) :: string
+   
    if(use_quadtree) then
      string = "unstructered"
    else
      string = "rectilinear"
    end if
    grid_type = string_to_char_array(trim(string), len(trim(string)))
-   end subroutine get_grid_type
+   ierr = ret_code%success
    
-   subroutine get_grid_rank(grid_rank) bind(C, name="get_grid_rank")
+   end function get_grid_type
+   
+   !-----------------------------------------------------------------------------------------------------!
+   
+   function get_grid_rank(grid_rank) result(ierr) bind(C, name="get_grid_rank")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_grid_rank
-   integer(c_int), intent(out) :: grid_rank
-   grid_rank = 2
-   end subroutine get_grid_rank
    
-   subroutine get_grid_size(grid_size) bind(C, name="get_grid_size")
+   integer(c_int), intent(out) :: grid_rank
+   integer(kind=c_int) :: ierr
+   
+   grid_rank = 2
+   ierr = ret_code%success
+
+   end function get_grid_rank
+   
+   !-----------------------------------------------------------------------------------------------------!
+   
+   function get_grid_size(grid_size) result(ierr) bind(C, name="get_grid_size")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_grid_size
+
    integer(c_int), intent(out) :: grid_size
+   integer(kind=c_int) :: ierr
+   
    grid_size = np
-   end subroutine get_grid_size
+   ierr = ret_code%success
+    
+   end function get_grid_size
+   
+   !-----------------------------------------------------------------------------------------------------!
    
    !subroutine get_grid_x(grid_x_c_ptr) bind(C, name="get_grid_x")
    !!DEC$ ATTRIBUTES DLLEXPORT :: get_grid_x
@@ -398,22 +450,40 @@
    !
    !end subroutine get_grid_x
    
-   subroutine get_grid_x(grid_x_c_ptr) bind(C, name="get_grid_x")
+   function get_grid_x(ptr) result(ierr) bind(C, name="get_grid_x")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_grid_x
-   type(c_ptr), intent(inout) :: grid_x_c_ptr
+   
+   type(c_ptr), intent(inout) :: ptr
+   integer(kind=c_int) :: ierr
+   
    if(allocated(z_xz)) then
-     grid_x_c_ptr = c_loc(z_xz(1))
+     ptr = c_loc(z_xz)
+     ierr = ret_code%success
+   else
+     write(*,*) 'get_grid_x error'
+     ptr = c_null_ptr
+     ierr = ret_code%failure
    end if
-   end subroutine get_grid_x
+   
+   end function get_grid_x
    
    
-   subroutine get_grid_y(grid_y_c_ptr) bind(C, name="get_grid_y")
+   function get_grid_y(ptr) result(ierr) bind(C, name="get_grid_y")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_grid_y
-   type(c_ptr), intent(inout) :: grid_y_c_ptr
-   if(allocated(z_yz)) then
-     grid_y_c_ptr = c_loc(z_yz(1))
+   
+   type(c_ptr), intent(inout) :: ptr
+   integer(kind=c_int) :: ierr
+   
+   if(allocated(z_xz)) then
+     ptr = c_loc(z_xz)
+     ierr = ret_code%success
+   else
+     write(*,*) 'get_grid_x error'
+     ptr = c_null_ptr
+     ierr = ret_code%failure
    end if
-   end subroutine get_grid_y
+   
+   end function get_grid_y
    
 !-----------------------------------------------------------------------------------------------------!
    
