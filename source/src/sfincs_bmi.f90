@@ -8,6 +8,7 @@
 
    public :: initialize
    public :: finalize
+   public :: get_component_name
 
    public :: update_until
    public :: update
@@ -72,6 +73,22 @@
    ierr = sfincs_finalize()
    
    end function finalize
+   
+!-----------------------------------------------------------------------------------------------------!  
+      
+   function get_component_name(component_name) result(ierr) bind(C, name="get_component_name")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_component_name
+
+   character(kind=c_char), intent(out) :: component_name(maxstrlen)
+   integer(kind=c_int) :: ierr
+   
+   character(len=maxstrlen) :: string
+   
+   string = "Sfincs hydrodynamic model (C)"   
+   component_name = string_to_char_array(trim(string), len(trim(string)))
+   ierr = ret_code%success
+   
+   end function get_component_name
 
 !-----------------------------------------------------------------------------------------------------!
    
