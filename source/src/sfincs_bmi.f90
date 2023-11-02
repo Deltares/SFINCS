@@ -19,12 +19,14 @@
    public :: get_time_units
    
    public :: get_value
+   public :: get_value_at_indices
    public :: get_value_ptr
    public :: get_var_shape
    public :: get_var_type
    public :: get_var_rank
    
    public :: set_value
+   public :: set_value_at_indices
    
    public :: get_grid_type
    public :: get_grid_rank
@@ -164,11 +166,10 @@
    function get_value(var_name, ptr) result(ierr) bind(C, name="get_value")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_value
    
-   character(kind=c_char), intent(inout) :: var_name(*)
+   character(kind=c_char), intent(in) :: var_name(*)
    type(c_ptr), intent(inout) :: ptr
    integer(kind=c_int) :: ierr
  
-   ! The fortran name of the attribute name
    character(len=strlen(var_name)) :: f_var_name
    real(c_float), pointer:: f_ptr(:)
    integer :: i
@@ -225,14 +226,85 @@
    
 !-----------------------------------------------------------------------------------------------------!
    
+   function get_value_at_indices(var_name, dest, inds, count) result(ierr) bind(C, name="get_value_at_indices")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_value
+   
+   character(kind=c_char), intent(in) :: var_name(*)
+   type(c_ptr), intent(inout) :: dest
+   type(c_ptr), value, intent(in) :: inds
+   integer(kind=c_int), value, intent(in) :: count
+   integer(kind=c_int) :: ierr
+ 
+   character(len=strlen(var_name)) :: f_var_name
+   real(kind=c_float), pointer:: f_dest(:)
+   real(kind=c_int), pointer  :: f_inds(:)
+   integer :: i
+   
+   ierr = ret_code%success
+   
+   ! get the name
+   f_var_name = char_array_to_string(var_name, strlen(var_name))
+      
+   select case(f_var_name)
+   case("z_xz") ! x grid cell centre
+	 call c_f_pointer(dest, f_dest, [count])
+     call c_f_pointer(inds, f_inds, [count])
+     do i = 1, count
+       f_dest(i) = z_xz(f_inds(i))
+	 end do
+   case("z_yz") ! y grid cell centre
+	 call c_f_pointer(dest, f_dest, [count])
+     call c_f_pointer(inds, f_inds, [count])
+     do i = 1, count
+       f_dest(i) = z_yz(f_inds(i))
+	 end do
+   case("zs") ! water level
+	 call c_f_pointer(dest, f_dest, [count])
+     call c_f_pointer(inds, f_inds, [count])
+     do i = 1, count
+       f_dest(i) = zs(f_inds(i))
+	 end do
+   case("zb") ! bed level
+   	 call c_f_pointer(dest, f_dest, [count])
+     call c_f_pointer(inds, f_inds, [count])
+	 if(subgrid) then
+	   do i = 1, count
+         f_dest(i) = subgrid_z_zmin(f_inds(i))
+	   end do
+	 else
+	   do i = 1, count
+         f_dest(i) = subgrid_z_zmin(f_inds(i))
+	   end do
+     end if
+   case("qtsrc")
+	 call c_f_pointer(dest, f_dest, [count])
+     call c_f_pointer(inds, f_inds, [count])
+     do i = 1, count
+       f_dest(i) = qtsrc(f_inds(i))
+	 end do
+   case("zst_bnd")
+	 call c_f_pointer(dest, f_dest, [count])
+     call c_f_pointer(inds, f_inds, [count])
+     do i = 1, count
+       f_dest(i) = zst_bnd(f_inds(i))
+	 end do
+   case default
+     write(*,*) 'get_value_at_indices error'
+     ierr = ret_code%failure
+     dest = c_null_ptr
+   end select
+ 
+   end function get_value_at_indices
+   
+!-----------------------------------------------------------------------------------------------------!
+   
    function get_value_ptr(var_name, ptr) result(ierr) bind(C, name="get_value_ptr")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_value_ptr
    
-   character(kind=c_char), intent(inout) :: var_name(*)
+   character(kind=c_char), intent(in) :: var_name(*)
    type(c_ptr), intent(inout) :: ptr
    integer(kind=c_int) :: ierr
 
-   ! The fortran name of the attribute name
    character(len=strlen(var_name)) :: f_var_name
    
    ierr = ret_code%success
@@ -384,6 +456,54 @@
    end select
          
    end function set_value
+   
+!-----------------------------------------------------------------------------------------------------!   
+
+   function set_value_at_indices(var_name, inds, count, src) result(ierr) bind(C, name="set_value_at_indices")
+   !DEC$ ATTRIBUTES DLLEXPORT :: set_value_at_indices
+
+   character(kind=c_char), intent(in) :: var_name(*)
+   type(c_ptr), value, intent(in) :: inds
+   type(c_ptr), value, intent(in) :: src
+   integer(kind=c_int), value, intent(in) :: count
+   integer(kind=c_int) :: ierr
+
+   
+   character(len=strlen(var_name)) :: f_var_name
+   real(kind=c_int), pointer  :: f_inds(:)
+   real(kind=c_float), pointer  :: f_src(:)
+   integer :: i
+
+   ierr = ret_code%success
+   
+   f_var_name = char_array_to_string(var_name, strlen(var_name))
+   
+   call c_f_pointer(src, f_src, [count])
+   call c_f_pointer(inds, f_inds, [count])
+   
+   select case(f_var_name)
+   case("zs")
+     do i = 1, count
+       zs(f_inds(i)) = f_src(i)
+     end do
+   case("zb")
+     do i = 1, count
+       zb(f_inds(i)) = f_src(i)
+     end do
+   case("qtsrc")
+     do i = 1, count
+       qtsrc(f_inds(i)) = f_src(i)
+     end do
+   case("zst_bnd")
+     do i = 1, count
+       zst_bnd(f_inds(i)) = f_src(i)
+     end do
+   case default
+     write(*,*) 'set_value_at_indices error'
+     ierr = ret_code%failure
+   end select
+         
+   end function set_value_at_indices
    
 !-----------------------------------------------------------------------------------------------------!
 
