@@ -24,7 +24,7 @@
    public :: get_var_type
    public :: get_var_rank
    
-   public :: set_var
+   public :: set_value
    
    public :: get_grid_type
    public :: get_grid_rank
@@ -151,8 +151,8 @@
    subroutine get_value(var_name, ptr) bind(C, name="get_value")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_value
    
-   character(kind=c_char), intent(in)       :: var_name(*)
-   type(c_ptr), intent(inout)               :: ptr
+   character(kind=c_char), intent(in) :: var_name(*)
+   type(c_ptr), intent(inout) :: ptr
  
    ! The fortran name of the attribute name
    character(len=strlen(var_name)) :: f_var_name
@@ -160,7 +160,7 @@
    integer :: i
    
    ! get the name
-   f_var_name = char_array_to_string(var_name,strlen(var_name))
+   f_var_name = char_array_to_string(var_name, strlen(var_name))
       
    select case(f_var_name)
    case("z_xz") ! x grid cell centre
@@ -211,14 +211,14 @@
    subroutine get_value_ptr(var_name, ptr) bind(C, name="get_value_ptr")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_value_ptr
    
-   character(kind=c_char), intent(in)       :: var_name(*)
-   type(c_ptr), intent(inout)               :: ptr
+   character(kind=c_char), intent(in) :: var_name(*)
+   type(c_ptr), intent(inout) :: ptr
 
    ! The fortran name of the attribute name
    character(len=strlen(var_name)) :: f_var_name
    
    ! Store the name
-   f_var_name = char_array_to_string(var_name,strlen(var_name))
+   f_var_name = char_array_to_string(var_name, strlen(var_name))
    
    select case(f_var_name)
    case("z_xz") ! x grid cell centre
@@ -316,45 +316,44 @@
    
 !-----------------------------------------------------------------------------------------------------!   
 
-   subroutine set_var(c_var_name, c_var_ptr) bind(C, name="set_var")
-   !DEC$ ATTRIBUTES DLLEXPORT :: set_var
+   subroutine set_value(var_name, ptr) bind(C, name="set_value")
+   !DEC$ ATTRIBUTES DLLEXPORT :: set_value
 
-   character(kind=c_char), intent(in) :: c_var_name(*)
-   type(c_ptr), value, intent(in) :: c_var_ptr
+   character(kind=c_char), intent(in) :: var_name(*)
+   type(c_ptr), value, intent(in) :: ptr
 
-   real(c_float), pointer  :: f_var_ptr(:)
+   real(c_float), pointer  :: f_ptr(:)
 
    ! The fortran name of the attribute name
-   character(len=strlen(c_var_name)) :: var_name
+   character(len=strlen(var_name)) :: f_var_name
    integer :: i
 
-   var_name = char_array_to_string(c_var_name, strlen(c_var_name))
+   f_var_name = char_array_to_string(var_name, strlen(var_name))
    
-   call c_f_pointer(c_var_ptr, f_var_ptr, [np])
+   call c_f_pointer(ptr, f_ptr, [np])
    
-   select case(var_name)
+   select case(f_var_name)
    case("zs")
      do i = 1, np
-       f_var_ptr(i) = zs(i)
+       zs(i) = f_ptr(i)
      end do
    case("zb")
      do i = 1, np
-       f_var_ptr(i) = zb(i)
+       zb(i) = f_ptr(i)
      end do
    case("qtsrc")
      do i = 1, np
-       f_var_ptr(i) = qtsrc(i)
+       qtsrc(i) = f_ptr(i)
      end do
    case("zst_bnd")
      do i = 1, np
-       f_var_ptr(i) = zst_bnd(i)
+       zst_bnd(i) = f_ptr(i)
      end do
    case default
-     write(*,*) 'set_var error'
-     !nullptr
+     write(*,*) 'set_value error'
    end select
          
-   end subroutine set_var
+   end subroutine set_value
    
 !-----------------------------------------------------------------------------------------------------!
 
