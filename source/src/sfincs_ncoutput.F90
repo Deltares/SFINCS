@@ -689,7 +689,7 @@ contains
 !      endif
    enddo   
    !  
-   NF90(nf90_create('sfincs_map.nc', ior(ior(NF90_CLOBBER, NF90_64BIT_OFFSET),NF90_NETCDF4), map_file%ncid))
+   NF90(nf90_create('sfincs_map.nc', ior(NF90_CLOBBER,NF90_NETCDF4), map_file%ncid)) ! TL: removed 'NF90_64BIT_OFFSET'
    !
    ! Create dimensions
    ! grid, time, points
