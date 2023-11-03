@@ -4,60 +4,46 @@ contains
 
    subroutine initialize_domain()
    !
-   ! Initialize SFINCS domain (indices, flags and depths)
-   !
    use sfincs_data
    use quadtree
    !
    implicit none
    !
-   integer ip, n, m, nm, nmu, num, ib, iref, npu, npv, ipuv, ipu, ipv, iud, iuu, ndm, nmd, j, iq, nmx, ibin, ind
-   integer ikcuv2
-   integer npac, idummy
-   integer npuvq, npuvs, npzq
+   call initialize_processes() 
    !
-   ! Temporary arrays
+   call initialize_mesh()
    !
-   integer*1, dimension(:,:), allocatable :: kcsg
+   call initialize_bathymetry()
    !
-   real*4, dimension(:,:),   allocatable :: zbg
-   real*4, dimension(:),     allocatable :: rtmp
-   real*4, dimension(:),     allocatable :: rtmpz
-   real*4, dimension(:),     allocatable :: rtmpuv
-   real*4, dimension(:),     allocatable :: rghfield
+   call initialize_boundaries()
    !
-   integer*1, dimension(:),   allocatable :: z_index_md
-   integer*4, dimension(:),   allocatable :: z_index_md1
-   integer*4, dimension(:),   allocatable :: z_index_md2
-   integer*1, dimension(:),   allocatable :: z_index_mu
-   integer*4, dimension(:),   allocatable :: z_index_mu1
-   integer*4, dimension(:),   allocatable :: z_index_mu2
-   integer*1, dimension(:),   allocatable :: z_index_nd
-   integer*4, dimension(:),   allocatable :: z_index_nd1
-   integer*4, dimension(:),   allocatable :: z_index_nd2
-   integer*1, dimension(:),   allocatable :: z_index_nu
-   integer*4, dimension(:),   allocatable :: z_index_nu1
-   integer*4, dimension(:),   allocatable :: z_index_nu2
+   call initialize_roughness()
    !
-   integer*1,          dimension(:),   allocatable :: msk
-   !   
-   integer*1,          dimension(:),   allocatable :: u_iref
-   integer*1,          dimension(:),   allocatable :: u_type
-   integer*4,          dimension(:),   allocatable :: u_index_nm
-   integer*4,          dimension(:),   allocatable :: u_index_nmu
-   integer*1,          dimension(:),   allocatable :: v_iref
-   integer*1,          dimension(:),   allocatable :: v_type
-   integer*4,          dimension(:),   allocatable :: v_index_nm
-   integer*4,          dimension(:),   allocatable :: v_index_num
+   call initialize_infiltration()
    !
-   integer*4, dimension(:),   allocatable :: uv_index_qt_in_sf
+   call initialize_storage_volume()
    !
-   ! For 'old' input
+   call initialize_hydro()
    !
-   integer*4,          dimension(:),   allocatable :: indices
+   if (quadtree_nr_levels==1 .and. use_quadtree) then
+      !
+      ! Only one refinement level found in quadtree file. Reverting to use_quadtree is false.
+      ! This means netcdf output will be written to a regular grid.
+      !
+      use_quadtree = .false.
+      !
+   endif
    !
-   real*4 :: ylat
-   real*4 :: dxymin
+   end subroutine
+
+
+   subroutine initialize_processes()
+   !
+   ! Initialize physical processes
+   !
+   use sfincs_data
+   !
+   implicit none
    !
    ! Set some flags
    !
@@ -121,11 +107,59 @@ contains
       store_meteo = .false.
    endif
    !
+   end subroutine
+
+
+   subroutine initialize_mesh()
+   !
+   ! Initialize SFINCS domain (indices, flags and neighbors)
+   !
+   use sfincs_data
+   use quadtree
+   !
+   implicit none
+   !
+   integer ip, n, m, nm, nmu, num, ib, iref, npu, npv, ipuv, ipu, ipv, iud, iuu, ndm, nmd, j, iq, nmx, ind
+   integer ndmu, nmdu, numu
+   integer ikcuv2
+   integer npac, idummy
+   integer nrefuv, irefuv, npuvtotal, icuv
+   !
+   ! Temporary arrays
+   !
+   integer*1, dimension(:,:), allocatable :: kcsg
+   !
+   integer*1, dimension(:),   allocatable :: z_flags_md
+   integer*4, dimension(:),   allocatable :: z_index_z_md1
+   integer*4, dimension(:),   allocatable :: z_index_z_md2
+   integer*1, dimension(:),   allocatable :: z_flags_mu
+   integer*4, dimension(:),   allocatable :: z_index_z_mu1
+   integer*4, dimension(:),   allocatable :: z_index_z_mu2
+   integer*1, dimension(:),   allocatable :: z_flags_nd
+   integer*4, dimension(:),   allocatable :: z_index_z_nd1
+   integer*4, dimension(:),   allocatable :: z_index_z_nd2
+   integer*1, dimension(:),   allocatable :: z_flags_nu
+   integer*4, dimension(:),   allocatable :: z_index_z_nu1
+   integer*4, dimension(:),   allocatable :: z_index_z_nu2
+   integer*4, dimension(:),   allocatable :: z_index_cuv_md
+   integer*4, dimension(:),   allocatable :: z_index_cuv_mu
+   integer*4, dimension(:),   allocatable :: z_index_cuv_nd
+   integer*4, dimension(:),   allocatable :: z_index_cuv_nu
+   !
+   integer*1,          dimension(:),   allocatable :: msk
+   !   
+   ! For 'old' input
+   !
+   integer*4,          dimension(:),   allocatable :: indices
+   !
+   real*4 :: ylat
+   real*4 :: dxymin
+   !
    ! READ MESH
    !
    ! 2 options:
    !
-   ! 1) quadtree grid
+   ! 1) quadtree grid (netcdf file)
    ! 2) 'old' inputs with index file
    !
    if (use_quadtree) then
@@ -183,7 +217,7 @@ contains
          !
          ! Read index file (first time, only read number of active points)
          !
-         write(*,*)'Reading ', trim(indexfile), ' ...'
+         write(*,*)'Reading index file : ', trim(indexfile), ' ...'
          open(unit = 500, file = trim(indexfile), form = 'unformatted', access = 'stream')
          read(500)np
          allocate(indices(np))
@@ -217,10 +251,6 @@ contains
    allocate(index_sfincs_in_quadtree(quadtree_nr_points))
    index_sfincs_in_quadtree = 0     
    !
-   ! Read mask file (must have same number of cells as quadtree file !)
-   !
-   write(*,*)'Reading ', trim(mskfile), ' ...'
-   !
    if (inputtype=='asc') then
       !
       ip = 0
@@ -244,6 +274,10 @@ contains
       else
          !
          ! Mask in separate file
+         !
+         ! Read mask file (must have same number of cells as quadtree file !)
+         !
+         write(*,*)'Reading mask file : ', trim(mskfile), ' ...'
          !
          open(unit = 500, file = trim(mskfile), form = 'unformatted', access = 'stream')
          read(500)msk
@@ -277,44 +311,41 @@ contains
    index_sfincs_in_quadtree = 0
    !
    allocate(z_flags_iref(np))
-   allocate(z_flags_type(np))
    !
-   z_flags_type = 0
    z_flags_iref = 0
    !      
    ! Temporary index arrays
    !
-   allocate(z_index_md(np))
-   allocate(z_index_mu(np))
-   allocate(z_index_nd(np))
-   allocate(z_index_nu(np))
-   allocate(z_index_md1(np))
-   allocate(z_index_md2(np))
-   allocate(z_index_mu1(np))
-   allocate(z_index_mu2(np))
-   allocate(z_index_nd1(np))
-   allocate(z_index_nd2(np))
-   allocate(z_index_nu1(np))
-   allocate(z_index_nu2(np))
+   allocate(z_flags_md(np))
+   allocate(z_flags_mu(np))
+   allocate(z_flags_nd(np))
+   allocate(z_flags_nu(np))
+   allocate(z_index_z_md1(np))
+   allocate(z_index_z_md2(np))
+   allocate(z_index_z_mu1(np))
+   allocate(z_index_z_mu2(np))
+   allocate(z_index_z_nd1(np))
+   allocate(z_index_z_nd2(np))
+   allocate(z_index_z_nu1(np))
+   allocate(z_index_z_nu2(np))
    !
    allocate(z_index_z_n(np))
    allocate(z_index_z_m(np))
    !
-   z_index_md    = 0
-   z_index_mu    = 0
-   z_index_nd    = 0
-   z_index_nu    = 0
-   z_index_md1   = 0
-   z_index_md2   = 0
-   z_index_mu1   = 0
-   z_index_mu2   = 0
-   z_index_nd1   = 0
-   z_index_nd2   = 0
-   z_index_nu1   = 0
-   z_index_nu2   = 0
+   z_flags_md    = 0
+   z_flags_mu    = 0
+   z_flags_nd    = 0
+   z_flags_nu    = 0
+   z_index_z_md1 = 0
+   z_index_z_md2 = 0
+   z_index_z_mu1 = 0
+   z_index_z_mu2 = 0
+   z_index_z_nd1 = 0
+   z_index_z_nd2 = 0
+   z_index_z_nu1 = 0
+   z_index_z_nu2 = 0
    z_index_z_n   = 0
    z_index_z_m   = 0
-!   z_index_z_nm  = 0
    !
    ! Permanent index arrays
    !      
@@ -327,16 +358,30 @@ contains
    allocate(z_index_uv_nu1(np))
    allocate(z_index_uv_nu2(np))
    !
-   z_index_uv_md1   = 0
-   z_index_uv_md2   = 0
-   z_index_uv_mu1   = 0
-   z_index_uv_mu2   = 0
-   z_index_uv_nd1   = 0
-   z_index_uv_nd2   = 0
-   z_index_uv_nu1   = 0
-   z_index_uv_nu2   = 0
-   z_index_z_n      = 0
-   z_index_z_m      = 0
+   allocate(z_index_uv_md(np))
+   allocate(z_index_uv_mu(np))
+   allocate(z_index_uv_nd(np))
+   allocate(z_index_uv_nu(np))
+   !
+   allocate(z_index_cuv_md(np))
+   allocate(z_index_cuv_mu(np))
+   allocate(z_index_cuv_nd(np))
+   allocate(z_index_cuv_nu(np))
+   !
+   z_index_uv_md1 = 0
+   z_index_uv_md2 = 0
+   z_index_uv_mu1 = 0
+   z_index_uv_mu2 = 0
+   z_index_uv_nd1 = 0
+   z_index_uv_nd2 = 0
+   z_index_uv_nu1 = 0
+   z_index_uv_nu2 = 0
+   z_index_uv_md  = 0
+   z_index_uv_mu  = 0
+   z_index_uv_nd  = 0
+   z_index_uv_nu  = 0
+   z_index_z_n    = 0
+   z_index_z_m    = 0
    !
    ! Re-mapping indices
    !
@@ -365,40 +410,40 @@ contains
       z_index_z_n(ip)   = quadtree_n(iq)
       z_index_z_m(ip)   = quadtree_m(iq)
       !
-      z_index_nu(ip)    = quadtree_nu(iq)
-      z_index_nd(ip)    = quadtree_nd(iq)
-      z_index_mu(ip)    = quadtree_mu(iq)
-      z_index_md(ip)    = quadtree_md(iq)
+      z_flags_nu(ip)    = quadtree_nu(iq)
+      z_flags_nd(ip)    = quadtree_nd(iq)
+      z_flags_mu(ip)    = quadtree_mu(iq)
+      z_flags_md(ip)    = quadtree_md(iq)
       !
       ! Neighbors
       !
       if (quadtree_nu1(iq)>0) then
-         z_index_nu1(ip)   = index_sfincs_in_quadtree(quadtree_nu1(iq))
+         z_index_z_nu1(ip)   = index_sfincs_in_quadtree(quadtree_nu1(iq))
       endif
       if (quadtree_nu2(iq)>0) then
-         z_index_nu2(ip)   = index_sfincs_in_quadtree(quadtree_nu2(iq))
+         z_index_z_nu2(ip)   = index_sfincs_in_quadtree(quadtree_nu2(iq))
       endif
       if (quadtree_nd1(iq)>0) then
-         z_index_nd1(ip)   = index_sfincs_in_quadtree(quadtree_nd1(iq))
+         z_index_z_nd1(ip)   = index_sfincs_in_quadtree(quadtree_nd1(iq))
       endif
       if (quadtree_nd2(iq)>0) then
-         z_index_nd2(ip)   = index_sfincs_in_quadtree(quadtree_nd2(iq))
+         z_index_z_nd2(ip)   = index_sfincs_in_quadtree(quadtree_nd2(iq))
       endif
       if (quadtree_mu1(iq)>0) then
-         z_index_mu1(ip)   = index_sfincs_in_quadtree(quadtree_mu1(iq))
+         z_index_z_mu1(ip)   = index_sfincs_in_quadtree(quadtree_mu1(iq))
       endif
       if (quadtree_mu2(iq)>0) then
-         z_index_mu2(ip)   = index_sfincs_in_quadtree(quadtree_mu2(iq))
+         z_index_z_mu2(ip)   = index_sfincs_in_quadtree(quadtree_mu2(iq))
       endif
       if (quadtree_md1(iq)>0) then
-         z_index_md1(ip)   = index_sfincs_in_quadtree(quadtree_md1(iq))
+         z_index_z_md1(ip)   = index_sfincs_in_quadtree(quadtree_md1(iq))
       endif
       if (quadtree_md2(iq)>0) then
-         z_index_md2(ip)   = index_sfincs_in_quadtree(quadtree_md2(iq))
+         z_index_z_md2(ip)   = index_sfincs_in_quadtree(quadtree_md2(iq))
       endif
       !
    enddo   
-   !
+   ! 
    ! Loop through quadtree to count the number of u and v points
    !
    npu = 0
@@ -408,19 +453,19 @@ contains
       !
       ! Right
       !
-      if (z_index_mu(nm)<1) then
+      if (z_flags_mu(nm)<1) then
          !
-         if (z_index_mu1(nm)>0) then
+         if (z_index_z_mu1(nm)>0) then
             npu = npu + 1
          endif   
          !
       else
          !
-         if (z_index_mu1(nm)>0) then
+         if (z_index_z_mu1(nm)>0) then
             npu = npu + 1
          endif   
          !
-         if (z_index_mu2(nm)>0) then
+         if (z_index_z_mu2(nm)>0) then
             npu = npu + 1
          endif   
          !            
@@ -428,19 +473,19 @@ contains
       !
       ! Above
       !
-      if (z_index_nu(nm)<1) then
+      if (z_flags_nu(nm)<1) then
          !
-         if (z_index_nu1(nm)>0) then
+         if (z_index_z_nu1(nm)>0) then
             npv = npv + 1
          endif   
          !
       else
          !
-         if (z_index_nu1(nm)>0) then
+         if (z_index_z_nu1(nm)>0) then
             npv = npv + 1
          endif   
          !
-         if (z_index_nu2(nm)>0) then
+         if (z_index_z_nu2(nm)>0) then
             npv = npv + 1
          endif   
          !            
@@ -449,6 +494,129 @@ contains
    enddo 
    !
    npuv = npu + npv
+   !
+   ncuv = 0 
+   !
+   if (quadtree_nr_levels>1) then 
+      !
+      ! Loop through all the points again and find 'combined' uv points at refinement boundaries
+      !
+      do nm = 1, np
+         !
+         ! Left
+         !
+         if (z_flags_md(nm) == 1) then
+            !
+            ! Finer on the left
+            !
+            ncuv = ncuv + 1
+            !            
+         endif   
+         !
+         ! Right
+         !
+         if (z_flags_mu(nm) == 1) then
+            !
+            ! Finer on the right
+            !
+            ncuv = ncuv + 1
+            !            
+         endif   
+         !
+         ! Below
+         !
+         if (z_flags_nd(nm) == 1) then
+            !
+            ! Finer below
+            !
+            ncuv = ncuv + 1
+            !            
+         endif   
+         !
+         ! Above
+         !
+         if (z_flags_nu(nm) == 1) then
+            !
+            ! Finer above
+            !
+            ncuv = ncuv + 1
+            !            
+         endif   
+         !
+      enddo 
+      ! 
+      write(*,*)'Number of refinement transitions : ', ncuv
+      !
+   endif
+   !
+   npuvtotal = npuv + ncuv ! total number of points in uv arrays (including combined uv points)
+   !
+   ! Set neighbors of cells to dummy uv points 
+   !
+   z_index_uv_md  = npuv + ncuv + 1
+   z_index_uv_mu  = npuv + ncuv + 1
+   z_index_uv_nd  = npuv + ncuv + 1
+   z_index_uv_nu  = npuv + ncuv + 1
+   ! 
+   ! Now allocate and fill arrays with combined uv points
+   !
+   allocate(cuv_index_uv(ncuv))  ! index in uv array of combined point
+   allocate(cuv_index_uv1(ncuv)) ! index in uv array of first uv point
+   allocate(cuv_index_uv2(ncuv)) ! index in uv array of second uv point
+   !
+   irefuv = 0 
+   !
+   do nm = 1, np
+      !
+      ! Left
+      !
+      if (z_flags_md(nm) == 1) then
+         !
+         ! Finer on the left
+         !
+         irefuv = irefuv + 1
+         cuv_index_uv(irefuv)  = npuv + irefuv ! used to update uv and q in momentum
+         z_index_cuv_md(nm)    = irefuv ! temporary
+         !            
+      endif   
+      !
+      ! Right
+      !
+      if (z_flags_mu(nm) == 1) then
+         !
+         ! Finer on the right
+         !
+         irefuv = irefuv + 1
+         cuv_index_uv(irefuv)  = npuv + irefuv
+         z_index_cuv_mu(nm)    = irefuv ! temporary
+         !            
+      endif   
+      !
+      ! Below
+      !
+      if (z_flags_nd(nm) == 1) then
+         !
+         ! Finer below
+         !
+         irefuv = irefuv + 1
+         cuv_index_uv(irefuv)  = npuv + irefuv ! needed in momentum
+         z_index_cuv_nd(nm)    = irefuv ! temporary         
+         !            
+      endif   
+      !
+      ! Above
+      !
+      if (z_flags_nu(nm) == 1) then
+         !
+         ! Finer above
+         !
+         irefuv = irefuv + 1  
+         cuv_index_uv(irefuv)  = npuv + irefuv
+         z_index_cuv_nu(nm)    = irefuv
+         !            
+      endif   
+      !
+   enddo 
    !
    ! UV-points
    !
@@ -467,17 +635,10 @@ contains
    uv_index_z_nm  = 0
    uv_index_z_nmu = 0
    !
-!   if (advection .or. coriolis) then
-      allocate(uv_flags_adv(npuv))
-      uv_flags_adv = 0
-!   endif   
+   ! If advection, viscosity or coriolis, allocate extra arrays for 8 uv neighbor indices
    !
-!   if (viscosity) then
-      allocate(uv_flags_vis(npuv))
-      uv_flags_vis = 0
-!   endif   
-   !      
-!   if (advection) then
+   if (advection .or. coriolis .or. viscosity) then
+      !
       allocate(uv_index_u_nmd(npuv))
       allocate(uv_index_u_nmu(npuv))
       allocate(uv_index_u_num(npuv))
@@ -486,6 +647,7 @@ contains
       allocate(uv_index_v_nm(npuv))
       allocate(uv_index_v_ndmu(npuv))
       allocate(uv_index_v_nmu(npuv))
+      !
       uv_index_u_nmd  = 0
       uv_index_u_nmu  = 0
       uv_index_u_num  = 0
@@ -494,103 +656,137 @@ contains
       uv_index_v_nm   = 0
       uv_index_v_ndmu = 0
       uv_index_v_nmu  = 0
-!   endif
+      !
+   endif
    !
-!   if (viscosity .and. .not.advection) then
-!      allocate(uv_index_u_nmd(npuv))
-!      allocate(uv_index_u_nmu(npuv))
-!      allocate(uv_index_u_num(npuv))
-!      allocate(uv_index_u_ndm(npuv))
-!      uv_index_u_nmd  = 0
-!      uv_index_u_nmu  = 0
-!      uv_index_u_num  = 0
-!      uv_index_u_ndm  = 0
-!   endif
+   ip = 0 ! Number of uv points
    !
-!   if (coriolis .and. .not.advection) then
-!      allocate(uv_index_v_nm(npuv))
-!      uv_index_v_nm   = 0
-!   endif
-   !
-   ip = 0
+   ! Loop through cells to set indices neighboring cells for each uv point
+   ! Also fill temporary arrays with indices of all 8 uv points for each cell 
+   ! Also set some flags for each uv point
    !
    do nm = 1, np
       !
       ! Right
       !
-      if (z_index_mu(nm)==0) then
+      if (z_flags_mu(nm)==0) then
          !
          ! Same level
          !
-         if (z_index_mu1(nm)>0) then
+         if (z_index_z_mu1(nm)>0) then ! and there is a neighbor
             !
-            ip                                 = ip + 1
-            uv_index_z_nm(ip)                  = nm
-            uv_index_z_nmu(ip)                 = z_index_mu1(nm)
-            z_index_uv_mu1(nm)                 = ip 
-            z_index_uv_md1(z_index_mu1(nm))    = ip
+            ip = ip + 1
+            !
+            nmu = z_index_z_mu1(nm)
+            !
+            uv_index_z_nm(ip)     = nm
+            uv_index_z_nmu(ip)    = nmu
+            z_index_uv_mu(nm)     = ip 
+            z_index_uv_md(nmu)    = ip
+            z_index_uv_mu1(nm)     = ip 
+            z_index_uv_md1(nmu)    = ip
+            !
+            ! Flags to describe uv point 
+            !
             uv_flags_iref(ip)                  = z_flags_iref(nm) 
             uv_flags_dir(ip)                   = 0 ! u point
             uv_flags_type(ip)                  = 0 ! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
-            uv_flags_vis(ip)                   = 1 ! enable viscosity
-            if (advection .or. coriolis) uv_flags_adv(ip) = 1 ! enable advection
             !
          endif   
          !
-      elseif (z_index_mu(nm)==-1) then
+      elseif (z_flags_mu(nm)==-1) then
          !
          ! Coarser to the right
          !
-         if (z_index_mu1(nm)>0) then
-            !
-            ip                                 = ip + 1
-            uv_index_z_nm(ip)                  = nm
-            uv_index_z_nmu(ip)                 = z_index_mu1(nm)
-            z_index_uv_mu1(nm)                 = ip 
-            if (z_index_md1(z_index_mu1(nm)) == nm) then
-                z_index_uv_md1(z_index_mu1(nm)) = ip
-            else
-                z_index_uv_md2(z_index_mu1(nm)) = ip
-            endif   
-            uv_flags_iref(ip)                  = z_flags_iref(nm) 
-            uv_flags_dir(ip)                   = 0 ! u point
-            uv_flags_type(ip)                  = -1! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
-            uv_flags_vis(ip)                   = 1 ! enable viscosity
-            if (advection .or. coriolis) uv_flags_adv(ip) = 1 ! enable advection
-            !
-         endif   
+         ip  = ip + 1
+         nmu = z_index_z_mu1(nm)
+         ! 
+         uv_index_z_nm(ip)     = nm
+         uv_index_z_nmu(ip)    = nmu
+         z_index_uv_mu(nm)     = ip
+         z_index_uv_mu1(nm)    = ip
+         !
+         ! Set the combined uv point of the neighbor to the right (icuv is index of combined uv point in cuv array)
+         !
+         icuv = z_index_cuv_md(nmu)
+         ! set indices
+         if (z_index_z_md1(z_index_z_mu1(nm)) == nm) then
+            ! Lower cell
+            cuv_index_uv1(icuv) = ip
+            z_index_uv_md1(nmu) = ip
+         else
+            ! Upper cell
+            cuv_index_uv2(icuv) = ip              
+            z_index_uv_md2(nmu) = ip
+         endif
+         !
+         ! Combined uv point for cell on the right
+         !  
+         z_index_uv_md(nmu) = cuv_index_uv(icuv)
+         !
+         ! Flags to describe uv point 
+         !
+         uv_flags_iref(ip)                  = z_flags_iref(nm) 
+         uv_flags_dir(ip)                   = 0 ! u point
+         uv_flags_type(ip)                  = -1! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
          !
       else
          !
          ! Finer to the right
          !
-         if (z_index_mu1(nm)>0) then
+         if (z_index_z_mu1(nm)>0) then
             !
-            ip                                 = ip + 1
-            uv_index_z_nm(ip)                  = nm
-            uv_index_z_nmu(ip)                 = z_index_mu1(nm)
-            z_index_uv_mu1(nm)                 = ip 
-            z_index_uv_md1(z_index_mu1(nm))    = ip
+            ! Lower cell
+            !
+            ip                   = ip + 1
+            nmu                  = z_index_z_mu1(nm) ! z index of lower fine cell on the right
+            uv_index_z_nm(ip)    = nm
+            uv_index_z_nmu(ip)   = nmu
+            z_index_uv_mu1(nm)   = ip
+            z_index_uv_md(nmu)   = ip
+            z_index_uv_md1(nmu)  = ip
+            !
+            icuv = z_index_cuv_mu(nm) ! (icuv is index of combined uv point in cuv array)
+            !  
+            ! Set the combined uv point of this cell
+            !
+            z_index_uv_mu(nm) = cuv_index_uv(icuv)
+            !
+            cuv_index_uv1(icuv) = ip              
+            !
+            ! Flags to describe uv point 
+            !
             uv_flags_iref(ip)                  = z_flags_iref(nm) + 1
             uv_flags_dir(ip)                   = 0 ! u point
             uv_flags_type(ip)                  = 1! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
-            uv_flags_vis(ip)                   = 1 ! enable viscosity
-            if (advection .or. coriolis) uv_flags_adv(ip) = 1 ! enable advection
             !
          endif   
          !
-         if (z_index_mu2(nm)>0) then
+         if (z_index_z_mu2(nm)>0) then
             !
-            ip                                 = ip + 1
-            uv_index_z_nm(ip)                  = nm
-            uv_index_z_nmu(ip)                 = z_index_mu2(nm)
-            z_index_uv_mu2(nm)                 = ip 
-            z_index_uv_md1(z_index_mu2(nm))    = ip
+            ! Upper cell
+            !
+            ip                   = ip + 1
+            nmu                  = z_index_z_mu2(nm) ! z index of upper fine cell on the right
+            uv_index_z_nm(ip)    = nm
+            uv_index_z_nmu(ip)   = nmu
+            z_index_uv_mu2(nm)   = ip
+            z_index_uv_md(nmu)   = ip
+            z_index_uv_md1(nmu)  = ip
+            !
+            icuv = z_index_cuv_mu(nm) ! (icuv is index of combined uv point in cuv array)
+            !  
+            ! Set the combined uv point of this cell (this may already have been done in the lower cell)
+            !
+            z_index_uv_mu(nm) = cuv_index_uv(icuv)
+            !
+            cuv_index_uv2(icuv) = ip              
+            !
+            ! Flags to describe uv point 
+            !
             uv_flags_iref(ip)                  = z_flags_iref(nm) + 1
             uv_flags_dir(ip)                   = 0 ! u point
-            uv_flags_type(ip)                  = 1 ! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
-            uv_flags_vis(ip)                   = 1 ! enable viscosity
-            if (advection .or. coriolis) uv_flags_adv(ip) = 1 ! enable advection
+            uv_flags_type(ip)                  = 1! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
             !
          endif   
          !            
@@ -598,515 +794,390 @@ contains
       !
       ! Above
       !
-      if (z_index_nu(nm)==0) then
+      if (z_flags_nu(nm)==0) then
          !
          ! Same level
          !
-         if (z_index_nu1(nm)>0) then
+         if (z_index_z_nu1(nm)>0) then ! and there is a neighbor
             !
-            ip                                 = ip + 1
-            uv_index_z_nm(ip)                  = nm
-            uv_index_z_nmu(ip)                 = z_index_nu1(nm)
-            z_index_uv_nu1(nm)                 = ip 
-            z_index_uv_nd1(z_index_nu1(nm))    = ip
+            ip = ip + 1
+            !
+            num = z_index_z_nu1(nm)
+            !
+            uv_index_z_nm(ip)     = nm
+            uv_index_z_nmu(ip)    = num
+            z_index_uv_nu(nm)     = ip 
+            z_index_uv_nd(num)    = ip
+            z_index_uv_nu1(nm)     = ip 
+            z_index_uv_nd1(num)    = ip
+            !
+            ! Flags to describe uv point 
+            !
             uv_flags_iref(ip)                  = z_flags_iref(nm) 
-            uv_flags_dir(ip)                   = 1 ! v point
+            uv_flags_dir(ip)                   = 1 ! u point
             uv_flags_type(ip)                  = 0 ! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
-            uv_flags_vis(ip)                   = 1 ! enable viscosity
-            if (advection .or. coriolis) uv_flags_adv(ip) = 1 ! enable advection
             !
          endif   
          !
-      elseif (z_index_nu(nm)==-1) then
+      elseif (z_flags_nu(nm)==-1) then
          !
          ! Coarser above
          !
-         if (z_index_nu1(nm)>0) then
-            !
-            ip                                 = ip + 1
-            uv_index_z_nm(ip)                  = nm
-            uv_index_z_nmu(ip)                 = z_index_nu1(nm)
-            z_index_uv_nu1(nm)                 = ip 
-            if (z_index_nd1(z_index_nu1(nm)) == nm) then
-                z_index_uv_nd1(z_index_nu1(nm)) = ip
-            else
-                z_index_uv_nd2(z_index_nu1(nm)) = ip
-            endif   
-            uv_flags_iref(ip)                  = z_flags_iref(nm) 
-            uv_flags_dir(ip)                   = 1 ! u point
-            uv_flags_type(ip)                  = -1! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
-            uv_flags_vis(ip)                   = 1 ! enable viscosity
-            if (advection .or. coriolis) uv_flags_adv(ip) = 1 ! enable advection
-            !
-         endif   
+         ip  = ip + 1
+         num = z_index_z_nu1(nm)
+         ! 
+         uv_index_z_nm(ip)     = nm
+         uv_index_z_nmu(ip)    = num
+         z_index_uv_nu(nm)     = ip
+         z_index_uv_nu1(nm)    = ip
+         !
+         ! Set the combined uv point of the neighbor above (icuv is index of combined uv point in cuv array)
+         !
+         icuv = z_index_cuv_nd(num)
+         ! set indices
+         if (z_index_z_nd1(z_index_z_nu1(nm)) == nm) then
+            ! Lower cell
+            cuv_index_uv1(icuv) = ip
+            z_index_uv_nd1(num) = ip
+         else
+            ! Upper cell
+            cuv_index_uv2(icuv) = ip              
+            z_index_uv_nd2(num) = ip
+         endif
+         !
+         ! Combined uv point for cell above
+         !  
+         z_index_uv_nd(num) = cuv_index_uv(icuv)
+         !
+         ! Flags to describe uv point 
+         !
+         uv_flags_iref(ip)                  = z_flags_iref(nm) 
+         uv_flags_dir(ip)                   = 1 ! v point
+         uv_flags_type(ip)                  = -1! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
          !
       else
          !
          ! Finer above
          !
-         if (z_index_nu1(nm)>0) then
+         if (z_index_z_nu1(nm)>0) then
             !
-            ip                                 = ip + 1
-            uv_index_z_nm(ip)                  = nm
-            uv_index_z_nmu(ip)                 = z_index_nu1(nm)
-            z_index_uv_nu1(nm)                 = ip 
-            z_index_uv_nd1(z_index_nu1(nm))    = ip
+            ! Left cell
+            !
+            ip                   = ip + 1
+            num                  = z_index_z_nu1(nm) ! z index of left fine cell above
+            uv_index_z_nm(ip)    = nm
+            uv_index_z_nmu(ip)   = num
+            z_index_uv_nd(num)   = ip
+            z_index_uv_nu1(nm)   = ip
+            z_index_uv_nd1(num)  = ip
+            !
+            icuv = z_index_cuv_nu(nm) ! (icuv is index of combined uv point in cuv array)
+            !  
+            ! Set the combined uv point of this cell
+            !
+            z_index_uv_nu(nm) = cuv_index_uv(icuv)
+            !
+            cuv_index_uv1(icuv) = ip              
+            !
+            ! Flags to describe uv point 
+            !
             uv_flags_iref(ip)                  = z_flags_iref(nm) + 1
             uv_flags_dir(ip)                   = 1 ! v point
             uv_flags_type(ip)                  = 1! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
-            uv_flags_vis(ip)                   = 1 ! enable viscosity
-            if (advection .or. coriolis) uv_flags_adv(ip) = 1 ! enable advection
-            
+            !
          endif   
          !
-         if (z_index_nu2(nm)>0) then
+         if (z_index_z_nu2(nm)>0) then
             !
-            ip                                 = ip + 1
-            uv_index_z_nm(ip)                  = nm
-            uv_index_z_nmu(ip)                 = z_index_nu2(nm)
-            z_index_uv_nu2(nm)                 = ip 
-            z_index_uv_nd1(z_index_nu2(nm))    = ip
+            ! Right cell
+            !
+            ip                   = ip + 1
+            num                  = z_index_z_nu2(nm) ! z index of left fine cell above
+            uv_index_z_nm(ip)    = nm
+            uv_index_z_nmu(ip)   = num
+            z_index_uv_nd(num)   = ip
+            z_index_uv_nu2(nm)   = ip
+            z_index_uv_nd1(num)  = ip
+            !
+            icuv = z_index_cuv_nu(nm) ! (icuv is index of combined uv point in cuv array)
+            !  
+            ! Set the combined uv point of this cell
+            !
+            z_index_uv_nu(nm) = cuv_index_uv(icuv)
+            !
+            cuv_index_uv2(icuv) = ip              
+            !
+            ! Flags to describe uv point 
+            !
             uv_flags_iref(ip)                  = z_flags_iref(nm) + 1
             uv_flags_dir(ip)                   = 1 ! v point
             uv_flags_type(ip)                  = 1 ! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
-            uv_flags_vis(ip)                   = 1 ! enable viscosity
-            if (advection .or. coriolis) uv_flags_adv(ip) = 1 ! enable advection
             !
          endif   
          !            
       endif   
       !
-   enddo 
-   !
-   ! And now for the uv neighbors of the uv points
-   !
-   do ip = 1, npuv
-      !
-      if (uv_flags_dir(ip)==0) then
-         !
-         ! U point
-         !
-         nm = uv_index_z_nm(ip)
-         !
-         ! left
-         !
-         if (z_index_md(nm)<1) then
-            !
-            ! Coarser or same level to the left
-            !
-            uv_index_u_nmd(ip) = z_index_uv_md1(nm)
-            !
-         endif
-         !
-         ! right
-         !
-         if (z_index_mu(nm)==0) then
-            !
-            ! Same level to the right
-            !
-            nmu = z_index_mu1(nm)
-            !
-            if (nmu>0) then
-               if (z_index_mu(nmu)<1) then
-                  !
-                  ! Not finer to the right of nmu
-                  !
-                  uv_index_u_nmu(ip) = z_index_uv_mu1(nmu)
-                  !
-               endif
-            endif
-            !
-         endif
-         !
-         ! below
-         !
-         if (z_index_nd(nm)==0) then
-            !
-            ! Same level below
-            !
-            ndm = z_index_nd1(nm)
-            !
-            if (ndm>0) then
-               if (z_index_mu(ndm)<1) then
-                  !
-                  ! Not finer to the right of ndm
-                  !
-                  uv_index_u_ndm(ip) = z_index_uv_mu1(ndm)
-                  !
-               endif
-            endif
-            !
-         elseif (z_index_nd(nm)==-1) then
-            !
-            ! Coarser below
-            !
-            ndm = z_index_nd1(nm)
-            !
-            if (z_index_nu2(ndm)==nm) then
-               if (z_index_mu(ndm)==1) then
-                  !
-                  ! Finer to the right of ndm
-                  !
-                  uv_index_u_ndm(ip) = z_index_uv_mu2(ndm)
-                  !
-               endif
-            endif
-            !
-         endif
-         !
-         ! 6
-         !
-         if (z_index_nu(nm)==0) then
-            !
-            ! Same level above
-            !
-            num = z_index_nu1(nm)
-            !
-            if (num>0) then
-               if (z_index_mu(num)<1) then
-                  !
-                  ! Not finer to the right of num
-                  !
-                  uv_index_u_num(ip) = z_index_uv_mu1(num)
-                  !
-               endif
-            endif
-            !
-         elseif (z_index_nu(nm)==-1) then
-            !
-            ! Coarser above
-            !
-            num = z_index_nu1(nm)
-            !
-            if (z_index_nd2(num)==nm) then
-               if (z_index_mu(num)==1) then
-                  !
-                  ! Finer to the right of num
-                  !
-                  uv_index_u_num(ip) = z_index_uv_mu1(num)
-                  !
-               endif
-            endif   
-            !
-         endif
-         !
-         if (advection .or. coriolis) then
-            !
-            ! 7
-            !
-            if (z_index_nd(nm)<1) then
-               !
-               ! Same or coarser below
-               !
-               uv_index_v_ndm(ip) = z_index_uv_nd1(nm)
-               !
-            endif   
-            !
-            ! 8
-            !
-            if (z_index_mu(nm)==0) then
-               !
-               ! Same on the right
-               !
-               nmu = z_index_mu1(nm)
-               !
-               if (nmu>0) then
-                  !
-                  if (z_index_nd(nmu)<1) then
-                     !
-                     ! Same or coarser below
-                     !
-                     uv_index_v_ndmu(ip) = z_index_uv_nd1(nmu)
-                     !
-                  endif   
-                  !
-               endif
-               !
-            endif
-            !               
-            ! 9 
-            !
-            if (z_index_nu(nm)<1) then
-               !
-               ! Same or coarser above
-               !
-               uv_index_v_nm(ip) = z_index_uv_nu1(nm)
-               !
-            endif   
-            !
-            ! 10
-            !
-            if (z_index_mu(nm)==0) then
-               !
-               ! Same to the right
-               !
-               nmu = z_index_mu1(nm)
-               !
-               if (nmu>0) then
-                  !
-                  if (z_index_nu(nmu)<1) then
-                     !
-                     ! Same or coarser above
-                     !
-                     uv_index_v_nmu(ip) = z_index_uv_nu1(nmu)
-                     !
-                  endif   
-                  !
-               endif
-               !
-            endif
-            !                  
-         endif   
-         !
-      else
-         !
-         ! V point
-         !
-         nm = uv_index_z_nm(ip)
-         !
-         ! left
-         !
-         if (z_index_nd(nm)<1) then
-            !
-            ! Coarser or same level to the left
-            !
-            uv_index_u_nmd(ip) = z_index_uv_nd1(nm)
-            !
-         endif
-         !
-         ! right
-         !
-         if (z_index_nu(nm)==0) then
-            !
-            ! Same level to the right
-            !
-            num = z_index_nu1(nm)
-            !
-            if (num>0) then
-               if (z_index_nu(num)<1) then
-                  !
-                  ! Not finer to the right of nmu
-                  !
-                  uv_index_u_nmu(ip) = z_index_uv_nu1(num)
-                  !
-               endif
-            endif
-            !
-         endif
-         !
-         ! below
-         !
-         if (z_index_md(nm)==0) then
-            !
-            ! Same level below
-            !
-            nmd = z_index_md1(nm)
-            !
-            if (nmd>0) then
-               if (z_index_nu(nmd)<1) then
-                  !
-                  ! Not finer to the right of ndm
-                  !
-                  uv_index_u_ndm(ip) = z_index_uv_nu1(nmd)
-                  !
-               endif
-            endif
-            !
-         elseif (z_index_md(nm)==-1) then
-            !
-            ! Coarser below
-            !
-            nmd = z_index_md1(nm)
-            !
-            if (z_index_mu2(nmd)==nm) then
-               if (z_index_nu(nmd)==1) then
-                  !
-                  ! Finer to the right of ndm
-                  !
-                  uv_index_u_ndm(ip) = z_index_uv_nu2(nmd)
-                  !
-               endif
-            endif
-            !
-         endif
-         !
-         ! 6
-         !
-         if (z_index_mu(nm)==0) then
-            !
-            ! Same level above
-            !
-            nmu = z_index_mu1(nm)
-            !
-            if (nmu>0) then
-               if (z_index_nu(nmu)<1) then
-                  !
-                  ! Not finer to the right of num
-                  !
-                  uv_index_u_num(ip) = z_index_uv_nu1(nmu)
-                  !
-               endif
-            endif
-            !
-         elseif (z_index_mu(nm)==-1) then
-            !
-            ! Coarser above
-            !
-            nmu = z_index_mu1(nm)
-            !
-            if (z_index_md2(nmu)==nm) then
-               if (z_index_nu(nmu)==1) then
-                  !
-                  ! Finer to the right of num
-                  !
-                  uv_index_u_num(ip) = z_index_uv_nu1(nmu)
-                  !
-               endif
-            endif   
-            !
-         endif
-         !
-         if (advection .or. coriolis) then
-            !
-            ! 7
-            !
-            if (z_index_md(nm)<1) then
-               !
-               ! Same or coarser below
-               !
-               uv_index_v_ndm(ip) = z_index_uv_md1(nm)
-               !
-            endif   
-            !
-            ! 8
-            !
-            if (z_index_nu(nm)==0) then
-               !
-               ! Same on the right
-               !
-               num = z_index_nu1(nm)
-               !
-               if (num>0) then
-                  !
-                  if (z_index_nd(num)<1) then
-                     !
-                     ! Same or coarser below
-                     !
-                     uv_index_v_ndmu(ip) = z_index_uv_md1(num)
-                     !
-                  endif   
-                  !
-               endif
-               !
-            endif
-            !               
-            ! 9 
-            !
-            if (z_index_mu(nm)<1) then
-               !
-               ! Same or coarser above
-               !
-               uv_index_v_nm(ip) = z_index_uv_mu1(nm)
-               !
-            endif   
-            !
-            ! 10
-            !
-            if (z_index_nu(nm)==0) then
-               !
-               ! Same to the right
-               !
-               num = z_index_nu1(nm)
-               !
-               if (num>0) then
-                  !
-                  if (z_index_mu(num)<1) then
-                     !
-                     ! Same or coarser above
-                     !
-                     uv_index_v_nmu(ip) = z_index_uv_mu1(num)
-                     !
-                  endif   
-                  !
-               endif
-               !
-            endif
-            !                  
-         endif   
-         !
-      endif   
-      !
    enddo
    !
-   ! Set flags for cells that do not have 4 normal neighbors (used in continuity)
+   ! And now set the indices of the 8 uv neighbors of the uv points (u_nmu, u_nmd, u_num,  u_ndm,
+   !                                                                 v_ndm, v_nm,  v_ndmu, v_nmu)
+   if (advection .or. coriolis .or. viscosity) then
+      !
+      do ip = 1, npuv
+         !
+         if (uv_flags_dir(ip) == 0) then
+            !
+            ! U point
+            !
+            nm  = uv_index_z_nm(ip)  ! index of cell to the left of this uv point
+            nmu = uv_index_z_nmu(ip) ! index of cell to the right of this uv point
+            !
+            ! Left (u_nmd)
+            ! 
+            uv_index_u_nmd(ip) = z_index_uv_md(nm)
+            !
+            ! Right (u_nmu)
+            ! 
+            uv_index_u_nmu(ip) = z_index_uv_mu(nmu)
+            !
+            ! Below (u_ndm)
+            !
+            if (z_flags_nd(nm)>-1) then ! The cell below is coarser or same level. Easy.
+               !    
+               ndm = z_index_z_nd1(nm) ! z-index of cell below
+               !
+               if (ndm>0) then ! And it exists
+                  !
+                  uv_index_u_ndm(ip) = z_index_uv_mu(ndm)
+                  !
+               endif 
+               !
+            else
+               ! 
+               ! Cell below is finer. Difficult.
+               ! 
+               ! Check if cell ndmu is same level. If so, use z_index_uv_md of that cell. Otherwise, use z_index_uv_mu of cell below. 
+               !    
+               ndm = z_index_z_nd2(nm) ! z-index of cell below
+               !
+               ! Check if cell below exists
+               ! 
+               if (ndm>0) then
+                  !
+                  if (z_flags_mu(ndm)==0) then ! cell ndmu is also finer level (could also be same level, but not coarser)
+                     !
+                     uv_index_u_ndm(ip) = z_index_uv_mu(ndm)
+                     !
+                  else ! cell ndmu is same level
+                     !
+                     ndmu = z_index_z_mu1(ndm) ! z-index of cell below-right
+                     !
+                     if (ndmu>0) then
+                        !
+                        uv_index_u_ndm(ip) = z_index_uv_md(ndmu)
+                        !
+                     endif  
+                     !
+                  endif  
+               endif    
+            endif   
+            !
+            ! Above (u_num)
+            !
+            if (z_flags_nu(nm)>-1) then ! The cell above is coarser or same level. Easy.
+               !    
+               num = z_index_z_nu1(nm) ! z-index of cell above
+               !
+               if (num>0) then ! And it exists
+                  !
+                  uv_index_u_num(ip) = z_index_uv_mu(num)
+                  !
+               endif 
+               !
+            else
+               ! 
+               ! Cell above is finer. Difficult.
+               ! 
+               ! Check if cell numu is same level. If so, use z_index_uv_md of that cell. Otherwise, use z_index_uv_mu of cell above. 
+               !    
+               num = z_index_z_nu2(nm) ! z-index of cell above
+               !
+               ! Check if cell above exists
+               ! 
+               if (num>0) then
+                  !
+                  if (z_flags_mu(num)==0) then ! cell numu is also finer level (could also same level, but not coarser)
+                     !
+                     uv_index_u_num(ip) = z_index_uv_mu(num)
+                     !
+                  else ! cell numu is same level
+                     !
+                     numu = z_index_z_mu1(num) ! z-index of cell below-right
+                     !
+                     if (numu>0) then
+                        !
+                        uv_index_u_num(ip) = z_index_uv_md(numu)
+                        !
+                     endif  
+                     !
+                  endif  
+               endif    
+            endif   
+            !
+            ! Left (v_nm)
+            !
+            uv_index_v_nm(ip) = z_index_uv_nu(nm)
+            !
+            ! Left-below (v_ndm)
+            !
+            uv_index_v_ndm(ip) = z_index_uv_nd(nm)
+            !
+            ! Right (v_nmu)
+            !
+            uv_index_v_nmu(ip) = z_index_uv_nu(nmu)
+            !
+            ! Right-below (v_ndmu)
+            !
+            uv_index_v_ndmu(ip) = z_index_uv_nd(nmu)
+            !
+         else
+            !
+            ! V point (mirror-image of U point)
+            !
+            nm  = uv_index_z_nm(ip)  ! index of cell below this uv point
+            num = uv_index_z_nmu(ip) ! index of cell above this uv point
+            !
+            ! Left (u_nmd)
+            ! 
+            uv_index_u_nmd(ip) = z_index_uv_nd(nm)
+            !
+            ! Right (u_nmu)
+            ! 
+            uv_index_u_nmu(ip) = z_index_uv_nu(num)
+            !
+            ! Below (u_ndm)
+            !
+            if (z_flags_md(nm)>-1) then ! The cell left is coarser or same level. Easy.
+               !    
+               nmd = z_index_z_md1(nm) ! z-index of cell left
+               !
+               if (nmd>0) then ! And it exists
+                  !
+                  uv_index_u_ndm(ip) = z_index_uv_nu(nmd)
+                  !
+               endif 
+               !
+            else
+               ! 
+               ! Cell below is finer. Difficult.
+               ! 
+               ! Check if cell ndmu is same level. If so, use z_index_uv_md of that cell. Otherwise, use z_index_uv_mu of cell below. 
+               !    
+               nmd = z_index_z_md2(nm) ! z-index of cell left
+               !
+               ! Check if cell below exists
+               ! 
+               if (nmd>0) then
+                  !
+                  if (z_flags_nu(nmd)==0) then ! cell ndmu is also finer level (could also be same level, but not coarser)
+                     !
+                     uv_index_u_ndm(ip) = z_index_uv_nu(nmd)
+                     !
+                  else ! cell nmdu is same level
+                     !
+                     nmdu = z_index_z_nu1(nmd) ! z-index of cell below-right
+                     !
+                     if (nmdu>0) then
+                        !
+                        uv_index_u_ndm(ip) = z_index_uv_nd(nmdu)
+                        !
+                     endif  
+                     !
+                  endif  
+               endif    
+            endif   
+            !
+            ! Above (u_num)
+            !
+            if (z_flags_mu(nm)>-1) then ! The cell right coarser or same level. Easy.
+               !    
+               nmu = z_index_z_mu1(nm) ! z-index of cell right
+               !
+               if (nmu>0) then ! And it exists
+                  !
+                  uv_index_u_num(ip) = z_index_uv_nu(nmu)
+                  !
+               endif 
+               !
+            else
+               ! 
+               ! Cell above is finer. Difficult.
+               ! 
+               ! Check if cell numu is same level. If so, use z_index_uv_md of that cell. Otherwise, use z_index_uv_mu of cell above. 
+               !    
+               nmu = z_index_z_mu2(nm) ! z-index of cell right
+               !
+               ! Check if cell above exists
+               ! 
+               if (nmu>0) then
+                  !
+                  if (z_flags_nu(nmu)==0) then ! cell numu is also finer level (could also same level, but not coarser)
+                     !
+                     uv_index_u_num(ip) = z_index_uv_nu(nmu)
+                     !
+                  else ! cell numu is same level
+                     !
+                     numu = z_index_z_nu1(nmu) ! z-index of cell below-right
+                     !
+                     if (numu>0) then
+                        !
+                        uv_index_u_num(ip) = z_index_uv_nd(numu)
+                        !
+                     endif  
+                     !
+                  endif  
+               endif    
+            endif   
+            !
+            ! Left (v_nm)
+            !
+            uv_index_v_nm(ip) = z_index_uv_mu(nm)
+            !
+            ! Left-below (v_ndm)
+            !
+            uv_index_v_ndm(ip) = z_index_uv_md(nm)
+            !
+            ! Right (v_nmu)
+            !
+            uv_index_v_nmu(ip) = z_index_uv_mu(num)
+            !
+            ! Right-below (v_ndmu)
+            !
+            uv_index_v_ndmu(ip) = z_index_uv_md(num)
+            !
+         endif
+         !
+         ! Missing uv neighbors
+         !
+         ! For u dir points, set neighbor to this uv point itself
+         !    
+         if (uv_index_u_nmd(ip) == 0) uv_index_u_nmd(ip) = ip
+         if (uv_index_u_nmu(ip) == 0) uv_index_u_nmu(ip) = ip
+         if (uv_index_u_ndm(ip) == 0) uv_index_u_ndm(ip) = ip
+         if (uv_index_u_num(ip) == 0) uv_index_u_num(ip) = ip
+         !
+         ! For v dir points, set neighbor to dummy index
+         !    
+         if (uv_index_v_ndm(ip) == 0) uv_index_v_ndm(ip) = npuvtotal + 1
+         if (uv_index_v_ndmu(ip) == 0) uv_index_v_ndmu(ip) = npuvtotal + 1
+         if (uv_index_v_nm(ip) == 0) uv_index_v_nm(ip) = npuvtotal + 1
+         if (uv_index_v_nmu(ip) == 0) uv_index_v_nmu(ip) = npuvtotal + 1
+         ! 
+      enddo ! uv point
+      ! 
+   endif ! advection, viscosity or coriolis
    !
-   do nm = 1, np
-      !
-      z_flags_type(nm) = 0
-      !
-      if (use_quadtree) then   
-         !
-         if (z_index_uv_md1(nm)==0 .or. z_index_uv_md2(nm)>0) then
-            z_flags_type(nm) = 1
-         endif
-         !
-         if (z_index_uv_mu1(nm)==0 .or. z_index_uv_mu2(nm)>0) then
-            z_flags_type(nm) = 1
-         endif
-         !
-         if (z_index_uv_nd1(nm)==0 .or. z_index_uv_nd2(nm)>0) then
-            z_flags_type(nm) = 1
-         endif
-         !
-         if (z_index_uv_nu1(nm)==0 .or. z_index_uv_nu2(nm)>0) then
-            z_flags_type(nm) = 1
-         endif
-         !
-      else
-         !
-         if (z_index_uv_md1(nm)==0) then
-            z_flags_type(nm) = 1
-         endif
-         !
-         if (z_index_uv_mu1(nm)==0) then
-            z_flags_type(nm) = 1
-         endif
-         !
-         if (z_index_uv_nd1(nm)==0) then
-            z_flags_type(nm) = 1
-         endif
-         !
-         if (z_index_uv_nu1(nm)==0) then
-            z_flags_type(nm) = 1
-         endif
-         !
-      endif   
-      !
-   enddo      
-!   !
-!   ! Set flags to turn off viscosity in some cells
-!   !
-!   do ip = 1, npuv
-!      do j = 3, 6
-!         if (uv_index(j, ip)==0) then
-!            uv_flags(4, ip) = 0
-!         endif   
-!      enddo   
-!   enddo      
-!   !
-!   ! Set flags to turn off advection in some cells
-!   !
-!   if (advection .or. coriolis) then
-!      do ip = 1, npuv
-!         do j = 3, 10
-!            if (uv_index(j, ip)==0) then
-!               uv_flags(5, ip) = 0
-!            endif   
-!         enddo   
-!      enddo      
-!   endif
-   !
-   ! Okay, got all the quadtree cells including indices and flags 
+   ! Okay, got all the quadtree cells including indices, neighbors flags 
    !
    write(*,*)'Number of active z points    : ', np
    write(*,*)'Number of active u/v points  : ', npuv
@@ -1116,6 +1187,27 @@ contains
          write(*,'(a,i3,a,i8)')' Number of cells in level ', iref, ' : ', quadtree_last_point_per_level(iref) - quadtree_first_point_per_level(iref) + 1
       enddo
    endif
+   !
+   ! Time to de-allocate some arrays
+   ! 
+   if (allocated(z_flags_md)) deallocate(z_flags_md)
+   if (allocated(z_index_z_md1)) deallocate(z_index_z_md1)
+   if (allocated(z_index_z_md2)) deallocate(z_index_z_md2)
+   if (allocated(z_flags_mu)) deallocate(z_flags_mu)
+   if (allocated(z_index_z_mu1)) deallocate(z_index_z_mu1)
+   if (allocated(z_index_z_mu2)) deallocate(z_index_z_mu2)
+   if (allocated(z_flags_nd)) deallocate(z_flags_nd)
+   if (allocated(z_index_z_nd1)) deallocate(z_index_z_nd1)
+   if (allocated(z_index_z_nd2)) deallocate(z_index_z_nd2)
+   if (allocated(z_flags_nu)) deallocate(z_flags_nu)
+   if (allocated(z_index_z_nu1)) deallocate(z_index_z_nu1)
+   if (allocated(z_index_z_nu2)) deallocate(z_index_z_nu2)
+   if (allocated(z_index_cuv_md)) deallocate(z_index_cuv_md)
+   if (allocated(z_index_cuv_mu)) deallocate(z_index_cuv_mu)
+   if (allocated(z_index_cuv_nd)) deallocate(z_index_cuv_nd)
+   if (allocated(z_index_cuv_nu)) deallocate(z_index_cuv_nu)
+   if (allocated(msk)) deallocate(msk)
+   if (allocated(indices)) deallocate(indices)
    !
    ! MESH GEOMETRY
    !
@@ -1137,6 +1229,8 @@ contains
    !
    allocate(z_xz(np))
    allocate(z_yz(np))
+   !
+   write(*,*)'Computing cell centre coordinates ...'
    !
    do nm = 1, np
       !
@@ -1271,12 +1365,38 @@ contains
          !
       enddo   
       !
+      ! Determine minimum and maximum time step
+      !
+      dtmax = min(dtmax, dxymin/(sqrt(9.81*0.1)))
+      dtmin = alfa*dxymin/(sqrt(9.81*stopdepth)) ! If dt falls below this value, the simulation will stop
+      !
    endif   
    !
-   ! Determine minimum and maximum time step
+   end subroutine
+
+   subroutine initialize_bathymetry()
    !
-   dtmax = min(dtmax, dxymin/(sqrt(9.81*0.1)))
-   dtmin = alfa*dxymin/(sqrt(9.81*stopdepth)) ! If dt falls below this value, the simulation will stop
+   use sfincs_data
+   use quadtree
+   !
+   implicit none
+   !
+   real*4, dimension(:,:),   allocatable :: zbg
+   real*4, dimension(:),     allocatable :: rtmp
+   real*4, dimension(:),     allocatable :: rtmpz
+   real*4, dimension(:),     allocatable :: rtmpuv
+   integer*4, dimension(:),  allocatable :: uv_index_qt_in_sf
+   !
+   integer :: idummy
+   integer :: ip
+   integer :: ibin
+   integer :: nm
+   integer :: nmu
+   integer :: n
+   integer :: m
+   integer :: npzq
+   integer :: npuvq
+   integer :: npuvs
    !
    ! DEPTHS
    !
@@ -1296,7 +1416,7 @@ contains
          !
          if (depfile(1:4) /= 'none') then
             !
-            write(*,*)'Reading ',trim(depfile)
+            write(*,*)'Reading dep file : ',trim(depfile)
             open(unit = 500, file = trim(depfile), form = 'unformatted', access = 'stream')
             read(500)zb
             close(500)
@@ -1311,7 +1431,7 @@ contains
          !
       else
          !
-         write(*,*)'Reading ',trim(depfile)
+         write(*,*)'Reading dep file : ',trim(depfile)
          !
          if (inputtype=='asc') then
             !
@@ -1326,15 +1446,12 @@ contains
             ip = 0
             do m = 1, mmax
                do n = 1, nmax
-                  if (kcsg(n, m) > 0) then
-                     ip = ip + 1
-                     zb(ip)      = zbg(n, m)
-                  endif
+                  ip = ip + 1
+                  zb(ip)      = zbg(n, m)
                enddo
             enddo
             !
             deallocate(zbg)
-            deallocate(kcsg)
             !
          else
             !
@@ -1789,6 +1906,23 @@ contains
       !
    endif
    !
+   end subroutine
+
+   subroutine initialize_boundaries()
+   !
+   use sfincs_data
+   !
+   implicit none
+   !
+   integer :: idummy
+   integer :: ip
+   integer :: ib
+   integer :: nm
+   integer :: nmu
+   integer :: n
+   integer :: m
+   integer :: ikcuv2
+   !
    ! BOUNDARIES
    !
    ! First count number of boundary cells
@@ -1951,68 +2085,24 @@ contains
       endif
    enddo
    !
-   ! Set flags to turn off viscosity in some cells
+   end subroutine
+
+   subroutine initialize_roughness()
    !
-   if (nmax/=1) then
-      do ip = 1, npuv
-         ! 
-         if (uv_index_u_nmd(ip) == 0)  uv_flags_vis(ip) = 0  
-         if (uv_index_u_nmu(ip) == 0)  uv_flags_vis(ip) = 0
-         if (uv_index_u_num(ip) == 0)  uv_flags_vis(ip) = 0
-         if (uv_index_u_ndm(ip) == 0)  uv_flags_vis(ip) = 0
-         !      
-      enddo      
-   endif 
+   use sfincs_data
    !
-   ! Turn off advection in some cells (next to inactive points and boundaries)
+   implicit none
    !
-   if ((advection .or. coriolis) .and. nmax/=1) then
-      !
-      do ip = 1, npuv
-         !
-         ! Turn off advection near inactive points
-         !
-         if (uv_index_u_nmd(ip) == 0)  uv_flags_adv(ip) = 0
-         if (uv_index_u_nmu(ip) == 0)  uv_flags_adv(ip) = 0
-         if (uv_index_u_num(ip) == 0)  uv_flags_adv(ip) = 0
-         if (uv_index_u_ndm(ip) == 0)  uv_flags_adv(ip) = 0
-         if (uv_index_v_ndm(ip) == 0)  uv_flags_adv(ip) = 0
-         if (uv_index_v_nm(ip) == 0)   uv_flags_adv(ip) = 0
-         if (uv_index_v_nmu(ip) == 0)  uv_flags_adv(ip) = 0
-         if (uv_index_v_ndmu(ip) == 0) uv_flags_adv(ip) = 0
-         !
-         ! Turn off advection near the boundaries
-         !
-         if (uv_index_u_nmd(ip)>0) then
-            if (kcuv(uv_index_u_nmd(ip)) == 2)  uv_flags_adv(ip) = 0
-         endif   
-         if (uv_index_u_nmu(ip)>0) then
-            if (kcuv(uv_index_u_nmu(ip)) == 2)  uv_flags_adv(ip) = 0
-         endif   
-         if (uv_index_u_num(ip)>0) then
-            if (kcuv(uv_index_u_num(ip)) == 2)  uv_flags_adv(ip) = 0
-         endif   
-         if (uv_index_u_ndm(ip)>0) then
-            if (kcuv(uv_index_u_ndm(ip)) == 2)  uv_flags_adv(ip) = 0
-         endif   
-         if (uv_index_v_ndm(ip)>0) then
-            if (kcuv(uv_index_v_ndm(ip)) == 2)  uv_flags_adv(ip) = 0
-         endif   
-         if (uv_index_v_nm(ip)>0) then
-            if (kcuv(uv_index_v_nm(ip)) == 2)   uv_flags_adv(ip) = 0
-         endif   
-         if (uv_index_v_nmu(ip)>0) then
-            if (kcuv(uv_index_v_nmu(ip)) == 2)  uv_flags_adv(ip) = 0
-         endif   
-         if (uv_index_v_ndmu(ip)>0) then
-            if (kcuv(uv_index_v_ndmu(ip)) == 2) uv_flags_adv(ip) = 0
-         endif   
-         !
-      enddo
-      !
-   endif
+   real*4, dimension(:),     allocatable :: rghfield
    !
-   ! FRICTION COEFFICIENTS
+   integer :: idummy
+   integer :: ip
+   integer :: nm
+   integer :: nmu
+   integer :: n
+   integer :: m
+   !
+   ! FRICTION COEFFICIENTS (only for regular bathymetry, as for subgrid the Manning's n values are stored in the tables)
    !
    if (.not. subgrid) then
       !
@@ -2025,7 +2115,7 @@ contains
          ! Read spatially-varying friction
          !
          allocate(rghfield(np))
-         write(*,*)'Reading ',trim(manningfile)
+         write(*,*)'Reading ',trim(manningfile), ' ...'
          open(unit = 500, file = trim(manningfile), form = 'unformatted', access = 'stream')
          read(500)rghfield
          close(500)
@@ -2066,6 +2156,24 @@ contains
          !
       endif
    endif
+   !
+   end subroutine
+
+
+   subroutine initialize_infiltration()
+   !
+   use sfincs_data
+   !
+   implicit none
+   !
+   real*4, dimension(:),     allocatable :: rghfield
+   !
+   integer :: idummy
+   integer :: ip
+   integer :: nm
+   integer :: nmu
+   integer :: n
+   integer :: m
    !
    ! INFILTRATION
    !
@@ -2373,7 +2481,16 @@ contains
       store_cumulative_precipitation = .false.
       !
    endif
-   ! 
+   !
+   end subroutine
+
+
+   subroutine initialize_storage_volume()
+   !
+   use sfincs_data
+   !
+   implicit none
+   !
    if (use_storage_volume) then 
       !
       ! Spatially-varying storage volume for green infra
@@ -2405,7 +2522,7 @@ contains
    real*4, dimension(:),   allocatable :: inizs
    real*4, dimension(:),   allocatable :: iniq
    !
-   integer    :: nm, m, n, ivol, num, nmu, ibin, rsttype, ip, ind, iuv
+   integer    :: nm, m, n, ivol, num, nmu, ibin, rsttype, ip, ind, iuv, icuv
    real*4     :: dzvol
    real*4     :: facint
    real*4     :: rdummy
@@ -2419,18 +2536,19 @@ contains
    logical   :: iok
    !
    allocate(zs(np))
-   allocate(q(npuv))
-   allocate(q0(npuv))
-   allocate(uv(npuv))
-   allocate(uv0(npuv))
-   allocate(kfuv(npuv)) ! Not needed anymore?
+   !
+   ! q, q0, uv, and uv0 also contain the combined values at quadtree transition cells. Plus 1 for dummy values set to 0.0.
+   !
+   allocate(q(npuv + ncuv + 1))
+   allocate(q0(npuv + ncuv + 1))
+   allocate(uv(npuv + ncuv + 1))
+   allocate(uv0(npuv + ncuv + 1))
    !
    zs   = 0.0
    q    = 0.0
    q0   = 0.0
    uv   = 0.0
    uv0  = 0.0
-   kfuv = 0
    !
    if (snapwave) then
       !
@@ -2481,12 +2599,6 @@ contains
    if (store_tsunami_arrival_time) then
       allocate(tsunami_arrival_time(np))
    endif
-   !
-   ! Make u and v points always active when they are boundary points
-   !
-   do ip = 1, npuv
-      if (kcuv(ip)==2) kfuv(ip) = 1 ! Get rid of this
-   enddo
    !
    ! Initialize water level points
    !
@@ -2688,6 +2800,17 @@ contains
       !
    endif
    !
+   ! Loop through combined uv points and determine average uv and q (this also happens at the end of sfincs_momentum.f90).
+   !
+   do icuv = 1, ncuv
+      !
+      ! Average of the two uv points
+      !
+      q(cuv_index_uv(icuv))  = 0.5*(q(cuv_index_uv1(icuv)) + q(cuv_index_uv2(icuv)))
+      uv(cuv_index_uv(icuv)) = 0.5*(uv(cuv_index_uv1(icuv)) + uv(cuv_index_uv2(icuv)))
+      !
+   enddo
+   !
    if (wavemaker) then
       !      
       zsm = zs
@@ -2826,5 +2949,56 @@ contains
    endif
    !
    end subroutine
+
+   subroutine deallocate_quadtree()
    !
+   ! De-allocate arrays that are no longer necessary
+   !
+   use sfincs_data
+   use quadtree
+   !
+   ! In sfincs_data
+   !
+   if (allocated(z_index_uv_md1)) deallocate(z_index_uv_md1)
+   if (allocated(z_index_uv_md2)) deallocate(z_index_uv_md2)
+   if (allocated(z_index_uv_mu1)) deallocate(z_index_uv_mu1)
+   if (allocated(z_index_uv_mu2)) deallocate(z_index_uv_mu2)
+   if (allocated(z_index_uv_nd1)) deallocate(z_index_uv_nd1)
+   if (allocated(z_index_uv_nd2)) deallocate(z_index_uv_nd2)
+   if (allocated(z_index_uv_nu1)) deallocate(z_index_uv_nu1)
+   if (allocated(z_index_uv_nu2)) deallocate(z_index_uv_nu2)
+   !
+   ! In quadtree
+   !
+   if (allocated(quadtree_level)) deallocate(quadtree_level)
+   if (allocated(quadtree_md)) deallocate(quadtree_md)
+   if (allocated(quadtree_md1)) deallocate(quadtree_md1)
+   if (allocated(quadtree_md2)) deallocate(quadtree_md2)
+   if (allocated(quadtree_mu)) deallocate(quadtree_mu)
+   if (allocated(quadtree_mu1)) deallocate(quadtree_mu1)
+   if (allocated(quadtree_mu2)) deallocate(quadtree_mu2)
+   if (allocated(quadtree_nd)) deallocate(quadtree_nd)
+   if (allocated(quadtree_nd1)) deallocate(quadtree_nd1)
+   if (allocated(quadtree_nd2)) deallocate(quadtree_nd2)
+   if (allocated(quadtree_nu)) deallocate(quadtree_nu)
+   if (allocated(quadtree_nu1)) deallocate(quadtree_nu1)
+   if (allocated(quadtree_nu2)) deallocate(quadtree_nu2)
+   if (allocated(quadtree_n)) deallocate(quadtree_n)
+   if (allocated(quadtree_m)) deallocate(quadtree_m)
+   if (allocated(quadtree_n_oddeven)) deallocate(quadtree_n_oddeven)
+   if (allocated(quadtree_m_oddeven)) deallocate(quadtree_m_oddeven)
+   if (allocated(quadtree_xz)) deallocate(quadtree_xz)
+   if (allocated(quadtree_yz)) deallocate(quadtree_yz)
+   if (allocated(quadtree_zz)) deallocate(quadtree_zz)
+   if (allocated(quadtree_nm_indices)) deallocate(quadtree_nm_indices)
+   if (allocated(quadtree_first_point_per_level)) deallocate(quadtree_first_point_per_level)  
+   if (allocated(quadtree_last_point_per_level)) deallocate(quadtree_last_point_per_level)      
+   if (allocated(quadtree_dxr)) deallocate(quadtree_dxr)
+   if (allocated(quadtree_dyr)) deallocate(quadtree_dyr)
+   if (allocated(quadtree_mask)) deallocate(quadtree_mask)
+   if (allocated(quadtree_snapwave_mask)) deallocate(quadtree_snapwave_mask)
+   !
+   end subroutine
+   
+
 end module

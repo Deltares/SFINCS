@@ -13,6 +13,28 @@ contains
    !
    integer*8 dtsec
    !
+   ! Temporary variables
+   !
+   integer iradstr
+   integer igeo
+   integer icoriolis
+   integer iamprblock
+   integer iglobal
+   integer itsunamitime
+   integer ispinupmeteo
+   integer isnapwave
+   integer iwindmax
+   integer ioutfixed
+   integer iadvection
+   integer istorefw
+   integer istorewavdir   
+   integer imanning2d
+   integer iviscosity   
+   integer isubgrid  
+   integer iwavemaker      
+   integer iwavemaker_spectrum  
+   integer ispwprecip
+   !
    character*256 wmsigstr 
    !   
    write(*,*)'Reading input file ...'
@@ -171,7 +193,7 @@ contains
    call read_int_input(500,'storeqdrain',storeqdrain,1)
    call read_int_input(500,'storezvolume',storezvolume,0)
    call read_int_input(500,'writeruntime',wrttimeoutput,0)
-   call read_int_input(500,'debug',idebug,0)
+   call read_logical_input(500,'debug',debug,.false.)
    call read_int_input(500,'storemeteo',storemeteo,0)
    call read_int_input(500,'storemaxwind',iwindmax,0)
    call read_int_input(500,'storefw', istorefw, 0)
@@ -339,11 +361,6 @@ contains
       write_time_output = .true.
    endif
    !
-   debug = .false.
-   if (idebug==1) then
-      debug = .true.
-   endif   
-   !
    radstr = .false.
    if (iradstr==1) then
       radstr = .true.
@@ -428,6 +445,11 @@ contains
    if (ispinupmeteo==0) then
       spinup_meteo = .false.
    endif      
+   !
+   use_spw_precip = .true.
+   if (ispwprecip==0) then
+      use_spw_precip = .false.
+   endif   
    !
    snapwave = .false.
    if (isnapwave==1) then
@@ -595,7 +617,40 @@ contains
    !
    end subroutine 
 
-   
+
+   subroutine read_logical_input(fileid,keyword,value,default)
+   !
+   character(*), intent(in)  :: keyword
+   character(len=256)        :: keystr0
+   character(len=256)        :: keystr
+   character(len=256)        :: valstr
+   character(len=256)        :: line
+   integer, intent(in)       :: fileid
+   logical, intent(in)       :: default
+   logical, intent(out)      :: value
+   integer j,stat,ilen
+   !
+   value = default
+   rewind(fileid)   
+   do while(.true.)
+      read(fileid,'(a)',iostat = stat)line
+      if (stat==-1) exit
+      j=index(line,'=')      
+      keystr0 = trim(line(1:j-1))
+      call notabs(keystr0,keystr,ilen)
+      if (trim(keystr)==trim(keyword)) then
+         valstr = adjustl(trim(line(j+1:256)))
+         if (valstr(1:1) == '1' .or. valstr(1:1) == 'y' .or. valstr(1:1) == 'Y' .or. valstr(1:1) == 't' .or. valstr(1:1) == 'T') then
+            value = .true.
+         else
+            value = .false.
+         endif 
+         exit
+      endif
+   enddo 
+   !
+   end subroutine 
+
    subroutine notabs(INSTR,OUTSTR,ILEN)
    ! @(#) convert tabs in input to spaces in output while maintaining columns, assuming a tab is set every 8 characters
    !

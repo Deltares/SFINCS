@@ -650,7 +650,6 @@ contains
    face_nodes = 0
    !
    two = 2
-
    !
    nn = 0
    !
@@ -831,6 +830,7 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%v_varid, 'units', 'm s-1'))
       NF90(nf90_put_att(map_file%ncid, map_file%v_varid, 'standard_name', 'sea_water_y_velocity')) ! not truly eastward when rotated, eastward_sea_water_velocity
       NF90(nf90_put_att(map_file%ncid, map_file%v_varid, 'long_name', 'flow_velocity_y_direction_in_cell_edge'))     
+      !
    endif
    !
    ! Time varying spatial output
@@ -894,15 +894,37 @@ contains
       !
    endif
    !
-   ! Store maximum wind speed
-   !
-   if (wind .and. store_wind_max .and. meteo3d) then 
-      NF90(nf90_def_var(map_file%ncid, 'windmax', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%timemax_dimid/), map_file%windmax_varid)) ! maximum wind speed m/s
-      NF90(nf90_def_var_deflate(map_file%ncid, map_file%windmax_varid, 1, 1, nc_deflate_level))
-      NF90(nf90_put_att(map_file%ncid, map_file%windmax_varid, '_FillValue', FILL_VALUE))
-      NF90(nf90_put_att(map_file%ncid, map_file%windmax_varid, 'units', 'm s-1'))
-      NF90(nf90_put_att(map_file%ncid, map_file%windmax_varid, 'long_name', 'maximum_wind_speed')) 
-      NF90(nf90_put_att(map_file%ncid, map_file%windmax_varid, 'cell_methods', 'time: maximum'))         
+   if (store_meteo) then  
+      !
+      if (wind) then
+         !
+         NF90(nf90_def_var(map_file%ncid, 'wind_u', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%wind_u_varid)) ! time-varying wind_u map 
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%wind_u_varid, 1, 1, nc_deflate_level))
+         NF90(nf90_put_att(map_file%ncid, map_file%wind_u_varid, '_FillValue', FILL_VALUE))   
+         NF90(nf90_put_att(map_file%ncid, map_file%wind_u_varid, 'units', 'm s-1'))
+         NF90(nf90_put_att(map_file%ncid, map_file%wind_u_varid, 'standard_name', 'eastward_wind')) ! not truly eastward when rotated, eastward_sea_water_velocity
+         NF90(nf90_put_att(map_file%ncid, map_file%wind_u_varid, 'long_name', 'wind_speed_u'))     
+         !
+         NF90(nf90_def_var(map_file%ncid, 'wind_v', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%wind_v_varid)) ! time-varying wind_u map 
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%wind_v_varid, 1, 1, nc_deflate_level))
+         NF90(nf90_put_att(map_file%ncid, map_file%wind_v_varid, '_FillValue', FILL_VALUE))   
+         NF90(nf90_put_att(map_file%ncid, map_file%wind_v_varid, 'units', 'm s-1'))
+         NF90(nf90_put_att(map_file%ncid, map_file%wind_v_varid, 'standard_name', 'northward_wind')) ! not truly eastward when rotated, eastward_sea_water_velocity
+         NF90(nf90_put_att(map_file%ncid, map_file%wind_v_varid, 'long_name', 'wind_speed_v'))     
+         !
+         if (store_wind_max) then  
+            !
+            ! Store maximum wind speed
+            ! 
+            NF90(nf90_def_var(map_file%ncid, 'windmax', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%timemax_dimid/), map_file%windmax_varid)) ! maximum wind speed m/s
+            NF90(nf90_def_var_deflate(map_file%ncid, map_file%windmax_varid, 1, 1, nc_deflate_level))
+            NF90(nf90_put_att(map_file%ncid, map_file%windmax_varid, '_FillValue', FILL_VALUE))
+            NF90(nf90_put_att(map_file%ncid, map_file%windmax_varid, 'units', 'm s-1'))
+            NF90(nf90_put_att(map_file%ncid, map_file%windmax_varid, 'long_name', 'maximum_wind_speed')) 
+            NF90(nf90_put_att(map_file%ncid, map_file%windmax_varid, 'cell_methods', 'time: maximum'))         
+         endif
+         !
+      endif
    endif
    !
    if (snapwave) then  
@@ -1548,8 +1570,8 @@ contains
          n    = z_index_z_n(nm)
          m    = z_index_z_m(nm)
          !
-         nmd1 = z_index_uv_md1(nm)
-         nmu1 = z_index_uv_mu1(nm)
+         nmd1 = z_index_uv_md(nm)
+         nmu1 = z_index_uv_mu(nm)
          uz = 0.0
          if (nmd1>0) then
             uz = uz + 0.5*uv(nmd1)
@@ -1558,8 +1580,8 @@ contains
             uz = uz + 0.5*uv(nmu1)
          endif   
          !
-         ndm1 = z_index_uv_nd1(nm)
-         num1 = z_index_uv_nu1(nm)
+         ndm1 = z_index_uv_nd(nm)
+         num1 = z_index_uv_nu(nm)
          vz = 0.0
          if (ndm1>0) then
             vz = vz + 0.5*uv(ndm1)
@@ -1858,78 +1880,16 @@ contains
             !
             if (nm>0) then
                !
-               if (z_flags_type(nm) == 0) then
-                  !
-                  ! Regular point with four surrounding cells of the same size
-                  !
-                  nmd1 = z_index_uv_md1(nm)
-                  nmu1 = z_index_uv_mu1(nm)
-                  ndm1 = z_index_uv_nd1(nm)
-                  num1 = z_index_uv_mu1(nm)
-                  uz  = 0.5*(uv(nmd1) + uv(nmu1))
-                  vz  = 0.5*(uv(ndm1) + uv(num1))
-                  !
-               else
-                  !
-                  ! Bit more complicated
-                  !
-                  nmd1 = z_index_uv_md1(nm)
-                  nmu1 = z_index_uv_mu1(nm)
-                  ndm1 = z_index_uv_nd1(nm)
-                  num1 = z_index_uv_mu1(nm)
-                  nmd2 = z_index_uv_md2(nm)
-                  nmu2 = z_index_uv_mu2(nm)
-                  ndm2 = z_index_uv_nd2(nm)
-                  num2 = z_index_uv_nu2(nm)
-                  !
-                  ! Left
-                  !
-                  u1 = 0.0
-                  if (nmd1>0 .and. nmd2==0) then   
-                     u1 = uv(nmd1)
-                  elseif (nmd1>0 .and. nmd2>0) then
-                     u1 = 0.5*uv(nmd1) + 0.5*uv(nmd2)
-                  elseif (nmd1==0 .and. nmd2>0) then   
-                     u1 = uv(nmd2)
-                  endif   
-                  !
-                  ! Right
-                  !
-                  u2 = 0.0
-                  if (nmu1>0  .and. nmu2==0) then   
-                     u2 = uv(nmu1)
-                  elseif (nmu1>0 .and. nmu2>0) then
-                     u2 = 0.5*uv(nmu1) + 0.5*uv(nmu2)
-                  elseif (nmu2==0  .and. nmu2>0) then   
-                     u2 = uv(nmu2)
-                  endif   
-                  !
-                  ! Bottom
-                  !
-                  v1 = 0.0
-                  if (ndm1>0 .and. ndm2==0) then   
-                     v1 = uv(ndm1)
-                  elseif (ndm1>0 .and. ndm2>0) then
-                     v1 = 0.5*uv(ndm1) + 0.5*uv(ndm2)
-                  elseif (ndm1==0 .and. ndm2>0) then   
-                     v1 = uv(ndm2)
-                  endif   
-                  !
-                  ! Right
-                  !
-                  v2 = 0.0
-                  if (num1>0  .and. num2==0) then   
-                     v2 = uv(num1)
-                  elseif (num1>0 .and. num2>0) then
-                     v2 = 0.5*uv(num1) + 0.5*uv(num2)
-                  elseif (num2==0  .and. num2>0) then   
-                     v2 = uv(num2)
-                  endif   
-                  !
-                  uz = 0.5*(u1 + u2)
-                  vz = 0.5*(v1 + v2)
-                  !
-               endif   
+               ! Regular point with four surrounding cells of the same size
+               !
+               n = z_index_z_n(nm)
+               m = z_index_z_m(nm)
+               nmd1 = z_index_uv_md(nm)
+               nmu1 = z_index_uv_mu(nm)
+               ndm1 = z_index_uv_nd(nm)
+               num1 = z_index_uv_nu(nm)
+               uz = 0.5*(uv(nmd1) + uv(nmu1))
+               vz = 0.5*(uv(ndm1) + uv(num1))
                !
                utmp(nmq) = cosrot*uz - sinrot*vz            
                vtmp(nmq) = sinrot*uz + cosrot*vz  
@@ -1940,6 +1900,28 @@ contains
          !
          NF90(nf90_put_var(map_file%ncid, map_file%u_varid, utmp, (/1, ntmapout/)))
          NF90(nf90_put_var(map_file%ncid, map_file%v_varid, vtmp, (/1, ntmapout/)))
+         !
+      endif
+      ! 
+      if (store_meteo .and. wind) then  
+         !
+         utmp = FILL_VALUE
+         vtmp = FILL_VALUE
+         !
+         do nmq = 1, quadtree_nr_points
+            !
+            nm = index_sfincs_in_quadtree(nmq)
+            !
+            if (nm>0) then
+               ! 
+               utmp(nmq) = windu(nm)
+               vtmp(nmq) = windv(nm)
+               !
+            endif   
+         enddo
+         !
+         NF90(nf90_put_var(map_file%ncid, map_file%wind_u_varid, utmp, (/1, ntmapout/)))
+         NF90(nf90_put_var(map_file%ncid, map_file%wind_v_varid, vtmp, (/1, ntmapout/)))
          !
       endif
       !
@@ -2090,78 +2072,14 @@ contains
          !
          if (store_velocity) then
             !
-            if (z_flags_type(nm) == 0) then
-               !
-               ! Regular point with four surrounding cells of the same size
-               !
-               nmd1 = z_index_uv_md1(nm)
-               nmu1 = z_index_uv_mu1(nm)
-               ndm1 = z_index_uv_nd1(nm)
-               num1 = z_index_uv_mu1(nm)
-               uz  = 0.5*(uv(nmd1) + uv(nmu1))
-               vz  = 0.5*(uv(ndm1) + uv(num1))
-               !
-            else
-               !
-               ! Bit more complicated
-               !
-               nmd1 = z_index_uv_md1(nm)
-               nmu1 = z_index_uv_mu1(nm)
-               ndm1 = z_index_uv_nd1(nm)
-               num1 = z_index_uv_mu1(nm)
-               nmd2 = z_index_uv_md2(nm)
-               nmu2 = z_index_uv_mu2(nm)
-               ndm2 = z_index_uv_nd2(nm)
-               num2 = z_index_uv_nu2(nm)
-               !
-               ! Left
-               !
-               u1 = 0.0
-               if (nmd1>0 .and. nmd2==0) then   
-                  u1 = uv(nmd1)
-               elseif (nmd1>0 .and. nmd2>0) then
-                  u1 = 0.5*uv(nmd1) + 0.5*uv(nmd2)
-               elseif (nmd1==0 .and. nmd2>0) then   
-                  u1 = uv(nmd2)
-               endif   
-               !
-               ! Right
-               !
-               u2 = 0.0
-               if (nmu1>0  .and. nmu2==0) then   
-                  u2 = uv(nmu1)
-               elseif (nmu1>0 .and. nmu2>0) then
-                  u2 = 0.5*uv(nmu1) + 0.5*uv(nmu2)
-               elseif (nmu2==0  .and. nmu2>0) then   
-                  u2 = uv(nmu2)
-               endif   
-               !
-               ! Bottom
-               !
-               v1 = 0.0
-               if (ndm1>0 .and. ndm2==0) then   
-                  v1 = uv(ndm1)
-               elseif (ndm1>0 .and. ndm2>0) then
-                  v1 = 0.5*uv(ndm1) + 0.5*uv(ndm2)
-               elseif (ndm1==0 .and. ndm2>0) then   
-                  v1 = uv(ndm2)
-               endif   
-               !
-               ! Right
-               !
-               v2 = 0.0
-               if (num1>0  .and. num2==0) then   
-                  v2 = uv(num1)
-               elseif (num1>0 .and. num2>0) then
-                  v2 = 0.5*uv(num1) + 0.5*uv(num2)
-               elseif (num2==0  .and. num2>0) then   
-                  v2 = uv(num2)
-               endif   
-               !
-               uz = 0.5*(u1 + u2)
-               vz = 0.5*(v1 + v2)
-               !
-            endif   
+            ! Regular point with four surrounding cells of the same size
+            !
+            nmd1 = z_index_uv_md(nm)
+            nmu1 = z_index_uv_mu(nm)
+            ndm1 = z_index_uv_nd(nm)
+            num1 = z_index_uv_mu(nm)
+            uz  = 0.5*(uv(nmd1) + uv(nmu1))
+            vz  = 0.5*(uv(ndm1) + uv(num1))
             !
             uobs(iobs)  = cosrot*uz - sinrot*vz                         
             vobs(iobs)  = sinrot*uz + cosrot*vz
@@ -2525,12 +2443,12 @@ contains
        !
        if (kcs(nm)>0) then
            if (subgrid) then
-               if ( (zs(nm) - subgrid_z_zmin(nm)) > huthresh) then
-                   zstmp(nmq) = zs(nm)
+               if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
+                   zstmp(nmq) = zsmax(nm)
                endif
            else
-              if ( (zs(nm) - zb(nm)) > huthresh) then
-                  zstmp(nmq) = zs(nm)
+              if ( (zsmax(nm) - zb(nm)) > huthresh) then
+                  zstmp(nmq) = zsmax(nm)
               endif
            endif
        endif
@@ -2678,7 +2596,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'outputtype_map',outputtype_map))
         NF90(nf90_put_att(ncid, varid, 'outputtype_his',outputtype_his))
         NF90(nf90_put_att(ncid, varid, 'bndtype',bndtype))
-        NF90(nf90_put_att(ncid, varid, 'advection',iadvection))  
+        NF90(nf90_put_att(ncid, varid, 'advection',logical2int(advection)))  
         NF90(nf90_put_att(ncid, varid, 'nfreqsig',nfreqsig))  
         NF90(nf90_put_att(ncid, varid, 'freqminig',freqminig))  
         NF90(nf90_put_att(ncid, varid, 'freqmaxig',freqmaxig))  
@@ -2694,17 +2612,17 @@ contains
         NF90(nf90_put_att(ncid, varid, 'qinf_zmin',qinf_zmin))    
         NF90(nf90_put_att(ncid, varid, 'btfilter', btfilter))                     
         NF90(nf90_put_att(ncid, varid, 'sfacinf', sfacinf))  
-        NF90(nf90_put_att(ncid, varid, 'radstr', iradstr)) 
-        NF90(nf90_put_att(ncid, varid, 'crsgeo',igeo)) 
-        NF90(nf90_put_att(ncid, varid, 'coriolis',icoriolis)) 
-        NF90(nf90_put_att(ncid, varid, 'amprblock',iamprblock)) 
+        NF90(nf90_put_att(ncid, varid, 'radstr', logical2int(radstr))) 
+        NF90(nf90_put_att(ncid, varid, 'crsgeo',logical2int(crsgeo))) 
+        NF90(nf90_put_att(ncid, varid, 'coriolis',logical2int(coriolis))) 
+        NF90(nf90_put_att(ncid, varid, 'amprblock',logical2int(ampr_block))) 
         NF90(nf90_put_att(ncid, varid, 'spwmergefrac',spw_merge_frac)) 
-        NF90(nf90_put_att(ncid, varid, 'usespwprecip',ispwprecip))         
-        NF90(nf90_put_att(ncid, varid, 'global',iglobal)) 
+        NF90(nf90_put_att(ncid, varid, 'usespwprecip',logical2int(use_spw_precip)))         
+        NF90(nf90_put_att(ncid, varid, 'global',logical2int(global))) 
         NF90(nf90_put_att(ncid, varid, 'nuvisc',nuvisc)) 
-        NF90(nf90_put_att(ncid, varid, 'spinup_meteo', ispinupmeteo)) 
+        NF90(nf90_put_att(ncid, varid, 'spinup_meteo', logical2int(spinup_meteo))) 
         NF90(nf90_put_att(ncid, varid, 'waveage',waveage)) 
-        NF90(nf90_put_att(ncid, varid, 'snapwave', isnapwave)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave', logical2int(snapwave))) 
         NF90(nf90_put_att(ncid, varid, 'wmtfilter', wmtfilter))         
         NF90(nf90_put_att(ncid, varid, 'wmfred',wavemaker_freduv))         
         NF90(nf90_put_att(ncid, varid, 'horton_kr_kd',horton_kr_kd))         
@@ -2778,27 +2696,27 @@ contains
         NF90(nf90_put_att(ncid, varid, 'storetwet',storetwet)) 
         NF90(nf90_put_att(ncid, varid, 'storehsubgrid',storehsubgrid)) 
         NF90(nf90_put_att(ncid, varid, 'twet_threshold',twet_threshold)) 
-        NF90(nf90_put_att(ncid, varid, 'store_tsunami_arrival_time',itsunamitime)) 
+        NF90(nf90_put_att(ncid, varid, 'store_tsunami_arrival_time',logical2int(store_tsunami_arrival_time))) 
         NF90(nf90_put_att(ncid, varid, 'tsunami_arrival_threshold',tsunami_arrival_threshold)) 
         NF90(nf90_put_att(ncid, varid, 'storeqdrain',storeqdrain)) 
         NF90(nf90_put_att(ncid, varid, 'storezvolume',storezvolume)) 
         NF90(nf90_put_att(ncid, varid, 'writeruntime',wrttimeoutput)) 
-        NF90(nf90_put_att(ncid, varid, 'debug',idebug)) 
+        NF90(nf90_put_att(ncid, varid, 'debug',logical2int(debug))) 
         NF90(nf90_put_att(ncid, varid, 'storemeteo',storemeteo)) 
-        NF90(nf90_put_att(ncid, varid, 'storemaxwind',iwindmax)) 
-        NF90(nf90_put_att(ncid, varid, 'storefw',istorefw))         
-        NF90(nf90_put_att(ncid, varid, 'storewavdir', istorewavdir)) 
+        NF90(nf90_put_att(ncid, varid, 'storemaxwind',logical2int(store_wind_max))) 
+        NF90(nf90_put_att(ncid, varid, 'storefw',logical2int(store_wave_forces)))         
+        NF90(nf90_put_att(ncid, varid, 'storewavdir', logical2int(store_wave_direction))) 
         !
         NF90(nf90_put_att(ncid, varid, 'cdnrb', cd_nr))   
         NF90(nf90_put_att(ncid, varid, 'cdwnd', cd_wnd))        
         NF90(nf90_put_att(ncid, varid, 'cdval', cd_val))  
         !
         ! Internal code switches - note, you can't store logicals in netcdf, only integers for these type of switches
-        NF90(nf90_put_att(ncid, varid, 'manning2d', imanning2d))   
-        NF90(nf90_put_att(ncid, varid, 'subgrid', isubgrid))   
-        NF90(nf90_put_att(ncid, varid, 'viscosity', iviscosity))   
-        NF90(nf90_put_att(ncid, varid, 'wavemaker', iwavemaker))         
-        NF90(nf90_put_att(ncid, varid, 'wavemaker_spectrum', iwavemaker_spectrum))         
+        NF90(nf90_put_att(ncid, varid, 'manning2d', logical2int(manning2d)))   
+        NF90(nf90_put_att(ncid, varid, 'subgrid', logical2int(subgrid)))   
+        NF90(nf90_put_att(ncid, varid, 'viscosity', logical2int(viscosity)))   
+        NF90(nf90_put_att(ncid, varid, 'wavemaker', logical2int(wavemaker)))         
+        NF90(nf90_put_att(ncid, varid, 'wavemaker_spectrum', logical2int(wavemaker_spectrum)))         
    end subroutine
    !   
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -2820,5 +2738,22 @@ contains
          end if
       end if
    end subroutine handle_err
+   !
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !   
+   function logical2int(lgc) result (i)
+   !
+   implicit none
+   !
+   logical              :: lgc
+   integer              :: i
+   !
+   if (lgc) then
+      i = 1
+   else
+      i = 0
+   endif
+   !
+   end function   
    !
    end module

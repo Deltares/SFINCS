@@ -59,12 +59,12 @@ contains
       enddo
       !
       if (spw_nquant==4) then
-          if (ispwprecip==0) then
-             spw_precip = .false.
-             write(*,*)'Info : Overruled to not use precipitation from spiderweb input ...'
-          else
-             spw_precip = .true.
-          endif
+         if (use_spw_precip) then
+            spw_precip = .true.
+         else
+            write(*,*)'Info : Overruled to not use precipitation from spiderweb input ...'
+            spw_precip = .false.
+         endif
       endif
       !
       if (utmzone/='nil') then
@@ -1326,18 +1326,6 @@ contains
       endif
       !
    endif
-   !
-!   if (precip .and. store_cumulative_precipitation) then
-!      !        
-!      call update_cumprcp_map()
-!      !
-!   endif
-!   !
-!   if (infiltration2d) then
-!      !
-!      call update_infiltration_map()
-!      !
-!   endif
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate

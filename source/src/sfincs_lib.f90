@@ -132,7 +132,7 @@ module sfincs_lib
    !
    call initialize_domain()     ! Reads dep, msk, index files. Creates index, flag and depth arrays
    !
-   call initialize_hydro()      ! Initializes water levels, fluxes, flags
+!   call initialize_hydro()      ! Initializes water levels, fluxes, flags
    !
    call read_structures()       ! Reads thd files. Sets kcuv to zero where necessary
    !
@@ -204,6 +204,10 @@ module sfincs_lib
    !
    call initialize_output(tmapout, tmaxout, thisout, trstout)
    !
+   ! Quadtree no longer needed, so deallocate (this is done in sfincs_domain.f90)
+   ! 
+   call deallocate_quadtree()
+   !
    !call acc_init( acc_device_nvidia )
    !
    end function sfincs_initialize
@@ -222,11 +226,11 @@ module sfincs_lib
    ierr = -1
    !
    !$acc data, copyin( kcs, kcuv, zs, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, qmax, vmax, twet, zsm, z_volume, &
-   !$acc               z_flags_iref, z_flags_type, uv_flags_iref, uv_flags_type, uv_flags_vis, uv_flags_adv, uv_flags_dir, &
+   !$acc               z_flags_iref, uv_flags_iref, uv_flags_type, uv_flags_dir, &
    !$acc               index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, zsb, zsb0, ibuvdir, uvmean, &
    !$acc               subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_hrep, subgrid_uv_navg, subgrid_uv_hrep_zmax, subgrid_uv_navg_zmax, &
    !$acc               subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
-   !$acc               z_index_uv_md1, z_index_uv_md2, z_index_uv_nd1, z_index_uv_nd2, z_index_uv_mu1, z_index_uv_mu2, z_index_uv_nu1, z_index_uv_nu2, &
+   !$acc               z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
    !$acc               uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc               uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
    !$acc               nmindsrc, qtsrc, drainage_type, drainage_params, &
