@@ -180,83 +180,46 @@ contains
 
 !-----------------------------------------------------------------------------------------------------!
 
-   function get_value(var_name, ptr) result(ierr) bind(C, name="get_value")
+   function get_value(var_name, dest, n) result(ierr) bind(C, name="get_value")
       !DEC$ ATTRIBUTES DLLEXPORT :: get_value
 
+      integer(kind=c_int) :: ierr, n
       character(kind=c_char), intent(in) :: var_name(*)
-      type(c_ptr), intent(inout) :: ptr
-      integer(kind=c_int) :: ierr
+      real(c_float), dimension(n) :: dest
 
       character(len=strlen(var_name)) :: f_var_name
-      real(c_float), pointer:: f_ptr(:)
-      integer :: i
+      f_var_name = char_array_to_string(var_name, strlen(var_name))
 
       ierr = ret_code%success
 
-      ! get the name
-      f_var_name = char_array_to_string(var_name, strlen(var_name))
-
       select case(f_var_name)
        case("z_xz") ! x grid cell centre
-         call c_f_pointer(ptr, f_ptr, [np])
-         do i = 1, np
-            f_ptr(i) = z_xz(i)
-         end do
+         dest = z_xz
        case("z_yz") ! y grid cell centre
-         call c_f_pointer(ptr, f_ptr, [np])
-         do i = 1, np
-            f_ptr(i) = z_yz(i)
-         end do
+         dest = z_yz
        case("zs") ! water level
-         call c_f_pointer(ptr, f_ptr, [np])
-         do i = 1, np
-            f_ptr(i) = zs(i)
-         end do
+         dest = zs
        case("zb") ! bed level
-         call c_f_pointer(ptr, f_ptr, [np])
          if(subgrid) then
-            do i = 1, np
-               f_ptr(i) = subgrid_z_zmin(i)
-            end do
+            dest = subgrid_z_zmin
          else
-            do i = 1, np
-               f_ptr(i) = subgrid_z_zmin(i)
-            end do
+            dest = subgrid_z_zmin
          end if
        case("qsrc_1")
-         call c_f_pointer(ptr, f_ptr, [nsrc])
-         do i = 1, nsrc
-            f_ptr(i) = qsrc(i, 1)
-         end do
+         dest = qsrc(:, 1)
        case("qsrc_2")
-         call c_f_pointer(ptr, f_ptr, [nsrc])
-         do i = 1, nsrc
-            f_ptr(i) = qsrc(i, 2)
-         end do
+         dest = qsrc(:,2)
        case("xsrc")
-         call c_f_pointer(ptr, f_ptr, [nsrc])
-         do i = 1, nsrc
-            f_ptr(i) = xsrc(i)
-         end do
+         dest = xsrc ! TODO this gives segfault
        case("ysrc")
-         call c_f_pointer(ptr, f_ptr, [nsrc])
-         do i = 1, nsrc
-            f_ptr(i) = ysrc(i)
-         end do
+         dest = ysrc ! TODO this gives segfault
        case("tsrc")
-         call c_f_pointer(ptr, f_ptr, [ntsrc])
-         do i = 1, ntsrc
-            f_ptr(i) = tsrc(i)
-         end do
+         dest = tsrc
        case("zst_bnd")
-         call c_f_pointer(ptr, f_ptr, [np])
-         do i = 1, np
-            f_ptr(i) = zst_bnd(i)
-         end do
+         dest = zst_bnd
        case default
          write(*,*) 'get_value error'
          ierr = ret_code%failure
-         ptr = c_null_ptr
       end select
 
    end function get_value
