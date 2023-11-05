@@ -557,7 +557,8 @@ contains
       if(use_quadtree) then
          string = "unstructered"
       else
-         string = "rectilinear"
+        ! Note: even if input is regular mesh, internal data structure is quadtree(?),
+         string = "unstructured"
       end if
       grid_type = string_to_char_array(trim(string), len(trim(string)))
       ierr = ret_code%success
