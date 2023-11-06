@@ -274,7 +274,7 @@
  
    character(len=strlen(var_name)) :: f_var_name
    real(kind=c_float), pointer:: f_dest(:)
-   real(kind=c_int), pointer  :: f_inds(:)
+   integer(kind=c_int), pointer  :: f_inds(:)
    integer :: i
    
    ierr = ret_code%success
@@ -538,7 +538,7 @@
 
    
    character(len=strlen(var_name)) :: f_var_name
-   real(kind=c_int), pointer  :: f_inds(:)
+   integer(kind=c_int), pointer  :: f_inds(:)
    real(kind=c_float), pointer  :: f_src(:)
    integer :: i
 
