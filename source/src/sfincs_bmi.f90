@@ -7,21 +7,45 @@
    implicit none
 
    public :: initialize
-   public :: update
    public :: finalize
+   public :: get_component_name
+
+   public :: update_until
+   public :: update
+   
+   public :: get_start_time
+   public :: get_end_time
+   public :: get_current_time
+   public :: get_time_step
+   public :: get_time_units
+   
+   public :: get_value
+   public :: get_value_at_indices
+   public :: get_value_ptr
    public :: get_var_shape
    public :: get_var_type
    public :: get_var_rank
-   public :: set_var
-   public :: get_start_time
-   public :: get_end_time
-   public :: get_time_step
-   public :: get_current_time
-
+   
+   public :: set_value
+   public :: set_value_at_indices
+   
+   public :: get_grid_type
+   public :: get_grid_rank
+   !public :: get_grid_shape
+   public :: get_grid_size
+   public :: get_grid_x
+   public :: get_grid_y
+   
    private
 
    integer(c_int), bind(C, name="maxstrlen") :: maxstrlen = 1024
-   integer(c_int), bind(C, name="maxdims") :: maxdims = 6
+   
+   type return_code_type
+     integer(c_int) :: success = 0
+     integer(c_int) :: failure = 1
+   end type return_code_type
+   
+   type (return_code_type) :: ret_code
    
    contains
    
@@ -30,234 +54,635 @@
    function initialize(c_config_file) result(ierr) bind(C, name="initialize")
    !DEC$ ATTRIBUTES DLLEXPORT :: initialize
    
-   character(kind=c_char),intent(in)    :: c_config_file(maxstrlen)
+   character(kind=c_char), intent(in)   :: c_config_file(*)
    character(len=strlen(c_config_file)) :: config_file
+   integer(kind=c_int) :: ierr
 
-   integer :: ierr
-
+   config_file = char_array_to_string(c_config_file, strlen(c_config_file))
    ierr = sfincs_initialize(config_file)
 
    end function initialize
    
 !-----------------------------------------------------------------------------------------------------!
    
-   function update(dt) result(ierr) bind(C, name="update")
-   !DEC$ ATTRIBUTES DLLEXPORT :: update
-   
-   real(kind=c_double), value, intent(in)  :: dt
-   integer(kind=c_int)              :: ierr
-   
-   ierr = sfincs_update(dt)
-   
-   end function update
-   
-!-----------------------------------------------------------------------------------------------------!
-   
    function finalize() result(ierr) bind(C, name="finalize")
    !DEC$ ATTRIBUTES DLLEXPORT :: finalize
    
-   integer(kind=c_int)              :: ierr
+   integer(kind=c_int) :: ierr
    
    ierr = sfincs_finalize()
    
    end function finalize
    
+!-----------------------------------------------------------------------------------------------------!  
+      
+   function get_component_name(component_name) result(ierr) bind(C, name="get_component_name")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_component_name
+
+   character(kind=c_char), intent(out) :: component_name(maxstrlen)
+   integer(kind=c_int) :: ierr
+   
+   character(len=maxstrlen) :: string
+   
+   string = "Sfincs hydrodynamic model (C)"   
+   component_name = string_to_char_array(trim(string), len(trim(string)))
+   ierr = ret_code%success
+   
+   end function get_component_name
+
 !-----------------------------------------------------------------------------------------------------!
    
-   subroutine get_var_shape(c_var_name, var_shape) bind(C, name="get_var_shape")
-   !DEC$ ATTRIBUTES DLLEXPORT :: get_var_shape
+   function update_until(t) result(ierr) bind(C, name="update_until")
+   !DEC$ ATTRIBUTES DLLEXPORT :: update_until
    
-   character(kind=c_char), intent(in) :: c_var_name(*)
-   integer(c_int), intent(inout)      :: var_shape(maxdims)
-   character(len=strlen(c_var_name))  :: var_name
+   real(kind=c_double), value, intent(in)  :: t
+   integer(kind=c_int)                     :: ierr
+   
+   ierr = sfincs_update(t)
+   
+   end function update_until
 
-   var_name = char_array_to_string(c_var_name, strlen(c_var_name))
-   var_shape = (/0, 0, 0, 0, 0, 0/)
+!-----------------------------------------------------------------------------------------------------!
    
-   select case(var_name)
-   case("xg", "yg","zs","zb","u","v")     
-      ! inverted shapes (fortran to c)
-      var_shape(2) = nmax
-      var_shape(1) = mmax
+   function update() result(ierr) bind(C, name="update")
+   !DEC$ ATTRIBUTES DLLEXPORT :: update
+   
+   integer(kind=c_int) :: ierr
+   
+   ierr = sfincs_update(real(dt, 8)) ! this is bad
+   
+   end function update
+   
+!-----------------------------------------------------------------------------------------------------!  
+      
+   function get_start_time(start_time) result(ierr) bind(C, name="get_start_time")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_start_time
+   
+   real(c_double), intent(out) :: start_time
+   integer(kind=c_int) :: ierr
+
+   start_time = t0
+   ierr = ret_code%success
+   
+   end function get_start_time
+
+!-----------------------------------------------------------------------------------------------------!  
+      
+   function get_end_time(end_time) result(ierr) bind(C, name="get_end_time")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_end_time
+   
+   real(c_double), intent(out) :: end_time
+   integer(kind=c_int) :: ierr
+
+   end_time = t1
+   ierr = ret_code%success
+   
+   end function get_end_time
+   
+!-----------------------------------------------------------------------------------------------------!  
+      
+   function get_current_time(current_time) result(ierr) bind(C, name="get_current_time")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_current_time
+   
+   real(c_double), intent(out) :: current_time
+   integer(kind=c_int) :: ierr
+
+   current_time = t
+   ierr = ret_code%success
+   
+   end function get_current_time
+   
+!-----------------------------------------------------------------------------------------------------!  
+      
+   function get_time_step(time_step) result(ierr) bind(C, name="get_time_step")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_time_step
+
+   real(c_double), intent(out) :: time_step
+   integer(kind=c_int) :: ierr
+
+   time_step = dt
+   ierr = ret_code%success
+   
+   end function get_time_step
+   
+!-----------------------------------------------------------------------------------------------------!  
+      
+   function get_time_units(time_units) result(ierr) bind(C, name="get_time_units")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_time_units
+
+   character(kind=c_char), intent(out) :: time_units(maxstrlen)
+   integer(kind=c_int) :: ierr
+   
+   time_units = string_to_char_array("s", 1)
+   ierr = ret_code%success
+   
+   end function get_time_units
+   
+!-----------------------------------------------------------------------------------------------------!
+   
+   function get_value(var_name, ptr) result(ierr) bind(C, name="get_value")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_value
+   
+   character(kind=c_char), intent(in) :: var_name(*)
+   type(c_ptr), intent(inout) :: ptr
+   integer(kind=c_int) :: ierr
+ 
+   character(len=strlen(var_name)) :: f_var_name
+   real(c_float), pointer:: f_ptr(:)
+   integer :: i
+   
+   ierr = ret_code%success
+   
+   ! get the name
+   f_var_name = char_array_to_string(var_name, strlen(var_name))
+      
+   select case(f_var_name)
+   case("z_xz") ! x grid cell centre
+	 call c_f_pointer(ptr, f_ptr, [np])
+     do i = 1, np
+       f_ptr(i) = z_xz(i)
+	 end do
+   case("z_yz") ! y grid cell centre
+	 call c_f_pointer(ptr, f_ptr, [np])
+     do i = 1, np
+       f_ptr(i) = z_yz(i)
+	 end do
+   case("zs") ! water level
+	 call c_f_pointer(ptr, f_ptr, [np])
+     do i = 1, np
+       f_ptr(i) = zs(i)
+	 end do
+   case("zb") ! bed level
+   	 call c_f_pointer(ptr, f_ptr, [np]) 
+	 if(subgrid) then
+	   do i = 1, np
+         f_ptr(i) = subgrid_z_zmin(i)
+	   end do
+	 else
+	   do i = 1, np
+         f_ptr(i) = subgrid_z_zmin(i)
+	   end do
+     end if
+   case("qsrc_1")
+	 call c_f_pointer(ptr, f_ptr, [nsrc])
+     do i = 1, nsrc 
+       f_ptr(i) = qsrc(i, 1)
+	 end do
+   case("qsrc_2")
+	 call c_f_pointer(ptr, f_ptr, [nsrc])
+     do i = 1, nsrc 
+       f_ptr(i) = qsrc(i, 2)
+	 end do
+   case("xsrc")
+	 call c_f_pointer(ptr, f_ptr, [nsrc])
+     do i = 1, nsrc 
+       f_ptr(i) = xsrc(i)
+	 end do
+   case("ysrc")
+	 call c_f_pointer(ptr, f_ptr, [nsrc])
+     do i = 1, nsrc 
+       f_ptr(i) = ysrc(i)
+	 end do
+   case("tsrc")
+	 call c_f_pointer(ptr, f_ptr, [ntsrc])
+     do i = 1, ntsrc 
+       f_ptr(i) = tsrc(i)
+	 end do
+   case("zst_bnd")
+	 call c_f_pointer(ptr, f_ptr, [np])
+     do i = 1, np
+       f_ptr(i) = zst_bnd(i)
+	 end do
+   case default
+     write(*,*) 'get_value error'
+     ierr = ret_code%failure
+     ptr = c_null_ptr
    end select
-   
-   end subroutine get_var_shape
+ 
+   end function get_value
    
 !-----------------------------------------------------------------------------------------------------!
    
-   subroutine get_var_type(c_var_name, c_type) bind(C, name="get_var_type")
-   !DEC$ ATTRIBUTES DLLEXPORT :: get_var_type
+   function get_value_at_indices(var_name, dest, inds, count) result(ierr) bind(C, name="get_value_at_indices")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_value_at_indices
    
-   character(kind=c_char), intent(in)  :: c_var_name(*)
-   character(kind=c_char), intent(out) ::  c_type(maxstrlen)
-   character(len=maxstrlen)            :: type_name, var_name
-
-   var_name = char_array_to_string(c_var_name, strlen(c_var_name))
-
-   select case(var_name)
-   case("xg", "yg", "zs", "zb", "u", "v")      
-      type_name = "float"  
+   character(kind=c_char), intent(in) :: var_name(*)
+   type(c_ptr), intent(inout) :: dest
+   type(c_ptr), value, intent(in) :: inds
+   integer(kind=c_int), value, intent(in) :: count
+   integer(kind=c_int) :: ierr
+ 
+   character(len=strlen(var_name)) :: f_var_name
+   real(kind=c_float), pointer:: f_dest(:)
+   integer(kind=c_int), pointer  :: f_inds(:)
+   integer :: i
+   
+   ierr = ret_code%success
+   
+   ! get the name
+   f_var_name = char_array_to_string(var_name, strlen(var_name))
+   
+   call c_f_pointer(dest, f_dest, [count])
+   call c_f_pointer(inds, f_inds, [count])
+      
+   select case(f_var_name)
+   case("z_xz") ! x grid cell centre
+     do i = 1, count
+       f_dest(i) = z_xz(f_inds(i))
+	 end do
+   case("z_yz") ! y grid cell centre
+     do i = 1, count
+       f_dest(i) = z_yz(f_inds(i))
+	 end do
+   case("zs") ! water level
+     do i = 1, count
+       f_dest(i) = zs(f_inds(i))
+	 end do
+   case("zb") ! bed level
+	 if(subgrid) then
+	   do i = 1, count
+         f_dest(i) = subgrid_z_zmin(f_inds(i))
+	   end do
+	 else
+	   do i = 1, count
+         f_dest(i) = subgrid_z_zmin(f_inds(i))
+	   end do
+     end if
+   case("qsrc_1")
+     do i = 1, count
+       f_dest(i) = qsrc(f_inds(i), 1)
+	 end do
+   case("qsrc_2")
+     do i = 1, count
+       f_dest(i) = qsrc(f_inds(i), 2)
+	 end do
+   case("xsrc") ! water level
+     do i = 1, count
+       f_dest(i) = xsrc(f_inds(i))
+	 end do
+   case("ysrc") ! water level
+     do i = 1, count
+       f_dest(i) = ysrc(f_inds(i))
+	 end do
+   case("tsrc") ! water level
+     do i = 1, count
+       f_dest(i) = tsrc(f_inds(i))
+	 end do
+   case("zst_bnd")
+     do i = 1, count
+       f_dest(i) = zst_bnd(f_inds(i))
+	 end do
+   case default
+     write(*,*) 'get_value_at_indices error'
+     ierr = ret_code%failure
+     dest = c_null_ptr
    end select
-   
-   c_type = string_to_char_array(trim(type_name), len(trim(type_name)))
-   
-   end subroutine get_var_type
+ 
+   end function get_value_at_indices
    
 !-----------------------------------------------------------------------------------------------------!
    
-   subroutine get_var(c_var_name, x) bind(C, name="get_var")
-   !DEC$ ATTRIBUTES DLLEXPORT :: get_var
+   function get_value_ptr(var_name, ptr) result(ierr) bind(C, name="get_value_ptr")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_value_ptr
    
-   character(kind=c_char), intent(in)       :: c_var_name(*)
-   type(c_ptr), intent(inout)               :: x
-   real(c_float), target, allocatable, save :: xf(:,:)
-   integer                                  :: nm
+   character(kind=c_char), intent(in) :: var_name(*)
+   type(c_ptr), intent(inout) :: ptr
+   integer(kind=c_int) :: ierr
 
-   ! The fortran name of the attribute name
-   character(len=strlen(c_var_name)) :: var_name
+   character(len=strlen(var_name)) :: f_var_name
+   
+   ierr = ret_code%success
    
    ! Store the name
-   var_name = char_array_to_string(c_var_name,strlen(c_var_name))
+   f_var_name = char_array_to_string(var_name, strlen(var_name))
    
-   if(allocated(xf)) then
-      deallocate(xf)   
-   endif
-   
-   select case(var_name)
-   case("xg") 
-!      x = c_loc(xg)
-   case("yg") 
-!      x = c_loc(yg)
-   case("zs")    
-      allocate(xf(nmax,mmax))
-      xf = FILL_VALUE       ! set to fill value
-      do nm = 1, np
-!         xf(index_v_n(nm),index_v_m(nm)) = zs(nm)
-      enddo
-      x = c_loc(xf)
-   case("zb") 
-      allocate(xf(nmax,mmax))
-      xf = FILL_VALUE       ! set to fill value
-      do nm = 1, np
-!         xf(index_v_n(nm),index_v_m(nm)) = zb(nm)
-      enddo
-      x = c_loc(xf)
-   case("u") 
-      allocate(xf(nmax,mmax))
-      xf = FILL_VALUE       ! set to fill value
-      do nm = 1, np
-!         xf(index_v_n(nm),index_v_m(nm)) = u(nm)
-      enddo
-      x = c_loc(xf)
-   case("v") 
-      allocate(xf(nmax,mmax))
-      xf = FILL_VALUE       ! set to fill value
-      do nm = 1, np
-!         xf(index_v_n(nm),index_v_m(nm)) = v(nm)
-      enddo
-      x = c_loc(xf)
+   select case(f_var_name)
+   case("z_xz") ! x grid cell centre
+       ptr = c_loc(z_xz)
+   case("z_yz") ! y grid cell centre
+       ptr = c_loc(z_yz)
+   case("zs") ! water level
+      ptr = c_loc(zs)
+   case("zb") ! bed level
+      if(subgrid) then
+        ptr = c_loc(subgrid_z_zmin)
+      else
+        ptr = c_loc(zb)
+      end if
+   case("qsrc_1")
+       ptr = c_loc(qsrc(:, 1))
+   case("qsrc_2")
+       ptr = c_loc(qsrc(:, 2))
+   case("xsrc")
+       ptr = c_loc(xsrc)
+   case("ysrc")
+       ptr = c_loc(ysrc)
+   case("tsrc")
+       ptr = c_loc(tsrc)
+   case("zst_bnd")
+     ptr = c_loc(zst_bnd)
+   case default
+	 write(*,*) 'get_value_ptr error'
+     ierr = ret_code%failure
+     ptr = c_null_ptr
    end select
 
-   end subroutine get_var
+   end function get_value_ptr
+   
+   !-----------------------------------------------------------------------------------------------------!
+   
+   function get_var_shape(var_name, var_shape) result(ierr) bind(C, name="get_var_shape")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_var_shape
+   
+   character(kind=c_char), intent(in) :: var_name(*)
+   integer(c_int), intent(inout) :: var_shape(1)
+   integer(kind=c_int) :: ierr
+   
+   character(len=strlen(var_name))  :: f_var_name
+
+   ierr = ret_code%success
+   
+   f_var_name = char_array_to_string(var_name, strlen(var_name))
+   var_shape = (/0/)
+   
+   select case(f_var_name)
+   case("z_xz", "z_yz","zs","zb","zst_bnd")     
+      var_shape(1) = np
+   case("qsrc_1", "qsrc_2", "xsrc", "ysrc")     
+      var_shape(1) = nsrc
+   case("tsrc")     
+      var_shape(1) = ntsrc
+   case default
+     write(*,*) 'get_var_shape error'
+     ierr = ret_code%failure
+   end select
+   
+   end function get_var_shape
    
 !-----------------------------------------------------------------------------------------------------!
    
-   subroutine get_var_rank(c_var_name, rank) bind(C, name="get_var_rank")
+   function get_var_type(var_name, var_type) result(ierr) bind(C, name="get_var_type")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_var_type
+   
+   character(kind=c_char), intent(in)  :: var_name(*)
+   character(kind=c_char), intent(out) :: var_type(maxstrlen)
+   integer(kind=c_int) :: ierr
+   
+   character(len=maxstrlen) :: f_var_name, f_var_type
+
+   f_var_name = char_array_to_string(var_name, strlen(var_name))
+
+   ierr = ret_code%success
+   select case(f_var_name)
+   case("z_xz", "z_yz", "zs", "zb" ,"qsrc_1", "qsrc_2", "xsrc", "ysrc", "tsrc", "zst_bnd")      
+      f_var_type = "float"
+      var_type = string_to_char_array(trim(f_var_type), len(trim(f_var_type)))
+   case default
+     write(*,*) 'get_var_type error'
+     ierr = ret_code%failure
+   end select
+   
+   end function get_var_type
+   
+!-----------------------------------------------------------------------------------------------------!
+   
+   function get_var_rank(var_name, rank) result(ierr) bind(C, name="get_var_rank")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_var_rank
    
-   character(kind=c_char), intent(in) :: c_var_name(*)
+   character(kind=c_char), intent(in) :: var_name(*)
    integer(c_int), intent(out) :: rank
+   integer(kind=c_int) :: ierr
 
-   ! The fortran name of the attribute name
-   character(len=strlen(c_var_name)) :: var_name
-   
+   character(len=strlen(var_name)) :: f_var_name
 
-   var_name = char_array_to_string(c_var_name, strlen(c_var_name))
+   f_var_name = char_array_to_string(var_name, strlen(var_name))
    
-   select case(var_name)
-   case("xg","yg","zs","zb","u","v") 
-      rank = 2
+   select case(f_var_name)
+   case("z_xz", "z_yz", "zs", "zb" ,"qsrc_1", "qsrc_2", "xsrc", "ysrc", "tsrc", "zst_bnd") 
+      rank = 1
+      ierr = ret_code%success
+   case default
+     write(*,*) 'get_var_rank error'
+     ierr = ret_code%failure
    end select
 
-   end subroutine get_var_rank
+   end function get_var_rank
    
 !-----------------------------------------------------------------------------------------------------!   
 
-   subroutine set_var(c_var_name, xptr) bind(C, name="set_var")
-   !DEC$ ATTRIBUTES DLLEXPORT :: set_var
+   function set_value(var_name, ptr) result(ierr) bind(C, name="set_value")
+   !DEC$ ATTRIBUTES DLLEXPORT :: set_value
 
-   character(kind=c_char), intent(in) :: c_var_name(*)
-   type(c_ptr), value, intent(in) :: xptr
+   character(kind=c_char), intent(in) :: var_name(*)
+   type(c_ptr), value, intent(in) :: ptr
+   integer(kind=c_int) :: ierr
 
-   real(c_float), pointer  :: x_1d_float_ptr(:)
-   real(c_float), pointer  :: x_2d_float_ptr(:,:)
+   real(c_float), pointer  :: f_ptr(:)
 
    ! The fortran name of the attribute name
-   character(len=strlen(c_var_name)) :: var_name
-   integer :: nm
+   character(len=strlen(var_name)) :: f_var_name
+   integer :: i
 
-   var_name = char_array_to_string(c_var_name, strlen(c_var_name))
+   ierr = ret_code%success
    
-   select case(var_name)
+   f_var_name = char_array_to_string(var_name, strlen(var_name))
    
-   case("xg")
-   call c_f_pointer(xptr, x_2d_float_ptr, (/ nmax, mmax /))
-!   xg = x_2d_float_ptr
-
-   case("yg")
-   call c_f_pointer(xptr, x_2d_float_ptr, (/ nmax, mmax /))
-!   yg = x_2d_float_ptr
-   
+   select case(f_var_name)
    case("zs")
-   call c_f_pointer(xptr, x_2d_float_ptr, (/ nmax, mmax /))
-   do nm = 1, np
-!      zs(nm) =x_2d_float_ptr( index_v_n(nm), index_v_m(nm))
-   enddo
-   
+     call c_f_pointer(ptr, f_ptr, [np])
+     do i = 1, np
+       zs(i) = f_ptr(i)
+     end do
+   case("zb")
+     call c_f_pointer(ptr, f_ptr, [np])
+     do i = 1, np
+       zb(i) = f_ptr(i)
+     end do
+   case("qsrc_1")
+	 call c_f_pointer(ptr, f_ptr, [nsrc])
+     do i = 1, nsrc
+       qsrc(i, 1) = f_ptr(i)
+     end do
+   case("qsrc_2")
+	 call c_f_pointer(ptr, f_ptr, [nsrc])
+     do i = 1, nsrc
+       qsrc(i, 2) = f_ptr(i)
+     end do
+   case("tsrc")
+	 call c_f_pointer(ptr, f_ptr, [ntsrc])
+     do i = 1, ntsrc
+       tsrc(i) = f_ptr(i)
+     end do
+   case("zst_bnd")
+     call c_f_pointer(ptr, f_ptr, [np])
+     do i = 1, np
+       zst_bnd(i) = f_ptr(i)
+     end do
+   case default
+     write(*,*) 'set_value error'
+     ierr = ret_code%failure
    end select
          
-   end subroutine set_var
+   end function set_value
+   
+!-----------------------------------------------------------------------------------------------------!   
 
-!-----------------------------------------------------------------------------------------------------!  
+   function set_value_at_indices(var_name, inds, count, src) result(ierr) bind(C, name="set_value_at_indices")
+   !DEC$ ATTRIBUTES DLLEXPORT :: set_value_at_indices
+
+   character(kind=c_char), intent(in) :: var_name(*)
+   type(c_ptr), value, intent(in) :: inds
+   type(c_ptr), value, intent(in) :: src
+   integer(kind=c_int), value, intent(in) :: count
+   integer(kind=c_int) :: ierr
+
+   
+   character(len=strlen(var_name)) :: f_var_name
+   integer(kind=c_int), pointer  :: f_inds(:)
+   real(kind=c_float), pointer  :: f_src(:)
+   integer :: i
+
+   ierr = ret_code%success
+   
+   f_var_name = char_array_to_string(var_name, strlen(var_name))
+   
+   call c_f_pointer(src, f_src, [count])
+   call c_f_pointer(inds, f_inds, [count])
+   
+   select case(f_var_name)
+   case("zs")
+     do i = 1, count
+       zs(f_inds(i)) = f_src(i)
+     end do
+   case("zb")
+     do i = 1, count
+       zb(f_inds(i)) = f_src(i)
+     end do
+   case("qsrc_1")
+     do i = 1, count
+       qsrc(f_inds(i), 1) = f_src(i)
+     end do
+   case("qsrc_2")
+     do i = 1, count
+       qsrc(f_inds(i), 2) = f_src(i)
+     end do
+   case("tsrc")
+     do i = 1, count
+       tsrc(f_inds(i)) = f_src(i)
+     end do
+   case("zst_bnd")
+     do i = 1, count
+       zst_bnd(f_inds(i)) = f_src(i)
+     end do
+   case default
+     write(*,*) 'set_value_at_indices error'
+     ierr = ret_code%failure
+   end select
+         
+   end function set_value_at_indices
+   
+!-----------------------------------------------------------------------------------------------------!
+
+   function get_grid_type(grid_type) result(ierr) bind(C, name="get_grid_type")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_grid_type
+   
+   character(kind=c_char), intent(out) :: grid_type(maxstrlen)
+   integer(kind=c_int) :: ierr
+   
+   character(len=maxstrlen) :: string
+   
+   if(use_quadtree) then
+     string = "unstructered"
+   else
+     string = "rectilinear"
+   end if
+   grid_type = string_to_char_array(trim(string), len(trim(string)))
+   ierr = ret_code%success
+   
+   end function get_grid_type
+   
+   !-----------------------------------------------------------------------------------------------------!
+   
+   function get_grid_rank(grid_rank) result(ierr) bind(C, name="get_grid_rank")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_grid_rank
+   
+   integer(c_int), intent(out) :: grid_rank
+   integer(kind=c_int) :: ierr
+   
+   grid_rank = 2
+   ierr = ret_code%success
+
+   end function get_grid_rank
+   
+   !-----------------------------------------------------------------------------------------------------!
+   
+   function get_grid_size(grid_size) result(ierr) bind(C, name="get_grid_size")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_grid_size
+
+   integer(c_int), intent(out) :: grid_size
+   integer(kind=c_int) :: ierr
+   
+   grid_size = np
+   ierr = ret_code%success
+    
+   end function get_grid_size
+   
+   !-----------------------------------------------------------------------------------------------------!
+   
+   function get_grid_x(ptr) result(ierr) bind(C, name="get_grid_x")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_grid_x
+   
+   type(c_ptr), intent(inout) :: ptr
+   integer(kind=c_int) :: ierr
+   
+   real(c_float), pointer:: f_ptr(:)
+
+   integer i, sz
       
-   subroutine get_start_time(tstart) bind(C, name="get_start_time")
-   !DEC$ ATTRIBUTES DLLEXPORT :: get_start_time
-   real(c_double), intent(out) :: tstart
+   if(allocated(z_xz)) then
+     sz = size(z_xz)
+     call c_f_pointer(ptr, f_ptr, [sz])
+     do i = 1, sz
+       f_ptr(i) = z_xz(i)
+     end do
+     ierr = ret_code%success
+   else
+     write(*,*) 'get_grid_x error'
+     ptr = c_null_ptr
+     ierr = ret_code%failure
+   end if
+   
+   end function get_grid_x
+   
+   !-----------------------------------------------------------------------------------------------------!
+   
+   function get_grid_y(ptr) result(ierr) bind(C, name="get_grid_y")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_grid_y
+   
+   type(c_ptr), intent(inout) :: ptr
+   integer(kind=c_int) :: ierr
+   
+   real(c_float), pointer:: f_ptr(:)
 
-   tstart = t0
-   end subroutine get_start_time
-
-!-----------------------------------------------------------------------------------------------------!  
+   integer i, sz
       
-   subroutine get_end_time(tend) bind(C, name="get_end_time")
-   !DEC$ ATTRIBUTES DLLEXPORT :: get_end_time
+   if(allocated(z_yz)) then
+     sz = size(z_yz)
+     call c_f_pointer(ptr, f_ptr, [sz])
+     do i = 1, sz
+       f_ptr(i) = z_yz(i)
+     end do
+     ierr = ret_code%success
+   else
+     write(*,*) 'get_grid_y error'
+     ptr = c_null_ptr
+     ierr = ret_code%failure
+   end if
    
-   real(c_double), intent(out) :: tend
-
-   tend = t1
-   end subroutine get_end_time
+   end function get_grid_y
    
-!-----------------------------------------------------------------------------------------------------!  
-      
-   subroutine get_time_step(deltat) bind(C, name="get_time_step")
-   !DEC$ ATTRIBUTES DLLEXPORT :: get_time_step
-
-   real(c_double), intent(out) :: deltat
-
-   deltat = dt
-   end subroutine get_time_step
+!-----------------------------------------------------------------------------------------------------!
    
-!-----------------------------------------------------------------------------------------------------!  
-      
-   subroutine get_current_time(tcurrent) bind(C, name="get_current_time")
-   !DEC$ ATTRIBUTES DLLEXPORT :: get_current_time
-   
-   real(c_double), intent(out) :: tcurrent
-
-   tcurrent = t
-   end subroutine get_current_time
-   
-!-----------------------------------------------------------------------------------------------------!     
    ! private functions
    integer(c_int) pure function strlen(char_array)
    character(c_char), intent(in) :: char_array(maxstrlen)
@@ -270,7 +695,9 @@
       end if
    end do
    end function strlen
-!!!!!!!!!!!!!!!!!!!!!!!   
+   
+   !!!!!!!!!!!!!!!!!!!!!!!   
+   
    pure function char_array_to_string(char_array, length)
    integer(c_int), intent(in) :: length
    character(c_char),intent(in) :: char_array(length)
@@ -280,7 +707,9 @@
       char_array_to_string(i:i) = char_array(i)
    enddo
    end function char_array_to_string
-!!!!!!!!!!!!!!!!!!!!!!!      
+   
+   !!!!!!!!!!!!!!!!!!!!!!!      
+   
    pure function string_to_char_array(string, length)
    integer(c_int),intent(in) :: length
    character(len=length), intent(in) :: string

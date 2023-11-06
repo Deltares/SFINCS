@@ -84,7 +84,7 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.0.3-alpha'
+   build_revision = '$Rev: v2.0.3-alpha:PR-48_update-sfincs-bmi'
    build_date     = '$Date: 2023-10-31'
    !
    write(*,'(a)')''   
@@ -126,7 +126,7 @@ module sfincs_lib
    !
    call system_clock(count0, count_rate, count_max)
    !
-   call read_sfincs_input()     ! Reads sfincs.inp
+   call read_sfincs_input(config_file)     ! Reads sfincs.inp
    !
    call read_meteo_data()       ! Reads meteo data (amu, amv, spw file etc.)
    !

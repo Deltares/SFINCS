@@ -2,22 +2,38 @@
 
 contains
 
-   subroutine read_sfincs_input()
+   subroutine read_sfincs_input(config_file)
    !
    ! Reads sfincs.inp
    !
    use sfincs_data
    use sfincs_date
+   use, intrinsic :: iso_fortran_env, only: iostat_end
    !
    implicit none
+   !
+   character(len=*) :: config_file
    !
    integer*8 dtsec
    !
    character*256 wmsigstr 
-   !   
+   !
+   integer :: ierr
+   character(len=20) :: str
+   !
    write(*,*)'Reading input file ...'
    !
-   open(500, file='sfincs.inp')   
+   open(500, file=config_file, status='old', form='formatted', iostat=ierr)
+   if (ierr .ne. 0) write(*,*) 'Error opening ', config_file, ' (Error code: ', ierr, ')'
+   
+   !print *, '--- Content of file: ' // config_file // ' ---'
+   ! do
+   !     read(500, '(a)', iostat=ierr) str
+   !     if(ierr == iostat_end) exit
+   !     if(ierr > 0) error stop '*** Error occurred while reading file. ***'
+   !     write(*, '(a)', advance='no') str
+   ! end do
+   ! print *, '--- End of content of file: ' // config_file // ' ---'
    !
    call read_int_input(500,'mmax',mmax,0)
    call read_int_input(500,'nmax',nmax,0)
@@ -493,6 +509,7 @@ contains
       keystr0 = trim(line(1:j-1))
       call notabs(keystr0,keystr,ilen)
       if (trim(keystr)==trim(keyword)) then
+         write(*,*) 'Reading ', trim(keyword)
          valstr = trim(line(j+1:256))
          read(valstr,*)value
          exit
@@ -525,6 +542,7 @@ contains
       keystr0 = trim(line(1:j-1))
       call notabs(keystr0,keystr,ilen)
       if (trim(keystr)==trim(keyword)) then
+         write(*,*) 'Reading ', trim(keyword)
          valstr = trim(line(j+1:256))
          read(valstr,*)(value(m), m = 1, nr)
          exit
@@ -555,6 +573,7 @@ contains
       keystr0 = trim(line(1:j-1))
       call notabs(keystr0,keystr,ilen)
       if (trim(keystr)==trim(keyword)) then
+         write(*,*) 'Reading ', trim(keyword)
          valstr = trim(line(j+1:256))
          read(valstr,*)value         
          exit
@@ -585,6 +604,7 @@ contains
       keystr0 = trim(line(1:j-1))
       call notabs(keystr0,keystr,ilen)
       if (trim(keystr)==trim(keyword)) then
+         write(*,*) 'Reading ', trim(keyword)
          valstr = adjustl(trim(line(j+1:256)))
          value = valstr
          exit
