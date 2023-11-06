@@ -264,7 +264,7 @@
 !-----------------------------------------------------------------------------------------------------!
    
    function get_value_at_indices(var_name, dest, inds, count) result(ierr) bind(C, name="get_value_at_indices")
-   !DEC$ ATTRIBUTES DLLEXPORT :: get_value
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_value_at_indices
    
    character(kind=c_char), intent(in) :: var_name(*)
    type(c_ptr), intent(inout) :: dest
@@ -584,7 +584,7 @@
 !-----------------------------------------------------------------------------------------------------!
 
    function get_grid_type(grid_type) result(ierr) bind(C, name="get_grid_type")
-   !DEC$ ATTRIBUTES DLLEXPORT :: get_grid_rtype
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_grid_type
    
    character(kind=c_char), intent(out) :: grid_type(maxstrlen)
    integer(kind=c_int) :: ierr
