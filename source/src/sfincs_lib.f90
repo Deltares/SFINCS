@@ -130,9 +130,7 @@ module sfincs_lib
    !
    call read_meteo_data()       ! Reads meteo data (amu, amv, spw file etc.)
    !
-   call initialize_domain()     ! Reads dep, msk, index files. Creates index, flag and depth arrays
-   !
-!   call initialize_hydro()      ! Initializes water levels, fluxes, flags
+   call initialize_domain()     ! Reads dep, msk, index files. Creates index, flag and depth arrays. Initializes water levels, fluxes, flags
    !
    call read_structures()       ! Reads thd files. Sets kcuv to zero where necessary
    !

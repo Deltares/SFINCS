@@ -127,8 +127,6 @@ contains
    !
    ! Temporary arrays
    !
-   integer*1, dimension(:,:), allocatable :: kcsg
-   !
    integer*1, dimension(:),   allocatable :: z_flags_md
    integer*4, dimension(:),   allocatable :: z_index_z_md1
    integer*4, dimension(:),   allocatable :: z_index_z_md2
@@ -1446,8 +1444,10 @@ contains
             ip = 0
             do m = 1, mmax
                do n = 1, nmax
-                  ip = ip + 1
-                  zb(ip)      = zbg(n, m)
+                  if (kcsg(n, m) > 0) then
+                     ip = ip + 1
+                     zb(ip)      = zbg(n, m)
+                  endif                  
                enddo
             enddo
             !

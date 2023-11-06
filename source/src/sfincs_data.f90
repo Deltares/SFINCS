@@ -231,6 +231,10 @@ module sfincs_data
       integer*4 :: ncuv
       integer*4 :: nkcuv2
       !
+      ! Temp for reading ascii depfile in initialize_bathymetry():
+      !
+      integer*1, dimension(:,:), allocatable :: kcsg
+      !
       ! Internal wave maker
       !
       integer*4 :: nkcs4

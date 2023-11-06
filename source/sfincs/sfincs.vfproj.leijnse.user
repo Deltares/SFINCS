@@ -3,5 +3,5 @@
 	<Configurations>
 		<Configuration Name="Debug|Win32"/>
 		<Configuration Name="Release|Win32"/>
-		<Configuration Name="Debug|x64" CommandArguments="sfincs.inp -autostartstop -t 1" WorkingDirectory="d:\tmp\Flifs\workDir\"/>
-		<Configuration Name="Release|x64" WorkingDirectory="d:\temporary_model_runs\CDR_TC\Charleston_subgrid_example_basicforcing\"/></Configurations></VisualStudioUserFile>
+		<Configuration Name="Debug|x64" CommandArguments="sfincs.inp -autostartstop -t 1" WorkingDirectory="d:\repos\SFINCS_testbed_branch\sfincs_testbed_v2.0.3_alpha_02112023\models\03_Application\US_southeastcoast_TC_spherical\Input\"/>
+		<Configuration Name="Release|x64" WorkingDirectory="d:\repos\SFINCS_testbed_branch\sfincs_testbed_v2.0.3_alpha_02112023\models\03_Application\US_southeastcoast_TC_spherical\Input\"/></Configurations></VisualStudioUserFile>
