@@ -311,38 +311,43 @@
                !
                ! 1D upwind advection slightly more robust than central scheme
                !
-               if (qx_nm>1.0e-6) then
+               if ( kcuv(uv_index_u_nmd(ip))==1 .and. kcuv(uv_index_u_nmu(ip))==1 ) then
+               !    
+                  if (qx_nm>1.0e-6) then
+                     !
+                     adv = - ( qx_nm*uu_nm - qx_nmd*uu_nmd ) * dxuvinv                  
+                     ! 
+                  elseif (qx_nm<-1.0e-6) then
+                     !
+                     adv = - ( qx_nmu*uu_nmu - qx_nm*uu_nm ) * dxuvinv
+                     !
+                  else
+                     !
+                     adv = 0.0
+                     !
+                  endif
                   !
-                  adv = - ( qx_nm*uu_nm - qx_nmd*uu_nmd ) * dxuvinv                  
-                  ! 
-               elseif (qx_nm<-1.0e-6) then
+                  qvt = q0(uv_index_v_ndm(ip)) + q0(uv_index_v_ndmu(ip)) + q0(uv_index_v_nm(ip)) + q0(uv_index_v_nmu(ip))
                   !
-                  adv = - ( qx_nmu*uu_nmu - qx_nm*uu_nm ) * dxuvinv
+                  if ( qvt > 1.0e-6 ) then
+                     !
+                     adv = adv - (q0(uv_index_v_ndm(ip)) + q0(uv_index_v_ndmu(ip))) * (uu_nm - uu_ndm) * dyuvinv / 2
+                     !
+                  elseif ( qvt < -1.0e-6 ) then
+                     !
+                     adv = adv - (q0(uv_index_v_nm(ip)) + q0(uv_index_v_nmu(ip))) * (uu_num - uu_nm) * dyuvinv / 2
+                     !
+                  endif
                   !
-               else
+                  ! Let's try without the advection limiter  
                   !
-                  adv = 0.0
+                  !write(*,*)'ip= min_dt= adv=',ip,min_dt,adv
+                  !adv = min(max(adv, -advlim), advlim)
                   !
+                  frc = frc + adv
+                  !   
                endif
                !
-               qvt = q0(uv_index_v_ndm(ip)) + q0(uv_index_v_ndmu(ip)) + q0(uv_index_v_nm(ip)) + q0(uv_index_v_nmu(ip))
-               !
-               if ( qvt > 1.0e-6 ) then
-                  !
-                  adv = adv - (q0(uv_index_v_ndm(ip)) + q0(uv_index_v_ndmu(ip))) * (uu_nm - uu_ndm) * dyuvinv / 2
-                  !
-               elseif ( qvt < -1.0e-6 ) then
-                  !
-                  adv = adv - (q0(uv_index_v_nm(ip)) + q0(uv_index_v_nmu(ip))) * (uu_num - uu_nm) * dyuvinv / 2
-                  !
-               endif
-               !
-               ! Let's try without the advection limiter  
-               !
-               ! adv = min(max(adv, -advlim), advlim)
-               !
-               frc = frc + adv
-               !   
             endif   
             !
             ! Viscosity term
