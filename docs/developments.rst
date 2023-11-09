@@ -27,6 +27,7 @@ Changes:
 The code consists of all functionality of the v2.0.2 release, with the following changes/additions:
 
 Added functionality:
+
 * Netcdf4 compliant output, for reduced file sizes
 * Green & Ampt infiltration method
 * Horton infiltration method
@@ -35,6 +36,7 @@ Added functionality:
 * Netcdf src+dis input option
 
 Other changes:
+
 * Improved culvert and drainage pipe formulations
 * Updated documentation
 * Added tests in skillbed report
@@ -62,7 +64,7 @@ The code consists of all functionality of the v2.0.0 release, with the following
 * Bugfix in weir formulation
 * Updated documentation
 * Added tests in skillbed report
-* Compliance with new Python setup tools HydroMT-SFINCS release v1.1
+* Compliance with new Python setup tools HydroMT-SFINCS release v1.0.1
 
 
 Official open source version: v2.0.0 Alpe d'Huez release
