@@ -2619,16 +2619,17 @@ contains
       ! 3: zs  - 
       ! 4: zs, q, uvmean and cnb infiltration (writing scs_Se)
       ! 5: zs, q, uvmean and gai infiltration (writing GA_sigma & GA_F)
+      ! 6: zs, q, uvmean and hor infiltration (writing rain_T1)         
       !
       read(500)rdummy
       read(500)rsttype
       read(500)rdummy
       !
-      if (rsttype<1 .or. rsttype >5) then
+      if (rsttype<1 .or. rsttype >6) then
           !
           ! Give warning, rstfile input rsttype not recognized
           !
-          write(*,*)'WARNING! rstfile not recognized, skipping restartfile input! rsttype should be 1-5, but found rsttype= ', rsttype 
+          write(*,*)'WARNING! rstfile not recognized, skipping restartfile input! rsttype should be 1-6, but found rsttype= ', rsttype 
           !          
           close(500)      
           !          
@@ -2641,7 +2642,7 @@ contains
           !      
           ! Read fluxes q
           !
-          if (rsttype==1 .or. rsttype==2 .or. rsttype==4 .or. rsttype==5) then     
+          if (rsttype==1 .or. rsttype==2 .or. rsttype==4 .or. rsttype==5 .or. rsttype==6) then     
              read(500)rdummy
              read(500)iniq
              read(500)rdummy
@@ -2651,29 +2652,27 @@ contains
              read(500)rdummy
           endif
           !
-          if (rsttype==4) then ! 
-             read(500)rdummy
-             if (inftype == 'cnb') then
-                 ! Infiltration method cnb
-                 read(500)scs_Se
-                 write(*,*)'Reading scs_Se from rstfile, overwrites input values of: ',trim(sefffile)
-             elseif (inftype == 'hor') then
-                 ! Infiltration method horton
-                 read(500)rain_T1
-                write(*,*)'Reading rain_T1 from rstfile, complements input values of: ',trim(fcfile)        
-             endif
+          if (rsttype==4) then ! Infiltration method cnb 
              !
-          endif
-          !
-          if (rsttype==5) then ! Infiltration method gai    
-            read(500)rdummy
-            read(500)GA_sigma
-            read(500)rdummy
-            read(500)GA_F
-            !
-            write(*,*)'Reading GA_sigma from rstfile, overwrites input values of: ',trim(sigmafile)        
-            !
-          endif
+             read(500)rdummy                 
+             read(500)scs_Se
+             write(*,*)'Reading scs_Se from rstfile, overwrites input values of: ',trim(sefffile)
+             !
+          elseif (rsttype==5) then ! Infiltration method gai    
+             !
+             read(500)rdummy
+             read(500)GA_sigma
+             read(500)rdummy
+             read(500)GA_F
+             write(*,*)'Reading GA_sigma from rstfile, overwrites input values of: ',trim(sigmafile)        
+             !
+          elseif (rsttype==6) then ! Infiltration method horton
+              !
+              read(500)rdummy                               
+              read(500)rain_T1
+              write(*,*)'Reading rain_T1 from rstfile, complements input values of: ',trim(fcfile)        
+              !              
+          endif          
           !
           close(500)      
           !
