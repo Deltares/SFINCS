@@ -461,6 +461,11 @@ Forcing - Meteo
 	  :units:		coordinates: m in projected UTM zone, data: m/s, wind_from_direction in degrees, p_drop in Pa (and precipitation in mm/hr).
 	  :required:		no
 	  :format:		asc	 
+	netspwfile = spiderweb.nc
+	  :description:		Spiderweb file including wind speed, direction, pressure (and possibly rainfall).
+	  :units:		coordinates: m in projected UTM zone, data: m/s, wind_from_direction in degrees, p_drop in Pa (and precipitation in mm/hr).
+	  :required:		no
+	  :format:		netcdf	 	  
 	amufile = sfincs.amu
 	  :description:		Delft3D-meteo ascii type input of wind speed in x-direction.
 	  :units:		coordinates: m in projected UTM zone, data: m/s
