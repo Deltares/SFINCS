@@ -67,19 +67,7 @@ contains
          endif
       endif
       !
-      if (utmzone/='nil') then
-         !
-         ! Convert spiderweb coordinates to utm zone
-         ! 
-         do it = 1, spw_nt
-            call deg2utm(spw_ye(it),spw_xe(it),xx,yy,utmzone)
-            spw_xe(it) = xx
-            spw_ye(it) = yy
-         enddo
-         !
-      endif
-      !
-   endif
+   endif   
    !
    if (netspwfile(1:4) /= 'none') then
       ! 
@@ -90,6 +78,24 @@ contains
       call read_netcdf_spw_data()
       !
    endif
+   !
+   if (spwfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
+      !
+      if (utmzone/='nil') then
+         !
+         ! Convert spiderweb coordinates to utm zone
+         ! 
+         write(*,*)'Converting spiderweb coordinates to utm zone ...'
+         !       
+         do it = 1, spw_nt
+            call deg2utm(spw_ye(it),spw_xe(it),xx,yy,utmzone)
+            spw_xe(it) = xx
+            spw_ye(it) = yy
+         enddo
+         !
+      endif
+      !
+   endif   
    !
    if (amufile(1:4) /= 'none') then
       !

@@ -633,7 +633,7 @@ module sfincs_output
    ! 5: zs, q, uvmean and gai infiltration (writing GA_sigma & GA_F)
    ! 6: zs, q, uvmean and hor infiltration (writing rain_T1)   
    !
-   ! Write for Infiltration methods (rsttype 4 or 5)
+   ! Write for Infiltration methods (rsttype 4 or 5 or 6)
     if (inftype == 'cnb' .or. inftype == 'gai' .or. inftype == 'hor') then
         !
         if (inftype == 'cnb') then
