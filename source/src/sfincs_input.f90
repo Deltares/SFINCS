@@ -466,6 +466,11 @@ contains
       advection = .true.
    endif      
    !
+   thetasmoothing = .false.
+   if (theta<0.9999) then ! Note, for reliability in terms of precision, is written as 0.9999
+      thetasmoothing = .true.       
+   endif   
+   !
    store_wave_forces = .false.
    if (istorefw==1) then
       store_wave_forces = .true.

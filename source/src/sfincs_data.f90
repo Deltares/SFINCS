@@ -207,6 +207,7 @@ module sfincs_data
       logical       :: use_quadtree
       logical       :: interpolate_zst
       logical       :: advection
+      logical       :: thetasmoothing            
       logical       :: fixed_output_intervals
       logical       :: use_storage_volume
       logical       :: output_irregular_grid

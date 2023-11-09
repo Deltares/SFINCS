@@ -257,7 +257,7 @@
                !
             endif
             !
-            if (theta<0.9999 .and. .not.advection) then ! for backward compatibility
+            if (thetasmoothing .and. .not.advection) then ! for backward compatibility
                ! Note, for reliability in terms of precision, is written as 0.9999
                qx_nmd  = q0(uv_index_u_nmd(ip))
                qx_nmu  = q0(uv_index_u_nmu(ip))
@@ -311,8 +311,10 @@
                !
                ! 1D upwind advection slightly more robust than central scheme
                !
-               if ( kcuv(uv_index_u_nmd(ip))==1 .and. kcuv(uv_index_u_nmu(ip))==1 ) then
-               !    
+               if ( kcuv(uv_index_u_nmd(ip))==1 .and. kcuv(uv_index_u_nmu(ip))==1 ) then 
+                  !
+                  ! But only at regular points
+                  !    
                   if (qx_nm>1.0e-6) then
                      !
                      adv = - ( qx_nm*uu_nm - qx_nmd*uu_nmd ) * dxuvinv                  
@@ -341,7 +343,6 @@
                   !
                   ! Let's try without the advection limiter  
                   !
-                  !write(*,*)'ip= min_dt= adv=',ip,min_dt,adv
                   !adv = min(max(adv, -advlim), advlim)
                   !
                   frc = frc + adv
@@ -434,22 +435,25 @@
             endif
             !
             ! Apply some smoothing if theta < 1.0 (not recommended anymore!)
-            ! Note, for reliability in terms of precision, is written as 0.9999
             !
             qsm = qx_nm
             !
-            if (theta<0.9999) then
+            if (thetasmoothing) then
                ! 
                ! Apply theta smoothing 
                ! 
-               if (abs(qx_nmu) > 1.0e-6 .and. abs(qx_nmd) > 1.0e-6) then
-                  !
-                  ! And if both uv neighbors are active
-                  ! 
-                  qsm = theta*qx_nm + 0.5*(1.0 - theta)*(qx_nmu + qx_nmd)             
-                  ! 
-               endif
-               !
+               if ( kcuv(uv_index_u_nmd(ip))==1 .and. kcuv(uv_index_u_nmu(ip))==1 ) then 
+                   !
+                   ! But only at regular points
+                   ! 
+                   if (abs(qx_nmu) > 1.0e-6 .and. abs(qx_nmd) > 1.0e-6) then
+                      !
+                      ! And if both uv neighbors are active
+                      ! 
+                      qsm = theta*qx_nm + 0.5*(1.0 - theta)*(qx_nmu + qx_nmd)             
+                      ! 
+                   endif
+               endif               
             endif            
             !
             ! Compute new flux for this uv point (Bates et al., 2010)

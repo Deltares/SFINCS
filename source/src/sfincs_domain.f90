@@ -633,9 +633,9 @@ contains
    uv_index_z_nm  = 0
    uv_index_z_nmu = 0
    !
-   ! If advection, viscosity or coriolis, allocate extra arrays for 8 uv neighbor indices
+   ! If advection, viscosity, coriolis or thetasmoothing, allocate extra arrays for 8 uv neighbor indices
    !
-   !if (advection .or. coriolis .or. viscosity) then
+   if (advection .or. coriolis .or. viscosity .or. thetasmoothing) then
       !
       allocate(uv_index_u_nmd(npuv))
       allocate(uv_index_u_nmu(npuv))
@@ -655,7 +655,7 @@ contains
       uv_index_v_ndmu = 0
       uv_index_v_nmu  = 0
       !
-   !endif
+   endif
    !
    ip = 0 ! Number of uv points
    !
@@ -919,7 +919,7 @@ contains
    !
    ! And now set the indices of the 8 uv neighbors of the uv points (u_nmu, u_nmd, u_num,  u_ndm,
    !                                                                 v_ndm, v_nm,  v_ndmu, v_nmu)
-   !if (advection .or. coriolis .or. viscosity) then
+   if (advection .or. coriolis .or. viscosity .or. thetasmoothing) then
       !
       do ip = 1, npuv
          !
@@ -1173,7 +1173,7 @@ contains
          ! 
       enddo ! uv point
       ! 
-   !endif ! advection, viscosity or coriolis
+   endif ! advection, viscosity, coriolis or thetasmoothing
    !
    ! Okay, got all the quadtree cells including indices, neighbors flags 
    !
@@ -1491,7 +1491,7 @@ contains
          !
          zbuvmx(ip) = max(zb(nm), zb(nmu)) + huthresh
          !
-      enddo   
+      enddo 
       !
    else
       !
