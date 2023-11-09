@@ -139,7 +139,8 @@ contains
    close(888)
    !
    end subroutine
-
+   !
+   ! Read amu
    subroutine read_amuv_file(filename,nt,nrows,ncols,time,uv,trefstr)
    !
    implicit none

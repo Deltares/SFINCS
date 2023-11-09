@@ -21,12 +21,17 @@
    integer   :: ip
    integer   :: nm
    integer   :: nmu
+   integer   :: n
+   integer   :: m
 
    integer   :: idir
    integer   :: iref
    integer   :: itype
    integer   :: iuv
    integer   :: ind
+   integer   :: icuv
+   integer   :: iuv1
+   integer   :: iuv2
    !
    real*4    :: hu
    real*4    :: dxuvinv
@@ -65,9 +70,9 @@
    real*4    :: one_minus_facint 
    !
    real*4, parameter :: expo = 1.0/3.0
-!   integer, parameter :: expo = 1
+   ! integer, parameter :: expo = 1
    !
-   logical   :: iadv, ivis, icorio, iok
+   logical   :: iok
    !
    call system_clock(count0, count_rate, count_max)
    !
@@ -80,7 +85,7 @@
    !$omp do
    !$acc kernels, present(q, q0, uv, uv0), async(1)
    !$acc loop independent, private(nm)
-   do ip = 1, npuv
+   do ip = 1, npuv + ncuv
       !
       q0(ip)   = q(ip)
       uv0(ip)  = uv(ip)
@@ -91,13 +96,13 @@
    !$omp end parallel
    !
    !$omp parallel &
-   !$omp private ( ip,hu,qsm,qx_nm,nm,nmu,frc,adv,idir,itype,iadv,ivis,icorio,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
+   !$omp private ( ip,hu,qsm,qx_nm,nm,nmu,frc,adv,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
    !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,qvt ) &
    !$omp reduction ( min : min_dt )
    !$omp do schedule ( dynamic, 256 )
    !$acc kernels, present( kcuv, zs, q, q0, uv, uv0, min_dt, &
-   !$acc                   uv_flags_iref, uv_flags_type, uv_flags_vis, uv_flags_adv, uv_flags_dir, &
+   !$acc                   uv_flags_iref, uv_flags_type, uv_flags_dir, &
    !$acc                   subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_hrep, subgrid_uv_navg, subgrid_uv_hrep_zmax, subgrid_uv_navg_zmax, &
    !$acc                   uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc                   uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
@@ -144,46 +149,6 @@
             endif
             !
             idir  = uv_flags_dir(ip) ! 0 is u, 1 is v
-            !
-            ! Check if viscosity term is computed for this point
-            !
-            if (viscosity) then
-               if (uv_flags_vis(ip)==1) then
-                  ivis = .true.
-               else
-                  ivis = .false.
-               endif   
-            else
-               ivis = .false.
-            endif                  
-            !
-            ! Check if advection term is computed for this point
-            !
-            if (advection) then
-               if (uv_flags_adv(ip)==1) then
-                  iadv = .true.
-               else
-                  iadv = .false.
-               endif   
-            else
-               iadv = .false.
-            endif
-            !
-            ! Check if Coriolis term is computed for this point
-            !
-            if (coriolis) then
-               !
-               if (uv_flags_adv(ip)==1) then
-                  icorio = .true.
-               else
-                  icorio = .false.
-               endif   
-               !
-            else
-               !
-               icorio = .false.
-               !
-            endif
             !
             ! Determine grid spacing (and coriolis factor fcoriouv)
             !
@@ -278,7 +243,7 @@
             !
             qx_nm = q0(ip)
             !
-            if (iadv) then
+            if (advection .or. coriolis .or. viscosity) then
                !
                ! First term
                !
@@ -292,20 +257,7 @@
                !
             endif
             !
-            if (ivis) then
-               !
-               if (.not. iadv) then
-                  uu_nm  = uv0(ip)
-                  uu_nmd = uv0(uv_index_u_nmd(ip))
-                  uu_nmu = uv0(uv_index_u_nmu(ip))
-               endif
-               !
-               uu_ndm  = uv0(uv_index_u_ndm(ip))
-               uu_num  = uv0(uv_index_u_num(ip))
-               !
-            endif
-            !
-            if (theta<0.9999 .and. .not.iadv) then ! for backward compatibility
+            if (thetasmoothing .and. .not.advection) then ! for backward compatibility
                ! Note, for reliability in terms of precision, is written as 0.9999
                qx_nmd  = q0(uv_index_u_nmd(ip))
                qx_nmu  = q0(uv_index_u_nmu(ip))
@@ -355,46 +307,53 @@
             !
             ! Advection term
             !
-            if (iadv) then
+            if (advection) then
                !
                ! 1D upwind advection slightly more robust than central scheme
                !
-               if (qx_nm>1.0e-6) then
+               if ( kcuv(uv_index_u_nmd(ip))==1 .and. kcuv(uv_index_u_nmu(ip))==1 ) then 
                   !
-                  adv = - ( qx_nm*uu_nm - qx_nmd*uu_nmd ) * dxuvinv                  
-                  ! 
-               elseif (qx_nm<-1.0e-6) then
+                  ! But only at regular points
+                  !    
+                  if (qx_nm>1.0e-6) then
+                     !
+                     adv = - ( qx_nm*uu_nm - qx_nmd*uu_nmd ) * dxuvinv                  
+                     ! 
+                  elseif (qx_nm<-1.0e-6) then
+                     !
+                     adv = - ( qx_nmu*uu_nmu - qx_nm*uu_nm ) * dxuvinv
+                     !
+                  else
+                     !
+                     adv = 0.0
+                     !
+                  endif
                   !
-                  adv = - ( qx_nmu*uu_nmu - qx_nm*uu_nm ) * dxuvinv
+                  qvt = q0(uv_index_v_ndm(ip)) + q0(uv_index_v_ndmu(ip)) + q0(uv_index_v_nm(ip)) + q0(uv_index_v_nmu(ip))
                   !
-               else
+                  if ( qvt > 1.0e-6 ) then
+                     !
+                     adv = adv - (q0(uv_index_v_ndm(ip)) + q0(uv_index_v_ndmu(ip))) * (uu_nm - uu_ndm) * dyuvinv / 2
+                     !
+                  elseif ( qvt < -1.0e-6 ) then
+                     !
+                     adv = adv - (q0(uv_index_v_nm(ip)) + q0(uv_index_v_nmu(ip))) * (uu_num - uu_nm) * dyuvinv / 2
+                     !
+                  endif
                   !
-                  adv = 0.0
+                  ! Let's try without the advection limiter  
                   !
+                  !adv = min(max(adv, -advlim), advlim)
+                  !
+                  frc = frc + adv
+                  !   
                endif
                !
-               qvt = q0(uv_index_v_ndm(ip)) + q0(uv_index_v_ndmu(ip)) + q0(uv_index_v_nm(ip)) + q0(uv_index_v_nmu(ip))
-               !
-               if ( qvt > 1.0e-6 ) then
-                  !
-                  adv = adv - (q0(uv_index_v_ndm(ip)) + q0(uv_index_v_ndmu(ip))) * (uu_nm - uu_ndm) * dyuvinv / 2
-                  !
-               elseif ( qvt < -1.0e-6 ) then
-                  !
-                  adv = adv - (q0(uv_index_v_nm(ip)) + q0(uv_index_v_nmu(ip))) * (uu_num - uu_nm) * dyuvinv / 2
-                  !
-               endif
-               !
-               ! Let's try without the advection limiter  
-!               adv = min(max(adv, -advlim), advlim)
-               !
-               frc = frc + adv
-               !   
             endif   
             !
             ! Viscosity term
             !
-            if (ivis) then
+            if (viscosity) then
                !
                frc = frc + nuvisc * hu * ( (uu_nmu - 2*uu_nm + uu_nmd )*dxuv2inv + (uu_num - 2*uu_nm + uu_ndm )*dyuv2inv )
                !
@@ -402,7 +361,7 @@
             !
             ! Coriolis term
             !
-            if (icorio) then
+            if (coriolis) then
                ! 
                vu = (uv(uv_index_v_ndm(ip)) + uv(uv_index_v_ndmu(ip)) + uv(uv_index_v_nm(ip)) + uv(uv_index_v_nmu(ip))) / 4
                !
@@ -476,26 +435,25 @@
             endif
             !
             ! Apply some smoothing if theta < 1.0 (not recommended anymore!)
-            ! Note, for reliability in terms of precision, is written as 0.9999
             !
             qsm = qx_nm
             !
-            if (theta<0.9999) then
+            if (thetasmoothing) then
                ! 
                ! Apply theta smoothing 
                ! 
-               if (uv_flags_adv(ip)==1) then
-                  ! 
-                  ! But only at regular points
-                  ! 
-                  if (abs(qx_nmu) > 1.0e-6 .and. abs(qx_nmd) > 1.0e-6) then
-                     !
-                     ! And if both uv neighbors are active
-                     ! 
-                     qsm = theta*qx_nm + 0.5*(1.0 - theta)*(qx_nmu + qx_nmd)             
-                     ! 
-                  endif
-               endif
+               if ( kcuv(uv_index_u_nmd(ip))==1 .and. kcuv(uv_index_u_nmu(ip))==1 ) then 
+                   !
+                   ! But only at regular points
+                   ! 
+                   if (abs(qx_nmu) > 1.0e-6 .and. abs(qx_nmd) > 1.0e-6) then
+                      !
+                      ! And if both uv neighbors are active
+                      ! 
+                      qsm = theta*qx_nm + 0.5*(1.0 - theta)*(qx_nmu + qx_nmd)             
+                      ! 
+                   endif
+               endif               
             endif            
             !
             ! Compute new flux for this uv point (Bates et al., 2010)
@@ -519,11 +477,24 @@
    !$omp end parallel
    !$acc end kernels
    !
+   ! Loop through combined uv points and determine average uv and q
+   !
+   !$omp parallel &
+   !$omp private ( icuv )
+   !$omp do
+   do icuv = 1, ncuv
+      ! Average of the two uv points
+      q(cuv_index_uv(icuv))  = 0.5*(q(cuv_index_uv1(icuv)) + q(cuv_index_uv2(icuv)))
+      uv(cuv_index_uv(icuv)) = 0.5*(uv(cuv_index_uv1(icuv)) + uv(cuv_index_uv2(icuv)))
+   enddo
+   !$omp end do
+   !$omp end parallel
+   !
    !$acc update host(min_dt), async(1)
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
    !         
    end subroutine      
-   
+   !
 end module

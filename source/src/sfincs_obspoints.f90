@@ -115,7 +115,7 @@ contains
             !
             iref = z_flags_iref(nm)
             !
-!            write(*,'(a,i0,a,a,a,i0,a,i0,a,i0,a,i0,a,f0.3)')' Observation point ',iobs,' : "',trim(nameobs(iobs)),'" nm=',nm,' n=',n,' m=',m,' iref=',iref,' z=',zbobs(iobs)
+            write(*,'(a,i0,a,a,a,i0,a,i0,a,i0,a,i0,a,f0.3)')' Observation point ',iobs,' : "',trim(nameobs(iobs)),'" nm=',nm,' n=',n,' m=',m,' iref=',iref,' z=',zbobs(iobs)
             !
          else
             !

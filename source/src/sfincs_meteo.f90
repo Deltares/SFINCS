@@ -59,18 +59,34 @@ contains
       enddo
       !
       if (spw_nquant==4) then
-          if (ispwprecip==0) then
-             spw_precip = .false.
-             write(*,*)'Info : Overruled to not use precipitation from spiderweb input ...'
-          else
-             spw_precip = .true.
-          endif
+         if (use_spw_precip) then
+            spw_precip = .true.
+         else
+            write(*,*)'Info : Overruled to not use precipitation from spiderweb input ...'
+            spw_precip = .false.
+         endif
       endif
+      !
+   endif   
+   !
+   if (netspwfile(1:4) /= 'none') then
+      ! 
+      ! Write statement to log
+      write(*,*)'Reading netcdf spiderweb file ...'
+      ! 
+      ! Read information
+      call read_netcdf_spw_data()
+      !
+   endif
+   !
+   if (spwfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       !
       if (utmzone/='nil') then
          !
          ! Convert spiderweb coordinates to utm zone
          ! 
+         write(*,*)'Converting spiderweb coordinates to utm zone ...'
+         !       
          do it = 1, spw_nt
             call deg2utm(spw_ye(it),spw_xe(it),xx,yy,utmzone)
             spw_xe(it) = xx
@@ -79,8 +95,8 @@ contains
          !
       endif
       !
-   endif
-   ! 
+   endif   
+   !
    if (amufile(1:4) /= 'none') then
       !
       write(*,*)'Reading amu and amv file ...'
@@ -1303,7 +1319,7 @@ contains
       !
    endif
    !      
-   if (spwfile(1:4) /= 'none') then
+   if (spwfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       !
       call update_spiderweb_data()
       !
@@ -1316,18 +1332,6 @@ contains
       endif
       !
    endif
-   !
-!   if (precip .and. store_cumulative_precipitation) then
-!      !        
-!      call update_cumprcp_map()
-!      !
-!   endif
-!   !
-!   if (infiltration2d) then
-!      !
-!      call update_infiltration_map()
-!      !
-!   endif
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
