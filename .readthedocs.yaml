@@ -10,7 +10,6 @@ build:
   os: ubuntu-20.04
   tools:
     python: "3.9"
-    sphinx_rtd_theme
     # You can also specify other tool versions:
     # nodejs: "16"
     # rust: "1.55"
@@ -20,6 +19,11 @@ build:
 sphinx:
    configuration: docs/conf.py
 
+# Explicitly set the version of Python and its requirements
+python:
+  install:
+    - requirements: docs/requirements.txt
+    
 # If using Sphinx, optionally build your docs in additional formats such as PDF
 formats:
     - pdf
