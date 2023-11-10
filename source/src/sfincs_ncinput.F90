@@ -682,7 +682,7 @@ module sfincs_ncinput
     !       
     ! Close netcdf
     NF90(nf90_close(net_file_spw%ncid))     
-
+    write(*,*)'Finished reading in netspwfile'
    end subroutine
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

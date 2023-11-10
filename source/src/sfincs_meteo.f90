@@ -97,6 +97,7 @@ contains
       !
    endif   
    !
+   write(*,*)'Passed utmzone conversion'
    if (amufile(1:4) /= 'none') then
       !
       write(*,*)'Reading amu and amv file ...'
@@ -271,6 +272,7 @@ contains
    real*4 wdir
    real*4 facint
    !
+   write(*,*)'Start update_spiderweb_data'
    do itw = 1, 2
       !      
       ! Find time indices in spw file
@@ -565,6 +567,8 @@ contains
       enddo                          
    enddo
    !
+   write(*,*)'Finished update_spiderweb_data'
+   
    end subroutine
    !
    !
@@ -1295,6 +1299,7 @@ contains
    !
    call system_clock(count0, count_rate, count_max)
    !
+   write(*,*)'Start update_meteo_fields'
    if (amufile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none') then
       !
       call update_amuv_data()
@@ -1336,6 +1341,8 @@ contains
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
    !         
+   write(*,*)'Finished update_meteo_fields'
+   
    end subroutine   
 
 end module
