@@ -678,6 +678,7 @@ module sfincs_ncinput
     ! 
     ! Read time attibute and convert time
     NF90(nf90_get_att(net_file_spw%ncid, net_file_spw%time_varid,'units', treftimefews))
+    write(*,*)'treftimefews',treftimefews
     spw_times = convert_spw_nc_date(spw_times, spw_nt, treftimefews, trefstr)
     write(*,*)'spw_times',spw_times    
     !       
