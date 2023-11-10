@@ -4,7 +4,19 @@ Developments
 SFINCS has continuely being developed since 2017, and many great features have been added over the years.
 Hereby some examples regarding subgrid features and GPU computing.
 
-Releases
+Development status
+-----
+
+See here a schematic overview of the SFINCS development status at Q4 2023, at the time of the v2.0.3 Cauberg release.
+Indicated are new functionality for SFINCS itself (core), and model setup/post-processing using HydroMT-SFINCS and Delft Dashboard (Python).
+
+.. figure:: ./figures/Overview_status_SFINCS.drawio.png
+   :width: 600px
+   :align: center
+
+   Overview of SFINCS development status Q4 2023
+
+Releases Changelog
 -----
 
 Official open source version Q4 2023: v2.0.3 Cauberg release
