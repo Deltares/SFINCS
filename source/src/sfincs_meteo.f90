@@ -1030,6 +1030,7 @@ contains
       twfact  = (t - meteo_t0)/(meteo_t1 - meteo_t0)
       onemintwfact = 1.0 - twfact
       !
+      write(*,*)'in update_meteo_forcing part 1'               
       !$omp parallel &
       !$omp private ( nm )
       !$omp do
@@ -1037,7 +1038,6 @@ contains
       !$acc                  windu, windv, windu0, windv0, windu1, windv1, windmax, &
       !$acc                  patm, patm0, patm1, prcp, prcp0, prcp1 ), async(1)
       !$acc loop independent, private(nm)
-      write(*,*)'in update_meteo_forcing - part 1'         
       do nm = 1, np
          !
          if (wind) then
@@ -1087,11 +1087,11 @@ contains
          endif   
          !
       enddo   
-      write(*,*)'in update_meteo_forcing - part 2'      
       !$omp end do
       !$omp end parallel
       !$acc end kernels
       !
+      write(*,*)'in update_meteo_forcing - part 2'            
       ! Apply spin-up factor
       !
       if (t<tspinup - 1.0e-3 .and. spinup_meteo) then
