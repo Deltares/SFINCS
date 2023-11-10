@@ -148,6 +148,7 @@ SFINCS has been applied in these international projects, with attached links to 
 
 * Modelling compound flooding along the whole US Southeast coast (https://www.deltares.nl/app/uploads/2021/10/RD-Highlights-2021.pdf)
 
+* Modelling coastal flooding for the entire country of Denmark by the Danish Coastal Authority for the EU Floods Directive (https://www.youtube.com/watch?v=TbzTC82ijyU&t=15s&ab_channel=Deltares)  (https://specials.deltares.nl/impact_report_2023/estimating_flood_impacts)
 
 .. figure:: ./figures/MapChart_Map.png
    :width: 600px
@@ -211,11 +212,13 @@ There have been various journal publications and conference posters where SFINCS
 
 * "A globally-applicable framework for compound flood hazard modeling". Eilander et al. (2022) https://doi.org/10.5194/egusphere-2022-149
 
-* "Developing large scale and fast compound flood models for Australian coastlines". Leijnse et al. (2022). 'International Conference on Coastal Engineering 2022, Sydney'
+* "Developing large scale and fast compound flood models for Australian coastlines". Leijnse et al. (2022). 'International Conference on Coastal Engineering 2022, Sydney'. https://doi.org/10.9753/icce.v37.management.49.
 
 * "Developing a real-time data and modelling framework for operational flood inundation forecasting in Australia". De Kleermaeker et al. (2022). https://search.informit.org/doi/abs/10.3316/informit.916755150845355
 
 * "Flooding at the Fringe: A Reduced-physics Model for Assessing Compound Flooding from Pluvial, Fluvial, and Coastal Hazards". Grimley et al. (2022). https://ui.adsabs.harvard.edu/abs/2022AGUFMNH36A..03G/abstract
+
+* "Large-Scale Operational Forecasting with the Compound Flood Model SFINCS". Van Ormondt et al. (2022). In Fall Meeting 2022. AGU.
 
 * "Tropical cyclones or extratropical storms: What drives the compound flood hazard, impact and risk for the US Southeast Atlantic coast?" Nederhoff et al. (2023). https://eartharxiv.org/repository/view/5123/.
 
@@ -226,6 +229,14 @@ There have been various journal publications and conference posters where SFINCS
 * "FORECASTING HURRICANE IMPACTS ON COASTS USING COASTAL STORM MODELING SYSTEM (COSMOS)". Van Dongeren et al. (2023). https://doi.org/10.1142/9789811275135_0242
 
 * "An Integrated Assessment of Climate Change Impacts and Implications on Bonaire". Van Oosterhout (2023). https://link.springer.com/article/10.1007/s41885-023-00127-z
+
+* "Towards FAIR hydrological modeling with HydroMT". Boisgontier et al. (2023) .EGU General Assembly 2023, Vienna, Austria, 24–28 Apr 2023, EGU23-13770, https://doi.org/10.5194/egusphere-egu23-13770.
+
+* "Deriving a parametrization for estimating nearshore infragravity wave energy for scaling up wave-resolving flood hazard modelling". Leijnse et al. (2023). 17th International Workshop on Wave Hindcasting and Forecasting.
+
+* "Wave effects in a rapid compound flood model". van Ormondt et al. (2023). 17th International Workshop on Wave Hindcasting and Forecasting.
+
+* "Accounting for Uncertainties in Forecasting Tropical Cyclone-Induced Compound Flooding. Nederhoff et al. (2023). EGUsphere [preprint], https://doi.org/10.5194/egusphere-2023-2341
 
 * More information regarding recent advancements with subgrid features can be seen in this online poster: https://agu2020fallmeeting-agu.ipostersessions.com/Default.aspx?s=9C-05-18-CF-F1-2B-17-F0-7A-21-93-E6-13-AE-F3-24
 Leijnse et al. (2020)

@@ -384,6 +384,21 @@ Domain
 	  :units:		-
 	  :required:		no	  
 	  :format:		bin	 
+	f0file = sfincs.f0
+	  :description:		For spatially varying infiltration values per cell using the Horton method (with recovery) provide the f0file (as well as the fcfile and kdfile) as maximum (Initial) Infiltration Capacity in mm/hr, with the same grid based input as the depfile using a binary file.
+	  :units:		mm/hr
+	  :required:		no	  
+	  :format:		bin	
+	fcfile = sfincs.fc
+	  :description:		For spatially varying infiltration values per cell using the Horton method (with recovery) provide the fcfile (as well as the f0file and kdfile) as Minimum (Asymptotic) Infiltration Rate in mm/hr, with the same grid based input as the depfile using a binary file.
+	  :units:		mm/hr
+	  :required:		no	  
+	  :format:		bin	 	
+	kdfile = sfincs.kd
+	  :description:		For spatially varying infiltration values per cell using the Horton method (with recovery) provide the kdfile (as well as the f0file and fcfile) as empirical constant (hr-1) of decay, with the same grid based input as the depfile using a binary file.
+	  :units:		hr-1
+	  :required:		no	  
+	  :format:		bin	 		  	   	  
 	sbgfile = sfincs.sbg
 	  :description:		File containing subgrid tables, only needed by SFINCS if you want to run your model in the subgrid mode.
 	  :units:		-
@@ -461,6 +476,11 @@ Forcing - Meteo
 	  :units:		coordinates: m in projected UTM zone, data: m/s, wind_from_direction in degrees, p_drop in Pa (and precipitation in mm/hr).
 	  :required:		no
 	  :format:		asc	 
+	netspwfile = spiderweb.nc
+	  :description:		Spiderweb file including wind speed, direction, pressure (and possibly rainfall).
+	  :units:		coordinates: m in projected UTM zone, data: m/s, wind_from_direction in degrees, p_drop in Pa (and precipitation in mm/hr).
+	  :required:		no
+	  :format:		netcdf	 	  
 	amufile = sfincs.amu
 	  :description:		Delft3D-meteo ascii type input of wind speed in x-direction.
 	  :units:		coordinates: m in projected UTM zone, data: m/s

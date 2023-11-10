@@ -375,7 +375,7 @@ The Curve Number method:
 %%%%%
 
 The Curve Number (CN) method is a popular empirical procedure developed by the USDA Soil Conservation Service for estimating direct runoff volume and peak discharge rate from rainfall events. The method takes into account characteristics of the watershed, such as land use, soil type, and hydrologic conditions, expressed as a single 'Curve Number'. This CN is used to calculate a runoff coefficient, which is then used in determining the volume of runoff from a rainfall event. Within SFINCS, the options of the Curve Number method have been included: without recovery and without recovery during dry periods. Both are described in this manual.
-In its classic form, the Curve Number model uses the following equation to relate total event runoff Q to total event precipitation P. 
+In its classic form, the Curve Number model uses the following equation to relate total event runoff Q to total event precipitation P as follows:
 
 **S = (1000./CN - 10)**
 
@@ -406,6 +406,7 @@ This option doesn't support restart functionality.
 **With recovery**
 
 Within SFINCS, the Curve number method with recovery can be used as follows. The user needs to provide the following variables. For all variables, one needs to specify these values per cell with the same grid based input as the depfile using a binary file:
+
 * smaxfile: maximum soil moisture storage capacity in m
 * sefffile: soil moisture storage capacity at the start in m
 * ksfile: saturated hydraulic conductivity in mm/hr
@@ -423,12 +424,14 @@ The Green-Ampt method:
 The Green-Ampt method is a hydrological model extensively used to predict soil infiltration rates under ponded conditions, i.e., when water is freely available on the surface. This method considers important parameters such as initial soil moisture content, hydraulic conductivity, and soil capillary suction head. 
 
 The basic form of the Green-Ampt equation is expressed as follows: 
+
 **f(t) = K(1+ delta_theta (sigma + h0) / F(t) )**
 
 
 In which t is time, K is the saturated hydraulic conductivity, delta_theta is defined as the soil capacity (the difference between the saturated and initial moisture content) and sigma is the soil suction head.
 
 Within SFINCS, the Green-Ampt method can be used as follows. The user needs to provide the following variables. For a range of typically values see Table 1. For all variables, one needs to specify these values per cell with the same grid based input as the depfile using a binary file:
+
 * ksfile: saturated hydraulic conductivity in mm/hr
 * sigmafile: suction head at the wetting front in mm
 * sifile: soil moisture deficit in [-]
@@ -443,14 +446,16 @@ The Horton method:
 
 The Horton Method is a conceptual approach used primarily in hydrology to model the rate of infiltration of water into the soil. This method was developed by Robert E. Horton in 1939, and it is foundational in the field of hydrology.
 
-According to the Horton Method, initially, the infiltration capacity is high, but it decreases exponentially over time until it reaches a stable, steady-state value, known as the final infiltration rate. This phenomenon occurs due to the gradual saturation of the soil, and the reduction in infiltration rate continues until it equals the soil’s hydraulic conductivity.
+According to the Horton Method, initially, the infiltration capacity is high, but it decreases exponentially over time until it reaches a stable, steady-state value, known as the final infiltration rate. This phenomenon occurs due to the gradual saturation of the soil, and the reduction in infiltration rate continues until it equals the soil's hydraulic conductivity.
 
 The basic form of the Horton equation is expressed as follows: 
-**f_t = f_c + (f_0 - f_c) e^{-kt}
+
+**f_t = f_c + (f_0 - f_c) e^{-kt}**
 
 In which f_t is the infiltration rate at time, f_c is the final, constant infiltration rate, f_0 is the initial infiltration rate, k is a decay constant and t is the time since the start of infiltration.
 
 Within SFINCS, the Horton method can be used as follows. The user needs to provide the following variables. For all variables, one needs to specify these values per cell with the same grid based input as the depfile using a binary file:
+
 * f0file: maximum (Initial) Infiltration Capacity in mm/hr
 * fcfile: Minimum (Asymptotic) Infiltration Rate in mm/hr
 * kdfile: empirical constant (hr-1) of decay

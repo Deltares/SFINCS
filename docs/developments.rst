@@ -4,8 +4,55 @@ Developments
 SFINCS has continuely being developed since 2017, and many great features have been added over the years.
 Hereby some examples regarding subgrid features and GPU computing.
 
-Releases
+Development status
 -----
+
+See here a schematic overview of the SFINCS development status at Q4 2023, at the time of the v2.0.3 Cauberg release.
+Indicated are new functionality for SFINCS itself (core), and model setup/post-processing using HydroMT-SFINCS and Delft Dashboard (Python).
+
+.. figure:: ./figures/Overview_status_SFINCS.drawio.png
+   :width: 600px
+   :align: center
+
+   Overview of SFINCS development status Q4 2023
+
+Releases Changelog
+-----
+
+Official open source version Q4 2023: v2.0.3 Cauberg release
+^^^^^
+
+The last official 2023 release of SFINCS for Q4, the v2.0.3 Cauberg release, 'Climbing hills of challenges in compound flood modelling', is now available!
+
+This contains open access to the source code from Github: https://github.com/Deltares/SFINCS/releases/tag/v2.0.3_Cauberg_release.
+
+As pre-compiled Windows executable:
+
+https://download.deltares.nl/en/sfincs/
+
+As Docker container:
+
+docker pull deltares/sfincs-cpu:sfincs-v2.0.3-Cauberg
+
+Changes:
+
+The code consists of all functionality of the v2.0.2 release, with the following changes/additions:
+
+Added functionality:
+
+* Netcdf4 compliant output, for reduced file sizes
+* Green & Ampt infiltration method
+* Horton infiltration method
+* Restartfiles including infiltration state, for the case of Curve Number with Recovery, Green&Ampt and Horton
+* Netcdf Spiderweb input option
+* Netcdf src+dis input option
+
+Other changes:
+
+* Improved culvert and drainage pipe formulations
+* Updated documentation
+* Added tests in skillbed report
+* Compliance with new Python setup tools HydroMT-SFINCS release v1.0.2
 
 Official open source version Q2 2023: v2.0.2 Blockhaus release
 ^^^^^
@@ -29,7 +76,7 @@ The code consists of all functionality of the v2.0.0 release, with the following
 * Bugfix in weir formulation
 * Updated documentation
 * Added tests in skillbed report
-* Compliance with new Python setup tools HydroMT-SFINCS release v1.1
+* Compliance with new Python setup tools HydroMT-SFINCS release v1.0.1
 
 
 Official open source version: v2.0.0 Alpe d'Huez release
