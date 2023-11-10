@@ -1024,6 +1024,7 @@ contains
    !
    call system_clock(count0, count_rate, count_max)
    !
+   write(*,*)'start update_meteo_forcing'
    if (meteo3d) then
       !
       twfact  = (t - meteo_t0)/(meteo_t1 - meteo_t0)
@@ -1036,6 +1037,7 @@ contains
       !$acc                  windu, windv, windu0, windv0, windu1, windv1, windmax, &
       !$acc                  patm, patm0, patm1, prcp, prcp0, prcp1 ), async(1)
       !$acc loop independent, private(nm)
+      write(*,*)'in update_meteo_forcing - part 1'         
       do nm = 1, np
          !
          if (wind) then
@@ -1085,6 +1087,7 @@ contains
          endif   
          !
       enddo   
+      write(*,*)'in update_meteo_forcing - part 2'      
       !$omp end do
       !$omp end parallel
       !$acc end kernels
@@ -1093,6 +1096,8 @@ contains
       !
       if (t<tspinup - 1.0e-3 .and. spinup_meteo) then
          !
+         write(*,*)'in update_meteo_forcing - part 3'      
+          
          smfac = (t - t0)/(tspinup - t0)
          oneminsmfac = 1.0 - smfac
          !
@@ -1138,6 +1143,8 @@ contains
          !
       endif         
       !   
+      write(*,*)'in update_meteo_forcing - part 4'      
+      
       if (patmos .and. pavbnd>0.0) then
          !
          !$acc serial, present( patmb, nmindbnd, patm ), async(1) 
@@ -1175,6 +1182,7 @@ contains
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
    !         
+   write(*,*)'finish update_meteo_forcing'   
    end subroutine
 
 

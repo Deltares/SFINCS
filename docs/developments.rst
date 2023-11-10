@@ -32,7 +32,7 @@ https://download.deltares.nl/en/sfincs/
 
 As Docker container:
 
-docker pull deltares/sfincs-cpu:sfincs-v2.0.3-Cauberg
+docker pull deltares/sfincs-cpu:sfincs-v2.0.3-Cauberg-Release-Q4-2023
 
 Changes:
 
