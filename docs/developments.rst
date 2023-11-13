@@ -16,6 +16,14 @@ Indicated are new functionality for SFINCS itself (core), and model setup/post-p
 
    Overview of SFINCS development status Q4 2023
 
+Known issues
+-----
+
+Known issues of the current SFINCS main version and last release are (improvements are work in progress):
+
+* The BMI implementation in SFINCS is up to date with openearth/bmi-python, which is however not up to date with the latests CSDMS standard BMI implementation
+* The combination of netspwfile with large difference in reference time between the spiderweb and the SFINCS simulation itself, might not run correctly in the Docker version. Use the ascii spwfile input or the Windows build executable which work correctly.
+
 Releases Changelog
 -----
 
