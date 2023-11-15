@@ -128,6 +128,10 @@ After downloading Docker desktop for your operating system (https://www.docker.c
 
 	(here 'C:/Users/../SFINCS' is the folder where the SFINCS input files to be used are located)
 
+	NOTE - you have to supply the full path, not a relative path!
+
+	NOTE - For Linux/Mac you do the same, but write the path as /C/Users/../SFINCS/
+
 Instead of using the latest automatically cmpiled version, you can also pull a verified tagged release from: https://hub.docker.com/r/deltares/sfincs-cpu/tags
 This can be for instance the open source release version 'docker pull deltares/sfincs-cpu:sfincs-v2.0.3-Cauberg'.
 
