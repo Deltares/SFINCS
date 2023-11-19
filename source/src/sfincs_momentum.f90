@@ -74,8 +74,8 @@
    real*4    :: zmin
    real*4    :: one_minus_facint 
    !
-   real*4    :: qxdudx
-   real*4    :: qydudy
+   real*4    :: dqxudx
+   real*4    :: dqyudy
    real*4    :: qu
    real*4    :: qd
    real*4    :: uu
@@ -116,7 +116,7 @@
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qx_nm,nm,nmu,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,qxdudx,qydudy,uu,ud,qu,qd,qy ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy ) &
    !$omp reduction ( min : min_dt )
    !$omp do schedule ( dynamic, 256 )
    !$acc kernels, present( kcuv, zs, q, q0, uv, uv0, min_dt, &
@@ -331,8 +331,8 @@
                !
                if ( kcuv(uv_index_u_nmu(ip))==1 .and. kcuv(uv_index_u_nmd(ip))==1 ) then
                   ! 
-                  qxdudx = 0.0  
-                  qydudy = 0.0  
+                  dqxudx = 0.0  
+                  dqyudy = 0.0  
                   !
                   if (advection_scheme == 0) then
                      !
@@ -340,11 +340,11 @@
                      !
                      if (qx_nm > 1.0e-6) then
                         !
-                        qxdudx = (qx_nm*uu_nm - qx_nmd*uu_nmd) * dxuvinv                  
+                        dqxudx = (qx_nm*uu_nm - qx_nmd*uu_nmd) * dxuvinv                  
                         ! 
                      elseif (qx_nm < -1.0e-6) then
                         !
-                        qxdudx = (qx_nmu*uu_nmu - qx_nm*uu_nm) * dxuvinv
+                        dqxudx = (qx_nmu*uu_nmu - qx_nm*uu_nm) * dxuvinv
                         !
                      endif
                      !
@@ -352,11 +352,11 @@
                      !
                      if ( qy > 1.0e-6 ) then
                         !
-                        qydudy = ( qy_ndm + qy_ndmu ) * (uu_nm - uu_ndm) * dyuvinv / 2
+                        dqyudy = ( qy_ndm + qy_ndmu ) * (uu_nm - uu_ndm) * dyuvinv / 2
                         ! 
                      elseif ( qy < -1.0e-6 ) then
                         !
-                        qydudy = (qy_nm + qy_nmu) * (uu_num - uu_nm) * dyuvinv / 2
+                        dqyudy = (qy_nm + qy_nmu) * (uu_num - uu_nm) * dyuvinv / 2
                         !
                      endif
                      !
@@ -376,12 +376,12 @@
                         !
                         if (qd>0.0) then
                            ud = (uu_nmd + uu_nm) / 2
-                           qxdudx = ( qd * (uu_nm - uu_nmd) + ud * (qx_nm - qx_nmd) / 2 ) * dxuvinv
+                           dqxudx = ( qd * (uu_nm - uu_nmd) + ud * (qx_nm - qx_nmd) / 2 ) * dxuvinv
                         endif
                         !
                         if (qu<0.0) then
                            uu = (uu_nm + uu_nmu) / 2
-                           qxdudx = qxdudx + ( qu*(uu_nmu - uu_nm) + uu * (qx_nmu - qx_nm) / 2) * dxuvinv
+                           dqxudx = dqxudx + ( qu*(uu_nmu - uu_nm) + uu * (qx_nmu - qx_nm) / 2) * dxuvinv
                         endif
                         ! 
                         ! d qv u / dy
@@ -392,11 +392,11 @@
                         qd = (qy_ndm + qy_ndmu) / 2
                         !
                         if (qd > 0.0) then
-                           qydudy = qd * (uu_nm - uu_ndm) * dyuvinv
+                           dqyudy = qd * (uu_nm - uu_ndm) * dyuvinv
                         endif
                         !
                         if (qu < 0.0) then
-                           qydudy = qydudy + qu * (uu_num - uu_nm) * dyuvinv
+                           dqyudy = dqyudy + qu * (uu_num - uu_nm) * dyuvinv
                         endif
                         ! 
                         ! u d qv / dy
@@ -405,18 +405,18 @@
                         uu = (uu_nm + uu_nmu) / 2
                         !
                         if (ud>0.0) then
-                           qydudy = qydudy + ud * ( qy_nm - qy_ndm ) * dyuvinv
+                           dqyudy = dqyudy + ud * ( qy_nm - qy_ndm ) * dyuvinv
                         endif   
                         !
                         if (uu<0.0) then
-                           qydudy = qydudy + uu * ( qy_nmu - qy_ndmu ) * dyuvinv
+                           dqyudy = dqyudy + uu * ( qy_nmu - qy_ndmu ) * dyuvinv
                         endif
                         !
                      endif
                      !  
                   endif
                   !
-                  frc = frc - (qxdudx + qydudy)
+                  frc = frc - (dqxudx + dqyudy)
                   !
                endif
                !   
