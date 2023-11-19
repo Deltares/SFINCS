@@ -265,18 +265,18 @@
                !
                ! First term
                !
-               qx_nmd   = q0(uv_index_u_nmd(ip))
-               qx_nmu   = q0(uv_index_u_nmu(ip))
+               qx_nmd  = q0(uv_index_u_nmd(ip))
+               qx_nmu  = q0(uv_index_u_nmu(ip))
                qy_nm   = q0(uv_index_v_nm(ip))
                qy_nmu  = q0(uv_index_v_nmu(ip))
                qy_ndm  = q0(uv_index_v_ndm(ip))
                qy_ndmu = q0(uv_index_v_ndmu(ip))
                !
-               uu_nm    = uv0(ip)
-               uu_nmd   = uv0(uv_index_u_nmd(ip))
-               uu_nmu   = uv0(uv_index_u_nmu(ip))
-               uu_ndm   = uv0(uv_index_u_ndm(ip))
-               uu_num   = uv0(uv_index_u_num(ip))
+               uu_nm   = uv0(ip)
+               uu_nmd  = uv0(uv_index_u_nmd(ip))
+               uu_nmu  = uv0(uv_index_u_nmu(ip))
+               uu_ndm  = uv0(uv_index_u_ndm(ip))
+               uu_num  = uv0(uv_index_u_num(ip))
                vu      = (uv0(uv_index_v_ndm(ip)) + uv0(uv_index_v_ndmu(ip)) + uv0(uv_index_v_nm(ip)) + uv0(uv_index_v_nmu(ip))) / 4
                !
             endif
