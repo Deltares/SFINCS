@@ -76,6 +76,7 @@ module sfincs_data
       real*4 dtwave
       real*4 wmtfilter
       real*4 horton_kr_kd
+      real*4 btrelax
       !
       real*4 freqminig
       real*4 freqmaxig
@@ -86,6 +87,7 @@ module sfincs_data
       integer bndtype
       integer cd_nr
       integer baro
+      integer advection_scheme
       !
       character*256 :: depfile
       character*256 :: mskfile
@@ -212,6 +214,7 @@ module sfincs_data
       logical       :: use_storage_volume
       logical       :: output_irregular_grid
       logical       :: use_spw_precip
+      logical       :: friction2d
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
@@ -232,7 +235,7 @@ module sfincs_data
       integer*4 :: ncuv
       integer*4 :: nkcuv2
       !
-      ! Temp for reading ascii depfile in initialize_bathymetry():
+      ! Temp for reading ascii depfile in initialize_bathymetry().
       !
       integer*1, dimension(:,:), allocatable :: kcsg
       !
@@ -283,6 +286,7 @@ module sfincs_data
       !
       integer*1,          dimension(:),   allocatable :: kcs
       integer*1,          dimension(:),   allocatable :: kcuv
+      integer*1,          dimension(:),   allocatable :: kfu
       integer*1,          dimension(:),   allocatable :: scs_rain   ! logic if previous time step was raining
       !
       ! Quadtree
@@ -559,7 +563,7 @@ module sfincs_data
       real*4, dimension(:),     allocatable :: l0t_bwv
       real*4, dimension(:),     allocatable :: wdt_bwv
       !
-      ! cst points
+      ! cst points (should remove these?)
       !
       integer                               :: ncst
       real*4, dimension(:),     allocatable :: x_cst

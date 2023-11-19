@@ -36,6 +36,7 @@ contains
    integer ispwprecip
    !
    character*256 wmsigstr 
+   character*256 advstr 
    !   
    write(*,*)'Reading input file ...'
    !
@@ -114,6 +115,8 @@ contains
    call read_real_input(500,'wmtfilter',wmtfilter,600.0)
    call read_real_input(500,'wmfred',wavemaker_freduv,0.99)
    call read_char_input(500,'wmsignal',wmsigstr,'spectrum')   
+   call read_char_input(500,'advection_scheme',advstr,'upw1')   
+   call read_real_input(500,'btrelax',btrelax,1.0e6)
    !
    ! Domain
    !
@@ -198,6 +201,7 @@ contains
    call read_int_input(500,'storemaxwind',iwindmax,0)
    call read_int_input(500,'storefw', istorefw, 0)
    call read_int_input(500,'storewavdir', istorewavdir, 0)
+   call read_logical_input(500,'friction2d',friction2d,.false.)
    !
    ! Wind drag
    !
@@ -495,6 +499,24 @@ contains
    use_storage_volume = .false.
    if (volfile(1:4) /= 'none') then
       use_storage_volume = .true.
+   endif
+   !
+   if (advection) then
+      !
+      ! Make 1st order upwind the default scheme
+      !  
+      advection_scheme = 1
+      ! 
+      if (trim(advstr) == 'original') then
+         advection_scheme = 0
+         write(*,*)'Advection scheme : Original'
+      elseif (trim(advstr) == 'upw1') then
+         advection_scheme = 1
+         write(*,*)'Advection scheme : First-order upwind'
+      else
+         write(*,*)'Warning: advection scheme ', trim(advstr), ' not recognized! Using default upw1 instead!'
+      endif
+      !
    endif
    !
    end subroutine

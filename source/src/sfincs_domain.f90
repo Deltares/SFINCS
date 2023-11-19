@@ -144,7 +144,7 @@ contains
    integer*4, dimension(:),   allocatable :: z_index_cuv_nd
    integer*4, dimension(:),   allocatable :: z_index_cuv_nu
    !
-   integer*1,          dimension(:),   allocatable :: msk
+   integer*1, dimension(:),   allocatable :: msk
    !   
    ! For 'old' input
    !
@@ -1906,6 +1906,8 @@ contains
       !
    endif
    !
+   if (allocated(kcsg)) deallocate(kcsg)
+   !
    end subroutine
 
    subroutine initialize_boundaries()
@@ -2543,12 +2545,14 @@ contains
    allocate(q0(npuv + ncuv + 1))
    allocate(uv(npuv + ncuv + 1))
    allocate(uv0(npuv + ncuv + 1))
+   allocate(kfu(npuv))
    !
    zs   = 0.0
    q    = 0.0
    q0   = 0.0
    uv   = 0.0
    uv0  = 0.0
+   kfu  = 1
    !
    if (snapwave) then
       !

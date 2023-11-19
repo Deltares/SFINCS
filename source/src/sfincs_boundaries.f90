@@ -673,7 +673,7 @@ contains
    implicit none
    !
    integer ib, nm, nmi, nmb, iuv, indb, ip
-   real*4  hnmb, dt, zsnmi, zsnmb, zs0nmb
+   real*4  hnmb, dt, zsnmi, zsnmb, zs0nmb, facrel
    real*8  factime
    !
    real*4 ui, ub, dzuv, facint, zsuv, depthuv
@@ -681,6 +681,7 @@ contains
    !$acc update device( zsb0, zsb ), async(1)
    !
    factime = min(dt/btfilter, 1.0)
+   facrel  = 1.0 - min(dt/btrelax, 1.0)
    !
    !$acc kernels present(index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, kcuv, zs, z_volume, q, uvmean, uv, zb, zbuv, zsb, zsb0, &
    !$acc                 subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_hrep, subgrid_uv_hrep_zmax, subgrid_z_zmin, ibuvdir), async(1)
@@ -802,8 +803,10 @@ contains
          if (btfilter>=0.0) then
             !
             ! Added a little bit of relaxation in uvmean to avoid persistent jets shooting into the model
+            ! Using: facrel = 1.0 - min(dt/btrelax, 1.0)
+            ! Default: btrelax = 1.0e6, so very little relaxation. Should perhaps change to something like 3600 s.
             !
-            uvmean(ib) = factime*q(ip) + 0.99*(1.0 - factime)*uvmean(ib)
+            uvmean(ib) = factime * q(ip) + facrel * (1.0 - factime) * uvmean(ib)
             !
          else
             !
