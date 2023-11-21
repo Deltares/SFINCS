@@ -1376,6 +1376,7 @@ contains
    !
    use sfincs_data
    use quadtree
+   use sfincs_subgrid
    !
    implicit none
    !
@@ -1497,412 +1498,7 @@ contains
       !
       ! Read subgrid data
       !
-      if (use_quadtree) then
-         !
-         ! Using Quadtree file.
-         ! This means that the subgrid file contains data for the entire quadtree. So also for points with kcs==0 !
-         ! This also means that the data needs to be re-mapped to the active cell indices.
-         !
-         write(*,*)'Reading ',trim(sbgfile), ' ...'
-         open(unit = 500, file = trim(sbgfile), form = 'unformatted', access = 'stream')
-         read(500)idummy ! version
-         read(500)npzq ! nr cells
-         read(500)npuvq ! nr uv points
-         read(500)subgrid_nbins
-         subgrid_nbins = subgrid_nbins + 1
-         allocate(subgrid_z_zmin(np))
-         allocate(subgrid_z_zmax(np))
-         allocate(subgrid_z_zmean(np))
-         allocate(subgrid_z_volmax(np))
-         allocate(subgrid_z_dep(subgrid_nbins, np))
-         allocate(subgrid_uv_zmin(npuv))
-         allocate(subgrid_uv_zmax(npuv))
-         allocate(subgrid_uv_hrep(subgrid_nbins, npuv))
-         allocate(subgrid_uv_navg(subgrid_nbins, npuv))
-         allocate(subgrid_uv_hrep_zmax(npuv))
-         allocate(subgrid_uv_navg_zmax(npuv))
-         !
-         allocate(rtmpz(npzq))
-         allocate(rtmpuv(npuvq))
-         allocate(uv_index_qt_in_sf(npuv))
-         !
-         write(*,*)'Number of subgrid bins : ',subgrid_nbins - 1
-         !
-         ! Need to make a new temporary re-mapping index array for the u and v points
-         ! This is needed for reading in the subgrid file which has values for the entire quadtree grid
-         !
-         npuvq = 0
-         npuvs = 0
-         !
-         do ip = 1, quadtree_nr_points
-            !
-            nm = index_sfincs_in_quadtree(ip)
-            !
-            ! Right
-            !
-            if (quadtree_mu(ip)<1) then
-               if (quadtree_mu1(ip)>0) then
-                  npuvq = npuvq + 1
-                  if (nm>0) then
-                     if (z_index_uv_mu1(nm)>0) then
-                        npuvs = npuvs + 1
-                        uv_index_qt_in_sf(npuvs) = npuvq
-                     endif   
-                  endif
-               endif   
-            else
-               if (quadtree_mu1(ip)>0) then
-                  npuvq = npuvq + 1
-                  if (nm>0) then
-                     if (z_index_uv_mu1(nm)>0) then
-                        npuvs = npuvs + 1
-                        uv_index_qt_in_sf(npuvs) = npuvq
-                     endif   
-                  endif   
-               endif   
-               if (quadtree_mu2(ip)>0) then
-                  npuvq = npuvq + 1
-                  if (nm>0) then
-                     if (z_index_uv_mu2(nm)>0) then
-                        npuvs = npuvs + 1
-                        uv_index_qt_in_sf(npuvs) = npuvq
-                     endif   
-                  endif   
-               endif   
-            endif   
-            !
-            ! Above
-            !
-            if (quadtree_nu(ip)<1) then
-               if (quadtree_nu1(ip)>0) then
-                  npuvq = npuvq + 1
-                  if (nm>0) then
-                     if (z_index_uv_nu1(nm)>0) then
-                        npuvs = npuvs + 1
-                        uv_index_qt_in_sf(npuvs) = npuvq
-                     endif   
-                  endif   
-               endif   
-            else
-               if (quadtree_nu1(ip)>0) then
-                  npuvq = npuvq + 1
-                  if (nm>0) then
-                     if (z_index_uv_nu1(nm)>0) then
-                        npuvs = npuvs + 1
-                        uv_index_qt_in_sf(npuvs) = npuvq
-                     endif   
-                  endif   
-               endif   
-               if (quadtree_nu2(ip)>0) then
-                  npuvq = npuvq + 1
-                  if (nm>0) then
-                     if (z_index_uv_nu2(nm)>0) then
-                        npuvs = npuvs + 1
-                        uv_index_qt_in_sf(npuvs) = npuvq
-                     endif   
-                  endif   
-               endif   
-            endif   
-            !
-         enddo
-         !
-         ! Read Z points
-         !
-         read(500)rtmpz
-         do nm = 1, np
-            subgrid_z_zmin(nm) = rtmpz(index_quadtree_in_sfincs(nm))
-         enddo   
-         !
-         read(500)rtmpz
-         do nm = 1, np
-            subgrid_z_zmax(nm) = rtmpz(index_quadtree_in_sfincs(nm))
-         enddo   
-         !
-        read(500)rtmpz
-         do nm = 1, np
-            subgrid_z_zmean(nm) = rtmpz(index_quadtree_in_sfincs(nm))
-         enddo   
-         !
-         read(500)rtmpz
-         do nm = 1, np
-            subgrid_z_volmax(nm) = rtmpz(index_quadtree_in_sfincs(nm))
-         enddo   
-         !
-         subgrid_z_dep(1, :) = max(subgrid_z_zmin(:), -20.0)
-         do ibin = 1, subgrid_nbins - 1
-            read(500)rtmpz
-            do nm = 1, np
-               subgrid_z_dep(ibin + 1, nm) = rtmpz(index_quadtree_in_sfincs(nm))
-            enddo   
-         enddo
-         !
-         ! Read UV points
-         !
-         read(500)rtmpuv
-         do nm = 1, npuv
-            subgrid_uv_zmin(nm) = rtmpuv(uv_index_qt_in_sf(nm))
-         enddo   
-         !
-         read(500)rtmpuv
-         do nm = 1, npuv
-            subgrid_uv_zmax(nm) = rtmpuv(uv_index_qt_in_sf(nm))
-         enddo   
-         !
-         ! Initialize subgrid_uv_hrep with huthresh
-         !
-         subgrid_uv_hrep = huthresh
-         do ibin = 1, subgrid_nbins - 1
-            read(500)rtmpuv
-            do nm = 1, npuv
-               subgrid_uv_hrep(ibin + 1, nm) = max(rtmpuv(uv_index_qt_in_sf(nm)), huthresh)
-            enddo   
-         enddo
-         !
-         do ibin = 1, subgrid_nbins - 1
-            read(500)rtmpuv
-            do nm = 1, npuv
-               ! Already convert here to gn^2
-               subgrid_uv_navg(ibin + 1, nm) = g*max(rtmpuv(uv_index_qt_in_sf(nm)), 0.005)**2
-            enddo   
-         enddo
-         ! Set bottom navg equal to one bin above
-         subgrid_uv_navg(1, :) = subgrid_uv_navg(2, :)
-         !
-         close(500)
-         !
-         deallocate(rtmpz)
-         deallocate(rtmpuv)
-         deallocate(uv_index_qt_in_sf)
-         !
-      else
-         !
-         ! Subgrid file on regular grid
-         !
-         write(*,*)'Reading ', trim(sbgfile), ' ...'
-         open(unit = 500, file = trim(sbgfile), form = 'unformatted', access = 'stream')
-         read(500)idummy ! nr cells
-         read(500)idummy ! option
-         read(500)subgrid_nbins
-         subgrid_nbins = subgrid_nbins + 1
-         allocate(subgrid_z_zmin(np))
-         allocate(subgrid_z_zmax(np))
-         allocate(subgrid_z_volmax(np))
-         allocate(subgrid_z_dep(subgrid_nbins, np))
-         allocate(subgrid_uv_zmin(npuv))
-         allocate(subgrid_uv_zmax(npuv))
-         allocate(subgrid_uv_hrep(subgrid_nbins, npuv))
-         allocate(subgrid_uv_navg(subgrid_nbins, npuv))
-         allocate(subgrid_uv_hrep_zmax(npuv))
-         allocate(subgrid_uv_navg_zmax(npuv))
-         !
-         allocate(rtmpz(np))
-         !
-         read(500)subgrid_z_zmin
-         read(500)subgrid_z_zmax
-         read(500)subgrid_z_volmax
-         !
-         ! Make sure zmax is always bigger than zmin
-         !
-         do nm = 1, np
-            if (subgrid_z_zmax(nm) - subgrid_z_zmin(nm) < 0.01) subgrid_z_zmax(nm) = subgrid_z_zmax(nm) + 0.01
-         enddo
-         !
-         subgrid_z_dep(1,:) = max(subgrid_z_zmin(:), -20.0)
-         do ibin = 1, subgrid_nbins - 1
-            read(500)rtmpz
-            do nm = 1, np
-               subgrid_z_dep(ibin + 1, nm) = rtmpz(nm)
-            enddo
-         enddo   
-         !
-         ! U zmin
-         !
-         read(500) rtmpz
-         !
-         do nm = 1, np
-            !
-            ip = z_index_uv_mu1(nm) ! index of uv point
-            !
-            if (ip>0) then
-               !
-               subgrid_uv_zmin(ip) = rtmpz(nm)
-               !
-            endif
-            !
-         enddo   
-         !         
-         ! U zmax
-         !
-         read(500)rtmpz
-         !
-         do nm = 1, np
-            !
-            ip = z_index_uv_mu1(nm) ! index of uv point
-            !
-            if (ip>0) then
-               !
-               subgrid_uv_zmax(ip) = rtmpz(nm)
-               !
-            endif
-            !
-         enddo   
-         !         
-         ! U dhdz (not used anymore in this SFINCS version)
-         !
-         read(500)rtmpz
-         !
-         ! U hrep
-         !
-         subgrid_uv_hrep(1,:) = huthresh
-         do ibin = 1, subgrid_nbins - 1
-            read(500)rtmpz
-            do nm = 1, np
-               ip = z_index_uv_mu1(nm) ! index of uv point
-               if (ip>0) then
-                  subgrid_uv_hrep(ibin + 1, ip) = rtmpz(nm)
-               endif
-            enddo
-         enddo         
-         !
-         ! U navg
-         !
-         do ibin = 1, subgrid_nbins - 1
-            !
-            read(500)rtmpz
-            !            
-            do nm = 1, np
-               !
-               ip = z_index_uv_mu1(nm) ! index of uv point
-               !
-               if (ip>0) then
-                  !
-                  subgrid_uv_navg(ibin + 1, ip) = g*max(rtmpz(nm), 0.005)**2
-                  !
-               endif
-               !
-            enddo
-            !
-         enddo
-         !
-         do nm = 1, np
-            subgrid_uv_navg(1, nm) = subgrid_uv_navg(2, nm)
-         enddo 
-         !
-         ! V zmin
-         !
-         read(500)rtmpz
-         !
-         do nm = 1, np
-            !
-            ip = z_index_uv_nu1(nm) ! index of uv point
-            !
-            if (ip>0) then
-               !
-               subgrid_uv_zmin(ip) = rtmpz(nm)
-               !
-            endif
-            !
-         enddo   
-         !         
-         ! V zmax
-         !
-         read(500)rtmpz
-         !
-         do nm = 1, np
-            !
-            ip = z_index_uv_nu1(nm) ! index of uv point
-            !
-            if (ip>0) then
-               !
-               subgrid_uv_zmax(ip) = rtmpz(nm)
-               !
-            endif
-            !
-         enddo   
-         !         
-         ! V dhdz (not used anymore in this SFINCS version)
-         !
-         read(500)rtmpz
-         !
-         ! V hrep
-         !
-         !
-         subgrid_uv_hrep(1,:) = huthresh
-         !
-         do ibin = 1, subgrid_nbins - 1
-            !
-            read(500)rtmpz
-            !            
-            do nm = 1, np
-               !
-               ip = z_index_uv_nu1(nm) ! index of uv point
-               !
-               if (ip>0) then
-                  !
-                  subgrid_uv_hrep(ibin + 1, ip ) = max(rtmpz(nm), huthresh)
-                  !
-               endif
-               !
-            enddo
-            !
-         enddo
-         !
-         ! V navg
-         !
-         !
-         do ibin = 1, subgrid_nbins - 1
-            !
-            read(500)rtmpz
-            !            
-            do nm = 1, np
-               !
-               ip = z_index_uv_nu1(nm) ! index of uv point
-               !
-               if (ip>0) then
-                 !
-                  subgrid_uv_navg(ibin + 1, ip) = g*max(rtmpz(nm), 0.005)**2
-                  !
-               endif
-               !
-            enddo
-            !
-         enddo
-         !
-         do nm = 1, np
-            subgrid_uv_navg(1, nm) = subgrid_uv_navg(2, nm)
-         enddo
-         !
-         close(500)
-         !
-         deallocate(rtmpz)         
-         !
-      endif   
-      !
-      ! Make sure that zmin at uv point is always higher or equal to zmin of neighboring cells
-      !
-      do ip = 1, npuv
-         nm = uv_index_z_nm(ip)
-         nmu = uv_index_z_nmu(ip)
-         subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), subgrid_z_zmin(nm))
-         subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), subgrid_z_zmin(nmu))
-      enddo   
-      !
-      ! Make sure zmax is always bigger than zmin
-      !
-      do nm = 1, np
-         if (subgrid_z_zmax(nm) - subgrid_z_zmin(nm) < 0.01) subgrid_z_zmax(nm) = subgrid_z_zmax(nm) + 0.01
-      enddo
-      !
-      do nm = 1, npuv
-         if (subgrid_uv_zmax(nm) - subgrid_uv_zmin(nm) < 0.01) subgrid_uv_zmax(nm) = subgrid_uv_zmax(nm) + 0.01
-      enddo
-      !
-      ! Make arrays for subgrid_uv_hrep_zmax and subgrid_uv_navg_zmax for faster searching
-      !
-      do ip = 1, npuv
-         subgrid_uv_hrep_zmax(ip) = subgrid_uv_hrep(subgrid_nbins, ip) - subgrid_uv_zmax(ip)
-         subgrid_uv_navg_zmax(ip) = subgrid_uv_navg(subgrid_nbins, ip)
-      enddo    
+      call read_subgrid_file()
       !
    endif
    !
@@ -2517,6 +2113,7 @@ contains
    ! Initialize SFINCS variables (qx, qy, zs etc.)
    !
    use sfincs_data
+   use sfincs_subgrid
    !
    implicit none
    !
@@ -2680,7 +2277,8 @@ contains
           !
           close(500)      
           !
-          ! zs is always read in, process it:
+          ! Water levels
+          !
           do nm = 1, np
              !
              if (subgrid) then
@@ -2691,7 +2289,8 @@ contains
              !
           enddo      
           !
-          ! q is read in for some cases, process it:      
+          ! Flux q (only for some types of restart file)      
+          !
           if (rsttype==1 .or. rsttype==2 .or. rsttype==4 .or. rsttype==5) then
              !
              do ip = 1, npuv
@@ -2764,6 +2363,7 @@ contains
           !
           deallocate(inizs)
           deallocate(iniq)
+          !
       endif
       !
    elseif (zsinifile(1:4) /= 'none') then ! Read binary (!) initial water level file
@@ -2908,50 +2508,13 @@ contains
       !
       ! Compute initial volumes
       !
-      allocate(z_volume(np))
+      call compute_initial_subgrid_volumes()
       !
-      do nm = 1, np
-         !
-         if (zs(nm)>=subgrid_z_zmax(nm)) then
-            !
-            ! Entire cell is wet, no interpolation from table needed
-            !
-            if (crsgeo) then
-               z_volume(nm) = subgrid_z_volmax(nm) + cell_area_m2(nm)*(zs(nm) - max(subgrid_z_zmax(nm), -20.0))
-            else   
-               z_volume(nm) = subgrid_z_volmax(nm) + cell_area(z_flags_iref(nm))*(zs(nm) - max(subgrid_z_zmax(nm), -20.0))
-            endif
-            !
-         else   
-            !
-            ! Interpolation required
-            !
-            ivol = 1
-            do ibin = 2, subgrid_nbins
-               if (subgrid_z_dep(ibin, nm)>zs(nm)) then
-                  ivol = ibin - 1
-                  exit
-               endif
-            enddo
-            !
-            dzvol  = subgrid_z_volmax(nm) / (subgrid_nbins - 1)
-            facint = (zs(nm) - subgrid_z_dep(ivol, nm)) / max(subgrid_z_dep(ivol + 1, nm) - subgrid_z_dep(ivol, nm), 0.001)
-            z_volume(nm) = (ivol - 1)*dzvol + facint*dzvol
-            !
-         endif
-         !
-         if (use_storage_volume) then
-            !
-            ! Make sure wet cells do not have initial storage
-            !
-            storage_volume(nm) = max(storage_volume(nm) - z_volume(nm), 0.0)
-            !
-         endif
-         !
-      enddo
    endif
    !
    end subroutine
+
+
 
    subroutine deallocate_quadtree()
    !

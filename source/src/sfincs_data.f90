@@ -464,6 +464,8 @@ module sfincs_data
       !
       real*4, dimension(:),   allocatable :: subgrid_uv_zmin
       real*4, dimension(:),   allocatable :: subgrid_uv_zmax
+      real*4, dimension(:),   allocatable :: subgrid_uv_navg_w
+      real*4, dimension(:),   allocatable :: subgrid_uv_fnfit
       real*4, dimension(:,:), allocatable :: subgrid_uv_hrep
       real*4, dimension(:,:), allocatable :: subgrid_uv_navg
       real*4, dimension(:),   allocatable :: subgrid_uv_hrep_zmax
