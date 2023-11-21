@@ -15,7 +15,6 @@ contains
    integer          :: count_rate
    integer          :: count_max
    real             :: tloop
-!   real*8 :: t
    !
    call system_clock(count0, count_rate, count_max)
    !
@@ -545,7 +544,7 @@ contains
    !$omp private ( nmd, nmu, ndm, num, quz, qvz, qz, uvz )
    !$omp do schedule ( dynamic, 256 )
    !$acc kernels present( kcs, zs, zb, subgrid_z_zmin, q, vmax, qmax, twet, &
-   !$acc                  z_index_uv_md1, z_index_uv_nd1, z_index_uv_mu1, z_index_uv_nu), async(1)
+   !$acc                  z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu), async(1)
    !$acc loop independent, private( nm )   
    do nm = 1, np
       !

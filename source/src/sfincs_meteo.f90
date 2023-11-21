@@ -1109,22 +1109,26 @@ contains
             endif   
             !
             if (precip) then
+               !  
                netprcp(nm) = netprcp(nm)*smfac
-               
-                ! don't allow negative netprcp during spinup (e.g. hardfixing infiltration/evaporation on model when forcing effective rainfall) when there's no water in the cell (same as check for constant infiltration)
-                if (netprcp(nm) < 0) then
-                     ! No effective infiltration if there is no water
-                     !  
-                     if (subgrid) then
-                        if (z_volume(nm)<=0.0) then
-                           netprcp(nm) = 0.0
-                        endif
-                     else
-                        if (zs(nm)<=zb(nm)) then
-                           netprcp(nm) = 0.0
-                        endif
-                     endif            
-                endif               
+               !  
+               ! Don't allow negative netprcp during spinup (e.g. hardfixing infiltration/evaporation on model when forcing effective rainfall) when there's no water in the cell (same as check for constant infiltration)
+               !  
+               if (netprcp(nm) < 0.0) then
+                  !  
+                  ! No effective infiltration if there is no water
+                  !  
+                  if (subgrid) then
+                     if (z_volume(nm)<=0.0) then
+                        netprcp(nm) = 0.0
+                     endif
+                  else
+                     if (zs(nm)<=zb(nm)) then
+                        netprcp(nm) = 0.0
+                     endif
+                  endif            
+                  !  
+               endif               
             endif   
             !
          enddo   

@@ -1375,8 +1375,8 @@ contains
    subroutine initialize_bathymetry()
    !
    use sfincs_data
-   use quadtree
    use sfincs_subgrid
+   use quadtree
    !
    implicit none
    !

@@ -93,6 +93,8 @@
 		<File RelativePath="..\src\sfincs_structures.f90"/>
 		<File RelativePath="..\src\sfincs_subgrid.F90">
 			<FileConfiguration Name="Release|x64">
+				<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/></FileConfiguration>
+			<FileConfiguration Name="Debug|x64">
 				<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/></FileConfiguration></File>
 		<File RelativePath="..\src\sfincs_wavemaker.f90"/></Filter></Files>
 	<Globals/></VisualStudioProject>

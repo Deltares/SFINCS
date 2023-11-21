@@ -9,7 +9,7 @@ module sfincs_subgrid
        integer :: npuv_dimid
        integer :: nbins_dimid
        integer :: z_zmin_varid, z_zmax_varid, z_volmax_varid, z_dep_varid
-       integer :: uv_zmin_varid, uv_zmax_varid, uv_fnfit_varid, uv_navg_w_varid, uv_nrep_varid, uv_havg_varid
+       integer :: uv_zmin_varid, uv_zmax_varid, uv_fnfit_varid, uv_navg_w_varid, uv_nrep_varid, uv_havg_varid, uv_pwet_varid
    end type      
    type(net_type_subgrid) :: net_file_sbg
    !
@@ -24,17 +24,23 @@ contains
    ! Check what sort of file we're dealing with
    !
    NF90(nf90_open(trim(sbgfile), NF90_CLOBBER, net_file_sbg%ncid))
-   NF90(nf90_close(net_file_sbg%ncid))
    !
    if (net_file_sbg%ncid > 0) then
       !
+      NF90(nf90_close(net_file_sbg%ncid))
+      !
       ! Netcdf format with havg and nrep
+      ! 
+      subgrid_new = .true.
+      huthresh = 0.0
       ! 
       call read_subgrid_file_netcdf()
       !
    else
       !
       ! Binary format with hrep and navg
+      ! 
+      subgrid_new = .false.
       ! 
       call read_subgrid_file_original()
       !
@@ -71,6 +77,8 @@ contains
    integer :: npzq
    integer :: npuvq
    integer :: npuvs
+   integer :: np_nc
+   integer :: npuv_nc
    !
    ! Read subgrid data
    !
@@ -84,13 +92,43 @@ contains
    !
    ! Get dimensions sizes    
    !
-   NF90(nf90_inquire_dimension(net_file_sbg%ncid, net_file_sbg%np_dimid, len = npzq)) ! nr of cells
-   NF90(nf90_inquire_dimension(net_file_sbg%ncid, net_file_sbg%npuv_dimid, len = npuvq)) ! nr of uv points
+   NF90(nf90_inq_dimid(net_file_sbg%ncid, "bins", net_file_sbg%nbins_dimid))
+   NF90(nf90_inq_dimid(net_file_sbg%ncid, "np",   net_file_sbg%np_dimid))
+   NF90(nf90_inq_dimid(net_file_sbg%ncid, "npuv", net_file_sbg%npuv_dimid))
+   !
+   NF90(nf90_inquire_dimension(net_file_sbg%ncid, net_file_sbg%np_dimid,    len = np_nc)) ! nr of z points
+   NF90(nf90_inquire_dimension(net_file_sbg%ncid, net_file_sbg%npuv_dimid,  len = npuv_nc)) ! nr of uv points
    NF90(nf90_inquire_dimension(net_file_sbg%ncid, net_file_sbg%nbins_dimid, len = subgrid_nbins)) ! nr of bins
+   !
+   !
+   ! Get variable id's
+   !
+   NF90(nf90_inq_varid(net_file_sbg%ncid, 'z_zmin',     net_file_sbg%z_zmin_varid))
+   NF90(nf90_inq_varid(net_file_sbg%ncid, 'z_zmax',     net_file_sbg%z_zmax_varid))
+   NF90(nf90_inq_varid(net_file_sbg%ncid, 'z_volmax',   net_file_sbg%z_volmax_varid))
+   NF90(nf90_inq_varid(net_file_sbg%ncid, 'z_level',    net_file_sbg%z_dep_varid))
+   NF90(nf90_inq_varid(net_file_sbg%ncid, 'uv_zmin',    net_file_sbg%uv_zmin_varid))
+   NF90(nf90_inq_varid(net_file_sbg%ncid, 'uv_zmax',    net_file_sbg%uv_zmax_varid))
+   NF90(nf90_inq_varid(net_file_sbg%ncid, 'uv_navg_w',  net_file_sbg%uv_navg_w_varid))
+   NF90(nf90_inq_varid(net_file_sbg%ncid, 'uv_fnfit',   net_file_sbg%uv_fnfit_varid))
+   NF90(nf90_inq_varid(net_file_sbg%ncid, 'uv_havg',    net_file_sbg%uv_havg_varid))
+   NF90(nf90_inq_varid(net_file_sbg%ncid, 'uv_nrep',    net_file_sbg%uv_nrep_varid))
+   NF90(nf90_inq_varid(net_file_sbg%ncid, 'uv_pwet',    net_file_sbg%uv_pwet_varid))
+   !
+   ! ! Check if dimensions match
+   ! !
+   ! if (np /= np_nc) then
+   !    write(*,'(a,i8,a,i8,a)')'Error! Number of cells in subgrid file ',np_nc,' does not match number of active cells in mesh ',np,' !'
+   ! endif
+   ! if (npuv /= npuv_nc) then
+   !    write(*,'(a,i8,a,i8,a)')'Error! Number of velocity points in subgrid file ',npuv_nc,' does not match number of velocity points in mesh ',npuv,' !'
+   ! endif
+   !
+   npzq  = np_nc
+   npuvq = npuv_nc
    !
    allocate(subgrid_z_zmin(np))
    allocate(subgrid_z_zmax(np))
-   allocate(subgrid_z_zmean(np))
    allocate(subgrid_z_volmax(np))
    allocate(subgrid_z_dep(subgrid_nbins, np))
    allocate(subgrid_uv_zmin(npuv))
@@ -99,6 +137,7 @@ contains
    allocate(subgrid_uv_fnfit(npuv))
    allocate(subgrid_uv_hrep(subgrid_nbins, npuv))
    allocate(subgrid_uv_navg(subgrid_nbins, npuv))
+   allocate(subgrid_uv_pwet(subgrid_nbins, npuv))
    allocate(subgrid_uv_hrep_zmax(npuv))
    allocate(subgrid_uv_navg_zmax(npuv))
    !
@@ -222,7 +261,7 @@ contains
          endif
          !
       enddo   
-
+      !
    endif
    !
    ! Read Z points
@@ -231,6 +270,7 @@ contains
    !
    do ip = 1, np
       subgrid_z_zmin(ip) = rtmpz(z_index(ip))
+      ! write(*,'(2i8,20e14.6)')ip, z_index(ip), rtmpz(z_index(ip))
    enddo   
    !
    NF90(nf90_get_var(net_file_sbg%ncid, net_file_sbg%z_zmax_varid, rtmpz(:)))
@@ -247,9 +287,10 @@ contains
    !
    NF90(nf90_get_var(net_file_sbg%ncid, net_file_sbg%z_dep_varid, rtmpz2(:,:)))
    !
-   do ibin = 1, subgrid_nbins
-      do ip = 1, np
+   do ip = 1, np
+      do ibin = 1, subgrid_nbins
          subgrid_z_dep(ibin, ip) = rtmpz2(ibin, z_index(ip))
+         ! write(*,'(3i8,20e14.6)')ip, ibin, z_index(ip), rtmpz2(ibin, z_index(ip))
       enddo   
    enddo
    !
@@ -276,27 +317,64 @@ contains
    NF90(nf90_get_var(net_file_sbg%ncid, net_file_sbg%uv_navg_w_varid, rtmpuv(:) ))
    !
    do ip = 1, npuv
-      subgrid_uv_zmax(ip) = rtmpuv(uv_index(ip))
+      subgrid_uv_navg_w(ip) = rtmpuv(uv_index(ip))
    enddo   
    !
    NF90(nf90_get_var(net_file_sbg%ncid, net_file_sbg%uv_havg_varid, rtmpuv2(:,:) ))
    !
-   do ibin = 1, subgrid_nbins
-      do ip = 1, npuv
+   do ip = 1, npuv
+      do ibin = 1, subgrid_nbins
          subgrid_uv_hrep(ibin, ip) = rtmpuv2(ibin, uv_index(ip))
       enddo   
    enddo
    !
    NF90(nf90_get_var(net_file_sbg%ncid, net_file_sbg%uv_nrep_varid, rtmpuv2(:,:) ))
    !
-   do ibin = 1, subgrid_nbins
-      do ip = 1, npuv
+   do ip = 1, npuv
+      do ibin = 1, subgrid_nbins
+         !
          ! Already convert here to gn^2
+         !
          subgrid_uv_navg(ibin, ip) = g*max(rtmpuv2(ibin, uv_index(ip)), 0.0001)**2
+         !
+      enddo   
+   enddo
+   !
+   NF90(nf90_get_var(net_file_sbg%ncid, net_file_sbg%uv_pwet_varid, rtmpuv2(:,:) ))
+   !
+   do ip = 1, npuv
+      do ibin = 1, subgrid_nbins
+         subgrid_uv_pwet(ibin, ip) = rtmpuv2(ibin, uv_index(ip))
       enddo   
    enddo
    !
    NF90(nf90_close(net_file_sbg%ncid))
+   !
+   ! Make sure that zmin at uv point is always higher or equal to zmin of neighboring cells (this is always the case if the pre-processing was done right)
+   !
+   do ip = 1, npuv
+      nm = uv_index_z_nm(ip)
+      nmu = uv_index_z_nmu(ip)
+      subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), subgrid_z_zmin(nm))
+      subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), subgrid_z_zmin(nmu))
+   enddo   
+   !
+   ! Make sure zmax is always bigger than zmin
+   !
+   do nm = 1, np
+      if (subgrid_z_zmax(nm) - subgrid_z_zmin(nm) < 0.01) subgrid_z_zmax(nm) = subgrid_z_zmax(nm) + 0.01
+   enddo
+   !
+   do nm = 1, npuv
+      if (subgrid_uv_zmax(nm) - subgrid_uv_zmin(nm) < 0.01) subgrid_uv_zmax(nm) = subgrid_uv_zmax(nm) + 0.01
+   enddo
+   !
+   ! Make arrays for subgrid_uv_hrep_zmax and subgrid_uv_navg_zmax for faster searching
+   !
+   do ip = 1, npuv
+      subgrid_uv_hrep_zmax(ip) = subgrid_uv_hrep(subgrid_nbins, ip) - subgrid_uv_zmax(ip)
+      subgrid_uv_navg_zmax(ip) = subgrid_uv_navg(subgrid_nbins, ip)
+   enddo    
    !
    deallocate(rtmpz)
    deallocate(rtmpz2)
@@ -306,8 +384,6 @@ contains
    deallocate(z_index)
    !
    end subroutine
-
-
 
 
    subroutine read_subgrid_file_original()
@@ -351,7 +427,7 @@ contains
       subgrid_nbins = subgrid_nbins + 1
       allocate(subgrid_z_zmin(np))
       allocate(subgrid_z_zmax(np))
-      allocate(subgrid_z_zmean(np))
+      ! allocate(subgrid_z_zmean(np))
       allocate(subgrid_z_volmax(np))
       allocate(subgrid_z_dep(subgrid_nbins, np))
       allocate(subgrid_uv_zmin(npuv))
@@ -457,10 +533,10 @@ contains
          subgrid_z_zmax(nm) = rtmpz(index_quadtree_in_sfincs(nm))
       enddo   
       !
-     read(500)rtmpz
-      do nm = 1, np
-         subgrid_z_zmean(nm) = rtmpz(index_quadtree_in_sfincs(nm))
-      enddo   
+      read(500)rtmpz
+      ! do nm = 1, np
+      !    subgrid_z_zmean(nm) = rtmpz(index_quadtree_in_sfincs(nm))
+      ! enddo   
       !
       read(500)rtmpz
       do nm = 1, np
@@ -804,5 +880,16 @@ contains
    !
    end subroutine
 
+   subroutine handle_err(status,file,line)
+      !
+      integer, intent ( in)    :: status
+      character(*), intent(in) :: file
+      integer, intent ( in)    :: line
+      integer :: status2
+      !   
+      if(status /= nf90_noerr) then
+         write(0,'("NETCDF ERROR: ",a,i6,":",a)') file,line,trim(nf90_strerror(status))
+      end if
+   end subroutine handle_err
 
 end module

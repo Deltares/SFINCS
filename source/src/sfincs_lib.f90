@@ -19,6 +19,7 @@ module sfincs_lib
    use sfincs_continuity
    use sfincs_snapwave
    use sfincs_wavemaker
+!   use sfincs_subgrid
    !
    implicit none
    !
@@ -130,13 +131,13 @@ module sfincs_lib
    !
    call read_meteo_data()       ! Reads meteo data (amu, amv, spw file etc.)
    !
-   call initialize_domain()     ! Reads dep, msk, index files. Creates index, flag and depth arrays. Initializes water levels, fluxes, flags
+   call initialize_domain()     ! Reads dep, msk, index files, creates index, flag and depth arrays, initializes hydro quantities
    !
-   call read_structures()       ! Reads thd files. Sets kcuv to zero where necessary
+   call read_structures()       ! Reads thd files and sets kcuv to zero where necessary
    !
    call read_boundary_data()    ! Reads bnd, bzs, etc files
    !
-   call read_coastline()        ! Reads cst file
+   ! call read_coastline()        ! Reads cst file. Do we still do this ?
    !
    call find_boundary_indices()
    !
@@ -148,7 +149,7 @@ module sfincs_lib
    !
    if (snapwave) then
       !
-      write(*,*)'Coupling SnapWave ...'
+      write(*,*)'Coupling with SnapWave ...'
       !
       call couple_snapwave()
       !
@@ -389,12 +390,15 @@ module sfincs_lib
          call update_meteo_forcing(t, dt, tloopwnd2)
          !
          ! Update infiltration
+         !
          if (infiltration) then
              !
              ! Compute infiltration rates
+             !
              call update_infiltration_map(dt)
+             !
          endif
-      !
+         !
       endif   
       !
       ! Update boundary conditions
@@ -411,11 +415,13 @@ module sfincs_lib
          !
          call update_wave_field(t, tloopsnapwave)
          !
-!         if (wavemaker) then
-!            !
-!            call update_wavemaker_points(tloopwavemaker)   
-!            !
-!         endif   
+         ! Maybe we'll add moving wave makers back at some point
+         !
+         ! if (wavemaker) then
+         !    !
+         !    call update_wavemaker_points(tloopwavemaker)   
+         !    !
+         ! endif   
          !
       endif   
       !

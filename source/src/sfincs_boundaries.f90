@@ -742,7 +742,7 @@ contains
             !
          endif      
          !
-         if (hnmb<huthresh .or. kcuv(ip)==3) then
+         if (hnmb<huthresh + 1.0e-6 .or. kcuv(ip)==3) then
             !
             ! Very shallow or also a structure point.
             !
@@ -768,6 +768,7 @@ contains
                      q(ip) = min(q(ip), 0.0) ! Nothing can flow out
                   endif
                endif
+               !
                if (zsnmb - subgrid_z_zmin(nmb)<huthresh) then
                   if (ibuvdir(ib)==1) then
                      q(ip) = min(q(ip), 0.0) ! Nothing can flow in
@@ -787,6 +788,7 @@ contains
                      q(ip) = min(q(ip), 0.0) ! Nothing can flow out
                   endif
                endif
+               !
                if (zsnmb - zb(nmb)<huthresh) then
                   if (ibuvdir(ib)==1) then
                      q(ip) = min(q(ip), 0.0) ! Nothing can flow in
@@ -815,9 +817,11 @@ contains
          endif
          !
          ! Set value on kcs=2 point to boundary condition
+         !
          zs(nmb) = zsb(indb)
          !
          ! Store maximum water levels also on the boundary
+         !
          if (store_maximum_waterlevel) then
             zsmax(nmb) = max(zsmax(nmb), zs(nmb))
          endif

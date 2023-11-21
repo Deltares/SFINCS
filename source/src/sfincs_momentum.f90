@@ -82,6 +82,9 @@
    real*4    :: ud
    real*4    :: qy
    !
+   real*4    :: hwet
+   real*4    :: phi
+   !
    real*4, parameter :: expo = 1.0/3.0
    ! integer, parameter :: expo = 1
    !
@@ -116,7 +119,7 @@
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qx_nm,nm,nmu,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi ) &
    !$omp reduction ( min : min_dt )
    !$omp do schedule ( dynamic, 256 )
    !$acc kernels, present( kcuv, zs, q, q0, uv, uv0, min_dt, &
@@ -281,26 +284,51 @@
                !
             endif
             !
+            ! Wet fraction phi (for non-subgrid or original subgrid approach phi0 and phi should be 1.0)
+            !
+            phi  = 1.0
+            !
             ! Compute water depth at uv point
             !
             if (subgrid) then
                !
-               if (zsu > zmax - 1.0e-4) then
+               if (zsu > zmax) then
                   !
                   ! Entire cell is wet, no interpolation from table needed
                   !
-                  hu     = subgrid_uv_hrep_zmax(ip) + zsu
-                  gnavg2 = subgrid_uv_navg_zmax(ip)
+                  hu = subgrid_uv_hrep_zmax(ip) + zsu
+                  !
+                  if (subgrid_new) then
+                     !
+                     ! New approach where we use havg and nrep
+                     !
+                     gnavg2 = subgrid_uv_navg_w(ip) - (subgrid_uv_navg_w(ip) - subgrid_uv_navg_zmax(ip)) / (subgrid_uv_fnfit(ip) * (zsu - zmax) + 1.0)
+                     !
+                  else
+                     !
+                     ! Old approach where we use hrep and navg
+                     !
+                     gnavg2 = subgrid_uv_navg_zmax(ip)
+                     !
+                  endif
                   !
                else
                   !
                   ! Interpolation required
                   !
-                  dzuv   = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nbins - 1)
-                  iuv    = int((zsu - subgrid_uv_zmin(ip))/dzuv) + 1
-                  facint = (zsu - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv
-                  hu     = subgrid_uv_hrep(iuv, ip) + (subgrid_uv_hrep(iuv + 1, ip) - subgrid_uv_hrep(iuv, ip))*facint
-                  gnavg2 = subgrid_uv_navg(iuv, ip) + (subgrid_uv_navg(iuv + 1, ip) - subgrid_uv_navg(iuv, ip))*facint
+                  dzuv   = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nbins - 1)                             ! bin size
+                  iuv    = int((zsu - subgrid_uv_zmin(ip))/dzuv) + 1                                                     ! index of level below zsu 
+                  facint = (zsu - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv                                        ! 1d interpolation coefficient
+                  hu     = subgrid_uv_hrep(iuv, ip) + (subgrid_uv_hrep(iuv + 1, ip) - subgrid_uv_hrep(iuv, ip))*facint   ! wet-average depth
+                  gnavg2 = subgrid_uv_navg(iuv, ip) + (subgrid_uv_navg(iuv + 1, ip) - subgrid_uv_navg(iuv, ip))*facint   ! representative g*n^2
+                  !
+                  if (subgrid_new) then
+                     !
+                     ! Wet fraction
+                     !
+                     phi  = subgrid_uv_pwet(iuv, ip) + (subgrid_uv_pwet(iuv + 1, ip) - subgrid_uv_pwet(iuv, ip))*facint
+                     !
+                  endif
                   !
                endif
                !
@@ -312,6 +340,10 @@
                gnavg2 = gn2uv(ip)
                !
             endif
+            !
+            ! Compute wet average depth hwet
+            !
+            hwet = hu / phi
             !
             ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
             !
@@ -416,7 +448,7 @@
                      !  
                   endif
                   !
-                  frc = frc - (dqxudx + dqyudy)
+                  frc = frc - phi * (dqxudx + dqyudy)
                   !
                endif
                !   
@@ -450,28 +482,30 @@
             !
             if (wind) then
                !
-               if (hu>0.25) then
+               if (hwet > 0.25) then
                   !
                   if (idir==0) then
                      !
-                     frc = frc + tauwu(nm)
+                     frc = frc + phi * tauwu(nm)
                      !
                   else
                      !
-                     frc = frc + tauwv(nm)
+                     frc = frc + phi * tauwv(nm)
                      !
                   endif   
                   !
                else
                   !
-                  ! Reduce wind drag at small water depths
+                  ! Reduce wind drag at water depths < 0.25 m
                   !
                   if (idir==0) then
                      !
+                     ! frc = frc + phi * tauwu(nm) * hwet * 4
                      frc = frc + tauwu(nm) * hu * 4
                      !
                   else
                      !
+                     ! frc = frc + phi * tauwv(nm) * hwet * 4
                      frc = frc + tauwv(nm) * hu * 4
                      !
                   endif   
@@ -497,9 +531,9 @@
                ! facmax = 0.25*sqrt(g)*rhow*gammax**2
                ! fmax = facmax*hu*sqrt(hu)/tp/rhow (we already divided by rhow in sfincs_snapwave)
                !
-               fwmax = 0.8 * hu * sqrt(hu) / 15
+               fwmax = 0.8 * hwet * sqrt(hwet) / 15
                !
-               frc = frc + sign(min(abs(fwuv(ip)), fwmax), fwuv(ip))
+               frc = frc + phi * sign(min(abs(fwuv(ip)), fwmax), fwuv(ip))
                !
             endif
             !
@@ -581,7 +615,7 @@
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
-   !         
+   !
    end subroutine      
    !
 end module

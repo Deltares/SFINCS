@@ -45,7 +45,7 @@ module sfincs_output
       !
       trstout     = t0out + dtrstout
       !
-   elseif (trst>0.0) then
+   elseif (trst>1.0e-6) then
       !
       ! Restart time given
       !
@@ -634,42 +634,43 @@ module sfincs_output
    ! 6: zs, q, uvmean and hor infiltration (writing rain_T1)   
    !
    ! Write for Infiltration methods (rsttype 4 or 5 or 6)
-    if (inftype == 'cnb' .or. inftype == 'gai' .or. inftype == 'hor') then
-        !
-        if (inftype == 'cnb') then
-            !
-            write(911)4
-            write(911)zs
-            write(911)q
-            write(911)uvmean
-            write(911)scs_Se
-            !
-        elseif (inftype == 'gai') then
-            !
-            write(911)5
-            write(911)zs
-            write(911)q
-            write(911)uvmean
-            write(911)GA_sigma
-            write(911)GA_F
-            !
-        elseif (inftype == 'hor') then
-            !
-            write(911)6
-            write(911)zs
-            write(911)q
-            write(911)uvmean
-            write(911)rain_T1
-            !
-        endif
-        !
-    else ! default option remains type 1 without infiltration in restart
-        !
-        write(911)1    
-        write(911)zs
-        write(911)q
-        write(911)uvmean        
-        !
+   !
+   if (inftype == 'cnb' .or. inftype == 'gai' .or. inftype == 'hor') then
+      !
+      if (inftype == 'cnb') then
+         !
+         write(911)4
+         write(911)zs
+         write(911)q
+         write(911)uvmean
+         write(911)scs_Se
+         !
+      elseif (inftype == 'gai') then
+         !
+         write(911)5
+         write(911)zs
+         write(911)q
+         write(911)uvmean
+         write(911)GA_sigma
+         write(911)GA_F
+         !
+      elseif (inftype == 'hor') then
+         !
+         write(911)6
+         write(911)zs
+         write(911)q
+         write(911)uvmean
+         write(911)rain_T1
+         !
+      endif
+      !
+   else ! default option remains type 1 without infiltration in restart
+      !
+      write(911)1    
+      write(911)zs
+      write(911)q
+      write(911)uvmean        
+      !
    endif   
    ! 
    close(911)
