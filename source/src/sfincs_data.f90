@@ -215,7 +215,6 @@ module sfincs_data
       logical       :: output_irregular_grid
       logical       :: use_spw_precip
       logical       :: friction2d
-      logical       :: subgrid_new
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
@@ -466,11 +465,11 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: subgrid_uv_zmax
       real*4, dimension(:),   allocatable :: subgrid_uv_navg_w
       real*4, dimension(:),   allocatable :: subgrid_uv_fnfit
-      real*4, dimension(:,:), allocatable :: subgrid_uv_hrep
-      real*4, dimension(:,:), allocatable :: subgrid_uv_navg
+      real*4, dimension(:,:), allocatable :: subgrid_uv_havg
+      real*4, dimension(:,:), allocatable :: subgrid_uv_nrep
       real*4, dimension(:,:), allocatable :: subgrid_uv_pwet
-      real*4, dimension(:),   allocatable :: subgrid_uv_hrep_zmax
-      real*4, dimension(:),   allocatable :: subgrid_uv_navg_zmax
+      real*4, dimension(:),   allocatable :: subgrid_uv_havg_zmax
+      real*4, dimension(:),   allocatable :: subgrid_uv_nrep_zmax
       !
       ! Dynamic data on the grid
       !

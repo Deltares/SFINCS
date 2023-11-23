@@ -1431,7 +1431,7 @@
    !$acc                  zs, q, hm0_ig, zb, zbuv, &
    !$acc                  wmf_hm0_ig_t, wmf_setup_t, wavemaker_index_wmfp1, wavemaker_index_wmfp2, wavemaker_fac_wmfp, &
    !$acc                  wavemaker_uvmean, wavemaker_idir, wavemaker_angfac, wavemaker_freduv, wavemaker_uvtrend, & 
-   !$acc                  subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_hrep, subgrid_uv_navg, subgrid_z_zmin, subgrid_uv_hrep_zmax), async(1)
+   !$acc                  subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_z_zmin, subgrid_uv_havg_zmax), async(1)
    ! 
    ! UV fluxes at boundaries
    !
@@ -1471,7 +1471,7 @@
             !
             ! Entire cell is wet, no interpolation from table needed
             !
-            depthuv  = subgrid_uv_hrep_zmax(ip) + zsuv
+            depthuv  = subgrid_uv_havg_zmax(ip) + zsuv
             !
          elseif (zsuv>subgrid_uv_zmin(nm)) then
             !
@@ -1480,7 +1480,7 @@
             dzuv    = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nbins - 1)
             iuv     = int((zsuv - subgrid_uv_zmin(ip))/dzuv) + 1
             facint  = (zsuv - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv
-            depthuv = subgrid_uv_hrep(iuv, ip) + (subgrid_uv_hrep(iuv + 1, ip) - subgrid_uv_hrep(iuv, ip))*facint
+            depthuv = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint
             !
          else
             !

@@ -31,7 +31,6 @@ contains
       !
       ! Netcdf format with havg and nrep
       ! 
-      subgrid_new = .true.
       huthresh = 0.0
       ! 
       call read_subgrid_file_netcdf()
@@ -40,14 +39,11 @@ contains
       !
       ! Binary format with hrep and navg
       ! 
-      subgrid_new = .false.
-      ! 
       call read_subgrid_file_original()
       !
    endif
    !
    end subroutine
-
 
 
    subroutine read_subgrid_file_netcdf()
@@ -92,14 +88,13 @@ contains
    !
    ! Get dimensions sizes    
    !
-   NF90(nf90_inq_dimid(net_file_sbg%ncid, "bins", net_file_sbg%nbins_dimid))
-   NF90(nf90_inq_dimid(net_file_sbg%ncid, "np",   net_file_sbg%np_dimid))
-   NF90(nf90_inq_dimid(net_file_sbg%ncid, "npuv", net_file_sbg%npuv_dimid))
+   NF90(nf90_inq_dimid(net_file_sbg%ncid, 'bins', net_file_sbg%nbins_dimid))
+   NF90(nf90_inq_dimid(net_file_sbg%ncid, 'np',   net_file_sbg%np_dimid))
+   NF90(nf90_inq_dimid(net_file_sbg%ncid, 'npuv', net_file_sbg%npuv_dimid))
    !
    NF90(nf90_inquire_dimension(net_file_sbg%ncid, net_file_sbg%np_dimid,    len = np_nc)) ! nr of z points
    NF90(nf90_inquire_dimension(net_file_sbg%ncid, net_file_sbg%npuv_dimid,  len = npuv_nc)) ! nr of uv points
    NF90(nf90_inquire_dimension(net_file_sbg%ncid, net_file_sbg%nbins_dimid, len = subgrid_nbins)) ! nr of bins
-   !
    !
    ! Get variable id's
    !
@@ -135,11 +130,11 @@ contains
    allocate(subgrid_uv_zmax(npuv))
    allocate(subgrid_uv_navg_w(npuv))
    allocate(subgrid_uv_fnfit(npuv))
-   allocate(subgrid_uv_hrep(subgrid_nbins, npuv))
-   allocate(subgrid_uv_navg(subgrid_nbins, npuv))
+   allocate(subgrid_uv_havg(subgrid_nbins, npuv))
+   allocate(subgrid_uv_nrep(subgrid_nbins, npuv))
    allocate(subgrid_uv_pwet(subgrid_nbins, npuv))
-   allocate(subgrid_uv_hrep_zmax(npuv))
-   allocate(subgrid_uv_navg_zmax(npuv))
+   allocate(subgrid_uv_havg_zmax(npuv))
+   allocate(subgrid_uv_nrep_zmax(npuv))
    !
    allocate(rtmpz(npzq))
    allocate(rtmpuv(npuvq))
@@ -270,7 +265,6 @@ contains
    !
    do ip = 1, np
       subgrid_z_zmin(ip) = rtmpz(z_index(ip))
-      ! write(*,'(2i8,20e14.6)')ip, z_index(ip), rtmpz(z_index(ip))
    enddo   
    !
    NF90(nf90_get_var(net_file_sbg%ncid, net_file_sbg%z_zmax_varid, rtmpz(:)))
@@ -290,7 +284,6 @@ contains
    do ip = 1, np
       do ibin = 1, subgrid_nbins
          subgrid_z_dep(ibin, ip) = rtmpz2(ibin, z_index(ip))
-         ! write(*,'(3i8,20e14.6)')ip, ibin, z_index(ip), rtmpz2(ibin, z_index(ip))
       enddo   
    enddo
    !
@@ -317,14 +310,14 @@ contains
    NF90(nf90_get_var(net_file_sbg%ncid, net_file_sbg%uv_navg_w_varid, rtmpuv(:) ))
    !
    do ip = 1, npuv
-      subgrid_uv_navg_w(ip) = rtmpuv(uv_index(ip))
+      subgrid_uv_navg_w(ip) = g * max(rtmpuv(uv_index(ip)), 0.0001) ** 2
    enddo   
    !
    NF90(nf90_get_var(net_file_sbg%ncid, net_file_sbg%uv_havg_varid, rtmpuv2(:,:) ))
    !
    do ip = 1, npuv
       do ibin = 1, subgrid_nbins
-         subgrid_uv_hrep(ibin, ip) = rtmpuv2(ibin, uv_index(ip))
+         subgrid_uv_havg(ibin, ip) = rtmpuv2(ibin, uv_index(ip))
       enddo   
    enddo
    !
@@ -335,7 +328,7 @@ contains
          !
          ! Already convert here to gn^2
          !
-         subgrid_uv_navg(ibin, ip) = g*max(rtmpuv2(ibin, uv_index(ip)), 0.0001)**2
+         subgrid_uv_nrep(ibin, ip) = g*max(rtmpuv2(ibin, uv_index(ip)), 0.0001)**2
          !
       enddo   
    enddo
@@ -369,13 +362,13 @@ contains
       if (subgrid_uv_zmax(nm) - subgrid_uv_zmin(nm) < 0.01) subgrid_uv_zmax(nm) = subgrid_uv_zmax(nm) + 0.01
    enddo
    !
-   ! Make arrays for subgrid_uv_hrep_zmax and subgrid_uv_navg_zmax for faster searching
+   ! Make arrays for subgrid_uv_havg_zmax and subgrid_uv_nrep_zmax for faster searching
    !
    do ip = 1, npuv
-      subgrid_uv_hrep_zmax(ip) = subgrid_uv_hrep(subgrid_nbins, ip) - subgrid_uv_zmax(ip)
-      subgrid_uv_navg_zmax(ip) = subgrid_uv_navg(subgrid_nbins, ip)
+      subgrid_uv_havg_zmax(ip) = subgrid_uv_havg(subgrid_nbins, ip) - subgrid_uv_zmax(ip)
+      subgrid_uv_nrep_zmax(ip) = subgrid_uv_nrep(subgrid_nbins, ip)
    enddo    
-   !
+   ! 
    deallocate(rtmpz)
    deallocate(rtmpz2)
    deallocate(rtmpuv)
@@ -400,6 +393,7 @@ contains
    integer*4, dimension(:),  allocatable :: uv_index_qt_in_sf
    !
    integer :: idummy
+   integer :: ioption
    integer :: ip
    integer :: ibin
    integer :: nm
@@ -427,15 +421,14 @@ contains
       subgrid_nbins = subgrid_nbins + 1
       allocate(subgrid_z_zmin(np))
       allocate(subgrid_z_zmax(np))
-      ! allocate(subgrid_z_zmean(np))
       allocate(subgrid_z_volmax(np))
       allocate(subgrid_z_dep(subgrid_nbins, np))
       allocate(subgrid_uv_zmin(npuv))
       allocate(subgrid_uv_zmax(npuv))
-      allocate(subgrid_uv_hrep(subgrid_nbins, npuv))
-      allocate(subgrid_uv_navg(subgrid_nbins, npuv))
-      allocate(subgrid_uv_hrep_zmax(npuv))
-      allocate(subgrid_uv_navg_zmax(npuv))
+      allocate(subgrid_uv_havg(subgrid_nbins, npuv))
+      allocate(subgrid_uv_nrep(subgrid_nbins, npuv))
+      allocate(subgrid_uv_havg_zmax(npuv))
+      allocate(subgrid_uv_nrep_zmax(npuv))
       !
       allocate(rtmpz(npzq))
       allocate(rtmpuv(npuvq))
@@ -563,13 +556,13 @@ contains
          subgrid_uv_zmax(nm) = rtmpuv(uv_index_qt_in_sf(nm))
       enddo   
       !
-      ! Initialize subgrid_uv_hrep with huthresh
+      ! Initialize subgrid_uv_havg with huthresh
       !
-      subgrid_uv_hrep = huthresh
+      subgrid_uv_havg = huthresh
       do ibin = 1, subgrid_nbins - 1
          read(500)rtmpuv
          do nm = 1, npuv
-            subgrid_uv_hrep(ibin + 1, nm) = max(rtmpuv(uv_index_qt_in_sf(nm)), huthresh)
+            subgrid_uv_havg(ibin + 1, nm) = max(rtmpuv(uv_index_qt_in_sf(nm)), huthresh)
          enddo   
       enddo
       !
@@ -577,11 +570,11 @@ contains
          read(500)rtmpuv
          do nm = 1, npuv
             ! Already convert here to gn^2
-            subgrid_uv_navg(ibin + 1, nm) = g*max(rtmpuv(uv_index_qt_in_sf(nm)), 0.005)**2
+            subgrid_uv_nrep(ibin + 1, nm) = g*max(rtmpuv(uv_index_qt_in_sf(nm)), 0.005)**2
          enddo   
       enddo
       ! Set bottom navg equal to one bin above
-      subgrid_uv_navg(1, :) = subgrid_uv_navg(2, :)
+      subgrid_uv_nrep(1, :) = subgrid_uv_nrep(2, :)
       !
       close(500)
       !
@@ -596,19 +589,25 @@ contains
       write(*,*)'Reading ', trim(sbgfile), ' ...'
       open(unit = 500, file = trim(sbgfile), form = 'unformatted', access = 'stream')
       read(500)idummy ! nr cells
-      read(500)idummy ! option
+      read(500)ioption ! option
       read(500)subgrid_nbins
       subgrid_nbins = subgrid_nbins + 1
+      write(*,*)'Number of subgrid bins : ',subgrid_nbins - 1
       allocate(subgrid_z_zmin(np))
       allocate(subgrid_z_zmax(np))
       allocate(subgrid_z_volmax(np))
       allocate(subgrid_z_dep(subgrid_nbins, np))
       allocate(subgrid_uv_zmin(npuv))
       allocate(subgrid_uv_zmax(npuv))
-      allocate(subgrid_uv_hrep(subgrid_nbins, npuv))
-      allocate(subgrid_uv_navg(subgrid_nbins, npuv))
-      allocate(subgrid_uv_hrep_zmax(npuv))
-      allocate(subgrid_uv_navg_zmax(npuv))
+      allocate(subgrid_uv_havg(subgrid_nbins, npuv))
+      allocate(subgrid_uv_nrep(subgrid_nbins, npuv))
+      allocate(subgrid_uv_havg_zmax(npuv))
+      allocate(subgrid_uv_nrep_zmax(npuv))
+      allocate(subgrid_uv_navg_w(npuv))
+      allocate(subgrid_uv_fnfit(npuv))
+      allocate(subgrid_uv_pwet(subgrid_nbins, npuv))
+      subgrid_uv_fnfit = 0.0 ! Set pwet to zero at first time step
+      subgrid_uv_pwet  = 1.0 ! Set pwet to zero at first time step
       !
       allocate(rtmpz(np))
       !
@@ -619,7 +618,7 @@ contains
       ! Make sure zmax is always bigger than zmin
       !
       do nm = 1, np
-         if (subgrid_z_zmax(nm) - subgrid_z_zmin(nm) < 0.01) subgrid_z_zmax(nm) = subgrid_z_zmax(nm) + 0.01
+         if (subgrid_z_zmax(nm) - subgrid_z_zmin(nm) < 0.01) subgrid_z_zmax(nm) = subgrid_z_zmax(nm) + 0.001
       enddo
       !
       subgrid_z_dep(1,:) = max(subgrid_z_zmin(:), -20.0)
@@ -668,13 +667,13 @@ contains
       !
       ! U hrep
       !
-      subgrid_uv_hrep(1,:) = huthresh
+      subgrid_uv_havg(1,:) = huthresh
       do ibin = 1, subgrid_nbins - 1
          read(500)rtmpz
          do nm = 1, np
             ip = z_index_uv_mu1(nm) ! index of uv point
             if (ip>0) then
-               subgrid_uv_hrep(ibin + 1, ip) = rtmpz(nm)
+               subgrid_uv_havg(ibin + 1, ip) = rtmpz(nm)
             endif
          enddo
       enddo         
@@ -691,7 +690,7 @@ contains
             !
             if (ip>0) then
                !
-               subgrid_uv_navg(ibin + 1, ip) = g*max(rtmpz(nm), 0.005)**2
+               subgrid_uv_nrep(ibin + 1, ip) = g*max(rtmpz(nm), 0.0001)**2
                !
             endif
             !
@@ -700,7 +699,7 @@ contains
       enddo
       !
       do nm = 1, np
-         subgrid_uv_navg(1, nm) = subgrid_uv_navg(2, nm)
+         subgrid_uv_nrep(1, nm) = subgrid_uv_nrep(2, nm)
       enddo 
       !
       ! V zmin
@@ -741,30 +740,19 @@ contains
       !
       ! V hrep
       !
-      !
-      subgrid_uv_hrep(1,:) = huthresh
-      !
+      subgrid_uv_havg(1,:) = huthresh
       do ibin = 1, subgrid_nbins - 1
-         !
          read(500)rtmpz
-         !            
          do nm = 1, np
-            !
             ip = z_index_uv_nu1(nm) ! index of uv point
-            !
             if (ip>0) then
-               !
-               subgrid_uv_hrep(ibin + 1, ip ) = max(rtmpz(nm), huthresh)
-               !
+               subgrid_uv_havg(ibin + 1, ip) = rtmpz(nm)
             endif
-            !
          enddo
-         !
-      enddo
+      enddo         
       !
       ! V navg
       !
-      !
       do ibin = 1, subgrid_nbins - 1
          !
          read(500)rtmpz
@@ -774,8 +762,8 @@ contains
             ip = z_index_uv_nu1(nm) ! index of uv point
             !
             if (ip>0) then
-              !
-               subgrid_uv_navg(ibin + 1, ip) = g*max(rtmpz(nm), 0.005)**2
+               !
+               subgrid_uv_nrep(ibin + 1, ip) = g*max(rtmpz(nm), 0.0001)**2
                !
             endif
             !
@@ -784,7 +772,11 @@ contains
       enddo
       !
       do nm = 1, np
-         subgrid_uv_navg(1, nm) = subgrid_uv_navg(2, nm)
+         subgrid_uv_nrep(1, nm) = subgrid_uv_nrep(2, nm)
+      enddo 
+      !
+      do nm = 1, np
+         subgrid_uv_nrep(1, nm) = subgrid_uv_nrep(2, nm)
       enddo
       !
       close(500)
@@ -812,11 +804,12 @@ contains
       if (subgrid_uv_zmax(nm) - subgrid_uv_zmin(nm) < 0.01) subgrid_uv_zmax(nm) = subgrid_uv_zmax(nm) + 0.01
    enddo
    !
-   ! Make arrays for subgrid_uv_hrep_zmax and subgrid_uv_navg_zmax for faster searching
+   ! Make arrays for subgrid_uv_havg_zmax and subgrid_uv_nrep_zmax for faster searching
    !
    do ip = 1, npuv
-      subgrid_uv_hrep_zmax(ip) = subgrid_uv_hrep(subgrid_nbins, ip) - subgrid_uv_zmax(ip)
-      subgrid_uv_navg_zmax(ip) = subgrid_uv_navg(subgrid_nbins, ip)
+      subgrid_uv_havg_zmax(ip) = subgrid_uv_havg(subgrid_nbins, ip) - subgrid_uv_zmax(ip)
+      subgrid_uv_nrep_zmax(ip) = subgrid_uv_nrep(subgrid_nbins, ip)
+      subgrid_uv_navg_w(ip)    = subgrid_uv_nrep_zmax(ip)
    enddo    
    !
    end subroutine

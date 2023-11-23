@@ -117,14 +117,14 @@
    ! Update fluxes
    !
    !$omp parallel &
-   !$omp private ( ip,hu,qfr,qx_nm,nm,nmu,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
+   !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
    !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi ) &
    !$omp reduction ( min : min_dt )
    !$omp do schedule ( dynamic, 256 )
    !$acc kernels, present( kcuv, zs, q, q0, uv, uv0, min_dt, &
    !$acc                   uv_flags_iref, uv_flags_type, uv_flags_dir, &
-   !$acc                   subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_hrep, subgrid_uv_navg, subgrid_uv_hrep_zmax, subgrid_uv_navg_zmax, &
+   !$acc                   subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, &
    !$acc                   uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc                   uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
    !$acc                   zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, fcorio2d ), async(1)
@@ -296,22 +296,10 @@
                   !
                   ! Entire cell is wet, no interpolation from table needed
                   !
-                  hu = subgrid_uv_hrep_zmax(ip) + zsu
+                  hu = subgrid_uv_havg_zmax(ip) + zsu
                   !
-                  if (subgrid_new) then
-                     !
-                     ! New approach where we use havg and nrep
-                     !
-                     gnavg2 = subgrid_uv_navg_w(ip) - (subgrid_uv_navg_w(ip) - subgrid_uv_navg_zmax(ip)) / (subgrid_uv_fnfit(ip) * (zsu - zmax) + 1.0)
-                     !
-                  else
-                     !
-                     ! Old approach where we use hrep and navg
-                     !
-                     gnavg2 = subgrid_uv_navg_zmax(ip)
-                     !
-                  endif
-                  !
+                  gnavg2 = subgrid_uv_navg_w(ip) - (subgrid_uv_navg_w(ip) - subgrid_uv_nrep_zmax(ip)) / (subgrid_uv_fnfit(ip) * (zsu - zmax) + 1.0)
+                  ! 
                else
                   !
                   ! Interpolation required
@@ -319,16 +307,10 @@
                   dzuv   = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nbins - 1)                             ! bin size
                   iuv    = int((zsu - subgrid_uv_zmin(ip))/dzuv) + 1                                                     ! index of level below zsu 
                   facint = (zsu - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv                                        ! 1d interpolation coefficient
-                  hu     = subgrid_uv_hrep(iuv, ip) + (subgrid_uv_hrep(iuv + 1, ip) - subgrid_uv_hrep(iuv, ip))*facint   ! wet-average depth
-                  gnavg2 = subgrid_uv_navg(iuv, ip) + (subgrid_uv_navg(iuv + 1, ip) - subgrid_uv_navg(iuv, ip))*facint   ! representative g*n^2
                   !
-                  if (subgrid_new) then
-                     !
-                     ! Wet fraction
-                     !
-                     phi  = subgrid_uv_pwet(iuv, ip) + (subgrid_uv_pwet(iuv + 1, ip) - subgrid_uv_pwet(iuv, ip))*facint
-                     !
-                  endif
+                  hu     = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint   ! wet-average depth
+                  gnavg2 = subgrid_uv_nrep(iuv, ip) + (subgrid_uv_nrep(iuv + 1, ip) - subgrid_uv_nrep(iuv, ip))*facint   ! representative g*n^2
+                  phi    = subgrid_uv_pwet(iuv, ip) + (subgrid_uv_pwet(iuv + 1, ip) - subgrid_uv_pwet(iuv, ip))*facint   ! wet fraction
                   !
                endif
                !

@@ -674,20 +674,20 @@ contains
    !
    integer ib, nm, nmi, nmb, iuv, indb, ip
    real*4  hnmb, dt, zsnmi, zsnmb, zs0nmb, facrel
-   real*8  factime
+   real*4  factime, one_minus_factime
    !
    real*4 ui, ub, dzuv, facint, zsuv, depthuv
    !
    !$acc update device( zsb0, zsb ), async(1)
    !
    factime = min(dt/btfilter, 1.0)
+   one_minus_factime = 1.0 - factime
    facrel  = 1.0 - min(dt/btrelax, 1.0)
-   !
-   !$acc kernels present(index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, kcuv, zs, z_volume, q, uvmean, uv, zb, zbuv, zsb, zsb0, &
-   !$acc                 subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_hrep, subgrid_uv_hrep_zmax, subgrid_z_zmin, ibuvdir), async(1)
    !
    ! UV fluxes at boundaries
    !
+   !$acc kernels present(index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, kcuv, zs, z_volume, q, uvmean, uv, zb, zbuv, zsb, zsb0, &
+   !$acc                 subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_havg_zmax, subgrid_z_zmin, ibuvdir), async(1)
    !$acc loop independent, private(ib)
    do ib = 1, nkcuv2
       !
@@ -713,7 +713,7 @@ contains
                !
                ! Entire cell is wet, no interpolation from table needed
                !
-               depthuv  = subgrid_uv_hrep_zmax(ip) + zsuv
+               depthuv  = subgrid_uv_havg_zmax(ip) + zsuv
                !
             elseif (zsuv>subgrid_uv_zmin(ip)) then
                !
@@ -722,7 +722,7 @@ contains
                dzuv    = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nbins - 1)
                iuv     = int((zsuv - subgrid_uv_zmin(ip))/dzuv) + 1
                facint  = (zsuv - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv
-               depthuv = subgrid_uv_hrep(iuv, ip) + (subgrid_uv_hrep(iuv + 1, ip) - subgrid_uv_hrep(iuv, ip))*facint
+               depthuv = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint
                !
             else
                !
@@ -756,6 +756,8 @@ contains
             ub = ibuvdir(ib) * (2*ui - sqrt(g/hnmb)*(zsnmi - zs0nmb))
             !
             q(ip) = ub*hnmb + uvmean(ib)
+            ! 
+            ! q(ip) = factime * ub * hnmb + one_minus_factime * uvmean(ib)
             !
             if (subgrid) then
                !
@@ -798,17 +800,19 @@ contains
                endif
             endif
             !
-            uv(ip) = q(ip)/hnmb
+            ! Limit velocities (this does not change fluxes, but may prevent advection term from exploding in the next time step)
+            !
+            uv(ip)  = max(min(q(ip)/hnmb, 4.0), -4.0)
             !
          endif
          !
-         if (btfilter>=0.0) then
+         if (btfilter>=-1.0e-6) then
             !
             ! Added a little bit of relaxation in uvmean to avoid persistent jets shooting into the model
             ! Using: facrel = 1.0 - min(dt/btrelax, 1.0)
             ! Default: btrelax = 1.0e6, so very little relaxation. Should perhaps change to something like 3600 s.
             !
-            uvmean(ib) = factime * q(ip) + facrel * (1.0 - factime) * uvmean(ib)
+            uvmean(ib) = factime * q(ip) + facrel * one_minus_factime * uvmean(ib)
             !
          else
             !

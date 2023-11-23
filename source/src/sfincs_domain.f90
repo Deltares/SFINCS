@@ -2332,7 +2332,7 @@ contains
                          !
                          ! Entire cell is wet, no interpolation from table needed
                          !
-                         huv    = subgrid_uv_hrep_zmax(ip) + zsuv
+                         huv    = subgrid_uv_havg_zmax(ip) + zsuv
                          !
                       else
                          !
@@ -2341,7 +2341,7 @@ contains
                          dzuv   = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nbins - 1)
                          iuv    = int((zsuv - subgrid_uv_zmin(ip))/dzuv) + 1
                          facint = (zsuv - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv
-                         huv    = subgrid_uv_hrep(iuv, ip) + (subgrid_uv_hrep(iuv + 1, ip) - subgrid_uv_hrep(iuv, ip))*facint
+                         huv    = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint
                          !                      
                       endif
                       !
@@ -2353,7 +2353,7 @@ contains
                       !
                    endif
                    !
-                   uv(ip)   = max(min(q(ip)/huv, 5.0), -5.0)   
+                   uv(ip)   = max(min(q(ip)/huv, 4.0), -4.0)   
                    !
                 endif   
                 !

@@ -227,7 +227,7 @@ module sfincs_lib
    !$acc data, copyin( kcs, kcuv, zs, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, qmax, vmax, twet, zsm, z_volume, &
    !$acc               z_flags_iref, uv_flags_iref, uv_flags_type, uv_flags_dir, &
    !$acc               index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, zsb, zsb0, ibuvdir, uvmean, &
-   !$acc               subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_hrep, subgrid_uv_navg, subgrid_uv_hrep_zmax, subgrid_uv_navg_zmax, &
+   !$acc               subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, &
    !$acc               subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
    !$acc               z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
    !$acc               uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
@@ -286,7 +286,7 @@ module sfincs_lib
          !
          write_map = .true.
          ntmapout  = ntmapout + 1
-         tout      = tmapout 
+         tout      = max(tmapout, t - dt) 
          tmapout   = tmapout + dtmapout
          !
       endif
@@ -297,7 +297,7 @@ module sfincs_lib
          !
          write_max = .true.
          ntmaxout  = ntmaxout + 1    ! now also keep track of nr of max output
-         tout      = tmaxout 
+         tout      = max(tmaxout, t - dt) 
          tmaxout   = tmaxout + dtmaxout
          !
       endif
@@ -331,7 +331,7 @@ module sfincs_lib
          !
          write_his = .true.
          nthisout  = nthisout + 1
-         tout      = thisout 
+         tout      = max(thisout, t - dt) 
          thisout   = thisout + dthisout
          !
       endif
@@ -451,7 +451,7 @@ module sfincs_lib
       !
       if (write_map .or. write_his .or. write_max .or. write_rst) then
          !
-         if (.not. fixed_output_intervals) tout = t
+         ! if (.not. fixed_output_intervals) tout = t
          !
          call write_output(tout, write_map, write_his, write_max, write_rst, ntmapout, ntmaxout, nthisout, tloopoutput)
          !
