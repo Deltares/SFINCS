@@ -89,7 +89,7 @@ module snapwave_solver
       call solve_energy_balance2Dstat (x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                        theta,ntheta,thetamean,                                    &
                                        depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,50000.,rho,snapwave_alpha,snapwave_alpha_ig,gamma,                 &
-                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, baldock_ratio_ig, battjesjanssen_opt, fshalphamin, fshfac, fshexp, alphaigfac, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_rep)
+                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, baldock_ratio_ig, battjesjanssen_opt, fshalphamin, fshfac, fshexp, alphaigfac, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_rep, nwav)
       !
       call timer(t3)
       !
@@ -108,7 +108,7 @@ module snapwave_solver
    subroutine solve_energy_balance2Dstat(x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                          theta,ntheta,thetamean,                                    &
                                          depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,T,dt,rho,alfa,alfa_ig,gamma,                 &
-                                         H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, baldock_ratio_ig, battjesjanssen_opt, fshalphamin, fshfac, fshexp, alphaigfac, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_rep)
+                                         H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, baldock_ratio_ig, battjesjanssen_opt, fshalphamin, fshfac, fshexp, alphaigfac, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_rep, nwav)
    !
    implicit none
    !
@@ -130,6 +130,7 @@ module snapwave_solver
    real*4, dimension(no_nodes), intent(in)          :: cg                     ! group velocity
    real*4, dimension(ntheta,no_nodes), intent(in)   :: ctheta                 ! refractioon speed
    real*4, dimension(no_nodes), intent(in)          :: cg_ig                  ! group velocity
+   real*4, dimension(no_nodes), intent(in)          :: nwav                     ! wave number n   
    real*4, dimension(ntheta,no_nodes), intent(in)      :: Sxx                    ! Radiation Stress
    real*4, dimension(ntheta,no_nodes), intent(inout)   :: ee                  ! 
    real*4, dimension(ntheta,no_nodes), intent(inout)   :: ee_ig                 ! 
@@ -187,6 +188,7 @@ module snapwave_solver
    real*4, dimension(:), allocatable          :: eeprev, cgprev         ! energy density and group velocity at upwind intersection point
    real*4, dimension(:), allocatable          :: eeprev_ig, cgprev_ig         ! energy density and group velocity at upwind intersection point
    real*4, dimension(:), allocatable          :: Sxxprev                ! radiation stress at upwind intersection point  
+   real*4, dimension(:), allocatable          :: Hprev                  ! Incident wave height at upwind intersection point  
    real*4, dimension(:), allocatable          :: H_igprev               ! IG wave height at upwind intersection point  
    real*4, dimension(:), allocatable          :: depthprev               ! water depth at upwind intersection point       
    real*4, dimension(:), allocatable          :: A,B,C,R                ! coefficients in the tridiagonal matrix solved per point
@@ -225,12 +227,14 @@ module snapwave_solver
    real*4                                     :: depthforcerelease ! Incident wave breaking point, after which no additional IG wave energy transfer is included     
    real*4                                     :: L0
    real*4                                     :: dSxx
+   real*4                                     :: Sxx_cons
    real*4                                     :: fshalphamin   
    real*4                                     :: fshfac   
    real*4                                     :: fshexp   
    real*4                                     :: alphaigfac         
    real*4                                     :: sigm_ig
    real*8                                     :: beta
+   real*4                                     :: gam   ! local gamma (Hinc / depth ratio)
    character*20                               :: fname
    integer, save                              :: callno=1
    !
@@ -292,6 +296,7 @@ module snapwave_solver
       allocate(steepness_bc(no_nodes))
       allocate(reldepth(no_nodes))    
       allocate(Sxxprev(ntheta))       
+      allocate(Hprev(ntheta))  
       allocate(H_igprev(ntheta))  
       allocate(depthprev(ntheta))                         
       !
@@ -399,34 +404,62 @@ module snapwave_solver
                k2 = prev(2, itheta, k)
                !
                if (k1*k2>0) then
-                  !                   
+                  !             
+                  ! Calculate upwind direction dependent variables
+                  ! TL - Note: cg_ig = cg
+                  cgprev(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
+                  Sxxprev(itheta) = w(1, itheta, k)*Sxx(itheta,k1) + w(2, itheta, k)*Sxx(itheta,k2)
+                  Hprev(itheta) = w(1, itheta, k)*H(k1) + w(2, itheta, k)*H(k2)
+                  H_igprev(itheta) = w(1, itheta, k)*H_ig_old(k1) + w(2, itheta, k)*H_ig_old(k2)
+                  depthprev(itheta) = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)
+                  eeprev(itheta) = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)                  
+                  eeprev_ig(itheta) = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)                  
+                  !
                   beta  = max((w(1, itheta, k)*(depth(k1) - depth(k)) + w(2, itheta, k)*(depth(k2) - depth(k)))/ds(itheta, k), 0.0) !beta=0 means a horizontal or decreasing slope > need alphaig=0 then
                   !
                   betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin))
                   !  
                   betar_local(itheta,k) = betan_local(itheta,k) * sqrt(steepness_bc(k)) / reldepth(k) 
                   !
+                  gam = max(0.5*(Hprev(itheta)/depthprev(itheta) + H(k)/depth(k)), 0.0)
+                  !TODO: limit depthprev / depth in some way so /0 does not become none
+                  !
                   if (ig_opt == 1) then                
                      !  
-                     alphaig_local(itheta,k) = 8.0                                        
+                     call estimate_shoaling_parameter_alphaig(beta, gam, alphaig_local(itheta,k))
                      !
                   elseif (ig_opt == 5) then                  
                      !
-                     call estimate_shoaling_parameter(betar_local(itheta,k), reldepth(k), alphaig_local(itheta,k)) ! [input, input, output]
-                     
-                     !if (depth(k) < 4 .and. depth(k) > 2.5) then
-                     !    write(*,*)'k, itheta, depth(k), reldepth(k), beta, betar_local(itheta,k), alphaig_local(itheta,k)',k, itheta, depth(k), reldepth(k), beta, betar_local(itheta,k), alphaig_local(itheta,k)
-                     !endif                     
+                     call estimate_shoaling_parameter(betar_local(itheta,k), reldepth(k), alphaig_local(itheta,k)) ! [input, input, output]       
                      !                      
                   endif
                   !
-                  ! TL - Note: cg_ig = cg
-                  cgprev(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
-                  Sxxprev(itheta) = w(1, itheta, k)*Sxx(itheta,k1) + w(2, itheta, k)*Sxx(itheta,k2)
-                  H_igprev(itheta) = w(1, itheta, k)*H_ig_old(k1) + w(2, itheta, k)*H_ig_old(k2)
-                  depthprev(itheta) = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)
+                  if (gam > 0.0 .and. beta > 0) then
+                       write(*,*)'yes'    
+                  endif
+                  
+                  ! Now calculate source term component
                   !         
-                  if (ig_opt == 5) then       
+                  if (ig_opt == 1) then       
+                     ! Newest dSxx/dx based method, using estimate of Sxx(k) using conservative shoaling
+                     if (Sxxprev(itheta)<=0.0) then 
+                        !
+                        srcsh_local(itheta, k) = 0.0 !Avoid big jumps in dSxx that can happen if a upwind point is a boundary point with Hinc=0
+                        !
+                     else
+                        !                        
+                        ! Calculate Sxx based on conservative shoaling of upwind point's Energy: Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
+                        Sxx_cons = eeprev(itheta) * cgprev(itheta) / cg_ig(k) * ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5)
+                        ! limit so value of nwav is between 0 and 1, and Sxx therefore doesn't become NaN for nwav=Infinite                       
+                        dSxx = Sxx_cons - Sxxprev(itheta)
+                        !
+                        dSxx = max(dSxx, 0.0)
+                        !
+                        srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(eeprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / ds(itheta, k)
+                        !                         
+                     endif                      
+                     ! 
+                  elseif (ig_opt == 5) then       
                      ! New dSxx/dx based method
                      !
                      if (depth(k) >= depthforcerelease) then                                 
@@ -435,11 +468,11 @@ module snapwave_solver
                             !
                             srcsh_local(itheta, k) = 0.0 !Avoid big jumps in dSxx that can happen if a upwind point is a boundary point with Hinc=0
                          else                             
-                                                  
+                            !                      
                             dSxx = Sxx(itheta,k) - Sxxprev(itheta)
                             !dSxx = min(dSxx, 100.0) !try limit dSxx > is generally large in the Hinc shadow zone
                             dSxx = max(dSxx, 0.0)
-                       
+                            !
                             srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * 0.25  * (H_igprev(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / ds(itheta, k)
                             ! vardens: * 0.25 because the *4 in 4sqrt(E) is already absorbed in alphaig, so here we want just sqrt(E), which is then 0.25*Hig       
                             !
@@ -541,9 +574,9 @@ module snapwave_solver
                      cgprev(itheta) = w(1, itheta, k)*cg(k1) + w(2, itheta, k)*cg(k2)
 !                     write(*,*)k,itheta,eeprev(itheta),cgprev(itheta)
                      !
-                     if (igwaves) then
+                     if (igwaves) then !TL: now calcualted double?
                         eeprev_ig(itheta) = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)
-                        cgprev_ig(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
+                        cgprev_ig(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2) !TL: needed to calculate? Or is same as cgprev(itheta)?
                         !depthprev(itheta) = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)                        
                      endif
                      !
@@ -970,13 +1003,60 @@ module snapwave_solver
    !
    end subroutine battjesjanssen   
    
+   subroutine estimate_shoaling_parameter_alphaig(beta, gam, alphaig)
+   real*8, intent(in)                :: beta
+   real*4, intent(in)                :: gam 
+   real*4, intent(out)               :: alphaig
+   !
+   real*4                            :: beta1, beta2, beta3, beta4, beta5, beta6, beta7        
+   !
+   ! Estimate shoaling parameter alphaig - as in upcoming Leijnse et al. (2024)
+   !
+   ! Determine constants 
+   beta1 = 0.016993
+   beta2 = 0.5
+   beta3 = 17.7104
+   beta4 = 1
+   beta5 = 0.7
+   beta6 = 0.11841
+   beta7 = 0.34037
+   !
+   if (beta < 0.0) then
+       !
+       alphaig = 0.0
+       !
+   else ! positively increasing local bed slope beta
+       !
+       if (gam > 0.0 .and. gam < beta7) then !deep water
+          !
+          alphaig = exp(-beta3 * b ** beta4) * (max(beta5 - gam, 0.0)) * beta6
+          !
+       elseif (gam >= beta7) then ! shallow water - for gam>0.7 the fit automatically goes to 0
+          !
+          alphaig = exp(-beta3 * b ** beta4) * ((beta5 - gam) * beta6 + (beta7 - gam) * (beta1 / b ** beta2)) 
+          !
+       else ! for safety, but negative gamma should not occur
+          ! 
+          alphaig = 0.0
+          ! 
+       endif
+       !
+   endif
+   !
+   ! Limit alphaig betwwen [0, 100] to prevent large overshoots in case of low gamma and very small beta
+   !
+   alphaig = max(alphaig, 0.0)
+   alphaig = min(alphaig, 100.0)   
+   !             
+   end subroutine estimate_shoaling_parameter_alphaig 
+   
    subroutine estimate_shoaling_parameter(betar, reldepth, alphaig)
    real*8, intent(in)                :: betar
    real*4, intent(in)                :: reldepth   
    real*4, intent(out)               :: alphaig
    real*4                            :: xbeta   
    !                 
-   ! Estimate shoaling rate alphaig - as in Leijnse et al. (2023)
+   ! Estimate shoaling parameter alphaig - as in Leijnse et al. (2023)
    if (reldepth > 0.0 .and. reldepth <= 4.0) then ! determined using (H in Hm0)
        !
        if (betar > 0.0 .and. betar <= 0.015) then
