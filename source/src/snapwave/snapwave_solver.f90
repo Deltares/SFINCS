@@ -89,7 +89,7 @@ module snapwave_solver
       call solve_energy_balance2Dstat (x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                        theta,ntheta,thetamean,                                    &
                                        depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,50000.,rho,snapwave_alpha,snapwave_alpha_ig,gamma,                 &
-                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, baldock_ratio_ig, battjesjanssen_opt, fshalphamin, fshfac, fshexp, alphaigfac, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_rep, nwav)
+                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, baldock_ratio_ig, battjesjanssen_opt, fshalphamin, fshfac, fshexp, alphaigfac, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_inc_old, H_rep, nwav)
       !
       call timer(t3)
       !
@@ -97,6 +97,7 @@ module snapwave_solver
       Fy = F*sin(thetam)
       !
       ! IG wave height after solving energy balance
+      H_inc_old = H
       H_ig_old = H_ig
       !
       write(*,*)'computation:               ', t3 - t2, ' seconds'
@@ -108,7 +109,7 @@ module snapwave_solver
    subroutine solve_energy_balance2Dstat(x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                          theta,ntheta,thetamean,                                    &
                                          depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,T,dt,rho,alfa,alfa_ig,gamma,                 &
-                                         H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, baldock_ratio_ig, battjesjanssen_opt, fshalphamin, fshfac, fshexp, alphaigfac, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_rep, nwav)
+                                         H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, baldock_ratio_ig, battjesjanssen_opt, fshalphamin, fshfac, fshexp, alphaigfac, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_inc_old, H_rep, nwav)
    !
    implicit none
    !
@@ -164,6 +165,7 @@ module snapwave_solver
    real*4, dimension(no_nodes), intent(in)          :: sinhkh_ig              ! sinh(k*depth)
    real*4, dimension(no_nodes), intent(in)          :: Hmx_ig                 ! Hmax
    real*4, dimension(no_nodes), intent(in)          :: H_ig_old               ! wave height of previous timestep     
+   real*4, dimension(no_nodes), intent(in)          :: H_inc_old              ! wave height of previous timestep     
    real*4, dimension(no_nodes), intent(in)          :: H_rep                  ! Representative weighted offshore incident wave height for anywhere in the active grid - in Hm0        
    !
    ! Local variables and arrays
@@ -190,6 +192,7 @@ module snapwave_solver
    real*4, dimension(:), allocatable          :: Sxxprev                ! radiation stress at upwind intersection point  
    real*4, dimension(:), allocatable          :: Hprev                  ! Incident wave height at upwind intersection point  
    real*4, dimension(:), allocatable          :: H_igprev               ! IG wave height at upwind intersection point  
+   real*4, dimension(:), allocatable          :: H_incprev              ! Incident wave height at upwind intersection point  
    real*4, dimension(:), allocatable          :: depthprev               ! water depth at upwind intersection point       
    real*4, dimension(:), allocatable          :: A,B,C,R                ! coefficients in the tridiagonal matrix solved per point
    real*4, dimension(:), allocatable          :: A_ig,B_ig,C_ig,R_ig    ! coefficients in the tridiagonal matrix solved per point
@@ -298,6 +301,7 @@ module snapwave_solver
       allocate(Sxxprev(ntheta))       
       allocate(Hprev(ntheta))  
       allocate(H_igprev(ntheta))  
+      allocate(H_incprev(ntheta))  
       allocate(depthprev(ntheta))                         
       !
    endif
@@ -411,33 +415,34 @@ module snapwave_solver
                   Sxxprev(itheta) = w(1, itheta, k)*Sxx(itheta,k1) + w(2, itheta, k)*Sxx(itheta,k2)
                   Hprev(itheta) = w(1, itheta, k)*H(k1) + w(2, itheta, k)*H(k2)
                   H_igprev(itheta) = w(1, itheta, k)*H_ig_old(k1) + w(2, itheta, k)*H_ig_old(k2)
+                  H_incprev(itheta) = w(1, itheta, k)*H_inc_old(k1) + w(2, itheta, k)*H_inc_old(k2)
                   depthprev(itheta) = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)
                   eeprev(itheta) = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)                  
                   eeprev_ig(itheta) = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)                  
                   !
                   beta  = max((w(1, itheta, k)*(depth(k1) - depth(k)) + w(2, itheta, k)*(depth(k2) - depth(k)))/ds(itheta, k), 0.0) !beta=0 means a horizontal or decreasing slope > need alphaig=0 then
+                  !beta = (w(1, itheta, k)*(depth(k1) - depth(k)) + w(2, itheta, k)*(depth(k2) - depth(k)))/ds(itheta, k)
                   !
                   betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin))
                   !  
-                  betar_local(itheta,k) = betan_local(itheta,k) * sqrt(steepness_bc(k)) / reldepth(k) 
+                  !betar_local(itheta,k) = betan_local(itheta,k) * sqrt(steepness_bc(k)) / reldepth(k) 
+                  betar_local(itheta,k) = beta                   
                   !
-                  gam = max(0.5*(Hprev(itheta)/depthprev(itheta) + H(k)/depth(k)), 0.0)
-                  !TODO: limit depthprev / depth in some way so /0 does not become none
+                  !gam = max(0.5*(Hprev(itheta)/depthprev(itheta) + H(k)/depth(k)), 0.0)
+                  !gam = max(Hprev(itheta)/depthprev(itheta), 0.0)
+                  !gam = max(H_incprev(itheta)/depthprev(itheta), 0.0)
+                  gam = max(0.5*(H_incprev(itheta)/depthprev(itheta) + H_inc_old(k)/depth(k)), 0.0)                  
                   !
                   if (ig_opt == 1) then                
                      !  
-                     call estimate_shoaling_parameter_alphaig(beta, gam, alphaig_local(itheta,k))
+                     call estimate_shoaling_parameter_alphaig(beta, gam, alphaig_local(itheta,k)) ! [input, input, output]
                      !
                   elseif (ig_opt == 5) then                  
                      !
                      call estimate_shoaling_parameter(betar_local(itheta,k), reldepth(k), alphaig_local(itheta,k)) ! [input, input, output]       
                      !                      
                   endif
-                  !
-                  if (gam > 0.0 .and. beta > 0) then
-                       write(*,*)'yes'    
-                  endif
-                  
+                  !                  
                   ! Now calculate source term component
                   !         
                   if (ig_opt == 1) then       
@@ -449,13 +454,16 @@ module snapwave_solver
                      else
                         !                        
                         ! Calculate Sxx based on conservative shoaling of upwind point's Energy: Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
+                        !Sxx_cons = eeprev(itheta) * (2.0 * (w(1, itheta, k)*nwav(k1) + w(2, itheta, k)*nwav(k2)) - 0.5) ! as check whether Sxxprev(itheta) con be recalculated using available data
                         Sxx_cons = eeprev(itheta) * cgprev(itheta) / cg_ig(k) * ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5)
                         ! limit so value of nwav is between 0 and 1, and Sxx therefore doesn't become NaN for nwav=Infinite                       
                         dSxx = Sxx_cons - Sxxprev(itheta)
+                        !dSxx = Sxx(itheta,k) - Sxxprev(itheta)                        
                         !
                         dSxx = max(dSxx, 0.0)
                         !
-                        srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(eeprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / ds(itheta, k)
+                        !srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(eeprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / ds(itheta, k)
+                        srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * (sqrt(rhog8)*H_igprev(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / ds(itheta, k)
                         !                         
                      endif                      
                      ! 
@@ -872,7 +880,8 @@ module snapwave_solver
                
                !alphaig(k) = sum(alphaig_local(:,k))*dtheta  
                alphaig(k) = maxval(alphaig_local(:,k))                             
-               srcsh(k)   = sum(srcsh_local(:,k))*dtheta                              
+               srcsh(k)   = maxval(srcsh_local(:,k))                           
+               !srcsh(k)   = sum(srcsh_local(:,k))*dtheta                              
                !
             endif
             !
@@ -1021,7 +1030,7 @@ module snapwave_solver
    beta6 = 0.11841
    beta7 = 0.34037
    !
-   if (beta < 0.0) then
+   if (beta <= 0.0) then
        !
        alphaig = 0.0
        !
@@ -1029,11 +1038,11 @@ module snapwave_solver
        !
        if (gam > 0.0 .and. gam < beta7) then !deep water
           !
-          alphaig = exp(-beta3 * b ** beta4) * (max(beta5 - gam, 0.0)) * beta6
+          alphaig = exp(-beta3 * beta ** beta4) * ((beta5 - gam) * beta6 + (beta7 - gam) * (beta1 / beta ** beta2)) 
           !
        elseif (gam >= beta7) then ! shallow water - for gam>0.7 the fit automatically goes to 0
           !
-          alphaig = exp(-beta3 * b ** beta4) * ((beta5 - gam) * beta6 + (beta7 - gam) * (beta1 / b ** beta2)) 
+          alphaig = exp(-beta3 * beta ** beta4) * (max(beta5 - gam, 0.0)) * beta6           
           !
        else ! for safety, but negative gamma should not occur
           ! 

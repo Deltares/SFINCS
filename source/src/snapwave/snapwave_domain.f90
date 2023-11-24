@@ -121,6 +121,7 @@ contains
    allocate(fw_ig(no_nodes))
    allocate(H_ig(no_nodes))   
    allocate(H_ig_old(no_nodes))    
+   allocate(H_inc_old(no_nodes))    
    allocate(H_rep(no_nodes))            
    allocate(Dw(no_nodes))
    allocate(Dw_ig(no_nodes))   
