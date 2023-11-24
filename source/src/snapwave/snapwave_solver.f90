@@ -174,7 +174,7 @@ module snapwave_solver
    real*4                                     :: eemax,dtheta           ! maximum wave energy density, directional resolution
    real*4                                     :: uorbi
    integer                                    :: sweep,niter,iter            ! sweep number, number of iterations
-   integer                                    :: k,k1,k2,i,ind(1),count,kn,itheta ! counters (k is grid index)
+   integer                                    :: k,k1,k2,k12,i,ind(1),count,kn,itheta ! counters (k is grid index)
    integer                                    :: indint
    integer, dimension(:,:), allocatable       :: indx                   ! index for grid sorted per sweep direction
 !   real*4, dimension(:,:), allocatable        :: ee,eeold               ! wave energy density, energy density previous iteration
@@ -407,7 +407,7 @@ module snapwave_solver
                k1 = prev(1, itheta, k)
                k2 = prev(2, itheta, k)
                !
-               if (k1*k2>0) then
+               if (k1>0 .and. k2>0) then ! IMPORTANT - for some reason (k1*k2)>0 is not reliable always, resulting in directions being uncorrectly skipped!!!
                   !             
                   ! Calculate upwind direction dependent variables
                   ! TL - Note: cg_ig = cg
@@ -420,13 +420,21 @@ module snapwave_solver
                   eeprev(itheta) = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)                  
                   eeprev_ig(itheta) = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)                  
                   !
+                  !beta = (depthprev(itheta) - depth(k))/ds(itheta, k)
+                  !beta = max( (depthprev(itheta) - depth(k))/ds(itheta, k), 0.0)
+                  !beta = max(   (max(depth(k1), depth(k2)) - depth(k))/ds(itheta, k), 0.0)                  
+                  !evt iets van if (depthprev(itheta) - depth(k) < 0.1                  
                   beta  = max((w(1, itheta, k)*(depth(k1) - depth(k)) + w(2, itheta, k)*(depth(k2) - depth(k)))/ds(itheta, k), 0.0) !beta=0 means a horizontal or decreasing slope > need alphaig=0 then
                   !beta = (w(1, itheta, k)*(depth(k1) - depth(k)) + w(2, itheta, k)*(depth(k2) - depth(k)))/ds(itheta, k)
                   !
                   betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin))
                   !  
                   !betar_local(itheta,k) = betan_local(itheta,k) * sqrt(steepness_bc(k)) / reldepth(k) 
-                  betar_local(itheta,k) = beta                   
+                  betar_local(itheta,k) = beta     
+                  !if (depth(k) < 4 .and. depth(k) > 3 .and. w(1, itheta, k) > 0) then
+                  !    write(*,*)'k, itheta, depth(k), depth(k1), depth(k2), w1, w2, depthprev(itheta) , beta',k,itheta,depth(k),depth(k1),depth(k2), w(1, itheta, k),w(2, itheta, k),depthprev(itheta),beta 
+                  !endif
+                  
                   !
                   !gam = max(0.5*(Hprev(itheta)/depthprev(itheta) + H(k)/depth(k)), 0.0)
                   !gam = max(Hprev(itheta)/depthprev(itheta), 0.0)
@@ -462,8 +470,8 @@ module snapwave_solver
                         !
                         dSxx = max(dSxx, 0.0)
                         !
-                        !srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(eeprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / ds(itheta, k)
-                        srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * (sqrt(rhog8)*H_igprev(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / ds(itheta, k)
+                        srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(eeprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / ds(itheta, k)
+                        !srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * (sqrt(rhog8)*H_igprev(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / ds(itheta, k)
                         !                         
                      endif                      
                      ! 

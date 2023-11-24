@@ -19,7 +19,7 @@ module sfincs_ncoutput
       integer :: hmax_varid, vmax_varid, cumprcp_varid, cuminf_varid, windmax_varid
       integer :: patm_varid, wind_u_varid, wind_v_varid, precip_varid        
       integer :: hm0_varid, hm0ig_varid
-      integer :: fwx_varid, fwy_varid
+      integer :: fwx_varid, fwy_varid, beta_varid, snapwavedepth_varid
       integer :: zsm_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid
       !
@@ -847,6 +847,18 @@ contains
          NF90(nf90_put_att(map_file%ncid, map_file%fwy_varid, 'standard_name', 'wave_force_y'))
          NF90(nf90_put_att(map_file%ncid, map_file%fwy_varid, 'long_name', 'Wave force in y-direction')) 
          !  
+         NF90(nf90_def_var(map_file%ncid, 'beta', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%beta_varid))
+         NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, '_FillValue', FILL_VALUE))          
+         NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'units', 'm'))
+         NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'standard_name', 'bedslope'))
+         NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'long_name', 'bedslope')) 
+         !           
+         NF90(nf90_def_var(map_file%ncid, 'snapwavedepth', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%snapwavedepth_varid))
+         NF90(nf90_put_att(map_file%ncid, map_file%snapwavedepth_varid, '_FillValue', FILL_VALUE))          
+         NF90(nf90_put_att(map_file%ncid, map_file%snapwavedepth_varid, 'units', 'm'))
+         NF90(nf90_put_att(map_file%ncid, map_file%snapwavedepth_varid, 'standard_name', 'snapwave_waterdepth'))
+         NF90(nf90_put_att(map_file%ncid, map_file%snapwavedepth_varid, 'long_name', 'Interpolated water depth in Snapwave')) 
+         !                            
       endif
       !
       if (wavemaker) then
@@ -1904,6 +1916,24 @@ contains
             !
             NF90(nf90_put_var(map_file%ncid, map_file%fwx_varid, utmp, (/1, ntmapout/)))
             NF90(nf90_put_var(map_file%ncid, map_file%fwy_varid, vtmp, (/1, ntmapout/)))
+            !
+            utmp = FILL_VALUE
+            vtmp = FILL_VALUE            
+            !
+            do nmq = 1, quadtree_nr_points
+               !
+               nm = index_sfincs_in_quadtree(nmq)
+               !
+               if (nm>0) then
+                  utmp(nmq) = betan(nm)
+                  vtmp(nmq) = snapwave_depth(nm)                  
+               endif
+               !
+            enddo            
+            NF90(nf90_put_var(map_file%ncid, map_file%beta_varid, utmp, (/1, ntmapout/)))     
+            NF90(nf90_put_var(map_file%ncid, map_file%snapwavedepth_varid, vtmp, (/1, ntmapout/)))     
+            
+            
             !
          endif
          !
