@@ -606,8 +606,8 @@ contains
       allocate(subgrid_uv_navg_w(npuv))
       allocate(subgrid_uv_fnfit(npuv))
       allocate(subgrid_uv_pwet(subgrid_nbins, npuv))
-      subgrid_uv_fnfit = 0.0 ! Set pwet to zero at first time step
-      subgrid_uv_pwet  = 1.0 ! Set pwet to zero at first time step
+      subgrid_uv_fnfit = 0.0
+      subgrid_uv_pwet  = 1.0
       !
       allocate(rtmpz(np))
       !

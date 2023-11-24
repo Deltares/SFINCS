@@ -266,7 +266,7 @@
             !
             if (advection .or. coriolis .or. viscosity .or. friction2d .or. thetasmoothing) then
                !
-               ! First term
+               ! Get the neighbors
                !
                qx_nmd  = q0(uv_index_u_nmd(ip))
                qx_nmu  = q0(uv_index_u_nmu(ip))
@@ -284,7 +284,7 @@
                !
             endif
             !
-            ! Wet fraction phi (for non-subgrid or original subgrid approach phi0 and phi should be 1.0)
+            ! Wet fraction phi (for non-subgrid or original subgrid approach phi should be 1.0)
             !
             phi  = 1.0
             !
@@ -308,7 +308,7 @@
                   iuv    = int((zsu - subgrid_uv_zmin(ip))/dzuv) + 1                                                     ! index of level below zsu 
                   facint = (zsu - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv                                        ! 1d interpolation coefficient
                   !
-                  hu     = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint   ! wet-average depth
+                  hu     = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint   ! grid-average depth
                   gnavg2 = subgrid_uv_nrep(iuv, ip) + (subgrid_uv_nrep(iuv + 1, ip) - subgrid_uv_nrep(iuv, ip))*facint   ! representative g*n^2
                   phi    = subgrid_uv_pwet(iuv, ip) + (subgrid_uv_pwet(iuv + 1, ip) - subgrid_uv_pwet(iuv, ip))*facint   ! wet fraction
                   !
@@ -335,7 +335,7 @@
             !
             ! Pressure term
             !
-            frc = -g*hu*(zs(nmu) - zs(nm))*dxuvinv
+            frc = - g * hu * (zs(nmu) - zs(nm)) * dxuvinv
             !
             ! Advection term
             !

@@ -116,7 +116,7 @@ contains
    call read_real_input(500,'wmfred',wavemaker_freduv,0.99)
    call read_char_input(500,'wmsignal',wmsigstr,'spectrum')   
    call read_char_input(500,'advection_scheme',advstr,'upw1')   
-   call read_real_input(500,'btrelax',btrelax,1.0e6)
+   call read_real_input(500,'btrelax',btrelax,3600.0)
    !
    ! Domain
    !
@@ -201,7 +201,7 @@ contains
    call read_int_input(500,'storemaxwind',iwindmax,0)
    call read_int_input(500,'storefw', istorefw, 0)
    call read_int_input(500,'storewavdir', istorewavdir, 0)
-   call read_logical_input(500,'friction2d',friction2d,.false.)
+   call read_logical_input(500,'friction2d',friction2d,.true.)
    !
    ! Wind drag
    !
