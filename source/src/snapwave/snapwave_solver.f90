@@ -226,7 +226,7 @@ module snapwave_solver
    real*4                                     :: Hk_ig
    real*4                                     :: Hk_ig0   
    real*4                                     :: Fk_ig
-   real*4                                     :: shinc2ig
+   real*4                                     :: shinc2ig          ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 0=default)
    real*4                                     :: depthforcerelease ! Incident wave breaking point, after which no additional IG wave energy transfer is included     
    real*4                                     :: L0
    real*4                                     :: dSxx
@@ -603,7 +603,7 @@ module snapwave_solver
                      A(itheta) = -ctheta(itheta - 1, k)*oneover2dtheta
                      B(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverE(k)
                      C(itheta) = ctheta(itheta + 1, k)*oneover2dtheta
-                     R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta)*eeprev(itheta)/ds(itheta, k) !- srcsh_local(itheta, k)*ee(itheta,k)
+                     R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta)*eeprev(itheta)/ds(itheta, k) - srcsh_local(itheta, k) * shinc2ig
                      !
                   enddo
                   !
@@ -611,7 +611,7 @@ module snapwave_solver
                      A(1) = 0.0
                      B(1) = oneoverdt - ctheta(1, k)/dtheta + cg(k)/ds(1, k) + DoverE(k)
                      C(1) = ctheta(2, k)/dtheta
-                     R(1) = oneoverdt*ee(1, k) + cgprev(1)*eeprev(1)/ds(1, k) !- srcsh_local(1, k)*ee(1, k)
+                     R(1) = oneoverdt*ee(1, k) + cgprev(1)*eeprev(1)/ds(1, k) - srcsh_local(1, k) * shinc2ig
                   else
                      A(1) = 0.0
                      B(1) = 1.0/dt
@@ -623,7 +623,7 @@ module snapwave_solver
                      A(ntheta) = -ctheta(ntheta - 1, k)/dtheta
                      B(ntheta) = oneoverdt + ctheta(ntheta, k)/dtheta + cg(k)/ds(ntheta, k) + DoverE(k)
                      C(ntheta) = 0.0
-                     R(ntheta) = oneoverdt*ee(ntheta,k) + cgprev(ntheta)*eeprev(ntheta)/ds(ntheta, k) !- srcsh_local(ntheta, k)*ee(ntheta, k)
+                     R(ntheta) = oneoverdt*ee(ntheta,k) + cgprev(ntheta)*eeprev(ntheta)/ds(ntheta, k) - srcsh_local(ntheta, k) * shinc2ig
                   else
                      A(ntheta) = 0.0
                      B(ntheta) = oneoverdt
@@ -699,7 +699,7 @@ module snapwave_solver
                         A_ig(itheta) = -ctheta_ig(itheta - 1, k)*oneover2dtheta
                         B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
                         C_ig(itheta) = ctheta_ig(itheta + 1, k)*oneover2dtheta
-                        R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta)*eeprev_ig(itheta)/ds(itheta, k) + srcsh_local(itheta, k)! * sqrt(eeprev_ig(itheta))/ds(itheta, k)
+                        R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta)*eeprev_ig(itheta)/ds(itheta, k) + srcsh_local(itheta, k)
                         !
                      enddo
                      !
@@ -707,7 +707,7 @@ module snapwave_solver
                         A_ig(1) = 0.0
                         B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k)
                         C_ig(1) = ctheta_ig(2, k)/dtheta
-                        R_ig(1) = oneoverdt*ee_ig(1, k) + cgprev_ig(1)*eeprev_ig(1)/ds(1, k) + srcsh_local(1, k)! * sqrt(eeprev_ig(1))/ds(1, k)
+                        R_ig(1) = oneoverdt*ee_ig(1, k) + cgprev_ig(1)*eeprev_ig(1)/ds(1, k) + srcsh_local(1, k)
                      else
                         A_ig(1)=0.0
                         B_ig(1)=1.0/dt
@@ -719,7 +719,7 @@ module snapwave_solver
                         A_ig(ntheta) = -ctheta_ig(ntheta - 1, k)/dtheta
                         B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
                         C_ig(ntheta) = 0.0
-                        R_ig(ntheta) = oneoverdt*ee_ig(ntheta,k) + cgprev_ig(ntheta)*eeprev_ig(ntheta)/ds(ntheta,k) + srcsh_local(ntheta, k)! * sqrt(eeprev_ig(ntheta))/ds(ntheta,k)
+                        R_ig(ntheta) = oneoverdt*ee_ig(ntheta,k) + cgprev_ig(ntheta)*eeprev_ig(ntheta)/ds(ntheta,k) + srcsh_local(ntheta, k)
                      else
                         A_ig(ntheta) = 0.0
                         B_ig(ntheta) = oneoverdt

@@ -156,7 +156,7 @@ module snapwave_data
    integer                                   :: ig_opt                 ! option of breaking dissipation model for IG waves (1 is Baldock = default, 2 is BattjesJanssen)
    real*4                                    :: snapwave_alpha_ig,gamma_ig     ! coefficients in Baldock wave breaking dissipation model for IG waves
    real*4                                    :: Tinc2ig         ! ratio compared to period Tinc to estimate Tig
-   real*4                                    :: shinc2ig        ! TO ADD
+   real*4                                    :: shinc2ig        ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 0=default)
    real*4                                    :: shpercig        ! TO ADD
    real*4                                    :: fshalphamin     ! TO ADD
    real*4                                    :: fshfac     ! TO ADD
