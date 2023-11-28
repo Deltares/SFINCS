@@ -1030,7 +1030,7 @@ contains
       !$omp do
       !$acc kernels, present(tauwu, tauwv,  tauwu0, tauwv0, tauwu1, tauwv1, &
       !$acc                  windu, windv, windu0, windv0, windu1, windv1, windmax, &
-      !$acc                  patm, patm0, patm1, prcp, prcp0, prcp1 ), async(1)
+      !$acc                  patm, patm0, patm1, prcp, prcp0, prcp1, cumprcp, netprcp, zs, zb, z_volume ), async(1)
       !$acc loop independent, private(nm)
       do nm = 1, np
          !
@@ -1060,8 +1060,10 @@ contains
             !
             prcp(nm)    = prcp0(nm)*onemintwfact  + prcp1(nm)*twfact  ! rainfall in m/s !!!
             !
-            ! don't allow negative prcp (e.g. hardfixing infiltration/evaporation on model when forcing effective rainfall) when there's no water in the cell (same as check for constant infiltration)
+            ! Don't allow negative prcp (e.g. hardfixing infiltration/evaporation on model when forcing effective rainfall) when there's no water in the cell (same as check for constant infiltration)
+            !
             if (prcp(nm) < 0) then
+                 !  
                  ! No effective infiltration if there is no water
                  !  
                  if (subgrid) then
@@ -1095,7 +1097,7 @@ contains
          !$omp parallel &
          !$omp private ( nm )
          !$omp do
-         !$acc kernels, present(tauwu, tauwv, patm, prcp ), async(1)
+         !$acc kernels, present( tauwu, tauwv, patm, prcp, netprcp, zs, zb, z_volume ), async(1)
          !$acc loop independent, private(nm)
          do nm = 1, np
             !

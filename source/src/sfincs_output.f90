@@ -250,12 +250,12 @@ module sfincs_output
    real*8   :: t   
    real     :: tloopoutput 
    !   
-   if (dtmaxout>1.e-6 .and. ntmaxout == 0) then
-      write(*,'(a)')''       
-      write(*,*)'Info : Write maximum values of final timestep since t=dtmaxout was not reached yet...'
-      ntmaxout = 1
-      call write_output(t,.false.,.false.,.true.,.false.,0,ntmaxout,0,tloopoutput)
-   endif
+!   if (dtmaxout>1.e-6 .and. ntmaxout == 0) then
+!      write(*,'(a)')''       
+!      write(*,*)'Info : Write maximum values of final timestep since t=dtmaxout was not reached yet...'
+!      ntmaxout = 1
+!      call write_output(t,.false.,.false.,.true.,.false.,0,ntmaxout,0,tloopoutput)
+!   endif
    !
    if (outputtype_map == 'net') then
       !

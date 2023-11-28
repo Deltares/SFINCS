@@ -98,7 +98,7 @@ contains
    ! Should try to do this in a smart way for openacc
    !
    if (nsrcdrn>0) then
-      !$acc serial, present( zs,nmindsrc,qtsrc,zb ), async(1)
+      !$acc serial, present( zs,nmindsrc,qtsrc,zb,cell_area,z_flags_iref ), async(1)
       do isrc = 1, nsrcdrn
          nm = nmindsrc(isrc)
          zs(nmindsrc(isrc))   = max(zs(nm) + qtsrc(isrc)*dt/cell_area(z_flags_iref(nm)), zb(nm))
@@ -543,8 +543,8 @@ contains
    !$omp parallel &
    !$omp private ( nmd, nmu, ndm, num, quz, qvz, qz, uvz )
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels present( kcs, zs, zb, subgrid_z_zmin, q, vmax, qmax, twet, &
-   !$acc                  z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu), async(1)
+   !$acc kernels present( kcs, zs, zb, subgrid_z_zmin, q, uv, vmax, qmax, twet, &
+   !$acc                  z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu), async(2)
    !$acc loop independent, private( nm )   
    do nm = 1, np
       !
@@ -611,7 +611,7 @@ contains
    !$omp end do
    !$omp end parallel
    !$acc end kernels
-   !$acc wait(1)
+   !$acc wait(2)
    !       
    end subroutine
    

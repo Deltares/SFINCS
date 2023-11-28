@@ -38,6 +38,8 @@ contains
    else
       !
       ! Binary format with hrep and navg
+      !
+      write(*,*)'Above error appears because your subgrid file has the "old" binary format. Nothing to worry about.'
       ! 
       call read_subgrid_file_original()
       !

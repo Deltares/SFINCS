@@ -113,7 +113,6 @@
    !$omp end do
    !$omp end parallel
    !
-   !
    ! Update fluxes
    !
    !$omp parallel &
@@ -122,9 +121,9 @@
    !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi ) &
    !$omp reduction ( min : min_dt )
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels, present( kcuv, zs, q, q0, uv, uv0, min_dt, &
+   !$acc kernels, present( kcuv, kfu, zs, q, q0, uv, uv0, min_dt, &
    !$acc                   uv_flags_iref, uv_flags_type, uv_flags_dir, &
-   !$acc                   subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, &
+   !$acc                   subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
    !$acc                   uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc                   uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
    !$acc                   zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, fcorio2d ), async(1)
@@ -580,18 +579,28 @@
    !$omp end parallel
    !$acc end kernels
    !
-   ! Loop through combined uv points and determine average uv and q
-   !
-   !$omp parallel &
-   !$omp private ( icuv )
-   !$omp do
-   do icuv = 1, ncuv
-      ! Average of the two uv points
-      q(cuv_index_uv(icuv))  = 0.5*(q(cuv_index_uv1(icuv)) + q(cuv_index_uv2(icuv)))
-      uv(cuv_index_uv(icuv)) = 0.5*(uv(cuv_index_uv1(icuv)) + uv(cuv_index_uv2(icuv)))
-   enddo
-   !$omp end do
-   !$omp end parallel
+   if (ncuv > 0) then
+      !
+      ! Loop through combined uv points and determine average uv and q
+      !
+      !$omp parallel &
+      !$omp private ( icuv )
+      !$omp do
+      !$acc kernels, present( q, uv, cuv_index_uv, cuv_index_uv1, cuv_index_uv2 ), async(1)
+      !$acc loop independent, private(icuv)
+      do icuv = 1, ncuv
+         !
+         ! Average of the two uv points
+         !
+         q(cuv_index_uv(icuv))  = 0.5*(q(cuv_index_uv1(icuv)) + q(cuv_index_uv2(icuv)))
+         uv(cuv_index_uv(icuv)) = 0.5*(uv(cuv_index_uv1(icuv)) + uv(cuv_index_uv2(icuv)))
+         !
+      enddo
+      !$acc end kernels
+      !$omp end do
+      !$omp end parallel
+      !
+   endif
    !
    !$acc update host(min_dt), async(1)
    !

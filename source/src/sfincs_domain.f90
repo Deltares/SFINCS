@@ -1228,8 +1228,6 @@ contains
    allocate(z_xz(np))
    allocate(z_yz(np))
    !
-   write(*,*)'Computing cell centre coordinates ...'
-   !
    do nm = 1, np
       !
       n    = z_index_z_n(nm)
