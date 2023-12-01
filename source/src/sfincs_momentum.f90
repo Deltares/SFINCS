@@ -118,10 +118,10 @@
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv ) &
    !$omp reduction ( min : min_dt )
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels, present( kcuv, kfu, zs, q, q0, uv, uv0, min_dt, &
+   !$acc kernels, present( kcuv, zs, q, q0, uv, uv0, min_dt, &
    !$acc                   uv_flags_iref, uv_flags_type, uv_flags_dir, &
    !$acc                   subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
    !$acc                   uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
@@ -380,19 +380,19 @@
                      ! d qu u / dx = qu du / dx + u d qu / dx
                      ! d qv u / dy = qv du / dy + u d qv / dy
                      !
-                     if (kfu(uv_index_u_nmd(ip))==1 .and. kfu(uv_index_u_nmu(ip))==1) then
+!                     if (kfu(uv_index_u_nmd(ip))==1 .and. kfu(uv_index_u_nmu(ip))==1) then
                         !
                         ! d qu u / dx
                         !
                         qd = (qx_nmd + qx_nm) / 2
                         qu = (qx_nm + qx_nmu) / 2
                         !
-                        if (qd>0.0) then
+                        if (qd > 1.0e-6) then
                            ud = (uu_nmd + uu_nm) / 2
                            dqxudx = ( qd * (uu_nm - uu_nmd) + ud * (qx_nm - qx_nmd) / 2 ) * dxuvinv
                         endif
                         !
-                        if (qu<0.0) then
+                        if (qu < -1.0e-6) then
                            uu = (uu_nm + uu_nmu) / 2
                            dqxudx = dqxudx + ( qu*(uu_nmu - uu_nm) + uu * (qx_nmu - qx_nm) / 2) * dxuvinv
                         endif
@@ -404,11 +404,11 @@
                         qu = (qy_nm + qy_nmu) / 2
                         qd = (qy_ndm + qy_ndmu) / 2
                         !
-                        if (qd > 0.0) then
+                        if (qd > 1.0e-6) then
                            dqyudy = qd * (uu_nm - uu_ndm) * dyuvinv
                         endif
                         !
-                        if (qu < 0.0) then
+                        if (qu < -1.0e-6) then
                            dqyudy = dqyudy + qu * (uu_num - uu_nm) * dyuvinv
                         endif
                         ! 
@@ -417,19 +417,22 @@
                         ud = (uu_nmd + uu_nm) / 2
                         uu = (uu_nm + uu_nmu) / 2
                         !
-                        if (ud>0.0) then
+                        if (ud > 1.0e-6) then
                            dqyudy = dqyudy + ud * ( qy_nm - qy_ndm ) * dyuvinv
                         endif   
                         !
-                        if (uu<0.0) then
+                        if (uu < -1.0e-6) then
                            dqyudy = dqyudy + uu * ( qy_nmu - qy_ndmu ) * dyuvinv
                         endif
                         !
-                     endif
+!                     endif
                      !  
                   endif
                   !
-                  frc = frc - phi * (dqxudx + dqyudy)
+                  adv = dqxudx + dqyudy
+                  adv = min(max(adv, -advlim), advlim) 
+                  frc = frc - phi * adv
+!                  frc = frc - phi * (dqxudx + dqyudy)
                   !
                endif
                !   
@@ -544,11 +547,12 @@
                    !
                    ! But only at regular points
                    ! 
-                   if (kfu(uv_index_u_nmd(ip))==1 .and. kfu(uv_index_u_nmu(ip))==1) then
+                   if (abs(qx_nmd) > 1.0e-6 .and. abs(qx_nmu) > 1.0e-6) then
+!                   if (kfu(uv_index_u_nmd(ip))==1 .and. kfu(uv_index_u_nmu(ip))==1) then
                       !
                       ! And if both uv neighbors are active
                       ! 
-                      qsm = theta*qx_nm + 0.5 * (1.0 - theta) * (qx_nmu + qx_nmd)             
+                      qsm = theta*qx_nm + 0.5 * (1.0 - theta) * (qx_nmu + qx_nmd)
                       ! 
                    endif
                    ! 
@@ -561,15 +565,15 @@
             !
             ! Limit velocities (this does not change fluxes, but may prevent advection term from exploding in the next time step)
             !
-            uv(ip)  = max(min(q(ip)/hu, 4.0), -4.0)
+            uv(ip)  = max(min(q(ip)/max(hu, 0.10), 4.0), -4.0)
             !
-            kfu(ip) = 1
+!            kfu(ip) = 1
             !
          else
             !
             q(ip)   = 0.0
             uv(ip)  = 0.0
-            kfu(ip) = 0
+!            kfu(ip) = 0
             !
          endif
          !

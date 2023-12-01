@@ -431,6 +431,11 @@ contains
       allocate(subgrid_uv_nrep(subgrid_nbins, npuv))
       allocate(subgrid_uv_havg_zmax(npuv))
       allocate(subgrid_uv_nrep_zmax(npuv))
+      allocate(subgrid_uv_navg_w(npuv))
+      allocate(subgrid_uv_fnfit(npuv))
+      allocate(subgrid_uv_pwet(subgrid_nbins, npuv))
+      subgrid_uv_fnfit = 0.0
+      subgrid_uv_pwet  = 1.0
       !
       allocate(rtmpz(npzq))
       allocate(rtmpuv(npuvq))
