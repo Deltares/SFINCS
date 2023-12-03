@@ -105,8 +105,8 @@
    !$acc loop independent, private(nm)
    do ip = 1, npuv + ncuv
       !
-      q0(ip)   = q(ip)
-      uv0(ip)  = uv(ip)
+      q0(ip)  = q(ip)
+      uv0(ip) = uv(ip)
       !
    enddo
    !$acc end kernels
@@ -204,13 +204,14 @@
                   ! Fine to coarse or coarse to fine
                   !
                   if (idir==0) then
+                     !
                      dxuvinv = 1.0 / (3*(1.0/dxminv(ip))/2)
+                     !
                   else   
+                     !
                      dxuvinv = 1.0 / (3*(1.0/dyrinv(iref))/2)
+                     !
                   endif   
-                  !
-                  ! Should not need the other values ...
-                  ! dxuv2inv = 0.0 ! Should not need this one as viscosity term is not computed for this uv point
                   !
                endif
                !
@@ -249,9 +250,8 @@
                   ! Fine to coarse or coarse to fine
                   !
                   dxuvinv  = dxrinvc(iref)
-                  !
-                  ! Should not need the other values ...
-                  ! dxuv2inv = 0.0 ! Should not need this one as viscosity term is not computed for this uv point
+                  dxuv2inv = 0.0
+                  dyuv2inv = 0.0
                   !
                endif
                !
@@ -322,7 +322,7 @@
                !
             endif
             !
-            ! Compute wet average depth hwet
+            ! Compute wet average depth hwet (used in wind and wave forcing)
             !
             hwet = hu / phi
             !
@@ -342,7 +342,7 @@
                !
                ! Turn off advection next to open boundaries
                !
-               if ( kcuv(uv_index_u_nmu(ip))==1 .and. kcuv(uv_index_u_nmd(ip))==1 ) then
+               if ( kcuv(uv_index_u_nmu(ip)) == 1 .and. kcuv(uv_index_u_nmd(ip)) == 1 ) then
                   ! 
                   dqxudx = 0.0  
                   dqyudy = 0.0  
@@ -380,59 +380,66 @@
                      ! d qu u / dx = qu du / dx + u d qu / dx
                      ! d qv u / dy = qv du / dy + u d qv / dy
                      !
-!                     if (kfu(uv_index_u_nmd(ip))==1 .and. kfu(uv_index_u_nmu(ip))==1) then
-                        !
-                        ! d qu u / dx
-                        !
-                        qd = (qx_nmd + qx_nm) / 2
-                        qu = (qx_nm + qx_nmu) / 2
-                        !
-                        if (qd > 1.0e-6) then
-                           ud = (uu_nmd + uu_nm) / 2
-                           dqxudx = ( qd * (uu_nm - uu_nmd) + ud * (qx_nm - qx_nmd) / 2 ) * dxuvinv
-                        endif
-                        !
-                        if (qu < -1.0e-6) then
-                           uu = (uu_nm + uu_nmu) / 2
-                           dqxudx = dqxudx + ( qu*(uu_nmu - uu_nm) + uu * (qx_nmu - qx_nm) / 2) * dxuvinv
-                        endif
-                        ! 
-                        ! d qv u / dy
-                        !
-                        ! qv d u / d y
-                        ! 
-                        qu = (qy_nm + qy_nmu) / 2
-                        qd = (qy_ndm + qy_ndmu) / 2
-                        !
-                        if (qd > 1.0e-6) then
-                           dqyudy = qd * (uu_nm - uu_ndm) * dyuvinv
-                        endif
-                        !
-                        if (qu < -1.0e-6) then
-                           dqyudy = dqyudy + qu * (uu_num - uu_nm) * dyuvinv
-                        endif
-                        ! 
-                        ! u d qv / dy
-                        ! 
+                     ! if (kfu(uv_index_u_nmd(ip))==1 .and. kfu(uv_index_u_nmu(ip))==1) then
+                     !
+                     ! d qu u / dx
+                     !
+                     qd = (qx_nmd + qx_nm) / 2
+                     qu = (qx_nm + qx_nmu) / 2
+                     !
+                     if (qd > 1.0e-6) then
                         ud = (uu_nmd + uu_nm) / 2
+                        dqxudx = ( qd * (uu_nm - uu_nmd) + ud * (qx_nm - qx_nmd) / 2 ) * dxuvinv
+                     endif
+                     !
+                     if (qu < -1.0e-6) then
                         uu = (uu_nm + uu_nmu) / 2
-                        !
-                        if (ud > 1.0e-6) then
-                           dqyudy = dqyudy + ud * ( qy_nm - qy_ndm ) * dyuvinv
-                        endif   
-                        !
-                        if (uu < -1.0e-6) then
-                           dqyudy = dqyudy + uu * ( qy_nmu - qy_ndmu ) * dyuvinv
-                        endif
-                        !
-!                     endif
+                        dqxudx = dqxudx + ( qu*(uu_nmu - uu_nm) + uu * (qx_nmu - qx_nm) / 2) * dxuvinv
+                     endif
+                     ! 
+                     ! d qv u / dy
+                     !
+                     ! qv d u / d y
+                     ! 
+                     qu = (qy_nm + qy_nmu) / 2
+                     qd = (qy_ndm + qy_ndmu) / 2
+                     !
+                     if (qd > 1.0e-6) then
+                        dqyudy = qd * (uu_nm - uu_ndm) * dyuvinv
+                     endif
+                     !
+                     if (qu < -1.0e-6) then
+                        dqyudy = dqyudy + qu * (uu_num - uu_nm) * dyuvinv
+                     endif
+                     ! 
+                     ! u d qv / dy
+                     ! 
+                     ud = (uu_nmd + uu_nm) / 2
+                     uu = (uu_nm + uu_nmu) / 2
+                     !
+                     if (ud > 1.0e-6) then
+                        dqyudy = dqyudy + ud * ( qy_nm - qy_ndm ) * dyuvinv
+                     endif   
+                     !
+                     if (uu < -1.0e-6) then
+                        dqyudy = dqyudy + uu * ( qy_nmu - qy_ndmu ) * dyuvinv
+                     endif
+                     !
+                     ! endif
                      !  
                   endif
                   !
-                  adv = dqxudx + dqyudy
-                  adv = min(max(adv, -advlim), advlim) 
-                  frc = frc - phi * adv
-!                  frc = frc - phi * (dqxudx + dqyudy)
+                  if (advection_limiter) then
+                     !
+                     adv = dqxudx + dqyudy
+                     adv = min(max(adv, -advlim), advlim) 
+                     frc = frc - phi * adv
+                     !
+                  else
+                     !
+                     frc = frc - phi * (dqxudx + dqyudy)
+                     !
+                  endif 
                   !
                endif
                !   
@@ -548,7 +555,7 @@
                    ! But only at regular points
                    ! 
                    if (abs(qx_nmd) > 1.0e-6 .and. abs(qx_nmu) > 1.0e-6) then
-!                   if (kfu(uv_index_u_nmd(ip))==1 .and. kfu(uv_index_u_nmu(ip))==1) then
+                      ! if (kfu(uv_index_u_nmd(ip))==1 .and. kfu(uv_index_u_nmu(ip))==1) then
                       !
                       ! And if both uv neighbors are active
                       ! 
@@ -563,17 +570,18 @@
             ! 
             q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / (hu**2 * hu**expo))
             !
+            ! Compute velocity. Use q/max(h, 0.10) to avoid very high velocities in very shallow water
             ! Limit velocities (this does not change fluxes, but may prevent advection term from exploding in the next time step)
             !
             uv(ip)  = max(min(q(ip)/max(hu, 0.10), 4.0), -4.0)
             !
-!            kfu(ip) = 1
+            ! kfu(ip) = 1
             !
          else
             !
             q(ip)   = 0.0
             uv(ip)  = 0.0
-!            kfu(ip) = 0
+            ! kfu(ip) = 0
             !
          endif
          !
@@ -596,8 +604,8 @@
          !
          ! Average of the two uv points
          !
-         q(cuv_index_uv(icuv))  = 0.5*(q(cuv_index_uv1(icuv)) + q(cuv_index_uv2(icuv)))
-         uv(cuv_index_uv(icuv)) = 0.5*(uv(cuv_index_uv1(icuv)) + uv(cuv_index_uv2(icuv)))
+         q(cuv_index_uv(icuv))  = (q(cuv_index_uv1(icuv)) + q(cuv_index_uv2(icuv))) / 2
+         uv(cuv_index_uv(icuv)) = (uv(cuv_index_uv1(icuv)) + uv(cuv_index_uv2(icuv))) / 2
          !
       enddo
       !$acc end kernels

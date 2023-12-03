@@ -215,6 +215,7 @@ module sfincs_data
       logical       :: output_irregular_grid
       logical       :: use_spw_precip
       logical       :: friction2d
+      logical       :: advection_limiter
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
@@ -286,7 +287,7 @@ module sfincs_data
       !
       integer*1,          dimension(:),   allocatable :: kcs
       integer*1,          dimension(:),   allocatable :: kcuv
-      integer*1,          dimension(:),   allocatable :: kfu
+      ! integer*1,          dimension(:),   allocatable :: kfu
       integer*1,          dimension(:),   allocatable :: scs_rain   ! logic if previous time step was raining
       !
       ! Quadtree

@@ -635,7 +635,7 @@ contains
    !
    ! If advection, viscosity, coriolis or thetasmoothing, allocate extra arrays for 8 uv neighbor indices
    !
-   if (advection .or. coriolis .or. viscosity .or. thetasmoothing) then
+   if (advection .or. coriolis .or. viscosity .or. thetasmoothing .or. friction2d) then
       !
       allocate(uv_index_u_nmd(npuv))
       allocate(uv_index_u_nmu(npuv))
@@ -2140,14 +2140,14 @@ contains
    allocate(q0(npuv + ncuv + 1))
    allocate(uv(npuv + ncuv + 1))
    allocate(uv0(npuv + ncuv + 1))
-   allocate(kfu(npuv))
+   ! allocate(kfu(npuv))
    !
    zs   = 0.0
    q    = 0.0
    q0   = 0.0
    uv   = 0.0
    uv0  = 0.0
-   kfu  = 1
+   ! kfu  = 1
    !
    if (snapwave) then
       !

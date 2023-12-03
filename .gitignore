@@ -51,3 +51,11 @@ source/third_party_open/netcdf/netcdf-fortran-4.4.4/nf03_test/Makefile
 source/third_party_open/netcdf/netcdf-fortran-4.4.4/nf_test/.deps/f03lib.Po
 source/third_party_open/netcdf/netcdf-fortran-4.4.4/nf_test/.deps/fortlib.Po
 source/third_party_open/netcdf/netcdf-fortran-4.4.4/nf_test/Makefile
+*.Plo
+*.o
+*.lo
+*.mod
+*.la
+*.lai
+*.a
+source/third_party_open/netcdf/netcdf-fortran-4.4.4/fortran/Makefile
