@@ -44,7 +44,7 @@ contains
       call read_subgrid_file_original()
       !
    endif
-   !
+   ! 
    end subroutine
 
 
@@ -357,11 +357,11 @@ contains
    ! Make sure zmax is always bigger than zmin
    !
    do nm = 1, np
-      if (subgrid_z_zmax(nm) - subgrid_z_zmin(nm) < 0.01) subgrid_z_zmax(nm) = subgrid_z_zmax(nm) + 0.01
+      if (subgrid_z_zmax(nm) - subgrid_z_zmin(nm) < 0.001) subgrid_z_zmax(nm) = subgrid_z_zmax(nm) + 0.001
    enddo
    !
    do nm = 1, npuv
-      if (subgrid_uv_zmax(nm) - subgrid_uv_zmin(nm) < 0.01) subgrid_uv_zmax(nm) = subgrid_uv_zmax(nm) + 0.01
+      if (subgrid_uv_zmax(nm) - subgrid_uv_zmin(nm) < 0.001) subgrid_uv_zmax(nm) = subgrid_uv_zmax(nm) + 0.001
    enddo
    !
    ! Make arrays for subgrid_uv_havg_zmax and subgrid_uv_nrep_zmax for faster searching
@@ -622,11 +622,11 @@ contains
       read(500)subgrid_z_zmax
       read(500)subgrid_z_volmax
       !
-      ! Make sure zmax is always bigger than zmin
-      !
-      do nm = 1, np
-         if (subgrid_z_zmax(nm) - subgrid_z_zmin(nm) < 0.01) subgrid_z_zmax(nm) = subgrid_z_zmax(nm) + 0.001
-      enddo
+      ! ! Make sure zmax is always bigger than zmin (do this later on)
+      ! !
+      ! do nm = 1, np
+      !    if (subgrid_z_zmax(nm) - subgrid_z_zmin(nm) < 0.01) subgrid_z_zmax(nm) = subgrid_z_zmax(nm) + 0.001
+      ! enddo
       !
       subgrid_z_dep(1,:) = max(subgrid_z_zmin(:), -20.0)
       do ibin = 1, subgrid_nbins - 1
@@ -804,11 +804,11 @@ contains
    ! Make sure zmax is always bigger than zmin
    !
    do nm = 1, np
-      if (subgrid_z_zmax(nm) - subgrid_z_zmin(nm) < 0.01) subgrid_z_zmax(nm) = subgrid_z_zmax(nm) + 0.01
+      if (subgrid_z_zmax(nm) - subgrid_z_zmin(nm) < 0.001) subgrid_z_zmax(nm) = subgrid_z_zmax(nm) + 0.001
    enddo
    !
    do nm = 1, npuv
-      if (subgrid_uv_zmax(nm) - subgrid_uv_zmin(nm) < 0.01) subgrid_uv_zmax(nm) = subgrid_uv_zmax(nm) + 0.01
+      if (subgrid_uv_zmax(nm) - subgrid_uv_zmin(nm) < 0.001) subgrid_uv_zmax(nm) = subgrid_uv_zmax(nm) + 0.001
    enddo
    !
    ! Make arrays for subgrid_uv_havg_zmax and subgrid_uv_nrep_zmax for faster searching

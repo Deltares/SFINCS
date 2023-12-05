@@ -293,6 +293,7 @@ contains
    real*4           :: a
    real*4           :: uz
    real*4           :: vz
+   real*4           :: dv
    !
    if (wavemaker) then
       !
@@ -314,7 +315,7 @@ contains
    endif   
    !
    !$omp parallel &
-   !$omp private ( dvol,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,iwm,qnmd,qnmu,qndm,qnum)
+   !$omp private ( dvol,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,iwm,qnmd,qnmu,qndm,qnum,dv )
    !$omp do schedule ( dynamic, 256 )
    !$acc kernels present( kcs, zs, zb, z_volume, zsmax, zsm, &
    !$acc                  subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
@@ -446,12 +447,20 @@ contains
             if (storage_volume(nm)>1.0e-6) then
                !
                ! Still some storage left
-               ! 
-               z_volume(nm) = z_volume(nm) + dvol - storage_volume(nm)
                !
                ! Compute remaining storage volume
-               ! 
-               storage_volume(nm) =  max(storage_volume(nm) - dvol, 0.0)
+               !
+               dv = storage_volume(nm) - dvol
+               !
+               storage_volume(nm) =  max(dv, 0.0)
+               !
+               if (dv < 0.0) then
+                  !
+                  ! Overshoot, so add remaining volume to z_volume
+                  !
+                  z_volume(nm) = z_volume(nm) - dv
+                  !
+               endif
                !
             else
                ! 

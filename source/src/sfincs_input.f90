@@ -501,7 +501,11 @@ contains
    !
    use_storage_volume = .false.
    if (volfile(1:4) /= 'none') then
-      use_storage_volume = .true.
+      if (subgrid) then
+         use_storage_volume = .true.
+      else
+         write(*,*)'Warning: storage volume only supported for subgrid topographies!'
+      endif
    endif
    !
    advection_limiter = .false.
