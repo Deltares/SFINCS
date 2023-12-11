@@ -84,8 +84,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.0.4-alpha-branch:63-last-dtmax-output-interval'
-   build_date     = '$Date: 2023-11-30'
+   build_revision = '$Rev: v2.0.4-alpha'
+   build_date     = '$Date: 2023-12-11'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
