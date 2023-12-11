@@ -84,8 +84,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.0.3-Cauberg'
-   build_date     = '$Date: 2023-11-15'
+   build_revision = '$Rev: v2.0.4-alpha-branch:63-last-dtmax-output-interval'
+   build_date     = '$Date: 2023-11-30'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
@@ -503,7 +503,7 @@ module sfincs_lib
    tstart_all = 0.0
    tfinish_all = 1.0*(count1- count00)/count_rate
    !
-   call finalize_output(t,ntmaxout,tloopoutput)
+   call finalize_output(t,ntmaxout,tloopoutput,tmaxout)
    !
    if (store_tsunami_arrival_time) then
       !
