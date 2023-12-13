@@ -961,6 +961,7 @@ contains
    integer  :: count1
    integer  :: count_rate
    integer  :: count_max
+   integer  :: setzero
    real     :: tloop
    !
    real*8                           :: t
@@ -970,67 +971,133 @@ contains
    real*4                           :: smfac
    real*4                           :: oneminsmfac
    integer                          :: nm, ib
-   !
+   
+   !$acc wait
    call system_clock(count0, count_rate, count_max)
-   !
-   if (meteo3d) then
+if (meteo3d) then
+   if (wind) then
       !
       twfact  = (t - meteo_t0)/(meteo_t1 - meteo_t0)
       onemintwfact = 1.0 - twfact
+
+      !$omp parallel &
+      !$omp private ( nm )
+      !$omp do
+      !$acc kernels, present(tauwu, tauwv,  tauwu0, tauwv0, tauwu1, tauwv1), async(1)
+      !$acc loop independent, private(nm)
+      do nm = 1, np
+            tauwu(nm) = tauwu0(nm)*onemintwfact + tauwu1(nm)*twfact
+            tauwv(nm) = tauwv0(nm)*onemintwfact + tauwv1(nm)*twfact   
+      enddo
+      !$omp end do
+      !$omp end parallel
+      !$acc end kernels
+
+      if (store_meteo) then
+      !$omp parallel &
+      !$omp private ( nm )
+      !$omp do
+      !$acc kernels, present(windu, windv, windu0, windv0, windu1, windv1, windmax), async(2)
+      !$acc loop independent, private(nm)
+      do nm = 1, np
+         windu(nm) = windu0(nm)*onemintwfact + windu1(nm)*twfact
+         windv(nm) = windv0(nm)*onemintwfact + windv1(nm)*twfact
+         if (store_wind_max) then
+            windmax(nm) = max(windmax(nm), sqrt(windu(nm)**2 + windv(nm)**2))
+         endif     
+      enddo
+      !$omp end do
+      !$omp end parallel
+      !$acc end kernels
+      endif
+   endif
+   if (patmos) then
+      !$omp parallel &
+      !$omp private ( nm )
+      !$omp do
+      !$acc kernels, present(patm, patm0, patm1 ), async(3)
+      !$acc loop independent, private(nm)
+      do nm = 1, np
+         patm(nm)  = patm0(nm)*onemintwfact  + patm1(nm)*twfact  ! atmospheric pressure (Pa)
+      enddo
+      !$omp end do
+      !$omp end parallel
+      !$acc end kernels
+      if (pavbnd>0.0) then
+         !
+         !$acc kernels, present( patmb, nmindbnd, patm ), async(3) 
+         do ib = 1, ngbnd
+            patmb(ib) = patm(nmindbnd(ib))
+         enddo
+         !$acc end kernels
+         !
+         ! patmb is used at boundary points in the CPU part of update_boundary_conditions (should try to make this faster)
+         !
+         !$acc update host(patmb), async(3)
+         !
+      endif
+   endif   
+   if (precip) then
+      !$omp parallel &
+      !$omp private ( nm )
+      !$omp do
+      !$acc kernels, present(prcp, prcp0, prcp1, z_volume, zs, zb ), async(4)
+      !$acc loop independent, private(nm)
+      do nm = 1, np 
+      prcp(nm) = prcp0(nm)*onemintwfact  + prcp1(nm)*twfact  ! rainfall in m/s !!!
+      if (subgrid) then
+         prcp(nm) = prcp(nm)*(prcp(nm) >= 0)*(z_volume(nm)>0.0) 
+      else 
+         prcp(nm) = prcp(nm)*(prcp(nm) >= 0)*(zs(nm)>zb(nm))
+      endif
+      netprcp(nm) = prcp(nm)            
+      cumprcp(nm) = cumprcp(nm) + prcp(nm)*dt
+      enddo
+      !$omp end do
+      !$omp end parallel
+      !$acc end kernels
+   endif   
+      
+      !Apply spin-up factor
+      !
+   if (t<tspinup - 1.0e-3 .and. spinup_meteo) then
+      !
+      smfac = (t - t0)/(tspinup - t0)
+      oneminsmfac = 1.0 - smfac
       !
       !$omp parallel &
       !$omp private ( nm )
       !$omp do
-      !$acc kernels, present(tauwu, tauwv,  tauwu0, tauwv0, tauwu1, tauwv1, &
-      !$acc                  windu, windv, windu0, windv0, windu1, windv1, windmax, &
-      !$acc                  patm, patm0, patm1, prcp, prcp0, prcp1 ), async(1)
+      !$acc kernels, present(tauwu, tauwv, patm, prcp ), async(1)
       !$acc loop independent, private(nm)
       do nm = 1, np
          !
          if (wind) then
-            !
-            tauwu(nm) = tauwu0(nm)*onemintwfact + tauwu1(nm)*twfact
-            tauwv(nm) = tauwv0(nm)*onemintwfact + tauwv1(nm)*twfact
-            !
-            if (store_meteo) then
-               !
-               windu(nm) = windu0(nm)*onemintwfact + windu1(nm)*twfact
-               windv(nm) = windv0(nm)*onemintwfact + windv1(nm)*twfact
-               !
-               if (store_wind_max) then
-                  windmax(nm) = max(windmax(nm), sqrt(windu(nm)**2 + windv(nm)**2))
-               endif   
-               !
-            endif
-            !
+            tauwu(nm) = tauwu(nm)*smfac
+            tauwv(nm) = tauwv(nm)*smfac
          endif   
          !
          if (patmos) then
-            patm(nm)  = patm0(nm)*onemintwfact  + patm1(nm)*twfact  ! atmospheric pressure (Pa)
+            patm(nm)  =patm(nm)*smfac + gapres*oneminsmfac
          endif   
          !
          if (precip) then
-            !
-            prcp(nm)    = prcp0(nm)*onemintwfact  + prcp1(nm)*twfact  ! rainfall in m/s !!!
-            !
-            ! don't allow negative prcp (e.g. hardfixing infiltration/evaporation on model when forcing effective rainfall) when there's no water in the cell (same as check for constant infiltration)
-            if (prcp(nm) < 0) then
-                 ! No effective infiltration if there is no water
-                 !  
-                 if (subgrid) then
-                    if (z_volume(nm)<=0.0) then
-                       prcp(nm) = 0.0
-                    endif
-                 else
-                    if (zs(nm)<=zb(nm)) then
-                       prcp(nm) = 0.0
-                    endif
-                 endif            
-            endif
-            !
-            netprcp(nm) = prcp(nm)            
-            cumprcp(nm) = cumprcp(nm) + prcp(nm)*dt
-            !
+            netprcp(nm) = netprcp(nm)*smfac
+            
+             ! don't allow negative netprcp during spinup (e.g. hardfixing infiltration/evaporation on model when forcing effective rainfall) when there's no water in the cell (same as check for constant infiltration)
+             if (netprcp(nm) < 0) then
+                  ! No effective infiltration if there is no water
+                  !  
+                  if (subgrid) then
+                     if (z_volume(nm)<=0.0) then
+                        netprcp(nm) = 0.0
+                     endif
+                  else
+                     if (zs(nm)<=zb(nm)) then
+                        netprcp(nm) = 0.0
+                     endif
+                  endif            
+             endif               
          endif   
          !
       enddo   
@@ -1038,70 +1105,8 @@ contains
       !$omp end parallel
       !$acc end kernels
       !
-      ! Apply spin-up factor
-      !
-      if (t<tspinup - 1.0e-3 .and. spinup_meteo) then
-         !
-         smfac = (t - t0)/(tspinup - t0)
-         oneminsmfac = 1.0 - smfac
-         !
-         !$omp parallel &
-         !$omp private ( nm )
-         !$omp do
-         !$acc kernels, present(tauwu, tauwv, patm, prcp ), async(1)
-         !$acc loop independent, private(nm)
-         do nm = 1, np
-            !
-            if (wind) then
-               tauwu(nm) = tauwu(nm)*smfac
-               tauwv(nm) = tauwv(nm)*smfac
-            endif   
-            !
-            if (patmos) then
-               patm(nm)  =patm(nm)*smfac + gapres*oneminsmfac
-            endif   
-            !
-            if (precip) then
-               netprcp(nm) = netprcp(nm)*smfac
-               
-                ! don't allow negative netprcp during spinup (e.g. hardfixing infiltration/evaporation on model when forcing effective rainfall) when there's no water in the cell (same as check for constant infiltration)
-                if (netprcp(nm) < 0) then
-                     ! No effective infiltration if there is no water
-                     !  
-                     if (subgrid) then
-                        if (z_volume(nm)<=0.0) then
-                           netprcp(nm) = 0.0
-                        endif
-                     else
-                        if (zs(nm)<=zb(nm)) then
-                           netprcp(nm) = 0.0
-                        endif
-                     endif            
-                endif               
-            endif   
-            !
-         enddo   
-         !$omp end do
-         !$omp end parallel
-         !$acc end kernels
-         !
-      endif         
-      !   
-      if (patmos .and. pavbnd>0.0) then
-         !
-         !$acc serial, present( patmb, nmindbnd, patm ), async(1) 
-         do ib = 1, ngbnd
-            patmb(ib) = patm(nmindbnd(ib))
-         enddo
-         !$acc end serial
-         !
-         ! patmb is used at boundary points in the CPU part of update_boundary_conditions (should try to make this faster)
-         !
-         !$acc update host(patmb), async(1)
-         !
-      endif
-      !   
-   endif
+   endif  
+endif
    !
    ! Wind from time series
    !
@@ -1129,6 +1134,7 @@ contains
       !
    endif   
    !
+   !$acc wait
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
    !         
@@ -1221,7 +1227,8 @@ contains
    !$omp parallel &
    !$omp private ( nm )
    !$omp do
-   !$acc kernels present( prcp, cumprcp, netprcp )
+   !$acc kernels present( prcp, cumprcp, netprcp ), async(4)
+   !$acc loop independent, private(nm)
    do nm = 1, np
       prcp(nm)    = ptmp
       netprcp(nm) = ptmp

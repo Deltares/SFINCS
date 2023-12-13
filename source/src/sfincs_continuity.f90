@@ -16,7 +16,7 @@ contains
    integer          :: count_max
    real             :: tloop
 !   real*8 :: t
-   !
+   !$acc wait
    call system_clock(count0, count_rate, count_max)
    !
    if (subgrid) then
@@ -35,7 +35,7 @@ contains
       call compute_store_variables(dt)       
       !    
    endif
-   !
+   !$acc wait
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
    !
