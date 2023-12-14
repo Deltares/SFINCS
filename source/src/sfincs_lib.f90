@@ -236,8 +236,10 @@ module sfincs_lib
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
    !$acc               prcp, prcp0, prcp1, cumprcp, cumprcpt, netprcp, prcp, q, qinfmap, cuminf, & 
    !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
-   !$acc               gn2uv, fcorio2d, min_dt, storage_volume ) 
-   !
+   !$acc               gn2uv, fcorio2d, min_dt, storage_volume, & 
+   !$acc               scs_rain, rain_T1, scs_Se, inf_kr, qinffield, &
+   !$acc               scs_P1, scs_F1, scs_S1 )
+
    ! Set target time: if dt range is negative, do not modify t1
    !
    if ( dtrange > 0.0 ) then
