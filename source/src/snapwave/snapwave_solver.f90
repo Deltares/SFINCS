@@ -1060,10 +1060,10 @@ module snapwave_solver
        !
    endif
    !
-   ! Limit alphaig betwwen [0, 100] to prevent large overshoots in case of low gamma and very small beta
+   ! Limit alphaig betwwen [0, 1] to prevent large overshoots in case of low gamma and very small beta
    !
    alphaig = max(alphaig, 0.0)
-   alphaig = min(alphaig, 100.0)   
+   alphaig = min(alphaig, 1.0)   
    !             
    end subroutine estimate_shoaling_parameter_alphaig 
    
