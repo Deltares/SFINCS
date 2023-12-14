@@ -434,7 +434,7 @@ module snapwave_solver
                   !gam = max(H_incprev(itheta)/depthprev(itheta), 0.0)
                   gam = max(0.5*(H_incprev(itheta)/depthprev(itheta) + H_inc_old(k)/depth(k)), 0.0)                  
                   !
-                  if (ig_opt == 1) then                
+                  if (ig_opt == 1 .or. ig_opt == 2) then                
                      !  
                      call estimate_shoaling_parameter_alphaig(beta, gam, alphaig_local(itheta,k)) ! [input, input, output]
                      !
@@ -446,7 +446,7 @@ module snapwave_solver
                   !                  
                   ! Now calculate source term component
                   !         
-                  if (ig_opt == 1) then       
+                  if (ig_opt == 1 .or. ig_opt == 2) then       
                      ! Newest dSxx/dx based method, using estimate of Sxx(k) using conservative shoaling
                      if (Sxxprev(itheta)<=0.0) then 
                         !
@@ -457,9 +457,12 @@ module snapwave_solver
                         ! Calculate Sxx based on conservative shoaling of upwind point's Energy: Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
                         !Sxx_cons = eeprev(itheta) * (2.0 * (w(1, itheta, k)*nwav(k1) + w(2, itheta, k)*nwav(k2)) - 0.5) ! as check whether Sxxprev(itheta) con be recalculated using available data
                         Sxx_cons = eeprev(itheta) * cgprev(itheta) / cg_ig(k) * ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5)
-                        ! limit so value of nwav is between 0 and 1, and Sxx therefore doesn't become NaN for nwav=Infinite                       
-                        dSxx = Sxx_cons - Sxxprev(itheta)
-                        !dSxx = Sxx(itheta,k) - Sxxprev(itheta)                        
+                        ! limit so value of nwav is between 0 and 1, and Sxx therefore doesn't become NaN for nwav=Infinite  
+                        if (ig_opt == 1) then
+                            dSxx = Sxx_cons - Sxxprev(itheta)
+                        elseif (ig_opt == 2) then
+                            dSxx = Sxx(itheta,k) - Sxxprev(itheta)                        
+                        endif
                         !
                         dSxx = max(dSxx, 0.0)
                         !
@@ -527,7 +530,7 @@ module snapwave_solver
             Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*Hk*Ek_ig !org
             !Dfk_ig      = fw_ig(k)*1025*(9.81/depth(k))**(3.0/2.0)*(Hk/sqrt(8.0))*Hk_ig**(2.0)/8 -> TL: seems to give same result    
             !
-            if (ig_opt == 1 .or. ig_opt == 5) then                
+            if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 5) then                
                call baldock(g, rho, alfa_ig, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
             endif
             !
@@ -739,7 +742,7 @@ module snapwave_solver
                      !
                      if (Hk_ig>baldock_ratio_ig*Hmx_ig(k)) then
                         !
-                        if (ig_opt == 1 .or. ig_opt == 5) then                
+                        if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 5) then                
                            call baldock(g, rho, alfa_ig, gamma_ig, kwav_ig(k), depth(k), Hk_ig0, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))   
                         endif                        
                         !
@@ -761,7 +764,7 @@ module snapwave_solver
                         Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*Hk*Ek_ig !org
                         !Dfk_ig      = fw_ig(k)*1025*(9.81/depth(k))**(3.0/2.0)*(Hk/sqrt(8.0))*Hk_ig**(2.0)/8 -> TL: seems to give same result                  
                         !                     
-                        if (ig_opt == 1 .or. ig_opt == 5) then                
+                        if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 5) then                
                            call baldock(g, rho, alfa_ig, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
                         endif                    
                         !
@@ -865,7 +868,7 @@ module snapwave_solver
                Df_ig(k)      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*H(k)*E_ig(k) !org
                !Df_ig(k)      = fw_ig(k)*1025*(9.81/depth(k))**(3.0/2.0)*(H(k)/sqrt(8.0))*H_ig(k)**(2.0)/8 -> TL: seems to give same result               
                !
-               if (ig_opt == 1 .or. ig_opt == 5) then                
+               if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 5) then                
                   call baldock(g, rho, alfa_ig, gamma_ig, kwav_ig(k), depth(k), H_ig(k), T_ig, baldock_opt, Dw_ig(k), Hmx_ig(k))  
                endif               
                !
