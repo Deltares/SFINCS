@@ -68,7 +68,7 @@
 !   integer, parameter :: expo = 1
    !
    logical   :: iadv, ivis, icorio, iok
-   !$acc wait  
+   !!$acc wait  
    call system_clock(count0, count_rate, count_max)
    !
    min_dt = dtmax
@@ -520,7 +520,7 @@
    !$acc end kernels
    !
    !$acc update host(min_dt), async(1)
-   !$acc wait
+   !!$acc wait
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
    !         
