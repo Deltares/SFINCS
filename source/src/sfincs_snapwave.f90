@@ -310,6 +310,8 @@ contains
    !
    depth = snapwave_depth
    !
+   zb = snapwave_z   
+   !
    call compute_wave_field()
    !
    snapwave_H                     = H

@@ -88,7 +88,7 @@ module snapwave_solver
       !
       call solve_energy_balance2Dstat (x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                        theta,ntheta,thetamean,                                    &
-                                       depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,50000.,rho,snapwave_alpha,snapwave_alpha_ig,gamma,                 &
+                                       depth,zb,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,50000.,rho,snapwave_alpha,snapwave_alpha_ig,gamma,                 &
                                        H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, baldock_ratio_ig, battjesjanssen_opt, fshalphamin, fshfac, fshexp, alphaigfac, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_inc_old, H_rep, nwav)
       !
       call timer(t3)
@@ -108,7 +108,7 @@ module snapwave_solver
    
    subroutine solve_energy_balance2Dstat(x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                          theta,ntheta,thetamean,                                    &
-                                         depth,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,T,dt,rho,alfa,alfa_ig,gamma,                 &
+                                         depth,zb,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,T,dt,rho,alfa,alfa_ig,gamma,                 &
                                          H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, baldock_ratio_ig, battjesjanssen_opt, fshalphamin, fshfac, fshexp, alphaigfac, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_inc_old, H_rep, nwav)
    !
    implicit none
@@ -126,6 +126,7 @@ module snapwave_solver
    integer, dimension(2,ntheta,no_nodes),intent(in) :: prev                   ! two upwind grid points per grid point and wave direction
    integer, dimension(no_nodes),intent(in)          :: neumannconnected       ! number of neumann boundary point if connected to inner point
    real*4, dimension(no_nodes), intent(in)          :: depth                  ! water depth
+   real*4, dimension(no_nodes), intent(in)          :: zb                     ! actual bed level
    real*4, dimension(no_nodes), intent(in)          :: kwav                   ! wave number
    real*4, dimension(no_nodes), intent(in)          :: kwav_ig                ! wave number
    real*4, dimension(no_nodes), intent(in)          :: cg                     ! group velocity
@@ -416,25 +417,17 @@ module snapwave_solver
                   Hprev(itheta) = w(1, itheta, k)*H(k1) + w(2, itheta, k)*H(k2)
                   H_igprev(itheta) = w(1, itheta, k)*H_ig_old(k1) + w(2, itheta, k)*H_ig_old(k2)
                   H_incprev(itheta) = w(1, itheta, k)*H_inc_old(k1) + w(2, itheta, k)*H_inc_old(k2)
-                  depthprev(itheta) = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)
+                  depthprev(itheta) = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)                
                   eeprev(itheta) = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)                  
                   eeprev_ig(itheta) = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)                  
-                  !
-                  !beta = (depthprev(itheta) - depth(k))/ds(itheta, k)
-                  !beta = max( (depthprev(itheta) - depth(k))/ds(itheta, k), 0.0)
-                  !beta = max(   (max(depth(k1), depth(k2)) - depth(k))/ds(itheta, k), 0.0)                  
-                  !evt iets van if (depthprev(itheta) - depth(k) < 0.1                  
-                  beta  = max((w(1, itheta, k)*(depth(k1) - depth(k)) + w(2, itheta, k)*(depth(k2) - depth(k)))/ds(itheta, k), 0.0) !beta=0 means a horizontal or decreasing slope > need alphaig=0 then
-                  !beta = (w(1, itheta, k)*(depth(k1) - depth(k)) + w(2, itheta, k)*(depth(k2) - depth(k)))/ds(itheta, k)
+                  !     
+                  !beta  = max((w(1, itheta, k)*(zb(k1) - zb(k)) + w(2, itheta, k)*(zb(k2) - zb(k)))/ds(itheta, k), 0.0) !use actual bed level for slope, because depth changes because of wave setup/tide/surge
+                  beta  = max((w(1, itheta, k)*(zb(k) - zb(k1)) + w(2, itheta, k)*(zb(k) - zb(k2)))/ds(itheta, k), 0.0) ! in zb, depth is negative
+                  !beta  = max((w(1, itheta, k)*(depth(k1) - depth(k)) + w(2, itheta, k)*(depth(k2) - depth(k)))/ds(itheta, k), 0.0) !beta=0 means a horizontal or decreasing slope > need alphaig=0 then
                   !
                   betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin))
                   !  
-                  !betar_local(itheta,k) = betan_local(itheta,k) * sqrt(steepness_bc(k)) / reldepth(k) 
                   betar_local(itheta,k) = beta     
-                  !if (depth(k) < 4 .and. depth(k) > 3 .and. w(1, itheta, k) > 0) then
-                  !    write(*,*)'k, itheta, depth(k), depth(k1), depth(k2), w1, w2, depthprev(itheta) , beta',k,itheta,depth(k),depth(k1),depth(k2), w(1, itheta, k),w(2, itheta, k),depthprev(itheta),beta 
-                  !endif
-                  
                   !
                   !gam = max(0.5*(Hprev(itheta)/depthprev(itheta) + H(k)/depth(k)), 0.0)
                   !gam = max(Hprev(itheta)/depthprev(itheta), 0.0)
@@ -886,8 +879,9 @@ module snapwave_solver
                !endif 
                
                
+               alphaig(k) = sum(alphaig_local(:,k))/ntheta ! real mean 
                !alphaig(k) = sum(alphaig_local(:,k))*dtheta  
-               alphaig(k) = maxval(alphaig_local(:,k))                             
+               !alphaig(k) = maxval(alphaig_local(:,k))                             
                srcsh(k)   = maxval(srcsh_local(:,k))                           
                !srcsh(k)   = sum(srcsh_local(:,k))*dtheta                              
                !
