@@ -85,7 +85,7 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.0.3-Cauberg'
+   build_revision = '$Rev: v2.0.4-alpha-branch:green_infra_test'
    build_date     = '$Date: 2023-11-15'
    !
    write(*,'(a)')''   
