@@ -90,7 +90,7 @@ contains
    NF90(nf90_def_dim(map_file%ncid, 'corner_n', nmax + 1, map_file%corner_n_dimid)) ! rows of corners
    NF90(nf90_def_dim(map_file%ncid, 'corner_m', mmax + 1, map_file%corner_m_dimid)) ! columns of corners   
    NF90(nf90_def_dim(map_file%ncid, 'time', NF90_UNLIMITED, map_file%time_dimid)) ! time
-   ntmx = max(int((t1out - t0out)/dtmaxout), 1)
+   ntmx = max(ceiling((t1out - t0out)/dtmaxout), 1)
    NF90(nf90_def_dim(map_file%ncid, 'timemax', ntmx, map_file%timemax_dimid)) ! time
    NF90(nf90_def_dim(map_file%ncid, 'runtime', 1, map_file%runtime_dimid)) ! total_runtime, average_dt       
    !
@@ -701,7 +701,7 @@ contains
    ! Time
    !
    NF90(nf90_def_dim(map_file%ncid, 'time', NF90_UNLIMITED, map_file%time_dimid)) ! time
-   ntmx = max(int((t1out - t0out)/dtmaxout), 1)
+   ntmx = max(ceiling((t1out - t0out)/dtmaxout), 1)   
    NF90(nf90_def_dim(map_file%ncid, 'timemax', ntmx, map_file%timemax_dimid)) ! time
    NF90(nf90_def_dim(map_file%ncid, 'runtime', 1, map_file%runtime_dimid)) ! total_runtime, average_dt       
    !

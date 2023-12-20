@@ -240,7 +240,7 @@ module sfincs_output
    !   
    end subroutine
    
-   subroutine finalize_output(t, ntmaxout, tloopoutput)
+   subroutine finalize_output(t, ntmaxout, tloopoutput, tmaxout)
    !
    use sfincs_data
    !
@@ -249,12 +249,24 @@ module sfincs_output
    integer  :: ntmaxout
    real*8   :: t   
    real     :: tloopoutput 
+   real*8   :: tmaxout   
    !   
-   if (dtmaxout>1.e-6 .and. ntmaxout == 0) then
+   if (dtmaxout>1.e-6 .and. ntmaxout == 0) then 
+       !write dtmax output if 1) value for dtmaxout wasn't achieved yet, 
+       !or 2) in the last timeinterval, the full 'dtmaxout' wasn't achieved yet, but we still want the max over this interval
+      ! 
       write(*,'(a)')''       
-      write(*,*)'Info : Write maximum values of final timestep since t=dtmaxout was not reached yet...'
+      write(*,*)'Info : Write maximum values at final timestep since t=dtmaxout was not reached yet...'
       ntmaxout = 1
       call write_output(t,.false.,.false.,.true.,.false.,0,ntmaxout,0,tloopoutput)
+      !
+   elseif (dtmaxout>1.e-6 .and. ntmaxout>0 .and. t < tmaxout) then
+      !
+      write(*,'(a)')''       
+      write(*,*)'Info : Write maximum values at final timestep since t=dtmaxout was not reached yet for final interval...'
+      ntmaxout = ntmaxout + 1
+      call write_output(t,.false.,.false.,.true.,.false.,0,ntmaxout,0,tloopoutput)       
+      !
    endif
    !
    if (outputtype_map == 'net') then
