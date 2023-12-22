@@ -15,7 +15,6 @@ contains
    integer          :: count_rate
    integer          :: count_max
    real             :: tloop
-!   real*8 :: t
    !
    call system_clock(count0, count_rate, count_max)
    !
@@ -99,7 +98,7 @@ contains
    ! Should try to do this in a smart way for openacc
    !
    if (nsrcdrn>0) then
-      !$acc serial, present( zs,nmindsrc,qtsrc,zb ), async(1)
+      !$acc serial, present( zs,nmindsrc,qtsrc,zb,cell_area,z_flags_iref ), async(1)
       do isrc = 1, nsrcdrn
          nm = nmindsrc(isrc)
          zs(nmindsrc(isrc))   = max(zs(nm) + qtsrc(isrc)*dt/cell_area(z_flags_iref(nm)), zb(nm))
@@ -294,6 +293,7 @@ contains
    real*4           :: a
    real*4           :: uz
    real*4           :: vz
+   real*4           :: dv
    !
    if (wavemaker) then
       !
@@ -315,7 +315,7 @@ contains
    endif   
    !
    !$omp parallel &
-   !$omp private ( dvol,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,iwm,qnmd,qnmu,qndm,qnum)
+   !$omp private ( dvol,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,iwm,qnmd,qnmu,qndm,qnum,dv )
    !$omp do schedule ( dynamic, 256 )
    !$acc kernels present( kcs, zs, zb, z_volume, zsmax, zsm, &
    !$acc                  subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
@@ -447,12 +447,20 @@ contains
             if (storage_volume(nm)>1.0e-6) then
                !
                ! Still some storage left
-               ! 
-               z_volume(nm) = z_volume(nm) + dvol - storage_volume(nm)
                !
                ! Compute remaining storage volume
-               ! 
-               storage_volume(nm) =  max(storage_volume(nm) - dvol, 0.0)
+               !
+               dv = storage_volume(nm) - dvol
+               !
+               storage_volume(nm) =  max(dv, 0.0)
+               !
+               if (dv < 0.0) then
+                  !
+                  ! Overshoot, so add remaining volume to z_volume
+                  !
+                  z_volume(nm) = z_volume(nm) - dv
+                  !
+               endif
                !
             else
                ! 
@@ -544,8 +552,8 @@ contains
    !$omp parallel &
    !$omp private ( nmd, nmu, ndm, num, quz, qvz, qz, uvz )
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels present( kcs, zs, zb, subgrid_z_zmin, q, vmax, qmax, twet, &
-   !$acc                  z_index_uv_md1, z_index_uv_nd1, z_index_uv_mu1, z_index_uv_nu), async(1)
+   !$acc kernels present( kcs, zs, zb, subgrid_z_zmin, q, uv, vmax, qmax, twet, &
+   !$acc                  z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu), async(2)
    !$acc loop independent, private( nm )   
    do nm = 1, np
       !
@@ -612,7 +620,7 @@ contains
    !$omp end do
    !$omp end parallel
    !$acc end kernels
-   !$acc wait(1)
+   !$acc wait(2)
    !       
    end subroutine
    

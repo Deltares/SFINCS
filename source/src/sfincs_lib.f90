@@ -19,6 +19,7 @@ module sfincs_lib
    use sfincs_continuity
    use sfincs_snapwave
    use sfincs_wavemaker
+!   use sfincs_subgrid
    !
    implicit none
    !
@@ -85,7 +86,7 @@ module sfincs_lib
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
    build_revision = '$Rev: v2.0.4-alpha'
-   build_date     = '$Date: 2023-12-11'
+   build_date     = '$Date: 2023-12-20'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
@@ -130,13 +131,13 @@ module sfincs_lib
    !
    call read_meteo_data()       ! Reads meteo data (amu, amv, spw file etc.)
    !
-   call initialize_domain()     ! Reads dep, msk, index files. Creates index, flag and depth arrays. Initializes water levels, fluxes, flags
+   call initialize_domain()     ! Reads dep, msk, index files, creates index, flag and depth arrays, initializes hydro quantities
    !
-   call read_structures()       ! Reads thd files. Sets kcuv to zero where necessary
+   call read_structures()       ! Reads thd files and sets kcuv to zero where necessary
    !
    call read_boundary_data()    ! Reads bnd, bzs, etc files
    !
-   call read_coastline()        ! Reads cst file
+   ! call read_coastline()        ! Reads cst file. Do we still do this ?
    !
    call find_boundary_indices()
    !
@@ -148,7 +149,7 @@ module sfincs_lib
    !
    if (snapwave) then
       !
-      write(*,*)'Coupling SnapWave ...'
+      write(*,*)'Coupling with SnapWave ...'
       !
       call couple_snapwave()
       !
@@ -172,7 +173,7 @@ module sfincs_lib
    dtavg       = 0.0    ! average time step
    maxdepth    = 999.0  ! maximum depth over time step
    maxmaxdepth = 0.0    ! maximum depth over entire simulation
-   min_dt       = 0.0    ! minimum time step from compute_fluxes
+   min_dt      = 0.0    ! minimum time step from compute_fluxes
    nt          = 0      ! number of time steps
    ntmapout    = 0      ! number of map time steps
    ntmaxout    = 0      ! number of max time steps
@@ -223,10 +224,12 @@ module sfincs_lib
    !
    ierr = -1
    !
+   ! Copy arrays to GPU memory
+   ! 
    !$acc data, copyin( kcs, kcuv, zs, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, qmax, vmax, twet, zsm, z_volume, &
    !$acc               z_flags_iref, uv_flags_iref, uv_flags_type, uv_flags_dir, &
    !$acc               index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, zsb, zsb0, ibuvdir, uvmean, &
-   !$acc               subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_hrep, subgrid_uv_navg, subgrid_uv_hrep_zmax, subgrid_uv_navg_zmax, &
+   !$acc               subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
    !$acc               subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
    !$acc               z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
    !$acc               uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
@@ -237,9 +240,10 @@ module sfincs_lib
    !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
    !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, & 
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
-   !$acc               prcp, prcp0, prcp1, cumprcp, cumprcpt, netprcp, prcp, q, qinfmap, cuminf, & 
+   !$acc               prcp, prcp0, prcp1, cumprcp, cumprcpt, netprcp, prcp, qinfmap, cuminf, & 
    !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
-   !$acc               gn2uv, fcorio2d, min_dt, storage_volume ) 
+   !$acc               gn2uv, fcorio2d, min_dt, storage_volume, &
+   !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2 )
    !
    ! Set target time: if dt range is negative, do not modify t1
    !
@@ -285,7 +289,7 @@ module sfincs_lib
          !
          write_map = .true.
          ntmapout  = ntmapout + 1
-         tout      = tmapout 
+         tout      = max(tmapout, t - dt) 
          tmapout   = tmapout + dtmapout
          !
       endif
@@ -296,7 +300,7 @@ module sfincs_lib
          !
          write_max = .true.
          ntmaxout  = ntmaxout + 1    ! now also keep track of nr of max output
-         tout      = tmaxout 
+         tout      = max(tmaxout, t - dt) 
          tmaxout   = tmaxout + dtmaxout
          !
       endif
@@ -330,7 +334,7 @@ module sfincs_lib
          !
          write_his = .true.
          nthisout  = nthisout + 1
-         tout      = thisout 
+         tout      = max(thisout, t - dt) 
          thisout   = thisout + dthisout
          !
       endif
@@ -389,12 +393,15 @@ module sfincs_lib
          call update_meteo_forcing(t, dt, tloopwnd2)
          !
          ! Update infiltration
+         !
          if (infiltration) then
              !
              ! Compute infiltration rates
+             !
              call update_infiltration_map(dt)
+             !
          endif
-      !
+         !
       endif   
       !
       ! Update boundary conditions
@@ -411,11 +418,13 @@ module sfincs_lib
          !
          call update_wave_field(t, tloopsnapwave)
          !
-!         if (wavemaker) then
-!            !
-!            call update_wavemaker_points(tloopwavemaker)   
-!            !
-!         endif   
+         ! Maybe we'll add moving wave makers back at some point
+         !
+         ! if (wavemaker) then
+         !    !
+         !    call update_wavemaker_points(tloopwavemaker)   
+         !    !
+         ! endif   
          !
       endif   
       !
@@ -445,7 +454,7 @@ module sfincs_lib
       !
       if (write_map .or. write_his .or. write_max .or. write_rst) then
          !
-         if (.not. fixed_output_intervals) tout = t
+         ! if (.not. fixed_output_intervals) tout = t
          !
          call write_output(tout, write_map, write_his, write_max, write_rst, ntmapout, ntmaxout, nthisout, tloopoutput)
          !

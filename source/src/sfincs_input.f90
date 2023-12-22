@@ -29,13 +29,14 @@ contains
    integer istorefw
    integer istorewavdir   
    integer imanning2d
-   integer iviscosity   
    integer isubgrid  
    integer iwavemaker      
    integer iwavemaker_spectrum  
    integer ispwprecip
+   logical iviscosity   
    !
    character*256 wmsigstr 
+   character*256 advstr 
    !   
    write(*,*)'Reading input file ...'
    !
@@ -106,7 +107,7 @@ contains
    call read_int_input(500,'global',iglobal,0)
    call read_real_input(500,'nuvisc',nuviscinp,-999.0)
    call read_real_input(500,'nuviscdim',nuviscdim,1.0)   
-   call read_int_input(500,'viscosity',iviscosity,0)
+   call read_logical_input(500,'viscosity',iviscosity,.false.)
    call read_int_input(500,'spinup_meteo', ispinupmeteo, 0)
    call read_real_input(500,'waveage',waveage,-999.0)
    call read_int_input(500,'snapwave', isnapwave, 0)
@@ -114,6 +115,8 @@ contains
    call read_real_input(500,'wmtfilter',wmtfilter,600.0)
    call read_real_input(500,'wmfred',wavemaker_freduv,0.99)
    call read_char_input(500,'wmsignal',wmsigstr,'spectrum')   
+   call read_char_input(500,'advection_scheme',advstr,'upw1')   
+   call read_real_input(500,'btrelax',btrelax,3600.0)
    !
    ! Domain
    !
@@ -198,6 +201,7 @@ contains
    call read_int_input(500,'storemaxwind',iwindmax,0)
    call read_int_input(500,'storefw', istorefw, 0)
    call read_int_input(500,'storewavdir', istorewavdir, 0)
+   call read_logical_input(500,'friction2d',friction2d,.true.)
    !
    ! Wind drag
    !
@@ -408,16 +412,18 @@ contains
    endif      
    !
    viscosity = .false.   
-   if (nuviscinp>0.0 .or. iviscosity==1)then
+   !
+   if (nuviscinp>0.0 .or. iviscosity) then
       !
       if (nuviscinp>0.0) then ! if nuvisc given by user, this overrules the dimensionless default use of nuvisc, for backwards compatability
          !
          nuvisc = nuviscinp
          viscosity = .true.         
          !
-      else ! user defined viscosity=1:
+      else ! user defined viscosity = 1
          !
          if (qtrfile(1:4) == 'none') then ! this works only for a regular grid model, for quadtree use 'nuvisc' option
+            !
             viscosity = .true.         
             !
             if (crsgeo .eqv. .true.) then ! simplified conversion for spherical grids
@@ -433,10 +439,11 @@ contains
                 ! nuvisc = nuviscdim * dx / 100 
             endif
          endif          
+         !
       endif    
       !
       if (viscosity .eqv. .true.) then
-         write(*,*)'Turning on process: Viscosity, with nuvisc= ',nuvisc
+         write(*,*)'Turning on process: Viscosity, with nuvisc = ', nuvisc
       endif      
       !
    endif   
@@ -494,7 +501,37 @@ contains
    !
    use_storage_volume = .false.
    if (volfile(1:4) /= 'none') then
-      use_storage_volume = .true.
+      if (subgrid) then
+         use_storage_volume = .true.
+      else
+         write(*,*)'Warning: storage volume only supported for subgrid topographies!'
+      endif
+   endif
+   !
+   advection_limiter = .false.
+   !   
+   if (advection) then
+      !
+      ! Make 1st order upwind the default scheme
+      !  
+      advection_scheme = 1
+      ! 
+      if (trim(advstr) == 'original') then
+         advection_scheme = 0
+         write(*,*)'Advection scheme : Original'
+      elseif (trim(advstr) == 'upw1') then
+         advection_scheme = 1
+         write(*,*)'Advection scheme : First-order upwind'
+      else
+         write(*,*)'Warning: advection scheme ', trim(advstr), ' not recognized! Using default upw1 instead!'
+      endif
+      !
+      if (advlim < 9999.0) then 
+         !
+         advection_limiter = .true.
+         !
+      endif
+      !
    endif
    !
    end subroutine

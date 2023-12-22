@@ -572,7 +572,7 @@ module sfincs_ncinput
     use netcdf
     use sfincs_data   
     use sfincs_spiderweb
-
+    !
     implicit none   
     !
     integer nt, status
@@ -651,29 +651,35 @@ module sfincs_ncinput
     dphispw     = 2*pi/spw_ncols
     !
     ! Read matrix values
+    !
     do nt = 1, spw_nt 
-    !      
-        ! Read wind_x
-        NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%wind_x_varid, prtmp, start = (/ 1, 1, nt /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
-        ampr_prtmp = reshape( prtmp, (/ 1, spw_nrows, spw_ncols /), ORDER = (/ 3, 2, 1 /))            
-        spw_wu(nt,:,:) = ampr_prtmp(1,:,:)
-        !
-        ! Read wind_y
-        NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%wind_y_varid, prtmp, start = (/ 1, 1, nt /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
-        ampr_prtmp = reshape( prtmp, (/ 1, spw_nrows, spw_ncols /), ORDER = (/ 3, 2, 1 /))            
-        spw_wv(nt,:,:) = ampr_prtmp(1,:,:)
-        !
-        ! Read pressure
-        NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%pressure_varid, prtmp, start = (/ 1, 1, nt /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
-        ampr_prtmp = reshape( prtmp, (/ 1, spw_nrows, spw_ncols /), ORDER = (/ 3, 2, 1 /))            
-        spw_pdrp(nt,:,:) = ampr_prtmp(1,:,:)
-        !
-        ! Read rainfall
-        if (spw_precip) then
-            NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%precip_varid, prtmp, start = (/ 1, 1, nt /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
-            ampr_prtmp = reshape( prtmp, (/ 1, spw_nrows, spw_ncols /), ORDER = (/ 3, 2, 1 /))            
-            spw_prcp(nt,:,:) = ampr_prtmp(1,:,:)
-        endif
+       !
+       ! Read wind_x
+       !
+       NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%wind_x_varid, prtmp, start = (/ 1, 1, nt /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
+       ampr_prtmp = reshape( prtmp, (/ 1, spw_nrows, spw_ncols /), ORDER = (/ 3, 2, 1 /))            
+       spw_wu(nt,:,:) = ampr_prtmp(1,:,:)
+       !
+       ! Read wind_y
+       !
+       NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%wind_y_varid, prtmp, start = (/ 1, 1, nt /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
+       ampr_prtmp = reshape( prtmp, (/ 1, spw_nrows, spw_ncols /), ORDER = (/ 3, 2, 1 /))            
+       spw_wv(nt,:,:) = ampr_prtmp(1,:,:)
+       !
+       ! Read pressure
+       !
+       NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%pressure_varid, prtmp, start = (/ 1, 1, nt /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
+       ampr_prtmp = reshape( prtmp, (/ 1, spw_nrows, spw_ncols /), ORDER = (/ 3, 2, 1 /))            
+       spw_pdrp(nt,:,:) = ampr_prtmp(1,:,:)
+       !
+       ! Read rainfall
+       !
+       if (spw_precip) then
+          NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%precip_varid, prtmp, start = (/ 1, 1, nt /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
+          ampr_prtmp = reshape( prtmp, (/ 1, spw_nrows, spw_ncols /), ORDER = (/ 3, 2, 1 /))            
+          spw_prcp(nt,:,:) = ampr_prtmp(1,:,:)
+       endif
+       !
     enddo
     ! 
     ! Read time attibute and convert time
