@@ -47,6 +47,9 @@ contains
       allocate(eet_bwv_ig(ntheta,nwbnd)) 
       ! 'nwbnd' was determined in read_boundary_data_singlepoint/read_boundary_data_timeseries
       ! 
+      ! Also needed:
+      allocate(deptht_bwv(nwbnd))      
+      !
    endif    
    !
    end subroutine
@@ -462,6 +465,73 @@ contains
    !
    end subroutine   
    
+subroutine find_nearest_depth_for_boundary_points()
+    !
+    ! Find nearest grid index in (xgb,ygb) for every boundary input point (x_bwv(ib), y_bwv(ib))
+    !
+    use snapwave_data
+    !
+    implicit none
+    !
+    real*4  :: h1, h2, fac
+    !
+    real xgb, ygb, dst1, dst2, dst   
+    integer k, ib1, ib2, ic
+    !
+    ! Loop through all water level boundary points
+    !
+    do ic = 1, nwbnd    
+        ! Loop through all grid points
+        !
+        do k = 1, no_nodes
+            !
+	        xgb = x(k)
+	        ygb = y(k)          
+                !        
+	        dst1 = 1.0e10
+	        dst2 = 1.0e10
+	        ib1 = 0
+	        ib2 = 0
+	        !
+	        dst = sqrt((x_bwv(ic) - xgb)**2 + (y_bwv(ic) - ygb)**2)
+	        !
+	        if (dst<dst1) then
+		        !
+		        ! Nearest point found
+		        !
+		        dst2 = dst1
+		        ib2  = ib1
+		        dst1 = dst
+		        ib1  = ic
+		        !
+	        elseif (dst<dst2) then
+		        !
+		        ! Second nearest point found
+		        !
+		        dst2 = dst
+		        ib2  = ic
+		        !
+	        endif    
+        enddo
+        !
+        if (ib2 == 0) then
+            !
+            write(*,*)'Warning: only 1 close grid point found for boundary input location (x,y): ',x_bwv(ic),y_bwv(ic)
+            deptht_bwv(ic) = depth(ib1)
+            !
+        else
+            !    
+            h1  = depth(ib1)
+            h2  = depth(ib2)
+            fac = dst2/(dst1 + dst2)   
+            deptht_bwv(ic) = h1*fac + h2*(1.0 - fac)
+            !
+        endif
+        !
+    enddo    
+    !
+end subroutine
+
 subroutine update_boundary_conditions(t)
    !
    ! Update all wave boundary conditions
@@ -497,7 +567,7 @@ subroutine update_boundary_points(t)
    !
    real*4  :: tbfac
    real*4  :: hs, tps, wd, dsp, zst, thetamin, thetamax, E0, ms, modth, E0_ig
-   real*4  :: jonswapgam, localdepth
+   real*4  :: jonswapgam, hlocal
    logical :: always_update_bnd_spec
    !
 !   write(*,*)'dtheta',dtheta
@@ -541,25 +611,6 @@ subroutine update_boundary_points(t)
       endif
    enddo
    !
-   ! Same for IG conditions, for now in separate loop
-   !
-   if (igwaves) then
-      ! 
-      jonswapgam = 3.3 ! TODO: TL: later make spatially varying?
-      !
-      do ib = 1, nwbnd ! Loop along boundary points
-         ! 
-         !local water depth at boundary points (can change in time)  
-         h = depth(ind1_bwv_cst(ib))*fac_bwv_cst(ib)  + depth(ind2_bwv_cst(ib))*(1.0 - fac_bwv_cst(ib))
-         !
-         ! Determine IG wave height and period at boundary
-         call build_boundw(hst_bwv(ib), tpt_bwv(ib), dst_bwv(ib), jonswapgam, localdepth, hst_bwv_ig(ib), tpt_bwv_ig(ib)) 
-         ! input, input, input, input, input, output, output
-         ! Based on subroutine 'build_boundw' of XBeach waveparams.F90
-         !
-      enddo   
-   endif
-   !
    ! Now generate wave spectra at the boundary points
    !
    ! Average wave period and direction to determine theta grid
@@ -569,16 +620,35 @@ subroutine update_boundary_points(t)
    depth      = max(zsmean_bwv - zb,hmin)
    wdmean_bwv = atan2(sum(sin(wdt_bwv)*hst_bwv)/sum(hst_bwv), sum(cos(wdt_bwv)*hst_bwv)/sum(hst_bwv))
    !
+   ! Determine IG boundary conditions
+   !
    if (igwaves) then
+      ! 
+      !jonswapgam = 3.3 ! TODO: TL: later make spatially varying?
+      jonswapgam = 20.0
+      !
+      ! Get local water depth at boundary points (can change in time)        
+      call find_nearest_depth_for_boundary_points()
+      !
+      do ib = 1, nwbnd ! Loop along boundary points
+         !           
+         ! Determine IG wave height and period at boundary
+         call build_boundw(hst_bwv(ib), tpt_bwv(ib), dst_bwv(ib), jonswapgam, deptht_bwv(ib), hst_bwv_ig(ib), tpt_bwv_ig(ib)) 
+         ! input, input, input, input, input, output, output
+         ! Based on subroutine 'build_boundw' of XBeach waveparams.F90
+         !
+      enddo   
+      !
       tpmean_bwv_ig = sum(tpt_bwv_ig)/size(tpt_bwv_ig)       
-   endif   
+      !      
+   endif  
    !
    ! Determine theta grid and adjust w, prev and ds tables
    !
    ! Definition of directional grid
    !
    thetamean = wdmean_bwv
-   
+   !
    ind = nint(thetamean/dtheta) + 1
    do itheta = 1, ntheta
 !      i360(itheta) = mod2(itheta + ind - 10, 36)
@@ -625,8 +695,7 @@ subroutine update_boundary_points(t)
    ! Build IG spectra on wave boundary support points   
    if (igwaves) then   
       do ib = 1, nwbnd ! Loop along boundary points    
-         !
-          
+         !          
          E0_ig   = 0.0625*rho*g*hst_bwv_ig(ib)**2
          ms   = 1.0/dst_bwv(ib)**2-1
          dist = (cos(theta - thetamean))**ms      
@@ -668,12 +737,17 @@ subroutine update_boundaries()
    enddo
    !
    if (igwaves) then
+      ! 
       do ib = 1, nb
          !
          k = nmindbnd(ib)       
          !
-         ee_ig(i,k) = eet_bwv_ig(i,ind1_bwv_cst(ib))*fac_bwv_cst(ib)  + eet_bwv_ig(i,ind2_bwv_cst(ib))*(1.0 - fac_bwv_cst(ib))                    
-         ! 
+         do i = 1, ntheta
+            !          
+            ee_ig(i,k) = eet_bwv_ig(i,ind1_bwv_cst(ib))*fac_bwv_cst(ib)  + eet_bwv_ig(i,ind2_bwv_cst(ib))*(1.0 - fac_bwv_cst(ib))                    
+            ! 
+         enddo
+         !
       enddo
    endif          
    !
@@ -758,24 +832,30 @@ subroutine update_boundaries()
    ! Build boundwave offshore spectrum, and determine Hig0 and Tpig0, using Herbers 1994
    ! Based on subroutine 'build_boundw' of XBeach waveparams.F90   
    !
+   ! Input hsinc is Hm0, not Hrms
+   ! Output hsig is therefore also Hm0 (and expected like that in E0_ig   = 0.0625*rho*g*hst_bwv_ig(ib)**2
+
+   !
+   ! Input ds is already in rad
+   !
    implicit none
    !
    real*4, intent(in)    :: hsinc, tpinc, ds, jonswapgam, depth
    real*4, intent(out)   :: hsig, tpig
    !
-   real*4                :: pi, sigma, S
+   real*4                :: pi, S
    !
    pi    = 4.*atan(1.)
    !
    ! Convert wave spreading in degrees (input) to S
-   sigma = ds/180*pi;
-   S = (2/sigma**2) - 1
+   S = (2/ds**2) - 1
    !  
-   hsig = 0.01
-   tpig = 100.0
-   
-   
-   
+   !hsig = 0.01
+   hsig = 0.0059  
+   !tpig = 100.0
+   tpig = 37.0156
+   !snapwave_Tinc2ig     = 16.4855
+   !snapwave_eeinc2ig    = 0.0029      
    !
    end subroutine   
 

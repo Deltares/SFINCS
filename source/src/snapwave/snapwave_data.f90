@@ -103,7 +103,7 @@ module snapwave_data
    real*4,  dimension(:),     allocatable      :: dst_bwv                 ! directional spreading at boundary points for given time
    real*4,  dimension(:),     allocatable      :: zst_bwv                 ! water level at boundary points for given time
    real*4,  dimension(:,:),   allocatable      :: eet_bwv                 ! directional spectra at boundary points for given time
-
+   real*4,  dimension(:),     allocatable      :: deptht_bwv                ! water depth at boundary points for given time   
    !
    real*4,  dimension(:,:),     allocatable    :: hs_bwv                  ! wave height for all boundary locations and time points
    real*4,  dimension(:,:),     allocatable    :: tp_bwv                  ! wave period for all boundary locations and time points
