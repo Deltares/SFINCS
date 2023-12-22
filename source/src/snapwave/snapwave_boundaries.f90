@@ -46,9 +46,6 @@ contains
       allocate(tpt_bwv_ig(nwbnd))          
       allocate(eet_bwv_ig(ntheta,nwbnd)) 
       ! 'nwbnd' was determined in read_boundary_data_singlepoint/read_boundary_data_timeseries
-      !      
-      !call build_boundw() !TODO: Add function
-      ! Based on subroutine 'build_boundw' of XBeach waveparams.F90
       ! 
    endif    
    !
@@ -465,7 +462,6 @@ contains
    !
    end subroutine   
    
-   
 subroutine update_boundary_conditions(t)
    !
    ! Update all wave boundary conditions
@@ -485,9 +481,9 @@ subroutine update_boundary_conditions(t)
    !
    call update_boundaries()
    !
-   end subroutine   
+end subroutine   
    
-   subroutine update_boundary_points(t)
+subroutine update_boundary_points(t)
    !
    ! Update vardens at boundary points
    !
@@ -501,6 +497,7 @@ subroutine update_boundary_conditions(t)
    !
    real*4  :: tbfac
    real*4  :: hs, tps, wd, dsp, zst, thetamin, thetamax, E0, ms, modth, E0_ig
+   real*4  :: jonswapgam, localdepth
    logical :: always_update_bnd_spec
    !
 !   write(*,*)'dtheta',dtheta
@@ -548,25 +545,18 @@ subroutine update_boundary_conditions(t)
    !
    if (igwaves) then
       ! 
-      itwbndlast = 2 ! reset   
+      jonswapgam = 3.3 ! TODO: TL: later make spatially varying?
       !
-      do itb = itwbndlast, ntwbnd ! Loop in time
+      do ib = 1, nwbnd ! Loop along boundary points
+         ! 
+         !local water depth at boundary points (can change in time)  
+         h = depth(ind1_bwv_cst(ib))*fac_bwv_cst(ib)  + depth(ind2_bwv_cst(ib))*(1.0 - fac_bwv_cst(ib))
          !
-         if (t_bwv(itb)>t) then
-            !
-            tbfac  = (t - t_bwv(itb - 1))/(t_bwv(itb) - t_bwv(itb - 1))
-            !
-            do ib = 1, nwbnd ! Loop along boundary points
-               !
-               hst_bwv_ig(ib) = hs_bwv_ig(ib, itb - 1) + (hs_bwv_ig(ib, itb) - hs_bwv_ig(ib, itb - 1))*tbfac
-               tpt_bwv_ig(ib) = tp_bwv_ig(ib, itb - 1) + (tp_bwv_ig(ib, itb) - tp_bwv_ig(ib, itb - 1))*tbfac                
-               !
-            enddo
-            !
-            itwbndlast = itb
-            exit
-            !
-         endif
+         ! Determine IG wave height and period at boundary
+         call build_boundw(hst_bwv(ib), tpt_bwv(ib), dst_bwv(ib), jonswapgam, localdepth, hst_bwv_ig(ib), tpt_bwv_ig(ib)) 
+         ! input, input, input, input, input, output, output
+         ! Based on subroutine 'build_boundw' of XBeach waveparams.F90
+         !
       enddo   
    endif
    !
@@ -636,6 +626,7 @@ subroutine update_boundary_conditions(t)
    if (igwaves) then   
       do ib = 1, nwbnd ! Loop along boundary points    
          !
+          
          E0_ig   = 0.0625*rho*g*hst_bwv_ig(ib)**2
          ms   = 1.0/dst_bwv(ib)**2-1
          dist = (cos(theta - thetamean))**ms      
@@ -760,7 +751,32 @@ subroutine update_boundaries()
 !   if (c==0) c = b
 !   if (c<0)  c = c + b
 !   !   
-!   end function
+!   end function  
 
+   subroutine build_boundw(hsinc, tpinc, ds, jonswapgam, depth, hsig, tpig) !input, input, input, input, input, output, output)
+   !
+   ! Build boundwave offshore spectrum, and determine Hig0 and Tpig0, using Herbers 1994
+   ! Based on subroutine 'build_boundw' of XBeach waveparams.F90   
+   !
+   implicit none
+   !
+   real*4, intent(in)    :: hsinc, tpinc, ds, jonswapgam, depth
+   real*4, intent(out)   :: hsig, tpig
+   !
+   real*4                :: pi, sigma, S
+   !
+   pi    = 4.*atan(1.)
+   !
+   ! Convert wave spreading in degrees (input) to S
+   sigma = ds/180*pi;
+   S = (2/sigma**2) - 1
+   !  
+   hsig = 0.01
+   tpig = 100.0
+   
+   
+   
+   !
+   end subroutine   
 
 end module
