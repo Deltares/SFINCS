@@ -102,13 +102,23 @@ module snapwave_data
    real*4,  dimension(:),     allocatable      :: wdt_bwv                 ! wave direction at boundary points for given time
    real*4,  dimension(:),     allocatable      :: dst_bwv                 ! directional spreading at boundary points for given time
    real*4,  dimension(:),     allocatable      :: zst_bwv                 ! water level at boundary points for given time
-   real*4,  dimension(:,:),     allocatable    :: eet_bwv                 ! directional spectra at boundary points for given time
+   real*4,  dimension(:,:),   allocatable      :: eet_bwv                 ! directional spectra at boundary points for given time
+
    !
    real*4,  dimension(:,:),     allocatable    :: hs_bwv                  ! wave height for all boundary locations and time points
    real*4,  dimension(:,:),     allocatable    :: tp_bwv                  ! wave period for all boundary locations and time points
    real*4,  dimension(:,:),     allocatable    :: wd_bwv                  ! wave direction (nautical deg) for all boundary locations and time points
    real*4,  dimension(:,:),     allocatable    :: ds_bwv                  ! directional spreading (deg) for all boundary locations and time points
    real*4,  dimension(:,:),     allocatable    :: zs_bwv                  ! water level for all boundary locations and time points
+   !
+   ! IG:
+   real*4                                      :: tpmean_bwv_ig           ! mean IG tp over boundary points for given time   
+   real*4,  dimension(:),       allocatable    :: hst_bwv_ig              ! IG wave height at boundary points for given time   
+   real*4,  dimension(:),       allocatable    :: tpt_bwv_ig              ! IG wave period at boundary points for given time   
+   real*4,  dimension(:,:),     allocatable    :: hs_bwv_ig               ! IG wave height for all boundary locations and time points  
+   real*4,  dimension(:,:),     allocatable    :: tp_bwv_ig               ! IG wave period for all boundary locations and time points
+   real*4,  dimension(:,:),     allocatable    :: eet_bwv_ig              ! directional IG spectra at boundary points for given time   
+   !
    logical                                     :: update_grid_boundary_points
    !
    integer*4                                       :: itwbndlast

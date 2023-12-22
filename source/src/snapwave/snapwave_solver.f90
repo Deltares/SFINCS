@@ -27,7 +27,8 @@ module snapwave_solver
       !
       Tpb     = tpmean_bwv
       sigm    = 2*pi/Tpb
-      Tpb_ig  = Tinc2ig*Tpb ! default is Tinc2ig = 7.0 as before      
+      !Tpb_ig  = Tinc2ig*Tpb ! default is Tinc2ig = 7.0 as before      
+      Tpb_ig = tpmean_bwv_ig ! > now determined in subroutine 'update_boundary_points' in snapwave_boundaries.f90
       sigm_ig = 2*pi/Tpb_ig
       !
 !      call timer(t0)
@@ -88,7 +89,7 @@ module snapwave_solver
       !
       call solve_energy_balance2Dstat (x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                        theta,ntheta,thetamean,                                    &
-                                       depth,zb,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,50000.,rho,snapwave_alpha,snapwave_alpha_ig,gamma,                 &
+                                       depth,zb,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,Tpb_ig,50000.,rho,snapwave_alpha,snapwave_alpha_ig,gamma,&
                                        H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, baldock_ratio_ig, battjesjanssen_opt, fshalphamin, fshfac, fshexp, alphaigfac, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_inc_old, H_rep, nwav)
       !
       call timer(t3)
@@ -108,7 +109,7 @@ module snapwave_solver
    
    subroutine solve_energy_balance2Dstat(x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                          theta,ntheta,thetamean,                                    &
-                                         depth,zb,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,T,dt,rho,alfa,alfa_ig,gamma,                 &
+                                         depth,zb,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,T,T_ig,dt,rho,alfa,alfa_ig,gamma,                 &
                                          H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, Tinc2ig, shinc2ig, eeinc2ig, ig_opt, baldock_opt, baldock_ratio, baldock_ratio_ig, battjesjanssen_opt, fshalphamin, fshfac, fshexp, alphaigfac, Qb, betan, srcsh, alphaig, Sxx, H_ig_old, H_inc_old, H_rep, nwav)
    !
    implicit none
@@ -144,7 +145,7 @@ module snapwave_solver
    real*4, dimension(no_nodes), intent(out)       :: srcsh                  ! Directionally averaged incident wave sink/infragravity source term 
    real*4, dimension(no_nodes), intent(out)       :: alphaig                    ! Total shoaling factor for inc wave energy sink 
    real*4, intent(in)                         :: T                      ! wave period
-   real*4                                     :: T_ig                   ! wave period
+   real*4, intent(in)                         :: T_ig                   ! IG wave period   
    real*4, intent(in)                         :: dt                     ! time step (s)
    real*4, intent(in)                         :: rho                    ! water density
    real*4, intent(in)                         :: alfa,gamma             ! coefficients in Baldock wave breaking dissipation
@@ -311,8 +312,8 @@ module snapwave_solver
       sinth(itheta) = sin(theta(itheta))
       costh(itheta) = cos(theta(itheta))
    enddo   
-   !
-   T_ig = Tinc2ig*T ! default is Tinc2ig = 7.0 as before
+   !   
+   !T_ig = Tinc2ig*T ! default is Tinc2ig = 7.0 as before > now determined in subroutine 'update_boundary_points' in snapwave_boundaries.f90
    !   
    df   = 0.0
    dw   = 0.0
@@ -372,7 +373,8 @@ module snapwave_solver
          !
          if (igwaves) then
             !
-            ee_ig(:, k)  = eeinc2ig*ee(:,k) ! ee is already in Hrms;  we can apply the Hig/Hinc ratio based on Hm0 directly to ee, and get the right IG value as Hrms
+            ! Determining ee_ig(:, k) is now already done in snapwave_boundaries.f90 using Herbers 1994 internally 
+            !ee_ig(:, k)  = eeinc2ig*ee(:,k) ! ee is already in Hrms;  we can apply the Hig/Hinc ratio based on Hm0 directly to ee, and get the right IG value as Hrms
             ! default is eeinc2ig = 0.01 as before                        
             E_ig(k)      = sum(ee_ig(:, k))*dtheta
             H_ig(k)      = sqrt(8*E_ig(k)/rho/g)

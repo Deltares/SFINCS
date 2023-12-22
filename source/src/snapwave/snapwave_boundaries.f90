@@ -38,6 +38,20 @@ contains
    !
    call find_boundary_indices()
    !
+   ! Determine IG wave height and period at boundary point(s) using Herbers 1994
+   if (igwaves) then
+      ! 
+      ! Allocate vars for IG: 
+      allocate(hst_bwv_ig(nwbnd))
+      allocate(tpt_bwv_ig(nwbnd))          
+      allocate(eet_bwv_ig(ntheta,nwbnd)) 
+      ! 'nwbnd' was determined in read_boundary_data_singlepoint/read_boundary_data_timeseries
+      !      
+      !call build_boundw() !TODO: Add function
+      ! Based on subroutine 'build_boundw' of XBeach waveparams.F90
+      ! 
+   endif    
+   !
    end subroutine
 
    
@@ -191,7 +205,7 @@ contains
       allocate(dst_bwv(nwbnd))
       allocate(zst_bwv(nwbnd)) 
       allocate(eet_bwv(ntheta,nwbnd)) 
-      !
+      !  
       ! Hs (significant wave height)
       ! Times in btp and bwd files must be the same as in bhs file!
       !
@@ -486,7 +500,7 @@ subroutine update_boundary_conditions(t)
    real*8  :: t
    !
    real*4  :: tbfac
-   real*4  :: hs, tps, wd, dsp, zst, thetamin, thetamax, E0, ms, modth
+   real*4  :: hs, tps, wd, dsp, zst, thetamin, thetamax, E0, ms, modth, E0_ig
    logical :: always_update_bnd_spec
    !
 !   write(*,*)'dtheta',dtheta
@@ -530,6 +544,32 @@ subroutine update_boundary_conditions(t)
       endif
    enddo
    !
+   ! Same for IG conditions, for now in separate loop
+   !
+   if (igwaves) then
+      ! 
+      itwbndlast = 2 ! reset   
+      !
+      do itb = itwbndlast, ntwbnd ! Loop in time
+         !
+         if (t_bwv(itb)>t) then
+            !
+            tbfac  = (t - t_bwv(itb - 1))/(t_bwv(itb) - t_bwv(itb - 1))
+            !
+            do ib = 1, nwbnd ! Loop along boundary points
+               !
+               hst_bwv_ig(ib) = hs_bwv_ig(ib, itb - 1) + (hs_bwv_ig(ib, itb) - hs_bwv_ig(ib, itb - 1))*tbfac
+               tpt_bwv_ig(ib) = tp_bwv_ig(ib, itb - 1) + (tp_bwv_ig(ib, itb) - tp_bwv_ig(ib, itb - 1))*tbfac                
+               !
+            enddo
+            !
+            itwbndlast = itb
+            exit
+            !
+         endif
+      enddo   
+   endif
+   !
    ! Now generate wave spectra at the boundary points
    !
    ! Average wave period and direction to determine theta grid
@@ -538,6 +578,10 @@ subroutine update_boundary_conditions(t)
    zsmean_bwv = sum(zst_bwv)/size(zst_bwv)
    depth      = max(zsmean_bwv - zb,hmin)
    wdmean_bwv = atan2(sum(sin(wdt_bwv)*hst_bwv)/sum(hst_bwv), sum(cos(wdt_bwv)*hst_bwv)/sum(hst_bwv))
+   !
+   if (igwaves) then
+      tpmean_bwv_ig = sum(tpt_bwv_ig)/size(tpt_bwv_ig)       
+   endif   
    !
    ! Determine theta grid and adjust w, prev and ds tables
    !
@@ -577,16 +621,30 @@ subroutine update_boundary_conditions(t)
 !      if (t> 405000.0) then
 !         write(*,'(a,i8,40e14.4)')'E',ib,E0,ms,dist
 !         endif
-      do itheta = 1, ntheta
+      !do itheta = 1, ntheta
 !         modth = mod2real(pi + theta(itheta) - thetamean, 2*pi)
 !         if (abs(modth)>0.5*pi) then
 !            dist(itheta) = 0.0
 !         endif   
-      enddo   
+      !enddo   
       eet_bwv(:,ib) = dist/sum(dist)*E0/dtheta
 !      write(*,'(a,18f7.0)')' ee          ',eet_bwv(:,ib)
+      !
    enddo
-   
+   !
+   ! Build IG spectra on wave boundary support points   
+   if (igwaves) then   
+      do ib = 1, nwbnd ! Loop along boundary points    
+         !
+         E0_ig   = 0.0625*rho*g*hst_bwv_ig(ib)**2
+         ms   = 1.0/dst_bwv(ib)**2-1
+         dist = (cos(theta - thetamean))**ms      
+         !         
+         eet_bwv_ig(:,ib) = dist/sum(dist)*E0_ig/dtheta          
+         !      
+      enddo
+      !
+   endif
    !         
 end subroutine
    
@@ -618,7 +676,17 @@ subroutine update_boundaries()
       !
    enddo
    !
-   ! Set representative incident wave height in all active points on grid
+   if (igwaves) then
+      do ib = 1, nb
+         !
+         k = nmindbnd(ib)       
+         !
+         ee_ig(i,k) = eet_bwv_ig(i,ind1_bwv_cst(ib))*fac_bwv_cst(ib)  + eet_bwv_ig(i,ind2_bwv_cst(ib))*(1.0 - fac_bwv_cst(ib))                    
+         ! 
+      enddo
+   endif          
+   !
+   ! Set representative incident wave height in all active points on grid > TL: to be removed
    ! 
    if (igwaves) then
       do k = 1, no_nodes
