@@ -105,28 +105,54 @@ module sfincs_output
    !
    if (write_map .or. write_his .or. write_rst) then
       !
-      !$acc update host(zs)
+      !$acc update host(zs), async(1)
       !
       if (store_cumulative_precipitation) then
          !      
-         !$acc update host(prcp)
+         !$acc update host(prcp), async(1)
          !
-      endif   
-      !
+      endif  
+      if (infiltration) then
+         !$acc update host(qinfmap), async(1)     
+      endif
       if (store_velocity) then
          !      
-         !$acc update host(uv)
+         !$acc update host(uv), async(1) 
          !
       endif   
       !
       if (write_rst) then
-         !$acc update host(q)
+         !$acc update host(q), async(1) 
       endif   
       !      
    endif
-   !
-   if (write_map) then
+   
+   if (write_max) then
       !
+      !$acc update host(zsmax), async(2)
+      !
+      if (store_maximum_velocity) then
+         !$acc update host(vmax), async(2)
+      endif
+      !
+      if (store_maximum_flux) then
+         !$acc update host(qmax), async(2)
+      endif      
+      !      
+      if (store_twet) then
+         !$acc update host(twet), async(2)
+      endif
+      !
+      if (store_cumulative_precipitation) then
+         !$acc update host(cumprcp), async(2)
+      endif
+      !
+      if (precip .and. scsfile(1:4) /= 'none') then !!! also include other infiltration 
+         !$acc update host(cuminf), async(2)   
+      endif
+   endif
+   if (write_map) then
+      !$acc wait(1)
       if (outputtype_map == 'net') then
          !
          if (use_quadtree) then
@@ -147,28 +173,7 @@ module sfincs_output
    !
    if (write_max) then
       !
-      !$acc update host(zsmax)
-      !
-      if (store_maximum_velocity) then
-         !$acc update host(vmax)
-      endif
-      !
-      if (store_maximum_flux) then
-         !$acc update host(qmax)
-      endif      
-      !      
-      if (store_twet) then
-         !$acc update host(twet)
-      endif
-      !
-      if (store_cumulative_precipitation) then
-         !$acc update host(cumprcp)
-      endif
-      !
-      if (precip .and. scsfile(1:4) /= 'none') then !!! also include other infiltration 
-         !$acc update host(cuminf)
-      endif
-      !
+      !$acc wait(2)
       if (outputtype_map == 'net') then
          !
          if (use_quadtree) then
@@ -185,27 +190,22 @@ module sfincs_output
       !
       if (store_maximum_waterlevel) then
          zsmax = -999.0 ! Set zsmax back to a small value
-         !$acc update device(zsmax)
+         !$acc update device(zsmax), async(2)
       endif
       !
       if (store_maximum_velocity) then
          vmax = 0.0 ! Set vmax back to 0.0
-         !$acc update device(vmax)
+         !$acc update device(vmax), async(2)
       endif
       !
       if (store_maximum_flux) then
          qmax = 0.0 ! Set qmax back to 0.0
-         !$acc update device(qmax)
-      endif      
-      !      
-!      if (precip .and. store_cumulative_precipitation) then
-!         cumprcp = 0.0 ! Set cumprcp back to a 0.0
-!         !$acc update device(cumprcp)
-!      endif            
+         !$acc update device(qmax), async(2)
+      endif                
       !
       if (store_twet) then
          twet = 0.0 ! Set twet back to 0.0
-         !$acc update device(twet)
+         !$acc update device(twet), async(2)
       endif
       !      
    endif
@@ -214,7 +214,7 @@ module sfincs_output
    ! Binary restart file
    !
    if (write_rst) then
-      !
+      !$acc wait(1)
       call write_rst_file(t)
       !
    endif
@@ -222,7 +222,7 @@ module sfincs_output
    ! Water level time series
    !
    if (write_his .and. (nobs>0 .or. nrcrosssections>0)) then
-      !      
+      !$acc wait(1)      
       if (outputtype_his == 'net') then
          !      
          call ncoutput_update_his(t,nthisout)
@@ -234,10 +234,11 @@ module sfincs_output
       endif
       !
    endif
-   !
+   !$acc wait
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
-   !   
+   !
+      
    end subroutine
    
    subroutine finalize_output(t, ntmaxout, tloopoutput)
