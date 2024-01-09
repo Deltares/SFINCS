@@ -1918,7 +1918,6 @@ contains
             NF90(nf90_put_var(map_file%ncid, map_file%fwy_varid, vtmp, (/1, ntmapout/)))
             !
             utmp = FILL_VALUE
-            vtmp = FILL_VALUE            
             !
             do nmq = 1, quadtree_nr_points
                !
@@ -1926,14 +1925,25 @@ contains
                !
                if (nm>0) then
                   utmp(nmq) = betan(nm)
+               endif
+               !
+            enddo        
+            !
+            NF90(nf90_put_var(map_file%ncid, map_file%beta_varid, utmp, (/1, ntmapout/)))     
+            !
+            vtmp = FILL_VALUE
+            !
+            do nmq = 1, quadtree_nr_points
+               !
+               nm = index_sw_in_qt(nmq)            
+               !
+               if (nm>0) then
                   vtmp(nmq) = snapwave_depth(nm)                  
                endif
                !
-            enddo            
-            NF90(nf90_put_var(map_file%ncid, map_file%beta_varid, utmp, (/1, ntmapout/)))     
-            NF90(nf90_put_var(map_file%ncid, map_file%snapwavedepth_varid, vtmp, (/1, ntmapout/)))     
-            
-            
+            enddo                    
+            !             
+            NF90(nf90_put_var(map_file%ncid, map_file%snapwavedepth_varid, vtmp, (/1, ntmapout/)))                             
             !
          endif
          !
