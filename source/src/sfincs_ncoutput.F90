@@ -2460,42 +2460,40 @@ contains
    !
    ! write zsmax per dtmaxout
    !
-   use sfincs_data   
+   use sfincs_data  
+   !use sfincs_snapwave
+   use quadtree
    !
    implicit none   
    !
-   integer :: nm, n, m
+   integer                              :: nmq, nm, n, m, ntmaxout
+   real*8                               :: t  
    !
-   real*8                       :: t  
-   !
-   integer  :: ntmaxout   
-   !
-   real*4, dimension(:), allocatable :: zstmp
-   !
-   allocate(zstmp(np))
+   real*4, dimension(:), allocatable    :: zstmp
+   allocate(zstmp(quadtree_nr_points))
    !
    zstmp = FILL_VALUE
    !
    ! Write maximum water level
-   if (subgrid) then   
-      do nm = 1, np
-         !
-         if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
-            zstmp(nm) = zsmax(nm) 
-         endif
-         !
-      enddo
-   else
-      do nm = 1, np       
-         !
-         if ( (zsmax(nm) - zb(nm)) > huthresh) then
-            zstmp(nm) = zsmax(nm) 
-         endif      
-      enddo
-   endif
+   do nmq = 1, quadtree_nr_points
+       !
+       nm = index_sfincs_in_quadtree(nmq)
+       !
+       if (kcs(nm)>0) then
+           if (subgrid) then
+               if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
+                   zstmp(nmq) = zsmax(nm)
+               endif
+           else
+              if ( (zsmax(nm) - zb(nm)) > huthresh) then
+                  zstmp(nmq) = zsmax(nm)
+              endif
+           endif
+       endif
+   enddo
    !
-   NF90(nf90_put_var(map_file%ncid, map_file%timemax_varid, t, (/ntmaxout/))) ! write time_max
-   NF90(nf90_put_var(map_file%ncid, map_file%zsmax_varid, zstmp, (/1, ntmaxout/))) ! write zsmax   
+   NF90(nf90_put_var(map_file%ncid, map_file%timemax_varid, t, (/ntmaxout/)))       ! write time_max
+   NF90(nf90_put_var(map_file%ncid, map_file%zsmax_varid, zstmp, (/1, ntmaxout/)))  ! write zsmax   
    !
    ! Write maximum water depth
    if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then

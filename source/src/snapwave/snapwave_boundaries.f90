@@ -264,7 +264,7 @@ contains
          !
       endif
       !
-      write(*,*)'Input boundary points found: ',nwbnd
+      write(*,*)'Input wave boundary points found: ',nwbnd
       !
    endif
    !
