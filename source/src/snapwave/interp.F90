@@ -3,6 +3,7 @@ module interp
    private
    public linear_interp, interp_in_cyclic_function, interp_using_trapez_rule,ipon
    public grmap2, grmap_sg, mkmap, grmap, linear_interp_2d, make_map, make_map_fm, mkmap_step, trapezoidal
+   public linear_interp_real4 
    save
 contains
    pure subroutine linear_interp_2d(X,nx,Y,ny,Z,xx,yy,zz,method,exception)
@@ -157,6 +158,78 @@ contains
 
    end subroutine linear_interp
 
+   !
+   ! NAME
+   !    linear_interp
+   ! SYNOPSIS
+   !    Interpolate linearly into an array Y given the value of X.
+   !    Return both the interpolated value and the position in the
+   !    array.
+   !
+   ! ARGUMENTS
+   !    - X: independent array (sorted in ascending order)
+   !    - Y: array whose values are a function of X
+   !    - XX: specified value, interpolating in first array
+   !    - YY: interpolation result
+   !    - INDINT: (optional) index in array (x(indint) <= xx <= x(indint+1))
+   !
+   ! SOURCE
+   !
+   pure subroutine linear_interp_real4(x, y, n, xx, yy, indint)
+      integer,              intent(in) :: n
+      real*4, dimension(n), intent(in) :: x
+      real*4, dimension(n), intent(in) :: y
+      real*4, intent(in)               :: xx
+      real*4, intent(out)              :: yy
+      integer, intent(out), optional   :: indint
+      !****
+      !
+      ! CODE: linear interpolation
+      !
+      !
+      !
+      real*8           :: a,  b, dyy
+      integer          :: j
+
+      yy = 0.0d0
+      if ( present(indint) ) then
+         indint = 0
+      endif
+
+      if (n.le.0) return
+      !
+      ! *** N GREATER THAN 0
+      !
+      if (n.eq.1) then
+         yy = y(1)
+         return
+      endif
+
+      call binary_search_real4( x, n, xx, j )
+
+      if ( j .le. 0 ) then
+         yy = y(1)
+      elseif ( j .ge. n ) then
+         yy = y(n)
+      else
+         a = x (j+1)
+         b = x (j)
+         if ( a .eq. b ) then
+            dyy = 0.0d0
+         else
+            dyy = (y(j+1) - y(j)) / (a - b)
+         endif
+         yy = y(j) + (xx - x(j)) * dyy
+      endif
+
+      if ( present(indint) ) then
+         indint = j
+      endif
+
+      return
+
+   end subroutine linear_interp_real4
+   
    !****f* Interpolation/binary_search
    !
    ! NAME
@@ -222,6 +295,71 @@ contains
 
    end subroutine binary_search
 
+   !****f* Interpolation/binary_search
+   !
+   ! NAME
+   !    binary_search
+   ! SYNOPSIS
+   !    Perform a binary search in an ordered real array
+   !    to find the largest entry equal or lower than a given value:
+   !    Given an array XX of length N, given value X, return a value J
+   !    such that X is between XX(J) en XX (J+1)
+   !
+   !    XX must be monotonic, either decreasing or increasing
+   !    J=0 or J=N indicates X is out of range.
+   !
+   ! ARGUMENTS
+   !    - XX: ordered array of values
+   !    - X: value to be found
+   !    - J: index such that X is between XX(J) and XX(J+1)
+   !
+   ! SOURCE
+   !
+   pure subroutine binary_search_real4(xx, n, x, j)
+      integer,              intent(in) :: N
+      real*4, dimension(N), intent(in) :: xx
+      real*4, intent(in)               :: x
+      integer, intent(out)             :: j
+      !****
+      !
+      ! CODE: binary search in (real) arrays
+      !
+      ! Requirement:
+      !    Parameter wp set to the proper kind
+      !
+      ! Subroutine from 'Numerical recipes' Fortran  edition.
+      ! Given an array XX of length N, given value X, return a value J
+      ! such that X is between XX(J) en XX (J+1)
+      ! XX must be monotonic, either decreasing or increasin
+      ! J=0 or J=N indicates X is out of range.
+
+
+      !
+      ! Local variables
+      !
+      integer   jl, ju, jm
+      logical   l1, l2
+
+      jl = 0
+      ju = n+1
+10    if (ju-jl .gt. 1) then
+         jm = (ju+jl)/2
+         l1 = xx(n) .gt. xx(1)
+         l2 = x .gt. xx(jm)
+         if ( (l1.and.l2) .or. (.not. (l1 .or. l2)) ) then
+            jl = jm
+         else
+            ju = jm
+         endif
+         goto 10
+      endif
+
+      j = jl
+
+      return
+
+   end subroutine binary_search_real4
+   
    subroutine mkmap(code      ,x1        ,y1        ,m1        ,n1        , &
    & x2        ,y2        ,n2        ,xs        ,ys        , &
    & nrx       ,nry       ,iflag     ,nrin      ,w         , &
