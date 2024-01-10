@@ -38,7 +38,9 @@ contains
    !
    call find_boundary_indices()
    !
-   ! Determine IG wave height and period at boundary point(s) using Herbers 1994
+   ! Determine IG wave height and period at boundary point(s) later using Herbers 1994 
+   ! (depends on local -changing- water depth, so not calculatable a priori)
+   !
    if (igwaves) then
       ! 
       ! Allocate vars for IG: 
@@ -483,15 +485,15 @@ subroutine find_nearest_depth_for_boundary_points()
     do ic = 1, nwbnd    
         ! Loop through all grid points
         !
+	    dst1 = 1.0e10
+	    dst2 = 1.0e10
+	    ib1 = 0
+	    ib2 = 0
+        !    
         do k = 1, no_nodes
             !
 	        xgb = x(k)
 	        ygb = y(k)          
-                !        
-	        dst1 = 1.0e10
-	        dst2 = 1.0e10
-	        ib1 = 0
-	        ib2 = 0
 	        !
 	        dst = sqrt((x_bwv(ic) - xgb)**2 + (y_bwv(ic) - ygb)**2)
 	        !
@@ -502,14 +504,14 @@ subroutine find_nearest_depth_for_boundary_points()
 		        dst2 = dst1
 		        ib2  = ib1
 		        dst1 = dst
-		        ib1  = ic
+		        ib1  = k
 		        !
 	        elseif (dst<dst2) then
 		        !
 		        ! Second nearest point found
 		        !
 		        dst2 = dst
-		        ib2  = ic
+		        ib2  = k
 		        !
 	        endif    
         enddo
@@ -526,8 +528,7 @@ subroutine find_nearest_depth_for_boundary_points()
             fac = dst2/(dst1 + dst2)   
             deptht_bwv(ic) = h1*fac + h2*(1.0 - fac)
             !
-        endif
-        !
+        endif        
     enddo    
     !
 end subroutine
@@ -624,8 +625,8 @@ subroutine update_boundary_points(t)
    !
    if (igwaves) then
       ! 
-      !jonswapgam = 3.3 ! TODO: TL: later make spatially varying?
-      jonswapgam = 20.0
+      jonswapgam = 3.3 ! TODO: TL: later make spatially varying?
+      !jonswapgam = 20.0
       !
       ! Get local water depth at boundary points (can change in time)        
       call find_nearest_depth_for_boundary_points()
@@ -853,7 +854,9 @@ subroutine update_boundaries()
    !hsig = 0.01
    hsig = 0.0059  
    !tpig = 100.0
-   tpig = 37.0156
+   
+   !tpig = 37.0156
+   tpig = tpinc * 4.0
    !snapwave_Tinc2ig     = 16.4855
    !snapwave_eeinc2ig    = 0.0029      
    !
