@@ -840,6 +840,8 @@ subroutine update_boundaries()
     !
     ! Input ds is already in rad
     !
+    !use snapwave_data
+    !   
     implicit none
     !
     real*4, intent(in)    :: hsinc, tpinc, ds, jonswapgam, depth
@@ -855,7 +857,7 @@ subroutine update_boundaries()
     ! Call function that calculates Hig0 following Herbers, as implemented in XBeach:
     ! Loosely based on 3 step calculation in waveparams.F90 of XBeach
     !
-    call build_jonswap(hsinc, tpinc, jonswapgam)
+    call build_jonswap(hsinc, tpinc, jonswapgam, S)
     !call build_etdir(par,s,wp,Ebcfname)
     !call build_boundw(hsinc, tpinc, S, jonswapgam, depth, hsig, tpig) 
     !
@@ -870,17 +872,20 @@ subroutine update_boundaries()
     !   
     end subroutine
    
-    subroutine build_jonswap(hsinc, tpinc, jonswapgam)
+    subroutine build_jonswap(hsinc, tpinc, jonswapgam, S)
     !
     implicit none
     !
     ! Incoming variables
-    real*4, intent(in)    :: hsinc, tpinc, jonswapgam
+    real*4, intent(in)    :: hsinc, tpinc, jonswapgam, S
     !
     ! Internal variables
-    real*4   :: dfj, fp, fnyq
-    real*4,dimension(:),allocatable :: temp, x, y, f   
+    real*4   :: dfj, fp, fnyq, dang, nang, iang, angtemp, nfreq
+    real*4,dimension(:),allocatable :: temp, x, y, f, ang, DD   
     integer :: i=0
+    real*4                :: pi
+    !
+    pi    = 4.*atan(1.)    
     !   
     dfj = 0.001
     fp = 1 / tpinc
@@ -902,13 +907,35 @@ subroutine update_boundaries()
     ! Calculate unscaled and non-directional JONSWAP spectrum using peak-enhancement factor and pre-determined frequency bins
     allocate(y(size(f)))
     call jonswapgk(x,jonswapgam,y)
-    write(*,*)'y=',y  
     !
     ! Determine scaled and non-directional JONSWAP spectrum using the JONSWAP characteristics
     y=(hsinc/(4.d0*sqrt(sum(y)*dfj)))**2*y
     deallocate (x)  
-    write(*,*)'y=',y  
-    
+    ! 
+    ! TL: Do now some extra steps for determining relative angles etc. 
+    !
+    ! Define 200 directions relative to main angle running from -pi to pi
+    allocate(temp(201))
+    allocate(ang(201))
+    temp=(/(i,i=0,200)/)
+    ang=temp*((2*pi)/200.d0)-pi
+    deallocate (temp)    
+    !
+    ! Determine directional step size: pi/200
+    dang=ang(2)-ang(1)
+    !
+    ! Define 200 directional bins accordingly
+    allocate (Dd(size(ang)))    
+    !
+    ! Calculate directional spreading based on cosine law    
+    Dd = cos(ang/2)**(2*nint(S) ) ! Robert: apparently nint is needed here, else MATH domain error TL: also the case for us
+    !
+    ! Scale directional spreading to have a surface of unity by dividing by it's own surface
+    Dd = Dd / (sum(Dd)*dang)    
+    !
+    ! Define number of directional and frequency bins
+    nang=size(ang)
+    nfreq=size(y)        
     !
     end subroutine
             
