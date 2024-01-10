@@ -634,7 +634,7 @@ subroutine update_boundary_points(t)
       do ib = 1, nwbnd ! Loop along boundary points
          !           
          ! Determine IG wave height and period at boundary
-         call build_boundw(hst_bwv(ib), tpt_bwv(ib), dst_bwv(ib), jonswapgam, deptht_bwv(ib), hst_bwv_ig(ib), tpt_bwv_ig(ib)) 
+         call determine_ig_bc(hst_bwv(ib), tpt_bwv(ib), dst_bwv(ib), jonswapgam, deptht_bwv(ib), hst_bwv_ig(ib), tpt_bwv_ig(ib)) 
          ! input, input, input, input, input, output, output
          ! Based on subroutine 'build_boundw' of XBeach waveparams.F90
          !
@@ -828,38 +828,134 @@ subroutine update_boundaries()
 !   !   
 !   end function  
 
-   subroutine build_boundw(hsinc, tpinc, ds, jonswapgam, depth, hsig, tpig) !input, input, input, input, input, output, output)
-   !
-   ! Build boundwave offshore spectrum, and determine Hig0 and Tpig0, using Herbers 1994
-   ! Based on subroutine 'build_boundw' of XBeach waveparams.F90   
-   !
-   ! Input hsinc is Hm0, not Hrms
-   ! Output hsig is therefore also Hm0 (and expected like that in E0_ig   = 0.0625*rho*g*hst_bwv_ig(ib)**2
-
-   !
-   ! Input ds is already in rad
-   !
-   implicit none
-   !
-   real*4, intent(in)    :: hsinc, tpinc, ds, jonswapgam, depth
-   real*4, intent(out)   :: hsig, tpig
-   !
-   real*4                :: pi, S
-   !
-   pi    = 4.*atan(1.)
-   !
-   ! Convert wave spreading in degrees (input) to S
-   S = (2/ds**2) - 1
-   !  
-   !hsig = 0.01
-   hsig = 0.0059  
-   !tpig = 100.0
+    subroutine determine_ig_bc(hsinc, tpinc, ds, jonswapgam, depth, hsig, tpig) 
+    ! (input, input, input, input, input, output, output)
+    !  
+    ! Build boundwave offshore spectrum, and determine Hig0 and Tpig0, using Herbers 1994 as in XBeach implementation
+    !
+    ! Input hsinc is Hm0, not Hrms
+    ! Output hsig is therefore also Hm0 (and expected like that in E0_ig   = 0.0625*rho*g*hst_bwv_ig(ib)**2 in subroutine update_boundary_points)
+    !
+    ! tpig is estimated as ... based on calculated spectrum
+    !
+    ! Input ds is already in rad
+    !
+    implicit none
+    !
+    real*4, intent(in)    :: hsinc, tpinc, ds, jonswapgam, depth
+    real*4, intent(out)   :: hsig, tpig
+    !
+    real*4                :: pi, S
+    !
+    pi    = 4.*atan(1.)
+    !
+    ! Convert wave spreading in degrees (input) to S
+    S = (2/ds**2) - 1
+    !  
+    ! Call function that calculates Hig0 following Herbers, as implemented in XBeach:
+    ! Loosely based on 3 step calculation in waveparams.F90 of XBeach
+    !
+    call build_jonswap(hsinc, tpinc, jonswapgam)
+    !call build_etdir(par,s,wp,Ebcfname)
+    !call build_boundw(hsinc, tpinc, S, jonswapgam, depth, hsig, tpig) 
+    !
+    !hsig = 0.01
+    hsig = 0.0059  
+    !tpig = 100.0
    
-   !tpig = 37.0156
-   tpig = tpinc * 4.0
-   !snapwave_Tinc2ig     = 16.4855
-   !snapwave_eeinc2ig    = 0.0029      
-   !
-   end subroutine   
+    !tpig = 37.0156
+    tpig = tpinc * 4.0
+    !snapwave_Tinc2ig     = 16.4855
+    !snapwave_eeinc2ig    = 0.0029      
+    !   
+    end subroutine
+   
+    subroutine build_jonswap(hsinc, tpinc, jonswapgam)
+    !
+    implicit none
+    !
+    ! Incoming variables
+    real*4, intent(in)    :: hsinc, tpinc, jonswapgam
+    !
+    ! Internal variables
+    real*4   :: dfj, fp, fnyq
+    real*4,dimension(:),allocatable :: temp, x, y, f   
+    integer :: i=0
+    !   
+    dfj = 0.001
+    fp = 1 / tpinc
+    fnyq = fp * 2
+    !
+    ! Define number of frequency bins by defining an array of the necessary length using the Nyquist frequency and frequency step size
+    allocate(temp(ceiling((fnyq-dfj)/dfj)))
+    temp=(/(i,i=1,size(temp))/)   
+    !
+    ! Define array with actual equidistant frequency bins
+    allocate(f(size(temp)))
+    f=temp*dfj
+    deallocate (temp)
+    !
+    ! Determine frequency bins relative to peak frequency
+    allocate(x(size(f)))
+    x=f/fp
+    !
+    ! Calculate unscaled and non-directional JONSWAP spectrum using peak-enhancement factor and pre-determined frequency bins
+    allocate(y(size(f)))
+    call jonswapgk(x,jonswapgam,y)
+    write(*,*)'y=',y  
+    !
+    ! Determine scaled and non-directional JONSWAP spectrum using the JONSWAP characteristics
+    y=(hsinc/(4.d0*sqrt(sum(y)*dfj)))**2*y
+    deallocate (x)  
+    write(*,*)'y=',y  
+    
+    !
+    end subroutine
+            
+    ! -----------------------------------------------------------
+    ! --------- JONSWAP  unscaled JONSWAP spectrum --------------
+    ! ----------------(used by build_jonswap)--------------------
+    subroutine jonswapgk(x,gam,y)
 
+    implicit none
+    ! Required input: - x           : nondimensional frequency, divided by the peak frequency
+    !                 - gam         : peak enhancement factor, optional parameter (DEFAULT 3.3)
+    !                 - y is output : nondimensional relative spectral density, equal to one at the peak
+
+    real*4, INTENT(IN)                  :: gam
+    real*4,dimension(:), INTENT(IN)     :: x
+    real*4,dimension(:), INTENT(INOUT)  :: y
+
+    ! Internal variables
+    real*8,dimension(size(x))           :: xa, sigma, fac1, fac2, fac3, temp
+
+    xa=abs(x)
+
+    where (xa==0)
+        xa=1e-20
+    end where
+
+    sigma=xa
+
+    where (sigma<1.)
+        sigma=0.07
+    end where
+
+    where (sigma>=1.)
+        sigma=0.09
+    end where
+
+    temp=0*xa+1
+
+    fac1=xa**(-5)
+    fac2=exp(-1.25*(xa**(-4)))
+    fac3=(gam*temp)**(exp(-((xa-1)**2)/(2*(sigma**2))))
+
+    y=fac1*fac2*fac3
+    y=y/maxval(y)
+
+    return
+
+    end subroutine jonswapgk   
+     
 end module
