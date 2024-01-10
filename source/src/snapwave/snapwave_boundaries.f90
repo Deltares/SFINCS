@@ -880,10 +880,12 @@ subroutine update_boundaries()
     real*4, intent(in)    :: hsinc, tpinc, jonswapgam, S
     !
     ! Internal variables
-    real*4   :: dfj, fp, fnyq, dang, nang, iang, angtemp, nfreq
-    real*4,dimension(:),allocatable :: temp, x, y, f, ang, DD   
-    integer :: i=0
-    real*4                :: pi
+    real*4   :: dfj, fp, fnyq, dang, iang, angtemp, hsinc_check
+    real*4,dimension(:),allocatable :: temp, x, y, f, ang, DD, Sf, findline    
+    real*4,dimension(:,:),allocatable :: S_array    
+    integer :: i=0, ii, nang, nfreq, peakf
+    integer :: firstp, lastp, M, K    
+    real*4  :: pi, sprdthr
     !
     pi    = 4.*atan(1.)    
     !   
@@ -937,6 +939,45 @@ subroutine update_boundaries()
     nang=size(ang)
     nfreq=size(y)        
     !
+    ! Define two-dimensional variance density spectrum array and distribute
+    ! variance density for each frequency over directional bins
+    allocate(S_array(nfreq,nang))
+    !
+    do i=1,nang
+        do ii=1,nfreq
+            S_array(ii,i)=y(ii)*Dd(i)
+        end do
+    end do
+    deallocate (y)    
+    !
+    ! Add check on Hm0 of created two-dimensional variance density spectrum :
+    hsinc_check = 4*sqrt(sum(S_array)*dfj*dang)
+    if (abs(hsinc - hsinc_check) > 0.01) then
+        write(*,*)'WARNING - computed Hm0,inc of 2D var dens spectrum differs from input! see subroutine build_jonswap in determine_ig_bc in module snapwave_boundaries.f90'
+        write(*,*)'Input: ',hsinc,' , computed: ', hsinc_check
+    endif
+    !
+    ! Back integrate two-dimensional variance density spectrum over directions    
+    allocate(Sf(size(f)))
+    Sf = sum(S_array, DIM = 2)*dang    
+    !
+    ! Determine frequencies around peak frequency of one-dimensional non-directional variance density spectrum, based on factor sprdthr (0.08 by default)
+    allocate(findline(size(Sf)))
+    findline=0.d0    
+    sprdthr = 0.08
+    call frange(Sf,firstp,lastp,findline,sprdthr)
+    !findline = findloc(Sf, Sf>0.08*maxval(Sf)) ! TL: should probably be possible to do this more easily
+    !
+    K = 400 ! as in Matlab script, different than in XBeach, where its determined case by case based on the wave record length and width of the wave frequency range
+    !
+    ! TL: Here we go to the code of XBeach subroutine 'build_etdir' from waveparams.F90 
+    !
+    ! Determine number of frequencies in discrete variance density spectrum to be included    
+    !M = lastp - firstp + 1 ! number of points in frequency range around peak
+    M=int(sum(findline))
+    
+    !        
+    !
     end subroutine
             
     ! -----------------------------------------------------------
@@ -984,5 +1025,38 @@ subroutine update_boundaries()
     return
 
     end subroutine jonswapgk   
+    
+   ! -----------------------------------------------------------
+   ! ---- Small subroutine to determine f-range round peak -----
+   ! ----(used by build_jonswap, swanreader, vardensreader)-----
+   subroutine frange(Sf,firstp,lastp,findlineout,sprdthr)
+
+      implicit none
+
+      real*4, dimension(:), intent(in)        :: Sf
+      integer, intent(out)                    :: firstp, lastp
+
+      real*4, dimension(:), intent(out)       :: findlineout
+      real*4, dimension(:),allocatable        :: temp, findline
+      integer                                 :: i = 0
+      real*4,intent(in)                       :: sprdthr
+      
+      allocate(findline(size(Sf)))
+      findline=0*Sf                           ! find frequency range around peak
+
+      where (Sf>sprdthr*maxval(Sf))
+         findline=1
+      end where
+
+      firstp=maxval(maxloc(findline))         ! Picks the first "1" in temp
+
+      allocate (temp(size(findline)))
+      temp=(/(i,i=1,size(findline))/)
+      lastp=maxval(maxloc(temp*findline))     ! Picks the last "1" in temp
+
+      findlineout=findline
+      deallocate(temp, findline)
+
+   end subroutine frange    
      
 end module
