@@ -302,8 +302,6 @@ contains
    !
    real*8    :: t
    !
-   call update_boundary_conditions(t) ! SnapWave boundary conditions
-   !
    ! Mean wave height for writing to netcdf his file
    !
    snapwave_tpmean = tpmean_bwv
@@ -311,6 +309,9 @@ contains
    depth = snapwave_depth
    !
    zb = snapwave_z   
+   !
+   ! TL: we use depth now in boundary conditions for Herbers bc determination of Hm0ig, In this order we use updated values
+   call update_boundary_conditions(t) ! SnapWave boundary conditions
    !
    call compute_wave_field()
    !

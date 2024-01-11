@@ -470,6 +470,7 @@ contains
 subroutine find_nearest_depth_for_boundary_points()
     !
     ! Find nearest grid index in (xgb,ygb) for every boundary input point (x_bwv(ib), y_bwv(ib))
+    ! Output is: deptht_bwv    
     !
     use snapwave_data
     !
@@ -618,7 +619,8 @@ subroutine update_boundary_points(t)
    !
    tpmean_bwv = sum(tpt_bwv)/size(tpt_bwv)
    zsmean_bwv = sum(zst_bwv)/size(zst_bwv)
-   depth      = max(zsmean_bwv - zb,hmin)
+   !depth      = max(zsmean_bwv - zb,hmin) ! TL: For SFINCS we don't want this, because it overrides the real updated water depth we're inserting
+   depth      = max(depth,hmin)
    wdmean_bwv = atan2(sum(sin(wdt_bwv)*hst_bwv)/sum(hst_bwv), sum(cos(wdt_bwv)*hst_bwv)/sum(hst_bwv))
    !
    ! Determine IG boundary conditions
@@ -629,7 +631,7 @@ subroutine update_boundary_points(t)
       !jonswapgam = 20.0
       !
       ! Get local water depth at boundary points (can change in time)        
-      call find_nearest_depth_for_boundary_points()
+      call find_nearest_depth_for_boundary_points() ! Output is: deptht_bwv    
       !
       do ib = 1, nwbnd ! Loop along boundary points
          !           
@@ -866,12 +868,19 @@ subroutine update_boundaries()
     call build_jonswap(hsig, hsinc, tpinc, scoeff, jonswapgam, depth, correctHm0) ![out, in, in, in, in, in, in]
     !call build_etdir(par,s,wp,Ebcfname)
     !call build_boundw(hsinc, tpinc, S, jonswapgam, depth, hsig, tpig) 
+    !   
+    ! Catch NaN values (if depth=0 probably) or unrealistically large values above 2 meters
+    if (hm0ig < 0.0) then
+	    write(*,*)'DEBUG - computed hm0ig at boundary dropped below 0 m: ',hm0ig, ' and is therefore limited back to 0 m!'
+	    hm0ig = max(hm0ig, 0.0)
+    endif	
+
+    if (hm0ig > 3.0) then
+	    write(*,*)'DEBUG - computed hm0ig at boundary exceeds 2 meter: ',hm0ig, ' and is therefore limited back to 2 m!'
+	    hm0ig = min(hm0ig, 3.0)
+    endif	    
+    
     !
-    !hsig = 0.01
-    hsig = 0.0059  
-    !tpig = 100.0
-   
-    !tpig = 37.0156
     tpig = tpinc * 4.0
     !
     ! TODO: also determine some mean Tig
@@ -1177,6 +1186,12 @@ subroutine update_boundaries()
     w1=0
     k1=0    
     !
+    ! Steps indepent of loop, that can be done once a priori
+    ! Determine angular velocity of primary waves
+    w1=2*pi*fgen
+    !
+    ! Determine wave numbers of primary waves
+    call bc_disper(k1,w1,size(w1),depth,g)    
     !
     ! Determine for each wave component interactions with all other wave components
     ! as far as not processed yet (each loop step the number of interactions thus decrease with one)
@@ -1185,12 +1200,6 @@ subroutine update_boundaries()
         !
         ! Determine difference frequency
         deltaf=m*df
-        !
-        ! Determine angular velocity of primary waves
-        w1=2*pi*fgen
-        !
-        ! Determine wave numbers of primary waves
-        call bc_disper(k1,w1,size(w1),depth,g)
         !
         ! Determine difference angles (pi already added)
         deltheta(m,1:K-m) = abs(theta(m+1:K)-theta(1:K-m))+pi
@@ -1206,8 +1215,8 @@ subroutine update_boundaries()
         ! Determine group velocity of difference waves
         cg3(m,1:K-m) = 2.d0*pi*deltaf/k3(m,1:K-m)
         !
-        ! Ideetje Robert Jaap: make sure that we don't blow up bound long wave when offshore boundary is too close to shore > not needed for us?
-        !cg3(m,1:K-m) = min(cg3(m,1:K-m),par%nmax*sqrt(g/k3(m,1:K-m)*tanh(k3(m,1:K-m)*wp%h0t0)))
+        ! Make sure that we don't blow up bound long wave when offshore boundary is too close to shore > not needed for us?
+        !cg3(m,1:K-m) = min(cg3(m,1:K-m),par%nmax*sqrt(g/k3(m,1:K-m)*tanh(k3(m,1:K-m)*depth)))
         !
         ! Determine difference-interaction coefficient according to Herbers 1994 eq. A5
         allocate(term1(K-m),term2(K-m),term2new(K-m),dif(K-m),chk1(K-m),chk2(K-m))
