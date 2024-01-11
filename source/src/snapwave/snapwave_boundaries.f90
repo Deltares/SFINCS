@@ -986,12 +986,8 @@ subroutine update_boundaries()
     y = (hsinc/(4.d0*sqrt(sum(y)*dfj)))**2*y
     deallocate (x)  
     ! 
-    ! TL: Do now some extra steps for determining relative angles etc. 
-    !
     ! Define 200 directions relative to main angle running from -pi to pi
-    !allocate(temp(201))
-    !allocate(ang(201))
-    !temp=(/(i,i=0,200)/)    
+  
     allocate(temp(200))
     allocate(ang(200))    
     temp=(/(i,i=0,200-1)/) ! as in Matlab version have 200 values    
@@ -1045,7 +1041,8 @@ subroutine update_boundaries()
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Part 2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! TL: Here we go to the code of XBeach subroutine 'build_etdir' from waveparams.F90 
     !
-    K = 400 ! as in Matlab script, different than in XBeach, where its determined case by case based on the wave record length and width of the wave frequency range (?)   
+    K = 400 ! as in Matlab script
+    !
     ! Determine number of frequencies in discrete variance density spectrum to be included    
     M = int(sum(findline)) ! number of points in frequency range around peak
     !
@@ -1087,11 +1084,10 @@ subroutine update_boundaries()
     ! Define random number between 0 and 1 for each wave component
     do i=1,K
         call RANDOM_NUMBER(P0(i)) 
-        P0(i)=0.99*P0(i)+0.01/2 ! TL: as in Matlab: Define random number between 0.025 and 0975 for each wave component
+        P0(i)=0.99*P0(i)+0.01/2 ! TL: as in Matlab: Define random number between ~0.025 and 0975 for each wave component
     enddo
     !
-    ! Define direction for each wave component based on random number and linear
-    ! interpolation of the probability density function
+    ! Define direction for each wave component based on random number and linear interpolation of the probability density function
     allocate(theta(K))
     !
     if (scoeff >= 1000.0) then !longcrested waves
@@ -1194,8 +1190,6 @@ subroutine update_boundaries()
     allocate(Eforc(K-1,K))      ! Herbers et al. (1994) eq. 1 - (rows = difference frequency, columns is interaction)
     allocate(D(K-1,K))          ! Herbers eq. A5.
     allocate(deltheta(K-1,K))   ! Difference angle between two primary wave components
-    !allocate(KKx(K-1,K),KKy(K-1,K))
-    !allocate(dphi3(K-1,K))      !
     allocate(k3(K-1,K))         ! Wavenumber of difference wave
     allocate(cg3(K-1,K))
     !
@@ -1207,9 +1201,6 @@ subroutine update_boundaries()
     Eforc = 0
     D = 0
     deltheta = 0
-    !KKx = 0
-    !KKy = 0
-    !dphi3 = 0
     k3 = 0
     cg3 = 0
     w1=0
@@ -1233,18 +1224,14 @@ subroutine update_boundaries()
         ! Determine difference angles (pi already added)
         deltheta(m,1:K-m) = abs(theta(m+1:K)-theta(1:K-m))+pi
         !
-        ! Determine x- and y-components of wave numbers of difference waves > not needed for us
-        !KKy(m,1:K-m)=k1(m+1:K)*sin(theta(m+1:K))-k1(1:K-m)*sin(theta(1:K-m))
-        !KKx(m,1:K-m)=k1(m+1:K)*cos(theta(m+1:K))-k1(1:K-m)*cos(theta(1:K-m))
-        !
         ! Determine difference wave numbers according to Van Dongeren et al. 2003 eq. 19
         k3(m,1:K-m) =sqrt(k1(1:K-m)**2+k1(m+1:K)**2+2*k1(1:K-m)*k1(m+1:K)*cos(deltheta(m,1:K-m))) 
-        ! dcos is for double precision, use cos for single precision (real*4)
+        ! Note, dcos is for double precision, use cos for single precision (real*4)
         !
         ! Determine group velocity of difference waves
         cg3(m,1:K-m) = 2.d0*pi*deltaf/k3(m,1:K-m)
         !
-        ! Make sure that we don't blow up bound long wave when offshore boundary is too close to shore > not needed for us?
+        ! XBeach: Make sure that we don't blow up bound long wave when offshore boundary is too close to shore > not needed for us?
         !cg3(m,1:K-m) = min(cg3(m,1:K-m),par%nmax*sqrt(g/k3(m,1:K-m)*tanh(k3(m,1:K-m)*depth)))
         !
         ! Determine difference-interaction coefficient according to Herbers 1994 eq. A5
@@ -1280,14 +1267,6 @@ subroutine update_boundaries()
         !
     end do
     !
-    ! Determine angle of bound long wave according to Van Dongeren et al. 2003 eq. 22 ! TL: > Maybe use this at a later point in time?
-    !allocate(theta3(K-1,K))
-    !where (abs(KKx)>0.00001d0)
-    !    theta3 = atan(KKy/KKx)
-    !elsewhere
-    !    theta3 = atan(KKy/sign(0.00001d0,KKx))
-    !endwhere
-    !
     ! Allocate variables for energy of bound long wave
     allocate(Ebnd(K-1))
     !
@@ -1308,8 +1287,7 @@ subroutine update_boundaries()
     fbnd = temp * df
     deallocate(temp)
     !
-    ! Calculate mean wave period based on one-dimensional non-directional variance
-    ! density spectrum and factor trepfac
+    ! Calculate (mean) wave period based on one-dimensional non-directional variance density spectrum and factor trepfac
     call tpDcalc(Ebnd,fbnd,0.01,Tm01,Tm10,Tp,Tpsmooth)! [in,in,in,out,out,out,out]
     !XBeach default for trepfac = 0.01
     !
