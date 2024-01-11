@@ -636,9 +636,8 @@ subroutine update_boundary_points(t)
       do ib = 1, nwbnd ! Loop along boundary points
          !           
          ! Determine IG wave height and period at boundary
-         call determine_ig_bc(hst_bwv(ib), tpt_bwv(ib), dst_bwv(ib), jonswapgam, deptht_bwv(ib), hst_bwv_ig(ib), tpt_bwv_ig(ib)) 
-         ! input, input, input, input, input, output, output
-         ! Based on subroutine 'build_boundw' of XBeach waveparams.F90
+         call determine_ig_bc(hst_bwv(ib), tpt_bwv(ib), dst_bwv(ib), jonswapgam, deptht_bwv(ib), Tinc2ig, hst_bwv_ig(ib), tpt_bwv_ig(ib)) 
+         ! input, input, input, input, input, input, output, output
          !
       enddo   
       !
@@ -833,8 +832,8 @@ subroutine update_boundaries()
 !   !   
 !   end function  
 
-    subroutine determine_ig_bc(hsinc, tpinc, ds, jonswapgam, depth, hsig, tpig) 
-    ! (input, input, input, input, input, output, output)
+    subroutine determine_ig_bc(hsinc, tpinc, ds, jonswapgam, depth, Tinc2ig, hsig, tpig) 
+    ! (input, input, input, input, input, input, output, output)
     !  
     ! Build boundwave offshore spectrum, and determine Hig0 and Tpig0, using Herbers 1994 as in XBeach implementation
     !
@@ -849,11 +848,12 @@ subroutine update_boundaries()
     !   
     implicit none
     !
-    real*4, intent(in)    :: hsinc, tpinc, ds, jonswapgam, depth
+    real*4, intent(in)    :: hsinc, tpinc, ds, jonswapgam, depth, Tinc2ig
     real*4, intent(out)   :: hsig, tpig
     !
     real*4                :: pi, scoeff
-    integer               :: correctHm0
+    real*4                :: Tm01, Tm10, Tp
+    integer               :: correctHm0, tpigopt
     !
     correctHm0 = 0 ! Choice between correcting Hm0 in build_jonswap if build 2D Vardens spectrum too low (1) or not (default, 0)
     !
@@ -862,34 +862,58 @@ subroutine update_boundaries()
     ! Convert wave spreading in degrees (input) to S
     scoeff = (2/ds**2) - 1
     !  
-    ! Call function that calculates Hig0 following Herbers, as implemented in XBeach:
-    ! Loosely based on 3 step calculation in waveparams.F90 of XBeach
+    ! Call function that calculates Hig0 following Herbers, as also implemented in XBeach and secordspec2 in Matlab
+    ! Loosely based on 3 step calculation in waveparams.F90 of XBeach (build_jonswap, build_etdir, build_boundw), here all in 1 subroutine calculate_herbers
     !
-    call build_jonswap(hsig, hsinc, tpinc, scoeff, jonswapgam, depth, correctHm0) ![out, in, in, in, in, in, in]
-    !call build_etdir(par,s,wp,Ebcfname)
-    !call build_boundw(hsinc, tpinc, S, jonswapgam, depth, hsig, tpig) 
+    call compute_herbers(hsig, Tm01, Tm10, Tp, hsinc, tpinc, scoeff, jonswapgam, depth, correctHm0) ![out,out,out,out,in,in,in,in,in,in]
     !   
     ! Catch NaN values (if depth=0 probably) or unrealistically large values above 2 meters
-    if (hm0ig < 0.0) then
-	    write(*,*)'DEBUG - computed hm0ig at boundary dropped below 0 m: ',hm0ig, ' and is therefore limited back to 0 m!'
-	    hm0ig = max(hm0ig, 0.0)
+    if (hsig < 0.0) then
+	    write(*,*)'DEBUG - computed hm0ig at boundary dropped below 0 m: ',hsig, ' and is therefore limited back to 0 m!'
+	    hsig = max(hsig, 0.0)
     endif	
-
-    if (hm0ig > 3.0) then
-	    write(*,*)'DEBUG - computed hm0ig at boundary exceeds 2 meter: ',hm0ig, ' and is therefore limited back to 2 m!'
-	    hm0ig = min(hm0ig, 3.0)
+    if (hsig > 3.0) then
+	    write(*,*)'DEBUG - computed hm0ig at boundary exceeds 2 meter: ',hsig, ' and is therefore limited back to 2 m!'
+	    hsig = min(hsig, 3.0)
+    endif	        
+    !
+    ! Choose what wave period option value for IG to choose:
+    !
+    tpigopt = 1 !TODO: TL: later make user definable
+    !
+    if (tpigopt == 1) then
+        !
+        tpig = Tm01
+        !
+    elseif (tpigopt == 2) then
+        !
+        tpig = tpinc * Tinc2ig
+        !
+    elseif (tpigopt == 3) then
+        !        
+        tpig = Tp
+        !
+    elseif (tpigopt == 4) then
+        !        
+        tpig = Tm10 ! Tm-1,0
+        !    
+    elseif (tpigopt == 5) then ! Old default ratio of Tpig = 7 * Tpinc
+        !        
+        tpig = tpinc * 7.0
+        !
+    endif
+    !
+    ! Check on ratio tpig/tpinc whether it is deemed realistic
+    if (tpig/tpinc < 2.0) then
+	    write(*,*)'DEBUG - computed tpig/tpinc ratio at offshore boundary dropped below 2 and might be unrealistic! value: ',tpig/tpinc
     endif	    
-    
-    !
-    tpig = tpinc * 4.0
-    !
-    ! TODO: also determine some mean Tig
-    !snapwave_Tinc2ig     = 16.4855
-    !snapwave_eeinc2ig    = 0.0029      
+    if (tpig/tpinc > 25.0) then
+	    write(*,*)'DEBUG - computed tpig/tpinc ratio at offshore boundary increased above 25 and might be unrealistic! value: ',tpig/tpinc
+    endif	         
     !   
     end subroutine
    
-    subroutine build_jonswap(hsig, hsinc, tpinc, scoeff, jonswapgam, depth, correctHm0)
+    subroutine compute_herbers(hsig, Tm01, Tm10, Tp, hsinc, tpinc, scoeff, jonswapgam, depth, correctHm0)
     !
     use interp        
     !
@@ -898,7 +922,7 @@ subroutine update_boundaries()
     ! Incoming and outgoing variables
     real*4, intent(in)                      :: hsinc, tpinc, scoeff, jonswapgam, depth
     integer, intent(in)                     :: correctHm0
-    real*4, intent(out)                     :: hsig    
+    real*4, intent(out)                     :: hsig, Tm01, Tm10, Tp    
     !
     ! Internal variables - for part 1: build_jonswap
     real*4                                  :: dfj, fp, fnyq, dang, iang, angtemp, hsinc_check1, df
@@ -920,10 +944,11 @@ subroutine update_boundaries()
     ! Internal variables - for part 3: build_boundw    
     real*4                                  :: deltaf
     real*4, dimension(:), allocatable       :: w1, k1
-    real*4, dimension(:), allocatable       :: Ebnd
+    real*4, dimension(:), allocatable       :: Ebnd, fbnd
     real*4, dimension(:), allocatable       :: term1, term2, term2new, dif, chk1, chk2
     real*4, dimension(:,:), allocatable     :: Eforc, D, deltheta!, KKx, KKy, theta3
     real*4, dimension(:,:), allocatable     :: dphi3, k3, cg3!, Abnd   
+    integer                                 :: valdensmax
     !
     ! Constants
     pi  = 4.*atan(1.)    
@@ -1265,18 +1290,30 @@ subroutine update_boundaries()
     ! Sum over the components to get total forced wave at diff freq
     Ebnd = sum(Eforc,2)
     !
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Up to here is Matlab/XBeach implementation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Determine final parameters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
     !
     ! What we actually want for SnapWave offshore IG bc: Hm0ig 
     hsig = 4*sqrt(sum(Ebnd)*df)   
     !
-    !tpig = xxx    
+    ! Calculate representative value for IG wave period
+    allocate (temp(K))
+    temp=(/(i,i=0,K-1)/)
+    !  
+    ! Select equidistant wave components between the earlier selected range of frequencies around the peak frequency based on sprdthr
+    allocate(fbnd(K-1))
+    fbnd = temp * df
+    deallocate(temp)
+    !
+    ! Calculate mean wave period based on one-dimensional non-directional variance
+    ! density spectrum and factor trepfac
+    call tpDcalc(Ebnd,fbnd,0.01,Tm01,Tm10,Tp)! [in,in,in,out,out,out]    
+    !XBeach default for trepfac = 0.01
     !
     end subroutine
             
     ! -----------------------------------------------------------
     ! --------- JONSWAP  unscaled JONSWAP spectrum --------------
-    ! ----------------(used by build_jonswap)--------------------
+    ! -----------------(used by compute_herbers)-----------------
     subroutine jonswapgk(x,gam,y)
 
     implicit none
@@ -1322,7 +1359,7 @@ subroutine update_boundaries()
     
    ! -----------------------------------------------------------
    ! ---- Small subroutine to determine f-range round peak -----
-   ! ----(used by build_jonswap, swanreader, vardensreader)-----
+   ! -----------------(used by compute_herbers)-----------------
    subroutine frange(Sf,firstp,lastp,findlineout,sprdthr)
 
       implicit none
@@ -1355,7 +1392,7 @@ subroutine update_boundaries()
     
    ! --------------------------------------------------------------
    ! --------------------- Dispersion relation --------------------
-   ! ----------------- (used only by build_boundw) ----------------
+   ! -------------------(used by compute_herbers)------------------
    subroutine bc_disper(k1,w1,m,h,g)
       !          k  = wave number             (2 * pi / wave length)
       !          w  = wave angular frequency  (2 * pi / wave period)
@@ -1422,5 +1459,43 @@ subroutine update_boundaries()
       return
 
    end subroutine bc_disper   
+   
+   ! -----------------------------------------------------------
+   ! ----------- Small subroutine to determine tpD -------------
+   ! -----------------(used by compute_herbers)-----------------
+   !
+   ! TL: Slightly adapted from XBeach version to give more output,
+   ! give back Tm01, Tm-1,0 and Tp
+   subroutine tpDcalc(Sf,f,trepfac,Tm01,Tm10,Tp) ! [in,in,in,out,out,out]
+
+      implicit none
+
+      ! In:
+      real*4, dimension(:), intent(in)        :: Sf, f
+      real*4, intent(in)                      :: trepfac
+      !
+      ! Out:
+      real*4, intent(out)                     :: Tm01
+      real*4, intent(out)                     :: Tm10
+      real*4, intent(out)                     :: Tp      
+      !
+      ! Local:
+      real*4, dimension(:),allocatable        :: temp
+      integer                                 :: id  
+      !
+      allocate(temp(size(Sf)))
+      temp=0.d0
+      where (Sf>=trepfac*maxval(Sf))
+         temp=1.d0
+      end where
+      !
+      Tm01=sum(temp*Sf)/sum(temp*Sf*f)   ! Tm01
+      !
+      Tm10 = sum(temp*Sf/f)/sum(temp*Sf) ! Tm-1,0
+      !
+      id = int(MAXLOC(Sf, dim=1))
+      Tp = 1.0 / f(id)                   ! Tp
+      !    
+   end subroutine tpDcalc
    
 end module
