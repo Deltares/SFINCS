@@ -851,6 +851,9 @@ subroutine update_boundaries()
     real*4, intent(out)   :: hsig, tpig
     !
     real*4                :: pi, scoeff
+    integer               :: correctHm0
+    !
+    correctHm0 = 1 ! Choice between correcting Hm0 in build_jonswap if build 2D Vardens spectrum too low (1) or not (0)
     !
     pi    = 4.*atan(1.)
     !
@@ -860,7 +863,7 @@ subroutine update_boundaries()
     ! Call function that calculates Hig0 following Herbers, as implemented in XBeach:
     ! Loosely based on 3 step calculation in waveparams.F90 of XBeach
     !
-    call build_jonswap(hsinc, tpinc, scoeff, jonswapgam, depth)
+    call build_jonswap(hsinc, tpinc, scoeff, jonswapgam, depth, correctHm0)
     !call build_etdir(par,s,wp,Ebcfname)
     !call build_boundw(hsinc, tpinc, S, jonswapgam, depth, hsig, tpig) 
     !
@@ -877,7 +880,7 @@ subroutine update_boundaries()
     !   
     end subroutine
    
-    subroutine build_jonswap(hsinc, tpinc, scoeff, jonswapgam, depth)
+    subroutine build_jonswap(hsinc, tpinc, scoeff, jonswapgam, depth, correctHm0)
     !
     use interp        
     !
@@ -885,6 +888,7 @@ subroutine update_boundaries()
     !
     ! Incoming variables
     real*4, intent(in)    :: hsinc, tpinc, scoeff, jonswapgam, depth
+    integer, intent(in)   :: correctHm0
     !
     ! Internal variables - for part 1
     real*4   :: dfj, fp, fnyq, dang, iang, angtemp, hsinc_check1, df
@@ -1110,20 +1114,31 @@ subroutine update_boundaries()
     !
     ! Determine significant wave height using Hm0 = 4*sqrt(m0) using the one-dimensional non-directional variance density spectrum    
     hsinc_check2 = 4*sqrt(sum(S0 * dthetafin * df))
-    hsinc_check2tmp = 4*sqrt(sum(Sn)*df);    
+    hsinc_check2tmp = 4*sqrt(sum(Sn) * df)    
     !
     ! Add check on Hm0 of created two-dimensional variance density spectrum :
     !if (abs(hsinc_check2 - hsinc_check1) > 0.01) then
     if (abs(hsinc_check2 - hsinc_check2tmp) > 0.01) then        
         write(*,*)'WARNING - computed Hm0,inc of 2D var dens spectrum differs from input! see subroutine build_jonswap in determine_ig_bc in module snapwave_boundaries.f90'
-        write(*,*)'Newly computed in part 2: ',hsinc_check2,' , computed before: ', hsinc_check2tmp
+        write(*,*)'Newly computed in part 2: ',hsinc_check2,' , while computed before: ', hsinc_check2tmp, ' and input was: ', hsinc
         !write(*,*)'Newly computed in part 2: ',hsinc_check2,' , computed in part 1: ', hsinc_check1        
     endif    
-    ! Correct spectra for wave height > TL: in Xbeach, not Matlab, do we want this too?
-    !if (correctHm0 == 1) then
-    !    S0 = (hm0gew/hm0now)**2*S0                                            ! Robert: back on ?
-    !    Sf0 = (hm0gew/hm0now)**2*Sf0                                                ! Robert: back on ?
-    !endif
+    !
+    ! Correct spectra for wave height > TL: in Xbeach, not Matlab, option added for now
+    if (correctHm0 == 1) then
+        !
+        S0 = (hsinc/hsinc_check2)**2 * S0
+        Sn = (hsinc/hsinc_check2)**2 * Sn
+        dthetafin = Sn/S0					    
+        !
+        ! To check again:
+        !hsinc_check2tmp = 4*sqrt(sum( (hsinc/hsinc_check2)**2 * S0 * dthetafin * df))
+        hsinc_check2 = 4*sqrt(sum(S0 * dthetafin * df))
+        hsinc_check2tmp = 4*sqrt(sum(Sn) * df)                 
+        !
+        write(*,*)'DEBUG - Hm0 of vardens corrected to: ',hsinc_check2,' and ', hsinc_check2tmp, ' so it is close to input: ', hsinc
+        !        
+    endif    
     !
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Part 3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! TL: Here we go to the code of XBeach subroutine 'build_boundw' from waveparams.F90 
