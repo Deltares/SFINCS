@@ -870,6 +870,8 @@ subroutine update_boundaries()
    
     !tpig = 37.0156
     tpig = tpinc * 4.0
+    !
+    ! TODO: also determine some mean Tig
     !snapwave_Tinc2ig     = 16.4855
     !snapwave_eeinc2ig    = 0.0029      
     !   
@@ -885,7 +887,7 @@ subroutine update_boundaries()
     real*4, intent(in)    :: hsinc, tpinc, scoeff, jonswapgam, depth
     !
     ! Internal variables - for part 1
-    real*4   :: dfj, fp, fnyq, dang, iang, angtemp, hsinc_check, df
+    real*4   :: dfj, fp, fnyq, dang, iang, angtemp, hsinc_check1, df
     real*4, dimension(:), allocatable :: temp, x, y, f, ang, Dd, Sf, findline, fgen    
     real*4, dimension(:,:), allocatable :: S_array    
     integer :: i=0, ii, nang, nfreq, peakf
@@ -894,16 +896,19 @@ subroutine update_boundaries()
     !
     ! Internal variables - for part 2    
     real*4   :: kmax, pp
-    real*4,dimension(1:401) :: ktemp, ftemp
-    real*4,dimension(size(Dd)) :: Dmean, P    
-    real*4,dimension(400) :: P0, kk, phase, Sf0, Sf0org,S0org    !K=400 for size is correct? > OR allocate size later once K is defined
-    real*4,dimension(400*2) :: randummy !size correct? K*2
-    real*4, dimension(:), allocatable :: theta, temp2,theta0,S0     !theta0, S0
-    real*4 :: hm0now, s1, s2, modf, modang    
-    integer :: F2, stepf, stepang
+    !real*4,dimension(1:401) :: ktemp, ftemp
+    !real*4,dimension(size(Dd)) :: Dmean, P    
+    real*4,dimension(400) :: P0, kk, phase, Sf0, Sf0org,S0org     !K=400 for size is correct? > OR allocate size later once K is defined
+    real*4,dimension(202) :: P1, ang1        
+    !real*4,dimension(400*2) :: randummy !size correct? K*2
+    real*4, dimension(:), allocatable :: theta, theta0, temp2, S0, Sn, dthetafin
+    real*4, dimension(:,:), allocatable :: Snew_array, Snew1_array, Ddnew        
+    real*4 :: hm0now, s1, s2, modf, modang, hsinc_check2, hsinc_check2tmp    
+    integer :: F2, stepf, stepang, jj
     !
     pi    = 4.*atan(1.)    
     !   
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Part 1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     dfj = 0.001
     fp = 1 / tpinc
     fnyq = fp * 2
@@ -926,15 +931,18 @@ subroutine update_boundaries()
     call jonswapgk(x,jonswapgam,y)
     !
     ! Determine scaled and non-directional JONSWAP spectrum using the JONSWAP characteristics
-    y=(hsinc/(4.d0*sqrt(sum(y)*dfj)))**2*y
+    y = (hsinc/(4.d0*sqrt(sum(y)*dfj)))**2*y
     deallocate (x)  
     ! 
     ! TL: Do now some extra steps for determining relative angles etc. 
     !
     ! Define 200 directions relative to main angle running from -pi to pi
-    allocate(temp(201))
-    allocate(ang(201))
-    temp=(/(i,i=0,200)/)
+    !allocate(temp(201))
+    !allocate(ang(201))
+    !temp=(/(i,i=0,200)/)    
+    allocate(temp(200))
+    allocate(ang(200))    
+    temp=(/(i,i=0,200-1)/) ! as in Matlab version have 200 values    
     ang=temp*((2*pi)/200.d0)-pi
     deallocate (temp)    
     !
@@ -965,10 +973,10 @@ subroutine update_boundaries()
     deallocate (y)    
     !
     ! Add check on Hm0 of created two-dimensional variance density spectrum :
-    hsinc_check = 4*sqrt(sum(S_array)*dfj*dang)
-    if (abs(hsinc - hsinc_check) > 0.01) then
+    hsinc_check1 = 4*sqrt(sum(S_array)*dfj*dang)
+    if (abs(hsinc - hsinc_check1) > 0.01) then
         write(*,*)'WARNING - computed Hm0,inc of 2D var dens spectrum differs from input! see subroutine build_jonswap in determine_ig_bc in module snapwave_boundaries.f90'
-        write(*,*)'Input: ',hsinc,' , computed: ', hsinc_check
+        write(*,*)'Input: ',hsinc,' , computed: ', hsinc_check1
     endif
     !
     ! Back integrate two-dimensional variance density spectrum over directions    
@@ -982,9 +990,10 @@ subroutine update_boundaries()
     call frange(Sf,firstp,lastp,findline,sprdthr)
     !findline = findloc(Sf, Sf>0.08*maxval(Sf)) ! TL: should probably be possible to do this more easily
     !
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Part 2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! TL: Here we go to the code of XBeach subroutine 'build_etdir' from waveparams.F90 
     !
-    K = 400 ! as in Matlab script, different than in XBeach, where its determined case by case based on the wave record length and width of the wave frequency range    
+    K = 400 ! as in Matlab script, different than in XBeach, where its determined case by case based on the wave record length and width of the wave frequency range (?)   
     ! Determine number of frequencies in discrete variance density spectrum to be included    
     M = int(sum(findline)) ! number of points in frequency range around peak
     !
@@ -1000,165 +1009,134 @@ subroutine update_boundaries()
     ! Determine equidistant frequency step size
     df = (fgen(K) - fgen(1)) / (dble(K) - 1.d0)    
     !        
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% quick copy pasting %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    ! 2D interpolate from S_array of (f,ang) grid to (fgen,ang)
     !
-    ! Determine maximum wave number based on maximum frequency and dispersion
-    ! relation w^2 = g*k*tanh(k*d) and max(tanh(k*d))=1
-    kmax=((2*(pi)*f(lastp))**2)/9.81 !g
-    !
-    ! Determine frequency array with 400 frequencies corresponding to wave numbers
-    ! running from 0 to 2*kmax using the dispersion relation w^2 = g*k*tanh(k*d)
-    allocate(temp(401))
-    temp=(/(i,i=0,400)/)
-    ktemp=temp*(kmax/200)
-    ftemp=sqrt((9.81)*ktemp*tanh(ktemp*depth))/(2*pi)
-    deallocate (temp)
-    !
-    ! Determine all wave numbers of the selected frequencies around the peak frequency by linear interpolation
-    do i=1,size(fgen)
-        call linear_interp_real4(ftemp,ktemp,401,fgen(i),pp,F2)
-        kk(i)=pp
-    end do
-    !
-    ! Define normalization factor for wave variance
-    ! TL - Question - do we need this Dmean? 
-    pp=1/(sum(Dmean)*dang)
-    !
-    ! Determine normalized wave variance for each directional bin to be used as probability density function, so surface is equal to unity
-    do i=1,size(ang)
-        P(i)=sum(Dmean(1:i))*dang*pp
-    end do    
-    !
-    ! Define random number between 0.025 and 0975 for each wave component
-    do i=1,K*2
-        call RANDOM_NUMBER(randummy(i)) !TL - Check - works the same?        
-        !randummy(i) = random(0)        
+    allocate(Snew_array(K,size(ang)))    
+    do ii=1,K
+        do jj=1,size(ang)
+            !
+            call linear_interp_2d_real4(f,size(f), &    ! input frequency, size
+                ang,size(ang), &                        ! input angles, size
+                S_array, &                              ! input 2D variance density
+                fgen(ii),ang(jj), &                     ! output frequency/angle
+                Snew_array(ii,jj), &                    ! output variance density
+                'interp',0.0)                           ! method and exception return value    
+        enddo        
     enddo
     !
-    P0=randummy(1:K)
+    Sn = sum(Snew_array, DIM = 2) * dang ! TL: similar to Sf    
+    !
+    allocate(Ddnew(K,size(ang)))    
+    !
+    do ii=1,K
+        Ddnew(ii,:) = Snew_array(ii,:) / Sn(ii)
+    enddo
+    !
+    ! Define random number between 0 and 1 for each wave component
+    do i=1,K
+        call RANDOM_NUMBER(P0(i)) 
+        P0(i)=0.99*P0(i)+0.01/2 ! TL: as in Matlab: Define random number between 0.025 and 0975 for each wave component
+    enddo
     !
     ! Define direction for each wave component based on random number and linear
     ! interpolation of the probability density function
-    allocate(theta0(400))!before:- forrtl: severe (151): allocatable array is already allocated
+    allocate(theta(K))
     !
-    if (scoeff >= 1000.d0) then
-        theta0 = 0 !mainang !Ap longcrested waves
+    if (scoeff >= 1000.0) then !longcrested waves
+        theta = 0 
     else
-        do i=1,size(P0)
-        call linear_interp_real4(P(1:size(P)),theta(1:size(P)),size(P),P0(i),pp,F2)   ! Bas: do not crop cdf, only needed in Matlab to ensure monotonicity
-        theta0(i)=pp !TL - CHECK - perhaps this doesn't go well, now result is only zeros
-        end do
-    end if    
+        do ii=1,size(P0)
+            !
+            P1(1) = 0                   ! P1 is a function between 0 and 1, that looks like a cdf function
+            ang1(1) = minval(ang)-dang  ! ang1 is a linear function between -pi and pi
+            !
+            do jj=1,size(ang)
+                P1(jj+1) = sum(Ddnew(ii,1:jj)) * dang + 0.00001 * jj
+                ang1(jj+1) = ang(jj)
+            enddo            
+            !
+            P1(size(ang)+2) = P1(size(ang)+1) + 0.0001
+            ang1(size(ang)+2) = ang(size(ang))+dang            
+            ! TL: equivalent to Matlab implementation: P1 = [0 P P(length(ang))+0.0001] & ang1 = [min(ang)-dang ang max(ang)+dang];
+            !                        
+            ! Find the angle for each frequency component            
+            call linear_interp_real4(P1,ang1,size(P1),P0(ii),theta(ii),F2)  ! theta(ii) is the output, finding the corresponding angle per random P0 value
+            !
+            ! TL: as in Matlab - for interpolation purposes:
+            if (theta(ii) < minval(ang1)) then
+                theta(ii) = theta(ii) + 2*pi
+            endif
+            if (theta(ii) > maxval(ang1)) then
+                theta(ii) = theta(ii) - 2*pi
+            endif            
+            !
+        enddo
+    endif    
     !    
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% quick copy pasting %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    ! TL: equivalent to Matlab - Snew = [S(:,noang) S S(:,1)]; % this is for interpolation purposes
+    allocate(Snew1_array(K,size(ang)+2))    
     !
-    ! Define a random phase for each wave component based on a subsequent series of
-    ! random numbers
-    phase=randummy(K+1:2*K)
-    phase=2*phase*pi
-
-    ! Determine variance density spectrum values for all relevant wave components
-    ! around the peak frequency by interpolation of two-dimensional variance
-    ! density spectrum array. This is done by looping through the corresponding
-    ! frequencies and find for each component the two-dimensional
-    ! frequency/directional bin where it is located
-    !
-    allocate(S0(K)) !before:- forrtl: severe (151): allocatable array is already allocated
-    do i=1,size(fgen)
+    do ii=1,K ! TL: =size(fgen)
         !
-        ! Define frequency indices of frequencies that are equal or larger than the
-        ! currently selected component around the peak frequency
-        allocate(temp(size(f)))
-        allocate(temp2(size(f)))
-        temp2=(/(ii,ii=1,size(f))/)
-        temp=1
-        where (f < fgen(i))
-        temp=0
-        endwhere
-        temp=temp*temp2
-
-        ! Check whether any indices are defined. If so, select the first selected
-        ! index. Otherwise, select the last but one from all frequencies
-        if (sum(temp)==0) then
-        stepf=size(f)-1
-        else
-        stepf=max(nint(minval(temp, MASK = temp .gt. 0)-1),1)
-        end if
-
-        ! Determine relative location of the currently selected component in the
-        ! selected frequency bin
-        modf=(fgen(i)-f(stepf))/(f(stepf+1)-f(stepf))
-        deallocate(temp,temp2)
-
-        ! Define directional indices of directions that are equal or larger than
-        ! the currently selected component around the peak frequency
-        allocate(temp(size(theta)))
-        allocate(temp2(size(theta)))
-        temp2=(/(ii,ii=1,size(theta))/)
-        temp=1
-        where (theta < theta0(i) )
-        temp=0
-        endwhere
-        temp=temp*temp2
-
-        ! Check whether any indices are defined. If so, select the first selected
-        ! index. Otherwise, select the first from all directions
-        if (theta0(i)==theta(1)) then
-        stepang=1
-        else
-        stepang=nint(minval(temp, MASK = temp .gt. 0) -1)
-        end if
-
-        ! Determine relative location of the currently selected component in the
-        ! selected directional bin
-        modang=(theta0(i)-theta(stepang))/(theta(stepang+1)-theta(stepang))
-        deallocate(temp,temp2)
-
-        ! Determine variance density spectrum values at frequency boundaries of
-        ! selected two-dimensional bin by linear interpolation in the directional
-        ! dimension along these two boundaries
-        s1=(1.d0-modang)*S_array(stepf,stepang)+modang*S_array(stepf,stepang+1)
-        s2=(1.d0-modang)*S_array(stepf+1,stepang)+modang*S_array(stepf+1,stepang+1)
-
-        ! Determine variance density spectrum value at currently selected component
-        ! around peak frequency by linear interpolation of variance density
-        ! spectrum values at frequency boundaries in frequency direction
-        S0(i)=max(tiny(0.d0),0.00000001d0,(1.d0-modf)*s1+modf*s2)               ! Robert: limit to positive values only in case no energy is drawn
-    end do
-
-    ! Determine the variance density spectrum values for all relevant wave
-    ! components around the peak frequency again, but now using the one-dimensional
-    ! non-directional variance density spectrum only
-    do i=1,size(fgen)
-        call Linear_interp_real4(f,Sf,size(f),fgen(i),pp,F2)
-        Sf0(i)=pp
-    end do
+        Snew1_array(ii,1) = Snew_array(ii,size(ang))  
+        Snew1_array(ii,size(ang)+2) = Snew_array(ii,1)
+        !
+        do jj=1,size(ang)
+            !
+            Snew1_array(ii,jj+1) = Snew_array(ii,jj)            
+            !
+        enddo        
+    enddo
     !
-    ! Determine significant wave height using Hm0 = 4*sqrt(m0) using the
-    ! one-dimensional non-directional variance density spectrum
-    hm0now = 4*sqrt(sum(Sf0)*df)
-
-    ! Backup original spectra just calculated
-    Sf0org=Sf0
-    S0org=S0
-
-    ! Correct spectra for wave height
+    ! Determine variance density spectrum values for all relevant wave components
+    ! around the peak frequency by interpolation of two-dimensional variance density spectrum array.    
+    !
+    ! 2D interpolate from S_array of (f,ang) grid to (fgen,ang)    
+    allocate(S0(K))     
+    !        
+    do ii=1,K ! TL: =size(fgen)    
+        !
+        call linear_interp_2d_real4(fgen,size(fgen), &  ! input frequency, size
+            ang1,size(ang1), &                          ! input angles, size
+            Snew1_array, &                              ! input 2D variance density
+            fgen(ii),theta(ii), &                       ! output frequency/angle
+            S0(ii), &                                   ! output variance density
+            'interp',0.0)                               ! method and exception return value    
+        !
+    enddo    
+    !
+    allocate(dthetafin(K))         
+    dthetafin = Sn/S0					
+    !
+    ! Determine significant wave height using Hm0 = 4*sqrt(m0) using the one-dimensional non-directional variance density spectrum    
+    hsinc_check2 = 4*sqrt(sum(S0 * dthetafin * df))
+    hsinc_check2tmp = 4*sqrt(sum(Sn)*df);    
+    !
+    ! Add check on Hm0 of created two-dimensional variance density spectrum :
+    !if (abs(hsinc_check2 - hsinc_check1) > 0.01) then
+    if (abs(hsinc_check2 - hsinc_check2tmp) > 0.01) then        
+        write(*,*)'WARNING - computed Hm0,inc of 2D var dens spectrum differs from input! see subroutine build_jonswap in determine_ig_bc in module snapwave_boundaries.f90'
+        write(*,*)'Newly computed in part 2: ',hsinc_check2,' , computed before: ', hsinc_check2tmp
+        !write(*,*)'Newly computed in part 2: ',hsinc_check2,' , computed in part 1: ', hsinc_check1        
+    endif    
+    ! Correct spectra for wave height > TL: in Xbeach, not Matlab, do we want this too?
     !if (correctHm0 == 1) then
     !    S0 = (hm0gew/hm0now)**2*S0                                            ! Robert: back on ?
     !    Sf0 = (hm0gew/hm0now)**2*Sf0                                                ! Robert: back on ?
     !endif
     !
-        
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% quick copy pasting %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Part 3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    ! TL: Here we go to the code of XBeach subroutine 'build_boundw' from waveparams.F90 
     !
     
-    !! Up to here is XBeach implementation
-    !!
-    !! Added TL:
+    !
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Up to here is Matlab/XBeach implementation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
+    !
+    ! Added TL:
     !hsig = 4*sqrt(sum(Ebnd)*df) !What we actually want for SnapWave offshore IG bc   
-    !!
-    !!tpig = xxx    
-    
+    !
+    !tpig = xxx    
+    !
     end subroutine
             
     ! -----------------------------------------------------------

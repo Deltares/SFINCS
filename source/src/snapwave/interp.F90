@@ -3,7 +3,7 @@ module interp
    private
    public linear_interp, interp_in_cyclic_function, interp_using_trapez_rule,ipon
    public grmap2, grmap_sg, mkmap, grmap, linear_interp_2d, make_map, make_map_fm, mkmap_step, trapezoidal
-   public linear_interp_real4 
+   public linear_interp_real4, linear_interp_2d_real4 
    save
 contains
    pure subroutine linear_interp_2d(X,nx,Y,ny,Z,xx,yy,zz,method,exception)
@@ -85,6 +85,86 @@ contains
       endif
 
    end subroutine linear_interp_2d
+   
+ pure subroutine linear_interp_2d_real4(X,nx,Y,ny,Z,xx,yy,zz,method,exception)
+
+      implicit none
+      ! input/output
+      integer,intent(in)                    :: nx,ny
+      real*4,dimension(nx),intent(in)       :: X
+      real*4,dimension(ny),intent(in)       :: Y
+      real*4,dimension(nx,ny),intent(in)    :: Z
+      real*4,intent(in)                     :: xx,yy
+      real*4,intent(out)                    :: zz
+      character(len=*),intent(in)           :: method
+      real*4,intent(in)                     :: exception
+      ! internal
+      integer,dimension(4)                  :: ind
+      real*4,dimension(2)                   :: yint
+      real*4                                :: modx,mody,disx,disy
+      logical                               :: interpX,interpY
+
+      ! does the interpolation point fall within the data?
+      if (xx>=minval(X) .and. xx<=maxval(X)) then
+         interpX = .true.
+      else
+         interpX = .false.
+      endif
+      if (yy>=minval(Y) .and. yy<=maxval(Y)) then
+         interpY = .true.
+      else
+         interpY = .false.
+      endif
+
+      if (interpX .and. interpY) then
+         ! find rank position xx in X direction
+         ind(1) = minloc(X,1,X>=xx)
+         ind(2) = maxloc(X,1,X<=xx)
+         ! find rank position yy in Y direction
+         ind(3) = minloc(Y,1,Y>=yy)
+         ind(4) = maxloc(Y,1,Y<=yy)
+         ! distance between X points and Y points
+         disx = X(ind(1))-X(ind(2))
+         disy = Y(ind(3))-Y(ind(4))
+         ! relative position of (xx,yy) on disx,disy
+         if (disx>0.d0) then
+            modx = (xx-X(ind(2)))/disx
+         else
+            modx = 0.d0   ! xx corresponds exactly to X point
+         endif
+         if (disy>0.d0) then
+            mody = (yy-Y(ind(4)))/disy
+         else
+            mody = 0.d0   ! yy corresponds exactly to Y point
+         endif
+         ! interpolate the correct Y value, based on two nearest X intersects
+         ! if disy==0 then only single interpolation needed. This could also be done for X,
+         ! but since this is used by waveparams and the interp angles (Y) are more often equal
+         ! this is probably faster.
+         if (disy>0.d0) then
+            yint(1) = (1.d0-modx)*Z(ind(2),ind(3))+modx*Z(ind(1),ind(3))
+            yint(2) = (1.d0-modx)*Z(ind(2),ind(4))+modx*Z(ind(1),ind(4))
+            zz = (1.d0-mody)*yint(2)+mody*yint(1)
+         else
+            zz = (1.d0-modx)*Z(ind(2),ind(3))+modx*Z(ind(1),ind(3))
+         endif
+      else
+         select case (method)
+          case ('interp')
+            zz = exception
+          case ('extendclosest')
+            ! find closest X point
+            ind(1) = minloc(abs(X-xx),1)
+            ! find closest Y point
+            ind(3) = minloc(abs(Y-yy),1)
+            ! external value given that of closest point
+            zz = Z(ind(1),ind(3))
+          case default
+            zz = exception
+         endselect
+      endif
+
+   end subroutine linear_interp_2d_real4   
 
    !
    ! NAME
