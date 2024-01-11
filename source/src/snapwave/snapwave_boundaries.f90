@@ -627,7 +627,7 @@ subroutine update_boundary_points(t)
    !
    if (igwaves) then
       ! 
-      jonswapgam = 3.3 ! TODO: TL: later make spatially varying?
+      jonswapgam = 3.3 ! TODO: TL: later make spatially varying? > then as gam_bwv(ib) in 'determine_ig_bc'
       !jonswapgam = 20.0
       !
       ! Get local water depth at boundary points (can change in time)        
@@ -852,7 +852,7 @@ subroutine update_boundaries()
     real*4, intent(out)   :: hsig, tpig
     !
     real*4                :: pi, scoeff
-    real*4                :: Tm01, Tm10, Tp
+    real*4                :: Tm01, Tm10, Tp, Tpsmooth
     integer               :: correctHm0, tpigopt
     !
     correctHm0 = 0 ! Choice between correcting Hm0 in build_jonswap if build 2D Vardens spectrum too low (1) or not (default, 0)
@@ -865,7 +865,7 @@ subroutine update_boundaries()
     ! Call function that calculates Hig0 following Herbers, as also implemented in XBeach and secordspec2 in Matlab
     ! Loosely based on 3 step calculation in waveparams.F90 of XBeach (build_jonswap, build_etdir, build_boundw), here all in 1 subroutine calculate_herbers
     !
-    call compute_herbers(hsig, Tm01, Tm10, Tp, hsinc, tpinc, scoeff, jonswapgam, depth, correctHm0) ![out,out,out,out,in,in,in,in,in,in]
+    call compute_herbers(hsig, Tm01, Tm10, Tp, Tpsmooth, hsinc, tpinc, scoeff, jonswapgam, depth, correctHm0) ![out,out,out,out,out, in,in,in,in,in,in]
     !   
     ! Catch NaN values (if depth=0 probably) or unrealistically large values above 2 meters
     if (hsig < 0.0) then
@@ -891,13 +891,17 @@ subroutine update_boundaries()
         !
     elseif (tpigopt == 3) then
         !        
-        tpig = Tp
+        tpig = Tpsmooth
         !
     elseif (tpigopt == 4) then
         !        
+        tpig = Tp            
+        !
+    elseif (tpigopt == 5) then
+        !        
         tpig = Tm10 ! Tm-1,0
         !    
-    elseif (tpigopt == 5) then ! Old default ratio of Tpig = 7 * Tpinc
+    elseif (tpigopt == 6) then ! Old default ratio of Tpig = 7 * Tpinc
         !        
         tpig = tpinc * 7.0
         !
@@ -913,7 +917,7 @@ subroutine update_boundaries()
     !   
     end subroutine
    
-    subroutine compute_herbers(hsig, Tm01, Tm10, Tp, hsinc, tpinc, scoeff, jonswapgam, depth, correctHm0)
+    subroutine compute_herbers(hsig, Tm01, Tm10, Tp, Tpsmooth, hsinc, tpinc, scoeff, jonswapgam, depth, correctHm0)
     !
     use interp        
     !
@@ -922,7 +926,7 @@ subroutine update_boundaries()
     ! Incoming and outgoing variables
     real*4, intent(in)                      :: hsinc, tpinc, scoeff, jonswapgam, depth
     integer, intent(in)                     :: correctHm0
-    real*4, intent(out)                     :: hsig, Tm01, Tm10, Tp    
+    real*4, intent(out)                     :: hsig, Tm01, Tm10, Tp, Tpsmooth    
     !
     ! Internal variables - for part 1: build_jonswap
     real*4                                  :: dfj, fp, fnyq, dang, iang, angtemp, hsinc_check1, df
@@ -1306,7 +1310,7 @@ subroutine update_boundaries()
     !
     ! Calculate mean wave period based on one-dimensional non-directional variance
     ! density spectrum and factor trepfac
-    call tpDcalc(Ebnd,fbnd,0.01,Tm01,Tm10,Tp)! [in,in,in,out,out,out]    
+    call tpDcalc(Ebnd,fbnd,0.01,Tm01,Tm10,Tp,Tpsmooth)! [in,in,in,out,out,out,out]
     !XBeach default for trepfac = 0.01
     !
     end subroutine
@@ -1466,7 +1470,7 @@ subroutine update_boundaries()
    !
    ! TL: Slightly adapted from XBeach version to give more output,
    ! give back Tm01, Tm-1,0 and Tp
-   subroutine tpDcalc(Sf,f,trepfac,Tm01,Tm10,Tp) ! [in,in,in,out,out,out]
+   subroutine tpDcalc(Sf,f,trepfac,Tm01,Tm10,Tp,Tpsmooth) ! [in,in,in,out,out,out,out]
 
       implicit none
 
@@ -1477,10 +1481,11 @@ subroutine update_boundaries()
       ! Out:
       real*4, intent(out)                     :: Tm01
       real*4, intent(out)                     :: Tm10
-      real*4, intent(out)                     :: Tp      
+      real*4, intent(out)                     :: Tp   
+      real*4, intent(out)                     :: Tpsmooth            
       !
       ! Local:
-      real*4, dimension(:),allocatable        :: temp
+      real*4, dimension(:),allocatable        :: temp, Sfsmooth
       integer                                 :: id  
       !
       allocate(temp(size(Sf)))
@@ -1496,6 +1501,17 @@ subroutine update_boundaries()
       id = int(MAXLOC(Sf, dim=1))
       Tp = 1.0 / f(id)                   ! Tp
       !    
+      ! And Tp over smoothed spectrum:
+      allocate(Sfsmooth(size(Sf)))
+      !
+      Sfsmooth = 0.0      
+      do id=2,size(Sf)-1
+         Sfsmooth(id) = (0.5*Sf(id-1)+Sf(id)+0.5*Sf(id+1))/2
+      enddo               
+      !
+      id = int(MAXLOC(Sfsmooth, dim=1))
+      Tpsmooth = 1.0 / f(id)                   ! Tp,smooth      
+      !
    end subroutine tpDcalc
    
 end module
