@@ -853,7 +853,7 @@ subroutine update_boundaries()
     real*4                :: pi, scoeff
     integer               :: correctHm0
     !
-    correctHm0 = 1 ! Choice between correcting Hm0 in build_jonswap if build 2D Vardens spectrum too low (1) or not (0)
+    correctHm0 = 0 ! Choice between correcting Hm0 in build_jonswap if build 2D Vardens spectrum too low (1) or not (default, 0)
     !
     pi    = 4.*atan(1.)
     !
@@ -863,7 +863,7 @@ subroutine update_boundaries()
     ! Call function that calculates Hig0 following Herbers, as implemented in XBeach:
     ! Loosely based on 3 step calculation in waveparams.F90 of XBeach
     !
-    call build_jonswap(hsinc, tpinc, scoeff, jonswapgam, depth, correctHm0)
+    call build_jonswap(hsig, hsinc, tpinc, scoeff, jonswapgam, depth, correctHm0) ![out, in, in, in, in, in, in]
     !call build_etdir(par,s,wp,Ebcfname)
     !call build_boundw(hsinc, tpinc, S, jonswapgam, depth, hsig, tpig) 
     !
@@ -880,39 +880,49 @@ subroutine update_boundaries()
     !   
     end subroutine
    
-    subroutine build_jonswap(hsinc, tpinc, scoeff, jonswapgam, depth, correctHm0)
+    subroutine build_jonswap(hsig, hsinc, tpinc, scoeff, jonswapgam, depth, correctHm0)
     !
     use interp        
     !
     implicit none
     !
-    ! Incoming variables
-    real*4, intent(in)    :: hsinc, tpinc, scoeff, jonswapgam, depth
-    integer, intent(in)   :: correctHm0
+    ! Incoming and outgoing variables
+    real*4, intent(in)                      :: hsinc, tpinc, scoeff, jonswapgam, depth
+    integer, intent(in)                     :: correctHm0
+    real*4, intent(out)                     :: hsig    
     !
-    ! Internal variables - for part 1
-    real*4   :: dfj, fp, fnyq, dang, iang, angtemp, hsinc_check1, df
-    real*4, dimension(:), allocatable :: temp, x, y, f, ang, Dd, Sf, findline, fgen    
-    real*4, dimension(:,:), allocatable :: S_array    
-    integer :: i=0, ii, nang, nfreq, peakf
-    integer :: firstp, lastp, M, K    
-    real*4  :: pi, sprdthr
+    ! Internal variables - for part 1: build_jonswap
+    real*4                                  :: dfj, fp, fnyq, dang, iang, angtemp, hsinc_check1, df
+    real*4, dimension(:), allocatable       :: temp, x, y, f, ang, Dd, Sf, findline, fgen    
+    real*4, dimension(:,:), allocatable     :: S_array    
+    integer                                 :: i=0, ii, nang, nfreq, peakf
+    integer                                 :: firstp, lastp, M, K    
+    real*4                                  :: pi, g, sprdthr
     !
-    ! Internal variables - for part 2    
-    real*4   :: kmax, pp
-    !real*4,dimension(1:401) :: ktemp, ftemp
-    !real*4,dimension(size(Dd)) :: Dmean, P    
-    real*4,dimension(400) :: P0, kk, phase, Sf0, Sf0org,S0org     !K=400 for size is correct? > OR allocate size later once K is defined
-    real*4,dimension(202) :: P1, ang1        
-    !real*4,dimension(400*2) :: randummy !size correct? K*2
-    real*4, dimension(:), allocatable :: theta, theta0, temp2, S0, Sn, dthetafin
-    real*4, dimension(:,:), allocatable :: Snew_array, Snew1_array, Ddnew        
-    real*4 :: hm0now, s1, s2, modf, modang, hsinc_check2, hsinc_check2tmp    
-    integer :: F2, stepf, stepang, jj
+    ! Internal variables - for part 2: build_etdir    
+    real*4                                  :: kmax, pp
+    real*4, dimension(400)                  :: P0, kk, phase, Sf0, Sf0org,S0org     !K=400 - OR allocate size later once K is defined
+    real*4, dimension(202)                  :: P1, ang1   ! Are size 200+2        
+    real*4, dimension(:), allocatable       :: theta, theta0, temp2, S0, Sn, dthetafin
+    real*4, dimension(:,:), allocatable     :: Snew_array, Snew1_array, Ddnew        
+    real*4                                  :: hm0now, s1, s2, modf, modang, hsinc_check2, hsinc_check2tmp    
+    integer                                 :: F2, stepf, stepang, jj
     !
-    pi    = 4.*atan(1.)    
+    ! Internal variables - for part 3: build_boundw    
+    real*4                                  :: deltaf
+    real*4, dimension(:), allocatable       :: w1, k1
+    real*4, dimension(:), allocatable       :: Ebnd
+    real*4, dimension(:), allocatable       :: term1, term2, term2new, dif, chk1, chk2
+    real*4, dimension(:,:), allocatable     :: Eforc, D, deltheta!, KKx, KKy, theta3
+    real*4, dimension(:,:), allocatable     :: dphi3, k3, cg3!, Abnd   
+    !
+    ! Constants
+    pi  = 4.*atan(1.)    
+    g   = 9.81
     !   
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Part 1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    ! TL: Here we go to the code of XBeach subroutine 'build_jonswap' from waveparams.F90 
+    !
     dfj = 0.001
     fp = 1 / tpinc
     fnyq = fp * 2
@@ -1132,7 +1142,6 @@ subroutine update_boundaries()
         dthetafin = Sn/S0					    
         !
         ! To check again:
-        !hsinc_check2tmp = 4*sqrt(sum( (hsinc/hsinc_check2)**2 * S0 * dthetafin * df))
         hsinc_check2 = 4*sqrt(sum(S0 * dthetafin * df))
         hsinc_check2tmp = 4*sqrt(sum(Sn) * df)                 
         !
@@ -1143,12 +1152,114 @@ subroutine update_boundaries()
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Part 3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! TL: Here we go to the code of XBeach subroutine 'build_boundw' from waveparams.F90 
     !
-    
+    ! Allocate two-dimensional variables for all combinations of interacting wave components to be filled triangular
+    allocate(Eforc(K-1,K))      ! Herbers et al. (1994) eq. 1 - (rows = difference frequency, columns is interaction)
+    allocate(D(K-1,K))          ! Herbers eq. A5.
+    allocate(deltheta(K-1,K))   ! Difference angle between two primary wave components
+    !allocate(KKx(K-1,K),KKy(K-1,K))
+    !allocate(dphi3(K-1,K))      !
+    allocate(k3(K-1,K))         ! Wavenumber of difference wave
+    allocate(cg3(K-1,K))
+    !
+    ! Allocate variables for angular velocity and wave numbers for wave components
+    allocate(w1(size(fgen)))    ! Radial frequency of primary waves
+    allocate(k1(size(fgen)))    ! Wave numbers of primary waves
+    !
+    ! Initialize variables as zero
+    Eforc = 0
+    D = 0
+    deltheta = 0
+    !KKx = 0
+    !KKy = 0
+    !dphi3 = 0
+    k3 = 0
+    cg3 = 0
+    w1=0
+    k1=0    
+    !
+    !
+    ! Determine for each wave component interactions with all other wave components
+    ! as far as not processed yet (each loop step the number of interactions thus decrease with one)
+    !
+    do m=1,K-1
+        !
+        ! Determine difference frequency
+        deltaf=m*df
+        !
+        ! Determine angular velocity of primary waves
+        w1=2*pi*fgen
+        !
+        ! Determine wave numbers of primary waves
+        call bc_disper(k1,w1,size(w1),depth,g)
+        !
+        ! Determine difference angles (pi already added)
+        deltheta(m,1:K-m) = abs(theta(m+1:K)-theta(1:K-m))+pi
+        !
+        ! Determine x- and y-components of wave numbers of difference waves > not needed for us
+        !KKy(m,1:K-m)=k1(m+1:K)*sin(theta(m+1:K))-k1(1:K-m)*sin(theta(1:K-m))
+        !KKx(m,1:K-m)=k1(m+1:K)*cos(theta(m+1:K))-k1(1:K-m)*cos(theta(1:K-m))
+        !
+        ! Determine difference wave numbers according to Van Dongeren et al. 2003 eq. 19
+        k3(m,1:K-m) =sqrt(k1(1:K-m)**2+k1(m+1:K)**2+2*k1(1:K-m)*k1(m+1:K)*cos(deltheta(m,1:K-m))) 
+        ! dcos is for double precision, use cos for single precision (real*4)
+        !
+        ! Determine group velocity of difference waves
+        cg3(m,1:K-m) = 2.d0*pi*deltaf/k3(m,1:K-m)
+        !
+        ! Ideetje Robert Jaap: make sure that we don't blow up bound long wave when offshore boundary is too close to shore > not needed for us?
+        !cg3(m,1:K-m) = min(cg3(m,1:K-m),par%nmax*sqrt(g/k3(m,1:K-m)*tanh(k3(m,1:K-m)*wp%h0t0)))
+        !
+        ! Determine difference-interaction coefficient according to Herbers 1994 eq. A5
+        allocate(term1(K-m),term2(K-m),term2new(K-m),dif(K-m),chk1(K-m),chk2(K-m))
+        !
+        term1 = (-w1(1:K-m))*w1(m+1:K)
+        term2 = (-w1(1:K-m))+w1(m+1:K)
+        term2new = cg3(m,1:K-m)*k3(m,1:K-m)
+        dif = (abs(term2-term2new))
+        !
+        chk1  = cosh(k1(1:K-m)*depth)
+        chk2  = cosh(k1(m+1:K)*depth)
+        !
+        D(m,1:K-m) = -g*k1(1:K-m)*k1(m+1:K)*cos(deltheta(m,1:K-m))/2.d0/term1+g*term2*(chk1*chk2)/ &
+        ((g*k3(m,1:K-m)*tanh(k3(m,1:K-m)*depth)-(term2new)**2)*term1*cosh(k3(m,1:K-m)*depth))* &
+        (term2*((term1)**2/g/g - k1(1:K-m)*k1(m+1:K)*cos(deltheta(m,1:K-m))) &
+        - 0.50d0*((-w1(1:K-m))*k1(m+1:K)**2/(chk2**2)+w1(m+1:K)*k1(1:K-m)**2/(chk1**2)))
+        !
+        deallocate(term1,term2,term2new,dif,chk1,chk2)
+        !
+        ! Correct for surface elevation input and output instead of bottom pressure so it is consistent with Van Dongeren et al 2003 eq. 18
+        D(m,1:K-m) = D(m,1:K-m)*cosh(k3(m,1:K-m)*depth)/(cosh(k1(1:K-m)*depth)*cosh(k1(m+1:K)*depth))
+        !
+        ! Exclude interactions with components smaller than or equal to current component according to lower limit Herbers 1994 eq. 1
+        where(fgen<=m*df)
+        D(m,:)=0.d0                                           ! Bas: redundant with initial determination of D ??
+        endwhere
+        !
+        ! Determine energy of bound long wave according to Herbers 1994 eq. 1 based
+        ! on difference-interaction coefficient and energy density spectra of
+        ! primary waves
+        Eforc(m,1:K-m) = 2*D(m,1:K-m)**2*S0(1:K-m)*S0(m+1:K)*dthetafin(1:K-m)*dthetafin(m+1:K)*df
+        !
+    end do
+    !
+    ! Determine angle of bound long wave according to Van Dongeren et al. 2003 eq. 22 ! TL: > Maybe use this at a later point in time?
+    !allocate(theta3(K-1,K))
+    !where (abs(KKx)>0.00001d0)
+    !    theta3 = atan(KKy/KKx)
+    !elsewhere
+    !    theta3 = atan(KKy/sign(0.00001d0,KKx))
+    !endwhere
+    !
+    ! Allocate variables for energy of bound long wave
+    allocate(Ebnd(K-1))
+    !
+    ! Sum over the components to get total forced wave at diff freq
+    Ebnd = sum(Eforc,2)
     !
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Up to here is Matlab/XBeach implementation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
     !
-    ! Added TL:
-    !hsig = 4*sqrt(sum(Ebnd)*df) !What we actually want for SnapWave offshore IG bc   
+    ! What we actually want for SnapWave offshore IG bc: Hm0ig 
+    hsig = 4*sqrt(sum(Ebnd)*df)   
     !
     !tpig = xxx    
     !
@@ -1169,7 +1280,7 @@ subroutine update_boundaries()
     real*4,dimension(:), INTENT(INOUT)  :: y
 
     ! Internal variables
-    real*8,dimension(size(x))           :: xa, sigma, fac1, fac2, fac3, temp
+    real*4,dimension(size(x))           :: xa, sigma, fac1, fac2, fac3, temp
 
     xa=abs(x)
 
@@ -1233,5 +1344,74 @@ subroutine update_boundaries()
 
    end subroutine frange    
     
+   ! --------------------------------------------------------------
+   ! --------------------- Dispersion relation --------------------
+   ! ----------------- (used only by build_boundw) ----------------
+   subroutine bc_disper(k1,w1,m,h,g)
+      !          k  = wave number             (2 * pi / wave length)
+      !          w  = wave angular frequency  (2 * pi / wave period)
+      !          m  = size k and w vectors
+      !          h  = water depth
+      !          g  = gravitational acceleration constant, optional (DEFAULT 9.81)
+      !
+      !          absolute error in k*h < 5.0e-16 for all k*h
+      !
+      !
+      !          original Matlab code by: G. Klopman, Delft Hydraulics, 6 Dec 1994
+
+      integer, intent(in)                     :: m
+      real*4,dimension(m),intent(in)          :: w1
+      real*4,dimension(m),intent(out)         :: k1
+      real*4, intent(in)                      :: h, g
+
+      ! internal variables
+
+      real*4,dimension(m)                     :: w2,q,thq,thq2,a,b,c,arg,sign
+      integer                                 :: j
+      real*4                                  :: hu
+
+      w2 = w1**2*(h/g)
+      q = w2/(1.0d0-exp(-(w2**(5.0d0/4.0d0))))**(2.0d0/5.0d0)
+
+      do j=1,4
+         thq  = tanh(q)
+         thq2 = 1.0d0-thq**2
+         a    = (1.0d0-q*thq)*thq2
+         b    = thq + q*thq2
+         c    = q*thq-w2
+         where (abs(a*c)<(b**2*1.0e-8))
+            arg = -c/b
+         elsewhere
+            arg  = (b**2)-4.0d0*a*c
+            arg  = (-b + sqrt(arg))/(2.0d0*a)
+         endwhere
+         q    = q+arg
+      end do
+
+      where (w1>0.0d0)
+         sign=1.0d0
+      endwhere
+
+      where (w1==0.0d0)
+         sign=0.0d0
+      endwhere
+
+      where (w1<0.0d0)
+         sign=-1.0d0
+      endwhere
+
+      k1 = sign*q/h
+
+      where (k1==huge(hu))
+         k1=0.0d0
+      endwhere
+
+      where (k1==-1.0d0*huge(hu))
+         k1=0.0d0
+      endwhere
+
+      return
+
+   end subroutine bc_disper   
    
 end module
