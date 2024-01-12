@@ -1377,8 +1377,7 @@
       !
       ! Use mean peak period from SnapWave boundary conditions
       !
-      !tp = snapwave_tpmean*6 ! originally
-      tp = snapwave_tpmean*Tinc2ig ! TL: use user specified ratio between Tp,inc and Tp,ig: snapwave_Tinc2ig = 7 (default)
+      tp = snapwave_tpigmean ! TL: Now calculated in SnapWave, different options for using a period based on Herbers spectrum (snapwave_tpig_opt, if snapwave_use_herbers=1, or user defined snapwave_Tinc2ig ratio (if snapwave_use_herbers = 0)
       !
    endif      
    !

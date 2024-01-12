@@ -2307,8 +2307,8 @@ contains
          cg = 0.0
          allocate(Qb(np))
          qb = 0.0  
-         allocate(betan(np))
-         betan = 0.0     
+         allocate(betamean(np))
+         betamean = 0.0     
          allocate(srcsh(np))
          srcsh = 0.0           
          allocate(alphaig(np))

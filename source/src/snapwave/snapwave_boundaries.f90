@@ -286,9 +286,6 @@ contains
    ! For tide and surge, these are the indices and weights of the points in the bnd file
    ! For waves, these are the indices and weights of the points in the cst file
    !
-   ! Now do also the same for grid active point (kcs=1) in case of IG waves:
-   ! Used for calculate e.g. relevant offshore wave steepness, representative waterdepth, incident wave breaking point, alphaig shoaling parameter depth cutoff
-   !
    integer k, m, n, ib1, ib2, ib, ic
    !
    real xgb, ygb, dst1, dst2, dst
@@ -377,93 +374,6 @@ contains
          endif
       enddo
    endif
-   !
-   ! Now do the same in case of IG waves, for normal active points (msk=1)
-   if (igwaves) then   
-       if (nwbnd>0) then  !nbnd
-          !
-          ! Count number of boundary points
-          !
-          ! Allocate active cell arrays
-          !
-          ! Water levels at boundary
-          !
-          ! Wave arrays
-          !
-          allocate(ind1_awv_cst(no_nodes))
-          allocate(ind2_awv_cst(no_nodes))
-          allocate(fac_awv_cst(no_nodes))
-          !
-          ! Find two closest boundary condition points for each active grid point
-          ! And the two closest coastline points
-          !
-          ! Loop through all grid points
-          !
-          do k = 1, no_nodes
-             !         
-             ! Check if this point is a active grid point
-             !
-             if (msk(k) == 1) then
-                !
-                xgb = x(k)
-                ygb = y(k)
-                !
-                ! Indices and weights for wave boundaries
-                !
-                if (nwbnd>1) then
-                   !
-                   dst1 = 1.0e10
-                   dst2 = 1.0e10
-                   ib1 = 0
-                   ib2 = 0
-                   !
-                   ! Loop through all water level boundary points
-                   !
-                   do ic = 1, nwbnd
-                      !
-                      ! Compute distance of this point to grid boundary point
-                      !
-                      dst = sqrt((x_bwv(ic) - xgb)**2 + (y_bwv(ic) - ygb)**2)
-                      !
-                      if (dst<dst1) then
-                         !
-                         ! Nearest point found
-                         !
-                         dst2 = dst1
-                         ib2  = ib1
-                         dst1 = dst
-                         ib1  = ic
-                         !
-                      elseif (dst<dst2) then
-                         !
-                         ! Second nearest point found
-                         !
-                         dst2 = dst
-                         ib2  = ic
-                         !
-                      endif
-                   enddo
-                   !
-                   ind1_awv_cst(k)  = ib1
-                   ind2_awv_cst(k)  = ib2
-                   fac_awv_cst(k) = dst2/(dst1 + dst2)
-                   !
-                else
-                   !
-                   ind1_awv_cst(k)  = 1
-                   ind2_awv_cst(k)  = 1
-                   fac_awv_cst(k)   = 1.0
-                   !
-                endif
-                !  
-             else ! just to fill array, for now, set to 1 for not msk=1 points
-                ind1_awv_cst(k)  = 1
-                ind2_awv_cst(k)  = 1
-                fac_awv_cst(k)   = 1.0                 
-             endif
-          enddo
-       endif
-   endif           
    !
    end subroutine   
    
@@ -628,25 +538,31 @@ subroutine update_boundary_points(t)
    !
    if (igwaves) then
       ! 
-      jonswapgam = 3.3 ! TODO: TL: later make spatially varying? > then as gam_bwv(ib) in 'determine_ig_bc'
-      !jonswapgam = 20.0
-      !
-      ! Get local water depth at boundary points (can change in time)        
-      call find_nearest_depth_for_boundary_points() ! Output is: deptht_bwv    
-      !
-      do ib = 1, nwbnd ! Loop along boundary points
-         !           
-         ! Determine IG wave height and period at boundary
-         call determine_ig_bc(hst_bwv(ib), tpt_bwv(ib), dst_bwv(ib), jonswapgam, deptht_bwv(ib), Tinc2ig, hst_bwv_ig(ib), tpt_bwv_ig(ib)) 
-         ! input, input, input, input, input, input, output, output
-         !
-      enddo   
-      !
-      tpmean_bwv_ig = sum(tpt_bwv_ig)/size(tpt_bwv_ig)       
-      !
-      write(*,*)'hst_bwv_ig= ',hst_bwv_ig
-      write(*,*)'tpmean_bwv_ig= ',tpmean_bwv_ig      
-      !      
+      if (igherbers) then 
+          jonswapgam = 3.3 ! TODO: TL: later make spatially varying? > then as gam_bwv(ib) in 'determine_ig_bc'
+          !jonswapgam = 20.0
+          !
+          ! Get local water depth at boundary points (can change in time)        
+          call find_nearest_depth_for_boundary_points() ! Output is: deptht_bwv    
+          !
+          do ib = 1, nwbnd ! Loop along boundary points
+             !           
+             ! Determine IG wave height and period at boundary
+             call determine_ig_bc(hst_bwv(ib), tpt_bwv(ib), dst_bwv(ib), jonswapgam, deptht_bwv(ib), Tinc2ig, tpig_opt, hst_bwv_ig(ib), tpt_bwv_ig(ib))
+             ! input, input, input, input, input, input, input, output, output
+             !
+          enddo   
+          !
+          tpmean_bwv_ig = sum(tpt_bwv_ig)/size(tpt_bwv_ig)       
+          !
+          write(*,*)'Herbers computed: hst_bwv_ig= ',hst_bwv_ig
+          write(*,*)'Herbers computed: tpmean_bwv_ig= ',tpmean_bwv_ig      
+          !     
+      else
+          !
+          tpmean_bwv_ig = tpmean_bwv * Tinc2ig !TL: the old way using Tp inc to IG ratio
+          !
+      endif
    endif  
    !
    ! Determine theta grid and adjust w, prev and ds tables
@@ -680,36 +596,28 @@ subroutine update_boundary_points(t)
    !write(*,*)' thetamean = ',thetamean*180./pi
    !write(*,'(a,18f7.1)')'theta = ',theta*180./pi
    do ib = 1, nwbnd ! Loop along boundary points
+      !
       E0   = 0.0625*rho*g*hst_bwv(ib)**2
       ms   = 1.0/dst_bwv(ib)**2-1
       dist = (cos(theta - thetamean))**ms
-!      where (abs(mod(pi + theta - thetamean, 2*pi) - pi)>pi/2) dist = 0.0
-!      if (t> 405000.0) then
-!         write(*,'(a,i8,40e14.4)')'E',ib,E0,ms,dist
-!         endif
-      !do itheta = 1, ntheta
-!         modth = mod2real(pi + theta(itheta) - thetamean, 2*pi)
-!         if (abs(modth)>0.5*pi) then
-!            dist(itheta) = 0.0
-!         endif   
-      !enddo   
+      !    
       eet_bwv(:,ib) = dist/sum(dist)*E0/dtheta
-!      write(*,'(a,18f7.0)')' ee          ',eet_bwv(:,ib)
       !
    enddo
    !
    ! Build IG spectra on wave boundary support points   
    if (igwaves) then   
-      do ib = 1, nwbnd ! Loop along boundary points    
-         !          
-         E0_ig   = 0.0625*rho*g*hst_bwv_ig(ib)**2
-         ms   = 1.0/dst_bwv(ib)**2-1
-         dist = (cos(theta - thetamean))**ms      
-         !         
-         eet_bwv_ig(:,ib) = dist/sum(dist)*E0_ig/dtheta          
-         !      
-      enddo
-      !
+      if (igherbers) then 
+          do ib = 1, nwbnd ! Loop along boundary points    
+             !          
+             E0_ig   = 0.0625*rho*g*hst_bwv_ig(ib)**2
+             ms   = 1.0/dst_bwv(ib)**2-1
+             dist = (cos(theta - thetamean))**ms      
+             !         
+             eet_bwv_ig(:,ib) = dist/sum(dist)*E0_ig/dtheta          
+             !      
+          enddo
+      endif
    endif
    !         
 end subroutine
@@ -744,32 +652,30 @@ subroutine update_boundaries()
    !
    if (igwaves) then
       ! 
-      do ib = 1, nb
+      if (igherbers) then 
          !
-         k = nmindbnd(ib)       
-         !
-         do i = 1, ntheta
-            !          
-            ee_ig(i,k) = eet_bwv_ig(i,ind1_bwv_cst(ib))*fac_bwv_cst(ib)  + eet_bwv_ig(i,ind2_bwv_cst(ib))*(1.0 - fac_bwv_cst(ib))                    
-            ! 
-         enddo
-         !
-      enddo
-   endif          
-   !
-   ! Set representative incident wave height in all active points on grid > TL: to be removed
-   ! 
-   if (igwaves) then
-      do k = 1, no_nodes
-         if (inner(k)) then
+         do ib = 1, nb
             !
-            H_rep(k) = max(0.1, (hs_bwv(1,ind1_awv_cst(k))*fac_awv_cst(k)  + hs_bwv(1,ind2_awv_cst(k))*(1.0 - fac_awv_cst(k))))
-            ! Don't convert from Hm0 to Hrms yet!
-            ! Note; make sure that H_rep(k) is never 0! (problem in calculating steepness_bc, reldepth and depthforcerelease later)
-            ! 
-         endif         
-      enddo               
-   endif   
+            k = nmindbnd(ib)       
+            !
+            do i = 1, ntheta
+               !          
+               ee_ig(i,k) = eet_bwv_ig(i,ind1_bwv_cst(ib))*fac_bwv_cst(ib)  + eet_bwv_ig(i,ind2_bwv_cst(ib))*(1.0 - fac_bwv_cst(ib)) 
+               ! 
+            enddo
+            !
+         enddo
+      else !TL: the old way using eeinc2ig ratio times incident wave energy
+         !
+         do ib = 1, nb
+            !
+            k = nmindbnd(ib)       
+            !          
+            ee_ig(:, k)  = eeinc2ig*ee(:,k)
+            !       
+          enddo
+      endif      
+   endif          
    !
    end subroutine   
    

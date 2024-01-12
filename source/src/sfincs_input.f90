@@ -89,7 +89,6 @@ contains
    call read_real_input(500,'wmtfilter',wmtfilter,600.0)
    call read_real_input(500,'wmfred',wavemaker_freduv,0.99)
    call read_char_input(500,'wmsignal',wmsigstr,'spectrum')   
-   call read_real_input(500,'snapwave_Tinc2ig',Tinc2ig,7.0) !TL: we use this in sfincs_wavemaker.f90      
    !
    ! Domain
    !

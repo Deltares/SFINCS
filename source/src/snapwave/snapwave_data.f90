@@ -17,7 +17,6 @@ module snapwave_data
    real*4,  dimension(:),       allocatable    :: H, H_ig                 ! rms wave height
    real*4,  dimension(:),       allocatable    :: H_ig_old                ! IG wave height at previous timestep  
    real*4,  dimension(:),       allocatable    :: H_inc_old               ! Incident wave height at previous timestep  
-   real*4,  dimension(:),       allocatable    :: H_rep                   ! Representative weighted offshore incident wave height for anywhere in the active grid
    real*4,  dimension(:),       allocatable    :: Dw,Df                   ! dissipation due to breaking, bed friction
    real*4,  dimension(:),       allocatable    :: Dw_ig,Df_ig             ! dissipation due to breaking, bed friction for IG   
    real*4,  dimension(:),       allocatable    :: F                       ! wave force Dw/C/rho/depth
@@ -59,7 +58,7 @@ module snapwave_data
    real*4,  dimension(:,:),     allocatable    :: ee_ig                   ! directional infragravity energy density
    !
    real*4,  dimension(:),       allocatable    :: Qb
-   real*4,  dimension(:),       allocatable    :: betan
+   real*4,  dimension(:),       allocatable    :: beta
    real*4,  dimension(:),       allocatable    :: srcsh
    real*4,  dimension(:),       allocatable    :: alphaig   
    !
@@ -127,9 +126,6 @@ module snapwave_data
    integer*4,          dimension(:),   allocatable :: ind2_bwv_cst        ! index to second closest wave boundary point
    real*4,             dimension(:),   allocatable :: fac_bwv_cst         ! weight of closest wave boundary point
    integer*4,          dimension(:),   allocatable :: nmindact            ! index of grid point at active grid    
-   integer*4,          dimension(:),   allocatable :: ind1_awv_cst        ! index to closest wave active point
-   integer*4,          dimension(:),   allocatable :: ind2_awv_cst        ! index to second closest wave active point
-   real*4,             dimension(:),   allocatable :: fac_awv_cst         ! weight of closest wave active point
    !   
    integer*4 mmax
    integer*4 nmax
@@ -162,17 +158,15 @@ module snapwave_data
    integer                                   :: baldock_opt     ! option of Baldock wave breaking dissipation model (opt=1 is without gamma&depth, else is including)
    real*4                                    :: baldock_ratio   ! option controlling from what depth wave breaking should take place: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio=0.2 
    real*4                                    :: baldock_ratio_ig   ! option controlling from what depth wave breaking should take place for IG waves: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio_ig=0.2    
-   integer                                   :: battjesjanssen_opt     ! option of Battjes Janssen wave breaking dissipation model (opt=1 is breaking everywhere, opt=2 is if H larger than gamma*depth)  
-   integer                                   :: ig_opt                 ! option of breaking dissipation model for IG waves (1 is Baldock = default, 2 is BattjesJanssen)
+   integer                                   :: ig_opt          ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)
    real*4                                    :: snapwave_alpha_ig,gamma_ig     ! coefficients in Baldock wave breaking dissipation model for IG waves
-   real*4                                    :: Tinc2ig         ! ratio compared to period Tinc to estimate Tig
+
    real*4                                    :: shinc2ig        ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 0=default)
-   real*4                                    :: shpercig        ! TO ADD
-   real*4                                    :: fshalphamin     ! TO ADD
-   real*4                                    :: fshfac     ! TO ADD
-   real*4                                    :: fshexp     ! TO ADD
-   real*4                                    :: alphaigfac     ! TO ADD   
-   real*4                                    :: eeinc2ig        ! ratio of incident wave energy as first estimate of IG wave energy at boundary
+   real*4                                    :: alphaigfac      ! Multiplication factor for IG shoaling source/sink term, default = 1.0 
+   integer                                   :: herbers_opt     ! Choice whether you want IG Hm0&Tp be calculated by herbers (=1, default), or want to specify user defined values (0> then snapwave_eeinc2ig & snapwave_Tinc2ig are used) 
+   integer                                   :: tpig_opt        ! IG wave period option based on Herbers calculated spectrum, only used if herbers_opt = 1. Options are: 1=Tm01 (default), 2=Tpsmooth, 3=Tp, 4=Tm-1,0 
+   real*4                                    :: eeinc2ig        ! ratio of incident wave energy as first estimate of IG wave energy at boundary, user input, only used if not chosen for used Herbers IG bc spectrum based value (herbers_opt = 0)
+   real*4                                    :: Tinc2ig         ! ratio compared to period Tinc to estimate Tig, user input, only used if not chosen for used Herbers IG bc spectrum based value (herbers_opt = 0)   
    real*4                                    :: hmin            ! minimum water depth
    character*256                             :: gridfile        ! name of gridfile (Delft3D .grd format)
    integer                                   :: sferic         ! sferical (1) or cartesian (0) grid
@@ -224,6 +218,7 @@ module snapwave_data
    integer                                   :: ntheta360
    !
    logical                                   :: igwaves
+   logical                                   :: igherbers   
    real*4                                    :: crit
    integer                                   :: nr_sweeps
    !

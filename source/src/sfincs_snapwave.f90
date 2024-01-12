@@ -20,7 +20,7 @@ module sfincs_snapwave
    real*4,    dimension(:),   allocatable    :: snapwave_Dfig
    real*4,    dimension(:),   allocatable    :: snapwave_cg
    real*4,    dimension(:),   allocatable    :: snapwave_Qb
-   real*4,    dimension(:),   allocatable    :: snapwave_betan  
+   real*4,    dimension(:),   allocatable    :: snapwave_beta
    real*4,    dimension(:),   allocatable    :: snapwave_srcsh  
    real*4,    dimension(:),   allocatable    :: snapwave_alphaig   
    integer,   dimension(:,:), allocatable    :: snapwave_connected_nodes
@@ -28,6 +28,7 @@ module sfincs_snapwave
    integer*4, dimension(:),   allocatable    :: index_sfincs_in_snapwave
    integer*4, dimension(:),   allocatable    :: index_sw_in_qt ! used in sfincs_ncoutput (copy of index_snapwave_in_quadtree from snapwave_data)
    real*4                                    :: snapwave_tpmean
+   real*4                                    :: snapwave_tpigmean   
    !
 contains
    !
@@ -56,6 +57,7 @@ contains
    snapwave_depth = 0.0
    !
    snapwave_tpmean = 0.0
+   snapwave_tpigmean = 0.0    
    !   
    call find_matching_cells(index_quadtree_in_snapwave, index_snapwave_in_quadtree)
    !
@@ -126,7 +128,7 @@ contains
    real*4,    dimension(:), allocatable       :: dfig0   
    real*4,    dimension(:), allocatable       :: cg0   
    real*4,    dimension(:), allocatable       :: qb0   
-   real*4,    dimension(:), allocatable       :: betan0 
+   real*4,    dimension(:), allocatable       :: beta0 
    real*4,    dimension(:), allocatable       :: srcsh0      
    real*4,    dimension(:), allocatable       :: alphaig0   
    integer   :: ip, ii, m, n, nm, nmu, idir
@@ -143,7 +145,7 @@ contains
    allocate(dfig0(np))  
    allocate(cg0(np))  
    allocate(qb0(np))   
-   allocate(betan0(np))   
+   allocate(beta0(np))   
    allocate(srcsh0(np))      
    allocate(alphaig0(np))      
    !
@@ -155,7 +157,7 @@ contains
    dfig0 = 0.0
    cg0 = 0.0
    qb0 = 0.0
-   betan0 = 0.0
+   beta0 = 0.0
    srcsh0 = 0.0
    alphaig0 = 0.0   
    !
@@ -207,9 +209,9 @@ contains
          dfig0(nm)  = snapwave_Dfig(ip)
          cg0(nm)    = snapwave_cg(ip)
          qb0(nm)    = snapwave_Qb(ip)
-         betan0(nm) = snapwave_betan(ip)
+         beta0(nm)  = snapwave_beta(ip)
          srcsh0(nm) = snapwave_srcsh(ip)
-         alphaig0(nm)   = snapwave_alphaig(ip)
+         alphaig0(nm) = snapwave_alphaig(ip)
          if (store_wave_direction) then
             mean_wave_direction(nm)        = 270.0 - snapwave_mean_direction(ip)*180/pi   
             wave_directional_spreading(nm) = snapwave_directional_spreading(ip)*180/pi   
@@ -225,13 +227,13 @@ contains
          fwy0(nm)   = 0.0   
          dw0(nm)    = 0.0
          df0(nm)    = 0.0         
-         dwig0(nm)    = 0.0
-         dfig0(nm)    = 0.0
+         dwig0(nm)  = 0.0
+         dfig0(nm)  = 0.0
          cg0(nm)    = 0.0
          qb0(nm)    = 0.0
-         betan0(nm)    = 0.0
-         srcsh0(nm)    = 0.0
-         alphaig0(nm)    = 0.0         
+         beta0(nm)  = 0.0
+         srcsh0(nm) = 0.0
+         alphaig0(nm) = 0.0         
          if (store_wave_direction) then
             mean_wave_direction(nm)        = 0.0
             wave_directional_spreading(nm) = 0.0  
@@ -241,17 +243,17 @@ contains
       !
       if (store_wave_forces) then
          !
-         fwx(nm) = fwx0(nm)
-         fwy(nm) = fwy0(nm)
-         dw(nm) = dw0(nm)
-         df(nm) = df0(nm)         
-         dwig(nm) = dwig0(nm)
-         dfig(nm) = dfig0(nm)
-         cg(nm) = cg0(nm)   
-         qb(nm) = qb0(nm)         
-         betan(nm) = betan0(nm)         
-         srcsh(nm) = srcsh0(nm)         
-         alphaig(nm) = alphaig0(nm)                  
+         fwx(nm)        = fwx0(nm)
+         fwy(nm)        = fwy0(nm)
+         dw(nm)         = dw0(nm)
+         df(nm)         = df0(nm)         
+         dwig(nm)       = dwig0(nm)
+         dfig(nm)       = dfig0(nm)
+         cg(nm)         = cg0(nm)   
+         qb(nm)         = qb0(nm)         
+         betamean(nm)   = beta0(nm)         
+         srcsh(nm)      = srcsh0(nm)         
+         alphaig(nm)    = alphaig0(nm)                  
          !
       endif   
       !
@@ -302,9 +304,9 @@ contains
    !
    real*8    :: t
    !
-   ! Mean wave height for writing to netcdf his file
-   !
+   ! Wave periods from SnapWave, used in e.g. wavemakers
    snapwave_tpmean = tpmean_bwv
+   snapwave_tpigmean = tpmean_bwv_ig      
    !
    depth = snapwave_depth
    !
@@ -318,7 +320,7 @@ contains
    snapwave_H                     = H
    snapwave_H_ig                  = H_ig
    snapwave_mean_direction        = thetam
-   snapwave_directional_spreading = thetam  ! CORRECT? > is not spreading but mean direction?
+   snapwave_directional_spreading = thetam  ! L: CORRECT? > is not spreading but mean direction?
    snapwave_Fx                    = Fx
    snapwave_Fy                    = Fy 
    snapwave_Dw                    = Dw
@@ -327,8 +329,7 @@ contains
    snapwave_Dfig                  = Df_ig
    snapwave_cg                    = cg
    snapwave_Qb                    = Qb
-   snapwave_betan                 = betan
-   !snapwave_betan                 = betar
+   snapwave_beta                  = beta
    snapwave_srcsh                 = srcsh
    snapwave_alphaig               = alphaig   
    !
@@ -352,7 +353,6 @@ contains
    !
    call read_real_input(500,'snapwave_gamma',gamma,0.7)
    call read_real_input(500,'snapwave_alpha',snapwave_alpha,1.0)
-   call read_real_input(500,'snapwave_alpha_ig',snapwave_alpha_ig,1.0)
    call read_real_input(500,'snapwave_hmin',hmin,0.1)
    call read_real_input(500,'snapwave_fw',fw0,0.01)
    call read_real_input(500,'snapwave_fwig',fw0_ig,0.015)
@@ -360,33 +360,25 @@ contains
    call read_real_input(500,'snapwave_tol',tol,10.0)
    call read_real_input(500,'snapwave_dtheta',dtheta,10.0)
    call read_real_input(500,'snapwave_crit',crit,0.01)
-   call read_int_input(500,'snapwave_igwaves',iig,1)
    call read_int_input(500,'snapwave_nrsweeps',nr_sweeps,1)
-   
-   ! Settings related to IG waves:   
-   call read_real_input(500,'snapwave_gammaig',gamma_ig,0.7)   
-   call read_real_input(500,'snapwave_Tinc2ig',Tinc2ig,7.0)   
-   call read_real_input(500,'snapwave_shinc2ig',shinc2ig,0.0)   ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 0=default)
-   call read_real_input(500,'snapwave_shpercig',shpercig,1.0)         
-   call read_real_input(500,'snapwave_eeinc2ig',eeinc2ig,0.01)     
-   call read_real_input(500,'snapwave_fshalphamin',fshalphamin,0.1)     
-   call read_real_input(500,'snapwave_fshfac',fshfac,15.0)     
-   call read_real_input(500,'snapwave_fshexp',fshexp,1.0)       
-   call read_real_input(500,'snapwave_alphaigfac',alphaigfac,1.0)            
-   call read_int_input(500,'snapwave_ig_opt',ig_opt,1)     
    call read_int_input(500,'snapwave_baldock_opt',baldock_opt,1)     
-   call read_real_input(500,'snapwave_baldock_ratio',baldock_ratio,0.2)    
-   call read_real_input(500,'snapwave_baldock_ratio',baldock_ratio_ig,0.2)       
-   call read_int_input(500,'snapwave_battjesjanssen_opt',battjesjanssen_opt,1)        
-!   call read_int_input(500,'ntheta',ntheta,36)
-!   call read_int_input(500,'nHrel',nHrel,1)
-!   call read_char_input(500,'hhtabname',hhtabname,'')
-!   call read_char_input(500,'Htabname',Htabname,'')
-!   call read_char_input(500,'Dwtabname',Dwtabname,'')
-!   call read_char_input(500,'Ftabname',Ftabname,'')
-!   call read_char_input(500,'Cgtabname',Cgtabname,'')
-!   call read_char_input(500,'cthetafactabname',cthetafactabname,'')
-!   call read_char_input(500,'waterlevelfile',waterlevelfile,'')
+   call read_real_input(500,'snapwave_baldock_ratio',baldock_ratio,0.2)
+   ! Settings related to IG waves:   
+   call read_int_input(500,'snapwave_igwaves',iig,1)   
+   call read_real_input(500,'snapwave_alpha_ig',snapwave_alpha_ig,1.0)   
+   call read_real_input(500,'snapwave_gammaig',gamma_ig,0.7)   
+   call read_real_input(500,'snapwave_shinc2ig',shinc2ig,1.0)                   ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 1=default=all energy as sink)
+   call read_real_input(500,'snapwave_alphaigfac',alphaigfac,1.0)               ! Multiplication factor for IG shoaling source/sink term         
+   call read_real_input(500,'snapwave_baldock_ratio_ig',baldock_ratio_ig,0.2)       
+   call read_int_input(500,'snapwave_ig_opt',ig_opt,1)     
+
+   ! IG boundary conditions options:
+   call read_int_input(500,'snapwave_use_herbers',herbers_opt,1)    ! Choice whether you want IG Hm0&Tp be calculated by herbers (=1, default), or want to specify user defined values (0> then snapwave_eeinc2ig & snapwave_Tinc2ig are used) 
+   call read_int_input(500,'snapwave_tpig_opt',tpig_opt,1) ! IG wave period option based on Herbers calculated spectrum, only used if snapwave_use_herbers = 1. Options are: 1=Tm01 (default), 2=Tpsmooth, 3=Tp, 4=Tm-1,0   
+   call read_real_input(500,'snapwave_eeinc2ig',eeinc2ig,0.01)  ! Only used if snapwave_use_herbers = 0       
+   call read_real_input(500,'snapwave_Tinc2ig',Tinc2ig,7.0)  ! Only used if snapwave_use_herbers = 0
+   !
+   ! Input files
    call read_char_input(500,'snapwave_jonswapfile',jonswapfile,'')
    call read_char_input(500,'snapwave_bndfile',bndfile,'')
    call read_char_input(500,'snapwave_encfile',encfile,'')
@@ -401,13 +393,21 @@ contains
    !
    close(500)
    !
-   igwaves             = .true.
+   igwaves          = .true.
    if (iig==0) then
-      igwaves = .false.
+      igwaves       = .false.
       write(*,*)'SnapWave: IG waves turned OFF!'
    else
       write(*,*)'SnapWave: IG waves turned ON!'
    endif
+   !
+   igherbers        = .true. 
+   if (herbers_opt==0) then
+      igherbers     = .false.
+      write(*,*)'SnapWave: IG bc determination using Herbers turned OFF! --> Use eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
+   else
+      write(*,*)'SnapWave: IG bc determination using Herbers turned ON!'
+   endif   
    !
    restart           = .true.
    coupled_to_sfincs = .true.

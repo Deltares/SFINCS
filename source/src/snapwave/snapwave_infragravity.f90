@@ -5,8 +5,8 @@ module snapwave_infragravity
    
     !-----------------------------Main subroutine----------------------------!
     
-    subroutine determine_ig_bc(hsinc, tpinc, ds, jonswapgam, depth, Tinc2ig, hsig, tpig) 
-    ! (input, input, input, input, input, input, output, output)
+    subroutine determine_ig_bc(hsinc, tpinc, ds, jonswapgam, depth, Tinc2ig, tpig_opt, hsig, tpig) 
+    ! (input, input, input, input, input, input, input, output, output)
     !  
     ! Build boundwave offshore spectrum, and determine Hig0 and Tpig0, using Herbers 1994 as in XBeach implementation
     !
@@ -22,13 +22,15 @@ module snapwave_infragravity
     implicit none
     !
     real*4, intent(in)    :: hsinc, tpinc, ds, jonswapgam, depth, Tinc2ig
+    integer, intent(in)   :: tpig_opt
     real*4, intent(out)   :: hsig, tpig
     !
     real*4                :: pi, scoeff
     real*4                :: Tm01, Tm10, Tp, Tpsmooth
-    integer               :: correctHm0, tpigopt
+    integer               :: correctHm0
     !
     correctHm0 = 0 ! Choice between correcting Hm0 in build_jonswap if build 2D Vardens spectrum too low (1) or not (default, 0)
+    ! TL: Question - should we make this user definable?
     !
     pi    = 4.*atan(1.)
     !
@@ -45,47 +47,38 @@ module snapwave_infragravity
 	    write(*,*)'DEBUG - computed hm0ig at boundary dropped below 0 m: ',hsig, ' and is therefore limited back to 0 m!'
 	    hsig = max(hsig, 0.0)
     endif	
-    if (hsig > 3.0) then
+    if (hsig > 2.0) then
 	    write(*,*)'DEBUG - computed hm0ig at boundary exceeds 2 meter: ',hsig, ' and is therefore limited back to 2 m!'
-	    hsig = min(hsig, 3.0)
+	    hsig = min(hsig, 2.0)
     endif	        
     !
     ! Choose what wave period option value for IG to choose:
+    ! Options: 1=Tm01, 2=Tpsmooth, 3=Tp, 4=Tm-1,0
     !
-    tpigopt = 1 !TODO: TL: later make user definable
-    !
-    if (tpigopt == 1) then
+    if (tpig_opt == 1) then ! Default
         !
         tpig = Tm01
         !
-    elseif (tpigopt == 2) then
-        !
-        tpig = tpinc * Tinc2ig
-        !
-    elseif (tpigopt == 3) then
+    elseif (tpig_opt == 2) then
         !        
         tpig = Tpsmooth
         !
-    elseif (tpigopt == 4) then
+    elseif (tpig_opt == 3) then
         !        
         tpig = Tp            
         !
-    elseif (tpigopt == 5) then
+    elseif (tpig_opt == 4) then
         !        
         tpig = Tm10 ! Tm-1,0
         !    
-    elseif (tpigopt == 6) then ! Old default ratio of Tpig = 7 * Tpinc
-        !        
-        tpig = tpinc * 7.0
-        !
     endif
     !
     ! Check on ratio tpig/tpinc whether it is deemed realistic
     if (tpig/tpinc < 2.0) then
 	    write(*,*)'DEBUG - computed tpig/tpinc ratio at offshore boundary dropped below 2 and might be unrealistic! value: ',tpig/tpinc
     endif	    
-    if (tpig/tpinc > 25.0) then
-	    write(*,*)'DEBUG - computed tpig/tpinc ratio at offshore boundary increased above 25 and might be unrealistic! value: ',tpig/tpinc
+    if (tpig/tpinc > 20.0) then
+	    write(*,*)'DEBUG - computed tpig/tpinc ratio at offshore boundary increased above 20 and might be unrealistic! value: ',tpig/tpinc
     endif	         
     !   
     end subroutine

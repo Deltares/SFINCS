@@ -48,8 +48,8 @@ module sfincs_ncoutput
       integer :: zs_varid, h_varid, u_varid, v_varid, prcp_varid, discharge_varid, uvmag_varid, uvdir_varid
       integer :: patm_varid, wind_speed_varid, wind_dir_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid  
-      integer :: hm0_varid, hm0ig_varid, zsm_varid, tp_varid, wavdir_varid, dirspr_varid
-      integer :: dw_varid, df_varid, dwig_varid, dfig_varid, cg_varid, qb_varid, betan_varid, srcsh_varid, alphaig_varid
+      integer :: hm0_varid, hm0ig_varid, zsm_varid, tp_varid, tpig_varid, wavdir_varid, dirspr_varid
+      integer :: dw_varid, df_varid, dwig_varid, dfig_varid, cg_varid, qb_varid, beta_varid, srcsh_varid, alphaig_varid
       !
    end type
    !
@@ -850,8 +850,8 @@ contains
          NF90(nf90_def_var(map_file%ncid, 'beta', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%beta_varid))
          NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, '_FillValue', FILL_VALUE))          
          NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'units', 'm'))
-         NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'standard_name', 'bedslope'))
-         NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'long_name', 'bedslope')) 
+         NF90(nf90_put_att(his_file%ncid, map_file%beta_varid, 'standard_name', 'directionally_averaged_local_bed_slope')) 
+         NF90(nf90_put_att(his_file%ncid, map_file%beta_varid, 'long_name', 'directionally averaged local bed slope'))          
          !           
          NF90(nf90_def_var(map_file%ncid, 'snapwavedepth', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%snapwavedepth_varid))
          NF90(nf90_put_att(map_file%ncid, map_file%snapwavedepth_varid, '_FillValue', FILL_VALUE))          
@@ -1224,6 +1224,13 @@ contains
       NF90(nf90_put_att(his_file%ncid, his_file%tp_varid, 'long_name', 'Peak wave period'))  
       NF90(nf90_put_att(his_file%ncid, his_file%tp_varid, 'coordinates', 'station_id station_name point_x point_y'))
       !
+      NF90(nf90_def_var(his_file%ncid, 'tpig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%tpig_varid)) ! time-varying water level point
+      NF90(nf90_put_att(his_file%ncid, his_file%tpig_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(his_file%ncid, his_file%tpig_varid, 'units', 's'))
+      NF90(nf90_put_att(his_file%ncid, his_file%tpig_varid, 'standard_name', 'ig_peak_wave_period')) 
+      NF90(nf90_put_att(his_file%ncid, his_file%tpig_varid, 'long_name', 'Peak wave period Infragravity wave'))  
+      NF90(nf90_put_att(his_file%ncid, his_file%tpig_varid, 'coordinates', 'station_id station_name point_x point_y'))      
+      !
       if (store_wave_direction) then
          !
          NF90(nf90_def_var(his_file%ncid, 'wavdir', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%wavdir_varid)) ! time-varying water level point
@@ -1297,12 +1304,12 @@ contains
          NF90(nf90_put_att(his_file%ncid, his_file%qb_varid, 'long_name', 'fraction breaking waves'))  
          NF90(nf90_put_att(his_file%ncid, his_file%qb_varid, 'coordinates', 'station_id station_name point_x point_y'))
          !               
-         NF90(nf90_def_var(his_file%ncid, 'betan', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%betan_varid)) ! time-varying water level point
-         NF90(nf90_put_att(his_file%ncid, his_file%betan_varid, '_FillValue', FILL_VALUE))
-         NF90(nf90_put_att(his_file%ncid, his_file%betan_varid, 'units', '-'))
-         NF90(nf90_put_att(his_file%ncid, his_file%betan_varid, 'standard_name', 'directionally_averaged_normalised_bed_slope')) 
-         NF90(nf90_put_att(his_file%ncid, his_file%betan_varid, 'long_name', 'directionally averaged normalised bed slope'))  
-         NF90(nf90_put_att(his_file%ncid, his_file%betan_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         NF90(nf90_def_var(his_file%ncid, 'beta', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%beta_varid)) ! time-varying water level point
+         NF90(nf90_put_att(his_file%ncid, his_file%beta_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(his_file%ncid, his_file%beta_varid, 'units', '-'))
+         NF90(nf90_put_att(his_file%ncid, his_file%beta_varid, 'standard_name', 'directionally_averaged_local_bed_slope')) 
+         NF90(nf90_put_att(his_file%ncid, his_file%beta_varid, 'long_name', 'directionally averaged normalised bed slope'))  
+         NF90(nf90_put_att(his_file%ncid, his_file%beta_varid, 'coordinates', 'station_id station_name point_x point_y'))
          !               
          NF90(nf90_def_var(his_file%ncid, 'srcsh', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%srcsh_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%srcsh_varid, '_FillValue', FILL_VALUE))
@@ -1924,7 +1931,7 @@ contains
                nm = index_sfincs_in_quadtree(nmq)
                !
                if (nm>0) then
-                  utmp(nmq) = betan(nm)
+                  utmp(nmq) = betamean(nm)
                endif
                !
             enddo        
@@ -2004,6 +2011,7 @@ contains
    real*4, dimension(nobs) :: hm0igobs
    real*4, dimension(nobs) :: zsmobs
    real*4, dimension(nobs) :: tpobs
+   real*4, dimension(nobs) :: tpigobs   
    real*4, dimension(nobs) :: wavdirobs
    real*4, dimension(nobs) :: dirsprobs
    real*4, dimension(nobs) :: dwobs
@@ -2012,7 +2020,7 @@ contains
    real*4, dimension(nobs) :: dfigobs
    real*4, dimension(nobs) :: cgobs
    real*4, dimension(nobs) :: qbobs
-   real*4, dimension(nobs) :: betanobs
+   real*4, dimension(nobs) :: betaobs
    real*4, dimension(nobs) :: srcshobs
    real*4, dimension(nobs) :: alphaigobs
    real*4, dimension(:), allocatable :: qq
@@ -2035,9 +2043,9 @@ contains
    dfobs        = FILL_VALUE
    cgobs        = FILL_VALUE
    qbobs        = FILL_VALUE
-   betanobs     = FILL_VALUE
+   betaobs      = FILL_VALUE
    srcshobs     = FILL_VALUE
-   alphaigobs       = FILL_VALUE   
+   alphaigobs   = FILL_VALUE   
    !
    do iobs = 1, nobs ! determine zs and prcp of obervation points at required timestep
       !
@@ -2177,6 +2185,7 @@ contains
             hm0obs(iobs)   = hm0(nm)
             hm0igobs(iobs) = hm0_ig(nm)
             tpobs(iobs)    = snapwave_tpmean
+            tpigobs(iobs)  = snapwave_tpigmean            
             !
             if (store_wave_direction) then
                !
@@ -2199,7 +2208,7 @@ contains
                dfigobs(iobs)  = dfig(nm)
                cgobs(iobs)    = cg(nm) 
                qbobs(iobs)    = qb(nm)               
-               betanobs(iobs) = betan(nm)               
+               betaobs(iobs)  = betamean(nm)               
                srcshobs(iobs) = srcsh(nm)               
                alphaigobs(iobs) = alphaig(nm)                              
                ! 
@@ -2235,6 +2244,7 @@ contains
       NF90(nf90_put_var(his_file%ncid, his_file%hm0_varid, hm0obs, (/1, nthisout/)))
       NF90(nf90_put_var(his_file%ncid, his_file%hm0ig_varid, hm0igobs, (/1, nthisout/)))
       NF90(nf90_put_var(his_file%ncid, his_file%tp_varid, tpobs, (/1, nthisout/)))
+      NF90(nf90_put_var(his_file%ncid, his_file%tpig_varid, tpigobs, (/1, nthisout/)))      
       !
       if (store_wave_direction) then
          !
@@ -2260,7 +2270,7 @@ contains
          NF90(nf90_put_var(his_file%ncid, his_file%cg_varid, cgobs, (/1, nthisout/)))
          !
          NF90(nf90_put_var(his_file%ncid, his_file%qb_varid, qbobs, (/1, nthisout/)))
-         NF90(nf90_put_var(his_file%ncid, his_file%betan_varid, betanobs, (/1, nthisout/)))
+         NF90(nf90_put_var(his_file%ncid, his_file%beta_varid, betaobs, (/1, nthisout/)))
          NF90(nf90_put_var(his_file%ncid, his_file%srcsh_varid, srcshobs, (/1, nthisout/)))                  
          NF90(nf90_put_var(his_file%ncid, his_file%alphaig_varid, alphaigobs, (/1, nthisout/)))         
          !            
