@@ -303,16 +303,14 @@ contains
    use snapwave_boundaries
    !
    real*8    :: t
-   !
-   ! Wave periods from SnapWave, used in e.g. wavemakers
-   snapwave_tpmean = tpmean_bwv
-   snapwave_tpigmean = tpmean_bwv_ig      
-   !
+   ! 
    depth = snapwave_depth
    !
    zb = snapwave_z   
    !
-   ! TL: we use depth now in boundary conditions for Herbers bc determination of Hm0ig, In this order we use updated values
+   write(*,*)'1. snapwave_tpmean',snapwave_tpmean,' snapwave_tpigmean',snapwave_tpigmean
+   
+   ! TL: we use depth now in boundary conditions for Herbers bc determination of Hm0ig, in this order we use updated values of depth through SFINCS
    call update_boundary_conditions(t) ! SnapWave boundary conditions
    !
    call compute_wave_field()
@@ -332,6 +330,19 @@ contains
    snapwave_beta                  = beta
    snapwave_srcsh                 = srcsh
    snapwave_alphaig               = alphaig   
+   !
+   ! Wave periods from SnapWave, used in e.g. wavemakers - TL: moved behind call update_boundary_conditions & compute_wave_field so values at first timestep are not 0
+   snapwave_tpmean = tpmean_bwv
+   snapwave_tpigmean = tpmean_bwv_ig      
+   !
+   ! Do quick check whether incoming Tpig value seems realistic, before using it:
+   write(*,*)'2. snapwave_tpmean',snapwave_tpmean,' snapwave_tpigmean',snapwave_tpigmean
+   if (snapwave_tpigmean < 10.0) then
+	   write(*,*)'DEBUG - incoming tp for IG wave at wavemaker might be unrealistically small! value: ',snapwave_tpigmean
+   elseif (snapwave_tpigmean > 250.0) then
+	   write(*,*)'DEBUG - incoming tp for IG wave at wavemaker might be unrealistically large! value: ',snapwave_tpigmean
+   endif	 
+   ! TL: NOTE - in first timestep run of SnapWave tp = 0, therefore excluded that case from the check     
    !
    end subroutine
 

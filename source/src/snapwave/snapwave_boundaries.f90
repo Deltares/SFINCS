@@ -555,8 +555,8 @@ subroutine update_boundary_points(t)
           !
           tpmean_bwv_ig = sum(tpt_bwv_ig)/size(tpt_bwv_ig)       
           !
-          write(*,*)'Herbers computed: hst_bwv_ig= ',hst_bwv_ig
-          write(*,*)'Herbers computed: tpmean_bwv_ig= ',tpmean_bwv_ig      
+          !write(*,*)'Herbers computed: hst_bwv_ig= ',hst_bwv_ig
+          !write(*,*)'Herbers computed: tpmean_bwv_ig= ',tpmean_bwv_ig      
           !     
       else
           !

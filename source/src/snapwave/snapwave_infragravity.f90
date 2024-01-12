@@ -40,6 +40,10 @@ module snapwave_infragravity
     ! Call function that calculates Hig0 following Herbers, as also implemented in XBeach and secordspec2 in Matlab
     ! Loosely based on 3 step calculation in waveparams.F90 of XBeach (build_jonswap, build_etdir, build_boundw), here all in 1 subroutine calculate_herbers
     !
+    if (depth < 10.0) then
+	    write(*,*)'DEBUG - depth at boundary input point dropped below 10 m: ',depth, ' which might lead to large values of Hm0ig as bc, especially when directional spreading is low!'
+    endif	
+    !
     call compute_herbers(hsig, Tm01, Tm10, Tp, Tpsmooth, hsinc, tpinc, scoeff, jonswapgam, depth, correctHm0) ![out,out,out,out,out, in,in,in,in,in,in]
     !   
     ! Catch NaN values (if depth=0 probably) or unrealistically large values above 2 meters
@@ -76,8 +80,7 @@ module snapwave_infragravity
     ! Check on ratio tpig/tpinc whether it is deemed realistic
     if (tpig/tpinc < 2.0) then
 	    write(*,*)'DEBUG - computed tpig/tpinc ratio at offshore boundary dropped below 2 and might be unrealistic! value: ',tpig/tpinc
-    endif	    
-    if (tpig/tpinc > 20.0) then
+    elseif (tpig/tpinc > 20.0) then
 	    write(*,*)'DEBUG - computed tpig/tpinc ratio at offshore boundary increased above 20 and might be unrealistic! value: ',tpig/tpinc
     endif	         
     !   
