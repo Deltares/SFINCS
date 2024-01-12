@@ -39,12 +39,11 @@ contains
 
    subroutine initialize_processes()
    !
-   ! For 'old' input
+   ! Initialize physical processes
    !
-   integer*4,          dimension(:),   allocatable :: indices
+   use sfincs_data
    !
-   real*4 :: ylat
-   real*4 :: dxymin
+   implicit none
    !
    ! Set some flags
    !
