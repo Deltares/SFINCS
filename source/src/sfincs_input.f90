@@ -1,4 +1,4 @@
-module sfincs_input
+﻿module sfincs_input
 
 contains
 
@@ -11,9 +11,32 @@ contains
    !
    implicit none
    !
-   integer dtsec
+   integer*8 dtsec
+   !
+   ! Temporary variables
+   !
+   integer iradstr
+   integer igeo
+   integer icoriolis
+   integer iamprblock
+   integer iglobal
+   integer itsunamitime
+   integer ispinupmeteo
+   integer isnapwave
+   integer iwindmax
+   integer ioutfixed
+   integer iadvection
+   integer istorefw
+   integer istorewavdir   
+   integer imanning2d
+   integer isubgrid  
+   integer iwavemaker      
+   integer iwavemaker_spectrum  
+   integer ispwprecip
+   logical iviscosity   
    !
    character*256 wmsigstr 
+   character*256 advstr 
    !   
    write(*,*)'Reading input file ...'
    !
@@ -33,14 +56,14 @@ contains
    call read_real_input(500,'t0out',t0out,-999.0)
    call read_real_input(500,'t1out',t1out,-999.0)
    call read_real_input(500,'dtout',dtmapout,0.0)
-   call read_real_input(500,'dtmaxout',dtmaxout,999999.0)
+   call read_real_input(500,'dtmaxout',dtmaxout,9999999.0)
    call read_real_input(500,'dtrstout',dtrstout,0.0)
    call read_real_input(500,'trstout',trst,-999.0)
    call read_real_input(500,'dthisout',dthisout,600.0)
    call read_real_input(500,'dtwave',dtwave,3600.0)
    call read_real_input(500,'dtwnd',dtwindupd,1800.0)
-   call read_real_input(500,'alpha',alfa,0.75)
-   call read_real_input(500,'theta',theta,1.0)
+   call read_real_input(500,'alpha',alfa,0.50)
+   call read_real_input(500,'theta',theta,0.9)
    call read_real_input(500,'manning',manning,0.04)
    call read_real_input(500,'manning_land',manning_land,-999.0)
    call read_real_input(500,'manning_sea',manning_sea,-999.0)
@@ -56,6 +79,7 @@ contains
    call read_char_input(500,'outputformat',outputtype,'asc')
    call read_char_input(500,'outputtype_map',outputtype_map,'nil')
    call read_char_input(500,'outputtype_his',outputtype_his,'nil')
+   call read_int_input(500,'nc_deflate_level',nc_deflate_level,2)
    call read_int_input(500,'bndtype',bndtype,1)
    call read_int_input(500,'advection',iadvection,0)
    call read_int_input(500,'nfreqsig',nfreqsig,100)
@@ -71,8 +95,6 @@ contains
    call read_real_input(500,'stopdepth',stopdepth,100.0)
    call read_real_input(500,'advlim',advlim,9999.9)
    call read_real_input(500,'qinf_zmin',qinf_zmin,0.0)
-   call read_real_input(500,'horton_decay',horton_decay,0.00005)
-   call read_real_input(500,'horton_time',horton_time,0.0)
    call read_real_input(500,'btfilter',btfilter,60.0)
    call read_real_input(500,'sfacinf',sfacinf,0.2)
    call read_int_input(500,'radstr',iradstr,0)
@@ -80,8 +102,11 @@ contains
    call read_int_input(500,'coriolis',icoriolis,1)
    call read_int_input(500,'amprblock',iamprblock,1)
    call read_real_input(500,'spwmergefrac',spw_merge_frac,0.5)
+   call read_int_input(500,'usespwprecip',ispwprecip,1)   
    call read_int_input(500,'global',iglobal,0)
-   call read_real_input(500,'nuvisc',nuvisc,-999.0)
+   call read_real_input(500,'nuvisc',nuviscinp,-999.0)
+   call read_real_input(500,'nuviscdim',nuviscdim,1.0)   
+   call read_logical_input(500,'viscosity',iviscosity,.false.)
    call read_int_input(500,'spinup_meteo', ispinupmeteo, 0)
    call read_real_input(500,'waveage',waveage,-999.0)
    call read_int_input(500,'snapwave', isnapwave, 0)
@@ -89,6 +114,8 @@ contains
    call read_real_input(500,'wmtfilter',wmtfilter,600.0)
    call read_real_input(500,'wmfred',wavemaker_freduv,0.99)
    call read_char_input(500,'wmsignal',wmsigstr,'spectrum')   
+   call read_char_input(500,'advection_scheme',advstr,'upw1')   
+   call read_real_input(500,'btrelax',btrelax,3600.0)
    !
    ! Domain
    !
@@ -104,6 +131,7 @@ contains
    call read_char_input(500,'weirfile',weirfile,'none')
    call read_char_input(500,'manningfile',manningfile,'none')   
    call read_char_input(500,'drnfile',drnfile,'none')
+   call read_char_input(500,'volfile',volfile,'none')
    !
    ! Forcing
    !
@@ -128,25 +156,35 @@ contains
    call read_char_input(500,'amvfile',amvfile,'none')
    call read_char_input(500,'ampfile',ampfile,'none')
    call read_char_input(500,'amprfile',amprfile,'none')
-   call read_char_input(500,'qinffile',qinffile,'none')
-   call read_char_input(500,'scsfile',scsfile,'none')
-   call read_char_input(500,'scsfile_Smax',scsfile_Smax,'none')
-   call read_char_input(500,'scsfile_Se',scsfile_Se,'none')
-   call read_char_input(500,'scsfile_kr',scsfile_kr,'none')
    call read_char_input(500,'z0lfile',z0lfile,'none')
    call read_char_input(500,'wvmfile',wvmfile,'none')
-   !
+   call read_char_input(500,'qinffile',qinffile,'none')
+   ! Curve Number files
+   call read_char_input(500,'scsfile',scsfile,'none')           
+   call read_char_input(500,'smaxfile',smaxfile,'none')
+   call read_char_input(500,'sefffile',sefffile,'none')
+   ! Green and Ampt files
+   call read_char_input(500,'psifile',psifile,'none')           ! suction head [mm]
+   call read_char_input(500,'sigmafile',sigmafile,'none')       ! maximum moisture deficit θdmax [-]
+   call read_char_input(500,'ksfile',ksfile,'none')             ! saturated hydraulic conductivity [mm/hr]
+   ! Horton file
+   call read_char_input(500,'f0file',f0file,'none')             ! Maximum (Initial) Infiltration Capacity, F0
+   call read_char_input(500,'fcfile',fcfile,'none')             ! Minimum (Asymptotic) Infiltration Rate, Fc
+   call read_char_input(500,'kdfile',kdfile,'none')             ! k = empirical constant (hr-1) of decay
+   call read_real_input(500,'horton_kr_kd',horton_kr_kd,10.0)   ! recovery goes 10 times as SLOW as decay
    ! Netcdf input
    call read_char_input(500,'netbndbzsbzifile',netbndbzsbzifile,'none')  
    call read_char_input(500,'netsrcdisfile',netsrcdisfile,'none')  
    call read_char_input(500,'netamuamvfile',netamuamvfile,'none')                  
    call read_char_input(500,'netamprfile',netamprfile,'none')      
    call read_char_input(500,'netampfile',netampfile,'none')      
+   call read_char_input(500,'netspwfile',netspwfile,'none')      
    !
    ! Output
    call read_char_input(500,'obsfile',obsfile,'none')
    call read_char_input(500,'crsfile',crsfile,'none')
    call read_int_input(500,'storevelmax',storevelmax,0)
+   call read_int_input(500,'storefluxmax',storefluxmax,0)
    call read_int_input(500,'storevel',storevel,0)
    call read_int_input(500,'storecumprcp',storecumprcp,0)
    call read_int_input(500,'storetwet',storetwet,0)
@@ -157,11 +195,12 @@ contains
    call read_int_input(500,'storeqdrain',storeqdrain,1)
    call read_int_input(500,'storezvolume',storezvolume,0)
    call read_int_input(500,'writeruntime',wrttimeoutput,0)
-   call read_int_input(500,'debug',idebug,0)
+   call read_logical_input(500,'debug',debug,.false.)
    call read_int_input(500,'storemeteo',storemeteo,0)
    call read_int_input(500,'storemaxwind',iwindmax,0)
    call read_int_input(500,'storefw', istorefw, 0)
    call read_int_input(500,'storewavdir', istorewavdir, 0)
+   call read_logical_input(500,'friction2d',friction2d,.true.)
    !
    ! Wind drag
    !
@@ -275,6 +314,11 @@ contains
       store_maximum_velocity = .true.
    endif
    !
+   store_maximum_flux = .false.   
+   if (storefluxmax==1 .and. dtmaxout>0.0) then
+      store_maximum_flux = .true.      
+   endif   
+   !
    store_velocity = .false.
    if (storevel==1) then
       store_velocity = .true.
@@ -297,7 +341,6 @@ contains
    store_twet = .false.
    if (storetwet==1) then
       store_twet = .true.
-      twet      = 0.0
    endif
    !
    store_cumulative_precipitation = .false.
@@ -315,11 +358,6 @@ contains
    if (wrttimeoutput==1) then
       write_time_output = .true.
    endif
-   !
-   debug = .false.
-   if (idebug==1) then
-      debug = .true.
-   endif   
    !
    radstr = .false.
    if (iradstr==1) then
@@ -367,18 +405,52 @@ contains
       store_tsunami_arrival_time = .true.
    endif      
    !
-   if (nuvisc>0.0) then
-      viscosity = .true.
-      iviscosity = 1
-   else
-      viscosity = .false.
-      iviscosity = 0      
+   viscosity = .false.   
+   !
+   if (nuviscinp>0.0 .or. iviscosity) then
+      !
+      if (nuviscinp>0.0) then ! if nuvisc given by user, this overrules the dimensionless default use of nuvisc, for backwards compatability
+         !
+         nuvisc = nuviscinp
+         viscosity = .true.         
+         !
+      else ! user defined viscosity = 1
+         !
+         if (qtrfile(1:4) == 'none') then ! this works only for a regular grid model, for quadtree use 'nuvisc' option
+            !
+            viscosity = .true.         
+            !
+            if (crsgeo .eqv. .true.) then ! simplified conversion for spherical grids
+                nuvisc = max(nuviscdim * min(dx,dy) / 0.001, 0.0) ! take min of dx and dy, don't allow to be negative  
+                ! dx = 1 degree ~ 100km
+                ! dx = 0.001 degree~ 100m > nuvisc = 1.0              
+            else                 
+                nuvisc = max(nuviscdim * min(dx,dy) / 100.0, 0.0) ! take min of dx and dy, don't allow to be negative    
+                ! dx = 50 > nuvisc = 0.5
+                ! dx = 100 > nuvisc = 1.0
+                ! dx = 500 > nuvisc = 5.0
+                ! nuviscdim = 1.0
+                ! nuvisc = nuviscdim * dx / 100 
+            endif
+         endif          
+         !
+      endif    
+      !
+      if (viscosity .eqv. .true.) then
+         write(*,*)'Turning on process: Viscosity, with nuvisc = ', nuvisc
+      endif      
+      !
    endif   
    !
    spinup_meteo = .true. ! Default use data in ampr file as block rather than linear interpolation
    if (ispinupmeteo==0) then
       spinup_meteo = .false.
    endif      
+   !
+   use_spw_precip = .true.
+   if (ispwprecip==0) then
+      use_spw_precip = .false.
+   endif   
    !
    snapwave = .false.
    if (isnapwave==1) then
@@ -394,6 +466,11 @@ contains
    if (iadvection>0) then
       advection = .true.
    endif      
+   !
+   thetasmoothing = .false.
+   if (theta<0.9999) then ! Note, for reliability in terms of precision, is written as 0.9999
+      thetasmoothing = .true.       
+   endif   
    !
    store_wave_forces = .false.
    if (istorefw==1) then
@@ -421,6 +498,41 @@ contains
    if (istorewavdir==1) then
       store_wave_direction = .true.
    endif      
+   !
+   use_storage_volume = .false.
+   if (volfile(1:4) /= 'none') then
+      if (subgrid) then
+         use_storage_volume = .true.
+      else
+         write(*,*)'Warning: storage volume only supported for subgrid topographies!'
+      endif
+   endif
+   !
+   advection_limiter = .false.
+   !   
+   if (advection) then
+      !
+      ! Make 1st order upwind the default scheme
+      !  
+      advection_scheme = 1
+      ! 
+      if (trim(advstr) == 'original') then
+         advection_scheme = 0
+         write(*,*)'Advection scheme : Original'
+      elseif (trim(advstr) == 'upw1') then
+         advection_scheme = 1
+         write(*,*)'Advection scheme : First-order upwind'
+      else
+         write(*,*)'Warning: advection scheme ', trim(advstr), ' not recognized! Using default upw1 instead!'
+      endif
+      !
+      if (advlim < 9999.0) then 
+         !
+         advection_limiter = .true.
+         !
+      endif
+      !
+   endif
    !
    end subroutine
 
@@ -547,7 +659,40 @@ contains
    !
    end subroutine 
 
-   
+
+   subroutine read_logical_input(fileid,keyword,value,default)
+   !
+   character(*), intent(in)  :: keyword
+   character(len=256)        :: keystr0
+   character(len=256)        :: keystr
+   character(len=256)        :: valstr
+   character(len=256)        :: line
+   integer, intent(in)       :: fileid
+   logical, intent(in)       :: default
+   logical, intent(out)      :: value
+   integer j,stat,ilen
+   !
+   value = default
+   rewind(fileid)   
+   do while(.true.)
+      read(fileid,'(a)',iostat = stat)line
+      if (stat==-1) exit
+      j=index(line,'=')      
+      keystr0 = trim(line(1:j-1))
+      call notabs(keystr0,keystr,ilen)
+      if (trim(keystr)==trim(keyword)) then
+         valstr = adjustl(trim(line(j+1:256)))
+         if (valstr(1:1) == '1' .or. valstr(1:1) == 'y' .or. valstr(1:1) == 'Y' .or. valstr(1:1) == 't' .or. valstr(1:1) == 'T') then
+            value = .true.
+         else
+            value = .false.
+         endif 
+         exit
+      endif
+   enddo 
+   !
+   end subroutine 
+
    subroutine notabs(INSTR,OUTSTR,ILEN)
    ! @(#) convert tabs in input to spaces in output while maintaining columns, assuming a tab is set every 8 characters
    !

@@ -4,13 +4,93 @@ Developments
 SFINCS has continuely being developed since 2017, and many great features have been added over the years.
 Hereby some examples regarding subgrid features and GPU computing.
 
-Releases
+Development status
 -----
+
+See here a schematic overview of the SFINCS development status at Q4 2023, at the time of the v2.0.3 Cauberg release.
+Indicated are new functionality for SFINCS itself (core), and model setup/post-processing using HydroMT-SFINCS and Delft Dashboard (Python).
+
+.. figure:: ./figures/Overview_status_SFINCS.drawio.png
+   :width: 600px
+   :align: center
+
+   Overview of SFINCS development status Q4 2023
+
+Known issues
+-----
+
+Known issues of the current SFINCS main version and last release are (improvements are work in progress):
+
+* The BMI implementation in SFINCS is up to date with openearth/bmi-python, which is however not up to date with the latests CSDMS standard BMI implementation
+* The combination of netspwfile with large difference in reference time between the spiderweb and the SFINCS simulation itself, might not run correctly in the Docker version. Use the ascii spwfile input or the Windows build executable which work correctly.
+
+Releases Changelog
+-----
+
+Official open source version Q4 2023: v2.0.3 Cauberg release
+^^^^^
+
+The last official 2023 release of SFINCS for Q4, the v2.0.3 Cauberg release, 'Climbing hills of challenges in compound flood modelling', is now available!
+
+This contains open access to the source code from Github: https://github.com/Deltares/SFINCS/releases/tag/v2.0.3_Cauberg_release.
+
+As pre-compiled Windows executable:
+
+https://download.deltares.nl/en/sfincs/
+
+As Docker container:
+
+docker pull deltares/sfincs-cpu:sfincs-v2.0.3-Cauberg
+
+Changes:
+
+The code consists of all functionality of the v2.0.2 release, with the following changes/additions:
+
+Added functionality:
+
+* Netcdf4 compliant output, for reduced file sizes
+* Green & Ampt infiltration method
+* Horton infiltration method
+* Restartfiles including infiltration state, for the case of Curve Number with Recovery, Green&Ampt and Horton
+* Netcdf Spiderweb input option
+* Netcdf src+dis input option
+
+Other changes:
+
+* Improved culvert and drainage pipe formulations
+* Updated documentation
+* Added tests in skillbed report
+* Compliance with new Python setup tools HydroMT-SFINCS release v1.0.2
+
+Official open source version Q2 2023: v2.0.2 Blockhaus release
+^^^^^
+
+As the first out of 2 official 2023 releases, the v2.0.2 Blockhaus release, 'Smoothly cycling over challenges in compound flood modelling', is now available as Windows executable: https://download.deltares.nl/en/sfincs
+
+And Docker container: docker pull deltares/sfincs-cpu:sfincs-v2.0.2-Blockhaus
+
+This contains open access to the source code from Github: https://github.com/Deltares/SFINCS/releases/tag/v2.0.2.
+
+The code consists of all functionality of the v2.0.0 release, with the following changes/additions:
+
+* Potentially breaking change: flipped x&y coordinates in Netcdf map output to be Sgrid compliant. Note; might impact Matlab/Python post-processing scripts (fixed in new HydroMT-SFINCS release v1.1.0)
+* Improved 2D component of advection scheme
+* Option to not use rainfall in spiderweb, keyword:  usespwprecip = 0
+* The x&y-coordinates of input weirfiles as snapped on grid internally in SFINCS are now written to the sfincs_his.nc file;  structure_x, structure_y & structure_height 
+* Option to include viscosity, enabling running on theta=1.0,  with viscosity = 1. The values 'nuvisc' will be automatically determined based on your grid resolution, and written to the log screen. Value can still be overruled by specifying 'nuvisc = value' directly, or increased with e.g. a factor 2 using 'nuviscdim = 2'.
+* Save maximum velocity proxy (in m/s) on 'dtmaxout'  interval:   storevelmax = 1
+* Save maximum flux  (h * U in m^2/s) on 'dtmaxout'  interval:   storefluxmax = 1
+* Save maximum discharge through drainage strucuture from 'drnfile' input on 'dthisout'  interval:   storeqdrain = 1
+* Bugfix in weir formulation
+* Updated documentation
+* Added tests in skillbed report
+* Compliance with new Python setup tools HydroMT-SFINCS release v1.0.1
+
 
 Official open source version: v2.0.0 Alpe d'Huez release
 ^^^^^
 
-On the 16th of November 2022, we have made SFINCS open source available as the SFINCS v2.0.0 Alpe d'Huez release, 'Moving Dutch Mountains' in compound flood modelling.
+On the 16th of November 2022, we have made SFINCS open source available as the SFINCS v2.0.0 Alpe d'Huez release, 'Moving Dutch Mountains in compound flood modelling'.
 This contains open access to the source code and executables from Github: https://github.com/Deltares/SFINCS.
 The code consists of all functionality of v1, with the large addition of the subgrid mode and first GPU functionality using openacc.
 For more details, see below.

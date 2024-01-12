@@ -45,7 +45,7 @@ module sfincs_output
       !
       trstout     = t0out + dtrstout
       !
-   elseif (trst>0.0) then
+   elseif (trst>1.0e-6) then
       !
       ! Restart time given
       !
@@ -153,6 +153,10 @@ module sfincs_output
          !$acc update host(vmax)
       endif
       !
+      if (store_maximum_flux) then
+         !$acc update host(qmax)
+      endif      
+      !      
       if (store_twet) then
          !$acc update host(twet)
       endif
@@ -189,6 +193,11 @@ module sfincs_output
          !$acc update device(vmax)
       endif
       !
+      if (store_maximum_flux) then
+         qmax = 0.0 ! Set qmax back to 0.0
+         !$acc update device(qmax)
+      endif      
+      !      
 !      if (precip .and. store_cumulative_precipitation) then
 !         cumprcp = 0.0 ! Set cumprcp back to a 0.0
 !         !$acc update device(cumprcp)
@@ -231,7 +240,7 @@ module sfincs_output
    !   
    end subroutine
    
-   subroutine finalize_output(t, ntmaxout, tloopoutput)
+   subroutine finalize_output(t, ntmaxout, tloopoutput, tmaxout)
    !
    use sfincs_data
    !
@@ -240,12 +249,24 @@ module sfincs_output
    integer  :: ntmaxout
    real*8   :: t   
    real     :: tloopoutput 
+   real*8   :: tmaxout   
    !   
-   if (dtmaxout>1.e-6 .and. ntmaxout == 0) then
+   if (dtmaxout>1.e-6 .and. ntmaxout == 0) then 
+       !write dtmax output if 1) value for dtmaxout wasn't achieved yet, 
+       !or 2) in the last timeinterval, the full 'dtmaxout' wasn't achieved yet, but we still want the max over this interval
+      ! 
       write(*,'(a)')''       
-      write(*,*)'Info : Write maximum values of final timestep since t=dtmaxout was not reached yet...'
+      write(*,*)'Info : Write maximum values at final timestep since t=dtmaxout was not reached yet...'
       ntmaxout = 1
       call write_output(t,.false.,.false.,.true.,.false.,0,ntmaxout,0,tloopoutput)
+      !
+   elseif (dtmaxout>1.e-6 .and. ntmaxout>0 .and. t < tmaxout) then
+      !
+      write(*,'(a)')''       
+      write(*,*)'Info : Write maximum values at final timestep since t=dtmaxout was not reached yet for final interval...'
+      ntmaxout = ntmaxout + 1
+      call write_output(t,.false.,.false.,.true.,.false.,0,ntmaxout,0,tloopoutput)       
+      !
    endif
    !
    if (outputtype_map == 'net') then
@@ -615,10 +636,55 @@ module sfincs_output
    write(file_name,'(A,A,A)')'sfincs.',tstring,'.rst'
    !
    open(unit = 911, status = 'replace', file = trim(file_name), form = 'unformatted')
-   write(911)1    ! 1: zs, qx, qy, umean and vmean  - 2: zs, qx, qy - 3: zs 
-   write(911)zs
-   write(911)q
-   write(911)uvmean
+   !
+   ! Restartfile flavours:
+   ! 1: zs, q, uvmean  
+   ! 2: zs, q 
+   ! 3: zs  - 
+   ! 4: zs, q, uvmean and cnb infiltration (writing scs_Se)
+   ! 5: zs, q, uvmean and gai infiltration (writing GA_sigma & GA_F)
+   ! 6: zs, q, uvmean and hor infiltration (writing rain_T1)   
+   !
+   ! Write for Infiltration methods (rsttype 4 or 5 or 6)
+   !
+   if (inftype == 'cnb' .or. inftype == 'gai' .or. inftype == 'hor') then
+      !
+      if (inftype == 'cnb') then
+         !
+         write(911)4
+         write(911)zs
+         write(911)q
+         write(911)uvmean
+         write(911)scs_Se
+         !
+      elseif (inftype == 'gai') then
+         !
+         write(911)5
+         write(911)zs
+         write(911)q
+         write(911)uvmean
+         write(911)GA_sigma
+         write(911)GA_F
+         !
+      elseif (inftype == 'hor') then
+         !
+         write(911)6
+         write(911)zs
+         write(911)q
+         write(911)uvmean
+         write(911)rain_T1
+         !
+      endif
+      !
+   else ! default option remains type 1 without infiltration in restart
+      !
+      write(911)1    
+      write(911)zs
+      write(911)q
+      write(911)uvmean        
+      !
+   endif   
+   ! 
    close(911)
    !
    end subroutine

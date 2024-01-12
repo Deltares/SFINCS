@@ -152,6 +152,7 @@
             !
             ! Check right and above
             !
+!            nmu = z_index_uv_mu(ip)    ! index of 1st uv neighbor to the right
             nmu = z_index_uv_mu1(ip)    ! index of 1st uv neighbor to the right
             !
             if (nmu>0) then
@@ -753,6 +754,8 @@
    iwm = 0
    nok = 0
    !
+   write(*,*)'Setting wave makers ...' 
+   !
    do ip = 1, np
       !
       if (kcs(ip)==4) then
@@ -1124,6 +1127,8 @@
    !
    ! Set flags for kcuv points
    !
+   write(*,*)'Setting wave maker flags ...'
+   !
    do iwm = 1, wavemaker_nr_uv_points
       !
       ip = wavemaker_index_uv(iwm)
@@ -1137,14 +1142,16 @@
       !
       do ip = 1, npuv
          !
-         if (kcuv(uv_index_u_nmd(ip)) == 4)  uv_flags_adv(ip) = 0
-         if (kcuv(uv_index_u_nmu(ip)) == 4)  uv_flags_adv(ip) = 0
-         if (kcuv(uv_index_u_num(ip)) == 4)  uv_flags_adv(ip) = 0
-         if (kcuv(uv_index_u_ndm(ip)) == 4)  uv_flags_adv(ip) = 0
-         if (kcuv(uv_index_v_ndm(ip)) == 4)  uv_flags_adv(ip) = 0
-         if (kcuv(uv_index_v_nm(ip)) == 4)   uv_flags_adv(ip) = 0
-         if (kcuv(uv_index_v_nmu(ip)) == 4)  uv_flags_adv(ip) = 0
-         if (kcuv(uv_index_v_ndmu(ip)) == 4) uv_flags_adv(ip) = 0
+         ! TODO: re-implement uv_flags_adv ?
+         !
+!         if (kcuv(uv_index_u_nmd(ip)) == 4)  uv_flags_adv(ip) = 0
+!         if (kcuv(uv_index_u_nmu(ip)) == 4)  uv_flags_adv(ip) = 0
+!         if (kcuv(uv_index_u_num(ip)) == 4)  uv_flags_adv(ip) = 0
+!         if (kcuv(uv_index_u_ndm(ip)) == 4)  uv_flags_adv(ip) = 0
+!         if (kcuv(uv_index_v_ndm(ip)) == 4)  uv_flags_adv(ip) = 0
+!         if (kcuv(uv_index_v_nm(ip)) == 4)   uv_flags_adv(ip) = 0
+!         if (kcuv(uv_index_v_nmu(ip)) == 4)  uv_flags_adv(ip) = 0
+!         if (kcuv(uv_index_v_ndmu(ip)) == 4) uv_flags_adv(ip) = 0
          !
       enddo      
    endif
@@ -1176,7 +1183,7 @@
       rewind(500)
       allocate(x_wmfp(nwmfp))
       allocate(y_wmfp(nwmfp))
-      do n = 1, nwbnd
+      do n = 1, nwmfp
          read(500,*)x_wmfp(n),y_wmfp(n)
       enddo
       close(500)
@@ -1308,6 +1315,8 @@
 !      call RANDOM_NUMBER(r)
       dphiig(ifreq) = 1.0e-6*2*3.1416/freqig(ifreq)
    enddo
+   ! 
+   write(*,*)'Wavemakers initialized !'
    !
    end subroutine
 
@@ -1422,7 +1431,7 @@
    !$acc                  zs, q, hm0_ig, zb, zbuv, &
    !$acc                  wmf_hm0_ig_t, wmf_setup_t, wavemaker_index_wmfp1, wavemaker_index_wmfp2, wavemaker_fac_wmfp, &
    !$acc                  wavemaker_uvmean, wavemaker_idir, wavemaker_angfac, wavemaker_freduv, wavemaker_uvtrend, & 
-   !$acc                  subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_hrep, subgrid_uv_navg, subgrid_z_zmin, subgrid_uv_hrep_zmax), async(1)
+   !$acc                  subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_z_zmin, subgrid_uv_havg_zmax), async(1)
    ! 
    ! UV fluxes at boundaries
    !
@@ -1462,7 +1471,7 @@
             !
             ! Entire cell is wet, no interpolation from table needed
             !
-            depthuv  = subgrid_uv_hrep_zmax(ip) + zsuv
+            depthuv  = subgrid_uv_havg_zmax(ip) + zsuv
             !
          elseif (zsuv>subgrid_uv_zmin(nm)) then
             !
@@ -1471,7 +1480,7 @@
             dzuv    = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nbins - 1)
             iuv     = int((zsuv - subgrid_uv_zmin(ip))/dzuv) + 1
             facint  = (zsuv - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv
-            depthuv = subgrid_uv_hrep(iuv, ip) + (subgrid_uv_hrep(iuv + 1, ip) - subgrid_uv_hrep(iuv, ip))*facint
+            depthuv = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint
             !
          else
             !

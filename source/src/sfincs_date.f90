@@ -182,9 +182,9 @@ CONTAINS
    ! 
    subroutine time_difference(datespw,datesim,dtsec)
        !
-       integer ijul1, ijul2     
-       integer yyyy1,mm1,dd1,hh1,mn1,ss1,yyyy2,mm2,dd2,hh2,mn2,ss2
-       integer dtsec,sec1,sec2
+       integer*8 ijul1, ijul2     
+       integer*4 yyyy1,mm1,dd1,hh1,mn1,ss1,yyyy2,mm2,dd2,hh2,mn2,ss2
+       integer*8 dtsec,sec1,sec2
        !
        character*15  :: datespw
        character*15  :: datesim
@@ -257,6 +257,42 @@ CONTAINS
        allocate(timeout(timent))
        !
        timeout = real((int(timein) * 60) + dtsec)  ! time from fews is in minutes, then correct for use wrt sfincs treftime
+       !       
+   end function      
+   !
+   function convert_spw_nc_date(timein, timent, treftimefews, trefstr) result (timeout)
+       !
+       implicit none
+       !
+       character*41 :: treftimefews
+       character*15 :: trefstr
+       !
+       integer ijul1, ijul2, itb, timent     
+       integer yyyy1,mm1,dd1,hh1,mn1,ss1,yyyy2,mm2,dd2,hh2,mn2,ss2, tmp
+       integer*8 sec1,sec2
+       real*8 dtsec
+       !
+       
+       real*4, dimension(:),     allocatable :: timein             
+       real*4, dimension(:),     allocatable :: timeout       
+       !       
+       read(trefstr,'(I4,2I2,1X,3I2)')yyyy1,mm1,dd1,hh1,mn1,ss1
+       !
+       ! netcdf time input: "days since 1970-01-01 00:00:00Z"        
+       ! yyyy -  mm   -  dd      HH   :  MM   :  SS       
+       read(treftimefews(12:), '(I4,A1,I2,A1,I2,A1,I2,A1,I2,A1,I2)') yyyy2, tmp, mm2, tmp, dd2, tmp, hh2, tmp, mn2, tmp, ss2
+       !
+       ijul1 = julian_date (yyyy1,mm1,dd1)
+       ijul2 = julian_date (yyyy2,mm2,dd2)
+       !
+       sec1  = hh1*3600 + mn1*60 + ss1
+       sec2  = hh2*3600 + mn2*60 + ss2
+       dtsec = (ijul2 - ijul1)*86400.0 + sec2 - sec1       
+       !       
+       allocate(timeout(timent))
+       !
+       timeout = (timein * 86400) + dtsec  ! time from spiderweb is in days
+       sec1    =0
        !       
    end function      
    !   

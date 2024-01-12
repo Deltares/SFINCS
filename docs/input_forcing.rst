@@ -249,15 +249,17 @@ Meteo
 
 There are a few different options to specify wind and rain input: 
 
-1) Use a spatially varying spiderweb input (as in Delft3D/Delft3D FM) for forcing tropical cyclones only the wind and pressure input, or for the wind as well as the rain input. 
+1) Use a spatially varying input in a polar coordinate system ('spiderweb'; as in Delft3D/Delft3D FM) for forcing tropical cyclones for wind and pressure input only, or also for rainfal. 
 
-2) Use a spatially varying grid input (as in Delft3D) for u- and v- wind velocities and/or the rain and/or pressure input. 
+2) Use a spatially varying grid input (as in Delft3D) for u- and v- wind velocities and/or the rain and/or pressure input.
 
-3) Use a spatially varying grid input using a netcdf file based on a FEWS input type format for wind, rain and/or atmospheric pressure input.
+3) Use a spatially varying grid input using a netcdf file based on a FEWS input type format for wind, rain, and/or atmospheric pressure input.
 
 4) Use a spatially uniform input for wind and rain, which is faster but also more simplified.
 
 5) Make a combination, for instance use a spiderweb for the wind input and a spatially uniform rain-input. When combining, test whether the forcing is as wanted since not all combinations of the above options might be possible and/or changing depending on specific code version.
+
+You can know how much rainfall / wind is added to the model in the output by specifying 'storecumprcp=1' and/or 'storemeteo=1', see the description in "Input parameters".
 
 .. figure:: ./figures/SFINCS_documentation_forcing_meteo.png
    :width: 300px
@@ -265,18 +267,25 @@ There are a few different options to specify wind and rain input:
 
    Overview of possible meteo input file options and names
 
-
 Spatially varying spiderweb
 ^^^^^^^^^
 
-The option of forcing spiderweb files is only relevant for tropical cyclones, best is to put grid units in the same projected coordinate reference system (UTM zone) as the SFINCS grid.
-For generation of these spiderweb files use Deltares' Wind Enhancement Scheme tool (WES, see https://content.oss.deltares.nl/delft3d/manuals/Delft3D-WES_User_Manual.pdf or OET Matlab equivalent) or get in touch.
+The option of forcing spiderweb files is only relevant for tropical cyclones, as these time and spatially varying wind fields are constructed and written in a polar coordinate system.
+For generation of these spiderweb files use Deltares' Wind Enhancement Scheme tool (WES, see https://content.oss.deltares.nl/delft3d/manuals/Delft3D-WES_User_Manual.pdf, OET Matlab equivalent, the Coastal Hazards Toolkit or other methods). If you have issues with the generation of a spiderweb, feel free to get in touch.
+There are two options for spatially varying spiderweb. There is the 'traditional' ASCII format and the netcdf option. Both options support the possibility to include rainfall too.
 
-**Spiderweb-input:**
+**Spiderweb-input-ascii:**
 
 .. code-block:: text
 
 	spwfile = tropical_cyclone.spw
+
+**Spiderweb-input-netcdf:**
+
+.. code-block:: text
+
+	netspwfile = tropical_cyclone.nc
+
 
 
 Spatially varying gridded

@@ -23,7 +23,7 @@
 				<Tool Name="VFPreBuildEventTool"/>
 				<Tool Name="VFPostBuildEventTool"/></Configuration>
 		<Configuration Name="Debug|x64" ConfigurationType="typeStaticLibrary">
-				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" MultiProcessorCompilation="true" Optimization="optimizeFull" Parallelization="true" OpenMP="OpenMPParallelCode" WarnInterfaces="true" Traceback="true" BoundsCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL"/>
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" MultiProcessorCompilation="true" Optimization="optimizeFull" Parallelization="true" HeapArrays="0" OpenMP="OpenMPParallelCode" WarnInterfaces="true" Traceback="true" BoundsCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL"/>
 				<Tool Name="VFLibrarianTool"/>
 				<Tool Name="VFResourceCompilerTool"/>
 				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
@@ -32,7 +32,7 @@
 				<Tool Name="VFPreBuildEventTool"/>
 				<Tool Name="VFPostBuildEventTool"/></Configuration>
 		<Configuration Name="Release|x64" ConfigurationType="typeStaticLibrary">
-				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" MultiProcessorCompilation="true" Optimization="optimizeFull" Parallelization="true" OpenMP="OpenMPParallelCode" RuntimeLibrary="rtMultiThreadedDLL"/>
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" MultiProcessorCompilation="true" Optimization="optimizeFull" Parallelization="true" HeapArrays="0" OpenMP="OpenMPParallelCode" RuntimeLibrary="rtMultiThreadedDLL"/>
 				<Tool Name="VFLibrarianTool"/>
 				<Tool Name="VFResourceCompilerTool"/>
 				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
@@ -60,7 +60,11 @@
 		<File RelativePath="..\src\snapwave\snapwave_solver.f90"/></Filter>
 		<File RelativePath="..\src\deg2utm.f90"/>
 		<File RelativePath="..\src\geometry.f90"/>
-		<File RelativePath="..\src\quadtree.f90"/>
+		<File RelativePath="..\src\quadtree.F90">
+			<FileConfiguration Name="Release|x64">
+				<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/></FileConfiguration>
+			<FileConfiguration Name="Debug|x64">
+				<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/></FileConfiguration></File>
 		<File RelativePath="..\src\sfincs_boundaries.f90"/>
 		<File RelativePath="..\src\sfincs_continuity.f90"/>
 		<File RelativePath="..\src\sfincs_crosssections.f90"/>
@@ -68,6 +72,7 @@
 		<File RelativePath="..\src\sfincs_date.f90"/>
 		<File RelativePath="..\src\sfincs_discharges.f90"/>
 		<File RelativePath="..\src\sfincs_domain.f90"/>
+		<File RelativePath="..\src\sfincs_infiltration.f90"/>
 		<File RelativePath="..\src\sfincs_input.f90"/>
 		<File RelativePath="..\src\sfincs_lib.f90"/>
 		<File RelativePath="..\src\sfincs_meteo.f90"/>
@@ -87,5 +92,10 @@
 		<File RelativePath="..\src\sfincs_snapwave.f90"/>
 		<File RelativePath="..\src\sfincs_spiderweb.f90"/>
 		<File RelativePath="..\src\sfincs_structures.f90"/>
+		<File RelativePath="..\src\sfincs_subgrid.F90">
+			<FileConfiguration Name="Release|x64">
+				<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/></FileConfiguration>
+			<FileConfiguration Name="Debug|x64">
+				<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/></FileConfiguration></File>
 		<File RelativePath="..\src\sfincs_wavemaker.f90"/></Filter></Files>
 	<Globals/></VisualStudioProject>

@@ -60,7 +60,7 @@ Parameters for model input
 	alpha	
 	  :description:		CFL-condition reduction. Decrease for additional numerical stability, minimum value is 0.1 and maximum is 0.75.
 	  :units:		-	
-	  :default:		0.75		
+	  :default:		0.5		
 	  :min:			0.1 (recommended)	
 	  :max:			0.75 (recommended)		  
 	huthresh	
@@ -70,11 +70,29 @@ Parameters for model input
 	  :min:			0.001 (recommended)
 	  :max:			0.1 (recommended)
 	theta
-	  :description:		Smoothing factor in momentum equation. Advised not too change and to use 1.0 by default.
+	  :description:		Smoothing factor in momentum equation.
 	  :units:		-
-	  :default:		1.0
+	  :default:		0.9
 	  :min:			0.8
 	  :max:			1.0
+	viscosity
+	  :description:		Turns on the viscosity term in the momentum equation (viscosity = 1), advised to combine with theta = 1.0. Value of viscosity term 'nuvisc' automatically determined based on grid size..
+	  :units:		-
+	  :default:		0
+	  :min:			0
+	  :max:			1
+	nuviscdim
+	  :description:		Dimensionless viscosity coefficient, multiplies the automatically determined value for 'nuvisc' with the specified factor for 'nuviscdim'.
+	  :units:		-
+	  :default:		1.0
+	  :min:			0.0
+	  :max:			Inf	  
+	nuvisc
+	  :description:		Viscosity coefficient, by default turned off, but automatically determined if 'viscosity=1'. specifying a value for 'nuvisc' overrule default value.
+	  :units:		-
+	  :default:		-999.0 (=off)
+	  :min:			0.0
+	  :max:			Inf	  	  	  
 	zsini
 	  :description:		Initial water level.
 	  :units:		m above reference level
@@ -87,6 +105,12 @@ Parameters for model input
 	  :default:		0
 	  :min:			0
 	  :max:			100  
+	qinf_zmin
+	  :description:		Minimum elevation level above for what cells the spatially uniform, constant in time infiltration rate 'qinf' is added.
+	  :units:		m above reference level
+	  :default:		0
+	  :min:			-100
+	  :max:			100  	  
 	manning
 	  :description:		Uniform manning roughness, specify in s/m^(1/3).
 	  :units:		s/m^(1/3)
@@ -116,11 +140,11 @@ More parameters for model input (only for advanced users)
 -----
 
 	bndtype        
-	  :description:		Boundary type for interpretation of 'sfincs.bzs' time-series. bndtype=1 is for water levels, bndtype=2 (advanced) is for horizontal velocities (in m/s) and bndtype=3 (advanced) for horizontal discharges (in m2/s).
+	  :description:		Boundary type for interpretation of 'sfincs.bzs' time-series. bndtype=1 is for water levels, old types 2&3 have been removed from SFINCS v2.0.2 onwards.
 	  :units:		-
 	  :default:		1
 	  :min:			1
-	  :max:			3
+	  :max:			1
 	rhoa
 	  :description:		Density of the air
 	  :units:		kg/m3
@@ -216,7 +240,7 @@ Parameters for model output
 	dtmaxout
 	  :description:		Time-step interval of global map output of maximum water level. If not specified, the maximum over the entire simulation is calculated. If no output is wanted, specify 'dtmaxout = 0'.
 	  :units:		s
-	  :default:		999999
+	  :default:		9999999
 	  :min:			0
 	  :max:			'tstop - start in seconds'  
 	dtrstout
@@ -247,6 +271,10 @@ Parameters for model output
 	  :description:		Flag to turn on writing away maximum velocities on 'dtmaxout' interval during simulation (storevelmax = 1)
 	  :units:		-
 	  :default:		0	
+	storefluxmax
+	  :description:		Flag to turn on writing away maximum flux on 'dtmaxout' interval during simulation (storefluxmax = 1)
+	  :units:		-
+	  :default:		0		  
 	storecumprcp
 	  :description:		Flag to turn on writing away cumulative precipitation on 'dtmaxout' interval during simulation (storecumprcp = 1)
 	  :units:		-
@@ -326,10 +354,51 @@ Domain
 	  :required:		no	  
 	  :format:		bin	  
 	scsfile = sfincs.scs
-	  :description:		For spatially varying infiltration values per cell using the Curve Number method use the scsfile option, with the same grid based input as the depfile using a binary file.
+	  :description:		For spatially varying infiltration values per cell using the Curve Number method A (without recovery) use the scsfile option, with the same grid based input as the depfile using a binary file.
 	  :units:		-
 	  :required:		no	  
 	  :format:		bin	  	  
+	smaxfile = sfincs.smax
+	  :description:		For spatially varying infiltration values per cell using the Curve Number method B (with recovery) provide the smaxfile (as well as the sefffile and ksfile) as maximum soil moisture storage capacity in m, with the same grid based input as the depfile using a binary file.
+	  :units:		m
+	  :required:		no	  
+	  :format:		bin	  	
+	sefffile = sfincs.seff
+	  :description:		For spatially varying infiltration values per cell using the Curve Number method B (with recovery) provide the sefffile (as well as the smaxfile and ksfile) as soil moisture storage capacity at the start in m, with the same grid based input as the depfile using a binary file.
+	  :units:		m
+	  :required:		no	  
+	  :format:		bin	  
+	ksfile = sfincs.ks
+	  :description:		For spatially varying infiltration values per cell using the Curve Number method B (with recovery) provide the ksfile (as well as the smaxfile and sefffile) as saturated hydraulic conductivity in mm/hr, with the same grid based input as the depfile using a binary file.
+	  :description:		For spatially varying infiltration values per cell using the Green & Ampt method (with recovery) provide the ksfile (as well as the sigmafile and psifile) as saturated hydraulic conductivity in mm/hr, with the same grid based input as the depfile using a binary file.
+	  :units:		mm/hr
+	  :required:		no	  
+	  :format:		bin	  
+	sigmafile = sfincs.sigma
+	  :description:		For spatially varying infiltration values per cell using the Green & Ampt method (with recovery) provide the sigmafile (as well as the psifile and ksfile) as suction head at the wetting front in mm, with the same grid based input as the depfile using a binary file.
+	  :units:		mm
+	  :required:		no	  
+	  :format:		bin	 
+	psifile = sfincs.psi
+	  :description:		For spatially varying infiltration values per cell using the Green & Ampt method (with recovery) provide the psifile (as well as the sigmafile and ksfile) as soil moisture deficit in [-], with the same grid based input as the depfile using a binary file.
+	  :units:		-
+	  :required:		no	  
+	  :format:		bin	 
+	f0file = sfincs.f0
+	  :description:		For spatially varying infiltration values per cell using the Horton method (with recovery) provide the f0file (as well as the fcfile and kdfile) as maximum (Initial) Infiltration Capacity in mm/hr, with the same grid based input as the depfile using a binary file.
+	  :units:		mm/hr
+	  :required:		no	  
+	  :format:		bin	
+	fcfile = sfincs.fc
+	  :description:		For spatially varying infiltration values per cell using the Horton method (with recovery) provide the fcfile (as well as the f0file and kdfile) as Minimum (Asymptotic) Infiltration Rate in mm/hr, with the same grid based input as the depfile using a binary file.
+	  :units:		mm/hr
+	  :required:		no	  
+	  :format:		bin	 	
+	kdfile = sfincs.kd
+	  :description:		For spatially varying infiltration values per cell using the Horton method (with recovery) provide the kdfile (as well as the f0file and fcfile) as empirical constant (hr-1) of decay, with the same grid based input as the depfile using a binary file.
+	  :units:		hr-1
+	  :required:		no	  
+	  :format:		bin	 		  	   	  
 	sbgfile = sfincs.sbg
 	  :description:		File containing subgrid tables, only needed by SFINCS if you want to run your model in the subgrid mode.
 	  :units:		-
@@ -346,7 +415,7 @@ Domain
 	  :required:		no (only if cross-section output is wanted)
 	  :format:		tekal		  	  
 	inifile = sfincs.ini
-	  :description:		For spatially varying initial water level per cell, with the same grid based input as the depfile using a **binary file**. In older version this was an ascii file still, not from official release v0.0.1 onwards!
+	  :description:		For spatially varying initial water level per cell, with the same grid based input as the depfile using a **binary file**. In older version this was an ascii file still, not from official release v2.0.0 onwards!
 	  :units:		m above reference level
 	  :required:		no
 	  :format:		**bin**		
@@ -407,6 +476,11 @@ Forcing - Meteo
 	  :units:		coordinates: m in projected UTM zone, data: m/s, wind_from_direction in degrees, p_drop in Pa (and precipitation in mm/hr).
 	  :required:		no
 	  :format:		asc	 
+	netspwfile = spiderweb.nc
+	  :description:		Spiderweb file including wind speed, direction, pressure (and possibly rainfall).
+	  :units:		coordinates: m in projected UTM zone, data: m/s, wind_from_direction in degrees, p_drop in Pa (and precipitation in mm/hr).
+	  :required:		no
+	  :format:		netcdf	 	  
 	amufile = sfincs.amu
 	  :description:		Delft3D-meteo ascii type input of wind speed in x-direction.
 	  :units:		coordinates: m in projected UTM zone, data: m/s

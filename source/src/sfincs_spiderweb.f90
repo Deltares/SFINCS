@@ -7,7 +7,7 @@ contains
    implicit none
    !
    integer j, j2, it, ip, n, m, nquant, stat, nheader, id
-   integer dtsec
+   integer*8 dtsec
    integer iyspw,imspw,idspw
    character*4 cyspw 
    character*2 cmspw 
@@ -139,13 +139,14 @@ contains
    close(888)
    !
    end subroutine
-
+   !
+   ! Read amu
    subroutine read_amuv_file(filename,nt,nrows,ncols,time,uv,trefstr)
    !
    implicit none
    !
    integer j, j2, it, ip, n, m, nquant, stat, nheader, id
-   integer dtsec
+   integer*8 dtsec
    integer iyspw,imspw,idspw
    character*4 cyspw 
    character*2 cmspw 
@@ -473,7 +474,7 @@ contains
    !   
    character(*), intent(in) :: line
    character*15, intent(in) :: trefstr
-   integer, intent(out)     :: dtsec
+   integer*8, intent(out)     :: dtsec
    !
    integer j, j2, iopt
    character*4 cyspw 

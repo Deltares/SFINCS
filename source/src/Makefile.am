@@ -36,6 +36,7 @@ libsfincs_la_SOURCES = \
 	sfincs_continuity.f90 \
 	sfincs_crosssections.f90 \
 	sfincs_discharges.f90 \
+	sfincs_subgrid.F90 \
 	sfincs_domain.f90 \
 	sfincs_structures.f90 \
 	sfincs_obspoints.f90 \
@@ -46,6 +47,7 @@ libsfincs_la_SOURCES = \
 	sfincs_output.f90 \
 	sfincs_momentum.f90 \
 	sfincs_wavemaker.f90 \
+	sfincs_infiltration.f90 \
 	sfincs_lib.f90 \
 	sfincs_bmi.f90
         

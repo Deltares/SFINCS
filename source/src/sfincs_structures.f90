@@ -496,10 +496,11 @@
        ! Get index
        ip       = structure_uv_index(istruc)
        nmu      = uv_index_z_nmu(ip)
+       nm       = uv_index_z_nm(ip)
        ! 
-       ! Get coordinates => not sure how to do this
-       struc_info(istruc,1) = z_xz(nmu)
-       struc_info(istruc,2) = z_yz(nmu)
+       ! Get coordinates of face
+       struc_info(istruc,1) = z_xz(nmu)*0.5 + z_xz(nm)*0.5
+       struc_info(istruc,2) = z_yz(nmu)*0.5 + z_yz(nm)*0.5
        !
        ! Save height
        struc_info(istruc,3) = structure_parameters(1, istruc)
@@ -585,11 +586,11 @@
                h2 = zsnm  - structure_parameters(1, istruc)
             endif
             !
-            if (h1>0.0 .and. h2>0.0) then
+            if (h2 > 2.0 / 3.0 * h1) then
                !
                ! fully submerged
                !
-               qstruc = Cd*cweir*h1*sqrt((h1 - h2)/(1.0 - m))
+               qstruc = Cd*h2*sqrt(2.0 * 9.81 * (h1 - h2)/(1.0 - m))
                !
             else
                !

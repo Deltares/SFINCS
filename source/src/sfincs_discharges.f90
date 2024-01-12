@@ -308,28 +308,17 @@ contains
          nmin  = nmindsrc(jin)
          nmout = nmindsrc(jout)
          !
-         qtsrc(jin)  = 0.0
-         qtsrc(jout) = 0.0
-         !
          if (nmin>0 .and. nmout>0) then
             !
             select case(drainage_type(idrn))
                !
-               case(1)
-                  !
-                  ! Pump
-                  !
-                  qq = drainage_params(idrn,1)
-                  !
-                  if (qq>=0.0) then
-                     !
-                     ! Constant discharge, no need to change
-                     !
-               else
-                  !
-                  ! Time series
-                  !
-               endif   
+            case(1)
+               !
+               ! Pump
+               !
+               qq = drainage_params(idrn,1)
+               !
+               ! Constant discharge, no need to change
                !
                if (subgrid) then
                   qq = max(min(qq, z_volume(nmin)/dt), 0.0)
@@ -372,7 +361,7 @@ contains
                !
                ! Add some relaxation
                !
-               qq = 0.10*qq + 0.90*qq0
+               qq = 0.10*qq + 0.90*qq0               
                !
                qtsrc(jin)  = -qq
                qtsrc(jout) =  qq

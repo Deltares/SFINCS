@@ -1,0 +1,58 @@
+BootStrap: library
+From: library://library/default/ubuntu:jammy
+Stage: build
+
+#
+# The source files of sfincs
+#
+
+%files
+  .  /usr/src/sfincs
+
+#
+# Compiler flags
+# -fallow-argument-mismatch needed for https://github.com/Unidata/netcdf-fortran/issues/212
+#
+
+%environment
+  FCFLAGS="-fopenmp -O3 -fallow-argument-mismatch -w"
+  FFLAGS="-fopenmp -O3 -fallow-argument-mismatch -w"
+
+#
+# Installing compilers
+# Compiling sfincs
+#
+
+%post
+  apt clean && apt autoclean && apt -y update --fix-missing && apt -y upgrade -y && apt install -y libnetcdf-dev build-essential autoconf automake libtool pkg-config gfortran gdb m4
+
+# Install software into /usr/local by default
+
+  cd /usr/src/sfincs  
+  export CONFIG_SHELL=/bin/bash
+  autoreconf -vif
+  ./autogen.sh
+  ./configure FCFLAGS="-acc -Minfo=accel -fast -O3 -gpu=ccall -DSIZEOF_PTRDIFF_T=999" FC=nvfortran --disable-shared --disable-openmp --program-suffix="_async"
+
+  make clean
+  make
+  make install
+
+# Install binary in a much smaller image
+
+BootStrap: library
+From: library://library/default/ubuntu:jammy
+Stage: final
+
+# install binary from stage one
+%files from build
+  /usr/local/bin/sfincs /usr/local/bin/sfincs
+
+%files
+  run-sfincs.sh /usr/local/bin/run-sfincs.sh
+
+%post
+  apt clean && apt autoclean && apt update --fix-missing && apt upgrade -y 
+  apt install -y libnetcdf19 libgfortran5 libgomp1
+  apt clean && apt autoclean
+  chmod +x /usr/local/bin/run-sfincs.sh

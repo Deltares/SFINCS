@@ -47,7 +47,7 @@ Executable
 
 We provide pre-compiled versions of SFINCS for you to use directly:
 
-* Windows: https://download.deltares.nl/en/download/sfincs/  
+* Windows: https://download.deltares.nl/en/sfincs  
 * Platform independent through Docker (Windows/linux/singularity/HPC): https://hub.docker.com/r/deltares/sfincs-cpu 
 
 Compiling yourself
@@ -122,8 +122,12 @@ After downloading Docker desktop for your operating system (https://www.docker.c
 
 	(here 'C:/Users/../SFINCS' is the folder where the SFINCS input files to be used are located)
 
+	NOTE - you have to supply the full path, not a relative path!
+
+	NOTE - For Linux/Mac you do the same, but write the path as /C/Users/../SFINCS/
+
 Instead of using the latest automatically cmpiled version, you can also pull a verified tagged release from: https://hub.docker.com/r/deltares/sfincs-cpu/tags
-This can be for instance the open source release version 'build-v0.0.1-2022-11-16'.
+This can be for instance the open source release version 'docker pull deltares/sfincs-cpu:sfincs-v2.0.3-Cauberg'.
 
 Cloud based cluster
 ^^^^^
@@ -155,7 +159,7 @@ This prevents unnesissarily loading the Docker container every time a simulation
 		singularity run -B$(pwd):/data sfincs-cpu.img
 	
 Also here, instead of using the latest automatically cmpiled version, you can also pull a verified tagged release from: https://hub.docker.com/r/deltares/sfincs-cpu/tags
-This can be for instance the open source release version 'build-v0.0.1-2022-11-16'.
+This can be for instance the open source release version 'sfincs-v2.0.3-Cauberg'.
 
 
 Courses learning SFINCS
@@ -163,11 +167,9 @@ Courses learning SFINCS
 
 Besides the elaborate information available in this manual, we do offer courses to learn from the experts how to set up a SFINCS model, and the theory and philosophy behind the model:
 
-* In person training during the Delft Software Days on November 16th, 2022, in Delft, the Netherlands: https://softwaredays.deltares.nl/-/compound-flooding-training
+* SFINCS trainings during the DSD are planned to be yearly, for an up to date agenda see: https://softwaredays.deltares.nl/welcome
 
-* SFINCS trainings during the DSD are planned to be regularly (yearly for now), for an up to date agenda see: https://softwaredays.deltares.nl/welcome
-
-* Short couse on SFINCS during the Coastal Sediments conference April 11th, 2023, in New Orleans, USA: http://coastalsediments.cas.usf.edu/shortcourses.html
+* For US/Canada users, online SFINCS training through Deltares USA, Apr 24&26 2024, see: https://www.deltares-usa.us/book-online
 
 If these dates don't suit you or your organisation, or you want a more advanced training; get in touch and we can set up a tailor-made course for you.
 

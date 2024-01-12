@@ -27,7 +27,7 @@ SFINCS has been made freely available open source for you to use under the stand
 
 * For more general information about SFINCS and Deltares, see: https://deltares.nl/en/software/sfincs/
 
-* To download a free pre-compiled windows executable of SFINCS, see: https://download.deltares.nl/en/download/sfincs/ 
+* To download a free pre-compiled windows executable of SFINCS, see: https://download.deltares.nl/en/sfincs
 
 * To collaborate with us on improving the model, see: https://github.com/Deltares/SFINCS
 

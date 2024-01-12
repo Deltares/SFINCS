@@ -71,7 +71,7 @@ contains
    !
    ! Read wave boundaries
    !
-   write(*,*)'Reading wave boundary enclosure ...'
+   write(*,*)'Reading wave boundary enclosure ', trim(encfile), ' ...'
    open(500, file=trim(encfile)) !as in bwvfile of SFINCS
    do while(.true.)
       read(500,*,iostat = stat)dummy

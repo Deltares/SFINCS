@@ -160,15 +160,7 @@ In case of netcdf output, the given parameters mean the following:
 	y
 	  :description:		y coordinate of cell centers in projected reference system
 	  :standard_name:	projection_y_coordinate	  
-	  :units:		m in projected reference system
-	edge_x
-	  :description:		x coordinate of cell corners in projected reference system
-	  :standard_name:	projection_x_coordinate
-	  :units:		m in projected reference system	  
-	edge_y
-	  :description:		y coordinate of cell corners in projected reference system
-	  :standard_name:	projection_y_coordinate	  
-	  :units:		m in projected reference system	  
+	  :units:		m in projected reference system  
 	zb
 	  :description:		Bed level elevation (in case of subgrid version of SFINCS, this elevation is not used in the model but the sbgfile with subgrid tables is used instead).
 	  :standard_name:	altitude	  
@@ -189,6 +181,14 @@ In case of netcdf output, the given parameters mean the following:
 	  :description:		Instantaneous water depth per 'dtout' timestep, corresponding with netcdf variable 'time'.
 	  :standard_name:	depth	  
 	  :units:		m
+	u
+	  :description:		Instantaneous flow velocity in u-direction per 'dtout' timestep, corresponding with netcdf variable 'time'.
+	  :standard_name:	sea_water_x_velocity	  
+	  :units:		m/s
+	v
+	  :description:		Instantaneous flow velocity in v-direction per 'dtout' timestep, corresponding with netcdf variable 'time'.
+	  :standard_name:	sea_water_y_velocity	  
+	  :units:		m/s		  
 	timemax
 	  :description:		Time of global map output per 'dtmaxout' timestep.
 	  :standard_name:	time	  
@@ -197,6 +197,14 @@ In case of netcdf output, the given parameters mean the following:
 	  :description:		Maximum water level per 'dtmaxout' timestep, only given if dtmaxout>0, corresponding with netcdf variable 'timemax'.
 	  :standard_name:	maximum of sea_surface_height_above_mean_sea_level	  
 	  :units:		m above reference level
+	vmax
+	  :description:		Maximum flow velocity proxy per 'dtmaxout' timestep, only given if dtmaxout>0, corresponding with netcdf variable 'timemax'.
+	  :standard_name:	maximum_flow_velocity	  
+	  :units:		m/
+	qmax
+	  :description:		Maximum flow flux proxy per 'dtmaxout' timestep, only given if dtmaxout>0, corresponding with netcdf variable 'timemax'.
+	  :standard_name:	maximum_flux	  
+	  :units:		m^2/s	  	  	  
 	cuminf
 	  :description:		Cumulative infiltration depth over whole simulation.
 	  :units:		m	  
@@ -216,7 +224,7 @@ In case of netcdf output, the given parameters mean the following:
 Parameters netcdf file observation points (sfincs_his.nc)
 -----	
 
-This file is only created if observation points are supplied in the 'obsfile'.
+This file is only created if observation points are supplied in the 'obsfile', or if weirs/cross-sections are supplied.
 
 	point_x
 	  :description:		x coordinate of interpreted observation points in projected reference system
@@ -234,6 +242,18 @@ This file is only created if observation points are supplied in the 'obsfile'.
 	  :description:		y coordinate of specified observation points in projected reference system
 	  :standard_name:	projection_y_coordinate	  
 	  :units:		m in projected reference system	  
+	structure_x
+	  :description:		x coordinate of snapped location on SFINCS grid of weirs in projected reference system
+	  :standard_name:	projection_x_coordinate	  
+	  :units:		m in projected reference system	 	  
+	structure_y
+	  :description:		y coordinate of snapped location on SFINCS grid of weirs in projected reference system
+	  :standard_name:	projection_y_coordinate	  
+	  :units:		m in projected reference system	 
+	structure_height
+	  :description:		weir height on snapped location on SFINCS grid of weirs in projected reference system
+	  :standard_name:	projection_x_coordinate	  
+	  :units:		m above reference level 	  	  
 	point_zb
 	  :description:		Bed level elevation of observation points.
 	  :standard_name:	altitude	  
@@ -250,6 +270,22 @@ This file is only created if observation points are supplied in the 'obsfile'.
 	  :description:		Instantaneous water depth per 'dthisout' timestep of observation points, corresponding with netcdf variable 'time'.
 	  :standard_name:	point_h	  
 	  :units:		m
+	point_u
+	  :description:		Instantaneous flow velocity in u-direction per 'dthisout' timestep of observation points, corresponding with netcdf variable 'time'.
+	  :standard_name:	sea_water_x_velocity
+	  :units:		m/s	
+	point_v
+	  :description:		Instantaneous flow velocity in v-direction per 'dthisout' timestep of observation points, corresponding with netcdf variable 'time'.
+	  :standard_name:	sea_water_y_velocity
+	  :units:		m/s	  	
+	point_uvmag
+	  :description:		Instantaneous absolute flow velocity per 'dthisout' timestep of observation points, corresponding with netcdf variable 'time'.
+	  :standard_name:	sea_water_velocity
+	  :units:		m/s	  	
+	point_uvdir
+	  :description:		Instantaneous absolute flow velocity per 'dthisout' timestep of observation points, corresponding with netcdf variable 'time'.
+	  :standard_name:	sea_water_velocity_direction
+	  :units:		degrees wrt north	 	        
 	point_prcp
 	  :description:		Instantaneous precipitation rate 'dthisout' timestep, corresponding with netcdf variable 'time'.
 	  :standard_name:	sea_surface_height_above_mean_sea_level	  
@@ -260,5 +296,9 @@ This file is only created if observation points are supplied in the 'obsfile'.
 	  :units:		m
 	crosssection_discharge
 	  :description:		Discharge through cross-section per 'dthisout' timestep, corresponding with netcdf variable 'time'.
+	  :standard_name:	discharge	  
+	  :units:		m3/s
+	drainage_discharge
+	  :description:		Discharge through drainage structure per 'dthisout' timestep, corresponding with netcdf variable 'time'.
 	  :standard_name:	discharge	  
 	  :units:		m3/s
