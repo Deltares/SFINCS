@@ -2648,47 +2648,50 @@ contains
       NF90(nf90_put_var(map_file%ncid, map_file%hmax_varid, zstmp, (/1, ntmaxout/))) ! write hmax   
    endif
    !
-   ! Write cumulative rainfall and precipitation
-   !
+   ! Write cumulative precipitation
    if (store_cumulative_precipitation) then  
-       !
        zstmp = FILL_VALUE       
-       do nm = 1, np
-          zstmp(nm) = cumprcp(nm)*1000
+       do nmq = 1, quadtree_nr_points
+           nm = index_sfincs_in_quadtree(nmq)
+           if (kcs(nm)>0) then
+               zstmp(nmq) = cumprcp(nm)*1000
+           endif
        enddo
        NF90(nf90_put_var(map_file%ncid, map_file%cumprcp_varid, zstmp, (/1, ntmaxout/))) ! write cumprcp
-       !
-       zstmp = FILL_VALUE       
-       do nm = 1, np
-          zstmp(nm) = cuminf(nm)*1000
-       enddo
-       NF90(nf90_put_var(map_file%ncid, map_file%cuminf_varid, zstmp, (/1, ntmaxout/))) ! write cumprcp
-       !
-   endif   
+   endif
    !
    ! Duration wet cell
    if (store_twet) then
-      zstmp = FILL_VALUE
-      do nm = 1, np
-         zstmp(nm) = twet(nm) 
-      enddo
+       zstmp = FILL_VALUE       
+       do nmq = 1, quadtree_nr_points
+           nm = index_sfincs_in_quadtree(nmq)
+           if (kcs(nm)>0) then
+               zstmp(nmq) = twet(nm)
+           endif
+       enddo
       NF90(nf90_put_var(map_file%ncid, map_file%tmax_varid, zstmp, (/1, ntmaxout/))) ! write tmax   
    endif
    !
    ! Maximum wind speed
    if (wind .and. store_wind_max .and. meteo3d) then 
-      zstmp = FILL_VALUE
-      do nm = 1, np
-         zstmp(nm) = windmax(nm) 
-      enddo
+       zstmp = FILL_VALUE       
+       do nmq = 1, quadtree_nr_points
+           nm = index_sfincs_in_quadtree(nmq)
+           if (kcs(nm)>0) then
+               zstmp(nmq) = windmax(nm)
+           endif
+       enddo
       NF90(nf90_put_var(map_file%ncid, map_file%windmax_varid, zstmp, (/1, ntmaxout/))) ! write windmax   
    endif
    !   
    ! Cumulative infiltration
    if (infiltration) then
       zstmp = FILL_VALUE
-      do nm = 1, np
-         zstmp(nm) = cuminf(nm) 
+      do nmq = 1, quadtree_nr_points
+          nm = index_sfincs_in_quadtree(nmq)
+          if (kcs(nm)>0) then
+              zstmp(nmq) = cuminf(nm)
+          endif
       enddo
       NF90(nf90_put_var(map_file%ncid, map_file%cuminf_varid, zstmp, (/1, ntmaxout/))) ! write cuminf   
    endif

@@ -69,6 +69,8 @@ module sfincs_data
       real*4 dym
       real*4 dym2
       real*4 nuvisc
+      real*4 nuviscdim
+      real*4 nuviscinp   
       real*4 spw_merge_frac
       real*4 tsunami_arrival_threshold
       real*4 dtwave
@@ -585,7 +587,7 @@ module sfincs_data
       real*4, dimension(:),     allocatable :: zig_cst
       real*4, dimension(:),     allocatable :: fac_bwv_cst
       integer*4, dimension(:),  allocatable :: ind1_bwv_cst
-      integer*4, dimension(:),  allocatable :: ind2_bwv_cst 
+      integer*4, dimension(:),  allocatable :: ind2_bwv_cst
       !
       ! IG frequencies
       !

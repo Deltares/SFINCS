@@ -1,10 +1,16 @@
 FROM nvcr.io/nvidia/nvhpc:20.11-devel-cuda_multi-ubuntu20.04
 ENV DEBIAN_FRONTEND=noninteractive
+RUN apt update && apt install -y dos2unix
 RUN apt update && apt install -y libnetcdf-dev build-essential autoconf automake libtool pkg-config tzdata
 # copy the compilers
 RUN cd /opt/nvidia/hpc_sdk/Linux_x86_64/20.11/REDIST/compilers && tar -czvhf /root/nvidia-20.11.tar.gz * && cd -
-WORKDIR /usr/src/sfincs
 COPY . /usr/src/sfincs
+WORKDIR /usr/src/sfincs
+
+RUN find . -name \*.m4|xargs dos2unix && find . -name \*.ac|xargs dos2unix && find . -name \*.am|xargs dos2unix
+RUN find . -name \*.f90|xargs dos2unix
+RUN find . -name \*.F90|xargs dos2unix
+RUN find . -name \*.am|xargs dos2unix
 # ccall ->  Generate code for all compute capabilities supported by this platform and by the selected or default CUDA Toolkit.
 RUN autoreconf -vif && FCFLAGS="-acc -Minfo=accel -fast -O3 -gpu=ccall -DSIZEOF_PTRDIFF_T=8" FC=nvfortran ./configure --disable-shared --disable-openmp  && make && make install
 
@@ -22,3 +28,4 @@ ENV LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/opt/nvidia/co
 VOLUME /data
 WORKDIR /data
 CMD ["sfincs"]
+

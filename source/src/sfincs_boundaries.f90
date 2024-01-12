@@ -830,18 +830,6 @@ contains
             zsmax(nmb) = max(zsmax(nmb), zs(nmb))
          endif
          !
-      elseif (bndtype==2) then ! Don't use in combination with waves
-         !
-         ! Velocity
-         !
-         q(ip) = zs(nmb)*max(zsnmi - zb(nmi), huthresh)
-         !
-      elseif (bndtype==3) then
-         !
-         ! Discharge
-         !
-         q(ip) = zsnmb
-         !
       endif
       !
    enddo
