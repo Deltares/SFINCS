@@ -307,10 +307,9 @@ contains
    depth = snapwave_depth
    !
    zb = snapwave_z   
-   !
-   write(*,*)'1. snapwave_tpmean',snapwave_tpmean,' snapwave_tpigmean',snapwave_tpigmean
-   
+   !   
    ! TL: we use depth now in boundary conditions for Herbers bc determination of Hm0ig, in this order we use updated values of depth through SFINCS
+   !
    call update_boundary_conditions(t) ! SnapWave boundary conditions
    !
    call compute_wave_field()
@@ -336,7 +335,6 @@ contains
    snapwave_tpigmean = tpmean_bwv_ig      
    !
    ! Do quick check whether incoming Tpig value seems realistic, before using it:
-   write(*,*)'2. snapwave_tpmean',snapwave_tpmean,' snapwave_tpigmean',snapwave_tpigmean
    if (snapwave_tpigmean < 10.0) then
 	   write(*,*)'DEBUG - incoming tp for IG wave at wavemaker might be unrealistically small! value: ',snapwave_tpigmean
    elseif (snapwave_tpigmean > 250.0) then
