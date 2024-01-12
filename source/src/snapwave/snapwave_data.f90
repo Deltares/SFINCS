@@ -158,9 +158,9 @@ module snapwave_data
    integer                                   :: baldock_opt     ! option of Baldock wave breaking dissipation model (opt=1 is without gamma&depth, else is including)
    real*4                                    :: baldock_ratio   ! option controlling from what depth wave breaking should take place: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio=0.2 
    real*4                                    :: baldock_ratio_ig   ! option controlling from what depth wave breaking should take place for IG waves: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio_ig=0.2    
+   integer                                   :: igwaves_opt     ! option of IG waves on (1) or off (0)      
    integer                                   :: ig_opt          ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)
    real*4                                    :: snapwave_alpha_ig,gamma_ig     ! coefficients in Baldock wave breaking dissipation model for IG waves
-
    real*4                                    :: shinc2ig        ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 0=default)
    real*4                                    :: alphaigfac      ! Multiplication factor for IG shoaling source/sink term, default = 1.0 
    integer                                   :: herbers_opt     ! Choice whether you want IG Hm0&Tp be calculated by herbers (=1, default), or want to specify user defined values (0> then snapwave_eeinc2ig & snapwave_Tinc2ig are used) 

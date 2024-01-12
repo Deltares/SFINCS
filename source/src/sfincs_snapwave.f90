@@ -345,7 +345,7 @@ contains
    !
    implicit none
    !
-   integer :: irestart, iig
+   integer :: irestart
    !
    open(500, file='sfincs.inp')   
    !
@@ -363,15 +363,16 @@ contains
    call read_int_input(500,'snapwave_nrsweeps',nr_sweeps,1)
    call read_int_input(500,'snapwave_baldock_opt',baldock_opt,1)     
    call read_real_input(500,'snapwave_baldock_ratio',baldock_ratio,0.2)
+   !
    ! Settings related to IG waves:   
-   call read_int_input(500,'snapwave_igwaves',iig,1)   
+   call read_int_input(500,'snapwave_igwaves',igwaves_opt,1)   
    call read_real_input(500,'snapwave_alpha_ig',snapwave_alpha_ig,1.0)   
    call read_real_input(500,'snapwave_gammaig',gamma_ig,0.7)   
    call read_real_input(500,'snapwave_shinc2ig',shinc2ig,1.0)                   ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 1=default=all energy as sink)
    call read_real_input(500,'snapwave_alphaigfac',alphaigfac,1.0)               ! Multiplication factor for IG shoaling source/sink term         
    call read_real_input(500,'snapwave_baldock_ratio_ig',baldock_ratio_ig,0.2)       
    call read_int_input(500,'snapwave_ig_opt',ig_opt,1)     
-
+   !
    ! IG boundary conditions options:
    call read_int_input(500,'snapwave_use_herbers',herbers_opt,1)    ! Choice whether you want IG Hm0&Tp be calculated by herbers (=1, default), or want to specify user defined values (0> then snapwave_eeinc2ig & snapwave_Tinc2ig are used) 
    call read_int_input(500,'snapwave_tpig_opt',tpig_opt,1) ! IG wave period option based on Herbers calculated spectrum, only used if snapwave_use_herbers = 1. Options are: 1=Tm01 (default), 2=Tpsmooth, 3=Tp, 4=Tm-1,0   
@@ -394,7 +395,7 @@ contains
    close(500)
    !
    igwaves          = .true.
-   if (iig==0) then
+   if (igwaves_opt==0) then
       igwaves       = .false.
       write(*,*)'SnapWave: IG waves turned OFF!'
    else

@@ -283,6 +283,7 @@ module snapwave_solver
       allocate(R_ig(ntheta))
       allocate(DoverE_ig(no_nodes))
       allocate(E_ig(no_nodes))
+      allocate(beta_local(ntheta,no_nodes))      
       allocate(alphaig_local(ntheta,no_nodes))  
       allocate(Sxxprev(ntheta))       
       allocate(Hprev(ntheta))  
@@ -778,8 +779,7 @@ module snapwave_solver
             F(k) = (Dw(k) + Df(k))*kwav(k)/sigm
             !
             ! Fraction of breaking waves, based on H(k)
-            Qb(k) = min(max(exp(-(Hmx(k)/H(k))**2), 0.0), 1.0) ! Qb percentage of breaking waves according to Baldock's formulation, between 0 and 1  
-            !Qb(k) = min(max( 1 - exp(-(H(k)/Hmx(k))**2), 0.0), 1.0) ! Qb percentage of breaking waves according to Baldock's formulation, between 0 and 1                         
+            Qb(k) = min(max(exp(-(Hmx(k)/H(k))**2), 0.0), 1.0) ! Qb percentage of breaking waves according to Baldock's formulation, between 0 and  1
             !            
             if (igwaves) then
                !
@@ -914,7 +914,7 @@ module snapwave_solver
    !
    real*4                            :: beta1, beta2, beta3, beta4, beta5, beta6, beta7        
    !
-   ! Estimate shoaling parameter alphaig - as in upcoming Leijnse et al. (2024)
+   ! Estimate shoaling parameter alphaig - as in Leijnse et al. (2024)
    !
    ! Determine constants 
    beta1 = 0.016993

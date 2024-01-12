@@ -850,8 +850,8 @@ contains
          NF90(nf90_def_var(map_file%ncid, 'beta', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%beta_varid))
          NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, '_FillValue', FILL_VALUE))          
          NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'units', 'm'))
-         NF90(nf90_put_att(his_file%ncid, map_file%beta_varid, 'standard_name', 'directionally_averaged_local_bed_slope')) 
-         NF90(nf90_put_att(his_file%ncid, map_file%beta_varid, 'long_name', 'directionally averaged local bed slope'))          
+         NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'standard_name', 'directionally_averaged_local_bed_slope')) 
+         NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'long_name', 'directionally averaged local bed slope'))          
          !           
          NF90(nf90_def_var(map_file%ncid, 'snapwavedepth', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%snapwavedepth_varid))
          NF90(nf90_put_att(map_file%ncid, map_file%snapwavedepth_varid, '_FillValue', FILL_VALUE))          
@@ -2629,6 +2629,11 @@ contains
    subroutine ncoutput_add_params(ncid, varid)
    ! Add user params to netcdf file (both map & his)
    use sfincs_data   
+   ! Because of overlapping names, only important specific values from snapwave_data
+   use snapwave_data, only: gamma, snapwave_alpha, hmin, fw0, fw0_ig, dt, tol, dtheta, crit, nr_sweeps, baldock_opt, baldock_ratio, &
+       igwaves_opt, snapwave_alpha_ig, gamma_ig, shinc2ig, alphaigfac, baldock_ratio_ig, ig_opt, herbers_opt, tpig_opt, eeinc2ig, tinc2ig, &
+       jonswapfile, encfile, upwfile, gridfile
+   
    !
    implicit none   
    !
@@ -2703,7 +2708,6 @@ contains
         NF90(nf90_put_att(ncid, varid, 'nuvisc',nuvisc)) 
         NF90(nf90_put_att(ncid, varid, 'spinup_meteo', ispinupmeteo)) 
         NF90(nf90_put_att(ncid, varid, 'waveage',waveage)) 
-        NF90(nf90_put_att(ncid, varid, 'snapwave', isnapwave)) 
         NF90(nf90_put_att(ncid, varid, 'wmtfilter', wmtfilter))         
         NF90(nf90_put_att(ncid, varid, 'wmfred',wavemaker_freduv))         
         !
@@ -2792,7 +2796,54 @@ contains
         NF90(nf90_put_att(ncid, varid, 'subgrid', isubgrid))   
         NF90(nf90_put_att(ncid, varid, 'viscosity', iviscosity))   
         NF90(nf90_put_att(ncid, varid, 'wavemaker', iwavemaker))         
-        NF90(nf90_put_att(ncid, varid, 'wavemaker_spectrum', iwavemaker_spectrum))         
+        NF90(nf90_put_att(ncid, varid, 'wavemaker_spectrum', iwavemaker_spectrum))  
+        !
+        ! SnapWave related:
+        !
+        NF90(nf90_put_att(ncid, varid, 'snapwave', isnapwave)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_gamma', gamma)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_alpha', snapwave_alpha)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_hmin',hmin)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_fw',fw0)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_fwig',fw0_ig)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_dt',dt)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_tol',tol)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_dtheta',dtheta)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_crit',crit)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_nrsweeps',nr_sweeps)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_baldock_opt',baldock_opt)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_baldock_ratio',baldock_ratio)) 
+        !
+        ! SnapWave IG
+        !
+        NF90(nf90_put_att(ncid, varid, 'snapwave_igwaves',igwaves_opt))         
+        NF90(nf90_put_att(ncid, varid, 'snapwave_alpha_ig',snapwave_alpha_ig)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_gammaig',gamma_ig)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_shinc2ig',shinc2ig)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_alphaigfac',alphaigfac)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_baldock_ratio_ig',baldock_ratio_ig)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_ig_opt',ig_opt)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_use_herbers',herbers_opt)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_tpig_opt',tpig_opt)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_eeinc2ig',eeinc2ig)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_Tinc2ig',Tinc2ig)) 
+        !
+        ! SnapWave input files
+        !
+        NF90(nf90_put_att(ncid, varid, 'snapwave_jonswapfile',jonswapfile)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_encfile',encfile)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_upwfile',upwfile)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_ncfile', gridfile)) 
+
+        !TL: these names overlap with SFINCS' ones, so cannot import, can see later whether to still add them    
+        !NF90(nf90_put_att(ncid, varid, 'snapwave_bndfile',bndfile))            
+        !NF90(nf90_put_att(ncid, varid, 'snapwave_bhsfile',bhsfile)) 
+        !NF90(nf90_put_att(ncid, varid, 'snapwave_btpfile',btpfile)) 
+        !NF90(nf90_put_att(ncid, varid, 'snapwave_bwdfile',bwdfile)) 
+        !NF90(nf90_put_att(ncid, varid, 'snapwave_bdsfile',bdsfile))         
+        !NF90(nf90_put_att(ncid, varid, 'snapwave_mskfile',mskfile)) 
+        !NF90(nf90_put_att(ncid, varid, 'snapwave_depfile',depfile)) 
+        !
    end subroutine
    !   
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
