@@ -89,7 +89,10 @@
    !$acc end kernels
    !$omp end do
    !$omp end parallel
-   !
+   
+   !$acc wait(3)
+   !$acc wait(5)
+
    !$omp parallel &
    !$omp private ( ip,hu,qsm,qx_nm,nm,nmu,frc,adv,idir,itype,iadv,ivis,icorio,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 

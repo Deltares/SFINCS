@@ -349,7 +349,8 @@ module sfincs_lib
       ! Check whether spatially varying meteo data needs to be updated in this time step
       !
       update_meteo = .false.
-      !
+      !$acc wait(7)
+      !!$acc wait(2)
       if (meteo3d) then
          if (t >= twindupd) then
             !

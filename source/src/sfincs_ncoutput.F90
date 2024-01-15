@@ -1430,7 +1430,7 @@ contains
    allocate(zsg(mmax, nmax))
    !
    zsg = FILL_VALUE       ! set to fill value
-   !
+   !$acc wait(2)
    do nm = 1, np
       !
       n    = z_index_z_n(nm)
@@ -1468,9 +1468,9 @@ contains
       NF90(nf90_put_var(map_file%ncid, map_file%h_varid, zsg, (/1, 1, ntmapout/))) ! write h
       !
    endif
-   !            
+   !$acc wait(1)            
    if (store_velocity) then
-      !
+
       allocate(zsgu(mmax, nmax))
       allocate(zsgv(mmax, nmax))
       zsgu = FILL_VALUE
@@ -1514,10 +1514,10 @@ contains
       deallocate(zsgv)
       !
    endif
-   !
+   !$acc wait(4)
    ! Store S_effective (only for CN method with recovery)
    if (inftype == 'cnb') then
-      !
+      
       zsg = FILL_VALUE
       !
       do nm = 1, np
@@ -1550,7 +1550,7 @@ contains
       NF90(nf90_put_var(map_file%ncid, map_file%Seff_varid, zsg, (/1, 1, ntmapout/)))
       !
    endif
-   !           
+   !$acc wait(3)           
    if (store_meteo) then
       !
       if (wind) then
@@ -1582,7 +1582,7 @@ contains
          NF90(nf90_put_var(map_file%ncid, map_file%wind_v_varid, zsg, (/1, 1, ntmapout/)))
          !
       endif
-      !
+      !$acc wait(5)
       if (patmos) then
          !
          zsg = FILL_VALUE
@@ -1989,7 +1989,9 @@ contains
    twndmag      = FILL_VALUE
    twnddir      = FILL_VALUE
    q_drain      = FILL_VALUE
-   !
+   
+   !$acc wait(2)
+   !$acc wait(1)
    do iobs = 1, nobs ! determine zs and prcp of obervation points at required timestep
       !
       nm = nmindobs(iobs)
@@ -2216,7 +2218,7 @@ contains
    !
    if (nrcrosssections>0) then
       !
-      !$acc update host(q)
+      !!$acc update host(q)
       !      
       ! Get fluxes through cross sections
       !
@@ -2228,7 +2230,7 @@ contains
    !
    if (ndrn>0) then
       !
-      !$acc update host(qtsrc)
+      !!$acc update host(qtsrc)
       ! Get fluxes through drainage structure             
       !
       idrn = 0
@@ -2275,7 +2277,7 @@ contains
    allocate(zstmp(mmax, nmax))
    !
    zstmp = FILL_VALUE
-   !
+   !$acc wait(2)
    if (subgrid) then   
       !
       do nm = 1, np
@@ -2333,7 +2335,7 @@ contains
    endif
    !
    ! Write cumulative rainfall
-   ! 
+   !$acc wait(4) 
    if (store_cumulative_precipitation) then  
       !
       ! Precipitation
@@ -2366,7 +2368,7 @@ contains
    endif
    !
    ! Maximum flow velocity
-   !
+   !$acc wait(1)
    if (store_maximum_velocity) then
       zstmp = FILL_VALUE
       do nm = 1, np   
@@ -2400,7 +2402,7 @@ contains
       enddo
       NF90(nf90_put_var(map_file%ncid, map_file%tmax_varid, zstmp, (/1, 1, ntmaxout/))) ! write tmax   
    endif
-   !
+   !$acc wait(3)
    ! Maximum wind speed
    if (wind .and. store_wind_max .and. meteo3d) then 
       zstmp = FILL_VALUE
@@ -2433,7 +2435,7 @@ contains
    allocate(zstmp(quadtree_nr_points))
    !
    zstmp = FILL_VALUE
-   !
+   !$acc wait(2)
    ! Write maximum water level
    do nmq = 1, quadtree_nr_points
        !
@@ -2456,6 +2458,7 @@ contains
    NF90(nf90_put_var(map_file%ncid, map_file%zsmax_varid, zstmp, (/1, ntmaxout/)))  ! write zsmax   
    !
    ! Write cumulative precipitation
+   !$acc wait(4)
    if (store_cumulative_precipitation) then  
        zstmp = FILL_VALUE       
        do nmq = 1, quadtree_nr_points
@@ -2468,7 +2471,7 @@ contains
    endif   
    !
    ! Duration wet cell
-   if (store_twet) then
+   if (store_twet) then !covered by wait(2) above
        zstmp = FILL_VALUE       
        do nmq = 1, quadtree_nr_points
            nm = index_sfincs_in_quadtree(nmq)
@@ -2480,6 +2483,7 @@ contains
    endif
    !
    ! Maximum wind speed
+   !$acc wait(3)
    if (wind .and. store_wind_max .and. meteo3d) then 
        zstmp = FILL_VALUE       
        do nmq = 1, quadtree_nr_points

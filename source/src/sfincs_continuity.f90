@@ -99,14 +99,17 @@ contains
    ! Should try to do this in a smart way for openacc
    !
    if (nsrcdrn>0) then
-      !$acc serial, present( zs,nmindsrc,qtsrc,zb ), async(1)
+      !$acc serial, present( zs,nmindsrc,qtsrc,zb ), async(6)
       do isrc = 1, nsrcdrn
          nm = nmindsrc(isrc)
          zs(nmindsrc(isrc))   = max(zs(nm) + qtsrc(isrc)*dt/cell_area(z_flags_iref(nm)), zb(nm))
       enddo
       !$acc end serial
-   endif   
-   !
+   endif
+
+   !$acc wait(6)
+   !$acc wait(4)
+
    !$omp parallel &
    !$omp private ( nm,dvol,nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,nmd,nmu,ndm,num,qnmd,qnmu,qndm,qnum,iwm)
    !$omp do schedule ( dynamic, 256 )
@@ -114,7 +117,7 @@ contains
    !$acc                  z_flags_type, z_flags_iref, uv_flags_iref, &
    !$acc                  z_index_uv_md1, z_index_uv_md2, z_index_uv_nd1, z_index_uv_nd2, z_index_uv_mu1, z_index_uv_mu2, z_index_uv_nu1, z_index_uv_nu2, &
    !$acc                  dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area,  &
-   !$acc                  z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num), async(1)
+   !$acc                  z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num), async(2)
    !$acc loop independent, private( nm )
    do nm = 1, np
       ! 
@@ -360,7 +363,7 @@ contains
    !$omp end do
    !$omp end parallel
    !$acc end kernels
-   !$acc wait(1)
+   !!$acc wait(1)
    !         
    end subroutine
 
@@ -424,7 +427,7 @@ contains
    ! Should try to do this in a smart way for openacc
    !
    if (nsrcdrn>0) then
-      !$acc serial, present( z_volume, nmindsrc, qtsrc ), async(1)
+      !$acc serial, present( z_volume, nmindsrc, qtsrc ), async(6)
       do isrc = 1, nsrcdrn
          if (nmindsrc(isrc)>0) then ! should really let this happen
             z_volume(nmindsrc(isrc)) = max(z_volume(nmindsrc(isrc)) + qtsrc(isrc)*dt, 0.0)         
@@ -432,7 +435,10 @@ contains
       enddo
       !$acc end serial
    endif   
-   !
+   !$acc wait(6)
+   !$acc wait(1)
+   !$acc wait(4)
+   
    !$omp parallel &
    !$omp private ( dvol,nmd1,nmu1,ndm1,num1,nmd2,nmu2,ndm2,num2,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind)
    !$omp do schedule ( dynamic, 256 )
@@ -441,7 +447,7 @@ contains
    !$acc                  netprcp, cumprcpt, prcp, q, z_flags_type, z_flags_iref, uv_flags_iref, &
    !$acc                  z_index_uv_md1, z_index_uv_md2, z_index_uv_nd1, z_index_uv_nd2, z_index_uv_mu1, z_index_uv_mu2, z_index_uv_nu1, z_index_uv_nu2, &
    !$acc                  dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area, &
-   !$acc                  z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, storage_volume), async(1)
+   !$acc                  z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, storage_volume), async(2)
    !$acc loop independent, private( nm )
    do nm = 1, np
       !
@@ -685,7 +691,7 @@ contains
    !$omp end do
    !$omp end parallel
    !$acc end kernels
-   !$acc wait(1)
+   !!$acc wait(1)
    !         
    end subroutine
    
@@ -791,7 +797,7 @@ contains
    !$omp end do
    !$omp end parallel
    !$acc end kernels
-   !$acc wait(1)
+   !!$acc wait(1)
    !       
    end subroutine
    

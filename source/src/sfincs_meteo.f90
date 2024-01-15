@@ -972,8 +972,7 @@ contains
    real*4                           :: oneminsmfac
    integer                          :: nm, ib
    
-   !$acc wait
-   call system_clock(count0, count_rate, count_max)
+call system_clock(count0, count_rate, count_max)
 if (meteo3d) then
    if (wind) then
       !
@@ -983,7 +982,7 @@ if (meteo3d) then
       !$omp parallel &
       !$omp private ( nm )
       !$omp do
-      !$acc kernels, present(tauwu, tauwv,  tauwu0, tauwv0, tauwu1, tauwv1), async(1)
+      !$acc kernels, present(tauwu, tauwv,  tauwu0, tauwv0, tauwu1, tauwv1), async(3)
       !$acc loop independent, private(nm)
       do nm = 1, np
             tauwu(nm) = tauwu0(nm)*onemintwfact + tauwu1(nm)*twfact
@@ -997,7 +996,7 @@ if (meteo3d) then
       !$omp parallel &
       !$omp private ( nm )
       !$omp do
-      !$acc kernels, present(windu, windv, windu0, windv0, windu1, windv1, windmax), async(2)
+      !$acc kernels, present(windu, windv, windu0, windv0, windu1, windv1, windmax), async(7)
       !$acc loop independent, private(nm)
       do nm = 1, np
          windu(nm) = windu0(nm)*onemintwfact + windu1(nm)*twfact
@@ -1015,7 +1014,7 @@ if (meteo3d) then
       !$omp parallel &
       !$omp private ( nm )
       !$omp do
-      !$acc kernels, present(patm, patm0, patm1 ), async(3)
+      !$acc kernels, present(patm, patm0, patm1 ), async(5)
       !$acc loop independent, private(nm)
       do nm = 1, np
          patm(nm)  = patm0(nm)*onemintwfact  + patm1(nm)*twfact  ! atmospheric pressure (Pa)
@@ -1025,7 +1024,7 @@ if (meteo3d) then
       !$acc end kernels
       if (pavbnd>0.0) then
          !
-         !$acc kernels, present( patmb, nmindbnd, patm ), async(3) 
+         !$acc kernels, present( patmb, nmindbnd, patm ), async(5) 
          do ib = 1, ngbnd
             patmb(ib) = patm(nmindbnd(ib))
          enddo
@@ -1041,7 +1040,7 @@ if (meteo3d) then
       !$omp parallel &
       !$omp private ( nm )
       !$omp do
-      !$acc kernels, present(prcp, prcp0, prcp1, z_volume, zs, zb ), async(4)
+      !$acc kernels, present(prcp, cumprcp, netprcp, prcp0, prcp1, z_volume, zs, zb ), async(4)
       !$acc loop independent, private(nm)
       do nm = 1, np 
       prcp(nm) = prcp0(nm)*onemintwfact  + prcp1(nm)*twfact  ! rainfall in m/s !!!
@@ -1064,24 +1063,43 @@ if (meteo3d) then
       !
       smfac = (t - t0)/(tspinup - t0)
       oneminsmfac = 1.0 - smfac
-      !
+      if (wind) then
       !$omp parallel &
       !$omp private ( nm )
       !$omp do
-      !$acc kernels, present(tauwu, tauwv, patm, prcp ), async(1)
+      !$acc kernels, present(tauwu, tauwv ), async(3)
       !$acc loop independent, private(nm)
       do nm = 1, np
-         !
-         if (wind) then
             tauwu(nm) = tauwu(nm)*smfac
             tauwv(nm) = tauwv(nm)*smfac
-         endif   
-         !
-         if (patmos) then
+      enddo
+      !$omp end do
+      !$omp end parallel
+      !$acc end kernels
+      endif
+
+      if (patmos) then
+      !$omp parallel &
+      !$omp private ( nm )
+      !$omp do
+      !$acc kernels, present(patm), async(5)
+      !$acc loop independent, private(nm)
+      do nm = 1, np  
             patm(nm)  =patm(nm)*smfac + gapres*oneminsmfac
-         endif   
-         !
-         if (precip) then
+      enddo
+      !$omp end do
+      !$omp end parallel
+      !$acc end kernels
+      endif 
+
+      if (precip) then
+      !$omp parallel &
+      !$omp private ( nm )
+      !$omp do
+      !$acc kernels, present(prcp,netprcp ), async(4)
+      !$acc loop independent, private(nm)
+      do nm = 1, np  
+
             netprcp(nm) = netprcp(nm)*smfac
             
              ! don't allow negative netprcp during spinup (e.g. hardfixing infiltration/evaporation on model when forcing effective rainfall) when there's no water in the cell (same as check for constant infiltration)
@@ -1098,15 +1116,13 @@ if (meteo3d) then
                      endif
                   endif            
              endif               
-         endif   
-         !
       enddo   
       !$omp end do
       !$omp end parallel
       !$acc end kernels
-      !
+      endif
    endif  
-endif
+endif !meteo3d
    !
    ! Wind from time series
    !
@@ -1134,7 +1150,6 @@ endif
       !
    endif   
    !
-   !$acc wait
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
    !         
@@ -1180,7 +1195,7 @@ endif
          !$omp private ( nm ) &
          !$omp shared ( tauwu,tauwv )
          !$omp do
-         !$acc kernels, present( tauwu, tauwv ), async(1)
+         !$acc kernels, present( tauwu, tauwv ), async(3)
          !$acc loop independent, private(nm)
          do nm = 1, np
             tauwu(nm) = twu
@@ -1334,10 +1349,9 @@ endif
    elseif (inftype == 'cnb') then
       !
       ! Determine infiltration rate with Curve Number with recovery
-      !$acc wait(4)
          !
          ! Determine infiltration rate with Curve Number with recovery     
-         !$acc kernels present(prcp, scs_P1, scs_rain, scs_F1, scs_S1, scs_Se, qinfmap, cuminf, netprcp, prcp, netprcp, qinfmap, cuminf, scs_rain, rain_T1, scs_Se, inf_kr, qinffield   ), async(4)
+         !$acc kernels present(prcp, scs_P1, scs_rain, scs_F1, scs_S1, scs_Se, qinfmap, cuminf, netprcp, rain_T1, inf_kr, qinffield), async(4)
          !$acc loop independent, private(nm, I, Qq)   
          do nm = 1, np
             !
@@ -1573,7 +1587,7 @@ endif
       !
       call update_amuv_data()
       !
-      !$acc update device(tauwu0,tauwu1,tauwv0,tauwv1), async(1)
+      !$acc update device(tauwu0,tauwu1,tauwv0,tauwv1), async(3)
       !
    endif
    !
@@ -1581,7 +1595,7 @@ endif
       !
       call update_amp_data()
       !
-      !$acc update device(patm0,patm1), async(1)
+      !$acc update device(patm0,patm1), async(5)
       !
    endif
    !
@@ -1589,7 +1603,7 @@ endif
       !
       call update_ampr_data()
       !
-      !$acc update device(prcp0,prcp1), async(1)
+      !$acc update device(prcp0,prcp1), async(4)
       !
    endif
    !      
@@ -1597,11 +1611,11 @@ endif
       !
       call update_spiderweb_data()
       !
-      !$acc update device(tauwu0,tauwu1,tauwv0,tauwv1,patm0,patm1), async(1)
+      !$acc update device(tauwu0,tauwu1,tauwv0,tauwv1,patm0,patm1), async(3)
       !
       if (precip) then
          !
-         !$acc update device(prcp0,prcp1), async(1)
+         !$acc update device(prcp0,prcp1), async(4)
          !
       endif
       !

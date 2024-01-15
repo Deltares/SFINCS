@@ -102,18 +102,17 @@ module sfincs_output
    ! Time-varying water level output maps
    !
    ! Update CPU memory
-   !
    if (write_map .or. write_his .or. write_rst) then
       !
-      !$acc update host(zs), async(1)
+      !$acc update host(zs), async(2)
       !
       if (store_cumulative_precipitation) then
          !      
-         !$acc update host(prcp), async(1)
+         !$acc update host(prcp), async(4)
          !
       endif  
       if (infiltration) then
-         !$acc update host(qinfmap), async(1)     
+         !$acc update host(qinfmap), async(4)     
       endif
       if (store_velocity) then
          !      
@@ -132,11 +131,11 @@ module sfincs_output
       !$acc update host(zsmax), async(2)
       !
       if (store_maximum_velocity) then
-         !$acc update host(vmax), async(2)
+         !$acc update host(vmax), async(1)
       endif
       !
       if (store_maximum_flux) then
-         !$acc update host(qmax), async(2)
+         !$acc update host(qmax), async(1)
       endif      
       !      
       if (store_twet) then
@@ -144,15 +143,14 @@ module sfincs_output
       endif
       !
       if (store_cumulative_precipitation) then
-         !$acc update host(cumprcp), async(2)
+         !$acc update host(cumprcp), async(4)
       endif
       !
       if (precip .and. scsfile(1:4) /= 'none') then !!! also include other infiltration 
-         !$acc update host(cuminf), async(2)   
+         !$acc update host(cuminf), async(4)   
       endif
    endif
    if (write_map) then
-      !$acc wait(1)
       if (outputtype_map == 'net') then
          !
          if (use_quadtree) then
@@ -173,7 +171,6 @@ module sfincs_output
    !
    if (write_max) then
       !
-      !$acc wait(2)
       if (outputtype_map == 'net') then
          !
          if (use_quadtree) then
@@ -190,22 +187,22 @@ module sfincs_output
       !
       if (store_maximum_waterlevel) then
          zsmax = -999.0 ! Set zsmax back to a small value
-         !$acc update device(zsmax), async(2)
+         !$acc update device(zsmax), async(7)
       endif
       !
       if (store_maximum_velocity) then
          vmax = 0.0 ! Set vmax back to 0.0
-         !$acc update device(vmax), async(2)
+         !$acc update device(vmax), async(7)
       endif
       !
       if (store_maximum_flux) then
          qmax = 0.0 ! Set qmax back to 0.0
-         !$acc update device(qmax), async(2)
+         !$acc update device(qmax), async(7)
       endif                
       !
       if (store_twet) then
          twet = 0.0 ! Set twet back to 0.0
-         !$acc update device(twet), async(2)
+         !$acc update device(twet), async(7)
       endif
       !      
    endif
@@ -214,15 +211,13 @@ module sfincs_output
    ! Binary restart file
    !
    if (write_rst) then
-      !$acc wait(1)
       call write_rst_file(t)
       !
    endif
    !      
    ! Water level time series
    !
-   if (write_his .and. (nobs>0 .or. nrcrosssections>0)) then
-      !$acc wait(1)      
+   if (write_his .and. (nobs>0 .or. nrcrosssections>0)) then    
       if (outputtype_his == 'net') then
          !      
          call ncoutput_update_his(t,nthisout)
@@ -234,7 +229,7 @@ module sfincs_output
       endif
       !
    endif
-   !$acc wait
+   !!$acc wait
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
    !
@@ -403,7 +398,7 @@ module sfincs_output
 !      endif
 !      !
 !   else
-      !
+      !$acc wait(2)
       write(900)zs
       !
       if (store_zvolume) then
@@ -558,7 +553,8 @@ module sfincs_output
    real*8                             :: t
    real*4, dimension(nobs)            :: tprcp
    real*4, dimension(:), allocatable  :: qq
-   !
+   !$acc wait(2)
+   !$acc wait(1)
    do iobs = 1, nobs
       nm = nmindobs(iobs)
       if (nm>0) then
@@ -587,7 +583,7 @@ module sfincs_output
    !   
    if (nrcrosssections>0) then
       !
-      !$acc update host(q)
+      !!$acc update host(q)
       !      
       ! Determine fluxes through cross sections
       !
@@ -600,7 +596,7 @@ module sfincs_output
    endif
    !
    if (ndrn>0 .and. store_qdrain) then
-      !$acc update host(qtsrc)
+      !!$acc update host(qtsrc)
       open(unit = 970, file = trim('qdrain.txt'), access='append')
       write(970,'(f12.1,10000f9.3)')t,(qtsrc(iobs), iobs = nsrc + 1, nsrcdrn, 2)
       close(970)
@@ -634,6 +630,9 @@ module sfincs_output
    ! 5: zs, q, uvmean and gai infiltration (writing GA_sigma & GA_F)
    !
    ! Write for Infiltration methods (rsttype 4 or 5)
+   !$acc wait(4)
+   !$acc wait(2)
+   !$acc wait(1)
     if (inftype == 'cnb' .or. inftype == 'gai') then
         !
         if (inftype == 'cnb') then
