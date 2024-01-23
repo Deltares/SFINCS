@@ -51,9 +51,11 @@ module snapwave_infragravity
 	    write(*,*)'DEBUG - computed hm0ig at boundary dropped below 0 m: ',hsig, ' and is therefore limited back to 0 m!'
 	    hsig = max(hsig, 0.0)
     endif	
-    if (hsig > 2.0) then
-	    write(*,*)'DEBUG - computed hm0ig at boundary exceeds 2 meter: ',hsig, ' and is therefore limited back to 2 m!'
-	    hsig = min(hsig, 2.0)
+    if (hsig > 3.0) then
+	    write(*,*)'DEBUG - computed hm0ig at boundary exceeds 3 meter: ',hsig, ' - please check whether this might be realistic!'
+	    
+        !write(*,*)'DEBUG - computed hm0ig at boundary exceeds 3 meter: ',hsig, ' and is therefore limited back to 3 m!'
+	    !hsig = min(hsig, 3.0)
     endif	        
     !
     ! Choose what wave period option value for IG to choose:

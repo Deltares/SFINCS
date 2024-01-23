@@ -34,7 +34,7 @@ contains
       call compute_store_variables(dt)       
       !    
    endif
-   !
+   !   
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
    !

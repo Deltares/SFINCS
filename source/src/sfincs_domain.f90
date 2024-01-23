@@ -2193,7 +2193,7 @@ contains
       !
    endif   
    !
-   if (wavemaker) then 
+   if (wavemaker .or. snapwave) then !TL: zsm also used in sfincs_continuity if 'snapwave=true' > todo: check if needed, or only for wavemaker 
       allocate(zsm(np))
    endif
    !
@@ -2430,7 +2430,7 @@ contains
       !
    enddo
    !
-   if (wavemaker) then
+   if (wavemaker .or. snapwave) then !TL: zsm also used in sfincs_continuity if 'snapwave=true' > todo: check if needed, or only for wavemaker
       !      
       zsm = zs
       !

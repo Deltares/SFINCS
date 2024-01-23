@@ -86,7 +86,7 @@ module sfincs_lib
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
    build_revision = '$Rev: v2.0.4-alpha'
-   build_date     = '$Date: 2024-01-12'
+   build_date     = '$Date: 2024-01-23'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
@@ -431,7 +431,7 @@ module sfincs_lib
       ! And now for the real computations !
       !
       ! First compute fluxes
-      !
+      !          
       call compute_fluxes(dt, min_dt, tloopflux)
       !
       if (wavemaker) then
@@ -445,13 +445,13 @@ module sfincs_lib
          call compute_fluxes_over_structures(tloopstruc)
          !
       endif
-      !
+      !      
       ! Update water levels
       !
       call compute_water_levels(dt, tloopcont)
       !
       ! OUTPUT
-      !
+      !      
       if (write_map .or. write_his .or. write_max .or. write_rst) then
          !
          ! if (.not. fixed_output_intervals) tout = t
@@ -459,7 +459,7 @@ module sfincs_lib
          call write_output(tout, write_map, write_his, write_max, write_rst, ntmapout, ntmaxout, nthisout, tloopoutput)
          !
       endif
-      !
+      !      
       ! Stop loop in case of instabilities (make sure water depth does not exceed stopdepth)
       !
       if (dt<dtmin .and. nt>1) then

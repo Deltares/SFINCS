@@ -332,14 +332,18 @@ contains
    !
    ! Wave periods from SnapWave, used in e.g. wavemakers - TL: moved behind call update_boundary_conditions & compute_wave_field so values at first timestep are not 0
    snapwave_tpmean = tpmean_bwv
-   snapwave_tpigmean = tpmean_bwv_ig      
    !
    ! Do quick check whether incoming Tpig value seems realistic, before using it:
-   if (snapwave_tpigmean < 10.0) then
-	   write(*,*)'DEBUG - incoming tp for IG wave at wavemaker might be unrealistically small! value: ',snapwave_tpigmean
-   elseif (snapwave_tpigmean > 250.0) then
-	   write(*,*)'DEBUG - incoming tp for IG wave at wavemaker might be unrealistically large! value: ',snapwave_tpigmean
-   endif	 
+   if (igwaves) then
+       !
+       snapwave_tpigmean = tpmean_bwv_ig      
+       !   
+       if (snapwave_tpigmean < 10.0) then
+	       write(*,*)'DEBUG - incoming tp for IG wave at wavemaker might be unrealistically small! value: ',snapwave_tpigmean
+       elseif (snapwave_tpigmean > 250.0) then
+	       write(*,*)'DEBUG - incoming tp for IG wave at wavemaker might be unrealistically large! value: ',snapwave_tpigmean
+       endif	 
+   endif
    ! TL: NOTE - in first timestep run of SnapWave tp = 0, therefore excluded that case from the check     
    !
    end subroutine
