@@ -1,0 +1,152 @@
+SFINCS
+
+Deltares Free Ware Software License Agreement Version 25 January 2024
+
+Read this software license agreement carefully
+
+This is a legal agreement between the prospective user, either an individual or an entity, (hereafter: “Licensee”) and Deltares (hereafter “Deltares”) to license the computer program subject to this contracting-procedure (hereafter “Computer Program”).
+ 
+By clicking on the checkbox with “DELTARES FREEWARE LICENSING CONDITIONS FOR SFINCS” and pressing the “Next” - button:
+
+1.	you expressly declare being authorized to act on behalf of Licensee for the purposes of accepting this software license agreement (hereafter “License Agreement”);
+2.	Licensee expressly accepts this License Agreement and accepts to be legally bound by the terms and conditions contained therein. 
+
+If you are not authorized to act on behalf of Licensee to agree upon this License Agreement or if Licensee does not agree with the License Agreement, please do not click the “Next”- button and exit this download portal.
+
+WHEREAS:
+
+•	Deltares is a not-for-profit independent institute for applied research in the field of water, subsurface and infrastructure. Throughout the world, Deltares works on smart solutions, innovations and applications for people, environment and society; 
+•	Deltares owns the intellectual property of the computer programs developed by Deltares, as described in Appendix 1 under A. Specification of Deltares Free Simulation Software, hereinafter referred to as “Deltares Free Simulation Software”;
+•	Deltares free Simulation Software is to be used for simulation purposes; 
+•	Licensee wishes to acquire a non-exclusive and non-transferable license, without the right of sub-licensing, to use Deltares Free Simulation Software within Licensee's organisation;  
+•	Deltares grants Licensee a license for Deltares Free Simulation Software on the following conditions.
+
+Agree as Follows:
+
+Article 1 Definitions
+Agreement:	This license agreement for Deltares Free Simulation Software, including the Appendices. 
+
+Deltares Free Simulation Software:	
+The computer program or the computer programs as specified in Appendix 1 under A. Specification Deltares Free Simulation Software and - in the event that (a) later version(s) of the said computer program(s) is/are made available by Deltares to Licensee - the latest version of the said computer program(s) as made available to Licensee.
+
+Deltares Software Documentation: 
+		The manual or manuals and other documents that correspond to Deltares Free Simulation Software.
+
+Hardware Platform and Operating System: 
+The computer(s) with their operating system(s) as described in Appendix 1, under B. Specification of Operational System, header Hardware Platform and Operational System. 
+
+Maintenance Agreement:
+The agreement by which Deltares makes available releases of Deltares free Simulation Software in the event of defects in Deltares Free Simulation Software and/or to add functionality to Deltares free Simulation Software and/or offers support in the use of Deltares Free Simulation Software.
+
+System Software:	The software that is used by Deltares Free Simulation Software..
+
+Article 2 License, use of Deltares Free Simulation Software, and Deltares Software Documentation
+
+1.	Deltares grants Licensee as End User the license to use Deltares Free Simulation Software and Deltares Software Documentation for the purpose and with the limitations as defined in this article and article 3. Any other use than defined in this article is not permitted. 
+
+2.	This license
+a. 	is for Deltares Free Simulation Software as specified in Appendix 1, under A. Specification of Deltares Free Simulation Software; and
+b.	is for an indefinite period; and
+c.	is non-exclusive, non-transferable, non-sub-licensable; and
+d.	authorizes Licensee solely to use Deltares Free Simulation Software and the Deltares Software Documentation 
+	i.	within its own organization, for its own use; and 
+
+3.	In addition to paragraph 2 sub d i. this license authorizes Licensee, subject to the next sentence, to have contractors use Deltares Free Simulation Software and the Deltares Software Documentation if and to the extent these contractors are working for Licensee and in such a way that their products are continuously embedded within the Licensee’s quality control (QC) processes. If Licensee engages third parties/contractors Licensee shall limit these third parties/contractors’ user rights in accordance with this Agreement and in prior writing.
+	
+	However, Licensee contractors who are not continuously embedded within the Licensee QC processes, for example, those working for periods on a project without direct Licensee supervision in their own offices, must obtain a Deltares Free Simulation Software license agreement from Deltares. 
+
+Article 3  Unauthorized Use of Deltares Free Simulation Software and the Deltares Software Documentation 
+
+1. 	Licensee shall not be authorized to make any other use of Deltares Free Simulation Software and the Deltares Software Documentation than described in article 2 or to make available or grant access to Deltares Free Simulation Software and the Deltares Software Documentation to any third party unless and only in so far as that third party has acquired a license from Deltares by means of a written license agreement. 
+
+2. 	Licensee shall not be authorized to modify and/or adjust Deltares Free Simulation Software and/or to (otherwise) carry out alterations to it and/or to integrate Deltares Free Simulation Software in other software, unless and only in so far as Licensee has received explicit written permission to that effect in advance from Deltares. Deltares Free Simulation Software may - furthermore - only be used on the Hardware Platform and Operating System and the System Software or on alternatives for the Hardware Platform and Operating System and/or the System Software that have been approval by Deltares in writing.
+
+3. 	Licensee shall not be entitled to (have others) copy Deltares Free Simulation Software and the Deltares Software Documentation in any manner whatsoever or to (have others) multiply it (in any other way), except for Backup purposes. 
+
+Article 4  Fee 
+	Licensee shall owe Deltares no fee for the Deltares Free Simulation Software license referred to in article 2.1. 
+
+Article 5  Intellectual Property Rights, Ownership 
+1. 	Deltares owns the copyright to Deltares Free Simulation Software and the Deltares Software Documentation. With the Agreement Deltares solely grants to Licensee the license rights in connection with Deltares Free Simulation Software and the Deltares Software Documentation as described in article 2. Licensee acknowledges and agrees that granting this license does not constitute any transfer of ownership, including transfer of intellectual property to Licensee.
+
+2. 	All changes to Deltares Free Simulation Software developed (or to be developed in the future) by Deltares shall remain the intellectual property of Deltares. In so far as Licensee obtains any intellectual property to these features or functionalities (other than the right to use such changes under this Agreement), Licensee will transfer any intellectual property concerning the above-mentioned features and/or functionalities to Deltares.
+
+3. 	Deltares represents and guarantees that to the best of its knowledge Deltares Free Simulation Software and the Deltares Software Documentation does not infringe on third party intellectual property rights.
+
+Article 6  Confidentiality
+
+1. 	Licensee shall keep confidential Deltares Free Simulation Software and the Deltares Software Documentation and the Deltares Software Documentation Licensee has obtained and/or obtains in any manner from Deltares or in connection with the Agreement. 
+
+	This obligation shall at any rate include: 
+	a. treating Deltares Free Simulation Software and the Deltares Software Documentation confidentially; 
+	b. releasing Deltares Free Simulation Software and the Deltares Software Documentation solely to those employees of Licensee or a third party acting on behalf of Licensee under the conditions of this Agreement who require access to Deltares Free Simulation Software and the Deltares Software Documentation, whereby Licensee will oblige these employees and third parties to the same confidentiality as Licensee;
+
+	c. the non-disclosure of information and/or data related to the Agreement to third parties and/or refraining from making such information and/or data public in any other way without the prior express and written consent of Deltares, to be obtained for each separate event;
+
+	d. using the information and/or data obtained solely for the purposes for which they were obtained.
+
+2. 	Licensee's obligation to observe confidentiality as referred to in article 6.1 does not apply to information and/or data that were already at free disposal of Licensee, or were already part of the public domain, or were already included in generally accessible literature at the time when they were obtained by Licensee, or that were obtained by Licensee from a third party or third parties who was or were free to disclose the relevant information and/or data and who had not obtained the information and/or data from Deltares, or that were resulting from running simulations with Deltares Free Simulation Software.
+
+3. 	The provisions in this article, article 5.3 and article 10 shall remain fully in force after termination of the Agreement, as set forth in article 9, as well.
+
+ Article 7  No guarantee 
+	Deltares has developed or produced, as the case may be, Deltares Free Simulation Software and the Deltares Software Documentation to the best of its abilities and in accordance with the state of art. However, Deltares does not give any guaranty with respect to Deltares Free Simulation Software or its functioning and/or the Deltares Software Documentation and/or the contents thereof and/or the results obtained or to be obtained with Deltares Free Simulation Software and/or the Deltares Software Documentation, or the correctness or quality thereof.  
+
+Article 8 Installation of Deltares Free Simulation Software
+	This Agreement shall not relate to the installation of Deltares Free Simulation Software on and in the Hardware Platform and Operating System, and neither any modelling activities eventually agreed between Deltares USA and Licensee. 
+
+Article 9  Duration, Termination 
+1. 	The Agreement is concluded for an indefinite period, save notice of termination in pursuance of article 9.2 and 9.4. Except for these provisions parties are not allowed to terminate the Agreement. 
+
+2. 	Without prejudice to their right to receive compensation the parties are entitled to terminate the Agreement in writing with immediate effect, without judicial intervention being required, if the other party fails to comply, or comply timely or fully, with its obligations under the Agreement, but only after notice of default and a one month opportunity to cure has been given.
+
+3. 	Licensee shall be entitled to terminate the Agreement with immediate effect if Licensee ceases the use of the Operational System and will not resume it within a year. 
+
+4. 	Deltares shall be entitled to terminate the Agreement forthwith in writing with immediate effect, without judicial intervention being required, if Licensee is adjudged bankrupt, is granted a moratorium on payments, is dissolved or liquidated or if (an) application(s) to this end  has (have) been filed.
+
+5. 	In the event of termination of the Agreement, Licensee shall furthermore immediately cease using (additional copies of) Deltares Free Simulation Software and/or the Deltares Software Documentation and delete Deltares Free Simulation Software and the Deltares Software Documentation from (all) their computers.
+
+6. 	"In writing" as mentioned in this article shall also be an e-mail message.
+
+Article 10  Liability
+1. 	Licensee agrees that Deltares (including its personnel and non-employees who (have) undertake(n) activities for Deltares shall not be responsible to Licensee for any loss-of-profit, direct, indirect, incidental special or consequential damages arising out of this Agreement or the use of Deltares Free Simulation Software or Deltares Software Documentation, except for damages caused by wilful misconduct or gross negligence of Deltares or its personnel.
+
+2. 	Licensee shall indemnify, hold harmless and defend Deltares against any action brought by a party against Deltares and/or its officers, directors, employees or agents to the extent that such a claim is connected to the use of Deltares Free Simulation Software by Licensee and/or third parties at whose disposal Licensee has placed Deltares Free Simulation Software in accordance with this Agreement and/or the results of the use of Deltares Free Simulation Software. 
+
+Article 11  Development and support
+1.	Deltares will only provide any maintenance and/or support for Deltares Free Simulation Software when and to the extent of a separate project agreements and/or a Maintenance Agreement for Deltares Free Simulation Software agreed with Deltares. 
+
+Article 12  Other provisions
+1. 	While Deltares makes the Deltares Free Simulation Software available to Licensee, applications and models using the Deltares Free Simulation Software are in the discretion of the Licensee and solely at its risk. The Deltares Free Simulation Software should only be used by skilled persons, who have experience in the relevant field and who have sufficient knowledge of the properties, possibilities, limitations and the purpose of the Deltares Free Simulation Software. The Licensee should study the relevant Deltares Software Documentation prior to using the Deltares Free Simulation Software. And the Licensee should ensure thorough testing and validation of each model created with the Deltares Free Simulation Software its accuracy, prior to using the outcomes of running the Deltares Free Simulation Software.
+
+2. 	This agreement shall not be governed by any agreement for Deltares Free Simulation Software related services by Deltares such as, but not limited to, the agreement to (provide support to) setting up one or more models. 
+
+3. 	Changes in and/or deviations to the Agreement are valid only if they are explicitly agreed between the parties in writing.
+
+4. 	The parties are not allowed to assign any rights and/or obligations under the Agreement entirely or in part to third parties without the other party’s prior written consent.
+
+5. 	Any dispute arising from the Agreement or from agreements arising therefrom shall be submitted solely to the competent court of The Hague.
+
+6. 	This Agreement and all agreements arising therefrom are governed by Netherlands law.
+
+Appendix 1	DESCRIPTION OF DELTARES FREE SIMULATION SOFTWARE
+
+Version 2.0.X (with X being the latest release) - January 2024
+
+A.	Description of SFINCS
+
+SFINCS is an open-source, open-access reduced-complexity model developed by Deltares designed for super-fast modelling of compound flooding events in a dynamic way. 
+Typical applications of SFINCS include flood forecasting and evaluating the impact of extreme events on flooding. 
+https://www.deltares.nl/en/software/SFINCS/
+
+B.	Specification of Operational System
+
+HARDWARE PLATFORM and OPERATING SYSTEM
+The minimum hardware and software specifications for proper use of the software:
+
+[Microsoft Windows 10 64bits
+Intel i5 Single Core > 1.0 GHz processor
+1 GB or more (depending on model sizes) internal memory
+20 Gb available hard disk memory]
+
+Please note: it is permitted to install the SFINCS model on a different Hardware Platform as long as it is a computer similar to the above-mentioned computer. The transfer of the SFINCS model to a dissimilar computer may endanger the working of the SFINCS model. 
