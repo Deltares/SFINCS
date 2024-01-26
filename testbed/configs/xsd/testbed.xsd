@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="SFINCS_testbed" type="T_SFINCS_testbed"/>
+    <xs:element name="config" type="T_Config"/>
+    <xs:element name="localPaths" type="T_LocalPaths"/>
+    <xs:element name="server_url" type="xs:string"/>
+    <xs:element name="casesDir" type="xs:string"/>
+    <xs:element name="enginesDir" type="xs:string"/>
+    <xs:element name="referenceDir" type="xs:string"/>
+    <xs:element name="testCases" type="T_TestCases"/>
+    <xs:element name="testCase" type="T_TestCase"/>
+    <xs:element name="maxRunTime" type="xs:decimal"/>
+    <xs:element name="checks" type="T_Checks"/>
+    <xs:element name="file" type="T_File"/>
+    <xs:element name="parameters" type="T_Parameters"/>
+    <xs:element name="parameter" type="T_Parameter"/>
+    <xs:element name="programs" type="T_Programs"/>
+    <xs:element name="program" type="T_Program"/>
+    <xs:element name="path" type="xs:string"/>
+    <xs:element name="arguments" type="T_Arguments"/>
+    <xs:element name="argument" type="xs:string"/>
+    <xs:element name="location" type="T_Location"/>
+    <xs:element name="from" type="xs:string"/>
+    <xs:complexType name="T_SFINCS_testbed">
+        <xs:all>
+            <xs:element ref="config"/>
+            <xs:element ref="programs"/>
+            <xs:element ref="testCases"/>
+        </xs:all>
+    </xs:complexType>
+    <xs:complexType name="T_Config">
+        <xs:all>
+            <xs:element ref="localPaths"/>
+            <xs:element ref="server_url"/>
+        </xs:all>
+    </xs:complexType>
+    <xs:complexType name="T_LocalPaths">
+        <xs:all>
+            <xs:element ref="casesDir"/>
+            <xs:element ref="enginesDir"/>
+            <xs:element ref="referenceDir"/>
+        </xs:all>
+    </xs:complexType>
+    <xs:complexType name="T_Programs">
+        <xs:sequence>
+            <xs:element ref="program" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="T_Program">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element ref="path" minOccurs="0"/>
+            <xs:element ref="arguments" minOccurs="0"/>
+            <xs:element ref="location" minOccurs="0"/>
+        </xs:choice>
+        <xs:attribute name="name" type="xs:string"/>
+    </xs:complexType>
+    <xs:complexType name="T_Arguments">
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:element ref="argument"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="T_TestCases">
+        <xs:sequence>
+            <xs:element ref="testCase" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="T_TestCase">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element ref="path" minOccurs="0"/>
+            <xs:element ref="maxRunTime" minOccurs="0"/>
+            <xs:element ref="checks" minOccurs="0"/>
+        </xs:choice>
+        <xs:attribute name="ref" type="xs:string" use="required"/>
+        <xs:attribute name="name" type="xs:string" use="required"/>
+    </xs:complexType>
+    <xs:complexType name="T_Location">
+        <xs:choice minOccurs="0" maxOccurs="1">
+            <xs:element ref="from" minOccurs="0"/>
+        </xs:choice>
+        <xs:attribute name="ref" type="xs:string" use="optional"/>
+    </xs:complexType>
+    <xs:complexType name="T_Checks">
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:element ref="file" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="T_File">
+        <xs:choice>
+            <xs:sequence minOccurs="0">
+                <xs:element ref="parameters" maxOccurs="unbounded"/>
+            </xs:sequence>
+        </xs:choice>
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="xs:string" use="required"/>
+    </xs:complexType>
+    <xs:complexType name="T_Parameters">
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:element ref="parameter"/>
+        </xs:sequence>
+        <xs:attribute name="name" type="xs:string"/>
+    </xs:complexType>
+    <xs:complexType name="T_Parameter">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="toleranceAbsolute" type="xs:double"/>
+        <xs:attribute name="location" type="xs:string"/>
+    </xs:complexType>
+</xs:schema>
