@@ -380,7 +380,7 @@ contains
    ! Settings related to IG waves:   
    call read_int_input(500,'snapwave_igwaves',igwaves_opt,1)   
    call read_real_input(500,'snapwave_alpha_ig',snapwave_alpha_ig,1.0)   
-   call read_real_input(500,'snapwave_gammaig',gamma_ig,0.7)   
+   call read_real_input(500,'snapwave_gammaig',gamma_ig,0.2)   
    call read_real_input(500,'snapwave_shinc2ig',shinc2ig,1.0)                   ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 1=default=all energy as sink)
    call read_real_input(500,'snapwave_alphaigfac',alphaigfac,1.0)               ! Multiplication factor for IG shoaling source/sink term         
    call read_real_input(500,'snapwave_baldock_ratio_ig',baldock_ratio_ig,0.2)       
