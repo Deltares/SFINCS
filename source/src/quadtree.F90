@@ -183,7 +183,7 @@ contains
    write(*,*)'Quadtree grid info -        dy :', quadtree_dy
    write(*,*)'Quadtree grid info -      mmax :', quadtree_mmax
    write(*,*)'Quadtree grid info -      nmax :', quadtree_nmax
-   write(*,*)'Quadtree grid info -  rotation :', quadtree_rotation/pi*180.0
+   write(*,*)'Quadtree grid info -  rotation :', quadtree_rotation / pi * 180
    !
    end subroutine
 

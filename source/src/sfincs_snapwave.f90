@@ -373,7 +373,7 @@ contains
    call read_real_input(500,'snapwave_tol',tol,10.0)
    call read_real_input(500,'snapwave_dtheta',dtheta,10.0)
    call read_real_input(500,'snapwave_crit',crit,0.01)
-   call read_int_input(500,'snapwave_nrsweeps',nr_sweeps,1)
+   call read_int_input(500,'snapwave_nrsweeps',nr_sweeps,4)
    call read_int_input(500,'snapwave_baldock_opt',baldock_opt,1)     
    call read_real_input(500,'snapwave_baldock_ratio',baldock_ratio,0.2)
    !
@@ -423,6 +423,11 @@ contains
       write(*,*)'SnapWave: IG bc determination using Herbers turned ON!'
    endif   
    !
+   if (nr_sweeps /= 1 .and. nr_sweeps /= 4) then
+      nr_sweeps = 4
+      write(*,*)'SnapWave: Warning! nr_sweeps must be 1 or 4! Now set to 4.'
+   endif   
+   ! 
    restart           = .true.
    coupled_to_sfincs = .true.
    bzsfile           = ''

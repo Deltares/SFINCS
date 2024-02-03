@@ -1924,20 +1924,25 @@ contains
       vtmp = FILL_VALUE
       !
       do nmq = 1, quadtree_nr_points
-        !
-        nm = index_sfincs_in_quadtree(nmq)
-        !
-        if (kcs(nm)>0) then
-           if (subgrid) then
-              if ( (zs(nm) - subgrid_z_zmin(nm)) > huthresh) then
-                 vtmp(nmq) = zs(nm)
-              endif
-           else
-              if ( (zs(nm) - zb(nm)) > huthresh) then
-                 vtmp(nmq) = zs(nm)
-              endif
-           endif
-        endif
+         !
+         nm = index_sfincs_in_quadtree(nmq)
+         !
+         if (nm>0) then 
+            !
+            if (kcs(nm)>0) then
+               if (subgrid) then
+                  if ( (zs(nm) - subgrid_z_zmin(nm)) > huthresh) then
+                     vtmp(nmq) = zs(nm)
+                  endif
+               else
+                  if ( (zs(nm) - zb(nm)) > huthresh) then
+                     vtmp(nmq) = zs(nm)
+                  endif
+               endif
+            endif
+            !
+         endif
+         !
       enddo
       !
       NF90(nf90_put_var(map_file%ncid, map_file%zs_varid, vtmp, (/1, ntmapout/))) ! write zs

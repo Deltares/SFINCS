@@ -52,7 +52,7 @@ contains
       use_quadtree = .true.
       write(*,*)'Info : Preparing SFINCS grid on quadtree mesh ...'   
    else
-       write(*,*)'Info : Preparing SFINCS grid on regular mesh ...'      
+      write(*,*)'Info : Preparing SFINCS grid on regular mesh ...'      
    endif
    !
    ! Always turn off waves at boundaries. Using wave makers for that sort of thing now.
@@ -507,7 +507,9 @@ contains
             !
             ! Finer on the left
             !
-            ncuv = ncuv + 1
+            if (z_index_z_md1(nm)>0 .or. z_index_z_md2(nm)>0) then
+               ncuv = ncuv + 1
+            endif 
             !            
          endif   
          !
@@ -517,7 +519,9 @@ contains
             !
             ! Finer on the right
             !
-            ncuv = ncuv + 1
+            if (z_index_z_mu1(nm)>0 .or. z_index_z_mu2(nm)>0) then
+               ncuv = ncuv + 1
+            endif
             !            
          endif   
          !
@@ -527,7 +531,9 @@ contains
             !
             ! Finer below
             !
-            ncuv = ncuv + 1
+            if (z_index_z_nd1(nm)>0 .or. z_index_z_nd2(nm)>0) then
+               ncuv = ncuv + 1
+            endif
             !            
          endif   
          !
@@ -537,7 +543,9 @@ contains
             !
             ! Finer above
             !
-            ncuv = ncuv + 1
+            if (z_index_z_nu1(nm)>0 .or. z_index_z_nu2(nm)>0) then
+               ncuv = ncuv + 1
+            endif
             !            
          endif   
          !
@@ -562,6 +570,11 @@ contains
    allocate(cuv_index_uv1(ncuv)) ! index in uv array of first uv point
    allocate(cuv_index_uv2(ncuv)) ! index in uv array of second uv point
    !
+   ! Initialize cuv_index_uv1 and cuv_index_uv2 at dummy uv index (npuv + ncuv + 1)
+   !
+   cuv_index_uv1 = npuv + ncuv + 1
+   cuv_index_uv2 = npuv + ncuv + 1
+   !
    irefuv = 0 
    !
    do nm = 1, np
@@ -572,9 +585,11 @@ contains
          !
          ! Finer on the left
          !
-         irefuv = irefuv + 1
-         cuv_index_uv(irefuv)  = npuv + irefuv ! used to update uv and q in momentum
-         z_index_cuv_md(nm)    = irefuv ! temporary
+         if (z_index_z_md1(nm)>0 .or. z_index_z_md2(nm)>0) then
+            irefuv = irefuv + 1
+            cuv_index_uv(irefuv)  = npuv + irefuv ! used to update uv and q in momentum
+            z_index_cuv_md(nm)    = irefuv ! temporary
+         endif
          !            
       endif   
       !
@@ -584,9 +599,11 @@ contains
          !
          ! Finer on the right
          !
-         irefuv = irefuv + 1
-         cuv_index_uv(irefuv)  = npuv + irefuv
-         z_index_cuv_mu(nm)    = irefuv ! temporary
+         if (z_index_z_mu1(nm)>0 .or. z_index_z_mu2(nm)>0) then
+            irefuv = irefuv + 1
+            cuv_index_uv(irefuv)  = npuv + irefuv
+            z_index_cuv_mu(nm)    = irefuv ! temporary
+         endif
          !            
       endif   
       !
@@ -596,9 +613,11 @@ contains
          !
          ! Finer below
          !
-         irefuv = irefuv + 1
-         cuv_index_uv(irefuv)  = npuv + irefuv ! needed in momentum
-         z_index_cuv_nd(nm)    = irefuv ! temporary         
+         if (z_index_z_nd1(nm)>0 .or. z_index_z_nd2(nm)>0) then
+            irefuv = irefuv + 1
+            cuv_index_uv(irefuv)  = npuv + irefuv ! needed in momentum
+            z_index_cuv_nd(nm)    = irefuv ! temporary         
+         endif
          !            
       endif   
       !
@@ -608,9 +627,11 @@ contains
          !
          ! Finer above
          !
-         irefuv = irefuv + 1  
-         cuv_index_uv(irefuv)  = npuv + irefuv
-         z_index_cuv_nu(nm)    = irefuv
+         if (z_index_z_nu1(nm)>0 .or. z_index_z_nu2(nm)>0) then
+            irefuv = irefuv + 1  
+            cuv_index_uv(irefuv)  = npuv + irefuv
+            z_index_cuv_nu(nm)    = irefuv
+         endif
          !            
       endif   
       !
@@ -618,7 +639,7 @@ contains
    !
    ! UV-points
    !
-   allocate(kcuv(npuv))
+   allocate(kcuv(npuv + ncuv + 1))
    allocate(uv_index_z_nm(npuv))
    allocate(uv_index_z_nmu(npuv))
    allocate(uv_flags_iref(npuv))
@@ -696,37 +717,49 @@ contains
          !
          ! Coarser to the right
          !
-         ip  = ip + 1
-         nmu = z_index_z_mu1(nm)
-         ! 
-         uv_index_z_nm(ip)     = nm
-         uv_index_z_nmu(ip)    = nmu
-         z_index_uv_mu(nm)     = ip
-         z_index_uv_mu1(nm)    = ip
-         !
-         ! Set the combined uv point of the neighbor to the right (icuv is index of combined uv point in cuv array)
-         !
-         icuv = z_index_cuv_md(nmu)
-         ! set indices
-         if (z_index_z_md1(z_index_z_mu1(nm)) == nm) then
-            ! Lower cell
-            cuv_index_uv1(icuv) = ip
-            z_index_uv_md1(nmu) = ip
-         else
-            ! Upper cell
-            cuv_index_uv2(icuv) = ip              
-            z_index_uv_md2(nmu) = ip
+         if (z_index_z_mu1(nm)>0) then ! and there is a neighbor
+            !
+            ip  = ip + 1
+            nmu = z_index_z_mu1(nm)
+            ! 
+            uv_index_z_nm(ip)     = nm
+            uv_index_z_nmu(ip)    = nmu
+            z_index_uv_mu(nm)     = ip
+            z_index_uv_mu1(nm)    = ip
+            !
+            ! Set the combined uv point of the neighbor to the right (icuv is index of combined uv point in cuv array)
+            !
+            icuv = z_index_cuv_md(nmu)
+            !
+            ! set indices
+            !
+            if (z_index_z_md1(z_index_z_mu1(nm)) == nm) then
+               !
+               ! Lower cell
+               !
+               cuv_index_uv1(icuv) = ip
+               z_index_uv_md1(nmu) = ip
+               !
+            else
+               !
+               ! Upper cell
+               !
+               cuv_index_uv2(icuv) = ip              
+               z_index_uv_md2(nmu) = ip
+               !
+            endif
+            !
+            ! Combined uv point for cell on the right
+            !  
+            z_index_uv_md(nmu) = cuv_index_uv(icuv)
+            !
+            ! Flags to describe uv point 
+            !
+            uv_flags_iref(ip)                  = z_flags_iref(nm) 
+            uv_flags_dir(ip)                   = 0 ! u point
+            uv_flags_type(ip)                  = -1! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
+            !
          endif
-         !
-         ! Combined uv point for cell on the right
-         !  
-         z_index_uv_md(nmu) = cuv_index_uv(icuv)
-         !
-         ! Flags to describe uv point 
-         !
-         uv_flags_iref(ip)                  = z_flags_iref(nm) 
-         uv_flags_dir(ip)                   = 0 ! u point
-         uv_flags_type(ip)                  = -1! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
          !
       else
          !
@@ -821,37 +854,49 @@ contains
          !
          ! Coarser above
          !
-         ip  = ip + 1
-         num = z_index_z_nu1(nm)
-         ! 
-         uv_index_z_nm(ip)     = nm
-         uv_index_z_nmu(ip)    = num
-         z_index_uv_nu(nm)     = ip
-         z_index_uv_nu1(nm)    = ip
-         !
-         ! Set the combined uv point of the neighbor above (icuv is index of combined uv point in cuv array)
-         !
-         icuv = z_index_cuv_nd(num)
-         ! set indices
-         if (z_index_z_nd1(z_index_z_nu1(nm)) == nm) then
-            ! Lower cell
-            cuv_index_uv1(icuv) = ip
-            z_index_uv_nd1(num) = ip
-         else
-            ! Upper cell
-            cuv_index_uv2(icuv) = ip              
-            z_index_uv_nd2(num) = ip
-         endif
-         !
-         ! Combined uv point for cell above
-         !  
-         z_index_uv_nd(num) = cuv_index_uv(icuv)
-         !
-         ! Flags to describe uv point 
-         !
-         uv_flags_iref(ip)                  = z_flags_iref(nm) 
-         uv_flags_dir(ip)                   = 1 ! v point
-         uv_flags_type(ip)                  = -1! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
+         if (z_index_z_nu1(nm)>0) then ! and there is a neighbor
+            !
+            ip  = ip + 1
+            num = z_index_z_nu1(nm)
+            ! 
+            uv_index_z_nm(ip)     = nm
+            uv_index_z_nmu(ip)    = num
+            z_index_uv_nu(nm)     = ip
+            z_index_uv_nu1(nm)    = ip
+            !
+            ! Set the combined uv point of the neighbor above (icuv is index of combined uv point in cuv array)
+            !
+            icuv = z_index_cuv_nd(num)
+            !
+            ! set indices
+            !
+            if (z_index_z_nd1(z_index_z_nu1(nm)) == nm) then
+               !
+               ! Lower cell
+               !
+               cuv_index_uv1(icuv) = ip
+               z_index_uv_nd1(num) = ip
+               !
+            else
+               !
+               ! Upper cell
+               !
+               cuv_index_uv2(icuv) = ip              
+               z_index_uv_nd2(num) = ip
+               !
+            endif
+            !
+            ! Combined uv point for cell above
+            !  
+            z_index_uv_nd(num) = cuv_index_uv(icuv)
+            !
+            ! Flags to describe uv point 
+            !
+            uv_flags_iref(ip)                  = z_flags_iref(nm) 
+            uv_flags_dir(ip)                   = 1 ! v point
+            uv_flags_type(ip)                  = -1! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
+            !
+         endif  
          !
       else
          !
@@ -919,7 +964,7 @@ contains
    !
    ! And now set the indices of the 8 uv neighbors of the uv points (u_nmu, u_nmd, u_num,  u_ndm,
    !                                                                 v_ndm, v_nm,  v_ndmu, v_nmu)
-   if (advection .or. coriolis .or. viscosity .or. thetasmoothing) then
+   if (advection .or. coriolis .or. viscosity .or. friction2d .or. thetasmoothing) then
       !
       do ip = 1, npuv
          !
@@ -2101,6 +2146,65 @@ contains
       read(500)storage_volume
       close(500)
       !
+   endif
+   !
+   end subroutine
+
+
+   subroutine set_advection_mask()
+   !
+   use sfincs_data
+   !
+   implicit none
+   !
+   integer :: icuv, ip
+   !
+   ! First set kcuv for combined points
+   !
+   if (ncuv > 0) then
+      !
+      ! Loop through combined uv points to set kcuv
+      !
+      do icuv = 1, ncuv
+         !
+         if (kcuv(cuv_index_uv1(icuv)) == 0 .or. kcuv(cuv_index_uv2(icuv)) == 0) then
+            kcuv(icuv) = 0
+         elseif (kcuv(cuv_index_uv1(icuv)) == 2 .or. kcuv(cuv_index_uv2(icuv)) == 2) then
+            kcuv(icuv) = 2
+         elseif (kcuv(cuv_index_uv1(icuv)) == 4 .or. kcuv(cuv_index_uv2(icuv)) == 4) then
+            kcuv(icuv) = 4
+         else
+            kcuv(icuv) = 1
+         endif
+         !
+      enddo
+      !
+   endif
+   !
+   ! And now set the mask
+   !
+   if (advection) then
+      !
+      allocate(mask_adv(npuv))
+      !
+      mask_adv = 1 
+      !
+      do ip = 1, npuv
+         !
+         if ( kcuv(uv_index_u_nmu(ip)) /= 1 .or. &
+              kcuv(uv_index_u_nmd(ip)) /= 1 .or. &
+              kcuv(uv_index_v_nm(ip)) /= 1  .or. &
+              kcuv(uv_index_v_nmu(ip)) /= 1 .or. &
+              kcuv(uv_index_v_ndm(ip)) /= 1 .or. &
+              kcuv(uv_index_v_ndmu(ip)) /= 1 .or. &
+              kcuv(uv_index_u_ndm(ip)) /= 1 .or. &
+              kcuv(uv_index_u_num(ip)) /= 1 ) then
+            !
+            mask_adv(ip) = 0
+            !
+         endif  
+      enddo 
+      ! 
    endif
    !
    end subroutine

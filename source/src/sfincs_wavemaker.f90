@@ -1136,26 +1136,6 @@
       !
    enddo   
    !
-   ! Turn off advection near wave maker points
-   !
-   if (advection .or. coriolis) then
-      !
-      do ip = 1, npuv
-         !
-         ! TODO: re-implement uv_flags_adv ?
-         !
-!         if (kcuv(uv_index_u_nmd(ip)) == 4)  uv_flags_adv(ip) = 0
-!         if (kcuv(uv_index_u_nmu(ip)) == 4)  uv_flags_adv(ip) = 0
-!         if (kcuv(uv_index_u_num(ip)) == 4)  uv_flags_adv(ip) = 0
-!         if (kcuv(uv_index_u_ndm(ip)) == 4)  uv_flags_adv(ip) = 0
-!         if (kcuv(uv_index_v_ndm(ip)) == 4)  uv_flags_adv(ip) = 0
-!         if (kcuv(uv_index_v_nm(ip)) == 4)   uv_flags_adv(ip) = 0
-!         if (kcuv(uv_index_v_nmu(ip)) == 4)  uv_flags_adv(ip) = 0
-!         if (kcuv(uv_index_v_ndmu(ip)) == 4) uv_flags_adv(ip) = 0
-         !
-      enddo      
-   endif
-   !
    ! In case of forcing by boundary condition files, determine indices in bwv file
    !
    ! Read wave maker forcing points
@@ -1238,6 +1218,12 @@
          close(500)
       endif
       !
+      if (wmf_time(1)>t0 + 1.0 .or. wmf_time(ntwmfp)<t1 - 1.0) then
+         ! 
+         write(*,'(a)')' WARNING! Times in wave maker time series file do not cover entire simulation period!'
+         !
+      endif   
+      !
       ! Now determine weights and indices of wave maker forcing points for each uv point  
       !
       allocate(wavemaker_index_wmfp1(wavemaker_nr_uv_points))
@@ -1312,11 +1298,8 @@
       freqig(ifreq) = freqminig + ifreq*dfreqig - 0.5*dfreqig
       call RANDOM_NUMBER(r)
       phiig(ifreq) = r*2*3.1416
-!      call RANDOM_NUMBER(r)
       dphiig(ifreq) = 1.0e-6*2*3.1416/freqig(ifreq)
    enddo
-   ! 
-   write(*,*)'Wavemakers initialized !'
    !
    end subroutine
 
@@ -1330,10 +1313,10 @@
    !
    implicit none
    !
-   integer ib, nm, nmi, nmb, iuv, indb, idir, ip, ifreq, itb
+   integer ib, nm, nmi, nmb, iuv, indb, idir, ip, ifreq, itb, itb0, itb1
    real*4  hnmb, dt, zsnmi, zsnmb, zs0nmb, zwav
    real*4  alpha, beta
-   real*8  t
+   real*8  t, tb
    real*4  sinth
    real*4  a, fp
    real*4 tbfac, hs, tp, tpsum, setup
@@ -1354,34 +1337,51 @@
       !
       ! Interpolate boundary conditions in time
       !
-      do itb = itwmfplast, ntwmfp ! Loop in time
+      if (wmf_time(1)>t - 1.0e-3) then ! use first time in boundary conditions
          !
-         if (wmf_time(itb)>t) then
-            !
-            tbfac  = (t - wmf_time(itb - 1))/(wmf_time(itb) - wmf_time(itb - 1))
-            !
-            tpsum = 0.0
-            !
-            do ib = 1, nwmfp ! Loop along forcing points
-               !
-               hs    = wmf_hm0_ig(ib, itb - 1) + (wmf_hm0_ig(ib, itb) - wmf_hm0_ig(ib, itb - 1))*tbfac
-               tp    = wmf_tp_ig(ib, itb - 1)  + (wmf_tp_ig(ib, itb)  - wmf_tp_ig(ib, itb - 1))*tbfac
-               setup = wmf_setup(ib, itb - 1)  + (wmf_setup(ib, itb)  - wmf_setup(ib, itb - 1))*tbfac
-               !
-               wmf_hm0_ig_t(ib) = hs
-               wmf_setup_t(ib)  = setup
-               !
-               tpsum = tpsum + tp
-               !
-            enddo
-            !
-            tp = tpsum / nwmfp ! Take average Tp from boundary points
-            !
-            itwmfplast = itb - 1
-            exit
-            !
-         endif
+         itb0 = 1
+         itb1 = 1
+         tb   = wmf_time(itb0)
+         !
+      elseif (wmf_time(ntwmfp)<t + 1.0e-3) then  ! use last time in boundary conditions       
+         !
+         itb0 = ntwmfp
+         itb1 = ntwmfp
+         tb   = wmf_time(itb0)
+         !
+      else
+         !
+         do itb = itwmfplast, ntwmfp ! Loop in time
+            if (wmf_time(itb)>t + 1.0e-6) then
+               itb0 = itb - 1
+               itb1 = itb
+               tb   = t
+               itwmfplast = itb - 1
+               exit
+            endif
+         enddo 
+         !
+      endif            
+      !
+      tbfac  = (tb - wmf_time(itb0))/max(wmf_time(itb1) - wmf_time(itb0), 1.0e-6)
+      !
+      tpsum = 0.0
+      !
+      do ib = 1, nwmfp ! Loop along forcing points
+         !
+         hs    = wmf_hm0_ig(ib, itb0) + (wmf_hm0_ig(ib, itb1) - wmf_hm0_ig(ib, itb0))*tbfac
+         tp    = wmf_tp_ig(ib, itb0)  + (wmf_tp_ig(ib, itb1)  - wmf_tp_ig(ib, itb0))*tbfac
+         setup = wmf_setup(ib, itb0)  + (wmf_setup(ib, itb1)  - wmf_setup(ib, itb0))*tbfac
+         !
+         wmf_hm0_ig_t(ib) = hs
+         wmf_setup_t(ib)  = setup
+         !
+         tpsum = tpsum + tp
+         !
       enddo
+      !
+      tp = tpsum / nwmfp ! Take average Tp from boundary points
+      !
    else
       !
       ! Use mean peak period from SnapWave boundary conditions

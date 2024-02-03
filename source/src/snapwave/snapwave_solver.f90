@@ -110,7 +110,9 @@ module snapwave_solver
    subroutine solve_energy_balance2Dstat(x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                          theta,ntheta,thetamean,                                    &
                                          depth,zb,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,T,T_ig,dt,rho,alfa,alfa_ig,gamma,                 &
-                                         H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, shinc2ig, ig_opt, baldock_opt, baldock_ratio, baldock_ratio_ig, alphaigfac, Qb, betamean, srcsh, alphaig, Sxx, H_ig_old, H_inc_old, nwav)
+                                         H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, & 
+                                         gamma_ig, shinc2ig, ig_opt, baldock_opt, baldock_ratio, baldock_ratio_ig, alphaigfac, Qb, betamean, srcsh, &
+                                         alphaig, Sxx, H_ig_old, H_inc_old, nwav)
    !
    implicit none
    !
@@ -331,6 +333,8 @@ module snapwave_solver
    ! Sort coordinates in sweep directions
    !
    shift = [0,1,-1,2]
+   !
+   ! nr_sweeps must be either 1 or 4 !   
    !
    do sweep = 1, nr_sweeps
       !
@@ -751,9 +755,9 @@ module snapwave_solver
          call system_clock(count1, count_rate, count_max)
          tloop = 1.0*(count1 - count0)/count_rate
          !
-!         write(*,'(a,i6,a,f10.5,a,f7.2,a,e14.4)')'iteration ',iter/4 ,' error = ',error,'   %ok = ',percok,' time = ',tloop
          !
          if (error<crit) then
+            ! write(*,'(a,i6,a,f10.5,a,f7.2,a,e14.4)')'iteration ',iter/4 ,' error = ',error,'   %ok = ',percok,' time = ',tloop
             exit
          endif
          !

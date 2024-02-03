@@ -127,9 +127,8 @@ contains
       read(11,*)t_bwv(irec),hs_bwv(1, irec),tp_bwv(1, irec),wd_bwv(1, irec),ds_bwv(1, irec),zs_bwv(1, irec)      
    enddo
    !
-   wd_bwv = (270.0 - wd_bwv)*pi/180
-   ds_bwv = ds_bwv*pi/180.
-
+   wd_bwv = (270.0 - wd_bwv) * pi / 180
+   ds_bwv = ds_bwv * pi / 180
    !
    close(11)
    !
@@ -237,7 +236,8 @@ contains
       close(500)
       !
       ! Convert to cartesian, going-to, radians
-      wd_bwv = (270.0 - wd_bwv)*pi/180.
+      !
+      wd_bwv = (270.0 - wd_bwv)*pi/180
       !
       ! Ds (directional spreading)
       !
@@ -247,7 +247,8 @@ contains
          read(500,*)t_bwv(itb),(ds_bwv(ib, itb), ib = 1, nwbnd)
       enddo
       close(500)
-      ds_bwv = ds_bwv*pi/180.
+      !
+      ds_bwv = ds_bwv * pi / 180
       !
       ! zs (water level)
       if (trim(bzsfile) /= '') then 
@@ -267,6 +268,12 @@ contains
       endif
       !
       write(*,*)'Input wave boundary points found: ',nwbnd
+      !
+      if (t_bwv(1)>t0 + 1.0 .or. t_bwv(ntwbnd)<t1 - 1.0) then
+         ! 
+         write(*,'(a)')' WARNING! Times in wave boundary conditions file do not cover entire simulation period!'
+         !
+      endif   
       !
    endif
    !
@@ -474,16 +481,15 @@ subroutine update_boundary_points(t)
    !
    implicit none
    !
-   integer i, k, ib, itb, itsp2now, itheta, i1, i2, ii, jj, ind
+   integer i, k, ib, itb, itb0, itb1, itsp2now, itheta, i1, i2, ii, jj, ind
    !
-   real*8  :: t
+   real*8  :: t, tb
    !
    real*4  :: tbfac
    real*4  :: hs, tps, wd, dsp, zst, thetamin, thetamax, E0, ms, modth, E0_ig
    real*4  :: jonswapgam, hlocal
    logical :: always_update_bnd_spec
    !
-!   write(*,*)'dtheta',dtheta
    always_update_bnd_spec = .true.
    !
    ! Update directional spectra on boundary points from time series
@@ -494,35 +500,87 @@ subroutine update_boundary_points(t)
    !
    ! Interpolate boundary conditions in time
    !
-   do itb = itwbndlast, ntwbnd ! Loop in time
-!      write(*,*)itb,t_bwv(itb)
+   if (t_bwv(1)>t - 1.0e-3) then ! use first time in boundary conditions
       !
-      if (t_bwv(itb)>t) then
-         !
-         tbfac  = (t - t_bwv(itb - 1))/(t_bwv(itb) - t_bwv(itb - 1))
-         !
-         do ib = 1, nwbnd ! Loop along boundary points
-            !
-            hs    = hs_bwv(ib, itb - 1) + (hs_bwv(ib, itb) - hs_bwv(ib, itb - 1))*tbfac
-            tps   = tp_bwv(ib, itb - 1) + (tp_bwv(ib, itb) - tp_bwv(ib, itb - 1))*tbfac
-            dsp    = ds_bwv(ib, itb - 1) + (ds_bwv(ib, itb) - ds_bwv(ib, itb - 1))*tbfac    !dirspr
-            zst    = zs_bwv(ib, itb - 1) + (zs_bwv(ib, itb) - zs_bwv(ib, itb - 1))*tbfac  
-            !
-            call weighted_average(wd_bwv(ib, itb - 1), wd_bwv(ib, itb), 1.0 - tbfac, 2, wd)  !wavdir
-            !
-            hst_bwv(ib) = hs
-            tpt_bwv(ib) = tps                  
-            wdt_bwv(ib) = wd
-            dst_bwv(ib) = dsp
-            zst_bwv(ib) = zst
-            !
-         enddo
-         !
-         itwbndlast = itb
-         exit
-         !
-      endif
+      itb0 = 1
+      itb1 = 1
+      tb   = t_bwv(itb0)
+      !
+   elseif (t_bwv(ntwbnd)<t + 1.0e-3) then  ! use last time in boundary conditions       
+      !
+      itb0 = ntwbnd
+      itb1 = ntwbnd
+      tb   = t_bwv(itb0)
+      !
+   else
+      !
+      do itb = itwbndlast, ntwbnd ! Loop in time
+         if (t_bwv(itb)>t + 1.0e-6) then
+            itb0 = itb - 1
+            itb1 = itb
+            tb   = t
+            itwbndlast = itb - 1
+            exit
+         endif
+      enddo 
+      !
+   endif            
+   !
+   tbfac  = (tb - t_bwv(itb0))/max(t_bwv(itb1) - t_bwv(itb0), 1.0e-6)
+   !
+   do ib = 1, nwbnd ! Loop along boundary points
+      !
+      hs  = hs_bwv(ib, itb0) + (hs_bwv(ib, itb1) - hs_bwv(ib, itb0))*tbfac
+      tps = tp_bwv(ib, itb0) + (tp_bwv(ib, itb1) - tp_bwv(ib, itb0))*tbfac
+      dsp = ds_bwv(ib, itb0) + (ds_bwv(ib, itb1) - ds_bwv(ib, itb0))*tbfac    !dirspr
+      zst = zs_bwv(ib, itb0) + (zs_bwv(ib, itb1) - zs_bwv(ib, itb0))*tbfac
+      !
+      ! Limit directional spreading (2 < ds < 45)
+      !       
+      dsp = max(min(dsp, 45*pi/180), 2*pi/180)
+      !
+      ! Limit period (2 < tps < 25)
+      !       
+      tps = max(min(dsp, 25.0), 2.0)
+      !
+      call weighted_average(wd_bwv(ib, itb0), wd_bwv(ib, itb1), 1.0 - tbfac, 2, wd)  !wavdir
+      !
+      hst_bwv(ib) = hs
+      tpt_bwv(ib) = tps                  
+      wdt_bwv(ib) = wd
+      dst_bwv(ib) = dsp
+      zst_bwv(ib) = zst
+      !
    enddo
+   !
+!   do itb = itwbndlast, ntwbnd ! Loop in time
+!      !
+!      if (t_bwv(itb)>t) then
+!         !
+!         tbfac  = (t - t_bwv(itb - 1))/(t_bwv(itb) - t_bwv(itb - 1))
+!         !
+!         do ib = 1, nwbnd ! Loop along boundary points
+!            !
+!            hs    = hs_bwv(ib, itb - 1) + (hs_bwv(ib, itb) - hs_bwv(ib, itb - 1))*tbfac
+!            tps   = tp_bwv(ib, itb - 1) + (tp_bwv(ib, itb) - tp_bwv(ib, itb - 1))*tbfac
+!            dsp    = ds_bwv(ib, itb - 1) + (ds_bwv(ib, itb) - ds_bwv(ib, itb - 1))*tbfac    !dirspr
+!            zst    = zs_bwv(ib, itb - 1) + (zs_bwv(ib, itb) - zs_bwv(ib, itb - 1))*tbfac  
+!            !
+!            call weighted_average(wd_bwv(ib, itb - 1), wd_bwv(ib, itb), 1.0 - tbfac, 2, wd)  !wavdir
+!            !
+!            hst_bwv(ib) = hs
+!            tpt_bwv(ib) = tps                  
+!            wdt_bwv(ib) = wd
+!            dst_bwv(ib) = dsp
+!            zst_bwv(ib) = zst
+!            !
+!         enddo
+!         !
+!         itwbndlast = itb
+!         exit
+!         !
+!      endif
+!   enddo
    !
    ! Now generate wave spectra at the boundary points
    !
@@ -539,29 +597,32 @@ subroutine update_boundary_points(t)
    if (igwaves) then
       ! 
       if (igherbers) then 
-          jonswapgam = 3.3 ! TODO: TL: later make spatially varying? > then as gam_bwv(ib) in 'determine_ig_bc'
-          !jonswapgam = 20.0
-          !
-          ! Get local water depth at boundary points (can change in time)        
-          call find_nearest_depth_for_boundary_points() ! Output is: deptht_bwv    
-          !
-          do ib = 1, nwbnd ! Loop along boundary points
-             !           
-             ! Determine IG wave height and period at boundary
-             call determine_ig_bc(hst_bwv(ib), tpt_bwv(ib), dst_bwv(ib), jonswapgam, deptht_bwv(ib), Tinc2ig, tpig_opt, hst_bwv_ig(ib), tpt_bwv_ig(ib))
-             ! input, input, input, input, input, input, input, output, output
-             !
-          enddo   
-          !
-          tpmean_bwv_ig = sum(tpt_bwv_ig)/size(tpt_bwv_ig)       
-          !
-          !write(*,*)'Herbers computed: hst_bwv_ig= ',hst_bwv_ig
-          !write(*,*)'Herbers computed: tpmean_bwv_ig= ',tpmean_bwv_ig      
-          !     
+         !
+         jonswapgam = 3.3 ! TODO: TL: later make spatially varying? > then as gam_bwv(ib) in 'determine_ig_bc'
+         !jonswapgam = 20.0
+         !
+         ! Get local water depth at boundary points (can change in time)        
+         call find_nearest_depth_for_boundary_points() ! Output is: deptht_bwv    
+         !
+         do ib = 1, nwbnd ! Loop along boundary points
+            !           
+            ! Determine IG wave height and period at boundary
+            !           
+            call determine_ig_bc(hst_bwv(ib), tpt_bwv(ib), dst_bwv(ib), jonswapgam, deptht_bwv(ib), Tinc2ig, tpig_opt, hst_bwv_ig(ib), tpt_bwv_ig(ib))
+            !           
+            ! input, input, input, input, input, input, input, output, output
+            !
+         enddo   
+         !
+         tpmean_bwv_ig = sum(tpt_bwv_ig)/size(tpt_bwv_ig)       
+         !
+         !write(*,*)'Herbers computed: hst_bwv_ig= ',hst_bwv_ig
+         !write(*,*)'Herbers computed: tpmean_bwv_ig= ',tpmean_bwv_ig      
+         !     
       else
-          !
-          tpmean_bwv_ig = tpmean_bwv * Tinc2ig !TL: the old way using Tp inc to IG ratio
-          !
+         !
+         tpmean_bwv_ig = tpmean_bwv * Tinc2ig !TL: the old way using Tp inc to IG ratio
+         !
       endif
    endif  
    !
@@ -571,10 +632,11 @@ subroutine update_boundary_points(t)
    !
    thetamean = wdmean_bwv
    !
-   ind = nint(thetamean/dtheta) + 1
+   ind = nint(thetamean / dtheta) + 1
+   !
    do itheta = 1, ntheta
 !      i360(itheta) = mod2(itheta + ind - 10, 36)
-      i360(itheta) = mod2(itheta + ind - (1+ntheta/2), ntheta*2)
+      i360(itheta) = mod2(itheta + ind - (1 + ntheta / 2), ntheta * 2)
    enddo
    !
    do itheta = 1, ntheta
@@ -597,8 +659,8 @@ subroutine update_boundary_points(t)
    !write(*,'(a,18f7.1)')'theta = ',theta*180./pi
    do ib = 1, nwbnd ! Loop along boundary points
       !
-      E0   = 0.0625*rho*g*hst_bwv(ib)**2
-      ms   = 1.0/dst_bwv(ib)**2-1
+      E0   = 0.0625 * rho * g * hst_bwv(ib)**2
+      ms   = 1.0 / dst_bwv(ib)**2 - 1.0
       dist = (cos(theta - thetamean))**ms
       !    
       eet_bwv(:,ib) = dist/sum(dist)*E0/dtheta
@@ -610,11 +672,11 @@ subroutine update_boundary_points(t)
       if (igherbers) then 
           do ib = 1, nwbnd ! Loop along boundary points    
              !          
-             E0_ig   = 0.0625*rho*g*hst_bwv_ig(ib)**2
-             ms   = 1.0/dst_bwv(ib)**2-1
+             E0_ig   = 0.0625 * rho * g * hst_bwv_ig(ib)**2
+             ms   = 1.0 / dst_bwv(ib)**2 - 1.0
              dist = (cos(theta - thetamean))**ms      
              !         
-             eet_bwv_ig(:,ib) = dist/sum(dist)*E0_ig/dtheta          
+             eet_bwv_ig(:,ib) = dist / sum(dist) * E0_ig / dtheta          
              !      
           enddo
       endif
