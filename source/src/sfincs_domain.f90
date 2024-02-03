@@ -2168,13 +2168,13 @@ contains
       do icuv = 1, ncuv
          !
          if (kcuv(cuv_index_uv1(icuv)) == 0 .or. kcuv(cuv_index_uv2(icuv)) == 0) then
-            kcuv(icuv) = 0
+            kcuv(cuv_index_uv(icuv)) = 0
          elseif (kcuv(cuv_index_uv1(icuv)) == 2 .or. kcuv(cuv_index_uv2(icuv)) == 2) then
-            kcuv(icuv) = 2
+            kcuv(cuv_index_uv(icuv)) = 2
          elseif (kcuv(cuv_index_uv1(icuv)) == 4 .or. kcuv(cuv_index_uv2(icuv)) == 4) then
-            kcuv(icuv) = 4
+            kcuv(cuv_index_uv(icuv)) = 4
          else
-            kcuv(icuv) = 1
+            kcuv(cuv_index_uv(icuv)) = 1
          endif
          !
       enddo
@@ -2185,25 +2185,31 @@ contains
    !
    if (advection) then
       !
+      ! Should only do this for quadtree or when nmax>1 (i.e. not for 1D profile models)
+      !
       allocate(mask_adv(npuv))
       !
       mask_adv = 1 
-      !
-      do ip = 1, npuv
+      ! 
+      if (use_quadtree .or. nmax>1) then
          !
-         if ( kcuv(uv_index_u_nmu(ip)) /= 1 .or. &
-              kcuv(uv_index_u_nmd(ip)) /= 1 .or. &
-              kcuv(uv_index_v_nm(ip)) /= 1  .or. &
-              kcuv(uv_index_v_nmu(ip)) /= 1 .or. &
-              kcuv(uv_index_v_ndm(ip)) /= 1 .or. &
-              kcuv(uv_index_v_ndmu(ip)) /= 1 .or. &
-              kcuv(uv_index_u_ndm(ip)) /= 1 .or. &
-              kcuv(uv_index_u_num(ip)) /= 1 ) then
+         do ip = 1, npuv
             !
-            mask_adv(ip) = 0
-            !
-         endif  
-      enddo 
+            if ( kcuv(uv_index_u_nmu(ip)) /= 1 .or. &
+                 kcuv(uv_index_u_nmd(ip)) /= 1 .or. &
+                 kcuv(uv_index_v_nm(ip)) /= 1  .or. &
+                 kcuv(uv_index_v_nmu(ip)) /= 1 .or. &
+                 kcuv(uv_index_v_ndm(ip)) /= 1 .or. &
+                 kcuv(uv_index_v_ndmu(ip)) /= 1 .or. &
+                 kcuv(uv_index_u_ndm(ip)) /= 1 .or. &
+                 kcuv(uv_index_u_num(ip)) /= 1 ) then
+               !
+               mask_adv(ip) = 0
+               !
+            endif  
+         enddo 
+         ! 
+      endif
       ! 
    endif
    !
