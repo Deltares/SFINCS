@@ -2182,6 +2182,7 @@ contains
    endif
    !
    ! And now set the mask
+   ! The advection term at uv points that have neighbors that are 1) boundary points or 2) wave maker points will be set to 0.0
    !
    if (advection) then
       !
@@ -2190,26 +2191,28 @@ contains
       allocate(mask_adv(npuv))
       !
       mask_adv = 1 
-      ! 
-      if (use_quadtree .or. nmax>1) then
-         !
-         do ip = 1, npuv
+      !
+      if (advection_mask) then 
+         if (use_quadtree .or. nmax>1) then
             !
-            if ( kcuv(uv_index_u_nmu(ip)) /= 1 .or. &
-                 kcuv(uv_index_u_nmd(ip)) /= 1 .or. &
-                 kcuv(uv_index_v_nm(ip)) /= 1  .or. &
-                 kcuv(uv_index_v_nmu(ip)) /= 1 .or. &
-                 kcuv(uv_index_v_ndm(ip)) /= 1 .or. &
-                 kcuv(uv_index_v_ndmu(ip)) /= 1 .or. &
-                 kcuv(uv_index_u_ndm(ip)) /= 1 .or. &
-                 kcuv(uv_index_u_num(ip)) /= 1 ) then
+            do ip = 1, npuv
                !
-               mask_adv(ip) = 0
-               !
-            endif  
-         enddo 
-         ! 
-      endif
+               if ( kcuv(uv_index_u_nmu(ip)) /= 1 .or. &
+                    kcuv(uv_index_u_nmd(ip)) /= 1 .or. &
+                    kcuv(uv_index_v_nm(ip)) /= 1  .or. &
+                    kcuv(uv_index_v_nmu(ip)) /= 1 .or. &
+                    kcuv(uv_index_v_ndm(ip)) /= 1 .or. &
+                    kcuv(uv_index_v_ndmu(ip)) /= 1 .or. &
+                    kcuv(uv_index_u_ndm(ip)) /= 1 .or. &
+                    kcuv(uv_index_u_num(ip)) /= 1 ) then
+                  !
+                  mask_adv(ip) = 0
+                  !
+               endif  
+            enddo 
+            ! 
+         endif
+      endif 
       ! 
    endif
    !

@@ -216,6 +216,7 @@ module sfincs_data
       logical       :: use_spw_precip
       logical       :: friction2d
       logical       :: advection_limiter
+      logical       :: advection_mask
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
