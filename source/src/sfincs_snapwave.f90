@@ -383,6 +383,9 @@ contains
    call read_int_input(500,'snapwave_nrsweeps',nr_sweeps,1)
    call read_int_input(500,'snapwave_baldock_opt',baldock_opt,1)     
    call read_real_input(500,'snapwave_baldock_ratio',baldock_ratio,0.2)
+   call read_real_input(500,'rgh_lev_land',rghlevland,0.0)
+   call read_real_input(500,'snapwave_fw_ratio',fwratio,5.0)
+   call read_real_input(500,'snapwave_fwig_ratio',fwigratio,5.0)   
    !
    ! Settings related to IG waves:   
    call read_int_input(500,'snapwave_igwaves',igwaves_opt,1)   

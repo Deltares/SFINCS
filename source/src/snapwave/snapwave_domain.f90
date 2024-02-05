@@ -170,6 +170,13 @@ contains
    fw = fw0
    fw_ig = fw0_ig
    !
+   do k=1,no_nodes
+       if (zb(k) > rghlevland) then     
+           fw(k) = fw0 * fwratio
+           fw_ig(k) = fw0_ig * fwigratio           
+       endif
+   enddo   
+   !
    ! Initialization of reference tables
    !
    ! Definition of directional grid (dtheta is user input)

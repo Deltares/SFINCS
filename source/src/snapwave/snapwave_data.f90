@@ -203,6 +203,9 @@ module snapwave_data
    character*232                             :: Htabname,Dwtabname,Ftabname,Cgtabname,cthetafactabname,hhtabname
    character*232                             :: neumannfile
    real*4, dimension(:), allocatable         :: xb,yb,xneu,yneu
+   real*4                                    :: rghlevland       ! Elevation separation as in SFINCS for simple elevation varying roughness
+   real*4                                    :: fwratio          ! Above 'rghlevland' elevation of zb, the friction for incident waves is multiplied with value 'fwratio'
+   real*4                                    :: fwigratio        ! Above 'rghlevland' elevation of zb, the friction for IG waves is multiplied with value 'fwratio'      
    !
    character*3                               :: outputformat
    !   
