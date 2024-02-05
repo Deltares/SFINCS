@@ -151,7 +151,7 @@ module sfincs_lib
       !
       write(*,*)'Coupling with SnapWave ...'
       !
-      call couple_snapwave()
+      call couple_snapwave(crsgeo)
       !
    endif   
    !

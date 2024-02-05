@@ -32,7 +32,7 @@ module sfincs_snapwave
    !
 contains
    !
-   subroutine couple_snapwave()
+   subroutine couple_snapwave(crsgeo)
    !
    use snapwave_data
    use snapwave_domain
@@ -41,6 +41,14 @@ contains
    implicit none
    !
    integer :: ipsw, iq
+   logical       :: crsgeo
+   !
+   ! Check whether SFINCS grid is spherical (T) or cartesian (F), and prescribe to SnapWave as variable 'sferic' -  spherical (1) or cartesian (0) grid
+   if (crsgeo) then
+      sferic  = 1 
+      write(*,*)'SnapWave: Input grid interpreted as spherical coordinates, sferic= ',sferic
+      
+   endif   
    !
    call read_snapwave_input()            ! Reads snapwave.inp
    !
@@ -60,8 +68,7 @@ contains
    snapwave_tpigmean = 0.0    
    !   
    call find_matching_cells(index_quadtree_in_snapwave, index_snapwave_in_quadtree)
-   !
-   ! No longer need any of these
+
    !
    end subroutine
    
