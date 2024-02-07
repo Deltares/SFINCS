@@ -494,8 +494,8 @@ contains
             !
             ! Interpolation from subgrid tables needed.
             !
-            dzvol    = subgrid_z_volmax(nm) / (subgrid_nbins - 1)
-            iuv      = min(int(z_volume(nm)/dzvol) + 1, subgrid_nbins - 1)
+            dzvol    = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
+            iuv      = min(int(z_volume(nm)/dzvol) + 1, subgrid_nlevels - 1)
             facint   = (z_volume(nm) - (iuv - 1)*dzvol ) / dzvol
             zs(nm)   = subgrid_z_dep(iuv, nm) + (subgrid_z_dep(iuv + 1, nm) - subgrid_z_dep(iuv, nm))*facint                    
             !

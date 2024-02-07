@@ -1431,7 +1431,7 @@ contains
    !
    integer :: idummy
    integer :: ip
-   integer :: ibin
+   integer :: ilevel
    integer :: nm
    integer :: nmu
    integer :: n
@@ -2232,7 +2232,7 @@ contains
    real*4, dimension(:),   allocatable :: inizs
    real*4, dimension(:),   allocatable :: iniq
    !
-   integer    :: nm, m, n, ivol, num, nmu, ibin, rsttype, ip, ind, iuv, icuv
+   integer    :: nm, m, n, ivol, num, nmu, ilevel, rsttype, ip, ind, iuv, icuv
    real*4     :: dzvol
    real*4     :: facint
    real*4     :: rdummy
@@ -2467,7 +2467,7 @@ contains
                          !
                          ! Interpolation required
                          !
-                         dzuv   = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nbins - 1)
+                         dzuv   = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nlevels - 1)
                          iuv    = int((zsuv - subgrid_uv_zmin(ip))/dzuv) + 1
                          facint = (zsuv - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv
                          huv    = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint

@@ -457,7 +457,7 @@ module sfincs_data
       !
       ! Sub-grid
       !
-      integer                             :: subgrid_nbins
+      integer                             :: subgrid_nlevels
       !
       real*4, dimension(:),   allocatable :: subgrid_z_zmin
       real*4, dimension(:),   allocatable :: subgrid_z_zmax
