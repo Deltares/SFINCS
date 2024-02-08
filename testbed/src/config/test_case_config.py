@@ -2,7 +2,8 @@ from src.config.program_config import ProgramConfig
 from src.config.result_checks import ResultChecks
 
 
-class TestCaseConfig(object):
+class TestCaseConfig():
+    """Testcase configuration to run and check the results"""
     def __init__(self):
         self.__name: str = ""
         self.__program_config: ProgramConfig = ""
@@ -20,7 +21,7 @@ class TestCaseConfig(object):
 
     @property
     def program_config(self) -> ProgramConfig:
-        """Testcase name"""
+        """Testcase program configuration"""
         return self.__program_config
 
     @program_config.setter
@@ -29,7 +30,7 @@ class TestCaseConfig(object):
 
     @property
     def max_run_time(self) -> float:
-        """Testcase name"""
+        """Testcase maximum run time for execution"""
         return self.__max_run_time
 
     @max_run_time.setter

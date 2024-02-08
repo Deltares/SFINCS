@@ -21,14 +21,44 @@ class ConfigParser(object):
         else:
             return []
 
-    def __init__(self, settings: TestSettings):
-        self.__xml_path = settings.config_file
-        self.__xml_file = etree.parse(self.__xml_path)
+    def branch(self, xml_tree: etree._ElementTree, prefix: str) -> Dict[str, Any]:
+        new_tree = {"txt": xml_tree.text}
+
+        for ch in xml_tree.getchildren():
+            if type(ch.tag) == str:
+                branch_name = ch.tag.replace(prefix, "")
+
+                if branch_name not in new_tree:
+                    new_tree[branch_name] = []
+
+                new_tree[branch_name].append(self.branch(ch, prefix))
+
+        for key, val in xml_tree.attrib.items():
+            new_tree[key.replace(prefix, "")] = [val]
+
+        return new_tree
+
+    def __maketree__(self, path):
+        parser = etree.XMLParser(remove_blank_text=True, attribute_defaults=False)
+        xml_file: etree._ElementTree = etree.parse(path, parser)
+
+        xml_file.xinclude()
+        root_node: etree._Element = xml_file.getroot()
+
+        prefix = "{%s}" % root_node.nsmap
+
+        parsed_tree = self.branch(root_node, prefix)
+        return [xml_file, parsed_tree]
+
+    def __init__(self, config_file: str):
+        tree_values = self.__maketree__(config_file)
+        self.__xml_file: etree._ElementTree = tree_values[0]
+        self.__parsed_tree: Dict[str, Any] = tree_values[1]
         self.__program_configs: List[ProgramConfig] = []
         self.__test_case_config: List[TestCaseConfig] = []
 
     def validate(self):
-        """Validate the xml to be run against the schema"""
+        """Validate the xml by using the testbed schema"""
         xmlschema_path = etree.parse("configs/xsd/testbed.xsd")
         xmlschema = etree.XMLSchema(xmlschema_path)
 
@@ -39,6 +69,15 @@ class ConfigParser(object):
         else:
             print("XML configuration validation error.")
             assert result, xmlschema.error_log.filter_from_errors()[0]
+
+    def generate_testcases(self):
+        testcase_names = []
+        for testcases in self.loop(self.__parsed_tree, "testCases"):
+            for testcase in testcases["testCase"]:
+                if "name" in testcase:
+                    testcase_names.append(str(testcase["name"][0]))
+        print(testcase_names)
+        return testcase_names
 
     def parse_config(self):
         """Parse the specified configuration from paramater"""

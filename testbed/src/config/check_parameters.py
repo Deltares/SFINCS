@@ -1,5 +1,6 @@
 class CheckParameters(object):
     """Parameters to use when comparing values."""
+
     def __init__(self):
         self.__name: str = ""
         self.__location: str = ""
