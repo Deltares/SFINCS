@@ -85,8 +85,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.0.4-alpha'
-   build_date     = '$Date: 2024-02-05'
+   build_revision = '$Rev: v2.0.5-alpha:branch-sfincs_snapwave_ig'
+   build_date     = '$Date: 2024-02-10'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
