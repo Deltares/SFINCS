@@ -418,7 +418,7 @@ contains
                !
                ind1_bnd_gbp(nb)  = ib1
                ind2_bnd_gbp(nb)  = ib2
-               fac_bnd_gbp(nb) = dst2/(dst1 + dst2)
+               fac_bnd_gbp(nb) = dst2/max(dst1 + dst2, 1.0e-9)
                !
             else
                !

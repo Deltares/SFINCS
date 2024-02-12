@@ -363,20 +363,6 @@ contains
    NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mask_varid,  quadtree_mask(:)))
    NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%snapwave_mask_varid,  quadtree_snapwave_mask(:)))
    !
-   ! Indices in netcdf file are zero-based so add 1
-   !
-   quadtree_level = quadtree_level + 1
-   quadtree_n     = quadtree_n + 1
-   quadtree_m     = quadtree_m + 1
-   quadtree_md1   = quadtree_md1 + 1
-   quadtree_md2   = quadtree_md2 + 1
-   quadtree_mu1   = quadtree_mu1 + 1
-   quadtree_mu2   = quadtree_mu2 + 1
-   quadtree_nd1   = quadtree_nd1 + 1
-   quadtree_nd2   = quadtree_nd2 + 1
-   quadtree_nu1   = quadtree_nu1 + 1
-   quadtree_nu2   = quadtree_nu2 + 1
-   !   
    ! Read attibute (should read EPSG code here ?)
    !
    NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'x0', quadtree_x0))
