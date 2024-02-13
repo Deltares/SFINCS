@@ -64,8 +64,6 @@ module sfincs_data
       real*4, dimension(:), allocatable :: cd_wnd
       real*4, dimension(:), allocatable :: cd_val
       real*4 qinf_zmin
-      real*4 horton_decay
-      real*4 horton_time
       real*4 btfilter
       real*4 sfacinf
       real*4 dym
@@ -77,6 +75,8 @@ module sfincs_data
       real*4 tsunami_arrival_threshold
       real*4 dtwave
       real*4 wmtfilter
+      real*4 horton_kr_kd
+      real*4 btrelax
       !
       real*4 freqminig
       real*4 freqmaxig
@@ -87,6 +87,7 @@ module sfincs_data
       integer bndtype
       integer cd_nr
       integer baro
+      integer advection_scheme
       !
       character*256 :: depfile
       character*256 :: mskfile
@@ -130,10 +131,16 @@ module sfincs_data
       character*256 :: netamuamvfile
       character*256 :: netampfile
       character*256 :: netamprfile
+      character*256 :: netspwfile
       character*256 :: scsfile
       character*256 :: smaxfile
       character*256 :: sefffile
-      character*256 :: krfile
+      character*256 :: psifile
+      character*256 :: sigmafile
+      character*256 :: ksfile
+      character*256 :: f0file
+      character*256 :: fcfile
+      character*256 :: kdfile
       character*256 :: z0lfile
       character*256 :: wvmfile
       character*256 :: qtrfile
@@ -153,6 +160,7 @@ module sfincs_data
       character*3   :: inftype
       integer       :: epsg
       character*15  :: epsg_code
+      integer       :: nc_deflate_level
       !
       logical       :: waves
       logical       :: wind
@@ -201,8 +209,13 @@ module sfincs_data
       logical       :: use_quadtree
       logical       :: interpolate_zst
       logical       :: advection
+      logical       :: thetasmoothing            
       logical       :: fixed_output_intervals
       logical       :: use_storage_volume
+      logical       :: output_irregular_grid
+      logical       :: use_spw_precip
+      logical       :: friction2d
+      logical       :: advection_limiter
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
@@ -215,32 +228,17 @@ module sfincs_data
       integer storemeteo
       integer storehsubgrid
       integer wrttimeoutput
-      integer idebug
-      integer iradstr
-      integer igeo
-      integer icoriolis
-      integer iamprblock
-      integer iglobal
-      integer itsunamitime
-      integer ispinupmeteo
-      integer isnapwave
-      integer iwindmax
-      integer ioutfixed
-      integer iadvection
-      integer istorefw
-      integer istorewavdir   
-      integer imanning2d
-      integer iviscosity   
-      integer isubgrid  
-      integer iwavemaker      
-      integer iwavemaker_spectrum  
-      integer ispwprecip
       !!!
       !!! Static data
       !!!
       integer*4 :: np
       integer*4 :: npuv
+      integer*4 :: ncuv
       integer*4 :: nkcuv2
+      !
+      ! Temp for reading ascii depfile in initialize_bathymetry().
+      !
+      integer*1, dimension(:,:), allocatable :: kcsg
       !
       ! Internal wave maker
       !
@@ -250,10 +248,8 @@ module sfincs_data
       ! Indices
       !
       integer*4,          dimension(:),   allocatable :: nmindbnd
-!      integer*4,          dimension(:,:), allocatable :: z_index
-      integer*4,          dimension(:), allocatable   :: z_index_z_n
-      integer*4,          dimension(:), allocatable   :: z_index_z_m
-!      integer*4,          dimension(:), allocatable   :: z_index_z_nm
+      integer*4,          dimension(:),   allocatable :: z_index_z_n
+      integer*4,          dimension(:),   allocatable :: z_index_z_m
       integer*4,          dimension(:),   allocatable :: z_index_uv_md1
       integer*4,          dimension(:),   allocatable :: z_index_uv_md2
       integer*4,          dimension(:),   allocatable :: z_index_uv_mu1
@@ -262,6 +258,10 @@ module sfincs_data
       integer*4,          dimension(:),   allocatable :: z_index_uv_nd2
       integer*4,          dimension(:),   allocatable :: z_index_uv_nu1
       integer*4,          dimension(:),   allocatable :: z_index_uv_nu2
+      integer*4,          dimension(:),   allocatable :: z_index_uv_md
+      integer*4,          dimension(:),   allocatable :: z_index_uv_mu
+      integer*4,          dimension(:),   allocatable :: z_index_uv_nd
+      integer*4,          dimension(:),   allocatable :: z_index_uv_nu
       !
       integer*4,          dimension(:),   allocatable :: uv_index_z_nm
       integer*4,          dimension(:),   allocatable :: uv_index_z_nmu
@@ -273,21 +273,21 @@ module sfincs_data
       integer*4,          dimension(:),   allocatable :: uv_index_v_nm
       integer*4,          dimension(:),   allocatable :: uv_index_v_ndmu
       integer*4,          dimension(:),   allocatable :: uv_index_v_nmu
+      integer*4,          dimension(:),   allocatable :: cuv_index_uv
+      integer*4,          dimension(:),   allocatable :: cuv_index_uv1
+      integer*4,          dimension(:),   allocatable :: cuv_index_uv2
       !
       ! Flags
       !
       integer*1,          dimension(:),   allocatable :: z_flags_iref
-      integer*1,          dimension(:),   allocatable :: z_flags_type
       !
       integer*1,          dimension(:),   allocatable :: uv_flags_iref
       integer*1,          dimension(:),   allocatable :: uv_flags_type
       integer*1,          dimension(:),   allocatable :: uv_flags_dir
-      integer*1,          dimension(:),   allocatable :: uv_flags_adv
-      integer*1,          dimension(:),   allocatable :: uv_flags_vis      
       !
       integer*1,          dimension(:),   allocatable :: kcs
       integer*1,          dimension(:),   allocatable :: kcuv
-      integer*1,          dimension(:),   allocatable :: kfuv
+      ! integer*1,          dimension(:),   allocatable :: kfu
       integer*1,          dimension(:),   allocatable :: scs_rain   ! logic if previous time step was raining
       !
       ! Quadtree
@@ -310,10 +310,6 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: dyrinvc
       real*4, dimension(:),   allocatable :: cell_area
       !
-!      integer*4, dimension(:),   allocatable :: nr_points_per_level      
-!      integer*4, dimension(:,:), allocatable :: nm_indices_per_level
-!      integer*4, dimension(:,:), allocatable :: cell_indices_per_level
-      !
       ! Cell sizes
       !
       real*4, dimension(:),   allocatable :: dxm
@@ -328,11 +324,6 @@ module sfincs_data
       !
       ! UV-points
       !
-!      integer*4,          dimension(:,:), allocatable :: uv_index
-!      integer*4,          dimension(:), allocatable   :: uv_index_nm
-!      integer*4,          dimension(:), allocatable   :: uv_index_nmu
-!      integer*1,          dimension(:,:), allocatable :: uv_flags
-      !
       real*4, dimension(:),   allocatable :: zb
       real*4, dimension(:),   allocatable :: zbuv
       real*4, dimension(:),   allocatable :: zbuvmx
@@ -340,14 +331,23 @@ module sfincs_data
       !
       ! Rainfall and infiltration
       !      
-      real*4, dimension(:),   allocatable :: qinfmap
-      real*4, dimension(:),   allocatable :: qinffield       ! infiltration map or Smax for SCS method
-      real*4, dimension(:),   allocatable :: qinffield2      ! effective S (Se) used in SCS method
-      real*4, dimension(:),   allocatable :: scs_kr          ! recovery kr
-      real*4, dimension(:),   allocatable :: scs_P1          ! rainfall of this 'event'
+      real*4, dimension(:),   allocatable :: qinffield       ! infiltration map prescribed by user and typically not updated
+      real*4, dimension(:),   allocatable :: ksfield         ! saturated hydraulic conductivity
+      real*4, dimension(:),   allocatable :: qinfmap         ! infiltration used in the computation
+      real*4, dimension(:),   allocatable :: rain_T1         ! time that it is not raining - used both in cnb and gai
+      real*4, dimension(:),   allocatable :: inf_kr          ! recovery concept - used both in cnb and gai
+      real*4, dimension(:),   allocatable :: scs_Se          ! effective S (Se) used in SCS method
+      real*4, dimension(:),   allocatable :: scs_P1          ! cumulative rainfall of this 'event'
       real*4, dimension(:),   allocatable :: scs_F1          ! infiltration of this 'event'
-      real*4, dimension(:),   allocatable :: scs_T1          ! time that it is not raining
-      real*4, dimension(:),   allocatable :: scs_Se          ! S for this 'event'
+      real*4, dimension(:),   allocatable :: scs_S1          ! S for this 'event'
+      real*4, dimension(:),   allocatable :: GA_head         ! the soil suction head in mm
+      real*4, dimension(:),   allocatable :: GA_sigma_max    ! the maximum soil capacity (porosity) in [-]
+      real*4, dimension(:),   allocatable :: GA_sigma        ! the current soil capacity (porosity) in [-]
+      real*4, dimension(:),   allocatable :: GA_F            ! cumulative infiltration for green-ampt
+      real*4, dimension(:),   allocatable :: GA_Lu           ! depth of upper soil recovery zone (computed from ksfield)
+      real*4, dimension(:),   allocatable :: horton_fc       ! final infiltration capacity - Horton
+      real*4, dimension(:),   allocatable :: horton_f0       ! initial infiltration capacity 
+      real*4, dimension(:),   allocatable :: horton_kd       ! coefficient of the exponential term
       !
       ! Storage volume
       !
@@ -409,8 +409,7 @@ module sfincs_data
       real*4, dimension(:),     allocatable :: wmf_hm0_ig_t
       real*4, dimension(:),     allocatable :: wmf_tp_ig_t
       real*4, dimension(:),     allocatable :: wmf_setup_t
-      !
-      
+      !      
 !      integer*4                              :: wavemaker_nr_cross
 !      integer*4                              :: wavemaker_nr_along
 !      real*4                                 :: wavemaker_dx_cross
@@ -454,26 +453,24 @@ module sfincs_data
 !      real*4,    dimension(:),   allocatable :: wavemaker_qym
 !      real*4,    dimension(:),   allocatable :: wavemaker_angfac_v
       !
-      ! General grid
-      !
-!      real*4, dimension(:,:), allocatable, target :: xg, yg, xz, yz
-      !
       ! Sub-grid
       !
       integer                             :: subgrid_nbins
       !
       real*4, dimension(:),   allocatable :: subgrid_z_zmin
       real*4, dimension(:),   allocatable :: subgrid_z_zmax
-      real*4, dimension(:),   allocatable :: subgrid_z_zmean
       real*4, dimension(:),   allocatable :: subgrid_z_volmax
       real*4, dimension(:,:), allocatable :: subgrid_z_dep
       !
       real*4, dimension(:),   allocatable :: subgrid_uv_zmin
       real*4, dimension(:),   allocatable :: subgrid_uv_zmax
-      real*4, dimension(:,:), allocatable :: subgrid_uv_hrep
-      real*4, dimension(:,:), allocatable :: subgrid_uv_navg
-      real*4, dimension(:),   allocatable :: subgrid_uv_hrep_zmax
-      real*4, dimension(:),   allocatable :: subgrid_uv_navg_zmax
+      real*4, dimension(:),   allocatable :: subgrid_uv_navg_w
+      real*4, dimension(:),   allocatable :: subgrid_uv_fnfit
+      real*4, dimension(:,:), allocatable :: subgrid_uv_havg
+      real*4, dimension(:,:), allocatable :: subgrid_uv_nrep
+      real*4, dimension(:,:), allocatable :: subgrid_uv_pwet
+      real*4, dimension(:),   allocatable :: subgrid_uv_havg_zmax
+      real*4, dimension(:),   allocatable :: subgrid_uv_nrep_zmax
       !
       ! Dynamic data on the grid
       !
@@ -569,7 +566,7 @@ module sfincs_data
       real*4, dimension(:),     allocatable :: l0t_bwv
       real*4, dimension(:),     allocatable :: wdt_bwv
       !
-      ! cst points
+      ! cst points (should remove these?)
       !
       integer                               :: ncst
       real*4, dimension(:),     allocatable :: x_cst
@@ -601,9 +598,11 @@ module sfincs_data
       integer                                 :: spw_ncols
       integer                                 :: spw_nquant
       real*4                                  :: spw_radius
+      real*4, dimension(:),     allocatable   :: spw_radia
       real*4, dimension(:),     allocatable   :: spw_times
       real*4, dimension(:),     allocatable   :: spw_xe
       real*4, dimension(:),     allocatable   :: spw_ye
+      real*4, dimension(:),     allocatable   :: spw_pressure_eye
       real*4, dimension(:,:,:),   allocatable :: spw_vmag
       real*4, dimension(:,:,:),   allocatable :: spw_vdir
       real*4, dimension(:,:,:),   allocatable :: spw_wu
@@ -826,8 +825,9 @@ module sfincs_data
 !    if(allocated(gn2v)) deallocate(gn2v)
     if(allocated(qinfmap)) deallocate(qinfmap)
     if(allocated(qinffield)) deallocate(qinffield)
-    if(allocated(qinffield2)) deallocate(qinffield2)
-    if(allocated(scs_kr)) deallocate(scs_kr)
+    if(allocated(ksfield)) deallocate(ksfield)
+    if(allocated(scs_Se)) deallocate(scs_Se)
+
     !
     ! Boundary velocity points
     !
@@ -905,7 +905,7 @@ module sfincs_data
     if(allocated(prcp0)) deallocate(prcp0)
     if(allocated(prcp1)) deallocate(prcp1)
     !
-    if(allocated(kfuv)) deallocate(kfuv)
+!    if(allocated(kfuv)) deallocate(kfuv)
     !
     ! Grid boundary points
     !

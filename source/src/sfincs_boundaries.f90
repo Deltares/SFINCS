@@ -673,20 +673,21 @@ contains
    implicit none
    !
    integer ib, nm, nmi, nmb, iuv, indb, ip
-   real*4  hnmb, dt, zsnmi, zsnmb, zs0nmb
-   real*8  factime
+   real*4  hnmb, dt, zsnmi, zsnmb, zs0nmb, facrel
+   real*4  factime, one_minus_factime
    !
    real*4 ui, ub, dzuv, facint, zsuv, depthuv
    !
    !$acc update device( zsb0, zsb ), async(1)
    !
    factime = min(dt/btfilter, 1.0)
-   !
-   !$acc kernels present(index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, kcuv, zs, z_volume, q, uvmean, uv, zb, zbuv, zsb, zsb0, &
-   !$acc                 subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_hrep, subgrid_uv_hrep_zmax, subgrid_z_zmin, ibuvdir), async(1)
+   one_minus_factime = 1.0 - factime
+   facrel  = 1.0 - min(dt/btrelax, 1.0)
    !
    ! UV fluxes at boundaries
    !
+   !$acc kernels present(index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, kcuv, zs, z_volume, q, uvmean, uv, zb, zbuv, zsb, zsb0, &
+   !$acc                 subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_havg_zmax, subgrid_z_zmin, ibuvdir, zsmax ), async(1)
    !$acc loop independent, private(ib)
    do ib = 1, nkcuv2
       !
@@ -712,7 +713,7 @@ contains
                !
                ! Entire cell is wet, no interpolation from table needed
                !
-               depthuv  = subgrid_uv_hrep_zmax(ip) + zsuv
+               depthuv  = subgrid_uv_havg_zmax(ip) + zsuv
                !
             elseif (zsuv>subgrid_uv_zmin(ip)) then
                !
@@ -721,7 +722,7 @@ contains
                dzuv    = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nbins - 1)
                iuv     = int((zsuv - subgrid_uv_zmin(ip))/dzuv) + 1
                facint  = (zsuv - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv
-               depthuv = subgrid_uv_hrep(iuv, ip) + (subgrid_uv_hrep(iuv + 1, ip) - subgrid_uv_hrep(iuv, ip))*facint
+               depthuv = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint
                !
             else
                !
@@ -741,7 +742,7 @@ contains
             !
          endif      
          !
-         if (hnmb<huthresh .or. kcuv(ip)==3) then
+         if (hnmb<huthresh + 1.0e-6 .or. kcuv(ip)==3) then
             !
             ! Very shallow or also a structure point.
             !
@@ -755,6 +756,8 @@ contains
             ub = ibuvdir(ib) * (2*ui - sqrt(g/hnmb)*(zsnmi - zs0nmb))
             !
             q(ip) = ub*hnmb + uvmean(ib)
+            ! 
+            ! q(ip) = factime * ub * hnmb + one_minus_factime * uvmean(ib)
             !
             if (subgrid) then
                !
@@ -767,6 +770,7 @@ contains
                      q(ip) = min(q(ip), 0.0) ! Nothing can flow out
                   endif
                endif
+               !
                if (zsnmb - subgrid_z_zmin(nmb)<huthresh) then
                   if (ibuvdir(ib)==1) then
                      q(ip) = min(q(ip), 0.0) ! Nothing can flow in
@@ -786,6 +790,7 @@ contains
                      q(ip) = min(q(ip), 0.0) ! Nothing can flow out
                   endif
                endif
+               !
                if (zsnmb - zb(nmb)<huthresh) then
                   if (ibuvdir(ib)==1) then
                      q(ip) = min(q(ip), 0.0) ! Nothing can flow in
@@ -795,15 +800,19 @@ contains
                endif
             endif
             !
-            uv(ip) = q(ip)/hnmb
+            ! Limit velocities (this does not change fluxes, but may prevent advection term from exploding in the next time step)
+            !
+            uv(ip)  = max(min(q(ip)/hnmb, 4.0), -4.0)
             !
          endif
          !
-         if (btfilter>=0.0) then
+         if (btfilter>=-1.0e-6) then
             !
             ! Added a little bit of relaxation in uvmean to avoid persistent jets shooting into the model
+            ! Using: facrel = 1.0 - min(dt/btrelax, 1.0)
+            ! Default: btrelax = 1.0e6, so very little relaxation. Should perhaps change to something like 3600 s.
             !
-            uvmean(ib) = factime*q(ip) + 0.99*(1.0 - factime)*uvmean(ib)
+            uvmean(ib) = factime * q(ip) + facrel * one_minus_factime * uvmean(ib)
             !
          else
             !
@@ -812,9 +821,11 @@ contains
          endif
          !
          ! Set value on kcs=2 point to boundary condition
+         !
          zs(nmb) = zsb(indb)
          !
          ! Store maximum water levels also on the boundary
+         !
          if (store_maximum_waterlevel) then
             zsmax(nmb) = max(zsmax(nmb), zs(nmb))
          endif

@@ -54,16 +54,16 @@ SFINCS seeks active contribution from the hydro modelling community, so feel fre
     :alt: Latest developers docs
 
 .. |docs_stable| image:: https://img.shields.io/badge/docs-stable-brightgreen.svg
-    :target: https://sfincs.readthedocs.io/en/v2.0.2_blockhaus_release/
+    :target: https://sfincs.readthedocs.io/en/v2.0.3_cauberg_release/
     :alt: Stable docs last release
 
 .. |license| image:: https://img.shields.io/github/license/Deltares/SFINCS
     :alt: License
     :target: https://github.com/Deltares/SFINCS/blob/main/LICENSE    
 
-.. |doi| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.8038565.svg
+.. |doi| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.10118583.svg
     :alt: Zenodo
-    :target: https://doi.org/10.5281/zenodo.8038565
+    :target: https://doi.org/10.5281/zenodo.10118583
 
 .. |journal| image:: https://github.com/Deltares/SFINCS/blob/main/docs/figures/SFINCS_logo.svg
     :alt: Elsevier

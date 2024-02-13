@@ -2,7 +2,7 @@ module sfincs_meteo
 
 contains
 
-   subroutine read_meteo_data()  
+    subroutine read_meteo_data()  
    !
    ! Read different meteo input types
    !
@@ -59,18 +59,34 @@ contains
       enddo
       !
       if (spw_nquant==4) then
-          if (ispwprecip==0) then
-             spw_precip = .false.
-             write(*,*)'Info : Overruled to not use precipitation from spiderweb input ...'
-          else
-             spw_precip = .true.
-          endif
+         if (use_spw_precip) then
+            spw_precip = .true.
+         else
+            write(*,*)'Info : Overruled to not use precipitation from spiderweb input ...'
+            spw_precip = .false.
+         endif
       endif
+      !
+   endif   
+   !
+   if (netspwfile(1:4) /= 'none') then
+      ! 
+      ! Write statement to log
+      write(*,*)'Reading netcdf spiderweb file ...'
+      ! 
+      ! Read information
+      call read_netcdf_spw_data()
+      !
+   endif
+   !
+   if (spwfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       !
       if (utmzone/='nil') then
          !
          ! Convert spiderweb coordinates to utm zone
          ! 
+         write(*,*)'Converting spiderweb coordinates to utm zone ...'
+         !       
          do it = 1, spw_nt
             call deg2utm(spw_ye(it),spw_xe(it),xx,yy,utmzone)
             spw_xe(it) = xx
@@ -79,8 +95,8 @@ contains
          !
       endif
       !
-   endif
-   ! 
+   endif   
+   !
    if (amufile(1:4) /= 'none') then
       !
       write(*,*)'Reading amu and amv file ...'
@@ -247,6 +263,7 @@ contains
    real*4 meteo_t
    real*4 twfac
    real*4 merge_frac
+   real*4 tspinup_fac
    real*4 wa
    real*4 z0marine
    real*4 z0l
@@ -264,6 +281,7 @@ contains
          meteo_t = meteo_t1
       endif
       !
+      itw0 = 1
       do itspw = 1, spw_nt
          if (spw_times(itspw)<=meteo_t) then
             itw0 = itspw
@@ -275,6 +293,33 @@ contains
       meteo_t = min(meteo_t, spw_times(itw1))
       !
       twfac  = (meteo_t - spw_times(itw0))/max(spw_times(itw1) - spw_times(itw0), 1.0e-6)
+      tspinup_fac = 1.0 
+      !
+      ! Check if spw data is not yet available
+      ! If so, use first time in spw 
+      !
+      if (meteo_t < spw_times(1)) then
+         !
+         itw0 = 1
+         itw1 = 1
+         twfac = 1.0         
+         !
+         tspinup_fac = max(1.0 - (spw_times(1) - meteo_t) / 21600.0, 0.0)
+         !
+      endif
+      !
+      ! Check if spw data is no longer available
+      ! If so, use last time in spw 
+      !
+      if (meteo_t > spw_times(spw_nt)) then
+         !
+         itw0 = spw_nt
+         itw1 = spw_nt
+         twfac = 1.0         
+         !
+         tspinup_fac = max(1.0 - (meteo_t - spw_times(spw_nt)) / 21600.0, 0.0)
+         !
+      endif
       !
       ! Eye
       ! 
@@ -453,6 +498,8 @@ contains
          else
             merge_frac = 1.0
          endif
+         ! 
+         merge_frac = merge_frac * tspinup_fac
          !
          if (wind_reduction) then
             !
@@ -983,7 +1030,7 @@ contains
       !$omp do
       !$acc kernels, present(tauwu, tauwv,  tauwu0, tauwv0, tauwu1, tauwv1, &
       !$acc                  windu, windv, windu0, windv0, windu1, windv1, windmax, &
-      !$acc                  patm, patm0, patm1, prcp, prcp0, prcp1 ), async(1)
+      !$acc                  patm, patm0, patm1, prcp, prcp0, prcp1, cumprcp, netprcp, zs, zb, z_volume ), async(1)
       !$acc loop independent, private(nm)
       do nm = 1, np
          !
@@ -1012,7 +1059,25 @@ contains
          if (precip) then
             !
             prcp(nm)    = prcp0(nm)*onemintwfact  + prcp1(nm)*twfact  ! rainfall in m/s !!!
-            netprcp(nm) = prcp(nm)
+            !
+            ! Don't allow negative prcp (e.g. hardfixing infiltration/evaporation on model when forcing effective rainfall) when there's no water in the cell (same as check for constant infiltration)
+            !
+            if (prcp(nm) < 0) then
+                 !  
+                 ! No effective infiltration if there is no water
+                 !  
+                 if (subgrid) then
+                    if (z_volume(nm)<=0.0) then
+                       prcp(nm) = 0.0
+                    endif
+                 else
+                    if (zs(nm)<=zb(nm)) then
+                       prcp(nm) = 0.0
+                    endif
+                 endif            
+            endif
+            !
+            netprcp(nm) = prcp(nm)            
             cumprcp(nm) = cumprcp(nm) + prcp(nm)*dt
             !
          endif   
@@ -1032,7 +1097,7 @@ contains
          !$omp parallel &
          !$omp private ( nm )
          !$omp do
-         !$acc kernels, present(tauwu, tauwv, patm, prcp ), async(1)
+         !$acc kernels, present( tauwu, tauwv, patm, prcp, netprcp, zs, zb, z_volume ), async(1)
          !$acc loop independent, private(nm)
          do nm = 1, np
             !
@@ -1046,7 +1111,26 @@ contains
             endif   
             !
             if (precip) then
+               !  
                netprcp(nm) = netprcp(nm)*smfac
+               !  
+               ! Don't allow negative netprcp during spinup (e.g. hardfixing infiltration/evaporation on model when forcing effective rainfall) when there's no water in the cell (same as check for constant infiltration)
+               !  
+               if (netprcp(nm) < 0.0) then
+                  !  
+                  ! No effective infiltration if there is no water
+                  !  
+                  if (subgrid) then
+                     if (z_volume(nm)<=0.0) then
+                        netprcp(nm) = 0.0
+                     endif
+                  else
+                     if (zs(nm)<=zb(nm)) then
+                        netprcp(nm) = 0.0
+                     endif
+                  endif            
+                  !  
+               endif               
             endif   
             !
          enddo   
@@ -1089,14 +1173,6 @@ contains
       call update_precipitation_from_timeseries(t, dt) 
       !
    endif
-   !
-   if (infiltration) then
-      !
-      ! Compute infiltration rates
-      !
-      call update_infiltration_map(dt)
-      !
-   endif   
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
@@ -1204,185 +1280,6 @@ contains
    !
    end subroutine   
 
-
-   subroutine update_infiltration_map(dt)
-   !
-   ! Update infiltration rates in each grid cell
-   !
-   use sfincs_data
-   !
-   implicit none
-   !
-   integer nm
-   !
-   real*4  :: Qq
-   real*4  :: I
-   real*4  :: dt   
-   !
-   if (inftype == 'con' .or. inftype == 'c2d') then
-      !
-      ! Infiltration rate map stays constant
-      !
-      !$omp parallel &
-      !$omp private ( nm )
-      !$omp do
-      do nm = 1, np
-         !
-         qinfmap(nm) = qinffield(nm)
-         !
-         ! No infiltration if there is no water
-         !  
-         if (subgrid) then
-            if (z_volume(nm)<=0.0) then
-               qinfmap(nm) = 0.0
-            endif
-         else
-            if (zs(nm)<=zb(nm)) then
-               qinfmap(nm) = 0.0
-            endif
-         endif
-         !
-         cuminf(nm) = cuminf(nm) + qinfmap(nm)*dt
-         netprcp(nm) = netprcp(nm) - qinfmap(nm)
-         !
-      enddo
-      !$omp end do
-      !$omp end parallel
-      !
-   elseif (inftype == 'cna') then
-      !
-      ! Determine infiltration rate with Curve Number (old method; no recovery)
-      !
-!      !$acc update host(cumprcp), async(1)
-      !
-      !$omp parallel &
-      !$omp private ( Qq,I,nm )
-      !$omp do
-      do nm = 1, np
-         !
-         ! Check if Ia (0.2 x S) is larger than cumulative rainfall
-         !
-         if (cumprcp(nm) > sfacinf*qinffield(nm)) then ! qinffield is S
-            ! 
-            ! Compute runoff as function of rain
-            !
-            Qq  = (cumprcp(nm) - sfacinf*qinffield(nm))**2 / (cumprcp(nm) + (1.0 - sfacinf)*qinffield(nm))  ! cumulative runoff in m
-            I   = cumprcp(nm) - Qq                      ! cumulative infiltration in m
-            qinfmap(nm) = (I - cuminf(nm))/dt           ! infiltration in m/s
-            !
-         else
-            !
-            ! Everything still infiltrating
-            !
-            qinfmap(nm) = prcp(nm)
-            !
-         endif   
-         ! 
-         cuminf(nm) = cuminf(nm) + qinfmap(nm)*dt
-         netprcp(nm) = netprcp(nm) - qinfmap(nm)
-         !
-      enddo
-      !$omp end do
-      !$omp end parallel
-      !
-      !$acc update device(qinfmap), async(1)
-      !
-      ! For now, curve number infiltration is done on the CPU 
-!      !$acc update device(cuminf), async(1)
-      !
-      ! Provide update to user
-      !write(*,'(a,f5.3,a,f10.3,a)') '  update from SCS-CN method: Average cumulative rainfall of ',sum(cumprcp)/size(cumprcp),' meter and infiltration rate of ',sum(qinfmap*3.6e3*1.0e3)/size(qinfmap) ,' mm/hour'
-      !   
-   elseif (inftype == 'cnb') then
-      !
-      ! Determine infiltration rate with Curve Number with recovery
-!      !$acc update host(cumprcp), async(1)
-      !
-      !$omp parallel &
-      !$omp private ( Qq,I,nm ) &
-      !$omp shared ( scs_P1,scs_T1,scs_F1,scs_Se,scs_rain,cuminf,qinfmap,qinffield,qinffield2 )
-      !$omp do
-      do nm = 1, np
-         !
-         ! If there is precip in this grid cell for this time step  
-         !
-         if (prcp(nm) > 0.0) then
-            !
-            ! Is raining now
-            !
-            if (scs_rain(nm) == 1) then
-               ! if it was raining before; do nothing
-            else
-               ! initalise these variables 
-               scs_P1(nm)          = 0.0               ! cumulative rainfall for this 'event'
-               scs_F1(nm)          = 0.0               ! cumulative infiltration for this 'event'
-               scs_Se(nm)          = qinffield2(nm)    ! S for this 'event'
-               scs_rain(nm)        = 1                 ! logic used to determine if there is an event ongoing
-            endif
-            ! 
-            !  Compute cum rainfall
-            ! 
-            scs_P1(nm) = scs_P1(nm) + prcp(nm)*dt
-            ! 
-            ! Compute runoff
-            ! 
-            if (scs_P1(nm) > (sfacinf* scs_Se(nm)) ) then ! scs_Se is S
-               Qq              = (scs_P1(nm) - sfacinf*scs_Se(nm))**2 / (scs_P1(nm) + (1.0 - sfacinf)*scs_Se(nm))  ! cumulative runoff in m
-               I              = scs_P1(nm) - Qq                       ! cum infiltration this event
-               qinfmap(nm)    = (I - scs_F1(nm))/dt                ! infiltration in m/s
-               scs_F1(nm)     = I                                    ! cum infiltration this event
-            else
-               Qq              = 0.0                               ! no runoff
-               scs_F1(nm)     = scs_P1(nm)                        ! all rainfall is infiltrated
-               qinfmap(nm)    = prcp(nm)                          ! infiltration rate = rainfall rate
-            endif
-            ! 
-            ! Compute "remaining S", but note that qinffield2 is not used in computation
-            ! 
-            qinffield2(nm)  = qinffield2(nm) - qinfmap(nm)*dt
-            qinffield2(nm)  = max(qinffield2(nm), 0.0)
-            qinfmap(nm)     = max(qinfmap(nm), 0.0)
-            !
-         else
-            ! 
-            ! It is not raining here
-            if (scs_rain(nm) == 1) then
-               !
-               ! if it was raining before
-               ! change logic and set rate to 0
-               !
-               scs_rain(nm)   = 0
-               qinfmap(nm)    = 0.0
-               scs_T1(nm)     = 0.0
-               !
-            endif
-            !
-            ! Add to recovery time
-            scs_T1(nm)     = scs_T1(nm) + dt / 3600
-            !
-            ! compute recovery of S if time is larger than this
-            if (scs_T1(nm) >  (0.06 / scs_kr(nm)) ) then			! Equation 4-37 from SWMM
-                ! note that qinffield2 is S and qinffield is Smax
-                qinffield2(nm) = qinffield2(nm) + (scs_kr(nm) * qinffield(nm) * dt / 3600)  ! scs_kr is recovery in hours 
-                qinffield2(nm) = min(qinffield2(nm), qinffield(nm))
-                !
-            endif
-            !
-         endif
-         ! 
-         cuminf(nm) = cuminf(nm) + qinfmap(nm)*dt
-         netprcp(nm) = netprcp(nm) - qinfmap(nm)
-         !
-      enddo
-      !$omp end do
-      !$omp end parallel
-      !
-      !$acc update device(qinfmap), async(1)
-      !
-   endif
-   !
-   end subroutine   
-
    
    subroutine update_meteo_fields(t, tloop)
    !
@@ -1428,7 +1325,7 @@ contains
       !
    endif
    !      
-   if (spwfile(1:4) /= 'none') then
+   if (spwfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       !
       call update_spiderweb_data()
       !
@@ -1441,18 +1338,6 @@ contains
       endif
       !
    endif
-   !
-!   if (precip .and. store_cumulative_precipitation) then
-!      !        
-!      call update_cumprcp_map()
-!      !
-!   endif
-!   !
-!   if (infiltration2d) then
-!      !
-!      call update_infiltration_map()
-!      !
-!   endif
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate

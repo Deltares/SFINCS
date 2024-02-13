@@ -105,6 +105,12 @@ Parameters for model input
 	  :default:		0
 	  :min:			0
 	  :max:			100  
+	qinf_zmin
+	  :description:		Minimum elevation level above for what cells the spatially uniform, constant in time infiltration rate 'qinf' is added.
+	  :units:		m above reference level
+	  :default:		0
+	  :min:			-100
+	  :max:			100  	  
 	manning
 	  :description:		Uniform manning roughness, specify in s/m^(1/3).
 	  :units:		s/m^(1/3)
@@ -348,10 +354,51 @@ Domain
 	  :required:		no	  
 	  :format:		bin	  
 	scsfile = sfincs.scs
-	  :description:		For spatially varying infiltration values per cell using the Curve Number method use the scsfile option, with the same grid based input as the depfile using a binary file.
+	  :description:		For spatially varying infiltration values per cell using the Curve Number method A (without recovery) use the scsfile option, with the same grid based input as the depfile using a binary file.
 	  :units:		-
 	  :required:		no	  
 	  :format:		bin	  	  
+	smaxfile = sfincs.smax
+	  :description:		For spatially varying infiltration values per cell using the Curve Number method B (with recovery) provide the smaxfile (as well as the sefffile and ksfile) as maximum soil moisture storage capacity in m, with the same grid based input as the depfile using a binary file.
+	  :units:		m
+	  :required:		no	  
+	  :format:		bin	  	
+	sefffile = sfincs.seff
+	  :description:		For spatially varying infiltration values per cell using the Curve Number method B (with recovery) provide the sefffile (as well as the smaxfile and ksfile) as soil moisture storage capacity at the start in m, with the same grid based input as the depfile using a binary file.
+	  :units:		m
+	  :required:		no	  
+	  :format:		bin	  
+	ksfile = sfincs.ks
+	  :description:		For spatially varying infiltration values per cell using the Curve Number method B (with recovery) provide the ksfile (as well as the smaxfile and sefffile) as saturated hydraulic conductivity in mm/hr, with the same grid based input as the depfile using a binary file.
+	  :description:		For spatially varying infiltration values per cell using the Green & Ampt method (with recovery) provide the ksfile (as well as the sigmafile and psifile) as saturated hydraulic conductivity in mm/hr, with the same grid based input as the depfile using a binary file.
+	  :units:		mm/hr
+	  :required:		no	  
+	  :format:		bin	  
+	sigmafile = sfincs.sigma
+	  :description:		For spatially varying infiltration values per cell using the Green & Ampt method (with recovery) provide the sigmafile (as well as the psifile and ksfile) as suction head at the wetting front in mm, with the same grid based input as the depfile using a binary file.
+	  :units:		mm
+	  :required:		no	  
+	  :format:		bin	 
+	psifile = sfincs.psi
+	  :description:		For spatially varying infiltration values per cell using the Green & Ampt method (with recovery) provide the psifile (as well as the sigmafile and ksfile) as soil moisture deficit in [-], with the same grid based input as the depfile using a binary file.
+	  :units:		-
+	  :required:		no	  
+	  :format:		bin	 
+	f0file = sfincs.f0
+	  :description:		For spatially varying infiltration values per cell using the Horton method (with recovery) provide the f0file (as well as the fcfile and kdfile) as maximum (Initial) Infiltration Capacity in mm/hr, with the same grid based input as the depfile using a binary file.
+	  :units:		mm/hr
+	  :required:		no	  
+	  :format:		bin	
+	fcfile = sfincs.fc
+	  :description:		For spatially varying infiltration values per cell using the Horton method (with recovery) provide the fcfile (as well as the f0file and kdfile) as Minimum (Asymptotic) Infiltration Rate in mm/hr, with the same grid based input as the depfile using a binary file.
+	  :units:		mm/hr
+	  :required:		no	  
+	  :format:		bin	 	
+	kdfile = sfincs.kd
+	  :description:		For spatially varying infiltration values per cell using the Horton method (with recovery) provide the kdfile (as well as the f0file and fcfile) as empirical constant (hr-1) of decay, with the same grid based input as the depfile using a binary file.
+	  :units:		hr-1
+	  :required:		no	  
+	  :format:		bin	 		  	   	  
 	sbgfile = sfincs.sbg
 	  :description:		File containing subgrid tables, only needed by SFINCS if you want to run your model in the subgrid mode.
 	  :units:		-
@@ -429,6 +476,11 @@ Forcing - Meteo
 	  :units:		coordinates: m in projected UTM zone, data: m/s, wind_from_direction in degrees, p_drop in Pa (and precipitation in mm/hr).
 	  :required:		no
 	  :format:		asc	 
+	netspwfile = spiderweb.nc
+	  :description:		Spiderweb file including wind speed, direction, pressure (and possibly rainfall).
+	  :units:		coordinates: m in projected UTM zone, data: m/s, wind_from_direction in degrees, p_drop in Pa (and precipitation in mm/hr).
+	  :required:		no
+	  :format:		netcdf	 	  
 	amufile = sfincs.amu
 	  :description:		Delft3D-meteo ascii type input of wind speed in x-direction.
 	  :units:		coordinates: m in projected UTM zone, data: m/s
