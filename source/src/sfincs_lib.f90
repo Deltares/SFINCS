@@ -85,8 +85,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.0.4-alpha'
-   build_date     = '$Date: 2023-12-20'
+   build_revision = '$Rev: v2.0.5-alpha'
+   build_date     = '$Date: 2024-02-13'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
@@ -473,7 +473,7 @@ module sfincs_lib
          !
          call write_output(t, .true., .true., .true., .false., ntmapout + 1, ntmaxout + 1, nthisout + 1, tloopoutput)
          !
-         t = t1 + 1.0   
+         t = t1 + 1.0
          !
       endif
       !

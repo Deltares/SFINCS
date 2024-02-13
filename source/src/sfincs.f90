@@ -23,5 +23,4 @@ program sfincs
       ierr = sfincs_finalize()
    endif
    !
-   write(*,*),ierr
 end program
