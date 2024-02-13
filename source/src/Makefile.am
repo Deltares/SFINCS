@@ -27,6 +27,7 @@ libsfincs_la_SOURCES = \
 	snapwave/snapwave_infragravity.f90 \
 	snapwave/snapwave_date.f90 \
 	snapwave/snapwave_ncoutput.F90 \
+	snapwave/snapwave_ncinput.F90 \	
 	snapwave/snapwave_domain.f90 \
 	snapwave/snapwave_input.f90 \
 	snapwave/snapwave_solver.f90 \

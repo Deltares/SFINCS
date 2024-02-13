@@ -84,7 +84,8 @@ module snapwave_data
    character*232                               :: bwdfile
    character*232                               :: bdsfile
    character*232                               :: bzsfile
-   
+   character*256                               :: netsnapwavefile   
+   !
    integer                                     :: nwbnd                   ! number of support points wave boundary 
    integer                                     :: ntwbnd                  ! number of time points wave boundary 
    real*4                                      :: tpmean_bwv              ! mean tp over boundary points for given time

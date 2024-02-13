@@ -414,6 +414,7 @@ contains
    call read_char_input(500,'snapwave_mskfile',mskfile,'')
    call read_char_input(500,'snapwave_depfile',depfile,'none')   
    call read_char_input(500,'snapwave_ncfile', gridfile,'snapwave_net.nc')   
+   call read_char_input(500,'snapwave_boundaryfile',netsnapwavefile,'')
    !
    close(500)
    !
