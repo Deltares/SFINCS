@@ -18,9 +18,13 @@ program sfincs
    if (ierr==0) then
       ierr = sfincs_update(deltat)
    endif
+   ! Output:
+   !ierr = 0 ! simulation ran succesfully
+   !ierr = 1 ! simulation was stopped because of instabilities   
    !
-   if (ierr==0) then
-      ierr = sfincs_finalize()
-   endif
+   ! Always finalize, especially in case of error:
+   !if (ierr==0) then
+   ierr = sfincs_finalize()
+   !endif
    !
 end program

@@ -467,8 +467,8 @@ module sfincs_lib
          !
          write(*,'(a,f0.1,a)')'Maximum depth of ', stopdepth, ' m reached!!! Simulation stopped.'
          !
-         ! change error code if simulation stopped
-         ierr = -999          
+         ! change error code if simulation stopped because of instabilities
+         ierr = 1       
          error = 1
          !
          ! Write map output at last time step 
@@ -499,12 +499,6 @@ module sfincs_lib
    !
    !
    !$acc end data
-   !
-   if (ierr == -999) then
-      ierr = 1 ! simulation was stopped because of instabilities
-   else       
-      ierr = 0 ! simulation ran succesfully
-   endif
    !
    end function sfincs_update
    !
