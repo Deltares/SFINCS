@@ -21,7 +21,7 @@ module sfincs_ncoutput
       integer :: hm0_varid, hm0ig_varid
       integer :: fwx_varid, fwy_varid
       integer :: zsm_varid
-      integer :: inp_varid, total_runtime_varid, average_dt_varid
+      integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid
       !
       integer :: mesh2d_varid
       integer :: mesh2d_node_x_varid, mesh2d_node_y_varid
@@ -48,7 +48,7 @@ module sfincs_ncoutput
       integer :: time_varid
       integer :: zs_varid, h_varid, u_varid, v_varid, prcp_varid, discharge_varid, uvmag_varid, uvdir_varid
       integer :: patm_varid, wind_speed_varid, wind_dir_varid
-      integer :: inp_varid, total_runtime_varid, average_dt_varid  
+      integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid  
       integer :: hm0_varid, hm0ig_varid, zsm_varid, tp_varid, wavdir_varid, dirspr_varid
       !
    end type
@@ -513,6 +513,10 @@ contains
    NF90(nf90_def_var(map_file%ncid, 'average_dt', NF90_FLOAT, (/map_file%runtime_dimid/), map_file%average_dt_varid))
    NF90(nf90_put_att(map_file%ncid, map_file%total_runtime_varid, 'units', 's'))   
    NF90(nf90_put_att(map_file%ncid, map_file%total_runtime_varid, 'long_name', 'model_average_timestep_in_seconds'))   
+   !
+   NF90(nf90_def_var(map_file%ncid, 'status', NF90_FLOAT, (/map_file%runtime_dimid/), map_file%status_varid))
+   NF90(nf90_put_att(map_file%ncid, map_file%status_varid, 'units', '-'))   
+   NF90(nf90_put_att(map_file%ncid, map_file%status_varid, 'long_name', 'status of SFINCS similution - 0 is no error'))     
    ! 
    ! Finish definitions
    NF90(nf90_enddef(map_file%ncid))
@@ -1009,6 +1013,10 @@ contains
    NF90(nf90_def_var(map_file%ncid, 'average_dt', NF90_FLOAT, (/map_file%runtime_dimid/), map_file%average_dt_varid))
    NF90(nf90_put_att(map_file%ncid, map_file%total_runtime_varid, 'units', 's'))   
    NF90(nf90_put_att(map_file%ncid, map_file%total_runtime_varid, 'long_name', 'model_average_timestep_in_seconds'))   
+   !
+   NF90(nf90_def_var(map_file%ncid, 'status', NF90_FLOAT, (/map_file%runtime_dimid/), map_file%status_varid))
+   NF90(nf90_put_att(map_file%ncid, map_file%status_varid, 'units', '-'))   
+   NF90(nf90_put_att(map_file%ncid, map_file%status_varid, 'long_name', 'status of SFINCS similution - 0 is no error'))        
    ! 
    ! Finish definitions
    NF90(nf90_enddef(map_file%ncid))
@@ -1442,6 +1450,10 @@ contains
    NF90(nf90_def_var(his_file%ncid, 'average_dt', NF90_FLOAT, (/his_file%runtime_dimid/), his_file%average_dt_varid))
    NF90(nf90_put_att(his_file%ncid, his_file%average_dt_varid, 'units', 's'))   
    NF90(nf90_put_att(his_file%ncid, his_file%average_dt_varid, 'long_name', 'model_average_timestep_in_seconds'))   
+   !
+   NF90(nf90_def_var(his_file%ncid, 'status', NF90_FLOAT, (/his_file%runtime_dimid/), his_file%status_varid))
+   NF90(nf90_put_att(his_file%ncid, his_file%status_varid, 'units', '-'))   
+   NF90(nf90_put_att(his_file%ncid, his_file%status_varid, 'long_name', 'status of SFINCS similution - 0 is no error'))        
    !    
    ! Finish definitions
    NF90(nf90_enddef(his_file%ncid))
@@ -2518,6 +2530,7 @@ contains
    !   
    NF90(nf90_put_var(map_file%ncid, map_file%total_runtime_varid, tfinish_all - tstart_all)) 
    NF90(nf90_put_var(map_file%ncid, map_file%average_dt_varid,  dtavg)) 
+   NF90(nf90_put_var(map_file%ncid, map_file%status_varid,  error))    
    !
    NF90(nf90_close(map_file%ncid))
    !
@@ -2538,6 +2551,7 @@ contains
    !
    NF90(nf90_put_var(his_file%ncid, his_file%total_runtime_varid, tfinish_all - tstart_all)) 
    NF90(nf90_put_var(his_file%ncid, his_file%average_dt_varid,  dtavg)) 
+   NF90(nf90_put_var(his_file%ncid, his_file%status_varid,  error))       
    !   
    NF90(nf90_close(his_file%ncid))
    !
