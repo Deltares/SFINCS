@@ -6,7 +6,7 @@ module purge
 module load apptainer/1.2.5
 
 # Execute command singularity -d build --fakeroot <image>.sif recipe.def in order to get debug information
-apptainer build --fakeroot "/u/noorduin/development/sifs/sfincs_cpu_lnx64.sif" "Singularityfile-cpu.def"
+apptainer build --fakeroot "${HOME}/sfincs_cpu_lnx64.sif" "Singularityfile-cpu.def"
 
 # Make a tar of st
 
