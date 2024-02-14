@@ -224,7 +224,8 @@ module sfincs_lib
    integer                       :: nm
    real*4                        :: hmx
    !
-   ierr = -1
+   ierr = 0
+   error = 0
    !
    ! Copy arrays to GPU memory
    ! 
@@ -474,6 +475,10 @@ module sfincs_lib
          !
          write(*,'(a,f0.1,a)')'Maximum depth of ', stopdepth, ' m reached!!! Simulation stopped.'
          !
+         ! change error code if simulation stopped because of instabilities
+         ierr = 1       
+         error = 1
+         !
          ! Write map output at last time step 
          !
          call write_output(t, .true., .true., .true., .false., ntmapout + 1, ntmaxout + 1, nthisout + 1, tloopoutput)
@@ -502,8 +507,6 @@ module sfincs_lib
    !
    !
    !$acc end data
-   !
-   ierr = 0
    !
    end function sfincs_update
    !
