@@ -85,8 +85,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.0.4-alpha'
-   build_date     = '$Date: 2024-01-23'
+   build_revision = '$Rev: v2.0.5-alpha'
+   build_date     = '$Date: 2024-02-14'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
@@ -303,7 +303,13 @@ module sfincs_lib
          write_max = .true.
          ntmaxout  = ntmaxout + 1    ! now also keep track of nr of max output
          tout      = max(tmaxout, t - dt) 
-         tmaxout   = tmaxout + dtmaxout
+         !
+         if (t <= t1) then 
+            tmaxout   = tmaxout + dtmaxout       
+            ! in case the last 'dt' made us exactly past tstop time 't1', 
+            ! then we don't want to flag later another dtmax output timestep in 'finalize_output' check,
+            ! so if t > t1 don't add 'dtmaxout' again            
+         endif         
          !
       endif
       !
