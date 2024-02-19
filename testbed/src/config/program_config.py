@@ -4,7 +4,6 @@ class ProgramConfig():
     def __init__(self):
         self.__name: str = ""
         self.__path: str = ""
-        self.__local_dir: str = ""
 
     @property
     def name(self) -> str:
@@ -23,12 +22,3 @@ class ProgramConfig():
     @path.setter
     def path(self, value: str):
         self.__path = value
-
-    @property
-    def local_dir(self) -> str:
-        """WorkDirectory for program"""
-        return self.__local_dir
-
-    @local_dir.setter
-    def local_dir(self, value: str):
-        self.__local_dir = value

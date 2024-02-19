@@ -1,8 +1,9 @@
 import pytest
 import os
 from src.config.credentials import Credentials
-from src.suite.test_settings import TestSettings
+from src.config.test_settings import TestSettings
 from src.utils.config_parser import ConfigParser
+
 
 def pytest_addoption(parser):
     """Parse commandline parameters"""
@@ -12,13 +13,13 @@ def pytest_addoption(parser):
     )
 
 
-@pytest.fixture(scope="module")
-def xml_config(request):
-    """Get specific parameter for xml config filter"""
-    return request.config.getoption("--config")
+#@pytest.fixture(scope="module")
+#def xml_config(request):
+#    """Get specific parameter for xml config filter"""
+#    return request.config.getoption("--config")
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture()
 def setup_credentials():
     """Setup a set of credentials from commandline or enviornment"""
     credentials = Credentials()
@@ -29,8 +30,8 @@ def setup_credentials():
     return credentials
 
 
-@pytest.fixture(scope="module")
-def init_settings(setup_credentials):
+@pytest.fixture()
+def test_settings(setup_credentials):
     """Use standardized settings for tests."""
     settings = TestSettings()
     settings.credentials = setup_credentials
@@ -48,19 +49,25 @@ def pytest_generate_tests(metafunc):
     else:
         xml_files.append(xml_file)
     if 'load_xmls' in metafunc.fixturenames:
-        metafunc.parametrize('load_xmls', xml_files)
+        metafunc.parametrize('load_xmls', xml_files, ids=xml_files)
     if 'load_xml_testcases' in metafunc.fixturenames:
-        testcases = parse_testcases_from_xml(xml_files)
-        metafunc.parametrize('load_xml_testcases', testcases)
+        config_parsers, testcases = parse_testcases_from_xml(xml_files)
+        metafunc.parametrize('load_xml_testcases', config_parsers, ids=testcases)
+    if 'load_class_xml_testcases' in metafunc.fixturenames:
+        config_parsers, testcases = parse_testcases_from_xml(xml_files)
+        metafunc.parametrize('load_class_xml_testcases', config_parsers, ids=testcases)
 
 
 def parse_testcases_from_xml(xml_files):
     testcases = []
+    config_parsers = []
     for xml_file_path in xml_files:
         config_parser = ConfigParser(xml_file_path)
-        testcases = config_parser.generate_testcases()
-    return testcases
-    #return ["parent 1 - test 1", "parent 2 - test 2"]
+        testcases_this_xml = config_parser.generate_testcases(xml_file_path)
+        for testcase in testcases_this_xml:
+            config_parsers.append(config_parser)
+            testcases.append(testcase)
+    return config_parsers, testcases
 
 
 def load_xmls():

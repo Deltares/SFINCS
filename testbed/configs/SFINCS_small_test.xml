@@ -1,6 +1,6 @@
 <SFINCS_testbed>
     <config>
-        <server_url>{PLACEHOLDER}</server_url>
+        <serverUrl>{PLACEHOLDER}</serverUrl>
         <localPaths>
             <casesDir>./data/cases</casesDir>
             <referenceDir>./data/references</referenceDir>
@@ -10,16 +10,24 @@
 
     <programs>
         <program name="SFINCS">
-            <location ref="local">
-                <from>teamcity_artifacts/win64</from>
-            </location>
-            <path>sfincs/x64/Release/SFINCS.exe</path>
+            <path>sfincs/SFINCS.exe</path>
         </program>
     </programs>
 
     <testCases>
         <testCase name="01_implementation_Drainage_culvert" ref="SFINCS">
-            <path>01_implementation/Drainage_culvert</path>
+            <path>01_implementation/Drainage_culvert/input</path>
+            <checks>
+ 				<file name="sfincs_his.nc" type="NETCDF">
+                    <parameters>
+                        <parameter name="drainage_discharge" location="[1,2]" toleranceAbsolute="0.0001"/>						
+                    </parameters>
+                </file>
+			</checks>
+            <maxRunTime>120.0</maxRunTime>
+        </testCase>
+        <testCase name="01_implementation_Drainage_pump" ref="SFINCS">
+            <path>01_implementation/Drainage_pump/input</path>
             <checks>
  				<file name="sfincs_his.nc" type="NETCDF">
                     <parameters>

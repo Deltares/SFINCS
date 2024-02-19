@@ -3,7 +3,7 @@
     <xs:element name="SFINCS_testbed" type="T_SFINCS_testbed"/>
     <xs:element name="config" type="T_Config"/>
     <xs:element name="localPaths" type="T_LocalPaths"/>
-    <xs:element name="server_url" type="xs:string"/>
+    <xs:element name="serverUrl" type="xs:string"/>
     <xs:element name="casesDir" type="xs:string"/>
     <xs:element name="enginesDir" type="xs:string"/>
     <xs:element name="referenceDir" type="xs:string"/>
@@ -31,7 +31,7 @@
     <xs:complexType name="T_Config">
         <xs:all>
             <xs:element ref="localPaths"/>
-            <xs:element ref="server_url"/>
+            <xs:element ref="serverUrl"/>
         </xs:all>
     </xs:complexType>
     <xs:complexType name="T_LocalPaths">

@@ -1,14 +1,19 @@
+from typing import List
 from src.config.program_config import ProgramConfig
 from src.config.result_checks import ResultChecks
 
 
-class TestCaseConfig():
+class TestCaseConfig(object):
     """Testcase configuration to run and check the results"""
+
+    __test__ = False
+
     def __init__(self):
         self.__name: str = ""
-        self.__program_config: ProgramConfig = ""
-        self.__result_checks: ResultChecks() = []
+        self.__path: str = ""
         self.__max_run_time: float = 300
+        self.__program_config: ProgramConfig = ""
+        self.__result_checks: List[ResultChecks] = []
 
     @property
     def name(self) -> str:
@@ -36,3 +41,17 @@ class TestCaseConfig():
     @max_run_time.setter
     def max_run_time(self, value: float):
         self.__max_run_time = value
+
+    @property
+    def path(self) -> str:
+        """Path to testcase folder to run program in"""
+        return self.__path
+
+    @path.setter
+    def path(self, path: str):
+        self.__path = path
+
+    @property
+    def result_checks(self) -> List[ResultChecks]:
+        """files to check"""
+        return self.__result_checks
