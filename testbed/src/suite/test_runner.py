@@ -9,10 +9,9 @@ class TestRunner():
     __test__ = False
 
     def __init__(self,
-                 test_case_config: TestCaseConfig,
-                 test_settings: TestSettings):
+                 test_case_config: TestCaseConfig):
         self.__test_case_config: TestCaseConfig = test_case_config
-        self.__test_settings: TestSettings = test_settings
+        self.__test_settings: TestSettings = test_case_config.test_settings
         self.__execute_cmd: str
         self.__working_directory: str
         self.__timeout: float
@@ -50,5 +49,6 @@ class TestRunner():
                     timeout=self.__timeout,
                 )
         except Exception as exception:
+            self.__test_case_config.success = False
             return exception
         return completed_process

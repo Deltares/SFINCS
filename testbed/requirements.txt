@@ -1,3 +1,4 @@
 minio
 lxml
 pytest
+pytest-check

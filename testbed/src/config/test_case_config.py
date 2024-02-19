@@ -1,6 +1,7 @@
 from typing import List
 from src.config.program_config import ProgramConfig
 from src.config.result_checks import ResultChecks
+from src.config.test_settings import TestSettings
 
 
 class TestCaseConfig(object):
@@ -8,21 +9,23 @@ class TestCaseConfig(object):
 
     __test__ = False
 
-    def __init__(self):
-        self.__name: str = ""
+    def __init__(self, test_settings: TestSettings):
         self.__path: str = ""
         self.__max_run_time: float = 300
         self.__program_config: ProgramConfig = ""
         self.__result_checks: List[ResultChecks] = []
+        self.__name__: str = ""
+        self.__test_settings = test_settings
+        self.__success: bool = True
 
     @property
     def name(self) -> str:
         """Testcase name"""
-        return self.__name
+        return self.__name__
 
     @name.setter
     def name(self, value: str):
-        self.__name = value
+        self.__name__ = value
 
     @property
     def program_config(self) -> ProgramConfig:
@@ -55,3 +58,17 @@ class TestCaseConfig(object):
     def result_checks(self) -> List[ResultChecks]:
         """files to check"""
         return self.__result_checks
+
+    @property
+    def test_settings(self) -> TestSettings:
+        """get general settings for testcase"""
+        return self.__test_settings
+
+    @property
+    def success(self) -> bool:
+        """Check if issues occured within the testcase"""
+        return self.__success
+
+    @success.setter
+    def success(self, success: bool):
+        self.success = success

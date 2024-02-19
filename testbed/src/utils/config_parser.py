@@ -99,7 +99,8 @@ class ConfigParser(object):
                 if "name" in testcase:
                     if case_filter not in str(testcase["name"][0]):
                         continue
-                self.__test_case_config.append(self.parse_testcase(testcase))
+                test_case = self.parse_testcase(testcase, test_settings)
+                self.__test_case_config.append(test_case)
 
     def parse_settings(self, config, test_settings: TestSettings):
         if "serverUrl" in config:
@@ -123,9 +124,9 @@ class ConfigParser(object):
             program_config.path = str(program["path"][0]["txt"])
         return program_config
 
-    def parse_testcase(self, testcase):
+    def parse_testcase(self, testcase, test_settings: TestSettings):
         """"Parse testcase and link to program config"""
-        test_case = TestCaseConfig()
+        test_case = TestCaseConfig(test_settings)
         if "name" in testcase:
             test_case.name = str(testcase["name"][0])
         if "ref" in testcase:
