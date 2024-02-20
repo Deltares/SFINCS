@@ -5,6 +5,7 @@
             <casesDir>./data/cases</casesDir>
             <referenceDir>./data/references</referenceDir>
             <enginesDir>./data/engines</enginesDir>
+            <resultsDir>./data/results</resultsDir>
         </localPaths>
     </config>
 
@@ -23,6 +24,8 @@
                         <parameter name="drainage_discharge" location="[1,2]" toleranceAbsolute="0.0001"/>						
                     </parameters>
                 </file>
+                <file name="sfincs_map.nc" type="NETCDF">
+                </file>
 			</checks>
             <maxRunTime>120.0</maxRunTime>
         </testCase>
@@ -33,6 +36,8 @@
                     <parameters>
                         <parameter name="drainage_discharge" location="[1,2]" toleranceAbsolute="0.0001"/>						
                     </parameters>
+                </file>
+                <file name="sfincs_map.nc" type="NETCDF">
                 </file>
 			</checks>
             <maxRunTime>120.0</maxRunTime>

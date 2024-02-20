@@ -7,6 +7,7 @@
     <xs:element name="casesDir" type="xs:string"/>
     <xs:element name="enginesDir" type="xs:string"/>
     <xs:element name="referenceDir" type="xs:string"/>
+    <xs:element name="resultsDir" type="xs:string"/>
     <xs:element name="testCases" type="T_TestCases"/>
     <xs:element name="testCase" type="T_TestCase"/>
     <xs:element name="maxRunTime" type="xs:decimal"/>
@@ -39,6 +40,7 @@
             <xs:element ref="casesDir"/>
             <xs:element ref="enginesDir"/>
             <xs:element ref="referenceDir"/>
+            <xs:element ref="resultsDir"/>
         </xs:all>
     </xs:complexType>
     <xs:complexType name="T_Programs">

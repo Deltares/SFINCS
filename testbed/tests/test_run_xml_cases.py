@@ -5,7 +5,8 @@ from src.suite.test_runner import TestRunner
 
 
 def test_run_testxml(load_xmls: List[TestCaseConfig]):
-    """Run an entire xml test configuration"""
+    """Run an entire xml test configuration
+    This test is for a local execution."""
     for test_case in load_xmls:
         run_test_cases(test_case)
     assert True
@@ -22,4 +23,5 @@ def run_test_cases(test_case: TestCaseConfig):
     test_runner = TestRunner(test_case)
     test_runner.build_program()
     result = test_runner.run_programs()
-    check.is_not_instance(result, Exception, msg=f"Error occured while executing {test_case.name}.")
+    check.is_not_instance(result, Exception, msg=f"{test_case.name} had an error occur while executing.")
+    test_runner.move_results()

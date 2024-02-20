@@ -3,15 +3,16 @@ from src.config.credentials import Credentials
 
 
 class TestSettings(object):
+    """General settings for the tests to run."""
     __test__ = False
 
     def __init__(self):
         self.__credentials: Credentials
         self.__server_base_url: str = ""
-        self.__filter: str
         self.__case_path: str
         self.__reference_path: str
         self.__engine_path: str
+        self.__result_path: str
 
     @property
     def credentials(self) -> Credentials:
@@ -30,15 +31,6 @@ class TestSettings(object):
     @server_base_url.setter
     def server_base_url(self, value: str):
         self.__server_base_url = value
-
-    @property
-    def filter(self) -> str:
-        """Filter testcases to not run all within the config."""
-        return self.__filter
-
-    @filter.setter
-    def filter(self, value: str):
-        self.__filter = value
 
     @property
     def case_path(self) -> str:
@@ -66,3 +58,12 @@ class TestSettings(object):
     @engine_path.setter
     def engine_path(self, value: str):
         self.__engine_path = value
+
+    @property
+    def result_path(self) -> str:
+        """Path to engine directory for the testbench."""
+        return self.__result_path
+
+    @result_path.setter
+    def result_path(self, value: str):
+        self.__result_path = value

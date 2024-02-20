@@ -1,6 +1,5 @@
 from typing import Dict, List, Any
 from lxml import etree
-import os
 from src.config.program_config import ProgramConfig
 from src.config.test_case_config import TestCaseConfig
 from src.config.result_checks import ResultChecks
@@ -114,6 +113,8 @@ class ConfigParser(object):
                 test_settings.reference_path = str(local_path["referenceDir"][0]["txt"])
             if "enginesDir" in local_path:
                 test_settings.engine_path = str(local_path["enginesDir"][0]["txt"])
+            if "resultsDir" in local_path:
+                test_settings.result_path = str(local_path["resultsDir"][0]["txt"])
 
     def parse_program(self, program):
         """Parse program for testcases within the configuration"""

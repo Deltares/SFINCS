@@ -1,4 +1,3 @@
-import pytest
 import os
 from src.config.credentials import Credentials
 from src.config.test_settings import TestSettings
@@ -24,13 +23,10 @@ def setup_credentials():
 
 
 def init_settings():
-    #setup_credentials = setup_credentials()
     """Use standardized settings for tests."""
     settings = TestSettings()
     settings.credentials = setup_credentials()
     settings.server_base_url = "https://s3.deltares.nl"
-    # ToDo: add filter to parameter from commandline or environment
-    settings.filter = ""
     return settings
 
 
@@ -45,7 +41,7 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize('load_xmls', grouped_testcases, ids=xml_files)
     if 'load_xml_testcases' in metafunc.fixturenames:
         testcases = parse_testcases_from_xml(xml_files, test_settings)
-        metafunc.parametrize('load_xml_testcases', testcases)#, ids=testcasenames)
+        metafunc.parametrize('load_xml_testcases', testcases)
 
 
 def parse_testcases_from_xml(xml_files, test_settings: TestSettings):
@@ -59,15 +55,15 @@ def parse_testcases_from_xml(xml_files, test_settings: TestSettings):
     return testcases
 
 
-def find_xml_files(xml_file):
-    """if no configuration is specified find all configuration"""
+def find_xml_files(xml_config_filter):
+    """return configurations based on configs folder"""
     xml_files = []
-    if xml_file == "noconfig":
+    if xml_config_filter != "noconfig":
+        # if a configuration is specified return it as a list.
+        return [xml_config_filter]
+    else:
         config_folder = "configs"
         files = os.listdir(config_folder)
-    else:
-        config_folder = ""
-        files = [xml_file]
     for filename in files:
         if filename.endswith('.xml'):
             xml_file = os.path.join(config_folder, filename)

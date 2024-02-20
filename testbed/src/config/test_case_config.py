@@ -71,4 +71,4 @@ class TestCaseConfig(object):
 
     @success.setter
     def success(self, success: bool):
-        self.success = success
+        self.__success = success
