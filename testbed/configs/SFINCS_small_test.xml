@@ -17,7 +17,7 @@
 
     <testCases>
         <testCase name="01_implementation_Drainage_culvert" ref="SFINCS">
-            <path>01_implementation/Drainage_culvert/input</path>
+            <path>01_implementation/Drainage_culvert</path>
             <checks>
  				<file name="sfincs_his.nc" type="NETCDF">
                     <parameters>
@@ -30,7 +30,7 @@
             <maxRunTime>120.0</maxRunTime>
         </testCase>
         <testCase name="01_implementation_Drainage_pump" ref="SFINCS">
-            <path>01_implementation/Drainage_pump/input</path>
+            <path>01_implementation/Drainage_pump</path>
             <checks>
  				<file name="sfincs_his.nc" type="NETCDF">
                     <parameters>

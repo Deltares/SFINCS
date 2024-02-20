@@ -9,6 +9,7 @@ class TestSettings(object):
     def __init__(self):
         self.__credentials: Credentials
         self.__server_base_url: str = ""
+        self.__run_type: str = ""
         self.__case_path: str
         self.__reference_path: str
         self.__engine_path: str
@@ -67,3 +68,12 @@ class TestSettings(object):
     @result_path.setter
     def result_path(self, value: str):
         self.__result_path = value
+
+    @property
+    def run_type(self) -> str:
+        """Path to engine directory for the testbench."""
+        return self.__run_type
+
+    @run_type.setter
+    def run_type(self, value: str):
+        self.__run_type = value

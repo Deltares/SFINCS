@@ -51,8 +51,8 @@ class TestCaseConfig(object):
         return self.__path
 
     @path.setter
-    def path(self, path: str):
-        self.__path = path
+    def path(self, value: str):
+        self.__path = value
 
     @property
     def result_checks(self) -> List[ResultChecks]:
@@ -70,5 +70,5 @@ class TestCaseConfig(object):
         return self.__success
 
     @success.setter
-    def success(self, success: bool):
-        self.__success = success
+    def success(self, value: bool):
+        self.__success = value

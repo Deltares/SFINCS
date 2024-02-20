@@ -23,6 +23,7 @@ class ConfigParser(object):
             return []
 
     def branch(self, xml_tree: etree._ElementTree, prefix: str) -> Dict[str, Any]:
+        """Create a dictionary from parsed elements in the xml for iteration"""
         new_tree = {"txt": xml_tree.text}
 
         for ch in xml_tree.getchildren():
@@ -40,6 +41,7 @@ class ConfigParser(object):
         return new_tree
 
     def __maketree__(self, path):
+        """Create a parser and return parsed tree for xml file with xinclude"""
         parser = etree.XMLParser(remove_blank_text=True, attribute_defaults=False)
         xml_file: etree._ElementTree = etree.parse(path, parser)
 
@@ -63,27 +65,18 @@ class ConfigParser(object):
         """Retrieve list of parse test case configurations"""
         return self.__test_case_config
 
-    def validate(self):
+    def validate(self, xml_file):
         """Validate the xml by using the testbed schema"""
         xmlschema_path = etree.parse("configs/xsd/testbed.xsd")
         xmlschema = etree.XMLSchema(xmlschema_path)
 
         result = xmlschema.validate(self.__xml_file)
 
-        if (result):
-            print("XML configuration validation correct.")
+        if result:
+            print(f"{xml_file} validated succesfully.")
         else:
-            print("XML configuration validation error.")
+            print(f"{xml_file} gave a validation error.")
             assert result, xmlschema.error_log.filter_from_errors()[0]
-
-    def generate_testcases(self, config_file):
-        """Get all the testcase names within the xml_file"""
-        testcase_names = []
-        for testcases in self.loop(self.__parsed_tree, "testCases"):
-            for testcase in testcases["testCase"]:
-                if "name" in testcase:
-                    testcase_names.append(config_file + " - " + str(testcase["name"][0]))
-        return testcase_names
 
     def parse_config(self, test_settings: TestSettings, case_filter: str = ""):
         """Parse the specified configuration from paramater"""
@@ -102,6 +95,7 @@ class ConfigParser(object):
                 self.__test_case_config.append(test_case)
 
     def parse_settings(self, config, test_settings: TestSettings):
+        """Parse general test settings for testcases."""
         if "serverUrl" in config:
             if test_settings.server_base_url == "":
                 test_settings.server_base_url = str(config["serverUrl"][0]["txt"])
@@ -139,11 +133,11 @@ class ConfigParser(object):
             test_case.max_run_time = float(testcase["maxRunTime"][0]["txt"])
         for checks in self.loop(testcase, "checks"):
             for file in checks["file"]:
-                parsed_checks = self.__parse_checks__(file)
+                parsed_checks = self.parse_checks(file)
                 test_case.result_checks.append(parsed_checks)
         return test_case
 
-    def __parse_checks__(self, checks):
+    def parse_checks(self, checks):
         """parse file checks for processing results of testcase"""
         result_checks = ResultChecks()
         if "name" in checks:
@@ -152,11 +146,11 @@ class ConfigParser(object):
             result_checks.type = checks["type"][0]
         for parameters in self.loop(checks, "parameters"):
             for parameter in parameters["parameter"]:
-                parsed_parameters = self.__parse_parameters__(parameter)
+                parsed_parameters = self.parse_parameters(parameter)
                 result_checks.parameters.append(parsed_parameters)
         return result_checks
 
-    def __parse_parameters__(self, parameter):
+    def parse_parameters(self, parameter):
         """parse parameters associated with result file"""
         check_parameters = CheckParameters()
         if "name" in parameter:

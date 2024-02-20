@@ -7,18 +7,20 @@ from src.suite.test_runner import TestRunner
 def test_run_testxml(load_xmls: List[TestCaseConfig]):
     """Run an entire xml test configuration
     This test is for a local execution."""
+    # TODO: add download for testcase
     for test_case in load_xmls:
-        run_test_cases(test_case)
+        run_test_case(test_case)
     assert True
 
 
 def test_run_testcase(load_xml_testcases: TestCaseConfig):
     """Run a single test case defined in a xml configuration."""
-    run_test_cases(load_xml_testcases)
+    # TODO: add download for testcase
+    run_test_case(load_xml_testcases)
     assert True
 
 
-def run_test_cases(test_case: TestCaseConfig):
+def run_test_case(test_case: TestCaseConfig):
     """Execute test case by their test configuration."""
     test_runner = TestRunner(test_case)
     test_runner.build_program()
