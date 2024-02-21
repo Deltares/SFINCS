@@ -516,7 +516,7 @@ contains
    !
    NF90(nf90_def_var(map_file%ncid, 'status', NF90_FLOAT, (/map_file%runtime_dimid/), map_file%status_varid))
    NF90(nf90_put_att(map_file%ncid, map_file%status_varid, 'units', '-'))   
-   NF90(nf90_put_att(map_file%ncid, map_file%status_varid, 'long_name', 'status of SFINCS similution - 0 is no error'))     
+   NF90(nf90_put_att(map_file%ncid, map_file%status_varid, 'long_name', 'status of SFINCS simulation - 0 is no error'))     
    ! 
    ! Finish definitions
    NF90(nf90_enddef(map_file%ncid))
@@ -1016,7 +1016,7 @@ contains
    !
    NF90(nf90_def_var(map_file%ncid, 'status', NF90_FLOAT, (/map_file%runtime_dimid/), map_file%status_varid))
    NF90(nf90_put_att(map_file%ncid, map_file%status_varid, 'units', '-'))   
-   NF90(nf90_put_att(map_file%ncid, map_file%status_varid, 'long_name', 'status of SFINCS similution - 0 is no error'))        
+   NF90(nf90_put_att(map_file%ncid, map_file%status_varid, 'long_name', 'status of SFINCS simulation - 0 is no error'))        
    ! 
    ! Finish definitions
    NF90(nf90_enddef(map_file%ncid))
@@ -1453,7 +1453,7 @@ contains
    !
    NF90(nf90_def_var(his_file%ncid, 'status', NF90_FLOAT, (/his_file%runtime_dimid/), his_file%status_varid))
    NF90(nf90_put_att(his_file%ncid, his_file%status_varid, 'units', '-'))   
-   NF90(nf90_put_att(his_file%ncid, his_file%status_varid, 'long_name', 'status of SFINCS similution - 0 is no error'))        
+   NF90(nf90_put_att(his_file%ncid, his_file%status_varid, 'long_name', 'status of SFINCS simulation - 0 is no error'))        
    !    
    ! Finish definitions
    NF90(nf90_enddef(his_file%ncid))

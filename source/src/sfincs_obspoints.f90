@@ -7,6 +7,7 @@ contains
    ! Reads obs files
    !
    use sfincs_data
+   use sfincs_error
    use quadtree
    !
    implicit none
@@ -20,6 +21,8 @@ contains
    !
    real*4, dimension(:), allocatable :: value
    !
+   logical :: ok
+   !
    ! Read observation points
    !
    nobs = 0
@@ -27,6 +30,10 @@ contains
    if (obsfile(1:4) /= 'none') then
       ! 
       write(*,*)'Reading observation points ...'
+      !
+      ok = check_file_exists(obsfile, 'obs file')      
+      !
+      if (.not. ok) return
       !
       open(500, file=trim(obsfile))       
       do while(.true.)

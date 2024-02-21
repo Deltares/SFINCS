@@ -11,20 +11,18 @@ program sfincs
    deltat = -1.0
    ierr = 0
    !
-   if (ierr==0) then
+   if (ierr == 0) then
       ierr = sfincs_initialize(config_file)
    endif
    !
-   if (ierr==0) then
+   if (ierr == 0) then
       ierr = sfincs_update(deltat)
    endif
-   ! Output:
-   !ierr = 0 ! simulation ran succesfully
-   !ierr = 1 ! simulation was stopped because of instabilities   
    !
-   ! Always finalize, especially in case of error:
-   !if (ierr==0) then
+   ! Always finalize, especially in case of error
+   !
    ierr = sfincs_finalize()
-   !endif
+   !
+   call exit(ierr)
    !
 end program
