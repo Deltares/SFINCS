@@ -21,17 +21,13 @@ contains
    !
    implicit none
    !
-   integer       :: j
-   character*2   :: ext
-   character*256 :: tmpfile
-   !   
    ! Check what sort of file we're dealing with
    !
-   tmpfile = trim(sbgfile)
-   j=index(tmpfile,'.')
-   ext = tmpfile(j+1:j+2)
-   
-   if (ext == 'nc') then
+   NF90(nf90_open(trim(sbgfile), NF90_CLOBBER, net_file_sbg%ncid))
+   !
+   if (net_file_sbg%ncid > 0) then
+      !
+      NF90(nf90_close(net_file_sbg%ncid))
       !
       ! Netcdf format with havg and nrep
       ! 
@@ -43,7 +39,7 @@ contains
       !
       ! Binary format with hrep and navg
       !
-      write(*,*)'Warning : subgrid file has the "old" binary format, the simulation will continue, but we do recommended switching to the new Netcdf subgrid input format!'      
+      write(*,*)'Above error appears because your subgrid file has the "old" binary format. Nothing to worry about.'
       ! 
       call read_subgrid_file_original()
       !
