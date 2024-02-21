@@ -9,6 +9,7 @@ module sfincs_data
       !!!
       !!! Error code
       integer :: error
+      character*256 :: error_message
       !!!
       !!! Constants
       !!!
