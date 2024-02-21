@@ -23,7 +23,7 @@ contains
       !
       error = 2
 	  ! 
-      write(error_message,'(5a)')' Error! ', trim(file_type), ' "', trim(file_name), '" not found!' 
+      write(error_message,'(5a)')'Error! ', trim(file_type), ' "', trim(file_name), '" not found!' 
       !
    endif    
    !
