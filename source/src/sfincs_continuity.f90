@@ -29,7 +29,7 @@ contains
    endif  
    !
    ! Put non-default store options in a separate subroutine (all but zsmax) to save computation time when not used (both regular and subgrid):
-   if (store_maximum_velocity .eqv. .true. .or. store_maximum_flux .eqv. .true. .or. store_twet .eqv. .true.) then
+   if ((store_maximum_velocity .eqv. .true.) .or. (store_maximum_flux .eqv. .true.) .or. (store_twet .eqv. .true.)) then    
       ! 
       call compute_store_variables(dt)       
       !    
