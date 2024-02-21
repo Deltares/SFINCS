@@ -466,11 +466,8 @@ module sfincs_lib
       !
       if (dt<dtmin .and. nt>1) then
          !
-         write(*,'(a,f0.1,a)')'Maximum depth of ', stopdepth, ' m reached!!! Simulation stopped.'
-         !
-         ! change error code if simulation stopped because of instabilities
-         !
          error = 1
+         write(error_message,'(a,f0.1,a)')'Error! Maximum depth of ', stopdepth, ' m reached!!! Simulation stopped.'
          !
          ! Write map output at last time step 
          !
