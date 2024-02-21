@@ -39,8 +39,8 @@ contains
       !
       ! Binary format with hrep and navg
       !
-      write(*,*)'Above error appears because your subgrid file has the "old" binary format. Nothing to worry about.'
-      ! 
+      write(*,*)'Warning : subgrid file has the "old" binary format, the simulation will continue, but we do recommended switching to the new Netcdf subgrid input format!'            ! 
+      !
       call read_subgrid_file_original()
       !
    endif
@@ -888,9 +888,16 @@ contains
       integer, intent ( in)    :: line
       integer :: status2
       !   
-      if(status /= nf90_noerr) then
-         write(0,'("NETCDF ERROR: ",a,i6,":",a)') file,line,trim(nf90_strerror(status))
+      if (status /= nf90_noerr) then
+         !
+         ! Do not give error message if this is not a valid netcdf file (it's possible that we tried to open a file with the 'old' binary format)
+         !  
+         if (status /= -51) then
+            write(0,'("NETCDF ERROR: ",a,i6,":",a)') file, line, trim(nf90_strerror(status) )
+         endif 
+         !  
       end if
+      !  
    end subroutine handle_err
 
 end module
