@@ -578,7 +578,7 @@ module sfincs_lib
    !
    if (error > 0) then
       !
-      ! Stop depth was exceeded
+      ! Stop depth was exceeded, or e.g. input file missing
       !
       write(*,*)''
       write(*,*)trim(error_message)
