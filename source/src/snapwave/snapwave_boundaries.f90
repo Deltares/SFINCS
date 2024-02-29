@@ -538,11 +538,17 @@ subroutine update_boundary_points(t)
       !
       ! Limit directional spreading (2 < ds < 45)
       !       
-      dsp = max(min(dsp, 45*pi/180), 2*pi/180)
+      if ((dsp < 2*pi/180) .or.(dsp > 45*pi/180)) then  
+      	  write(*,*)'DEBUG SnapWave - input wave spreading is outside acceptable range of 2-45 degrees: ',dsp/pi*180, ' and is therefore limited back to this range, please check whether input is realistic!'          
+          dsp = max(min(dsp, 45*pi/180), 2*pi/180)
+      endif      
       !
       ! Limit period (2 < tps < 25)
       !       
-      tps = max(min(dsp, 25.0), 2.0)
+      if ((tps < 2.0) .or.(tps > 25.0)) then
+      	  write(*,*)'DEBUG SnapWave - input wave period is outside acceptable range of 2-25 s: ',tps, ' and is therefore limited back to this range, please check whether input is realistic!'
+          tps = max(min(tps, 25.0), 2.0)
+      endif      
       !
       call weighted_average(wd_bwv(ib, itb0), wd_bwv(ib, itb1), 1.0 - tbfac, 2, wd)  !wavdir
       !
