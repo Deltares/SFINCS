@@ -81,7 +81,7 @@ module sfincs_lib
    !
    error = 0 ! Error code. This is now only set to 1 in case of instabilities. Could also use other error codes, e.g. for missing files.
    !
-   ierr = 0 ! Always 0 or 1 
+   ierr = 0 ! Always 0 or 1  ! Always 0 or 1 
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
@@ -159,7 +159,9 @@ module sfincs_lib
       !
       call read_wavemaker_polylines()
       !
-   endif   
+   endif
+   !
+   call set_advection_mask()
    !
    call system_clock(count1, count_rate, count_max)
    !
@@ -229,7 +231,7 @@ module sfincs_lib
    ! Copy arrays to GPU memory
    ! 
    !$acc data, copyin( kcs, kcuv, zs, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, qmax, vmax, twet, zsm, z_volume, &
-   !$acc               z_flags_iref, uv_flags_iref, uv_flags_type, uv_flags_dir, &
+   !$acc               z_flags_iref, uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
    !$acc               index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, zsb, zsb0, ibuvdir, uvmean, &
    !$acc               subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
    !$acc               subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
@@ -303,7 +305,13 @@ module sfincs_lib
          write_max = .true.
          ntmaxout  = ntmaxout + 1    ! now also keep track of nr of max output
          tout      = max(tmaxout, t - dt) 
-         tmaxout   = tmaxout + dtmaxout
+         !
+         if (t <= t1) then 
+            tmaxout   = tmaxout + dtmaxout       
+            ! in case the last 'dt' made us exactly past tstop time 't1', 
+            ! then we don't want to flag later another dtmax output timestep in 'finalize_output' check,
+            ! so if t > t1 don't add 'dtmaxout' again            
+         endif         
          !
       endif
       !
@@ -433,7 +441,7 @@ module sfincs_lib
       ! And now for the real computations !
       !
       ! First compute fluxes
-      !
+      !          
       call compute_fluxes(dt, min_dt, tloopflux)
       !
       if (wavemaker) then
@@ -447,13 +455,13 @@ module sfincs_lib
          call compute_fluxes_over_structures(tloopstruc)
          !
       endif
-      !
+      !      
       ! Update water levels
       !
       call compute_water_levels(dt, tloopcont)
       !
       ! OUTPUT
-      !
+      !      
       if (write_map .or. write_his .or. write_max .or. write_rst) then
          !
          ! if (.not. fixed_output_intervals) tout = t
@@ -461,7 +469,7 @@ module sfincs_lib
          call write_output(tout, write_map, write_his, write_max, write_rst, ntmapout, ntmaxout, nthisout, tloopoutput)
          !
       endif
-      !
+      !      
       ! Stop loop in case of instabilities (make sure water depth does not exceed stopdepth)
       !
       if (dt<dtmin .and. nt>1) then
