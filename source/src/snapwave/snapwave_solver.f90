@@ -101,7 +101,7 @@ module snapwave_solver
       H_inc_old = H
       H_ig_old = H_ig
       !
-      write(*,*)'computation:               ', t3 - t2, ' seconds'
+      write(*,*)'Computation SnapWave timestep took:               ', t3 - t2, ' seconds'
       !
    end subroutine
    
