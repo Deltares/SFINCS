@@ -19,7 +19,6 @@ module sfincs_lib
    use sfincs_continuity
    use sfincs_snapwave
    use sfincs_wavemaker
-!   use sfincs_subgrid
    !
    implicit none
    !
@@ -33,7 +32,6 @@ module sfincs_lib
    !
    private
    !
-   ! TODO: deze ook in sfincs_data.f90 initialiseren
    integer*8  :: count0
    integer*8  :: count00
    integer*8  :: countdt0
@@ -81,12 +79,14 @@ module sfincs_lib
    character(len=*) :: config_file
    integer :: ierr
    !
-   ierr = 0
+   error = 0 ! Error code. This is now only set to 1 in case of instabilities. Could also use other error codes, e.g. for missing files.
+   !
+   ierr = 0 ! Always 0 or 1 
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.0.4-alpha'
-   build_date     = '$Date: 2023-12-20'
+   build_revision = '$Rev: v2.0.5-alpha'
+   build_date     = '$Date: 2024-02-13'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
@@ -189,7 +189,7 @@ module sfincs_lib
    update_meteo = .false. ! update meteo fields
    update_waves = .false. ! update wave fields
    !
-   tloopflux      = 0.0      ! flux
+   tloopflux      = 0.0
    tloopcont      = 0.0
    tloopstruc     = 0.0
    tloopbnd       = 0.0
@@ -209,6 +209,8 @@ module sfincs_lib
    !
    !call acc_init( acc_device_nvidia )
    !
+   ierr = error
+   !
    end function sfincs_initialize
    !
    !-----------------------------------------------------------------------------------------------------!
@@ -222,7 +224,7 @@ module sfincs_lib
    integer                       :: nm
    real*4                        :: hmx
    !
-   ierr = -1
+   ierr = 0
    !
    ! Copy arrays to GPU memory
    ! 
@@ -464,7 +466,8 @@ module sfincs_lib
       !
       if (dt<dtmin .and. nt>1) then
          !
-         write(*,'(a,f0.1,a)')'Maximum depth of ', stopdepth, ' m reached!!! Simulation stopped.'
+         error = 1
+         write(error_message,'(a,f0.1,a)')'Error! Maximum depth of ', stopdepth, ' m reached!!! Simulation stopped.'
          !
          ! Write map output at last time step 
          !
@@ -495,8 +498,6 @@ module sfincs_lib
    !
    !$acc end data
    !
-   ierr = 0
-   !
    end function sfincs_update
    !
    !-----------------------------------------------------------------------------------------------------!
@@ -504,8 +505,6 @@ module sfincs_lib
    function sfincs_finalize() result(ierr)
    !
    integer :: ierr
-   !
-   ierr = -1
    !
    call system_clock(count1, count_rate, count_max)
    !
@@ -573,9 +572,19 @@ module sfincs_lib
    !
    write(*,*)'---------- Closing off SFINCS -----------'   
    !
-!   call finalize_parameters()
+   ! call finalize_parameters()
    !
    ierr = 0
+   !
+   if (error > 0) then
+      !
+      ! Stop depth was exceeded, or e.g. input file missing
+      !
+      write(*,*)''
+      write(*,*)trim(error_message)
+      ierr = error
+      !
+   endif
    !
    end function sfincs_finalize
    !

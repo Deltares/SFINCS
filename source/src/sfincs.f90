@@ -11,16 +11,18 @@ program sfincs
    deltat = -1.0
    ierr = 0
    !
-   if (ierr==0) then
+   if (ierr == 0) then
       ierr = sfincs_initialize(config_file)
    endif
    !
-   if (ierr==0) then
+   if (ierr == 0) then
       ierr = sfincs_update(deltat)
    endif
    !
-   if (ierr==0) then
-      ierr = sfincs_finalize()
-   endif
+   ! Always finalize, especially in case of error
+   !
+   ierr = sfincs_finalize()
+   !
+   call exit(ierr)
    !
 end program

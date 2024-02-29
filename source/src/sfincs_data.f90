@@ -7,6 +7,10 @@ module sfincs_data
       real    :: tstart_all, tfinish_all
       real*4  :: dtavg
       !!!
+      !!! Error code
+      integer :: error
+      character*256 :: error_message
+      !!!
       !!! Constants
       !!!
       real*4 g                                   ! gravitational constant g
