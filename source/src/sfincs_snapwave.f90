@@ -32,7 +32,7 @@ module sfincs_snapwave
    !
 contains
    !
-   subroutine couple_snapwave()
+   subroutine couple_snapwave(crsgeo)
    !
    use snapwave_data
    use snapwave_domain
@@ -41,6 +41,14 @@ contains
    implicit none
    !
    integer :: ipsw, iq
+   logical       :: crsgeo
+   !
+   ! Check whether SFINCS grid is spherical (T) or cartesian (F), and prescribe to SnapWave as variable 'sferic' -  spherical (1) or cartesian (0) grid
+   if (crsgeo) then
+      sferic  = 1 
+      write(*,*)'SnapWave: Input grid interpreted as spherical coordinates, sferic= ',sferic
+      
+   endif   
    !
    call read_snapwave_input()            ! Reads snapwave.inp
    !
@@ -60,8 +68,7 @@ contains
    snapwave_tpigmean = 0.0    
    !   
    call find_matching_cells(index_quadtree_in_snapwave, index_snapwave_in_quadtree)
-   !
-   ! No longer need any of these
+
    !
    end subroutine
    
@@ -376,11 +383,14 @@ contains
    call read_int_input(500,'snapwave_nrsweeps',nr_sweeps,4)
    call read_int_input(500,'snapwave_baldock_opt',baldock_opt,1)     
    call read_real_input(500,'snapwave_baldock_ratio',baldock_ratio,0.2)
+   call read_real_input(500,'rgh_lev_land',rghlevland,0.0)
+   call read_real_input(500,'snapwave_fw_ratio',fwratio,5.0)
+   call read_real_input(500,'snapwave_fwig_ratio',fwigratio,5.0)   
    !
    ! Settings related to IG waves:   
    call read_int_input(500,'snapwave_igwaves',igwaves_opt,1)   
    call read_real_input(500,'snapwave_alpha_ig',snapwave_alpha_ig,1.0)   
-   call read_real_input(500,'snapwave_gammaig',gamma_ig,0.7)   
+   call read_real_input(500,'snapwave_gammaig',gamma_ig,0.2)   
    call read_real_input(500,'snapwave_shinc2ig',shinc2ig,1.0)                   ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 1=default=all energy as sink)
    call read_real_input(500,'snapwave_alphaigfac',alphaigfac,1.0)               ! Multiplication factor for IG shoaling source/sink term         
    call read_real_input(500,'snapwave_baldock_ratio_ig',baldock_ratio_ig,0.2)       
@@ -404,6 +414,7 @@ contains
    call read_char_input(500,'snapwave_mskfile',mskfile,'')
    call read_char_input(500,'snapwave_depfile',depfile,'none')   
    call read_char_input(500,'snapwave_ncfile', gridfile,'snapwave_net.nc')   
+   call read_char_input(500,'snapwave_boundaryfile',netsnapwavefile,'')
    !
    close(500)
    !

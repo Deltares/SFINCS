@@ -12,6 +12,7 @@ contains
    !Maken matlab converter van sp2 naar binair
    !
    use snapwave_data
+   use snapwave_ncinput   
    !
    implicit none
    !
@@ -26,6 +27,12 @@ contains
       !
       call read_boundary_data_singlepoint()
       !
+   elseif (netsnapwavefile /= '') then
+      ! 
+      ! Read space- and time-varying data from netcdf file
+      !       
+      call read_netcdf_wave_boundary_data()      
+      ! 
    else
       !
       ! Read space- and time-varying data
@@ -38,6 +45,16 @@ contains
    !
    call find_boundary_indices()
    !
+   ! Allocate later needed variables (interpolated values in time):
+   !
+   ! Allocatie vars for incident waves (same for all input variations):
+   allocate(hst_bwv(nwbnd))
+   allocate(tpt_bwv(nwbnd))
+   allocate(wdt_bwv(nwbnd))
+   allocate(dst_bwv(nwbnd))
+   allocate(zst_bwv(nwbnd)) 
+   allocate(eet_bwv(ntheta, nwbnd))    
+   !
    ! Determine IG wave height and period at boundary point(s) later using Herbers 1994 
    ! (depends on local -changing- water depth, so not calculatable a priori)
    !
@@ -47,7 +64,7 @@ contains
       allocate(hst_bwv_ig(nwbnd))
       allocate(tpt_bwv_ig(nwbnd))          
       allocate(eet_bwv_ig(ntheta,nwbnd)) 
-      ! 'nwbnd' was determined in read_boundary_data_singlepoint/read_boundary_data_timeseries
+      ! 'nwbnd' was determined in read_boundary_data_singlepoint/read_boundary_data_timeseries/read_netcdf_wave_boundary_data
       ! 
       ! Also needed:
       allocate(deptht_bwv(nwbnd))      
@@ -134,19 +151,10 @@ contains
    !
    nwbnd = 1
    !
-   allocate(hst_bwv(nwbnd))
-   allocate(tpt_bwv(nwbnd))
-   allocate(wdt_bwv(nwbnd))
-   allocate(dst_bwv(nwbnd))
-   allocate(zst_bwv(nwbnd)) 
-   allocate(eet_bwv(ntheta, nwbnd)) 
-   !
    ntwbnd = nrec
    !
    end subroutine 
 
-   
-   
    
    subroutine read_boundary_data_timeseries()
    !
@@ -200,13 +208,6 @@ contains
       !
       allocate(t_bwv(ntwbnd))
       !
-      allocate(hst_bwv(nwbnd))
-      allocate(tpt_bwv(nwbnd))
-      allocate(wdt_bwv(nwbnd))
-      allocate(dst_bwv(nwbnd))
-      allocate(zst_bwv(nwbnd)) 
-      allocate(eet_bwv(ntheta,nwbnd)) 
-      !  
       ! Hs (significant wave height)
       ! Times in btp and bwd files must be the same as in bhs file!
       !
@@ -250,7 +251,7 @@ contains
       !
       ds_bwv = ds_bwv * pi / 180
       !
-      ! zs (water level)
+      ! zs (water level) - TL: TODO CHECK STILL NEEDED?
       if (trim(bzsfile) /= '') then 
          !
          open(500, file=trim(bzsfile))
@@ -800,5 +801,5 @@ subroutine update_boundaries()
 !   if (c<0)  c = c + b
 !   !   
 !   end function  
-   
+
 end module
