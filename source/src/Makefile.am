@@ -29,7 +29,6 @@ libsfincs_la_SOURCES = \
 	snapwave/snapwave_ncoutput.F90 \
 	snapwave/snapwave_ncinput.F90 \	
 	snapwave/snapwave_domain.f90 \
-	snapwave/snapwave_input.f90 \
 	snapwave/snapwave_solver.f90 \
 	sfincs_input.f90 \
 	sfincs_ncinput.F90 \
@@ -39,6 +38,7 @@ libsfincs_la_SOURCES = \
 	sfincs_discharges.f90 \
 	sfincs_subgrid.F90 \
 	sfincs_domain.f90 \
+	sfincs_error.f90 \	
 	sfincs_structures.f90 \
 	sfincs_obspoints.f90 \
 	sfincs_snapwave.f90 \
