@@ -43,4 +43,11 @@
             <maxRunTime>120.0</maxRunTime>
         </testCase>
     </testCases>
+    <!--<latex_graphs>
+        <latexGraph name="Charleston" his="true" his_loc="[1]" his_var="drainage_discharge">
+            <data label="observations" />
+            <map type="1D" var="" yloc="" time="" />
+            <plot title
+        </latexGraph>
+    </latex_graphs>-->
 </SFINCS_testbed>

@@ -33,9 +33,10 @@ class ResultPlotter:
             self.prepare_plot(figure, "his")
             self.plot_dataset(figure)
 
-        if self.__graph_parameters.map != "":
+        if self.__graph_parameters.map == "1D":
             figure = self.prepare_dataset("sfincs_map.nc")
             self.prepare_plot(figure, self.__graph_parameters.map)
+            self.plot_dataset(figure)
 
     def prepare_dataset(self, file: str):
         """Open datasets and create a figure config for plotting."""
@@ -95,30 +96,17 @@ class ResultPlotter:
     def plot_dataset(self, figure: FigureConfig):
         """Plot dataset by input from FigureConfig object"""
         for i in range(figure.total_points):
-            current_loc = figure.locations[i] - 1
+            current_loc = figure.locations[i]
 
             axes = figure.figure_plot.add_subplot(figure.rows, figure.columns, i + 1)
             axes.grid()
             self.set_limits(figure, axes)
 
-            axes.plot(figure.reference["time"][:] / self.factor,
-                      figure.reference[figure.var][:, current_loc],
-                      color='C2',
-                      label=figure.reference.getncattr("Build-Revision"))
+            if self.__graph_parameters.his:
+                self.plot_axes_his(axes, figure, current_loc - 1)
+            else:
+                self.plot_axes_1D(axes, figure, current_loc)
 
-            axes.plot(figure.output["time"][:] / self.factor,
-                      figure.output[figure.var][:, current_loc],
-                      color='C1',
-                      label=figure.output.getncattr("Build-Revision"))
-
-            if self.__graph_parameters.observations:
-                axes.plot(figure.observations["time"][:] / self.factor,
-                          figure.observations[figure.var][:, current_loc],
-                          color='k', linestyle="--",
-                          label=self.__graph_parameters.datalabel)
-
-            axes_title = str(nc.chartostring(figure.output["station_name"][current_loc, :]))
-            axes.set_title(axes_title.strip())
             # Set labels only for outer subplots
             if (i + 1) / figure.columns > figure.rows - 1:
                 axes.set_xlabel(self.__graph_parameters.xlabel)
@@ -141,9 +129,52 @@ class ResultPlotter:
 
         plt.savefig(figure_path, dpi=300)
 
+    def plot_axes_his(self, axes: plt.Axes, figure: FigureConfig, current_loc: int):
+        """Plot his data on axes."""
+        axes.plot(figure.reference["time"][:] / self.factor,
+                  figure.reference[figure.var][:, current_loc],
+                  color='C2',
+                  label=figure.reference.getncattr("Build-Revision"))
+
+        axes.plot(figure.output["time"][:] / self.factor,
+                  figure.output[figure.var][:, current_loc],
+                  color='C1',
+                  label=figure.output.getncattr("Build-Revision"))
+
+        if self.__graph_parameters.observations:
+            axes.plot(figure.observations["time"][:] / self.factor,
+                      figure.observations[figure.var][:, current_loc],
+                      color='k', linestyle="--",
+                      label=self.__graph_parameters.datalabel)
+
+        axes_title = str(nc.chartostring(figure.output["station_name"][current_loc, :]))
+        axes.set_title(axes_title.strip())
+
+    def plot_axes_1D(self, axes: plt.Axes, figure: FigureConfig, current_loc: int):
+        """Plot 1D data on axes"""
+        ref_index = np.argmin(np.abs(np.array(figure.reference["time"]) - current_loc))  
+        axes.plot(np.transpose(figure.reference["x"][:]),
+                  np.squeeze(figure.reference[figure.var][ref_index, self.__graph_parameters.map1D_yloc, :]),
+                  color='C2',
+                  label=figure.reference.getncattr("Build-Revision"))  
+
+        index = np.argmin(np.abs(np.array(figure.output["time"]) - current_loc))
+        axes.plot(np.transpose(figure.output["x"][:]),
+                  np.squeeze(figure.output[figure.var][index, self.__graph_parameters.map1D_yloc, :]),
+                  color='C1',
+                  label=figure.output.getncattr("Build-Revision"))
+
+        if self.__graph_parameters.observations:
+            obs_index = np.argmin(np.abs(np.array(figure.observations["time"]) - current_loc))
+            axes.plot(figure.observations["x"][:],
+                      np.squeeze(figure.observations[figure.var][obs_index, :, self.__graph_parameters.map1D_yloc]),
+                      color='k', linestyle="--",
+                      label=self.__graph_parameters.datalabel)
+        # Set labels
+        axes.set_title("t = " + "{:.2f}".format(float(figure.output["time"][index])) + " s")
+
     def set_limits(self, figure: FigureConfig, axes: plt.Axes):
         """Set x and y limit on axes for plot"""
-        # TODO: find out if necessary specific xlim and ylim for 1d plots
         if self.__graph_parameters.xlim:
             xlim = self.__graph_parameters.xlim
         else:
@@ -159,36 +190,8 @@ class ResultPlotter:
         plt.setp(axes, xlim=xlim, ylim=ylim)
 
     def create_table(self):
-        # Create table with version, total_runtime and RMSE between stable release and latest
-        if self.config["stable_version"]:
-            if self.config["revision_nr"]:
-                initial_data = {"Release version":["Rev : " + str(self.config["revision_nr"]),output.getncattr("Build-Revision")], "Total runtime [s]": [float(stable["total_runtime"][:]),float(output["total_runtime"][:])]}
-            else:
-                initial_data = {"Release version":[stable.getncattr("Build-Revision"),output.getncattr("Build-Revision")], "Total runtime [s]": [float(stable["total_runtime"][:]),float(output["total_runtime"][:])]}
-            df = pd.DataFrame(initial_data, columns=['Release version', 'Total runtime [s]'])
-
-            for i in range(0,Tot):
-                if self.config["his_loc"]:
-                    #python starts numbering at 0, therefore -1
-                    iloc = self.config["his_loc"][i] -1
-                else:
-                    iloc= i
-
-                #interpolate stable release onte latest timeseries ...
-                f = interpolate.interp1d(stable["time"][:],stable[var][:,iloc],fill_value="extrapolate")
-                stable_var_new = f(np.asarray(output["time"][:]))
-
-                RMSE = self.rmse(output[var][:,iloc],stable_var_new)
-                df_new=pd.DataFrame({'RMSE loc:' + str(nc.chartostring(output["station_name"][iloc,:])).strip() : [np.nan, RMSE]})
-                df = pd.concat([df, df_new], axis=1)
-
-            texname = os.path.join(self.testbedloc,"models",model.testid, model.runid, model.runid + '.tex')
-            if Tot > 3:
-                df.set_index('Release version',inplace=True)
-                df = df.transpose()
-                df.to_latex(buf=texname, index=True, float_format="%.3f",na_rep="-")
-            else:
-                df.to_latex(buf=texname, index=False, float_format="%.3f",na_rep="-")
+        # TODO: create table
+        pass
 
     def set_size(self, width, fraction=1, subplots=(1, 1)):
         """Set figure dimensions to avoid scaling in LaTeX.
