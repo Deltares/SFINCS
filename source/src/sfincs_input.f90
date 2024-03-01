@@ -70,7 +70,6 @@ contains
    call read_real_input(500,'rgh_lev_land',rghlevland,0.0)
    call read_real_input(500,'zsini',zini,0.0)
    call read_real_input(500,'qinf',qinf,0.0)
-   call read_real_input(500,'igperiod',tig,120.0)
    call read_real_input(500,'dtmax',dtmax,60.0)
    call read_real_input(500,'huthresh',huthresh,0.05)
    call read_real_input(500,'rhoa',rhoa,1.25)
@@ -202,6 +201,7 @@ contains
    call read_int_input(500,'storefw', istorefw, 0)
    call read_int_input(500,'storewavdir', istorewavdir, 0)
    call read_logical_input(500,'friction2d',friction2d,.true.)
+   call read_logical_input(500,'advection_mask',advection_mask,.true.)
    !
    ! Wind drag
    !
@@ -488,9 +488,15 @@ contains
    if (wvmfile(1:4) /= 'none') then
       wavemaker = .true.
       iwavemaker = 1
+      !
+      write(*,*)'Turning on process: Dynamic waves'               
+      !
       if (wmsigstr(1:3) == 'mon') then
          ! Monochromatic
          wavemaker_spectrum = .false.
+         !
+         write(*,*)'Use monochromatic wave spectrum'               
+         !
       endif   
    endif
    !

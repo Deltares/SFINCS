@@ -74,7 +74,7 @@ module sfincs_data
       real*4 dym2
       real*4 nuvisc
       real*4 nuviscdim
-      real*4 nuviscinp      
+      real*4 nuviscinp   
       real*4 spw_merge_frac
       real*4 tsunami_arrival_threshold
       real*4 dtwave
@@ -220,6 +220,7 @@ module sfincs_data
       logical       :: use_spw_precip
       logical       :: friction2d
       logical       :: advection_limiter
+      logical       :: advection_mask
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
@@ -292,6 +293,7 @@ module sfincs_data
       integer*1,          dimension(:),   allocatable :: kcs
       integer*1,          dimension(:),   allocatable :: kcuv
       ! integer*1,          dimension(:),   allocatable :: kfu
+      integer*1,          dimension(:),   allocatable :: mask_adv
       integer*1,          dimension(:),   allocatable :: scs_rain   ! logic if previous time step was raining
       !
       ! Quadtree
@@ -459,7 +461,7 @@ module sfincs_data
       !
       ! Sub-grid
       !
-      integer                             :: subgrid_nbins
+      integer                             :: subgrid_nlevels
       !
       real*4, dimension(:),   allocatable :: subgrid_z_zmin
       real*4, dimension(:),   allocatable :: subgrid_z_zmax
@@ -523,7 +525,17 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: fwuv
       real*4, dimension(:),   allocatable :: mean_wave_direction
       real*4, dimension(:),   allocatable :: wave_directional_spreading
-!      real*4, dimension(:),   allocatable :: tauwavv
+      real*4, dimension(:),   allocatable :: dw
+      real*4, dimension(:),   allocatable :: df      
+      real*4, dimension(:),   allocatable :: dwig
+      real*4, dimension(:),   allocatable :: dfig
+      real*4, dimension(:),   allocatable :: cg    
+      real*4, dimension(:),   allocatable :: qb      
+      real*4, dimension(:),   allocatable :: betamean
+      real*4, dimension(:),   allocatable :: srcsh      
+      real*4, dimension(:),   allocatable :: alphaig      
+      
+      !      real*4, dimension(:),   allocatable :: tauwavv
       !
       !!!
       !!! Boundary data

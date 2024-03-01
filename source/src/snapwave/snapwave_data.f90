@@ -4,16 +4,21 @@ module snapwave_data
    real*4,  dimension(:),       allocatable    :: xs, ys                  ! x,y coordinates of grid (single precision)
    real*8                                      :: xmn, ymn                
    integer*1, dimension(:),     allocatable    :: msk                     ! mask array (0=land, 1=inner point, 2=boundary)
-   real*4,  dimension(:),       allocatable    :: zb, depth               ! bed level, water depth
+   real*4,  dimension(:),       allocatable    :: zb                      ! bed level
+   real*4,  dimension(:),       allocatable    :: depth                   ! water depth
    real*4,  dimension(:),       allocatable    :: dhdx, dhdy              ! water depth gradients
    real*4,  dimension(:),       allocatable    :: kwav, nwav              ! wave number, ratio Cg/C
    real*4,  dimension(:),       allocatable    :: kwav_ig, nwav_ig        ! wave number, ratio Cg/C
    real*4,  dimension(:),       allocatable    :: C, Cg                   ! wave celerity, group velocity0
-   real*4,  dimension(:),       allocatable    :: C_ig, Cg_ig              ! wave celerity, group velocity0
+   real*4,  dimension(:),       allocatable    :: C_ig, Cg_ig             ! wave celerity, group velocity0
+   real*4,  dimension(:,:),     allocatable    :: Sxx                     ! directional radiation stress Sxx
    real*4,  dimension(:),       allocatable    :: fw                      ! friction coefficient
-   real*4,  dimension(:),       allocatable    :: fw_ig                      ! friction coefficient
-   real*4,  dimension(:),       allocatable    :: H, H_ig                       ! rms wave height
+   real*4,  dimension(:),       allocatable    :: fw_ig                   ! friction coefficient
+   real*4,  dimension(:),       allocatable    :: H, H_ig                 ! rms wave height
+   real*4,  dimension(:),       allocatable    :: H_ig_old                ! IG wave height at previous timestep  
+   real*4,  dimension(:),       allocatable    :: H_inc_old               ! Incident wave height at previous timestep  
    real*4,  dimension(:),       allocatable    :: Dw,Df                   ! dissipation due to breaking, bed friction
+   real*4,  dimension(:),       allocatable    :: Dw_ig,Df_ig             ! dissipation due to breaking, bed friction for IG   
    real*4,  dimension(:),       allocatable    :: F                       ! wave force Dw/C/rho/depth
    real*4,  dimension(:),       allocatable    :: Fx, Fy                  ! wave force Dw/C/rho/depth
    real*4,  dimension(:),       allocatable    :: thetam                  ! mean wave direction
@@ -52,6 +57,11 @@ module snapwave_data
    real*4,  dimension(:,:),     allocatable    :: ee                      ! directional energy density
    real*4,  dimension(:,:),     allocatable    :: ee_ig                   ! directional infragravity energy density
    !
+   real*4,  dimension(:),       allocatable    :: Qb
+   real*4,  dimension(:),       allocatable    :: beta
+   real*4,  dimension(:),       allocatable    :: srcsh
+   real*4,  dimension(:),       allocatable    :: alphaig   
+   !
    integer*4,  dimension(:),     allocatable    :: index_snapwave_in_quadtree
    integer*4,  dimension(:),     allocatable    :: index_quadtree_in_snapwave
    
@@ -74,7 +84,8 @@ module snapwave_data
    character*232                               :: bwdfile
    character*232                               :: bdsfile
    character*232                               :: bzsfile
-   
+   character*256                               :: netsnapwavefile   
+   !
    integer                                     :: nwbnd                   ! number of support points wave boundary 
    integer                                     :: ntwbnd                  ! number of time points wave boundary 
    real*4                                      :: tpmean_bwv              ! mean tp over boundary points for given time
@@ -91,21 +102,32 @@ module snapwave_data
    real*4,  dimension(:),     allocatable      :: wdt_bwv                 ! wave direction at boundary points for given time
    real*4,  dimension(:),     allocatable      :: dst_bwv                 ! directional spreading at boundary points for given time
    real*4,  dimension(:),     allocatable      :: zst_bwv                 ! water level at boundary points for given time
-   real*4,  dimension(:,:),     allocatable    :: eet_bwv                 ! directional spectra at boundary points for given time
+   real*4,  dimension(:,:),   allocatable      :: eet_bwv                 ! directional spectra at boundary points for given time
+   real*4,  dimension(:),     allocatable      :: deptht_bwv                ! water depth at boundary points for given time   
    !
    real*4,  dimension(:,:),     allocatable    :: hs_bwv                  ! wave height for all boundary locations and time points
    real*4,  dimension(:,:),     allocatable    :: tp_bwv                  ! wave period for all boundary locations and time points
    real*4,  dimension(:,:),     allocatable    :: wd_bwv                  ! wave direction (nautical deg) for all boundary locations and time points
    real*4,  dimension(:,:),     allocatable    :: ds_bwv                  ! directional spreading (deg) for all boundary locations and time points
    real*4,  dimension(:,:),     allocatable    :: zs_bwv                  ! water level for all boundary locations and time points
+   !
+   ! IG:
+   real*4                                      :: tpmean_bwv_ig           ! mean IG tp over boundary points for given time   
+   real*4,  dimension(:),       allocatable    :: hst_bwv_ig              ! IG wave height at boundary points for given time   
+   real*4,  dimension(:),       allocatable    :: tpt_bwv_ig              ! IG wave period at boundary points for given time   
+   real*4,  dimension(:,:),     allocatable    :: hs_bwv_ig               ! IG wave height for all boundary locations and time points  
+   real*4,  dimension(:,:),     allocatable    :: tp_bwv_ig               ! IG wave period for all boundary locations and time points
+   real*4,  dimension(:,:),     allocatable    :: eet_bwv_ig              ! directional IG spectra at boundary points for given time   
+   !
    logical                                     :: update_grid_boundary_points
    !
    integer*4                                       :: itwbndlast
    integer*4,          dimension(:),   allocatable :: nmindbnd            ! index of grid point at grid boundary
    integer*4,          dimension(:),   allocatable :: ind1_bwv_cst        ! index to closest wave boundary point
    integer*4,          dimension(:),   allocatable :: ind2_bwv_cst        ! index to second closest wave boundary point
-   real*4,             dimension(:),   allocatable :: fac_bwv_cst         ! weight of closest point
-   
+   real*4,             dimension(:),   allocatable :: fac_bwv_cst         ! weight of closest wave boundary point
+   integer*4,          dimension(:),   allocatable :: nmindact            ! index of grid point at active grid    
+   !   
    integer*4 mmax
    integer*4 nmax
    real*4 dx
@@ -133,7 +155,19 @@ module snapwave_data
    real*4                                    :: fw0             ! uniform wave friction factor
    real*4                                    :: fw0_ig          ! uniform wave friction factor (ig waves)
    real*4                                    :: fwcutoff        ! depth below which to apply space-varying fw
-   real*4                                    :: snapwave_alpha,gamma     ! coefficients in Baldock breaking dissipation model
+   real*4                                    :: snapwave_alpha,gamma     ! coefficients in Baldock wave breaking dissipation model
+   integer                                   :: baldock_opt     ! option of Baldock wave breaking dissipation model (opt=1 is without gamma&depth, else is including)
+   real*4                                    :: baldock_ratio   ! option controlling from what depth wave breaking should take place: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio=0.2 
+   real*4                                    :: baldock_ratio_ig   ! option controlling from what depth wave breaking should take place for IG waves: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio_ig=0.2    
+   integer                                   :: igwaves_opt     ! option of IG waves on (1) or off (0)      
+   integer                                   :: ig_opt          ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)
+   real*4                                    :: snapwave_alpha_ig,gamma_ig     ! coefficients in Baldock wave breaking dissipation model for IG waves
+   real*4                                    :: shinc2ig        ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 0=default)
+   real*4                                    :: alphaigfac      ! Multiplication factor for IG shoaling source/sink term, default = 1.0 
+   integer                                   :: herbers_opt     ! Choice whether you want IG Hm0&Tp be calculated by herbers (=1, default), or want to specify user defined values (0> then snapwave_eeinc2ig & snapwave_Tinc2ig are used) 
+   integer                                   :: tpig_opt        ! IG wave period option based on Herbers calculated spectrum, only used if herbers_opt = 1. Options are: 1=Tm01 (default), 2=Tpsmooth, 3=Tp, 4=Tm-1,0 
+   real*4                                    :: eeinc2ig        ! ratio of incident wave energy as first estimate of IG wave energy at boundary, user input, only used if not chosen for used Herbers IG bc spectrum based value (herbers_opt = 0)
+   real*4                                    :: Tinc2ig         ! ratio compared to period Tinc to estimate Tig, user input, only used if not chosen for used Herbers IG bc spectrum based value (herbers_opt = 0)   
    real*4                                    :: hmin            ! minimum water depth
    character*256                             :: gridfile        ! name of gridfile (Delft3D .grd format)
    integer                                   :: sferic         ! sferical (1) or cartesian (0) grid
@@ -170,6 +204,9 @@ module snapwave_data
    character*232                             :: Htabname,Dwtabname,Ftabname,Cgtabname,cthetafactabname,hhtabname
    character*232                             :: neumannfile
    real*4, dimension(:), allocatable         :: xb,yb,xneu,yneu
+   real*4                                    :: rghlevland       ! Elevation separation as in SFINCS for simple elevation varying roughness
+   real*4                                    :: fwratio          ! Above 'rghlevland' elevation of zb, the friction for incident waves is multiplied with value 'fwratio'
+   real*4                                    :: fwigratio        ! Above 'rghlevland' elevation of zb, the friction for IG waves is multiplied with value 'fwratio'      
    !
    character*3                               :: outputformat
    !   
@@ -185,6 +222,7 @@ module snapwave_data
    integer                                   :: ntheta360
    !
    logical                                   :: igwaves
+   logical                                   :: igherbers   
    real*4                                    :: crit
    integer                                   :: nr_sweeps
    !

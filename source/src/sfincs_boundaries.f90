@@ -418,7 +418,7 @@ contains
                !
                ind1_bnd_gbp(nb)  = ib1
                ind2_bnd_gbp(nb)  = ib2
-               fac_bnd_gbp(nb) = dst2/(dst1 + dst2)
+               fac_bnd_gbp(nb) = dst2/max(dst1 + dst2, 1.0e-9)
                !
             else
                !
@@ -719,7 +719,7 @@ contains
                !
                ! Interpolation required
                !
-               dzuv    = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nbins - 1)
+               dzuv    = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nlevels - 1)
                iuv     = int((zsuv - subgrid_uv_zmin(ip))/dzuv) + 1
                facint  = (zsuv - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv
                depthuv = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint

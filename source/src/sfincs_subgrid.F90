@@ -7,7 +7,7 @@ module sfincs_subgrid
        integer :: ncid
        integer :: np_dimid
        integer :: npuv_dimid
-       integer :: nbins_dimid
+       integer :: nlevels_dimid
        integer :: z_zmin_varid, z_zmax_varid, z_volmax_varid, z_dep_varid
        integer :: uv_zmin_varid, uv_zmax_varid, uv_fnfit_varid, uv_navg_w_varid, uv_nrep_varid, uv_havg_varid, uv_pwet_varid
    end type      
@@ -39,8 +39,8 @@ contains
       !
       ! Binary format with hrep and navg
       !
-      write(*,*)'Above error appears because your subgrid file has the "old" binary format. Nothing to worry about.'
-      ! 
+      write(*,*)'Warning : subgrid file has the "old" binary format, the simulation will continue, but we do recommended switching to the new Netcdf subgrid input format!'            ! 
+      !
       call read_subgrid_file_original()
       !
    endif
@@ -67,7 +67,7 @@ contains
    integer :: idummy
    integer :: ip
    integer :: ipuv
-   integer :: ibin
+   integer :: ilevel
    integer :: nm
    integer :: nmu
    integer :: n
@@ -90,13 +90,13 @@ contains
    !
    ! Get dimensions sizes    
    !
-   NF90(nf90_inq_dimid(net_file_sbg%ncid, 'bins', net_file_sbg%nbins_dimid))
+   NF90(nf90_inq_dimid(net_file_sbg%ncid, 'levels', net_file_sbg%nlevels_dimid))
    NF90(nf90_inq_dimid(net_file_sbg%ncid, 'np',   net_file_sbg%np_dimid))
    NF90(nf90_inq_dimid(net_file_sbg%ncid, 'npuv', net_file_sbg%npuv_dimid))
    !
    NF90(nf90_inquire_dimension(net_file_sbg%ncid, net_file_sbg%np_dimid,    len = np_nc)) ! nr of z points
    NF90(nf90_inquire_dimension(net_file_sbg%ncid, net_file_sbg%npuv_dimid,  len = npuv_nc)) ! nr of uv points
-   NF90(nf90_inquire_dimension(net_file_sbg%ncid, net_file_sbg%nbins_dimid, len = subgrid_nbins)) ! nr of bins
+   NF90(nf90_inquire_dimension(net_file_sbg%ncid, net_file_sbg%nlevels_dimid, len = subgrid_nlevels)) ! nr of levels
    !
    ! Get variable id's
    !
@@ -106,8 +106,8 @@ contains
    NF90(nf90_inq_varid(net_file_sbg%ncid, 'z_level',    net_file_sbg%z_dep_varid))
    NF90(nf90_inq_varid(net_file_sbg%ncid, 'uv_zmin',    net_file_sbg%uv_zmin_varid))
    NF90(nf90_inq_varid(net_file_sbg%ncid, 'uv_zmax',    net_file_sbg%uv_zmax_varid))
-   NF90(nf90_inq_varid(net_file_sbg%ncid, 'uv_navg_w',  net_file_sbg%uv_navg_w_varid))
-   NF90(nf90_inq_varid(net_file_sbg%ncid, 'uv_fnfit',   net_file_sbg%uv_fnfit_varid))
+   NF90(nf90_inq_varid(net_file_sbg%ncid, 'uv_navg',    net_file_sbg%uv_navg_w_varid))
+   NF90(nf90_inq_varid(net_file_sbg%ncid, 'uv_ffit',    net_file_sbg%uv_fnfit_varid))
    NF90(nf90_inq_varid(net_file_sbg%ncid, 'uv_havg',    net_file_sbg%uv_havg_varid))
    NF90(nf90_inq_varid(net_file_sbg%ncid, 'uv_nrep',    net_file_sbg%uv_nrep_varid))
    NF90(nf90_inq_varid(net_file_sbg%ncid, 'uv_pwet',    net_file_sbg%uv_pwet_varid))
@@ -127,25 +127,25 @@ contains
    allocate(subgrid_z_zmin(np))
    allocate(subgrid_z_zmax(np))
    allocate(subgrid_z_volmax(np))
-   allocate(subgrid_z_dep(subgrid_nbins, np))
+   allocate(subgrid_z_dep(subgrid_nlevels, np))
    allocate(subgrid_uv_zmin(npuv))
    allocate(subgrid_uv_zmax(npuv))
    allocate(subgrid_uv_navg_w(npuv))
    allocate(subgrid_uv_fnfit(npuv))
-   allocate(subgrid_uv_havg(subgrid_nbins, npuv))
-   allocate(subgrid_uv_nrep(subgrid_nbins, npuv))
-   allocate(subgrid_uv_pwet(subgrid_nbins, npuv))
+   allocate(subgrid_uv_havg(subgrid_nlevels, npuv))
+   allocate(subgrid_uv_nrep(subgrid_nlevels, npuv))
+   allocate(subgrid_uv_pwet(subgrid_nlevels, npuv))
    allocate(subgrid_uv_havg_zmax(npuv))
    allocate(subgrid_uv_nrep_zmax(npuv))
    !
    allocate(rtmpz(npzq))
    allocate(rtmpuv(npuvq))
-   allocate(rtmpz2(subgrid_nbins, npzq))
-   allocate(rtmpuv2(subgrid_nbins, npuvq))
+   allocate(rtmpz2(subgrid_nlevels, npzq))
+   allocate(rtmpuv2(subgrid_nlevels, npuvq))
    allocate(uv_index(npuv))
    allocate(z_index(np))
    !
-   write(*,*)'Number of subgrid bins : ',subgrid_nbins
+   write(*,*)'Number of subgrid levels : ',subgrid_nlevels
    !
    ! Need to make a new temporary re-mapping index array for the u and v points
    ! This is needed for reading in the subgrid file which has values for the entire quadtree grid
@@ -284,8 +284,8 @@ contains
    NF90(nf90_get_var(net_file_sbg%ncid, net_file_sbg%z_dep_varid, rtmpz2(:,:)))
    !
    do ip = 1, np
-      do ibin = 1, subgrid_nbins
-         subgrid_z_dep(ibin, ip) = rtmpz2(ibin, z_index(ip))
+      do ilevel = 1, subgrid_nlevels
+         subgrid_z_dep(ilevel, ip) = rtmpz2(ilevel, z_index(ip))
       enddo   
    enddo
    !
@@ -318,19 +318,19 @@ contains
    NF90(nf90_get_var(net_file_sbg%ncid, net_file_sbg%uv_havg_varid, rtmpuv2(:,:) ))
    !
    do ip = 1, npuv
-      do ibin = 1, subgrid_nbins
-         subgrid_uv_havg(ibin, ip) = rtmpuv2(ibin, uv_index(ip))
+      do ilevel = 1, subgrid_nlevels
+         subgrid_uv_havg(ilevel, ip) = rtmpuv2(ilevel, uv_index(ip))
       enddo   
    enddo
    !
    NF90(nf90_get_var(net_file_sbg%ncid, net_file_sbg%uv_nrep_varid, rtmpuv2(:,:) ))
    !
    do ip = 1, npuv
-      do ibin = 1, subgrid_nbins
+      do ilevel = 1, subgrid_nlevels
          !
          ! Already convert here to gn^2
          !
-         subgrid_uv_nrep(ibin, ip) = g*max(rtmpuv2(ibin, uv_index(ip)), 0.0001)**2
+         subgrid_uv_nrep(ilevel, ip) = g*max(rtmpuv2(ilevel, uv_index(ip)), 0.0001)**2
          !
       enddo   
    enddo
@@ -338,8 +338,8 @@ contains
    NF90(nf90_get_var(net_file_sbg%ncid, net_file_sbg%uv_pwet_varid, rtmpuv2(:,:) ))
    !
    do ip = 1, npuv
-      do ibin = 1, subgrid_nbins
-         subgrid_uv_pwet(ibin, ip) = rtmpuv2(ibin, uv_index(ip))
+      do ilevel = 1, subgrid_nlevels
+         subgrid_uv_pwet(ilevel, ip) = rtmpuv2(ilevel, uv_index(ip))
       enddo   
    enddo
    !
@@ -367,8 +367,8 @@ contains
    ! Make arrays for subgrid_uv_havg_zmax and subgrid_uv_nrep_zmax for faster searching
    !
    do ip = 1, npuv
-      subgrid_uv_havg_zmax(ip) = subgrid_uv_havg(subgrid_nbins, ip) - subgrid_uv_zmax(ip)
-      subgrid_uv_nrep_zmax(ip) = subgrid_uv_nrep(subgrid_nbins, ip)
+      subgrid_uv_havg_zmax(ip) = subgrid_uv_havg(subgrid_nlevels, ip) - subgrid_uv_zmax(ip)
+      subgrid_uv_nrep_zmax(ip) = subgrid_uv_nrep(subgrid_nlevels, ip)
    enddo    
    ! 
    deallocate(rtmpz)
@@ -397,7 +397,7 @@ contains
    integer :: idummy
    integer :: ioption
    integer :: ip
-   integer :: ibin
+   integer :: ilevel
    integer :: nm
    integer :: nmu
    integer :: n
@@ -419,21 +419,22 @@ contains
       read(500)idummy ! version
       read(500)npzq ! nr cells
       read(500)npuvq ! nr uv points
-      read(500)subgrid_nbins
-      subgrid_nbins = subgrid_nbins + 1
+      read(500)subgrid_nlevels
+      ! In the 'old' binary format, the number of bins was written to the sbg file. Add 1 to get to nr of levels.
+      subgrid_nlevels = subgrid_nlevels + 1
       allocate(subgrid_z_zmin(np))
       allocate(subgrid_z_zmax(np))
       allocate(subgrid_z_volmax(np))
-      allocate(subgrid_z_dep(subgrid_nbins, np))
+      allocate(subgrid_z_dep(subgrid_nlevels, np))
       allocate(subgrid_uv_zmin(npuv))
       allocate(subgrid_uv_zmax(npuv))
-      allocate(subgrid_uv_havg(subgrid_nbins, npuv))
-      allocate(subgrid_uv_nrep(subgrid_nbins, npuv))
+      allocate(subgrid_uv_havg(subgrid_nlevels, npuv))
+      allocate(subgrid_uv_nrep(subgrid_nlevels, npuv))
       allocate(subgrid_uv_havg_zmax(npuv))
       allocate(subgrid_uv_nrep_zmax(npuv))
       allocate(subgrid_uv_navg_w(npuv))
       allocate(subgrid_uv_fnfit(npuv))
-      allocate(subgrid_uv_pwet(subgrid_nbins, npuv))
+      allocate(subgrid_uv_pwet(subgrid_nlevels, npuv))
       subgrid_uv_fnfit = 0.0
       subgrid_uv_pwet  = 1.0
       !
@@ -441,7 +442,7 @@ contains
       allocate(rtmpuv(npuvq))
       allocate(uv_index_qt_in_sf(npuv))
       !
-      write(*,*)'Number of subgrid bins : ',subgrid_nbins - 1
+      write(*,*)'Number of subgrid levels : ',subgrid_nlevels
       !
       ! Need to make a new temporary re-mapping index array for the u and v points
       ! This is needed for reading in the subgrid file which has values for the entire quadtree grid
@@ -544,10 +545,10 @@ contains
       enddo   
       !
       subgrid_z_dep(1, :) = max(subgrid_z_zmin(:), -20.0)
-      do ibin = 1, subgrid_nbins - 1
+      do ilevel = 1, subgrid_nlevels - 1
          read(500)rtmpz
          do nm = 1, np
-            subgrid_z_dep(ibin + 1, nm) = rtmpz(index_quadtree_in_sfincs(nm))
+            subgrid_z_dep(ilevel + 1, nm) = rtmpz(index_quadtree_in_sfincs(nm))
          enddo   
       enddo
       !
@@ -566,21 +567,21 @@ contains
       ! Initialize subgrid_uv_havg with huthresh
       !
       subgrid_uv_havg = huthresh
-      do ibin = 1, subgrid_nbins - 1
+      do ilevel = 1, subgrid_nlevels - 1
          read(500)rtmpuv
          do nm = 1, npuv
-            subgrid_uv_havg(ibin + 1, nm) = max(rtmpuv(uv_index_qt_in_sf(nm)), huthresh)
+            subgrid_uv_havg(ilevel + 1, nm) = max(rtmpuv(uv_index_qt_in_sf(nm)), huthresh)
          enddo   
       enddo
       !
-      do ibin = 1, subgrid_nbins - 1
+      do ilevel = 1, subgrid_nlevels - 1
          read(500)rtmpuv
          do nm = 1, npuv
             ! Already convert here to gn^2
-            subgrid_uv_nrep(ibin + 1, nm) = g*max(rtmpuv(uv_index_qt_in_sf(nm)), 0.005)**2
+            subgrid_uv_nrep(ilevel + 1, nm) = g*max(rtmpuv(uv_index_qt_in_sf(nm)), 0.005)**2
          enddo   
       enddo
-      ! Set bottom navg equal to one bin above
+      ! Set bottom navg equal to one level above
       subgrid_uv_nrep(1, :) = subgrid_uv_nrep(2, :)
       !
       close(500)
@@ -597,22 +598,22 @@ contains
       open(unit = 500, file = trim(sbgfile), form = 'unformatted', access = 'stream')
       read(500)idummy ! nr cells
       read(500)ioption ! option
-      read(500)subgrid_nbins
-      subgrid_nbins = subgrid_nbins + 1
-      write(*,*)'Number of subgrid bins : ',subgrid_nbins - 1
+      read(500)subgrid_nlevels
+      subgrid_nlevels = subgrid_nlevels + 1
+      write(*,*)'Number of subgrid levels : ',subgrid_nlevels - 1
       allocate(subgrid_z_zmin(np))
       allocate(subgrid_z_zmax(np))
       allocate(subgrid_z_volmax(np))
-      allocate(subgrid_z_dep(subgrid_nbins, np))
+      allocate(subgrid_z_dep(subgrid_nlevels, np))
       allocate(subgrid_uv_zmin(npuv))
       allocate(subgrid_uv_zmax(npuv))
-      allocate(subgrid_uv_havg(subgrid_nbins, npuv))
-      allocate(subgrid_uv_nrep(subgrid_nbins, npuv))
+      allocate(subgrid_uv_havg(subgrid_nlevels, npuv))
+      allocate(subgrid_uv_nrep(subgrid_nlevels, npuv))
       allocate(subgrid_uv_havg_zmax(npuv))
       allocate(subgrid_uv_nrep_zmax(npuv))
       allocate(subgrid_uv_navg_w(npuv))
       allocate(subgrid_uv_fnfit(npuv))
-      allocate(subgrid_uv_pwet(subgrid_nbins, npuv))
+      allocate(subgrid_uv_pwet(subgrid_nlevels, npuv))
       subgrid_uv_fnfit = 0.0
       subgrid_uv_pwet  = 1.0
       !
@@ -629,10 +630,10 @@ contains
       ! enddo
       !
       subgrid_z_dep(1,:) = max(subgrid_z_zmin(:), -20.0)
-      do ibin = 1, subgrid_nbins - 1
+      do ilevel = 1, subgrid_nlevels - 1
          read(500)rtmpz
          do nm = 1, np
-            subgrid_z_dep(ibin + 1, nm) = rtmpz(nm)
+            subgrid_z_dep(ilevel + 1, nm) = rtmpz(nm)
          enddo
       enddo   
       !
@@ -675,19 +676,19 @@ contains
       ! U hrep
       !
       subgrid_uv_havg(1,:) = huthresh
-      do ibin = 1, subgrid_nbins - 1
+      do ilevel = 1, subgrid_nlevels - 1
          read(500)rtmpz
          do nm = 1, np
             ip = z_index_uv_mu1(nm) ! index of uv point
             if (ip>0) then
-               subgrid_uv_havg(ibin + 1, ip) = rtmpz(nm)
+               subgrid_uv_havg(ilevel + 1, ip) = rtmpz(nm)
             endif
          enddo
       enddo         
       !
       ! U navg
       !
-      do ibin = 1, subgrid_nbins - 1
+      do ilevel = 1, subgrid_nlevels - 1
          !
          read(500)rtmpz
          !            
@@ -697,7 +698,7 @@ contains
             !
             if (ip>0) then
                !
-               subgrid_uv_nrep(ibin + 1, ip) = g*max(rtmpz(nm), 0.0001)**2
+               subgrid_uv_nrep(ilevel + 1, ip) = g*max(rtmpz(nm), 0.0001)**2
                !
             endif
             !
@@ -748,19 +749,19 @@ contains
       ! V hrep
       !
       subgrid_uv_havg(1,:) = huthresh
-      do ibin = 1, subgrid_nbins - 1
+      do ilevel = 1, subgrid_nlevels - 1
          read(500)rtmpz
          do nm = 1, np
             ip = z_index_uv_nu1(nm) ! index of uv point
             if (ip>0) then
-               subgrid_uv_havg(ibin + 1, ip) = rtmpz(nm)
+               subgrid_uv_havg(ilevel + 1, ip) = rtmpz(nm)
             endif
          enddo
       enddo         
       !
       ! V navg
       !
-      do ibin = 1, subgrid_nbins - 1
+      do ilevel = 1, subgrid_nlevels - 1
          !
          read(500)rtmpz
          !            
@@ -770,7 +771,7 @@ contains
             !
             if (ip>0) then
                !
-               subgrid_uv_nrep(ibin + 1, ip) = g*max(rtmpz(nm), 0.0001)**2
+               subgrid_uv_nrep(ilevel + 1, ip) = g*max(rtmpz(nm), 0.0001)**2
                !
             endif
             !
@@ -814,8 +815,8 @@ contains
    ! Make arrays for subgrid_uv_havg_zmax and subgrid_uv_nrep_zmax for faster searching
    !
    do ip = 1, npuv
-      subgrid_uv_havg_zmax(ip) = subgrid_uv_havg(subgrid_nbins, ip) - subgrid_uv_zmax(ip)
-      subgrid_uv_nrep_zmax(ip) = subgrid_uv_nrep(subgrid_nbins, ip)
+      subgrid_uv_havg_zmax(ip) = subgrid_uv_havg(subgrid_nlevels, ip) - subgrid_uv_zmax(ip)
+      subgrid_uv_nrep_zmax(ip) = subgrid_uv_nrep(subgrid_nlevels, ip)
       subgrid_uv_navg_w(ip)    = subgrid_uv_nrep_zmax(ip)
    enddo    
    !
@@ -829,7 +830,7 @@ contains
    !
    implicit none
    !
-   integer    :: nm, m, n, ivol, ibin, ip
+   integer    :: nm, m, n, ivol, ilevel, ip
    real*4     :: dzvol
    real*4     :: facint
    real*4     :: one_minus_facint 
@@ -855,14 +856,14 @@ contains
          ! Interpolation required
          !
          ivol = 1
-         do ibin = 2, subgrid_nbins
-            if (subgrid_z_dep(ibin, nm)>zs(nm)) then
-               ivol = ibin - 1
+         do ilevel = 2, subgrid_nlevels
+            if (subgrid_z_dep(ilevel, nm)>zs(nm)) then
+               ivol = ilevel - 1
                exit
             endif
          enddo
          !
-         dzvol  = subgrid_z_volmax(nm) / (subgrid_nbins - 1)
+         dzvol  = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
          facint = (zs(nm) - subgrid_z_dep(ivol, nm)) / max(subgrid_z_dep(ivol + 1, nm) - subgrid_z_dep(ivol, nm), 0.001)
          z_volume(nm) = (ivol - 1)*dzvol + facint*dzvol
          !
@@ -887,9 +888,16 @@ contains
       integer, intent ( in)    :: line
       integer :: status2
       !   
-      if(status /= nf90_noerr) then
-         write(0,'("NETCDF ERROR: ",a,i6,":",a)') file,line,trim(nf90_strerror(status))
+      if (status /= nf90_noerr) then
+         !
+         ! Do not give error message if this is not a valid netcdf file (it's possible that we tried to open a file with the 'old' binary format)
+         !  
+         if (status /= -51) then
+            write(0,'("NETCDF ERROR: ",a,i6,":",a)') file, line, trim(nf90_strerror(status) )
+         endif 
+         !  
       end if
+      !  
    end subroutine handle_err
 
 end module

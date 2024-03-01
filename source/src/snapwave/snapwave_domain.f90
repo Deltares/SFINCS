@@ -115,16 +115,25 @@ contains
    allocate(nwav_ig(no_nodes))
    allocate(C_ig(no_nodes))
    allocate(Cg_ig(no_nodes))
+   allocate(Sxx(ntheta,no_nodes))   
    allocate(sinhkh_ig(no_nodes))
    allocate(Hmx_ig(no_nodes))
    allocate(fw_ig(no_nodes))
    allocate(H_ig(no_nodes))   
+   allocate(H_ig_old(no_nodes))    
+   allocate(H_inc_old(no_nodes))    
    allocate(Dw(no_nodes))
+   allocate(Dw_ig(no_nodes))   
    allocate(F(no_nodes))
    allocate(Fx(no_nodes))
    allocate(Fy(no_nodes))
    allocate(Df(no_nodes))
+   allocate(Df_ig(no_nodes))
    allocate(thetam(no_nodes))
+   allocate(Qb(no_nodes))
+   allocate(beta(no_nodes))
+   allocate(srcsh(no_nodes))
+   allocate(alphaig(no_nodes))
 !   allocate(uorb(no_nodes))
    allocate(ctheta(ntheta,no_nodes))
    allocate(ctheta_ig(ntheta,no_nodes))
@@ -161,6 +170,13 @@ contains
    fw = fw0
    fw_ig = fw0_ig
    !
+   do k=1,no_nodes
+       if (zb(k) > rghlevland) then     
+           fw(k) = fw0 * fwratio
+           fw_ig(k) = fw0_ig * fwigratio           
+       endif
+   enddo   
+   !
    ! Initialization of reference tables
    !
    ! Definition of directional grid (dtheta is user input)
@@ -181,6 +197,7 @@ contains
    ds360d0 = 0.d0
    w360d0  = 0.d0
    prev360 = 0
+   H_ig_old = 0.0
    !
    if (upwfile=='') then   
       !
@@ -230,6 +247,8 @@ contains
          endif   
       enddo   
       !
+      write(*,*)'Number of boundary SnapWave nodes : ',nb
+      !
       ! Write upwind neighbors to file
       !
       if (upwfile=='') then
@@ -267,7 +286,7 @@ contains
    integer,                               intent(in)        :: no_nodes,ntheta     ! length of x,y; length of theta
    integer,                               intent(in)        :: sferic             ! sferic (1) or cartesian (0) grid
    real*8,  dimension(no_nodes),          intent(in)        :: x,y                 ! x, y coordinates of grid
-   integer, dimension(np,no_nodes),       intent(in)        :: kp                  ! grid indices of surrounfing points per grid point
+   integer, dimension(np,no_nodes),       intent(in)        :: kp                  ! grid indices of surrounding points per grid point
    real*8,  dimension(ntheta),            intent(in)        :: theta               ! array of wave angles
    real*8,  dimension(2,ntheta,no_nodes), intent(out)       :: w                   ! per grid point and direction, weight of upwind points
    integer, dimension(2,ntheta,no_nodes), intent(out)       :: prev                ! per grid point and direction, indices of upwind points

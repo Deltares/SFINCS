@@ -86,7 +86,7 @@
    real*4    :: phi
    !
    real*4, parameter :: expo = 1.0/3.0
-   ! integer, parameter :: expo = 1
+   !integer, parameter :: expo = 1
    !
    logical   :: iok
    !
@@ -122,7 +122,7 @@
    !$omp reduction ( min : min_dt )
    !$omp do schedule ( dynamic, 256 )
    !$acc kernels, present( kcuv, zs, q, q0, uv, uv0, min_dt, &
-   !$acc                   uv_flags_iref, uv_flags_type, uv_flags_dir, &
+   !$acc                   uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
    !$acc                   subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
    !$acc                   uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc                   uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
@@ -146,7 +146,7 @@
             zmin = subgrid_uv_zmin(ip)
             zmax = subgrid_uv_zmax(ip)
             !
-            if (zsu>zmin + huthresh) then ! In the 'new' subgrid formulations, zmin is lowest pixel + huthresh. Huthresh is set to 0.0 in sfincs_domain to acount for this.
+            if (zsu>zmin + huthresh) then ! In the 'new' subgrid formulations, zmin is lowest pixel + huthresh. Huthresh was already applied when building the subgrid tables. In sfincs_domain, huthresh is set to 0.0 to acount for this.
                iok = .true.
             endif   
             !
@@ -156,7 +156,7 @@
                iok = .true.
             endif   
             !            
-         endif   
+         endif
          !
          if (iok) then
             !
@@ -303,7 +303,7 @@
                   !
                   ! Interpolation required
                   !
-                  dzuv   = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nbins - 1)                             ! bin size
+                  dzuv   = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nlevels - 1)                             ! level size
                   iuv    = int((zsu - subgrid_uv_zmin(ip))/dzuv) + 1                                                     ! index of level below zsu 
                   facint = (zsu - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv                                        ! 1d interpolation coefficient
                   !
@@ -342,7 +342,7 @@
                !
                ! Turn off advection next to open boundaries
                !
-               if ( kcuv(uv_index_u_nmu(ip)) == 1 .and. kcuv(uv_index_u_nmd(ip)) == 1 ) then
+               if (mask_adv(ip) == 1) then
                   ! 
                   dqxudx = 0.0  
                   dqyudy = 0.0  
@@ -594,6 +594,7 @@
    if (ncuv > 0) then
       !
       ! Loop through combined uv points and determine average uv and q
+      ! The combined q and uv values are used in the continuity equation and in the netcdf output
       !
       !$omp parallel &
       !$omp private ( icuv )
