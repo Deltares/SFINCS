@@ -12,7 +12,7 @@ def pytest_addoption(parser):
         help="Specifies an xml config to use for running."
     )
     parser.addoption(
-        "--reference", action="store_true",
+        "--reference", action="store_false",
         help="Does a reference run and skips results processing."
     )
     parser.addoption(
@@ -29,7 +29,7 @@ def setup_credentials():
     """Setup a set of credentials from commandline or enviornment"""
     credentials = Credentials()
     credentials.name = "python"
-    # ToDo: parse these parameters either from environment or arguments
+    # TODO: parse these parameters either from environment or arguments
     credentials.username = "test"
     credentials.password = "test"
     return credentials
@@ -40,6 +40,7 @@ def init_settings():
     settings = TestSettings()
     settings.credentials = setup_credentials()
     settings.server_base_url = "https://s3.deltares.nl"
+    settings.compare = True
     return settings
 
 
@@ -66,7 +67,7 @@ def parse_testcases_from_xml(xml_files: List[str], test_settings: TestSettings):
         config_parser = ConfigParser(xml_file_path)
         config_parser.validate(xml_file_path)
         config_parser.parse_config(test_settings)
-        testcases.extend(config_parser.test_case_config)
+        testcases.extend(config_parser.testcase_config)
     return testcases
 
 

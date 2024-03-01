@@ -9,11 +9,12 @@ class TestSettings(object):
     def __init__(self):
         self.__credentials: Credentials
         self.__server_base_url: str = ""
-        self.__run_type: str = ""
+        self.__compare: bool = True
         self.__case_path: str
         self.__reference_path: str
         self.__engine_path: str
         self.__result_path: str
+        self.__figure_path: str = "./data/figures"
 
     @property
     def credentials(self) -> Credentials:
@@ -70,10 +71,18 @@ class TestSettings(object):
         self.__result_path = value
 
     @property
-    def run_type(self) -> str:
+    def compare(self) -> str:
         """Path to engine directory for the testbench."""
-        return self.__run_type
+        return self.__compare
 
-    @run_type.setter
-    def run_type(self, value: str):
-        self.__run_type = value
+    @compare.setter
+    def compare(self, value: str):
+        self.__compare = value
+
+    @property
+    def figure_path(self) -> str:
+        return self.__figure_path
+
+    @figure_path.setter
+    def figure_path(self, value: str):
+        self.__figure_path = value

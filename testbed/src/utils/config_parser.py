@@ -5,6 +5,7 @@ from src.config.test_case_config import TestCaseConfig
 from src.config.result_checks import ResultChecks
 from src.config.check_parameters import CheckParameters
 from src.config.test_settings import TestSettings
+from src.config.graph_parameters import GraphParameters
 
 
 class ConfigParser(object):
@@ -58,12 +59,12 @@ class ConfigParser(object):
         self.__xml_file: etree._ElementTree = tree_values[0]
         self.__parsed_tree: Dict[str, Any] = tree_values[1]
         self.__program_configs: List[ProgramConfig] = []
-        self.__test_case_config: List[TestCaseConfig] = []
+        self.__testcase_config: List[TestCaseConfig] = []
 
     @property
-    def test_case_config(self):
+    def testcase_config(self):
         """Retrieve list of parse test case configurations"""
-        return self.__test_case_config
+        return self.__testcase_config
 
     def validate(self, xml_file):
         """Validate the xml by using the testbed schema"""
@@ -87,12 +88,12 @@ class ConfigParser(object):
                 program_config = self.parse_program(program)
                 self.__program_configs.append(program_config)
         for testcases in self.loop(self.__parsed_tree, "testCases"):
-            for testcase in testcases["testCase"]:
-                if "name" in testcase:
-                    if case_filter not in str(testcase["name"][0]):
+            for testcase_xml in testcases["testCase"]:
+                if "name" in testcase_xml:
+                    if case_filter not in str(testcase_xml["name"][0]):
                         continue
-                test_case = self.parse_testcase(testcase, test_settings)
-                self.__test_case_config.append(test_case)
+                testcase = self.parse_testcase(testcase_xml, test_settings)
+                self.__testcase_config.append(testcase)
 
     def parse_settings(self, config, test_settings: TestSettings):
         """Parse general test settings for testcases."""
@@ -119,23 +120,25 @@ class ConfigParser(object):
             program_config.path = str(program["path"][0]["txt"])
         return program_config
 
-    def parse_testcase(self, testcase, test_settings: TestSettings):
+    def parse_testcase(self, testcase_xml, test_settings: TestSettings):
         """"Parse testcase and link to program config"""
-        test_case = TestCaseConfig(test_settings)
-        if "name" in testcase:
-            test_case.name = str(testcase["name"][0])
-        if "ref" in testcase:
-            ref_name = str(testcase["ref"][0])
-            test_case.program_config = self.find_program_reference(ref_name)
-        if "path" in testcase:
-            test_case.path = testcase["path"][0]["txt"]
-        if "maxRunTime" in testcase:
-            test_case.max_run_time = float(testcase["maxRunTime"][0]["txt"])
-        for checks in self.loop(testcase, "checks"):
+        testcase = TestCaseConfig(test_settings)
+        if "name" in testcase_xml:
+            testcase.name = str(testcase_xml["name"][0])
+        if "ref" in testcase_xml:
+            ref_name = str(testcase_xml["ref"][0])
+            testcase.program_config = self.find_program_reference(ref_name)
+        if "path" in testcase_xml:
+            testcase.path = testcase_xml["path"][0]["txt"]
+        if "maxRunTime" in testcase_xml:
+            testcase.max_run_time = float(testcase_xml["maxRunTime"][0]["txt"])
+        for checks in self.loop(testcase_xml, "checks"):
             for file in checks["file"]:
                 parsed_checks = self.parse_checks(file)
-                test_case.result_checks.append(parsed_checks)
-        return test_case
+                testcase.result_checks.append(parsed_checks)
+        # TODO: change this to get settings from xml
+        testcase.graph_parameters = GraphParameters()
+        return testcase
 
     def parse_checks(self, checks):
         """parse file checks for processing results of testcase"""

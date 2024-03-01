@@ -1,4 +1,10 @@
 minio
 lxml
+NetCDF4
+numpy
+xarray
+scipy
+matplotlib
+pyarrow
 pytest
 pytest-check
