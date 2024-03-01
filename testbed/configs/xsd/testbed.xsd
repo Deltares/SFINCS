@@ -22,11 +22,17 @@
     <xs:element name="argument" type="xs:string"/>
     <xs:element name="location" type="T_Location"/>
     <xs:element name="from" type="xs:string"/>
+    <xs:element name="plotSettings" type="T_PlotSettings"/>
+    <xs:element name="plotSetting" type="T_PlotSetting"/>
+    <xs:element name="his" type="T_His"/>
+    <xs:element name="map" type="T_Map"/>
+    <xs:element name="axes" type="T_Axes"/>
     <xs:complexType name="T_SFINCS_testbed">
         <xs:all>
             <xs:element ref="config"/>
             <xs:element ref="programs"/>
             <xs:element ref="testCases"/>
+            <xs:element ref="plotSettings"/>
         </xs:all>
     </xs:complexType>
     <xs:complexType name="T_Config">
@@ -105,5 +111,37 @@
         <xs:attribute name="name" type="xs:string" use="required"/>
         <xs:attribute name="toleranceAbsolute" type="xs:double"/>
         <xs:attribute name="location" type="xs:string"/>
+    </xs:complexType>
+    <xs:complexType name="T_PlotSettings">
+        <xs:sequence>
+            <xs:element ref="plotSetting" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="T_PlotSetting">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element ref="his" minOccurs="0"/>
+            <xs:element ref="map" minOccurs="0"/>
+            <xs:element ref="axes" minOccurs="0"/>
+        </xs:choice>
+        <xs:attribute name="ref" type="xs:string" use="required"/>
+        <xs:attribute name="observations" type="xs:boolean"/>
+    </xs:complexType>
+    <xs:complexType name="T_His">
+        <xs:attribute name="location" type="xs:string"/>
+        <xs:attribute name="variable" type="xs:string"/>
+    </xs:complexType>
+    <xs:complexType name="T_Axes">
+        <xs:attribute name="xlimit" type="xs:string"/>
+        <xs:attribute name="ylimit" type="xs:string"/>
+        <xs:attribute name="xlabel" type="xs:string"/>
+        <xs:attribute name="ylabel" type="xs:string"/>
+    </xs:complexType>
+    <xs:complexType name="T_Map">
+        <xs:attribute name="mapType" type="xs:string"/>
+        <xs:attribute name="variable" type="xs:string"/>
+        <xs:attribute name="yloc" type="xs:string"/>
+        <xs:attribute name="time" type="xs:string"/>
+        <xs:attribute name="variable2D" type="xs:string"/>
+        <xs:attribute name="clim" type="xs:string"/>
     </xs:complexType>
 </xs:schema>

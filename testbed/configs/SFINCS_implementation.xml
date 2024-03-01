@@ -16,7 +16,7 @@
     </programs>
 
     <testCases>
-        <testCase name="01_implementation_Drainage_culvert" ref="SFINCS">
+        <testCase name="Drainage culvert" ref="SFINCS">
             <path>01_implementation/Drainage_culvert</path>
             <checks>
  				<file name="sfincs_his.nc" type="NETCDF">
@@ -29,7 +29,7 @@
 			</checks>
             <maxRunTime>120.0</maxRunTime>
         </testCase>
-        <testCase name="01_implementation_Drainage_pump" ref="SFINCS">
+        <testCase name="Drainage pump" ref="SFINCS">
             <path>01_implementation/Drainage_pump</path>
             <checks>
  				<file name="sfincs_his.nc" type="NETCDF">
@@ -43,11 +43,11 @@
             <maxRunTime>120.0</maxRunTime>
         </testCase>
     </testCases>
-    <!--<latex_graphs>
-        <latexGraph name="Charleston" his="true" his_loc="[1]" his_var="drainage_discharge">
-            <data label="observations" />
-            <map type="1D" var="" yloc="" time="" />
-            <plot title
-        </latexGraph>
-    </latex_graphs>-->
+
+    <plotSettings>
+        <plotSetting ref="Drainage pump">
+            <his location="[1,2]" variable="drainage_discharge" />
+            <axes xlimit="[0,2]" ylimit="[-0.4,0]" xlabel="Time [hr]" ylabel="Discharge [m^3/s]" />
+        </plotSetting>
+    </plotSettings>
 </SFINCS_testbed>

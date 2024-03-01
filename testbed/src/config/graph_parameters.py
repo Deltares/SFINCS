@@ -5,13 +5,13 @@ class GraphParameters():
     """Values to plot on graphics for latex documentation."""
 
     def __init__(self):
-        self.__his: bool = True
+        self.__his: bool = False
         self.__his_var: str = "point_zs"
         self.__his_loc: List[int] = None
 
         self.__map: str = ""
-        self.__map1D_t: List[int] = [1,2,5,10] # None
-        self.__map1D_var: str = "zs" # zs
+        self.__map1D_t: List[int] = None
+        self.__map1D_var: str = "zs"
         self.__map1D_yloc: int = 0
 
         self.__observations: bool = False
@@ -20,9 +20,8 @@ class GraphParameters():
         self.__title: str
         self.__xlim: List[int] = None
         self.__ylim: List[int] = None
-        # TODO: get from xml
-        self.__xlabel: str = "test"
-        self.__ylabel: str = "test"
+        self.__xlabel: str
+        self.__ylabel: str
 
         self.__title_2D: str
         self.__xlim_2D: List[int]

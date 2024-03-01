@@ -16,7 +16,7 @@
     </programs>
 
     <testCases>
-        <testCase name="02_Verification_Carriergreenspan_advection" ref="SFINCS">
+        <testCase name="Carriergreenspan advection" ref="SFINCS">
             <path>02_Verification/Carriergreenspan_advection</path>
             <checks>
                 <file name="sfincs_map.nc" type="NETCDF">
@@ -24,7 +24,7 @@
 			</checks>
             <maxRunTime>120.0</maxRunTime>
         </testCase>
-        <testCase name="02_Verification_DamBreakWet1D_paper" ref="SFINCS">
+        <testCase name="DamBreakWet1D paper" ref="SFINCS">
             <path>02_Verification/DamBreakWet1D_paper</path>
             <checks>
                 <file name="sfincs_map.nc" type="NETCDF">
@@ -33,11 +33,11 @@
             <maxRunTime>120.0</maxRunTime>
         </testCase>
     </testCases>
-    <!--<latex_graphs>
-        <latexGraph name="Charleston" his="true" his_loc="[1]" his_var="drainage_discharge">
-            <data label="observations" />
-            <map type="1D" var="" yloc="" time="" />
-            <plot title
-        </latexGraph>
-    </latex_graphs>-->
+
+    <plotSettings>
+        <plotSetting observations="true" ref="DamBreakWet1D paper">
+            <map mapType="1D" variable="zs" yloc="0" time="[1,2,5,10]" />
+            <axes xlimit="[0,100]" ylimit="[-0.05,1.05]" xlabel="Distance [m]" ylabel="Water level [m]" />
+        </plotSetting>
+    </plotSettings>
 </SFINCS_testbed>

@@ -94,6 +94,9 @@ class ConfigParser(object):
                         continue
                 testcase = self.parse_testcase(testcase_xml, test_settings)
                 self.__testcase_config.append(testcase)
+        for plot_settings in self.loop(self.__parsed_tree, "plotSettings"):
+            for plot_setting in plot_settings["plotSetting"]:
+                self.parse_plot_settings(plot_setting)
 
     def parse_settings(self, config, test_settings: TestSettings):
         """Parse general test settings for testcases."""
@@ -136,8 +139,6 @@ class ConfigParser(object):
             for file in checks["file"]:
                 parsed_checks = self.parse_checks(file)
                 testcase.result_checks.append(parsed_checks)
-        # TODO: change this to get settings from xml
-        testcase.graph_parameters = GraphParameters()
         return testcase
 
     def parse_checks(self, checks):
@@ -164,9 +165,64 @@ class ConfigParser(object):
             check_parameters.tolerance_absolute = float(parameter["toleranceAbsolute"][0])
         return check_parameters
 
+    def parse_plot_settings(self, plot_settings):
+        graph_parameters = GraphParameters()
+        if "observations" in plot_settings:
+            if plot_settings["observations"][0].lower() == "true":
+                graph_parameters.observations = True
+        if "ref" in plot_settings:
+            testcase = self.find_testcase_reference(str(plot_settings["ref"][0]))
+            testcase.graph_parameters = graph_parameters
+        if "his" in plot_settings:
+            his = plot_settings["his"][0]
+            graph_parameters.his = True
+            if "location" in his:
+                graph_parameters.his_loc = self.get_float_array(str(his["location"][0]))
+            if "variable" in his:
+                graph_parameters.his_var = str(his["variable"][0])
+        if "map" in plot_settings:
+            plot_map = plot_settings["map"][0]
+            if "mapType" in plot_map:
+                graph_parameters.map = str(plot_map["mapType"][0])
+            if "variable" in plot_map:
+                graph_parameters.map1D_var = str(plot_map["variable"][0])
+            if "yloc" in plot_map:
+                graph_parameters.map1D_yloc = str(plot_map["yloc"][0])
+            if "time" in plot_map:
+                graph_parameters.map1D_t = self.get_float_array(str(plot_map["time"][0]))
+            if "variable2D" in plot_map:
+                graph_parameters.map2D_var = str(plot_map["variable2D"][0])
+            if "clim" in plot_map:
+                graph_parameters.clim_2D = self.get_float_array(plot_map["clim"][0])
+        if "axes" in plot_settings:
+            axes = plot_settings["axes"][0]
+            if "xlimit" in axes:
+                graph_parameters.xlim = self.get_float_array(str(axes["xlimit"][0]))
+            if "ylimit" in axes:
+                graph_parameters.ylim = self.get_float_array(str(axes["ylimit"][0]))
+            if "xlabel" in axes:
+                graph_parameters.xlabel = str(axes["xlabel"][0])
+            if "ylabel" in axes:
+                graph_parameters.ylabel = str(axes["ylabel"][0])
+
     def find_program_reference(self, name):
         """find program for testcase by referenced name in program list"""
         for program in self.__program_configs:
             if program.name == name:
                 return program
         assert False, "Failed to find program referenced by testcase"
+
+    def find_testcase_reference(self, name):
+        """find plot settings for testcase by referenced name in testcase list"""
+        for testcase in self.testcase_config:
+            if testcase.name == name:
+                return testcase
+        assert False, "Failed to find testcase referenced by latex plotter"
+
+    def get_float_array(self, value):
+        stripped_value = value.strip("[]")
+        array = stripped_value.split(",")
+        float_array = []
+        for number in array:
+            float_array.append(float(number))
+        return float_array
