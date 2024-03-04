@@ -27,6 +27,7 @@
     <xs:element name="his" type="T_His"/>
     <xs:element name="map" type="T_Map"/>
     <xs:element name="axes" type="T_Axes"/>
+    <xs:element name="axes2D" type="T_Axes"/>
     <xs:complexType name="T_SFINCS_testbed">
         <xs:all>
             <xs:element ref="config"/>
@@ -122,6 +123,7 @@
             <xs:element ref="his" minOccurs="0"/>
             <xs:element ref="map" minOccurs="0"/>
             <xs:element ref="axes" minOccurs="0"/>
+            <xs:element ref="axes2D" minOccurs="0"/>
         </xs:choice>
         <xs:attribute name="ref" type="xs:string" use="required"/>
         <xs:attribute name="observations" type="xs:boolean"/>

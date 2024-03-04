@@ -35,6 +35,10 @@
     </testCases>
 
     <plotSettings>
+        <plotSetting ref="Carriergreenspan advection">
+            <map mapType="1D" variable="zsmax" yloc="0" time="[1]" />
+            <axes xlimit="[50,150]" ylimit="[4.75, 5.25]" xlabel="x [km]" ylabel="Water level [m]" />
+        </plotSetting>
         <plotSetting observations="true" ref="DamBreakWet1D paper">
             <map mapType="1D" variable="zs" yloc="0" time="[1,2,5,10]" />
             <axes xlimit="[0,100]" ylimit="[-0.05,1.05]" xlabel="Distance [m]" ylabel="Water level [m]" />

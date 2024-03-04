@@ -16,26 +16,20 @@
     </programs>
 
     <testCases>
-        <testCase name="Drainage culvert" ref="SFINCS">
-            <path>01_implementation/Drainage_culvert</path>
+        <testCase name="Hernani" ref="SFINCS">
+            <path>03_Application\Hernani2D</path>
             <checks>
  				<file name="sfincs_his.nc" type="NETCDF">
-                    <parameters>
-                        <parameter name="drainage_discharge" location="[1,2]" toleranceAbsolute="0.0001"/>						
-                    </parameters>
                 </file>
                 <file name="sfincs_map.nc" type="NETCDF">
                 </file>
 			</checks>
             <maxRunTime>120.0</maxRunTime>
         </testCase>
-        <testCase name="Drainage pump" ref="SFINCS">
-            <path>01_implementation/Drainage_pump</path>
+        <testCase name="Charleston" ref="SFINCS">
+            <path>03_Application\Charleston_course_model_allforcing</path>
             <checks>
  				<file name="sfincs_his.nc" type="NETCDF">
-                    <parameters>
-                        <parameter name="drainage_discharge" location="[1,2]" toleranceAbsolute="0.0001"/>						
-                    </parameters>
                 </file>
                 <file name="sfincs_map.nc" type="NETCDF">
                 </file>
@@ -45,13 +39,17 @@
     </testCases>
 
     <plotSettings>
-        <plotSetting ref="Drainage culvert">
-            <his location="[1,2]" variable="drainage_discharge" />
-            <axes xlimit="[0,2]" ylimit="[-0.4,0]" xlabel="Time [hr]" ylabel="Discharge [m^3/s]" />
+        <plotSetting ref="Charleston">
+            <his location="[1]" variable="point_zs" />
+            <axes xlimit="[250,290]" ylimit="[-1.0,2.5]" xlabel="Hours [m]" ylabel="Water level [m+MSL]" />
+            <map mapType="2D" clim="[-2.5,2.5]" variable2D="zsmax"/>
+            <axes2D xlimit="[550,640]" ylimit="[3590,3680]" xlabel="x [km]" ylabel="y [km]" />
         </plotSetting>
-        <plotSetting ref="Drainage pump">
-            <his location="[1,2]" variable="drainage_discharge" />
-            <axes xlimit="[0,2]" ylimit="[-0.4,0]" xlabel="Time [hr]" ylabel="Discharge [m^3/s]" />
+        <plotSetting observations="true" ref="Hernani">
+            <his location="[2,1]" variable="point_zs" />
+            <axes xlimit="[0,0.5]" ylimit="[1,6]" xlabel="Time [hr]" ylabel="Water level [m+MSL]" />
+            <map mapType="2D" clim="[0,5]" variable2D="zsmax"/>
+            <axes2D xlimit="[784,787]" ylimit="[1251,1254]" xlabel="x in UTM51 [km]" ylabel="y in UTM51 [km]" />
         </plotSetting>
     </plotSettings>
 </SFINCS_testbed>

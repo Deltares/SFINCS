@@ -59,3 +59,7 @@ source/third_party_open/netcdf/netcdf-fortran-4.4.4/nf_test/Makefile
 *.lai
 *.a
 source/third_party_open/netcdf/netcdf-fortran-4.4.4/fortran/Makefile
+__pycache__
+testbed/data/*
+testbed/.vscode/*
+testbed/logs/*

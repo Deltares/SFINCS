@@ -182,28 +182,50 @@ class ConfigParser(object):
                 graph_parameters.his_var = str(his["variable"][0])
         if "map" in plot_settings:
             plot_map = plot_settings["map"][0]
-            if "mapType" in plot_map:
-                graph_parameters.map = str(plot_map["mapType"][0])
-            if "variable" in plot_map:
-                graph_parameters.map1D_var = str(plot_map["variable"][0])
-            if "yloc" in plot_map:
-                graph_parameters.map1D_yloc = str(plot_map["yloc"][0])
-            if "time" in plot_map:
-                graph_parameters.map1D_t = self.get_float_array(str(plot_map["time"][0]))
-            if "variable2D" in plot_map:
-                graph_parameters.map2D_var = str(plot_map["variable2D"][0])
-            if "clim" in plot_map:
-                graph_parameters.clim_2D = self.get_float_array(plot_map["clim"][0])
+            self.parse_map_plot(graph_parameters, plot_map)
         if "axes" in plot_settings:
             axes = plot_settings["axes"][0]
-            if "xlimit" in axes:
-                graph_parameters.xlim = self.get_float_array(str(axes["xlimit"][0]))
-            if "ylimit" in axes:
-                graph_parameters.ylim = self.get_float_array(str(axes["ylimit"][0]))
-            if "xlabel" in axes:
-                graph_parameters.xlabel = str(axes["xlabel"][0])
-            if "ylabel" in axes:
-                graph_parameters.ylabel = str(axes["ylabel"][0])
+            self.parse_axes(graph_parameters, axes)
+        if "axes2D" in plot_settings:
+            axes = plot_settings["axes2D"][0]
+            self.parse_2D_axes(graph_parameters, axes)
+
+    def parse_map_plot(self, graph_parameters: GraphParameters, plot_map):
+        """Parse his and map variables for plotting."""
+        if "mapType" in plot_map:
+            graph_parameters.map = str(plot_map["mapType"][0])
+        if "variable" in plot_map:
+            graph_parameters.map1D_var = str(plot_map["variable"][0])
+        if "yloc" in plot_map:
+            graph_parameters.map1D_yloc = str(plot_map["yloc"][0])
+        if "time" in plot_map:
+            graph_parameters.map1D_t = self.get_float_array(str(plot_map["time"][0]))
+        if "variable2D" in plot_map:
+            graph_parameters.map2D_var = str(plot_map["variable2D"][0])
+        if "clim" in plot_map:
+            graph_parameters.clim_2D = self.get_float_array(plot_map["clim"][0])
+
+    def parse_axes(self, graph_parameters: GraphParameters, axes):
+        """Parse 1D graph limit data for plot"""
+        if "xlimit" in axes:
+            graph_parameters.xlim = self.get_float_array(str(axes["xlimit"][0]))
+        if "ylimit" in axes:
+            graph_parameters.ylim = self.get_float_array(str(axes["ylimit"][0]))
+        if "xlabel" in axes:
+            graph_parameters.xlabel = str(axes["xlabel"][0])
+        if "ylabel" in axes:
+            graph_parameters.ylabel = str(axes["ylabel"][0])
+
+    def parse_2D_axes(self, graph_parameters: GraphParameters, axes):
+        """Parse 2D graph limit data for plot"""
+        if "xlimit" in axes:
+            graph_parameters.xlim_2D = self.get_float_array(str(axes["xlimit"][0]))
+        if "ylimit" in axes:
+            graph_parameters.ylim_2D = self.get_float_array(str(axes["ylimit"][0]))
+        if "xlabel" in axes:
+            graph_parameters.xlabel_2D = str(axes["xlabel"][0])
+        if "ylabel" in axes:
+            graph_parameters.ylabel_2D = str(axes["ylabel"][0])
 
     def find_program_reference(self, name):
         """find program for testcase by referenced name in program list"""

@@ -24,8 +24,8 @@ class GraphParameters():
         self.__ylabel: str
 
         self.__title_2D: str
-        self.__xlim_2D: List[int]
-        self.__ylim_2D: List[int]
+        self.__xlim_2D: List[int] = None
+        self.__ylim_2D: List[int] = None
         self.__xlabel_2D: str
         self.__ylabel_2D: str
         self.__clim_2D: List[int] = [-5, 5]
