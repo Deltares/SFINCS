@@ -238,13 +238,14 @@ class ResultPlotter:
 
             if i == 0:
                 dataset = figure.reference
+                title = figure.reference.attrs["Build-Revision"].replace('$', '').strip()
             else:
                 dataset = figure.output
+                title = figure.output.attrs["Build-Revision"].replace('$', '').strip()
             pcm = self.plot_2D_dataset(dataset, axes, figure.var)
 
             # Set labels
             axes.set_aspect('equal')
-            title = figure.output.attrs["Build-Revision"].replace('$', '').strip()
             axes.set_title(title)
             axes.set_xlabel(self.__graph_parameters.xlabel_2D)
             # Set labels only for left subplots
