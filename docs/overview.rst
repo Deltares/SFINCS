@@ -174,7 +174,7 @@ SFINCS has been applied (or still is) in multiple other international projects:
 
 * Modelling sea level rise and storm driven flooding for all SIDS globally
 
-* Modelling coastal flooding in Denmark
+* Modelling coastal and riverine flooding in Denmark
 
 * Modelling wave-driven flooding in Cuba
 
@@ -192,7 +192,13 @@ SFINCS has been applied (or still is) in multiple other international projects:
 
 * Modelling emergency response of flooding in Pakistan and Nigeria during the 2022 floods
 
+* Modelling the impact of climate change mitigation strategies in Egypt
 
+* Modelling the 2023 dambreak in Libya (AXA Climate)
+
+* Modelling flood risk for the Bahamas
+
+* And many more!
 
 Publications 
 -----
@@ -236,7 +242,11 @@ There have been various journal publications and conference posters where SFINCS
 
 * "Wave effects in a rapid compound flood model". van Ormondt et al. (2023). 17th International Workshop on Wave Hindcasting and Forecasting.
 
-* "Accounting for Uncertainties in Forecasting Tropical Cyclone-Induced Compound Flooding. Nederhoff et al. (2023). EGUsphere [preprint], https://doi.org/10.5194/egusphere-2023-2341
+* "Dynamic Modeling of Coastal Compound Flooding Hazards Due to Tides, Extratropical Storms, Waves, and Sea-Level Rise: A Case Study in the Salish Sea, Washington (USA)". Nederhoff et al. (2024). https://doi.org/10.3390/w16020346
+
+* "Accounting for Uncertainties in Forecasting Tropical Cyclone-Induced Compound Flooding". Nederhoff et al. (2024). https://gmd.copernicus.org/articles/17/1789/2024/
+
+* "Estimating nearshore infragravity wave conditions at large spatial scales". Leijnse et al. (2024). doi: 10.3389/fmars.2024.1355095
 
 * More information regarding recent advancements with subgrid features can be seen in this online poster: https://agu2020fallmeeting-agu.ipostersessions.com/Default.aspx?s=9C-05-18-CF-F1-2B-17-F0-7A-21-93-E6-13-AE-F3-24
 Leijnse et al. (2020)
