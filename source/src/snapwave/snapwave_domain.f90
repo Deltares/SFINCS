@@ -1025,8 +1025,9 @@ contains
    ! 4) Loop through all points and make cells for points where msk==1.
    !    The node indices in the cells will point to the indices of the entire quadtree.
    !    In a second temporary mask array msk_tmp2, determine which nodes are actually active (being part a cell)
-   ! 5) Count actual number of active nodes and cells, and allocate arrays
-   ! 6) Set node data and re-map indices 
+   ! 5) Set back snapwave_mask = 2&3 values of wave boudnary and neumann cells
+   ! 6) Count actual number of active nodes and cells, and allocate arrays
+   ! 7) Set node data and re-map indices 
    !
    ! STEP 1 - Read quadtree file
    !
@@ -1893,13 +1894,23 @@ contains
       !
    enddo
    !
-   ! STEP 5 - count number of active points and allocate arrays
+   ! STEP 5 - set back snapwave_mask = 2&3 values
+   !
+   do ip = 1, quadtree_nr_points
+      !
+      if (msk_tmp(ip)>1) then
+         msk_tmp2(ip) = msk_tmp(ip)
+      endif   
+      !
+   enddo     
+   !
+   ! STEP 6 - count number of active points and allocate arrays
    !
    nac = 0
    !
    do ip = 1, quadtree_nr_points
       !
-      if (msk_tmp2(ip)==1) then
+      if (msk_tmp2(ip)>=1) then ! TL: now >=1 instead of ==1
          nac = nac + 1
       endif   
       !
@@ -1925,7 +1936,7 @@ contains
    allocate(face_nodes(4, no_faces))
    face_nodes = 0
    !
-   ! STEP 6 - re-map and set values
+   ! STEP 7 - re-map and set values
    !
    nac = 0
    !
