@@ -215,10 +215,16 @@ contains
       !
       ! Read polygon outlining valid boundary points
       !
-      call read_boundary_enclosure()
+      if (not( any(msk == 2))) then
+         !
+         write(*,*)'Warning : no msk = 2 values found in snapwave_msk, trying using old encfile option:'
+         !
+         call read_boundary_enclosure()
+         !
+      endif      
       !
       do k=1,no_nodes
-          if (msk(k)==3) msk(k) = 1 ! Set outflow points to regular points
+          !if (msk(k)==3) msk(k) = 1 ! Set outflow points to regular points > now should become neumann, so don't do this
           do itheta=1,ntheta360
               if (ds360d0(itheta,k)==0.d0) then
                   call ipon(x_bndenc,y_bndenc,n_bndenc,x(k),y(k),inout)
