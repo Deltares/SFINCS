@@ -1096,7 +1096,7 @@ contains
    do nmq = 1, quadtree_nr_points
       nm = index_sw_in_qt(nmq)            
       if (nm>0) then
-         vtmpi(nmq) = quadtree_snapwave_mask(nm)
+         vtmpi(nmq) = snapwave_mask(nm)                  
       endif
    enddo 
    !

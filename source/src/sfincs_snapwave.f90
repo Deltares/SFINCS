@@ -7,6 +7,7 @@ module sfincs_snapwave
    real*8,    dimension(:),   allocatable    :: snapwave_x
    real*8,    dimension(:),   allocatable    :: snapwave_y
    real*4,    dimension(:),   allocatable    :: snapwave_z
+   real*4,    dimension(:),   allocatable    :: snapwave_mask   
    real*4,    dimension(:),   allocatable    :: snapwave_depth
    real*4,    dimension(:),   allocatable    :: snapwave_H
    real*4,    dimension(:),   allocatable    :: snapwave_H_ig
@@ -60,6 +61,7 @@ contains
    !
    allocate(snapwave_z(no_nodes))
    allocate(snapwave_depth(no_nodes))
+   allocate(snapwave_mask(no_nodes))   
    !
    snapwave_z     = zb
    snapwave_depth = 0.0
@@ -68,7 +70,9 @@ contains
    snapwave_tpigmean = 0.0    
    !   
    call find_matching_cells(index_quadtree_in_snapwave, index_snapwave_in_quadtree)
-
+   !
+   ! Copy final snapwave mask from snapwave_domain for output in sfincs_ncoutput
+   snapwave_mask = msk   
    !
    end subroutine
    
