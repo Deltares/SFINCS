@@ -118,6 +118,7 @@ module snapwave_data
    real*4,  dimension(:,:),     allocatable    :: hs_bwv_ig               ! IG wave height for all boundary locations and time points  
    real*4,  dimension(:,:),     allocatable    :: tp_bwv_ig               ! IG wave period for all boundary locations and time points
    real*4,  dimension(:,:),     allocatable    :: eet_bwv_ig              ! directional IG spectra at boundary points for given time   
+   real*4                                      :: jonswapgam              ! JONSWAP gamma value for determination offshore spectrum and IG wave conditions using Herbers, default=3.3
    !
    logical                                     :: update_grid_boundary_points
    !

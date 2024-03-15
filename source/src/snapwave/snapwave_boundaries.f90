@@ -489,7 +489,7 @@ subroutine update_boundary_points(t)
    !
    real*4  :: tbfac
    real*4  :: hs, tps, wd, dsp, zst, thetamin, thetamax, E0, ms, modth, E0_ig
-   real*4  :: jonswapgam, hlocal
+   real*4  :: hlocal
    logical :: always_update_bnd_spec
    !
    always_update_bnd_spec = .true.
@@ -605,9 +605,6 @@ subroutine update_boundary_points(t)
    if (igwaves) then
       ! 
       if (igherbers) then 
-         !
-         jonswapgam = 3.3 ! TODO: TL: later make spatially varying? > then as gam_bwv(ib) in 'determine_ig_bc'
-         !jonswapgam = 20.0
          !
          ! Get local water depth at boundary points (can change in time)        
          call find_nearest_depth_for_boundary_points() ! Output is: deptht_bwv    
