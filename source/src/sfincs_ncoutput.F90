@@ -373,7 +373,6 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%vmax_varid, 'coordinates', 'x y'))
    endif
    !
-   !
    if (store_maximum_flux) then
       NF90(nf90_def_var(map_file%ncid, 'qmax', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%timemax_dimid/), map_file%qmax_varid)) ! maximum flux map
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%qmax_varid, 1, 1, nc_deflate_level)) ! deflate
@@ -866,6 +865,18 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%tmax_varid, 'cell_methods', 'time: sum'))
    endif
    !
+   if (store_maximum_waterlevel) then
+      if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then   
+         NF90(nf90_def_var(map_file%ncid, 'hmax', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%timemax_dimid/), map_file%hmax_varid)) ! time-varying maximum water depth map
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%hmax_varid, 1, 1, nc_deflate_level)) ! deflate
+         NF90(nf90_put_att(map_file%ncid, map_file%hmax_varid, '_FillValue', FILL_VALUE))   
+         NF90(nf90_put_att(map_file%ncid, map_file%hmax_varid, 'units', 'm'))
+         NF90(nf90_put_att(map_file%ncid, map_file%hmax_varid, 'standard_name', 'sea_floor_depth_below_sea_surface')) 
+         NF90(nf90_put_att(map_file%ncid, map_file%hmax_varid, 'long_name', 'maximum_water_depth')) 
+         NF90(nf90_put_att(map_file%ncid, map_file%hmax_varid, 'cell_methods', 'time: maximum'))    
+      endif
+   endif
+   !
    if (store_maximum_velocity) then
       NF90(nf90_def_var(map_file%ncid, 'vmax', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%timemax_dimid/), map_file%vmax_varid)) ! maximum flow velocity map
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%vmax_varid, 1, 1, nc_deflate_level))
@@ -875,6 +886,16 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%vmax_varid, 'long_name', 'maximum_flow_velocity')) 
       NF90(nf90_put_att(map_file%ncid, map_file%vmax_varid, 'cell_methods', 'time: maximum'))
    endif
+   !
+   if (store_maximum_flux) then
+      NF90(nf90_def_var(map_file%ncid, 'qmax', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%timemax_dimid/), map_file%qmax_varid)) ! maximum flux map
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%qmax_varid, 1, 1, nc_deflate_level)) ! deflate
+      NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'units', 'm^2 s-1'))
+      NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'standard_name', 'maximum_flux')) ! no standard name available
+      NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'long_name', 'maximum_flux')) 
+      NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'cell_methods', 'time: maximum'))
+   endif      
    !
    ! Store cumulative rainfall 
    !
@@ -2698,6 +2719,30 @@ contains
        enddo
        NF90(nf90_put_var(map_file%ncid, map_file%cumprcp_varid, zstmp, (/1, ntmaxout/))) ! write cumprcp
    endif
+   !
+   ! Maximum flow velocity
+   if (store_maximum_velocity) then
+       zstmp = FILL_VALUE       
+       do nmq = 1, quadtree_nr_points
+           nm = index_sfincs_in_quadtree(nmq)
+           if (kcs(nm)>0) then
+               zstmp(nmq) = vmax(nm)
+           endif
+       enddo
+      NF90(nf90_put_var(map_file%ncid, map_file%vmax_varid, zstmp, (/1, ntmaxout/))) ! write vmax   
+   endif
+   !   
+   ! Maximum flow flux
+   if (store_maximum_flux) then
+       zstmp = FILL_VALUE       
+       do nmq = 1, quadtree_nr_points
+           nm = index_sfincs_in_quadtree(nmq)
+           if (kcs(nm)>0) then
+               zstmp(nmq) = qmax(nm)
+           endif
+       enddo
+      NF90(nf90_put_var(map_file%ncid, map_file%qmax_varid, zstmp, (/1, ntmaxout/))) ! write qmax   
+   endif   
    !
    ! Duration wet cell
    if (store_twet) then
