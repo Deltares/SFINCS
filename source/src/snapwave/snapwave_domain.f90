@@ -9,6 +9,7 @@ contains
    use snapwave_results
    use snapwave_ncoutput
    use interp
+   use sfincs_error      
    !
    ! Local input variables
    !
@@ -19,6 +20,7 @@ contains
    real*8,    dimension(:,:,:), allocatable    :: w360d0
    integer*4                                   :: idummy
    character*2                                 :: ext
+   logical                                     :: generate_upw, exists
 !   real*8  :: xmn, ymn
    !
    ! First set some constants
@@ -36,9 +38,6 @@ contains
    !
    ! Load in mesh (no_faces, no_nodes, face_nodes, zb, x, y, xs, ys, msk)
    !
-   gridfile = 'test3_net.nc'
-   j=index(gridfile,'.')
-   ext = gridfile(j+1:j+2)
    ext = 'qt'
    !
    if (ext=='nc') then
@@ -199,7 +198,40 @@ contains
    prev360 = 0
    H_ig_old = 0.0
    !
-   if (upwfile=='') then   
+   generate_upw = .false.
+   exists = .true.
+   !
+   ! Check whether snapwave_upwfile exists, if so, try to read
+   !
+   if (upwfile /= 'none') then   
+      !
+      write(*,*)'Reading upwind neighbors file ...'
+      !
+      inquire( file=trim(upwfile), exist=exists )      
+      !
+      if (.not. exists) then    
+          ! Give error message, but do not stop simulation > determine upwfile instead as if none was given
+          !
+          write(*,*)'SnapWave: Error! Something went wrong with reading in upwfile, determine again from scratch ...'
+          !trim(file_name), '" not found!
+          generate_upw = .true.
+          !
+      else
+          !
+          open(unit=145, file=trim(upwfile), form='unformatted', access='stream')
+          read(145)prev360
+          read(145)w360
+          read(145)ds360
+          read(145)dhdx
+          read(145)dhdy
+          close(145)
+          !
+      endif
+   endif
+   !      
+   ! Generate upwfile (again) if needed
+   !
+   if (generate_upw) then   
       !
       write(*,*)'Getting surrounding points ...'
       !
@@ -216,29 +248,18 @@ contains
       ! Write upwind neighbors to file
       !
       if (upwfile=='') then
-         open(145,file='snapwave.upw', access='stream', form='unformatted')
-         write(145)prev360
-         write(145)w360
-         write(145)ds360
-         write(145)dhdx
-         write(145)dhdy
-         close(145)
+          upwfile = 'snapwave.upw' ! If no snapwave_upwfile input was given, give default name
       endif
-      !
-   else
-      !
-      write(*,*)'Reading upwind neighbors file ...'
-      !
-      open(unit=145, file=trim(upwfile), form='unformatted', access='stream')
-      read(145)prev360
-      read(145)w360
-      read(145)ds360
-      read(145)dhdx
-      read(145)dhdy
+      ! 
+      open(145,file=upwfile, access='stream', form='unformatted')
+      write(145)prev360
+      write(145)w360
+      write(145)ds360
+      write(145)dhdx
+      write(145)dhdy
       close(145)
       !
    endif  
-   !
    !
    theta360 = theta360*pi/180
    dtheta   = dtheta*pi/180   
