@@ -213,48 +213,6 @@ contains
       ds360 = ds360d0*1.0
       w360  = w360d0*1.0
       !
-      ! Read polygon outlining valid boundary points
-      !
-      if (not( any(msk == 2))) then
-         !
-         write(*,*)'Warning : no msk = 2 values found in snapwave_msk, trying using old encfile option:'
-         !
-         call read_boundary_enclosure()
-         !
-      endif      
-      !
-      do k=1,no_nodes
-          !if (msk(k)==3) msk(k) = 1 ! Set outflow points to regular points > now should become neumann, so don't do this
-          do itheta=1,ntheta360
-              if (ds360d0(itheta,k)==0.d0) then
-                  call ipon(x_bndenc,y_bndenc,n_bndenc,x(k),y(k),inout)
-                  if (inout>0) msk(k) = 2
-              endif
-          enddo
-      enddo
-      !
-      nb = 0
-      do k = 1, no_nodes
-         if (msk(k)==1) then
-            inner(k) = .true.
-         else
-            inner(k) = .false.
-         endif
-         if (msk(k)==2) nb = nb + 1
-      enddo
-      !
-      allocate(nmindbnd(nb))
-      !
-      nb = 0
-      do k = 1, no_nodes
-         if (msk(k)>1) then    
-            nb = nb + 1
-            nmindbnd(nb) = k
-         endif   
-      enddo   
-      !
-      write(*,*)'Number of boundary SnapWave nodes : ',nb
-      !
       ! Write upwind neighbors to file
       !
       if (upwfile=='') then
@@ -279,10 +237,53 @@ contains
       read(145)dhdy
       close(145)
       !
-   endif   
+   endif  
+   !
    !
    theta360 = theta360*pi/180
-   dtheta   = dtheta*pi/180
+   dtheta   = dtheta*pi/180   
+   ! 
+   ! Read polygon outlining valid boundary points - TL: take out of upwfile loop, should be independent on whether we re-use upwfile or not
+   !
+   if (not( any(msk == 2))) then
+       !
+       write(*,*)'Warning : no msk = 2 values found in snapwave_msk, trying using old encfile option:'
+       !
+       call read_boundary_enclosure()
+       !
+   endif      
+   !
+   do k=1,no_nodes
+       !if (msk(k)==3) msk(k) = 1 ! Set outflow points to regular points > now should become neumann, so don't do this
+       do itheta=1,ntheta360
+           if (ds360d0(itheta,k)==0.d0) then
+               call ipon(x_bndenc,y_bndenc,n_bndenc,x(k),y(k),inout)
+               if (inout>0) msk(k) = 2
+           endif
+       enddo
+   enddo
+   !
+   nb = 0
+   do k = 1, no_nodes
+       if (msk(k)==1) then
+       inner(k) = .true.
+       else
+       inner(k) = .false.
+       endif
+       if (msk(k)==2) nb = nb + 1
+   enddo
+   !
+   allocate(nmindbnd(nb))
+   !
+   nb = 0
+   do k = 1, no_nodes
+       if (msk(k)>1) then    
+       nb = nb + 1
+       nmindbnd(nb) = k
+       endif   
+   enddo   
+   !
+   write(*,*)'Number of boundary SnapWave nodes : ',nb
    !
    end subroutine
 
