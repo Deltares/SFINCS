@@ -52,7 +52,7 @@ contains
    allocate(tpt_bwv(nwbnd))
    allocate(wdt_bwv(nwbnd))
    allocate(dst_bwv(nwbnd))
-   allocate(zst_bwv(nwbnd)) 
+   !allocate(zst_bwv(nwbnd)) 
    allocate(eet_bwv(ntheta, nwbnd))    
    !
    ! Determine IG wave height and period at boundary point(s) later using Herbers 1994 
@@ -70,6 +70,24 @@ contains
       allocate(deptht_bwv(nwbnd))      
       !
    endif    
+   !
+   ! Convert to cartesian, going-to, radians - independent of input type
+   !
+   wd_bwv = (270.0 - wd_bwv)*pi/180
+   !   
+   ! Convert directional spreading input to radians - independent of input type
+   ds_bwv = ds_bwv * pi / 180      
+   !
+   ! Write number of input points sounds - independent of input type
+   write(*,*)'Input wave boundary points found: ',nwbnd
+   !
+   ! Check length time-series - independent of input type
+   !
+   if (t_bwv(1)>t0 + 1.0 .or. t_bwv(ntwbnd)<t1 - 1.0) then
+       ! 
+       write(*,'(a)')' WARNING! Times in wave boundary conditions file do not cover entire simulation period!'
+       !
+   endif      
    !
    end subroutine
 
@@ -143,9 +161,6 @@ contains
    do irec=1,nrec
       read(11,*)t_bwv(irec),hs_bwv(1, irec),tp_bwv(1, irec),wd_bwv(1, irec),ds_bwv(1, irec),zs_bwv(1, irec)      
    enddo
-   !
-   wd_bwv = (270.0 - wd_bwv) * pi / 180
-   ds_bwv = ds_bwv * pi / 180
    !
    close(11)
    !
@@ -236,10 +251,6 @@ contains
       enddo
       close(500)
       !
-      ! Convert to cartesian, going-to, radians
-      !
-      wd_bwv = (270.0 - wd_bwv)*pi/180
-      !
       ! Ds (directional spreading)
       !
       open(500, file=trim(bdsfile))
@@ -249,32 +260,22 @@ contains
       enddo
       close(500)
       !
-      ds_bwv = ds_bwv * pi / 180
-      !
       ! zs (water level) - TL: TODO CHECK STILL NEEDED?
-      if (trim(bzsfile) /= '') then 
-         !
-         open(500, file=trim(bzsfile))
-         allocate(zs_bwv(nwbnd, ntwbnd))
-         do itb = 1, ntwbnd
-            read(500,*)t_bwv(itb),(zs_bwv(ib, itb), ib = 1, nwbnd)
-         enddo
-         close(500)
-         !
-      else   
-         !
-         allocate(zs_bwv(nwbnd, ntwbnd))
-         zs_bwv = 0.0         
-         !
-      endif
-      !
-      write(*,*)'Input wave boundary points found: ',nwbnd
-      !
-      if (t_bwv(1)>t0 + 1.0 .or. t_bwv(ntwbnd)<t1 - 1.0) then
-         ! 
-         write(*,'(a)')' WARNING! Times in wave boundary conditions file do not cover entire simulation period!'
-         !
-      endif   
+      !if (trim(bzsfile) /= '') then 
+      !   !
+      !   open(500, file=trim(bzsfile))
+      !   allocate(zs_bwv(nwbnd, ntwbnd))
+      !   do itb = 1, ntwbnd
+      !      read(500,*)t_bwv(itb),(zs_bwv(ib, itb), ib = 1, nwbnd)
+      !   enddo
+      !   close(500)
+      !   !
+      !else   
+      !   !
+      !   allocate(zs_bwv(nwbnd, ntwbnd))
+      !   zs_bwv = 0.0         
+      !   !
+      !endif
       !
    endif
    !
@@ -488,7 +489,7 @@ subroutine update_boundary_points(t)
    !
    real*4  :: tbfac
    real*4  :: hs, tps, wd, dsp, zst, thetamin, thetamax, E0, ms, modth, E0_ig
-   real*4  :: jonswapgam, hlocal
+   real*4  :: hlocal
    logical :: always_update_bnd_spec
    !
    always_update_bnd_spec = .true.
@@ -534,7 +535,7 @@ subroutine update_boundary_points(t)
       hs  = hs_bwv(ib, itb0) + (hs_bwv(ib, itb1) - hs_bwv(ib, itb0))*tbfac
       tps = tp_bwv(ib, itb0) + (tp_bwv(ib, itb1) - tp_bwv(ib, itb0))*tbfac
       dsp = ds_bwv(ib, itb0) + (ds_bwv(ib, itb1) - ds_bwv(ib, itb0))*tbfac    !dirspr
-      zst = zs_bwv(ib, itb0) + (zs_bwv(ib, itb1) - zs_bwv(ib, itb0))*tbfac
+      !zst = zs_bwv(ib, itb0) + (zs_bwv(ib, itb1) - zs_bwv(ib, itb0))*tbfac
       !
       ! Limit directional spreading (2 < ds < 45)
       !       
@@ -556,7 +557,7 @@ subroutine update_boundary_points(t)
       tpt_bwv(ib) = tps                  
       wdt_bwv(ib) = wd
       dst_bwv(ib) = dsp
-      zst_bwv(ib) = zst
+      !zst_bwv(ib) = zst
       !
    enddo
    !
@@ -594,7 +595,7 @@ subroutine update_boundary_points(t)
    ! Average wave period and direction to determine theta grid
    !
    tpmean_bwv = sum(tpt_bwv)/size(tpt_bwv)
-   zsmean_bwv = sum(zst_bwv)/size(zst_bwv)
+   !zsmean_bwv = sum(zst_bwv)/size(zst_bwv)
    !depth      = max(zsmean_bwv - zb,hmin) ! TL: For SFINCS we don't want this, because it overrides the real updated water depth we're inserting
    depth      = max(depth,hmin)
    wdmean_bwv = atan2(sum(sin(wdt_bwv)*hst_bwv)/sum(hst_bwv), sum(cos(wdt_bwv)*hst_bwv)/sum(hst_bwv))
@@ -604,9 +605,6 @@ subroutine update_boundary_points(t)
    if (igwaves) then
       ! 
       if (igherbers) then 
-         !
-         jonswapgam = 3.3 ! TODO: TL: later make spatially varying? > then as gam_bwv(ib) in 'determine_ig_bc'
-         !jonswapgam = 20.0
          !
          ! Get local water depth at boundary points (can change in time)        
          call find_nearest_depth_for_boundary_points() ! Output is: deptht_bwv    

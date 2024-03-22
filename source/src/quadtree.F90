@@ -202,6 +202,7 @@ contains
    ! Read quadtree file (first time, only read number of active points)
    !
    write(*,*)'Reading QuadTree binary file ...'
+   write(*,*)'Warning : quadtree mesh file has the "old" binary format, the simulation will continue, but we do recommended switching to the new Netcdf quadtree input format!'            !   
    !
    open(unit = 500, file = trim(qtrfile), form = 'unformatted', access = 'stream')
    read(500)iversion

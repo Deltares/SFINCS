@@ -3,5 +3,5 @@
 	<Configurations>
 		<Configuration Name="Debug|Win32"/>
 		<Configuration Name="Release|Win32"/>
-		<Configuration Name="Debug|x64" CommandArguments="sfincs.inp -autostartstop -t 1" WorkingDirectory="d:\tmp\Majuro_Koen\"/>
-		<Configuration Name="Release|x64" WorkingDirectory="d:\repos\phd_waves\paper_IG_parametrisation\05_application_case\Duck_NC\01_modelsetup\ext_delilah_02_ig_final_withoutreduction_herbers\"/></Configurations></VisualStudioUserFile>
+		<Configuration Name="Debug|x64" CommandArguments="sfincs.inp -autostartstop -t 1" WorkingDirectory="d:\repos\phd_waves\paper_wave_driven_flooding\02_modelling\LaJola\02_model_setup\Lajola_v01\"/>
+		<Configuration Name="Release|x64" CommandArguments="sfincs.inp -autostartstop -t 1" WorkingDirectory="d:\repos\phd_waves\paper_wave_driven_flooding\02_modelling\LaJola\02_model_setup\Lajola_v01\"/></Configurations></VisualStudioUserFile>

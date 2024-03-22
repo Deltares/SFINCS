@@ -7,6 +7,7 @@ module sfincs_snapwave
    real*8,    dimension(:),   allocatable    :: snapwave_x
    real*8,    dimension(:),   allocatable    :: snapwave_y
    real*4,    dimension(:),   allocatable    :: snapwave_z
+   real*4,    dimension(:),   allocatable    :: snapwave_mask   
    real*4,    dimension(:),   allocatable    :: snapwave_depth
    real*4,    dimension(:),   allocatable    :: snapwave_H
    real*4,    dimension(:),   allocatable    :: snapwave_H_ig
@@ -60,6 +61,7 @@ contains
    !
    allocate(snapwave_z(no_nodes))
    allocate(snapwave_depth(no_nodes))
+   allocate(snapwave_mask(no_nodes))   
    !
    snapwave_z     = zb
    snapwave_depth = 0.0
@@ -68,7 +70,9 @@ contains
    snapwave_tpigmean = 0.0    
    !   
    call find_matching_cells(index_quadtree_in_snapwave, index_snapwave_in_quadtree)
-
+   !
+   ! Copy final snapwave mask from snapwave_domain for output in sfincs_ncoutput
+   snapwave_mask = msk   
    !
    end subroutine
    
@@ -384,8 +388,8 @@ contains
    call read_int_input(500,'snapwave_baldock_opt',baldock_opt,1)     
    call read_real_input(500,'snapwave_baldock_ratio',baldock_ratio,0.2)
    call read_real_input(500,'rgh_lev_land',rghlevland,0.0)
-   call read_real_input(500,'snapwave_fw_ratio',fwratio,5.0)
-   call read_real_input(500,'snapwave_fwig_ratio',fwigratio,5.0)   
+   call read_real_input(500,'snapwave_fw_ratio',fwratio,1.0)
+   call read_real_input(500,'snapwave_fwig_ratio',fwigratio,1.0)   
    !
    ! Settings related to IG waves:   
    call read_int_input(500,'snapwave_igwaves',igwaves_opt,1)   
@@ -399,8 +403,10 @@ contains
    ! IG boundary conditions options:
    call read_int_input(500,'snapwave_use_herbers',herbers_opt,1)    ! Choice whether you want IG Hm0&Tp be calculated by herbers (=1, default), or want to specify user defined values (0> then snapwave_eeinc2ig & snapwave_Tinc2ig are used) 
    call read_int_input(500,'snapwave_tpig_opt',tpig_opt,1) ! IG wave period option based on Herbers calculated spectrum, only used if snapwave_use_herbers = 1. Options are: 1=Tm01 (default), 2=Tpsmooth, 3=Tp, 4=Tm-1,0   
+   call read_real_input(500,'snapwave_jonswapgamma',jonswapgam,3.3)  ! JONSWAP gamma value for determination offshore spectrum and IG wave conditions using Herbers, default=3.3, only used if snapwave_use_herbers = 1   
    call read_real_input(500,'snapwave_eeinc2ig',eeinc2ig,0.01)  ! Only used if snapwave_use_herbers = 0       
    call read_real_input(500,'snapwave_Tinc2ig',Tinc2ig,7.0)  ! Only used if snapwave_use_herbers = 0
+
    !
    ! Input files
    call read_char_input(500,'snapwave_jonswapfile',jonswapfile,'')
@@ -414,7 +420,9 @@ contains
    call read_char_input(500,'snapwave_mskfile',mskfile,'')
    call read_char_input(500,'snapwave_depfile',depfile,'none')   
    call read_char_input(500,'snapwave_ncfile', gridfile,'snapwave_net.nc')   
-   call read_char_input(500,'snapwave_boundaryfile',netsnapwavefile,'')
+   call read_char_input(500,'netsnapwavefile',netsnapwavefile,'')
+   call read_char_input(500,'tref',trefstr,'20000101 000000')   ! Read again > needed in sfincs_ncinput.F90
+   
    !
    close(500)
    !

@@ -9,6 +9,7 @@ contains
    use snapwave_results
    use snapwave_ncoutput
    use interp
+   use sfincs_error      
    !
    ! Local input variables
    !
@@ -19,6 +20,7 @@ contains
    real*8,    dimension(:,:,:), allocatable    :: w360d0
    integer*4                                   :: idummy
    character*2                                 :: ext
+   logical                                     :: generate_upw, exists
 !   real*8  :: xmn, ymn
    !
    ! First set some constants
@@ -36,9 +38,6 @@ contains
    !
    ! Load in mesh (no_faces, no_nodes, face_nodes, zb, x, y, xs, ys, msk)
    !
-   gridfile = 'test3_net.nc'
-   j=index(gridfile,'.')
-   ext = gridfile(j+1:j+2)
    ext = 'qt'
    !
    if (ext=='nc') then
@@ -199,7 +198,40 @@ contains
    prev360 = 0
    H_ig_old = 0.0
    !
-   if (upwfile=='') then   
+   generate_upw = .false.
+   exists = .true.
+   !
+   ! Check whether snapwave_upwfile exists, if so, try to read
+   !
+   if (upwfile /= 'none') then   
+      !
+      write(*,*)'Reading upwind neighbors file ...'
+      !
+      inquire( file=trim(upwfile), exist=exists )      
+      !
+      if (.not. exists) then    
+          ! Give error message, but do not stop simulation > determine upwfile instead as if none was given
+          !
+          write(*,*)'SnapWave: Error! Something went wrong with reading in upwfile, determine again from scratch ...'
+          !trim(file_name), '" not found!
+          generate_upw = .true.
+          !
+      else
+          !
+          open(unit=145, file=trim(upwfile), form='unformatted', access='stream')
+          read(145)prev360
+          read(145)w360
+          read(145)ds360
+          read(145)dhdx
+          read(145)dhdy
+          close(145)
+          !
+      endif
+   endif
+   !      
+   ! Generate upwfile (again) if needed
+   !
+   if (generate_upw) then   
       !
       write(*,*)'Getting surrounding points ...'
       !
@@ -213,70 +245,66 @@ contains
       ds360 = ds360d0*1.0
       w360  = w360d0*1.0
       !
-      ! Read polygon outlining valid boundary points
-      !
-      call read_boundary_enclosure()
-      !
-      do k=1,no_nodes
-          if (msk(k)==3) msk(k) = 1 ! Set outflow points to regular points
-          do itheta=1,ntheta360
-              if (ds360d0(itheta,k)==0.d0) then
-                  call ipon(x_bndenc,y_bndenc,n_bndenc,x(k),y(k),inout)
-                  if (inout>0) msk(k) = 2
-              endif
-          enddo
-      enddo
-      !
-      nb = 0
-      do k = 1, no_nodes
-         if (msk(k)==1) then
-            inner(k) = .true.
-         else
-            inner(k) = .false.
-         endif
-         if (msk(k)==2) nb = nb + 1
-      enddo
-      !
-      allocate(nmindbnd(nb))
-      !
-      nb = 0
-      do k = 1, no_nodes
-         if (msk(k)>1) then    
-            nb = nb + 1
-            nmindbnd(nb) = k
-         endif   
-      enddo   
-      !
-      write(*,*)'Number of boundary SnapWave nodes : ',nb
-      !
       ! Write upwind neighbors to file
       !
       if (upwfile=='') then
-         open(145,file='snapwave.upw', access='stream', form='unformatted')
-         write(145)prev360
-         write(145)w360
-         write(145)ds360
-         write(145)dhdx
-         write(145)dhdy
-         close(145)
+          upwfile = 'snapwave.upw' ! If no snapwave_upwfile input was given, give default name
       endif
-      !
-   else
-      !
-      write(*,*)'Reading upwind neighbors file ...'
-      !
-      open(unit=145, file=trim(upwfile), form='unformatted', access='stream')
-      read(145)prev360
-      read(145)w360
-      read(145)ds360
-      read(145)dhdx
-      read(145)dhdy
+      ! 
+      open(145,file=upwfile, access='stream', form='unformatted')
+      write(145)prev360
+      write(145)w360
+      write(145)ds360
+      write(145)dhdx
+      write(145)dhdy
       close(145)
       !
-   endif   
+   endif  
    !
    theta360 = theta360*pi/180
-   dtheta   = dtheta*pi/180
+   dtheta   = dtheta*pi/180   
+   ! 
+   ! Read polygon outlining valid boundary points - TL: take out of upwfile loop, should be independent on whether we re-use upwfile or not
+   !
+   if (not( any(msk == 2))) then
+       !
+       write(*,*)'Warning : no msk = 2 values found in snapwave_msk, trying using old encfile option:'
+       !
+       call read_boundary_enclosure()
+       !
+   endif      
+   !
+   do k=1,no_nodes
+       !if (msk(k)==3) msk(k) = 1 ! Set outflow points to regular points > now should become neumann, so don't do this
+       do itheta=1,ntheta360
+           if (ds360d0(itheta,k)==0.d0) then
+               call ipon(x_bndenc,y_bndenc,n_bndenc,x(k),y(k),inout)
+               if (inout>0) msk(k) = 2
+           endif
+       enddo
+   enddo
+   !
+   nb = 0
+   do k = 1, no_nodes
+       if (msk(k)==1) then
+       inner(k) = .true.
+       else
+       inner(k) = .false.
+       endif
+       if (msk(k)==2) nb = nb + 1
+   enddo
+   !
+   allocate(nmindbnd(nb))
+   !
+   nb = 0
+   do k = 1, no_nodes
+       if (msk(k)>1) then    
+       nb = nb + 1
+       nmindbnd(nb) = k
+       endif   
+   enddo   
+   !
+   write(*,*)'Number of boundary SnapWave nodes : ',nb
    !
    end subroutine
 
@@ -1019,8 +1047,9 @@ contains
    ! 4) Loop through all points and make cells for points where msk==1.
    !    The node indices in the cells will point to the indices of the entire quadtree.
    !    In a second temporary mask array msk_tmp2, determine which nodes are actually active (being part a cell)
-   ! 5) Count actual number of active nodes and cells, and allocate arrays
-   ! 6) Set node data and re-map indices 
+   ! 5) Set back snapwave_mask = 2&3 values of wave boudnary and neumann cells
+   ! 6) Count actual number of active nodes and cells, and allocate arrays
+   ! 7) Set node data and re-map indices 
    !
    ! STEP 1 - Read quadtree file
    !
@@ -1887,13 +1916,23 @@ contains
       !
    enddo
    !
-   ! STEP 5 - count number of active points and allocate arrays
+   ! STEP 5 - set back snapwave_mask = 2&3 values
+   !
+   do ip = 1, quadtree_nr_points
+      !
+      if (msk_tmp(ip)>1) then
+         msk_tmp2(ip) = msk_tmp(ip)
+      endif   
+      !
+   enddo     
+   !
+   ! STEP 6 - count number of active points and allocate arrays
    !
    nac = 0
    !
    do ip = 1, quadtree_nr_points
       !
-      if (msk_tmp2(ip)==1) then
+      if (msk_tmp2(ip)>=1) then ! TL: now >=1 instead of ==1
          nac = nac + 1
       endif   
       !
@@ -1919,7 +1958,7 @@ contains
    allocate(face_nodes(4, no_faces))
    face_nodes = 0
    !
-   ! STEP 6 - re-map and set values
+   ! STEP 7 - re-map and set values
    !
    nac = 0
    !
