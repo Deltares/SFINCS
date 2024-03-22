@@ -266,7 +266,7 @@ contains
    ! 
    ! Read polygon outlining valid boundary points - TL: take out of upwfile loop, should be independent on whether we re-use upwfile or not
    !
-   if (not( any(msk == 2))) then
+   if (.not. any(msk == 2)) then
        !
        write(*,*)'Warning : no msk = 2 values found in snapwave_msk, trying using old encfile option:'
        !
