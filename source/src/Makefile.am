@@ -20,6 +20,7 @@ libsfincs_la_SOURCES = \
 	sfincs_data.f90 \
 	geometry.f90 \
 	quadtree.f90 \
+	sfincs_error.f90 \		
 	snapwave/interp.F90 \
 	snapwave/snapwave_results.f90 \
 	snapwave/snapwave_data.f90 \
@@ -38,7 +39,6 @@ libsfincs_la_SOURCES = \
 	sfincs_discharges.f90 \
 	sfincs_subgrid.F90 \
 	sfincs_domain.f90 \
-	sfincs_error.f90 \	
 	sfincs_structures.f90 \
 	sfincs_obspoints.f90 \
 	sfincs_snapwave.f90 \
