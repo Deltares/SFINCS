@@ -1112,16 +1112,20 @@ contains
    !
    ! Write SnapWave msk
    !
-   vtmpi = 0
-   !
-   do nmq = 1, quadtree_nr_points
-      nm = index_sw_in_qt(nmq)            
-      if (nm>0) then
-         vtmpi(nmq) = snapwave_mask(nm)                  
-      endif
-   enddo 
-   !
-   NF90(nf90_put_var(map_file%ncid, map_file%snapwavemsk_varid, vtmpi)) ! write snapwave msk    
+   if (snapwave) then  
+      !
+      vtmpi = 0
+      !
+      do nmq = 1, quadtree_nr_points
+         nm = index_sw_in_qt(nmq)            
+         if (nm>0) then
+            vtmpi(nmq) = snapwave_mask(nm)                  
+         endif
+      enddo 
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%snapwavemsk_varid, vtmpi)) ! write snapwave msk  
+      !
+   endif
    !   
    ! Write infiltration map
    !   
