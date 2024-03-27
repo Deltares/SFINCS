@@ -306,7 +306,7 @@ module sfincs_lib
          ntmaxout  = ntmaxout + 1    ! now also keep track of nr of max output
          tout      = max(tmaxout, t - dt) 
          !
-         if (t <= t1) then 
+         if (t < t1) then 
             tmaxout   = tmaxout + dtmaxout       
             ! in case the last 'dt' made us exactly past tstop time 't1', 
             ! then we don't want to flag later another dtmax output timestep in 'finalize_output' check,
