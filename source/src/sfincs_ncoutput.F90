@@ -2711,8 +2711,11 @@ contains
       NF90(nf90_put_var(map_file%ncid, map_file%hmax_varid, zstmp, (/1, ntmaxout/))) ! write hmax   
    endif
    !
-   ! Write cumulative precipitation
+   ! Write cumulative rainfall
    if (store_cumulative_precipitation) then  
+       !
+       ! Precipitation
+       !
        zstmp = FILL_VALUE       
        do nmq = 1, quadtree_nr_points
            nm = index_sfincs_in_quadtree(nmq)
@@ -2721,7 +2724,19 @@ contains
            endif
        enddo
        NF90(nf90_put_var(map_file%ncid, map_file%cumprcp_varid, zstmp, (/1, ntmaxout/))) ! write cumprcp
-   endif
+       ! 
+       ! Infiltration
+       !
+       zstmp = FILL_VALUE       
+       do nmq = 1, quadtree_nr_points
+           nm = index_sfincs_in_quadtree(nmq)
+           if (kcs(nm)>0) then
+               zstmp(nmq) = cuminf(nm)
+           endif
+       enddo
+       NF90(nf90_put_var(map_file%ncid, map_file%cuminf_varid, zstmp, (/1, ntmaxout/))) ! write cuminf      
+       !       
+   endif      
    !
    ! Maximum flow velocity
    if (store_maximum_velocity) then
