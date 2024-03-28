@@ -5,28 +5,27 @@ SFINCS: Super-Fast INundation of CoastS
 |website| |docs_latest| |docs_stable| |license| |doi| |journal|
 
 What is SFINCS?
-------------
-
+-------------------------------------------------------
 SFINCS is Deltares' new open-source, open-access reduced-complexity model designed for super-fast modelling of compound flooding events in a dynamic way!
 
 Why SFINCS?
-------------
+-------------------------------------------------------
 Compound flooding during extreme events can result in tremendous amounts of property damage and loss of life. Early warning systems and multi-hazard risk analysis can reduce these impacts. However, traditional approaches either do not involve relevant physics or are too computationally expensive to do so for large stretches of coastline. The SFINCS model is a new reduced-complexity engine recently developed by Deltares, that is capable of simulating compound flooding including a high computational efficiency balanced with good accuracy.
 
 Where do I find more information about SFINCS?
-------------
+-------------------------------------------------------
 For general information see: https://www.deltares.nl/en/software/sfincs/
 
 Find the user manual and more information on: https://sfincs.readthedocs.io/en/latest/
 
 How do I get SFINCS?
-------------
+-------------------------------------------------------
 Download the latest windows executable here: https://download.deltares.nl/sfincs
 
 Get the Docker of version of SFINCS to run on Mac, Linux or HPC here: https://hub.docker.com/r/deltares/sfincs-cpu
 
 How to cite?
-------------
+-------------------------------------------------------
 To reference the software please use the the DOI provided in the SFINCS badge that points to the latest release: |doi|
 
 The following paper presents the introduction of SFINCS:
@@ -34,7 +33,7 @@ The following paper presents the introduction of SFINCS:
    Leijnse, T., van Ormondt, M., Nederhoff, K., & van Dongeren, A. (2021). Modeling compound flooding in coastal systems using a computationally efficient reduced-physics solver: Including fluvial, pluvial, tidal, wind-      and wave-driven processes. Coastal Engineering, 163, 103796. https://doi.org/10.1016/j.coastaleng.2020.103796
 
 How to contribute?
--------------------
+-------------------------------------------------------
 If you find any issues in the code or documentation feel free to leave an issue on the `github issue tracker. <https://github.com/Deltares/SFINCS/issues>`_
 You can find information about how to contribute to the SFINCS model at our `contributing page. <https://sfincs.readthedocs.io/en/latest/example.html#contributing>`_
 
