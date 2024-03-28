@@ -1180,8 +1180,7 @@ contains
    real*4, dimension(:,:), allocatable :: struc_info
    real*4, dimension(:), allocatable :: struc_x
    real*4, dimension(:), allocatable :: struc_y
-   real*4, dimension(:), allocatable :: struc_height
-   
+   real*4, dimension(:), allocatable :: struc_height   
    !
    if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0) then ! If no observation points, cross-sections, structures or drains; his file is not created        
         return
@@ -2812,7 +2811,7 @@ contains
    !   
    implicit none   
    !   
-      if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0) then ! If no observation points, cross-sections, structures or drains; hisfile        
+   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0) then ! If no observation points, cross-sections, structures or drains; hisfile        
         return
    endif   
    !
