@@ -809,7 +809,7 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
    real*4    :: xpa, ypa, xpb, ypb
    real*4    :: xx0, yy0, xx1, yy1   
    real*4    :: xuv1, yuv1, xuv2, yuv2
-   integer*4 :: na, nb, ma, mb, nmx, ip, iref, n, m, nm, nmu, ipol, m0, n0, m1, n1
+   integer*4 :: na, nb, ma, mb, nmx, ip, iref, n, m, nm, nmu, ipol, m0, n0, m1, n1, nm2
    logical   :: iok
    !
    allocate(ind(npuv))
@@ -858,6 +858,8 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
                   cycle
                endif   
                !
+               nm = index_sfincs_in_quadtree(nm)
+               ! 
                ! Right (same level or coarser)
                !
                if (z_index_uv_mu1(nm)>0) then
