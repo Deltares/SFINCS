@@ -1807,8 +1807,6 @@ contains
    !
    implicit none
    !
-   real*4, dimension(:),     allocatable :: rghfield
-   !
    integer :: idummy
    integer :: ip
    integer :: nm

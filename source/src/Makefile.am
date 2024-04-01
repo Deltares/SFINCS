@@ -48,7 +48,7 @@ libsfincs_la_SOURCES = \
 	sfincs_output.f90 \
 	sfincs_momentum.f90 \
 	sfincs_wavemaker.f90 \
-	sfincs_infiltration.f90 \
+	sfincs_infiltration.F90 \
 	sfincs_lib.f90 \
 	sfincs_bmi.f90
         
