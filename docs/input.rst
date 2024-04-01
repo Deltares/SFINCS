@@ -413,7 +413,7 @@ Within SFINCS, the Curve number method with recovery can be used as follows. The
 
 Using the saturated hydraulic conductivity, a recovery variables recovery constant (kr) and minimum recovery time before a new rainfall event occurs (hours) are computed similar to SWMM. 
 The Curve Number has been implemented in hydromt-SFINCS. 
-See https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.SfincsModel.setup_cn_infiltration_with_kr.html for more information.
+See https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.SfincsModel.setup_cn_infiltration_with_ks.html for more information.
 
 This option does support restart functionality. 
 	
