@@ -1,5 +1,16 @@
+#define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)
 module sfincs_infiltration
-
+   !
+   use netcdf    
+   !
+   type net_type_inf
+       integer :: ncid
+       integer :: np_dimid
+       integer :: mask_varid, type_varid
+       integer :: qinffield_varid, scs_se_varid, ksfield_varid
+   end type      
+   type(net_type_inf) :: net_file_inf      
+   !
 contains
     
     subroutine read_infiltration_file_original()
@@ -305,18 +316,154 @@ contains
     !            
     end subroutine read_infiltration_file_original
     
+    
     subroutine read_infiltration_file_netcdf()
     !
     use sfincs_data
     !
     implicit none
     !
-    integer :: nm    
+    !character*256, intent(in) :: netinfiltrationfile
+    !    
+    integer :: np_nc,ip, nm
     !
-    write(*,*)'TODO'
-    
-    
-    
+    integer*4                                       :: quadtree_nr_points
+    !   
+    integer*1,          dimension(:),   allocatable :: quadtree_mask
+    integer*4, dimension(:),  allocatable :: z_index   
+    real*4, dimension(:),     allocatable :: rtmpz   
+    !
+    write(*,*)'Reading Infiltration netCDF file on quadtree mesh...'
+    !
+    NF90(nf90_open(trim(netinfiltrationfile), NF90_CLOBBER, net_file_inf%ncid))
+    !          
+    ! Get dimensions id's: nr points  
+    !
+    NF90(nf90_inq_dimid(net_file_inf%ncid, "mesh2d_nFaces", net_file_inf%np_dimid))
+    !
+    ! Get dimensions sizes    
+    !
+    NF90(nf90_inquire_dimension(net_file_inf%ncid, net_file_inf%np_dimid, len = np_nc))   ! nr of cells
+    !
+    ! Get variable id's
+    NF90(nf90_inq_varid(net_file_inf%ncid, 'mask',  net_file_inf%mask_varid))    
+    !
+    !NF90(nf90_inq_varid(net_file_inf%ncid, 'type',  net_file_inf%type_varid))                
+    inftype = 'cnb' !TL: later determine this based on the netcdf file
+    !
+    ! Allocate variables
+    allocate(z_index(np_nc))   
+    allocate(rtmpz(np_nc))    
+    !allocate(kcs(np))
+    allocate(quadtree_mask(np))        
+    !
+    ! Netcdf quadtree infiltrationfile contains data for the entire quadtree. So also for points with kcs==0 !
+    ! This means that the data needs to be re-mapped to the active cell indices:
+    if (use_quadtree) then
+        !
+        do ip = 1, np_nc !np_nc~quadtree_nr_points
+            !
+            nm = index_sfincs_in_quadtree(ip)
+            !
+            if (nm>0) then
+                z_index(nm) = ip  
+            endif 
+            !    
+        enddo
+        !
+    !else
+    !    ! Regular grid > Tl: only keep regular if we want to support this in the end
+    !    do nm = 1, np_nc
+    !        z_index(nm) = nm
+    !    enddo
+    endif
+    !
+    ! Read Z points
+    !    
+    NF90(nf90_get_var(net_file_inf%ncid, net_file_inf%mask_varid,  rtmpz(:)))    
+    !
+    do ip = 1, np
+        quadtree_mask(ip) = rtmpz(z_index(ip))
+    enddo       
+    !
+    ! Check whether number of cells matches
+    !if (np_nc /= np) then        
+    !    write(*,'(a,i8,a,i8,a)')'Error! Number of cells in netinfiltrationfile ',np_nc,' does not match number of active cells in mesh ',np,' ! Abort reading infiltration input...',np_nc
+    !    continue        
+    !endif 
+    !
+    ! Check whether incoming mask is matches the one as retrieved from netcdf quadtree grid file (our general 'msk')
+    if (all(quadtree_mask == kcs)) then
+        print *, "The mask arrays are the same."
+    else
+        write(*,*)'Error! Mask of netinfiltrationfile does not match with actiave mask in mesh! Abort reading infiltration input...'
+        continue
+    endif    
+    !
+    ! Now read in infiltration type specific variables
+    !
+    if (inftype == 'cnb') then
+        !
+        ! Spatially-varying infiltration with CN numbers (with recovery)
+        !
+        write(*,*)'Turning on process: Infiltration (via Curve Number method - B)'            
+        ! 
+        ! Allocate Smax, Se, Ks
+        allocate(qinffield(np))
+        allocate(scs_Se(np))
+        allocate(ksfield(np))
+        allocate(inf_kr(np))        
+        !
+        ! Read variables for cnb method
+        !
+        ! Get variable id's
+        NF90(nf90_inq_varid(net_file_inf%ncid, 'qinffield',  net_file_inf%qinffield_varid))     
+        NF90(nf90_inq_varid(net_file_inf%ncid, 'scs_se',  net_file_inf%scs_se_varid))     
+        NF90(nf90_inq_varid(net_file_inf%ncid, 'ksfield',  net_file_inf%ksfield_varid))             
+        ! Read Z points
+        !    
+        NF90(nf90_get_var(net_file_inf%ncid, net_file_inf%qinffield_varid,  rtmpz(:)))    
+        do ip = 1, np
+            qinffield(ip) = rtmpz(z_index(ip))
+        enddo  
+        !    
+        NF90(nf90_get_var(net_file_inf%ncid, net_file_inf%scs_se_varid,  rtmpz(:)))    
+        do ip = 1, np
+            scs_Se(ip) = rtmpz(z_index(ip))
+        enddo  
+        !    
+        NF90(nf90_get_var(net_file_inf%ncid, net_file_inf%ksfield_varid,  rtmpz(:)))    
+        do ip = 1, np
+            ksfield(ip) = rtmpz(z_index(ip))
+        enddo          
+        !
+        ! Compute recovery                     ! Equation 4-36
+        inf_kr = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr (/25.4)
+        !                                    ! /75 is conversion to recovery rate (in days)
+        !
+        ! Allocate support variables
+        allocate(scs_P1(np))
+        scs_P1 = 0.0
+        allocate(scs_F1(np))
+        scs_F1 = 0.0
+        allocate(rain_T1(np))
+        rain_T1 = 0.0
+        allocate(scs_S1(np))
+        scs_S1 = 0.0
+        allocate(scs_rain(np))
+        scs_rain = 0        
+        !
+    endif
+    !
+    infiltration = .true.   
+    !    
+    NF90(nf90_close(net_file_inf%ncid))       
+    !
+    ! Deallocate  vars
+    deallocate(rtmpz)
+    deallocate(z_index)
+    deallocate(quadtree_mask)   
+    !         
     end subroutine read_infiltration_file_netcdf
     
     
@@ -633,4 +780,17 @@ contains
    !
    end subroutine   
 
+   
+   subroutine handle_err(status,file,line)
+      !
+      integer, intent ( in)    :: status
+      character(*), intent(in) :: file
+      integer, intent ( in)    :: line
+      integer :: status2
+      !   
+      if(status /= nf90_noerr) then
+         write(0,'("NETCDF ERROR: ",a,i6,":",a)') file,line,trim(nf90_strerror(status))
+      end if
+   end subroutine handle_err
+   !   
 end module
