@@ -136,6 +136,7 @@ module sfincs_data
       character*256 :: netampfile
       character*256 :: netamprfile
       character*256 :: netspwfile
+      character*256 :: netinfiltrationfile      
       character*256 :: scsfile
       character*256 :: smaxfile
       character*256 :: sefffile

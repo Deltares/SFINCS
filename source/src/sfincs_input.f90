@@ -179,6 +179,7 @@ contains
    call read_char_input(500,'netamprfile',netamprfile,'none')      
    call read_char_input(500,'netampfile',netampfile,'none')      
    call read_char_input(500,'netspwfile',netspwfile,'none')      
+   call read_char_input(500,'netinfiltrationfile',netinfiltrationfile,'none')         
    !
    ! Output
    call read_char_input(500,'obsfile',obsfile,'none')

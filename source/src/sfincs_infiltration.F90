@@ -1,7 +1,9 @@
 module sfincs_infiltration
 
 contains
-
+    
+    subroutine read_infiltration_file_original()
+    !
     ! Six options for infiltration:
     !
     ! 1) Spatially-uniform constant infiltration
@@ -24,9 +26,7 @@ contains
     ! or:  
     !   b) inftype == 'cna' or inftype == 'cnb'
     !
-    ! First we determine precipitation type, as part of either _original or _netcdf input type
-    
-    subroutine read_infiltration_file_original()
+    ! First we determine infiltration type
     !
     use sfincs_data
     !
@@ -303,7 +303,22 @@ contains
         !
     endif
     !            
-    end subroutine        
+    end subroutine read_infiltration_file_original
+    
+    subroutine read_infiltration_file_netcdf()
+    !
+    use sfincs_data
+    !
+    implicit none
+    !
+    integer :: nm    
+    !
+    write(*,*)'TODO'
+    
+    
+    
+    end subroutine read_infiltration_file_netcdf
+    
     
    subroutine update_infiltration_map(dt)
    !

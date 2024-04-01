@@ -1817,12 +1817,28 @@ contains
    infiltration   = .false.
    !
    ! Two input types for infiltration:
-   ! a) Netcdf input file for values on quadtree grid (CNA, CNB, GA, Horton). Checked for existence first, if not check:
-   ! b) Original input type with simple input keyword (qinf) or binary input files (qinffile, CNA, CNB, GA, Horton)
+   ! a) Netcdf input file for values on quadtree grid (CNA, CNB, GA, Horton). Required for quadtree input! Check for existence first, if not check:
+   ! b) Original input type with simple input keyword (qinf) or binary input files (qinffile, CNA, CNB, GA, Horton). Only works for original regular grid!
    !
-   if (precip) then
+   if (precip) then !TL: CHECK - for Horton this should not be a requirement anymore !?
       !
-      call read_infiltration_file_original()
+      if (netinfiltrationfile /= 'none') then
+          !
+          if (use_quadtree) then
+              call read_infiltration_file_netcdf()
+          else
+              write(*,*)'Warning : new Netcdf infiltration input format can only be specified for quadtree mesh model!'
+          endif          
+          !          
+      else! Original
+          !
+          if (use_quadtree .eqv. .false.) then
+             call read_infiltration_file_original()
+          else
+              write(*,*)'Warning : infiltration input for quadtree mesh can only be specified using the new Netcdf infiltration input format!'
+          endif          
+          !
+      endif      
       !
    else
       !
