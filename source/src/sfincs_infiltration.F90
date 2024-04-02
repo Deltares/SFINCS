@@ -7,7 +7,7 @@ module sfincs_infiltration
        integer :: ncid
        integer :: np_dimid
        integer :: mask_varid, type_varid
-       integer :: qinffield_varid, scs_se_varid, ksfield_varid
+       integer :: qinffield_varid, scs_varid, scs_se_varid, ksfield_varid
    end type      
    type(net_type_inf) :: net_file_inf      
    !
@@ -349,7 +349,7 @@ contains
     NF90(nf90_inq_varid(net_file_inf%ncid, 'mask',  net_file_inf%mask_varid))    
     !
     !NF90(nf90_inq_varid(net_file_inf%ncid, 'type',  net_file_inf%type_varid))                
-    inftype = 'cnb' !TL: later determine this based on the netcdf file
+    inftype = 'cna' !TL: later determine this based on the netcdf file
     !
     ! Allocate variables
     allocate(z_index(np_nc))   
@@ -402,7 +402,32 @@ contains
     !
     ! Now read in infiltration type specific variables
     !
-    if (inftype == 'cnb') then
+    if (inftype == 'cna') then
+        !
+        ! Spatially-varying infiltration with CN numbers (old)
+        !
+        write(*,*)'Turning on process: Infiltration (via Curve Number method - A)'               
+        !
+        ! Allocate qinffield
+        allocate(qinffield(np))
+        !
+        ! Read variables for cna method
+        !
+        ! Get variable id's
+        NF90(nf90_inq_varid(net_file_inf%ncid, 'scs',  net_file_inf%scs_varid))     
+        ! Read Z points
+        !    
+        NF90(nf90_get_var(net_file_inf%ncid, net_file_inf%scs_varid,  rtmpz(:)))    
+        do ip = 1, np
+            qinffield(ip) = rtmpz(z_index(ip))
+        enddo          
+        !
+        ! already convert qinffield from inches to m here
+        do nm = 1, np
+        qinffield(nm) = qinffield(nm)*0.0254   !to m
+        enddo           
+        !
+    elseif (inftype == 'cnb') then
         !
         ! Spatially-varying infiltration with CN numbers (with recovery)
         !
