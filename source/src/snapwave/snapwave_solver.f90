@@ -365,6 +365,32 @@ module snapwave_solver
       !
       if (inner(k)) then
          !
+         ! Make sure DoverE is filled based on previous ee
+         !
+         Ek       = sum(ee(:, k))*dtheta                  
+         Hk       = min(sqrt(Ek/rhog8), gamma*depth(k))
+         Ek       = rhog8*Hk**2
+         uorbi    = pi*Hk/T/sinhkh(k)
+         Dfk      = 0.28*rho*fw(k)*uorbi**3
+         call baldock(g, rho, alfa, gamma, kwav(k), depth(k), Hk, T, baldock_opt, Dwk, Hmx(k))
+         DoverE(k) = (Dwk + Dfk)/max(Ek, 1.0e-6)
+         !
+         if (igwaves) then
+            !
+            Ek_ig    = sum(ee_ig(:, k))*dtheta                  
+            Hk_ig    = min(sqrt(Ek_ig/rhog8), gamma*depth(k))
+            Ek_ig    = rhog8*Hk_ig**2
+            Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*Hk*Ek_ig !org
+            !Dfk_ig      = fw_ig(k)*1025*(9.81/depth(k))**(3.0/2.0)*(Hk/sqrt(8.0))*Hk_ig**(2.0)/8 -> TL: seems to give same result    
+            !
+            if (ig_opt == 1 .or. ig_opt == 2) then                
+               call baldock(g, rho, alfa_ig, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
+            endif
+            !
+            DoverE_ig(k) = (Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0e-6)
+            !
+         endif
+         !
          if (igwaves) then
             !
             ! Compute exchange source term inc to ig waves - per direction            
@@ -404,15 +430,19 @@ module snapwave_solver
                   !betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin)) ! TL: in case in the future we would need the normalised bed slope again
                   !
                   !gam = max(0.5*(H_incprev(itheta)/depthprev(itheta) + H_inc_old(k)/depth(k)), 0.0) ! mean gamma over current and upwind point > org
-                  !gam = max(0.5*(Hprev(itheta)/depthprev(itheta) + H(k)/depth(k)), 0.0) ! mean gamma over current and upwind point > H(k) =0 still
-                  gam = max(0.5*(Hprev(itheta)/depthprev(itheta)), 0.0)
+                  H(k)      = sqrt(8*sum(ee(:, k))*dtheta/rho/g)    !E(k)      = sum(ee(:, k))*dtheta              
+                  gam = max(0.5*(Hprev(itheta)/depthprev(itheta) + H(k)/depth(k)), 0.0) ! mean gamma over current and upwind point > H(k) =0 still
+                  !gam = max(0.5*(Hprev(itheta)/depthprev(itheta)), 0.0) !works
                   
                   !if (Sxxprev(itheta) > 0) then
                     !write(*,*)'k itheta Sxxprev(itheta) ee(itheta, k1) ee(itheta, k12 Hprev(itheta), gam',k, itheta, Sxxprev(itheta), ee(itheta, k1), ee(itheta, k2), Hprev(itheta), H(k), gam
                   !endif     
                   !if (Sxxprev(itheta) > 0) then
                   !  write(*,*)'k itheta Sxxprev(itheta) Hprev(itheta) H_incprev(itheta) gam',k, itheta, Sxxprev(itheta), Hprev(itheta), H_incprev(itheta), gam
-                  !endif                       
+                  !endif            
+                  if (Sxxprev(itheta) > 0) then
+                    write(*,*)'k itheta H(k) gam',k, itheta, H(k), gam
+                  endif                          
                   !
                   if (ig_opt == 1 .or. ig_opt == 2) then 
                      !
@@ -464,31 +494,7 @@ module snapwave_solver
             !
          endif   
          !
-         ! Make sure DoverE is filled based on previous ee
-         !
-         Ek       = sum(ee(:, k))*dtheta                  
-         Hk       = min(sqrt(Ek/rhog8), gamma*depth(k))
-         Ek       = rhog8*Hk**2
-         uorbi    = pi*Hk/T/sinhkh(k)
-         Dfk      = 0.28*rho*fw(k)*uorbi**3
-         call baldock(g, rho, alfa, gamma, kwav(k), depth(k), Hk, T, baldock_opt, Dwk, Hmx(k))
-         DoverE(k) = (Dwk + Dfk)/max(Ek, 1.0e-6)
-         !
-         if (igwaves) then
-            !
-            Ek_ig    = sum(ee_ig(:, k))*dtheta                  
-            Hk_ig    = min(sqrt(Ek_ig/rhog8), gamma*depth(k))
-            Ek_ig    = rhog8*Hk_ig**2
-            Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*Hk*Ek_ig !org
-            !Dfk_ig      = fw_ig(k)*1025*(9.81/depth(k))**(3.0/2.0)*(Hk/sqrt(8.0))*Hk_ig**(2.0)/8 -> TL: seems to give same result    
-            !
-            if (ig_opt == 1 .or. ig_opt == 2) then                
-               call baldock(g, rho, alfa_ig, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
-            endif
-            !
-            DoverE_ig(k) = (Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0e-6)
-            !
-         endif
+
          !                
       endif
       !
