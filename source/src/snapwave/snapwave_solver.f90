@@ -48,10 +48,10 @@ module snapwave_solver
          Hmx_ig(k)    = 0.88/kwav_ig(k)*tanh(gamma_ig*kwav_ig(k)*depth(k)/0.88)
          !
          ! Calculate radiation stress Sxx = ((2 .* n) - 0.5) .* Einc > is from energy of previous timestep, and directional!
-         do itheta = 1, ntheta
-            ! old, non-directional: Sxx(itheta,k) = ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5) * sum(ee(:, k)) * dtheta 
-            Sxx(itheta,k) = ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5) * ee(itheta, k) ! limit so value of nwav is between 0 and 1, and Sxx therefore doesn't become NaN for nwav=Infinite
-         enddo
+         !do itheta = 1, ntheta
+         !   ! old, non-directional: Sxx(itheta,k) = ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5) * sum(ee(:, k)) * dtheta 
+         !   Sxx(itheta,k) = ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5) * ee(itheta, k) ! limit so value of nwav is between 0 and 1, and Sxx therefore doesn't become NaN for nwav=Infinite
+         !enddo
       enddo
       !   
       do itheta = 1, ntheta
@@ -136,7 +136,7 @@ module snapwave_solver
    real*4, dimension(ntheta,no_nodes), intent(in)   :: ctheta                 ! refractioon speed
    real*4, dimension(no_nodes), intent(in)          :: cg_ig                  ! group velocity
    real*4, dimension(no_nodes), intent(in)          :: nwav                     ! wave number n   
-   real*4, dimension(ntheta,no_nodes), intent(in)      :: Sxx                    ! Radiation Stress
+   real*4, dimension(ntheta,no_nodes), intent(inout)      :: Sxx                    ! Radiation Stress
    real*4, dimension(ntheta,no_nodes), intent(inout)   :: ee                  ! 
    real*4, dimension(ntheta,no_nodes), intent(inout)   :: ee_ig                 ! 
    real*4, dimension(ntheta,no_nodes), intent(in)   :: ctheta_ig              ! refractioon speed
@@ -190,8 +190,8 @@ module snapwave_solver
    real*4, dimension(:), allocatable          :: eeprev_ig, cgprev_ig   ! energy density and group velocity at upwind intersection point
    real*4, dimension(:), allocatable          :: Sxxprev                ! radiation stress at upwind intersection point  
    real*4, dimension(:), allocatable          :: Hprev                  ! Incident wave height at upwind intersection point  
-   real*4, dimension(:), allocatable          :: H_igprev               ! IG wave height at upwind intersection point  
-   real*4, dimension(:), allocatable          :: H_incprev              ! Incident wave height at upwind intersection point  
+   !real*4, dimension(:), allocatable          :: H_igprev               ! IG wave height at upwind intersection point  
+   !real*4, dimension(:), allocatable          :: H_incprev              ! Incident wave height at upwind intersection point  
    real*4, dimension(:), allocatable          :: depthprev              ! water depth at upwind intersection point       
    real*4, dimension(:), allocatable          :: A,B,C,R                ! coefficients in the tridiagonal matrix solved per point
    real*4, dimension(:), allocatable          :: A_ig,B_ig,C_ig,R_ig    ! coefficients in the tridiagonal matrix solved per point
@@ -289,8 +289,8 @@ module snapwave_solver
       allocate(alphaig_local(ntheta,no_nodes))  
       allocate(Sxxprev(ntheta))       
       allocate(Hprev(ntheta))  
-      allocate(H_igprev(ntheta))  
-      allocate(H_incprev(ntheta))  
+      !allocate(H_igprev(ntheta))  
+      !allocate(H_incprev(ntheta))  
       allocate(depthprev(ntheta))                         
       !
    endif
@@ -378,12 +378,20 @@ module snapwave_solver
                   ! Calculate upwind direction dependent variables
                   ! TL - Note: cg_ig = cg
                   cgprev(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
+                  
+                  Sxx(itheta,k1) = ((2.0 * max(0.0,min(1.0,nwav(k1)))) - 0.5) * ee(itheta, k1) ! limit so value of nwav is between 0 and 1,                  
+                  Sxx(itheta,k2) = ((2.0 * max(0.0,min(1.0,nwav(k2)))) - 0.5) * ee(itheta, k2) ! limit so value of nwav is between 0 and 1,                          
+                  
                   Sxxprev(itheta) = w(1, itheta, k)*Sxx(itheta,k1) + w(2, itheta, k)*Sxx(itheta,k2)
-                  Hprev(itheta) = w(1, itheta, k)*H(k1) + w(2, itheta, k)*H(k2)
-                  H_igprev(itheta) = w(1, itheta, k)*H_ig_old(k1) + w(2, itheta, k)*H_ig_old(k2)
-                  H_incprev(itheta) = w(1, itheta, k)*H_inc_old(k1) + w(2, itheta, k)*H_inc_old(k2)
+                  !
+                  !Hprev(itheta) = w(1, itheta, k)*H(k1) + w(2, itheta, k)*H(k2)                  
+                  !H_igprev(itheta) = w(1, itheta, k)*H_ig_old(k1) + w(2, itheta, k)*H_ig_old(k2)
+                  !H_incprev(itheta) = w(1, itheta, k)*H_inc_old(k1) + w(2, itheta, k)*H_inc_old(k2)
+                  
                   depthprev(itheta) = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)                
-                  eeprev(itheta) = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)                  
+                  eeprev(itheta) = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)  
+                  Hprev(itheta) = sqrt(8*eeprev(itheta)/rho/g) ! as in H(k)      = sqrt(8*E(k)/rho/g)
+                  
                   eeprev_ig(itheta) = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)                  
                   !     
                   beta  = max((w(1, itheta, k)*(zb(k) - zb(k1)) + w(2, itheta, k)*(zb(k) - zb(k2)))/ds(itheta, k), 0.0) 
@@ -395,7 +403,16 @@ module snapwave_solver
                   beta_local(itheta,k) = beta                       
                   !betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin)) ! TL: in case in the future we would need the normalised bed slope again
                   !
-                  gam = max(0.5*(H_incprev(itheta)/depthprev(itheta) + H_inc_old(k)/depth(k)), 0.0) ! mean gamma over current and upwind point
+                  !gam = max(0.5*(H_incprev(itheta)/depthprev(itheta) + H_inc_old(k)/depth(k)), 0.0) ! mean gamma over current and upwind point > org
+                  !gam = max(0.5*(Hprev(itheta)/depthprev(itheta) + H(k)/depth(k)), 0.0) ! mean gamma over current and upwind point > H(k) =0 still
+                  gam = max(0.5*(Hprev(itheta)/depthprev(itheta)), 0.0)
+                  
+                  !if (Sxxprev(itheta) > 0) then
+                    !write(*,*)'k itheta Sxxprev(itheta) ee(itheta, k1) ee(itheta, k12 Hprev(itheta), gam',k, itheta, Sxxprev(itheta), ee(itheta, k1), ee(itheta, k2), Hprev(itheta), H(k), gam
+                  !endif     
+                  !if (Sxxprev(itheta) > 0) then
+                  !  write(*,*)'k itheta Sxxprev(itheta) Hprev(itheta) H_incprev(itheta) gam',k, itheta, Sxxprev(itheta), Hprev(itheta), H_incprev(itheta), gam
+                  !endif                       
                   !
                   if (ig_opt == 1 .or. ig_opt == 2) then 
                      !

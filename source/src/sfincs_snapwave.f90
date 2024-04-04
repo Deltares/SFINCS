@@ -416,7 +416,7 @@ contains
    call read_char_input(500,'snapwave_btpfile',btpfile,'')
    call read_char_input(500,'snapwave_bwdfile',bwdfile,'')
    call read_char_input(500,'snapwave_bdsfile',bdsfile,'') 
-   call read_char_input(500,'snapwave_upwfile',upwfile,'')
+   call read_char_input(500,'snapwave_upwfile',upwfile,'snapwave.upw')
    call read_char_input(500,'snapwave_mskfile',mskfile,'')
    call read_char_input(500,'snapwave_depfile',depfile,'none')   
    call read_char_input(500,'snapwave_ncfile', gridfile,'snapwave_net.nc')   
