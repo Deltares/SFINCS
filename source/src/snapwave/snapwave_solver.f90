@@ -126,7 +126,6 @@ module snapwave_solver
    real*4, dimension(ntheta,no_nodes), intent(in)   :: ctheta                 ! refractioon speed
    real*4, dimension(no_nodes), intent(in)          :: cg_ig                  ! group velocity
    real*4, dimension(no_nodes), intent(in)          :: nwav                     ! wave number n   
-   real*4, dimension(ntheta,no_nodes)               :: Sxx                    ! Radiation Stress
    real*4, dimension(ntheta,no_nodes), intent(inout)   :: ee                  ! 
    real*4, dimension(ntheta,no_nodes), intent(inout)   :: ee_ig                 ! 
    real*4, dimension(ntheta,no_nodes), intent(in)   :: ctheta_ig              ! refractioon speed
@@ -170,13 +169,10 @@ module snapwave_solver
    real*4, dimension(:,:), allocatable        :: eeold                  ! wave energy density, energy density previous iteration   
    real*4, dimension(:,:), allocatable        :: srcsh_local            ! Energy source/sink term because of IG wave shoaling
    real*4, dimension(:,:), allocatable        :: beta_local             ! Local bed slope based on bed level per direction   
-   real*4, dimension(:,:), allocatable        :: alphaig_local          ! 
+   real*4, dimension(:,:), allocatable        :: alphaig_local          ! Local infragravity wave shoaling parameter alpha
    real*4, dimension(:), allocatable          :: dee                    ! difference with energy previous iteration
    real*4, dimension(:), allocatable          :: eeprev, cgprev         ! energy density and group velocity at upwind intersection point
    real*4, dimension(:), allocatable          :: eeprev_ig, cgprev_ig   ! energy density and group velocity at upwind intersection point
-   real*4, dimension(:), allocatable          :: Sxxprev                ! radiation stress at upwind intersection point  
-   real*4, dimension(:), allocatable          :: Hprev                  ! Incident wave height at upwind intersection point  
-   real*4, dimension(:), allocatable          :: depthprev              ! water depth at upwind intersection point       
    real*4, dimension(:), allocatable          :: A,B,C,R                ! coefficients in the tridiagonal matrix solved per point
    real*4, dimension(:), allocatable          :: A_ig,B_ig,C_ig,R_ig    ! coefficients in the tridiagonal matrix solved per point
    real*4, dimension(:), allocatable          :: DoverE                 ! ratio of mean wave dissipation over mean wave energy
@@ -214,8 +210,6 @@ module snapwave_solver
    real*4                                     :: Sxx_cons
    real*4                                     :: alphaigfac         ! Multiplication factor for IG shoaling source/sink term, default = 1.0
    real*4                                     :: sigm_ig
-   real*4                                     :: beta
-   real*4                                     :: gam                ! local gamma (Hinc / depth ratio)
    character*20                               :: fname
    integer, save                              :: callno=1
    !
@@ -271,9 +265,6 @@ module snapwave_solver
       allocate(E_ig(no_nodes))
       allocate(beta_local(ntheta,no_nodes))      
       allocate(alphaig_local(ntheta,no_nodes))  
-      allocate(Sxxprev(ntheta))       
-      allocate(Hprev(ntheta))  
-      allocate(depthprev(ntheta))                         
       !
    endif
    !   
@@ -354,78 +345,8 @@ module snapwave_solver
                k2 = prev(2, itheta, k)
                !
                if (k1>0 .and. k2>0) then ! IMPORTANT - for some reason (k1*k2)>0 is not reliable always, resulting in directions being uncorrectly skipped!!!
-                  !             
-                  ! Calculate upwind direction dependent variables
-                  ! TL - Note: cg_ig = cg
-                  cgprev(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
-                  
-                  Sxx(itheta,k1) = ((2.0 * max(0.0,min(1.0,nwav(k1)))) - 0.5) * ee(itheta, k1) ! limit so value of nwav is between 0 and 1                  
-                  Sxx(itheta,k2) = ((2.0 * max(0.0,min(1.0,nwav(k2)))) - 0.5) * ee(itheta, k2) ! limit so value of nwav is between 0 and 1         
-                  !
-                  Sxxprev(itheta) = w(1, itheta, k)*Sxx(itheta,k1) + w(2, itheta, k)*Sxx(itheta,k2)
-                  !
-                  depthprev(itheta) = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)           
-                  !
-                  eeprev(itheta) = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)  
-                  eeprev_ig(itheta) = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)      
-                  !
-                  Hprev(itheta)      = w(1, itheta, k)*H(k1) + w(2, itheta, k)*H(k2)     
-                  !     
-                  beta  = max((w(1, itheta, k)*(zb(k) - zb(k1)) + w(2, itheta, k)*(zb(k) - zb(k2)))/ds(itheta, k), 0.0) 
-                  ! Notes:
-                  ! - use actual bed level now for slope, because depth changes because of wave setup/tide/surge
-                  ! - in zb, depth is negative > therefore zb(k) minus zb(k1)
-                  ! - beta=0 means a horizontal or decreasing slope > need alphaig=0 then
-                  !
-                  beta_local(itheta,k) = beta                       
-                  !betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin)) ! TL: in case in the future we would need the normalised bed slope again
-                  !
-                  gam = max(0.5*(Hprev(itheta)/depthprev(itheta) + H(k)/depth(k)), 0.0) ! mean gamma over current and upwind point > H(k) =0 still
-                  !
-                  if (ig_opt == 1 .or. ig_opt == 2) then 
-                     !
-                     ! Calculate shoaling parameter alpha_ig following Leijnse et al. (2024)
-                     !  
-                     call estimate_shoaling_parameter_alphaig(beta, gam, alphaig_local(itheta,k)) ! [input, input, output]
-                     !                
-                     ! Now calculate source term component
-                     !         
-                     ! Newest dSxx/dx based method, using estimate of Sxx(k) using conservative shoaling
-                     if (Sxxprev(itheta)<=0.0) then 
-                        !
-                        srcsh_local(itheta, k) = 0.0 !Avoid big jumps in dSxx that can happen if a upwind point is a boundary point with Hinc=0
-                        !
-                     else
-                        !              
-                        if (ig_opt == 1) then ! Option using conservative shoaling for dSxx/dx
-                            !
-                            ! Calculate Sxx based on conservative shoaling of upwind point's energy: 
-                            ! Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
-                            Sxx_cons = eeprev(itheta) * cgprev(itheta) / cg_ig(k) * ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5)
-                            ! Note - limit so value of nwav is between 0 and 1, and Sxx therefore doesn't become NaN for nwav=Infinite  
-                            !
-                            dSxx = Sxx_cons - Sxxprev(itheta)
-                            !
-                        elseif (ig_opt == 2) then ! Option taking actual difference for dSxx/dx
-                            !
-                            dSxx = Sxx(itheta,k) - Sxxprev(itheta)                        
-                            !
-                        endif
-                        !
-                        dSxx = max(dSxx, 0.0)
-                        !
-                        srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(eeprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / ds(itheta, k)
-                        !                         
-                     endif                      
-                     !                                        
-                  else  ! TL: option to add future parameterisations here for e.g. coral reef type coasts
-                     !
-                     srcsh_local(itheta, k) = 0.0
-                     !
-                  endif
-                  !                  
-                  srcsh_local(itheta, k)  = max(srcsh_local(itheta, k), 0.0)
-                  !
+                  !    
+                  call determine_infragravity_source_sink_term(no_nodes, itheta, ntheta, k, k1, k2, w, ds, cg_ig, nwav, depth, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, zb, ig_opt, alphaigfac, alphaig_local, srcsh_local, beta_local)
                endif
                !
             enddo
@@ -509,7 +430,6 @@ module snapwave_solver
                      if (igwaves) then !TL: now calculated double?
                         eeprev_ig(itheta) = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)
                         cgprev_ig(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2) !TL: needed to calculate? Or is same as cgprev(itheta)?
-                        !depthprev(itheta) = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)                        
                      endif
                      !
                   enddo
@@ -896,6 +816,117 @@ module snapwave_solver
    !
    end subroutine baldock  
    
+   subroutine determine_infragravity_source_sink_term(no_nodes, itheta, ntheta, k, k1, k2, w, ds, cg_ig, nwav, depth, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, zb, ig_opt, alphaigfac, alphaig_local, srcsh_local, beta_local)
+    !   
+    ! Incoming variables
+    integer, intent(in)                              :: no_nodes,ntheta ! number of grid points, number of directions  
+    integer, intent(in)                              :: k,k1,k2         ! counters (k is grid index)
+    real*4,  dimension(2,ntheta,no_nodes),intent(in) :: w               ! weights of upwind grid points, 2 per grid point and per wave direction
+    real*4, dimension(ntheta,no_nodes), intent(in)   :: ds              ! distance to interpolated upwind point, per grid point and direction    
+    real*4, dimension(no_nodes), intent(in)          :: cg_ig           ! group velocity
+    real*4, dimension(no_nodes), intent(in)          :: nwav            ! wave number n  
+    real*4, dimension(no_nodes), intent(in)          :: depth           ! water depth
+    real*4, dimension(no_nodes), intent(in)          :: H               ! wave height        
+    real*4, dimension(ntheta,no_nodes), intent(in)   :: ee              ! energy density
+    real*4, dimension(ntheta,no_nodes), intent(in)   :: ee_ig           ! energy density infragravity waves
+    real*4, dimension(no_nodes), intent(in)          :: zb              ! actual bed level
+    integer, intent(in)                              :: ig_opt          ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)    
+   real*4, intent(in)                                :: alphaigfac      ! Multiplication factor for IG shoaling source/sink term, default = 1.0
+    !
+    ! Inout variables
+    real*4, dimension(:,:), intent(inout)            :: alphaig_local   ! Local infragravity wave shoaling parameter alpha
+    real*4, dimension(:,:), intent(inout)            :: srcsh_local     ! Energy source/sink term because of IG wave shoaling
+    real*4, dimension(:), intent(inout)              :: eeprev, cgprev  ! energy density and group velocity at upwind intersection point
+    real*4, dimension(:), intent(inout)              :: eeprev_ig       ! energy density  at upwind intersection point 
+    real*4, dimension(:,:), intent(inout)            :: beta_local      ! Local bed slope based on bed level per direction      
+    !
+    ! Internal variables
+    integer :: itheta    
+    real*4, dimension(ntheta,no_nodes)               :: Sxx             ! Radiation Stress
+    real*4, dimension(:), allocatable                :: Sxxprev         ! radiation stress at upwind intersection point  
+    real*4, dimension(:), allocatable                :: depthprev       ! water depth at upwind intersection point 
+    real*4, dimension(:), allocatable                :: Hprev           ! Incident wave height at upwind intersection point  
+    real*4                                           :: beta            ! local bedslope
+    real*4                                           :: gam             ! local gamma (Hinc / depth ratio)    
+    !   
+    ! Allocate internal variables
+    allocate(Sxxprev(ntheta))       
+    allocate(depthprev(ntheta))                         
+    allocate(Hprev(ntheta))  
+    !   
+    ! Calculate upwind direction dependent variables
+    ! TL - Note: cg_ig = cg
+    cgprev(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
+                  
+    Sxx(itheta,k1) = ((2.0 * max(0.0,min(1.0,nwav(k1)))) - 0.5) * ee(itheta, k1) ! limit so value of nwav is between 0 and 1
+    Sxx(itheta,k2) = ((2.0 * max(0.0,min(1.0,nwav(k2)))) - 0.5) * ee(itheta, k2) ! limit so value of nwav is between 0 and 1
+    !
+    Sxxprev(itheta) = w(1, itheta, k)*Sxx(itheta,k1) + w(2, itheta, k)*Sxx(itheta,k2)
+    !
+    depthprev(itheta) = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)           
+    !
+    eeprev(itheta) = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)  
+    eeprev_ig(itheta) = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)      
+    !
+    Hprev(itheta)      = w(1, itheta, k)*H(k1) + w(2, itheta, k)*H(k2)     
+    !     
+    beta  = max((w(1, itheta, k)*(zb(k) - zb(k1)) + w(2, itheta, k)*(zb(k) - zb(k2)))/ds(itheta, k), 0.0) 
+    ! Notes:
+    ! - use actual bed level now for slope, because depth changes because of wave setup/tide/surge
+    ! - in zb, depth is negative > therefore zb(k) minus zb(k1)
+    ! - beta=0 means a horizontal or decreasing slope > need alphaig=0 then
+    !
+    beta_local(itheta,k) = beta                       
+    !betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin)) ! TL: in case in the future we would need the normalised bed slope again
+    !
+    gam = max(0.5*(Hprev(itheta)/depthprev(itheta) + H(k)/depth(k)), 0.0) ! mean gamma over current and upwind point > H(k) =0 still
+    !
+    if (ig_opt == 1 .or. ig_opt == 2) then 
+        !
+        ! Calculate shoaling parameter alpha_ig following Leijnse et al. (2024)
+        !  
+        call estimate_shoaling_parameter_alphaig(beta, gam, alphaig_local(itheta,k)) ! [input, input, output]
+        !                
+        ! Now calculate source term component
+        !         
+        ! Newest dSxx/dx based method, using estimate of Sxx(k) using conservative shoaling
+        if (Sxxprev(itheta)<=0.0) then 
+            !
+            srcsh_local(itheta, k) = 0.0 !Avoid big jumps in dSxx that can happen if a upwind point is a boundary point with Hinc=0
+            !
+        else
+        !              
+        if (ig_opt == 1) then ! Option using conservative shoaling for dSxx/dx
+            !
+            ! Calculate Sxx based on conservative shoaling of upwind point's energy: 
+            ! Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
+            Sxx_cons = eeprev(itheta) * cgprev(itheta) / cg_ig(k) * ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5)
+            ! Note - limit so value of nwav is between 0 and 1, and Sxx therefore doesn't become NaN for nwav=Infinite  
+            !
+            dSxx = Sxx_cons - Sxxprev(itheta)
+            !
+        elseif (ig_opt == 2) then ! Option taking actual difference for dSxx/dx
+            !
+            dSxx = Sxx(itheta,k) - Sxxprev(itheta)                        
+            !
+        endif
+        !
+        dSxx = max(dSxx, 0.0)
+        !
+        srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(eeprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / ds(itheta, k)
+        !                         
+        endif                      
+        !                                        
+    else  ! TL: option to add future parameterisations here for e.g. coral reef type coasts
+        !
+        srcsh_local(itheta, k) = 0.0
+        !
+    endif
+    !                  
+    srcsh_local(itheta, k)  = max(srcsh_local(itheta, k), 0.0)
+    !   
+   end subroutine determine_infragravity_source_sink_term
+   
    subroutine estimate_shoaling_parameter_alphaig(beta, gam, alphaig)
    real*4, intent(in)                :: beta
    real*4, intent(in)                :: gam 
@@ -959,7 +990,7 @@ module snapwave_solver
    Cg    = n*C
    !
    end subroutine disper_approx
-
+   
    !
    ! Copyright (C) 2010-2016 Samuel Ponce', Roxana Margine, Carla Verdi, Feliciano Giustino
    ! Copyright (C) 2007-2009 Jesse Noffsinger, Brad Malone, Feliciano Giustino
