@@ -185,6 +185,7 @@ module snapwave_solver
    real*4, dimension(:), allocatable          :: eeprev, cgprev         ! energy density and group velocity at upwind intersection point
    real*4, dimension(:), allocatable          :: eeprev_ig, cgprev_ig   ! energy density and group velocity at upwind intersection point
    real*4, dimension(:), allocatable          :: Sxxprev                ! radiation stress at upwind intersection point  
+   real*4, dimension(:), allocatable          :: Eprev                  ! Mean wave energy at upwind intersection point  
    real*4, dimension(:), allocatable          :: Hprev                  ! Incident wave height at upwind intersection point  
    !real*4, dimension(:), allocatable          :: H_igprev               ! IG wave height at upwind intersection point  
    !real*4, dimension(:), allocatable          :: H_incprev              ! Incident wave height at upwind intersection point  
@@ -285,6 +286,7 @@ module snapwave_solver
       allocate(alphaig_local(ntheta,no_nodes))  
       allocate(Sxxprev(ntheta))       
       allocate(Hprev(ntheta))  
+      allocate(Eprev(ntheta))  
       allocate(depthprev(ntheta))                         
       !
    endif
@@ -383,8 +385,10 @@ module snapwave_solver
                   eeprev(itheta) = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)  
                   eeprev_ig(itheta) = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)                                    
                   !
-                  Hprev(itheta) = sqrt(8*eeprev(itheta)/rho/g) ! as in H(k)      = sqrt(8*E(k)/rho/g)
-                  H(k)      = sqrt(8*sum(ee(:, k))*dtheta/rho/g)    !E(k)      = sum(ee(:, k))*dtheta              
+                  !Hprev(itheta) = sqrt(8*eeprev(itheta)/rho/g) ! as in H(k)      = sqrt(8*E(k)/rho/g)
+                  Eprev(itheta)      = w(1, itheta, k)*sum(ee(:, k1))*dtheta + w(2, itheta, k)*sum(ee(:, k2))*dtheta !E(k) is also set to 0 at start of subroutine, while 'ee' is not
+                  Hprev(itheta)      = sqrt(8*Eprev(itheta)/rho/g) ! as in H(k)      = sqrt(8*E(k)/rho/g)
+                  H(k)      = sqrt(8*sum(ee(:, k))*dtheta/rho/g)    !E(k)      = sum(ee(:, k))*dtheta  > have to determine since H(k) is set to 0 at start of subroutine            
                   !
                   !     
                   beta  = max((w(1, itheta, k)*(zb(k) - zb(k1)) + w(2, itheta, k)*(zb(k) - zb(k2)))/ds(itheta, k), 0.0) 
