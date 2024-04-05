@@ -114,7 +114,6 @@ contains
    allocate(nwav_ig(no_nodes))
    allocate(C_ig(no_nodes))
    allocate(Cg_ig(no_nodes))
-   allocate(Sxx(ntheta,no_nodes))   
    allocate(sinhkh_ig(no_nodes))
    allocate(Hmx_ig(no_nodes))
    allocate(fw_ig(no_nodes))
@@ -194,7 +193,8 @@ contains
    ds360d0 = 0.d0
    w360d0  = 0.d0
    prev360 = 0
-   H_ig_old = 0.0
+   H       = 0.0
+   H_ig    = 0.0
    !
    generate_upw = .false.
    exists = .true.

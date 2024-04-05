@@ -39,7 +39,6 @@ module snapwave_solver
       call disper_approx(depth, Tpb,    kwav,    nwav,    C,    Cg,    no_nodes)
       call disper_approx(depth, Tpb_ig, kwav_ig, nwav_ig, C_ig, Cg_ig, no_nodes)
       cg_ig = cg
-      Sxx = 0
       !
       do k = 1, no_nodes
          sinhkh(k)    = sinh(min(kwav(k)*depth(k), 100.0))
@@ -47,11 +46,6 @@ module snapwave_solver
          sinhkh_ig(k) = sinh(min(kwav_ig(k)*depth(k), 50.0))
          Hmx_ig(k)    = 0.88/kwav_ig(k)*tanh(gamma_ig*kwav_ig(k)*depth(k)/0.88)
          !
-         ! Calculate radiation stress Sxx = ((2 .* n) - 0.5) .* Einc > is from energy of previous timestep, and directional!
-         !do itheta = 1, ntheta
-         !   ! old, non-directional: Sxx(itheta,k) = ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5) * sum(ee(:, k)) * dtheta 
-         !   Sxx(itheta,k) = ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5) * ee(itheta, k) ! limit so value of nwav is between 0 and 1, and Sxx therefore doesn't become NaN for nwav=Infinite
-         !enddo
       enddo
       !   
       do itheta = 1, ntheta
@@ -90,16 +84,12 @@ module snapwave_solver
       call solve_energy_balance2Dstat (x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                        theta,ntheta,thetamean,                                    &
                                 depth,zb,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,Tpb_ig,50000.,rho,snapwave_alpha,snapwave_alpha_ig,gamma,&
-                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, shinc2ig, ig_opt, baldock_opt, baldock_ratio, baldock_ratio_ig, alphaigfac, Qb,  beta, srcsh, alphaig, Sxx, nwav)
+                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, shinc2ig, ig_opt, baldock_opt, baldock_ratio, baldock_ratio_ig, alphaigfac, Qb,  beta, srcsh, alphaig, nwav)
       !
       call timer(t3)
       !
       Fx = F*cos(thetam)
       Fy = F*sin(thetam)
-      !
-      ! Incident and IG wave height after solving energy balance
-      H_inc_old = H
-      H_ig_old = H_ig
       !
       write(*,*)'Computation SnapWave timestep took:               ', t3 - t2, ' seconds'
       !
@@ -112,7 +102,7 @@ module snapwave_solver
                                          depth,zb,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,T,T_ig,dt,rho,alfa,alfa_ig,gamma,                 &
                                          H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, & 
                                          gamma_ig, shinc2ig, ig_opt, baldock_opt, baldock_ratio, baldock_ratio_ig, alphaigfac, Qb, betamean, srcsh, &
-                                         alphaig, Sxx, nwav)
+                                         alphaig, nwav)
    !
    implicit none
    !
@@ -136,7 +126,7 @@ module snapwave_solver
    real*4, dimension(ntheta,no_nodes), intent(in)   :: ctheta                 ! refractioon speed
    real*4, dimension(no_nodes), intent(in)          :: cg_ig                  ! group velocity
    real*4, dimension(no_nodes), intent(in)          :: nwav                     ! wave number n   
-   real*4, dimension(ntheta,no_nodes), intent(inout)      :: Sxx                    ! Radiation Stress
+   real*4, dimension(ntheta,no_nodes)               :: Sxx                    ! Radiation Stress
    real*4, dimension(ntheta,no_nodes), intent(inout)   :: ee                  ! 
    real*4, dimension(ntheta,no_nodes), intent(inout)   :: ee_ig                 ! 
    real*4, dimension(ntheta,no_nodes), intent(in)   :: ctheta_ig              ! refractioon speed
@@ -155,8 +145,8 @@ module snapwave_solver
    real*4, intent(in)                         :: baldock_ratio          ! option controlling from what depth wave breaking should take place: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio=0.2
    real*4, intent(in)                         :: baldock_ratio_ig          ! option controlling from what depth wave breaking should take place for IG waves: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio_ig=0.2      
    integer                                    :: ig_opt                 ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)
-   real*4, dimension(no_nodes), intent(out)         :: H                      ! wave height
-   real*4, dimension(no_nodes), intent(out)         :: H_ig                      ! wave height
+   real*4, dimension(no_nodes), intent(inout)         :: H                      ! wave height
+   real*4, dimension(no_nodes), intent(inout)         :: H_ig                      ! wave height
    real*4, dimension(no_nodes), intent(out)         :: Dw                     ! wave breaking dissipation
    real*4, dimension(no_nodes), intent(out)         :: Dw_ig                  ! wave breaking dissipation IG
    real*4, dimension(no_nodes), intent(out)         :: F                      ! wave force Dw/C/rho/h
@@ -185,10 +175,7 @@ module snapwave_solver
    real*4, dimension(:), allocatable          :: eeprev, cgprev         ! energy density and group velocity at upwind intersection point
    real*4, dimension(:), allocatable          :: eeprev_ig, cgprev_ig   ! energy density and group velocity at upwind intersection point
    real*4, dimension(:), allocatable          :: Sxxprev                ! radiation stress at upwind intersection point  
-   real*4, dimension(:), allocatable          :: Eprev                  ! Mean wave energy at upwind intersection point  
    real*4, dimension(:), allocatable          :: Hprev                  ! Incident wave height at upwind intersection point  
-   !real*4, dimension(:), allocatable          :: H_igprev               ! IG wave height at upwind intersection point  
-   !real*4, dimension(:), allocatable          :: H_incprev              ! Incident wave height at upwind intersection point  
    real*4, dimension(:), allocatable          :: depthprev              ! water depth at upwind intersection point       
    real*4, dimension(:), allocatable          :: A,B,C,R                ! coefficients in the tridiagonal matrix solved per point
    real*4, dimension(:), allocatable          :: A_ig,B_ig,C_ig,R_ig    ! coefficients in the tridiagonal matrix solved per point
@@ -286,7 +273,6 @@ module snapwave_solver
       allocate(alphaig_local(ntheta,no_nodes))  
       allocate(Sxxprev(ntheta))       
       allocate(Hprev(ntheta))  
-      allocate(Eprev(ntheta))  
       allocate(depthprev(ntheta))                         
       !
    endif
@@ -314,8 +300,6 @@ module snapwave_solver
    oneover2dtheta = 1.0/2.0/dtheta
    rhog8          = 0.125*rho*g
    thetam         = 0.0
-   H              = 0.0
-   H_ig           = 0.0
    !
    !gamma_ig = gamma --> now user defineable
    !   
@@ -383,13 +367,9 @@ module snapwave_solver
                   depthprev(itheta) = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)           
                   !
                   eeprev(itheta) = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)  
-                  eeprev_ig(itheta) = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)                                    
+                  eeprev_ig(itheta) = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)      
                   !
-                  !Hprev(itheta) = sqrt(8*eeprev(itheta)/rho/g) ! as in H(k)      = sqrt(8*E(k)/rho/g)
-                  Eprev(itheta)      = w(1, itheta, k)*sum(ee(:, k1))*dtheta + w(2, itheta, k)*sum(ee(:, k2))*dtheta !E(k) is also set to 0 at start of subroutine, while 'ee' is not
-                  Hprev(itheta)      = sqrt(8*Eprev(itheta)/rho/g) ! as in H(k)      = sqrt(8*E(k)/rho/g)
-                  H(k)      = sqrt(8*sum(ee(:, k))*dtheta/rho/g)    !E(k)      = sum(ee(:, k))*dtheta  > have to determine since H(k) is set to 0 at start of subroutine            
-                  !
+                  Hprev(itheta)      = w(1, itheta, k)*H(k1) + w(2, itheta, k)*H(k2)     
                   !     
                   beta  = max((w(1, itheta, k)*(zb(k) - zb(k1)) + w(2, itheta, k)*(zb(k) - zb(k2)))/ds(itheta, k), 0.0) 
                   ! Notes:
@@ -400,9 +380,7 @@ module snapwave_solver
                   beta_local(itheta,k) = beta                       
                   !betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin)) ! TL: in case in the future we would need the normalised bed slope again
                   !
-                  !gam = max(0.5*(H_incprev(itheta)/depthprev(itheta) + H_inc_old(k)/depth(k)), 0.0) ! mean gamma over current and upwind point > org
                   gam = max(0.5*(Hprev(itheta)/depthprev(itheta) + H(k)/depth(k)), 0.0) ! mean gamma over current and upwind point > H(k) =0 still
-                  !gam = max(0.5*(Hprev(itheta)/depthprev(itheta)), 0.0) !works, but different result                     
                   !
                   if (ig_opt == 1 .or. ig_opt == 2) then 
                      !
