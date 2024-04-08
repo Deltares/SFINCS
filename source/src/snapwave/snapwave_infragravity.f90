@@ -41,7 +41,7 @@ module snapwave_infragravity
     ! Loosely based on 3 step calculation in waveparams.F90 of XBeach (build_jonswap, build_etdir, build_boundw), here all in 1 subroutine calculate_herbers
     !
     if (depth < 5.0) then
-	    write(*,*)'WARNING SnapWave - depth at boundary input point dropped below 5 m: ',depth, ' which might lead to large values of Hm0ig as bc, especially when directional spreading is low! Please specify input in deeper water. '
+	    write(*,*)'ERROR SnapWave - depth at boundary input point dropped below 5 m: ',depth, ' which might lead to large values of Hm0ig as bc, especially when directional spreading is low! Please specify input in deeper water. '
         write(*,*)'Depth set back to 5 meters for stability, simulation will continue.'
         depth = 5.0
     endif	
