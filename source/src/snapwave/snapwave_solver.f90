@@ -84,7 +84,7 @@ module snapwave_solver
       call solve_energy_balance2Dstat (x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                        theta,ntheta,thetamean,                                    &
                                 depth,zb,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,Tpb_ig,50000.,rho,snapwave_alpha,snapwave_alpha_ig,gamma,&
-                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, shinc2ig, ig_opt, iterative_srcsh, baldock_opt, baldock_ratio, baldock_ratio_ig, alphaigfac, Qb,  beta, srcsh, alphaig, nwav)
+                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, shinc2ig, ig_opt, iterative_srcig, baldock_opt, baldock_ratio, baldock_ratio_ig, alphaigfac, Qb,  beta, srcig, alphaig, nwav)
       !
       call timer(t3)
       !
@@ -101,7 +101,7 @@ module snapwave_solver
                                          theta,ntheta,thetamean,                                    &
                                          depth,zb,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,T,T_ig,dt,rho,alfa,alfa_ig,gamma,                 &
                                          H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, & 
-                                         gamma_ig, shinc2ig, ig_opt, iterative_srcsh, baldock_opt, baldock_ratio, baldock_ratio_ig, alphaigfac, Qb, betamean, srcsh, &
+                                         gamma_ig, shinc2ig, ig_opt, iterative_srcig, baldock_opt, baldock_ratio, baldock_ratio_ig, alphaigfac, Qb, betamean, srcig, &
                                          alphaig, nwav)
    !
    implicit none
@@ -133,7 +133,7 @@ module snapwave_solver
    real*4, dimension(no_nodes), intent(in)          :: fw_ig                  ! wave friction factor
    real*4, dimension(no_nodes), intent(out)       :: Qb                     ! Fraction of breaking waves according to Baldock's formulation
    real*4, dimension(no_nodes), intent(out)       :: betamean                 ! Mean local bed slope parameter  
-   real*4, dimension(no_nodes), intent(out)       :: srcsh                  ! Directionally averaged incident wave sink/infragravity source term 
+   real*4, dimension(no_nodes), intent(out)       :: srcig                  ! Directionally averaged incident wave sink/infragravity source term 
    real*4, dimension(no_nodes), intent(out)       :: alphaig                    ! Mean IG shoaling parameter alpha 
    real*4, intent(in)                         :: T                      ! wave period
    real*4, intent(in)                         :: T_ig                   ! IG wave period   
@@ -144,7 +144,7 @@ module snapwave_solver
    real*4, intent(in)                         :: baldock_ratio          ! option controlling from what depth wave breaking should take place: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio=0.2
    real*4, intent(in)                         :: baldock_ratio_ig          ! option controlling from what depth wave breaking should take place for IG waves: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio_ig=0.2      
    integer                                    :: ig_opt                 ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)
-   integer                                    :: iterative_srcsh        ! option whether IG source/sink term should be calculated in the iterative loop again (iterative_srcsh = 1, is a bit slower), 
+   integer                                    :: iterative_srcig        ! option whether IG source/sink term should be calculated in the iterative loop again (iterative_srcig = 1, is a bit slower), 
                                                                         ! ... or just a priori based on effectively incident wave energy from previous timestep only
    real*4, dimension(no_nodes), intent(inout)         :: H                      ! wave height
    real*4, dimension(no_nodes), intent(inout)         :: H_ig                      ! wave height
@@ -169,7 +169,7 @@ module snapwave_solver
    integer                                    :: indint
    integer, dimension(:,:), allocatable       :: indx                   ! index for grid sorted per sweep direction
    real*4, dimension(:,:), allocatable        :: eeold                  ! wave energy density, energy density previous iteration   
-   real*4, dimension(:,:), allocatable        :: srcsh_local            ! Energy source/sink term because of IG wave shoaling
+   real*4, dimension(:,:), allocatable        :: srcig_local            ! Energy source/sink term because of IG wave shoaling
    real*4, dimension(:,:), allocatable        :: beta_local             ! Local bed slope based on bed level per direction   
    real*4, dimension(:,:), allocatable        :: alphaig_local          ! Local infragravity wave shoaling parameter alpha
    real*4, dimension(:), allocatable          :: dee                    ! difference with energy previous iteration
@@ -253,7 +253,7 @@ module snapwave_solver
    allocate(E(no_nodes))
    allocate(diff(no_nodes))
    allocate(ra(no_nodes))
-   allocate(srcsh_local(ntheta,no_nodes))
+   allocate(srcig_local(ntheta,no_nodes))
    !
    if (igwaves) then
       !
@@ -280,7 +280,7 @@ module snapwave_solver
    df   = 0.0
    dw   = 0.0
    F    = 0.0
-   srcsh_local = 0.0
+   srcig_local = 0.0
    alphaig_local = 0.0   
    !
    ok             = 0
@@ -342,11 +342,11 @@ module snapwave_solver
             !
             ! Determine IG source/sink term as in Leijnse, van Ormondt, van Dongeren, Aerts & Muis et al. 2024 
             !
-            call determine_infragravity_source_sink_term(no_nodes, ntheta, k, w, ds, prev, cg_ig, nwav, depth, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, zb, ig_opt, alphaigfac, alphaig_local, beta_local, srcsh_local) 
-            ! inout: alphaig_local, beta_local, srcsh_local - eeprev, eeprev_ig, cgprev
+            call determine_infragravity_source_sink_term(no_nodes, ntheta, k, w, ds, prev, cg_ig, nwav, depth, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, zb, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
+            ! inout: alphaig_local, beta_local, srcig_local - eeprev, eeprev_ig, cgprev
             ! in: the rest
             !
-            ! NOTE - this is now only used to fill 'srcsh_local', so that we have a good starting point for the source term in incident wave energy balance in the 'do iter=1,niter' loop
+            ! NOTE - this is now only used to fill 'srcig_local', so that we have a good starting point for the source term in incident wave energy balance in the 'do iter=1,niter' loop
             ! THis is therefore based on the energy in the precious SnapWave timestep. 
             ! The real source term is calculated now in the iteration loop
             !
@@ -438,7 +438,7 @@ module snapwave_solver
                      A(itheta) = -ctheta(itheta - 1, k)*oneover2dtheta
                      B(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverE(k)
                      C(itheta) = ctheta(itheta + 1, k)*oneover2dtheta
-                     R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta)*eeprev(itheta)/ds(itheta, k) - srcsh_local(itheta, k) * shinc2ig
+                     R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta)*eeprev(itheta)/ds(itheta, k) - srcig_local(itheta, k) * shinc2ig
                      !
                   enddo
                   !
@@ -446,7 +446,7 @@ module snapwave_solver
                      A(1) = 0.0
                      B(1) = oneoverdt - ctheta(1, k)/dtheta + cg(k)/ds(1, k) + DoverE(k)
                      C(1) = ctheta(2, k)/dtheta
-                     R(1) = oneoverdt*ee(1, k) + cgprev(1)*eeprev(1)/ds(1, k) - srcsh_local(1, k) * shinc2ig
+                     R(1) = oneoverdt*ee(1, k) + cgprev(1)*eeprev(1)/ds(1, k) - srcig_local(1, k) * shinc2ig
                   else
                      A(1) = 0.0
                      B(1) = 1.0/dt
@@ -458,7 +458,7 @@ module snapwave_solver
                      A(ntheta) = -ctheta(ntheta - 1, k)/dtheta
                      B(ntheta) = oneoverdt + ctheta(ntheta, k)/dtheta + cg(k)/ds(ntheta, k) + DoverE(k)
                      C(ntheta) = 0.0
-                     R(ntheta) = oneoverdt*ee(ntheta,k) + cgprev(ntheta)*eeprev(ntheta)/ds(ntheta, k) - srcsh_local(ntheta, k) * shinc2ig
+                     R(ntheta) = oneoverdt*ee(ntheta,k) + cgprev(ntheta)*eeprev(ntheta)/ds(ntheta, k) - srcig_local(ntheta, k) * shinc2ig
                   else
                      A(ntheta) = 0.0
                      B(ntheta) = oneoverdt
@@ -526,18 +526,18 @@ module snapwave_solver
                   !
                   if (igwaves) then
                      !
-                     if (iterative_srcsh == 1) then
+                     if (iterative_srcig == 1) then
                          ! Compute exchange source term inc to ig waves - per direction         
                          !
                          ! Do only on first sweep to save computation time:
                          if (sweep==1) then
                              ! Determine IG source/sink term as in Leijnse, van Ormondt, van Dongeren, Aerts & Muis et al. 2024 
                              !
-                             call determine_infragravity_source_sink_term(no_nodes, ntheta, k, w, ds, prev, cg_ig, nwav, depth, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, zb, ig_opt, alphaigfac, alphaig_local, beta_local, srcsh_local) 
-                             ! inout: alphaig_local, beta_local, srcsh_local - eeprev, eeprev_ig, cgprev
+                             call determine_infragravity_source_sink_term(no_nodes, ntheta, k, w, ds, prev, cg_ig, nwav, depth, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, zb, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
+                             ! inout: alphaig_local, beta_local, srcig_local - eeprev, eeprev_ig, cgprev
                              ! in: the rest
                              !
-                             ! NOTE - this is now only used to fill 'srcsh_local', so that we have a good starting point for the source term in incident wave energy balance in the 'do iter=1,niter' loop
+                             ! NOTE - this is now only used to fill 'srcig_local', so that we have a good starting point for the source term in incident wave energy balance in the 'do iter=1,niter' loop
                              ! THis is therefore based on the energy in the precious SnapWave timestep. 
                              ! The real source term is calculated now in the iteration loop                             
                              !
@@ -556,7 +556,7 @@ module snapwave_solver
                         A_ig(itheta) = -ctheta_ig(itheta - 1, k)*oneover2dtheta
                         B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
                         C_ig(itheta) = ctheta_ig(itheta + 1, k)*oneover2dtheta
-                        R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta)*eeprev_ig(itheta)/ds(itheta, k) + srcsh_local(itheta, k)
+                        R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta)*eeprev_ig(itheta)/ds(itheta, k) + srcig_local(itheta, k)
                         !
                      enddo
                      !
@@ -564,7 +564,7 @@ module snapwave_solver
                         A_ig(1) = 0.0
                         B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k)
                         C_ig(1) = ctheta_ig(2, k)/dtheta
-                        R_ig(1) = oneoverdt*ee_ig(1, k) + cgprev_ig(1)*eeprev_ig(1)/ds(1, k) + srcsh_local(1, k)
+                        R_ig(1) = oneoverdt*ee_ig(1, k) + cgprev_ig(1)*eeprev_ig(1)/ds(1, k) + srcig_local(1, k)
                      else
                         A_ig(1)=0.0
                         B_ig(1)=1.0/dt
@@ -576,7 +576,7 @@ module snapwave_solver
                         A_ig(ntheta) = -ctheta_ig(ntheta - 1, k)/dtheta
                         B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
                         C_ig(ntheta) = 0.0
-                        R_ig(ntheta) = oneoverdt*ee_ig(ntheta,k) + cgprev_ig(ntheta)*eeprev_ig(ntheta)/ds(ntheta,k) + srcsh_local(ntheta, k)
+                        R_ig(ntheta) = oneoverdt*ee_ig(ntheta,k) + cgprev_ig(ntheta)*eeprev_ig(ntheta)/ds(ntheta,k) + srcig_local(ntheta, k)
                      else
                         A_ig(ntheta) = 0.0
                         B_ig(ntheta) = oneoverdt
@@ -728,15 +728,15 @@ module snapwave_solver
                   call baldock(g, rho, alfa_ig, gamma_ig, kwav_ig(k), depth(k), H_ig(k), T_ig, baldock_opt, Dw_ig(k), Hmx_ig(k))  
                endif               
                !
-               ! average beta, alphaig, srcsh over directions
+               ! average beta, alphaig, srcig over directions
                betamean(k) = sum(beta_local(:,k))/ntheta ! real mean
                !betamean(k)   = maxval(beta_local(:,k))
                !               
                alphaig(k) = sum(alphaig_local(:,k))/ntheta ! real mean 
                !
-               srcsh(k)   = sum(srcsh_local(:,k)) /ntheta ! real mean     
-               !srcsh(k)   = maxval(srcsh_local(:,k))                
-               !srcsh(k)   = sum(srcsh_local(:,k))*dtheta                              
+               srcig(k)   = sum(srcig_local(:,k)) /ntheta ! real mean     
+               !srcig(k)   = maxval(srcig_local(:,k))                
+               !srcig(k)   = sum(srcig_local(:,k))*dtheta                              
                !
             endif
             !
@@ -840,7 +840,7 @@ module snapwave_solver
    !
    end subroutine baldock  
    
-   subroutine determine_infragravity_source_sink_term(no_nodes, ntheta, k, w, ds, prev, cg_ig, nwav, depth, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, zb, ig_opt, alphaigfac, alphaig_local, beta_local, srcsh_local)
+   subroutine determine_infragravity_source_sink_term(no_nodes, ntheta, k, w, ds, prev, cg_ig, nwav, depth, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, zb, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local)
     !   
     ! Incoming variables
     integer, intent(in)                              :: no_nodes,ntheta ! number of grid points, number of directions  
@@ -860,7 +860,7 @@ module snapwave_solver
     !
     ! Inout variables
     real*4, dimension(:,:), intent(inout)            :: alphaig_local   ! Local infragravity wave shoaling parameter alpha
-    real*4, dimension(:,:), intent(inout)            :: srcsh_local     ! Energy source/sink term because of IG wave shoaling
+    real*4, dimension(:,:), intent(inout)            :: srcig_local     ! Energy source/sink term because of IG wave shoaling
     real*4, dimension(:), intent(inout)              :: eeprev, cgprev  ! energy density and group velocity at upwind intersection point
     real*4, dimension(:), intent(inout)              :: eeprev_ig       ! energy density  at upwind intersection point 
     real*4, dimension(:,:), intent(inout)            :: beta_local      ! Local bed slope based on bed level per direction      
@@ -918,7 +918,7 @@ module snapwave_solver
             !
             gam = max(0.5*(Hprev(itheta)/depthprev(itheta) + H(k)/depth(k)), 0.0) ! mean gamma over current and upwind point
             !
-            ! Determine dSxx and IG source/sink term 'srcsh'
+            ! Determine dSxx and IG source/sink term 'srcig'
             !
             if (ig_opt == 1 .or. ig_opt == 2) then 
                 !
@@ -931,7 +931,7 @@ module snapwave_solver
                 ! Newest dSxx/dx based method, using estimate of Sxx(k) using conservative shoaling
                 if (Sxxprev(itheta)<=0.0) then 
                     !
-                    srcsh_local(itheta, k) = 0.0 !Avoid big jumps in dSxx that can happen if a upwind point is a boundary point with Hinc=0
+                    srcig_local(itheta, k) = 0.0 !Avoid big jumps in dSxx that can happen if a upwind point is a boundary point with Hinc=0
                     !
                 else
                 !              
@@ -952,17 +952,17 @@ module snapwave_solver
                 !
                 dSxx = max(dSxx, 0.0)
                 !
-                srcsh_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(eeprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / ds(itheta, k)
+                srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(eeprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / ds(itheta, k)
                 !                         
                 endif                      
                 !                                        
             else  ! TL: option to add future parameterisations here for e.g. coral reef type coasts
                 !
-                srcsh_local(itheta, k) = 0.0
+                srcig_local(itheta, k) = 0.0
                 !
             endif
             !                  
-            srcsh_local(itheta, k)  = max(srcsh_local(itheta, k), 0.0)
+            srcig_local(itheta, k)  = max(srcig_local(itheta, k), 0.0)
             !   
         endif
         !

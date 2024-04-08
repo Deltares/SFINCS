@@ -128,7 +128,7 @@ contains
    allocate(thetam(no_nodes))
    allocate(Qb(no_nodes))
    allocate(beta(no_nodes))
-   allocate(srcsh(no_nodes))
+   allocate(srcig(no_nodes))
    allocate(alphaig(no_nodes))
 !   allocate(uorb(no_nodes))
    allocate(ctheta(ntheta,no_nodes))

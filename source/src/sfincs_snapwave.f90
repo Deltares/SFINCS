@@ -22,7 +22,7 @@ module sfincs_snapwave
    real*4,    dimension(:),   allocatable    :: snapwave_cg
    real*4,    dimension(:),   allocatable    :: snapwave_Qb
    real*4,    dimension(:),   allocatable    :: snapwave_beta
-   real*4,    dimension(:),   allocatable    :: snapwave_srcsh  
+   real*4,    dimension(:),   allocatable    :: snapwave_srcig
    real*4,    dimension(:),   allocatable    :: snapwave_alphaig   
    integer,   dimension(:,:), allocatable    :: snapwave_connected_nodes
    integer*4, dimension(:),   allocatable    :: index_snapwave_in_sfincs
@@ -140,7 +140,7 @@ contains
    real*4,    dimension(:), allocatable       :: cg0   
    real*4,    dimension(:), allocatable       :: qb0   
    real*4,    dimension(:), allocatable       :: beta0 
-   real*4,    dimension(:), allocatable       :: srcsh0      
+   real*4,    dimension(:), allocatable       :: srcig0      
    real*4,    dimension(:), allocatable       :: alphaig0   
    integer   :: ip, ii, m, n, nm, nmu, idir
    real*4    :: f
@@ -157,7 +157,7 @@ contains
    allocate(cg0(np))  
    allocate(qb0(np))   
    allocate(beta0(np))   
-   allocate(srcsh0(np))      
+   allocate(srcig0(np))      
    allocate(alphaig0(np))      
    !
    fwx0 = 0.0
@@ -169,7 +169,7 @@ contains
    cg0 = 0.0
    qb0 = 0.0
    beta0 = 0.0
-   srcsh0 = 0.0
+   srcig0 = 0.0
    alphaig0 = 0.0   
    !
    ! Determine SnapWave water depth
@@ -221,7 +221,7 @@ contains
          cg0(nm)    = snapwave_cg(ip)
          qb0(nm)    = snapwave_Qb(ip)
          beta0(nm)  = snapwave_beta(ip)
-         srcsh0(nm) = snapwave_srcsh(ip)
+         srcig0(nm) = snapwave_srcig(ip)
          alphaig0(nm) = snapwave_alphaig(ip)
          if (store_wave_direction) then
             mean_wave_direction(nm)        = 270.0 - snapwave_mean_direction(ip)*180/pi   
@@ -243,7 +243,7 @@ contains
          cg0(nm)    = 0.0
          qb0(nm)    = 0.0
          beta0(nm)  = 0.0
-         srcsh0(nm) = 0.0
+         srcig0(nm) = 0.0
          alphaig0(nm) = 0.0         
          if (store_wave_direction) then
             mean_wave_direction(nm)        = 0.0
@@ -263,7 +263,7 @@ contains
          cg(nm)         = cg0(nm)   
          qb(nm)         = qb0(nm)         
          betamean(nm)   = beta0(nm)         
-         srcsh(nm)      = srcsh0(nm)         
+         srcig(nm)      = srcig0(nm)         
          alphaig(nm)    = alphaig0(nm)                  
          !
       endif   
@@ -338,7 +338,7 @@ contains
    snapwave_cg                    = cg
    snapwave_Qb                    = Qb
    snapwave_beta                  = beta
-   snapwave_srcsh                 = srcsh
+   snapwave_srcig                 = srcig
    snapwave_alphaig               = alphaig   
    !
    ! Wave periods from SnapWave, used in e.g. wavemakers - TL: moved behind call update_boundary_conditions & compute_wave_field so values at first timestep are not 0
@@ -399,7 +399,7 @@ contains
    call read_real_input(500,'snapwave_alphaigfac',alphaigfac,1.0)               ! Multiplication factor for IG shoaling source/sink term         
    call read_real_input(500,'snapwave_baldock_ratio_ig',baldock_ratio_ig,0.2)       
    call read_int_input(500,'snapwave_ig_opt',ig_opt,1)     
-   call read_int_input(500,'snapwave_iterative_srcsh',iterative_srcsh,1)        ! Option whether to calculate IG source/sink term in iterative lower (better, but potentially slower, 1=default), or effectively based on previous timestep (faster, potential mismatch, =0)
+   call read_int_input(500,'snapwave_iterative_srcig',iterative_srcig,1)        ! Option whether to calculate IG source/sink term in iterative lower (better, but potentially slower, 1=default), or effectively based on previous timestep (faster, potential mismatch, =0)
    !
    ! IG boundary conditions options:
    call read_int_input(500,'snapwave_use_herbers',herbers_opt,1)    ! Choice whether you want IG Hm0&Tp be calculated by herbers (=1, default), or want to specify user defined values (0> then snapwave_eeinc2ig & snapwave_Tinc2ig are used) 

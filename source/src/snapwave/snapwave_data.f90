@@ -56,7 +56,7 @@ module snapwave_data
    !
    real*4,  dimension(:),       allocatable    :: Qb
    real*4,  dimension(:),       allocatable    :: beta
-   real*4,  dimension(:),       allocatable    :: srcsh
+   real*4,  dimension(:),       allocatable    :: srcig
    real*4,  dimension(:),       allocatable    :: alphaig   
    !
    integer*4,  dimension(:),     allocatable    :: index_snapwave_in_quadtree
@@ -159,7 +159,7 @@ module snapwave_data
    real*4                                    :: baldock_ratio_ig   ! option controlling from what depth wave breaking should take place for IG waves: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio_ig=0.2    
    integer                                   :: igwaves_opt     ! option of IG waves on (1) or off (0)      
    integer                                   :: ig_opt          ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)
-   integer                                   :: iterative_srcsh ! option whether IG source/sink term should be calculated in the iterative loop again (iterative_srcsh = 1, is a bit slower), 
+   integer                                   :: iterative_srcig ! option whether IG source/sink term should be calculated in the iterative loop again (iterative_srcig = 1, is a bit slower), 
                                                                 ! ... or just a priori based on effectively incident wave energy from previous timestep only   
    real*4                                    :: snapwave_alpha_ig,gamma_ig     ! coefficients in Baldock wave breaking dissipation model for IG waves
    real*4                                    :: shinc2ig        ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 0=default)

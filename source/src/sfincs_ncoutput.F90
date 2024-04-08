@@ -50,7 +50,7 @@ module sfincs_ncoutput
       integer :: patm_varid, wind_speed_varid, wind_dir_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid  
       integer :: hm0_varid, hm0ig_varid, zsm_varid, tp_varid, tpig_varid, wavdir_varid, dirspr_varid
-      integer :: dw_varid, df_varid, dwig_varid, dfig_varid, cg_varid, qb_varid, beta_varid, srcsh_varid, alphaig_varid
+      integer :: dw_varid, df_varid, dwig_varid, dfig_varid, cg_varid, qb_varid, beta_varid, srcig_varid, alphaig_varid
       !
    end type
    !
@@ -1500,12 +1500,12 @@ contains
          NF90(nf90_put_att(his_file%ncid, his_file%beta_varid, 'long_name', 'directionally averaged normalised bed slope'))  
          NF90(nf90_put_att(his_file%ncid, his_file%beta_varid, 'coordinates', 'station_id station_name point_x point_y'))
          !               
-         NF90(nf90_def_var(his_file%ncid, 'srcsh', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%srcsh_varid)) ! time-varying water level point
-         NF90(nf90_put_att(his_file%ncid, his_file%srcsh_varid, '_FillValue', FILL_VALUE))
-         NF90(nf90_put_att(his_file%ncid, his_file%srcsh_varid, 'units', '-'))
-         NF90(nf90_put_att(his_file%ncid, his_file%srcsh_varid, 'standard_name', 'directionally_averaged_ig_energy_source')) 
-         NF90(nf90_put_att(his_file%ncid, his_file%srcsh_varid, 'long_name', 'directionally averaged ig energy source'))  
-         NF90(nf90_put_att(his_file%ncid, his_file%srcsh_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         NF90(nf90_def_var(his_file%ncid, 'srcig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%srcig_varid)) ! time-varying water level point
+         NF90(nf90_put_att(his_file%ncid, his_file%srcig_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(his_file%ncid, his_file%srcig_varid, 'units', '-'))
+         NF90(nf90_put_att(his_file%ncid, his_file%srcig_varid, 'standard_name', 'directionally_averaged_ig_energy_source')) 
+         NF90(nf90_put_att(his_file%ncid, his_file%srcig_varid, 'long_name', 'directionally averaged ig energy source'))  
+         NF90(nf90_put_att(his_file%ncid, his_file%srcig_varid, 'coordinates', 'station_id station_name point_x point_y'))
          !                   
          NF90(nf90_def_var(his_file%ncid, 'alphaig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%alphaig_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%alphaig_varid, '_FillValue', FILL_VALUE))
@@ -2224,7 +2224,7 @@ contains
    real*4, dimension(nobs) :: cgobs
    real*4, dimension(nobs) :: qbobs
    real*4, dimension(nobs) :: betaobs
-   real*4, dimension(nobs) :: srcshobs
+   real*4, dimension(nobs) :: srcigobs
    real*4, dimension(nobs) :: alphaigobs
    real*4, dimension(:), allocatable :: qq
    !
@@ -2248,7 +2248,7 @@ contains
    cgobs        = FILL_VALUE
    qbobs        = FILL_VALUE
    betaobs      = FILL_VALUE
-   srcshobs     = FILL_VALUE
+   srcigobs     = FILL_VALUE
    alphaigobs   = FILL_VALUE   
    !
    do iobs = 1, nobs ! determine zs and prcp of obervation points at required timestep
@@ -2350,7 +2350,7 @@ contains
                cgobs(iobs)    = cg(nm) 
                qbobs(iobs)    = qb(nm)               
                betaobs(iobs)  = betamean(nm)               
-               srcshobs(iobs) = srcsh(nm)               
+               srcigobs(iobs) = srcig(nm)               
                alphaigobs(iobs) = alphaig(nm)                              
                ! 
             endif
@@ -2414,7 +2414,7 @@ contains
          !
          NF90(nf90_put_var(his_file%ncid, his_file%qb_varid, qbobs, (/1, nthisout/)))
          NF90(nf90_put_var(his_file%ncid, his_file%beta_varid, betaobs, (/1, nthisout/)))
-         NF90(nf90_put_var(his_file%ncid, his_file%srcsh_varid, srcshobs, (/1, nthisout/)))                  
+         NF90(nf90_put_var(his_file%ncid, his_file%srcig_varid, srcigobs, (/1, nthisout/)))                  
          NF90(nf90_put_var(his_file%ncid, his_file%alphaig_varid, alphaigobs, (/1, nthisout/)))         
          !            
       endif
