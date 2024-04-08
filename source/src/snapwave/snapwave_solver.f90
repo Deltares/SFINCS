@@ -84,7 +84,7 @@ module snapwave_solver
       call solve_energy_balance2Dstat (x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                        theta,ntheta,thetamean,                                    &
                                 depth,zb,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,Tpb_ig,50000.,rho,snapwave_alpha,snapwave_alpha_ig,gamma,&
-                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, shinc2ig, ig_opt, baldock_opt, baldock_ratio, baldock_ratio_ig, alphaigfac, Qb,  beta, srcsh, alphaig, nwav)
+                                       H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, shinc2ig, ig_opt, iterative_srcsh, baldock_opt, baldock_ratio, baldock_ratio_ig, alphaigfac, Qb,  beta, srcsh, alphaig, nwav)
       !
       call timer(t3)
       !
@@ -101,7 +101,7 @@ module snapwave_solver
                                          theta,ntheta,thetamean,                                    &
                                          depth,zb,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,T,T_ig,dt,rho,alfa,alfa_ig,gamma,                 &
                                          H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, & 
-                                         gamma_ig, shinc2ig, ig_opt, baldock_opt, baldock_ratio, baldock_ratio_ig, alphaigfac, Qb, betamean, srcsh, &
+                                         gamma_ig, shinc2ig, ig_opt, iterative_srcsh, baldock_opt, baldock_ratio, baldock_ratio_ig, alphaigfac, Qb, betamean, srcsh, &
                                          alphaig, nwav)
    !
    implicit none
@@ -144,6 +144,8 @@ module snapwave_solver
    real*4, intent(in)                         :: baldock_ratio          ! option controlling from what depth wave breaking should take place: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio=0.2
    real*4, intent(in)                         :: baldock_ratio_ig          ! option controlling from what depth wave breaking should take place for IG waves: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio_ig=0.2      
    integer                                    :: ig_opt                 ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)
+   integer                                    :: iterative_srcsh        ! option whether IG source/sink term should be calculated in the iterative loop again (iterative_srcsh = 1, is a bit slower), 
+                                                                        ! ... or just a priori based on effectively incident wave energy from previous timestep only
    real*4, dimension(no_nodes), intent(inout)         :: H                      ! wave height
    real*4, dimension(no_nodes), intent(inout)         :: H_ig                      ! wave height
    real*4, dimension(no_nodes), intent(out)         :: Dw                     ! wave breaking dissipation
@@ -352,6 +354,10 @@ module snapwave_solver
                   ! inout: alphaig_local, beta_local, srcsh_local - eeprev, eeprev_ig, cgprev
                   ! in: the rest
                   !
+                  ! NOTE - this is now only used to fill 'srcsh_local', so that we have a good starting point for the source term in incident wave energy balance in the 'do iter=1,niter' loop
+                  ! THis is therefore based on the energy in the precious SnapWave timestep. 
+                  ! The real source term is calculated now in the iteration loop
+                  !
                endif
                !
             enddo
@@ -528,6 +534,37 @@ module snapwave_solver
                      !
                   endif
                   !
+                  ! Update IG source/sink term based on just updated incident wave energy balance
+                  !
+                  if (igwaves) then
+                     !
+                     if (iterative_srcsh == 1) then
+                         ! Compute exchange source term inc to ig waves - per direction            
+                         do itheta = 1, ntheta
+                            !
+                            k1 = prev(1, itheta, k)
+                            k2 = prev(2, itheta, k)
+                            !
+                            if (k1>0 .and. k2>0) then ! IMPORTANT - for some reason (k1*k2)>0 is not reliable always, resulting in directions being uncorrectly skipped!!!
+                               !    
+                               ! Determine IG source/sink term as in Leijnse, van Ormondt, van Dongeren, Aerts & Muis et al. 2024 
+                               !
+                               call determine_infragravity_source_sink_term(no_nodes, itheta, ntheta, k, k1, k2, w, ds, cg_ig, nwav, depth, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, zb, ig_opt, alphaigfac, alphaig_local, beta_local, srcsh_local) 
+                               ! inout: alphaig_local, beta_local, srcsh_local - eeprev, eeprev_ig, cgprev
+                               ! in: the rest
+                               !
+                               ! NOTE - this is now only used to fill 'srcsh_local', so that we have a good starting point for the source term in incident wave energy balance in the 'do iter=1,niter' loop
+                               ! THis is therefore based on the energy in the precious SnapWave timestep. 
+                               ! The real source term is calculated now in the iteration loop
+                               !
+                            endif
+                            !
+                         enddo          
+                         !
+                     endif                     
+                     !
+                  endif               
+                  !
                   if (igwaves) then
                      !
                      ! IG
@@ -674,6 +711,8 @@ module snapwave_solver
       endif
       !
    enddo
+   !
+   write(*,*)'SnapWave: iterations needed: ',iter,' last sweep: ',sweep
    !
    do k=1,no_nodes
       !
