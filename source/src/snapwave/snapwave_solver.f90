@@ -346,7 +346,12 @@ module snapwave_solver
                !
                if (k1>0 .and. k2>0) then ! IMPORTANT - for some reason (k1*k2)>0 is not reliable always, resulting in directions being uncorrectly skipped!!!
                   !    
-                  call determine_infragravity_source_sink_term(no_nodes, itheta, ntheta, k, k1, k2, w, ds, cg_ig, nwav, depth, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, zb, ig_opt, alphaigfac, alphaig_local, srcsh_local, beta_local)
+                  ! Determine IG source/sink term as in Leijnse, van Ormondt, van Dongeren, Aerts & Muis et al. 2024 
+                  !
+                  call determine_infragravity_source_sink_term(no_nodes, itheta, ntheta, k, k1, k2, w, ds, cg_ig, nwav, depth, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, zb, ig_opt, alphaigfac, alphaig_local, beta_local, srcsh_local) 
+                  ! inout: alphaig_local, beta_local, srcsh_local - eeprev, eeprev_ig, cgprev
+                  ! in: the rest
+                  !
                endif
                !
             enddo
@@ -816,7 +821,7 @@ module snapwave_solver
    !
    end subroutine baldock  
    
-   subroutine determine_infragravity_source_sink_term(no_nodes, itheta, ntheta, k, k1, k2, w, ds, cg_ig, nwav, depth, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, zb, ig_opt, alphaigfac, alphaig_local, srcsh_local, beta_local)
+   subroutine determine_infragravity_source_sink_term(no_nodes, itheta, ntheta, k, k1, k2, w, ds, cg_ig, nwav, depth, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, zb, ig_opt, alphaigfac, alphaig_local, beta_local, srcsh_local)
     !   
     ! Incoming variables
     integer, intent(in)                              :: no_nodes,ntheta ! number of grid points, number of directions  
@@ -831,7 +836,7 @@ module snapwave_solver
     real*4, dimension(ntheta,no_nodes), intent(in)   :: ee_ig           ! energy density infragravity waves
     real*4, dimension(no_nodes), intent(in)          :: zb              ! actual bed level
     integer, intent(in)                              :: ig_opt          ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)    
-   real*4, intent(in)                                :: alphaigfac      ! Multiplication factor for IG shoaling source/sink term, default = 1.0
+    real*4, intent(in)                               :: alphaigfac      ! Multiplication factor for IG shoaling source/sink term, default = 1.0
     !
     ! Inout variables
     real*4, dimension(:,:), intent(inout)            :: alphaig_local   ! Local infragravity wave shoaling parameter alpha
@@ -856,21 +861,21 @@ module snapwave_solver
     !   
     ! Calculate upwind direction dependent variables
     ! TL - Note: cg_ig = cg
-    cgprev(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
-                  
-    Sxx(itheta,k1) = ((2.0 * max(0.0,min(1.0,nwav(k1)))) - 0.5) * ee(itheta, k1) ! limit so value of nwav is between 0 and 1
-    Sxx(itheta,k2) = ((2.0 * max(0.0,min(1.0,nwav(k2)))) - 0.5) * ee(itheta, k2) ! limit so value of nwav is between 0 and 1
+    cgprev(itheta)      = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
+    !              
+    Sxx(itheta,k1)      = ((2.0 * max(0.0,min(1.0,nwav(k1)))) - 0.5) * ee(itheta, k1) ! limit so value of nwav is between 0 and 1
+    Sxx(itheta,k2)      = ((2.0 * max(0.0,min(1.0,nwav(k2)))) - 0.5) * ee(itheta, k2) ! limit so value of nwav is between 0 and 1
     !
-    Sxxprev(itheta) = w(1, itheta, k)*Sxx(itheta,k1) + w(2, itheta, k)*Sxx(itheta,k2)
+    Sxxprev(itheta)     = w(1, itheta, k)*Sxx(itheta,k1) + w(2, itheta, k)*Sxx(itheta,k2)
     !
-    depthprev(itheta) = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)           
+    depthprev(itheta)   = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)           
     !
-    eeprev(itheta) = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)  
-    eeprev_ig(itheta) = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)      
+    eeprev(itheta)      = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)  
+    eeprev_ig(itheta)   = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)      
     !
-    Hprev(itheta)      = w(1, itheta, k)*H(k1) + w(2, itheta, k)*H(k2)     
+    Hprev(itheta)       = w(1, itheta, k)*H(k1) + w(2, itheta, k)*H(k2)     
     !     
-    beta  = max((w(1, itheta, k)*(zb(k) - zb(k1)) + w(2, itheta, k)*(zb(k) - zb(k2)))/ds(itheta, k), 0.0) 
+    beta                = max((w(1, itheta, k)*(zb(k) - zb(k1)) + w(2, itheta, k)*(zb(k) - zb(k2)))/ds(itheta, k), 0.0) 
     ! Notes:
     ! - use actual bed level now for slope, because depth changes because of wave setup/tide/surge
     ! - in zb, depth is negative > therefore zb(k) minus zb(k1)
