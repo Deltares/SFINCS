@@ -527,28 +527,21 @@ module snapwave_solver
                   if (igwaves) then
                      !
                      if (iterative_srcsh == 1) then
-                         ! Compute exchange source term inc to ig waves - per direction       
+                         ! Compute exchange source term inc to ig waves - per direction         
                          !
-                         ! Update H(k), used in subroutine to calculate relative waterdepth 'gam' > TL: this creates a variability over sweeps/iterations/timesteps since 'gam' changes every time > seems more stable not to do this
-                         !if (depth(k)>1.1*hmin) then
-                         !   !
-                         !   H(k)      = sqrt(8*sum(ee(:,k))*dtheta/rho/g) ! = into E(k) = 'sum(ee(:,k))*dtheta' into 'H(k) = sqrt(8*E(k)/rho/g)'
-                         !   !
-                         !endif     
-                         !
-                         ! Only on first sweep:
-                         !if (sweep==1) then
-                         ! Determine IG source/sink term as in Leijnse, van Ormondt, van Dongeren, Aerts & Muis et al. 2024 
-                         !
-                         call determine_infragravity_source_sink_term(no_nodes, ntheta, k, w, ds, prev, cg_ig, nwav, depth, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, zb, ig_opt, alphaigfac, alphaig_local, beta_local, srcsh_local) 
-                         ! inout: alphaig_local, beta_local, srcsh_local - eeprev, eeprev_ig, cgprev
-                         ! in: the rest
-                         !
-                         ! NOTE - this is now only used to fill 'srcsh_local', so that we have a good starting point for the source term in incident wave energy balance in the 'do iter=1,niter' loop
-                         ! THis is therefore based on the energy in the precious SnapWave timestep. 
-                         ! The real source term is calculated now in the iteration loop                             
-                         !
-                         !endif                         
+                         ! Do only on first sweep to save computation time:
+                         if (sweep==1) then
+                             ! Determine IG source/sink term as in Leijnse, van Ormondt, van Dongeren, Aerts & Muis et al. 2024 
+                             !
+                             call determine_infragravity_source_sink_term(no_nodes, ntheta, k, w, ds, prev, cg_ig, nwav, depth, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, zb, ig_opt, alphaigfac, alphaig_local, beta_local, srcsh_local) 
+                             ! inout: alphaig_local, beta_local, srcsh_local - eeprev, eeprev_ig, cgprev
+                             ! in: the rest
+                             !
+                             ! NOTE - this is now only used to fill 'srcsh_local', so that we have a good starting point for the source term in incident wave energy balance in the 'do iter=1,niter' loop
+                             ! THis is therefore based on the energy in the precious SnapWave timestep. 
+                             ! The real source term is calculated now in the iteration loop                             
+                             !
+                         endif                         
                          !
                      endif                     
                      !
@@ -700,10 +693,7 @@ module snapwave_solver
       endif
       !
    enddo
-   !
-   !!$omp parallel &
-   !!$omp private ( k, uorbi )
-   !!$omp do     
+   !    
    do k=1,no_nodes
       !
       ! Compute directionally integrated parameters for output
@@ -753,9 +743,7 @@ module snapwave_solver
          endif
       endif
       !
-   enddo
-   !!$omp end do
-   !!$omp end parallel      
+   enddo   
    !
    callno=callno+1
    !
@@ -894,10 +882,7 @@ module snapwave_solver
     allocate(Hprev(ntheta))  
     !   
     !
-    ! Compute exchange source term inc to ig waves - per direction   
-    !!$omp parallel &
-    !!$omp private ( itheta, k1, k2, beta, gam, dSxx, Sxx_cons )
-    !!$omp do    
+    ! Compute exchange source term inc to ig waves - per direction      
     do itheta = 1, ntheta
         !
         k1 = prev(1, itheta, k)
@@ -981,9 +966,7 @@ module snapwave_solver
             !   
         endif
         !
-    enddo
-    !!$omp end do
-    !!$omp end parallel    
+    enddo  
     !    
    end subroutine determine_infragravity_source_sink_term
    
