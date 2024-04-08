@@ -282,23 +282,18 @@ contains
        enddo
    enddo
    !
+   allocate(nmindbnd(nb))   
    nb = 0
    do k = 1, no_nodes
        if (msk(k)==1) then
-       inner(k) = .true.
+            inner(k) = .true.
        else
-       inner(k) = .false.
+            inner(k) = .false.
        endif
-       if (msk(k)==2) nb = nb + 1
-   enddo
-   !
-   allocate(nmindbnd(nb))
-   !
-   nb = 0
-   do k = 1, no_nodes
+       !
        if (msk(k)>1) then    
-       nb = nb + 1
-       nmindbnd(nb) = k
+            nb = nb + 1
+            nmindbnd(nb) = k
        endif   
    enddo   
    !
