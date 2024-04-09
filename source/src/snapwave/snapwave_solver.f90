@@ -527,6 +527,14 @@ module snapwave_solver
                   if (igwaves) then
                      !
                      if (iterative_srcig == 1) then
+                         !
+                         ! Update H in first iteration - first sweep - ONLY:
+                         if ((iter == 1) .and. (sweep==1)) then
+                            !
+                            H(k) = sqrt(8*sum(ee(:, k))*dtheta/rho/g) ! is combined: E(k) = sum(ee(:, k))*dtheta And H(k)  = sqrt(8*E(k)/rho/g)
+                            !
+                         endif
+                         !
                          ! Compute exchange source term inc to ig waves - per direction         
                          !
                          ! Do only on first sweep to save computation time:
