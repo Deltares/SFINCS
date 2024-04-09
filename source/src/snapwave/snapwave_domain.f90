@@ -272,6 +272,8 @@ contains
        !
    endif      
    !
+   nb = 0
+   !
    do k=1,no_nodes
        !if (msk(k)==3) msk(k) = 1 ! Set outflow points to regular points > now should become neumann, so don't do this
        do itheta=1,ntheta360
@@ -280,25 +282,27 @@ contains
                if (inout>0) msk(k) = 2
            endif
        enddo
-   enddo
-   !
-   nb = 0
-   do k = 1, no_nodes
-       if (msk(k)==1) then
-       inner(k) = .true.
-       else
-       inner(k) = .false.
+       !
+       if (msk(k)>1) then    
+            nb = nb + 1
        endif
-       if (msk(k)==2) nb = nb + 1
+       !
    enddo
    !
    allocate(nmindbnd(nb))
    !
-   nb = 0
    do k = 1, no_nodes
+       !
+       if (msk(k)==1) then
+            inner(k) = .true.
+       else
+            inner(k) = .false.
+       endif
+       !
        if (msk(k)>1) then    
-       nb = nb + 1
-       nmindbnd(nb) = k
+            !
+            nmindbnd(nb) = k
+            !
        endif   
    enddo   
    !
