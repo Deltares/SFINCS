@@ -21,8 +21,9 @@ module snapwave_infragravity
     !   
     implicit none
     !
-    real*4, intent(in)    :: hsinc, tpinc, ds, jonswapgam, depth, Tinc2ig
+    real*4, intent(in)    :: hsinc, tpinc, ds, jonswapgam, Tinc2ig
     integer, intent(in)   :: tpig_opt
+    real*4, intent(inout) :: depth
     real*4, intent(out)   :: hsig, tpig
     !
     real*4                :: pi, scoeff
