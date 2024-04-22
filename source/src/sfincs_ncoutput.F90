@@ -2687,27 +2687,26 @@ contains
    !
    ! Write maximum water depth
    if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
+      ! 
       zstmp = FILL_VALUE
       !        
-      if (subgrid) then   
-         do nm = 1, np
-            !
-            if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
-               zstmp(nm) = zsmax(nm) - subgrid_z_zmin(nm)           
-            endif
-            !
-         enddo
-      else
-         do nm = 1, np       
-            !
-            if ( (zsmax(nm) - zb(nm)) > huthresh) then
-               zstmp(nm) = zsmax(nm) - zb(nm)                       
-            endif      
-         enddo
-      endif  
-   endif
-   !   
-   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
+      do nmq = 1, quadtree_nr_points
+          !
+          nm = index_sfincs_in_quadtree(nmq)
+          !
+          if (kcs(nm)>0) then
+              if (subgrid) then
+                  if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
+                      zstmp(nmq) = zsmax(nm) - subgrid_z_zmin(nm)
+                  endif
+              else
+                 if ( (zsmax(nm) - zb(nm)) > huthresh) then
+                     zstmp(nmq) = zsmax(nm) - zb(nm)
+                 endif
+              endif
+          endif
+      enddo      
+      !
       NF90(nf90_put_var(map_file%ncid, map_file%hmax_varid, zstmp, (/1, ntmaxout/))) ! write hmax   
    endif
    !
