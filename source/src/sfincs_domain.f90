@@ -1840,6 +1840,23 @@ contains
           !
       endif      
       !
+      ! We need cumprcp and cuminf
+      !
+      allocate(cumprcp(np))
+      cumprcp = 0.0
+      !
+      allocate(cuminf(np))
+      cuminf = 0.0
+      !
+      ! Now allocatespatially-varying inputs 
+      !
+      if (infiltration) then
+          !
+          allocate(qinfmap(np))
+          qinfmap = 0.0
+          ! 
+      endif      
+      !
    else
       !
       ! Overrule input

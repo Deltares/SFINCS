@@ -90,27 +90,6 @@ contains
         !
     endif
     !
-    if (precip) then
-        !
-        ! We need cumprcp and cuminf
-        !
-        allocate(cumprcp(np))
-        cumprcp = 0.0
-        !
-        allocate(cuminf(np))
-        cuminf = 0.0
-        ! 
-    endif
-    !
-    ! Now allocate and read spatially-varying inputs 
-    !
-    if (infiltration) then
-        !
-        allocate(qinfmap(np))
-        qinfmap = 0.0
-        ! 
-    endif
-    !
     if (inftype == 'con') then   
         !
         ! Spatially-uniform constant infiltration (specified as +mm/hr)
@@ -349,7 +328,7 @@ contains
     NF90(nf90_inq_varid(net_file_inf%ncid, 'mask',  net_file_inf%mask_varid))    
     !
     !NF90(nf90_inq_varid(net_file_inf%ncid, 'type',  net_file_inf%type_varid))                
-    inftype = 'cna' !TL: later determine this based on the netcdf file
+    inftype = 'cnb' !TL: later determine this based on the netcdf file
     !
     ! Allocate variables
     allocate(z_index(np_nc))   
@@ -394,7 +373,7 @@ contains
     !
     ! Check whether incoming mask is matches the one as retrieved from netcdf quadtree grid file (our general 'msk')
     if (all(quadtree_mask == kcs)) then
-        print *, "The mask arrays are the same."
+        write(*,*)'Check succesfull: The mask arrays are the same.'
     else
         write(*,*)'Error! Mask of netinfiltrationfile does not match with actiave mask in mesh! Abort reading infiltration input...'
         continue
@@ -442,9 +421,11 @@ contains
         ! Read variables for cnb method
         !
         ! Get variable id's
-        NF90(nf90_inq_varid(net_file_inf%ncid, 'qinffield',  net_file_inf%qinffield_varid))     
-        NF90(nf90_inq_varid(net_file_inf%ncid, 'scs_se',  net_file_inf%scs_se_varid))     
-        NF90(nf90_inq_varid(net_file_inf%ncid, 'ksfield',  net_file_inf%ksfield_varid))             
+        NF90(nf90_inq_varid(net_file_inf%ncid, 'smax',  net_file_inf%qinffield_varid))     
+        NF90(nf90_inq_varid(net_file_inf%ncid, 'seff',  net_file_inf%scs_se_varid))     
+        NF90(nf90_inq_varid(net_file_inf%ncid, 'ks',  net_file_inf%ksfield_varid))             
+        ! From Kees below: note that scs_Se is S and qinffield is Smax
+        
         ! Read Z points
         !    
         NF90(nf90_get_var(net_file_inf%ncid, net_file_inf%qinffield_varid,  rtmpz(:)))    
