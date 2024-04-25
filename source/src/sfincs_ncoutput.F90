@@ -2575,7 +2575,7 @@ contains
          n    = z_index_z_n(nm)
          m    = z_index_z_m(nm)
          !      
-         zstmp(m, n) = cumprcp(nm)*1000
+         zstmp(m, n) = cumprcp(nm)
          !
       enddo
       !
@@ -2724,7 +2724,7 @@ contains
            nm = index_sfincs_in_quadtree(nmq)
            if (nm>0) then           
                if (kcs(nm)>0) then
-                   zstmp(nmq) = cumprcp(nm)*1000
+                   zstmp(nmq) = cumprcp(nm)
                endif
            endif           
        enddo
