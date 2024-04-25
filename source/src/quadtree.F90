@@ -771,6 +771,10 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
    !
    nmx = quadtree_nmax*2**(iref - 1)
    !
+   !if ((n <= 0) .or. (n > quadtree_nmax)) then
+   !   return
+   !endif
+   !
    nm = (m - 1)*nmx + n
    !
    ! Find nm index of this point
@@ -852,13 +856,19 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
          do m = m0, m1
             do n = n0, n1            
                !
+               ! First check whether point is on the quadtree grid at all
                nm = find_quadtree_cell_by_index(n, m, iref)
                !
                if (nm==0) then
                   cycle
                endif   
                !
+               ! Second check is whether it is on the active SFINCS mask
                nm = index_sfincs_in_quadtree(nm)
+               !
+               if (nm==0) then
+                  cycle
+               endif                  
                ! 
                ! Right (same level or coarser)
                !
