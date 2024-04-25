@@ -2669,17 +2669,19 @@ contains
        !
        nm = index_sfincs_in_quadtree(nmq)
        !
-       if (kcs(nm)>0) then
-           if (subgrid) then
-               if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
-                   zstmp(nmq) = zsmax(nm)
+       if (nm>0) then       
+           if (kcs(nm)>0) then
+               if (subgrid) then
+                   if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
+                       zstmp(nmq) = zsmax(nm)
+                   endif
+               else
+                  if ( (zsmax(nm) - zb(nm)) > huthresh) then
+                      zstmp(nmq) = zsmax(nm)
+                  endif
                endif
-           else
-              if ( (zsmax(nm) - zb(nm)) > huthresh) then
-                  zstmp(nmq) = zsmax(nm)
-              endif
            endif
-       endif
+       endif       
    enddo
    !
    NF90(nf90_put_var(map_file%ncid, map_file%timemax_varid, t, (/ntmaxout/)))       ! write time_max
@@ -2687,27 +2689,28 @@ contains
    !
    ! Write maximum water depth
    if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
+      ! 
       zstmp = FILL_VALUE
       !        
-      if (subgrid) then   
-         do nm = 1, np
-            !
-            if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
-               zstmp(nm) = zsmax(nm) - subgrid_z_zmin(nm)           
-            endif
-            !
-         enddo
-      else
-         do nm = 1, np       
-            !
-            if ( (zsmax(nm) - zb(nm)) > huthresh) then
-               zstmp(nm) = zsmax(nm) - zb(nm)                       
-            endif      
-         enddo
-      endif  
-   endif
-   !   
-   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
+      do nmq = 1, quadtree_nr_points
+          !
+          nm = index_sfincs_in_quadtree(nmq)
+          !
+          if (nm>0) then
+              if (kcs(nm)>0) then
+                  if (subgrid) then
+                      if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
+                          zstmp(nmq) = zsmax(nm) - subgrid_z_zmin(nm)
+                      endif
+                  else
+                     if ( (zsmax(nm) - zb(nm)) > huthresh) then
+                         zstmp(nmq) = zsmax(nm) - zb(nm)
+                     endif
+                  endif
+              endif
+          endif
+      enddo      
+      !
       NF90(nf90_put_var(map_file%ncid, map_file%hmax_varid, zstmp, (/1, ntmaxout/))) ! write hmax   
    endif
    !
@@ -2719,9 +2722,11 @@ contains
        zstmp = FILL_VALUE       
        do nmq = 1, quadtree_nr_points
            nm = index_sfincs_in_quadtree(nmq)
-           if (kcs(nm)>0) then
-               zstmp(nmq) = cumprcp(nm)*1000
-           endif
+           if (nm>0) then           
+               if (kcs(nm)>0) then
+                   zstmp(nmq) = cumprcp(nm)*1000
+               endif
+           endif           
        enddo
        NF90(nf90_put_var(map_file%ncid, map_file%cumprcp_varid, zstmp, (/1, ntmaxout/))) ! write cumprcp
        ! 
@@ -2730,9 +2735,11 @@ contains
        zstmp = FILL_VALUE       
        do nmq = 1, quadtree_nr_points
            nm = index_sfincs_in_quadtree(nmq)
-           if (kcs(nm)>0) then
-               zstmp(nmq) = cuminf(nm)
-           endif
+           if (nm>0) then
+               if (kcs(nm)>0) then
+                   zstmp(nmq) = cuminf(nm)
+               endif
+           endif           
        enddo
        NF90(nf90_put_var(map_file%ncid, map_file%cuminf_varid, zstmp, (/1, ntmaxout/))) ! write cuminf      
        !       
@@ -2743,9 +2750,11 @@ contains
        zstmp = FILL_VALUE       
        do nmq = 1, quadtree_nr_points
            nm = index_sfincs_in_quadtree(nmq)
-           if (kcs(nm)>0) then
-               zstmp(nmq) = vmax(nm)
-           endif
+           if (nm>0) then           
+               if (kcs(nm)>0) then
+                   zstmp(nmq) = vmax(nm)
+               endif
+           endif           
        enddo
       NF90(nf90_put_var(map_file%ncid, map_file%vmax_varid, zstmp, (/1, ntmaxout/))) ! write vmax   
    endif
@@ -2755,9 +2764,11 @@ contains
        zstmp = FILL_VALUE       
        do nmq = 1, quadtree_nr_points
            nm = index_sfincs_in_quadtree(nmq)
-           if (kcs(nm)>0) then
-               zstmp(nmq) = qmax(nm)
-           endif
+           if (nm>0) then                      
+               if (kcs(nm)>0) then
+                   zstmp(nmq) = qmax(nm)
+               endif
+           endif           
        enddo
       NF90(nf90_put_var(map_file%ncid, map_file%qmax_varid, zstmp, (/1, ntmaxout/))) ! write qmax   
    endif   
@@ -2767,8 +2778,10 @@ contains
        zstmp = FILL_VALUE       
        do nmq = 1, quadtree_nr_points
            nm = index_sfincs_in_quadtree(nmq)
-           if (kcs(nm)>0) then
-               zstmp(nmq) = twet(nm)
+           if (nm>0) then                                 
+               if (kcs(nm)>0) then
+                   zstmp(nmq) = twet(nm)
+               endif
            endif
        enddo
       NF90(nf90_put_var(map_file%ncid, map_file%tmax_varid, zstmp, (/1, ntmaxout/))) ! write tmax   
@@ -2779,23 +2792,13 @@ contains
        zstmp = FILL_VALUE       
        do nmq = 1, quadtree_nr_points
            nm = index_sfincs_in_quadtree(nmq)
-           if (kcs(nm)>0) then
-               zstmp(nmq) = windmax(nm)
+           if (nm>0) then                                 
+               if (kcs(nm)>0) then
+                   zstmp(nmq) = windmax(nm)
+               endif
            endif
        enddo
       NF90(nf90_put_var(map_file%ncid, map_file%windmax_varid, zstmp, (/1, ntmaxout/))) ! write windmax   
-   endif
-   !   
-   ! Cumulative infiltration
-   if (infiltration) then
-      zstmp = FILL_VALUE
-      do nmq = 1, quadtree_nr_points
-          nm = index_sfincs_in_quadtree(nmq)
-          if (kcs(nm)>0) then
-              zstmp(nmq) = cuminf(nm)
-          endif
-      enddo
-      NF90(nf90_put_var(map_file%ncid, map_file%cuminf_varid, zstmp, (/1, ntmaxout/))) ! write cuminf   
    endif
    !
    end subroutine   
