@@ -771,10 +771,6 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
    !
    nmx = quadtree_nmax*2**(iref - 1)
    !
-   !if ((n <= 0) .or. (n > quadtree_nmax)) then
-   !   return
-   !endif
-   !
    nm = (m - 1)*nmx + n
    !
    ! Find nm index of this point
