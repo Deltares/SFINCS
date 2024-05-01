@@ -2392,7 +2392,7 @@ contains
       if (store_wave_direction) then
          !
          NF90(nf90_put_var(his_file%ncid, his_file%wavdir_varid, wavdirobs, (/1, nthisout/)))
-         NF90(nf90_put_var(his_file%ncid, his_file%dirspr_varid, dirsprobs, (/1, nthisout/)))
+         !NF90(nf90_put_var(his_file%ncid, his_file%dirspr_varid, dirsprobs, (/1, nthisout/)))
          !
       endif
       !            

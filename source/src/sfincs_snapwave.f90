@@ -328,7 +328,7 @@ contains
    snapwave_H                     = H
    snapwave_H_ig                  = H_ig
    snapwave_mean_direction        = thetam
-   snapwave_directional_spreading = thetam  ! L: CORRECT? > is not spreading but mean direction?
+   snapwave_directional_spreading = thetam  ! TL: CORRECT? > is not spreading but mean direction?
    snapwave_Fx                    = Fx
    snapwave_Fy                    = Fy 
    snapwave_Dw                    = Dw
