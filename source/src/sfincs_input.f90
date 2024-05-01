@@ -104,7 +104,6 @@ contains
    call read_real_input(500,'spwmergefrac',spw_merge_frac,0.5)
    call read_int_input(500,'usespwprecip',ispwprecip,1)   
    call read_int_input(500,'global',iglobal,0)
-   call read_real_input(500,'nuvisc',nuviscinp,-999.0)
    call read_real_input(500,'nuviscdim',nuviscdim,1.0)   
    call read_logical_input(500,'viscosity',iviscosity,.true.)
    call read_int_input(500,'spinup_meteo', ispinupmeteo, 0)
@@ -423,41 +422,11 @@ contains
       store_tsunami_arrival_time = .true.
    endif      
    !
-   viscosity = .false.   
-   !
-   if (nuviscinp>0.0 .or. iviscosity) then
-      !
-      if (nuviscinp>0.0) then ! if nuvisc given by user, this overrules the dimensionless default use of nuvisc, for backwards compatability
-         !
-         nuvisc = nuviscinp
-         viscosity = .true.         
-         !
-      else ! user defined viscosity = 1
-         !
-         if (qtrfile(1:4) == 'none') then ! this works only for a regular grid model, for quadtree use 'nuvisc' option
-            !
-            viscosity = .true.         
-            !
-            if (crsgeo .eqv. .true.) then ! simplified conversion for spherical grids
-                nuvisc = max(nuviscdim * min(dx,dy) / 0.001, 0.0) ! take min of dx and dy, don't allow to be negative  
-                ! dx = 1 degree ~ 100km
-                ! dx = 0.001 degree~ 100m > nuvisc = 1.0              
-            else                 
-                nuvisc = max(nuviscdim * min(dx,dy) / 100.0, 0.0) ! take min of dx and dy, don't allow to be negative    
-                ! dx = 50 > nuvisc = 0.5
-                ! dx = 100 > nuvisc = 1.0
-                ! dx = 500 > nuvisc = 5.0
-                ! nuviscdim = 1.0
-                ! nuvisc = nuviscdim * dx / 100 
-            endif
-         endif          
-         !
-      endif    
-      !
-      if (viscosity .eqv. .true.) then
-         write(*,*)'Turning on process: Viscosity, with nuvisc = ', nuvisc
-      endif      
-      !
+   !   
+   viscosity = .false. 
+   if (iviscosity) then
+      viscosity = .true. 
+      write(*,*)'Turning on process: Viscosity'               
    endif   
    !
    spinup_meteo = .true. ! Default use data in ampr file as block rather than linear interpolation

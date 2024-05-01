@@ -72,7 +72,6 @@ module sfincs_data
       real*4 sfacinf
       real*4 dym
       real*4 dym2
-      real*4 nuvisc
       real*4 nuviscdim
       real*4 nuviscinp   
       real*4 spw_merge_frac
@@ -316,6 +315,7 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: dxrinvc
       real*4, dimension(:),   allocatable :: dyrinvc
       real*4, dimension(:),   allocatable :: cell_area
+      real*4, dimension(:),   allocatable :: dxyr      
       !
       ! Cell sizes
       !
@@ -328,6 +328,7 @@ module sfincs_data
       real*4,             dimension(:),   allocatable :: z_xz
       real*4,             dimension(:),   allocatable :: z_yz
       real*4,             dimension(:),   allocatable :: cell_area_m2
+      real*4,             dimension(:),   allocatable :: nuvisc      
       !
       ! UV-points
       !
@@ -844,7 +845,7 @@ module sfincs_data
     if(allocated(qinffield)) deallocate(qinffield)
     if(allocated(ksfield)) deallocate(ksfield)
     if(allocated(scs_Se)) deallocate(scs_Se)
-
+    if(allocated(nuvisc)) deallocate(nuvisc)    
     !
     ! Boundary velocity points
     !
