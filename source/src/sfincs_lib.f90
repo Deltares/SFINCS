@@ -85,8 +85,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.0.6-alpha:branch-80-add-option-for-netcdf_infiltration_quadtree-file-input'
-   build_date     = '$Date: 2024-04-25'
+   build_revision = '$Rev: v2.0.6-alpha:branch-88-determine-viscosity-per-refinement-level-for-quadtree-simulation'
+   build_date     = '$Date: 2024-05-01'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   

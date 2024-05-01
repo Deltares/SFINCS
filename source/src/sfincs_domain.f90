@@ -1258,6 +1258,7 @@ contains
    !
    allocate(dxr(nref))
    allocate(dyr(nref))
+   allocate(dxyr(np))
    !
    ! Determine grid spacing for different refinement levels
    !
@@ -1281,6 +1282,8 @@ contains
       !
       z_xz(nm) = x0 + cosrot*(1.0*(m - 0.5))*dxr(iref) - sinrot*(1.0*(n - 0.5))*dyr(iref)
       z_yz(nm) = y0 + sinrot*(1.0*(m - 0.5))*dxr(iref) + cosrot*(1.0*(n - 0.5))*dyr(iref)
+      !
+      dxyr(nm) = min(dxr(iref-1), dyr(iref-1))      
       !
    enddo
    !
@@ -1411,6 +1414,45 @@ contains
       dtmax = min(dtmax, dxymin/(sqrt(9.81*0.1)))
       dtmin = alfa*dxymin/(sqrt(9.81*stopdepth)) ! If dt falls below this value, the simulation will stop
       !
+   endif   
+   !
+   ! Determine viscosity per refinement level > value per cell
+   !
+   allocate(nuvisc(np))  
+   !
+   if (viscosity) then
+        !
+        if (crsgeo) then
+            !
+            do nm = 1, np
+                !
+                nuvisc(nm) = max(nuviscdim * dxyr(nm) / 0.001, 0.0) ! take min of dx and dy, don't allow to be negative  
+                ! dx = 1 degree ~ 100km
+                ! dx = 0.001 degree~ 100m > nuvisc = 1.0
+                !
+            enddo           
+            !
+        else
+            !
+            do nm = 1, np
+                !       
+                nuvisc(nm) = max(nuviscdim * dxyr(nm) / 100.0, 0.0) ! take min of dx and dy, don't allow to be negative    
+                ! dx = 50 > nuvisc = 0.5
+                ! dx = 100 > nuvisc = 1.0
+                ! dx = 500 > nuvisc = 5.0
+                ! nuviscdim = 1.0
+                ! nuvisc = nuviscdim * dx / 100  
+                !
+            enddo                    
+            ! 
+        endif
+        !
+        if (use_quadtree) then
+            write(*,*)'Viscosity - nuvisc  = [', minval(nuvisc),'- ',maxval(nuvisc),']'           
+        else
+            write(*,*)'Viscosity - nuvisc  = ', maxval(nuvisc)           
+        endif            
+        !
    endif   
    !
    end subroutine
