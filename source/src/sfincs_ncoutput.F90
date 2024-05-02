@@ -1112,16 +1112,20 @@ contains
    !
    ! Write SnapWave msk
    !
-   vtmpi = 0
-   !
-   do nmq = 1, quadtree_nr_points
-      nm = index_sw_in_qt(nmq)            
-      if (nm>0) then
-         vtmpi(nmq) = snapwave_mask(nm)                  
-      endif
-   enddo 
-   !
-   NF90(nf90_put_var(map_file%ncid, map_file%snapwavemsk_varid, vtmpi)) ! write snapwave msk    
+   if (snapwave) then  
+      !
+      vtmpi = 0
+      !
+      do nmq = 1, quadtree_nr_points
+         nm = index_sw_in_qt(nmq)            
+         if (nm>0) then
+            vtmpi(nmq) = snapwave_mask(nm)                  
+         endif
+      enddo 
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%snapwavemsk_varid, vtmpi)) ! write snapwave msk  
+      !
+   endif
    !   
    ! Write infiltration map
    !   
@@ -1176,8 +1180,7 @@ contains
    real*4, dimension(:,:), allocatable :: struc_info
    real*4, dimension(:), allocatable :: struc_x
    real*4, dimension(:), allocatable :: struc_y
-   real*4, dimension(:), allocatable :: struc_height
-   
+   real*4, dimension(:), allocatable :: struc_height   
    !
    if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0) then ! If no observation points, cross-sections, structures or drains; his file is not created        
         return
@@ -2708,8 +2711,11 @@ contains
       NF90(nf90_put_var(map_file%ncid, map_file%hmax_varid, zstmp, (/1, ntmaxout/))) ! write hmax   
    endif
    !
-   ! Write cumulative precipitation
+   ! Write cumulative rainfall
    if (store_cumulative_precipitation) then  
+       !
+       ! Precipitation
+       !
        zstmp = FILL_VALUE       
        do nmq = 1, quadtree_nr_points
            nm = index_sfincs_in_quadtree(nmq)
@@ -2718,7 +2724,19 @@ contains
            endif
        enddo
        NF90(nf90_put_var(map_file%ncid, map_file%cumprcp_varid, zstmp, (/1, ntmaxout/))) ! write cumprcp
-   endif
+       ! 
+       ! Infiltration
+       !
+       zstmp = FILL_VALUE       
+       do nmq = 1, quadtree_nr_points
+           nm = index_sfincs_in_quadtree(nmq)
+           if (kcs(nm)>0) then
+               zstmp(nmq) = cuminf(nm)
+           endif
+       enddo
+       NF90(nf90_put_var(map_file%ncid, map_file%cuminf_varid, zstmp, (/1, ntmaxout/))) ! write cuminf      
+       !       
+   endif      
    !
    ! Maximum flow velocity
    if (store_maximum_velocity) then
@@ -2808,7 +2826,7 @@ contains
    !   
    implicit none   
    !   
-      if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0) then ! If no observation points, cross-sections, structures or drains; hisfile        
+   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0) then ! If no observation points, cross-sections, structures or drains; hisfile        
         return
    endif   
    !

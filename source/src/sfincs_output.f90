@@ -59,7 +59,9 @@ module sfincs_output
       !
    endif
    !
-   if (dthisout>1.0e-6 .and. (nobs>0 .or. nrcrosssections>0)) then
+   ! Create his file if either observation points, cross-sections, structures or drains present
+   !
+   if ((dthisout>1.0e-6) .and. ((nobs>0) .or. (nrcrosssections>0) .or. (nrstructures>0) .or. (ndrn>0))) then
       thisout     = t0
       if (outputtype_his == 'net') then    
          call ncoutput_his_init()
