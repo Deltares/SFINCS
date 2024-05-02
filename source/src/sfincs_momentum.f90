@@ -303,9 +303,9 @@
                   !
                   ! Interpolation required
                   !
-                  dzuv   = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nlevels - 1)                             ! level size
-                  iuv    = int((zsu - subgrid_uv_zmin(ip))/dzuv) + 1                                                     ! index of level below zsu 
-                  facint = (zsu - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv                                        ! 1d interpolation coefficient
+                  dzuv   = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nlevels - 1)                            ! level size
+                  iuv    = min(int((zsu - subgrid_uv_zmin(ip))/dzuv) + 1, subgrid_nlevels - 1)                        ! index of level below zsu 
+                  facint = (zsu - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv                                         ! 1d interpolation coefficient
                   !
                   hu     = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint   ! grid-average depth
                   gnavg2 = subgrid_uv_nrep(iuv, ip) + (subgrid_uv_nrep(iuv + 1, ip) - subgrid_uv_nrep(iuv, ip))*facint   ! representative g*n^2
