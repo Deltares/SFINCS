@@ -94,6 +94,7 @@ contains
    call read_char_input(500,'epsg',epsg_code,'nil')      
    call read_real_input(500,'stopdepth',stopdepth,100.0)
    call read_real_input(500,'advlim',advlim,9999.9)
+   call read_real_input(500,'slopelim',slopelim,9999.9)
    call read_real_input(500,'qinf_zmin',qinf_zmin,0.0)
    call read_real_input(500,'btfilter',btfilter,60.0)
    call read_real_input(500,'sfacinf',sfacinf,0.2)
@@ -116,6 +117,9 @@ contains
    call read_char_input(500,'wmsignal',wmsigstr,'spectrum')   
    call read_char_input(500,'advection_scheme',advstr,'upw1')   
    call read_real_input(500,'btrelax',btrelax,3600.0)
+   call read_logical_input(500,'wiggle_suppression',wiggle_suppression,.false.)
+   call read_real_input(500,'wiggle_factor',wiggle_factor,0.05)
+   call read_real_input(500,'wiggle_threshold',wiggle_threshold,0.1)
    !
    ! Domain
    !

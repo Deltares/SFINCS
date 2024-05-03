@@ -85,6 +85,9 @@
    real*4    :: hwet
    real*4    :: phi
    !
+   real*4    :: fred
+   real*4    :: mdrv
+   !
    real*4, parameter :: expo = 1.0/3.0
    !integer, parameter :: expo = 1
    !
@@ -118,7 +121,7 @@
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,fred,mdrv ) &
    !$omp reduction ( min : min_dt )
    !$omp do schedule ( dynamic, 256 )
    !$acc kernels, present( kcuv, zs, q, q0, uv, uv0, min_dt, &
@@ -291,7 +294,7 @@
             !
             if (subgrid) then
                !
-               if (zsu > zmax) then
+               if (zsu > zmax - 1.0e-4) then
                   !
                   ! Entire cell is wet, no interpolation from table needed
                   !
@@ -303,7 +306,7 @@
                   !
                   ! Interpolation required
                   !
-                  dzuv   = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nlevels - 1)                             ! level size
+                  dzuv   = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nlevels - 1)                           ! level size
                   iuv    = int((zsu - subgrid_uv_zmin(ip))/dzuv) + 1                                                     ! index of level below zsu 
                   facint = (zsu - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv                                        ! 1d interpolation coefficient
                   !
@@ -326,15 +329,12 @@
             !
             hwet = hu / phi
             !
-            ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
-            !
-            min_dt = min(min_dt, 1.0/(sqrt(g*hu)*dxuvinv))
-            !
             ! FORCING TERMS
             !
             ! Pressure term
             !
-            frc = - g * hu * (zs(nmu) - zs(nm)) * dxuvinv
+            frc = - g * hu * min(max((zs(nmu) - zs(nm)) * dxuvinv, -slopelim), slopelim)
+            ! frc = - g * hu * (zs(nmu) - zs(nm)) * dxuvinv
             !
             ! Advection term
             !
@@ -570,18 +570,32 @@
             ! 
             q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / (hu**2 * hu**expo))
             !
+            if (wiggle_suppression) then 
+               !
+               if ((zsderv(nm) > wiggle_threshold .and. zsderv(nmu) < -wiggle_threshold) .or. (zsderv(nm) < -wiggle_threshold .and. zsderv(nmu) > wiggle_threshold)) then
+                  !
+                  mdrv = 0.5 * ( abs(zsderv(nm)) + abs(zsderv(nmu)) ) - wiggle_threshold
+                  ! fred = exp( - wiggle_factor * (mdrv - wiggle_threshold) )                    
+                  fred = wiggle_threshold / (wiggle_factor * mdrv + wiggle_threshold)
+                  q(ip) = q(ip) * fred
+                  !
+               endif
+               !
+            endif
+            !
             ! Compute velocity. Use q/max(h, 0.10) to avoid very high velocities in very shallow water
             ! Limit velocities (this does not change fluxes, but may prevent advection term from exploding in the next time step)
             !
-            uv(ip)  = max(min(q(ip)/max(hu, 0.10), 4.0), -4.0)
+            uv(ip) = max(min(q(ip)/max(hu, 0.10), 4.0), -4.0)
             !
-            ! kfu(ip) = 1
+            ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
+            !
+            min_dt = min(min_dt, 1.0 / (max(sqrt(g * hu), abs(q(ip) / hu)) * dxuvinv))
             !
          else
             !
             q(ip)   = 0.0
             uv(ip)  = 0.0
-            ! kfu(ip) = 0
             !
          endif
          !

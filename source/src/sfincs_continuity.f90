@@ -80,7 +80,6 @@ contains
    real*4           :: factime
    real*4           :: dvol    
    !
-   real*4           :: zs0
    real*4           :: zsm0
    real*4           :: zsm1
    real*4           :: dzdt
@@ -294,6 +293,8 @@ contains
    real*4           :: uz
    real*4           :: vz
    real*4           :: dv
+   real*4           :: zs00
+   real*4           :: zs11
    !
    if (wavemaker) then
       !
@@ -315,7 +316,7 @@ contains
    endif   
    !
    !$omp parallel &
-   !$omp private ( dvol,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,iwm,qnmd,qnmu,qndm,qnum,dv )
+   !$omp private ( dvol,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,iwm,qnmd,qnmu,qndm,qnum,dv,zs00,zs11 )
    !$omp do schedule ( dynamic, 256 )
    !$acc kernels present( kcs, zs, zb, z_volume, zsmax, zsm, &
    !$acc                  subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
@@ -478,6 +479,14 @@ contains
          ! 
          ! Obtain new water level from subgrid tables 
          !
+         if (wiggle_suppression) then 
+            ! 
+            zs00     = zs0(nm) ! previous time step
+            zs11     = zs(nm)  ! current time step before updating
+            zs0(nm)  = zs11    ! next previous time step
+            ! 
+         endif
+         ! 
          if (z_volume(nm)>=subgrid_z_volmax(nm) - 1.0e-6) then
             !
             ! Entire cell is wet, no interpolation needed
@@ -497,8 +506,14 @@ contains
             dzvol    = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
             iuv      = min(int(z_volume(nm)/dzvol) + 1, subgrid_nlevels - 1)
             facint   = (z_volume(nm) - (iuv - 1)*dzvol ) / dzvol
-            zs(nm)   = subgrid_z_dep(iuv, nm) + (subgrid_z_dep(iuv + 1, nm) - subgrid_z_dep(iuv, nm))*facint                    
+            zs(nm)   = subgrid_z_dep(iuv, nm) + (subgrid_z_dep(iuv + 1, nm) - subgrid_z_dep(iuv, nm))*facint
             !
+         endif
+         !
+         if (wiggle_suppression) then 
+            ! 
+            zsderv(nm) = zs(nm) - 2*zs11 + zs00
+            ! 
          endif
          !
       endif
@@ -515,6 +530,7 @@ contains
       !
       ! No continuity update but keeping track of variables         
       ! zsmax used by default, therefore keep in standard continuity loop:         
+      !
       if (store_maximum_waterlevel) then
          !
          zsmax(nm) = max(zsmax(nm), zs(nm))

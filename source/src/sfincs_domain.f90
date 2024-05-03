@@ -30,7 +30,7 @@ contains
       ! Only one refinement level found in quadtree file. Reverting to use_quadtree is false.
       ! This means netcdf output will be written to a regular grid.
       !
-      use_quadtree = .false.
+!      use_quadtree = .false.
       !
    endif
    !
@@ -2253,14 +2253,21 @@ contains
    allocate(q0(npuv + ncuv + 1))
    allocate(uv(npuv + ncuv + 1))
    allocate(uv0(npuv + ncuv + 1))
-   ! allocate(kfu(npuv))
-   !
+   ! 
    zs   = 0.0
    q    = 0.0
    q0   = 0.0
    uv   = 0.0
    uv0  = 0.0
-   ! kfu  = 1
+   !
+   if (wiggle_suppression) then 
+      ! 
+      allocate(zs0(np))
+      allocate(zsderv(np))
+      zs0 = 0.0
+      zsderv = 0.0
+      ! 
+   endif
    !
    if (snapwave) then
       !
@@ -2530,6 +2537,10 @@ contains
          enddo
       endif
       !
+   endif
+   !
+   if (wiggle_suppression) then 
+      zs0 = zs
    endif
    !
    ! Loop through combined uv points and determine average uv and q (this also happens at the end of sfincs_momentum.f90).
