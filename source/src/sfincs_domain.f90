@@ -2291,8 +2291,8 @@ contains
          qb = 0.0  
          allocate(betamean(np))
          betamean = 0.0     
-         allocate(srcsh(np))
-         srcsh = 0.0           
+         allocate(srcig(np))
+         srcig = 0.0           
          allocate(alphaig(np))
          alphaig = 0.0            
       endif

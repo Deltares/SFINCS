@@ -221,6 +221,7 @@ module sfincs_data
       logical       :: friction2d
       logical       :: advection_limiter
       logical       :: advection_mask
+      logical       :: wmrandom      
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
@@ -532,7 +533,7 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: cg    
       real*4, dimension(:),   allocatable :: qb      
       real*4, dimension(:),   allocatable :: betamean
-      real*4, dimension(:),   allocatable :: srcsh      
+      real*4, dimension(:),   allocatable :: srcig      
       real*4, dimension(:),   allocatable :: alphaig      
       
       !      real*4, dimension(:),   allocatable :: tauwavv
