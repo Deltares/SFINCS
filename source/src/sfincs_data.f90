@@ -136,6 +136,7 @@ module sfincs_data
       character*256 :: netampfile
       character*256 :: netamprfile
       character*256 :: netspwfile
+      character*256 :: netinfiltrationfile      
       character*256 :: scsfile
       character*256 :: smaxfile
       character*256 :: sefffile
@@ -532,7 +533,7 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: cg    
       real*4, dimension(:),   allocatable :: qb      
       real*4, dimension(:),   allocatable :: betamean
-      real*4, dimension(:),   allocatable :: srcsh      
+      real*4, dimension(:),   allocatable :: srcig      
       real*4, dimension(:),   allocatable :: alphaig      
       
       !      real*4, dimension(:),   allocatable :: tauwavv

@@ -107,20 +107,24 @@ contains
          if (nmq>0) then
             !
             nm             = index_sfincs_in_quadtree(nmq)
-            nmindobs(iobs) = nm
-            n              = z_index_z_n(nm)
-            m              = z_index_z_m(nm)
             !
-            xgobs(iobs)    = z_xz(nm)   
-            ygobs(iobs)    = z_yz(nm)
-            !
-            if (subgrid) then
-               zbobs(iobs) = subgrid_z_zmin(nm)
-            else
-               zbobs(iobs) = zb(nm)
-            endif
-            !
-            iref = z_flags_iref(nm)
+            if (nm > 0) then
+                !
+                nmindobs(iobs) = nm
+                n              = z_index_z_n(nm)
+                m              = z_index_z_m(nm)
+                !
+                xgobs(iobs)    = z_xz(nm)   
+                ygobs(iobs)    = z_yz(nm)
+                !
+                if (subgrid) then
+                   zbobs(iobs) = subgrid_z_zmin(nm)
+                else
+                   zbobs(iobs) = zb(nm)
+                endif
+                !
+                iref = z_flags_iref(nm)
+            endif         
             !
             ! write(*,'(a,i0,a,a,a,i0,a,i0,a,i0,a,i0,a,f0.3)')' Observation point ',iobs,' : "',trim(nameobs(iobs)),'" nm=',nm,' n=',n,' m=',m,' iref=',iref,' z=',zbobs(iobs)
             !

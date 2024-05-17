@@ -114,13 +114,10 @@ contains
    allocate(nwav_ig(no_nodes))
    allocate(C_ig(no_nodes))
    allocate(Cg_ig(no_nodes))
-   allocate(Sxx(ntheta,no_nodes))   
    allocate(sinhkh_ig(no_nodes))
    allocate(Hmx_ig(no_nodes))
    allocate(fw_ig(no_nodes))
-   allocate(H_ig(no_nodes))   
-   allocate(H_ig_old(no_nodes))    
-   allocate(H_inc_old(no_nodes))    
+   allocate(H_ig(no_nodes))     
    allocate(Dw(no_nodes))
    allocate(Dw_ig(no_nodes))   
    allocate(F(no_nodes))
@@ -131,7 +128,7 @@ contains
    allocate(thetam(no_nodes))
    allocate(Qb(no_nodes))
    allocate(beta(no_nodes))
-   allocate(srcsh(no_nodes))
+   allocate(srcig(no_nodes))
    allocate(alphaig(no_nodes))
 !   allocate(uorb(no_nodes))
    allocate(ctheta(ntheta,no_nodes))
@@ -196,7 +193,8 @@ contains
    ds360d0 = 0.d0
    w360d0  = 0.d0
    prev360 = 0
-   H_ig_old = 0.0
+   H       = 0.0
+   H_ig    = 0.0
    !
    generate_upw = .false.
    exists = .true.
@@ -274,6 +272,8 @@ contains
        !
    endif      
    !
+   nb = 0
+   !
    do k=1,no_nodes
        !if (msk(k)==3) msk(k) = 1 ! Set outflow points to regular points > now should become neumann, so don't do this
        do itheta=1,ntheta360
@@ -282,25 +282,27 @@ contains
                if (inout>0) msk(k) = 2
            endif
        enddo
-   enddo
-   !
-   nb = 0
-   do k = 1, no_nodes
-       if (msk(k)==1) then
-       inner(k) = .true.
-       else
-       inner(k) = .false.
+       !
+       if (msk(k)>1) then    
+            nb = nb + 1
        endif
-       if (msk(k)==2) nb = nb + 1
+       !
    enddo
    !
    allocate(nmindbnd(nb))
    !
-   nb = 0
    do k = 1, no_nodes
+       !
+       if (msk(k)==1) then
+            inner(k) = .true.
+       else
+            inner(k) = .false.
+       endif
+       !
        if (msk(k)>1) then    
-       nb = nb + 1
-       nmindbnd(nb) = k
+            !
+            nmindbnd(nb) = k
+            !
        endif   
    enddo   
    !
