@@ -1283,7 +1283,7 @@ contains
       z_xz(nm) = x0 + cosrot*(1.0*(m - 0.5))*dxr(iref) - sinrot*(1.0*(n - 0.5))*dyr(iref)
       z_yz(nm) = y0 + sinrot*(1.0*(m - 0.5))*dxr(iref) + cosrot*(1.0*(n - 0.5))*dyr(iref)
       !
-      dxyr(nm) = min(dxr(iref-1), dyr(iref-1))      
+      dxyr(nm) = min(dxr(iref), dyr(iref))
       !
    enddo
    !
