@@ -267,6 +267,10 @@ module sfincs_output
       write(*,'(a)')''       
       write(*,*)'Info : Write maximum values at final timestep since t=dtmaxout was not reached yet for final interval...'
       ntmaxout = ntmaxout + 1
+      !
+      ! Rounds to the nearest whole number
+      t = nint(t)
+      !
       call write_output(t,.false.,.false.,.true.,.false.,0,ntmaxout,0,tloopoutput)       
       !
    endif
