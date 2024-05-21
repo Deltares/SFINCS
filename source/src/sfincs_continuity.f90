@@ -318,7 +318,7 @@ contains
    !$omp parallel &
    !$omp private ( dvol,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,iwm,qnmd,qnmu,qndm,qnum,dv,zs00,zs11 )
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels present( kcs, zs, zb, z_volume, zsmax, zsm, &
+   !$acc kernels present( kcs, zs, zs0, zb, z_volume, zsmax, zsm, zsderv, &
    !$acc                  subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
    !$acc                  netprcp, cumprcpt, prcp, q, z_flags_iref, uv_flags_iref, &
    !$acc                  z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
@@ -477,17 +477,19 @@ contains
             !
          endif
          ! 
-         ! Obtain new water level from subgrid tables 
-         !
-         if (wiggle_suppression) then 
+         if (wiggle_suppression) then
+            !
+            ! Store previous water level to determine gradient
             ! 
-            zs00     = zs0(nm) ! previous time step
-            zs11     = zs(nm)  ! current time step before updating
-            zs0(nm)  = zs11    ! next previous time step
+            zs00    = zs0(nm) ! previous time step
+            zs11    = zs(nm)  ! current time step before updating
+            zs0(nm) = zs11    ! next previous time step
             ! 
          endif
          ! 
-         if (z_volume(nm)>=subgrid_z_volmax(nm) - 1.0e-6) then
+         ! Obtain new water level from subgrid tables 
+         !
+         if (z_volume(nm)>=subgrid_z_volmax(nm) * 0.999) then
             !
             ! Entire cell is wet, no interpolation needed
             !
@@ -504,9 +506,9 @@ contains
             ! Interpolation from subgrid tables needed.
             !
             dzvol    = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
-            iuv      = min(int(z_volume(nm)/dzvol) + 1, subgrid_nlevels - 1)
-            facint   = (z_volume(nm) - (iuv - 1)*dzvol ) / dzvol
-            zs(nm)   = subgrid_z_dep(iuv, nm) + (subgrid_z_dep(iuv + 1, nm) - subgrid_z_dep(iuv, nm))*facint
+            iuv      = int(z_volume(nm) / dzvol) + 1
+            facint   = (z_volume(nm) - (iuv - 1) * dzvol ) / dzvol
+            zs(nm)   = subgrid_z_dep(iuv, nm) + (subgrid_z_dep(iuv + 1, nm) - subgrid_z_dep(iuv, nm)) * facint
             !
          endif
          !

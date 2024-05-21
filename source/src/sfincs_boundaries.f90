@@ -11,7 +11,7 @@ contains
    !
    implicit none
    !
-   integer n, itb, ib, stat, ifreq
+   integer n, itb, ib, stat, ifreq, iok
    !
    real*4 dummy,r
    !
@@ -86,13 +86,51 @@ contains
       !      
       if (t_bnd(1)>t0 + 1.0 .or. t_bnd(ntbnd)<t1 - 1.0) then
          ! 
-         write(*,'(a)')' WARNING! Times in boundary conditions file do not cover entire simulation period!'
+         write(*,'(a)')' WARNING! Times in boundary conditions file do not cover entire simulation period !'
+         !
+         if (t_bnd(1)>t0 + 1.0) then
+            ! 
+            write(*,'(a)')' WARNING! Adjusting first time in boundary conditions time series !'
+            !
+            t_bnd(1) = t0 - 1.0
+            !
+         else
+            ! 
+            write(*,'(a)')' WARNING! Adjusting last time in boundary conditions time series !'
+            !
+            t_bnd(ntbnd) = t1 + 1.0
+            !
+         endif
          !
       endif   
       !
+      ! Check for 'weird' values
+      !
+      iok = 1
+      ! 
+      do ib = 1, ntbnd
+         do itb = 1, ntbnd
+            !
+            if (zs_bnd(ib, itb)<-99.0 .or. zs_bnd(ib, itb)>990.0) then
+               !
+               iok = 0
+               !
+               zs_bnd(ib, itb) = 0.0
+               !
+            endif
+            !
+         enddo 
+      enddo    
+      !
+      if (iok == 0) then
+         ! 
+         write(*,'(a)') ' WARNING! Very low or high values found in boundary conditions file ! Please check !'
+         ! 
+      endif
+      !
    elseif (include_boundaries) then   
       !
-      write(*,*)'Warning : Boundary points found in mask, without boundary conditions. Using water level of 0.0 m at these points'
+      write(*,'(a)') ' Warning : Boundary points found in mask, without boundary conditions. Using water level of 0.0 m at these points.'
       !
    endif
    !
@@ -810,7 +848,7 @@ contains
             !
             ! Added a little bit of relaxation in uvmean to avoid persistent jets shooting into the model
             ! Using: facrel = 1.0 - min(dt/btrelax, 1.0)
-            ! Default: btrelax = 1.0e6, so very little relaxation. Should perhaps change to something like 3600 s.
+            ! Default: btrelax = 3600 s.
             !
             uvmean(ib) = factime * q(ip) + facrel * one_minus_factime * uvmean(ib)
             !

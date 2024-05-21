@@ -85,7 +85,6 @@
    real*4    :: hwet
    real*4    :: phi
    !
-   real*4    :: fred
    real*4    :: mdrv
    !
    real*4, parameter :: expo = 1.0/3.0
@@ -121,10 +120,10 @@
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,fred,mdrv ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv ) &
    !$omp reduction ( min : min_dt )
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels, present( kcuv, zs, q, q0, uv, uv0, min_dt, &
+   !$acc kernels, present( kcuv, zs, q, q0, uv, uv0, min_dt, zsderv, &
    !$acc                   uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
    !$acc                   subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
    !$acc                   uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
@@ -289,6 +288,7 @@
             ! Wet fraction phi (for non-subgrid or original subgrid approach phi should be 1.0)
             !
             phi  = 1.0
+            gnavg2 = 0.016
             !
             ! Compute water depth at uv point
             !
@@ -306,9 +306,10 @@
                   !
                   ! Interpolation required
                   !
-                  dzuv   = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nlevels - 1)                           ! level size
-                  iuv    = int((zsu - subgrid_uv_zmin(ip))/dzuv) + 1                                                     ! index of level below zsu 
-                  facint = (zsu - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv                                        ! 1d interpolation coefficient
+                  dzuv   = (zmax - zmin) / (subgrid_nlevels - 1)                                                          ! level size (is storing this in memory faster?)
+                  iuv    = int((zsu - zmin) / dzuv) + 1                                                                   ! index of level below zsu 
+                  facint = (zsu - (zmin + (iuv - 1)*dzuv) ) / dzuv                                                        ! 1d interpolation coefficient
+!                  if (iuv > subgrid_nlevels - 1) write(*,'(a,i10,20e16.8)')'iuv exceeds subgrid_nlevels - 1. THIS IS NOT POSSIBLE! (iuv,zmin,zmax,dzuv,zsu) :', iuv,zmin,zmax,dzuv,zsu
                   !
                   hu     = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint   ! grid-average depth
                   gnavg2 = subgrid_uv_nrep(iuv, ip) + (subgrid_uv_nrep(iuv + 1, ip) - subgrid_uv_nrep(iuv, ip))*facint   ! representative g*n^2
@@ -572,12 +573,13 @@
             !
             if (wiggle_suppression) then 
                !
-               if ((zsderv(nm) > wiggle_threshold .and. zsderv(nmu) < -wiggle_threshold) .or. (zsderv(nm) < -wiggle_threshold .and. zsderv(nmu) > wiggle_threshold)) then
+               ! If the acceleration of water level in cell nm is large and positive and in nmu large and negative, or vice versa, apply limiter to the flux
+               !
+               mdrv = abs(zsderv(nm) - zsderv(nmu)) - wiggle_threshold
+               !
+               if (mdrv > 0.0) then
                   !
-                  mdrv = 0.5 * ( abs(zsderv(nm)) + abs(zsderv(nmu)) ) - wiggle_threshold
-                  ! fred = exp( - wiggle_factor * (mdrv - wiggle_threshold) )                    
-                  fred = wiggle_threshold / (wiggle_factor * mdrv + wiggle_threshold)
-                  q(ip) = q(ip) * fred
+                  q(ip) = q(ip) * wiggle_threshold / (wiggle_factor * mdrv + wiggle_threshold)
                   !
                endif
                !
