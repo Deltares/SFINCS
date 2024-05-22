@@ -81,6 +81,7 @@
    real*4    :: uu
    real*4    :: ud
    real*4    :: qy
+   real*4    :: dzdx
    !
    real*4    :: hwet
    real*4    :: phi
@@ -118,7 +119,7 @@
    ! Update fluxes
    !
    !$omp parallel &
-   !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
+   !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
    !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv ) &
    !$omp reduction ( min : min_dt )
@@ -334,7 +335,10 @@
             !
             ! Pressure term
             !
-            frc = - g * hu * min(max((zs(nmu) - zs(nm)) * dxuvinv, -slopelim), slopelim)
+            dzdx = min(max((zs(nmu) - zs(nm)) * dxuvinv, -slopelim), slopelim) 
+            !
+            frc = - g * hu * dzdx
+            !
             ! frc = - g * hu * (zs(nmu) - zs(nm)) * dxuvinv
             !
             ! Advection term
@@ -529,17 +533,29 @@
                !
             endif
             !
-            if (friction2d) then
+            ! Compute flux qfr used for friction term
+            !
+            if (abs(qx_nm) < 1.0e-4) then
                !
-               ! Computed friction term with both qx and qy
+               ! This uv point just became wet, so estimate equilibrium flux 
                !
-               qfr = sqrt(qx_nm**2 + (hu * vu)**2)
+               qfr = sqrt(abs(dzdx)) * hu ** (5.0 / 3.0) / 0.04
                !
-            else
+            else   
                !
-               ! Computed friction term with only qx (original Bates et al. (2010))
-               !
-               qfr = abs(qx_nm) ! flux to be used in the friction term
+               if (friction2d) then
+                  !
+                  ! Computed friction term with both qx and qy
+                  !
+                  qfr = sqrt(qx_nm**2 + (hu * vu)**2)
+                  !
+               else
+                  !
+                  ! Computed friction term with only qx (original Bates et al. (2010))
+                  !
+                  qfr = abs(qx_nm) ! flux to be used in the friction term
+                  !
+               endif
                !
             endif
             !
@@ -552,18 +568,18 @@
                ! Apply theta smoothing 
                ! 
                if ( kcuv(uv_index_u_nmd(ip))==1 .and. kcuv(uv_index_u_nmu(ip))==1 ) then 
-                   !
-                   ! But only at regular points
-                   ! 
-                   if (abs(qx_nmd) > 1.0e-6 .and. abs(qx_nmu) > 1.0e-6) then
-                      ! if (kfu(uv_index_u_nmd(ip))==1 .and. kfu(uv_index_u_nmu(ip))==1) then
-                      !
-                      ! And if both uv neighbors are active
-                      ! 
-                      qsm = theta*qx_nm + 0.5 * (1.0 - theta) * (qx_nmu + qx_nmd)
-                      ! 
-                   endif
-                   ! 
+                  !
+                  ! But only at regular points
+                  ! 
+                  if (abs(qx_nmd) > 1.0e-6 .and. abs(qx_nmu) > 1.0e-6) then
+                     ! if (kfu(uv_index_u_nmd(ip))==1 .and. kfu(uv_index_u_nmu(ip))==1) then
+                     !
+                     ! And if both uv neighbors are active
+                     ! 
+                     qsm = theta*qx_nm + 0.5 * (1.0 - theta) * (qx_nmu + qx_nmd)
+                     ! 
+                  endif
+                  ! 
                endif               
             endif            
             !
@@ -592,7 +608,8 @@
             !
             ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
             !
-            min_dt = min(min_dt, 1.0 / (max(sqrt(g * hu), abs(q(ip) / hu)) * dxuvinv))
+            ! min_dt = min(min_dt, 1.0 / (max(sqrt(g * hu), abs(q(ip) / hu)) * dxuvinv))
+            min_dt = min(min_dt, 1.0 / (sqrt(g * hu) * dxuvinv))
             !
          else
             !
@@ -632,6 +649,7 @@
    endif
    !
    !$acc update host(min_dt), async(1)
+!   !$acc wait(1)
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate

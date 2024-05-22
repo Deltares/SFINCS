@@ -147,7 +147,7 @@ module sfincs_output
    !      
    ! Maximum water level output maps
    !
-   if (write_max) then
+   if (write_max .and. dtmaxout > 0.0) then
       !
       !$acc update host(zsmax)
       !
