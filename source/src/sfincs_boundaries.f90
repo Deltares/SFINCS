@@ -84,11 +84,11 @@ contains
          !
       endif
       !      
-      if (t_bnd(1)>t0 + 1.0 .or. t_bnd(ntbnd)<t1 - 1.0) then
+      if (t_bnd(1) > (t0 + 1.0) .or. t_bnd(ntbnd) < (t1 - 1.0)) then
          ! 
          write(*,'(a)')' WARNING! Times in boundary conditions file do not cover entire simulation period !'
          !
-         if (t_bnd(1)>t0 + 1.0) then
+         if (t_bnd(1) > (t0 + 1.0) ) then
             ! 
             write(*,'(a)')' WARNING! Adjusting first time in boundary conditions time series !'
             !

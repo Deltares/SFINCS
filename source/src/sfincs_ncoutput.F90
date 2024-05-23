@@ -631,11 +631,16 @@ contains
    implicit none   
    !   
    integer    :: nm, nmq, n, m, nn, ntmx, n_nodes, n_faces, ip, iref
-   integer*8  :: two
+   integer    :: one_i, two_i
+   integer*4  :: one_i4, two_i4
+   integer*8  :: one_i8, two_i8
+   real*4     :: one_r4, two_r4
+   real*8     :: one_r8, two_r8
    real*4     :: dxdy
+   integer*4  :: nineninenine
    !
-   real*4,    dimension(:),   allocatable :: nodes_x
-   real*4,    dimension(:),   allocatable :: nodes_y
+   real,      dimension(:),   allocatable :: nodes_x
+   real,      dimension(:),   allocatable :: nodes_y
    integer*4, dimension(:,:), allocatable :: face_nodes
    real*4,    dimension(:),   allocatable :: vtmp
    integer*4, dimension(:),   allocatable :: vtmpi
@@ -655,7 +660,18 @@ contains
    nodes_y = 0.0
    face_nodes = 0
    !
-   two = 2
+   one_i  = 1
+   two_i  = 2
+   one_i4 = 1
+   two_i4 = 2
+   one_i8 = 1
+   two_i8 = 2
+   one_r4 = 1.0
+   two_r4 = 2.0
+   one_r8 = 1.0
+   two_r8 = 2.0
+   ! nineninenine = 999.0
+   nineninenine = -999
    !
    nn = 0
    !
@@ -663,35 +679,34 @@ contains
       !
       n = quadtree_n(nmq)
       m = quadtree_m(nmq)
-         !
-         iref = quadtree_level(nmq)
-         dxdy  = quadtree_dxr(iref)
-         !         
-         nn = nn + 1
-         !
-         nodes_x(nn) = x0 + cosrot*(m - 1)*dxdy - sinrot*(n - 1)*dxdy
-         nodes_y(nn) = y0 + sinrot*(m - 1)*dxdy + cosrot*(n - 1)*dxdy
-         face_nodes(1, nmq) = nn
-         !         
-         nn = nn + 1
-         !
-         nodes_x(nn) = x0 + cosrot*(m    )*dxdy - sinrot*(n - 1)*dxdy
-         nodes_y(nn) = y0 + sinrot*(m    )*dxdy + cosrot*(n - 1)*dxdy
-         face_nodes(2, nmq) = nn
-         !         
-         nn = nn + 1
-         !
-         nodes_x(nn) = x0 + cosrot*(m    )*dxdy - sinrot*(n    )*dxdy
-         nodes_y(nn) = y0 + sinrot*(m    )*dxdy + cosrot*(n    )*dxdy
-         face_nodes(3, nmq) = nn
-         !         
-         nn = nn + 1
-         !
-         nodes_x(nn) = x0 + cosrot*(m - 1)*dxdy - sinrot*(n    )*dxdy
-         nodes_y(nn) = y0 + sinrot*(m - 1)*dxdy + cosrot*(n    )*dxdy
-         face_nodes(4, nmq) = nn
-         !
-!      endif
+      !
+      iref = quadtree_level(nmq)
+      dxdy  = quadtree_dxr(iref)
+      !         
+      nn = nn + 1
+      !
+      nodes_x(nn) = x0 + cosrot*(m - 1)*dxdy - sinrot*(n - 1)*dxdy
+      nodes_y(nn) = y0 + sinrot*(m - 1)*dxdy + cosrot*(n - 1)*dxdy
+      face_nodes(1, nmq) = nn
+      !         
+      nn = nn + 1
+      !
+      nodes_x(nn) = x0 + cosrot*(m    )*dxdy - sinrot*(n - 1)*dxdy
+      nodes_y(nn) = y0 + sinrot*(m    )*dxdy + cosrot*(n - 1)*dxdy
+      face_nodes(2, nmq) = nn
+      !         
+      nn = nn + 1
+      !
+      nodes_x(nn) = x0 + cosrot*(m    )*dxdy - sinrot*(n    )*dxdy
+      nodes_y(nn) = y0 + sinrot*(m    )*dxdy + cosrot*(n    )*dxdy
+      face_nodes(3, nmq) = nn
+      !         
+      nn = nn + 1
+      !
+      nodes_x(nn) = x0 + cosrot*(m - 1)*dxdy - sinrot*(n    )*dxdy
+      nodes_y(nn) = y0 + sinrot*(m - 1)*dxdy + cosrot*(n    )*dxdy
+      face_nodes(4, nmq) = nn
+      !
    enddo   
    !  
    NF90(nf90_create('sfincs_map.nc', ior(NF90_CLOBBER,NF90_NETCDF4), map_file%ncid)) ! TL: removed 'NF90_64BIT_OFFSET'
@@ -732,12 +747,19 @@ contains
    NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_varid, 1, 1, nc_deflate_level))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'cf_role', 'mesh_topology'))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'long_name', 'Topology data of 2D network'))
-   NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'topology_dimension', 2))
+   NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'topology_dimension', two_r4))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'node_coordinates', 'mesh2d_node_x mesh2d_node_y'))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'node_dimension', 'nmesh2d_node'))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'max_face_nodes_dimension', 'max_nmesh2d_face_nodes'))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'face_node_connectivity', 'mesh2d_face_nodes'))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'face_dimension', 'nmesh2d_face'))
+!   NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'one_1', 1)) 
+!   NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'one_1.0', 1.0)) 
+!   NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'one_i', one_i)) 
+!   NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'one_i4', one_i4)) 
+!   NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'one_i8', one_i8)) 
+!   NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'one_r4', one_r4)) 
+!   NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'one_r8', one_r8)) 
    !
    if (crsgeo) then
       !
@@ -759,7 +781,7 @@ contains
       !
    else
       !
-      NF90(nf90_def_var(map_file%ncid, 'mesh2d_node_x', NF90_FLOAT, (/map_file%nmesh2d_node_dimid/), map_file%mesh2d_node_x_varid)) ! location of zb, zs etc. in cell centre
+      NF90(nf90_def_var(map_file%ncid, 'mesh2d_node_x', NF90_DOUBLE, (/map_file%nmesh2d_node_dimid/), map_file%mesh2d_node_x_varid)) ! location of zb, zs etc. in cell centre
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_node_x_varid, 1, 1, nc_deflate_level))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'units', 'm'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'standard_name', 'projection_x_coordinate'))
@@ -767,7 +789,7 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'mesh', 'mesh2d'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'location', 'node'))
       !
-      NF90(nf90_def_var(map_file%ncid, 'mesh2d_node_y', NF90_FLOAT, (/map_file%nmesh2d_node_dimid/), map_file%mesh2d_node_y_varid)) ! location of zb, zs etc. in cell centre
+      NF90(nf90_def_var(map_file%ncid, 'mesh2d_node_y', NF90_DOUBLE, (/map_file%nmesh2d_node_dimid/), map_file%mesh2d_node_y_varid)) ! location of zb, zs etc. in cell centre
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_node_y_varid, 1, 1, nc_deflate_level))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'units', 'm'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'standard_name', 'projection_y_coordinate'))
@@ -783,8 +805,11 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_nodes_varid, 'mesh', 'mesh2d'))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_nodes_varid, 'location', 'face'))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_nodes_varid, 'long_name', 'Mapping from every face to its corner nodes (counterclockwise)'))
-   NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_nodes_varid, 'start_index', 1))
-   NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_nodes_varid, '_FillValue', -999))
+   NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_nodes_varid, 'start_index', one_r4))
+!   NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_nodes_varid, '_FillValue', -999))
+   write(*,*)'KUT!!!'
+   NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_nodes_varid, '_FillValue', nineninenine))
+   write(*,*)'KUT!!! done'
    !
    NF90(nf90_def_var(map_file%ncid, 'crs', NF90_INT, map_file%crs_varid)) ! For EPSG code
    NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'EPSG', '-'))
@@ -798,7 +823,8 @@ contains
    !
    NF90(nf90_def_var(map_file%ncid, 'msk', NF90_INT, (/map_file%nmesh2d_face_dimid/), map_file%msk_varid)) ! input msk value in cell centre
    NF90(nf90_def_var_deflate(map_file%ncid, map_file%msk_varid, 1, 1, nc_deflate_level))
-   NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, '_FillValue', -999))      
+!   NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, '_FillValue', -999))      
+   NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, '_FillValue', -nineninenine))      
    NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'units', '-'))
    NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'standard_name', 'mask'))
    NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'long_name', 'msk_active_cells')) 
