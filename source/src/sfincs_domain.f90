@@ -1258,7 +1258,7 @@ contains
    !
    allocate(dxr(nref))
    allocate(dyr(nref))
-   allocate(dxyr(np))
+   allocate(dxyr(nref))
    !
    ! Determine grid spacing for different refinement levels
    !
@@ -1266,6 +1266,7 @@ contains
       !
       dxr(iref) = dx/(2**(iref - 1))
       dyr(iref) = dy/(2**(iref - 1))
+      dxyr(iref) = min(dxr(iref), dyr(iref))      
       !
    enddo 
    !
@@ -1282,8 +1283,6 @@ contains
       !
       z_xz(nm) = x0 + cosrot*(1.0*(m - 0.5))*dxr(iref) - sinrot*(1.0*(n - 0.5))*dyr(iref)
       z_yz(nm) = y0 + sinrot*(1.0*(m - 0.5))*dxr(iref) + cosrot*(1.0*(n - 0.5))*dyr(iref)
-      !
-      dxyr(nm) = min(dxr(iref), dyr(iref))
       !
    enddo
    !
@@ -1416,17 +1415,17 @@ contains
       !
    endif   
    !
-   ! Determine viscosity per refinement level > value per cell
+   ! Determine viscosity per refinement level
    !
-   allocate(nuvisc(np))  
+   allocate(nuvisc(nref))  
    !
    if (viscosity) then
         !
         if (crsgeo) then
             !
-            do nm = 1, np
+            do iref = 1, nref
                 !
-                nuvisc(nm) = max(nuviscdim * dxyr(nm) / 0.001, 0.0) ! take min of dx and dy, don't allow to be negative  
+                nuvisc(iref) = max(nuviscdim * dxyr(iref) / 0.001, 0.0) ! take min of dx and dy, don't allow to be negative  
                 ! dx = 1 degree ~ 100km
                 ! dx = 0.001 degree~ 100m > nuvisc = 1.0
                 !
@@ -1434,9 +1433,9 @@ contains
             !
         else
             !
-            do nm = 1, np
+            do iref = 1, nref
                 !       
-                nuvisc(nm) = max(nuviscdim * dxyr(nm) / 100.0, 0.0) ! take min of dx and dy, don't allow to be negative    
+                nuvisc(iref) = max(nuviscdim * dxyr(iref) / 100.0, 0.0) ! take min of dx and dy, don't allow to be negative    
                 ! dx = 50 > nuvisc = 0.5
                 ! dx = 100 > nuvisc = 1.0
                 ! dx = 500 > nuvisc = 5.0
