@@ -5,7 +5,7 @@ AC_PREREQ([2.69])
 dnl we are using autoconf
 AC_INIT([SFINCS], [0.1], [tim.leijnse@deltares.nl])
 dnl automake
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([subdir-objects])
 dnl and libtool
 LT_INIT
 
