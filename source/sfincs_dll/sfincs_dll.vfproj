@@ -40,7 +40,7 @@
 		</Configuration>
 		<Configuration Name="Release|x64" UseCompiler="ifxCompiler" ConfigurationType="typeDynamicLibrary">
 			<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" Optimization="optimizeFull" Parallelization="true" OpenMP="OpenMPParallelCode" RuntimeLibrary="rtMultiThreadedDLL"/>
-			<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="$(SolutionDir)\third_party_open\netcdf\MyBuild\fortran\Release;$(SolutionDir)\third_party_open\netcdf\netCDF 4.9.2\lib" SubSystem="subSystemWindows" LinkDLL="true" AdditionalDependencies="netcdff.lib netcdf.lib"/>
+			<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="$(SolutionDir)\third_party_open\netcdf\x64\Release;$(SolutionDir)\third_party_open\netcdf\netCDF 4.9.2\lib" SubSystem="subSystemWindows" LinkDLL="true" AdditionalDependencies="netcdff.lib netcdf.lib"/>
 			<Tool Name="VFResourceCompilerTool"/>
 			<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
 			<Tool Name="VFCustomBuildTool"/>
@@ -54,8 +54,7 @@
 		<Filter Name="Header Files" Filter="fi;fd;h;inc"/>
 		<Filter Name="Resource Files" Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"/>
 		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
-			<File RelativePath="..\src\sfincs_bmi.f90">
-			</File>
+			<File RelativePath="..\src\sfincs_bmi.f90"/>
 		</Filter>
 	</Files>
 	<Globals/>
