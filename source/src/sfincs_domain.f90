@@ -1425,8 +1425,10 @@ contains
             !
             do iref = 1, nref
                 !
-                nuvisc(iref) = max(nuviscdim * dxyr(iref) / 0.001, 0.0) ! take min of dx and dy, don't allow to be negative  
-                ! dx = 1 degree ~ 100km
+                nuvisc(iref) = max(nuviscdim * dxyr(iref) / 0.00001, 0.0) ! take min of dx and dy, don't allow to be negative 
+                !
+                ! with default nuviscdim = 0.01 (dimensionless per meter grid cell length):                
+                ! dx = 1 degree ~ 100km > nuvisc = 1000.0
                 ! dx = 0.001 degree~ 100m > nuvisc = 1.0
                 !
             enddo           
@@ -1435,12 +1437,12 @@ contains
             !
             do iref = 1, nref
                 !       
-                nuvisc(iref) = max(nuviscdim * dxyr(iref) / 100.0, 0.0) ! take min of dx and dy, don't allow to be negative    
+                nuvisc(iref) = max(nuviscdim * dxyr(iref), 0.0) ! take min of dx and dy, don't allow to be negative    
+                !
+                ! with default nuviscdim = 0.01 (dimensionless per meter grid cell length): 
                 ! dx = 50 > nuvisc = 0.5
                 ! dx = 100 > nuvisc = 1.0
                 ! dx = 500 > nuvisc = 5.0
-                ! nuviscdim = 1.0
-                ! nuvisc = nuviscdim * dx / 100  
                 !
             enddo                    
             ! 

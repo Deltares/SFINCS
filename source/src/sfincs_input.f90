@@ -104,7 +104,7 @@ contains
    call read_real_input(500,'spwmergefrac',spw_merge_frac,0.5)
    call read_int_input(500,'usespwprecip',ispwprecip,1)   
    call read_int_input(500,'global',iglobal,0)
-   call read_real_input(500,'nuviscdim',nuviscdim,1.0)   
+   call read_real_input(500,'nuvisc',nuviscdim,0.01)      
    call read_logical_input(500,'viscosity',iviscosity,.false.)
    call read_int_input(500,'spinup_meteo', ispinupmeteo, 0)
    call read_real_input(500,'waveage',waveage,-999.0)
