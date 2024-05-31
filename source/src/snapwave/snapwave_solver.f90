@@ -119,7 +119,7 @@ module snapwave_solver
    integer, dimension(2,ntheta,no_nodes),intent(in) :: prev                   ! two upwind grid points per grid point and wave direction
    integer, dimension(no_nodes),intent(in)          :: neumannconnected       ! number of neumann boundary point if connected to inner point
    real*4, dimension(no_nodes), intent(in)          :: depth                  ! water depth
-   real*4, dimension(no_nodes), intent(in)          :: zb                     ! actual bed level
+   real*4, dimension(no_nodes), intent(in)          :: zb                     ! actual bed level   
    real*4, dimension(no_nodes), intent(in)          :: kwav                   ! wave number
    real*4, dimension(no_nodes), intent(in)          :: kwav_ig                ! wave number
    real*4, dimension(no_nodes), intent(in)          :: cg                     ! group velocity
@@ -170,8 +170,9 @@ module snapwave_solver
    integer, dimension(:,:), allocatable       :: indx                   ! index for grid sorted per sweep direction
    real*4, dimension(:,:), allocatable        :: eeold                  ! wave energy density, energy density previous iteration   
    real*4, dimension(:,:), allocatable        :: srcig_local            ! Energy source/sink term because of IG wave shoaling
-   real*4, dimension(:,:), allocatable        :: beta_local             ! Local bed slope based on bed level per direction   
+   real*4, dimension(:,:), allocatable        :: beta_local             ! Local bed slope based on bed level per direction      
    real*4, dimension(:,:), allocatable        :: alphaig_local          ! Local infragravity wave shoaling parameter alpha
+   real*4, dimension(:,:), allocatable        :: depthprev            ! water depth at upwind intersection point per direction     
    real*4, dimension(:), allocatable          :: dee                    ! difference with energy previous iteration
    real*4, dimension(:), allocatable          :: eeprev, cgprev         ! energy density and group velocity at upwind intersection point
    real*4, dimension(:), allocatable          :: eeprev_ig, cgprev_ig   ! energy density and group velocity at upwind intersection point
@@ -265,7 +266,8 @@ module snapwave_solver
       allocate(R_ig(ntheta))
       allocate(DoverE_ig(no_nodes))
       allocate(E_ig(no_nodes))
-      allocate(beta_local(ntheta,no_nodes))      
+      allocate(depthprev(ntheta,no_nodes))                        
+      allocate(beta_local(ntheta,no_nodes))                  
       allocate(alphaig_local(ntheta,no_nodes))  
       !
    endif
@@ -340,10 +342,32 @@ module snapwave_solver
          !
          if (igwaves) then
             !
+            ! This first time, determine beta_local (prev, ds, w depend on boundary wave direction as updated in update_boundary_points) and depthprev
+            !  
+            ! Determine local bed slope beta based on bed level per direction
+            do itheta = 1, ntheta
+                !
+                k1 = prev(1, itheta, k)
+                k2 = prev(2, itheta, k)   
+                !
+                if (k1>0 .and. k2>0) then ! IMPORTANT - for some reason (k1*k2)>0 is not reliable always, resulting in directions being uncorrectly skipped!!!    
+                    !
+                    depthprev(itheta,k)     = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)           
+                    !            
+                    beta_local(itheta,k)  = max((w(1, itheta, k)*(zb(k) - zb(k1)) + w(2, itheta, k)*(zb(k) - zb(k2)))/ds(itheta, k), 0.0) 
+                    ! Notes:
+                    ! - use actual bed level now for slope, because depth changes because of wave setup/tide/surge
+                    ! - in zb, depth is negative > therefore zb(k) minus zb(k1)
+                    ! - beta=0 means a horizontal or decreasing slope > need alphaig=0 then in IG src/sink term
+                    !
+                    !betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin)) ! TL: in case in the future we would need the normalised bed slope again   
+                endif                    
+            enddo
+            !   
             ! Determine IG source/sink term as in Leijnse, van Ormondt, van Dongeren, Aerts & Muis et al. 2024 
             !
-            call determine_infragravity_source_sink_term(no_nodes, ntheta, k, w, ds, prev, cg_ig, nwav, depth, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, zb, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
-            ! inout: alphaig_local, beta_local, srcig_local - eeprev, eeprev_ig, cgprev
+            call determine_infragravity_source_sink_term(no_nodes, ntheta, k, w, ds, prev, cg_ig, nwav, depth, depthprev, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
+            ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev
             ! in: the rest
             !
             ! NOTE - this is now only used to fill 'srcig_local', so that we have a good starting point for the source term in incident wave energy balance in the 'do iter=1,niter' loop
@@ -541,8 +565,8 @@ module snapwave_solver
                          if (sweep==1) then
                              ! Determine IG source/sink term as in Leijnse, van Ormondt, van Dongeren, Aerts & Muis et al. 2024 
                              !
-                             call determine_infragravity_source_sink_term(no_nodes, ntheta, k, w, ds, prev, cg_ig, nwav, depth, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, zb, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
-                             ! inout: alphaig_local, beta_local, srcig_local - eeprev, eeprev_ig, cgprev
+                             call determine_infragravity_source_sink_term(no_nodes, ntheta, k, w, ds, prev, cg_ig, nwav, depth, depthprev, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
+                             ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev
                              ! in: the rest
                              !
                              ! NOTE - this is now only used to fill 'srcig_local', so that we have a good starting point for the source term in incident wave energy balance in the 'do iter=1,niter' loop
@@ -848,7 +872,7 @@ module snapwave_solver
    !
    end subroutine baldock  
    
-   subroutine determine_infragravity_source_sink_term(no_nodes, ntheta, k, w, ds, prev, cg_ig, nwav, depth, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, zb, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local)
+   subroutine determine_infragravity_source_sink_term(no_nodes, ntheta, k, w, ds, prev, cg_ig, nwav, depth, depthprev, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local)
     !   
     ! Incoming variables
     integer, intent(in)                              :: no_nodes,ntheta ! number of grid points, number of directions  
@@ -859,10 +883,11 @@ module snapwave_solver
     real*4, dimension(no_nodes), intent(in)          :: cg_ig           ! group velocity
     real*4, dimension(no_nodes), intent(in)          :: nwav            ! wave number n  
     real*4, dimension(no_nodes), intent(in)          :: depth           ! water depth
+    real*4, dimension(ntheta,no_nodes), intent(in)   :: depthprev       ! water depth at upwind intersection point     
+    real*4, dimension(ntheta,no_nodes), intent(in)   :: beta_local      ! Local bed slope based on bed level per direction          
     real*4, dimension(no_nodes), intent(in)          :: H               ! wave height        
     real*4, dimension(ntheta,no_nodes), intent(in)   :: ee              ! energy density
     real*4, dimension(ntheta,no_nodes), intent(in)   :: ee_ig           ! energy density infragravity waves
-    real*4, dimension(no_nodes), intent(in)          :: zb              ! actual bed level
     integer, intent(in)                              :: ig_opt          ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)    
     real*4, intent(in)                               :: alphaigfac      ! Multiplication factor for IG shoaling source/sink term, default = 1.0
     !
@@ -871,7 +896,6 @@ module snapwave_solver
     real*4, dimension(:,:), intent(inout)            :: srcig_local     ! Energy source/sink term because of IG wave shoaling
     real*4, dimension(:), intent(inout)              :: eeprev, cgprev  ! energy density and group velocity at upwind intersection point
     real*4, dimension(:), intent(inout)              :: eeprev_ig       ! energy density  at upwind intersection point 
-    real*4, dimension(:,:), intent(inout)            :: beta_local      ! Local bed slope based on bed level per direction      
     !
     ! Internal variables
     integer                                          :: itheta          ! directional counter
@@ -879,16 +903,13 @@ module snapwave_solver
     
     real*4, dimension(ntheta,no_nodes)               :: Sxx             ! Radiation Stress
     real*4, dimension(:), allocatable                :: Sxxprev         ! radiation stress at upwind intersection point  
-    real*4, dimension(:), allocatable                :: depthprev       ! water depth at upwind intersection point 
     real*4, dimension(:), allocatable                :: Hprev           ! Incident wave height at upwind intersection point  
     real*4                                           :: beta            ! local bedslope
     real*4                                           :: gam             ! local gamma (Hinc / depth ratio)    
     !   
     ! Allocate internal variables
     allocate(Sxxprev(ntheta))       
-    allocate(depthprev(ntheta))                         
     allocate(Hprev(ntheta))  
-    !   
     !
     ! Compute exchange source term inc to ig waves - per direction      
     do itheta = 1, ntheta
@@ -907,24 +928,14 @@ module snapwave_solver
             !
             Sxxprev(itheta)     = w(1, itheta, k)*Sxx(itheta,k1) + w(2, itheta, k)*Sxx(itheta,k2)
             !
-            depthprev(itheta)   = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)           
-            !
             eeprev(itheta)      = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)  
             eeprev_ig(itheta)   = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)      
             !
             Hprev(itheta)       = w(1, itheta, k)*H(k1) + w(2, itheta, k)*H(k2)     
             !     
-            ! Determine local bed slope and relative waterdepth 'gam'
-            beta                = max((w(1, itheta, k)*(zb(k) - zb(k1)) + w(2, itheta, k)*(zb(k) - zb(k2)))/ds(itheta, k), 0.0) 
-            ! Notes:
-            ! - use actual bed level now for slope, because depth changes because of wave setup/tide/surge
-            ! - in zb, depth is negative > therefore zb(k) minus zb(k1)
-            ! - beta=0 means a horizontal or decreasing slope > need alphaig=0 then
+            ! Determine relative waterdepth 'gam'
             !
-            beta_local(itheta,k) = beta                       
-            !betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin)) ! TL: in case in the future we would need the normalised bed slope again
-            !
-            gam = max(0.5*(Hprev(itheta)/depthprev(itheta) + H(k)/depth(k)), 0.0) ! mean gamma over current and upwind point
+            gam = max(0.5*(Hprev(itheta)/depthprev(itheta,k) + H(k)/depth(k)), 0.0) ! mean gamma over current and upwind point
             !
             ! Determine dSxx and IG source/sink term 'srcig'
             !
@@ -932,7 +943,7 @@ module snapwave_solver
                 !
                 ! Calculate shoaling parameter alpha_ig following Leijnse et al. (2024)
                 !  
-                call estimate_shoaling_parameter_alphaig(beta, gam, alphaig_local(itheta,k)) ! [input, input, output]
+                call estimate_shoaling_parameter_alphaig(beta_local(itheta,k), gam, alphaig_local(itheta,k)) ! [input, input, output]
                 !                
                 ! Now calculate source term component
                 !         
@@ -960,7 +971,7 @@ module snapwave_solver
                 !
                 dSxx = max(dSxx, 0.0)
                 !
-                srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(eeprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta) * dSxx / ds(itheta, k)
+                srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(eeprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k)
                 !                         
                 endif                      
                 !                                        
