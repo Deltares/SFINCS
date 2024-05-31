@@ -356,86 +356,87 @@ contains
    !
    ! Read values
    ! 
-!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%n_varid,     quadtree_n(:)))
-!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%m_varid,     quadtree_m(:)))
-!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%level_varid, quadtree_level(:)))
-!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%md_varid,    quadtree_md(:)))
-!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%md1_varid,   quadtree_md1(:)))
-!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%md2_varid,   quadtree_md2(:)))
-!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mu_varid,    quadtree_mu(:)))
-!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mu1_varid,   quadtree_mu1(:)))
-!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mu2_varid,   quadtree_mu2(:)))
-!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nd_varid,    quadtree_nd(:)))
-!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nd1_varid,   quadtree_nd1(:)))
-!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nd2_varid,   quadtree_nd2(:)))
-!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nu_varid,    quadtree_nu(:)))
-!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nu1_varid,   quadtree_nu1(:)))
-!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nu2_varid,   quadtree_nu2(:)))
-!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%z_varid,     quadtree_zz(:)))
-!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mask_varid,  quadtree_mask(:)))
-!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%snapwave_mask_varid,  quadtree_snapwave_mask(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%n_varid,     quadtree_n(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%m_varid,     quadtree_m(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%level_varid, quadtree_level(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%md_varid,    quadtree_md(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%md1_varid,   quadtree_md1(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%md2_varid,   quadtree_md2(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mu_varid,    quadtree_mu(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mu1_varid,   quadtree_mu1(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mu2_varid,   quadtree_mu2(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nd_varid,    quadtree_nd(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nd1_varid,   quadtree_nd1(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nd2_varid,   quadtree_nd2(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nu_varid,    quadtree_nu(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nu1_varid,   quadtree_nu1(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nu2_varid,   quadtree_nu2(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%z_varid,     quadtree_zz(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mask_varid,  quadtree_mask(:)))
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%snapwave_mask_varid,  quadtree_snapwave_mask(:)))
    !
 !   write(*,*)'np',np  
 !   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%z_varid,     quadtree_zz(:)))
 !   write(*,*)'np'
 !   write(*,*)SIZE(quadtree_zz)
 !   write(*,*)SIZE(int_f)
-   write(*,*)'np',np
-!   nf90_get_var( net_file_qtr%ncid, net_file_qtr%n_varid, int_4 )
-   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%n_varid,     int_4(:)))
-   write(*,*)'np',np
-   quadtree_n(:) = int(int_4(:))
-   write(*,*)'np',np
-   
-   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%n_varid,     r_4(:)))
-   write(*,*)'np',np
-   quadtree_n(:) = int(r_4(:))
-   write(*,*)quadtree_n(:)  
-   write(*,*)'np',np  
-   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%m_varid,     int_8(:)))
-   quadtree_m(:) = int_8(:)
-   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%level_varid, int_8(:)))
-   quadtree_level(:) = int_8(:)
-   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%md_varid,    int_8(:)))
-   quadtree_md(:) = int_8(:)
-   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%md1_varid,   int_8(:)))
-   quadtree_md1(:) = int_8(:)
-   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%md2_varid,   int_8(:)))
-   quadtree_md2(:) = int_8(:)
-   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mu_varid,    int_8(:)))
-   quadtree_mu(:) = int_8(:)
-   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mu1_varid,   int_8(:)))
-   quadtree_mu1(:) = int_8(:)
-   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mu2_varid,   int_8(:)))
-   quadtree_mu2(:) = int_8(:)
-   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nd_varid,    int_8(:)))
-   quadtree_nd(:) = int_8(:)
-   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nd1_varid,   int_8(:)))
-   quadtree_nd1(:) = int_8(:)
-   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nd2_varid,   int_8(:)))
-   quadtree_nd2(:) = int_8(:)
-   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nu_varid,    int_8(:)))
-   quadtree_nu(:) = int_8(:)
-   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nu1_varid,   int_8(:)))
-   quadtree_nu1(:) = int_8(:)
-   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nu2_varid,   int_8(:)))
-   quadtree_nu2(:) = int_8(:)
-   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%z_varid,     quadtree_zz(:)))
-   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mask_varid,  int_8(:)))
-   quadtree_mask(:) = int_8(:)
-   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%snapwave_mask_varid,  int_8(:)))
-   quadtree_snapwave_mask(:) = int_8(:)
+!   write(*,*)'np',np
+!!   nf90_get_var( net_file_qtr%ncid, net_file_qtr%n_varid, int_4 )
+!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%n_varid, int_4(:)))
+!   write(*,*)'np',np,int_4(1)
+!   quadtree_n(:) = int_4(:)
+!   write(*,*)quadtree_n(:)  
+!!   quadtree_n(:) = int(int_4(:))
+!   write(*,*)'np',np
+!   
+!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%n_varid,     r_4(:)))
+!   write(*,*)'np',np
+!   quadtree_n(:) = int(r_4(:))
+!   write(*,*)'np',np  
+!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%m_varid,     int_8(:)))
+!   quadtree_m(:) = int_8(:)
+!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%level_varid, int_8(:)))
+!   quadtree_level(:) = int_8(:)
+!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%md_varid,    int_8(:)))
+!   quadtree_md(:) = int_8(:)
+!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%md1_varid,   int_8(:)))
+!   quadtree_md1(:) = int_8(:)
+!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%md2_varid,   int_8(:)))
+!   quadtree_md2(:) = int_8(:)
+!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mu_varid,    int_8(:)))
+!   quadtree_mu(:) = int_8(:)
+!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mu1_varid,   int_8(:)))
+!   quadtree_mu1(:) = int_8(:)
+!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mu2_varid,   int_8(:)))
+!   quadtree_mu2(:) = int_8(:)
+!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nd_varid,    int_8(:)))
+!   quadtree_nd(:) = int_8(:)
+!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nd1_varid,   int_8(:)))
+!   quadtree_nd1(:) = int_8(:)
+!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nd2_varid,   int_8(:)))
+!   quadtree_nd2(:) = int_8(:)
+!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nu_varid,    int_8(:)))
+!   quadtree_nu(:) = int_8(:)
+!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nu1_varid,   int_8(:)))
+!   quadtree_nu1(:) = int_8(:)
+   !NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nu2_varid,   int_8(:)))
+   !quadtree_nu2(:) = int_8(:)
+   !NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%z_varid,     quadtree_zz(:)))
+   !NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mask_varid,  int_8(:)))
+   !quadtree_mask(:) = int_8(:)
+   !NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%snapwave_mask_varid,  int_8(:)))
+   !quadtree_snapwave_mask(:) = int_8(:)
    !
-!   write(*,*)'quadtree_mask'
-!   write(*,*)quadtree_mask
-!   write(*,*)'quadtree_n'
-!   write(*,*)quadtree_n
-!   write(*,*)'quadtree_m'
-!   write(*,*)quadtree_m
-!   write(*,*)'quadtree_level'
-!   write(*,*)quadtree_level
-!   write(*,*)'quadtree_zz'
-!   write(*,*)quadtree_zz
+   !write(*,*)'quadtree read'
+   !write(*,*)quadtree_mask
+   !write(*,*)'quadtree_n'
+   !write(*,*)quadtree_n
+   !write(*,*)'quadtree_m'
+   !write(*,*)quadtree_m
+   !write(*,*)'quadtree_level'
+   !write(*,*)quadtree_level
+   !write(*,*)'quadtree_zz'
+   !write(*,*)quadtree_zz
    !
    ! Read attibute (should read EPSG code here ?)
    !
@@ -444,16 +445,17 @@ contains
    NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'dx', quadtree_dx))
    NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'dy', quadtree_dy))
    NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'rotation', quadtree_rotation))
-!   NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'nmax', quadtree_nmax))
-!   NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'mmax', quadtree_mmax))
-!   NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'nr_levels', quadtree_nr_levels))
+   NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'nmax', quadtree_nmax))
+   !write(*,*)quadtree_nmax
+   NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'mmax', quadtree_mmax))
+   NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'nr_levels', quadtree_nr_levels))
    !
-   NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'nmax', real8))
-   quadtree_nmax = int(real8)
-   NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'mmax', real8))
-   quadtree_mmax = int(real8)
-   NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'nr_levels', real8))
-   quadtree_nr_levels = int(real8)
+   !NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'nmax', real8))
+   !quadtree_nmax = int(real8)
+   !NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'mmax', real8))
+   !quadtree_mmax = int(real8)
+   !NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'nr_levels', real8))
+   !quadtree_nr_levels = int(real8)
    !      
    NF90(nf90_close(net_file_qtr%ncid))       
    !
