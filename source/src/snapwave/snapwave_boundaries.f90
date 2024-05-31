@@ -613,7 +613,7 @@ subroutine update_boundary_points(t)
             !           
             ! Determine IG wave height and period at boundary
             !           
-            call determine_ig_bc(hst_bwv(ib), tpt_bwv(ib), dst_bwv(ib), jonswapgam, deptht_bwv(ib), Tinc2ig, tpig_opt, hst_bwv_ig(ib), tpt_bwv_ig(ib))
+            call determine_ig_bc(x_bwv(ib), y_bwv(ib), hst_bwv(ib), tpt_bwv(ib), dst_bwv(ib), jonswapgam, deptht_bwv(ib), Tinc2ig, tpig_opt, hst_bwv_ig(ib), tpt_bwv_ig(ib))
             !           
             ! input, input, input, input, input, input, input, output, output
             !

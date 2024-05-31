@@ -5,7 +5,7 @@ module snapwave_infragravity
    
     !-----------------------------Main subroutine----------------------------!
     
-    subroutine determine_ig_bc(hsinc, tpinc, ds, jonswapgam, depth, Tinc2ig, tpig_opt, hsig, tpig) 
+    subroutine determine_ig_bc(x_bwv, y_bwv, hsinc, tpinc, ds, jonswapgam, depth, Tinc2ig, tpig_opt, hsig, tpig) 
     ! (input, input, input, input, input, input, input, output, output)
     !  
     ! Build boundwave offshore spectrum, and determine Hig0 and Tpig0, using Herbers 1994 as in XBeach implementation
@@ -22,6 +22,7 @@ module snapwave_infragravity
     implicit none
     !
     real*4, intent(in)    :: hsinc, tpinc, ds, jonswapgam, Tinc2ig
+    real*8, intent(in)    :: x_bwv, y_bwv
     integer, intent(in)   :: tpig_opt
     real*4, intent(inout) :: depth
     real*4, intent(out)   :: hsig, tpig
@@ -42,7 +43,7 @@ module snapwave_infragravity
     ! Loosely based on 3 step calculation in waveparams.F90 of XBeach (build_jonswap, build_etdir, build_boundw), here all in 1 subroutine calculate_herbers
     !
     if (depth < 5.0) then
-	    write(*,*)'ERROR SnapWave - depth at boundary input point dropped below 5 m: ',depth, ' which might lead to large values of Hm0ig as bc, especially when directional spreading is low! Please specify input in deeper water. '
+	    write(*,*)'ERROR SnapWave - depth at boundary input point ',x_bwv, y_bwv,' dropped below 5 m: ',depth, ' which might lead to large values of Hm0ig as bc, especially when directional spreading is low! Please specify input in deeper water. '
         write(*,*)'Depth set back to 5 meters for stability, simulation will continue.'
         depth = 5.0
     endif	

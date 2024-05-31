@@ -88,7 +88,7 @@ contains
    !
    ! Check for time-spatially varying meteo
    !
-   if (spwfile(1:4) /= 'none' .or. amufile(1:4) /= 'none' .or. amprfile(1:4) /= 'none' .or. ampfile(1:4) /= 'none' .or. netampfile(1:4) /= 'none' .or. netamprfile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
+   if (prcpfile(1:4) /= 'none' .or. spwfile(1:4) /= 'none' .or. amufile(1:4) /= 'none' .or. amprfile(1:4) /= 'none' .or. ampfile(1:4) /= 'none' .or. netampfile(1:4) /= 'none' .or. netamprfile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       meteo3d = .true.
       write(*,*)'Turning on flag: meteo3d'
    endif
@@ -1258,6 +1258,7 @@ contains
    !
    allocate(dxr(nref))
    allocate(dyr(nref))
+   allocate(dxyr(nref))
    !
    ! Determine grid spacing for different refinement levels
    !
@@ -1265,6 +1266,7 @@ contains
       !
       dxr(iref) = dx/(2**(iref - 1))
       dyr(iref) = dy/(2**(iref - 1))
+      dxyr(iref) = min(dxr(iref), dyr(iref))      
       !
    enddo 
    !
@@ -1411,6 +1413,47 @@ contains
       dtmax = min(dtmax, dxymin/(sqrt(9.81*0.1)))
       dtmin = alfa*dxymin/(sqrt(9.81*stopdepth)) ! If dt falls below this value, the simulation will stop
       !
+   endif   
+   !
+   ! Determine viscosity per refinement level
+   !
+   allocate(nuvisc(nref))  
+   !
+   if (viscosity) then
+        !
+        if (crsgeo) then
+            !
+            do iref = 1, nref
+                !
+                nuvisc(iref) = max(nuviscdim * dxyr(iref) / 0.00001, 0.0) ! take min of dx and dy, don't allow to be negative 
+                !
+                ! with default nuviscdim = 0.01 (dimensionless per meter grid cell length):                
+                ! dx = 1 degree ~ 100km > nuvisc = 1000.0
+                ! dx = 0.001 degree~ 100m > nuvisc = 1.0
+                !
+            enddo           
+            !
+        else
+            !
+            do iref = 1, nref
+                !       
+                nuvisc(iref) = max(nuviscdim * dxyr(iref), 0.0) ! take min of dx and dy, don't allow to be negative    
+                !
+                ! with default nuviscdim = 0.01 (dimensionless per meter grid cell length): 
+                ! dx = 50 > nuvisc = 0.5
+                ! dx = 100 > nuvisc = 1.0
+                ! dx = 500 > nuvisc = 5.0
+                !
+            enddo                    
+            ! 
+        endif
+        !
+        if (use_quadtree) then
+            write(*,*)'Viscosity - nuvisc  = [', minval(nuvisc),'- ',maxval(nuvisc),']'           
+        else
+            write(*,*)'Viscosity - nuvisc  = ', maxval(nuvisc)           
+        endif            
+        !
    endif   
    !
    end subroutine

@@ -717,23 +717,17 @@ Recommended is to turn the advection term always on.
 
 **viscosity**
 
-'viscosity' turns on the viscosity term in the momentum equation (viscosity = 1, default).
-The recommended value of viscosity 'nuvisc' to add to your model, depends on your grid size.
-For ease, SFINCS internally automatically determines the optimal value for you, which is displayed when running the model:	'Turning on process: Viscosity, with nuvisc=   0.5000000'. In this example corresponding to a grid resolution of 50 meters.
-In case you would want to increase the viscosity term, you can either specify the exact value you want 'nuvisc = XXX', or e.g. multiply it by a factor 2: 	nuviscdim = 2.0 (default = 1.0, dimensionless).
-By default the value of nuvisc is determined like this:
-
-	dx = 50 > nuvisc = 0.5
-	
-        dx = 100 > nuvisc = 1.0
-	
-        dx = 500 > nuvisc = 5.0	
+'viscosity' turns on the viscosity term in the momentum equation (viscosity = 1).
+The recommended value of 'nuvisc', the viscosity coefficient 'per meter of grid cell length' to add to your model is 0.01.
+This coefficient is multiplied internally with the grid cell size (per quadtree level in quadtree mesh mode).
+For ease, this is displayed when running the model:	'Viscosity - nuvisc=   [0.1000000 - 0.5000000]'. 
+Increasing the value of 'nuvisc' increases the viscosity term and effectively internal smoothing of the flow.
 	
 .. code-block:: text
 
 	viscosity 	= 1
-	nuviscdim 	= 1.0 (default)
-	nuvisc 		= XXX (automatically determined, or specify a value yourself that overrules this)
+	nuvisc 		= 0.01
+	nuviscdim 	= Depricated after Cauberg release of SFINCS.
 	
 **Drag Coefficients:**
 
