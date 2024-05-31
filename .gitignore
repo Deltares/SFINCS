@@ -9,7 +9,6 @@
 /source/sfincs_lib/*.u2d
 /source/sfincs_lib/x64
 /source/third_party_open/netcdf/*.u2d
-/source/third_party_open/netcdf/x64
 /source/sfincs/x64/Debug/*.pdb
 /source/sfincs/x64/Debug/sfincs.exe
 /source/sfincs/x64/Debug/*.obj
