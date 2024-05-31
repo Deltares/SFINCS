@@ -1,0 +1,5 @@
+﻿  Building Custom Rule C:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main/fortran/CMakeLists.txt
+  nf_lib.c
+  nf_v2compat.c
+  Generating Code...
+  netcdff_c.vcxproj -> C:\work\netcdf\netcdf-fortran-main-4.6.1\MyBuild\fortran\netcdff_c.dir\Debug\netcdff_c.lib

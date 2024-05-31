@@ -1,0 +1,21 @@
+Change Dir: 'C:/work/netcdf/netcdf-fortran-main-4.6.1/MyBuild/CMakeFiles/IntelVSImplicitPath'
+
+Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/devenv.com" IntelFortranImplicit.sln /build Debug /project ALL_BUILD
+
+Microsoft Visual Studio 2022 Version 17.3.5.
+Copyright (C) Microsoft Corp. All rights reserved.
+Build started...
+1>------ Build started: Project: ZERO_CHECK, Configuration: Debug x64 ------
+1>1>Checking Build System
+2>------ Build started: Project: FortranLib, Configuration: Debug x64 ------
+2>Generating output.cmake
+2>Compiling with Intelr Fortran Compiler Classic 2021.7.0 [Intel(R) 64]...
+2>hello.f
+2>Creating library...
+2>
+2>Build log written to  "file://C:\work\netcdf\netcdf-fortran-main-4.6.1\MyBuild\CMakeFiles\IntelVSImplicitPath\FortranLib.dir\Debug\BuildLog.htm"
+2>FortranLib - 0 error(s), 0 warning(s)
+3>------ Build started: Project: ALL_BUILD, Configuration: Debug x64 ------
+3>Building Custom Rule C:/Program Files/CMake/share/cmake-3.29/Modules/IntelVSImplicitPath/CMakeLists.txt
+========== Build: 3 succeeded, 0 failed, 0 up-to-date, 0 skipped ==========
+

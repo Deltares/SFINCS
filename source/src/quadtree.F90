@@ -284,9 +284,10 @@ contains
    integer*1 :: iversion
    integer   :: np, ip, iepsg
    real*8    :: real8
-   integer*4,          dimension(:),   allocatable :: int_4
-   integer*8,          dimension(:),   allocatable :: int_8
-   integer,            dimension(:),   allocatable :: int_f
+   integer*4, dimension(:), allocatable :: int_4
+   integer*8, dimension(:), allocatable :: int_8
+   integer,   dimension(:), allocatable :: int_f
+   real*4, dimension(:), allocatable    :: r_4
    !
    write(*,*)'Reading QuadTree netCDF file ...'
    !
@@ -348,7 +349,10 @@ contains
    allocate(quadtree_mask(np))
    allocate(quadtree_snapwave_mask(np))
    !
+   allocate(int_4(np))
    allocate(int_8(np))
+   allocate(int_f(np))
+   allocate(r_4(np))
    !
    ! Read values
    ! 
@@ -371,8 +375,23 @@ contains
 !   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mask_varid,  quadtree_mask(:)))
 !   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%snapwave_mask_varid,  quadtree_snapwave_mask(:)))
    !
-   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%n_varid,     int_8(:)))
-   quadtree_n(:) = int_8(:)
+!   write(*,*)'np',np  
+!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%z_varid,     quadtree_zz(:)))
+!   write(*,*)'np'
+!   write(*,*)SIZE(quadtree_zz)
+!   write(*,*)SIZE(int_f)
+   write(*,*)'np',np
+!   nf90_get_var( net_file_qtr%ncid, net_file_qtr%n_varid, int_4 )
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%n_varid,     int_4(:)))
+   write(*,*)'np',np
+   quadtree_n(:) = int(int_4(:))
+   write(*,*)'np',np
+   
+   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%n_varid,     r_4(:)))
+   write(*,*)'np',np
+   quadtree_n(:) = int(r_4(:))
+   write(*,*)quadtree_n(:)  
+   write(*,*)'np',np  
    NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%m_varid,     int_8(:)))
    quadtree_m(:) = int_8(:)
    NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%level_varid, int_8(:)))

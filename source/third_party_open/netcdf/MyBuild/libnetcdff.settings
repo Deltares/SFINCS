@@ -1,0 +1,37 @@
+# NetCDF Fortran Configuration Summary
+==============================
+
+# General
+-------
+Library Version:		4.6.2-development
+Configured On:		        
+Host System:		        --
+Build Directory: 	        C:/work/netcdf/netcdf-fortran-main-4.6.1/MyBuild
+Install Prefix:                 C:/Program Files/NC4F
+
+# Compiling Options
+-----------------
+Fortran Compiler:               C:/Program Files (x86)/Intel/oneAPI/compiler/2022.2.0/windows/bin/intel64/ifort.exe
+FFLAGS:                         /W1 /nologo /fpp /libs:dll /threads /Od /debug:full /dbglibs
+LDFLAGS:		        /machine:x64 /debug /INCREMENTAL
+C Compiler:                     C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.33.31629/bin/Hostx64/x64/cl.exe
+CPPFLAGS:                        
+CFLAGS:                         /DWIN32 /D_WINDOWS /W3 -O2 /MDd /Zi /Ob0 /Od /RTC1
+Shared Library:		        no
+Static Library:		        yes
+Extra libraries:	        -lnetcdf -lnetcdf 
+
+# Features
+--------
+F03:                            yes
+Dap Support:                    no
+Logging Support:                yes
+NetCDF-2 API:                   yes
+NetCDF-4 API:                   yes
+CDF5 Support:                   yes
+Parallel IO:                    no
+NetCDF4 Parallel IO:            no
+PnetCDF Parallel IO:            no
+SZIP Write Support:             no
+Zstandard Support:              no 
+Quantize:  			no

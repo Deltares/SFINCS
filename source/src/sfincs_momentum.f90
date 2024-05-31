@@ -124,7 +124,7 @@
    !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv ) &
    !$omp reduction ( min : min_dt )
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels, present( kcuv, zs, q, q0, uv, uv0, min_dt, zsderv, &
+   !$acc kernels, present( kcuv, kfuv, zs, q, q0, uv, uv0, min_dt, zsderv, &
    !$acc                   uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
    !$acc                   subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
    !$acc                   uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
@@ -134,6 +134,8 @@
    do ip = 1, npuv
       !
       if (kcuv(ip)==1) then
+         !
+         ! Regular UV point 
          !
          ! Indices of surrounding water level points
          !
@@ -162,6 +164,8 @@
          endif
          !
          if (iok) then
+            !
+            ! UV point is wet 
             !
             if (use_quadtree) then
                iref  = uv_flags_iref(ip) ! refinement level
@@ -535,11 +539,11 @@
             !
             ! Compute flux qfr used for friction term
             !
-            if (abs(qx_nm) < 1.0e-4) then
+            if (kfuv(ip) == 0) then
                !
                ! This uv point just became wet, so estimate equilibrium flux 
                !
-               qfr = sqrt(abs(dzdx)) * hu ** (5.0 / 3.0) / 0.04
+               qfr = sqrt(abs(dzdx) / (gnavg2 / 10)) * hu ** (5.0 / 3.0)
                !
             else   
                !
@@ -606,6 +610,8 @@
             !
             uv(ip) = max(min(q(ip)/max(hu, 0.10), 4.0), -4.0)
             !
+            kfuv(ip) = 1
+            !
             ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
             !
             ! min_dt = min(min_dt, 1.0 / (max(sqrt(g * hu), abs(q(ip) / hu)) * dxuvinv))
@@ -613,8 +619,9 @@
             !
          else
             !
-            q(ip)   = 0.0
-            uv(ip)  = 0.0
+            q(ip)  = 0.0
+            uv(ip) = 0.0
+            kfuv(ip) = 0
             !
          endif
          !
@@ -649,7 +656,7 @@
    endif
    !
    !$acc update host(min_dt), async(1)
-!   !$acc wait(1)
+   !$acc wait(1)
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate

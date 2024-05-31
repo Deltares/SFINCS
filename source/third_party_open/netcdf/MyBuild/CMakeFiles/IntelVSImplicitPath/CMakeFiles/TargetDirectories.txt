@@ -1,0 +1,3 @@
+C:/work/netcdf/netcdf-fortran-main-4.6.1/MyBuild/CMakeFiles/IntelVSImplicitPath/CMakeFiles/FortranLib.dir
+C:/work/netcdf/netcdf-fortran-main-4.6.1/MyBuild/CMakeFiles/IntelVSImplicitPath/CMakeFiles/ALL_BUILD.dir
+C:/work/netcdf/netcdf-fortran-main-4.6.1/MyBuild/CMakeFiles/IntelVSImplicitPath/CMakeFiles/ZERO_CHECK.dir

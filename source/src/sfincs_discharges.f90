@@ -321,11 +321,12 @@ contains
                ! Constant discharge, no need to change
                !
                if (subgrid) then
-                  qq = max(min(qq, z_volume(nmin)/dt), 0.0)
+                  qq = max(min(qq, z_volume(nmin) / dt), 0.0)
                else
-                  qq = max(min(qq, (zs(nmin) - zb(nmin))*area/dt), 0.0)
+                  qq = max(min(qq, (zs(nmin) - zb(nmin)) * area / dt), 0.0)
                endif
                !
+!               write(*,'(4i10,20e14.4)')idrn,jin,jout,nmin,drainage_params(idrn,1),qq,z_volume(nmin),dt
                qtsrc(jin)  = -qq
                qtsrc(jout) = qq
                !

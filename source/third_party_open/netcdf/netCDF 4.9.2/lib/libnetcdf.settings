@@ -1,0 +1,61 @@
+# NetCDF C Configuration Summary
+==============================
+
+# General
+-------
+NetCDF Version:		4.9.2
+Dispatch Version:       5
+Configured On:		Tue Mar 14 15:41:19 MDT 2023
+Host System:		x86_64-MINGW64_NT-10.0-19045-3.3.6-341.x86_64
+Build Directory: 	E:/gitprojects/netcdf-c/all_builds/build_4.9.2-NC4-64
+Install Prefix:         C:/Program Files/netCDF
+Plugin Install Prefix:  N.A.
+
+# Compiling Options
+-----------------
+C Compiler:		C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.16.27023/bin/Hostx86/x64/cl.exe
+CFLAGS:			/DWIN32 /D_WINDOWS /W3 /MDd /Zi /Ob0 /Od /RTC1
+CPPFLAGS:		 
+LDFLAGS:		/machine:x64 /LARGEADDRESSAWARE /STACK:40000000 /debug /INCREMENTAL
+AM_CFLAGS:		
+AM_CPPFLAGS:		
+AM_LDFLAGS:		
+Shared Library:		yes
+Static Library:		no
+Extra libraries:	-lhdf5-shared -lhdf5_hl-shared -lzlib -lcurl_imp
+XML Parser:             tinyxml2 (bundled)
+
+# Features
+--------
+Benchmarks:		no
+NetCDF-2 API:		yes
+HDF4 Support:		no
+HDF5 Support:		yes
+NetCDF-4 API:		yes
+CDF5 Support:		yes
+NC-4 Parallel Support:	no
+PnetCDF Support:	no
+
+DAP2 Support:		no
+DAP4 Support:		no
+Byte-Range Support:	yes
+
+S3 Support:	        no
+
+NCZarr Support:		yes
+NCZarr Zip Support:     no
+
+Diskless Support:	yes
+MMap Support:		no
+JNA Support:		no
+ERANGE Fill Support:	yes
+Relaxed Boundary Check:	yes
+
+Multi-Filter Support:	yes
+Quantization:		yes
+Logging:     		no
+SZIP Write Support:     no
+Standard Filters:       deflate bz2
+ZSTD Support:           no
+Parallel Filters:       yes
+

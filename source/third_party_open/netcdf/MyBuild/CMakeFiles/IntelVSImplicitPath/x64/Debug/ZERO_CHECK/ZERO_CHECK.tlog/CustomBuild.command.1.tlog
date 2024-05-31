@@ -1,0 +1,10 @@
+^C:\WORK\NETCDF\NETCDF-FORTRAN-MAIN-4.6.1\MYBUILD\CMAKEFILES\INTELVSIMPLICITPATH\CMAKEFILES\0E0402BAC7E117A092814BFDCB5B4222\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" "-SC:/Program Files/CMake/share/cmake-3.29/Modules/IntelVSImplicitPath" -BC:/work/netcdf/netcdf-fortran-main-4.6.1/MyBuild/CMakeFiles/IntelVSImplicitPath --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/work/netcdf/netcdf-fortran-main-4.6.1/MyBuild/CMakeFiles/IntelVSImplicitPath/IntelFortranImplicit.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

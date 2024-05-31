@@ -309,6 +309,7 @@ contains
       !$acc serial, present( z_volume, nmindsrc, qtsrc ), async(1)
       do isrc = 1, nsrcdrn
          if (nmindsrc(isrc)>0) then ! should really let this happen
+!            write(*,'(2i8,20e14.4)')isrc,nmindsrc(isrc),qtsrc(isrc),z_volume(nmindsrc(isrc))
             z_volume(nmindsrc(isrc)) = max(z_volume(nmindsrc(isrc)) + qtsrc(isrc)*dt, 0.0)         
          endif   
       enddo
@@ -445,38 +446,42 @@ contains
          !      
          if (use_storage_volume) then
             !
-            if (storage_volume(nm)>1.0e-6) then
+            ! If water enters the cell through a point discharge, it will NOT end up in storage volume !  
+            !   
+            if (storage_volume(nm) > 1.0e-6 .and. dvol > 0.0) then
                !
-               ! Still some storage left
+               ! There is still some storage left, and water is entering the cell
                !
                ! Compute remaining storage volume
                !
                dv = storage_volume(nm) - dvol
                !
+               ! Update storage volume (it cannot become negative)) 
+               ! 
                storage_volume(nm) =  max(dv, 0.0)
                !
                if (dv < 0.0) then
                   !
                   ! Overshoot, so add remaining volume to z_volume
                   !
-                  z_volume(nm) = z_volume(nm) - dv
+                  dvol = - dv
+                  ! 
+               else                   
+                  !
+                  ! Everything went into storage  
+                  ! 
+                  dvol = 0.0 
                   !
                endif
                !
-            else
-               ! 
-               ! Storage is full 
-               !
-               z_volume(nm) = z_volume(nm) + dvol
-               !
             endif
             !
-         else
-            !
-            z_volume(nm) = z_volume(nm) + dvol
-            !
          endif
-         ! 
+         !
+         ! Update volume 
+         !
+         z_volume(nm) = z_volume(nm) + dvol
+         !
          if (wiggle_suppression) then
             !
             ! Store previous water level to determine gradient

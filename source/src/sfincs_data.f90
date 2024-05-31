@@ -296,7 +296,7 @@ module sfincs_data
       !
       integer*1,          dimension(:),   allocatable :: kcs
       integer*1,          dimension(:),   allocatable :: kcuv
-      ! integer*1,          dimension(:),   allocatable :: kfu
+      integer*1,          dimension(:),   allocatable :: kfuv
       integer*1,          dimension(:),   allocatable :: mask_adv
       integer*1,          dimension(:),   allocatable :: scs_rain   ! logic if previous time step was raining
       !

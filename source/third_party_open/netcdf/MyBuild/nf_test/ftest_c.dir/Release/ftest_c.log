@@ -1,0 +1,3 @@
+﻿  Building Custom Rule C:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main/nf_test/CMakeLists.txt
+  f03lib.c
+  ftest_c.vcxproj -> C:\work\netcdf\netcdf-fortran-main-4.6.1\MyBuild\nf_test\ftest_c.dir\Release\ftest_c.lib

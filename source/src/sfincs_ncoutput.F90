@@ -807,9 +807,7 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_nodes_varid, 'long_name', 'Mapping from every face to its corner nodes (counterclockwise)'))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_nodes_varid, 'start_index', one_r4))
 !   NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_nodes_varid, '_FillValue', -999))
-   write(*,*)'KUT!!!'
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_nodes_varid, '_FillValue', nineninenine))
-   write(*,*)'KUT!!! done'
    !
    NF90(nf90_def_var(map_file%ncid, 'crs', NF90_INT, map_file%crs_varid)) ! For EPSG code
    NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'EPSG', '-'))

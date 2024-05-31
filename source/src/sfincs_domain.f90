@@ -2253,12 +2253,16 @@ contains
    allocate(q0(npuv + ncuv + 1))
    allocate(uv(npuv + ncuv + 1))
    allocate(uv0(npuv + ncuv + 1))
+   !
+   allocate(kfuv(npuv))
    ! 
-   zs   = 0.0
-   q    = 0.0
-   q0   = 0.0
-   uv   = 0.0
-   uv0  = 0.0
+   zs  = 0.0
+   q   = 0.0
+   q0  = 0.0
+   uv  = 0.0
+   uv0 = 0.0
+   !
+   kfuv = 0 
    !
    if (wiggle_suppression) then 
       ! 

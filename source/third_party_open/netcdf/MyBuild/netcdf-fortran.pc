@@ -1,0 +1,16 @@
+prefix=C:/Program Files/NC4F
+exec_prefix=C:/Program Files/NC4F
+libdir=C:/Program Files/NC4F/lib
+includedir=C:/Program Files/NC4F/include
+fmoddir=
+ccompiler=C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.33.31629/bin/Hostx64/x64/cl.exe
+fcompiler=C:/Program Files (x86)/Intel/oneAPI/compiler/2022.2.0/windows/bin/intel64/ifort.exe
+
+Name: netcdf-fortran
+Description: NetCDF Client Library for Fortran
+URL: https://www.unidata.ucar.edu/netcdf
+Version: 4.6.2-development
+Requires.private: netcdf > 4.1.1
+Libs: -L${libdir} -lnetcdff
+Libs.private: -L${libdir} -lnetcdff -lnetcdf
+Cflags: -I${includedir} -I${fmoddir}

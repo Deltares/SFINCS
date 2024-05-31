@@ -1,0 +1,1 @@
+C:\work\netcdf\netcdf-fortran-main-4.6.1\MyBuild\fortran\netcdff_c.dir\Debug\netcdff_c.lib

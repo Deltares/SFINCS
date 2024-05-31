@@ -1,0 +1,286 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|x64">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{0AEC5773-98D6-342E-9B52-CB8A17D006CB}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
+    <Platform>x64</Platform>
+    <ProjectName>netcdff_c</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">netcdff_c.dir\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">netcdff_c.dir\Debug\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">netcdff_c</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">netcdff_c.dir\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">netcdff_c.dir\Release\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">netcdff_c</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">netcdff_c.dir\MinSizeRel\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">netcdff_c.dir\MinSizeRel\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">netcdff_c</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">netcdff_c.dir\RelWithDebInfo\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">netcdff_c.dir\RelWithDebInfo\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">netcdff_c</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">.lib</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main;C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main\libsrc;c:\work\netcdf\netCDF 4.9.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;DLL_NETCDF;_CRT_SECURE_NO_WARNINGS;NCSHORT_T=integer*2;NCBYTE_T=byte;NF_RELAX_COORD_BOUND;NF_HAS_PARALLEL4;NF_HAS_PNETCDF;NF_INT1_IS_C_SIGNED_CHAR;NF_INT2_IS_C_SHORT;NF_INT_IS_C_INT;NF_INT8_IS_C_LONG_LONG;NF_REAL_IS_C_FLOAT;NF_DOUBLEPRECISION_IS_C_DOUBLE;USE_NETCDF4;HAVE_TS29113_SUPPORT;CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;DLL_NETCDF;_CRT_SECURE_NO_WARNINGS;NCSHORT_T=integer*2;NCBYTE_T=byte;NF_RELAX_COORD_BOUND;NF_HAS_PARALLEL4;NF_HAS_PNETCDF;NF_INT1_IS_C_SIGNED_CHAR;NF_INT2_IS_C_SHORT;NF_INT_IS_C_INT;NF_INT8_IS_C_LONG_LONG;NF_REAL_IS_C_FLOAT;NF_DOUBLEPRECISION_IS_C_DOUBLE;USE_NETCDF4;HAVE_TS29113_SUPPORT;CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main;C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main\libsrc;c:\work\netcdf\netCDF 4.9.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main;C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main\libsrc;c:\work\netcdf\netCDF 4.9.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main;C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main\libsrc;c:\work\netcdf\netCDF 4.9.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;DLL_NETCDF;_CRT_SECURE_NO_WARNINGS;NCSHORT_T=integer*2;NCBYTE_T=byte;NF_RELAX_COORD_BOUND;NF_HAS_PARALLEL4;NF_HAS_PNETCDF;NF_INT1_IS_C_SIGNED_CHAR;NF_INT2_IS_C_SHORT;NF_INT_IS_C_INT;NF_INT8_IS_C_LONG_LONG;NF_REAL_IS_C_FLOAT;NF_DOUBLEPRECISION_IS_C_DOUBLE;USE_NETCDF4;HAVE_TS29113_SUPPORT;CMAKE_INTDIR="Release"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;DLL_NETCDF;_CRT_SECURE_NO_WARNINGS;NCSHORT_T=integer*2;NCBYTE_T=byte;NF_RELAX_COORD_BOUND;NF_HAS_PARALLEL4;NF_HAS_PNETCDF;NF_INT1_IS_C_SIGNED_CHAR;NF_INT2_IS_C_SHORT;NF_INT_IS_C_INT;NF_INT8_IS_C_LONG_LONG;NF_REAL_IS_C_FLOAT;NF_DOUBLEPRECISION_IS_C_DOUBLE;USE_NETCDF4;HAVE_TS29113_SUPPORT;CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main;C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main\libsrc;c:\work\netcdf\netCDF 4.9.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main;C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main\libsrc;c:\work\netcdf\netCDF 4.9.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main;C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main\libsrc;c:\work\netcdf\netCDF 4.9.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;DLL_NETCDF;_CRT_SECURE_NO_WARNINGS;NCSHORT_T=integer*2;NCBYTE_T=byte;NF_RELAX_COORD_BOUND;NF_HAS_PARALLEL4;NF_HAS_PNETCDF;NF_INT1_IS_C_SIGNED_CHAR;NF_INT2_IS_C_SHORT;NF_INT_IS_C_INT;NF_INT8_IS_C_LONG_LONG;NF_REAL_IS_C_FLOAT;NF_DOUBLEPRECISION_IS_C_DOUBLE;USE_NETCDF4;HAVE_TS29113_SUPPORT;CMAKE_INTDIR="MinSizeRel"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;DLL_NETCDF;_CRT_SECURE_NO_WARNINGS;NCSHORT_T=integer*2;NCBYTE_T=byte;NF_RELAX_COORD_BOUND;NF_HAS_PARALLEL4;NF_HAS_PNETCDF;NF_INT1_IS_C_SIGNED_CHAR;NF_INT2_IS_C_SHORT;NF_INT_IS_C_INT;NF_INT8_IS_C_LONG_LONG;NF_REAL_IS_C_FLOAT;NF_DOUBLEPRECISION_IS_C_DOUBLE;USE_NETCDF4;HAVE_TS29113_SUPPORT;CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main;C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main\libsrc;c:\work\netcdf\netCDF 4.9.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main;C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main\libsrc;c:\work\netcdf\netCDF 4.9.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main;C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main\libsrc;c:\work\netcdf\netCDF 4.9.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;DLL_NETCDF;_CRT_SECURE_NO_WARNINGS;NCSHORT_T=integer*2;NCBYTE_T=byte;NF_RELAX_COORD_BOUND;NF_HAS_PARALLEL4;NF_HAS_PNETCDF;NF_INT1_IS_C_SIGNED_CHAR;NF_INT2_IS_C_SHORT;NF_INT_IS_C_INT;NF_INT8_IS_C_LONG_LONG;NF_REAL_IS_C_FLOAT;NF_DOUBLEPRECISION_IS_C_DOUBLE;USE_NETCDF4;HAVE_TS29113_SUPPORT;CMAKE_INTDIR="RelWithDebInfo"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;DLL_NETCDF;_CRT_SECURE_NO_WARNINGS;NCSHORT_T=integer*2;NCBYTE_T=byte;NF_RELAX_COORD_BOUND;NF_HAS_PARALLEL4;NF_HAS_PNETCDF;NF_INT1_IS_C_SIGNED_CHAR;NF_INT2_IS_C_SHORT;NF_INT_IS_C_INT;NF_INT8_IS_C_LONG_LONG;NF_REAL_IS_C_FLOAT;NF_DOUBLEPRECISION_IS_C_DOUBLE;USE_NETCDF4;HAVE_TS29113_SUPPORT;CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main;C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main\libsrc;c:\work\netcdf\netCDF 4.9.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main;C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main\libsrc;c:\work\netcdf\netCDF 4.9.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main\fortran\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule C:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main/fortran/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main -BC:/work/netcdf/netcdf-fortran-main-4.6.1/MyBuild --check-stamp-file C:/work/netcdf/netcdf-fortran-main-4.6.1/MyBuild/fortran/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\work\netcdf\netcdf-fortran-main-4.6.1\MyBuild\fortran\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule C:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main/fortran/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main -BC:/work/netcdf/netcdf-fortran-main-4.6.1/MyBuild --check-stamp-file C:/work/netcdf/netcdf-fortran-main-4.6.1/MyBuild/fortran/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\work\netcdf\netcdf-fortran-main-4.6.1\MyBuild\fortran\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule C:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main/fortran/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main -BC:/work/netcdf/netcdf-fortran-main-4.6.1/MyBuild --check-stamp-file C:/work/netcdf/netcdf-fortran-main-4.6.1/MyBuild/fortran/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\work\netcdf\netcdf-fortran-main-4.6.1\MyBuild\fortran\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule C:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main/fortran/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main -BC:/work/netcdf/netcdf-fortran-main-4.6.1/MyBuild --check-stamp-file C:/work/netcdf/netcdf-fortran-main-4.6.1/MyBuild/fortran/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\work\netcdf\netcdf-fortran-main-4.6.1\MyBuild\fortran\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main\fortran\nf_lib.c" />
+    <ClCompile Include="C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main\fortran\nf_v2compat.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="C:\work\netcdf\netcdf-fortran-main-4.6.1\MyBuild\ZERO_CHECK.vcxproj">
+      <Project>{906FA16C-8C79-373F-858C-660A1272AD1D}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

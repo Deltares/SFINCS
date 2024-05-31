@@ -1,0 +1,10 @@
+^C:\WORK\NETCDF\NETCDF-FORTRAN-MAIN-4.6.1\NETCDF-FORTRAN-MAIN\FORTRAN\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main -BC:/work/netcdf/netcdf-fortran-main-4.6.1/MyBuild --check-stamp-file C:/work/netcdf/netcdf-fortran-main-4.6.1/MyBuild/fortran/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

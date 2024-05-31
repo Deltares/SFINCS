@@ -1,0 +1,69 @@
+# CMake generation dependency list for this directory.
+C:/Program Files/CMake/share/cmake-3.29/Modules/BasicConfigVersion-SameMajorVersion.cmake.in
+C:/Program Files/CMake/share/cmake-3.29/Modules/CMakeCInformation.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CMakeCheckCompilerFlagCommonPatterns.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CMakeCommonLanguageInclude.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CMakeFortranInformation.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CMakeGenericSystem.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CMakeInitializeConfigs.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CMakeLanguageInformation.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CMakePackageConfigHelpers.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CMakeRCInformation.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CMakeSystemSpecificInformation.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CMakeSystemSpecificInitialize.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CTest.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CTestUseLaunchers.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CheckCCompilerFlag.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CheckCSourceCompiles.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CheckCXXCompilerFlag.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CheckCXXSourceCompiles.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CheckCompilerFlag.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CheckFortranCompilerFlag.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CheckFortranSourceCompiles.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CheckFunctionExists.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CheckIncludeFile.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CheckIncludeFileCXX.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CheckLibraryExists.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CheckSourceCompiles.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CheckSymbolExists.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/CheckTypeSize.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/Compiler/CMakeCommonCompilerMacros.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/Compiler/Intel-Fortran.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/Compiler/Intel.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/Compiler/MSVC-C.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/Compiler/MSVC.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/FindDoxygen.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/FindPackageHandleStandardArgs.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/FindPackageMessage.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/FindPkgConfig.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/GNUInstallDirs.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/GenerateExportHeader.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/GetPrerequisites.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/Internal/CheckCompilerFlag.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/Internal/CheckFlagCommonConfig.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/Internal/CheckSourceCompiles.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/Platform/Windows-Initialize.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/Platform/Windows-Intel-Fortran.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/Platform/Windows-Intel.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/Platform/Windows-MSVC-C.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/Platform/Windows-MSVC.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/Platform/Windows.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/Platform/WindowsPaths.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/TestBigEndian.cmake
+C:/Program Files/CMake/share/cmake-3.29/Modules/WriteBasicConfigVersionFile.cmake
+C:/work/netcdf/netcdf-fortran-main-4.6.1/MyBuild/CMakeFiles/3.29.0-rc1/CMakeCCompiler.cmake
+C:/work/netcdf/netcdf-fortran-main-4.6.1/MyBuild/CMakeFiles/3.29.0-rc1/CMakeFortranCompiler.cmake
+C:/work/netcdf/netcdf-fortran-main-4.6.1/MyBuild/CMakeFiles/3.29.0-rc1/CMakeRCCompiler.cmake
+C:/work/netcdf/netcdf-fortran-main-4.6.1/MyBuild/CMakeFiles/3.29.0-rc1/CMakeSystem.cmake
+C:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main/CMakeExtras/MatchNetCDFFortranTypes.cmake
+C:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main/CMakeExtras/check_cdf5.c
+C:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main/CMakeExtras/check_parallel4.c
+C:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main/CMakeExtras/check_pnetcdf.c
+C:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main/CMakeExtras/check_relax_coord_bound.c
+C:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main/CMakeExtras/test_c_ptrdiff_t.f90
+C:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main/CMakeLists.txt
+C:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main/CTestConfig.cmake.in
+C:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main/libnetcdff.settings.in
+C:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main/netCDF-FortranConfig.cmake.in
+C:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main/netcdf-fortran.pc.in
+C:/work/netcdf/netcdf-fortran-main-4.6.1/netcdf-fortran-main/nf-config.cmake.in

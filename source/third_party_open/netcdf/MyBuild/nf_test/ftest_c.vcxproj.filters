@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main\nf_test\f03lib.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\work\netcdf\netcdf-fortran-main-4.6.1\netcdf-fortran-main\nf_test\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{FBBDB8B2-D668-3707-B434-1FE22F0DB4B7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
