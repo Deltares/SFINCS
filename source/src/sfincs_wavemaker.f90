@@ -48,6 +48,8 @@
    real*4    :: phip
    !
    real*4    :: r
+   integer, allocatable :: seed(:)
+   integer :: nseed
 !   real*4    :: dxcross
 !   real*4    :: dst
 !   real*4    :: xxx
@@ -1287,8 +1289,19 @@
       !
    endif   
    !
-   ! Infragravity frequencies
+   ! Random seed wavemaker
    !
+   call random_seed(size = nseed)   
+   if (.NOT. wmrandom) then
+      call random_seed(put = [ 2147483562, 2147483398])
+   endif
+   !
+   allocate(seed(nseed))      
+   call random_seed(get=seed)
+   write (*, *)'Wavemaker random seed: ',seed
+   !
+   ! Infragravity frequencies
+   !   
    allocate(freqig(nfreqsig))
    allocate(costig(nfreqsig))
    allocate(phiig(nfreqsig))
