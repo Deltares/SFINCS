@@ -85,8 +85,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.0.6-alpha:branch-90-timemax-coordinate-does-not-exactly-match-dtmaxout'
-   build_date     = '$Date: 2024-05-16'
+   build_revision = '$Rev: v2.0.6'
+   build_date     = '$Date: 2024-05-31'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
