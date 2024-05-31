@@ -76,21 +76,18 @@ Parameters for model input
 	  :min:			0.8
 	  :max:			1.0
 	viscosity
-	  :description:		Turns on the viscosity term in the momentum equation (viscosity = 1), advised to combine with theta = 1.0. Value of viscosity term 'nuvisc' automatically determined based on grid size..
+	  :description:		Turns on the viscosity term in the momentum equation (viscosity = 1), advised to combine with theta = 1.0.
 	  :units:		-
 	  :default:		1
 	  :min:			0
 	  :max:			1
 	nuviscdim
-	  :description:		Dimensionless viscosity coefficient, multiplies the automatically determined value for 'nuvisc' with the specified factor for 'nuviscdim'.
-	  :units:		-
-	  :default:		1.0
-	  :min:			0.0
-	  :max:			Inf	  
+	  :description:		Depricated after Cauberg release of SFINCS.
+	  :units:		-  
 	nuvisc
-	  :description:		Viscosity coefficient, by default turned off, but automatically determined if 'viscosity=1'. specifying a value for 'nuvisc' overrule default value.
+	  :description:		Viscosity coefficient 'per meter of grid cell length', used if 'viscosity=1' and multiplied internally with the grid cell size (per quadtree level in quadtree mesh mode).
 	  :units:		-
-	  :default:		-999.0 (=off)
+	  :default:		0.01
 	  :min:			0.0
 	  :max:			Inf	  	  	  
 	zsini
