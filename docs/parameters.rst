@@ -52,11 +52,11 @@ Parameters for model input
 	  :min:			0
 	  :max:			359.999 	  
 	advection
-	  :description:		setting for advection. 0 for no advection scheme (SFINCS-LIE), 1 for 1D advection scheme for modelling in 1D OR 2 for 2D advection scheme for modelling in 2D (SFINCS-SSWE).
+	  :description:		Setting for advection. 0 for no advection scheme (SFINCS-LIE), 1 for advection scheme on (SFINCS-SSWE).
 	  :units:		-
-	  :default:		0
+	  :default:		1
 	  :min:			0
-	  :max:			2
+	  :max:			1
 	alpha	
 	  :description:		CFL-condition reduction. Decrease for additional numerical stability, minimum value is 0.1 and maximum is 0.75.
 	  :units:		-	
@@ -72,13 +72,13 @@ Parameters for model input
 	theta
 	  :description:		Smoothing factor in momentum equation.
 	  :units:		-
-	  :default:		0.9
+	  :default:		1.0
 	  :min:			0.8
 	  :max:			1.0
 	viscosity
 	  :description:		Turns on the viscosity term in the momentum equation (viscosity = 1), advised to combine with theta = 1.0. Value of viscosity term 'nuvisc' automatically determined based on grid size..
 	  :units:		-
-	  :default:		0
+	  :default:		1
 	  :min:			0
 	  :max:			1
 	nuviscdim
