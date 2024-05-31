@@ -708,6 +708,7 @@ The default value is 1.0 which is recommended for the regular version of SFINCS,
 
 'advection' sets whether to turn on or off the advection term used in the momentum equation, varying between the default of turned on (advection = 1, default), or off (advection = 0).
 Recommended is to turn the advection term always on.
+
 .. code-block:: text
 
 	huthresh 	= 0.05
@@ -727,6 +728,7 @@ Increasing the value of 'nuvisc' increases the viscosity term and effectively in
 
 	viscosity 	= 1
 	nuvisc 		= 0.01
+
 	nuviscdim 	= Depricated after Cauberg release of SFINCS.
 	
 **Drag Coefficients:**
