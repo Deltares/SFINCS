@@ -1291,11 +1291,6 @@
    !
    ! Random seed wavemaker
    !
-   call random_seed(size = nseed)   
-   if (.NOT. wmrandom) then
-      call random_seed(put = [ 2147483562, 2147483398])
-   endif
-   !
    allocate(seed(nseed))      
    call random_seed(get=seed)
    write (*, *)'Wavemaker random seed: ',seed
