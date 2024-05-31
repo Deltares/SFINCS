@@ -40,7 +40,7 @@
 		</Configuration>
 		<Configuration Name="Release|x64" UseCompiler="ifxCompiler">
 			<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" Optimization="optimizeFull" Parallelization="true" PreprocessorDefinitions=";_CRT_SECURE_NO_WARNINGS;NCSHORT_T=integer*2;NCBYTE_T=byte;NF_RELAX_COORD_BOUND;NF_HAS_PARALLEL4;NF_HAS_PNETCDF;NF_INT1_IS_C_SIGNED_CHAR;NF_INT2_IS_C_SHORT;NF_INT_IS_C_INT;NF_INT8_IS_C_LONG_LONG;NF_REAL_IS_C_FLOAT;NF_DOUBLEPRECISION_IS_C_DOUBLE;CMAKE_INTDIR=\&quot;Debug\&quot;;HAVE_TS29113_SUPPORT;" OpenMP="OpenMPParallelCode" Diagnostics="diagnosticsShowAll" FloatingPointModel="fast2"/>
-			<Tool Name="VFLinkerTool" OutputFile="$(OutDir)\sfincs.exe" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="$(SolutionDir)\third_party_open\netcdf\MyBuild\fortran\Release;$(SolutionDir)\third_party_open\netcdf\netCDF 4.9.2\lib" SubSystem="subSystemConsole" AdditionalDependencies="netcdf.lib netcdff.lib"/>
+			<Tool Name="VFLinkerTool" OutputFile="$(OutDir)\sfincs.exe" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="$(SolutionDir)\third_party_open\netcdf\x64\Release;$(SolutionDir)\third_party_open\netcdf\netCDF 4.9.2\lib" SubSystem="subSystemConsole" AdditionalDependencies="netcdf.lib netcdff.lib"/>
 			<Tool Name="VFResourceCompilerTool"/>
 			<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
 			<Tool Name="VFCustomBuildTool"/>

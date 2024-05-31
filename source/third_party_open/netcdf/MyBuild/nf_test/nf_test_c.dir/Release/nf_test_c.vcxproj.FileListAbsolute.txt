@@ -1,1 +1,0 @@
-C:\work\netcdf\netcdf-fortran-main-4.6.1\MyBuild\nf_test\nf_test_c.dir\Release\nf_test_c.lib
