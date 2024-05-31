@@ -45,12 +45,13 @@ Example of sfincs.inp
 	srcfile         = sfincs.src
 	disfile         = sfincs.dis
 
-	advection	    = 0
-	alpha           = 0.75
-	huthresh	    = 0.05
+	advection	= 1
+	alpha           = 0.5
+	huthresh	= 0.05
 	manning         = 0.04	
-	theta 		    = 1.0
+	theta 		= 1.0
 	qinf            = 0.0
+        viscosity       = 1
 
 	dtout           = 3600
 	dtmaxout        = 86400	
@@ -60,6 +61,9 @@ Example of sfincs.inp
 	outputformat    = net	
 	
 	obsfile         = sfincs.obs  	
+
+        storecumprcp    = 1
+	storevelmax     = 1
 
 Domain
 -----
@@ -702,35 +706,30 @@ The default value is 1.0 which is recommended for the regular version of SFINCS,
 
 **advection**
 
-'advection' sets what version of the advection term to use in the momentum equation, varying between the default of no advection at all (advection = 0), 1D advection terms (advection = 1) and full 2D advection terms (advection = 2).
-Generally it is only needed to turn on advection in case of modelling waves or super-critical flow.
+'advection' sets whether to turn on or off the advection term used in the momentum equation, varying between the default of turned on (advection = 1, default), or off (advection = 0).
+Recommended is to turn the advection term always on.
 
 .. code-block:: text
 
 	huthresh 	= 0.05
-	alpha 		= 0.75
+	alpha 		= 0.5
 	theta 		= 1.0
-	advection 	= 0
+	advection 	= 1
 
 **viscosity**
 
 'viscosity' turns on the viscosity term in the momentum equation (viscosity = 1).
-The recommended value of viscosity 'nuvisc' to add to your model (only advised to use when you set theta = 1.0), depends on your grid size.
-For ease, SFINCS internally automatically determines the optimal value for you, which is displayed when running the model:	'Turning on process: Viscosity, with nuvisc=   0.5000000'. In this example corresponding to a grid resolution of 50 meters.
-In case you would want to increase the viscosity term, you can either specify the exact value you want 'nuvisc = XXX', or e.g. multiply it by a factor 2: 	nuviscdim = 2.0 (default = 1.0, dimensionless).
-By default the value of nuvisc is determined like this:
-
-	dx = 50 > nuvisc = 0.5
-	
-        dx = 100 > nuvisc = 1.0
-	
-        dx = 500 > nuvisc = 5.0	
+The recommended value of 'nuvisc', the viscosity coefficient 'per meter of grid cell length' to add to your model is 0.01.
+This coefficient is multiplied internally with the grid cell size (per quadtree level in quadtree mesh mode).
+For ease, this is displayed when running the model:	'Viscosity - nuvisc=   [0.1000000 - 0.5000000]'. 
+Increasing the value of 'nuvisc' increases the viscosity term and effectively internal smoothing of the flow.
 	
 .. code-block:: text
 
 	viscosity 	= 1
-	nuviscdim 	= 1.0 (default)
-	nuvisc 		= XXX (automatically determined, or specify a value yourself that overrules this)
+	nuvisc 		= 0.01
+
+	nuviscdim 	= Depricated after Cauberg release of SFINCS.
 	
 **Drag Coefficients:**
 

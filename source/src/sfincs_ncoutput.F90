@@ -51,7 +51,7 @@ module sfincs_ncoutput
       integer :: patm_varid, wind_speed_varid, wind_dir_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid  
       integer :: hm0_varid, hm0ig_varid, zsm_varid, tp_varid, tpig_varid, wavdir_varid, dirspr_varid
-      integer :: dw_varid, df_varid, dwig_varid, dfig_varid, cg_varid, qb_varid, beta_varid, srcsh_varid, alphaig_varid
+      integer :: dw_varid, df_varid, dwig_varid, dfig_varid, cg_varid, qb_varid, beta_varid, srcig_varid, alphaig_varid
       !
    end type
    !
@@ -332,7 +332,7 @@ contains
       NF90(nf90_def_var(map_file%ncid, 'cumprcp', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%timemax_dimid/), map_file%cumprcp_varid)) ! time-varying maximum water level map
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%cumprcp_varid, 1, 1, nc_deflate_level)) ! deflate
       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, '_FillValue', FILL_VALUE))          
-      NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'units', 'mm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'units', 'm'))
       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'long_name', 'cumulative_precipitation_depth')) 
       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'standard_name', 'cumulative_precipitation_depth')) 
       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'cell_methods', 'time: sum'))       
@@ -931,7 +931,7 @@ contains
       NF90(nf90_def_var(map_file%ncid, 'cumprcp', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%timemax_dimid/), map_file%cumprcp_varid)) ! cumulative precipitation map
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%cumprcp_varid, 1, 1, nc_deflate_level))
       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, '_FillValue', FILL_VALUE))          
-      NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'units', 'mm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'units', 'm'))
       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'long_name', 'cumulative_precipitation_depth')) 
       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'cell_methods', 'time: sum'))       
       !   
@@ -1534,12 +1534,12 @@ contains
          NF90(nf90_put_att(his_file%ncid, his_file%beta_varid, 'long_name', 'directionally averaged normalised bed slope'))  
          NF90(nf90_put_att(his_file%ncid, his_file%beta_varid, 'coordinates', 'station_id station_name point_x point_y'))
          !               
-         NF90(nf90_def_var(his_file%ncid, 'srcsh', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%srcsh_varid)) ! time-varying water level point
-         NF90(nf90_put_att(his_file%ncid, his_file%srcsh_varid, '_FillValue', FILL_VALUE))
-         NF90(nf90_put_att(his_file%ncid, his_file%srcsh_varid, 'units', '-'))
-         NF90(nf90_put_att(his_file%ncid, his_file%srcsh_varid, 'standard_name', 'directionally_averaged_ig_energy_source')) 
-         NF90(nf90_put_att(his_file%ncid, his_file%srcsh_varid, 'long_name', 'directionally averaged ig energy source'))  
-         NF90(nf90_put_att(his_file%ncid, his_file%srcsh_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         NF90(nf90_def_var(his_file%ncid, 'srcig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%srcig_varid)) ! time-varying water level point
+         NF90(nf90_put_att(his_file%ncid, his_file%srcig_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(his_file%ncid, his_file%srcig_varid, 'units', '-'))
+         NF90(nf90_put_att(his_file%ncid, his_file%srcig_varid, 'standard_name', 'directionally_averaged_ig_energy_source')) 
+         NF90(nf90_put_att(his_file%ncid, his_file%srcig_varid, 'long_name', 'directionally averaged ig energy source'))  
+         NF90(nf90_put_att(his_file%ncid, his_file%srcig_varid, 'coordinates', 'station_id station_name point_x point_y'))
          !                   
          NF90(nf90_def_var(his_file%ncid, 'alphaig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%alphaig_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%alphaig_varid, '_FillValue', FILL_VALUE))
@@ -2276,7 +2276,7 @@ contains
    real*4, dimension(nobs) :: cgobs
    real*4, dimension(nobs) :: qbobs
    real*4, dimension(nobs) :: betaobs
-   real*4, dimension(nobs) :: srcshobs
+   real*4, dimension(nobs) :: srcigobs
    real*4, dimension(nobs) :: alphaigobs
    real*4, dimension(:), allocatable :: qq
    !
@@ -2300,7 +2300,7 @@ contains
    cgobs        = FILL_VALUE
    qbobs        = FILL_VALUE
    betaobs      = FILL_VALUE
-   srcshobs     = FILL_VALUE
+   srcigobs     = FILL_VALUE
    alphaigobs   = FILL_VALUE   
    !
    do iobs = 1, nobs ! determine zs and prcp of obervation points at required timestep
@@ -2402,7 +2402,7 @@ contains
                cgobs(iobs)    = cg(nm) 
                qbobs(iobs)    = qb(nm)               
                betaobs(iobs)  = betamean(nm)               
-               srcshobs(iobs) = srcsh(nm)               
+               srcigobs(iobs) = srcig(nm)               
                alphaigobs(iobs) = alphaig(nm)                              
                ! 
             endif
@@ -2444,7 +2444,7 @@ contains
       if (store_wave_direction) then
          !
          NF90(nf90_put_var(his_file%ncid, his_file%wavdir_varid, wavdirobs, (/1, nthisout/)))
-         NF90(nf90_put_var(his_file%ncid, his_file%dirspr_varid, dirsprobs, (/1, nthisout/)))
+         !NF90(nf90_put_var(his_file%ncid, his_file%dirspr_varid, dirsprobs, (/1, nthisout/)))
          !
       endif
       !            
@@ -2466,7 +2466,7 @@ contains
          !
          NF90(nf90_put_var(his_file%ncid, his_file%qb_varid, qbobs, (/1, nthisout/)))
          NF90(nf90_put_var(his_file%ncid, his_file%beta_varid, betaobs, (/1, nthisout/)))
-         NF90(nf90_put_var(his_file%ncid, his_file%srcsh_varid, srcshobs, (/1, nthisout/)))                  
+         NF90(nf90_put_var(his_file%ncid, his_file%srcig_varid, srcigobs, (/1, nthisout/)))                  
          NF90(nf90_put_var(his_file%ncid, his_file%alphaig_varid, alphaigobs, (/1, nthisout/)))         
          !            
       endif
@@ -2627,7 +2627,7 @@ contains
          n    = z_index_z_n(nm)
          m    = z_index_z_m(nm)
          !      
-         zstmp(m, n) = cumprcp(nm)*1000
+         zstmp(m, n) = cumprcp(nm)
          !
       enddo
       !
@@ -2721,17 +2721,19 @@ contains
        !
        nm = index_sfincs_in_quadtree(nmq)
        !
-       if (kcs(nm)>0) then
-           if (subgrid) then
-               if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
-                   zstmp(nmq) = zsmax(nm)
+       if (nm>0) then       
+           if (kcs(nm)>0) then
+               if (subgrid) then
+                   if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
+                       zstmp(nmq) = zsmax(nm)
+                   endif
+               else
+                  if ( (zsmax(nm) - zb(nm)) > huthresh) then
+                      zstmp(nmq) = zsmax(nm)
+                  endif
                endif
-           else
-              if ( (zsmax(nm) - zb(nm)) > huthresh) then
-                  zstmp(nmq) = zsmax(nm)
-              endif
            endif
-       endif
+       endif       
    enddo
    !
    NF90(nf90_put_var(map_file%ncid, map_file%timemax_varid, t, (/ntmaxout/)))       ! write time_max
@@ -2739,27 +2741,28 @@ contains
    !
    ! Write maximum water depth
    if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
+      ! 
       zstmp = FILL_VALUE
       !        
-      if (subgrid) then   
-         do nm = 1, np
-            !
-            if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
-               zstmp(nm) = zsmax(nm) - subgrid_z_zmin(nm)           
-            endif
-            !
-         enddo
-      else
-         do nm = 1, np       
-            !
-            if ( (zsmax(nm) - zb(nm)) > huthresh) then
-               zstmp(nm) = zsmax(nm) - zb(nm)                       
-            endif      
-         enddo
-      endif  
-   endif
-   !   
-   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
+      do nmq = 1, quadtree_nr_points
+          !
+          nm = index_sfincs_in_quadtree(nmq)
+          !
+          if (nm>0) then
+              if (kcs(nm)>0) then
+                  if (subgrid) then
+                      if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
+                          zstmp(nmq) = zsmax(nm) - subgrid_z_zmin(nm)
+                      endif
+                  else
+                     if ( (zsmax(nm) - zb(nm)) > huthresh) then
+                         zstmp(nmq) = zsmax(nm) - zb(nm)
+                     endif
+                  endif
+              endif
+          endif
+      enddo      
+      !
       NF90(nf90_put_var(map_file%ncid, map_file%hmax_varid, zstmp, (/1, ntmaxout/))) ! write hmax   
    endif
    !
@@ -2771,9 +2774,11 @@ contains
        zstmp = FILL_VALUE       
        do nmq = 1, quadtree_nr_points
            nm = index_sfincs_in_quadtree(nmq)
-           if (kcs(nm)>0) then
-               zstmp(nmq) = cumprcp(nm)*1000
-           endif
+           if (nm>0) then           
+               if (kcs(nm)>0) then
+                   zstmp(nmq) = cumprcp(nm)
+               endif
+           endif           
        enddo
        NF90(nf90_put_var(map_file%ncid, map_file%cumprcp_varid, zstmp, (/1, ntmaxout/))) ! write cumprcp
        ! 
@@ -2782,9 +2787,11 @@ contains
        zstmp = FILL_VALUE       
        do nmq = 1, quadtree_nr_points
            nm = index_sfincs_in_quadtree(nmq)
-           if (kcs(nm)>0) then
-               zstmp(nmq) = cuminf(nm)
-           endif
+           if (nm>0) then
+               if (kcs(nm)>0) then
+                   zstmp(nmq) = cuminf(nm)
+               endif
+           endif           
        enddo
        NF90(nf90_put_var(map_file%ncid, map_file%cuminf_varid, zstmp, (/1, ntmaxout/))) ! write cuminf      
        !       
@@ -2795,9 +2802,11 @@ contains
        zstmp = FILL_VALUE       
        do nmq = 1, quadtree_nr_points
            nm = index_sfincs_in_quadtree(nmq)
-           if (kcs(nm)>0) then
-               zstmp(nmq) = vmax(nm)
-           endif
+           if (nm>0) then           
+               if (kcs(nm)>0) then
+                   zstmp(nmq) = vmax(nm)
+               endif
+           endif           
        enddo
       NF90(nf90_put_var(map_file%ncid, map_file%vmax_varid, zstmp, (/1, ntmaxout/))) ! write vmax   
    endif
@@ -2807,9 +2816,11 @@ contains
        zstmp = FILL_VALUE       
        do nmq = 1, quadtree_nr_points
            nm = index_sfincs_in_quadtree(nmq)
-           if (kcs(nm)>0) then
-               zstmp(nmq) = qmax(nm)
-           endif
+           if (nm>0) then                      
+               if (kcs(nm)>0) then
+                   zstmp(nmq) = qmax(nm)
+               endif
+           endif           
        enddo
       NF90(nf90_put_var(map_file%ncid, map_file%qmax_varid, zstmp, (/1, ntmaxout/))) ! write qmax   
    endif   
@@ -2819,8 +2830,10 @@ contains
        zstmp = FILL_VALUE       
        do nmq = 1, quadtree_nr_points
            nm = index_sfincs_in_quadtree(nmq)
-           if (kcs(nm)>0) then
-               zstmp(nmq) = twet(nm)
+           if (nm>0) then                                 
+               if (kcs(nm)>0) then
+                   zstmp(nmq) = twet(nm)
+               endif
            endif
        enddo
       NF90(nf90_put_var(map_file%ncid, map_file%tmax_varid, zstmp, (/1, ntmaxout/))) ! write tmax   
@@ -2831,23 +2844,13 @@ contains
        zstmp = FILL_VALUE       
        do nmq = 1, quadtree_nr_points
            nm = index_sfincs_in_quadtree(nmq)
-           if (kcs(nm)>0) then
-               zstmp(nmq) = windmax(nm)
+           if (nm>0) then                                 
+               if (kcs(nm)>0) then
+                   zstmp(nmq) = windmax(nm)
+               endif
            endif
        enddo
       NF90(nf90_put_var(map_file%ncid, map_file%windmax_varid, zstmp, (/1, ntmaxout/))) ! write windmax   
-   endif
-   !   
-   ! Cumulative infiltration
-   if (infiltration) then
-      zstmp = FILL_VALUE
-      do nmq = 1, quadtree_nr_points
-          nm = index_sfincs_in_quadtree(nmq)
-          if (kcs(nm)>0) then
-              zstmp(nmq) = cuminf(nm)
-          endif
-      enddo
-      NF90(nf90_put_var(map_file%ncid, map_file%cuminf_varid, zstmp, (/1, ntmaxout/))) ! write cuminf   
    endif
    !
    end subroutine   

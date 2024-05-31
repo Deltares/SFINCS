@@ -49,7 +49,7 @@ contains
    call read_real_input(500,'x0',x0,0.0)
    call read_real_input(500,'y0',y0,0.0)
    call read_real_input(500,'rotation',rotation,0.0)
-   call read_char_input(500,'tref',trefstr,'20000101 000000')
+   call read_char_input(500,'tref',trefstr,'none')
    call read_char_input(500,'tstart',tstartstr,'20000101 000000')
    call read_char_input(500,'tstop',tstopstr,'20000101 000000')
    call read_real_input(500,'tspinup',tspinup,0.0)
@@ -63,7 +63,7 @@ contains
    call read_real_input(500,'dtwave',dtwave,3600.0)
    call read_real_input(500,'dtwnd',dtwindupd,1800.0)
    call read_real_input(500,'alpha',alfa,0.50)
-   call read_real_input(500,'theta',theta,0.9)
+   call read_real_input(500,'theta',theta,1.0)
    call read_real_input(500,'manning',manning,0.04)
    call read_real_input(500,'manning_land',manning_land,-999.0)
    call read_real_input(500,'manning_sea',manning_sea,-999.0)
@@ -81,7 +81,7 @@ contains
    call read_char_input(500,'outputtype_his',outputtype_his,'nil')
    call read_int_input(500,'nc_deflate_level',nc_deflate_level,2)
    call read_int_input(500,'bndtype',bndtype,1)
-   call read_int_input(500,'advection',iadvection,0)
+   call read_int_input(500,'advection',iadvection,1)
    call read_int_input(500,'nfreqsig',nfreqsig,100)
    call read_real_input(500,'freqminig',freqminig,0.0)
    call read_real_input(500,'freqmaxig',freqmaxig,0.1)
@@ -105,8 +105,7 @@ contains
    call read_real_input(500,'spwmergefrac',spw_merge_frac,0.5)
    call read_int_input(500,'usespwprecip',ispwprecip,1)   
    call read_int_input(500,'global',iglobal,0)
-   call read_real_input(500,'nuvisc',nuviscinp,-999.0)
-   call read_real_input(500,'nuviscdim',nuviscdim,1.0)   
+   call read_real_input(500,'nuvisc',nuviscdim,0.01)      
    call read_logical_input(500,'viscosity',iviscosity,.false.)
    call read_int_input(500,'spinup_meteo', ispinupmeteo, 0)
    call read_real_input(500,'waveage',waveage,-999.0)
@@ -115,6 +114,7 @@ contains
    call read_real_input(500,'wmtfilter',wmtfilter,600.0)
    call read_real_input(500,'wmfred',wavemaker_freduv,0.99)
    call read_char_input(500,'wmsignal',wmsigstr,'spectrum')   
+   call read_logical_input(500,'wmrandom',wmrandom,.true.)   
    call read_char_input(500,'advection_scheme',advstr,'upw1')   
    call read_real_input(500,'btrelax',btrelax,3600.0)
    call read_logical_input(500,'wiggle_suppression',wiggle_suppression,.false.)
@@ -249,6 +249,16 @@ contains
        write(*,*)'WARNING: no epsg code defined' 
    endif   
    !
+   ! If tref not provided, assume tref=tstart
+   !
+   if (trefstr(1:4) == 'none') then
+       !
+       trefstr = tstartstr
+       !
+       write(*,*)'WARNING: no tref provided, set to tstart: ',trefstr
+       !
+   endif
+   !
    ! Compute simulation time
    !
    call time_difference(trefstr,tstartstr,dtsec)  ! time difference in seconds between tstart and tref
@@ -257,6 +267,7 @@ contains
    t1 = dtsec*1.0 ! time difference in seconds between tstop and tstart
    tspinup = t0 + tspinup
    !
+   ! Set constants
    g         = 9.81
    pi        = 3.14159
    gn2       = 9.81*0.02*0.02 ! Only to be used in subgrid
@@ -415,41 +426,11 @@ contains
       store_tsunami_arrival_time = .true.
    endif      
    !
-   viscosity = .false.   
-   !
-   if (nuviscinp>0.0 .or. iviscosity) then
-      !
-      if (nuviscinp>0.0) then ! if nuvisc given by user, this overrules the dimensionless default use of nuvisc, for backwards compatability
-         !
-         nuvisc = nuviscinp
-         viscosity = .true.         
-         !
-      else ! user defined viscosity = 1
-         !
-         if (qtrfile(1:4) == 'none') then ! this works only for a regular grid model, for quadtree use 'nuvisc' option
-            !
-            viscosity = .true.         
-            !
-            if (crsgeo .eqv. .true.) then ! simplified conversion for spherical grids
-                nuvisc = max(nuviscdim * min(dx,dy) / 0.001, 0.0) ! take min of dx and dy, don't allow to be negative  
-                ! dx = 1 degree ~ 100km
-                ! dx = 0.001 degree~ 100m > nuvisc = 1.0              
-            else                 
-                nuvisc = max(nuviscdim * min(dx,dy) / 100.0, 0.0) ! take min of dx and dy, don't allow to be negative    
-                ! dx = 50 > nuvisc = 0.5
-                ! dx = 100 > nuvisc = 1.0
-                ! dx = 500 > nuvisc = 5.0
-                ! nuviscdim = 1.0
-                ! nuvisc = nuviscdim * dx / 100 
-            endif
-         endif          
-         !
-      endif    
-      !
-      if (viscosity .eqv. .true.) then
-         write(*,*)'Turning on process: Viscosity, with nuvisc = ', nuvisc
-      endif      
-      !
+   !   
+   viscosity = .false. 
+   if (iviscosity) then
+      viscosity = .true. 
+      write(*,*)'Turning on process: Viscosity'               
    endif   
    !
    spinup_meteo = .true. ! Default use data in ampr file as block rather than linear interpolation

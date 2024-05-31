@@ -249,7 +249,7 @@ module sfincs_output
    implicit none
    !
    integer  :: ntmaxout
-   real*8   :: t   
+   real*8   :: t, t2
    real     :: tloopoutput 
    real*8   :: tmaxout   
    !   
@@ -267,7 +267,11 @@ module sfincs_output
       write(*,'(a)')''       
       write(*,*)'Info : Write maximum values at final timestep since t=dtmaxout was not reached yet for final interval...'
       ntmaxout = ntmaxout + 1
-      call write_output(t,.false.,.false.,.true.,.false.,0,ntmaxout,0,tloopoutput)       
+      !
+      ! Write 'tstop' as timemax instead of actual (unrounded) 't'
+      t2 = t1
+      !
+      call write_output(t2,.false.,.false.,.true.,.false.,0,ntmaxout,0,tloopoutput)       
       !
    endif
    !

@@ -48,6 +48,8 @@
    real*4    :: phip
    !
    real*4    :: r
+   integer, allocatable :: seed(:)
+   integer :: nseed
 !   real*4    :: dxcross
 !   real*4    :: dst
 !   real*4    :: xxx
@@ -1301,8 +1303,14 @@
       !
    endif   
    !
-   ! Infragravity frequencies
+   ! Random seed wavemaker
    !
+   allocate(seed(nseed))      
+   call random_seed(get=seed)
+   write (*, *)'Wavemaker random seed: ',seed
+   !
+   ! Infragravity frequencies
+   !   
    allocate(freqig(nfreqsig))
    allocate(costig(nfreqsig))
    allocate(phiig(nfreqsig))
@@ -1481,13 +1489,13 @@
          !
          zsuv = max(zsnmb, zsnmi)
          !
-         if (zsuv>=subgrid_uv_zmax(nm) - 1.0e-3) then
+         if (zsuv>=subgrid_uv_zmax(ip) - 1.0e-3) then
             !
             ! Entire cell is wet, no interpolation from table needed
             !
             depthuv  = subgrid_uv_havg_zmax(ip) + zsuv
             !
-         elseif (zsuv>subgrid_uv_zmin(nm)) then
+         elseif (zsuv>subgrid_uv_zmin(ip)) then
             !
             ! Interpolation required
             !            
