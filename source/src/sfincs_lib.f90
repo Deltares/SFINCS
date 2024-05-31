@@ -86,7 +86,7 @@ module sfincs_lib
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
    build_revision = '$Rev: v2.0.6-alpha:branch-88-determine-viscosity-per-refinement-level-for-quadtree-simulation'
-   build_date     = '$Date: 2024-05-01'
+   build_date     = '$Date: 2024-05-31'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
