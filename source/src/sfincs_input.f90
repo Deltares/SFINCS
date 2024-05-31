@@ -49,7 +49,7 @@ contains
    call read_real_input(500,'x0',x0,0.0)
    call read_real_input(500,'y0',y0,0.0)
    call read_real_input(500,'rotation',rotation,0.0)
-   call read_char_input(500,'tref',trefstr,'20000101 000000')
+   call read_char_input(500,'tref',trefstr,'none')
    call read_char_input(500,'tstart',tstartstr,'20000101 000000')
    call read_char_input(500,'tstop',tstopstr,'20000101 000000')
    call read_real_input(500,'tspinup',tspinup,0.0)
@@ -245,6 +245,16 @@ contains
        write(*,*)'WARNING: no epsg code defined' 
    endif   
    !
+   ! If tref not provided, assume tref=tstart
+   !
+   if (trefstr(1:4) == 'none') then
+       !
+       trefstr = tstartstr
+       !
+       write(*,*)'WARNING: no tref provided, set to tstart: ',trefstr
+       !
+   endif
+   !
    ! Compute simulation time
    !
    call time_difference(trefstr,tstartstr,dtsec)  ! time difference in seconds between tstart and tref
@@ -253,6 +263,7 @@ contains
    t1 = dtsec*1.0 ! time difference in seconds between tstop and tstart
    tspinup = t0 + tspinup
    !
+   ! Set constants
    g         = 9.81
    pi        = 3.14159
    gn2       = 9.81*0.02*0.02 ! Only to be used in subgrid
