@@ -54,7 +54,6 @@ source/third_party_open/netcdf/netcdf-fortran-4.4.4/nf_test/Makefile
 *.Plo
 *.o
 *.lo
-*.mod
 *.la
 *.lai
 *.a
