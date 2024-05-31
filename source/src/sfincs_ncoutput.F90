@@ -331,7 +331,7 @@ contains
       NF90(nf90_def_var(map_file%ncid, 'cumprcp', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%timemax_dimid/), map_file%cumprcp_varid)) ! time-varying maximum water level map
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%cumprcp_varid, 1, 1, nc_deflate_level)) ! deflate
       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, '_FillValue', FILL_VALUE))          
-      NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'units', 'mm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'units', 'm'))
       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'long_name', 'cumulative_precipitation_depth')) 
       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'standard_name', 'cumulative_precipitation_depth')) 
       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'cell_methods', 'time: sum'))       
@@ -906,7 +906,7 @@ contains
       NF90(nf90_def_var(map_file%ncid, 'cumprcp', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%timemax_dimid/), map_file%cumprcp_varid)) ! cumulative precipitation map
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%cumprcp_varid, 1, 1, nc_deflate_level))
       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, '_FillValue', FILL_VALUE))          
-      NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'units', 'mm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'units', 'm'))
       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'long_name', 'cumulative_precipitation_depth')) 
       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'cell_methods', 'time: sum'))       
       !   
