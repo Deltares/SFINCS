@@ -16,34 +16,20 @@ Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "sfincs_dll", "sfincs_dll\sf
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Win32 = Debug|Win32
 		Debug|x64 = Debug|x64
-		Release|Win32 = Release|Win32
 		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{84DFC66B-C675-4F50-8A9A-62E7E483ACDD}.Debug|Win32.ActiveCfg = Debug|Win32
-		{84DFC66B-C675-4F50-8A9A-62E7E483ACDD}.Debug|Win32.Build.0 = Debug|Win32
 		{84DFC66B-C675-4F50-8A9A-62E7E483ACDD}.Debug|x64.ActiveCfg = Debug|x64
 		{84DFC66B-C675-4F50-8A9A-62E7E483ACDD}.Debug|x64.Build.0 = Debug|x64
-		{84DFC66B-C675-4F50-8A9A-62E7E483ACDD}.Release|Win32.ActiveCfg = Release|Win32
-		{84DFC66B-C675-4F50-8A9A-62E7E483ACDD}.Release|Win32.Build.0 = Release|Win32
 		{84DFC66B-C675-4F50-8A9A-62E7E483ACDD}.Release|x64.ActiveCfg = Release|x64
 		{84DFC66B-C675-4F50-8A9A-62E7E483ACDD}.Release|x64.Build.0 = Release|x64
-		{53E1EF5D-DBAE-46DC-B269-8CA4B8EF9883}.Debug|Win32.ActiveCfg = Debug|Win32
-		{53E1EF5D-DBAE-46DC-B269-8CA4B8EF9883}.Debug|Win32.Build.0 = Debug|Win32
 		{53E1EF5D-DBAE-46DC-B269-8CA4B8EF9883}.Debug|x64.ActiveCfg = Debug|x64
 		{53E1EF5D-DBAE-46DC-B269-8CA4B8EF9883}.Debug|x64.Build.0 = Debug|x64
-		{53E1EF5D-DBAE-46DC-B269-8CA4B8EF9883}.Release|Win32.ActiveCfg = Release|Win32
-		{53E1EF5D-DBAE-46DC-B269-8CA4B8EF9883}.Release|Win32.Build.0 = Release|Win32
 		{53E1EF5D-DBAE-46DC-B269-8CA4B8EF9883}.Release|x64.ActiveCfg = Release|x64
 		{53E1EF5D-DBAE-46DC-B269-8CA4B8EF9883}.Release|x64.Build.0 = Release|x64
-		{4FAAD133-0514-467F-8B2E-665ED8CA70C9}.Debug|Win32.ActiveCfg = Debug|Win32
-		{4FAAD133-0514-467F-8B2E-665ED8CA70C9}.Debug|Win32.Build.0 = Debug|Win32
 		{4FAAD133-0514-467F-8B2E-665ED8CA70C9}.Debug|x64.ActiveCfg = Debug|x64
 		{4FAAD133-0514-467F-8B2E-665ED8CA70C9}.Debug|x64.Build.0 = Debug|x64
-		{4FAAD133-0514-467F-8B2E-665ED8CA70C9}.Release|Win32.ActiveCfg = Release|Win32
-		{4FAAD133-0514-467F-8B2E-665ED8CA70C9}.Release|Win32.Build.0 = Release|Win32
 		{4FAAD133-0514-467F-8B2E-665ED8CA70C9}.Release|x64.ActiveCfg = Release|x64
 		{4FAAD133-0514-467F-8B2E-665ED8CA70C9}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection

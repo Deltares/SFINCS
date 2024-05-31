@@ -1,32 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <VisualStudioProject ProjectType="typeDynamicLibrary" ProjectCreator="Intel Fortran" Keyword="Dll" Version="11.0" ProjectIdGuid="{4FAAD133-0514-467F-8B2E-665ED8CA70C9}">
 	<Platforms>
-		<Platform Name="Win32"/>
 		<Platform Name="x64"/>
 	</Platforms>
 	<Configurations>
-		<Configuration Name="Debug|Win32" UseCompiler="ifortCompiler" ConfigurationType="typeDynamicLibrary">
-			<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" WarnInterfaces="true" Traceback="true" BoundsCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL"/>
-			<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" GenerateDebugInformation="true" SubSystem="subSystemWindows" LinkDLL="true"/>
-			<Tool Name="VFResourceCompilerTool"/>
-			<Tool Name="VFMidlTool" SuppressStartupBanner="true"/>
-			<Tool Name="VFCustomBuildTool"/>
-			<Tool Name="VFPreLinkEventTool"/>
-			<Tool Name="VFPreBuildEventTool"/>
-			<Tool Name="VFPostBuildEventTool"/>
-			<Tool Name="VFManifestTool" SuppressStartupBanner="true"/>
-		</Configuration>
-		<Configuration Name="Release|Win32" UseCompiler="ifortCompiler" ConfigurationType="typeDynamicLibrary">
-			<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" RuntimeLibrary="rtMultiThreadedDLL"/>
-			<Tool Name="VFLinkerTool" SuppressStartupBanner="true" SubSystem="subSystemWindows" LinkDLL="true"/>
-			<Tool Name="VFResourceCompilerTool"/>
-			<Tool Name="VFMidlTool" SuppressStartupBanner="true"/>
-			<Tool Name="VFCustomBuildTool"/>
-			<Tool Name="VFPreLinkEventTool"/>
-			<Tool Name="VFPreBuildEventTool"/>
-			<Tool Name="VFPostBuildEventTool"/>
-			<Tool Name="VFManifestTool" SuppressStartupBanner="true"/>
-		</Configuration>
 		<Configuration Name="Debug|x64" UseCompiler="ifortCompiler" ConfigurationType="typeDynamicLibrary">
 			<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeFull" Parallelization="true" OpenMP="OpenMPParallelCode" WarnInterfaces="true" Traceback="true" BoundsCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL"/>
 			<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="$(SolutionDir)\third_party_open\netcdf\$(Platform)\Debug;$(SolutionDir)\third_party_open\netcdf\netCDF 4.6.1\lib\" GenerateDebugInformation="true" SubSystem="subSystemWindows" LinkDLL="true" AdditionalDependencies="netcdf4.lib netcdf.lib"/>
@@ -40,7 +17,7 @@
 		</Configuration>
 		<Configuration Name="Release|x64" UseCompiler="ifxCompiler" ConfigurationType="typeDynamicLibrary">
 			<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" Optimization="optimizeFull" Parallelization="true" OpenMP="OpenMPParallelCode" RuntimeLibrary="rtMultiThreadedDLL"/>
-			<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="$(SolutionDir)\third_party_open\netcdf\x64\Release;$(SolutionDir)\third_party_open\netcdf\netCDF 4.9.2\lib" SubSystem="subSystemWindows" LinkDLL="true" AdditionalDependencies="netcdff.lib netcdf.lib"/>
+			<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="$(SolutionDir)\third_party_open\netcdf\$(Platform)\Release;$(SolutionDir)\third_party_open\netcdf\netCDF 4.9.2\lib" SubSystem="subSystemWindows" LinkDLL="true" AdditionalDependencies="netcdff.lib netcdf.lib"/>
 			<Tool Name="VFResourceCompilerTool"/>
 			<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
 			<Tool Name="VFCustomBuildTool"/>
