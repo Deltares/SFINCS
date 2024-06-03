@@ -100,6 +100,7 @@
       if (stat<0) exit
       allocate(xpol(nrows))
       allocate(ypol(nrows))
+      rewind(500)
       do irow = 1, nrows
          read(500,*)xpol(irow),ypol(irow)
       enddo
