@@ -1,5 +1,5 @@
 SUBDIRS = \
-	third_party_open/netcdf/netcdf-fortran-4.4.4 \
+	third_party_open/netcdf/netcdf-fortran-4.6.1 \
 	src
 
 # our m4 stuff is here

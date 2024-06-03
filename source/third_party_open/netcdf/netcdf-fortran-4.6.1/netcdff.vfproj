@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VisualStudioProject ProjectType="typeStaticLibrary" ProjectCreator="Intel Fortran" Keyword="Static Library" Version="11.0" ProjectIdGuid="{91EE1914-D33C-37C4-927E-182079ABC642}">
+	<Platforms>
+		<Platform Name="x64"/>
+	</Platforms>
+	<Configurations>
+		<Configuration Name="Debug|x64" UseCompiler="ifortCompiler" OutputDirectory="$(SolutionDir)\third_party_open\netcdf\$(Platform)\Debug" IntermediateDirectory="netcdff.dir\Debug" TargetName="netcdff" ConfigurationType="typeStaticLibrary">
+			<Tool Name="VFFortranCompilerTool" AdditionalOptions="/W1" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" Preprocess="preprocessYes" AdditionalIncludeDirectories="$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1;$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1/$(ConfigurationName);$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\libsrc;$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\libsrc/$(ConfigurationName);$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\fortran;$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\fortran/$(ConfigurationName);$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\MyBuild\fortran;$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\MyBuild\fortran/$(ConfigurationName);$(SolutionDir)\third_party_open\netcdf\netCDF 4.9.2\include;$(SolutionDir)\third_party_open\netcdf\netCDF 4.9.2\include/$(ConfigurationName)" PreprocessorDefinitions=";_CRT_SECURE_NO_WARNINGS;NCSHORT_T=integer*2;NCBYTE_T=byte;NF_RELAX_COORD_BOUND;NF_HAS_PARALLEL4;NF_HAS_PNETCDF;NF_INT1_IS_C_SIGNED_CHAR;NF_INT2_IS_C_SHORT;NF_INT_IS_C_INT;NF_INT8_IS_C_LONG_LONG;NF_REAL_IS_C_FLOAT;NF_DOUBLEPRECISION_IS_C_DOUBLE;USE_NETCDF4;HAVE_TS29113_SUPPORT;CMAKE_INTDIR=\&quot;Debug\&quot;" ModulePath=".\$(ConfigurationName)" RuntimeLibrary="rtMultiThreadedDebugDLL" ExceptionHandling="0"/>
+			<Tool Name="VFLibrarianTool" AdditionalOptions="/machine:x64" OutputFile="$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\MyBuild\fortran\Debug\netcdff.lib" AdditionalDependencies="netcdff_c.dir\$(Configuration)\nf_lib.obj netcdff_c.dir\$(Configuration)\nf_v2compat.obj"/>
+			<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions=";_CRT_SECURE_NO_WARNINGS;NCSHORT_T=integer*2;NCBYTE_T=byte;NF_RELAX_COORD_BOUND;NF_HAS_PARALLEL4;NF_HAS_PNETCDF;NF_INT1_IS_C_SIGNED_CHAR;NF_INT2_IS_C_SHORT;NF_INT_IS_C_INT;NF_INT8_IS_C_LONG_LONG;NF_REAL_IS_C_FLOAT;NF_DOUBLEPRECISION_IS_C_DOUBLE;USE_NETCDF4;HAVE_TS29113_SUPPORT;CMAKE_INTDIR=\&quot;Debug\&quot;" AdditionalIncludeDirectories="$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1;$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\libsrc;$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\fortran;$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\MyBuild\fortran;$(SolutionDir)\third_party_open\netcdf\netCDF 4.9.2\include"/>
+			<Tool Name="VFMidlTool" AdditionalIncludeDirectories="$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1;$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\libsrc;$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\fortran;$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\MyBuild\fortran;$(SolutionDir)\third_party_open\netcdf\netCDF 4.9.2\include" GenerateStublessProxies="true" OutputDirectory="$(IntDir)" HeaderFileName="$(InputName).h" DLLDataFileName="" InterfaceIdentifierFileName="$(InputName)_i.c" ProxyFileName="$(InputName)_p.c" TypeLibraryName="$(InputName).tlb"/>
+			<Tool Name="VFCustomBuildTool"/>
+			<Tool Name="VFPreLinkEventTool"/>
+			<Tool Name="VFPreBuildEventTool"/>
+			<Tool Name="VFPostBuildEventTool"/>
+			<Tool Name="VFManifestTool"/>
+		</Configuration>
+		<Configuration Name="Release|x64" UseCompiler="ifxCompiler" OutputDirectory="$(SolutionDir)\third_party_open\netcdf\$(Platform)\Release" IntermediateDirectory="netcdff.dir\Release" TargetName="netcdff" ConfigurationType="typeStaticLibrary">
+			<Tool Name="VFFortranCompilerTool" AdditionalOptions="/W1 /O2" SuppressStartupBanner="true" Preprocess="preprocessYes" AdditionalIncludeDirectories="$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1;$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1/$(ConfigurationName);$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\libsrc;$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\libsrc/$(ConfigurationName);$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\fortran;$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\fortran/$(ConfigurationName);$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\MyBuild\fortran;$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\MyBuild\fortran/$(ConfigurationName);$(SolutionDir)\third_party_open\netcdf\netCDF 4.9.2\include;$(SolutionDir)\third_party_open\netcdf\netCDF 4.9.2\include/$(ConfigurationName)" PreprocessorDefinitions=";NDEBUG;_CRT_SECURE_NO_WARNINGS;NCSHORT_T=integer*2;NCBYTE_T=byte;NF_RELAX_COORD_BOUND;NF_HAS_PARALLEL4;NF_HAS_PNETCDF;NF_INT1_IS_C_SIGNED_CHAR;NF_INT2_IS_C_SHORT;NF_INT_IS_C_INT;NF_INT8_IS_C_LONG_LONG;NF_REAL_IS_C_FLOAT;NF_DOUBLEPRECISION_IS_C_DOUBLE;USE_NETCDF4;HAVE_TS29113_SUPPORT;CMAKE_INTDIR=\&quot;Release\&quot;" ModulePath=".\$(ConfigurationName)" RuntimeLibrary="rtMultiThreadedDLL" ExceptionHandling="0"/>
+			<Tool Name="VFLibrarianTool" AdditionalOptions="/machine:x64" OutputFile="$(SolutionDir)\third_party_open\netcdf\$(Platform)\Release\netcdff.lib" AdditionalDependencies="netcdff_c.dir\$(Configuration)\nf_lib.obj netcdff_c.dir\$(Configuration)\nf_v2compat.obj"/>
+			<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions=";NDEBUG;_CRT_SECURE_NO_WARNINGS;NCSHORT_T=integer*2;NCBYTE_T=byte;NF_RELAX_COORD_BOUND;NF_HAS_PARALLEL4;NF_HAS_PNETCDF;NF_INT1_IS_C_SIGNED_CHAR;NF_INT2_IS_C_SHORT;NF_INT_IS_C_INT;NF_INT8_IS_C_LONG_LONG;NF_REAL_IS_C_FLOAT;NF_DOUBLEPRECISION_IS_C_DOUBLE;USE_NETCDF4;HAVE_TS29113_SUPPORT;CMAKE_INTDIR=\&quot;Release\&quot;" AdditionalIncludeDirectories="$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1;$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\libsrc;$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\fortran;$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\MyBuild\fortran;$(SolutionDir)\third_party_open\netcdf\netCDF 4.9.2\include"/>
+			<Tool Name="VFMidlTool" AdditionalIncludeDirectories="$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1;$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\libsrc;$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\fortran;$(SolutionDir)\third_party_open\netcdf\netcdf-fortran-4.6.1\MyBuild\fortran;$(SolutionDir)\third_party_open\netcdf\netCDF 4.9.2\include" GenerateStublessProxies="true" OutputDirectory="$(IntDir)" HeaderFileName="$(InputName).h" DLLDataFileName="" InterfaceIdentifierFileName="$(InputName)_i.c" ProxyFileName="$(InputName)_p.c" TypeLibraryName="$(InputName).tlb"/>
+			<Tool Name="VFCustomBuildTool"/>
+			<Tool Name="VFPreLinkEventTool"/>
+			<Tool Name="VFPreBuildEventTool"/>
+			<Tool Name="VFPostBuildEventTool"/>
+			<Tool Name="VFManifestTool"/>
+		</Configuration>
+	</Configurations>
+	<Files>
+		<File RelativePath="fortran\module_netcdf4_f03.F90"/>
+		<File RelativePath="fortran\module_netcdf4_nc_interfaces.F90"/>
+		<File RelativePath="fortran\module_netcdf4_nf_interfaces.F90"/>
+		<File RelativePath="fortran\module_netcdf_f03.F90"/>
+		<File RelativePath="fortran\module_netcdf_fortv2_c_interfaces.F90"/>
+		<File RelativePath="fortran\module_netcdf_nc_data.F90"/>
+		<File RelativePath="fortran\module_netcdf_nc_interfaces.F90"/>
+		<File RelativePath="fortran\module_netcdf_nf_data.F90"/>
+		<File RelativePath="fortran\module_netcdf_nf_interfaces.F90"/>
+		<File RelativePath="fortran\netcdf4.F90"/>
+		<File RelativePath="fortran\nf_attio.F90"/>
+		<File RelativePath="fortran\nf_control.F90"/>
+		<File RelativePath="fortran\nf_dim.F90"/>
+		<File RelativePath="fortran\nf_fortv2.F90"/>
+		<File RelativePath="fortran\nf_genatt.F90"/>
+		<File RelativePath="fortran\nf_geninq.F90"/>
+		<File RelativePath="fortran\nf_genvar.F90"/>
+		<File RelativePath="fortran\nf_logging.F90"/>
+		<File RelativePath="fortran\nf_misc.F90"/>
+		<File RelativePath="fortran\nf_nc4.F90"/>
+		<File RelativePath="fortran\nf_nc_noparallel.F90"/>
+		<File RelativePath="fortran\nf_var1io.F90"/>
+		<File RelativePath="fortran\nf_varaio.F90"/>
+		<File RelativePath="fortran\nf_vario.F90"/>
+		<File RelativePath="fortran\nf_varmio.F90"/>
+		<File RelativePath="fortran\nf_varsio.F90"/>
+		<File RelativePath="fortran\typeSizes.F90"/>
+	</Files>
+	<Globals/>
+</VisualStudioProject>

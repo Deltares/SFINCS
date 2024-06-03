@@ -1,5 +1,10 @@
 #!/bin/sh
 
+find . -name \*.m4|xargs dos2unix && find . -name \*.ac|xargs dos2unix && find . -name \*.am|xargs dos2unix
+find . -name \*.f90|xargs dos2unix
+find . -name \*.F90|xargs dos2unix
+find . -name \*.am|xargs dos2unix
+
 autoreconf -vif
 
 ./autogen.sh

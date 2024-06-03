@@ -3,9 +3,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update && apt install -y dos2unix
 RUN apt update && apt install -y libnetcdf-dev build-essential autoconf automake libtool pkg-config tzdata
 # copy the compilers
-#RUN cd /opt/nvidia/hpc_sdk/Linux_x86_64/2024/REDIST/compilers
-#RUN tar -czvhf /root/nvidia-24.5.tar.gz *
-#RUN cd -
+RUN cd /opt/nvidia/hpc_sdk/Linux_x86_64/2024/REDIST/compilers && tar -czvhf /root/nvidia-24.5.tar.gz * && cd -
 COPY . /usr/src/sfincs
 WORKDIR /usr/src/sfincs
 
@@ -17,7 +15,7 @@ RUN find . -name \*.am|xargs dos2unix
 RUN autoreconf -vif && FCFLAGS="-acc -Minfo=accel -fast -O3 -gpu=ccall -DSIZEOF_PTRDIFF_T=8" FC=nvfortran ./configure --disable-shared --disable-openmp  && make && make install
 #RUN autoreconf -vif && FCFLAGS="-acc -Minfo=accel -fast -O3 -gpu=ccall" FC=nvfortran ./configure --disable-shared --disable-openmp  && make && make install
 
-FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
+FROM nvidia/cuda:12.5.0-runtime-ubuntu22.04
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update && apt install -y libnetcdf-dev tzdata
 # copy nvidia SDK (REDIST folder contains symlinks)
