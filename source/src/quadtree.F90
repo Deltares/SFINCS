@@ -349,16 +349,23 @@ contains
    allocate(quadtree_mask(np))
    allocate(quadtree_snapwave_mask(np))
    !
-   allocate(int_4(np))
-   allocate(int_8(np))
-   allocate(int_f(np))
-   allocate(r_4(np))
+!   allocate(int_4(np))
+!   allocate(int_8(np))
+!   allocate(int_f(np))
+!   allocate(r_4(np))
    !
    ! Read values
    ! 
-   write(*,*)'np',np
+!   write(*,*)'np',np
+!   write(*,*)'int_4'
+!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%n_varid,     int_4(:)))
+!   write(*,*)'int_8'
+!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%n_varid,     int_8(:)))
+!   write(*,*)'int_f'
+!   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%n_varid,     int_f(:)))
+!   write(*,*)'done'   
    NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%n_varid,     quadtree_n(:)))
-   write(*,*)quadtree_n(:)
+!   write(*,*)quadtree_n(:)
    NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%m_varid,     quadtree_m(:)))
    NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%level_varid, quadtree_level(:)))
    NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%md_varid,    quadtree_md(:)))

@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<VisualStudioUserFile ProjectCreator="Intel Fortran" Keyword="Console Application" Version="11.0" ProjectIdGuid="{84DFC66B-C675-4F50-8A9A-62E7E483ACDD}">
-	<Configurations>
-		<Configuration Name="Debug|Win32"/>
-		<Configuration Name="Release|Win32"/>
-		<Configuration Name="Debug|x64" CommandArguments="sfincs.inp -autostartstop -t 1" WorkingDirectory="d:\repos\phd_waves\paper_wave_driven_flooding\02_modelling\LaJola\02_model_setup\Lajola_v01\"/>
-		<Configuration Name="Release|x64" CommandArguments="sfincs.inp -autostartstop -t 1" WorkingDirectory="d:\repos\phd_waves\paper_wave_driven_flooding\02_modelling\LaJola\02_model_setup\Lajola_v01\"/></Configurations></VisualStudioUserFile>

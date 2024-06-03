@@ -1,4 +1,4 @@
-﻿module sfincs_input
+module sfincs_input
 
 contains
 
