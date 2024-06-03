@@ -48,8 +48,6 @@
    real*4    :: phip
    !
    real*4    :: r
-   integer, allocatable :: seed(:)
-   integer :: nseed
 !   real*4    :: dxcross
 !   real*4    :: dst
 !   real*4    :: xxx
@@ -1307,12 +1305,6 @@
       enddo
       !
    endif   
-   !
-   ! Random seed wavemaker
-   !
-   allocate(seed(nseed))      
-   call random_seed(get=seed)
-   write (*, *)'Wavemaker random seed: ',seed
    !
    ! Infragravity frequencies
    !   
