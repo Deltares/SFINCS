@@ -75,7 +75,7 @@
    !
    logical :: iok
    !
-   integer ib1, ib2, ib, ic, nmb
+   integer ib1, ib2, ib, ic, nmb, nrwvm
    !
    real x, y, dst1, dst2, dst
    !
@@ -86,56 +86,68 @@
    phi   = 0.0
    !
    nrw = 0
+   nrwvm = 0
    !
    write(*,*)'Reading wavemaker polyline file ...'
    !
    ! Loop through all polylines
    !
    open(500, file=trim(wvmfile))
-   !
    do while(.true.)
+      read(500,*,iostat = stat)cdummy
+      if (stat<0) exit      
+      read(500,*,iostat = stat)nrows,ncols
+      if (stat<0) exit
+      nrwvm = nrwvm + 1
+      do irow = 1, nrows
+         read(500,*)dummy
+      enddo
+   enddo
+   rewind(500)
+   !
+   ! Loop through polylines
+   !
+   write(*,'(a,a,a,i0,a)')' Reading ',trim(wvmfile),' (', nrwvm, ' wave makers found) ...'
+   !
+   do ithd = 1, nrwvm
       !
       read(500,*,iostat = stat)cdummy
+      if (stat<0) exit
       read(500,*,iostat = stat)nrows,ncols
       if (stat<0) exit
       allocate(xpol(nrows))
       allocate(ypol(nrows))
-      rewind(500)
       do irow = 1, nrows
          read(500,*)xpol(irow),ypol(irow)
-      enddo
+      enddo   
       !
-      do irow = 1, nrows - 1
+      ! Determine angle with respect to grid orientation
+      !
+      phip = atan2(ypol(irow + 1) - ypol(irow), xpol(irow + 1) - xpol(irow)) + 0.5*pi
+      phip = phip - rotation
+      if (phip>=2*pi) phip = phip - 2*pi
+      if (phip<0.0)   phip = phip + 2*pi
+      !
+      call find_cells_intersected_by_line(cell_indices, nr_cells, xpol(irow), ypol(irow), xpol(irow + 1), ypol(irow + 1))
+      !
+      do j = 1, nr_cells
          !
-         ! Determine angle with respect to grid orientation
+         ip = index_sfincs_in_quadtree(cell_indices(j))
          !
-         phip = atan2(ypol(irow + 1) - ypol(irow), xpol(irow + 1) - xpol(irow)) + 0.5*pi
-         phip = phip - rotation
-         if (phip>=2*pi) phip = phip - 2*pi
-         if (phip<0.0)   phip = phip + 2*pi
-         !
-         call find_cells_intersected_by_line(cell_indices, nr_cells, xpol(irow), ypol(irow), xpol(irow + 1), ypol(irow + 1))
-         !
-         do j = 1, nr_cells
+         if (indwm(ip) == 0) then
             !
-            ip = index_sfincs_in_quadtree(cell_indices(j))
+            indwm(ip) = 1 ! set temporary flag to 1
+            phi(ip)   = phip
+            nrw       = nrw + 1
             !
-            if (indwm(ip) == 0) then
-               !
-               indwm(ip) = 1 ! set temporary flag to 1
-               phi(ip)   = phip
-               nrw       = nrw + 1
-               !
-            endif   
-            !
-         enddo   
+         endif   
          !
       enddo   
-      ! 
-      deallocate(xpol)
-      deallocate(ypol)
       !
-   enddo
+   enddo   
+   ! 
+   deallocate(xpol)
+   deallocate(ypol)
    !
    close(500)
    !
