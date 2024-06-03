@@ -356,7 +356,9 @@ contains
    !
    ! Read values
    ! 
+   write(*,*)'np',np
    NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%n_varid,     quadtree_n(:)))
+   write(*,*)quadtree_n(:)
    NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%m_varid,     quadtree_m(:)))
    NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%level_varid, quadtree_level(:)))
    NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%md_varid,    quadtree_md(:)))
