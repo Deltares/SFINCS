@@ -107,9 +107,9 @@
    !
    ! Loop through polylines
    !
-   write(*,'(a,a,a,i0,a)')' Reading ',trim(wvmfile),' (', nrwvm, ' wave makers found) ...'
+   write(*,'(a,a,a,i0,a)')' Reading ',trim(wvmfile),' (', nrwvm, ' wave makers polylines found) ...'
    !
-   do ithd = 1, nrwvm
+   do ipol = 1, nrwvm
       !
       read(500,*,iostat = stat)cdummy
       if (stat<0) exit
@@ -121,33 +121,39 @@
          read(500,*)xpol(irow),ypol(irow)
       enddo   
       !
-      ! Determine angle with respect to grid orientation
+      do irow = 1, nrows - 1     
+          ! Determine angle with respect to grid orientation
+          !
+          phip = atan2(ypol(irow + 1) - ypol(irow), xpol(irow + 1) - xpol(irow)) + 0.5*pi
+          phip = phip - rotation
+          if (phip>=2*pi) phip = phip - 2*pi
+          if (phip<0.0)   phip = phip + 2*pi
+          !
+          call find_cells_intersected_by_line(cell_indices, nr_cells, xpol(irow), ypol(irow), xpol(irow + 1), ypol(irow + 1))
+          !
+          do j = 1, nr_cells
+             !
+             ip = index_sfincs_in_quadtree(cell_indices(j))
+             !
+             if (ip > 0) then
+                 !
+                 if (indwm(ip) == 0) then
+                    !
+                    indwm(ip) = 1 ! set temporary flag to 1
+                    phi(ip)   = phip
+                    nrw       = nrw + 1
+                    !
+                 endif   
+             endif             
+             !
+          enddo  
+          !
+      enddo
       !
-      phip = atan2(ypol(irow + 1) - ypol(irow), xpol(irow + 1) - xpol(irow)) + 0.5*pi
-      phip = phip - rotation
-      if (phip>=2*pi) phip = phip - 2*pi
-      if (phip<0.0)   phip = phip + 2*pi
-      !
-      call find_cells_intersected_by_line(cell_indices, nr_cells, xpol(irow), ypol(irow), xpol(irow + 1), ypol(irow + 1))
-      !
-      do j = 1, nr_cells
-         !
-         ip = index_sfincs_in_quadtree(cell_indices(j))
-         !
-         if (indwm(ip) == 0) then
-            !
-            indwm(ip) = 1 ! set temporary flag to 1
-            phi(ip)   = phip
-            nrw       = nrw + 1
-            !
-         endif   
-         !
-      enddo   
+      deallocate(xpol)
+      deallocate(ypol)      
       !
    enddo   
-   ! 
-   deallocate(xpol)
-   deallocate(ypol)
    !
    close(500)
    !
