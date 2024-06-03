@@ -9,7 +9,8 @@ autoreconf -vif
 
 ./autogen.sh
 
-./configure FCFLAGS="-fopenmp -O3 -fallow-argument-mismatch -w" FFLAGS="-fopenmp -O3 -fallow-argument-mismatch -w" FC=gfortran --disable-shared
+### ./configure FCFLAGS="-fopenmp -O3 -fallow-argument-mismatch -w" FFLAGS="-fopenmp -O3 -fallow-argument-mismatch -w" FC=gfortran --disable-shared --prefix=/usr/local/bin/sfincs/gfortran
+./configure FCFLAGS="-fopenmp -O3 -fallow-argument-mismatch -w" FFLAGS="-fopenmp -O3 -fallow-argument-mismatch -w" FC=nvfortran --disable-shared --prefix=/usr/local/bin/sfincs/nvfortran_cpu
 
 make clean
 

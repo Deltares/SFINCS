@@ -17,5 +17,3 @@ ChangeLog:
 .PHONY: test
 test:
 	cd test/01_noadv && ../../src/sfincs
-
-
