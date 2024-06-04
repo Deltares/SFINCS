@@ -48,8 +48,6 @@
    real*4    :: phip
    !
    real*4    :: r
-   integer, allocatable :: seed(:)
-   integer :: nseed
 !   real*4    :: dxcross
 !   real*4    :: dst
 !   real*4    :: xxx
@@ -75,7 +73,7 @@
    !
    logical :: iok
    !
-   integer ib1, ib2, ib, ic, nmb
+   integer ib1, ib2, ib, ic, nmb, nrwvm
    !
    real x, y, dst1, dst2, dst
    !
@@ -86,55 +84,74 @@
    phi   = 0.0
    !
    nrw = 0
+   nrwvm = 0
    !
    write(*,*)'Reading wavemaker polyline file ...'
    !
    ! Loop through all polylines
    !
    open(500, file=trim(wvmfile))
-   !
    do while(.true.)
+      read(500,*,iostat = stat)cdummy
+      if (stat<0) exit      
+      read(500,*,iostat = stat)nrows,ncols
+      if (stat<0) exit
+      nrwvm = nrwvm + 1
+      do irow = 1, nrows
+         read(500,*)dummy
+      enddo
+   enddo
+   rewind(500)
+   !
+   ! Loop through polylines
+   !
+   write(*,'(a,a,a,i0,a)')' Reading ',trim(wvmfile),' (', nrwvm, ' wave makers polylines found) ...'
+   !
+   do ipol = 1, nrwvm
       !
       read(500,*,iostat = stat)cdummy
+      if (stat<0) exit
       read(500,*,iostat = stat)nrows,ncols
       if (stat<0) exit
       allocate(xpol(nrows))
       allocate(ypol(nrows))
       do irow = 1, nrows
          read(500,*)xpol(irow),ypol(irow)
+      enddo   
+      !
+      do irow = 1, nrows - 1     
+          ! Determine angle with respect to grid orientation
+          !
+          phip = atan2(ypol(irow + 1) - ypol(irow), xpol(irow + 1) - xpol(irow)) + 0.5*pi
+          phip = phip - rotation
+          if (phip>=2*pi) phip = phip - 2*pi
+          if (phip<0.0)   phip = phip + 2*pi
+          !
+          call find_cells_intersected_by_line(cell_indices, nr_cells, xpol(irow), ypol(irow), xpol(irow + 1), ypol(irow + 1))
+          !
+          do j = 1, nr_cells
+             !
+             ip = index_sfincs_in_quadtree(cell_indices(j))
+             !
+             if (ip > 0) then
+                 !
+                 if (indwm(ip) == 0) then
+                    !
+                    indwm(ip) = 1 ! set temporary flag to 1
+                    phi(ip)   = phip
+                    nrw       = nrw + 1
+                    !
+                 endif   
+             endif             
+             !
+          enddo  
+          !
       enddo
       !
-      do irow = 1, nrows - 1
-         !
-         ! Determine angle with respect to grid orientation
-         !
-         phip = atan2(ypol(irow + 1) - ypol(irow), xpol(irow + 1) - xpol(irow)) + 0.5*pi
-         phip = phip - rotation
-         if (phip>=2*pi) phip = phip - 2*pi
-         if (phip<0.0)   phip = phip + 2*pi
-         !
-         call find_cells_intersected_by_line(cell_indices, nr_cells, xpol(irow), ypol(irow), xpol(irow + 1), ypol(irow + 1))
-         !
-         do j = 1, nr_cells
-            !
-            ip = index_sfincs_in_quadtree(cell_indices(j))
-            !
-            if (indwm(ip) == 0) then
-               !
-               indwm(ip) = 1 ! set temporary flag to 1
-               phi(ip)   = phip
-               nrw       = nrw + 1
-               !
-            endif   
-            !
-         enddo   
-         !
-      enddo   
-      ! 
       deallocate(xpol)
-      deallocate(ypol)
+      deallocate(ypol)      
       !
-   enddo
+   enddo   
    !
    close(500)
    !
@@ -1302,12 +1319,6 @@
       enddo
       !
    endif   
-   !
-   ! Random seed wavemaker
-   !
-   allocate(seed(nseed))      
-   call random_seed(get=seed)
-   write (*, *)'Wavemaker random seed: ',seed
    !
    ! Infragravity frequencies
    !   
