@@ -18,7 +18,6 @@ module sfincs_ncoutput
       integer :: zs_varid, zsmax_varid, h_varid, u_varid, v_varid, tmax_varid, Seff_varid 
       integer :: hmax_varid, vmax_varid, qmax_varid, cumprcp_varid, cuminf_varid, windmax_varid
       integer :: patm_varid, wind_u_varid, wind_v_varid, precip_varid        
-      integer :: zsderv_varid
       integer :: hm0_varid, hm0ig_varid, snapwavemsk_varid
       integer :: fwx_varid, fwy_varid, beta_varid, snapwavedepth_varid
       integer :: zsm_varid
@@ -944,15 +943,6 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, 'long_name', 'cumulative_infiltration_depth')) 
       NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, 'cell_methods', 'time: sum'))     
       !
-   endif
-   !
-   if (wiggle_suppression) then 
-         NF90(nf90_def_var(map_file%ncid, 'zsderv', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%zsderv_varid)) ! time-varying wind_u map 
-         NF90(nf90_def_var_deflate(map_file%ncid, map_file%zsderv_varid, 1, 1, nc_deflate_level))
-         NF90(nf90_put_att(map_file%ncid, map_file%zsderv_varid, '_FillValue', FILL_VALUE))   
-         NF90(nf90_put_att(map_file%ncid, map_file%zsderv_varid, 'units', 'm s-1'))
-         NF90(nf90_put_att(map_file%ncid, map_file%zsderv_varid, 'standard_name', 'zsderv')) ! not truly eastward when rotated, eastward_sea_water_velocity
-         NF90(nf90_put_att(map_file%ncid, map_file%zsderv_varid, 'long_name', 'zsderv'))     
    endif
    !
    if (store_meteo) then  
@@ -2210,24 +2200,6 @@ contains
          !            
       endif         
       !
-      if (wiggle_suppression) then
-         !
-         vtmp = FILL_VALUE
-         !
-         do nmq = 1, quadtree_nr_points
-            !
-            nm = index_sfincs_in_quadtree(nmq)
-            !
-            if (nm>0) then
-               vtmp(nmq) = zsderv(nm)
-            endif
-            !
-         enddo
-         !
-         NF90(nf90_put_var(map_file%ncid, map_file%zsderv_varid, vtmp, (/1, ntmapout/)))
-         !
-      endif
-      !    
       NF90(nf90_sync(map_file%ncid)) !write away intermediate data ! TL: in first test it seems to be faster to let the file update than keep in memory
       !      
    end subroutine
