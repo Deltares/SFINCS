@@ -53,7 +53,7 @@ libsfincs_la_SOURCES = \
 	sfincs_bmi.f90
         
 libsfincs_la_LIBADD = \
-	$(top_builddir)/third_party_open/netcdf/netcdf-fortran-4.4.4/fortran/libnetcdff.la
+	$(top_builddir)/third_party_open/netcdf/netcdf-fortran-4.6.1/fortran/libnetcdff.la
 # these files are not included
 # sfincs_lib_nonc.f90
 # sfincs_output_nonc.f90
@@ -75,7 +75,7 @@ sfincs.f90: sfincs_lib.mod
 sfincs_lib.mod: libsfincs.la
 
 
-AM_FCFLAGS=${NETCDF_CFLAGS} ${NETCDF_FORTRAN_CFLAGS} -I$(top_builddir)/third_party_open/netcdf/netcdf-fortran-4.4.4/fortran
+AM_FCFLAGS=${NETCDF_CFLAGS} ${NETCDF_FORTRAN_CFLAGS} -I$(top_builddir)/third_party_open/netcdf/netcdf-fortran-4.6.1/fortran
 AM_FCFLAGS+=${OPENMP_FCFLAGS}
 AM_FCFLAGS+=${OPENACC_CFLAGS}
 AM_FCFLAGS+=${-O3}

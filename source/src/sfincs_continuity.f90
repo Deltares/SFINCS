@@ -80,7 +80,6 @@ contains
    real*4           :: factime
    real*4           :: dvol    
    !
-   real*4           :: zs0
    real*4           :: zsm0
    real*4           :: zsm1
    real*4           :: dzdt
@@ -294,6 +293,8 @@ contains
    real*4           :: uz
    real*4           :: vz
    real*4           :: dv
+   real*4           :: zs00
+   real*4           :: zs11
    !
    if (wavemaker) then
       !
@@ -308,6 +309,7 @@ contains
       !$acc serial, present( z_volume, nmindsrc, qtsrc ), async(1)
       do isrc = 1, nsrcdrn
          if (nmindsrc(isrc)>0) then ! should really let this happen
+!            write(*,'(2i8,20e14.4)')isrc,nmindsrc(isrc),qtsrc(isrc),z_volume(nmindsrc(isrc))
             z_volume(nmindsrc(isrc)) = max(z_volume(nmindsrc(isrc)) + qtsrc(isrc)*dt, 0.0)         
          endif   
       enddo
@@ -315,9 +317,9 @@ contains
    endif   
    !
    !$omp parallel &
-   !$omp private ( dvol,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,iwm,qnmd,qnmu,qndm,qnum,dv )
+   !$omp private ( dvol,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,iwm,qnmd,qnmu,qndm,qnum,dv,zs00,zs11 )
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels present( kcs, zs, zb, z_volume, zsmax, zsm, &
+   !$acc kernels present( kcs, zs, zs0, zb, z_volume, zsmax, zsm, zsderv, &
    !$acc                  subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
    !$acc                  netprcp, cumprcpt, prcp, q, z_flags_iref, uv_flags_iref, &
    !$acc                  z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
@@ -444,41 +446,55 @@ contains
          !      
          if (use_storage_volume) then
             !
-            if (storage_volume(nm)>1.0e-6) then
+            ! If water enters the cell through a point discharge, it will NOT end up in storage volume !  
+            !   
+            if (storage_volume(nm) > 1.0e-6 .and. dvol > 0.0) then
                !
-               ! Still some storage left
+               ! There is still some storage left, and water is entering the cell
                !
                ! Compute remaining storage volume
                !
                dv = storage_volume(nm) - dvol
                !
+               ! Update storage volume (it cannot become negative)) 
+               ! 
                storage_volume(nm) =  max(dv, 0.0)
                !
                if (dv < 0.0) then
                   !
                   ! Overshoot, so add remaining volume to z_volume
                   !
-                  z_volume(nm) = z_volume(nm) - dv
+                  dvol = - dv
+                  ! 
+               else                   
+                  !
+                  ! Everything went into storage  
+                  ! 
+                  dvol = 0.0 
                   !
                endif
                !
-            else
-               ! 
-               ! Storage is full 
-               !
-               z_volume(nm) = z_volume(nm) + dvol
-               !
             endif
             !
-         else
+         endif
+         !
+         ! Update volume 
+         !
+         z_volume(nm) = z_volume(nm) + dvol
+         !
+         if (wiggle_suppression) then
             !
-            z_volume(nm) = z_volume(nm) + dvol
-            !
+            ! Store previous water level to determine gradient
+            ! 
+            zs00    = zs0(nm) ! previous time step
+            zs11    = zs(nm)  ! current time step before updating
+            zs0(nm) = zs11    ! next previous time step
+            ! 
          endif
          ! 
          ! Obtain new water level from subgrid tables 
          !
-         if (z_volume(nm)>=subgrid_z_volmax(nm) - 1.0e-6) then
+         if (z_volume(nm)>=subgrid_z_volmax(nm) * 0.999) then
             !
             ! Entire cell is wet, no interpolation needed
             !
@@ -495,10 +511,16 @@ contains
             ! Interpolation from subgrid tables needed.
             !
             dzvol    = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
-            iuv      = min(int(z_volume(nm)/dzvol) + 1, subgrid_nlevels - 1)
-            facint   = (z_volume(nm) - (iuv - 1)*dzvol ) / dzvol
-            zs(nm)   = subgrid_z_dep(iuv, nm) + (subgrid_z_dep(iuv + 1, nm) - subgrid_z_dep(iuv, nm))*facint                    
+            iuv      = int(z_volume(nm) / dzvol) + 1
+            facint   = (z_volume(nm) - (iuv - 1) * dzvol ) / dzvol
+            zs(nm)   = subgrid_z_dep(iuv, nm) + (subgrid_z_dep(iuv + 1, nm) - subgrid_z_dep(iuv, nm)) * facint
             !
+         endif
+         !
+         if (wiggle_suppression) then 
+            ! 
+            zsderv(nm) = zs(nm) - 2*zs11 + zs00
+            ! 
          endif
          !
       endif
@@ -515,6 +537,7 @@ contains
       !
       ! No continuity update but keeping track of variables         
       ! zsmax used by default, therefore keep in standard continuity loop:         
+      !
       if (store_maximum_waterlevel) then
          !
          zsmax(nm) = max(zsmax(nm), zs(nm))

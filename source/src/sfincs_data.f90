@@ -64,6 +64,7 @@ module sfincs_data
       real*4 gapres
       real*4 stopdepth
       real*4 advlim
+      real*4 slopelim
       real*4 twet_threshold
       real*4, dimension(:), allocatable :: cd_wnd
       real*4, dimension(:), allocatable :: cd_val
@@ -80,6 +81,8 @@ module sfincs_data
       real*4 wmtfilter
       real*4 horton_kr_kd
       real*4 btrelax
+      real*4 wiggle_factor
+      real*4 wiggle_threshold
       !
       real*4 freqminig
       real*4 freqmaxig
@@ -220,6 +223,7 @@ module sfincs_data
       logical       :: friction2d
       logical       :: advection_limiter
       logical       :: advection_mask
+      logical       :: wiggle_suppression
       logical       :: wmrandom      
       !!!
       !!! sfincs_input.f90 switches
@@ -292,7 +296,7 @@ module sfincs_data
       !
       integer*1,          dimension(:),   allocatable :: kcs
       integer*1,          dimension(:),   allocatable :: kcuv
-      ! integer*1,          dimension(:),   allocatable :: kfu
+      integer*1,          dimension(:),   allocatable :: kfuv
       integer*1,          dimension(:),   allocatable :: mask_adv
       integer*1,          dimension(:),   allocatable :: scs_rain   ! logic if previous time step was raining
       !
@@ -494,6 +498,8 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: z_volume
       real*4, dimension(:),   allocatable :: twet
       real*4, dimension(:),   allocatable :: tsunami_arrival_time
+      real*4, dimension(:),   allocatable :: zs0
+      real*4, dimension(:),   allocatable :: zsderv
       !
       real*4, dimension(:),   allocatable :: tauwu
       real*4, dimension(:),   allocatable :: tauwv

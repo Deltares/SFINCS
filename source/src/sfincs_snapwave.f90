@@ -295,8 +295,6 @@ contains
          !         
       endif   
       !
-!      fwuv = 0.0
-      !
    enddo
    !
    !$acc update device(fwuv), async(1)
@@ -350,9 +348,10 @@ contains
        snapwave_tpigmean = tpmean_bwv_ig      
        !   
        if (snapwave_tpigmean < 10.0) then
-	       write(*,*)'DEBUG SFINCS_SnapWave - incoming tp for IG wave at wavemaker might be unrealistically small! value: ',snapwave_tpigmean
+           ! These warnings should not occur here
+!	       write(*,*)'DEBUG SFINCS_SnapWave - incoming tp for IG wave at wavemaker might be unrealistically small! value: ',snapwave_tpigmean
        elseif (snapwave_tpigmean > 250.0) then
-	       write(*,*)'DEBUG SFINCS_SnapWave - incoming tp for IG wave at wavemaker might be unrealistically large! value: ',snapwave_tpigmean
+!	       write(*,*)'DEBUG SFINCS_SnapWave - incoming tp for IG wave at wavemaker might be unrealistically large! value: ',snapwave_tpigmean
        endif	 
    endif
    ! TL: NOTE - in first timestep run of SnapWave tp = 0, therefore excluded that case from the check     

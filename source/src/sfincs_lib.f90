@@ -85,8 +85,10 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.0.8-alpha'
-   build_date     = '$Date: 2024-06-03'
+   build_revision = '$Rev: v2.0.6-alpha'
+   !build_date     = '$Date: 2024-03-28'
+   build_revision = '$Rev: v??? - updated sfincs.inp reading for NVIDIA'
+   build_date     = '$Date: 2024-05-21'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
@@ -230,7 +232,7 @@ module sfincs_lib
    !
    ! Copy arrays to GPU memory
    ! 
-   !$acc data, copyin( kcs, kcuv, zs, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, qmax, vmax, twet, zsm, z_volume, &
+   !$acc data, copyin( kcs, kfuv, kcuv, zs, zs0, zsderv, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, qmax, vmax, twet, zsm, z_volume, &
    !$acc               z_flags_iref, uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
    !$acc               index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, zsb, zsb0, ibuvdir, uvmean, &
    !$acc               subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
@@ -424,7 +426,7 @@ module sfincs_lib
       !
       if (snapwave .and. update_waves) then
          !
-         write(*,'(a,f10.1,a)')'Computing SnapWave at t = ', t, ' s'
+!         write(*,'(a,f10.1,a)')'Computing SnapWave at t = ', t, ' s'
          !
          call update_wave_field(t, tloopsnapwave)
          !

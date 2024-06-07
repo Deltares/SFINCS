@@ -630,11 +630,10 @@ contains
    implicit none   
    !   
    integer    :: nm, nmq, n, m, nn, ntmx, n_nodes, n_faces, ip, iref
-   integer*8  :: two
    real*4     :: dxdy
    !
-   real*4,    dimension(:),   allocatable :: nodes_x
-   real*4,    dimension(:),   allocatable :: nodes_y
+   real,      dimension(:),   allocatable :: nodes_x
+   real,      dimension(:),   allocatable :: nodes_y
    integer*4, dimension(:,:), allocatable :: face_nodes
    real*4,    dimension(:),   allocatable :: vtmp
    integer*4, dimension(:),   allocatable :: vtmpi
@@ -654,46 +653,43 @@ contains
    nodes_y = 0.0
    face_nodes = 0
    !
-   two = 2
-   !
    nn = 0
    !
    do nmq = 1, quadtree_nr_points
       !
       n = quadtree_n(nmq)
       m = quadtree_m(nmq)
-         !
-         iref = quadtree_level(nmq)
-         dxdy  = quadtree_dxr(iref)
-         !         
-         nn = nn + 1
-         !
-         nodes_x(nn) = x0 + cosrot*(m - 1)*dxdy - sinrot*(n - 1)*dxdy
-         nodes_y(nn) = y0 + sinrot*(m - 1)*dxdy + cosrot*(n - 1)*dxdy
-         face_nodes(1, nmq) = nn
-         !         
-         nn = nn + 1
-         !
-         nodes_x(nn) = x0 + cosrot*(m    )*dxdy - sinrot*(n - 1)*dxdy
-         nodes_y(nn) = y0 + sinrot*(m    )*dxdy + cosrot*(n - 1)*dxdy
-         face_nodes(2, nmq) = nn
-         !         
-         nn = nn + 1
-         !
-         nodes_x(nn) = x0 + cosrot*(m    )*dxdy - sinrot*(n    )*dxdy
-         nodes_y(nn) = y0 + sinrot*(m    )*dxdy + cosrot*(n    )*dxdy
-         face_nodes(3, nmq) = nn
-         !         
-         nn = nn + 1
-         !
-         nodes_x(nn) = x0 + cosrot*(m - 1)*dxdy - sinrot*(n    )*dxdy
-         nodes_y(nn) = y0 + sinrot*(m - 1)*dxdy + cosrot*(n    )*dxdy
-         face_nodes(4, nmq) = nn
-         !
-!      endif
+      !
+      iref = quadtree_level(nmq)
+      dxdy  = quadtree_dxr(iref)
+      !         
+      nn = nn + 1
+      !
+      nodes_x(nn) = x0 + cosrot*(m - 1)*dxdy - sinrot*(n - 1)*dxdy
+      nodes_y(nn) = y0 + sinrot*(m - 1)*dxdy + cosrot*(n - 1)*dxdy
+      face_nodes(1, nmq) = nn
+      !         
+      nn = nn + 1
+      !
+      nodes_x(nn) = x0 + cosrot*(m    )*dxdy - sinrot*(n - 1)*dxdy
+      nodes_y(nn) = y0 + sinrot*(m    )*dxdy + cosrot*(n - 1)*dxdy
+      face_nodes(2, nmq) = nn
+      !         
+      nn = nn + 1
+      !
+      nodes_x(nn) = x0 + cosrot*(m    )*dxdy - sinrot*(n    )*dxdy
+      nodes_y(nn) = y0 + sinrot*(m    )*dxdy + cosrot*(n    )*dxdy
+      face_nodes(3, nmq) = nn
+      !         
+      nn = nn + 1
+      !
+      nodes_x(nn) = x0 + cosrot*(m - 1)*dxdy - sinrot*(n    )*dxdy
+      nodes_y(nn) = y0 + sinrot*(m - 1)*dxdy + cosrot*(n    )*dxdy
+      face_nodes(4, nmq) = nn
+      !
    enddo   
    !  
-   NF90(nf90_create('sfincs_map.nc', ior(NF90_CLOBBER,NF90_NETCDF4), map_file%ncid)) ! TL: removed 'NF90_64BIT_OFFSET'
+   NF90(nf90_create('sfincs_map.nc', ior(NF90_CLOBBER, NF90_NETCDF4), map_file%ncid)) ! TL: removed 'NF90_64BIT_OFFSET'
    !
    ! Create dimensions
    ! grid, time, points
@@ -758,7 +754,7 @@ contains
       !
    else
       !
-      NF90(nf90_def_var(map_file%ncid, 'mesh2d_node_x', NF90_FLOAT, (/map_file%nmesh2d_node_dimid/), map_file%mesh2d_node_x_varid)) ! location of zb, zs etc. in cell centre
+      NF90(nf90_def_var(map_file%ncid, 'mesh2d_node_x', NF90_DOUBLE, (/map_file%nmesh2d_node_dimid/), map_file%mesh2d_node_x_varid)) ! location of zb, zs etc. in cell centre
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_node_x_varid, 1, 1, nc_deflate_level))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'units', 'm'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'standard_name', 'projection_x_coordinate'))
@@ -766,7 +762,7 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'mesh', 'mesh2d'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'location', 'node'))
       !
-      NF90(nf90_def_var(map_file%ncid, 'mesh2d_node_y', NF90_FLOAT, (/map_file%nmesh2d_node_dimid/), map_file%mesh2d_node_y_varid)) ! location of zb, zs etc. in cell centre
+      NF90(nf90_def_var(map_file%ncid, 'mesh2d_node_y', NF90_DOUBLE, (/map_file%nmesh2d_node_dimid/), map_file%mesh2d_node_y_varid)) ! location of zb, zs etc. in cell centre
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_node_y_varid, 1, 1, nc_deflate_level))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'units', 'm'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'standard_name', 'projection_y_coordinate'))
@@ -2175,7 +2171,7 @@ contains
          endif            
          !            
       endif         
-      !           
+      !
       NF90(nf90_sync(map_file%ncid)) !write away intermediate data ! TL: in first test it seems to be faster to let the file update than keep in memory
       !      
    end subroutine
