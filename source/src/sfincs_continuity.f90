@@ -141,7 +141,7 @@ contains
          num = z_index_uv_nu(nm)
          !
          if (crsgeo) then
-            zs(nm)   = zs(nm) + (((q(nmd) - q(nmu))*dxminv(nmu) + (q(ndm) - q(num))*dyrinv(z_flags_iref(nm))))*dt
+            zs(nm)   = zs(nm) + (((q(nmd) - q(nmu))*max(dxminv(nmd), dxminv(nmu)) + (q(ndm) - q(num))*dyrinv(z_flags_iref(nm))))*dt
          else   
             zs(nm)   = zs(nm) + (((q(nmd) - q(nmu))*dxrinv(z_flags_iref(nm)) + (q(ndm) - q(num))*dyrinv(z_flags_iref(nm))))*dt
          endif   

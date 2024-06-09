@@ -116,6 +116,7 @@ module sfincs_data
       character*256 :: drnfile
       character*256 :: zsinifile
       character*256 :: rstfile
+      character*256 :: ncinifile
       character*256 :: indexfile
       character*256 :: bindepfile
       character*256 :: binmskfile

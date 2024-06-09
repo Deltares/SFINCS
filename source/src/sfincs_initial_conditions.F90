@@ -1,0 +1,332 @@
+#define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)   
+module sfincs_initial_conditions
+   !
+   use sfincs_data
+   use netcdf       
+   !
+   type net_type_ini
+       integer :: ncid
+       integer :: np_dimid, npuv_dimid
+       integer :: zs_varid, q_varid, uv_varid
+   end type      
+   !
+   type(net_type_ini) :: net_file_ini              
+   !
+   real*4, dimension(:),   allocatable :: inizs
+   real*4, dimension(:),   allocatable :: iniq
+   !
+contains
+   !
+   subroutine set_initial_conditions()
+      !
+      ! Initialize SFINCS variables (qx, qy, zs etc.)
+      !
+      implicit none
+      !
+      integer    :: nm, m, n, ivol, num, nmu, ilevel, rsttype, ip, ind, iuv, icuv
+      real*4     :: dzvol
+      real*4     :: facint
+      real*4     :: rdummy
+      real*4     :: dzuv
+      real*4     :: zmax
+      real*4     :: zmin
+      real*4     :: one_minus_facint 
+      real*4     :: huv
+      real*4     :: zsuv   
+      ! 
+      logical   :: iok
+      !
+      allocate(inizs(np))
+      allocate(iniq(npuv))
+      !
+      inizs = zini
+      iniq  = 0.0
+      !
+      ! Check the type of initial conditions
+      !
+      if (rstfile(1:4) /= 'none') then
+         !
+         ! Binary restart file
+         !
+         write(*,*)'Reading restart file ', trim(rstfile), ' ...'
+         !
+         call read_binary_restart_file()
+         !
+      elseif (zsinifile(1:4) /= 'none') then ! Read binary (!) initial water level file
+         !
+         ! Binary initial water level file
+         !
+         write(*,*)'Reading initial conditions file ', trim(zsinifile), ' ...'
+         !
+         call read_zsini_file()
+         !
+      elseif (ncinifile(1:4) /= 'none') then ! Read netcdf (!) initial water level file
+         !
+         ! NetCDF file
+         !
+         write(*,*)'Reading NetCDF initial conditions file ', trim(zsinifile), ' ...'
+         !
+         call read_nc_ini_file()
+         !
+      else
+         !
+         ! No initial conditions provided
+         !
+      endif        
+      !
+      ! Water levels
+      !
+      do nm = 1, np
+         !
+         if (subgrid) then
+            zs(nm) = max(subgrid_z_zmin(nm), inizs(nm)) ! Water level at zini or bed level (whichever is higher)
+         else
+            zs(nm) = max(zb(nm), inizs(nm)) ! Water level at zini or bed level (whichever is higher)
+         endif
+         !
+      enddo      
+      !
+      ! Flux q
+      !
+      do ip = 1, npuv
+         !
+         q(ip) = iniq(ip)
+         !
+         ! Also need to compute initial uv
+         ! Use same method as used in sfincs_momentum.f90
+         !
+         nm  = uv_index_z_nm(ip)
+         nmu = uv_index_z_nmu(ip)
+         !
+         zsuv = max(zs(nm), zs(nmu)) ! water level at uv point 
+         !
+         iok = .false.
+         !
+         if (subgrid) then
+            !
+            zmin = subgrid_uv_zmin(ip)
+            zmax = subgrid_uv_zmax(ip)
+            !            
+            if (zsuv>zmin + huthresh) then
+               iok = .true.
+            endif   
+            !
+         else
+            !            
+            if (zsuv>zbuvmx(ip)) then
+               iok = .true.
+            endif   
+            !            
+         endif   
+         !
+         if (iok) then
+            !
+            if (subgrid) then
+               !
+               if (zsuv>zmax - 1.0e-4) then
+                  !
+                  ! Entire cell is wet, no interpolation from table needed
+                  !
+                  huv    = subgrid_uv_havg_zmax(ip) + zsuv
+                  !
+               else
+                  !
+                  ! Interpolation required
+                  !
+                  dzuv   = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nlevels - 1)
+                  iuv    = int((zsuv - subgrid_uv_zmin(ip))/dzuv) + 1
+                  facint = (zsuv - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv
+                  huv    = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint
+                  !                      
+               endif
+               !
+               huv    = max(huv, huthresh)
+               !
+            else
+               !
+               huv    = max(zsuv - zbuv(ip), huthresh)
+               !
+            endif
+            !
+            uv(ip)   = max(min(q(ip)/huv, 4.0), -4.0)   
+            !
+         endif   
+         !
+      enddo
+      !
+      deallocate(inizs)
+      deallocate(iniq)
+      !
+   end subroutine
+   !
+   !
+   ! 
+   subroutine read_binary_restart_file()
+      !
+      ! Binary restart file
+      !
+      implicit none
+      !
+      integer    :: nm, m, n, ivol, num, nmu, ilevel, rsttype, ip, ind, iuv, icuv
+      real*4     :: dzvol
+      real*4     :: facint
+      real*4     :: rdummy
+      real*4     :: dzuv
+      real*4     :: zmax
+      real*4     :: zmin
+      real*4     :: one_minus_facint 
+      real*4     :: huv
+      real*4     :: zsuv   
+      !
+      logical   :: iok
+      !
+      open(unit = 500, file = trim(rstfile), form = 'unformatted', access = 'stream')
+      !
+      ! Restartfile flavours:
+      ! 1: zs, q, uvmean  
+      ! 2: zs, q 
+      ! 3: zs  - 
+      ! 4: zs, q, uvmean and cnb infiltration (writing scs_Se)
+      ! 5: zs, q, uvmean and gai infiltration (writing GA_sigma & GA_F)
+      ! 6: zs, q, uvmean and hor infiltration (writing rain_T1)         
+      !
+      read(500)rdummy
+      read(500)rsttype
+      read(500)rdummy
+      !
+      if (rsttype < 1 .or. rsttype > 6) then
+         !
+         ! Give warning, rstfile input rsttype not recognized
+         !
+         write(*,*)'WARNING! rstfile not recognized, skipping restartfile input! rsttype should be 1-6, but found rsttype = ', rsttype 
+         !          
+         close(500)      
+         !          
+      else
+         ! Always read in inizs
+         !
+         read(500)rdummy
+         read(500)inizs
+         read(500)rdummy
+         !      
+         ! Read fluxes q
+         !
+         if (rsttype==1 .or. rsttype==2 .or. rsttype==4 .or. rsttype==5 .or. rsttype==6) then     
+            read(500)rdummy
+            read(500)iniq
+            read(500)rdummy
+            !
+            read(500)rdummy
+            read(500)uvmean
+            read(500)rdummy
+         endif
+         !
+         if (rsttype==4) then ! Infiltration method cnb 
+            !
+            read(500)rdummy                 
+            read(500)scs_Se
+            write(*,*)'Reading scs_Se from rstfile, overwrites input values of: ',trim(sefffile)
+            !
+         elseif (rsttype==5) then ! Infiltration method gai    
+            !
+            read(500)rdummy
+            read(500)GA_sigma
+            read(500)rdummy
+            read(500)GA_F
+            write(*,*)'Reading GA_sigma from rstfile, overwrites input values of: ',trim(sigmafile)        
+            !
+         elseif (rsttype==6) then ! Infiltration method horton
+            !
+            read(500)rdummy                               
+            read(500)rain_T1
+            write(*,*)'Reading rain_T1 from rstfile, complements input values of: ',trim(fcfile)        
+            !              
+         endif          
+         !
+         close(500)      
+         !
+      endif
+      !
+   end subroutine
+   !
+   !
+   ! 
+   subroutine read_zsini_file()
+      !
+      ! Binary zs ini file
+      !
+      implicit none
+      !
+      write(*,*)'Reading ',trim(zsinifile)
+      open(unit = 500, file = trim(zsinifile), form = 'unformatted', access = 'stream')
+      read(500)inizs
+      close(500)       
+      !
+   end subroutine
+   !
+   !
+   ! 
+   subroutine read_nc_ini_file()
+      !
+      ! NetCDF ini file
+      !
+      implicit none
+      !
+      real*4, dimension(:),   allocatable :: zsq
+      integer*1 :: iversion
+      integer   :: npq, ip, iepsg
+      !
+      NF90(nf90_open(trim(ncinifile), NF90_CLOBBER, net_file_ini%ncid))
+      !          
+      ! Get dimensions id's: nr points  
+      !
+      ! NF90(nf90_inq_dimid(net_file_ini%ncid, "mesh2d_nFaces", net_file_ini%np_dimid))
+      NF90(nf90_inq_dimid(net_file_ini%ncid, "np", net_file_ini%np_dimid))
+      ! NF90(nf90_inq_dimid(net_file_ini%ncid, "npuv", net_file_ini%npuv_dimid))
+      !
+      ! Get dimensions sizes    
+      !
+      NF90(nf90_inquire_dimension(net_file_ini%ncid, net_file_ini%np_dimid, len = npq))   ! total nr of cells in quadtree
+      !
+      ! Get variable id's
+      !
+      NF90(nf90_inq_varid(net_file_ini%ncid, 'zs', net_file_ini%zs_varid))
+      !
+      ! Allocate variables   
+      !
+      allocate(zsq(npq))
+      !
+      ! Read zs for all quadtree cells
+      !
+      NF90(nf90_get_var(net_file_ini%ncid, net_file_ini%zs_varid,     zsq(:)))
+      !      
+      ! Re-map to active SFINCS cells
+      !
+      do ip = 1, np
+         !
+         inizs(ip) = zsq(index_quadtree_in_sfincs(ip)) 
+         ! 
+      enddo
+      !
+      NF90(nf90_close(net_file_ini%ncid))       
+      !
+   end subroutine
+   !
+   !
+   !
+   subroutine handle_err(status,file,line)
+      !
+      integer, intent ( in)    :: status
+      character(*), intent(in) :: file
+      integer, intent ( in)    :: line
+      integer :: status2
+      !   
+      if (status /= nf90_noerr) then
+         !   !UNIT=6 for stdout and UNIT=0 for stderr.
+         write(0,'("NETCDF ERROR: ",a,i6,":",a)') file,line,trim(nf90_strerror(status))
+         !
+      endif
+      !
+   end subroutine handle_err
+   !
+end module
