@@ -487,6 +487,7 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: qmax
       real*4, dimension(:),   allocatable :: zs
       real*4, dimension(:),   allocatable :: zsm
+      real*4, dimension(:),   allocatable :: maxzsm      
       real*4, dimension(:),   allocatable :: q
       real*4, dimension(:),   allocatable :: q0
       real*4, dimension(:),   allocatable :: uv
