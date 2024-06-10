@@ -109,7 +109,7 @@ contains
    !$omp parallel &
    !$omp private ( nm,dvol,nmd,nmu,ndm,num,qnmd,qnmu,qndm,qnum,iwm)
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels present( kcs, zs, zb, netprcp, cumprcpt, prcp, q, zsmax, zsm, &
+   !$acc kernels present( kcs, zs, zb, netprcp, cumprcpt, prcp, q, zsmax, zsm, maxzsm, &
    !$acc                  z_flags_iref, uv_flags_iref, &
    !$acc                  z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
    !$acc                  dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area,  &
@@ -220,6 +220,12 @@ contains
          !
          zsm(nm) = factime*zs(nm) + (1.0 - factime)*zsm(nm)
          !
+         if (store_maximum_waterlevel) then
+             !
+             maxzsm(nm) = max(maxzsm(nm), zsm(nm))             
+             !
+         endif         
+         !             
       endif 
       !
       ! No continuity update but keeping track of variables         
@@ -317,7 +323,7 @@ contains
    !$omp parallel &
    !$omp private ( dvol,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,iwm,qnmd,qnmu,qndm,qnum,dv )
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels present( kcs, zs, zb, z_volume, zsmax, zsm, &
+   !$acc kernels present( kcs, zs, zb, z_volume, zsmax, zsm, maxzsm, &
    !$acc                  subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
    !$acc                  netprcp, cumprcpt, prcp, q, z_flags_iref, uv_flags_iref, &
    !$acc                  z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
@@ -511,6 +517,12 @@ contains
          !
          zsm(nm) = factime*zs(nm) + (1.0 - factime)*zsm(nm)
          !
+         if (store_maximum_waterlevel) then
+             !
+             maxzsm(nm) = max(maxzsm(nm), zsm(nm))             
+             !
+         endif         
+         !    
       endif 
       !
       ! No continuity update but keeping track of variables         
