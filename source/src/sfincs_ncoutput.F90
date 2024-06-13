@@ -816,6 +816,15 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'standard_name', 'sea_surface_height_above_reference_level')) 
    NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'long_name', 'water_level'))  
    !
+   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then   
+      NF90(nf90_def_var(map_file%ncid, 'h', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%h_varid)) ! time-varying water level map
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%h_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%h_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%h_varid, 'units', 'm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%h_varid, 'standard_name', 'water_depth')) 
+      NF90(nf90_put_att(map_file%ncid, map_file%h_varid, 'long_name', 'water_depth'))  
+   endif
+   !
    if (store_velocity) then
       !
       NF90(nf90_def_var(map_file%ncid, 'u', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%u_varid)) ! time-varying u map
@@ -2001,20 +2010,38 @@ contains
       !
       NF90(nf90_put_var(map_file%ncid, map_file%zs_varid, vtmp, (/1, ntmapout/))) ! write zs
       ! 
-!      zsg = FILL_VALUE       
-!      !
-!      do nm = 1, np
-!            if (subgrid) then
-!                zsg(z_index_nm(1,nm),z_index_nm(2,nm)) = zs(nm) - subgrid_z_zmin(nm)
-!            else
-!                zsg(z_index_nm(1,nm),z_index_nm(2,nm)) = zs(nm) - zb(nm)
-!            endif
-!      enddo
+      ! Water depth 
       !
-!      if (subgrid) then
-!         NF90(nf90_put_var(map_file%ncid, map_file%h_varid, zsg(2:nmax-1, 2:mmax-1), (/1, 1, ntmapout/))) ! write h
+      if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then   
+         ! 
+         vtmp = FILL_VALUE
+         !
+         do nmq = 1, quadtree_nr_points
+            !
+            nm = index_sfincs_in_quadtree(nmq)
+            !
+            if (nm>0) then 
+               !
+               if (kcs(nm)>0) then
+                  if (subgrid) then
+                     if ( (zs(nm) - subgrid_z_zmin(nm)) > huthresh) then
+                        vtmp(nmq) = zs(nm) - subgrid_z_zmin(nm)
+                     endif
+                  else
+                     if ( (zs(nm) - zb(nm)) > huthresh) then
+                        vtmp(nmq) = zs(nm) - zb(nm)
+                     endif
+                  endif
+               endif
+               !
+            endif
+            !
+         enddo
+         !  
+         NF90(nf90_put_var(map_file%ncid, map_file%h_varid, vtmp, (/1, ntmapout/))) ! write h
+         !
+      endif
       !            
-      !!      
       if (store_velocity) then
          !
          utmp = FILL_VALUE

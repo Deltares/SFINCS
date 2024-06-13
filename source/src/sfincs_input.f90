@@ -156,7 +156,11 @@ contains
    call read_char_input(500,'disfile',disfile,'none')
    call read_char_input(500,'spwfile',spwfile,'none')
    call read_char_input(500,'wndfile',wndfile,'none')
-   call read_char_input(500,'precipfile',prcpfile,'none')
+   call read_char_input(500,'prcfile',prcpfile,'none')
+   if (prcpfile(1:4) == 'none') then
+      ! Try with old keyword 
+      call read_char_input(500,'precipfile',prcpfile,'none')
+   endif  
    call read_char_input(500,'amufile',amufile,'none')
    call read_char_input(500,'amvfile',amvfile,'none')
    call read_char_input(500,'ampfile',ampfile,'none')
