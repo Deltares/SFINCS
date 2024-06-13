@@ -20,7 +20,7 @@ find . -name \*.am|xargs dos2unix
 
 ./autogen.sh
 
-./configure FCFLAGS="-acc -Minfo=accel -fast -O3 -gpu=ccall -DSIZEOF_PTRDIFF_T=999" FC=nvfortran --disable-shared --disable-openmp --prefix=/usr/local/bin/sfincs/nvfortran_gpu
+./configure FCFLAGS="-acc -Minfo=accel -fast -O3 -gpu=ccall -DSIZEOF_PTRDIFF_T=999" FC=nvfortran --disable-shared --disable-openmp --prefix bin/sfincs
 
 make clean
 
