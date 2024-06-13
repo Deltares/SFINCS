@@ -2359,6 +2359,10 @@ contains
    !
    if (wavemaker .or. snapwave) then !TL: zsm also used in sfincs_continuity if 'snapwave=true' > todo: check if needed, or only for wavemaker 
       allocate(zsm(np))
+      !
+      if (store_maximum_waterlevel) then
+          allocate(maxzsm(np))      
+      endif      
    endif
    !
    if (store_maximum_waterlevel) then
@@ -2403,6 +2407,10 @@ contains
    if (wavemaker .or. snapwave) then !TL: zsm also used in sfincs_continuity if 'snapwave=true' > todo: check if needed, or only for wavemaker
       !      
       zsm = zs
+      !
+      if (store_maximum_waterlevel) then
+         maxzsm = -999.0
+      endif
       !
    endif   
    !
