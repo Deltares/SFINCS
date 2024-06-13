@@ -33,6 +33,7 @@ libsfincs_la_SOURCES = \
 	snapwave/snapwave_solver.f90 \
 	sfincs_input.f90 \
 	sfincs_ncinput.F90 \
+	sfincs_initial_conditions.f90 \
 	sfincs_boundaries.f90 \
 	sfincs_continuity.f90 \
 	sfincs_crosssections.f90 \
