@@ -7,6 +7,7 @@ find . -name \*.m4|xargs dos2unix && find . -name \*.ac|xargs dos2unix && find .
 find . -name \*.f90|xargs dos2unix
 find . -name \*.F90|xargs dos2unix
 find . -name \*.am|xargs dos2unix
+find . -name \*.sh|xargs dos2unix
 
 MANPATH=$MANPATH:/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/compilers/man; export MANPATH
 PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/compilers/bin:$PATH; export PATH
