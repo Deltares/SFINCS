@@ -125,8 +125,9 @@
    !$omp reduction ( min : min_dt )
    !$omp do schedule ( dynamic, 256 )
    !$acc kernels, present( kcuv, kfuv, zs, q, q0, uv, uv0, min_dt, zsderv, &
-   !$acc                   uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
-   !$acc                   subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
+   !$acc                   uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, nuvisc, &
+   !$acc                   subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
+   !$acc                   subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
    !$acc                   uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc                   uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
    !$acc                   zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, fcorio2d ), async(1)

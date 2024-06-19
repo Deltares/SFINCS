@@ -18,7 +18,7 @@ autoreconf -vif
 
 ./autogen.sh
 
-./configure FCFLAGS="-acc -Minfo=accel -fast -O3 -gpu=ccall -DSIZEOF_PTRDIFF_T=999" FC=nvfortran --disable-shared --disable-openmp --prefix=/usr/local/bin/sfincs/nvfortran_gpu
+./configure FCFLAGS="-acc=gpu,sync -Minfo=accel -fast -O3 -gpu=cc75 -DSIZEOF_PTRDIFF_T=999" FC=nvfortran --disable-shared --disable-openmp --prefix=/usr/local/bin/sfincs/nvfortran_gpu_parallel_128_sync_b
 
 make clean
 
