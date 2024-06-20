@@ -88,7 +88,7 @@ module sfincs_lib
    build_revision = '$Rev: v2.0.6-alpha'
    !build_date     = '$Date: 2024-03-28'
    build_revision = '$Rev: v??? - updated sfincs.inp reading for NVIDIA'
-   build_date     = '$Date: 2024-05-21'
+   build_date     = '$Date: 2024-06-20'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   

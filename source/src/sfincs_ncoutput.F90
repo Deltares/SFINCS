@@ -2944,7 +2944,6 @@ contains
         NF90(nf90_put_att(ncid, varid, 'spwmergefrac',spw_merge_frac)) 
         NF90(nf90_put_att(ncid, varid, 'usespwprecip',logical2int(use_spw_precip)))         
         NF90(nf90_put_att(ncid, varid, 'global',logical2int(global))) 
-        NF90(nf90_put_att(ncid, varid, 'nuvisc',nuvisc)) 
         NF90(nf90_put_att(ncid, varid, 'spinup_meteo', logical2int(spinup_meteo))) 
         NF90(nf90_put_att(ncid, varid, 'waveage',waveage)) 
         NF90(nf90_put_att(ncid, varid, 'wmtfilter', wmtfilter))         

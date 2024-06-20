@@ -101,18 +101,25 @@
    !
    ! Copy flux and velocity from previous time step
    !
+   !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, zsderv, &
+   !$acc                    uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
+   !$acc                    subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
+   !$acc                    subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
+   !$acc                    uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
+   !$acc                    uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
+   !$acc                    zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, &
+   !$acc                    dxrinvc, fcorio2d, nuvisc ), num_gangs( 512 ), vector_length( 128 ), async(1)
+   !
    !$omp parallel &
    !$omp private ( ip )
    !$omp do
-   !$acc kernels, present(q, q0, uv, uv0), async(1)
-   !$acc loop independent, private(nm)
+   !$acc loop independent, gang, vector
    do ip = 1, npuv + ncuv
       !
       q0(ip)  = q(ip)
       uv0(ip) = uv(ip)
       !
    enddo
-   !$acc end kernels
    !$omp end do
    !$omp end parallel
    !
@@ -124,14 +131,7 @@
    !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv ) &
    !$omp reduction ( min : min_dt )
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels, present( kcuv, kfuv, zs, q, q0, uv, uv0, min_dt, zsderv, &
-   !$acc                   uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, nuvisc, &
-   !$acc                   subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
-   !$acc                   subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
-   !$acc                   uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
-   !$acc                   uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
-   !$acc                   zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, fcorio2d ), async(1)
-   !$acc loop independent, reduction( min : min_dt )
+   !$acc loop independent, reduction( min : min_dt ), gang, vector
    do ip = 1, npuv
       !
       if (kcuv(ip)==1) then
@@ -630,7 +630,6 @@
    enddo   
    !$omp end do
    !$omp end parallel
-   !$acc end kernels
    !
    if (ncuv > 0) then
       !
@@ -640,8 +639,7 @@
       !$omp parallel &
       !$omp private ( icuv )
       !$omp do
-      !$acc kernels, present( q, uv, cuv_index_uv, cuv_index_uv1, cuv_index_uv2 ), async(1)
-      !$acc loop independent, private(icuv)
+      !$acc loop independent, gang, vector
       do icuv = 1, ncuv
          !
          ! Average of the two uv points
@@ -650,14 +648,14 @@
          uv(cuv_index_uv(icuv)) = (uv(cuv_index_uv1(icuv)) + uv(cuv_index_uv2(icuv))) / 2
          !
       enddo
-      !$acc end kernels
       !$omp end do
       !$omp end parallel
       !
    endif
    !
+   !$acc end parallel
+   !
    !$acc update host(min_dt), async(1)
-   !$acc wait(1)
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
