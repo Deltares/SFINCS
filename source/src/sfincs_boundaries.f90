@@ -108,7 +108,7 @@ contains
       !
       iok = 1
       ! 
-      do ib = 1, ntbnd
+      do ib = 1, nbnd
          do itb = 1, ntbnd
             !
             if (zs_bnd(ib, itb)<-99.0 .or. zs_bnd(ib, itb)>990.0) then
