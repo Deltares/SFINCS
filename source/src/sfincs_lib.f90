@@ -1,5 +1,7 @@
 module sfincs_lib
    !
+   use omp_lib
+   !
    use sfincs_spiderweb
    use sfincs_input
    use sfincs_domain
@@ -261,7 +263,7 @@ module sfincs_lib
    ! Start computational loop
    !
    write(*,'(a)')''   
-   write(*,*)'---------- Starting simulation ----------'
+   write(*,'(a,i0,a,i0,a)')' ---------- Starting simulation on ', omp_get_max_threads(), ' of ', omp_get_num_procs(), ' available threads ----------'
    write(*,'(a)')''   
    !
    call system_clock(count00, count_rate, count_max)
