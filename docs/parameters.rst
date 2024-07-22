@@ -2,10 +2,7 @@ Input parameters
 =====
 
 Different parameters for model input and output of SFINCS can be changed in **sfincs.inp**, see below. 
-
-Traditionally SFINCS neglects the advection term in the SFINCS-LIE version ('advection = 0'). 
-For super-critical flow conditions or modelling waves, the SFINCS-SSWE version can be used ('advection = 1' for 1D modelling and 'advection = 2' for 2D modelling) for better performance.        
-     
+    
 Parameters for model input
 -----
 
@@ -52,7 +49,7 @@ Parameters for model input
 	  :min:			0
 	  :max:			359.999 	  
 	advection
-	  :description:		Setting for advection. 0 for no advection scheme (SFINCS-LIE), 1 for advection scheme on (SFINCS-SSWE).
+	  :description:		Setting for advection. Releases after Cauberg: 0 for no advection scheme (SFINCS-LIE), 1 for advection scheme on (default, SFINCS-SSWE). This replaces the old obsolete differentation between 1D part of advection (advection=1) and 2D part (advection=2).
 	  :units:		-
 	  :default:		1
 	  :min:			0
