@@ -196,7 +196,8 @@ More parameters for model input (only for advanced users)
 	  :default:		0  28  50
 	  :min:			2 values
 	  :max:			-
-	  :description:		Drag coefficient brak points
+	cdval
+	  :description:		Drag coefficient break points
 	  :units:		-
 	  :default:		0.001 0.0025 0.0015
 	  :min:			2 values
