@@ -82,21 +82,8 @@ contains
       read(888,'(a)')line
       !
       call compute_time_in_seconds(line,trefstr,dtsec)
-!      j=index(line,'=')      
-!      j2=index(line,'m')      
-!      keystr = trim(line(1:j-1))
-!      valstr = trim(line(j+1:j2-1))
-!      timstr = trim(line(j2+14:j2+24))
-!      read(valstr,*)time(it)
-!      !
-!      ! Compute difference in seconds between spiderweb reference time and simulation start time
-!      !
-!      read(timstr,'(A,1X,A,1X,A)')cyspw,cmspw,cdspw
-!      datespw = cyspw // cmspw // cdspw // ' 000000'
-!      call time_difference(datespw,trefstr,dtsec)
-!      !
-!      time(it) = time(it)*60 - dtsec*1.0 ! Convert to seconds w.r.t. reference time
-      time(it) = dtsec*1.0 ! Convert to seconds w.r.t. reference time
+      !
+      time(it) = dtsec * 1.0 ! Convert to seconds w.r.t. reference time
       !
       ! Xe
       !
@@ -474,12 +461,15 @@ contains
    !   
    character(*), intent(in) :: line
    character*15, intent(in) :: trefstr
-   integer*8, intent(out)     :: dtsec
+   integer*8, intent(out)   :: dtsec
    !
-   integer j, j2, iopt
+   integer j, j2, iopt, jsince, jsc, jmn, jhr, jdy, ifac, junit
    character*4 cyspw 
    character*2 cmspw 
    character*2 cdspw 
+   character*2 chhspw 
+   character*2 cmmspw 
+   character*2 cssspw 
    !
    character*256 :: cdummy
    character*256 :: keystr
@@ -488,42 +478,56 @@ contains
    character*256 :: timstr
    real          :: tim   
    !
-   j=index(line,'=')      
-   j2=index(line,'minutes')    
-   iopt = 1
-   if (j2==0) then
-      iopt = 2
-      j2=index(line,'hours')      
-   endif    
-   keystr = trim(line(1:j-1))
-   valstr = trim(line(j+1:j2-1))
-   if (iopt==1) then
+   j = index(line, '=')
+   !
+   jsince = index(line, 'since')
+   !
+   jsc = index(line, 'seconds')
+   jmn = index(line, 'minutes')
+   jhr = index(line, 'hours')
+   jdy = index(line, 'days')
+   !
+   if (jsc > 0) then
       !
-      ! minutes
+      junit = jsc
+      ifac   = 1
+      ! 
+   elseif (jmn > 0) then    
       !
-      timstr = trim(line(j2+14:j2+24))
+      junit = jmn
+      ifac  = 60
+      ! 
+   elseif (jhr > 0) then    
       !
+      junit = jhr
+      ifac  = 3600
+      ! 
+   elseif (jdy > 0) then    
+      !
+      junit = jdy
+      ifac  = 86400
+      ! 
    else
       !
-      ! hours
-      !
-      timstr = trim(line(j2+12:j2+22))
-      !
+      ! Error 
+      ! 
    endif
+   !
+   valstr = trim(line(j+1:junit-1))
    !
    read(valstr,*)tim
    !
+   timstr = trim(line(jsince + 6 : jsince + 24))
+   !
    ! Compute difference in seconds between spiderweb reference time and simulation start time
    !
-   read(timstr,'(A,1X,A,1X,A)')cyspw,cmspw,cdspw
-   datespw = cyspw // cmspw // cdspw // ' 000000'
+   read(timstr,'(A,1X,A,1X,A,1X,A,1X,A,1X,A)')cyspw,cmspw,cdspw,chhspw,cmmspw,cssspw
+   !
+   datespw = cyspw // cmspw // cdspw // ' ' // chhspw // cmmspw // cssspw
+   !
    call time_difference(datespw,trefstr,dtsec)
    !
-   if (iopt==1) then
-      dtsec = tim*60 - dtsec ! Convert to seconds w.r.t. reference time
-   else
-      dtsec = tim*3600 - dtsec ! Convert to seconds w.r.t. reference time
-   endif
+   dtsec = tim*ifac - dtsec ! Convert to seconds w.r.t. reference time
    !
    end subroutine
    

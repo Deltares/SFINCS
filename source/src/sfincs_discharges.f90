@@ -28,6 +28,7 @@ contains
    if (srcfile(1:4) /= 'none') then
       !
       write(*,*)'Reading discharges ...'
+      !
       open(500, file=trim(srcfile))
       do while(.true.)
          read(500,*,iostat = stat)dummy
@@ -43,7 +44,9 @@ contains
    endif   
    !
    if (drnfile(1:4) /= 'none') then
+      !
       write(*,*)'Reading drainage file ...'
+      !
       open(501, file=trim(drnfile))
       do while(.true.)
          read(501,*,iostat = stat)dummy
