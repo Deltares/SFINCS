@@ -262,7 +262,7 @@ module sfincs_lib
    !
    write(*,'(a)')''   
    write(*,*)'---------- Starting simulation ----------'   
-   write(*,'(a,i0,a,i0,a)')' ----- Using ', omp_get_max_threads(), ' of ', omp_get_num_procs(), ' available threads ----'   
+   write(*,'(a,i0,a,i0,a)')' ---- Using ', omp_get_max_threads(), ' of ', omp_get_num_procs(), ' available threads -----'   
    write(*,'(a)')''   
    !
    call system_clock(count00, count_rate, count_max)
@@ -433,7 +433,7 @@ module sfincs_lib
          call update_wave_field(t, tloopsnapwave)
          !
          call timer(t4)                   
-         write(*,'(a,f10.1,a)')'Computing SnapWave at t = ', t, ' s took ', t4 - t3, ' seconds'         
+         write(*,'(a,f10.1,a,f10.1,a)')'Computing SnapWave at t = ', t, ' s took ', t4 - t3, ' seconds'         
          !
          ! Maybe we'll add moving wave makers back at some point
          !
