@@ -105,7 +105,7 @@
    !
    ! Loop through polylines
    !
-   write(*,'(a,a,a,i0,a)')' Reading ',trim(wvmfile),' (', nrwvm, ' wave makers polylines found) ...'
+   write(*,*)'Number of wavemaker polylines found : ', nrwvm   
    !
    do ipol = 1, nrwvm
       !
