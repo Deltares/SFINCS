@@ -261,7 +261,8 @@ module sfincs_lib
    ! Start computational loop
    !
    write(*,'(a)')''   
-   write(*,'(a,i0,a,i0,a)')' ---------- Starting simulation on ', omp_get_max_threads(), ' of ', omp_get_num_procs(), ' available threads ----------'
+   write(*,*)'---------- Starting simulation ----------'   
+   write(*,'(a,i0,a,i0,a)')' ----- Using ', omp_get_max_threads(), ' of ', omp_get_num_procs(), ' available threads ----'   
    write(*,'(a)')''   
    !
    call system_clock(count00, count_rate, count_max)
