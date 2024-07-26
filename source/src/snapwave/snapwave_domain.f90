@@ -286,12 +286,12 @@ contains
    !
    nb = 0
    !
-   ! Count number of active cells and allocate
+   ! Count number of active cells and allocate 'nmindbnd', used in snapwave_boundaries
    !
    do k=1,no_nodes
        !if (msk(k)==3) msk(k) = 1 ! Set outflow points to regular points > now should become neumann, so don't do this
        !
-       if (msk(k)>1) then    
+       if (msk(k) == 2) then    
             nb = nb + 1
        endif
        !
@@ -299,9 +299,7 @@ contains
    !
    allocate(nmindbnd(nb))
    !
-   ! Set inner and boundary cell indices
-   !
-   nb = 0   
+   ! Set inner cell indices, boundary cells are set in snapwave_boundaries
    !
    do k = 1, no_nodes
        !
@@ -311,12 +309,6 @@ contains
             inner(k) = .false.
        endif
        !
-       if (msk(k)>1) then    
-            !
-            nb = nb + 1           
-            nmindbnd(nb) = k
-            !
-       endif   
    enddo   
    !
    write(*,*)'Number of boundary SnapWave nodes : ',nb

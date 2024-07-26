@@ -327,7 +327,10 @@ contains
          if (msk(k) == 2) then
             !
             nb = nb + 1
-            nmindbnd(nb) = k
+            !
+            ! set boundary cell indices
+            !
+            nmindbnd(nb) = k 
             !
             xgb = x(k)
             ygb = y(k)
@@ -383,7 +386,7 @@ contains
          endif
       enddo
    endif
-   !
+   !   
    end subroutine   
    
 subroutine find_nearest_depth_for_boundary_points()
