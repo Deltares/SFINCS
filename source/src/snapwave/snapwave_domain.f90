@@ -224,6 +224,7 @@ contains
           read(145)dhdy
           close(145)
           !
+          ds360d0 = ds360 * 1.d0
       endif
    endif
    !      
