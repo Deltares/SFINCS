@@ -274,7 +274,9 @@ contains
            do itheta=1,ntheta360
                if (ds360d0(itheta,k)==0.d0) then
                    call ipon(x_bndenc,y_bndenc,n_bndenc,x(k),y(k),inout)
-                   if (inout>0) msk(k) = 2
+                   if (inout>0) then
+                       msk(k) = 2
+                   endif                   
                endif
            enddo
        enddo              
@@ -282,6 +284,8 @@ contains
    endif      
    !
    nb = 0
+   !
+   ! Count number of active cells and allocate
    !
    do k=1,no_nodes
        !if (msk(k)==3) msk(k) = 1 ! Set outflow points to regular points > now should become neumann, so don't do this
@@ -294,6 +298,10 @@ contains
    !
    allocate(nmindbnd(nb))
    !
+   ! Set inner and boundary cell indices
+   !
+   nb = 0   
+   !
    do k = 1, no_nodes
        !
        if (msk(k)==1) then
@@ -304,6 +312,7 @@ contains
        !
        if (msk(k)>1) then    
             !
+            nb = nb + 1           
             nmindbnd(nb) = k
             !
        endif   
