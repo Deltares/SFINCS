@@ -1237,11 +1237,11 @@
          close(500)
       endif
       !
-      if (wmf_time(1)>t0 + 1.0 .or. wmf_time(ntwmfp)<t1 - 1.0) then
+      if ((wmf_time(1) > (t0 + 1.0)) .or. (wmf_time(ntwmfp)< (t1 - 1.0))) then
          ! 
          write(*,'(a)')' WARNING! Times in wave maker time series file do not cover entire simulation period !'
          ! 
-         if (wmf_time(1)>t0 + 1.0) then
+         if (wmf_time(1) > (t0 + 1.0)) then
             ! 
             write(*,'(a)')' WARNING! Adjusting first time in wave maker time series !'
             !

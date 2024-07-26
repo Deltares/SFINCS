@@ -1105,7 +1105,7 @@ contains
       !
       ! Apply spin-up factor
       !
-      if (t<tspinup - 1.0e-3 .and. spinup_meteo) then
+      if ((t < (tspinup - 1.0e-3)) .and. spinup_meteo) then
          !
          smfac = (t - t0)/(tspinup - t0)
          oneminsmfac = 1.0 - smfac
