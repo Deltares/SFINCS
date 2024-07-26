@@ -130,7 +130,7 @@ contains
       !
    elseif (include_boundaries) then   
       !
-      write(*,'(a)') ' Warning : Boundary points found in mask, without boundary conditions. Using water level of 0.0 m at these points.'
+      write(*,'(a)') ' Warning : Boundary cells found in mask, without boundary conditions. Using water level of 0.0 m at these points.'
       !
    endif
    !
