@@ -268,7 +268,16 @@ contains
        !
        write(*,*)'Warning : no msk = 2 values found in snapwave_msk, trying using old encfile option:'
        !
-       call read_boundary_enclosure()
+       call read_boundary_enclosure() ! Only read old encfile option if no msk=2 cells found
+       !
+       do k=1,no_nodes
+           do itheta=1,ntheta360
+               if (ds360d0(itheta,k)==0.d0) then
+                   call ipon(x_bndenc,y_bndenc,n_bndenc,x(k),y(k),inout)
+                   if (inout>0) msk(k) = 2
+               endif
+           enddo
+       enddo              
        !
    endif      
    !
@@ -276,12 +285,6 @@ contains
    !
    do k=1,no_nodes
        !if (msk(k)==3) msk(k) = 1 ! Set outflow points to regular points > now should become neumann, so don't do this
-       do itheta=1,ntheta360
-           if (ds360d0(itheta,k)==0.d0) then
-               call ipon(x_bndenc,y_bndenc,n_bndenc,x(k),y(k),inout)
-               if (inout>0) msk(k) = 2
-           endif
-       enddo
        !
        if (msk(k)>1) then    
             nb = nb + 1
