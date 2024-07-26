@@ -79,19 +79,13 @@ module snapwave_solver
          !
       endif
       !
-      call timer(t2)
-      !
       call solve_energy_balance2Dstat (x,y,no_nodes,w,ds,inner,prev,neumannconnected,       &
                                        theta,ntheta,thetamean,                                    &
                                 depth,zb,kwav,kwav_ig,cg,cg_ig,ctheta,ctheta_ig,fw,fw_ig,Tpb,Tpb_ig,50000.,rho,snapwave_alpha,snapwave_alpha_ig,gamma,&
                                        H,H_ig,Dw,Dw_ig,F,Df,Df_ig,thetam,sinhkh,sinhkh_ig,Hmx,Hmx_ig, ee, ee_ig, igwaves, nr_sweeps, crit, hmin, gamma_ig, shinc2ig, ig_opt, iterative_srcig, baldock_opt, baldock_ratio, baldock_ratio_ig, alphaigfac, Qb,  beta, srcig, alphaig, nwav)
       !
-      call timer(t3)
-      !
       Fx = F*cos(thetam)
       Fy = F*sin(thetam)
-      !
-      write(*,*)'Computation SnapWave timestep took:               ', t3 - t2, ' seconds'
       !
    end subroutine
    

@@ -28,6 +28,8 @@ module sfincs_data
       real*4 gn2
       real*4 t0
       real*4 t1
+      real*4 t3
+      real*4 t4      
       real*4 dx
       real*4 dy
       real*4 dxinv

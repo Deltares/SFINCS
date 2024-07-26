@@ -427,9 +427,12 @@ module sfincs_lib
       !
       if (snapwave .and. update_waves) then
          !
-!         write(*,'(a,f10.1,a)')'Computing SnapWave at t = ', t, ' s'
+         call timer(t3)          
          !
          call update_wave_field(t, tloopsnapwave)
+         !
+         call timer(t4)                   
+         write(*,'(a,f10.1,a)')'Computing SnapWave at t = ', t, ' s took ', t4 - t3, ' seconds'         
          !
          ! Maybe we'll add moving wave makers back at some point
          !
