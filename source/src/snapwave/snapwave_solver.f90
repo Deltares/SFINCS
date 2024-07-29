@@ -340,6 +340,17 @@ module snapwave_solver
       !
       if (inner(k)) then ! Inner cells
          !
+         !
+         ! Make sure DoverE is filled based on previous ee
+         !
+         Ek       = sum(ee(:, k))*dtheta                  
+         Hk       = min(sqrt(Ek/rhog8), gamma*depth(k))
+         Ek       = rhog8*Hk**2
+         uorbi    = pi*Hk/T/sinhkh(k)
+         Dfk      = 0.28*rho*fw(k)*uorbi**3
+         call baldock(g, rho, alfa, gamma, kwav(k), depth(k), Hk, T, baldock_opt, Dwk, Hmx(k))
+         DoverE(k) = (Dwk + Dfk)/max(Ek, 1.0e-6)
+         !
          if (igwaves) then
             !
             ! This first time, determine beta_local (prev, ds, w depend on boundary wave direction as updated in update_boundary_points) and depthprev
@@ -364,19 +375,7 @@ module snapwave_solver
                 endif                    
             enddo
             !   
-         endif   
-         !
-         ! Make sure DoverE is filled based on previous ee
-         !
-         Ek       = sum(ee(:, k))*dtheta                  
-         Hk       = min(sqrt(Ek/rhog8), gamma*depth(k))
-         Ek       = rhog8*Hk**2
-         uorbi    = pi*Hk/T/sinhkh(k)
-         Dfk      = 0.28*rho*fw(k)*uorbi**3
-         call baldock(g, rho, alfa, gamma, kwav(k), depth(k), Hk, T, baldock_opt, Dwk, Hmx(k))
-         DoverE(k) = (Dwk + Dfk)/max(Ek, 1.0e-6)
-         !
-         if (igwaves) then
+            ! Make sure DoverE is filled based on previous ee for IG too
             !
             Ek_ig    = sum(ee_ig(:, k))*dtheta                  
             Hk_ig    = min(sqrt(Ek_ig/rhog8), gamma*depth(k))
