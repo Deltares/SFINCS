@@ -333,6 +333,7 @@ module snapwave_solver
          if (igwaves) then
             !
             ! Determining ee_ig(:, k) is now already done in snapwave_boundaries.f90 using Herbers et al. 1994 internally .or. user defined eeinc2ig
+            ! 
             E_ig(k)      = sum(ee_ig(:, k))*dtheta
             H_ig(k)      = sqrt(8*E_ig(k)/rho/g)
             !
@@ -355,28 +356,6 @@ module snapwave_solver
          DoverE(k) = (Dwk + Dfk)/max(Ek, 1.0e-6)
          !
          if (igwaves) then
-            !
-            ! This first time, determine beta_local (prev, ds, w depend on boundary wave direction as updated in update_boundary_points) and depthprev
-            !  
-            ! Determine local bed slope beta based on bed level per direction
-            do itheta = 1, ntheta
-                !
-                k1 = prev(1, itheta, k)
-                k2 = prev(2, itheta, k)   
-                !
-                if (k1>0 .and. k2>0) then ! IMPORTANT - for some reason (k1*k2)>0 is not reliable always, resulting in directions being uncorrectly skipped!!!    
-                    !
-                    depthprev(itheta,k)     = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)           
-                    !            
-                    beta_local(itheta,k)  = max((w(1, itheta, k)*(zb(k) - zb(k1)) + w(2, itheta, k)*(zb(k) - zb(k2)))/ds(itheta, k), 0.0) 
-                    ! Notes:
-                    ! - use actual bed level now for slope, because depth changes because of wave setup/tide/surge
-                    ! - in zb, depth is negative > therefore zb(k) minus zb(k1)
-                    ! - beta=0 means a horizontal or decreasing slope > need alphaig=0 then in IG src/sink term
-                    !
-                    !betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin)) ! TL: in case in the future we would need the normalised bed slope again   
-                endif                    
-            enddo
             !   
             ! Make sure DoverE is filled based on previous ee for IG too
             !
@@ -412,6 +391,41 @@ module snapwave_solver
    if (igwaves) then
       !        
       ! As defined in Leijnse, van Ormondt, van Dongeren, Aerts & Muis et al. 2024 
+      !
+      ! First do some preparation:
+      !
+      do k = 1, no_nodes
+          !  
+          ! This first time, determine beta_local (prev, ds, w depend on boundary wave direction as updated in update_boundary_points) and depthprev
+          !
+          if (inner(k)) then 
+            !  
+            ! Determine local bed slope beta based on bed level per direction
+            do itheta = 1, ntheta
+                !
+                k1 = prev(1, itheta, k)
+                k2 = prev(2, itheta, k)   
+                !
+                if (k1>0 .and. k2>0) then ! IMPORTANT - for some reason (k1*k2)>0 is not reliable always, resulting in directions being uncorrectly skipped!!!    
+                    !
+                    depthprev(itheta,k)     = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)           
+                    !            
+                    beta_local(itheta,k)  = max((w(1, itheta, k)*(zb(k) - zb(k1)) + w(2, itheta, k)*(zb(k) - zb(k2)))/ds(itheta, k), 0.0) 
+                    ! Notes:
+                    ! - use actual bed level now for slope, because depth changes because of wave setup/tide/surge
+                    ! - in zb, depth is negative > therefore zb(k) minus zb(k1)
+                    ! - beta=0 means a horizontal or decreasing slope > need alphaig=0 then in IG src/sink term
+                    !
+                    !betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin)) ! TL: in case in the future we would need the normalised bed slope again   
+                endif  
+                !
+            enddo
+            !
+          endif                              
+          !
+      enddo      
+      !
+      ! Actual determining of source term: 
       !          
       call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, depthprev, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
       !     
