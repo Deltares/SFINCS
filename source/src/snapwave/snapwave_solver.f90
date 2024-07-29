@@ -222,6 +222,11 @@ module snapwave_solver
    integer  :: count_rate
    integer  :: count_max
    real     :: tloop
+   real     :: t0
+   real     :: t1   
+   real     :: tloop2
+   real     :: t2
+   real     :: t3     
    !
 !   igwaves   = .false.
 !   nr_sweeps = 1
@@ -229,6 +234,7 @@ module snapwave_solver
 !   write(*,*)theta*180/pi
    !
    call system_clock(count0, count_rate, count_max)
+   t0 = dble(count0)/count_rate   
    !
    ! Allocate local arrays
    !
@@ -361,6 +367,12 @@ module snapwave_solver
             ! Determine IG source/sink term as in Leijnse, van Ormondt, van Dongeren, Aerts & Muis et al. 2024 
             !
             call determine_infragravity_source_sink_term(no_nodes, ntheta, k, w, ds, prev, cg_ig, nwav, depth, depthprev, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
+            
+            call system_clock(count1, count_rate, count_max)
+            t1 = dble(count1)/count_rate   
+            tloop = t1 - t0
+            !
+            write(*,'(a,f6.2)')'time past in determine_infragravity_source_sink_term  (s) : ',tloop          
             ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev
             ! in: the rest
             !
@@ -401,13 +413,15 @@ module snapwave_solver
    enddo
    !
    call system_clock(count1, count_rate, count_max)
-   tloop = 1.0*(count1 - count0)/count_rate
+   t1 = dble(count1)/count_rate   
+   tloop = t1 - t0
    !
-!   write(*,'(a,e14.4)')'Initialization (s) : ',tloop
+   write(*,'(a,f6.2)')'Initialization (s) : ',tloop   
    !
    ! Start iteration
    !
    call system_clock(count0, count_rate, count_max)
+   t0 = dble(count0)/count_rate      
    !
    do iter=1,niter
       !
@@ -571,11 +585,7 @@ module snapwave_solver
                          !
                      endif                     
                      !
-                  endif               
-                  !
-                  if (igwaves) then
-                     !
-                     ! IG
+                     ! IG energy balance
                      ! 
                      do itheta = 2, ntheta - 1
                         !
@@ -708,11 +718,13 @@ module snapwave_solver
          error = maxval(diff)/eemax
          !
          call system_clock(count1, count_rate, count_max)
-         tloop = 1.0*(count1 - count0)/count_rate
-         !
+         !tloop = 1.0*(count1 - count0)/count_rate
+         t1 = dble(count1)/count_rate   
+         tloop = t1 - t0         
          !
          if (error<crit) then
-            ! write(*,'(a,i6,a,f10.5,a,f7.2,a,e14.4)')'iteration ',iter/4 ,' error = ',error,'   %ok = ',percok,' time = ',tloop
+             !write(*,'(a,i6,a,f10.5,a,f7.2,a,e14.4)')'iteration ',iter/4 ,' error = ',error,'   %ok = ',percok,' time = ',tloop
+             write(*,'(a,i6,a,f10.5,a,f7.2,a,e14.4)')'iteration ',iter/4 ,' %ok = ',percok,' time = ',tloop
             exit
          endif
          !
@@ -720,6 +732,10 @@ module snapwave_solver
       !
    enddo
    !    
+   t1 = dble(count1)/count_rate   
+   tloop = t1 - t0            
+   write(*,'(a,i6,a,f10.5,a,f7.2,a,e14.4)')'Loop ended: iteration ',iter/4 ,' %ok = ',percok,' time = ',tloop   
+   !
    do k=1,no_nodes
       !
       ! Compute directionally integrated parameters for output
@@ -868,6 +884,8 @@ module snapwave_solver
    
    subroutine determine_infragravity_source_sink_term(no_nodes, ntheta, k, w, ds, prev, cg_ig, nwav, depth, depthprev, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local)
     !   
+    implicit none
+    !  
     ! Incoming variables
     integer, intent(in)                              :: no_nodes,ntheta ! number of grid points, number of directions  
     integer, intent(in)                              :: k               ! counters (k is grid index)
@@ -894,12 +912,13 @@ module snapwave_solver
     ! Internal variables
     integer                                          :: itheta          ! directional counter
     integer                                          :: k1,k2           ! upwind counters (k is grid index)
-    
+    real*4                                           :: gam             ! local gamma (Hinc / depth ratio)   
+    real*4                                           :: beta            ! local bedslope    
     real*4, dimension(ntheta,no_nodes)               :: Sxx             ! Radiation Stress
     real*4, dimension(:), allocatable                :: Sxxprev         ! radiation stress at upwind intersection point  
     real*4, dimension(:), allocatable                :: Hprev           ! Incident wave height at upwind intersection point  
-    real*4                                           :: beta            ! local bedslope
-    real*4                                           :: gam             ! local gamma (Hinc / depth ratio)    
+    real*4                                           :: dSxx            ! difference in Radiation stress
+    real*4                                           :: Sxx_cons        ! conservative estimate of radiation stress using conservative shoaling     
     !   
     ! Allocate internal variables
     allocate(Sxxprev(ntheta))       
