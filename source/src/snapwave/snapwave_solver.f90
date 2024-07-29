@@ -338,7 +338,7 @@ module snapwave_solver
          !
       endif
       !
-      if (inner(k)) then
+      if (inner(k)) then ! Inner cells
          !
          if (igwaves) then
             !
@@ -364,22 +364,6 @@ module snapwave_solver
                 endif                    
             enddo
             !   
-            ! Determine IG source/sink term as in Leijnse, van Ormondt, van Dongeren, Aerts & Muis et al. 2024 
-            !
-            call determine_infragravity_source_sink_term(no_nodes, ntheta, k, w, ds, prev, cg_ig, nwav, depth, depthprev, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
-            
-            call system_clock(count1, count_rate, count_max)
-            t1 = dble(count1)/count_rate   
-            tloop = t1 - t0
-            !
-            write(*,'(a,f6.2)')'time past in determine_infragravity_source_sink_term  (s) : ',tloop          
-            ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev
-            ! in: the rest
-            !
-            ! NOTE - this is now only used to fill 'srcig_local', so that we have a good starting point for the source term in incident wave energy balance in the 'do iter=1,niter' loop
-            ! THis is therefore based on the energy in the precious SnapWave timestep. 
-            ! The real source term is calculated now in the iteration loop
-            !
          endif   
          !
          ! Make sure DoverE is filled based on previous ee
@@ -417,6 +401,29 @@ module snapwave_solver
    tloop = t1 - t0
    !
    write(*,'(a,f6.2)')'Initialization (s) : ',tloop   
+   !
+   call system_clock(count0, count_rate, count_max)
+   t0 = dble(count0)/count_rate     
+   !
+   ! Determine now in separate function
+   if (igwaves) then
+      !        
+      ! Determine IG source/sink term as in Leijnse, van Ormondt, van Dongeren, Aerts & Muis et al. 2024 
+      !          
+      call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, depthprev, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
+      !     
+      call system_clock(count1, count_rate, count_max)
+      t1 = dble(count1)/count_rate   
+      tloop = t1 - t0
+      !
+      write(*,'(a,f6.2)')'time past in determine_infragravity_source_sink_term  (s) : ',tloop          
+      ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev
+      ! in: the rest
+      !
+      ! NOTE - this is now only used to fill 'srcig_local', so that we have a good starting point for the source term in incident wave energy balance in the 'do iter=1,niter' loop
+      ! THis is therefore based on the energy in the precious SnapWave timestep. 
+      ! The real source term is calculated now in the iteration loop             
+   endif               
    !
    ! Start iteration
    !
@@ -573,7 +580,7 @@ module snapwave_solver
                          if (sweep==1) then
                              ! Determine IG source/sink term as in Leijnse, van Ormondt, van Dongeren, Aerts & Muis et al. 2024 
                              !
-                             call determine_infragravity_source_sink_term(no_nodes, ntheta, k, w, ds, prev, cg_ig, nwav, depth, depthprev, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
+                             call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, depthprev, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
                              ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev
                              ! in: the rest
                              !
@@ -882,13 +889,13 @@ module snapwave_solver
    !
    end subroutine baldock  
    
-   subroutine determine_infragravity_source_sink_term(no_nodes, ntheta, k, w, ds, prev, cg_ig, nwav, depth, depthprev, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local)
+   subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, depthprev, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local)
     !   
     implicit none
     !  
     ! Incoming variables
+    logical, dimension(no_nodes), intent(in)         :: inner           ! mask of inner grid points (not on boundary)    
     integer, intent(in)                              :: no_nodes,ntheta ! number of grid points, number of directions  
-    integer, intent(in)                              :: k               ! counters (k is grid index)
     real*4,  dimension(2,ntheta,no_nodes),intent(in) :: w               ! weights of upwind grid points, 2 per grid point and per wave direction
     real*4, dimension(ntheta,no_nodes), intent(in)   :: ds              ! distance to interpolated upwind point, per grid point and direction   
     integer, dimension(2,ntheta,no_nodes),intent(in) :: prev            ! two upwind grid points per grid point and wave direction    
@@ -911,6 +918,7 @@ module snapwave_solver
     !
     ! Internal variables
     integer                                          :: itheta          ! directional counter
+    integer                                          :: k               ! counters (k is grid index)    
     integer                                          :: k1,k2           ! upwind counters (k is grid index)
     real*4                                           :: gam             ! local gamma (Hinc / depth ratio)   
     real*4                                           :: beta            ! local bedslope    
@@ -924,81 +932,90 @@ module snapwave_solver
     allocate(Sxxprev(ntheta))       
     allocate(Hprev(ntheta))  
     !
-    ! Compute exchange source term inc to ig waves - per direction      
-    do itheta = 1, ntheta
+    do k = 1, no_nodes
         !
-        k1 = prev(1, itheta, k)
-        k2 = prev(2, itheta, k)
-        !
-        if (k1>0 .and. k2>0) then ! IMPORTANT - for some reason (k1*k2)>0 is not reliable always, resulting in directions being uncorrectly skipped!!!    
+        if (inner(k)) then    
             !
-            ! First calculate upwind direction dependent variables
-            ! TL - Note: cg_ig = cg
-            cgprev(itheta)      = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
-            !              
-            Sxx(itheta,k1)      = ((2.0 * max(0.0,min(1.0,nwav(k1)))) - 0.5) * ee(itheta, k1) ! limit so value of nwav is between 0 and 1
-            Sxx(itheta,k2)      = ((2.0 * max(0.0,min(1.0,nwav(k2)))) - 0.5) * ee(itheta, k2) ! limit so value of nwav is between 0 and 1
+            ! Compute exchange source term inc to ig waves - per direction      
             !
-            Sxxprev(itheta)     = w(1, itheta, k)*Sxx(itheta,k1) + w(2, itheta, k)*Sxx(itheta,k2)
-            !
-            eeprev(itheta)      = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)  
-            eeprev_ig(itheta)   = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)      
-            !
-            Hprev(itheta)       = w(1, itheta, k)*H(k1) + w(2, itheta, k)*H(k2)     
-            !     
-            ! Determine relative waterdepth 'gam'
-            !
-            gam = max(0.5*(Hprev(itheta)/depthprev(itheta,k) + H(k)/depth(k)), 0.0) ! mean gamma over current and upwind point
-            !
-            ! Determine dSxx and IG source/sink term 'srcig'
-            !
-            if (ig_opt == 1 .or. ig_opt == 2) then 
+            do itheta = 1, ntheta
                 !
-                ! Calculate shoaling parameter alpha_ig following Leijnse et al. (2024)
-                !  
-                call estimate_shoaling_parameter_alphaig(beta_local(itheta,k), gam, alphaig_local(itheta,k)) ! [input, input, output]
-                !                
-                ! Now calculate source term component
-                !         
-                ! Newest dSxx/dx based method, using estimate of Sxx(k) using conservative shoaling
-                if (Sxxprev(itheta)<=0.0) then 
+                k1 = prev(1, itheta, k)
+                k2 = prev(2, itheta, k)
+                !
+                if (k1>0 .and. k2>0) then ! IMPORTANT - for some reason (k1*k2)>0 is not reliable always, resulting in directions being uncorrectly skipped!!!    
                     !
-                    srcig_local(itheta, k) = 0.0 !Avoid big jumps in dSxx that can happen if a upwind point is a boundary point with Hinc=0
+                    ! First calculate upwind direction dependent variables
+                    ! TL - Note: cg_ig = cg
+                    cgprev(itheta)      = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
+                    !              
+                    Sxx(itheta,k1)      = ((2.0 * max(0.0,min(1.0,nwav(k1)))) - 0.5) * ee(itheta, k1) ! limit so value of nwav is between 0 and 1
+                    Sxx(itheta,k2)      = ((2.0 * max(0.0,min(1.0,nwav(k2)))) - 0.5) * ee(itheta, k2) ! limit so value of nwav is between 0 and 1
                     !
-                else
-                !              
-                if (ig_opt == 1) then ! Option using conservative shoaling for dSxx/dx
+                    Sxxprev(itheta)     = w(1, itheta, k)*Sxx(itheta,k1) + w(2, itheta, k)*Sxx(itheta,k2)
                     !
-                    ! Calculate Sxx based on conservative shoaling of upwind point's energy: 
-                    ! Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
-                    Sxx_cons = eeprev(itheta) * cgprev(itheta) / cg_ig(k) * ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5)
-                    ! Note - limit so value of nwav is between 0 and 1, and Sxx therefore doesn't become NaN for nwav=Infinite  
+                    eeprev(itheta)      = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)  
+                    eeprev_ig(itheta)   = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)      
                     !
-                    dSxx = Sxx_cons - Sxxprev(itheta)
+                    Hprev(itheta)       = w(1, itheta, k)*H(k1) + w(2, itheta, k)*H(k2)     
+                    !     
+                    ! Determine relative waterdepth 'gam'
                     !
-                elseif (ig_opt == 2) then ! Option taking actual difference for dSxx/dx
+                    gam = max(0.5*(Hprev(itheta)/depthprev(itheta,k) + H(k)/depth(k)), 0.0) ! mean gamma over current and upwind point
                     !
-                    dSxx = Sxx(itheta,k) - Sxxprev(itheta)                        
+                    ! Determine dSxx and IG source/sink term 'srcig'
                     !
+                    if (ig_opt == 1 .or. ig_opt == 2) then 
+                        !
+                        ! Calculate shoaling parameter alpha_ig following Leijnse et al. (2024)
+                        !  
+                        call estimate_shoaling_parameter_alphaig(beta_local(itheta,k), gam, alphaig_local(itheta,k)) ! [input, input, output]
+                        !                
+                        ! Now calculate source term component
+                        !         
+                        ! Newest dSxx/dx based method, using estimate of Sxx(k) using conservative shoaling
+                        if (Sxxprev(itheta)<=0.0) then 
+                            !
+                            srcig_local(itheta, k) = 0.0 !Avoid big jumps in dSxx that can happen if a upwind point is a boundary point with Hinc=0
+                            !
+                        else
+                        !              
+                        if (ig_opt == 1) then ! Option using conservative shoaling for dSxx/dx
+                            !
+                            ! Calculate Sxx based on conservative shoaling of upwind point's energy: 
+                            ! Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
+                            Sxx_cons = eeprev(itheta) * cgprev(itheta) / cg_ig(k) * ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5)
+                            ! Note - limit so value of nwav is between 0 and 1, and Sxx therefore doesn't become NaN for nwav=Infinite  
+                            !
+                            dSxx = Sxx_cons - Sxxprev(itheta)
+                            !
+                        elseif (ig_opt == 2) then ! Option taking actual difference for dSxx/dx
+                            !
+                            dSxx = Sxx(itheta,k) - Sxxprev(itheta)                        
+                            !
+                        endif
+                        !
+                        dSxx = max(dSxx, 0.0)
+                        !
+                        srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(eeprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k)
+                        !                         
+                        endif                      
+                        !                                        
+                    else  ! TL: option to add future parameterisations here for e.g. coral reef type coasts
+                        !
+                        srcig_local(itheta, k) = 0.0
+                        !
+                    endif
+                    !                  
+                    srcig_local(itheta, k)  = max(srcig_local(itheta, k), 0.0)
+                    !   
                 endif
                 !
-                dSxx = max(dSxx, 0.0)
-                !
-                srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(eeprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k)
-                !                         
-                endif                      
-                !                                        
-            else  ! TL: option to add future parameterisations here for e.g. coral reef type coasts
-                !
-                srcig_local(itheta, k) = 0.0
-                !
-            endif
-            !                  
-            srcig_local(itheta, k)  = max(srcig_local(itheta, k), 0.0)
-            !   
+            enddo  
+            !
         endif
         !
-    enddo  
+    enddo    
     !    
    end subroutine determine_infragravity_source_sink_term
    
