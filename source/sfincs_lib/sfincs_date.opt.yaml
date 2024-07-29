@@ -1,0 +1,2037 @@
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+Function:        SFINCS_DATE.
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+  - String:          ' (in function: SFINCS_DATE.)'
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+Function:        SFINCS_DATE.
+Args:
+  - NumStackBytes:   '0'
+  - String:          ' stack bytes in function '''
+  - Function:        SFINCS_DATE.
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE.
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_0
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+Function:        SFINCS_DATE.
+Args:
+  - NumInstructions: '1'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 65, Column: 0 }
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 77, Column: 0 }
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 107, Column: 0 }
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 106, Column: 0 }
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 104, Column: 0 }
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 112, Column: 0 }
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 110, Column: 0 }
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 109, Column: 0 }
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - String:          FastISel missed call
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 65, Column: 0 }
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - NumStackBytes:   '200'
+  - String:          ' stack bytes in function '''
+  - Function:        SFINCS_DATE_mp_SETYMD
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_1
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '32'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new3_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '4'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new4_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '4'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb2_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '7'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new6_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '9'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new8_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '6'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb3_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '37'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 96, Column: 0 }
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new15_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '14'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 101, Column: 0 }
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new16_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 104, Column: 0 }
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb4_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '43'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 109, Column: 0 }
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new24_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '19'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 112, Column: 0 }
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new28_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '9'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 115, Column: 0 }
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb5_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '3'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 65, Column: 0 }
+Function:        SFINCS_DATE_mp_SETYMD
+Args:
+  - NumInstructions: '188'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 117, Column: 0 }
+Function:        SFINCS_DATE_mp_YMD
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 125, Column: 0 }
+Function:        SFINCS_DATE_mp_YMD
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 131, Column: 0 }
+Function:        SFINCS_DATE_mp_YMD
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 130, Column: 0 }
+Function:        SFINCS_DATE_mp_YMD
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 139, Column: 0 }
+Function:        SFINCS_DATE_mp_YMD
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 138, Column: 0 }
+Function:        SFINCS_DATE_mp_YMD
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 136, Column: 0 }
+Function:        SFINCS_DATE_mp_YMD
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 135, Column: 0 }
+Function:        SFINCS_DATE_mp_YMD
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 134, Column: 0 }
+Function:        SFINCS_DATE_mp_YMD
+Args:
+  - String:          FastISel missed call
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 117, Column: 0 }
+Function:        SFINCS_DATE_mp_YMD
+Args:
+  - NumStackBytes:   '200'
+  - String:          ' stack bytes in function '''
+  - Function:        SFINCS_DATE_mp_YMD
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_YMD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_2
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '33'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 128, Column: 0 }
+Function:        SFINCS_DATE_mp_YMD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new34_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '4'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 130, Column: 0 }
+Function:        SFINCS_DATE_mp_YMD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new35_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '24'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 134, Column: 0 }
+Function:        SFINCS_DATE_mp_YMD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb7_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '79'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 117, Column: 0 }
+Function:        SFINCS_DATE_mp_YMD
+Args:
+  - NumInstructions: '140'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 145, Column: 0 }
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 154, Column: 0 }
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 160, Column: 0 }
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 159, Column: 0 }
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 168, Column: 0 }
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 167, Column: 0 }
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 165, Column: 0 }
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 164, Column: 0 }
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 163, Column: 0 }
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 178, Column: 0 }
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 178, Column: 0 }
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          FastISel missed call
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 145, Column: 0 }
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - NumStackBytes:   '280'
+  - String:          ' stack bytes in function '''
+  - Function:        SFINCS_DATE_mp_YD
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_3
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '30'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 157, Column: 0 }
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new55_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '4'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 159, Column: 0 }
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new56_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '24'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 163, Column: 0 }
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb10_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '80'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      do.prolog74
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      do.body72
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '47'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new80_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '5'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb11_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '9'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb14_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb15_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '4'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      initcall83_uif_true
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '13'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb17_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb18_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      initcall85_uif_true
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '13'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 179, Column: 0 }
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb8
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '7'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      do.epilog75
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 181, Column: 0 }
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      do.end_do73
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '3'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 145, Column: 0 }
+Function:        SFINCS_DATE_mp_YD
+Args:
+  - NumInstructions: '251'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 183, Column: 0 }
+Function:        SFINCS_DATE_mp_TIME_DIFFERENCE
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 192, Column: 0 }
+Function:        SFINCS_DATE_mp_TIME_DIFFERENCE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 192, Column: 0 }
+Function:        SFINCS_DATE_mp_TIME_DIFFERENCE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 193, Column: 0 }
+Function:        SFINCS_DATE_mp_TIME_DIFFERENCE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 193, Column: 0 }
+Function:        SFINCS_DATE_mp_TIME_DIFFERENCE
+Args:
+  - String:          FastISel missed
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 183, Column: 0 }
+Function:        SFINCS_DATE_mp_TIME_DIFFERENCE
+Args:
+  - NumStackBytes:   '520'
+  - String:          ' stack bytes in function '''
+  - Function:        SFINCS_DATE_mp_TIME_DIFFERENCE
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_TIME_DIFFERENCE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_4
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '19'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_TIME_DIFFERENCE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb21
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '11'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_TIME_DIFFERENCE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb22
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '76'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_TIME_DIFFERENCE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb24
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '11'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_TIME_DIFFERENCE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb25
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '106'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 183, Column: 0 }
+Function:        SFINCS_DATE_mp_TIME_DIFFERENCE
+Args:
+  - NumInstructions: '223'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 206, Column: 0 }
+Function:        SFINCS_DATE_mp_JULIAN_DATE
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 206, Column: 0 }
+Function:        SFINCS_DATE_mp_JULIAN_DATE
+Args:
+  - NumStackBytes:   '112'
+  - String:          ' stack bytes in function '''
+  - Function:        SFINCS_DATE_mp_JULIAN_DATE
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_JULIAN_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_5
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '80'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 206, Column: 0 }
+Function:        SFINCS_DATE_mp_JULIAN_DATE
+Args:
+  - NumInstructions: '80'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 217, Column: 0 }
+Function:        SFINCS_DATE_mp_DATE_TO_ISO8601
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 222, Column: 0 }
+Function:        SFINCS_DATE_mp_DATE_TO_ISO8601
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 225, Column: 0 }
+Function:        SFINCS_DATE_mp_DATE_TO_ISO8601
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 225, Column: 0 }
+Function:        SFINCS_DATE_mp_DATE_TO_ISO8601
+Args:
+  - String:          FastISel missed
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 217, Column: 0 }
+Function:        SFINCS_DATE_mp_DATE_TO_ISO8601
+Args:
+  - NumStackBytes:   '552'
+  - String:          ' stack bytes in function '''
+  - Function:        SFINCS_DATE_mp_DATE_TO_ISO8601
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_DATE_TO_ISO8601
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_6
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '86'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_DATE_TO_ISO8601
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb30
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '11'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_DATE_TO_ISO8601
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb31
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '129'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 217, Column: 0 }
+Function:        SFINCS_DATE_mp_DATE_TO_ISO8601
+Args:
+  - NumInstructions: '226'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 230, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 244, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 244, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 248, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 257, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 257, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 259, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 259, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 230, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - NumStackBytes:   '840'
+  - String:          ' stack bytes in function '''
+  - Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_7
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '24'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb33_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 244, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb34_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '6'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb35_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb36_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb37_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '6'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new140_uif_true
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '9'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb39
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '11'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb40
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '76'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb42
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '11'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb43
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '249'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 259, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      chk_ptr_error_183
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      chk_ptr_ok_184
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '57'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 259, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      chk_ptr_error_190
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      chk_ptr_ok_191
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      loop_test193
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '3'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      loop_body194
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '25'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 261, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      loop_exit195
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '3'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 230, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - NumInstructions: '507'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 263, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 278, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 278, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 282, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 282, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 282, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 291, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 291, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 293, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 293, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 263, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - NumStackBytes:   '824'
+  - String:          ' stack bytes in function '''
+  - Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_8
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '24'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb58_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 278, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb59_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '6'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb60_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb61_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb62_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '6'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new197_uif_true
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '9'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb64
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '11'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb65
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '76'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb67
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '11'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 282, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb68
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '4'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 282, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb69
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '9'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 282, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb70
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '4'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 282, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb71
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '10'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb72
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '242'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 293, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      chk_ptr_error_241
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      chk_ptr_ok_242
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '57'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 293, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      chk_ptr_error_248
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      chk_ptr_ok_249
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      loop_test251
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '3'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      loop_body252
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '25'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 294, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      loop_exit253
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '4'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 263, Column: 0 }
+Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
+Args:
+  - NumInstructions: '528'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 298, Column: 0 }
+Function:        SFINCS_DATE_mp_TIME_TO_STRING
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 309, Column: 0 }
+Function:        SFINCS_DATE_mp_TIME_TO_STRING
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 309, Column: 0 }
+Function:        SFINCS_DATE_mp_TIME_TO_STRING
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 325, Column: 0 }
+Function:        SFINCS_DATE_mp_TIME_TO_STRING
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 325, Column: 0 }
+Function:        SFINCS_DATE_mp_TIME_TO_STRING
+Args:
+  - String:          FastISel missed
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 298, Column: 0 }
+Function:        SFINCS_DATE_mp_TIME_TO_STRING
+Args:
+  - NumStackBytes:   '520'
+  - String:          ' stack bytes in function '''
+  - Function:        SFINCS_DATE_mp_TIME_TO_STRING
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_TIME_TO_STRING
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_9
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '19'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_TIME_TO_STRING
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb88
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '11'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_TIME_TO_STRING
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb89
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '150'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_TIME_TO_STRING
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb91
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '11'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_TIME_TO_STRING
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb92
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '85'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 298, Column: 0 }
+Function:        SFINCS_DATE_mp_TIME_TO_STRING
+Args:
+  - NumInstructions: '276'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 329, Column: 0 }
+Function:        SFINCS_DATE_mp_TIMER
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 329, Column: 0 }
+Function:        SFINCS_DATE_mp_TIMER
+Args:
+  - NumStackBytes:   '120'
+  - String:          ' stack bytes in function '''
+  - Function:        SFINCS_DATE_mp_TIMER
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_DATE_mp_TIMER
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_10
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '25'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90', 
+                   Line: 329, Column: 0 }
+Function:        SFINCS_DATE_mp_TIMER
+Args:
+  - NumInstructions: '25'
+  - String:          ' instructions in function'
+...

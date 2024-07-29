@@ -1,0 +1,131 @@
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs.f90', 
+                   Line: 1, Column: 0 }
+Function:        MAIN__
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs.f90', 
+                   Line: 1, Column: 0 }
+Function:        MAIN__
+Args:
+  - NumStackBytes:   '1128'
+  - String:          ' stack bytes in function '''
+  - Function:        MAIN__
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        MAIN__
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_0
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '14'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs.f90', 
+                   Line: 15, Column: 0 }
+Function:        MAIN__
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      call.pre.list6_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '5'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        MAIN__
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb1_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs.f90', 
+                   Line: 18, Column: 0 }
+Function:        MAIN__
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb2_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '6'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs.f90', 
+                   Line: 19, Column: 0 }
+Function:        MAIN__
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      call.pre.list12_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '4'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        MAIN__
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb3_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs.f90', 
+                   Line: 24, Column: 0 }
+Function:        MAIN__
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb4_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '11'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs.f90', 
+                   Line: 1, Column: 0 }
+Function:        MAIN__
+Args:
+  - NumInstructions: '42'
+  - String:          ' instructions in function'
+...

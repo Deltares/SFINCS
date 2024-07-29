@@ -425,6 +425,8 @@ module snapwave_solver
           !
       enddo      
       !
+      !write(*,*)'H',H
+      
       ! Actual determining of source term: 
       !          
       call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, depthprev, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
@@ -433,6 +435,17 @@ module snapwave_solver
       t1 = dble(count1)/count_rate   
       tloop = t1 - t0
       !
+      write(*,*)'H',maxval(H)
+      write(*,*)'ee',maxval(ee)
+      write(*,*)'ee_ig',maxval(ee_ig)
+      write(*,*)'cg_ig',maxval(cg_ig)            
+      write(*,*)'cgprev',maxval(cgprev)
+      write(*,*)'eeprev',maxval(eeprev)
+      write(*,*)'eeprev_ig',maxval(eeprev_ig)
+      write(*,*)'alphaig_local',maxval(alphaig_local)
+      write(*,*)'srcig_local',maxval(srcig_local)
+      write(*,*)'srcig_local',maxval(srcig_local)
+      
       write(*,'(a,f6.2)')'time past in determine_infragravity_source_sink_term  (s) : ',tloop          
       ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev
       ! in: the rest

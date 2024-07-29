@@ -1,0 +1,1273 @@
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+Function:        GEOMETRY.
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+  - String:          ' (in function: GEOMETRY.)'
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+Function:        GEOMETRY.
+Args:
+  - NumStackBytes:   '0'
+  - String:          ' stack bytes in function '''
+  - Function:        GEOMETRY.
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY.
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_0
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+Function:        GEOMETRY.
+Args:
+  - NumInstructions: '1'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 5, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_LINE_THROUGH_SQUARE
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 5, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_LINE_THROUGH_SQUARE
+Args:
+  - NumStackBytes:   '264'
+  - String:          ' stack bytes in function '''
+  - Function:        GEOMETRY_mp_CHECK_LINE_THROUGH_SQUARE
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_CHECK_LINE_THROUGH_SQUARE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_1
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '69'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_CHECK_LINE_THROUGH_SQUARE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new22_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '26'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_CHECK_LINE_THROUGH_SQUARE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb2_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 49, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_LINE_THROUGH_SQUARE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb3_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '11'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_CHECK_LINE_THROUGH_SQUARE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new32_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '26'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_CHECK_LINE_THROUGH_SQUARE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb4_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 62, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_LINE_THROUGH_SQUARE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb5_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '11'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_CHECK_LINE_THROUGH_SQUARE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new42_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '26'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_CHECK_LINE_THROUGH_SQUARE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb6_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 19, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_LINE_THROUGH_SQUARE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb7_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 23, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_LINE_THROUGH_SQUARE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new11_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '2'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_CHECK_LINE_THROUGH_SQUARE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new12_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '37'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 13, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_LINE_THROUGH_SQUARE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb8_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 17, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_LINE_THROUGH_SQUARE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new6_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '2'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_CHECK_LINE_THROUGH_SQUARE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new7_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '40'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 76, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_LINE_THROUGH_SQUARE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb9_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '5'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 5, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_LINE_THROUGH_SQUARE
+Args:
+  - NumInstructions: '260'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 78, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_INTERSECT
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 101, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_INTERSECT
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 112, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_INTERSECT
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 112, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_INTERSECT
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 112, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_INTERSECT
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 112, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_INTERSECT
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 113, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_INTERSECT
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 113, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_INTERSECT
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 113, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_INTERSECT
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 113, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_INTERSECT
+Args:
+  - String:          FastISel missed call
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 78, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_INTERSECT
+Args:
+  - NumStackBytes:   '208'
+  - String:          ' stack bytes in function '''
+  - Function:        GEOMETRY_mp_CHECK_INTERSECT
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_CHECK_INTERSECT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_2
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '98'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 115, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_INTERSECT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new86_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '2'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_CHECK_INTERSECT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb11_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 112, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_INTERSECT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb12_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_CHECK_INTERSECT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new78_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '52'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_CHECK_INTERSECT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb13_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 105, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_INTERSECT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb14_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_CHECK_INTERSECT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb15_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_CHECK_INTERSECT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new68_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '66'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 121, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_INTERSECT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb16_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '5'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 78, Column: 0 }
+Function:        GEOMETRY_mp_CHECK_INTERSECT
+Args:
+  - NumInstructions: '228'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 124, Column: 0 }
+Function:        GEOMETRY_mp_DIRECTION
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 124, Column: 0 }
+Function:        GEOMETRY_mp_DIRECTION
+Args:
+  - NumStackBytes:   '96'
+  - String:          ' stack bytes in function '''
+  - Function:        GEOMETRY_mp_DIRECTION
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_DIRECTION
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_3
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '36'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 134, Column: 0 }
+Function:        GEOMETRY_mp_DIRECTION
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new92_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '2'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 136, Column: 0 }
+Function:        GEOMETRY_mp_DIRECTION
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new93_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 131, Column: 0 }
+Function:        GEOMETRY_mp_DIRECTION
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb18_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 132, Column: 0 }
+Function:        GEOMETRY_mp_DIRECTION
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new90_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '2'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 133, Column: 0 }
+Function:        GEOMETRY_mp_DIRECTION
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new91_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '9'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 139, Column: 0 }
+Function:        GEOMETRY_mp_DIRECTION
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb19_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '4'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 124, Column: 0 }
+Function:        GEOMETRY_mp_DIRECTION
+Args:
+  - NumInstructions: '55'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 141, Column: 0 }
+Function:        GEOMETRY_mp_ON_LINE
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 150, Column: 0 }
+Function:        GEOMETRY_mp_ON_LINE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 150, Column: 0 }
+Function:        GEOMETRY_mp_ON_LINE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 150, Column: 0 }
+Function:        GEOMETRY_mp_ON_LINE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 150, Column: 0 }
+Function:        GEOMETRY_mp_ON_LINE
+Args:
+  - String:          FastISel missed call
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 141, Column: 0 }
+Function:        GEOMETRY_mp_ON_LINE
+Args:
+  - NumStackBytes:   '88'
+  - String:          ' stack bytes in function '''
+  - Function:        GEOMETRY_mp_ON_LINE
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_ON_LINE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_4
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '60'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 151, Column: 0 }
+Function:        GEOMETRY_mp_ON_LINE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new104_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '2'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_ON_LINE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb21_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 154, Column: 0 }
+Function:        GEOMETRY_mp_ON_LINE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb22_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '4'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 141, Column: 0 }
+Function:        GEOMETRY_mp_ON_LINE
+Args:
+  - NumInstructions: '67'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 157, Column: 0 }
+Function:        GEOMETRY_mp_CROSS
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 157, Column: 0 }
+Function:        GEOMETRY_mp_CROSS
+Args:
+  - NumStackBytes:   '232'
+  - String:          ' stack bytes in function '''
+  - Function:        GEOMETRY_mp_CROSS
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_CROSS
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_5
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '80'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 173, Column: 0 }
+Function:        GEOMETRY_mp_CROSS
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new129_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '3'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_CROSS
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb24_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 194, Column: 0 }
+Function:        GEOMETRY_mp_CROSS
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      end_label105
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '4'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 157, Column: 0 }
+Function:        GEOMETRY_mp_CROSS
+Args:
+  - NumInstructions: '88'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 196, Column: 0 }
+Function:        GEOMETRY_mp_PRJ
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 196, Column: 0 }
+Function:        GEOMETRY_mp_PRJ
+Args:
+  - NumStackBytes:   '104'
+  - String:          ' stack bytes in function '''
+  - Function:        GEOMETRY_mp_PRJ
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_PRJ
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_6
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '52'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 209, Column: 0 }
+Function:        GEOMETRY_mp_PRJ
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new137_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '2'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_PRJ
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb27_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 212, Column: 0 }
+Function:        GEOMETRY_mp_PRJ
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb28_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '4'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 196, Column: 0 }
+Function:        GEOMETRY_mp_PRJ
+Args:
+  - NumInstructions: '59'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 215, Column: 0 }
+Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 226, Column: 0 }
+Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 248, Column: 0 }
+Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 267, Column: 0 }
+Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+Args:
+  - String:          FastISel missed call
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 215, Column: 0 }
+Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+Args:
+  - NumStackBytes:   '184'
+  - String:          ' stack bytes in function '''
+  - Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_7
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '109'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 236, Column: 0 }
+Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new155_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '3'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 238, Column: 0 }
+Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new156_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '2'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 233, Column: 0 }
+Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb30_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 235, Column: 0 }
+Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new154_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '9'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 241, Column: 0 }
+Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new157_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '3'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb31_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '86'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 258, Column: 0 }
+Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new174_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '3'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 260, Column: 0 }
+Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new175_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '2'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 255, Column: 0 }
+Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb32_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 257, Column: 0 }
+Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new173_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '9'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 263, Column: 0 }
+Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new176_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '3'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb33_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '18'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 267, Column: 0 }
+Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new179_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 269, Column: 0 }
+Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new181_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '2'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 272, Column: 0 }
+Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb34_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '4'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\geometry.f90', 
+                   Line: 215, Column: 0 }
+Function:        GEOMETRY_mp_DISTANCE_BETWEEN_POINTS_PROJECTED_ON_LINE_SEGMENT
+Args:
+  - NumInstructions: '263'
+  - String:          ' instructions in function'
+...

@@ -1,0 +1,40 @@
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+Function:        SNAPWAVE_RESULTS.
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+  - String:          ' (in function: SNAPWAVE_RESULTS.)'
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+Function:        SNAPWAVE_RESULTS.
+Args:
+  - NumStackBytes:   '0'
+  - String:          ' stack bytes in function '''
+  - Function:        SNAPWAVE_RESULTS.
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_RESULTS.
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_0
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+Function:        SNAPWAVE_RESULTS.
+Args:
+  - NumInstructions: '1'
+  - String:          ' instructions in function'
+...
