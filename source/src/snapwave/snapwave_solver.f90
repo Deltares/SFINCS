@@ -203,6 +203,8 @@ module snapwave_solver
    real*4                                     :: Hk_ig0   
    real*4                                     :: Fk_ig
    real*4                                     :: shinc2ig          ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 0=default)
+   real*4                                     :: dSxx
+   real*4                                     :: Sxx_cons
    real*4                                     :: alphaigfac         ! Multiplication factor for IG shoaling source/sink term, default = 1.0
    real*4                                     :: sigm_ig
    character*20                               :: fname
@@ -223,6 +225,8 @@ module snapwave_solver
    real     :: t0
    real     :: t1   
    real     :: tloop2
+   real     :: t2
+   real     :: t3     
    !
 !   igwaves   = .false.
 !   nr_sweeps = 1
@@ -319,7 +323,7 @@ module snapwave_solver
    do k = 1, no_nodes
       !
       ! Boundary condition at sea side (uniform)
-      ! 
+      !        
       if (.not.inner(k)) then         
          !
          E(k)      = sum(ee(:, k))*dtheta
@@ -329,17 +333,16 @@ module snapwave_solver
          if (igwaves) then
             !
             ! Determining ee_ig(:, k) is now already done in snapwave_boundaries.f90 using Herbers et al. 1994 internally .or. user defined eeinc2ig
-            ! 
             E_ig(k)      = sum(ee_ig(:, k))*dtheta
             H_ig(k)      = sqrt(8*E_ig(k)/rho/g)
             !
          endif
          !
-      endif      
+      endif
       !
       ! Set initial condition at inner cells
-      !
-      if (inner(k)) then 
+      !        
+      if (inner(k)) then
          !
          ! Make sure DoverE is filled based on previous ee
          !
@@ -420,9 +423,7 @@ module snapwave_solver
           endif                              
           !
       enddo      
-      !
-      !write(*,*)'H',H
-      
+      !      
       ! Actual determining of source term: 
       !          
       call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, depthprev, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
@@ -431,17 +432,6 @@ module snapwave_solver
       t1 = dble(count1)/count_rate   
       tloop = t1 - t0
       !
-      write(*,*)'H',maxval(H)
-      write(*,*)'ee',maxval(ee)
-      write(*,*)'ee_ig',maxval(ee_ig)
-      write(*,*)'cg_ig',maxval(cg_ig)            
-      write(*,*)'cgprev',maxval(cgprev)
-      write(*,*)'eeprev',maxval(eeprev)
-      write(*,*)'eeprev_ig',maxval(eeprev_ig)
-      write(*,*)'alphaig_local',maxval(alphaig_local)
-      write(*,*)'srcig_local',maxval(srcig_local)
-      !write(*,*)'srcig_local',maxval(srcig_local)
-      
       write(*,'(a,f6.2)')'time past in determine_infragravity_source_sink_term  (s) : ',tloop          
       ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev
       ! in: the rest
@@ -464,11 +454,11 @@ module snapwave_solver
          sweep = nr_sweeps
       endif
       !
-      if (sweep==1) then
+      if (sweep==1) then  !==1) then
          eeold=ee
       endif
       !
-      ! 1) Incident wave energy - Loop over all points depending on sweep direction
+      !  Loop over all points depending on sweep direction
       !
       do count = 1, no_nodes
          !
@@ -489,6 +479,12 @@ module snapwave_solver
                      !
                      eeprev(itheta) = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)
                      cgprev(itheta) = w(1, itheta, k)*cg(k1) + w(2, itheta, k)*cg(k2)
+!                     write(*,*)k,itheta,eeprev(itheta),cgprev(itheta)
+                     !
+                     if (igwaves) then !TL: now calculated double?
+                        eeprev_ig(itheta) = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)
+                        cgprev_ig(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2) !TL: needed to calculate? Or is same as cgprev(itheta)?
+                     endif
                      !
                   enddo
                   !
@@ -581,6 +577,108 @@ module snapwave_solver
                      !
                   endif
                   !
+                  ! 2) Update IG source/sink term based on just updated incident wave energy balance
+                  !
+                  if (igwaves) then
+                     !
+                     if (iterative_srcig == 1) then
+                         !
+                         ! TODO: implement this back in                                                
+                         !
+                     endif                     
+                     !
+                     ! 3) Infragravity wave energy - Loop over all points depending on sweep direction
+                     ! 
+                     do itheta = 2, ntheta - 1
+                        !
+                        A_ig(itheta) = -ctheta_ig(itheta - 1, k)*oneover2dtheta
+                        B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
+                        C_ig(itheta) = ctheta_ig(itheta + 1, k)*oneover2dtheta
+                        R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta)*eeprev_ig(itheta)/ds(itheta, k) + srcig_local(itheta, k)
+                        !
+                     enddo
+                     !
+                     if (ctheta_ig(1,k)<0) then
+                        A_ig(1) = 0.0
+                        B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k)
+                        C_ig(1) = ctheta_ig(2, k)/dtheta
+                        R_ig(1) = oneoverdt*ee_ig(1, k) + cgprev_ig(1)*eeprev_ig(1)/ds(1, k) + srcig_local(1, k)
+                     else
+                        A_ig(1)=0.0
+                        B_ig(1)=1.0/dt
+                        C_ig(1)=0.0
+                        R_ig(1)=0.0
+                     endif
+                     !
+                     if (ctheta_ig(ntheta, k)>0) then
+                        A_ig(ntheta) = -ctheta_ig(ntheta - 1, k)/dtheta
+                        B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
+                        C_ig(ntheta) = 0.0
+                        R_ig(ntheta) = oneoverdt*ee_ig(ntheta,k) + cgprev_ig(ntheta)*eeprev_ig(ntheta)/ds(ntheta,k) + srcig_local(ntheta, k)
+                     else
+                        A_ig(ntheta) = 0.0
+                        B_ig(ntheta) = oneoverdt
+                        C_ig(ntheta) = 0.0
+                        R_ig(ntheta) = 0.0
+                     endif
+                     !
+                     ! Solve tridiagonal system per point
+                     !
+                     call solve_tridiag(A_ig, B_ig, C_ig, R_ig, ee_ig(:,k), ntheta)
+                     !
+                     ee_ig(:, k) = max(ee_ig(:, k), 0.0)
+                     Ek_ig       = sum(ee_ig(:, k))*dtheta   
+                     Hk_ig0      = sqrt(Ek_ig/rhog8)
+                     Hk_ig       = min(sqrt(Ek_ig/rhog8), gamma_ig*depth(k))  !TL: Question - why not this one?                                          
+                     Ek_ig       = rhog8*Hk_ig**2
+                     ! 
+                     ! Bottom friction Henderson and Bowen (2002) - D = 0.015*rhow*(9.81/depth(k))**1.5*(Hk/sqrt(8.0))*Hk_ig**2/8
+                     !
+                     Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*Hk*Ek_ig !original
+                     !Dfk_ig      = fw_ig(k)*1025*(9.81/depth(k))**(3.0/2.0)*(Hk/sqrt(8.0))*Hk_ig**(2.0)/8 -> TL: seems to give same result                     
+                     !
+                     ! Breaking of infragravity waves (Maarten: should probably find another formulation for this)
+                     !
+                     if (Hk_ig>baldock_ratio_ig*Hmx_ig(k)) then
+                        !
+                        if (ig_opt == 1 .or. ig_opt == 2) then                
+                           call baldock(g, rho, alfa_ig, gamma_ig, kwav_ig(k), depth(k), Hk_ig0, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))   
+                        endif                        
+                        !
+                        DoverE_ig(k) = (1.0 - fac)*DoverE_ig(k) + fac*(Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0e-6)
+                        !
+                        do itheta = 1, ntheta
+                           B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
+                        enddo
+                        !                     
+                        ! Solve tridiagonal system per point
+                        !                     
+                        call solve_tridiag(A_ig, B_ig, C_ig, R_ig, ee_ig(:,k), ntheta)
+                        !                     
+                        ee_ig(:,k) = max(ee_ig(:, k), 0.0)
+                        Ek_ig      = sum(ee_ig(:, k))*dtheta
+                        Hk_ig      = min(sqrt(Ek_ig/rhog8), gamma_ig*depth(k))
+!                        Hk_ig      = sqrt(Ek_ig/rhog8)
+                        Ek_ig      = rhog8*Hk_ig**2
+                        Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*Hk*Ek_ig !org
+                        !Dfk_ig      = fw_ig(k)*1025*(9.81/depth(k))**(3.0/2.0)*(Hk/sqrt(8.0))*Hk_ig**(2.0)/8 -> TL: seems to give same result                  
+                        !                     
+                        if (ig_opt == 1 .or. ig_opt == 2) then                
+                           call baldock(g, rho, alfa_ig, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
+                        endif                    
+                        !
+                        Dw_ig(k) = Dwk_ig                     
+                        !                     
+                        DoverE_ig(k) = (1.0 - fac)*DoverE_ig(k) + fac*(Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0)
+                        !                     
+                     else
+                        !
+                        Dwk_ig       = 0.0
+                        DoverE_ig(k) = (Dfk_ig)/max(Ek_ig, 1.0)
+                        !
+                     endif
+                  endif
+                  !                     
                endif
                !
             else
@@ -588,172 +686,18 @@ module snapwave_solver
                ee(:, k) = 0.0
                ! 
                ok(k) = 1
+               !
+               if (igwaves) then
+                   !
+                   ee_ig(:, k) = 0.0
+                   !
+               endif               
                !               
             endif 
             !
          endif
          !
       enddo
-      !
-      ! 2) & 3) for infragravity waves only :  
-      !
-      if (igwaves) then
-        ! 
-        ! 2) Update IG source/sink term based on just updated incident wave energy balance
-        !
-        if (iterative_srcig == 1) then ! only if iterative IG source term is turn on
-            !
-            ! Update H in first iteration - first sweep - ONLY:
-            if ((iter == 1) .and. (sweep==1)) then
-                !
-                H(k) = sqrt(8*sum(ee(:, k))*dtheta/rho/g) ! is combined: E(k) = sum(ee(:, k))*dtheta And H(k)  = sqrt(8*E(k)/rho/g)
-                !
-            endif
-            !
-            ! Compute exchange source term inc to ig waves - per direction         
-            !
-            ! Do only on first sweep to save computation time:
-            if (sweep==1) then
-                ! Determine IG source/sink term as in Leijnse, van Ormondt, van Dongeren, Aerts & Muis et al. 2024 
-                !
-                call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, depthprev, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
-                ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev
-                ! in: the rest                          
-                !
-            endif                         
-            !
-        endif                     
-        !
-        ! 3) Infragravity wave energy - Loop over all points depending on sweep direction
-        !                                              
-        do count = 1, no_nodes
-            !
-            k = indx(count, sweep)
-            !
-            if (inner(k)) then
-                !
-                if (depth(k)>1.1*hmin) then
-                    !
-                    if (ok(k) == 0) then
-                        !
-                        ! Only perform computations on wet inner points that are not yet converged (ok)
-                        ! NOTE - for now convergence is only based on incident waves  
-                        !
-                        do itheta = 1, ntheta
-                           !
-                           k1 = prev(1, itheta, k)
-                           k2 = prev(2, itheta, k)
-                           !
-                           eeprev_ig(itheta) = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)
-                           cgprev_ig(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2) !TL: needed to calculate? Or is same as cgprev(itheta)?
-                           !
-                        enddo                                             
-                        ! IG energy balance
-                        !                                                 
-                        do itheta = 2, ntheta - 1
-                           !
-                           A_ig(itheta) = -ctheta_ig(itheta - 1, k)*oneover2dtheta
-                           B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
-                           C_ig(itheta) = ctheta_ig(itheta + 1, k)*oneover2dtheta
-                           R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta)*eeprev_ig(itheta)/ds(itheta, k) + srcig_local(itheta, k)
-                           !
-                        enddo
-                        !
-                        if (ctheta_ig(1,k)<0) then
-                           A_ig(1) = 0.0
-                           B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k)
-                           C_ig(1) = ctheta_ig(2, k)/dtheta
-                           R_ig(1) = oneoverdt*ee_ig(1, k) + cgprev_ig(1)*eeprev_ig(1)/ds(1, k) + srcig_local(1, k)
-                        else
-                           A_ig(1)=0.0
-                           B_ig(1)=1.0/dt
-                           C_ig(1)=0.0
-                           R_ig(1)=0.0
-                        endif
-                        !
-                        if (ctheta_ig(ntheta, k)>0) then
-                           A_ig(ntheta) = -ctheta_ig(ntheta - 1, k)/dtheta
-                           B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
-                           C_ig(ntheta) = 0.0
-                           R_ig(ntheta) = oneoverdt*ee_ig(ntheta,k) + cgprev_ig(ntheta)*eeprev_ig(ntheta)/ds(ntheta,k) + srcig_local(ntheta, k)
-                        else
-                           A_ig(ntheta) = 0.0
-                           B_ig(ntheta) = oneoverdt
-                           C_ig(ntheta) = 0.0
-                           R_ig(ntheta) = 0.0
-                        endif
-                        !
-                        ! Solve tridiagonal system per point
-                        !
-                        call solve_tridiag(A_ig, B_ig, C_ig, R_ig, ee_ig(:,k), ntheta)
-                        !
-                        ee_ig(:, k) = max(ee_ig(:, k), 0.0)
-                        Ek_ig       = sum(ee_ig(:, k))*dtheta   
-                        Hk_ig0      = sqrt(Ek_ig/rhog8)
-                        Hk_ig       = min(sqrt(Ek_ig/rhog8), gamma_ig*depth(k))  !TL: Question - why not this one?                                          
-                        Ek_ig       = rhog8*Hk_ig**2
-                        ! 
-                        ! Bottom friction Henderson and Bowen (2002) - D = 0.015*rhow*(9.81/depth(k))**1.5*(Hk/sqrt(8.0))*Hk_ig**2/8
-                        !
-                        Ek       = sum(ee(:, k))*dtheta                  
-                        Hk       = min(sqrt(Ek/rhog8), gamma*depth(k))                        
-                        Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*Hk*Ek_ig !original
-                        !Dfk_ig      = fw_ig(k)*1025*(9.81/depth(k))**(3.0/2.0)*(Hk/sqrt(8.0))*Hk_ig**(2.0)/8 -> TL: seems to give same result                     
-                        !
-                        ! Breaking of infragravity waves (Maarten: should probably find another formulation for this)
-                        !
-                        if (Hk_ig>baldock_ratio_ig*Hmx_ig(k)) then
-                           !
-                           if (ig_opt == 1 .or. ig_opt == 2) then                
-                              call baldock(g, rho, alfa_ig, gamma_ig, kwav_ig(k), depth(k), Hk_ig0, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))   
-                           endif                        
-                           !
-                           DoverE_ig(k) = (1.0 - fac)*DoverE_ig(k) + fac*(Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0e-6)
-                           !
-                           do itheta = 1, ntheta
-                              B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
-                           enddo
-                           !                     
-                           ! Solve tridiagonal system per point
-                           !                     
-                           call solve_tridiag(A_ig, B_ig, C_ig, R_ig, ee_ig(:,k), ntheta)
-                           !                     
-                           ee_ig(:,k) = max(ee_ig(:, k), 0.0)
-                           Ek_ig      = sum(ee_ig(:, k))*dtheta
-                           Hk_ig      = min(sqrt(Ek_ig/rhog8), gamma_ig*depth(k))
-    !                       Hk_ig      = sqrt(Ek_ig/rhog8)
-                           Ek_ig      = rhog8*Hk_ig**2
-                           Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*Hk*Ek_ig !org
-                           !Dfk_ig      = fw_ig(k)*1025*(9.81/depth(k))**(3.0/2.0)*(Hk/sqrt(8.0))*Hk_ig**(2.0)/8 -> TL: seems to give same result                  
-                           !                     
-                           if (ig_opt == 1 .or. ig_opt == 2) then                
-                              call baldock(g, rho, alfa_ig, gamma_ig, kwav_ig(k), depth(k), Hk_ig, T_ig, baldock_opt, Dwk_ig, Hmx_ig(k))
-                           endif                    
-                           !
-                           Dw_ig(k) = Dwk_ig                     
-                           !                     
-                           DoverE_ig(k) = (1.0 - fac)*DoverE_ig(k) + fac*(Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0)
-                           !                     
-                        else
-                           !
-                           Dwk_ig       = 0.0
-                           DoverE_ig(k) = (Dfk_ig)/max(Ek_ig, 1.0)
-                           !
-                        endif
-                        !
-                    endif                    
-                    !                     
-               endif
-               !
-            else
-               !
-               ee_ig(:, k) = 0.0
-               !               
-            endif 
-            !
-         enddo
-         !
-      endif
       !
       ! 4) Check convergence after all sweeps - based on incident wave energy only for now
       !        
@@ -784,25 +728,24 @@ module snapwave_solver
          t1 = dble(count1)/count_rate   
          tloop = t1 - t0         
          !
-         !if (error<crit) then
-         !    !write(*,'(a,i6,a,f10.5,a,f7.2,a,e14.4)')'iteration ',iter/4 ,' error = ',error,'   %ok = ',percok,' time = ',tloop
-         !    write(*,'(a,i6,a,f10.5,a,f7.2,a,e14.4)')'iteration ',iter/4 ,' %ok = ',percok,' time = ',tloop
-         !   exit
-         !endif
+         if (error<crit) then
+             !write(*,'(a,i6,a,f10.5,a,f7.2,a,e14.4)')'iteration ',iter/4 ,' error = ',error,'   %ok = ',percok,' time = ',tloop
+             !write(*,'(a,i6,a,f10.5,a,f7.2,a,e14.4)')'iteration ',iter/4 ,' %ok = ',percok,' time = ',tloop
+            exit
+         endif
          !
       endif
       !
    enddo ! End of iteration loop
    !
-   ! 5) Compute directionally integrated parameters for output
-   !    
-   call system_clock(count1, count_rate, count_max)           
+   call system_clock(count1, count_rate, count_max)              
    t1 = dble(count1)/count_rate   
    tloop = t1 - t0            
    write(*,'(a,i6,a,f10.5,a,f7.2,a,e14.4)')'Loop ended: iteration ',iter/4 ,' %ok = ',percok,' time = ',tloop   
    !
-   do k=1,no_nodes
-      ! 
+   ! 5) Compute directionally integrated parameters for output
+   !   
+   do k=1,no_nodes       
       !
       if (inner(k)) then
          if (depth(k)>1.1*hmin) then
@@ -978,6 +921,7 @@ module snapwave_solver
     integer                                          :: k               ! counters (k is grid index)    
     integer                                          :: k1,k2           ! upwind counters (k is grid index)
     real*4                                           :: gam             ! local gamma (Hinc / depth ratio)   
+    real*4                                           :: beta            ! local bedslope    
     real*4, dimension(ntheta,no_nodes)               :: Sxx             ! Radiation Stress
     real*4, dimension(:), allocatable                :: Sxxprev         ! radiation stress at upwind intersection point  
     real*4, dimension(:), allocatable                :: Hprev           ! Incident wave height at upwind intersection point  
