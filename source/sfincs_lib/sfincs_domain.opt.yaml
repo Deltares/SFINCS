@@ -12,7 +12,7 @@ Pass:            prologepilog
 Name:            StackSize
 Function:        SFINCS_DOMAIN.
 Args:
-  - NumStackBytes:   '0'
+  - NumStackBytes:   '8'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_DOMAIN.
   - String:          ''''
@@ -27,7 +27,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '1'
+  - INST_:           '8'
   - String:          "\n"
 ...
 --- !Analysis
@@ -35,7 +35,7 @@ Pass:            asm-printer
 Name:            InstructionCount
 Function:        SFINCS_DOMAIN.
 Args:
-  - NumInstructions: '1'
+  - NumInstructions: '8'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -70,7 +70,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '27'
+  - INST_:           '31'
   - String:          "\n"
 ...
 --- !Analysis
@@ -111,7 +111,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -121,7 +121,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_domain.f90',
                    Line: 5, Column: 0 }
 Function:        SFINCS_DOMAIN_mp_INITIALIZE_DOMAIN
 Args:
-  - NumInstructions: '32'
+  - NumInstructions: '37'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -750,7 +750,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '7'
+  - INST_:           '11'
   - String:          "\n"
 ...
 --- !Analysis
@@ -2639,7 +2639,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -2649,7 +2649,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_domain.f90',
                    Line: 40, Column: 0 }
 Function:        SFINCS_DOMAIN_mp_INITIALIZE_PROCESSES
 Args:
-  - NumInstructions: '1131'
+  - NumInstructions: '1136'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -12362,7 +12362,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_domain.f90',
                    Line: 113, Column: 0 }
 Function:        SFINCS_DOMAIN_mp_INITIALIZE_MESH
 Args:
-  - NumStackBytes:   '21384'
+  - NumStackBytes:   '21400'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_DOMAIN_mp_INITIALIZE_MESH
   - String:          ''''
@@ -12370,8 +12370,6 @@ Args:
 --- !Analysis
 Pass:            asm-printer
 Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_domain.f90', 
-                   Line: 151, Column: 0 }
 Function:        SFINCS_DOMAIN_mp_INITIALIZE_MESH
 Args:
   - String:          'BasicBlock: '
@@ -12379,7 +12377,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '342'
+  - INST_:           '346'
   - String:          "\n"
 ...
 --- !Analysis
@@ -74278,7 +74276,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '5'
+  - INST_:           '6'
   - String:          "\n"
 ...
 --- !Analysis
@@ -74288,7 +74286,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_domain.f90',
                    Line: 113, Column: 0 }
 Function:        SFINCS_DOMAIN_mp_INITIALIZE_MESH
 Args:
-  - NumInstructions: '37156'
+  - NumInstructions: '37161'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -75163,7 +75161,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_domain.f90',
                    Line: 1461, Column: 0 }
 Function:        SFINCS_DOMAIN_mp_INITIALIZE_BATHYMETRY
 Args:
-  - NumStackBytes:   '3480'
+  - NumStackBytes:   '3496'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_DOMAIN_mp_INITIALIZE_BATHYMETRY
   - String:          ''''
@@ -75171,8 +75169,6 @@ Args:
 --- !Analysis
 Pass:            asm-printer
 Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_domain.f90', 
-                   Line: 1473, Column: 0 }
 Function:        SFINCS_DOMAIN_mp_INITIALIZE_BATHYMETRY
 Args:
   - String:          'BasicBlock: '
@@ -75180,7 +75176,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '121'
+  - INST_:           '125'
   - String:          "\n"
 ...
 --- !Analysis
@@ -80043,7 +80039,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '8'
+  - INST_:           '9'
   - String:          "\n"
 ...
 --- !Analysis
@@ -80053,7 +80049,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_domain.f90',
                    Line: 1461, Column: 0 }
 Function:        SFINCS_DOMAIN_mp_INITIALIZE_BATHYMETRY
 Args:
-  - NumInstructions: '3162'
+  - NumInstructions: '3167'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -81222,7 +81218,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '9'
+  - INST_:           '13'
   - String:          "\n"
 ...
 --- !Analysis
@@ -88422,7 +88418,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -88432,7 +88428,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_domain.f90',
                    Line: 1595, Column: 0 }
 Function:        SFINCS_DOMAIN_mp_INITIALIZE_BOUNDARIES
 Args:
-  - NumInstructions: '4078'
+  - NumInstructions: '4083'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -88785,7 +88781,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_domain.f90',
                    Line: 1774, Column: 0 }
 Function:        SFINCS_DOMAIN_mp_INITIALIZE_ROUGHNESS
 Args:
-  - NumStackBytes:   '1416'
+  - NumStackBytes:   '1432'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_DOMAIN_mp_INITIALIZE_ROUGHNESS
   - String:          ''''
@@ -88793,8 +88789,6 @@ Args:
 --- !Analysis
 Pass:            asm-printer
 Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_domain.f90', 
-                   Line: 1780, Column: 0 }
 Function:        SFINCS_DOMAIN_mp_INITIALIZE_ROUGHNESS
 Args:
   - String:          'BasicBlock: '
@@ -88802,7 +88796,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '37'
+  - INST_:           '41'
   - String:          "\n"
 ...
 --- !Analysis
@@ -90825,7 +90819,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '5'
+  - INST_:           '6'
   - String:          "\n"
 ...
 --- !Analysis
@@ -90835,7 +90829,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_domain.f90',
                    Line: 1774, Column: 0 }
 Function:        SFINCS_DOMAIN_mp_INITIALIZE_ROUGHNESS
 Args:
-  - NumInstructions: '1225'
+  - NumInstructions: '1230'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -91790,8 +91784,6 @@ Args:
 --- !Analysis
 Pass:            asm-printer
 Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_domain.f90', 
-                   Line: 1853, Column: 0 }
 Function:        SFINCS_DOMAIN_mp_INITIALIZE_INFILTRATION
 Args:
   - String:          'BasicBlock: '
@@ -91799,7 +91791,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '37'
+  - INST_:           '41'
   - String:          "\n"
 ...
 --- !Analysis
@@ -95500,7 +95492,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '5'
+  - INST_:           '6'
   - String:          "\n"
 ...
 --- !Analysis
@@ -95510,7 +95502,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_domain.f90',
                    Line: 1847, Column: 0 }
 Function:        SFINCS_DOMAIN_mp_INITIALIZE_INFILTRATION
 Args:
-  - NumInstructions: '5528'
+  - NumInstructions: '5533'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -95575,7 +95567,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_domain.f90',
                    Line: 2172, Column: 0 }
 Function:        SFINCS_DOMAIN_mp_INITIALIZE_STORAGE_VOLUME
 Args:
-  - NumStackBytes:   '920'
+  - NumStackBytes:   '936'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_DOMAIN_mp_INITIALIZE_STORAGE_VOLUME
   - String:          ''''
@@ -95590,7 +95582,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '12'
+  - INST_:           '16'
   - String:          "\n"
 ...
 --- !Analysis
@@ -95661,7 +95653,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -95671,7 +95663,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_domain.f90',
                    Line: 2172, Column: 0 }
 Function:        SFINCS_DOMAIN_mp_INITIALIZE_STORAGE_VOLUME
 Args:
-  - NumInstructions: '229'
+  - NumInstructions: '234'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -96678,7 +96670,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '10'
+  - INST_:           '14'
   - String:          "\n"
 ...
 --- !Analysis
@@ -102544,7 +102536,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -102554,7 +102546,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_domain.f90',
                    Line: 2197, Column: 0 }
 Function:        SFINCS_DOMAIN_mp_SET_ADVECTION_MASK
 Args:
-  - NumInstructions: '2935'
+  - NumInstructions: '2940'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -103273,7 +103265,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '445'
+  - INST_:           '449'
   - String:          "\n"
 ...
 --- !Analysis
@@ -106662,7 +106654,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -106672,7 +106664,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_domain.f90',
                    Line: 2265, Column: 0 }
 Function:        SFINCS_DOMAIN_mp_INITIALIZE_HYDRO
 Args:
-  - NumInstructions: '5297'
+  - NumInstructions: '5302'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -107007,7 +106999,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_domain.f90',
                    Line: 2513, Column: 0 }
 Function:        SFINCS_DOMAIN_mp_DEALLOCATE_QUADTREE
 Args:
-  - NumStackBytes:   '360'
+  - NumStackBytes:   '376'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_DOMAIN_mp_DEALLOCATE_QUADTREE
   - String:          ''''
@@ -107022,7 +107014,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '14'
+  - INST_:           '18'
   - String:          "\n"
 ...
 --- !Analysis
@@ -110032,7 +110024,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -110042,6 +110034,6 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_domain.f90',
                    Line: 2513, Column: 0 }
 Function:        SFINCS_DOMAIN_mp_DEALLOCATE_QUADTREE
 Args:
-  - NumInstructions: '2771'
+  - NumInstructions: '2776'
   - String:          ' instructions in function'
 ...

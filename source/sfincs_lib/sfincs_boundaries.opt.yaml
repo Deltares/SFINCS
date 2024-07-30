@@ -12,7 +12,7 @@ Pass:            prologepilog
 Name:            StackSize
 Function:        SFINCS_BOUNDARIES.
 Args:
-  - NumStackBytes:   '0'
+  - NumStackBytes:   '8'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_BOUNDARIES.
   - String:          ''''
@@ -27,7 +27,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '1'
+  - INST_:           '8'
   - String:          "\n"
 ...
 --- !Analysis
@@ -35,7 +35,7 @@ Pass:            asm-printer
 Name:            InstructionCount
 Function:        SFINCS_BOUNDARIES.
 Args:
-  - NumInstructions: '1'
+  - NumInstructions: '8'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -1548,8 +1548,6 @@ Args:
 --- !Analysis
 Pass:            asm-printer
 Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_boundaries.f90', 
-                   Line: 20, Column: 0 }
 Function:        SFINCS_BOUNDARIES_mp_READ_BOUNDARY_DATA
 Args:
   - String:          'BasicBlock: '
@@ -1557,7 +1555,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '15'
+  - INST_:           '19'
   - String:          "\n"
 ...
 --- !Analysis
@@ -8003,7 +8001,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '5'
+  - INST_:           '6'
   - String:          "\n"
 ...
 --- !Analysis
@@ -8013,7 +8011,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_boundaries.f90'
                    Line: 5, Column: 0 }
 Function:        SFINCS_BOUNDARIES_mp_READ_BOUNDARY_DATA
 Args:
-  - NumInstructions: '4751'
+  - NumInstructions: '4756'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -8615,7 +8613,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '7'
+  - INST_:           '11'
   - String:          "\n"
 ...
 --- !Analysis
@@ -11614,7 +11612,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -11624,7 +11622,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_boundaries.f90'
                    Line: 247, Column: 0 }
 Function:        SFINCS_BOUNDARIES_mp_READ_COASTLINE
 Args:
-  - NumInstructions: '2602'
+  - NumInstructions: '2607'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -12094,7 +12092,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_boundaries.f90'
                    Line: 361, Column: 0 }
 Function:        SFINCS_BOUNDARIES_mp_FIND_BOUNDARY_INDICES
 Args:
-  - NumStackBytes:   '1064'
+  - NumStackBytes:   '1080'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_BOUNDARIES_mp_FIND_BOUNDARY_INDICES
   - String:          ''''
@@ -12109,7 +12107,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '17'
+  - INST_:           '21'
   - String:          "\n"
 ...
 --- !Analysis
@@ -15186,7 +15184,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -15196,7 +15194,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_boundaries.f90'
                    Line: 361, Column: 0 }
 Function:        SFINCS_BOUNDARIES_mp_FIND_BOUNDARY_INDICES
 Args:
-  - NumInstructions: '1824'
+  - NumInstructions: '1829'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -15780,7 +15778,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '13'
+  - INST_:           '17'
   - String:          "\n"
 ...
 --- !Analysis
@@ -19209,7 +19207,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -19219,7 +19217,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_boundaries.f90'
                    Line: 526, Column: 0 }
 Function:        SFINCS_BOUNDARIES_mp_UPDATE_BOUNDARY_POINTS
 Args:
-  - NumInstructions: '1700'
+  - NumInstructions: '1705'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -20193,7 +20191,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_boundaries.f90'
                    Line: 599, Column: 0 }
 Function:        SFINCS_BOUNDARIES_mp_UPDATE_BOUNDARY_CONDITIONS
 Args:
-  - NumStackBytes:   '1512'
+  - NumStackBytes:   '1528'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_BOUNDARIES_mp_UPDATE_BOUNDARY_CONDITIONS
   - String:          ''''
@@ -20208,7 +20206,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '12'
+  - INST_:           '16'
   - String:          "\n"
 ...
 --- !Analysis
@@ -25753,7 +25751,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -25763,7 +25761,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_boundaries.f90'
                    Line: 599, Column: 0 }
 Function:        SFINCS_BOUNDARIES_mp_UPDATE_BOUNDARY_CONDITIONS
 Args:
-  - NumInstructions: '2754'
+  - NumInstructions: '2759'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -27616,7 +27614,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '25'
+  - INST_:           '29'
   - String:          "\n"
 ...
 --- !Analysis
@@ -37763,7 +37761,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -37773,7 +37771,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_boundaries.f90'
                    Line: 705, Column: 0 }
 Function:        SFINCS_BOUNDARIES_mp_UPDATE_BOUNDARY_FLUXES
 Args:
-  - NumInstructions: '5026'
+  - NumInstructions: '5031'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -37808,7 +37806,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '30'
+  - INST_:           '34'
   - String:          "\n"
 ...
 --- !Analysis
@@ -37890,7 +37888,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '24'
+  - INST_:           '25'
   - String:          "\n"
 ...
 --- !Analysis
@@ -37900,7 +37898,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_boundaries.f90'
                    Line: 881, Column: 0 }
 Function:        SFINCS_BOUNDARIES_mp_UPDATE_BOUNDARIES
 Args:
-  - NumInstructions: '72'
+  - NumInstructions: '77'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -37965,7 +37963,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_boundaries.f90'
                    Line: 927, Column: 0 }
 Function:        SFINCS_BOUNDARIES_mp_WEIGHTED_AVERAGE
 Args:
-  - NumStackBytes:   '168'
+  - NumStackBytes:   '184'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_BOUNDARIES_mp_WEIGHTED_AVERAGE
   - String:          ''''
@@ -37980,7 +37978,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '23'
+  - INST_:           '27'
   - String:          "\n"
 ...
 --- !Analysis
@@ -38021,7 +38019,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -38031,6 +38029,6 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_boundaries.f90'
                    Line: 927, Column: 0 }
 Function:        SFINCS_BOUNDARIES_mp_WEIGHTED_AVERAGE
 Args:
-  - NumInstructions: '77'
+  - NumInstructions: '82'
   - String:          ' instructions in function'
 ...

@@ -12,7 +12,7 @@ Pass:            prologepilog
 Name:            StackSize
 Function:        SFINCS_SUBGRID.
 Args:
-  - NumStackBytes:   '0'
+  - NumStackBytes:   '8'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_SUBGRID.
   - String:          ''''
@@ -27,7 +27,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '1'
+  - INST_:           '8'
   - String:          "\n"
 ...
 --- !Analysis
@@ -35,7 +35,7 @@ Pass:            asm-printer
 Name:            InstructionCount
 Function:        SFINCS_SUBGRID.
 Args:
-  - NumInstructions: '1'
+  - NumInstructions: '8'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -88,7 +88,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '32'
+  - INST_:           '36'
   - String:          "\n"
 ...
 --- !Analysis
@@ -133,7 +133,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -143,7 +143,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_subgrid.F90',
                    Line: 18, Column: 0 }
 Function:        SFINCS_SUBGRID_mp_READ_SUBGRID_FILE
 Args:
-  - NumInstructions: '64'
+  - NumInstructions: '69'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -2413,7 +2413,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_subgrid.F90',
                    Line: 51, Column: 0 }
 Function:        SFINCS_SUBGRID_mp_READ_SUBGRID_FILE_NETCDF
 Args:
-  - NumStackBytes:   '5640'
+  - NumStackBytes:   '5656'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_SUBGRID_mp_READ_SUBGRID_FILE_NETCDF
   - String:          ''''
@@ -2421,8 +2421,6 @@ Args:
 --- !Analysis
 Pass:            asm-printer
 Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_subgrid.F90', 
-                   Line: 51, Column: 0 }
 Function:        SFINCS_SUBGRID_mp_READ_SUBGRID_FILE_NETCDF
 Args:
   - String:          'BasicBlock: '
@@ -2430,7 +2428,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '1611'
+  - INST_:           '1615'
   - String:          "\n"
 ...
 --- !Analysis
@@ -18494,7 +18492,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '9'
+  - INST_:           '10'
   - String:          "\n"
 ...
 --- !Analysis
@@ -18504,7 +18502,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_subgrid.F90',
                    Line: 51, Column: 0 }
 Function:        SFINCS_SUBGRID_mp_READ_SUBGRID_FILE_NETCDF
 Args:
-  - NumInstructions: '9779'
+  - NumInstructions: '9784'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -22322,7 +22320,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_subgrid.F90',
                    Line: 388, Column: 0 }
 Function:        SFINCS_SUBGRID_mp_READ_SUBGRID_FILE_ORIGINAL
 Args:
-  - NumStackBytes:   '9624'
+  - NumStackBytes:   '9640'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_SUBGRID_mp_READ_SUBGRID_FILE_ORIGINAL
   - String:          ''''
@@ -22337,7 +22335,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '128'
+  - INST_:           '132'
   - String:          "\n"
 ...
 --- !Analysis
@@ -44804,7 +44802,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '8'
+  - INST_:           '9'
   - String:          "\n"
 ...
 --- !Analysis
@@ -44814,7 +44812,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_subgrid.F90',
                    Line: 388, Column: 0 }
 Function:        SFINCS_SUBGRID_mp_READ_SUBGRID_FILE_ORIGINAL
 Args:
-  - NumInstructions: '13618'
+  - NumInstructions: '13623'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -45572,7 +45570,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_subgrid.F90',
                    Line: 831, Column: 0 }
 Function:        SFINCS_SUBGRID_mp_COMPUTE_INITIAL_SUBGRID_VOLUMES
 Args:
-  - NumStackBytes:   '1240'
+  - NumStackBytes:   '1256'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_SUBGRID_mp_COMPUTE_INITIAL_SUBGRID_VOLUMES
   - String:          ''''
@@ -45587,7 +45585,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '71'
+  - INST_:           '75'
   - String:          "\n"
 ...
 --- !Analysis
@@ -49809,7 +49807,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -49819,7 +49817,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_subgrid.F90',
                    Line: 831, Column: 0 }
 Function:        SFINCS_SUBGRID_mp_COMPUTE_INITIAL_SUBGRID_VOLUMES
 Args:
-  - NumInstructions: '2159'
+  - NumInstructions: '2164'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -49863,7 +49861,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '20'
+  - INST_:           '24'
   - String:          "\n"
 ...
 --- !Analysis
@@ -49945,7 +49943,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -49955,6 +49953,6 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_subgrid.F90',
                    Line: 888, Column: 0 }
 Function:        SFINCS_SUBGRID_mp_HANDLE_ERR
 Args:
-  - NumInstructions: '88'
+  - NumInstructions: '93'
   - String:          ' instructions in function'
 ...

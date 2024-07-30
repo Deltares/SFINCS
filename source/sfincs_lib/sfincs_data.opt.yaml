@@ -12,7 +12,7 @@ Pass:            prologepilog
 Name:            StackSize
 Function:        SFINCS_DATA.
 Args:
-  - NumStackBytes:   '0'
+  - NumStackBytes:   '8'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_DATA.
   - String:          ''''
@@ -27,7 +27,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '1'
+  - INST_:           '8'
   - String:          "\n"
 ...
 --- !Analysis
@@ -35,7 +35,7 @@ Pass:            asm-printer
 Name:            InstructionCount
 Function:        SFINCS_DATA.
 Args:
-  - NumInstructions: '1'
+  - NumInstructions: '8'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -55,7 +55,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_data.f90',
                    Line: 774, Column: 0 }
 Function:        SFINCS_DATA_mp_INITIALIZE_PARAMETERS
 Args:
-  - NumStackBytes:   '152'
+  - NumStackBytes:   '160'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_DATA_mp_INITIALIZE_PARAMETERS
   - String:          ''''
@@ -70,7 +70,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '36'
+  - INST_:           '41'
   - String:          "\n"
 ...
 --- !Analysis
@@ -80,7 +80,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_data.f90',
                    Line: 774, Column: 0 }
 Function:        SFINCS_DATA_mp_INITIALIZE_PARAMETERS
 Args:
-  - NumInstructions: '36'
+  - NumInstructions: '41'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -1195,7 +1195,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '14'
+  - INST_:           '18'
   - String:          "\n"
 ...
 --- !Analysis
@@ -11515,7 +11515,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -11525,6 +11525,6 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_data.f90',
                    Line: 824, Column: 0 }
 Function:        SFINCS_DATA_mp_FINALIZE_PARAMETERS
 Args:
-  - NumInstructions: '9486'
+  - NumInstructions: '9491'
   - String:          ' instructions in function'
 ...

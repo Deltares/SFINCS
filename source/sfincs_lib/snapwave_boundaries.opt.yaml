@@ -12,7 +12,7 @@ Pass:            prologepilog
 Name:            StackSize
 Function:        SNAPWAVE_BOUNDARIES.
 Args:
-  - NumStackBytes:   '0'
+  - NumStackBytes:   '8'
   - String:          ' stack bytes in function '''
   - Function:        SNAPWAVE_BOUNDARIES.
   - String:          ''''
@@ -27,7 +27,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '1'
+  - INST_:           '8'
   - String:          "\n"
 ...
 --- !Analysis
@@ -35,7 +35,7 @@ Pass:            asm-printer
 Name:            InstructionCount
 Function:        SNAPWAVE_BOUNDARIES.
 Args:
-  - NumInstructions: '1'
+  - NumInstructions: '8'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -208,7 +208,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_boun
                    Line: 5, Column: 0 }
 Function:        SNAPWAVE_BOUNDARIES_mp_READ_BOUNDARY_DATA
 Args:
-  - NumStackBytes:   '1080'
+  - NumStackBytes:   '1096'
   - String:          ' stack bytes in function '''
   - Function:        SNAPWAVE_BOUNDARIES_mp_READ_BOUNDARY_DATA
   - String:          ''''
@@ -216,8 +216,6 @@ Args:
 --- !Analysis
 Pass:            asm-printer
 Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_boundaries.f90', 
-                   Line: 19, Column: 0 }
 Function:        SNAPWAVE_BOUNDARIES_mp_READ_BOUNDARY_DATA
 Args:
   - String:          'BasicBlock: '
@@ -225,7 +223,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '21'
+  - INST_:           '25'
   - String:          "\n"
 ...
 --- !Analysis
@@ -979,7 +977,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '5'
+  - INST_:           '6'
   - String:          "\n"
 ...
 --- !Analysis
@@ -989,7 +987,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_boun
                    Line: 5, Column: 0 }
 Function:        SNAPWAVE_BOUNDARIES_mp_READ_BOUNDARY_DATA
 Args:
-  - NumInstructions: '1121'
+  - NumInstructions: '1126'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -1162,7 +1160,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_boun
                    Line: 95, Column: 0 }
 Function:        SNAPWAVE_BOUNDARIES_mp_READ_BOUNDARY_ENCLOSURE
 Args:
-  - NumStackBytes:   '984'
+  - NumStackBytes:   '1000'
   - String:          ' stack bytes in function '''
   - Function:        SNAPWAVE_BOUNDARIES_mp_READ_BOUNDARY_ENCLOSURE
   - String:          ''''
@@ -1177,7 +1175,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '85'
+  - INST_:           '89'
   - String:          "\n"
 ...
 --- !Analysis
@@ -1645,7 +1643,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '15'
+  - INST_:           '16'
   - String:          "\n"
 ...
 --- !Analysis
@@ -1655,7 +1653,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_boun
                    Line: 95, Column: 0 }
 Function:        SNAPWAVE_BOUNDARIES_mp_READ_BOUNDARY_ENCLOSURE
 Args:
-  - NumInstructions: '446'
+  - NumInstructions: '451'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -2062,7 +2060,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_boun
                    Line: 126, Column: 0 }
 Function:        SNAPWAVE_BOUNDARIES_mp_READ_BOUNDARY_DATA_SINGLEPOINT
 Args:
-  - NumStackBytes:   '1208'
+  - NumStackBytes:   '1224'
   - String:          ' stack bytes in function '''
   - Function:        SNAPWAVE_BOUNDARIES_mp_READ_BOUNDARY_DATA_SINGLEPOINT
   - String:          ''''
@@ -2077,7 +2075,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '79'
+  - INST_:           '83'
   - String:          "\n"
 ...
 --- !Analysis
@@ -3695,7 +3693,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '18'
+  - INST_:           '19'
   - String:          "\n"
 ...
 --- !Analysis
@@ -3705,7 +3703,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_boun
                    Line: 126, Column: 0 }
 Function:        SNAPWAVE_BOUNDARIES_mp_READ_BOUNDARY_DATA_SINGLEPOINT
 Args:
-  - NumInstructions: '1310'
+  - NumInstructions: '1315'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -4400,7 +4398,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_boun
                    Line: 174, Column: 0 }
 Function:        SNAPWAVE_BOUNDARIES_mp_READ_BOUNDARY_DATA_TIMESERIES
 Args:
-  - NumStackBytes:   '3080'
+  - NumStackBytes:   '3096'
   - String:          ' stack bytes in function '''
   - Function:        SNAPWAVE_BOUNDARIES_mp_READ_BOUNDARY_DATA_TIMESERIES
   - String:          ''''
@@ -4415,7 +4413,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '6'
+  - INST_:           '10'
   - String:          "\n"
 ...
 --- !Analysis
@@ -7216,7 +7214,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -7226,7 +7224,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_boun
                    Line: 174, Column: 0 }
 Function:        SNAPWAVE_BOUNDARIES_mp_READ_BOUNDARY_DATA_TIMESERIES
 Args:
-  - NumInstructions: '2192'
+  - NumInstructions: '2197'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -7525,7 +7523,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_boun
                    Line: 286, Column: 0 }
 Function:        SNAPWAVE_BOUNDARIES_mp_FIND_BOUNDARY_INDICES
 Args:
-  - NumStackBytes:   '696'
+  - NumStackBytes:   '712'
   - String:          ' stack bytes in function '''
   - Function:        SNAPWAVE_BOUNDARIES_mp_FIND_BOUNDARY_INDICES
   - String:          ''''
@@ -7540,7 +7538,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '17'
+  - INST_:           '21'
   - String:          "\n"
 ...
 --- !Analysis
@@ -9449,7 +9447,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -9459,7 +9457,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_boun
                    Line: 286, Column: 0 }
 Function:        SNAPWAVE_BOUNDARIES_mp_FIND_BOUNDARY_INDICES
 Args:
-  - NumInstructions: '1105'
+  - NumInstructions: '1110'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -9794,7 +9792,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_boun
                    Line: 392, Column: 0 }
 Function:        SNAPWAVE_BOUNDARIES_mp_FIND_NEAREST_DEPTH_FOR_BOUNDARY_POINTS
 Args:
-  - NumStackBytes:   '600'
+  - NumStackBytes:   '616'
   - String:          ' stack bytes in function '''
   - Function:        SNAPWAVE_BOUNDARIES_mp_FIND_NEAREST_DEPTH_FOR_BOUNDARY_POINTS
   - String:          ''''
@@ -9809,7 +9807,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '8'
+  - INST_:           '12'
   - String:          "\n"
 ...
 --- !Analysis
@@ -11633,7 +11631,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -11643,7 +11641,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_boun
                    Line: 392, Column: 0 }
 Function:        SNAPWAVE_BOUNDARIES_mp_FIND_NEAREST_DEPTH_FOR_BOUNDARY_POINTS
 Args:
-  - NumInstructions: '927'
+  - NumInstructions: '932'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -11663,7 +11661,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_boun
                    Line: 459, Column: 0 }
 Function:        SNAPWAVE_BOUNDARIES_mp_UPDATE_BOUNDARY_CONDITIONS
 Args:
-  - NumStackBytes:   '88'
+  - NumStackBytes:   '104'
   - String:          ' stack bytes in function '''
   - Function:        SNAPWAVE_BOUNDARIES_mp_UPDATE_BOUNDARY_CONDITIONS
   - String:          ''''
@@ -11678,7 +11676,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '10'
+  - INST_:           '15'
   - String:          "\n"
 ...
 --- !Analysis
@@ -11688,7 +11686,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_boun
                    Line: 459, Column: 0 }
 Function:        SNAPWAVE_BOUNDARIES_mp_UPDATE_BOUNDARY_CONDITIONS
 Args:
-  - NumInstructions: '10'
+  - NumInstructions: '15'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -14000,7 +13998,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '26'
+  - INST_:           '30'
   - String:          "\n"
 ...
 --- !Analysis
@@ -27595,7 +27593,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '7'
+  - INST_:           '8'
   - String:          "\n"
 ...
 --- !Analysis
@@ -27605,7 +27603,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_boun
                    Line: 480, Column: 0 }
 Function:        SNAPWAVE_BOUNDARIES_mp_UPDATE_BOUNDARY_POINTS
 Args:
-  - NumInstructions: '7338'
+  - NumInstructions: '7343'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -28279,7 +28277,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '14'
+  - INST_:           '18'
   - String:          "\n"
 ...
 --- !Analysis
@@ -32407,7 +32405,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '5'
+  - INST_:           '6'
   - String:          "\n"
 ...
 --- !Analysis
@@ -32417,7 +32415,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_boun
                    Line: 695, Column: 0 }
 Function:        SNAPWAVE_BOUNDARIES_mp_UPDATE_BOUNDARIES
 Args:
-  - NumInstructions: '2053'
+  - NumInstructions: '2058'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -32482,7 +32480,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_boun
                    Line: 753, Column: 0 }
 Function:        SNAPWAVE_BOUNDARIES_mp_WEIGHTED_AVERAGE
 Args:
-  - NumStackBytes:   '168'
+  - NumStackBytes:   '184'
   - String:          ' stack bytes in function '''
   - Function:        SNAPWAVE_BOUNDARIES_mp_WEIGHTED_AVERAGE
   - String:          ''''
@@ -32497,7 +32495,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '23'
+  - INST_:           '27'
   - String:          "\n"
 ...
 --- !Analysis
@@ -32538,7 +32536,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -32548,7 +32546,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_boun
                    Line: 753, Column: 0 }
 Function:        SNAPWAVE_BOUNDARIES_mp_WEIGHTED_AVERAGE
 Args:
-  - NumInstructions: '77'
+  - NumInstructions: '82'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -32568,7 +32566,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_boun
                    Line: 794, Column: 0 }
 Function:        SNAPWAVE_BOUNDARIES_mp_MOD2
 Args:
-  - NumStackBytes:   '80'
+  - NumStackBytes:   '88'
   - String:          ' stack bytes in function '''
   - Function:        SNAPWAVE_BOUNDARIES_mp_MOD2
   - String:          ''''
@@ -32583,7 +32581,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '18'
+  - INST_:           '22'
   - String:          "\n"
 ...
 --- !Analysis
@@ -32665,7 +32663,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '4'
+  - INST_:           '5'
   - String:          "\n"
 ...
 --- !Analysis
@@ -32675,6 +32673,6 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_boun
                    Line: 794, Column: 0 }
 Function:        SNAPWAVE_BOUNDARIES_mp_MOD2
 Args:
-  - NumInstructions: '39'
+  - NumInstructions: '44'
   - String:          ' instructions in function'
 ...

@@ -12,7 +12,7 @@ Pass:            prologepilog
 Name:            StackSize
 Function:        SNAPWAVE_NCINPUT.
 Args:
-  - NumStackBytes:   '0'
+  - NumStackBytes:   '8'
   - String:          ' stack bytes in function '''
   - Function:        SNAPWAVE_NCINPUT.
   - String:          ''''
@@ -27,7 +27,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '1'
+  - INST_:           '8'
   - String:          "\n"
 ...
 --- !Analysis
@@ -35,7 +35,7 @@ Pass:            asm-printer
 Name:            InstructionCount
 Function:        SNAPWAVE_NCINPUT.
 Args:
-  - NumInstructions: '1'
+  - NumInstructions: '8'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -97,7 +97,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '870'
+  - INST_:           '874'
   - String:          "\n"
 ...
 --- !Analysis
@@ -239,7 +239,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '11'
+  - INST_:           '12'
   - String:          "\n"
 ...
 --- !Analysis
@@ -249,7 +249,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncin
                    Line: 22, Column: 0 }
 Function:        SNAPWAVE_NCINPUT_mp_READ_NETCDF_WAVE_BOUNDARY_DATA
 Args:
-  - NumInstructions: '978'
+  - NumInstructions: '983'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -293,7 +293,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '19'
+  - INST_:           '23'
   - String:          "\n"
 ...
 --- !Analysis
@@ -334,7 +334,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -344,6 +344,6 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncin
                    Line: 104, Column: 0 }
 Function:        SNAPWAVE_NCINPUT_mp_HANDLE_ERR
 Args:
-  - NumInstructions: '77'
+  - NumInstructions: '82'
   - String:          ' instructions in function'
 ...

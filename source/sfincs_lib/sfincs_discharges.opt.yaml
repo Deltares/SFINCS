@@ -12,7 +12,7 @@ Pass:            prologepilog
 Name:            StackSize
 Function:        SFINCS_DISCHARGES.
 Args:
-  - NumStackBytes:   '0'
+  - NumStackBytes:   '8'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_DISCHARGES.
   - String:          ''''
@@ -27,7 +27,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '1'
+  - INST_:           '8'
   - String:          "\n"
 ...
 --- !Analysis
@@ -35,7 +35,7 @@ Pass:            asm-printer
 Name:            InstructionCount
 Function:        SFINCS_DISCHARGES.
 Args:
-  - NumInstructions: '1'
+  - NumInstructions: '8'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -1935,8 +1935,6 @@ Args:
 --- !Analysis
 Pass:            asm-printer
 Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_discharges.f90', 
-                   Line: 15, Column: 0 }
 Function:        SFINCS_DISCHARGES_mp_READ_DISCHARGES
 Args:
   - String:          'BasicBlock: '
@@ -1944,7 +1942,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '52'
+  - INST_:           '56'
   - String:          "\n"
 ...
 --- !Analysis
@@ -12231,7 +12229,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '5'
+  - INST_:           '6'
   - String:          "\n"
 ...
 --- !Analysis
@@ -12241,7 +12239,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_discharges.f90'
                    Line: 5, Column: 0 }
 Function:        SFINCS_DISCHARGES_mp_READ_DISCHARGES
 Args:
-  - NumInstructions: '6294'
+  - NumInstructions: '6299'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -13932,7 +13930,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '28'
+  - INST_:           '32'
   - String:          "\n"
 ...
 --- !Analysis
@@ -23119,7 +23117,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '24'
+  - INST_:           '25'
   - String:          "\n"
 ...
 --- !Analysis
@@ -23129,6 +23127,6 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_discharges.f90'
                    Line: 262, Column: 0 }
 Function:        SFINCS_DISCHARGES_mp_UPDATE_DISCHARGES
 Args:
-  - NumInstructions: '4627'
+  - NumInstructions: '4632'
   - String:          ' instructions in function'
 ...

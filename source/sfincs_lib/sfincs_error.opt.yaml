@@ -12,7 +12,7 @@ Pass:            prologepilog
 Name:            StackSize
 Function:        SFINCS_ERROR.
 Args:
-  - NumStackBytes:   '0'
+  - NumStackBytes:   '8'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_ERROR.
   - String:          ''''
@@ -27,7 +27,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '1'
+  - INST_:           '8'
   - String:          "\n"
 ...
 --- !Analysis
@@ -35,7 +35,7 @@ Pass:            asm-printer
 Name:            InstructionCount
 Function:        SFINCS_ERROR.
 Args:
-  - NumInstructions: '1'
+  - NumInstructions: '8'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -82,7 +82,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_error.f90',
                    Line: 5, Column: 0 }
 Function:        SFINCS_ERROR_mp_CHECK_FILE_EXISTS
 Args:
-  - NumStackBytes:   '648'
+  - NumStackBytes:   '664'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_ERROR_mp_CHECK_FILE_EXISTS
   - String:          ''''
@@ -97,7 +97,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '67'
+  - INST_:           '71'
   - String:          "\n"
 ...
 --- !Analysis
@@ -353,7 +353,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '4'
+  - INST_:           '5'
   - String:          "\n"
 ...
 --- !Analysis
@@ -363,6 +363,6 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_error.f90',
                    Line: 5, Column: 0 }
 Function:        SFINCS_ERROR_mp_CHECK_FILE_EXISTS
 Args:
-  - NumInstructions: '363'
+  - NumInstructions: '368'
   - String:          ' instructions in function'
 ...

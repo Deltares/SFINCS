@@ -201,7 +201,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '30'
+  - INST_:           '34'
   - String:          "\n"
 ...
 --- !Analysis
@@ -328,7 +328,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -338,6 +338,6 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\deg2utm.f90',
                    Line: 1, Column: 0 }
 Function:        DEG2UTM
 Args:
-  - NumInstructions: '298'
+  - NumInstructions: '303'
   - String:          ' instructions in function'
 ...

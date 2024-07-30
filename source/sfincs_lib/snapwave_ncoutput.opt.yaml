@@ -12,7 +12,7 @@ Pass:            prologepilog
 Name:            StackSize
 Function:        SNAPWAVE_NCOUTPUT.
 Args:
-  - NumStackBytes:   '0'
+  - NumStackBytes:   '8'
   - String:          ' stack bytes in function '''
   - Function:        SNAPWAVE_NCOUTPUT.
   - String:          ''''
@@ -27,7 +27,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '1'
+  - INST_:           '8'
   - String:          "\n"
 ...
 --- !Analysis
@@ -35,7 +35,7 @@ Pass:            asm-printer
 Name:            InstructionCount
 Function:        SNAPWAVE_NCOUTPUT.
 Args:
-  - NumInstructions: '1'
+  - NumInstructions: '8'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -55,7 +55,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncou
                    Line: 45, Column: 0 }
 Function:        SNAPWAVE_NCOUTPUT_mp_NCOUTPUT_INIT
 Args:
-  - NumStackBytes:   '88'
+  - NumStackBytes:   '104'
   - String:          ' stack bytes in function '''
   - Function:        SNAPWAVE_NCOUTPUT_mp_NCOUTPUT_INIT
   - String:          ''''
@@ -70,7 +70,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '12'
+  - INST_:           '16'
   - String:          "\n"
 ...
 --- !Analysis
@@ -156,7 +156,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -166,7 +166,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncou
                    Line: 45, Column: 0 }
 Function:        SNAPWAVE_NCOUTPUT_mp_NCOUTPUT_INIT
 Args:
-  - NumInstructions: '30'
+  - NumInstructions: '35'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -186,7 +186,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncou
                    Line: 54, Column: 0 }
 Function:        SNAPWAVE_NCOUTPUT_mp_NCOUTPUT_UPDATE
 Args:
-  - NumStackBytes:   '120'
+  - NumStackBytes:   '136'
   - String:          ' stack bytes in function '''
   - Function:        SNAPWAVE_NCOUTPUT_mp_NCOUTPUT_UPDATE
   - String:          ''''
@@ -201,7 +201,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '18'
+  - INST_:           '22'
   - String:          "\n"
 ...
 --- !Analysis
@@ -283,7 +283,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -293,7 +293,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncou
                    Line: 54, Column: 0 }
 Function:        SNAPWAVE_NCOUTPUT_mp_NCOUTPUT_UPDATE
 Args:
-  - NumInstructions: '40'
+  - NumInstructions: '45'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -313,7 +313,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncou
                    Line: 66, Column: 0 }
 Function:        SNAPWAVE_NCOUTPUT_mp_NCOUTPUT_FINALIZE
 Args:
-  - NumStackBytes:   '88'
+  - NumStackBytes:   '104'
   - String:          ' stack bytes in function '''
   - Function:        SNAPWAVE_NCOUTPUT_mp_NCOUTPUT_FINALIZE
   - String:          ''''
@@ -328,7 +328,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '12'
+  - INST_:           '16'
   - String:          "\n"
 ...
 --- !Analysis
@@ -414,7 +414,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -424,7 +424,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncou
                    Line: 66, Column: 0 }
 Function:        SNAPWAVE_NCOUTPUT_mp_NCOUTPUT_FINALIZE
 Args:
-  - NumInstructions: '30'
+  - NumInstructions: '35'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -462,7 +462,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncou
                    Line: 75, Column: 0 }
 Function:        SNAPWAVE_NCOUTPUT_mp_NCOUTPUT_MAP_INIT
 Args:
-  - NumStackBytes:   '4856'
+  - NumStackBytes:   '4872'
   - String:          ' stack bytes in function '''
   - Function:        SNAPWAVE_NCOUTPUT_mp_NCOUTPUT_MAP_INIT
   - String:          ''''
@@ -470,8 +470,6 @@ Args:
 --- !Analysis
 Pass:            asm-printer
 Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncoutput.F90', 
-                   Line: 86, Column: 0 }
 Function:        SNAPWAVE_NCOUTPUT_mp_NCOUTPUT_MAP_INIT
 Args:
   - String:          'BasicBlock: '
@@ -479,7 +477,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '467'
+  - INST_:           '471'
   - String:          "\n"
 ...
 --- !Analysis
@@ -2109,7 +2107,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '5'
+  - INST_:           '6'
   - String:          "\n"
 ...
 --- !Analysis
@@ -2119,7 +2117,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncou
                    Line: 75, Column: 0 }
 Function:        SNAPWAVE_NCOUTPUT_mp_NCOUTPUT_MAP_INIT
 Args:
-  - NumInstructions: '3477'
+  - NumInstructions: '3482'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -2154,7 +2152,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '9'
+  - INST_:           '13'
   - String:          "\n"
 ...
 --- !Analysis
@@ -3252,7 +3250,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -3262,7 +3260,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncou
                    Line: 261, Column: 0 }
 Function:        SNAPWAVE_NCOUTPUT_mp_NCOUTPUT_HIS_INIT
 Args:
-  - NumInstructions: '2058'
+  - NumInstructions: '2063'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -3378,7 +3376,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '30'
+  - INST_:           '34'
   - String:          "\n"
 ...
 --- !Analysis
@@ -4339,7 +4337,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '11'
+  - INST_:           '12'
   - String:          "\n"
 ...
 --- !Analysis
@@ -4349,7 +4347,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncou
                    Line: 394, Column: 0 }
 Function:        SNAPWAVE_NCOUTPUT_mp_NCOUTPUT_UPDATE_MAP
 Args:
-  - NumInstructions: '1080'
+  - NumInstructions: '1085'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -4378,7 +4376,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncou
                    Line: 434, Column: 0 }
 Function:        SNAPWAVE_NCOUTPUT_mp_NCOUTPUT_UPDATE_HIS
 Args:
-  - NumStackBytes:   '1064'
+  - NumStackBytes:   '1080'
   - String:          ' stack bytes in function '''
   - Function:        SNAPWAVE_NCOUTPUT_mp_NCOUTPUT_UPDATE_HIS
   - String:          ''''
@@ -4393,7 +4391,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '30'
+  - INST_:           '34'
   - String:          "\n"
 ...
 --- !Analysis
@@ -4839,7 +4837,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '11'
+  - INST_:           '12'
   - String:          "\n"
 ...
 --- !Analysis
@@ -4849,7 +4847,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncou
                    Line: 434, Column: 0 }
 Function:        SNAPWAVE_NCOUTPUT_mp_NCOUTPUT_UPDATE_HIS
 Args:
-  - NumInstructions: '564'
+  - NumInstructions: '569'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -4869,7 +4867,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncou
                    Line: 460, Column: 0 }
 Function:        SNAPWAVE_NCOUTPUT_mp_NCOUTPUT_MAP_FINALIZE
 Args:
-  - NumStackBytes:   '88'
+  - NumStackBytes:   '104'
   - String:          ' stack bytes in function '''
   - Function:        SNAPWAVE_NCOUTPUT_mp_NCOUTPUT_MAP_FINALIZE
   - String:          ''''
@@ -4884,7 +4882,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '14'
+  - INST_:           '19'
   - String:          "\n"
 ...
 --- !Analysis
@@ -4894,7 +4892,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncou
                    Line: 460, Column: 0 }
 Function:        SNAPWAVE_NCOUTPUT_mp_NCOUTPUT_MAP_FINALIZE
 Args:
-  - NumInstructions: '14'
+  - NumInstructions: '19'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -4929,7 +4927,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '9'
+  - INST_:           '13'
   - String:          "\n"
 ...
 --- !Analysis
@@ -4974,7 +4972,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -4984,7 +4982,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncou
                    Line: 476, Column: 0 }
 Function:        SNAPWAVE_NCOUTPUT_mp_NCOUTPUT_HIS_FINALIZE
 Args:
-  - NumInstructions: '22'
+  - NumInstructions: '27'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -5031,7 +5029,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncou
                    Line: 494, Column: 0 }
 Function:        SNAPWAVE_NCOUTPUT_mp_HANDLE_ERR
 Args:
-  - NumStackBytes:   '696'
+  - NumStackBytes:   '712'
   - String:          ' stack bytes in function '''
   - Function:        SNAPWAVE_NCOUTPUT_mp_HANDLE_ERR
   - String:          ''''
@@ -5046,7 +5044,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '20'
+  - INST_:           '24'
   - String:          "\n"
 ...
 --- !Analysis
@@ -5130,7 +5128,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -5140,7 +5138,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncou
                    Line: 494, Column: 0 }
 Function:        SNAPWAVE_NCOUTPUT_mp_HANDLE_ERR
 Args:
-  - NumInstructions: '167'
+  - NumInstructions: '172'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -5475,7 +5473,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncou
                    Line: 512, Column: 0 }
 Function:        SNAPWAVE_NCOUTPUT_mp_NC_READ_NET
 Args:
-  - NumStackBytes:   '2648'
+  - NumStackBytes:   '2664'
   - String:          ' stack bytes in function '''
   - Function:        SNAPWAVE_NCOUTPUT_mp_NC_READ_NET
   - String:          ''''
@@ -5490,7 +5488,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '167'
+  - INST_:           '171'
   - String:          "\n"
 ...
 --- !Analysis
@@ -7522,7 +7520,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '15'
+  - INST_:           '16'
   - String:          "\n"
 ...
 --- !Analysis
@@ -7532,7 +7530,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncou
                    Line: 512, Column: 0 }
 Function:        SNAPWAVE_NCOUTPUT_mp_NC_READ_NET
 Args:
-  - NumInstructions: '2189'
+  - NumInstructions: '2194'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -7576,7 +7574,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '21'
+  - INST_:           '25'
   - String:          "\n"
 ...
 --- !Analysis
@@ -7761,7 +7759,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -7771,6 +7769,6 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_ncou
                    Line: 582, Column: 0 }
 Function:        SNAPWAVE_NCOUTPUT_mp_NC_CHECK_ERR
 Args:
-  - NumInstructions: '265'
+  - NumInstructions: '270'
   - String:          ' instructions in function'
 ...

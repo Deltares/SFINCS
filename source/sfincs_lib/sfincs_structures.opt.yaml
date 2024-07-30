@@ -12,7 +12,7 @@ Pass:            prologepilog
 Name:            StackSize
 Function:        SFINCS_STRUCTURES.
 Args:
-  - NumStackBytes:   '0'
+  - NumStackBytes:   '8'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_STRUCTURES.
   - String:          ''''
@@ -27,7 +27,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '1'
+  - INST_:           '8'
   - String:          "\n"
 ...
 --- !Analysis
@@ -35,7 +35,7 @@ Pass:            asm-printer
 Name:            InstructionCount
 Function:        SFINCS_STRUCTURES.
 Args:
-  - NumInstructions: '1'
+  - NumInstructions: '8'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -73,7 +73,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_structures.f90'
                    Line: 5, Column: 0 }
 Function:        SFINCS_STRUCTURES_mp_READ_STRUCTURES
 Args:
-  - NumStackBytes:   '104'
+  - NumStackBytes:   '120'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_STRUCTURES_mp_READ_STRUCTURES
   - String:          ''''
@@ -88,7 +88,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '8'
+  - INST_:           '12'
   - String:          "\n"
 ...
 --- !Analysis
@@ -191,7 +191,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -201,7 +201,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_structures.f90'
                    Line: 5, Column: 0 }
 Function:        SFINCS_STRUCTURES_mp_READ_STRUCTURES
 Args:
-  - NumInstructions: '49'
+  - NumInstructions: '54'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -20086,7 +20086,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '299'
+  - INST_:           '303'
   - String:          "\n"
 ...
 --- !Analysis
@@ -22901,7 +22901,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '9'
+  - INST_:           '10'
   - String:          "\n"
 ...
 --- !Analysis
@@ -22911,7 +22911,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_structures.f90'
                    Line: 464, Column: 0 }
 Function:        SFINCS_STRUCTURES_mp_GIVE_STRUCTURE_INFORMATION
 Args:
-  - NumInstructions: '1798'
+  - NumInstructions: '1803'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -23522,7 +23522,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '20'
+  - INST_:           '24'
   - String:          "\n"
 ...
 --- !Analysis
@@ -27082,7 +27082,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '24'
+  - INST_:           '25'
   - String:          "\n"
 ...
 --- !Analysis
@@ -27092,6 +27092,6 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_structures.f90'
                    Line: 512, Column: 0 }
 Function:        SFINCS_STRUCTURES_mp_COMPUTE_FLUXES_OVER_STRUCTURES
 Args:
-  - NumInstructions: '1803'
+  - NumInstructions: '1808'
   - String:          ' instructions in function'
 ...

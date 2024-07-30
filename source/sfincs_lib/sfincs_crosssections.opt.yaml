@@ -12,7 +12,7 @@ Pass:            prologepilog
 Name:            StackSize
 Function:        SFINCS_CROSSSECTIONS.
 Args:
-  - NumStackBytes:   '0'
+  - NumStackBytes:   '8'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_CROSSSECTIONS.
   - String:          ''''
@@ -27,7 +27,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '1'
+  - INST_:           '8'
   - String:          "\n"
 ...
 --- !Analysis
@@ -35,7 +35,7 @@ Pass:            asm-printer
 Name:            InstructionCount
 Function:        SFINCS_CROSSSECTIONS.
 Args:
-  - NumInstructions: '1'
+  - NumInstructions: '8'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -5611,7 +5611,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_crosssections.f
                    Line: 123, Column: 0 }
 Function:        SFINCS_CROSSSECTIONS_mp_GET_DISCHARGES_THROUGH_CROSSSECTIONS
 Args:
-  - NumStackBytes:   '648'
+  - NumStackBytes:   '664'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_CROSSSECTIONS_mp_GET_DISCHARGES_THROUGH_CROSSSECTIONS
   - String:          ''''
@@ -5626,7 +5626,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '88'
+  - INST_:           '92'
   - String:          "\n"
 ...
 --- !Analysis
@@ -7671,7 +7671,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -7681,6 +7681,6 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_crosssections.f
                    Line: 123, Column: 0 }
 Function:        SFINCS_CROSSSECTIONS_mp_GET_DISCHARGES_THROUGH_CROSSSECTIONS
 Args:
-  - NumInstructions: '1068'
+  - NumInstructions: '1073'
   - String:          ' instructions in function'
 ...

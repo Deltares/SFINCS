@@ -12,7 +12,7 @@ Pass:            prologepilog
 Name:            StackSize
 Function:        SFINCS_DATE.
 Args:
-  - NumStackBytes:   '0'
+  - NumStackBytes:   '8'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_DATE.
   - String:          ''''
@@ -27,7 +27,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '1'
+  - INST_:           '8'
   - String:          "\n"
 ...
 --- !Analysis
@@ -35,7 +35,7 @@ Pass:            asm-printer
 Name:            InstructionCount
 Function:        SFINCS_DATE.
 Args:
-  - NumInstructions: '1'
+  - NumInstructions: '8'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -133,7 +133,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '32'
+  - INST_:           '36'
   - String:          "\n"
 ...
 --- !Analysis
@@ -301,7 +301,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -311,7 +311,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90',
                    Line: 65, Column: 0 }
 Function:        SFINCS_DATE_mp_SETYMD
 Args:
-  - NumInstructions: '188'
+  - NumInstructions: '193'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -418,7 +418,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '33'
+  - INST_:           '37'
   - String:          "\n"
 ...
 --- !Analysis
@@ -463,7 +463,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '79'
+  - INST_:           '80'
   - String:          "\n"
 ...
 --- !Analysis
@@ -473,7 +473,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90',
                    Line: 117, Column: 0 }
 Function:        SFINCS_DATE_mp_YMD
 Args:
-  - NumInstructions: '140'
+  - NumInstructions: '145'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -598,7 +598,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '30'
+  - INST_:           '34'
   - String:          "\n"
 ...
 --- !Analysis
@@ -816,7 +816,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -826,7 +826,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90',
                    Line: 145, Column: 0 }
 Function:        SFINCS_DATE_mp_YD
 Args:
-  - NumInstructions: '251'
+  - NumInstructions: '256'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -897,7 +897,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '19'
+  - INST_:           '23'
   - String:          "\n"
 ...
 --- !Analysis
@@ -949,7 +949,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '106'
+  - INST_:           '107'
   - String:          "\n"
 ...
 --- !Analysis
@@ -959,7 +959,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90',
                    Line: 183, Column: 0 }
 Function:        SFINCS_DATE_mp_TIME_DIFFERENCE
 Args:
-  - NumInstructions: '223'
+  - NumInstructions: '228'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -979,7 +979,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90',
                    Line: 206, Column: 0 }
 Function:        SFINCS_DATE_mp_JULIAN_DATE
 Args:
-  - NumStackBytes:   '112'
+  - NumStackBytes:   '120'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_DATE_mp_JULIAN_DATE
   - String:          ''''
@@ -994,7 +994,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '80'
+  - INST_:           '85'
   - String:          "\n"
 ...
 --- !Analysis
@@ -1004,7 +1004,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90',
                    Line: 206, Column: 0 }
 Function:        SFINCS_DATE_mp_JULIAN_DATE
 Args:
-  - NumInstructions: '80'
+  - NumInstructions: '85'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -1051,7 +1051,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90',
                    Line: 217, Column: 0 }
 Function:        SFINCS_DATE_mp_DATE_TO_ISO8601
 Args:
-  - NumStackBytes:   '552'
+  - NumStackBytes:   '568'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_DATE_mp_DATE_TO_ISO8601
   - String:          ''''
@@ -1066,7 +1066,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '86'
+  - INST_:           '90'
   - String:          "\n"
 ...
 --- !Analysis
@@ -1092,7 +1092,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '129'
+  - INST_:           '130'
   - String:          "\n"
 ...
 --- !Analysis
@@ -1102,7 +1102,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90',
                    Line: 217, Column: 0 }
 Function:        SFINCS_DATE_mp_DATE_TO_ISO8601
 Args:
-  - NumInstructions: '226'
+  - NumInstructions: '231'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -1185,7 +1185,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90',
                    Line: 230, Column: 0 }
 Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
 Args:
-  - NumStackBytes:   '840'
+  - NumStackBytes:   '856'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
   - String:          ''''
@@ -1200,7 +1200,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '24'
+  - INST_:           '28'
   - String:          "\n"
 ...
 --- !Analysis
@@ -1429,7 +1429,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -1439,7 +1439,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90',
                    Line: 230, Column: 0 }
 Function:        SFINCS_DATE_mp_CONVERT_FEWSDATE
 Args:
-  - NumInstructions: '507'
+  - NumInstructions: '512'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -1540,7 +1540,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90',
                    Line: 263, Column: 0 }
 Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
 Args:
-  - NumStackBytes:   '824'
+  - NumStackBytes:   '840'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
   - String:          ''''
@@ -1555,7 +1555,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '24'
+  - INST_:           '28'
   - String:          "\n"
 ...
 --- !Analysis
@@ -1844,7 +1844,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '4'
+  - INST_:           '5'
   - String:          "\n"
 ...
 --- !Analysis
@@ -1854,7 +1854,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90',
                    Line: 263, Column: 0 }
 Function:        SFINCS_DATE_mp_CONVERT_SPW_NC_DATE
 Args:
-  - NumInstructions: '528'
+  - NumInstructions: '533'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -1925,7 +1925,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '19'
+  - INST_:           '23'
   - String:          "\n"
 ...
 --- !Analysis
@@ -1977,7 +1977,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '85'
+  - INST_:           '86'
   - String:          "\n"
 ...
 --- !Analysis
@@ -1987,7 +1987,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90',
                    Line: 298, Column: 0 }
 Function:        SFINCS_DATE_mp_TIME_TO_STRING
 Args:
-  - NumInstructions: '276'
+  - NumInstructions: '281'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -2022,7 +2022,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '25'
+  - INST_:           '30'
   - String:          "\n"
 ...
 --- !Analysis
@@ -2032,6 +2032,6 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_date.f90',
                    Line: 329, Column: 0 }
 Function:        SFINCS_DATE_mp_TIMER
 Args:
-  - NumInstructions: '25'
+  - NumInstructions: '30'
   - String:          ' instructions in function'
 ...

@@ -12,7 +12,7 @@ Pass:            prologepilog
 Name:            StackSize
 Function:        SFINCS_INITIAL_CONDITIONS.
 Args:
-  - NumStackBytes:   '0'
+  - NumStackBytes:   '8'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_INITIAL_CONDITIONS.
   - String:          ''''
@@ -27,7 +27,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '1'
+  - INST_:           '8'
   - String:          "\n"
 ...
 --- !Analysis
@@ -35,7 +35,7 @@ Pass:            asm-printer
 Name:            InstructionCount
 Function:        SFINCS_INITIAL_CONDITIONS.
 Args:
-  - NumInstructions: '1'
+  - NumInstructions: '8'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -937,7 +937,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditi
                    Line: 20, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_SET_INITIAL_CONDITIONS
 Args:
-  - NumStackBytes:   '2440'
+  - NumStackBytes:   '2456'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_INITIAL_CONDITIONS_mp_SET_INITIAL_CONDITIONS
   - String:          ''''
@@ -952,7 +952,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '133'
+  - INST_:           '137'
   - String:          "\n"
 ...
 --- !Analysis
@@ -5924,7 +5924,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -5934,7 +5934,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditi
                    Line: 20, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_SET_INITIAL_CONDITIONS
 Args:
-  - NumInstructions: '2772'
+  - NumInstructions: '2777'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -6260,7 +6260,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditi
                    Line: 164, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
-  - NumStackBytes:   '2216'
+  - NumStackBytes:   '2232'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
   - String:          ''''
@@ -6275,7 +6275,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '116'
+  - INST_:           '120'
   - String:          "\n"
 ...
 --- !Analysis
@@ -6692,7 +6692,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -6702,7 +6702,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditi
                    Line: 164, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
-  - NumInstructions: '723'
+  - NumInstructions: '728'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -6782,7 +6782,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '92'
+  - INST_:           '96'
   - String:          "\n"
 ...
 --- !Analysis
@@ -6810,7 +6810,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '33'
+  - INST_:           '34'
   - String:          "\n"
 ...
 --- !Analysis
@@ -6820,7 +6820,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditi
                    Line: 254, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_ZSINI_FILE
 Args:
-  - NumInstructions: '133'
+  - NumInstructions: '138'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -6938,8 +6938,6 @@ Args:
 --- !Analysis
 Pass:            asm-printer
 Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 269, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
@@ -6947,7 +6945,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '186'
+  - INST_:           '190'
   - String:          "\n"
 ...
 --- !Analysis
@@ -7493,7 +7491,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '5'
+  - INST_:           '6'
   - String:          "\n"
 ...
 --- !Analysis
@@ -7503,7 +7501,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditi
                    Line: 269, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
-  - NumInstructions: '481'
+  - NumInstructions: '486'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -7547,7 +7545,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '19'
+  - INST_:           '23'
   - String:          "\n"
 ...
 --- !Analysis
@@ -7588,7 +7586,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '3'
+  - INST_:           '4'
   - String:          "\n"
 ...
 --- !Analysis
@@ -7598,6 +7596,6 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditi
                    Line: 317, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_HANDLE_ERR
 Args:
-  - NumInstructions: '77'
+  - NumInstructions: '82'
   - String:          ' instructions in function'
 ...

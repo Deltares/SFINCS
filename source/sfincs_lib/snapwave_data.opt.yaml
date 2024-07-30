@@ -12,7 +12,7 @@ Pass:            prologepilog
 Name:            StackSize
 Function:        SNAPWAVE_DATA.
 Args:
-  - NumStackBytes:   '0'
+  - NumStackBytes:   '8'
   - String:          ' stack bytes in function '''
   - Function:        SNAPWAVE_DATA.
   - String:          ''''
@@ -27,7 +27,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '1'
+  - INST_:           '8'
   - String:          "\n"
 ...
 --- !Analysis
@@ -35,6 +35,6 @@ Pass:            asm-printer
 Name:            InstructionCount
 Function:        SNAPWAVE_DATA.
 Args:
-  - NumInstructions: '1'
+  - NumInstructions: '8'
   - String:          ' instructions in function'
 ...

@@ -6,7 +6,6 @@ module quadtree
    integer*4                                       :: quadtree_nr_points
    integer*1                                       :: quadtree_nr_levels
    logical                                         :: quadtree_netcdf 
-   real*4                                          :: quadtree_xxx
    real*4                                          :: quadtree_x0
    real*4                                          :: quadtree_y0
    real*4                                          :: quadtree_dx
