@@ -203,8 +203,6 @@ module snapwave_solver
    real*4                                     :: Hk_ig0   
    real*4                                     :: Fk_ig
    real*4                                     :: shinc2ig          ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 0=default)
-   real*4                                     :: dSxx
-   real*4                                     :: Sxx_cons
    real*4                                     :: alphaigfac         ! Multiplication factor for IG shoaling source/sink term, default = 1.0
    real*4                                     :: sigm_ig
    character*20                               :: fname
@@ -225,8 +223,6 @@ module snapwave_solver
    real     :: t0
    real     :: t1   
    real     :: tloop2
-   real     :: t2
-   real     :: t3     
    !
 !   igwaves   = .false.
 !   nr_sweeps = 1
@@ -444,7 +440,7 @@ module snapwave_solver
       write(*,*)'eeprev_ig',maxval(eeprev_ig)
       write(*,*)'alphaig_local',maxval(alphaig_local)
       write(*,*)'srcig_local',maxval(srcig_local)
-      write(*,*)'srcig_local',maxval(srcig_local)
+      !write(*,*)'srcig_local',maxval(srcig_local)
       
       write(*,'(a,f6.2)')'time past in determine_infragravity_source_sink_term  (s) : ',tloop          
       ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev
@@ -493,12 +489,6 @@ module snapwave_solver
                      !
                      eeprev(itheta) = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)
                      cgprev(itheta) = w(1, itheta, k)*cg(k1) + w(2, itheta, k)*cg(k2)
-!                     write(*,*)k,itheta,eeprev(itheta),cgprev(itheta)
-                     !
-                     if (igwaves) then !TL: now calculated double?
-                        eeprev_ig(itheta) = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)
-                        cgprev_ig(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2) !TL: needed to calculate? Or is same as cgprev(itheta)?
-                     endif
                      !
                   enddo
                   !
@@ -649,6 +639,15 @@ module snapwave_solver
                         ! Only perform computations on wet inner points that are not yet converged (ok)
                         ! NOTE - for now convergence is only based on incident waves  
                         !
+                        do itheta = 1, ntheta
+                           !
+                           k1 = prev(1, itheta, k)
+                           k2 = prev(2, itheta, k)
+                           !
+                           eeprev_ig(itheta) = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)
+                           cgprev_ig(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2) !TL: needed to calculate? Or is same as cgprev(itheta)?
+                           !
+                        enddo                                             
                         ! IG energy balance
                         !                                                 
                         do itheta = 2, ntheta - 1
@@ -696,6 +695,8 @@ module snapwave_solver
                         ! 
                         ! Bottom friction Henderson and Bowen (2002) - D = 0.015*rhow*(9.81/depth(k))**1.5*(Hk/sqrt(8.0))*Hk_ig**2/8
                         !
+                        Ek       = sum(ee(:, k))*dtheta                  
+                        Hk       = min(sqrt(Ek/rhog8), gamma*depth(k))                        
                         Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**(3.0/2.0)*Hk*Ek_ig !original
                         !Dfk_ig      = fw_ig(k)*1025*(9.81/depth(k))**(3.0/2.0)*(Hk/sqrt(8.0))*Hk_ig**(2.0)/8 -> TL: seems to give same result                     
                         !
@@ -977,7 +978,6 @@ module snapwave_solver
     integer                                          :: k               ! counters (k is grid index)    
     integer                                          :: k1,k2           ! upwind counters (k is grid index)
     real*4                                           :: gam             ! local gamma (Hinc / depth ratio)   
-    real*4                                           :: beta            ! local bedslope    
     real*4, dimension(ntheta,no_nodes)               :: Sxx             ! Radiation Stress
     real*4, dimension(:), allocatable                :: Sxxprev         ! radiation stress at upwind intersection point  
     real*4, dimension(:), allocatable                :: Hprev           ! Incident wave height at upwind intersection point  
