@@ -144,6 +144,10 @@ Besides model instabilities, other recurring problems might be:
 
 * A specified (forcing) file/parameters is not read in > check whether you specified the name (e.g. netamuamvfile   = netamuamv.nc ) with **ONLY SPACES** in between the keyword and argument. SFINCS does not interpret a mixture of spaces and tabs well. This may cause a file or parameter to be read in as 'none', whereafter this is not used in the model simulation as wanted.
 
+* Also, check whether a certain expected forcing is coming through. SFINCS displays messages like "Turning on process: Precipitation", so if you force rainfall is this message is not visible in your log-file, something probably went wrong with the input file. Also for "Advection scheme", "Wind", "Atmospheric pressure", "Coriolis", "Viscosity", "Dynamic waves", "Infiltration XXX-type", "Precipitation from spwfile", "Storage Green Infrastructure".
+
+* SFINCS also gives input about certain files after reading in data and how these are snapped/interpreted. For instance for subgrid; "Number of subgrid levels : XXX", weirfile; "XXX structure u/v points found", wavemaker; "Number of wavemaker polylines found : XXX", observation points; "Warning : observation point XXX falls outside model domain.' - compare whether this is as expected.
+
 
 Output description
 =====
