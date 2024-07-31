@@ -72,6 +72,12 @@ Parameters for model input
 	  :default:		1.0
 	  :min:			0.8
 	  :max:			1.0
+	baro
+	  :description:		Turns on the atmospheric pressure term in the momentum equation (baro = 1, default). If set to 0, all pressure input from either ampfile, netampfile, spwfile or netspwfile is ignored@
+	  :units:		-
+	  :default:		1
+	  :min:			0
+	  :max:			1
 	viscosity
 	  :description:		Turns on the viscosity term in the momentum equation (viscosity = 1), advised to combine with theta = 1.0.
 	  :units:		-
