@@ -194,6 +194,8 @@ contains
       read(500)rsttype
       read(500)rdummy
       !
+      write(*,*)'Info: found rsttype = ', rsttype 
+      !
       if (rsttype < 1 .or. rsttype > 6) then
          !
          ! Give warning, rstfile input rsttype not recognized
