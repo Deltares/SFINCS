@@ -685,7 +685,8 @@ module sfincs_ncinput
        !
        NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%pressure_varid, prtmp, start = (/ 1, 1, it /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
        ampr_prtmp = reshape( prtmp, (/ 1, spw_nrows, spw_ncols /), ORDER = (/ 3, 2, 1 /))            
-       spw_pdrp(it,:,:) = gapres - ampr_prtmp(1,:,:)
+       !spw_pdrp(it,:,:) = gapres - ampr_prtmp(1,:,:)
+       spw_pdrp(it,:,:) = ampr_prtmp(1,:,:)       
        !
        ! Read rainfall
        !
