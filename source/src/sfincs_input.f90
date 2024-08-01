@@ -211,6 +211,7 @@ contains
    call read_int_input(500,'storewavdir', istorewavdir, 0)
    call read_logical_input(500,'friction2d',friction2d,.true.)
    call read_logical_input(500,'advection_mask',advection_mask,.true.)
+   call read_logical_input(500,'regular_output_on_mesh',use_quadtree_output,.false.)   
    !
    ! Wind drag
    !

@@ -216,6 +216,7 @@ module sfincs_data
       logical       :: wavemaker
       logical       :: wavemaker_mobile
       logical       :: use_quadtree
+      LOGICAL       :: use_quadtree_output
       logical       :: interpolate_zst
       logical       :: advection
       logical       :: thetasmoothing            
