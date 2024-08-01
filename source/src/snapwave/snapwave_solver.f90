@@ -9,21 +9,14 @@ module snapwave_solver
       !
       implicit none
       !
-      real*4    :: hrmsb
       real*4    :: tpb
-      real*4    :: wdirb
-      real*4    :: msb
       !
-      real*4    :: thetamin
-      real*4    :: thetamax
-      real*4    :: E0
       real*4    :: sigm
       real*4    :: sigm_ig
       real*4    :: Tpb_ig
       !
       integer   :: itheta
       integer   :: k
-      integer   :: i1, i2, ii, jj
       !
       Tpb     = tpmean_bwv
       sigm    = 2*pi/Tpb
@@ -159,8 +152,7 @@ module snapwave_solver
    real*4                                     :: eemax,dtheta           ! maximum wave energy density, directional resolution
    real*4                                     :: uorbi
    integer                                    :: sweep,niter,iter            ! sweep number, number of iterations
-   integer                                    :: k,k1,k2,k12,i,ind(1),count,kn,itheta ! counters (k is grid index)
-   integer                                    :: indint
+   integer                                    :: k,k1,k2,count,itheta ! counters (k is grid index)
    integer, dimension(:,:), allocatable       :: indx                   ! index for grid sorted per sweep direction
    real*4, dimension(:,:), allocatable        :: eeold                  ! wave energy density, energy density previous iteration   
    real*4, dimension(:,:), allocatable        :: srcig_local            ! Energy source/sink term because of IG wave shoaling
@@ -178,7 +170,6 @@ module snapwave_solver
    real*4, dimension(:), allocatable          :: E_ig                   ! mean wave energy
    real*4, dimension(:), allocatable          :: diff                   ! maximum difference of wave energy relative to previous iteration
    real*4, dimension(:), allocatable          :: ra                     ! coordinate in sweep direction
-   integer, dimension(:), allocatable         :: tempneu                ! work array
    integer, dimension(4)                      :: shift
    real*4                                     :: pi = 4.*atan(1.0)
    real*4                                     :: g=9.81
@@ -193,7 +184,6 @@ module snapwave_solver
    real*4                                     :: Ek
    real*4                                     :: Hk
    real*4                                     :: Hk0
-   real*4                                     :: Fk
    real*4                                     :: percok
    real*4                                     :: error
    real*4                                     :: Dfk_ig
@@ -201,13 +191,9 @@ module snapwave_solver
    real*4                                     :: Ek_ig
    real*4                                     :: Hk_ig
    real*4                                     :: Hk_ig0   
-   real*4                                     :: Fk_ig
    real*4                                     :: shinc2ig          ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 0=default)
-   real*4                                     :: dSxx
-   real*4                                     :: Sxx_cons
    real*4                                     :: alphaigfac         ! Multiplication factor for IG shoaling source/sink term, default = 1.0
    real*4                                     :: sigm_ig
-   character*20                               :: fname
    integer, save                              :: callno=1
    !
    real*4, dimension(ntheta)                  :: sinth,costh            ! distribution of wave angles and offshore wave energy density   
@@ -224,9 +210,6 @@ module snapwave_solver
    real     :: tloop
    real     :: t0
    real     :: t1   
-   real     :: tloop2
-   real     :: t2
-   real     :: t3     
    !
 !   igwaves   = .false.
 !   nr_sweeps = 1
@@ -899,7 +882,6 @@ module snapwave_solver
     integer                                          :: k               ! counters (k is grid index)    
     integer                                          :: k1,k2           ! upwind counters (k is grid index)
     real*4                                           :: gam             ! local gamma (Hinc / depth ratio)   
-    real*4                                           :: beta            ! local bedslope    
     real*4, dimension(ntheta,no_nodes)               :: Sxx             ! Radiation Stress
     real*4, dimension(:), allocatable                :: Sxxprev         ! radiation stress at upwind intersection point  
     real*4, dimension(:), allocatable                :: Hprev           ! Incident wave height at upwind intersection point  

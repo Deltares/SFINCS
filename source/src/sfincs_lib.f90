@@ -87,7 +87,7 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.1.0'
+   build_revision = '$Rev: v2.1.0-beta'
    build_date     = '$Date: 2024-08-01'
    !
    write(*,'(a)')''   
@@ -223,10 +223,6 @@ module sfincs_lib
    !
    double precision, intent(in)  :: dtrange
    integer                       :: ierr
-   integer                       :: nmx
-   integer                       :: mmx
-   integer                       :: nm
-   real*4                        :: hmx
    !
    ierr = 0
    !

@@ -11,30 +11,17 @@
    !
    use sfincs_data
    use quadtree
-!   use sfincs_interpolation
    !
    implicit none
    !
-   integer*4 :: npol
    integer*4 :: nrows
    integer*4 :: ncols
    integer*4 :: stat
    integer*4 :: ipol
    integer*4 :: irow   
-!   integer*4 :: ncross
-!   integer*4 :: ncs
-!   integer*4 :: ic
-!   integer*4 :: icross
-!   integer*4 :: ipc
-   integer*4 :: i
    integer*4 :: j
-   integer*4 :: m
    integer*4 :: n
-   integer*4 :: nm
    integer*4 :: nmu
-!   integer*4 :: nrpts
-   integer*4 :: ind
-!   integer*4 :: indwm
    integer*4 :: nrw
    integer*4 :: ip
    integer*4 :: iwm
@@ -48,25 +35,12 @@
    real*4    :: phip
    !
    real*4    :: r
-!   real*4    :: dxcross
-!   real*4    :: dst
-!   real*4    :: xxx
-!   real*4    :: yyy
-!   real*4    :: lsec
-!   real*4    :: phi
    !
    character :: cdummy
-   character*256 :: filename
    !
    real*4,    dimension(:),     allocatable :: xpol
    real*4,    dimension(:),     allocatable :: ypol
    real*4,    dimension(:),     allocatable :: phi
-!   integer*4, dimension(:),     allocatable :: npts
-   !
-!   integer*4, dimension(:,:), allocatable   :: icode
-!   integer*4, dimension(:,:), allocatable   :: idummy
-!   real*8,    dimension(:,:), allocatable   :: xzd
-!   real*8,    dimension(:,:), allocatable   :: yzd
    !
    integer*4, dimension(:),     allocatable :: cell_indices
    integer*4, dimension(:),     allocatable :: indwm
@@ -1346,11 +1320,10 @@
    !
    implicit none
    !
-   integer ib, nm, nmi, nmb, iuv, indb, idir, ip, ifreq, itb, itb0, itb1
+   integer ib, nmi, nmb, iuv, ip, ifreq, itb, itb0, itb1
    real*4  hnmb, dt, zsnmi, zsnmb, zs0nmb, zwav
    real*4  alpha, beta
    real*8  t, tb
-   real*4  sinth
    real*4  a, fp
    real*4 tbfac, hs, tp, tpsum, setup
    !

@@ -576,7 +576,7 @@ module sfincs_ncinput
     !
     implicit none   
     !
-    integer nt, status, it
+    integer status, it
     character*256                           :: line
     integer*8                               :: dtsec
     real*4, dimension(:,:,:),   allocatable :: prtmp 
@@ -722,16 +722,10 @@ module sfincs_ncinput
       integer, intent ( in)    :: status
       character(*), intent(in) :: file
       integer, intent ( in)    :: line
-      integer :: status2
-   
+      !   
       if(status /= nf90_noerr) then
       !   !UNIT=6 for stdout and UNIT=0 for stderr.
          write(0,'("NETCDF ERROR: ",a,i6,":",a)') file,line,trim(nf90_strerror(status))
-      !   write(0,*) 'closing file'
-      !   !status2 = nf90_close(net_file_bndbzs%ncid) ! even uit gezet omdat hij net_file_bndbzs en ncid niet kent omdat het locale variabelen zijn
-      !   !if (status2 /= nf90_noerr) then
-      !   !   write(0,*) 'NETCDF ERROR: ', __FILE__,__LINE__,trim(nf90_strerror(status2))
-      !   !end if
       end if
    end subroutine handle_err
    !

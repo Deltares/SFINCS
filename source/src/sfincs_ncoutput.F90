@@ -629,7 +629,7 @@ contains
    !
    implicit none   
    !   
-   integer    :: nm, nmq, n, m, nn, ntmx, n_nodes, n_faces, ip, iref
+   integer    :: nm, nmq, n, m, nn, ntmx, n_nodes, n_faces, iref
    real*4     :: dxdy
    !
    real,      dimension(:),   allocatable :: nodes_x
@@ -1175,13 +1175,8 @@ contains
    !
    implicit none   
    !
-   integer                      :: nm, n, m, istruc, struc_nm, npars
-   
-   integer*4,          dimension(:),   allocatable :: index_u_m
-   integer*4,          dimension(:),   allocatable :: index_u_n
-   integer*4,          dimension(:),   allocatable :: index_v_m
-   integer*4,          dimension(:),   allocatable :: index_v_n
-     
+   integer                      :: istruc   
+   !  
    real*4, dimension(:,:), allocatable :: struc_info
    real*4, dimension(:), allocatable :: struc_x
    real*4, dimension(:), allocatable :: struc_y
@@ -1972,8 +1967,8 @@ contains
       !
       integer  :: ntmapout       
       !
-      integer   :: nm, nmq, n, m, nmu1, nmd1, num1, ndm1, nmu2, nmd2, num2, ndm2
-      real*4    :: uz, vz, u1, u2, v1, v2, sq2
+      integer   :: nm, nmq, n, m, nmu1, nmd1, num1, ndm1
+      real*4    :: uz, vz, sq2
       !
       real*4, dimension(:), allocatable :: utmp, vtmp 
       !
@@ -2214,12 +2209,12 @@ contains
    !
    implicit none   
    !
-   integer :: iobs, nm, icrs, ip, idrn
+   integer :: iobs, nm, idrn
    !
    integer :: nthisout      
-   integer :: nmd1, nmu1, ndm1, num1, nmd2, nmu2, ndm2, num2
+   integer :: nmd1, nmu1, ndm1, num1
    !
-   real*4                  :: u1, u2, v1, v2, uz, vz
+   real*4                  :: uz, vz
    real*8                  :: t
 !   real*4, dimension(nobs) :: zobs, hobs
    real*4, dimension(nobs) :: uobs
@@ -2679,7 +2674,7 @@ contains
    !
    implicit none   
    !
-   integer                              :: nmq, nm, n, m, ntmaxout
+   integer                              :: nmq, nm, ntmaxout
    real*8                               :: t  
    !
    real*4, dimension(:), allocatable    :: zstmp
