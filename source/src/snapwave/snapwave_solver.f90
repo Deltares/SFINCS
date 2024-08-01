@@ -376,15 +376,6 @@ module snapwave_solver
       !
    enddo
    !
-   call system_clock(count1, count_rate, count_max)
-   t1 = dble(count1)/count_rate   
-   tloop = t1 - t0
-   !
-   write(*,'(a,f6.2)')'Initialization (s) : ',tloop   
-   !
-   call system_clock(count0, count_rate, count_max)
-   t0 = dble(count0)/count_rate     
-   !
    ! 0-b) Determine IG source/sink term
    !
    if (igwaves) then
@@ -427,12 +418,7 @@ module snapwave_solver
       ! Actual determining of source term: 
       !          
       call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, depthprev, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
-      !     
-      call system_clock(count1, count_rate, count_max)
-      t1 = dble(count1)/count_rate   
-      tloop = t1 - t0
-      !
-      write(*,'(a,f6.2)')'time past in determine_infragravity_source_sink_term  (s) : ',tloop          
+      !         
       ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev
       ! in: the rest
       !
@@ -479,7 +465,6 @@ module snapwave_solver
                      !
                      eeprev(itheta) = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)
                      cgprev(itheta) = w(1, itheta, k)*cg(k1) + w(2, itheta, k)*cg(k2)
-!                     write(*,*)k,itheta,eeprev(itheta),cgprev(itheta)
                      !
                      if (igwaves) then !TL: now calculated double?
                         eeprev_ig(itheta) = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)
@@ -527,15 +512,11 @@ module snapwave_solver
                   !
                   ee(:, k) = max(ee(:, k), 0.0)                  
                   Ek       = sum(ee(:, k))*dtheta                  
-!                  write(*,*)'Ek',k,Ek,DoverE(k),dtheta
                   Hk0      = sqrt(Ek/rhog8)
                   Hk       = min(sqrt(Ek/rhog8), gamma*depth(k))
                   Ek       = rhog8*Hk**2
                   uorbi    = pi*Hk/T/sinhkh(k)
                   Dfk      = 0.28*rho*fw(k)*uorbi**3
-!      if (k==23064) then
-!         write(*,'(a,20e14.4)')'a',Hk,depth(k),Hmx(k)
-!      endif   
                   !
                   ! Dissipation of incident waves
                   !
@@ -560,9 +541,6 @@ module snapwave_solver
                      Ek      = rhog8*Hk**2
                      uorbi   = pi*Hk/T/sinhkh(k)
                      Dfk     = 0.28*rho*fw(k)*uorbi**3
-!      if (k==23064) then
-!         write(*,'(a,20e14.4)')'b',Hk,depth(k),Hmx(k),Dwk
-!      endif   
                      !                     
                      call baldock(g, rho, alfa, gamma, kwav(k), depth(k), Hk, T, baldock_opt, Dwk, Hmx(k))
                      Dw(k) = Dwk
@@ -741,7 +719,7 @@ module snapwave_solver
    call system_clock(count1, count_rate, count_max)              
    t1 = dble(count1)/count_rate   
    tloop = t1 - t0            
-   write(*,'(a,i6,a,f10.5,a,f7.2,a,e14.4)')'Loop ended: iteration ',iter/4 ,' %ok = ',percok,' time = ',tloop   
+   write(*,'(a,i6,a,f10.3,a,f7.2,a,e14.4)')'Snapwave: iter = ',iter/4 ,' %ok = ',percok,' loop = ',tloop, 's'
    !
    ! 5) Compute directionally integrated parameters for output
    !   
