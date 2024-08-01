@@ -1,0 +1,1999 @@
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+Function:        SFINCS_LIB.
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+  - String:          ' (in function: SFINCS_LIB.)'
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+Function:        SFINCS_LIB.
+Args:
+  - NumStackBytes:   '8'
+  - String:          ' stack bytes in function '''
+  - Function:        SFINCS_LIB.
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB.
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_0
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+Function:        SFINCS_LIB.
+Args:
+  - NumInstructions: '8'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 79, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_INITIALIZE
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 128, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_INITIALIZE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 128, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_INITIALIZE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 154, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_INITIALIZE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 154, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_INITIALIZE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 206, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_INITIALIZE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 206, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_INITIALIZE
+Args:
+  - String:          FastISel missed
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 79, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_INITIALIZE
+Args:
+  - NumStackBytes:   '1976'
+  - String:          ' stack bytes in function '''
+  - Function:        SFINCS_LIB_mp_SFINCS_INITIALIZE
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_INITIALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_1
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '756'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 154, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_INITIALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new137_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '19'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_INITIALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb39_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 160, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_INITIALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb40_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 162, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_INITIALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      call.pre.list145_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '2'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_INITIALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb41_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 166, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_INITIALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb42_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '81'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 79, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_INITIALIZE
+Args:
+  - NumInstructions: '868'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 222, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 266, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 266, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 300, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 311, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 351, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 436, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 485, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 495, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 502, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 506, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 504, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          FastISel missed
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 222, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - NumStackBytes:   '744'
+  - String:          ' stack bytes in function '''
+  - Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_2
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '23'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new203_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '6'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb45_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 263, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb46_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '124'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 270, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb53
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '9'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 272, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb51
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '34'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 298, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new241_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '17'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb54_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 307, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb55_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 314, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new252_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '6'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb56_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 307, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb57_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 309, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new247_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '21'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb58_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 324, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb59_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 333, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new257_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '6'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 339, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new258_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '2'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 324, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb60_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 326, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new254_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '12'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb61_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 347, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb62_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '7'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 349, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new260_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '17'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb63_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 356, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb64_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '18'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 360, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new267_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '11'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb65_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 370, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb66_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '10'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 375, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new275_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '10'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb67_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 372, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb68_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 373, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new274_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '10'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb69_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 383, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb70_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '10'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 387, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new282_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '5'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb71_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 385, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb72_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 386, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new281_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '10'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb73_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 394, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb74_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '27'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 401, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      call.pre.list289_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '4'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb75_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 407, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb76_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '12'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 415, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      call.pre.list300_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '3'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb77_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 394, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb78_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 396, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new287_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '18'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb79_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 423, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb80_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '25'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 431, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      call.pre.list317_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '71'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb82_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 452, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb83_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '12'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 456, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      call.pre.list344_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '5'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb84_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 460, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb85_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '6'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 462, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      call.pre.list350_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '3'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb86_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 468, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb87_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '38'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 476, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      call.pre.list364_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '16'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb88_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 482, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb89_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '15'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 484, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new371_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '73'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb91_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 495, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb92_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '22'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 504, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new393_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '51'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 506, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new398_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '28'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 497, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb95_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 499, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new385_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '39'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb96_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 511, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb97_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 516, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb52
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '7'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 222, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - NumInstructions: '886'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 520, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 544, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 546, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 549, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 552, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 555, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 557, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 559, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 562, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 564, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 567, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 571, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 571, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 585, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 585, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 588, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 588, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 599, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 599, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          FastISel missed
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 520, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - NumStackBytes:   '2392'
+  - String:          ' stack bytes in function '''
+  - Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_3
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '39'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 533, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      call.pre.list413_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '2'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb99_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 537, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb100_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '157'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 546, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new435_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '68'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb108_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 548, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb109_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '13'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 549, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new443_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '68'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb111_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 551, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb112_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 552, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new450_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '68'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb114_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 554, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb115_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '26'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 555, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new459_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '68'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb117_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 557, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb118_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '73'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 559, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new472_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '68'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb121_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 561, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb122_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '144'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 564, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new491_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '68'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb126_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 566, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb127_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 567, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new498_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '68'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb129_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 569, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb130_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '75'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 574, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new512_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '323'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb146_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 588, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb147_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '23'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 598, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new550_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '41'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb151_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 604, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb152_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '5'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 520, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - NumInstructions: '1423'
+  - String:          ' instructions in function'
+...

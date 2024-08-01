@@ -1,7 +1,7 @@
    module sfincs_bmi
    use iso_c_binding
    use sfincs_lib
-   use sfincs_ncoutput
+   ! use sfincs_ncoutput
    use sfincs_data
    
    implicit none
@@ -22,6 +22,8 @@
 
    integer(c_int), bind(C, name="maxstrlen") :: maxstrlen = 1024
    integer(c_int), bind(C, name="maxdims") :: maxdims = 6
+   
+   real*4, parameter :: FILL_VALUE = -99999.0
    
    contains
    

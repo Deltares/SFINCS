@@ -271,8 +271,7 @@ CONTAINS
        integer yyyy1,mm1,dd1,hh1,mn1,ss1,yyyy2,mm2,dd2,hh2,mn2,ss2, tmp
        integer*8 sec1,sec2
        real*8 dtsec
-       !
-       
+       !       
        real*4, dimension(:),     allocatable :: timein             
        real*4, dimension(:),     allocatable :: timeout       
        !       
@@ -292,7 +291,7 @@ CONTAINS
        allocate(timeout(timent))
        !
        timeout = (timein * 86400) + dtsec  ! time from spiderweb is in days
-       sec1    =0
+       sec1    = 0
        !       
    end function      
    !   
@@ -326,5 +325,12 @@ CONTAINS
        write(date_string, '(I4,I0.2,I0.2,A1,I0.2,I0.2,I0.2)')  yyyy, mm, dd, '.', hh, mn, ss
        !
    end function   
+   !
+   subroutine timer(t)
+   real*4,intent(out)               :: t
+   integer*4                        :: count,count_rate,count_max
+   call system_clock (count,count_rate,count_max)
+   t = dble(count)/count_rate
+   end subroutine timer
    !
 end module

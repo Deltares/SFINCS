@@ -81,9 +81,12 @@
    real*4    :: uu
    real*4    :: ud
    real*4    :: qy
+   real*4    :: dzdx
    !
    real*4    :: hwet
    real*4    :: phi
+   !
+   real*4    :: mdrv
    !
    real*4, parameter :: expo = 1.0/3.0
    !integer, parameter :: expo = 1
@@ -98,39 +101,42 @@
    !
    ! Copy flux and velocity from previous time step
    !
+   !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, zsderv, &
+   !$acc                    uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
+   !$acc                    subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
+   !$acc                    subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
+   !$acc                    uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
+   !$acc                    uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
+   !$acc                    zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, &
+   !$acc                    dxrinvc, fcorio2d, nuvisc ), num_gangs( 512 ), vector_length( 128 ), async(1)
+   !
    !$omp parallel &
    !$omp private ( ip )
    !$omp do
-   !$acc kernels, present(q, q0, uv, uv0), async(1)
-   !$acc loop independent, private(nm)
+   !$acc loop independent, gang, vector
    do ip = 1, npuv + ncuv
       !
       q0(ip)  = q(ip)
       uv0(ip) = uv(ip)
       !
    enddo
-   !$acc end kernels
    !$omp end do
    !$omp end parallel
    !
    ! Update fluxes
    !
    !$omp parallel &
-   !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
+   !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv ) &
    !$omp reduction ( min : min_dt )
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels, present( kcuv, zs, q, q0, uv, uv0, min_dt, &
-   !$acc                   uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
-   !$acc                   subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
-   !$acc                   uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
-   !$acc                   uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
-   !$acc                   zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, fcorio2d ), async(1)
-   !$acc loop independent, reduction( min : min_dt )
+   !$acc loop independent, reduction( min : min_dt ), gang, vector
    do ip = 1, npuv
       !
       if (kcuv(ip)==1) then
+         !
+         ! Regular UV point 
          !
          ! Indices of surrounding water level points
          !
@@ -159,6 +165,8 @@
          endif
          !
          if (iok) then
+            !
+            ! UV point is wet 
             !
             if (use_quadtree) then
                iref  = uv_flags_iref(ip) ! refinement level
@@ -286,12 +294,13 @@
             ! Wet fraction phi (for non-subgrid or original subgrid approach phi should be 1.0)
             !
             phi  = 1.0
+            gnavg2 = 0.016
             !
             ! Compute water depth at uv point
             !
             if (subgrid) then
                !
-               if (zsu > zmax) then
+               if (zsu > zmax - 1.0e-4) then
                   !
                   ! Entire cell is wet, no interpolation from table needed
                   !
@@ -303,9 +312,10 @@
                   !
                   ! Interpolation required
                   !
-                  dzuv   = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nlevels - 1)                            ! level size
-                  iuv    = min(int((zsu - subgrid_uv_zmin(ip))/dzuv) + 1, subgrid_nlevels - 1)                        ! index of level below zsu 
-                  facint = (zsu - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv                                         ! 1d interpolation coefficient
+                  dzuv   = (zmax - zmin) / (subgrid_nlevels - 1)                                                          ! level size (is storing this in memory faster?)
+                  iuv    = int((zsu - zmin) / dzuv) + 1                                                                   ! index of level below zsu 
+                  facint = (zsu - (zmin + (iuv - 1)*dzuv) ) / dzuv                                                        ! 1d interpolation coefficient
+!                  if (iuv > subgrid_nlevels - 1) write(*,'(a,i10,20e16.8)')'iuv exceeds subgrid_nlevels - 1. THIS IS NOT POSSIBLE! (iuv,zmin,zmax,dzuv,zsu) :', iuv,zmin,zmax,dzuv,zsu
                   !
                   hu     = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint   ! grid-average depth
                   gnavg2 = subgrid_uv_nrep(iuv, ip) + (subgrid_uv_nrep(iuv + 1, ip) - subgrid_uv_nrep(iuv, ip))*facint   ! representative g*n^2
@@ -326,15 +336,15 @@
             !
             hwet = hu / phi
             !
-            ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
-            !
-            min_dt = min(min_dt, 1.0/(sqrt(g*hu)*dxuvinv))
-            !
             ! FORCING TERMS
             !
             ! Pressure term
             !
-            frc = - g * hu * (zs(nmu) - zs(nm)) * dxuvinv
+            dzdx = min(max((zs(nmu) - zs(nm)) * dxuvinv, -slopelim), slopelim) 
+            !
+            frc = - g * hu * dzdx
+            !
+            ! frc = - g * hu * (zs(nmu) - zs(nm)) * dxuvinv
             !
             ! Advection term
             !
@@ -528,17 +538,29 @@
                !
             endif
             !
-            if (friction2d) then
+            ! Compute flux qfr used for friction term
+            !
+            if (kfuv(ip) == 0) then
                !
-               ! Computed friction term with both qx and qy
+               ! This uv point just became wet, so estimate equilibrium flux 
                !
-               qfr = sqrt(qx_nm**2 + (hu * vu)**2)
+               qfr = sqrt(abs(dzdx) / (gnavg2 / 10)) * hu ** (5.0 / 3.0)
                !
-            else
+            else   
                !
-               ! Computed friction term with only qx (original Bates et al. (2010))
-               !
-               qfr = abs(qx_nm) ! flux to be used in the friction term
+               if (friction2d) then
+                  !
+                  ! Computed friction term with both qx and qy
+                  !
+                  qfr = sqrt(qx_nm**2 + (hu * vu)**2)
+                  !
+               else
+                  !
+                  ! Computed friction term with only qx (original Bates et al. (2010))
+                  !
+                  qfr = abs(qx_nm) ! flux to be used in the friction term
+                  !
+               endif
                !
             endif
             !
@@ -551,18 +573,18 @@
                ! Apply theta smoothing 
                ! 
                if ( kcuv(uv_index_u_nmd(ip))==1 .and. kcuv(uv_index_u_nmu(ip))==1 ) then 
-                   !
-                   ! But only at regular points
-                   ! 
-                   if (abs(qx_nmd) > 1.0e-6 .and. abs(qx_nmu) > 1.0e-6) then
-                      ! if (kfu(uv_index_u_nmd(ip))==1 .and. kfu(uv_index_u_nmu(ip))==1) then
-                      !
-                      ! And if both uv neighbors are active
-                      ! 
-                      qsm = theta*qx_nm + 0.5 * (1.0 - theta) * (qx_nmu + qx_nmd)
-                      ! 
-                   endif
-                   ! 
+                  !
+                  ! But only at regular points
+                  ! 
+                  if (abs(qx_nmd) > 1.0e-6 .and. abs(qx_nmu) > 1.0e-6) then
+                     ! if (kfu(uv_index_u_nmd(ip))==1 .and. kfu(uv_index_u_nmu(ip))==1) then
+                     !
+                     ! And if both uv neighbors are active
+                     ! 
+                     qsm = theta*qx_nm + 0.5 * (1.0 - theta) * (qx_nmu + qx_nmd)
+                     ! 
+                  endif
+                  ! 
                endif               
             endif            
             !
@@ -570,18 +592,37 @@
             ! 
             q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / (hu**2 * hu**expo))
             !
+            if (wiggle_suppression) then 
+               !
+               ! If the acceleration of water level in cell nm is large and positive and in nmu large and negative, or vice versa, apply limiter to the flux
+               !
+               mdrv = abs(zsderv(nm) - zsderv(nmu)) - wiggle_threshold
+               !
+               if (mdrv > 0.0) then
+                  !
+                  q(ip) = q(ip) * wiggle_threshold / (wiggle_factor * mdrv + wiggle_threshold)
+                  !
+               endif
+               !
+            endif
+            !
             ! Compute velocity. Use q/max(h, 0.10) to avoid very high velocities in very shallow water
             ! Limit velocities (this does not change fluxes, but may prevent advection term from exploding in the next time step)
             !
-            uv(ip)  = max(min(q(ip)/max(hu, 0.10), 4.0), -4.0)
+            uv(ip) = max(min(q(ip)/max(hu, 0.10), 4.0), -4.0)
             !
-            ! kfu(ip) = 1
+            kfuv(ip) = 1
+            !
+            ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
+            !
+            ! min_dt = min(min_dt, 1.0 / (max(sqrt(g * hu), abs(q(ip) / hu)) * dxuvinv))
+            min_dt = min(min_dt, 1.0 / (sqrt(g * hu) * dxuvinv))
             !
          else
             !
-            q(ip)   = 0.0
-            uv(ip)  = 0.0
-            ! kfu(ip) = 0
+            q(ip)  = 0.0
+            uv(ip) = 0.0
+            kfuv(ip) = 0
             !
          endif
          !
@@ -589,7 +630,6 @@
    enddo   
    !$omp end do
    !$omp end parallel
-   !$acc end kernels
    !
    if (ncuv > 0) then
       !
@@ -599,8 +639,7 @@
       !$omp parallel &
       !$omp private ( icuv )
       !$omp do
-      !$acc kernels, present( q, uv, cuv_index_uv, cuv_index_uv1, cuv_index_uv2 ), async(1)
-      !$acc loop independent, private(icuv)
+      !$acc loop independent, gang, vector
       do icuv = 1, ncuv
          !
          ! Average of the two uv points
@@ -609,11 +648,12 @@
          uv(cuv_index_uv(icuv)) = (uv(cuv_index_uv1(icuv)) + uv(cuv_index_uv2(icuv))) / 2
          !
       enddo
-      !$acc end kernels
       !$omp end do
       !$omp end parallel
       !
    endif
+   !
+   !$acc end parallel
    !
    !$acc update host(min_dt), async(1)
    !

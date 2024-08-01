@@ -370,9 +370,9 @@ contains
    NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'y0', quadtree_y0))
    NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'dx', quadtree_dx))
    NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'dy', quadtree_dy))
+   NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'rotation', quadtree_rotation))
    NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'nmax', quadtree_nmax))
    NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'mmax', quadtree_mmax))
-   NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'rotation', quadtree_rotation))
    NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'nr_levels', quadtree_nr_levels))
    !      
    NF90(nf90_close(net_file_qtr%ncid))       

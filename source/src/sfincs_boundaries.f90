@@ -11,7 +11,7 @@ contains
    !
    implicit none
    !
-   integer n, itb, ib, stat, ifreq
+   integer n, itb, ib, stat, ifreq, iok
    !
    real*4 dummy,r
    !
@@ -25,7 +25,7 @@ contains
       !
       call read_netcdf_boundary_data()
       !
-      if (t_bnd(1)>t0 + 1.0 .or. t_bnd(ntbnd)<t1 - 1.0) then
+      if ((t_bnd(1) > (t0 + 1.0)) .or. (t_bnd(ntbnd) < (t1 - 1.0))) then
          !
          write(*,'(a)')' WARNING! Times in boundary conditions file do not cover entire simulation period!'
          !
@@ -84,15 +84,53 @@ contains
          !
       endif
       !      
-      if (t_bnd(1)>t0 + 1.0 .or. t_bnd(ntbnd)<t1 - 1.0) then
+      if ((t_bnd(1) > (t0 + 1.0)) .or. (t_bnd(ntbnd) < (t1 - 1.0))) then
          ! 
-         write(*,'(a)')' WARNING! Times in boundary conditions file do not cover entire simulation period!'
+         write(*,'(a)')' WARNING! Times in boundary conditions file do not cover entire simulation period !'
+         !
+         if (t_bnd(1) > (t0 + 1.0)) then
+            ! 
+            write(*,'(a)')' WARNING! Adjusting first time in boundary conditions time series !'
+            !
+            t_bnd(1) = t0 - 1.0
+            !
+         else
+            ! 
+            write(*,'(a)')' WARNING! Adjusting last time in boundary conditions time series !'
+            !
+            t_bnd(ntbnd) = t1 + 1.0
+            !
+         endif
          !
       endif   
       !
+      ! Check for 'weird' values
+      !
+      iok = 1
+      ! 
+      do ib = 1, nbnd
+         do itb = 1, ntbnd
+            !
+            if (zs_bnd(ib, itb)<-99.0 .or. zs_bnd(ib, itb)>990.0) then
+               !
+               iok = 0
+               !
+               zs_bnd(ib, itb) = 0.0
+               !
+            endif
+            !
+         enddo 
+      enddo    
+      !
+      if (iok == 0) then
+         ! 
+         write(*,'(a)') ' WARNING! Very low or high values found in boundary conditions file ! Please check !'
+         ! 
+      endif
+      !
    elseif (include_boundaries) then   
       !
-      write(*,*)'Warning : Boundary points found in mask, without boundary conditions. Using water level of 0.0 m at these points'
+      write(*,'(a)') ' Warning : Boundary cells found in mask, without boundary conditions. Using water level of 0.0 m at these points.'
       !
    endif
    !
@@ -507,13 +545,13 @@ contains
       !
       ! Interpolate boundary conditions in time
       !
-      if (t_bnd(1)>t - 1.0e-3) then ! use first time in boundary conditions
+      if (t_bnd(1) > (t - 1.0e-3)) then ! use first time in boundary conditions
          !
          itb0 = 1
          itb1 = 1
          tb   = t_bnd(itb0)
          !
-      elseif (t_bnd(ntbnd)<t + 1.0e-3) then  ! use last time in boundary conditions       
+      elseif (t_bnd(ntbnd) < (t + 1.0e-3)) then  ! use last time in boundary conditions       
          !
          itb0 = ntbnd
          itb1 = ntbnd
@@ -522,7 +560,7 @@ contains
       else
          !
          do itb = itbndlast, ntbnd ! Loop in time
-            if (t_bnd(itb)>t + 1.0e-6) then
+            if (t_bnd(itb) > (t + 1.0e-6)) then
                itb0 = itb - 1
                itb1 = itb
                tb   = t
@@ -631,7 +669,7 @@ contains
             !
          endif
          !
-         if (t<tspinup - 1.0e-3) then
+         if (t < (tspinup - 1.0e-3)) then
             !
             smfac = 1.0 - (t - t0)/(tspinup - t0)
             !
@@ -810,7 +848,7 @@ contains
             !
             ! Added a little bit of relaxation in uvmean to avoid persistent jets shooting into the model
             ! Using: facrel = 1.0 - min(dt/btrelax, 1.0)
-            ! Default: btrelax = 1.0e6, so very little relaxation. Should perhaps change to something like 3600 s.
+            ! Default: btrelax = 3600 s.
             !
             uvmean(ib) = factime * q(ip) + facrel * one_minus_factime * uvmean(ib)
             !

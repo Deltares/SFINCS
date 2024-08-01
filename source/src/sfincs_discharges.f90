@@ -28,6 +28,7 @@ contains
    if (srcfile(1:4) /= 'none') then
       !
       write(*,*)'Reading discharges ...'
+      !
       open(500, file=trim(srcfile))
       do while(.true.)
          read(500,*,iostat = stat)dummy
@@ -43,7 +44,9 @@ contains
    endif   
    !
    if (drnfile(1:4) /= 'none') then
+      !
       write(*,*)'Reading drainage file ...'
+      !
       open(501, file=trim(drnfile))
       do while(.true.)
          read(501,*,iostat = stat)dummy
@@ -321,11 +324,12 @@ contains
                ! Constant discharge, no need to change
                !
                if (subgrid) then
-                  qq = max(min(qq, z_volume(nmin)/dt), 0.0)
+                  qq = max(min(qq, z_volume(nmin) / dt), 0.0)
                else
-                  qq = max(min(qq, (zs(nmin) - zb(nmin))*area/dt), 0.0)
+                  qq = max(min(qq, (zs(nmin) - zb(nmin)) * area / dt), 0.0)
                endif
                !
+!               write(*,'(4i10,20e14.4)')idrn,jin,jout,nmin,drainage_params(idrn,1),qq,z_volume(nmin),dt
                qtsrc(jin)  = -qq
                qtsrc(jout) = qq
                !

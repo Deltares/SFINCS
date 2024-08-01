@@ -303,6 +303,10 @@ contains
       subgrid_uv_zmax(ip) = rtmpuv(uv_index(ip))
    enddo   
    !
+   do ip = 1, npuv
+      subgrid_uv_zmax(ip) = max(subgrid_uv_zmax(ip), subgrid_uv_zmin(ip) + 0.01)
+   enddo   
+   !
    NF90(nf90_get_var(net_file_sbg%ncid, net_file_sbg%uv_fnfit_varid, rtmpuv(:) ))
    !
    do ip = 1, npuv

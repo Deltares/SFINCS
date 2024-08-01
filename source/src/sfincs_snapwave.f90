@@ -41,7 +41,6 @@ contains
    !
    implicit none
    !
-   integer :: ipsw, iq
    logical       :: crsgeo
    !
    ! Check whether SFINCS grid is spherical (T) or cartesian (F), and prescribe to SnapWave as variable 'sferic' -  spherical (1) or cartesian (0) grid
@@ -87,7 +86,7 @@ contains
    integer, dimension(snapwave_no_nodes),  intent(in) :: index_quadtree_in_snapwave
    integer, dimension(quadtree_nr_points), intent(in) :: index_snapwave_in_quadtree
    !
-   integer :: nm, n, m, ipsw, ipsf, iq
+   integer :: ipsw, ipsf, iq
    !
    allocate(index_sfincs_in_snapwave(snapwave_no_nodes))
    allocate(index_snapwave_in_sfincs(np))
@@ -129,8 +128,6 @@ contains
    integer  :: count_max
    real     :: tloop
    !   
-   real*4,    dimension(snapwave_no_nodes)    :: zssw
-   real*4,    dimension(snapwave_no_cells, 4) :: hc
    real*4,    dimension(:), allocatable       :: fwx0
    real*4,    dimension(:), allocatable       :: fwy0
    real*4,    dimension(:), allocatable       :: dw0
@@ -142,8 +139,7 @@ contains
    real*4,    dimension(:), allocatable       :: beta0 
    real*4,    dimension(:), allocatable       :: srcig0      
    real*4,    dimension(:), allocatable       :: alphaig0   
-   integer   :: ip, ii, m, n, nm, nmu, idir
-   real*4    :: f
+   integer   :: ip, nm, nmu, idir
    real*8    :: t
    !
    call system_clock(count0, count_rate, count_max)
@@ -295,8 +291,6 @@ contains
          !         
       endif   
       !
-!      fwuv = 0.0
-      !
    enddo
    !
    !$acc update device(fwuv), async(1)
@@ -350,9 +344,10 @@ contains
        snapwave_tpigmean = tpmean_bwv_ig      
        !   
        if (snapwave_tpigmean < 10.0) then
-	       write(*,*)'DEBUG SFINCS_SnapWave - incoming tp for IG wave at wavemaker might be unrealistically small! value: ',snapwave_tpigmean
+           ! These warnings should not occur here
+!	       write(*,*)'DEBUG SFINCS_SnapWave - incoming tp for IG wave at wavemaker might be unrealistically small! value: ',snapwave_tpigmean
        elseif (snapwave_tpigmean > 250.0) then
-	       write(*,*)'DEBUG SFINCS_SnapWave - incoming tp for IG wave at wavemaker might be unrealistically large! value: ',snapwave_tpigmean
+!	       write(*,*)'DEBUG SFINCS_SnapWave - incoming tp for IG wave at wavemaker might be unrealistically large! value: ',snapwave_tpigmean
        endif	 
    endif
    ! TL: NOTE - in first timestep run of SnapWave tp = 0, therefore excluded that case from the check     
@@ -368,8 +363,6 @@ contains
    use snapwave_data   
    !
    implicit none
-   !
-   integer :: irestart
    !
    open(500, file='sfincs.inp')   
    !

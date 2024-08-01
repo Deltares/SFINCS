@@ -224,6 +224,7 @@ contains
           read(145)dhdy
           close(145)
           !
+          ds360d0 = ds360 * 1.d0
       endif
    endif
    !      
@@ -268,28 +269,37 @@ contains
        !
        write(*,*)'Warning : no msk = 2 values found in snapwave_msk, trying using old encfile option:'
        !
-       call read_boundary_enclosure()
+       call read_boundary_enclosure() ! Only read old encfile option if no msk=2 cells found
+       !
+       do k=1,no_nodes
+           do itheta=1,ntheta360
+               if (ds360d0(itheta,k)==0.d0) then
+                   call ipon(x_bndenc,y_bndenc,n_bndenc,x(k),y(k),inout)
+                   if (inout>0) then
+                       msk(k) = 2
+                   endif                   
+               endif
+           enddo
+       enddo              
        !
    endif      
    !
    nb = 0
    !
+   ! Count number of active cells and allocate 'nmindbnd', used in snapwave_boundaries
+   !
    do k=1,no_nodes
        !if (msk(k)==3) msk(k) = 1 ! Set outflow points to regular points > now should become neumann, so don't do this
-       do itheta=1,ntheta360
-           if (ds360d0(itheta,k)==0.d0) then
-               call ipon(x_bndenc,y_bndenc,n_bndenc,x(k),y(k),inout)
-               if (inout>0) msk(k) = 2
-           endif
-       enddo
        !
-       if (msk(k)>1) then    
+       if (msk(k) == 2) then    
             nb = nb + 1
        endif
        !
    enddo
    !
    allocate(nmindbnd(nb))
+   !
+   ! Set inner cell indices, boundary cells are set in snapwave_boundaries
    !
    do k = 1, no_nodes
        !
@@ -299,11 +309,6 @@ contains
             inner(k) = .false.
        endif
        !
-       if (msk(k)>1) then    
-            !
-            nmindbnd(nb) = k
-            !
-       endif   
    enddo   
    !
    write(*,*)'Number of boundary SnapWave nodes : ',nb

@@ -1,4 +1,4 @@
-﻿module sfincs_input
+module sfincs_input
 
 contains
 
@@ -94,6 +94,7 @@ contains
    call read_char_input(500,'epsg',epsg_code,'nil')      
    call read_real_input(500,'stopdepth',stopdepth,100.0)
    call read_real_input(500,'advlim',advlim,9999.9)
+   call read_real_input(500,'slopelim',slopelim,9999.9)
    call read_real_input(500,'qinf_zmin',qinf_zmin,0.0)
    call read_real_input(500,'btfilter',btfilter,60.0)
    call read_real_input(500,'sfacinf',sfacinf,0.2)
@@ -116,6 +117,9 @@ contains
    call read_logical_input(500,'wmrandom',wmrandom,.true.)   
    call read_char_input(500,'advection_scheme',advstr,'upw1')   
    call read_real_input(500,'btrelax',btrelax,3600.0)
+   call read_logical_input(500,'wiggle_suppression',wiggle_suppression,.false.)
+   call read_real_input(500,'wiggle_factor',wiggle_factor,0.1)
+   call read_real_input(500,'wiggle_threshold',wiggle_threshold,0.1)
    !
    ! Domain
    !
@@ -123,6 +127,7 @@ contains
    call read_char_input(500,'depfile',depfile,'none')
    call read_char_input(500,'inifile',zsinifile,'none')
    call read_char_input(500,'rstfile',rstfile,'none')
+   call read_char_input(500,'ncinifile',ncinifile,'none')
    call read_char_input(500,'mskfile',mskfile,'none')
    call read_char_input(500,'indexfile',indexfile,'none')
    call read_char_input(500,'cstfile',cstfile,'none')
@@ -151,7 +156,11 @@ contains
    call read_char_input(500,'disfile',disfile,'none')
    call read_char_input(500,'spwfile',spwfile,'none')
    call read_char_input(500,'wndfile',wndfile,'none')
-   call read_char_input(500,'precipfile',prcpfile,'none')
+   call read_char_input(500,'prcfile',prcpfile,'none')
+   if (prcpfile(1:4) == 'none') then
+      ! Try with old keyword 
+      call read_char_input(500,'precipfile',prcpfile,'none')
+   endif  
    call read_char_input(500,'amufile',amufile,'none')
    call read_char_input(500,'amvfile',amvfile,'none')
    call read_char_input(500,'ampfile',ampfile,'none')
@@ -202,6 +211,7 @@ contains
    call read_int_input(500,'storewavdir', istorewavdir, 0)
    call read_logical_input(500,'friction2d',friction2d,.true.)
    call read_logical_input(500,'advection_mask',advection_mask,.true.)
+   call read_logical_input(500,'regular_output_on_mesh',use_quadtree_output,.false.)   
    !
    ! Wind drag
    !
@@ -306,8 +316,10 @@ contains
          write(*,*)'Turning on process: Coriolis'               
       else
          use_coriolis = .false.
+         write(*,*)'Turning off process: Coriolis'               
       endif   
-      write(*,*)'Input grid interpreted as spherical coordinates, crsgeo= ',crsgeo
+      !
+      write(*,*)'Input grid interpreted as geographic coordinates'
       !
    endif
    !
@@ -529,7 +541,6 @@ contains
    !
    character(*), intent(in) :: keyword
    character(len=256)       :: keystr
-   character(len=256)       :: keystr0
    character(len=256)       :: valstr
    character(len=256)       :: line
    integer, intent(in)      :: fileid
@@ -538,18 +549,25 @@ contains
    integer j,stat,ilen
    !
    value = default
+   !
    rewind(fileid)   
+   !
    do while(.true.)
+      !
       read(fileid,'(a)',iostat = stat)line
+      !
       if (stat==-1) exit
-      j=index(line,'=')      
-      keystr0 = trim(line(1:j-1))
-      call notabs(keystr0,keystr,ilen)
+      !
+      call read_line(line, keystr, valstr)
+      !
       if (trim(keystr)==trim(keyword)) then
-         valstr = trim(line(j+1:256))
-         read(valstr,*)value
+         !
+         read(valstr,*)value         
+         !
          exit
+         !
       endif
+      !
    enddo 
    !
    end  subroutine  
@@ -557,7 +575,6 @@ contains
    subroutine read_real_array_input(fileid,keyword,value,default,nr)
    !
    character(*), intent(in) :: keyword
-   character(len=256)       :: keystr0
    character(len=256)       :: keystr
    character(len=256)       :: valstr
    character(len=256)       :: line
@@ -570,18 +587,25 @@ contains
    allocate(value(nr))
    !
    value = default
+   !
    rewind(fileid)   
+   !
    do while(.true.)
+      !
       read(fileid,'(a)',iostat = stat)line
+      !
       if (stat==-1) exit
-      j=index(line,'=')      
-      keystr0 = trim(line(1:j-1))
-      call notabs(keystr0,keystr,ilen)
+      !
+      call read_line(line, keystr, valstr)
+      !
       if (trim(keystr)==trim(keyword)) then
-         valstr = trim(line(j+1:256))
+         !
          read(valstr,*)(value(m), m = 1, nr)
+         !
          exit
+         !
       endif
+      !
    enddo 
    !
    end  subroutine  
@@ -591,7 +615,6 @@ contains
    !
    character(*), intent(in) :: keyword
    character(len=256)       :: keystr
-   character(len=256)       :: keystr0
    character(len=256)       :: valstr
    character(len=256)       :: line
    integer, intent(in)      :: fileid
@@ -600,18 +623,25 @@ contains
    integer j,stat,ilen
    !
    value = default
+   !
    rewind(fileid)   
+   !
    do while(.true.)
+      !
       read(fileid,'(a)',iostat = stat)line
+      !
       if (stat==-1) exit
-      j=index(line,'=')      
-      keystr0 = trim(line(1:j-1))
-      call notabs(keystr0,keystr,ilen)
+      !
+      call read_line(line, keystr, valstr)
+      !
       if (trim(keystr)==trim(keyword)) then
-         valstr = trim(line(j+1:256))
+         !
          read(valstr,*)value         
+         !
          exit
+         !
       endif
+      !
    enddo 
    !
    end subroutine
@@ -627,21 +657,28 @@ contains
    integer, intent(in)       :: fileid
    character(*), intent(in)  :: default
    character(*), intent(out) :: value
-   integer j,stat,ilen
+   integer j,stat,ilen,jn
    !
    value = default
+   !
    rewind(fileid)   
+   !
    do while(.true.)
+      !
       read(fileid,'(a)',iostat = stat)line
+      !
       if (stat==-1) exit
-      j=index(line,'=')      
-      keystr0 = trim(line(1:j-1))
-      call notabs(keystr0,keystr,ilen)
+      !
+      call read_line(line, keystr, valstr)
+      !
       if (trim(keystr)==trim(keyword)) then
-         valstr = adjustl(trim(line(j+1:256)))
+         !
          value = valstr
+         !
          exit
+         !
       endif
+      !
    enddo 
    !
    end subroutine 
@@ -660,25 +697,92 @@ contains
    integer j,stat,ilen
    !
    value = default
+   !
    rewind(fileid)   
+   !
    do while(.true.)
+      !
       read(fileid,'(a)',iostat = stat)line
+      !
       if (stat==-1) exit
-      j=index(line,'=')      
-      keystr0 = trim(line(1:j-1))
-      call notabs(keystr0,keystr,ilen)
+      !
+      call read_line(line, keystr, valstr)
+      !
       if (trim(keystr)==trim(keyword)) then
-         valstr = adjustl(trim(line(j+1:256)))
+         !
          if (valstr(1:1) == '1' .or. valstr(1:1) == 'y' .or. valstr(1:1) == 'Y' .or. valstr(1:1) == 't' .or. valstr(1:1) == 'T') then
             value = .true.
          else
             value = .false.
          endif 
+         !
          exit
+         !
       endif
+      !
    enddo 
    !
    end subroutine 
+
+   subroutine read_line(line0, keystr, valstr)
+   !
+   ! Reads line from input file, returns keyword and value strings
+   !
+   character(*), intent(in)  :: line0
+   character(len=256)        :: line
+   character(*), intent(out) :: keystr
+   character(*), intent(out) :: valstr
+   integer j, ilen, jn
+   !
+   keystr = ''
+   valstr = '' 
+   !
+   ! Change tabs into spaces.
+   !
+   call notabs(line0, line, ilen)
+   !
+   ! Look for line ending character. Remove it if it exists.
+   !
+   jn = index(line, '\r')      
+   !
+   if (jn > 0) then
+      !
+      ! New line character detected (probably sfincs.inp with windows line endings, running in linux)
+      !
+      line = line(1 : jn - 1)            
+      ! 
+   endif
+   !
+   ! Remove leading and trailing spaces.
+   !
+   line = trim(line)
+   !
+   if (line(1:1) == '#' .or. line(1:1) == '!' .or. line(1:1) == '@') return
+   !
+   ! Find "="
+   !
+   j  = index(line, '=')
+   !
+   if (j == 0) return
+   !
+   keystr = trim(line(1:j-1))
+   !
+   valstr = trim(line(j+1:))
+   !
+   ! Remove comments
+   !
+   jn = index(valstr, '#')
+   !
+   if (jn > 0) then
+      !
+      valstr = trim(valstr(1 : jn - 1)) 
+      ! 
+   endif
+   !
+   valstr = adjustl(trim(valstr))
+   !
+   end subroutine 
+
 
    subroutine notabs(INSTR,OUTSTR,ILEN)
    ! @(#) convert tabs in input to spaces in output while maintaining columns, assuming a tab is set every 8 characters

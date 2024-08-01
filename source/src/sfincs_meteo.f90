@@ -60,10 +60,14 @@ contains
       !
       if (spw_nquant==4) then
          if (use_spw_precip) then
+            ! 
             spw_precip = .true.
+            ! 
          else
+            ! 
             write(*,*)'Info : Overruled to not use precipitation from spiderweb input ...'
             spw_precip = .false.
+            ! 
          endif
       endif
       !
@@ -333,11 +337,13 @@ contains
             !
             spw_wu01(irow, icol) = spw_wu(itw0, irow, icol)*(1.0 - twfac)   + spw_wu(itw1, irow, icol)*twfac
             spw_wv01(irow, icol) = spw_wv(itw0, irow, icol)*(1.0 - twfac)   + spw_wv(itw1, irow, icol)*twfac
+            !
             if (patmos) then
-               spw_pdrp01(irow, icol) = spw_pdrp(itw0, irow, icol)*(1.0 - twfac) + spw_pdrp(itw1, irow, icol)*twfac
+               spw_pdrp01(irow, icol) = spw_pdrp(itw0, irow, icol) * (1.0 - twfac) + spw_pdrp(itw1, irow, icol) * twfac
             endif
+            !
             if (spw_precip) then
-               spw_prcp01(irow, icol) = spw_prcp(itw0, irow, icol)*(1.0 - twfac) + spw_prcp(itw1, irow, icol)*twfac
+               spw_prcp01(irow, icol) = spw_prcp(itw0, irow, icol) * (1.0 - twfac) + spw_prcp(itw1, irow, icol) * twfac
             endif
             !
          enddo
@@ -535,31 +541,41 @@ contains
          endif
          !
          if (itw==1) then
+            ! 
             tauwu0(nm) = (1.0 - merge_frac)*tauwu0(nm) + merge_frac*vmag*( cosrot*wup + sinrot*wvp)*rhoa*cd/rhow
             tauwv0(nm) = (1.0 - merge_frac)*tauwv0(nm) + merge_frac*vmag*(-sinrot*wup + cosrot*wvp)*rhoa*cd/rhow
+            ! 
             if (patmos) then
                patm0(nm)  = (1.0 - merge_frac)*patm0(nm) + merge_frac*(gapres - pcp)
             endif
+            ! 
             if (precip .and. spw_precip) then
                prcp0(nm)  = (1.0 - merge_frac)*prcp0(nm) + merge_frac*prp/(1000*3600) ! m/s
             endif
+            ! 
             if (store_meteo) then
                windu0(nm) = (1.0 - merge_frac)*windu0(nm) + merge_frac*wup
                windv0(nm) = (1.0 - merge_frac)*windv0(nm) + merge_frac*wvp
             endif   
+            ! 
          else
+            ! 
             tauwu1(nm) = (1.0 - merge_frac)*tauwu1(nm) + merge_frac*vmag*( cosrot*wup + sinrot*wvp)*rhoa*cd/rhow
             tauwv1(nm) = (1.0 - merge_frac)*tauwv1(nm) + merge_frac*vmag*(-sinrot*wup + cosrot*wvp)*rhoa*cd/rhow
+            ! 
             if (patmos) then
                patm1(nm)  = (1.0 - merge_frac)*patm1(nm) + merge_frac*(gapres - pcp)
             endif
+            ! 
             if (precip .and. spw_precip) then
                prcp1(nm)  = (1.0 - merge_frac)*prcp1(nm) + merge_frac*prp/(1000*3600) ! m/s
             endif
+            ! 
             if (store_meteo) then
                windu1(nm) = (1.0 - merge_frac)*windu1(nm) + merge_frac*wup
                windv1(nm) = (1.0 - merge_frac)*windv1(nm) + merge_frac*wvp
             endif   
+            ! 
          endif
          !
       enddo                          
@@ -1089,7 +1105,7 @@ contains
       !
       ! Apply spin-up factor
       !
-      if (t<tspinup - 1.0e-3 .and. spinup_meteo) then
+      if ((t < (tspinup - 1.0e-3)) .and. spinup_meteo) then
          !
          smfac = (t - t0)/(tspinup - t0)
          oneminsmfac = 1.0 - smfac

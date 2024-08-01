@@ -25,9 +25,10 @@ contains
    !
    call initialize_hydro()
    !
-   if (quadtree_nr_levels==1 .and. use_quadtree) then
+   if (quadtree_nr_levels==1 .and. .not. use_quadtree_output) then
       !
-      ! Only one refinement level found in quadtree file. Reverting to use_quadtree is false.
+      ! Only one refinement level found in quadtree file. 
+      ! Reverting to use_quadtree is false (default), with use_quadtree_output = false.
       ! This means netcdf output will be written to a regular grid.
       !
       use_quadtree = .false.
@@ -2268,12 +2269,9 @@ contains
    !
    use sfincs_data
    use sfincs_subgrid
+   use sfincs_initial_conditions
    !
    implicit none
-   !
-   real*4, dimension(:,:), allocatable :: inilev
-   real*4, dimension(:),   allocatable :: inizs
-   real*4, dimension(:),   allocatable :: iniq
    !
    integer    :: nm, m, n, ivol, num, nmu, ilevel, rsttype, ip, ind, iuv, icuv
    real*4     :: dzvol
@@ -2296,14 +2294,25 @@ contains
    allocate(q0(npuv + ncuv + 1))
    allocate(uv(npuv + ncuv + 1))
    allocate(uv0(npuv + ncuv + 1))
-   ! allocate(kfu(npuv))
    !
-   zs   = 0.0
-   q    = 0.0
-   q0   = 0.0
-   uv   = 0.0
-   uv0  = 0.0
-   ! kfu  = 1
+   allocate(kfuv(npuv))
+   ! 
+   zs  = 0.0
+   q   = 0.0
+   q0  = 0.0
+   uv  = 0.0
+   uv0 = 0.0
+   !
+   kfuv = 0 
+   !
+   if (wiggle_suppression) then 
+      ! 
+      allocate(zs0(np))
+      allocate(zsderv(np))
+      zs0 = 0.0
+      zsderv = 0.0
+      ! 
+   endif
    !
    if (snapwave) then
       !
@@ -2377,206 +2386,12 @@ contains
       allocate(tsunami_arrival_time(np))
    endif
    !
-   ! Initialize water level points
+   ! Set initial conditions (found in module sfincs_initial_conditions)
    !
-   if (rstfile(1:4) /= 'none') then
-      !
-      ! Binary restart file
-      !
-      allocate(inizs(np))
-      allocate(iniq(npuv))
-      !
-      write(*,*)'Reading restart file ', trim(rstfile), ' ...'
-      !
-      open(unit = 500, file = trim(rstfile), form = 'unformatted', access = 'stream')
-      !
-      ! Restartfile flavours:
-      ! 1: zs, q, uvmean  
-      ! 2: zs, q 
-      ! 3: zs  - 
-      ! 4: zs, q, uvmean and cnb infiltration (writing scs_Se)
-      ! 5: zs, q, uvmean and gai infiltration (writing GA_sigma & GA_F)
-      ! 6: zs, q, uvmean and hor infiltration (writing rain_T1)         
-      !
-      read(500)rdummy
-      read(500)rsttype
-      read(500)rdummy
-      !
-      if (rsttype<1 .or. rsttype >6) then
-          !
-          ! Give warning, rstfile input rsttype not recognized
-          !
-          write(*,*)'WARNING! rstfile not recognized, skipping restartfile input! rsttype should be 1-6, but found rsttype= ', rsttype 
-          !          
-          close(500)      
-          !          
-      else
-          ! Always read in inizs
-          !
-          read(500)rdummy
-          read(500)inizs
-          read(500)rdummy
-          !      
-          ! Read fluxes q
-          !
-          if (rsttype==1 .or. rsttype==2 .or. rsttype==4 .or. rsttype==5 .or. rsttype==6) then     
-             read(500)rdummy
-             read(500)iniq
-             read(500)rdummy
-             !
-             read(500)rdummy
-             read(500)uvmean
-             read(500)rdummy
-          endif
-          !
-          if (rsttype==4) then ! Infiltration method cnb 
-             !
-             read(500)rdummy                 
-             read(500)scs_Se
-             write(*,*)'Reading scs_Se from rstfile, overwrites input values of: ',trim(sefffile)
-             !
-          elseif (rsttype==5) then ! Infiltration method gai    
-             !
-             read(500)rdummy
-             read(500)GA_sigma
-             read(500)rdummy
-             read(500)GA_F
-             write(*,*)'Reading GA_sigma from rstfile, overwrites input values of: ',trim(sigmafile)        
-             !
-          elseif (rsttype==6) then ! Infiltration method horton
-              !
-              read(500)rdummy                               
-              read(500)rain_T1
-              write(*,*)'Reading rain_T1 from rstfile, complements input values of: ',trim(fcfile)        
-              !              
-          endif          
-          !
-          close(500)      
-          !
-          ! Water levels
-          !
-          do nm = 1, np
-             !
-             if (subgrid) then
-                zs(nm) = max(subgrid_z_zmin(nm), inizs(nm)) ! Water level at zini or bed level (whichever is higher)
-             else
-                zs(nm) = max(zb(nm), inizs(nm)) ! Water level at zini or bed level (whichever is higher)
-             endif
-             !
-          enddo      
-          !
-          ! Flux q (only for some types of restart file)      
-          !
-          if (rsttype==1 .or. rsttype==2 .or. rsttype==4 .or. rsttype==5) then
-             !
-             do ip = 1, npuv
-                !
-                q(ip) = iniq(ip)
-                !
-                ! Also need to compute initial uv
-                ! Use same method as used in sfincs_momentum.f90
-                !
-                nm  = uv_index_z_nm(ip)
-                nmu = uv_index_z_nmu(ip)
-                !
-                zsuv = max(zs(nm), zs(nmu)) ! water level at uv point 
-                !
-                iok = .false.
-                !
-                if (subgrid) then
-                   !
-                   zmin = subgrid_uv_zmin(ip)
-                   zmax = subgrid_uv_zmax(ip)
-                   !            
-                   if (zsuv>zmin + huthresh) then
-                      iok = .true.
-                   endif   
-                   !
-                else
-                   !            
-                   if (zsuv>zbuvmx(ip)) then
-                      iok = .true.
-                   endif   
-                   !            
-                endif   
-                !
-                if (iok) then
-                   !
-                   if (subgrid) then
-                      !
-                      if (zsuv>zmax - 1.0e-4) then
-                         !
-                         ! Entire cell is wet, no interpolation from table needed
-                         !
-                         huv    = subgrid_uv_havg_zmax(ip) + zsuv
-                         !
-                      else
-                         !
-                         ! Interpolation required
-                         !
-                         dzuv   = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nlevels - 1)
-                         iuv    = int((zsuv - subgrid_uv_zmin(ip))/dzuv) + 1
-                         facint = (zsuv - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv
-                         huv    = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint
-                         !                      
-                      endif
-                      !
-                      huv    = max(huv, huthresh)
-                      !
-                   else
-                      !
-                      huv    = max(zsuv - zbuv(ip), huthresh)
-                      !
-                   endif
-                   !
-                   uv(ip)   = max(min(q(ip)/huv, 4.0), -4.0)   
-                   !
-                endif   
-                !
-             enddo
-             !         
-          endif   
-          !
-          deallocate(inizs)
-          deallocate(iniq)
-          !
-      endif
-      !
-   elseif (zsinifile(1:4) /= 'none') then ! Read binary (!) initial water level file
-      !
-      allocate(inizs(np))
-      !       
-      write(*,*)'Reading ',trim(zsinifile)
-      open(unit = 500, file = trim(zsinifile), form = 'unformatted', access = 'stream')
-      read(500)inizs
-      close(500)       
-      !
-      do nm = 1, np
-         !
-         if (subgrid) then
-            zs(nm) = max(subgrid_z_zmin(nm), inizs(nm)) ! Water level at zini or bed level (whichever is higher)
-         else
-            zs(nm) = max(zb(nm), inizs(nm)) ! Water level at zini or bed level (whichever is higher)
-         endif
-         !
-      enddo       
-      !
-      deallocate(inizs)    
-      !
-   else
-      !
-      ! No initial conditions file
-      !
-      if (subgrid) then
-         do nm = 1, np
-            zs(nm)   = max(subgrid_z_zmin(nm), zini) ! Water level at zini or bed level (whichever is higher)
-         enddo
-      else
-         do nm = 1, np
-            zs(nm)   = max(zb(nm), zini) ! Water level at zini or bed level (whichever is higher)
-         enddo
-      endif
-      !
+   call set_initial_conditions()
+   !
+   if (wiggle_suppression) then 
+      zs0 = zs
    endif
    !
    ! Loop through combined uv points and determine average uv and q (this also happens at the end of sfincs_momentum.f90).

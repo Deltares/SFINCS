@@ -629,12 +629,11 @@ contains
    !
    implicit none   
    !   
-   integer    :: nm, nmq, n, m, nn, ntmx, n_nodes, n_faces, ip, iref
-   integer*8  :: two
+   integer    :: nm, nmq, n, m, nn, ntmx, n_nodes, n_faces, iref
    real*4     :: dxdy
    !
-   real*4,    dimension(:),   allocatable :: nodes_x
-   real*4,    dimension(:),   allocatable :: nodes_y
+   real,      dimension(:),   allocatable :: nodes_x
+   real,      dimension(:),   allocatable :: nodes_y
    integer*4, dimension(:,:), allocatable :: face_nodes
    real*4,    dimension(:),   allocatable :: vtmp
    integer*4, dimension(:),   allocatable :: vtmpi
@@ -654,46 +653,43 @@ contains
    nodes_y = 0.0
    face_nodes = 0
    !
-   two = 2
-   !
    nn = 0
    !
    do nmq = 1, quadtree_nr_points
       !
       n = quadtree_n(nmq)
       m = quadtree_m(nmq)
-         !
-         iref = quadtree_level(nmq)
-         dxdy  = quadtree_dxr(iref)
-         !         
-         nn = nn + 1
-         !
-         nodes_x(nn) = x0 + cosrot*(m - 1)*dxdy - sinrot*(n - 1)*dxdy
-         nodes_y(nn) = y0 + sinrot*(m - 1)*dxdy + cosrot*(n - 1)*dxdy
-         face_nodes(1, nmq) = nn
-         !         
-         nn = nn + 1
-         !
-         nodes_x(nn) = x0 + cosrot*(m    )*dxdy - sinrot*(n - 1)*dxdy
-         nodes_y(nn) = y0 + sinrot*(m    )*dxdy + cosrot*(n - 1)*dxdy
-         face_nodes(2, nmq) = nn
-         !         
-         nn = nn + 1
-         !
-         nodes_x(nn) = x0 + cosrot*(m    )*dxdy - sinrot*(n    )*dxdy
-         nodes_y(nn) = y0 + sinrot*(m    )*dxdy + cosrot*(n    )*dxdy
-         face_nodes(3, nmq) = nn
-         !         
-         nn = nn + 1
-         !
-         nodes_x(nn) = x0 + cosrot*(m - 1)*dxdy - sinrot*(n    )*dxdy
-         nodes_y(nn) = y0 + sinrot*(m - 1)*dxdy + cosrot*(n    )*dxdy
-         face_nodes(4, nmq) = nn
-         !
-!      endif
+      !
+      iref = quadtree_level(nmq)
+      dxdy  = quadtree_dxr(iref)
+      !         
+      nn = nn + 1
+      !
+      nodes_x(nn) = x0 + cosrot*(m - 1)*dxdy - sinrot*(n - 1)*dxdy
+      nodes_y(nn) = y0 + sinrot*(m - 1)*dxdy + cosrot*(n - 1)*dxdy
+      face_nodes(1, nmq) = nn
+      !         
+      nn = nn + 1
+      !
+      nodes_x(nn) = x0 + cosrot*(m    )*dxdy - sinrot*(n - 1)*dxdy
+      nodes_y(nn) = y0 + sinrot*(m    )*dxdy + cosrot*(n - 1)*dxdy
+      face_nodes(2, nmq) = nn
+      !         
+      nn = nn + 1
+      !
+      nodes_x(nn) = x0 + cosrot*(m    )*dxdy - sinrot*(n    )*dxdy
+      nodes_y(nn) = y0 + sinrot*(m    )*dxdy + cosrot*(n    )*dxdy
+      face_nodes(3, nmq) = nn
+      !         
+      nn = nn + 1
+      !
+      nodes_x(nn) = x0 + cosrot*(m - 1)*dxdy - sinrot*(n    )*dxdy
+      nodes_y(nn) = y0 + sinrot*(m - 1)*dxdy + cosrot*(n    )*dxdy
+      face_nodes(4, nmq) = nn
+      !
    enddo   
    !  
-   NF90(nf90_create('sfincs_map.nc', ior(NF90_CLOBBER,NF90_NETCDF4), map_file%ncid)) ! TL: removed 'NF90_64BIT_OFFSET'
+   NF90(nf90_create('sfincs_map.nc', ior(NF90_CLOBBER, NF90_NETCDF4), map_file%ncid)) ! TL: removed 'NF90_64BIT_OFFSET'
    !
    ! Create dimensions
    ! grid, time, points
@@ -758,7 +754,7 @@ contains
       !
    else
       !
-      NF90(nf90_def_var(map_file%ncid, 'mesh2d_node_x', NF90_FLOAT, (/map_file%nmesh2d_node_dimid/), map_file%mesh2d_node_x_varid)) ! location of zb, zs etc. in cell centre
+      NF90(nf90_def_var(map_file%ncid, 'mesh2d_node_x', NF90_DOUBLE, (/map_file%nmesh2d_node_dimid/), map_file%mesh2d_node_x_varid)) ! location of zb, zs etc. in cell centre
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_node_x_varid, 1, 1, nc_deflate_level))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'units', 'm'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'standard_name', 'projection_x_coordinate'))
@@ -766,7 +762,7 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'mesh', 'mesh2d'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'location', 'node'))
       !
-      NF90(nf90_def_var(map_file%ncid, 'mesh2d_node_y', NF90_FLOAT, (/map_file%nmesh2d_node_dimid/), map_file%mesh2d_node_y_varid)) ! location of zb, zs etc. in cell centre
+      NF90(nf90_def_var(map_file%ncid, 'mesh2d_node_y', NF90_DOUBLE, (/map_file%nmesh2d_node_dimid/), map_file%mesh2d_node_y_varid)) ! location of zb, zs etc. in cell centre
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_node_y_varid, 1, 1, nc_deflate_level))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'units', 'm'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'standard_name', 'projection_y_coordinate'))
@@ -819,6 +815,15 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'units', 'm'))
    NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'standard_name', 'sea_surface_height_above_reference_level')) 
    NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'long_name', 'water_level'))  
+   !
+   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then   
+      NF90(nf90_def_var(map_file%ncid, 'h', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%h_varid)) ! time-varying water level map
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%h_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%h_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%h_varid, 'units', 'm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%h_varid, 'standard_name', 'water_depth')) 
+      NF90(nf90_put_att(map_file%ncid, map_file%h_varid, 'long_name', 'water_depth'))  
+   endif
    !
    if (store_velocity) then
       !
@@ -1170,13 +1175,8 @@ contains
    !
    implicit none   
    !
-   integer                      :: nm, n, m, istruc, struc_nm, npars
-   
-   integer*4,          dimension(:),   allocatable :: index_u_m
-   integer*4,          dimension(:),   allocatable :: index_u_n
-   integer*4,          dimension(:),   allocatable :: index_v_m
-   integer*4,          dimension(:),   allocatable :: index_v_n
-     
+   integer                      :: istruc   
+   !  
    real*4, dimension(:,:), allocatable :: struc_info
    real*4, dimension(:), allocatable :: struc_x
    real*4, dimension(:), allocatable :: struc_y
@@ -1967,8 +1967,8 @@ contains
       !
       integer  :: ntmapout       
       !
-      integer   :: nm, nmq, n, m, nmu1, nmd1, num1, ndm1, nmu2, nmd2, num2, ndm2
-      real*4    :: uz, vz, u1, u2, v1, v2, sq2
+      integer   :: nm, nmq, n, m, nmu1, nmd1, num1, ndm1
+      real*4    :: uz, vz, sq2
       !
       real*4, dimension(:), allocatable :: utmp, vtmp 
       !
@@ -2005,20 +2005,38 @@ contains
       !
       NF90(nf90_put_var(map_file%ncid, map_file%zs_varid, vtmp, (/1, ntmapout/))) ! write zs
       ! 
-!      zsg = FILL_VALUE       
-!      !
-!      do nm = 1, np
-!            if (subgrid) then
-!                zsg(z_index_nm(1,nm),z_index_nm(2,nm)) = zs(nm) - subgrid_z_zmin(nm)
-!            else
-!                zsg(z_index_nm(1,nm),z_index_nm(2,nm)) = zs(nm) - zb(nm)
-!            endif
-!      enddo
+      ! Water depth 
       !
-!      if (subgrid) then
-!         NF90(nf90_put_var(map_file%ncid, map_file%h_varid, zsg(2:nmax-1, 2:mmax-1), (/1, 1, ntmapout/))) ! write h
+      if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then   
+         ! 
+         vtmp = FILL_VALUE
+         !
+         do nmq = 1, quadtree_nr_points
+            !
+            nm = index_sfincs_in_quadtree(nmq)
+            !
+            if (nm>0) then 
+               !
+               if (kcs(nm)>0) then
+                  if (subgrid) then
+                     if ( (zs(nm) - subgrid_z_zmin(nm)) > huthresh) then
+                        vtmp(nmq) = zs(nm) - subgrid_z_zmin(nm)
+                     endif
+                  else
+                     if ( (zs(nm) - zb(nm)) > huthresh) then
+                        vtmp(nmq) = zs(nm) - zb(nm)
+                     endif
+                  endif
+               endif
+               !
+            endif
+            !
+         enddo
+         !  
+         NF90(nf90_put_var(map_file%ncid, map_file%h_varid, vtmp, (/1, ntmapout/))) ! write h
+         !
+      endif
       !            
-      !!      
       if (store_velocity) then
          !
          utmp = FILL_VALUE
@@ -2175,7 +2193,7 @@ contains
          endif            
          !            
       endif         
-      !           
+      !
       NF90(nf90_sync(map_file%ncid)) !write away intermediate data ! TL: in first test it seems to be faster to let the file update than keep in memory
       !      
    end subroutine
@@ -2191,12 +2209,12 @@ contains
    !
    implicit none   
    !
-   integer :: iobs, nm, icrs, ip, idrn
+   integer :: iobs, nm, idrn
    !
    integer :: nthisout      
-   integer :: nmd1, nmu1, ndm1, num1, nmd2, nmu2, ndm2, num2
+   integer :: nmd1, nmu1, ndm1, num1
    !
-   real*4                  :: u1, u2, v1, v2, uz, vz
+   real*4                  :: uz, vz
    real*8                  :: t
 !   real*4, dimension(nobs) :: zobs, hobs
    real*4, dimension(nobs) :: uobs
@@ -2656,7 +2674,7 @@ contains
    !
    implicit none   
    !
-   integer                              :: nmq, nm, n, m, ntmaxout
+   integer                              :: nmq, nm, ntmaxout
    real*8                               :: t  
    !
    real*4, dimension(:), allocatable    :: zstmp
@@ -2921,7 +2939,6 @@ contains
         NF90(nf90_put_att(ncid, varid, 'spwmergefrac',spw_merge_frac)) 
         NF90(nf90_put_att(ncid, varid, 'usespwprecip',logical2int(use_spw_precip)))         
         NF90(nf90_put_att(ncid, varid, 'global',logical2int(global))) 
-        NF90(nf90_put_att(ncid, varid, 'nuvisc',nuvisc)) 
         NF90(nf90_put_att(ncid, varid, 'spinup_meteo', logical2int(spinup_meteo))) 
         NF90(nf90_put_att(ncid, varid, 'waveage',waveage)) 
         NF90(nf90_put_att(ncid, varid, 'wmtfilter', wmtfilter))         

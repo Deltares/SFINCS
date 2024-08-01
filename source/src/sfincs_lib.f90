@@ -1,5 +1,7 @@
 module sfincs_lib
    !
+   use omp_lib
+   !
    use sfincs_spiderweb
    use sfincs_input
    use sfincs_domain
@@ -85,8 +87,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.0.8-beta'
-   build_date     = '$Date: 2024-06-10'
+   build_revision = '$Rev: v2.1.0-beta'
+   build_date     = '$Date: 2024-08-01'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
@@ -221,19 +223,16 @@ module sfincs_lib
    !
    double precision, intent(in)  :: dtrange
    integer                       :: ierr
-   integer                       :: nmx
-   integer                       :: mmx
-   integer                       :: nm
-   real*4                        :: hmx
    !
    ierr = 0
    !
    ! Copy arrays to GPU memory
    ! 
-   !$acc data, copyin( kcs, kcuv, zs, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, qmax, vmax, twet, zsm, z_volume, &
+   !$acc data, copyin( kcs, kfuv, kcuv, zs, zs0, zsderv, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, maxzsm, qmax, vmax, twet, zsm, z_volume, &
    !$acc               z_flags_iref, uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
    !$acc               index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, zsb, zsb0, ibuvdir, uvmean, &
-   !$acc               subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
+   !$acc               subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
+   !$acc               subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
    !$acc               subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
    !$acc               z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
    !$acc               uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
@@ -246,7 +245,7 @@ module sfincs_lib
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
    !$acc               prcp, prcp0, prcp1, cumprcp, cumprcpt, netprcp, prcp, qinfmap, cuminf, & 
    !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
-   !$acc               gn2uv, fcorio2d, min_dt, storage_volume, &
+   !$acc               gn2uv, fcorio2d, min_dt, storage_volume, nuvisc, &
    !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2 )
    !
    ! Set target time: if dt range is negative, do not modify t1
@@ -258,7 +257,8 @@ module sfincs_lib
    ! Start computational loop
    !
    write(*,'(a)')''   
-   write(*,*)'---------- Starting simulation ----------'
+   write(*,*)'---------- Starting simulation ----------'   
+   write(*,'(a,i0,a,i0,a)')' ---- Using ', omp_get_max_threads(), ' of ', omp_get_num_procs(), ' available threads -----'   
    write(*,'(a)')''   
    !
    call system_clock(count00, count_rate, count_max)
@@ -424,9 +424,12 @@ module sfincs_lib
       !
       if (snapwave .and. update_waves) then
          !
-         write(*,'(a,f10.1,a)')'Computing SnapWave at t = ', t, ' s'
+         call timer(t3)          
          !
          call update_wave_field(t, tloopsnapwave)
+         !
+         call timer(t4)                   
+         write(*,'(a,f10.1,a,f6.2,a)')'Computing SnapWave at t = ', t, ' s took ', t4 - t3, ' seconds'         
          !
          ! Maybe we'll add moving wave makers back at some point
          !

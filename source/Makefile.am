@@ -1,5 +1,5 @@
 SUBDIRS = \
-	third_party_open/netcdf/netcdf-fortran-4.4.4 \
+	third_party_open/netcdf/netcdf-fortran-4.6.1 \
 	src
 
 # our m4 stuff is here
@@ -17,5 +17,3 @@ ChangeLog:
 .PHONY: test
 test:
 	cd test/01_noadv && ../../src/sfincs
-
-
