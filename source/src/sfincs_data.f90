@@ -45,6 +45,7 @@ module sfincs_data
       real*4 dthisout
       real*4 dtwindupd
       real*4 theta
+      real*4 hmin_cfl
       real*4 dtmax
       real*4 dtmin
       real*4 zini
