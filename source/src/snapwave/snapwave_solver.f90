@@ -155,7 +155,7 @@ module snapwave_solver
    integer                                    :: k,k1,k2,count,itheta ! counters (k is grid index)
    integer, dimension(:,:), allocatable       :: indx                   ! index for grid sorted per sweep direction
    real*4, dimension(:,:), allocatable        :: eeold                  ! wave energy density, energy density previous iteration   
-   real*4, dimension(:,:), allocatable        :: srcig_local            ! Energy source/sink term because of IG wave shoaling
+   real*4, dimension(:,:), allocatable        :: srcig_local            ! Energy source/sink term because of IG wave energy transfer from incident waves
    real*4, dimension(:,:), allocatable        :: beta_local             ! Local bed slope based on bed level per direction      
    real*4, dimension(:,:), allocatable        :: alphaig_local          ! Local infragravity wave shoaling parameter alpha
    real*4, dimension(:,:), allocatable        :: depthprev            ! water depth at upwind intersection point per direction     
