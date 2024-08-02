@@ -42,14 +42,14 @@ SFINCS seeks active contribution from the hydro modelling community, so feel fre
 Licensing conditions?
 -------------------------------------------------------
 This source code is available open source under GNU GPL-3.0 license, see attached.
-This means (summarised):
+This means (summarised, for details always read license):
 	- Permissions: Commercial use, Distribution, Modification, Patent use, Private use
 	- Conditions: Disclose source, License and copyright notice, Same license (so no distributing closed source versions), State changes
 	- Limitations: No liability, no warranty
 	
 The SFINCS pre-compiled executables on Windows and Docker(linux) are available under free-trial license without monetary fee.
 These under the conditions as indicated when downloading SFINCS from https://download.deltares.nl/sfincs.
-This means (summarised):
+This means (summarised, for details always read license):
 	- Permissions: No commercial use, Research publishing allowed, no distribution, no modification
 	- Conditions: Disclose source, License and copyright notice, Same license (so no distributing closed source versions), no changes
 	- Limitations: No liability, no warranty
