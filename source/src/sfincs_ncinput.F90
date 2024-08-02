@@ -642,9 +642,9 @@ module sfincs_ncinput
     allocate(spw_radia(spw_nrows))
     allocate(spw_wu(spw_nt, spw_nrows, spw_ncols))
     allocate(spw_wv(spw_nt, spw_nrows, spw_ncols))
-    allocate(spw_pdrp(spw_nt, spw_nrows, spw_ncols))
+    allocate(spw_pabs(spw_nt, spw_nrows, spw_ncols))
     allocate(spw_prcp(spw_nt, spw_nrows, spw_ncols))
-    allocate(spw_pdrp01(spw_nrows, spw_ncols))
+    allocate(spw_pabs01(spw_nrows, spw_ncols))
     allocate(spw_prcp01(spw_nrows, spw_ncols))
     allocate(spw_wu01(spw_nrows, spw_ncols))
     allocate(spw_wv01(spw_nrows, spw_ncols))
@@ -685,7 +685,7 @@ module sfincs_ncinput
        !
        NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%pressure_varid, prtmp, start = (/ 1, 1, it /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
        ampr_prtmp = reshape( prtmp, (/ 1, spw_nrows, spw_ncols /), ORDER = (/ 3, 2, 1 /))            
-       spw_pdrp(it,:,:) = ampr_prtmp(1,:,:)       
+       spw_pabs(it,:,:) = ampr_prtmp(1,:,:)       
        !
        ! Read rainfall
        !

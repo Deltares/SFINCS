@@ -637,10 +637,11 @@ module sfincs_data
       real*4, dimension(:,:,:),   allocatable :: spw_wu
       real*4, dimension(:,:,:),   allocatable :: spw_wv
       real*4, dimension(:,:,:),   allocatable :: spw_pdrp
+      real*4, dimension(:,:,:),   allocatable :: spw_pabs      
       real*4, dimension(:,:,:),   allocatable :: spw_prcp
       real*4, dimension(:,:),     allocatable :: spw_wu01
       real*4, dimension(:,:),     allocatable :: spw_wv01
-      real*4, dimension(:,:),     allocatable :: spw_pdrp01
+      real*4, dimension(:,:),     allocatable :: spw_pabs01
       real*4, dimension(:,:),     allocatable :: spw_prcp01
       !
       integer                                 :: amuv_nt
@@ -998,10 +999,11 @@ module sfincs_data
     if(allocated(spw_wu)) deallocate(spw_wu)
     if(allocated(spw_wv)) deallocate(spw_wv)
     if(allocated(spw_pdrp)) deallocate(spw_pdrp)
+    if(allocated(spw_pabs)) deallocate(spw_pabs)    
     if(allocated(spw_prcp)) deallocate(spw_prcp)
     if(allocated(spw_wu01)) deallocate(spw_wu01)
     if(allocated(spw_wv01)) deallocate(spw_wv01)
-    if(allocated(spw_pdrp01)) deallocate(spw_pdrp01)
+    if(allocated(spw_pabs01)) deallocate(spw_pabs01)
     if(allocated(spw_prcp01)) deallocate(spw_prcp01)
     !
     if(allocated(amuv_times)) deallocate(amuv_times)
