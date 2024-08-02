@@ -120,11 +120,9 @@ contains
    !
    implicit none
    !
-   integer ip, n, m, nm, nmu, num, ib, iref, npu, npv, ipuv, ipu, ipv, iud, iuu, ndm, nmd, j, iq, nmx, ind
+   integer ip, n, m, nm, nmu, num, iref, npu, npv, ndm, nmd, iq
    integer ndmu, nmdu, numu
-   integer ikcuv2
-   integer npac, idummy
-   integer nrefuv, irefuv, npuvtotal, icuv
+   integer irefuv, npuvtotal, icuv
    !
    ! Temporary arrays
    !
@@ -151,7 +149,6 @@ contains
    !
    integer*4,          dimension(:),   allocatable :: indices
    !
-   real*4 :: ylat
    real*4 :: dxymin
    !
    ! READ MESH
@@ -1468,21 +1465,12 @@ contains
    implicit none
    !
    real*4, dimension(:,:),   allocatable :: zbg
-   real*4, dimension(:),     allocatable :: rtmp
-   real*4, dimension(:),     allocatable :: rtmpz
-   real*4, dimension(:),     allocatable :: rtmpuv
-   integer*4, dimension(:),  allocatable :: uv_index_qt_in_sf
    !
-   integer :: idummy
    integer :: ip
-   integer :: ilevel
    integer :: nm
    integer :: nmu
    integer :: n
    integer :: m
-   integer :: npzq
-   integer :: npuvq
-   integer :: npuvs
    !
    ! DEPTHS
    !
@@ -1599,13 +1587,10 @@ contains
    !
    implicit none
    !
-   integer :: idummy
    integer :: ip
    integer :: ib
    integer :: nm
    integer :: nmu
-   integer :: n
-   integer :: m
    integer :: ikcuv2
    !
    ! BOUNDARIES
@@ -1780,12 +1765,9 @@ contains
    !
    real*4, dimension(:),     allocatable :: rghfield
    !
-   integer :: idummy
    integer :: ip
    integer :: nm
    integer :: nmu
-   integer :: n
-   integer :: m
    !
    ! FRICTION COEFFICIENTS (only for regular bathymetry, as for subgrid the Manning's n values are stored in the tables)
    !
@@ -1851,14 +1833,7 @@ contains
    !
    implicit none
    !
-   real*4, dimension(:),     allocatable :: rghfield
-   !
-   integer :: idummy
-   integer :: ip
    integer :: nm
-   integer :: nmu
-   integer :: n
-   integer :: m
    !
    ! INFILTRATION
    !
@@ -2273,18 +2248,7 @@ contains
    !
    implicit none
    !
-   integer    :: nm, m, n, ivol, num, nmu, ilevel, rsttype, ip, ind, iuv, icuv
-   real*4     :: dzvol
-   real*4     :: facint
-   real*4     :: rdummy
-   real*4     :: dzuv
-   real*4     :: zmax
-   real*4     :: zmin
-   real*4     :: one_minus_facint 
-   real*4     :: huv
-   real*4     :: zsuv   
-   !
-   logical   :: iok
+   integer    :: icuv
    !
    allocate(zs(np))
    !

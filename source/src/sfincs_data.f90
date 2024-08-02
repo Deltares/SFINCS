@@ -784,22 +784,16 @@ module sfincs_data
       integer                       :: itmaxout
       integer                       :: itrstout
       integer                       :: ithisout
-      integer                       :: iwndupd
       !
       real*8                       :: t
       real*4                       :: dt
-      real*4                       :: tmapout
-      real*4                       :: tmaxout
-      real*4                       :: trstout
-      real*4                       :: thisout
       real*4                       :: maxdepth
       real*4                       :: maxmaxdepth
       real*4                       :: twindupd
       !
       ! I don't think this is used anywhere ...
       !
-      real :: tstart, tfinish, tloop2, tloop3, tloopstruc, tloopbnd, tloopsrc, tloopwnd1
-      real :: tinput
+      real :: tloop2, tloop3, tloopstruc, tloopbnd, tloopsrc, tloopwnd1
       !
       t           = t0     ! start time
       dt          = 1.0e-6 ! First time step very small

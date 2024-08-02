@@ -53,25 +53,11 @@ contains
    integer          :: isrc
    !
    integer          :: iwm
-   integer          :: ileft
-   integer          :: iright
-   integer          :: itop
-   integer          :: ibottom
    !
    integer          :: nmu
    integer          :: nmd
    integer          :: num
    integer          :: ndm
-   integer          :: nmu1
-   integer          :: nmd1
-   integer          :: num1
-   integer          :: ndm1
-   integer          :: nmu2
-   integer          :: nmd2
-   integer          :: num2
-   integer          :: ndm2
-   !
-   integer          :: ip
    !
    real*4           :: qnmu
    real*4           :: qnmd
@@ -79,13 +65,6 @@ contains
    real*4           :: qndm
    real*4           :: factime
    real*4           :: dvol    
-   !
-   real*4           :: zsm0
-   real*4           :: zsm1
-   real*4           :: dzdt
-   real*4           :: dzf 
-   real*4           :: dzs
-   real*4           :: zcor
    !
    if (snapwave) then ! need to compute filtered water levels for snapwave
       !
@@ -257,33 +236,13 @@ contains
    integer          :: isrc
    !
    integer          :: iwm
-   integer          :: ileft
-   integer          :: iright
-   integer          :: itop
-   integer          :: ibottom
    integer          :: ind
    !
    integer          :: nmu
    integer          :: nmd
    integer          :: num
    integer          :: ndm
-   integer          :: nmu1
-   integer          :: nmd1
-   integer          :: num1
-   integer          :: ndm1
-   integer          :: nmu2
-   integer          :: nmd2
-   integer          :: num2
-   integer          :: ndm2
    !
-   integer          :: ip
-   integer          :: n
-   integer          :: m
-   !
-   real*4           :: qxnm
-   real*4           :: qxnmd
-   real*4           :: qynm
-   real*4           :: qyndm
    real*4           :: factime
    real*4           :: dvol  
    !
@@ -296,8 +255,6 @@ contains
    real*4           :: dzvol
    real*4           :: facint
    real*4           :: a
-   real*4           :: uz
-   real*4           :: vz
    real*4           :: dv
    real*4           :: zs00
    real*4           :: zs11
