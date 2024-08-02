@@ -16424,7 +16424,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
                    Line: 568, Column: 0 }
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
-  - NumStackBytes:   '7384'
+  - NumStackBytes:   '7368'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
   - String:          ''''
@@ -20382,7 +20382,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '43'
+  - INST_:           '41'
   - String:          "\n"
 ...
 --- !Analysis
@@ -21165,7 +21165,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '34'
+  - INST_:           '33'
   - String:          "\n"
 ...
 --- !Analysis
@@ -21187,7 +21187,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_test2624
+  - BasicBlock:      loop_test2622
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21200,7 +21200,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_body2625
+  - BasicBlock:      loop_body2623
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21215,7 +21215,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_exit2626
+  - BasicBlock:      loop_exit2624
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21228,7 +21228,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_test2628
+  - BasicBlock:      loop_test2626
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21241,7 +21241,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_body2629
+  - BasicBlock:      loop_body2627
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21256,7 +21256,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_exit2630
+  - BasicBlock:      loop_exit2628
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21271,7 +21271,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      dealloc.list.then2645
+  - BasicBlock:      dealloc.list.then2643
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21284,7 +21284,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new2648_then
+  - BasicBlock:      bb_new2646_then
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21327,7 +21327,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      dealloc.list.end2646
+  - BasicBlock:      dealloc.list.end2644
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21342,7 +21342,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      dealloc.list.then2649
+  - BasicBlock:      dealloc.list.then2647
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21355,7 +21355,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new2652_then
+  - BasicBlock:      bb_new2650_then
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21398,7 +21398,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      dealloc.list.end2650
+  - BasicBlock:      dealloc.list.end2648
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21413,7 +21413,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_2654
+  - BasicBlock:      chk_ptr_error_2652
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21428,7 +21428,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_2655
+  - BasicBlock:      chk_ptr_ok_2653
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21441,7 +21441,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_test2662
+  - BasicBlock:      loop_test2660
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21454,7 +21454,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_body2663
+  - BasicBlock:      loop_body2661
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21467,7 +21467,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_exit2664
+  - BasicBlock:      loop_exit2662
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21480,7 +21480,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_test2666
+  - BasicBlock:      loop_test2664
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21493,7 +21493,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_body2667
+  - BasicBlock:      loop_body2665
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21506,7 +21506,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_exit2668
+  - BasicBlock:      loop_exit2666
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21519,7 +21519,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_test2670
+  - BasicBlock:      loop_test2668
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21532,7 +21532,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_body2671
+  - BasicBlock:      loop_body2669
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21545,7 +21545,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_exit2672
+  - BasicBlock:      loop_exit2670
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21560,7 +21560,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_2675
+  - BasicBlock:      chk_ptr_error_2673
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21575,7 +21575,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_2676
+  - BasicBlock:      chk_ptr_ok_2674
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21588,7 +21588,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_test2678
+  - BasicBlock:      loop_test2676
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21601,7 +21601,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_body2679
+  - BasicBlock:      loop_body2677
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21616,7 +21616,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_exit2680
+  - BasicBlock:      loop_exit2678
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21629,7 +21629,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_test2682
+  - BasicBlock:      loop_test2680
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21642,7 +21642,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_body2683
+  - BasicBlock:      loop_body2681
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21657,7 +21657,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_exit2684
+  - BasicBlock:      loop_exit2682
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21670,7 +21670,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_test2686
+  - BasicBlock:      loop_test2684
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21683,7 +21683,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_body2687
+  - BasicBlock:      loop_body2685
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21698,7 +21698,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_exit2688
+  - BasicBlock:      loop_exit2686
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21713,7 +21713,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      dealloc.list.then2689
+  - BasicBlock:      dealloc.list.then2687
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21726,7 +21726,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new2692_then
+  - BasicBlock:      bb_new2690_then
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21769,7 +21769,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      dealloc.list.end2690
+  - BasicBlock:      dealloc.list.end2688
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21784,7 +21784,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      dealloc.list.then2693
+  - BasicBlock:      dealloc.list.then2691
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21797,7 +21797,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new2696_then
+  - BasicBlock:      bb_new2694_then
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21840,7 +21840,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      dealloc.list.end2694
+  - BasicBlock:      dealloc.list.end2692
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21855,7 +21855,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      dealloc.list.then2697
+  - BasicBlock:      dealloc.list.then2695
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21868,7 +21868,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new2700_then
+  - BasicBlock:      bb_new2698_then
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21911,7 +21911,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      dealloc.list.end2698
+  - BasicBlock:      dealloc.list.end2696
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21950,7 +21950,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall2703_uif_true
+  - BasicBlock:      initcall2701_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -21991,7 +21991,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall2705_uif_true
+  - BasicBlock:      initcall2703_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22030,7 +22030,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new2702_uif_true
+  - BasicBlock:      bb_new2700_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22069,7 +22069,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall2708_uif_true
+  - BasicBlock:      initcall2706_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22110,7 +22110,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall2710_uif_true
+  - BasicBlock:      initcall2708_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22149,7 +22149,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new2707_uif_true
+  - BasicBlock:      bb_new2705_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22188,7 +22188,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall2713_uif_true
+  - BasicBlock:      initcall2711_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22229,7 +22229,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall2715_uif_true
+  - BasicBlock:      initcall2713_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22268,7 +22268,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new2712_uif_true
+  - BasicBlock:      bb_new2710_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22283,7 +22283,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_2717
+  - BasicBlock:      chk_ptr_error_2715
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22298,7 +22298,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_2718
+  - BasicBlock:      chk_ptr_ok_2716
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22337,7 +22337,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall2722_uif_true
+  - BasicBlock:      initcall2720_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22378,7 +22378,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall2724_uif_true
+  - BasicBlock:      initcall2722_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22417,7 +22417,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new2721_uif_true
+  - BasicBlock:      bb_new2719_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22456,7 +22456,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall2727_uif_true
+  - BasicBlock:      initcall2725_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22497,7 +22497,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall2729_uif_true
+  - BasicBlock:      initcall2727_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22536,7 +22536,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new2726_uif_true
+  - BasicBlock:      bb_new2724_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22627,7 +22627,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall2736_uif_true
+  - BasicBlock:      initcall2734_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22668,7 +22668,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall2738_uif_true
+  - BasicBlock:      initcall2736_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22707,7 +22707,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new2735_uif_true
+  - BasicBlock:      bb_new2733_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22720,7 +22720,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_test2740
+  - BasicBlock:      loop_test2738
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22733,7 +22733,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_body2741
+  - BasicBlock:      loop_body2739
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22748,7 +22748,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_exit2742
+  - BasicBlock:      loop_exit2740
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22761,7 +22761,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_test2744
+  - BasicBlock:      loop_test2742
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22774,7 +22774,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_body2745
+  - BasicBlock:      loop_body2743
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22787,7 +22787,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      loop_exit2746
+  - BasicBlock:      loop_exit2744
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22802,7 +22802,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new2642_then
+  - BasicBlock:      bb_new2640_then
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22871,7 +22871,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      do.prolog2759
+  - BasicBlock:      do.prolog2757
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22886,7 +22886,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      do.body2757
+  - BasicBlock:      do.body2755
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22901,7 +22901,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_2763
+  - BasicBlock:      chk_ptr_error_2761
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22916,7 +22916,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_2764
+  - BasicBlock:      chk_ptr_ok_2762
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22955,7 +22955,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall2767_uif_true
+  - BasicBlock:      initcall2765_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22996,7 +22996,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall2769_uif_true
+  - BasicBlock:      initcall2767_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23035,7 +23035,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new2766_uif_true
+  - BasicBlock:      bb_new2764_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23074,7 +23074,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall2781_uif_true
+  - BasicBlock:      initcall2779_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23115,7 +23115,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall2783_uif_true
+  - BasicBlock:      initcall2781_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23154,7 +23154,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new2780_uif_true
+  - BasicBlock:      bb_new2778_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23167,7 +23167,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      do.epilog2760
+  - BasicBlock:      do.epilog2758
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23182,7 +23182,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      do.end_do2758
+  - BasicBlock:      do.end_do2756
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23197,7 +23197,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      dealloc.list.then2795
+  - BasicBlock:      dealloc.list.then2793
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23212,7 +23212,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new2798_then
+  - BasicBlock:      bb_new2796_then
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23255,7 +23255,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      dealloc.list.end2796
+  - BasicBlock:      dealloc.list.end2794
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23270,7 +23270,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      dealloc.list.then2799
+  - BasicBlock:      dealloc.list.then2797
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23285,7 +23285,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new2802_then
+  - BasicBlock:      bb_new2800_then
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23328,7 +23328,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      dealloc.list.end2800
+  - BasicBlock:      dealloc.list.end2798
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23342,7 +23342,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90',
                    Line: 568, Column: 0 }
 Function:        SFINCS_NCINPUT_mp_READ_NETCDF_SPW_DATA
 Args:
-  - NumInstructions: '6602'
+  - NumInstructions: '6599'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -23359,7 +23359,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90', 
-                   Line: 728, Column: 0 }
+                   Line: 727, Column: 0 }
 Function:        SFINCS_NCINPUT_mp_HANDLE_ERR
 Args:
   - String:          FastISel missed
@@ -23395,7 +23395,7 @@ Name:            InstructionMix
 Function:        SFINCS_NCINPUT_mp_HANDLE_ERR
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new2805_then
+  - BasicBlock:      bb_new2803_then
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23419,7 +23419,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_ncinput.F90', 
-                   Line: 735, Column: 0 }
+                   Line: 729, Column: 0 }
 Function:        SFINCS_NCINPUT_mp_HANDLE_ERR
 Args:
   - String:          'BasicBlock: '

@@ -607,7 +607,7 @@ module sfincs_ncinput
     NF90(nf90_inq_varid(net_file_spw%ncid, "latitude_eye",      net_file_spw%yeye_varid) )  
     NF90(nf90_inq_varid(net_file_spw%ncid, "wind_x",            net_file_spw%wind_x_varid) )  
     NF90(nf90_inq_varid(net_file_spw%ncid, "wind_y",            net_file_spw%wind_y_varid) )  
-    NF90(nf90_inq_varid(net_file_spw%ncid, "pressure",          net_file_spw%pressure_varid) )  
+    NF90(nf90_inq_varid(net_file_spw%ncid, "pressure",          net_file_spw%pressure_varid) )   ! Note: absolute pressure, not pressure drop
     !
     ! Attempt to get the variable ID for "precipitation"
     !
@@ -642,9 +642,9 @@ module sfincs_ncinput
     allocate(spw_radia(spw_nrows))
     allocate(spw_wu(spw_nt, spw_nrows, spw_ncols))
     allocate(spw_wv(spw_nt, spw_nrows, spw_ncols))
-    allocate(spw_pdrp(spw_nt, spw_nrows, spw_ncols))
+    allocate(spw_pabs(spw_nt, spw_nrows, spw_ncols))
     allocate(spw_prcp(spw_nt, spw_nrows, spw_ncols))
-    allocate(spw_pdrp01(spw_nrows, spw_ncols))
+    allocate(spw_pabs01(spw_nrows, spw_ncols))
     allocate(spw_prcp01(spw_nrows, spw_ncols))
     allocate(spw_wu01(spw_nrows, spw_ncols))
     allocate(spw_wv01(spw_nrows, spw_ncols))
@@ -681,12 +681,11 @@ module sfincs_ncinput
        ampr_prtmp = reshape( prtmp, (/ 1, spw_nrows, spw_ncols /), ORDER = (/ 3, 2, 1 /))            
        spw_wv(it,:,:) = ampr_prtmp(1,:,:)
        !
-       ! Read pressure (stored as absolute, convert to pdrop using gapres)
+       ! Read pressure (stored as absolute, NOTE: different than in original ascii spwfile)
        !
        NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%pressure_varid, prtmp, start = (/ 1, 1, it /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
        ampr_prtmp = reshape( prtmp, (/ 1, spw_nrows, spw_ncols /), ORDER = (/ 3, 2, 1 /))            
-       !spw_pdrp(it,:,:) = gapres - ampr_prtmp(1,:,:)
-       spw_pdrp(it,:,:) = ampr_prtmp(1,:,:)       
+       spw_pabs(it,:,:) = ampr_prtmp(1,:,:)       
        !
        ! Read rainfall
        !

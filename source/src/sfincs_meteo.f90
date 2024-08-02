@@ -34,15 +34,20 @@ contains
       allocate(spw_vmag(spw_nt, spw_nrows, spw_ncols))
       allocate(spw_vdir(spw_nt, spw_nrows, spw_ncols))
       allocate(spw_pdrp(spw_nt, spw_nrows, spw_ncols))
+      allocate(spw_pabs(spw_nt, spw_nrows, spw_ncols))
       allocate(spw_prcp(spw_nt, spw_nrows, spw_ncols))
       allocate(spw_wu(spw_nt, spw_nrows, spw_ncols))
       allocate(spw_wv(spw_nt, spw_nrows, spw_ncols))
-      allocate(spw_pdrp01(spw_nrows, spw_ncols))
+      allocate(spw_pabs01(spw_nrows, spw_ncols))
       allocate(spw_prcp01(spw_nrows, spw_ncols))
       allocate(spw_wu01(spw_nrows, spw_ncols))
       allocate(spw_wv01(spw_nrows, spw_ncols))
       !
       call read_spw_file(spwfile,spw_nt,spw_nrows,spw_ncols,spw_radius,spw_times,spw_xe,spw_ye,spw_vmag,spw_vdir,spw_pdrp,spw_prcp,spw_nquant,trefstr)
+      !
+      ! Convert now pressure drop as in ascii spwfile to absolute pressure (as is added directly in netspwfile)
+      !
+      spw_pabs = gapres - spw_pdrp
       !
       dradspw = spw_radius/spw_nrows
       dphispw = 2*pi/spw_ncols
@@ -339,7 +344,7 @@ contains
             spw_wv01(irow, icol) = spw_wv(itw0, irow, icol)*(1.0 - twfac)   + spw_wv(itw1, irow, icol)*twfac
             !
             if (patmos) then
-               spw_pdrp01(irow, icol) = spw_pdrp(itw0, irow, icol) * (1.0 - twfac) + spw_pdrp(itw1, irow, icol) * twfac
+               spw_pabs01(irow, icol) = spw_pdrp(itw0, irow, icol) * (1.0 - twfac) + spw_pdrp(itw1, irow, icol) * twfac
             endif
             !
             if (spw_precip) then
@@ -468,7 +473,7 @@ contains
             wvp     = wvp + f(ip)*spw_wv01(ind1(ip),ind2(ip))
             !
             if (patmos) then
-               pcp  = pcp + f(ip)*spw_pdrp01(ind1(ip),ind2(ip))
+               pcp  = pcp + f(ip)*spw_pabs01(ind1(ip),ind2(ip))
             endif
             !
             if (precip .and. spw_precip) then
@@ -546,7 +551,7 @@ contains
             tauwv0(nm) = (1.0 - merge_frac)*tauwv0(nm) + merge_frac*vmag*(-sinrot*wup + cosrot*wvp)*rhoa*cd/rhow
             ! 
             if (patmos) then
-               patm0(nm)  = (1.0 - merge_frac)*patm0(nm) + merge_frac*(gapres - pcp)
+               patm0(nm)  = (1.0 - merge_frac)*patm0(nm) + merge_frac*pcp
             endif
             ! 
             if (precip .and. spw_precip) then
@@ -564,7 +569,7 @@ contains
             tauwv1(nm) = (1.0 - merge_frac)*tauwv1(nm) + merge_frac*vmag*(-sinrot*wup + cosrot*wvp)*rhoa*cd/rhow
             ! 
             if (patmos) then
-               patm1(nm)  = (1.0 - merge_frac)*patm1(nm) + merge_frac*(gapres - pcp)
+               patm1(nm)  = (1.0 - merge_frac)*patm1(nm) + merge_frac*pcp
             endif
             ! 
             if (precip .and. spw_precip) then

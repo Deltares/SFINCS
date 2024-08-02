@@ -237,7 +237,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 266, Column: 0 }
+                   Line: 262, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          FastISel missed call
@@ -246,7 +246,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 266, Column: 0 }
+                   Line: 262, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          FastISel missed
@@ -255,7 +255,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 300, Column: 0 }
+                   Line: 296, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          FastISel missed call
@@ -264,7 +264,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 311, Column: 0 }
+                   Line: 307, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          FastISel missed call
@@ -273,7 +273,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 351, Column: 0 }
+                   Line: 347, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          FastISel missed call
@@ -282,7 +282,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 436, Column: 0 }
+                   Line: 432, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          FastISel missed
@@ -291,7 +291,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 485, Column: 0 }
+                   Line: 481, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          FastISel missed
@@ -300,7 +300,16 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 495, Column: 0 }
+                   Line: 491, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_UPDATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 498, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          FastISel missed call
@@ -312,22 +321,13 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90',
                    Line: 502, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
-  - String:          FastISel missed call
-...
---- !Missed
-Pass:            sdagisel
-Name:            FastISelFailure
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 506, Column: 0 }
-Function:        SFINCS_LIB_mp_SFINCS_UPDATE
-Args:
   - String:          FastISel missed
 ...
 --- !Missed
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 504, Column: 0 }
+                   Line: 500, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          FastISel missed
@@ -339,7 +339,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90',
                    Line: 222, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
-  - NumStackBytes:   '744'
+  - NumStackBytes:   '728'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_LIB_mp_SFINCS_UPDATE
   - String:          ''''
@@ -387,7 +387,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 263, Column: 0 }
+                   Line: 259, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -402,7 +402,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 270, Column: 0 }
+                   Line: 266, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -417,7 +417,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 272, Column: 0 }
+                   Line: 268, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -432,7 +432,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 298, Column: 0 }
+                   Line: 294, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -460,7 +460,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 307, Column: 0 }
+                   Line: 303, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -475,7 +475,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 314, Column: 0 }
+                   Line: 310, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -503,7 +503,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 307, Column: 0 }
+                   Line: 303, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -518,7 +518,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 309, Column: 0 }
+                   Line: 305, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -546,7 +546,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 324, Column: 0 }
+                   Line: 320, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -561,7 +561,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 333, Column: 0 }
+                   Line: 329, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -576,7 +576,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 339, Column: 0 }
+                   Line: 335, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -591,7 +591,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 324, Column: 0 }
+                   Line: 320, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -606,7 +606,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 326, Column: 0 }
+                   Line: 322, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -634,7 +634,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 347, Column: 0 }
+                   Line: 343, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -649,7 +649,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 349, Column: 0 }
+                   Line: 345, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -677,7 +677,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 356, Column: 0 }
+                   Line: 352, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -692,7 +692,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 360, Column: 0 }
+                   Line: 356, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -720,7 +720,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 370, Column: 0 }
+                   Line: 366, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -735,7 +735,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 375, Column: 0 }
+                   Line: 371, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -763,7 +763,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 372, Column: 0 }
+                   Line: 368, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -778,7 +778,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 373, Column: 0 }
+                   Line: 369, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -806,7 +806,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 383, Column: 0 }
+                   Line: 379, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -821,7 +821,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 387, Column: 0 }
+                   Line: 383, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -849,7 +849,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 385, Column: 0 }
+                   Line: 381, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -864,7 +864,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 386, Column: 0 }
+                   Line: 382, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -892,7 +892,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 394, Column: 0 }
+                   Line: 390, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -907,7 +907,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 401, Column: 0 }
+                   Line: 397, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -935,7 +935,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 407, Column: 0 }
+                   Line: 403, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -950,7 +950,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 415, Column: 0 }
+                   Line: 411, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -978,7 +978,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 394, Column: 0 }
+                   Line: 390, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -993,7 +993,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 396, Column: 0 }
+                   Line: 392, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -1021,7 +1021,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 423, Column: 0 }
+                   Line: 419, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -1036,7 +1036,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 431, Column: 0 }
+                   Line: 427, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -1064,7 +1064,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 452, Column: 0 }
+                   Line: 448, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -1079,7 +1079,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 456, Column: 0 }
+                   Line: 452, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -1107,7 +1107,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 460, Column: 0 }
+                   Line: 456, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -1122,7 +1122,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 462, Column: 0 }
+                   Line: 458, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -1150,7 +1150,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 468, Column: 0 }
+                   Line: 464, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -1165,7 +1165,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 476, Column: 0 }
+                   Line: 472, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -1193,7 +1193,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 482, Column: 0 }
+                   Line: 478, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -1208,7 +1208,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 484, Column: 0 }
+                   Line: 480, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -1236,7 +1236,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 495, Column: 0 }
+                   Line: 491, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -1251,7 +1251,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 504, Column: 0 }
+                   Line: 500, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -1266,7 +1266,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 506, Column: 0 }
+                   Line: 502, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -1281,7 +1281,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 497, Column: 0 }
+                   Line: 493, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -1296,7 +1296,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 499, Column: 0 }
+                   Line: 495, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -1324,7 +1324,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 511, Column: 0 }
+                   Line: 507, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -1339,7 +1339,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 516, Column: 0 }
+                   Line: 512, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_UPDATE
 Args:
   - String:          'BasicBlock: '
@@ -1364,7 +1364,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 520, Column: 0 }
+                   Line: 516, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          'FastISel didn''t lower all arguments: '
@@ -1374,7 +1374,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 544, Column: 0 }
+                   Line: 540, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          FastISel missed
@@ -1383,7 +1383,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 546, Column: 0 }
+                   Line: 542, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          FastISel missed
@@ -1392,7 +1392,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 549, Column: 0 }
+                   Line: 545, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          FastISel missed
@@ -1401,7 +1401,25 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 552, Column: 0 }
+                   Line: 548, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 551, Column: 0 }
+Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
+                   Line: 553, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          FastISel missed
@@ -1419,7 +1437,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 557, Column: 0 }
+                   Line: 558, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          FastISel missed
@@ -1428,7 +1446,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 559, Column: 0 }
+                   Line: 560, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          FastISel missed
@@ -1437,7 +1455,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 562, Column: 0 }
+                   Line: 563, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          FastISel missed
@@ -1446,10 +1464,10 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 564, Column: 0 }
+                   Line: 567, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
-  - String:          FastISel missed
+  - String:          FastISel missed call
 ...
 --- !Missed
 Pass:            sdagisel
@@ -1464,7 +1482,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 571, Column: 0 }
+                   Line: 581, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          FastISel missed call
@@ -1473,7 +1491,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 571, Column: 0 }
+                   Line: 581, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          FastISel missed
@@ -1482,7 +1500,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 585, Column: 0 }
+                   Line: 584, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          FastISel missed call
@@ -1491,7 +1509,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 585, Column: 0 }
+                   Line: 584, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          FastISel missed
@@ -1500,7 +1518,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 588, Column: 0 }
+                   Line: 595, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          FastISel missed call
@@ -1509,25 +1527,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 588, Column: 0 }
-Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
-Args:
-  - String:          FastISel missed
-...
---- !Missed
-Pass:            sdagisel
-Name:            FastISelFailure
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 599, Column: 0 }
-Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
-Args:
-  - String:          FastISel missed call
-...
---- !Missed
-Pass:            sdagisel
-Name:            FastISelFailure
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 599, Column: 0 }
+                   Line: 595, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          FastISel missed
@@ -1536,7 +1536,7 @@ Args:
 Pass:            prologepilog
 Name:            StackSize
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 520, Column: 0 }
+                   Line: 516, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - NumStackBytes:   '2392'
@@ -1561,7 +1561,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 533, Column: 0 }
+                   Line: 529, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          'BasicBlock: '
@@ -1589,7 +1589,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 537, Column: 0 }
+                   Line: 533, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          'BasicBlock: '
@@ -1604,7 +1604,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 546, Column: 0 }
+                   Line: 542, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          'BasicBlock: '
@@ -1632,7 +1632,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 548, Column: 0 }
+                   Line: 544, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          'BasicBlock: '
@@ -1647,7 +1647,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 549, Column: 0 }
+                   Line: 545, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          'BasicBlock: '
@@ -1675,7 +1675,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 551, Column: 0 }
+                   Line: 547, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          'BasicBlock: '
@@ -1690,7 +1690,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 552, Column: 0 }
+                   Line: 548, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          'BasicBlock: '
@@ -1718,7 +1718,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 554, Column: 0 }
+                   Line: 550, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          'BasicBlock: '
@@ -1733,7 +1733,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 555, Column: 0 }
+                   Line: 551, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          'BasicBlock: '
@@ -1761,7 +1761,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 557, Column: 0 }
+                   Line: 553, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          'BasicBlock: '
@@ -1776,7 +1776,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 559, Column: 0 }
+                   Line: 555, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          'BasicBlock: '
@@ -1804,7 +1804,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 561, Column: 0 }
+                   Line: 557, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          'BasicBlock: '
@@ -1819,7 +1819,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 564, Column: 0 }
+                   Line: 560, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          'BasicBlock: '
@@ -1847,7 +1847,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 566, Column: 0 }
+                   Line: 562, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          'BasicBlock: '
@@ -1862,7 +1862,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 567, Column: 0 }
+                   Line: 563, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          'BasicBlock: '
@@ -1890,7 +1890,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 569, Column: 0 }
+                   Line: 565, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          'BasicBlock: '
@@ -1905,7 +1905,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 574, Column: 0 }
+                   Line: 570, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          'BasicBlock: '
@@ -1933,7 +1933,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 588, Column: 0 }
+                   Line: 584, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          'BasicBlock: '
@@ -1948,7 +1948,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 598, Column: 0 }
+                   Line: 594, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          'BasicBlock: '
@@ -1976,7 +1976,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 604, Column: 0 }
+                   Line: 600, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - String:          'BasicBlock: '
@@ -1991,7 +1991,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionCount
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_lib.f90', 
-                   Line: 520, Column: 0 }
+                   Line: 516, Column: 0 }
 Function:        SFINCS_LIB_mp_SFINCS_FINALIZE
 Args:
   - NumInstructions: '1423'

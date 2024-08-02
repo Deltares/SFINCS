@@ -5951,46 +5951,10 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 195, Column: 0 }
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
-Args:
-  - String:          FastISel missed call
-...
---- !Missed
-Pass:            sdagisel
-Name:            FastISelFailure
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 195, Column: 0 }
+                   Line: 197, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          FastISel missed
-...
---- !Missed
-Pass:            sdagisel
-Name:            FastISelFailure
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 208, Column: 0 }
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
-Args:
-  - String:          FastISel missed call
-...
---- !Missed
-Pass:            sdagisel
-Name:            FastISelFailure
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 208, Column: 0 }
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
-Args:
-  - String:          FastISel missed
-...
---- !Missed
-Pass:            sdagisel
-Name:            FastISelFailure
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 209, Column: 0 }
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
-Args:
-  - String:          FastISel missed call
 ...
 --- !Missed
 Pass:            sdagisel
@@ -6014,7 +5978,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 215, Column: 0 }
+                   Line: 211, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          FastISel missed call
@@ -6023,7 +5987,16 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 215, Column: 0 }
+                   Line: 212, Column: 0 }
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
+                   Line: 212, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          FastISel missed
@@ -6032,7 +6005,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 216, Column: 0 }
+                   Line: 217, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          FastISel missed call
@@ -6041,16 +6014,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 219, Column: 0 }
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
-Args:
-  - String:          FastISel missed call
-...
---- !Missed
-Pass:            sdagisel
-Name:            FastISelFailure
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 219, Column: 0 }
+                   Line: 217, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          FastISel missed
@@ -6059,7 +6023,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 220, Column: 0 }
+                   Line: 218, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          FastISel missed call
@@ -6086,7 +6050,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 240, Column: 0 }
+                   Line: 222, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          FastISel missed call
@@ -6095,7 +6059,16 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 240, Column: 0 }
+                   Line: 223, Column: 0 }
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
+                   Line: 223, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          FastISel missed
@@ -6104,7 +6077,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 241, Column: 0 }
+                   Line: 242, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          FastISel missed call
@@ -6122,7 +6095,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 232, Column: 0 }
+                   Line: 243, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          FastISel missed call
@@ -6131,19 +6104,10 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 232, Column: 0 }
+                   Line: 244, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          FastISel missed
-...
---- !Missed
-Pass:            sdagisel
-Name:            FastISelFailure
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 233, Column: 0 }
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
-Args:
-  - String:          FastISel missed call
 ...
 --- !Missed
 Pass:            sdagisel
@@ -6179,13 +6143,22 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditi
                    Line: 236, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
+                   Line: 236, Column: 0 }
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
+Args:
   - String:          FastISel missed
 ...
 --- !Missed
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 226, Column: 0 }
+                   Line: 237, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          FastISel missed call
@@ -6194,7 +6167,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 226, Column: 0 }
+                   Line: 238, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          FastISel missed
@@ -6203,7 +6176,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 227, Column: 0 }
+                   Line: 228, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          FastISel missed call
@@ -6221,7 +6194,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 246, Column: 0 }
+                   Line: 229, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          FastISel missed call
@@ -6230,7 +6203,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 246, Column: 0 }
+                   Line: 230, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          FastISel missed
@@ -6239,7 +6212,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 203, Column: 0 }
+                   Line: 248, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          FastISel missed call
@@ -6248,7 +6221,25 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 203, Column: 0 }
+                   Line: 248, Column: 0 }
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
+                   Line: 205, Column: 0 }
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
+                   Line: 205, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          FastISel missed
@@ -6260,7 +6251,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditi
                    Line: 164, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
-  - NumStackBytes:   '2232'
+  - NumStackBytes:   '2280'
   - String:          ' stack bytes in function '''
   - Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
   - String:          ''''
@@ -6275,18 +6266,18 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '120'
+  - INST_:           '149'
   - String:          "\n"
 ...
 --- !Analysis
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 209, Column: 0 }
+                   Line: 211, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_345
+  - BasicBlock:      chk_ptr_error_348
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -6299,7 +6290,7 @@ Name:            InstructionMix
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_346
+  - BasicBlock:      chk_ptr_ok_349
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -6310,11 +6301,11 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 216, Column: 0 }
+                   Line: 218, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_359
+  - BasicBlock:      chk_ptr_error_362
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -6327,7 +6318,7 @@ Name:            InstructionMix
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_360
+  - BasicBlock:      chk_ptr_ok_363
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -6338,11 +6329,11 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 220, Column: 0 }
+                   Line: 222, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_368
+  - BasicBlock:      chk_ptr_error_371
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -6355,7 +6346,7 @@ Name:            InstructionMix
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_369
+  - BasicBlock:      chk_ptr_ok_372
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -6366,11 +6357,11 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 215, Column: 0 }
+                   Line: 217, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new356_then
+  - BasicBlock:      bb_new359_then
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -6383,222 +6374,7 @@ Name:            InstructionMix
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb328_else
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '1'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 224, Column: 0 }
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      bb329_endif
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '7'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 227, Column: 0 }
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_378
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '8'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_379
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '54'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 233, Column: 0 }
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_393
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '8'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_394
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '39'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 235, Column: 0 }
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_400
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '8'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_401
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '54'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 241, Column: 0 }
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_415
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '8'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_416
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '54'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 240, Column: 0 }
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      bb_new412_then
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '22'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      bb341_else
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '1'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 230, Column: 0 }
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      bb342_endif
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '1'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 232, Column: 0 }
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      bb_new390_then
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '22'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 238, Column: 0 }
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      bb_new411_else
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '7'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 224, Column: 0 }
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      bb343_endif
+  - BasicBlock:      bb329_else
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -6613,22 +6389,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditi
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new375_then
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '22'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 230, Column: 0 }
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      bb_new389_else
+  - BasicBlock:      bb330_endif
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -6639,41 +6400,166 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 246, Column: 0 }
+                   Line: 229, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb344_endif
+  - BasicBlock:      chk_ptr_error_381
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '13'
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      chk_ptr_ok_382
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '54'
   - String:          "\n"
 ...
 --- !Analysis
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 201, Column: 0 }
+                   Line: 235, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new337_then
+  - BasicBlock:      chk_ptr_error_396
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '40'
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      chk_ptr_ok_397
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '39'
   - String:          "\n"
 ...
 --- !Analysis
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 208, Column: 0 }
+                   Line: 237, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new342_else
+  - BasicBlock:      chk_ptr_error_403
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      chk_ptr_ok_404
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '54'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
+                   Line: 243, Column: 0 }
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      chk_ptr_error_418
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      chk_ptr_ok_419
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '54'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
+                   Line: 242, Column: 0 }
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new415_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '22'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb342_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
+                   Line: 232, Column: 0 }
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb343_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
+                   Line: 234, Column: 0 }
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new393_then
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -6684,11 +6570,116 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 250, Column: 0 }
+                   Line: 240, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb346_endif
+  - BasicBlock:      bb_new414_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '7'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
+                   Line: 226, Column: 0 }
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb344_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
+                   Line: 228, Column: 0 }
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new378_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '22'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
+                   Line: 232, Column: 0 }
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new392_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '7'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
+                   Line: 248, Column: 0 }
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb345_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '13'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
+                   Line: 203, Column: 0 }
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new340_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '40'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
+                   Line: 210, Column: 0 }
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new345_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '22'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
+                   Line: 252, Column: 0 }
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb347_endif
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -6702,14 +6693,14 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditi
                    Line: 164, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_BINARY_RESTART_FILE
 Args:
-  - NumInstructions: '728'
+  - NumInstructions: '757'
   - String:          ' instructions in function'
 ...
 --- !Missed
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 254, Column: 0 }
+                   Line: 256, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_ZSINI_FILE
 Args:
   - String:          'FastISel didn''t lower all arguments: '
@@ -6719,7 +6710,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 261, Column: 0 }
+                   Line: 263, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_ZSINI_FILE
 Args:
   - String:          FastISel missed call
@@ -6728,7 +6719,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 261, Column: 0 }
+                   Line: 263, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_ZSINI_FILE
 Args:
   - String:          FastISel missed
@@ -6737,7 +6728,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 262, Column: 0 }
+                   Line: 264, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_ZSINI_FILE
 Args:
   - String:          FastISel missed call
@@ -6746,7 +6737,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 263, Column: 0 }
+                   Line: 265, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_ZSINI_FILE
 Args:
   - String:          FastISel missed call
@@ -6755,7 +6746,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 263, Column: 0 }
+                   Line: 265, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_ZSINI_FILE
 Args:
   - String:          FastISel missed
@@ -6764,7 +6755,7 @@ Args:
 Pass:            prologepilog
 Name:            StackSize
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 254, Column: 0 }
+                   Line: 256, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_ZSINI_FILE
 Args:
   - NumStackBytes:   '840'
@@ -6789,11 +6780,11 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 262, Column: 0 }
+                   Line: 264, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_ZSINI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_442
+  - BasicBlock:      chk_ptr_error_445
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -6806,7 +6797,7 @@ Name:            InstructionMix
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_ZSINI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_443
+  - BasicBlock:      chk_ptr_ok_446
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -6817,7 +6808,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionCount
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 254, Column: 0 }
+                   Line: 256, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_ZSINI_FILE
 Args:
   - NumInstructions: '138'
@@ -6827,7 +6818,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 269, Column: 0 }
+                   Line: 271, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'FastISel didn''t lower all arguments: '
@@ -6837,7 +6828,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 297, Column: 0 }
+                   Line: 299, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          FastISel missed call
@@ -6846,7 +6837,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 297, Column: 0 }
+                   Line: 299, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          FastISel missed
@@ -6855,7 +6846,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 307, Column: 0 }
+                   Line: 309, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          FastISel missed call
@@ -6864,7 +6855,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 307, Column: 0 }
+                   Line: 309, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          FastISel missed call
@@ -6873,7 +6864,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 307, Column: 0 }
+                   Line: 309, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          FastISel missed call
@@ -6882,7 +6873,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 307, Column: 0 }
+                   Line: 309, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          FastISel missed call
@@ -6891,7 +6882,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 307, Column: 0 }
+                   Line: 309, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          FastISel missed call
@@ -6900,7 +6891,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 307, Column: 0 }
+                   Line: 309, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          FastISel missed call
@@ -6909,7 +6900,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 307, Column: 0 }
+                   Line: 309, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          FastISel missed call
@@ -6918,7 +6909,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 307, Column: 0 }
+                   Line: 309, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          FastISel missed call
@@ -6927,7 +6918,7 @@ Args:
 Pass:            prologepilog
 Name:            StackSize
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 269, Column: 0 }
+                   Line: 271, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - NumStackBytes:   '744'
@@ -6954,7 +6945,7 @@ Name:            InstructionMix
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      do.prolog510
+  - BasicBlock:      do.prolog513
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -6965,11 +6956,11 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 307, Column: 0 }
+                   Line: 309, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      do.body508
+  - BasicBlock:      do.body511
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -6980,37 +6971,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 307, Column: 0 }
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_513
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '8'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 307, Column: 0 }
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_514
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '12'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 307, Column: 0 }
+                   Line: 309, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
@@ -7025,11 +6986,41 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 307, Column: 0 }
+                   Line: 309, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
   - BasicBlock:      chk_ptr_ok_517
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '12'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
+                   Line: 309, Column: 0 }
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      chk_ptr_error_519
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
+                   Line: 309, Column: 0 }
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      chk_ptr_ok_520
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -7042,7 +7033,7 @@ Name:            InstructionMix
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb353_else
+  - BasicBlock:      bb354_else
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -7055,7 +7046,7 @@ Name:            InstructionMix
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb354_endif
+  - BasicBlock:      bb355_endif
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -7068,7 +7059,7 @@ Name:            InstructionMix
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall520_uif_true
+  - BasicBlock:      initcall523_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -7081,7 +7072,7 @@ Name:            InstructionMix
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb356_else
+  - BasicBlock:      bb357_else
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -7092,93 +7083,15 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 307, Column: 0 }
+                   Line: 309, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb357_endif
+  - BasicBlock:      bb358_endif
   - String:          "\n"
   - String:          ''
   - String:          ': '
   - INST_:           '1'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      initcall522_uif_true
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '14'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      bb359_else
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '1'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      bb360_endif
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '11'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      bb_new519_uif_true
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '5'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      bb362_else
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '1'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      bb363_endif
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '5'
   - String:          "\n"
 ...
 --- !Analysis
@@ -7200,22 +7113,7 @@ Name:            InstructionMix
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb365_else
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '1'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 307, Column: 0 }
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      bb366_endif
+  - BasicBlock:      bb360_else
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -7228,7 +7126,59 @@ Name:            InstructionMix
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall527_uif_true
+  - BasicBlock:      bb361_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '11'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new522_uif_true
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '5'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb363_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb364_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '5'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      initcall528_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -7241,7 +7191,7 @@ Name:            InstructionMix
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb368_else
+  - BasicBlock:      bb366_else
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -7251,53 +7201,16 @@ Args:
 --- !Analysis
 Pass:            asm-printer
 Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
+                   Line: 309, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb369_endif
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '19'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      bb_new524_uif_true
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '5'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      bb371_else
+  - BasicBlock:      bb367_endif
   - String:          "\n"
   - String:          ''
   - String:          ': '
   - INST_:           '1'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      bb372_endif
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '5'
   - String:          "\n"
 ...
 --- !Analysis
@@ -7319,22 +7232,7 @@ Name:            InstructionMix
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb374_else
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '1'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 307, Column: 0 }
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      bb375_endif
+  - BasicBlock:      bb369_else
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -7347,11 +7245,11 @@ Name:            InstructionMix
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall532_uif_true
+  - BasicBlock:      bb370_endif
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '14'
+  - INST_:           '19'
   - String:          "\n"
 ...
 --- !Analysis
@@ -7360,33 +7258,7 @@ Name:            InstructionMix
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb377_else
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '1'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      bb378_endif
-  - String:          "\n"
-  - String:          ''
-  - String:          ': '
-  - INST_:           '13'
-  - String:          "\n"
-...
---- !Analysis
-Pass:            asm-printer
-Name:            InstructionMix
-Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
-Args:
-  - String:          'BasicBlock: '
-  - BasicBlock:      bb_new529_uif_true
+  - BasicBlock:      bb_new527_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -7399,7 +7271,46 @@ Name:            InstructionMix
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      do.epilog511
+  - BasicBlock:      bb372_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb373_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '5'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      initcall533_uif_true
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '14'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb375_else
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -7410,11 +7321,91 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 311, Column: 0 }
+                   Line: 309, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      do.end_do509
+  - BasicBlock:      bb376_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      initcall535_uif_true
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '14'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb378_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb379_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '13'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new532_uif_true
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '5'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      do.epilog514
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
+                   Line: 313, Column: 0 }
+Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      do.end_do512
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -7425,11 +7416,11 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 313, Column: 0 }
+                   Line: 315, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      dealloc.list.then544
+  - BasicBlock:      dealloc.list.then547
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -7440,11 +7431,11 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 313, Column: 0 }
+                   Line: 315, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new547_then
+  - BasicBlock:      bb_new550_then
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -7457,7 +7448,7 @@ Name:            InstructionMix
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb379_else
+  - BasicBlock:      bb380_else
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -7468,11 +7459,11 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 313, Column: 0 }
+                   Line: 315, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb380_endif
+  - BasicBlock:      bb381_endif
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -7483,11 +7474,11 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 313, Column: 0 }
+                   Line: 315, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      dealloc.list.end545
+  - BasicBlock:      dealloc.list.end548
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -7498,7 +7489,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionCount
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 269, Column: 0 }
+                   Line: 271, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_READ_NC_INI_FILE
 Args:
   - NumInstructions: '486'
@@ -7508,7 +7499,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 317, Column: 0 }
+                   Line: 319, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_HANDLE_ERR
 Args:
   - String:          'FastISel didn''t lower all arguments: '
@@ -7518,7 +7509,7 @@ Args:
 Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 326, Column: 0 }
+                   Line: 328, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_HANDLE_ERR
 Args:
   - String:          FastISel missed
@@ -7527,7 +7518,7 @@ Args:
 Pass:            prologepilog
 Name:            StackSize
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 317, Column: 0 }
+                   Line: 319, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_HANDLE_ERR
 Args:
   - NumStackBytes:   '408'
@@ -7554,7 +7545,7 @@ Name:            InstructionMix
 Function:        SFINCS_INITIAL_CONDITIONS_mp_HANDLE_ERR
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new550_then
+  - BasicBlock:      bb_new553_then
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -7567,7 +7558,7 @@ Name:            InstructionMix
 Function:        SFINCS_INITIAL_CONDITIONS_mp_HANDLE_ERR
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb383_else
+  - BasicBlock:      bb384_else
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -7578,11 +7569,11 @@ Args:
 Pass:            asm-printer
 Name:            InstructionMix
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 330, Column: 0 }
+                   Line: 332, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_HANDLE_ERR
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb384_endif
+  - BasicBlock:      bb385_endif
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -7593,7 +7584,7 @@ Args:
 Pass:            asm-printer
 Name:            InstructionCount
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_initial_conditions.F90', 
-                   Line: 317, Column: 0 }
+                   Line: 319, Column: 0 }
 Function:        SFINCS_INITIAL_CONDITIONS_mp_HANDLE_ERR
 Args:
   - NumInstructions: '82'

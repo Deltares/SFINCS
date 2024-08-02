@@ -222,7 +222,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      DIR.OMP.PARALLEL.12905
+  - BasicBlock:      DIR.OMP.PARALLEL.12907
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -237,7 +237,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      DIR.OMP.PARALLEL.12908
+  - BasicBlock:      DIR.OMP.PARALLEL.12910
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -252,7 +252,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      DIR.OMP.PARALLEL.12911
+  - BasicBlock:      DIR.OMP.PARALLEL.12913
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -267,7 +267,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      DIR.OMP.PARALLEL.12911.split
+  - BasicBlock:      DIR.OMP.PARALLEL.12913.split
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -282,7 +282,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      DIR.OMP.PARALLEL.53272
+  - BasicBlock:      DIR.OMP.PARALLEL.53274
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -372,7 +372,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      DIR.OMP.PARALLEL.22906
+  - BasicBlock:      DIR.OMP.PARALLEL.22908
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -387,7 +387,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      DIR.OMP.PARALLEL.22909
+  - BasicBlock:      DIR.OMP.PARALLEL.22911
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -402,7 +402,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      DIR.OMP.PARALLEL.22912
+  - BasicBlock:      DIR.OMP.PARALLEL.22914
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -417,7 +417,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      DIR.OMP.PARALLEL.22912.split
+  - BasicBlock:      DIR.OMP.PARALLEL.22914.split
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -445,7 +445,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      codeRepl3286
+  - BasicBlock:      codeRepl3288
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -460,7 +460,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1108_then
+  - BasicBlock:      bb_new1109_then
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -505,7 +505,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      DIR.OMP.PARALLEL.32907
+  - BasicBlock:      DIR.OMP.PARALLEL.32909
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -520,7 +520,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      DIR.OMP.PARALLEL.32910
+  - BasicBlock:      DIR.OMP.PARALLEL.32912
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -535,7 +535,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      DIR.OMP.PARALLEL.32913
+  - BasicBlock:      DIR.OMP.PARALLEL.32915
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -550,7 +550,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      DIR.OMP.PARALLEL.32913.split
+  - BasicBlock:      DIR.OMP.PARALLEL.32915.split
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -580,7 +580,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      codeRepl3291
+  - BasicBlock:      codeRepl3293
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -1389,7 +1389,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.6
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      DIR.OMP.LOOP.13270.split3273
+  - BasicBlock:      DIR.OMP.LOOP.13272.split3275
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -1445,7 +1445,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.6
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      DIR.OMP.END.LOOP.3.split3274
+  - BasicBlock:      DIR.OMP.END.LOOP.3.split3276
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -4296,6 +4296,15 @@ Pass:            sdagisel
 Name:            FastISelFailure
 DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90', 
                    Line: 561, Column: 0 }
+Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90', 
+                   Line: 547, Column: 0 }
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          FastISel missed call
@@ -22531,7 +22540,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new976_then
+  - BasicBlock:      bb_new977_then
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22546,7 +22555,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new978_else
+  - BasicBlock:      bb_new979_else
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22580,7 +22589,7 @@ Args:
   - String:          "\n"
   - String:          ''
   - String:          ': '
-  - INST_:           '17'
+  - INST_:           '19'
   - String:          "\n"
 ...
 --- !Analysis
@@ -22591,7 +22600,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new975_else
+  - BasicBlock:      bb_new976_else
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22621,7 +22630,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_983
+  - BasicBlock:      chk_ptr_error_984
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22636,7 +22645,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_984
+  - BasicBlock:      chk_ptr_ok_985
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22651,7 +22660,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_986
+  - BasicBlock:      chk_ptr_error_987
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22666,7 +22675,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_987
+  - BasicBlock:      chk_ptr_ok_988
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22711,7 +22720,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall990_uif_true
+  - BasicBlock:      initcall991_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22756,7 +22765,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall992_uif_true
+  - BasicBlock:      initcall993_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22801,7 +22810,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new989_uif_true
+  - BasicBlock:      bb_new990_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22846,7 +22855,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall995_uif_true
+  - BasicBlock:      initcall996_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22891,7 +22900,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall997_uif_true
+  - BasicBlock:      initcall998_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22936,7 +22945,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new994_uif_true
+  - BasicBlock:      bb_new995_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22951,7 +22960,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_1000
+  - BasicBlock:      chk_ptr_error_1001
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22966,7 +22975,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_1001
+  - BasicBlock:      chk_ptr_ok_1002
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22981,7 +22990,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_1003
+  - BasicBlock:      chk_ptr_error_1004
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -22996,7 +23005,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_1004
+  - BasicBlock:      chk_ptr_ok_1005
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23041,7 +23050,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1007_uif_true
+  - BasicBlock:      initcall1008_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23086,7 +23095,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1009_uif_true
+  - BasicBlock:      initcall1010_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23131,7 +23140,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1006_uif_true
+  - BasicBlock:      bb_new1007_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23176,7 +23185,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1012_uif_true
+  - BasicBlock:      initcall1013_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23221,7 +23230,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1014_uif_true
+  - BasicBlock:      initcall1015_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23266,7 +23275,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1011_uif_true
+  - BasicBlock:      bb_new1012_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23281,7 +23290,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1020_then
+  - BasicBlock:      bb_new1021_then
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23326,7 +23335,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1016_then
+  - BasicBlock:      bb_new1017_then
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23371,7 +23380,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new982_then
+  - BasicBlock:      bb_new983_then
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23446,7 +23455,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1024_uif_true
+  - BasicBlock:      initcall1025_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23491,7 +23500,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1026_uif_true
+  - BasicBlock:      initcall1027_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23536,7 +23545,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1023_uif_true
+  - BasicBlock:      bb_new1024_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23551,7 +23560,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_1030
+  - BasicBlock:      chk_ptr_error_1031
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23566,7 +23575,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_1031
+  - BasicBlock:      chk_ptr_ok_1032
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23611,7 +23620,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1034_uif_true
+  - BasicBlock:      initcall1035_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23656,7 +23665,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1036_uif_true
+  - BasicBlock:      initcall1037_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23701,7 +23710,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1033_uif_true
+  - BasicBlock:      bb_new1034_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23716,7 +23725,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_1038
+  - BasicBlock:      chk_ptr_error_1039
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23731,7 +23740,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_1039
+  - BasicBlock:      chk_ptr_ok_1040
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23776,7 +23785,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1042_uif_true
+  - BasicBlock:      initcall1043_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23821,7 +23830,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1044_uif_true
+  - BasicBlock:      initcall1045_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23866,7 +23875,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1041_uif_true
+  - BasicBlock:      bb_new1042_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23881,7 +23890,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_1049
+  - BasicBlock:      chk_ptr_error_1050
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23896,7 +23905,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_1050
+  - BasicBlock:      chk_ptr_ok_1051
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23941,7 +23950,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1053_uif_true
+  - BasicBlock:      initcall1054_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -23986,7 +23995,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1055_uif_true
+  - BasicBlock:      initcall1056_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24031,7 +24040,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1052_uif_true
+  - BasicBlock:      bb_new1053_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24076,7 +24085,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1058_uif_true
+  - BasicBlock:      initcall1059_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24121,7 +24130,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1060_uif_true
+  - BasicBlock:      initcall1061_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24166,7 +24175,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1057_uif_true
+  - BasicBlock:      bb_new1058_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24181,7 +24190,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1048_then
+  - BasicBlock:      bb_new1049_then
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24226,7 +24235,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1029_then
+  - BasicBlock:      bb_new1030_then
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24271,7 +24280,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_1063
+  - BasicBlock:      chk_ptr_error_1064
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24286,7 +24295,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_1064
+  - BasicBlock:      chk_ptr_ok_1065
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24331,7 +24340,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1067_uif_true
+  - BasicBlock:      initcall1068_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24376,7 +24385,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1069_uif_true
+  - BasicBlock:      initcall1070_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24421,7 +24430,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1066_uif_true
+  - BasicBlock:      bb_new1067_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24466,7 +24475,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1075_uif_true
+  - BasicBlock:      initcall1076_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24511,7 +24520,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1077_uif_true
+  - BasicBlock:      initcall1078_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24556,7 +24565,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1074_uif_true
+  - BasicBlock:      bb_new1075_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24601,7 +24610,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1081_uif_true
+  - BasicBlock:      initcall1082_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24646,7 +24655,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1083_uif_true
+  - BasicBlock:      initcall1084_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24691,7 +24700,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1080_uif_true
+  - BasicBlock:      bb_new1081_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24736,7 +24745,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1090_uif_true
+  - BasicBlock:      initcall1091_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24781,7 +24790,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1092_uif_true
+  - BasicBlock:      initcall1093_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24826,7 +24835,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1089_uif_true
+  - BasicBlock:      bb_new1090_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24871,7 +24880,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1096_uif_true
+  - BasicBlock:      initcall1097_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24916,7 +24925,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1098_uif_true
+  - BasicBlock:      initcall1099_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -24961,7 +24970,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1095_uif_true
+  - BasicBlock:      bb_new1096_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -25006,7 +25015,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1102_uif_true
+  - BasicBlock:      initcall1103_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -25051,7 +25060,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1104_uif_true
+  - BasicBlock:      initcall1105_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -25096,7 +25105,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1101_uif_true
+  - BasicBlock:      bb_new1102_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -25126,7 +25135,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1088_else
+  - BasicBlock:      bb_new1089_else
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -25201,7 +25210,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      omp.pdo.epilog49.crit_edge1106
+  - BasicBlock:      omp.pdo.epilog49.crit_edge1107
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -25246,7 +25255,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      DIR.OMP.LOOP.8.split3277
+  - BasicBlock:      DIR.OMP.LOOP.8.split3279
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -25306,7 +25315,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      DIR.OMP.END.LOOP.8.split3278
+  - BasicBlock:      DIR.OMP.END.LOOP.8.split3280
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -25410,7 +25419,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
                    Line: 128, Column: 0 }
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.13
 Args:
-  - NumInstructions: '9362'
+  - NumInstructions: '9364'
   - String:          ' instructions in function'
 ...
 --- !Missed
@@ -25775,7 +25784,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      omp.pdo.body1112.lr.ph1113
+  - BasicBlock:      omp.pdo.body1113.lr.ph1114
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -25788,7 +25797,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      omp.pdo.body1112.preheader
+  - BasicBlock:      omp.pdo.body1113.preheader
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -25801,7 +25810,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      omp.pdo.body1112
+  - BasicBlock:      omp.pdo.body1113
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -25816,7 +25825,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_1117
+  - BasicBlock:      chk_ptr_error_1118
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -25831,7 +25840,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_1118
+  - BasicBlock:      chk_ptr_ok_1119
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -25846,7 +25855,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_1120
+  - BasicBlock:      chk_ptr_error_1121
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -25861,7 +25870,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_1121
+  - BasicBlock:      chk_ptr_ok_1122
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -25900,7 +25909,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1124_uif_true
+  - BasicBlock:      initcall1125_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -25941,7 +25950,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1126_uif_true
+  - BasicBlock:      initcall1127_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -25980,7 +25989,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1123_uif_true
+  - BasicBlock:      bb_new1124_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26019,7 +26028,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1129_uif_true
+  - BasicBlock:      initcall1130_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26060,7 +26069,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1131_uif_true
+  - BasicBlock:      initcall1132_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26099,7 +26108,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1128_uif_true
+  - BasicBlock:      bb_new1129_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26114,7 +26123,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_1133
+  - BasicBlock:      chk_ptr_error_1134
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26129,7 +26138,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_1134
+  - BasicBlock:      chk_ptr_ok_1135
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26144,7 +26153,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_1136
+  - BasicBlock:      chk_ptr_error_1137
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26159,7 +26168,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_1137
+  - BasicBlock:      chk_ptr_ok_1138
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26198,7 +26207,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1140_uif_true
+  - BasicBlock:      initcall1141_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26239,7 +26248,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1142_uif_true
+  - BasicBlock:      initcall1143_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26278,7 +26287,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1139_uif_true
+  - BasicBlock:      bb_new1140_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26317,7 +26326,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1145_uif_true
+  - BasicBlock:      initcall1146_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26358,7 +26367,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1147_uif_true
+  - BasicBlock:      initcall1148_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26397,7 +26406,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1144_uif_true
+  - BasicBlock:      bb_new1145_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26412,7 +26421,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_1149
+  - BasicBlock:      chk_ptr_error_1150
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26427,7 +26436,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_1150
+  - BasicBlock:      chk_ptr_ok_1151
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26466,7 +26475,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1153_uif_true
+  - BasicBlock:      initcall1154_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26507,7 +26516,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1155_uif_true
+  - BasicBlock:      initcall1156_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26546,7 +26555,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1152_uif_true
+  - BasicBlock:      bb_new1153_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26585,7 +26594,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1158_uif_true
+  - BasicBlock:      initcall1159_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26626,7 +26635,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1160_uif_true
+  - BasicBlock:      initcall1161_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26665,7 +26674,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1157_uif_true
+  - BasicBlock:      bb_new1158_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26680,7 +26689,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_1163
+  - BasicBlock:      chk_ptr_error_1164
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26695,7 +26704,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_1164
+  - BasicBlock:      chk_ptr_ok_1165
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26710,7 +26719,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_1166
+  - BasicBlock:      chk_ptr_error_1167
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26725,7 +26734,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_1167
+  - BasicBlock:      chk_ptr_ok_1168
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26764,7 +26773,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1170_uif_true
+  - BasicBlock:      initcall1171_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26805,7 +26814,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1172_uif_true
+  - BasicBlock:      initcall1173_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26844,7 +26853,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1169_uif_true
+  - BasicBlock:      bb_new1170_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26883,7 +26892,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1175_uif_true
+  - BasicBlock:      initcall1176_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26924,7 +26933,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1177_uif_true
+  - BasicBlock:      initcall1178_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26963,7 +26972,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1174_uif_true
+  - BasicBlock:      bb_new1175_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26978,7 +26987,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_1179
+  - BasicBlock:      chk_ptr_error_1180
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -26993,7 +27002,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_1180
+  - BasicBlock:      chk_ptr_ok_1181
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -27008,7 +27017,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_1182
+  - BasicBlock:      chk_ptr_error_1183
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -27023,7 +27032,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_1183
+  - BasicBlock:      chk_ptr_ok_1184
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -27062,7 +27071,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1186_uif_true
+  - BasicBlock:      initcall1187_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -27103,7 +27112,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1188_uif_true
+  - BasicBlock:      initcall1189_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -27142,7 +27151,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1185_uif_true
+  - BasicBlock:      bb_new1186_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -27181,7 +27190,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1191_uif_true
+  - BasicBlock:      initcall1192_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -27222,7 +27231,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1193_uif_true
+  - BasicBlock:      initcall1194_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -27261,7 +27270,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1190_uif_true
+  - BasicBlock:      bb_new1191_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -27276,7 +27285,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_error_1195
+  - BasicBlock:      chk_ptr_error_1196
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -27291,7 +27300,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      chk_ptr_ok_1196
+  - BasicBlock:      chk_ptr_ok_1197
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -27330,7 +27339,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1199_uif_true
+  - BasicBlock:      initcall1200_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -27371,7 +27380,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1201_uif_true
+  - BasicBlock:      initcall1202_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -27410,7 +27419,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1198_uif_true
+  - BasicBlock:      bb_new1199_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -27449,7 +27458,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1204_uif_true
+  - BasicBlock:      initcall1205_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -27490,7 +27499,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      initcall1206_uif_true
+  - BasicBlock:      initcall1207_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -27529,7 +27538,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1203_uif_true
+  - BasicBlock:      bb_new1204_uif_true
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -27544,7 +27553,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      omp.pdo.epilog1114.crit_edge1208
+  - BasicBlock:      omp.pdo.epilog1115.crit_edge1209
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -27572,7 +27581,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      bb_new1109
+  - BasicBlock:      bb_new1110
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -27585,7 +27594,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      DIR.OMP.LOOP.15.split3287
+  - BasicBlock:      DIR.OMP.LOOP.15.split3289
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -27613,7 +27622,7 @@ DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\sfincs_momentum.f90',
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      omp.pdo.epilog1114
+  - BasicBlock:      omp.pdo.epilog1115
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -27641,7 +27650,7 @@ Name:            InstructionMix
 Function:        SFINCS_MOMENTUM_mp_COMPUTE_FLUXES.DIR.OMP.PARALLEL.20
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      DIR.OMP.END.LOOP.14.split3288
+  - BasicBlock:      DIR.OMP.END.LOOP.14.split3290
   - String:          "\n"
   - String:          ''
   - String:          ': '
