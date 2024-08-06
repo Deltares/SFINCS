@@ -957,6 +957,18 @@ contains
          endif
          !
       endif
+      !
+      if (patmos) then
+         !
+         NF90(nf90_def_var(map_file%ncid, 'surface_air_pressure', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%patm_varid)) ! atmospheric pressure map
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%patm_varid, 1, 1, nc_deflate_level)) ! deflate
+         NF90(nf90_put_att(map_file%ncid, map_file%patm_varid, '_FillValue', FILL_VALUE))          
+         NF90(nf90_put_att(map_file%ncid, map_file%patm_varid, 'units', 'N m-2'))
+         NF90(nf90_put_att(map_file%ncid, map_file%patm_varid, 'standard_name', 'surface_air_pressure'))
+         NF90(nf90_put_att(map_file%ncid, map_file%patm_varid, 'long_name', 'surface_air_pressure')) 
+         !
+      endif   
+      !
    endif
    !
    if (snapwave) then  
@@ -2071,26 +2083,49 @@ contains
          !
       endif
       ! 
-      if (store_meteo .and. wind) then  
-         !
-         utmp = FILL_VALUE
-         vtmp = FILL_VALUE
-         !
-         do nmq = 1, quadtree_nr_points
-            !
-            nm = index_sfincs_in_quadtree(nmq)
-            !
-            if (nm>0) then
-               ! 
-               utmp(nmq) = windu(nm)
-               vtmp(nmq) = windv(nm)
-               !
-            endif   
-         enddo
-         !
-         NF90(nf90_put_var(map_file%ncid, map_file%wind_u_varid, utmp, (/1, ntmapout/)))
-         NF90(nf90_put_var(map_file%ncid, map_file%wind_v_varid, vtmp, (/1, ntmapout/)))
-         !
+      if (store_meteo) then  
+          !
+          if (wind) then
+             utmp = FILL_VALUE
+             vtmp = FILL_VALUE
+             !
+             do nmq = 1, quadtree_nr_points
+                !
+                nm = index_sfincs_in_quadtree(nmq)
+                !
+                if (nm>0) then
+                   ! 
+                   utmp(nmq) = windu(nm)
+                   vtmp(nmq) = windv(nm)
+                   !
+                endif   
+             enddo
+             !
+             NF90(nf90_put_var(map_file%ncid, map_file%wind_u_varid, utmp, (/1, ntmapout/)))
+             NF90(nf90_put_var(map_file%ncid, map_file%wind_v_varid, vtmp, (/1, ntmapout/)))
+             !
+          endif
+          !
+          !
+          if (patmos) then
+             !
+             utmp = FILL_VALUE
+             !
+             do nmq = 1, quadtree_nr_points
+                !
+                nm = index_sfincs_in_quadtree(nmq)
+                !
+                if (nm>0) then
+                   ! 
+                   utmp(nmq) = patm(nm)
+                   !
+                endif   
+             enddo
+             !
+             NF90(nf90_put_var(map_file%ncid, map_file%patm_varid, utmp, (/1, ntmapout/)))
+             !
+          endif         
+          !
       endif
       !
       if (snapwave) then

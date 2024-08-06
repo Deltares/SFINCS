@@ -155,7 +155,7 @@ module snapwave_solver
    integer                                    :: k,k1,k2,count,itheta ! counters (k is grid index)
    integer, dimension(:,:), allocatable       :: indx                   ! index for grid sorted per sweep direction
    real*4, dimension(:,:), allocatable        :: eeold                  ! wave energy density, energy density previous iteration   
-   real*4, dimension(:,:), allocatable        :: srcig_local            ! Energy source/sink term because of IG wave shoaling
+   real*4, dimension(:,:), allocatable        :: srcig_local            ! Energy source/sink term because of IG wave energy transfer from incident waves
    real*4, dimension(:,:), allocatable        :: beta_local             ! Local bed slope based on bed level per direction      
    real*4, dimension(:,:), allocatable        :: alphaig_local          ! Local infragravity wave shoaling parameter alpha
    real*4, dimension(:,:), allocatable        :: depthprev            ! water depth at upwind intersection point per direction     
@@ -364,50 +364,18 @@ module snapwave_solver
    if (igwaves) then
       !        
       ! As defined in Leijnse, van Ormondt, van Dongeren, Aerts & Muis et al. 2024 
-      !
-      ! First do some preparation:
-      !
-      do k = 1, no_nodes
-          !  
-          ! This first time, determine beta_local (prev, ds, w depend on boundary wave direction as updated in update_boundary_points) and depthprev
-          !
-          if (inner(k)) then 
-            !  
-            ! Determine local bed slope beta based on bed level per direction
-            do itheta = 1, ntheta
-                !
-                k1 = prev(1, itheta, k)
-                k2 = prev(2, itheta, k)   
-                !
-                if (k1>0 .and. k2>0) then ! IMPORTANT - for some reason (k1*k2)>0 is not reliable always, resulting in directions being uncorrectly skipped!!!    
-                    !
-                    depthprev(itheta,k)     = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)           
-                    !            
-                    beta_local(itheta,k)  = max((w(1, itheta, k)*(zb(k) - zb(k1)) + w(2, itheta, k)*(zb(k) - zb(k2)))/ds(itheta, k), 0.0) 
-                    ! Notes:
-                    ! - use actual bed level now for slope, because depth changes because of wave setup/tide/surge
-                    ! - in zb, depth is negative > therefore zb(k) minus zb(k1)
-                    ! - beta=0 means a horizontal or decreasing slope > need alphaig=0 then in IG src/sink term
-                    !
-                    !betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin)) ! TL: in case in the future we would need the normalised bed slope again   
-                endif  
-                !
-            enddo
-            !
-          endif                              
-          !
-      enddo      
       !      
       ! Actual determining of source term: 
       !          
-      call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, depthprev, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
+      call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
       !         
-      ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev
+      ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev, beta_local
       ! in: the rest
       !
       ! NOTE - this is now only used to fill 'srcig_local', so that we have a good starting point for the source term in incident wave energy balance in the 'do iter=1,niter' loop
       ! THis is therefore based on the energy in the precious SnapWave timestep. 
-      ! The real source term is calculated now in the iteration loop             
+      ! The real source term is calculated now in the iteration loop    
+      !
    endif               
    !
    ! Start iteration
@@ -423,7 +391,7 @@ module snapwave_solver
          sweep = nr_sweeps
       endif
       !
-      if (sweep==1) then  !==1) then
+      if (sweep==1) then
          eeold=ee
       endif
       !
@@ -439,6 +407,8 @@ module snapwave_solver
                !
                if (ok(k) == 0) then
                   !
+                  ! 1) Incident wave energy - Loop over all points depending on sweep direction
+                  !                   
                   ! Only perform computations on wet inner points that are not yet converged (ok)
                   !
                   do itheta = 1, ntheta
@@ -850,7 +820,7 @@ module snapwave_solver
    !
    end subroutine baldock  
    
-   subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, depthprev, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local)
+   subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local)
     !   
     implicit none
     !  
@@ -863,8 +833,7 @@ module snapwave_solver
     real*4, dimension(no_nodes), intent(in)          :: cg_ig           ! group velocity
     real*4, dimension(no_nodes), intent(in)          :: nwav            ! wave number n  
     real*4, dimension(no_nodes), intent(in)          :: depth           ! water depth
-    real*4, dimension(ntheta,no_nodes), intent(in)   :: depthprev       ! water depth at upwind intersection point     
-    real*4, dimension(ntheta,no_nodes), intent(in)   :: beta_local      ! Local bed slope based on bed level per direction          
+    real*4, dimension(no_nodes), intent(in)          :: zb              ! actual bed level       
     real*4, dimension(no_nodes), intent(in)          :: H               ! wave height        
     real*4, dimension(ntheta,no_nodes), intent(in)   :: ee              ! energy density
     real*4, dimension(ntheta,no_nodes), intent(in)   :: ee_ig           ! energy density infragravity waves
@@ -876,12 +845,14 @@ module snapwave_solver
     real*4, dimension(:,:), intent(inout)            :: srcig_local     ! Energy source/sink term because of IG wave shoaling
     real*4, dimension(:), intent(inout)              :: eeprev, cgprev  ! energy density and group velocity at upwind intersection point
     real*4, dimension(:), intent(inout)              :: eeprev_ig       ! energy density  at upwind intersection point 
+    real*4, dimension(ntheta,no_nodes), intent(inout):: beta_local      ! Local bed slope based on bed level per direction              
     !
     ! Internal variables
     integer                                          :: itheta          ! directional counter
     integer                                          :: k               ! counters (k is grid index)    
     integer                                          :: k1,k2           ! upwind counters (k is grid index)
     real*4                                           :: gam             ! local gamma (Hinc / depth ratio)   
+    real*4, dimension(ntheta,no_nodes)               :: depthprev       ! water depth at upwind intersection point         
     real*4, dimension(ntheta,no_nodes)               :: Sxx             ! Radiation Stress
     real*4, dimension(:), allocatable                :: Sxxprev         ! radiation stress at upwind intersection point  
     real*4, dimension(:), allocatable                :: Hprev           ! Incident wave height at upwind intersection point  
@@ -906,6 +877,17 @@ module snapwave_solver
                 if (k1>0 .and. k2>0) then ! IMPORTANT - for some reason (k1*k2)>0 is not reliable always, resulting in directions being uncorrectly skipped!!!    
                     !
                     ! First calculate upwind direction dependent variables
+                    depthprev(itheta,k)     = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)           
+                    !            
+                    beta_local(itheta,k)  = max((w(1, itheta, k)*(zb(k) - zb(k1)) + w(2, itheta, k)*(zb(k) - zb(k2)))/ds(itheta, k), 0.0)
+                    !
+                    ! Notes:
+                    ! - use actual bed level now for slope, because depth changes because of wave setup/tide/surge
+                    ! - in zb, depth is negative > therefore zb(k) minus zb(k1)
+                    ! - beta=0 means a horizontal or decreasing slope > need alphaig=0 then in IG src/sink term
+                    !
+                    !betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin)) ! TL: in case in the future we would need the normalised bed slope again   
+                    !
                     ! TL - Note: cg_ig = cg
                     cgprev(itheta)      = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
                     !              

@@ -39,6 +39,22 @@ You can find information about how to contribute to the SFINCS model at our `con
 
 SFINCS seeks active contribution from the hydro modelling community, so feel free to add something to our docs or model code, or reach out to 'sfincs@deltares.nl'!
 
+Licensing conditions?
+-------------------------------------------------------
+This source code is available open source under GNU GPL-3.0 license, see attached.
+This means (summarised, for details always read license):
+	- Permissions: Commercial use, Distribution, Modification, Patent use, Private use
+	- Conditions: Disclose source, License and copyright notice, Same license (so no distributing closed source versions), State changes
+	- Limitations: No liability, no warranty
+	
+The SFINCS pre-compiled executables on Windows and Docker(linux) are available under free-trial license without monetary fee.
+These under the conditions as indicated when downloading SFINCS from https://download.deltares.nl/sfincs.
+This means (summarised, for details always read license):
+	- Permissions: No commercial use, Research publishing allowed, no distribution, no modification
+	- Conditions: Disclose source, License and copyright notice, Same license (so no distributing closed source versions), no changes
+	- Limitations: No liability, no warranty
+	- Support: The Software is provided to Licensee as is without any support from Deltares.
+	
 .. figure:: https://user-images.githubusercontent.com/28528822/200898347-d4016571-f3c7-4257-b59c-86aa1e97a699.png
    :width: 800px
    :align: center   
