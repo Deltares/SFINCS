@@ -280,7 +280,7 @@ module sfincs_lib
       ! New time step
       !
       nt = nt + 1
-      dt = alfa*min_dt ! min_dt was computed in sfincs_momentum.f90 without alfa
+      dt = alfa * min_dt ! min_dt was computed in sfincs_momentum.f90 without alfa
       !
       ! A bit unclear why this happens, but large jumps in the time step lead to weird oscillations.
       ! In the 'original' sfincs v11 version, this behavior was supressed by the use of theta.

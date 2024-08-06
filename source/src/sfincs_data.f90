@@ -65,6 +65,7 @@ module sfincs_data
       real*4 stopdepth
       real*4 advlim
       real*4 slopelim
+      real*4 hmin_cfl
       real*4 twet_threshold
       real*4, dimension(:), allocatable :: cd_wnd
       real*4, dimension(:), allocatable :: cd_val

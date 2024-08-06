@@ -120,6 +120,7 @@ contains
    call read_logical_input(500,'wiggle_suppression',wiggle_suppression,.false.)
    call read_real_input(500,'wiggle_factor',wiggle_factor,0.1)
    call read_real_input(500,'wiggle_threshold',wiggle_threshold,0.1)
+   call read_real_input(500,'hmin_cfl', hmin_cfl, 0.1)
    !
    ! Domain
    !

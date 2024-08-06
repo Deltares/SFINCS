@@ -66,6 +66,7 @@ contains
          else
             ! 
             write(*,*)'Info : Overruled to not use precipitation from spiderweb input ...'
+            ! 
             spw_precip = .false.
             ! 
          endif

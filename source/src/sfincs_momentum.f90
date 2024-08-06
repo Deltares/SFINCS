@@ -117,7 +117,10 @@
    do ip = 1, npuv + ncuv
       !
       q0(ip)  = q(ip)
-      uv0(ip) = uv(ip)
+      !
+      ! Limit speeds to prevent instabilities due to advection
+      !      
+      uv0(ip) = max(min(uv(ip), 4.0), -4.0)
       !
    enddo
    !$omp end do
@@ -340,7 +343,8 @@
             !
             ! Pressure term
             !
-            dzdx = min(max((zs(nmu) - zs(nm)) * dxuvinv, -slopelim), slopelim) 
+            !dzdx = min(max((zs(nmu) - zs(nm)) * dxuvinv, -slopelim), slopelim) 
+            dzdx = (zs(nmu) - zs(nm)) * dxuvinv
             !
             frc = - g * hu * dzdx
             !
@@ -544,7 +548,7 @@
                !
                ! This uv point just became wet, so estimate equilibrium flux 
                !
-               qfr = sqrt(abs(dzdx) / (gnavg2 / 10)) * hu ** (5.0 / 3.0)
+               qfr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * hu ** (5.0 / 3.0)
                !
             else   
                !
@@ -606,17 +610,17 @@
                !
             endif
             !
-            ! Compute velocity. Use q/max(h, 0.10) to avoid very high velocities in very shallow water
-            ! Limit velocities (this does not change fluxes, but may prevent advection term from exploding in the next time step)
+            ! Compute velocity
             !
-            uv(ip) = max(min(q(ip)/max(hu, 0.10), 4.0), -4.0)
+            uv(ip) = q(ip)/hu
             !
             kfuv(ip) = 1
             !
             ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
+            ! Use maximum of sqrt(gh) and current velocity
             !
-            ! min_dt = min(min_dt, 1.0 / (max(sqrt(g * hu), abs(q(ip) / hu)) * dxuvinv))
-            min_dt = min(min_dt, 1.0 / (sqrt(g * hu) * dxuvinv))
+            min_dt = min(min_dt, 1.0 / (max(sqrt(g * hu), abs(uv(ip))) * dxuvinv))
+            ! min_dt = min(min_dt, 1.0 / (sqrt(g * hu) * dxuvinv))
             !
          else
             !
