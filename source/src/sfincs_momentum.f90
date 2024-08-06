@@ -612,7 +612,7 @@
             !
             ! Compute velocity
             !
-            uv(ip) = q(ip)/hu
+            uv(ip) = q(ip) / hu
             !
             kfuv(ip) = 1
             !
