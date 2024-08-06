@@ -25,7 +25,7 @@ contains
       !
       call read_netcdf_boundary_data()
       !
-      if (t_bnd(1)>t0 + 1.0 .or. t_bnd(ntbnd)<t1 - 1.0) then
+      if ((t_bnd(1) > (t0 + 1.0)) .or. (t_bnd(ntbnd) < (t1 - 1.0))) then
          !
          write(*,'(a)')' WARNING! Times in boundary conditions file do not cover entire simulation period!'
          !
@@ -84,11 +84,11 @@ contains
          !
       endif
       !      
-      if (t_bnd(1) > (t0 + 1.0) .or. t_bnd(ntbnd) < (t1 - 1.0)) then
+      if ((t_bnd(1) > (t0 + 1.0)) .or. (t_bnd(ntbnd) < (t1 - 1.0))) then
          ! 
          write(*,'(a)')' WARNING! Times in boundary conditions file do not cover entire simulation period !'
          !
-         if (t_bnd(1) > (t0 + 1.0) ) then
+         if (t_bnd(1) > (t0 + 1.0)) then
             ! 
             write(*,'(a)')' WARNING! Adjusting first time in boundary conditions time series !'
             !
@@ -130,7 +130,7 @@ contains
       !
    elseif (include_boundaries) then   
       !
-      write(*,'(a)') ' Warning : Boundary points found in mask, without boundary conditions. Using water level of 0.0 m at these points.'
+      write(*,'(a)') ' Warning : Boundary cells found in mask, without boundary conditions. Using water level of 0.0 m at these points.'
       !
    endif
    !
@@ -545,13 +545,13 @@ contains
       !
       ! Interpolate boundary conditions in time
       !
-      if (t_bnd(1)>t - 1.0e-3) then ! use first time in boundary conditions
+      if (t_bnd(1) > (t - 1.0e-3)) then ! use first time in boundary conditions
          !
          itb0 = 1
          itb1 = 1
          tb   = t_bnd(itb0)
          !
-      elseif (t_bnd(ntbnd)<t + 1.0e-3) then  ! use last time in boundary conditions       
+      elseif (t_bnd(ntbnd) < (t + 1.0e-3)) then  ! use last time in boundary conditions       
          !
          itb0 = ntbnd
          itb1 = ntbnd
@@ -560,7 +560,7 @@ contains
       else
          !
          do itb = itbndlast, ntbnd ! Loop in time
-            if (t_bnd(itb)>t + 1.0e-6) then
+            if (t_bnd(itb) > (t + 1.0e-6)) then
                itb0 = itb - 1
                itb1 = itb
                tb   = t
@@ -669,7 +669,7 @@ contains
             !
          endif
          !
-         if (t<tspinup - 1.0e-3) then
+         if (t < (tspinup - 1.0e-3)) then
             !
             smfac = 1.0 - (t - t0)/(tspinup - t0)
             !

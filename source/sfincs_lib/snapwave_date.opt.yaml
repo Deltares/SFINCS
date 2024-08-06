@@ -1,0 +1,618 @@
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+Function:        SNAPWAVE_DATE.
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+  - String:          ' (in function: SNAPWAVE_DATE.)'
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+Function:        SNAPWAVE_DATE.
+Args:
+  - NumStackBytes:   '8'
+  - String:          ' stack bytes in function '''
+  - Function:        SNAPWAVE_DATE.
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_DATE.
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_0
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+Function:        SNAPWAVE_DATE.
+Args:
+  - NumInstructions: '8'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 5, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_TIME_DIFFERENCE
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 14, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_TIME_DIFFERENCE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 14, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_TIME_DIFFERENCE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 15, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_TIME_DIFFERENCE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 15, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_TIME_DIFFERENCE
+Args:
+  - String:          FastISel missed
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 5, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_TIME_DIFFERENCE
+Args:
+  - NumStackBytes:   '504'
+  - String:          ' stack bytes in function '''
+  - Function:        SNAPWAVE_DATE_mp_TIME_DIFFERENCE
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_DATE_mp_TIME_DIFFERENCE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_1
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '23'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_DATE_mp_TIME_DIFFERENCE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb3
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '11'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_DATE_mp_TIME_DIFFERENCE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb4
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '76'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_DATE_mp_TIME_DIFFERENCE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb6
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '11'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_DATE_mp_TIME_DIFFERENCE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb7
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '103'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 5, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_TIME_DIFFERENCE
+Args:
+  - NumInstructions: '224'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 28, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_JULIAN_DATE
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 28, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_JULIAN_DATE
+Args:
+  - NumStackBytes:   '120'
+  - String:          ' stack bytes in function '''
+  - Function:        SNAPWAVE_DATE_mp_JULIAN_DATE
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_DATE_mp_JULIAN_DATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_2
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '85'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 28, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_JULIAN_DATE
+Args:
+  - NumInstructions: '85'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 39, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_DATE_TO_ISO8601
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 44, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_DATE_TO_ISO8601
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 47, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_DATE_TO_ISO8601
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 47, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_DATE_TO_ISO8601
+Args:
+  - String:          FastISel missed
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 39, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_DATE_TO_ISO8601
+Args:
+  - NumStackBytes:   '568'
+  - String:          ' stack bytes in function '''
+  - Function:        SNAPWAVE_DATE_mp_DATE_TO_ISO8601
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_DATE_mp_DATE_TO_ISO8601
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_3
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '90'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_DATE_mp_DATE_TO_ISO8601
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb12
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '11'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_DATE_mp_DATE_TO_ISO8601
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb13
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '130'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 39, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_DATE_TO_ISO8601
+Args:
+  - NumInstructions: '231'
+  - String:          ' instructions in function'
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 53, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'FastISel didn''t lower all arguments: '
+  - Prototype:       ''
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 67, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 71, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 80, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 80, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          FastISel missed
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 82, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Missed
+Pass:            sdagisel
+Name:            FastISelFailure
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 82, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          FastISel missed call
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 53, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - NumStackBytes:   '872'
+  - String:          ' stack bytes in function '''
+  - Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+  - String:          ''''
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      alloca_4
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '24'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb15_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 67, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb16_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '77'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb17_then
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb18_else
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '1'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb19_endif
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '6'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb_new55_uif_true
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '9'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb22
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '11'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      bb23
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '246'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 82, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      chk_ptr_error_97
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      chk_ptr_ok_98
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '57'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 82, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      chk_ptr_error_104
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      chk_ptr_ok_105
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '8'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      loop_test107
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '3'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      loop_body108
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '24'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionMix
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 84, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - String:          'BasicBlock: '
+  - BasicBlock:      loop_exit109
+  - String:          "\n"
+  - String:          ''
+  - String:          ': '
+  - INST_:           '4'
+  - String:          "\n"
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: 'D:\tmp_SFINCS\SFINCS\source\src\snapwave\snapwave_date.f90', 
+                   Line: 53, Column: 0 }
+Function:        SNAPWAVE_DATE_mp_CONVERT_FEWSDATE
+Args:
+  - NumInstructions: '488'
+  - String:          ' instructions in function'
+...

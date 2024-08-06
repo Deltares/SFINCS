@@ -548,7 +548,7 @@
                !
                ! This uv point just became wet, so estimate equilibrium flux 
                !
-               qfr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * hu ** (5.0 / 3.0)
+               qfr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * hu ** (5.0 / 3.0)               
                !
             else   
                !

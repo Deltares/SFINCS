@@ -688,6 +688,8 @@ For binary or ascii files the output will be written to separate files, of which
 Numerical parameters
 ^^^^^
 
+For more options, see the tab 'Input parameters'.
+
 **huthresh**
 
 'huthresh' is the flow depth limiter in SFINCS, by default set to 0.05 meters, controlling what minimal water depth should be exceeded to call a cell wet, and start calculating fluxes.
@@ -696,13 +698,13 @@ It is recommended to use values within the range [0.001 <> 0.1].
 **alpha**
 
 'alpha' is the additional time step limiter besides the courant criteria.
-By default this is set to 0.75, in case model simulations become instable for some reason this value can be reduced.
+By default this is set to 0.5, in case model simulations become instable for some reason this value can be reduced.
 It is recommended to use values within the range [0.1 <> 0.75].
 
 **theta**
 
 'theta' sets the implicitness of the numerical scheme of SFINCS.
-The default value is 1.0 which is recommended for the regular version of SFINCS, however if more smoothing in you model result is needed because it might become unstable for some reason, you could set this to theta=0.9..
+The default value is 1.0 which is recommended for the regular version of SFINCS, however if more smoothing in you model result is needed because it might become unstable for some reason, you could set this to theta=0.9.
 
 **advection**
 

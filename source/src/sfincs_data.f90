@@ -28,6 +28,8 @@ module sfincs_data
       real*4 gn2
       real*4 t0
       real*4 t1
+      real*4 t3
+      real*4 t4      
       real*4 dx
       real*4 dy
       real*4 dxinv
@@ -43,6 +45,7 @@ module sfincs_data
       real*4 dthisout
       real*4 dtwindupd
       real*4 theta
+      real*4 hmin_cfl
       real*4 dtmax
       real*4 dtmin
       real*4 zini
@@ -65,7 +68,6 @@ module sfincs_data
       real*4 stopdepth
       real*4 advlim
       real*4 slopelim
-      real*4 hmin_cfl
       real*4 twet_threshold
       real*4, dimension(:), allocatable :: cd_wnd
       real*4, dimension(:), allocatable :: cd_val
@@ -215,6 +217,7 @@ module sfincs_data
       logical       :: wavemaker
       logical       :: wavemaker_mobile
       logical       :: use_quadtree
+      LOGICAL       :: use_quadtree_output
       logical       :: interpolate_zst
       logical       :: advection
       logical       :: thetasmoothing            
@@ -635,10 +638,11 @@ module sfincs_data
       real*4, dimension(:,:,:),   allocatable :: spw_wu
       real*4, dimension(:,:,:),   allocatable :: spw_wv
       real*4, dimension(:,:,:),   allocatable :: spw_pdrp
+      real*4, dimension(:,:,:),   allocatable :: spw_pabs      
       real*4, dimension(:,:,:),   allocatable :: spw_prcp
       real*4, dimension(:,:),     allocatable :: spw_wu01
       real*4, dimension(:,:),     allocatable :: spw_wv01
-      real*4, dimension(:,:),     allocatable :: spw_pdrp01
+      real*4, dimension(:,:),     allocatable :: spw_pabs01
       real*4, dimension(:,:),     allocatable :: spw_prcp01
       !
       integer                                 :: amuv_nt
@@ -780,22 +784,16 @@ module sfincs_data
       integer                       :: itmaxout
       integer                       :: itrstout
       integer                       :: ithisout
-      integer                       :: iwndupd
       !
       real*8                       :: t
       real*4                       :: dt
-      real*4                       :: tmapout
-      real*4                       :: tmaxout
-      real*4                       :: trstout
-      real*4                       :: thisout
       real*4                       :: maxdepth
       real*4                       :: maxmaxdepth
       real*4                       :: twindupd
       !
       ! I don't think this is used anywhere ...
       !
-      real :: tstart, tfinish, tloop2, tloop3, tloopstruc, tloopbnd, tloopsrc, tloopwnd1
-      real :: tinput
+      real :: tloop2, tloop3, tloopstruc, tloopbnd, tloopsrc, tloopwnd1
       !
       t           = t0     ! start time
       dt          = 1.0e-6 ! First time step very small
@@ -996,10 +994,11 @@ module sfincs_data
     if(allocated(spw_wu)) deallocate(spw_wu)
     if(allocated(spw_wv)) deallocate(spw_wv)
     if(allocated(spw_pdrp)) deallocate(spw_pdrp)
+    if(allocated(spw_pabs)) deallocate(spw_pabs)    
     if(allocated(spw_prcp)) deallocate(spw_prcp)
     if(allocated(spw_wu01)) deallocate(spw_wu01)
     if(allocated(spw_wv01)) deallocate(spw_wv01)
-    if(allocated(spw_pdrp01)) deallocate(spw_pdrp01)
+    if(allocated(spw_pabs01)) deallocate(spw_pabs01)
     if(allocated(spw_prcp01)) deallocate(spw_prcp01)
     !
     if(allocated(amuv_times)) deallocate(amuv_times)

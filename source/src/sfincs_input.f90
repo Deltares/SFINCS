@@ -64,6 +64,7 @@ contains
    call read_real_input(500,'dtwnd',dtwindupd,1800.0)
    call read_real_input(500,'alpha',alfa,0.50)
    call read_real_input(500,'theta',theta,1.0)
+   call read_real_input(500,'hmin_cfl',hmin_cfl,0.1)   
    call read_real_input(500,'manning',manning,0.04)
    call read_real_input(500,'manning_land',manning_land,-999.0)
    call read_real_input(500,'manning_sea',manning_sea,-999.0)
@@ -120,7 +121,6 @@ contains
    call read_logical_input(500,'wiggle_suppression',wiggle_suppression,.false.)
    call read_real_input(500,'wiggle_factor',wiggle_factor,0.1)
    call read_real_input(500,'wiggle_threshold',wiggle_threshold,0.1)
-   call read_real_input(500,'hmin_cfl', hmin_cfl, 0.1)
    !
    ! Domain
    !
@@ -212,6 +212,7 @@ contains
    call read_int_input(500,'storewavdir', istorewavdir, 0)
    call read_logical_input(500,'friction2d',friction2d,.true.)
    call read_logical_input(500,'advection_mask',advection_mask,.true.)
+   call read_logical_input(500,'regular_output_on_mesh',use_quadtree_output,.false.)   
    !
    ! Wind drag
    !

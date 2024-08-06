@@ -95,7 +95,6 @@ module sfincs_output
    integer  :: ntmapout 
    integer  :: ntmaxout
    integer  :: nthisout      
-   integer  :: nm
    !
    real*8   :: t
    !
@@ -356,9 +355,9 @@ module sfincs_output
    !
    implicit none
    !
-   integer                      :: nm, n, m
+   !integer                      :: nm, n, m
    !
-   real*4, dimension(:,:), allocatable :: zsg
+   !real*4, dimension(:,:), allocatable :: zsg
    !
 !   if (trim(outputtype_map)=='asc') then
 !      !
@@ -570,7 +569,6 @@ module sfincs_output
    integer                      :: nm
    integer                      :: iobs   
    integer                      :: icrs   
-   integer                      :: ip   
    !
    real*8                             :: t
    real*4, dimension(nobs)            :: tprcp

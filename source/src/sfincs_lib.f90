@@ -87,10 +87,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.0.6-alpha'
-   !build_date     = '$Date: 2024-03-28'
-   build_revision = '$Rev: v??? - updated sfincs.inp reading for NVIDIA'
-   build_date     = '$Date: 2024-06-20'
+   build_revision = '$Rev: v2.1.0'
+   build_date     = '$Date: 2024-08-02'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
@@ -225,10 +223,6 @@ module sfincs_lib
    !
    double precision, intent(in)  :: dtrange
    integer                       :: ierr
-   integer                       :: nmx
-   integer                       :: mmx
-   integer                       :: nm
-   real*4                        :: hmx
    !
    ierr = 0
    !
@@ -263,7 +257,8 @@ module sfincs_lib
    ! Start computational loop
    !
    write(*,'(a)')''   
-   write(*,'(a,i0,a,i0,a)')' ---------- Starting simulation on ', omp_get_max_threads(), ' of ', omp_get_num_procs(), ' available threads ----------'
+   write(*,*)'---------- Starting simulation ----------'   
+   write(*,'(a,i0,a,i0,a)')' ---- Using ', omp_get_max_threads(), ' of ', omp_get_num_procs(), ' available threads -----'   
    write(*,'(a)')''   
    !
    call system_clock(count00, count_rate, count_max)
@@ -429,9 +424,12 @@ module sfincs_lib
       !
       if (snapwave .and. update_waves) then
          !
-!         write(*,'(a,f10.1,a)')'Computing SnapWave at t = ', t, ' s'
+         call timer(t3)          
          !
          call update_wave_field(t, tloopsnapwave)
+         !
+         call timer(t4)                   
+         write(*,'(a,f10.1,a,f6.2,a)')'Computing SnapWave at t = ', t, ' s took ', t4 - t3, ' seconds'         
          !
          ! Maybe we'll add moving wave makers back at some point
          !

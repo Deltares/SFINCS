@@ -127,9 +127,9 @@ This means that a too large water depth has occured somewhere in the domain, ind
 
 Possible problems can be:
 
-* The provided elevation file has very rapid changes in elevation, that locally lead to large water level gradients and fluxes. Possible solution: locally smooth the elevation data and provide this as a new depfile
+* The provided elevation file has very rapid changes in elevation, that locally lead to large water level gradients and fluxes. Possible solution: locally smooth the elevation data and provide this as a new depfile.
 
-* In general the internal timesteps of SFINCS might be too large. Possible solution: reduce timesteps by supplying a lower value of alpha (e.g. 0.5) or set a low enough value of 'dtmax'.
+* In general the internal timesteps of SFINCS might be too large. Possible solution: reduce timesteps by supplying a lower value of alpha (e.g. 0.5), set a higher value for 'hmin_cfl' or set a low enough value of 'dtmax'.
 
 * Sometimes a simulation might contain too large water depths are start in too deep water. This can potentially create problems as SFINCS is intented as a shallow water model.
 
@@ -139,10 +139,15 @@ Possible problems can be:
 
 * **Tip to check your model**: specify netcdf output and load in the sfincs_map.nc file (e.g. Quickplot, Panoply, Matlab, Python) and have a look at the variables 'zb' and 'msk'. Then you can see how SFINCS has interpreted the prodivided depfile and mskfile. Does map plots of these variables look weird? Probably something in your input file is not entirely correct!
 
+* When more stability is needed still, have a look at the input parameter options of 'slopelim', 'advlim' or 'hmin_dt'.
 
 Besides model instabilities, other recurring problems might be:
 
 * A specified (forcing) file/parameters is not read in > check whether you specified the name (e.g. netamuamvfile   = netamuamv.nc ) with **ONLY SPACES** in between the keyword and argument. SFINCS does not interpret a mixture of spaces and tabs well. This may cause a file or parameter to be read in as 'none', whereafter this is not used in the model simulation as wanted.
+
+* Also, check whether a certain expected forcing is coming through. SFINCS displays messages like "Turning on process: Precipitation", so if you force rainfall is this message is not visible in your log-file, something probably went wrong with the input file. Also for "Advection scheme", "Wind", "Atmospheric pressure", "Coriolis", "Viscosity", "Dynamic waves", "Infiltration XXX-type", "Precipitation from spwfile", "Storage Green Infrastructure".
+
+* SFINCS also gives input about certain files after reading in data and how these are snapped/interpreted. For instance for subgrid; "Number of subgrid levels : XXX", weirfile; "XXX structure u/v points found", wavemaker; "Number of wavemaker polylines found : XXX", observation points; "Warning : observation point XXX falls outside model domain.' - compare whether this is as expected.
 
 
 Output description

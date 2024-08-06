@@ -23,14 +23,11 @@ contains
       !
       implicit none
       !
-      integer    :: nm, m, n, ivol, num, nmu, ilevel, rsttype, ip, ind, iuv, icuv
-      real*4     :: dzvol
+      integer    :: nm, nmu, ip, iuv
       real*4     :: facint
-      real*4     :: rdummy
       real*4     :: dzuv
       real*4     :: zmax
       real*4     :: zmin
-      real*4     :: one_minus_facint 
       real*4     :: huv
       real*4     :: zsuv   
       ! 
@@ -167,18 +164,8 @@ contains
       !
       implicit none
       !
-      integer    :: nm, m, n, ivol, num, nmu, ilevel, rsttype, ip, ind, iuv, icuv
-      real*4     :: dzvol
-      real*4     :: facint
+      integer    :: rsttype
       real*4     :: rdummy
-      real*4     :: dzuv
-      real*4     :: zmax
-      real*4     :: zmin
-      real*4     :: one_minus_facint 
-      real*4     :: huv
-      real*4     :: zsuv   
-      !
-      logical   :: iok
       !
       open(unit = 500, file = trim(rstfile), form = 'unformatted', access = 'stream')
       !
@@ -193,6 +180,8 @@ contains
       read(500)rdummy
       read(500)rsttype
       read(500)rdummy
+      !
+      write(*,*)'Info: found rsttype = ', rsttype 
       !
       if (rsttype < 1 .or. rsttype > 6) then
          !
@@ -273,8 +262,7 @@ contains
       implicit none
       !
       real*4, dimension(:),   allocatable :: zsq
-      integer*1 :: iversion
-      integer   :: npq, ip, iepsg
+      integer   :: npq, ip
       !
       NF90(nf90_open(trim(ncinifile), NF90_CLOBBER, net_file_ini%ncid))
       !          
@@ -319,7 +307,6 @@ contains
       integer, intent ( in)    :: status
       character(*), intent(in) :: file
       integer, intent ( in)    :: line
-      integer :: status2
       !   
       if (status /= nf90_noerr) then
          !   !UNIT=6 for stdout and UNIT=0 for stderr.

@@ -83,7 +83,7 @@ contains
    !
    ! Check length time-series - independent of input type
    !
-   if (t_bwv(1)>t0 + 1.0 .or. t_bwv(ntwbnd)<t1 - 1.0) then
+   if ((t_bwv(1) > (t0 + 1.0)) .or. (t_bwv(ntwbnd) < (t1 - 1.0))) then
        ! 
        write(*,'(a)')' WARNING! Times in wave boundary conditions file do not cover entire simulation period!'
        !
@@ -327,7 +327,10 @@ contains
          if (msk(k) == 2) then
             !
             nb = nb + 1
-            nmindbnd(nb) = k
+            !
+            ! set boundary cell indices
+            !
+            nmindbnd(nb) = k 
             !
             xgb = x(k)
             ygb = y(k)
@@ -383,7 +386,7 @@ contains
          endif
       enddo
    endif
-   !
+   !   
    end subroutine   
    
 subroutine find_nearest_depth_for_boundary_points()
@@ -502,13 +505,13 @@ subroutine update_boundary_points(t)
    !
    ! Interpolate boundary conditions in time
    !
-   if (t_bwv(1)>t - 1.0e-3) then ! use first time in boundary conditions
+   if (t_bwv(1) > (t - 1.0e-3)) then ! use first time in boundary conditions
       !
       itb0 = 1
       itb1 = 1
       tb   = t_bwv(itb0)
       !
-   elseif (t_bwv(ntwbnd)<t + 1.0e-3) then  ! use last time in boundary conditions       
+   elseif (t_bwv(ntwbnd) < (t + 1.0e-3)) then  ! use last time in boundary conditions       
       !
       itb0 = ntwbnd
       itb1 = ntwbnd
@@ -517,7 +520,7 @@ subroutine update_boundary_points(t)
    else
       !
       do itb = itwbndlast, ntwbnd ! Loop in time
-         if (t_bwv(itb)>t + 1.0e-6) then
+         if (t_bwv(itb) > (t + 1.0e-6)) then
             itb0 = itb - 1
             itb1 = itb
             tb   = t
@@ -539,15 +542,15 @@ subroutine update_boundary_points(t)
       !
       ! Limit directional spreading (2 < ds < 45)
       !       
-      if ((dsp < 2*pi/180) .or.(dsp > 45*pi/180)) then  
-!      	  write(*,*)'DEBUG SnapWave - input wave spreading is outside acceptable range of 2-45 degrees: ',dsp/pi*180, ' and is therefore limited back to this range, please check whether input is realistic!'          
+      if ((dsp < 2*pi/180) .or. (dsp > 45*pi/180)) then  
+      	  write(*,*)'DEBUG SnapWave - input wave spreading is outside acceptable range of 2-45 degrees: ',dsp/pi*180, ' and is therefore limited back to this range, please check whether input is realistic!'          
           dsp = max(min(dsp, 45*pi/180), 2*pi/180)
       endif      
       !
       ! Limit period (2 < tps < 25)
       !       
-      if ((tps < 2.0) .or.(tps > 25.0)) then
-!      	  write(*,*)'DEBUG SnapWave - input wave period is outside acceptable range of 2-25 s: ',tps, ' and is therefore limited back to this range, please check whether input is realistic!'
+      if ((tps < 2.0) .or. (tps > 25.0)) then
+      	  write(*,*)'DEBUG SnapWave - input wave period is outside acceptable range of 2-25 s: ',tps, ' and is therefore limited back to this range, please check whether input is realistic!'
           tps = max(min(tps, 25.0), 2.0)
       endif      
       !
