@@ -345,7 +345,7 @@ contains
             spw_wv01(irow, icol) = spw_wv(itw0, irow, icol)*(1.0 - twfac)   + spw_wv(itw1, irow, icol)*twfac
             !
             if (patmos) then
-               spw_pabs01(irow, icol) = spw_pdrp(itw0, irow, icol) * (1.0 - twfac) + spw_pdrp(itw1, irow, icol) * twfac
+               spw_pabs01(irow, icol) = spw_pabs(itw0, irow, icol) * (1.0 - twfac) + spw_pabs(itw1, irow, icol) * twfac
             endif
             !
             if (spw_precip) then
@@ -364,7 +364,7 @@ contains
          x = z_xz(nm)
          y = z_yz(nm)      
          !
-         ! Compute tauwu0, tauwv0, pdrp0, prcp0 at spw_t0
+         ! Compute tauwu0, tauwv0, pabs0, prcp0 at spw_t0
          !
          if (crsgeo) then
             dstspw  = sqrt(((cos(spw_ye01*pi/180)*111111)*(x - spw_xe01))**2 + (111111*(y - spw_ye01))**2) ! Distance to eye
