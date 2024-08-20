@@ -151,6 +151,8 @@ contains
    !
    if (ndrn>0) then
       !
+      write(*,'(a,a,a,i0,a)')' Reading ',trim(drnfile),' (', ndrn, ' drainage points found) ...'
+      !         
       allocate(xsrc(ndrn))
       allocate(ysrc(ndrn))
       allocate(xsnk(ndrn))
@@ -252,6 +254,14 @@ contains
       deallocate(ysrc)
       deallocate(xsnk)
       deallocate(ysnk)
+      !
+      ! Check if all sink/source points have found an index
+      if (any(nmindsrc == 0)) then
+         !
+        write(*,*)'WARNING: for some sink/source drainage points no matching active grid cell was found!'
+        write(*,*)'These points will be skipped, please check your input!'
+         !
+      endif      
       !
    endif
    !
