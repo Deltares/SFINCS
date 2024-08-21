@@ -612,7 +612,7 @@
             !
             ! Compute velocity
             !
-            uv(ip) = q(ip) / hu
+            uv(ip) = q(ip) / max(hu, hmin_uv) ! Limit velocity through minimal hu in case of very small huthresh, deafult hmin_uv=0.1m
             !
             kfuv(ip) = 1
             !
@@ -620,7 +620,7 @@
             ! Use maximum of sqrt(gh) and current velocity
             !
             min_dt = min(min_dt, 1.0 / (max(sqrt(g * hu), abs(uv(ip))) * dxuvinv))
-            ! min_dt = min(min_dt, 1.0 / (sqrt(g * hu) * dxuvinv))
+            ! min_dt = min(min_dt, 1.0 / (sqrt(g * hu) * dxuvinv)) ! Original
             !
          else
             !
