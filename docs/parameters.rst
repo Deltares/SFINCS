@@ -54,6 +54,12 @@ Parameters for model input
 	  :default:		1
 	  :min:			0
 	  :max:			1
+	advection_scheme	
+	  :description:		Advection scheme selection, new scheme is 'upw1', default. Original implementation from Leijnse et al. (2021) can be selected as 'advection_scheme = original' for backwards compatability. NOTE - from SFINCS 2024.01 release onwards.
+	  :units:		-	
+	  :default:		upw1	
+	  :min:			upw1	
+	  :max:			original	  
 	advlim	
 	  :description:		Advection term limiter. Possibility to limit the advection term in the momentum equation for increased stability, default is large number.
 	  :units:		-	
@@ -65,7 +71,13 @@ Parameters for model input
 	  :units:		-	
 	  :default:		0.5		
 	  :min:			0.1 (recommended)	
-	  :max:			0.75 (recommended)		  
+	  :max:			0.75 (recommended)		
+	friction2d	
+	  :description:		Option to select to include 2D component for determining friction term as well: friction2d - true, default. Original implementation from Leijnse et al. (2021) can be selected as 'friction2d = false' for backwards compatability. NOTE - from SFINCS 2024.01 release onwards.
+	  :units:		-	
+	  :default:		0.5		
+	  :min:			0.1 (recommended)	
+	  :max:			0.75 (recommended)	
 	huthresh	
 	  :description:		Minimum flow depth limiter.
 	  :units:		m
@@ -91,7 +103,7 @@ Parameters for model input
 	  :min:			0.0001	
 	  :max:			9999.9	  	  
 	baro
-	  :description:		Turns on the atmospheric pressure term in the momentum equation (baro = 1, default). If set to 0, all pressure input from either ampfile, netampfile, spwfile or netspwfile is ignored@
+	  :description:		Turns on the atmospheric pressure term in the momentum equation (baro = 1, default). If set to 0, all pressure input from either ampfile, netampfile, spwfile or netspwfile is ignored.
 	  :units:		-
 	  :default:		1
 	  :min:			0
@@ -419,10 +431,10 @@ Domain
 	  :required:		no	  
 	  :format:		bin	 		  	   	  
 	sbgfile = sfincs.sbg
-	  :description:		File containing subgrid tables, only needed by SFINCS if you want to run your model in the subgrid mode.
+	  :description:		File containing subgrid tables, only needed by SFINCS if you want to run your model in the subgrid mode. Netcdf file input option available from SFINCS 2024.01 release onwards as in Van Ormondt et al. 2024, binary file option still possible for backwards compatability.
 	  :units:		-
 	  :required:		Only for running SFINCS in subgrid mode	  
-	  :format:		bin		  
+	  :format:		new is netcdf, old is binary		  
 	obsfile = sfincs.obs
 	  :description:		To get output time-series at individual point locations, observations points have to be specified.
 	  :units:		m in projected UTM zone
