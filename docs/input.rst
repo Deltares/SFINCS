@@ -217,6 +217,8 @@ The easiest way to make a SFINCS model using the subgrid functionality, is by us
 
 After supplying a subgrid file so SFINCS (sbgfile = sfincs.sbg), SFINCS will automatically run in subgrid mode!
 
+Recommended Netcdf file input option available from SFINCS 2024.01 release onwards as in Van Ormondt et al. 2024, binary file option still possible for backwards compatability.
+
 **Matlab example using OET**
 
 	For more information see:
