@@ -711,12 +711,20 @@ The default value is 1.0 which is recommended for the regular version of SFINCS,
 'advection' sets whether to turn on or off the advection term used in the momentum equation, varying between the default of turned on (advection = 1, default), or off (advection = 0).
 Recommended is to turn the advection term always on.
 
+'advection_scheme' selects the advection scheme option. It is possible to select the new (2024.01 release) advection scheme using 'advection_scheme = upw1' = default, or the original implementation from Leijnse et al. (2021) can be selected as 'advection_scheme = original' for backwards compatability.  NOTE - from SFINCS 2024.01 release onwards.
+
+'advlim' sets the possibility to limit the advection term in the momentum equation for increased stability, default is a large number (9999.9) so no limitation is applied.
+
 .. code-block:: text
 
 	huthresh 	= 0.05
 	alpha 		= 0.5
 	theta 		= 1.0
 	advection 	= 1
+
+**friction2d**
+
+'friction2d' sets whether to include the 2D component for determining the friction term or not (default = true). Original implementation from Leijnse et al. (2021) can be selected as 'friction2d = false' for backwards compatability. NOTE - from SFINCS 2024.01 release onwards.
 
 **viscosity**
 
