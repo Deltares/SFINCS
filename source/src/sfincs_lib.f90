@@ -482,7 +482,9 @@ module sfincs_lib
          !
          ! Write map output at last time step 
          !
-         call write_output(t, .true., .true., .true., .false., ntmapout + 1, ntmaxout + 1, nthisout + 1, tloopoutput)
+         ntmaxout = ntmaxout + 1 ! Max sure that max output is not called again through 'finalize_output' 
+         !
+         call write_output(t, .true., .true., .true., .false., ntmapout + 1, ntmaxout, nthisout + 1, tloopoutput)
          !
          t = t1 + 1.0
          !
