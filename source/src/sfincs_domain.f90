@@ -28,10 +28,10 @@ contains
    if (quadtree_nr_levels==1 .and. .not. use_quadtree_output) then
       !
       ! Only one refinement level found in quadtree file. 
-      ! Reverting to use_quadtree is false (default), with use_quadtree_output = false.
+      ! Reverting to use_quadtree is false (default), with use_quadtree_output = false (default).
       ! This means netcdf output will be written to a regular grid.
       !
-!      use_quadtree = .false.
+      use_quadtree = .false.
       !
    endif
    !
