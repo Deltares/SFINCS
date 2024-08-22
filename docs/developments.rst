@@ -7,14 +7,14 @@ Hereby some examples regarding subgrid features and GPU computing.
 Development status
 -----
 
-See here a schematic overview of the SFINCS development status at Q4 2023, at the time of the v2.0.3 Cauberg release.
+See here a schematic overview of the SFINCS development status at 2024 August, at the time of the v2.1.1 DeuxAlpes release.
 Indicated are new functionality for SFINCS itself (core), and model setup/post-processing using HydroMT-SFINCS and Delft Dashboard (Python).
 
 .. figure:: ./figures/Overview_status_SFINCS.drawio.png
    :width: 600px
    :align: center
 
-   Overview of SFINCS development status Q4 2023
+   Overview of SFINCS development status 2024.01 Release
 
 Known issues
 -----
@@ -26,6 +26,45 @@ Known issues of the current SFINCS main version and last release are (improvemen
 
 Releases Changelog
 -----
+
+Official open source version Q4 2023: v2.0.3 Cauberg release
+^^^^^
+
+The first official 2024 release of SFINCS, the v2.1.1 DeuxAlpes release, 'Conquering mountains in compound flood modelling two at a time', is now available!
+
+This contains open access to the source code from Github: https://github.com/Deltares/SFINCS/releases/tag/v2.1.1_DeuxAlpes_release.
+
+As pre-compiled Windows executable:
+
+https://download.deltares.nl/en/sfincs/
+
+As Docker container:
+
+docker pull deltares/sfincs-cpu:sfincs-v2.1.1-DeuxAlpes_release
+
+Changes:
+
+The code consists of all functionality of the v2.0.3 release, with the following major changes/additions:
+
+Added functionality:
+
+* New advection scheme 'advection_scheme = upw1' > new default! Old implementation still available as 'advection_scheme = original'.
+* Option to include 2D component of friction term 'friction2d = true' > new default! Old implementation still available as 'friction2d = false'.
+* New subgrid methodology including wet fraction as in Van Ormondt et al. (2024, in review), only available through net netcdf input file, recommended! Old implementation still available when providing the original binary file, then all wet fractions are assumed to be 1.
+* Upgraded coupled and integrated stationary wave solver 'SnapWave' including Infragravity wave energy balance following Leijnse et al. (2024).
+* New recommended default combination that with new advection scheme: alpha=0.50, theta=1.0, advection=1 (is now always 2D), viscosity=1
+
+Other changes:
+
+* Improved stability for cell that from being dry becomes wet.
+* Extra output variable to netcdf output files 'status', for easy checking whether a batch of simulations have all run succesfully: a value of 0 means no error
+* Added option to specify in case of a 1 layer model (either quadtree input, or original input), whether you want the output as mesh quadtree netcdf (1), or regular gridded netcdf (0, default). Keyword: regular_output_on_mesh (0, default, =logical)
+* netspwfile input for precipitation should be absolute atmospheric pressure, not the pressure drop.
+* Upgrade Windows compiler to IFX 2024.
+* Upgraded Netcdf version to newer native versions of Unidata: netCDF 4.9.2 & netcdf-fortran-4.6.1
+* Updated documentation.
+* Added tests in skillbed report.
+* Compliance with new Python setup tools HydroMT-SFINCS release v1.X.X
 
 Official open source version Q4 2023: v2.0.3 Cauberg release
 ^^^^^
