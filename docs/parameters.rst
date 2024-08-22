@@ -90,12 +90,6 @@ Parameters for model input
 	  :default:		1.0
 	  :min:			0.8
 	  :max:			1.0
-	slopelim	
-	  :description:		Slope term limiter. Possibility to limit the slope term in the momentum equation for increased stability, default is large number.
-	  :units:		-	
-	  :default:		9999.9		
-	  :min:			0.0001	
-	  :max:			9999.9	  
 	hmin_cfl	
 	  :description:		Minimum water depth to determine maximum timestep using CFL-conditions. Possibility to lower the maximum timestep for increased stability by putting a larger values than the deafult of 0.1 m (as was default before became user option).
 	  :units:		m	
