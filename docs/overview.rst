@@ -226,8 +226,6 @@ There have been various journal publications and conference posters where SFINCS
 
 * "Large-Scale Operational Forecasting with the Compound Flood Model SFINCS". Van Ormondt et al. (2022). In Fall Meeting 2022. AGU.
 
-* "Tropical cyclones or extratropical storms: What drives the compound flood hazard, impact and risk for the US Southeast Atlantic coast?" Nederhoff et al. (2023). https://eartharxiv.org/repository/view/5123/.
-
 * "Dynamic modeling of coastal compound flooding hazards due to tides, extratropical storms, waves, and sea-level rise: a case study in the Salish Sea, Washington (USA)". Nederhoff et al. (2023). https://eartharxiv.org/repository/view/5140/
 
 * "RAPID MODELING OF COMPOUND FLOODING ACROSS BROAD COASTAL REGIONS AND THE NECESSITY TO INCLUDE RAINFALL DRIVEN PROCESSES: A CASE STUDY OF HURRICANE FLORENCE (2018)". Leijnse et al. (2023). https://doi.org/10.1142/9789811275135_0235 
@@ -246,7 +244,13 @@ There have been various journal publications and conference posters where SFINCS
 
 * "Accounting for Uncertainties in Forecasting Tropical Cyclone-Induced Compound Flooding". Nederhoff et al. (2024). https://gmd.copernicus.org/articles/17/1789/2024/
 
+* "Tropical or extratropical cyclones: what drives the compound flood hazard, impact, and risk for the United States Southeast Atlantic coast?". Nederhoff et al. (2024). Nat Hazards 120, 8779–8825 (2024). https://doi.org/10.1007/s11069-024-06552-x
+
+* "Compound flood impacts from Hurricane Sandy on New York City in climate-driven storylines" Goulart et al. (2024), Nat. Hazards Earth Syst. Sci., 24, 29–45, https://doi.org/10.5194/nhess-24-29-2024, 2024.
+
 * "Estimating nearshore infragravity wave conditions at large spatial scales". Leijnse et al. (2024). doi: 10.3389/fmars.2024.1355095
+
+* "Integrating incident and infragravity wave effects in a fast compound flood model". Leijnse et al. (2024), EGU General Assembly 2024, Vienna, Austria, 14–19 Apr 2024, EGU24-2106, https://doi.org/10.5194/egusphere-egu24-2106, 2024.
 
 * More information regarding recent advancements with subgrid features can be seen in this online poster: https://agu2020fallmeeting-agu.ipostersessions.com/Default.aspx?s=9C-05-18-CF-F1-2B-17-F0-7A-21-93-E6-13-AE-F3-24
 Leijnse et al. (2020)
