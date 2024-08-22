@@ -75,9 +75,9 @@ Parameters for model input
 	friction2d	
 	  :description:		Option to select to include 2D component for determining friction term as well: friction2d - true, default. Original implementation from Leijnse et al. (2021) can be selected as 'friction2d = false' for backwards compatability. NOTE - from SFINCS 2024.01 release onwards.
 	  :units:		-	
-	  :default:		0.5		
-	  :min:			0.1 (recommended)	
-	  :max:			0.75 (recommended)	
+	  :default:		true		
+	  :min:			false	
+	  :max:			true	
 	huthresh	
 	  :description:		Minimum flow depth limiter.
 	  :units:		m
@@ -431,7 +431,7 @@ Domain
 	  :required:		no	  
 	  :format:		bin	 		  	   	  
 	sbgfile = sfincs.sbg
-	  :description:		File containing subgrid tables, only needed by SFINCS if you want to run your model in the subgrid mode. Netcdf file input option available from SFINCS 2024.01 release onwards as in Van Ormondt et al. 2024, binary file option still possible for backwards compatability.
+	  :description:		File containing subgrid tables, only needed by SFINCS if you want to run your model in the subgrid mode. Recommended netcdf file input option available from SFINCS 2024.01 release onwards as in Van Ormondt et al. 2024, binary file option still possible for backwards compatability.
 	  :units:		-
 	  :required:		Only for running SFINCS in subgrid mode	  
 	  :format:		new is netcdf, old is binary		  
