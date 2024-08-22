@@ -27,7 +27,7 @@ Known issues of the current SFINCS main version and last release are (improvemen
 Releases Changelog
 -----
 
-Official open source version Q4 2023: v2.0.3 Cauberg release
+Official open source version 2024.01: v2.1.1 DeuxAlpes release
 ^^^^^
 
 The first official 2024 release of SFINCS, the v2.1.1 DeuxAlpes release, 'Conquering mountains in compound flood modelling two at a time', is now available!
