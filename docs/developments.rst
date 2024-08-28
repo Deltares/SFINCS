@@ -40,7 +40,7 @@ https://download.deltares.nl/en/sfincs/
 
 As Docker container:
 
-docker pull deltares/sfincs-cpu:sfincs-v2.1.1-Dollerup_release
+docker pull deltares/sfincs-cpu:sfincs-v2.1.1-Dollerup-Release
 
 Changes:
 
