@@ -619,7 +619,7 @@
             ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
             ! Use maximum of sqrt(gh) and current velocity
             !
-            min_dt = min(min_dt, 1.0 / (max(sqrt(g * hu), abs(uv(ip))) * dxuvinv))
+            min_dt = min(min_dt, 1.0 / (max(sqrt(g * hu), min(abs(uv(ip)), 4.0)) * dxuvinv))
             ! min_dt = min(min_dt, 1.0 / (sqrt(g * hu) * dxuvinv)) ! Original
             !
          else
