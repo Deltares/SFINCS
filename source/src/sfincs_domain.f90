@@ -1406,12 +1406,29 @@ contains
          !
       enddo   
       !
-      ! Determine minimum and maximum time step
-      !
-      dtmax = min(dtmax, alfa * dxymin / (sqrt(9.81 * hmin_cfl)))      
-      dtmin = alfa*dxymin/(sqrt(9.81*stopdepth)) ! If dt falls below this value, the simulation will stop
-      !
    endif   
+   !
+   ! Determine maximum time step (particularly important at start of simulation when depth may be 0.0 everywhere)
+   !
+   dtmax = min(dtmax, alfa * dxymin / (sqrt(9.81 * hmin_cfl)))     
+   !
+   ! Determine minimum time step (combo of sqrt(g*stopdepth) and vmax). If dt falls below this value, the simulation will stop.
+   !       
+   ! dtmin based on sqrt(gh)
+   !
+   if (stopdepth > 0.0) then
+      ! 
+      dtmin = alfa * dxymin / sqrt(9.81 * stopdepth)
+      !
+   else
+      ! 
+      dtmin = 9999.0 
+      ! 
+   endif    
+   !
+   ! dtmin based on velocity (vmax)
+   ! 
+   dtmin = min(dtmin, alfa * dxymin / stopvel)
    !
    ! Determine viscosity per refinement level
    !

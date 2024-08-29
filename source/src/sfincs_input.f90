@@ -56,7 +56,7 @@ contains
    call read_real_input(500,'t0out',t0out,-999.0)
    call read_real_input(500,'t1out',t1out,-999.0)
    call read_real_input(500,'dtout',dtmapout,0.0)
-   call read_real_input(500,'dtmaxout',dtmaxout,9999999.0)
+   call read_real_input(500,'dtmaxout',dtmaxout,9999999.9)
    call read_real_input(500,'dtrstout',dtrstout,0.0)
    call read_real_input(500,'trstout',trst,-999.0)
    call read_real_input(500,'dthisout',dthisout,600.0)
@@ -65,7 +65,7 @@ contains
    call read_real_input(500,'alpha',alfa,0.50)
    call read_real_input(500,'theta',theta,1.0)
    call read_real_input(500,'hmin_cfl',hmin_cfl,0.1)   
-   call read_real_input(500,'hmin_uv',hmin_uv,0.1)   
+   ! call read_real_input(500,'hmin_uv',hmin_uv,-999.0)   
    call read_real_input(500,'manning',manning,0.04)
    call read_real_input(500,'manning_land',manning_land,-999.0)
    call read_real_input(500,'manning_sea',manning_sea,-999.0)
@@ -92,12 +92,15 @@ contains
    call read_real_input(500,'gapres',gapres,101200.0)
    call read_int_input(500,'baro',baro,1)
    call read_char_input(500,'utmzone',utmzone,'nil')
-   call read_int_input(500,'epsg',epsg,0)
-   call read_char_input(500,'epsg',epsg_code,'nil')      
-   call read_real_input(500,'stopdepth',stopdepth,100.0)
-   call read_real_input(500,'advlim',advlim,9999.9)
-   call read_real_input(500,'slopelim',slopelim,9999.9)
-   call read_real_input(500,'qinf_zmin',qinf_zmin,0.0)
+   call read_int_input(500, 'epsg', epsg, 0)
+   call read_char_input(500, 'epsg', epsg_code, 'nil')      
+   call read_real_input(500, 'stopdepth', stopdepth, -999.0)         ! depth (m) at which simulation is stopped (negative number means it is not used)
+   call read_real_input(500, 'stopvel', stopvel, 100.0)              ! velocity (m/s) at which simulation is stopped
+   call read_real_input(500, 'uvlim', uvlim, 4.0)                    ! velocity limit (m/s) in advection/viscosity terms
+   ! call read_real_input(500, 'maxdudt', maxdudt, -999.0)           ! max horizontal acceleration (m/s2) due to total forcing term (not used)
+   call read_real_input(500, 'advlim', advlim, 2.0)                  ! max horizontal acceleration (m/s2) due to advection term
+   ! call read_real_input(500, 'slopelim', slopelim, 9999.9)         ! max slope (-) (not used)
+   call read_real_input(500, 'qinf_zmin', qinf_zmin, 0.0)
    call read_real_input(500,'btfilter',btfilter,60.0)
    call read_real_input(500,'sfacinf',sfacinf,0.2)
    call read_int_input(500,'radstr',iradstr,0)
@@ -215,6 +218,15 @@ contains
    call read_logical_input(500,'advection_mask',advection_mask,.true.)
    call read_logical_input(500,'regular_output_on_mesh',use_quadtree_output,.false.)   
    !
+   ! Let's not use hmin_uv 
+   ! if (hmin_uv < 0.0) then
+   !   !
+   !   ! This is the default. Set hmin_uv to huthresh.
+   !   !
+   !   hmin_uv = huthresh 
+   !   !
+   ! endif
+   !
    ! Wind drag
    !
    call read_int_input(500,'cdnrb',cd_nr,0)
@@ -328,25 +340,55 @@ contains
    ! Output
    !
    if (t0out<-900.0) then
+      !
+      ! t0out not provided in sfincs.inp, so set it to start of simulation 
+      ! 
       t0out = t0
-   endif    
-   t0out = max(t0out, t0)
-   if (t1out<-900.0) then
-      t1out = t1
+      ! 
    endif    
    !
+   ! Make sure that t0out is not before start of simulation
+   !
+   t0out = max(t0out, t0)
+   ! 
+   if (t1out<-900.0) then
+      !
+      ! t1out not provided in sfincs.inp, so set it to end of simulation 
+      ! 
+      t1out = t1
+      ! 
+   endif    
+   !
+   if (dtmaxout > 9999998.0) then
+      !
+      ! dtmaxout was not provided in sfincs.inp, so let's compute it, assuming the user wants max output over the entire simulation
+      !
+      dtmaxout = t1 - t0 
+      !
+   elseif (dtmaxout > 1.0e-3) then
+      !
+      ! dtmaxout is given in sfincs.inp 
+      !
+      ! Make sure dtmaxout is no larger than t1 - t0 
+      !
+      dtmaxout = min(dtmaxout, t1 - t0) 
+      ! 
+   endif
+   !
+   ! if dtmaxout is set to <= 0.0 in sfincs.inp, no max output will be generated
+   !
    store_maximum_waterlevel = .false.
-   if (dtmaxout>0.0) then
+   if (dtmaxout>1.0e-3) then
       store_maximum_waterlevel = .true.
    endif
    !
    store_maximum_velocity = .false.
-   if (storevelmax==1 .and. dtmaxout>0.0) then
+   if (storevelmax==1 .and. dtmaxout>1.0e-3) then
       store_maximum_velocity = .true.
    endif
    !
    store_maximum_flux = .false.   
-   if (storefluxmax==1 .and. dtmaxout>0.0) then
+   if (storefluxmax==1 .and. dtmaxout>1.0e-3) then
       store_maximum_flux = .true.      
    endif   
    !

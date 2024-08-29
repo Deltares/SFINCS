@@ -46,7 +46,7 @@ module sfincs_data
       real*4 dtwindupd
       real*4 theta
       real*4 hmin_cfl
-      real*4 hmin_uv
+      ! real*4 hmin_uv
       real*4 dtmax
       real*4 dtmin
       real*4 zini
@@ -67,7 +67,10 @@ module sfincs_data
       real*4 pavbnd
       real*4 gapres
       real*4 stopdepth
+      real*4 stopvel
+      real*4 uvlim
       real*4 advlim
+      real*4 maxdudt
       real*4 slopelim
       real*4 twet_threshold
       real*4, dimension(:), allocatable :: cd_wnd

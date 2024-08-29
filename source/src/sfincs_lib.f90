@@ -464,7 +464,7 @@ module sfincs_lib
       call compute_water_levels(dt, tloopcont)
       !
       ! OUTPUT
-      !      
+      !   
       if (write_map .or. write_his .or. write_max .or. write_rst) then
          !
          ! if (.not. fixed_output_intervals) tout = t
@@ -478,19 +478,20 @@ module sfincs_lib
       if (dt<dtmin .and. nt>1) then
          !
          error = 1
-         write(error_message,'(a,f0.1,a)')'Error! Maximum depth of ', stopdepth, ' m reached!!! Simulation stopped.'
+         !
+         write(error_message,'(a,f0.1,a,f0.4,a)') 'Error! Maximum depth of ', stopdepth, ' m reached! Time step dropped below ', dtmin, ' s ! Simulation stopped.'
          !
          ! Write map output at last time step 
          !
-         ntmaxout = ntmaxout + 1 ! Max sure that max output is not called again through 'finalize_output' 
+         call write_output(t, .true., .true., .true., .false., ntmapout + 1, ntmaxout + 1, nthisout + 1, tloopoutput)
          !
-         call write_output(t, .true., .true., .true., .false., ntmapout + 1, ntmaxout, nthisout + 1, tloopoutput)
+         ! Set time greater than end of simulation, so that simulation is ended in next while iteration
          !
          t = t1 + 1.0
          !
       endif
       !
-      percdone = min(100*(t - t0)/(t1 - t0), 100.0)
+      percdone = min(100 * (t - t0) / (t1 - t0), 100.0)
       !
       if (percdone>=percdonenext) then
          !

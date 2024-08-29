@@ -120,7 +120,7 @@
       !
       ! Limit speeds to prevent instabilities due to advection
       !      
-      uv0(ip) = max(min(uv(ip), 4.0), -4.0)
+      uv0(ip) = max(min(uv(ip), uvlim), -uvlim)
       !
    enddo
    !$omp end do
@@ -161,7 +161,7 @@
             !
          else
             !            
-            if (zsu>zbuvmx(ip)) then ! zbuvmx = max(zb(nm), zb(nmu)) + huthresh
+            if (zsu > zbuvmx(ip)) then ! zbuvmx = max(zb(nm), zb(nmu)) + huthresh
                iok = .true.
             endif   
             !            
@@ -318,7 +318,7 @@
                   dzuv   = (zmax - zmin) / (subgrid_nlevels - 1)                                                          ! level size (is storing this in memory faster?)
                   iuv    = int((zsu - zmin) / dzuv) + 1                                                                   ! index of level below zsu 
                   facint = (zsu - (zmin + (iuv - 1)*dzuv) ) / dzuv                                                        ! 1d interpolation coefficient
-!                  if (iuv > subgrid_nlevels - 1) write(*,'(a,i10,20e16.8)')'iuv exceeds subgrid_nlevels - 1. THIS IS NOT POSSIBLE! (iuv,zmin,zmax,dzuv,zsu) :', iuv,zmin,zmax,dzuv,zsu
+                  ! if (iuv > subgrid_nlevels - 1) write(*,'(a,i10,20e16.8)')'iuv exceeds subgrid_nlevels - 1. THIS IS NOT POSSIBLE! (iuv,zmin,zmax,dzuv,zsu) :', iuv,zmin,zmax,dzuv,zsu
                   !
                   hu     = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint   ! grid-average depth
                   gnavg2 = subgrid_uv_nrep(iuv, ip) + (subgrid_uv_nrep(iuv + 1, ip) - subgrid_uv_nrep(iuv, ip))*facint   ! representative g*n^2
@@ -330,7 +330,7 @@
                !
             else
                !
-               hu     = max(zsu - zbuvmx(ip), huthresh)
+               hu     = zsu - zbuvmx(ip) + huthresh
                gnavg2 = gn2uv(ip)
                !
             endif
@@ -343,18 +343,14 @@
             !
             ! Pressure term
             !
-            !dzdx = min(max((zs(nmu) - zs(nm)) * dxuvinv, -slopelim), slopelim) 
             dzdx = (zs(nmu) - zs(nm)) * dxuvinv
-            !
             frc = - g * hu * dzdx
-            !
-            ! frc = - g * hu * (zs(nmu) - zs(nm)) * dxuvinv
             !
             ! Advection term
             !
             if (advection) then
                !
-               ! Turn off advection next to open boundaries
+               ! Turn off advection next to open boundaries and in point that are still dry
                !
                if (mask_adv(ip) == 1) then
                   ! 
@@ -394,7 +390,7 @@
                      ! d qu u / dx = qu du / dx + u d qu / dx
                      ! d qv u / dy = qv du / dy + u d qv / dy
                      !
-                     ! if (kfu(uv_index_u_nmd(ip))==1 .and. kfu(uv_index_u_nmu(ip))==1) then
+                     ! if (kfuv(uv_index_u_nmd(ip))==1 .and. kfuv(uv_index_u_nmu(ip))==1) then
                      !
                      ! d qu u / dx
                      !
@@ -443,17 +439,13 @@
                      !  
                   endif
                   !
-                  if (advection_limiter) then
-                     !
-                     adv = dqxudx + dqyudy
-                     adv = min(max(adv, -advlim), advlim) 
-                     frc = frc - phi * adv
-                     !
-                  else
-                     !
-                     frc = frc - phi * (dqxudx + dqyudy)
-                     !
-                  endif 
+                  adv = - phi * (dqxudx + dqyudy)
+                  !
+                  ! Limit advection term such that horizontal acceleration due to advection does not exceed advlim (default 2.0 m/s2) 
+                  !
+                  adv = min(max(adv, -advlim * hu), advlim * hu) 
+                  !
+                  frc = frc + adv
                   !
                endif
                !   
@@ -542,11 +534,21 @@
                !
             endif
             !
+            ! Limit flow acceleration to maxdudt (default 10 m/s2). Commented out for now. 
+            !
+            ! if (maxdudt > 0.0) then
+            !    !
+            !    ! Limit flow acceleration to maxdudt (default 10 m/s2)
+            !    !
+            !    frc = min(max(frc, -maxdudt * hu), maxdudt * hu)
+            !    !
+            ! endif   
+            !
             ! Compute flux qfr used for friction term
             !
             if (kfuv(ip) == 0) then
                !
-               ! This uv point just became wet, so estimate equilibrium flux 
+               ! This uv point just became wet, so estimate equilibrium flux
                !
                qfr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * hu ** (5.0 / 3.0)               
                !
@@ -574,14 +576,13 @@
             !
             if (thetasmoothing) then
                ! 
-               ! Apply theta smoothing 
+               ! Apply theta smoothing (should not do this anymore)
                ! 
                if ( kcuv(uv_index_u_nmd(ip))==1 .and. kcuv(uv_index_u_nmu(ip))==1 ) then 
                   !
                   ! But only at regular points
                   ! 
                   if (abs(qx_nmd) > 1.0e-6 .and. abs(qx_nmu) > 1.0e-6) then
-                     ! if (kfu(uv_index_u_nmd(ip))==1 .and. kfu(uv_index_u_nmu(ip))==1) then
                      !
                      ! And if both uv neighbors are active
                      ! 
@@ -590,10 +591,11 @@
                   endif
                   ! 
                endif               
+               !
             endif            
             !
             ! Compute new flux for this uv point (Bates et al., 2010)
-            ! 
+            !            
             q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / (hu**2 * hu**expo))
             !
             if (wiggle_suppression) then 
@@ -612,15 +614,17 @@
             !
             ! Compute velocity
             !
-            uv(ip) = q(ip) / max(hu, hmin_uv) ! Limit velocity through minimal hu in case of very small huthresh, deafult hmin_uv=0.1m
+            uv(ip) = q(ip) / hu
+            !
+            ! Set flag
             !
             kfuv(ip) = 1
             !
             ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
             ! Use maximum of sqrt(gh) and current velocity
             !
-            min_dt = min(min_dt, 1.0 / (max(sqrt(g * hu), min(abs(uv(ip)), 4.0)) * dxuvinv))
-            ! min_dt = min(min_dt, 1.0 / (sqrt(g * hu) * dxuvinv)) ! Original
+            ! min_dt = min(min_dt, 1.0 / (max(sqrt(g * hu), min(abs(uv(ip)), uvlim)) * dxuvinv))
+            min_dt = min(min_dt, 1.0 / (max(sqrt(g * hu), abs(uv(ip))) * dxuvinv))
             !
          else
             !

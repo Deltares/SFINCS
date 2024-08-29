@@ -2583,9 +2583,11 @@ contains
    endif
    !
    NF90(nf90_put_var(map_file%ncid, map_file%timemax_varid, t, (/ntmaxout/))) ! write time_max
+   !
    NF90(nf90_put_var(map_file%ncid, map_file%zsmax_varid, zstmp, (/1, 1, ntmaxout/))) ! write zsmax      
    !
    ! Write maximum water depth (optional)
+   !
    if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
       !
       zstmp = FILL_VALUE
@@ -2943,7 +2945,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'dtmax',dtmax))        
         NF90(nf90_put_att(ncid, varid, 'dtmin',dtmin))  
         NF90(nf90_put_att(ncid, varid, 'hmin_cfl',hmin_cfl))        
-        NF90(nf90_put_att(ncid, varid, 'hmin_uv',hmin_uv))                
+        ! NF90(nf90_put_att(ncid, varid, 'hmin_uv', hmin_uv))                
         NF90(nf90_put_att(ncid, varid, 'huthresh',huthresh))        
         NF90(nf90_put_att(ncid, varid, 'rhoa',rhoa))        
         NF90(nf90_put_att(ncid, varid, 'rhow',rhow))        

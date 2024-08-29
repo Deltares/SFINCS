@@ -27,23 +27,28 @@ module sfincs_output
          call open_map_output()       
       endif      
    else
-       tmapout     = 1.0e9
+       tmapout = 1.0e9
    endif
    !
    if (dtmaxout>1.0e-6) then
-      tmaxout     = t0out + dtmaxout
+      !
+      tmaxout = t0out + dtmaxout
+      ! 
       if (outputtype_map /= 'net') then
          call open_max_output()   ! For netcdf output this is written to mapfile
       endif
+      ! 
    else
-      tmaxout     = 1.0e9
+      ! 
+      tmaxout = 1.0e9
+      !
    endif
    !
    if (dtrstout>1.0e-6) then
       !
       ! Interval given
       !
-      trstout     = t0out + dtrstout
+      trstout = t0out + dtrstout
       !
    elseif (trst>1.0e-6) then
       !
@@ -75,7 +80,7 @@ module sfincs_output
    end subroutine
 
    
-   subroutine write_output(t,write_map,write_his,write_max,write_rst,ntmapout,ntmaxout,nthisout,tloop)
+   subroutine write_output(t, write_map, write_his, write_max, write_rst, ntmapout, ntmaxout, nthisout, tloop)
    !
    use sfincs_data
    !
@@ -251,28 +256,32 @@ module sfincs_output
    real*8   :: t, t2
    real     :: tloopoutput 
    real*8   :: tmaxout   
-   !   
-   if (dtmaxout>1.e-6 .and. ntmaxout == 0) then 
-       !write dtmax output if 1) value for dtmaxout wasn't achieved yet, 
-       !or 2) in the last timeinterval, the full 'dtmaxout' wasn't achieved yet, but we still want the max over this interval
-      ! 
-      write(*,'(a)')''       
-      write(*,*)'Info : Write maximum values at final timestep since t=dtmaxout was not reached yet...'
-      ntmaxout = 1
-      call write_output(t,.false.,.false.,.true.,.false.,0,ntmaxout,0,tloopoutput)
-      !
-   elseif (dtmaxout>1.e-6 .and. ntmaxout>0 .and. t < tmaxout) then
-      !
-      write(*,'(a)')''       
-      write(*,*)'Info : Write maximum values at final timestep since t=dtmaxout was not reached yet for final interval...'
-      ntmaxout = ntmaxout + 1
-      !
-      ! Write 'tstop' as timemax instead of actual (unrounded) 't'
-      t2 = t1
-      !
-      call write_output(t2,.false.,.false.,.true.,.false.,0,ntmaxout,0,tloopoutput)       
-      !
-   endif
+   !
+   ! Following code not needed anymore because dtmaxout is set equal to t1-t0 when not specified in sfincs.inp
+   !
+   ! if (dtmaxout>1.e-6 .and. ntmaxout == 0) then 
+   !   !write dtmax output if 1) value for dtmaxout wasn't achieved yet, 
+   !   !or 2) in the last timeinterval, the full 'dtmaxout' wasn't achieved yet, but we still want the max over this interval
+   !   ! 
+   !   ! write(*,'(a)')''       
+   !   ! write(*,*)'Info : Write maximum values at final timestep since t=dtmaxout was not reached yet...'
+   !   ntmaxout = 1
+   !   call write_output(t, .false., .false., .true., .false., 0, ntmaxout, 0, tloopoutput)
+   !   !
+   !elseif (dtmaxout>1.e-6 .and. ntmaxout>0 .and. t < tmaxout) then
+   !
+   !if (dtmaxout>1.e-6 .and. ntmaxout>0 .and. t < tmaxout) then
+   !   !
+   !   write(*,'(a)')''       
+   !   write(*,*)'Info : Write maximum values at final timestep since t=dtmaxout was not reached yet for final interval...'
+   !   ntmaxout = ntmaxout + 1
+   !   !
+   !   ! Write 'tstop' as timemax instead of actual (unrounded) 't'
+   !   t2 = t1
+   !   !
+   !   call write_output(t2,.false.,.false.,.true.,.false.,0,ntmaxout,0,tloopoutput)       
+   !   !
+   !endif
    !
    if (outputtype_map == 'net') then
       !
