@@ -330,7 +330,7 @@
                !
             else
                !
-               hu     = zsu - zbuvmx(ip) + huthresh
+               hu     = zsu - zbuvmx(ip)
                gnavg2 = gn2uv(ip)
                !
             endif
