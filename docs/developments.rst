@@ -30,7 +30,7 @@ Releases Changelog
 Official open source version 2024.01: v2.1.1 Dollerup release
 ^^^^^
 
-The first official 2024 release of SFINCS, the v2.1.1 Dollerup release, 'Conquering mountains in compound flood modelling two at a time', is now available!
+The first official 2024 release of SFINCS, the v2.1.1 Dollerup release, 'Conquering challenges in compound flood modelling together', is now available!
 
 This contains open access to the source code from Github: https://github.com/Deltares/SFINCS/releases/tag/v2.1.1_Dollerup_release.
 
