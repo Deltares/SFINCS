@@ -90,7 +90,7 @@
    !
    real*4    :: mdrv
    !
-   real*4, parameter :: expo = 1.0 / 3
+   real*4, parameter :: expo = 1.0 / 3.0
    ! integer, parameter :: expo = 0
    !
    logical   :: iok
@@ -624,11 +624,6 @@
                else
                   hcbrt = 21.5
                endif    
-               !
-!               if (icbrt > 100) then
-!                   hcbrt = 1.0
-!                  write(*,*)'WTF, this statement makes everything slow! Why? Its seems to be just the write statement'
-!               endif   
                !
             else
                !
