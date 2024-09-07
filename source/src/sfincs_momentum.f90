@@ -85,11 +85,13 @@
    !
    real*4    :: hwet
    real*4    :: phi
+   real*4    :: hcbrt
+   integer   :: icbrt
    !
    real*4    :: mdrv
    !
-   real*4, parameter :: expo = 1.0/3.0
-   !integer, parameter :: expo = 1
+   real*4, parameter :: expo = 1.0 / 3
+   ! integer, parameter :: expo = 0
    !
    logical   :: iok
    !
@@ -131,13 +133,14 @@
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy, &
+   !$omp           uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hcbrt,icbrt ) &
    !$omp reduction ( min : min_dt )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop independent, reduction( min : min_dt ), gang, vector
    do ip = 1, npuv
       !
-      if (kcuv(ip)==1) then
+      if (kcuv(ip) == 1) then
          !
          ! Regular UV point 
          !
@@ -210,6 +213,7 @@
                      dxuv2inv = dyr2inv(iref)
                      !
                   endif   
+                  !
                else   
                   !
                   ! Fine to coarse or coarse to fine
@@ -595,8 +599,46 @@
             endif            
             !
             ! Compute new flux for this uv point (Bates et al., 2010)
-            !            
-            q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / (hu**2 * hu**expo))
+            !
+            ! First determine hu**(1/3) for friction term
+            !
+            if (cbrttable) then
+               !
+               ! Use look-up tables to find cube root of hu
+               !
+               if (hu < 1.0) then
+                  icbrt = int(100 * hu / 1.0) + 1
+                  hcbrt = cbrt00001(icbrt)
+               elseif (hu < 10.0) then
+                  icbrt = int(100 * hu / 10.0) + 1
+                  hcbrt = cbrt00010(icbrt)
+               elseif (hu < 100.0) then
+                  icbrt = int(100 * hu / 100.0) + 1
+                  hcbrt = cbrt00100(icbrt)
+               elseif (hu < 100.0) then
+                  icbrt = int(100 * hu / 1000.0) + 1
+                  hcbrt = cbrt01000(icbrt)
+               elseif (hu < 10000.0) then
+                  icbrt = int(100 * hu / 10000.0) + 1
+                  hcbrt = cbrt10000(icbrt)
+               else
+                  hcbrt = 21.5
+               endif    
+               !
+!               if (icbrt > 100) then
+!                   hcbrt = 1.0
+!                  write(*,*)'WTF, this statement makes everything slow! Why? Its seems to be just the write statement'
+!               endif   
+               !
+            else
+               !
+               ! Precise (but more expensive) determination of hu**(1/3)
+               ! 
+               hcbrt = hu**expo
+               !
+            endif    
+            !
+            q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / (hu**2 * hcbrt))
             !
             if (wiggle_suppression) then 
                !
@@ -624,6 +666,7 @@
             ! Use maximum of sqrt(gh) and current velocity
             !
             ! min_dt = min(min_dt, 1.0 / (max(sqrt(g * hu), min(abs(uv(ip)), uvlim)) * dxuvinv))
+            ! min_dt = min(min_dt, 1.0 / (sqrt(g * hu) * dxuvinv))
             min_dt = min(min_dt, 1.0 / (max(sqrt(g * hu), abs(uv(ip))) * dxuvinv))
             !
          else
@@ -670,4 +713,4 @@
    !
    end subroutine      
    !
-end module
+   end module

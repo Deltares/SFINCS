@@ -208,7 +208,6 @@ module sfincs_data
       logical       :: debug
       logical       :: radstr
       logical       :: crsgeo
-      logical       :: use_coriolis
       logical       :: ampr_block
       logical       :: global
       logical       :: store_tsunami_arrival_time
@@ -234,6 +233,7 @@ module sfincs_data
       logical       :: advection_mask
       logical       :: wiggle_suppression
       logical       :: wmrandom      
+      logical       :: cbrttable
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
@@ -431,6 +431,11 @@ module sfincs_data
       real*4, dimension(:),     allocatable :: wmf_tp_ig_t
       real*4, dimension(:),     allocatable :: wmf_setup_t
       !      
+      real*4, dimension(:),     allocatable :: cbrt00001
+      real*4, dimension(:),     allocatable :: cbrt00010
+      real*4, dimension(:),     allocatable :: cbrt00100
+      real*4, dimension(:),     allocatable :: cbrt01000
+      real*4, dimension(:),     allocatable :: cbrt10000
 !      integer*4                              :: wavemaker_nr_cross
 !      integer*4                              :: wavemaker_nr_along
 !      real*4                                 :: wavemaker_dx_cross

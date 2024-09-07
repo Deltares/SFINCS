@@ -125,6 +125,7 @@ contains
    call read_logical_input(500,'wiggle_suppression',wiggle_suppression,.false.)
    call read_real_input(500,'wiggle_factor',wiggle_factor,0.1)
    call read_real_input(500,'wiggle_threshold',wiggle_threshold,0.1)
+   call read_logical_input(500,'cbrttable',cbrttable,.false.)   
    !
    ! Domain
    !
@@ -311,31 +312,43 @@ contains
       imanning2d = 1
    endif   
    !
-   ! Coriolis parameter
+   ! CRS and Coriolis parameter
    !
-   fcorio = 2*7.2921e-05*sin(latitude*pi/180)
-   if (latitude>0.01 .or. latitude<-0.01) then
-      coriolis = .true.
-   else
-      coriolis = .false.
-   endif
-   !
-   use_coriolis = .true.
-   crsgeo = .false.
-   if (igeo==1) then
-      coriolis = .true.
-      crsgeo   = .true.
-      if (icoriolis==1) then
-         use_coriolis = .true.
-         write(*,*)'Turning on process: Coriolis'               
-      else
-         use_coriolis = .false.
-         write(*,*)'Turning off process: Coriolis'               
-      endif   
+   if (igeo == 0) then
       !
+      ! Projected (default no coriolis, unless latitude is specified)
+      !
+      coriolis = .false.
+      crsgeo = .false.   
+      !
+      if (latitude > 0.01 .or. latitude < -0.01) then
+         ! 
+         fcorio = 2 * 7.2921e-05 * sin(latitude * pi / 180)
+         coriolis = .true.
+         ! 
+      endif
+      !
+   else
+      !
+      ! Geographic (default no coriolis, unless coriolis is turned off in input file)
+      ! fcorio2d will be determined in sfincs_domain.f90 
+      !
+      coriolis = .true.
+      crsgeo = .true.   
+      ! 
       write(*,*)'Input grid interpreted as geographic coordinates'
       !
-   endif
+      ! But also check if coriolis was turned off
+      !
+      if (icoriolis == 0) then
+         ! 
+         coriolis = .false.
+         ! 
+         write(*,*)'Turning off process: Coriolis'               
+         ! 
+      endif   
+      !
+   endif   
    !
    ! Output
    !

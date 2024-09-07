@@ -9,6 +9,8 @@ contains
    !
    implicit none
    !
+   call initialize_cbrt_tables() 
+   !
    call initialize_processes() 
    !
    call initialize_mesh()
@@ -37,6 +39,39 @@ contains
    !
    end subroutine
 
+   subroutine initialize_cbrt_tables()
+   !
+   ! Initialize physical processes
+   !
+   use sfincs_data
+   !
+   implicit none
+   !
+   integer :: j
+   integer :: n
+   !
+   if (cbrttable) then
+      !
+      n = 100
+      !
+      allocate(cbrt00001(n))
+      allocate(cbrt00010(n)) 
+      allocate(cbrt00100(n))
+      allocate(cbrt01000(n))
+      allocate(cbrt10000(n))
+      !
+      do j = 1, n
+         cbrt00001(j) = ((j/(n*1.0)) * 1.0) ** (1.0/3.0)
+         cbrt00010(j) = ((j/(n*1.0)) * 10.0) ** (1.0/3.0)
+         cbrt00100(j) = ((j/(n*1.0)) * 100.0) ** (1.0/3.0)
+         cbrt01000(j) = ((j/(n*1.0)) * 1000.0) ** (1.0/3.0)
+         cbrt10000(j) = ((j/(n*1.0)) * 10000.0) ** (1.0/3.0)
+      enddo           
+      !
+   endif
+   !
+   end subroutine
+   
 
    subroutine initialize_processes()
    !
@@ -1355,10 +1390,14 @@ contains
       !
       ! Spatially varying Coriolis
       !
-      if (use_coriolis) then
-         do nm = 1, np            
-            fcorio2d(nm) = 2*7.2921e-05*sin(z_yz(nm)*pi/180)
+      if (coriolis) then
+         ! 
+         do nm = 1, np
+            ! 
+            fcorio2d(nm) = 2 * 7.2921e-05 * sin(z_yz(nm) * pi / 180)
+            ! 
          enddo
+         ! 
       endif   
       !
    else 
