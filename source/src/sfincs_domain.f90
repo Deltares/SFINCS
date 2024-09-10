@@ -2323,7 +2323,19 @@ contains
    uv  = 0.0
    uv0 = 0.0
    !
-   kfuv = 0 
+   kfuv = 0
+   !
+   if (nonhydrostatic) then
+      !
+      allocate(pnhb(np))
+      allocate(w0(np))
+      allocate(wuv(npuv + ncuv + 1))
+      !
+      pnhb = 0.0
+      w0   = 0.0       
+      wuv  = 0.0       
+      ! 
+   endif    
    !
    if (wiggle_suppression) then 
       ! 

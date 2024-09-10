@@ -218,6 +218,7 @@ contains
    call read_logical_input(500,'friction2d',friction2d,.true.)
    call read_logical_input(500,'advection_mask',advection_mask,.true.)
    call read_logical_input(500,'regular_output_on_mesh',use_quadtree_output,.false.)   
+   call read_logical_input(500,'nonh',nonhydrostatic,.false.)   
    !
    ! Let's not use hmin_uv 
    ! if (hmin_uv < 0.0) then

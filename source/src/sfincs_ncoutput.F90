@@ -23,6 +23,7 @@ module sfincs_ncoutput
       integer :: zsm_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid
       integer :: tsunami_arrival_time_varid
+      integer :: pnonh_varid
       !
       integer :: mesh2d_varid
       integer :: mesh2d_node_x_varid, mesh2d_node_y_varid
@@ -476,7 +477,7 @@ contains
          NF90(nf90_def_var(map_file%ncid, 'fwx', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%fwx_varid))
          NF90(nf90_def_var_deflate(map_file%ncid, map_file%fwx_varid, 1, 1, nc_deflate_level)) ! deflate
          NF90(nf90_put_att(map_file%ncid, map_file%fwx_varid, '_FillValue', FILL_VALUE))          
-         NF90(nf90_put_att(map_file%ncid, map_file%fwx_varid, 'units', 'm'))
+         NF90(nf90_put_att(map_file%ncid, map_file%fwx_varid, 'units', 'N m-2'))
          NF90(nf90_put_att(map_file%ncid, map_file%fwx_varid, 'standard_name', 'wave_force_x'))
          NF90(nf90_put_att(map_file%ncid, map_file%fwx_varid, 'long_name', 'Wave force in x-direction')) 
          NF90(nf90_put_att(map_file%ncid, map_file%fwx_varid, 'coordinates', 'x y'))
@@ -484,7 +485,7 @@ contains
          NF90(nf90_def_var(map_file%ncid, 'fwy', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%fwy_varid))
          NF90(nf90_def_var_deflate(map_file%ncid, map_file%fwy_varid, 1, 1, nc_deflate_level)) ! deflate
          NF90(nf90_put_att(map_file%ncid, map_file%fwy_varid, '_FillValue', FILL_VALUE))          
-         NF90(nf90_put_att(map_file%ncid, map_file%fwy_varid, 'units', 'm'))
+         NF90(nf90_put_att(map_file%ncid, map_file%fwy_varid, 'units', 'N m-2'))
          NF90(nf90_put_att(map_file%ncid, map_file%fwy_varid, 'standard_name', 'wave_force_y'))
          NF90(nf90_put_att(map_file%ncid, map_file%fwy_varid, 'long_name', 'Wave force in y-direction')) 
          NF90(nf90_put_att(map_file%ncid, map_file%fwy_varid, 'coordinates', 'x y'))
@@ -514,6 +515,17 @@ contains
        NF90(nf90_put_att(map_file%ncid, map_file%tsunami_arrival_time_varid, 'coordinates', 'x y'))
        !
    endif       
+   !
+   if (nonhydrostatic) then
+      !
+      NF90(nf90_def_var(map_file%ncid, 'pnonh', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%pnonh_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%pnonh_varid, 1, 1, nc_deflate_level)) ! deflate
+      NF90(nf90_put_att(map_file%ncid, map_file%pnonh_varid, '_FillValue', FILL_VALUE))          
+      NF90(nf90_put_att(map_file%ncid, map_file%pnonh_varid, 'units', 'N m-2'))
+      NF90(nf90_put_att(map_file%ncid, map_file%pnonh_varid, 'long_name', 'non_hydrostatic_pressure')) 
+      NF90(nf90_put_att(map_file%ncid, map_file%pnonh_varid, 'coordinates', 'x y'))
+      !
+   endif
    !
    ! Add for final output:
    !
@@ -1979,6 +1991,23 @@ contains
       endif
       !
    endif   
+   !           
+   if (nonhydrostatic) then
+      !
+      zsg = FILL_VALUE       
+      !
+      do nm = 1, np
+         !
+         n    = z_index_z_n(nm)
+         m    = z_index_z_m(nm)
+         !       
+         zsg(m, n) = pnhb(nm)
+         !
+      enddo
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%pnonh_varid, zsg, (/1, 1, ntmapout/))) ! write h
+      !
+   endif
    !           
    NF90(nf90_sync(map_file%ncid)) !write away intermediate data ! TL: in first test it seems to be faster to let the file update than keep in memory
    !
