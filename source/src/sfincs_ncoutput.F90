@@ -22,6 +22,7 @@ module sfincs_ncoutput
       integer :: fwx_varid, fwy_varid, beta_varid, snapwavedepth_varid
       integer :: zsm_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid
+      integer :: tsunami_arrival_time_varid
       !
       integer :: mesh2d_varid
       integer :: mesh2d_node_x_varid, mesh2d_node_y_varid
@@ -503,6 +504,16 @@ contains
       endif
       !
    endif
+   !
+   if (store_tsunami_arrival_time) then
+       !
+       NF90(nf90_def_var(map_file%ncid, 'tsunami_arrival_time', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid/), map_file%tsunami_arrival_time_varid))       
+       NF90(nf90_def_var_deflate(map_file%ncid, map_file%tsunami_arrival_time_varid, 1, 1, nc_deflate_level)) ! deflate
+       NF90(nf90_put_att(map_file%ncid, map_file%tsunami_arrival_time_varid, '_FillValue', FILL_VALUE))
+       NF90(nf90_put_att(map_file%ncid, map_file%tsunami_arrival_time_varid, 'units', 's'))
+       NF90(nf90_put_att(map_file%ncid, map_file%tsunami_arrival_time_varid, 'coordinates', 'x y'))
+       !
+   endif       
    !
    ! Add for final output:
    !
@@ -1065,7 +1076,17 @@ contains
        endif
    endif
    !
-   ! Add for final output:
+   if (store_tsunami_arrival_time) then
+       !
+       NF90(nf90_def_var(map_file%ncid, 'tsunami_arrival_time', NF90_FLOAT, (/map_file%nmesh2d_face_dimid/), map_file%tsunami_arrival_time_varid))       
+       NF90(nf90_def_var_deflate(map_file%ncid, map_file%tsunami_arrival_time_varid, 1, 1, nc_deflate_level)) ! deflate
+       NF90(nf90_put_att(map_file%ncid, map_file%tsunami_arrival_time_varid, '_FillValue', FILL_VALUE))
+       NF90(nf90_put_att(map_file%ncid, map_file%tsunami_arrival_time_varid, 'units', 's'))
+       !
+   endif       
+   !
+   ! Add for final output
+   !
    NF90(nf90_def_var(map_file%ncid, 'total_runtime', NF90_FLOAT, (/map_file%runtime_dimid/),map_file%total_runtime_varid))
    NF90(nf90_put_att(map_file%ncid, map_file%total_runtime_varid, 'units', 's'))   
    NF90(nf90_put_att(map_file%ncid, map_file%total_runtime_varid, 'long_name', 'total_model_runtime_in_seconds'))
@@ -2864,9 +2885,59 @@ contains
    ! Add total runtime, dtavg to file and close
    !
    use sfincs_data
+   use quadtree
    !   
    implicit none   
    !   
+   integer :: nm, nmq, n, m
+   !
+   real*4, dimension(:,:), allocatable :: ztmp
+   real*4, dimension(:),   allocatable :: vtmp
+   !
+   if (store_tsunami_arrival_time) then
+      !
+      if (use_quadtree) then
+         !
+         allocate(vtmp(quadtree_nr_points))
+         !
+         vtmp = FILL_VALUE
+         !       
+         do nmq = 1, quadtree_nr_points
+            nm = index_sfincs_in_quadtree(nmq)
+            if (nm>0) then
+               if (tsunami_arrival_time(nm) > 0.0) then 
+                  vtmp(nmq) = tsunami_arrival_time(nm)
+               endif   
+            endif
+         enddo
+         !
+         NF90(nf90_put_var(map_file%ncid, map_file%tsunami_arrival_time_varid, vtmp))
+         !    
+      else    
+         ! 
+         allocate(ztmp(mmax, nmax))
+         !
+         ztmp = FILL_VALUE       
+         !
+         do nm = 1, np
+            !
+            n    = z_index_z_n(nm)
+            m    = z_index_z_m(nm)
+            !
+            if (tsunami_arrival_time(nm) > 0.0) then
+               ! 
+               ztmp(m, n) = tsunami_arrival_time(nm)
+               ! 
+            endif   
+            !      
+         enddo
+         !
+         NF90(nf90_put_var(map_file%ncid, map_file%tsunami_arrival_time_varid, ztmp, (/1, 1/)))
+         !
+      endif   
+      !
+   endif
+   !
    NF90(nf90_put_var(map_file%ncid, map_file%total_runtime_varid, tfinish_all - tstart_all)) 
    NF90(nf90_put_var(map_file%ncid, map_file%average_dt_varid,  dtavg)) 
    NF90(nf90_put_var(map_file%ncid, map_file%status_varid,  error))    

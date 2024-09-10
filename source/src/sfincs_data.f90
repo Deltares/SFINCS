@@ -504,6 +504,7 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: vmax
       real*4, dimension(:),   allocatable :: qmax
       real*4, dimension(:),   allocatable :: zs
+      real*4, dimension(:),   allocatable :: zsini
       real*4, dimension(:),   allocatable :: zsm
       real*4, dimension(:),   allocatable :: maxzsm      
       real*4, dimension(:),   allocatable :: q

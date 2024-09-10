@@ -461,7 +461,7 @@ module sfincs_lib
       !      
       ! Update water levels
       !
-      call compute_water_levels(dt, tloopcont)
+      call compute_water_levels(t, dt, tloopcont)
       !
       ! OUTPUT
       !   
@@ -527,11 +527,11 @@ module sfincs_lib
    !
    call finalize_output(t,ntmaxout,tloopoutput,tmaxout)
    !
-   if (store_tsunami_arrival_time) then
-      !
-      call write_tsunami_arrival_file()   
-      !
-   endif
+!   if (store_tsunami_arrival_time) then
+!      !
+!      call write_tsunami_arrival_file()   
+!      !
+!   endif
    !
    dtavg = dtavg/nt
    !

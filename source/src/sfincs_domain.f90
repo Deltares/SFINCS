@@ -2402,16 +2402,19 @@ contains
        allocate(twet(np))
    endif
    !
-   if (store_tsunami_arrival_time) then
-      allocate(tsunami_arrival_time(np))
-   endif
-   !
    ! Set initial conditions (found in module sfincs_initial_conditions)
    !
    call set_initial_conditions()
    !
    if (wiggle_suppression) then 
       zs0 = zs
+   endif
+   !
+   if (store_tsunami_arrival_time) then
+      allocate(tsunami_arrival_time(np))
+      allocate(zsini(np))
+      tsunami_arrival_time = -999.0
+      zsini = zs
    endif
    !
    ! Loop through combined uv points and determine average uv and q (this also happens at the end of sfincs_momentum.f90).

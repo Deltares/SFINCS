@@ -2,12 +2,13 @@ module sfincs_continuity
 
 contains
    
-   subroutine compute_water_levels(dt, tloop)
+   subroutine compute_water_levels(t, dt, tloop)
    !
    use sfincs_data
    !
    implicit none
    !
+   real*8           :: t
    real*4           :: dt
    !
    integer          :: count0
@@ -20,11 +21,11 @@ contains
    !
    if (subgrid) then
       !
-      call compute_water_levels_subgrid(dt)
+      call compute_water_levels_subgrid(t, dt)
       !
    else
       !
-      call compute_water_levels_regular(dt)
+      call compute_water_levels_regular(t, dt)
       !
    endif  
    !
@@ -41,12 +42,13 @@ contains
    end subroutine
 
    
-   subroutine compute_water_levels_regular(dt)
+   subroutine compute_water_levels_regular(t, dt)
    !
    use sfincs_data
    !
    implicit none
    !
+   real*8           :: t
    real*4           :: dt
    !
    integer          :: nm
@@ -215,6 +217,20 @@ contains
          !
       endif
       !
+      if (store_tsunami_arrival_time) then
+         !
+         if (tsunami_arrival_time(nm) < 0.1) then
+            !
+            if (abs(zs(nm) - zsini(nm)) > tsunami_arrival_threshold) then
+               !
+               tsunami_arrival_time(nm) = t - t0
+               ! 
+            endif    
+            ! 
+         endif    
+         !
+      endif
+      !
    enddo
    !$omp end do
    !$omp end parallel
@@ -224,12 +240,13 @@ contains
    end subroutine
 
    
-   subroutine compute_water_levels_subgrid(dt)
+   subroutine compute_water_levels_subgrid(t, dt)
    !
    use sfincs_data
    !
    implicit none
    !
+   real*8           :: t
    real*4           :: dt
    !
    integer          :: nm
@@ -509,6 +526,20 @@ contains
       if (store_maximum_waterlevel) then
          !
          zsmax(nm) = max(zsmax(nm), zs(nm))
+         !
+      endif
+      !
+      if (store_tsunami_arrival_time) then
+         !
+         if (tsunami_arrival_time(nm) < 0.1) then
+            !
+            if (abs(zs(nm) - zsini(nm)) > tsunami_arrival_threshold) then
+               !
+               tsunami_arrival_time(nm) = t - t0
+               ! 
+            endif    
+            ! 
+         endif    
          !
       endif
       !
