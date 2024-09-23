@@ -93,16 +93,23 @@
    !
    real*4    :: mdrv
    !
-   real*4    :: w   
-   real*4    :: pnhbuv
-   real*4    :: nonh
-   !
    real*4, parameter :: expo = 1.0 / 3.0
    ! integer, parameter :: expo = 0
    !
    logical   :: iok
+   logical   :: use_neighbors
    !
    call system_clock(count0, count_rate, count_max)
+   !
+   if (advection .or. coriolis .or. viscosity .or. friction2d .or. thetasmoothing) then
+      !
+      use_neighbors = .true.
+      !
+   else
+      !
+      use_neighbors = .false.
+      !
+   endif
    !
    min_dt = dtmax
    !
@@ -121,7 +128,7 @@
    !
    !$omp parallel &
    !$omp private ( ip )
-   !$omp do
+   !$omp do schedule ( dynamic, 256 )
    !$acc loop independent, gang, vector
    do ip = 1, npuv + ncuv
       !
@@ -135,52 +142,13 @@
    !$omp end do
    !$omp end parallel
    !
-   if (nonhydrostatic) then
-      !
-      ! Yamazaki et al. (2009)			   
-      !
-      ! Compute non-hydrostatic pressure at the bottom in cell centres
-      !
-      !$omp parallel &
-      !$omp private ( nm, nmd, nmu, ndm, num, w )
-      !$omp do
-      do nm = 1, np
-         !
-         if (kcs(nm) == 1) then 
-            ! 
-            ! Vertical velocity
-            !
-            nmd = z_index_uv_md(nm)
-            nmu = z_index_uv_mu(nm)
-            !
-            ndm = z_index_uv_nd(nm)
-            num = z_index_uv_nu(nm)
-            !
-            ! Mean vertical velocity (is this correct, to use 0.5?)
-            !
-            w = 0.5 * ((zs(nm) - zs0(nm)) / dt + (wuv(nmd) + wuv(nmu) + wuv(ndm) + wuv(num)) / 4)
-            !
-		    ! Non-hydrostatic pressure at the bottom
-            !
-            pnhb(nm) = (w - w0(nm)) * rhow * (zs(nm) - zb(nm)) / dt
-            !
-            w0(nm) = w            
-            !
-         endif
-         !
-      enddo
-      !$omp end do
-      !$omp end parallel
-      !
-   endif	  
-   !
    ! Update fluxes
    !
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
    !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy, &
-   !$omp           uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hcbrt,icbrt,nonh,pnhbuv ) &
+   !$omp           uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hcbrt,icbrt ) &
    !$omp reduction ( min : min_dt )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop independent, reduction( min : min_dt ), gang, vector
@@ -324,22 +292,33 @@
             !
             qx_nm = q0(ip)
             !
-            if (advection .or. coriolis .or. viscosity .or. friction2d .or. thetasmoothing) then
+            if (use_neighbors) then
                !
-               ! Get the neighbors
+               ! Get the neighbors (perhaps reorder how these are queried?)
                !
+               !qx_nmd  = q0(uv_index_u_nmd(ip))
+               !qx_nmu  = q0(uv_index_u_nmu(ip))
+               !qy_nm   = q0(uv_index_v_nm(ip))
+               !qy_nmu  = q0(uv_index_v_nmu(ip))
+               !qy_ndm  = q0(uv_index_v_ndm(ip))
+               !qy_ndmu = q0(uv_index_v_ndmu(ip))
                qx_nmd  = q0(uv_index_u_nmd(ip))
-               qx_nmu  = q0(uv_index_u_nmu(ip))
-               qy_nm   = q0(uv_index_v_nm(ip))
-               qy_nmu  = q0(uv_index_v_nmu(ip))
                qy_ndm  = q0(uv_index_v_ndm(ip))
+               qy_nm   = q0(uv_index_v_nm(ip))
                qy_ndmu = q0(uv_index_v_ndmu(ip))
+               qx_nmu  = q0(uv_index_u_nmu(ip))
+               qy_nmu  = q0(uv_index_v_nmu(ip))
                !
-               uu_nm   = uv0(ip)
+               !uu_nm   = uv0(ip)
+               !uu_nmd  = uv0(uv_index_u_nmd(ip))
+               !uu_nmu  = uv0(uv_index_u_nmu(ip))
+               !uu_ndm  = uv0(uv_index_u_ndm(ip))
+               !uu_num  = uv0(uv_index_u_num(ip))
                uu_nmd  = uv0(uv_index_u_nmd(ip))
-               uu_nmu  = uv0(uv_index_u_nmu(ip))
                uu_ndm  = uv0(uv_index_u_ndm(ip))
+               uu_nm   = uv0(ip)
                uu_num  = uv0(uv_index_u_num(ip))
+               uu_nmu  = uv0(uv_index_u_nmu(ip))
                vu      = (uv0(uv_index_v_ndm(ip)) + uv0(uv_index_v_ndmu(ip)) + uv0(uv_index_v_nm(ip)) + uv0(uv_index_v_nmu(ip))) / 4
                !
             endif
@@ -501,26 +480,6 @@
                !   
             endif
             !
-            if (nonhydrostatic) then
-               !
-               if (kfuv(ip) == 1) then
-                  !
-                  pnhbuv = 0.5 * (pnhb(nm) + pnhb(nmu))
-                  !dqdx   = (pnhb(nmu) - pnhb(nm)) * dxuvinv
-                  !dhdx   = (zs(nmu) - zb(nmu) - zs(nm) + zb(nm)) * dxuvinv
-                  !dqdx   = (pnhb(nmu) - pnhb(nm))
-                  !dhdx   = (zs(nmu) - zb(nmu) - zs(nm) + zb(nm))
-                  !nonh = - dqdx / (2 * rhow) - pnhbuv * dhdx / (2 * rhow * hu )
-                  !nonh = - dxuvinv * (hu * dqdx + pnhbuv * dhdx) / (2 * rhow )
-                  nonh = - (hu * (pnhb(nmu) - pnhb(nm)) + pnhbuv * (zs(nmu) - zb(nmu) - zs(nm) + zb(nm))) * dxuvinv / (2 * rhow)
-                  !nonh = - (hu * (pnhb(nmu) - pnhb(nm)) ) * dxuvinv / (2 * rhow)
-                  !
-                  frc = frc + nonh
-                  !
-               endif
-               !
-            endif 
-            !
             ! Viscosity term
             !
             if (viscosity) then
@@ -528,7 +487,7 @@
                frc = frc + nuvisc(iref) * hu * ( (uu_nmu - 2*uu_nm + uu_nmd ) * dxuv2inv + (uu_num - 2*uu_nm + uu_ndm ) * dyuv2inv )
                !
             endif
-			!
+            !
             ! Coriolis term
             !
             if (coriolis) then
@@ -581,7 +540,7 @@
                !
             endif            
             !
-            ! Atmospheric pressure
+            ! Atmospheric pressure (store dpatm / rhow instead ?)
             !
             if (patmos) then
                !
@@ -719,13 +678,6 @@
             !
             uv(ip) = q(ip) / hu
             !
-            if (nonhydrostatic) then
-			   !
-			   wuv(ip) = 0.5 * dzdx * uv(ip) + 0.5 * (zb(nmu) - zb(nm)) * dxuvinv * uv(ip) ! pre-compute dzbdx
-			   !wuv(ip) = 0.5 * (dzdx + dzbdx(ip)) * uv(ip)
-			   !
-            endif
-			!
             ! Set flag
             !
             kfuv(ip) = 1
@@ -742,12 +694,6 @@
             q(ip)  = 0.0
             uv(ip) = 0.0
             kfuv(ip) = 0
-            !
-            if (nonhydrostatic) then
-			   !
-			   wuv(ip) = 0.0
-			   !
-            endif
             !
          endif
          !
@@ -771,12 +717,6 @@
          !
          q(cuv_index_uv(icuv))  = (q(cuv_index_uv1(icuv)) + q(cuv_index_uv2(icuv))) / 2
          uv(cuv_index_uv(icuv)) = (uv(cuv_index_uv1(icuv)) + uv(cuv_index_uv2(icuv))) / 2
-         !
-         if (nonhydrostatic) then
-            ! 
-            wuv(cuv_index_uv(icuv)) = (wuv(cuv_index_uv1(icuv)) + wuv(cuv_index_uv2(icuv))) / 2
-            !
-         endif    
          !
       enddo
       !$omp end do

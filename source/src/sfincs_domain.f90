@@ -2325,17 +2325,17 @@ contains
    !
    kfuv = 0
    !
-   if (nonhydrostatic) then
-      !
-      allocate(pnhb(np))
-      allocate(w0(np))
-      allocate(wuv(npuv + ncuv + 1))
-      !
-      pnhb = 0.0
-      w0   = 0.0       
-      wuv  = 0.0       
-      ! 
-   endif    
+!   if (nonhydrostatic) then
+!      !
+!      allocate(pnhb(np))
+!      allocate(ws(np))
+!      allocate(wb(np))
+!      !
+!      pnhb = 0.0
+!      ws   = 0.0       
+!      wb   = 0.0       
+!      ! 
+!   endif    
    !
    if (wiggle_suppression) then 
       ! 

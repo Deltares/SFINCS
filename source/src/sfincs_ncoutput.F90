@@ -1691,6 +1691,7 @@ contains
    ! Write time, zs, u, v  
    !
    use sfincs_data   
+   use sfincs_nonhydrostatic   
    !
    implicit none   
    !
@@ -1699,7 +1700,7 @@ contains
    !
    integer  :: ntmapout       
    !
-   integer                      :: nm, n, m, nmd1, nmu1, ndm1, num1
+   integer                      :: nm, n, m, nmd1, nmu1, ndm1, num1, nmnh
    real*4, dimension(:,:), allocatable :: zsg
    real*4, dimension(:,:), allocatable :: zsgu
    real*4, dimension(:,:), allocatable :: zsgv
@@ -2000,8 +2001,16 @@ contains
          !
          n    = z_index_z_n(nm)
          m    = z_index_z_m(nm)
-         !       
-         zsg(m, n) = pnhb(nm)
+         !
+         ! Look up pressure in 'limited' nonh array that only has values where nonh mask is set to active
+         !
+         nmnh = row_index_of_nm(nm)
+         !
+         if (nmnh > 0) then
+            !
+            zsg(m, n) = pnh(nmnh)
+            !
+         endif   
          !
       enddo
       !

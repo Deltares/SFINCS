@@ -562,9 +562,10 @@ module sfincs_data
       !
       ! Non-hydrostatic
       !
-      real*4, dimension(:),   allocatable :: pnhb
-      real*4, dimension(:),   allocatable :: w0
-      real*4, dimension(:),   allocatable :: wuv
+!      real*4, dimension(:),   allocatable :: pnhb
+!      real*4, dimension(:),   allocatable :: ws
+!      real*4, dimension(:),   allocatable :: wb
+      ! real*4, dimension(:),   allocatable :: wuv
       !
       !      real*4, dimension(:),   allocatable :: tauwavv
       !

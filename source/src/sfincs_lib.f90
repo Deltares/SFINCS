@@ -21,6 +21,7 @@ module sfincs_lib
    use sfincs_continuity
    use sfincs_snapwave
    use sfincs_wavemaker
+   use sfincs_nonhydrostatic
    !
    implicit none
    !
@@ -69,7 +70,7 @@ module sfincs_lib
    logical  :: update_meteo
    logical  :: update_waves
    !
-   real :: tstart, tfinish, tloopflux, tloopcont, tloopstruc, tloopbnd, tloopsrc, tloopwnd1, tloopwnd2, tloopoutput, tloopsnapwave, tloopwavemaker
+   real :: tstart, tfinish, tloopflux, tloopcont, tloopstruc, tloopbnd, tloopsrc, tloopwnd1, tloopwnd2, tloopoutput, tloopsnapwave, tloopwavemaker, tloopnonh
    real :: time_per_timestep
    real :: tinput
    real :: percdone,percdonenext,trun,trem
@@ -149,6 +150,14 @@ module sfincs_lib
    !
    call read_discharges()       ! Reads dis and src file
    !
+   if (nonhydrostatic) then
+      !
+      ! Initialize matrix solver
+      !
+      call initialize_nonhydrostatic()
+      !
+   endif   
+   !
    if (snapwave) then
       !
       write(*,*)'Coupling with SnapWave ...'
@@ -202,6 +211,7 @@ module sfincs_lib
    tloopwnd2      = 0.0
    tloopsnapwave  = 0.0
    tloopwavemaker = 0.0
+   tloopnonh      = 0.0
    !
    write(*,*)'Initializing output ...'
    !
@@ -459,6 +469,14 @@ module sfincs_lib
          !
       endif
       !      
+      if (nonhydrostatic) then
+         !
+         ! Apply non-hydrostatic pressure corrections
+         !
+         call compute_nonhydrostatic(dt, tloopnonh)
+         !
+      endif   
+      !      
       ! Update water levels
       !
       call compute_water_levels(t, dt, tloopcont)
@@ -554,6 +572,9 @@ module sfincs_lib
       write(*,'(a,f10.3,a,f5.1,a)') ' Time in meteo forcing  : ',tloopwnd2,' (',100*tloopwnd2/(tfinish_all - tstart_all),'%)'
    endif   
    write(*,'(a,f10.3,a,f5.1,a)') ' Time in momentum       : ',tloopflux,' (',100*tloopflux/(tfinish_all - tstart_all),'%)'
+   if (nonhydrostatic) then
+      write(*,'(a,f10.3,a,f5.1,a)') ' Time in non-hydrostatic: ',tloopnonh,' (',100*tloopnonh/(tfinish_all - tstart_all),'%)'
+   endif   
    if (nrstructures>0) then
       write(*,'(a,f10.3,a,f5.1,a)') ' Time in structures     : ',tloopstruc,' (',100*tloopstruc/(tfinish_all - tstart_all),'%)'
    endif   
