@@ -139,7 +139,7 @@ Possible problems can be:
 
 * **Tip to check your model**: specify netcdf output and load in the sfincs_map.nc file (e.g. Quickplot, Panoply, Matlab, Python) and have a look at the variables 'zb' and 'msk'. Then you can see how SFINCS has interpreted the prodivided depfile and mskfile. Does map plots of these variables look weird? Probably something in your input file is not entirely correct!
 
-* When more stability is needed still, have a look at the input parameter options of 'slopelim', 'advlim' or 'hmin_dt'.
+* When more stability is needed still, have a look at the input parameter options of 'advlim' or 'hmin_cfl'.
 
 Besides model instabilities, other recurring problems might be:
 
