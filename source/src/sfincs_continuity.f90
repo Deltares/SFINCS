@@ -108,7 +108,7 @@ contains
                !
                zs(nm) = zs(nm) + cumprcpt(nm)
                cumprcpt(nm) = 0.0
-!               zs(nm) = max(zs(nm), zb(nm)) ! don't allow negative water levels due to infiltration
+               ! zs(nm) = max(zs(nm), zb(nm)) ! don't allow negative water levels due to infiltration
                !
             endif
             !
@@ -475,6 +475,9 @@ contains
             dzvol    = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
             iuv      = int(z_volume(nm) / dzvol) + 1
             facint   = (z_volume(nm) - (iuv - 1) * dzvol ) / dzvol
+            ! if (iuv<1 .or. iuv>subgrid_nlevels-1) then
+            !  write(*,'(a,6i12,20e16.6)')'nm,iuv,nmd,nmu,ndm,num,z_volume(nm),dzvol,dvol,q(nmd),q(nmu),q(ndm),q(num)',nm,iuv,nmd,nmu,ndm,num,z_volume(nm),dzvol,dvol,q(nmd),q(nmu),q(ndm),q(num)
+            !endif
             zs(nm)   = subgrid_z_dep(iuv, nm) + (subgrid_z_dep(iuv + 1, nm) - subgrid_z_dep(iuv, nm)) * facint
             !
          endif

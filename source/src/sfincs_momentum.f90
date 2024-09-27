@@ -204,12 +204,13 @@
                      !
                      ! V point
                      !
-                     dyuvinv  = dxminv(ip)
                      dxuvinv  = dyrinv(iref)
-                     dyuv2inv = dxm2inv(ip)
+                     dyuvinv  = dxminv(ip)
                      dxuv2inv = dyr2inv(iref)
+                     dyuv2inv = dxm2inv(ip)
                      !
-                  endif   
+                  endif
+                  !
                else   
                   !
                   ! Fine to coarse or coarse to fine
@@ -217,12 +218,18 @@
                   if (idir==0) then
                      !
                      dxuvinv = 1.0 / (3*(1.0/dxminv(ip))/2)
+                     dyuvinv = dyrinv(iref)
+                     dxuv2inv = 0.0 ! no viscosity term
+                     dyuv2inv = dyr2inv(iref)
                      !
                   else   
                      !
                      dxuvinv = 1.0 / (3*(1.0/dyrinv(iref))/2)
+                     dyuvinv  = dxminv(ip)
+                     dxuv2inv = 0.0 ! no viscosity term
+                     dyuv2inv = dxm2inv(ip)
                      !
-                  endif   
+                  endif
                   !
                endif
                !
@@ -260,9 +267,25 @@
                   !
                   ! Fine to coarse or coarse to fine
                   !
-                  dxuvinv  = dxrinvc(iref)
-                  dxuv2inv = 0.0
-                  dyuv2inv = 0.0
+                  if (idir==0) then
+                     !
+                     ! U point
+                     !
+                     dxuvinv  = dxrinvc(iref)
+                     dyuvinv  = dyrinv(iref)
+                     dxuv2inv = 0.0 ! no viscosity
+                     dyuv2inv = dyr2inv(iref)
+                     !
+                  else
+                     !
+                     ! V point
+                     !
+                     dxuvinv  = dyrinv(iref)
+                     dyuvinv  = dxrinv(iref)
+                     dxuv2inv = 0.0
+                     dyuv2inv = dxr2inv(iref)
+                     !
+                  endif   
                   !
                endif
                !
@@ -318,7 +341,7 @@
                   dzuv   = (zmax - zmin) / (subgrid_nlevels - 1)                                                          ! level size (is storing this in memory faster?)
                   iuv    = int((zsu - zmin) / dzuv) + 1                                                                   ! index of level below zsu 
                   facint = (zsu - (zmin + (iuv - 1)*dzuv) ) / dzuv                                                        ! 1d interpolation coefficient
-!                  if (iuv > subgrid_nlevels - 1) write(*,'(a,i10,20e16.8)')'iuv exceeds subgrid_nlevels - 1. THIS IS NOT POSSIBLE! (iuv,zmin,zmax,dzuv,zsu) :', iuv,zmin,zmax,dzuv,zsu
+                  ! if (iuv > subgrid_nlevels - 1 .or. iuv<1) write(*,'(a,i10,20e16.8)')'iuv exceeds subgrid_nlevels - 1. THIS IS NOT POSSIBLE! (iuv,zmin,zmax,dzuv,zsu) :', iuv,zmin,zmax,dzuv,zsu
                   !
                   hu     = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint   ! grid-average depth
                   gnavg2 = subgrid_uv_nrep(iuv, ip) + (subgrid_uv_nrep(iuv + 1, ip) - subgrid_uv_nrep(iuv, ip))*facint   ! representative g*n^2
