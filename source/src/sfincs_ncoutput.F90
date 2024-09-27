@@ -79,8 +79,6 @@ contains
    real*4, dimension(:,:), allocatable :: xg
    real*4, dimension(:,:), allocatable :: yg
    !
-   !write(*,*) trim(nf90_inq_libvers())
-   !
    NF90(nf90_create('sfincs_map.nc', ior(NF90_CLOBBER,NF90_NETCDF4), map_file%ncid))
    !
    ! Create dimensions

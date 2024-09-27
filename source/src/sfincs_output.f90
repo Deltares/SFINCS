@@ -1,6 +1,7 @@
 module sfincs_output
 
    use sfincs_ncoutput
+   use sfincs_log
    
    contains
 
@@ -256,15 +257,15 @@ module sfincs_output
        !write dtmax output if 1) value for dtmaxout wasn't achieved yet, 
        !or 2) in the last timeinterval, the full 'dtmaxout' wasn't achieved yet, but we still want the max over this interval
       ! 
-      write(*,'(a)')''       
-      write(*,*)'Info : Write maximum values at final timestep since t=dtmaxout was not reached yet...'
+      call write_log('', 1)
+      call write_log('Info : Write maximum values at final timestep since t=dtmaxout was not reached yet...', 1)
       ntmaxout = 1
       call write_output(t,.false.,.false.,.true.,.false.,0,ntmaxout,0,tloopoutput)
       !
    elseif (dtmaxout>1.e-6 .and. ntmaxout>0 .and. t < tmaxout) then
       !
-      write(*,'(a)')''       
-      write(*,*)'Info : Write maximum values at final timestep since t=dtmaxout was not reached yet for final interval...'
+      call write_log('', 1)
+      call write_log('Info : Write maximum values at final timestep since t=dtmaxout was not reached yet for final interval...', 1)
       ntmaxout = ntmaxout + 1
       !
       ! Write 'tstop' as timemax instead of actual (unrounded) 't'

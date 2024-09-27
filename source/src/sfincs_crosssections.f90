@@ -34,7 +34,7 @@ contains
    !
    if (crsfile(1:4) /= 'none') then
       ! 
-      write(*,*)'Reading cross sections ...'
+      call write_log('Info    : reading cross sections', 0)
       !
       ! First count number of polylines
       !

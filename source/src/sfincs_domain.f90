@@ -1,5 +1,7 @@
 module sfincs_domain
 
+   use sfincs_log
+
 contains
 
    subroutine initialize_domain()
@@ -51,9 +53,9 @@ contains
    use_quadtree = .false.
    if (qtrfile(1:4) /= 'none') then
       use_quadtree = .true.
-      write(*,*)'Info : Preparing SFINCS grid on quadtree mesh ...'   
+      call write_log('Info    : using quadtree mesh', 0)
    else
-      write(*,*)'Info : Preparing SFINCS grid on regular mesh ...'      
+      call write_log('Info    : using regular mesh', 0)
    endif
    !
    ! Always turn off waves at boundaries. Using wave makers for that sort of thing now.
@@ -69,36 +71,36 @@ contains
    if (spwfile(1:4) /= 'none' .or. wndfile(1:4) /= 'none' .or. amufile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       !
       wind = .true.
-      write(*,*)'Turning on process: Wind'
+      call write_log('Info    : turning on wind', 0)
       !
       if (spw_precip) then
-          precip = .true.
-          write(*,*)'Turning on process: Precipitation from spwfile'
+         precip = .true.
+         call write_log('Info    : turning on precipitation from spwfile', 0)
       endif
    endif
    !
    if ((ampfile(1:4) /= 'none' .or. netampfile(1:4) /= 'none' .or. spwfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') .and. baro==1) then
-       patmos = .true.
-       write(*,*)'Turning on process: Atmospheric pressure'       
+      patmos = .true.
+      call write_log('Info    : turning on atmospheric pressure', 0)
    endif
    !
    if (prcpfile(1:4) /= 'none' .or. amprfile(1:4) /= 'none' .or. netamprfile(1:4) /= 'none' .or. spw_precip) then
        precip = .true.
-       write(*,*)'Turning on process: Precipitation'       
+      call write_log('Info    : turning on precipitation', 0)
    endif
    !
    ! Check for time-spatially varying meteo
    !
    if (prcpfile(1:4) /= 'none' .or. spwfile(1:4) /= 'none' .or. amufile(1:4) /= 'none' .or. amprfile(1:4) /= 'none' .or. ampfile(1:4) /= 'none' .or. netampfile(1:4) /= 'none' .or. netamprfile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       meteo3d = .true.
-      write(*,*)'Turning on flag: meteo3d'
+      call write_log('Info    : using gridded meteo data', 0)
    endif
    !
    wind_reduction = .false.
    if (spwfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       if (z0lfile(1:4) /= 'none') then
          wind_reduction = .true.
-         write(*,*)'Turning on process: wind reduction over land'
+         call write_log('Info    : turning on wind reduction over land', 0)
       endif
    endif            
    !
@@ -170,7 +172,7 @@ contains
          !
          ! Read ASCII input
          !
-         write(*,*)'Reading ASCII input ...'
+         call write_log('Info : reading ASCII input ...', 0)
          !
          allocate(kcsg(nmax,  mmax))       ! KCS
          !
@@ -213,7 +215,8 @@ contains
          !
          ! Read index file (first time, only read number of active points)
          !
-         write(*,*)'Reading index file : ', trim(indexfile), ' ...'
+         write(logstr,'(a,a)')'Info    : reading index file ', trim(indexfile), ' ...'
+         call write_log(logstr, 0)
          open(unit = 500, file = trim(indexfile), form = 'unformatted', access = 'stream')
          read(500)np
          allocate(indices(np))
@@ -273,7 +276,8 @@ contains
          !
          ! Read mask file (must have same number of cells as quadtree file !)
          !
-         write(*,*)'Reading mask file : ', trim(mskfile), ' ...'
+         write(logstr,'(a,a)')'Info    : reading mask file : ', trim(mskfile)
+         call write_log(logstr, 0)
          !
          open(unit = 500, file = trim(mskfile), form = 'unformatted', access = 'stream')
          read(500)msk
@@ -549,7 +553,8 @@ contains
          !
       enddo 
       ! 
-      write(*,*)'Number of refinement transitions : ', ncuv
+      write(logstr,'(a,i0)')'Info    : number of quadtree refinement transitions : ', ncuv
+      call write_log(logstr, 0)
       !
    endif
    !
@@ -1220,12 +1225,18 @@ contains
    !
    ! Okay, got all the quadtree cells including indices, neighbors flags 
    !
-   write(*,*)'Number of active z points    : ', np
-   write(*,*)'Number of active u/v points  : ', npuv
+   call write_log('------------------------------------------', 1)
+   call write_log('Computational mesh', 1)
+   call write_log('------------------------------------------', 1)
+   write(logstr,'(a,i9)')'Number of active z points      : ', np
+   call write_log(logstr, 1)   
+   write(logstr,'(a,i9)')'Number of active u/v points    : ', npuv
+   call write_log(logstr, 1)
    !
    if (use_quadtree) then
       do iref = 1, nref
-         write(*,'(a,i3,a,i8)')' Number of cells in level ', iref, ' : ', quadtree_last_point_per_level(iref) - quadtree_first_point_per_level(iref) + 1
+         write(logstr,'(a,i3,a,i9)')'Number of cells in level ', iref, '   : ', quadtree_last_point_per_level(iref) - quadtree_first_point_per_level(iref) + 1
+         call write_log(logstr, 1)
       enddo
    endif
    !
@@ -1447,9 +1458,11 @@ contains
         endif
         !
         if (use_quadtree) then
-            write(*,*)'Viscosity - nuvisc  = [', minval(nuvisc),'- ',maxval(nuvisc),']'           
+            write(logstr,'(a,e10.3,a,e10.3,a)')'Info    : viscosity - nuvisc  = [', minval(nuvisc),'- ',maxval(nuvisc),']'           
+            call write_log(logstr, 0)
         else
-            write(*,*)'Viscosity - nuvisc  = ', maxval(nuvisc)           
+            write(logstr,'(a,e10.3)')'Info    : viscosity - nuvisc  = ', maxval(nuvisc)           
+            call write_log(logstr, 0)
         endif            
         !
    endif   
@@ -1490,7 +1503,9 @@ contains
          !
          if (depfile(1:4) /= 'none') then
             !
-            write(*,*)'Reading dep file : ',trim(depfile)
+            write(logstr,'(a,a)')'Info    :reading dep file : ',trim(depfile)
+            call write_log(logstr, 0)
+            !
             open(unit = 500, file = trim(depfile), form = 'unformatted', access = 'stream')
             read(500)zb
             close(500)
@@ -1505,7 +1520,8 @@ contains
          !
       else
          !
-         write(*,*)'Reading dep file : ',trim(depfile)
+         write(logstr,'(a,a)')'Reading dep file : ',trim(depfile)
+         call write_log(logstr, 0)
          !
          if (inputtype=='asc') then
             !
@@ -1782,7 +1798,8 @@ contains
          ! Read spatially-varying friction
          !
          allocate(rghfield(np))
-         write(*,*)'Reading ',trim(manningfile), ' ...'
+         write(logstr,'(a,a)')'Info    : reading roughness file ',trim(manningfile)
+         call write_log(logstr, 0)
          open(unit = 500, file = trim(manningfile), form = 'unformatted', access = 'stream')
          read(500)rghfield
          close(500)
@@ -1935,7 +1952,8 @@ contains
          !
          ! Spatially-uniform constant infiltration (specified as +mm/hr)
          !
-         write(*,*)'Turning on process: Spatially-uniform constant infiltration'        
+         write(logstr,'(a)')'Info    : turning on spatially-uniform constant infiltration'        
+         call write_log(logstr, 0)
          !
          allocate(qinffield(np))
          do nm = 1, np
@@ -1958,11 +1976,13 @@ contains
          !
          ! Spatially-varying constant infiltration
          !
-         write(*,*)'Turning on process: Spatially-varying constant infiltration'      
+         write(logstr,'(a)')'Info    : turning on spatially-varying constant infiltration'      
+         call write_log(logstr, 0)
          !
          ! Read spatially-varying infiltration (only binary, specified in +mm/hr)
          !
-         write(*,*)'Reading ', trim(qinffile), ' ...'
+         write(logstr,'(a,a)')'Info    : reading infiltration file ', trim(qinffile)
+         call write_log(logstr, 0)
          allocate(qinffield(np))
          open(unit = 500, file = trim(qinffile), form = 'unformatted', access = 'stream')
          read(500)qinffield
@@ -1976,12 +1996,14 @@ contains
          !
          ! Spatially-varying infiltration with CN numbers (old)
          !
-         write(*,*)'Turning on process: Infiltration (via Curve Number method - A)'               
+         write(logstr,'(a)')'Info    : turning on infiltration (via Curve Number method - A)'               
+         call write_log(logstr, 0)
          !
          allocate(qinffield(np))
          qinffield = 0.0
          !
-         write(*,*)'Reading ',trim(scsfile)
+         write(logstr,'(a,a)')'Info    : reading scs file ',trim(scsfile)
+         call write_log(logstr, 0)
          open(unit = 500, file = trim(scsfile), form = 'unformatted', access = 'stream')
          read(500)qinffield
          close(500)
@@ -1995,12 +2017,14 @@ contains
          !
          ! Spatially-varying infiltration with CN numbers (new)
          !
-         write(*,*)'Turning on process: Infiltration (via Curve Number method - B)'            
+         write(logstr,'(a)')'Info    : turning on infiltration (via Curve Number method - B)' 
+         call write_log(logstr, 0)
          ! 
          ! Allocate Smax
          allocate(qinffield(np))
          qinffield = 0.0
-         write(*,*)'Reading ',trim(smaxfile)
+         write(logstr,'(a,a)')'Info    : reading smax file ',trim(smaxfile)
+         call write_log(logstr, 0)
          open(unit = 500, file = trim(smaxfile), form = 'unformatted', access = 'stream')
          read(500)qinffield
          close(500)
@@ -2008,7 +2032,8 @@ contains
          ! Allocate Se
          allocate(scs_Se(np))
          scs_Se = 0.0
-         write(*,*)'Reading ',trim(sefffile)
+         write(logstr,'(a,a)')'Info    : reading seff file ',trim(sefffile)
+         call write_log(logstr, 0)
          open(unit = 501, file = trim(sefffile), form = 'unformatted', access = 'stream')
          read(501)scs_Se
          close(501)
@@ -2017,7 +2042,8 @@ contains
          ! Allocate Ks
          allocate(ksfield(np))
          ksfield = 0.0
-         write(*,*)'Reading ',trim(ksfile)
+         write(logstr,'(a,a)')'Info    : reading ks file ',trim(ksfile)
+         call write_log(logstr, 0)
          open(unit = 502, file = trim(ksfile), form = 'unformatted', access = 'stream')
          read(502)ksfield
          close(502)
@@ -2043,12 +2069,13 @@ contains
          !
          ! Spatially-varying infiltration with the Green-Ampt (GA) model
          !
-         write(*,*)'Turning on process: Infiltration (via Green-Ampt)'            
+         call write_log('Info    : turning on process infiltration (via Green-Ampt)', 0)
          ! 
          ! Allocate suction head at the wetting front 
          allocate(GA_head(np))
          GA_head = 0.0
-         write(*,*)'Reading ',trim(psifile)
+         write(logstr,'(a,a)')'Info    : reading psi file ',trim(psifile)
+         call write_log(logstr, 0)
          open(unit = 500, file = trim(psifile), form = 'unformatted', access = 'stream')
          read(500)GA_head
          close(500)
@@ -2056,7 +2083,8 @@ contains
          ! Allocate maximum soil moisture deficit
          allocate(GA_sigma_max(np))
          GA_sigma_max = 0.0
-         write(*,*)'Reading ',trim(sigmafile)
+         write(logstr,'(a,a)')'Info    : reading sigma file ',trim(sigmafile)
+         call write_log(logstr, 0)
          open(unit = 501, file = trim(sigmafile), form = 'unformatted', access = 'stream')
          read(501)GA_sigma_max
          close(501)
@@ -2064,7 +2092,8 @@ contains
          ! Allocate saturated hydraulic conductivity
          allocate(ksfield(np))
          ksfield = 0.0
-         write(*,*)'Reading ',trim(ksfile)
+         write(logstr,'(a,a)')'Info    : reading ks file ',trim(ksfile)
+         call write_log(logstr, 0)
          open(unit = 502, file = trim(ksfile), form = 'unformatted', access = 'stream')
          read(502)ksfield
          close(502)
@@ -2097,13 +2126,14 @@ contains
          !
          ! Spatially-varying infiltration with the modified Horton Equation 
          !
-         write(*,*)'Turning on process: Infiltration (via modified Horton)'            
+         call write_log('Info    : turning on process infiltration (via modified Horton)', 0)
          ! 
          ! Horton: final infiltration capacity (fc)
          ! Note that qinffield = horton_fc
          allocate(horton_fc(np))
          horton_fc = 0.0
-         write(*,*)'Reading ',trim(fcfile)
+         write(logstr,'(a,a)')'Info    : reading fc file ',trim(fcfile)
+         call write_log(logstr, 0)
          open(unit = 500, file = trim(fcfile), form = 'unformatted', access = 'stream')
          read(500)horton_fc
          close(500)
@@ -2111,7 +2141,8 @@ contains
          ! Horton: initial infiltration capacity (f0)
          allocate(horton_f0(np))
          horton_f0 = 0.0
-         write(*,*)'Reading ',trim(f0file)
+         write(logstr,'(a,a)')'Info    : reading f0 file ',trim(f0file)
+         call write_log(logstr, 0)
          open(unit = 501, file = trim(f0file), form = 'unformatted', access = 'stream')
          read(501)horton_f0
          close(501)
@@ -2122,11 +2153,13 @@ contains
          ! Empirical constant (1/hr) k => note that this is different than ks used in Curve Number and Green-Ampt
          allocate(horton_kd(np))
          horton_kd = 0.0
-         write(*,*)'Reading ',trim(kdfile)
+         write(logstr,'(a,a)')'Info    : reading kd file ',trim(kdfile)
+         call write_log(logstr, 0)
          open(unit = 502, file = trim(kdfile), form = 'unformatted', access = 'stream')
          read(502)horton_kd
          close(502)
-         write(*,*)'Using constant recovery rate that is based on constant factor relative to ',trim(kdfile)
+         write(logstr,'(a,a)')'Using constant recovery rate that is based on constant factor relative to ',trim(kdfile)
+         call write_log(logstr, 0)         
          !
          ! Estimate of time
          allocate(rain_T1(np))
@@ -2155,11 +2188,13 @@ contains
       !
       ! Spatially-varying storage volume for green infra
       !
-      write(*,*)'Turning on process: Storage Green Infrastructure'      
+      write(logstr,'(a)')'Info    : turning on Storage Green Infrastructure'      
+      call write_log(logstr, 0)
       !
       ! Read spatially-varying storage per cell (m3)
       !
-      write(*,*)'Reading ', trim(volfile), ' ...'
+      write(logstr,'(a,a)')'Info    : reading vol file ',trim(volfile)
+      call write_log(logstr, 0)
       allocate(storage_volume(np))
       open(unit = 500, file = trim(volfile), form = 'unformatted', access = 'stream')
       read(500)storage_volume

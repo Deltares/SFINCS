@@ -21,6 +21,7 @@ module sfincs_lib
    use sfincs_continuity
    use sfincs_snapwave
    use sfincs_wavemaker
+   use sfincs_log
    !
    implicit none
    !
@@ -81,6 +82,8 @@ module sfincs_lib
    character(len=*) :: config_file
    integer :: ierr
    !
+   call open_log()   
+   !
    error = 0 ! Error code. This is now only set to 1 in case of instabilities. Could also use other error codes, e.g. for missing files.
    !
    ierr = 0 ! Always 0 or 1  ! Always 0 or 1 
@@ -90,59 +93,67 @@ module sfincs_lib
    build_revision = '$Rev: v2.1.1-Dollerup'
    build_date     = '$Date: 2024-08-28'
    !
-   write(*,'(a)')''   
-   write(*,*)'----------- Welcome to SFINCS -----------'   
-   write(*,'(a)')''   
-   write(*,*)' @@@@@  @@@@@@@ @@ @@  @@   @@@@   @@@@@ '
-   write(*,*)'@@@ @@@ @@@@@@@ @@ @@@ @@ @@@@@@@ @@@ @@@'
-   write(*,*)'@@@     @@      @@ @@@ @@ @@   @@ @@@    '
-   write(*,*)' @@@@@  @@@@@@  @@ @@@@@@ @@       @@@@@ '
-   write(*,*)'    @@@ @@      @@ @@ @@@ @@   @@     @@@'
-   write(*,*)'@@@ @@@ @@      @@ @@  @@  @@@@@@ @@@ @@@'
-   write(*,*)' @@@@@  @@      @@ @@   @   @@@@   @@@@@ '   
-   write(*,'(a)')''      
-   write(*,*)'             ..............              ' 
-   write(*,*)'         ......:@@@@@@@@:......          '
-   write(*,*)'      ..::::..@@........@@.:::::..       '
-   write(*,*)'    ..:::::..@@..::..::..@@.::::::..     '
-   write(*,*)'   .::::::..@@............@@.:::::::.    '
-   write(*,*)'  .::::::..@@..............@@.:::::::.   '
-   write(*,*)' .::::::::..@@............@@..::::::::.  '
-   write(*,*)'.:::::::::...@@.@..@@..@.@@..::::::::::. '
-   write(*,*)'.:::::::::...:@@@..@@..@@@:..:::::::::.. '
-   write(*,*)'............@@.@@..@@..@@.@@............ '
-   write(*,*)'^^^~~^^~~^^@@..............@@^^^~^^^~~^^ '
-   write(*,*)'.::::::::::@@..............@@.:::::::::. '
-   write(*,*)' .......:.@@.....@.....@....@@.:.......  '
-   write(*,*)'  .::....@@......@.@@@.@....@@.....::.   '
-   write(*,*)'   .:::~@@.:...:.@@...@@.:.:.@@~::::.    '
-   write(*,*)'    .::~@@@@@@@@@@.....@@@@@@@@@~::.     '
-   write(*,*)'      ..:~~~~~~~:.......:~~~~~~~:..      '
-   write(*,*)'         ......................          '
-   write(*,*)'             ..............              '
-   write(*,'(a)')''
-   write(*,*)'-----------------------------------------'
-   write(*,'(a)')''
-   write(*,*)'Build-Revision: ',trim(build_revision)
-   write(*,*)'Build-Date:     ',trim(build_date)
-   write(*,'(a)')''
+   call write_log('', 1)
+   call write_log('------------ Welcome to SFINCS ------------', 1)
+   call write_log('', 1)
+   call write_log('  @@@@@  @@@@@@@ @@ @@  @@   @@@@   @@@@@ ', 1)
+   call write_log(' @@@ @@@ @@@@@@@ @@ @@@ @@ @@@@@@@ @@@ @@@', 1)
+   call write_log(' @@@     @@      @@ @@@ @@ @@   @@ @@@    ', 1)
+   call write_log('  @@@@@  @@@@@@  @@ @@@@@@ @@       @@@@@ ', 1)
+   call write_log('     @@@ @@      @@ @@ @@@ @@   @@     @@@', 1)
+   call write_log(' @@@ @@@ @@      @@ @@  @@  @@@@@@ @@@ @@@', 1)
+   call write_log('  @@@@@  @@      @@ @@   @   @@@@   @@@@@ ', 1)
+   call write_log('', 1)
+   call write_log('              ..............              ', 1)
+   call write_log('          ......:@@@@@@@@:......          ', 1)
+   call write_log('       ..::::..@@........@@.:::::..       ', 1)
+   call write_log('     ..:::::..@@..::..::..@@.::::::..     ', 1)
+   call write_log('    .::::::..@@............@@.:::::::.    ', 1)
+   call write_log('   .::::::..@@..............@@.:::::::.   ', 1)
+   call write_log('  .::::::::..@@............@@..::::::::.  ', 1)
+   call write_log(' .:::::::::...@@.@..@@..@.@@..::::::::::. ', 1)
+   call write_log(' .:::::::::...:@@@..@@..@@@:..:::::::::.. ', 1)
+   call write_log(' ............@@.@@..@@..@@.@@............ ', 1)
+   call write_log(' ^^^~~^^~~^^@@..............@@^^^~^^^~~^^ ', 1)
+   call write_log(' .::::::::::@@..............@@.:::::::::. ', 1)
+   call write_log('  .......:.@@.....@.....@....@@.:.......  ', 1)
+   call write_log('   .::....@@......@.@@@.@....@@.....::.   ', 1)
+   call write_log('    .:::~@@.:...:.@@...@@.:.:.@@~::::.    ', 1)
+   call write_log('     .::~@@@@@@@@@@.....@@@@@@@@@~::.     ', 1)
+   call write_log('       ..:~~~~~~~:.......:~~~~~~~:..      ', 1)
+   call write_log('          ......................          ', 1)
+   call write_log('              ..............              ', 1)
+   call write_log('', 1)
+   call write_log('------------------------------------------', 1)
+   call write_log('', 1)
+   call write_log('Build-Revision: '//trim(build_revision), 1)
+   call write_log('Build-Date: '//trim(build_date), 1)
+   call write_log('', 1)
    !
    call system_clock(count0, count_rate, count_max)
    !
+   call write_log('------ Preparing model simulation --------', 1)
+   call write_log('', 1)
+   !
+   call write_log('Reading input file ...', 0) 
    call read_sfincs_input()     ! Reads sfincs.inp
    !
+   call write_log('Reading meteo data ...', 0) 
    call read_meteo_data()       ! Reads meteo data (amu, amv, spw file etc.)
    !
+   call write_log('Preparing domain ...', 0) 
    call initialize_domain()     ! Reads dep, msk, index files, creates index, flag and depth arrays, initializes hydro quantities
    !
    call read_structures()       ! Reads thd files and sets kcuv to zero where necessary
    !
+   call write_log('Reading boundary data ...', 0) 
    call read_boundary_data()    ! Reads bnd, bzs, etc files
    !
    ! call read_coastline()        ! Reads cst file. Do we still do this ?
    !
    call find_boundary_indices()
    !
+   call write_log('Reading observation points ...', 0) 
    call read_obs_points()       ! Reads obs file
    !
    call read_crs_file()         ! Reads cross sections
@@ -151,8 +162,7 @@ module sfincs_lib
    !
    if (snapwave) then
       !
-      write(*,*)'Coupling with SnapWave ...'
-      !
+      call write_log('Coupling with SnapWave ...', 1)
       call couple_snapwave(crsgeo)
       !
    endif   
@@ -203,7 +213,7 @@ module sfincs_lib
    tloopsnapwave  = 0.0
    tloopwavemaker = 0.0
    !
-   write(*,*)'Initializing output ...'
+   call write_log('Initializing output ...', 0)
    !
    call initialize_output(tmapout, tmaxout, thisout, trstout)
    !
@@ -214,6 +224,61 @@ module sfincs_lib
    !call acc_init( acc_device_nvidia )
    !
    ierr = error
+   !
+   call write_log('------------------------------------------', 1)
+   call write_log('Processes', 1)
+   call write_log('------------------------------------------', 1)
+   if (subgrid) then
+      call write_log('Subgrid topography   : yes', 1)
+   else   
+      call write_log('Subgrid topography   : no', 1)
+   endif
+   if (use_quadtree) then
+      call write_log('Quadtree refinement  : yes', 1)
+   else   
+      call write_log('Quadtree refinement  : no', 1)
+   endif
+   if (advection) then 
+      call write_log('Advection            : yes', 1)
+   else   
+      call write_log('Advection            : no', 1)
+   endif
+   if (viscosity) then
+      call write_log('Viscosity            : yes', 1)
+   else   
+      call write_log('Viscosity            : no', 1)
+   endif
+   if (coriolis) then
+      call write_log('Coriolis             : yes', 1)
+   else   
+      call write_log('Coriolis             : no', 1)
+   endif
+   if (wind) then
+      call write_log('Wind                 : yes', 1)
+   else   
+      call write_log('Wind                 : no', 1)
+   endif
+   if (patmos) then
+      call write_log('Atmospheric pressure : yes', 1)
+   else   
+      call write_log('Atmospheric pressure : no', 1)
+   endif
+   if (precip) then
+      call write_log('Precipitation        : yes', 1)
+   else   
+      call write_log('Precipitation        : no', 1)
+   endif
+   if (snapwave) then
+      call write_log('SnapWave             : yes', 1)
+   else
+      call write_log('SnapWave             : no', 1)
+   endif
+   if (wavemaker) then
+      call write_log('Wave paddles         : yes', 1)
+   else   
+      call write_log('Wave paddles         : no', 1)
+   endif
+   call write_log('------------------------------------------', 1)   
    !
    end function sfincs_initialize
    !
@@ -256,10 +321,11 @@ module sfincs_lib
    !
    ! Start computational loop
    !
-   write(*,'(a)')''   
-   write(*,*)'---------- Starting simulation ----------'   
-   write(*,'(a,i0,a,i0,a)')' ---- Using ', omp_get_max_threads(), ' of ', omp_get_num_procs(), ' available threads -----'   
-   write(*,'(a)')''   
+   call write_log('', 1)
+   call write_log('---------- Starting simulation -----------', 1)
+   write(logstr,'(a,i0,a,i0,a)')'---- Using ', omp_get_max_threads(), ' of ', omp_get_num_procs(), ' available threads ----'   
+   call write_log(logstr, 1)
+   call write_log('', 1)
    !
    call system_clock(count00, count_rate, count_max)
    !
@@ -429,7 +495,8 @@ module sfincs_lib
          call update_wave_field(t, tloopsnapwave)
          !
          call timer(t4)                   
-         write(*,'(a,f10.1,a,f6.2,a)')'Computing SnapWave at t = ', t, ' s took ', t4 - t3, ' seconds'         
+         write(logstr,'(a,f10.1,a,f6.2,a)')'Computing SnapWave at t = ', t, ' s took ', t4 - t3, ' seconds'         
+         call write_log(logstr, 1)
          !
          ! Maybe we'll add moving wave makers back at some point
          !
@@ -498,10 +565,12 @@ module sfincs_lib
          call system_clock(count1, count_rate, count_max)
          trun  = 1.0*(count1 - count00)/count_rate
          trem = trun / max(0.01*percdone, 1.0e-6) - trun
-         if (int(percdone)>0) then         
-            write(*,'(i4,a,f7.1,a)')int(percdone),'% complete, ',trem,' s remaining ...'
+         if (int(percdone)>0) then
+            write(logstr,'(i4,a,f7.1,a)')int(percdone),'% complete, ',trem,' s remaining ...'
+            call write_log(logstr, 1)
          else
-            write(*,'(i4,a,f7.1,a)')int(percdone),'% complete,       - s remaining ...'
+            write(logstr,'(i4,a,f7.1,a)')int(percdone),'% complete,       - s remaining ...'
+            call write_log(logstr, 1)
          endif   
          !
       endif
@@ -534,39 +603,53 @@ module sfincs_lib
    !
    dtavg = dtavg/nt
    !
-   write(*,'(a)')''
-   write(*,*)'---------- Simulation finished ----------'   
-   write(*,'(a)')''
-   write(*,'(a,f10.3)')          ' Total time             : ',tinput + tfinish_all - tstart_all
-   write(*,'(a,f10.3)')          ' Total simulation time  : ',tfinish_all - tstart_all
-   write(*,'(a,f10.3)')          ' Time in input          : ',tinput
+   call write_log('', 1)
+   call write_log('---------- Simulation finished -----------', 1)                  
+   call write_log('', 1)
+   write(logstr,'(a,f10.3)')          ' Total time             : ',tinput + tfinish_all - tstart_all
+   call write_log(logstr, 1)
+   write(logstr,'(a,f10.3)')          ' Total simulation time  : ',tfinish_all - tstart_all
+   call write_log(logstr, 1)
+   write(logstr,'(a,f10.3)')          ' Time in input          : ',tinput
+   call write_log(logstr, 1)
    if (include_boundaries) then
-      write(*,'(a,f10.3,a,f5.1,a)') ' Time in boundaries     : ',tloopbnd,' (',100*tloopbnd/(tfinish_all - tstart_all),'%)'
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in boundaries     : ',tloopbnd,' (',100*tloopbnd/(tfinish_all - tstart_all),'%)'
+      call write_log(logstr, 1)
    endif   
    if (nsrc>0 .or. ndrn>0) then
-      write(*,'(a,f10.3,a,f5.1,a)') ' Time in discharges     : ',tloopsrc,' (',100*tloopsrc/(tfinish_all - tstart_all),'%)'
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in discharges     : ',tloopsrc,' (',100*tloopsrc/(tfinish_all - tstart_all),'%)'
+      call write_log(logstr, 1)
    endif   
    if (meteo3d)  then
-      write(*,'(a,f10.3,a,f5.1,a)') ' Time in meteo fields   : ',tloopwnd1,' (',100*tloopwnd1/(tfinish_all - tstart_all),'%)'
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in meteo fields   : ',tloopwnd1,' (',100*tloopwnd1/(tfinish_all - tstart_all),'%)'
+      call write_log(logstr, 1)
    endif   
    if (wind .or. patmos .or. precip) then
-      write(*,'(a,f10.3,a,f5.1,a)') ' Time in meteo forcing  : ',tloopwnd2,' (',100*tloopwnd2/(tfinish_all - tstart_all),'%)'
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in meteo forcing  : ',tloopwnd2,' (',100*tloopwnd2/(tfinish_all - tstart_all),'%)'
+      call write_log(logstr, 1)
    endif   
-   write(*,'(a,f10.3,a,f5.1,a)') ' Time in momentum       : ',tloopflux,' (',100*tloopflux/(tfinish_all - tstart_all),'%)'
+   write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in momentum       : ',tloopflux,' (',100*tloopflux/(tfinish_all - tstart_all),'%)'
+   call write_log(logstr, 1)
    if (nrstructures>0) then
-      write(*,'(a,f10.3,a,f5.1,a)') ' Time in structures     : ',tloopstruc,' (',100*tloopstruc/(tfinish_all - tstart_all),'%)'
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in structures     : ',tloopstruc,' (',100*tloopstruc/(tfinish_all - tstart_all),'%)'
+      call write_log(logstr, 1)
    endif   
-   write(*,'(a,f10.3,a,f5.1,a)') ' Time in continuity     : ',tloopcont,' (',100*tloopcont/(tfinish_all - tstart_all),'%)'
-   write(*,'(a,f10.3,a,f5.1,a)') ' Time in output         : ',tloopoutput,' (',100*tloopoutput/(tfinish_all - tstart_all),'%)'
+   write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in continuity     : ',tloopcont,' (',100*tloopcont/(tfinish_all - tstart_all),'%)'
+   call write_log(logstr, 1)
+   write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in output         : ',tloopoutput,' (',100*tloopoutput/(tfinish_all - tstart_all),'%)'
+   call write_log(logstr, 1)
    if (snapwave) then
-      write(*,'(a,f10.3,a,f5.1,a)') ' Time in SnapWave       : ',tloopsnapwave,' (',100*tloopsnapwave/(tfinish_all - tstart_all),'%)'
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in SnapWave       : ',tloopsnapwave,' (',100*tloopsnapwave/(tfinish_all - tstart_all),'%)'
+      call write_log(logstr, 1)
    endif
    if (wavemaker) then
-      write(*,'(a,f10.3,a,f5.1,a)') ' Time in wave maker     : ',tloopwavemaker,' (',100*tloopwavemaker/(tfinish_all - tstart_all),'%)'
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in wave maker     : ',tloopwavemaker,' (',100*tloopwavemaker/(tfinish_all - tstart_all),'%)'
+      call write_log(logstr, 1)
    endif
-   write(*,'(a)')''
-   write(*,'(a,20f10.3)')        ' Average time step (s)  : ',dtavg
-   write(*,'(a)')''
+   call write_log('', 1)
+   write(logstr,'(a,20f10.3)')        ' Average time step (s)  : ',dtavg
+   call write_log(logstr, 1)
+   call write_log('', 1)
    !
    if (write_time_output) then
       open(123,file='runtimes.txt')
@@ -583,7 +666,7 @@ module sfincs_lib
       close(123)
    endif
    !
-   write(*,*)'---------- Closing off SFINCS -----------'   
+   call write_log('---------- Closing off SFINCS -----------', 1)
    !
    ! call finalize_parameters()
    !
@@ -593,11 +676,13 @@ module sfincs_lib
       !
       ! Stop depth was exceeded, or e.g. input file missing
       !
-      write(*,*)''
-      write(*,*)trim(error_message)
+      call write_log('', 1)
+      call write_log(trim(error_message), 1)
       ierr = error
       !
    endif
+   !
+   call close_log()
    !
    end function sfincs_finalize
    !

@@ -1,4 +1,6 @@
 module sfincs_boundaries
+   
+   use sfincs_log
 
 contains
 
@@ -27,13 +29,14 @@ contains
       !
       if ((t_bnd(1) > (t0 + 1.0)) .or. (t_bnd(ntbnd) < (t1 - 1.0))) then
          !
-         write(*,'(a)')' WARNING! Times in boundary conditions file do not cover entire simulation period!'
+         write(logstr,'(a)')' WARNING! Times in boundary conditions file do not cover entire simulation period!'
+         call write_log(logstr, 1)
          !
       endif   
       !
    elseif (bndfile(1:4) /= 'none') then    ! Normal ascii input files
       !
-      write(*,*)'Reading water level boundaries ...'
+      call write_log('Info    : reading water level boundaries', 0)
       !
       open(500, file=trim(bndfile))
       do while(.true.)
@@ -86,17 +89,20 @@ contains
       !      
       if ((t_bnd(1) > (t0 + 1.0)) .or. (t_bnd(ntbnd) < (t1 - 1.0))) then
          ! 
-         write(*,'(a)')' WARNING! Times in boundary conditions file do not cover entire simulation period !'
+         write(logstr,'(a)')'Warning! Times in boundary conditions file do not cover entire simulation period !'
+         call write_log(logstr, 1)
          !
          if (t_bnd(1) > (t0 + 1.0)) then
             ! 
-            write(*,'(a)')' WARNING! Adjusting first time in boundary conditions time series !'
+            write(logstr,'(a)')'Warning!Adjusting first time in boundary conditions time series !'
+            call write_log(logstr, 1)
             !
             t_bnd(1) = t0 - 1.0
             !
          else
             ! 
-            write(*,'(a)')' WARNING! Adjusting last time in boundary conditions time series !'
+            write(logstr,'(a)')'Warning! Adjusting last time in boundary conditions time series !'
+            call write_log(logstr, 1)
             !
             t_bnd(ntbnd) = t1 + 1.0
             !
@@ -124,13 +130,15 @@ contains
       !
       if (iok == 0) then
          ! 
-         write(*,'(a)') ' WARNING! Very low or high values found in boundary conditions file ! Please check !'
+         write(logstr,'(a)')'Warning! Very low or high values found in boundary conditions file ! Please check !'
+         call write_log(logstr, 1)
          ! 
       endif
       !
    elseif (include_boundaries) then   
       !
-      write(*,'(a)') ' Warning : Boundary cells found in mask, without boundary conditions. Using water level of 0.0 m at these points.'
+      write(logstr,'(a)')'Warning! Boundary cells found in mask, without boundary conditions. Using water level of 0.0 m at these points.'
+      call write_log(logstr, 1)
       !
    endif
    !
@@ -141,7 +149,8 @@ contains
    !
    if (bwvfile(1:4) /= 'none') then
       !
-      write(*,*)'Reading wave boundaries ...'
+      write(logstr,'(a)')'Info    : reading wave boundaries'
+      call write_log(logstr, 0)
       !
       ! Locations
       !
@@ -244,7 +253,7 @@ contains
    end subroutine
 
 
-   subroutine read_coastline()
+   subroutine read_coastline() ! this is not used anymore!
    !
    ! Reads cst files and finds indices and weights from points in bwv file
    !
@@ -261,7 +270,7 @@ contains
    ncst = 0
    !
    if (cstfile(1:4) /= 'none') then
-      write(*,*)'Reading coast line ...'
+      ! write(*,*)'Reading coast line ...'
       open(500, file=trim(cstfile))
       do while(.true.)
          read(500,*,iostat = stat)dummy
