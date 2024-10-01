@@ -91,7 +91,7 @@ module sfincs_lib
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
    build_revision = '$Rev: v2.1.1-Dollerup'
-   build_date     = '$Date: 2024-08-28'
+   build_date     = '$Date: 2024-10-01'
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)

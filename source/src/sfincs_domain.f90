@@ -215,7 +215,7 @@ contains
          !
          ! Read index file (first time, only read number of active points)
          !
-         write(logstr,'(a,a)')'Info    : reading index file ', trim(indexfile), ' ...'
+         write(logstr,'(a,a)')'Info    : reading index file ', trim(indexfile)
          call write_log(logstr, 0)
          open(unit = 500, file = trim(indexfile), form = 'unformatted', access = 'stream')
          read(500)np
