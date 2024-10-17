@@ -87,8 +87,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.1.1-Dollerup'
-   build_date     = '$Date: 2024-08-28'
+   build_revision = '$Rev: v2.2.0-alpha:branch-108'
+   build_date     = '$Date: 2024-10-14'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
@@ -203,6 +203,7 @@ module sfincs_lib
    tloopsnapwave  = 0.0
    tloopwavemaker = 0.0
    !
+   write(*,'(a)')''   
    write(*,*)'Initializing output ...'
    !
    call initialize_output(tmapout, tmaxout, thisout, trstout)

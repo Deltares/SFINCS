@@ -43,11 +43,50 @@ contains
    !
    logical       :: crsgeo
    !
+   build_revision = '$Rev: svn 108-branch:SnapWave_IG'
+   build_date     = '$Date: 2024-10-16'
+   !
+   write(*,'(a)')''
+   write(*,*)'----------- Welcome to SnapWave ---------'   
+   write(*,'(a)')''
+   write(*,*)'   @@@@@   @@  @@  @@@@@@  @@@@@@   @@@  '
+   write(*,*)'  @@@ @@@  @@@ @@  @@@@@@  @@@@@@   @@@  '
+   write(*,*)'  @@@      @@@ @@  @@  @@  @@  @@   @@@  '
+   write(*,*)'   @@@@@   @@@@@@  @@@@@@  @@@@@@   @@@  '
+   write(*,*)'      @@@  @@ @@@  @@  @@  @@            '
+   write(*,*)'  @@@ @@@  @@  @@  @@  @@  @@       @@@  '
+   write(*,*)'   @@@@@   @@   @  @@  @@  @@       @@@  '
+   write(*,'(a)')''   
+   write(*,*)'             .......:.......             '
+   write(*,*)'         ...:::::::::::::::::...         '
+   write(*,*)'      ..:::::::............::::::..      '
+   write(*,*)'    ..::::::.....:@@@@@@@@....:::::..    '
+   write(*,*)'   .::::::...~@@@@@@@@@@@@@@~..::::::.   '
+   write(*,*)'  .::::::..:@@@@@@@@@@@@@@@@@@:.::::::.  '
+   write(*,*)' .:::::..:@@@@@@@@@@@@@@@@@@@@@:.::::::. '
+   write(*,*)'.::::..:@@@@@@@@@@@@@@^......:@@.:::::::.'
+   write(*,*)'.::...:@@@@@@@@@@@@@@@.:::::..^^.:::::::.'
+   write(*,*)'::.:@@@@@@@@@@@@@@@@@@..::::::..:::::::::'
+   write(*,*)'..:@@@@@@@@@@@@@@@@@@@@^..............::.'
+   write(*,*)'..:@@@@@@@@@@@@@@@@@@@@@@@^:..:~^~^~:..:.'
+   write(*,*)' .:@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:. '
+   write(*,*)'  .@@~^~@@@@~^~@@@@~^~@@@@~^~@@@@~^~@@.  '
+   write(*,*)'   ...................................   '
+   write(*,*)'    ..:::::::::::::::::::::::::::::..    '
+   write(*,*)'      ..:::::::::::::::::::::::::..      '
+   write(*,*)'         ...:::::::::::::::::...         '
+   write(*,*)'             .......:.......             '
+   write(*,'(a)')''
+   write(*,*)'-----------------------------------------'   
+   write(*,'(a)')''
+   write(*,*)'Build-Revision: ',trim(build_revision)
+   write(*,*)'Build-Date:     ',trim(build_date)
+   write(*,'(a)')''   
+   !   
    ! Check whether SFINCS grid is spherical (T) or cartesian (F), and prescribe to SnapWave as variable 'sferic' -  spherical (1) or cartesian (0) grid
    if (crsgeo) then
       sferic  = 1 
-      write(*,*)'SnapWave: Input grid interpreted as spherical coordinates, sferic= ',sferic
-      
+      write(*,*)'SnapWave: Input grid interpreted as spherical coordinates, sferic= ',sferic      
    endif   
    !
    call read_snapwave_input()            ! Reads snapwave.inp
