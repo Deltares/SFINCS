@@ -6,8 +6,6 @@ contains
    !
    use snapwave_data
    use snapwave_boundaries
-   use snapwave_results
-   use snapwave_ncoutput
    use interp
    use sfincs_error      
    !
@@ -40,11 +38,7 @@ contains
    !
    ext = 'qt'
    !
-   if (ext=='nc') then
-      !
-      call nc_read_net()
-      !
-   elseif (ext=='qt') then
+   if (ext=='qt') then
       !
       ! Quadtree file
       !
@@ -53,16 +47,6 @@ contains
       else
          call read_snapwave_quadtree_mesh(.true.)
       endif
-      !
-!      open(112, file='masktest.txt')
-!      write(112,'(3i8)')no_nodes,no_faces,0
-!      do k = 1, no_nodes
-!         write(112,'(f12.1,f12.1,f12.3,i8)')x(k),y(k),zb(k),msk(k)
-!      enddo   
-!      do k = 1, no_faces
-!         write(112,'(4i8)')(face_nodes(j, k), j = 1, 4)
-!      enddo
-!      close(112)
       !
    elseif (ext=='tx') then
       !

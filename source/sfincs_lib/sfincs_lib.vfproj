@@ -48,6 +48,7 @@
 				</File>
 				<File RelativePath="..\src\snapwave\snapwave_solver.f90">
 				</File>
+				<File RelativePath="..\src\snapwave\snapwave_windsource.f90"/>
 			</Filter>
 			<File RelativePath="..\src\deg2utm.f90"/>
 			<File RelativePath="..\src\geometry.f90"/>

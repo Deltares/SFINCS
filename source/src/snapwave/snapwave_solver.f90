@@ -5,7 +5,6 @@ module snapwave_solver
    subroutine compute_wave_field()
       !
       use snapwave_data
-      use snapwave_results
       !
       implicit none
       !
