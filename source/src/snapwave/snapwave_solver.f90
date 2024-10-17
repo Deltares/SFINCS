@@ -129,10 +129,11 @@ module snapwave_solver
                                          neumannconnected,       &
                                          theta,ntheta,thetamean, &
                                          depth,kwav,cg,ctheta,fw,     &
-                                         Tp,dt,rho,alpha,gamma, &
+                                         Tp,Tp_ig,dt,rho,alpha,gamma, &
                                          wind,   &
                                          H,Dw,F,Df,thetam,sinhkh,&
-                                         Hmx, ee, windspreadfac, u10, niter, crit,&
+                                         Hmx, ee, windspreadfac, u10, niter, crit, &
+                                         hmin, baldock_ratio, baldock_ratio_ig, &
                                          aa, sig, jadcgdx, sigmin, sigmax,&
                                          c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
@@ -154,10 +155,11 @@ module snapwave_solver
                                          neumannconnected,       &
                                          theta,ntheta,thetamean, &
                                          depth,kwav,cg,ctheta,fw,     &
-                                         Tp,dt,rho,alfa,gamma, &
+                                         Tp,T_ig,dt,rho,alfa,gamma, &
                                          wind,   &
                                          H,Dw,F,Df,thetam,sinhkh,&
-                                         Hmx, ee, windspreadfac, u10, niter, crit,&
+                                         Hmx, ee, windspreadfac, u10, niter, crit, &
+                                         hmin, baldock_ratio, baldock_ratio_ig, &       
                                          aa, sig, jadcgdx, sigmin, sigmax,&
                                          c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
@@ -199,6 +201,8 @@ module snapwave_solver
    real*4, intent(in)                               :: dt                     ! time step (s)
    real*4, intent(in)                               :: rho                    ! water density
    real*4, intent(in)                               :: alfa,gamma             ! coefficients in Baldock wave breaking dissipation
+   real*4, intent(in)                               :: baldock_ratio          ! option controlling from what depth wave breaking should take place: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio=0.2
+   real*4, intent(in)                               :: baldock_ratio_ig       ! option controlling from what depth wave breaking should take place for IG waves: (Hk_ig>baldock_ratio_ig*Hmx_ig(k)), default baldock_ratio_ig=0.2     
    real*4, dimension(no_nodes), intent(inout)       :: H                      ! wave height - TODO - TL - CHECK > inout needed to have updated 'H' for determining srcig
    real*4, dimension(no_nodes), intent(out)         :: H_ig                   ! wave height
    real*4, dimension(no_nodes), intent(out)         :: Dw                     ! wave breaking dissipation
@@ -208,6 +212,7 @@ module snapwave_solver
    real*4, dimension(no_nodes), intent(inout)       :: sinhkh                 ! sinh(k*depth)
    real*4, dimension(no_nodes), intent(inout)       :: Hmx                    ! Hmax
    real*4, dimension(no_nodes), intent(inout)       :: Tp                     ! Peak wave period
+   real*4, dimension(no_nodes), intent(in)          :: T_ig                   ! IG wave period      
    real*4, dimension(no_nodes), intent(in)          :: Hmx_ig                 ! Hmax
    real*4, dimension(no_nodes), intent(in)          :: u10                    ! wind speed and direction
    integer,                     intent(in)          :: niter                  ! max number of iterations
@@ -265,12 +270,11 @@ module snapwave_solver
    real*4, dimension(:), allocatable          :: diff                   ! maximum difference of wave energy relative to previous iteration
    real*4, dimension(:), allocatable          :: ra                     ! coordinate in sweep direction
    !real*4, dimension(:), allocatable          :: sig
-   real*4, dimension(:), allocatable          :: T_ig, sigm_ig
+   real*4, dimension(:), allocatable          :: sigm_ig
    integer, dimension(4)                      :: shift
    real*4                                     :: pi = 4.*atan(1.0)
    real*4                                     :: g=9.81
-
-   real*4                                     :: hmin=0.1             ! minimum water depth
+   real*4                                     :: hmin                   ! minimum water depth! TL: make user changeable also here according to 'snapwave_hmin' in sfincs.inp   
    real*4                                     :: fac=0.25             ! underrelaxation factor for DoverE
    real*4                                     :: oneoverdt
    real*4                                     :: oneover2dtheta
@@ -329,7 +333,7 @@ module snapwave_solver
       allocate(cgprev_ig(ntheta)); cgprev_ig=0.0
       allocate(DoverE_ig(no_nodes)); DoverE_ig=0.0
       allocate(E_ig(no_nodes)); E_ig=waveps
-      allocate(T_ig(no_nodes)); T_ig=0.0
+      !allocate(T_ig(no_nodes)); T_ig=0.0
       allocate(sigm_ig(no_nodes)); sigm_ig=0.0
       allocate(depthprev(ntheta,no_nodes)); depthprev=0.0                     
       allocate(beta_local(ntheta,no_nodes)); beta_local=0.0        
@@ -374,7 +378,7 @@ module snapwave_solver
    Dveg           = 0.0
    !
    if (igwaves) then
-      T_ig = Tinc2ig*Tp
+      !T_ig = Tinc2ig*Tp
       sigm_ig        = 2*pi/T_ig
       DoverE_ig      = 0.0
    endif
@@ -580,7 +584,8 @@ module snapwave_solver
                   ! Fill DoverE 
                   uorbi    = 0.5*sig(k)*Hk/sinhkh(k)
                   Dfk      = 0.28*rho*fw(k)*uorbi**3
-                  if (Hk>0.) then !(Hk>0.2*Hmx(k)) then
+                  !if (Hk>0.) then !
+                  if (Hk>baldock_ratio*Hmx(k)) then
                      call baldock(rho, g, alfa, gamma, depth(k), Hk, 2*pi/sig(k) , 1, Dwk, Hmx(k))
                   else
                      Dwk   = 0.
@@ -721,7 +726,7 @@ module snapwave_solver
                      !
                      ! Dissipation of infragravity waves
                      !
-                     if (Hk_ig>0.2*Hmx_ig(k)) then
+                     if (Hk_ig>baldock_ratio_ig*Hmx_ig(k)) then
                         call baldock(rho, g, alfa_ig, gamma_ig, depth(k), Hk_ig, T_ig(k), 1, Dwk_ig, Hmx_ig(k))
                      else
                         Dwk_ig   = 0.
@@ -839,7 +844,7 @@ module snapwave_solver
          write(*,'(a,i6,a,f10.5,a,f7.2)')'   iteration ',iter/4 ,' error = ',error,'   %ok = ',percok
          !
          if (error<crit) then
-            write(*,*) 'Stop'
+            !write(*,*) 'Stop'
             exit
          endif
          !
