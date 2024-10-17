@@ -17,10 +17,12 @@ module snapwave_data
    real*4,  dimension(:),       allocatable    :: fw                      ! friction coefficient
    real*4,  dimension(:),       allocatable    :: fw_ig                   ! friction coefficient
    real*4,  dimension(:),       allocatable    :: H, H_ig                 ! rms wave height
+   real*4,  dimension(:),       allocatable    :: Tp                      ! peak wave period   
    real*4,  dimension(:),       allocatable    :: Dw,Df                   ! dissipation due to breaking, bed friction
    real*4,  dimension(:),       allocatable    :: Dw_ig,Df_ig             ! dissipation due to breaking, bed friction for IG   
    real*4,  dimension(:),       allocatable    :: F                       ! wave force Dw/C/rho/depth
    real*4,  dimension(:),       allocatable    :: Fx, Fy                  ! wave force Dw/C/rho/depth
+   real*4,  dimension(:),       allocatable    :: u10, u10dir             ! wind speed and wind direction   
    real*4,  dimension(:),       allocatable    :: thetam                  ! mean wave direction
    real*4                                      :: thetamean               ! mean wave direction
    real*4,  dimension(:),       allocatable    :: buf                     ! buffer for writing output to netcdf
@@ -32,6 +34,8 @@ module snapwave_data
    real*4,  dimension(:),       allocatable    :: dist                    ! relative distribution of energy over theta bins
    real*4,  dimension(:),       allocatable    :: theta360                ! wave angles,sine and cosine of wave angles
    integer, dimension(:),       allocatable    :: i360                    ! reference between partial thea grid and full 360 deg theta grid
+   real*4,  dimension(:,:),     allocatable    :: windspread360           ! wind input distribution array full 360 deg theta grid
+   real*4,  dimension(:,:),     allocatable    :: windspreadfac           ! wind input distribution array   
    integer, dimension(:,:,:),   allocatable    :: prev                    ! two upwind grid points per grid point and wave direction
    integer, dimension(:,:,:),   allocatable    :: prev360                 ! two upwind grid points per grid point and wave direction
    real*4,  dimension(:,:,:),   allocatable    :: w                       ! weights of upwind grid points, 2 per grid point and per wave direction
@@ -56,6 +60,13 @@ module snapwave_data
    real*4,  dimension(:),       allocatable    :: Hmx_ig
    real*4,  dimension(:,:),     allocatable    :: ee                      ! directional energy density
    real*4,  dimension(:,:),     allocatable    :: ee_ig                   ! directional infragravity energy density
+   !
+   real*4,  dimension(:,:),     allocatable    :: aa                      ! directional action density
+   real*4,  dimension(:),       allocatable    :: sig                     ! mean frequency
+   real*4,  dimension(:,:),     allocatable    :: WsorE                   ! wind input energy
+   real*4,  dimension(:,:),     allocatable    :: WsorA                   ! wind input action
+   real*4,  dimension(:),       allocatable    :: SwE                     ! directionally integrated wind input energy
+   real*4,  dimension(:),       allocatable    :: SwA                     ! directionally integrated wind input wave action   
    !
    real*4,  dimension(:),       allocatable    :: Qb
    real*4,  dimension(:),       allocatable    :: beta
@@ -155,25 +166,17 @@ module snapwave_data
    real*4                                    :: dtheta   
    real*4                                    :: fw0             ! uniform wave friction factor
    real*4                                    :: fw0_ig          ! uniform wave friction factor (ig waves)
+   real*4                                    :: Tpini           ! initial condition for the wave period
    real*4                                    :: fwcutoff        ! depth below which to apply space-varying fw
-   real*4                                    :: snapwave_alpha,gamma     ! coefficients in Baldock wave breaking dissipation model
+   real*4                                    :: alpha,gamma     ! coefficients in Baldock wave breaking dissipation model
    integer                                   :: baldock_opt     ! option of Baldock wave breaking dissipation model (opt=1 is without gamma&depth, else is including)
    real*4                                    :: baldock_ratio   ! option controlling from what depth wave breaking should take place: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio=0.2 
-   real*4                                    :: baldock_ratio_ig   ! option controlling from what depth wave breaking should take place for IG waves: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio_ig=0.2    
-   integer                                   :: igwaves_opt     ! option of IG waves on (1) or off (0)      
-   integer                                   :: ig_opt          ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)
-   integer                                   :: iterative_srcig ! option whether IG source/sink term should be calculated in the iterative loop again (iterative_srcig = 1, is a bit slower), 
-                                                                ! ... or just a priori based on effectively incident wave energy from previous timestep only   
-   real*4                                    :: snapwave_alpha_ig,gamma_ig     ! coefficients in Baldock wave breaking dissipation model for IG waves
-   real*4                                    :: shinc2ig        ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 0=default)
-   real*4                                    :: alphaigfac      ! Multiplication factor for IG shoaling source/sink term, default = 1.0 
-   integer                                   :: herbers_opt     ! Choice whether you want IG Hm0&Tp be calculated by herbers (=1, default), or want to specify user defined values (0> then snapwave_eeinc2ig & snapwave_Tinc2ig are used) 
-   integer                                   :: tpig_opt        ! IG wave period option based on Herbers calculated spectrum, only used if herbers_opt = 1. Options are: 1=Tm01 (default), 2=Tpsmooth, 3=Tp, 4=Tm-1,0 
-   real*4                                    :: eeinc2ig        ! ratio of incident wave energy as first estimate of IG wave energy at boundary, user input, only used if not chosen for used Herbers IG bc spectrum based value (herbers_opt = 0)
-   real*4                                    :: Tinc2ig         ! ratio compared to period Tinc to estimate Tig, user input, only used if not chosen for used Herbers IG bc spectrum based value (herbers_opt = 0)   
+   ! TODO - TL: bring back baldock_ratio?
+ 
    real*4                                    :: hmin            ! minimum water depth
    character*256                             :: gridfile        ! name of gridfile (Delft3D .grd format)
-   integer                                   :: sferic         ! sferical (1) or cartesian (0) grid
+   integer                                   :: sferic          ! sferical (1) or cartesian (0) grid
+   integer                                   :: niter           ! maximum number of iterations   
    character*232                             :: depfile         ! name of bathymetry file (Delft3D .dep format)
    character*232                             :: fwfile          ! name of bed friction factor file (Delft3D .dep format)
    character*232                             :: upwfile         ! name of upwind neighbors file
@@ -212,6 +215,7 @@ module snapwave_data
    real*4                                    :: fwigratio        ! Above 'rghlevland' elevation of zb, the friction for IG waves is multiplied with value 'fwratio'      
    !
    character*3                               :: outputformat
+   integer                                   :: ja_save_each_iter       ! logical to save output after each iteration or not   
    !   
    ! Local constants
    !   
@@ -224,7 +228,49 @@ module snapwave_data
    integer                                   :: ntheta
    integer                                   :: ntheta360
    !
-   logical                                   :: igwaves
+   ! Wind input constants
+   !
+   integer                                   :: jadcgdx
+   real*4                                    :: c_dispT             
+   integer                                   :: mwind
+   real*4                                    :: Tini
+   real*4                                    :: sigmin
+   real*4                                    :: sigmax   
+   integer                                   :: wind_opt     ! option of wind growth on (1) or off (0)         
+   !
+   ! Vegetation parameters
+   !
+   integer                                      :: ja_vegetation
+   character*232                                :: vegmapfile   ! name of vegetation map file (Delft3D .dep format)
+   integer                                      :: nveg         ! Number of vegetation species used [-]
+   integer                                      :: no_secveg    ! Number of sections used in vertical schematization of vegetation [-]
+   integer                                      :: no_secvegmax
+   real*4,  dimension(:,:), allocatable         :: veg_ah       ! Height of vertical sections used in vegetation schematization [m wrt zb_ini (zb0)]
+   real*4,  dimension(:,:), allocatable         :: veg_Cd       ! Bulk drag coefficient [-]
+   real*4,  dimension(:,:), allocatable         :: veg_bstems   ! Width/diameter of individual vegetation stems [m]
+   real*4,  dimension(:,:), allocatable         :: veg_Nstems   ! Number of vegetation stems per unit horizontal area [m-2]
+   !
+   real*4,  dimension(:),   allocatable         :: Dveg
+   !
+   ! Infragravity parameters
+   !
+   integer                                   :: ig_opt          ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)   
+   real*4                                    :: alpha_ig,gamma_ig ! coefficients in Baldock wave breaking dissipation model for IG waves
+   real*4                                    :: shinc2ig        ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 0=default)
+   real*4                                    :: alphaigfac      ! Multiplication factor for IG shoaling source/sink term, default = 1.0
+   real*4                                    :: eeinc2ig        ! ratio of incident wave energy as first estimate of IG wave energy at boundary
+   real*4                                    :: Tinc2ig         ! ratio compared to period Tinc to estimate Tig 
+   !
+   real*4                                    :: baldock_ratio_ig   ! option controlling from what depth wave breaking should take place for IG waves: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio_ig=0.2    
+   integer                                   :: igwaves_opt     ! option of IG waves on (1) or off (0)      
+   integer                                   :: iterative_srcig ! option whether IG source/sink term should be calculated in the iterative loop again (iterative_srcig = 1, is a bit slower), 
+                                                                ! ... or just a priori based on effectively incident wave energy from previous timestep only   
+   integer                                   :: herbers_opt     ! Choice whether you want IG Hm0&Tp be calculated by herbers (=1, default), or want to specify user defined values (0> then snapwave_eeinc2ig & snapwave_Tinc2ig are used) 
+   integer                                   :: tpig_opt        ! IG wave period option based on Herbers calculated spectrum, only used if herbers_opt = 1. Options are: 1=Tm01 (default), 2=Tpsmooth, 3=Tp, 4=Tm-1,0    
+   !
+   ! Switches
+   logical                                   :: igwaves             ! switch whether include IG or not  
+   logical                                   :: wind                ! switch whether include wind or not      
    logical                                   :: igherbers   
    real*4                                    :: crit
    integer                                   :: nr_sweeps

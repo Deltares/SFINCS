@@ -408,7 +408,7 @@ contains
    ! Input section
    !
    call read_real_input(500,'snapwave_gamma',gamma,0.7)
-   call read_real_input(500,'snapwave_alpha',snapwave_alpha,1.0)
+   call read_real_input(500,'snapwave_alpha',alpha,1.0)
    call read_real_input(500,'snapwave_hmin',hmin,0.1)
    call read_real_input(500,'snapwave_fw',fw0,0.01)
    call read_real_input(500,'snapwave_fwig',fw0_ig,0.015)
@@ -425,7 +425,7 @@ contains
    !
    ! Settings related to IG waves:   
    call read_int_input(500,'snapwave_igwaves',igwaves_opt,1)   
-   call read_real_input(500,'snapwave_alpha_ig',snapwave_alpha_ig,1.0)   
+   call read_real_input(500,'snapwave_alpha_ig',alpha_ig,1.0)   
    call read_real_input(500,'snapwave_gammaig',gamma_ig,0.2)   
    call read_real_input(500,'snapwave_shinc2ig',shinc2ig,1.0)                   ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 1=default=all energy as sink)
    call read_real_input(500,'snapwave_alphaigfac',alphaigfac,1.0)               ! Multiplication factor for IG shoaling source/sink term         
@@ -439,7 +439,9 @@ contains
    call read_real_input(500,'snapwave_jonswapgamma',jonswapgam,3.3)  ! JONSWAP gamma value for determination offshore spectrum and IG wave conditions using Herbers, default=3.3, only used if snapwave_use_herbers = 1   
    call read_real_input(500,'snapwave_eeinc2ig',eeinc2ig,0.01)  ! Only used if snapwave_use_herbers = 0       
    call read_real_input(500,'snapwave_Tinc2ig',Tinc2ig,7.0)  ! Only used if snapwave_use_herbers = 0
-
+   !
+   ! Wind:
+   call read_int_input(500,'snapwave_wind',wind_opt,0)   
    !
    ! Input files
    call read_char_input(500,'snapwave_jonswapfile',jonswapfile,'')
@@ -473,6 +475,14 @@ contains
       write(*,*)'SnapWave: IG bc determination using Herbers turned OFF! --> Use eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
    else
       write(*,*)'SnapWave: IG bc determination using Herbers turned ON!'
+   endif   
+   !
+   wind          = .true.
+   if (wind_opt==0) then
+      wind       = .false.
+      write(*,*)'SnapWave: wind growth turned OFF!'
+   else
+      write(*,*)'SnapWave: wind growth turned ON!'
    endif   
    !
    if (nr_sweeps /= 1 .and. nr_sweeps /= 4) then

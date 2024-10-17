@@ -2,13 +2,13 @@ module snapwave_solver
       implicit none
    contains
    
-   subroutine compute_wave_field(time)
+   subroutine compute_wave_field()
       !
       use snapwave_data
       !
       implicit none
       !
-      real*8, intent(in)   :: time
+      !real*8, intent(in)   :: time > TL: not used in this implementation
       !
       real*4               :: tpb
       !
@@ -136,7 +136,6 @@ module snapwave_solver
                                          aa, sig, jadcgdx, sigmin, sigmax,&
                                          c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
-                                         time, ja_save_each_iter, &
                                          ja_vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
                                          zb, nwav, ig_opt, alpha_ig, gamma_ig, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig)
       !
@@ -162,12 +161,11 @@ module snapwave_solver
                                          aa, sig, jadcgdx, sigmin, sigmax,&
                                          c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
-                                         time, ja_save_each_iter, &
                                          ja_vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
                                          zb, nwav, ig_opt, alfa_ig, gamma_ig, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig)
    !
    use snapwave_windsource
-   use snapwave_ncoutput
+   !use snapwave_ncoutput ! TL: removed, we don't use this in SF+SW
    !
    implicit none
    !
@@ -182,8 +180,8 @@ module snapwave_solver
    real*4, intent(in)                               :: thetamean              ! mean offshore wave direction (rad)
    real*4, dimension(ntheta), intent(in)            :: theta                  ! distribution of wave angles and offshore wave energy density
    logical, dimension(no_nodes), intent(inout)      :: inner                  ! mask of inner grid points (not on boundary)
-   integer, intent(in)                              :: wind                   ! logical wind on/off
-   integer, intent(in)                              :: igwaves                ! logical IG waves on/off
+   logical, intent(in)                              :: wind                   ! logical wind on/off
+   logical, intent(in)                              :: igwaves                ! logical IG waves on/off
    integer, dimension(no_nodes),intent(in)          :: neumannconnected       ! number of neumann boundary point if connected to inner point
    real*4, dimension(no_nodes), intent(in)          :: depth                  ! water depth
    real*4, dimension(no_nodes), intent(in)          :: zb                     ! actual bed level
@@ -214,8 +212,6 @@ module snapwave_solver
    real*4, dimension(no_nodes), intent(in)          :: u10                    ! wind speed and direction
    integer,                     intent(in)          :: niter                  ! max number of iterations
    real*4,                      intent(in)          :: crit                   ! relative accuracy for stopping criterion
-   real*8,                      intent(in)          :: time                   ! momentary model time (s)
-   integer,                     intent(in)          :: ja_save_each_iter      ! write output at every sweep iteration
    integer                                          :: ig_opt                 ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)
    !
    ! wind source vars
@@ -847,35 +843,7 @@ module snapwave_solver
          !
       endif
       !
-      ! write output every iteration
-      !
-      if (ja_save_each_iter==1) then
-        do k = 1, no_nodes
-           E(k)      = sum(ee(:,k))*dtheta
-           Ak        = sum(aa(:,k))*dtheta
-           H(k)      = sqrt(8*E(k)/rho/g)
-           thetam(k) = atan2(sum(ee(:, k)*sin(theta)),sum(ee(:, k)*cos(theta)))
-           uorbi     = 0.5*sig(k)*H(k)/sinhkh(k)
-           Df(k)     = 0.28*rho*fw(k)*uorbi**3
-           !                     
-           call baldock(rho, g, alfa, gamma, depth(k), H(k), Tp(k), 1, Dw(k), Hmx(k))
-           F(k) = Dw(k)*kwav(k)/sig(k)/rho/depth(k)
-           !
-           ! IG wave height
-           !
-           if (igwaves==1) then
-              E_ig(k)      = sum(ee_ig(:,k))*dtheta
-              H_ig(k)      = sqrt(8*E_ig(k)/rho/g)
-           endif
-           !
-           if (wind==1) then
-               Tp(k)  = 2.*pi/sig(k)
-               SwE(k) = sum(WsorE(:,k))*dtheta    
-               SwA(k) = sum(WsorA(:,k))*dtheta
-           endif
-        enddo
-        call ncoutput_update(time+iter,iter)
-      endif
+      ! write output every iteration > TL: removed in this implementation
       !
    enddo
    !
