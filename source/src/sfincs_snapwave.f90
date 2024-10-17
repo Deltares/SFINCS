@@ -417,11 +417,13 @@ contains
    call read_real_input(500,'snapwave_dtheta',dtheta,10.0)
    call read_real_input(500,'snapwave_crit',crit,0.01)
    call read_int_input(500,'snapwave_nrsweeps',nr_sweeps,4)
+   call read_int_input(500,'snapwave_niter',niter, 10)   
    call read_int_input(500,'snapwave_baldock_opt',baldock_opt,1)     
    call read_real_input(500,'snapwave_baldock_ratio',baldock_ratio,0.2)
    call read_real_input(500,'rgh_lev_land',rghlevland,0.0)
    call read_real_input(500,'snapwave_fw_ratio',fwratio,1.0)
-   call read_real_input(500,'snapwave_fwig_ratio',fwigratio,1.0)   
+   call read_real_input(500,'snapwave_fwig_ratio',fwigratio,1.0)
+   call read_real_input(500,'snapwave_Tpini',Tpini,1.0)   
    !
    ! Settings related to IG waves:   
    call read_int_input(500,'snapwave_igwaves',igwaves_opt,1)   
@@ -440,8 +442,13 @@ contains
    call read_real_input(500,'snapwave_eeinc2ig',eeinc2ig,0.01)  ! Only used if snapwave_use_herbers = 0       
    call read_real_input(500,'snapwave_Tinc2ig',Tinc2ig,7.0)  ! Only used if snapwave_use_herbers = 0
    !
-   ! Wind:
+   ! Wind
+   !
    call read_int_input(500,'snapwave_wind',wind_opt,0)   
+   !
+   ! Vegetation input
+   !
+   call read_int_input(500, 'vegetation', vegetation_opt, 0)
    !
    ! Input files
    call read_char_input(500,'snapwave_jonswapfile',jonswapfile,'')
@@ -456,26 +463,26 @@ contains
    call read_char_input(500,'snapwave_depfile',depfile,'none')   
    call read_char_input(500,'snapwave_ncfile', gridfile,'snapwave_net.nc')   
    call read_char_input(500,'netsnapwavefile',netsnapwavefile,'')
-   call read_char_input(500,'tref',trefstr,'20000101 000000')   ! Read again > needed in sfincs_ncinput.F90
-   
+   call read_char_input(500,'tref',trefstr,'20000101 000000')   ! Read again > needed in sfincs_ncinput.F90   
    !
    close(500)
    !
    igwaves          = .true.
+   igherbers        = .false.    
    if (igwaves_opt==0) then
       igwaves       = .false.
       write(*,*)'SnapWave: IG waves turned OFF!'
    else
       write(*,*)'SnapWave: IG waves turned ON!'
+      !
+      if (herbers_opt==0) then
+         write(*,*)'SnapWave: IG bc determination using Herbers turned OFF! --> Use eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
+      else
+         igherbers     = .true.          
+         write(*,*)'SnapWave: IG bc determination using Herbers turned ON!'
+      endif      
+      !      
    endif
-   !
-   igherbers        = .true. 
-   if (herbers_opt==0) then
-      igherbers     = .false.
-      write(*,*)'SnapWave: IG bc determination using Herbers turned OFF! --> Use eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
-   else
-      write(*,*)'SnapWave: IG bc determination using Herbers turned ON!'
-   endif   
    !
    wind          = .true.
    if (wind_opt==0) then
@@ -483,6 +490,14 @@ contains
       write(*,*)'SnapWave: wind growth turned OFF!'
    else
       write(*,*)'SnapWave: wind growth turned ON!'
+   endif   
+   !
+   vegetation          = .true.
+   if (vegetation_opt==0) then
+      vegetation       = .false.
+      write(*,*)'SnapWave: vegetation turned OFF!'
+   else
+      write(*,*)'SnapWave: vegetation turned ON!'
    endif   
    !
    if (nr_sweeps /= 1 .and. nr_sweeps /= 4) then

@@ -240,7 +240,7 @@ module snapwave_data
    !
    ! Vegetation parameters
    !
-   integer                                      :: ja_vegetation
+   integer                                      :: vegetation_opt
    character*232                                :: vegmapfile   ! name of vegetation map file (Delft3D .dep format)
    integer                                      :: nveg         ! Number of vegetation species used [-]
    integer                                      :: no_secveg    ! Number of sections used in vertical schematization of vegetation [-]
@@ -269,8 +269,9 @@ module snapwave_data
    integer                                   :: tpig_opt        ! IG wave period option based on Herbers calculated spectrum, only used if herbers_opt = 1. Options are: 1=Tm01 (default), 2=Tpsmooth, 3=Tp, 4=Tm-1,0    
    !
    ! Switches
-   logical                                   :: igwaves             ! switch whether include IG or not  
-   logical                                   :: wind                ! switch whether include wind or not      
+   logical                                   :: igwaves             ! switch whether include IG or not
+   logical                                   :: wind                ! switch whether include wind or not
+   logical                                   :: vegetation          ! switch whether include veggie or not      
    logical                                   :: igherbers   
    real*4                                    :: crit
    integer                                   :: nr_sweeps

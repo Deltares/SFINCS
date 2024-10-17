@@ -28,7 +28,7 @@ module snapwave_solver
       g     = 9.81
       pi    = 4.*atan(1.)
       !
-      write(*,*)'Compute wave field started'
+      !write(*,*)'Compute wave field started'
       !
       call timer(t0)
       !
@@ -61,12 +61,12 @@ module snapwave_solver
       !
       ! Compute celerities and refraction speed
       !
-      write(*,*)'   max depth=',maxval(depth),' min depth = ',minval(depth)
+      !write(*,*)'   max depth=',maxval(depth),' min depth = ',minval(depth)
       !  
       
       Tp     = max(tpmean_bwv,Tpini)   ! to check voor windgroei
       sig    = 2.0*pi/Tp
-      Tp_ig   = Tinc2ig*Tp
+      Tp_ig   = tpmean_bwv_ig! TL: now determined in snapwave_boundaries.f90 instead of Tinc2ig*Tp
       sigm_ig = 2.0*pi/Tp_ig !TODO - TL: Question do we want Tp_ig now as contant, or also spatially varying like Tp ?
       !
       expon   = -(sig*sqrt(depth/g))**(2.5)
@@ -75,7 +75,7 @@ module snapwave_solver
       nwav    = 0.5+kwav*depth/sinh(min(2*kwav*depth,50.0))
       Cg      = nwav*C
       !
-      if (igwaves==1) then
+      if (igwaves) then
          cg_ig   = Cg
          expon   = -(sigm_ig*sqrt(depth/g))**(2.5)
          kwav_ig  = sig**2/g*(1.0-exp(expon))**(-0.4)
@@ -88,7 +88,7 @@ module snapwave_solver
          sinhkh(k)    = sinh(min(kwav(k)*depth(k), 50.0))
          Hmx(k)       = 0.88/kwav(k)*tanh(gamma*kwav(k)*depth(k)/0.88)
       enddo
-      if (igwaves==1) then          
+      if (igwaves) then          
          do k = 1, no_nodes             
             Hmx_ig(k)    = 0.88/kwav_ig(k)*tanh(gamma_ig*kwav_ig(k)*depth(k)/0.88) ! Note - uses gamma_ig
          enddo
@@ -100,7 +100,7 @@ module snapwave_solver
          ctheta(itheta,:)    = sig/sinh(min(2.0*kwav*depth, 50.0))*(dhdx*sin(theta(itheta)) - dhdy*cos(theta(itheta)))
       enddo
       !
-      if (igwaves==1) then
+      if (igwaves) then
          do itheta = 1, ntheta
             ctheta_ig(itheta,:) = sigm_ig/sinh(min(2.0*kwav_ig*depth, 50.0))*(dhdx*sin(theta(itheta)) - dhdy*cos(theta(itheta)))
          enddo
@@ -114,7 +114,7 @@ module snapwave_solver
          ctheta(:,k)    = sign(1.0, ctheta(:,k))*min(abs(ctheta(:, k)), sig(k)/4)
       enddo
       !
-      if (igwaves == 1) then
+      if (igwaves) then
            do k=1, no_nodes
               ctheta_ig(:,k) = sign(1.0, ctheta_ig(:,k))*min(abs(ctheta_ig(:, k)), sigm_ig(k)/4.0)
            enddo
@@ -136,7 +136,7 @@ module snapwave_solver
                                          aa, sig, jadcgdx, sigmin, sigmax,&
                                          c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
-                                         ja_vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
+                                         vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
                                          zb, nwav, ig_opt, alpha_ig, gamma_ig, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig)
       !
       call timer(t3)
@@ -161,7 +161,7 @@ module snapwave_solver
                                          aa, sig, jadcgdx, sigmin, sigmax,&
                                          c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
-                                         ja_vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
+                                         vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
                                          zb, nwav, ig_opt, alfa_ig, gamma_ig, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig)
    !
    use snapwave_windsource
@@ -227,7 +227,7 @@ module snapwave_solver
    !
    ! vegetation vars
    !
-   integer, intent(in)                                  :: ja_vegetation            ! logical yes/no
+   logical, intent(in)                                  :: vegetation               ! logical yes/no
    real*4, dimension(no_nodes), intent(out)             :: Dveg                     ! dissipation by vegetation: N.B. spatial field!
    integer, intent(in)                                  :: no_secveg
    real*4, dimension(no_nodes,no_secveg), intent(in)    :: veg_ah                   ! Height of vertical sections used in vegetation schematization [m wrt zb_ini (zb0)]
@@ -320,7 +320,7 @@ module snapwave_solver
    allocate(E(no_nodes)); E=waveps
    allocate(Eold(no_nodes)); Eold=0.0   
    !
-   if (igwaves==1) then
+   if (igwaves) then
       allocate(A_ig(ntheta)); A_ig=0.0
       allocate(B_ig(ntheta)); B_ig=0.0
       allocate(C_ig(ntheta)); C_ig=0.0
@@ -336,7 +336,7 @@ module snapwave_solver
       allocate(alphaig_local(ntheta,no_nodes)); alphaig_local=0.0
    endif
    !
-   if (wind==1) then
+   if (wind) then
       allocate(B_aa(ntheta)); B_aa=0.0
       allocate(R_aa(ntheta)); R_aa=0.0
       allocate(DoverA(no_nodes)); DoverA=0.0
@@ -361,7 +361,7 @@ module snapwave_solver
    eemax          = maxval(ee)
    dtheta         = theta(2) - theta(1)
    if (dtheta<0.)   dtheta = dtheta + 2.*pi
-   if (wind==1) then
+   if (wind) then
       sig         = 2*pi/Tpini
    else
       sig         = 2*pi/Tp
@@ -373,13 +373,13 @@ module snapwave_solver
    !H              = 0.0 ! TODO - TL: CHeck > needed for restart for IG > set to 0 now in snapwave_domain.f90
    Dveg           = 0.0
    !
-   if (igwaves==1) then
+   if (igwaves) then
       T_ig = Tinc2ig*Tp
       sigm_ig        = 2*pi/T_ig
       DoverE_ig      = 0.0
    endif
    !
-   if (wind==1) then
+   if (wind) then
       DoverA = 0.0      
       ndissip = 3.0
       WsorE = 0.0
@@ -426,14 +426,14 @@ module snapwave_solver
          H(k)      = sqrt(8*E(k)/rho/g)
          thetam(k) = atan2(sum(ee(:, k)*sin(theta)), sum(ee(:, k)*cos(theta)))
          !
-         ee_ig(:, k)  = eeinc2ig*ee(:,k)         
+         !ee_ig(:, k)  = eeinc2ig*ee(:,k) !TODO TL: determined in snapwave_boundaries.f90        
          !
-         if (igwaves==1) then             
+         if (igwaves) then             
             E_ig(k)      = sum(ee_ig(:, k))*dtheta
             H_ig(k)      = sqrt(8*E_ig(k)/rho/g)
          endif
          ! 
-         if (wind==1) then
+         if (wind) then
             sig(k)    = 2*pi/Tp(k)
            !aa(:,k)   = max(aa(:,k),waveps/sig(k))
             aa(:,k)   = max(ee(:,k),waveps)/sig(k)
@@ -466,7 +466,7 @@ module snapwave_solver
       ! 
       if (inner(k)) then
          !
-         if (wind==1) then
+         if (wind) then
              ee(:,k) = waveps
              sig(k)  = 2*pi/Tpini
              aa(:,k) = ee(:,k)/sig(k)
@@ -485,7 +485,7 @@ module snapwave_solver
             DoverE(k) = (Dwk + Dfk)/max(Ek, 1.0e-6)
          endif
          !
-         if (wind==1) then
+         if (wind) then
             call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:,k))  
             uorbi    = 0.5*sig(k)*Hk/sinhkh(k)  
             Dfk      = 0.28*rho*fw(k)*uorbi**3
@@ -506,7 +506,7 @@ module snapwave_solver
    !
    do iter=1,niter
       !
-      sweep = mod(iter, 4)
+      sweep = mod(iter, 4) !TODO - TL: problem that we don't have option for sweep = 1 anymore?
       !
       if (sweep==0) then
          sweep = 4
@@ -541,12 +541,12 @@ module snapwave_solver
                      eeprev(itheta) = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)
                      cgprev(itheta) = w(1, itheta, k)*cg(k1) + w(2, itheta, k)*cg(k2)
                      !
-                     if (igwaves==1) then
+                     if (igwaves) then
                         eeprev_ig(itheta) = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)
                         cgprev_ig(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
                      endif
                      !
-                     if (wind==1) then
+                     if (wind) then
                         aaprev(itheta) = w(1, itheta, k)*aa(itheta, k1) + w(2, itheta, k)*aa(itheta, k2)
                      endif
                      !
@@ -558,7 +558,7 @@ module snapwave_solver
                   Hk = min(sqrt(Ek/rhog8), gamma*depth(k))
                   Ek = Ek/depthlimfac
                   !
-                  if (wind==1) then
+                  if (wind) then
                     !
                     Ak = sum(aaprev)*dtheta
                     !
@@ -569,7 +569,7 @@ module snapwave_solver
                     sig(k)  = max(sig(k),sigmin)
                     sig(k)  = min(sig(k),sigmax)
                     Ak      = Ek/sig(k) ! to avoid small T in windinput
-                    if (wind==1) then
+                    if (wind) then
                        aaprev=min(aaprev,eeprev/sigmin)
                        aaprev=max(aaprev,eeprev/sigmax)
                     endif
@@ -586,7 +586,7 @@ module snapwave_solver
                      Dwk   = 0.
                   endif
                   !                  
-                  if (ja_vegetation==1) then
+                  if (vegetation) then
                       call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, g, Hk, Dvegk)
                   else
                       Dvegk = 0.
@@ -594,7 +594,7 @@ module snapwave_solver
                   !
                   DoverE(k) = (Dwk + Dfk + Dvegk)/max(Ek, 1.0e-6)
                   !
-                  if (wind==1) then
+                  if (wind) then
                      !
                      if (iter==1) then
                         call windinput(u10(k), rho, g, depth(k), ntheta, windspreadfac(:,k), Ek, Ak, cg(k), eeprev, aaprev, ds(:,k), WsorE(:,k), WsorA(:,k), jadcgdx)
@@ -651,7 +651,7 @@ module snapwave_solver
                   !
                   ! Solve tridiagonal system per point
                   !
-                  if (wind==1) then
+                  if (wind) then
                      do itheta = 2, ntheta - 1
                         B_aa(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverA(k)       
                         R_aa(itheta) = (oneoverdt)*aa(itheta, k) + cgprev(itheta)*aaprev(itheta)/ds(itheta, k)
@@ -709,7 +709,7 @@ module snapwave_solver
                   !
                   ! IG
                   !
-                  if (igwaves==1) then
+                  if (igwaves) then
                      Ek_ig       = sum(eeprev_ig)*dtheta                  
                      !Hk_ig       = sqrt(Ek_ig/rhog8) !org trunk
                      Hk_ig       = min(sqrt(Ek_ig/rhog8), gamma_ig*depth(k))  !TL: Question - why not this one?                     
@@ -780,7 +780,7 @@ module snapwave_solver
             else
                !
                ee(:, k) = 0.0
-               if (wind==1) then
+               if (wind) then
                   aa(:,k)  = 0.0
                endif
                ee_ig(:, k) = 0.0
@@ -798,7 +798,7 @@ module snapwave_solver
             ee_ig(:, kn) = ee_ig(:, k) ! TL: Added Neumann option for IG            
             ctheta(:, kn) = ctheta(:, k)
             cg(kn) = cg(k)
-            if (wind==1) then
+            if (wind) then
                sig(kn) = sig(k)
                Tp(kn) = 2.0*pi/sig(k)
                WsorE(:,kn) = WsorE(:,k)
@@ -810,6 +810,8 @@ module snapwave_solver
          endif
          !
       enddo
+      !
+      ! TODO - TL: Check whether can put back here the srcig_iterative == 1
       !
       if (sweep==4) then
          !
@@ -856,14 +858,14 @@ module snapwave_solver
             E(k)      = sum(ee(:,k))*dtheta
             H(k)      = sqrt(8*E(k)/rho/g)
             thetam(k) = atan2(sum(ee(:, k)*sin(theta)),sum(ee(:, k)*cos(theta)))
-            if (wind==1) then
+            if (wind) then
                uorbi     = 0.5*sig(k)*Hk/sinhkh(k)
             else
                uorbi     = pi*H(k)/Tp(k)/sinhkh(k) !! to check if we want array
             endif
             Df(k)     = 0.28*rho*fw(k)*uorbi**3
             !                     
-            if (wind==1) then
+            if (wind) then
                call baldock(rho, g, alfa, gamma, depth(k), H(k), 2.0*pi/sig(k), 1, Dw(k), Hmx(k))
                F(k) = Dw(k)*kwav(k)/sig(k)/rho/depth(k)
             else
@@ -871,13 +873,13 @@ module snapwave_solver
                F(k) = Dw(k)*kwav(k)/sig(k)/rho/depth(k)
             endif
             !
-            if (ja_vegetation==1) then
+            if (vegetation) then
                 call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, g, H(k), Dveg(k)) 
             else
                 Dveg(k) = 0.
             endif
             !
-            if (igwaves==1) then
+            if (igwaves) then
                !
                ! IG wave height
                !
@@ -885,7 +887,7 @@ module snapwave_solver
                H_ig(k)      = sqrt(8*E_ig(k)/rho/g)
                !
             endif
-            if (wind==1) then
+            if (wind) then
                 Tp(k)  = 2.0*pi/sig(k)
                 SwE(k) = sum(WsorE(:,k))*dtheta    
                 SwA(k) = sum(WsorA(:,k))*dtheta    !(2*pi*sum(WsorA(:,k))*dtheta - 2*pi/sig(k)*SwE(k)) / E(k)
