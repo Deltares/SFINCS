@@ -267,10 +267,10 @@ contains
             !
 	        u10dir = 270.0 - atan2(windv(ip), windu(ip))*180/pi
 	        if (u10dir<0.0) u10dir = u10dir + 360.0
-            if (u10dir>360.0) u10dir = u10dir - 360.0            
+            if (u10dir>360.0) u10dir = u10dir - 360.0    
             !
             snapwave_u10(nm) = max(u10, 0.0)     
-            snapwave_u10dir(nm) = u10dir
+            snapwave_u10dir(nm) = u10dir / 180.0 * pi ! from in degrees to cartesian going to in radians
             !
          else
             !
@@ -468,7 +468,7 @@ contains
    call read_real_input(500,'snapwave_dt',dt,36000.0)
    call read_real_input(500,'snapwave_tol',tol,10.0)
    call read_real_input(500,'snapwave_dtheta',dtheta,10.0)
-   call read_real_input(500,'snapwave_crit',crit,0.01)
+   call read_real_input(500,'snapwave_crit',crit,0.00001) !Old default was 0.01
    call read_int_input(500,'snapwave_nrsweeps',nr_sweeps,4)
    call read_int_input(500,'snapwave_niter',niter, 10)   
    call read_int_input(500,'snapwave_baldock_opt',baldock_opt,1)     
@@ -477,6 +477,11 @@ contains
    call read_real_input(500,'snapwave_fw_ratio',fwratio,1.0)
    call read_real_input(500,'snapwave_fwig_ratio',fwigratio,1.0)
    call read_real_input(500,'snapwave_Tpini',Tpini,1.0)
+   call read_int_input (500,'snapwave_mwind',mwind,2)      
+   call read_real_input(500,'sigmin',sigmin,8.0*atan(1.0)/25.0)
+   call read_real_input(500,'sigmax',sigmax,8.0*atan(1.0)/1.0)   
+   call read_int_input (500,'jadcgdx',jadcgdx,1)
+   call read_real_input(500,'c_dispT',c_dispT,1.0)   
    call read_real_input(500,'sector',sector,180.0)
    !
    ! Settings related to IG waves:   
