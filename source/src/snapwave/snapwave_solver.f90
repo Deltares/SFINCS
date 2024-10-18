@@ -137,6 +137,7 @@ module snapwave_solver
                                          aa, sig, jadcgdx, sigmin, sigmax,&
                                          c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
+                                         beta, srcig, alphaig, Dw_ig, Df_ig, &
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
                                          zb, nwav, ig_opt, alpha_ig, gamma_ig, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig)
       !
@@ -163,6 +164,7 @@ module snapwave_solver
                                          aa, sig, jadcgdx, sigmin, sigmax,&
                                          c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
+                                         betamean, srcig, alphaig, Dw_ig, Df_ig, &       
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
                                          zb, nwav, ig_opt, alfa_ig, gamma_ig, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig)
    !
@@ -198,6 +200,9 @@ module snapwave_solver
    real*4, dimension(ntheta,no_nodes), intent(in)   :: ctheta_ig              ! refractioon speed
    real*4, dimension(no_nodes), intent(in)          :: fw                     ! wave friction factor
    real*4, dimension(no_nodes), intent(in)          :: fw_ig                  ! wave friction factor
+   real*4, dimension(no_nodes), intent(out)         :: betamean               ! Mean local bed slope parameter  
+   real*4, dimension(no_nodes), intent(out)         :: srcig                  ! Directionally averaged incident wave sink/infragravity source term 
+   real*4, dimension(no_nodes), intent(out)         :: alphaig                ! Mean IG shoaling parameter alpha    
    real*4, intent(in)                               :: dt                     ! time step (s)
    real*4, intent(in)                               :: rho                    ! water density
    real*4, intent(in)                               :: alfa,gamma             ! coefficients in Baldock wave breaking dissipation
@@ -206,8 +211,10 @@ module snapwave_solver
    real*4, dimension(no_nodes), intent(inout)       :: H                      ! wave height - TODO - TL - CHECK > inout needed to have updated 'H' for determining srcig
    real*4, dimension(no_nodes), intent(out)         :: H_ig                   ! wave height
    real*4, dimension(no_nodes), intent(out)         :: Dw                     ! wave breaking dissipation
+   real*4, dimension(no_nodes), intent(out)         :: Dw_ig                  ! wave breaking dissipation IG   
    real*4, dimension(no_nodes), intent(out)         :: F                      ! wave force Dw/C/rho/h
    real*4, dimension(no_nodes), intent(out)         :: Df                     ! wave friction dissipation
+   real*4, dimension(no_nodes), intent(out)         :: Df_ig                  ! wave friction dissipation IG      
    real*4, dimension(no_nodes), intent(out)         :: thetam                 ! mean wave direction
    real*4, dimension(no_nodes), intent(inout)       :: sinhkh                 ! sinh(k*depth)
    real*4, dimension(no_nodes), intent(inout)       :: Hmx                    ! Hmax
@@ -891,7 +898,20 @@ module snapwave_solver
                E_ig(k)      = sum(ee_ig(:,k))*dtheta
                H_ig(k)      = sqrt(8*E_ig(k)/rho/g)
                !
+               Df_ig(k)     = fw_ig(k)*0.0361*(9.81/depth(k))**1.5*H(k)*E_ig(k) !org               
+               !
+               call baldock(rho, g, alfa_ig, gamma_ig, depth(k), H_ig(k), T_ig(k), 1, Dw_ig(k), Hmx_ig(k))               
+               !
+               ! average beta, alphaig, srcig over directions
+               betamean(k) = sum(beta_local(:,k))/ntheta ! real mean
+               !betamean(k)   = maxval(beta_local(:,k))
+               !               
+               alphaig(k) = sum(alphaig_local(:,k))/ntheta ! real mean 
+               !
+               srcig(k)   = sum(srcig_local(:,k)) /ntheta ! real mean                    
+               !
             endif
+            !
             if (wind) then
                 Tp(k)  = 2.0*pi/sig(k)
                 SwE(k) = sum(WsorE(:,k))*dtheta    
