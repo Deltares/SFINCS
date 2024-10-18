@@ -984,8 +984,10 @@ module snapwave_solver
    Hloc=max(H,1.e-6)
    if (opt==1) then
       Dw=0.28*alfa*rho*g/T*exp(-(Hmax/Hloc)**2)*(Hmax**2+Hloc**2)
+      !Dw=0.25*alfa*rho*g/T*exp(-(Hmax/Hloc)**2)*(Hmax**2+Hloc**2) !Old
    else
       Dw=0.28*alfa*rho*g/T*exp(-(Hmax/Hloc)**2)*(Hmax**3+Hloc**3)/gamma/depth
+      !Dw=0.25*alfa*rho*g/T*exp(-(Hmax/Hloc)**2)*(Hmax**3+Hloc**3)/gamma/depth !Old     
    endif
    !
    end subroutine baldock
