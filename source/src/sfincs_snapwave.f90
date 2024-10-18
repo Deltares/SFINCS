@@ -362,8 +362,6 @@ contains
    snapwave_H_ig                  = H_ig
    snapwave_mean_direction        = thetam
    snapwave_directional_spreading = thetam  ! TL: CORRECT? > is not spreading but mean direction?
-   snapwave_Fx                    = Fx
-   snapwave_Fy                    = Fy 
    snapwave_Dw                    = Dw
    snapwave_Df                    = Df
    snapwave_Dwig                  = Dw_ig
@@ -373,6 +371,10 @@ contains
    snapwave_beta                  = beta
    snapwave_srcig                 = srcig
    snapwave_alphaig               = alphaig   
+   !
+   ! Convert wave force to correct unit [Dw/C] as expected by SFINCS, assumed to be piecewise (seems to work)
+   snapwave_Fx                    = Fx * rho * depth
+   snapwave_Fy                    = Fy * rho * depth
    !
    ! Wave periods from SnapWave, used in e.g. wavemakers - TL: moved behind call update_boundary_conditions & compute_wave_field so values at first timestep are not 0
    snapwave_tpmean = tpmean_bwv
