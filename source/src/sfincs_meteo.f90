@@ -1253,6 +1253,18 @@ contains
          !
          itwndlast = itw - 1
          !
+         !
+         !if (store_meteo) then
+         !    !
+         !    windu = vmag*cos(vdir)
+         !    windv = vmag*sin(vdir)
+         !    !
+         !    if (store_wind_max) then
+         !        windmax(nm) = max(windmax(nm), sqrt(windu(nm)**2 + windv(nm)**2))
+         !    endif   
+         !    !
+         !endif
+         !   
          exit
          !
        endif

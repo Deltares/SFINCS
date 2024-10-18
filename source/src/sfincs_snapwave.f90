@@ -13,6 +13,8 @@ module sfincs_snapwave
    real*4,    dimension(:),   allocatable    :: snapwave_H_ig
    real*4,    dimension(:),   allocatable    :: snapwave_mean_direction
    real*4,    dimension(:),   allocatable    :: snapwave_directional_spreading
+   real*4,    dimension(:),   allocatable    :: snapwave_u10
+   real*4,    dimension(:),   allocatable    :: snapwave_u10dir   
    real*4,    dimension(:),   allocatable    :: snapwave_Fx
    real*4,    dimension(:),   allocatable    :: snapwave_Fy
    real*4,    dimension(:),   allocatable    :: snapwave_Dw
@@ -99,13 +101,21 @@ contains
    !
    allocate(snapwave_z(no_nodes))
    allocate(snapwave_depth(no_nodes))
-   allocate(snapwave_mask(no_nodes))   
+   allocate(snapwave_mask(no_nodes))  
+   allocate(snapwave_u10(no_nodes))   
+   allocate(snapwave_u10dir(no_nodes))      
    !
    snapwave_z     = zb
    snapwave_depth = 0.0
    !
+   if (wind) then
+      snapwave_u10 = 0.0
+      snapwave_u10dir = 0.0
+   endif
+   !
    snapwave_tpmean = 0.0
-   snapwave_tpigmean = 0.0    
+   snapwave_tpigmean = 0.0   
+
    !   
    call find_matching_cells(index_quadtree_in_snapwave, index_snapwave_in_quadtree)
    !
@@ -166,6 +176,8 @@ contains
    integer  :: count_rate
    integer  :: count_max
    real     :: tloop
+   !
+   real*4   :: u10, u10dir
    !   
    real*4,    dimension(:), allocatable       :: fwx0
    real*4,    dimension(:), allocatable       :: fwy0
@@ -236,6 +248,42 @@ contains
       endif   
       !
    enddo   
+   !
+   ! Determine SnapWave wind
+   !
+   if (wind) then
+      !
+      do nm = 1, snapwave_no_nodes
+         !
+         ip = index_sfincs_in_snapwave(nm) ! matching index in SFINCS mesh
+         !
+         if (ip>0) then
+            !
+            ! A matching SFINCS point is found
+            !
+            ! Convert to umag & dir, as in ncoutput_update_his: 
+            !
+            u10 = sqrt(windu(ip)**2 + windv(ip)**2)
+            !
+	        u10dir = 270.0 - atan2(windv(ip), windu(ip))*180/pi
+	        if (u10dir<0.0) u10dir = u10dir + 360.0
+            if (u10dir>360.0) u10dir = u10dir - 360.0            
+            !
+            snapwave_u10(nm) = max(u10, 0.0)     
+            snapwave_u10dir(nm) = u10dir
+            !
+         else
+            !
+            ! Use 0.0 wind speed and direction
+            !
+            snapwave_u10(nm) = 0.0
+            snapwave_u10dir(nm) = 0.0            
+            !
+         endif   
+         !
+      enddo   
+      !
+   endif
    !
    call compute_snapwave(t)
    !
@@ -351,6 +399,9 @@ contains
    depth = snapwave_depth
    !
    zb = snapwave_z   
+   !
+   u10 = snapwave_u10
+   u10dir = snapwave_u10dir   
    !   
    ! TL: we use depth now in boundary conditions for Herbers bc determination of Hm0ig, in this order we use updated values of depth through SFINCS
    !
