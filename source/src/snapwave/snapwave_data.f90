@@ -163,7 +163,8 @@ module snapwave_data
    !
 !   integer                                   :: nx,ny           ! number of grid cells in two directions
 !   integer                                   :: m,n             ! number of grid points in two directions
-   real*4                                    :: dtheta   
+   real*4                                    :: dtheta          ! theta grid resolution
+   real*4                                    :: sector          ! theta grid sector   
    real*4                                    :: fw0             ! uniform wave friction factor
    real*4                                    :: fw0_ig          ! uniform wave friction factor (ig waves)
    real*4                                    :: Tpini           ! initial condition for the wave period

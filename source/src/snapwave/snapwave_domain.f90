@@ -87,8 +87,8 @@ contains
    allocate(veg_Nstems(no_nodes,  no_secveg))
    !endif   
    !
-   ntheta360 = int(360.1/dtheta)
-   ntheta    = int(180.1/dtheta)
+   ntheta360 = nint(360./dtheta)
+   ntheta    = nint(sector/dtheta)   
    !
    ! Allocation of spatial arrays
    !

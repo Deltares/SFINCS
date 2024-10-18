@@ -423,7 +423,8 @@ contains
    call read_real_input(500,'rgh_lev_land',rghlevland,0.0)
    call read_real_input(500,'snapwave_fw_ratio',fwratio,1.0)
    call read_real_input(500,'snapwave_fwig_ratio',fwigratio,1.0)
-   call read_real_input(500,'snapwave_Tpini',Tpini,1.0)   
+   call read_real_input(500,'snapwave_Tpini',Tpini,1.0)
+   call read_real_input(500,'sector',sector,180.0)
    !
    ! Settings related to IG waves:   
    call read_int_input(500,'snapwave_igwaves',igwaves_opt,1)   
