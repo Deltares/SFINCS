@@ -43,11 +43,50 @@ contains
    !
    logical       :: crsgeo
    !
+   build_revision = '$Rev: svn 108-branch:SnapWave_IG'
+   build_date     = '$Date: 2024-10-16'
+   !
+   write(*,'(a)')''
+   write(*,*)'----------- Welcome to SnapWave ---------'   
+   write(*,'(a)')''
+   write(*,*)'   @@@@@   @@  @@  @@@@@@  @@@@@@   @@@  '
+   write(*,*)'  @@@ @@@  @@@ @@  @@@@@@  @@@@@@   @@@  '
+   write(*,*)'  @@@      @@@ @@  @@  @@  @@  @@   @@@  '
+   write(*,*)'   @@@@@   @@@@@@  @@@@@@  @@@@@@   @@@  '
+   write(*,*)'      @@@  @@ @@@  @@  @@  @@            '
+   write(*,*)'  @@@ @@@  @@  @@  @@  @@  @@       @@@  '
+   write(*,*)'   @@@@@   @@   @  @@  @@  @@       @@@  '
+   write(*,'(a)')''   
+   write(*,*)'             .......:.......             '
+   write(*,*)'         ...:::::::::::::::::...         '
+   write(*,*)'      ..:::::::............::::::..      '
+   write(*,*)'    ..::::::.....:@@@@@@@@....:::::..    '
+   write(*,*)'   .::::::...~@@@@@@@@@@@@@@~..::::::.   '
+   write(*,*)'  .::::::..:@@@@@@@@@@@@@@@@@@:.::::::.  '
+   write(*,*)' .:::::..:@@@@@@@@@@@@@@@@@@@@@:.::::::. '
+   write(*,*)'.::::..:@@@@@@@@@@@@@@^......:@@.:::::::.'
+   write(*,*)'.::...:@@@@@@@@@@@@@@@.:::::..^^.:::::::.'
+   write(*,*)'::.:@@@@@@@@@@@@@@@@@@..::::::..:::::::::'
+   write(*,*)'..:@@@@@@@@@@@@@@@@@@@@^..............::.'
+   write(*,*)'..:@@@@@@@@@@@@@@@@@@@@@@@^:..:~^~^~:..:.'
+   write(*,*)' .:@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:. '
+   write(*,*)'  .@@~^~@@@@~^~@@@@~^~@@@@~^~@@@@~^~@@.  '
+   write(*,*)'   ...................................   '
+   write(*,*)'    ..:::::::::::::::::::::::::::::..    '
+   write(*,*)'      ..:::::::::::::::::::::::::..      '
+   write(*,*)'         ...:::::::::::::::::...         '
+   write(*,*)'             .......:.......             '
+   write(*,'(a)')''
+   write(*,*)'-----------------------------------------'   
+   write(*,'(a)')''
+   write(*,*)'Build-Revision: ',trim(build_revision)
+   write(*,*)'Build-Date:     ',trim(build_date)
+   write(*,'(a)')''   
+   !   
    ! Check whether SFINCS grid is spherical (T) or cartesian (F), and prescribe to SnapWave as variable 'sferic' -  spherical (1) or cartesian (0) grid
    if (crsgeo) then
       sferic  = 1 
-      write(*,*)'SnapWave: Input grid interpreted as spherical coordinates, sferic= ',sferic
-      
+      write(*,*)'SnapWave: Input grid interpreted as spherical coordinates, sferic= ',sferic      
    endif   
    !
    call read_snapwave_input()            ! Reads snapwave.inp
@@ -323,8 +362,6 @@ contains
    snapwave_H_ig                  = H_ig
    snapwave_mean_direction        = thetam
    snapwave_directional_spreading = thetam  ! TL: CORRECT? > is not spreading but mean direction?
-   snapwave_Fx                    = Fx
-   snapwave_Fy                    = Fy 
    snapwave_Dw                    = Dw
    snapwave_Df                    = Df
    snapwave_Dwig                  = Dw_ig
@@ -334,6 +371,10 @@ contains
    snapwave_beta                  = beta
    snapwave_srcig                 = srcig
    snapwave_alphaig               = alphaig   
+   !
+   ! Convert wave force to correct unit [Dw/C] as expected by SFINCS, assumed to be piecewise (seems to work)
+   snapwave_Fx                    = Fx * rho * depth
+   snapwave_Fy                    = Fy * rho * depth
    !
    ! Wave periods from SnapWave, used in e.g. wavemakers - TL: moved behind call update_boundary_conditions & compute_wave_field so values at first timestep are not 0
    snapwave_tpmean = tpmean_bwv
@@ -369,7 +410,7 @@ contains
    ! Input section
    !
    call read_real_input(500,'snapwave_gamma',gamma,0.7)
-   call read_real_input(500,'snapwave_alpha',snapwave_alpha,1.0)
+   call read_real_input(500,'snapwave_alpha',alpha,1.0)
    call read_real_input(500,'snapwave_hmin',hmin,0.1)
    call read_real_input(500,'snapwave_fw',fw0,0.01)
    call read_real_input(500,'snapwave_fwig',fw0_ig,0.015)
@@ -378,15 +419,18 @@ contains
    call read_real_input(500,'snapwave_dtheta',dtheta,10.0)
    call read_real_input(500,'snapwave_crit',crit,0.01)
    call read_int_input(500,'snapwave_nrsweeps',nr_sweeps,4)
+   call read_int_input(500,'snapwave_niter',niter, 10)   
    call read_int_input(500,'snapwave_baldock_opt',baldock_opt,1)     
    call read_real_input(500,'snapwave_baldock_ratio',baldock_ratio,0.2)
    call read_real_input(500,'rgh_lev_land',rghlevland,0.0)
    call read_real_input(500,'snapwave_fw_ratio',fwratio,1.0)
-   call read_real_input(500,'snapwave_fwig_ratio',fwigratio,1.0)   
+   call read_real_input(500,'snapwave_fwig_ratio',fwigratio,1.0)
+   call read_real_input(500,'snapwave_Tpini',Tpini,1.0)
+   call read_real_input(500,'sector',sector,180.0)
    !
    ! Settings related to IG waves:   
    call read_int_input(500,'snapwave_igwaves',igwaves_opt,1)   
-   call read_real_input(500,'snapwave_alpha_ig',snapwave_alpha_ig,1.0)   
+   call read_real_input(500,'snapwave_alpha_ig',alpha_ig,1.0) !TODO choose whether snapwave_alphaig or snapwave_gamma_ig  
    call read_real_input(500,'snapwave_gammaig',gamma_ig,0.2)   
    call read_real_input(500,'snapwave_shinc2ig',shinc2ig,1.0)                   ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 1=default=all energy as sink)
    call read_real_input(500,'snapwave_alphaigfac',alphaigfac,1.0)               ! Multiplication factor for IG shoaling source/sink term         
@@ -400,7 +444,14 @@ contains
    call read_real_input(500,'snapwave_jonswapgamma',jonswapgam,3.3)  ! JONSWAP gamma value for determination offshore spectrum and IG wave conditions using Herbers, default=3.3, only used if snapwave_use_herbers = 1   
    call read_real_input(500,'snapwave_eeinc2ig',eeinc2ig,0.01)  ! Only used if snapwave_use_herbers = 0       
    call read_real_input(500,'snapwave_Tinc2ig',Tinc2ig,7.0)  ! Only used if snapwave_use_herbers = 0
-
+   !
+   ! Wind
+   !
+   call read_int_input(500,'snapwave_wind',wind_opt,0)   
+   !
+   ! Vegetation input
+   !
+   call read_int_input(500, 'vegetation', vegetation_opt, 0)
    !
    ! Input files
    call read_char_input(500,'snapwave_jonswapfile',jonswapfile,'')
@@ -415,25 +466,41 @@ contains
    call read_char_input(500,'snapwave_depfile',depfile,'none')   
    call read_char_input(500,'snapwave_ncfile', gridfile,'snapwave_net.nc')   
    call read_char_input(500,'netsnapwavefile',netsnapwavefile,'')
-   call read_char_input(500,'tref',trefstr,'20000101 000000')   ! Read again > needed in sfincs_ncinput.F90
-   
+   call read_char_input(500,'tref',trefstr,'20000101 000000')   ! Read again > needed in sfincs_ncinput.F90   
    !
    close(500)
    !
    igwaves          = .true.
+   igherbers        = .false.    
    if (igwaves_opt==0) then
       igwaves       = .false.
       write(*,*)'SnapWave: IG waves turned OFF!'
    else
       write(*,*)'SnapWave: IG waves turned ON!'
+      !
+      if (herbers_opt==0) then
+         write(*,*)'SnapWave: IG bc determination using Herbers turned OFF! --> Use eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
+      else
+         igherbers     = .true.          
+         write(*,*)'SnapWave: IG bc determination using Herbers turned ON!'
+      endif      
+      !      
    endif
    !
-   igherbers        = .true. 
-   if (herbers_opt==0) then
-      igherbers     = .false.
-      write(*,*)'SnapWave: IG bc determination using Herbers turned OFF! --> Use eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
+   wind          = .true.
+   if (wind_opt==0) then
+      wind       = .false.
+      write(*,*)'SnapWave: wind growth turned OFF!'
    else
-      write(*,*)'SnapWave: IG bc determination using Herbers turned ON!'
+      write(*,*)'SnapWave: wind growth turned ON!'
+   endif   
+   !
+   vegetation          = .true.
+   if (vegetation_opt==0) then
+      vegetation       = .false.
+      write(*,*)'SnapWave: vegetation turned OFF!'
+   else
+      write(*,*)'SnapWave: vegetation turned ON!'
    endif   
    !
    if (nr_sweeps /= 1 .and. nr_sweeps /= 4) then

@@ -540,18 +540,25 @@ subroutine update_boundary_points(t)
       dsp = ds_bwv(ib, itb0) + (ds_bwv(ib, itb1) - ds_bwv(ib, itb0))*tbfac    !dirspr
       !zst = zs_bwv(ib, itb0) + (zs_bwv(ib, itb1) - zs_bwv(ib, itb0))*tbfac
       !
-      ! Limit directional spreading (2 < ds < 45)
+      ! Limit wave height (0 < hs < 25)
       !       
-      if ((dsp < 2*pi/180) .or. (dsp > 45*pi/180)) then  
-      	  write(*,*)'DEBUG SnapWave - input wave spreading is outside acceptable range of 2-45 degrees: ',dsp/pi*180, ' and is therefore limited back to this range, please check whether input is realistic!'          
-          dsp = max(min(dsp, 45*pi/180), 2*pi/180)
+      if ((hs < 0.0) .or. (hs > 25.0)) then
+      	  write(*,*)'DEBUG SnapWave - input wave height is outside acceptable range of 0-25 m: ',hs, ' and is therefore limited back to this range, please check whether your input is realistic!'
+          hs = max(min(hs, 25.0), 0.0)
+      endif  
+      !
+      ! Limit directional spreading (1 < ds < 60)
+      !       
+      if ((dsp < 1*pi/180) .or. (dsp > 60*pi/180)) then  
+      	  write(*,*)'DEBUG SnapWave - input wave spreading is outside acceptable range of 1-60 degrees: ',dsp/pi*180, ' and is therefore limited back to this range, please check whether your input is realistic!'          
+          dsp = max(min(dsp, 60*pi/180), 1*pi/180)
       endif      
       !
-      ! Limit period (2 < tps < 25)
+      ! Limit period (0.1 < tps < 25)
       !       
-      if ((tps < 2.0) .or. (tps > 25.0)) then
-      	  write(*,*)'DEBUG SnapWave - input wave period is outside acceptable range of 2-25 s: ',tps, ' and is therefore limited back to this range, please check whether input is realistic!'
-          tps = max(min(tps, 25.0), 2.0)
+      if ((tps < 0.1) .or. (tps > 25.0)) then
+      	  write(*,*)'DEBUG SnapWave - input wave period is outside acceptable range of 0.1-25 s: ',tps, ' and is therefore limited back to this range, please check whether your input is realistic!'
+          tps = max(min(tps, 25.0), 0.1)
       endif      
       !
       call weighted_average(wd_bwv(ib, itb0), wd_bwv(ib, itb1), 1.0 - tbfac, 2, wd)  !wavdir
