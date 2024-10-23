@@ -667,7 +667,7 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
       m0(iref) = min(ma, mb) - 2
       m1(iref) = max(ma, mb) + 2
       !
-   enddo   
+   enddo
    !
    nr_cells = 0
    !
@@ -817,10 +817,10 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
    !   
    integer*4, dimension(:), allocatable :: ind
    !
-   real*4    :: xtmpa, xtmpb, ytmpa, ytmpb   
+   real*8    :: xtmpa, xtmpb, ytmpa, ytmpb   
    real*4    :: xpa, ypa, xpb, ypb
-   real*4    :: xx0, yy0, xx1, yy1   
-   real*4    :: xuv1, yuv1, xuv2, yuv2
+   real*8    :: xx0, yy0, xx1, yy1   
+   real*8    :: xuv1, yuv1, xuv2, yuv2
    integer*4 :: na, nb, ma, mb, nmx, ip, iref, n, m, nm, nmu, ipol, m0, n0, m1, n1, nm2
    logical   :: iok
    !
@@ -860,6 +860,8 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
          n1 = max(na, nb) + 1
          m0 = min(ma, mb) - 1
          m1 = max(ma, mb) + 1
+         !
+         write(*,*)n0,n1,m0,m0
          !
          do m = m0, m1
             do n = n0, n1            
@@ -914,7 +916,9 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
                   !
                   ip  = z_index_uv_nu1(nm)
                   nmu = uv_index_z_nmu(ip)
+                  write(*,'(5i8,20e14.6)')n,m,nm,nmu,ip,xpa,ypa,xpb,ypb,z_xz(nm),z_yz(nm),z_xz(nmu),z_yz(nmu)
                   iok = cross(xpa,ypa,xpb,ypb,z_xz(nm),z_yz(nm),z_xz(nmu),z_yz(nmu))
+                  write(*,*)iok
                   !
                   if (iok) then
                      ind(ip) = ipol

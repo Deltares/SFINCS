@@ -1945,6 +1945,11 @@ contains
          !
          allocate(qinfmap(np))
          qinfmap = 0.0
+         !
+         if (evaporation_rate > 1.0e-12) then
+            write(logstr,'(a)')'Info    : turning on evaporation'        
+            call write_log(logstr, 0)
+         endif   
          ! 
       endif
       !

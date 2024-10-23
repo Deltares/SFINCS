@@ -87,6 +87,8 @@ module sfincs_data
       real*4 btrelax
       real*4 wiggle_factor
       real*4 wiggle_threshold
+      real*4 zsinimax
+      real*4 evaporation_rate
       !
       real*4 freqminig
       real*4 freqmaxig

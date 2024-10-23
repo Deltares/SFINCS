@@ -295,13 +295,13 @@ contains
                 qinfmap(nm) = qinfmap(nm) * Qq/I                                            ! scale Horton if capacity > available
             endif
             !
-            else
-                !
-                ! Not raining here NOR ponding
-                rain_T1(nm)     = rain_T1(nm) + dt/horton_kr_kd                                 ! positive amount of how long it is infiltrating
-                qinfmap(nm)     = 0.0
-                !
-            endif
+         else
+            !
+            ! Not raining here NOR ponding
+            rain_T1(nm)     = rain_T1(nm) + dt/horton_kr_kd                                 ! positive amount of how long it is infiltrating
+            qinfmap(nm)     = 0.0
+            !
+         endif
          ! 
          ! Compute cumulative values
          cuminf(nm)     = cuminf(nm) + qinfmap(nm)*dt
@@ -312,6 +312,23 @@ contains
       !$omp end parallel 
       !
    endif
+   !
+   ! Add evaporation
+   !
+   if (evaporation_rate > 0.0) then
+      !
+      do nm = 1, np         
+         if (subgrid) then
+            if (z_volume(nm) > 0.0) then
+               netprcp(nm) = netprcp(nm) - evaporation_rate
+            endif
+         else
+            if (zs(nm) > zb(nm)) then
+               netprcp(nm) = netprcp(nm) - evaporation_rate
+            endif
+         endif
+      enddo      
+   endif   
    !
    end subroutine   
 

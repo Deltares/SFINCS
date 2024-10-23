@@ -203,6 +203,15 @@ contains
          read(500)rdummy
          read(500)inizs
          read(500)rdummy
+         !
+         if (zsinimax > -999.0) then
+            !
+            write(logstr,'(a,f0.1)')'Info    : limiting initial water level to ', zsinimax
+            call write_log(logstr, 0)
+            !
+            inizs = min(inizs, zsinimax)
+            !
+         endif   
          !      
          ! Read fluxes q
          !

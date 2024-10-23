@@ -71,6 +71,7 @@ contains
    call read_real_input(500,'rgh_lev_land',rghlevland,0.0)
    call read_real_input(500,'zsini',zini,0.0)
    call read_real_input(500,'qinf',qinf,0.0)
+   call read_real_input(500,'qeva',evaporation_rate,0.0)
    call read_real_input(500,'dtmax',dtmax,60.0)
    call read_real_input(500,'huthresh',huthresh,0.05)
    call read_real_input(500,'rhoa',rhoa,1.25)
@@ -121,6 +122,7 @@ contains
    call read_logical_input(500,'wiggle_suppression',wiggle_suppression,.false.)
    call read_real_input(500,'wiggle_factor',wiggle_factor,0.1)
    call read_real_input(500,'wiggle_threshold',wiggle_threshold,0.1)
+   call read_real_input(500,'zsinimax',zsinimax,-9999.9)
    !
    ! Domain
    !
@@ -281,6 +283,7 @@ contains
    gn2       = 9.81*0.02*0.02 ! Only to be used in subgrid
    !
    qinf = qinf/(3600*1000)
+   evaporation_rate = evaporation_rate/(3600*1000)
    !
    rotation = rotation*pi/180
    cosrot   = cos(rotation)
