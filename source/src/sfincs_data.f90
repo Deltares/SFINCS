@@ -30,8 +30,8 @@ module sfincs_data
       real*4 t1
       real*4 t3
       real*4 t4      
-      real*4 dx
-      real*4 dy
+      real*8 dx
+      real*8 dy
       real*4 dxinv
       real*4 dyinv
       real*4 area
@@ -50,8 +50,8 @@ module sfincs_data
       real*4 dtmax
       real*4 dtmin
       real*4 zini
-      real*4 x0
-      real*4 y0
+      real*8 x0
+      real*8 y0
       real*4 rotation
       real*4 huthresh
       real*4 max_elev
@@ -335,8 +335,8 @@ module sfincs_data
       !
       ! Z-points
       !
-      real*4,             dimension(:),   allocatable :: z_xz
-      real*4,             dimension(:),   allocatable :: z_yz
+      real*8,             dimension(:),   allocatable :: z_xz
+      real*8,             dimension(:),   allocatable :: z_yz
       real*4,             dimension(:),   allocatable :: cell_area_m2
       real*4,             dimension(:),   allocatable :: nuvisc      
       !

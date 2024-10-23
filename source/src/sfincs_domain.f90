@@ -1279,8 +1279,8 @@ contains
       m    = z_index_z_m(nm)
       iref = z_flags_iref(nm)
       !
-      z_xz(nm) = x0 + cosrot*(1.0*(m - 0.5))*dxr(iref) - sinrot*(1.0*(n - 0.5))*dyr(iref)
-      z_yz(nm) = y0 + sinrot*(1.0*(m - 0.5))*dxr(iref) + cosrot*(1.0*(n - 0.5))*dyr(iref)
+      z_xz(nm) = x0 + cosrot * (1.0 * (m - 0.5)) * (dx/(2**(iref - 1))) - sinrot * (1.0 * (n - 0.5)) * (dy/(2**(iref - 1)))
+      z_yz(nm) = y0 + sinrot * (1.0 * (m - 0.5)) * (dx/(2**(iref - 1))) + cosrot * (1.0 * (n - 0.5)) * (dy/(2**(iref - 1)))
       !
    enddo
    !

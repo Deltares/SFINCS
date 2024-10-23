@@ -6,8 +6,8 @@ contains
    !
    implicit none
    !
-   real*4, intent(in)   :: xx0, yy0, xx1, yy1, x11, y11, x12, y12
-   real*4               :: x21,x22,y21,y22
+   real, intent(in)     :: xx0, yy0, xx1, yy1, x11, y11, x12, y12
+   real                 :: x21,x22,y21,y22
    logical              :: iok
    !
    if (x11>xx0 .and. x11<xx1 .and. y11>yy0 .and. y11<yy1) then
@@ -79,9 +79,9 @@ contains
    !
    implicit none
    !
-   real*4, intent(in)   :: x11,y11,x12,y12,x21,y21,x22,y22
-   real*4               :: a1,b1,c1,a2,b2,c2,xi,yi,det
-   real*4               :: dst,eps
+   real, intent(in)     :: x11, y11, x12, y12, x21, y21, x22, y22
+   real                 :: a1, b1, c1, a2, b2, c2, xi, yi, det
+   real                 :: dst, eps
    logical              :: iok
    !
    iok = .false.
@@ -123,10 +123,12 @@ contains
 
    function direction(ax, ay, bx, by, cx, cy) result(dr)
    !
+   real*8  :: ax, ay, bx, by
+   real*8  :: cx, cy
    real    :: val
    integer :: dr
    !
-   val = (by - ay)*(cx - bx) - (bx - ax)*(cy - by)
+   val = (by - ay) * (cx - bx) - (bx - ax) * (cy - by)
    !   
    if (val<-1.0e-6) then
       dr = -1
@@ -138,12 +140,12 @@ contains
    !
    end function
 
-   function on_line(x1,y1,x2,y2,xp,yp) result(iok)
+   function on_line(x1, y1, x2, y2, xp, yp) result(iok)
    !
    implicit none
    !
-   real*4, intent(in)   :: x1,y1,x2,y2,xp,yp
-   logical              :: iok
+   real, intent(in)   :: x1, y1, x2, y2, xp, yp
+   logical            :: iok
    !
    iok = .false.
    !
@@ -154,11 +156,12 @@ contains
    end function
 
    
-   function cross(x11,y11,x12,y12,x21,y21,x22,y22) result(iok)
+   function cross(x11, y11, x12, y12, x21, y21, x22, y22) result(iok)
    !
    implicit none
    !
-   real*4, intent(in)   :: x11,y11,x12,y12,x21,y21,x22,y22
+   real*8, intent(in)   :: x11, y11, x12, y12
+   real*8, intent(in)   :: x21, y21, x22, y22
    integer              :: dir1, dir2, dir3, dir4
    logical              :: iok
    !
@@ -169,7 +172,7 @@ contains
    !
    iok = .false.
    !
-   if (dir1/=dir2 .and. dir3/=dir4) then
+   if (dir1 /= dir2 .and. dir3 /= dir4) then
       iok = .true.
       return
    endif   
@@ -216,8 +219,8 @@ contains
    !
    ! Computes distance between two points (x0a, y0a) and (x0b, y0b) projected on a line segment
    !
-   real :: x0a,y0a,x0b,y0b,x1,y1,x2,y2,mxdst
-   real :: b1,b2,c1,c2,aa,a1,a2,p1,p2,dst
+   real*8 :: x0a, y0a, x0b, y0b, x1, y1, x2, y2, mxdst
+   real*8 :: b1,b2,c1,c2,aa,a1,a2,p1,p2,dst
    !
    ! First point
    !

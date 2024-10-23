@@ -46,12 +46,12 @@
    integer nstruc, npars, ipar, iuv, nuv, irefnm, irefnmu
    !
    real      :: dummy
-   real      :: xuv1
-   real      :: yuv1
-   real      :: xuv2
-   real      :: yuv2
-   real      :: xuv
-   real      :: yuv
+   real*8    :: xuv1
+   real*8    :: yuv1
+   real*8    :: xuv2
+   real*8    :: yuv2
+   real*8    :: xuv
+   real*8    :: yuv
    real      :: xstr1
    real      :: ystr1
    real      :: xstr2
@@ -80,8 +80,8 @@
    character :: cdummy
    character*256 :: filename
    !
-   real*4, dimension(:),   allocatable   :: xthd
-   real*4, dimension(:),   allocatable   :: ythd
+   real*8, dimension(:),   allocatable   :: xthd
+   real*8, dimension(:),   allocatable   :: ythd
    real*4, dimension(:,:), allocatable   :: pars
    real*4, dimension(:,:), allocatable   :: strucpars
    real*4, dimension(:),   allocatable   :: lngth
@@ -126,8 +126,6 @@
    rewind(500)
    !
    ! Loop through polylines
-   !
-!   open(600, file='structures.ldb')
    !
    do ithd = 1, nthd
       !
@@ -240,7 +238,7 @@
          !
          ! Length
          !
-         d = distance_between_points_projected_on_line_segment(xuv1, yuv1, xuv2, yuv2, xthd(irow), ythd(irow), xthd(irow + 1), ythd(irow + 1), 999999.0)
+         d = distance_between_points_projected_on_line_segment(xuv1, yuv1, xuv2, yuv2, xthd(irow), ythd(irow), xthd(irow + 1), ythd(irow + 1), 999999.0d0)
          !
          lngth(indx) = lngth(indx) + d
          !
@@ -392,8 +390,8 @@
    real      :: dummy
    character :: cdummy
    !
-   real*4,  dimension(:),   allocatable :: xthd
-   real*4,  dimension(:),   allocatable :: ythd
+   real*8,  dimension(:),   allocatable :: xthd
+   real*8,  dimension(:),   allocatable :: ythd
    real*4,  dimension(2)                :: xp
    real*4,  dimension(2)                :: yp
    integer, dimension(:),   allocatable :: uv_indices   
@@ -494,16 +492,20 @@
    do istruc = 1, nrstructures
        !
        ! Get index
+       !
        ip       = structure_uv_index(istruc)
        nmu      = uv_index_z_nmu(ip)
        nm       = uv_index_z_nm(ip)
        ! 
        ! Get coordinates of face
-       struc_info(istruc,1) = z_xz(nmu)*0.5 + z_xz(nm)*0.5
-       struc_info(istruc,2) = z_yz(nmu)*0.5 + z_yz(nm)*0.5
+       !
+       struc_info(istruc,1) = 0.5 * (z_xz(nm) + z_xz(nmu))
+       struc_info(istruc,2) = 0.5 * (z_yz(nm) + z_yz(nmu))
        !
        ! Save height
+       !
        struc_info(istruc,3) = structure_parameters(1, istruc)
+       !
    enddo
    !
    end subroutine
@@ -514,7 +516,6 @@
    ! Computes fluxes over structures (THIS HAS TO BE SERIOUSLY IMPROVED!!!)
    !
    use sfincs_data
-!   use quadtree
    !
    implicit none
    !

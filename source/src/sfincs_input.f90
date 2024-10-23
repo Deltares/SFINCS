@@ -44,10 +44,10 @@ contains
    !
    call read_int_input(500,'mmax',mmax,0)
    call read_int_input(500,'nmax',nmax,0)
-   call read_real_input(500,'dx',dx,0.0)
-   call read_real_input(500,'dy',dy,0.0)
-   call read_real_input(500,'x0',x0,0.0)
-   call read_real_input(500,'y0',y0,0.0)
+   call read_real8_input(500,'dx', dx, 0.0d0)
+   call read_real8_input(500,'dy', dy, 0.0d0)
+   call read_real8_input(500,'x0', x0, 0.0d0)
+   call read_real8_input(500,'y0', y0, 0.0d0)
    call read_real_input(500,'rotation',rotation,0.0)
    call read_char_input(500,'tref',trefstr,'none')
    call read_char_input(500,'tstart',tstartstr,'20000101 000000')
@@ -536,9 +536,7 @@ contains
    endif
    !
    end subroutine
-
-   
-   
+   !
    subroutine read_real_input(fileid,keyword,value,default)
    !
    character(*), intent(in) :: keyword
@@ -548,6 +546,42 @@ contains
    integer, intent(in)      :: fileid
    real*4, intent(out)      :: value
    real*4, intent(in)       :: default
+   integer j,stat,ilen
+   !
+   value = default
+   !
+   rewind(fileid)   
+   !
+   do while(.true.)
+      !
+      read(fileid,'(a)',iostat = stat)line
+      !
+      if (stat==-1) exit
+      !
+      call read_line(line, keystr, valstr)
+      !
+      if (trim(keystr)==trim(keyword)) then
+         !
+         read(valstr,*)value         
+         !
+         exit
+         !
+      endif
+      !
+   enddo 
+   !
+   end  subroutine  
+   
+   
+   subroutine read_real8_input(fileid,keyword,value,default)
+   !
+   character(*), intent(in) :: keyword
+   character(len=256)       :: keystr
+   character(len=256)       :: valstr
+   character(len=256)       :: line
+   integer, intent(in)      :: fileid
+   real*8, intent(out)      :: value
+   real*8, intent(in)       :: default
    integer j,stat,ilen
    !
    value = default

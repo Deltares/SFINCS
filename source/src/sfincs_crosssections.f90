@@ -20,8 +20,8 @@ contains
    real*4    :: dphi
    character(len=256) :: cdummy
    !
-   real*4, dimension(:),   allocatable :: xcrs
-   real*4, dimension(:),   allocatable :: ycrs
+   real*8, dimension(:),   allocatable  :: xcrs
+   real*8, dimension(:),   allocatable  :: ycrs
    real*4,  dimension(2)                :: xp
    real*4,  dimension(2)                :: yp
    integer, dimension(:),   allocatable :: uv_indices   
