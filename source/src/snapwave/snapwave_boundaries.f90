@@ -568,9 +568,9 @@ subroutine update_boundary_points(t)
       !
       ! Limit directional spreading (1 < ds < 60)
       !       
-      if ((dsp < 1*pi/180) .or. (dsp > 60*pi/180)) then  
-      	  write(*,*)'DEBUG SnapWave - input wave spreading is outside acceptable range of 1-60 degrees: ',dsp/pi*180, ' and is therefore limited back to this range, please check whether your input is realistic!'          
-          dsp = max(min(dsp, 60*pi/180), 1*pi/180)
+      if ((dsp < 3*pi/180) .or. (dsp > 60*pi/180)) then  
+      	  write(*,*)'DEBUG SnapWave - input wave spreading is outside acceptable range of 3-60 degrees: ',dsp/pi*180, ' and is therefore limited back to this range, please check whether your input is realistic!'          
+          dsp = max(min(dsp, 60*pi/180), 3*pi/180)
       endif      
       !
       ! Limit period (0.1 < tps < 25)
@@ -650,8 +650,8 @@ subroutine update_boundary_points(t)
          !
          tpmean_bwv_ig = sum(tpt_bwv_ig)/size(tpt_bwv_ig)       
          !
-         !write(*,*)'Herbers computed: hst_bwv_ig= ',hst_bwv_ig
-         !write(*,*)'Herbers computed: tpmean_bwv_ig= ',tpmean_bwv_ig      
+         write(*,*)'Herbers computed: hst_bwv_ig= ',hst_bwv_ig
+         write(*,*)'Herbers computed: tpmean_bwv_ig= ',tpmean_bwv_ig      
          !     
       else
          !
