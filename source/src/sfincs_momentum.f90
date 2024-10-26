@@ -635,12 +635,26 @@
             !
             ! Making sure that no water can flow out of a cell when its water depth is negative
             !
-            if (zs(nm) < zb(nm)) then
-               q(ip) = min(q(ip), 0.0)
-            endif
-            !
-            if (zs(nmu) < zb(nmu)) then
-               q(ip) = max(q(ip), 0.0)
+            if (subgrid) then
+               !
+               if (zs(nm) < subgrid_z_zmin(nm)) then
+                  q(ip) = min(q(ip), 0.0)
+               endif
+               !
+               if (zs(nmu) < subgrid_z_zmin(nmu)) then
+                  q(ip) = max(q(ip), 0.0)
+               endif
+               !
+            else
+               !
+               if (zs(nm) < zb(nm)) then
+                  q(ip) = min(q(ip), 0.0)
+               endif
+               !
+               if (zs(nmu) < zb(nmu)) then
+                  q(ip) = max(q(ip), 0.0)
+               endif
+               !
             endif
             !
             ! Compute velocity
