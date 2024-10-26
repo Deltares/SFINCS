@@ -1775,8 +1775,8 @@ contains
       !
       NF90(nf90_put_var(map_file%ncid, map_file%Seff_varid, zsg, (/1, 1, ntmapout/)))
       !
-   !
-   ! Store maximum soil moisture deficit (only for green-ampt)
+      ! Store maximum soil moisture deficit (only for green-ampt)
+      !
    elseif (inftype == 'gai') then
       !
       zsg = FILL_VALUE
@@ -1792,8 +1792,8 @@ contains
       !
       NF90(nf90_put_var(map_file%ncid, map_file%Seff_varid, zsg, (/1, 1, ntmapout/)))
       !
-   !
-   ! Store current infiltration from Horton
+      ! Store current infiltration from Horton
+      !
    elseif (inftype == 'hor') then
       !
       zsg = FILL_VALUE
@@ -1809,7 +1809,6 @@ contains
       !
       NF90(nf90_put_var(map_file%ncid, map_file%Seff_varid, zsg, (/1, 1, ntmapout/)))
       !
-   !
    endif
    !           
    if (store_meteo) then

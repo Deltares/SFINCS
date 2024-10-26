@@ -492,19 +492,19 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: subgrid_uv_havg_zmax
       real*4, dimension(:),   allocatable :: subgrid_uv_nrep_zmax
       !
-      ! Dynamic data on the grid
+      ! Dynamic data on the grid (zs and z_volume are the only double precision arrays)
       !
       real*4, dimension(:),   allocatable :: zsmax
       real*4, dimension(:),   allocatable :: vmax
       real*4, dimension(:),   allocatable :: qmax
-      real*4, dimension(:),   allocatable :: zs
+      real*8, dimension(:),   allocatable :: zs
       real*4, dimension(:),   allocatable :: zsm
       real*4, dimension(:),   allocatable :: maxzsm      
       real*4, dimension(:),   allocatable :: q
       real*4, dimension(:),   allocatable :: q0
       real*4, dimension(:),   allocatable :: uv
       real*4, dimension(:),   allocatable :: uv0
-      real*4, dimension(:),   allocatable :: z_volume
+      real*8, dimension(:),   allocatable :: z_volume
       real*4, dimension(:),   allocatable :: twet
       real*4, dimension(:),   allocatable :: tsunami_arrival_time
       real*4, dimension(:),   allocatable :: zs0

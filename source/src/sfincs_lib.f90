@@ -146,14 +146,14 @@ module sfincs_lib
    !
    call read_structures()       ! Reads thd files and sets kcuv to zero where necessary
    !
-   call write_log('Reading boundary data ...', 0) 
+   ! call write_log('Reading boundary data ...', 0) 
    call read_boundary_data()    ! Reads bnd, bzs, etc files
    !
    ! call read_coastline()        ! Reads cst file. Do we still do this ?
    !
    call find_boundary_indices()
    !
-   call write_log('Reading observation points ...', 0) 
+   ! call write_log('Reading observation points ...', 0) 
    call read_obs_points()       ! Reads obs file
    !
    call read_crs_file()         ! Reads cross sections
@@ -162,7 +162,6 @@ module sfincs_lib
    !
    if (snapwave) then
       !
-      call write_log('Coupling with SnapWave ...', 1)
       call couple_snapwave(crsgeo)
       !
    endif   

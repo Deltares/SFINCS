@@ -1,5 +1,7 @@
 module sfincs_snapwave
    !
+   use sfincs_log
+   !   
    implicit none
    !     
    integer                                   :: snapwave_no_nodes
@@ -44,10 +46,12 @@ contains
    logical       :: crsgeo
    !
    ! Check whether SFINCS grid is spherical (T) or cartesian (F), and prescribe to SnapWave as variable 'sferic' -  spherical (1) or cartesian (0) grid
+   !
+   call write_log('Info    : Coupling with SnapWave ...', 1)
+   !
    if (crsgeo) then
       sferic  = 1 
-      write(*,*)'SnapWave: Input grid interpreted as spherical coordinates, sferic= ',sferic
-      
+      write(*,*)'SnapWave: Input grid interpreted as spherical coordinates, sferic= ',sferic      
    endif   
    !
    call read_snapwave_input()            ! Reads snapwave.inp

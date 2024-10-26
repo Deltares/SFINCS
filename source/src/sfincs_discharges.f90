@@ -1,5 +1,7 @@
 module sfincs_discharges
-
+   !
+   use sfincs_log
+   !
 contains
    !
    subroutine read_discharges()
@@ -27,7 +29,6 @@ contains
    !
    if (srcfile(1:4) /= 'none') then
       !
-      write(logstr,'(a)')'Info    : reading discharges'
       call write_log(logstr, 0)
       !
       open(500, file=trim(srcfile))
@@ -46,7 +47,6 @@ contains
    !
    if (drnfile(1:4) /= 'none') then
       !
-      write(logstr,'(a)')'Info    : reading drainage file'
       call write_log(logstr, 0)
       !
       open(501, file=trim(drnfile))
@@ -98,6 +98,9 @@ contains
    endif  
    !
    if (nsrc>0) then
+      !
+      write(logstr,'(a,a,a,i0,a)')'Info    : reading ',trim(srcfile),' (', nsrc, ' discharge points found)'
+      call write_log(logstr, 0)
       !
       ! Determine m and n indices of sources
       !
@@ -153,7 +156,7 @@ contains
    !
    if (ndrn>0) then
       !
-      write(logstr,'(a,a,a,i0,a)')' Reading ',trim(drnfile),' (', ndrn, ' drainage points found) ...'
+      write(logstr,'(a,a,a,i0,a)')'Info    : reading ',trim(drnfile),' (', ndrn, ' drainage points found)'
       call write_log(logstr, 0)
       !         
       allocate(xsrc(ndrn))
