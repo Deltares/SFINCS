@@ -87,8 +87,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.1.1-Dollerup'
-   build_date     = '$Date: 2024-08-28'
+   build_revision = '$Rev: v2.1.2-Dollerup:branch-hills-and-mountain-edition'
+   build_date     = '$Date: 2024-10-30'
    !
    write(*,'(a)')''   
    write(*,*)'----------- Welcome to SFINCS -----------'   
