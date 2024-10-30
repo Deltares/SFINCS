@@ -492,10 +492,14 @@ module sfincs_data
       !
       ! Dynamic data on the grid
       !
+      ! The only double precision array is zs. z_volume is already limited by the 20 m depth limit, but it may be a good idea to make z_volume also double precision.
+      ! Ideally, we'd use double precision for zs in regular mode, and for z_volume in subgrid mode.
+      ! However, that would require using separate zs and z_volume arrays for regular and subgrid, which is probably not worth the trouble.
+      !
       real*4, dimension(:),   allocatable :: zsmax
       real*4, dimension(:),   allocatable :: vmax
       real*4, dimension(:),   allocatable :: qmax
-      real*4, dimension(:),   allocatable :: zs
+      real*8, dimension(:),   allocatable :: zs
       real*4, dimension(:),   allocatable :: zsm
       real*4, dimension(:),   allocatable :: maxzsm      
       real*4, dimension(:),   allocatable :: q
