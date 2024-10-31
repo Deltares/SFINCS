@@ -339,9 +339,9 @@
                   ! Interpolation required
                   !
                   dzuv   = (zmax - zmin) / (subgrid_nlevels - 1)                                                          ! level size (is storing this in memory faster?)
-                  iuv    = int((zsu - zmin) / dzuv) + 1                                                                   ! index of level below zsu 
+                  iuv    = min(int((zsu - zmin) / dzuv) + 1, subgrid_nlevels - 1)                                         ! index of level below zsu 
                   facint = (zsu - (zmin + (iuv - 1)*dzuv) ) / dzuv                                                        ! 1d interpolation coefficient
-                  ! if (iuv > subgrid_nlevels - 1 .or. iuv<1) write(*,'(a,i10,20e16.8)')'iuv exceeds subgrid_nlevels - 1. THIS IS NOT POSSIBLE! (iuv,zmin,zmax,dzuv,zsu) :', iuv,zmin,zmax,dzuv,zsu
+                  ! if (iuv > subgrid_nlevels - 1 .or. iuv<1) write(*,'(a,3i8,20e16.8)')'iuv exceeds bounds in momentum! (iuv,ip,zmin,zmax,zsu,dzuv,facint) :', iuv,ip,subgrid_nlevels,zmin,zmax,dzuv,zsu,facint
                   !
                   hu     = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint   ! grid-average depth
                   gnavg2 = subgrid_uv_nrep(iuv, ip) + (subgrid_uv_nrep(iuv + 1, ip) - subgrid_uv_nrep(iuv, ip))*facint   ! representative g*n^2
@@ -635,6 +635,7 @@
             !
             ! Making sure that no water can flow out of a cell when its water depth is negative
             !
+            
             if (subgrid) then
                !
                if (zs(nm) < subgrid_z_zmin(nm)) then

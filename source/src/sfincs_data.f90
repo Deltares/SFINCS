@@ -506,7 +506,8 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: q0
       real*4, dimension(:),   allocatable :: uv
       real*4, dimension(:),   allocatable :: uv0
-      real*4, dimension(:),   allocatable :: z_volume
+      ! real*4, dimension(:),   allocatable :: z_volume
+      real*8, dimension(:),   allocatable :: z_volume
       real*4, dimension(:),   allocatable :: twet
       real*4, dimension(:),   allocatable :: tsunami_arrival_time
       real*4, dimension(:),   allocatable :: zs0
