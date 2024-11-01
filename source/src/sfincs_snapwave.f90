@@ -265,12 +265,13 @@ contains
             !
             u10 = sqrt(windu(ip)**2 + windv(ip)**2)
             !
-	        u10dir = 270.0 - atan2(windv(ip), windu(ip))*180/pi
+            u10dir = atan2(windv(ip), windu(ip))*180/pi
+            !
 	        if (u10dir<0.0) u10dir = u10dir + 360.0
             if (u10dir>360.0) u10dir = u10dir - 360.0    
             !
             snapwave_u10(nm) = max(u10, 0.0)     
-            snapwave_u10dir(nm) = u10dir / 180.0 * pi ! from in degrees to cartesian going to in radians
+            snapwave_u10dir(nm) = u10dir / 180.0 * pi ! from nautical coming from in degrees to cartesian going to in radians
             !
          else
             !
@@ -503,7 +504,7 @@ contains
    !
    ! Wind
    !
-   call read_int_input(500,'snapwave_wind',wind_opt,0)   
+   call read_int_input(500,'snapwave_wind',wind_opt,0)   ! Flag whether to include windgrowth in SnapWave (1) or not (0, default)
    !
    ! Vegetation input
    !

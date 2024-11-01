@@ -2408,7 +2408,7 @@ contains
       tauwu1 = 0.0
       tauwv1 = 0.0
       !
-      if (store_meteo) then
+      if (store_wind) then
          !
          allocate(windu(np))
          allocate(windv(np))

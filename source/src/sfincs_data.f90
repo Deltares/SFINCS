@@ -193,6 +193,7 @@ module sfincs_data
       logical       :: store_qdrain
       logical       :: store_zvolume
       logical       :: store_meteo
+      logical       :: store_wind      
       logical       :: store_wind_max
       logical       :: store_wave_forces
       logical       :: store_wave_direction
