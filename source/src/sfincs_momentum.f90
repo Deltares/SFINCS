@@ -326,11 +326,13 @@
             !
             if (subgrid) then
                !
-               if (zsu > zmax - 1.0e-4) then
+               if (zsu > zmax) then
                   !
-                  ! Entire cell is wet, no interpolation from table needed
+                  ! Entire cell is wet, no interpolation from table needed for depth hu
                   !
                   hu = subgrid_uv_havg_zmax(ip) + zsu
+                  !
+                  ! Use fitting function for gnavg2 
                   !
                   gnavg2 = subgrid_uv_navg_w(ip) - (subgrid_uv_navg_w(ip) - subgrid_uv_nrep_zmax(ip)) / (subgrid_uv_fnfit(ip) * (zsu - zmax) + 1.0)
                   ! 
@@ -349,7 +351,8 @@
                   !
                endif
                !
-               hu = max(hu, huthresh)
+               ! hu can actually be a lot smaller than huthresh when only a few pixels are wet, so do not maximize
+               ! hu = max(hu, huthresh)
                !
             else
                !
@@ -660,7 +663,7 @@
             !
             ! Compute velocity
             !
-            uv(ip) = q(ip) / max(hu, hmin_uv) ! Limit velocity through minimal hu in case of very small huthresh, deafult hmin_uv=0.1m
+            uv(ip) = q(ip) / max(hu, hmin_uv) ! Limit velocity through minimal hu in case of very small hu or huthresh, default hmin_uv = 0.1 m
             !
             kfuv(ip) = 1
             !

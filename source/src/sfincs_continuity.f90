@@ -103,18 +103,19 @@ contains
          !
          if (precip) then
             !
-            cumprcpt(nm) = cumprcpt(nm) + netprcp(nm)*dt
+            ! cumprcpt(nm) = cumprcpt(nm) + netprcp(nm)*dt
+            zs(nm) = zs(nm) + netprcp(nm) * dt
             !
             ! Add rain and/or infiltration only when cumulative effect over last interval exceeds 0.001 m
             ! Otherwise single precision may miss a lot of the rainfall/infiltration
             !
-            if (cumprcpt(nm)>0.001 .or. cumprcpt(nm)<-0.001) then
-               !
-               zs(nm) = zs(nm) + cumprcpt(nm)
-               cumprcpt(nm) = 0.0
-               ! zs(nm) = max(zs(nm), zb(nm)) ! don't allow negative water levels due to infiltration
-               !
-            endif
+            ! if (cumprcpt(nm)>0.001 .or. cumprcpt(nm)<-0.001) then
+            !    !
+            !    zs(nm) = zs(nm) + cumprcpt(nm)
+            !    cumprcpt(nm) = 0.0
+            !    ! zs(nm) = max(zs(nm), zb(nm)) ! don't allow negative water levels due to infiltration
+            !    !
+            ! endif
             !
          endif
          !

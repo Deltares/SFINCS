@@ -519,7 +519,7 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: prcp
       real*4, dimension(:),   allocatable :: cumprcp
       real*4, dimension(:),   allocatable :: netprcp
-      real*4, dimension(:),   allocatable :: cumprcpt
+      ! real*4, dimension(:),   allocatable :: cumprcpt
       real*4, dimension(:),   allocatable :: cuminf
       real*4, dimension(:),   allocatable :: tauwu0
       real*4, dimension(:),   allocatable :: tauwu1
@@ -926,7 +926,7 @@ module sfincs_data
     if(allocated(patm)) deallocate(patm)
     if(allocated(prcp)) deallocate(prcp)
     if(allocated(cumprcp)) deallocate(cumprcp)
-    if(allocated(cumprcpt)) deallocate(cumprcpt)
+    ! if(allocated(cumprcpt)) deallocate(cumprcpt)
     if(allocated(tauwu0)) deallocate(tauwu0)
     if(allocated(tauwu1)) deallocate(tauwu1)
     if(allocated(tauwv0)) deallocate(tauwv0)

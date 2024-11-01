@@ -2456,8 +2456,8 @@ contains
       prcp0   = 0.0
       prcp1   = 0.0
       !
-      allocate(cumprcpt(np))      
-      cumprcpt = 0.0
+      ! allocate(cumprcpt(np))      
+      ! cumprcpt = 0.0
       allocate(netprcp(np))      
       netprcp  = 0.0
       !
