@@ -531,6 +531,28 @@ module snapwave_solver
          !
          if (igwaves) then
             !        
+            ! Update H(k), eeprev, eeprev_ig & cgprev as used in IG source term
+            ! 
+            do k = 1, no_nodes   
+               ! 
+               if (inner(k)) then             
+                   E(k)      = sum(ee(:, k))*dtheta
+                   !
+                   H(k)      = sqrt(8*E(k)/rho/g)
+                   !
+                   do itheta = 1, ntheta
+                      !
+                      k1 = prev(1, itheta, k)
+                      k2 = prev(2, itheta, k)
+                      !
+                      eeprev(itheta) = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)
+                      cgprev(itheta) = w(1, itheta, k)*cg(k1) + w(2, itheta, k)*cg(k2)
+                      !
+                      eeprev_ig(itheta) = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)
+                      !cgprev_ig(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
+                      enddo
+                 endif               
+            enddo                           
             ! Actual determining of source term - every first sweep of iteration
             !          
             call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
