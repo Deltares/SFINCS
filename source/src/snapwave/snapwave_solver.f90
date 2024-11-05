@@ -528,6 +528,15 @@ module snapwave_solver
          do k = 1, no_nodes
             Eold(k) = sum(eeold(:, k))
          enddo
+         !
+         if (igwaves) then
+            !        
+            ! Actual determining of source term - every first sweep of iteration
+            !          
+            call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
+            !         
+         endif   
+         !
       endif
       !
       !
