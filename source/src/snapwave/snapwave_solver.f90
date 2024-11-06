@@ -847,8 +847,6 @@ module snapwave_solver
          !
       enddo
       !
-      ! TODO - TL: Check whether can put back here the srcig_iterative == 1
-      !
       if (sweep==4) then
          !
          ! Check convergence after all 4 sweeps
