@@ -45,7 +45,6 @@
    real*4    :: gammax
    real*4    :: facmax
    real*4    :: wsumax
-   real*4    :: tp
    !
    real*4    :: qx_nm
    real*4    :: qx_nmd

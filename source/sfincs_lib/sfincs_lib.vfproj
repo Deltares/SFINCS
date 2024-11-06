@@ -31,8 +31,10 @@
 		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
 			<Filter Name="snapwave">
 				<File RelativePath="..\src\snapwave\interp.F90"/>
-				<File RelativePath="..\src\snapwave\snapwave_boundaries.f90"/>
-				<File RelativePath="..\src\snapwave\snapwave_data.f90"/>
+				<File RelativePath="..\src\snapwave\snapwave_boundaries.f90">
+				</File>
+				<File RelativePath="..\src\snapwave\snapwave_data.f90">
+				</File>
 				<File RelativePath="..\src\snapwave\snapwave_date.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_domain.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_infragravity.f90"/>
@@ -44,17 +46,9 @@
 						<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
 					</FileConfiguration>
 				</File>
-				<File RelativePath="..\src\snapwave\snapwave_ncoutput.F90">
-					<FileConfiguration Name="Release|x64">
-						<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
-					</FileConfiguration>
-					<FileConfiguration Name="Debug|x64">
-						<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
-					</FileConfiguration>
-				</File>
-				<File RelativePath="..\src\snapwave\snapwave_results.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_solver.f90">
 				</File>
+				<File RelativePath="..\src\snapwave\snapwave_windsource.f90"/>
 			</Filter>
 			<File RelativePath="..\src\deg2utm.f90"/>
 			<File RelativePath="..\src\geometry.f90"/>
@@ -70,8 +64,7 @@
 			<File RelativePath="..\src\sfincs_continuity.f90"/>
 			<File RelativePath="..\src\sfincs_crosssections.f90"/>
 			<File RelativePath="..\src\sfincs_data.f90"/>
-			<File RelativePath="..\src\sfincs_date.f90">
-			</File>
+			<File RelativePath="..\src\sfincs_date.f90"/>
 			<File RelativePath="..\src\sfincs_discharges.f90"/>
 			<File RelativePath="..\src\sfincs_domain.f90"/>
 			<File RelativePath="..\src\sfincs_error.f90"/>
