@@ -11,6 +11,8 @@ module sfincs_snapwave
    real*4,    dimension(:),   allocatable    :: snapwave_depth
    real*4,    dimension(:),   allocatable    :: snapwave_H
    real*4,    dimension(:),   allocatable    :: snapwave_H_ig
+   real*4,    dimension(:),   allocatable    :: snapwave_Tp
+   real*4,    dimension(:),   allocatable    :: snapwave_Tp_ig   
    real*4,    dimension(:),   allocatable    :: snapwave_mean_direction
    real*4,    dimension(:),   allocatable    :: snapwave_directional_spreading
    real*4,    dimension(:),   allocatable    :: snapwave_u10
@@ -295,7 +297,9 @@ contains
       if (ip>0) then
          !
          hm0(nm)    = snapwave_H(ip)   
-         hm0_ig(nm) = snapwave_H_ig(ip)   
+         hm0_ig(nm) = snapwave_H_ig(ip) 
+         sw_tp(nm)    = snapwave_Tp(ip)         
+         sw_tp_ig(nm) = snapwave_Tp_ig(ip)         
          fwx0(nm)   = snapwave_Fx(ip)   
          fwy0(nm)   = snapwave_Fy(ip) 
          dw0(nm)    = snapwave_Dw(ip)   
@@ -318,6 +322,8 @@ contains
          !
          hm0(nm)    = 0.0
          hm0_ig(nm) = 0.0
+         sw_tp(nm)  = 0.0
+         sw_tp_ig(nm) = 0.0         
          fwx0(nm)   = 0.0
          fwy0(nm)   = 0.0   
          dw0(nm)    = 0.0
@@ -412,6 +418,8 @@ contains
    !
    snapwave_H                     = H
    snapwave_H_ig                  = H_ig
+   snapwave_Tp                    = Tp
+   snapwave_Tp_ig                 = Tp_ig   
    snapwave_mean_direction        = thetam
    snapwave_directional_spreading = thetam  ! TL: CORRECT? > is not spreading but mean direction?
    snapwave_Dw                    = Dw

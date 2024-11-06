@@ -538,6 +538,8 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: fwy
       real*4, dimension(:),   allocatable :: hm0
       real*4, dimension(:),   allocatable :: hm0_ig
+      real*4, dimension(:),   allocatable :: sw_tp
+      real*4, dimension(:),   allocatable :: sw_tp_ig      
       real*4, dimension(:),   allocatable :: fwuv
       real*4, dimension(:),   allocatable :: mean_wave_direction
       real*4, dimension(:),   allocatable :: wave_directional_spreading

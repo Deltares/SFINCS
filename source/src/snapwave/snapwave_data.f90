@@ -17,7 +17,8 @@ module snapwave_data
    real*4,  dimension(:),       allocatable    :: fw                      ! friction coefficient
    real*4,  dimension(:),       allocatable    :: fw_ig                   ! friction coefficient
    real*4,  dimension(:),       allocatable    :: H, H_ig                 ! rms wave height
-   real*4,  dimension(:),       allocatable    :: Tp                      ! peak wave period   
+   real*4,  dimension(:),       allocatable    :: Tp                      ! peak wave period
+   real*4,  dimension(:),       allocatable    :: Tp_ig                   ! infragravity peak wave period   
    real*4,  dimension(:),       allocatable    :: Dw,Df                   ! dissipation due to breaking, bed friction
    real*4,  dimension(:),       allocatable    :: Dw_ig,Df_ig             ! dissipation due to breaking, bed friction for IG   
    real*4,  dimension(:),       allocatable    :: F                       ! wave force Dw/C/rho/depth

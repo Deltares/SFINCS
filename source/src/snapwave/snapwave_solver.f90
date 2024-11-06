@@ -15,7 +15,6 @@ module snapwave_solver
       real*4, parameter    :: waveps = 1e-5
       !real*4, dimension(:), allocatable   :: sig
       real*4, dimension(:), allocatable   :: sigm_ig
-      real*4, dimension(:), allocatable   :: Tp_ig
       real*4, dimension(:), allocatable   :: expon
       !
       integer   :: itheta
@@ -23,7 +22,6 @@ module snapwave_solver
       !
       !allocate(sig(no_nodes))
       allocate(sigm_ig(no_nodes))
-      allocate(Tp_ig(no_nodes))
       !
       g     = 9.81
       pi    = 4.*atan(1.)
