@@ -762,72 +762,56 @@ contains
          
 
 
-   subroutine neuboundaries(x,y,no_nodes,xneu,yneu,nb,tol,neumannconnected)
+subroutine neuboundaries(x,y,no_nodes,xneu,yneu,n_neu,tol,neumannconnected)
    !
-   real*4,  dimension(no_nodes), intent(in)    :: x,y
-   integer,                intent(in)    :: no_nodes
-   real*4,  dimension(nb), intent(in)    :: xneu,yneu
-   integer,                intent(in)    :: nb
-   real*4,                 intent(in)    :: tol
-   integer, dimension(no_nodes), intent(out)   :: neumannconnected   
-   integer, dimension(no_nodes)                :: nmpts                                           ! neumann points
-   integer                               :: Nnmpts                                          ! number of neumann points
-   integer                               :: ib,k,kmin
-   real*4                                :: alpha, cosa,sina, distmin, x1,y1,x2,y2
-   !   
-   ! Find all neumannpoints
-   ! 
-   nmpts = 0
-   Nnmpts = 0
-   do ib=1,nb-1
+   implicit none
+   !
+   integer, intent(in)                        :: no_nodes
+   integer, intent(in)                        :: n_neu
+   real*8, dimension(no_nodes), intent(in)    :: x,y
+   real*8, dimension(n_neu), intent(in)       :: xneu,yneu
+   real*4, intent(in)                         :: tol
+   integer, dimension(no_nodes), intent(out)  :: neumannconnected
+   !
+   integer                                    :: ib,k,kmin, k2
+   real*8                                     :: alpha, cosa,sina, distmin, x1,y1,x2,y2, xend
+   !
+   neumannconnected=0
+   do ib=1,n_neu-1
       if (xneu(ib).ne.-999.and.xneu(ib+1).ne.-999) then 
          alpha=atan2(yneu(ib+1)-yneu(ib),xneu(ib+1)-xneu(ib))
          cosa=cos(alpha)
          sina=sin(alpha)
-         xend=(xneu(ib+1)-xneu(ib))*cosa+(yneu(ib+1)-yneu(ib))*sina !xend is length of the polylinesegment in polyline coordinates 
+         xend=(xneu(ib+1)-xneu(ib))*cosa+(yneu(ib+1)-yneu(ib))*sina
          do k=1,no_nodes
-            x1= (x(k)-xneu(ib))*cosa+(y(k)-yneu(ib))*sina !parallel distance along polyline segment
-            y1=-(x(k)-xneu(ib))*sina+(y(k)-yneu(ib))*cosa !orthogonal distance to polyline segment 
-            if (x1>=0. .and. x1<=xend) then
+            x1= (x(k)-xneu(ib))*cosa+(y(k)-yneu(ib))*sina
+            y1=-(x(k)-xneu(ib))*sina+(y(k)-yneu(ib))*cosa
+            if (x1>=0.d0 .and. x1<=xend) then
                if (abs(y1)<tol) then
                   ! point k is on the neumann boundary
-                  Nnmpts = Nnmpts+1
-                  nmpts(Nnmpts) = k
-               endif
-            endif
-          enddo
-       endif
-    enddo
-    
-    !ML: find all neumanconnected INNER points (so needs a check to exlude outer points (list of neumanpoints nmpts))
-    do inmp = 1,Nnmpts 
-       k = nmpts(inmp)
-       if (k/=0) then
-          
-          x1= (x(k)-xneu(ib))*cosa+(y(k)-yneu(ib))*sina
-          y1=-(x(k)-xneu(ib))*sina+(y(k)-yneu(ib))*cosa
-              
-            distmin=1d10
-            kmin=0
-            do k2=1,no_nodes
-               x2= (x(k2)-xneu(ib))*cosa+(y(k2)-yneu(ib))*sina
-               y2=-(x(k2)-xneu(ib))*sina+(y(k2)-yneu(ib))*cosa
-               !choose point with parallel distance to neuman point within tolerance and with minimal orthogonal distance
-               if (abs(x2-x1)<tol .and. all(k2/=nmpts)) then 
-                  if (abs(y2-y1)<distmin) then
-                     kmin=k2
-                     distmin=abs(y2-y1)
+                  distmin=1d10
+                  kmin=0
+                  do k2=1,no_nodes
+                     x2= (x(k2)-xneu(ib))*cosa+(y(k2)-yneu(ib))*sina
+                     y2=-(x(k2)-xneu(ib))*sina+(y(k2)-yneu(ib))*cosa
+                     if (abs(x2-x1)<tol .and. (k2.ne.k)) then
+                        if (abs(y2-y1)<distmin) then
+                           kmin=k2
+                           distmin=abs(y2-y1)
+                        endif
+                     endif
+                  enddo
+                  if (kmin>0) then
+                     neumannconnected(kmin)=k
+                     write(*,*)kmin,k
                   endif
                endif
-            enddo
-            if (kmin>0) then
-               neumannconnected(kmin)=k
-               write(*,*)kmin,k
             endif
-         endif
-      enddo
-      !   
-   end subroutine neuboundaries
+         enddo
+      endif
+   enddo
+   !
+end subroutine neuboundaries
 
 
    subroutine read_snapwave_sfincs_mesh()
