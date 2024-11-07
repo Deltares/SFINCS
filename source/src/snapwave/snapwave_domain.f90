@@ -28,7 +28,7 @@ contains
    rho  = 1025.0
    np   = 22 ! why?
    dt   = 36000.0
-   tol  = 10.0   
+   !tol  = 10.0 ! > now defined using 'snapwave_tol' in sfincs_snapwave.f90  
    cosrot = cos(rotation*pi/180)
    sinrot = sin(rotation*pi/180)
    !
@@ -295,22 +295,26 @@ contains
       !
       !call neuboundaries(x,y,no_nodes,x_neu,y_neu,n_neu,tol,neumannconnected)
       !
-      ! We already have all msk=3 Neumann points, now find each their nearest cell 'neumannconnected' usin new 'neuboundaries_light'
+      ! We already have all msk=3 Neumann points, now find each their nearest cell 'neumannconnected' using new 'neuboundaries_light'
       call neuboundaries_light(x,y,msk,no_nodes,tol,neumannconnected) 
-      !       
       !
-      do k=1,no_nodes
-         if (neumannconnected(k)>0) then
-             if (msk(k)==1) then
-                ! k is inner and can be neumannconnected
-                inner(neumannconnected(k))= .false.
-                msk(neumannconnected(k)) = 3
-             else
-                ! we don't allow neumannconnected links if the node is an open boundary
-                neumannconnected(k) = 0  
-             endif
-         endif
-      enddo      
+      if (ANY(neumannconnected > 0)) then
+          !
+          write(*,*)'SnapWave: Neumann connected boundaries found ...'
+          !
+          do k=1,no_nodes
+              if (neumannconnected(k)>0) then
+                  if (msk(k)==1) then
+                      ! k is inner and can be neumannconnected
+                      inner(neumannconnected(k))= .false.
+                      msk(neumannconnected(k)) = 3 !TL: is dit nog nodig?
+                  else
+                      ! we don't allow neumannconnected links if the node is an open boundary
+                      neumannconnected(k) = 0  
+                  endif
+              endif
+        enddo
+      endif
    else
       !
       neumannconnected = 0       
@@ -798,16 +802,17 @@ contains
     real*4  :: h1, h2, fac
     !
     real xgb, ygb, dst1, dst2, dst   
-    integer k, ib1, ib2, ic
+    integer k, ib1, ib2, ic, kmin
     !
     ! Loop through all msk=3 cells
     !
     do ic = 1, no_nodes    
         ! Loop through all grid points
         !
-        if (msk(ic)==3) then        
+        if (msk(ic)==3) then ! point ic is on the neumann boundary       
             !
 	        dst1 = tol
+     	    dst2 = tol            
 	        ib1 = 0
 	        ib2 = 0
             !        
@@ -827,8 +832,31 @@ contains
 		            dst1 = dst
 		            ib1  = k
 		            !
+	            elseif (dst<dst2) then
+		            !
+		            ! Second nearest point found
+		            !
+		            dst2 = dst
+		            ib2  = k
+		            !                    
 	            endif    
             enddo
+            !
+            if ( (ib1 > 0) .and. (ib2 > 0) ) then
+                !
+                ! Determine the index of the minimum value, if points found within 'tol' distance
+                !
+                if (dst1 < dst2) then
+                    kmin = ib1
+                else
+                    kmin = ib2
+                endif
+                !
+                neumannconnected(kmin)=ic
+                !
+                write(*,*)kmin,ic       
+                !
+            endif
             !     
         endif
     enddo       
