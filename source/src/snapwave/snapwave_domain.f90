@@ -293,8 +293,6 @@ contains
    !
    if (any(msk == 3)) then
       !
-      !call neuboundaries(x,y,no_nodes,x_neu,y_neu,n_neu,tol,neumannconnected)
-      !
       ! We already have all msk=3 Neumann points, now find each their nearest cell 'neumannconnected' using new 'neuboundaries_light'
       call neuboundaries_light(x,y,msk,no_nodes,tol,neumannconnected) 
       !
@@ -307,7 +305,7 @@ contains
                   if (msk(k)==1) then
                       ! k is inner and can be neumannconnected
                       inner(neumannconnected(k))= .false.
-                      msk(neumannconnected(k)) = 3 !TL: is dit nog nodig?
+                      msk(neumannconnected(k)) = 3 !TL: should already by 3, but left it like in SnapWave SVN
                   else
                       ! we don't allow neumannconnected links if the node is an open boundary
                       neumannconnected(k) = 0  
@@ -818,28 +816,30 @@ contains
             !        
             do k = 1, no_nodes
                 !
-	            xgb = x(k)
-	            ygb = y(k)          
-	            !
-	            dst = sqrt((x(ic) - xgb)**2 + (y(ic) - ygb)**2)
-	            !
-	            if (dst<dst1) then
-		            !
-		            ! Nearest point found
-		            !
-		            dst2 = dst1
-		            ib2  = ib1
-		            dst1 = dst
-		            ib1  = k
-		            !
-	            elseif (dst<dst2) then
-		            !
-		            ! Second nearest point found
-		            !
-		            dst2 = dst
-		            ib2  = k
-		            !                    
-	            endif    
+                if (msk(k)==1) then 
+	                xgb = x(k)
+	                ygb = y(k)          
+	                !
+	                dst = sqrt((x(ic) - xgb)**2 + (y(ic) - ygb)**2)
+	                !
+	                if (dst<dst1) then
+		                !
+		                ! Nearest point found
+		                !
+		                dst2 = dst1
+		                ib2  = ib1
+		                dst1 = dst
+		                ib1  = k
+		                !
+	                elseif (dst<dst2) then
+		                !
+		                ! Second nearest point found
+		                !
+		                dst2 = dst
+		                ib2  = k
+		                !                    
+                    endif  
+                endif 
             enddo
             !
             if ( (ib1 > 0) .and. (ib2 > 0) ) then
@@ -854,7 +854,7 @@ contains
                 !
                 neumannconnected(kmin)=ic
                 !
-                write(*,*)kmin,ic       
+                !write(*,*)kmin,ic       
                 !
             endif
             !     
