@@ -492,17 +492,22 @@ module sfincs_data
       !
       ! Dynamic data on the grid
       !
+      ! The only double precision array is zs. z_volume is already limited by the 20 m depth limit, but it may be a good idea to make z_volume also double precision.
+      ! Ideally, we'd use double precision for zs in regular mode, and for z_volume in subgrid mode.
+      ! However, that would require using separate zs and z_volume arrays for regular and subgrid, which is probably not worth the trouble.
+      !
       real*4, dimension(:),   allocatable :: zsmax
       real*4, dimension(:),   allocatable :: vmax
       real*4, dimension(:),   allocatable :: qmax
-      real*4, dimension(:),   allocatable :: zs
+      real*8, dimension(:),   allocatable :: zs
       real*4, dimension(:),   allocatable :: zsm
       real*4, dimension(:),   allocatable :: maxzsm      
       real*4, dimension(:),   allocatable :: q
       real*4, dimension(:),   allocatable :: q0
       real*4, dimension(:),   allocatable :: uv
       real*4, dimension(:),   allocatable :: uv0
-      real*4, dimension(:),   allocatable :: z_volume
+      ! real*4, dimension(:),   allocatable :: z_volume
+      real*8, dimension(:),   allocatable :: z_volume
       real*4, dimension(:),   allocatable :: twet
       real*4, dimension(:),   allocatable :: tsunami_arrival_time
       real*4, dimension(:),   allocatable :: zs0
@@ -514,7 +519,7 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: prcp
       real*4, dimension(:),   allocatable :: cumprcp
       real*4, dimension(:),   allocatable :: netprcp
-      real*4, dimension(:),   allocatable :: cumprcpt
+      ! real*4, dimension(:),   allocatable :: cumprcpt
       real*4, dimension(:),   allocatable :: cuminf
       real*4, dimension(:),   allocatable :: tauwu0
       real*4, dimension(:),   allocatable :: tauwu1
@@ -921,7 +926,7 @@ module sfincs_data
     if(allocated(patm)) deallocate(patm)
     if(allocated(prcp)) deallocate(prcp)
     if(allocated(cumprcp)) deallocate(cumprcp)
-    if(allocated(cumprcpt)) deallocate(cumprcpt)
+    ! if(allocated(cumprcpt)) deallocate(cumprcpt)
     if(allocated(tauwu0)) deallocate(tauwu0)
     if(allocated(tauwu1)) deallocate(tauwu1)
     if(allocated(tauwv0)) deallocate(tauwv0)

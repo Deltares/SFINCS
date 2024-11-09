@@ -326,11 +326,13 @@
             !
             if (subgrid) then
                !
-               if (zsu > zmax - 1.0e-4) then
+               if (zsu > zmax) then
                   !
-                  ! Entire cell is wet, no interpolation from table needed
+                  ! Entire cell is wet, no interpolation from table needed for depth hu
                   !
                   hu = subgrid_uv_havg_zmax(ip) + zsu
+                  !
+                  ! Use fitting function for gnavg2 
                   !
                   gnavg2 = subgrid_uv_navg_w(ip) - (subgrid_uv_navg_w(ip) - subgrid_uv_nrep_zmax(ip)) / (subgrid_uv_fnfit(ip) * (zsu - zmax) + 1.0)
                   ! 
@@ -339,9 +341,9 @@
                   ! Interpolation required
                   !
                   dzuv   = (zmax - zmin) / (subgrid_nlevels - 1)                                                          ! level size (is storing this in memory faster?)
-                  iuv    = int((zsu - zmin) / dzuv) + 1                                                                   ! index of level below zsu 
+                  iuv    = min(int((zsu - zmin) / dzuv) + 1, subgrid_nlevels - 1)                                         ! index of level below zsu 
                   facint = (zsu - (zmin + (iuv - 1)*dzuv) ) / dzuv                                                        ! 1d interpolation coefficient
-                  ! if (iuv > subgrid_nlevels - 1 .or. iuv<1) write(*,'(a,i10,20e16.8)')'iuv exceeds subgrid_nlevels - 1. THIS IS NOT POSSIBLE! (iuv,zmin,zmax,dzuv,zsu) :', iuv,zmin,zmax,dzuv,zsu
+                  ! if (iuv > subgrid_nlevels - 1 .or. iuv<1) write(*,'(a,3i8,20e16.8)')'iuv exceeds bounds in momentum! (iuv,ip,zmin,zmax,zsu,dzuv,facint) :', iuv,ip,subgrid_nlevels,zmin,zmax,dzuv,zsu,facint
                   !
                   hu     = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint   ! grid-average depth
                   gnavg2 = subgrid_uv_nrep(iuv, ip) + (subgrid_uv_nrep(iuv + 1, ip) - subgrid_uv_nrep(iuv, ip))*facint   ! representative g*n^2
@@ -349,7 +351,8 @@
                   !
                endif
                !
-               hu = max(hu, huthresh)
+               ! hu can actually be a lot smaller than huthresh when only a few pixels are wet, so do not maximize
+               ! hu = max(hu, huthresh)
                !
             else
                !
@@ -633,9 +636,34 @@
                !
             endif
             !
+            ! Making sure that no water can flow out of a cell when its water depth is negative
+            !
+            
+            if (subgrid) then
+               !
+               if (zs(nm) < subgrid_z_zmin(nm)) then
+                  q(ip) = min(q(ip), 0.0)
+               endif
+               !
+               if (zs(nmu) < subgrid_z_zmin(nmu)) then
+                  q(ip) = max(q(ip), 0.0)
+               endif
+               !
+            else
+               !
+               if (zs(nm) < zb(nm)) then
+                  q(ip) = min(q(ip), 0.0)
+               endif
+               !
+               if (zs(nmu) < zb(nmu)) then
+                  q(ip) = max(q(ip), 0.0)
+               endif
+               !
+            endif
+            !
             ! Compute velocity
             !
-            uv(ip) = q(ip) / max(hu, hmin_uv) ! Limit velocity through minimal hu in case of very small huthresh, deafult hmin_uv=0.1m
+            uv(ip) = q(ip) / max(hu, hmin_uv) ! Limit velocity through minimal hu in case of very small hu or huthresh, default hmin_uv = 0.1 m
             !
             kfuv(ip) = 1
             !

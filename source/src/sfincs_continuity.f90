@@ -79,7 +79,11 @@ contains
       !$acc serial, present( zs,nmindsrc,qtsrc,zb,cell_area,z_flags_iref ), async(1)
       do isrc = 1, nsrcdrn
          nm = nmindsrc(isrc)
-         zs(nmindsrc(isrc))   = max(zs(nm) + qtsrc(isrc)*dt/cell_area(z_flags_iref(nm)), zb(nm))
+         if (crsgeo) then
+            zs(nmindsrc(isrc))   = max(zs(nm) + qtsrc(isrc)*dt / cell_area_m2(nm), zb(nm))
+         else
+            zs(nmindsrc(isrc))   = max(zs(nm) + qtsrc(isrc)*dt / cell_area(z_flags_iref(nm)), zb(nm))
+         endif
       enddo
       !$acc end serial
    endif   
@@ -99,18 +103,19 @@ contains
          !
          if (precip) then
             !
-            cumprcpt(nm) = cumprcpt(nm) + netprcp(nm)*dt
+            ! cumprcpt(nm) = cumprcpt(nm) + netprcp(nm)*dt
+            zs(nm) = zs(nm) + netprcp(nm) * dt
             !
             ! Add rain and/or infiltration only when cumulative effect over last interval exceeds 0.001 m
             ! Otherwise single precision may miss a lot of the rainfall/infiltration
             !
-            if (cumprcpt(nm)>0.001 .or. cumprcpt(nm)<-0.001) then
-               !
-               zs(nm) = zs(nm) + cumprcpt(nm)
-               cumprcpt(nm) = 0.0
-               ! zs(nm) = max(zs(nm), zb(nm)) ! don't allow negative water levels due to infiltration
-               !
-            endif
+            ! if (cumprcpt(nm)>0.001 .or. cumprcpt(nm)<-0.001) then
+            !    !
+            !    zs(nm) = zs(nm) + cumprcpt(nm)
+            !    cumprcpt(nm) = 0.0
+            !    ! zs(nm) = max(zs(nm), zb(nm)) ! don't allow negative water levels due to infiltration
+            !    !
+            ! endif
             !
          endif
          !
@@ -120,10 +125,14 @@ contains
          num = z_index_uv_nu(nm)
          !
          if (crsgeo) then
-            zs(nm)   = zs(nm) + (((q(nmd) - q(nmu))*max(dxminv(nmd), dxminv(nmu)) + (q(ndm) - q(num))*dyrinv(z_flags_iref(nm))))*dt
+            !
+            zs(nm)   = zs(nm) + ( (q(nmd) - q(nmu)) * max(dxminv(nmd), dxminv(nmu)) + (q(ndm) - q(num)) * dyrinv(z_flags_iref(nm)) ) * dt
+            !
          else   
-            zs(nm)   = zs(nm) + (((q(nmd) - q(nmu))*dxrinv(z_flags_iref(nm)) + (q(ndm) - q(num))*dyrinv(z_flags_iref(nm))))*dt
-         endif   
+            !
+            zs(nm)   = zs(nm) + ( (q(nmd) - q(nmu)) * dxrinv(z_flags_iref(nm)) + (q(ndm) - q(num)) * dyrinv(z_flags_iref(nm)) ) * dt
+            !
+         endif
          !
       endif
       !
@@ -304,17 +313,19 @@ contains
          !
          if (precip) then
             !
-            cumprcpt(nm) = cumprcpt(nm) + netprcp(nm)*dt
+            dvol = dvol + netprcp(nm) * a * dt
+            !
+            ! cumprcpt(nm) = cumprcpt(nm) + netprcp(nm)*dt
             !
             ! Add rain and/or infiltration only when cumulative effect over last interval exceeds 0.001 m
             ! Otherwise single precision may miss a lot of the rainfall/infiltration
             !
-            if (cumprcpt(nm)>0.001 .or. cumprcpt(nm)<-0.001) then
-               !
-               dvol = dvol + cumprcpt(nm)*a
-               cumprcpt(nm) = 0.0
-               !
-            endif
+            ! if (cumprcpt(nm)>0.001 .or. cumprcpt(nm)<-0.001) then
+            !    !
+            !    dvol = dvol + cumprcpt(nm)*a
+            !    cumprcpt(nm) = 0.0
+            !    !
+            ! endif
             !
          endif
          !
@@ -475,9 +486,7 @@ contains
             dzvol    = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
             iuv      = int(z_volume(nm) / dzvol) + 1
             facint   = (z_volume(nm) - (iuv - 1) * dzvol ) / dzvol
-            ! if (iuv<1 .or. iuv>subgrid_nlevels-1) then
-            !  write(*,'(a,6i12,20e16.6)')'nm,iuv,nmd,nmu,ndm,num,z_volume(nm),dzvol,dvol,q(nmd),q(nmu),q(ndm),q(num)',nm,iuv,nmd,nmu,ndm,num,z_volume(nm),dzvol,dvol,q(nmd),q(nmu),q(ndm),q(num)
-            !endif
+            ! if (iuv<1 .or. iuv>subgrid_nlevels-1) write(*,'(a,3i8,20e16.6)')'iuv exceeds bounds in continuity! iuv,nm,subgrid_nlevels,dzvol,facint,subgrid_z_volmax,z_volume',iuv,nm,subgrid_nlevels,dzvol,facint,subgrid_z_volmax(nm),z_volume(nm)
             zs(nm)   = subgrid_z_dep(iuv, nm) + (subgrid_z_dep(iuv + 1, nm) - subgrid_z_dep(iuv, nm)) * facint
             !
          endif
