@@ -546,7 +546,8 @@ module sfincs_lib
       if (dt<dtmin .and. nt>1) then
          !
          error = 1
-         write(error_message,'(a,f0.1,a)')'Error! Maximum depth of ', stopdepth, ' m reached!!! Simulation stopped.'
+         !
+         write(error_message,'(a,f0.4,a,f0.1,a)')'Error! Minimum time step of ', dtmin, ' s reached ! Current velocity exceeded uvmax ', uvmax, ' m/s. Simulation stopped.'
          !
          ! Write map output at last time step 
          !

@@ -87,6 +87,8 @@ module sfincs_data
       real*4 btrelax
       real*4 wiggle_factor
       real*4 wiggle_threshold
+      real*4 uvlim
+      real*4 uvmax
       !
       real*4 freqminig
       real*4 freqmaxig
@@ -227,7 +229,7 @@ module sfincs_data
       logical       :: output_irregular_grid
       logical       :: use_spw_precip
       logical       :: friction2d
-      logical       :: advection_limiter
+      ! logical       :: advection_limiter
       logical       :: advection_mask
       logical       :: wiggle_suppression
       logical       :: wmrandom      

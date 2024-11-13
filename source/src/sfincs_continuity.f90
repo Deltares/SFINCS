@@ -64,7 +64,10 @@ contains
    real*4           :: qnum
    real*4           :: qndm
    real*4           :: factime
-   real*4           :: dvol    
+   real*4           :: dvol
+   !
+   ! real*4           :: zs00
+   ! real*4           :: zs11
    !
    if (snapwave) then ! need to compute filtered water levels for snapwave
       !
@@ -89,7 +92,7 @@ contains
    endif   
    !
    !$omp parallel &
-   !$omp private ( nm,dvol,nmd,nmu,ndm,num,qnmd,qnmu,qndm,qnum,iwm)
+   !$omp private ( nm,dvol,nmd,nmu,ndm,num,qnmd,qnmu,qndm,qnum,iwm )
    !$omp do schedule ( dynamic, 256 )
    !$acc kernels present( kcs, zs, zb, netprcp, cumprcpt, prcp, q, zsmax, zsm, maxzsm, &
    !$acc                  z_flags_iref, uv_flags_iref, &
@@ -99,23 +102,11 @@ contains
    !$acc loop independent, private( nm )
    do nm = 1, np
       ! 
-      if (kcs(nm)==1) then ! Regular point
+      if (kcs(nm) == 1) then ! Regular point
          !
          if (precip) then
             !
-            ! cumprcpt(nm) = cumprcpt(nm) + netprcp(nm)*dt
             zs(nm) = zs(nm) + netprcp(nm) * dt
-            !
-            ! Add rain and/or infiltration only when cumulative effect over last interval exceeds 0.001 m
-            ! Otherwise single precision may miss a lot of the rainfall/infiltration
-            !
-            ! if (cumprcpt(nm)>0.001 .or. cumprcpt(nm)<-0.001) then
-            !    !
-            !    zs(nm) = zs(nm) + cumprcpt(nm)
-            !    cumprcpt(nm) = 0.0
-            !    ! zs(nm) = max(zs(nm), zb(nm)) ! don't allow negative water levels due to infiltration
-            !    !
-            ! endif
             !
          endif
          !
@@ -123,6 +114,16 @@ contains
          nmu = z_index_uv_mu(nm)
          ndm = z_index_uv_nd(nm)
          num = z_index_uv_nu(nm)
+         !
+         ! if (wiggle_suppression) then
+         !    !
+         !    ! Store previous water level to determine gradient
+         !    ! 
+         !    zs00    = zs0(nm) ! previous time step
+         !    zs11    = zs(nm)  ! current time step before updating
+         !    zs0(nm) = zs11    ! next previous time step
+         !    ! 
+         !  endif         
          !
          if (crsgeo) then
             !
@@ -133,6 +134,16 @@ contains
             zs(nm)   = zs(nm) + ( (q(nmd) - q(nmu)) * dxrinv(z_flags_iref(nm)) + (q(ndm) - q(num)) * dyrinv(z_flags_iref(nm)) ) * dt
             !
          endif
+         !
+         ! if (wiggle_suppression) then 
+         !    ! 
+         !    zsderv(nm) = zs(nm) - 2*zs11 + zs00
+         !    ! 
+         ! endif
+         !
+         ! if (zs(nm) < zb(nm) - 0.1) then
+         !    write(*,'(a,i8,20f10.3)')'Warning : severe negative water levels! nm, zs, zb, zs - zb', nm, zs(nm), zb(nm), zs(nm) - zb(nm)
+         ! endif   
          !
       endif
       !
@@ -314,18 +325,6 @@ contains
          if (precip) then
             !
             dvol = dvol + netprcp(nm) * a * dt
-            !
-            ! cumprcpt(nm) = cumprcpt(nm) + netprcp(nm)*dt
-            !
-            ! Add rain and/or infiltration only when cumulative effect over last interval exceeds 0.001 m
-            ! Otherwise single precision may miss a lot of the rainfall/infiltration
-            !
-            ! if (cumprcpt(nm)>0.001 .or. cumprcpt(nm)<-0.001) then
-            !    !
-            !    dvol = dvol + cumprcpt(nm)*a
-            !    cumprcpt(nm) = 0.0
-            !    !
-            ! endif
             !
          endif
          !

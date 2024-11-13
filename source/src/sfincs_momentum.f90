@@ -120,7 +120,7 @@
       !
       ! Limit speeds to prevent instabilities due to advection
       !      
-      uv0(ip) = max(min(uv(ip), 4.0), -4.0)
+      uv0(ip) = max(min(uv(ip), uvlim), -uvlim)
       !
    enddo
    !$omp end do
@@ -351,9 +351,6 @@
                   !
                endif
                !
-               ! hu can actually be a lot smaller than huthresh when only a few pixels are wet, so do not maximize
-               ! hu = max(hu, huthresh)
-               !
             else
                !
                hu     = max(zsu - zbuvmx(ip), huthresh)
@@ -367,10 +364,10 @@
             !
             ! FORCING TERMS
             !
-            ! Pressure term
+            ! Pressure term (apply slope limiter, default is very high)
             !
-            !dzdx = min(max((zs(nmu) - zs(nm)) * dxuvinv, -slopelim), slopelim) 
-            dzdx = (zs(nmu) - zs(nm)) * dxuvinv
+            dzdx = min(max((zs(nmu) - zs(nm)) * dxuvinv, -slopelim), slopelim) 
+            ! dzdx = (zs(nmu) - zs(nm)) * dxuvinv
             !
             frc = - g * hu * dzdx
             !
@@ -469,17 +466,13 @@
                      !  
                   endif
                   !
-                  if (advection_limiter) then
-                     !
-                     adv = dqxudx + dqyudy
-                     adv = min(max(adv, -advlim), advlim) 
-                     frc = frc - phi * adv
-                     !
-                  else
-                     !
-                     frc = frc - phi * (dqxudx + dqyudy)
-                     !
-                  endif 
+                  adv = - phi * (dqxudx + dqyudy)
+                  !
+                  ! Limit advection term such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2)
+                  !
+                  adv = min(max(adv, - advlim * hu), advlim * hu) 
+                  !
+                  frc = frc + adv
                   !
                endif
                !   
@@ -574,7 +567,7 @@
                !
                ! This uv point just became wet, so estimate equilibrium flux 
                !
-               qfr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * hu ** (5.0 / 3.0)               
+               qfr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * hu ** (5.0 / 3.0)
                !
             else   
                !
@@ -615,7 +608,8 @@
                      ! 
                   endif
                   ! 
-               endif               
+               endif
+               !
             endif            
             !
             ! Compute new flux for this uv point (Bates et al., 2010)
@@ -637,8 +631,7 @@
             endif
             !
             ! Making sure that no water can flow out of a cell when its water depth is negative
-            !
-            
+            !            
             if (subgrid) then
                !
                if (zs(nm) < subgrid_z_zmin(nm)) then
@@ -663,15 +656,14 @@
             !
             ! Compute velocity
             !
-            uv(ip) = q(ip) / max(hu, hmin_uv) ! Limit velocity through minimal hu in case of very small hu or huthresh, default hmin_uv = 0.1 m
+            uv(ip) = q(ip) / hu
             !
             kfuv(ip) = 1
             !
             ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
             ! Use maximum of sqrt(gh) and current velocity
             !
-            min_dt = min(min_dt, 1.0 / (max(sqrt(g * hu), min(abs(uv(ip)), 4.0)) * dxuvinv))
-            ! min_dt = min(min_dt, 1.0 / (sqrt(g * hu) * dxuvinv)) ! Original
+            min_dt = min(min_dt, 1.0 / ( max(sqrt(g * hu), 1.25 * abs(uv(ip)) ) * dxuvinv))
             !
          else
             !

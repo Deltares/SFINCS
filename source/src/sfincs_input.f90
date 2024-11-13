@@ -94,7 +94,7 @@ contains
    call read_int_input(500,'epsg',epsg,0)
    call read_char_input(500,'epsg',epsg_code,'nil')      
    call read_real_input(500,'stopdepth',stopdepth,100.0)
-   call read_real_input(500,'advlim',advlim,9999.9)
+   call read_real_input(500, 'advlim', advlim, 1.0)
    call read_real_input(500,'slopelim',slopelim,9999.9)
    call read_real_input(500,'qinf_zmin',qinf_zmin,0.0)
    call read_real_input(500,'btfilter',btfilter,60.0)
@@ -121,6 +121,8 @@ contains
    call read_logical_input(500,'wiggle_suppression',wiggle_suppression,.false.)
    call read_real_input(500,'wiggle_factor',wiggle_factor,0.1)
    call read_real_input(500,'wiggle_threshold',wiggle_threshold,0.1)
+   call read_real_input(500, 'uvlim', uvlim, 10.0)
+   call read_real_input(500, 'uvmax', uvmax, 25.0)
    !
    ! Domain
    !
@@ -516,7 +518,7 @@ contains
       endif
    endif
    !
-   advection_limiter = .false.
+   ! advection_limiter = .false.
    !   
    if (advection) then
       !
@@ -537,11 +539,11 @@ contains
          call write_log(logstr, 1)
       endif
       !
-      if (advlim < 9999.0) then 
-         !
-         advection_limiter = .true.
-         !
-      endif
+      !if (advlim < 9999.0) then 
+      !   !
+      !   advection_limiter = .true.
+      !   !
+      !endif
       !
    endif
    !

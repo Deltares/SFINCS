@@ -1419,8 +1419,18 @@ contains
       !
       ! Determine minimum and maximum time step
       !
-      dtmax = min(dtmax, alfa * dxymin / (sqrt(9.81 * hmin_cfl)))      
-      dtmin = alfa*dxymin/(sqrt(9.81*stopdepth)) ! If dt falls below this value, the simulation will stop
+      dtmax = min(dtmax, alfa * dxymin / (sqrt(9.81 * hmin_cfl)))
+      !
+      ! Compute dtmin (if dt falls below this value, the simulation will stop).
+      !
+      ! No longer use long wave celerity
+      !
+      ! dtmin = alfa * dxymin / (sqrt(9.81 * stopdepth))
+      !
+      ! Current velocity
+      !
+      ! dtmin = min(dtmin, alfa * dxymin / (1.25 * abs(uvmax)))
+      dtmin = alfa * dxymin / (1.25 * abs(uvmax))
       !
    endif   
    !
