@@ -12,7 +12,7 @@ module sfincs_initial_conditions
    !
    type(net_type_ini) :: net_file_ini              
    !
-   real*4, dimension(:),   allocatable :: inizs
+   real*8, dimension(:),   allocatable :: inizs
    real*4, dimension(:),   allocatable :: iniq
    !
 contains
