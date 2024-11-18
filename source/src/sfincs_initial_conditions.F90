@@ -12,7 +12,7 @@ module sfincs_initial_conditions
    !
    type(net_type_ini) :: net_file_ini              
    !
-   real*4, dimension(:),   allocatable :: inizs
+   real*8, dimension(:),   allocatable :: inizs
    real*4, dimension(:),   allocatable :: iniq
    !
 contains
@@ -261,7 +261,7 @@ contains
       !
       implicit none
       !
-      real*4, dimension(:),   allocatable :: zsq
+      real*8, dimension(:),   allocatable :: zsq
       integer   :: npq, ip
       !
       NF90(nf90_open(trim(ncinifile), NF90_CLOBBER, net_file_ini%ncid))
