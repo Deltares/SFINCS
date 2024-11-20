@@ -253,7 +253,7 @@ contains
    !
    ! Determine SnapWave wind
    !
-   if (wind) then
+   if (store_wind) then
       !
       do nm = 1, snapwave_no_nodes
          !
