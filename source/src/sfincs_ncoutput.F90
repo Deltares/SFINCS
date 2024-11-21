@@ -2985,11 +2985,12 @@ contains
    !
    subroutine ncoutput_add_params(ncid, varid)
    ! Add user params to netcdf file (both map & his)
-   use sfincs_data   
+   use sfincs_data
+   !
    ! Because of overlapping names, only important specific values from snapwave_data
    use snapwave_data, only: gamma, alpha, hmin, fw0, fw0_ig, dt, tol, dtheta, crit, nr_sweeps, baldock_opt, baldock_ratio, &
        igwaves_opt, alpha_ig, gamma_ig, shinc2ig, alphaigfac, baldock_ratio_ig, ig_opt, herbers_opt, tpig_opt, eeinc2ig, tinc2ig, &
-       jonswapfile, encfile, upwfile, gridfile
+       snapwave_jonswapfile, snapwave_encfile, snapwave_bndfile, snapwave_bhsfile, snapwave_btpfile, snapwave_bwdfile, snapwave_bdsfile, upwfile, gridfile
    
    !
    implicit none   
@@ -3192,19 +3193,14 @@ contains
         !
         ! SnapWave input files
         !
-        NF90(nf90_put_att(ncid, varid, 'snapwave_jonswapfile',jonswapfile)) 
-        NF90(nf90_put_att(ncid, varid, 'snapwave_encfile',encfile)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_jonswapfile',snapwave_jonswapfile)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_encfile',snapwave_encfile)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_upwfile',upwfile)) 
-        NF90(nf90_put_att(ncid, varid, 'snapwave_ncfile', gridfile)) 
-
-        !TL: these names overlap with SFINCS' ones, so cannot import, can see later whether to still add them    
-        !NF90(nf90_put_att(ncid, varid, 'snapwave_bndfile',bndfile))            
-        !NF90(nf90_put_att(ncid, varid, 'snapwave_bhsfile',bhsfile)) 
-        !NF90(nf90_put_att(ncid, varid, 'snapwave_btpfile',btpfile)) 
-        !NF90(nf90_put_att(ncid, varid, 'snapwave_bwdfile',bwdfile)) 
-        !NF90(nf90_put_att(ncid, varid, 'snapwave_bdsfile',bdsfile))         
-        !NF90(nf90_put_att(ncid, varid, 'snapwave_mskfile',mskfile)) 
-        !NF90(nf90_put_att(ncid, varid, 'snapwave_depfile',depfile)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_bndfile',snapwave_bndfile))            
+        NF90(nf90_put_att(ncid, varid, 'snapwave_bhsfile',snapwave_bhsfile)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_btpfile',snapwave_btpfile)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_bwdfile',snapwave_bwdfile)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_bdsfile',snapwave_bdsfile))         
         !
    end subroutine
    !   

@@ -519,13 +519,13 @@ contains
    call read_int_input(500, 'vegetation', vegetation_opt, 0)
    !
    ! Input files
-   call read_char_input(500,'snapwave_jonswapfile',jonswapfile,'')
-   call read_char_input(500,'snapwave_bndfile',bndfile,'')
-   call read_char_input(500,'snapwave_encfile',encfile,'')
-   call read_char_input(500,'snapwave_bhsfile',bhsfile,'')
-   call read_char_input(500,'snapwave_btpfile',btpfile,'')
-   call read_char_input(500,'snapwave_bwdfile',bwdfile,'')
-   call read_char_input(500,'snapwave_bdsfile',bdsfile,'') 
+   call read_char_input(500,'snapwave_jonswapfile',snapwave_jonswapfile,'')
+   call read_char_input(500,'snapwave_bndfile',snapwave_bndfile,'')
+   call read_char_input(500,'snapwave_encfile',snapwave_encfile,'')
+   call read_char_input(500,'snapwave_bhsfile',snapwave_bhsfile,'')
+   call read_char_input(500,'snapwave_btpfile',snapwave_btpfile,'')
+   call read_char_input(500,'snapwave_bwdfile',snapwave_bwdfile,'')
+   call read_char_input(500,'snapwave_bdsfile',snapwave_bdsfile,'') 
    call read_char_input(500,'snapwave_upwfile',upwfile,'snapwave.upw')
    call read_char_input(500,'snapwave_mskfile',mskfile,'')
    call read_char_input(500,'snapwave_depfile',depfile,'none')   
@@ -585,7 +585,6 @@ contains
    ! 
    restart           = .true.
    coupled_to_sfincs = .true.
-   bzsfile           = ''
    !
    end subroutine 
 

@@ -21,7 +21,7 @@ contains
    update_grid_boundary_points = .true.
    itwbndlast = 2
    !
-   if (jonswapfile /= '') then
+   if (snapwave_jonswapfile /= '') then
       !
       ! Read data from timeseries in single point
       !
@@ -106,8 +106,8 @@ contains
    !
    ! Read wave boundaries
    !
-   write(*,*)'Reading wave boundary enclosure ', trim(encfile), ' ...'
-   open(500, file=trim(encfile)) !as in bwvfile of SFINCS
+   write(*,*)'Reading wave boundary enclosure ', trim(snapwave_encfile), ' ...'
+   open(500, file=trim(snapwave_encfile)) !as in bwvfile of SFINCS
    do while(.true.)
       read(500,*,iostat = stat)dummy
       if (stat<0) exit
@@ -137,11 +137,11 @@ contains
    integer :: ier
    real*4  :: dum
    !   
-   write(*,*)'Reading boundary file ', trim(jonswapfile), ' ...'
+   write(*,*)'Reading boundary file ', trim(snapwave_jonswapfile), ' ...'
    !
    ! Read jonswap wave time series
    !
-   open(11,file=jonswapfile)
+   open(11,file=snapwave_jonswapfile)
    irec=0
    ier=0
    do while (ier==0)
@@ -186,12 +186,12 @@ contains
    !
    ! Read wave boundaries
    !
-   if (bndfile(1:4) /= 'none') then    ! Normal ascii input files
+   if (snapwave_bndfile(1:4) /= 'none') then    ! Normal ascii input files
       ! temporarily use this input of hs/tp/wavdir/dirspr in separate files, later change to DFM type tim-files
       !
       write(*,*)'Reading wave boundary locations ...'
       !
-      open(500, file=trim(bndfile)) !as in bwvfile of SFINCS
+      open(500, file=trim(snapwave_bndfile)) !as in bwvfile of SFINCS
       do while(.true.)
          read(500,*,iostat = stat)dummy
          if (stat<0) exit
@@ -205,6 +205,7 @@ contains
       enddo
       close(500)
       !
+      write(*,*)'snapwave_bndfile, nwbnd, x_bwv, y_bwv',trim(snapwave_bndfile), nwbnd, x_bwv, y_bwv
       ! Read wave boundaries
       !
       write(*,*)'Reading wave boundaries ...'
@@ -213,7 +214,7 @@ contains
       !
       ! First find times in bhs file
       !
-      open(500, file=trim(bhsfile))
+      open(500, file=trim(snapwave_bhsfile))
       do while(.true.)
          read(500,*,iostat = stat)dummy
          if (stat<0) exit
@@ -226,16 +227,18 @@ contains
       ! Hs (significant wave height)
       ! Times in btp and bwd files must be the same as in bhs file!
       !
-      open(500, file=trim(bhsfile))
+      open(500, file=trim(snapwave_bhsfile))
       allocate(hs_bwv(nwbnd, ntwbnd))
       do itb = 1, ntwbnd
          read(500,*)t_bwv(itb),(hs_bwv(ib, itb), ib = 1, nwbnd)
       enddo
       close(500)
       !
+      write(*,*)'snapwave_bndfile, nwbnd, x_bwv, y_bwv',trim(snapwave_bhsfile), t_bwv, hs_bwv
+      
       ! Tp (peak period)
       !
-      open(500, file=trim(btpfile))
+      open(500, file=trim(snapwave_btpfile))
       allocate(tp_bwv(nwbnd, ntwbnd))
       do itb = 1, ntwbnd
          read(500,*)t_bwv(itb),(tp_bwv(ib, itb), ib = 1, nwbnd)
@@ -244,38 +247,23 @@ contains
       !
       ! Wd (wave direction)
       !
-      open(500, file=trim(bwdfile))
+      open(500, file=trim(snapwave_bwdfile))
       allocate(wd_bwv(nwbnd, ntwbnd))
       do itb = 1, ntwbnd
          read(500,*)t_bwv(itb),(wd_bwv(ib, itb), ib = 1, nwbnd)
       enddo
       close(500)
+      write(*,*)'snapwave_bwdfile, ntwbnd, t_bwv, wd_bwv',trim(snapwave_bwdfile), ntwbnd, t_bwv, wd_bwv
+      
       !
       ! Ds (directional spreading)
       !
-      open(500, file=trim(bdsfile))
+      open(500, file=trim(snapwave_bdsfile))
       allocate(ds_bwv(nwbnd, ntwbnd))
       do itb = 1, ntwbnd
          read(500,*)t_bwv(itb),(ds_bwv(ib, itb), ib = 1, nwbnd)
       enddo
       close(500)
-      !
-      ! zs (water level) - TL: TODO CHECK STILL NEEDED?
-      !if (trim(bzsfile) /= '') then 
-      !   !
-      !   open(500, file=trim(bzsfile))
-      !   allocate(zs_bwv(nwbnd, ntwbnd))
-      !   do itb = 1, ntwbnd
-      !      read(500,*)t_bwv(itb),(zs_bwv(ib, itb), ib = 1, nwbnd)
-      !   enddo
-      !   close(500)
-      !   !
-      !else   
-      !   !
-      !   allocate(zs_bwv(nwbnd, ntwbnd))
-      !   zs_bwv = 0.0         
-      !   !
-      !endif
       !
    endif
    !
@@ -689,18 +677,32 @@ subroutine update_boundary_points(t)
    !
    ! Build spectra on wave boundary support points
    !
+   write(*,*)'nwbnd', nwbnd
+   write(*,*)'hst_bwv,tpt_bwv, wdt_bwv, dst_bwv',hst_bwv,tpt_bwv, wdt_bwv, dst_bwv
+   write(*,*)'dtheta',dtheta
+   write(*,*)'theta',theta
+   write(*,*)'thetamean',thetamean
+   
    !write(*,*)' thetamean = ',thetamean*180./pi
    !write(*,'(a,18f7.1)')'theta = ',theta*180./pi
    do ib = 1, nwbnd ! Loop along boundary points
       !
       E0   = 0.0625 * rho * g * hst_bwv(ib)**2
       ms   = 1.0 / dst_bwv(ib)**2 - 1.0
-      dist = (cos(theta - thetamean))**ms
-      !    
+      !dist = (cos(theta - thetamean))**ms
+      dist = sign(1.0,cos(theta - thetamean))*abs(cos(theta - thetamean))**ms
+      where (abs(mod(pi+theta - thetamean,2.0*pi)-pi)>0.999*pi/2.0) dist = 0.0      
+      !
       eet_bwv(:,ib) = dist/sum(dist)*E0/dtheta
       !
+       write(*,*)'ib,E0,ms',ib,E0,ms
+       write(*,*)'sum(dist)',sum(dist)
+       write(*,*)'dist',dist       
+       write(*,*)'eet_bwv(:,ib)',eet_bwv(:,ib)
+      
    enddo
    !
+   write(*,*)'eet_bwv',eet_bwv   
    ! Build IG spectra on wave boundary support points   
    if (igwaves) then   
       if (igherbers) then 
@@ -708,7 +710,9 @@ subroutine update_boundary_points(t)
              !          
              E0_ig   = 0.0625 * rho * g * hst_bwv_ig(ib)**2
              ms   = 1.0 / dst_bwv(ib)**2 - 1.0
-             dist = (cos(theta - thetamean))**ms      
+             !dist = (cos(theta - thetamean))**ms      
+             dist = sign(1.0,cos(theta - thetamean))*abs(cos(theta - thetamean))**ms
+             where (abs(mod(pi+theta - thetamean,2.0*pi)-pi)>0.999*pi/2.0) dist = 0.0                  
              !         
              eet_bwv_ig(:,ib) = dist / sum(dist) * E0_ig / dtheta          
              !      
@@ -843,6 +847,9 @@ subroutine update_boundaries()
    ! Loop through grid boundary points
    ! Now for all grid boundary points do spatial interpolation of the wave spectra from boundary points at polygon
    !
+   write(*,*)'eet_bwv',eet_bwv
+   !write(*,*)'ind1_bwv_cst,ind2_bwv_cst,fac_bwv_cst',ind1_bwv_cst,ind2_bwv_cst,fac_bwv_cst
+   
    do ib = 1, nb
       !
       k = nmindbnd(ib)
@@ -882,6 +889,8 @@ subroutine update_boundaries()
       endif      
    endif          
    !
+   write(*,*)'max ee',MAXVAL(ee)
+   
    end subroutine   
    
    
