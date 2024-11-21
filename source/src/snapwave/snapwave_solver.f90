@@ -22,6 +22,7 @@ module snapwave_solver
       !
       !allocate(sig(no_nodes))
       allocate(sigm_ig(no_nodes))
+      allocate(Tp_ig(no_nodes))
       !
       g     = 9.81
       pi    = 4.*atan(1.)
