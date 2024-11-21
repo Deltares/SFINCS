@@ -17,14 +17,16 @@ module snapwave_data
    real*4,  dimension(:),       allocatable    :: fw                      ! friction coefficient
    real*4,  dimension(:),       allocatable    :: fw_ig                   ! friction coefficient
    real*4,  dimension(:),       allocatable    :: H, H_ig                 ! rms wave height
-   real*4,  dimension(:),       allocatable    :: Tp                      ! peak wave period   
+   real*4,  dimension(:),       allocatable    :: Tp                      ! peak wave period
+   real*4,  dimension(:),       allocatable    :: Tp_ig                   ! infragravity peak wave period   
    real*4,  dimension(:),       allocatable    :: Dw,Df                   ! dissipation due to breaking, bed friction
    real*4,  dimension(:),       allocatable    :: Dw_ig,Df_ig             ! dissipation due to breaking, bed friction for IG   
    real*4,  dimension(:),       allocatable    :: F                       ! wave force Dw/C/rho/depth
    real*4,  dimension(:),       allocatable    :: Fx, Fy                  ! wave force Dw/C/rho/depth
    real*4,  dimension(:),       allocatable    :: u10, u10dir             ! wind speed and wind direction   
+   real*4                                      :: u10dmean=-999.          ! average wind direction   
    real*4,  dimension(:),       allocatable    :: thetam                  ! mean wave direction
-   real*4                                      :: thetamean               ! mean wave direction
+   real*4                                      :: thetamean=-999.         ! mean wave direction
    real*4,  dimension(:),       allocatable    :: buf                     ! buffer for writing output to netcdf
    integer, dimension(:,:),     allocatable    :: kp                      ! surrounding points for each grid point (unstructured)
    logical, dimension(:),       allocatable    :: inner                   ! mask for inner points (not on any boundary)

@@ -105,6 +105,7 @@ contains
    allocate(fw(no_nodes))
    allocate(H(no_nodes))
    allocate(Tp(no_nodes))   
+   allocate(Tp_ig(no_nodes))
    allocate(kwav_ig(no_nodes))
    allocate(nwav_ig(no_nodes))
    allocate(C_ig(no_nodes))

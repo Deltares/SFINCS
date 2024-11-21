@@ -11,8 +11,12 @@ module sfincs_snapwave
    real*4,    dimension(:),   allocatable    :: snapwave_depth
    real*4,    dimension(:),   allocatable    :: snapwave_H
    real*4,    dimension(:),   allocatable    :: snapwave_H_ig
+   real*4,    dimension(:),   allocatable    :: snapwave_Tp
+   real*4,    dimension(:),   allocatable    :: snapwave_Tp_ig   
    real*4,    dimension(:),   allocatable    :: snapwave_mean_direction
    real*4,    dimension(:),   allocatable    :: snapwave_directional_spreading
+   real*4,    dimension(:),   allocatable    :: snapwave_u10
+   real*4,    dimension(:),   allocatable    :: snapwave_u10dir   
    real*4,    dimension(:),   allocatable    :: snapwave_Fx
    real*4,    dimension(:),   allocatable    :: snapwave_Fy
    real*4,    dimension(:),   allocatable    :: snapwave_Dw
@@ -99,13 +103,21 @@ contains
    !
    allocate(snapwave_z(no_nodes))
    allocate(snapwave_depth(no_nodes))
-   allocate(snapwave_mask(no_nodes))   
+   allocate(snapwave_mask(no_nodes))  
+   allocate(snapwave_u10(no_nodes))   
+   allocate(snapwave_u10dir(no_nodes))      
    !
    snapwave_z     = zb
    snapwave_depth = 0.0
    !
+   if (wind) then
+      snapwave_u10 = 0.0
+      snapwave_u10dir = 0.0
+   endif
+   !
    snapwave_tpmean = 0.0
-   snapwave_tpigmean = 0.0    
+   snapwave_tpigmean = 0.0   
+
    !   
    call find_matching_cells(index_quadtree_in_snapwave, index_snapwave_in_quadtree)
    !
@@ -166,6 +178,8 @@ contains
    integer  :: count_rate
    integer  :: count_max
    real     :: tloop
+   !
+   real*4   :: u10, u10dir
    !   
    real*4,    dimension(:), allocatable       :: fwx0
    real*4,    dimension(:), allocatable       :: fwy0
@@ -237,6 +251,43 @@ contains
       !
    enddo   
    !
+   ! Determine SnapWave wind
+   !
+   if (store_wind) then
+      !
+      do nm = 1, snapwave_no_nodes
+         !
+         ip = index_sfincs_in_snapwave(nm) ! matching index in SFINCS mesh
+         !
+         if (ip>0) then
+            !
+            ! A matching SFINCS point is found
+            !
+            ! Convert to umag & dir, as in ncoutput_update_his: 
+            !
+            u10 = sqrt(windu(ip)**2 + windv(ip)**2)
+            !
+            u10dir = atan2(windv(ip), windu(ip))*180/pi
+            !
+	        if (u10dir<0.0) u10dir = u10dir + 360.0
+            if (u10dir>360.0) u10dir = u10dir - 360.0    
+            !
+            snapwave_u10(nm) = max(u10, 0.0)     
+            snapwave_u10dir(nm) = u10dir / 180.0 * pi ! from nautical coming from in degrees to cartesian going to in radians
+            !
+         else
+            !
+            ! Use 0.0 wind speed and direction
+            !
+            snapwave_u10(nm) = 0.0
+            snapwave_u10dir(nm) = 0.0            
+            !
+         endif   
+         !
+      enddo   
+      !
+   endif
+   !
    call compute_snapwave(t)
    !
    do nm = 1, np
@@ -246,7 +297,9 @@ contains
       if (ip>0) then
          !
          hm0(nm)    = snapwave_H(ip)   
-         hm0_ig(nm) = snapwave_H_ig(ip)   
+         hm0_ig(nm) = snapwave_H_ig(ip) 
+         sw_tp(nm)    = snapwave_Tp(ip)         
+         sw_tp_ig(nm) = snapwave_Tp_ig(ip)         
          fwx0(nm)   = snapwave_Fx(ip)   
          fwy0(nm)   = snapwave_Fy(ip) 
          dw0(nm)    = snapwave_Dw(ip)   
@@ -269,6 +322,8 @@ contains
          !
          hm0(nm)    = 0.0
          hm0_ig(nm) = 0.0
+         sw_tp(nm)  = 0.0
+         sw_tp_ig(nm) = 0.0         
          fwx0(nm)   = 0.0
          fwy0(nm)   = 0.0   
          dw0(nm)    = 0.0
@@ -351,6 +406,9 @@ contains
    depth = snapwave_depth
    !
    zb = snapwave_z   
+   !
+   u10 = snapwave_u10
+   u10dir = snapwave_u10dir   
    !   
    ! TL: we use depth now in boundary conditions for Herbers bc determination of Hm0ig, in this order we use updated values of depth through SFINCS
    !
@@ -360,6 +418,8 @@ contains
    !
    snapwave_H                     = H
    snapwave_H_ig                  = H_ig
+   snapwave_Tp                    = Tp
+   snapwave_Tp_ig                 = Tp_ig   
    snapwave_mean_direction        = thetam
    snapwave_directional_spreading = thetam  ! TL: CORRECT? > is not spreading but mean direction?
    snapwave_Dw                    = Dw
@@ -417,15 +477,20 @@ contains
    call read_real_input(500,'snapwave_dt',dt,36000.0)
    call read_real_input(500,'snapwave_tol',tol,10.0)
    call read_real_input(500,'snapwave_dtheta',dtheta,10.0)
-   call read_real_input(500,'snapwave_crit',crit,0.01)
+   call read_real_input(500,'snapwave_crit',crit,0.00001) !TL: Old default was 0.01
    call read_int_input(500,'snapwave_nrsweeps',nr_sweeps,4)
-   call read_int_input(500,'snapwave_niter',niter, 10)   
+   call read_int_input(500,'snapwave_niter',niter, 10) !TL: Old default was 40  
    call read_int_input(500,'snapwave_baldock_opt',baldock_opt,1)     
    call read_real_input(500,'snapwave_baldock_ratio',baldock_ratio,0.2)
    call read_real_input(500,'rgh_lev_land',rghlevland,0.0)
    call read_real_input(500,'snapwave_fw_ratio',fwratio,1.0)
    call read_real_input(500,'snapwave_fwig_ratio',fwigratio,1.0)
    call read_real_input(500,'snapwave_Tpini',Tpini,1.0)
+   call read_int_input (500,'snapwave_mwind',mwind,2)      
+   call read_real_input(500,'sigmin',sigmin,8.0*atan(1.0)/25.0)
+   call read_real_input(500,'sigmax',sigmax,8.0*atan(1.0)/1.0)   
+   call read_int_input (500,'jadcgdx',jadcgdx,1)
+   call read_real_input(500,'c_dispT',c_dispT,1.0)   
    call read_real_input(500,'sector',sector,180.0)
    !
    ! Settings related to IG waves:   
@@ -447,7 +512,7 @@ contains
    !
    ! Wind
    !
-   call read_int_input(500,'snapwave_wind',wind_opt,0)   
+   call read_int_input(500,'snapwave_wind',wind_opt,0)   ! Flag whether to include windgrowth in SnapWave (1) or not (0, default)
    !
    ! Vegetation input
    !
