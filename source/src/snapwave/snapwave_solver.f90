@@ -144,7 +144,7 @@ module snapwave_solver
       Fx = F*cos(thetam)
       Fy = F*sin(thetam)
       !
-      write(*,*)'   Computation:               ', t3 - t2, ' seconds'
+      !write(*,*)'   Computation:               ', t3 - t2, ' seconds'
       !
    end subroutine
    
@@ -867,11 +867,15 @@ module snapwave_solver
          ! Relative maximum error
          !
          error = maxval(diff)/eemax
-         write(*,'(a,i6,a,f10.5,a,f7.2)')'   iteration ',iter/4 ,' error = ',error,'   %ok = ',percok
+         !write(*,'(a,i6,a,f10.5,a,f7.2)')'   iteration ',iter/4 ,' error = ',error,'   %ok = ',percok
          !
          if (error<crit) then
-            !write(*,*) 'Stop'
+            write(*,'(a,i6,a,f10.5,a,f7.2)')'   converged at iteration ',iter/4 ,' error = ',error,'   %ok = ',percok
             exit
+         else
+             if (iter == niter) then !made it to the end without reaching 'error<crit', still want output
+                write(*,'(a,i6,a,f10.5,a,f7.2)')'    ended at iteration ',iter/4 ,' error = ',error,'   %ok = ',percok
+             endif
          endif
          !
       endif

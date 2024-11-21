@@ -205,7 +205,6 @@ contains
       enddo
       close(500)
       !
-      write(*,*)'snapwave_bndfile, nwbnd, x_bwv, y_bwv',trim(snapwave_bndfile), nwbnd, x_bwv, y_bwv
       ! Read wave boundaries
       !
       write(*,*)'Reading wave boundaries ...'
@@ -233,9 +232,7 @@ contains
          read(500,*)t_bwv(itb),(hs_bwv(ib, itb), ib = 1, nwbnd)
       enddo
       close(500)
-      !
-      write(*,*)'snapwave_bndfile, nwbnd, x_bwv, y_bwv',trim(snapwave_bhsfile), t_bwv, hs_bwv
-      
+      !      
       ! Tp (peak period)
       !
       open(500, file=trim(snapwave_btpfile))
@@ -252,9 +249,7 @@ contains
       do itb = 1, ntwbnd
          read(500,*)t_bwv(itb),(wd_bwv(ib, itb), ib = 1, nwbnd)
       enddo
-      close(500)
-      write(*,*)'snapwave_bwdfile, ntwbnd, t_bwv, wd_bwv',trim(snapwave_bwdfile), ntwbnd, t_bwv, wd_bwv
-      
+      close(500)      
       !
       ! Ds (directional spreading)
       !
@@ -677,14 +672,6 @@ subroutine update_boundary_points(t)
    !
    ! Build spectra on wave boundary support points
    !
-   write(*,*)'nwbnd', nwbnd
-   write(*,*)'hst_bwv,tpt_bwv, wdt_bwv, dst_bwv',hst_bwv,tpt_bwv, wdt_bwv, dst_bwv
-   write(*,*)'dtheta',dtheta
-   write(*,*)'theta',theta
-   write(*,*)'thetamean',thetamean
-   
-   !write(*,*)' thetamean = ',thetamean*180./pi
-   !write(*,'(a,18f7.1)')'theta = ',theta*180./pi
    do ib = 1, nwbnd ! Loop along boundary points
       !
       E0   = 0.0625 * rho * g * hst_bwv(ib)**2
@@ -694,15 +681,9 @@ subroutine update_boundary_points(t)
       where (abs(mod(pi+theta - thetamean,2.0*pi)-pi)>0.999*pi/2.0) dist = 0.0      
       !
       eet_bwv(:,ib) = dist/sum(dist)*E0/dtheta
-      !
-       write(*,*)'ib,E0,ms',ib,E0,ms
-       write(*,*)'sum(dist)',sum(dist)
-       write(*,*)'dist',dist       
-       write(*,*)'eet_bwv(:,ib)',eet_bwv(:,ib)
-      
+      !      
    enddo
    !
-   write(*,*)'eet_bwv',eet_bwv   
    ! Build IG spectra on wave boundary support points   
    if (igwaves) then   
       if (igherbers) then 
@@ -846,10 +827,7 @@ subroutine update_boundaries()
    !
    ! Loop through grid boundary points
    ! Now for all grid boundary points do spatial interpolation of the wave spectra from boundary points at polygon
-   !
-   write(*,*)'eet_bwv',eet_bwv
-   !write(*,*)'ind1_bwv_cst,ind2_bwv_cst,fac_bwv_cst',ind1_bwv_cst,ind2_bwv_cst,fac_bwv_cst
-   
+   !   
    do ib = 1, nb
       !
       k = nmindbnd(ib)
@@ -889,8 +867,6 @@ subroutine update_boundaries()
       endif      
    endif          
    !
-   write(*,*)'max ee',MAXVAL(ee)
-   
    end subroutine   
    
    
