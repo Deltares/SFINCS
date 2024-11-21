@@ -1349,22 +1349,6 @@ module snapwave_solver
    t = real(count)/count_rate
    end subroutine timer
 
-       
-   subroutine writebinary(filename,var,m,n)
-   character(*), intent(in)           :: filename
-   integer, intent(in)                :: m,n
-   real*4, dimension(m,n), intent(in) :: var
-
-   integer                            :: i,j
-
-   open(11,file=filename,status='replace',form='binary')
-   do j=1,n
-      write(11)(var(i,j),i=1,m)
-   enddo
-   close(11)
-   
-   end subroutine writebinary
-
    subroutine vegatt(sigm, no_nodes, kwav, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, depth, rho, g, H, Dveg) 
         use snapwave_domain
 		
