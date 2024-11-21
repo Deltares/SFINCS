@@ -6,8 +6,6 @@ contains
    !
    use snapwave_data
    use snapwave_boundaries
-   use snapwave_results
-   use snapwave_ncoutput
    use interp
    use sfincs_error      
    !
@@ -40,11 +38,7 @@ contains
    !
    ext = 'qt'
    !
-   if (ext=='nc') then
-      !
-      call nc_read_net()
-      !
-   elseif (ext=='qt') then
+   if (ext=='qt') then
       !
       ! Quadtree file
       !
@@ -53,16 +47,6 @@ contains
       else
          call read_snapwave_quadtree_mesh(.true.)
       endif
-      !
-!      open(112, file='masktest.txt')
-!      write(112,'(3i8)')no_nodes,no_faces,0
-!      do k = 1, no_nodes
-!         write(112,'(f12.1,f12.1,f12.3,i8)')x(k),y(k),zb(k),msk(k)
-!      enddo   
-!      do k = 1, no_faces
-!         write(112,'(4i8)')(face_nodes(j, k), j = 1, 4)
-!      enddo
-!      close(112)
       !
    elseif (ext=='tx') then
       !
@@ -93,8 +77,18 @@ contains
    !
    ! Done with the mesh
    !
-   ntheta360 = int(360.1/dtheta)
-   ntheta    = int(180.1/dtheta)
+   ! keep on also if ja_vegetation==0, so array Dveg is initialized with zeroes
+   !if (ja_vegetation==1) then
+   !   call veggie_init()   
+   !else
+   allocate(veg_Cd(no_nodes, no_secveg))
+   allocate(veg_ah(no_nodes, no_secveg))
+   allocate(veg_bstems(no_nodes,  no_secveg))
+   allocate(veg_Nstems(no_nodes,  no_secveg))
+   !endif   
+   !
+   ntheta360 = nint(360./dtheta)
+   ntheta    = nint(sector/dtheta)   
    !
    ! Allocation of spatial arrays
    !
@@ -110,6 +104,7 @@ contains
    allocate(Hmx(no_nodes))
    allocate(fw(no_nodes))
    allocate(H(no_nodes))
+   allocate(Tp(no_nodes))   
    allocate(kwav_ig(no_nodes))
    allocate(nwav_ig(no_nodes))
    allocate(C_ig(no_nodes))
@@ -117,12 +112,15 @@ contains
    allocate(sinhkh_ig(no_nodes))
    allocate(Hmx_ig(no_nodes))
    allocate(fw_ig(no_nodes))
-   allocate(H_ig(no_nodes))     
+   allocate(H_ig(no_nodes)) 
+   allocate(Dveg(no_nodes))   
    allocate(Dw(no_nodes))
    allocate(Dw_ig(no_nodes))   
    allocate(F(no_nodes))
    allocate(Fx(no_nodes))
    allocate(Fy(no_nodes))
+   allocate(u10(no_nodes))
+   allocate(u10dir(no_nodes))   
    allocate(Df(no_nodes))
    allocate(Df_ig(no_nodes))
    allocate(thetam(no_nodes))
@@ -145,21 +143,20 @@ contains
    allocate(i360(ntheta))
    allocate(neumannconnected(no_nodes))
    allocate(tau(no_nodes))
-!   allocate(bndindx(no_nodes))
-!   allocate(F0tab(ntab))
-!   allocate(Fluxtab(no_nodes,ntab))
    allocate(theta(ntheta))
    allocate(dist(ntheta))
    allocate(theta360d0(ntheta360))
    allocate(theta360(ntheta360))
-!   allocate(sinth(ntheta))
-!   allocate(costh(ntheta))
-!   allocate(dist(ntheta))
-!   allocate(ee0(ntheta))
-!   allocate(x(no_nodes))
-!   allocate(y(no_nodes))
+   allocate(windspread360(ntheta360, no_nodes))
+   allocate(windspreadfac(ntheta, no_nodes))
    allocate(ee(ntheta,no_nodes))
    allocate(ee_ig(ntheta,no_nodes))
+   allocate(aa    (ntheta,no_nodes))
+   allocate(sig   (no_nodes))
+   allocate(WsorE (ntheta,no_nodes))
+   allocate(WsorA (ntheta,no_nodes))
+   allocate(SwE   (no_nodes))
+   allocate(SwA   (no_nodes))
    !
    ! Spatially-uniform bottom friction coefficients
    !
@@ -195,6 +192,13 @@ contains
    prev360 = 0
    H       = 0.0
    H_ig    = 0.0
+   aa     = 0.0
+   sig    = 0.0
+   WsorE  = 0.0
+   WsorA  = 0.0
+   SwE    = 0.0
+   SwA    = 0.0
+   windspreadfac = 0.0   
    !
    generate_upw = .false.
    exists = .true.
@@ -283,6 +287,10 @@ contains
        enddo              
        !
    endif      
+   !
+   ! Neumann 
+   ! temp:
+   neumannconnected = 0   
    !
    nb = 0
    !

@@ -203,6 +203,7 @@ module sfincs_lib
    tloopsnapwave  = 0.0
    tloopwavemaker = 0.0
    !
+   write(*,'(a)')''   
    write(*,*)'Initializing output ...'
    !
    call initialize_output(tmapout, tmaxout, thisout, trstout)

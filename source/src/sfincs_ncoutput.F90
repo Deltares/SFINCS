@@ -2900,8 +2900,8 @@ contains
    ! Add user params to netcdf file (both map & his)
    use sfincs_data   
    ! Because of overlapping names, only important specific values from snapwave_data
-   use snapwave_data, only: gamma, snapwave_alpha, hmin, fw0, fw0_ig, dt, tol, dtheta, crit, nr_sweeps, baldock_opt, baldock_ratio, &
-       igwaves_opt, snapwave_alpha_ig, gamma_ig, shinc2ig, alphaigfac, baldock_ratio_ig, ig_opt, herbers_opt, tpig_opt, eeinc2ig, tinc2ig, &
+   use snapwave_data, only: gamma, alpha, hmin, fw0, fw0_ig, dt, tol, dtheta, crit, nr_sweeps, baldock_opt, baldock_ratio, &
+       igwaves_opt, alpha_ig, gamma_ig, shinc2ig, alphaigfac, baldock_ratio_ig, ig_opt, herbers_opt, tpig_opt, eeinc2ig, tinc2ig, &
        jonswapfile, encfile, upwfile, gridfile
    
    !
@@ -3077,7 +3077,7 @@ contains
         !
         NF90(nf90_put_att(ncid, varid, 'snapwave', logical2int(snapwave))) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_gamma', gamma)) 
-        NF90(nf90_put_att(ncid, varid, 'snapwave_alpha', snapwave_alpha)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_alpha', alpha)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_hmin',hmin)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_fw',fw0)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_fwig',fw0_ig)) 
@@ -3092,7 +3092,7 @@ contains
         ! SnapWave IG
         !
         NF90(nf90_put_att(ncid, varid, 'snapwave_igwaves',igwaves_opt))         
-        NF90(nf90_put_att(ncid, varid, 'snapwave_alpha_ig',snapwave_alpha_ig)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_alpha_ig',alpha_ig)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_gammaig',gamma_ig)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_shinc2ig',shinc2ig)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_alphaigfac',alphaigfac)) 
