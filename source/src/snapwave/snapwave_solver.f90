@@ -15,7 +15,6 @@ module snapwave_solver
       real*4, parameter    :: waveps = 1e-5
       !real*4, dimension(:), allocatable   :: sig
       real*4, dimension(:), allocatable   :: sigm_ig
-      real*4, dimension(:), allocatable   :: Tp_ig
       real*4, dimension(:), allocatable   :: expon
       !
       integer   :: itheta

@@ -17,7 +17,8 @@ module snapwave_data
    real*4,  dimension(:),       allocatable    :: fw                      ! friction coefficient
    real*4,  dimension(:),       allocatable    :: fw_ig                   ! friction coefficient
    real*4,  dimension(:),       allocatable    :: H, H_ig                 ! rms wave height
-   real*4,  dimension(:),       allocatable    :: Tp                      ! peak wave period   
+   real*4,  dimension(:),       allocatable    :: Tp                      ! peak wave period
+   real*4,  dimension(:),       allocatable    :: Tp_ig                   ! infragravity peak wave period   
    real*4,  dimension(:),       allocatable    :: Dw,Df                   ! dissipation due to breaking, bed friction
    real*4,  dimension(:),       allocatable    :: Dw_ig,Df_ig             ! dissipation due to breaking, bed friction for IG   
    real*4,  dimension(:),       allocatable    :: F                       ! wave force Dw/C/rho/depth
@@ -265,7 +266,8 @@ module snapwave_data
    !
    real*4                                    :: baldock_ratio_ig   ! option controlling from what depth wave breaking should take place for IG waves: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio_ig=0.2    
    integer                                   :: igwaves_opt     ! option of IG waves on (1) or off (0)      
-   integer                                   :: iterative_srcig ! option whether IG source/sink term should be calculated in the iterative loop again (iterative_srcig = 1, is a bit slower), or just a priori based on effectively incident wave energy from previous timestep only   
+   integer                                   :: iterative_srcig ! option whether IG source/sink term should be calculated in the iterative loop again (iterative_srcig = 1, is a bit slower), 
+                                                                ! ... or just a priori based on effectively incident wave energy from previous timestep only   
    integer                                   :: herbers_opt     ! Choice whether you want IG Hm0&Tp be calculated by herbers (=1, default), or want to specify user defined values (0> then snapwave_eeinc2ig & snapwave_Tinc2ig are used) 
    integer                                   :: tpig_opt        ! IG wave period option based on Herbers calculated spectrum, only used if herbers_opt = 1. Options are: 1=Tm01 (default), 2=Tpsmooth, 3=Tp, 4=Tm-1,0    
    !

@@ -45,7 +45,6 @@
    real*4    :: gammax
    real*4    :: facmax
    real*4    :: wsumax
-   real*4    :: tp
    !
    real*4    :: qx_nm
    real*4    :: qx_nmd
@@ -629,6 +628,30 @@
                   !
                   q(ip) = q(ip) * wiggle_threshold / (wiggle_factor * mdrv + wiggle_threshold)
                   !
+               endif
+               !
+            endif
+            !
+            ! Making sure that no water can flow out of a cell when its water depth is negative
+            !
+            if (subgrid) then
+               !
+               if (zs(nm) < subgrid_z_zmin(nm)) then
+                  q(ip) = min(q(ip), 0.0)
+               endif
+               !
+               if (zs(nmu) < subgrid_z_zmin(nmu)) then
+                  q(ip) = max(q(ip), 0.0)
+               endif
+               !
+            else
+               !
+               if (zs(nm) < zb(nm)) then
+                  q(ip) = min(q(ip), 0.0)
+               endif
+               !
+               if (zs(nmu) < zb(nmu)) then
+                  q(ip) = max(q(ip), 0.0)
                endif
                !
             endif
