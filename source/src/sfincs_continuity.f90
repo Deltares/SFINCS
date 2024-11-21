@@ -304,13 +304,13 @@ contains
       !
       if (kcs(nm)==1) then
          !
+         if (crsgeo) then
+             a = cell_area_m2(nm)
+         else   
+             a = cell_area(z_flags_iref(nm))
+         endif
+         !   
          if (precip) then
-            !
-            if (crsgeo) then
-                a = cell_area_m2(nm)
-            else   
-                a = cell_area(z_flags_iref(nm))
-            endif
             !
             cumprcpt(nm) = cumprcpt(nm) + netprcp(nm)*dt
             !
