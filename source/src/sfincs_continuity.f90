@@ -79,7 +79,11 @@ contains
       !$acc serial, present( zs,nmindsrc,qtsrc,zb,cell_area,z_flags_iref ), async(1)
       do isrc = 1, nsrcdrn
          nm = nmindsrc(isrc)
-         zs(nmindsrc(isrc))   = max(zs(nm) + qtsrc(isrc)*dt/cell_area(z_flags_iref(nm)), zb(nm))
+         if (crsgeo) then
+            zs(nmindsrc(isrc))   = max(zs(nm) + qtsrc(isrc)*dt / cell_area_m2(nm), zb(nm))
+         else
+            zs(nmindsrc(isrc))   = max(zs(nm) + qtsrc(isrc)*dt / cell_area(z_flags_iref(nm)), zb(nm))
+         endif
       enddo
       !$acc end serial
    endif   
@@ -120,10 +124,14 @@ contains
          num = z_index_uv_nu(nm)
          !
          if (crsgeo) then
-            zs(nm)   = zs(nm) + (((q(nmd) - q(nmu))*max(dxminv(nmd), dxminv(nmu)) + (q(ndm) - q(num))*dyrinv(z_flags_iref(nm))))*dt
+            !
+            zs(nm)   = zs(nm) + ( (q(nmd) - q(nmu)) * max(dxminv(nmd), dxminv(nmu)) + (q(ndm) - q(num)) * dyrinv(z_flags_iref(nm)) ) * dt
+            !
          else   
-            zs(nm)   = zs(nm) + (((q(nmd) - q(nmu))*dxrinv(z_flags_iref(nm)) + (q(ndm) - q(num))*dyrinv(z_flags_iref(nm))))*dt
-         endif   
+            !
+            zs(nm)   = zs(nm) + ( (q(nmd) - q(nmu)) * dxrinv(z_flags_iref(nm)) + (q(ndm) - q(num)) * dyrinv(z_flags_iref(nm)) ) * dt
+            !
+         endif
          !
       endif
       !
@@ -297,11 +305,11 @@ contains
       if (kcs(nm)==1) then
          !
          if (crsgeo) then
-            a = cell_area_m2(nm)
+             a = cell_area_m2(nm)
          else   
-            a = cell_area(z_flags_iref(nm))
+             a = cell_area(z_flags_iref(nm))
          endif
-         !
+         !   
          if (precip) then
             !
             cumprcpt(nm) = cumprcpt(nm) + netprcp(nm)*dt
