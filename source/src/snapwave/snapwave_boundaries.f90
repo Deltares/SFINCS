@@ -787,7 +787,7 @@ subroutine make_theta_grid(central_theta)
       !
    enddo  
    !
-   if (wind==1) then
+   if (wind) then
        !
        ! initialization of distribution array of wind input
        !
