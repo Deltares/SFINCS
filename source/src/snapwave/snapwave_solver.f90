@@ -488,7 +488,7 @@ module snapwave_solver
          Ek       = sum(ee(:, k))*dtheta      
          Hk       = min(sqrt(Ek/rhog8), gamma*depth(k))
          Ek       = rhog8*Hk**2
-         if (wind/=1) then
+         if (.not. wind) then
             uorbi    = 0.5*sig(k)*Hk/sinhkh(k)
             Dfk      = 0.28*rho*fw(k)*uorbi**3
             call baldock(rho, g, alfa, gamma, depth(k), Hk, Tp(k), 1, Dwk, Hmx(k))
@@ -561,7 +561,7 @@ module snapwave_solver
          if (inner(k)) then
             if (depth(k)>1.1*hmin) then
                !
-               if (.not. ok(k))  then
+               if (ok(k) == 0)  then
                   !
                   ! Only perform computations on wet inner points that are not yet converged (ok)
                   !
