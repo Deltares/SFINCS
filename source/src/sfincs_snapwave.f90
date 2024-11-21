@@ -475,7 +475,7 @@ contains
    call read_real_input(500,'snapwave_fw',fw0,0.01)
    call read_real_input(500,'snapwave_fwig',fw0_ig,0.015)
    call read_real_input(500,'snapwave_dt',dt,36000.0)
-   call read_real_input(500,'snapwave_tol',tol,10.0)
+   call read_real_input(500,'snapwave_tol',tol,1000.0)
    call read_real_input(500,'snapwave_dtheta',dtheta,10.0)
    call read_real_input(500,'snapwave_crit',crit,0.00001) !TL: Old default was 0.01
    call read_int_input(500,'snapwave_nrsweeps',nr_sweeps,4)

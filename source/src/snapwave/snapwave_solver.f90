@@ -22,7 +22,6 @@ module snapwave_solver
       !
       !allocate(sig(no_nodes))
       allocate(sigm_ig(no_nodes))
-      allocate(Tp_ig(no_nodes))
       !
       g     = 9.81
       pi    = 4.*atan(1.)
@@ -552,7 +551,6 @@ module snapwave_solver
          endif   
          !
       endif
-      !
       !
       !  Loop over all points depending on sweep direction
       !
