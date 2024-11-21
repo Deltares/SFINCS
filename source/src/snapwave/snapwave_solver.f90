@@ -138,7 +138,7 @@ module snapwave_solver
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
                                          beta, srcig, alphaig, Dw_ig, Df_ig, &
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
-                                         zb, nwav, ig_opt, alpha_ig, gamma_ig, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig)
+                                         zb, nwav, ig_opt, alpha_ig, gamma_ig, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
       !
       call timer(t3)
       !
@@ -165,7 +165,7 @@ module snapwave_solver
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
                                          betamean, srcig, alphaig, Dw_ig, Df_ig, &       
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
-                                         zb, nwav, ig_opt, alfa_ig, gamma_ig, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig)
+                                         zb, nwav, ig_opt, alfa_ig, gamma_ig, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
    !
    use snapwave_windsource
    !use snapwave_ncoutput ! TL: removed, we don't use this in SF+SW
@@ -185,6 +185,7 @@ module snapwave_solver
    logical, dimension(no_nodes), intent(inout)      :: inner                  ! mask of inner grid points (not on boundary)
    logical, intent(in)                              :: wind                   ! logical wind on/off
    logical, intent(in)                              :: igwaves                ! logical IG waves on/off
+   integer, intent(in)                              :: iterative_srcig        ! option whether IG source/sink term should be calculated implicitly (iterative_srcig = 1), or just a priori based on effectively incident wave energy from previous timestep only (iterative_srcig=0, explicitly, bit faster)
    integer, dimension(no_nodes),intent(in)          :: neumannconnected       ! number of neumann boundary point if connected to inner point
    real*4, dimension(no_nodes), intent(in)          :: depth                  ! water depth
    real*4, dimension(no_nodes), intent(in)          :: zb                     ! actual bed level
@@ -527,6 +528,29 @@ module snapwave_solver
          do k = 1, no_nodes
             Eold(k) = sum(eeold(:, k))
          enddo
+         !
+         if (igwaves) then
+            !        
+            if (iterative_srcig==1) then 
+                ! Update H(k) based on updated ee(:,k), as used in IG source term to determine alphaig
+                ! 
+                do k = 1, no_nodes   
+                   ! 
+                   if (inner(k)) then             
+                       !
+                       H(k)      = sqrt(8*sum(ee(:, k))*dtheta/rho/g)                   
+                       !
+                   endif               
+                enddo
+                !
+                ! Actual determining of source term - every first sweep of iteration
+                !          
+                call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
+                !    
+            endif
+            !
+         endif   
+         !
       endif
       !
       !
@@ -821,8 +845,6 @@ module snapwave_solver
          endif
          !
       enddo
-      !
-      ! TODO - TL: Check whether can put back here the srcig_iterative == 1
       !
       if (sweep==4) then
          !
