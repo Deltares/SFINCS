@@ -467,9 +467,28 @@ subroutine update_boundary_conditions(t)
    real*8           :: t
    !
    ! Update boundary conditions at boundary points
-!   write(*,*)'t=',t
    !
    call update_boundary_points(t)
+   !
+   ! Update wind forcing 
+   !
+   if (wind) then
+      call update_wind_field()
+   endif
+   !
+   ! Make directional grid around boundary mean wave/wind direction
+   !
+   thetamean = wdmean_bwv
+   if (ntwbnd > 0) then
+      call make_theta_grid(wdmean_bwv)
+   else
+      thetamean=u10dmean
+      call make_theta_grid(u10dmean)
+   endif 
+   !
+   ! Build spectra on the boundary support points
+   !
+   !call build_boundary_support_points_spectra() TODO - TL: later can clean up this code by also using this function
    !
    ! Update boundary conditions at grid points
    !
@@ -540,18 +559,25 @@ subroutine update_boundary_points(t)
       dsp = ds_bwv(ib, itb0) + (ds_bwv(ib, itb1) - ds_bwv(ib, itb0))*tbfac    !dirspr
       !zst = zs_bwv(ib, itb0) + (zs_bwv(ib, itb1) - zs_bwv(ib, itb0))*tbfac
       !
-      ! Limit directional spreading (2 < ds < 45)
+      ! Limit wave height (0 < hs < 25)
       !       
-      if ((dsp < 2*pi/180) .or. (dsp > 45*pi/180)) then  
-      	  write(*,*)'DEBUG SnapWave - input wave spreading is outside acceptable range of 2-45 degrees: ',dsp/pi*180, ' and is therefore limited back to this range, please check whether input is realistic!'          
-          dsp = max(min(dsp, 45*pi/180), 2*pi/180)
+      if ((hs < 0.0) .or. (hs > 25.0)) then
+      	  write(*,*)'DEBUG SnapWave - input wave height is outside acceptable range of 0-25 m: ',hs, ' and is therefore limited back to this range, please check whether your input is realistic!'
+          hs = max(min(hs, 25.0), 0.0)
+      endif  
+      !
+      ! Limit directional spreading (1 < ds < 60)
+      !       
+      if ((dsp < 3*pi/180) .or. (dsp > 60*pi/180)) then  
+      	  write(*,*)'DEBUG SnapWave - input wave spreading is outside acceptable range of 3-60 degrees: ',dsp/pi*180, ' and is therefore limited back to this range, please check whether your input is realistic!'          
+          dsp = max(min(dsp, 60*pi/180), 3*pi/180)
       endif      
       !
-      ! Limit period (2 < tps < 25)
+      ! Limit period (0.1 < tps < 25)
       !       
-      if ((tps < 2.0) .or. (tps > 25.0)) then
-      	  write(*,*)'DEBUG SnapWave - input wave period is outside acceptable range of 2-25 s: ',tps, ' and is therefore limited back to this range, please check whether input is realistic!'
-          tps = max(min(tps, 25.0), 2.0)
+      if ((tps < 0.1) .or. (tps > 25.0)) then
+      	  write(*,*)'DEBUG SnapWave - input wave period is outside acceptable range of 0.1-25 s: ',tps, ' and is therefore limited back to this range, please check whether your input is realistic!'
+          tps = max(min(tps, 25.0), 0.1)
       endif      
       !
       call weighted_average(wd_bwv(ib, itb0), wd_bwv(ib, itb1), 1.0 - tbfac, 2, wd)  !wavdir
@@ -690,8 +716,117 @@ subroutine update_boundary_points(t)
       endif
    endif
    !         
-end subroutine
-   
+end subroutine update_boundary_points
+!
+subroutine update_wind_field()
+   !
+   ! Update wind field at all grid cells
+   !
+   use snapwave_data
+   !
+   implicit none
+   !
+   integer k
+   real*4, dimension(:), allocatable :: windspread360k
+   !
+   allocate(windspread360k(ntheta360))
+   windspread360k=0.0
+   !
+   ! Interpolate boundary conditions in timeseries to boundary points 
+   ! TL: already done in SFINCS
+   !
+   ! average wind direction
+   ! 
+   u10dmean = atan2(sum(sin(u10dir)*u10),sum(cos(u10dir)*u10))  
+   !
+   ! Initialize the distribution array of wind input
+   ! 
+   do k = 1,no_nodes
+      windspread360k = (cos(theta360-u10dir(k)))**2.0
+      where(cos(theta360-u10dir(k))<0.0) windspread360k = 0.0
+      windspread360k = (windspread360k/sum(windspread360k))/dtheta ! normalized and converted to input per rad
+      windspread360(:,k) = windspread360k
+   enddo
+   !   
+end subroutine update_wind_field
+!
+!    
+subroutine make_theta_grid(central_theta)
+   !
+   ! make theta grid based on boundary mean wave direction
+   !
+   use snapwave_data
+   !
+   implicit none
+   !
+   real, intent(in) :: central_theta
+   integer k, itheta, ind
+   !
+   ! Determine theta grid and adjust w, prev and ds tables
+   !
+   ! Definition of directional grid
+   !   
+   ind=nint(central_theta/dtheta)-ntheta/2;
+   do itheta = 1, ntheta
+      i360(itheta)=mod2(itheta+ind,ntheta360)
+   enddo
+   !
+   do itheta = 1, ntheta
+      !
+      theta(itheta) = theta360(i360(itheta))
+      !
+      do k = 1, no_nodes
+         w(1, itheta, k)    = w360(1, i360(itheta), k)
+         w(2, itheta, k)    = w360(2, i360(itheta), k)
+         prev(1, itheta, k) = prev360(1, i360(itheta), k)
+         prev(2, itheta, k) = prev360(2, i360(itheta), k)
+         ds(itheta, k)      = ds360(i360(itheta), k)
+         !
+         windspreadfac(itheta, k) = windspread360(i360(itheta), k)
+      enddo
+      !
+   enddo  
+   !
+   if (wind==1) then
+       !
+       ! initialization of distribution array of wind input
+       !
+       do k = 1, no_nodes
+          windspreadfac(:,k)=(cos(theta-u10dir(k)))**mwind
+          where(cos(theta-u10dir(k))<0.0) windspreadfac(:,k)=0.0
+          if (sum(windspreadfac(:,k))>0.0) then      
+             windspreadfac(:,k) = (windspreadfac(:,k)/sum(windspreadfac(:,k)))/dtheta
+          else
+             windspreadfac(:,k)=0.0
+          endif  
+       enddo
+       !
+   endif
+   !
+end subroutine make_theta_grid
+!
+subroutine build_boundary_support_points_spectra()
+   !
+   ! Update directional spectra on boundary points from time series
+   !
+   use snapwave_data
+   !
+   implicit none
+   !
+   integer :: ib
+   !
+   real*4  :: E0, ms
+   !  
+   do ib = 1, nwbnd ! Loop along boundary points
+      E0   = 0.0625*rho*g*hst_bwv(ib)**2
+      ms = 1.0/dst_bwv(ib)**2-1.0
+      dist = sign(1.0,cos(theta - thetamean))*abs(cos(theta - thetamean))**ms
+      where (abs(mod(pi+theta - thetamean,2.0*pi)-pi)>0.999*pi/2.0) dist = 0.0
+      eet_bwv(:,ib) = dist/sum(dist)*E0/dtheta
+   enddo
+   !
+end subroutine build_boundary_support_points_spectra
+!
 subroutine update_boundaries()
    !
    ! Update values at boundary points
