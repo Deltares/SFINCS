@@ -536,20 +536,30 @@ contains
    close(500)
    !
    igwaves          = .true.
-   igherbers        = .false.    
+   igherbers        = .false.
+   !
    if (igwaves_opt==0) then
+      !
       igwaves       = .false.
       write(*,*)'SnapWave: IG waves turned OFF!'
+      !
    else
+      ! 
       write(*,*)'SnapWave: IG waves turned ON!'
+      !
+      if (iterative_srcig==1) then
+         write(*,*)'SnapWave: using implicit IG sink/source term'
+      else
+         write(*,*)'SnapWave: using explicit IG sink/source term'       
+      endif      
       !
       if (herbers_opt==0) then
          write(*,*)'SnapWave: IG bc determination using Herbers turned OFF! --> Use eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
       else
          igherbers     = .true.          
          write(*,*)'SnapWave: IG bc determination using Herbers turned ON!'
-      endif      
-      !      
+      endif
+      !
    endif
    !
    wind          = .true.
@@ -572,12 +582,6 @@ contains
       nr_sweeps = 4
       write(*,*)'SnapWave: Warning! nr_sweeps must be 1 or 4! Now set to 4.'
    endif
-   !
-   if (iterative_srcig==1) then
-      write(*,*)'SnapWave: using implicit IG sink/source term'
-   else
-      write(*,*)'SnapWave: using explicit IG sink/source term'       
-   endif   
    ! 
    restart           = .true.
    coupled_to_sfincs = .true.
