@@ -487,11 +487,11 @@ contains
    call read_real_input(500,'snapwave_fwig_ratio',fwigratio,1.0)
    call read_real_input(500,'snapwave_Tpini',Tpini,1.0)
    call read_int_input (500,'snapwave_mwind',mwind,2)      
-   call read_real_input(500,'sigmin',sigmin,8.0*atan(1.0)/25.0)
-   call read_real_input(500,'sigmax',sigmax,8.0*atan(1.0)/1.0)   
-   call read_int_input (500,'jadcgdx',jadcgdx,1)
-   call read_real_input(500,'c_dispT',c_dispT,1.0)   
-   call read_real_input(500,'sector',sector,180.0)
+   call read_real_input(500,'snapwave_sigmin',sigmin,8.0*atan(1.0)/25.0)
+   call read_real_input(500,'snapwave_sigmax',sigmax,8.0*atan(1.0)/1.0)   
+   call read_int_input (500,'snapwave_jadcgdx',jadcgdx,1)
+   call read_real_input(500,'snapwave_c_dispT',c_dispT,1.0)   
+   call read_real_input(500,'snapwave_sector',sector,180.0)
    !
    ! Settings related to IG waves:   
    call read_int_input(500,'snapwave_igwaves',igwaves_opt,1)   
