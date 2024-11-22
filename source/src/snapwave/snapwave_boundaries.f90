@@ -676,7 +676,6 @@ subroutine update_boundary_points(t)
       !
       E0   = 0.0625 * rho * g * hst_bwv(ib)**2
       ms   = 1.0 / dst_bwv(ib)**2 - 1.0
-      !dist = (cos(theta - thetamean))**ms
       dist = sign(1.0,cos(theta - thetamean))*abs(cos(theta - thetamean))**ms
       where (abs(mod(pi+theta - thetamean,2.0*pi)-pi)>0.999*pi/2.0) dist = 0.0      
       !
@@ -691,7 +690,6 @@ subroutine update_boundary_points(t)
              !          
              E0_ig   = 0.0625 * rho * g * hst_bwv_ig(ib)**2
              ms   = 1.0 / dst_bwv(ib)**2 - 1.0
-             !dist = (cos(theta - thetamean))**ms      
              dist = sign(1.0,cos(theta - thetamean))*abs(cos(theta - thetamean))**ms
              where (abs(mod(pi+theta - thetamean,2.0*pi)-pi)>0.999*pi/2.0) dist = 0.0                  
              !         
