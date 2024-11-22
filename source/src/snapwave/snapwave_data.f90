@@ -86,17 +86,16 @@ module snapwave_data
    !
    ! Boundary conditions (single point, time-varying)
    !
-   character*232                               :: jonswapfile             ! filename of time-varying wave and water level data
+   character*232                               :: snapwave_jonswapfile   ! filename of time-varying wave and water level data
    !
    ! Boundary conditions (space- and time-varying)
    !
-   character*232                               :: bndfile
-   character*232                               :: encfile
-   character*232                               :: bhsfile
-   character*232                               :: btpfile
-   character*232                               :: bwdfile
-   character*232                               :: bdsfile
-   character*232                               :: bzsfile
+   character*256                               :: snapwave_bndfile
+   character*256                               :: snapwave_encfile
+   character*256                               :: snapwave_bhsfile
+   character*256                               :: snapwave_btpfile
+   character*256                               :: snapwave_bwdfile
+   character*256                               :: snapwave_bdsfile
    character*256                               :: netsnapwavefile   
    !
    integer                                     :: nwbnd                   ! number of support points wave boundary 
