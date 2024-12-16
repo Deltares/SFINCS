@@ -67,7 +67,8 @@ contains
    ! 2. write grid/msk/zb to file
    !
    use sfincs_date
-   use sfincs_data   
+   use sfincs_data
+   use sfincs_snapwave   
    !
    implicit none   
    !   
@@ -454,6 +455,15 @@ contains
    !
    if (snapwave) then  
       !
+      NF90(nf90_def_var(map_file%ncid, 'snapwavemsk', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid/), map_file%snapwavemsk_varid)) ! input snapwave msk value in cell centre
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%snapwavemsk_varid, 1, 1, nc_deflate_level)) ! deflate
+      NF90(nf90_put_att(map_file%ncid, map_file%snapwavemsk_varid, '_FillValue', FILL_VALUE))          
+      NF90(nf90_put_att(map_file%ncid, map_file%snapwavemsk_varid, 'units', '-'))
+      NF90(nf90_put_att(map_file%ncid, map_file%snapwavemsk_varid, 'standard_name', 'snapwavemask'))
+      NF90(nf90_put_att(map_file%ncid, map_file%snapwavemsk_varid, 'long_name', 'snapwave_msk_active_cells')) 
+      NF90(nf90_put_att(map_file%ncid, map_file%snapwavemsk_varid, 'description', 'inactive=0, active=1, wave_boundary=2, neumann_boundary=3'))       
+      NF90(nf90_put_att(map_file%ncid, map_file%snapwavemsk_varid, 'coordinates', 'x y'))      
+      !
       NF90(nf90_def_var(map_file%ncid, 'hm0', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%hm0_varid))
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%hm0_varid, 1, 1, nc_deflate_level)) ! deflate
       NF90(nf90_put_att(map_file%ncid, map_file%hm0_varid, '_FillValue', FILL_VALUE))          
@@ -602,7 +612,26 @@ contains
    enddo
    !
    NF90(nf90_put_var(map_file%ncid, map_file%msk_varid, zsg, (/1, 1/))) ! write msk     
-   !   
+   !
+   ! Write SnapWave msk
+   !
+   if (snapwave) then  
+      !
+      zsg = 0 ! initialise as inactive points       
+      !
+      do nm = 1, np
+         !
+         n    = z_index_z_n(nm)
+         m    = z_index_z_m(nm)
+         !      
+         zsg(m, n) = snapwave_mask(nm)
+         !
+      enddo
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%snapwavemsk_varid, zsg, (/1, 1/))) ! write snapwave msk     
+      !
+   endif
+   !
    ! Write infiltration map
    !
    if (infiltration) then
