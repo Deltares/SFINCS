@@ -511,8 +511,24 @@ contains
          NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, '_FillValue', FILL_VALUE))          
          NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'units', 'm'))
          NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'standard_name', 'peak_ig_wave_period'))
-         NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'long_name', 'Peak infragravity wave period')) 
-         NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'coordinates', 'x y'))             
+         NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'long_name', 'Peak infragravity wave period'))
+         NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'coordinates', 'x y'))
+         !
+         NF90(nf90_def_var(map_file%ncid, 'beta', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%beta_varid))
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%beta_varid, 1, 1, nc_deflate_level)) ! deflate
+         NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, '_FillValue', FILL_VALUE))          
+         NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'units', '-'))
+         NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'standard_name', 'directionally_averaged_local_bed_slope'))
+         NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'long_name', 'directionally averaged local bed slope'))
+         NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'coordinates', 'x y'))
+         !
+         NF90(nf90_def_var(map_file%ncid, 'snapwavedepth', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%snapwavedepth_varid))
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%snapwavedepth_varid, 1, 1, nc_deflate_level)) ! deflate
+         NF90(nf90_put_att(map_file%ncid, map_file%snapwavedepth_varid, '_FillValue', FILL_VALUE))          
+         NF90(nf90_put_att(map_file%ncid, map_file%snapwavedepth_varid, 'units', 'm'))
+         NF90(nf90_put_att(map_file%ncid, map_file%snapwavedepth_varid, 'standard_name', 'snapwave_waterdepth'))
+         NF90(nf90_put_att(map_file%ncid, map_file%snapwavedepth_varid, 'long_name', 'Interpolated water depth in Snapwave'))
+         NF90(nf90_put_att(map_file%ncid, map_file%snapwavedepth_varid, 'coordinates', 'x y'))     
          !         
       endif
       !
@@ -1068,11 +1084,11 @@ contains
          NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, '_FillValue', FILL_VALUE))          
          NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'units', 's'))
          NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'standard_name', 'peak_ig_wave_period'))
-         NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'long_name', 'Peak infragravity wave period'))                       
+         NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'long_name', 'Peak infragravity wave period'))
          !         
          NF90(nf90_def_var(map_file%ncid, 'beta', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%beta_varid))
          NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, '_FillValue', FILL_VALUE))          
-         NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'units', 'm'))
+         NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'units', '-'))
          NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'standard_name', 'directionally_averaged_local_bed_slope')) 
          NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'long_name', 'directionally averaged local bed slope'))          
          !           
@@ -1733,6 +1749,7 @@ contains
    ! Write time, zs, u, v  
    !
    use sfincs_data   
+   use sfincs_snapwave
    !
    implicit none   
    !
@@ -2037,7 +2054,33 @@ contains
             !
          enddo
          !
-         NF90(nf90_put_var(map_file%ncid, map_file%tpig_varid, zsg, (/1, 1, ntmapout/))) ! write Tpig               
+         NF90(nf90_put_var(map_file%ncid, map_file%tpig_varid, zsg, (/1, 1, ntmapout/))) ! write Tpig
+         !
+         zsg = FILL_VALUE       
+         !
+         do nm = 1, np
+            !
+            n    = z_index_z_n(nm)
+            m    = z_index_z_m(nm)
+            !      
+            zsg(m, n) = betamean(nm)
+            !
+         enddo
+         !
+         NF90(nf90_put_var(map_file%ncid, map_file%beta_varid, zsg, (/1, 1, ntmapout/))) ! write beta
+         !         
+         zsg = FILL_VALUE       
+         !
+         do nm = 1, np
+            !
+            n    = z_index_z_n(nm)
+            m    = z_index_z_m(nm)
+            !      
+            zsg(m, n) = snapwave_depth(nm)
+            !
+         enddo
+         !
+         NF90(nf90_put_var(map_file%ncid, map_file%snapwavedepth_varid, zsg, (/1, 1, ntmapout/))) ! write snapwavedepth
          !
       endif
       !            
