@@ -44,6 +44,7 @@ SFINCS seeks active contribution from the hydro modelling community, so feel fre
 How to ask questions to other users?
 -------------------------------------------------------
 For the SFINCS model itself, questions to fellow users can be asked in the SFINCS `github discussion board section. <https://github.com/Deltares/SFINCS/discussions>`_ 
+
 Questions to fellow users regarding model building with the Python toolbox HydroMT-SFINCS can be asked in the HydroMT-SFINCS `github discussion board section. <https://github.com/Deltares/hydromt_sfincs/discussions>`_ 
 
 Licensing conditions?
@@ -55,15 +56,18 @@ This means (summarised, for details always read license):
 	- Limitations: No liability, no warranty
 	
 The SFINCS pre-compiled executables on Windows and Docker(linux) are available under the conditions as indicated when downloading SFINCS from https://download.deltares.nl/sfincs.
-For SFINCS versions v2.1.1 or OLDER, SFINCS is available under Deltares free-trial license without monetary fee, meaning (summarised, for details always read license):
+
+-For SFINCS versions v2.1.1 or OLDER-
+SFINCS is available under Deltares free-trial license without monetary fee, meaning (summarised, for details always read license):
 	- Permissions: No commercial use, Research publishing allowed, no distribution, no modification
 	- Conditions: Disclose source, License and copyright notice, Same license (so no distribution of closed source versions), no changes
 	- Limitations: No liability, no warranty
 	- Support: The Software is provided to Licensee as is without any support from Deltares
 
-For SFINCS versions of 2025 or later, SFINCS is available under Deltares Freeware license without monetary fee, meaning (summarised, for details always read license):
+-For SFINCS versions of 2025 or later-
+SFINCS is available under Deltares Freeware license without monetary fee, meaning (summarised, for details always read license):
 	- Permissions: Commercial use allowed, Research publishing allowed, no distribution, no modification
-    	- IP, ownership: Deltares owns the copyright to SFINCS Software and the Deltares Software Documentation. 
+    	- IP, ownership: Deltares owns the copyright to SFINCS Software and the Deltares Software Documentation
 	- Conditions: Disclose source, License and copyright notice, Same license (so no distribution of closed source versions), no changes
 	- Limitations: No liability, no warranty
 	- Support: Deltares will only provide any maintenance and/or support for SFINCS Software as part of separate project and/or a maintenance Agreement as agreed with Deltares
