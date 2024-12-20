@@ -169,6 +169,8 @@ contains
       !
       open(unit = 500, file = trim(rstfile), form = 'unformatted', access = 'stream')
       !
+      write(*,*)'Warning : binary restart files from SFINCS v2.1.1 and older are not compatible with SFINCS v2.1.2+, remake your restartfile when using v2.1.2 or newer'    
+      !
       ! Restartfile flavours:
       ! 1: zs, q, uvmean  
       ! 2: zs, q 
