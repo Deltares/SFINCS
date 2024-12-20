@@ -249,6 +249,9 @@ contains
       implicit none
       !
       write(*,*)'Reading ',trim(zsinifile)
+      !
+      write(*,*)'Warning : binary ini files from SFINCS v2.1.1 and older are not compatible with SFINCS v2.1.2+, remake your inifile containing zs as real*8 double precision'    
+      !
       open(unit = 500, file = trim(zsinifile), form = 'unformatted', access = 'stream')
       read(500)inizs
       close(500)       
