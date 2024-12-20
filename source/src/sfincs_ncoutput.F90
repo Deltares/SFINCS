@@ -18,7 +18,7 @@ module sfincs_ncoutput
       integer :: zs_varid, zsmax_varid, h_varid, u_varid, v_varid, tmax_varid, Seff_varid 
       integer :: hmax_varid, vmax_varid, qmax_varid, cumprcp_varid, cuminf_varid, windmax_varid
       integer :: patm_varid, wind_u_varid, wind_v_varid, precip_varid        
-      integer :: hm0_varid, hm0ig_varid, snapwavemsk_varid, tp_varid, tpig_varid
+      integer :: hm0_varid, hm0ig_varid, snapwavemsk_varid, tp_varid, tpig_varid, wavdir_varid, dirspr_varid
       integer :: fwx_varid, fwy_varid, beta_varid, snapwavedepth_varid
       integer :: zsm_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid
@@ -67,7 +67,8 @@ contains
    ! 2. write grid/msk/zb to file
    !
    use sfincs_date
-   use sfincs_data   
+   use sfincs_data
+   use sfincs_snapwave   
    !
    implicit none   
    !   
@@ -454,6 +455,15 @@ contains
    !
    if (snapwave) then  
       !
+      NF90(nf90_def_var(map_file%ncid, 'snapwavemsk', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid/), map_file%snapwavemsk_varid)) ! input snapwave msk value in cell centre
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%snapwavemsk_varid, 1, 1, nc_deflate_level)) ! deflate
+      NF90(nf90_put_att(map_file%ncid, map_file%snapwavemsk_varid, '_FillValue', FILL_VALUE))          
+      NF90(nf90_put_att(map_file%ncid, map_file%snapwavemsk_varid, 'units', '-'))
+      NF90(nf90_put_att(map_file%ncid, map_file%snapwavemsk_varid, 'standard_name', 'snapwavemask'))
+      NF90(nf90_put_att(map_file%ncid, map_file%snapwavemsk_varid, 'long_name', 'snapwave_msk_active_cells')) 
+      NF90(nf90_put_att(map_file%ncid, map_file%snapwavemsk_varid, 'description', 'inactive=0, active=1, wave_boundary=2, neumann_boundary=3'))       
+      NF90(nf90_put_att(map_file%ncid, map_file%snapwavemsk_varid, 'coordinates', 'x y'))      
+      !
       NF90(nf90_def_var(map_file%ncid, 'hm0', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%hm0_varid))
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%hm0_varid, 1, 1, nc_deflate_level)) ! deflate
       NF90(nf90_put_att(map_file%ncid, map_file%hm0_varid, '_FillValue', FILL_VALUE))          
@@ -501,8 +511,24 @@ contains
          NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, '_FillValue', FILL_VALUE))          
          NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'units', 'm'))
          NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'standard_name', 'peak_ig_wave_period'))
-         NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'long_name', 'Peak infragravity wave period')) 
-         NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'coordinates', 'x y'))             
+         NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'long_name', 'Peak infragravity wave period'))
+         NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'coordinates', 'x y'))
+         !
+         NF90(nf90_def_var(map_file%ncid, 'beta', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%beta_varid))
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%beta_varid, 1, 1, nc_deflate_level)) ! deflate
+         NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, '_FillValue', FILL_VALUE))          
+         NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'units', '-'))
+         NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'standard_name', 'directionally_averaged_local_bed_slope'))
+         NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'long_name', 'directionally averaged local bed slope'))
+         NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'coordinates', 'x y'))
+         !
+         NF90(nf90_def_var(map_file%ncid, 'snapwavedepth', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%snapwavedepth_varid))
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%snapwavedepth_varid, 1, 1, nc_deflate_level)) ! deflate
+         NF90(nf90_put_att(map_file%ncid, map_file%snapwavedepth_varid, '_FillValue', FILL_VALUE))          
+         NF90(nf90_put_att(map_file%ncid, map_file%snapwavedepth_varid, 'units', 'm'))
+         NF90(nf90_put_att(map_file%ncid, map_file%snapwavedepth_varid, 'standard_name', 'snapwave_waterdepth'))
+         NF90(nf90_put_att(map_file%ncid, map_file%snapwavedepth_varid, 'long_name', 'Interpolated water depth in Snapwave'))
+         NF90(nf90_put_att(map_file%ncid, map_file%snapwavedepth_varid, 'coordinates', 'x y'))     
          !         
       endif
       !
@@ -602,7 +628,26 @@ contains
    enddo
    !
    NF90(nf90_put_var(map_file%ncid, map_file%msk_varid, zsg, (/1, 1/))) ! write msk     
-   !   
+   !
+   ! Write SnapWave msk
+   !
+   if (snapwave) then  
+      !
+      zsg = 0 ! initialise as inactive points       
+      !
+      do nm = 1, np
+         !
+         n    = z_index_z_n(nm)
+         m    = z_index_z_m(nm)
+         !      
+         zsg(m, n) = snapwave_mask(nm)
+         !
+      enddo
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%snapwavemsk_varid, zsg, (/1, 1/))) ! write snapwave msk     
+      !
+   endif
+   !
    ! Write infiltration map
    !
    if (infiltration) then
@@ -1011,7 +1056,6 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%hm0ig_varid, 'standard_name', 'hm0_ig_wave_height'))
       NF90(nf90_put_att(map_file%ncid, map_file%hm0ig_varid, 'long_name', 'Hm0 infragravity wave height')) 
       !
-
       if (store_wave_forces) then
          !
          NF90(nf90_def_var(map_file%ncid, 'fwx', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%fwx_varid))
@@ -1040,11 +1084,11 @@ contains
          NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, '_FillValue', FILL_VALUE))          
          NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'units', 's'))
          NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'standard_name', 'peak_ig_wave_period'))
-         NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'long_name', 'Peak infragravity wave period'))                       
+         NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'long_name', 'Peak infragravity wave period'))
          !         
          NF90(nf90_def_var(map_file%ncid, 'beta', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%beta_varid))
          NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, '_FillValue', FILL_VALUE))          
-         NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'units', 'm'))
+         NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'units', '-'))
          NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'standard_name', 'directionally_averaged_local_bed_slope')) 
          NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'long_name', 'directionally averaged local bed slope'))          
          !           
@@ -1055,6 +1099,22 @@ contains
          NF90(nf90_put_att(map_file%ncid, map_file%snapwavedepth_varid, 'long_name', 'Interpolated water depth in Snapwave')) 
          !                            
       endif
+      !
+      if (store_wave_direction) then
+         !
+         NF90(nf90_def_var(map_file%ncid, 'wavdir', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%wavdir_varid))          
+         NF90(nf90_put_att(map_file%ncid, map_file%wavdir_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(map_file%ncid, map_file%wavdir_varid, 'units', 'degrees'))
+         NF90(nf90_put_att(map_file%ncid, map_file%wavdir_varid, 'standard_name', 'mean_wave_direction')) 
+         NF90(nf90_put_att(map_file%ncid, map_file%wavdir_varid, 'long_name', 'Mean wave direction'))  
+         !
+         !NF90(nf90_def_var(map_file%ncid, 'dirspr', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%dirspr_varid))                   
+         !NF90(nf90_put_att(map_file%ncid, map_file%dirspr_varid, '_FillValue', FILL_VALUE))
+         !NF90(nf90_put_att(map_file%ncid, map_file%dirspr_varid, 'units', 'degrees'))
+         !NF90(nf90_put_att(map_file%ncid, map_file%dirspr_varid, 'standard_name', 'wave_directional_spreading')) 
+         !NF90(nf90_put_att(map_file%ncid, map_file%dirspr_varid, 'long_name', 'Wave directional spreading'))  
+         !
+      endif         
       !
       if (wavemaker) then
          !
@@ -1689,6 +1749,7 @@ contains
    ! Write time, zs, u, v  
    !
    use sfincs_data   
+   use sfincs_snapwave
    !
    implicit none   
    !
@@ -1993,7 +2054,33 @@ contains
             !
          enddo
          !
-         NF90(nf90_put_var(map_file%ncid, map_file%tpig_varid, zsg, (/1, 1, ntmapout/))) ! write Tpig               
+         NF90(nf90_put_var(map_file%ncid, map_file%tpig_varid, zsg, (/1, 1, ntmapout/))) ! write Tpig
+         !
+         zsg = FILL_VALUE       
+         !
+         do nm = 1, np
+            !
+            n    = z_index_z_n(nm)
+            m    = z_index_z_m(nm)
+            !      
+            zsg(m, n) = betamean(nm)
+            !
+         enddo
+         !
+         NF90(nf90_put_var(map_file%ncid, map_file%beta_varid, zsg, (/1, 1, ntmapout/))) ! write beta
+         !         
+         zsg = FILL_VALUE       
+         !
+         do nm = 1, np
+            !
+            n    = z_index_z_n(nm)
+            m    = z_index_z_m(nm)
+            !      
+            zsg(m, n) = snapwave_depth(nm)
+            !
+         enddo
+         !
+         NF90(nf90_put_var(map_file%ncid, map_file%snapwavedepth_varid, zsg, (/1, 1, ntmapout/))) ! write snapwavedepth
          !
       endif
       !            
@@ -2295,6 +2382,38 @@ contains
             NF90(nf90_put_var(map_file%ncid, map_file%snapwavedepth_varid, vtmp, (/1, ntmapout/)))                             
             !
          endif
+         !
+         if (store_wave_direction) then
+            !
+            vtmp = FILL_VALUE
+            !
+            do nmq = 1, quadtree_nr_points
+               !
+               nm = index_sw_in_qt(nmq)            
+               !
+               if (nm>0) then
+                  vtmp(nmq) = mean_wave_direction(nm)                  
+               endif
+               !
+            enddo                    
+            !             
+            NF90(nf90_put_var(map_file%ncid, map_file%wavdir_varid, vtmp, (/1, ntmapout/)))                
+            !
+            !vtmp = FILL_VALUE
+            !!
+            !do nmq = 1, quadtree_nr_points
+            !   !
+            !   nm = index_sw_in_qt(nmq)            
+            !   !
+            !   if (nm>0) then
+            !      vtmp(nmq) = wave_directional_spreading(nm)                  
+            !   endif
+            !   !
+            !enddo                    
+            !!             
+            !NF90(nf90_put_var(map_file%ncid, map_file%dirspr_varid, vtmp, (/1, ntmapout/)))  
+            !
+         endif         
          !
          if (wavemaker) then
             !
