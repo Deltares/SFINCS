@@ -402,7 +402,7 @@ contains
                endif
                !
                ! Add some relaxation
-               ! structure_relax in seconds => gives ratio between new and old discharge (default 300s = 5min)
+               ! structure_relax in seconds => gives ratio between new and old discharge (default 10s)
                qq = 1/(structure_relax/dt)*qq + (1-(1/(structure_relax/dt)))*qq0
                !qq = 0.10*qq + 0.90*qq0
                !
@@ -457,7 +457,7 @@ contains
                endif
                !
                ! Add some relaxation
-               ! structure_relax in seconds => gives ratio between new and old discharge (default 300s = 5min)
+               ! structure_relax in seconds => gives ratio between new and old discharge (default 10s)
                qq = 1/(structure_relax/dt)*qq + (1-(1/(structure_relax/dt)))*qq0
                !qq = 0.10*qq + 0.90*qq0
                !
