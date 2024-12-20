@@ -335,18 +335,24 @@ contains
                ! Constant discharge, no need to change
                !
                if (subgrid) then
+                  !
                   zvolume_cell = max(z_volume(nmin),0.0)
-                  if (zvolume_cell < -0.0001 .or. zvolume_cell > 0.0001) then
-                        qq = max(min(qq, z_volume(nmin) / dt), 0.0)
+                  !
+                  if (zvolume_cell > 0.0001) then
+                     qq = max(min(qq, z_volume(nmin) / dt), 0.0)
                   else
-                        qq = 0.0
+                     qq = 0.0
                   endif
+                  !
                else
+                  ! 
                   qq = max(min(qq, (zs(nmin) - zb(nmin)) * area / dt), 0.0)
+                  !
                endif
                !
-!               write(*,'(4i10,20e14.4)')idrn,jin,jout,nmin,drainage_params(idrn,1),qq,z_volume(nmin),dt
-               qtsrc(jin)  = -qq
+               ! For both regular and subgrid, water is only subtracted if is there is volume left in subtraction cell
+               !
+               qtsrc(jin)  = -qq 
                qtsrc(jout) = qq
                !
             case(2)
@@ -366,7 +372,9 @@ contains
                endif
                !
                if (subgrid) then
+                  ! 
                   zvolume_cell = max(z_volume(nmin),0.0)
+                  !
                   if (zvolume_cell < -0.0001 .or. zvolume_cell > 0.0001) then
                       if (qq>0.0) then
                          qq = min(qq, max(z_volume(nmin),0.0)/dt)
@@ -376,6 +384,7 @@ contains
                   else
                       qq = 0.0
                   endif
+                  !
                else
                   if (qq>0.0) then
                      qq = min(qq, max((zs(nmin) - zb(nmin))*area,0.0)/dt)
