@@ -426,16 +426,28 @@ contains
                endif
                !
                if (subgrid) then
-                  zvolume_cell = max(z_volume(nmin),0.0)
-                  if (zvolume_cell < -0.0001 .or. zvolume_cell > 0.0001) then
-                      if (qq>0.0) then
-                         qq = min(qq, max(z_volume(nmin),0.0)/dt)
-                      else
-                         qq = max(qq, -max(z_volume(nmout),0.0)/dt)
-                      endif
+                  if (qq>0.0) then
+                     ! 
+                     zvolume_cell = max(z_volume(nmin),0.0)
+                     !
+                     if (zvolume_cell > 0.0001) then
+                         qq = max(min(qq, z_volume(nmin)/dt), 0.0)
+                     else
+                         qq = 0.0
+                     endif
+                     !
                   else
-                      qq = 0.0
+                     ! 
+                     zvolume_cell = max(z_volume(nmout),0.0)
+                     !
+                     if (zvolume_cell > 0.0001) then
+                        qq = min(max(qq, -z_volume(nmout)/dt), 0.0)
+                     else
+                         qq = 0.0
+                     endif
+                     !
                   endif
+                  !
                else
                   if (qq>0.0) then
                      qq = min(qq, max((zs(nmin) - zb(nmin))*area,0.0)/dt)
