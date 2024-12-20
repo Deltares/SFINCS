@@ -11,8 +11,12 @@ module sfincs_snapwave
    real*4,    dimension(:),   allocatable    :: snapwave_depth
    real*4,    dimension(:),   allocatable    :: snapwave_H
    real*4,    dimension(:),   allocatable    :: snapwave_H_ig
+   real*4,    dimension(:),   allocatable    :: snapwave_Tp
+   real*4,    dimension(:),   allocatable    :: snapwave_Tp_ig   
    real*4,    dimension(:),   allocatable    :: snapwave_mean_direction
    real*4,    dimension(:),   allocatable    :: snapwave_directional_spreading
+   real*4,    dimension(:),   allocatable    :: snapwave_u10
+   real*4,    dimension(:),   allocatable    :: snapwave_u10dir   
    real*4,    dimension(:),   allocatable    :: snapwave_Fx
    real*4,    dimension(:),   allocatable    :: snapwave_Fy
    real*4,    dimension(:),   allocatable    :: snapwave_Dw
@@ -43,11 +47,50 @@ contains
    !
    logical       :: crsgeo
    !
+   build_revision = '$Rev: svn 108-branch:SnapWave_IG'
+   build_date     = '$Date: 2024-10-16'
+   !
+   write(*,'(a)')''
+   write(*,*)'----------- Welcome to SnapWave ---------'   
+   write(*,'(a)')''
+   write(*,*)'   @@@@@   @@  @@  @@@@@@  @@@@@@   @@@  '
+   write(*,*)'  @@@ @@@  @@@ @@  @@@@@@  @@@@@@   @@@  '
+   write(*,*)'  @@@      @@@ @@  @@  @@  @@  @@   @@@  '
+   write(*,*)'   @@@@@   @@@@@@  @@@@@@  @@@@@@   @@@  '
+   write(*,*)'      @@@  @@ @@@  @@  @@  @@            '
+   write(*,*)'  @@@ @@@  @@  @@  @@  @@  @@       @@@  '
+   write(*,*)'   @@@@@   @@   @  @@  @@  @@       @@@  '
+   write(*,'(a)')''   
+   write(*,*)'             .......:.......             '
+   write(*,*)'         ...:::::::::::::::::...         '
+   write(*,*)'      ..:::::::............::::::..      '
+   write(*,*)'    ..::::::.....:@@@@@@@@....:::::..    '
+   write(*,*)'   .::::::...~@@@@@@@@@@@@@@~..::::::.   '
+   write(*,*)'  .::::::..:@@@@@@@@@@@@@@@@@@:.::::::.  '
+   write(*,*)' .:::::..:@@@@@@@@@@@@@@@@@@@@@:.::::::. '
+   write(*,*)'.::::..:@@@@@@@@@@@@@@^......:@@.:::::::.'
+   write(*,*)'.::...:@@@@@@@@@@@@@@@.:::::..^^.:::::::.'
+   write(*,*)'::.:@@@@@@@@@@@@@@@@@@..::::::..:::::::::'
+   write(*,*)'..:@@@@@@@@@@@@@@@@@@@@^..............::.'
+   write(*,*)'..:@@@@@@@@@@@@@@@@@@@@@@@^:..:~^~^~:..:.'
+   write(*,*)' .:@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:. '
+   write(*,*)'  .@@~^~@@@@~^~@@@@~^~@@@@~^~@@@@~^~@@.  '
+   write(*,*)'   ...................................   '
+   write(*,*)'    ..:::::::::::::::::::::::::::::..    '
+   write(*,*)'      ..:::::::::::::::::::::::::..      '
+   write(*,*)'         ...:::::::::::::::::...         '
+   write(*,*)'             .......:.......             '
+   write(*,'(a)')''
+   write(*,*)'-----------------------------------------'   
+   write(*,'(a)')''
+   write(*,*)'Build-Revision: ',trim(build_revision)
+   write(*,*)'Build-Date:     ',trim(build_date)
+   write(*,'(a)')''   
+   !   
    ! Check whether SFINCS grid is spherical (T) or cartesian (F), and prescribe to SnapWave as variable 'sferic' -  spherical (1) or cartesian (0) grid
    if (crsgeo) then
       sferic  = 1 
-      write(*,*)'SnapWave: Input grid interpreted as spherical coordinates, sferic= ',sferic
-      
+      write(*,*)'SnapWave: Input grid interpreted as spherical coordinates, sferic= ',sferic      
    endif   
    !
    call read_snapwave_input()            ! Reads snapwave.inp
@@ -60,13 +103,21 @@ contains
    !
    allocate(snapwave_z(no_nodes))
    allocate(snapwave_depth(no_nodes))
-   allocate(snapwave_mask(no_nodes))   
+   allocate(snapwave_mask(no_nodes))  
+   allocate(snapwave_u10(no_nodes))   
+   allocate(snapwave_u10dir(no_nodes))      
    !
    snapwave_z     = zb
    snapwave_depth = 0.0
    !
+   if (wind) then
+      snapwave_u10 = 0.0
+      snapwave_u10dir = 0.0
+   endif
+   !
    snapwave_tpmean = 0.0
-   snapwave_tpigmean = 0.0    
+   snapwave_tpigmean = 0.0   
+
    !   
    call find_matching_cells(index_quadtree_in_snapwave, index_snapwave_in_quadtree)
    !
@@ -127,6 +178,8 @@ contains
    integer  :: count_rate
    integer  :: count_max
    real     :: tloop
+   !
+   real*4   :: u10, u10dir
    !   
    real*4,    dimension(:), allocatable       :: fwx0
    real*4,    dimension(:), allocatable       :: fwy0
@@ -198,6 +251,43 @@ contains
       !
    enddo   
    !
+   ! Determine SnapWave wind
+   !
+   if (store_wind) then
+      !
+      do nm = 1, snapwave_no_nodes
+         !
+         ip = index_sfincs_in_snapwave(nm) ! matching index in SFINCS mesh
+         !
+         if (ip>0) then
+            !
+            ! A matching SFINCS point is found
+            !
+            ! Convert to umag & dir, as in ncoutput_update_his: 
+            !
+            u10 = sqrt(windu(ip)**2 + windv(ip)**2)
+            !
+            u10dir = atan2(windv(ip), windu(ip))*180/pi
+            !
+	        if (u10dir<0.0) u10dir = u10dir + 360.0
+            if (u10dir>360.0) u10dir = u10dir - 360.0    
+            !
+            snapwave_u10(nm) = max(u10, 0.0)     
+            snapwave_u10dir(nm) = u10dir / 180.0 * pi ! from nautical coming from in degrees to cartesian going to in radians
+            !
+         else
+            !
+            ! Use 0.0 wind speed and direction
+            !
+            snapwave_u10(nm) = 0.0
+            snapwave_u10dir(nm) = 0.0            
+            !
+         endif   
+         !
+      enddo   
+      !
+   endif
+   !
    call compute_snapwave(t)
    !
    do nm = 1, np
@@ -207,7 +297,9 @@ contains
       if (ip>0) then
          !
          hm0(nm)    = snapwave_H(ip)   
-         hm0_ig(nm) = snapwave_H_ig(ip)   
+         hm0_ig(nm) = snapwave_H_ig(ip) 
+         sw_tp(nm)    = snapwave_Tp(ip)         
+         sw_tp_ig(nm) = snapwave_Tp_ig(ip)         
          fwx0(nm)   = snapwave_Fx(ip)   
          fwy0(nm)   = snapwave_Fy(ip) 
          dw0(nm)    = snapwave_Dw(ip)   
@@ -230,6 +322,8 @@ contains
          !
          hm0(nm)    = 0.0
          hm0_ig(nm) = 0.0
+         sw_tp(nm)  = 0.0
+         sw_tp_ig(nm) = 0.0         
          fwx0(nm)   = 0.0
          fwy0(nm)   = 0.0   
          dw0(nm)    = 0.0
@@ -312,6 +406,9 @@ contains
    depth = snapwave_depth
    !
    zb = snapwave_z   
+   !
+   u10 = snapwave_u10
+   u10dir = snapwave_u10dir   
    !   
    ! TL: we use depth now in boundary conditions for Herbers bc determination of Hm0ig, in this order we use updated values of depth through SFINCS
    !
@@ -321,10 +418,10 @@ contains
    !
    snapwave_H                     = H
    snapwave_H_ig                  = H_ig
+   snapwave_Tp                    = Tp
+   snapwave_Tp_ig                 = Tp_ig   
    snapwave_mean_direction        = thetam
    snapwave_directional_spreading = thetam  ! TL: CORRECT? > is not spreading but mean direction?
-   snapwave_Fx                    = Fx
-   snapwave_Fy                    = Fy 
    snapwave_Dw                    = Dw
    snapwave_Df                    = Df
    snapwave_Dwig                  = Dw_ig
@@ -334,6 +431,10 @@ contains
    snapwave_beta                  = beta
    snapwave_srcig                 = srcig
    snapwave_alphaig               = alphaig   
+   !
+   ! Convert wave force to correct unit [Dw/C] as expected by SFINCS, assumed to be piecewise (seems to work)
+   snapwave_Fx                    = Fx * rho * depth
+   snapwave_Fy                    = Fy * rho * depth
    !
    ! Wave periods from SnapWave, used in e.g. wavemakers - TL: moved behind call update_boundary_conditions & compute_wave_field so values at first timestep are not 0
    snapwave_tpmean = tpmean_bwv
@@ -369,30 +470,38 @@ contains
    ! Input section
    !
    call read_real_input(500,'snapwave_gamma',gamma,0.7)
-   call read_real_input(500,'snapwave_alpha',snapwave_alpha,1.0)
+   call read_real_input(500,'snapwave_alpha',alpha,1.0)
    call read_real_input(500,'snapwave_hmin',hmin,0.1)
    call read_real_input(500,'snapwave_fw',fw0,0.01)
    call read_real_input(500,'snapwave_fwig',fw0_ig,0.015)
    call read_real_input(500,'snapwave_dt',dt,36000.0)
-   call read_real_input(500,'snapwave_tol',tol,10.0)
+   call read_real_input(500,'snapwave_tol',tol,1000.0)
    call read_real_input(500,'snapwave_dtheta',dtheta,10.0)
-   call read_real_input(500,'snapwave_crit',crit,0.01)
+   call read_real_input(500,'snapwave_crit',crit,0.00001) !TL: Old default was 0.01
    call read_int_input(500,'snapwave_nrsweeps',nr_sweeps,4)
+   call read_int_input(500,'snapwave_niter',niter, 10) !TL: Old default was 40  
    call read_int_input(500,'snapwave_baldock_opt',baldock_opt,1)     
    call read_real_input(500,'snapwave_baldock_ratio',baldock_ratio,0.2)
    call read_real_input(500,'rgh_lev_land',rghlevland,0.0)
    call read_real_input(500,'snapwave_fw_ratio',fwratio,1.0)
-   call read_real_input(500,'snapwave_fwig_ratio',fwigratio,1.0)   
+   call read_real_input(500,'snapwave_fwig_ratio',fwigratio,1.0)
+   call read_real_input(500,'snapwave_Tpini',Tpini,1.0)
+   call read_int_input (500,'snapwave_mwind',mwind,2)      
+   call read_real_input(500,'snapwave_sigmin',sigmin,8.0*atan(1.0)/25.0)
+   call read_real_input(500,'snapwave_sigmax',sigmax,8.0*atan(1.0)/1.0)   
+   call read_int_input (500,'snapwave_jadcgdx',jadcgdx,1)
+   call read_real_input(500,'snapwave_c_dispT',c_dispT,1.0)   
+   call read_real_input(500,'snapwave_sector',sector,180.0)
    !
    ! Settings related to IG waves:   
    call read_int_input(500,'snapwave_igwaves',igwaves_opt,1)   
-   call read_real_input(500,'snapwave_alpha_ig',snapwave_alpha_ig,1.0)   
+   call read_real_input(500,'snapwave_alpha_ig',alpha_ig,1.0) !TODO choose whether snapwave_alphaig or snapwave_gamma_ig  
    call read_real_input(500,'snapwave_gammaig',gamma_ig,0.2)   
    call read_real_input(500,'snapwave_shinc2ig',shinc2ig,1.0)                   ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 1=default=all energy as sink)
    call read_real_input(500,'snapwave_alphaigfac',alphaigfac,1.0)               ! Multiplication factor for IG shoaling source/sink term         
    call read_real_input(500,'snapwave_baldock_ratio_ig',baldock_ratio_ig,0.2)       
    call read_int_input(500,'snapwave_ig_opt',ig_opt,1)     
-   call read_int_input(500,'snapwave_iterative_srcig',iterative_srcig,1)        ! Option whether to calculate IG source/sink term in iterative lower (better, but potentially slower, 1=default), or effectively based on previous timestep (faster, potential mismatch, =0)
+   call read_int_input(500,'snapwave_iterative_srcig',iterative_srcig,0)        ! Option whether to calculate IG source/sink term in iterative lower (better, but potentially slower, 1=default), or effectively based on previous timestep (faster, potential mismatch, =0)
    !
    ! IG boundary conditions options:
    call read_int_input(500,'snapwave_use_herbers',herbers_opt,1)    ! Choice whether you want IG Hm0&Tp be calculated by herbers (=1, default), or want to specify user defined values (0> then snapwave_eeinc2ig & snapwave_Tinc2ig are used) 
@@ -400,50 +509,82 @@ contains
    call read_real_input(500,'snapwave_jonswapgamma',jonswapgam,3.3)  ! JONSWAP gamma value for determination offshore spectrum and IG wave conditions using Herbers, default=3.3, only used if snapwave_use_herbers = 1   
    call read_real_input(500,'snapwave_eeinc2ig',eeinc2ig,0.01)  ! Only used if snapwave_use_herbers = 0       
    call read_real_input(500,'snapwave_Tinc2ig',Tinc2ig,7.0)  ! Only used if snapwave_use_herbers = 0
-
+   !
+   ! Wind
+   !
+   call read_int_input(500,'snapwave_wind',wind_opt,0)   ! Flag whether to include windgrowth in SnapWave (1) or not (0, default)
+   !
+   ! Vegetation input
+   !
+   call read_int_input(500, 'vegetation', vegetation_opt, 0)
    !
    ! Input files
-   call read_char_input(500,'snapwave_jonswapfile',jonswapfile,'')
-   call read_char_input(500,'snapwave_bndfile',bndfile,'')
-   call read_char_input(500,'snapwave_encfile',encfile,'')
-   call read_char_input(500,'snapwave_bhsfile',bhsfile,'')
-   call read_char_input(500,'snapwave_btpfile',btpfile,'')
-   call read_char_input(500,'snapwave_bwdfile',bwdfile,'')
-   call read_char_input(500,'snapwave_bdsfile',bdsfile,'') 
+   call read_char_input(500,'snapwave_jonswapfile',snapwave_jonswapfile,'')
+   call read_char_input(500,'snapwave_bndfile',snapwave_bndfile,'')
+   call read_char_input(500,'snapwave_encfile',snapwave_encfile,'')
+   call read_char_input(500,'snapwave_bhsfile',snapwave_bhsfile,'')
+   call read_char_input(500,'snapwave_btpfile',snapwave_btpfile,'')
+   call read_char_input(500,'snapwave_bwdfile',snapwave_bwdfile,'')
+   call read_char_input(500,'snapwave_bdsfile',snapwave_bdsfile,'') 
    call read_char_input(500,'snapwave_upwfile',upwfile,'snapwave.upw')
    call read_char_input(500,'snapwave_mskfile',mskfile,'')
    call read_char_input(500,'snapwave_depfile',depfile,'none')   
    call read_char_input(500,'snapwave_ncfile', gridfile,'snapwave_net.nc')   
    call read_char_input(500,'netsnapwavefile',netsnapwavefile,'')
-   call read_char_input(500,'tref',trefstr,'20000101 000000')   ! Read again > needed in sfincs_ncinput.F90
-   
+   call read_char_input(500,'tref',trefstr,'20000101 000000')   ! Read again > needed in sfincs_ncinput.F90   
    !
    close(500)
    !
    igwaves          = .true.
+   igherbers        = .false.
+   !
    if (igwaves_opt==0) then
+      !
       igwaves       = .false.
       write(*,*)'SnapWave: IG waves turned OFF!'
+      !
    else
+      ! 
       write(*,*)'SnapWave: IG waves turned ON!'
+      !
+      if (iterative_srcig==1) then
+         write(*,*)'SnapWave: using implicit IG sink/source term'
+      else
+         write(*,*)'SnapWave: using explicit IG sink/source term'       
+      endif      
+      !
+      if (herbers_opt==0) then
+         write(*,*)'SnapWave: IG bc determination using Herbers turned OFF! --> Use eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
+      else
+         igherbers     = .true.          
+         write(*,*)'SnapWave: IG bc determination using Herbers turned ON!'
+      endif
+      !
    endif
    !
-   igherbers        = .true. 
-   if (herbers_opt==0) then
-      igherbers     = .false.
-      write(*,*)'SnapWave: IG bc determination using Herbers turned OFF! --> Use eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
+   wind          = .true.
+   if (wind_opt==0) then
+      wind       = .false.
+      write(*,*)'SnapWave: wind growth turned OFF!'
    else
-      write(*,*)'SnapWave: IG bc determination using Herbers turned ON!'
+      write(*,*)'SnapWave: wind growth turned ON!'
+   endif   
+   !
+   vegetation          = .true.
+   if (vegetation_opt==0) then
+      vegetation       = .false.
+      write(*,*)'SnapWave: vegetation turned OFF!'
+   else
+      write(*,*)'SnapWave: vegetation turned ON!'
    endif   
    !
    if (nr_sweeps /= 1 .and. nr_sweeps /= 4) then
       nr_sweeps = 4
       write(*,*)'SnapWave: Warning! nr_sweeps must be 1 or 4! Now set to 4.'
-   endif   
+   endif
    ! 
    restart           = .true.
    coupled_to_sfincs = .true.
-   bzsfile           = ''
    !
    end subroutine 
 

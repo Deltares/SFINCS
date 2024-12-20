@@ -2282,10 +2282,14 @@ contains
       !
       allocate(hm0(np))
       allocate(hm0_ig(np))
+      allocate(sw_tp(np))
+      allocate(sw_tp_ig(np))      
       allocate(fwuv(npuv))
       !
       hm0    = 0.0
       hm0_ig = 0.0
+      sw_tp     = 0.0
+      sw_tp_ig  = 0.0      
       fwuv   = 0.0
       !
       if (store_wave_forces) then
@@ -2408,7 +2412,7 @@ contains
       tauwu1 = 0.0
       tauwv1 = 0.0
       !
-      if (store_meteo) then
+      if (store_wind) then
          !
          allocate(windu(np))
          allocate(windv(np))

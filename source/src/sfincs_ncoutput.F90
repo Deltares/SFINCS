@@ -18,7 +18,7 @@ module sfincs_ncoutput
       integer :: zs_varid, zsmax_varid, h_varid, u_varid, v_varid, tmax_varid, Seff_varid 
       integer :: hmax_varid, vmax_varid, qmax_varid, cumprcp_varid, cuminf_varid, windmax_varid
       integer :: patm_varid, wind_u_varid, wind_v_varid, precip_varid        
-      integer :: hm0_varid, hm0ig_varid, snapwavemsk_varid
+      integer :: hm0_varid, hm0ig_varid, snapwavemsk_varid, tp_varid, tpig_varid
       integer :: fwx_varid, fwy_varid, beta_varid, snapwavedepth_varid
       integer :: zsm_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid
@@ -488,6 +488,22 @@ contains
          NF90(nf90_put_att(map_file%ncid, map_file%fwy_varid, 'long_name', 'Wave force in y-direction')) 
          NF90(nf90_put_att(map_file%ncid, map_file%fwy_varid, 'coordinates', 'x y'))
          !
+         NF90(nf90_def_var(map_file%ncid, 'tp', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%tp_varid))
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%tp_varid, 1, 1, nc_deflate_level)) ! deflate
+         NF90(nf90_put_att(map_file%ncid, map_file%tp_varid, '_FillValue', FILL_VALUE))          
+         NF90(nf90_put_att(map_file%ncid, map_file%tp_varid, 'units', 'm'))
+         NF90(nf90_put_att(map_file%ncid, map_file%tp_varid, 'standard_name', 'peak_wave_period'))
+         NF90(nf90_put_att(map_file%ncid, map_file%tp_varid, 'long_name', 'Peak wave period')) 
+         NF90(nf90_put_att(map_file%ncid, map_file%tp_varid, 'coordinates', 'x y'))
+         !
+         NF90(nf90_def_var(map_file%ncid, 'tpig', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%tpig_varid))
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%tpig_varid, 1, 1, nc_deflate_level)) ! deflate
+         NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, '_FillValue', FILL_VALUE))          
+         NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'units', 'm'))
+         NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'standard_name', 'peak_ig_wave_period'))
+         NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'long_name', 'Peak infragravity wave period')) 
+         NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'coordinates', 'x y'))             
+         !         
       endif
       !
       if (wavemaker) then
@@ -995,6 +1011,7 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%hm0ig_varid, 'standard_name', 'hm0_ig_wave_height'))
       NF90(nf90_put_att(map_file%ncid, map_file%hm0ig_varid, 'long_name', 'Hm0 infragravity wave height')) 
       !
+
       if (store_wave_forces) then
          !
          NF90(nf90_def_var(map_file%ncid, 'fwx', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%fwx_varid))
@@ -1011,6 +1028,20 @@ contains
          NF90(nf90_put_att(map_file%ncid, map_file%fwy_varid, 'standard_name', 'wave_force_y'))
          NF90(nf90_put_att(map_file%ncid, map_file%fwy_varid, 'long_name', 'Wave force in y-direction')) 
          !  
+         NF90(nf90_def_var(map_file%ncid, 'tp', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%tp_varid))
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%tp_varid, 1, 1, nc_deflate_level))
+         NF90(nf90_put_att(map_file%ncid, map_file%tp_varid, '_FillValue', FILL_VALUE))          
+         NF90(nf90_put_att(map_file%ncid, map_file%tp_varid, 'units', 's'))
+         NF90(nf90_put_att(map_file%ncid, map_file%tp_varid, 'standard_name', 'peak_wave_period'))
+         NF90(nf90_put_att(map_file%ncid, map_file%tp_varid, 'long_name', 'Peak wave period')) 
+         !
+         NF90(nf90_def_var(map_file%ncid, 'tpig', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%tpig_varid))
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%tpig_varid, 1, 1, nc_deflate_level))
+         NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, '_FillValue', FILL_VALUE))          
+         NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'units', 's'))
+         NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'standard_name', 'peak_ig_wave_period'))
+         NF90(nf90_put_att(map_file%ncid, map_file%tpig_varid, 'long_name', 'Peak infragravity wave period'))                       
+         !         
          NF90(nf90_def_var(map_file%ncid, 'beta', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%beta_varid))
          NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, '_FillValue', FILL_VALUE))          
          NF90(nf90_put_att(map_file%ncid, map_file%beta_varid, 'units', 'm'))
@@ -1891,11 +1922,11 @@ contains
          n    = z_index_z_n(nm)
          m    = z_index_z_m(nm)
          !      
-         zsg(m, n) = hm0(nm)
+         zsg(m, n) = hm0(nm) ! TL: TODO: clean up difference of using hm0 here, and SnapWave_H for quadtree grid!
          !
       enddo
       !
-      NF90(nf90_put_var(map_file%ncid, map_file%hm0_varid, zsg, (/1, 1, ntmapout/))) ! write h
+      NF90(nf90_put_var(map_file%ncid, map_file%hm0_varid, zsg, (/1, 1, ntmapout/))) ! write hm0
       ! 
       zsg = FILL_VALUE       
       !
@@ -1908,7 +1939,7 @@ contains
          !
       enddo
       !
-      NF90(nf90_put_var(map_file%ncid, map_file%hm0ig_varid, zsg, (/1, 1, ntmapout/))) ! write h
+      NF90(nf90_put_var(map_file%ncid, map_file%hm0ig_varid, zsg, (/1, 1, ntmapout/))) ! write hm0ig
       !            
       if (store_wave_forces) then
          !      
@@ -1937,6 +1968,32 @@ contains
          enddo
          !
          NF90(nf90_put_var(map_file%ncid, map_file%fwy_varid, zsg, (/1, 1, ntmapout/))) ! write h
+         ! 
+         zsg = FILL_VALUE       
+         !
+         do nm = 1, np
+            !
+            n    = z_index_z_n(nm)
+            m    = z_index_z_m(nm)
+            !      
+            zsg(m, n) = sw_tp(nm)
+            !
+         enddo
+         !
+         NF90(nf90_put_var(map_file%ncid, map_file%tp_varid, zsg, (/1, 1, ntmapout/))) ! write Tp
+         ! 
+         zsg = FILL_VALUE       
+         !
+         do nm = 1, np
+            !
+            n    = z_index_z_n(nm)
+            m    = z_index_z_m(nm)
+            !      
+            zsg(m, n) = sw_tp_ig(nm)
+            !
+         enddo
+         !
+         NF90(nf90_put_var(map_file%ncid, map_file%tpig_varid, zsg, (/1, 1, ntmapout/))) ! write Tpig               
          !
       endif
       !            
@@ -2138,7 +2195,7 @@ contains
             !
             if (nm>0) then
                ! 
-               vtmp(nmq) = snapwave_H(nm)*sq2
+               vtmp(nmq) = snapwave_H(nm)*sq2 ! TL: TODO: clean up difference of using SnapWave_H here, and hm0 for regular grid!
                !
             endif   
          enddo
@@ -2158,7 +2215,7 @@ contains
             endif   
          enddo
          !
-         NF90(nf90_put_var(map_file%ncid, map_file%hm0ig_varid, vtmp, (/1, ntmapout/)))
+         NF90(nf90_put_var(map_file%ncid, map_file%hm0ig_varid, vtmp, (/1, ntmapout/)))      
          !            
          if (store_wave_forces) then
             !      
@@ -2178,6 +2235,36 @@ contains
             !
             NF90(nf90_put_var(map_file%ncid, map_file%fwx_varid, utmp, (/1, ntmapout/)))
             NF90(nf90_put_var(map_file%ncid, map_file%fwy_varid, vtmp, (/1, ntmapout/)))
+            !
+            vtmp = FILL_VALUE
+            !
+            do nmq = 1, quadtree_nr_points
+               !
+               nm = index_sw_in_qt(nmq)
+               !
+               if (nm>0) then
+                  ! 
+                  vtmp(nmq) = snapwave_Tp(nm)
+                  !
+               endif   
+            enddo
+            !
+            NF90(nf90_put_var(map_file%ncid, map_file%tp_varid, vtmp, (/1, ntmapout/)))
+            !
+            vtmp = FILL_VALUE
+            !
+            do nmq = 1, quadtree_nr_points
+               !
+               nm = index_sw_in_qt(nmq)
+               !
+               if (nm>0) then
+                  ! 
+                  vtmp(nmq) = snapwave_Tp_ig(nm)
+                  ! 
+               endif   
+            enddo
+            !
+            NF90(nf90_put_var(map_file%ncid, map_file%tpig_varid, vtmp, (/1, ntmapout/)))            
             !
             utmp = FILL_VALUE
             !
@@ -2898,11 +2985,12 @@ contains
    !
    subroutine ncoutput_add_params(ncid, varid)
    ! Add user params to netcdf file (both map & his)
-   use sfincs_data   
+   use sfincs_data
+   !
    ! Because of overlapping names, only important specific values from snapwave_data
-   use snapwave_data, only: gamma, snapwave_alpha, hmin, fw0, fw0_ig, dt, tol, dtheta, crit, nr_sweeps, baldock_opt, baldock_ratio, &
-       igwaves_opt, snapwave_alpha_ig, gamma_ig, shinc2ig, alphaigfac, baldock_ratio_ig, ig_opt, herbers_opt, tpig_opt, eeinc2ig, tinc2ig, &
-       jonswapfile, encfile, upwfile, gridfile
+   use snapwave_data, only: gamma, alpha, hmin, fw0, fw0_ig, dt, tol, dtheta, crit, nr_sweeps, baldock_opt, baldock_ratio, &
+       igwaves_opt, alpha_ig, gamma_ig, shinc2ig, alphaigfac, baldock_ratio_ig, ig_opt, herbers_opt, tpig_opt, eeinc2ig, tinc2ig, &
+       snapwave_jonswapfile, snapwave_encfile, snapwave_bndfile, snapwave_bhsfile, snapwave_btpfile, snapwave_bwdfile, snapwave_bdsfile, upwfile, gridfile
    
    !
    implicit none   
@@ -3077,7 +3165,7 @@ contains
         !
         NF90(nf90_put_att(ncid, varid, 'snapwave', logical2int(snapwave))) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_gamma', gamma)) 
-        NF90(nf90_put_att(ncid, varid, 'snapwave_alpha', snapwave_alpha)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_alpha', alpha)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_hmin',hmin)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_fw',fw0)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_fwig',fw0_ig)) 
@@ -3092,7 +3180,7 @@ contains
         ! SnapWave IG
         !
         NF90(nf90_put_att(ncid, varid, 'snapwave_igwaves',igwaves_opt))         
-        NF90(nf90_put_att(ncid, varid, 'snapwave_alpha_ig',snapwave_alpha_ig)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_alpha_ig',alpha_ig)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_gammaig',gamma_ig)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_shinc2ig',shinc2ig)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_alphaigfac',alphaigfac)) 
@@ -3105,19 +3193,14 @@ contains
         !
         ! SnapWave input files
         !
-        NF90(nf90_put_att(ncid, varid, 'snapwave_jonswapfile',jonswapfile)) 
-        NF90(nf90_put_att(ncid, varid, 'snapwave_encfile',encfile)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_jonswapfile',snapwave_jonswapfile)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_encfile',snapwave_encfile)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_upwfile',upwfile)) 
-        NF90(nf90_put_att(ncid, varid, 'snapwave_ncfile', gridfile)) 
-
-        !TL: these names overlap with SFINCS' ones, so cannot import, can see later whether to still add them    
-        !NF90(nf90_put_att(ncid, varid, 'snapwave_bndfile',bndfile))            
-        !NF90(nf90_put_att(ncid, varid, 'snapwave_bhsfile',bhsfile)) 
-        !NF90(nf90_put_att(ncid, varid, 'snapwave_btpfile',btpfile)) 
-        !NF90(nf90_put_att(ncid, varid, 'snapwave_bwdfile',bwdfile)) 
-        !NF90(nf90_put_att(ncid, varid, 'snapwave_bdsfile',bdsfile))         
-        !NF90(nf90_put_att(ncid, varid, 'snapwave_mskfile',mskfile)) 
-        !NF90(nf90_put_att(ncid, varid, 'snapwave_depfile',depfile)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_bndfile',snapwave_bndfile))            
+        NF90(nf90_put_att(ncid, varid, 'snapwave_bhsfile',snapwave_bhsfile)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_btpfile',snapwave_btpfile)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_bwdfile',snapwave_bwdfile)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_bdsfile',snapwave_bdsfile))         
         !
    end subroutine
    !   

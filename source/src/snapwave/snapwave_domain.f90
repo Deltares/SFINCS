@@ -6,8 +6,6 @@ contains
    !
    use snapwave_data
    use snapwave_boundaries
-   use snapwave_results
-   use snapwave_ncoutput
    use interp
    use sfincs_error      
    !
@@ -30,7 +28,7 @@ contains
    rho  = 1025.0
    np   = 22 ! why?
    dt   = 36000.0
-   tol  = 10.0   
+   !tol  = 10.0 ! > now defined using 'snapwave_tol' in sfincs_snapwave.f90  
    cosrot = cos(rotation*pi/180)
    sinrot = sin(rotation*pi/180)
    !
@@ -40,11 +38,7 @@ contains
    !
    ext = 'qt'
    !
-   if (ext=='nc') then
-      !
-      call nc_read_net()
-      !
-   elseif (ext=='qt') then
+   if (ext=='qt') then
       !
       ! Quadtree file
       !
@@ -53,16 +47,6 @@ contains
       else
          call read_snapwave_quadtree_mesh(.true.)
       endif
-      !
-!      open(112, file='masktest.txt')
-!      write(112,'(3i8)')no_nodes,no_faces,0
-!      do k = 1, no_nodes
-!         write(112,'(f12.1,f12.1,f12.3,i8)')x(k),y(k),zb(k),msk(k)
-!      enddo   
-!      do k = 1, no_faces
-!         write(112,'(4i8)')(face_nodes(j, k), j = 1, 4)
-!      enddo
-!      close(112)
       !
    elseif (ext=='tx') then
       !
@@ -93,8 +77,18 @@ contains
    !
    ! Done with the mesh
    !
-   ntheta360 = int(360.1/dtheta)
-   ntheta    = int(180.1/dtheta)
+   ! keep on also if ja_vegetation==0, so array Dveg is initialized with zeroes
+   !if (ja_vegetation==1) then
+   !   call veggie_init()   
+   !else
+   allocate(veg_Cd(no_nodes, no_secveg))
+   allocate(veg_ah(no_nodes, no_secveg))
+   allocate(veg_bstems(no_nodes,  no_secveg))
+   allocate(veg_Nstems(no_nodes,  no_secveg))
+   !endif   
+   !
+   ntheta360 = nint(360./dtheta)
+   ntheta    = nint(sector/dtheta)   
    !
    ! Allocation of spatial arrays
    !
@@ -110,6 +104,8 @@ contains
    allocate(Hmx(no_nodes))
    allocate(fw(no_nodes))
    allocate(H(no_nodes))
+   allocate(Tp(no_nodes))   
+   allocate(Tp_ig(no_nodes))
    allocate(kwav_ig(no_nodes))
    allocate(nwav_ig(no_nodes))
    allocate(C_ig(no_nodes))
@@ -117,12 +113,15 @@ contains
    allocate(sinhkh_ig(no_nodes))
    allocate(Hmx_ig(no_nodes))
    allocate(fw_ig(no_nodes))
-   allocate(H_ig(no_nodes))     
+   allocate(H_ig(no_nodes)) 
+   allocate(Dveg(no_nodes))   
    allocate(Dw(no_nodes))
    allocate(Dw_ig(no_nodes))   
    allocate(F(no_nodes))
    allocate(Fx(no_nodes))
    allocate(Fy(no_nodes))
+   allocate(u10(no_nodes))
+   allocate(u10dir(no_nodes))   
    allocate(Df(no_nodes))
    allocate(Df_ig(no_nodes))
    allocate(thetam(no_nodes))
@@ -145,21 +144,20 @@ contains
    allocate(i360(ntheta))
    allocate(neumannconnected(no_nodes))
    allocate(tau(no_nodes))
-!   allocate(bndindx(no_nodes))
-!   allocate(F0tab(ntab))
-!   allocate(Fluxtab(no_nodes,ntab))
    allocate(theta(ntheta))
    allocate(dist(ntheta))
    allocate(theta360d0(ntheta360))
    allocate(theta360(ntheta360))
-!   allocate(sinth(ntheta))
-!   allocate(costh(ntheta))
-!   allocate(dist(ntheta))
-!   allocate(ee0(ntheta))
-!   allocate(x(no_nodes))
-!   allocate(y(no_nodes))
+   allocate(windspread360(ntheta360, no_nodes))
+   allocate(windspreadfac(ntheta, no_nodes))
    allocate(ee(ntheta,no_nodes))
    allocate(ee_ig(ntheta,no_nodes))
+   allocate(aa    (ntheta,no_nodes))
+   allocate(sig   (no_nodes))
+   allocate(WsorE (ntheta,no_nodes))
+   allocate(WsorA (ntheta,no_nodes))
+   allocate(SwE   (no_nodes))
+   allocate(SwA   (no_nodes))
    !
    ! Spatially-uniform bottom friction coefficients
    !
@@ -195,6 +193,13 @@ contains
    prev360 = 0
    H       = 0.0
    H_ig    = 0.0
+   aa     = 0.0
+   sig    = 0.0
+   WsorE  = 0.0
+   WsorA  = 0.0
+   SwE    = 0.0
+   SwA    = 0.0
+   windspreadfac = 0.0   
    !
    generate_upw = .false.
    exists = .true.
@@ -283,6 +288,36 @@ contains
        enddo              
        !
    endif      
+   !
+   ! Neumann boundaries
+   !
+   if (any(msk == 3)) then
+      !
+      ! We already have all msk=3 Neumann points, now find each their nearest cell 'neumannconnected' using new 'neuboundaries_light'
+      call neuboundaries_light(x,y,msk,no_nodes,tol,neumannconnected) 
+      !
+      if (ANY(neumannconnected > 0)) then
+          !
+          write(*,*)'SnapWave: Neumann connected boundaries found ...'
+          !
+          do k=1,no_nodes
+              if (neumannconnected(k)>0) then
+                  if (msk(k)==1) then
+                      ! k is inner and can be neumannconnected
+                      inner(neumannconnected(k))= .false.
+                      msk(neumannconnected(k)) = 3 !TL: should already by 3, but left it like in SnapWave SVN
+                  else
+                      ! we don't allow neumannconnected links if the node is an open boundary
+                      neumannconnected(k) = 0  
+                  endif
+              endif
+        enddo
+      endif
+   else
+      !
+      neumannconnected = 0       
+      !
+   endif
    !
    nb = 0
    !
@@ -708,7 +743,6 @@ contains
 
    end subroutine binary_search
 
-
    subroutine boundaries(x,y,no_nodes,xb,yb,nb,tol,bndpts,nobndpts,bndindx,bndweight)
    
    real*4,  dimension(no_nodes), intent(in)    :: x,y
@@ -751,74 +785,135 @@ contains
    
    end subroutine boundaries            
          
-
-
-   subroutine neuboundaries(x,y,no_nodes,xneu,yneu,nb,tol,neumannconnected)
-   !
-   real*4,  dimension(no_nodes), intent(in)    :: x,y
-   integer,                intent(in)    :: no_nodes
-   real*4,  dimension(nb), intent(in)    :: xneu,yneu
-   integer,                intent(in)    :: nb
-   real*4,                 intent(in)    :: tol
-   integer, dimension(no_nodes), intent(out)   :: neumannconnected   
-   integer, dimension(no_nodes)                :: nmpts                                           ! neumann points
-   integer                               :: Nnmpts                                          ! number of neumann points
-   integer                               :: ib,k,kmin
-   real*4                                :: alpha, cosa,sina, distmin, x1,y1,x2,y2
-   !   
-   ! Find all neumannpoints
+   subroutine neuboundaries_light(x,y,msk,no_nodes,tol,neumannconnected)
    ! 
-   nmpts = 0
-   Nnmpts = 0
-   do ib=1,nb-1
+   ! TL: Based on subroutine find_nearest_depth_for_boundary_points of snapwave_boundaries.f90
+   !
+   implicit none
+   !
+   integer, intent(in)                        :: no_nodes
+   real*8, dimension(no_nodes), intent(in)    :: x,y
+   integer*1, dimension(no_nodes), intent(in) :: msk   
+   real*4, intent(in)                         :: tol
+   integer, dimension(no_nodes), intent(out)  :: neumannconnected   
+   !
+    real*4  :: h1, h2, fac
+    !
+    real xgb, ygb, dst1, dst2, dst   
+    integer k, ib1, ib2, ic, kmin
+    !
+    ! Loop through all msk=3 cells
+    !
+    do ic = 1, no_nodes    
+        ! Loop through all grid points
+        !
+        if (msk(ic)==3) then ! point ic is on the neumann boundary       
+            !
+	        dst1 = tol
+     	    dst2 = tol            
+	        ib1 = 0
+	        ib2 = 0
+            !        
+            do k = 1, no_nodes
+                !
+                if (msk(k)==1) then 
+	                xgb = x(k)
+	                ygb = y(k)          
+	                !
+	                dst = sqrt((x(ic) - xgb)**2 + (y(ic) - ygb)**2)
+	                !
+	                if (dst<dst1) then
+		                !
+		                ! Nearest point found
+		                !
+		                dst2 = dst1
+		                ib2  = ib1
+		                dst1 = dst
+		                ib1  = k
+		                !
+	                elseif (dst<dst2) then
+		                !
+		                ! Second nearest point found
+		                !
+		                dst2 = dst
+		                ib2  = k
+		                !                    
+                    endif  
+                endif 
+            enddo
+            !
+            if ( (ib1 > 0) .and. (ib2 > 0) ) then
+                !
+                ! Determine the index of the minimum value, if points found within 'tol' distance
+                !
+                if (dst1 < dst2) then
+                    kmin = ib1
+                else
+                    kmin = ib2
+                endif
+                !
+                neumannconnected(kmin)=ic
+                !
+                !write(*,*)kmin,ic       
+                !
+            endif
+            !     
+        endif
+    enddo       
+   !
+   end subroutine neuboundaries_light
+
+
+subroutine neuboundaries(x,y,no_nodes,xneu,yneu,n_neu,tol,neumannconnected)
+   !
+   implicit none
+   !
+   integer, intent(in)                        :: no_nodes
+   integer, intent(in)                        :: n_neu
+   real*8, dimension(no_nodes), intent(in)    :: x,y
+   real*8, dimension(n_neu), intent(in)       :: xneu,yneu
+   real*4, intent(in)                         :: tol
+   integer, dimension(no_nodes), intent(out)  :: neumannconnected
+   !
+   integer                                    :: ib,k,kmin, k2
+   real*8                                     :: alpha, cosa,sina, distmin, x1,y1,x2,y2, xend
+   !
+   neumannconnected=0
+   do ib=1,n_neu-1
       if (xneu(ib).ne.-999.and.xneu(ib+1).ne.-999) then 
          alpha=atan2(yneu(ib+1)-yneu(ib),xneu(ib+1)-xneu(ib))
          cosa=cos(alpha)
          sina=sin(alpha)
-         xend=(xneu(ib+1)-xneu(ib))*cosa+(yneu(ib+1)-yneu(ib))*sina !xend is length of the polylinesegment in polyline coordinates 
+         xend=(xneu(ib+1)-xneu(ib))*cosa+(yneu(ib+1)-yneu(ib))*sina
          do k=1,no_nodes
-            x1= (x(k)-xneu(ib))*cosa+(y(k)-yneu(ib))*sina !parallel distance along polyline segment
-            y1=-(x(k)-xneu(ib))*sina+(y(k)-yneu(ib))*cosa !orthogonal distance to polyline segment 
-            if (x1>=0. .and. x1<=xend) then
+            x1= (x(k)-xneu(ib))*cosa+(y(k)-yneu(ib))*sina
+            y1=-(x(k)-xneu(ib))*sina+(y(k)-yneu(ib))*cosa
+            if (x1>=0.d0 .and. x1<=xend) then
                if (abs(y1)<tol) then
                   ! point k is on the neumann boundary
-                  Nnmpts = Nnmpts+1
-                  nmpts(Nnmpts) = k
-               endif
-            endif
-          enddo
-       endif
-    enddo
-    
-    !ML: find all neumanconnected INNER points (so needs a check to exlude outer points (list of neumanpoints nmpts))
-    do inmp = 1,Nnmpts 
-       k = nmpts(inmp)
-       if (k/=0) then
-          
-          x1= (x(k)-xneu(ib))*cosa+(y(k)-yneu(ib))*sina
-          y1=-(x(k)-xneu(ib))*sina+(y(k)-yneu(ib))*cosa
-              
-            distmin=1d10
-            kmin=0
-            do k2=1,no_nodes
-               x2= (x(k2)-xneu(ib))*cosa+(y(k2)-yneu(ib))*sina
-               y2=-(x(k2)-xneu(ib))*sina+(y(k2)-yneu(ib))*cosa
-               !choose point with parallel distance to neuman point within tolerance and with minimal orthogonal distance
-               if (abs(x2-x1)<tol .and. all(k2/=nmpts)) then 
-                  if (abs(y2-y1)<distmin) then
-                     kmin=k2
-                     distmin=abs(y2-y1)
+                  distmin=1d10
+                  kmin=0
+                  do k2=1,no_nodes
+                     x2= (x(k2)-xneu(ib))*cosa+(y(k2)-yneu(ib))*sina
+                     y2=-(x(k2)-xneu(ib))*sina+(y(k2)-yneu(ib))*cosa
+                     if (abs(x2-x1)<tol .and. (k2.ne.k)) then
+                        if (abs(y2-y1)<distmin) then
+                           kmin=k2
+                           distmin=abs(y2-y1)
+                        endif
+                     endif
+                  enddo
+                  if (kmin>0) then
+                     neumannconnected(kmin)=k
+                     write(*,*)kmin,k
                   endif
                endif
-            enddo
-            if (kmin>0) then
-               neumannconnected(kmin)=k
-               write(*,*)kmin,k
             endif
-         endif
-      enddo
-      !   
-   end subroutine neuboundaries
+         enddo
+      endif
+   enddo
+   !
+end subroutine neuboundaries
 
 
    subroutine read_snapwave_sfincs_mesh()

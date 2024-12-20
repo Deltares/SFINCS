@@ -24,6 +24,7 @@ contains
    integer ispinupmeteo
    integer isnapwave
    integer iwindmax
+   integer iwind   
    integer ioutfixed
    integer iadvection
    integer istorefw
@@ -213,7 +214,10 @@ contains
    call read_int_input(500,'storewavdir', istorewavdir, 0)
    call read_logical_input(500,'friction2d',friction2d,.true.)
    call read_logical_input(500,'advection_mask',advection_mask,.true.)
-   call read_logical_input(500,'regular_output_on_mesh',use_quadtree_output,.false.)   
+   call read_logical_input(500,'regular_output_on_mesh',use_quadtree_output,.false.)
+   !
+   ! Coupled SnapWave solver related
+   call read_int_input(500,'snapwave_wind',iwind,0)   
    !
    ! Wind drag
    !
@@ -361,13 +365,26 @@ contains
    endif   
    !
    store_meteo = .false.
+   store_wind  = .false.   
    store_wind_max = .false.
    if (storemeteo==1) then
       store_meteo = .true.
+      store_wind = .true.      
       if (iwindmax==1) then
          store_wind_max = .true.
       endif
    endif
+   !
+   snapwave = .false.
+   if (isnapwave==1) then
+      snapwave = .true.
+      !
+      if (iwind==1) then
+          store_wind = .true. 
+          ! For running SnapWave with wind growth, we need to store the wind speed & direction to be able to pass it from SFINCS to SnapWave. 
+          ! Independent from wndfile or 2D meteo input, handled by store_wind.
+      endif  
+   endif 
    !
    store_twet = .false.
    if (storetwet==1) then
@@ -452,11 +469,6 @@ contains
    if (ispwprecip==0) then
       use_spw_precip = .false.
    endif   
-   !
-   snapwave = .false.
-   if (isnapwave==1) then
-      snapwave = .true.
-   endif      
    !
    fixed_output_intervals = .true.
    if (ioutfixed==0) then
