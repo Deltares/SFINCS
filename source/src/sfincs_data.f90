@@ -11,6 +11,11 @@ module sfincs_data
       integer :: error
       character*256 :: error_message
       !!!
+      !!! BMI
+      !!!
+      logical       :: bmi
+      logical       :: use_qext
+      !!!
       !!! Constants
       !!!
       real*4 g                                   ! gravitational constant g
@@ -265,8 +270,8 @@ module sfincs_data
       ! Indices
       !
       integer*4,          dimension(:),   allocatable :: nmindbnd
-      integer*4,          dimension(:),   allocatable :: z_index_z_n
-      integer*4,          dimension(:),   allocatable :: z_index_z_m
+      integer*4,          dimension(:),   allocatable, target :: z_index_z_n
+      integer*4,          dimension(:),   allocatable, target :: z_index_z_m
       integer*4,          dimension(:),   allocatable :: z_index_uv_md1
       integer*4,          dimension(:),   allocatable :: z_index_uv_md2
       integer*4,          dimension(:),   allocatable :: z_index_uv_mu1
@@ -337,14 +342,14 @@ module sfincs_data
       !
       ! Z-points
       !
-      real*4,             dimension(:),   allocatable :: z_xz
-      real*4,             dimension(:),   allocatable :: z_yz
+      real*4,             dimension(:),   allocatable, target :: z_xz
+      real*4,             dimension(:),   allocatable, target :: z_yz
       real*4,             dimension(:),   allocatable :: cell_area_m2
       real*4,             dimension(:),   allocatable :: nuvisc      
       !
       ! UV-points
       !
-      real*4, dimension(:),   allocatable :: zb
+      real*4, dimension(:),   allocatable, target :: zb
       real*4, dimension(:),   allocatable :: zbuv
       real*4, dimension(:),   allocatable :: zbuvmx
       real*4, dimension(:),   allocatable :: gn2uv
@@ -477,7 +482,7 @@ module sfincs_data
       !
       integer                             :: subgrid_nlevels
       !
-      real*4, dimension(:),   allocatable :: subgrid_z_zmin
+      real*4, dimension(:),   allocatable, target :: subgrid_z_zmin
       real*4, dimension(:),   allocatable :: subgrid_z_zmax
       real*8, dimension(:),   allocatable :: subgrid_z_volmax
       real*4, dimension(:,:), allocatable :: subgrid_z_dep
@@ -501,7 +506,7 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: zsmax
       real*4, dimension(:),   allocatable :: vmax
       real*4, dimension(:),   allocatable :: qmax
-      real*8, dimension(:),   allocatable :: zs
+      real*8, dimension(:),   allocatable, target :: zs
       real*4, dimension(:),   allocatable :: zsm
       real*4, dimension(:),   allocatable :: maxzsm      
       real*4, dimension(:),   allocatable :: q
@@ -521,7 +526,8 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: prcp
       real*4, dimension(:),   allocatable :: cumprcp
       real*4, dimension(:),   allocatable :: netprcp
-      ! real*4, dimension(:),   allocatable :: cumprcpt
+      real*4, dimension(:),   allocatable :: cumprcpt
+      real*4, dimension(:),   allocatable, target :: qext
       real*4, dimension(:),   allocatable :: cuminf
       real*4, dimension(:),   allocatable :: tauwu0
       real*4, dimension(:),   allocatable :: tauwu1
@@ -938,6 +944,7 @@ module sfincs_data
     if(allocated(prcp0)) deallocate(prcp0)
     if(allocated(prcp1)) deallocate(prcp1)
     !
+    if(allocated(qext)) deallocate(qext)
 !    if(allocated(kfuv)) deallocate(kfuv)
     !
     ! Grid boundary points

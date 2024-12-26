@@ -1891,7 +1891,7 @@ contains
    !   a) store_cumulative_precipitation == .true.
    ! or:  
    !   b) inftype == 'cna' or inftype == 'cnb'
-   !
+   !   
    ! First we determine precipitation type
    !
    if (precip) then
@@ -1941,17 +1941,13 @@ contains
          !
       endif
       !
-      if (precip) then
-         !
-         ! We need cumprcp and cuminf
-         !
-         allocate(cumprcp(np))
-         cumprcp = 0.0
-         !
-         allocate(cuminf(np))
-         cuminf = 0.0
-         ! 
-      endif
+      ! We need cumprcp and cuminf
+      !
+      allocate(cumprcp(np))
+      cumprcp = 0.0
+      !
+      allocate(cuminf(np))
+      cuminf = 0.0
       !
       ! Now allocate and read spatially-varying inputs 
       !
@@ -2505,12 +2501,28 @@ contains
       prcp0   = 0.0
       prcp1   = 0.0
       !
-      ! allocate(cumprcpt(np))      
-      ! cumprcpt = 0.0
       allocate(netprcp(np))      
       netprcp  = 0.0
       !
    endif
+   !
+   if (use_qext) then
+      !
+      ! Allocating and initializing qext (used e.g. for BMI coupling with ground water model)
+      !
+      allocate(qext(np))
+      qext = 0.0
+      !
+   endif    
+   !
+   if (precip .or. use_qext) then
+      !
+      ! cumprcpt array for cumulative total influx 
+      ! 
+      allocate(cumprcpt(np))      
+      cumprcpt = 0.0
+      ! 
+   endif    
    !
    if (subgrid) then
       !

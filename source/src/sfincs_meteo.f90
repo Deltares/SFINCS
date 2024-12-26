@@ -1278,10 +1278,12 @@ contains
    real*4  :: ptmp
    !
    do itp = itprcplast, ntprcp ! Loop in time
-      if (tprcpt(itp)>t) then
+      if (tprcpt(itp) > t) then          
          exit
       endif
    enddo
+   !
+   itp = max(min(itp, ntprcp), 1)
    !
    twfac  = (t - tprcpt(itp - 1))/(tprcpt(itp) - tprcpt(itp - 1))
    !
