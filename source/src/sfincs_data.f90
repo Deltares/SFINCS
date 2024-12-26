@@ -479,7 +479,7 @@ module sfincs_data
       !
       real*4, dimension(:),   allocatable :: subgrid_z_zmin
       real*4, dimension(:),   allocatable :: subgrid_z_zmax
-      real*4, dimension(:),   allocatable :: subgrid_z_volmax
+      real*8, dimension(:),   allocatable :: subgrid_z_volmax
       real*4, dimension(:,:), allocatable :: subgrid_z_dep
       !
       real*4, dimension(:),   allocatable :: subgrid_uv_zmin

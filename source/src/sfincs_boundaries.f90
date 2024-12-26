@@ -140,6 +140,26 @@ contains
       write(logstr,'(a)')'Warning! Boundary cells found in mask, without boundary conditions. Using water level of 0.0 m at these points.'
       call write_log(logstr, 1)
       !
+      nbnd = 1
+      allocate(x_bnd(nbnd))
+      allocate(y_bnd(nbnd))
+      x_bnd(1) = 0.0
+      y_bnd(1) = 0.0
+      !
+      ntbnd = 2
+      !
+      allocate(t_bnd(ntbnd))
+      allocate(zs_bnd(nbnd,ntbnd))
+      allocate(zst_bnd(nbnd))
+      !
+      t_bnd(1) = t0
+      t_bnd(2) = t1
+      zs_bnd(1,1) = 0.0
+      zs_bnd(2,1) = 0.0
+      zs_bnd(1,2) = 0.0
+      zs_bnd(2,2) = 0.0
+      zst_bnd(1)  = 0.0      
+      !
    endif
    !
    ! Read wave boundaries
@@ -784,6 +804,7 @@ contains
          else
             !
             hnmb   = max(0.5*(zsnmb + zsnmi) - zbuv(ip), huthresh)
+            !hnmb   = max(max(zsnmb, zsnmi) - zbuv(ip), huthresh)
             zsnmb  = max(zsnmb,  zb(nmb))
             zs0nmb = max(zs0nmb, zb(nmb))
             !

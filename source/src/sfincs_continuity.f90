@@ -264,7 +264,8 @@ contains
    integer          :: ndm
    !
    real*4           :: factime
-   real*4           :: dvol  
+   real*8           :: dvol  
+   real*8           :: dzvol
    !
    real*4           :: qnmu
    real*4           :: qnmd
@@ -272,7 +273,6 @@ contains
    real*4           :: qndm
    !
    integer          :: iuv
-   real*4           :: dzvol
    real*4           :: facint
    real*4           :: a
    real*4           :: dv
@@ -335,12 +335,14 @@ contains
          !
          if (crsgeo) then
             !
-            dvol = dvol + ( (q(nmd) - q(nmu))*dyrm(uv_flags_iref(nm)) + (q(ndm) - q(num))*dxm(nm) ) * dt
+            ! dvol = dvol + ( (q(nmd) - q(nmu))*dyrm(uv_flags_iref(nm)) + (q(ndm) - q(num))*dxm(nm) ) * dt
+            dvol = dvol + ( (q(nmd) - q(nmu))*dyrm(z_flags_iref(nm)) + (q(ndm) - q(num))*dxm(nm) ) * dt
             !
          else
             !
             if (use_quadtree) then   
-               dvol = dvol + ( (q(nmd) - q(nmu))*dyrm(uv_flags_iref(nm)) + (q(ndm) - q(num))*dxrm(uv_flags_iref(nm)) ) * dt
+               ! dvol = dvol + ( (q(nmd) - q(nmu))*dyrm(uv_flags_iref(nm)) + (q(ndm) - q(num))*dxrm(uv_flags_iref(nm)) ) * dt
+               dvol = dvol + ( (q(nmd) - q(nmu))*dyrm(z_flags_iref(nm)) + (q(ndm) - q(num))*dxrm(z_flags_iref(nm)) ) * dt
             else
                dvol = dvol + ( (q(nmd) - q(nmu))*dy + (q(ndm) - q(num))*dx ) * dt
             endif   
@@ -404,9 +406,9 @@ contains
          endif   
          !
          if (use_quadtree) then   
-            dvol = dvol + ( (qnmd - qnmu)*dyrm(uv_flags_iref(nm)) + (qndm - qnum)*dxrm(uv_flags_iref(nm)) ) * dt
+            dvol = dvol + ( (qnmd - qnmu) * dyrm(uv_flags_iref(nm)) + (qndm - qnum) * dxrm(uv_flags_iref(nm)) ) * dt
          else
-            dvol = dvol + ( (qnmd - qnmu)*dy + (qndm - qnum)*dx ) * dt
+            dvol = dvol + ( (qnmd - qnmu) * dy + (qndm - qnum) * dx ) * dt
          endif   
          !
       endif
@@ -470,7 +472,7 @@ contains
             !
             ! Entire cell is wet, no interpolation needed
             !
-            zs(nm) = max(subgrid_z_zmax(nm), -20.0) + (z_volume(nm) - subgrid_z_volmax(nm))/a
+            zs(nm) = max(subgrid_z_zmax(nm), -20.0) + (z_volume(nm) - subgrid_z_volmax(nm)) / a
             !
          elseif (z_volume(nm)<=1.0e-6) then
             !
@@ -492,7 +494,7 @@ contains
          !
          if (wiggle_suppression) then 
             ! 
-            zsderv(nm) = zs(nm) - 2*zs11 + zs00
+            zsderv(nm) = zs(nm) - 2 * zs11 + zs00
             ! 
          endif
          !

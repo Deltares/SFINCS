@@ -1304,7 +1304,7 @@ contains
       ! dxr and dyr are now in degrees. Must convert to metres.
       ! For dxr, we need a value for every uv point. For dyr, just multiply by 111111.1
       !
-      allocate(dxm(npuv)) 
+      !allocate(dxm(npuv)) 
       allocate(dxminv(npuv))   
       allocate(dxm2inv(npuv))
       !
@@ -1314,7 +1314,7 @@ contains
       allocate(dyrinvc(nref))
       !      
       allocate(cell_area_m2(np))
-      !
+      allocate(dxm(np)) 
       allocate(fcorio2d(np))
       !
       dyrinvc = 0.0
@@ -1326,8 +1326,10 @@ contains
          iref = uv_flags_iref(ip)
          nm   = uv_index_z_nm(ip)
          !
-         dxm(ip)     = dxr(iref)*111111.1*cos(z_yz(nm)*pi/180)
-         dxminv(ip)  = 1.0/dxm(ip)
+         !dxm(ip)     = dxr(iref)*111111.1*cos(z_yz(nm)*pi/180)
+         !dxminv(ip)  = 1.0/dxm(ip)
+         !dxm2inv(ip) = dxminv(ip)**2
+         dxminv(ip)  = 1.0 / ( dxr(iref) * 111111.1 * cos(z_yz(nm) * pi / 180) )
          dxm2inv(ip) = dxminv(ip)**2
          !
          ! Minimum grid spacing to determine dtmax 
@@ -1360,7 +1362,9 @@ contains
          !
          iref = z_flags_iref(nm)
          !
-         cell_area_m2(nm) = dxr(iref)*111111.1*cos(z_yz(nm)*pi/180)*dyrm(iref) 
+         dxm(nm)          = dxr(iref) * 111111.1 * cos(z_yz(nm) * pi / 180)
+         ! cell_area_m2(nm) = dxr(iref)*111111.1*cos(z_yz(nm)*pi/180)*dyrm(iref) 
+         cell_area_m2(nm) = dxm(nm) * dyrm(iref) 
          !         
       enddo   
       !
@@ -1368,7 +1372,7 @@ contains
       !
       if (use_coriolis) then
          do nm = 1, np            
-            fcorio2d(nm) = 2*7.2921e-05*sin(z_yz(nm)*pi/180)
+            fcorio2d(nm) = 2 * 7.2921e-05 * sin(z_yz(nm) * pi / 180)
          enddo
       endif   
       !

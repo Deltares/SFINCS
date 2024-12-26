@@ -122,7 +122,7 @@ contains
    call read_real_input(500,'wiggle_factor',wiggle_factor,0.1)
    call read_real_input(500,'wiggle_threshold',wiggle_threshold,0.1)
    call read_real_input(500, 'uvlim', uvlim, 10.0)
-   call read_real_input(500, 'uvmax', uvmax, 25.0)
+   call read_real_input(500, 'uvmax', uvmax, 1000.0)
    !
    ! Domain
    !
@@ -323,6 +323,7 @@ contains
          call write_log('Info    : turning on Coriolis', 0)         
       else
          use_coriolis = .false.
+         coriolis = .false.
          call write_log('Info    : turning off Coriolis', 0)
       endif   
       !

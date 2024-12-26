@@ -154,7 +154,7 @@ contains
             ! V
             !
             if (crsgeo) then
-               dxycrs = dxm(indx) 
+               dxycrs = 1.0 / dxminv(indx) 
             else
                dxycrs = dxrm(iref) 
             endif   

@@ -180,7 +180,7 @@
                dxs = dyrm(iref)
             else
                ! V point
-               dxs = dxm(indx)
+               dxs = 1.0 / dxminv(indx)
             endif   
          else   
             ! Projected coordinate system
@@ -332,7 +332,7 @@
                !
                ! V point
                !
-               dxs = dxm(ip)
+               dxs = 1.0 / dxminv(ip)
                !
             endif   
             !
