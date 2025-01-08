@@ -346,6 +346,10 @@ module sfincs_output
       open(unit = 854, status = 'replace', file = 'cuminf.dat', form = 'unformatted')
    endif
    !
+   if (store_maximum_flux) then
+      open(unit = 855, status = 'replace', file = 'qmax.dat', form = 'unformatted')
+   endif
+   !
    end subroutine
    
 
@@ -483,6 +487,10 @@ module sfincs_output
    ! 
    if (infiltration) then
       write(854)cuminf
+   endif
+   ! 
+   if (store_maximum_flux) then
+      write(855)qmax
    endif
    ! 
    end subroutine
