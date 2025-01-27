@@ -356,18 +356,32 @@ contains
    do ip = 1, npuv
       nm = uv_index_z_nm(ip)
       nmu = uv_index_z_nmu(ip)
-      subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), subgrid_z_zmin(nm))
-      subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), subgrid_z_zmin(nmu))
+      if (subgrid_z_zmin(nm) > subgrid_uv_zmin(ip)) then
+         write(*,'(a,i0,a,i0,a)')'Error in subgrid uv point! subgrid_uv_zmin(',ip,') < subgrid_z_zmin(', nm, ')'
+         subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), subgrid_z_zmin(nm))
+         subgrid_uv_zmax(ip) = max(subgrid_uv_zmax(ip), subgrid_uv_zmin(ip) + 0.001)
+      endif   
+      if (subgrid_z_zmin(nmu) > subgrid_uv_zmin(ip)) then
+         write(*,'(a,i0,a,i0,a)')'Error in subgrid uv point! subgrid_uv_zmin(',ip,') < subgrid_z_zmin(', nmu, ')'
+         subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), subgrid_z_zmin(nmu))
+         subgrid_uv_zmax(ip) = max(subgrid_uv_zmax(ip), subgrid_uv_zmin(ip) + 0.001)
+      endif   
    enddo   
    !
    ! Make sure zmax is always bigger than zmin
    !
    do nm = 1, np
-      if (subgrid_z_zmax(nm) - subgrid_z_zmin(nm) < 0.001) subgrid_z_zmax(nm) = subgrid_z_zmax(nm) + 0.001
+      if (subgrid_z_zmax(nm) - subgrid_z_zmin(nm) <= 0.0) then
+         ! This is not necessarily an error but occurs when all subgrid pixels in a cell have the same value.
+         subgrid_z_zmax(nm) = subgrid_z_zmax(nm) + 0.001
+      endif   
    enddo
    !
-   do nm = 1, npuv
-      if (subgrid_uv_zmax(nm) - subgrid_uv_zmin(nm) < 0.001) subgrid_uv_zmax(nm) = subgrid_uv_zmax(nm) + 0.001
+   do ip = 1, npuv
+      if (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip) < 1.0e-7) then
+         write(*,'(a,i0,a)')'Error in subgrid uv point (ip=', ip, '), zmax <= zmin'
+         subgrid_uv_zmax(ip) = subgrid_uv_zmax(ip) + 0.001
+      endif   
    enddo
    !
    ! Make arrays for subgrid_uv_havg_zmax and subgrid_uv_nrep_zmax for faster searching

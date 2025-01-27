@@ -119,11 +119,12 @@ contains
    call read_char_input(500,'advection_scheme',advstr,'upw1')   
    call read_real_input(500,'btrelax',btrelax,3600.0)
 !   call read_logical_input(500,'qext',use_qext,.false.) ! Should this instead be set by the BMI coupler?
-   call read_logical_input(500,'wiggle_suppression',wiggle_suppression,.false.)
+   call read_logical_input(500,'wiggle_suppression', wiggle_suppression, .true.)
    call read_real_input(500,'wiggle_factor',wiggle_factor,0.1)
    call read_real_input(500,'wiggle_threshold',wiggle_threshold,0.1)
    call read_real_input(500, 'uvlim', uvlim, 10.0)
    call read_real_input(500, 'uvmax', uvmax, 1000.0)
+   call read_logical_input(500, 'store_dynamic_bed_level', store_dynamic_bed_level, .false.)
    !
    ! Domain
    !
@@ -215,7 +216,10 @@ contains
    call read_int_input(500,'storewavdir', istorewavdir, 0)
    call read_logical_input(500,'friction2d',friction2d,.true.)
    call read_logical_input(500,'advection_mask',advection_mask,.true.)
-   call read_logical_input(500,'regular_output_on_mesh',use_quadtree_output,.false.)   
+   call read_logical_input(500,'regular_output_on_mesh',use_quadtree_output,.false.)
+   call read_real_input(500, 'dzdsbnd', dzdsbnd, 0.0001)
+   call read_real_input(500, 'manningbnd', manningbnd, 0.024)
+   call read_real_input(500, 'nuviscfac', nuviscfac, 100.0)
    !
    ! Wind drag
    !
@@ -548,6 +552,8 @@ contains
       !endif
       !
    endif
+   !
+   normbnd = sqrt(dzdsbnd) / manningbnd
    !
    end subroutine
 

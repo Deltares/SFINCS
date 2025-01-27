@@ -279,6 +279,12 @@ module sfincs_lib
    endif
    call write_log('------------------------------------------', 1)   
    !
+   call write_log('', 1)
+   call write_log('---------- Starting simulation -----------', 1)
+   write(logstr,'(a,i0,a,i0,a)')'---- Using ', omp_get_max_threads(), ' of ', omp_get_num_procs(), ' available threads ----'   
+   call write_log(logstr, 1)
+   call write_log('', 1)
+   !
    end function sfincs_initialize
    !
    !-----------------------------------------------------------------------------------------------------!
@@ -286,7 +292,7 @@ module sfincs_lib
    function sfincs_update(dtrange) result(ierr)
    !
    double precision, intent(in)  :: dtrange
-   integer                       :: ierr
+   integer                       :: ierr, nrtimesteps
    real*8                        :: tend !< end of update interval
    real*4                        :: dtchk !< dt to check for instability
    !
@@ -316,19 +322,32 @@ module sfincs_lib
    !
    ! Set target time: if dt range is negative, do not modify t1
    !
-   if ( dtrange > 0.0 ) then
-      tend = t + dtrange
-   else
+   nrtimesteps = 999
+   !   
+   if (dtrange < -999.0) then
+      !
+      ! Regular
+      !
       tend = t1
+      !      
+   elseif ( dtrange <= 0.0 ) then
+      ! 
+      ! BMI run for one time step (using update)
+      !
+      ! call compute_zbuvmx()
+      !
+      tend = t1 ! But make sure only one iteration is done
+      nrtimesteps = 1
+      !
+   else !  ( dtrange > 0.0 )
+      ! 
+      ! BMI run for time interval dtrange
+      !
+      tend = t + dtrange
+      !
    endif
    !
    ! Start computational loop
-   !
-   call write_log('', 1)
-   call write_log('---------- Starting simulation -----------', 1)
-   write(logstr,'(a,i0,a,i0,a)')'---- Using ', omp_get_max_threads(), ' of ', omp_get_num_procs(), ' available threads ----'   
-   call write_log(logstr, 1)
-   call write_log('', 1)
    !
    call system_clock(count00, count_rate, count_max)
    !
@@ -566,7 +585,8 @@ module sfincs_lib
       !
       if (percdone >= percdonenext) then
          !
-         percdonenext = 1.0 * (int(percdone) + 5)
+         ! percdonenext = 1.0 * (int(percdone) + 5)
+         percdonenext = 1.0 * (int(percdone) + 1)
          call system_clock(count1, count_rate, count_max)
          trun  = 1.0*(count1 - count00)/count_rate
          trem = trun / max(0.01*percdone, 1.0e-6) - trun
@@ -579,6 +599,14 @@ module sfincs_lib
          endif   
          !
       endif
+      !
+      if (nrtimesteps == 1) then
+         !
+         ! Update was called with BMI update so only run one time step
+         !
+         tend = t0
+         !
+      endif      
       !
    enddo
    !

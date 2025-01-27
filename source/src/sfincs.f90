@@ -8,7 +8,7 @@ program sfincs
    integer :: ierr
    double precision    :: deltat
    !
-   deltat = -1.0
+   deltat = -999.9
    ierr = 0
    !
    if (ierr == 0) then
@@ -24,6 +24,8 @@ program sfincs
    !
    if (ierr == 0) then
       ! 
+      ! if deltat < 999.0 update until end
+      !
       ierr = sfincs_update(deltat)
       ! 
    endif

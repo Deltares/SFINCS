@@ -1610,6 +1610,25 @@ contains
    if (allocated(kcsg)) deallocate(kcsg)
    !
    end subroutine
+   
+   subroutine compute_zbuvmx()
+   !
+   use sfincs_data
+   !
+   integer :: ip
+   integer :: nm
+   integer :: nmu
+   !
+   do ip = 1, npuv
+      !
+      nm  = uv_index_z_nm(ip)
+      nmu = uv_index_z_nmu(ip)
+      !
+      zbuvmx(ip) = max(zb(nm), zb(nmu)) + huthresh
+      !   
+   enddo      
+   !
+   end subroutine
 
    subroutine initialize_boundaries()
    !

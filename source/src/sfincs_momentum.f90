@@ -88,6 +88,9 @@
    !
    real*4    :: mdrv
    !
+!   real*4    :: min_dt_uv
+!   real*4    :: min_dt_gh
+   !
    real*4, parameter :: expo = 1.0/3.0
    !integer, parameter :: expo = 1
    !
@@ -96,6 +99,10 @@
    call system_clock(count0, count_rate, count_max)
    !
    min_dt = dtmax
+!   min_dt_uv = dtmax
+!   min_dt_gh = dtmax
+!   min_dt_uv = 0.0
+!   min_dt_gh = 0.0
    !
    !$acc update device(min_dt), async(1)
    !
@@ -120,7 +127,8 @@
       !
       ! Limit speeds to prevent instabilities due to advection
       !      
-      uv0(ip) = max(min(uv(ip), uvlim), -uvlim)
+      ! uv0(ip) = max(min(uv(ip), uvlim), -uvlim)
+      uv0(ip) = uv(ip)
       !
    enddo
    !$omp end do
@@ -132,7 +140,7 @@
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
    !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv ) &
-   !$omp reduction ( min : min_dt )
+   !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop independent, reduction( min : min_dt ), gang, vector
    do ip = 1, npuv
@@ -320,7 +328,7 @@
             ! Wet fraction phi (for non-subgrid or original subgrid approach phi should be 1.0)
             !
             phi  = 1.0
-            gnavg2 = 0.016
+            ! gnavg2 = 0.016
             !
             ! Compute water depth at uv point
             !
@@ -342,12 +350,11 @@
                   !
                   dzuv   = (zmax - zmin) / (subgrid_nlevels - 1)                                                          ! level size (is storing this in memory faster?)
                   iuv    = min(int((zsu - zmin) / dzuv) + 1, subgrid_nlevels - 1)                                         ! index of level below zsu 
-                  facint = (zsu - (zmin + (iuv - 1)*dzuv) ) / dzuv                                                        ! 1d interpolation coefficient
-                  ! if (iuv > subgrid_nlevels - 1 .or. iuv<1) write(*,'(a,3i8,20e16.8)')'iuv exceeds bounds in momentum! (iuv,ip,zmin,zmax,zsu,dzuv,facint) :', iuv,ip,subgrid_nlevels,zmin,zmax,dzuv,zsu,facint
+                  facint = (zsu - (zmin + (iuv - 1) * dzuv) ) / dzuv                                                        ! 1d interpolation coefficient
                   !
-                  hu     = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint   ! grid-average depth
-                  gnavg2 = subgrid_uv_nrep(iuv, ip) + (subgrid_uv_nrep(iuv + 1, ip) - subgrid_uv_nrep(iuv, ip))*facint   ! representative g*n^2
-                  phi    = subgrid_uv_pwet(iuv, ip) + (subgrid_uv_pwet(iuv + 1, ip) - subgrid_uv_pwet(iuv, ip))*facint   ! wet fraction
+                  hu     = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip)) * facint   ! grid-average depth
+                  gnavg2 = subgrid_uv_nrep(iuv, ip) + (subgrid_uv_nrep(iuv + 1, ip) - subgrid_uv_nrep(iuv, ip)) * facint   ! representative g*n^2
+                  phi    = subgrid_uv_pwet(iuv, ip) + (subgrid_uv_pwet(iuv + 1, ip) - subgrid_uv_pwet(iuv, ip)) * facint   ! wet fraction
                   !
                endif
                !
@@ -367,11 +374,8 @@
             ! Pressure term (apply slope limiter, default is very high)
             !
             dzdx = min(max((zs(nmu) - zs(nm)) * dxuvinv, -slopelim), slopelim) 
-            ! dzdx = (zs(nmu) - zs(nm)) * dxuvinv
             !
             frc = - g * hu * dzdx
-            !
-            ! frc = - g * hu * (zs(nmu) - zs(nm)) * dxuvinv
             !
             ! Advection term
             !
@@ -482,7 +486,17 @@
             !
             if (viscosity) then
                !
-               frc = frc + nuvisc(iref) * hu * ( (uu_nmu - 2*uu_nm + uu_nmd ) * dxuv2inv + (uu_num - 2*uu_nm + uu_ndm ) * dyuv2inv )
+               if (itype == 0) then
+                  ! 
+                  frc = frc + nuvisc(iref) * hu * ( (uu_nmu - 2*uu_nm + uu_nmd ) * dxuv2inv + (uu_num - 2*uu_nm + uu_ndm ) * dyuv2inv )
+                  !
+               else
+                  !
+                  ! Increase viscosity to prevent instabilities (related to advection?)
+                  !
+                  frc = frc + nuviscfac * nuvisc(iref) * hu * ( (uu_nmu - 2*uu_nm + uu_nmd ) * dxuv2inv + (uu_num - 2*uu_nm + uu_ndm ) * dyuv2inv )
+                  !
+               endif               
                !
             endif
             !
@@ -616,9 +630,9 @@
             ! 
             q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / (hu**2 * hu**expo))
             !
-            if (wiggle_suppression) then 
+            if (subgrid .and. wiggle_suppression) then 
                !
-               ! If the acceleration of water level in cell nm is large and positive and in nmu large and negative, or vice versa, apply limiter to the flux
+               ! If the acceleration of water level in cell nm is large and positive and in nmu large and negative, or vice versa, apply limiter to the flux. Only for subgrid.
                !
                mdrv = abs(zsderv(nm) - zsderv(nmu)) - wiggle_threshold
                !
@@ -654,9 +668,17 @@
                !
             endif
             !
+            ! Apply flux limiter
+            !
+            q(ip) = min(max(q(ip), -hu * uvlim), hu * uvlim)
+            !
             ! Compute velocity
             !
-            uv(ip) = q(ip) / hu
+            uv(ip) = q(ip) / hu ! Store wet-averaged velocity
+            !
+            !if (abs(uv(ip))>100.0) then
+            !   write(*,'(3i8,20e14.4)')ip,nm,nmu,uv(ip),q(ip),hu,phi,dzdx,frc,adv,qsm,qfr,advlim,advlim*hu
+            !endif
             !
             kfuv(ip) = 1
             !
@@ -664,6 +686,10 @@
             ! Use maximum of sqrt(gh) and current velocity
             !
             min_dt = min(min_dt, 1.0 / ( max(sqrt(g * hu), 1.25 * abs(uv(ip)) ) * dxuvinv))
+!            min_dt_uv = min(min_dt_uv, 1.0 / ( 1.25 * abs(uv(ip)) * dxuvinv) )
+!            min_dt_gh = min(min_dt_gh, 1.0 / ( sqrt(g * hu) * dxuvinv) )
+!            min_dt_uv = min(min_dt_uv, 1.0 / max(abs(uv(ip)), 1.0e-6) )
+!            min_dt_gh = min(min_dt_gh, 1.0 / max(sqrt(g * hu), 1.0e-6) )
             !
          else
             !
@@ -677,6 +703,8 @@
    enddo   
    !$omp end do
    !$omp end parallel
+   !
+!   write(*,'(2e16.6)')1.0/min_dt_uv,1.0/min_dt_gh   
    !
    if (ncuv > 0) then
       !

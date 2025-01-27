@@ -1,8 +1,8 @@
 module sfincs_bmi
    use iso_c_binding
    use sfincs_lib
-   ! use sfincs_ncoutput
    use sfincs_data
+   use sfincs_domain
    
    implicit none
    private
@@ -20,6 +20,7 @@ module sfincs_bmi
    public :: get_end_time
    public :: get_time_step
    public :: get_current_time
+   public :: update_zbuv
 
    ! constants
    public :: BMI_LENVARADDRESS
@@ -56,7 +57,7 @@ contains
    !DEC$ ATTRIBUTES DLLEXPORT :: update
       integer(kind=c_int) :: ierr
       real*8 :: unused_t
-      
+      ! Run single time step      
       unused_t = -1.0
       ierr = sfincs_update(unused_t)
    
@@ -158,8 +159,10 @@ contains
       var_name = char_array_to_string(c_var_name, strlen(c_var_name, BMI_LENVARADDRESS))
 
       select case(var_name)
-      case("z_xz", "z_yz", "zs", "zb", "subgrid_z_zmin", "qext")
+      case("z_xz", "z_yz", "zb", "subgrid_z_zmin", "qext")
          type_name = "float"
+      case("zs")
+         type_name = "double"
       case("z_index_z_n", "z_index_z_m")
          type_name = "integer"
       case default
@@ -260,6 +263,16 @@ contains
 
    end function get_current_time
 
+   function update_zbuv() result(ierr) bind(C, name="update_zbuv")
+   ! Update bed level at uv points
+   !DEC$ ATTRIBUTES DLLEXPORT :: update_zbuv
+      integer(kind=c_int) :: ierr
+      call compute_zbuvmx()
+      ierr = 0
+   
+   end function update_zbuv
+   
+   
    !> @brief Get the last error in the BMI as a character array
    !! with size BMI_LENERRMESSAGE
    !<

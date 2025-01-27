@@ -94,6 +94,10 @@ module sfincs_data
       real*4 wiggle_threshold
       real*4 uvlim
       real*4 uvmax
+      real*4 normbnd
+      real*4 dzdsbnd
+      real*4 manningbnd
+      real*4 nuviscfac
       !
       real*4 freqminig
       real*4 freqmaxig
@@ -238,6 +242,7 @@ module sfincs_data
       logical       :: advection_mask
       logical       :: wiggle_suppression
       logical       :: wmrandom      
+      logical       :: store_dynamic_bed_level
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax

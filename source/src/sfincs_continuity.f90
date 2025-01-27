@@ -378,6 +378,9 @@ contains
          nmu = z_index_uv_mu(nm)
          ndm = z_index_uv_nd(nm)
          num = z_index_uv_nu(nm)
+!         if (nm==44049) then
+!            write(*,*)dvol
+!         endif
          !
          if (crsgeo) then
             !
@@ -389,6 +392,9 @@ contains
             if (use_quadtree) then   
                ! dvol = dvol + ( (q(nmd) - q(nmu))*dyrm(uv_flags_iref(nm)) + (q(ndm) - q(num))*dxrm(uv_flags_iref(nm)) ) * dt
                dvol = dvol + ( (q(nmd) - q(nmu))*dyrm(z_flags_iref(nm)) + (q(ndm) - q(num))*dxrm(z_flags_iref(nm)) ) * dt
+!               if (nm==44049) then
+!                  write(*,'(4i8,20e16.6)')nmd,nmu,ndm,num,q(nmd),q(nmu),q(ndm),q(num),dvol,dt,zs(nm),z_volume(nm),subgrid_z_zmin(nm)
+!               endif
             else
                dvol = dvol + ( (q(nmd) - q(nmu))*dy + (q(ndm) - q(num))*dx ) * dt
             endif   
