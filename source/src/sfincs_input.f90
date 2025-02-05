@@ -125,6 +125,11 @@ contains
    call read_real_input(500, 'uvlim', uvlim, 10.0)
    call read_real_input(500, 'uvmax', uvmax, 1000.0)
    call read_logical_input(500, 'store_dynamic_bed_level', store_dynamic_bed_level, .false.)
+   call read_logical_input(500,'friction2d',friction2d,.true.)
+   call read_logical_input(500,'advection_mask',advection_mask,.true.)
+   call read_real_input(500, 'dzdsbnd', dzdsbnd, 0.0001)
+   call read_real_input(500, 'manningbnd', manningbnd, 0.024)
+   call read_real_input(500, 'nuviscfac', nuviscfac, 100.0)
    !
    ! Domain
    !
@@ -214,12 +219,7 @@ contains
    call read_int_input(500,'storemaxwind',iwindmax,0)
    call read_int_input(500,'storefw', istorefw, 0)
    call read_int_input(500,'storewavdir', istorewavdir, 0)
-   call read_logical_input(500,'friction2d',friction2d,.true.)
-   call read_logical_input(500,'advection_mask',advection_mask,.true.)
    call read_logical_input(500,'regular_output_on_mesh',use_quadtree_output,.false.)
-   call read_real_input(500, 'dzdsbnd', dzdsbnd, 0.0001)
-   call read_real_input(500, 'manningbnd', manningbnd, 0.024)
-   call read_real_input(500, 'nuviscfac', nuviscfac, 100.0)
    !
    ! Wind drag
    !
