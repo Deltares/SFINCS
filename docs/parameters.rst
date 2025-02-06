@@ -206,9 +206,9 @@ More parameters for model input (only for advanced users)
 	  :min:			1.0e-3
 	  :max:			Inf	  
 	tspinup
-	  :description:		Duration of internal spinup period before tstart
+	  :description:		Duration of spinup period after tstart where water level variation at the boundary is dampened
 	  :units:		s
-	  :default:		60
+	  :default:		0
 	  :min:			0
 	  :max:			Inf
 	  
