@@ -92,6 +92,12 @@ module sfincs_data
       real*4 btrelax
       real*4 wiggle_factor
       real*4 wiggle_threshold
+      real*4 uvlim
+      real*4 uvmax
+      !real*4 normbnd
+      !real*4 dzdsbnd
+      !real*4 manningbnd
+      real*4 nuviscfac ! Factor on viscosity for 'difficult' points. Used in sfincs_momentum.f90.
       !
       real*4 freqminig
       real*4 freqmaxig

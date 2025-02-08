@@ -8,6 +8,7 @@ contains
    !
    use sfincs_data
    use sfincs_date
+   use sfincs_log
    !
    implicit none
    !
@@ -39,8 +40,6 @@ contains
    character*256 wmsigstr 
    character*256 advstr 
    !   
-   write(*,*)'Reading input file ...'
-   !
    open(500, file='sfincs.inp')   
    !
    call read_int_input(500,'mmax',mmax,0)
@@ -96,7 +95,7 @@ contains
    call read_int_input(500,'epsg',epsg,0)
    call read_char_input(500,'epsg',epsg_code,'nil')      
    call read_real_input(500,'stopdepth',stopdepth,100.0)
-   call read_real_input(500,'advlim',advlim,9999.9)
+   call read_real_input(500, 'advlim', advlim, 1.0)
    call read_real_input(500,'slopelim',slopelim,9999.9)
    call read_real_input(500,'qinf_zmin',qinf_zmin,0.0)
    call read_real_input(500,'btfilter',btfilter,60.0)
@@ -120,9 +119,16 @@ contains
    call read_logical_input(500,'wmrandom',wmrandom,.true.)   
    call read_char_input(500,'advection_scheme',advstr,'upw1')   
    call read_real_input(500,'btrelax',btrelax,3600.0)
-   call read_logical_input(500,'wiggle_suppression',wiggle_suppression,.false.)
+   call read_logical_input(500,'wiggle_suppression', wiggle_suppression, .true.)
    call read_real_input(500,'wiggle_factor',wiggle_factor,0.1)
    call read_real_input(500,'wiggle_threshold',wiggle_threshold,0.1)
+   call read_real_input(500, 'uvlim', uvlim, 10.0)
+   call read_real_input(500, 'uvmax', uvmax, 1000.0)
+   call read_logical_input(500,'friction2d',friction2d,.true.)
+   call read_logical_input(500,'advection_mask',advection_mask,.true.)
+   ! call read_real_input(500, 'dzdsbnd', dzdsbnd, 0.0001)
+   ! call read_real_input(500, 'manningbnd', manningbnd, 0.024)
+   ! call read_real_input(500, 'nuviscfac', nuviscfac, 100.0)
    !
    ! Domain
    !
@@ -212,9 +218,8 @@ contains
    call read_int_input(500,'storemaxwind',iwindmax,0)
    call read_int_input(500,'storefw', istorefw, 0)
    call read_int_input(500,'storewavdir', istorewavdir, 0)
-   call read_logical_input(500,'friction2d',friction2d,.true.)
-   call read_logical_input(500,'advection_mask',advection_mask,.true.)
    call read_logical_input(500,'regular_output_on_mesh',use_quadtree_output,.false.)
+   call read_logical_input(500, 'store_dynamic_bed_level', store_dynamic_bed_level, .false.)
    !
    ! Coupled SnapWave solver related
    call read_int_input(500,'snapwave_wind',iwind,0)   
@@ -258,7 +263,7 @@ contains
    !
    ! Check whether epsg code has been specified:
    if (epsg == 0) then
-       write(*,*)'WARNING: no epsg code defined' 
+       call write_log('Warning : no EPSG code defined', 0) 
    endif   
    !
    ! If tref not provided, assume tref=tstart
@@ -267,7 +272,8 @@ contains
        !
        trefstr = tstartstr
        !
-       write(*,*)'WARNING: no tref provided, set to tstart: ',trefstr
+       write(logstr,*)'Warning : no tref provided, set to tstart: ',trefstr
+       call write_log(logstr, 1)
        !
    endif
    !
@@ -314,19 +320,27 @@ contains
    !
    use_coriolis = .true.
    crsgeo = .false.
+   !
    if (igeo==1) then
+      !
       coriolis = .true.
       crsgeo   = .true.
+      !
       if (icoriolis==1) then
          use_coriolis = .true.
-         write(*,*)'Turning on process: Coriolis'               
+         call write_log('Info    : turning on Coriolis', 0)         
       else
          use_coriolis = .false.
-         write(*,*)'Turning off process: Coriolis'               
+         coriolis = .false.
+         call write_log('Info    : turning off Coriolis', 0)
       endif   
       !
-      write(*,*)'Input grid interpreted as geographic coordinates'
+      call write_log('Info    : input grid interpreted as geographic coordinates', 0)
       !
+   else
+      !
+      call write_log('Info    : input grid interpreted as projected coordinates', 0)
+      !      
    endif
    !
    ! Output
@@ -431,13 +445,13 @@ contains
       !
       subgrid = .true.
       isubgrid = 1
-      write(*,*)'Info : Running SFINCS in subgrid mode ...'         
+      call write_log('Info    : running SFINCS with subgrid bathymetry', 0)
       !
    else
       !
       subgrid = .false.
       isubgrid = 0
-      write(*,*)'Info : Running SFINCS in regular mode ...'               
+      call write_log('Info    : running SFINCS with regular bathymetry', 0)
       !
    endif
    !
@@ -457,7 +471,7 @@ contains
    viscosity = .false. 
    if (iviscosity) then
       viscosity = .true. 
-      write(*,*)'Turning on process: Viscosity'               
+      call write_log('Info    : turning on process: Viscosity', 0)
    endif   
    !
    spinup_meteo = .true. ! Default use data in ampr file as block rather than linear interpolation
@@ -496,13 +510,15 @@ contains
       wavemaker = .true.
       iwavemaker = 1
       !
-      write(*,*)'Turning on process: Dynamic waves'               
+      call write_log('Info    : turning on process: Dynamic waves', 0)
       !
       if (wmsigstr(1:3) == 'mon') then
+         ! 
          ! Monochromatic
+         ! 
          wavemaker_spectrum = .false.
          !
-         write(*,*)'Use monochromatic wave spectrum'               
+         call write_log('Info    : use monochromatic wave spectrum', 0)
          !
       endif   
    endif
@@ -517,7 +533,7 @@ contains
       if (subgrid) then
          use_storage_volume = .true.
       else
-         write(*,*)'Warning: storage volume only supported for subgrid topographies!'
+         call write_log('Warning : storage volume only supported for subgrid topographies!', 1)
       endif
    endif
    !
@@ -528,24 +544,29 @@ contains
       ! Make 1st order upwind the default scheme
       !  
       advection_scheme = 1
+      !
+      call write_log('Info    : turning on advection', 0)
       ! 
       if (trim(advstr) == 'original') then
          advection_scheme = 0
-         write(*,*)'Advection scheme : Original'
+         call write_log('Info    : advection scheme : Original', 0)
       elseif (trim(advstr) == 'upw1') then
          advection_scheme = 1
-         write(*,*)'Advection scheme : First-order upwind'
+         call write_log('Info    : advection scheme : first-order upwind', 0)
       else
-         write(*,*)'Warning: advection scheme ', trim(advstr), ' not recognized! Using default upw1 instead!'
+         write(logstr,*)'Warning : advection scheme ', trim(advstr), ' not recognized! Using default upw1 instead!'
+         call write_log(logstr, 1)
       endif
       !
-      if (advlim < 9999.0) then 
+      if (advlim < 9999.0) then
          !
          advection_limiter = .true.
          !
       endif
       !
    endif
+   !
+   ! normbnd = sqrt(dzdsbnd) / manningbnd
    !
    end subroutine
 

@@ -2,6 +2,7 @@
 module sfincs_subgrid
    !
    use netcdf       
+   use sfincs_log
    !
    type net_type_subgrid
        integer :: ncid
@@ -39,7 +40,7 @@ contains
       !
       ! Binary format with hrep and navg
       !
-      write(*,*)'Warning : subgrid file has the "old" binary format, the simulation will continue, but we do recommended switching to the new Netcdf subgrid input format!'            ! 
+      call write_log('Warning : subgrid file has the "old" binary format, the simulation will continue, but we do recommended switching to the new Netcdf subgrid input format!', 0)
       !
       call read_subgrid_file_original()
       !
@@ -80,7 +81,7 @@ contains
    !
    ! Read subgrid data
    !
-   write(*,*)'Reading sub-grid netCDF file ...'
+   call write_log('Info   : reading sub-grid netCDF file', 0)
    !
    NF90(nf90_open(trim(sbgfile), NF90_CLOBBER, net_file_sbg%ncid))
    !          
@@ -145,7 +146,8 @@ contains
    allocate(uv_index(npuv))
    allocate(z_index(np))
    !
-   write(*,*)'Number of subgrid levels : ',subgrid_nlevels
+   write(logstr,'(a,i0)')'Info    : number of subgrid levels : ',subgrid_nlevels
+   call write_log(logstr, 0)
    !
    ! Need to make a new temporary re-mapping index array for the u and v points
    ! This is needed for reading in the subgrid file which has values for the entire quadtree grid
@@ -354,18 +356,32 @@ contains
    do ip = 1, npuv
       nm = uv_index_z_nm(ip)
       nmu = uv_index_z_nmu(ip)
-      subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), subgrid_z_zmin(nm))
-      subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), subgrid_z_zmin(nmu))
+      if (subgrid_z_zmin(nm) > subgrid_uv_zmin(ip)) then
+         write(*,'(a,i0,a,i0,a)')'Error in subgrid uv point! subgrid_uv_zmin(',ip,') < subgrid_z_zmin(', nm, ')'
+         subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), subgrid_z_zmin(nm))
+         subgrid_uv_zmax(ip) = max(subgrid_uv_zmax(ip), subgrid_uv_zmin(ip) + 0.001)
+      endif   
+      if (subgrid_z_zmin(nmu) > subgrid_uv_zmin(ip)) then
+         write(*,'(a,i0,a,i0,a)')'Error in subgrid uv point! subgrid_uv_zmin(',ip,') < subgrid_z_zmin(', nmu, ')'
+         subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), subgrid_z_zmin(nmu))
+         subgrid_uv_zmax(ip) = max(subgrid_uv_zmax(ip), subgrid_uv_zmin(ip) + 0.001)
+      endif   
    enddo   
    !
    ! Make sure zmax is always bigger than zmin
    !
    do nm = 1, np
-      if (subgrid_z_zmax(nm) - subgrid_z_zmin(nm) < 0.001) subgrid_z_zmax(nm) = subgrid_z_zmax(nm) + 0.001
+      if (subgrid_z_zmax(nm) - subgrid_z_zmin(nm) <= 0.0) then
+         ! This is not necessarily an error but occurs when all subgrid pixels in a cell have the same value.
+         subgrid_z_zmax(nm) = subgrid_z_zmax(nm) + 0.001
+      endif   
    enddo
    !
-   do nm = 1, npuv
-      if (subgrid_uv_zmax(nm) - subgrid_uv_zmin(nm) < 0.001) subgrid_uv_zmax(nm) = subgrid_uv_zmax(nm) + 0.001
+   do ip = 1, npuv
+      if (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip) < 1.0e-7) then
+         write(*,'(a,i0,a)')'Error in subgrid uv point (ip=', ip, '), zmax <= zmin'
+         subgrid_uv_zmax(ip) = subgrid_uv_zmax(ip) + 0.001
+      endif   
    enddo
    !
    ! Make arrays for subgrid_uv_havg_zmax and subgrid_uv_nrep_zmax for faster searching
@@ -418,7 +434,9 @@ contains
       ! This means that the subgrid file contains data for the entire quadtree. So also for points with kcs==0 !
       ! This also means that the data needs to be re-mapped to the active cell indices.
       !
-      write(*,*)'Reading ',trim(sbgfile), ' ...'
+      write(logstr,'(a,a)')'Info    : reading subgrid file ', trim(sbgfile)
+      call write_log(logstr, 0)
+      !
       open(unit = 500, file = trim(sbgfile), form = 'unformatted', access = 'stream')
       read(500)idummy ! version
       read(500)npzq ! nr cells
@@ -446,7 +464,8 @@ contains
       allocate(rtmpuv(npuvq))
       allocate(uv_index_qt_in_sf(npuv))
       !
-      write(*,*)'Number of subgrid levels : ',subgrid_nlevels
+      write(logstr,'(a,i0)')'Info    : number of subgrid levels : ', subgrid_nlevels
+      call write_log(logstr, 0)
       !
       ! Need to make a new temporary re-mapping index array for the u and v points
       ! This is needed for reading in the subgrid file which has values for the entire quadtree grid
@@ -598,13 +617,16 @@ contains
       !
       ! Subgrid file on regular grid
       !
-      write(*,*)'Reading ', trim(sbgfile), ' ...'
+      write(logstr,'(a,a)')'Info    : reading subgrid file ', trim(sbgfile)
+      call write_log(logstr, 0)
+      !
       open(unit = 500, file = trim(sbgfile), form = 'unformatted', access = 'stream')
       read(500)idummy ! nr cells
       read(500)ioption ! option
       read(500)subgrid_nlevels
       subgrid_nlevels = subgrid_nlevels + 1
-      write(*,*)'Number of subgrid levels : ',subgrid_nlevels - 1
+      write(logstr,'(a,i0)')'Info    : number of subgrid levels : ', subgrid_nlevels - 1
+      call write_log(logstr, 0)
       allocate(subgrid_z_zmin(np))
       allocate(subgrid_z_zmax(np))
       allocate(subgrid_z_volmax(np))
