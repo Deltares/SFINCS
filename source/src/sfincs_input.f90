@@ -102,7 +102,7 @@ contains
    call read_real_input(500,'sfacinf',sfacinf,0.2)
    call read_int_input(500,'radstr',iradstr,0)
    call read_int_input(500,'crsgeo',igeo,0)
-   call read_int_input(500,'coriolis',icoriolis,1)
+   call read_logical_input(500, 'coriolis', coriolis, .true.)
    call read_int_input(500,'amprblock',iamprblock,1)
    call read_real_input(500,'spwmergefrac',spw_merge_frac,0.5)
    call read_int_input(500,'usespwprecip',ispwprecip,1)   
@@ -309,39 +309,50 @@ contains
       imanning2d = 1
    endif   
    !
-   ! Coriolis parameter
+   ! CRS and Coriolis parameter
    !
-   fcorio = 2*7.2921e-05*sin(latitude*pi/180)
-   if (latitude>0.01 .or. latitude<-0.01) then
-      coriolis = .true.
-   else
-      coriolis = .false.
-   endif
+   fcorio = 0.0
    !
-   use_coriolis = .true.
-   crsgeo = .false.
-   !
-   if (igeo==1) then
+   if (igeo == 0) then
       !
-      coriolis = .true.
-      crsgeo   = .true.
+      ! Projected (default with coriolis, unless latitude is 0.0)
       !
-      if (icoriolis==1) then
-         use_coriolis = .true.
-         call write_log('Info    : turning on Coriolis', 0)         
-      else
-         use_coriolis = .false.
+      crsgeo = .false.   
+      fcorio = 2 * 7.2921e-05 * sin(latitude * pi / 180)
+      !
+      if (latitude < 0.01 .and. latitude > -0.01) then
+         !
+         ! No Coriolis force 
+         ! 
          coriolis = .false.
-         call write_log('Info    : turning off Coriolis', 0)
-      endif   
-      !
-      call write_log('Info    : input grid interpreted as geographic coordinates', 0)
+         ! 
+      endif
       !
    else
       !
-      call write_log('Info    : input grid interpreted as projected coordinates', 0)
-      !      
+      ! Geographic (default no coriolis, unless coriolis is turned off in input file)
+      ! fcorio2d will be determined in sfincs_domain.f90 
+      !
+      coriolis = .true.
+      crsgeo = .true.   
+      !
    endif
+   !
+   if (crsgeo) then
+      call write_log('Info    : input grid interpreted as geographic coordinates', 0)
+   else
+      call write_log('Info    : input grid interpreted as projected coordinates', 0)
+   endif    
+   !
+   if (coriolis) then
+      call write_log('Info    : turning on Coriolis', 0)         
+   else
+      call write_log('Info    : turning off Coriolis', 0)         
+   endif
+   !
+   if (.not. crsgeo .AND. .NOT. coriolis) then
+      call write_log('Info    : no Coriolis, as latitude is not specified in sfincs.inp', 0)
+   endif    
    !
    ! Output
    !

@@ -1371,7 +1371,7 @@ contains
       !
       ! Spatially varying Coriolis
       !
-      if (use_coriolis) then
+      if (coriolis) then
          do nm = 1, np            
             fcorio2d(nm) = 2 * 7.2921e-05 * sin(z_yz(nm) * pi / 180)
          enddo

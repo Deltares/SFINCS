@@ -217,7 +217,6 @@ module sfincs_data
       logical       :: debug
       logical       :: radstr
       logical       :: crsgeo
-      logical       :: use_coriolis
       logical       :: ampr_block
       logical       :: global
       logical       :: store_tsunami_arrival_time
