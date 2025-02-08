@@ -13,7 +13,7 @@ module sfincs_initial_conditions
    !
    type(net_type_ini) :: net_file_ini              
    !
-   real*4, dimension(:),   allocatable :: inizs
+   real*8, dimension(:),   allocatable :: inizs
    real*4, dimension(:),   allocatable :: iniq
    !
 contains
@@ -173,6 +173,8 @@ contains
       !
       open(unit = 500, file = trim(rstfile), form = 'unformatted', access = 'stream')
       !
+      write(*,*)'Warning : binary restart files from SFINCS v2.1.1 and older are not compatible with SFINCS v2.1.2+, remake your restartfile when using v2.1.2 or newer'    
+      !
       ! Restartfile flavours:
       ! 1: zs, q, uvmean  
       ! 2: zs, q 
@@ -257,6 +259,8 @@ contains
       write(logstr,'(a,a)')'Info    : reading zsini file ', trim(zsinifile)
       call write_log(logstr, 0)
       !
+      call write_log('Warning : binary ini files from SFINCS v2.1.1 and older are not compatible with SFINCS v2.1.2+, remake your inifile containing zs as real*8 double precision', 0)  
+      !
       open(unit = 500, file = trim(zsinifile), form = 'unformatted', access = 'stream')
       read(500)inizs
       close(500)       
@@ -271,7 +275,7 @@ contains
       !
       implicit none
       !
-      real*4, dimension(:),   allocatable :: zsq
+      real*8, dimension(:),   allocatable :: zsq
       integer   :: npq, ip
       !
       NF90(nf90_open(trim(ncinifile), NF90_CLOBBER, net_file_ini%ncid))

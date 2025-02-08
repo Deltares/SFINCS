@@ -157,16 +157,6 @@ contains
             !
          endif
          !
-         ! if (wiggle_suppression) then 
-         !    ! 
-         !    zsderv(nm) = zs(nm) - 2*zs11 + zs00
-         !    ! 
-         ! endif
-         !
-         ! if (zs(nm) < zb(nm) - 0.1) then
-         !    write(*,'(a,i8,20f10.3)')'Warning : severe negative water levels! nm, zs, zb, zs - zb', nm, zs(nm), zb(nm), zs(nm) - zb(nm)
-         ! endif   
-         !
       endif
       !
       if (wavemaker) then
@@ -339,11 +329,11 @@ contains
       if (kcs(nm)==1) then
          !
          if (crsgeo) then
-            a = cell_area_m2(nm)
+             a = cell_area_m2(nm)
          else   
-            a = cell_area(z_flags_iref(nm))
+             a = cell_area(z_flags_iref(nm))
          endif
-         !
+         !   
          if (precip) then
             !
             ! Add nett rainfall 

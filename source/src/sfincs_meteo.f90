@@ -383,7 +383,7 @@ contains
                tauwu0(nm) = 0.0
                tauwv0(nm) = 0.0
                !
-               if (store_meteo) then
+               if (store_wind) then
                   windu0(nm) = 0.0
                   windv0(nm) = 0.0
                endif   
@@ -409,7 +409,7 @@ contains
                tauwu1(nm) = 0.0
                tauwv1(nm) = 0.0
                !
-               if (store_meteo) then
+               if (store_wind) then
                   windu1(nm) = 0.0
                   windv1(nm) = 0.0
                endif   
@@ -561,7 +561,7 @@ contains
                prcp0(nm)  = (1.0 - merge_frac)*prcp0(nm) + merge_frac*prp/(1000*3600) ! m/s
             endif
             ! 
-            if (store_meteo) then
+            if (store_wind) then
                windu0(nm) = (1.0 - merge_frac)*windu0(nm) + merge_frac*wup
                windv0(nm) = (1.0 - merge_frac)*windv0(nm) + merge_frac*wvp
             endif   
@@ -579,7 +579,7 @@ contains
                prcp1(nm)  = (1.0 - merge_frac)*prcp1(nm) + merge_frac*prp/(1000*3600) ! m/s
             endif
             ! 
-            if (store_meteo) then
+            if (store_wind) then
                windu1(nm) = (1.0 - merge_frac)*windu1(nm) + merge_frac*wup
                windv1(nm) = (1.0 - merge_frac)*windv1(nm) + merge_frac*wvp
             endif   
@@ -744,14 +744,14 @@ contains
             if (itw==1) then
                tauwu0(nm) = vmag*( cosrot*wup + sinrot*wvp)*rhoa*cd/rhow
                tauwv0(nm) = vmag*(-sinrot*wup + cosrot*wvp)*rhoa*cd/rhow
-               if (store_meteo) then
+               if (store_wind) then
                   windu0(nm) = wup
                   windv0(nm) = wvp
                endif   
             else
                tauwu1(nm) = vmag*( cosrot*wup + sinrot*wvp)*rhoa*cd/rhow
                tauwv1(nm) = vmag*(-sinrot*wup + cosrot*wvp)*rhoa*cd/rhow
-               if (store_meteo) then
+               if (store_wind) then
                   windu1(nm) = wup
                   windv1(nm) = wvp
                endif   
@@ -1063,7 +1063,7 @@ contains
             tauwu(nm) = tauwu0(nm)*onemintwfact + tauwu1(nm)*twfact
             tauwv(nm) = tauwv0(nm)*onemintwfact + tauwv1(nm)*twfact
             !
-            if (store_meteo) then
+            if (store_wind) then
                !
                windu(nm) = windu0(nm)*onemintwfact + windu1(nm)*twfact
                windv(nm) = windv0(nm)*onemintwfact + windv1(nm)*twfact
@@ -1255,6 +1255,13 @@ contains
          !
          itwndlast = itw - 1
          !
+         if (store_wind) then
+             !
+             windu = vmag*cos(vdir)
+             windv = vmag*sin(vdir)
+             !
+         endif
+         !   
          exit
          !
        endif

@@ -45,7 +45,6 @@
    real*4    :: gammax
    real*4    :: facmax
    real*4    :: wsumax
-   real*4    :: tp
    !
    real*4    :: qx_nm
    real*4    :: qx_nmd
@@ -88,9 +87,6 @@
    !
    real*4    :: mdrv
    !
-!   real*4    :: min_dt_uv
-!   real*4    :: min_dt_gh
-   !
    real*4, parameter :: expo = 1.0/3.0
    !integer, parameter :: expo = 1
    !
@@ -99,10 +95,6 @@
    call system_clock(count0, count_rate, count_max)
    !
    min_dt = dtmax
-!   min_dt_uv = dtmax
-!   min_dt_gh = dtmax
-!   min_dt_uv = 0.0
-!   min_dt_gh = 0.0
    !
    !$acc update device(min_dt), async(1)
    !
@@ -676,20 +668,12 @@
             !
             uv(ip) = q(ip) / hu ! Store wet-averaged velocity
             !
-            !if (abs(uv(ip))>100.0) then
-            !   write(*,'(3i8,20e14.4)')ip,nm,nmu,uv(ip),q(ip),hu,phi,dzdx,frc,adv,qsm,qfr,advlim,advlim*hu
-            !endif
-            !
             kfuv(ip) = 1
             !
             ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
             ! Use maximum of sqrt(gh) and current velocity
             !
             min_dt = min(min_dt, 1.0 / ( max(sqrt(g * hu), 1.25 * abs(uv(ip)) ) * dxuvinv))
-!            min_dt_uv = min(min_dt_uv, 1.0 / ( 1.25 * abs(uv(ip)) * dxuvinv) )
-!            min_dt_gh = min(min_dt_gh, 1.0 / ( sqrt(g * hu) * dxuvinv) )
-!            min_dt_uv = min(min_dt_uv, 1.0 / max(abs(uv(ip)), 1.0e-6) )
-!            min_dt_gh = min(min_dt_gh, 1.0 / max(sqrt(g * hu), 1.0e-6) )
             !
          else
             !
@@ -703,8 +687,6 @@
    enddo   
    !$omp end do
    !$omp end parallel
-   !
-!   write(*,'(2e16.6)')1.0/min_dt_uv,1.0/min_dt_gh   
    !
    if (ncuv > 0) then
       !
