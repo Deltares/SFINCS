@@ -662,9 +662,9 @@
                !
             endif
             !
-            ! Apply flux limiter
+            ! Apply flux limiter (default 10 m/s)
             !
-            q(ip) = min(max(q(ip), -hu * uvlim), hu * uvlim)
+            q(ip) = min(max(q(ip), - hu * uvlim), hu * uvlim)
             !
             ! Compute velocity
             !
@@ -675,7 +675,7 @@
             ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
             ! Use maximum of sqrt(gh) and current velocity
             !
-            min_dt = min(min_dt, 1.0 / ( max(sqrt(g * hu), 1.25 * abs(uv(ip)) ) * dxuvinv))
+            min_dt = min(min_dt, 1.0 / ( max(sqrt(g * hu), abs(uv(ip)) ) * dxuvinv))
             !
          else
             !
