@@ -239,7 +239,7 @@ module sfincs_data
       logical       :: output_irregular_grid
       logical       :: use_spw_precip
       logical       :: friction2d
-      logical       :: advection_limiter
+      ! logical       :: advection_limiter
       logical       :: advection_mask
       logical       :: wiggle_suppression
       logical       :: wmrandom      

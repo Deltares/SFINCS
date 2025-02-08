@@ -537,7 +537,7 @@ contains
       endif
    endif
    !
-   advection_limiter = .false.
+   ! advection_limiter = .false.
    !   
    if (advection) then
       !
@@ -558,11 +558,11 @@ contains
          call write_log(logstr, 1)
       endif
       !
-      if (advlim < 9999.0) then
-         !
-         advection_limiter = .true.
-         !
-      endif
+      ! if (advlim < 9999.0) then
+      !    !
+      !    advection_limiter = .true.
+      !    !
+      ! endif
       !
    endif
    !

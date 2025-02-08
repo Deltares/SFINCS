@@ -87,7 +87,7 @@
    !
    real*4    :: mdrv
    !
-   real*4, parameter :: expo = 1.0/3.0
+   real*4, parameter :: expo = 1.0 / 3.0
    !integer, parameter :: expo = 1
    !
    logical   :: iok
@@ -116,10 +116,7 @@
    do ip = 1, npuv + ncuv
       !
       q0(ip)  = q(ip)
-      !
-      ! Limit speeds to prevent instabilities due to advection
-      !      
-      uv0(ip) = max(min(uv(ip), 4.0), -4.0)
+      uv0(ip) = uv(ip)
       !
    enddo
    !$omp end do
@@ -131,7 +128,7 @@
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
    !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv ) &
-   !$omp reduction ( min : min_dt )
+   !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop independent, reduction( min : min_dt ), gang, vector
    do ip = 1, npuv
@@ -319,17 +316,18 @@
             ! Wet fraction phi (for non-subgrid or original subgrid approach phi should be 1.0)
             !
             phi  = 1.0
-            gnavg2 = 0.016
             !
             ! Compute water depth at uv point
             !
             if (subgrid) then
                !
-               if (zsu > zmax - 1.0e-4) then
+               if (zsu > zmax) then
                   !
-                  ! Entire cell is wet, no interpolation from table needed
+                  ! Entire cell is wet, no interpolation from table needed for depth hu
                   !
                   hu = subgrid_uv_havg_zmax(ip) + zsu
+                  !
+                  ! Use fitting function for gnavg2 
                   !
                   gnavg2 = subgrid_uv_navg_w(ip) - (subgrid_uv_navg_w(ip) - subgrid_uv_nrep_zmax(ip)) / (subgrid_uv_fnfit(ip) * (zsu - zmax) + 1.0)
                   ! 
@@ -338,17 +336,14 @@
                   ! Interpolation required
                   !
                   dzuv   = (zmax - zmin) / (subgrid_nlevels - 1)                                                          ! level size (is storing this in memory faster?)
-                  iuv    = int((zsu - zmin) / dzuv) + 1                                                                   ! index of level below zsu 
-                  facint = (zsu - (zmin + (iuv - 1)*dzuv) ) / dzuv                                                        ! 1d interpolation coefficient
-                  ! if (iuv > subgrid_nlevels - 1 .or. iuv<1) write(*,'(a,i10,20e16.8)')'iuv exceeds subgrid_nlevels - 1. THIS IS NOT POSSIBLE! (iuv,zmin,zmax,dzuv,zsu) :', iuv,zmin,zmax,dzuv,zsu
+                  iuv    = min(int((zsu - zmin) / dzuv) + 1, subgrid_nlevels - 1)                                         ! index of level below zsu 
+                  facint = (zsu - (zmin + (iuv - 1) * dzuv) ) / dzuv                                                        ! 1d interpolation coefficient
                   !
-                  hu     = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint   ! grid-average depth
-                  gnavg2 = subgrid_uv_nrep(iuv, ip) + (subgrid_uv_nrep(iuv + 1, ip) - subgrid_uv_nrep(iuv, ip))*facint   ! representative g*n^2
-                  phi    = subgrid_uv_pwet(iuv, ip) + (subgrid_uv_pwet(iuv + 1, ip) - subgrid_uv_pwet(iuv, ip))*facint   ! wet fraction
+                  hu     = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip)) * facint   ! grid-average depth
+                  gnavg2 = subgrid_uv_nrep(iuv, ip) + (subgrid_uv_nrep(iuv + 1, ip) - subgrid_uv_nrep(iuv, ip)) * facint   ! representative g*n^2
+                  phi    = subgrid_uv_pwet(iuv, ip) + (subgrid_uv_pwet(iuv + 1, ip) - subgrid_uv_pwet(iuv, ip)) * facint   ! wet fraction
                   !
                endif
-               !
-               hu = max(hu, huthresh)
                !
             else
                !
@@ -363,14 +358,21 @@
             !
             ! FORCING TERMS
             !
-            ! Pressure term
+            ! Pressure term 
             !
-            !dzdx = min(max((zs(nmu) - zs(nm)) * dxuvinv, -slopelim), slopelim) 
-            dzdx = (zs(nmu) - zs(nm)) * dxuvinv
+            ! Apply slope limiter to dzdx (turned off by default)
+            !
+            if (slopelim < 999.0) then
+               !
+               dzdx = min(max((zs(nmu) - zs(nm)) * dxuvinv, -slopelim), slopelim) 
+               !
+            else
+               !
+               dzdx = (zs(nmu) - zs(nm)) * dxuvinv
+               !
+            endif
             !
             frc = - g * hu * dzdx
-            !
-            ! frc = - g * hu * (zs(nmu) - zs(nm)) * dxuvinv
             !
             ! Advection term
             !
@@ -416,8 +418,6 @@
                      ! d qu u / dx = qu du / dx + u d qu / dx
                      ! d qv u / dy = qv du / dy + u d qv / dy
                      !
-                     ! if (kfu(uv_index_u_nmd(ip))==1 .and. kfu(uv_index_u_nmu(ip))==1) then
-                     !
                      ! d qu u / dx
                      !
                      qd = (qx_nmd + qx_nm) / 2
@@ -460,22 +460,17 @@
                      if (uu < -1.0e-6) then
                         dqyudy = dqyudy + uu * ( qy_nmu - qy_ndmu ) * dyuvinv
                      endif
-                     !
-                     ! endif
                      !  
                   endif
                   !
-                  if (advection_limiter) then
-                     !
-                     adv = dqxudx + dqyudy
-                     adv = min(max(adv, -advlim), advlim) 
-                     frc = frc - phi * adv
-                     !
-                  else
-                     !
-                     frc = frc - phi * (dqxudx + dqyudy)
-                     !
-                  endif 
+                  adv = - phi * (dqxudx + dqyudy)
+                  !
+                  ! Limit advection term such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2)
+                  ! Default advlim is 1.0 m/s2
+                  !
+                  adv = min(max(adv, - advlim * hu), advlim * hu) 
+                  !
+                  frc = frc + adv
                   !
                endif
                !   
@@ -485,7 +480,17 @@
             !
             if (viscosity) then
                !
-               frc = frc + nuvisc(iref) * hu * ( (uu_nmu - 2*uu_nm + uu_nmd ) * dxuv2inv + (uu_num - 2*uu_nm + uu_ndm ) * dyuv2inv )
+               if (itype == 0) then
+                  ! 
+                  frc = frc + nuvisc(iref) * hu * ( (uu_nmu - 2*uu_nm + uu_nmd ) * dxuv2inv + (uu_num - 2*uu_nm + uu_ndm ) * dyuv2inv )
+                  !
+               else
+                  !
+                  ! Increase viscosity to prevent instabilities (related to advection?)
+                  !
+                  frc = frc + nuviscfac * nuvisc(iref) * hu * ( (uu_nmu - 2*uu_nm + uu_nmd ) * dxuv2inv + (uu_num - 2*uu_nm + uu_ndm ) * dyuv2inv )
+                  !
+               endif               
                !
             endif
             !
@@ -570,7 +575,7 @@
                !
                ! This uv point just became wet, so estimate equilibrium flux 
                !
-               qfr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * hu ** (5.0 / 3.0)               
+               qfr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * hu ** (5.0 / 3.0)
                !
             else   
                !
@@ -611,16 +616,17 @@
                      ! 
                   endif
                   ! 
-               endif               
+               endif
+               !
             endif            
             !
             ! Compute new flux for this uv point (Bates et al., 2010)
             ! 
             q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / (hu**2 * hu**expo))
             !
-            if (wiggle_suppression) then 
+            if (subgrid .and. wiggle_suppression) then 
                !
-               ! If the acceleration of water level in cell nm is large and positive and in nmu large and negative, or vice versa, apply limiter to the flux
+               ! If the acceleration of water level in cell nm is large and positive and in nmu large and negative, or vice versa, apply limiter to the flux. Only for subgrid.
                !
                mdrv = abs(zsderv(nm) - zsderv(nmu)) - wiggle_threshold
                !
@@ -633,7 +639,7 @@
             endif
             !
             ! Making sure that no water can flow out of a cell when its water depth is negative
-            !
+            !            
             if (subgrid) then
                !
                if (zs(nm) < subgrid_z_zmin(nm)) then
@@ -656,17 +662,20 @@
                !
             endif
             !
+            ! Apply flux limiter
+            !
+            q(ip) = min(max(q(ip), -hu * uvlim), hu * uvlim)
+            !
             ! Compute velocity
             !
-            uv(ip) = q(ip) / max(hu, hmin_uv) ! Limit velocity through minimal hu in case of very small huthresh, deafult hmin_uv=0.1m
+            uv(ip) = q(ip) / hu ! Store wet-averaged velocity
             !
             kfuv(ip) = 1
             !
             ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
             ! Use maximum of sqrt(gh) and current velocity
             !
-            min_dt = min(min_dt, 1.0 / (max(sqrt(g * hu), min(abs(uv(ip)), 4.0)) * dxuvinv))
-            ! min_dt = min(min_dt, 1.0 / (sqrt(g * hu) * dxuvinv)) ! Original
+            min_dt = min(min_dt, 1.0 / ( max(sqrt(g * hu), 1.25 * abs(uv(ip)) ) * dxuvinv))
             !
          else
             !
