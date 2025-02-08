@@ -154,13 +154,13 @@
             zmin = subgrid_uv_zmin(ip)
             zmax = subgrid_uv_zmax(ip)
             !
-            if (zsu>zmin + huthresh) then ! In the 'new' subgrid formulations, zmin is lowest pixel + huthresh. Huthresh was already applied when building the subgrid tables. In sfincs_domain, huthresh is set to 0.0 to acount for this.
+            if (zsu > zmin + huthresh) then ! In the 'new' subgrid formulations, zmin is lowest pixel + huthresh. Huthresh was already applied when building the subgrid tables. In sfincs_domain, huthresh is set to 0.0 to acount for this.
                iok = .true.
             endif   
             !
          else
             !            
-            if (zsu>zbuvmx(ip)) then ! zbuvmx = max(zb(nm), zb(nmu)) + huthresh
+            if (zsu > zbuvmx(ip)) then ! zbuvmx = max(zb(nm), zb(nmu)) + huthresh
                iok = .true.
             endif   
             !            

@@ -1581,6 +1581,27 @@ contains
    !
    end subroutine
 
+   
+   subroutine compute_zbuvmx()
+   !
+   use sfincs_data
+   !
+   integer :: ip
+   integer :: nm
+   integer :: nmu
+   !
+   do ip = 1, npuv
+      !
+      nm  = uv_index_z_nm(ip)
+      nmu = uv_index_z_nmu(ip)
+      !
+      zbuvmx(ip) = max(zb(nm), zb(nmu)) + huthresh
+      !   
+   enddo      
+   !
+   end subroutine
+   
+   
    subroutine initialize_boundaries()
    !
    use sfincs_data
@@ -2405,6 +2426,7 @@ contains
       allocate(tauwv0(np))
       allocate(tauwu1(np))
       allocate(tauwv1(np))
+      !
       tauwu  = 0.0
       tauwv  = 0.0
       tauwu0 = 0.0
@@ -2427,6 +2449,7 @@ contains
          windv0 = 0.0
          windu1 = 0.0
          windv1 = 0.0
+         !
          if (store_wind_max) then
             allocate(windmax(np))
             windmax = 0.0
@@ -2460,12 +2483,28 @@ contains
       prcp0   = 0.0
       prcp1   = 0.0
       !
-      allocate(cumprcpt(np))      
-      cumprcpt = 0.0
       allocate(netprcp(np))      
       netprcp  = 0.0
       !
    endif
+   !
+   if (use_qext) then
+      !
+      ! Allocating and initializing qext (used e.g. for XMI coupling with ground water model)
+      !
+      allocate(qext(np))
+      qext = 0.0
+      !
+   endif    
+   !
+   if (precip .or. use_qext) then
+      !
+      ! temporary cumprcpt array for cumulative total influx (set back to 0.0 in continuity everytime it exceeds 0.001) 
+      ! 
+      allocate(cumprcpt(np))      
+      cumprcpt = 0.0
+      ! 
+   endif    
    !
    if (subgrid) then
       !

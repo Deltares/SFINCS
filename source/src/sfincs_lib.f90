@@ -76,9 +76,8 @@ module sfincs_lib
    !
    contains
    !
-   function sfincs_initialize(config_file) result(ierr)
+   function sfincs_initialize() result(ierr)
    !
-   character(len=*) :: config_file
    integer :: ierr
    !
    error = 0 ! Error code. This is now only set to 1 in case of instabilities. Could also use other error codes, e.g. for missing files.
@@ -224,6 +223,9 @@ module sfincs_lib
    !
    double precision, intent(in)  :: dtrange
    integer                       :: ierr
+   real*8                        :: tend  !< end of update interval
+   real*4                        :: dtchk !< dt to check for instability
+   logical                       :: single_time_step 
    !
    ierr = 0
    !
@@ -244,15 +246,37 @@ module sfincs_lib
    !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
    !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, & 
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
-   !$acc               prcp, prcp0, prcp1, cumprcp, cumprcpt, netprcp, prcp, qinfmap, cuminf, & 
+   !$acc               prcp, prcp0, prcp1, cumprcp, cumprcpt, netprcp, prcp, qinfmap, cuminf, qext, & 
    !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
    !$acc               gn2uv, fcorio2d, min_dt, storage_volume, nuvisc, &
    !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2 )
    !
-   ! Set target time: if dt range is negative, do not modify t1
-   !
-   if ( dtrange > 0.0 ) then
-       t1 = t + dtrange
+   single_time_step = .false.
+   !   
+   if (dtrange < -999.0) then
+      !
+      ! Regular (used in executable, called by sfincs.f90)
+      !
+      tend = t1
+      !      
+   elseif (dtrange <= 0.0) then
+      ! 
+      ! XMI run for one time step (called from sfincs_bmi.f90 -> update)
+      !
+      ! Set tend to t1
+      ! 
+      tend = t1
+      !
+      ! But make sure only one iteration is done
+      !
+      single_time_step = .true.
+      !
+   else !  ( dtrange > 0.0 ) 
+      ! 
+      ! XMI run for time interval dtrange (called from sfincs_bmi.f90 -> update_until)
+      !
+      tend = t + dtrange
+      !
    endif
    !
    ! Start computational loop
@@ -276,7 +300,8 @@ module sfincs_lib
       ! New time step
       !
       nt = nt + 1
-      dt = alfa * min_dt ! min_dt was computed in sfincs_momentum.f90 without alfa
+      dt = min(alfa * min_dt, tend - t) ! min_dt was computed in sfincs_momentum.f90 without alfa
+      dtchk = alfa * min_dt ! Used to check for instabilities
       !
       ! A bit unclear why this happens, but large jumps in the time step lead to weird oscillations.
       ! In the 'original' sfincs v11 version, this behavior was supressed by the use of theta.
@@ -476,7 +501,7 @@ module sfincs_lib
       !      
       ! Stop loop in case of instabilities (make sure water depth does not exceed stopdepth)
       !
-      if (dt<dtmin .and. nt>1) then
+      if (dtchk < dtmin .and. nt > 1) then
          !
          error = 1
          write(error_message,'(a,f0.1,a)')'Error! Maximum depth of ', stopdepth, ' m reached!!! Simulation stopped.'
@@ -507,8 +532,16 @@ module sfincs_lib
          !
       endif
       !
+      if (single_time_step) then
+         !
+         ! Update was called with XMI update so only run one time step.
+         ! Do this by setting tend to t0, so next iteration does not run.
+         !
+         tend = t0
+         !
+      endif      
+      !
    enddo
-   !
    !
    !$acc end data
    !
