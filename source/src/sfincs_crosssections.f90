@@ -34,7 +34,7 @@ contains
    !
    if (crsfile(1:4) /= 'none') then
       ! 
-      write(*,*)'Reading cross sections ...'
+      call write_log('Info    : reading cross sections', 0)
       !
       ! First count number of polylines
       !
@@ -154,7 +154,7 @@ contains
             ! V
             !
             if (crsgeo) then
-               dxycrs = dxm(indx) 
+               dxycrs = 1.0 / dxminv(indx) 
             else
                dxycrs = dxrm(iref) 
             endif   

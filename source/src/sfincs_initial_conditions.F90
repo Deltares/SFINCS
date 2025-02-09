@@ -2,6 +2,7 @@
 module sfincs_initial_conditions
    !
    use sfincs_data
+   use sfincs_log
    use netcdf       
    !
    type net_type_ini
@@ -45,7 +46,8 @@ contains
          !
          ! Binary restart file
          !
-         write(*,*)'Reading restart file ', trim(rstfile), ' ...'
+         write(logstr,'(a,a)')'Info    : reading restart file ', trim(rstfile)
+         call write_log(logstr, 0)
          !
          call read_binary_restart_file()
          !
@@ -53,7 +55,8 @@ contains
          !
          ! Binary initial water level file
          !
-         write(*,*)'Reading initial conditions file ', trim(zsinifile), ' ...'
+         write(logstr,'(a,a)')'Info    : reading initial conditions file ', trim(zsinifile)
+         call write_log(logstr, 0)
          !
          call read_zsini_file()
          !
@@ -61,7 +64,8 @@ contains
          !
          ! NetCDF file
          !
-         write(*,*)'Reading NetCDF initial conditions file ', trim(zsinifile), ' ...'
+         write(logstr,'(a,a)')'Info    : reading NetCDF initial conditions file ', trim(zsinifile)
+         call write_log(logstr, 0)
          !
          call read_nc_ini_file()
          !
@@ -183,13 +187,15 @@ contains
       read(500)rsttype
       read(500)rdummy
       !
-      write(*,*)'Info: found rsttype = ', rsttype 
+      write(logstr,'(a,i0)')'Info    : found rsttype = ', rsttype
+      call write_log(logstr, 0)
       !
       if (rsttype < 1 .or. rsttype > 6) then
          !
          ! Give warning, rstfile input rsttype not recognized
          !
-         write(*,*)'WARNING! rstfile not recognized, skipping restartfile input! rsttype should be 1-6, but found rsttype = ', rsttype 
+         write(logstr,'(a,i0)')'Warning! rstfile not recognized, skipping restart file input! rsttype should be 1-6, but found rsttype = ', rsttype 
+         call write_log(logstr, 1)
          !          
          close(500)      
          !          
@@ -216,7 +222,7 @@ contains
             !
             read(500)rdummy                 
             read(500)scs_Se
-            write(*,*)'Reading scs_Se from rstfile, overwrites input values of: ',trim(sefffile)
+            ! write(*,*)'Reading scs_Se from rstfile, overwrites input values of: ',trim(sefffile)
             !
          elseif (rsttype==5) then ! Infiltration method gai    
             !
@@ -224,13 +230,15 @@ contains
             read(500)GA_sigma
             read(500)rdummy
             read(500)GA_F
-            write(*,*)'Reading GA_sigma from rstfile, overwrites input values of: ',trim(sigmafile)        
+            write(logstr,'(a,a)')'Info    : reading GA_sigma from rstfile, overwrites input values of ', trim(sigmafile)
+            call write_log(logstr, 0)
             !
          elseif (rsttype==6) then ! Infiltration method horton
             !
             read(500)rdummy                               
             read(500)rain_T1
-            write(*,*)'Reading rain_T1 from rstfile, complements input values of: ',trim(fcfile)        
+            write(logstr,'(a,a)')'Info    : reading rain_T1 from rstfile, complements input values of ', trim(fcfile) 
+            call write_log(logstr, 0)
             !              
          endif          
          !
@@ -248,9 +256,10 @@ contains
       !
       implicit none
       !
-      write(*,*)'Reading ',trim(zsinifile)
+      write(logstr,'(a,a)')'Info    : reading zsini file ', trim(zsinifile)
+      call write_log(logstr, 0)
       !
-      write(*,*)'Warning : binary ini files from SFINCS v2.1.1 and older are not compatible with SFINCS v2.1.2+, remake your inifile containing zs as real*8 double precision'    
+      call write_log('Warning : binary ini files from SFINCS v2.1.1 and older are not compatible with SFINCS v2.1.2+, remake your inifile containing zs as real*8 double precision', 0)  
       !
       open(unit = 500, file = trim(zsinifile), form = 'unformatted', access = 'stream')
       read(500)inizs

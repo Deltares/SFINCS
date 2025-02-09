@@ -1,297 +1,337 @@
-   module sfincs_bmi
+module sfincs_bmi
    use iso_c_binding
    use sfincs_lib
-   ! use sfincs_ncoutput
    use sfincs_data
+   use sfincs_domain
    
    implicit none
+   private
 
+   ! routines
    public :: initialize
    public :: update
+   public :: update_until
    public :: finalize
+   public :: get_value_ptr
    public :: get_var_shape
    public :: get_var_type
    public :: get_var_rank
-   public :: set_var
    public :: get_start_time
    public :: get_end_time
    public :: get_time_step
    public :: get_current_time
+   public :: update_zbuv
 
-   private
+   ! constants
+   public :: BMI_LENVARADDRESS
+   public :: BMI_LENVARTYPE
+   public :: BMI_LENGRIDTYPE
+   public :: BMI_LENCOMPONENTNAME
+   public :: BMI_LENVERSION
+   public :: BMI_LENERRMESSAGE
 
-   integer(c_int), bind(C, name="maxstrlen") :: maxstrlen = 1024
-   integer(c_int), bind(C, name="maxdims") :: maxdims = 6
+   integer(c_int), bind(C, name="BMI_LENVARADDRESS") :: BMI_LENVARADDRESS = 64 !< max. length for the variable's address C-string, also the variable name
+   !DIR$ ATTRIBUTES DLLEXPORT :: BMI_LENVARADDRESS
+   integer(c_int), bind(C, name="BMI_LENVARTYPE") :: BMI_LENVARTYPE = 64 !< max. length for variable type C-strings
+   !DIR$ ATTRIBUTES DLLEXPORT :: BMI_LENVARTYPE
+   integer(c_int), bind(C, name="BMI_LENGRIDTYPE") :: BMI_LENGRIDTYPE = 64 !< max. length for grid type C-strings
+   !DIR$ ATTRIBUTES DLLEXPORT :: BMI_LENGRIDTYPE
+   integer(c_int), bind(C, name="BMI_LENCOMPONENTNAME") :: BMI_LENCOMPONENTNAME = 64 !< component name length, i.e. 'SFINCS'
+   !DIR$ ATTRIBUTES DLLEXPORT :: BMI_LENCOMPONENTNAME
+   integer(c_int), bind(C, name="BMI_LENVERSION") :: BMI_LENVERSION = 256 !< length of version string, e.g. '3.1' or '16.4 release candidate'
+   !DIR$ ATTRIBUTES DLLEXPORT :: BMI_LENVERSION
+   integer(c_int), bind(C, name="BMI_LENERRMESSAGE") :: BMI_LENERRMESSAGE = 1024 !< max. length of error message
+   !DIR$ ATTRIBUTES DLLEXPORT :: BMI_LENERRMESSAGE
+
+contains
    
-   real*4, parameter :: FILL_VALUE = -99999.0
-   
-   contains
-   
-!-----------------------------------------------------------------------------------------------------!
-   
-   function initialize(c_config_file) result(ierr) bind(C, name="initialize")
+   function initialize() result(ierr) bind(C, name="initialize")
    !DEC$ ATTRIBUTES DLLEXPORT :: initialize
-   
-   character(kind=c_char),intent(in)    :: c_config_file(maxstrlen)
-   character(len=strlen(c_config_file)) :: config_file
-
-   integer :: ierr
-
-   ierr = sfincs_initialize(config_file)
+      integer(kind=c_int) :: ierr
+      bmi  = .true.
+      ierr = sfincs_initialize()
 
    end function initialize
    
-!-----------------------------------------------------------------------------------------------------!
-   
-   function update(dt) result(ierr) bind(C, name="update")
+   function update() result(ierr) bind(C, name="update")
    !DEC$ ATTRIBUTES DLLEXPORT :: update
-   
-   real(kind=c_double), value, intent(in)  :: dt
-   integer(kind=c_int)              :: ierr
-   
-   ierr = sfincs_update(dt)
+      integer(kind=c_int) :: ierr
+      real*8 :: unused_t
+      ! Run single time step      
+      unused_t = -1.0
+      ierr = sfincs_update(unused_t)
    
    end function update
    
-!-----------------------------------------------------------------------------------------------------!
+   function update_until(t_target) result(ierr) bind(C, name="update_until")
+   !DEC$ ATTRIBUTES DLLEXPORT :: update_until  
+      real(kind=c_double), value, intent(in) :: t_target
+      integer(kind=c_int) :: ierr
+
+      real(kind=c_double) :: delta_t
+      
+      delta_t = t_target - t
+      ierr = sfincs_update(delta_t)
+      
+   end function update_until
    
    function finalize() result(ierr) bind(C, name="finalize")
    !DEC$ ATTRIBUTES DLLEXPORT :: finalize
-   
-   integer(kind=c_int)              :: ierr
+   integer(kind=c_int) :: ierr
    
    ierr = sfincs_finalize()
    
    end function finalize
+
+   function get_value_ptr(c_var_name, c_data) result(ierr) &
+      bind(C, name="get_value_ptr")
+   !DIR$ ATTRIBUTES DLLEXPORT :: get_value_ptr
+      character(kind=c_char), intent(in) :: c_var_name(*)
+      type(c_ptr), intent(inout) :: c_data
+      integer(kind=c_int) :: ierr
+      character(len=strlen(c_var_name, BMI_LENVARADDRESS)) :: var_name
+      integer :: c_strlen
+
+      ierr = 0
+
+      c_strlen = strlen(c_var_name, BMI_LENVARADDRESS)
+      var_name = char_array_to_string(c_var_name, c_strlen)
+
+      select case(var_name)
+      case("z_xz")
+         c_data = c_loc(z_xz)
+      case("z_yz")
+         c_data = c_loc(z_yz)
+      case("zs")
+         c_data = c_loc(zs)
+      case("zb")
+         c_data = c_loc(zb)
+      case("subgrid_z_zmin")
+         c_data = c_loc(subgrid_z_zmin)
+      case("qext")
+         c_data = c_loc(qext)
+      case default
+         c_data = c_null_ptr
+         ierr = -1
+      end select
+
+   end function get_value_ptr
    
-!-----------------------------------------------------------------------------------------------------!
-   
-   subroutine get_var_shape(c_var_name, var_shape) bind(C, name="get_var_shape")
+   function get_var_shape(c_var_name, var_shape) result(ierr) &
+      bind(C, name="get_var_shape")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_var_shape
-   
-   character(kind=c_char), intent(in) :: c_var_name(*)
-   integer(c_int), intent(inout)      :: var_shape(maxdims)
-   character(len=strlen(c_var_name))  :: var_name
+      character(kind=c_char), intent(in) :: c_var_name(*)
+      integer(c_int), intent(inout) :: var_shape(6)
+      character(len=strlen(c_var_name, BMI_LENVARADDRESS)) :: var_name
+      integer(kind=c_int) :: ierr
 
-   var_name = char_array_to_string(c_var_name, strlen(c_var_name))
-   var_shape = (/0, 0, 0, 0, 0, 0/)
-   
-   select case(var_name)
-   case("xg", "yg","zs","zb","u","v")     
-      ! inverted shapes (fortran to c)
-      var_shape(2) = nmax
-      var_shape(1) = mmax
-   end select
-   
-   end subroutine get_var_shape
-   
-!-----------------------------------------------------------------------------------------------------!
-   
-   subroutine get_var_type(c_var_name, c_type) bind(C, name="get_var_type")
-   !DEC$ ATTRIBUTES DLLEXPORT :: get_var_type
-   
-   character(kind=c_char), intent(in)  :: c_var_name(*)
-   character(kind=c_char), intent(out) ::  c_type(maxstrlen)
-   character(len=maxstrlen)            :: type_name, var_name
+      ierr = 0
 
-   var_name = char_array_to_string(c_var_name, strlen(c_var_name))
+      var_name = char_array_to_string(c_var_name, strlen(c_var_name, BMI_LENVARADDRESS))
+      var_shape = (/0, 0, 0, 0, 0, 0/)
+      
+      select case(var_name)
+      case("z_xz", "z_yz", "zs", "zb")
+         var_shape(1) = size(zs)
+      case("subgrid_z_zmin")
+         var_shape(1) = size(subgrid_z_zmin)
+      case("z_index_z_n", "z_index_z_m")
+         var_shape(1) = size(z_index_z_n)
+      case("qext")
+         var_shape(1) = size(qext)
+      case default
+         ierr = -1
+      end select
+   
+   end function get_var_shape
+   
+   function get_var_type(c_var_name, c_type) result(ierr) &
+      bind(C, name="get_var_type")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_var_type   
+      character(kind=c_char), intent(in) :: c_var_name(*)
+      character(kind=c_char), intent(out) ::  c_type(BMI_LENVARTYPE)
+      character(len=BMI_LENVARADDRESS-1) :: var_name
+      character(len=BMI_LENVARTYPE-1) :: type_name
 
-   select case(var_name)
-   case("xg", "yg", "zs", "zb", "u", "v")      
-      type_name = "float"  
-   end select
-   
-   c_type = string_to_char_array(trim(type_name), len(trim(type_name)))
-   
-   end subroutine get_var_type
-   
-!-----------------------------------------------------------------------------------------------------!
-   
-   subroutine get_var(c_var_name, x) bind(C, name="get_var")
-   !DEC$ ATTRIBUTES DLLEXPORT :: get_var
-   
-   character(kind=c_char), intent(in)       :: c_var_name(*)
-   type(c_ptr), intent(inout)               :: x
-   real(c_float), target, allocatable, save :: xf(:,:)
-   integer                                  :: nm
+      integer(kind=c_int)              :: ierr
 
-   ! The fortran name of the attribute name
-   character(len=strlen(c_var_name)) :: var_name
-   
-   ! Store the name
-   var_name = char_array_to_string(c_var_name,strlen(c_var_name))
-   
-   if(allocated(xf)) then
-      deallocate(xf)   
-   endif
-   
-   select case(var_name)
-   case("xg") 
-!      x = c_loc(xg)
-   case("yg") 
-!      x = c_loc(yg)
-   case("zs")    
-      allocate(xf(nmax,mmax))
-      xf = FILL_VALUE       ! set to fill value
-      do nm = 1, np
-!         xf(index_v_n(nm),index_v_m(nm)) = zs(nm)
-      enddo
-      x = c_loc(xf)
-   case("zb") 
-      allocate(xf(nmax,mmax))
-      xf = FILL_VALUE       ! set to fill value
-      do nm = 1, np
-!         xf(index_v_n(nm),index_v_m(nm)) = zb(nm)
-      enddo
-      x = c_loc(xf)
-   case("u") 
-      allocate(xf(nmax,mmax))
-      xf = FILL_VALUE       ! set to fill value
-      do nm = 1, np
-!         xf(index_v_n(nm),index_v_m(nm)) = u(nm)
-      enddo
-      x = c_loc(xf)
-   case("v") 
-      allocate(xf(nmax,mmax))
-      xf = FILL_VALUE       ! set to fill value
-      do nm = 1, np
-!         xf(index_v_n(nm),index_v_m(nm)) = v(nm)
-      enddo
-      x = c_loc(xf)
-   end select
+      ierr = 0
+      var_name = char_array_to_string(c_var_name, strlen(c_var_name, BMI_LENVARADDRESS))
 
-   end subroutine get_var
+      select case(var_name)
+      case("z_xz", "z_yz", "zb", "subgrid_z_zmin", "qext")
+         type_name = "float"
+      case("zs")
+         type_name = "double"
+      case("z_index_z_n", "z_index_z_m")
+         type_name = "integer"
+      case default
+         ierr = -1
+      end select
+      
+      c_type = string_to_char_array(trim(type_name), len(trim(type_name)))
    
-!-----------------------------------------------------------------------------------------------------!
+   end function get_var_type
    
-   subroutine get_var_rank(c_var_name, rank) bind(C, name="get_var_rank")
+   function get_var_rank(c_var_name, rank) result(ierr) &
+      bind(C, name="get_var_rank")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_var_rank
-   
-   character(kind=c_char), intent(in) :: c_var_name(*)
-   integer(c_int), intent(out) :: rank
+      character(kind=c_char), intent(in) :: c_var_name(*)
+      integer(c_int), intent(out) :: rank
+      integer(kind=c_int) :: ierr
 
-   ! The fortran name of the attribute name
-   character(len=strlen(c_var_name)) :: var_name
-   
-
-   var_name = char_array_to_string(c_var_name, strlen(c_var_name))
-   
-   select case(var_name)
-   case("xg","yg","zs","zb","u","v") 
-      rank = 2
-   end select
-
-   end subroutine get_var_rank
-   
-!-----------------------------------------------------------------------------------------------------!   
-
-   subroutine set_var(c_var_name, xptr) bind(C, name="set_var")
-   !DEC$ ATTRIBUTES DLLEXPORT :: set_var
-
-   character(kind=c_char), intent(in) :: c_var_name(*)
-   type(c_ptr), value, intent(in) :: xptr
-
-   real(c_float), pointer  :: x_1d_float_ptr(:)
-   real(c_float), pointer  :: x_2d_float_ptr(:,:)
-
-   ! The fortran name of the attribute name
-   character(len=strlen(c_var_name)) :: var_name
-   integer :: nm
-
-   var_name = char_array_to_string(c_var_name, strlen(c_var_name))
-   
-   select case(var_name)
-   
-   case("xg")
-   call c_f_pointer(xptr, x_2d_float_ptr, (/ nmax, mmax /))
-!   xg = x_2d_float_ptr
-
-   case("yg")
-   call c_f_pointer(xptr, x_2d_float_ptr, (/ nmax, mmax /))
-!   yg = x_2d_float_ptr
-   
-   case("zs")
-   call c_f_pointer(xptr, x_2d_float_ptr, (/ nmax, mmax /))
-   do nm = 1, np
-!      zs(nm) =x_2d_float_ptr( index_v_n(nm), index_v_m(nm))
-   enddo
-   
-   end select
-         
-   end subroutine set_var
-
-!-----------------------------------------------------------------------------------------------------!  
+      character(len=BMI_LENVARADDRESS-1) :: var_name
       
-   subroutine get_start_time(tstart) bind(C, name="get_start_time")
+      ierr = 0
+
+      var_name = char_array_to_string(c_var_name, strlen(c_var_name, BMI_LENVARADDRESS))
+      
+      select case(var_name)
+      case("z_xz", "z_yz", "zs", "zb", "subgrid_z_zmin", "qext")
+         rank = 1
+      case default
+         ierr = -1
+      end select
+
+   end function get_var_rank
+
+   function set_logical(c_flag_name, ival) result(ierr) bind(C, name="set_logical")
+   !DEC$ ATTRIBUTES DLLEXPORT :: set_logical
+      character(kind=c_char), intent(in) :: c_flag_name(*)
+      integer(kind=c_int) :: ival(*)
+      integer(kind=c_int) :: ierr
+      character(len=BMI_LENVARADDRESS-1) :: flag_name
+      logical :: bval
+      !
+      ierr = 0
+      !
+      flag_name = char_array_to_string(c_flag_name, strlen(c_flag_name, BMI_LENVARADDRESS))      
+      !
+      if (ival(1) == 0) then
+         bval = .false.
+      else
+         bval = .true.
+      endif
+      !
+      select case(flag_name)
+      case("qext")
+         use_qext = bval
+         write(*,*)'use_qext = ', use_qext 
+      case default
+         ierr = -1
+      end select
+
+   end function set_logical
+      
+   function get_start_time(tstart) result(ierr) bind(C, name="get_start_time")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_start_time
-   real(c_double), intent(out) :: tstart
+      real(c_double), intent(out) :: tstart
+      integer(kind=c_int) :: ierr
 
-   tstart = t0
-   end subroutine get_start_time
+      tstart = t0
+      ierr = 0
 
-!-----------------------------------------------------------------------------------------------------!  
+   end function get_start_time
       
-   subroutine get_end_time(tend) bind(C, name="get_end_time")
-   !DEC$ ATTRIBUTES DLLEXPORT :: get_end_time
-   
-   real(c_double), intent(out) :: tend
+   function get_end_time(tend) result(ierr) bind(C, name="get_end_time")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_end_time   
+      real(c_double), intent(out) :: tend
+      integer(kind=c_int) :: ierr
 
-   tend = t1
-   end subroutine get_end_time
-   
-!-----------------------------------------------------------------------------------------------------!  
+      tend = t1
+      ierr = 0
+
+   end function get_end_time
       
-   subroutine get_time_step(deltat) bind(C, name="get_time_step")
+   function get_time_step(deltat) result(ierr) bind(C, name="get_time_step")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_time_step
+      real(c_double), intent(out) :: deltat
+      integer(kind=c_int) :: ierr
 
-   real(c_double), intent(out) :: deltat
+      deltat = dt
+      ierr = 0
 
-   deltat = dt
-   end subroutine get_time_step
-   
-!-----------------------------------------------------------------------------------------------------!  
+   end function get_time_step
       
-   subroutine get_current_time(tcurrent) bind(C, name="get_current_time")
+   function get_current_time(tcurrent) result(ierr) bind(C, name="get_current_time")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_current_time
-   
-   real(c_double), intent(out) :: tcurrent
+      real(c_double), intent(out) :: tcurrent
+      integer(kind=c_int) :: ierr
 
-   tcurrent = t
-   end subroutine get_current_time
+      tcurrent = t
+      ierr = 0
+
+   end function get_current_time
+
+   function update_zbuv() result(ierr) bind(C, name="update_zbuv")
+   ! Update bed level at uv points
+   !DEC$ ATTRIBUTES DLLEXPORT :: update_zbuv
+      integer(kind=c_int) :: ierr
+      call compute_zbuvmx()
+      ierr = 0
    
-!-----------------------------------------------------------------------------------------------------!     
-   ! private functions
-   integer(c_int) pure function strlen(char_array)
-   character(c_char), intent(in) :: char_array(maxstrlen)
-   integer :: inull, i
-   strlen = 0
-   do i = 1, size(char_array)
-      if (char_array(i) .eq. C_NULL_CHAR) then
-         strlen = i-1
-         exit
-      end if
-   end do
+   end function update_zbuv
+   
+   
+   !> @brief Get the last error in the BMI as a character array
+   !! with size BMI_LENERRMESSAGE
+   !<
+   function get_last_bmi_error(c_error) result(ierr) &
+      bind(C, name="get_last_bmi_error")
+   !DIR$ ATTRIBUTES DLLEXPORT :: get_last_bmi_error
+      character(kind=c_char, len=1), intent(out) :: c_error(BMI_LENERRMESSAGE)
+      integer(kind=c_int) :: ierr
+
+      c_error = string_to_char_array("error handling not implemented", 30)
+      ierr = 0
+
+   end function get_last_bmi_error
+   
+   !> @brief Returns the string length without the trailing null character
+   !<
+   pure function strlen(char_array, max_len) result(string_length)
+      integer, intent(in) :: max_len
+      character(c_char), intent(in) :: char_array(max_len) !< C-style character string
+      integer :: string_length !< Fortran string length
+      integer :: i
+
+      string_length = 0
+      do i = 1, size(char_array)
+         if (char_array(i) .eq. C_NULL_CHAR) then
+            string_length = i - 1
+            exit
+         end if
+      end do
+
    end function strlen
-!!!!!!!!!!!!!!!!!!!!!!!   
-   pure function char_array_to_string(char_array, length)
-   integer(c_int), intent(in) :: length
-   character(c_char),intent(in) :: char_array(length)
-   character(len=length) :: char_array_to_string
-   integer :: i
-   do i = 1, length
-      char_array_to_string(i:i) = char_array(i)
-   enddo
+
+   !> @brief Convert C-style string to Fortran character string
+   !<
+   pure function char_array_to_string(char_array, length) result(f_string)
+      integer(c_int), intent(in) :: length !< string length without terminating null character
+      character(c_char), intent(in) :: char_array(length) !< string to convert
+      character(len=length) :: f_string !< Fortran fixed length character string
+      integer :: i
+
+      do i = 1, length
+         f_string(i:i) = char_array(i)
+      end do
+
    end function char_array_to_string
-!!!!!!!!!!!!!!!!!!!!!!!      
-   pure function string_to_char_array(string, length)
-   integer(c_int),intent(in) :: length
-   character(len=length), intent(in) :: string
-   character(kind=c_char,len=1) :: string_to_char_array(length+1)
-   integer :: i
-   do i = 1, length
-      string_to_char_array(i) = string(i:i)
-   enddo
-   string_to_char_array(length+1) = C_NULL_CHAR
+
+   !> @brief Convert Fortran string to C-style character string
+   !<
+   pure function string_to_char_array(string, length) result(c_array)
+      integer(c_int), intent(in) :: length !< Fortran string length
+      character(len=length), intent(in) :: string !< string to convert
+      character(kind=c_char, len=1) :: c_array(length + 1) !< C-style character string
+      integer :: i
+
+      do i = 1, length
+         c_array(i) = string(i:i)
+      end do
+      c_array(length + 1) = C_NULL_CHAR
+
    end function string_to_char_array
 
-   end module sfincs_bmi
+end module sfincs_bmi

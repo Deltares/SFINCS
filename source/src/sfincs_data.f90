@@ -11,6 +11,11 @@ module sfincs_data
       integer :: error
       character*256 :: error_message
       !!!
+      !!! BMI
+      !!!
+      logical       :: bmi
+      logical       :: use_qext
+      !!!
       !!! Constants
       !!!
       real*4 g                                   ! gravitational constant g
@@ -87,6 +92,12 @@ module sfincs_data
       real*4 btrelax
       real*4 wiggle_factor
       real*4 wiggle_threshold
+      real*4 uvlim
+      real*4 uvmax
+      !real*4 normbnd
+      !real*4 dzdsbnd
+      !real*4 manningbnd
+      real*4 nuviscfac ! Factor on viscosity for 'difficult' points. Used in sfincs_momentum.f90.
       !
       real*4 freqminig
       real*4 freqmaxig
@@ -206,7 +217,6 @@ module sfincs_data
       logical       :: debug
       logical       :: radstr
       logical       :: crsgeo
-      logical       :: use_coriolis
       logical       :: ampr_block
       logical       :: global
       logical       :: store_tsunami_arrival_time
@@ -228,10 +238,10 @@ module sfincs_data
       logical       :: output_irregular_grid
       logical       :: use_spw_precip
       logical       :: friction2d
-      logical       :: advection_limiter
       logical       :: advection_mask
       logical       :: wiggle_suppression
       logical       :: wmrandom      
+      logical       :: store_dynamic_bed_level
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
@@ -264,8 +274,8 @@ module sfincs_data
       ! Indices
       !
       integer*4,          dimension(:),   allocatable :: nmindbnd
-      integer*4,          dimension(:),   allocatable :: z_index_z_n
-      integer*4,          dimension(:),   allocatable :: z_index_z_m
+      integer*4,          dimension(:),   allocatable, target :: z_index_z_n
+      integer*4,          dimension(:),   allocatable, target :: z_index_z_m
       integer*4,          dimension(:),   allocatable :: z_index_uv_md1
       integer*4,          dimension(:),   allocatable :: z_index_uv_md2
       integer*4,          dimension(:),   allocatable :: z_index_uv_mu1
@@ -336,14 +346,14 @@ module sfincs_data
       !
       ! Z-points
       !
-      real*4,             dimension(:),   allocatable :: z_xz
-      real*4,             dimension(:),   allocatable :: z_yz
+      real*4,             dimension(:),   allocatable, target :: z_xz
+      real*4,             dimension(:),   allocatable, target :: z_yz
       real*4,             dimension(:),   allocatable :: cell_area_m2
       real*4,             dimension(:),   allocatable :: nuvisc      
       !
       ! UV-points
       !
-      real*4, dimension(:),   allocatable :: zb
+      real*4, dimension(:),   allocatable, target :: zb
       real*4, dimension(:),   allocatable :: zbuv
       real*4, dimension(:),   allocatable :: zbuvmx
       real*4, dimension(:),   allocatable :: gn2uv
@@ -476,7 +486,7 @@ module sfincs_data
       !
       integer                             :: subgrid_nlevels
       !
-      real*4, dimension(:),   allocatable :: subgrid_z_zmin
+      real*4, dimension(:),   allocatable, target :: subgrid_z_zmin
       real*4, dimension(:),   allocatable :: subgrid_z_zmax
       real*4, dimension(:),   allocatable :: subgrid_z_volmax
       real*4, dimension(:,:), allocatable :: subgrid_z_dep
@@ -500,18 +510,19 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: zsmax
       real*4, dimension(:),   allocatable :: vmax
       real*4, dimension(:),   allocatable :: qmax
-      real*8, dimension(:),   allocatable :: zs
+      real*8, dimension(:),   allocatable, target :: zs
       real*4, dimension(:),   allocatable :: zsm
       real*4, dimension(:),   allocatable :: maxzsm      
       real*4, dimension(:),   allocatable :: q
       real*4, dimension(:),   allocatable :: q0
       real*4, dimension(:),   allocatable :: uv
       real*4, dimension(:),   allocatable :: uv0
-      real*4, dimension(:),   allocatable :: z_volume
+      real*8, dimension(:),   allocatable :: z_volume
       real*4, dimension(:),   allocatable :: twet
       real*4, dimension(:),   allocatable :: tsunami_arrival_time
       real*4, dimension(:),   allocatable :: zs0
       real*4, dimension(:),   allocatable :: zsderv
+      real*4, dimension(:),   allocatable, target :: qext
       !
       real*4, dimension(:),   allocatable :: tauwu
       real*4, dimension(:),   allocatable :: tauwv
@@ -519,7 +530,6 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: prcp
       real*4, dimension(:),   allocatable :: cumprcp
       real*4, dimension(:),   allocatable :: netprcp
-      real*4, dimension(:),   allocatable :: cumprcpt
       real*4, dimension(:),   allocatable :: cuminf
       real*4, dimension(:),   allocatable :: tauwu0
       real*4, dimension(:),   allocatable :: tauwu1
@@ -830,7 +840,7 @@ module sfincs_data
    !
    implicit none
    !
-    ! memory cleanup
+   ! memory cleanup
 !    if(allocated(indices)) deallocate(indices)
     if(allocated(nmindbnd)) deallocate(nmindbnd)
 !    if(allocated(index_v_m)) deallocate(index_v_m)
@@ -917,6 +927,7 @@ module sfincs_data
     if(allocated(uv)) deallocate(uv)
     if(allocated(uv0)) deallocate(uv0)
     if(allocated(twet)) deallocate(twet)
+    if(allocated(qext)) deallocate(qext)
     !
 !    if(allocated(huu)) deallocate(huu)
 !    if(allocated(hvv)) deallocate(hvv)
@@ -928,7 +939,6 @@ module sfincs_data
     if(allocated(patm)) deallocate(patm)
     if(allocated(prcp)) deallocate(prcp)
     if(allocated(cumprcp)) deallocate(cumprcp)
-    if(allocated(cumprcpt)) deallocate(cumprcpt)
     if(allocated(tauwu0)) deallocate(tauwu0)
     if(allocated(tauwu1)) deallocate(tauwu1)
     if(allocated(tauwv0)) deallocate(tauwv0)

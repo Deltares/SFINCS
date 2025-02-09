@@ -1,7 +1,8 @@
 #define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)
 module quadtree
    !
-   use netcdf       
+   use sfincs_log
+   use netcdf
    !
    integer*4                                       :: quadtree_nr_points
    integer*1                                       :: quadtree_nr_levels
@@ -113,10 +114,12 @@ contains
       m    = quadtree_m(nm)
       iref = quadtree_level(nm)
       !
-      ! Determine quadtree_nmax and quadtree_mmax (these are needed for binary search of nm indices)
+      ! Determine quadtree_nmax and quadtree_mmax of the lowest level (these are needed for binary search of nm indices)
       !
-      quadtree_nmax = max(quadtree_nmax, int( (1.0*(n - 1) + 0.01) / (2**(iref - 1))) + 2)
-      quadtree_mmax = max(quadtree_mmax, int( (1.0*(m - 1) + 0.01) / (2**(iref - 1))) + 2)
+      ! quadtree_nmax = max(quadtree_nmax, int( (1.0*(n - 1) + 0.01) / (2**(iref - 1))) + 2)
+      ! quadtree_mmax = max(quadtree_mmax, int( (1.0*(m - 1) + 0.01) / (2**(iref - 1))) + 2)
+      quadtree_nmax = max(quadtree_nmax, int( (1.0*(n - 1) + 0.01) / (2**(iref - 1))) + 1)
+      quadtree_mmax = max(quadtree_mmax, int( (1.0*(m - 1) + 0.01) / (2**(iref - 1))) + 1)
       !
       ! Coordinates of cell centres
       ! 
@@ -177,14 +180,22 @@ contains
    !
    ! Some write statements of interpreted quadtree grid to output for user:
    !
-   write(*,*)'Quadtree grid info - nr_levels :', quadtree_nr_levels
-   write(*,*)'Quadtree grid info -        x0 :', quadtree_x0
-   write(*,*)'Quadtree grid info -        y0 :', quadtree_y0
-   write(*,*)'Quadtree grid info -        dx :', quadtree_dx
-   write(*,*)'Quadtree grid info -        dy :', quadtree_dy
-   write(*,*)'Quadtree grid info -      mmax :', quadtree_mmax
-   write(*,*)'Quadtree grid info -      nmax :', quadtree_nmax
-   write(*,*)'Quadtree grid info -  rotation :', quadtree_rotation / pi * 180
+   write(logstr,'(a,i10)')'Quadtree grid info - nr_levels : ', quadtree_nr_levels
+   call write_log(logstr, 0)
+   write(logstr,'(a,f10.2)')'Quadtree grid info -        x0 : ', quadtree_x0
+   call write_log(logstr, 0)
+   write(logstr,'(a,f10.2)')'Quadtree grid info -        y0 : ', quadtree_y0
+   call write_log(logstr, 0)
+   write(logstr,'(a,f10.2)')'Quadtree grid info -        dx : ', quadtree_dx
+   call write_log(logstr, 0)
+   write(logstr,'(a,f10.2)')'Quadtree grid info -        dy : ', quadtree_dy
+   call write_log(logstr, 0)
+   write(logstr,'(a,i10)')'Quadtree grid info -      mmax : ', quadtree_mmax
+   call write_log(logstr, 0)
+   write(logstr,'(a,i10)')'Quadtree grid info -      nmax : ', quadtree_nmax
+   call write_log(logstr, 0)
+   write(logstr,'(a,f10.2)')'Quadtree grid info -  rotation : ', quadtree_rotation / pi * 180
+   call write_log(logstr, 0)
    !
    end subroutine
 
@@ -202,8 +213,9 @@ contains
    !
    ! Read quadtree file (first time, only read number of active points)
    !
-   write(*,*)'Reading QuadTree binary file ...'
-   write(*,*)'Warning : quadtree mesh file has the "old" binary format, the simulation will continue, but we do recommended switching to the new Netcdf quadtree input format!'            !   
+   write(logstr,'(a,a)')'Info    : reading QuadTree binary file ', trim(qtrfile)
+   call write_log(logstr, 0)
+   call write_log('Warning : quadtree mesh file has the "old" binary format, the simulation will continue, but we do recommended switching to the new Netcdf quadtree input format!', 0)
    !
    open(unit = 500, file = trim(qtrfile), form = 'unformatted', access = 'stream')
    read(500)iversion
@@ -284,7 +296,8 @@ contains
    integer*1 :: iversion
    integer   :: np, ip, iepsg
    !
-   write(*,*)'Reading QuadTree netCDF file ...'
+   write(logstr,'(a,a)')'Info    : reading QuadTree netCDF file ', trim(qtrfile)
+   call write_log(logstr, 0)
    !
    NF90(nf90_open(trim(qtrfile), NF90_CLOBBER, net_file_qtr%ncid))
    !          
