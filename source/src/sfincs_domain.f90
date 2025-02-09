@@ -2546,15 +2546,6 @@ contains
       !
    endif    
    !
-   if (precip .or. use_qext) then
-      !
-      ! cumprcpt array for cumulative total influx 
-      ! 
-      allocate(cumprcpt(np))      
-      cumprcpt = 0.0
-      ! 
-   endif    
-   !
    if (subgrid) then
       !
       ! Compute initial volumes

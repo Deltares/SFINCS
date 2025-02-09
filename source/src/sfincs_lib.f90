@@ -316,7 +316,7 @@ module sfincs_lib
    !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
    !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, & 
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
-   !$acc               prcp, prcp0, prcp1, cumprcp, cumprcpt, netprcp, prcp, qinfmap, cuminf, qext, & 
+   !$acc               prcp, prcp0, prcp1, cumprcp, netprcp, prcp, qinfmap, cuminf, qext, & 
    !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
    !$acc               gn2uv, fcorio2d, min_dt, storage_volume, nuvisc, &
    !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2 )

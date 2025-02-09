@@ -103,7 +103,7 @@ contains
    !$omp parallel &
    !$omp private ( nm,dvol,nmd,nmu,ndm,num,qnmd,qnmu,qndm,qnum,iwm)
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels present( kcs, zs, zb, netprcp, cumprcpt, prcp, q, qext, zsmax, zsm, maxzsm, &
+   !$acc kernels present( kcs, zs, zb, netprcp, prcp, q, qext, zsmax, zsm, maxzsm, &
    !$acc                  z_flags_iref, uv_flags_iref, &
    !$acc                  z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
    !$acc                  dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area,  &
@@ -115,7 +115,7 @@ contains
          !
          if (precip) then
             !
-            cumprcpt(nm) = cumprcpt(nm) + netprcp(nm) * dt
+            zs(nm) = zs(nm) + netprcp(nm) * dt
             !
          endif
          !
@@ -123,21 +123,7 @@ contains
             !
             ! Add external source (e.g. from XMI coupling) 
             ! 
-            cumprcpt(nm) = cumprcpt(nm) + qext(nm) * dt
-            !
-         endif
-         !
-         if (precip .or. use_qext) then
-            !
-            ! Add rain and/or infiltration only when cumulative effect over last interval exceeds 0.001 m
-            ! Otherwise single precision may miss a lot of the rainfall/infiltration
-            !
-            if (cumprcpt(nm) > 0.001 .or. cumprcpt(nm) < -0.001) then
-               !
-               zs(nm) = zs(nm) + cumprcpt(nm)
-               cumprcpt(nm) = 0.0
-               !
-            endif
+            zs(nm) = zs(nm) + qext(nm) * dt 
             !
          endif
          !
@@ -276,6 +262,7 @@ contains
    !
    real*4           :: factime
    real*4           :: dvol  
+   real*4           :: dzsdt
    !
    real*4           :: qnmu
    real*4           :: qnmd
@@ -298,7 +285,7 @@ contains
    !
    !$acc parallel present( kcs, zs, zs0, zb, z_volume, zsmax, zsm, nmindsrc, qtsrc, maxzsm, zsderv, &
    !$acc                   subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
-   !$acc                   netprcp, cumprcpt, prcp, q, qext, z_flags_iref, uv_flags_iref, &
+   !$acc                   netprcp, prcp, q, qext, z_flags_iref, uv_flags_iref, &
    !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
    !$acc                   dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area, &
    !$acc                   z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, storage_volume), &
@@ -322,7 +309,7 @@ contains
    endif   
    !
    !$omp parallel &
-   !$omp private ( dvol,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,iwm,qnmd,qnmu,qndm,qnum,dv,zs00,zs11 )
+   !$omp private ( dvol,dzsdt,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,iwm,qnmd,qnmu,qndm,qnum,dv,zs00,zs11 )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop independent, gang, vector
    do nm = 1, np
@@ -343,11 +330,13 @@ contains
             !
          endif
          !   
+         dzsdt = 0.0
+         !   
          if (precip) then
             !
             ! Add nett rainfall 
-            ! 
-            cumprcpt(nm) = cumprcpt(nm) + netprcp(nm) * dt
+            !
+            dzsdt = dzsdt + netprcp(nm)
             !
          endif
          !
@@ -355,23 +344,13 @@ contains
             !
             ! Add external source (e.g. from XMI coupling) 
             ! 
-            cumprcpt(nm) = cumprcpt(nm) + qext(nm) * dt
+            dzsdt = dzsdt + qext(nm)
             !
          endif
          !
-         if (precip .or. use_qext) then
-            !
-            ! Add rain and/or infiltration only when cumulative effect over last interval exceeds 0.001 m
-            ! Otherwise single precision may miss a lot of the rainfall/infiltration
-            !
-            if (cumprcpt(nm) > 0.001 .or. cumprcpt(nm) < -0.001) then
-               !
-               dvol = dvol + cumprcpt(nm) * a
-               cumprcpt(nm) = 0.0
-               !
-            endif
-            !
-         endif
+         ! dvol is still in m/s, so multiply with a * dt to get m^3
+         !
+         dvol = dzsdt * a * dt
          !
          nmd = z_index_uv_md(nm)
          nmu = z_index_uv_mu(nm)
