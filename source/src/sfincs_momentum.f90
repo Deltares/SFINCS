@@ -623,14 +623,13 @@
             !
             ! Compute new flux for this uv point (Bates et al., 2010)
             !
-!            if (cbrttable) then
-!               hu73 = power7over3(hu)
-!            else
+            if (cbrttable) then
+               hu73 = power7over3(hu)
+            else
                hu73 = hu**2 * hu**expo
-!            endif   
+            endif   
             ! 
-!            q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / hu73)
-            q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / (hu**2 * hu**expo))
+            q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / hu73)
             !
             if (subgrid .and. wiggle_suppression) then 
                !
