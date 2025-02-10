@@ -174,6 +174,8 @@ module sfincs_lib
    !
    call set_advection_mask()
    !
+   call fill_cbrt_tables() 
+   !
    call system_clock(count1, count_rate, count_max)
    !
    tinput  = 1.0*(count1 - count0)/count_rate

@@ -86,6 +86,7 @@
    real*4    :: phi
    !
    real*4    :: mdrv
+   real*4    :: hu73
    !
    real*4, parameter :: expo = 1.0 / 3.0
    !integer, parameter :: expo = 1
@@ -127,7 +128,7 @@
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73 ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop independent, reduction( min : min_dt ), gang, vector
@@ -621,7 +622,14 @@
             endif            
             !
             ! Compute new flux for this uv point (Bates et al., 2010)
+            !
+!            if (cbrttable) then
+!               hu73 = power7over3(hu)
+!            else
+               hu73 = hu**2 * hu**expo
+!            endif   
             ! 
+!            q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / hu73)
             q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / (hu**2 * hu**expo))
             !
             if (subgrid .and. wiggle_suppression) then 

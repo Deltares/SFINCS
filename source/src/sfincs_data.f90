@@ -242,6 +242,7 @@ module sfincs_data
       logical       :: wiggle_suppression
       logical       :: wmrandom      
       logical       :: store_dynamic_bed_level
+      logical       :: cbrttable
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
@@ -788,54 +789,80 @@ module sfincs_data
                                               0.682, 0.852, 0.984, 1.100, 1.205, 1.302, 1.395, 1.485, 1.574, 1.658, 1.742, 1.828, 1.908, 1.989, 2.071, 2.154, 2.225, 2.124, 2.034, 1.946, 1.871, 1.797, 1.731, 1.668, 1.612, 1.556, 1.505, 1.459, 1.413, 1.372, 1.332, 1.295, 1.258, 1.226, 1.194, 1.164, 1.135, 1.107, 1.082, 1.057, 1.032, 1.009, 0.989, 0.968, 0.947, 0.929, 0.909, 0.892, 0.875, 0.858, &
                                               0.682, 0.852, 0.984, 1.100, 1.205, 1.302, 1.395, 1.485, 1.574, 1.658, 1.742, 1.828, 1.908, 1.989, 2.071, 2.154, 2.225, 2.124, 2.034, 1.946, 1.871, 1.797, 1.731, 1.668, 1.612, 1.556, 1.505, 1.459, 1.413, 1.372, 1.332, 1.295, 1.258, 1.226, 1.194, 1.164, 1.135, 1.107, 1.082, 1.057, 1.032, 1.009, 0.989, 0.968, 0.947, 0.929, 0.909, 0.892, 0.875, 0.858, &
                                               0.682, 0.852, 0.984, 1.100, 1.205, 1.302, 1.395, 1.485, 1.574, 1.658, 1.742, 1.828, 1.908, 1.989, 2.071, 2.154, 2.225, 2.124, 2.034, 1.946, 1.871, 1.797, 1.731, 1.668, 1.612, 1.556, 1.505, 1.459, 1.413, 1.372, 1.332, 1.295, 1.258, 1.226, 1.194, 1.164, 1.135, 1.107, 1.082, 1.057, 1.032, 1.009, 0.989, 0.968, 0.947, 0.929, 0.909, 0.892, 0.875, 0.858 /), shape(cdlgx))
-
+      !
+      ! Cube Root Table
+      ! 
+      real*4, dimension(:,:), allocatable :: x73
+      
    contains
 
-
-   subroutine initialize_parameters()
+   subroutine fill_cbrt_tables()
+   !
+   ! Initialize physical processes
+   !
+   implicit none
+   !
+   integer :: j,k
+   !
+   real*4  :: hh
+   !
+   if (cbrttable) then
       !
-      implicit none
+      allocate(x73(100, 10))
       !
-      ! Parameters for sfincs.f90
-      integer                       :: nt
-      integer                       :: itmapout
-      integer                       :: itmaxout
-      integer                       :: itrstout
-      integer                       :: ithisout
+      do k = 1, 10
+         do j = 1, 100
+            hh = 0.01 * j * 10 ** (k - 6)
+            x73(j, k) = hh**2 * hh**(1.0/3.0)
+         enddo   
+      enddo   
       !
-      real*8                       :: t
-      real*4                       :: dt
-      real*4                       :: maxdepth
-      real*4                       :: maxmaxdepth
-      real*4                       :: twindupd
-      !
-      ! I don't think this is used anywhere ...
-      !
-      real :: tloop2, tloop3, tloopstruc, tloopbnd, tloopsrc, tloopwnd1
-      !
-      t           = t0     ! start time
-      dt          = 1.0e-6 ! First time step very small
-      dtavg       = 0.0
-      maxdepth    = 999.0
-      maxmaxdepth = 0.0
-      nt          = 0
-      itmapout    = 0
-      itmaxout    = 0
-      itrstout    = 0
-      ithisout    = 0
-      twindupd    = t0
-      !
-      tloop2      = 0.0
-      tloop3      = 0.0
-      tloopstruc  = 0.0
-      tloopbnd    = 0.0
-      tloopsrc    = 0.0
-      tloopwnd1   = 0.0
-      !
-      !
+   endif
+   !
    end subroutine
 
+   function power7over3(h) result(h73)
+   !
+   real*4    :: h73
+   integer   :: k
+   !
+   if (hu < 0.00001) then
+      k = int(1e7 * h) + 1
+      h73 = x73(k, 1)
+   elseif (h73 < 0.0001) then
+      k = int(1e6 * h) + 1
+      h73 = x73(k, 2)
+   elseif (h73 < 0.001) then
+      k = int(1e5 * h) + 1
+      h73 = x73(k, 3)
+   elseif (h73 < 0.01) then
+      k = int(1e4 * h) + 1
+      h73 = x73(k, 4)
+   elseif (h73 < 0.1) then
+      k = int(1e3 * h) + 1
+      h73 = x73(k, 5)
+   elseif (h73 < 1.0) then
+      k = int(1e2 * h) + 1
+      h73 = x73(k, 6)
+   elseif (h73 < 10.0) then
+      k = int(10 * h) + 1
+      h73 = x73(k, 7)
+   elseif (h73 < 100.0) then
+      k = int(1 * h) + 1
+      h73 = x73(k, 8)
+   elseif (h73 < 100.0) then
+      k = int(0.1 * h) + 1
+      h73 = x73(k, 9)
+   elseif (h73 < 10000.0) then
+      k = int(0.01 * h) + 1
+      h73 = x73(k, 10)
+   else
+      h73 = 100000.0 ** (7.0/3.0)
+   endif    
+   !
+   end function
 
+   
    subroutine finalize_parameters()
    !
    implicit none
