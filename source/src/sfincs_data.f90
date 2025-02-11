@@ -798,21 +798,21 @@ module sfincs_data
 
    subroutine fill_cbrt_tables()
    !
-   ! Initialize physical processes
+   ! Fill lookup tables for h**(7/3) calculations
    !
    implicit none
    !
-   integer :: j,k
+   integer :: j, k
    !
    real*4  :: hh
    !
    if (cbrttable) then
       !
-      allocate(x73(100, 10))
+      allocate(x73(1000, 10))
       !
       do k = 1, 10
-         do j = 1, 100
-            hh = 0.01 * j * 10 ** (k - 6)
+         do j = 1, 1000
+            hh = 0.001 * j * 10.0 ** (k - 6)
             x73(j, k) = hh**2 * hh**(1.0/3.0)
          enddo   
       enddo   
@@ -820,48 +820,6 @@ module sfincs_data
    endif
    !
    end subroutine
-
-   function power7over3(h) result(h73)
-   !
-   real*4    :: h73
-   integer   :: k
-   !
-   if (hu < 0.00001) then
-      k = int(1e7 * h) + 1
-      h73 = x73(k, 1)
-   elseif (h73 < 0.0001) then
-      k = int(1e6 * h) + 1
-      h73 = x73(k, 2)
-   elseif (h73 < 0.001) then
-      k = int(1e5 * h) + 1
-      h73 = x73(k, 3)
-   elseif (h73 < 0.01) then
-      k = int(1e4 * h) + 1
-      h73 = x73(k, 4)
-   elseif (h73 < 0.1) then
-      k = int(1e3 * h) + 1
-      h73 = x73(k, 5)
-   elseif (h73 < 1.0) then
-      k = int(1e2 * h) + 1
-      h73 = x73(k, 6)
-   elseif (h73 < 10.0) then
-      k = int(10 * h) + 1
-      h73 = x73(k, 7)
-   elseif (h73 < 100.0) then
-      k = int(1 * h) + 1
-      h73 = x73(k, 8)
-   elseif (h73 < 100.0) then
-      k = int(0.1 * h) + 1
-      h73 = x73(k, 9)
-   elseif (h73 < 10000.0) then
-      k = int(0.01 * h) + 1
-      h73 = x73(k, 10)
-   else
-      h73 = 100000.0 ** (7.0/3.0)
-   endif    
-   !
-   end function
-
    
    subroutine finalize_parameters()
    !
