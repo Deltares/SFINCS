@@ -526,7 +526,7 @@ contains
    call read_char_input(500,'snapwave_btpfile',snapwave_btpfile,'')
    call read_char_input(500,'snapwave_bwdfile',snapwave_bwdfile,'')
    call read_char_input(500,'snapwave_bdsfile',snapwave_bdsfile,'') 
-   call read_char_input(500,'snapwave_upwfile',upwfile,'snapwave.upw')
+   call read_char_input(500,'snapwave_upwfile',upwfile,'none')
    call read_char_input(500,'snapwave_mskfile',mskfile,'')
    call read_char_input(500,'snapwave_depfile',depfile,'none')   
    call read_char_input(500,'snapwave_ncfile', gridfile,'snapwave_net.nc')   

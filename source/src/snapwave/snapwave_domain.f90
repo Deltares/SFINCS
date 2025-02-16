@@ -206,20 +206,26 @@ contains
    !
    ! Check whether snapwave_upwfile exists, if so, try to read
    !
+   generate_upw = .true.
+   !
    if (upwfile /= 'none') then   
+      !
+      generate_upw = .false.
       !
       write(*,*)'Reading upwind neighbors file ...'
       !
-      inquire( file=trim(upwfile), exist=exists )      
+!      inquire( file=trim(upwfile), exist=exists )      
       !
-      if (.not. exists) then    
-          ! Give error message, but do not stop simulation > determine upwfile instead as if none was given
-          !
-          write(*,*)'SnapWave: Error! Something went wrong with reading in upwfile, determine again from scratch ...'
-          !trim(file_name), '" not found!
-          generate_upw = .true.
-          !
-      else
+!      if (.not. exists) then
+         ! 
+         ! Give error message, but do not stop simulation > determine upwfile instead as if none was given
+         !
+         ! This is not really an error. It is just a warning that the upwind file does not exist.
+         ! write(*,*)'SnapWave: Error! Something went wrong with reading in upwfile, determine again from scratch ...'
+         !trim(file_name), '" not found!
+!         generate_upw = .true.
+         !
+!      else
           !
           open(unit=145, file=trim(upwfile), form='unformatted', access='stream')
           read(145)prev360
@@ -230,7 +236,7 @@ contains
           close(145)
           !
           ds360d0 = ds360 * 1.d0
-      endif
+!      endif
    endif
    !      
    ! Generate upwfile (again) if needed

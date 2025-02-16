@@ -92,7 +92,7 @@ contains
    end subroutine
 
    
-   subroutine read_boundary_enclosure ()
+   subroutine read_boundary_enclosure()
    !
    ! Reads enc file
    !
