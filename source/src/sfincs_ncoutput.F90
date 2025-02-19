@@ -3224,7 +3224,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'precipfile',prcpfile))        
         NF90(nf90_put_att(ncid, varid, 'amufile',amufile))        
         NF90(nf90_put_att(ncid, varid, 'amvfile',amvfile))  
-        NF90(nf90_put_att(ncid, varid, 'ampfile',amvfile))              
+        NF90(nf90_put_att(ncid, varid, 'ampfile',ampfile))              
         NF90(nf90_put_att(ncid, varid, 'amprfile',amprfile))  
         NF90(nf90_put_att(ncid, varid, 'qinffile',qinffile))   
         NF90(nf90_put_att(ncid, varid, 'scsfile',scsfile)) 

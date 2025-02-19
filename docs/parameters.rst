@@ -229,6 +229,12 @@ More parameters for model input (only for advanced users)
 	  :default:		0
 	  :min:			0
 	  :max:			Inf
+	spinup_meteo
+	  :description:		Option to also apply spinup to the meteo forcing, default is off (0)
+	  :units:		0
+	  :default:		0
+	  :min:			0
+	  :max:			1	  
 	  
 	**Drag coefficients:**
 	

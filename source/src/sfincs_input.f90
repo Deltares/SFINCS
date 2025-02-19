@@ -121,6 +121,8 @@ contains
    call read_logical_input(500,'wiggle_suppression',wiggle_suppression,.false.)
    call read_real_input(500,'wiggle_factor',wiggle_factor,0.1)
    call read_real_input(500,'wiggle_threshold',wiggle_threshold,0.1)
+   call read_logical_input(500,'friction2d',friction2d,.true.)
+   call read_logical_input(500,'advection_mask',advection_mask,.true.)   
    !
    ! Domain
    !
@@ -210,8 +212,6 @@ contains
    call read_int_input(500,'storemaxwind',iwindmax,0)
    call read_int_input(500,'storefw', istorefw, 0)
    call read_int_input(500,'storewavdir', istorewavdir, 0)
-   call read_logical_input(500,'friction2d',friction2d,.true.)
-   call read_logical_input(500,'advection_mask',advection_mask,.true.)
    call read_logical_input(500,'regular_output_on_mesh',use_quadtree_output,.false.)
    !
    ! Coupled SnapWave solver related
