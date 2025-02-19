@@ -3154,7 +3154,6 @@ contains
         NF90(nf90_put_att(ncid, varid, 'huthresh',huthresh))        
         NF90(nf90_put_att(ncid, varid, 'rhoa',rhoa))        
         NF90(nf90_put_att(ncid, varid, 'rhow',rhow))        
-        NF90(nf90_put_att(ncid, varid, 'maxlev',max_elev))        
         NF90(nf90_put_att(ncid, varid, 'inputformat',inputtype))        
         NF90(nf90_put_att(ncid, varid, 'outputformat',outputtype))   
         NF90(nf90_put_att(ncid, varid, 'outputtype_map',outputtype_map))
