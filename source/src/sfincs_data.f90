@@ -230,7 +230,6 @@ module sfincs_data
       logical       :: advection_limiter
       logical       :: advection_mask
       logical       :: wiggle_suppression
-      logical       :: wmrandom      
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
