@@ -133,15 +133,25 @@ The snapped coordinates are available in sfincs_his.nc as structure_x, structure
 	
 	sfincs_write_obstacle_file_1par(inp.weirfile,weirs)	
 	
-Drainage pump and Culvert
+Drainage Pumps and Culverts
 ^^^^^
 
-Drainage pumps and culverts are both specified using the same format file, put with a different indication of the type (type=1 is drainage pump, type=2 is culvert).
-A drainage pump can move water from one location to another with a certain prescribed discharge given that there is sufficient water at the retraction location.
-For culverts also a certain discharge capacity parameter of the culvert is prescribed, but then the actual water level gradient is used to determine how much water will actually flow through the culvert.
-Input consists of the x&y locations of the sink (retraction point) and source points (outflow point) followed by the type.
-The discharge capacity is prescribed using the par1 parameter, parameters par2<>par5 are not used right now but included for future flexibility for implementing other structure types.
-For the culvert, par1 can be calculated as par1 = mu*a*sqrt(2g), with mu=dimensionless culvert loss coefficient [-], A=area of the culvert opening in [m^2] and g=9.81m/s^2.
+**Introduction**
+
+In SFINCS, drainage pumps and culverts are specified using the same input file format, with the structure type distinguished by an indicator:
+- type=1: Drainage pump
+- type=2: Culvert
+
+A drainage pump moves water from a retraction point (source location) to an outflow point (sink location) at a specified discharge rate, as long as there is enough water available at the retraction point. The discharge rate is defined using the par1 parameter.
+
+For culverts**, par1 represents the discharge capacity. The actual flow through the culvert depends on the water level difference (head difference) between the upstream and downstream ends. This gradient determines how much water flows through the culvert based on the capacity defined in par1.
+
+
+**Input Parameters**
+
+- x & y locations: Coordinates for the retraction (source) and outflow (sink) points.
+- Type: Specifies if the structure is a drainage pump (type=1) or a culvert (type=2).
+- par1: Sets the discharge capacity. Additional parameters (par2 to par5) are included as placeholders for future updates.
 
 You can know how much discharge is extracted by the model in the sfincs_his.nc output by specifying 'storeqdrain=1' from SFINCS v2.0.2 onwards, see the description in "Input parameters".
 
@@ -186,4 +196,19 @@ You can know how much discharge is extracted by the model in the sfincs_his.nc o
 
 	sfincs_write_drainage_file(inp.drnfile,drain)	
 	
+**Calculating Culvert Discharge Capacity**
 
+For culverts, par1 (discharge capacity) can be calculated as:
+``par1 = \(\mu \cdot A \cdot \sqrt{2g}\)``
+
+where:
+- \(\mu\) = dimensionless culvert loss coefficient, typically between 0 and 1
+- \(A\) = area of the culvert opening (m²)
+- \(g\) = gravitational acceleration (9.81 m/s²)
+
+This formula is derived from the Bernoulli Equation, which estimates flow based on the head difference.
+- If \(\mu = 1\), the flow is assumed to be driven entirely by the head difference, with no friction or length-based losses.
+- If \(\mu < 1\), it accounts for additional energy losses, such as friction and entry/exit losses.
+
+**Planned Enhancements**
+Future updates will incorporate the Darcy–Weisbach equation for more accurate discharge estimates by considering frictional and minor losses along the culvert length, which is particularly useful for longer or rougher conduits.
