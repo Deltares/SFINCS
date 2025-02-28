@@ -22,6 +22,7 @@ module sfincs_ncoutput
       integer :: fwx_varid, fwy_varid, beta_varid, snapwavedepth_varid
       integer :: zsm_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid
+      integer :: subgridslope_varid
       !
       integer :: mesh2d_varid
       integer :: mesh2d_node_x_varid, mesh2d_node_y_varid
@@ -906,6 +907,21 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'standard_name', 'altitude'))
    NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'long_name', 'bed_level_above_reference_level'))   
    !
+   if (subgrid .and. store_hsubgrid .and. store_hmean) then
+      !
+      ! The subgrid slope (zmax - zmin) / sqrt(A) is used for making high-res flood maps
+      ! If the subgrid slope is lower than a threshold, the mean water depth in a cell
+      ! can be used instead of difference between the water level and the pixel height
+      !
+      NF90(nf90_def_var(map_file%ncid, 'subgridslope', NF90_FLOAT, (/map_file%nmesh2d_face_dimid/), map_file%subgridslope_varid)) ! (zmax - zmin) / dx
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%subgridslope_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%subgridslope_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(map_file%ncid, map_file%subgridslope_varid, 'units', '-'))
+      NF90(nf90_put_att(map_file%ncid, map_file%subgridslope_varid, 'standard_name', 'subgrid_slope'))
+      NF90(nf90_put_att(map_file%ncid, map_file%subgridslope_varid, 'long_name', 'subgrid_slope'))
+      !
+   endif
+   !
    NF90(nf90_def_var(map_file%ncid, 'msk', NF90_INT, (/map_file%nmesh2d_face_dimid/), map_file%msk_varid)) ! input msk value in cell centre
    NF90(nf90_def_var_deflate(map_file%ncid, map_file%msk_varid, 1, 1, nc_deflate_level))
    NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, '_FillValue', -999))      
@@ -964,6 +980,7 @@ contains
    endif
    !
    ! Time varying spatial output
+   !
    if (store_maximum_waterlevel) then
       !
       NF90(nf90_def_var(map_file%ncid, 'timemax', NF90_FLOAT, (/map_file%timemax_dimid/), map_file%timemax_varid)) ! time      
@@ -1265,25 +1282,56 @@ contains
    !
    NF90(nf90_put_var(map_file%ncid, map_file%crs_varid, epsg))
    !
+   ! Bed level
+   !
    vtmp = FILL_VALUE
    !
    if (subgrid) then
+      !
       do nmq = 1, quadtree_nr_points
          nm = index_sfincs_in_quadtree(nmq)
          if (nm>0) then
             vtmp(nmq) = subgrid_z_zmin(nm)
          endif
       enddo 
+      !
       NF90(nf90_put_var(map_file%ncid, map_file%zb_varid, vtmp))
+      !
    else
+      !
       do nmq = 1, quadtree_nr_points
          nm = index_sfincs_in_quadtree(nmq)
          if (nm>0) then
             vtmp(nmq) = zb(nm)
          endif
       enddo 
+      !
       NF90(nf90_put_var(map_file%ncid, map_file%zb_varid, vtmp))
+      !
    endif
+   !
+   ! Subgrid slope
+   !
+   if (subgrid .and. store_hsubgrid .and. store_hmean) then
+      !
+      vtmp = FILL_VALUE
+      !
+      do nmq = 1, quadtree_nr_points
+         nm = index_sfincs_in_quadtree(nmq)
+         if (nm>0) then
+            if (crsgeo) then
+               vtmp(nmq) = (subgrid_z_zmax(nm) - subgrid_z_zmin(nm)) / sqrt(cell_area_m2(nm))
+            else   
+               vtmp(nmq) = (subgrid_z_zmax(nm) - subgrid_z_zmin(nm)) / sqrt(cell_area(z_flags_iref(nm)))
+            endif
+         endif
+      enddo 
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%subgridslope_varid, vtmp))
+      !
+   endif      
+   !
+   ! Mask
    !
    vtmpi = 0
    !
@@ -1296,7 +1344,7 @@ contains
    !
    NF90(nf90_put_var(map_file%ncid, map_file%msk_varid, vtmpi)) ! write msk 
    !
-   ! Write SnapWave msk
+   ! SnapWave mask
    !
    if (snapwave) then  
       !
@@ -1313,7 +1361,7 @@ contains
       !
    endif
    !   
-   ! Write infiltration map
+   ! Infiltration map
    !   
    vtmp = FILL_VALUE
    !
@@ -1339,7 +1387,7 @@ contains
       !
    endif
    !
-   ! write away intermediate data
+   ! Intermediate data
    !
    NF90(nf90_sync(map_file%ncid)) !write away intermediate data
    !
