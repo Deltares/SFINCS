@@ -216,7 +216,6 @@ contains
       select case(flag_name)
       case("qext")
          use_qext = bval
-         write(*,*)'use_qext = ', use_qext 
       case default
          ierr = -1
       end select

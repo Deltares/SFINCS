@@ -1,7 +1,7 @@
 #define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)
 module sfincs_subgrid
    !
-   use netcdf       
+   use netcdf
    use sfincs_log
    !
    type net_type_subgrid
@@ -873,14 +873,14 @@ contains
    !
    do nm = 1, np
       !
-      if (zs(nm)>=subgrid_z_zmax(nm)) then
+      if (zs(nm) >= subgrid_z_zmax(nm)) then
          !
          ! Entire cell is wet, no interpolation from table needed
          !
          if (crsgeo) then
-            z_volume(nm) = subgrid_z_volmax(nm) + cell_area_m2(nm)*(zs(nm) - max(subgrid_z_zmax(nm), -20.0))
+            z_volume(nm) = subgrid_z_volmax(nm) + cell_area_m2(nm) * (zs(nm) - max(subgrid_z_zmax(nm), -20.0))
          else   
-            z_volume(nm) = subgrid_z_volmax(nm) + cell_area(z_flags_iref(nm))*(zs(nm) - max(subgrid_z_zmax(nm), -20.0))
+            z_volume(nm) = subgrid_z_volmax(nm) + cell_area(z_flags_iref(nm)) * (zs(nm) - max(subgrid_z_zmax(nm), -20.0))
          endif
          !
       else   
@@ -889,7 +889,7 @@ contains
          !
          ivol = 1
          do ilevel = 2, subgrid_nlevels
-            if (subgrid_z_dep(ilevel, nm)>zs(nm)) then
+            if (subgrid_z_dep(ilevel, nm) > zs(nm)) then
                ivol = ilevel - 1
                exit
             endif
@@ -897,7 +897,7 @@ contains
          !
          dzvol  = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
          facint = (zs(nm) - subgrid_z_dep(ivol, nm)) / max(subgrid_z_dep(ivol + 1, nm) - subgrid_z_dep(ivol, nm), 0.001)
-         z_volume(nm) = (ivol - 1)*dzvol + facint*dzvol
+         z_volume(nm) = (ivol - 1) * dzvol + facint * dzvol
          !
       endif
       !
@@ -912,7 +912,7 @@ contains
    enddo
    !
    end subroutine
-
+   
    subroutine handle_err(status,file,line)
       !
       integer, intent ( in)    :: status

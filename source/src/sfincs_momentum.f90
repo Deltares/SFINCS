@@ -353,7 +353,6 @@
                gnavg2 = gn2uv(ip)
                !
             endif
-!            write(*,*)hu,gnavg2,phi
             !
             ! Compute wet average depth hwet (used in wind and wave forcing)
             !
