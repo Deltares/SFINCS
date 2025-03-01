@@ -911,7 +911,7 @@ contains
       !
       ! The subgrid slope (zmax - zmin) / sqrt(A) is used for making high-res flood maps
       ! If the subgrid slope is lower than a threshold, the mean water depth in a cell
-      ! can be used instead of difference between the water level and the pixel height
+      ! can be used instead of difference between the cell water level and the pixel heights
       !
       NF90(nf90_def_var(map_file%ncid, 'subgridslope', NF90_FLOAT, (/map_file%nmesh2d_face_dimid/), map_file%subgridslope_varid)) ! (zmax - zmin) / dx
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%subgridslope_varid, 1, 1, nc_deflate_level))
