@@ -535,7 +535,7 @@ contains
    !
    real*8 t
    !
-   real*4 zstb, tbfac, hs, tp, wd, tb, Z
+   real*4 zstb, tbfac, hs, tp, wd, tb
    !
    if (nbnd>0) then
       !
@@ -577,7 +577,7 @@ contains
          !
          ! Tide and surge
          !
-         Z = zs_bnd(ib, itb0) + (zs_bnd(ib, itb1) - zs_bnd(ib, itb0))*tbfac
+         zstb = zs_bnd(ib, itb0) + (zs_bnd(ib, itb1) - zs_bnd(ib, itb0))*tbfac
          !
          zst_bnd(ib) = zstb
          !
