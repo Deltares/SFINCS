@@ -462,7 +462,7 @@ module sfincs_lib
       !      
       ! Update water levels
       !
-      call compute_water_levels(dt, tloopcont)
+      call compute_water_levels(t, dt, tloopcont)
       !
       ! OUTPUT
       !      

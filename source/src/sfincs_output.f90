@@ -161,6 +161,9 @@ module sfincs_output
       if (store_twet) then
          !$acc update host(twet)
       endif
+      if (store_tmax_zs) then
+         !$acc update host(tmax_zs)
+      endif
       !
       if (store_cumulative_precipitation) then
          !$acc update host(cumprcp)
@@ -190,12 +193,12 @@ module sfincs_output
       endif
       !
       if (store_maximum_velocity) then
-         vmax = 0.0 ! Set vmax back to 0.0
+         vmax =-999.0 ! Set vmax back to a small value
          !$acc update device(vmax)
       endif
       !
       if (store_maximum_flux) then
-         qmax = 0.0 ! Set qmax back to 0.0
+         qmax = -999.0 ! Set qmax back to a small value
          !$acc update device(qmax)
       endif      
       !      
@@ -209,6 +212,10 @@ module sfincs_output
          !$acc update device(twet)
       endif
       !      
+      if (store_tmax_zs) then
+         tmax_zs = -999.0 ! Set tmax_zs back to a small value
+         !$acc update device(tmax_zs)
+      endif
    endif
    !
    !      
@@ -348,6 +355,10 @@ module sfincs_output
    !
    if (store_maximum_flux) then
       open(unit = 855, status = 'replace', file = 'qmax.dat', form = 'unformatted')
+   endif
+   !
+   if (store_tmax_zs) then
+      open(unit = 856, status = 'replace', file = 'tmax_zs.dat', form = 'unformatted')
    endif
    !
    end subroutine
@@ -491,6 +502,10 @@ module sfincs_output
    ! 
    if (store_maximum_flux) then
       write(855)qmax
+   endif
+   ! 
+   if (store_tmax_zs) then
+      write(856)tmax_zs
    endif
    ! 
    end subroutine

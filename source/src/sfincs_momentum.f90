@@ -656,6 +656,17 @@
                !
             endif
             !
+            if (flux_limiter) then
+                !
+                ! Limit this
+                if (q(ip) < 1.0e-6) then
+                    q(ip) = max(q(ip), qlim*-1)
+                else
+                    q(ip) = min(q(ip), qlim)
+                endif
+                !
+            endif 
+            !
             ! Compute velocity
             !
             uv(ip) = q(ip) / max(hu, hmin_uv) ! Limit velocity through minimal hu in case of very small huthresh, deafult hmin_uv=0.1m

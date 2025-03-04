@@ -535,7 +535,7 @@ contains
    !
    real*8 t
    !
-   real*4 zstb, tbfac, hs, tp, wd, tb
+   real*4 zstb, tbfac, hs, tp, wd, tb, Z
    !
    if (nbnd>0) then
       !
@@ -577,7 +577,7 @@ contains
          !
          ! Tide and surge
          !
-         zstb = zs_bnd(ib, itb0) + (zs_bnd(ib, itb1) - zs_bnd(ib, itb0))*tbfac
+         Z = zs_bnd(ib, itb0) + (zs_bnd(ib, itb1) - zs_bnd(ib, itb0))*tbfac
          !
          zst_bnd(ib) = zstb
          !
@@ -702,7 +702,7 @@ contains
    end subroutine
 
 
-   subroutine update_boundary_fluxes(dt)
+   subroutine update_boundary_fluxes(dt, t)
    !
    ! Update fluxes qx and qy at boundary points
    !
@@ -713,6 +713,7 @@ contains
    integer ib, nm, nmi, nmb, iuv, indb, ip
    real*4  hnmb, dt, zsnmi, zsnmb, zs0nmb, facrel
    real*4  factime, one_minus_factime
+   real*8           :: t
    !
    real*4 ui, ub, dzuv, facint, zsuv, depthuv
    !
@@ -842,6 +843,17 @@ contains
             !
             uv(ip)  = max(min(q(ip)/hnmb, 4.0), -4.0)
             !
+            if (flux_limiter) then
+                !
+                ! Limit this
+                if (q(ip) < 0) then
+                    q(ip) = max(q(ip), qlim*-1)
+                else
+                    q(ip) = min(q(ip), qlim)
+                endif
+                !
+            endif 
+            !
          endif
          !
          if (btfilter>=-1.0e-6) then
@@ -865,6 +877,14 @@ contains
          ! Store maximum water levels also on the boundary
          !
          if (store_maximum_waterlevel) then
+            !
+            ! Store when the maximum water level changed
+            if (store_tmax_zs) then
+                if (zs(nmb) > zsmax(nmb)) then
+                    tmax_zs(nm) = t
+                endif
+            endif
+            !
             zsmax(nmb) = max(zsmax(nmb), zs(nmb))
          endif
          !
@@ -913,7 +933,7 @@ contains
       !
       ! Update boundary fluxes()
       !
-      call update_boundary_fluxes(dt)
+      call update_boundary_fluxes(dt, t)
       !
    endif
    !
