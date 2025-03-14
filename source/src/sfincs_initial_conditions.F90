@@ -13,6 +13,7 @@ module sfincs_initial_conditions
    type(net_type_ini) :: net_file_ini              
    !
    real*8, dimension(:),   allocatable :: inizs
+   real*4, dimension(:),   allocatable :: inizs4   
    real*4, dimension(:),   allocatable :: iniq
    !
 contains
@@ -34,9 +35,11 @@ contains
       logical   :: iok
       !
       allocate(inizs(np))
+      allocate(inizs4(np))      
       allocate(iniq(npuv))
       !
       inizs = zini
+      inizs4 = zini      
       iniq  = 0.0
       !
       ! Check the type of initial conditions
@@ -248,13 +251,14 @@ contains
       !
       implicit none
       !
-      write(*,*)'Reading ',trim(zsinifile)
-      !
-      write(*,*)'Warning : binary ini files from SFINCS v2.1.1 and older are not compatible with SFINCS v2.1.2+, remake your inifile containing zs as real*8 double precision'    
+      write(*,*)'Reading ',trim(zsinifile)  
       !
       open(unit = 500, file = trim(zsinifile), form = 'unformatted', access = 'stream')
-      read(500)inizs
+      read(500)inizs4
       close(500)       
+      !
+      ! remap from real*4 to real*8
+      inizs = inizs4
       !
    end subroutine
    !
