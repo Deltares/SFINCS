@@ -67,7 +67,7 @@ Parameters for model input
 	  :min:			1.0	
 	  :max:			9999.9	  
 	alpha	
-	  :description:		CFL-condition reduction. Decrease for additional numerical stability, minimum value is 0.1 and maximum is 0.75.
+	  :description:		Numerical time step reduction for CFL-condition. Decrease for additional numerical stability, minimum value is 0.1 and maximum is 0.75.
 	  :units:		-	
 	  :default:		0.5		
 	  :min:			0.1 (recommended)	
@@ -84,8 +84,20 @@ Parameters for model input
 	  :default:		0.05
 	  :min:			0.001 (recommended)
 	  :max:			0.1 (recommended)
+	hmin_cfl	
+	  :description:		Minimum water depth for cfl condition in max timestep determination.
+	  :units:		m
+	  :default:		0.1
+	  :min:			0.0
+	  :max:			-	  
+	hmin_uv	
+	  :description:		Minimum water depth for uv velocity determination in momentum equation.
+	  :units:		m
+	  :default:		0.1
+	  :min:			0.0
+	  :max:			-		  
 	theta
-	  :description:		Smoothing factor in momentum equation. Default of 1.0 means no smoothing.
+	  :description:		Numerical smoothing factor in momentum equation. Default of 1.0 means no smoothing.
 	  :units:		-
 	  :default:		1.0
 	  :min:			0.8
@@ -118,13 +130,13 @@ Parameters for model input
 	  :min:			0.0
 	  :max:			Inf	  	  	  
 	zsini
-	  :description:		Initial water level.
+	  :description:		Initial water level in entire domain - where above bed level.
 	  :units:		m above reference level
 	  :default:		0
 	  :min:			-Inf
 	  :max:			Inf
 	qinf
-	  :description:		Infiltration rate, specify in +mm/hr.
+	  :description:		Infiltration rate, spatially uniform and constant in time. Specify in +mm/hr.
 	  :units:		mm/hr
 	  :default:		0
 	  :min:			0
@@ -135,13 +147,19 @@ Parameters for model input
 	  :default:		0
 	  :min:			-100
 	  :max:			100  	  
+	sfacinf
+	  :description:		Curve Number infiltration initial abstraction or the amount of water before runoff, such as infiltration, or rainfall interception by vegetation. Default = 0.2.
+	  :units:		-
+	  :default:		0.2
+	  :min:			0
+	  :max:			1  		  
 	manning
 	  :description:		Uniform manning roughness, specify in s/m^(1/3).
 	  :units:		s/m^(1/3)
 	  :default:		0.04
 	  :min:			0
 	  :max:			0.1 (advised)  	
-	rgh_level_land
+	rgh_lev_land
 	  :description:		Elevation level to distinguish land and sea roughness (when using 'manning_land' and 'manning_sea').
 	  :units:		m above reference level
 	  :default:		0
@@ -182,7 +200,7 @@ More parameters for model input (only for advanced users)
 	  :min:			-
 	  :max:			-
 	stopdepth
-	  :description:		Water depth anywhere in the domain after which the simulation is classified as unstable and stopped
+	  :description:		Water depth based on which the minimal time step is determined below which the simulation is classified as unstable and stopped.
 	  :units:		m
 	  :default:		100
 	  :min:			0
@@ -193,14 +211,14 @@ More parameters for model input (only for advanced users)
 	  :default:		9999
 	  :min:			0
 	  :max:			9999
-	dtmax
-	  :description:		Maximum internal time step to be used
+	dtmax.
+	  :description:		Maximum allowed internal timestep.
 	  :units:		s
 	  :default:		60
 	  :min:			1.0e-3
 	  :max:			Inf
 	dtmin
-	  :description:		Minimum internal time step to be used
+	  :description:		Minimum allowed internal timestep.
 	  :units:		s
 	  :default:		1.0e-3
 	  :min:			1.0e-3
@@ -211,6 +229,12 @@ More parameters for model input (only for advanced users)
 	  :default:		0
 	  :min:			0
 	  :max:			Inf
+	spinup_meteo
+	  :description:		Option to also apply spinup to the meteo forcing, default is off (0)
+	  :units:		0
+	  :default:		0
+	  :min:			0
+	  :max:			1	  
 	  
 	**Drag coefficients:**
 	
@@ -251,35 +275,47 @@ Parameters for model output
 	  :units:		m
 	  :default:		20000101 000000
 	trstout
-	  :description:		Specific time in seconds since 'tref' for binary restart file output being written away, turned of by default.
+	  :description:		Specific time in seconds since 'tref' for restart file output being written away, turned of by default.
 	  :units:		s
 	  :default:		-999.0	  	  
 	dtout
-	  :description:		Time-step global map output.
+	  :description:		Spatial map output interval
 	  :units:		s
 	  :default:		0
 	dthisout
-	  :description:		Time-step observation points output.
+	  :description:		Observation points output interval
 	  :units:		s
 	  :default:		600
 	dtmaxout
-	  :description:		Time-step interval of global map output of maximum water level. If not specified, the maximum over the entire simulation is calculated. If no output is wanted, specify 'dtmaxout = 0'.
+	  :description:		Maximum map output interval. If not specified, the maximum over the entire simulation is calculated. If no output is wanted, specify 'dtmaxout = 0'.
 	  :units:		s
 	  :default:		9999999
 	  :min:			0
 	  :max:			'tstop - start in seconds'  
 	dtrstout
-	  :description:		Time-step for binary restart file output being written away, turned of by default.
+	  :description:		Restart file output interval, turned of by default.
 	  :units:		s
 	  :default:		0	  	  
 	dtwnd
-	  :description:		Time-interval wind update (only for spiderweb)
+	  :description:		Time-interval wind update
 	  :units:		s
 	  :default:		1800
 	outputformat
 	  :description:		Choice whether the SFINCS model output is given in binary 'bin', ascii 'asc' or netcdf files 'net' (default). In case of netcdf output, global output is given in 'sfincs_map.nc', point output in 'sfincs_his.nc' in case observation points are specified.
 	  :units:		-
 	  :default:		net
+	outputformat_map
+	  :description:		Choice whether the SFINCS model map output is given in binary 'bin', ascii 'asc' or netcdf files 'net' (default is the setting of 'outputformat', which is 'net').
+	  :units:		-
+	  :default:		net
+	outputformat_his
+	  :description:		Choice whether the SFINCS model his output is given in binary 'bin', ascii 'asc' or netcdf files 'net' (default is the setting of 'outputformat', which is 'net').
+	  :units:		-
+	  :default:		net
+	nc_deflate_level
+	  :description:		Netcdf deflate level
+	  :units:		-
+	  :default:		2
 	twet_threshold
 	  :description:		Threshold value of water depth to count cell as flooded for keeping track of wet cells with storetwet = 1
 	  :units:		m

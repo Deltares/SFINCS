@@ -54,7 +54,6 @@ module sfincs_data
       real*4 y0
       real*4 rotation
       real*4 huthresh
-      real*4 max_elev
       real*4 qinf
       real*4 tig
       real*4 tspinup
@@ -231,7 +230,6 @@ module sfincs_data
       logical       :: advection_limiter
       logical       :: advection_mask
       logical       :: wiggle_suppression
-      logical       :: wmrandom      
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax

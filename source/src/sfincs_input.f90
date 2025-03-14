@@ -77,7 +77,6 @@ contains
    call read_real_input(500,'huthresh',huthresh,0.05)
    call read_real_input(500,'rhoa',rhoa,1.25)
    call read_real_input(500,'rhow',rhow,1024.0)
-   call read_real_input(500,'maxlev',max_elev,99999.0)
    call read_char_input(500,'inputformat',inputtype,'bin')
    call read_char_input(500,'outputformat',outputtype,'net')
    call read_char_input(500,'outputtype_map',outputtype_map,'nil')
@@ -117,12 +116,13 @@ contains
    call read_real_input(500,'wmtfilter',wmtfilter,600.0)
    call read_real_input(500,'wmfred',wavemaker_freduv,0.99)
    call read_char_input(500,'wmsignal',wmsigstr,'spectrum')   
-   call read_logical_input(500,'wmrandom',wmrandom,.true.)   
    call read_char_input(500,'advection_scheme',advstr,'upw1')   
    call read_real_input(500,'btrelax',btrelax,3600.0)
    call read_logical_input(500,'wiggle_suppression',wiggle_suppression,.false.)
    call read_real_input(500,'wiggle_factor',wiggle_factor,0.1)
    call read_real_input(500,'wiggle_threshold',wiggle_threshold,0.1)
+   call read_logical_input(500,'friction2d',friction2d,.true.)
+   call read_logical_input(500,'advection_mask',advection_mask,.true.)   
    !
    ! Domain
    !
@@ -212,8 +212,6 @@ contains
    call read_int_input(500,'storemaxwind',iwindmax,0)
    call read_int_input(500,'storefw', istorefw, 0)
    call read_int_input(500,'storewavdir', istorewavdir, 0)
-   call read_logical_input(500,'friction2d',friction2d,.true.)
-   call read_logical_input(500,'advection_mask',advection_mask,.true.)
    call read_logical_input(500,'regular_output_on_mesh',use_quadtree_output,.false.)
    !
    ! Coupled SnapWave solver related
