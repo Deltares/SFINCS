@@ -14,6 +14,7 @@ module sfincs_initial_conditions
    type(net_type_ini) :: net_file_ini              
    !
    real*8, dimension(:),   allocatable :: inizs
+   real*4, dimension(:),   allocatable :: inizs4   
    real*4, dimension(:),   allocatable :: iniq
    !
 contains
@@ -35,9 +36,11 @@ contains
       logical   :: iok
       !
       allocate(inizs(np))
+      allocate(inizs4(np))      
       allocate(iniq(npuv))
       !
       inizs = zini
+      inizs4 = zini      
       iniq  = 0.0
       !
       ! Check the type of initial conditions
@@ -45,22 +48,27 @@ contains
       if (rstfile(1:4) /= 'none') then
          !
          ! Binary restart file
+         ! Note - older type real*4 for zs 
          !
          write(logstr,'(a,a)')'Info    : reading restart file ', trim(rstfile)
          call write_log(logstr, 0)
          !
-         call read_binary_restart_file()
+         call read_binary_restart_file() ! Note - older type real*4 for zs
          !
-      elseif (zsinifile(1:4) /= 'none') then ! Read binary (!) initial water level file
+      elseif (zsinifile(1:4) /= 'none') then 
          !
-         ! Binary initial water level file
+         ! Read binary (!) initial water level file
+         ! Note - older type real*4 for zs 
          !
          write(logstr,'(a,a)')'Info    : reading initial conditions file ', trim(zsinifile)
          call write_log(logstr, 0)
          !
          call read_zsini_file()
          !
-      elseif (ncinifile(1:4) /= 'none') then ! Read netcdf (!) initial water level file
+      elseif (ncinifile(1:4) /= 'none') then 
+         !
+         ! Read netcdf (!) initial water level file
+         ! Note - newer type real*8 for zs 
          !
          ! NetCDF file
          !
@@ -173,8 +181,6 @@ contains
       !
       open(unit = 500, file = trim(rstfile), form = 'unformatted', access = 'stream')
       !
-      write(*,*)'Warning : binary restart files from SFINCS v2.1.1 and older are not compatible with SFINCS v2.1.2+, remake your restartfile when using v2.1.2 or newer'    
-      !
       ! Restartfile flavours:
       ! 1: zs, q, uvmean  
       ! 2: zs, q 
@@ -203,7 +209,7 @@ contains
          ! Always read in inizs
          !
          read(500)rdummy
-         read(500)inizs
+         read(500)inizs4
          read(500)rdummy
          !      
          ! Read fluxes q
@@ -244,6 +250,9 @@ contains
          !
          close(500)      
          !
+         ! remap zs from real*4 to real*8
+         inizs = inizs4
+         !
       endif
       !
    end subroutine
@@ -262,8 +271,11 @@ contains
       call write_log('Warning : binary ini files from SFINCS v2.1.1 and older are not compatible with SFINCS v2.1.2+, remake your inifile containing zs as real*8 double precision', 0)  
       !
       open(unit = 500, file = trim(zsinifile), form = 'unformatted', access = 'stream')
-      read(500)inizs
+      read(500)inizs4
       close(500)       
+      !
+      ! remap from real*4 to real*8
+      inizs = inizs4
       !
    end subroutine
    !
@@ -306,7 +318,7 @@ contains
       !
       do ip = 1, np
          !
-         inizs(ip) = zsq(index_quadtree_in_sfincs(ip)) 
+         inizs(ip) = zsq(index_quadtree_in_sfincs(ip)) ! already in real*8 - expected
          ! 
       enddo
       !

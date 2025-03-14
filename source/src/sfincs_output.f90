@@ -644,6 +644,12 @@ module sfincs_output
    real*8        :: t
    real*8        :: tt
    !
+   real*4, dimension(:),   allocatable :: zs4
+   allocate(zs4(np))
+   !
+   ! Map from real*8 to real*4
+   zs4 = zs
+   !
    tt = 1.0*int(t)
    tstring = time_to_string(tt, trefstr)
    write(file_name,'(A,A,A)')'sfincs.',tstring,'.rst'
@@ -665,7 +671,7 @@ module sfincs_output
       if (inftype == 'cnb') then
          !
          write(911)4
-         write(911)zs
+         write(911)zs4
          write(911)q
          write(911)uvmean
          write(911)scs_Se
@@ -673,7 +679,7 @@ module sfincs_output
       elseif (inftype == 'gai') then
          !
          write(911)5
-         write(911)zs
+         write(911)zs4
          write(911)q
          write(911)uvmean
          write(911)GA_sigma
@@ -682,7 +688,7 @@ module sfincs_output
       elseif (inftype == 'hor') then
          !
          write(911)6
-         write(911)zs
+         write(911)zs4
          write(911)q
          write(911)uvmean
          write(911)rain_T1
@@ -692,7 +698,7 @@ module sfincs_output
    else ! default option remains type 1 without infiltration in restart
       !
       write(911)1    
-      write(911)zs
+      write(911)zs4
       write(911)q
       write(911)uvmean        
       !
