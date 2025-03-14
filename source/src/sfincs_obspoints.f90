@@ -29,11 +29,14 @@ contains
    !
    if (obsfile(1:4) /= 'none') then
       ! 
-      write(*,*)'Reading observation points ...'
+      write(logstr,'(a)')'Info    : reading observation points'
+      call write_log(logstr, 0)
       !
-      ok = check_file_exists(obsfile, 'obs file')      
+      ok = check_file_exists(obsfile, 'obs file')
       !
-      if (.not. ok) return
+      if (.not. ok) then
+         return
+      endif   
       !
       open(500, file=trim(obsfile))       
       do while(.true.)
@@ -126,11 +129,13 @@ contains
                 iref = z_flags_iref(nm)
             endif         
             !
-            ! write(*,'(a,i0,a,a,a,i0,a,i0,a,i0,a,i0,a,f0.3)')' Observation point ',iobs,' : "',trim(nameobs(iobs)),'" nm=',nm,' n=',n,' m=',m,' iref=',iref,' z=',zbobs(iobs)
+            write(logstr,'(a,i0,a,a,a,i0,a,i0,a,i0,a,i0,a,f0.3)')'Info    : observation point ',iobs,' : "',trim(nameobs(iobs)),'" nm=',nm,' n=',n,' m=',m,' iref=',iref,' z=',zbobs(iobs)
+            call write_log(logstr, 0)
             !
          else
             !
-            write(*,'(a,a,a)')' Warning : observation point "', trim(nameobs(iobs)), '" falls outside model domain.'
+            write(logstr,'(a,a,a)')'Warning ! Observation point "', trim(nameobs(iobs)), '" falls outside model domain !'
+            call write_log(logstr, 0)
             !
          endif   
          !

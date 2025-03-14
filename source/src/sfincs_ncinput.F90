@@ -3,6 +3,7 @@ module sfincs_ncinput
    !
    use netcdf       
    use sfincs_spiderweb
+   use sfincs_log
    !
    implicit none
    !
@@ -88,7 +89,7 @@ module sfincs_ncinput
       y_varname    = 'y'  
 !   endif   
    !
-   write(*,*)'Reading FEWS compatible netcdf type water level boundaries (bnd, bzs, bzi)...'
+   call write_log('Info    : reading FEWS compatible netcdf type water level boundaries (bnd, bzs, bzi)...', 0)
    !
    ! Actual reading of data
    !
@@ -129,7 +130,7 @@ module sfincs_ncinput
    !   
    if (net_file_bndbzsbzi%zi_varid /= 0) then     ! Allocate and read if bzi data is present
       bziwaves = .true.   ! turn on flag
-      write(*,*)'   Incident waves are forced...'      
+      !write(*,*)'   Incident waves are forced...'      
       !      
       allocate(zsi_bnd(nbnd,ntbnd))
       allocate(zsit_bnd(nbnd))
@@ -173,7 +174,7 @@ module sfincs_ncinput
       y_varname    = 'y'  
 !   endif   
    !
-   write(*,*)'Reading FEWS compatible netcdf type discharges ...'
+   call write_log('Reading FEWS compatible netcdf type discharges', 0)
    !
    ! Actual reading of data
    !
@@ -257,7 +258,7 @@ module sfincs_ncinput
       y_varname    = 'y'  
 !   endif   
    !
-   write(*,*)'Reading FEWS compatible NetCDF type wind input ...'
+   call write_log('Info    : reading FEWS compatible NetCDF type wind input', 0)
    !
    ! Actual reading of data
    !
@@ -378,7 +379,7 @@ module sfincs_ncinput
       y_varname    = 'y'  
 !   endif   
    !
-   write(*,*)'Reading FEWS compatible NetCDF type barometric pressure input ...'
+   call write_log('Info    : reading FEWS compatible NetCDF type barometric pressure input', 0)
    !
    ! Actual reading of data
    !
@@ -492,7 +493,7 @@ module sfincs_ncinput
       y_varname    = 'y'  
 !   endif   
    !
-   write(*,*)'Reading FEWS compatible NetCDF type precipitation input ...'
+   call write_log('Info    : reading FEWS compatible NetCDF type precipitation input', 0)
    !
    ! Actual reading of data
    !
@@ -619,7 +620,7 @@ module sfincs_ncinput
        !
        ! Handle error: variable does not exist
        ! 
-       write(*,*) "Warning: variable 'precipitation' does not exist in the NetCDF file."
+       call write_log('Warning: variable precipitation does not exist in the NetCDF file !', 0)
        ! 
        spw_precip   = .false.
        precip       = .false.
@@ -629,7 +630,7 @@ module sfincs_ncinput
        NF90(nf90_inq_varid(net_file_spw%ncid, "precipitation",          net_file_spw%precip_varid) )
        spw_precip   = .true.
        precip       = .true.
-       write(*,*)'Turning on process: Precipitation from spwfile'
+       call write_log('Info    : turning on precipitation from spw file', 0)
        !
     endif
     !

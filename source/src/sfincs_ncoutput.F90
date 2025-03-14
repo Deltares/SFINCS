@@ -80,8 +80,6 @@ contains
    real*4, dimension(:,:), allocatable :: xg
    real*4, dimension(:,:), allocatable :: yg
    !
-   !write(*,*) trim(nf90_inq_libvers())
-   !
    NF90(nf90_create('sfincs_map.nc', ior(NF90_CLOBBER,NF90_NETCDF4), map_file%ncid))
    !
    ! Create dimensions
@@ -220,13 +218,23 @@ contains
        endif
    endif
    !
-   NF90(nf90_def_var(map_file%ncid, 'zb', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid/), map_file%zb_varid)) ! bed level in cell centre
-   NF90(nf90_def_var_deflate(map_file%ncid, map_file%zb_varid, 1, 1, nc_deflate_level)) ! deflate
-   NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, '_FillValue', FILL_VALUE))   
-   NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'units', 'm'))
-   NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'standard_name', 'altitude'))
-   NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'long_name', 'bed_level_above_reference_level'))   
-   NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'coordinates', 'x y'))   
+   if (store_dynamic_bed_level) then
+      NF90(nf90_def_var(map_file%ncid, 'zb', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%zb_varid)) ! bed level in cell centre
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%zb_varid, 1, 1, nc_deflate_level)) ! deflate
+      NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'units', 'm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'standard_name', 'altitude'))
+      NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'long_name', 'bed_level_above_reference_level'))   
+      NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'coordinates', 'x y'))   
+   else      
+      NF90(nf90_def_var(map_file%ncid, 'zb', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid/), map_file%zb_varid)) ! bed level in cell centre
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%zb_varid, 1, 1, nc_deflate_level)) ! deflate
+      NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'units', 'm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'standard_name', 'altitude'))
+      NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'long_name', 'bed_level_above_reference_level'))   
+      NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'coordinates', 'x y'))   
+   endif
    !
    ! Time variables   
    !
@@ -596,25 +604,29 @@ contains
    ! Write epsg, msk & bed level already to file
    !
    NF90(nf90_put_var(map_file%ncid, map_file%crs_varid, epsg))
-   !   
+   !
    allocate(zsg(mmax, nmax))
    !
    zsg = FILL_VALUE       
-   !
-   do nm = 1, np
+   !   
+   if (.not. store_dynamic_bed_level) then
       !
-      n    = z_index_z_n(nm)
-      m    = z_index_z_m(nm)
-      !      
-      if (subgrid) then
-         zsg(m, n) = subgrid_z_zmin(nm)
-      else   
-         zsg(m, n) = zb(nm)
-      endif   
+      do nm = 1, np
+         !
+         n    = z_index_z_n(nm)
+         m    = z_index_z_m(nm)
+         !      
+         if (subgrid) then
+            zsg(m, n) = subgrid_z_zmin(nm)
+         else   
+            zsg(m, n) = zb(nm)
+         endif   
+         !
+      enddo
       !
-   enddo
-   !
-   NF90(nf90_put_var(map_file%ncid, map_file%zb_varid, zsg, (/1, 1/))) ! write zb
+      NF90(nf90_put_var(map_file%ncid, map_file%zb_varid, zsg, (/1, 1/))) ! write zb
+      !
+   endif
    !
    zsg = 0 ! initialise as inactive points       
    !
@@ -1786,22 +1798,37 @@ contains
    enddo
    !
    NF90(nf90_put_var(map_file%ncid, map_file%zs_varid, zsg, (/1, 1, ntmapout/))) ! write zs
-   ! 
-   zsg = FILL_VALUE       
    !
-   do nm = 1, np
+   if (store_dynamic_bed_level .and. .not. subgrid) then
       !
-      n    = z_index_z_n(nm)
-      m    = z_index_z_m(nm)
-      !      
-      if (subgrid) then
-         zsg(m, n) = zs(nm) - subgrid_z_zmin(nm)
-      else
-         zsg(m, n) = zs(nm) - zb(nm)
-      endif
-   enddo
+      do nm = 1, np
+         !
+         n = z_index_z_n(nm)
+         m = z_index_z_m(nm)
+         !      
+         zsg(m, n) = zb(nm)
+         !      
+      enddo
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%zb_varid, zsg, (/1, 1, ntmapout/))) ! write zb
+      !
+   endif   
    !
    if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then   
+      ! 
+      zsg = FILL_VALUE       
+      !
+      do nm = 1, np
+         !
+         n    = z_index_z_n(nm)
+         m    = z_index_z_m(nm)
+         !      
+         if (subgrid) then
+            zsg(m, n) = zs(nm) - subgrid_z_zmin(nm)
+         else
+            zsg(m, n) = zs(nm) - zb(nm)
+         endif
+      enddo
       ! 
       NF90(nf90_put_var(map_file%ncid, map_file%h_varid, zsg, (/1, 1, ntmapout/))) ! write h
       !

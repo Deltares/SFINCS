@@ -27,7 +27,8 @@ contains
    !
    if (srcfile(1:4) /= 'none') then
       !
-      write(*,*)'Reading discharges ...'
+      write(logstr,'(a)')'Info    : reading discharges'
+      call write_log(logstr, 0)
       !
       open(500, file=trim(srcfile))
       do while(.true.)
@@ -45,7 +46,8 @@ contains
    !
    if (drnfile(1:4) /= 'none') then
       !
-      write(*,*)'Reading drainage file ...'
+      write(logstr,'(a)')'Info    : reading drainage file'
+      call write_log(logstr, 0)
       !
       open(501, file=trim(drnfile))
       do while(.true.)
@@ -151,7 +153,8 @@ contains
    !
    if (ndrn>0) then
       !
-      write(*,'(a,a,a,i0,a)')' Reading ',trim(drnfile),' (', ndrn, ' drainage points found) ...'
+      write(logstr,'(a,a,a,i0,a)')' Reading ',trim(drnfile),' (', ndrn, ' drainage points found) ...'
+      call write_log(logstr, 0)
       !         
       allocate(xsrc(ndrn))
       allocate(ysrc(ndrn))
@@ -258,8 +261,10 @@ contains
       ! Check if all sink/source points have found an index
       if (any(nmindsrc == 0)) then
          !
-        write(*,*)'WARNING: for some sink/source drainage points no matching active grid cell was found!'
-        write(*,*)'These points will be skipped, please check your input!'
+         write(logstr,'(a)')'Warning ! For some sink/source drainage points no matching active grid cell was found!'
+         call write_log(logstr, 0)
+         write(logstr,'(a)')'Warning ! These points will be skipped, please check your input!'
+         call write_log(logstr, 0)
          !
       endif      
       !
