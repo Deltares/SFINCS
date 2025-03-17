@@ -170,7 +170,7 @@ contains
       ! 
       ! Read quadtree file
       !
-      call quadtree_read_file(qtrfile)
+      call quadtree_read_file(qtrfile, snapwave)
       !
    else
       !

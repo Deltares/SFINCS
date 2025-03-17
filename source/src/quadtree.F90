@@ -58,13 +58,14 @@ module quadtree
    !
 contains
    !
-   subroutine quadtree_read_file(qtrfile)
+   subroutine quadtree_read_file(qtrfile, snapwave)
    !
    ! Reads quadtree file
    !
    implicit none
    !
    character*256, intent(in)                       :: qtrfile
+   logical, intent(in)                             :: snapwave   
    !
    real*4,             dimension(:),   allocatable :: dxr
    real*4,             dimension(:),   allocatable :: dyr
@@ -84,7 +85,7 @@ contains
    endif
    !
    if (quadtree_netcdf) then
-      call quadtree_read_file_netcdf(qtrfile)
+      call quadtree_read_file_netcdf(qtrfile, snapwave)
    else
       call quadtree_read_file_binary(qtrfile)
    endif
@@ -285,13 +286,14 @@ contains
    end subroutine
 
 
-   subroutine quadtree_read_file_netcdf(qtrfile)
+   subroutine quadtree_read_file_netcdf(qtrfile, snapwave)
    !
    ! Reads quadtree file from netcdf file
    !
    implicit none
    !
    character*256, intent(in) :: qtrfile
+   logical, intent(in)       :: snapwave
    !
    integer*1 :: iversion
    integer   :: np, ip, iepsg
@@ -330,7 +332,14 @@ contains
    NF90(nf90_inq_varid(net_file_qtr%ncid, 'nu2',   net_file_qtr%nu2_varid))
    NF90(nf90_inq_varid(net_file_qtr%ncid, 'z',     net_file_qtr%z_varid))
    NF90(nf90_inq_varid(net_file_qtr%ncid, 'mask',  net_file_qtr%mask_varid))
-   NF90(nf90_inq_varid(net_file_qtr%ncid, 'snapwave_mask',  net_file_qtr%snapwave_mask_varid))
+   !
+   if (snapwave) then !only read snapwave_mask if snapwave solver turned on
+      !
+      NF90(nf90_inq_varid(net_file_qtr%ncid, 'snapwave_mask',  net_file_qtr%snapwave_mask_varid))
+      !
+      allocate(quadtree_snapwave_mask(np))
+      !      
+   endif       
    !
    ! Allocate variables   
    !
@@ -355,7 +364,6 @@ contains
    allocate(quadtree_yz(np))
    allocate(quadtree_zz(np))
    allocate(quadtree_mask(np))
-   allocate(quadtree_snapwave_mask(np))
    !
    ! Read values
    ! 
@@ -376,7 +384,10 @@ contains
    NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nu2_varid,   quadtree_nu2(:)))
    NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%z_varid,     quadtree_zz(:)))
    NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mask_varid,  quadtree_mask(:)))
-   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%snapwave_mask_varid,  quadtree_snapwave_mask(:)))
+   !
+   if (snapwave) then    
+      NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%snapwave_mask_varid,  quadtree_snapwave_mask(:)))
+   endif
    !
    ! Read attibute (should read EPSG code here ?)
    !
