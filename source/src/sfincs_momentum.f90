@@ -362,7 +362,7 @@
             !
             ! Apply slope limiter to dzdx (turned off by default)
             !
-            if (slopelim < 999.0) then
+            if (slopelim < 9999.0) then
                !
                dzdx = min(max((zs(nmu) - zs(nm)) * dxuvinv, -slopelim), slopelim) 
                !
