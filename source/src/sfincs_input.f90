@@ -328,7 +328,7 @@ contains
       !
    else
       !
-      ! Geographic (default no coriolis, unless coriolis is turned off in input file)
+      ! Geographic (default included coriolis, unless coriolis is turned off in input file)
       ! fcorio2d will be determined in sfincs_domain.f90 
       !
       coriolis = .true.
@@ -546,8 +546,6 @@ contains
       endif
    endif
    !
-   ! advection_limiter = .false.
-   !   
    if (advection) then
       !
       ! Make 1st order upwind the default scheme
@@ -566,12 +564,6 @@ contains
          write(logstr,*)'Warning : advection scheme ', trim(advstr), ' not recognized! Using default upw1 instead!'
          call write_log(logstr, 1)
       endif
-      !
-      ! if (advlim < 9999.0) then
-      !    !
-      !    advection_limiter = .true.
-      !    !
-      ! endif
       !
    endif
    !

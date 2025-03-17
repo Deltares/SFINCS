@@ -89,8 +89,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.1.1-Dollerup - branch with log file added by MvO and quadtree index bug fix'
-   build_date     = '$Date: 2025-02-08'
+   build_revision = '$Rev: v2.1.3-branch:removed_cumprcpt'
+   build_date     = '$Date: 2025-03-14'
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)

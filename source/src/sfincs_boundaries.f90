@@ -94,7 +94,7 @@ contains
          !
          if (t_bnd(1) > (t0 + 1.0)) then
             ! 
-            write(logstr,'(a)')'Warning!Adjusting first time in boundary conditions time series !'
+            write(logstr,'(a)')'Warning! Adjusting first time in boundary conditions time series !'
             call write_log(logstr, 1)
             !
             t_bnd(1) = t0 - 1.0
