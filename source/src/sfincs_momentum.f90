@@ -486,7 +486,7 @@
                   !
                else
                   !
-                  ! Increase viscosity to prevent instabilities (related to advection?)
+                  ! Increase viscosity to prevent instabilities on refinement (related to advection?)
                   !
                   frc = frc + nuviscfac * nuvisc(iref) * hu * ( (uu_nmu - 2*uu_nm + uu_nmd ) * dxuv2inv + (uu_num - 2*uu_nm + uu_ndm ) * dyuv2inv )
                   !
