@@ -567,7 +567,7 @@ module sfincs_lib
          !
       endif
       !      
-      ! Stop loop in case of instabilities (make sure water depth does not exceed stopdepth)
+      ! Stop loop in case of instabilities (make sure time step 'dtmin' does not get too small compared to 'uvmax' flow velocity)
       !
       if (dtchk<dtmin .and. nt>1) then
          !

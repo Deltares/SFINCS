@@ -93,7 +93,6 @@ contains
    call read_char_input(500,'utmzone',utmzone,'nil')
    call read_int_input(500,'epsg',epsg,0)
    call read_char_input(500,'epsg',epsg_code,'nil')      
-   call read_real_input(500,'stopdepth',stopdepth,100.0)
    call read_real_input(500, 'advlim', advlim, 1.0)
    call read_real_input(500,'slopelim',slopelim,9999.9)
    call read_real_input(500,'qinf_zmin',qinf_zmin,0.0)

@@ -70,7 +70,6 @@ module sfincs_data
       real*4 fcorio
       real*4 pavbnd
       real*4 gapres
-      real*4 stopdepth
       real*4 advlim
       real*4 slopelim
       real*4 twet_threshold

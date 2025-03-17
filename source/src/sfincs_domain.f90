@@ -1430,7 +1430,7 @@ contains
       !
       ! Compute dtmin (if dt falls below this value, the simulation will stop).
       !
-      ! No longer use long wave celerity
+      ! No longer use long wave celerity, OLD implementation with 'stopdepth'
       !
       ! dtmin = alfa * dxymin / (sqrt(9.81 * stopdepth))
       !
