@@ -3177,7 +3177,6 @@ contains
         NF90(nf90_put_att(ncid, varid, 'dtmax',dtmax))        
         NF90(nf90_put_att(ncid, varid, 'dtmin',dtmin))  
         NF90(nf90_put_att(ncid, varid, 'hmin_cfl',hmin_cfl))        
-        NF90(nf90_put_att(ncid, varid, 'hmin_uv',hmin_uv))                
         NF90(nf90_put_att(ncid, varid, 'huthresh',huthresh))        
         NF90(nf90_put_att(ncid, varid, 'rhoa',rhoa))        
         NF90(nf90_put_att(ncid, varid, 'rhow',rhow))        
