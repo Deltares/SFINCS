@@ -1336,7 +1336,7 @@ contains
          !
          ! Minimum grid spacing to determine dtmax 
          !  
-         dxymin = min(dxymin, dxm(iref))
+         dxymin = min(dxymin, 1.0 / dxminv(ip))
          !
       enddo   
       !
