@@ -22,6 +22,7 @@ module sfincs_ncoutput
       integer :: fwx_varid, fwy_varid, beta_varid, snapwavedepth_varid
       integer :: zsm_varid, tsunami_arrival_time_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid
+      integer :: subgridslope_varid
       !
       integer :: mesh2d_varid
       integer :: mesh2d_node_x_varid, mesh2d_node_y_varid
@@ -876,6 +877,21 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'standard_name', 'altitude'))
    NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'long_name', 'bed_level_above_reference_level'))   
    !
+   if (subgrid .and. store_hsubgrid .and. store_hmean) then
+      !
+      ! The subgrid slope (zmax - zmin) / sqrt(A) is used for making high-res flood maps
+      ! If the subgrid slope is lower than a threshold, the mean water depth in a cell
+      ! can be used instead of difference between the cell water level and the pixel heights
+      !
+      NF90(nf90_def_var(map_file%ncid, 'subgridslope', NF90_FLOAT, (/map_file%nmesh2d_face_dimid/), map_file%subgridslope_varid)) ! (zmax - zmin) / dx
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%subgridslope_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%subgridslope_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(map_file%ncid, map_file%subgridslope_varid, 'units', '-'))
+      NF90(nf90_put_att(map_file%ncid, map_file%subgridslope_varid, 'standard_name', 'subgrid_slope'))
+      NF90(nf90_put_att(map_file%ncid, map_file%subgridslope_varid, 'long_name', 'subgrid_slope'))
+      !
+   endif
+   !
    NF90(nf90_def_var(map_file%ncid, 'msk', NF90_INT, (/map_file%nmesh2d_face_dimid/), map_file%msk_varid)) ! input msk value in cell centre
    NF90(nf90_def_var_deflate(map_file%ncid, map_file%msk_varid, 1, 1, nc_deflate_level))
    NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, '_FillValue', -999))      
@@ -1243,6 +1259,27 @@ contains
       NF90(nf90_put_var(map_file%ncid, map_file%zb_varid, vtmp))
    endif
    !
+   ! Subgrid slope
+   !
+   if (subgrid .and. store_hsubgrid .and. store_hmean) then
+      !
+      vtmp = FILL_VALUE
+      !
+      do nmq = 1, quadtree_nr_points
+         nm = index_sfincs_in_quadtree(nmq)
+         if (nm>0) then
+            if (crsgeo) then
+               vtmp(nmq) = (subgrid_z_zmax(nm) - subgrid_z_zmin(nm)) / sqrt(cell_area_m2(nm))
+            else   
+               vtmp(nmq) = (subgrid_z_zmax(nm) - subgrid_z_zmin(nm)) / sqrt(cell_area(z_flags_iref(nm)))
+            endif
+         endif
+      enddo 
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%subgridslope_varid, vtmp))
+      !
+   endif
+   !   
    vtmpi = 0
    !
    do nmq = 1, quadtree_nr_points
@@ -2969,12 +3006,15 @@ contains
    integer                              :: nmq, nm, ntmaxout
    real*8                               :: t  
    !
-   real*4, dimension(:), allocatable    :: zstmp
+   real*4, dimension(:), allocatable    :: zstmp ! Same size as quadtree
+   real*4, dimension(:), allocatable    :: hmean ! Same size as zs
+   !
    allocate(zstmp(quadtree_nr_points))
    !
    zstmp = FILL_VALUE
    !
    ! Write maximum water level
+   !
    do nmq = 1, quadtree_nr_points
        !
        nm = index_sfincs_in_quadtree(nmq)
@@ -2998,30 +3038,64 @@ contains
    NF90(nf90_put_var(map_file%ncid, map_file%zsmax_varid, zstmp, (/1, ntmaxout/)))  ! write zsmax   
    !
    ! Write maximum water depth
+   !
    if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
       ! 
       zstmp = FILL_VALUE
       !        
+      if (store_hmean .and. subgrid .eqv. .true.) then
+         !
+         ! Obtain mean depth from subgrid tables
+         !
+         allocate(hmean(np))
+         !
+         call compute_subgrid_mean_depth(zsmax, hmean)
+         !
+      endif   
+      !   
       do nmq = 1, quadtree_nr_points
-          !
-          nm = index_sfincs_in_quadtree(nmq)
-          !
-          if (nm>0) then
-              if (kcs(nm)>0) then
-                  if (subgrid) then
-                      if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
-                          zstmp(nmq) = zsmax(nm) - subgrid_z_zmin(nm)
-                      endif
-                  else
-                     if ( (zsmax(nm) - zb(nm)) > huthresh) then
-                         zstmp(nmq) = zsmax(nm) - zb(nm)
-                     endif
+         !
+         nm = index_sfincs_in_quadtree(nmq)
+         !
+         if (nm > 0) then ! Check if point is in SFINCS domain
+            if (kcs(nm) > 0) then ! Check if point is active
+               !
+               if (subgrid) then
+                  !
+                  if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
+                     !
+                     if (store_hmean) then
+                        !
+                        ! Store mean depth in subgrid cell
+                        !
+                        zstmp(nmq) = hmean(nm)
+                        !
+                     else
+                        !
+                        ! Store maximum depth in subgrid cell
+                        !
+                        zstmp(nmq) = zsmax(nm) - subgrid_z_zmin(nm)
+                        !
+                     endif   
+                     !
                   endif
-              endif
-          endif
+                  !
+               else
+                  !
+                  ! Regular depth
+                  !
+                  if ( (zsmax(nm) - zb(nm)) > huthresh) then
+                     zstmp(nmq) = zsmax(nm) - zb(nm)
+                  endif
+                  !
+               endif
+               !
+            endif
+         endif
       enddo      
       !
       NF90(nf90_put_var(map_file%ncid, map_file%hmax_varid, zstmp, (/1, ntmaxout/))) ! write hmax   
+      !
    endif
    !
    ! Write cumulative rainfall
@@ -3431,6 +3505,73 @@ contains
         NF90(nf90_put_att(ncid, varid, 'snapwave_bwdfile',snapwave_bwdfile)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_bdsfile',snapwave_bdsfile))         
         !
+   end subroutine
+   !
+   !
+   !
+   subroutine compute_subgrid_mean_depth(z, hmean)
+   !
+   ! This subroutine cannot sit in sfincs_subgrid.f90 because that uses the same netcdf module
+   !
+   use sfincs_data
+   !
+   implicit none
+   !
+   real*4, intent(in)  :: z(np) ! max water level
+   real*4, intent(out) :: hmean(np) 
+   !
+   integer    :: nm, m, n, ivol, ilevel, ip
+   real*8     :: volume
+   real*4     :: dzvol
+   real*4     :: facint
+   real*4     :: one_minus_facint 
+   !
+   ! Compute volumes and mean depths
+   !
+   do nm = 1, np
+      !
+      if (z(nm) >= subgrid_z_zmax(nm)) then
+         !
+         ! Entire cell is wet, no interpolation from table needed
+         !
+         if (crsgeo) then
+            volume = subgrid_z_volmax(nm) + cell_area_m2(nm) * (z(nm) - max(subgrid_z_zmax(nm), -20.0))
+         else   
+            volume = subgrid_z_volmax(nm) + cell_area(z_flags_iref(nm)) * (z(nm) - max(subgrid_z_zmax(nm), -20.0))
+         endif
+         !
+      else   
+         !
+         ! Interpolation required
+         !
+         ivol = 1
+         do ilevel = 2, subgrid_nlevels
+            if (subgrid_z_dep(ilevel, nm) > z(nm)) then
+               ivol = ilevel - 1
+               exit
+            endif
+         enddo
+         !
+         dzvol  = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
+         facint = (z(nm) - subgrid_z_dep(ivol, nm)) / max(subgrid_z_dep(ivol + 1, nm) - subgrid_z_dep(ivol, nm), 0.001)
+         volume = (ivol - 1) * dzvol + facint * dzvol
+         !
+      endif
+      !
+      ! Compute mean depth in cell
+      !
+      if (crsgeo) then
+         !
+         hmean(nm) = volume / cell_area_m2(nm)
+         !
+      else   
+         !
+         hmean(nm) = volume / cell_area(z_flags_iref(nm))
+         !
+      endif
+      !
+   enddo
+   !
    end subroutine
    !   
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

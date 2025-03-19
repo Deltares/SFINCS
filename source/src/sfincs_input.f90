@@ -203,6 +203,7 @@ contains
    call read_int_input(500,'storecumprcp',storecumprcp,0)
    call read_int_input(500,'storetwet',storetwet,0)
    call read_int_input(500,'storehsubgrid',storehsubgrid,0)
+   call read_logical_input(500, 'storehmean', store_hmean, .false.)      
    call read_real_input(500,'twet_threshold',twet_threshold,0.01)
    call read_int_input(500,'store_tsunami_arrival_time',itsunamitime,0)
    call read_real_input(500,'tsunami_arrival_threshold',tsunami_arrival_threshold,0.01)
