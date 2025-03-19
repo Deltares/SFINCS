@@ -2,6 +2,7 @@
 module sfincs_initial_conditions
    !
    use sfincs_data
+   use sfincs_log
    use netcdf       
    !
    type net_type_ini
@@ -12,7 +13,8 @@ module sfincs_initial_conditions
    !
    type(net_type_ini) :: net_file_ini              
    !
-   real*4, dimension(:),   allocatable :: inizs
+   real*8, dimension(:),   allocatable :: inizs
+   real*4, dimension(:),   allocatable :: inizs4   
    real*4, dimension(:),   allocatable :: iniq
    !
 contains
@@ -34,9 +36,11 @@ contains
       logical   :: iok
       !
       allocate(inizs(np))
+      allocate(inizs4(np))      
       allocate(iniq(npuv))
       !
       inizs = zini
+      inizs4 = zini      
       iniq  = 0.0
       !
       ! Check the type of initial conditions
@@ -44,24 +48,32 @@ contains
       if (rstfile(1:4) /= 'none') then
          !
          ! Binary restart file
+         ! Note - older type real*4 for zs 
          !
-         write(*,*)'Reading restart file ', trim(rstfile), ' ...'
+         write(logstr,'(a,a)')'Info    : reading restart file ', trim(rstfile)
+         call write_log(logstr, 0)
          !
-         call read_binary_restart_file()
+         call read_binary_restart_file() ! Note - older type real*4 for zs
          !
-      elseif (zsinifile(1:4) /= 'none') then ! Read binary (!) initial water level file
+      elseif (zsinifile(1:4) /= 'none') then 
          !
-         ! Binary initial water level file
+         ! Read binary (!) initial water level file
+         ! Note - older type real*4 for zs 
          !
-         write(*,*)'Reading initial conditions file ', trim(zsinifile), ' ...'
+         write(logstr,'(a,a)')'Info    : reading initial conditions file ', trim(zsinifile)
+         call write_log(logstr, 0)
          !
          call read_zsini_file()
          !
-      elseif (ncinifile(1:4) /= 'none') then ! Read netcdf (!) initial water level file
+      elseif (ncinifile(1:4) /= 'none') then 
+         !
+         ! Read netcdf (!) initial water level file
+         ! Note - newer type real*8 for zs 
          !
          ! NetCDF file
          !
-         write(*,*)'Reading NetCDF initial conditions file ', trim(zsinifile), ' ...'
+         write(logstr,'(a,a)')'Info    : reading NetCDF initial conditions file ', trim(zsinifile)
+         call write_log(logstr, 0)
          !
          call read_nc_ini_file()
          !
@@ -181,13 +193,15 @@ contains
       read(500)rsttype
       read(500)rdummy
       !
-      write(*,*)'Info: found rsttype = ', rsttype 
+      write(logstr,'(a,i0)')'Info    : found rsttype = ', rsttype
+      call write_log(logstr, 0)
       !
       if (rsttype < 1 .or. rsttype > 6) then
          !
          ! Give warning, rstfile input rsttype not recognized
          !
-         write(*,*)'WARNING! rstfile not recognized, skipping restartfile input! rsttype should be 1-6, but found rsttype = ', rsttype 
+         write(logstr,'(a,i0)')'Warning! rstfile not recognized, skipping restart file input! rsttype should be 1-6, but found rsttype = ', rsttype 
+         call write_log(logstr, 1)
          !          
          close(500)      
          !          
@@ -195,7 +209,7 @@ contains
          ! Always read in inizs
          !
          read(500)rdummy
-         read(500)inizs
+         read(500)inizs4
          read(500)rdummy
          !      
          ! Read fluxes q
@@ -214,7 +228,7 @@ contains
             !
             read(500)rdummy                 
             read(500)scs_Se
-            write(*,*)'Reading scs_Se from rstfile, overwrites input values of: ',trim(sefffile)
+            ! write(*,*)'Reading scs_Se from rstfile, overwrites input values of: ',trim(sefffile)
             !
          elseif (rsttype==5) then ! Infiltration method gai    
             !
@@ -222,17 +236,22 @@ contains
             read(500)GA_sigma
             read(500)rdummy
             read(500)GA_F
-            write(*,*)'Reading GA_sigma from rstfile, overwrites input values of: ',trim(sigmafile)        
+            write(logstr,'(a,a)')'Info    : reading GA_sigma from rstfile, overwrites input values of ', trim(sigmafile)
+            call write_log(logstr, 0)
             !
          elseif (rsttype==6) then ! Infiltration method horton
             !
             read(500)rdummy                               
             read(500)rain_T1
-            write(*,*)'Reading rain_T1 from rstfile, complements input values of: ',trim(fcfile)        
+            write(logstr,'(a,a)')'Info    : reading rain_T1 from rstfile, complements input values of ', trim(fcfile) 
+            call write_log(logstr, 0)
             !              
          endif          
          !
          close(500)      
+         !
+         ! remap zs from real*4 to real*8
+         inizs = inizs4
          !
       endif
       !
@@ -246,10 +265,17 @@ contains
       !
       implicit none
       !
-      write(*,*)'Reading ',trim(zsinifile)
+      write(logstr,'(a,a)')'Info    : reading zsini file ', trim(zsinifile)
+      call write_log(logstr, 0)
+      !
+      call write_log('Warning : binary ini files from SFINCS v2.1.1 and older are not compatible with SFINCS v2.1.2+, remake your inifile containing zs as real*8 double precision', 0)  
+      !
       open(unit = 500, file = trim(zsinifile), form = 'unformatted', access = 'stream')
-      read(500)inizs
+      read(500)inizs4
       close(500)       
+      !
+      ! remap from real*4 to real*8
+      inizs = inizs4
       !
    end subroutine
    !
@@ -261,7 +287,7 @@ contains
       !
       implicit none
       !
-      real*4, dimension(:),   allocatable :: zsq
+      real*8, dimension(:),   allocatable :: zsq
       integer   :: npq, ip
       !
       NF90(nf90_open(trim(ncinifile), NF90_CLOBBER, net_file_ini%ncid))
@@ -292,7 +318,7 @@ contains
       !
       do ip = 1, np
          !
-         inizs(ip) = zsq(index_quadtree_in_sfincs(ip)) 
+         inizs(ip) = zsq(index_quadtree_in_sfincs(ip)) ! already in real*8 - expected
          ! 
       enddo
       !

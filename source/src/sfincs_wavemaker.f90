@@ -60,7 +60,8 @@
    nrw = 0
    nrwvm = 0
    !
-   write(*,*)'Reading wavemaker polyline file ...'
+   write(logstr,*)'Reading wavemaker polyline file ...'
+   call write_log(logstr, 0)
    !
    ! Loop through all polylines
    !
@@ -79,7 +80,8 @@
    !
    ! Loop through polylines
    !
-   write(*,*)'Number of wavemaker polylines found : ', nrwvm   
+   write(logstr,*)'Number of wavemaker polylines found : ', nrwvm
+   call write_log(logstr, 0)   
    !
    do ipol = 1, nrwvm
       !
@@ -726,7 +728,8 @@
    !
    ! Allocate arrays
    !
-   write(*,*)'Number of wavemaker u/v points : ', iwm
+   write(logstr,*)'Number of wavemaker u/v points : ', iwm
+   call write_log(logstr, 0)
    !
    wavemaker_nr_uv_points = iwm   
    !
@@ -747,7 +750,8 @@
    iwm = 0
    nok = 0
    !
-   write(*,*)'Setting wave makers ...' 
+   write(logstr,*)'Setting wave makers ...'
+   call write_log(logstr, 0)   
    !
    do ip = 1, np
       !
@@ -1120,7 +1124,8 @@
    !
    ! Set flags for kcuv points
    !
-   write(*,*)'Setting wave maker flags ...'
+   write(logstr,*)'Setting wave maker flags ...'
+   call write_log(logstr, 0)   
    !
    do iwm = 1, wavemaker_nr_uv_points
       !
@@ -1143,7 +1148,8 @@
       !
       wavemaker_timeseries = .true.
       !
-      write(*,*)'Reading wave conditions at wave makers ...'
+      write(logstr,*)'Reading wave conditions at wave makers ...'
+      call write_log(logstr, 0)      
       !
       ! Locations
       !
@@ -1213,17 +1219,20 @@
       !
       if ((wmf_time(1) > (t0 + 1.0)) .or. (wmf_time(ntwmfp)< (t1 - 1.0))) then
          ! 
-         write(*,'(a)')' WARNING! Times in wave maker time series file do not cover entire simulation period !'
+         write(logstr,'(a)')' WARNING! Times in wave maker time series file do not cover entire simulation period !'
+         call write_log(logstr, 0)         
          ! 
          if (wmf_time(1) > (t0 + 1.0)) then
             ! 
-            write(*,'(a)')' WARNING! Adjusting first time in wave maker time series !'
+            write(logstr,'(a)')' WARNING! Adjusting first time in wave maker time series !'
+            call write_log(logstr, 0)                                 
             !
             wmf_time(1) = t0 - 1.0
             !
          else
             ! 
-            write(*,'(a)')' WARNING! Adjusting last time in wave maker time series !'
+            write(logstr,'(a)')' WARNING! Adjusting last time in wave maker time series !'
+            call write_log(logstr, 0)                     
             !
             wmf_time(ntwmfp) = t1 + 1.0
             !

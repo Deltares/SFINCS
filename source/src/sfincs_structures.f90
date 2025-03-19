@@ -93,7 +93,8 @@
    integer,   dimension(:), allocatable  :: vertices 
    integer*1, dimension(:), allocatable  :: istruc
    !
-   write(*,*)'Reading weir file ...'
+   write(logstr,'(a)')'Info    : reading weir file'
+   call write_log(logstr, 0)
    !
    ! Read structures file
    !
@@ -179,7 +180,7 @@
                dxs = dyrm(iref)
             else
                ! V point
-               dxs = dxm(indx)
+               dxs = 1.0 / dxminv(indx)
             endif   
          else   
             ! Projected coordinate system
@@ -331,7 +332,7 @@
                !
                ! V point
                !
-               dxs = dxm(ip)
+               dxs = 1.0 / dxminv(ip)
                !
             endif   
             !
@@ -369,7 +370,8 @@
    !
    nrstructures = nstruc
    !
-   write(*,*)nrstructures,' structure u/v points found'
+   write(logstr,'(a,i0,a)')'Info    : ', nrstructures, ' structure u/v points found'
+   call write_log(logstr, 0)
    !
    end subroutine
 
@@ -420,7 +422,8 @@
       !
       ! Loop through polylines
       !
-      write(*,'(a,a,a,i0,a)')' Reading ',trim(thdfile),' (', nthd, ' thin dams found) ...'
+      write(logstr,'(a,a,a,i0,a)')'Info    : reading ', trim(thdfile), ' (', nthd, ' thin dams found)'
+      call write_log(logstr, 0)
       !
       do ithd = 1, nthd
          !
@@ -452,7 +455,8 @@
       !
       close(500)
       !
-      write(*,*)nr_points,' structure points found'
+      write(logstr,'(a,i0,a)')'Info    : ', nr_points,' structure points found'
+      call write_log(logstr, 0)
       !
    endif   
    !
