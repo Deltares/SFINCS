@@ -82,7 +82,7 @@ contains
    !
    ! Write number of input points sounds - independent of input type
    write(logstr,*)'Input wave boundary points found: ',nwbnd
-   call write_log(logstr, 1)
+   call write_log(logstr, 0)
    !
    ! Check length time-series - independent of input type
    !

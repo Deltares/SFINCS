@@ -35,7 +35,7 @@ contains
    sinrot = sin(rotation*pi/180)
    !
    write(logstr,*)'Initializing SnapWave domain ...'
-   call write_log(logstr, 1)   
+   call write_log(logstr, 0)   
    !
    ! Load in mesh (no_faces, no_nodes, face_nodes, zb, x, y, xs, ys, msk)
    !
@@ -69,10 +69,13 @@ contains
       !
    endif    
    !
-   write(logstr,*)'Number of active SnapWave nodes : ', no_nodes
-   call write_log(logstr, 1)      
-   write(logstr,*)'Number of active SnapWave cells : ', no_faces
-   call write_log(logstr, 1)      
+   call write_log('------------------------------------------', 1)
+   call write_log('SnapWave Computational mesh ', 1)
+   call write_log('------------------------------------------', 1)
+   write(logstr,'(a,i9)')'Number of active SnapWave nodes: ', no_nodes   
+   call write_log(logstr, 1)   
+   write(logstr,'(a,i9)')'Number of active SnapWave cells: ', no_faces
+   call write_log(logstr, 1)   
    !   
    allocate(kp(np, no_nodes))
    !
@@ -214,7 +217,7 @@ contains
    if (upwfile /= 'none') then   
       !
       write(logstr,*)'Reading upwind neighbors file ...'
-      call write_log(logstr, 1)      
+      call write_log(logstr, 0)      
       !
       inquire( file=trim(upwfile), exist=exists )      
       !
@@ -281,7 +284,7 @@ contains
    !
    if (.not. any(msk == 2)) then
        !
-       write(*,*)'Warning : no msk = 2 values found in snapwave_msk, trying using old encfile option:'
+       write(logstr,*)'Warning : no msk = 2 values found in snapwave_msk, trying using old encfile option:'
        call write_log(logstr, 0)       
        !
        call read_boundary_enclosure() ! Only read old encfile option if no msk=2 cells found
@@ -309,7 +312,7 @@ contains
       if (ANY(neumannconnected > 0)) then
           !
           write(logstr,*)'SnapWave: Neumann connected boundaries found ...'
-          call write_log(logstr, 1)          
+          call write_log(logstr, 0)          
           !
           do k=1,no_nodes
               if (neumannconnected(k)>0) then
@@ -358,7 +361,7 @@ contains
    enddo   
    !
    write(logstr,*)'Number of boundary SnapWave nodes : ',nb
-   call write_log(logstr, 1)
+   call write_log(logstr, 0)
    !
    end subroutine
 
@@ -1208,7 +1211,7 @@ end subroutine neuboundaries
       if (mskfile /= 'none') then
          !       
          write(logstr,*)'Reading SnapWave mask file ',trim(mskfile),' ...'
-         call write_log(logstr, 1)         
+         call write_log(logstr, 0)         
          open(unit = 500, file = trim(mskfile), form = 'unformatted', access = 'stream')
          read(500)msk_tmp
          close(500)
