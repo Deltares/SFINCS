@@ -15,6 +15,7 @@ lib_LTLIBRARIES = libsfincs.la
 
 #all sources for sfincs that go into the library (all but the program)
 libsfincs_la_SOURCES = \
+	sfincs_log.f90 \
 	sfincs_date.f90 \
 	sfincs_spiderweb.f90 \
 	sfincs_data.f90 \
