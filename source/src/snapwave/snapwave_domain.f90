@@ -920,7 +920,8 @@ subroutine neuboundaries(x,y,no_nodes,xneu,yneu,n_neu,tol,neumannconnected)
                   enddo
                   if (kmin>0) then
                      neumannconnected(kmin)=k
-                     write(*,*)kmin,k
+                     write(logstr,*)kmin,k
+                     call write_log(logstr, 0)                     
                   endif
                endif
             endif
