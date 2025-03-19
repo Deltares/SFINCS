@@ -472,7 +472,7 @@ contains
        endif
    endif
    !
-   store_tsunami_arrival_time = .false. ! Default use data in ampr file as block rather than linear interpolation
+   store_tsunami_arrival_time = .false. 
    if (itsunamitime==1) then
       store_tsunami_arrival_time = .true.
    endif      
@@ -484,7 +484,7 @@ contains
       call write_log('Info    : turning on process: Viscosity', 0)
    endif   
    !
-   spinup_meteo = .true. ! Default use data in ampr file as block rather than linear interpolation
+   spinup_meteo = .true. 
    if (ispinupmeteo==0) then
       spinup_meteo = .false.
    endif      

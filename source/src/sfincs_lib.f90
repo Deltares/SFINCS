@@ -90,7 +90,7 @@ module sfincs_lib
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
    build_revision = '$Rev: v2.1.3-branch:removed_cumprcpt'
-   build_date     = '$Date: 2025-03-14'
+   build_date     = '$Date: 2025-03-19'
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)
@@ -633,14 +633,6 @@ module sfincs_lib
    tfinish_all = 1.0 * (count1 - count00) / count_rate
    !
    call finalize_output(t,ntmaxout,tloopoutput,tmaxout)
-   !   
-   if (store_tsunami_arrival_time) then
-      !
-      ! Should this not be moved to ncoutput? 
-      !
-      call write_tsunami_arrival_file()   
-      !
-   endif
    !
    dtavg = dtavg/nt
    !
