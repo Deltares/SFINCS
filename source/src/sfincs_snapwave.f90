@@ -88,6 +88,8 @@ contains
    call write_log('Build-Revision: '//trim(build_revision), 1)
    call write_log('Build-Date: '//trim(build_date), 1)   
    call write_log('', 1)
+   call write_log('------ Preparing model simulation --------', 1)
+   call write_log('', 1)   
    !   
    ! Check whether SFINCS grid is spherical (T) or cartesian (F), and prescribe to SnapWave as variable 'sferic' -  spherical (1) or cartesian (0) grid
    if (crsgeo) then
@@ -159,7 +161,6 @@ contains
    endif
    !
    call write_log('------------------------------------------', 1)
-   call write_log('', 1)   
    !
    end subroutine
    
