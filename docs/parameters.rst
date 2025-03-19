@@ -377,7 +377,12 @@ Parameters for model output
 	  :description:		Flag to turn on writing away every timestep to output as debug mode (debug = 1)
 	  :units:		-
 	  :default:		0	
-
+	percentage_done
+	  :description:		Setting of how frequent to show progress of SFINCS in terms of % and time remaining, default = 5%
+	  :units:		integer
+	  :default:		5	
+	  :min:			1
+	  :max:			100		  	
 Input files
 =====	 
 

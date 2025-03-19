@@ -180,6 +180,7 @@ module sfincs_data
       integer       :: epsg
       character*15  :: epsg_code
       integer       :: nc_deflate_level
+      integer       :: percdoneval
       !
       logical       :: waves
       logical       :: wind
