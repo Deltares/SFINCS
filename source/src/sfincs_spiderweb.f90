@@ -1,5 +1,7 @@
 module sfincs_spiderweb
 
+    use sfincs_log
+    
 contains
 
    subroutine read_spw_file(filename,nt,nrows,ncols,spwrad,time,xe,ye,vmag,vdir,pdrp,prcp,nquant,trefstr)
