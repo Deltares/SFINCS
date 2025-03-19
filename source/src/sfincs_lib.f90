@@ -89,7 +89,7 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.1.3-branch:removed_cumprcpt'
+   build_revision = '$Rev: v2.1.3'
    build_date     = '$Date: 2025-03-19'
    !
    call write_log('', 1)
@@ -525,7 +525,7 @@ module sfincs_lib
          !
          call timer(t4)                   
          write(logstr,'(a,f10.1,a,f6.2,a)')'Computing SnapWave at t = ', t, ' s took ', t4 - t3, ' seconds'         
-         call write_log(logstr, 1)
+         call write_log(logstr, 0)
          !
          ! Maybe we'll add moving wave makers back at some point
          !

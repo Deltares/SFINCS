@@ -124,7 +124,7 @@ contains
    call read_logical_input(500,'advection_mask',advection_mask,.true.)
    ! call read_real_input(500, 'dzdsbnd', dzdsbnd, 0.0001)
    ! call read_real_input(500, 'manningbnd', manningbnd, 0.024)
-    call read_real_input(500, 'nuviscfac', nuviscfac, 100.0)
+   call read_real_input(500, 'nuviscfac', nuviscfac, 100.0)
    !
    ! Domain
    !
@@ -332,7 +332,6 @@ contains
       ! Geographic (default included coriolis, unless coriolis is turned off in input file)
       ! fcorio2d will be determined in sfincs_domain.f90 
       !
-      coriolis = .true.
       crsgeo = .true.   
       !
    endif

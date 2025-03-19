@@ -48,7 +48,7 @@ module snapwave_ncinput
 !   endif   
    !
    write(logstr,*)'Reading netcdf type SnapWave input boundaries (bnd, bhs, btp, bwd, bds)...'
-   call write_log(logstr, 1)   
+   call write_log(logstr, 0)   
    !
    ! Actual reading of data
    !
