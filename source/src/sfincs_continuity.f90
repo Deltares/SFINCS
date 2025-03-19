@@ -134,8 +134,18 @@ contains
          !
          if (crsgeo) then
             !
-            zs(nm)   = zs(nm) + ( (q(nmd) - q(nmu)) * max(dxminv(nmd), dxminv(nmu)) + (q(ndm) - q(num)) * dyrinv(z_flags_iref(nm)) ) * dt
+            ! Use cell width dxm (which varies with latitude)
             !
+            zs(nm)   = zs(nm) + ( (q(nmd) - q(nmu)) / dxm(nm) + (q(ndm) - q(num)) * dyrinv(z_flags_iref(nm)) ) * dt
+            !
+            ! Should really be:
+            !
+            ! zs(nm)   = zs(nm) + ( (q(nmd) - q(nmu)) / dxm(nm) + (q(ndm) * f - q(num) / f) * dyrinv(z_flags_iref(nm)) ) * dt
+            !
+            ! Where f if a correction factor for the ratio between cell width at cell centre and cell bottom:
+            !
+            ! f = cos(y - 0.5*dy) / cos(y) (this holds both in northern and southern hemisphere)
+            ! 
          else   
             !
             zs(nm)   = zs(nm) + ( (q(nmd) - q(nmu)) * dxrinv(z_flags_iref(nm)) + (q(ndm) - q(num)) * dyrinv(z_flags_iref(nm)) ) * dt
@@ -359,12 +369,30 @@ contains
          !
          if (crsgeo) then
             !
+            ! dxm  = size of cell in x - direction (it varies for all cells)
+            ! dyrm = size of cell in y - direction (it varies for all zoom levels)
+            !
             dvol = dvol + ( (q(nmd) - q(nmu)) * dyrm(z_flags_iref(nm)) + (q(ndm) - q(num)) * dxm(nm) ) * dt
+            !
+            ! Should really be:
+            !
+            ! dvol = dvol + ( (q(nmd) - q(nmu)) * dyrm(z_flags_iref(nm)) + (q(ndm) * f - q(num) / f) * dxm(nm) ) * dt
+            !
+            ! where f if a correction factor for the ratio between cell width at cell centre and cell bottom:
+            !
+            ! f = cos(y - 0.5*dy) / cos(y) (this holds both in northern and southern hemisphere)
+            !
+            ! This assumes that we can use the same factor f for q(ndm) and q(num), i.e.:
+            !
+            ! cos(y - 0.5*dy) / cos(y) ~= cos(y + 0.5*dy) / cos(y) or: cos(y - 0.5*dy) ~= cos(y + 0.5*dy) which is pretty much true for dy < 1.0 degree
             !
          else
             !
             if (use_quadtree) then   
-               ! 
+               !
+               ! dxrm = size of cell in x - direction (it varies for all zoom levels)
+               ! dyrm = size of cell in y - direction (it varies for all zoom levels)
+               !               
                dvol = dvol + ( (q(nmd) - q(nmu)) * dyrm(z_flags_iref(nm)) + (q(ndm) - q(num)) * dxrm(z_flags_iref(nm)) ) * dt
                ! 
             else
