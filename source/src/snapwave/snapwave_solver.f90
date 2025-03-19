@@ -1,4 +1,7 @@
 module snapwave_solver
+   
+      use sfincs_log
+    
       implicit none
    contains
    
@@ -25,8 +28,6 @@ module snapwave_solver
       !
       g     = 9.81
       pi    = 4.*atan(1.)
-      !
-      !write(*,*)'Compute wave field started'
       !
       call timer(t0)
       !
@@ -59,9 +60,6 @@ module snapwave_solver
       !
       ! Compute celerities and refraction speed
       !
-      !write(*,*)'   max depth=',maxval(depth),' min depth = ',minval(depth)
-      !  
-      
       Tp     = max(tpmean_bwv,Tpini)   ! to check voor windgroei
       sig    = 2.0*pi/Tp
       Tp_ig   = tpmean_bwv_ig! TL: now determined in snapwave_boundaries.f90 instead of Tinc2ig*Tp
@@ -144,8 +142,6 @@ module snapwave_solver
       Fx = F*cos(thetam)
       Fy = F*sin(thetam)
       !
-      !write(*,*)'   Computation:               ', t3 - t2, ' seconds'
-      !
    end subroutine
    
    
@@ -184,7 +180,7 @@ module snapwave_solver
    logical, dimension(no_nodes), intent(inout)      :: inner                  ! mask of inner grid points (not on boundary)
    logical, intent(in)                              :: wind                   ! logical wind on/off
    logical, intent(in)                              :: igwaves                ! logical IG waves on/off
-   integer, intent(in)                              :: iterative_srcig        ! option whether IG source/sink term should be calculated implicitly (iterative_srcig = 1), or just a priori based on effectively incident wave energy from previous timestep only (iterative_srcig=0, explicitly, bit faster)
+   logical, intent(in)                              :: iterative_srcig        ! option whether IG source/sink term should be calculated implicitly (iterative_srcig = 1), or just a priori based on effectively incident wave energy from previous timestep only (iterative_srcig=0, explicitly, bit faster)
    integer, dimension(no_nodes),intent(in)          :: neumannconnected       ! number of neumann boundary point if connected to inner point
    real*4, dimension(no_nodes), intent(in)          :: depth                  ! water depth
    real*4, dimension(no_nodes), intent(in)          :: zb                     ! actual bed level
@@ -530,7 +526,7 @@ module snapwave_solver
          !
          if (igwaves) then
             !        
-            if (iterative_srcig==1) then 
+            if (iterative_srcig) then 
                 ! Update H(k) based on updated ee(:,k), as used in IG source term to determine alphaig
                 ! 
                 do k = 1, no_nodes   
@@ -867,14 +863,18 @@ module snapwave_solver
          ! Relative maximum error
          !
          error = maxval(diff)/eemax
-         !write(*,'(a,i6,a,f10.5,a,f7.2)')'   iteration ',iter/4 ,' error = ',error,'   %ok = ',percok
+         !
+         write(logstr,'(a,i6,a,f10.5,a,f7.2)')'   iteration ',iter/4 ,' error = ',error,'   %ok = ',percok
+         call write_log(logstr, 0)         
          !
          if (error<crit) then
-            write(*,'(a,i6,a,f10.5,a,f7.2)')'   converged at iteration ',iter/4 ,' error = ',error,'   %ok = ',percok
+            write(logstr,'(a,i6,a,f10.5,a,f7.2)')'   converged at iteration ',iter/4 ,' error = ',error,'   %ok = ',percok
+            call write_log(logstr, 0)            
             exit
          else
              if (iter == niter) then !made it to the end without reaching 'error<crit', still want output
-                write(*,'(a,i6,a,f10.5,a,f7.2)')'    ended at iteration ',iter/4 ,' error = ',error,'   %ok = ',percok
+                write(logstr,'(a,i6,a,f10.5,a,f7.2)')'    ended at iteration ',iter/4 ,' error = ',error,'   %ok = ',percok
+                call write_log(logstr, 0)                
              endif
          endif
          !
@@ -1386,7 +1386,9 @@ module snapwave_solver
 		if (no_secveg > 0) then ! only in case vegetation is present
 			do m=1,no_secveg ! for each vertical vegetation section
 				if (veg_Cd(m) < 0.d0) then ! If Cd is not user specified: call subroutine of M. Bendoni (see below)
-					write(*,*)'Cd is not user specified: using subroutine bulkdragcoeff to compute Cd'
+					write(logstr,*)'Cd is not user specified: using subroutine bulkdragcoeff to compute Cd'
+                    call write_log(logstr, 0)                    
+                    !
 					call bulkdragcoeff(veg_ah(m),m,Cdterm,no_nodes,no_secveg,depth,H,kwav,veg_bstems(m),sigm) ! bulkdragcoeff(ahveg(k,m)+zb0(k)-zb(k),m,k,Cdterm) <- no bed level change implemented in Snapwave
                     !write(*,*)'Cd is not user specified: putting default value of 0.7'
 					!veg_Cd(k,m) = 0.7

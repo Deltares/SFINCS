@@ -67,7 +67,8 @@ contains
            nheader = 16
        endif
        !
-       write(*,*)'Debug: not possible to automatically find number of headers in .spw file, switch to hardcoded value of nheader = ',nheader
+       write(logstr,*)'Debug: not possible to automatically find number of headers in .spw file, switch to hardcoded value of nheader = ',nheader
+       call write_log(logstr, 0)       
        !       
    endif
    !      
@@ -180,7 +181,8 @@ contains
        !
        nheader = 13
        !
-       write(*,*)'Debug: not possible to automatically find number of headers in amu/amv/amp file, switch to hardcoded value of nheader = ',nheader
+       write(logstr,*)'Debug: not possible to automatically find number of headers in amu/amv/amp file, switch to hardcoded value of nheader = ',nheader
+       call write_log(logstr, 0)       
        !       
    endif
    !      
@@ -278,7 +280,8 @@ contains
               nheader = 16
           endif
           !
-          write(*,*)'Debug: not possible to automatically find number of headers in .spw file, switch to hardcoded value of nheader = ',nheader
+          write(logstr,*)'Debug: not possible to automatically find number of headers in .spw file, switch to hardcoded value of nheader = ',nheader
+          call write_log(logstr, 0)          
           !       
       endif
       !      
@@ -370,7 +373,8 @@ contains
           !
           nheader = 13
           !
-          write(*,*)'Debug: not possible to automatically find number of headers in amu/amv/amp file, switch to hardcoded value of nheader = ',nheader
+          write(logstr,*)'Debug: not possible to automatically find number of headers in amu/amv/amp file, switch to hardcoded value of nheader = ',nheader
+          call write_log(logstr, 0)          
           !       
       endif
       !      
