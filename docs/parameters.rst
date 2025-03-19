@@ -60,12 +60,12 @@ Parameters for model input
 	  :default:		upw1	
 	  :min:			upw1	
 	  :max:			original	  
-	advlim	
-	  :description:		Advection term limiter. Possibility to limit the advection term in the momentum equation for increased stability, default is large number.
-	  :units:		-	
-	  :default:		9999.9		
-	  :min:			1.0	
-	  :max:			9999.9	  
+	advlim
+	  :description:		Limit advection term (when advection > 0) such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2, so limiter turned on by default
+	  :units:		m/s2
+	  :default:		1.0 - updated from SFINCS v2.1.2 onwards
+	  :min:			0
+	  :max:			9999  
 	alpha	
 	  :description:		Numerical time step reduction for CFL-condition. Decrease for additional numerical stability, minimum value is 0.1 and maximum is 0.75.
 	  :units:		-	
@@ -83,26 +83,14 @@ Parameters for model input
 	  :units:		m
 	  :default:		0.05
 	  :min:			0.001 (recommended)
-	  :max:			0.1 (recommended)
-	hmin_cfl	
-	  :description:		Minimum water depth for cfl condition in max timestep determination.
-	  :units:		m
-	  :default:		0.1
-	  :min:			0.0
-	  :max:			-	  
-	hmin_uv	
-	  :description:		Minimum water depth for uv velocity determination in momentum equation.
-	  :units:		m
-	  :default:		0.1
-	  :min:			0.0
-	  :max:			-		  
+	  :max:			0.1 (recommended)	  
 	theta
 	  :description:		Numerical smoothing factor in momentum equation. Default of 1.0 means no smoothing.
 	  :units:		-
 	  :default:		1.0
 	  :min:			0.8
 	  :max:			1.0
-	hmin_cfl	
+	hmin_cfl - added from SFINCS v2.1.2 onwards	
 	  :description:		Minimum water depth to determine maximum timestep using CFL-conditions. Possibility to lower the maximum timestep for increased stability by putting a larger values than the deafult of 0.1 m (as was default before became user option).
 	  :units:		m	
 	  :default:		0.1		
@@ -129,6 +117,12 @@ Parameters for model input
 	  :default:		0.01
 	  :min:			0.0
 	  :max:			Inf	  	  	  
+	coriolis
+	  :description: Turns on the Coriolis term in the momentum equation, by default turned on (coriolis = True). For projected coordinate system, if latitude is not provided (default, latitude = 0.0), coriolis is still turned off.
+	  :units:		logical
+	  :default:		True
+	  :min:			False
+	  :max:			True
 	zsini
 	  :description:		Initial water level in entire domain - where above bed level.
 	  :units:		m above reference level
@@ -199,19 +193,38 @@ More parameters for model input (only for advanced users)
 	  :default:		1024
 	  :min:			-
 	  :max:			-
-	stopdepth
+	stopdepth - removed from SFINCS v2.1.1 Dollerup onwards, replaced by 'uvmax'
 	  :description:		Water depth based on which the minimal time step is determined below which the simulation is classified as unstable and stopped.
 	  :units:		m
 	  :default:		100
 	  :min:			0
 	  :max:			Inf	  
-	advlim
-	  :description:		Advection limiter when advection>0 to limit the magnitude of the advection term when calculating fluxes between cells.
-	  :units:		-
-	  :default:		9999
+	wiggle_suppression
+	  :description:		If the acceleration of water level in cell nm is large and positive and in nmu large and negative, or vice versa, apply limiter to the flux. Only for subgrid mode.
+	  :units:		logical
+	  :default:		True - updated from SFINCS v2.1.2 onwards
+	  :min:			False
+	  :max:			True
+	  :limitation:	Only for subgrid mode
+	uvlim - added from SFINCS v2.1.2 onwards
+	  :description:		Limit flux velocity (default 10 m/s)
+	  :units:		m/s
+	  :default:		10
 	  :min:			0
-	  :max:			9999
-	dtmax.
+	  :max:			9999	  	  
+	uvmax - added from SFINCS v2.1.2 onwards, replaces 'stopdepth'
+	  :description:		Maximum flux velocity (default 1000 m/s), used to determine minimum timestep, below which simulation is classified as unstable and stopped.
+	  :units:		m/s
+	  :default:		1000
+	  :min:			0
+	  :max:			9999	
+	slopelim - added from SFINCS v2.1.2 onwards
+	  :description:		Apply slope limiter to dzdx (turned off by default, by setting to 9999.9)
+	  :units:		-
+	  :default:		9999.9
+	  :min:			0.0001
+	  :max:			9999.9	  	  
+	dtmax
 	  :description:		Maximum allowed internal timestep.
 	  :units:		s
 	  :default:		60
@@ -364,7 +377,12 @@ Parameters for model output
 	  :description:		Flag to turn on writing away every timestep to output as debug mode (debug = 1)
 	  :units:		-
 	  :default:		0	
-
+	percentage_done
+	  :description:		Setting of how frequent to show progress of SFINCS in terms of % and time remaining, default = 5%
+	  :units:		integer
+	  :default:		5	
+	  :min:			1
+	  :max:			100		  	
 Input files
 =====	 
 

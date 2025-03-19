@@ -1,4 +1,6 @@
 module sfincs_boundaries
+   
+   use sfincs_log
 
 contains
 
@@ -27,13 +29,14 @@ contains
       !
       if ((t_bnd(1) > (t0 + 1.0)) .or. (t_bnd(ntbnd) < (t1 - 1.0))) then
          !
-         write(*,'(a)')' WARNING! Times in boundary conditions file do not cover entire simulation period!'
+         write(logstr,'(a)')' WARNING! Times in boundary conditions file do not cover entire simulation period!'
+         call write_log(logstr, 1)
          !
       endif   
       !
    elseif (bndfile(1:4) /= 'none') then    ! Normal ascii input files
       !
-      write(*,*)'Reading water level boundaries ...'
+      call write_log('Info    : reading water level boundaries', 0)
       !
       open(500, file=trim(bndfile))
       do while(.true.)
@@ -86,17 +89,20 @@ contains
       !      
       if ((t_bnd(1) > (t0 + 1.0)) .or. (t_bnd(ntbnd) < (t1 - 1.0))) then
          ! 
-         write(*,'(a)')' WARNING! Times in boundary conditions file do not cover entire simulation period !'
+         write(logstr,'(a)')'Warning! Times in boundary conditions file do not cover entire simulation period !'
+         call write_log(logstr, 1)
          !
          if (t_bnd(1) > (t0 + 1.0)) then
             ! 
-            write(*,'(a)')' WARNING! Adjusting first time in boundary conditions time series !'
+            write(logstr,'(a)')'Warning! Adjusting first time in boundary conditions time series !'
+            call write_log(logstr, 1)
             !
             t_bnd(1) = t0 - 1.0
             !
          else
             ! 
-            write(*,'(a)')' WARNING! Adjusting last time in boundary conditions time series !'
+            write(logstr,'(a)')'Warning! Adjusting last time in boundary conditions time series !'
+            call write_log(logstr, 1)
             !
             t_bnd(ntbnd) = t1 + 1.0
             !
@@ -104,34 +110,56 @@ contains
          !
       endif   
       !
-      ! Check for 'weird' values
-      !
-      iok = 1
-      ! 
-      do ib = 1, nbnd
-         do itb = 1, ntbnd
-            !
-            if (zs_bnd(ib, itb)<-99.0 .or. zs_bnd(ib, itb)>990.0) then
-               !
-               iok = 0
-               !
-               zs_bnd(ib, itb) = 0.0
-               !
-            endif
-            !
-         enddo 
-      enddo    
-      !
-      if (iok == 0) then
-         ! 
-         write(*,'(a)') ' WARNING! Very low or high values found in boundary conditions file ! Please check !'
-         ! 
-      endif
-      !
    elseif (include_boundaries) then   
       !
-      write(*,'(a)') ' Warning : Boundary cells found in mask, without boundary conditions. Using water level of 0.0 m at these points.'
+      write(logstr,'(a)')'Warning! Boundary cells found in mask, without boundary conditions. Using water level of 0.0 m at these points.'
+      call write_log(logstr, 1)
       !
+      nbnd = 1
+      allocate(x_bnd(nbnd))
+      allocate(y_bnd(nbnd))
+      x_bnd(1) = 0.0
+      y_bnd(1) = 0.0
+      !
+      ntbnd = 2
+      !
+      allocate(t_bnd(ntbnd))
+      allocate(zs_bnd(nbnd,ntbnd))
+      allocate(zst_bnd(nbnd))
+      !
+      t_bnd(1) = t0
+      t_bnd(2) = t1
+      zs_bnd(1,1) = 0.0
+      zs_bnd(2,1) = 0.0
+      zs_bnd(1,2) = 0.0
+      zs_bnd(2,2) = 0.0
+      zst_bnd(1)  = 0.0      
+      !
+   endif
+   !
+   ! Check for 'weird' values
+   !
+   iok = 1
+   ! 
+   do ib = 1, nbnd
+      do itb = 1, ntbnd
+         !
+         if (zs_bnd(ib, itb)<-99.0 .or. zs_bnd(ib, itb)>990.0) then
+            !
+            iok = 0
+            !
+            zs_bnd(ib, itb) = 0.0
+            !
+         endif
+         !
+      enddo 
+   enddo    
+   !
+   if (iok == 0) then
+      ! 
+      write(logstr,'(a)')'Warning! Very low, very high or NaN values found in boundary conditions file ! These have now been replaced with zeros. Please check !'
+      call write_log(logstr, 1)
+      ! 
    endif
    !
    ! Read wave boundaries
@@ -141,7 +169,8 @@ contains
    !
    if (bwvfile(1:4) /= 'none') then
       !
-      write(*,*)'Reading wave boundaries ...'
+      write(logstr,'(a)')'Info    : reading wave boundaries'
+      call write_log(logstr, 0)
       !
       ! Locations
       !
@@ -240,120 +269,6 @@ contains
 !!      call RANDOM_NUMBER(r)
 !      dphiig(ifreq) = 1.0e-6*2*3.1416/freqig(ifreq)
 !   enddo
-   !
-   end subroutine
-
-
-   subroutine read_coastline()
-   !
-   ! Reads cst files and finds indices and weights from points in bwv file
-   !
-   use sfincs_data
-   !
-   implicit none
-   !
-   real*4 dummy, dst1, dst2, dst
-   !
-   integer n, ib, ic, stat, ib1, ib2, icsttype
-   !
-   ! Read coastline file
-   !
-   ncst = 0
-   !
-   if (cstfile(1:4) /= 'none') then
-      write(*,*)'Reading coast line ...'
-      open(500, file=trim(cstfile))
-      do while(.true.)
-         read(500,*,iostat = stat)dummy
-         if (stat<0) exit
-         ncst = ncst + 1
-      enddo
-      rewind(500)
-      allocate(x_cst(ncst))
-      allocate(y_cst(ncst))
-      allocate(slope_cst(ncst))
-      allocate(angle_cst(ncst))
-      allocate(zsetup_cst(ncst))
-      allocate(zig_cst(ncst))
-      allocate(ind1_bwv_cst(ncst))
-      allocate(ind2_bwv_cst(ncst))
-      allocate(fac_bwv_cst(ncst))
-      do n = 1, ncst
-         read(500,*)x_cst(n),y_cst(n),icsttype,angle_cst(n),slope_cst(n)
-      enddo
-      close(500)
-      angle_cst = (270.0 - angle_cst)*pi/180 ! Convert to cartesian in landward direction
-      !
-   else
-      !
-      ncst = 1
-      allocate(x_cst(ncst))
-      allocate(y_cst(ncst))
-      allocate(slope_cst(ncst))
-      allocate(angle_cst(ncst))
-      allocate(zsetup_cst(ncst))
-      allocate(zig_cst(ncst))
-      allocate(ind1_bwv_cst(ncst))
-      allocate(ind2_bwv_cst(ncst))
-      allocate(fac_bwv_cst(ncst))
-      x_cst(1) = 0.0
-      y_cst(1) = 0.0
-      slope_cst(1) = 0.1
-      angle_cst(1) = 0.0
-      !
-   endif
-   !
-   ! Determine matching indices of wave boundary conditions
-   !
-   do ic = 1, ncst
-      if (nwbnd>1) then
-         !
-         dst1 = 1.0e10
-         dst2 = 1.0e10
-         ib1 = 0
-         ib2 = 0
-         !
-         ! Loop through all water level boundary points
-         !
-         do ib = 1, nwbnd
-            !
-            ! Compute distance of this point to grid boundary point
-            !
-            dst = sqrt((x_bwv(ib) - x_cst(ic))**2 + (y_bwv(ib) - y_cst(ic))**2)
-            !
-            if (dst<dst1) then
-               !
-               ! Nearest point found
-               !
-               dst2 = dst1
-               ib2  = ib1
-               dst1 = dst
-               ib1  = ib
-               !
-            elseif (dst<dst2) then
-               !
-               ! Second nearest point found
-               !
-               dst2 = dst
-               ib2  = ib
-               !
-            endif
-         enddo
-         !
-         ind1_bwv_cst(ic)  = ib1
-         ind2_bwv_cst(ic)  = ib2
-         fac_bwv_cst(ic) = dst2/(dst1 + dst2)
-         !
-      else
-         !
-         ! Just one wave boundary point in bwv file
-         !
-         ind1_bwv_cst(ic)  = 1
-         ind2_bwv_cst(ic)  = 1
-         fac_bwv_cst(ic) = 1.0
-         !
-      endif
-   enddo
    !
    end subroutine
 
@@ -739,7 +654,7 @@ contains
       zsnmb  = zsb(indb)        ! total water level at boundary
       zs0nmb = zsb0(indb)       ! average water level inside model (without waves)
       !
-      if (bndtype==1) then
+      if (bndtype == 1) then
          !
          ! Weakly reflective boundary (default)
          !          
@@ -793,9 +708,22 @@ contains
             ui = sqrt(g/hnmb)*(zsnmb - zs0nmb)
             ub = ibuvdir(ib) * (2*ui - sqrt(g/hnmb)*(zsnmi - zs0nmb))
             !
-            q(ip) = ub*hnmb + uvmean(ib)
-            ! 
-            ! q(ip) = factime * ub * hnmb + one_minus_factime * uvmean(ib)
+            q(ip) = ub*hnmb + uvmean(ib)            
+            !
+!            if (ibndtype(indb) == 0 .and. bndtype == 2) then
+               !
+               ! mask=3 (outflow) boundary and we're using "normal" boundary 
+               !
+!               if (ibuvdir(ib) == 1) then
+!                  ! q(ip) = sqrt(dzdsbnd) * hnmb ** (5.0 / 3.0) / manningbnd
+!                  q(ip) = - normbnd * hnmb ** (5.0 / 3.0)
+!               else
+!                  ! q(ip) = - sqrt(dzdsbnd) * hnmb ** (5.0 / 3.0) / manningbnd
+!                  q(ip) = normbnd * hnmb ** (5.0 / 3.0)
+!               endif
+               ! write(*,*)ip,normbnd,hnmb,q(ip)
+               !
+!            endif
             !
             if (subgrid) then
                !
