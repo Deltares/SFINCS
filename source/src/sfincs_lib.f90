@@ -21,6 +21,7 @@ module sfincs_lib
    use sfincs_continuity
    use sfincs_snapwave
    use sfincs_wavemaker
+   use sfincs_nonhydrostatic
    use sfincs_log
    !
    implicit none
@@ -70,7 +71,7 @@ module sfincs_lib
    logical  :: update_meteo
    logical  :: update_waves
    !
-   real :: tstart, tfinish, tloopflux, tloopcont, tloopstruc, tloopbnd, tloopsrc, tloopwnd1, tloopwnd2, tloopoutput, tloopsnapwave, tloopwavemaker
+   real :: tstart, tfinish, tloopflux, tloopcont, tloopstruc, tloopbnd, tloopsrc, tloopwnd1, tloopwnd2, tloopoutput, tloopsnapwave, tloopwavemaker, tloopnonh
    real :: time_per_timestep
    real :: tinput
    real :: percdone,percdonenext,trun,trem
@@ -148,8 +149,6 @@ module sfincs_lib
    call write_log('Reading boundary data ...', 0) 
    call read_boundary_data()    ! Reads bnd, bzs, etc files
    !
-   ! call read_coastline()        ! Reads cst file. Do we still do this ?
-   !
    call find_boundary_indices()
    !
    call write_log('Reading observation points ...', 0) 
@@ -158,6 +157,14 @@ module sfincs_lib
    call read_crs_file()         ! Reads cross sections
    !
    call read_discharges()       ! Reads dis and src file
+   !
+   if (nonhydrostatic) then
+      !
+      ! Initialize matrix solver
+      !
+      call initialize_nonhydrostatic()
+      !
+   endif   
    !
    if (wavemaker) then
       !
@@ -268,6 +275,7 @@ module sfincs_lib
    tloopwnd2      = 0.0
    tloopsnapwave  = 0.0
    tloopwavemaker = 0.0
+   tloopnonh      = 0.0
    !
    call write_log('Initializing output ...', 0)
    !
@@ -555,6 +563,14 @@ module sfincs_lib
          !
       endif
       !      
+      if (nonhydrostatic) then
+         !
+         ! Apply non-hydrostatic pressure corrections
+         !
+         call compute_nonhydrostatic(dt, tloopnonh)
+         !
+      endif   
+      !      
       ! Update water levels
       !
       call compute_water_levels(dt, tloopcont)
@@ -647,42 +663,58 @@ module sfincs_lib
    call write_log(logstr, 1)
    write(logstr,'(a,f10.3)')          ' Time in input          : ',tinput
    call write_log(logstr, 1)
+   !
    if (include_boundaries) then
       write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in boundaries     : ',tloopbnd,' (',100*tloopbnd/(tfinish_all - tstart_all),'%)'
       call write_log(logstr, 1)
    endif   
+   !
    if (nsrc>0 .or. ndrn>0) then
       write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in discharges     : ',tloopsrc,' (',100*tloopsrc/(tfinish_all - tstart_all),'%)'
       call write_log(logstr, 1)
    endif   
+   !
    if (meteo3d)  then
       write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in meteo fields   : ',tloopwnd1,' (',100*tloopwnd1/(tfinish_all - tstart_all),'%)'
       call write_log(logstr, 1)
    endif   
+   !
    if (wind .or. patmos .or. precip) then
       write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in meteo forcing  : ',tloopwnd2,' (',100*tloopwnd2/(tfinish_all - tstart_all),'%)'
       call write_log(logstr, 1)
    endif   
+   !
    write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in momentum       : ',tloopflux,' (',100*tloopflux/(tfinish_all - tstart_all),'%)'
    call write_log(logstr, 1)
+   !
+   if (nonhydrostatic) then
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in non-hydrostatic: ',tloopnonh,' (',100*tloopnonh/(tfinish_all - tstart_all),'%)'
+      call write_log(logstr, 1)
+   endif
+   !
    if (nrstructures>0) then
       write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in structures     : ',tloopstruc,' (',100*tloopstruc/(tfinish_all - tstart_all),'%)'
       call write_log(logstr, 1)
-   endif   
+   endif
+   !
    write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in continuity     : ',tloopcont,' (',100*tloopcont/(tfinish_all - tstart_all),'%)'
    call write_log(logstr, 1)
+   !
    write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in output         : ',tloopoutput,' (',100*tloopoutput/(tfinish_all - tstart_all),'%)'
    call write_log(logstr, 1)
+   !
    if (snapwave) then
       write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in SnapWave       : ',tloopsnapwave,' (',100*tloopsnapwave/(tfinish_all - tstart_all),'%)'
       call write_log(logstr, 1)
    endif
+   !
    if (wavemaker) then
       write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in wave maker     : ',tloopwavemaker,' (',100*tloopwavemaker/(tfinish_all - tstart_all),'%)'
       call write_log(logstr, 1)
    endif
    call write_log('', 1)
    write(logstr,'(a,20f10.3)')        ' Average time step (s)  : ',dtavg
+   !
    call write_log(logstr, 1)
    call write_log('', 1)
    !

@@ -240,6 +240,7 @@ module sfincs_data
       logical       :: wiggle_suppression
       logical       :: wmrandom      
       logical       :: store_dynamic_bed_level
+      logical       :: nonhydrostatic
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
@@ -564,9 +565,6 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: betamean
       real*4, dimension(:),   allocatable :: srcig      
       real*4, dimension(:),   allocatable :: alphaig      
-      
-      !      real*4, dimension(:),   allocatable :: tauwavv
-      !
       !!!
       !!! Boundary data
       !!!
