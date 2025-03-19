@@ -1,5 +1,7 @@
 module snapwave_boundaries
 
+   use sfincs_log
+    
 contains   
    
    subroutine read_boundary_data()
@@ -79,13 +81,15 @@ contains
    ds_bwv = ds_bwv * pi / 180      
    !
    ! Write number of input points sounds - independent of input type
-   write(*,*)'Input wave boundary points found: ',nwbnd
+   write(logstr,*)'Input wave boundary points found: ',nwbnd
+   call write_log(logstr, 1)
    !
    ! Check length time-series - independent of input type
    !
    if ((t_bwv(1) > (t0 + 1.0)) .or. (t_bwv(ntwbnd) < (t1 - 1.0))) then
        ! 
-       write(*,'(a)')' WARNING! Times in wave boundary conditions file do not cover entire simulation period!'
+       write(logstr,'(a)')' WARNING! Times in wave boundary conditions file do not cover entire simulation period!'
+       call write_log(logstr, 1)   
        !
    endif      
    !
@@ -106,7 +110,9 @@ contains
    !
    ! Read wave boundaries
    !
-   write(*,*)'Reading wave boundary enclosure ', trim(snapwave_encfile), ' ...'
+   write(logstr,*)'Reading wave boundary enclosure ', trim(snapwave_encfile), ' ...'
+   call write_log(logstr, 0)   
+   !
    open(500, file=trim(snapwave_encfile)) !as in bwvfile of SFINCS
    do while(.true.)
       read(500,*,iostat = stat)dummy
@@ -137,7 +143,8 @@ contains
    integer :: ier
    real*4  :: dum
    !   
-   write(*,*)'Reading boundary file ', trim(snapwave_jonswapfile), ' ...'
+   write(logstr,*)'Reading boundary file ', trim(snapwave_jonswapfile), ' ...'
+   call write_log(logstr, 0)   
    !
    ! Read jonswap wave time series
    !
@@ -189,7 +196,8 @@ contains
    if (snapwave_bndfile(1:4) /= 'none') then    ! Normal ascii input files
       ! temporarily use this input of hs/tp/wavdir/dirspr in separate files, later change to DFM type tim-files
       !
-      write(*,*)'Reading wave boundary locations ...'
+      write(logstr,*)'Reading wave boundary locations ...'
+      call write_log(logstr, 0)      
       !
       open(500, file=trim(snapwave_bndfile)) !as in bwvfile of SFINCS
       do while(.true.)
@@ -207,7 +215,8 @@ contains
       !
       ! Read wave boundaries
       !
-      write(*,*)'Reading wave boundaries ...'
+      write(logstr,*)'Reading wave boundaries ...'
+      call write_log(logstr, 0)      
       !
       ! Wave time series
       !
@@ -424,7 +433,8 @@ subroutine find_nearest_depth_for_boundary_points()
         !
         if (ib2 == 0) then
             !
-            write(*,*)'Warning: only 1 close grid point found for boundary input location (x,y): ',x_bwv(ic),y_bwv(ic)
+            write(logstr,*)'Warning: only 1 close grid point found for boundary input location (x,y): ',x_bwv(ic),y_bwv(ic)
+            call write_log(logstr, 1)            
             deptht_bwv(ic) = depth(ib1)
             !
         else
@@ -545,21 +555,27 @@ subroutine update_boundary_points(t)
       ! Limit wave height (0 < hs < 25)
       !       
       if ((hs < 0.0) .or. (hs > 25.0)) then
-      	  write(*,*)'DEBUG SnapWave - input wave height is outside acceptable range of 0-25 m: ',hs, ' and is therefore limited back to this range, please check whether your input is realistic!'
+      	  write(logstr,*)'DEBUG SnapWave - input wave height is outside acceptable range of 0-25 m: ',hs, ' and is therefore limited back to this range, please check whether your input is realistic!'
+          call write_log(logstr, 1)
+          !
           hs = max(min(hs, 25.0), 0.0)
       endif  
       !
       ! Limit directional spreading (1 < ds < 60)
       !       
       if ((dsp < 3*pi/180) .or. (dsp > 90*pi/180)) then  
-      	  write(*,*)'DEBUG SnapWave - input wave spreading is outside acceptable range of 3-90 degrees: ',dsp/pi*180, ' and is therefore limited back to this range, please check whether your input is realistic!'          
+      	  write(logstr,*)'DEBUG SnapWave - input wave spreading is outside acceptable range of 3-90 degrees: ',dsp/pi*180, ' and is therefore limited back to this range, please check whether your input is realistic!'
+          call write_log(logstr, 1)          
+          !          
           dsp = max(min(dsp, 90*pi/180), 3*pi/180)
       endif      
       !
       ! Limit period (0.1 < tps < 25)
       !       
       if ((tps < 0.1) .or. (tps > 25.0)) then
-      	  write(*,*)'DEBUG SnapWave - input wave period is outside acceptable range of 0.1-25 s: ',tps, ' and is therefore limited back to this range, please check whether your input is realistic!'
+      	  write(logstr,*)'DEBUG SnapWave - input wave period is outside acceptable range of 0.1-25 s: ',tps, ' and is therefore limited back to this range, please check whether your input is realistic!'
+          call write_log(logstr, 1)          
+          !
           tps = max(min(tps, 25.0), 0.1)
       endif      
       !
