@@ -224,7 +224,7 @@ contains
       if (.not. exists) then    
           ! Give error message, but do not stop simulation > determine upwfile instead as if none was given
           !
-          write(logstr,*)'SnapWave: Error! Something went wrong with reading in upwfile, determine again from scratch ...'
+          write(logstr,*)'SnapWave: Determine upwfile again from scratch ...'
           call write_log(logstr, 0)          
           !trim(file_name), '" not found!
           generate_upw = .true.
