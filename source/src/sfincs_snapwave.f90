@@ -129,6 +129,38 @@ contains
    ! Copy final snapwave mask from snapwave_domain for output in sfincs_ncoutput
    snapwave_mask = msk   
    !
+   call write_log('------------------------------------------', 1)
+   call write_log('SnapWave Processes', 1)
+   call write_log('------------------------------------------', 1)
+   if (igwaves) then
+      call write_log('SnapWave IG waves                  : yes', 1)
+   else   
+      call write_log('SnapWave IG waves                  : no', 1)
+   endif
+   if (iterative_srcig) then
+      call write_log('SnapWave implicit IG source term   : yes', 1)
+   else   
+      call write_log('SnapWave implicit IG source term   : no', 1)
+   endif
+   if (igherbers) then 
+      call write_log('SnapWave IG bc using Herbers       : yes', 1)
+   else   
+      call write_log('SnapWave IG bc using Herbers       : no', 1)
+   endif
+   if (wind) then
+      call write_log('SnapWave wind growth               : yes', 1)
+   else   
+      call write_log('SnapWave wind growth               : no', 1)
+   endif
+   if (vegetation) then
+      call write_log('SnapWave vegetation                : yes', 1)
+   else   
+      call write_log('SnapWave vegetation                : no', 1)
+   endif
+   !
+   call write_log('------------------------------------------', 1)
+   call write_log('', 1)   
+   !
    end subroutine
    
 
@@ -508,7 +540,7 @@ contains
    call read_real_input(500,'snapwave_alphaigfac',alphaigfac,1.0)               ! Multiplication factor for IG shoaling source/sink term         
    call read_real_input(500,'snapwave_baldock_ratio_ig',baldock_ratio_ig,0.2)       
    call read_int_input(500,'snapwave_ig_opt',ig_opt,1)     
-   call read_int_input(500,'snapwave_iterative_srcig',iterative_srcig,0)        ! Option whether to calculate IG source/sink term in iterative lower (better, but potentially slower, 1=default), or effectively based on previous timestep (faster, potential mismatch, =0)
+   call read_int_input(500,'snapwave_iterative_srcig',iterative_srcig_opt,0)        ! Option whether to calculate IG source/sink term in iterative lower (better, but potentially slower, 1=default), or effectively based on previous timestep (faster, potential mismatch, =0)
    !
    ! IG boundary conditions options:
    call read_int_input(500,'snapwave_use_herbers',herbers_opt,1)    ! Choice whether you want IG Hm0&Tp be calculated by herbers (=1, default), or want to specify user defined values (0> then snapwave_eeinc2ig & snapwave_Tinc2ig are used) 
@@ -544,28 +576,21 @@ contains
    !
    igwaves          = .true.
    igherbers        = .false.
+   iterative_srcig  = .false.   
    !
    if (igwaves_opt==0) then
-      !
       igwaves       = .false.
-      call write_log('SnapWave: IG waves turned OFF!', 1)
-      !
    else
       ! 
-      call write_log('SnapWave: IG waves turned ON!', 1)
-      !
-      if (iterative_srcig==1) then
-         call write_log('SnapWave: using implicit IG sink/source term', 1)
-      else
-         call write_log('SnapWave: using explicit IG sink/source term', 1)       
+      if (iterative_srcig_opt==1) then
+         iterative_srcig = .true.
       endif      
       !
       if (herbers_opt==0) then
-         write(*,*)'SnapWave: IG bc determination using Herbers turned OFF! --> Use eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
+         write(*,*)'SnapWave: IG bc using use eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
          call write_log(logstr, 1)         
       else
          igherbers     = .true.          
-         call write_log('SnapWave: IG bc determination using Herbers turned ON!', 1)
       endif
       !
    endif
@@ -573,17 +598,11 @@ contains
    wind          = .true.
    if (wind_opt==0) then
       wind       = .false.
-     call write_log('SnapWave: wind growth turned OFF!', 1)
-   else
-      call write_log('SnapWave: wind growth turned ON!', 1)
    endif   
    !
    vegetation          = .true.
    if (vegetation_opt==0) then
       vegetation       = .false.
-      call write_log('SnapWave: vegetation turned OFF!', 1)
-   else
-      call write_log('SnapWave: vegetation turned ON!', 1)
    endif   
    !
    if (nr_sweeps /= 1 .and. nr_sweeps /= 4) then
