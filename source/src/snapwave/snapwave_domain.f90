@@ -214,32 +214,33 @@ contains
    !
    ! Check whether snapwave_upwfile exists, if so, try to read
    !
+   ! Note: at this point, upwfile is never 'none' when called from SFINCS
+   !
    if (upwfile /= 'none') then   
-      !
-      write(logstr,*)'Reading upwind neighbors file ...'
-      call write_log(logstr, 0)      
       !
       inquire( file=trim(upwfile), exist=exists )      
       !
       if (.not. exists) then    
-          ! Give error message, but do not stop simulation > determine upwfile instead as if none was given
-          !
-          write(logstr,*)'SnapWave: Determine upwfile again from scratch ...'
-          call write_log(logstr, 0)          
-          !trim(file_name), '" not found!
-          generate_upw = .true.
-          !
+         !
+         ! File does not exist, so building it (screen messages will appear later)
+         !
+         generate_upw = .true.
+         !
       else
-          !
-          open(unit=145, file=trim(upwfile), form='unformatted', access='stream')
-          read(145)prev360
-          read(145)w360
-          read(145)ds360
-          read(145)dhdx
-          read(145)dhdy
-          close(145)
-          !
-          ds360d0 = ds360 * 1.d0
+         !
+         write(logstr,*)'Reading upwind neighbors file ...'
+         call write_log(logstr, 0)      
+         !
+         open(unit=145, file=trim(upwfile), form='unformatted', access='stream')
+         read(145)prev360
+         read(145)w360
+         read(145)ds360
+         read(145)dhdx
+         read(145)dhdy
+         close(145)
+         !
+         ds360d0 = ds360 * 1.d0
+         !
       endif
    endif
    !      
