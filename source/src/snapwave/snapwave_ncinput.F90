@@ -1,6 +1,7 @@
 #define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)   
 module snapwave_ncinput
    !
+   use sfincs_log
    use netcdf       
    !
    implicit none
@@ -46,7 +47,8 @@ module snapwave_ncinput
       y_varname    = 'y'  
 !   endif   
    !
-   write(*,*)'Reading netcdf type SnapWave input boundaries (bnd, bhs, btp, bwd, bds)...'
+   write(logstr,*)'Reading netcdf type SnapWave input boundaries (bnd, bhs, btp, bwd, bds)...'
+   call write_log(logstr, 1)   
    !
    ! Actual reading of data
    !

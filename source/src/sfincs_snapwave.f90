@@ -1,5 +1,7 @@
 module sfincs_snapwave
    !
+   use sfincs_log
+   !    
    implicit none
    !     
    integer                                   :: snapwave_no_nodes
@@ -50,47 +52,50 @@ contains
    build_revision = '$Rev: svn 108-branch:SnapWave_IG'
    build_date     = '$Date: 2024-10-16'
    !
-   write(*,'(a)')''
-   write(*,*)'----------- Welcome to SnapWave ---------'   
-   write(*,'(a)')''
-   write(*,*)'   @@@@@   @@  @@  @@@@@@  @@@@@@   @@@  '
-   write(*,*)'  @@@ @@@  @@@ @@  @@@@@@  @@@@@@   @@@  '
-   write(*,*)'  @@@      @@@ @@  @@  @@  @@  @@   @@@  '
-   write(*,*)'   @@@@@   @@@@@@  @@@@@@  @@@@@@   @@@  '
-   write(*,*)'      @@@  @@ @@@  @@  @@  @@            '
-   write(*,*)'  @@@ @@@  @@  @@  @@  @@  @@       @@@  '
-   write(*,*)'   @@@@@   @@   @  @@  @@  @@       @@@  '
-   write(*,'(a)')''   
-   write(*,*)'             .......:.......             '
-   write(*,*)'         ...:::::::::::::::::...         '
-   write(*,*)'      ..:::::::............::::::..      '
-   write(*,*)'    ..::::::.....:@@@@@@@@....:::::..    '
-   write(*,*)'   .::::::...~@@@@@@@@@@@@@@~..::::::.   '
-   write(*,*)'  .::::::..:@@@@@@@@@@@@@@@@@@:.::::::.  '
-   write(*,*)' .:::::..:@@@@@@@@@@@@@@@@@@@@@:.::::::. '
-   write(*,*)'.::::..:@@@@@@@@@@@@@@^......:@@.:::::::.'
-   write(*,*)'.::...:@@@@@@@@@@@@@@@.:::::..^^.:::::::.'
-   write(*,*)'::.:@@@@@@@@@@@@@@@@@@..::::::..:::::::::'
-   write(*,*)'..:@@@@@@@@@@@@@@@@@@@@^..............::.'
-   write(*,*)'..:@@@@@@@@@@@@@@@@@@@@@@@^:..:~^~^~:..:.'
-   write(*,*)' .:@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:. '
-   write(*,*)'  .@@~^~@@@@~^~@@@@~^~@@@@~^~@@@@~^~@@.  '
-   write(*,*)'   ...................................   '
-   write(*,*)'    ..:::::::::::::::::::::::::::::..    '
-   write(*,*)'      ..:::::::::::::::::::::::::..      '
-   write(*,*)'         ...:::::::::::::::::...         '
-   write(*,*)'             .......:.......             '
-   write(*,'(a)')''
-   write(*,*)'-----------------------------------------'   
-   write(*,'(a)')''
-   write(*,*)'Build-Revision: ',trim(build_revision)
-   write(*,*)'Build-Date:     ',trim(build_date)
-   write(*,'(a)')''   
+   call write_log('', 1)
+   call write_log('----------- Welcome to SnapWave ---------', 1)
+   call write_log('', 1)
+   call write_log('   @@@@@   @@  @@  @@@@@@  @@@@@@   @@@  ', 1)
+   call write_log('  @@@ @@@  @@@ @@  @@@@@@  @@@@@@   @@@  ', 1)
+   call write_log('  @@@      @@@ @@  @@  @@  @@  @@   @@@  ', 1)
+   call write_log('   @@@@@   @@@@@@  @@@@@@  @@@@@@   @@@  ', 1)
+   call write_log('      @@@  @@ @@@  @@  @@  @@            ', 1)
+   call write_log('  @@@ @@@  @@  @@  @@  @@  @@       @@@  ', 1)
+   call write_log('   @@@@@   @@   @  @@  @@  @@       @@@  ', 1)
+   call write_log('', 1)
+   call write_log('             .......:.......             ', 1)
+   call write_log('         ...:::::::::::::::::...         ', 1)
+   call write_log('      ..:::::::............::::::..      ', 1)
+   call write_log('    ..::::::.....:@@@@@@@@....:::::..    ', 1)
+   call write_log('   .::::::...~@@@@@@@@@@@@@@~..::::::.   ', 1)
+   call write_log('  .::::::..:@@@@@@@@@@@@@@@@@@:.::::::.  ', 1)
+   call write_log(' .:::::..:@@@@@@@@@@@@@@@@@@@@@:.::::::. ', 1)
+   call write_log('.::::..:@@@@@@@@@@@@@@^......:@@.:::::::.', 1)
+   call write_log('.::...:@@@@@@@@@@@@@@@.:::::..^^.:::::::.', 1)
+   call write_log('::.:@@@@@@@@@@@@@@@@@@..::::::..:::::::::', 1)
+   call write_log('..:@@@@@@@@@@@@@@@@@@@@^..............::.', 1)
+   call write_log('..:@@@@@@@@@@@@@@@@@@@@@@@^:..:~^~^~:..:.', 1)
+   call write_log(' .:@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:. ', 1)
+   call write_log('  .@@~^~@@@@~^~@@@@~^~@@@@~^~@@@@~^~@@.  ', 1)
+   call write_log('   ...................................   ', 1)
+   call write_log('    ..:::::::::::::::::::::::::::::..    ', 1)
+   call write_log('      ..:::::::::::::::::::::::::..      ', 1)
+   call write_log('         ...:::::::::::::::::...         ', 1)
+   call write_log('             .......:.......             ', 1)
+   call write_log('', 1)
+   call write_log('-----------------------------------------', 1)   
+   call write_log('', 1)
+   call write_log('Build-Revision: '//trim(build_revision), 1)
+   call write_log('Build-Date: '//trim(build_date), 1)   
+   call write_log('', 1)
+   call write_log('------ Preparing model simulation --------', 1)
+   call write_log('', 1)   
    !   
    ! Check whether SFINCS grid is spherical (T) or cartesian (F), and prescribe to SnapWave as variable 'sferic' -  spherical (1) or cartesian (0) grid
    if (crsgeo) then
       sferic  = 1 
-      write(*,*)'SnapWave: Input grid interpreted as spherical coordinates, sferic= ',sferic      
+      write(logstr,*)'SnapWave: Input grid interpreted as spherical coordinates, sferic= ',sferic     
+      call write_log(logstr, 0)   
    endif   
    !
    call read_snapwave_input()            ! Reads snapwave.inp
@@ -98,6 +103,8 @@ contains
    call initialize_snapwave_domain()     ! Read mesh, finds upwind neighbors, etc.
    !
    call read_boundary_data()
+   !
+   call write_log('', 1)
    !
    snapwave_no_nodes = no_nodes
    !
@@ -123,6 +130,37 @@ contains
    !
    ! Copy final snapwave mask from snapwave_domain for output in sfincs_ncoutput
    snapwave_mask = msk   
+   !
+   call write_log('------------------------------------------', 1)
+   call write_log('SnapWave Processes', 1)
+   call write_log('------------------------------------------', 1)
+   if (igwaves) then
+      call write_log('SnapWave IG waves                  : yes', 1)
+   else   
+      call write_log('SnapWave IG waves                  : no', 1)
+   endif
+   if (iterative_srcig) then
+      call write_log('SnapWave implicit IG source term   : yes', 1)
+   else   
+      call write_log('SnapWave implicit IG source term   : no', 1)
+   endif
+   if (igherbers) then 
+      call write_log('SnapWave IG bc using Herbers       : yes', 1)
+   else   
+      call write_log('SnapWave IG bc using Herbers       : no', 1)
+   endif
+   if (wind) then
+      call write_log('SnapWave wind growth               : yes', 1)
+   else   
+      call write_log('SnapWave wind growth               : no', 1)
+   endif
+   if (vegetation) then
+      call write_log('SnapWave vegetation                : yes', 1)
+   else   
+      call write_log('SnapWave vegetation                : no', 1)
+   endif
+   !
+   call write_log('------------------------------------------', 1)
    !
    end subroutine
    
@@ -446,9 +484,11 @@ contains
        !   
        if (snapwave_tpigmean < 10.0) then
            ! These warnings should not occur here
-!	       write(*,*)'DEBUG SFINCS_SnapWave - incoming tp for IG wave at wavemaker might be unrealistically small! value: ',snapwave_tpigmean
+	       write(logstr,*)'DEBUG SFINCS_SnapWave - incoming tp for IG wave at wavemaker might be unrealistically small! value: ',snapwave_tpigmean
+           call write_log(logstr, 0)           
        elseif (snapwave_tpigmean > 250.0) then
-!	       write(*,*)'DEBUG SFINCS_SnapWave - incoming tp for IG wave at wavemaker might be unrealistically large! value: ',snapwave_tpigmean
+	       write(logstr,*)'DEBUG SFINCS_SnapWave - incoming tp for IG wave at wavemaker might be unrealistically large! value: ',snapwave_tpigmean
+           call write_log(logstr, 0)   
        endif	 
    endif
    ! TL: NOTE - in first timestep run of SnapWave tp = 0, therefore excluded that case from the check     
@@ -501,7 +541,7 @@ contains
    call read_real_input(500,'snapwave_alphaigfac',alphaigfac,1.0)               ! Multiplication factor for IG shoaling source/sink term         
    call read_real_input(500,'snapwave_baldock_ratio_ig',baldock_ratio_ig,0.2)       
    call read_int_input(500,'snapwave_ig_opt',ig_opt,1)     
-   call read_int_input(500,'snapwave_iterative_srcig',iterative_srcig,0)        ! Option whether to calculate IG source/sink term in iterative lower (better, but potentially slower, 1=default), or effectively based on previous timestep (faster, potential mismatch, =0)
+   call read_int_input(500,'snapwave_iterative_srcig',iterative_srcig_opt,0)        ! Option whether to calculate IG source/sink term in iterative lower (better, but potentially slower, 1=default), or effectively based on previous timestep (faster, potential mismatch, =0)
    !
    ! IG boundary conditions options:
    call read_int_input(500,'snapwave_use_herbers',herbers_opt,1)    ! Choice whether you want IG Hm0&Tp be calculated by herbers (=1, default), or want to specify user defined values (0> then snapwave_eeinc2ig & snapwave_Tinc2ig are used) 
@@ -537,27 +577,21 @@ contains
    !
    igwaves          = .true.
    igherbers        = .false.
+   iterative_srcig  = .false.   
    !
    if (igwaves_opt==0) then
-      !
       igwaves       = .false.
-      write(*,*)'SnapWave: IG waves turned OFF!'
-      !
    else
       ! 
-      write(*,*)'SnapWave: IG waves turned ON!'
-      !
-      if (iterative_srcig==1) then
-         write(*,*)'SnapWave: using implicit IG sink/source term'
-      else
-         write(*,*)'SnapWave: using explicit IG sink/source term'       
+      if (iterative_srcig_opt==1) then
+         iterative_srcig = .true.
       endif      
       !
       if (herbers_opt==0) then
-         write(*,*)'SnapWave: IG bc determination using Herbers turned OFF! --> Use eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
+         write(logstr,*)'SnapWave: IG bc using use eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
+         call write_log(logstr, 1)         
       else
          igherbers     = .true.          
-         write(*,*)'SnapWave: IG bc determination using Herbers turned ON!'
       endif
       !
    endif
@@ -565,22 +599,16 @@ contains
    wind          = .true.
    if (wind_opt==0) then
       wind       = .false.
-      write(*,*)'SnapWave: wind growth turned OFF!'
-   else
-      write(*,*)'SnapWave: wind growth turned ON!'
    endif   
    !
    vegetation          = .true.
    if (vegetation_opt==0) then
       vegetation       = .false.
-      write(*,*)'SnapWave: vegetation turned OFF!'
-   else
-      write(*,*)'SnapWave: vegetation turned ON!'
    endif   
    !
    if (nr_sweeps /= 1 .and. nr_sweeps /= 4) then
       nr_sweeps = 4
-      write(*,*)'SnapWave: Warning! nr_sweeps must be 1 or 4! Now set to 4.'
+      call write_log('SnapWave: Warning! nr_sweeps must be 1 or 4! Now set to 4.', 1)
    endif
    ! 
    restart           = .true.

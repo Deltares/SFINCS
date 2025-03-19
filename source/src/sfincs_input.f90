@@ -124,7 +124,7 @@ contains
    call read_logical_input(500,'advection_mask',advection_mask,.true.)
    ! call read_real_input(500, 'dzdsbnd', dzdsbnd, 0.0001)
    ! call read_real_input(500, 'manningbnd', manningbnd, 0.024)
-   ! call read_real_input(500, 'nuviscfac', nuviscfac, 100.0)
+    call read_real_input(500, 'nuviscfac', nuviscfac, 100.0)
    !
    ! Domain
    !
@@ -216,6 +216,9 @@ contains
    call read_int_input(500,'storewavdir', istorewavdir, 0)
    call read_logical_input(500,'regular_output_on_mesh',use_quadtree_output,.false.)
    call read_logical_input(500, 'store_dynamic_bed_level', store_dynamic_bed_level, .false.)
+   call read_int_input(500,'percentage_done',percdoneval,5)
+   ! Limit to range (0,100)
+   percdoneval = max(min(percdoneval,100), 0)
    !
    ! Coupled SnapWave solver related
    call read_int_input(500,'snapwave_wind',iwind,0)   
@@ -469,7 +472,7 @@ contains
        endif
    endif
    !
-   store_tsunami_arrival_time = .false. ! Default use data in ampr file as block rather than linear interpolation
+   store_tsunami_arrival_time = .false. 
    if (itsunamitime==1) then
       store_tsunami_arrival_time = .true.
    endif      
@@ -481,7 +484,7 @@ contains
       call write_log('Info    : turning on process: Viscosity', 0)
    endif   
    !
-   spinup_meteo = .true. ! Default use data in ampr file as block rather than linear interpolation
+   spinup_meteo = .true. 
    if (ispinupmeteo==0) then
       spinup_meteo = .false.
    endif      

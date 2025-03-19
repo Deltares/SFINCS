@@ -1,5 +1,7 @@
 module snapwave_domain
 
+   use sfincs_log
+    
 contains
 
    subroutine initialize_snapwave_domain()
@@ -32,7 +34,8 @@ contains
    cosrot = cos(rotation*pi/180)
    sinrot = sin(rotation*pi/180)
    !
-   write(*,*)'Initializing SnapWave domain ...'
+   write(logstr,*)'Initializing SnapWave domain ...'
+   call write_log(logstr, 0)   
    !
    ! Load in mesh (no_faces, no_nodes, face_nodes, zb, x, y, xs, ys, msk)
    !
@@ -66,8 +69,13 @@ contains
       !
    endif    
    !
-   write(*,*)'Number of active SnapWave nodes : ', no_nodes
-   write(*,*)'Number of active SnapWave cells : ', no_faces
+   call write_log('------------------------------------------', 1)
+   call write_log('SnapWave Computational mesh ', 1)
+   call write_log('------------------------------------------', 1)
+   write(logstr,'(a,i9)')'Number of active SnapWave nodes: ', no_nodes   
+   call write_log(logstr, 1)   
+   write(logstr,'(a,i9)')'Number of active SnapWave cells: ', no_faces
+   call write_log(logstr, 1)   
    !   
    allocate(kp(np, no_nodes))
    !
@@ -208,14 +216,16 @@ contains
    !
    if (upwfile /= 'none') then   
       !
-      write(*,*)'Reading upwind neighbors file ...'
+      write(logstr,*)'Reading upwind neighbors file ...'
+      call write_log(logstr, 0)      
       !
       inquire( file=trim(upwfile), exist=exists )      
       !
       if (.not. exists) then    
           ! Give error message, but do not stop simulation > determine upwfile instead as if none was given
           !
-          write(*,*)'SnapWave: Error! Something went wrong with reading in upwfile, determine again from scratch ...'
+          write(logstr,*)'SnapWave: Error! Something went wrong with reading in upwfile, determine again from scratch ...'
+          call write_log(logstr, 0)          
           !trim(file_name), '" not found!
           generate_upw = .true.
           !
@@ -237,11 +247,13 @@ contains
    !
    if (generate_upw) then   
       !
-      write(*,*)'Getting surrounding points ...'
+      write(logstr,*)'Getting surrounding points ...'
+      call write_log(logstr, 0)      
       !
       call fm_surrounding_points(x, y, zb, no_nodes, sferic, face_nodes, no_faces, kp, np, dhdx, dhdy)
       !   
-      write(*,*)'Finding upwind neighbors ...'
+      write(logstr,*)'Finding upwind neighbors ...'
+      call write_log(logstr, 0)      
       call find_upwind_neighbours(x, y, no_nodes, sferic, theta360d0, ntheta360, kp, np, w360d0, prev360, ds360d0)
       !
       ! Distances and weights over 360 degrees (single precision)   
@@ -272,7 +284,8 @@ contains
    !
    if (.not. any(msk == 2)) then
        !
-       write(*,*)'Warning : no msk = 2 values found in snapwave_msk, trying using old encfile option:'
+       write(logstr,*)'Warning : no msk = 2 values found in snapwave_msk, trying using old encfile option:'
+       call write_log(logstr, 0)       
        !
        call read_boundary_enclosure() ! Only read old encfile option if no msk=2 cells found
        !
@@ -298,7 +311,8 @@ contains
       !
       if (ANY(neumannconnected > 0)) then
           !
-          write(*,*)'SnapWave: Neumann connected boundaries found ...'
+          write(logstr,*)'SnapWave: Neumann connected boundaries found ...'
+          call write_log(logstr, 0)          
           !
           do k=1,no_nodes
               if (neumannconnected(k)>0) then
@@ -346,7 +360,8 @@ contains
        !
    enddo   
    !
-   write(*,*)'Number of boundary SnapWave nodes : ',nb
+   write(logstr,*)'Number of boundary SnapWave nodes : ',nb
+   call write_log(logstr, 0)
    !
    end subroutine
 
@@ -905,7 +920,8 @@ subroutine neuboundaries(x,y,no_nodes,xneu,yneu,n_neu,tol,neumannconnected)
                   enddo
                   if (kmin>0) then
                      neumannconnected(kmin)=k
-                     write(*,*)kmin,k
+                     write(logstr,*)kmin,k
+                     call write_log(logstr, 0)                     
                   endif
                endif
             endif
@@ -944,7 +960,8 @@ end subroutine neuboundaries
    !
    ! Allocate arrays
    !
-   write(*,*)no_nodes,' active SnapWave points'
+   write(logstr,*)no_nodes,' active SnapWave points'
+   call write_log(logstr, 1)   
    !
    allocate(x(no_nodes))
    allocate(y(no_nodes))
@@ -960,7 +977,8 @@ end subroutine neuboundaries
    !
    ! Read index file
    !
-   write(*,*)'Reading ',trim(indfile)
+   write(logstr,*)'Reading ',trim(indfile)
+   call write_log(logstr, 1)   
    open(unit = 500, file = trim(indfile), form = 'unformatted', access = 'stream')
    read(500)no_nodes
    read(500)indices
@@ -968,14 +986,16 @@ end subroutine neuboundaries
    !
    ! Read binary depth file
    !
-   write(*,*)'Reading ',trim(depfile)
+   write(logstr,*)'Reading ',trim(depfile)
+   call write_log(logstr, 1)      
    open(unit = 500, file = trim(depfile), form = 'unformatted', access = 'stream')
    read(500)zb
    close(500)
    !
    ! Read binary mask file
    !
-   write(*,*)'Reading ',trim(mskfile)
+   write(logstr,*)'Reading ',trim(mskfile)
+   call write_log(logstr, 1)      
    open(unit = 500, file = trim(mskfile), form = 'unformatted', access = 'stream')
    read(500)msk
    close(500)
@@ -1057,7 +1077,8 @@ end subroutine neuboundaries
    !
    ! Read snapwave unstructured mesh from ASCII file 
    !
-   write(*,*)'Reading mesh ...'
+   write(logstr,*)'Reading mesh ...'
+   call write_log(logstr, 1)   
    !
    open(11,file=gridfile)
    read(11,*)no_nodes, no_faces, no_edges
@@ -1190,7 +1211,8 @@ end subroutine neuboundaries
       !
       if (mskfile /= 'none') then
          !       
-         write(*,*)'Reading SnapWave mask file ',trim(mskfile),' ...'
+         write(logstr,*)'Reading SnapWave mask file ',trim(mskfile),' ...'
+         call write_log(logstr, 0)         
          open(unit = 500, file = trim(mskfile), form = 'unformatted', access = 'stream')
          read(500)msk_tmp
          close(500)
@@ -1215,7 +1237,8 @@ end subroutine neuboundaries
    !
    if (depfile /= 'none') then
       !
-      write(*,*)'Reading SnapWave depth file ',trim(depfile),' ...'
+      write(logstr,*)'Reading SnapWave depth file ',trim(depfile),' ...'
+      call write_log(logstr, 1)      
       open(unit = 500, file = trim(depfile), form = 'unformatted', access = 'stream')
       read(500)zb_tmp
       close(500)

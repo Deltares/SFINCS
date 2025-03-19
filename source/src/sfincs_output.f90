@@ -709,16 +709,4 @@ module sfincs_output
    end subroutine
 
    
-   subroutine write_tsunami_arrival_file()
-   !
-   use sfincs_data
-   !
-   implicit none
-   !
-   open(unit = 911, status = 'replace', file = 'tsunami_arrival_time.dat', form = 'unformatted')
-   write(911)tsunami_arrival_time
-   close(911)   
-   !
-   end subroutine
-   
 end module

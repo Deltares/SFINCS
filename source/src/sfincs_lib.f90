@@ -90,7 +90,7 @@ module sfincs_lib
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
    build_revision = '$Rev: v2.1.3-branch:removed_cumprcpt'
-   build_date     = '$Date: 2025-03-14'
+   build_date     = '$Date: 2025-03-19'
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)
@@ -159,71 +159,13 @@ module sfincs_lib
    !
    call read_discharges()       ! Reads dis and src file
    !
-   if (snapwave) then
-      !
-      call write_log('Coupling with SnapWave ...', 1)
-      call couple_snapwave(crsgeo)
-      !
-   endif   
-   !
    if (wavemaker) then
       !
       call read_wavemaker_polylines()
       !
    endif
    !
-   call set_advection_mask()
-   !
-   call system_clock(count1, count_rate, count_max)
-   !
-   tinput  = 1.0*(count1 - count0)/count_rate
-   !
-   ! Initialize some parameters
-   !
-   t           = t0     ! start time
-   tout        = t0
-   dt          = 1.0e-6 ! First time step very small
-   dtavg       = 0.0    ! average time step
-   maxdepth    = 999.0  ! maximum depth over time step
-   maxmaxdepth = 0.0    ! maximum depth over entire simulation
-   min_dt      = 0.0    ! minimum time step from compute_fluxes
-   nt          = 0      ! number of time steps
-   ntmapout    = 0      ! number of map time steps
-   ntmaxout    = 0      ! number of max time steps
-   nthisout    = 0      ! number of his time steps
-   twindupd    = t0       ! time to update meteo
-   twaveupd    = t0       ! time to update waves
-   !
-   write_map    = .false. ! write map output
-   write_max    = .false. ! write max output
-   write_his    = .false. ! write his output
-   write_rst    = .false. ! write restart file
-   !
-   update_meteo = .false. ! update meteo fields
-   update_waves = .false. ! update wave fields
-   !
-   tloopflux      = 0.0
-   tloopcont      = 0.0
-   tloopstruc     = 0.0
-   tloopbnd       = 0.0
-   tloopsrc       = 0.0
-   tloopwnd1      = 0.0
-   tloopwnd2      = 0.0
-   tloopsnapwave  = 0.0
-   tloopwavemaker = 0.0
-   !
-   call write_log('Initializing output ...', 0)
-   !
-   call initialize_output(tmapout, tmaxout, thisout, trstout)
-   !
-   ! Quadtree no longer needed, so deallocate (this is done in sfincs_domain.f90)
-   ! 
-   call deallocate_quadtree()
-   !
-   !call acc_init( acc_device_nvidia )
-   !
-   ierr = error
-   !
+   call write_log('', 1)   
    call write_log('------------------------------------------', 1)
    call write_log('Processes', 1)
    call write_log('------------------------------------------', 1)
@@ -277,7 +219,67 @@ module sfincs_lib
    else   
       call write_log('Wave paddles         : no', 1)
    endif
-   call write_log('------------------------------------------', 1)   
+   call write_log('------------------------------------------', 1) 
+   call write_log('', 1)   
+   !
+   if (snapwave) then
+      !
+      call write_log('Coupling with SnapWave ...', 1)
+      call couple_snapwave(crsgeo)
+      !
+   endif   
+   !
+   call set_advection_mask()
+   !
+   call system_clock(count1, count_rate, count_max)
+   !
+   tinput  = 1.0*(count1 - count0)/count_rate
+   !
+   ! Initialize some parameters
+   !
+   t           = t0     ! start time
+   tout        = t0
+   dt          = 1.0e-6 ! First time step very small
+   dtavg       = 0.0    ! average time step
+   maxdepth    = 999.0  ! maximum depth over time step
+   maxmaxdepth = 0.0    ! maximum depth over entire simulation
+   min_dt      = 0.0    ! minimum time step from compute_fluxes
+   nt          = 0      ! number of time steps
+   ntmapout    = 0      ! number of map time steps
+   ntmaxout    = 0      ! number of max time steps
+   nthisout    = 0      ! number of his time steps
+   twindupd    = t0       ! time to update meteo
+   twaveupd    = t0       ! time to update waves
+   !
+   write_map    = .false. ! write map output
+   write_max    = .false. ! write max output
+   write_his    = .false. ! write his output
+   write_rst    = .false. ! write restart file
+   !
+   update_meteo = .false. ! update meteo fields
+   update_waves = .false. ! update wave fields
+   !
+   tloopflux      = 0.0
+   tloopcont      = 0.0
+   tloopstruc     = 0.0
+   tloopbnd       = 0.0
+   tloopsrc       = 0.0
+   tloopwnd1      = 0.0
+   tloopwnd2      = 0.0
+   tloopsnapwave  = 0.0
+   tloopwavemaker = 0.0
+   !
+   call write_log('Initializing output ...', 0)
+   !
+   call initialize_output(tmapout, tmaxout, thisout, trstout)
+   !
+   ! Quadtree no longer needed, so deallocate (this is done in sfincs_domain.f90)
+   ! 
+   call deallocate_quadtree()
+   !
+   !call acc_init( acc_device_nvidia )
+   !
+   ierr = error
    !
    call write_log('', 1)
    call write_log('---------- Starting simulation -----------', 1)
@@ -367,7 +369,7 @@ module sfincs_lib
       ! New time step
       !
       nt = nt + 1
-      dt = min(alfa * min_dt, tend - t) ! min_dt was computed in sfincs_momentum.f90 without alfa
+      dt = alfa * min_dt ! min_dt was computed in sfincs_momentum.f90 without alfa
       dtchk = alfa * min_dt
       !
       ! A bit unclear why this happens, but large jumps in the time step lead to weird oscillations.
@@ -589,8 +591,9 @@ module sfincs_lib
       !
       if (percdone >= percdonenext) then
          !
-         ! percdonenext = 1.0 * (int(percdone) + 5)
-         percdonenext = 1.0 * (int(percdone) + 1)
+         ! percdoneval is increment of % to show to log, default=+5%
+         percdonenext = 1.0 * (int(percdone) + percdoneval) 
+         !
          call system_clock(count1, count_rate, count_max)
          trun  = 1.0*(count1 - count00)/count_rate
          trem = trun / max(0.01*percdone, 1.0e-6) - trun
@@ -632,14 +635,6 @@ module sfincs_lib
    tfinish_all = 1.0 * (count1 - count00) / count_rate
    !
    call finalize_output(t,ntmaxout,tloopoutput,tmaxout)
-   !   
-   if (store_tsunami_arrival_time) then
-      !
-      ! Should this not be moved to ncoutput? 
-      !
-      call write_tsunami_arrival_file()   
-      !
-   endif
    !
    dtavg = dtavg/nt
    !

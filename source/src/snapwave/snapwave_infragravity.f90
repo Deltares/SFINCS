@@ -1,4 +1,7 @@
 module snapwave_infragravity
+
+    use sfincs_log
+    
     !TL: Module to calculate IG boundary conditions at offshore boundary input points, following Herbers et al. (1994) 
     ! and based on implementations in Matlab (secordspec) and XBeach (waveparams.f90)
     contains   
@@ -43,8 +46,12 @@ module snapwave_infragravity
     ! Loosely based on 3 step calculation in waveparams.F90 of XBeach (build_jonswap, build_etdir, build_boundw), here all in 1 subroutine calculate_herbers
     !
     if (depth < 5.0) then
-	    write(*,*)'ERROR SnapWave - depth at boundary input point ',x_bwv, y_bwv,' dropped below 5 m: ',depth, ' which might lead to large values of Hm0ig as bc, especially when directional spreading is low! Please specify input in deeper water. '
-        write(*,*)'Depth set back to 5 meters for stability, simulation will continue.'
+	    write(logstr,*)'ERROR SnapWave - depth at boundary input point ',x_bwv, y_bwv,' dropped below 5 m: ',depth, ' which might lead to large values of Hm0ig as bc, especially when directional spreading is low! Please specify input in deeper water. '
+        call write_log(logstr, 1)   
+        !
+        write(logstr,*)'Depth set back to 5 meters for stability, simulation will continue.'
+        call write_log(logstr, 1)   
+        !        
         depth = 5.0
     endif	
     !
@@ -52,11 +59,13 @@ module snapwave_infragravity
     !   
     ! Catch NaN values (if depth=0 probably) or unrealistically large values above 2 meters
     if (hsig < 0.0) then
-	    write(*,*)'DEBUG SnapWave - computed hm0ig at boundary dropped below 0 m: ',hsig, ' and is therefore limited back to 0 m!'
+	    write(logstr,*)'DEBUG SnapWave - computed hm0ig at boundary dropped below 0 m: ',hsig, ' and is therefore limited back to 0 m!'
+        call write_log(logstr, 1)        
 	    hsig = max(hsig, 0.0)
     endif	
     if (hsig > 3.0) then
-	    write(*,*)'DEBUG SnapWave - computed hm0ig at boundary exceeds 3 meter: ',hsig, ' - please check whether this might be realistic!'
+	    write(logstr,*)'DEBUG SnapWave - computed hm0ig at boundary exceeds 3 meter: ',hsig, ' - please check whether this might be realistic!'
+        call write_log(logstr, 1)        
 	    
         !write(*,*)'DEBUG - computed hm0ig at boundary exceeds 3 meter: ',hsig, ' and is therefore limited back to 3 m!'
 	    !hsig = min(hsig, 3.0)
@@ -85,9 +94,11 @@ module snapwave_infragravity
     !
     ! Check on ratio tpig/tpinc whether it is deemed realistic
     if (tpig/tpinc < 2.0) then
-	    write(*,*)'DEBUG SnapWave - computed tpig/tpinc ratio at offshore boundary dropped below 2 and might be unrealistic! value: ',tpig/tpinc
+	    write(logstr,*)'DEBUG SnapWave - computed tpig/tpinc ratio at offshore boundary dropped below 2 and might be unrealistic! value: ',tpig/tpinc
+        call write_log(logstr, 1)        
     elseif (tpig/tpinc > 20.0) then
-	    write(*,*)'DEBUG SnapWave - computed tpig/tpinc ratio at offshore boundary increased above 20 and might be unrealistic! value: ',tpig/tpinc
+	    write(logstr,*)'DEBUG SnapWave - computed tpig/tpinc ratio at offshore boundary increased above 20 and might be unrealistic! value: ',tpig/tpinc
+        call write_log(logstr, 1)        
     endif	         
     !   
     end subroutine
@@ -200,8 +211,10 @@ module snapwave_infragravity
     ! Add check on Hm0 of created two-dimensional variance density spectrum :
     hsinc_check1 = 4*sqrt(sum(S_array)*dfj*dang)
     if (abs(hsinc - hsinc_check1) > 0.01) then
-        write(*,*)'WARNING - computed Hm0,inc of 2D var dens spectrum differs from input! see subroutine build_jonswap in determine_ig_bc in module snapwave_boundaries.f90'
-        write(*,*)'Input: ',hsinc,' , computed: ', hsinc_check1
+        write(logstr,*)'WARNING - computed Hm0,inc of 2D var dens spectrum differs from input! see subroutine build_jonswap in determine_ig_bc in module snapwave_boundaries.f90'
+        call write_log(logstr, 1)           
+        write(logstr,*)'Input: ',hsinc,' , computed: ', hsinc_check1
+        call write_log(logstr, 1)           
     endif
     !
     ! Back integrate two-dimensional variance density spectrum over directions    
@@ -340,8 +353,10 @@ module snapwave_infragravity
     ! Add check on Hm0 of created two-dimensional variance density spectrum :
     !if (abs(hsinc_check2 - hsinc_check1) > 0.01) then
     if (abs(hsinc_check2 - hsinc_check2tmp) > 0.01) then        
-        write(*,*)'WARNING SnapWave - computed Hm0,inc of 2D var dens spectrum differs from input! see subroutine build_jonswap in determine_ig_bc in module snapwave_boundaries.f90'
-        write(*,*)'Newly computed in part 2: ',hsinc_check2,' , while computed before: ', hsinc_check2tmp, ' and input was: ', hsinc
+        write(logstr,*)'WARNING SnapWave - computed Hm0,inc of 2D var dens spectrum differs from input! see subroutine build_jonswap in determine_ig_bc in module snapwave_boundaries.f90'
+        call write_log(logstr, 1)        
+        write(logstr,*)'Newly computed in part 2: ',hsinc_check2,' , while computed before: ', hsinc_check2tmp, ' and input was: ', hsinc
+        call write_log(logstr, 1)           
         !write(*,*)'Newly computed in part 2: ',hsinc_check2,' , computed in part 1: ', hsinc_check1        
     endif    
     !
@@ -356,7 +371,8 @@ module snapwave_infragravity
         hsinc_check2 = 4*sqrt(sum(S0 * dthetafin * df))
         hsinc_check2tmp = 4*sqrt(sum(Sn) * df)                 
         !
-        write(*,*)'DEBUG SnapWave - Hm0 of vardens corrected to: ',hsinc_check2,' and ', hsinc_check2tmp, ' so it is close to input: ', hsinc
+        write(logstr,*)'DEBUG SnapWave - Hm0 of vardens corrected to: ',hsinc_check2,' and ', hsinc_check2tmp, ' so it is close to input: ', hsinc
+        call write_log(logstr, 1)           
         !        
     endif    
     !
