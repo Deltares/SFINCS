@@ -199,6 +199,7 @@ module sfincs_data
       logical       :: store_velocity
       logical       :: store_twet
       logical       :: store_hsubgrid
+      logical       :: store_hmean      
       logical       :: store_qdrain
       logical       :: store_zvolume
       logical       :: store_meteo
