@@ -1,5 +1,9 @@
 include 'mkl_pardiso.f90'
 
+! Non-hydrostatic code now only works with regular grids (can still use quadtree netcdf file as long as there are no refinement levels).
+! Still to do: add nonh_mask to netcdf file. Now the non-hydrostatic corrections are applied to the entire SFINCS grid.
+! Now uses pardiso to solve matrix, but it may be faster to use bicgstab instead. To be investigated. Both should ideally utilize CPU and GPU parallelization.
+
 module sfincs_nonhydrostatic
    !   
    integer, dimension(:,:), allocatable :: index_sparse_matrix
@@ -146,8 +150,6 @@ contains
          nm_index_of_row(irow) = nm
       endif
    enddo      
-   !
-   ! write(*,'(a,i0,a)')' Found ', nrows, ' points for non-hydrostatic solver'
    !
    ! Find velocity points needed for nh computations
    !
