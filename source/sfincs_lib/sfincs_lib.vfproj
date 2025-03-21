@@ -15,7 +15,7 @@
 			<Tool Name="VFPostBuildEventTool"/>
 		</Configuration>
 		<Configuration Name="Release|x64" UseCompiler="ifxCompiler" ConfigurationType="typeStaticLibrary">
-			<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" MultiProcessorCompilation="true" Optimization="optimizeFull" Parallelization="true" HeapArrays="0" Preprocess="preprocessYes" AdditionalIncludeDirectories="$(SolutionDir)\third_party_open\netcdf\$(Platform)\Release\" PreprocessorDefinitions=";NDEBUG;_CRT_SECURE_NO_WARNINGS;NCSHORT_T=integer*2;NCBYTE_T=byte;NF_RELAX_COORD_BOUND;NF_HAS_PARALLEL4;NF_HAS_PNETCDF;NF_INT1_IS_C_SIGNED_CHAR;NF_INT2_IS_C_SHORT;NF_INT_IS_C_INT;NF_INT8_IS_C_LONG_LONG;NF_REAL_IS_C_FLOAT;NF_DOUBLEPRECISION_IS_C_DOUBLE;USE_NETCDF4;HAVE_TS29113_SUPPORT;" OpenMP="OpenMPParallelCode" RuntimeChecks="rtChecksNone" NullPointerCheck="true" BoundsCheck="true" ArrayShapeCheck="true" UninitializedVariablesCheck="true" DescriptorDataTypeCheck="true" DescriptorDataSizeCheck="true" ArgTempCreatedCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDLL"/>
+			<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" MultiProcessorCompilation="true" Optimization="optimizeFull" Parallelization="true" HeapArrays="0" Preprocess="preprocessYes" AdditionalIncludeDirectories="$(SolutionDir)\third_party_open\netcdf\$(Platform)\Release\" PreprocessorDefinitions=";NDEBUG;_CRT_SECURE_NO_WARNINGS;NCSHORT_T=integer*2;NCBYTE_T=byte;NF_RELAX_COORD_BOUND;NF_HAS_PARALLEL4;NF_HAS_PNETCDF;NF_INT1_IS_C_SIGNED_CHAR;NF_INT2_IS_C_SHORT;NF_INT_IS_C_INT;NF_INT8_IS_C_LONG_LONG;NF_REAL_IS_C_FLOAT;NF_DOUBLEPRECISION_IS_C_DOUBLE;USE_NETCDF4;HAVE_TS29113_SUPPORT;" OpenMP="OpenMPParallelCode" RuntimeChecks="rtChecksNone" NullPointerCheck="true" BoundsCheck="true" ArrayShapeCheck="true" UninitializedVariablesCheck="true" DescriptorDataTypeCheck="true" DescriptorDataSizeCheck="true" ArgTempCreatedCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDLL" UseMkl="mklParallel"/>
 			<Tool Name="VFLibrarianTool"/>
 			<Tool Name="VFResourceCompilerTool"/>
 			<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
@@ -57,19 +57,21 @@
 					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
 				</FileConfiguration>
 			</File>
-			<File RelativePath="..\src\sfincs_boundaries.f90">
-			</File>
+			<File RelativePath="..\src\sfincs_boundaries.f90"/>
 			<File RelativePath="..\src\sfincs_continuity.f90"/>
 			<File RelativePath="..\src\sfincs_crosssections.f90"/>
-			<File RelativePath="..\src\sfincs_data.f90"/>
+			<File RelativePath="..\src\sfincs_data.f90">
+			</File>
 			<File RelativePath="..\src\sfincs_date.f90"/>
 			<File RelativePath="..\src\sfincs_discharges.f90"/>
 			<File RelativePath="..\src\sfincs_domain.f90"/>
 			<File RelativePath="..\src\sfincs_error.f90"/>
 			<File RelativePath="..\src\sfincs_infiltration.f90"/>
 			<File RelativePath="..\src\sfincs_initial_conditions.F90"/>
-			<File RelativePath="..\src\sfincs_input.f90"/>
-			<File RelativePath="..\src\sfincs_lib.f90"/>
+			<File RelativePath="..\src\sfincs_input.f90">
+			</File>
+			<File RelativePath="..\src\sfincs_lib.f90">
+			</File>
 			<File RelativePath="..\src\sfincs_log.f90"/>
 			<File RelativePath="..\src\sfincs_meteo.f90"/>
 			<File RelativePath="..\src\sfincs_momentum.f90"/>
@@ -89,6 +91,7 @@
 					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
 				</FileConfiguration>
 			</File>
+			<File RelativePath="..\src\sfincs_nonhydrostatic.f90"/>
 			<File RelativePath="..\src\sfincs_obspoints.f90"/>
 			<File RelativePath="..\src\sfincs_output.f90"/>
 			<File RelativePath="..\src\sfincs_snapwave.f90"/>
