@@ -126,6 +126,8 @@ contains
    ! call read_real_input(500, 'manningbnd', manningbnd, 0.024)
    call read_real_input(500, 'nuviscfac', nuviscfac, 100.0)
    call read_logical_input(500, 'nonh', nonhydrostatic, .false.)   
+   call read_real_input(500, 'fnhnudge', fnhnudge, 0.9)
+   call read_real_input(500, 'tstopnonh', tstopnonh, -999.0)
    !
    ! Domain
    !
@@ -566,6 +568,22 @@ contains
          call write_log(logstr, 1)
       endif
       !
+   endif
+   !
+   if (nonhydrostatic) then
+      if (tstopnonh>0.0) then
+         !
+         ! tstopnonh is provided so set it with respect to model reference time
+         !
+         tstopnonh = t0 + tstopnonh
+         !
+      else
+         !
+         ! tstopnonh is not provided so set it to tstop time + 999.0 s
+         !
+         tstopnonh = t1 + 999.0
+         !          
+      endif    
    endif
    !
    ! normbnd = sqrt(dzdsbnd) / manningbnd

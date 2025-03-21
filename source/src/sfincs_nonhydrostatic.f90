@@ -12,10 +12,10 @@ module sfincs_nonhydrostatic
    integer, dimension(:), allocatable   :: mask_nonh
    integer, dimension(:), allocatable   :: bnd
    !
-   real*4, dimension(:),   allocatable :: pnh
-   real*4, dimension(:),   allocatable :: ws
-   real*4, dimension(:),   allocatable :: wb
-   real*4, dimension(:),   allocatable :: wb0
+   real*4, dimension(:),   allocatable  :: pnh
+   real*4, dimension(:),   allocatable  :: ws
+   real*4, dimension(:),   allocatable  :: wb
+   real*4, dimension(:),   allocatable  :: wb0
    !
    real*4,  dimension(:), allocatable   :: Dnm
    real*4,  dimension(:), allocatable   :: dzbdx
@@ -56,8 +56,6 @@ contains
    integer, dimension(:), allocatable   :: imu0
    integer, dimension(:,:), allocatable :: nh_nm_index
    !
-   write(*,*)'Initializing non-hydrostatic solver ...'
-   !
    allocate(row_index_of_nm(np))
    allocate(mask_nonh(np))     ! mask for non-h
    !
@@ -75,7 +73,7 @@ contains
    !
    irow = 0
    !
-   ! First set the mask (using just kcs==1 for now)
+   ! First set the mask (using just kcs==1 for now, should add this to masks in netcdf file)
    !
    do nm = 1, np      
       !
@@ -462,12 +460,14 @@ contains
    integer   :: nmu_uv
    integer   :: ndm_uv
    integer   :: num_uv
+   integer   :: nmn
    integer   :: i
    integer   :: j
    integer   :: irow
    integer   :: idum
    integer   :: nhnm
    integer   :: nhnmu
+   integer   :: iuv
    !
    real*4    :: ddum
    real*4    :: hu
@@ -487,6 +487,14 @@ contains
    real*4    :: dzsdy
    real*4    :: unmd
    real*4    :: unmu
+   !   
+   real*4    :: unm
+   real*4    :: vnm
+   real*4    :: vndm
+   real*4    :: hnmd
+   real*4    :: hnum
+   real*4    :: hndm   
+   real*4    :: hnb
    !
    real*4    :: dtover2rhodx2
    real*4    :: dtover2rhodx
@@ -721,19 +729,14 @@ contains
          nhnm  = row_index_of_nm(nm)
          nhnmu = row_index_of_nm(nmu)
          !
-         if (nhnm > 0 .and. nhnmu > 0) then
-         ! if (bnd(nhnm) == 0 .and. bnd(nhnmu) == 0) then
-            !
-            hu = max(zs(nm), zs(nmu)) - 0.5 * (zb(nm) + zb(nmu))
-            ! hu = 0.5 * (zs(nm) + zs(nmu)) - 0.5 * (zb(nm) + zb(nmu))
-            ! hu = min(zs(nm), zs(nmu)) - 0.5 * (zb(nm) + zb(nmu))
-            !
-            unh = - 1.0 * dtover2rhodx * ( AB(ip) * (pnh(nhnmu) + pnh(nhnm)) + pnh(nhnmu) - pnh(nhnm) )
-            !
-            q(ipuv) = q(ipuv) + hu * unh
-            uv(ipuv) = uv(ipuv) + unh
-            !
-         endif
+         hu = max(zs(nm), zs(nmu)) - 0.5 * (zb(nm) + zb(nmu))
+         !
+         unh = - 1.0 * dtover2rhodx * ( AB(ip) * (pnh(nhnmu) + pnh(nhnm)) + pnh(nhnmu) - pnh(nhnm) )
+         !
+         ! Do some nudging to avoid 2dx waves
+         !
+         q(ipuv)  = (1.0 - fnhnudge) * q(ipuv) + fnhnudge * (q(ipuv) + hu * unh)
+         uv(ipuv) = (1.0 - fnhnudge) * uv(ipuv) + fnhnudge * uv(ipuv)
          !
       endif
       !
@@ -741,58 +744,67 @@ contains
    !$omp end do
    !$omp end parallel
    !
-   ! Update vertical velocity
+   ! Update vertical velocity ws and wb
    !
    !$omp parallel &
-   !$omp private ( nm, irow, nmd, nmu, ndm, num, um, vm)
+   !$omp private ( nm, iuv, irow, nmn, hnm, hnb)
    !$omp do schedule ( dynamic, 256 )
    do irow = 1, nrows
       !
-      nm = nm_index_of_row(irow)
-      !
-      nmd = z_index_uv_md(nm)
-      nmu = z_index_uv_mu(nm)
-      ndm = z_index_uv_nd(nm)
-      num = z_index_uv_nu(nm)
-      !
-      um = 0.5 * (uv(nmd) + uv(nmu))
-      vm = 0.5 * (uv(ndm) + uv(num))
+      ! Copy wb0 from previous time step
       !
       wb0(irow) = wb(irow) 
       !
-      wb(irow) = - um * dzbdx(irow) - vm * dzbdy(irow) ! this is wb m+1 in the next time step
+      wb(irow) = 0.0
       !
-      ! Try to compute ws like wb (probably a very bad idea)
+      nm = nm_index_of_row(irow)
+      hnm  = zs(nm) - zb(nm)
       !
-      !! ws(irow) = (zs(nm) - zs0(nm)) / dt
-      !!      
-      !! unmd = uv(nmd)
-      !! unmu = uv(nmu)
-      !!
-      !if (nmd>0 .and. nmd<=npuv) then
-      !   !
-      !   nmd = uv_index_z_nm(nmd)
-      !   !
-      !   if (nmd > 0) then
-      !      !
-      !      nmd = nm_index_of_row(nmd)
-      !      ws(irow) = ws(irow) + 0.5 * unmd * (zs(nm) - zs(nmd)) * dxrinv(1)
-      !      !
-      !   endif   
-      !endif
-      !!
-      !if (nmu>0 .and. nmu<=npuv) then
-      !   nmu = uv_index_z_nmu(nmu)
-      !   !
-      !   if (nmu > 0) then
-      !      !
-      !      nmu = nm_index_of_row(nmu)
-      !      ws(irow) = ws(irow) + 0.5 * unmu * (zs(nmu) - zs(nm)) * dxrinv(1)
-      !      !
-      !   endif   
-      !endif
+      ! This will not yet work for quadtree !
       !
-      ws(irow) = (1.00 * ws(irow) - (wb(irow) - wb0(irow))) + (2 * dt / (rhow * Dnm(irow))) * pnh(irow) ! this is ws m+1 in the next time step
+      ! Indices of neighboring cells
+      !
+      ! Left
+      !
+      iuv = z_index_uv_md(nm)      ! uv index
+      !
+      if (kfuv(iuv) > 0) then
+         nmn = uv_index_z_nm(iuv)  ! nm index of neighbor
+         hnb = zs(nmn) - zb(nmn)   ! water depth at neighbor
+         wb(irow) = wb(irow) - 0.5 * uv(iuv) * (hnm - hnb) * dxrinv(1)
+      endif
+      !
+      ! Right
+      !
+      iuv = z_index_uv_mu(nm)      ! uv index
+      !
+      if (kfuv(iuv) > 0) then
+         nmn = uv_index_z_nmu(iuv) ! nm index of neighbor
+         hnb = zs(nmn) - zb(nmn)   ! water depth at neighbor
+         wb(irow) = wb(irow) - 0.5 * uv(iuv) * (hnb - hnm) * dxrinv(1)
+      endif
+      !
+      ! Bottom
+      !      
+      iuv = z_index_uv_nd(nm)     ! uv index
+      !
+      if (kfuv(iuv) > 0) then
+         nmn = uv_index_z_nm(iuv) ! nm index of neighbor
+         hnb = zs(nmn) - zb(nmn)  ! water depth at neighbor
+         wb(irow) = wb(irow) - 0.5 * uv(iuv) * (hnm - hnb) * dyrinv(1)
+      endif
+      !
+      ! Top
+      !
+      iuv = z_index_uv_nu(nm)      ! uv index
+      !
+      if (kfuv(iuv) > 0) then
+         nmn = uv_index_z_nmu(iuv) ! nm index of neighbor
+         hnb = zs(nmn) - zb(nmn)   ! water depth at neighbor
+         wb(irow) = wb(irow) - 0.5 * uv(iuv) * (hnb - hnm) * dyrinv(1)
+      endif
+      !
+      ws(irow) = ws(irow) - (wb(irow) - wb0(irow)) + (2 * dt / (rhow * Dnm(irow))) * pnh(irow) ! this is ws m+1 in the next time step
       !
    enddo   
    !$omp end do

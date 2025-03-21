@@ -160,7 +160,9 @@ module sfincs_lib
    !
    if (nonhydrostatic) then
       !
-      ! Initialize matrix solver
+      ! Initialize non-hydrostatic solver
+      !
+      call write_log('Initialize non-hydrostatic solver ...', 0) 
       !
       call initialize_nonhydrostatic()
       !
@@ -226,6 +228,11 @@ module sfincs_lib
    else   
       call write_log('Wave paddles         : no', 1)
    endif
+   if (nonhydrostatic) then
+      call write_log('Non-hydrostatic      : yes', 1)
+   else
+      ! call write_log('Wave paddles         : no', 1)
+   endif   
    call write_log('------------------------------------------', 1) 
    call write_log('', 1)   
    !
@@ -244,17 +251,17 @@ module sfincs_lib
    !
    ! Initialize some parameters
    !
-   t           = t0     ! start time
-   tout        = t0
-   dt          = 1.0e-6 ! First time step very small
-   dtavg       = 0.0    ! average time step
-   maxdepth    = 999.0  ! maximum depth over time step
-   maxmaxdepth = 0.0    ! maximum depth over entire simulation
-   min_dt      = 0.0    ! minimum time step from compute_fluxes
-   nt          = 0      ! number of time steps
-   ntmapout    = 0      ! number of map time steps
-   ntmaxout    = 0      ! number of max time steps
-   nthisout    = 0      ! number of his time steps
+   t           = t0       ! start time
+   tout        = t0  
+   dt          = 1.0e-6   ! First time step very small
+   min_dt      = 1.0e-6   ! minimum time step from compute_fluxes
+   dtavg       = 0.0      ! average time step
+   maxdepth    = 999.0    ! maximum depth over time step
+   maxmaxdepth = 0.0      ! maximum depth over entire simulation
+   nt          = 0        ! number of time steps
+   ntmapout    = 0        ! number of map time steps
+   ntmaxout    = 0        ! number of max time steps
+   nthisout    = 0        ! number of his time steps
    twindupd    = t0       ! time to update meteo
    twaveupd    = t0       ! time to update waves
    !
@@ -548,7 +555,7 @@ module sfincs_lib
       ! And now for the real computations !
       !
       ! First compute fluxes
-      !          
+      !
       call compute_fluxes(dt, min_dt, tloopflux)
       !
       if (wavemaker) then
@@ -565,11 +572,15 @@ module sfincs_lib
       !      
       if (nonhydrostatic) then
          !
-         ! Apply non-hydrostatic pressure corrections
+         if (t < tstopnonh) then ! Check if non-hydrostatic corrections still need to be made
+            !
+            ! Apply non-hydrostatic pressure corrections to q and uv
+            !
+            call compute_nonhydrostatic(dt, tloopnonh)
+            !
+         endif   
          !
-         call compute_nonhydrostatic(dt, tloopnonh)
-         !
-      endif   
+      endif
       !      
       ! Update water levels
       !
