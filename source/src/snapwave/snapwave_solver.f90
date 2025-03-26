@@ -236,7 +236,7 @@ module snapwave_solver
    !
    logical, intent(in)                                  :: vegetation               ! logical yes/no
    real*4, dimension(no_nodes), intent(out)             :: Dveg                     ! dissipation by vegetation: N.B. spatial field!
-   integer, intent(in)                                  :: no_secveg
+   integer, intent(in)                                  :: no_secveg                ! number of sections in the vertical 
    real*4, dimension(no_nodes,no_secveg), intent(in)    :: veg_ah                   ! Height of vertical sections used in vegetation schematization [m wrt zb_ini (zb0)]
    real*4, dimension(no_nodes,no_secveg), intent(in)    :: veg_bstems               ! Width/diameter of individual vegetation stems [m]
    real*4, dimension(no_nodes,no_secveg), intent(in)    :: veg_Nstems               ! Number of vegetation stems per unit horizontal area [m-2]
@@ -1361,7 +1361,7 @@ module snapwave_solver
 		! declare variables
 		real*4, intent(in)                               :: sigm            ! wave frequency (per cell)
         integer, intent(in)                              :: no_nodes        ! number of unstructured grid nodes
-        integer, intent(in)                              :: no_secveg
+        integer, intent(in)                              :: no_secveg       ! number of sections in the vertical
         real*4, dimension(no_secveg), intent(in)         :: veg_ah          ! Height of vertical sections used in vegetation schematization [m wrt zb_ini (zb0)]  (per cell)
         real*4, dimension(no_secveg), intent(in)         :: veg_bstems      ! Width/diameter of individual vegetation stems [m] (per cell)
         real*4, dimension(no_secveg), intent(in)         :: veg_Nstems      ! Number of vegetation stems per unit horizontal area [m-2] (per cell)
@@ -1386,17 +1386,19 @@ module snapwave_solver
 		if (no_secveg > 0) then ! only in case vegetation is present
 			do m=1,no_secveg ! for each vertical vegetation section
 				if (veg_Cd(m) < 0.d0) then ! If Cd is not user specified: call subroutine of M. Bendoni (see below)
-					write(logstr,*)'Cd is not user specified: using subroutine bulkdragcoeff to compute Cd'
-                    call write_log(logstr, 0)                    
                     !
 					call bulkdragcoeff(veg_ah(m),m,Cdterm,no_nodes,no_secveg,depth,H,kwav,veg_bstems(m),sigm) ! bulkdragcoeff(ahveg(k,m)+zb0(k)-zb(k),m,k,Cdterm) <- no bed level change implemented in Snapwave
                     !write(*,*)'Cd is not user specified: putting default value of 0.7'
 					!veg_Cd(k,m) = 0.7
+					write(logstr,*)'Cd is not user specified: using M. Bendoni bulkdragcoefficient to compute Cd: ',Cdterm
+                    call write_log(logstr, 0)
+                    !
+                    veg_Cd(m) = Cdterm
+                    !
 				endif
 			enddo
 		endif
-
-		
+		!
 		! Attenuation by vegetation is computed in wave action balance (swvegatt) and the momentum balance (momeqveg);
 		! 1) Short wave dissipation by vegetation
         call swvegatt(sigm, no_nodes, kwav, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, depth, rho, g, H, Dveg)
