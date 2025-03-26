@@ -556,7 +556,7 @@ contains
    !
    ! Vegetation input
    !
-   call read_int_input(500, 'vegetation', vegetation_opt, 0)
+   call read_int_input(500, 'snapwave_vegetation', vegetation_opt, 0)
    !
    ! Input files
    call read_char_input(500,'snapwave_jonswapfile',snapwave_jonswapfile,'')
