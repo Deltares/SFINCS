@@ -588,21 +588,21 @@ contains
       endif      
       !
       if (herbers_opt==0) then
-         write(logstr,*)'SnapWave: IG bc using use eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
+         write(logstr,*)'SnapWave: IG bc using eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
          call write_log(logstr, 1)         
          igherbers     = .false.          
       endif
       !
    endif
    !
-   wind          = .true.
-   if (wind_opt==0) then
-      wind       = .false.
+   wind          = .false.
+   if (wind_opt==1) then
+      wind       = .true.
    endif   
    !
-   vegetation          = .true.
-   if (vegetation_opt==0) then
-      vegetation       = .false.
+   vegetation          = .false.
+   if (vegetation_opt==1) then
+      vegetation       = .true.
    endif   
    !
    if (nr_sweeps /= 1 .and. nr_sweeps /= 4) then
