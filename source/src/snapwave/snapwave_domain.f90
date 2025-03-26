@@ -2115,7 +2115,16 @@ end subroutine neuboundaries
    !
    ! STEP 9 - if vegetation, re-map veggie input from quadtree netcdf file
    if (vegetation) then 
-       !
+      !
+      ! Set 'no_secveg' from quadtree.F90 for use in snapwave_data
+      no_secveg = quadtree_no_secveg
+      !
+      ! allocate variables
+      allocate(veg_Cd(no_nodes, no_secveg))
+      allocate(veg_ah(no_nodes, no_secveg))
+      allocate(veg_bstems(no_nodes, no_secveg))
+      allocate(veg_Nstems(no_nodes, no_secveg))       
+      !
       nac = 0
       !
       do ip = 1, quadtree_nr_points 
@@ -2127,10 +2136,12 @@ end subroutine neuboundaries
             nac = nac + 1
             !
             ! Set node values for all points in the vertical
-            veg_Cd(nac,:)   = quadtree_snapwave_veg_Cd(ip,:)
-            veg_ah(nac,:)   = quadtree_snapwave_veg_ah(ip,:)
-            veg_bstems(nac,:)   = quadtree_snapwave_veg_bstems(ip,:)
-            veg_Nstems(nac,:)   = quadtree_snapwave_veg_Nstems(ip,:)
+            do iq = 1, no_secveg
+               veg_Cd(nac,iq)   = quadtree_snapwave_veg_Cd(ip,iq)
+               veg_ah(nac,iq)   = quadtree_snapwave_veg_ah(ip,iq)
+               veg_bstems(nac,iq)   = quadtree_snapwave_veg_bstems(ip,iq)
+               veg_Nstems(nac,iq)   = quadtree_snapwave_veg_Nstems(ip,iq)
+            enddo            
             !
          endif
       enddo      

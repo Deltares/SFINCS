@@ -50,6 +50,8 @@ module quadtree
    real*4,             dimension(:,:),   allocatable :: quadtree_snapwave_veg_bstems
    real*4,             dimension(:,:),   allocatable :: quadtree_snapwave_veg_Nstems
    !
+   integer   :: quadtree_no_secveg ! nr of vegetation sections in vertical   
+   !
    type net_type_qtr
        integer :: ncid
        integer :: np_dimid, nsec_dimid
@@ -303,7 +305,6 @@ contains
    !
    integer*1 :: iversion
    integer   :: np, ip, iepsg
-   integer   :: no_secveg ! nr of vegetation sections in vertical
    !
    write(logstr,'(a,a)')'Info    : reading QuadTree netCDF file ', trim(qtrfile)
    call write_log(logstr, 0)
@@ -351,7 +352,7 @@ contains
          ! Get dimension of vertical sections 
          NF90(nf90_inq_dimid(net_file_qtr%ncid, "nsec", net_file_qtr%nsec_dimid))          
          !
-         NF90(nf90_inquire_dimension(net_file_qtr%ncid, net_file_qtr%nsec_dimid, len = no_secveg))     
+         NF90(nf90_inquire_dimension(net_file_qtr%ncid, net_file_qtr%nsec_dimid, len = quadtree_no_secveg))     
          ! 
          ! get ids of variables 
          NF90(nf90_inq_varid(net_file_qtr%ncid, 'snapwave_veg_Cd',  net_file_qtr%snapwave_veg_Cd_varid))
@@ -360,10 +361,10 @@ contains
          NF90(nf90_inq_varid(net_file_qtr%ncid, 'snapwave_veg_Nstems',  net_file_qtr%snapwave_veg_Nstems_varid))          
          ! 
          ! allocate variables
-         allocate(quadtree_snapwave_veg_Cd(np, no_secveg))
-         allocate(quadtree_snapwave_veg_ah(np, no_secveg))
-         allocate(quadtree_snapwave_veg_bstems(np, no_secveg))
-         allocate(quadtree_snapwave_veg_Nstems(np, no_secveg))
+         allocate(quadtree_snapwave_veg_Cd(np, quadtree_no_secveg))
+         allocate(quadtree_snapwave_veg_ah(np, quadtree_no_secveg))
+         allocate(quadtree_snapwave_veg_bstems(np, quadtree_no_secveg))
+         allocate(quadtree_snapwave_veg_Nstems(np, quadtree_no_secveg))
          !
       endif      
    endif       
