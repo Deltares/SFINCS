@@ -129,7 +129,9 @@ contains
    call find_matching_cells(index_quadtree_in_snapwave, index_snapwave_in_quadtree)
    !
    ! Copy final snapwave mask from snapwave_domain for output in sfincs_ncoutput
-   snapwave_mask = msk   
+   snapwave_mask = msk
+   !
+   ! Done coupling SnapWave
    !
    call write_log('------------------------------------------', 1)
    call write_log('SnapWave Processes', 1)

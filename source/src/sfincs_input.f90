@@ -24,6 +24,7 @@ contains
    integer itsunamitime
    integer ispinupmeteo
    integer isnapwave
+   integer ivegetation   
    integer iwindmax
    integer iwind   
    integer ioutfixed
@@ -221,7 +222,8 @@ contains
    percdoneval = max(min(percdoneval,100), 0)
    !
    ! Coupled SnapWave solver related
-   call read_int_input(500,'snapwave_wind',iwind,0)   
+   call read_int_input(500,'snapwave_wind',iwind,0)
+   call read_int_input(500,'snapwave_vegetation',ivegetation,0)   
    !
    ! Wind drag
    !
@@ -399,6 +401,7 @@ contains
    endif
    !
    snapwave = .false.
+   store_vegetation = .false.
    if (isnapwave==1) then
       snapwave = .true.
       !
@@ -407,6 +410,10 @@ contains
           ! For running SnapWave with wind growth, we need to store the wind speed & direction to be able to pass it from SFINCS to SnapWave. 
           ! Independent from wndfile or 2D meteo input, handled by store_wind.
       endif  
+      !
+      if (ivegetation==1) then
+          store_vegetation = .true. 
+      endif      
    endif 
    !
    store_twet = .false.
