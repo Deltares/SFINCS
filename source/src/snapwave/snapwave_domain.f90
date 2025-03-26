@@ -86,14 +86,15 @@ contains
    ! Done with the mesh
    !
    ! keep on also if ja_vegetation==0, so array Dveg is initialized with zeroes
-   !if (ja_vegetation==1) then
+   if (vegetation) then
    !   call veggie_init()   
-   !else
-   allocate(veg_Cd(no_nodes, no_secveg))
-   allocate(veg_ah(no_nodes, no_secveg))
-   allocate(veg_bstems(no_nodes,  no_secveg))
-   allocate(veg_Nstems(no_nodes,  no_secveg))
-   !endif   
+   else
+      no_secveg = 1
+      allocate(veg_Cd(no_nodes, no_secveg))
+      allocate(veg_ah(no_nodes, no_secveg))
+      allocate(veg_bstems(no_nodes,  no_secveg))
+      allocate(veg_Nstems(no_nodes,  no_secveg))
+   endif   
    !
    ntheta360 = nint(360./dtheta)
    ntheta    = nint(sector/dtheta)   
