@@ -1387,13 +1387,13 @@ module snapwave_solver
 			do m=1,no_secveg ! for each vertical vegetation section
 				if (veg_Cd(m) < 0.d0) then ! If Cd is not user specified: call subroutine of M. Bendoni (see below)
                     !
-					call bulkdragcoeff(veg_ah(m),m,Cdterm,no_nodes,no_secveg,depth,H,kwav,veg_bstems(m),sigm) ! bulkdragcoeff(ahveg(k,m)+zb0(k)-zb(k),m,k,Cdterm) <- no bed level change implemented in Snapwave
-                    !write(*,*)'Cd is not user specified: putting default value of 0.7'
-					!veg_Cd(k,m) = 0.7
-					write(logstr,*)'Cd is not user specified: using M. Bendoni bulkdragcoefficient to compute Cd: ',Cdterm
+					!call bulkdragcoeff(veg_ah(m),m,Cdterm,no_nodes,no_secveg,depth,H,kwav,veg_bstems(m),sigm) ! bulkdragcoeff(ahveg(k,m)+zb0(k)-zb(k),m,k,Cdterm) <- no bed level change implemented in Snapwave
+					!write(logstr,*)'Cd is not user specified: using m. bendoni bulkdragcoefficient to compute cd: ',cdterm
+                    !veg_Cd(m) = Cdterm
+                    !                     
+                    write(logstr,*)'SnapWave ERROR - Cd is not specified for layer: ',m    
                     call write_log(logstr, 0)
                     !
-                    veg_Cd(m) = Cdterm
                     !
 				endif
 			enddo
