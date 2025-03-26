@@ -576,7 +576,7 @@ contains
    close(500)
    !
    igwaves          = .true.
-   igherbers        = .false.
+   igherbers        = .true.
    iterative_srcig  = .false.   
    !
    if (igwaves_opt==0) then
@@ -590,8 +590,7 @@ contains
       if (herbers_opt==0) then
          write(logstr,*)'SnapWave: IG bc using use eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
          call write_log(logstr, 1)         
-      else
-         igherbers     = .true.          
+         igherbers     = .false.          
       endif
       !
    endif
