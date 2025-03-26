@@ -244,7 +244,6 @@ module snapwave_data
    !
    integer                                      :: vegetation_opt
    character*232                                :: vegmapfile   ! name of vegetation map file (Delft3D .dep format)
-   integer                                      :: nveg         ! Number of vegetation species used [-]
    integer                                      :: no_secveg    ! Number of sections used in vertical schematization of vegetation [-]
    integer                                      :: no_secvegmax
    real*4,  dimension(:,:), allocatable         :: veg_ah       ! Height of vertical sections used in vegetation schematization [m wrt zb_ini (zb0)]
