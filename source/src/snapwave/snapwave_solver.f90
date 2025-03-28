@@ -141,7 +141,7 @@ module snapwave_solver
       !
       Fx = F*cos(thetam)
       Fy = F*sin(thetam)
-      !
+      !   
    end subroutine
    
    
@@ -617,11 +617,16 @@ module snapwave_solver
                   !                  
                   if (vegetation) then
                       call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, g, Hk, Dvegk)
+                      !call vegatt(sig(k), no_nodes, kwav(k), no_secveg, (/6.5/), (/0.3/), (/0.7/), (/1.0/), depth(k), rho, g, Hk, Dvegk)                    
                   else
                       Dvegk = 0.
                   endif
                   !
                   DoverE(k) = (Dwk + Dfk + Dvegk)/max(Ek, 1.0e-6)
+                  !if (Dvegk > 0.0) then
+                  !   write(logstr,*)'k ',k,'depth(k)',depth(k),'Hk ',Hk,'Ek ',Ek,'Dwk ', Dwk,'Dfk ', Dfk,'Dvegk ', Dvegk,'DoverE veggie ', DoverE(k),'DoverE org ', (Dwk + Dfk)/max(Ek, 1.0e-6)
+                  !   call write_log(logstr, 0)                                    
+                  !endif
                   !
                   if (wind) then
                      !
@@ -906,6 +911,11 @@ module snapwave_solver
             else
                call baldock(rho, g, alfa, gamma, depth(k), H(k), Tp(k), 1, Dw(k), Hmx(k))
                F(k) = Dw(k)*kwav(k)/sig(k)/rho/depth(k)
+               
+                if (H(k) > 0.0) then
+                    write(logstr,*)'k ',k,'depth(k)',depth(k),'H(k) ',H(k),'Dw(k) ', Dw(k),'Hmx(k) ', Hmx(k),'kwav(k) ', kwav(k),'sig(k) ', sig(k),'F(k) ',F(k), 'thetam(k)',thetam(k)
+                    call write_log(logstr, 0)                                    
+                endif               
                !F(k) = (Dw(k) + Df(k))*kwav(k)/sig(k)/rho/depth(k)               
                !F(k) = (Dw(k) + Df(k))*kwav(k)/sigm ! TODO TL: before was this, now multiplied with rho*depth(k) in sfincs_snapwave.f90        
             endif
