@@ -1210,8 +1210,8 @@ contains
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%pnonh_varid, 1, 1, nc_deflate_level)) ! deflate
       NF90(nf90_put_att(map_file%ncid, map_file%pnonh_varid, '_FillValue', FILL_VALUE))          
       NF90(nf90_put_att(map_file%ncid, map_file%pnonh_varid, 'units', 'N m-2'))
+      NF90(nf90_put_att(map_file%ncid, map_file%pnonh_varid, 'standard_name', 'non_hydrostatic_pressure'))      
       NF90(nf90_put_att(map_file%ncid, map_file%pnonh_varid, 'long_name', 'non_hydrostatic_pressure')) 
-      NF90(nf90_put_att(map_file%ncid, map_file%pnonh_varid, 'coordinates', 'x y'))
       ! 
    endif
    !
