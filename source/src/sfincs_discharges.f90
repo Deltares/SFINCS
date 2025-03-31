@@ -292,7 +292,6 @@ contains
    real*4           :: dt
    real*4           :: qq
    real*4           :: qq0
-   real*4           :: zvolume_cell
    !
    integer isrc, itsrc, idrn, jin, jout, nmin, nmout
    !
@@ -340,19 +339,9 @@ contains
                ! Constant discharge, no need to change
                !
                if (subgrid) then
-                  !
-                  zvolume_cell = max(z_volume(nmin),0.0)
-                  !
-                  if (zvolume_cell > 0.0001) then
-                     qq = max(min(qq, z_volume(nmin) / dt), 0.0)
-                  else
-                     qq = 0.0
-                  endif
-                  !
+                  qq = max(min(qq, z_volume(nmin) / dt), 0.0)
                else
-                  ! 
                   qq = max(min(qq, (zs(nmin) - zb(nmin)) * area / dt), 0.0)
-                  !
                endif
                !
                ! For both regular and subgrid, water is only subtracted if is there is volume left in subtraction cell
@@ -367,49 +356,33 @@ contains
                qq0 = -qtsrc(jin) ! Previous time step, directed from intake to outfall
                !
                if (zs(nmin)>zs(nmout)) then
+                  !
                   qq  = drainage_params(idrn,1)*sqrt(zs(nmin) - zs(nmout))
+                  !
                else
+                  !
                   qq  = -drainage_params(idrn,1)*sqrt(zs(nmout) - zs(nmin))
+                  !
                endif
                !
                if (subgrid) then
-                  ! 
                   if (qq>0.0) then
-                     ! 
-                     zvolume_cell = max(z_volume(nmin),0.0)
-                     !
-                     if (zvolume_cell > 0.0001) then
-                         qq = max(min(qq, z_volume(nmin)/dt), 0.0)
-                     else
-                         qq = 0.0
-                     endif
-                     !
+                     qq = min(qq, max(z_volume(nmin),0.0)/dt)
                   else
-                     ! 
-                     zvolume_cell = max(z_volume(nmout),0.0)
-                     !
-                     if (zvolume_cell > 0.0001) then
-                        qq = min(max(qq, -z_volume(nmout)/dt), 0.0)
-                     else
-                         qq = 0.0
-                     endif
-                     !
+                     qq = max(qq, -max(z_volume(nmout),0.0)/dt)
                   endif
-                  !
                else
-                  ! 
                   if (qq>0.0) then
                      qq = min(qq, max((zs(nmin) - zb(nmin))*area,0.0)/dt)
                   else
                      qq = max(qq, -max((zs(nmout) - zb(nmout))*area,0.0)/dt)
                   endif
-                  !
                endif
                !
                ! Add some relaxation
                ! structure_relax in seconds => gives ratio between new and old discharge (default 10s)
                qq = 1/(structure_relax/dt)*qq + (1-(1/(structure_relax/dt)))*qq0
-               !qq = 0.10*qq + 0.90*qq0
+               !qq = 0.10*qq + 0.90*qq0 - old implementation
                !
                qtsrc(jin)  = -qq
                qtsrc(jout) =  qq
@@ -432,27 +405,10 @@ contains
                !
                if (subgrid) then
                   if (qq>0.0) then
-                     ! 
-                     zvolume_cell = max(z_volume(nmin),0.0)
-                     !
-                     if (zvolume_cell > 0.0001) then
-                         qq = max(min(qq, z_volume(nmin)/dt), 0.0)
-                     else
-                         qq = 0.0
-                     endif
-                     !
+                     qq = min(qq, max(z_volume(nmin),0.0)/dt)
                   else
-                     ! 
-                     zvolume_cell = max(z_volume(nmout),0.0)
-                     !
-                     if (zvolume_cell > 0.0001) then
-                        qq = min(max(qq, -z_volume(nmout)/dt), 0.0)
-                     else
-                         qq = 0.0
-                     endif
-                     !
+                     qq = max(qq, -max(z_volume(nmout),0.0)/dt)
                   endif
-                  !
                else
                   if (qq>0.0) then
                      qq = min(qq, max((zs(nmin) - zb(nmin))*area,0.0)/dt)
@@ -464,7 +420,7 @@ contains
                ! Add some relaxation
                ! structure_relax in seconds => gives ratio between new and old discharge (default 10s)
                qq = 1/(structure_relax/dt)*qq + (1-(1/(structure_relax/dt)))*qq0
-               !qq = 0.10*qq + 0.90*qq0
+               !qq = 0.10*qq + 0.90*qq0 - old implementation
                !
                ! Make sure it can only flow from intake to outfall point
                !
