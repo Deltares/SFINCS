@@ -231,7 +231,7 @@ module sfincs_lib
    if (nonhydrostatic) then
       call write_log('Non-hydrostatic      : yes', 1)
    else
-      ! call write_log('Wave paddles         : no', 1)
+      ! call write_log('Non-hydrostatic         : no', 1)
    endif   
    call write_log('------------------------------------------', 1) 
    call write_log('', 1)   
