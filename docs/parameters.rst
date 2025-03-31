@@ -247,7 +247,13 @@ More parameters for model input (only for advanced users)
 	  :units:		0
 	  :default:		0
 	  :min:			0
-	  :max:			1	  
+	  :max:			1
+	structure_relax
+	  :description:		Structure_relax in seconds gives ratio between new and old discharge (default 10s), as relaxation factor
+	  :units:		s
+	  :default:		10
+	  :min:			1
+	  :max:			86400	  
 	  
 	**Drag coefficients:**
 	
