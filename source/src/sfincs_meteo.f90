@@ -9,6 +9,7 @@ contains
    use sfincs_data
    use sfincs_spiderweb
    use sfincs_ncinput
+   use sfincs_log
    !
    implicit none
    !   
@@ -16,13 +17,12 @@ contains
    !
    real*4 dummy, wnd, xx, yy
    !
-   write(*,*)'Reading meteo data ...'
-   !
    spw_precip = .false.
    !
    if (spwfile(1:4) /= 'none') then
       !
-      write(*,*)'Reading spiderweb file ...'
+      write(logstr,'(a,a)')'Info    : reading spiderweb file ', trim(spwfile)
+      call write_log(logstr, 0)
       !  
       call read_spw_dimensions(spwfile,spw_nt,spw_nrows,spw_ncols,spw_radius,spw_nquant)
       !
@@ -70,7 +70,7 @@ contains
             ! 
          else
             ! 
-            write(*,*)'Info : Overruled to not use precipitation from spiderweb input ...'
+            call write_log('Info    : not using precipitation from spiderweb input', 0)
             ! 
             spw_precip = .false.
             ! 
@@ -81,10 +81,9 @@ contains
    !
    if (netspwfile(1:4) /= 'none') then
       ! 
-      ! Write statement to log
-      write(*,*)'Reading netcdf spiderweb file ...'
-      ! 
-      ! Read information
+      write(logstr,'(a,a)')'Info    : reading netcdf spiderweb file ', trim(netspwfile)
+      call write_log(logstr, 0)
+      !
       call read_netcdf_spw_data()
       !
    endif
@@ -95,7 +94,8 @@ contains
          !
          ! Convert spiderweb coordinates to utm zone
          ! 
-         write(*,*)'Converting spiderweb coordinates to utm zone ...'
+         write(logstr,'(a,a)')'Info    : converting spiderweb coordinates to UTM  zone ', utmzone
+         call write_log(logstr, 0)
          !       
          do it = 1, spw_nt
             call deg2utm(spw_ye(it),spw_xe(it),xx,yy,utmzone)
@@ -109,7 +109,7 @@ contains
    !
    if (amufile(1:4) /= 'none') then
       !
-      write(*,*)'Reading amu and amv file ...'
+      call write_log('Info    : reading amu and amv file', 0)
       !  
       call read_amuv_dimensions(amufile,amuv_nt,amuv_nrows,amuv_ncols,amuv_x_llcorner,amuv_y_llcorner,amuv_dx,amuv_dy,amuv_nquant)
       !
@@ -135,7 +135,7 @@ contains
    ! 
    if (amprfile(1:4) /= 'none') then
       !
-      write(*,*)'Reading ampr file ...'
+      call write_log('Info    : reading ampr file', 0)
       !  
       call read_amuv_dimensions(amprfile,ampr_nt,ampr_nrows,ampr_ncols,ampr_x_llcorner,ampr_y_llcorner,ampr_dx,ampr_dy,ampr_nquant)
       !
@@ -157,7 +157,7 @@ contains
    !
    if (ampfile(1:4) /= 'none') then
       !
-      write(*,*)'Reading amp file ...'
+      call write_log('Info    : reading amp file', 0)
       !  
       call read_amuv_dimensions(ampfile,amp_nt,amp_nrows,amp_ncols,amp_x_llcorner,amp_y_llcorner,amp_dx,amp_dy,amp_nquant)
       !
@@ -180,7 +180,8 @@ contains
    if (wndfile(1:4) /= 'none') then
       !
       ! Wind in time series file 
-      write(*,*)'Reading ', trim(wndfile)              
+      write(logstr,'(a,a)')'Info    : reading ', trim(wndfile)    
+      call write_log(logstr, 0)
       !
       ntwnd = 0
       itwndlast = 1
@@ -209,7 +210,8 @@ contains
    if (prcpfile(1:4) /= 'none') then
       !
       ! Rainfall in time series file 
-      write(*,*)'Reading ',trim(prcpfile)       
+      write(logstr,'(a,a)')'Info    : reading prcp file ', trim(prcpfile)    
+      call write_log(logstr, 0)
       !
       ntprcp = 0 
       itprcplast = 1
@@ -381,7 +383,7 @@ contains
                tauwu0(nm) = 0.0
                tauwv0(nm) = 0.0
                !
-               if (store_meteo) then
+               if (store_wind) then
                   windu0(nm) = 0.0
                   windv0(nm) = 0.0
                endif   
@@ -407,7 +409,7 @@ contains
                tauwu1(nm) = 0.0
                tauwv1(nm) = 0.0
                !
-               if (store_meteo) then
+               if (store_wind) then
                   windu1(nm) = 0.0
                   windv1(nm) = 0.0
                endif   
@@ -559,7 +561,7 @@ contains
                prcp0(nm)  = (1.0 - merge_frac)*prcp0(nm) + merge_frac*prp/(1000*3600) ! m/s
             endif
             ! 
-            if (store_meteo) then
+            if (store_wind) then
                windu0(nm) = (1.0 - merge_frac)*windu0(nm) + merge_frac*wup
                windv0(nm) = (1.0 - merge_frac)*windv0(nm) + merge_frac*wvp
             endif   
@@ -577,7 +579,7 @@ contains
                prcp1(nm)  = (1.0 - merge_frac)*prcp1(nm) + merge_frac*prp/(1000*3600) ! m/s
             endif
             ! 
-            if (store_meteo) then
+            if (store_wind) then
                windu1(nm) = (1.0 - merge_frac)*windu1(nm) + merge_frac*wup
                windv1(nm) = (1.0 - merge_frac)*windv1(nm) + merge_frac*wvp
             endif   
@@ -742,14 +744,14 @@ contains
             if (itw==1) then
                tauwu0(nm) = vmag*( cosrot*wup + sinrot*wvp)*rhoa*cd/rhow
                tauwv0(nm) = vmag*(-sinrot*wup + cosrot*wvp)*rhoa*cd/rhow
-               if (store_meteo) then
+               if (store_wind) then
                   windu0(nm) = wup
                   windv0(nm) = wvp
                endif   
             else
                tauwu1(nm) = vmag*( cosrot*wup + sinrot*wvp)*rhoa*cd/rhow
                tauwv1(nm) = vmag*(-sinrot*wup + cosrot*wvp)*rhoa*cd/rhow
-               if (store_meteo) then
+               if (store_wind) then
                   windu1(nm) = wup
                   windv1(nm) = wvp
                endif   
@@ -1061,7 +1063,7 @@ contains
             tauwu(nm) = tauwu0(nm)*onemintwfact + tauwu1(nm)*twfact
             tauwv(nm) = tauwv0(nm)*onemintwfact + tauwv1(nm)*twfact
             !
-            if (store_meteo) then
+            if (store_wind) then
                !
                windu(nm) = windu0(nm)*onemintwfact + windu1(nm)*twfact
                windv(nm) = windv0(nm)*onemintwfact + windv1(nm)*twfact
@@ -1253,6 +1255,13 @@ contains
          !
          itwndlast = itw - 1
          !
+         if (store_wind) then
+             !
+             windu = vmag*cos(vdir)
+             windv = vmag*sin(vdir)
+             !
+         endif
+         !   
          exit
          !
        endif
@@ -1276,10 +1285,12 @@ contains
    real*4  :: ptmp
    !
    do itp = itprcplast, ntprcp ! Loop in time
-      if (tprcpt(itp)>t) then
+      if (tprcpt(itp) > t) then          
          exit
       endif
    enddo
+   !
+   itp = max(min(itp, ntprcp), 1)
    !
    twfac  = (t - tprcpt(itp - 1))/(tprcpt(itp) - tprcpt(itp - 1))
    !

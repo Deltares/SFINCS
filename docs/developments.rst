@@ -27,6 +27,21 @@ Known issues of the current SFINCS main version and last release are (improvemen
 Releases Changelog
 -----
 
+Official open source version 2025.01: v2.2.0 EXXX release
+^^^^^
+
+The code consists of all functionality of the v2.1.1 release, with the following major changes/additions:
+
+Added functionality:
+
+* stopdepth - REMOVED in SFINCS v2.2.0, replaced by 'uvmax' to determine possible instabilities based on flow velocities rather than maximum water depth!
+* uvmax - possibility to set maximum flux velocity (default 1000 m/s), used to determine minimum timestep, below which simulation is classified as unstable and stopped. Replaces 'stopdepth'.
+* hmin_cfl - possibility to set minimum water depth to determine maximum timestep using CFL-conditions
+* uvlim - possibility to limit flux velocity (default 10 m/s)
+* slopelim - possibility to apply slope limiter to dzdx (turned off by default, by setting to 9999.9)
+* advlim - updated use of the advection limiter, new default is 1.0, whereby limiter is turned on
+* coriolis - Turns on the Coriolis term in the momentum equation, by default turned on (coriolis = True). For projected coordinate system, if latitude is not provided (default, latitude = 0.0), coriolis is still turned off
+
 Official open source version 2024.01: v2.1.1 Dollerup release
 ^^^^^
 

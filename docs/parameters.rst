@@ -60,14 +60,14 @@ Parameters for model input
 	  :default:		upw1	
 	  :min:			upw1	
 	  :max:			original	  
-	advlim	
-	  :description:		Advection term limiter. Possibility to limit the advection term in the momentum equation for increased stability, default is large number.
-	  :units:		-	
-	  :default:		9999.9		
-	  :min:			1.0	
-	  :max:			9999.9	  
+	advlim
+	  :description:		Limit advection term (when advection > 0) such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2, so limiter turned on by default
+	  :units:		m/s2
+	  :default:		1.0 - updated from SFINCS v2.1.2 onwards
+	  :min:			0
+	  :max:			9999  
 	alpha	
-	  :description:		CFL-condition reduction. Decrease for additional numerical stability, minimum value is 0.1 and maximum is 0.75.
+	  :description:		Numerical time step reduction for CFL-condition. Decrease for additional numerical stability, minimum value is 0.1 and maximum is 0.75.
 	  :units:		-	
 	  :default:		0.5		
 	  :min:			0.1 (recommended)	
@@ -83,14 +83,14 @@ Parameters for model input
 	  :units:		m
 	  :default:		0.05
 	  :min:			0.001 (recommended)
-	  :max:			0.1 (recommended)
+	  :max:			0.1 (recommended)	  
 	theta
-	  :description:		Smoothing factor in momentum equation. Default of 1.0 means no smoothing.
+	  :description:		Numerical smoothing factor in momentum equation. Default of 1.0 means no smoothing.
 	  :units:		-
 	  :default:		1.0
 	  :min:			0.8
 	  :max:			1.0
-	hmin_cfl	
+	hmin_cfl - added from SFINCS v2.1.2 onwards	
 	  :description:		Minimum water depth to determine maximum timestep using CFL-conditions. Possibility to lower the maximum timestep for increased stability by putting a larger values than the deafult of 0.1 m (as was default before became user option).
 	  :units:		m	
 	  :default:		0.1		
@@ -117,14 +117,20 @@ Parameters for model input
 	  :default:		0.01
 	  :min:			0.0
 	  :max:			Inf	  	  	  
+	coriolis
+	  :description: Turns on the Coriolis term in the momentum equation, by default turned on (coriolis = True). For projected coordinate system, if latitude is not provided (default, latitude = 0.0), coriolis is still turned off.
+	  :units:		logical
+	  :default:		True
+	  :min:			False
+	  :max:			True
 	zsini
-	  :description:		Initial water level.
+	  :description:		Initial water level in entire domain - where above bed level.
 	  :units:		m above reference level
 	  :default:		0
 	  :min:			-Inf
 	  :max:			Inf
 	qinf
-	  :description:		Infiltration rate, specify in +mm/hr.
+	  :description:		Infiltration rate, spatially uniform and constant in time. Specify in +mm/hr.
 	  :units:		mm/hr
 	  :default:		0
 	  :min:			0
@@ -135,13 +141,19 @@ Parameters for model input
 	  :default:		0
 	  :min:			-100
 	  :max:			100  	  
+	sfacinf
+	  :description:		Curve Number infiltration initial abstraction or the amount of water before runoff, such as infiltration, or rainfall interception by vegetation. Default = 0.2.
+	  :units:		-
+	  :default:		0.2
+	  :min:			0
+	  :max:			1  		  
 	manning
 	  :description:		Uniform manning roughness, specify in s/m^(1/3).
 	  :units:		s/m^(1/3)
 	  :default:		0.04
 	  :min:			0
 	  :max:			0.1 (advised)  	
-	rgh_level_land
+	rgh_lev_land
 	  :description:		Elevation level to distinguish land and sea roughness (when using 'manning_land' and 'manning_sea').
 	  :units:		m above reference level
 	  :default:		0
@@ -181,36 +193,61 @@ More parameters for model input (only for advanced users)
 	  :default:		1024
 	  :min:			-
 	  :max:			-
-	stopdepth
-	  :description:		Water depth anywhere in the domain after which the simulation is classified as unstable and stopped
+	stopdepth - removed from SFINCS v2.1.1 Dollerup onwards, replaced by 'uvmax'
+	  :description:		Water depth based on which the minimal time step is determined below which the simulation is classified as unstable and stopped.
 	  :units:		m
 	  :default:		100
 	  :min:			0
 	  :max:			Inf	  
-	advlim
-	  :description:		Advection limiter when advection>0 to limit the magnitude of the advection term when calculating fluxes between cells.
-	  :units:		-
-	  :default:		9999
+	wiggle_suppression
+	  :description:		If the acceleration of water level in cell nm is large and positive and in nmu large and negative, or vice versa, apply limiter to the flux. Only for subgrid mode.
+	  :units:		logical
+	  :default:		True - updated from SFINCS v2.1.2 onwards
+	  :min:			False
+	  :max:			True
+	  :limitation:	Only for subgrid mode
+	uvlim - added from SFINCS v2.1.2 onwards
+	  :description:		Limit flux velocity (default 10 m/s)
+	  :units:		m/s
+	  :default:		10
 	  :min:			0
-	  :max:			9999
+	  :max:			9999	  	  
+	uvmax - added from SFINCS v2.1.2 onwards, replaces 'stopdepth'
+	  :description:		Maximum flux velocity (default 1000 m/s), used to determine minimum timestep, below which simulation is classified as unstable and stopped.
+	  :units:		m/s
+	  :default:		1000
+	  :min:			0
+	  :max:			9999	
+	slopelim - added from SFINCS v2.1.2 onwards
+	  :description:		Apply slope limiter to dzdx (turned off by default, by setting to 9999.9)
+	  :units:		-
+	  :default:		9999.9
+	  :min:			0.0001
+	  :max:			9999.9	  	  
 	dtmax
-	  :description:		Maximum internal time step to be used
+	  :description:		Maximum allowed internal timestep.
 	  :units:		s
 	  :default:		60
 	  :min:			1.0e-3
 	  :max:			Inf
 	dtmin
-	  :description:		Minimum internal time step to be used
+	  :description:		Minimum allowed internal timestep.
 	  :units:		s
 	  :default:		1.0e-3
 	  :min:			1.0e-3
 	  :max:			Inf	  
 	tspinup
-	  :description:		Duration of internal spinup period before tstart
+	  :description:		Duration of spinup period after tstart where water level variation at the boundary is dampened
 	  :units:		s
-	  :default:		60
+	  :default:		0
 	  :min:			0
 	  :max:			Inf
+	spinup_meteo
+	  :description:		Option to also apply spinup to the meteo forcing, default is off (0)
+	  :units:		0
+	  :default:		0
+	  :min:			0
+	  :max:			1	  
 	  
 	**Drag coefficients:**
 	
@@ -251,35 +288,47 @@ Parameters for model output
 	  :units:		m
 	  :default:		20000101 000000
 	trstout
-	  :description:		Specific time in seconds since 'tref' for binary restart file output being written away, turned of by default.
+	  :description:		Specific time in seconds since 'tref' for restart file output being written away, turned of by default.
 	  :units:		s
 	  :default:		-999.0	  	  
 	dtout
-	  :description:		Time-step global map output.
+	  :description:		Spatial map output interval
 	  :units:		s
 	  :default:		0
 	dthisout
-	  :description:		Time-step observation points output.
+	  :description:		Observation points output interval
 	  :units:		s
 	  :default:		600
 	dtmaxout
-	  :description:		Time-step interval of global map output of maximum water level. If not specified, the maximum over the entire simulation is calculated. If no output is wanted, specify 'dtmaxout = 0'.
+	  :description:		Maximum map output interval. If not specified, the maximum over the entire simulation is calculated. If no output is wanted, specify 'dtmaxout = 0'.
 	  :units:		s
 	  :default:		9999999
 	  :min:			0
 	  :max:			'tstop - start in seconds'  
 	dtrstout
-	  :description:		Time-step for binary restart file output being written away, turned of by default.
+	  :description:		Restart file output interval, turned of by default.
 	  :units:		s
 	  :default:		0	  	  
 	dtwnd
-	  :description:		Time-interval wind update (only for spiderweb)
+	  :description:		Time-interval wind update
 	  :units:		s
 	  :default:		1800
 	outputformat
 	  :description:		Choice whether the SFINCS model output is given in binary 'bin', ascii 'asc' or netcdf files 'net' (default). In case of netcdf output, global output is given in 'sfincs_map.nc', point output in 'sfincs_his.nc' in case observation points are specified.
 	  :units:		-
 	  :default:		net
+	outputformat_map
+	  :description:		Choice whether the SFINCS model map output is given in binary 'bin', ascii 'asc' or netcdf files 'net' (default is the setting of 'outputformat', which is 'net').
+	  :units:		-
+	  :default:		net
+	outputformat_his
+	  :description:		Choice whether the SFINCS model his output is given in binary 'bin', ascii 'asc' or netcdf files 'net' (default is the setting of 'outputformat', which is 'net').
+	  :units:		-
+	  :default:		net
+	nc_deflate_level
+	  :description:		Netcdf deflate level
+	  :units:		-
+	  :default:		2
 	twet_threshold
 	  :description:		Threshold value of water depth to count cell as flooded for keeping track of wet cells with storetwet = 1
 	  :units:		m
@@ -328,7 +377,12 @@ Parameters for model output
 	  :description:		Flag to turn on writing away every timestep to output as debug mode (debug = 1)
 	  :units:		-
 	  :default:		0	
-
+	percentage_done
+	  :description:		Setting of how frequent to show progress of SFINCS in terms of % and time remaining, default = 5%
+	  :units:		integer
+	  :default:		5	
+	  :min:			1
+	  :max:			100		  	
 Input files
 =====	 
 

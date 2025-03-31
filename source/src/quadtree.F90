@@ -1,7 +1,8 @@
 #define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)
 module quadtree
    !
-   use netcdf       
+   use sfincs_log
+   use netcdf
    !
    integer*4                                       :: quadtree_nr_points
    integer*1                                       :: quadtree_nr_levels
@@ -57,13 +58,14 @@ module quadtree
    !
 contains
    !
-   subroutine quadtree_read_file(qtrfile)
+   subroutine quadtree_read_file(qtrfile, snapwave)
    !
    ! Reads quadtree file
    !
    implicit none
    !
    character*256, intent(in)                       :: qtrfile
+   logical, intent(in)                             :: snapwave   
    !
    real*4,             dimension(:),   allocatable :: dxr
    real*4,             dimension(:),   allocatable :: dyr
@@ -83,7 +85,7 @@ contains
    endif
    !
    if (quadtree_netcdf) then
-      call quadtree_read_file_netcdf(qtrfile)
+      call quadtree_read_file_netcdf(qtrfile, snapwave)
    else
       call quadtree_read_file_binary(qtrfile)
    endif
@@ -113,10 +115,12 @@ contains
       m    = quadtree_m(nm)
       iref = quadtree_level(nm)
       !
-      ! Determine quadtree_nmax and quadtree_mmax (these are needed for binary search of nm indices)
+      ! Determine quadtree_nmax and quadtree_mmax of the lowest level (these are needed for binary search of nm indices)
       !
-      quadtree_nmax = max(quadtree_nmax, int( (1.0*(n - 1) + 0.01) / (2**(iref - 1))) + 2)
-      quadtree_mmax = max(quadtree_mmax, int( (1.0*(m - 1) + 0.01) / (2**(iref - 1))) + 2)
+      ! quadtree_nmax = max(quadtree_nmax, int( (1.0*(n - 1) + 0.01) / (2**(iref - 1))) + 2)
+      ! quadtree_mmax = max(quadtree_mmax, int( (1.0*(m - 1) + 0.01) / (2**(iref - 1))) + 2)
+      quadtree_nmax = max(quadtree_nmax, int( (1.0*(n - 1) + 0.01) / (2**(iref - 1))) + 1)
+      quadtree_mmax = max(quadtree_mmax, int( (1.0*(m - 1) + 0.01) / (2**(iref - 1))) + 1)
       !
       ! Coordinates of cell centres
       ! 
@@ -177,14 +181,22 @@ contains
    !
    ! Some write statements of interpreted quadtree grid to output for user:
    !
-   write(*,*)'Quadtree grid info - nr_levels :', quadtree_nr_levels
-   write(*,*)'Quadtree grid info -        x0 :', quadtree_x0
-   write(*,*)'Quadtree grid info -        y0 :', quadtree_y0
-   write(*,*)'Quadtree grid info -        dx :', quadtree_dx
-   write(*,*)'Quadtree grid info -        dy :', quadtree_dy
-   write(*,*)'Quadtree grid info -      mmax :', quadtree_mmax
-   write(*,*)'Quadtree grid info -      nmax :', quadtree_nmax
-   write(*,*)'Quadtree grid info -  rotation :', quadtree_rotation / pi * 180
+   write(logstr,'(a,i10)')'Quadtree grid info - nr_levels : ', quadtree_nr_levels
+   call write_log(logstr, 0)
+   write(logstr,'(a,f10.2)')'Quadtree grid info -        x0 : ', quadtree_x0
+   call write_log(logstr, 0)
+   write(logstr,'(a,f10.2)')'Quadtree grid info -        y0 : ', quadtree_y0
+   call write_log(logstr, 0)
+   write(logstr,'(a,f10.2)')'Quadtree grid info -        dx : ', quadtree_dx
+   call write_log(logstr, 0)
+   write(logstr,'(a,f10.2)')'Quadtree grid info -        dy : ', quadtree_dy
+   call write_log(logstr, 0)
+   write(logstr,'(a,i10)')'Quadtree grid info -      mmax : ', quadtree_mmax
+   call write_log(logstr, 0)
+   write(logstr,'(a,i10)')'Quadtree grid info -      nmax : ', quadtree_nmax
+   call write_log(logstr, 0)
+   write(logstr,'(a,f10.2)')'Quadtree grid info -  rotation : ', quadtree_rotation / pi * 180
+   call write_log(logstr, 0)
    !
    end subroutine
 
@@ -202,8 +214,9 @@ contains
    !
    ! Read quadtree file (first time, only read number of active points)
    !
-   write(*,*)'Reading QuadTree binary file ...'
-   write(*,*)'Warning : quadtree mesh file has the "old" binary format, the simulation will continue, but we do recommended switching to the new Netcdf quadtree input format!'            !   
+   write(logstr,'(a,a)')'Info    : reading QuadTree binary file ', trim(qtrfile)
+   call write_log(logstr, 0)
+   call write_log('Warning : quadtree mesh file has the "old" binary format, the simulation will continue, but we do recommended switching to the new Netcdf quadtree input format!', 0)
    !
    open(unit = 500, file = trim(qtrfile), form = 'unformatted', access = 'stream')
    read(500)iversion
@@ -273,18 +286,20 @@ contains
    end subroutine
 
 
-   subroutine quadtree_read_file_netcdf(qtrfile)
+   subroutine quadtree_read_file_netcdf(qtrfile, snapwave)
    !
    ! Reads quadtree file from netcdf file
    !
    implicit none
    !
    character*256, intent(in) :: qtrfile
+   logical, intent(in)       :: snapwave
    !
    integer*1 :: iversion
    integer   :: np, ip, iepsg
    !
-   write(*,*)'Reading QuadTree netCDF file ...'
+   write(logstr,'(a,a)')'Info    : reading QuadTree netCDF file ', trim(qtrfile)
+   call write_log(logstr, 0)
    !
    NF90(nf90_open(trim(qtrfile), NF90_CLOBBER, net_file_qtr%ncid))
    !          
@@ -317,7 +332,14 @@ contains
    NF90(nf90_inq_varid(net_file_qtr%ncid, 'nu2',   net_file_qtr%nu2_varid))
    NF90(nf90_inq_varid(net_file_qtr%ncid, 'z',     net_file_qtr%z_varid))
    NF90(nf90_inq_varid(net_file_qtr%ncid, 'mask',  net_file_qtr%mask_varid))
-   NF90(nf90_inq_varid(net_file_qtr%ncid, 'snapwave_mask',  net_file_qtr%snapwave_mask_varid))
+   !
+   if (snapwave) then !only read snapwave_mask if snapwave solver turned on
+      !
+      NF90(nf90_inq_varid(net_file_qtr%ncid, 'snapwave_mask',  net_file_qtr%snapwave_mask_varid))
+      !
+      allocate(quadtree_snapwave_mask(np))
+      !      
+   endif       
    !
    ! Allocate variables   
    !
@@ -342,7 +364,6 @@ contains
    allocate(quadtree_yz(np))
    allocate(quadtree_zz(np))
    allocate(quadtree_mask(np))
-   allocate(quadtree_snapwave_mask(np))
    !
    ! Read values
    ! 
@@ -363,7 +384,10 @@ contains
    NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nu2_varid,   quadtree_nu2(:)))
    NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%z_varid,     quadtree_zz(:)))
    NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mask_varid,  quadtree_mask(:)))
-   NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%snapwave_mask_varid,  quadtree_snapwave_mask(:)))
+   !
+   if (snapwave) then    
+      NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%snapwave_mask_varid,  quadtree_snapwave_mask(:)))
+   endif
    !
    ! Read attibute (should read EPSG code here ?)
    !

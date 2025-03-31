@@ -1,6 +1,7 @@
 module sfincs_output
 
    use sfincs_ncoutput
+   use sfincs_log
    
    contains
 
@@ -256,15 +257,15 @@ module sfincs_output
        !write dtmax output if 1) value for dtmaxout wasn't achieved yet, 
        !or 2) in the last timeinterval, the full 'dtmaxout' wasn't achieved yet, but we still want the max over this interval
       ! 
-      write(*,'(a)')''       
-      write(*,*)'Info : Write maximum values at final timestep since t=dtmaxout was not reached yet...'
+      call write_log('', 1)
+      call write_log('Info : Write maximum values at final timestep since t=dtmaxout was not reached yet...', 1)
       ntmaxout = 1
       call write_output(t,.false.,.false.,.true.,.false.,0,ntmaxout,0,tloopoutput)
       !
    elseif (dtmaxout>1.e-6 .and. ntmaxout>0 .and. t < tmaxout) then
       !
-      write(*,'(a)')''       
-      write(*,*)'Info : Write maximum values at final timestep since t=dtmaxout was not reached yet for final interval...'
+      call write_log('', 1)
+      call write_log('Info : Write maximum values at final timestep since t=dtmaxout was not reached yet for final interval...', 1)
       ntmaxout = ntmaxout + 1
       !
       ! Write 'tstop' as timemax instead of actual (unrounded) 't'
@@ -344,6 +345,10 @@ module sfincs_output
    !
    if (infiltration) then
       open(unit = 854, status = 'replace', file = 'cuminf.dat', form = 'unformatted')
+   endif
+   !
+   if (store_maximum_flux) then
+      open(unit = 855, status = 'replace', file = 'qmax.dat', form = 'unformatted')
    endif
    !
    end subroutine
@@ -483,6 +488,10 @@ module sfincs_output
    ! 
    if (infiltration) then
       write(854)cuminf
+   endif
+   ! 
+   if (store_maximum_flux) then
+      write(855)qmax
    endif
    ! 
    end subroutine
@@ -635,6 +644,12 @@ module sfincs_output
    real*8        :: t
    real*8        :: tt
    !
+   real*4, dimension(:),   allocatable :: zs4
+   allocate(zs4(np))
+   !
+   ! Map from real*8 to real*4
+   zs4 = zs
+   !
    tt = 1.0*int(t)
    tstring = time_to_string(tt, trefstr)
    write(file_name,'(A,A,A)')'sfincs.',tstring,'.rst'
@@ -656,7 +671,7 @@ module sfincs_output
       if (inftype == 'cnb') then
          !
          write(911)4
-         write(911)zs
+         write(911)zs4
          write(911)q
          write(911)uvmean
          write(911)scs_Se
@@ -664,7 +679,7 @@ module sfincs_output
       elseif (inftype == 'gai') then
          !
          write(911)5
-         write(911)zs
+         write(911)zs4
          write(911)q
          write(911)uvmean
          write(911)GA_sigma
@@ -673,7 +688,7 @@ module sfincs_output
       elseif (inftype == 'hor') then
          !
          write(911)6
-         write(911)zs
+         write(911)zs4
          write(911)q
          write(911)uvmean
          write(911)rain_T1
@@ -683,7 +698,7 @@ module sfincs_output
    else ! default option remains type 1 without infiltration in restart
       !
       write(911)1    
-      write(911)zs
+      write(911)zs4
       write(911)q
       write(911)uvmean        
       !
@@ -693,17 +708,5 @@ module sfincs_output
    !
    end subroutine
 
-   
-   subroutine write_tsunami_arrival_file()
-   !
-   use sfincs_data
-   !
-   implicit none
-   !
-   open(unit = 911, status = 'replace', file = 'tsunami_arrival_time.dat', form = 'unformatted')
-   write(911)tsunami_arrival_time
-   close(911)   
-   !
-   end subroutine
    
 end module
