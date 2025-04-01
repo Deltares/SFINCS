@@ -1,4 +1,4 @@
-include 'mkl_pardiso.f90'
+!include 'mkl_pardiso.f90'
 
 ! Non-hydrostatic code now only works with regular grids (can still use quadtree netcdf file as long as there are no refinement levels).
 ! Still to do: add nonh_mask to netcdf file. Now the non-hydrostatic corrections are applied to the entire SFINCS grid.
@@ -11,8 +11,8 @@ module sfincs_nonhydrostatic
    integer, dimension(:), allocatable   :: nm_index_of_row
    integer, dimension(:), allocatable   :: row_index_of_nm
    integer, dimension(:), allocatable   :: uv_index_of_nhuv
-   integer, dimension(:), allocatable   :: ia
-   integer, dimension(:), allocatable   :: ja   
+   integer, dimension(:), allocatable   :: col_idx
+   integer, dimension(:), allocatable   :: row_ptr
    integer, dimension(:), allocatable   :: mask_nonh
    integer, dimension(:), allocatable   :: bnd
    !
@@ -25,10 +25,6 @@ module sfincs_nonhydrostatic
    real*4,  dimension(:), allocatable   :: dzbdx
    real*4,  dimension(:), allocatable   :: dzbdy
    !
-   integer*8 :: pt(64)
-   integer   :: iparm(64)
-   !
-   integer   :: maxfct
    integer   :: mnum
    integer   :: mtype
    integer   :: phase
@@ -56,8 +52,9 @@ contains
    !
    ! Temporary arrays
    !
-   integer, dimension(:), allocatable   :: ja0
-   integer, dimension(:), allocatable   :: imu0
+   !integer, dimension(:), allocatable   :: ja0
+   integer, dimension(:), allocatable   :: col_idx0
+!   integer, dimension(:), allocatable   :: imu0
    integer, dimension(:,:), allocatable :: nh_nm_index
    !
    allocate(row_index_of_nm(np))
@@ -65,15 +62,6 @@ contains
    !
    row_index_of_nm = 0
    mask_nonh       = 0
-   !
-   maxfct = 1
-   mnum   = 1
-   mtype  = 11
-   phase  = 23
-   nrhs   = 1
-   msglvl = 0
-   !
-   first_time = .true.
    !
    irow = 0
    !
@@ -108,16 +96,14 @@ contains
    allocate(wb(nrows))
    allocate(wb0(nrows))
    allocate(index_sparse_matrix(5, nrows))
-   allocate(ia(nrows + 1))
-   allocate(ja0(5 * nrows))
+   allocate(row_ptr(nrows + 1))
+   allocate(col_idx0(5 * nrows))
    allocate(Dnm(nrows))
    allocate(dzbdx(nrows))
    allocate(dzbdy(nrows))
    allocate(nm_index_of_row(nrows))
    allocate(nh_uv_index(4, nrows))
    allocate(nh_nm_index(4, nrows))
-   allocate(imu0(nrows*2))
-   ! allocate(bnd(nrows))
    !
    pnh = 0.0
    ws  = 0.0       
@@ -125,9 +111,9 @@ contains
    wb0 = 0.0       
    !
    index_sparse_matrix = 0
-   ia = 0
-   ja = 0
-   ja0 = 0
+   row_ptr = 0
+   col_idx = 0
+   col_idx0 = 0
    irow = 0
    k = 0
    Dnm = 0.0
@@ -136,7 +122,6 @@ contains
    nm_index_of_row = 0
    nh_uv_index = 0
    nh_nm_index = 0
-   imu0 = 0
    ! bnd = 0
    !
    ! Map row indices to nm indices and vice versa
@@ -157,13 +142,13 @@ contains
    !        +------|------+
    !        |             | 
    !        |       irow  | 
-   !     1  -      +      -  2
+   !     1  -      + 5    -  2
    !        |             | 
    !        |             | 
    !        +------|------+
    !               3
    !
-   ! Loop through all uv points to get nh uv points (any uv point that is touches nh cell)
+   ! Loop through all uv points to get nh uv points (any uv point that touches nh cell)
    !
    ! First just count them
    !
@@ -281,12 +266,12 @@ contains
          ! Cell has a neighbor to the left
          !
          k = k + 1
-         ja0(k) = icol
+         col_idx0(k) = icol
          index_sparse_matrix(1, irow) = k
          !
-         if (ia(irow) == 0) then ! first data in row
+         if (row_ptr(irow) == 0) then ! first data in row
             !
-            ia(irow) = k
+            row_ptr(irow) = k
             !
          endif   
          !
@@ -301,12 +286,12 @@ contains
          ! Cell has a neighbor below
          !
          k = k + 1
-         ja0(k) = icol
+         col_idx0(k) = icol
          index_sparse_matrix(3, irow) = k
          !
-         if (ia(irow) == 0) then ! first data in row
+         if (row_ptr(irow) == 0) then ! first data in row
             !
-            ia(irow) = k
+            row_ptr(irow) = k
             !
          endif   
          !
@@ -319,12 +304,12 @@ contains
       ! if (icol > iii) then
       !
       k = k + 1
-      ja0(k) = icol
+      col_idx0(k) = icol
       index_sparse_matrix(5, irow) = k
       !
-      if (ia(irow) == 0) then ! first data in row
+      if (row_ptr(irow) == 0) then ! first data in row
          !
-         ia(irow) = k
+         row_ptr(irow) = k
          !
       endif   
       !   
@@ -339,12 +324,12 @@ contains
          ! Cell has a neighbor above
          !
          k = k + 1
-         ja0(k) = icol
+         col_idx0(k) = icol
          index_sparse_matrix(4, irow) = k
          !
-         if (ia(irow) == 0) then ! first data in row
+         if (row_ptr(irow) == 0) then ! first data in row
             !
-            ia(irow) = k
+            row_ptr(irow) = k
             !
          endif   
          !
@@ -359,12 +344,12 @@ contains
          ! Cell has a neighbor to the right
          !
          k = k + 1
-         ja0(k) = icol
+         col_idx0(k) = icol
          index_sparse_matrix(2, irow) = k
          !
-         if (ia(irow) == 0) then ! first data in row
+         if (row_ptr(irow) == 0) then ! first data in row
             !
-            ia(irow) = k
+            row_ptr(irow) = k
             !
          endif   
          !
@@ -373,9 +358,9 @@ contains
    enddo
    !
    nr_vals_in_matrix = k
-   allocate(ja(nr_vals_in_matrix))
-   ja(1:k) = ja0(1:k)
-   ia(nrows + 1) = k + 1
+   allocate(col_idx(nr_vals_in_matrix))
+   col_idx(1:k) = col_idx0(1:k)
+   row_ptr(nrows + 1) = k + 1
    !
    ! Compute bed level slopes
    !
@@ -426,10 +411,6 @@ contains
       !
    enddo   
    !
-   call pardisoinit(pt, mtype, iparm)
-   !
-   iparm(28) = 1 ! single precision
-   !
    end subroutine
 
    
@@ -438,6 +419,7 @@ contains
    ! Non-hydrostatic pressure correction on fluxes and velocities 
    !
    use sfincs_data
+   use bicgstab_solver
    !
    implicit none
    !
@@ -471,6 +453,8 @@ contains
    integer   :: nhnmu
    integer   :: iuv
    !
+   integer   :: max_iter
+   !
    real*4    :: ddum
    real*4    :: hu
    real*4    :: dxuvinv
@@ -497,6 +481,8 @@ contains
    real*4    :: hnum
    real*4    :: hndm   
    real*4    :: hnb
+   !
+   real*4    :: tol
    !
    real*4    :: dtover2rhodx2
    real*4    :: dtover2rhodx
@@ -586,7 +572,7 @@ contains
          !
          if (j>0) then
             !
-            AA(j) = dtover2rhodx2 * (-1.0 + AB(nmd))            
+            AA(j) = dtover2rhodx2 * (-1.0 + AB(nmd))
             !
          endif
          !
@@ -690,23 +676,12 @@ contains
    !$omp end do
    !$omp end parallel
    !
-   ! Solve system of equations
+   tol = 0.00001
+   max_iter = 30
    !
-   ! Analysis
-   !   
-   if (first_time) then
-      !
-      phase  = 11
-      call pardiso(pt, maxfct, mnum, mtype, phase, nrows, AA, ia, ja, idum, nrhs, iparm, msglvl, QQ, pnh, error)
-      first_time = .false.
-      !
-   endif
+   ! Solve matrix
    !
-   ! Solve
-   !
-   phase  = 23
-   !
-   call pardiso(pt, maxfct, mnum, mtype, phase, nrows, AA, ia, ja, idum, nrhs, iparm, msglvl, QQ, pnh, error)
+   call bicgstab(nrows, row_ptr, col_idx, AA, pnh, QQ, tol, max_iter)
    !
    ! Adjust fluxes   
    !
@@ -816,5 +791,9 @@ contains
    tloop = tloop + 1.0*(count1 - count0)/count_rate
    !
    end subroutine      
-   !
+
+   
+   
+   
+   !      
 end module
