@@ -87,6 +87,7 @@ module sfincs_data
       real*4 wmtfilter
       real*4 horton_kr_kd
       real*4 btrelax
+      real*4 structure_relax
       real*4 wiggle_factor
       real*4 wiggle_threshold
       real*4 uvlim
@@ -199,6 +200,7 @@ module sfincs_data
       logical       :: store_velocity
       logical       :: store_twet
       logical       :: store_hsubgrid
+      logical       :: store_hmean      
       logical       :: store_qdrain
       logical       :: store_zvolume
       logical       :: store_meteo

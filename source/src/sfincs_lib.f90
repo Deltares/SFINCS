@@ -89,8 +89,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.1.3'
-   build_date     = '$Date: 2025-03-19'
+   build_revision = '$Rev: v2.1.3:branch-112'
+   build_date     = '$Date: 2025-03-31'
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)
@@ -240,10 +240,10 @@ module sfincs_lib
    t           = t0     ! start time
    tout        = t0
    dt          = 1.0e-6 ! First time step very small
+   min_dt      = 1.0e-6 ! First time step very small
    dtavg       = 0.0    ! average time step
    maxdepth    = 999.0  ! maximum depth over time step
    maxmaxdepth = 0.0    ! maximum depth over entire simulation
-   min_dt      = 0.0    ! minimum time step from compute_fluxes
    nt          = 0      ! number of time steps
    ntmapout    = 0      ! number of map time steps
    ntmaxout    = 0      ! number of max time steps

@@ -116,6 +116,7 @@ contains
    call read_char_input(500,'advection_scheme',advstr,'upw1')   
    call read_real_input(500,'btrelax',btrelax,3600.0)
    call read_logical_input(500,'wiggle_suppression', wiggle_suppression, .true.)
+   call read_real_input(500,'structure_relax',structure_relax,10.0)
    call read_real_input(500,'wiggle_factor',wiggle_factor,0.1)
    call read_real_input(500,'wiggle_threshold',wiggle_threshold,0.1)
    call read_real_input(500, 'uvlim', uvlim, 10.0)
@@ -204,6 +205,7 @@ contains
    call read_int_input(500,'storecumprcp',storecumprcp,0)
    call read_int_input(500,'storetwet',storetwet,0)
    call read_int_input(500,'storehsubgrid',storehsubgrid,0)
+   call read_logical_input(500, 'storehmean', store_hmean, .false.)      
    call read_real_input(500,'twet_threshold',twet_threshold,0.01)
    call read_int_input(500,'store_tsunami_arrival_time',itsunamitime,0)
    call read_real_input(500,'tsunami_arrival_threshold',tsunami_arrival_threshold,0.01)
@@ -383,11 +385,6 @@ contains
       store_velocity = .true.
    endif
    !
-   store_hsubgrid = .false.
-   if (storehsubgrid==1) then
-      store_hsubgrid = .true.
-   endif   
-   !
    store_meteo = .false.
    store_wind  = .false.   
    store_wind_max = .false.
@@ -463,6 +460,22 @@ contains
       isubgrid = 0
       call write_log('Info    : running SFINCS with regular bathymetry', 0)
       !
+   endif
+   !
+   !
+   store_hsubgrid = .false.
+   if (storehsubgrid==1) then
+      store_hsubgrid = .true.
+   endif   
+   !
+   if (subgrid .eqv. .true. .and. store_hsubgrid .eqv. .true. .and. store_hmean .eqv. .false.) then
+      ! 
+      call write_log('Info    : storing maximum depth in subgrid cell for hmax output', 0)
+      !
+   elseif (subgrid .eqv. .true. .and. store_hsubgrid .eqv. .true. .and. store_hmean .eqv. .true.) then
+      !
+      call write_log('Info    : storing mean depth in subgrid cell for hmax output', 0)
+      !       
    endif
    !
    store_zvolume = .false.
