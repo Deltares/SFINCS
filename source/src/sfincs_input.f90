@@ -563,6 +563,9 @@ contains
       elseif (trim(advstr) == 'upw1') then
          advection_scheme = 1
          call write_log('Info    : advection scheme : first-order upwind', 0)
+      elseif (trim(advstr) == 'upw2') then
+         advection_scheme = 2
+         call write_log('Info    : advection scheme : first-order upwind v2', 0)
       else
          write(logstr,*)'Warning : advection scheme ', trim(advstr), ' not recognized! Using default upw1 instead!'
          call write_log(logstr, 1)

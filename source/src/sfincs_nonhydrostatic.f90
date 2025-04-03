@@ -676,12 +676,12 @@ contains
    !$omp end do
    !$omp end parallel
    !
-   tol = 0.00001
+   tol = 0.001
    max_iter = 30
    !
    ! Solve matrix
    !
-   call bicgstab(nrows, row_ptr, col_idx, AA, pnh, QQ, tol, max_iter)
+   call bicgstab_mine(nrows, row_ptr, col_idx, AA, pnh, QQ, tol, max_iter, nr_vals_in_matrix, 0)
    !
    ! Adjust fluxes   
    !

@@ -1,12 +1,15 @@
 module bicgstab_solver
+   
    use omp_lib
    implicit none
-   contains
+
+contains
 
    ! Computes y = A * x for a sparse matrix in CSR format
    subroutine spmv(n, row_ptr, col_idx, values, vec, result)
       integer, intent(in) :: n, row_ptr(n+1), col_idx(*)
-      real*4, intent(in) :: values(*), vec(n)
+      real*4, intent(in) :: values(*)
+      real*4, intent(in) :: vec(n)
       real*4, intent(out) :: result(n)
       integer :: i, j
 
@@ -20,25 +23,28 @@ module bicgstab_solver
       !$omp end parallel do
    end subroutine spmv
 
+   
    ! BiCGStab solver for sparse matrices in CSR format
    ! Inputs:
-   !   n       - Number of unknowns (size of the system)
-   !   row_ptr - Row pointers for the CSR matrix (size n+1)
-   !   col_idx - Column indices for the CSR matrix
-   !   values  - Non-zero values of the CSR matrix
-   !   x       - Initial guess (updated with solution)
-   !   b       - Right-hand side vector
-   !   tol     - Convergence tolerance
-   !   max_iter- Maximum number of iterations
-   subroutine bicgstab(n, row_ptr, col_idx, values, x, b, tol, max_iter)
+   !   n        - Number of unknowns (size of the system)
+   !   row_ptr  - Row pointers for the CSR matrix (size n+1)
+   !   col_idx  - Column indices for the CSR matrix
+   !   values   - Non-zero values of the CSR matrix
+   !   x        - Initial guess (updated with solution)
+   !   b        - Right-hand side vector
+   !   tol      - Convergence tolerance
+   !   max_iter - Maximum number of iterations
+   !   nnz      - number of values in matrix
+   !   use_preconditioner - (0/1)
+   subroutine bicgstab_mine(n, row_ptr, col_idx, values, x, b, tol, max_iter, nnz, use_preconditioner)
       implicit none
-      integer, intent(in) :: n, max_iter
+      integer, intent(in) :: n, max_iter, nnz, use_preconditioner
       real*4, intent(in) :: tol
       integer, intent(in) :: row_ptr(n+1), col_idx(*)
       real*4, intent(in) :: values(*)
       real*4, intent(inout) :: x(n)
       real*4, intent(in) :: b(n)
-      real*4 :: r(n), r0(n), p(n), v(n), s(n), t(n), x_new(n)
+      real*4 :: r(n), r0(n), p(n), v(n), s(n), t(n)
       real*4 :: rho, rho_old, alpha, omega, beta, norm_r, b_norm
       integer :: i, k
 
@@ -46,74 +52,87 @@ module bicgstab_solver
       call spmv(n, row_ptr, col_idx, values, x, v)
       r = b - v
       r0 = r
-      p = 0.0
-      v = 0.0
-      omega = 1.0
-      rho_old = 1.0
-      alpha = 1.0
+
+      ! Generate a random vector r0 (uniform random numbers in the range [0, 1])
+      !call random_seed()  ! Initialize the random number generator
+      !call random_number(r0)
+      !r0 = r0 * sqrt(dot_product(r, r))
+      
+      rho = dot_product(r0, r)
+      p = r0
+      rho_old = 1.0      
 
       b_norm = sqrt(dot_product(b, b))
       if (b_norm < 1.0e-7) return
 
       do k = 1, max_iter
+
+         !print *, 'Iteration:', k, 'rho:', rho
+
+         ! 1)
+         call spmv(n, row_ptr, col_idx, values, p, v)
+         
+         
+         if (abs(dot_product(r0, v)) < 1.0e-7) exit
+         
+         ! 2)
+         alpha = rho / (dot_product(r0, v))
+
+         ! Skipping 3) 
+         ! h = x + alpha * p
+         
+         ! 4)
+         !$omp parallel do
+         do i = 1, n
+            s(i) = r(i) - alpha * v(i)
+         end do
+         !$omp end parallel do
+         
+         ! 5) If h is small enough, i.e. if s is small enough, then set x = h and quit
+         !write(*,*)'dps',sqrt(dot_product(s, s))
+         
+         ! 6)
+         call spmv(n, row_ptr, col_idx, values, s, t) 
+
+         ! 7)
+         omega = dot_product(t, s) / (dot_product(t, t) + 1.0e-7)
+
+         ! 8) do not use h from step 3 but  x + alpha * p directly
+         !$omp parallel do
+         do i = 1, n
+            x(i) = x(i) + alpha * p(i) + omega * s(i)
+         end do
+         !$omp end parallel do
+
+         ! 9)
+         !$omp parallel do
+         do i = 1, n
+            r(i) = s(i) - omega * t(i)
+         end do
+         !$omp end parallel do
+         
+         ! 10) If x is accurate enough, i.e. if r is small enough, then quit
+         ! Check convergence
+         norm_r = sqrt(dot_product(r, r))
+         if (norm_r < tol) exit
+
+         ! 11)
          rho = dot_product(r0, r)
-         if (abs(rho) < 1.0e-7) exit
+         
+         ! 12)      
          beta = (rho / rho_old) * (alpha / omega)
 
+         ! 13)
          !$omp parallel do
          do i = 1, n
             p(i) = r(i) + beta * (p(i) - omega * v(i))
          end do
          !$omp end parallel do
 
-         ! Matrix-vector product v = A*p
-         call spmv(n, row_ptr, col_idx, values, p, v)
-         if (abs(dot_product(r0, v)) < 1.0e-7) exit
-         alpha = rho / dot_product(r0, v)
-
-         ! Compute s
-         !$omp parallel do
-         do i = 1, n
-            s(i) = r(i) - alpha * v(i)
-         end do
-         !$omp end parallel do
-
-         norm_r = sqrt(dot_product(s, s))
-         if (norm_r / b_norm < tol) then
-            !$omp parallel do
-            do i = 1, n
-               x(i) = x(i) + alpha * p(i)
-            end do
-            !$omp end parallel do
-            exit
-         end if
-
-         ! Matrix-vector product t = A*s
-         call spmv(n, row_ptr, col_idx, values, s, t)
-         if (abs(dot_product(t, t)) < 1.0e-7) exit
-         omega = dot_product(t, s) / (dot_product(t, t) + 1.0e-7)
-
-         ! Update solution
-         !$omp parallel do
-         do i = 1, n
-            x_new(i) = x(i) + alpha * p(i) + omega * s(i)
-         end do
-         !$omp end parallel do
-
-         ! Check convergence
-         norm_r = sqrt(dot_product(x_new - x, x_new - x)) / b_norm
-         x = x_new
-         if (norm_r < tol) exit
-
-         !$omp parallel do
-         do i = 1, n
-            r(i) = s(i) - omega * t(i)
-         end do
-         !$omp end parallel do
-
          rho_old = rho
+
       end do
 
-   end subroutine bicgstab
-
+   end subroutine bicgstab_mine
+      
 end module bicgstab_solver
