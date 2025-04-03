@@ -237,6 +237,22 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'coordinates', 'x y'))   
    endif
    !
+   if (subgrid .and. store_hsubgrid .and. store_hmean) then
+      !
+      ! The subgrid slope (zmax - zmin) / sqrt(A) is used for making high-res flood maps
+      ! If the subgrid slope is lower than a threshold, the mean water depth in a cell
+      ! can be used instead of difference between the cell water level and the pixel heights
+      !
+      NF90(nf90_def_var(map_file%ncid, 'subgridslope', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid/), map_file%subgridslope_varid)) ! (zmax - zmin) / dx      
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%subgridslope_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%subgridslope_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(map_file%ncid, map_file%subgridslope_varid, 'units', '-'))
+      NF90(nf90_put_att(map_file%ncid, map_file%subgridslope_varid, 'standard_name', 'subgrid_slope'))
+      NF90(nf90_put_att(map_file%ncid, map_file%subgridslope_varid, 'long_name', 'subgrid_slope'))
+      NF90(nf90_put_att(map_file%ncid, map_file%subgridslope_varid, 'coordinates', 'x y'))      
+      !
+   endif
+   !
    ! Time variables   
    !
    trefstr_iso8601 = date_to_iso8601(trefstr)
@@ -638,6 +654,28 @@ contains
       enddo
       !
       NF90(nf90_put_var(map_file%ncid, map_file%zb_varid, zsg, (/1, 1/))) ! write zb
+      !
+   endif
+   !
+   zsg = FILL_VALUE       
+   !   
+   ! Subgrid slope   
+   if (subgrid .and. store_hsubgrid .and. store_hmean) then
+      !
+      do nm = 1, np
+         !
+         n    = z_index_z_n(nm)
+         m    = z_index_z_m(nm)
+         !               
+         if (crsgeo) then
+             zsg(m, n) = (subgrid_z_zmax(nm) - subgrid_z_zmin(nm)) / sqrt(cell_area_m2(nm))
+         else   
+             zsg(m, n) = (subgrid_z_zmax(nm) - subgrid_z_zmin(nm)) / sqrt(cell_area(z_flags_iref(nm)))
+         endif
+         !
+      enddo
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%subgridslope_varid, zsg, (/1, 1/))) ! write subgridslope
       !
    endif
    !
@@ -2848,6 +2886,7 @@ contains
    integer  :: ntmaxout   
    !
    real*4, dimension(:,:), allocatable :: zstmp
+   real*4, dimension(:), allocatable    :: hmean ! Same size as zs 1D array   
    !
    allocate(zstmp(mmax, nmax))
    !
@@ -2879,10 +2918,20 @@ contains
    NF90(nf90_put_var(map_file%ncid, map_file%timemax_varid, t, (/ntmaxout/))) ! write time_max
    NF90(nf90_put_var(map_file%ncid, map_file%zsmax_varid, zstmp, (/1, 1, ntmaxout/))) ! write zsmax      
    !
-   ! Write maximum water depth (optional)
+   ! Write maximum water depth (optional)   
    if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
       !
       zstmp = FILL_VALUE
+      !
+      if (store_hmean .and. subgrid .eqv. .true.) then
+         !
+         ! Obtain mean depth from subgrid tables
+         !
+         allocate(hmean(np))
+         !
+         call compute_subgrid_mean_depth(zsmax, hmean)
+         !
+      endif   
       !
       if (subgrid) then   
          do nm = 1, np
@@ -2891,9 +2940,21 @@ contains
             m    = z_index_z_m(nm)             
             !
             if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
-               zstmp(m, n) = zsmax(nm) - subgrid_z_zmin(nm)
-            endif
-            !
+               !             
+               if (store_hmean) then
+                  !
+                  ! Store mean depth in subgrid cell
+                  !               
+                  zstmp(m, n) = hmean(nm)
+                  !
+               else
+                  !
+                  ! Store maximum depth in subgrid cell
+                  !
+                  zstmp(m, n) = zsmax(nm) - subgrid_z_zmin(nm)
+                  !
+               endif   
+            endif                     
          enddo
       else
          do nm = 1, np       
