@@ -25,6 +25,8 @@ module sfincs_nonhydrostatic
    real*4,  dimension(:), allocatable   :: dzbdx
    real*4,  dimension(:), allocatable   :: dzbdy
    !
+   real*4    :: huthresh_nh
+   !
    integer   :: mnum
    integer   :: mtype
    integer   :: phase
@@ -52,9 +54,7 @@ contains
    !
    ! Temporary arrays
    !
-   !integer, dimension(:), allocatable   :: ja0
    integer, dimension(:), allocatable   :: col_idx0
-!   integer, dimension(:), allocatable   :: imu0
    integer, dimension(:,:), allocatable :: nh_nm_index
    !
    allocate(row_index_of_nm(np))
@@ -104,6 +104,8 @@ contains
    allocate(nm_index_of_row(nrows))
    allocate(nh_uv_index(4, nrows))
    allocate(nh_nm_index(4, nrows))
+   !
+   huthresh_nh = max(huthresh, 0.01)
    !
    pnh = 0.0
    ws  = 0.0       
@@ -507,7 +509,7 @@ contains
       !
       nm = nm_index_of_row(irow)
       !
-      Dnm(irow)  = max(zs(nm) - zb(nm), huthresh)
+      Dnm(irow)  = max(zs(nm) - zb(nm), huthresh_nh)
       !
    enddo
    !$omp end do
@@ -527,15 +529,20 @@ contains
       nm   = uv_index_z_nm(ipuv)
       nmu  = uv_index_z_nmu(ipuv)
       !
-      hnm  = - zb(nm)
-      Dnm1 = max(zs(nm) - zb(nm), huthresh)
-      !
-      ! Indices of surrounding water level points
-      !
-      hnmu = - zb(nmu)
-      Dnmu = max(zs(nmu) - zb(nmu), huthresh)
-      !          
-      AB(ip) = ( (zs(nmu) - hnmu) - (zs(nm) - hnm) ) / (Dnm1 + Dnmu)
+      if (kfuv(ipuv) == 1) then
+!         if (zs(nm) > zb(nm) + max(huthresh, 0.001) .and. zs(nmu) > zb(nmu) + max(huthresh, 0.001)) then
+         if (zs(nm) > zb(nm) + huthresh_nh .and. zs(nmu) > zb(nmu) + huthresh_nh) then
+            !
+            hnm  = - zb(nm)
+            Dnm1 = max(zs(nm) - zb(nm), huthresh_nh)
+            !
+            hnmu = - zb(nmu)
+            Dnmu = max(zs(nmu) - zb(nmu), huthresh_nh)
+            !          
+            AB(ip) = ( (zs(nmu) - hnmu) - (zs(nm) - hnm) ) / (Dnm1 + Dnmu)
+            !
+         endif
+      endif   
       !
    enddo
    !$omp end do
@@ -677,7 +684,7 @@ contains
    !$omp end parallel
    !
    tol = 0.001
-   max_iter = 30
+   max_iter = 300
    !
    ! Solve matrix
    !
@@ -708,18 +715,22 @@ contains
          !
          hu = max(zs(nm), zs(nmu)) - 0.5 * (zb(nm) + zb(nmu))
          !
-         unh = - 1.0 * dtover2rhodx * ( AB(ip) * (pnh(nhnmu) + pnh(nhnm)) + pnh(nhnmu) - pnh(nhnm) )
-         !
-         ! Do some nudging to avoid 2dx waves
-         !
-         q(ipuv)  = (1.0 - fnhnudge) * q(ipuv) + fnhnudge * (q(ipuv) + hu * unh)
-         uv(ipuv) = (1.0 - fnhnudge) * uv(ipuv) + fnhnudge * uv(ipuv)
+         if (hu > huthresh_nh) then
+            !
+            unh = - 1.0 * dtover2rhodx * ( AB(ip) * (pnh(nhnmu) + pnh(nhnm)) + pnh(nhnmu) - pnh(nhnm) )
+            !
+            ! Do some nudging to avoid 2dx waves
+            !
+            q(ipuv)  = (1.0 - fnhnudge) * q(ipuv) + fnhnudge * (q(ipuv) + hu * unh)
+            uv(ipuv) = (1.0 - fnhnudge) * uv(ipuv) + fnhnudge * (uv(ipuv) + unh)
+            !
+         endif
          !
       endif
       !
    enddo   
    !$omp end do
-   !$omp end parallel
+   !$omp end parallel   
    !
    ! Update vertical velocity ws and wb
    !

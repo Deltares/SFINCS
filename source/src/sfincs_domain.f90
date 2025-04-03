@@ -1612,6 +1612,28 @@ contains
       !
       call read_subgrid_file()
       !
+      ! In case of nonh, we also need zb
+      !
+      if (nonhydrostatic) then
+         !
+         allocate(zb(np))
+         !
+         if (use_quadtree) then
+            !
+            do ip = 1, np
+               zb(ip) = quadtree_zz(index_quadtree_in_sfincs(ip))
+            enddo   
+            !
+         else
+            !
+            ! Produce error message
+            !
+            ! This combo is not allowed!
+            !
+         endif
+         !
+      endif
+      !
    endif
    !
    if (allocated(kcsg)) deallocate(kcsg)

@@ -45,7 +45,7 @@ contains
       real*4, intent(inout) :: x(n)
       real*4, intent(in) :: b(n)
       real*4 :: r(n), r0(n), p(n), v(n), s(n), t(n)
-      real*4 :: rho, rho_old, alpha, omega, beta, norm_r, b_norm
+      real*4 :: rho, rho_old, alpha, omega, beta, norm_r, b_norm, dpr0v
       integer :: i, k
 
       ! Initial residual
@@ -67,16 +67,21 @@ contains
 
       do k = 1, max_iter
 
-         !print *, 'Iteration:', k, 'rho:', rho
+         ! print *, 'Iteration:', k, 'rho:', rho
 
          ! 1)
          call spmv(n, row_ptr, col_idx, values, p, v)
          
-         
-         if (abs(dot_product(r0, v)) < 1.0e-7) exit
+         dpr0v = dot_product(r0, v)
+
+         if (abs(dpr0v) < 1.0e-10) then
+            ! write(*,'(a,3e16.6)')'abs(dot_product(r0, v)) < 1.0e-10 - dpr,rho,alpha', dpr0v, rho, rho / dpr0v
+            if (dpr0v<0.0) dpr0v = -1.0e-10
+            if (dpr0v>0.0) dpr0v = 1.0e-10
+         endif   
          
          ! 2)
-         alpha = rho / (dot_product(r0, v))
+         alpha = rho / dpr0v
 
          ! Skipping 3) 
          ! h = x + alpha * p
@@ -89,13 +94,13 @@ contains
          !$omp end parallel do
          
          ! 5) If h is small enough, i.e. if s is small enough, then set x = h and quit
-         !write(*,*)'dps',sqrt(dot_product(s, s))
          
          ! 6)
          call spmv(n, row_ptr, col_idx, values, s, t) 
 
          ! 7)
-         omega = dot_product(t, s) / (dot_product(t, t) + 1.0e-7)
+         omega = dot_product(t, s) / (dot_product(t, t))
+         !omega = dot_product(t, s) / (dot_product(t, t) + 1.0e-7)
 
          ! 8) do not use h from step 3 but  x + alpha * p directly
          !$omp parallel do
@@ -114,11 +119,17 @@ contains
          ! 10) If x is accurate enough, i.e. if r is small enough, then quit
          ! Check convergence
          norm_r = sqrt(dot_product(r, r))
-         if (norm_r < tol) exit
+         if (norm_r < tol) then
+            exit
+         endif   
 
          ! 11)
          rho = dot_product(r0, r)
-         
+         if (abs(rho)<1.0e-11) then
+            ! write(*,*)'abs(rho)<1.0e-11'
+            exit
+         endif   
+
          ! 12)      
          beta = (rho / rho_old) * (alpha / omega)
 
@@ -132,6 +143,7 @@ contains
          rho_old = rho
 
       end do
+      ! write(*,*)'niter: ',k
 
    end subroutine bicgstab_mine
       
