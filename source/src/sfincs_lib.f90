@@ -148,8 +148,6 @@ module sfincs_lib
    call write_log('Reading boundary data ...', 0) 
    call read_boundary_data()    ! Reads bnd, bzs, etc files
    !
-   ! call read_coastline()        ! Reads cst file. Do we still do this ?
-   !
    call find_boundary_indices()
    !
    call write_log('Reading observation points ...', 0) 
@@ -230,6 +228,8 @@ module sfincs_lib
    endif   
    !
    call set_advection_mask()
+   !
+   call fill_h73_tables() 
    !
    call system_clock(count1, count_rate, count_max)
    !

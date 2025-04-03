@@ -247,7 +247,13 @@ More parameters for model input (only for advanced users)
 	  :units:		0
 	  :default:		0
 	  :min:			0
-	  :max:			1
+	  :max:			1	
+	h73table
+	  :description:		Option to use lookup table to calculate nonlinear term h^(7/3) in momentum equation, depending on model schematisation can lead to ~0-30% speedup of model, default is off (0)
+	  :units:		logical
+	  :default:		0
+	  :min:			0
+	  :max:			1		    
 	structure_relax
 	  :description:		Structure_relax in seconds gives ratio between new and old discharge (default 10s), as relaxation factor
 	  :units:		s
