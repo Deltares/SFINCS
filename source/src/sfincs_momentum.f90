@@ -761,7 +761,7 @@
    elseif (hu < 10000.0) then
       hu73 = x73(int(0.1 * hu), 10)
    else
-      hu73 = 100000.0 ** (7.0/3.0)
+      hu73 = 10000.0 ** (7.0/3.0)
    endif    
    !
    end function
