@@ -425,57 +425,6 @@
                      !
                      if (qd > 1.0e-6) then
                         ud = (uu_nmd + uu_nm) / 2
-                        dqxudx = ( qd * (uu_nm - uu_nmd) + ud * (qx_nm - qx_nmd) / 2 ) * dxuvinv
-                     endif
-                     !
-                     if (qu < -1.0e-6) then
-                        uu = (uu_nm + uu_nmu) / 2
-                        dqxudx = dqxudx + ( qu*(uu_nmu - uu_nm) + uu * (qx_nmu - qx_nm) / 2) * dxuvinv
-                     endif
-                     ! 
-                     ! d qv u / dy
-                     !
-                     ! qv d u / d y
-                     ! 
-                     qu = (qy_nm + qy_nmu) / 2
-                     qd = (qy_ndm + qy_ndmu) / 2
-                     !
-                     if (qd > 1.0e-6) then
-                        dqyudy = qd * (uu_nm - uu_ndm) * dyuvinv
-                     endif
-                     !
-                     if (qu < -1.0e-6) then
-                        dqyudy = dqyudy + qu * (uu_num - uu_nm) * dyuvinv
-                     endif
-                     ! 
-                     ! u d qv / dy
-                     ! 
-                     ud = (uu_nmd + uu_nm) / 2
-                     uu = (uu_nm + uu_nmu) / 2
-                     !
-                     if (ud > 1.0e-6) then
-                        dqyudy = dqyudy + ud * ( qy_nm - qy_ndm ) * dyuvinv
-                     endif   
-                     !
-                     if (uu < -1.0e-6) then
-                        dqyudy = dqyudy + uu * ( qy_nmu - qy_ndmu ) * dyuvinv
-                     endif
-                     !  
-                  elseif (advection_scheme == 2) then
-                     !
-                     ! 1st order upwind (upw2) v2
-                     ! Same as upw1, but now with /2 bug fix
-                     !
-                     ! d qu u / dx = qu du / dx + u d qu / dx
-                     ! d qv u / dy = qv du / dy + u d qv / dy
-                     !
-                     ! d qu u / dx
-                     !
-                     qd = (qx_nmd + qx_nm) / 2
-                     qu = (qx_nm + qx_nmu) / 2
-                     !
-                     if (qd > 1.0e-6) then
-                        ud = (uu_nmd + uu_nm) / 2
                         dqxudx = ( qd * (uu_nm - uu_nmd) + ud * (qx_nm - qx_nmd) ) * dxuvinv
                      endif
                      !
@@ -511,7 +460,7 @@
                      if (uu < -1.0e-6) then
                         dqyudy = dqyudy + uu * ( qy_nmu - qy_ndmu ) * dyuvinv
                      endif
-                     !
+                     !  
                   endif
                   !
                   adv = - phi * (dqxudx + dqyudy)

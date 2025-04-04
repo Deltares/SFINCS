@@ -13,8 +13,6 @@ module sfincs_nonhydrostatic
    integer, dimension(:), allocatable   :: uv_index_of_nhuv
    integer, dimension(:), allocatable   :: col_idx
    integer, dimension(:), allocatable   :: row_ptr
-   integer, dimension(:), allocatable   :: mask_nonh
-   integer, dimension(:), allocatable   :: bnd
    !
    real*4, dimension(:),   allocatable  :: pnh
    real*4, dimension(:),   allocatable  :: ws
@@ -27,17 +25,11 @@ module sfincs_nonhydrostatic
    !
    real*4    :: huthresh_nh
    !
-   integer   :: mnum
-   integer   :: mtype
-   integer   :: phase
-   integer   :: nrhs
-   integer   :: msglvl
-   !
    integer   :: nrows
    integer   :: nr_vals_in_matrix
    integer   :: nhuv  
    !
-   logical   :: first_time
+   !logical   :: first_time
    !
 contains
    !
@@ -58,10 +50,8 @@ contains
    integer, dimension(:,:), allocatable :: nh_nm_index
    !
    allocate(row_index_of_nm(np))
-   allocate(mask_nonh(np))     ! mask for non-h
    !
    row_index_of_nm = 0
-   mask_nonh       = 0
    !
    irow = 0
    !
@@ -69,11 +59,13 @@ contains
    !
    do nm = 1, np      
       !
-      if (kcs(nm) == 1) then
+         ! Check if point has 4 neighbors with kcs = 1
          !
-         mask_nonh(nm) = 1
-         !
-      endif
+         if (z_index_z_n(nm)>500) then
+            !         
+!            mask_nonh(nm) = 0
+            !
+         endif
       !
    enddo   
    !
@@ -530,7 +522,6 @@ contains
       nmu  = uv_index_z_nmu(ipuv)
       !
       if (kfuv(ipuv) == 1) then
-!         if (zs(nm) > zb(nm) + max(huthresh, 0.001) .and. zs(nmu) > zb(nmu) + max(huthresh, 0.001)) then
          if (zs(nm) > zb(nm) + huthresh_nh .and. zs(nmu) > zb(nmu) + huthresh_nh) then
             !
             hnm  = - zb(nm)
@@ -683,12 +674,11 @@ contains
    !$omp end do
    !$omp end parallel
    !
-   tol = 0.001
-   max_iter = 300
-   !
    ! Solve matrix
    !
-   call bicgstab_mine(nrows, row_ptr, col_idx, AA, pnh, QQ, tol, max_iter, nr_vals_in_matrix, 0)
+   ! pnh = 0.0
+   !
+   call bicgstab_mine(nrows, row_ptr, col_idx, AA, pnh, QQ, nh_tol, nh_itermax, nr_vals_in_matrix, 0)
    !
    ! Adjust fluxes   
    !
@@ -721,8 +711,8 @@ contains
             !
             ! Do some nudging to avoid 2dx waves
             !
-            q(ipuv)  = (1.0 - fnhnudge) * q(ipuv) + fnhnudge * (q(ipuv) + hu * unh)
-            uv(ipuv) = (1.0 - fnhnudge) * uv(ipuv) + fnhnudge * (uv(ipuv) + unh)
+            q(ipuv)  = (1.0 - nh_fnudge) * q(ipuv) + nh_fnudge * (q(ipuv) + hu * unh)
+            uv(ipuv) = (1.0 - nh_fnudge) * uv(ipuv) + nh_fnudge * (uv(ipuv) + unh)
             !
          endif
          !

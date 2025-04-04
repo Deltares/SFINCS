@@ -572,7 +572,7 @@ module sfincs_lib
       !      
       if (nonhydrostatic) then
          !
-         if (t < tstopnonh) then ! Check if non-hydrostatic corrections still need to be made
+         if (t < nh_tstop) then ! Check if non-hydrostatic corrections still need to be made
             !
             ! Apply non-hydrostatic pressure corrections to q and uv
             !

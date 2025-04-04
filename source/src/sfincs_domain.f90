@@ -159,6 +159,8 @@ contains
    !
    real*4 :: dxymin
    !
+   logical :: okay
+   !
    ! READ MESH
    !
    ! 2 options:
@@ -1229,6 +1231,70 @@ contains
       ! 
    endif ! advection, viscosity, coriolis or thetasmoothing
    !
+   if (nonhydrostatic) then
+      !
+      ! Intialize mask for cells with non-hydrostatic corrections
+      !
+      allocate(mask_nonh(np))
+      !
+      mask_nonh = 0
+      !
+      do nm = 1, np
+         !
+         okay = .true.
+         !
+         if (kcs(nm) /= 1) cycle ! not a regular point
+         !
+         ! Check if point has 4 neighbors with kcs = 1
+         !
+         ! Left
+         !
+         if (z_flags_md(nm) /= 0) cycle ! not a regular neighbor
+         !
+         nmd = z_index_z_md1(nm)
+         !
+         if (nmd == 0) cycle ! no neighbor
+         !
+         if (kcs(nmd) /= 1) cycle ! neighbor is not a regular point
+         !
+         ! Right
+         !
+         if (z_flags_mu(nm) /= 0) cycle ! not a regular neighbor
+         !
+         nmu = z_index_z_mu1(nm)
+         !
+         if (nmu == 0) cycle ! no neighbor
+         !
+         if (kcs(nmu) /= 1) cycle ! neighbor is not a regular point
+         !
+         ! Bottom
+         !
+         if (z_flags_nd(nm) /= 0) cycle ! not a regular neighbor
+         !
+         ndm = z_index_z_nd1(nm)
+         !
+         if (ndm == 0) cycle ! no neighbor
+         !
+         if (kcs(ndm) /= 1) cycle ! neighbor is not a regular point
+         !
+         ! Top
+         !
+         if (z_flags_nu(nm) /= 0) cycle ! not a regular neighbor
+         !
+         num = z_index_z_nu1(nm)
+         !
+         if (num == 0) cycle ! no neighbor
+         !
+         if (kcs(num) /= 1) cycle ! neighbor is not a regular point
+         !
+         ! This cell has 4 regular neighbors, so copy from quadtree mask
+         !
+         mask_nonh(nm) = quadtree_nonh_mask(index_quadtree_in_sfincs(nm))
+         !
+      enddo
+      !
+   endif   
+   !
    ! Okay, got all the quadtree cells including indices, neighbors flags 
    !
    call write_log('------------------------------------------', 1)
@@ -1486,7 +1552,7 @@ contains
             call write_log(logstr, 0)
         endif            
         !
-   endif   
+   endif
    !
    end subroutine
 

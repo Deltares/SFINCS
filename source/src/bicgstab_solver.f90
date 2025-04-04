@@ -45,7 +45,7 @@ contains
       real*4, intent(inout) :: x(n)
       real*4, intent(in) :: b(n)
       real*4 :: r(n), r0(n), p(n), v(n), s(n), t(n)
-      real*4 :: rho, rho_old, alpha, omega, beta, norm_r, b_norm, dpr0v
+      real*4 :: rho, rho_old, alpha, omega, beta, norm_r, b_norm, dpr0v, ravg
       integer :: i, k
 
       ! Initial residual
@@ -54,9 +54,11 @@ contains
       r0 = r
 
       ! Generate a random vector r0 (uniform random numbers in the range [0, 1])
-      !call random_seed()  ! Initialize the random number generator
-      !call random_number(r0)
-      !r0 = r0 * sqrt(dot_product(r, r))
+      call random_seed()  ! Initialize the random number generator
+      call random_number(r0)
+      ravg = sum(abs(r)) / n
+      ravg = max(ravg, 1e-6)
+      r0 = (r0 - 0.5) * ravg
       
       rho = dot_product(r0, r)
       p = r0
@@ -75,7 +77,7 @@ contains
          dpr0v = dot_product(r0, v)
 
          if (abs(dpr0v) < 1.0e-10) then
-            ! write(*,'(a,3e16.6)')'abs(dot_product(r0, v)) < 1.0e-10 - dpr,rho,alpha', dpr0v, rho, rho / dpr0v
+            !write(*,'(a,3e16.6)')'abs(dot_product(r0, v)) < 1.0e-10 - dpr,rho,alpha', dpr0v, rho, rho / dpr0v
             if (dpr0v<0.0) dpr0v = -1.0e-10
             if (dpr0v>0.0) dpr0v = 1.0e-10
          endif   
@@ -100,6 +102,7 @@ contains
 
          ! 7)
          omega = dot_product(t, s) / (dot_product(t, t))
+         !write(*,*)omega
          !omega = dot_product(t, s) / (dot_product(t, t) + 1.0e-7)
 
          ! 8) do not use h from step 3 but  x + alpha * p directly
@@ -143,7 +146,7 @@ contains
          rho_old = rho
 
       end do
-      ! write(*,*)'niter: ',k
+      !write(*,*)'niter: ',k
 
    end subroutine bicgstab_mine
       

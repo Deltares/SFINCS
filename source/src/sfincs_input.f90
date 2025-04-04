@@ -126,8 +126,10 @@ contains
    ! call read_real_input(500, 'manningbnd', manningbnd, 0.024)
    call read_real_input(500, 'nuviscfac', nuviscfac, 100.0)
    call read_logical_input(500, 'nonh', nonhydrostatic, .false.)   
-   call read_real_input(500, 'fnhnudge', fnhnudge, 0.9)
-   call read_real_input(500, 'tstopnonh', tstopnonh, -999.0)
+   call read_real_input(500, 'nh_fnudge', nh_fnudge, 0.9)
+   call read_real_input(500, 'nh_tstop', nh_tstop, -999.0)
+   call read_real_input(500, 'nh_tol', nh_tol, 0.001)
+   call read_int_input(500, 'nh_itermax', nh_itermax, 100)
    !
    ! Domain
    !
@@ -563,9 +565,6 @@ contains
       elseif (trim(advstr) == 'upw1') then
          advection_scheme = 1
          call write_log('Info    : advection scheme : first-order upwind', 0)
-      elseif (trim(advstr) == 'upw2') then
-         advection_scheme = 2
-         call write_log('Info    : advection scheme : first-order upwind v2', 0)
       else
          write(logstr,*)'Warning : advection scheme ', trim(advstr), ' not recognized! Using default upw1 instead!'
          call write_log(logstr, 1)
@@ -574,19 +573,21 @@ contains
    endif
    !
    if (nonhydrostatic) then
-      if (tstopnonh>0.0) then
+      !
+      if (nh_tstop > 0.0) then
          !
          ! tstopnonh is provided so set it with respect to model reference time
          !
-         tstopnonh = t0 + tstopnonh
+         nh_tstop = t0 + nh_tstop
          !
       else
          !
          ! tstopnonh is not provided so set it to tstop time + 999.0 s
          !
-         tstopnonh = t1 + 999.0
+         nh_tstop = t1 + 999.0
          !          
       endif    
+      !
    endif
    !
    ! normbnd = sqrt(dzdsbnd) / manningbnd
