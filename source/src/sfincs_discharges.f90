@@ -344,8 +344,9 @@ contains
                   qq = max(min(qq, (zs(nmin) - zb(nmin)) * area / dt), 0.0)
                endif
                !
-!               write(*,'(4i10,20e14.4)')idrn,jin,jout,nmin,drainage_params(idrn,1),qq,z_volume(nmin),dt
-               qtsrc(jin)  = -qq
+               ! For both regular and subgrid, water is only subtracted if is there is volume left in subtraction cell
+               !
+               qtsrc(jin)  = -qq 
                qtsrc(jout) = qq
                !
             case(2)
@@ -379,8 +380,9 @@ contains
                endif
                !
                ! Add some relaxation
-               !
-               qq = 0.10*qq + 0.90*qq0               
+               ! structure_relax in seconds => gives ratio between new and old discharge (default 10s)
+               qq = 1/(structure_relax/dt)*qq + (1-(1/(structure_relax/dt)))*qq0
+               !qq = 0.10*qq + 0.90*qq0 - old implementation
                !
                qtsrc(jin)  = -qq
                qtsrc(jout) =  qq
@@ -416,8 +418,9 @@ contains
                endif
                !
                ! Add some relaxation
-               !
-               qq = 0.10*qq + 0.90*qq0
+               ! structure_relax in seconds => gives ratio between new and old discharge (default 10s)
+               qq = 1/(structure_relax/dt)*qq + (1-(1/(structure_relax/dt)))*qq0
+               !qq = 0.10*qq + 0.90*qq0 - old implementation
                !
                ! Make sure it can only flow from intake to outfall point
                !

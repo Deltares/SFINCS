@@ -90,8 +90,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.1.3'
-   build_date     = '$Date: 2025-03-19'
+   build_revision = '$Rev: v2.1.4:beta'
+   build_date     = '$Date: 2025-04-03'
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)
@@ -245,23 +245,25 @@ module sfincs_lib
    !
    call set_advection_mask()
    !
+   call fill_h73_tables() 
+   !
    call system_clock(count1, count_rate, count_max)
    !
    tinput  = 1.0*(count1 - count0)/count_rate
    !
    ! Initialize some parameters
    !
-   t           = t0       ! start time
-   tout        = t0  
-   dt          = 1.0e-6   ! First time step very small
-   min_dt      = 1.0e-6   ! minimum time step from compute_fluxes
-   dtavg       = 0.0      ! average time step
-   maxdepth    = 999.0    ! maximum depth over time step
-   maxmaxdepth = 0.0      ! maximum depth over entire simulation
-   nt          = 0        ! number of time steps
-   ntmapout    = 0        ! number of map time steps
-   ntmaxout    = 0        ! number of max time steps
-   nthisout    = 0        ! number of his time steps
+   t           = t0     ! start time
+   tout        = t0
+   dt          = 1.0e-6 ! First time step very small
+   min_dt      = 1.0e-6 ! First time step very small
+   dtavg       = 0.0    ! average time step
+   maxdepth    = 999.0  ! maximum depth over time step
+   maxmaxdepth = 0.0    ! maximum depth over entire simulation
+   nt          = 0      ! number of time steps
+   ntmapout    = 0      ! number of map time steps
+   ntmaxout    = 0      ! number of max time steps
+   nthisout    = 0      ! number of his time steps
    twindupd    = t0       ! time to update meteo
    twaveupd    = t0       ! time to update waves
    !

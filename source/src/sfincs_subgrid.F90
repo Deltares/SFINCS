@@ -78,6 +78,9 @@ contains
    integer :: npuvs
    integer :: np_nc
    integer :: npuv_nc
+   logical :: subgrid_warning
+   !
+   subgrid_warning = .false.
    !
    ! Read subgrid data
    !
@@ -358,37 +361,70 @@ contains
       nmu = uv_index_z_nmu(ip)
       if (subgrid_z_zmin(nm) > subgrid_uv_zmin(ip)) then
          ! This should normally never happen
-         write(logstr,'(a,i0,a,i0,a)')'Error in subgrid uv point! subgrid_uv_zmin(',ip,') < subgrid_z_zmin(', nm, ')'
-         call write_log(logstr, 0)
+         subgrid_warning = .true. ! to print warning to screen
+         !
          subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), subgrid_z_zmin(nm))
          subgrid_uv_zmax(ip) = max(subgrid_uv_zmax(ip), subgrid_uv_zmin(ip) + 0.001)
       endif   
       if (subgrid_z_zmin(nmu) > subgrid_uv_zmin(ip)) then
          ! This should normally never happen
-         write(logstr,'(a,i0,a,i0,a)')'Error in subgrid uv point! subgrid_uv_zmin(',ip,') < subgrid_z_zmin(', nmu, ')'
-         call write_log(logstr, 0)
+         subgrid_warning = .true. ! to print warning to screen
+         !
          subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), subgrid_z_zmin(nmu))
          subgrid_uv_zmax(ip) = max(subgrid_uv_zmax(ip), subgrid_uv_zmin(ip) + 0.001)
       endif   
-   enddo   
+   enddo
+   !
+   ! Print warning message
+   !
+   if (subgrid_warning) then
+      call write_log('Warning   : some subgrid uv point(s) have subgrid_uv_zmin < subgrid_z_zmin, which should not happen. It is advised to rebuild your subgrid tables with a newer version of HydroMT-SFINCS', 1)
+   endif   
    !
    ! Make sure zmax is always bigger than zmin
    !
+   subgrid_warning = .false. ! reuse for new check
+   !   
    do nm = 1, np
       if (subgrid_z_zmax(nm) - subgrid_z_zmin(nm) <= 0.0) then
-         ! This is not necessarily an error but occurs when all subgrid pixels in a cell have the same value.
+         !
+         if (subgrid_z_zmax(nm) - subgrid_z_zmin(nm) < 0.0) then
+            subgrid_warning = .true. ! Only if something is really wrong           
+         endif
+         ! 
+         ! z_zmax == z_zmin is not necessarily an error but occurs when all subgrid pixels in a cell have the same value.
+         !
          subgrid_z_zmax(nm) = subgrid_z_zmax(nm) + 0.001
       endif   
    enddo
    !
+   if (subgrid_warning) then
+      call write_log('Error   : some subgrid z point(s) have subgrid_z_zmax < subgrid_z_zmin, which should not happen. Check your model schematisation and/or rebuild your subgrid tables with a newer version of HydroMT-SFINCS', 1)
+   endif      
+   !
+   ! Make sure zmax is always bigger than zmin for uv point
+   !   
+   subgrid_warning = .false. ! reuse for new check
+   !
    do ip = 1, npuv
       if (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip) < 1.0e-7) then
-         ! This should normally never happen
-         write(logstr,'(a,i0,a)')'Error in subgrid uv point (ip=', ip, '), zmax <= zmin'
-         call write_log(logstr, 0)
+         ! 
+         if (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip) < 0.0) then
+            ! This should normally never happen
+            subgrid_warning = .true. ! Only if something is really wrong
+         endif
+         !         
+         ! uv_zmax == uv_zmin is not necessarily an error but occurs when all subgrid pixels in a cell have the same value.
+         !
          subgrid_uv_zmax(ip) = subgrid_uv_zmax(ip) + 0.01
       endif   
    enddo
+   !
+   ! Print warning message
+   !
+   if (subgrid_warning) then
+      call write_log('Error   : some subgrid uv point(s) have subgrid_uv_zmax < subgrid_uv_zmin, which should not happen. Check your model schematisation and/or rebuild your subgrid tables with a newer version of HydroMT-SFINCS', 1)
+   endif   
    !
    ! Make arrays for subgrid_uv_havg_zmax and subgrid_uv_nrep_zmax for faster searching
    !
