@@ -47,7 +47,7 @@
 				<File RelativePath="..\src\snapwave\snapwave_solver.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_windsource.f90"/>
 			</Filter>
-			<File RelativePath="..\src\bicgstab_solver.f90">
+			<File RelativePath="..\src\bicgstab_solver_ilu.f90">
 			</File>
 			<File RelativePath="..\src\deg2utm.f90"/>
 			<File RelativePath="..\src\geometry.f90"/>
@@ -90,7 +90,8 @@
 					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
 				</FileConfiguration>
 			</File>
-			<File RelativePath="..\src\sfincs_nonhydrostatic.f90"/>
+			<File RelativePath="..\src\sfincs_nonhydrostatic.f90">
+			</File>
 			<File RelativePath="..\src\sfincs_obspoints.f90"/>
 			<File RelativePath="..\src\sfincs_output.f90"/>
 			<File RelativePath="..\src\sfincs_snapwave.f90"/>

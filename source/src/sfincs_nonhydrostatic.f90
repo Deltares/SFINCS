@@ -1,8 +1,7 @@
-!include 'mkl_pardiso.f90'
-
 ! Non-hydrostatic code now only works with regular grids (can still use quadtree netcdf file as long as there are no refinement levels).
 ! Still to do: add nonh_mask to netcdf file. Now the non-hydrostatic corrections are applied to the entire SFINCS grid.
-! Now uses pardiso to solve matrix, but it may be faster to use bicgstab instead. To be investigated. Both should ideally utilize CPU and GPU parallelization.
+! Now uses bicgstab_ilu to solve matrix. Both should ideally utilize CPU and GPU parallelization. Currently, this solver cannot be fully parallelized. 
+! Should try to find a solver that can be.   
 
 module sfincs_nonhydrostatic
    !   
@@ -27,9 +26,7 @@ module sfincs_nonhydrostatic
    !
    integer   :: nrows
    integer   :: nr_vals_in_matrix
-   integer   :: nhuv  
-   !
-   !logical   :: first_time
+   integer   :: nhuv
    !
 contains
    !
@@ -41,8 +38,8 @@ contains
    !
    implicit none
    !
-   integer nn, mm, nm, j, k, nmu, nmd, num, ndm, irow, icol, inb, ip
-   integer nmd_uv, nmu_uv, ndm_uv, num_uv, inhuv, idir, iii
+   integer nm, k, nmu, nmd, num, ndm, irow, icol, inb, ip
+   integer inhuv, iii
    !
    ! Temporary arrays
    !
@@ -52,22 +49,6 @@ contains
    allocate(row_index_of_nm(np))
    !
    row_index_of_nm = 0
-   !
-   irow = 0
-   !
-   ! First set the mask (using just kcs==1 for now, should add this to masks in netcdf file)
-   !
-   do nm = 1, np      
-      !
-         ! Check if point has 4 neighbors with kcs = 1
-         !
-         if (z_index_z_n(nm)>500) then
-            !         
-!            mask_nonh(nm) = 0
-            !
-         endif
-      !
-   enddo   
    !
    ! Count number of rows (= nr cols) in matrix
    !
@@ -413,7 +394,7 @@ contains
    ! Non-hydrostatic pressure correction on fluxes and velocities 
    !
    use sfincs_data
-   use bicgstab_solver
+   use bicgstab_solver_ilu
    !
    implicit none
    !
@@ -432,51 +413,24 @@ contains
    integer   :: nmd
    integer   :: num
    integer   :: ndm
-   integer   :: n
-   integer   :: m
-   integer   :: nmd_uv
-   integer   :: nmu_uv
-   integer   :: ndm_uv
-   integer   :: num_uv
    integer   :: nmn
-   integer   :: i
    integer   :: j
    integer   :: irow
-   integer   :: idum
    integer   :: nhnm
    integer   :: nhnmu
    integer   :: iuv
    !
-   integer   :: max_iter
+   integer   :: iter
    !
-   real*4    :: ddum
    real*4    :: hu
-   real*4    :: dxuvinv
-   real*4    :: dxuv2inv
-   real*4    :: dyuvinv
-   real*4    :: dyuv2inv
    !
    real*4    :: Dnm1
    real*4    :: hnm
    real*4    :: Dnmu
    real*4    :: hnmu
    real*4    :: unh
-   real*4    :: um
-   real*4    :: vm
-   real*4    :: dzsdx
-   real*4    :: dzsdy
-   real*4    :: unmd
-   real*4    :: unmu
    !   
-   real*4    :: unm
-   real*4    :: vnm
-   real*4    :: vndm
-   real*4    :: hnmd
-   real*4    :: hnum
-   real*4    :: hndm   
    real*4    :: hnb
-   !
-   real*4    :: tol
    !
    real*4    :: dtover2rhodx2
    real*4    :: dtover2rhodx
@@ -484,6 +438,7 @@ contains
    real*4, dimension(npuv)            :: AB
    real*4, dimension(:), allocatable  :: QQ
    real*4, dimension(:), allocatable  :: AA
+   real*4                             :: relres
    !
    call system_clock(count0, count_rate, count_max)
    !
@@ -543,8 +498,6 @@ contains
    !
    AA = 0.0
    QQ = 0.0
-   !
-   ! Only works with regular projected grids for now !!!
    !
    dtover2rhodx2 = (dt * dxr2inv(1) / (2 * rhow))
    !
@@ -676,9 +629,7 @@ contains
    !
    ! Solve matrix
    !
-   ! pnh = 0.0
-   !
-   call bicgstab_mine(nrows, row_ptr, col_idx, AA, pnh, QQ, nh_tol, nh_itermax, nr_vals_in_matrix, 0)
+   call bicgstab_solve(nrows, AA, col_idx, row_ptr, QQ, pnh, nh_tol, nh_itermax, iter, relres, .true.)
    !
    ! Adjust fluxes   
    !
@@ -793,8 +744,4 @@ contains
    !
    end subroutine      
 
-   
-   
-   
-   !      
 end module
