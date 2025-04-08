@@ -171,6 +171,7 @@ module snapwave_data
    real*4                                    :: Tpini           ! initial condition for the wave period
    real*4                                    :: fwcutoff        ! depth below which to apply space-varying fw
    real*4                                    :: alpha,gamma     ! coefficients in Baldock wave breaking dissipation model
+   real*4                                    :: gammax          ! max wave height/water depth ratio
    integer                                   :: baldock_opt     ! option of Baldock wave breaking dissipation model (opt=1 is without gamma&depth, else is including)
    real*4                                    :: baldock_ratio   ! option controlling from what depth wave breaking should take place: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio=0.2 
    ! TODO - TL: bring back baldock_ratio?

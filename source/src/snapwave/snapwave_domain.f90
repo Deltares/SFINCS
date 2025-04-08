@@ -485,7 +485,7 @@ contains
    integer, dimension(np)                       :: surr_pts
    real*4,  dimension(np)                       :: xp,yp,zp              ! x,y,z of sorted surrounding nodes for each node
    real*8                                       :: circumf_eq=40075017.,circumf_pole=40007863.
-   real*4                                       :: dxp,dyp
+   real*4                                       :: dzdx,dzdy
    !
    allocate(no_connected_cells(no_nodes))
    allocate(connected_cells(12,no_nodes))
@@ -578,26 +578,18 @@ contains
       sx2=0.0
       sy2=0.0
       if (sum(surr_pts)>0) then
-         do j=1,isp2
-            xp(j)=xn(surr_pts(j))
-            yp(j)=yn(surr_pts(j))
+         do j=1,isp2-1
+            xp(j)=xn(surr_pts(j))-xn(kn)
+            yp(j)=yn(surr_pts(j))-yn(kn)
             zp(j)=zn(surr_pts(j))      
-            if (sferic==0) then
-               sxz=sxz+(xp(j)-xn(kn))*(zp(j)-zn(kn))
-               syz=syz+(yp(j)-yn(kn))*(zp(j)-zn(kn))
-               sx2=sx2+(xp(j)-xn(kn))**2
-               sy2=sy2+(yp(j)-yn(kn))**2
-            else
-               dxp=(xp(j)-xn(kn))*circumf_eq/360.0*cos(yn(kn)*180.0/pi)
-               dyp=(yp(j)-yn(kn))*circumf_pole/360.0
-               sxz=sxz+dxp*(zp(j)-zn(kn))
-               syz=syz+(yp(j)-yn(kn))*(zp(j)-zn(kn))
-               sx2=sx2+dxp**2
-               sy2=sy2+dyp**2
+            if (sferic==1) then
+               xp(j)=xp(j)*circumf_eq/360.0*cosd(yn(kn))
+               yp(j)=yp(j)*circumf_pole/360.0
             endif
          enddo
-         dhdx(kn)=-sxz/max(sx2,1.0e-10)
-         dhdy(kn)=-syz/max(sy2,1.0e-10)
+         call plane_fit(xp,yp,zp,isp2-1, dzdx,dzdy)
+         dhdx(kn)=-dzdx
+         dhdy(kn)=-dzdy
       else
           dhdx(kn)=0.
           dhdy(kn)=0.
@@ -2124,5 +2116,85 @@ end subroutine neuboundaries
    enddo   
    !
    end subroutine
+   
+   subroutine plane_fit(x,y,z,n, dzdx,dzdy)
+       implicit none
+       integer :: n                             ! Number of points
+       real*4, dimension(n) :: x, y, z         ! Coordinates
+       real*4, dimension(n, 3) :: XX           ! Designmatrix
+       real*4, dimension(3, 3) :: XT_X         ! X-transpose * X
+       real*4, dimension(3) :: XT_z, coeffs    ! X-transpose * z and solution [a, b, c]
+       real*4 :: mean_slope                    ! Mean slope
+       real*4 :: dzdx,dzdy                     ! Slope in x and y direction
+       integer :: i, j, k
+       
+       ! Build the designmatrix XX
+       do i = 1, n
+           XX(i, 1) = x(i)
+           XX(i, 2) = y(i)
+           XX(i, 3) = 1.0d0
+       end do
+       
+       ! Compute XT_X = XX^T * XX
+       XT_X = 0.0d0
+       do i = 1, 3
+           do j = 1, 3
+               do k = 1, n
+                   XT_X(i, j) = XT_X(i, j) + XX(k, i) * XX(k, j)
+               end do
+           end do
+       end do
+       
+       ! Compute XT_z = XX^T * z
+       XT_z = 0.0d0
+       do i = 1, 3
+           do j = 1, n
+               XT_z(i) = XT_z(i) + XX(j, i) * z(j)
+           end do
+       end do
+       
+       ! Solve XT_X * coeffs = XT_z for coeffs (a, b, c)
+       call solve_linear_system(XT_X, XT_z, coeffs)
+       
+       ! Coëfficients of the plane
+       dzdx = coeffs(1)
+       dzdy = coeffs(2)
+       
+       ! Mean slope
+       mean_slope = sqrt(coeffs(1)**2 + coeffs(2)**2)
+
+   end subroutine plane_fit
+   
+   subroutine solve_linear_system(A, b, x)
+      real*4, dimension(3, 3), intent(in) :: A
+      real*4, dimension(3), intent(in) :: b
+      real*4, dimension(3), intent(out) :: x
+      real*4, dimension(3, 3) :: A_inv
+      integer :: i, j, k
+      real*4 :: factor
+      
+      ! Kopieer matrix A
+      A_inv = A
+      
+      ! Initialiseer x met b
+      x = b
+      
+      ! Gaussiaanse eliminatie
+      do i = 1, 3
+          factor = A_inv(i, i)
+          if (abs(factor) >= 1.d-10) then
+             A_inv(i, :) = A_inv(i, :) / factor
+             x(i) = x(i) / factor
+          endif
+      
+          do j = 1, 3
+              if (i /= j) then
+                  factor = A_inv(j, i)
+                  A_inv(j, :) = A_inv(j, :) - factor * A_inv(i, :)
+                  x(j) = x(j) - factor * x(i)
+              end if
+          end do
+      end do
+   end subroutine solve_linear_system
    
 end module

@@ -82,7 +82,7 @@ module snapwave_solver
       !
       do k = 1, no_nodes
          sinhkh(k)    = sinh(min(kwav(k)*depth(k), 50.0))
-         Hmx(k)       = 0.88/kwav(k)*tanh(gamma*kwav(k)*depth(k)/0.88)
+         Hmx(k)       = gamma*depth(k)
       enddo
       if (igwaves) then          
          do k = 1, no_nodes             
@@ -125,7 +125,7 @@ module snapwave_solver
                                          neumannconnected,       &
                                          theta,ntheta,thetamean, &
                                          depth,kwav,cg,ctheta,fw,     &
-                                         Tp,Tp_ig,dt,rho,alpha,gamma, &
+                                         Tp,Tp_ig,dt,rho,alpha,gamma, gammax, &
                                          wind,   &
                                          H,Dw,F,Df,thetam,sinhkh,&
                                          Hmx, ee, windspreadfac, u10, niter, crit, &
@@ -150,7 +150,7 @@ module snapwave_solver
                                          neumannconnected,       &
                                          theta,ntheta,thetamean, &
                                          depth,kwav,cg,ctheta,fw,     &
-                                         Tp,T_ig,dt,rho,alfa,gamma, &
+                                         Tp,T_ig,dt,rho,alfa,gamma, gammax, &
                                          wind,   &
                                          H,Dw,F,Df,thetam,sinhkh,&
                                          Hmx, ee, windspreadfac, u10, niter, crit, &
@@ -178,8 +178,8 @@ module snapwave_solver
    real*4, intent(in)                               :: thetamean              ! mean offshore wave direction (rad)
    real*4, dimension(ntheta), intent(in)            :: theta                  ! distribution of wave angles and offshore wave energy density
    logical, dimension(no_nodes), intent(inout)      :: inner                  ! mask of inner grid points (not on boundary)
-   logical, intent(in)                              :: wind                   ! logical wind on/off
-   logical, intent(in)                              :: igwaves                ! logical IG waves on/off
+   logical, intent(in)                              :: wind                   ! wind on/off (1/0)
+   logical, intent(in)                              :: igwaves                ! IG waves on/off (1/0)
    logical, intent(in)                              :: iterative_srcig        ! option whether IG source/sink term should be calculated implicitly (iterative_srcig = 1), or just a priori based on effectively incident wave energy from previous timestep only (iterative_srcig=0, explicitly, bit faster)
    integer, dimension(no_nodes),intent(in)          :: neumannconnected       ! number of neumann boundary point if connected to inner point
    real*4, dimension(no_nodes), intent(in)          :: depth                  ! water depth
@@ -200,7 +200,7 @@ module snapwave_solver
    real*4, dimension(no_nodes), intent(out)         :: alphaig                ! Mean IG shoaling parameter alpha    
    real*4, intent(in)                               :: dt                     ! time step (s)
    real*4, intent(in)                               :: rho                    ! water density
-   real*4, intent(in)                               :: alfa,gamma             ! coefficients in Baldock wave breaking dissipation
+   real*4, intent(in)                               :: alfa,gamma, gammax     ! coefficients in Baldock wave breaking dissipation
    real*4, intent(in)                               :: baldock_ratio          ! option controlling from what depth wave breaking should take place: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio=0.2
    real*4, intent(in)                               :: baldock_ratio_ig       ! option controlling from what depth wave breaking should take place for IG waves: (Hk_ig>baldock_ratio_ig*Hmx_ig(k)), default baldock_ratio_ig=0.2     
    real*4, dimension(no_nodes), intent(inout)       :: H                      ! wave height - TODO - TL - CHECK > inout needed to have updated 'H' for determining srcig
@@ -277,7 +277,7 @@ module snapwave_solver
    real*4                                     :: pi = 4.*atan(1.0)
    real*4                                     :: g=9.81
    real*4                                     :: hmin                   ! minimum water depth! TL: make user changeable also here according to 'snapwave_hmin' in sfincs.inp   
-   real*4                                     :: fac=0.25             ! underrelaxation factor for DoverE
+   real*4                                     :: fac=1.0             ! underrelaxation factor for DoverA
    real*4                                     :: oneoverdt
    real*4                                     :: oneover2dtheta
    real*4                                     :: rhog8
@@ -582,7 +582,7 @@ module snapwave_solver
                   !
                   Ek = sum(eeprev)*dtheta     ! to check                
                   !
-                  depthlimfac = max(1.0, (sqrt(Ek/rhog8)/(gamma*depth(k)))**2.0)
+                  depthlimfac = max(1.0, (sqrt(Ek/rhog8)/(gammax*depth(k)))**2.0)
                   Hk = min(sqrt(Ek/rhog8), gamma*depth(k))
                   Ek = Ek/depthlimfac
                   !
@@ -646,37 +646,25 @@ module snapwave_solver
                   !
                    do itheta = 1, ntheta
                      !
-                     R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta)*eeprev(itheta)/ds(itheta, k) - srcig_local(itheta, k) * shinc2ig
+                     R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta)*eeprev(itheta)/ds(itheta, k)
                      !
                   enddo                  
                   !
                   do itheta = 2, ntheta - 1
                      !
                      A(itheta) = -ctheta(itheta - 1, k)*oneover2dtheta
-                     B(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverE(k)
+                     B(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverE(k) + srcig_local(itheta, k) * shinc2ig / ee(itheta,k)
                      C(itheta) = ctheta(itheta + 1, k)*oneover2dtheta
                      !
                   enddo
                   !
-                  if (ctheta(1,k)<0) then
-                     A(1) = 0.0
-                     B(1) = oneoverdt - ctheta(1, k)/dtheta + cg(k)/ds(1, k) + DoverE(k)
-                     C(1) = ctheta(2, k)/dtheta
-                  else
-                     A(1) = 0.0
-                     B(1) = oneoverdt + cg(k)/ds(1, k) + DoverE(k)
-                     C(1) = 0.0
-                  endif
+                  A(1) = -ctheta(ntheta, k)*oneover2dtheta
+                  B(1) = oneoverdt + cg(k)/ds(1, k) + DoverE(k) + srcig_local(1, k) * shinc2ig / ee(1,k)
+                  C(1) = ctheta(2, k)*oneover2dtheta
                   !
-                  if (ctheta(ntheta, k)>0) then
-                     A(ntheta) = -ctheta(ntheta - 1, k)/dtheta
-                     B(ntheta) = oneoverdt + ctheta(ntheta, k)/dtheta + cg(k)/ds(ntheta, k) + DoverE(k)
-                     C(ntheta) = 0.0
-                  else
-                     A(ntheta) = 0.0
-                     B(ntheta) = oneoverdt + cg(k)/ds(ntheta, k) + DoverE(k)
-                     C(ntheta) = 0.0
-                  endif
+                  A(ntheta) = -ctheta(ntheta - 1, k)*oneover2dtheta
+                  B(ntheta) = oneoverdt + cg(k)/ds(ntheta,k) + DoverE(k) + srcig_local(1, k) * shinc2ig / ee(ntheta,k)
+                  C(ntheta) = ctheta(1, k)*oneover2dtheta
                   !
                   ! Solve tridiagonal system per point
                   !
@@ -713,7 +701,7 @@ module snapwave_solver
                      Ek       = sum(ee(:, k))*dtheta     
                      Ak       = sum(aa(:,k))*dtheta
                      !
-                     depthlimfac = max(1.0, (sqrt(Ek/rhog8)/(gamma*depth(k)))**2.0)
+                     depthlimfac = max(1.0, (sqrt(Ek/rhog8)/(gammax*depth(k)))**2.0)
                      Hk = sqrt(Ek/rhog8/depthlimfac)
                      Ek = Ek/depthlimfac
                      Ak = Ak/depthlimfac
