@@ -40,7 +40,7 @@ module snapwave_windsource
       ! depth limitation of energy and corresponding wave period, from directionally integrated params
       !
       H=sqrt(8.0*E/rho/g)    
-      depthlimfac = max(1.0,(H/(gamma*hh))**2)   
+      depthlimfac = max(1.0,(H/(gamma*hh))**2)
       H=min(H,gamma*hh)
       !  
       E = E/depthlimfac
@@ -83,7 +83,7 @@ module snapwave_windsource
       call disper_approx_1(hh,2.0*pi/sig,kwav,cg)
       !   
       sinhkh = sinh(min(kwav*hh,50.0))
-      Hmx =0.88/kwav*tanh(gamma*kwav*hh/0.88)
+      Hmx =gamma*hh
       !   
       do itheta=1,ntheta
          ctheta(itheta)= sig/sinh(min(2.0*kwav*hh,50.0))*(dhdx*sinth(itheta)-dhdy*costh(itheta))
