@@ -170,7 +170,13 @@ Parameters for model input
 	  :units:		s/m^(1/3)
 	  :default:		-999 (=not used)
 	  :min:			0
-	  :max:			0.1 (advised)    	  
+	  :max:			0.1 (advised)
+	ampr_block        
+	  :description:		Keyword controlling whether the input precipitation rate is kept constant for the duration of the input time interval (block interpolation, ampr_block = 1, default), or whether it is interpolated linearly in time (ampr_block = 0).
+	  :units:		-
+	  :default:		1
+	  :min:			0
+	  :max:			1	      	  
 	  
 More parameters for model input (only for advanced users)
 -----
