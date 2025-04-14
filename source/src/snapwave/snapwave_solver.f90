@@ -907,17 +907,13 @@ module snapwave_solver
             !                     
             if (wind) then
                call baldock(rho, g, alfa, gamma, depth(k), H(k), 2.0*pi/sig(k), 1, Dw(k), Hmx(k))
-               F(k) = Dw(k)*kwav(k)/sig(k)/rho/depth(k)
             else
                call baldock(rho, g, alfa, gamma, depth(k), H(k), Tp(k), 1, Dw(k), Hmx(k))
-               F(k) = Dw(k)*kwav(k)/sig(k)/rho/depth(k)
-               
+	       !
                 if (H(k) > 0.0) then
                     write(logstr,*)'k ',k,'depth(k)',depth(k),'H(k) ',H(k),'Dw(k) ', Dw(k),'Hmx(k) ', Hmx(k),'kwav(k) ', kwav(k),'sig(k) ', sig(k),'F(k) ',F(k), 'thetam(k)',thetam(k)
                     call write_log(logstr, 0)                                    
-                endif               
-               !F(k) = (Dw(k) + Df(k))*kwav(k)/sig(k)/rho/depth(k)               
-               !F(k) = (Dw(k) + Df(k))*kwav(k)/sigm ! TODO TL: before was this, now multiplied with rho*depth(k) in sfincs_snapwave.f90        
+                endif                                    
             endif
             !
             if (vegetation) then
@@ -925,6 +921,11 @@ module snapwave_solver
             else
                 Dveg(k) = 0.
             endif
+	    !
+            !F(k) = Dw(k)*kwav(k)/sig(k)/rho/depth(k)
+            !F(k) = (Dw(k) + Df(k))*kwav(k)/sig(k)/rho/depth(k) 	     
+            F(k) = (Dw(k) + Dveg(k))*kwav(k)/sig(k)/rho/depth(k)
+	    !F(k) = (Dw(k) + Df(k))*kwav(k)/sigm ! TODO TL: before was this, now multiplied with rho*depth(k) in sfincs_snapwave.f90  
             !
             if (igwaves) then
                !
