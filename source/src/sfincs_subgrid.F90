@@ -361,24 +361,31 @@ contains
       nmu = uv_index_z_nmu(ip)
       if (subgrid_z_zmin(nm) > subgrid_uv_zmin(ip)) then
          ! This should normally never happen
-         subgrid_warning = .true. ! to print warning to screen
+         !
+         if ((subgrid_z_zmin(nm) - subgrid_uv_zmin(ip)) > 0.1) then 
+            subgrid_warning = .true. ! to print warning to screen if difference > 10cm
+         endif
          !
          subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), subgrid_z_zmin(nm))
-         subgrid_uv_zmax(ip) = max(subgrid_uv_zmax(ip), subgrid_uv_zmin(ip) + 0.001)
+         subgrid_uv_zmax(ip) = max(subgrid_uv_zmax(ip), subgrid_uv_zmin(ip) + 0.01) ! make sure that uv_zmax is at least 1 cm higher than uv_zmin
       endif   
+      !
       if (subgrid_z_zmin(nmu) > subgrid_uv_zmin(ip)) then
          ! This should normally never happen
-         subgrid_warning = .true. ! to print warning to screen
+         !
+         if ((subgrid_z_zmin(nmu) - subgrid_uv_zmin(ip)) > 0.1) then           
+            subgrid_warning = .true. ! to print warning to screen if difference > 10cm
+         endif
          !
          subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), subgrid_z_zmin(nmu))
-         subgrid_uv_zmax(ip) = max(subgrid_uv_zmax(ip), subgrid_uv_zmin(ip) + 0.001)
+         subgrid_uv_zmax(ip) = max(subgrid_uv_zmax(ip), subgrid_uv_zmin(ip) + 0.01) ! make sure that uv_zmax is at least 1 cm higher than uv_zmin
       endif   
    enddo
    !
    ! Print warning message
    !
    if (subgrid_warning) then
-      call write_log('Warning   : some subgrid uv point(s) have subgrid_uv_zmin < subgrid_z_zmin, which should not happen. It is advised to rebuild your subgrid tables with a newer version of HydroMT-SFINCS', 1)
+      call write_log('Warning   : some subgrid uv point(s) have a difference (z_zmin - uv_zmin) > 0.1m, which should not happen, please use HydroMT-SFINCS >v1.1.0 and check your input', 1)
    endif   
    !
    ! Make sure zmax is always bigger than zmin
@@ -394,7 +401,7 @@ contains
          ! 
          ! z_zmax == z_zmin is not necessarily an error but occurs when all subgrid pixels in a cell have the same value.
          !
-         subgrid_z_zmax(nm) = subgrid_z_zmax(nm) + 0.001
+         subgrid_z_zmax(nm) = subgrid_z_zmax(nm) + 0.01 ! make sure that z_zmax is at least 1 cm higher than z_zmin
       endif   
    enddo
    !
@@ -416,7 +423,7 @@ contains
          !         
          ! uv_zmax == uv_zmin is not necessarily an error but occurs when all subgrid pixels in a cell have the same value.
          !
-         subgrid_uv_zmax(ip) = subgrid_uv_zmax(ip) + 0.01
+         subgrid_uv_zmax(ip) = subgrid_uv_zmax(ip) + 0.01 ! make sure that uv_zmax is at least 1 cm higher than uv_zmin
       endif   
    enddo
    !
