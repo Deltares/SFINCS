@@ -86,6 +86,7 @@
    real*4    :: phi
    !
    real*4    :: mdrv
+   real*4    :: hu73
    !
    real*4, parameter :: expo = 1.0 / 3.0
    !integer, parameter :: expo = 1
@@ -127,7 +128,7 @@
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73 ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop independent, reduction( min : min_dt ), gang, vector
@@ -425,12 +426,12 @@
                      !
                      if (qd > 1.0e-6) then
                         ud = (uu_nmd + uu_nm) / 2
-                        dqxudx = ( qd * (uu_nm - uu_nmd) + ud * (qx_nm - qx_nmd) / 2 ) * dxuvinv
+                        dqxudx = ( qd * (uu_nm - uu_nmd) + ud * (qx_nm - qx_nmd) ) * dxuvinv
                      endif
                      !
                      if (qu < -1.0e-6) then
                         uu = (uu_nm + uu_nmu) / 2
-                        dqxudx = dqxudx + ( qu*(uu_nmu - uu_nm) + uu * (qx_nmu - qx_nm) / 2) * dxuvinv
+                        dqxudx = dqxudx + ( qu*(uu_nmu - uu_nm) + uu * (qx_nmu - qx_nm) ) * dxuvinv
                      endif
                      ! 
                      ! d qv u / dy
@@ -622,7 +623,13 @@
             !
             ! Compute new flux for this uv point (Bates et al., 2010)
             ! 
-            q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / (hu**2 * hu**expo))
+            if (h73table) then
+               hu73 = power7over3(hu)
+            else
+               hu73 = hu**2 * hu**expo
+            endif
+            ! 
+            q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / hu73)
             !
             if (subgrid .and. wiggle_suppression) then 
                !
@@ -720,5 +727,43 @@
    tloop = tloop + 1.0*(count1 - count0)/count_rate
    !
    end subroutine      
+
+   
+   function power7over3(hu) result(hu73)
    !
+   ! Computes hu^(7/3) using a table for hu < 10^4 and hu^(7/3) for hu >= 10^4
+   !
+   use sfincs_data
+   !
+   implicit none
+   !
+   real*4, intent(in)  :: hu
+   real*4              :: hu73
+   !
+   if (hu < 0.00001) then
+      hu73 = x73(int(1e8 * hu), 1)
+   elseif (hu < 0.0001) then
+      hu73 = x73(int(1e7 * hu), 2)
+   elseif (hu < 0.001) then
+      hu73 = x73(int(1e6 * hu), 3)
+   elseif (hu < 0.01) then
+      hu73 = x73(int(1e5 * hu), 4)
+   elseif (hu < 0.1) then
+      hu73 = x73(int(1e4 * hu), 5)
+   elseif (hu < 1.0) then
+      hu73 = x73(int(1e3 * hu), 6)
+   elseif (hu < 10.0) then
+      hu73 = x73(int(100 * hu), 7)
+   elseif (hu < 100.0) then
+      hu73 = x73(int(10 * hu), 8)
+   elseif (hu < 1000.0) then
+      hu73 = x73(int(1 * hu), 9)
+   elseif (hu < 10000.0) then
+      hu73 = x73(int(0.1 * hu), 10)
+   else
+      hu73 = 10000.0 ** (7.0/3.0)
+   endif    
+   !
+   end function
+   
 end module

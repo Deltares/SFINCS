@@ -44,6 +44,7 @@ module quadtree
    real*4,             dimension(:),   allocatable :: quadtree_dyr
    integer*1,          dimension(:),   allocatable :: quadtree_mask
    integer*1,          dimension(:),   allocatable :: quadtree_snapwave_mask
+   integer*1,          dimension(:),   allocatable :: quadtree_nonh_mask
    !
    real*4,             dimension(:,:),   allocatable :: quadtree_snapwave_veg_Cd
    real*4,             dimension(:,:),   allocatable :: quadtree_snapwave_veg_ah
@@ -59,7 +60,7 @@ module quadtree
        integer :: level_varid
        integer :: nu_varid, mu_varid, nd_varid, md_varid
        integer :: nu1_varid, mu1_varid, nd1_varid, md1_varid, nu2_varid, mu2_varid, nd2_varid, md2_varid
-       integer :: z_varid, mask_varid, snapwave_mask_varid
+       integer :: z_varid, mask_varid, snapwave_mask_varid, nonh_mask_varid     
        integer :: snapwave_veg_Cd_varid, snapwave_veg_ah_varid, snapwave_veg_bstems_varid, snapwave_veg_Nstems_varid
    end type      
    type(net_type_qtr) :: net_file_qtr              
@@ -304,7 +305,7 @@ contains
    logical, intent(in)       :: snapwave, store_vegetation
    !
    integer*1 :: iversion
-   integer   :: np, ip, iepsg
+   integer   :: np, ip, iepsg, status
    !
    write(logstr,'(a,a)')'Info    : reading QuadTree netCDF file ', trim(qtrfile)
    call write_log(logstr, 0)
@@ -367,7 +368,7 @@ contains
          allocate(quadtree_snapwave_veg_Nstems(np, quadtree_no_secveg))
          !
       endif      
-   endif       
+   endif
    !
    ! Allocate variables   
    !
@@ -1101,6 +1102,7 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
       if(status /= nf90_noerr) then
          write(0,'("NETCDF ERROR: ",a,i6,":",a)') file,line,trim(nf90_strerror(status))
       end if
+      !
    end subroutine handle_err
    !
 end module

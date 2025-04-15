@@ -49,8 +49,8 @@ contains
    !
    logical       :: crsgeo
    !
-   build_revision = '$Rev: svn 108-branch:SnapWave_IG'
-   build_date     = '$Date: 2024-10-16'
+   build_revision = '$Rev: svn 197-branch:SnapWave_IG' 
+   build_date     = '$Date: 2025-04-14'
    !
    call write_log('', 1)
    call write_log('----------- Welcome to SnapWave ---------', 1)
@@ -512,6 +512,7 @@ contains
    ! Input section
    !
    call read_real_input(500,'snapwave_gamma',gamma,0.7)
+   call read_real_input(500,'snapwave_gammax',gammax,0.6)   
    call read_real_input(500,'snapwave_alpha',alpha,1.0)
    call read_real_input(500,'snapwave_hmin',hmin,0.1)
    call read_real_input(500,'snapwave_fw',fw0,0.01)

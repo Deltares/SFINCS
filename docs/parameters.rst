@@ -170,7 +170,13 @@ Parameters for model input
 	  :units:		s/m^(1/3)
 	  :default:		-999 (=not used)
 	  :min:			0
-	  :max:			0.1 (advised)    	  
+	  :max:			0.1 (advised)
+	ampr_block        
+	  :description:		Keyword controlling whether the input precipitation rate is kept constant for the duration of the input time interval (block interpolation, ampr_block = 1, default), or whether it is interpolated linearly in time (ampr_block = 0).
+	  :units:		-
+	  :default:		1
+	  :min:			0
+	  :max:			1	      	  
 	  
 More parameters for model input (only for advanced users)
 -----
@@ -247,7 +253,19 @@ More parameters for model input (only for advanced users)
 	  :units:		0
 	  :default:		0
 	  :min:			0
-	  :max:			1	  
+	  :max:			1	
+	h73table
+	  :description:		Option to use lookup table to calculate nonlinear term h^(7/3) in momentum equation, depending on model schematisation can lead to ~0-30% speedup of model, default is off (0)
+	  :units:		logical
+	  :default:		0
+	  :min:			0
+	  :max:			1		    
+	structure_relax
+	  :description:		Structure_relax in seconds gives ratio between new and old discharge (default 10s), as relaxation factor
+	  :units:		s
+	  :default:		10
+	  :min:			1
+	  :max:			86400	  
 	  
 	**Drag coefficients:**
 	
@@ -354,9 +372,15 @@ Parameters for model output
 	  :units:		-
 	  :default:		0		
 	storehsubgrid
-	  :description:		Flag to turn on writing away unaccurate water depth estimate for subgrid mode on 'dtmaxout' interval during simulation (storehsubgrid = 1)
+	  :description:		Flag to turn on writing away 'hmax' maximum water depth estimate (zsmax - z_zmin) for subgrid mode on 'dtmaxout' interval during simulation (storehsubgrid = 1) 
+	                    NOTE - this could be perceived as an overestimation of the flooding, downscaling your floodmap to the subgrid pixel resolution using HydroMT_SFINCS function is highly recommended.
 	  :units:		-
-	  :default:		0		    	  
+	  :default:		0		    	 
+	storehmean
+	  :description:		Flag to turn on writing away 'hmax' as estimated mean water depth in subgrid cell for subgrid mode on 'dtmaxout' interval during simulation (storehmean = 1)
+	  					NOTE - only used if subgrid model, and if storehsubgrid = 1
+	  :units:		logical
+	  :default:		0		   
 	storeqdrain
 	  :description:		Flag to turn on writing away drainage discharge during simulation (storeqdrain = 1)
 	  :units:		-

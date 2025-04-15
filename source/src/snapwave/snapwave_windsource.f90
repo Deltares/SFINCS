@@ -83,7 +83,7 @@ module snapwave_windsource
       call disper_approx_1(hh,2.0*pi/sig,kwav,cg)
       !   
       sinhkh = sinh(min(kwav*hh,50.0))
-      Hmx =0.88/kwav*tanh(gamma*kwav*hh/0.88)
+      Hmx =gamma*hh
       !   
       do itheta=1,ntheta
          ctheta(itheta)= sig/sinh(min(2.0*kwav*hh,50.0))*(dhdx*sinth(itheta)-dhdy*costh(itheta))
