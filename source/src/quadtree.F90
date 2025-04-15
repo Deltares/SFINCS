@@ -1082,7 +1082,7 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
       integer :: status2
       !   
       if(status /= nf90_noerr) then
-         !write(0,'("NETCDF ERROR: ",a,i6,":",a)') file,line,trim(nf90_strerror(status))
+         write(0,'("NETCDF ERROR: ",a,i6,":",a)') file,line,trim(nf90_strerror(status))
       end if
       !
    end subroutine handle_err
