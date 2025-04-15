@@ -22,6 +22,7 @@ module sfincs_ncoutput
       integer :: fwx_varid, fwy_varid, beta_varid, snapwavedepth_varid
       integer :: zsm_varid, tsunami_arrival_time_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid
+      integer :: pnonh_varid
       integer :: subgridslope_varid
       !
       integer :: mesh2d_varid
@@ -581,6 +582,17 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%tsunami_arrival_time_varid, 'coordinates', 'x y'))   
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%tsunami_arrival_time_varid, 1, 1, nc_deflate_level)) ! deflate
       !
+   endif
+   !
+   if (nonhydrostatic) then
+      !
+      NF90(nf90_def_var(map_file%ncid, 'pnonh', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%pnonh_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%pnonh_varid, 1, 1, nc_deflate_level)) ! deflate
+      NF90(nf90_put_att(map_file%ncid, map_file%pnonh_varid, '_FillValue', FILL_VALUE))          
+      NF90(nf90_put_att(map_file%ncid, map_file%pnonh_varid, 'units', 'N m-2'))
+      NF90(nf90_put_att(map_file%ncid, map_file%pnonh_varid, 'long_name', 'non_hydrostatic_pressure')) 
+      NF90(nf90_put_att(map_file%ncid, map_file%pnonh_varid, 'coordinates', 'x y'))
+      ! 
    endif
    !
    ! Add for final output:
@@ -1246,6 +1258,17 @@ contains
        endif
    endif
    !
+   if (nonhydrostatic) then
+      !
+      NF90(nf90_def_var(map_file%ncid, 'pnonh', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%pnonh_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%pnonh_varid, 1, 1, nc_deflate_level)) ! deflate
+      NF90(nf90_put_att(map_file%ncid, map_file%pnonh_varid, '_FillValue', FILL_VALUE))          
+      NF90(nf90_put_att(map_file%ncid, map_file%pnonh_varid, 'units', 'N m-2'))
+      NF90(nf90_put_att(map_file%ncid, map_file%pnonh_varid, 'standard_name', 'non_hydrostatic_pressure'))      
+      NF90(nf90_put_att(map_file%ncid, map_file%pnonh_varid, 'long_name', 'non_hydrostatic_pressure')) 
+      ! 
+   endif
+   !
    ! Add for final output:
    NF90(nf90_def_var(map_file%ncid, 'total_runtime', NF90_FLOAT, (/map_file%runtime_dimid/),map_file%total_runtime_varid))
    NF90(nf90_put_att(map_file%ncid, map_file%total_runtime_varid, 'units', 's'))   
@@ -1859,7 +1882,8 @@ contains
    !
    ! Write time, zs, u, v  
    !
-   use sfincs_data   
+   use sfincs_data
+   use sfincs_nonhydrostatic
    use sfincs_snapwave
    !
    implicit none   
@@ -2228,6 +2252,29 @@ contains
       endif
       !
    endif   
+   !
+   if (nonhydrostatic) then
+      !
+      zsg = FILL_VALUE       
+      !
+      do nm = 1, np
+         !
+         n    = z_index_z_n(nm)
+         m    = z_index_z_m(nm)
+         !
+         ! Look up pressure in 'limited' nonh array that only has values where nonh mask is set to active
+         !
+         if (row_index_of_nm(nm) > 0) then
+            !
+            zsg(m, n) = pnh(row_index_of_nm(nm))
+            !
+         endif   
+         !
+      enddo
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%pnonh_varid, zsg, (/1, 1, ntmapout/))) ! write h
+      !
+   endif
    !           
    NF90(nf90_sync(map_file%ncid)) !write away intermediate data ! TL: in first test it seems to be faster to let the file update than keep in memory
    !
@@ -2240,8 +2287,9 @@ contains
       !
       use sfincs_data   
       use sfincs_snapwave
+      use sfincs_nonhydrostatic
       use quadtree
-!      use snapwave_data
+      ! use snapwave_data
       !
       implicit none   
       !
@@ -2559,7 +2607,32 @@ contains
             !
          endif            
          !            
-      endif         
+      endif
+      !
+      if (nonhydrostatic) then
+         !
+         vtmp = FILL_VALUE     
+         !
+         do nmq = 1, quadtree_nr_points
+            !
+            nm = index_sfincs_in_quadtree(nmq)
+            !
+            if (nm>0) then            
+               !
+               ! Look up pressure in 'limited' nonh array that only has values where nonh mask is set to active
+               !
+               if (row_index_of_nm(nm) > 0) then
+                  !
+                  vtmp(nmq) = pnh(row_index_of_nm(nm))
+                  !
+               endif   
+               !
+            endif   
+         enddo
+         !
+         NF90(nf90_put_var(map_file%ncid, map_file%pnonh_varid, vtmp, (/1, ntmapout/)))
+         !
+      endif
       !
       NF90(nf90_sync(map_file%ncid)) !write away intermediate data ! TL: in first test it seems to be faster to let the file update than keep in memory
       !      

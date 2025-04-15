@@ -96,6 +96,10 @@ module sfincs_data
       !real*4 dzdsbnd
       !real*4 manningbnd
       real*4 nuviscfac ! Factor on viscosity for 'difficult' points. Used in sfincs_momentum.f90.
+      real*4 nh_fnudge
+      real*4 nh_tstop
+      integer nh_itermax
+      real*4 nh_tol
       !
       real*4 freqminig
       real*4 freqmaxig
@@ -242,6 +246,7 @@ module sfincs_data
       logical       :: wiggle_suppression
       logical       :: wmrandom      
       logical       :: store_dynamic_bed_level
+      logical       :: nonhydrostatic
       logical       :: h73table
       !!!
       !!! sfincs_input.f90 switches
@@ -317,6 +322,7 @@ module sfincs_data
       integer*1,          dimension(:),   allocatable :: kfuv
       integer*1,          dimension(:),   allocatable :: mask_adv
       integer*1,          dimension(:),   allocatable :: scs_rain   ! logic if previous time step was raining
+      integer*1,          dimension(:),   allocatable :: mask_nonh
       !
       ! Quadtree
       !
@@ -567,9 +573,6 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: betamean
       real*4, dimension(:),   allocatable :: srcig      
       real*4, dimension(:),   allocatable :: alphaig      
-      
-      !      real*4, dimension(:),   allocatable :: tauwavv
-      !
       !!!
       !!! Boundary data
       !!!
