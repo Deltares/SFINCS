@@ -126,6 +126,11 @@ contains
    ! call read_real_input(500, 'dzdsbnd', dzdsbnd, 0.0001)
    ! call read_real_input(500, 'manningbnd', manningbnd, 0.024)
    call read_real_input(500, 'nuviscfac', nuviscfac, 100.0)
+   call read_logical_input(500, 'nonh', nonhydrostatic, .false.)   
+   call read_real_input(500, 'nh_fnudge', nh_fnudge, 0.9)
+   call read_real_input(500, 'nh_tstop', nh_tstop, -999.0)
+   call read_real_input(500, 'nh_tol', nh_tol, 0.001)
+   call read_int_input(500, 'nh_itermax', nh_itermax, 100)
    call read_logical_input(500, 'h73table', h73table, .false.)   
    !
    ! Domain
@@ -578,6 +583,24 @@ contains
          write(logstr,*)'Warning : advection scheme ', trim(advstr), ' not recognized! Using default upw1 instead!'
          call write_log(logstr, 1)
       endif
+      !
+   endif
+   !
+   if (nonhydrostatic) then
+      !
+      if (nh_tstop > 0.0) then
+         !
+         ! tstopnonh is provided so set it with respect to model reference time
+         !
+         nh_tstop = t0 + nh_tstop
+         !
+      else
+         !
+         ! tstopnonh is not provided so set it to tstop time + 999.0 s
+         !
+         nh_tstop = t1 + 999.0
+         !          
+      endif    
       !
    endif
    !
