@@ -402,9 +402,9 @@ contains
       ! Check if a nonh_mask is provided, if not, we keep nonh_mask=1 everywhere
       ! 
       status = NF90_INQ_VARID(net_file_qtr%ncid, "nonh_mask", net_file_qtr%nonh_mask_varid)
-	  !
-	  ! Check the status
-	  if (status /= NF90_NOERR) then  
+      !
+      ! Check the status
+      if (status /= NF90_NOERR) then  
          !
          call write_log('Warning: variable nonh_mask does not exist in the quadtree file, values set to 1 everywhere !', 1)
          !
