@@ -1,5 +1,4 @@
 ! Non-hydrostatic code now only works with regular grids (can still use quadtree netcdf file as long as there are no refinement levels).
-! Still to do: add nonh_mask to netcdf file. Now the non-hydrostatic corrections are applied to the entire SFINCS grid.
 ! Now uses bicgstab_ilu to solve matrix. Both should ideally utilize CPU and GPU parallelization. Currently, this solver cannot be fully parallelized. 
 ! Should try to find a solver that can be.   
 
