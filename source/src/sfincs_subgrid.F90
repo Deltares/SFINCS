@@ -385,7 +385,7 @@ contains
    ! Print warning message
    !
    if (subgrid_warning) then
-      call write_log('Warning   : some subgrid uv point(s) have a difference (z_zmin - uv_zmin) > 0.1m, which should not happen, please use HydroMT-SFINCS >v1.1.0 and check your input', 1)
+      call write_log('Warning   : some subgrid uv point(s) have a difference (z_zmin - uv_zmin) > 0.1m. Make sure you used HydroMT-SFINCS > v1.1.0 and check your input', 1)
    endif   
    !
    ! Make sure zmax is always bigger than zmin
