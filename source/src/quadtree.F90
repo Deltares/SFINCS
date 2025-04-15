@@ -59,14 +59,14 @@ module quadtree
    !
 contains
    !
-   subroutine quadtree_read_file(qtrfile, snapwave)
+   subroutine quadtree_read_file(qtrfile, snapwave, nonhydrostatic)
    !
    ! Reads quadtree file
    !
    implicit none
    !
    character*256, intent(in)                       :: qtrfile
-   logical, intent(in)                             :: snapwave   
+   logical, intent(in)                             :: snapwave, nonhydrostatic   
    !
    real*4,             dimension(:),   allocatable :: dxr
    real*4,             dimension(:),   allocatable :: dyr
@@ -86,7 +86,7 @@ contains
    endif
    !
    if (quadtree_netcdf) then
-      call quadtree_read_file_netcdf(qtrfile, snapwave)
+      call quadtree_read_file_netcdf(qtrfile, snapwave, nonhydrostatic)
    else
       call quadtree_read_file_binary(qtrfile)
    endif
@@ -287,14 +287,14 @@ contains
    end subroutine
 
 
-   subroutine quadtree_read_file_netcdf(qtrfile, snapwave)
+   subroutine quadtree_read_file_netcdf(qtrfile, snapwave, nonhydrostatic)
    !
    ! Reads quadtree file from netcdf file
    !
    implicit none
    !
    character*256, intent(in) :: qtrfile
-   logical, intent(in)       :: snapwave
+   logical, intent(in)       :: snapwave, nonhydrostatic
    !
    integer*1 :: iversion
    integer   :: np, ip, iepsg, status
@@ -390,23 +390,32 @@ contains
       NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%snapwave_mask_varid,  quadtree_snapwave_mask(:)))
    endif
    !
-   ! Try to read nonh mask
-   !
+   ! Nonhydrostatic mask
    allocate(quadtree_nonh_mask(np))
    !
-   NF90(nf90_inq_varid(net_file_qtr%ncid, 'nonh_mask',  net_file_qtr%nonh_mask_varid))
+   ! First set all mask points to 1 
+   quadtree_nonh_mask = 1
+   ! Note, irregular points will be set to 0 in sfincs_domain.f90
    !
-   if (net_file_qtr%nonh_mask_varid /= 0) then
+   if (nonhydrostatic) then
       !
-      ! Read from file
+      ! Check if a nonh_mask is provided, if not, we keep nonh_mask=1 everywhere
+      ! 
+      status = NF90_INQ_VARID(net_file_qtr%ncid, "nonh_mask", net_file_qtr%nonh_mask_varid)
       !
-      NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nonh_mask_varid,  quadtree_nonh_mask(:)))
-      !
-   else
-      !
-      ! Set all mask point to 1 (irregular points will be set to 0 in sfincs_domain.f90)
-      !
-      quadtree_nonh_mask = 1
+      ! Check the status
+      if (status /= NF90_NOERR) then  
+         !
+         call write_log('Warning: variable nonh_mask does not exist in the quadtree file, values set to 1 everywhere !', 1)
+         !
+      else
+         !
+         NF90(nf90_inq_varid(net_file_qtr%ncid, 'nonh_mask',  net_file_qtr%nonh_mask_varid))
+         !
+         ! Read from file and overwrite
+         NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nonh_mask_varid,  quadtree_nonh_mask(:)))         
+         !
+      endif      
       !
    endif
    !
