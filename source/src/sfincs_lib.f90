@@ -90,8 +90,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = '$Rev: v2.1.4:beta-nonhydrostatic_bicgstab'
-   build_date     = '$Date: 2025-04-14'
+   build_revision = '$Rev: v2.1.3-branch:143'
+   build_date     = '$Date: 2025-03-26'
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)

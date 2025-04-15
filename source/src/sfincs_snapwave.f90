@@ -129,7 +129,9 @@ contains
    call find_matching_cells(index_quadtree_in_snapwave, index_snapwave_in_quadtree)
    !
    ! Copy final snapwave mask from snapwave_domain for output in sfincs_ncoutput
-   snapwave_mask = msk   
+   snapwave_mask = msk
+   !
+   ! Done coupling SnapWave
    !
    call write_log('------------------------------------------', 1)
    call write_log('SnapWave Processes', 1)
@@ -557,7 +559,7 @@ contains
    !
    ! Vegetation input
    !
-   call read_int_input(500, 'vegetation', vegetation_opt, 0)
+   call read_int_input(500, 'snapwave_vegetation', vegetation_opt, 0)
    !
    ! Input files
    call read_char_input(500,'snapwave_jonswapfile',snapwave_jonswapfile,'')
@@ -577,7 +579,7 @@ contains
    close(500)
    !
    igwaves          = .true.
-   igherbers        = .false.
+   igherbers        = .true.
    iterative_srcig  = .false.   
    !
    if (igwaves_opt==0) then
@@ -589,22 +591,21 @@ contains
       endif      
       !
       if (herbers_opt==0) then
-         write(logstr,*)'SnapWave: IG bc using use eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
+         write(logstr,*)'SnapWave: IG bc using eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
          call write_log(logstr, 1)         
-      else
-         igherbers     = .true.          
+         igherbers     = .false.          
       endif
       !
    endif
    !
-   wind          = .true.
-   if (wind_opt==0) then
-      wind       = .false.
+   wind          = .false.
+   if (wind_opt==1) then
+      wind       = .true.
    endif   
    !
-   vegetation          = .true.
-   if (vegetation_opt==0) then
-      vegetation       = .false.
+   vegetation          = .false.
+   if (vegetation_opt==1) then
+      vegetation       = .true.
    endif   
    !
    if (nr_sweeps /= 1 .and. nr_sweeps /= 4) then
