@@ -1694,7 +1694,7 @@ contains
             !
             ! Produce error message
             !
-            ! This combo is not allowed!
+            call write_log('Error!    : combination of nonhydrostatic solver with quadtree grid with nr_levels > 1 is not supported ', 1)             
             !
          endif
          !
