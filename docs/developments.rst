@@ -32,7 +32,7 @@ Official open source version 2025.01: v2.2.0 col d'Eze release
 
 The code consists of all functionality of the v2.1.1 release, with the following major changes/additions:
 
-* Improvements on numerical stability of subgrid mode. Achieved through additions of uvmax, hmin_cfl, uvlim, slopelim, advlim (see below) to replace the old stability criteria using stopdepth (removed, see below).
+* Improvements on numerical stability of subgrid mode. Achieved through additions of uvmax, hmin_cfl, uvlim, slopelim, advlim (see below) to replace the old stability criteria using 'stopdepth' with square root of gh (removed, see below). Impacts both regular gridded as subgrid model simulations.
 * Addition of automatic creation of a 'sfincs.log' output file. Implemented so that only a shortened output is send to screen (or in 'sfincs_log.txt' as in our examples using 'run.bat' batchfile), and a longer more elaborate version to the 'sfincs.log' file.
   NOTE - in the run.bat batchfile you can therefore not specify '/sfincs.exe>sfincs.log' anymore, since that conflicts with the automatically generated file. Any other name (as sfincs_log.txt in our examples) will do, or don't specify an output file for the messages to the screen at all!
 * Added more clear overview of what parameters are turned on or off by displaying a summarizing table in the log file and to screen messages (e.g. coriolis, also see below). 
@@ -59,11 +59,12 @@ Bugfixes:
 
 Advanced user options - currently as alpha/beta functionality:
 
-* NOTE - please contact a Deltares SFINCS modeller in case you want to use some of this functionality.
+* NOTE - please contact Deltares-SFINCS group in case you want to use any of this functionality.
+
 * Upgraded BMI implementation to be complient with that of XMI (BMI + extensions - Hughes et al. 2022), to be used with 'xmipy' (https://github.com/Deltares/xmipy) and related functions (https://deltares.github.io/xmipy/xmipy.html).
 * Nonhydrostatic pressure correction (for tsunami wave modelling), keywords nonh = yes (default no) and 'nh_tstop', 'nh_fnudge', 'nh_tol', 'nh_itermax'. Also added option to specify 'nonh_mask' to turn on nonh correction only in part of the domain.
-* Added option to store subgrid hmean (rather than zs - z_zmin), keyword storehmean = yes (default no)
 * Added lookup table for h^(7/3) term in momentum equation. Potentially faster. Keyword h73table = 1/yes/true (default: false).
+* Added option to store subgrid hmean (rather than zs - z_zmin), keyword storehmean = yes (default no)
 
 Official open source version 2024.01: v2.1.1 Dollerup release
 ^^^^^
