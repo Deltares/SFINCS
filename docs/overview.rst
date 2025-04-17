@@ -252,8 +252,17 @@ There have been various journal publications and conference posters where SFINCS
 
 * "Integrating incident and infragravity wave effects in a fast compound flood model". Leijnse et al. (2024), EGU General Assembly 2024, Vienna, Austria, 14–19 Apr 2024, EGU24-2106, https://doi.org/10.5194/egusphere-egu24-2106, 2024.
 
-* More information regarding recent advancements with subgrid features can be seen in this online poster: https://agu2020fallmeeting-agu.ipostersessions.com/Default.aspx?s=9C-05-18-CF-F1-2B-17-F0-7A-21-93-E6-13-AE-F3-24
-Leijnse et al. (2020)
+* "Subgrid corrections for the linear inertial equations of a compound flood model – a case study using SFINCS 2.1.1 Dollerup release". Van Ormondt et al. (2025). https://doi.org/10.5194/gmd-18-843-2025
 
-* More information regarding recent comparisons using SFINCS to model waves can be seen in this online poster: https://agu2020fallmeeting-agu.ipostersessions.com/?s=30-38-5A-0C-8E-22-C8-84-CC-46-3C-95-18-80-C2-76&token=5r05NKrASrFrnkybTgXa4Y_XvgfV233Dazers0d2Zzo
-Lasserre et al. (2020)
+* "Determining the Relative Contributions of Runoff, Coastal, and Compound Processes to Flood Exposure Across the Carolinas During Hurricane Florence". Grimley et al. (2025). https://doi.org/10.1029/2023WR036727
+
+* "Projections of multiple climate-related coastal hazards for the US Southeast Atlantic". Barnard et al. (2025). https://doi.org/10.1038/s41558-024-02180-2
+
+* "Accelerating compound flood risk assessments through active learning: A case study of Charleston County (USA)". Terlinden-Ruhl et al. (2025). https://doi.org/10.5194/nhess-25-1353-2025
+
+* "Probabilistic storm surge and flood-inundation modeling of the Texas gulf coast using super-fast INundation of CoastS (SFINCS)". Lee et al. (2025). https://doi.org/10.1016/j.coastaleng.2025.104721
+
+* "Tropical cyclone induced compound flooding in Madagascar: a coupled modeling approach". Khan et al. (2025). https://doi.org/10.1007/s11069-025-07209-z
+
+* "The importance of waves in large-scale coastal compound flooding: A case study of Hurricane Florence (2018)". Leijnse et al. (2025). https://doi.org/10.1016/j.coastaleng.2025.104726
+
