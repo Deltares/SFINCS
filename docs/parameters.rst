@@ -63,7 +63,7 @@ Parameters for model input
 	advlim
 	  :description:		Limit advection term (when advection > 0) such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2, so limiter turned on by default
 	  :units:		m/s2
-	  :default:		1.0 - updated from SFINCS v2.1.2 onwards
+	  :default:		1.0 - updated from SFINCS v2.2.0 onwards
 	  :min:			0
 	  :max:			9999  
 	alpha	
@@ -90,7 +90,7 @@ Parameters for model input
 	  :default:		1.0
 	  :min:			0.8
 	  :max:			1.0
-	hmin_cfl - added from SFINCS v2.1.2 onwards	
+	hmin_cfl - added from SFINCS v2.2.0 onwards	
 	  :description:		Minimum water depth to determine maximum timestep using CFL-conditions. Possibility to lower the maximum timestep for increased stability by putting a larger values than the deafult of 0.1 m (as was default before became user option).
 	  :units:		m	
 	  :default:		0.1		
@@ -172,7 +172,7 @@ Parameters for model input
 	  :min:			0
 	  :max:			0.1 (advised)
 	ampr_block        
-	  :description:		Keyword controlling whether the input precipitation rate is kept constant for the duration of the input time interval (block interpolation, ampr_block = 1, default), or whether it is interpolated linearly in time (ampr_block = 0).
+	  :description:		Keyword controlling whether the input precipitation rate for 2D precipitation input fields is kept constant for the duration of the input time interval (block interpolation, ampr_block = 1, default), or whether it is interpolated linearly in time (ampr_block = 0).
 	  :units:		-
 	  :default:		1
 	  :min:			0
@@ -208,23 +208,23 @@ More parameters for model input (only for advanced users)
 	wiggle_suppression
 	  :description:		If the acceleration of water level in cell nm is large and positive and in nmu large and negative, or vice versa, apply limiter to the flux. Only for subgrid mode.
 	  :units:		logical
-	  :default:		True - updated from SFINCS v2.1.2 onwards
+	  :default:		True - updated from SFINCS v2.2.0 onwards
 	  :min:			False
 	  :max:			True
 	  :limitation:	Only for subgrid mode
-	uvlim - added from SFINCS v2.1.2 onwards
+	uvlim - added from SFINCS v2.2.0 onwards
 	  :description:		Limit flux velocity (default 10 m/s)
 	  :units:		m/s
 	  :default:		10
 	  :min:			0
 	  :max:			9999	  	  
-	uvmax - added from SFINCS v2.1.2 onwards, replaces 'stopdepth'
+	uvmax - added from SFINCS v2.2.0 onwards, replaces 'stopdepth'
 	  :description:		Maximum flux velocity (default 1000 m/s), used to determine minimum timestep, below which simulation is classified as unstable and stopped.
 	  :units:		m/s
 	  :default:		1000
 	  :min:			0
 	  :max:			9999	
-	slopelim - added from SFINCS v2.1.2 onwards
+	slopelim - added from SFINCS v2.2.0 onwards
 	  :description:		Apply slope limiter to dzdx (turned off by default, by setting to 9999.9)
 	  :units:		-
 	  :default:		9999.9
@@ -328,7 +328,7 @@ Parameters for model output
 	  :units:		s
 	  :default:		0	  	  
 	dtwnd
-	  :description:		Time-interval wind update
+	  :description:		Time-interval on which spatially varying meteo conditions (spiderweb, precipitation, pressure and wind) are updated from file (<v2.0.0 was only wind). When specifying input 2D fields on a finer resolution than 'dtwnd' (default 30 minutes), this value should be put smaller.
 	  :units:		s
 	  :default:		1800
 	outputformat
