@@ -21,26 +21,49 @@ Known issues
 
 Known issues of the current SFINCS main version and last release are (improvements are work in progress):
 
-* The BMI implementation in SFINCS is up to date with openearth/bmi-python, which is however not up to date with the latests CSDMS standard BMI implementation
+* The BMI implementation in SFINCS is up to date with XMI (BMI + extensions - Hughes et al. 2022), to be used with 'xmipy' (https://github.com/Deltares/xmipy) and related functions (https://deltares.github.io/xmipy/xmipy.html), which is however not up to date with the latests CSDMS standard BMI implementation 2.0.
 * The combination of netspwfile with large difference in reference time between the spiderweb and the SFINCS simulation itself, might not run correctly in the Docker version. Use the ascii spwfile input or the Windows build executable which work correctly.
 
 Releases Changelog
 -----
 
-Official open source version 2025.01: v2.2.0 EXXX release
+Official open source version 2025.01: v2.2.0 col d'Eze release
 ^^^^^
 
 The code consists of all functionality of the v2.1.1 release, with the following major changes/additions:
 
-Added functionality:
+* Improvements on numerical stability of subgrid mode. Achieved through additions of uvmax, hmin_cfl, uvlim, slopelim, advlim (see below) to replace the old stability criteria using stopdepth (removed, see below).
+* Addition of automatic creation of a 'sfincs.log' output file. Implemented so that only a shortened output is send to screen (or in 'sfincs_log.txt' as in our examples using 'run.bat' batchfile), and a longer more elaborate version to the 'sfincs.log' file.
+  NOTE - in the run.bat batchfile you can therefore not specify '/sfincs.exe>sfincs.log' anymore, since that conflicts with the automatically generated file. Any other name (as sfincs_log.txt in our examples) will do, or don't specify an output file for the messages to the screen at all!
+* Added more clear overview of what parameters are turned on or off by displaying a summarizing table in the log file and to screen messages (e.g. coriolis, also see below). 
+* Added option to set how frequent to show progress of SFINCS in terms of % and time remaining in sfincs.inp using percentage_done (default = 5%). So can also be said to e.g. every 1%, or 10%.
+* Update of the integrated SnapWave solver to be consistent with the Roelvink et al. 2025 version (https://doi.org/10.5194/egusphere-2025-492).
+* New Python setup tools HydroMT-SFINCS release > highly recommended to use this new version instead of the last release (v1.1.0)!
+* Update of executable license from 'Deltares free trial copy' to 'Deltares freeware license', to be accepted upon downloading from portal (same as before). For details always read the full license (LICENSING CONDITIONS DELTARES FREEWARE EXECUTABLE.txt).
+
+Detailed overview additions/changes:
 
 * stopdepth - REMOVED in SFINCS v2.2.0, replaced by 'uvmax' to determine possible instabilities based on flow velocities rather than maximum water depth!
 * uvmax - possibility to set maximum flux velocity (default 1000 m/s), used to determine minimum timestep, below which simulation is classified as unstable and stopped. Replaces 'stopdepth'.
-* hmin_cfl - possibility to set minimum water depth to determine maximum timestep using CFL-conditions
-* uvlim - possibility to limit flux velocity (default 10 m/s)
-* slopelim - possibility to apply slope limiter to dzdx (turned off by default, by setting to 9999.9)
-* advlim - updated use of the advection limiter, new default is 1.0, whereby limiter is turned on
-* coriolis - Turns on the Coriolis term in the momentum equation, by default turned on (coriolis = True). For projected coordinate system, if latitude is not provided (default, latitude = 0.0), coriolis is still turned off
+* hmin_cfl - possibility to set minimum water depth to determine maximum timestep using CFL-conditions.
+* uvlim - possibility to limit flux velocity (default 10 m/s).
+* slopelim - possibility to apply slope limiter to dzdx (turned off by default, by setting to 9999.9).
+* advlim - updated use of the advection limiter, new default is 1.0, whereby limiter is turned on.
+* coriolis - clarification of use in model and logfile: for projected coordinate systems only turned on if a latitude is provided other than 0 (default, latitude = 0.0, means no coriolis terms used in momentum equation). For large scale applications on spherical grid, the coriolis term is turned on by default.
+* waterlevel 'zs' and volume 'z_volume' internal variables in SFINCS kernel are now stored as double precision.
+
+Bugfixes:
+
+* Bugfix structures (pump, culvert, valve) so they cannot fall dry to NaNs in case the sink term cell becomes fully dry.
+* Bugfix advection scheme. Influence on real world application cases in our testbed is small/negligible.
+
+Advanced user options - currently as alpha/beta functionality:
+
+* NOTE - please contact a Deltares SFINCS modeller in case you want to use some of this functionality.
+* Upgraded BMI implementation to be complient with that of XMI (BMI + extensions - Hughes et al. 2022), to be used with 'xmipy' (https://github.com/Deltares/xmipy) and related functions (https://deltares.github.io/xmipy/xmipy.html).
+* Nonhydrostatic pressure correction (for tsunami wave modelling), keywords nonh = yes (default no) and 'nh_tstop', 'nh_fnudge', 'nh_tol', 'nh_itermax'. Also added option to specify 'nonh_mask' to turn on nonh correction only in part of the domain.
+* Added option to store subgrid hmean (rather than zs - z_zmin), keyword storehmean = yes (default no)
+* Added lookup table for h^(7/3) term in momentum equation. Potentially faster. Keyword h73table = 1/yes/true (default: false).
 
 Official open source version 2024.01: v2.1.1 Dollerup release
 ^^^^^
