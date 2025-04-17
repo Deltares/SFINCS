@@ -32,7 +32,8 @@ Official open source version 2025.01: v2.2.0 col d'Eze release
 
 The code consists of all functionality of the v2.1.1 release, with the following major changes/additions:
 
-* Improvements on numerical stability of subgrid mode. Achieved through additions of uvmax, hmin_cfl, uvlim, slopelim, advlim (see below) to replace the old stability criteria using 'stopdepth' with square root of gh (removed, see below). Impacts both regular gridded as subgrid model simulations.
+* Improvements on numerical stability. Achieved through additions of uvmax, hmin_cfl, uvlim, slopelim, advlim (see below) to replace the old stability criteria using 'stopdepth' with square root of gh (removed, see below). Impacts both regular gridded as subgrid model simulations.
+* Improvements subgrid mode through added checks on input file, subgrid mode consistent with SFINCS subgrid paper: van Ormondt et al. (2025): https://doi.org/10.5194/gmd-18-843-2025. 
 * Addition of automatic creation of a 'sfincs.log' output file. Implemented so that only a shortened output is send to screen (or in 'sfincs_log.txt' as in our examples using 'run.bat' batchfile), and a longer more elaborate version to the 'sfincs.log' file.
   NOTE - in the run.bat batchfile you can therefore not specify '/sfincs.exe>sfincs.log' anymore, since that conflicts with the automatically generated file. Any other name (as sfincs_log.txt in our examples) will do, or don't specify an output file for the messages to the screen at all!
 * Added more clear overview of what parameters are turned on or off by displaying a summarizing table in the log file and to screen messages (e.g. coriolis, also see below). 
