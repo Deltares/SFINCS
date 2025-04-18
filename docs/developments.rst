@@ -49,7 +49,7 @@ Detailed overview additions/changes:
 * hmin_cfl - possibility to set minimum water depth to determine maximum timestep using CFL-conditions.
 * uvlim - possibility to limit flux velocity (default 10 m/s).
 * slopelim - possibility to apply slope limiter to dzdx (turned off by default, by setting to 9999.9).
-* advlim - updated use of the advection limiter, new default is 1.0, whereby limiter is turned on.
+* advlim - updated use of the advection limiter, new default is 1.0, whereby limiter is turned on by default.
 * coriolis - clarification of use in model and logfile: for projected coordinate systems only turned on if a latitude is provided other than 0 (default, latitude = 0.0, means no coriolis terms used in momentum equation). For large scale applications on spherical grid, the coriolis term is turned on by default.
 * waterlevel 'zs' and volume 'z_volume' internal variables in SFINCS kernel are now stored as double precision.
 
