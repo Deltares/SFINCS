@@ -71,19 +71,19 @@ Example of sfincs.inp
 	
 	sf.setup_config(
 		**{
-			"x0": 0,
-			"y0": 0,
-			"mmax": 250,
-			"nmax": 150,
-			"dx": 100,
-			"dy": 100,
-			"rotation": 45,
-			"tref": "20090106 210000",
-			"tstart": "20090106 210000",
-			"tstop": "20090111 000000",
-			"dtmaxout": 86400,
-			"dtout": 3600,
-			"obsfile": "sfincs.obs",
+		"x0": 0,
+		"y0": 0,
+		"mmax": 250,
+		"nmax": 150,
+		"dx": 100,
+		"dy": 100,
+		"rotation": 45,
+		"tref": "20090106 210000",
+		"tstart": "20090106 210000",
+		"tstop": "20090111 000000",
+		"dtmaxout": 86400,
+		"dtout": 3600,
+		"obsfile": "sfincs.obs",
 		}
 	)	
 	
