@@ -135,7 +135,7 @@ The SFINCS software is distributed by Deltares as SFINCS Software. SFINCS is als
 Typical applications of SFINCS include flood forecasting and evaluating the impact of extreme events on flooding. 
 Typical areas of use for SFINCS are coastal areas where compound flood processes play a role, as described in the Deltares Software Documentation.
 For more information see: https://www.deltares.nl/en/software/SFINCS/
-Version 2.X.X (with X being the latest release) - November 2024
+SFINCS Version 2.2.0 - April 2025
 
 B.	Specification of Operational System
 

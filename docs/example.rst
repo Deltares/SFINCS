@@ -6,35 +6,14 @@ Introduction
 
 SFINCS models can be set up using simple ascii text and/or binary input files, which can be generated on whatever platform suiting you as a user best.
 While SFINCS itself is coded in Fortran, it does not matter whether you create the input using a text editor, Matlab or Python.
-To make the setting up of basic models easier, making a SFINCS model is supported by 3 open source available options:
+To make the setting up of basic models easier, making a SFINCS model is supported by different open source available options:
 
-* Graphical User Interface (GUI) to make SFINCS models interactively: **'Delft Dashboard'**
-* Matlab scripts toolbox in the **'Open Earth Toolbox'**
-* Command line/Python script framework called **'HydroMT'**, with its dedicated plugin **'hydromt_sfincs'**
+* Python script framework called **'HydroMT'**, with its dedicated plugin **'hydromt_sfincs'** --> highly recommended to use since 2023
+* Graphical User Interface (GUI) to make SFINCS models interactively: **'Delft Dashboard'** --> the Matlab DDB GUI is currently depricated
+* Graphical User Interface (GUI) to make SFINCS models interactively: **'Delft Dashboard Python'** --> the Python DDB GUI is currently being developed
+* Matlab scripts toolbox in the **'Open Earth Toolbox'** --> the Matlab OET scripts are currently depricated
 
 If you need a more tailor-made solution for setting up your SFINCS models get in touch with us!
-
-.. figure:: ./figures/SFINCS_model_setup_diagram.drawio.png
-   :width: 800px
-   :align: center
-
-   Overview of input file of SFINCS with indication whther they are required or not		
-
-Delft Dashboard 
------
-
-Delft Dashboard (Van Ormondt et al. 2020 https://doi.org/10.2166/hydro.2020.092) is a quick set-up tool GUI for hydrodynamic models that includes setting up SFINCS models.
-The tool can be run on Matlab or as standalone executable and has all the basic functionality to setup your basic model using globally available DEMs in an interactive way.
-
-For more information see: https://publicwiki.deltares.nl/display/DDB
-
-Open Earth Tools
------
-
-In the Open Earth Tools a toolbox of Matlab scripts is included to have more flexibility in setting up your SFINCS models, that is also used by Delft Dashboard.
-Throughout this User Manual examples of how to use these scripts are given in the code blocks '**Matlab example using OET**'.
-For a general overview of possible input files and how to create them using Matlab scripts see: https://svn.oss.deltares.nl/repos/openearthtools/trunk/matlab/applications/sfincs/
-For getting started with Open Earth Tools see: https://publicwiki.deltares.nl/display/OET/OpenEarth
 
 HydroMT-SFINCS 
 -----
@@ -47,6 +26,13 @@ Also, it is possible to burn in rivers or setup a offline coupled model together
 * For more information regarding HydroMT in general see: https://deltares.github.io/hydromt/
 * For more user flexibility, it is also possible now to access individual setup components to build your own model or forcing from scratch, see: https://deltares.github.io/hydromt_sfincs/latest/user_guide/sfincs.html
 * For an example of building a model from scratch in Python see: https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_py.html
+
+Delft Dashboard 
+-----
+
+Delft Dashboard (Van Ormondt et al. 2020 https://doi.org/10.2166/hydro.2020.092) is a quick set-up tool GUI for hydrodynamic models that includes setting up SFINCS models.
+The tool can be run on Matlab or as standalone executable and has all the basic functionality to setup your basic model using globally available DEMs in an interactive way.
+In ongoing work, DDB is converted into a Python based GUI!
 
 Executable
 =====
@@ -175,7 +161,7 @@ Besides the elaborate information available in this manual, we do offer courses 
 
 * SFINCS trainings during the DSD are planned to be yearly, for an up to date agenda see: https://softwaredays.deltares.nl/welcome
 
-* For US/Canada users, online SFINCS training through Deltares USA, Apr 24&26 2024, see: https://www.deltares-usa.us/book-online
+* For US/Canada users, online SFINCS training through Deltares USA, see: https://www.deltares-usa.us/book-online
 
 If these dates don't suit you or your organisation, or you want a more advanced training; get in touch and we can set up a tailor-made course for you.
 
@@ -187,7 +173,7 @@ As Deltares is a NGO project-based organisation, and while we do try to answer a
 If you do have more structurally returning questions about how to set up SFINCS models for your application, considering getting a Software Service Package.
 For more information, send an email to: software@deltares.nl
 
-Additionally, if you want the experts to set up a first working framework of SFINCS models for you, get in touch with product manager tim.leijnse@deltares.nl to discuss options for collaborations to set this up.
+Additionally, if you want the experts to set up a first working framework of SFINCS models for you, get in touch at sfincs@deltares.nl to discuss options for collaborations to set this up.
 
 Contributing
 =====
