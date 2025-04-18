@@ -31,6 +31,20 @@ Releases Changelog
 Official open source version 2025.01: v2.2.0 col d'Eze release
 ^^^^^
 
+The first official 2025 release of SFINCS, the v2.2.0 col d'Eze release, 'Easing over bumps in fast compound flood modelling together', is now available!
+
+This contains open access to the source code from Github: https://github.com/Deltares/SFINCS/releases/tag/v2.2.0_col_dEze_release.
+
+As pre-compiled Windows executable:
+
+https://download.deltares.nl/en/sfincs/
+
+As Docker container:
+
+docker pull deltares/sfincs-cpu:sfincs-v2.2.0-col-dEze-Release
+
+Changes:
+
 The code consists of all functionality of the v2.1.1 release, with the following major changes/additions:
 
 * Improvements on numerical stability. Achieved through additions of uvmax, hmin_cfl, uvlim, slopelim, advlim (see below) to replace the old stability criteria using 'stopdepth' with square root of gh (removed, see below). Impacts both regular gridded as subgrid model simulations.
