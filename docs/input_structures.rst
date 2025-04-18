@@ -81,9 +81,11 @@ Weirs
 Weirs are in principle the same as a thin dam, but then with a certain height (levee).
 When the water level on either or both sides of the weir are higher than that of the weir, a flux over the weir is calculated.
 Hereby a situation where the weir is partly or fully submerged is distinguished.
-One can provide multiple polylines within one file, a maximum of 5000 supplied points is supported.
 Besides the x&y locations per points, also the elevation z and a Cd coefficient for the weir formula (recommended to use 0.6).
 The supplied polylines are snapped onto the SFINCS grid within the model.
+While running SFINCS the number of structure uv points found is displayed, e.g.:
+	Info : 7932 structure u/v points found
+Note that SFINCS displays the points found after snapping to the grid (max 2 per grid cell), not how many were specified in the input.
 
 The snapped coordinates are available in sfincs_his.nc as structure_x, structure_y & structure_height from SFINCS v2.0.2 onwards.
 
