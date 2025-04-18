@@ -105,7 +105,7 @@ The signal should be around 0.
 
 **NOTE - Specified time should be the same in both the bzs and bzi files - generally on a high frequency of seconds**
 
-**NOTE - There is not a specific Python function yet, but one could call the setup_waterlevel_forcing function twice with saving the files in between and changing their names **
+**NOTE - There is not a specific Python function yet, but one could call the setup_waterlevel_forcing function twice with saving the files in between and changing their names**
 
 **bzifile = sfincs.bzi**
 
@@ -124,6 +124,7 @@ Netcdf format input
 ^^^^^^^^^
 
 As alternative, the bnd/bzs/bzi data can also be specified using a single Netcdf file with FEWS input type format 'netbndbzsbzifile'.
+SFINCS assumes that the input variables 'x', 'y', 'time', 'zs' (needed, for bzsfile equivalent), 'zi' (optional, for bzifile equivalant) and 'stations' are available in the netcdf file, including a reference time as UNIT in variable 'time' of the Fews time format: "minutes since 1970-01-01 00:00:00.0 +0000"  
 
 **NOTE - There is not a specific Python function for this yet**
 	
@@ -179,7 +180,7 @@ Times are specified in seconds with respect to SFINCS' internal reference time '
 
 .. code-block:: text
 
-	NOTE - The python function both creates the bnd and bzs file, so you don't need to create them separately.
+	NOTE - The python function both creates the src and dis file, so you don't need to create them separately.
 	
 	sf.setup_discharge_forcing(
 		geodataset=None,

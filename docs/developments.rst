@@ -14,7 +14,7 @@ Indicated are new functionality for SFINCS itself (core), and model setup/post-p
    :width: 600px
    :align: center
 
-   Overview of SFINCS development status 2024.01 Release
+   Overview of SFINCS development status 2025.01 Release
 
 Known issues
 -----
@@ -23,6 +23,7 @@ Known issues of the current SFINCS main version and last release are (improvemen
 
 * The BMI implementation in SFINCS is up to date with XMI (BMI + extensions - Hughes et al. 2022), to be used with 'xmipy' (https://github.com/Deltares/xmipy) and related functions (https://deltares.github.io/xmipy/xmipy.html), which is however not up to date with the latests CSDMS standard BMI implementation 2.0.
 * The combination of netspwfile with large difference in reference time between the spiderweb and the SFINCS simulation itself, might not run correctly in the Docker version. Use the ascii spwfile input or the Windows build executable which work correctly.
+* Docker GPU version of Deltares latest is not fully functional. If you'd want to use the GPU version of SFINCS, get in touch to set up a collaboration.
 
 Releases Changelog
 -----
