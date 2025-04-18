@@ -128,7 +128,7 @@ The snapped coordinates are available in sfincs_his.nc as structure_x, structure
 	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
 	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
 
-**NOTE - If your weir elevation is unknown a priori, you can also let HydroMT-SFINCS derive this from an input (high-resolution) DEM by specifying 'dep' **
+**NOTE - If your weir elevation is unknown a priori, you can also let HydroMT-SFINCS derive this from an input (high-resolution) DEM by specifying 'dep'**
 
 **NOTE - If your weir elevation is unknown a priori, you can also let HydroMT-SFINCS derive this from an input (low-resolution) DEM by specifying 'dep' and adding a certain assumed elevation 'dz'**
 
