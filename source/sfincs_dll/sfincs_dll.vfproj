@@ -33,7 +33,7 @@
 		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
 			<File RelativePath="..\src\sfincs_bmi.f90">
 				<FileConfiguration Name="Release|x64">
-					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
+					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessNo"/>
 				</FileConfiguration>
 			</File>
 		</Filter>
