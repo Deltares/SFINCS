@@ -109,7 +109,7 @@ contains
          !
          if (nmq>0) then
             !
-            nm             = index_sfincs_in_quadtree(nmq)
+            nm = index_sfincs_in_quadtree(nmq)
             !
             if (nm > 0) then
                 !

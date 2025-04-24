@@ -90,8 +90,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.2.0 col d'Eze"
-   build_date     = "$Date: 2025-04-15"
+   build_revision = "$Rev: v2.2.1 Col d'Eze"
+   build_date     = "$Date: 2025-04-24"
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)
