@@ -304,6 +304,8 @@ module sfincs_lib
    call write_log(logstr, 1)
    call write_log('', 1)
    !
+   call system_clock(count00, count_rate, count_max)   
+   !
    end function sfincs_initialize
    !
    !-----------------------------------------------------------------------------------------------------!
@@ -371,8 +373,6 @@ module sfincs_lib
    endif
    !
    ! Start computational loop
-   !
-   call system_clock(count00, count_rate, count_max)
    !
    do while (t < tend)
       !
@@ -713,9 +713,6 @@ module sfincs_lib
    write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in continuity     : ',tloopcont,' (',100*tloopcont/(tfinish_all - tstart_all),'%)'
    call write_log(logstr, 1)
    !
-   write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in output         : ',tloopoutput,' (',100*tloopoutput/(tfinish_all - tstart_all),'%)'
-   call write_log(logstr, 1)
-   !
    if (snapwave) then
       write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in SnapWave       : ',tloopsnapwave,' (',100*tloopsnapwave/(tfinish_all - tstart_all),'%)'
       call write_log(logstr, 1)
@@ -725,6 +722,10 @@ module sfincs_lib
       write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in wave maker     : ',tloopwavemaker,' (',100*tloopwavemaker/(tfinish_all - tstart_all),'%)'
       call write_log(logstr, 1)
    endif
+   !
+   write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in output         : ',tloopoutput,' (',100*tloopoutput/(tfinish_all - tstart_all),'%)'
+   call write_log(logstr, 1)
+   !
    call write_log('', 1)
    write(logstr,'(a,20f10.3)')        ' Average time step (s)  : ',dtavg
    !
