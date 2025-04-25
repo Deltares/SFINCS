@@ -39,7 +39,7 @@ module sfincs_ncoutput
       integer :: ncid   
       integer :: time_dimid 
       integer :: points_dimid, pointnamelength_dimid
-      integer :: crosssections_dimid, structures_dimid, drain_dimid
+      integer :: crosssections_dimid, structures_dimid, drain_dimid, runup_gauges_dimid
       integer :: runtime_dimid
       integer :: point_x_varid, point_y_varid, station_x_varid, station_y_varid, crs_varid, qinf_varid, S_varid  
       integer :: station_id_varid, station_name_varid
@@ -53,6 +53,7 @@ module sfincs_ncoutput
       integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid  
       integer :: hm0_varid, hm0ig_varid, zsm_varid, tp_varid, tpig_varid, wavdir_varid, dirspr_varid
       integer :: dw_varid, df_varid, dwig_varid, dfig_varid, cg_varid, qb_varid, beta_varid, srcig_varid, alphaig_varid
+      integer :: runup_gauge_name_varid, runup_gauge_zs_varid
       !
    end type
    !
@@ -1403,6 +1404,7 @@ contains
    
    
    subroutine ncoutput_his_init()
+   !
    ! 1. Initialise dimensions/variables/attributes
    ! 2. write grid/msk/zb to file
    !
@@ -1419,8 +1421,8 @@ contains
    real*4, dimension(:), allocatable :: struc_y
    real*4, dimension(:), allocatable :: struc_height   
    !
-   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0) then ! If no observation points, cross-sections, structures or drains; his file is not created        
-        return
+   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0 .and. nr_runup_gauges==0) then ! If no observation points, cross-sections, structures or drains; his file is not created        
+      return
    endif
    !
    NF90(nf90_create('sfincs_his.nc', ior(NF90_CLOBBER,NF90_NETCDF4), his_file%ncid))
@@ -1447,10 +1449,13 @@ contains
       NF90(nf90_def_dim(his_file%ncid, 'structures', nrstructures, his_file%structures_dimid)) ! nr of structures (weir)
    endif   
    !
+   if (nr_runup_gauges > 0) then   
+      NF90(nf90_def_dim(his_file%ncid, 'runup_gauges', nr_runup_gauges, his_file%runup_gauges_dimid)) ! runup gauges
+   endif
+   !
    NF90(nf90_def_dim(his_file%ncid, 'pointnamelength', 256, his_file%pointnamelength_dimid)) ! length of station_name per obs point  
    NF90(nf90_def_dim(his_file%ncid, 'runtime', 1, his_file%runtime_dimid)) ! total_runtime, average_dt    
    !
-   !     
    ! Some metadata attributes 
    NF90(nf90_put_att(his_file%ncid,nf90_global, "Conventions", "Conventions = 'CF-1.6, SGRID-0.3")) 
    NF90(nf90_put_att(his_file%ncid,nf90_global, "Build-Revision-Date-Netcdf-library", trim(nf90_inq_libvers()))) ! version of netcdf library
@@ -1472,6 +1477,10 @@ contains
    !
    if (nrcrosssections>0) then
       NF90(nf90_def_var(his_file%ncid, 'crosssection_name', NF90_CHAR, (/his_file%pointnamelength_dimid, his_file%crosssections_dimid/), his_file%crosssection_name_varid))
+   endif      
+   !
+   if (nr_runup_gauges > 0) then
+      NF90(nf90_def_var(his_file%ncid, 'runup_gauge_name', NF90_CHAR, (/his_file%pointnamelength_dimid, his_file%runup_gauges_dimid/), his_file%runup_gauge_name_varid))
    endif      
    !
    !NF90(nf90_put_att(his_file%ncid, his_file%station_name_varid, 'units', '-')) !not wanted in fews   
@@ -1811,6 +1820,16 @@ contains
       NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'coordinates', 'drainage_name'))
       !
    endif   
+   !   
+   if (nr_runup_gauges > 0) then
+      !
+      NF90(nf90_def_var(his_file%ncid, 'runup_gauge_zs', NF90_FLOAT, (/his_file%runup_gauges_dimid, his_file%time_dimid/), his_file%runup_gauge_zs_varid)) ! time-varying crossection discharge 
+      NF90(nf90_put_att(his_file%ncid, his_file%runup_gauge_zs_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(his_file%ncid, his_file%runup_gauge_zs_varid, 'units', 'm'))
+      NF90(nf90_put_att(his_file%ncid, his_file%runup_gauge_zs_varid, 'long_name', 'run-up elevation'))
+      NF90(nf90_put_att(his_file%ncid, his_file%runup_gauge_zs_varid, 'coordinates', 'runup_gauge_name'))
+      !
+   endif
    !
    ! Add for final output:
    NF90(nf90_def_var(his_file%ncid, 'total_runtime', NF90_FLOAT, (/his_file%runtime_dimid/), his_file%total_runtime_varid))
@@ -1836,6 +1855,10 @@ contains
    !
    if (nrcrosssections>0) then
       NF90(nf90_put_var(his_file%ncid, his_file%crosssection_name_varid, namecrs))  ! write station_name      ! , (/1, nobs/)
+   endif   
+   !
+   if (nr_runup_gauges > 0) then
+      NF90(nf90_put_var(his_file%ncid, his_file%runup_gauge_name_varid, runup_gauge_name))  ! write rug name
    endif   
    !
    if (nrstructures>0) then
@@ -2645,6 +2668,7 @@ contains
    !
    use sfincs_data   
    use sfincs_crosssections
+   use sfincs_runup_gauges
    use sfincs_snapwave
    !
    implicit none   
@@ -2684,7 +2708,7 @@ contains
    real*4, dimension(nobs) :: betaobs
    real*4, dimension(nobs) :: srcigobs
    real*4, dimension(nobs) :: alphaigobs
-   real*4, dimension(:), allocatable :: qq
+   real*4, dimension(:), allocatable :: qq, zz
    !
    zobs         = FILL_VALUE
    zsmobs       = FILL_VALUE
@@ -2911,6 +2935,16 @@ contains
       call get_discharges_through_crosssections(qq)
       !
       NF90(nf90_put_var(his_file%ncid, his_file%discharge_varid, qq, (/1, nthisout/))) ! write discharge
+      !
+   endif
+   !
+   if (nr_runup_gauges>0) then
+      !
+      ! Get run-up elevations
+      !
+      call get_runup_levels(zz)
+      !
+      NF90(nf90_put_var(his_file%ncid, his_file%runup_gauge_zs_varid, zz, (/1, nthisout/))) ! write run up level
       !
    endif
    !

@@ -9,6 +9,7 @@ module sfincs_lib
    use sfincs_boundaries
    use sfincs_obspoints
    use sfincs_crosssections
+   use sfincs_runup_gauges
    use sfincs_discharges
    use sfincs_meteo
    use sfincs_infiltration
@@ -146,15 +147,15 @@ module sfincs_lib
    !
    call read_structures()       ! Reads thd files and sets kcuv to zero where necessary
    !
-   call write_log('Reading boundary data ...', 0) 
    call read_boundary_data()    ! Reads bnd, bzs, etc files
    !
    call find_boundary_indices()
    !
-   call write_log('Reading observation points ...', 0) 
    call read_obs_points()       ! Reads obs file
    !
    call read_crs_file()         ! Reads cross sections
+   !
+   call read_rug_file()         ! Reads cross sections
    !
    call read_discharges()       ! Reads dis and src file
    !
