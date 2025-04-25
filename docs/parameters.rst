@@ -63,7 +63,7 @@ Parameters for model input
 	advlim
 	  :description:		Limit advection term (when advection > 0) such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2, so limiter turned on by default
 	  :units:		m/s2
-	  :default:		1.0 - updated from SFINCS v2.1.2 onwards
+	  :default:		1.0 - updated from SFINCS v2.2.0 onwards
 	  :min:			0
 	  :max:			9999  
 	alpha	
@@ -90,7 +90,7 @@ Parameters for model input
 	  :default:		1.0
 	  :min:			0.8
 	  :max:			1.0
-	hmin_cfl - added from SFINCS v2.1.2 onwards	
+	hmin_cfl - added from SFINCS v2.2.0 onwards	
 	  :description:		Minimum water depth to determine maximum timestep using CFL-conditions. Possibility to lower the maximum timestep for increased stability by putting a larger values than the deafult of 0.1 m (as was default before became user option).
 	  :units:		m	
 	  :default:		0.1		
@@ -170,7 +170,13 @@ Parameters for model input
 	  :units:		s/m^(1/3)
 	  :default:		-999 (=not used)
 	  :min:			0
-	  :max:			0.1 (advised)    	  
+	  :max:			0.1 (advised)
+	ampr_block        
+	  :description:		Keyword controlling whether the input precipitation rate for 2D precipitation input fields is kept constant for the duration of the input time interval (block interpolation, ampr_block = 1, default), or whether it is interpolated linearly in time (ampr_block = 0).
+	  :units:		-
+	  :default:		1
+	  :min:			0
+	  :max:			1	      	  
 	  
 More parameters for model input (only for advanced users)
 -----
@@ -202,23 +208,23 @@ More parameters for model input (only for advanced users)
 	wiggle_suppression
 	  :description:		If the acceleration of water level in cell nm is large and positive and in nmu large and negative, or vice versa, apply limiter to the flux. Only for subgrid mode.
 	  :units:		logical
-	  :default:		True - updated from SFINCS v2.1.2 onwards
+	  :default:		True - updated from SFINCS v2.2.0 onwards
 	  :min:			False
 	  :max:			True
 	  :limitation:	Only for subgrid mode
-	uvlim - added from SFINCS v2.1.2 onwards
+	uvlim - added from SFINCS v2.2.0 onwards
 	  :description:		Limit flux velocity (default 10 m/s)
 	  :units:		m/s
 	  :default:		10
 	  :min:			0
 	  :max:			9999	  	  
-	uvmax - added from SFINCS v2.1.2 onwards, replaces 'stopdepth'
+	uvmax - added from SFINCS v2.2.0 onwards, replaces 'stopdepth'
 	  :description:		Maximum flux velocity (default 1000 m/s), used to determine minimum timestep, below which simulation is classified as unstable and stopped.
 	  :units:		m/s
 	  :default:		1000
 	  :min:			0
 	  :max:			9999	
-	slopelim - added from SFINCS v2.1.2 onwards
+	slopelim - added from SFINCS v2.2.0 onwards
 	  :description:		Apply slope limiter to dzdx (turned off by default, by setting to 9999.9)
 	  :units:		-
 	  :default:		9999.9
@@ -247,7 +253,19 @@ More parameters for model input (only for advanced users)
 	  :units:		0
 	  :default:		0
 	  :min:			0
-	  :max:			1	  
+	  :max:			1	
+	h73table
+	  :description:		Option to use lookup table to calculate nonlinear term h^(7/3) in momentum equation, depending on model schematisation can lead to ~0-30% speedup of model, default is off (0)
+	  :units:		logical
+	  :default:		0
+	  :min:			0
+	  :max:			1		    
+	structure_relax
+	  :description:		Structure_relax in seconds gives ratio between new and old discharge (default 10s), as relaxation factor
+	  :units:		s
+	  :default:		10
+	  :min:			1
+	  :max:			86400	  
 	  
 	**Drag coefficients:**
 	
@@ -310,7 +328,7 @@ Parameters for model output
 	  :units:		s
 	  :default:		0	  	  
 	dtwnd
-	  :description:		Time-interval wind update
+	  :description:		Time-interval on which spatially varying meteo conditions (spiderweb, precipitation, pressure and wind) are updated from file (<v2.0.0 was only wind). When specifying input 2D fields on a finer resolution than 'dtwnd' (default 30 minutes), this value should be put smaller.
 	  :units:		s
 	  :default:		1800
 	outputformat
@@ -354,9 +372,15 @@ Parameters for model output
 	  :units:		-
 	  :default:		0		
 	storehsubgrid
-	  :description:		Flag to turn on writing away unaccurate water depth estimate for subgrid mode on 'dtmaxout' interval during simulation (storehsubgrid = 1)
+	  :description:		Flag to turn on writing away 'hmax' maximum water depth estimate (zsmax - z_zmin) for subgrid mode on 'dtmaxout' interval during simulation (storehsubgrid = 1) 
+	                    NOTE - this could be perceived as an overestimation of the flooding, downscaling your floodmap to the subgrid pixel resolution using HydroMT_SFINCS function is highly recommended.
 	  :units:		-
-	  :default:		0		    	  
+	  :default:		0		    	 
+	storehmean
+	  :description:		Flag to turn on writing away 'hmax' as estimated mean water depth in subgrid cell for subgrid mode on 'dtmaxout' interval during simulation (storehmean = 1)
+	  					NOTE - only used if subgrid model, and if storehsubgrid = 1
+	  :units:		logical
+	  :default:		0		   
 	storeqdrain
 	  :description:		Flag to turn on writing away drainage discharge during simulation (storeqdrain = 1)
 	  :units:		-

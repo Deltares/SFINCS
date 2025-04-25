@@ -87,6 +87,7 @@ module sfincs_data
       real*4 wmtfilter
       real*4 horton_kr_kd
       real*4 btrelax
+      real*4 structure_relax
       real*4 wiggle_factor
       real*4 wiggle_threshold
       real*4 uvlim
@@ -95,6 +96,10 @@ module sfincs_data
       !real*4 dzdsbnd
       !real*4 manningbnd
       real*4 nuviscfac ! Factor on viscosity for 'difficult' points. Used in sfincs_momentum.f90.
+      real*4 nh_fnudge
+      real*4 nh_tstop
+      integer nh_itermax
+      real*4 nh_tol
       !
       real*4 freqminig
       real*4 freqmaxig
@@ -199,6 +204,7 @@ module sfincs_data
       logical       :: store_velocity
       logical       :: store_twet
       logical       :: store_hsubgrid
+      logical       :: store_hmean      
       logical       :: store_qdrain
       logical       :: store_zvolume
       logical       :: store_meteo
@@ -240,6 +246,8 @@ module sfincs_data
       logical       :: wiggle_suppression
       logical       :: wmrandom      
       logical       :: store_dynamic_bed_level
+      logical       :: nonhydrostatic
+      logical       :: h73table
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
@@ -314,6 +322,7 @@ module sfincs_data
       integer*1,          dimension(:),   allocatable :: kfuv
       integer*1,          dimension(:),   allocatable :: mask_adv
       integer*1,          dimension(:),   allocatable :: scs_rain   ! logic if previous time step was raining
+      integer*1,          dimension(:),   allocatable :: mask_nonh
       !
       ! Quadtree
       !
@@ -564,9 +573,6 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: betamean
       real*4, dimension(:),   allocatable :: srcig      
       real*4, dimension(:),   allocatable :: alphaig      
-      
-      !      real*4, dimension(:),   allocatable :: tauwavv
-      !
       !!!
       !!! Boundary data
       !!!
@@ -786,10 +792,39 @@ module sfincs_data
                                               0.682, 0.852, 0.984, 1.100, 1.205, 1.302, 1.395, 1.485, 1.574, 1.658, 1.742, 1.828, 1.908, 1.989, 2.071, 2.154, 2.225, 2.124, 2.034, 1.946, 1.871, 1.797, 1.731, 1.668, 1.612, 1.556, 1.505, 1.459, 1.413, 1.372, 1.332, 1.295, 1.258, 1.226, 1.194, 1.164, 1.135, 1.107, 1.082, 1.057, 1.032, 1.009, 0.989, 0.968, 0.947, 0.929, 0.909, 0.892, 0.875, 0.858, &
                                               0.682, 0.852, 0.984, 1.100, 1.205, 1.302, 1.395, 1.485, 1.574, 1.658, 1.742, 1.828, 1.908, 1.989, 2.071, 2.154, 2.225, 2.124, 2.034, 1.946, 1.871, 1.797, 1.731, 1.668, 1.612, 1.556, 1.505, 1.459, 1.413, 1.372, 1.332, 1.295, 1.258, 1.226, 1.194, 1.164, 1.135, 1.107, 1.082, 1.057, 1.032, 1.009, 0.989, 0.968, 0.947, 0.929, 0.909, 0.892, 0.875, 0.858, &
                                               0.682, 0.852, 0.984, 1.100, 1.205, 1.302, 1.395, 1.485, 1.574, 1.658, 1.742, 1.828, 1.908, 1.989, 2.071, 2.154, 2.225, 2.124, 2.034, 1.946, 1.871, 1.797, 1.731, 1.668, 1.612, 1.556, 1.505, 1.459, 1.413, 1.372, 1.332, 1.295, 1.258, 1.226, 1.194, 1.164, 1.135, 1.107, 1.082, 1.057, 1.032, 1.009, 0.989, 0.968, 0.947, 0.929, 0.909, 0.892, 0.875, 0.858 /), shape(cdlgx))
-
+      !
+      ! h**(7/3) table
+      ! 
+      real*4, dimension(:,:), allocatable :: x73
+      
    contains
 
 
+   subroutine fill_h73_tables()
+   !
+   ! Fill lookup tables for h**(7/3) calculations
+   !
+   implicit none
+   !
+   integer :: j, k
+   !
+   real*4  :: hh
+   !
+   if (h73table) then
+      !
+      allocate(x73(1000, 10))
+      !
+      do k = 1, 10
+         do j = 1, 1000
+            hh = 0.001 * j * 10.0 ** (k - 6)
+            x73(j, k) = hh**2 * hh**(1.0/3.0)
+         enddo   
+      enddo   
+      !
+   endif
+   !
+   end subroutine
+   
    subroutine initialize_parameters()
       !
       implicit none

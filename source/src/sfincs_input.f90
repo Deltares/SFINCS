@@ -116,6 +116,7 @@ contains
    call read_char_input(500,'advection_scheme',advstr,'upw1')   
    call read_real_input(500,'btrelax',btrelax,3600.0)
    call read_logical_input(500,'wiggle_suppression', wiggle_suppression, .true.)
+   call read_real_input(500,'structure_relax',structure_relax,10.0)
    call read_real_input(500,'wiggle_factor',wiggle_factor,0.1)
    call read_real_input(500,'wiggle_threshold',wiggle_threshold,0.1)
    call read_real_input(500, 'uvlim', uvlim, 10.0)
@@ -125,6 +126,12 @@ contains
    ! call read_real_input(500, 'dzdsbnd', dzdsbnd, 0.0001)
    ! call read_real_input(500, 'manningbnd', manningbnd, 0.024)
    call read_real_input(500, 'nuviscfac', nuviscfac, 100.0)
+   call read_logical_input(500, 'nonh', nonhydrostatic, .false.)   
+   call read_real_input(500, 'nh_fnudge', nh_fnudge, 0.9)
+   call read_real_input(500, 'nh_tstop', nh_tstop, -999.0)
+   call read_real_input(500, 'nh_tol', nh_tol, 0.001)
+   call read_int_input(500, 'nh_itermax', nh_itermax, 100)
+   call read_logical_input(500, 'h73table', h73table, .false.)   
    !
    ! Domain
    !
@@ -203,6 +210,7 @@ contains
    call read_int_input(500,'storecumprcp',storecumprcp,0)
    call read_int_input(500,'storetwet',storetwet,0)
    call read_int_input(500,'storehsubgrid',storehsubgrid,0)
+   call read_logical_input(500, 'storehmean', store_hmean, .false.)      
    call read_real_input(500,'twet_threshold',twet_threshold,0.01)
    call read_int_input(500,'store_tsunami_arrival_time',itsunamitime,0)
    call read_real_input(500,'tsunami_arrival_threshold',tsunami_arrival_threshold,0.01)
@@ -382,11 +390,6 @@ contains
       store_velocity = .true.
    endif
    !
-   store_hsubgrid = .false.
-   if (storehsubgrid==1) then
-      store_hsubgrid = .true.
-   endif   
-   !
    store_meteo = .false.
    store_wind  = .false.   
    store_wind_max = .false.
@@ -462,6 +465,22 @@ contains
       isubgrid = 0
       call write_log('Info    : running SFINCS with regular bathymetry', 0)
       !
+   endif
+   !
+   !
+   store_hsubgrid = .false.
+   if (storehsubgrid==1) then
+      store_hsubgrid = .true.
+   endif   
+   !
+   if (subgrid .eqv. .true. .and. store_hsubgrid .eqv. .true. .and. store_hmean .eqv. .false.) then
+      ! 
+      call write_log('Info    : storing maximum depth in subgrid cell for hmax output', 0)
+      !
+   elseif (subgrid .eqv. .true. .and. store_hsubgrid .eqv. .true. .and. store_hmean .eqv. .true.) then
+      !
+      call write_log('Info    : storing mean depth in subgrid cell for hmax output', 0)
+      !       
    endif
    !
    store_zvolume = .false.
@@ -564,6 +583,24 @@ contains
          write(logstr,*)'Warning : advection scheme ', trim(advstr), ' not recognized! Using default upw1 instead!'
          call write_log(logstr, 1)
       endif
+      !
+   endif
+   !
+   if (nonhydrostatic) then
+      !
+      if (nh_tstop > 0.0) then
+         !
+         ! tstopnonh is provided so set it with respect to model reference time
+         !
+         nh_tstop = t0 + nh_tstop
+         !
+      else
+         !
+         ! tstopnonh is not provided so set it to tstop time + 999.0 s
+         !
+         nh_tstop = t1 + 999.0
+         !          
+      endif    
       !
    endif
    !

@@ -44,6 +44,7 @@ module quadtree
    real*4,             dimension(:),   allocatable :: quadtree_dyr
    integer*1,          dimension(:),   allocatable :: quadtree_mask
    integer*1,          dimension(:),   allocatable :: quadtree_snapwave_mask
+   integer*1,          dimension(:),   allocatable :: quadtree_nonh_mask
    !
    type net_type_qtr
        integer :: ncid
@@ -52,20 +53,20 @@ module quadtree
        integer :: level_varid
        integer :: nu_varid, mu_varid, nd_varid, md_varid
        integer :: nu1_varid, mu1_varid, nd1_varid, md1_varid, nu2_varid, mu2_varid, nd2_varid, md2_varid
-       integer :: z_varid, mask_varid, snapwave_mask_varid     
+       integer :: z_varid, mask_varid, snapwave_mask_varid, nonh_mask_varid
    end type      
    type(net_type_qtr) :: net_file_qtr              
    !
 contains
    !
-   subroutine quadtree_read_file(qtrfile, snapwave)
+   subroutine quadtree_read_file(qtrfile, snapwave, nonhydrostatic)
    !
    ! Reads quadtree file
    !
    implicit none
    !
    character*256, intent(in)                       :: qtrfile
-   logical, intent(in)                             :: snapwave   
+   logical, intent(in)                             :: snapwave, nonhydrostatic   
    !
    real*4,             dimension(:),   allocatable :: dxr
    real*4,             dimension(:),   allocatable :: dyr
@@ -85,7 +86,7 @@ contains
    endif
    !
    if (quadtree_netcdf) then
-      call quadtree_read_file_netcdf(qtrfile, snapwave)
+      call quadtree_read_file_netcdf(qtrfile, snapwave, nonhydrostatic)
    else
       call quadtree_read_file_binary(qtrfile)
    endif
@@ -286,17 +287,17 @@ contains
    end subroutine
 
 
-   subroutine quadtree_read_file_netcdf(qtrfile, snapwave)
+   subroutine quadtree_read_file_netcdf(qtrfile, snapwave, nonhydrostatic)
    !
    ! Reads quadtree file from netcdf file
    !
    implicit none
    !
    character*256, intent(in) :: qtrfile
-   logical, intent(in)       :: snapwave
+   logical, intent(in)       :: snapwave, nonhydrostatic
    !
    integer*1 :: iversion
-   integer   :: np, ip, iepsg
+   integer   :: np, ip, iepsg, status
    !
    write(logstr,'(a,a)')'Info    : reading QuadTree netCDF file ', trim(qtrfile)
    call write_log(logstr, 0)
@@ -339,7 +340,7 @@ contains
       !
       allocate(quadtree_snapwave_mask(np))
       !      
-   endif       
+   endif
    !
    ! Allocate variables   
    !
@@ -387,6 +388,35 @@ contains
    !
    if (snapwave) then    
       NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%snapwave_mask_varid,  quadtree_snapwave_mask(:)))
+   endif
+   !
+   ! Nonhydrostatic mask
+   allocate(quadtree_nonh_mask(np))
+   !
+   ! First set all mask points to 1 
+   quadtree_nonh_mask = 1
+   ! Note, irregular points will be set to 0 in sfincs_domain.f90
+   !
+   if (nonhydrostatic) then
+      !
+      ! Check if a nonh_mask is provided, if not, we keep nonh_mask=1 everywhere
+      ! 
+      status = NF90_INQ_VARID(net_file_qtr%ncid, "nonh_mask", net_file_qtr%nonh_mask_varid)
+      !
+      ! Check the status
+      if (status /= NF90_NOERR) then  
+         !
+         call write_log('Warning: variable nonh_mask does not exist in the quadtree file, values set to 1 everywhere !', 1)
+         !
+      else
+         !
+         NF90(nf90_inq_varid(net_file_qtr%ncid, 'nonh_mask',  net_file_qtr%nonh_mask_varid))
+         !
+         ! Read from file and overwrite
+         NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nonh_mask_varid,  quadtree_nonh_mask(:)))         
+         !
+      endif      
+      !
    endif
    !
    ! Read attibute (should read EPSG code here ?)
@@ -1062,6 +1092,7 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
       if(status /= nf90_noerr) then
          write(0,'("NETCDF ERROR: ",a,i6,":",a)') file,line,trim(nf90_strerror(status))
       end if
+      !
    end subroutine handle_err
    !
 end module

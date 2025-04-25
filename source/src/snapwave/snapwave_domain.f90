@@ -209,8 +209,10 @@ contains
    SwA    = 0.0
    windspreadfac = 0.0   
    !
-   generate_upw = .false.
+   generate_upw = .true.
    exists = .true.
+   !
+   ! When called from SFINCS, upwfile is typically 'snapwave.upw' and never 'none' !
    !
    ! Check whether snapwave_upwfile exists, if so, try to read
    !
@@ -218,15 +220,11 @@ contains
    !
    if (upwfile /= 'none') then   
       !
-      inquire( file=trim(upwfile), exist=exists )      
+      inquire( file=trim(upwfile), exist=exists)      
       !
-      if (.not. exists) then    
+      if (exists) then    
          !
-         ! File does not exist, so building it (screen messages will appear later)
-         !
-         generate_upw = .true.
-         !
-      else
+         generate_upw = .false.
          !
          write(logstr,*)'Reading upwind neighbors file ...'
          call write_log(logstr, 0)      
@@ -244,7 +242,7 @@ contains
       endif
    endif
    !      
-   ! Generate upwfile (again) if needed
+   ! Generate upwfile if needed
    !
    if (generate_upw) then   
       !

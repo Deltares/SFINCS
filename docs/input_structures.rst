@@ -10,7 +10,7 @@ The figure below gives an overview of all different types of input files and whe
 Below an example is given of this file, which uses a keyword/value layout. 
 For more information regarding specific parameters see the pages 'Input parameters' or 'Output parameters'.
 
-**NOTE - In the manual below, blocks named 'Matlab example using OET' are included, referring to easy setup scripts included in the SFINCS’ Open Earth Tools Matlab set of scripts: https://svn.oss.deltares.nl/repos/openearthtools/trunk/matlab/applications/sfincs**
+**NOTE - In the manual below, blocks named 'Python example using HydroMT-SFINCS' are included, referring to easy setup functions of the HydroMT-SFINCS Python toolbox: https://deltares.github.io/hydromt_sfincs/latest/**
 
 .. figure:: ./figures/SFINCS_documentation_structures.png
    :width: 800px
@@ -62,21 +62,18 @@ The supplied polylines are snapped onto the SFINCS grid within the model.
 	20 200
 	25 200	
 	
-**Matlab example using OET**
+**Python example using HydroMT-SFINCS**
 
 .. code-block:: text
 
-	inp.thdfile = 'sfincs.thd';
+	sf.setup_structures(
+		structures="thdfile_input.geojson",
+		stype='thd',
+		merge=True
+	)
 	
-	thindams(1).x = [0 10 20]; 
-	thindams(1).y = [100 100 100]; 
-	thindams(1).name = {'THD01'};	
-	thindams(2).x = [20 25]; 
-	thindams(2).y = [200 200]; 
-	thindams(2).name = {'THD02'};
-	thindams.length = length(thindams.x1);
-	
-	sfincs_write_thin_dams(inp.thdfile,thindams);
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
 
 Weirs
 ^^^^^
@@ -84,9 +81,11 @@ Weirs
 Weirs are in principle the same as a thin dam, but then with a certain height (levee).
 When the water level on either or both sides of the weir are higher than that of the weir, a flux over the weir is calculated.
 Hereby a situation where the weir is partly or fully submerged is distinguished.
-One can provide multiple polylines within one file, a maximum of 5000 supplied points is supported.
 Besides the x&y locations per points, also the elevation z and a Cd coefficient for the weir formula (recommended to use 0.6).
 The supplied polylines are snapped onto the SFINCS grid within the model.
+While running SFINCS the number of structure uv points found is displayed, e.g.:
+	Info : 7932 structure u/v points found
+Note that SFINCS displays the points found after snapping to the grid (max 2 per grid cell), not how many were specified in the input.
 
 The snapped coordinates are available in sfincs_his.nc as structure_x, structure_y & structure_height from SFINCS v2.0.2 onwards.
 
@@ -116,32 +115,44 @@ The snapped coordinates are available in sfincs_his.nc as structure_x, structure
 	20 200 5.1 0.6
 	25 200 5.1 0.6	
 	
-**Matlab example using OET**
+**Python example using HydroMT-SFINCS**
 
 .. code-block:: text
+
+	sf.setup_structures(
+		structures="weirfile_input.geojson",
+		stype='weir',
+		dz=None
+		merge=True
+	)
 	
-	inp.weirfile = 'sfincs.weir';
-	
-	weirs(1).x = [0 10 20]; 
-	weirs(1).y = [100 100 100]; 
-	weirs(1).z = [5.1 5.2 5.0]; 
-	weirs(1).par1 = [0.6 0.6 0.6]; 	
-	weirs(2).x = [20 25]; 
-	weirs(2).y = [200 200]; 
-	weirs(2).z = [5.1 5.2]; 
-	weirs(2).par1 = [0.6 0.6]; 	
-	
-	sfincs_write_obstacle_file_1par(inp.weirfile,weirs)	
-	
-Drainage pump and Culvert
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
+
+**NOTE - If your weir elevation is unknown a priori, you can also let HydroMT-SFINCS derive this from an input (high-resolution) DEM by specifying 'dep'**
+
+**NOTE - If your weir elevation is unknown a priori, you can also let HydroMT-SFINCS derive this from an input (low-resolution) DEM by specifying 'dep' and adding a certain assumed elevation 'dz'**
+
+Drainage Pumps and Culverts
 ^^^^^
 
-Drainage pumps and culverts are both specified using the same format file, put with a different indication of the type (type=1 is drainage pump, type=2 is culvert).
-A drainage pump can move water from one location to another with a certain prescribed discharge given that there is sufficient water at the retraction location.
-For culverts also a certain discharge capacity parameter of the culvert is prescribed, but then the actual water level gradient is used to determine how much water will actually flow through the culvert.
-Input consists of the x&y locations of the sink (retraction point) and source points (outflow point) followed by the type.
-The discharge capacity is prescribed using the par1 parameter, parameters par2<>par5 are not used right now but included for future flexibility for implementing other structure types.
-For the culvert, par1 can be calculated as par1 = mu*a*sqrt(2g), with mu=dimensionless culvert loss coefficient [-], A=area of the culvert opening in [m^2] and g=9.81m/s^2.
+**Introduction**
+
+In SFINCS, drainage pumps and culverts are specified using the same input file format, with the structure type distinguished by an indicator:
+- type=1: Drainage pump
+- type=2: Culvert
+
+A drainage pump moves water from a retraction point (source location) to an outflow point (sink location) at a specified discharge rate, as long as there is enough water available at the retraction point. The discharge rate is defined using the par1 parameter.
+
+For culverts**, par1 represents the discharge capacity. The actual flow through the culvert depends on the water level difference (head difference) between the upstream and downstream ends. This gradient determines how much water flows through the culvert based on the capacity defined in par1.
+
+
+**Input Parameters**
+
+- x & y locations: Coordinates for the retraction (source) and outflow (sink) points.
+- Type: Specifies if the structure is a drainage pump (type=1) or a culvert (type=2).
+- par1: Sets the discharge capacity. Additional parameters (par2 to par5) are included as placeholders for future updates.
 
 You can know how much discharge is extracted by the model in the sfincs_his.nc output by specifying 'storeqdrain=1' from SFINCS v2.0.2 onwards, see the description in "Input parameters".
 
@@ -166,24 +177,46 @@ You can know how much discharge is extracted by the model in the sfincs_his.nc o
        	50.00        25.00       150.00        25.00 2    0.345    0.000    0.000    0.000    0.000
        	75.00        25.00       125.00        25.00 2    0.345    0.000    0.000    0.000    0.000
 	
-**Matlab example using OET**
+**Python example using HydroMT-SFINCS**
 
 .. code-block:: text
 
-	inp.drnfile = 'sfincs.drn';
-
-	jj=1;
-	drain(jj).xsnk = 75; 	% sink x-coordinate(s), from where water is taken
-	drain(jj).ysnk = 25; 	% sink y-coordinate(s)
-	drain(jj).xsrc = 125; 	% source x-coordinate(s), to where water is discharged
-	drain(jj).ysrc = 25; 	% source x-coordinate(s)
-	drain(jj).type = 1; 	% 1= pump, 2=culvert
-	drain(jj).par1 = 0.345; % drainage discharge capacity parameter par1 = mu*a*sqrt(2g)
-	drain(jj).par2 = 0; 	% not used yet
-	drain(jj).par3 = 0; 	% not used yet
-	drain(jj).par4 = 0; 	% not used yet
-	drain(jj).par5 = 0; 	% not used yet    
-
-	sfincs_write_drainage_file(inp.drnfile,drain)	
+	sf.setup_drainage_structures(
+		structures="drainage_input.geojson",
+		stype='pump'
+		discharge=100.0
+		merge=True
+	)
 	
+	OR as a culvert:
+	
+	sf.setup_drainage_structures(
+		structures="drainage_input.geojson",
+		stype='culvert'
+		discharge=100.0
+		merge=True
+	)
 
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	
+**Calculating Culvert Discharge Capacity**
+
+For culverts, par1 (discharge capacity) can be calculated as:
+
+``par1 = \(\mu \cdot A \cdot \sqrt{2g}\)``
+
+where:
+
+* \(\mu\) = dimensionless culvert loss coefficient, typically between 0 and 1
+* \(A\) = area of the culvert opening (m²)
+* \(g\) = gravitational acceleration (9.81 m/s²)
+
+This formula is derived from the Bernoulli Equation, which estimates flow based on the head difference.
+
+* If \(\mu = 1\), the flow is assumed to be driven entirely by the head difference, with no friction or length-based losses.
+* If \(\mu < 1\), it accounts for additional energy losses, such as friction and entry/exit losses.
+
+**Planned Enhancements**
+
+Future updates will incorporate the Darcy–Weisbach equation for more accurate discharge estimates by considering frictional and minor losses along the culvert length, which is particularly useful for longer or rougher conduits.

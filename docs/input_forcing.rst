@@ -10,7 +10,7 @@ The figure below gives an overview of all different types of input files and whe
 Below an example is given of this file, which uses a keyword/value layout. 
 For more information regarding specific parameters see the pages 'Input parameters' or 'Output parameters'.
 
-**NOTE - In the manual below, blocks named 'Matlab example using OET' are included, referring to easy setup scripts included in the SFINCS’ Open Earth Tools Matlab set of scripts: https://svn.oss.deltares.nl/repos/openearthtools/trunk/matlab/applications/sfincs**
+**NOTE - In the manual below, blocks named 'Python example using HydroMT-SFINCS' are included, referring to easy setup functions of the HydroMT-SFINCS Python toolbox: https://deltares.github.io/hydromt_sfincs/latest/**
 
 .. figure:: ./figures/SFINCS_documentation_forcing.png
    :width: 800px
@@ -54,17 +54,6 @@ Water level points
 	e.g.
 	400000 	1200000
 	480000 	1250000
-
-**Matlab example using OET**
-
-.. code-block:: text	
-	
-	points.x(1) = 400000;
-	points.y(1) = 1200000;
-	points.x(2) = 480000;
-	points.y(2) = 1250000;
-	
-	sfincs_write_boundary_points(inp.bndfile,points)
 	
 Water level time-series
 ^^^^^^^^^
@@ -87,24 +76,36 @@ Times are specified in seconds with respect to SFINCS' internal reference time '
 	3600 	0.60	0.80
 	7200 	0.45	0.85
 	
-**Matlab example using OET**
+**Python example using HydroMT-SFINCS**
 
-.. code-block:: text	
+.. code-block:: text
+
+	NOTE - The python function both creates the bnd and bzs file, so you don't need to create them separately.
 	
-	time = [0, 3600, 7200];
-	waterlevels = [0.5, 0.75; 0.6, 0.8; 0.45, 0.85];
+	sf.setup_waterlevel_forcing(
+		geodataset=None,
+		timeseries=None, 
+		locations=None,
+		offset=None,
+		buffer=None,
+		merge=True,
+	)
 	
-	sfincs_write_boundary_conditions(inp.bzsfile,time,waterlevels)	
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
 	
 Waves
 ----------------------
 
-When forcing waves, besides providing a bzsfile with slowly varying water level time-series, also the same type of file with the quickly varying water level component due to waves can be prescribed.
+When forcing waves, besides providing a bzsfile with slowly varying water level time-series, also the same type of file with the quickly varying water level component due to waves can be prescribed as bzifile.
 This can contain infragravity and/or short waves.
 Do note that the forced signal should be the incoming wave component only, not including the reflecting one, since this is computed by SFINCS internally as well.
 The signal should be around 0.
 
-**NOTE - Specified time should be the same in both the bzs and bzi files**
+**NOTE - Specified time should be the same in both the bzs and bzi files - generally on a high frequency of seconds**
+
+**NOTE - There is not a specific Python function yet, but one could call the setup_waterlevel_forcing function twice with saving the files in between and changing their names**
 
 **bzifile = sfincs.bzi**
 
@@ -123,30 +124,9 @@ Netcdf format input
 ^^^^^^^^^
 
 As alternative, the bnd/bzs/bzi data can also be specified using a single Netcdf file with FEWS input type format 'netbndbzsbzifile'.
-Making this format netcdf file can be easily done using the OET Matlab script 'sfincs_write_netcdf_bndbzsbzifile.m'
+SFINCS assumes that the input variables 'x', 'y', 'time', 'zs' (needed, for bzsfile equivalent), 'zi' (optional, for bzifile equivalant) and 'stations' are available in the netcdf file, including a reference time as UNIT in variable 'time' of the Fews time format: "minutes since 1970-01-01 00:00:00.0 +0000"  
 
-**Matlab example using OET**
-
-.. code-block:: text
-
-	inp.netbndbzsbzifile = 'sfincs_netbndbzsbzifile.nc';
-	 
-	x = [0, 100, 200];
-	y = [50, 150, 250];
-	 
-	EPSGcode = 32631;
-	UTMname = 'UTM31N';
-	 
-	refdate  = '1970-01-01 00:00:00'; 
-	% possibly use formatOut = 'yyyy-mm-dd HH:MM:SS'; datestr(tref, formatOut); 
-	
-	time = [0, 60];
-	
-	rng('default');
-	bzs = -1 * randi([0 10],length(time),length(x));
-	bzi = -1 * randi([0 10],length(time),length(x));
-	
-	sfincs_write_netcdf_bndbzsbzifile(inp.netbndbzsbzifile, x, y, EPSGcode, UTMname, refdate, time, bzs, bzi)
+**NOTE - There is not a specific Python function for this yet**
 	
 Discharges
 ---------
@@ -177,17 +157,6 @@ Discharge points
 	300000 	1500000
 	380000 	1650000
 
-**Matlab example using OET**
-
-.. code-block:: text	
-	
-	points.x(1) = 300000;
-	points.y(1) = 1500000;
-	points.x(2) = 380000;
-	points.y(2) = 1650000;
-	
-	sfincs_write_boundary_points(inp.srcfile,points)
-	
 Discharge time-series
 ^^^^^^^^^
 
@@ -207,14 +176,30 @@ Times are specified in seconds with respect to SFINCS' internal reference time '
 	3600 	300	1100
 	7200 	0	1300
 	
-**Matlab example using OET**
+**Python example using HydroMT-SFINCS**
 
-.. code-block:: text	
+.. code-block:: text
+
+	NOTE - The python function both creates the src and dis file, so you don't need to create them separately.
 	
-	time = [0, 3600, 7200];
-	discharge = [100, 1000; 300, 1100; 0, 1300];
+	sf.setup_discharge_forcing(
+		geodataset=None,
+		timeseries=None, 
+		locations=None,
+		merge=True,
+		buffer=None,
+	)
 	
-	sfincs_write_boundary_conditions(inp.disfile,time,discharge)
+	OR by subtracting results from a 2D hydrological model output like wflow (https://www.deltares.nl/en/software-and-data/products/wflow-catchment-hydrology):
+
+	sf.setup_discharge_forcing_from_grid(
+		discharge=None,
+		locations=None,
+	)
+
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
 	
 Netcdf format input
 ^^^^^^^^^
@@ -222,27 +207,7 @@ Netcdf format input
 As alternative, the src/dis data can also be specified using a single Netcdf file with FEWS input type format 'netsrcdisfile'.
 SFINCS assumes that the input variables 'x', 'y', 'time', 'discharge' and 'stations' are available in the netcdf file, including a reference time as UNIT in variable 'time' of the Fews time format: "minutes since 1970-01-01 00:00:00.0 +0000"  
 
-**Matlab example using OET**
-
-.. code-block:: text
-
-	inp.netsrcdisfile = 'sfincs_netsrcdisfile.nc';
-	 
-	x = [0, 100, 200];
-	y = [50, 150, 250];
-	 
-	EPSGcode = 32631;
-	UTMname = 'UTM31N';
-	 
-	refdate  = '1970-01-01 00:00:00'; 
-	% possibly use formatOut = 'yyyy-mm-dd HH:MM:SS'; datestr(tref, formatOut); 
-	
-	time = [0, 60];
-	
-	rng('default');
-	dis = -1 * randi([0 10],length(time),length(x));
-	
-	sfincs_write_netcdf_srcdisfile(inp.netsrcdisfile, x, y, EPSGcode, UTMname, refdate, time, dis)
+**NOTE - There is not a specific Python function for this yet**
 	
 Meteo
 ---------
@@ -259,7 +224,9 @@ There are a few different options to specify wind and rain input:
 
 5) Make a combination, for instance use a spiderweb for the wind input and a spatially uniform rain-input. When combining, test whether the forcing is as wanted since not all combinations of the above options might be possible and/or changing depending on specific code version.
 
-You can know how much rainfall / wind is added to the model in the output by specifying 'storecumprcp=1' and/or 'storemeteo=1', see the description in "Input parameters".
+**NOTE - ampr_block - keyword controlling whether the input precipitation rate is kept constant for the duration of the input time interval (block interpolation, ampr_block = 1, default), or whether it is interpolated linearly in time (ampr_block = 0).**
+
+**NOTE - You can know how much rainfall / wind is added to the model in the output by specifying 'storecumprcp=1' and/or 'storemeteo=1', see the description in "Input parameters".**
 
 .. figure:: ./figures/SFINCS_documentation_forcing_meteo.png
    :width: 300px
@@ -361,21 +328,7 @@ Only use 1 quantity per file:
 	0 0 0 0
 	TIME = 90831.0 hours since 1970-01-01 00:00:00 +00:00  # 1980-05-12 15:00:00
  	0 0 0 0 
-	0 0 0 0
-		
-**Matlab example using OET**
-
-.. code-block:: text	
-	
-	data.parameter.time = datenum(2018,01,01):3/24:datenum(2018,01,02);
-	data.parameter.x = 0:5000:25000;
-	data.parameter.y = 10000:5000:40000;
-
-	data.parameter.val = ones(length(data.parameter.time), length(data.parameter.y), length(data.parameter.x));
-	
-	write_meteo_file_delft3d(inp.amufile, data, 'x_wind', 'm s-1', datenum(1970,01,01), varargin);
-	
-	see 'write_meteo_file_delft3d.m' for more information.
+	0 0 0 0		
 	
 Spatially varying gridded netcdf
 ^^^^^^^^^
@@ -383,82 +336,54 @@ Spatially varying gridded netcdf
 The same spatially varying gridded input as using Delft3d' ascii input files can be specified using FEWS compatible Netcdf input files.
 Here for the wind the amu&amv files are combined into 1 Netcdf file (netamuamvfile), the precipitation is in a separate input file (netamprfile) as well as the atmospheric pressure (netampfile).
 
-Making this format netcdf file can be easily done using the OET Matlab scripts 'sfincs_write_netcdf_amuamvfile.m', 'sfincs_write_netcdf_amprfile.m'and 'sfincs_write_netcdf_ampfile.m'.
+Making this format netcdf file can be easily done using HydroMT-SFINCS functions.
 See those files for more information.
 
-**Matlab example using OET - netamuamvfile**
+**Python example using HydroMT-SFINCS**
 
 .. code-block:: text
 
-	inp.netamuamvfile = 'sfincs_netamuamvfile.nc';
-	 
-	x = [0, 100, 200];
-	y = [50, 150, 250];
-	 
-	EPSGcode = 32631;
-	UTMname = 'UTM31N';
-	 
-	refdate  = '1970-01-01 00:00:00'; 
-	% possibly use formatOut = 'yyyy-mm-dd HH:MM:SS'; datestr(tref, formatOut); 
-	
-	time = [0, 60];
-	
-	rng('default');
-	amu = -1 * randi([0 10],length(time),length(y),length(x));
-	amv = 1 * randi([0 10],length(time),length(y),length(x));
-	
-	sfincs_write_netcdf_amuamvfile(inp.netamuamvfile, x, y, EPSGcode, UTMname, refdate, time, amu, amv)
+	sf.setup_wind_forcing_from_grid(
+		wind="era5_hourly",
+		dst_res=None, 
+	)
 
-**Matlab example using OET - netamprfile**
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+
+**Python example using HydroMT-SFINCS**
 
 .. code-block:: text
 
-	inp.netamprfile = 'sfincs_netamprfiles.nc';
-	 
-	x = [0, 100, 200];
-	y = [50, 150, 250];
-	 
-	EPSGcode = 32631;
-	UTMname = 'UTM31N';
-	 
-	refdate  = '1970-01-01 00:00:00'; 
-	% possibly use formatOut = 'yyyy-mm-dd HH:MM:SS'; datestr(tref, formatOut); 
+	sf.setup_precip_forcing_from_grid(
+		precip="era5_hourly",
+		dst_res=None, 
+		aggregate=False,
+	)
 	
-	time = [0, 60];
-	
-	rng('default');
-	ampr = -1 * randi([0 10],length(time),length(y),length(x));
-	
-	sfincs_write_netcdf_amprfile(inp.netamprfile, x, y, EPSGcode, UTMname, refdate, time, ampr)	
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
 
-**Matlab example using OET - netampfile**
+**Python example using HydroMT-SFINCS**
 
 .. code-block:: text
 
-	inp.netampfile = 'sfincs_netampfiles.nc';
-	 
-	x = [0, 100, 200];
-	y = [50, 150, 250];
-	 
-	EPSGcode = 32631;
-	UTMname = 'UTM31N';
-	 
-	refdate  = '1970-01-01 00:00:00'; 
-	% possibly use formatOut = 'yyyy-mm-dd HH:MM:SS'; datestr(tref, formatOut); 
+	sf.setup_pressure_forcing_from_grid(
+		press=None,
+		dst_res=None, 
+		fill_value=101325,
+	)
 	
-	time = [0, 60];
-	
-	rng('default');
-	amp = -1 * randi([0 10],length(time),length(y),length(x));
-	
-	sfincs_write_netcdf_ampfile(inp.netampfile, x, y, EPSGcode, UTMname, refdate, time, amp)		
-	
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+
 Spatially uniform
 ^^^^^^^^^
 
 **Spatially uniform wind:**
 
-'vmag' is the wind speed in m/s, 'vdir' is the wind direction in nautical from where the wind is coming. The file can be make using OET Matlab script 'sfincs_write_boundary_conditions.m'.
+'vmag' is the wind speed in m/s, 'vdir' is the wind direction in nautical from where the wind is coming. 
 Times are specified in seconds with respect to SFINCS' internal reference time 'tref', as specified in sfincs.inp.
 
 
@@ -474,12 +399,23 @@ Times are specified in seconds with respect to SFINCS' internal reference time '
 	0 	5	120
 	3600 	15	180
 	7200 	10	165
-	
+
+**Python example using HydroMT-SFINCS**
+
+.. code-block:: text
+
+	sf.setup_wind_forcing(
+		timeseries=None,
+		magnitude=None,
+		direction=None
+	)
+
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+
 **Spatially uniform rain:**
 
-
 Rain input in mm/hr, times are specified in seconds with respect to SFINCS' internal reference time 'tref', as specified in sfincs.inp.
-The file can be make using OET Matlab script 'sfincs_write_boundary_conditions.m'.
 
 **precipfile = sfincs.prcp**
 
@@ -494,3 +430,21 @@ The file can be make using OET Matlab script 'sfincs_write_boundary_conditions.m
 	3600 	15
 	7200 	10
 	
+**Python example using HydroMT-SFINCS**
+
+.. code-block:: text
+
+	sf.setup_precip_forcing(
+		timeseries=None,
+		magnitude=None,
+	)
+
+	OR by aggregating 2D field data into 1 spatially uniform time series:
+
+	sf.setup_precip_forcing_from_grid(
+		precip=None,
+		aggregate=True,
+	)
+
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components

@@ -4,13 +4,13 @@ User manual - general
 Overview
 -----
 
-The input for SFINCS is supplied using various text and binary files, which are linked through the main input file: sfincs.inp.
+The input for SFINCS is supplied using various text (ascii), netcdf and binary files, which are linked through the main input file: sfincs.inp.
 Within this section of the input description all major input settings and files are discussed.
 The figure below gives an overview of all different types of input files and whether they are required or not.
 Below an example is given of this file, which uses a keyword/value layout. 
 For more information regarding specific parameters see the pages 'Input parameters' or 'Output parameters'.
 
-**NOTE - In the manual below, blocks named 'Matlab example using OET' are included, referring to easy setup scripts included in the SFINCS' Open Earth Tools Matlab set of scripts: https://svn.oss.deltares.nl/repos/openearthtools/trunk/matlab/applications/sfincs**
+**NOTE - In the manual below, blocks named 'Python example using HydroMT-SFINCS' are included, referring to easy setup functions of the HydroMT-SFINCS Python toolbox: https://deltares.github.io/hydromt_sfincs/latest/**
 
 .. figure:: ./figures/SFINCS_documentation_figure1.png
    :width: 800px
@@ -65,6 +65,34 @@ Example of sfincs.inp
         storecumprcp    = 1
 	storevelmax     = 1
 
+**Python example using HydroMT-SFINCS**
+
+.. code-block:: text
+	
+	sf.setup_config(
+		**{
+		"x0": 0,
+		"y0": 0,
+		"mmax": 250,
+		"nmax": 150,
+		"dx": 100,
+		"dy": 100,
+		"rotation": 45,
+		"tref": "20090106 210000",
+		"tstart": "20090106 210000",
+		"tstop": "20090111 000000",
+		"dtmaxout": 86400,
+		"dtout": 3600,
+		"obsfile": "sfincs.obs",
+		}
+	)	
+	
+	sf.write_config(config_fn: str = 'sfincs.inp')
+
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html	
+
 Domain
 -----
 
@@ -91,25 +119,42 @@ If desired the grid can also be rotated using 'rotation', in degrees from the x-
 	
 	e.g. in sfincs.inp:
 	
-	x0              = 0
-	y0              = 0	
+	x0              = 318650
+	y0              = 5040000	
+	dx              = 50
+	dy              = 50	
+	nmax            = 157
 	mmax            = 250
-	nmax            = 150
-	dx              = 100
-	dy              = 100
-	rotation        = 45
+	rotation        = 27
+	epsg            = 32633
 	
-**Matlab example using OET**
+**Python example using HydroMT-SFINCS**
 
 .. code-block:: text
 	
-	inp = sfincs_initialize_input;
+	sf.setup_grid(
+		x0=318650,
+		y0=5040000,
+		dx=50.0,
+		dy=50.0,
+		nmax=107,
+		mmax=250,
+		rotation=27,
+		epsg=32633,
+	)
 	
-	inp.x0              = 1000
-	inp.y0              = 2000	
-	
-	sfincs_write_input('sfincs.inp',inp)
+	# Alternatively, we can also use a shape/geojson file to define the grid:
 
+	sf.setup_grid_from_region(
+		region = {'geom': 'data/region.geojson'},
+		res= 50,
+		rotated=True,
+		crs=32633
+	)
+
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html	
 
 Depth file
 ^^^^^
@@ -121,7 +166,7 @@ The elevation is described in the cell centres of the grid.
 The elevation is defined in sfincs.dep based on the specified grid, positive is upwards with respect to a certain reference level (topography has positive values, bathymetry has negative values).
 The reference level is not known to SFINCS (and not relevant for the computation), so a user itself must be consistent in the use of specifying elevations in different files (elevation, initial water level, boundary conditions) always to the same vertical reference level (whether it is local MSL, NAP, EGM96 etc. etc.).
 
-**NOTE - The depfile is not used when running SFINCS in the subgrid mode (see below)**
+**NOTE - The depfile is not actively used when running SFINCS in the subgrid mode (see below)**
 
 **depfile = sfincs.dep**
 
@@ -135,29 +180,33 @@ The reference level is not known to SFINCS (and not relevant for the computation
 	2.0 	2.2
 	1.8	2.4
 	
-**Matlab example using OET**
+**Python example using HydroMT-SFINCS**
 
 .. code-block:: text
 	
-	z = 5 * ones(nmax,mmax);
-	msk = ones(nmax,mmax);
-	
-	% inputformat = bin:	
-	sfincs_write_binary_inputs(z,msk,inp.indexfile,inp.depfile,inp.mskfile)
+	# In this example we want to combine 2 elevation datasets, merit_hydro as elevation and gebco as bathymetry, in that order.
 
-	% inputformat = asc:
-	sfincs_write_ascii_inputs(z,msk,inp.depfile,inp.mskfile)
+	datasets_dep = [{"elevtn": "merit_hydro", "zmin": 0.001}, {"elevtn": "gebco"}]
+
+	# Add depth information to modelgrid based on these chosen datasets
+	sf.setup_dep(datasets_dep=datasets_dep)
+
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html	
 	
 Mask file
 ^^^^^
 
 To distinguish active from inactive areas and cells where boundary conditions need to be forced, a mask file needs to be supplied.
 This mask indicates for every cell whether it is an inactive cell (msk=0), active cell (msk=1), boundary cell (msk=2) or outflow boundary cell msk=3).
-This allows great flexibility in optimising the model domain and thereby reducing the computational runtime as much as possible.
-
-If boundary water levels are supplied, these are only forced to the cells with a value of 2. 
+Setting the value per cell allows great flexibility in optimising the model domain and thereby reducing the computational runtime as much as possible.
 Cells with a value of 0 are inactive and no fluxes from/to these cells are calculated.
-The file can be made with the OET script 'sfincs_make_mask.m', whereby default a value of -2 m to MSL is used to distinguish the cells.
+If boundary water levels are supplied, these are only forced to the cells with a value of 2. 
+At outflow cells (msk=3), the water level is not forced, but water depth at that cell is artificially kept at zero (no water).
+Cells with a value of 1 are normal active cells, where the water level is calculated and fluxes are calculated to/from these cells.
+The file can be made with the HydroMT-SFINCS function 'setup_mask_active' to define what cells should be active.
+And afterwards with the function 'setup_mask_bounds' to define of the active cells which ones are boundary or outflow cells.
 
 .. figure:: ./figures/SFINCS_mask_grid.PNG
    :width: 400px
@@ -177,24 +226,28 @@ The file can be made with the OET script 'sfincs_make_mask.m', whereby default a
 	0 	1
 	2	3
 	
-**Matlab example using OET**
+**Python example using HydroMT-SFINCS**
 
 .. code-block:: text
 	
-	z = 5 * ones(nmax,mmax);
-	msk = ones(nmax,mmax);
-	
-	% inputformat = bin:	
-	sfincs_write_binary_inputs(z,msk,inp.indexfile,inp.depfile,inp.mskfile)
+	# Choosing how to choose you active cells can be based on multiple criteria, here we only specify a minimum elevation of -5 meters
+	sf.setup_mask_active(zmin=-5, reset_mask=True)
 
-	% inputformat = asc:
-	sfincs_write_ascii_inputs(z,msk,inp.depfile,inp.mskfile)
+	# Here we add water level cells along the coastal boundary, for cells up to an elevation of -5 meters
+	sf.setup_mask_bounds(btype="waterlevel", zmax=-5, reset_bounds=True)
+
+	# Here we add outflow cells, only where clicked in shapefile along part of the lateral boundaries
+	sf.setup_mask_bounds(btype="outflow", include_mask=gdf_include, reset_bounds=True)
+
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html	
 	
 Index file
 ^^^^^
 
 Additionally a index file is needed when supplying binary input files (inputformat = bin).
-This file is automatically generated when using the Matlab script sfincs_write_binary_inputs as in the example above.
+This file is automatically generated when using the HydroMT-SFINCS function 'write'.
 
 **indexfile = sfincs.ind**
 
@@ -205,57 +258,29 @@ This file is automatically generated when using the Matlab script sfincs_write_b
 Subgrid tables
 ^^^^^
 
-Currently the SFINCS model functionality has been extended so that SFINCS can also calculate flooding with the use of subgrid tables.
+The SFINCS model functionality has been extended so that SFINCS can also calculate flooding with the use of subgrid tables.
 Hereby high-resolution elevation data is used to derive relations between the water level and the volume in a cell to do the continuity update, and a representative water depth used to calculate momentum fluxes.
 The derivation of these subgrid tables is a pre-processing step outside of the model, that only needs to be done once!
 The advantage of the subgrid version of SFINCS is that generally one can compute on coarsed grid sizes, while still having accurate results utilizing the high-resolution elevation data to its full potential.
+Recommended Netcdf file input option available from SFINCS 2024.01 release onwards as in Van Ormondt et al. 2025, binary file option still possible for backwards compatability.
 
-Making subgrid tables is an advanced option that is only shown here as example using Matlab OET using the function 'sfincs_build_model.m'.
-Get in touch with us to discuss the best solution to make subgrid features for your application (e.g. in Python).
-
-The easiest way to make a SFINCS model using the subgrid functionality, is by using a recent version of the Delft Dashboard GUI.
-
-After supplying a subgrid file so SFINCS (sbgfile = sfincs.sbg), SFINCS will automatically run in subgrid mode!
-
-Recommended Netcdf file input option available from SFINCS 2024.01 release onwards as in Van Ormondt et al. 2024, binary file option still possible for backwards compatability.
-
-**Matlab example using OET**
-
-	For more information see:
-	https://svn.oss.deltares.nl/repos/openearthtools/trunk/matlab/applications/sfincs/sfincs_modelsetup/sfincs_build_model.m	
+**Python example using HydroMT-SFINCS**
 
 .. code-block:: text
 	
-	inp = sfincs_initialize_input;
+	sf.setup_subgrid(
+		datasets_dep=datasets_dep,
+		datasets_rgh=datasets_rgh,
+		datasets_riv=datasets_riv,
+		nlevels=10,
+		nr_subgrid_pixels=10,
+		write_dep_tif=True,
+		write_man_tif=True,
+	)
 	
-	inp.sbgfile = sfincs.sbg;
-	
-	> change wanted grid settings dx/dy/mmax/nmax etc.
-	inp.dx = 200;
-	
-	> define output folder; folder = 'c:\test\'
-	
-	> define bathymetry source from Delft Dashboard data source selection, e.g.; 
-	bathy(1).name = 'ngdc_crm';
-	bathy(1).zmin = 0;
-	bathy(1).zmax = 10000;
-	bathy(1).vertical_offset = 0;
-	
-	bathy(2).name = 'ngdc_crm';
-	bathy(2).zmin = -10000;
-	bathy(2).zmax = 0;
-	bathy(2).vertical_offset = 0;	
-	
-	The first defined bathymetric source is always used first (given elevation constraints of 'zmin' and 'zmax'), after which the other sources are used in given hierarchy. 
-	For types of possible data sources or adding your own one, see the Delft Dashboard manual: https://publicwiki.deltares.nl/display/DDB/Delft+Dashboard
-	This elevation data is used to make the subgrid tables including relations between water level and volume within a cell (among others) using detailed elevation data on subgrid resolution.
-	By default the subgrid cells are set to be 10 times smaller than the input dx/dy.
-	
-	> define wanted project coordinate reference system (UTM zone), e.g.; 
-  	cs.name = 'WGS 84 / UTM zone 17N';
-  	cs.type = 'projected';	
-	
-	sfincs_build_model(inp,folder,bathy,cs)
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html	
 
 Friction
 ^^^^^
@@ -264,7 +289,7 @@ Different roughness values can great impact modelled flooding and thereby SFINCS
 
 Friction is specified with a Manning roughness coefficient 'n' [s/m^{1/3}] and can be done spatially uniform, land/sea value based or spatially varying.
 
-The following options are **ONLY** relavant for the **regular** version of SFINCS, in the subgrid version of SFINCS roughness is already included in the subgrid sbgfile and supplied additional keywords and files will **NOT** be used!
+The following options are **ONLY** relevant for the **regular** version of SFINCS, in the subgrid version of SFINCS roughness is already included in the generation of the subgrid sbgfile, see 'setup_subgrid', and supplied additional keywords and files will **NOT** be used!
 
 
 Spatially uniform:
@@ -306,16 +331,20 @@ For spatially varying friction values per cell use the manningfile option, with 
 	0.02 	0.02
 	0.06	0.04
 	
-**Matlab example using OET**
+**Python example using HydroMT-SFINCS**
 
 .. code-block:: text
 	
-	inp.manningfile = 'sfincs.man';
+	sf.setup_manning_roughness(
+	    datasets_rgh=datasets_rgh,
+	    manning_land=0.04,
+	    manning_sea=0.02,
+	    rgh_lev_land=0,  # the minimum elevation of the land
+	)
 	
-	manning = 0.02 * ones(nmax,mmax);
-	msk = ones(nmax,mmax);
-	
-	sfincs_write_binary_inputs(manning,msk,inp.indexfile,inp.manningfile,inp.mskfile)
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
 	
 Infiltration
 ^^^^^
@@ -366,16 +395,19 @@ For spatially varying infiltration values per cell use the qinffile option, with
 	1.0 	5.0
 	0.0	6.0
 
-**Matlab example using OET**
+**Python example using HydroMT-SFINCS**
 
 .. code-block:: text
 	
-	inp.qinffile = 'sfincs.qinf';
-	
-	infiltration = 2.2 * ones(nmax,mmax);
-	msk = ones(nmax,mmax);
-	
-	sfincs_write_binary_inputs(infiltration,msk,inp.indexfile,inp.qinffile,inp.mskfile)
+	sf.setup_constant_infiltration(
+		qinf=None,
+		lulc=None,
+		reclass_table=None,
+		reproj_method='average'
+	)
+
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
 
 The Curve Number method:
 %%%%%
@@ -405,6 +437,19 @@ For spatially varying infiltration values per cell using the Curve Number method
 	0 	10
 	5	20
 
+**Python example using HydroMT-SFINCS**
+
+.. code-block:: text
+	
+	sf.setup_cn_infiltration(
+		"gcn250",
+		antecedent_moisture="avg",
+	)
+	
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
+
 The user can also specify the sfacinf which control the initial abstraction or the amount of water before runoff, such as infiltration, or rainfall interception by vegetation; historically, it has generally been assumed that sfacinf = 0.2 (default, however, for urbanized watersheds lower values can be expected (e.g. 0.05). 
 
 This option doesn't support restart functionality. 
@@ -422,8 +467,23 @@ The Curve Number has been implemented in hydromt-SFINCS.
 See https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.SfincsModel.setup_cn_infiltration_with_ks.html for more information.
 
 This option does support restart functionality. 
+
+**Python example using HydroMT-SFINCS**
+
+.. code-block:: text
 	
+	sf.setup_cn_infiltration_with_ks(
+		lulc="gcn250",
+		hsg="hsg_NLCD",
+		ksat="ksat_NLCD",
+		reclass_table="reclass_NLCD",
+		effective=0.50,
+		block_size=2000
+	)
 	
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+
 The Green-Ampt method:
 %%%%%
 
@@ -491,17 +551,19 @@ Also, names of a station can be provided with quotes '' (maximum of 256 characte
 	594279.00 2961312.47 'NOAA_8722588_PortofWestPalmBeach'
  	595006.75 2944069.38 'NOAA_8722669_LakeWorthICW'
  	
-**Matlab example using OET**
+**Python example using HydroMT-SFINCS**
 
 .. code-block:: text
 	
-	inp.obsfile = 'sfincs.obs';
-	obs.x = [592727.98, 594279.00, 595006.75];
-	obs.y = [2969420.51, 2961312.47, 2944069.38];
-	obs.names = {'NOAA_8722548_PGABoulevardBridge,PalmBeach', 'NOAA_8722588_PortofWestPalmBeach', 'NOAA_8722669_LakeWorthICW'}; 
+	sf.setup_observation_points(
+		locations="observation_points.geojson",
+		merge=True
+	)
 	
-	sfincs_write_obsfile(inp.obsfile,obs)
-	 	
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
+
 Cross-sections for discharge output
 ^^^^^
 
@@ -538,22 +600,19 @@ The output is available as 'crosssection_discharge' in sfincs_his.nc, see the de
 	20 200
 	25 200	
 	
-**Matlab example using OET**
+**Python example using HydroMT-SFINCS**
 
 .. code-block:: text
 
-	inp.crsfile = 'sfincs.crs';
+	sf.setup_observation_lines(
+		locations="observation_lines.geojson",
+		merge=True
+	)
 	
-	cross_sections(1).x = [0 10 20]; 
-	cross_sections(1).y = [100 100 100]; 
-	cross_sections(1).name = {'CRS01'};	
-	cross_sections(2).x = [20 25]; 
-	cross_sections(2).y = [200 200]; 
-	cross_sections(2).name = {'CRS02'};
-	cross_sections.length = length(cross_sections);
-	
-	sfincs_write_cross_sections(inp.crsfile,cross_sections);		
- 	
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
+
 Initial water level
 ^^^^^
 
@@ -583,17 +642,6 @@ Alternatively, you can specify initial conditions using a restart file, see belo
 	e.g.
 	1.0 	1.2
 	0.0	0.0
-	
-**Matlab example**
-
-.. code-block:: text	
-
-	inp.inifile = 'sfincs.ini';
-	
-	zini=zeros(inp.nmax, inp.mmax);
-	zini(:,1:24+1)=0.6;       	
-	sfincs_write_binary_inputs(zini,msk,inp.indexfile,inp.inifile,inp.mskfile)	
-
 	
 Restart file
 ^^^^^
@@ -679,14 +727,6 @@ In case of netcdf output the map output will be named 'sfincs_map.nc', in case o
 
 For more information about the variables saved to the netcdf output files, see the 'Output description' section.
 
-For binary or ascii files the output will be written to separate files, of which the named can be changed:
-
-.. code-block:: text
-
-	hmaxfile 	= hmax.dat
-	zsfile 		= zs.dat
-	vmaxfile 	= vmax.dat
-
 Numerical parameters
 ^^^^^
 
@@ -715,7 +755,7 @@ Recommended is to turn the advection term always on.
 
 'advection_scheme' selects the advection scheme option. It is possible to select the new (2024.01 release) advection scheme using 'advection_scheme = upw1' = default, or the original implementation from Leijnse et al. (2021) can be selected as 'advection_scheme = original' for backwards compatability.  NOTE - from SFINCS 2024.01 release onwards.
 
-'advlim' sets the possibility to limit the advection term in the momentum equation for increased stability, default is a large number (9999.9) so no limitation is applied.
+'advlim' sets the possibility to limit the advection term in the momentum equation for increased stability, default is set to 1 (2025.01 release onwards).
 
 .. code-block:: text
 
@@ -736,6 +776,8 @@ This coefficient is multiplied internally with the grid cell size (per quadtree 
 For ease, this is displayed when running the model:	'Viscosity - nuvisc=   [0.1000000 - 0.5000000]'. 
 Increasing the value of 'nuvisc' increases the viscosity term and effectively internal smoothing of the flow.
 	
+**NOTE - It is recommended to EITHER have smoothing using viscosity=1 OR through numerical smoothing with theta<1.0 BUT NOT BOTH**
+
 .. code-block:: text
 
 	viscosity 	= 1
