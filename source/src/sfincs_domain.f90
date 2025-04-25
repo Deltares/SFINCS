@@ -2666,7 +2666,6 @@ contains
    !
    ! In quadtree
    !
-   if (allocated(quadtree_level)) deallocate(quadtree_level)
    if (allocated(quadtree_md)) deallocate(quadtree_md)
    if (allocated(quadtree_md1)) deallocate(quadtree_md1)
    if (allocated(quadtree_md2)) deallocate(quadtree_md2)
@@ -2686,13 +2685,21 @@ contains
    if (allocated(quadtree_xz)) deallocate(quadtree_xz)
    if (allocated(quadtree_yz)) deallocate(quadtree_yz)
    if (allocated(quadtree_zz)) deallocate(quadtree_zz)
-   if (allocated(quadtree_nm_indices)) deallocate(quadtree_nm_indices)
-   if (allocated(quadtree_first_point_per_level)) deallocate(quadtree_first_point_per_level)  
-   if (allocated(quadtree_last_point_per_level)) deallocate(quadtree_last_point_per_level)      
-   if (allocated(quadtree_dxr)) deallocate(quadtree_dxr)
-   if (allocated(quadtree_dyr)) deallocate(quadtree_dyr)
    if (allocated(quadtree_mask)) deallocate(quadtree_mask)
    if (allocated(quadtree_snapwave_mask)) deallocate(quadtree_snapwave_mask)
+   !
+   if (.not. bmi) then 
+      !
+      ! These may be used when finding grid cell when using BMI
+      !
+      if (allocated(quadtree_level)) deallocate(quadtree_level)
+      if (allocated(quadtree_nm_indices)) deallocate(quadtree_nm_indices)
+      if (allocated(quadtree_first_point_per_level)) deallocate(quadtree_first_point_per_level)  
+      if (allocated(quadtree_last_point_per_level)) deallocate(quadtree_last_point_per_level)      
+      if (allocated(quadtree_dxr)) deallocate(quadtree_dxr)
+      if (allocated(quadtree_dyr)) deallocate(quadtree_dyr)
+      !
+   endif
    !
    end subroutine
    

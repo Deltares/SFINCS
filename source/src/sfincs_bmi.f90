@@ -1,13 +1,15 @@
 module sfincs_bmi
+   !
    use iso_c_binding
    use sfincs_lib
    use sfincs_data
    use sfincs_domain
-   
+   !   
    implicit none
    private
-
+   !
    ! routines
+   !
    public :: initialize
    public :: update
    public :: update_until
@@ -21,8 +23,11 @@ module sfincs_bmi
    public :: get_time_step
    public :: get_current_time
    public :: update_zbuv
-
+   public :: get_sfincs_cell_index
+   public :: get_sfincs_cell_area
+   !
    ! constants
+   !
    public :: BMI_LENVARADDRESS
    public :: BMI_LENVARTYPE
    public :: BMI_LENGRIDTYPE
@@ -49,6 +54,7 @@ contains
    !DEC$ ATTRIBUTES DLLEXPORT :: initialize
       integer(kind=c_int) :: ierr
       bmi  = .true.
+      use_qext = .true.
       ierr = sfincs_initialize()
 
    end function initialize
@@ -216,7 +222,7 @@ contains
       select case(flag_name)
       case("qext")
          use_qext = bval
-         write(*,*)'use_qext = ', use_qext 
+         !write(*,*)'use_qext = ', use_qext 
       case default
          ierr = -1
       end select
@@ -272,6 +278,47 @@ contains
    
    end function update_zbuv
    
+   function get_sfincs_cell_index(x, y, indx) result(ierr) bind(C, name="get_sfincs_cell_index")
+   ! Return (1-based) cell index of SFINCS domain
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_sfincs_cell_index
+      use quadtree
+      !         
+      real(c_double), intent(in)  :: x
+      real(c_double), intent(in)  :: y
+      integer(c_int), intent(out) :: indx
+      integer(kind=c_int)         :: ierr
+      integer                     :: nmq
+      !
+      nmq = find_quadtree_cell(real(x, kind=4), real(y, kind=4))
+      indx = index_sfincs_in_quadtree(nmq)
+      !
+      ierr = 0
+      !
+   end function get_sfincs_cell_index
+
+   function get_sfincs_cell_area(indx, area) result(ierr) bind(C, name="get_sfincs_cell_area")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_sfincs_cell_area
+      !         
+      integer(kind=c_int), intent(in) :: indx
+      real(c_double), intent(out)     :: area
+      integer(kind=c_int)             :: ierr
+      real*4                          :: a
+      !
+      if (crsgeo) then
+         !
+         a = cell_area_m2(indx)
+         !
+      else   
+         !
+         a = cell_area(z_flags_iref(indx))
+         !
+      endif
+      !
+      area = real(a, kind=8)
+      !
+      ierr = 0
+      !
+   end function get_sfincs_cell_area
    
    !> @brief Get the last error in the BMI as a character array
    !! with size BMI_LENERRMESSAGE
