@@ -9,6 +9,8 @@ contains
    use sfincs_data
    use geometry
    use quadtree
+   use sfincs_error
+   use sfincs_log
    !
    implicit none
    !
@@ -20,6 +22,8 @@ contains
    !
    character(len=256) :: cdummy
    !
+   logical   :: ok
+   !
    ! Read cross sections file
    !
    nr_runup_gauges = 0
@@ -27,6 +31,8 @@ contains
    if (rugfile(1:4) /= 'none') then
       ! 
       call write_log('Info    : reading run-up gauges', 0)
+      !
+      ok = check_file_exists(rugfile, 'Run-up gauge file', .true.)
       !
       ! First count number of polylines
       !
@@ -138,7 +144,7 @@ contains
    real*4, dimension(:), allocatable :: zru
    !
    integer :: ip, irug, nm
-   real*4  :: zst, zbt
+   real*4  :: zbt
    !
    allocate(zru(nr_runup_gauges))
    !
@@ -149,8 +155,6 @@ contains
       do ip = 1, runup_gauge_nrp(irug)
          !
          nm = runup_gauge_nm(ip, irug)
-         !         
-         zst = zs(nm)
          !
          if (subgrid) then
             !
@@ -162,11 +166,11 @@ contains
             !
          endif
          !
-         if (zst > zbt + runup_gauge_depth) then
+         if (zs(nm) > zbt + runup_gauge_depth) then
             !
             ! Point is okay
             !
-            zru(irug) = zst
+            zru(irug) = real(zs(nm), real(4))
             !
          else
             !

@@ -3,6 +3,7 @@ module sfincs_subgrid
    !
    use netcdf       
    use sfincs_log
+   use sfincs_error
    !
    type net_type_subgrid
        integer :: ncid
@@ -22,7 +23,11 @@ contains
    !
    implicit none
    !
+   logical :: ok
+   !
    ! Check what sort of file we're dealing with
+   !
+   ok = check_file_exists(sbgfile, 'Sub-grid file', .true.)
    !
    NF90(nf90_open(trim(sbgfile), NF90_CLOBBER, net_file_sbg%ncid))
    !

@@ -767,7 +767,7 @@ contains
    implicit none   
    !   
    integer    :: nm, nmq, n, m, nn, ntmx, n_nodes, n_faces, iref
-   real*4     :: dxdy
+   real*4     :: dxx, dyy
    !
    real,      dimension(:),   allocatable :: nodes_x
    real,      dimension(:),   allocatable :: nodes_y
@@ -798,30 +798,31 @@ contains
       m = quadtree_m(nmq)
       !
       iref = quadtree_level(nmq)
-      dxdy  = quadtree_dxr(iref)
+      dxx  = quadtree_dxr(iref)
+      dyy  = quadtree_dyr(iref)
       !         
       nn = nn + 1
       !
-      nodes_x(nn) = x0 + cosrot*(m - 1)*dxdy - sinrot*(n - 1)*dxdy
-      nodes_y(nn) = y0 + sinrot*(m - 1)*dxdy + cosrot*(n - 1)*dxdy
+      nodes_x(nn) = x0 + cosrot*(m - 1)*dxx - sinrot*(n - 1)*dyy
+      nodes_y(nn) = y0 + sinrot*(m - 1)*dxx + cosrot*(n - 1)*dyy
       face_nodes(1, nmq) = nn
       !         
       nn = nn + 1
       !
-      nodes_x(nn) = x0 + cosrot*(m    )*dxdy - sinrot*(n - 1)*dxdy
-      nodes_y(nn) = y0 + sinrot*(m    )*dxdy + cosrot*(n - 1)*dxdy
+      nodes_x(nn) = x0 + cosrot*(m    )*dxx - sinrot*(n - 1)*dyy
+      nodes_y(nn) = y0 + sinrot*(m    )*dxx + cosrot*(n - 1)*dyy
       face_nodes(2, nmq) = nn
       !         
       nn = nn + 1
       !
-      nodes_x(nn) = x0 + cosrot*(m    )*dxdy - sinrot*(n    )*dxdy
-      nodes_y(nn) = y0 + sinrot*(m    )*dxdy + cosrot*(n    )*dxdy
+      nodes_x(nn) = x0 + cosrot*(m    )*dxx - sinrot*(n    )*dyy
+      nodes_y(nn) = y0 + sinrot*(m    )*dxx + cosrot*(n    )*dyy
       face_nodes(3, nmq) = nn
       !         
       nn = nn + 1
       !
-      nodes_x(nn) = x0 + cosrot*(m - 1)*dxdy - sinrot*(n    )*dxdy
-      nodes_y(nn) = y0 + sinrot*(m - 1)*dxdy + cosrot*(n    )*dxdy
+      nodes_x(nn) = x0 + cosrot*(m - 1)*dxx - sinrot*(n    )*dyy
+      nodes_y(nn) = y0 + sinrot*(m - 1)*dxx + cosrot*(n    )*dyy
       face_nodes(4, nmq) = nn
       !
    enddo   
@@ -1732,12 +1733,12 @@ contains
          NF90(nf90_put_att(his_file%ncid, his_file%cg_varid, 'long_name', 'wave group velocity'))  
          NF90(nf90_put_att(his_file%ncid, his_file%cg_varid, 'coordinates', 'station_id station_name point_x point_y'))
          !               
-         NF90(nf90_def_var(his_file%ncid, 'qb', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%qb_varid)) ! time-varying water level point
-         NF90(nf90_put_att(his_file%ncid, his_file%qb_varid, '_FillValue', FILL_VALUE))
-         NF90(nf90_put_att(his_file%ncid, his_file%qb_varid, 'units', '-'))
-         NF90(nf90_put_att(his_file%ncid, his_file%qb_varid, 'standard_name', 'fraction_breaking_waves')) 
-         NF90(nf90_put_att(his_file%ncid, his_file%qb_varid, 'long_name', 'fraction breaking waves'))  
-         NF90(nf90_put_att(his_file%ncid, his_file%qb_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         !NF90(nf90_def_var(his_file%ncid, 'qb', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%qb_varid)) ! time-varying water level point
+         !NF90(nf90_put_att(his_file%ncid, his_file%qb_varid, '_FillValue', FILL_VALUE))
+         !NF90(nf90_put_att(his_file%ncid, his_file%qb_varid, 'units', '-'))
+         !NF90(nf90_put_att(his_file%ncid, his_file%qb_varid, 'standard_name', 'fraction_breaking_waves')) 
+         !NF90(nf90_put_att(his_file%ncid, his_file%qb_varid, 'long_name', 'fraction breaking waves'))  
+         !NF90(nf90_put_att(his_file%ncid, his_file%qb_varid, 'coordinates', 'station_id station_name point_x point_y'))
          !               
          NF90(nf90_def_var(his_file%ncid, 'beta', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%beta_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%beta_varid, '_FillValue', FILL_VALUE))
@@ -2704,7 +2705,7 @@ contains
    real*4, dimension(nobs) :: dwigobs
    real*4, dimension(nobs) :: dfigobs
    real*4, dimension(nobs) :: cgobs
-   real*4, dimension(nobs) :: qbobs
+   !real*4, dimension(nobs) :: qbobs
    real*4, dimension(nobs) :: betaobs
    real*4, dimension(nobs) :: srcigobs
    real*4, dimension(nobs) :: alphaigobs
@@ -2728,7 +2729,7 @@ contains
    dwobs        = FILL_VALUE
    dfobs        = FILL_VALUE
    cgobs        = FILL_VALUE
-   qbobs        = FILL_VALUE
+   !qbobs        = FILL_VALUE
    betaobs      = FILL_VALUE
    srcigobs     = FILL_VALUE
    alphaigobs   = FILL_VALUE   
@@ -2830,7 +2831,7 @@ contains
                dwigobs(iobs)  = dwig(nm)
                dfigobs(iobs)  = dfig(nm)
                cgobs(iobs)    = cg(nm) 
-               qbobs(iobs)    = qb(nm)               
+               !qbobs(iobs)    = qb(nm)               
                betaobs(iobs)  = betamean(nm)               
                srcigobs(iobs) = srcig(nm)               
                alphaigobs(iobs) = alphaig(nm)                              
@@ -2894,7 +2895,7 @@ contains
          !
          NF90(nf90_put_var(his_file%ncid, his_file%cg_varid, cgobs, (/1, nthisout/)))
          !
-         NF90(nf90_put_var(his_file%ncid, his_file%qb_varid, qbobs, (/1, nthisout/)))
+         !NF90(nf90_put_var(his_file%ncid, his_file%qb_varid, qbobs, (/1, nthisout/)))
          NF90(nf90_put_var(his_file%ncid, his_file%beta_varid, betaobs, (/1, nthisout/)))
          NF90(nf90_put_var(his_file%ncid, his_file%srcig_varid, srcigobs, (/1, nthisout/)))                  
          NF90(nf90_put_var(his_file%ncid, his_file%alphaig_varid, alphaigobs, (/1, nthisout/)))         

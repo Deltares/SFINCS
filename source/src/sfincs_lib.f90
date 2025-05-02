@@ -250,7 +250,7 @@ module sfincs_lib
    !
    call system_clock(count1, count_rate, count_max)
    !
-   tinput  = 1.0*(count1 - count0)/count_rate
+   tinput  = 1.0 * (count1 - count0) / count_rate
    !
    ! Initialize some parameters
    !
@@ -601,7 +601,7 @@ module sfincs_lib
       !      
       ! Stop loop in case of instabilities (make sure time step 'dtmin' does not get too small compared to 'uvmax' flow velocity)
       !
-      if (dtchk<dtmin .and. nt>1) then
+      if (dtchk < dtmin .and. nt > 1) then
          !
          error = 1
          !
@@ -625,8 +625,10 @@ module sfincs_lib
          percdonenext = 1.0 * (int(percdone) + percdoneval) 
          !
          call system_clock(count1, count_rate, count_max)
+         !
          trun  = 1.0*(count1 - count00)/count_rate
          trem = trun / max(0.01*percdone, 1.0e-6) - trun
+         !
          if (int(percdone)>0) then
             write(logstr,'(i4,a,f7.1,a)')int(percdone),'% complete, ',trem,' s remaining ...'
             call write_log(logstr, 1)
@@ -678,7 +680,7 @@ module sfincs_lib
    write(logstr,'(a,f10.3)')          ' Time in input          : ',tinput
    call write_log(logstr, 1)
    !
-   if (include_boundaries) then
+   if (boundaries_in_mask) then
       write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in boundaries     : ',tloopbnd,' (',100*tloopbnd/(tfinish_all - tstart_all),'%)'
       call write_log(logstr, 1)
    endif   

@@ -1,6 +1,7 @@
 module sfincs_snapwave
    !
    use sfincs_log
+   use sfincs_error
    !    
    implicit none
    !     
@@ -124,11 +125,11 @@ contains
    !
    snapwave_tpmean = 0.0
    snapwave_tpigmean = 0.0   
-
    !   
    call find_matching_cells(index_quadtree_in_snapwave, index_snapwave_in_quadtree)
    !
    ! Copy final snapwave mask from snapwave_domain for output in sfincs_ncoutput
+   !
    snapwave_mask = msk   
    !
    call write_log('------------------------------------------', 1)
@@ -175,8 +176,10 @@ contains
    integer, dimension(snapwave_no_nodes),  intent(in) :: index_quadtree_in_snapwave
    integer, dimension(quadtree_nr_points), intent(in) :: index_snapwave_in_quadtree
    !
-   integer :: ipsw, ipsf, iq
+   integer :: ipsw, ipsf, iq, ip
    !
+   real*4  :: xsw, ysw, dstmin, dst
+   !   
    allocate(index_sfincs_in_snapwave(snapwave_no_nodes))
    allocate(index_snapwave_in_sfincs(np))
    allocate(index_sw_in_qt(quadtree_nr_points))
@@ -188,10 +191,38 @@ contains
    ! Loop through SnapWave points
    !
    do ipsw = 1, snapwave_no_nodes
+      !
       iq   = index_quadtree_in_snapwave(ipsw)
       ipsf = index_sfincs_in_quadtree(iq)
+      !
+      if (ipsf == 0) then
+         !
+         ! SFINCS not active at this SnapWave node, so find the nearest SFINCS point
+         !
+         xsw = quadtree_xz(iq)
+         ysw = quadtree_yz(iq)
+         !
+         dstmin = 1.0e6
+         !
+         do ip = 1, np
+            !
+            dst = sqrt((z_xz(ip) - xsw)**2 + (z_yz(ip) - ysw)**2)
+            !
+            if (dst < dstmin) then
+               !
+               ipsf = ip
+               dstmin = dst
+               !
+            endif
+            !
+         enddo
+         !
+      endif
+      !
       index_sfincs_in_snapwave(ipsw) = ipsf
+      !
       index_sw_in_qt(iq) = ipsw
+      !
    enddo   
    !
    ! Loop through SFINCS points
@@ -226,7 +257,7 @@ contains
    real*4,    dimension(:), allocatable       :: dwig0
    real*4,    dimension(:), allocatable       :: dfig0   
    real*4,    dimension(:), allocatable       :: cg0   
-   real*4,    dimension(:), allocatable       :: qb0   
+   !real*4,    dimension(:), allocatable       :: qb0   
    real*4,    dimension(:), allocatable       :: beta0 
    real*4,    dimension(:), allocatable       :: srcig0      
    real*4,    dimension(:), allocatable       :: alphaig0   
@@ -242,7 +273,7 @@ contains
    allocate(dwig0(np))
    allocate(dfig0(np))  
    allocate(cg0(np))  
-   allocate(qb0(np))   
+   !allocate(qb0(np))   
    allocate(beta0(np))   
    allocate(srcig0(np))      
    allocate(alphaig0(np))      
@@ -254,7 +285,7 @@ contains
    dwig0 = 0.0
    dfig0 = 0.0
    cg0 = 0.0
-   qb0 = 0.0
+   !qb0 = 0.0
    beta0 = 0.0
    srcig0 = 0.0
    alphaig0 = 0.0   
@@ -265,13 +296,14 @@ contains
       !
       ip = index_sfincs_in_snapwave(nm) ! matching index in SFINCS mesh
       !
-      if (ip>0) then
+      if (ip > 0) then
          !
          ! A matching SFINCS point is found
          !
+
          if (wavemaker) then
             !
-            snapwave_depth(nm) = max(zsm(ip) - snapwave_z(nm), 0.00001)      
+            snapwave_depth(nm) = max(zsm(ip) - snapwave_z(nm), 0.00001)
             !
          else   
             !
@@ -345,7 +377,7 @@ contains
          dwig0(nm)  = snapwave_Dwig(ip)   
          dfig0(nm)  = snapwave_Dfig(ip)
          cg0(nm)    = snapwave_cg(ip)
-         qb0(nm)    = snapwave_Qb(ip)
+         !qb0(nm)    = snapwave_Qb(ip)
          beta0(nm)  = snapwave_beta(ip)
          srcig0(nm) = snapwave_srcig(ip)
          alphaig0(nm) = snapwave_alphaig(ip)
@@ -369,7 +401,7 @@ contains
          dwig0(nm)  = 0.0
          dfig0(nm)  = 0.0
          cg0(nm)    = 0.0
-         qb0(nm)    = 0.0
+         !qb0(nm)    = 0.0
          beta0(nm)  = 0.0
          srcig0(nm) = 0.0
          alphaig0(nm) = 0.0         
@@ -389,7 +421,7 @@ contains
          dwig(nm)       = dwig0(nm)
          dfig(nm)       = dfig0(nm)
          cg(nm)         = cg0(nm)   
-         qb(nm)         = qb0(nm)         
+         !qb(nm)         = qb0(nm)         
          betamean(nm)   = beta0(nm)         
          srcig(nm)      = srcig0(nm)         
          alphaig(nm)    = alphaig0(nm)                  
@@ -398,8 +430,8 @@ contains
       !
    enddo   
    !   
-   hm0 = hm0*sqrt(2.0)
-   hm0_ig = hm0_ig*sqrt(2.0)
+   hm0 = hm0 * sqrt(2.0)
+   hm0_ig = hm0_ig * sqrt(2.0)
    !
    do ip = 1, npuv
       !
@@ -509,42 +541,44 @@ contains
    !
    ! Input section
    !
-   call read_real_input(500,'snapwave_gamma',gamma,0.7)
-   call read_real_input(500,'snapwave_gammax',gammax,0.6)   
-   call read_real_input(500,'snapwave_alpha',alpha,1.0)
-   call read_real_input(500,'snapwave_hmin',hmin,0.1)
-   call read_real_input(500,'snapwave_fw',fw0,0.01)
-   call read_real_input(500,'snapwave_fwig',fw0_ig,0.015)
-   call read_real_input(500,'snapwave_dt',dt,36000.0)
-   call read_real_input(500,'snapwave_tol',tol,1000.0)
-   call read_real_input(500,'snapwave_dtheta',dtheta,10.0)
-   call read_real_input(500,'snapwave_crit',crit,0.00001) !TL: Old default was 0.01
-   call read_int_input(500,'snapwave_nrsweeps',nr_sweeps,4)
-   call read_int_input(500,'snapwave_niter',niter, 10) !TL: Old default was 40  
-   call read_int_input(500,'snapwave_baldock_opt',baldock_opt,1)     
-   call read_real_input(500,'snapwave_baldock_ratio',baldock_ratio,0.2)
-   call read_real_input(500,'rgh_lev_land',rghlevland,0.0)
-   call read_real_input(500,'snapwave_fw_ratio',fwratio,1.0)
-   call read_real_input(500,'snapwave_fwig_ratio',fwigratio,1.0)
-   call read_real_input(500,'snapwave_Tpini',Tpini,1.0)
-   call read_int_input (500,'snapwave_mwind',mwind,2)      
-   call read_real_input(500,'snapwave_sigmin',sigmin,8.0*atan(1.0)/25.0)
-   call read_real_input(500,'snapwave_sigmax',sigmax,8.0*atan(1.0)/1.0)   
-   call read_int_input (500,'snapwave_jadcgdx',jadcgdx,1)
-   call read_real_input(500,'snapwave_c_dispT',c_dispT,1.0)   
-   call read_real_input(500,'snapwave_sector',sector,180.0)
+   call read_real_input(500, 'snapwave_gamma', gamma, 0.7)
+   call read_real_input(500, 'snapwave_gammax', gammax, 2.0) ! MvO - Changed default gammax from 0.6 to 2.0  
+   call read_real_input(500, 'snapwave_alpha', alpha, 1.0)
+   call read_real_input(500, 'snapwave_hmin', hmin, 0.1)
+   call read_real_input(500, 'snapwave_fw', fw0, 0.01)
+   call read_real_input(500, 'snapwave_fwig', fw0_ig, 0.015)
+   call read_real_input(500, 'snapwave_dt', dt, 36000.0)
+   call read_real_input(500, 'snapwave_tol', tol, 1000.0)
+   call read_real_input(500, 'snapwave_dtheta', dtheta, 10.0)
+   call read_real_input(500, 'snapwave_crit', crit, 0.001) !TL: Old default was 0.01
+   call read_int_input(500,  'snapwave_nrsweeps', nr_sweeps, 4)
+   call read_int_input(500,  'snapwave_niter', niter, 10)
+   call read_int_input(500,  'snapwave_baldock_opt', baldock_opt, 1)     
+   call read_real_input(500, 'snapwave_baldock_ratio', baldock_ratio, 0.2)
+   call read_real_input(500, 'rgh_lev_land', rghlevland, 0.0)
+   call read_real_input(500, 'snapwave_fw_ratio', fwratio, 1.0)
+   call read_real_input(500, 'snapwave_fwig_ratio', fwigratio, 1.0)
+   call read_real_input(500, 'snapwave_Tpini', Tpini, 1.0)
+   call read_int_input (500, 'snapwave_mwind', mwind, 2)      
+   call read_real_input(500, 'snapwave_sigmin', sigmin, 8.0*atan(1.0)/25.0)
+   call read_real_input(500, 'snapwave_sigmax', sigmax, 8.0*atan(1.0)/1.0)   
+   call read_int_input (500, 'snapwave_jadcgdx', jadcgdx, 1)
+   call read_real_input(500, 'snapwave_c_dispT', c_dispT, 1.0)   
+   call read_real_input(500, 'snapwave_sector', sector, 180.0)
    !
-   ! Settings related to IG waves:   
-   call read_int_input(500,'snapwave_igwaves',igwaves_opt,1)   
-   call read_real_input(500,'snapwave_alpha_ig',alpha_ig,1.0) !TODO choose whether snapwave_alphaig or snapwave_gamma_ig  
-   call read_real_input(500,'snapwave_gammaig',gamma_ig,0.2)   
-   call read_real_input(500,'snapwave_shinc2ig',shinc2ig,1.0)                   ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 1=default=all energy as sink)
+   ! Settings related to IG waves
+   !
+   call read_int_input(500,'snapwave_igwaves', igwaves_opt, 1)   
+   call read_real_input(500,'snapwave_alpha_ig', alpha_ig, 1.0) !TODO choose whether snapwave_alphaig or snapwave_gamma_ig  
+   call read_real_input(500,'snapwave_gammaig', gamma_ig, 0.2)   
+   call read_real_input(500,'snapwave_shinc2ig', shinc2ig, 1.0)                   ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 1=default=all energy as sink)
    call read_real_input(500,'snapwave_alphaigfac',alphaigfac,1.0)               ! Multiplication factor for IG shoaling source/sink term         
    call read_real_input(500,'snapwave_baldock_ratio_ig',baldock_ratio_ig,0.2)       
    call read_int_input(500,'snapwave_ig_opt',ig_opt,1)     
    call read_int_input(500,'snapwave_iterative_srcig',iterative_srcig_opt,0)        ! Option whether to calculate IG source/sink term in iterative lower (better, but potentially slower, 1=default), or effectively based on previous timestep (faster, potential mismatch, =0)
    !
-   ! IG boundary conditions options:
+   ! IG boundary conditions options
+   !
    call read_int_input(500,'snapwave_use_herbers',herbers_opt,1)    ! Choice whether you want IG Hm0&Tp be calculated by herbers (=1, default), or want to specify user defined values (0> then snapwave_eeinc2ig & snapwave_Tinc2ig are used) 
    call read_int_input(500,'snapwave_tpig_opt',tpig_opt,1) ! IG wave period option based on Herbers calculated spectrum, only used if snapwave_use_herbers = 1. Options are: 1=Tm01 (default), 2=Tpsmooth, 3=Tp, 4=Tm-1,0   
    call read_real_input(500,'snapwave_jonswapgamma',jonswapgam,3.3)  ! JONSWAP gamma value for determination offshore spectrum and IG wave conditions using Herbers, default=3.3, only used if snapwave_use_herbers = 1   
@@ -560,6 +594,7 @@ contains
    call read_int_input(500, 'vegetation', vegetation_opt, 0)
    !
    ! Input files
+   !
    call read_char_input(500,'snapwave_jonswapfile',snapwave_jonswapfile,'')
    call read_char_input(500,'snapwave_bndfile',snapwave_bndfile,'')
    call read_char_input(500,'snapwave_encfile',snapwave_encfile,'')
@@ -597,14 +632,14 @@ contains
       !
    endif
    !
-   wind          = .true.
+   wind = .true.
    if (wind_opt==0) then
-      wind       = .false.
+      wind = .false.
    endif   
    !
-   vegetation          = .true.
+   vegetation = .true.
    if (vegetation_opt==0) then
-      vegetation       = .false.
+      vegetation = .false.
    endif   
    !
    if (nr_sweeps /= 1 .and. nr_sweeps /= 4) then
