@@ -56,21 +56,26 @@ module sfincs_output
       !
       ! No restart file required
       !
-      trstout     = 1.0e9
+      trstout = 1.0e9
       !
    endif
    !
    ! Create his file if either observation points, cross-sections, structures or drains present
    !
-   if ((dthisout>1.0e-6) .and. ((nobs>0) .or. (nrcrosssections>0) .or. (nrstructures>0) .or. (ndrn>0))) then
+   if (dthisout>1.0e-6 .and. (nobs>0 .or. nrcrosssections>0 .or. nrstructures>0 .or. ndrn>0 .or. nr_runup_gauges>0 )) then
+      !
       thisout     = t0
+      !
       if (outputtype_his == 'net') then    
          call ncoutput_his_init()
       else      
          call open_his_output()
       endif
+      !
    else
+      !
      thisout     = 1.0e9
+      !
    endif
    !   
    end subroutine
@@ -223,7 +228,7 @@ module sfincs_output
    !      
    ! Water level time series
    !
-   if (write_his .and. (nobs>0 .or. nrcrosssections>0)) then
+   if (write_his .and. (nobs>0 .or. nrcrosssections>0 .or. nr_runup_gauges>0)) then
       !      
       if (outputtype_his == 'net') then
          !      
