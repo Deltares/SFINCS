@@ -402,7 +402,7 @@ module snapwave_solver
       call hpsort_eps_epw(no_nodes, ra , indx(:, sweep), 1.0e-6)
       !
    enddo
-   !
+   !   
    ! Set inner to false for all points at grid edge or adjacent to dry point
    do k=1,no_nodes
       do itheta = 1, ntheta
@@ -411,9 +411,9 @@ module snapwave_solver
          k2 = prev(2, itheta, k)
          if (k1*k2==0) then
              inner(k)=.false.
-         elseif (depth(k1)<1.1*hmin .or. depth(k2)<1.1*hmin .or. (k1==1 .and. k2==1)) then
-             inner(k)=.false.
-             exit
+         !elseif (depth(k1)<1.1*hmin .or. depth(k2)<1.1*hmin .or. (k1==1 .and. k2==1)) then
+         !    inner(k)=.false.
+             !exit
          endif
       enddo
    enddo
