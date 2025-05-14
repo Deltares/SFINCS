@@ -1,11 +1,11 @@
 Introduction
-=======
+============
 
 Introduction to SFINCS
 ----------------------
 
 What is SFINCS?
-^^^^^
+^^^^^^^^^^^^^^^
 
 SFINCS (Super-Fast Inundation of CoastS) is a reduced-complexity model capable of simulating compound flooding with a high computational efficiency balanced with an adequate accuracy.
 In SFINCS a set of momentum and continuity equations are solved with a first order explicit scheme based on Bates et al. (2010).
@@ -15,7 +15,7 @@ For this purpose, the SFINCS-SSWE version can be used (including advection).
 For more information see Leijnse et al. (2020): https://doi.org/10.1016/j.coastaleng.2020.103796
 
 Why SFINCS?
-^^^^^
+^^^^^^^^^^^
 Compound flooding during tropical cyclones and other extreme events result in tremendous amounts of property damage and loss of life. Early warning systems and multi-hazard risk analysis can reduce these impacts. 
 However, large numbers of computations need to be run in a probabilistic approach and in a short time due to uncertainties in the meteorological forcing. 
 Current modelling approaches are either fast but too simple (bathtub approach) or models are very accurate but too slow (e.g. Delft3D, XBeach).
@@ -31,15 +31,15 @@ When very high-detailed simulations are needed with a lot of detailed features (
    The goal of SFINCS: speed! (Icon made by https://www.flaticon.com/authors/vectors-market)
 
 Compound flooding?
-^^^^^
+^^^^^^^^^^^^^^^^^^
 Compound flooding is described as events occurring in coastal areas where the interaction of high sea levels, large river discharges and local precipitation causes (extreme) flooding (Wahl et al., 2015).
 To simulate compound flooding events, a model needs to be able to model all these types of forcings. Therefore, SFINCS includes fluvial, pluvial, tidal, wind- and wave-driven processes!
 
 Application areas
------
+-----------------
 
 Coastal model
-^^^^^
+^^^^^^^^^^^^^
 
 A SFINCS model in coastal regions can be forced with marine forcings like tides, storm surge, local wind setup and wave driven processes.
 Generally a model is setup with the offshore boundary in the swash zone, good practice is in about 2 meters water depth.
@@ -54,7 +54,7 @@ In some cases local rainfall might be relevant too for a coastal model.
    
    
 Coral reef model
-^^^^^
+^^^^^^^^^^^^^^^^
 SFINCS models have also been setup in coral reef type environments, where individual waves are forced to compute wave-driven flooding.
 This generally has a large contribution to flooding for Small Island Developping States (SIDS) or other coasts/islands with coral reef type coasts.
 
@@ -65,7 +65,7 @@ This generally has a large contribution to flooding for Small Island Developping
    SFINCS model for Majuro.
    
 Tsunami model
-^^^^^
+^^^^^^^^^^^^^
 As an additional type of coastal model, SFINCS has also been used for modelling tsunami's.
 Generally this would be an overland model forced with a tsunami wave as computed by an offshore hydrodynamic model.
 However, in the paper of Robke et al. 2021 SFINCS was also used for the first time to calculate the offshore propagation in a very short amount of time too.
@@ -78,12 +78,12 @@ Get in touch to hear more about possibilities for tsunami modelling with SFINCS.
    Overland and offshore SFINCS models modelling the 2011 Tohoku tsunami near Japan, figure from: https://doi.org/10.3390/jmse9050453
    
 Storm surge model
-^^^^^
+^^^^^^^^^^^^^^^^^
 Since speed is wanted everywhere, also tests have been done to let SFINCS model offshore storm surge during tropical cyclones.
 Get in touch to hear more about possibilities for storm surge modelling with SFINCS.
 
 Riverine model
-^^^^^
+^^^^^^^^^^^^^^
 For inland riverine types of environments, boundary conditions are generally different than for coastal models.
 Generally at the upstream end of rivers, one can provide discharge points with discharge time-series.
 At the downstream end of rivers, water level time-series need to be specified, which in case of sub-critical flow conditions will influence the flow upstream.
@@ -96,7 +96,7 @@ Additionaly, besides the general river discharge, local rainfall adding water to
    SFINCS model for Vientiane, Laos.
    
 Urban model
-^^^^^
+^^^^^^^^^^^
 For urban environments the local situation of varying land use conditions can heavily influence the local flow.
 Therefore spatially varying input of manning roughness and infiltration is possible.
 The curve number method of infiltration will distinguish what part of falling precipitation can infiltrate or will run-off.
@@ -110,7 +110,7 @@ These can be thin dams, levees, sea walls, simple drainage pumps or culverts.
    SFINCS model for Houston, TX, during Hurricane Harvey (2017)
 
 Flash flood model
-^^^^^
+^^^^^^^^^^^^^^^^^
 In recent tests, SFINCS has also been used to model flash floods.
 In these events, a short but intense rainfall event falls onto a domain and together with a steep profile can lead to significant water depths and flow velocities.
 Get in touch to hear more about possibilities for fast flash-flood modelling with SFINCS.
@@ -123,7 +123,7 @@ Get in touch to hear more about possibilities for fast flash-flood modelling wit
 
 
 Compound flooding model
-^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
 In a compound flooding model, all relevant types of forcing from either coastal, coral, riverine or urban models can be combined into 1 domain.
 Hereby the joint effect of multiple flood drivers that can enhance flooding can be taken into account.
 
@@ -134,21 +134,21 @@ Hereby the joint effect of multiple flood drivers that can enhance flooding can 
    SFINCS model for Jacksonville, FL, during Hurricane Irma (2017), figure from: https://doi.org/10.1016/j.coastaleng.2020.103796
 
 Applied international projects
------
+------------------------------
 
 SFINCS has been applied in these international projects, with attached links to news articles:
 
-* Modelling of urban flooding and adaptation measures in the USA (https://www.deltares.nl/en/news/development-community-oriented-decision-support-tool-compound-flood-events-us/)
+* `Modelling of urban flooding and adaptation measures in the USA <https://specials.deltares.nl/january_2022/a_new_practical_tool_to_help_communities_mitigate_flood_risks>`_
 
-* Modelling coastal driven flooding at Beira, Mozambique (https://www.deltares.nl/en/news/dutch-mozambican-consortium-to-protect-beira-against-coastal-flooding/)
+* `Modelling coastal driven flooding at Beira, Mozambique <https://www.preventionweb.net/news/dutch-mozambican-consortium-help-protect-beira-against-coastal-flooding>`_
 
-* Modelling sea level rise and storm driven flooding at 18 countries in the Caribbean (https://openknowledge.worldbank.org/handle/10986/36417)
+* `Modelling sea level rise and storm driven flooding at 18 countries in the Caribbean <https://openknowledge.worldbank.org/handle/10986/36417>`_
 
-* Modelling multi-hazard driven flooding for the atoll of Majuro in the Marshall islands (https://storymaps.arcgis.com/stories/8c715dcc5781421ebff46f35ef34a04d)
+* `Modelling multi-hazard driven flooding for the atoll of Majuro in the Marshall islands <https://storymaps.arcgis.com/stories/8c715dcc5781421ebff46f35ef34a04d>`_
 
-* Modelling compound flooding along the whole US Southeast coast (https://www.deltares.nl/app/uploads/2021/10/RD-Highlights-2021.pdf)
+* `Modelling compound flooding along the whole US Southeast coast <https://www.deltares.nl/en/news/climate-hazards-for-u.s.-atlantic-coast>`_
 
-* Modelling coastal flooding for the entire country of Denmark by the Danish Coastal Authority for the EU Floods Directive (https://www.youtube.com/watch?v=TbzTC82ijyU&t=15s&ab_channel=Deltares)  (https://specials.deltares.nl/impact_report_2023/estimating_flood_impacts)
+* `Modelling coastal flooding for the entire country of Denmark by the Danish Coastal Authority for the EU Floods Directive <https://specials.deltares.nl/impact_report_2023/estimating_flood_impacts>`_  `(also see video) <https://www.youtube.com/watch?v=TbzTC82ijyU&t=15s&ab_channel=Deltares>`_
 
 .. figure:: ./figures/MapChart_Map.png
    :width: 600px
@@ -201,7 +201,7 @@ SFINCS has been applied (or still is) in multiple other international projects:
 * And many more!
 
 Publications 
------
+------------
 There have been various journal publications and conference posters where SFINCS has been used and/or validated:
 
 * Introduction paper of SFINCS:  "Modeling compound flooding in coastal systems using a computationally efficient reduced-physics solver: including fluvial, pluvial, tidal, wind- and wave-driven processes". Leijnse et al. (2021). https://doi.org/10.1016/j.coastaleng.2020.103796.
@@ -252,8 +252,17 @@ There have been various journal publications and conference posters where SFINCS
 
 * "Integrating incident and infragravity wave effects in a fast compound flood model". Leijnse et al. (2024), EGU General Assembly 2024, Vienna, Austria, 14–19 Apr 2024, EGU24-2106, https://doi.org/10.5194/egusphere-egu24-2106, 2024.
 
-* More information regarding recent advancements with subgrid features can be seen in this online poster: https://agu2020fallmeeting-agu.ipostersessions.com/Default.aspx?s=9C-05-18-CF-F1-2B-17-F0-7A-21-93-E6-13-AE-F3-24
-Leijnse et al. (2020)
+* "Subgrid corrections for the linear inertial equations of a compound flood model – a case study using SFINCS 2.1.1 Dollerup release". Van Ormondt et al. (2025). https://doi.org/10.5194/gmd-18-843-2025
 
-* More information regarding recent comparisons using SFINCS to model waves can be seen in this online poster: https://agu2020fallmeeting-agu.ipostersessions.com/?s=30-38-5A-0C-8E-22-C8-84-CC-46-3C-95-18-80-C2-76&token=5r05NKrASrFrnkybTgXa4Y_XvgfV233Dazers0d2Zzo
-Lasserre et al. (2020)
+* "Determining the Relative Contributions of Runoff, Coastal, and Compound Processes to Flood Exposure Across the Carolinas During Hurricane Florence". Grimley et al. (2025). https://doi.org/10.1029/2023WR036727
+
+* "Projections of multiple climate-related coastal hazards for the US Southeast Atlantic". Barnard et al. (2025). https://doi.org/10.1038/s41558-024-02180-2
+
+* "Accelerating compound flood risk assessments through active learning: A case study of Charleston County (USA)". Terlinden-Ruhl et al. (2025). https://doi.org/10.5194/nhess-25-1353-2025
+
+* "Probabilistic storm surge and flood-inundation modeling of the Texas gulf coast using super-fast INundation of CoastS (SFINCS)". Lee et al. (2025). https://doi.org/10.1016/j.coastaleng.2025.104721
+
+* "Tropical cyclone induced compound flooding in Madagascar: a coupled modeling approach". Khan et al. (2025). https://doi.org/10.1007/s11069-025-07209-z
+
+* "The importance of waves in large-scale coastal compound flooding: A case study of Hurricane Florence (2018)". Leijnse et al. (2025). https://doi.org/10.1016/j.coastaleng.2025.104726
+

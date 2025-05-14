@@ -67,14 +67,14 @@ module quadtree
    !
 contains
    !
-   subroutine quadtree_read_file(qtrfile, snapwave, store_vegetation)
+   subroutine quadtree_read_file(qtrfile, snapwave, nonhydrostatic, store_vegetation)
    !
    ! Reads quadtree file
    !
    implicit none
    !
    character*256, intent(in)                       :: qtrfile
-   logical, intent(in)                             :: snapwave, store_vegetation   
+   logical, intent(in)                             :: snapwave, nonhydrostatic, store_vegetation   
    !
    real*4,             dimension(:),   allocatable :: dxr
    real*4,             dimension(:),   allocatable :: dyr
@@ -94,7 +94,7 @@ contains
    endif
    !
    if (quadtree_netcdf) then
-      call quadtree_read_file_netcdf(qtrfile, snapwave, store_vegetation)
+      call quadtree_read_file_netcdf(qtrfile, snapwave, nonhydrostatic, store_vegetation)
    else
       call quadtree_read_file_binary(qtrfile)
    endif
@@ -295,14 +295,14 @@ contains
    end subroutine
 
 
-   subroutine quadtree_read_file_netcdf(qtrfile, snapwave, store_vegetation)
+   subroutine quadtree_read_file_netcdf(qtrfile, snapwave, nonhydrostatic, store_vegetation)
    !
    ! Reads quadtree file from netcdf file
    !
    implicit none
    !
    character*256, intent(in) :: qtrfile
-   logical, intent(in)       :: snapwave, store_vegetation
+   logical, intent(in)       :: snapwave, nonhydrostatic, store_vegetation
    !
    integer*1 :: iversion
    integer   :: np, ip, iepsg, status
@@ -426,6 +426,35 @@ contains
          NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%snapwave_veg_Nstems_varid,  quadtree_snapwave_veg_Nstems(:,:)))
          !
       endif      
+   endif
+   !
+   ! Nonhydrostatic mask
+   allocate(quadtree_nonh_mask(np))
+   !
+   ! First set all mask points to 1 
+   quadtree_nonh_mask = 1
+   ! Note, irregular points will be set to 0 in sfincs_domain.f90
+   !
+   if (nonhydrostatic) then
+      !
+      ! Check if a nonh_mask is provided, if not, we keep nonh_mask=1 everywhere
+      ! 
+      status = NF90_INQ_VARID(net_file_qtr%ncid, "nonh_mask", net_file_qtr%nonh_mask_varid)
+      !
+      ! Check the status
+      if (status /= NF90_NOERR) then  
+         !
+         call write_log('Warning: variable nonh_mask does not exist in the quadtree file, values set to 1 everywhere !', 1)
+         !
+      else
+         !
+         NF90(nf90_inq_varid(net_file_qtr%ncid, 'nonh_mask',  net_file_qtr%nonh_mask_varid))
+         !
+         ! Read from file and overwrite
+         NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%nonh_mask_varid,  quadtree_nonh_mask(:)))         
+         !
+      endif      
+      !
    endif
    !
    ! Read attibute (should read EPSG code here ?)
