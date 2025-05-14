@@ -52,7 +52,7 @@ module snapwave_infragravity
         write(logstr,*)'Depth set back to 5 meters for stability, simulation will continue.'
         call write_log(logstr, 1)   
         !        
-        depth = 5.0
+        !depth = 5.0
     endif	
     !
     call compute_herbers(hsig, Tm01, Tm10, Tp, Tpsmooth, hsinc, tpinc, scoeff, jonswapgam, depth, correctHm0) ![out,out,out,out,out, in,in,in,in,in,in]

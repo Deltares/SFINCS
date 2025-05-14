@@ -476,6 +476,8 @@ contains
    snapwave_Fx                    = Fx * rho * depth
    snapwave_Fy                    = Fy * rho * depth
    !
+   write(*,*)'rho',rho,'depth',depth,'Fx',Fx,'snapwave_Fx',snapwave_Fx,'Fy',Fy,'snapwave_Fy',snapwave_Fy
+   !
    ! Wave periods from SnapWave, used in e.g. wavemakers - TL: moved behind call update_boundary_conditions & compute_wave_field so values at first timestep are not 0
    snapwave_tpmean = tpmean_bwv
    !
