@@ -71,7 +71,12 @@ contains
    precip  = .false.
    patmos  = .false.
    meteo3d = .false.
-   include_boundaries = .false.   
+   !
+   boundaries_in_mask = .false.
+   water_level_boundaries_in_mask = .false.
+   outflow_boundaries_in_mask = .false.
+   downstream_river_boundaries_in_mask = .false.
+   neumann_boundaries_in_mask = .false.
    !
    if (spwfile(1:4) /= 'none' .or. wndfile(1:4) /= 'none' .or. amufile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       !
@@ -767,8 +772,8 @@ contains
             ! Flags to describe uv point 
             !
             uv_flags_iref(ip)                  = z_flags_iref(nm) 
-            uv_flags_dir(ip)                   = 0 ! u point
-            uv_flags_type(ip)                  = -1! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
+            uv_flags_dir(ip)                   = 0  ! u point
+            uv_flags_type(ip)                  = -1 ! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
             !
          endif
          !
@@ -1362,8 +1367,8 @@ contains
       m    = z_index_z_m(nm)
       iref = z_flags_iref(nm)
       !
-      z_xz(nm) = x0 + cosrot*(1.0*(m - 0.5))*dxr(iref) - sinrot*(1.0*(n - 0.5))*dyr(iref)
-      z_yz(nm) = y0 + sinrot*(1.0*(m - 0.5))*dxr(iref) + cosrot*(1.0*(n - 0.5))*dyr(iref)
+      z_xz(nm) = x0 + cosrot * (1.0 * (m - 0.5)) * dxr(iref) - sinrot * (1.0 * (n - 0.5)) * dyr(iref)
+      z_yz(nm) = y0 + sinrot * (1.0 * (m - 0.5)) * dxr(iref) + cosrot * (1.0 * (n - 0.5)) * dyr(iref)
       !
    enddo
    !
@@ -1741,12 +1746,23 @@ contains
    !
    ! First count number of boundary cells
    !
+   ! kcs = 2 : water level
+   ! kcs = 3 : outflow
+   ! kcs = 5 : river
+   ! kcs = 6 : lateral (coastal, dzs/dx = 0.0), in which case we set kcuv = 6 and we do not add this point to the boundary u/v points ! We do add this point to the grid boundary points (later on).
+   !
    ngbnd = 0
+   !
    do nm = 1, np
-      if (kcs(nm)==2 .or. kcs(nm)==3) then
+      if (kcs(nm) == 2 .or. kcs(nm) == 3 .or. kcs(nm) == 5 .or. kcs(nm) == 6) then
          !
-         include_boundaries = .true.
+         boundaries_in_mask = .true.
          ngbnd = ngbnd + 1
+         !
+         if (kcs(nm) == 2) water_level_boundaries_in_mask = .true.
+         if (kcs(nm) == 3) outflow_boundaries_in_mask = .true.
+         if (kcs(nm) == 5) downstream_river_boundaries_in_mask = .true.
+         if (kcs(nm) == 6) neumann_boundaries_in_mask = .true.
          !
       endif
    enddo
@@ -1756,7 +1772,12 @@ contains
    allocate(nmindbnd(ngbnd))
    allocate(zsb(ngbnd))
    allocate(zsb0(ngbnd))
-   allocate(ibndtype(ngbnd)) ! 0 for outflow boundary, 1 for regular boundary
+   !
+   if (neumann_boundaries_in_mask) then
+      !
+      ! Need nm indices of internal points (let's do this in sfincs_boundary.f90)
+      !      
+   endif   
    !
    zsb  = 0.0  ! Total water level at boundary grid point
    zsb0 = 0.0  ! Filtered water level at boundary grid point
@@ -1767,35 +1788,19 @@ contains
    !
    do nm = 1, np
       !
-      if (kcs(nm)==2 .or. kcs(nm)==3) then
+      if (kcs(nm) == 2 .or. kcs(nm) == 3 .or. kcs(nm) == 5 .or. kcs(nm) == 6) then
          !
          ! This is a boundary point
          !
          ngbnd = ngbnd + 1
          nmindbnd(ngbnd) = nm
          !
-         ! Determine whether this is a regular or outflow grid point
-         !
-         if (kcs(nm)==2) then
-            !
-            ! Regular boundary point
-            !
-            ibndtype(ngbnd) = 1
-            !
-         else
-            !
-            ! Outflow boundary point (set kcs back to 2)
-            !
-            ibndtype(ngbnd) = 0
-!            kcs(nm) = 2
-            !
-         endif   
       endif
    enddo
    !
    ! UV boundary points
    !
-   nkcuv2 = 0 ! Number of points with kcuv=2
+   nkcuv2 = 0 ! Number of points with kcuv=2 or kcuv=6
    kcuv   = 0
    !
    do ip = 1, npuv
@@ -1803,25 +1808,46 @@ contains
       nm  = uv_index_z_nm(ip)
       nmu = uv_index_z_nmu(ip)
       !
-      if (kcs(nm)>1 .and. kcs(nmu)>1)  then
+      if (kcs(nm) > 1 .and. kcs(nmu) > 1)  then
          !
          ! Two surrounding boundary points
          !
-         kcuv(ip) = 0 ! Is this really necessary
+         kcuv(ip) = 0 ! Is this really necessary ?
          !
-      elseif (kcs(nm)*kcs(nmu) == 0) then
-            !
-            ! One or two surrounding inactive points, so make this velocity point inactive
-            !
-            kcuv(ip) = 0
-            !
-      elseif ((kcs(nm)==1 .and. kcs(nmu)>1) .or. (kcs(nm)>1 .and. kcs(nmu)==1))  then
+      elseif (kcs(nm) * kcs(nmu) == 0) then
          !
-         ! One surrounding boundary points, so make this velocity point a boundary point
+         ! One or two surrounding inactive points, so make this velocity point inactive
+         !
+         kcuv(ip) = 0
+         !
+      elseif ((kcs(nm) == 1 .and. kcs(nmu) == 2) .or. (kcs(nm) == 2 .and. kcs(nmu) == 1))  then
+         !
+         ! One surrounding water level boundary point, so make this velocity point a boundary point
          !
          kcuv(ip) = 2
          nkcuv2 = nkcuv2 + 1
          !
+      elseif ((kcs(nm) == 1 .and. kcs(nmu) == 3) .or. (kcs(nm) == 3 .and. kcs(nmu) == 1))  then
+         !
+         ! One surrounding outflow boundary point, so make this velocity point a boundary point
+         !
+         kcuv(ip) = 2
+         nkcuv2 = nkcuv2 + 1
+         !
+      elseif ((kcs(nm) == 1 .and. kcs(nmu) == 5) .or. (kcs(nm) == 5 .and. kcs(nmu) == 1))  then
+         !
+         ! One surrounding downstream river boundary point, so make this velocity point a boundary point
+         !
+         kcuv(ip) = 2
+         nkcuv2 = nkcuv2 + 1
+         !
+      elseif ((kcs(nm) == 1 .and. kcs(nmu) == 6) .or. (kcs(nm) == 6 .and. kcs(nmu) == 1))  then
+         !
+         ! Lateral coastal boundary
+         !
+         kcuv(ip) = 6
+         nkcuv2 = nkcuv2 + 1
+         !         
       else
          !
          kcuv(ip) = 1
@@ -1845,7 +1871,7 @@ contains
    !
    do ip = 1, npuv
       !
-      if (kcuv(ip)==2) then
+      if (kcuv(ip) == 2 .or. kcuv(ip) == 6) then
          !
          ikcuv2 = ikcuv2 + 1       ! Counter for kcuv==2 points
          index_kcuv2(ikcuv2) = ip
@@ -1875,13 +1901,16 @@ contains
          !         
          do ib = 1, ngbnd
             !
-            if (nmindbnd(ib)==nmbkcuv2(ikcuv2)) then
+            if (nmindbnd(ib) == nmbkcuv2(ikcuv2)) then
                !
                ibkcuv2(ikcuv2) = ib ! index in grid boundary array of this uv boundary point
                !
-               ! Set water levels for this point (this only happens here)
+               ! Check if this is an outflow boundary (kcs=3)
                !
-               if (ibndtype(ib)==0) then
+               if (kcs(nmindbnd(ib)) == 3) then
+                  !
+                  ! Set water levels for this point (this only happens here, so these do not change throughout the simulation)
+                  !
                   if (subgrid) then
                      zsb0(ib) = subgrid_z_zmin(nmindbnd(ib))
                      zsb(ib)  = zsb0(ib)

@@ -32,11 +32,7 @@ contains
       write(logstr,'(a)')'Info    : reading observation points'
       call write_log(logstr, 0)
       !
-      ok = check_file_exists(obsfile, 'obs file')
-      !
-      if (.not. ok) then
-         return
-      endif   
+      ok = check_file_exists(obsfile, 'Observation points file', .true.)
       !
       open(500, file=trim(obsfile))       
       do while(.true.)
@@ -45,6 +41,7 @@ contains
          nobs = nobs + 1
       enddo
       rewind(500)
+      !
       allocate(xobs(nobs))
       allocate(yobs(nobs))
       allocate(zobs(nobs))
@@ -59,7 +56,7 @@ contains
       allocate(zbobs(nobs))      
       !
       allocate(nmwindobs(nobs))
-      allocate(wobs(4, nobs))
+      ! allocate(wobs(4, nobs))
       !
       allocate(value(2))
       !
@@ -109,7 +106,7 @@ contains
          !
          if (nmq>0) then
             !
-            nm             = index_sfincs_in_quadtree(nmq)
+            nm = index_sfincs_in_quadtree(nmq)
             !
             if (nm > 0) then
                 !
@@ -127,6 +124,7 @@ contains
                 endif
                 !
                 iref = z_flags_iref(nm)
+                !
             endif         
             !
             write(logstr,'(a,i0,a,a,a,i0,a,i0,a,i0,a,i0,a,f0.3)')'Info    : observation point ',iobs,' : "',trim(nameobs(iobs)),'" nm=',nm,' n=',n,' m=',m,' iref=',iref,' z=',zbobs(iobs)

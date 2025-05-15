@@ -1,4 +1,7 @@
 module sfincs_discharges
+   
+   use sfincs_log
+   use sfincs_error
 
 contains
    !
@@ -18,6 +21,8 @@ contains
    !
    integer isrc, itsrc, idrn, nm, m, n, stat, j, iref
    !
+   logical :: ok
+   !
    ! Read discharge points
    !
    nsrc  = 0
@@ -26,6 +31,8 @@ contains
    itsrclast = 1
    !
    if (srcfile(1:4) /= 'none') then
+      !
+      ok = check_file_exists(srcfile, 'Source points file', .true.)
       !
       write(logstr,'(a)')'Info    : reading discharges'
       call write_log(logstr, 0)
@@ -48,6 +55,8 @@ contains
       !
       write(logstr,'(a)')'Info    : reading drainage file'
       call write_log(logstr, 0)
+      !
+      ok = check_file_exists(drnfile, 'Drainage points file', .true.)
       !
       open(501, file=trim(drnfile))
       do while(.true.)
@@ -80,6 +89,8 @@ contains
       close(500)
       !
       ! Read discharge time series
+      !
+      ok = check_file_exists(disfile, 'Discharge time series file', .true.)
       !
       open(502, file=trim(disfile))
       do while(.true.)
