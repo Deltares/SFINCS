@@ -504,6 +504,39 @@ module snapwave_solver
             !
          endif
          !
+         ! Set Neumann boundaries
+         !
+         if (neumannconnected(k) /= 0) then
+            !
+            ! Flip indices around compared to orginal implementation
+            !
+            ! Do we really need all of these?
+            !
+            kn = neumannconnected(k) ! Index of internal point
+            !
+            sinhkh(k) = sinhkh(kn)
+            kwav(k) = kwav(kn)
+            Hmx(k) = Hmx(kn)
+            ee(:, k) = ee(:, kn)
+            ee_ig(:, k) = ee_ig(:, kn)
+            ctheta(:, k) = ctheta(:, kn)
+            cg(k) = cg(kn)
+            !
+            if (wind) then
+               !
+               sig(k) = sig(kn)
+               Tp(k) = 2 * pi / sig(kn)
+               WsorE(:,k) = WsorE(:,kn)
+               WsorA(:,k) = WsorA(:,kn)
+               aa(:,k) = aa(:,kn)
+               !
+            endif
+            !
+            Df(kn) = Df(kn)
+            Dw(kn) = Dw(kn)
+            !
+         endif
+         !
       enddo      
       !
       if (sweep == 1) then
@@ -821,30 +854,6 @@ module snapwave_solver
                ee_ig(:, k) = 0.0
                !               
             endif 
-            !
-         endif
-         !
-         if (neumannconnected(k) /= 0) then
-            !
-            kn = neumannconnected(k)
-            sinhkh(kn) = sinhkh(k)
-            kwav(kn) = kwav(k)
-            Hmx(kn) = Hmx(k)
-            ee(:, kn) = ee(:, k)
-            ee_ig(:, kn) = ee_ig(:, k)
-            ctheta(:, kn) = ctheta(:, k)
-            cg(kn) = cg(k)
-            !
-            if (wind) then
-               sig(kn) = sig(k)
-               Tp(kn) = 2 * pi / sig(k)
-               WsorE(:,kn) = WsorE(:,k)
-               WsorA(:,kn) = WsorA(:,k)
-               aa(:,kn) = aa(:,k)
-            endif
-            !
-            Df(kn) = Df(k)
-            Dw(kn) = Dw(k)
             !
          endif
          !

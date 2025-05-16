@@ -176,7 +176,7 @@ contains
             !
             ! Shallower than runup_gauge_depth
             !
-            exit
+            !exit
             !
          endif
          !

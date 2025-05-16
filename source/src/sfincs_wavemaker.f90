@@ -1318,6 +1318,22 @@
       dphiig(ifreq) = 1.0e-6 * 2 * 3.1416 / freqig(ifreq)
    enddo
    !
+   if (wavemaker_hinc) then
+      !
+      allocate(freqinc(nfreqsinc))
+      allocate(costinc(nfreqsinc))
+      allocate(phiinc(nfreqsinc))
+      allocate(dphiinc(nfreqsinc))
+      dfreqinc = (freqmaxinc - freqmininc) / nfreqsinc
+      do ifreq = 1, nfreqsinc
+         freqinc(ifreq) = freqmininc + ifreq * dfreqinc - 0.5 * dfreqinc
+         call RANDOM_NUMBER(r)
+         phiinc(ifreq) = r * 2 * 3.1416
+         dphiinc(ifreq) = 1.0e-6 * 2 * 3.1416 / freqinc(ifreq)
+      enddo
+      !
+   endif   
+   !
    end subroutine
 
 
@@ -1330,11 +1346,12 @@
    !
    implicit none
    !
-   integer ib, nmi, nmb, iuv, ip, ifreq, itb, itb0, itb1
-   real*4  hnmb, dt, zsnmi, zsnmb, zs0nmb, zwav
+   integer ib, nmi, nmb, iuv, ip, ifreq, itb, itb0, itb1, kst
+   real*4  hnmb, dt, zsnmi, zsnmb, zs0nmb, zwav, zwav_inc
    real*4  alpha, beta
    real*8  t, tb
-   real*4 tbfac, hs, tp, tpsum, setup, fm, a
+   real*4  tbfac, hs, tp_ig, tp_inc, tpsum, setup, fm_ig, a, fm_inc
+   real*4  wave_steepness, betas, zinc, zig, dwvm, ztot, hm0_inc
    !
    real*4 ui, ub, dzuv, facint, zsuv, depthuv, uvm0
    !
@@ -1352,13 +1369,13 @@
       !
       ! Interpolate boundary conditions in time
       !
-      if (wmf_time(1)>t - 1.0e-3) then ! use first time in boundary conditions
+      if (wmf_time(1) > t - 1.0e-3) then ! use first time in boundary conditions
          !
          itb0 = 1
          itb1 = 1
          tb   = wmf_time(itb0)
          !
-      elseif (wmf_time(ntwmfp)<t + 1.0e-3) then  ! use last time in boundary conditions       
+      elseif (wmf_time(ntwmfp) < t + 1.0e-3) then  ! use last time in boundary conditions       
          !
          itb0 = ntwmfp
          itb1 = ntwmfp
@@ -1367,7 +1384,7 @@
       else
          !
          do itb = itwmfplast, ntwmfp ! Loop in time
-            if (wmf_time(itb)>t + 1.0e-6) then
+            if (wmf_time(itb) > t + 1.0e-6) then
                itb0 = itb - 1
                itb1 = itb
                tb   = t
@@ -1378,88 +1395,134 @@
          !
       endif            
       !
-      tbfac  = (tb - wmf_time(itb0))/max(wmf_time(itb1) - wmf_time(itb0), 1.0e-6)
+      tbfac  = (tb - wmf_time(itb0)) / max(wmf_time(itb1) - wmf_time(itb0), 1.0e-6)
       !
       tpsum = 0.0
       !
       do ib = 1, nwmfp ! Loop along forcing points
          !
-         hs    = wmf_hm0_ig(ib, itb0) + (wmf_hm0_ig(ib, itb1) - wmf_hm0_ig(ib, itb0))*tbfac
-         tp    = wmf_tp_ig(ib, itb0)  + (wmf_tp_ig(ib, itb1)  - wmf_tp_ig(ib, itb0))*tbfac
-         setup = wmf_setup(ib, itb0)  + (wmf_setup(ib, itb1)  - wmf_setup(ib, itb0))*tbfac
+         hs    = wmf_hm0_ig(ib, itb0) + (wmf_hm0_ig(ib, itb1) - wmf_hm0_ig(ib, itb0)) * tbfac
+         tp_ig = wmf_tp_ig(ib, itb0)  + (wmf_tp_ig(ib, itb1)  - wmf_tp_ig(ib, itb0)) * tbfac
+         setup = wmf_setup(ib, itb0)  + (wmf_setup(ib, itb1)  - wmf_setup(ib, itb0)) * tbfac
          !
          wmf_hm0_ig_t(ib) = hs
          wmf_setup_t(ib)  = setup
          !
-         tpsum = tpsum + tp
+         tpsum = tpsum + tp_ig
          !
       enddo
       !
-      tp = tpsum / nwmfp ! Take average Tp from boundary points
+      tp_ig = tpsum / nwmfp ! Take average Tp from boundary points
+      tp_inc = 10.0 ! update this!
       !
    else
       !
       ! Use mean peak period from SnapWave boundary conditions
       !
-      tp = snapwave_tpigmean ! TL: Now calculated in SnapWave, different options for using a period based on Herbers spectrum (snapwave_tpig_opt, if snapwave_use_herbers=1, or user defined snapwave_Tinc2ig ratio (if snapwave_use_herbers = 0)
+      tp_ig = snapwave_tpigmean ! TL: Now calculated in SnapWave, different options for using a period based on Herbers spectrum (snapwave_tpig_opt, if snapwave_use_herbers=1, or user defined snapwave_Tinc2ig ratio (if snapwave_use_herbers = 0)
       !
-      ! We may want to use Herbers for computation of IG waves in SnapWave, but we want to have control over peak IG period at wave makers
+      ! We may want to use Herbers for computation of IG waves in SnapWave, but we want to have control over peak IG period at wave makers.
       !
       if (wavemaker_Tinc2ig > 0.0) then
          !
          ! Use factor on mean Tp_inc at boundaries
          !
-         tp = snapwave_tpmean * wavemaker_Tinc2ig
+         tp_ig = snapwave_tpmean * wavemaker_Tinc2ig
+         !
+      elseif (wavemaker_surfslope > 0.0) then ! Dean a
+         !
+         ! Estimate surfzone slope from Dean's a, using gambr = 1.0
+         !
+         betas = snapwave_hsmean / (snapwave_hsmean / (1.0 * wavemaker_surfslope))**(3.0 / 2.0)
+         !
+         wave_steepness = snapwave_hsmean / (1.56 * snapwave_tpmean**2)
+         !
+         ! From empirical run-up equation (van Ormondt et al., 2021), but slightly adjusted
+         !
+         tp_ig = snapwave_tpmean * max(1.86 * betas**-0.43 * wave_steepness**0.07, 5.0)
          !
       endif
+      !
+      tp_inc = max(snapwave_tpmean, wavemaker_tpmin)
       ! 
    endif      
    !
-   alpha   = min(dt / wmtfilter, 1.0)
-   beta    = min(dt / (0.2 * wmtfilter), 1.0)
+   ! Factors for double-exponential filtering
+   !
+   alpha = min(dt / wmtfilter, 1.0)
+   beta  = min(dt / (0.2 * wmtfilter), 1.0)
+   !
+   zwav = 0.0
+   zwav_inc = 0.0
    !
    if (wavemaker_spectrum) then
       !
-      ! First update phases
-      !
-      do ifreq = 1, nfreqsig
-         !
-         phiig(ifreq) = phiig(ifreq) + dphiig(ifreq)*dt
-         costig(ifreq) = cos(2 * pi * t * freqig(ifreq) + phiig(ifreq))
-         !
-      enddo
-      !
-      fm = 1.0 / tp ! Wave period
+      fm_ig = 1.0 / tp_ig ! Wave period
       !
       ! Now spectrum and wave excitation
       !
-      zwav = 0.0
-      !      
       do ifreq = 1, nfreqsig
          !
-         ! The ISSC spectrum (also known as Bretschneider or modified Pierson-Moskowitz)
+         ! Update phase
          !
-         !a = 2 * 0.3125 * (fm**4) * (freqig(ifreq)**-5) * (exp(-1.25 * (freqig(ifreq) / fm)**-4))
+         phiig(ifreq) = phiig(ifreq) + dphiig(ifreq) * dt
+         costig(ifreq) = cos(2 * pi * t * freqig(ifreq) + phiig(ifreq))         
          !
          ! Use this spectral shape instead
          !
-         a = 0.125 * (fm**-2) * freqig(ifreq) * (exp(-freqig(ifreq) / fm))
+         a = 0.125 * (fm_ig**-2) * freqig(ifreq) * (exp(-freqig(ifreq) / fm_ig))
          !
          zwav = zwav + costig(ifreq) * sqrt(a * dfreqig)
          !
       enddo
       !
+      if (wavemaker_hinc) then
+         !
+         fm_inc = 1.0 / tp_inc ! Wave period
+         !
+         do ifreq = 1, nfreqsig
+            !
+            phiinc(ifreq) = phiinc(ifreq) + dphiinc(ifreq) * dt
+            costinc(ifreq) = cos(2 * pi * t * freqinc(ifreq) + phiinc(ifreq))
+            !
+            ! The ISSC spectrum (also known as Bretschneider or modified Pierson-Moskowitz)
+            !
+            a = 0.625 * (fm_inc**4) * (freqinc(ifreq)**-5) * (exp(-1.25 * (freqinc(ifreq) / fm_inc)**-4))
+            !
+            zwav_inc = zwav_inc + costinc(ifreq) * sqrt(a * dfreqinc)            
+            !
+         enddo
+         !
+         !zwav_inc = 0.5 * sin(2 * pi * t / tp_inc)
+         !
+         ! Saw tooth
+         !
+         !zwav_inc = - mod(t, tp_inc) / tp_inc + 0.5
+         !
+         ! Let zwav_inc be modulated by zwav_ig (i.e. higher incident waves at the peaks of the IG wave)
+         !
+         zwav_inc = zwav_inc * sqrt(zwav + 1.0) ! this assumes zwav is somewhere between -0.5 and +0.5
+         !
+      endif   
+      !
    else
       !
       ! Monochromatic signal
       !
-      zwav = 0.5 * sin(2 * pi * t / tp)
+      zwav = 0.5 * sin(2 * pi * t / tp_ig)
+      !
+      if (wavemaker_hinc) then
+         !
+         zwav_inc = 0.5 * sin(2 * pi * t / tp_inc)
+         !
+      endif   
       !
    endif   
    !
    if (t<tspinup) then
       !
-      zwav = zwav * (t - t0)/(tspinup - t0)
+      zwav = zwav * (t - t0) / (tspinup - t0)
+      zwav_inc = zwav_inc * (t - t0) / (tspinup - t0)
       !
    endif      
    !
@@ -1494,8 +1557,29 @@
          !
          ! Take wave height from SnapWave
          !
-         zs0nmb = zs(nmb)                     ! average water level inside model without waves (this should be zs)
-         zsnmb  = zs0nmb + zwav * hm0_ig(nmb) ! total water level in wave maker (i.e. mean water level plus wave)
+         zs0nmb = zs(nmb) ! average water level inside model without waves
+         !         
+         zig    = wavemaker_hm0_ig_factor * zwav * hm0_ig(nmb)
+         !
+         ! Compute water depth including IG wave
+         !
+         if (subgrid) then
+            dwvm   = max(zs0nmb + zig - subgrid_z_zmax(nmb), 0.0) ! depth at wave maker
+         else
+            dwvm   = max(zs0nmb + zig - zb(nmb), 0.0) ! depth at wave maker
+         endif
+         !
+         ! Limit incident wave height
+         !
+         zinc = min(wavemaker_hm0_inc_factor * hm0(nmb) * zwav_inc,  wavemaker_gammax * dwvm)
+         !
+         !ztot   = wavemaker_hm0_ig_factor * zwav * hm0_ig(nmb) + wavemaker_hm0_inc_factor * zwav_inc * hm0(nmb)
+         !
+         !zinc   = min(zinc,  wavemaker_gammax * dwvm) ! Limit incident wave height to dwvm
+         ! zig    = min(zig,   wavemaker_gammax * dwvm)
+         !ztot   = zinc + zig ! Limit total wave height to dwvm
+         !
+         zsnmb  = zs0nmb + zig + zinc ! total water level in wave maker (i.e. mean water level plus wave)
          !
       endif   
       !
@@ -1503,20 +1587,20 @@
          !
          zsuv = max(zsnmb, zsnmi)
          !
-         if (zsuv>=subgrid_uv_zmax(ip) - 1.0e-3) then
+         if (zsuv >= subgrid_uv_zmax(ip) - 1.0e-3) then
             !
             ! Entire cell is wet, no interpolation from table needed
             !
             depthuv  = subgrid_uv_havg_zmax(ip) + zsuv
             !
-         elseif (zsuv>subgrid_uv_zmin(ip)) then
+         elseif (zsuv > subgrid_uv_zmin(ip)) then
             !
             ! Interpolation required
             !            
             dzuv    = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nlevels - 1)
-            iuv     = int((zsuv - subgrid_uv_zmin(ip))/dzuv) + 1
-            facint  = (zsuv - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv
-            depthuv = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint
+            iuv     = int((zsuv - subgrid_uv_zmin(ip)) / dzuv) + 1
+            facint  = (zsuv - (subgrid_uv_zmin(ip) + (iuv - 1) * dzuv) ) / dzuv
+            depthuv = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip)) * facint
             !
          else
             !
@@ -1524,7 +1608,7 @@
             !
          endif
          !
-         hnmb   = max(depthuv, huthresh)
+         hnmb   = depthuv
          zsnmb  = max(zsnmb,  subgrid_z_zmin(nmb))
          zs0nmb = max(zs0nmb, subgrid_z_zmin(nmb))
          !
@@ -1538,7 +1622,7 @@
       !
       ! Weakly reflective boundary
       !
-      if (hnmb<huthresh) then
+      if (hnmb < huthresh + 1.0e-3) then ! huthresh has been set to 0.0 in case of subgrid, so add small number to avoid zero division
          !
          ! Very shallow
          !
@@ -1547,10 +1631,10 @@
          !
       else
          !
-         ui = sqrt(g/hnmb)*(zsnmb - zs0nmb)
-         ub = wavemaker_idir(ib) * (2*ui - sqrt(g/hnmb)*(zsnmi - zs0nmb)) * wavemaker_angfac(ib)
+         ui = sqrt(g / hnmb) * (zsnmb - zs0nmb)
+         ub = wavemaker_idir(ib) * (2*ui - sqrt(g / hnmb) * (zsnmi - zs0nmb)) * wavemaker_angfac(ib)
          !
-         q(ip) = ub*hnmb + wavemaker_uvmean(ib)
+         q(ip) = ub * hnmb + wavemaker_uvmean(ib)
          !
       endif
       !

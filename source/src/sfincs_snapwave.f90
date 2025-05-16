@@ -35,6 +35,7 @@ module sfincs_snapwave
    integer*4, dimension(:),   allocatable    :: index_snapwave_in_sfincs
    integer*4, dimension(:),   allocatable    :: index_sfincs_in_snapwave
    integer*4, dimension(:),   allocatable    :: index_sw_in_qt ! used in sfincs_ncoutput (copy of index_snapwave_in_quadtree from snapwave_data)
+   real*4                                    :: snapwave_hsmean
    real*4                                    :: snapwave_tpmean
    real*4                                    :: snapwave_tpigmean   
    !
@@ -123,6 +124,7 @@ contains
       snapwave_u10dir = 0.0
    endif
    !
+   snapwave_hsmean = 0.0
    snapwave_tpmean = 0.0
    snapwave_tpigmean = 0.0   
    !   
@@ -507,6 +509,8 @@ contains
    snapwave_Fy                    = Fy * rho * depth
    !
    ! Wave periods from SnapWave, used in e.g. wavemakers - TL: moved behind call update_boundary_conditions & compute_wave_field so values at first timestep are not 0
+   !
+   snapwave_hsmean = hsmean_bwv
    snapwave_tpmean = tpmean_bwv
    !
    ! Do quick check whether incoming Tpig value seems realistic, before using it:

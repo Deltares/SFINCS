@@ -355,6 +355,7 @@ contains
       !
       ! There are downstream river boundaries, so we need indices, weights and distances of upstream points
       !
+      allocate(slope_gbp(ngbnd))
       allocate(nm_nbr_gbp(3, ngbnd))
       allocate(w_nbr_gbp(3, ngbnd))
       allocate(d_nbr_gbp(3, ngbnd))
@@ -776,6 +777,7 @@ contains
          !         
          do iw = 1, 3
             !
+!            write(*,*)ib,iw,nm_nbr_gbp(iw, ib),w_nbr_gbp(iw, ib)
             nm = nm_nbr_gbp(iw, ib) ! nm index of internal neighbor
             !
             if (nm > 0) then
@@ -788,7 +790,7 @@ contains
                   if (zs(nm) < zb(nmb) + huthresh) cycle
                endif
                !
-               zst = zst + w_nbr_gbp(iw, ib) * (zs(nm) - slope_gbp(ib) * w_nbr_gbp(iw, ib))
+               zst = zst + w_nbr_gbp(iw, ib) * (zs(nm) - slope_gbp(ib) * d_nbr_gbp(iw, ib))
                sumw = sumw + w_nbr_gbp(iw, ib)
                !
             endif
@@ -914,7 +916,7 @@ contains
             !
          else
             !
-            hnmb   = max(0.5*(zsnmb + zsnmi) - zbuv(ip), huthresh)
+            hnmb   = max(0.5 * (zsnmb + zsnmi) - zbuv(ip), huthresh)
             zsnmb  = max(zsnmb,  zb(nmb))
             zs0nmb = max(zs0nmb, zb(nmb))
             !

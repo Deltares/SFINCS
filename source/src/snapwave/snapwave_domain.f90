@@ -46,9 +46,13 @@ contains
       ! Quadtree file
       !
       if (coupled_to_sfincs) then
+         !
          call read_snapwave_quadtree_mesh(.false.) ! no need to read qtr file again
+         !
       else
+         !
          call read_snapwave_quadtree_mesh(.true.)
+         !
       endif
       !
    elseif (ext=='tx') then
@@ -304,26 +308,9 @@ contains
    if (any(msk == 3)) then
       !
       ! We already have all msk=3 Neumann points, now find each their nearest cell 'neumannconnected' using new 'neuboundaries_light'
-      call neuboundaries_light(x,y,msk,no_nodes,tol,neumannconnected) 
       !
-      if (ANY(neumannconnected > 0)) then
-          !
-          write(logstr,*)'SnapWave: Neumann connected boundaries found ...'
-          call write_log(logstr, 0)          
-          !
-          do k=1,no_nodes
-              if (neumannconnected(k)>0) then
-                  if (msk(k)==1) then
-                      ! k is inner and can be neumannconnected
-                      inner(neumannconnected(k))= .false.
-                      msk(neumannconnected(k)) = 3 !TL: should already by 3, but left it like in SnapWave SVN
-                  else
-                      ! we don't allow neumannconnected links if the node is an open boundary
-                      neumannconnected(k) = 0  
-                  endif
-              endif
-        enddo
-      endif
+      call neuboundaries_light(x, y, msk, no_nodes, neumannconnected) 
+      !
    else
       !
       neumannconnected = 0       
@@ -602,7 +589,7 @@ contains
           dhdx(kn)=0.
           dhdy(kn)=0.
       endif
-      !write(*,*)'fmgsp 2',kn, no_nodes,isp,isp2
+      !
    enddo
    !
    end subroutine
@@ -797,81 +784,58 @@ contains
    
    end subroutine boundaries            
          
-   subroutine neuboundaries_light(x,y,msk,no_nodes,tol,neumannconnected)
+   subroutine neuboundaries_light(x, y, msk, no_nodes, neumannconnected)
    ! 
    ! TL: Based on subroutine find_nearest_depth_for_boundary_points of snapwave_boundaries.f90
    !
    implicit none
    !
    integer, intent(in)                        :: no_nodes
-   real*8, dimension(no_nodes), intent(in)    :: x,y
+   real*8, dimension(no_nodes), intent(in)    :: x, y
    integer*1, dimension(no_nodes), intent(in) :: msk   
-   real*4, intent(in)                         :: tol
    integer, dimension(no_nodes), intent(out)  :: neumannconnected   
    !
-    real*4  :: h1, h2, fac
-    !
-    real xgb, ygb, dst1, dst2, dst   
-    integer k, ib1, ib2, ic, kmin
-    !
-    ! Loop through all msk=3 cells
-    !
-    do ic = 1, no_nodes    
-        ! Loop through all grid points
-        !
-        if (msk(ic)==3) then ! point ic is on the neumann boundary       
+   real xgb, ygb, dst1, dst   
+   integer k, ib1, ic
+   !
+   ! Loop through all msk=3 cells
+   !
+   do ic = 1, no_nodes    
+      !
+      ! Loop through all grid points
+      !
+      if (msk(ic) == 3) then ! point ic is on the neumann boundary       
+         !
+         dst1 = 1.0e9
+         ib1 = 0
+         !        
+         do k = 1, no_nodes 
             !
-	        dst1 = tol
-     	    dst2 = tol            
-	        ib1 = 0
-	        ib2 = 0
-            !        
-            do k = 1, no_nodes
-                !
-                if (msk(k)==1) then 
-	                xgb = x(k)
-	                ygb = y(k)          
-	                !
-	                dst = sqrt((x(ic) - xgb)**2 + (y(ic) - ygb)**2)
-	                !
-	                if (dst<dst1) then
-		                !
-		                ! Nearest point found
-		                !
-		                dst2 = dst1
-		                ib2  = ib1
-		                dst1 = dst
-		                ib1  = k
-		                !
-	                elseif (dst<dst2) then
-		                !
-		                ! Second nearest point found
-		                !
-		                dst2 = dst
-		                ib2  = k
-		                !                    
-                    endif  
-                endif 
-            enddo
-            !
-            if ( (ib1 > 0) .and. (ib2 > 0) ) then
-                !
-                ! Determine the index of the minimum value, if points found within 'tol' distance
-                !
-                if (dst1 < dst2) then
-                    kmin = ib1
-                else
-                    kmin = ib2
-                endif
-                !
-                neumannconnected(kmin)=ic
-                !
-                !write(*,*)kmin,ic       
-                !
-            endif
-            !     
-        endif
-    enddo       
+            if (msk(k) == 1) then
+               !
+               xgb = x(k)
+               ygb = y(k)          
+               !
+               dst = sqrt((x(ic) - xgb)**2 + (y(ic) - ygb)**2)
+               !
+               if (dst < dst1) then
+                  !
+                  ! Nearest point found
+  	               !
+                  dst1 = dst
+                  ib1  = k
+                  !
+               endif  
+            endif 
+         enddo
+         !
+         if (ib1 > 0) then
+            neumannconnected(ic) = ib1
+         endif   
+         !     
+      endif
+      !
+   enddo       
    !
    end subroutine neuboundaries_light
 
@@ -1191,6 +1155,7 @@ end subroutine neuboundaries
    allocate(msk_tmp(quadtree_nr_points))  ! Make temporary mask with all quadtree points
    allocate(msk_tmp2(quadtree_nr_points)) ! Make second temporary mask with all quadtree points
    allocate(zb_tmp(quadtree_nr_points))   ! Make temporary array with bed level on all quadtree points
+   !
    zb_tmp   = -10.0
    !
    msk_tmp  = 1 ! Without mask file, all points will be active
@@ -1256,7 +1221,9 @@ end subroutine neuboundaries
    !
    ! STEP 4 - Make faces
    !
-   allocate(faces(4, 4*quadtree_nr_points)) ! max 4 nodes per faces, and max 4 faces per node
+   allocate(faces(4, 4 * quadtree_nr_points)) ! max 4 nodes per faces, and max 4 faces per node
+   !
+   faces = 0
    !
    nfaces = 0
    !   
@@ -1465,7 +1432,6 @@ end subroutine neuboundaries
             !
             ! Type 1 - Most normal cell possible
             !
-!            write(*,'(a,20i6)')'ip,mu,nu,mnu,mu1,nu1,mnu1',ip,mu,nu,mnu,mu1,nu1,mnu1
             if (mu1>0 .and. nu1>0 .and. mnu1>0) then
                nfaces = nfaces + 1
                faces(1, nfaces) = ip
@@ -2099,7 +2065,6 @@ end subroutine neuboundaries
          !
          ! Set node values
          !
-!         zb(nac)  = zb_tmp(ip)
          zb(nac)  = quadtree_zz(ip)
          x(nac)   = quadtree_xz(ip)
          y(nac)   = quadtree_yz(ip)
@@ -2115,7 +2080,7 @@ end subroutine neuboundaries
    !
    do iface = 1, no_faces
       do j = 1, 4
-         if (faces(j, iface)>0) then
+         if (faces(j, iface) > 0) then
             ip0 = faces(j, iface)                 ! index in full quadtree
             ip1 = index_snapwave_in_quadtree(ip0) ! index in reduced quadtree
             face_nodes(j, iface) = ip1            ! set index to that of reduced mesh            

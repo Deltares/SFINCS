@@ -103,6 +103,10 @@ module sfincs_data
       real*4 nh_tol
       real*4 runup_gauge_depth
       !
+      real*4 freqmininc
+      real*4 freqmaxinc
+      integer nfreqsinc
+      !
       real*4 freqminig
       real*4 freqmaxig
       integer nfreqsig
@@ -240,8 +244,9 @@ module sfincs_data
       logical       :: use_uv
       logical       :: wavemaker
       logical       :: wavemaker_mobile
+      logical       :: wavemaker_hinc      
       logical       :: use_quadtree
-      LOGICAL       :: use_quadtree_output
+      logical       :: use_quadtree_output
       logical       :: interpolate_zst
       logical       :: advection
       logical       :: thetasmoothing            
@@ -437,6 +442,11 @@ module sfincs_data
       integer*4, dimension(:), allocatable :: z_index_wavemaker
       real*4                               :: wavemaker_freduv      
       real*4                               :: wavemaker_Tinc2ig
+      real*4                               :: wavemaker_surfslope
+      real*4                               :: wavemaker_hm0_ig_factor
+      real*4                               :: wavemaker_hm0_inc_factor
+      real*4                               :: wavemaker_gammax
+      real*4                               :: wavemaker_tpmin
       logical                              :: wavemaker_spectrum
       !
       ! Wave maker time series
@@ -637,18 +647,13 @@ module sfincs_data
       !real*4, dimension(:),     allocatable :: l0t_bwv
       !real*4, dimension(:),     allocatable :: wdt_bwv
       !
-      ! cst points (should remove these?)
+      ! Incident frequencies (for wave makers)
       !
-      !integer                               :: ncst
-      !real*4, dimension(:),     allocatable :: x_cst
-      !real*4, dimension(:),     allocatable :: y_cst
-      !real*4, dimension(:),     allocatable :: slope_cst
-      !real*4, dimension(:),     allocatable :: angle_cst
-      !real*4, dimension(:),     allocatable :: zsetup_cst
-      !real*4, dimension(:),     allocatable :: zig_cst
-      !real*4, dimension(:),     allocatable :: fac_bwv_cst
-      !integer*4, dimension(:),  allocatable :: ind1_bwv_cst
-      !integer*4, dimension(:),  allocatable :: ind2_bwv_cst
+      real*4, dimension(:),     allocatable :: freqinc
+      real*4, dimension(:),     allocatable :: costinc
+      real*4, dimension(:),     allocatable :: phiinc
+      real*4, dimension(:),     allocatable :: dphiinc
+      real*4                                :: dfreqinc
       !
       ! IG frequencies (for wave makers)
       !

@@ -89,6 +89,9 @@ contains
    call read_int_input(500,'nfreqsig',nfreqsig,100)
    call read_real_input(500,'freqminig',freqminig,0.0)
    call read_real_input(500,'freqmaxig',freqmaxig,0.1)
+   call read_int_input(500,'nfreqsinc',nfreqsinc,100)
+   call read_real_input(500,'freqmininc',freqmininc,0.04)
+   call read_real_input(500,'freqmaxinc',freqmaxinc,1.0)
    call read_real_input(500,'latitude',latitude,0.0)
    call read_real_input(500,'pavbnd',pavbnd,0.0)
    call read_real_input(500,'gapres',gapres,101200.0)
@@ -118,6 +121,11 @@ contains
    call read_real_input(500,'wmfred',wavemaker_freduv,0.99)
    call read_char_input(500,'wmsignal',wmsigstr,'spectrum')
    call read_real_input(500,'wavemaker_tinc2ig', wavemaker_Tinc2ig, -1.0)   
+   call read_real_input(500,'wavemaker_surfslope', wavemaker_surfslope, -1.0)   
+   call read_real_input(500,'wavemaker_hm0_ig_factor', wavemaker_hm0_ig_factor, 1.0)   
+   call read_real_input(500,'wavemaker_hm0_inc_factor', wavemaker_hm0_inc_factor, 1.0)   
+   call read_real_input(500,'wavemaker_gammax', wavemaker_gammax, 1.0)   
+   call read_real_input(500,'wavemaker_tpmin', wavemaker_tpmin, 1.0)   
    call read_char_input(500,'advection_scheme',advstr,'upw1')   
    call read_real_input(500,'btrelax',btrelax,3600.0)
    call read_logical_input(500,'wiggle_suppression', wiggle_suppression, .true.)
@@ -138,6 +146,7 @@ contains
    call read_int_input(500, 'nh_itermax', nh_itermax, 100)
    call read_logical_input(500, 'h73table', h73table, .false.)   
    call read_real_input(500, 'rugdepth', runup_gauge_depth, 0.05)
+   call read_logical_input(500, 'wavemaker_hinc', wavemaker_hinc, .false.)  
    !
    ! Domain
    !

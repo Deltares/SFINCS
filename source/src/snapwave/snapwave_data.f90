@@ -100,6 +100,7 @@ module snapwave_data
    !
    integer                                     :: nwbnd                   ! number of support points wave boundary 
    integer                                     :: ntwbnd                  ! number of time points wave boundary 
+   real*4                                      :: hsmean_bwv              ! mean wave height over boundary points for given time
    real*4                                      :: tpmean_bwv              ! mean tp over boundary points for given time
    real*4                                      :: wdmean_bwv              ! mean wave direction for given time, used to make theta grid
    real*4                                      :: zsmean_bwv              ! mean water level for given time, used to make theta grid

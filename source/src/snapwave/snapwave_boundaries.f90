@@ -475,7 +475,7 @@ subroutine update_boundary_conditions(t)
    if (ntwbnd > 0) then
       call make_theta_grid(wdmean_bwv)
    else
-      thetamean=u10dmean
+      thetamean = u10dmean
       call make_theta_grid(u10dmean)
    endif 
    !
@@ -553,30 +553,36 @@ subroutine update_boundary_points(t)
       !zst = zs_bwv(ib, itb0) + (zs_bwv(ib, itb1) - zs_bwv(ib, itb0))*tbfac
       !
       ! Limit wave height (0 < hs < 25)
-      !       
+      !
       if ((hs < 0.0) .or. (hs > 25.0)) then
-      	  write(logstr,*)'DEBUG SnapWave - input wave height is outside acceptable range of 0-25 m: ',hs, ' and is therefore limited back to this range, please check whether your input is realistic!'
-          call write_log(logstr, 1)
-          !
-          hs = max(min(hs, 25.0), 0.0)
+         !
+      	write(logstr,*)'DEBUG SnapWave - input wave height is outside acceptable range of 0-25 m: ',hs, ' and is therefore limited back to this range, please check whether your input is realistic!'
+         call write_log(logstr, 1)
+         !
+         hs = max(min(hs, 25.0), 0.0)
+         !
       endif  
       !
       ! Limit directional spreading (1 < ds < 60)
       !       
       if ((dsp < 3*pi/180) .or. (dsp > 90*pi/180)) then  
-      	  write(logstr,*)'DEBUG SnapWave - input wave spreading is outside acceptable range of 3-90 degrees: ',dsp/pi*180, ' and is therefore limited back to this range, please check whether your input is realistic!'
-          call write_log(logstr, 1)          
-          !          
-          dsp = max(min(dsp, 90*pi/180), 3*pi/180)
+         !
+      	write(logstr,*)'DEBUG SnapWave - input wave spreading is outside acceptable range of 3-90 degrees: ',dsp/pi*180, ' and is therefore limited back to this range, please check whether your input is realistic!'
+         call write_log(logstr, 1)          
+         !
+         dsp = max(min(dsp, 90*pi/180), 3*pi/180)
+         !
       endif      
       !
       ! Limit period (0.1 < tps < 25)
       !       
       if ((tps < 0.1) .or. (tps > 25.0)) then
-      	  write(logstr,*)'DEBUG SnapWave - input wave period is outside acceptable range of 0.1-25 s: ',tps, ' and is therefore limited back to this range, please check whether your input is realistic!'
-          call write_log(logstr, 1)          
-          !
-          tps = max(min(tps, 25.0), 0.1)
+         !
+         write(logstr,*)'DEBUG SnapWave - input wave period is outside acceptable range of 0.1-25 s: ',tps, ' and is therefore limited back to this range, please check whether your input is realistic!'
+         call write_log(logstr, 1)          
+         !
+         tps = max(min(tps, 25.0), 0.1)
+         !         
       endif      
       !
       call weighted_average(wd_bwv(ib, itb0), wd_bwv(ib, itb1), 1.0 - tbfac, 2, wd)  !wavdir
@@ -585,48 +591,19 @@ subroutine update_boundary_points(t)
       tpt_bwv(ib) = tps                  
       wdt_bwv(ib) = wd
       dst_bwv(ib) = dsp
-      !zst_bwv(ib) = zst
       !
    enddo
-   !
-!   do itb = itwbndlast, ntwbnd ! Loop in time
-!      !
-!      if (t_bwv(itb)>t) then
-!         !
-!         tbfac  = (t - t_bwv(itb - 1))/(t_bwv(itb) - t_bwv(itb - 1))
-!         !
-!         do ib = 1, nwbnd ! Loop along boundary points
-!            !
-!            hs    = hs_bwv(ib, itb - 1) + (hs_bwv(ib, itb) - hs_bwv(ib, itb - 1))*tbfac
-!            tps   = tp_bwv(ib, itb - 1) + (tp_bwv(ib, itb) - tp_bwv(ib, itb - 1))*tbfac
-!            dsp    = ds_bwv(ib, itb - 1) + (ds_bwv(ib, itb) - ds_bwv(ib, itb - 1))*tbfac    !dirspr
-!            zst    = zs_bwv(ib, itb - 1) + (zs_bwv(ib, itb) - zs_bwv(ib, itb - 1))*tbfac  
-!            !
-!            call weighted_average(wd_bwv(ib, itb - 1), wd_bwv(ib, itb), 1.0 - tbfac, 2, wd)  !wavdir
-!            !
-!            hst_bwv(ib) = hs
-!            tpt_bwv(ib) = tps                  
-!            wdt_bwv(ib) = wd
-!            dst_bwv(ib) = dsp
-!            zst_bwv(ib) = zst
-!            !
-!         enddo
-!         !
-!         itwbndlast = itb
-!         exit
-!         !
-!      endif
-!   enddo
    !
    ! Now generate wave spectra at the boundary points
    !
    ! Average wave period and direction to determine theta grid
    !
-   tpmean_bwv = sum(tpt_bwv)/size(tpt_bwv)
+   tpmean_bwv = sum(tpt_bwv) / size(tpt_bwv)
+   hsmean_bwv = sum(hst_bwv) / size(hst_bwv)
    !zsmean_bwv = sum(zst_bwv)/size(zst_bwv)
    !depth      = max(zsmean_bwv - zb,hmin) ! TL: For SFINCS we don't want this, because it overrides the real updated water depth we're inserting
    depth      = max(depth,hmin)
-   wdmean_bwv = atan2(sum(sin(wdt_bwv)*hst_bwv)/sum(hst_bwv), sum(cos(wdt_bwv)*hst_bwv)/sum(hst_bwv))
+   wdmean_bwv = atan2(sum(sin(wdt_bwv) * hst_bwv) / sum(hst_bwv), sum(cos(wdt_bwv) * hst_bwv) / sum(hst_bwv))
    !
    ! Determine IG boundary conditions
    !
@@ -634,7 +611,8 @@ subroutine update_boundary_points(t)
       ! 
       if (igherbers) then 
          !
-         ! Get local water depth at boundary points (can change in time)        
+         ! Get local water depth at boundary points (can change in time)
+         !
          call find_nearest_depth_for_boundary_points() ! Output is: deptht_bwv    
          !
          do ib = 1, nwbnd ! Loop along boundary points
@@ -668,7 +646,7 @@ subroutine update_boundary_points(t)
    ind = nint(thetamean / dtheta) + 1
    !
    do itheta = 1, ntheta
-!      i360(itheta) = mod2(itheta + ind - 10, 36)
+      !      i360(itheta) = mod2(itheta + ind - 10, 36)
       i360(itheta) = mod2(itheta + ind - (1 + ntheta / 2), ntheta * 2)
    enddo
    !
@@ -700,6 +678,7 @@ subroutine update_boundary_points(t)
    enddo
    !
    ! Build IG spectra on wave boundary support points   
+   !
    if (igwaves) then   
       if (igherbers) then 
           do ib = 1, nwbnd ! Loop along boundary points    
