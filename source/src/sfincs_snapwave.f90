@@ -181,10 +181,14 @@ contains
    integer :: ipsw, ipsf, iq, ip
    !
    real*4  :: xsw, ysw, dstmin, dst
+   !
+   logical :: nearest_warning
    !   
    allocate(index_sfincs_in_snapwave(snapwave_no_nodes))
    allocate(index_snapwave_in_sfincs(np))
    allocate(index_sw_in_qt(quadtree_nr_points))
+   !
+   nearest_warning = .false.
    !
    index_sfincs_in_snapwave = 0
    index_snapwave_in_sfincs = 0
@@ -215,6 +219,8 @@ contains
                ipsf = ip
                dstmin = dst
                !
+               nearest_warning = .true. ! to print warning to screen that 'extrapolation' is performed
+               !
             endif
             !
          enddo
@@ -234,6 +240,12 @@ contains
       ipsw = index_snapwave_in_quadtree(iq)
       index_snapwave_in_sfincs(ipsf) = ipsw
    enddo   
+   !
+   ! Print warning message
+   !
+   if (nearest_warning) then
+      call write_log('Info   : some SnapWave node(s) do not have a matching SFINCS point, so water depth and wind conditions from the nearest SFINCS point within 1000 km are used for SnapWave calculation', 1)
+   endif   
    !
    end subroutine
 
