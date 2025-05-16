@@ -240,7 +240,7 @@ contains
    ! Print warning message
    !
    if (nearest_warning) then
-      call write_log('Warning   : some SnapWave node(s) do not have a matching SFINCS point, so water depth and wind conditions from the nearest SFINCS point within 1000 km are used for SnapWave calculation', 1)
+      call write_log('Info   : some SnapWave node(s) do not have a matching SFINCS point, so water depth and wind conditions from the nearest SFINCS point within 1000 km are used for SnapWave calculation', 1)
    endif   
    !
    end subroutine
