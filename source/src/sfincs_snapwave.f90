@@ -175,11 +175,17 @@ contains
    integer, dimension(snapwave_no_nodes),  intent(in) :: index_quadtree_in_snapwave
    integer, dimension(quadtree_nr_points), intent(in) :: index_snapwave_in_quadtree
    !
-   integer :: ipsw, ipsf, iq
+   integer :: ipsw, ipsf, iq, ip
    !
+   real*4  :: xsw, ysw, dstmin, dst
+   !
+   logical :: nearest_warning
+   !   
    allocate(index_sfincs_in_snapwave(snapwave_no_nodes))
    allocate(index_snapwave_in_sfincs(np))
    allocate(index_sw_in_qt(quadtree_nr_points))
+   !
+   nearest_warning = .false.
    !
    index_sfincs_in_snapwave = 0
    index_snapwave_in_sfincs = 0
@@ -190,8 +196,37 @@ contains
    do ipsw = 1, snapwave_no_nodes
       iq   = index_quadtree_in_snapwave(ipsw)
       ipsf = index_sfincs_in_quadtree(iq)
+      !
+      if (ipsf == 0) then
+         !
+         ! SFINCS not active at this SnapWave node, so find the nearest SFINCS point
+         !
+         xsw = quadtree_xz(iq)
+         ysw = quadtree_yz(iq)
+         !
+         dstmin = 1.0e6
+         !
+         do ip = 1, np
+            !
+            dst = sqrt((z_xz(ip) - xsw)**2 + (z_yz(ip) - ysw)**2)
+            !
+            if (dst < dstmin) then
+               !
+               ipsf = ip
+               dstmin = dst
+               !
+               nearest_warning = .true. ! to print warning to screen that 'extrapolation' is performed
+               !
+            endif
+            !
+         enddo
+         !
+      endif
+      !
       index_sfincs_in_snapwave(ipsw) = ipsf
+      !
       index_sw_in_qt(iq) = ipsw
+      !
    enddo   
    !
    ! Loop through SFINCS points
@@ -201,6 +236,12 @@ contains
       ipsw = index_snapwave_in_quadtree(iq)
       index_snapwave_in_sfincs(ipsf) = ipsw
    enddo   
+   !
+   ! Print warning message
+   !
+   if (nearest_warning) then
+      call write_log('Info   : some SnapWave node(s) do not have a matching SFINCS point, so water depth and wind conditions from the nearest SFINCS point within 1000 km are used for SnapWave calculation', 1)
+   endif   
    !
    end subroutine
 
