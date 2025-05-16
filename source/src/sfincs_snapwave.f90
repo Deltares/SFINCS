@@ -175,7 +175,9 @@ contains
    integer, dimension(snapwave_no_nodes),  intent(in) :: index_quadtree_in_snapwave
    integer, dimension(quadtree_nr_points), intent(in) :: index_snapwave_in_quadtree
    !
-   integer :: ipsw, ipsf, iq
+   integer :: ipsw, ipsf, iq, ip
+   !
+   real*4  :: xsw, ysw, dstmin, dst
    !
    allocate(index_sfincs_in_snapwave(snapwave_no_nodes))
    allocate(index_snapwave_in_sfincs(np))
@@ -190,8 +192,35 @@ contains
    do ipsw = 1, snapwave_no_nodes
       iq   = index_quadtree_in_snapwave(ipsw)
       ipsf = index_sfincs_in_quadtree(iq)
+      !
+      if (ipsf == 0) then
+         !
+         ! SFINCS not active at this SnapWave node, so find the nearest SFINCS point
+         !
+         xsw = quadtree_xz(iq)
+         ysw = quadtree_yz(iq)
+         !
+         dstmin = 1.0e6
+         !
+         do ip = 1, np
+            !
+            dst = sqrt((z_xz(ip) - xsw)**2 + (z_yz(ip) - ysw)**2)
+            !
+            if (dst < dstmin) then
+               !
+               ipsf = ip
+               dstmin = dst
+               !
+            endif
+            !
+         enddo
+         !
+      endif
+      !
       index_sfincs_in_snapwave(ipsw) = ipsf
+      !
       index_sw_in_qt(iq) = ipsw
+      !
    enddo   
    !
    ! Loop through SFINCS points
