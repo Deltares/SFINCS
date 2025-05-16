@@ -499,8 +499,8 @@ In which t is time, K is the saturated hydraulic conductivity, delta_theta is de
 Within SFINCS, the Green-Ampt method can be used as follows. The user needs to provide the following variables. For a range of typically values see Table 1. For all variables, one needs to specify these values per cell with the same grid based input as the depfile using a binary file:
 
 * ksfile: saturated hydraulic conductivity in mm/hr
-* sigmafile: suction head at the wetting front in mm
-* sifile: soil moisture deficit in [-]
+* sigmafile: soil moisture deficit in [-]
+* psifile: suction head at the wetting front in mm
 
 Using the saturated hydraulic conductivity, recovery variables such as the moisture deficit recovery constant (kr), depth of upper soil recovery zone (Lu) and minimum recovery time before a new rainfall event occurs (hours) are computed similar to SWMM. The Green-Ampt method has not been implemented yet in hydromt-SFINCS. 
 
