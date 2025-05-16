@@ -404,16 +404,28 @@ module snapwave_solver
    enddo
    !   
    ! Set inner to false for all points at grid edge or adjacent to dry point
+   !
    do k=1,no_nodes
+      ! 
       do itheta = 1, ntheta
          !
          k1 = prev(1, itheta, k)
          k2 = prev(2, itheta, k)
-         if (k1*k2==0) then
-             inner(k)=.false.
-         !elseif (depth(k1)<1.1*hmin .or. depth(k2)<1.1*hmin .or. (k1==1 .and. k2==1)) then
-         !    inner(k)=.false.
-             !exit
+         !
+         if (k1 * k2 == 0) then
+            !
+            ! No upwind point (is this check not already done somewhere before?)
+            !
+            inner(k) = .false.
+            !
+         elseif (depth(k1) < hmin .or. depth(k2) < hmin .or. (k1 == 1 .and. k2 == 1)) then
+            !
+            ! Do not change inner here! It should be static! In a next update of the wave fields, these points may be wet.
+            !
+            !inner(k) = .false.
+            !
+            !exit
+            !
          endif
       enddo
    enddo
