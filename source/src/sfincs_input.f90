@@ -147,6 +147,7 @@ contains
    call read_logical_input(500, 'h73table', h73table, .false.)   
    call read_real_input(500, 'rugdepth', runup_gauge_depth, 0.05)
    call read_logical_input(500, 'wavemaker_hinc', wavemaker_hinc, .false.)  
+   call read_logical_input(500, 'wave_enhanced_roughness', wave_enhanced_roughness, .false.)  
    !
    ! Domain
    !

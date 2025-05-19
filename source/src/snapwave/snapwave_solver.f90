@@ -636,6 +636,9 @@ module snapwave_solver
                      ! Baldock may expect Hs so multiply H and Hmax with baldock_hrms2hs (sqrt(2))
                      !
                      call baldock(rho, g, alfa, gamma, depth(k), Hk * baldock_hrms2hs, 2*pi/sig(k) , baldock_option, Dwk, Hmx(k) * baldock_hrms2hs)
+         if (k==6399) then
+            write(*,'(i8,20e16.6)')k, rho, g, alfa, gamma, depth(k), Hk * baldock_hrms2hs, 2*pi/sig(k) , baldock_option, Dwk, Hmx(k) * baldock_hrms2hs
+         endif
                      !
                   else
                      !
@@ -913,6 +916,9 @@ module snapwave_solver
          thetam(k) = atan2(sum(ee(:, k) * sin(theta)), sum(ee(:, k) * cos(theta)))
          !
          F(k) = Dw(k) * kwav(k) / sig(k) / rho / depth(k)
+         if (k==6399) then
+            write(*,*)H(k),Dw(k),depth(k),F(k)
+         endif
          !
          if (igwaves) then
             !

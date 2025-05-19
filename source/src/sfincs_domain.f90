@@ -2671,6 +2671,18 @@ contains
       !
    endif
    !
+   if (wave_enhanced_roughness) then
+      !
+      write(*,*)'allocating uorb'
+      !
+      allocate(uorb(np))
+      allocate(gnapp2(npuv))
+      !
+      uorb = 0.0      
+      gnapp2 = 0.0
+      !
+   endif   
+   !
    end subroutine
 
 

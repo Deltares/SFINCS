@@ -261,6 +261,7 @@ module sfincs_data
       logical       :: store_dynamic_bed_level
       logical       :: nonhydrostatic
       logical       :: h73table
+      logical       :: wave_enhanced_roughness
       !!!
       !!! sfincs_input.f90 switches
       !!!
@@ -551,6 +552,8 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: zs0
       real*4, dimension(:),   allocatable :: zsderv
       real*4, dimension(:),   allocatable, target :: qext
+      real*4, dimension(:),   allocatable, target :: uorb
+      real*4, dimension(:),   allocatable :: gnapp2
       !
       real*4, dimension(:),   allocatable :: tauwu
       real*4, dimension(:),   allocatable :: tauwv
