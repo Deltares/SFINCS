@@ -463,6 +463,8 @@ module snapwave_solver
    !
    do iter = 1, niter * 4
       !
+      write(*,*)'iter=',iter
+      !
       sweep = mod(iter, 4) !TODO - TL: problem that we don't have option for sweep = 1 anymore?
       !
       if (sweep == 0) then
@@ -484,6 +486,11 @@ module snapwave_solver
          !
          E(k)      = sum(ee(:, k)) * dtheta
          H(k)      = sqrt(8 * E(k) / rho / g)
+
+         if (k==6399) then
+            write(*,'(a,i8,20e16.6)')'H(k)',k,H(k)
+         endif
+         
          !
          if (igwaves) then
             !
@@ -578,6 +585,10 @@ module snapwave_solver
             Ek = E(k)
             Hk = H(k)
             !
+            if (k==6399) then
+               write(*,'(a,i8,20e16.6)')'H(k)_v2',k,H(k)
+            endif
+            !
             if (igwaves) then
                !
                Ek_ig = E_ig(k)
@@ -665,6 +676,9 @@ module snapwave_solver
                   Df(k) = Dfk
                   Dw(k) = Dwk
                   Dveg(k) = Dvegk            
+         if (k==6399) then
+            write(*,'(a,i8,20e16.6)')'Dwk',k, Dwk, Dw(k)
+         endif
                   !
                   do itheta = 1, ntheta
                      !
@@ -916,6 +930,7 @@ module snapwave_solver
          thetam(k) = atan2(sum(ee(:, k) * sin(theta)), sum(ee(:, k) * cos(theta)))
          !
          F(k) = Dw(k) * kwav(k) / sig(k) / rho / depth(k)
+         !
          if (k==6399) then
             write(*,*)H(k),Dw(k),depth(k),F(k)
          endif
