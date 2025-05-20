@@ -114,6 +114,7 @@ contains
    allocate(Cg(no_nodes))
    allocate(sinhkh(no_nodes))
    allocate(Hmx(no_nodes))
+   allocate(DoverE(no_nodes))
    allocate(fw(no_nodes))
    allocate(H(no_nodes))
    allocate(Tp(no_nodes))   
@@ -211,6 +212,7 @@ contains
    WsorA  = 0.0
    SwE    = 0.0
    SwA    = 0.0
+   DoverE = 0.0
    windspreadfac = 0.0   
    !
    generate_upw = .true.

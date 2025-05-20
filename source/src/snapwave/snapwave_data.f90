@@ -62,6 +62,7 @@ module snapwave_data
    real*4,  dimension(:),       allocatable    :: Hmx_ig
    real*4,  dimension(:,:),     allocatable    :: ee                      ! directional energy density
    real*4,  dimension(:,:),     allocatable    :: ee_ig                   ! directional infragravity energy density
+   real*4,  dimension(:),       allocatable    :: DoverE
    !
    real*4,  dimension(:,:),     allocatable    :: aa                      ! directional action density
    real*4,  dimension(:),       allocatable    :: sig                     ! mean frequency

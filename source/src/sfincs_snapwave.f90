@@ -239,7 +239,7 @@ contains
       iq   = index_quadtree_in_sfincs(ipsf)
       ipsw = index_snapwave_in_quadtree(iq)
       index_snapwave_in_sfincs(ipsf) = ipsw
-      if (ipsf==20209) write(*,*)'snapwave',index_snapwave_in_sfincs(ipsf)
+      !if (ipsf==16513) write(*,*)'snapwave',ipsw
    enddo   
    !
    ! Print warning message

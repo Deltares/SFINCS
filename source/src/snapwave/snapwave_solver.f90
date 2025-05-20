@@ -148,7 +148,7 @@ module snapwave_solver
                                          Hmx, ee, windspreadfac, u10, niter, crit, &
                                          hmin, baldock_ratio, baldock_ratio_ig, &
                                          aa, sig, jadcgdx, sigmin, sigmax,&
-                                         c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
+                                         c_dispT, DoverE, WsorE, WsorA, SwE, SwA, Tpini, &
                                          igwaves, kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
                                          beta, srcig, alphaig, Dw_ig, Df_ig, &
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
@@ -162,6 +162,7 @@ module snapwave_solver
    end subroutine
    
    
+   
    subroutine solve_energy_balance2Dstat(x,y,dhdx, dhdy, no_nodes,inner, &
                                          w, ds, prev,   &
                                          neumannconnected,       &
@@ -173,7 +174,7 @@ module snapwave_solver
                                          Hmx, ee, windspreadfac, u10, niter, crit, &
                                          hmin, baldock_ratio, baldock_ratio_ig, &       
                                          aa, sig, jadcgdx, sigmin, sigmax,&
-                                         c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
+                                         c_dispT, DoverE, WsorE, WsorA, SwE, SwA, Tpini, &
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
                                          betamean, srcig, alphaig, Dw_ig, Df_ig, &       
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
@@ -243,6 +244,7 @@ module snapwave_solver
    real*4, intent(in)                                  :: sigmin, sigmax, c_dispT
    real*4, dimension(ntheta, no_nodes), intent(in)     :: windspreadfac        !< [-] distribution array for wind input
    real*4, dimension(ntheta,no_nodes),  intent(inout)  :: aa    
+   real*4, dimension(no_nodes),         intent(inout)  :: DoverE
    real*4, dimension(ntheta,no_nodes),  intent(out)    :: WsorE, WsorA
    real*4, dimension(no_nodes),         intent(out)    :: SwE, SwA
    real*4, dimension(no_nodes),         intent(inout)  :: sig
@@ -280,7 +282,6 @@ module snapwave_solver
    real*4, dimension(:), allocatable          :: A,B,C,R                ! coefficients in the tridiagonal matrix solved per point
    real*4, dimension(:), allocatable          :: B_aa,R_aa,aaprev       ! coefficients in the tridiagonal matrix solved per point
    real*4, dimension(:), allocatable          :: A_ig,B_ig,C_ig,R_ig    ! coefficients in the tridiagonal matrix solved per point
-   real*4, dimension(:), allocatable          :: DoverE                 ! ratio of mean wave dissipation over mean wave energy
    real*4, dimension(:), allocatable          :: DoverA                 ! ratio of mean wave dissipation over mean wave energy
    real*4, dimension(:), allocatable          :: DoverE_ig              ! ratio of mean wave dissipation over mean wave energy
    real*4, dimension(:), allocatable          :: E                      ! mean wave energy
@@ -293,7 +294,7 @@ module snapwave_solver
    real*4                                     :: pi = 4.*atan(1.0)
    real*4                                     :: g=9.81
    real*4                                     :: hmin                   ! minimum water depth! TL: make user changeable also here according to 'snapwave_hmin' in sfincs.inp   
-   real*4                                     :: fac=1.0             ! underrelaxation factor for DoverA
+   real*4                                     :: fac=0.25             ! underrelaxation factor for DoverA
    real*4                                     :: oneoverdt
    real*4                                     :: oneover2dtheta
    real*4                                     :: rhog8
@@ -331,7 +332,7 @@ module snapwave_solver
    ! Allocate local arrays
    !
    waveps = 0.0001
-   baldock_option = 2 ! 1 or 2, 2 avoids insufficient dissipation at steep coasts
+   baldock_option = 1 ! 1 or 2, 2 avoids insufficient dissipation at steep coasts
    !baldock_hrms2hs = sqrt(2.0) ! or use 1.0 for original implementation
    baldock_hrms2hs = 1.0
    !
@@ -345,7 +346,7 @@ module snapwave_solver
    allocate(B(ntheta)); B=0.0
    allocate(C(ntheta)); C=0.0
    allocate(R(ntheta)); R=0.0
-   allocate(DoverE(no_nodes)); DoverE=0.0
+   !allocate(DoverE(no_nodes)); DoverE=0.0
    allocate(E(no_nodes)); E=waveps
    allocate(Eold(no_nodes)); Eold=0.0   
    !
@@ -393,9 +394,9 @@ module snapwave_solver
    if (dtheta < 0.0) dtheta = dtheta + 2*pi
    !
    if (wind) then
-      sig         = 2*pi/Tpini
+      sig         = 2 * pi / Tpini
    else
-      sig         = 2*pi/Tp
+      sig         = 2 * pi / Tp
    endif
    !
    oneoverdt      = 1.0 / dt
@@ -463,7 +464,7 @@ module snapwave_solver
    !
    do iter = 1, niter * 4
       !
-      write(*,*)'iter=',iter
+      ! write(*,*)'iter=',iter
       !
       sweep = mod(iter, 4) !TODO - TL: problem that we don't have option for sweep = 1 anymore?
       !
@@ -477,20 +478,17 @@ module snapwave_solver
       !
       do k = 1, no_nodes
          !
+         if (ok(k) == 1) cycle
+         !
          ee(:,k)   = max(ee(:, k), waveps)
          !
          ! Limit energy with gammax
          !
          depthlimfac = max(1.0, (sqrt(sum(ee(:, k)) * dtheta / rhog8) / (gammax * depth(k)) )**2.0)
-         ee(:,k)   = ee(:,k) / depthlimfac
+!         ee(:,k)   = ee(:,k) / depthlimfac
          !
          E(k)      = sum(ee(:, k)) * dtheta
          H(k)      = sqrt(8 * E(k) / rho / g)
-
-         if (k==6399) then
-            write(*,'(a,i8,20e16.6)')'H(k)',k,H(k)
-         endif
-         
          !
          if (igwaves) then
             !
@@ -585,9 +583,10 @@ module snapwave_solver
             Ek = E(k)
             Hk = H(k)
             !
-            if (k==6399) then
-               write(*,'(a,i8,20e16.6)')'H(k)_v2',k,H(k)
-            endif
+!            if (k==6399) then
+!            if (k==5492) then
+!               write(*,'(a,i8,20e16.6)')'H(k)_v2',k,H(k)
+!            endif
             !
             if (igwaves) then
                !
@@ -642,14 +641,17 @@ module snapwave_solver
                   !
                   ! Wave breaking
                   !
+                  ! if (.not. inner(k1)) write(*,'(a,i8,20e16.6)')'H(k)_v2',k,H(k)
+                  !
                   if (Hk > baldock_ratio * Hmx(k)) then
                      !
                      ! Baldock may expect Hs so multiply H and Hmax with baldock_hrms2hs (sqrt(2))
                      !
-                     call baldock(rho, g, alfa, gamma, depth(k), Hk * baldock_hrms2hs, 2*pi/sig(k) , baldock_option, Dwk, Hmx(k) * baldock_hrms2hs)
-         if (k==6399) then
-            write(*,'(i8,20e16.6)')k, rho, g, alfa, gamma, depth(k), Hk * baldock_hrms2hs, 2*pi/sig(k) , baldock_option, Dwk, Hmx(k) * baldock_hrms2hs
-         endif
+                     call baldock(rho, g, alfa, gamma, depth(k), Hk * baldock_hrms2hs, 2 * pi / sig(k) , baldock_option, Dwk, Hmx(k) * baldock_hrms2hs)
+                     !
+                     !if (k==6399) then
+                     !   write(*,'(i8,20e16.6)')k, rho, g, alfa, gamma, depth(k), Hk * baldock_hrms2hs, 2*pi/sig(k) , baldock_option, Dwk, Hmx(k) * baldock_hrms2hs
+                     !endif
                      !
                   else
                      !
@@ -669,16 +671,18 @@ module snapwave_solver
                      !
                   endif
                   !
-                  DoverE(k) = (Dwk + Dfk + Dvegk) / max(Ek, 1.0e-6)
+                  !DoverE(k) = (Dwk + Dfk + Dvegk) / max(Ek, 1.0e-6)
+                  DoverE(k) = (1.0 - fac) * DoverE(k) + fac * (Dwk + Dfk + Dvegk) / max(Ek, 1.0e-6)
                   !
                   ! Store dissipation terms for output
                   !
                   Df(k) = Dfk
                   Dw(k) = Dwk
-                  Dveg(k) = Dvegk            
-         if (k==6399) then
-            write(*,'(a,i8,20e16.6)')'Dwk',k, Dwk, Dw(k)
-         endif
+                  Dveg(k) = Dvegk
+                  !
+                  !if (k==6399) then
+                  !   write(*,'(a,i8,20e16.6)')'Dwk',k, Dwk, Dw(k)
+                  !endif
                   !
                   do itheta = 1, ntheta
                      !
@@ -885,9 +889,13 @@ module snapwave_solver
             dee     = ee(:, k) - eeold(:, k)
             diff(k) = maxval(abs(dee))
             !
+            !
             if (diff(k) / eemax < crit) then
                ok(k) = 1
             endif   
+            !if (k==6399) then
+            !   write(*,*)diff(k) / eemax,crit,ok(k)
+            !endif
             !
          enddo
          !
@@ -903,12 +911,12 @@ module snapwave_solver
          write(logstr,'(a,i6,a,f10.5,a,f7.2)')'   iteration ', iter / 4 ,' error = ', error,'   %ok = ', percok
          call write_log(logstr, 0)         
          !
-         if (error<crit) then
+         if (error < crit) then
             write(logstr,'(a,i6,a,f10.5,a,f7.2)')'   converged at iteration ', iter / 4 ,' error = ',error,'   %ok = ', percok
             call write_log(logstr, 0)            
             exit
          else
-            if (iter == niter) then !made it to the end without reaching 'error<crit', still want output
+            if (iter == niter * 4) then !made it to the end without reaching 'error<crit', still want output
                write(logstr,'(a,i6,a,f10.5,a,f7.2)')'    ended at iteration ', iter / 4 ,' error = ', error,'   %ok = ', percok
                call write_log(logstr, 0)                
             endif
@@ -930,10 +938,6 @@ module snapwave_solver
          thetam(k) = atan2(sum(ee(:, k) * sin(theta)), sum(ee(:, k) * cos(theta)))
          !
          F(k) = Dw(k) * kwav(k) / sig(k) / rho / depth(k)
-         !
-         if (k==6399) then
-            write(*,*)H(k),Dw(k),depth(k),F(k)
-         endif
          !
          if (igwaves) then
             !
