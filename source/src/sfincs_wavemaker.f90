@@ -1501,7 +1501,7 @@
          !
          ! Let zwav_inc be modulated by zwav_ig (i.e. higher incident waves at the peaks of the IG wave)
          !
-         zwav_inc = zwav_inc * sqrt(zwav + 1.0) ! this assumes zwav is somewhere between -0.5 and +0.5
+         zwav_inc = zwav_inc * sqrt(max(zwav + 1.0, 0.0)) ! this assumes zwav is somewhere between -0.5 and +0.5
          !
       endif   
       !
@@ -1524,7 +1524,7 @@
       zwav = zwav * (t - t0) / (tspinup - t0)
       zwav_inc = zwav_inc * (t - t0) / (tspinup - t0)
       !
-   endif      
+   endif
    !
    !$acc kernels present( wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, &
    !$acc                  zs, q, hm0_ig, zb, zbuv, &

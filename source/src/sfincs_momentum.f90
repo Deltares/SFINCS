@@ -582,10 +582,6 @@
                !
                frc = frc + phi * sign(min(abs(fwuv(ip)), fwmax), fwuv(ip))
                !
-               if (nm==20209) then
-!                  write(*,'(i8,20e16.6)')idir,hu,dzdx,frc,- g * hu * dzdx,phi * sign(min(abs(fwuv(ip)), fwmax), fwuv(ip)) ,fwmax
-               endif
-               !
             endif
             !
             ! Compute flux qfr used for friction term

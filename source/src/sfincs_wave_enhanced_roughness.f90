@@ -9,7 +9,7 @@ contains
    implicit none
    !
    integer :: ip, nm, nmu
-   real*4  :: Uw, Uc, zsu, hu, napp, n_base, cd, cdeff, fenh, uu, vu
+   real*4  :: Uw, Uc, zsu, hu, n_app, n_base, cd, cdeff, fenh, uu, vu
    !
    if (.not. wave_enhanced_roughness) return
    !
@@ -40,21 +40,23 @@ contains
          !
          if (hu < 0.1) cycle
          !
-         ! Use the Grant & Madsen (1979) or Soulsby (1997) formulation
-         !
          ! Base friction factor from Manning's n
          !
          n_base = sqrt(subgrid_uv_navg_w(ip) / g)
          !
          cd = g * n_base**2 / hu**(1.0 / 3.0)
          !
-         ! Limit enhancement of Cd to max 2.0
+         ! Use Ruessink (2001) formulation
          !
-         fenh = min((Uw + Uc) / Uc, 2.0) 
-         cdeff = cd * fenh
-         napp = sqrt(cdeff * hu**(1.0/3.0) / g)
+         ! cdeff = cd * sqrt((1.16*Uw)**2 + Uc**2) / Uc
+         !
+         ! Use the Grant & Madsen (1979) or Soulsby (1997) formulation instead
+         !
+         cdeff = cd * (1.4 * Uw + Uc) / Uc
+         !
+         n_app = sqrt(cdeff * hu**(1.0/3.0) / g)
          !                  
-         gnapp2(ip) = g * napp**2 ! is this the same as feff * hu**(1/3)?
+         gnapp2(ip) = g * n_app**2
          !
       endif
       !

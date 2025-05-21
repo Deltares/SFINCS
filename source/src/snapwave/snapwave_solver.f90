@@ -25,7 +25,7 @@ module snapwave_solver
       allocate(sigm_ig(no_nodes))
       !
       g     = 9.81
-      pi    = 4.*atan(1.)
+      pi    = 4 * atan(1.0)
       !
       call timer(t0)
       !
@@ -35,13 +35,13 @@ module snapwave_solver
          !
          do k = 1, no_nodes
             if (inner(k)) then
-               ee(:,k) = waveps               
+               ee(:, k) = waveps               
             endif
          enddo
          !
          ee_ig = waveps
          !
-         restart=1 !TODO TL: CHECK > we need this turned on right now for IG...
+         restart = 1 !TODO TL: CHECK > we need this turned on right now for IG...
          !
       endif
       !
@@ -65,20 +65,20 @@ module snapwave_solver
       !
       ! Compute celerities and refraction speed
       !
-      Tp      = max(tpmean_bwv,Tpini)   ! to check voor windgroei
+      Tp      = max(tpmean_bwv, Tpini)   ! to check voor windgroei
       sig     = 2.0 * pi / Tp
       Tp_ig   = tpmean_bwv_ig! TL: now determined in snapwave_boundaries.f90 instead of Tinc2ig*Tp
       sigm_ig = 2.0 * pi / Tp_ig !TODO - TL: Question do we want Tp_ig now as contant, or also spatially varying like Tp ?
-      expon   = -(sig * sqrt(depth / g))**(2.5)
-      kwav    = sig**2 / g* (1.0 - exp(expon))**(-0.4)
+      expon   = - (sig * sqrt(depth / g))**2.5
+      kwav    = sig**2 / g * (1.0 - exp(expon))**-0.4
       C       = sig / kwav
       nwav    = 0.5 + kwav * depth / sinh(min(2 * kwav * depth, 50.0))
       Cg      = nwav * C
       !
       if (igwaves) then
          cg_ig   = Cg
-         expon   = -(sigm_ig * sqrt(depth / g))**(2.5)
-         kwav_ig = sig**2 / g * (1.0 - exp(expon))**(-0.4)
+         expon   = -(sigm_ig * sqrt(depth / g))**2.5
+         kwav_ig = sig**2 / g * (1.0 - exp(expon))**-0.4
       else
          cg_ig   = 0.0
          kwav_ig = 0.0 
@@ -129,7 +129,7 @@ module snapwave_solver
       !
       if (igwaves) then
          do k=1, no_nodes
-            ctheta_ig(:,k) = sign(1.0, ctheta_ig(:,k)) * min(abs(ctheta_ig(:, k)), sigm_ig(k) / 4.0)
+            ctheta_ig(:,k) = sign(1.0, ctheta_ig(:,k)) * min(abs(ctheta_ig(:, k)), sigm_ig(k) / 4)
          enddo
       endif
       !
@@ -485,7 +485,7 @@ module snapwave_solver
          ! Limit energy with gammax
          !
          depthlimfac = max(1.0, (sqrt(sum(ee(:, k)) * dtheta / rhog8) / (gammax * depth(k)) )**2.0)
-!         ee(:,k)   = ee(:,k) / depthlimfac
+         ee(:,k)   = ee(:,k) / depthlimfac
          !
          E(k)      = sum(ee(:, k)) * dtheta
          H(k)      = sqrt(8 * E(k) / rho / g)
@@ -583,11 +583,6 @@ module snapwave_solver
             Ek = E(k)
             Hk = H(k)
             !
-!            if (k==6399) then
-!            if (k==5492) then
-!               write(*,'(a,i8,20e16.6)')'H(k)_v2',k,H(k)
-!            endif
-            !
             if (igwaves) then
                !
                Ek_ig = E_ig(k)
@@ -603,7 +598,7 @@ module snapwave_solver
             !
             if (depth(k) > hmin) then
                !
-               if (ok(k) == 0) then ! Only perform computations on wet inner points that are not yet converged (ok)
+               if (ok(k) == 0) then ! Only perform computations on wet inner points that are not yet converged (ok=1)
                   !
                   ! Get upwind data
                   !
@@ -641,17 +636,11 @@ module snapwave_solver
                   !
                   ! Wave breaking
                   !
-                  ! if (.not. inner(k1)) write(*,'(a,i8,20e16.6)')'H(k)_v2',k,H(k)
-                  !
                   if (Hk > baldock_ratio * Hmx(k)) then
                      !
                      ! Baldock may expect Hs so multiply H and Hmax with baldock_hrms2hs (sqrt(2))
                      !
                      call baldock(rho, g, alfa, gamma, depth(k), Hk * baldock_hrms2hs, 2 * pi / sig(k) , baldock_option, Dwk, Hmx(k) * baldock_hrms2hs)
-                     !
-                     !if (k==6399) then
-                     !   write(*,'(i8,20e16.6)')k, rho, g, alfa, gamma, depth(k), Hk * baldock_hrms2hs, 2*pi/sig(k) , baldock_option, Dwk, Hmx(k) * baldock_hrms2hs
-                     !endif
                      !
                   else
                      !
@@ -672,6 +661,9 @@ module snapwave_solver
                   endif
                   !
                   !DoverE(k) = (Dwk + Dfk + Dvegk) / max(Ek, 1.0e-6)
+                  !
+                  ! Re-introduce relaxation
+                  !
                   DoverE(k) = (1.0 - fac) * DoverE(k) + fac * (Dwk + Dfk + Dvegk) / max(Ek, 1.0e-6)
                   !
                   ! Store dissipation terms for output
@@ -679,10 +671,6 @@ module snapwave_solver
                   Df(k) = Dfk
                   Dw(k) = Dwk
                   Dveg(k) = Dvegk
-                  !
-                  !if (k==6399) then
-                  !   write(*,'(a,i8,20e16.6)')'Dwk',k, Dwk, Dw(k)
-                  !endif
                   !
                   do itheta = 1, ntheta
                      !
@@ -911,15 +899,17 @@ module snapwave_solver
          write(logstr,'(a,i6,a,f10.5,a,f7.2)')'   iteration ', iter / 4 ,' error = ', error,'   %ok = ', percok
          call write_log(logstr, 0)         
          !
-         if (error < crit) then
+         if (error < crit .or. percok > 99.99) then
+            !
             write(logstr,'(a,i6,a,f10.5,a,f7.2)')'   converged at iteration ', iter / 4 ,' error = ',error,'   %ok = ', percok
             call write_log(logstr, 0)            
             exit
-         else
-            if (iter == niter * 4) then !made it to the end without reaching 'error<crit', still want output
-               write(logstr,'(a,i6,a,f10.5,a,f7.2)')'    ended at iteration ', iter / 4 ,' error = ', error,'   %ok = ', percok
-               call write_log(logstr, 0)                
-            endif
+            !
+         elseif (iter == niter * 4) then ! Made it to the end without reaching 'error<crit', still want output
+            !
+            write(logstr,'(a,i6,a,f10.5,a,f7.2)')'    ended at iteration ', iter / 4 ,' error = ', error,'   %ok = ', percok
+            call write_log(logstr, 0)                
+            !
          endif
          !
       endif
