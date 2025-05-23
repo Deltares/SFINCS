@@ -48,11 +48,11 @@ contains
          !
          ! Use Ruessink (2001) formulation
          !
-         ! cdeff = cd * sqrt((1.16*Uw)**2 + Uc**2) / Uc
+         cdeff = cd * sqrt((1.16*Uw)**2 + Uc**2) / Uc
          !
          ! Use the Grant & Madsen (1979) or Soulsby (1997) formulation instead
          !
-         cdeff = cd * (1.4 * Uw + Uc) / Uc
+         ! cdeff = cd * (1.4 * Uw + Uc) / Uc
          !
          n_app = sqrt(cdeff * hu**(1.0/3.0) / g)
          !                  

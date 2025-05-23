@@ -313,6 +313,7 @@ module snapwave_solver
    real*4                                     :: Tinc2ig           ! ratio compared to period Tinc to estimate Tig
    real*4                                     :: alphaigfac        ! Multiplication factor for IG shoaling source/sink term, default = 1.0
    real*4                                     :: shinc2ig          ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 0=default)   
+   real*4                                     :: fdrspr            ! Inc-IG reduction factor to account for directional spreading  
    integer, save                              :: callno=1
    !
    integer                                    :: baldock_option    ! 1 or 2
@@ -335,6 +336,8 @@ module snapwave_solver
    baldock_option = 1 ! 1 or 2, 2 avoids insufficient dissipation at steep coasts
    !baldock_hrms2hs = sqrt(2.0) ! or use 1.0 for original implementation
    baldock_hrms2hs = 1.0
+   !
+   fdrspr = 0.65
    !
    allocate(ok(no_nodes)); ok=0
    allocate(indx(no_nodes,4)); indx=0
@@ -674,7 +677,7 @@ module snapwave_solver
                   !
                   do itheta = 1, ntheta
                      !
-                     R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta) * eeprev(itheta) / ds(itheta, k) - srcig_local(itheta, k) * shinc2ig
+                     R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta) * eeprev(itheta) / ds(itheta, k) - srcig_local(itheta, k) * shinc2ig * fdrspr
                      !
                   enddo                  
                   !
@@ -799,7 +802,7 @@ module snapwave_solver
                      !
                      do itheta = 1, ntheta
                         !
-                        R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta) * eeprev_ig(itheta) / ds(itheta, k) + srcig_local(itheta, k)
+                        R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta) * eeprev_ig(itheta) / ds(itheta, k) + srcig_local(itheta, k) * fdrspr
                         !
                      enddo
                      !
@@ -1212,6 +1215,7 @@ module snapwave_solver
    beta3 = 17.7104
    beta4 = 1
    beta5 = 0.7
+   beta5 = 0.5 ! change this back !!!
    beta6 = 0.11841
    beta7 = 0.34037
    !
