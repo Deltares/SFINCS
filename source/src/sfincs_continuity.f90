@@ -287,6 +287,8 @@ contains
    real*4           :: zs00
    real*4           :: zs11
    !
+   write(*,*)'compute_water_levels_subgrid - started'
+   !
    if (wavemaker) then
       !
       factime = min(dt / wmtfilter, 1.0)
@@ -545,6 +547,14 @@ contains
             dzvol    = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
             iuv      = int(z_volume(nm) / dzvol) + 1
             facint   = (z_volume(nm) - (iuv - 1) * dzvol ) / dzvol
+            !
+            if (iuv < 0) then
+               write(*,*)'ERROR: iuv < 0 - nm=',nm,' subgrid_z_volmax(nm)=',subgrid_z_volmax(nm),' z_volume(nm)=',z_volume(nm),' dzvol= ',dzvol,' iuv= ',iuv,' facint=',facint    
+               write(*,*)'nm=',nm,' dvol=',dvol,' q(nmd)=',q(nmd),' q(nmu)=',q(nmu),' q(ndm)=',q(ndm),' q(num)=',q(num),' dx=',dx,' dy=',dy,' dt=',dt
+               write(*,*)'nm=',nm,' nmd=',nmd,' nmu=',nmu,' ndm=',ndm,' num=',num
+               write(*,*)'END' 
+            endif            
+            !
             zs(nm)   = subgrid_z_dep(iuv, nm) + (subgrid_z_dep(iuv + 1, nm) - subgrid_z_dep(iuv, nm)) * facint
             !
          endif
@@ -590,6 +600,8 @@ contains
    !         
    !$acc wait(1)
    !         
+   write(*,*)'compute_water_levels_subgrid - ended'
+   !   
    end subroutine
    
    subroutine compute_store_variables(dt)

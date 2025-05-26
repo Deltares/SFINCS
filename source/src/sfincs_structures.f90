@@ -358,6 +358,12 @@
          !         
          structure_length(nstruc)   = lngth(ip)/dxs ! Turn into structure length relative to grid spacing
          !
+          if (nstruc == 736) then
+              write(*,*)'Break in read_structure_file for, ip=',ip,' nstruc=',nstruc
+              write(*,*)'dxs=',dxs,' lngth(ip)=',lngth(ip)
+              write(*,*)'END'
+          endif           
+         !
          do ipar = 1, npars
             structure_parameters(ipar, nstruc) = strucpars(ipar, ip)
          enddo
@@ -550,6 +556,10 @@
       !
       ip     = structure_uv_index(istruc)
       !
+      if (ip == 68864) then
+          write(*,*)'Break in compute_fluxes_over_structures for, ip=',ip,' istruc=',istruc
+      endif      
+      !
       q(ip)  = 0.0
       uv(ip) = 0.0
       !
@@ -610,6 +620,14 @@
       !
       q(ip)  = qstruc*idir ! Add relaxation here !!!
       !
+      if (ip == 68864) then
+          write(*,*)'ip=',ip,' istruc=',istruc,' q(ip)=',q(ip)
+          write(*,*)'structure_parameters(1, istruc)=',structure_parameters(1, istruc),' zsnm=',zsnm,' zsnmu',zsnmu
+          write(*,*)'h1=', h1,' h2=',h2,' 2.0 / 3.0 * h1',2.0 / 3.0 * h1
+          write(*,*)'ip=',ip,' istruc=',istruc,' istruc=',istruc,' idir=',idir,' structure_length(istruc)=',structure_length(istruc)
+          write(*,*)'END'
+          
+      endif        
    enddo
    !$acc end kernels
    !

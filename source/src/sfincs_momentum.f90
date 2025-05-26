@@ -97,6 +97,8 @@
    !
    min_dt = dtmax
    !
+   write(*,*)'compute_fluxes - started'   
+   !
    !$acc update device(min_dt), async(1)
    !
    ! Copy flux and velocity from previous time step
@@ -726,6 +728,8 @@
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
    !
+   write(*,*)'compute_fluxes - ended'
+   
    end subroutine      
 
    
