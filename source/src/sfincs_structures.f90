@@ -249,9 +249,9 @@
          if (isnan(d)) then
              write(logstr,'(a)')'WARNING: distance d in distance_between_points_projected_on_line_segment became NaN, set to 0'
              call write_log(logstr, 1)             
-             !write(logstr,*)'indx',indx,' irow',irow,'xuv1, yuv1, xuv2, yuv2, xthd(irow), ythd(irow), xthd(irow + 1), ythd(irow + 1)',xuv1, yuv1, xuv2, yuv2, xthd(irow), ythd(irow), xthd(irow + 1), ythd(irow + 1)
-             !call write_log(logstr, 0)                                     
-             d = 0 ! not allowed, rare error in combination weir input file and grid spacing?             
+             write(logstr,*)'indx',indx,' irow',irow,' xuv1',xuv1,' yuv1',yuv1,' xuv2', xuv2,' yuv2',yuv2,' xthd(irow)',xthd(irow),' ythd(irow)',ythd(irow),' xthd(irow + 1)',xthd(irow + 1), ' ythd(irow + 1)',ythd(irow + 1)
+             call write_log(logstr, 0)                                     
+             d = 0 ! not allowed, rare error in combination weir input file and grid spacing!?             
          endif
          !   
          lngth(indx) = lngth(indx) + d
