@@ -287,7 +287,7 @@ contains
    real*4           :: zs00
    real*4           :: zs11
    !
-   write(*,*)'compute_water_levels_subgrid - started'
+   !write(*,*)'compute_water_levels_subgrid - started'
    !
    if (wavemaker) then
       !
@@ -600,7 +600,7 @@ contains
    !         
    !$acc wait(1)
    !         
-   write(*,*)'compute_water_levels_subgrid - ended'
+   !write(*,*)'compute_water_levels_subgrid - ended'
    !   
    end subroutine
    
