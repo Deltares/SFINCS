@@ -161,6 +161,11 @@
          irow = vertices(iuv)
          istruc(indx) = 1
          !
+         !if (indx == 68864) then
+         !   write(*,*)'Break in read_structure_file for, indx=',indx
+         !   write(*,*)'END'             
+         !endif         
+         
          ! Projecting uv corner points onto structure segment to determine length of this uv point
          !
          nm   = uv_index_z_nm(indx)
@@ -241,7 +246,19 @@
          !
          d = distance_between_points_projected_on_line_segment(xuv1, yuv1, xuv2, yuv2, xthd(irow), ythd(irow), xthd(irow + 1), ythd(irow + 1), 999999.0)
          !
+         if (isnan(d)) then
+             write(logstr,'(a)')'WARNING: distance d in distance_between_points_projected_on_line_segment became NaN, set to 0'
+             call write_log(logstr, 1)             
+             write(logstr,*)'indx',indx,' irow',irow,' xuv1',xuv1,' yuv1',yuv1,' xuv2', xuv2,' yuv2',yuv2,' xthd(irow)',xthd(irow),' ythd(irow)',ythd(irow),' xthd(irow + 1)',xthd(irow + 1), ' ythd(irow + 1)',ythd(irow + 1)
+             call write_log(logstr, 0)                                     
+             d = 0 ! not allowed, rare error in combination weir input file and grid spacing!?             
+         endif
+         !   
          lngth(indx) = lngth(indx) + d
+         !if (indx == 68864) then
+         !   write(*,*)'indx',indx,' irow',irow,'xuv1, yuv1, xuv2, yuv2, xthd(irow), ythd(irow), xthd(irow + 1), ythd(irow + 1)',xuv1, yuv1, xuv2, yuv2, xthd(irow), ythd(irow), xthd(irow + 1), ythd(irow + 1)
+         !   write(*,*)'END'             
+         !endif                  
          !
          dst1   = sqrt((xuv - xthd(irow))**2 + (yuv - ythd(irow))**2)
          dst2   = sqrt((xuv - xthd(irow + 1))**2 + (yuv - ythd(irow + 1))**2)
@@ -357,6 +374,12 @@
          endif
          !         
          structure_length(nstruc)   = lngth(ip)/dxs ! Turn into structure length relative to grid spacing
+         !
+          !if (nstruc == 736) then
+          !    write(*,*)'Break in read_structure_file for, ip=',ip,' nstruc=',nstruc
+          !    write(*,*)'dxs=',dxs,' lngth(ip)=',lngth(ip)
+          !    write(*,*)'END'
+          !endif           
          !
          do ipar = 1, npars
             structure_parameters(ipar, nstruc) = strucpars(ipar, ip)
@@ -550,6 +573,10 @@
       !
       ip     = structure_uv_index(istruc)
       !
+      !if (ip == 68864) then
+      !    write(*,*)'Break in compute_fluxes_over_structures for, ip=',ip,' istruc=',istruc
+      !endif      
+      !
       q(ip)  = 0.0
       uv(ip) = 0.0
       !
@@ -610,6 +637,16 @@
       !
       q(ip)  = qstruc*idir ! Add relaxation here !!!
       !
+      if (isnan(qstruc)) then
+          !
+          !call write_log('WARNING: q(ip) became NaN, set to 0', 1)
+          q(ip) = 0
+          !write(*,*)'ip=',ip,' istruc=',istruc,' q(ip)=',q(ip)
+          !write(*,*)'structure_parameters(1, istruc)=',structure_parameters(1, istruc),' zsnm=',zsnm,' zsnmu',zsnmu
+          !write(*,*)'h1=', h1,' h2=',h2,' 2.0 / 3.0 * h1',2.0 / 3.0 * h1
+          !write(*,*)'ip=',ip,' istruc=',istruc,' istruc=',istruc,' idir=',idir,' structure_length(istruc)=',structure_length(istruc)
+          !write(*,*)'END'          
+      endif        
    enddo
    !$acc end kernels
    !
