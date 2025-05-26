@@ -213,6 +213,7 @@ contains
 
    
    function distance_between_points_projected_on_line_segment(x0a,y0a,x0b,y0b,x1,y1,x2,y2,mxdst) result (dst)
+   ! Input: xuv1, yuv1, xuv2, yuv2, xthd(irow), ythd(irow), xthd(irow + 1), ythd(irow + 1),999999.0
    !
    ! Computes distance between two points (x0a, y0a) and (x0b, y0b) projected on a line segment
    !
