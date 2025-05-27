@@ -376,7 +376,7 @@ contains
    pi = 4*atan(1.0)
    !
    do k = 1, no_nodes
-      call findloc(kp(:,k), np, 0, nploc)
+      call findloc(kp(:,k), np, 0, nploc)      
       nploc = nploc - 1
       if (kp(1,k)/=0) then
          do itheta = 1, ntheta
@@ -391,6 +391,7 @@ contains
                   xsect=[x(ind1)-x(k), x(ind2)-x(k)]*circumf_eq/360.0*cos(y(k)*180.0/pi)
                   ysect=[y(ind1)-y(k), y(ind2)-y(k)]*circumf_pole/360.0
                   call intersect_angle(0.d0, 0.d0, theta(itheta) + pi, xsect, ysect, ww, dss, xi, yi)
+                  
                endif               
                if (dss/=0) then
                   w(1, itheta,k) = ww(1)
@@ -1110,13 +1111,19 @@ end subroutine neuboundaries
    integer                                     :: n
    integer                                     :: nu1
    integer                                     :: nu2
+   integer                                     :: nd1
+   integer                                     :: nd2
    integer                                     :: m
    integer                                     :: mu1
    integer                                     :: mu2
+   integer                                     :: md1
+   integer                                     :: md2
    integer                                     :: mnu1
    integer                                     :: nra
    integer*1                                   :: mu
    integer*1                                   :: nu
+   integer*1                                   :: md
+   integer*1                                   :: nd
    integer*1                                   :: mnu
    !
    logical                                     :: load_quadtree
@@ -2002,7 +2009,80 @@ end subroutine neuboundaries
                msk_tmp2(nu1)    = 1
             endif
          endif
-      endif 
+      endif
+      !
+      ! Add triangles around stair case boundaries
+      !
+      ! Inactive cell top left
+      !
+      mu  = quadtree_mu(ip)
+      mu1 = quadtree_mu1(ip)
+      mu2 = quadtree_mu2(ip)
+      md  = quadtree_md(ip)
+      md1 = quadtree_md1(ip)
+      md2 = quadtree_md2(ip)
+      nu  = quadtree_nu(ip)
+      nu1 = quadtree_nu1(ip)
+      nu2 = quadtree_nu2(ip)
+      nd  = quadtree_nd(ip)
+      nd1 = quadtree_nd1(ip)
+      nd2 = quadtree_nd2(ip)
+      !
+      ! Check for inactive cell top left
+      !
+      if (md == 0 .and. nu == 0 .and. md1 > 0 .and. nu1 > 0) then
+         if (msk_tmp(md1) == 2 .and. msk_tmp(nu1) == 2 .and. msk_tmp(ip) == 1) then
+            !
+            nfaces           = nfaces + 1
+            faces(1, nfaces) = md1
+            faces(2, nfaces) = ip
+            faces(3, nfaces) = mu1
+            !
+         endif
+         !
+      endif
+      !
+      ! Check for inactive cell bottom left
+      !
+      if (md == 0 .and. nd == 0 .and. md1 > 0 .and. nd1 > 0) then
+         if (msk_tmp(md1) == 2 .and. msk_tmp(nd1) == 2 .and. msk_tmp(ip) == 1) then
+            !
+            nfaces           = nfaces + 1
+            faces(1, nfaces) = md1
+            faces(2, nfaces) = nd1
+            faces(3, nfaces) = ip
+            !
+         endif
+         !
+      endif
+      !
+      ! Check for inactive cell top right
+      !
+      if (mu == 0 .and. nu == 0 .and. mu1 > 0 .and. nu1 > 0) then
+         if (msk_tmp(mu1) == 2 .and. msk_tmp(nu1) == 2 .and. msk_tmp(ip) == 1) then
+            !
+            nfaces           = nfaces + 1
+            faces(1, nfaces) = ip
+            faces(2, nfaces) = mu1
+            faces(3, nfaces) = nu1
+            !
+         endif
+         !
+      endif
+      !
+      ! Check for inactive cell bottom right
+      !
+      if (mu == 0 .and. nd == 0 .and. mu1 > 0 .and. nd1 > 0) then
+         if (msk_tmp(mu1) == 2 .and. msk_tmp(nd1) == 2 .and. msk_tmp(ip) == 1) then
+            !
+            nfaces           = nfaces + 1
+            faces(1, nfaces) = ip
+            faces(2, nfaces) = nd1
+            faces(3, nfaces) = mu1
+            !
+         endif
+         !
+      endif
       !
    enddo
    !
