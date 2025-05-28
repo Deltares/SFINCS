@@ -132,6 +132,7 @@ contains
    call read_real_input(500, 'nh_tol', nh_tol, 0.001)
    call read_int_input(500, 'nh_itermax', nh_itermax, 100)
    call read_logical_input(500, 'h73table', h73table, .false.)   
+   call read_real_input(500, 'rugdepth', runup_gauge_depth, 0.05)
    !
    ! Domain
    !
@@ -204,6 +205,7 @@ contains
    ! Output
    call read_char_input(500,'obsfile',obsfile,'none')
    call read_char_input(500,'crsfile',crsfile,'none')
+   call read_char_input(500, 'rugfile', rugfile, 'none')
    call read_int_input(500,'storevelmax',storevelmax,0)
    call read_int_input(500,'storefluxmax',storefluxmax,0)
    call read_int_input(500,'storevel',storevel,0)
