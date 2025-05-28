@@ -1215,7 +1215,7 @@ module snapwave_solver
    beta3 = 17.7104
    beta4 = 1
    beta5 = 0.7
-   beta5 = 0.5 ! change this back !!!
+   !beta5 = 0.5 ! change this back !!!
    beta6 = 0.11841
    beta7 = 0.34037
    !
