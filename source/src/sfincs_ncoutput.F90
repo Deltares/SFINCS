@@ -1661,7 +1661,7 @@ contains
          !
          NF90(nf90_def_var(his_file%ncid, 'wavdir', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%wavdir_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%wavdir_varid, '_FillValue', FILL_VALUE))
-         NF90(nf90_put_att(his_file%ncid, his_file%wavdir_varid, 'units', 's'))
+         NF90(nf90_put_att(his_file%ncid, his_file%wavdir_varid, 'units', 'degrees'))
          NF90(nf90_put_att(his_file%ncid, his_file%wavdir_varid, 'standard_name', 'mean_wave_direction')) 
          NF90(nf90_put_att(his_file%ncid, his_file%wavdir_varid, 'long_name', 'Mean wave direction'))  
          NF90(nf90_put_att(his_file%ncid, his_file%wavdir_varid, 'coordinates', 'station_id station_name point_x point_y'))
@@ -2566,7 +2566,7 @@ contains
                nm = index_sw_in_qt(nmq)            
                !
                if (nm>0) then
-                  vtmp(nmq) = mean_wave_direction(nm)                  
+                  vtmp(nmq) = snapwave_mean_direction(nm)               
                endif
                !
             enddo                    
