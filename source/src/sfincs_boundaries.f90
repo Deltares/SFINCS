@@ -308,6 +308,9 @@ contains
       !
       ! First pass: count number of sets and number of components in first set
       !
+      ! NOTE 1 : The number of component sets in the bca file must match the number of points in the bnd file!
+      ! NOTE 2 : The number of components in each set must be the same!
+      !
       n_sets = 0
       n_components = 0
       has_a0 = .false.
@@ -356,6 +359,14 @@ contains
             !
          endif
       enddo
+      !
+      ! Check whether n_sets is same as nbnd (otherwise give error)
+      !
+      if (n_sets /= nbnd) then
+         !
+         write(*,*)'ERROR! Number of astronomical tidal datasets in *.bca file does not match number of boundary points in *.bnd file !'
+         !
+      endif
       !
       rewind(500)
       !
