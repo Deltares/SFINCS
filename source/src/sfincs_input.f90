@@ -154,6 +154,7 @@ contains
    !
    call read_char_input(500,'bndfile',bndfile,'none')
    call read_char_input(500,'bzsfile',bzsfile,'none')
+   call read_char_input(500,'bcafile',bcafile,'none')
    call read_char_input(500,'bzifile',bzifile,'none')
    call read_char_input(500,'bwvfile',bwvfile,'none')
    call read_char_input(500,'bhsfile',bhsfile,'none')

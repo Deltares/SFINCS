@@ -116,6 +116,7 @@ module sfincs_data
       character*256 :: mskfile
       character*256 :: bndfile
       character*256 :: bzsfile
+      character*256 :: bcafile
       character*256 :: bzifile
       character*256 :: bwvfile
       character*256 :: bhsfile
@@ -604,6 +605,12 @@ module sfincs_data
       real*4, dimension(:,:),   allocatable :: zsi_bnd
       real*4, dimension(:),     allocatable :: zst_bnd
       real*4, dimension(:),     allocatable :: zsit_bnd
+      !
+      ! Astro tide data
+      !
+      integer*4                             :: nr_tidal_components
+      real*8, dimension(:),     allocatable :: tidal_component_frequency
+      real*8, dimension(:,:,:), allocatable :: tidal_component_data
       !
       ! Wave boundary points
       !
