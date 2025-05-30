@@ -883,7 +883,7 @@ contains
             !
          else
             !
-            hnmb   = max(0.5*(zsnmb + zsnmi) - zbuv(ip), huthresh)
+            hnmb   = max(0.5 * (zsnmb + zsnmi) - zbuv(ip), huthresh)
             zsnmb  = max(zsnmb,  zb(nmb))
             zs0nmb = max(zs0nmb, zb(nmb))
             !
@@ -899,25 +899,20 @@ contains
             !
          else
             !
-            ui = sqrt(g/hnmb)*(zsnmb - zs0nmb)
-            ub = ibuvdir(ib) * (2*ui - sqrt(g/hnmb)*(zsnmi - zs0nmb))
+            ui = sqrt(g / hnmb) * (zsnmb - zs0nmb)
+            ub = ibuvdir(ib) * (2 * ui - sqrt(g / hnmb) * (zsnmi - zs0nmb))
             !
-            q(ip) = ub*hnmb + uvmean(ib)            
+            q(ip) = ub * hnmb + uvmean(ib)            
             !
-!            if (ibndtype(indb) == 0 .and. bndtype == 2) then
-               !
-               ! mask=3 (outflow) boundary and we're using "normal" boundary 
-               !
-!               if (ibuvdir(ib) == 1) then
-!                  ! q(ip) = sqrt(dzdsbnd) * hnmb ** (5.0 / 3.0) / manningbnd
-!                  q(ip) = - normbnd * hnmb ** (5.0 / 3.0)
-!               else
-!                  ! q(ip) = - sqrt(dzdsbnd) * hnmb ** (5.0 / 3.0) / manningbnd
-!                  q(ip) = normbnd * hnmb ** (5.0 / 3.0)
-!               endif
-               ! write(*,*)ip,normbnd,hnmb,q(ip)
-               !
-!            endif
+            ! Riemann
+            !
+            ! R = ubnd + 2 * sqrt(g * hnmb) ! from bca or bzs/buv
+            !
+            ! hnmi = hnmb + zsnmi - zsnmb
+            !
+            ! ub = R - 2 * sqrt(g * hnmi)
+            !
+            ! q(ip) = ub * hnmb
             !
             if (subgrid) then
                !
