@@ -391,7 +391,7 @@ contains
          srcig0(nm) = snapwave_srcig(ip)
          alphaig0(nm) = snapwave_alphaig(ip)
          if (store_wave_direction) then
-            mean_wave_direction(nm)        = 270.0 - snapwave_mean_direction(ip)*180/pi   
+            mean_wave_direction(nm) = snapwave_mean_direction(ip)             
             wave_directional_spreading(nm) = snapwave_directional_spreading(ip)*180/pi   
          endif
          !
@@ -499,7 +499,7 @@ contains
    snapwave_H_ig                  = H_ig
    snapwave_Tp                    = Tp
    snapwave_Tp_ig                 = Tp_ig   
-   snapwave_mean_direction        = thetam
+   snapwave_mean_direction        = modulo(270.0 - thetam*180.0/pi+360.0, 360.)
    snapwave_directional_spreading = thetam  ! TL: CORRECT? > is not spreading but mean direction?
    snapwave_Dw                    = Dw
    snapwave_Df                    = Df
