@@ -2788,7 +2788,7 @@ contains
             !
             if (store_wave_direction) then
                !
-               wavdirobs(iobs)   = mean_wave_direction(nm)
+               wavdirobs(iobs)   = snapwave_mean_direction(nm)
                dirsprobs(iobs)   = wave_directional_spreading(nm)
                !
             endif
