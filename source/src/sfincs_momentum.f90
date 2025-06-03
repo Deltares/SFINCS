@@ -328,10 +328,21 @@
                   !
                   hu = subgrid_uv_havg_zmax(ip) + zsu
                   !
-                  ! Use fitting function for gnavg2 
+                  if (wave_enhanced_roughness) then
+                     !
+                     ! Apparent roughness is computed in sfincs_wave_enhanced_roughness.f90. It is called by sfincs_bmi.f90.
+                     ! Note: wave enhanced roughness is only done for uv points that are completely wet!
+                     !
+                     gnavg2 = gnapp2(ip)
+                     !
+                  else
+                     ! 
+                     ! Use fitting function for gnavg2 
+                     !
+                     gnavg2 = subgrid_uv_navg_w(ip) - (subgrid_uv_navg_w(ip) - subgrid_uv_nrep_zmax(ip)) / (subgrid_uv_fnfit(ip) * (zsu - zmax) + 1.0)
+                     ! 
+                  endif
                   !
-                  gnavg2 = subgrid_uv_navg_w(ip) - (subgrid_uv_navg_w(ip) - subgrid_uv_nrep_zmax(ip)) / (subgrid_uv_fnfit(ip) * (zsu - zmax) + 1.0)
-                  ! 
                else
                   !
                   ! Interpolation required

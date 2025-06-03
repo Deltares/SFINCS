@@ -132,6 +132,7 @@ contains
    call read_real_input(500, 'nh_tol', nh_tol, 0.001)
    call read_int_input(500, 'nh_itermax', nh_itermax, 100)
    call read_logical_input(500, 'h73table', h73table, .false.)   
+   call read_logical_input(500, 'wave_enhanced_roughness', wave_enhanced_roughness, .false.)  
    !
    ! Domain
    !
