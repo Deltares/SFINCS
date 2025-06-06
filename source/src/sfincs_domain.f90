@@ -2305,12 +2305,17 @@ contains
    subroutine initialize_storage_volume()
    !
    use sfincs_data
+   use sfincs_ncinput
    !
    implicit none
+   !
+   integer :: nchar
    !
    if (use_storage_volume) then 
       !
       ! Spatially-varying storage volume for green infra
+      !
+      allocate(storage_volume(np))
       !
       write(logstr,'(a)')'Info    : turning on Storage Green Infrastructure'      
       call write_log(logstr, 0)
@@ -2319,10 +2324,24 @@ contains
       !
       write(logstr,'(a,a)')'Info    : reading vol file ',trim(volfile)
       call write_log(logstr, 0)
-      allocate(storage_volume(np))
-      open(unit = 500, file = trim(volfile), form = 'unformatted', access = 'stream')
-      read(500)storage_volume
-      close(500)
+      !
+      nchar = len_trim(volfile)
+      !
+      if (volfile(nchar - 1 : nchar) == 'nc') then
+         !
+         ! Read netcdf file
+         !
+         call read_netcdf_storage_volume()
+         !
+      else
+         !
+         ! Read from binary file
+         !      
+         open(unit = 500, file = trim(volfile), form = 'unformatted', access = 'stream')
+         read(500)storage_volume
+         close(500)
+         !
+      endif   
       !
    endif
    !
