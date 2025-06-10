@@ -472,11 +472,11 @@ subroutine update_boundary_conditions(t)
    ! Make directional grid around boundary mean wave/wind direction
    !
    thetamean = wdmean_bwv
-   if (ntwbnd > 0) then
-      call make_theta_grid(wdmean_bwv)
-   else
+   if (wind) then  
       thetamean=u10dmean
       call make_theta_grid(u10dmean)
+   else
+      call make_theta_grid(wdmean_bwv)
    endif 
    !
    ! Build spectra on the boundary support points
