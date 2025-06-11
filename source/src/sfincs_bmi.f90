@@ -24,6 +24,7 @@ module sfincs_bmi
    public :: get_current_time
    public :: update_zbuv
    public :: get_sfincs_cell_index
+   public :: get_sfincs_cell_indices
    public :: get_sfincs_cell_area
    !
    ! constants
@@ -296,6 +297,39 @@ contains
       !
    end function get_sfincs_cell_index
 
+   function get_sfincs_cell_indices(x, y, indx, n) result(ierr) bind(C, name="get_sfincs_cell_indices")
+   ! Return (1-based) cell index of SFINCS domain
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_sfincs_cell_indices
+      use quadtree
+      !         
+      real(c_double), intent(in)  :: x(n)
+      real(c_double), intent(in)  :: y(n)
+      integer(c_int), intent(out) :: indx(n)
+      integer(c_int), value       :: n
+      integer(kind=c_int)         :: ierr
+      integer                     :: nmq
+      integer                     :: iq
+      !
+      do iq = 1, n
+         !
+         nmq = find_quadtree_cell(real(x(iq), kind=4), real(y(iq), kind=4))
+         !
+         if (nmq > 0.0) then
+            !
+            indx(iq) = index_sfincs_in_quadtree(nmq)
+            !
+         else
+            !
+            indx(iq) = 0
+            !
+         endif   
+         !
+      enddo
+      !
+      ierr = 0
+      !
+   end function get_sfincs_cell_indices
+   
    function get_sfincs_cell_area(indx, area) result(ierr) bind(C, name="get_sfincs_cell_area")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_sfincs_cell_area
       !         
