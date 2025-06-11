@@ -472,11 +472,20 @@ subroutine update_boundary_conditions(t)
    ! Make directional grid around boundary mean wave/wind direction
    !
    thetamean = wdmean_bwv
-   if (wind) then  
+   if (wind) then
+      ! 
       thetamean=u10dmean
+      !
       call make_theta_grid(u10dmean)
+      !
+      call write_log('INFO SnapWave - Making directional grid around boundary mean wind direction', 0)
+      !
    else
+      !
       call make_theta_grid(wdmean_bwv)
+      !
+      call write_log('INFO SnapWave - Making directional grid around boundary mean wave direction', 0)
+      !
    endif 
    !
    ! Build spectra on the boundary support points
