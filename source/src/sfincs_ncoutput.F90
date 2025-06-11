@@ -2483,6 +2483,14 @@ contains
             utmp = FILL_VALUE
             vtmp = FILL_VALUE
             !
+            if (ANY(fwx > 0.0)) then
+                write(*,*)'any fwx > 0 in ncoutput'
+            endif
+            !
+            if (ANY(fwy > 0.0)) then
+                write(*,*)'any fwy > 0 in ncoutput'
+            endif
+            !
             do nmq = 1, quadtree_nr_points
                !
                nm = index_sfincs_in_quadtree(nmq)
