@@ -649,11 +649,11 @@
             !            
             if (subgrid) then
                !
-               if (zs(nm) < subgrid_z_zmin(nm)) then
+               if (z_volume(nm) < 0.0) then
                   q(ip) = min(q(ip), 0.0)
                endif
                !
-               if (zs(nmu) < subgrid_z_zmin(nmu)) then
+               if (z_volume(nmu) < 0.0) then
                   q(ip) = max(q(ip), 0.0)
                endif
                !
