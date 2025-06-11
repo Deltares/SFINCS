@@ -282,6 +282,7 @@ contains
    real*4 fd
    real*4 wdir
    real*4 facint
+   real*4 dxe, dye
    !
    do itw = 1, 2
       !      
@@ -369,10 +370,18 @@ contains
          ! Compute tauwu0, tauwv0, pabs0, prcp0 at spw_t0
          !
          if (crsgeo) then
-            dstspw  = sqrt(((cos(spw_ye01*pi/180)*111111)*(x - spw_xe01))**2 + (111111*(y - spw_ye01))**2) ! Distance to eye
+            !
+            dxe = (cos(spw_ye01 * pi / 180) * 111111) * (x - spw_xe01)
+            dye = 111111 * (y - spw_ye01)
+            !
          else
-            dstspw  = sqrt((x - spw_xe01)**2 + (y - spw_ye01)**2) ! Distance to eye
+            !
+            dxe = x - spw_xe01
+            dye = y - spw_ye01
+            !
          endif
+         !
+         dstspw = sqrt(dxe**2 + dye**2)
          !
          ! Initialize meteo data, but only if we don't also use background meteo
          !
@@ -442,7 +451,7 @@ contains
          ind1(4) = idstspw + 1
          if (ind1(3)>spw_nrows) cycle             
          dj1     = (dstspw - dradspw*idstspw) / dradspw
-         phispw  = 0.5*pi - atan2(y - spw_ye01, x - spw_xe01) ! Geographic
+         phispw  = 0.5*pi - atan2(dye, dxe) ! Geographic
          phispw  = modulo(phispw, 2*pi)
          !
          ! Determine column indices
@@ -507,8 +516,8 @@ contains
          !
          ! Merge frac for merging with background winds
          !
-         if (dstspw>spw_merge_frac*spw_radius) then
-            merge_frac = 2*(spw_radius - dstspw)/spw_radius
+         if (dstspw > spw_merge_frac * spw_radius) then
+            merge_frac = (1.0 / (1.0 - min(spw_merge_frac, 0.999))) * (spw_radius - dstspw) / spw_radius
          else
             merge_frac = 1.0
          endif
