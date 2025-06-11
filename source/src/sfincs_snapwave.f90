@@ -377,6 +377,8 @@ contains
       !
       if (ip>0) then
          !
+          write(*,*)'ip>0' ! > why not not succesfull with veggie on??
+          
          hm0(nm)    = snapwave_H(ip)   
          hm0_ig(nm) = snapwave_H_ig(ip) 
          sw_tp(nm)    = snapwave_Tp(ip)         
@@ -425,6 +427,7 @@ contains
       !
       if (store_wave_forces) then
          !
+          !write(*,*)'ja store_wave_forces'
          fwx(nm)        = fwx0(nm)
          fwy(nm)        = fwy0(nm)
          dw(nm)         = dw0(nm)
@@ -437,6 +440,22 @@ contains
          srcig(nm)      = srcig0(nm)         
          alphaig(nm)    = alphaig0(nm)                  
          !
+        if (ANY(fwx0 > 0.0)) then
+            write(*,*)'any fwx0 > 0'
+        endif
+        !
+        if (ANY(fwy0 > 0.0)) then
+            write(*,*)'any fwy0 > 0'
+        endif     
+        !
+        if (ANY(fwx > 0.0)) then
+            write(*,*)'any fwx > 0'
+        endif
+        !
+        if (ANY(fwy > 0.0)) then
+            write(*,*)'any fwy > 0'
+        endif
+            
       endif   
       !
    enddo   
@@ -517,7 +536,29 @@ contains
    snapwave_Fx                    = Fx * rho * depth
    snapwave_Fy                    = Fy * rho * depth
    !
-   write(*,*)'rho',rho,'depth',depth,'Fx',Fx,'snapwave_Fx',snapwave_Fx,'Fy',Fy,'snapwave_Fy',snapwave_Fy
+   write(*,*)'rho= ',rho
+   !
+   if (ANY(depth > 0.0)) then
+       write(*,*)'any depth > 0'
+   endif   
+   !   
+   if (ANY(Fx > 0.0)) then
+       write(*,*)'any Fx > 0'
+   endif
+   !
+   if (ANY(Fy > 0.0)) then
+       write(*,*)'any Fy > 0'
+   endif
+   !
+   if (ANY(snapwave_Fx > 0.0)) then
+       write(*,*)'any snapwave_Fx > 0'
+   endif
+   !
+   if (ANY(snapwave_Fy > 0.0)) then
+       write(*,*)'any snapwave_Fy > 0'
+   endif   
+   !
+   !write(*,*)'rho',rho,'depth',depth,'Fx',Fx,'snapwave_Fx',snapwave_Fx,'Fy',Fy,'snapwave_Fy',snapwave_Fy
    !
    ! Wave periods from SnapWave, used in e.g. wavemakers - TL: moved behind call update_boundary_conditions & compute_wave_field so values at first timestep are not 0
    snapwave_tpmean = tpmean_bwv
