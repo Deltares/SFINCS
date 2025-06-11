@@ -1088,37 +1088,6 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
    enddo
    !
    end function
-   
-   
-   subroutine quadtree_deallocate()
-   !
-   deallocate(quadtree_level)
-   deallocate(quadtree_md)
-   deallocate(quadtree_md1)
-   deallocate(quadtree_md2)
-   deallocate(quadtree_mu)
-   deallocate(quadtree_mu1)
-   deallocate(quadtree_mu2)
-   deallocate(quadtree_nd)
-   deallocate(quadtree_nd1)
-   deallocate(quadtree_nd2)
-   deallocate(quadtree_nu)
-   deallocate(quadtree_nu1)
-   deallocate(quadtree_nu2)
-   deallocate(quadtree_n)
-   deallocate(quadtree_m)
-   deallocate(quadtree_n_oddeven)
-   deallocate(quadtree_m_oddeven)
-   deallocate(quadtree_xz)
-   deallocate(quadtree_yz)
-   deallocate(quadtree_nm_indices)
-   deallocate(quadtree_first_point_per_level)
-   deallocate(quadtree_last_point_per_level)
-   deallocate(quadtree_dxr)
-   deallocate(quadtree_dyr)
-   !
-   end subroutine   
-
 
 
    subroutine handle_err(status,file,line)
