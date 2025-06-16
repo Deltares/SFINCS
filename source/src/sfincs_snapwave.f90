@@ -129,7 +129,9 @@ contains
    call find_matching_cells(index_quadtree_in_snapwave, index_snapwave_in_quadtree)
    !
    ! Copy final snapwave mask from snapwave_domain for output in sfincs_ncoutput
-   snapwave_mask = msk   
+   snapwave_mask = msk
+   !
+   ! Done coupling SnapWave
    !
    call write_log('------------------------------------------', 1)
    call write_log('SnapWave Processes', 1)
@@ -367,14 +369,20 @@ contains
       !
    endif
    !
+   !write(*,*)'Know index_snapwave_in_sfincs before compute_snapwave: ',index_snapwave_in_sfincs
+   
    call compute_snapwave(t)
    !
+   !write(*,*)'start indexing'
+   !write(*,*)'Know index_snapwave_in_sfincs: ',index_snapwave_in_sfincs
    do nm = 1, np
       !
       ip = index_snapwave_in_sfincs(nm) ! matching index in SFINCS mesh
       !
       if (ip>0) then
          !
+          !write(*,*)'nm ',nm,' - ip>0' ! > why not not succesfull with veggie on??
+          
          hm0(nm)    = snapwave_H(ip)   
          hm0_ig(nm) = snapwave_H_ig(ip) 
          sw_tp(nm)    = snapwave_Tp(ip)         
@@ -423,6 +431,7 @@ contains
       !
       if (store_wave_forces) then
          !
+          !write(*,*)'ja store_wave_forces'
          fwx(nm)        = fwx0(nm)
          fwy(nm)        = fwy0(nm)
          dw(nm)         = dw0(nm)
@@ -435,9 +444,27 @@ contains
          srcig(nm)      = srcig0(nm)         
          alphaig(nm)    = alphaig0(nm)                  
          !
+        !if (ANY(fwx0 > 0.0)) then
+        !    write(*,*)'any fwx0 > 0'
+        !endif
+        !!
+        !if (ANY(fwy0 > 0.0)) then
+        !    write(*,*)'any fwy0 > 0'
+        !endif     
+        !!
+        !if (ANY(fwx > 0.0)) then
+        !    write(*,*)'any fwx > 0'
+        !endif
+        !!
+        !if (ANY(fwy > 0.0)) then
+        !    write(*,*)'any fwy > 0'
+        !endif
+            
       endif   
       !
-   enddo   
+   enddo  
+   !write(*,*)'end indexing'
+   
    !   
    hm0 = hm0*sqrt(2.0)
    hm0_ig = hm0_ig*sqrt(2.0)
@@ -514,6 +541,30 @@ contains
    ! Convert wave force to correct unit [Dw/C] as expected by SFINCS, assumed to be piecewise (seems to work)
    snapwave_Fx                    = Fx * rho * depth
    snapwave_Fy                    = Fy * rho * depth
+   !
+   !write(*,*)'rho= ',rho
+   !!
+   !if (ANY(depth > 0.0)) then
+   !    write(*,*)'any depth > 0'
+   !endif   
+   !!   
+   !if (ANY(Fx > 0.0)) then
+   !    write(*,*)'any Fx > 0'
+   !endif
+   !!
+   !if (ANY(Fy > 0.0)) then
+   !    write(*,*)'any Fy > 0'
+   !endif
+   !!
+   !if (ANY(snapwave_Fx > 0.0)) then
+   !    write(*,*)'any snapwave_Fx > 0'
+   !endif
+   !!
+   !if (ANY(snapwave_Fy > 0.0)) then
+   !    write(*,*)'any snapwave_Fy > 0'
+   !endif   
+   !
+   !write(*,*)'rho',rho,'depth',depth,'Fx',Fx,'snapwave_Fx',snapwave_Fx,'Fy',Fy,'snapwave_Fy',snapwave_Fy
    !
    ! Wave periods from SnapWave, used in e.g. wavemakers - TL: moved behind call update_boundary_conditions & compute_wave_field so values at first timestep are not 0
    snapwave_tpmean = tpmean_bwv
@@ -598,7 +649,7 @@ contains
    !
    ! Vegetation input
    !
-   call read_int_input(500, 'vegetation', vegetation_opt, 0)
+   call read_int_input(500, 'snapwave_vegetation', vegetation_opt, 0)
    !
    ! Input files
    call read_char_input(500,'snapwave_jonswapfile',snapwave_jonswapfile,'')
@@ -618,7 +669,7 @@ contains
    close(500)
    !
    igwaves          = .true.
-   igherbers        = .false.
+   igherbers        = .true.
    iterative_srcig  = .false.   
    !
    if (igwaves_opt==0) then
@@ -630,22 +681,21 @@ contains
       endif      
       !
       if (herbers_opt==0) then
-         write(logstr,*)'SnapWave: IG bc using use eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
+         write(logstr,*)'SnapWave: IG bc using eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
          call write_log(logstr, 1)         
-      else
-         igherbers     = .true.          
+         igherbers     = .false.          
       endif
       !
    endif
    !
-   wind          = .true.
-   if (wind_opt==0) then
-      wind       = .false.
+   wind          = .false.
+   if (wind_opt==1) then
+      wind       = .true.
    endif   
    !
-   vegetation          = .true.
-   if (vegetation_opt==0) then
-      vegetation       = .false.
+   vegetation          = .false.
+   if (vegetation_opt==1) then
+      vegetation       = .true.
    endif   
    !
    if (nr_sweeps /= 1 .and. nr_sweeps /= 4) then
