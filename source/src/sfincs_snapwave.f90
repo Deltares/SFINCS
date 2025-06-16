@@ -369,6 +369,8 @@ contains
       !
    endif
    !
+   write(*,*)'Know index_snapwave_in_sfincs before compute_snapwave: ',index_snapwave_in_sfincs
+   
    call compute_snapwave(t)
    !
    write(*,*)'start indexing'

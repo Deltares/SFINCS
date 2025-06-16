@@ -2129,8 +2129,6 @@ end subroutine neuboundaries
       !
       do ip = 1, quadtree_nr_points 
          !
-         index_snapwave_in_quadtree(ip) = 0      
-         !
          if (msk_tmp2(ip)>0) then
             !
             nac = nac + 1
