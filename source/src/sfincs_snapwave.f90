@@ -371,13 +371,15 @@ contains
    !
    call compute_snapwave(t)
    !
+   write(*,*)'start indexing'
+   write(*,*)'Know index_snapwave_in_sfincs: ',index_snapwave_in_sfincs
    do nm = 1, np
       !
       ip = index_snapwave_in_sfincs(nm) ! matching index in SFINCS mesh
       !
       if (ip>0) then
          !
-          write(*,*)'ip>0' ! > why not not succesfull with veggie on??
+          write(*,*)'nm ',nm,' - ip>0' ! > why not not succesfull with veggie on??
           
          hm0(nm)    = snapwave_H(ip)   
          hm0_ig(nm) = snapwave_H_ig(ip) 
@@ -458,7 +460,9 @@ contains
             
       endif   
       !
-   enddo   
+   enddo  
+   write(*,*)'end indexing'
+   
    !   
    hm0 = hm0*sqrt(2.0)
    hm0_ig = hm0_ig*sqrt(2.0)
