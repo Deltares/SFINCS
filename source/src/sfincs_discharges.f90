@@ -95,6 +95,29 @@ contains
       enddo
       close(502)
       !
+      if ((tsrc(1) > (t0 + 1.0)) .or. (tsrc(ntsrc) < (t1 - 1.0))) then
+         ! 
+         write(logstr,'(a)')'Warning! Times in discharge file do not cover entire simulation period !'
+         call write_log(logstr, 1)
+         !
+         if (t_bnd(1) > (t0 + 1.0)) then
+            ! 
+            write(logstr,'(a)')'Warning! Adjusting first time in discharge time series !'
+            call write_log(logstr, 1)
+            !
+            tsrc(1) = t0 - 1.0
+            !
+         else
+            ! 
+            write(logstr,'(a)')'Warning! Adjusting last time in discharge time series !'
+            call write_log(logstr, 1)
+            !
+            tsrc(ntsrc) = t1 + 1.0
+            !
+         endif
+         !
+      endif   
+      !
    endif  
    !
    if (nsrc>0) then
