@@ -42,6 +42,13 @@ contains
       !
       call read_netcdf_discharge_data()  ! reads nsrc, ntsrc, xsrc, ysrc, qsrc, and tsrc
       !
+      if ((tsrc(1) > (t0 + 1.0)) .or. (tsrc(ntsrc) < (t1 - 1.0))) then
+         !
+         write(logstr,'(a)')' WARNING! Times in discharge file do not cover entire simulation period!'
+         call write_log(logstr, 1)
+         !
+      endif         
+      !
    endif   
    !
    if (drnfile(1:4) /= 'none') then
