@@ -100,6 +100,7 @@ module sfincs_data
       real*4 nh_tstop
       integer nh_itermax
       real*4 nh_tol
+      real*4 runup_gauge_depth
       !
       real*4 freqminig
       real*4 freqmaxig
@@ -129,6 +130,7 @@ module sfincs_data
       character*256 :: wstfile
       character*256 :: obsfile
       character*256 :: crsfile
+      character*256 :: rugfile
       character*256 :: srcfile
       character*256 :: disfile
       character*256 :: drnfile
@@ -777,6 +779,13 @@ module sfincs_data
       integer, dimension(:,:),   allocatable   :: crs_uv_index
       integer, dimension(:,:),   allocatable   :: crs_idir
       character*256, dimension(:), allocatable :: namecrs
+      !!!
+      !!! Run-up gauges
+      !!!
+      integer                                  :: nr_runup_gauges
+      integer, dimension(:,:),   allocatable   :: runup_gauge_nm
+      character*256, dimension(:), allocatable :: runup_gauge_name
+      integer, dimension(:),     allocatable   :: runup_gauge_nrp
       !
       real*4 :: waveage
       !
