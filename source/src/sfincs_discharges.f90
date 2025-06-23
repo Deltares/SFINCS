@@ -107,7 +107,7 @@ contains
          write(logstr,'(a)')'Warning! Times in discharge file do not cover entire simulation period !'
          call write_log(logstr, 1)
          !
-         if (t_bnd(1) > (t0 + 1.0)) then
+         if (tsrc(1) > (t0 + 1.0)) then
             ! 
             write(logstr,'(a)')'Warning! Adjusting first time in discharge time series !'
             call write_log(logstr, 1)
