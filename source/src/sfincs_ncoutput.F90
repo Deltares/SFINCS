@@ -1422,7 +1422,7 @@ contains
    real*4, dimension(:), allocatable :: struc_y
    real*4, dimension(:), allocatable :: struc_height   
    !
-   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0 .and. nr_runup_gauges==0) then ! If no observation points, cross-sections, structures or drains; his file is not created        
+   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0 .and. nr_runup_gauges==0) then ! If no observation points, cross-sections, structures, drains or run-up gauges; his file is not created        
       return
    endif
    !
