@@ -54,6 +54,11 @@ module sfincs_ncinput
        integer :: xeye_varid, yeye_varid, peye_varid
        integer :: wind_x_varid, wind_y_varid, pressure_varid, precip_varid
    end type      
+   type net_type_vol
+       integer :: ncid
+       integer :: np_dimid
+       integer :: vol_varid
+   end type
    !
    type(net_type_bndbzsbzi) :: net_file_bndbzsbzi        
    type(net_type_srcdis)    :: net_file_srcdis        
@@ -61,6 +66,7 @@ module sfincs_ncinput
    type(net_type_amp)       :: net_file_amp 
    type(net_type_ampr)      :: net_file_ampr              
    type(net_type_spw)       :: net_file_spw              
+   type(net_type_vol)       :: net_file_vol              
 
    contains   
    
@@ -72,7 +78,7 @@ module sfincs_ncinput
    !
    implicit none   
    !
-   ! Wanted variable names for Fews compatible netcdf input
+   ! Variable names for Fews compatible netcdf input
    !
    character (len=256)            :: x_varname
    character (len=256)            :: y_varname
@@ -81,13 +87,13 @@ module sfincs_ncinput
    character (len=256), parameter :: zi_varname   = 'zi'   
    character (len=256), parameter :: units        = 'units'  
    !
-!   if (crsgeo) then
-!      x_varname    = 'lon'
-!      y_varname    = 'lat'  
-!   else
-      x_varname    = 'x'
-      y_varname    = 'y'  
-!   endif   
+   !   if (crsgeo) then
+   !      x_varname    = 'lon'
+   !      y_varname    = 'lat'  
+   !   else
+   x_varname    = 'x'
+   y_varname    = 'y'  
+   !   endif   
    !
    call write_log('Info    : reading FEWS compatible netcdf type water level boundaries (bnd, bzs, bzi)...', 0)
    !
@@ -158,7 +164,7 @@ module sfincs_ncinput
    !
    implicit none   
    !
-   ! Wanted variable names for Fews compatible netcdf input
+   ! Variable names for Fews compatible netcdf input
    !
    character (len=256)            :: x_varname
    character (len=256)            :: y_varname
@@ -166,13 +172,13 @@ module sfincs_ncinput
    character (len=256), parameter :: q_varname    = 'discharge'
    character (len=256), parameter :: units        = 'units'  
    !
-!   if (crsgeo) then
-!      x_varname    = 'lon'
-!      y_varname    = 'lat'  
-!   else
-      x_varname    = 'x'
-      y_varname    = 'y'  
-!   endif   
+   !   if (crsgeo) then
+   !      x_varname    = 'lon'
+   !      y_varname    = 'lat'  
+   !   else
+   x_varname    = 'x'
+   y_varname    = 'y'  
+   !   endif   
    !
    call write_log('Reading FEWS compatible netcdf type discharges', 0)
    !
@@ -218,6 +224,54 @@ module sfincs_ncinput
    ! 
    end subroutine
 
+
+   subroutine read_netcdf_storage_volume()
+   !
+   use netcdf
+   use sfincs_data
+   use quadtree
+   !
+   implicit none   
+   !
+   real*8, dimension(:), allocatable :: vols
+   integer :: nrcells, nm, ip
+   !
+   character (len=256), parameter :: vol_varname = 'vol'
+   !
+   NF90(nf90_open(trim(volfile), NF90_CLOBBER, net_file_vol%ncid))
+   !
+   ! Get dimensions id's: nr points  
+   !
+   NF90(nf90_inq_dimid(net_file_vol%ncid, "mesh2d_nFaces", net_file_vol%np_dimid))
+   !
+   ! Get dimensions sizes    
+   !
+   NF90(nf90_inquire_dimension(net_file_vol%ncid, net_file_vol%np_dimid, len = nrcells))   ! nr of cells
+   !
+   ! Check that number of values in the cell matches quadtree_nr_points
+   !
+   ! TODO: if (nrcells /=quadtree_nr_points) GIVE ERROR and stop simulation
+   !
+   NF90(nf90_inq_varid(net_file_vol%ncid, vol_varname, net_file_vol%vol_varid))
+   !
+   allocate(vols(nrcells))
+   !
+   NF90(nf90_get_var(net_file_vol%ncid, net_file_vol%vol_varid, vols(:)))
+   !
+   ! Map quadtree to sfincs
+   !
+   do ip = 1, quadtree_nr_points
+      !
+      nm = index_sfincs_in_quadtree(ip)
+      !
+      storage_volume(nm) = vols(ip)
+      !
+   enddo   
+   !
+   NF90(nf90_close(net_file_vol%ncid))       
+   ! 
+   end subroutine
+   
    
    
    subroutine read_netcdf_amuv_data()
@@ -241,7 +295,7 @@ module sfincs_ncinput
    real*4, dimension(:),     allocatable :: wx
    real*4, dimension(:),     allocatable :: wy
    !
-   ! Wanted variable names for Fews compatible netcdf input for amu/amv
+   ! Variable names for Fews compatible netcdf input for amu/amv
    !
    character (len=256)            :: x_varname
    character (len=256)            :: y_varname
@@ -250,13 +304,13 @@ module sfincs_ncinput
    character (len=256), parameter :: wu_varname     = 'eastward_wind'     
    character (len=256), parameter :: units          = 'units'     
    !
-!   if (crsgeo) then
-!      x_varname    = 'lon'
-!      y_varname    = 'lat'  
-!   else
-      x_varname    = 'x'
-      y_varname    = 'y'  
-!   endif   
+   !   if (crsgeo) then
+   !      x_varname    = 'lon'
+   !      y_varname    = 'lat'  
+   !   else
+   x_varname    = 'x'
+   y_varname    = 'y'  
+   !   endif   
    !
    call write_log('Info    : reading FEWS compatible NetCDF type wind input', 0)
    !
@@ -363,7 +417,7 @@ module sfincs_ncinput
    real*4, dimension(:),     allocatable :: px
    real*4, dimension(:),     allocatable :: py
    !
-   ! Wanted variable names for Fews compatible netcdf input for prcp
+   ! Variable names for Fews compatible netcdf input for prcp
    !
    character (len=256)            :: x_varname
    character (len=256)            :: y_varname
@@ -371,13 +425,13 @@ module sfincs_ncinput
    character (len=256), parameter :: patm_varname   = 'barometric_pressure'
    character (len=256), parameter :: units          = 'units'     
    !
-!   if (crsgeo) then
-!      x_varname    = 'lon'
-!      y_varname    = 'lat'  
-!   else
-      x_varname    = 'x'
-      y_varname    = 'y'  
-!   endif   
+   !   if (crsgeo) then
+   !      x_varname    = 'lon'
+   !      y_varname    = 'lat'  
+   !   else
+   x_varname    = 'x'
+   y_varname    = 'y'  
+   !   endif   
    !
    call write_log('Info    : reading FEWS compatible NetCDF type barometric pressure input', 0)
    !
@@ -477,7 +531,7 @@ module sfincs_ncinput
    real*4, dimension(:),     allocatable :: px
    real*4, dimension(:),     allocatable :: py
    !
-   ! Wanted variable names for Fews compatible netcdf input for prcp
+   ! Variable names for Fews compatible netcdf input for prcp
    !
    character (len=256)            :: x_varname
    character (len=256)            :: y_varname
@@ -485,13 +539,13 @@ module sfincs_ncinput
    character (len=256), parameter :: prcp_varname   = 'Precipitation'
    character (len=256), parameter :: units          = 'units'     
    !
-!   if (crsgeo) then
-!      x_varname    = 'lon'
-!      y_varname    = 'lat'  
-!   else
-      x_varname    = 'x'
-      y_varname    = 'y'  
-!   endif   
+   !   if (crsgeo) then
+   !      x_varname    = 'lon'
+   !      y_varname    = 'lat'  
+   !   else
+   x_varname    = 'x'
+   y_varname    = 'y'  
+   !   endif   
    !
    call write_log('Info    : reading FEWS compatible NetCDF type precipitation input', 0)
    !
