@@ -337,10 +337,14 @@ module sfincs_lib
    !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
    !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, & 
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
-   !$acc               prcp, prcp0, prcp1, cumprcp, netprcp, prcp, qinfmap, cuminf, qext, & 
+   !$acc               prcp, prcp0, prcp1, cumprcp, netprcp, prcp, qext, & 
    !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
    !$acc               gn2uv, fcorio2d, min_dt, storage_volume, nuvisc, &
-   !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2 )
+   !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
+   !$acc               x73, &
+   !$acc               gnapp2, &
+   !$acc               qinffield, qinfmap, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, &
+   !$acc               ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, horton_kd, horton_fc, horton_f0 )
    !
    ! Set target time: if dt range is negative, do not modify t1
    !

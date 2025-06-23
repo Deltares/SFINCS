@@ -1,4 +1,10 @@
-#!/bin/sh
+#!/bin/bash
+
+LOGFILE=build_$(date +%Y%m%d_%H%M%S).log
+exec > >(tee "$LOGFILE") 2>&1
+
+echo "Starting build at $(date)"
+echo "Saving log to $LOGFILE"
 
 find . -name \*.m4|xargs dos2unix && find . -name \*.ac|xargs dos2unix && find . -name \*.am|xargs dos2unix
 find . -name \*.f90|xargs dos2unix
@@ -25,3 +31,5 @@ make clean
 make
 
 make install
+
+echo "Build finished at $(date)"
