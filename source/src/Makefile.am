@@ -43,6 +43,7 @@ libsfincs_la_SOURCES = \
 	sfincs_structures.f90 \
 	sfincs_obspoints.f90 \
 	sfincs_runup_gauges.f90 \
+	sfincs_wave_enhanced_roughness.f90 \
 	sfincs_snapwave.f90 \
 	deg2utm.f90 \
 	sfincs_meteo.f90 \
