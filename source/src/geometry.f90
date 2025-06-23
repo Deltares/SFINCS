@@ -223,48 +223,72 @@ contains
    !
    ! Distance of point to line
    !
-   b1 = abs((x2-x1)*(y1-y0a) - (x1-x0a)*(y2-y1))/(sqrt((x2-x1)**2+(y2-y1)**2))
-   c1 = sqrt((x0a-x1)**2+(y0a-y1)**2)
-   c2 = sqrt((x0a-x2)**2+(y0a-y2)**2)
-   aa = sqrt((x2-x1)**2+(y2-y1)**2)
-   a1 = sqrt(c1**2 - b1**2)
-   a2 = sqrt(c2**2 - b1**2)
+   b1 = abs((x2 - x1) * (y1 - y0a) - (x1 - x0a) * (y2 - y1)) / (sqrt((x2 - x1)**2 + (y2 - y1)**2))
+   c1 = sqrt((x0a - x1)**2 + (y0a - y1)**2)
+   c2 = sqrt((x0a - x2)**2 + (y0a - y2)**2)
+   aa = sqrt((x2 - x1)**2 + (y2 - y1)**2)
    !
-   if (a1>aa .or. a2>aa) then
+   ! Note: rounding errors may cause c1**2 - b1**2 and c2**2 - b1**2 to become negative. Set to at least 0.0.
+   !
+   a1 = sqrt(max(c1**2 - b1**2, 0.0))
+   a2 = sqrt(max(c2**2 - b1**2, 0.0))
+   !
+   if (a1 > aa .or. a2 > aa) then
+      !
       ! Point not on line
-      if (a1<a2) then
-          p1 = 0.0 
+      !
+      if (a1 < a2) then
+         !
+         p1 = 0.0 
+         !         
       else
-          p1 = 1.0
+         !
+         p1 = 1.0
+         !
       endif
+      !
    else
-      p1 = a1/aa
+      !
+      p1 = a1 / aa
+      !
    endif
    !
    ! Second point
    !
    ! Distance of point to line
    !
-   b2 = abs((x2-x1)*(y1-y0b) - (x1-x0b)*(y2-y1))/(sqrt((x2-x1)**2+(y2-y1)**2))
-   c1 = sqrt((x0b-x1)**2+(y0b-y1)**2)
-   c2 = sqrt((x0b-x2)**2+(y0b-y2)**2)
-   aa = sqrt((x2-x1)**2+(y2-y1)**2)
-   a1 = sqrt(c1**2 - b2**2)
-   a2 = sqrt(c2**2 - b2**2)
+   b2 = abs((x2 - x1) * (y1 - y0b) - (x1 - x0b) * (y2 - y1)) / (sqrt((x2 - x1)**2 + (y2 - y1)**2))
+   c1 = sqrt((x0b - x1)**2 + (y0b - y1)**2)
+   c2 = sqrt((x0b - x2)**2 + (y0b - y2)**2)
+   aa = sqrt((x2 - x1)**2 + (y2 - y1)**2)
    !
-   if (a1>aa .or. a2>aa) then
+   ! Note: rounding errors may cause c1**2 - b2**2 and c2**2 - b2**2 to become negative. Set to at least 0.0.
+   !
+   a1 = sqrt(max(c1**2 - b2**2, 0.0))
+   a2 = sqrt(max(c2**2 - b2**2, 0.0))
+   !
+   if (a1 > aa .or. a2 > aa) then
+      !
       ! Point not on line
-      if (a1<a2) then
-          p2 = 0.0 
+      !
+      if (a1 < a2) then
+         !
+         p2 = 0.0 
+         !
       else
-          p2 = 1.0
+         !
+         p2 = 1.0
+         !
       endif
+      !
    else
-      p2 = a1/aa
+      !
+      p2 = a1 / aa
+      !
    endif
    !
-   if (b1<mxdst .and. b2<mxdst) then
-      dst = aa*abs(p2 - p1)
+   if (b1 < mxdst .and. b2 < mxdst) then
+      dst = aa * abs(p2 - p1)
    else
       dst = 0.0
    endif

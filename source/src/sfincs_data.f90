@@ -801,7 +801,6 @@ module sfincs_data
       integer, dimension(:,:),   allocatable   :: runup_gauge_nm
       character*256, dimension(:), allocatable :: runup_gauge_name
       integer, dimension(:),     allocatable   :: runup_gauge_nrp
-      !!!      
       !
       real*4 :: waveage
       !
