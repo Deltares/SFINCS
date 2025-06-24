@@ -386,7 +386,7 @@
    !
    implicit none
    !
-   integer ip, nm, nthd, nrows, ncols, irow, stat, ithd, nr_points, iuv, indx
+   integer ip, nm, nthd, nrows, ncols, irow, stat, ithd, nr_points, total_nr_points, iuv, indx
    !
    real      :: dst, dstmin, xxx, yyy, dstx, dsty
    real      :: dummy
@@ -402,6 +402,7 @@
    ! Read thin dams file
    !
    nthd = 0
+   total_nr_points = 0
    !
    if (thdfile(1:4) /= 'none') then
       !
@@ -451,11 +452,13 @@
          deallocate(xthd)
          deallocate(ythd)
          !
+         total_nr_points = total_nr_points + nr_points
+         !
       enddo
       !
       close(500)
       !
-      write(logstr,'(a,i0,a)')'Info    : ', nr_points,' structure points found'
+      write(logstr,'(a,i0,a)')'Info    : ', total_nr_points,' structure u/v points found'
       call write_log(logstr, 0)
       !
    endif   
