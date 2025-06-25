@@ -141,7 +141,7 @@ module snapwave_solver
       !
       Fx = F*cos(thetam)
       Fy = F*sin(thetam)
-      !
+      !   
    end subroutine
    
    
@@ -236,7 +236,7 @@ module snapwave_solver
    !
    logical, intent(in)                                  :: vegetation               ! logical yes/no
    real*4, dimension(no_nodes), intent(out)             :: Dveg                     ! dissipation by vegetation: N.B. spatial field!
-   integer, intent(in)                                  :: no_secveg
+   integer, intent(in)                                  :: no_secveg                ! number of sections in the vertical 
    real*4, dimension(no_nodes,no_secveg), intent(in)    :: veg_ah                   ! Height of vertical sections used in vegetation schematization [m wrt zb_ini (zb0)]
    real*4, dimension(no_nodes,no_secveg), intent(in)    :: veg_bstems               ! Width/diameter of individual vegetation stems [m]
    real*4, dimension(no_nodes,no_secveg), intent(in)    :: veg_Nstems               ! Number of vegetation stems per unit horizontal area [m-2]
@@ -402,7 +402,7 @@ module snapwave_solver
       call hpsort_eps_epw(no_nodes, ra , indx(:, sweep), 1.0e-6)
       !
    enddo
-   !   
+   !      
    ! Set inner to false for all points at grid edge or adjacent to dry point
    !
    do k=1,no_nodes
@@ -629,11 +629,16 @@ module snapwave_solver
                   !                  
                   if (vegetation) then
                       call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, g, Hk, Dvegk)
+                      !call vegatt(sig(k), no_nodes, kwav(k), no_secveg, (/6.5/), (/0.3/), (/0.7/), (/1.0/), depth(k), rho, g, Hk, Dvegk)                    
                   else
                       Dvegk = 0.
                   endif
                   !
                   DoverE(k) = (Dwk + Dfk + Dvegk)/max(Ek, 1.0e-6)
+                  !if (Dvegk > 0.0) then
+                  !   write(logstr,*)'k ',k,'depth(k)',depth(k),'Hk ',Hk,'Ek ',Ek,'Dwk ', Dwk,'Dfk ', Dfk,'Dvegk ', Dvegk,'DoverE veggie ', DoverE(k),'DoverE org ', (Dwk + Dfk)/max(Ek, 1.0e-6)
+                  !   call write_log(logstr, 0)                                    
+                  !endif
                   !
                   if (wind) then
                      !
@@ -902,12 +907,8 @@ module snapwave_solver
             !                     
             if (wind) then
                call baldock(rho, g, alfa, gamma, depth(k), H(k), 2.0*pi/sig(k), 1, Dw(k), Hmx(k))
-               F(k) = Dw(k)*kwav(k)/sig(k)/rho/depth(k)
             else
-               call baldock(rho, g, alfa, gamma, depth(k), H(k), Tp(k), 1, Dw(k), Hmx(k))
-               F(k) = Dw(k)*kwav(k)/sig(k)/rho/depth(k)
-               !F(k) = (Dw(k) + Df(k))*kwav(k)/sig(k)/rho/depth(k)               
-               !F(k) = (Dw(k) + Df(k))*kwav(k)/sigm ! TODO TL: before was this, now multiplied with rho*depth(k) in sfincs_snapwave.f90        
+               call baldock(rho, g, alfa, gamma, depth(k), H(k), Tp(k), 1, Dw(k), Hmx(k))                                   
             endif
             !
             if (vegetation) then
@@ -915,6 +916,23 @@ module snapwave_solver
             else
                 Dveg(k) = 0.
             endif
+	        !
+            !F(k) = Dw(k)*kwav(k)/sig(k)/rho/depth(k)
+            !F(k) = (Dw(k) + Df(k))*kwav(k)/sig(k)/rho/depth(k) 	     
+            F(k) = (Dw(k) + Dveg(k))*kwav(k)/sig(k)/rho/depth(k)
+	    !F(k) = (Dw(k) + Df(k))*kwav(k)/sigm ! TODO TL: before was this, now multiplied with rho*depth(k) in sfincs_snapwave.f90  
+            !
+            if (vegetation) then                
+                if (Dveg(k) > 0.0) then
+                    write(logstr,*)'k ',k,'depth(k)',depth(k),'H(k) ',H(k),'Dw(k) ', Dw(k),'Dveg(k) ', Dveg(k),'Hmx(k) ', Hmx(k),'kwav(k) ', kwav(k),'sig(k) ', sig(k), 'thetam(k)',thetam(k),'F(k) ',F(k)
+                    call write_log(logstr, 0)  
+                endif
+            else
+                if (H(k) > 0.0) then                
+                    write(logstr,*)'k ',k,'depth(k)',depth(k),'H(k) ',H(k),'Dw(k) ', Dw(k),'Hmx(k) ', Hmx(k),'kwav(k) ', kwav(k),'sig(k) ', sig(k), 'thetam(k)',thetam(k),'F(k) ',F(k)
+                    call write_log(logstr, 0)                      
+                endif                
+            endif             
             !
             if (igwaves) then
                !
@@ -1361,7 +1379,7 @@ module snapwave_solver
 		! declare variables
 		real*4, intent(in)                               :: sigm            ! wave frequency (per cell)
         integer, intent(in)                              :: no_nodes        ! number of unstructured grid nodes
-        integer, intent(in)                              :: no_secveg
+        integer, intent(in)                              :: no_secveg       ! number of sections in the vertical
         real*4, dimension(no_secveg), intent(in)         :: veg_ah          ! Height of vertical sections used in vegetation schematization [m wrt zb_ini (zb0)]  (per cell)
         real*4, dimension(no_secveg), intent(in)         :: veg_bstems      ! Width/diameter of individual vegetation stems [m] (per cell)
         real*4, dimension(no_secveg), intent(in)         :: veg_Nstems      ! Number of vegetation stems per unit horizontal area [m-2] (per cell)
@@ -1386,17 +1404,19 @@ module snapwave_solver
 		if (no_secveg > 0) then ! only in case vegetation is present
 			do m=1,no_secveg ! for each vertical vegetation section
 				if (veg_Cd(m) < 0.d0) then ! If Cd is not user specified: call subroutine of M. Bendoni (see below)
-					write(logstr,*)'Cd is not user specified: using subroutine bulkdragcoeff to compute Cd'
-                    call write_log(logstr, 0)                    
                     !
-					call bulkdragcoeff(veg_ah(m),m,Cdterm,no_nodes,no_secveg,depth,H,kwav,veg_bstems(m),sigm) ! bulkdragcoeff(ahveg(k,m)+zb0(k)-zb(k),m,k,Cdterm) <- no bed level change implemented in Snapwave
-                    !write(*,*)'Cd is not user specified: putting default value of 0.7'
-					!veg_Cd(k,m) = 0.7
+					!call bulkdragcoeff(veg_ah(m),m,Cdterm,no_nodes,no_secveg,depth,H,kwav,veg_bstems(m),sigm) ! bulkdragcoeff(ahveg(k,m)+zb0(k)-zb(k),m,k,Cdterm) <- no bed level change implemented in Snapwave
+					!write(logstr,*)'Cd is not user specified: using m. bendoni bulkdragcoefficient to compute cd: ',cdterm
+                    !veg_Cd(m) = Cdterm
+                    !                     
+                    write(logstr,*)'SnapWave ERROR - Cd is not specified for layer: ',m    
+                    call write_log(logstr, 0)
+                    !
+                    !
 				endif
 			enddo
 		endif
-
-		
+		!
 		! Attenuation by vegetation is computed in wave action balance (swvegatt) and the momentum balance (momeqveg);
 		! 1) Short wave dissipation by vegetation
         call swvegatt(sigm, no_nodes, kwav, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, depth, rho, g, H, Dveg)

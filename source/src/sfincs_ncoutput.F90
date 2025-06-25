@@ -2507,6 +2507,25 @@ contains
             utmp = FILL_VALUE
             vtmp = FILL_VALUE
             !
+            !if (ANY(fwx > 0.0)) then
+            !    write(*,*)'any fwx > 0 in ncoutput'
+            !endif
+            !!
+            !if (ANY(fwy > 0.0)) then
+            !    write(*,*)'any fwy > 0 in ncoutput'
+            !endif
+            !
+            !do nmq = 1, quadtree_nr_points
+            !   !
+            !   nm = index_sw_in_qt(nmq)
+            !   !
+            !   if (nm>0) then
+            !      ! 
+            !      utmp(nmq) = snapwave_Fx(nm) != directly plotting the 
+            !      vtmp(nmq) = snapwave_Fy(nm)                  
+            !      ! 
+            !   endif   
+            !enddo            
             do nmq = 1, quadtree_nr_points
                !
                nm = index_sfincs_in_quadtree(nmq)
