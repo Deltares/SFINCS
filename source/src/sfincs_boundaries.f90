@@ -171,84 +171,6 @@ contains
       call write_log(logstr, 1)
       ! 
    endif
-!   !
-!   ! Read wave boundaries
-!   !
-!   nwbnd = 0
-!   ntwbnd = 0
-!   !
-!   if (bwvfile(1:4) /= 'none') then
-!      !
-!      write(logstr,'(a)')'Info    : reading wave boundaries'
-!      call write_log(logstr, 0)
-!      !
-!      ! Locations
-!      !
-!      open(500, file=trim(bwvfile))
-!      do while(.true.)
-!         read(500,*,iostat = stat)dummy
-!         if (stat<0) exit
-!         nwbnd = nwbnd + 1
-!      enddo
-!      rewind(500)
-!      allocate(x_bwv(nwbnd))
-!      allocate(y_bwv(nwbnd))
-!      do n = 1, nwbnd
-!         read(500,*)x_bwv(n),y_bwv(n)
-!      enddo
-!      close(500)
-!      !
-!      ! Wave time series
-!      !
-!      ! First find times in bhs file
-!      !
-!      open(500, file=trim(bhsfile))
-!      do while(.true.)
-!         read(500,*,iostat = stat)dummy
-!         if (stat<0) exit
-!         ntwbnd = ntwbnd + 1
-!      enddo
-!      close(500)
-!      !
-!      allocate(t_bwv(ntwbnd))
-!      allocate(hst_bwv(nwbnd))
-!      allocate(l0t_bwv(nwbnd))
-!      allocate(tpt_bwv(nwbnd))
-!      allocate(wdt_bwv(nwbnd))
-!!      allocate(setupt_bwv(nwbnd))
-!      !
-!      ! Hs (significant wave height)
-!      ! Times in btp and bwd files must be the same as in bhs file!
-!      !
-!      open(500, file=trim(bhsfile))
-!      allocate(hs_bwv(nwbnd,ntwbnd))
-!      do itb = 1, ntwbnd
-!         read(500,*)t_bwv(itb),(hs_bwv(ib, itb), ib = 1, nwbnd)
-!      enddo
-!      close(500)
-!      !
-!      ! Tp (peak period)
-!      !
-!      open(500, file=trim(btpfile))
-!      allocate(tp_bwv(nwbnd,ntwbnd))
-!      do itb = 1, ntwbnd
-!         read(500,*)t_bwv(itb),(tp_bwv(ib, itb), ib = 1, nwbnd)
-!      enddo
-!      close(500)
-!      !
-!      if (bwdfile(1:4) /= 'none') then
-!         !
-!         ! Wd (wave direction)
-!         !
-!         open(500, file=trim(bwdfile))
-!         allocate(wd_bwv(nwbnd,ntwbnd))
-!         do itb = 1, ntwbnd
-!            read(500,*)t_bwv(itb),(wd_bwv(ib, itb), ib = 1, nwbnd)
-!         enddo
-!         close(500)
-!         wd_bwv = (270.0 - wd_bwv)*pi/180 ! Convert to cartesian going to
-!         !
-!      endif
    !
    ! Now the downstream river boundaries. No time series, just points, slope and direction
    !
@@ -268,14 +190,6 @@ contains
             read(500,*,iostat = stat)dummy
             if (stat<0) exit
             nbdr = nbdr + 1
-         enddo
-         rewind(500)
-         allocate(x_bdr(nbdr))
-         allocate(y_bdr(nbdr))
-         allocate(slope_bdr(nbdr))
-         allocate(azimuth_bdr(nbdr))      
-         do n = 1, nbdr
-            read(500,*)x_bdr(n), y_bdr(n), slope_bdr(n), azimuth_bdr(n)
          enddo
          !
          rewind(500)

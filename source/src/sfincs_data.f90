@@ -172,7 +172,6 @@ module sfincs_data
       character*256 :: wvmfile
       character*256 :: qtrfile
       character*256 :: volfile
-      character*256 :: bdrfile
       !
       character*256 :: trefstr_iso8601
       character*41  :: treftimefews
