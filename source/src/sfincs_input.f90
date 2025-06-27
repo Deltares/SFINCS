@@ -168,28 +168,25 @@ contains
    !
    ! Forcing
    !
-   call read_char_input(500, 'bndfile', bndfile, 'none')
-   call read_char_input(500, 'bzsfile', bzsfile, 'none')
-   call read_char_input(500, 'bzifile', bzifile, 'none')
+   call read_char_input(500,'bndfile',bndfile,'none')
+   call read_char_input(500,'bzsfile',bzsfile,'none')
+   call read_char_input(500,'bzifile',bzifile,'none')
    call read_char_input(500, 'bdrfile', bdrfile, 'none')
-   !call read_char_input(500, 'bwvfile', bwvfile, 'none')
-   !call read_char_input(500, 'bhsfile', bhsfile, 'none')
-   !call read_char_input(500, 'btpfile', btpfile, 'none')
-   !call read_char_input(500, 'bwdfile', bwdfile, 'none')
-   !call read_char_input(500, 'bdsfile', bdsfile, 'none')
-   call read_char_input(500, 'wfpfile', wfpfile, 'none')
-   call read_char_input(500, 'whifile', whifile, 'none')
-   call read_char_input(500, 'wtifile', wtifile, 'none')
-   call read_char_input(500, 'wstfile', wstfile, 'none')
-   call read_char_input(500, 'srcfile', srcfile, 'none')
-   call read_char_input(500, 'disfile', disfile, 'none')
-   call read_char_input(500, 'spwfile', spwfile, 'none')
-   call read_char_input(500, 'wndfile', wndfile, 'none')
-   call read_char_input(500, 'prcfile', prcpfile, 'none')
+   call read_char_input(500,'wfpfile',wfpfile,'none')
+   call read_char_input(500,'whifile',whifile,'none')
+   call read_char_input(500,'wtifile',wtifile,'none')
+   call read_char_input(500,'wstfile',wstfile,'none')
+   call read_char_input(500,'srcfile',srcfile,'none')
+   call read_char_input(500,'disfile',disfile,'none')
+   call read_char_input(500,'spwfile',spwfile,'none')
+   call read_char_input(500,'wndfile',wndfile,'none')
+   call read_char_input(500,'prcfile',prcpfile,'none')
+   !
    if (prcpfile(1:4) == 'none') then
       ! Try with old keyword 
       call read_char_input(500,'precipfile',prcpfile,'none')
    endif  
+   !
    call read_char_input(500,'amufile',amufile,'none')
    call read_char_input(500,'amvfile',amvfile,'none')
    call read_char_input(500,'ampfile',ampfile,'none')

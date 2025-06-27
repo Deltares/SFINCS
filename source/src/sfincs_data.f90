@@ -123,11 +123,7 @@ module sfincs_data
       character*256 :: bndfile
       character*256 :: bzsfile
       character*256 :: bzifile
-      character*256 :: bwvfile
-      character*256 :: bhsfile
-      character*256 :: btpfile
-      character*256 :: bwdfile
-      character*256 :: bdsfile
+      character*256 :: bdrfile
       character*256 :: wfpfile
       character*256 :: whifile
       character*256 :: wtifile
@@ -614,7 +610,7 @@ module sfincs_data
       integer,            dimension(:,:),   allocatable :: nm_nbr_gbp       ! nm index of upstream neighbor (for downstream river boundaries)
       real*4,             dimension(:,:),   allocatable :: w_nbr_gbp        ! weight of upstream neighbor (for downstream river boundaries)
       real*4,             dimension(:,:),   allocatable :: d_nbr_gbp        ! distance to upstream neighbor (for downstream river boundaries)
-      real*4,             dimension(:),     allocatable :: slope_gbp        ! river slope (for downstream river boundaries)
+      integer,            dimension(:),     allocatable :: index_bdr_gbp    ! index of downstream boundary point (for lateral neumann boundary conditions)
       integer,            dimension(:),     allocatable :: nmi_gbp          ! nm index of internal point (for lateral neumann boundary conditions)
       real*4,             dimension(:),     allocatable :: zsb              ! water level with waves
       real*4,             dimension(:),     allocatable :: zsb0             ! water level without waves
@@ -630,12 +626,12 @@ module sfincs_data
       real*4, dimension(:),     allocatable :: zst_bnd
       real*4, dimension(:),     allocatable :: zsit_bnd
       !
-      ! Water level boundary points
+      ! Downstream river boundary points
       !
-      real*4, dimension(:),     allocatable :: x_bdr
-      real*4, dimension(:),     allocatable :: y_bdr
-      real*4, dimension(:),     allocatable :: slope_bdr
-      real*4, dimension(:),     allocatable :: azimuth_bdr
+      real*4,  dimension(:),     allocatable :: x_bdr
+      real*4,  dimension(:),     allocatable :: y_bdr
+      integer, dimension(:),     allocatable :: index_zsi_bdr
+      real*4,  dimension(:),     allocatable :: dzs_bdr
       !      
       ! Wave boundary points
       !
@@ -1015,16 +1011,13 @@ module sfincs_data
     if(allocated(prcp0)) deallocate(prcp0)
     if(allocated(prcp1)) deallocate(prcp1)
     !
-!    if(allocated(kfuv)) deallocate(kfuv)
+    ! if(allocated(kfuv)) deallocate(kfuv)
     !
     ! Grid boundary points
     !
     if(allocated(ind1_bnd_gbp)) deallocate(ind1_bnd_gbp)
     if(allocated(ind2_bnd_gbp)) deallocate(ind2_bnd_gbp)
-    !if(allocated(ind1_cst_gbp)) deallocate(ind1_cst_gbp)
-    !if(allocated(ind2_cst_gbp)) deallocate(ind2_cst_gbp)
     if(allocated(fac_bnd_gbp))  deallocate(fac_bnd_gbp)
-    !if(allocated(fac_cst_gbp))  deallocate(fac_cst_gbp)
     if(allocated(zsb))          deallocate(zsb)
     if(allocated(zsb0))         deallocate(zsb0)
     !
@@ -1037,31 +1030,6 @@ module sfincs_data
     if(allocated(zsi_bnd)) deallocate(zsi_bnd)
     if(allocated(zst_bnd)) deallocate(zst_bnd)
     if(allocated(zsit_bnd)) deallocate(zsit_bnd)
-    !
-    ! Wave boundary points
-    !
-    !if(allocated(x_bwv)) deallocate(x_bwv)
-    !if(allocated(y_bwv)) deallocate(y_bwv)
-    !if(allocated(t_bwv)) deallocate(t_bwv)
-    !if(allocated(hs_bwv)) deallocate(hs_bwv)
-    !if(allocated(tp_bwv)) deallocate(tp_bwv)
-    !if(allocated(wd_bwv)) deallocate(wd_bwv)
-    !if(allocated(hst_bwv)) deallocate(hst_bwv)
-    !if(allocated(tpt_bwv)) deallocate(tpt_bwv)
-    !if(allocated(l0t_bwv)) deallocate(l0t_bwv)
-    !if(allocated(wdt_bwv)) deallocate(wdt_bwv)
-    !
-    ! cst points
-    !
-    !if(allocated(x_cst)) deallocate(x_cst)
-    !if(allocated(y_cst)) deallocate(y_cst)
-    !if(allocated(slope_cst)) deallocate(slope_cst)
-    !if(allocated(angle_cst)) deallocate(angle_cst)
-    !if(allocated(zsetup_cst)) deallocate(zsetup_cst)
-    !if(allocated(zig_cst)) deallocate(zig_cst)
-    !if(allocated(fac_bwv_cst)) deallocate(fac_bwv_cst)
-    !if(allocated(ind1_bwv_cst)) deallocate(ind1_bwv_cst)
-    !if(allocated(ind2_bwv_cst)) deallocate(ind2_bwv_cst)
     !
     ! IG frequencies
     !
