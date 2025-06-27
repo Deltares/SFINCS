@@ -37,6 +37,7 @@ libsfincs_la_SOURCES = \
 	sfincs_boundaries.f90 \
 	sfincs_continuity.f90 \
 	sfincs_crosssections.f90 \
+	sfincs_runup_gauges.f90 \
 	sfincs_discharges.f90 \
 	sfincs_subgrid.F90 \
 	sfincs_domain.f90 \
@@ -47,7 +48,7 @@ libsfincs_la_SOURCES = \
 	sfincs_snapwave.f90 \
 	deg2utm.f90 \
 	sfincs_meteo.f90 \
-        bicgstab_solver_ilu.f90 \
+    bicgstab_solver_ilu.f90 \
 	sfincs_nonhydrostatic.f90 \
 	sfincs_ncoutput.F90 \
 	sfincs_output.f90 \

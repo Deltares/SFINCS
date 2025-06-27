@@ -3,6 +3,7 @@ module sfincs_initial_conditions
    !
    use sfincs_data
    use sfincs_log
+   use sfincs_error
    use netcdf       
    !
    type net_type_ini
@@ -53,6 +54,8 @@ contains
          write(logstr,'(a,a)')'Info    : reading restart file ', trim(rstfile)
          call write_log(logstr, 0)
          !
+         iok = check_file_exists(rstfile, 'Restart file', .true.)
+         !
          call read_binary_restart_file() ! Note - older type real*4 for zs
          !
       elseif (zsinifile(1:4) /= 'none') then 
@@ -62,6 +65,8 @@ contains
          !
          write(logstr,'(a,a)')'Info    : reading initial conditions file ', trim(zsinifile)
          call write_log(logstr, 0)
+         !
+         iok = check_file_exists(zsinifile, 'Initial conditions file', .true.)
          !
          call read_zsini_file()
          !
@@ -74,6 +79,8 @@ contains
          !
          write(logstr,'(a,a)')'Info    : reading NetCDF initial conditions file ', trim(zsinifile)
          call write_log(logstr, 0)
+         !
+         iok = check_file_exists(ncinifile, 'NetCDF initial conditions file', .true.)
          !
          call read_nc_ini_file()
          !

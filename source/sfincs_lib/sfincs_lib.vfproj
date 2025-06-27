@@ -44,7 +44,11 @@
 						<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
 					</FileConfiguration>
 				</File>
-				<File RelativePath="..\src\snapwave\snapwave_solver.f90"/>
+				<File RelativePath="..\src\snapwave\snapwave_solver.f90">
+					<FileConfiguration Name="Release|x64">
+						<Tool Name="VFFortranCompilerTool" Optimization="optimizeFull"/>
+					</FileConfiguration>
+				</File>
 				<File RelativePath="..\src\snapwave\snapwave_windsource.f90"/>
 			</Filter>
 			<File RelativePath="..\src\bicgstab_solver_ilu.f90"/>
