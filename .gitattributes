@@ -1,0 +1,7 @@
+*.f90 text eol=lf
+*.F90 text eol=lf
+*.f text eol=lf
+*.m4 text eol=lf
+*.am text eol=lf
+*.ac text eol=lf
+*.sh text eol=lf

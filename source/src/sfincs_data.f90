@@ -7,6 +7,7 @@ module sfincs_data
       !!!
       real    :: tstart_all, tfinish_all
       real*4  :: dtavg
+      real*4  :: min_dt
       !!!
       !!! Error code
       integer :: error
