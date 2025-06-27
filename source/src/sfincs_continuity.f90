@@ -78,7 +78,7 @@ contains
    !
    if (nsrcdrn > 0) then
       ! 
-      !$acc serial, present( zs,nmindsrc,qtsrc,zb,cell_area,z_flags_iref ), async(1)
+      !$acc serial, present( zs, nmindsrc, qtsrc, zb, cell_area, z_flags_iref, cell_area_m2 ), async(1)
       ! 
       do isrc = 1, nsrcdrn
          ! 
@@ -302,7 +302,7 @@ contains
    !$acc                   num_gangs( 512 ), vector_length( 128 ), async(1)
    !
    ! First discharges (don't do this parallel, as it's probably not worth it)
-   ! Should try to do this in a smart way for openacc
+   ! NVFORTAN turn this into a sequential loop (!$acc loop seq)
    !
    if (nsrcdrn > 0) then
       ! 

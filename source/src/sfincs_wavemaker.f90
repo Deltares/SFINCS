@@ -1527,7 +1527,7 @@
    endif
    !
    !$acc kernels present( wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, &
-   !$acc                  zs, q, hm0_ig, zb, zbuv, &
+   !$acc                  zs, q, hm0, hm0_ig, zb, zbuv, subgrid_z_zmax, &
    !$acc                  wmf_hm0_ig_t, wmf_setup_t, wavemaker_index_wmfp1, wavemaker_index_wmfp2, wavemaker_fac_wmfp, &
    !$acc                  wavemaker_uvmean, wavemaker_idir, wavemaker_angfac, wavemaker_freduv, wavemaker_uvtrend, & 
    !$acc                  subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_z_zmin, subgrid_uv_havg_zmax), async(1)

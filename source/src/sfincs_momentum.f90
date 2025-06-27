@@ -2,7 +2,7 @@
    
    contains
 
-   subroutine compute_fluxes(dt, min_dt, tloop)
+   subroutine compute_fluxes(dt, tloop)
    !
    ! Computes fluxes over subgrid u and v points
    !
@@ -41,7 +41,6 @@
    real*4    :: adv
    real*4    :: fcoriouv
    real*4    :: frc
-   real*4    :: min_dt
    real*4    :: gammax
    real*4    :: facmax
    real*4    :: wsumax
@@ -108,7 +107,7 @@
    !$acc                    uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc                    uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
    !$acc                    zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, &
-   !$acc                    dxrinvc, fcorio2d, nuvisc ), num_gangs( 512 ), vector_length( 128 ), async(1)
+   !$acc                    dxrinvc, fcorio2d, nuvisc, min_dt, z_volume, gnapp2 ), num_gangs( 512 ), vector_length( 128 ), async(1)
    !
    !$omp parallel &
    !$omp private ( ip )
