@@ -246,7 +246,7 @@ contains
                !
                ! Larger amounts of rainfall - Equation 4-27 from SWMM manual
                !
-               qinfmap(nm) = (ksfield(nm) * (1 + (GA_head(np) * GA_sigma(np)) / GA_F(nm)))
+               qinfmap(nm) = (ksfield(nm) * (1.0 + (GA_head(np) * GA_sigma(np)) / GA_F(nm)))
                qinfmap(nm) = max(min(qinfmap(nm), prcp(nm)), 0.0)     ! never more than rainfall and and never negative
                !
             endif
