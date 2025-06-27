@@ -596,7 +596,7 @@ module sfincs_data
       integer,            dimension(:,:),   allocatable :: nm_nbr_gbp       ! nm index of upstream neighbor (for downstream river boundaries)
       real*4,             dimension(:,:),   allocatable :: w_nbr_gbp        ! weight of upstream neighbor (for downstream river boundaries)
       real*4,             dimension(:,:),   allocatable :: d_nbr_gbp        ! distance to upstream neighbor (for downstream river boundaries)
-      real*4,             dimension(:),     allocatable :: slope_gbp        ! river slope (for downstream river boundaries)
+      integer,            dimension(:),     allocatable :: index_bdr_gbp    ! index of downstream boundary point (for lateral neumann boundary conditions)
       integer,            dimension(:),     allocatable :: nmi_gbp          ! nm index of internal point (for lateral neumann boundary conditions)
       real*4,             dimension(:),     allocatable :: zsb              ! water level with waves
       real*4,             dimension(:),     allocatable :: zsb0             ! water level without waves
@@ -614,10 +614,10 @@ module sfincs_data
       !
       ! Downstream river boundary points
       !
-      real*4, dimension(:),     allocatable :: x_bdr
-      real*4, dimension(:),     allocatable :: y_bdr
-      real*4, dimension(:),     allocatable :: slope_bdr
-      real*4, dimension(:),     allocatable :: azimuth_bdr
+      real*4,  dimension(:),     allocatable :: x_bdr
+      real*4,  dimension(:),     allocatable :: y_bdr
+      integer, dimension(:),     allocatable :: index_zsi_bdr
+      real*4,  dimension(:),     allocatable :: dzs_bdr
       !
       ! IG frequencies
       !
