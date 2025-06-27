@@ -656,6 +656,8 @@ contains
          ! No need to set zsb and zsb0, as flux for this type of boundary is solved in sfincs_momentum.f90.
          ! Lateral boundary u/v points have kcuv=6. They are skipped in update_boundary_fluxes.
          !
+         ! TODO: OPENACC!!!!
+         !
          zs(nmb) = zs(nmi_gbp(ib)) ! nm index of internal point. Technically there can be more than one internal point. This always uses the last point that was found.
          !         
       endif
