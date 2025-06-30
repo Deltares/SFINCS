@@ -2024,13 +2024,6 @@ contains
          inftype = 'c2d'
          infiltration = .true.      
          !
-      elseif (runofffile /= 'none') then
-         !
-         ! Spatially-varying constant run off
-         !
-         inftype = 'r2d'
-         infiltration = .true.      
-         !
       elseif (scsfile /= 'none') then
          !
          ! Spatially-varying infiltration with CN numbers (old)
@@ -2122,22 +2115,6 @@ contains
          do nm = 1, np
             qinffield(nm) = qinffield(nm)/3.6e3/1.0e3   ! convert to +m/s
          enddo
-         !            
-      elseif (inftype == 'r2d') then
-         !
-         ! Spatially-varying constant runoff
-         !
-	     write(logstr,'(a)')'Info    : turning on spatially-varying constant run-off'      
-         call write_log(logstr, 0)
-         !
-         ! Read spatially-varying runoff (only binary, specified in %)
-         !
-		 write(logstr,'(a,a)')'Info    : reading infiltration file ', trim(runofffile)
-         call write_log(logstr, 0)		 
-         allocate(qinffield(np))
-         open(unit = 500, file = trim(runofffile), form = 'unformatted', access = 'stream')
-         read(500)qinffield
-         close(500)
          !
       elseif (inftype == 'cna') then
          !

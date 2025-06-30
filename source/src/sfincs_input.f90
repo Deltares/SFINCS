@@ -182,7 +182,6 @@ contains
    call read_char_input(500,'z0lfile',z0lfile,'none')
    call read_char_input(500,'wvmfile',wvmfile,'none')
    call read_char_input(500,'qinffile',qinffile,'none')
-   call read_char_input(500,'runofffile',runofffile,'none')
    ! Curve Number files
    call read_char_input(500,'scsfile',scsfile,'none')           
    call read_char_input(500,'smaxfile',smaxfile,'none')
