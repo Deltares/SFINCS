@@ -1237,7 +1237,11 @@ contains
        NF90(nf90_def_var(map_file%ncid, 'qinf', NF90_FLOAT, (/map_file%nmesh2d_face_dimid/), map_file%qinf_varid))
        NF90(nf90_def_var_deflate(map_file%ncid, map_file%qinf_varid, 1, 1, nc_deflate_level))
        NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, '_FillValue', FILL_VALUE))     
-       if (inftype == 'cna') then
+       if (inftype == 'r2d') then
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'runoff')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'Run-off - constant in time')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', '%'))
+       elseif (inftype == 'cna') then
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'S')) 
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'moisture storage (S) capacity - Curve number')) 
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'm'))
