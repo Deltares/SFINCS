@@ -1,18 +1,12 @@
-   module sfincs_momentum
-   
-   contains
-
-   subroutine compute_fluxes(dt, tloop)
-   !
-   ! Computes fluxes over subgrid u and v points
+module sfincs_momentum
    !
    use sfincs_data
    !
    implicit none
-   !
+   !     
 contains
    !
-   subroutine compute_fluxes(dt, min_dt, tloop)
+   subroutine compute_fluxes(dt, tloop)
    !
    ! Computes fluxes over subgrid u and v points
    !
