@@ -10,6 +10,12 @@
    !
    implicit none
    !
+contains
+   !
+   subroutine compute_fluxes(dt, min_dt, tloop)
+   !
+   ! Computes fluxes over subgrid u and v points
+   !
    integer   :: count0
    integer   :: count1
    integer   :: count_rate
@@ -642,9 +648,17 @@
             ! Compute new flux for this uv point (Bates et al., 2010)
             ! 
             if (h73table) then
-               hu73 = power7over3(hu)
+               !
+               ! Get hu**(7/3) from look-up table
+               !
+               hu73 = power7over3(max(hu, 1.0e-6))
+               !
             else
+               !
+               ! Compute hu**(7/3)
+               !
                hu73 = hu**2 * hu**expo
+               !
             endif
             ! 
             q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / hu73)
@@ -745,18 +759,16 @@
    tloop = tloop + 1.0*(count1 - count0)/count_rate
    !
    end subroutine      
-
-   
+   !
+   !
    function power7over3(hu) result(hu73)
    !
    ! Computes hu^(7/3) using a table for hu < 10^4 and hu^(7/3) for hu >= 10^4
    !
-   use sfincs_data
+   real*4, intent(in) :: hu
+   real*4             :: hu73
    !
-   implicit none
-   !
-   real*4, intent(in)  :: hu
-   real*4              :: hu73
+   !!$acc routine(power7over3) seq
    !
    if (hu < 0.00001) then
       hu73 = x73(int(1e8 * hu), 1)
@@ -783,5 +795,5 @@
    endif    
    !
    end function
-   
+   !
 end module
