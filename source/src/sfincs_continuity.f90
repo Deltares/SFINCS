@@ -71,22 +71,13 @@ contains
       !
       factime = min(dt/wmtfilter, 1.0)
       !
-   endif   
-   !
-   !$acc parallel present( kcs, zs, zb, netprcp, prcp, q, qext, zsmax, zsm, maxzsm, &
-   !$acc                   z_flags_iref, uv_flags_iref, &
-   !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
-   !$acc                   dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area,  &
-   !$acc                   nmindsrc, qtsrc, &
-   !$acc                   z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num )
+   endif
    !
    ! First discharges (don't do this parallel, as it's probably not worth it)
-   ! Should try to do this in a smart way for openacc
    !
    if (nsrcdrn > 0) then
       ! 
-      !$acc loop seq
-      ! 
+      !$acc serial present( zs, zb, nmindsrc, qtsrc, cell_area, cell_area_m2, z_flags_iref )
       do isrc = 1, nsrcdrn
          ! 
          nm = nmindsrc(isrc)
@@ -102,8 +93,16 @@ contains
          endif
          ! 
       enddo
+      !$acc end serial
       ! 
    endif   
+   !
+   !$acc parallel present( kcs, zs, zb, netprcp, prcp, q, qext, zsmax, zsm, maxzsm, &
+   !$acc                   z_flags_iref, uv_flags_iref, &
+   !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
+   !$acc                   dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area,  &
+   !$acc                   nmindsrc, qtsrc, &
+   !$acc                   z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num )
    !
    !$omp parallel &
    !$omp private ( nm,dvol,nmd,nmu,ndm,num,qnmd,qnmu,qndm,qnum,iwm)
@@ -286,6 +285,7 @@ contains
    real*4           :: dv
    real*4           :: zs00
    real*4           :: zs11
+   real*4           :: rtmp
    !
    if (wavemaker) then
       !
@@ -293,30 +293,23 @@ contains
       !
    endif   
    !
-   !$acc parallel present( kcs, zs, zs0, zb, z_volume, zsmax, zsm, nmindsrc, qtsrc, maxzsm, zsderv, &
+   ! First discharges (don't do this parallel, as it's probably not worth it)
+   ! NVFORTAN turn this into a sequential loop (!$acc loop seq)
+   !
+   if (nsrcdrn > 0) then
+      !$acc serial present( z_volume, nmindsrc, qtsrc )
+      do isrc = 1, nsrcdrn
+         z_volume(nmindsrc(isrc)) = max(z_volume(nmindsrc(isrc)) + qtsrc(isrc) * dt, 0.0)
+      enddo
+      !$acc end serial
+   endif
+   !
+   !$acc parallel present( kcs, zs, zs0, zb, z_volume, zsmax, zsm, maxzsm, zsderv, &
    !$acc                   subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
    !$acc                   netprcp, prcp, q, qext, z_flags_iref, uv_flags_iref, &
    !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
    !$acc                   dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area, &   
    !$acc                   z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, storage_volume)
-   !
-   ! First discharges (don't do this parallel, as it's probably not worth it)
-   ! NVFORTAN turn this into a sequential loop (!$acc loop seq)
-   !
-   if (nsrcdrn > 0) then
-      ! 
-      !$acc loop seq 
-      do isrc = 1, nsrcdrn
-         ! 
-         if (nmindsrc(isrc) > 0) then ! Is this even possible?
-            ! 
-            z_volume(nmindsrc(isrc)) = max(z_volume(nmindsrc(isrc)) + qtsrc(isrc) * dt, 0.0)         
-            ! 
-         endif   
-         ! 
-      enddo
-      ! 
-   endif   
    !
    !$omp parallel &
    !$omp private ( dvol,dzsdt,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,iwm,qnmd,qnmu,qndm,qnum,dv,zs00,zs11 )
