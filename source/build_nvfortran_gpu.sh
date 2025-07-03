@@ -23,7 +23,6 @@ export CONFIG_SHELL=/bin/bash
 autoreconf -vif
 
 ./autogen.sh
-
 ./configure FCFLAGS="-acc=gpu -Minfo=accel -fast -O3 -gpu=ccall -DSIZEOF_PTRDIFF_T=999" FC=nvfortran --disable-shared --disable-openmp --prefix=/usr/local/bin/sfincs/nvfortran_gpu_ccall
 
 make clean

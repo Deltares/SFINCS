@@ -73,12 +73,19 @@ contains
       !
    endif   
    !
+   !$acc parallel present( kcs, zs, zb, netprcp, prcp, q, qext, zsmax, zsm, maxzsm, &
+   !$acc                   z_flags_iref, uv_flags_iref, &
+   !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
+   !$acc                   dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area,  &
+   !$acc                   nmindsrc, qtsrc, &
+   !$acc                   z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num )
+   !
    ! First discharges (don't do this parallel, as it's probably not worth it)
    ! Should try to do this in a smart way for openacc
    !
    if (nsrcdrn > 0) then
       ! 
-      !$acc serial, present( zs, nmindsrc, qtsrc, zb, cell_area, z_flags_iref, cell_area_m2 ), async(1)
+      !$acc loop seq
       ! 
       do isrc = 1, nsrcdrn
          ! 
@@ -96,19 +103,12 @@ contains
          ! 
       enddo
       ! 
-      !$acc end serial
-      ! 
    endif   
    !
    !$omp parallel &
    !$omp private ( nm,dvol,nmd,nmu,ndm,num,qnmd,qnmu,qndm,qnum,iwm)
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels present( kcs, zs, zb, netprcp, prcp, q, qext, zsmax, zsm, maxzsm, &
-   !$acc                  z_flags_iref, uv_flags_iref, &
-   !$acc                  z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
-   !$acc                  dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area,  &
-   !$acc                  z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num), async(1)
-   !$acc loop independent, private( nm )
+   !$acc loop gang vector
    do nm = 1, np
       ! 
       if (kcs(nm) == 1) then ! Regular point
@@ -245,8 +245,8 @@ contains
    enddo
    !$omp end do
    !$omp end parallel
-   !$acc end kernels
-   !$acc wait(1)
+   !$acc end parallel
+   !!$acc wait(1)
    !         
    end subroutine
 
@@ -297,15 +297,15 @@ contains
    !$acc                   subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
    !$acc                   netprcp, prcp, q, qext, z_flags_iref, uv_flags_iref, &
    !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
-   !$acc                   dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area, &
-   !$acc                   z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, storage_volume), &
-   !$acc                   num_gangs( 512 ), vector_length( 128 ), async(1)
+   !$acc                   dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area, &   
+   !$acc                   z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, storage_volume)
    !
    ! First discharges (don't do this parallel, as it's probably not worth it)
    ! NVFORTAN turn this into a sequential loop (!$acc loop seq)
    !
    if (nsrcdrn > 0) then
       ! 
+      !$acc loop seq 
       do isrc = 1, nsrcdrn
          ! 
          if (nmindsrc(isrc) > 0) then ! Is this even possible?
@@ -321,7 +321,7 @@ contains
    !$omp parallel &
    !$omp private ( dvol,dzsdt,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,iwm,qnmd,qnmu,qndm,qnum,dv,zs00,zs11 )
    !$omp do schedule ( dynamic, 256 )
-   !$acc loop independent, gang, vector
+   !$acc loop gang vector
    do nm = 1, np
       !
       ! And now water level changes due to horizontal fluxes
@@ -597,7 +597,7 @@ contains
    !         
    !$acc end parallel
    !         
-   !$acc wait(1)
+   !!$acc wait(1)
    !         
    end subroutine
    
@@ -624,9 +624,9 @@ contains
    !$omp parallel &
    !$omp private ( nmd, nmu, ndm, num, quz, qvz, qz, uvz )
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels present( kcs, zs, zb, subgrid_z_zmin, q, uv, vmax, qmax, twet, &
-   !$acc                  z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu), async(2)
-   !$acc loop independent, private( nm )   
+   !$acc parallel present( kcs, zs, zb, subgrid_z_zmin, q, uv, vmax, qmax, twet, &
+   !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu )
+   !$acc loop gang vector 
    do nm = 1, np
       !
       ! And now water level changes due to horizontal fluxes
@@ -693,8 +693,8 @@ contains
    enddo   
    !$omp end do
    !$omp end parallel
-   !$acc end kernels
-   !$acc wait(2)
+   !$acc end parallel
+   !!$acc wait(2)
    !       
    end subroutine
    

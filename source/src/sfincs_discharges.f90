@@ -352,13 +352,15 @@ contains
          endif
       enddo
       !
-      !$acc update device(qtsrc), async(1)
+      !$acc update device(qtsrc)
+!      !$acc update device(qtsrc), async(1)
       !
    endif
    !
    if (ndrn>0) then
       !
-      !$acc serial, present( z_volume, zs, zb, nmindsrc, qtsrc, drainage_type, drainage_params ), async(1)
+      !$acc serial, present( z_volume, zs, zb, nmindsrc, qtsrc, drainage_type, drainage_params )
+!      !$acc serial, present( z_volume, zs, zb, nmindsrc, qtsrc, drainage_type, drainage_params ), async(1)
       do idrn = 1, ndrn
          !
          jin  = nsrc + idrn*2 - 1
