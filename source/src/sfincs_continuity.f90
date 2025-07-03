@@ -294,14 +294,19 @@ contains
    endif   
    !
    ! First discharges (don't do this parallel, as it's probably not worth it)
-   ! NVFORTAN turn this into a sequential loop (!$acc loop seq)
+   ! NVFORTAN turns this into a sequential loop (!$acc loop seq)
    !
    if (nsrcdrn > 0) then
+      !
       !$acc serial present( z_volume, nmindsrc, qtsrc )
       do isrc = 1, nsrcdrn
-         z_volume(nmindsrc(isrc)) = max(z_volume(nmindsrc(isrc)) + qtsrc(isrc) * dt, 0.0)
+         !
+         nm = nmindsrc(isrc)
+         z_volume(nm) = z_volume(nm) + qtsrc(isrc) * dt
+         !
       enddo
       !$acc end serial
+      !
    endif
    !
    !$acc parallel present( kcs, zs, zs0, zb, z_volume, zsmax, zsm, maxzsm, zsderv, &
