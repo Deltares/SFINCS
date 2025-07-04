@@ -47,6 +47,36 @@ contains
       !$omp end do
       !$omp end parallel
       !
+   elseif (inftype == 'r2d') then
+      !
+      ! Run-off coefficient map
+      !
+      !$omp parallel &
+      !$omp private ( nm )
+      !$omp do
+      do nm = 1, np
+         !
+         qinfmap(nm) = qinffield(nm)
+         !
+         ! No infiltration if there is no water
+         !  
+         if (subgrid) then
+            if (z_volume(nm)<=0.0) then
+               qinfmap(nm) = 100.0
+            endif
+         else
+            if (zs(nm)<=zb(nm)) then
+               qinfmap(nm) = 100.0
+            endif
+         endif
+         !
+         cuminf(nm) = cuminf(nm) + (1.0-qinfmap(nm)/100.0)*netprcp(nm)*dt
+         netprcp(nm) = netprcp(nm) - (1.0-qinfmap(nm)/100.0)*netprcp(nm)
+         !
+      enddo
+      !$omp end do
+      !$omp end parallel
+      !	    
    elseif (inftype == 'cna') then
       !
       ! Determine infiltration rate with Curve Number (old method; no recovery)
