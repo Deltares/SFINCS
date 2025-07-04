@@ -6,5 +6,5 @@ find . -name \*.F90|xargs dos2unix
 find . -name \*.am|xargs dos2unix
 find . -name \*.sh|xargs dos2unix
 
-docker build -f Dockerfile.cpu . -t mvanormondt/sfincs_cpu
-docker push mvanormondt/sfincs_cpu:latest
+docker build -f Dockerfile.gpu.update01 . -t mvanormondt/sfincs_gpu
+docker push mvanormondt/sfincs_gpu:latest
