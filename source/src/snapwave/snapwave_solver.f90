@@ -1650,14 +1650,14 @@ subroutine swvegnonlin(no_nodes, kwav, depth, H, g, Trep, unl)
     ! Compute net drag force due to wave skewness based on Rienecker & Fenton (1981)
     !
     ! load Ad's RF-table (update for depth averaged velocities?)
-    !include 'RFveg.inc' 
+    include 'RFveg.inc' 
     !include 'RFtable.inp'
     !
     ! Prepare interpolation of RF table
     if (.not. allocated(h0)) then
         allocate(h0(no_nodes))
         allocate(t0(no_nodes))
-        allocate(RFveg(no_nodes))        
+        !allocate(RFveg(no_nodes))        !TL: not needed?
         dh = 0.0
         dt = 1.25
         nh = floor(0.54/ dh)
