@@ -1442,9 +1442,9 @@ module snapwave_solver
     subroutine swvegatt(sigm, no_nodes, kwav, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, depth, rho, g, H, Dveg)! Short wave dissipation by vegetation
         !use snapwave_data
         !use snapwave_domain
-        
+        !
         implicit none
-	    
+	    !
 		! declare variables
 		integer, intent(in)                             :: no_nodes        ! number of unstructured grid nodes
         integer, intent(in)                             :: no_secveg
@@ -1457,20 +1457,20 @@ module snapwave_solver
         real*4, intent(in)                              :: rho
         real*4, intent(in)                              :: g
         real*4, intent(in)                              :: H               ! wave height
-		
+		! 
 		! local variables
 		real*4                                      :: pi              ! 3.14159
         integer                                     :: k,m  ! indices of actual x,y point
-
+        !
 		real*4                                      :: aht,hterm,htermold,Dvgt,ahtold
 		real*4            		                    :: Dvg,kmr!,kwav
         real*4, intent(in)                          :: kwav!,k
-        
+        !
         real*4, intent(out)                         :: Dveg
-		
+		!
 		pi = 4.d0*atan(1.d0)
 		kmr = min(max(kwav, 0.01d0), 100.d0)
-		
+		!
 		! Set dissipation in vegetation to zero everywhere for a start
 		Dvg = 0.d0
         Dvgt = 0.d0
@@ -1478,24 +1478,24 @@ module snapwave_solver
         ahtold = 0.d0
         if (no_secveg>0) then ! only if vegetation is present
             do m=1,no_secveg
-	
+	            !
                 ! Determine height of vegetation section (restricted to current bed level)
                 !aht = veg(ind)%ah(m)+ahtold !+s%zb0(k,j)-s%zb(k,j)!(max(veg(ind)%zv(m)+s%zb0(k,j),s%zb(k,j)))
                 aht = veg_ah(m)+ahtold
-	
+	            ! 
                 ! restrict vegetation height to local water depth
                 aht = min(aht, depth)
-	
+	            !
                 ! compute hterm based on ah
                 hterm = (sinh(kmr*aht)**3+3*sinh(kmr*aht))/(3.d0*kmr*cosh(kmr* depth)**3) !
-	
+	            !
                 ! compute dissipation based on aht and correct for lower elevated dissipation layers (following Suzuki et al. 2012)
                 Dvgt = 0.5d0/sqrt(pi)*rho*veg_Cd(m)*veg_bstems(m)*veg_Nstems(m)*(0.5d0*kmr*g/sigm)**3*(hterm-htermold)*H**3
-	
+	            !
                 ! save hterm to htermold to correct possibly in next vegetation section
                 htermold = hterm
                 ahtold   = aht
-	
+	            !
                 ! add dissipation current vegetation section
                 Dvg = Dvg + Dvgt
             enddo
@@ -1576,7 +1576,9 @@ module snapwave_solver
     end subroutine bulkdragcoeff
     
 subroutine momeqveg(sig, kwav, no_nodes, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, depth, rho, H, Trep, unl, Fvw)
+    !
     implicit none
+    !
     ! Inputs
     integer, intent(in) :: no_nodes, no_secveg
     real*4, intent(in) :: sig, kwav, depth ,rho, H, Trep
