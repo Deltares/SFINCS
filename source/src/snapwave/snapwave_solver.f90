@@ -920,8 +920,12 @@ module snapwave_solver
                 ! Compute wave dissipation due to vegetation
                 call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, g, H(k), Dveg(k)) 
                 !
+                ! Compute the non-linear wave velocity time series (unl) using a wave shape model
+                call swvegnonlin(no_nodes, kwav(k), depth(k), H(k), g, Tp(k), unl(k,:))
+                ! NOTE - TODO: double check whether we want to call this in or outside the 'do k=1,no_nodes' loop!
+                !
                 ! Now also call 'momeqveg' to compute wave drag force due to vegetation
-                call momeqveg(sig(k), kwav(k), no_nodes, no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, H(k), Tp(k), unl(k,:), Fvw(k))
+                call momeqveg(no_nodes, no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, H(k), Tp(k), unl(k,:), Fvw(k))
                 ! NOTE - TL: for now replaced 'Trep' by 'Tp(k)' 
                 !
             else
@@ -1575,13 +1579,13 @@ module snapwave_solver
 		!
     end subroutine bulkdragcoeff
     
-subroutine momeqveg(sig, kwav, no_nodes, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, depth, rho, H, Trep, unl, Fvw)
+subroutine momeqveg(no_nodes, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, depth, rho, H, Trep, unl, Fvw)
     !
     implicit none
     !
     ! Inputs
     integer, intent(in) :: no_nodes, no_secveg
-    real*4, intent(in) :: sig, kwav, depth ,rho, H, Trep
+    real*4, intent(in) :: depth ,rho, H, Trep
     real*4, dimension(no_secveg), intent(in) :: veg_ah, veg_bstems, veg_Nstems, veg_Cd
     real*4, dimension(50), intent(in) :: unl
     !
@@ -1620,4 +1624,101 @@ subroutine momeqveg(sig, kwav, no_nodes, no_secveg, veg_ah, veg_bstems, veg_Nste
     enddo
 end subroutine momeqveg    
    
+subroutine swvegnonlin(no_nodes, kwav, depth, H, g, Trep, unl)
+    ! input= no_nodes, kwav(k), H(k), depth(k), g, Tp(k), unl(k,:)
+    !
+    ! Based on Deltares' XBeach SurfBeat' subroutine: swvegnonlin
+    !
+    implicit none
+    !
+    integer :: no_nodes, k
+    integer :: irf, ih0, it0, jrf, ih1, it1
+    integer , save :: nh , nt !TL: NOTE - NOT familiar with THIS_IMAGE 'save' statement, for now keep
+    real*4 :: p ,q , f0 , f1 , f2 , f3
+    real*4, save :: dh , dt
+    real*4, dimension(no_nodes) :: kmr , Urs , phi , w1 , w2
+    real*4, dimension(8) , save :: urf0
+    real*4, dimension(50) , save :: urf2 , urf
+    real*4, dimension(50 ,8), save :: cs , sn , urf1
+    real*4, dimension(:), save , allocatable :: h0, t0
+    real*4, dimension(no_nodes, 50),intent(out) :: unl ! NOTE - TL: we don't use 'etaw0' in the end?
+    !
+    real*4  :: pi = 4.*atan(1.0)   
+    real*4, intent(in) :: kwav, depth, g, H, Trep ! depth = the 'hh' of XBeach  
+    real*4, dimension(:,:,:), allocatable :: RFveg
+    !
+    ! Compute net drag force due to wave skewness based on Rienecker & Fenton (1981)
+    !
+    ! load Ad's RF-table (update for depth averaged velocities?)
+    !include 'RFveg.inc' 
+    !include 'RFtable.inp'
+    !
+    ! Prepare interpolation of RF table
+    if (.not. allocated(h0)) then
+        allocate(h0(no_nodes))
+        allocate(t0(no_nodes))
+        allocate(RFveg(no_nodes))        
+        dh = 0.0
+        dt = 1.25
+        nh = floor(0.54/ dh)
+        nt = floor(25 / dt )
+        do irf =1 ,8
+            do jrf =1 ,50
+                cs ( jrf , irf ) = cos (( jrf * 2 * pi / 50) * irf )
+                sn ( jrf , irf ) = sin (( jrf * 2 * pi / 50) * irf )
+            enddo
+        enddo
+    endif    
+    !
+    h0 = min(nh * dh, max(dh, min(H, depth) / depth) )
+    t0 = min(nt * dt, max(dt, Trep * sqrt (g / depth) ) )
+    !
+    ! Initialize
+    urf0 = 0
+    urf1 = 0
+    urf2 = 0
+    urf = 0
+    w1 = 0
+    w2 = 0
+    phi = 0
+    Urs = 0
+    kmr = 0
+    !
+    ! Compute phase and weights for Ruessink wave shape
+    kmr = min(max(kwav, 0.01), 100.0)
+    Urs = H / (kmr * kmr * (depth **3) )
+    phi = pi /2 * (1 - tanh (0.815/(Urs **0.672) ) )
+    w1 = 1 - phi /( pi /2)
+    w2 = 1 - w1    
+    !
+    ! Interpolate RF table and compute velocity profiles
+    do k =1, no_nodes
+        !
+        ih0 = floor( h0(k) / dh)
+        it0 = floor( t0(k) / dt)
+        ih1 = min(ih0 + 1, nh)
+        it1 = min(it0 + 1, nt)
+        p = ( h0(k) - ih0 * dh) / dh
+        q = ( t0(k) - it0 * dt) / dt
+        f0 = (1 - p) * (1 - q)
+        f1 = p * (1 - q)
+        f2 = q * (1 - p)
+        f3 = p * q
+        !
+        do irf = 1, 8
+            urf0(irf) = f0 * RFveg(irf + 3, ih0, it0) + f1 * RFveg(irf + 3, ih1, it0) + f2 * RFveg(irf+3, ih0, it1) + f3 * RFveg(irf + 3, ih1, it1)
+        enddo    
+        !
+        do irf = 1, 8
+            urf1(:, irf) = urf0(irf)
+        enddo
+        !
+        urf1 = urf1 * (w1(k) * cs + w2(k) * sn )
+        urf2 = sum(urf1, 2)
+        unl(k,:) = urf2 * sqrt(g * depth )
+        !etaw0(k,:) = unl0 (i ,j ,:) * sqrt (max( depth(k ) ,0 ) / g ) #TL: not used
+    enddo   
+    !
+end subroutine swvegnonlin
+
 end module snapwave_solver 
