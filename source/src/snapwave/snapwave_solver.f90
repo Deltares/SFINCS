@@ -207,7 +207,7 @@ module snapwave_solver
    real*4, dimension(no_nodes), intent(out)         :: H_ig                   ! wave height
    real*4, dimension(no_nodes), intent(out)         :: Dw                     ! wave breaking dissipation
    real*4, dimension(no_nodes), intent(out)         :: Dw_ig                  ! wave breaking dissipation IG   
-   real*4, dimension(no_nodes), intent(out)         :: F                      ! wave force Dw/C/rho/h
+   real*4, dimension(no_nodes), intent(out)         :: F                      ! wave force Dw/C/rho/h   
    real*4, dimension(no_nodes), intent(out)         :: Df                     ! wave friction dissipation
    real*4, dimension(no_nodes), intent(out)         :: Df_ig                  ! wave friction dissipation IG      
    real*4, dimension(no_nodes), intent(out)         :: thetam                 ! mean wave direction
@@ -242,6 +242,8 @@ module snapwave_solver
    real*4, dimension(no_nodes,no_secveg), intent(in)    :: veg_Nstems               ! Number of vegetation stems per unit horizontal area [m-2]
    real*4, dimension(no_nodes,no_secveg), intent(in)    :: veg_Cd                   ! Bulk drag coefficient [-]     
    real*4                                               :: Dvegk                    ! dissipation by vegetation: N.B. scalar value!
+   real*4, dimension(no_nodes)                          :: Fvw                      ! vegetation wave drag force   
+   real*4, dimension(no_nodes,50)                       :: unl                      ! non-linear wave orbital velocity time series, in 50 points per wave length
    !
    !
    ! Local variables and arrays
@@ -378,6 +380,8 @@ module snapwave_solver
    thetam         = 0.0
    !H              = 0.0 ! TODO - TL: CHeck > needed for restart for IG > set to 0 now in snapwave_domain.f90
    Dveg           = 0.0
+   Fvw            = 0.0
+   unl            = 0.0
    !
    if (igwaves) then
       !T_ig = Tinc2ig*Tp
@@ -912,14 +916,23 @@ module snapwave_solver
             endif
             !
             if (vegetation) then
+                !
+                ! Compute wave dissipation due to vegetation
                 call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, g, H(k), Dveg(k)) 
+                !
+                ! Now also call 'momeqveg' to compute wave drag force due to vegetation
+                call momeqveg(sig(k), kwav(k), no_nodes, no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, H(k), Tp(k), unl(k,:), Fvw(k))
+                ! NOTE - TL: for now replaced 'Trep' by 'Tp(k)' 
+                !
             else
                 Dveg(k) = 0.
+                Fvw(k) = 0.                
             endif
 	        !
             !F(k) = Dw(k)*kwav(k)/sig(k)/rho/depth(k)
             !F(k) = (Dw(k) + Df(k))*kwav(k)/sig(k)/rho/depth(k) 	     
             F(k) = (Dw(k) + Dveg(k))*kwav(k)/sig(k)/rho/depth(k)
+            F(k) = F(k) + Fvw(k)
 	    !F(k) = (Dw(k) + Df(k))*kwav(k)/sigm ! TODO TL: before was this, now multiplied with rho*depth(k) in sfincs_snapwave.f90  
             !
             if (vegetation) then                
@@ -1561,5 +1574,48 @@ module snapwave_solver
 		endif
 		!
     end subroutine bulkdragcoeff
+    
+subroutine momeqveg(sig, kwav, no_nodes, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, depth, rho, H, Trep, unl, Fvw)
+    implicit none
+    ! Inputs
+    integer, intent(in) :: no_nodes, no_secveg
+    real*4, intent(in) :: sig, kwav, depth ,rho, H, Trep
+    real*4, dimension(no_secveg), intent(in) :: veg_ah, veg_bstems, veg_Nstems, veg_Cd
+    real*4, dimension(50), intent(in) :: unl
+    !
+    ! Output
+    real*4, intent(out) :: Fvw
+    !
+    ! Local variables
+    integer :: m, t
+    real*4 :: dt, hvegeff, Fvgnlt, integral
+    real*4 :: Cd, b, N
+    !
+    ! Initialize output force
+    !
+    Fvw = 0.0
+    !
+    ! Time step within wave period
+    !
+    dt = Trep / 50.0
+    !
+    ! Loop over vertical vegetation sections
+    do m = 1 , no_secveg
+        ! Effective submerged height of vegetation section
+        hvegeff = min(veg_ah(m), depth)
+        ! Read vegetation parameters
+        Cd = veg_Cd(m)
+        b = veg_bstems(m)
+        N = veg_Nstems(m)
+        ! Integrate vegetation drag over wave period using unl
+        integral = 0.0
+        do t = 1, 50 !50=PPWL
+            integral = integral + (0.5 * Cd * b * N * hvegeff * unl(t) * abs(unl(t) ) ) * dt
+        enddo
+        ! Convert to force per unit mass and sum
+        Fvgnlt = integral / depth / rho
+        Fvw = Fvw + Fvgnlt
+    enddo
+end subroutine momeqveg    
    
 end module snapwave_solver 
