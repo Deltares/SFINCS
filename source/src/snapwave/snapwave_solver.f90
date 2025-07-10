@@ -1645,13 +1645,11 @@ subroutine swvegnonlin(no_nodes, kwav, depth, H, g, Trep, unl)
     !
     real*4  :: pi = 4.*atan(1.0)   
     real*4, intent(in) :: kwav, depth, g, H, Trep ! depth = the 'hh' of XBeach  
-    real*4, dimension(:,:,:), allocatable :: RFveg
     !
     ! Compute net drag force due to wave skewness based on Rienecker & Fenton (1981)
     !
     ! load Ad's RF-table (update for depth averaged velocities?)
     include 'RFveg.inc' 
-    !include 'RFtable.inp'
     !
     ! Prepare interpolation of RF table
     if (.not. allocated(h0)) then
