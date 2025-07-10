@@ -141,7 +141,7 @@ module snapwave_solver
       !
       Fx = F*cos(thetam)
       Fy = F*sin(thetam)
-      !
+      !   
    end subroutine
    
    
@@ -207,7 +207,7 @@ module snapwave_solver
    real*4, dimension(no_nodes), intent(out)         :: H_ig                   ! wave height
    real*4, dimension(no_nodes), intent(out)         :: Dw                     ! wave breaking dissipation
    real*4, dimension(no_nodes), intent(out)         :: Dw_ig                  ! wave breaking dissipation IG   
-   real*4, dimension(no_nodes), intent(out)         :: F                      ! wave force Dw/C/rho/h
+   real*4, dimension(no_nodes), intent(out)         :: F                      ! wave force Dw/C/rho/h   
    real*4, dimension(no_nodes), intent(out)         :: Df                     ! wave friction dissipation
    real*4, dimension(no_nodes), intent(out)         :: Df_ig                  ! wave friction dissipation IG      
    real*4, dimension(no_nodes), intent(out)         :: thetam                 ! mean wave direction
@@ -236,12 +236,14 @@ module snapwave_solver
    !
    logical, intent(in)                                  :: vegetation               ! logical yes/no
    real*4, dimension(no_nodes), intent(out)             :: Dveg                     ! dissipation by vegetation: N.B. spatial field!
-   integer, intent(in)                                  :: no_secveg
+   integer, intent(in)                                  :: no_secveg                ! number of sections in the vertical 
    real*4, dimension(no_nodes,no_secveg), intent(in)    :: veg_ah                   ! Height of vertical sections used in vegetation schematization [m wrt zb_ini (zb0)]
    real*4, dimension(no_nodes,no_secveg), intent(in)    :: veg_bstems               ! Width/diameter of individual vegetation stems [m]
    real*4, dimension(no_nodes,no_secveg), intent(in)    :: veg_Nstems               ! Number of vegetation stems per unit horizontal area [m-2]
    real*4, dimension(no_nodes,no_secveg), intent(in)    :: veg_Cd                   ! Bulk drag coefficient [-]     
    real*4                                               :: Dvegk                    ! dissipation by vegetation: N.B. scalar value!
+   real*4, dimension(no_nodes)                          :: Fvw                      ! vegetation wave drag force   
+   real*4, dimension(no_nodes,50)                       :: unl                      ! non-linear wave orbital velocity time series, in 50 points per wave length
    !
    !
    ! Local variables and arrays
@@ -378,6 +380,8 @@ module snapwave_solver
    thetam         = 0.0
    !H              = 0.0 ! TODO - TL: CHeck > needed for restart for IG > set to 0 now in snapwave_domain.f90
    Dveg           = 0.0
+   Fvw            = 0.0
+   unl            = 0.0
    !
    if (igwaves) then
       !T_ig = Tinc2ig*Tp
@@ -402,7 +406,7 @@ module snapwave_solver
       call hpsort_eps_epw(no_nodes, ra , indx(:, sweep), 1.0e-6)
       !
    enddo
-   !   
+   !      
    ! Set inner to false for all points at grid edge or adjacent to dry point
    !
    do k=1,no_nodes
@@ -629,11 +633,16 @@ module snapwave_solver
                   !                  
                   if (vegetation) then
                       call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, g, Hk, Dvegk)
+                      !call vegatt(sig(k), no_nodes, kwav(k), no_secveg, (/6.5/), (/0.3/), (/0.7/), (/1.0/), depth(k), rho, g, Hk, Dvegk)                    
                   else
                       Dvegk = 0.
                   endif
                   !
                   DoverE(k) = (Dwk + Dfk + Dvegk)/max(Ek, 1.0e-6)
+                  !if (Dvegk > 0.0) then
+                  !   write(logstr,*)'k ',k,'depth(k)',depth(k),'Hk ',Hk,'Ek ',Ek,'Dwk ', Dwk,'Dfk ', Dfk,'Dvegk ', Dvegk,'DoverE veggie ', DoverE(k),'DoverE org ', (Dwk + Dfk)/max(Ek, 1.0e-6)
+                  !   call write_log(logstr, 0)                                    
+                  !endif
                   !
                   if (wind) then
                      !
@@ -902,19 +911,45 @@ module snapwave_solver
             !                     
             if (wind) then
                call baldock(rho, g, alfa, gamma, depth(k), H(k), 2.0*pi/sig(k), 1, Dw(k), Hmx(k))
-               F(k) = Dw(k)*kwav(k)/sig(k)/rho/depth(k)
             else
-               call baldock(rho, g, alfa, gamma, depth(k), H(k), Tp(k), 1, Dw(k), Hmx(k))
-               F(k) = Dw(k)*kwav(k)/sig(k)/rho/depth(k)
-               !F(k) = (Dw(k) + Df(k))*kwav(k)/sig(k)/rho/depth(k)               
-               !F(k) = (Dw(k) + Df(k))*kwav(k)/sigm ! TODO TL: before was this, now multiplied with rho*depth(k) in sfincs_snapwave.f90        
+               call baldock(rho, g, alfa, gamma, depth(k), H(k), Tp(k), 1, Dw(k), Hmx(k))                                   
             endif
             !
             if (vegetation) then
+                !
+                ! Compute wave dissipation due to vegetation
                 call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, g, H(k), Dveg(k)) 
+                !
+                ! Compute the non-linear wave velocity time series (unl) using a wave shape model
+                call swvegnonlin(no_nodes, kwav(k), depth(k), H(k), g, Tp(k), unl(k,:))
+                ! NOTE - TODO: double check whether we want to call this in or outside the 'do k=1,no_nodes' loop!
+                !
+                ! Now also call 'momeqveg' to compute wave drag force due to vegetation
+                call momeqveg(no_nodes, no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, H(k), Tp(k), unl(k,:), Fvw(k))
+                ! NOTE - TL: for now replaced 'Trep' by 'Tp(k)' 
+                !
             else
                 Dveg(k) = 0.
+                Fvw(k) = 0.                
             endif
+	        !
+            !F(k) = Dw(k)*kwav(k)/sig(k)/rho/depth(k)
+            !F(k) = (Dw(k) + Df(k))*kwav(k)/sig(k)/rho/depth(k) 	     
+            F(k) = (Dw(k) + Dveg(k))*kwav(k)/sig(k)/rho/depth(k)
+            F(k) = F(k) + Fvw(k)
+	    !F(k) = (Dw(k) + Df(k))*kwav(k)/sigm ! TODO TL: before was this, now multiplied with rho*depth(k) in sfincs_snapwave.f90  
+            !
+            if (vegetation) then                
+                if (Dveg(k) > 0.0) then
+                    write(logstr,*)'k ',k,'depth(k)',depth(k),'H(k) ',H(k),'Dw(k) ', Dw(k),'Dveg(k) ', Dveg(k),'Hmx(k) ', Hmx(k),'kwav(k) ', kwav(k),'sig(k) ', sig(k), 'thetam(k)',thetam(k),'F(k) ',F(k)
+                    call write_log(logstr, 0)  
+                endif
+            else
+                if (H(k) > 0.0) then                
+                    write(logstr,*)'k ',k,'depth(k)',depth(k),'H(k) ',H(k),'Dw(k) ', Dw(k),'Hmx(k) ', Hmx(k),'kwav(k) ', kwav(k),'sig(k) ', sig(k), 'thetam(k)',thetam(k),'F(k) ',F(k)
+                    call write_log(logstr, 0)                      
+                endif                
+            endif             
             !
             if (igwaves) then
                !
@@ -1361,7 +1396,7 @@ module snapwave_solver
 		! declare variables
 		real*4, intent(in)                               :: sigm            ! wave frequency (per cell)
         integer, intent(in)                              :: no_nodes        ! number of unstructured grid nodes
-        integer, intent(in)                              :: no_secveg
+        integer, intent(in)                              :: no_secveg       ! number of sections in the vertical
         real*4, dimension(no_secveg), intent(in)         :: veg_ah          ! Height of vertical sections used in vegetation schematization [m wrt zb_ini (zb0)]  (per cell)
         real*4, dimension(no_secveg), intent(in)         :: veg_bstems      ! Width/diameter of individual vegetation stems [m] (per cell)
         real*4, dimension(no_secveg), intent(in)         :: veg_Nstems      ! Number of vegetation stems per unit horizontal area [m-2] (per cell)
@@ -1386,17 +1421,19 @@ module snapwave_solver
 		if (no_secveg > 0) then ! only in case vegetation is present
 			do m=1,no_secveg ! for each vertical vegetation section
 				if (veg_Cd(m) < 0.d0) then ! If Cd is not user specified: call subroutine of M. Bendoni (see below)
-					write(logstr,*)'Cd is not user specified: using subroutine bulkdragcoeff to compute Cd'
-                    call write_log(logstr, 0)                    
                     !
-					call bulkdragcoeff(veg_ah(m),m,Cdterm,no_nodes,no_secveg,depth,H,kwav,veg_bstems(m),sigm) ! bulkdragcoeff(ahveg(k,m)+zb0(k)-zb(k),m,k,Cdterm) <- no bed level change implemented in Snapwave
-                    !write(*,*)'Cd is not user specified: putting default value of 0.7'
-					!veg_Cd(k,m) = 0.7
+					!call bulkdragcoeff(veg_ah(m),m,Cdterm,no_nodes,no_secveg,depth,H,kwav,veg_bstems(m),sigm) ! bulkdragcoeff(ahveg(k,m)+zb0(k)-zb(k),m,k,Cdterm) <- no bed level change implemented in Snapwave
+					!write(logstr,*)'Cd is not user specified: using m. bendoni bulkdragcoefficient to compute cd: ',cdterm
+                    !veg_Cd(m) = Cdterm
+                    !                     
+                    write(logstr,*)'SnapWave ERROR - Cd is not specified for layer: ',m    
+                    call write_log(logstr, 0)
+                    !
+                    !
 				endif
 			enddo
 		endif
-
-		
+		!
 		! Attenuation by vegetation is computed in wave action balance (swvegatt) and the momentum balance (momeqveg);
 		! 1) Short wave dissipation by vegetation
         call swvegatt(sigm, no_nodes, kwav, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, depth, rho, g, H, Dveg)
@@ -1409,9 +1446,9 @@ module snapwave_solver
     subroutine swvegatt(sigm, no_nodes, kwav, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, depth, rho, g, H, Dveg)! Short wave dissipation by vegetation
         !use snapwave_data
         !use snapwave_domain
-        
+        !
         implicit none
-	    
+	    !
 		! declare variables
 		integer, intent(in)                             :: no_nodes        ! number of unstructured grid nodes
         integer, intent(in)                             :: no_secveg
@@ -1424,20 +1461,20 @@ module snapwave_solver
         real*4, intent(in)                              :: rho
         real*4, intent(in)                              :: g
         real*4, intent(in)                              :: H               ! wave height
-		
+		! 
 		! local variables
 		real*4                                      :: pi              ! 3.14159
         integer                                     :: k,m  ! indices of actual x,y point
-
+        !
 		real*4                                      :: aht,hterm,htermold,Dvgt,ahtold
 		real*4            		                    :: Dvg,kmr!,kwav
         real*4, intent(in)                          :: kwav!,k
-        
+        !
         real*4, intent(out)                         :: Dveg
-		
+		!
 		pi = 4.d0*atan(1.d0)
 		kmr = min(max(kwav, 0.01d0), 100.d0)
-		
+		!
 		! Set dissipation in vegetation to zero everywhere for a start
 		Dvg = 0.d0
         Dvgt = 0.d0
@@ -1445,24 +1482,24 @@ module snapwave_solver
         ahtold = 0.d0
         if (no_secveg>0) then ! only if vegetation is present
             do m=1,no_secveg
-	
+	            !
                 ! Determine height of vegetation section (restricted to current bed level)
                 !aht = veg(ind)%ah(m)+ahtold !+s%zb0(k,j)-s%zb(k,j)!(max(veg(ind)%zv(m)+s%zb0(k,j),s%zb(k,j)))
                 aht = veg_ah(m)+ahtold
-	
+	            ! 
                 ! restrict vegetation height to local water depth
                 aht = min(aht, depth)
-	
+	            !
                 ! compute hterm based on ah
                 hterm = (sinh(kmr*aht)**3+3*sinh(kmr*aht))/(3.d0*kmr*cosh(kmr* depth)**3) !
-	
+	            !
                 ! compute dissipation based on aht and correct for lower elevated dissipation layers (following Suzuki et al. 2012)
                 Dvgt = 0.5d0/sqrt(pi)*rho*veg_Cd(m)*veg_bstems(m)*veg_Nstems(m)*(0.5d0*kmr*g/sigm)**3*(hterm-htermold)*H**3
-	
+	            !
                 ! save hterm to htermold to correct possibly in next vegetation section
                 htermold = hterm
                 ahtold   = aht
-	
+	            !
                 ! add dissipation current vegetation section
                 Dvg = Dvg + Dvgt
             enddo
@@ -1541,5 +1578,145 @@ module snapwave_solver
 		endif
 		!
     end subroutine bulkdragcoeff
+    
+subroutine momeqveg(no_nodes, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, depth, rho, H, Trep, unl, Fvw)
+    !
+    implicit none
+    !
+    ! Inputs
+    integer, intent(in) :: no_nodes, no_secveg
+    real*4, intent(in) :: depth ,rho, H, Trep
+    real*4, dimension(no_secveg), intent(in) :: veg_ah, veg_bstems, veg_Nstems, veg_Cd
+    real*4, dimension(50), intent(in) :: unl
+    !
+    ! Output
+    real*4, intent(out) :: Fvw
+    !
+    ! Local variables
+    integer :: m, t
+    real*4 :: dt, hvegeff, Fvgnlt, integral
+    real*4 :: Cd, b, N
+    !
+    ! Initialize output force
+    !
+    Fvw = 0.0
+    !
+    ! Time step within wave period
+    !
+    dt = Trep / 50.0
+    !
+    ! Loop over vertical vegetation sections
+    do m = 1 , no_secveg
+        ! Effective submerged height of vegetation section
+        hvegeff = min(veg_ah(m), depth)
+        ! Read vegetation parameters
+        Cd = veg_Cd(m)
+        b = veg_bstems(m)
+        N = veg_Nstems(m)
+        ! Integrate vegetation drag over wave period using unl
+        integral = 0.0
+        do t = 1, 50 !50=PPWL
+            integral = integral + (0.5 * Cd * b * N * hvegeff * unl(t) * abs(unl(t) ) ) * dt
+        enddo
+        ! Convert to force per unit mass and sum
+        Fvgnlt = integral / depth / rho
+        Fvw = Fvw + Fvgnlt
+    enddo
+end subroutine momeqveg    
    
+subroutine swvegnonlin(no_nodes, kwav, depth, H, g, Trep, unl)
+    ! input= no_nodes, kwav(k), H(k), depth(k), g, Tp(k), unl(k,:)
+    !
+    ! Based on Deltares' XBeach SurfBeat' subroutine: swvegnonlin
+    !
+    implicit none
+    !
+    integer :: no_nodes, k
+    integer :: irf, ih0, it0, jrf, ih1, it1
+    integer , save :: nh , nt !TL: NOTE - NOT familiar with THIS_IMAGE 'save' statement, for now keep
+    real*4 :: p ,q , f0 , f1 , f2 , f3
+    real*4, save :: dh , dt
+    real*4, dimension(no_nodes) :: kmr , Urs , phi , w1 , w2
+    real*4, dimension(8) , save :: urf0
+    real*4, dimension(50) , save :: urf2 , urf
+    real*4, dimension(50 ,8), save :: cs , sn , urf1
+    real*4, dimension(:), save , allocatable :: h0, t0
+    real*4, dimension(no_nodes, 50),intent(out) :: unl ! NOTE - TL: we don't use 'etaw0' in the end?
+    !
+    real*4  :: pi = 4.*atan(1.0)   
+    real*4, intent(in) :: kwav, depth, g, H, Trep ! depth = the 'hh' of XBeach  
+    !
+    ! Compute net drag force due to wave skewness based on Rienecker & Fenton (1981)
+    !
+    ! load Ad's RF-table (update for depth averaged velocities?)
+    include 'RFveg.inc' 
+    !
+    ! Prepare interpolation of RF table
+    if (.not. allocated(h0)) then
+        allocate(h0(no_nodes))
+        allocate(t0(no_nodes))
+        !allocate(RFveg(no_nodes))        !TL: not needed?
+        dh = 0.0
+        dt = 1.25
+        nh = floor(0.54/ dh)
+        nt = floor(25 / dt )
+        do irf =1 ,8
+            do jrf =1 ,50
+                cs ( jrf , irf ) = cos (( jrf * 2 * pi / 50) * irf )
+                sn ( jrf , irf ) = sin (( jrf * 2 * pi / 50) * irf )
+            enddo
+        enddo
+    endif    
+    !
+    h0 = min(nh * dh, max(dh, min(H, depth) / depth) )
+    t0 = min(nt * dt, max(dt, Trep * sqrt (g / depth) ) )
+    !
+    ! Initialize
+    urf0 = 0
+    urf1 = 0
+    urf2 = 0
+    urf = 0
+    w1 = 0
+    w2 = 0
+    phi = 0
+    Urs = 0
+    kmr = 0
+    !
+    ! Compute phase and weights for Ruessink wave shape
+    kmr = min(max(kwav, 0.01), 100.0)
+    Urs = H / (kmr * kmr * (depth **3) )
+    phi = pi /2 * (1 - tanh (0.815/(Urs **0.672) ) )
+    w1 = 1 - phi /( pi /2)
+    w2 = 1 - w1    
+    !
+    ! Interpolate RF table and compute velocity profiles
+    do k =1, no_nodes
+        !
+        ih0 = floor( h0(k) / dh)
+        it0 = floor( t0(k) / dt)
+        ih1 = min(ih0 + 1, nh)
+        it1 = min(it0 + 1, nt)
+        p = ( h0(k) - ih0 * dh) / dh
+        q = ( t0(k) - it0 * dt) / dt
+        f0 = (1 - p) * (1 - q)
+        f1 = p * (1 - q)
+        f2 = q * (1 - p)
+        f3 = p * q
+        !
+        do irf = 1, 8
+            urf0(irf) = f0 * RFveg(irf + 3, ih0, it0) + f1 * RFveg(irf + 3, ih1, it0) + f2 * RFveg(irf+3, ih0, it1) + f3 * RFveg(irf + 3, ih1, it1)
+        enddo    
+        !
+        do irf = 1, 8
+            urf1(:, irf) = urf0(irf)
+        enddo
+        !
+        urf1 = urf1 * (w1(k) * cs + w2(k) * sn )
+        urf2 = sum(urf1, 2)
+        unl(k,:) = urf2 * sqrt(g * depth )
+        !etaw0(k,:) = unl0 (i ,j ,:) * sqrt (max( depth(k ) ,0 ) / g ) #TL: not used
+    enddo   
+    !
+end subroutine swvegnonlin
+
 end module snapwave_solver 
