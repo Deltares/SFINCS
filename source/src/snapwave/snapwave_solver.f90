@@ -633,7 +633,6 @@ module snapwave_solver
                   !                  
                   if (vegetation) then
                       call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, g, Hk, Dvegk)
-                      !call vegatt(sig(k), no_nodes, kwav(k), no_secveg, (/6.5/), (/0.3/), (/0.7/), (/1.0/), depth(k), rho, g, Hk, Dvegk)                    
                   else
                       Dvegk = 0.
                   endif
@@ -893,6 +892,16 @@ module snapwave_solver
       !
    enddo
    !
+   if (vegetation) then
+      ! 
+      ! Compute the non-linear wave velocity time series (unl) using a wave shape model > only needs to be called once per calling SnapWave
+      write(*,*)'Call swvegnonlin'
+      !          
+      call swvegnonlin(no_nodes, kwav, depth, H, g, Tp, unl)       
+      write(*,*)'Finished swvegnonlin'
+      !        
+   endif
+   !
    do k=1,no_nodes
       !
       ! Compute directionally integrated parameters for output
@@ -918,18 +927,11 @@ module snapwave_solver
             if (vegetation) then
                 !
                 ! Compute wave dissipation due to vegetation
-                write(*,*)'Call vegatt'
-                
+                !write(*,*)'Call vegatt'                
                 call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, g, H(k), Dveg(k)) 
                 !
-                ! Compute the non-linear wave velocity time series (unl) using a wave shape model
-                write(*,*)'Call swvegnonlin'
-                
-                call swvegnonlin(no_nodes, kwav(k), depth(k), H(k), g, Tp(k), unl(k,:))
-                ! NOTE - TODO: double check whether we want to call this in or outside the 'do k=1,no_nodes' loop!
-                !
                 ! Now also call 'momeqveg' to compute wave drag force due to vegetation
-                write(*,*)'Call momeqveg'                
+                !write(*,*)'Call momeqveg'                
                 call momeqveg(no_nodes, no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, H(k), Tp(k), unl(k,:), Fvw(k))
                 ! NOTE - TL: for now replaced 'Trep' by 'Tp(k)' 
                 !
@@ -941,20 +943,20 @@ module snapwave_solver
             !F(k) = Dw(k)*kwav(k)/sig(k)/rho/depth(k)
             !F(k) = (Dw(k) + Df(k))*kwav(k)/sig(k)/rho/depth(k) 	     
             F(k) = (Dw(k) + Dveg(k))*kwav(k)/sig(k)/rho/depth(k)
-            F(k) = F(k) + Fvw(k)
+            F(k) = F(k) + Fvw(k) ! FIXME - still *kwav(k)/sig(k) ??? 
 	    !F(k) = (Dw(k) + Df(k))*kwav(k)/sigm ! TODO TL: before was this, now multiplied with rho*depth(k) in sfincs_snapwave.f90  
             !
-            if (vegetation) then                
-                if (Dveg(k) > 0.0) then
-                    write(logstr,*)'k ',k,'depth(k)',depth(k),'H(k) ',H(k),'Dw(k) ', Dw(k),'Dveg(k) ', Dveg(k),'Hmx(k) ', Hmx(k),'kwav(k) ', kwav(k),'sig(k) ', sig(k), 'thetam(k)',thetam(k),'F(k) ',F(k)
-                    call write_log(logstr, 0)  
-                endif
-            else
-                if (H(k) > 0.0) then                
-                    write(logstr,*)'k ',k,'depth(k)',depth(k),'H(k) ',H(k),'Dw(k) ', Dw(k),'Hmx(k) ', Hmx(k),'kwav(k) ', kwav(k),'sig(k) ', sig(k), 'thetam(k)',thetam(k),'F(k) ',F(k)
-                    call write_log(logstr, 0)                      
-                endif                
-            endif             
+            !if (vegetation) then                
+            !    if (Dveg(k) > 0.0) then
+            !        write(logstr,*)'k ',k,'depth(k)',depth(k),'H(k) ',H(k),'Dw(k) ', Dw(k),'Dveg(k) ', Dveg(k),'Hmx(k) ', Hmx(k),'kwav(k) ', kwav(k),'sig(k) ', sig(k), 'thetam(k)',thetam(k),'F(k) ',F(k)
+            !        call write_log(logstr, 0)  
+            !    endif
+            !else
+            !    if (H(k) > 0.0) then                
+            !        write(logstr,*)'k ',k,'depth(k)',depth(k),'H(k) ',H(k),'Dw(k) ', Dw(k),'Hmx(k) ', Hmx(k),'kwav(k) ', kwav(k),'sig(k) ', sig(k), 'thetam(k)',thetam(k),'F(k) ',F(k)
+            !        call write_log(logstr, 0)                      
+            !    endif                
+            !endif             
             !
             if (igwaves) then
                !
@@ -983,8 +985,13 @@ module snapwave_solver
                 SwA(k) = sum(WsorA(:,k))*dtheta    !(2*pi*sum(WsorA(:,k))*dtheta - 2*pi/sig(k)*SwE(k)) / E(k)
             endif
          endif
-      !
+      !      
+      !   
    enddo
+   !
+   write(*,*)'max Fvw',maxval(Fvw)
+   write(*,*)'Fvw',Fvw   
+   
    callno=callno+1
    !
    end subroutine solve_energy_balance2Dstat
@@ -1585,6 +1592,7 @@ module snapwave_solver
     end subroutine bulkdragcoeff
     
 subroutine momeqveg(no_nodes, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, depth, rho, H, Trep, unl, Fvw)
+    ! INput: no_nodes, no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, H(k), Tp(k), unl(k,:), Fvw(k)
     !
     implicit none
     !
@@ -1602,7 +1610,7 @@ subroutine momeqveg(no_nodes, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd,
     real*4 :: dt, hvegeff, Fvgnlt, integral
     real*4 :: Cd, b, N
     !
-    write(*,*)'Started momeqveg'
+    !write(*,*)'Started momeqveg'
     
     ! Initialize output force
     !
@@ -1629,12 +1637,12 @@ subroutine momeqveg(no_nodes, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd,
         Fvgnlt = integral / depth / rho
         Fvw = Fvw + Fvgnlt
     enddo
-    write(*,*)'Ended momeqveg'
+    !write(*,*)'Ended momeqveg'
     
 end subroutine momeqveg    
    
 subroutine swvegnonlin(no_nodes, kwav, depth, H, g, Trep, unl)
-    ! input= no_nodes, kwav(k), H(k), depth(k), g, Tp(k), unl(k,:)
+    ! input= no_nodes, kwav, H, depth, g, Tp, unl(k,:)
     !
     ! Based on Deltares' XBeach SurfBeat' subroutine: swvegnonlin
     !
@@ -1653,7 +1661,9 @@ subroutine swvegnonlin(no_nodes, kwav, depth, H, g, Trep, unl)
     real*4, dimension(no_nodes, 50),intent(out) :: unl ! NOTE - TL: we don't use 'etaw0' in the end?
     !
     real*4  :: pi = 4.*atan(1.0)   
-    real*4, intent(in) :: kwav, depth, g, H, Trep ! depth = the 'hh' of XBeach  
+    real*4, intent(in) :: g
+    real*4, dimension(:), intent(in) :: kwav, depth, H, Trep ! depth = the 'hh' of XBeach  
+    
     real*4, dimension(:,:,:), allocatable :: RFveg
     real*8, dimension(:), allocatable :: RFvegtmp
     !
@@ -5633,14 +5643,13 @@ subroutine swvegnonlin(no_nodes, kwav, depth, H, g, Trep, unl)
         
     RFveg = reshape(RFvegtmp ,(/11,18,20/))
 
-    write(*,*)'RFveg= ',RFveg
+    !write(*,*)'RFveg= ',RFveg
     !
     ! Prepare interpolation of RF table
     if (.not. allocated(h0)) then
         allocate(h0(no_nodes))
         allocate(t0(no_nodes))
-        !allocate(RFveg(no_nodes))        !TL: not needed?
-        dh = 0.0
+        dh = 0.03
         dt = 1.25
         nh = floor(0.54/ dh)
         nt = floor(25 / dt )
@@ -5700,7 +5709,7 @@ subroutine swvegnonlin(no_nodes, kwav, depth, H, g, Trep, unl)
         !
         urf1 = urf1 * (w1(k) * cs + w2(k) * sn )
         urf2 = sum(urf1, 2)
-        unl(k,:) = urf2 * sqrt(g * depth )
+        unl(k,:) = urf2 * sqrt(g * depth(k) )
         !etaw0(k,:) = unl0 (i ,j ,:) * sqrt (max( depth(k ) ,0 ) / g ) #TL: not used
     enddo   
     !
