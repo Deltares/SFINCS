@@ -50,6 +50,7 @@ module quadtree
    real*4,             dimension(:,:),   allocatable :: quadtree_snapwave_veg_ah
    real*4,             dimension(:,:),   allocatable :: quadtree_snapwave_veg_bstems
    real*4,             dimension(:,:),   allocatable :: quadtree_snapwave_veg_Nstems
+   real*4                                            :: hvegeff, fvm      
    !
    integer   :: quadtree_no_secveg ! nr of vegetation sections in vertical   
    !
@@ -366,6 +367,9 @@ contains
          allocate(quadtree_snapwave_veg_ah(np, quadtree_no_secveg))
          allocate(quadtree_snapwave_veg_bstems(np, quadtree_no_secveg))
          allocate(quadtree_snapwave_veg_Nstems(np, quadtree_no_secveg))
+         !
+         hvegeff = 0.0
+         fvm = 0.0
          !
       endif      
    endif

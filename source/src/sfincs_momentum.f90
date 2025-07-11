@@ -7,6 +7,7 @@
    ! Computes fluxes over subgrid u and v points
    !
    use sfincs_data
+   use quadtree ! TEMP - to get the veggie variables, not the final solution, should go through sfincs_domain.f90   
    !
    implicit none
    !
@@ -128,7 +129,7 @@
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73 ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73,fvm,hvegeff ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop independent, reduction( min : min_dt ), gang, vector
@@ -569,6 +570,43 @@
                frc = frc + phi * sign(min(abs(fwuv(ip)), fwmax), fwuv(ip))
                !
             endif
+            !
+            if (store_vegetation) then
+               ! New : vegetation drag due to mean flow
+               !
+		       if (quadtree_no_secveg > 0) then ! only in case vegetation is present
+                   ! get zmin
+                   if (subgrid) then
+                      !
+                      zmin = subgrid_uv_zmin(ip)
+                      !
+                   else
+                      !
+                      zmin = zbuvmx(ip) 
+                      !
+                   endif
+                   !
+                   fvm = 0.0
+                   !
+			       do m=1,quadtree_no_secveg ! for each vertical vegetation section
+				      !
+                      ! Determine effective depth
+                      !hvegeff = min(quadtree_snapwave_veg_ah(ip,m), zmin) ! FIXME Question TL: water depth per layer, or always compared to lower bed level, or?
+                      hvegeff = min(quadtree_snapwave_veg_ah(ip,m), hu)
+                      !
+                      uv(ip) = q(ip) / hu ! FIXME - when to do/ with what velocity? of previous timestep?
+                      !
+                      fvm = fvm + 0.5 * quadtree_snapwave_veg_Cd(ip, m) * quadtree_snapwave_veg_bstems(ip, m) * quadtree_snapwave_veg_Nstems(ip, m) * hvegeff * uv(ip) * abs(uv(ip))
+                      !
+                   enddo
+                   !
+                   frc = frc - fvm ! FIXME - minus OR plus?
+                   !frc = frc + fvm ! FIXME - minus OR plus?
+                   
+                   !
+		       endif                
+               ! 
+            endif            
             !
             ! Compute flux qfr used for friction term
             !
