@@ -895,10 +895,10 @@ module snapwave_solver
    if (vegetation) then
       ! 
       ! Compute the non-linear wave velocity time series (unl) using a wave shape model > only needs to be called once per calling SnapWave
-      write(*,*)'Call swvegnonlin'
+      !write(*,*)'Call swvegnonlin'
       !          
       call swvegnonlin(no_nodes, kwav, depth, H, g, Tp, unl)       
-      write(*,*)'Finished swvegnonlin'
+      !write(*,*)'Finished swvegnonlin'
       !        
    endif
    !
@@ -944,7 +944,8 @@ module snapwave_solver
             !F(k) = (Dw(k) + Df(k))*kwav(k)/sig(k)/rho/depth(k) 	     
             F(k) = (Dw(k) + Dveg(k))*kwav(k)/sig(k)/rho/depth(k)
             F(k) = F(k) + Fvw(k) ! FIXME - still *kwav(k)/sig(k) ??? 
-	    !F(k) = (Dw(k) + Df(k))*kwav(k)/sigm ! TODO TL: before was this, now multiplied with rho*depth(k) in sfincs_snapwave.f90  
+            
+	        !F(k) = (Dw(k) + Df(k))*kwav(k)/sigm ! TODO TL: before was this, now multiplied with rho*depth(k) in sfincs_snapwave.f90  
             !
             !if (vegetation) then                
             !    if (Dveg(k) > 0.0) then
@@ -990,7 +991,9 @@ module snapwave_solver
    enddo
    !
    write(*,*)'max Fvw',maxval(Fvw)
-   write(*,*)'Fvw',Fvw   
+   write(*,*)'min Fvw',minval(Fvw)
+   
+   !write(*,*)'Fvw',Fvw   
    
    callno=callno+1
    !
@@ -1694,7 +1697,7 @@ subroutine swvegnonlin(no_nodes, kwav, depth, H, g, Trep, unl)
         enddo
     endif    
     !
-    write(*,*)'Done with - Prepare interpolation of RF table)'
+    !write(*,*)'Done with - Prepare interpolation of RF table)'
     h0 = min(nh * dh, max(dh, min(H, depth) / depth) )
     t0 = min(nt * dt, max(dt, Trep * sqrt (g / depth) ) )
     !
@@ -1716,7 +1719,7 @@ subroutine swvegnonlin(no_nodes, kwav, depth, H, g, Trep, unl)
     w1 = 1 - phi /( pi /2)
     w2 = 1 - w1    
     !
-    write(*,*)'Done with - Compute phase and weights for Ruessink wave shape'
+    !write(*,*)'Done with - Compute phase and weights for Ruessink wave shape'
     
     ! Interpolate RF table and compute velocity profiles
     do k =1, no_nodes
@@ -1743,7 +1746,7 @@ subroutine swvegnonlin(no_nodes, kwav, depth, H, g, Trep, unl)
         urf1 = urf1 * (w1(k) * cs + w2(k) * sn )
         urf2 = sum(urf1, 2)
         unl(k,:) = urf2 * sqrt(g * depth(k) )
-        !etaw0(k,:) = unl0 (i ,j ,:) * sqrt (max( depth(k ) ,0 ) / g ) #TL: not used
+        !etaw0(k,:) = unl0 (i ,j ,:) * sqrt (max( depth(k ) ,0 ) / g ) #TL: not used in case of SnapWave
     enddo   
     !
     write(*,*)'Ended swvegnonlin'
