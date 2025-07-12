@@ -416,7 +416,7 @@ contains
       !
       call update_nodal_factors(i_date_time, tidal_component_names, nr_tidal_components, nbnd, tidal_component_data, tidal_component_frequency)
       !
-      tidal_component_frequency = tidal_component_frequency / 3600 ! Convert to rad/s      
+      tidal_component_frequency = tidal_component_frequency / 3600 ! Convert to rad/s
       !
       !do ios = 1, nr_tidal_components
       !   write(*,'(a,20f16.3)')tidal_component_names(ios), (180.0 / pi) * tidal_component_frequency(ios) * 3600.0,tidal_component_data(1,ios,1), (180.0 / pi) * tidal_component_data(2,ios,1)
@@ -638,7 +638,13 @@ contains
    !
    real*4 zstb, tbfac, hs, tp, wd, tb
    !
-   if (nbnd > 0) then
+   if (nbnd == 0) then
+      !
+      return
+      !
+   endif   
+   !
+   if (t_bnd(1) > (t - 1.0e-3)) then  ! use first time in boundary conditions       
       !
       itb0 = 1
       itb1 = 1
@@ -661,42 +667,10 @@ contains
             exit
          endif
       enddo
-      !      
-      tbfac  = (tb - t_bnd(itb0)) / max(t_bnd(itb1) - t_bnd(itb0), 1.0e-6)
       !
-      do ib = 1, nbnd ! Loop along boundary points
-         !
-         ! Tide and surge
-         !
-         zstb = zs_bnd(ib, itb0) + (zs_bnd(ib, itb1) - zs_bnd(ib, itb0))*tbfac
-         !
-         ! Add astronomical tides
-         !
-         if (nr_tidal_components > 0) then
-            !
-            do ic = 1, nr_tidal_components
-               !
-               zstb = zstb + tidal_component_data(1, ic, ib) * cos(tidal_component_frequency(ic) * t - tidal_component_data(2, ic, ib))
-               !
-            enddo   
-            !
-         endif   
-         !
-         zst_bnd(ib) = zstb
-         !
-         if (bzifile(1:4) /= 'none') then
-            !
-            ! Incoming infragravity waves
-            !
-            zsit_bnd(ib) = zsi_bnd(ib, itb0) + (zsi_bnd(ib, itb1) - zsi_bnd(ib, itb0))*tbfac
-            !
-         endif
-         !
-      enddo 
-      !
-   endif            
+   endif
    !
-   tbfac  = (tb - t_bnd(itb0))/max(t_bnd(itb1) - t_bnd(itb0), 1.0e-6)
+   tbfac  = (tb - t_bnd(itb0)) / max(t_bnd(itb1) - t_bnd(itb0), 1.0e-6)
    !
    do ib = 1, nbnd ! Loop along boundary points
       !
@@ -704,16 +678,30 @@ contains
       !
       zstb = zs_bnd(ib, itb0) + (zs_bnd(ib, itb1) - zs_bnd(ib, itb0))*tbfac
       !
+      ! Add astronomical tides
+      !
+      if (nr_tidal_components > 0) then
+         !
+         do ic = 1, nr_tidal_components
+            !
+            zstb = zstb + tidal_component_data(1, ic, ib) * cos(tidal_component_frequency(ic) * t - tidal_component_data(2, ic, ib))
+            !write(*,*)tidal_component_data(1, ic, ib) * cos(tidal_component_frequency(ic) * t - tidal_component_data(2, ic, ib))
+            !
+         enddo   
+         !
+      endif   
+      !
       zst_bnd(ib) = zstb
       !
       if (bzifile(1:4) /= 'none') then
+         !
          ! Incoming infragravity waves
          !
          zsit_bnd(ib) = zsi_bnd(ib, itb0) + (zsi_bnd(ib, itb1) - zsi_bnd(ib, itb0))*tbfac
          !
       endif
-      !
-   enddo
+       !
+   enddo 
    !
    end subroutine
    

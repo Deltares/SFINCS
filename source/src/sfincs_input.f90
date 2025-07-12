@@ -242,10 +242,13 @@ contains
    call read_logical_input(500,'regular_output_on_mesh',use_quadtree_output,.false.)
    call read_logical_input(500, 'store_dynamic_bed_level', store_dynamic_bed_level, .false.)
    call read_int_input(500,'percentage_done',percdoneval,5)
+   !
    ! Limit to range (0,100)
+   !
    percdoneval = max(min(percdoneval,100), 0)
    !
    ! Coupled SnapWave solver related
+   !
    call read_int_input(500,'snapwave_wind',iwind,0)   
    !
    ! Wind drag
@@ -379,11 +382,11 @@ contains
    !
    ! Output
    !
-   if (t0out<-900.0) then
+   if (t0out < -900.0) then
       t0out = t0
    endif    
    t0out = max(t0out, t0)
-   if (t1out<-900.0) then
+   if (t1out < -900.0) then
       t1out = t1
    endif    
    !

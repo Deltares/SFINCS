@@ -704,7 +704,7 @@ contains
             !
             ! Compute velocity
             !
-            uv(ip) = q(ip) / hu ! Store wet-averaged velocity
+            uv(ip) = q(ip) / max(hu, 0.1) ! Store wet-averaged velocity
             !
             kfuv(ip) = 1
             !
