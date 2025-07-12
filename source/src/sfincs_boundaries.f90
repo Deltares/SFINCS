@@ -293,6 +293,7 @@ contains
       do
          !
          read(500, '(A)', iostat=ios) line
+         line = clean_line(line)
          !
          if (ios /= 0) exit
          !
@@ -331,6 +332,7 @@ contains
             endif   
             !
          endif
+         !
       enddo
       !
       ! Check whether n_sets is same as nbnd (otherwise give error)
@@ -371,6 +373,7 @@ contains
       !
       do
          read(500, '(A)', iostat=ios) line
+         line = clean_line(line)
          !
          if (ios /= 0) exit
          !
@@ -1161,5 +1164,16 @@ contains
    !
    end function
    
-   
+   function clean_line(s) result(out)
+   !
+   character(len=*), intent(in) :: s
+   character(len=len(s)) :: out
+   integer :: i
+   !      
+   out = trim(adjustl(s))
+   i = index(out, char(13))
+   if (i > 0) out = out(:i-1)
+   !
+   end function 
+
 end module

@@ -10,12 +10,12 @@ find . -name \*.sh|xargs dos2unix
 docker build -f Dockerfile.gpu.ccall . -t mvanormondt/sfincs-gpu:coldeze_combo_ccall
 docker push mvanormondt/sfincs-gpu:coldeze_combo_ccall
 
-docker build -f Dockerfile.gpu.cc75 . -t mvanormondt/sfincs-gpu:coldeze_combo_cc75
-docker push mvanormondt/sfincs-gpu:coldeze_combo_cc75
+#docker build -f Dockerfile.gpu.cc75 . -t mvanormondt/sfincs-gpu:coldeze_combo_cc75
+#docker push mvanormondt/sfincs-gpu:coldeze_combo_cc75
 
-docker build -f Dockerfile.gpu.cc86 . -t mvanormondt/sfincs-gpu:coldeze_combo_cc86
-docker push mvanormondt/sfincs-gpu:coldeze_combo_cc86
+#docker build -f Dockerfile.gpu.cc86 . -t mvanormondt/sfincs-gpu:coldeze_combo_cc86
+#docker push mvanormondt/sfincs-gpu:coldeze_combo_cc86
 
-docker build -f Dockerfile.gpu.cc90 . -t mvanormondt/sfincs-gpu:coldeze_combo_cc90
-docker push mvanormondt/sfincs-gpu:coldeze_combo_cc90
+#docker build -f Dockerfile.gpu.cc90 . -t mvanormondt/sfincs-gpu:coldeze_combo_cc90
+#docker push mvanormondt/sfincs-gpu:coldeze_combo_cc90
 
