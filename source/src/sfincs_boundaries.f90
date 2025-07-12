@@ -12,6 +12,8 @@ contains
    use sfincs_ncinput
    use sfincs_data
    use quadtree
+   use sfincs_date
+   use astro
    !
    implicit none
    !
@@ -20,6 +22,17 @@ contains
    logical :: ok
    !
    real*4 dummy,r
+   !
+   ! Astro
+   !
+   character(8), dimension(:), allocatable :: tidal_component_names
+   integer, dimension(6) :: i_date_time
+   character(len=256)    :: line
+   integer               :: n_sets, n_components, ios
+   integer               :: current_set, current_component
+   character(len=8)      :: cname
+   real*4                :: a, p
+   logical               :: has_a0
    !
    ! Read water level boundaries
    !
@@ -60,25 +73,39 @@ contains
       !
       ! Read water level boundary conditions file
       !
-      ok = check_file_exists(bzsfile, 'Boundary time series file', .true.)
-      !
-      open(500, file=trim(bzsfile))
-      do while(.true.)
-         read(500,*,iostat = stat)dummy
-         if (stat<0) exit
-         ntbnd = ntbnd + 1
-      enddo
-      rewind(500)
-      !
-      allocate(t_bnd(ntbnd))
-      allocate(zs_bnd(nbnd,ntbnd))
-      allocate(zst_bnd(nbnd))
-      !
-      do itb = 1, ntbnd
-         read(500,*)t_bnd(itb),(zs_bnd(ib, itb), ib = 1, nbnd)
-      enddo
-      !
-      close(500)
+      if (bzsfile(1:4) /= 'none') then
+         !
+         open(500, file=trim(bzsfile))
+         do while(.true.)
+            read(500,*,iostat = stat)dummy
+            if (stat<0) exit
+            ntbnd = ntbnd + 1
+         enddo
+         rewind(500)
+         !
+         allocate(t_bnd(ntbnd))
+         allocate(zs_bnd(nbnd,ntbnd))
+         allocate(zst_bnd(nbnd))
+         !
+         do itb = 1, ntbnd
+            read(500,*)t_bnd(itb),(zs_bnd(ib, itb), ib = 1, nbnd)
+         enddo
+         !
+         close(500)
+         !
+      else
+         !
+         ntbnd = 2
+         !
+         allocate(t_bnd(ntbnd))
+         allocate(zs_bnd(nbnd,ntbnd))
+         allocate(zst_bnd(nbnd))
+         !
+         t_bnd(1) = t0
+         t_bnd(2) = t1
+         zs_bnd = 0.0
+         !
+      endif   
       !
       if (bzifile(1:4) /= 'none') then
          !
@@ -245,6 +272,157 @@ contains
       endif
       !
    endif   
+   !
+   ! If bca file is present, read it
+   !
+   nr_tidal_components = 0
+   !
+   if (bcafile(1:4) /= 'none' .and. nbnd > 0) then
+      !
+      ! First pass: count number of sets and number of components in first set
+      !
+      ! NOTE 1 : The number of component sets in the bca file must match the number of points in the bnd file!
+      ! NOTE 2 : The number of components in each set must be the same!
+      !
+      n_sets = 0
+      n_components = 0
+      has_a0 = .false.
+      !
+      open(500, file=trim(bcafile))
+      !
+      do
+         !
+         read(500, '(A)', iostat=ios) line
+         !
+         if (ios /= 0) exit
+         !
+         if (trim(line) == '[forcing]') then
+            !
+            n_sets = n_sets + 1
+            !
+         elseif (index(line, 'Quantity') > 0 .or. index(line, 'Unit') > 0 .or. index(line, 'Name') > 0 .or. index(line, 'Function') > 0) then
+            !
+            cycle  ! skip line
+            !
+         else
+            !
+            ! Try to read a data line
+            !
+            read(line, *, iostat=ios) cname, a, p
+            !
+            if (ios /= 0) cycle  ! not a data line
+            !
+            if (n_sets == 1) then  ! only count on first set
+               !
+               n_components = n_components + 1
+               !
+               ! Check if first component is A0
+               !
+               if (n_components == 1) then
+                  !
+                  if (cname(1:2) == 'a0' .or. cname(1:2) == 'A0') then
+                     !
+                     has_a0 = .true.
+                     !
+                  endif   
+                  !
+               endif   
+               !
+            endif   
+            !
+         endif
+      enddo
+      !
+      ! Check whether n_sets is same as nbnd (otherwise give error)
+      !
+      if (n_sets /= nbnd) then
+         !
+         write(*,*)'ERROR! Number of astronomical tidal datasets in *.bca file does not match number of boundary points in *.bnd file !'
+         !
+      endif
+      !
+      rewind(500)
+      !
+      if (.not. has_a0) then
+         !
+         ! Add 1 for A0
+         !
+         n_components = n_components + 1
+         !
+      endif
+      !
+      ! Allocate memory for names, amplitude, phase and frequency
+      !      
+      nr_tidal_components = n_components
+      !
+      allocate(tidal_component_names(n_components))
+      allocate(tidal_component_frequency(n_components))
+      allocate(tidal_component_data(2, n_components, nbnd))
+      !
+      ! Initialize
+      !
+      tidal_component_data = 0.0
+      tidal_component_names = ''
+      !
+      ! Second pass: read and parse data
+      !
+      current_set = 0
+      current_component = 0
+      !
+      do
+         read(500, '(A)', iostat=ios) line
+         !
+         if (ios /= 0) exit
+         !
+         if (trim(line) == '[forcing]') then
+            !
+            current_set = current_set + 1
+            current_component = 0
+            !
+            if (.not. has_a0) then
+               !
+               current_component = 1
+               tidal_component_names(1) = 'A0      '
+               !
+               ! Data has already be initialized at 0.0
+               !
+            endif   
+            !
+         elseif (index(line, 'Quantity') > 0 .or. index(line, 'Unit') > 0 .or. index(line, 'Name') > 0 .or. index(line, 'Function') > 0) then
+            !
+            cycle  ! skip metadata
+            !
+         else
+            !
+            ! Try to read a data line
+            !
+            read(line, *, iostat=ios) cname, a, p
+            !
+            if (ios /= 0) cycle  ! not a data line
+            !
+            current_component = current_component + 1
+            tidal_component_names(current_component) = cname
+            tidal_component_data(1, current_component, current_set) = a
+            tidal_component_data(2, current_component, current_set) = p
+            !
+         endif
+         !
+      enddo
+      !
+      close(500)
+      !      
+      i_date_time = time_to_vector(0.0d0, trefstr)
+      !
+      !
+      call update_nodal_factors(i_date_time, tidal_component_names, nr_tidal_components, nbnd, tidal_component_data, tidal_component_frequency)
+      !
+      tidal_component_frequency = tidal_component_frequency / 3600 ! Convert to rad/s      
+      !
+      !do ios = 1, nr_tidal_components
+      !   write(*,'(a,20f16.3)')tidal_component_names(ios), (180.0 / pi) * tidal_component_frequency(ios) * 3600.0,tidal_component_data(1,ios,1), (180.0 / pi) * tidal_component_data(2,ios,1)
+      !enddo   
+      !
+   endif      
    !
    end subroutine
 
@@ -454,17 +632,13 @@ contains
    !
    implicit none
    !
-   integer ib, itb, itb0, itb1
+   integer ib, itb, itb0, itb1, ic
    !
    real*8 t
    !
    real*4 zstb, tbfac, hs, tp, wd, tb
    !
-   if (nbnd == 0) return
-   !
-   ! Interpolate boundary conditions in time
-   !
-   if (t_bnd(1) > (t - 1.0e-3)) then ! use first time in boundary conditions
+   if (nbnd > 0) then
       !
       itb0 = 1
       itb1 = 1
@@ -486,6 +660,38 @@ contains
             itbndlast = itb - 1
             exit
          endif
+      enddo
+      !      
+      tbfac  = (tb - t_bnd(itb0)) / max(t_bnd(itb1) - t_bnd(itb0), 1.0e-6)
+      !
+      do ib = 1, nbnd ! Loop along boundary points
+         !
+         ! Tide and surge
+         !
+         zstb = zs_bnd(ib, itb0) + (zs_bnd(ib, itb1) - zs_bnd(ib, itb0))*tbfac
+         !
+         ! Add astronomical tides
+         !
+         if (nr_tidal_components > 0) then
+            !
+            do ic = 1, nr_tidal_components
+               !
+               zstb = zstb + tidal_component_data(1, ic, ib) * cos(tidal_component_frequency(ic) * t - tidal_component_data(2, ic, ib))
+               !
+            enddo   
+            !
+         endif   
+         !
+         zst_bnd(ib) = zstb
+         !
+         if (bzifile(1:4) /= 'none') then
+            !
+            ! Incoming infragravity waves
+            !
+            zsit_bnd(ib) = zsi_bnd(ib, itb0) + (zsi_bnd(ib, itb1) - zsi_bnd(ib, itb0))*tbfac
+            !
+         endif
+         !
       enddo 
       !
    endif            
@@ -501,7 +707,6 @@ contains
       zst_bnd(ib) = zstb
       !
       if (bzifile(1:4) /= 'none') then
-         !
          ! Incoming infragravity waves
          !
          zsit_bnd(ib) = zsi_bnd(ib, itb0) + (zsi_bnd(ib, itb1) - zsi_bnd(ib, itb0))*tbfac
@@ -511,6 +716,7 @@ contains
    enddo
    !
    end subroutine
+   
    
    subroutine update_boundary_conditions(t, dt)
    !
@@ -767,7 +973,17 @@ contains
             ui = sqrt(g / hnmb) * (zsnmb - zs0nmb)
             ub = ibuvdir(ib) * (2 * ui - sqrt(g / hnmb) * (zsnmi - zs0nmb))
             !
-            q(ip) = ub*hnmb + uvmean(ib)            
+            q(ip) = ub * hnmb + uvmean(ib)            
+            !
+            ! Riemann
+            !
+            ! R = ubnd + 2 * sqrt(g * hnmb) ! from bca or bzs/buv
+            !
+            ! hnmi = hnmb + zsnmi - zsnmb
+            !
+            ! ub = R - 2 * sqrt(g * hnmi)
+            !
+            ! q(ip) = ub * hnmb
             !
             if (subgrid) then
                !

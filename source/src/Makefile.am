@@ -19,6 +19,7 @@ libsfincs_la_SOURCES = \
 	sfincs_date.f90 \
 	sfincs_spiderweb.f90 \
 	sfincs_data.f90 \
+    astro.f90 \
 	geometry.f90 \
 	quadtree.f90 \
 	sfincs_error.f90 \		
