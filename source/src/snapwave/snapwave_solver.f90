@@ -1637,7 +1637,12 @@ subroutine momeqveg(no_nodes, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd,
             integral = integral + (0.5 * Cd * b * N * hvegeff * unl(t) * abs(unl(t) ) ) * dt
         enddo
         ! Convert to force per unit mass and sum
-        Fvgnlt = integral / depth / rho
+        Fvgnlt = integral / depth / rho ! original
+        !Fvgnlt = integral / depth / Trep !         
+        !Fvgnlt = -integral / depth / rho !         
+        !Fvgnlt = integral / depth / rho / Trep !/ rho
+        !Fvgnlt = -integral / depth / Trep !> really reduces the setup
+        
         Fvw = Fvw + Fvgnlt
     enddo
     !write(*,*)'Ended momeqveg'

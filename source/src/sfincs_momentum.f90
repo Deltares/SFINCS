@@ -571,42 +571,42 @@
                !
             endif
             !
-            if (store_vegetation) then
-               ! New : vegetation drag due to mean flow
-               !
-		       if (quadtree_no_secveg > 0) then ! only in case vegetation is present
-                   ! get zmin
-                   if (subgrid) then
-                      !
-                      zmin = subgrid_uv_zmin(ip)
-                      !
-                   else
-                      !
-                      zmin = zbuvmx(ip) 
-                      !
-                   endif
-                   !
-                   fvm = 0.0
-                   !
-			       do m=1,quadtree_no_secveg ! for each vertical vegetation section
-				      !
-                      ! Determine effective depth
-                      !hvegeff = min(quadtree_snapwave_veg_ah(ip,m), zmin) ! FIXME Question TL: water depth per layer, or always compared to lower bed level, or?
-                      hvegeff = min(quadtree_snapwave_veg_ah(ip,m), hu)
-                      !
-                      uv(ip) = q(ip) / hu ! FIXME - when to do/ with what velocity? of previous timestep?
-                      !
-                      fvm = fvm + 0.5 * quadtree_snapwave_veg_Cd(ip, m) * quadtree_snapwave_veg_bstems(ip, m) * quadtree_snapwave_veg_Nstems(ip, m) * hvegeff * uv(ip) * abs(uv(ip))
-                      !
-                   enddo
-                   !
-                   frc = frc - fvm ! FIXME - minus OR plus?
-                   !frc = frc + fvm ! FIXME - minus OR plus?
-                   
-                   !
-		       endif                
-               ! 
-            endif            
+         !   if (store_vegetation) then
+         !      ! New : vegetation drag due to mean flow
+         !      !
+		       !if (quadtree_no_secveg > 0) then ! only in case vegetation is present
+         !          ! get zmin
+         !          if (subgrid) then
+         !             !
+         !             zmin = subgrid_uv_zmin(ip)
+         !             !
+         !          else
+         !             !
+         !             zmin = zbuvmx(ip) 
+         !             !
+         !          endif
+         !          !
+         !          fvm = 0.0
+         !          !
+			      ! do m=1,quadtree_no_secveg ! for each vertical vegetation section
+				     ! !
+         !             ! Determine effective depth
+         !             !hvegeff = min(quadtree_snapwave_veg_ah(ip,m), zmin) ! FIXME Question TL: water depth per layer, or always compared to lower bed level, or?
+         !             hvegeff = min(quadtree_snapwave_veg_ah(ip,m), hu)
+         !             !
+         !             uv(ip) = q(ip) / hu ! FIXME - when to do/ with what velocity? of previous timestep?
+         !             !
+         !             fvm = fvm + 0.5 * quadtree_snapwave_veg_Cd(ip, m) * quadtree_snapwave_veg_bstems(ip, m) * quadtree_snapwave_veg_Nstems(ip, m) * hvegeff * uv(ip) * abs(uv(ip))
+         !             !
+         !          enddo
+         !          !
+         !          frc = frc - fvm ! FIXME - minus OR plus?
+         !          !frc = frc + fvm ! FIXME - minus OR plus?
+         !          
+         !          !
+		       !endif                
+         !      ! 
+         !   endif            
             !
             ! Compute flux qfr used for friction term
             !
