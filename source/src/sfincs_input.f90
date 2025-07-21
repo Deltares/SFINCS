@@ -24,7 +24,8 @@ contains
    integer itsunamitime
    integer ispinupmeteo
    integer isnapwave
-   integer ivegetation   
+   integer ivegetationsnapwave
+   integer ivegetationsfincs   
    integer iwindmax
    integer iwind   
    integer ioutfixed
@@ -229,9 +230,11 @@ contains
    ! Limit to range (0,100)
    percdoneval = max(min(percdoneval,100), 0)
    !
+   call read_int_input(500,'vegetation',ivegetationsfincs,0)      
+   !   
    ! Coupled SnapWave solver related
    call read_int_input(500,'snapwave_wind',iwind,0)
-   call read_int_input(500,'snapwave_vegetation',ivegetation,0)   
+   call read_int_input(500,'snapwave_vegetation',ivegetationsnapwave,0)   
    !
    ! Wind drag
    !
@@ -404,7 +407,6 @@ contains
    endif
    !
    snapwave = .false.
-   store_vegetation = .false.
    if (isnapwave==1) then
       snapwave = .true.
       !
@@ -413,11 +415,15 @@ contains
           ! For running SnapWave with wind growth, we need to store the wind speed & direction to be able to pass it from SFINCS to SnapWave. 
           ! Independent from wndfile or 2D meteo input, handled by store_wind.
       endif  
-      !
-      if (ivegetation==1) then
-          store_vegetation = .true. 
-      endif      
+      !  
    endif 
+   !
+   store_vegetation = .false.   
+   if (ivegetationsnapwave==1 .or. ivegetationsfincs==1) then
+       !
+       store_vegetation = .true.
+       ! vegetation can be used in SnapWave and/or SFINCS calculations
+   endif       
    !
    store_twet = .false.
    if (storetwet==1) then
@@ -507,7 +513,12 @@ contains
    if (iviscosity) then
       viscosity = .true. 
       call write_log('Info    : turning on process: Viscosity', 0)
-   endif   
+   endif
+   !
+   vegetation = .false.
+   if (ivegetationsfincs>0) then
+      vegetation = .true.
+   endif      
    !
    spinup_meteo = .true. 
    if (ispinupmeteo==0) then

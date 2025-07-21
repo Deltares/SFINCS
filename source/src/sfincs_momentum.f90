@@ -128,7 +128,7 @@
    !
    !Precalculate veggie terms:
    !
-   if (store_vegetation) then
+   if (vegetation) then
        ! New : vegetation drag due to mean flow
        !
 	   if (quadtree_no_secveg > 0) then 
@@ -610,7 +610,7 @@
                !
             endif
             !
-            if (store_vegetation) then
+            if (vegetation) then
                ! New : vegetation drag due to mean flow
                !
 		       if (quadtree_no_secveg > 0) then ! only in case vegetation is present
