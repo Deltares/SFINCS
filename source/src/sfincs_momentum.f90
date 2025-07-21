@@ -110,10 +110,10 @@
    !$acc                    uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc                    uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
    !$acc                    zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, &
-   !$acc                    dxrinvc, fcorio2d, nuvisc ), num_gangs( 512 ), vector_length( 128 ), async(1)
+   !$acc                    dxrinvc, fcorio2d, nuvisc, veg_CdBNstems, veg_fvm ), num_gangs( 512 ), vector_length( 128 ), async(1)
    !
    !$omp parallel &
-   !$omp private ( ip, iveg )
+   !$omp private ( ip )
    !$omp do
    !$acc loop independent, gang, vector
    do ip = 1, npuv + ncuv
@@ -125,12 +125,50 @@
    !$omp end do
    !$omp end parallel
    !
+   !
+   !Precalculate veggie terms:
+   !
+   if (store_vegetation) then
+       ! New : vegetation drag due to mean flow
+       !
+	   if (quadtree_no_secveg > 0) then 
+          ! only in case vegetation is present 
+          !$omp parallel &
+          !$omp private ( ip, nm, iveg )
+          !$omp do
+          !$acc loop independent, gang, vector
+          ! 
+          do ip = 1, npuv
+             !
+             !if (kcuv(ip)==1) then
+                !
+                ! Regular UV point 
+                !
+                ! Indices of surrounding water level points
+                !
+                nm  = uv_index_z_nm(ip)   
+                !
+   		        !do iveg=1,quadtree_no_secveg ! for each vertical vegetation section
+                !
+                iveg = 1
+                !
+                veg_fvm(nm, iveg) = 0.5 * veg_CdBNstems(nm, iveg) * uv0(ip) * abs(uv0(ip)) / rhow 
+                ! in flux loop only still needs to be multiplied with 'hvegeff', which can still change
+                !
+                ! NOTE: veg_CdBNstems = quadtree_snapwave_veg_Cd(nm, iveg) * quadtree_snapwave_veg_bstems(nm, iveg) * quadtree_snapwave_veg_Nstems(nm, iveg)
+                !
+             !endif
+          enddo   
+          !$omp end do
+          !$omp end parallel   
+       endif
+   endif   
    ! Update fluxes
    !
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73,fvm,hvegeff ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73,fvm ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop independent, reduction( min : min_dt ), gang, vector
@@ -576,51 +614,21 @@
                ! New : vegetation drag due to mean flow
                !
 		       if (quadtree_no_secveg > 0) then ! only in case vegetation is present
-                   ! get zmin
-                   !if (subgrid) then
-                   !   !
-                   !   zmin = subgrid_uv_zmin(ip)
-                   !   !
-                   !else
-                   !   !
-                   !   zmin = zbuvmx(ip) 
-                   !   !
-                   !endif
                    !
                    !fvm = 0.0
                    !
 			       !do iveg=1,quadtree_no_secveg ! for each vertical vegetation section
-			       iveg=1 !for testing keep at 1
-                       
-				      !
-                      ! Determine effective depth
-                      !hvegeff = min(quadtree_snapwave_veg_ah(ip,iveg), zmin) ! FIXME Question TL: water depth per layer, or always compared to lower bed level, or?
-                   hvegeff = min(quadtree_snapwave_veg_ah(ip,iveg), hu)
-!                   hvegeff = quadtree_snapwave_veg_ah(nm,iveg)
-                      !
-                      !fvm = fvm + 0.5 * quadtree_snapwave_veg_Cd(ip, iveg) * quadtree_snapwave_veg_bstems(ip, iveg) * quadtree_snapwave_veg_Nstems(ip, iveg) * hvegeff * uv0(ip) * abs(uv0(ip))
-                      !fvm = fvm + 0.5 * quadtree_snapwave_veg_Cd(ip, iveg) * quadtree_snapwave_veg_bstems(ip, iveg) * quadtree_snapwave_veg_Nstems(ip, iveg) * hvegeff * vu * abs(vu)               
-                   !fvm = 0.5 * quadtree_snapwave_veg_Cd(nm, iveg) * quadtree_snapwave_veg_bstems(nm, iveg) * quadtree_snapwave_veg_Nstems(nm, iveg) * hvegeff * vu * abs(vu) / rhow  ! FIXME - not sure about the / rhow
-                   
-                   ! or use: uu_nm:
-                   fvm = 0.5 * quadtree_snapwave_veg_Cd(nm, iveg) * quadtree_snapwave_veg_bstems(nm, iveg) * quadtree_snapwave_veg_Nstems(nm, iveg) * hvegeff * uu_nm * abs(uu_nm) / rhow  ! FIXME - not sure about the / rhow                  
-                      !
+                   !   fvm = fvm + veg_fvm(nm,iveg) * min(quadtree_snapwave_veg_ah(ip,iveg), hu)
                    !enddo
                    !
-                   !write(*,*)'ip, vuv fvm, frc',ip, vu, fvm, frc
-                   
-                  ! if (idir==0) then
-                  !    !
-                  !    frc = frc - fvm  ! U
-                  !    !
-                  ! else
-                  !    !
-                  !    frc = frc + fvm ! V
-                  !    !
-                  !endif                   
+                   ! With all pre-calculateable terms already pre-determined for Fvm, beside effective depth:
+			       iveg=1 !for testing keep at 1
+                   !
+                   fvm = veg_fvm(nm,iveg) * min(quadtree_snapwave_veg_ah(ip,iveg), hu)
+                   ! FIXME Question TL: water depth per layer, or always compared to lower bed level, or?
+                   !               
                    frc = frc - fvm ! FIXME - minus OR plus?
                    !frc = frc + fvm ! FIXME - minus OR plus?
-                   
                    !
 		       endif                
                ! 

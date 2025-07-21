@@ -50,7 +50,8 @@ module quadtree
    real*4,             dimension(:,:),   allocatable :: quadtree_snapwave_veg_ah
    real*4,             dimension(:,:),   allocatable :: quadtree_snapwave_veg_bstems
    real*4,             dimension(:,:),   allocatable :: quadtree_snapwave_veg_Nstems
-   real*4                                            :: hvegeff, fvm      
+   real*4,             dimension(:,:),   allocatable :: veg_CdBNstems, veg_fvm
+   real*4                                            :: fvm    
    !
    integer   :: quadtree_no_secveg ! nr of vegetation sections in vertical   
    !
@@ -306,7 +307,7 @@ contains
    logical, intent(in)       :: snapwave, nonhydrostatic, store_vegetation
    !
    integer*1 :: iversion
-   integer   :: np, ip, iepsg, status
+   integer   :: np, nm, ip, iveg, iepsg, status
    !
    write(logstr,'(a,a)')'Info    : reading QuadTree netCDF file ', trim(qtrfile)
    call write_log(logstr, 0)
@@ -368,8 +369,12 @@ contains
          allocate(quadtree_snapwave_veg_bstems(np, quadtree_no_secveg))
          allocate(quadtree_snapwave_veg_Nstems(np, quadtree_no_secveg))
          !
-         hvegeff = 0.0
-         fvm = 0.0
+         allocate(veg_CdBNstems(np, quadtree_no_secveg))
+         allocate(veg_fvm(np, quadtree_no_secveg))         
+         !
+         veg_CdBNstems = 0.0
+         veg_fvm = 0.0
+         fvm = 0.0         
          !
       endif      
    endif
@@ -429,6 +434,15 @@ contains
          NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%snapwave_veg_bstems_varid,  quadtree_snapwave_veg_bstems(:,:)))
          NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%snapwave_veg_Nstems_varid,  quadtree_snapwave_veg_Nstems(:,:)))
          !
+         ! Directly determine the multiplication of Cd*bstems*nstems:
+         !
+         do nm = 1, np
+            !
+            do iveg = 1, quadtree_no_secveg 
+                veg_CdBNstems(nm,iveg) = quadtree_snapwave_veg_Cd(nm,iveg) * quadtree_snapwave_veg_bstems(nm,iveg) * quadtree_snapwave_veg_Nstems(nm,iveg)
+            enddo            
+            !    
+         enddo         
       endif      
    endif
    !
