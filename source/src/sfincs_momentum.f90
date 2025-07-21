@@ -595,8 +595,8 @@
 				      !
                       ! Determine effective depth
                       !hvegeff = min(quadtree_snapwave_veg_ah(ip,iveg), zmin) ! FIXME Question TL: water depth per layer, or always compared to lower bed level, or?
-                      !hvegeff = min(quadtree_snapwave_veg_ah(ip,iveg), hu)
-                   hvegeff = quadtree_snapwave_veg_ah(nm,iveg)
+                   hvegeff = min(quadtree_snapwave_veg_ah(ip,iveg), hu)
+!                   hvegeff = quadtree_snapwave_veg_ah(nm,iveg)
                       !
                       !fvm = fvm + 0.5 * quadtree_snapwave_veg_Cd(ip, iveg) * quadtree_snapwave_veg_bstems(ip, iveg) * quadtree_snapwave_veg_Nstems(ip, iveg) * hvegeff * uv0(ip) * abs(uv0(ip))
                       !fvm = fvm + 0.5 * quadtree_snapwave_veg_Cd(ip, iveg) * quadtree_snapwave_veg_bstems(ip, iveg) * quadtree_snapwave_veg_Nstems(ip, iveg) * hvegeff * vu * abs(vu)               
