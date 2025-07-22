@@ -132,7 +132,8 @@
        ! New : vegetation drag due to mean flow
        !
 	   if (quadtree_no_secveg > 0) then 
-          ! only in case vegetation is present 
+          ! only in case vegetation is present
+          ! 
           !$omp parallel &
           !$omp private ( ip, nm, iveg )
           !$omp do
@@ -161,6 +162,10 @@
           enddo   
           !$omp end do
           !$omp end parallel   
+       else
+          ! 
+          vegetation = .false.
+          !
        endif
    endif   
    ! Update fluxes
@@ -613,25 +618,22 @@
             if (vegetation) then
                ! New : vegetation drag due to mean flow
                !
-		       if (quadtree_no_secveg > 0) then ! only in case vegetation is present
-                   !
-                   !fvm = 0.0
-                   !
-			       !do iveg=1,quadtree_no_secveg ! for each vertical vegetation section
-                   !   fvm = fvm + veg_fvm(nm,iveg) * min(quadtree_snapwave_veg_ah(ip,iveg), hu)
-                   !enddo
-                   !
-                   ! With all pre-calculateable terms already pre-determined for Fvm, beside effective depth:
-			       iveg=1 !for testing keep at 1
-                   !
-                   fvm = veg_fvm(nm,iveg) * min(quadtree_snapwave_veg_ah(ip,iveg), hu)
-                   ! FIXME Question TL: water depth per layer, or always compared to lower bed level, or?
-                   !               
-                   frc = frc - fvm ! FIXME - minus OR plus?
-                   !frc = frc + fvm ! FIXME - minus OR plus?
-                   !
-		       endif                
-               ! 
+               !
+               !fvm = 0.0
+               !
+			   !do iveg=1,quadtree_no_secveg ! for each vertical vegetation section
+               !   fvm = fvm + veg_fvm(nm,iveg) * min(quadtree_snapwave_veg_ah(ip,iveg), hu)
+               !enddo
+               !
+               ! With all pre-calculateable terms already pre-determined for Fvm, beside effective depth:
+			   iveg=1 !for testing keep at 1
+               !
+               fvm = veg_fvm(nm,iveg) * min(quadtree_snapwave_veg_ah(ip,iveg), hu)
+               ! FIXME Question TL: water depth per layer, or always compared to lower bed level, or?
+               !               
+               frc = frc - fvm ! FIXME - minus OR plus?
+               !frc = frc + fvm ! FIXME - minus OR plus?
+               !
             endif            
             !
             ! Compute flux qfr used for friction term
