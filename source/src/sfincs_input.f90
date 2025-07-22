@@ -405,11 +405,13 @@ contains
    endif
    !
    snapwave = .false.
+   snapwavewind = .false.
    if (isnapwave==1) then
       snapwave = .true.
       !
       if (iwind==1) then
-          store_wind = .true. 
+          store_wind = .true.
+          snapwavewind = .true.
           ! For running SnapWave with wind growth, we need to store the wind speed & direction to be able to pass it from SFINCS to SnapWave. 
           ! Independent from wndfile or 2D meteo input, handled by store_wind.
       endif  

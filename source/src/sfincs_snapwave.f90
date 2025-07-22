@@ -332,40 +332,44 @@ contains
    !
    ! Determine SnapWave wind
    !
-   if (wind) then
+   if (wind) then ! =We have wind inputs given to SFINCS
       !
-      do nm = 1, snapwave_no_nodes
-         !
-         ip = index_sfincs_in_snapwave(nm) ! matching index in SFINCS mesh
-         !
-         if (ip>0) then
-            !
-            ! A matching SFINCS point is found
-            !
-            ! Convert to umag & dir, as in ncoutput_update_his: 
-            !
-            u10 = sqrt(windu(ip)**2 + windv(ip)**2)
-            !
-            u10dir = atan2(windv(ip), windu(ip))*180/pi
-            !
-	        if (u10dir<0.0) u10dir = u10dir + 360.0
-            if (u10dir>360.0) u10dir = u10dir - 360.0    
-            !
-            snapwave_u10(nm) = max(u10, 0.0)     
-            snapwave_u10dir(nm) = u10dir / 180.0 * pi ! from nautical coming from in degrees to cartesian going to in radians
-            !
-         else
-            !
-            ! Use 0.0 wind speed and direction
-            !
-            snapwave_u10(nm) = 0.0
-            snapwave_u10dir(nm) = 0.0            
-            !
-         endif   
-         !
-      enddo   
+      if (snapwavewind) then ! =We have windgrowth in SnapWave turned on 
+          !
+          do nm = 1, snapwave_no_nodes
+             !
+             ip = index_sfincs_in_snapwave(nm) ! matching index in SFINCS mesh
+             !
+             if (ip>0) then
+                !
+                ! A matching SFINCS point is found
+                !
+                ! Convert to umag & dir, as in ncoutput_update_his: 
+                !
+                u10 = sqrt(windu(ip)**2 + windv(ip)**2)
+                !
+                u10dir = atan2(windv(ip), windu(ip))*180/pi
+                !
+	            if (u10dir<0.0) u10dir = u10dir + 360.0
+                if (u10dir>360.0) u10dir = u10dir - 360.0    
+                !
+                snapwave_u10(nm) = max(u10, 0.0)     
+                snapwave_u10dir(nm) = u10dir / 180.0 * pi ! from nautical coming from in degrees to cartesian going to in radians
+                !
+             else
+                !
+                ! Use 0.0 wind speed and direction
+                !
+                snapwave_u10(nm) = 0.0
+                snapwave_u10dir(nm) = 0.0            
+                !
+             endif   
+             !
+          enddo   
+          !
+      endif
       !
-   endif
+   endif   
    !
    call compute_snapwave(t)
    !
