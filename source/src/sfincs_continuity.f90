@@ -328,39 +328,7 @@ contains
       !
       dvol = 0.0
       !
-      if (kcs(nm)==1) then
-         !
-         if (crsgeo) then
-            !
-            a = cell_area_m2(nm)
-            !
-         else   
-            !
-            a = cell_area(z_flags_iref(nm))
-            !
-         endif
-         !   
-         dzsdt = 0.0
-         !   
-         if (precip) then
-            !
-            ! Add nett rainfall 
-            !
-            dzsdt = dzsdt + netprcp(nm)
-            !
-         endif
-         !
-         if (use_qext) then
-            !
-            ! Add external source (e.g. from XMI coupling) 
-            ! 
-            dzsdt = dzsdt + qext(nm)
-            !
-         endif
-         !
-         ! dvol is still in m/s, so multiply with a * dt to get m^3
-         !
-         dvol = dzsdt * a * dt
+      if (kcs(nm) == 1) then
          !
          nmd = z_index_uv_md(nm)
          nmu = z_index_uv_mu(nm)
@@ -402,12 +370,12 @@ contains
             endif   
             !
          endif   
-      endif ! kcs==1    
+      endif ! kcs==1
       !
       if (wavemaker .and. kcs(nm) == 4) then
          !
          ! Wave maker point (seaward of wave maker)
-         ! Here we use the mean flux at the location of the wave maker 
+         ! Here we use the mean flux at the location of the wave maker
          !
          iwm = z_index_wavemaker(nm)
          !
@@ -471,11 +439,51 @@ contains
          !
       endif
       !
-      ! We got the volume change dvol in each active cell
-      ! Now update the volume and compute new water level           
+      ! We got the volume change dvol in each active cell from fluxes
+      ! Now first added precip and qext
+      ! Then adjust for storage volume
+      ! Then update the volume and compute new water level           
       !
-      if (kcs(nm) == 1 .or. kcs(nm) == 4) then 
-         !      
+      if (kcs(nm) == 1 .or. kcs(nm) == 4) then
+         !
+         ! Obtain cell area
+         !
+         if (crsgeo) then
+            !
+            a = cell_area_m2(nm)
+            !
+         else   
+            !
+            a = cell_area(z_flags_iref(nm))
+            !
+         endif
+         !
+         if (precip .or. use_qext) then
+            !
+            dzsdt = 0.0
+            !   
+            if (precip) then
+               !
+               ! Add nett rainfall 
+               !
+               dzsdt = dzsdt + netprcp(nm)
+               !
+            endif
+            !
+            if (use_qext) then
+               !
+               ! Add external source (e.g. from XMI coupling) 
+               ! 
+               dzsdt = dzsdt + qext(nm)
+               !
+            endif
+            !
+            ! dzsdt is still in m/s, so multiply with a * dt to get m^3
+            !
+            dvol = dvol + dzsdt * a * dt         
+            !      
+         endif
+         !
          if (use_storage_volume) then
             !
             ! If water enters the cell through a point discharge, it will NOT end up in storage volume !  
@@ -548,6 +556,7 @@ contains
             zs(nm)   = subgrid_z_dep(iuv, nm) + (subgrid_z_dep(iuv + 1, nm) - subgrid_z_dep(iuv, nm)) * facint
             !
          endif
+         !
          !
          if (wiggle_suppression) then 
             ! 

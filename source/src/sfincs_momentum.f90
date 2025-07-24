@@ -134,9 +134,9 @@
    !$acc loop independent, reduction( min : min_dt ), gang, vector
    do ip = 1, npuv
       !
-      if (kcuv(ip)==1) then
+      if (kcuv(ip) == 1 .or. kcuv(ip) == 6) then
          !
-         ! Regular UV point 
+         ! Regular UV point (or a coastal lateral boundary point)
          !
          ! Indices of surrounding water level points
          !
@@ -347,9 +347,9 @@
                   !
                   ! Interpolation required
                   !
-                  dzuv   = (zmax - zmin) / (subgrid_nlevels - 1)                                                          ! level size (is storing this in memory faster?)
-                  iuv    = min(int((zsu - zmin) / dzuv) + 1, subgrid_nlevels - 1)                                         ! index of level below zsu 
-                  facint = (zsu - (zmin + (iuv - 1) * dzuv) ) / dzuv                                                        ! 1d interpolation coefficient
+                  dzuv   = (zmax - zmin) / (subgrid_nlevels - 1)                                                           ! level size (is storing this in memory faster?)
+                  iuv    = min(int((zsu - zmin) / dzuv) + 1, subgrid_nlevels - 1)                                          ! index of level below zsu 
+                  facint = (zsu - (zmin + (iuv - 1) * dzuv) ) / dzuv                                                       ! 1d interpolation coefficient
                   !
                   hu     = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip)) * facint   ! grid-average depth
                   gnavg2 = subgrid_uv_nrep(iuv, ip) + (subgrid_uv_nrep(iuv + 1, ip) - subgrid_uv_nrep(iuv, ip)) * facint   ! representative g*n^2
@@ -363,6 +363,14 @@
                gnavg2 = gn2uv(ip)
                !
             endif
+            !
+            ! If coupled with a wave model (SnapWave or HurryWave), we may want to set an apparent roughness (which is computed elsewhere for each grid cell)
+            !
+            ! if (use_apparent_roughness) then
+            !    !
+            !    gnavg2 = 9.81 * (0.5 * (napp(nm) + napp(nmu))**2
+            !    !
+            ! endif
             !
             ! Compute wet average depth hwet (used in wind and wave forcing)
             !
@@ -575,7 +583,7 @@
                ! facmax = 0.25*sqrt(g)*rhow*gammax**2
                ! fmax = facmax*hu*sqrt(hu)/tp/rhow (we already divided by rhow in sfincs_snapwave)
                !
-               fwmax = 0.8 * hwet * sqrt(hwet) / 15
+               fwmax = 0.8 * hwet * sqrt(hwet) / 6
                !
                frc = frc + phi * sign(min(abs(fwuv(ip)), fwmax), fwuv(ip))
                !

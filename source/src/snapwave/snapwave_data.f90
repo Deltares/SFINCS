@@ -62,6 +62,7 @@ module snapwave_data
    real*4,  dimension(:),       allocatable    :: Hmx_ig
    real*4,  dimension(:,:),     allocatable    :: ee                      ! directional energy density
    real*4,  dimension(:,:),     allocatable    :: ee_ig                   ! directional infragravity energy density
+   real*4,  dimension(:),       allocatable    :: DoverE
    !
    real*4,  dimension(:,:),     allocatable    :: aa                      ! directional action density
    real*4,  dimension(:),       allocatable    :: sig                     ! mean frequency
@@ -100,6 +101,7 @@ module snapwave_data
    !
    integer                                     :: nwbnd                   ! number of support points wave boundary 
    integer                                     :: ntwbnd                  ! number of time points wave boundary 
+   real*4                                      :: hsmean_bwv              ! mean wave height over boundary points for given time
    real*4                                      :: tpmean_bwv              ! mean tp over boundary points for given time
    real*4                                      :: wdmean_bwv              ! mean wave direction for given time, used to make theta grid
    real*4                                      :: zsmean_bwv              ! mean water level for given time, used to make theta grid
