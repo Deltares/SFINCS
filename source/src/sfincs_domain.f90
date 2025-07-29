@@ -2058,7 +2058,8 @@ contains
          ! Spatially-varying infiltration with CN numbers (old)
          !
          inftype = 'cna'
-         infiltration = .true.      
+         infiltration = .true.
+         store_cumulative_precipitation = .true.
          !
       elseif (sefffile /= 'none') then  
          !
@@ -2066,6 +2067,7 @@ contains
          !
          inftype = 'cnb'
          infiltration = .true.      
+         store_cumulative_precipitation = .true.
          !
       elseif (psifile /= 'none') then  
          !
@@ -2082,15 +2084,26 @@ contains
          infiltration   = .true.
          store_meteo    = .true.
          !
+      else
+         !
+         ! No infiltration
+         !
+         inftype        = 'non'
+         infiltration   = .false.
+         !         
       endif
       !
       ! We need cumprcp and cuminf
       !
-      allocate(cumprcp(np))
-      cumprcp = 0.0
-      !
-      allocate(cuminf(np))
-      cuminf = 0.0
+      if (store_cumulative_precipitation) then
+         !
+         allocate(cumprcp(np))
+         cumprcp = 0.0
+         !
+         allocate(cuminf(np))
+         cuminf = 0.0
+         !
+      endif
       !
       ! Now allocate and read spatially-varying inputs 
       !
@@ -2113,19 +2126,19 @@ contains
          ! Note : qinf has already been converted to m/s in sfincs_input.f90 !
          !
          do nm = 1, np
-             if (subgrid) then
-                 if (subgrid_z_zmin(nm) > qinf_zmin) then
-                    qinffield(nm) = qinf
-                 else
-                    qinffield(nm) = 0.0
-                 endif
-             else
-                 if (zb(nm) > qinf_zmin) then
-                    qinffield(nm) = qinf
-                 else
-                    qinffield(nm) = 0.0
-                 endif
-             endif
+            if (subgrid) then
+               if (subgrid_z_zmin(nm) > qinf_zmin) then
+                  qinffield(nm) = qinf
+               else
+                  qinffield(nm) = 0.0
+               endif
+            else
+               if (zb(nm) > qinf_zmin) then
+                  qinffield(nm) = qinf
+               else
+                  qinffield(nm) = 0.0
+               endif
+            endif
          enddo
          !
       elseif (inftype == 'c2d') then

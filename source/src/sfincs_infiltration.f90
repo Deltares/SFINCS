@@ -33,7 +33,6 @@ contains
       !$omp private ( nm )
       !$omp do
       !$acc parallel present( qinfmap, qinffield, z_volume, zs, zb, netprcp, cuminf )
-!      !$acc parallel present( qinfmap, qinffield, z_volume, zs, zb, netprcp,cuminf ), async(1)
       !$acc loop independent gang vector
       do nm = 1, np
          !
@@ -80,7 +79,6 @@ contains
       !$omp private ( Qq,I,nm )
       !$omp do
       !$acc parallel present( qinfmap, qinffield, prcp, netprcp, cumprcp, cuminf )
-!      !$acc parallel present( qinfmap, qinffield, prcp, netprcp, cumprcp, cuminf ), async(1)
       !$acc loop independent gang vector
       do nm = 1, np
          !
@@ -127,7 +125,6 @@ contains
       !$omp private ( Qq,I,nm )       
       !$omp do       
       !$acc parallel present( qinfmap, prcp, netprcp, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, qinffield, inf_kr ), async(1)
-!      !$acc parallel present( qinfmap, prcp, netprcp, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1 ), async(1)
       !$acc loop independent gang vector
       do nm = 1, np
          !
@@ -235,7 +232,6 @@ contains
       !$omp do              
       !$acc parallel present( qinfmap, prcp, netprcp, cuminf, rain_T1,  &
       !$acc                  ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr )
-!      !$acc                  ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr ), async(1)
       !$acc loop independent gang vector
       do nm = 1, np
          !
@@ -320,7 +316,6 @@ contains
       !$omp do              
       !$acc parallel present( qinfmap, prcp, netprcp, cuminf, cell_area_m2, cell_area, z_flags_iref, z_volume, zs, zb, rain_T1,  &
       !$acc                  horton_kd, horton_fc, horton_f0 )
-!      !$acc                  horton_kd, horton_fc, horton_f0 ), async(1)
       !$acc loop independent gang vector
       do nm = 1, np
          !
