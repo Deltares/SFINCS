@@ -77,23 +77,26 @@ contains
    !
    if (nsrcdrn > 0) then
       ! 
-      !$acc serial present( zs, zb, nmindsrc, qtsrc, cell_area, cell_area_m2, z_flags_iref )
+      !!$acc serial present( zs, zb, nmindsrc, qtsrc, cell_area, cell_area_m2, z_flags_iref )
+      !$acc parallel present( zs, zb, nmindsrc, qtsrc, cell_area, cell_area_m2, z_flags_iref )
+      !$acc loop gang vector
       do isrc = 1, nsrcdrn
          ! 
          nm = nmindsrc(isrc)
          ! 
          if (crsgeo) then
             ! 
-            zs(nmindsrc(isrc))   = max(zs(nm) + qtsrc(isrc)*dt / cell_area_m2(nm), zb(nm))
+            zs(nmindsrc(isrc))   = max(zs(nm) + qtsrc(isrc) * dt / cell_area_m2(nm), zb(nm))
             ! 
          else
             ! 
-            zs(nmindsrc(isrc))   = max(zs(nm) + qtsrc(isrc)*dt / cell_area(z_flags_iref(nm)), zb(nm))
+            zs(nmindsrc(isrc))   = max(zs(nm) + qtsrc(isrc) * dt / cell_area(z_flags_iref(nm)), zb(nm))
             ! 
          endif
          ! 
       enddo
-      !$acc end serial
+      !!$acc end serial
+      !$acc end parallel
       ! 
    endif   
    !

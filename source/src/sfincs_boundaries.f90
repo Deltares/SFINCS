@@ -880,7 +880,6 @@ contains
    real*4 ui, ub, dzuv, facint, zsuv, depthuv
    !
    !$acc update device( zsb0, zsb )
-   ! !$acc update device( zsb0, zsb ), async(1)
    !
    factime = min(dt / btfilter, 1.0)
    one_minus_factime = 1.0 - factime
@@ -890,7 +889,6 @@ contains
    !
    !$acc parallel present( index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, kcuv, zs, z_volume, q, uvmean, uv, zb, zbuv, zsb, zsb0, &
    !$acc                  subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_havg_zmax, subgrid_z_zmin, ibuvdir, zsmax, kcs )
-   ! !$acc                 subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_havg_zmax, subgrid_z_zmin, ibuvdir, zsmax, kcs ), async(1)
    !$acc loop independent gang vector
    do ib = 1, nkcuv2
       !

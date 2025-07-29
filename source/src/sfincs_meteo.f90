@@ -119,6 +119,7 @@ contains
       call write_log('Info    : reading amu and amv file', 0)
       !
       ok = check_file_exists(amufile, 'AMU file', .true.)
+      ok = check_file_exists(amvfile, 'AMV file', .true.)
       !  
       call read_amuv_dimensions(amufile,amuv_nt,amuv_nrows,amuv_ncols,amuv_x_llcorner,amuv_y_llcorner,amuv_dx,amuv_dy,amuv_nquant)
       !
@@ -135,7 +136,7 @@ contains
       !
    elseif (netamuamvfile(1:4) /= 'none') then   ! FEWS compatible Netcdf amu&amv wind spatial input
       !
-      ok = check_file_exists(amvfile, 'AMV file', .true.)
+      ok = check_file_exists(netamuamvfile, 'NetCDF wind file', .true.)
       !
       call read_netcdf_amuv_data()
       !
@@ -1079,7 +1080,7 @@ contains
    !
    if (meteo3d) then
       !
-      twfact  = (t - meteo_t0)/(meteo_t1 - meteo_t0)
+      twfact  = (t - meteo_t0) / (meteo_t1 - meteo_t0)
       onemintwfact = 1.0 - twfact
       !
       !$omp parallel &
@@ -1087,8 +1088,9 @@ contains
       !$omp do
       !$acc parallel, present(tauwu, tauwv,  tauwu0, tauwv0, tauwu1, tauwv1, &
       !$acc                  windu, windv, windu0, windv0, windu1, windv1, windmax, &
-      !$acc                  patm, patm0, patm1, prcp, prcp0, prcp1, cumprcp, netprcp, zs, zb, z_volume )
-!      !$acc                  patm, patm0, patm1, prcp, prcp0, prcp1, cumprcp, netprcp, zs, zb, z_volume ), async(1)
+      !$acc                  patm, patm0, patm1, &
+      !$acc                  prcp, prcp0, prcp1, cumprcp, netprcp, &
+      !$acc                  zs, zb, z_volume )
       !$acc loop independent gang vector
       do nm = 1, np
          !
@@ -1111,32 +1113,35 @@ contains
          endif   
          !
          if (patmos) then
-            patm(nm)  = patm0(nm)*onemintwfact  + patm1(nm)*twfact  ! atmospheric pressure (Pa)
+            !
+            patm(nm) = patm0(nm) * onemintwfact  + patm1(nm) * twfact  ! atmospheric pressure (Pa)
+            !
          endif   
          !
          if (precip) then
             !
-            prcp(nm)    = prcp0(nm)*onemintwfact  + prcp1(nm)*twfact  ! rainfall in m/s !!!
+            prcp(nm) = prcp0(nm) * onemintwfact  + prcp1(nm) * twfact  ! rainfall in m/s !!!
             !
             ! Don't allow negative prcp (e.g. hardfixing infiltration/evaporation on model when forcing effective rainfall) when there's no water in the cell (same as check for constant infiltration)
             !
-            if (prcp(nm) < 0) then
-                 !  
-                 ! No effective infiltration if there is no water
-                 !  
-                 if (subgrid) then
-                    if (z_volume(nm)<=0.0) then
-                       prcp(nm) = 0.0
-                    endif
-                 else
-                    if (zs(nm)<=zb(nm)) then
-                       prcp(nm) = 0.0
-                    endif
-                 endif            
+            if (prcp(nm) < 0.0) then
+               !  
+               ! No effective infiltration if there is no water
+               !  
+               if (subgrid) then
+                  if (z_volume(nm)<=0.0) then
+                     prcp(nm) = 0.0
+                  endif
+               else
+                  if (zs(nm)<=zb(nm)) then
+                     prcp(nm) = 0.0
+                  endif
+               endif
+               !
             endif
             !
             netprcp(nm) = prcp(nm)            
-            cumprcp(nm) = cumprcp(nm) + prcp(nm)*dt
+            cumprcp(nm) = cumprcp(nm) + prcp(nm) * dt
             !
          endif   
          !
@@ -1156,22 +1161,21 @@ contains
          !$omp private ( nm )
          !$omp do
          !$acc parallel, present( tauwu, tauwv, patm, prcp, netprcp, zs, zb, z_volume )
-!         !$acc parallel, present( tauwu, tauwv, patm, prcp, netprcp, zs, zb, z_volume ), async(1)
          !$acc loop independent gang vector
          do nm = 1, np
             !
             if (wind) then
-               tauwu(nm) = tauwu(nm)*smfac
-               tauwv(nm) = tauwv(nm)*smfac
+               tauwu(nm) = tauwu(nm) * smfac
+               tauwv(nm) = tauwv(nm) * smfac
             endif   
             !
             if (patmos) then
-               patm(nm)  =patm(nm)*smfac + gapres*oneminsmfac
+               patm(nm)  =patm(nm) * smfac + gapres * oneminsmfac
             endif   
             !
             if (precip) then
                !  
-               netprcp(nm) = netprcp(nm)*smfac
+               netprcp(nm) = netprcp(nm) * smfac
                !  
                ! Don't allow negative netprcp during spinup (e.g. hardfixing infiltration/evaporation on model when forcing effective rainfall) when there's no water in the cell (same as check for constant infiltration)
                !  
@@ -1180,7 +1184,7 @@ contains
                   ! No effective infiltration if there is no water
                   !  
                   if (subgrid) then
-                     if (z_volume(nm)<=0.0) then
+                     if (z_volume(nm) <= 0.0) then
                         netprcp(nm) = 0.0
                      endif
                   else
@@ -1199,19 +1203,29 @@ contains
          !
       endif         
       !   
-      if (patmos .and. pavbnd>0.0) then
+      if (patmos .and. pavbnd > 0.0) then
          !
-         !$acc serial, present( patmb, nmindbnd, patm )
-!         !$acc serial, present( patmb, nmindbnd, patm ), async(1) 
+         ! Update atmospheric pressure at boundary points (patmb)
+         !
+         !$omp parallel &
+         !$omp private ( ib )
+         !$omp do
+         !!$acc serial, present( patmb, nmindbnd, patm )
+         !$acc parallel, present( patmb, nmindbnd, patm )
+         !$acc loop independent gang vector
          do ib = 1, ngbnd
+            !
             patmb(ib) = patm(nmindbnd(ib))
+            !
          enddo
-         !$acc end serial
+         !$omp end do
+         !$omp end parallel
+         !!$acc end serial
+         !$acc end parallel
          !
          ! patmb is used at boundary points in the CPU part of update_boundary_conditions (should try to make this faster)
          !
          !$acc update host(patmb)
-!         !$acc update host(patmb), async(1)
          !
       endif
       !   

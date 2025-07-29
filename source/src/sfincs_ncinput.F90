@@ -141,7 +141,8 @@ module sfincs_ncinput
       allocate(zsi_bnd(nbnd,ntbnd))
       allocate(zsit_bnd(nbnd))
       !      
-      NF90(nf90_get_var(net_file_bndbzsbzi%ncid, net_file_bndbzsbzi%zi_varid, zsi_bnd(:,:)) )              
+      NF90(nf90_get_var(net_file_bndbzsbzi%ncid, net_file_bndbzsbzi%zi_varid, zsi_bnd(:,:)) )
+      !
    endif      
    !
    ! Read time attibute
@@ -275,6 +276,7 @@ module sfincs_ncinput
    
    
    subroutine read_netcdf_amuv_data()
+   !
    ! Output is made exactly the same as original read_amuv_dimensions & read_amuv_file subroutines but then with data given by netcdf file
    !
    use sfincs_date   
@@ -536,7 +538,7 @@ module sfincs_ncinput
    character (len=256)            :: x_varname
    character (len=256)            :: y_varname
    character (len=256), parameter :: time_varname   = 'time'
-   character (len=256), parameter :: prcp_varname   = 'Precipitation'
+   character (len=256), parameter :: prcp_varname   = 'Precipitation' ! Does the first character 'p' here need to be lower or upper case?!
    character (len=256), parameter :: units          = 'units'     
    !
    !   if (crsgeo) then
@@ -570,7 +572,7 @@ module sfincs_ncinput
    NF90(nf90_inq_varid(net_file_ampr%ncid, x_varname,    net_file_ampr%px_varid) )  ! Has to be same as SFINCS grid
    NF90(nf90_inq_varid(net_file_ampr%ncid, y_varname,    net_file_ampr%py_varid) )  ! Also, has to be a rectilinear raster, not curvilinear! 
    NF90(nf90_inq_varid(net_file_ampr%ncid, time_varname, net_file_ampr%time_varid) )
-   NF90(nf90_inq_varid(net_file_ampr%ncid, prcp_varname, net_file_ampr%prcp_varid) )      
+   NF90(nf90_inq_varid(net_file_ampr%ncid, prcp_varname, net_file_ampr%prcp_varid) )
    !   
    ! Allocate
    !
