@@ -718,27 +718,33 @@ contains
    !
    implicit none
    !
-   integer ib, ifreq, ic, nm, ibuv, nmi, nmb, indb, iw, ibdr
+   integer ib, nmb, ibdr
    !
    real*8                            :: t
    real                              :: dt
    !
    real*8 zst
-   real*4 hst, l0t, wdt, ksi, zsetup, zig, a, angdiff, angfac, hm0ig, tmmin01ig, fp
+   real*4 zsetup
+   real*4 zig
    real*4 zs0act
    real*4 smfac
    real*4 zs0smooth
-   real*4 sumw
+   logical :: has_bzi
+   !
+   has_bzi = (bzifile(1:4) /= 'none')
    !
    ! Set water level in all boundary points on grid
+   ! This loop is all done on the CPU
    !
+   !$omp parallel private ( ib, nmb, zst, zsetup, zig, smfac, zs0act, ibdr, zs0smooth ) if(ngbnd > 10000)
+   !$omp do schedule(dynamic, 64)
    do ib = 1, ngbnd
       !
       nmb = nmindbnd(ib)
       !
       ! kcs = 1 : regular point
       ! kcs = 2 : water level boundary point
-      ! kcs = 3 : outflow boundary point
+      ! kcs = 3 : outflow boundary point (water levels were set at initialization, so no need to update them here)
       ! kcs = 4 : wave maker point
       ! kcs = 5 : river outflow point (dzs/dx = i)
       ! kcs = 6 : lateral (coastal) boundary point (Neumann dzs/dx = 0.0)
@@ -776,9 +782,9 @@ contains
          !
          ! Incoming IG waves from file (this will overrule IG signal computed before)
          !
-         if (bzifile(1:4) /= 'none') then
+         if (has_bzi) then
             !
-            if (nbnd>1) then
+            if (nbnd > 1) then
                !
                ! Interpolation of nearby points
                !
@@ -861,6 +867,8 @@ contains
       endif
       !
    enddo
+   !$omp end do
+   !$omp end parallel
    !
    end subroutine
 
@@ -888,15 +896,17 @@ contains
    ! UV fluxes at boundaries
    !
    !$acc parallel present( index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, kcuv, zs, z_volume, q, uvmean, uv, zb, zbuv, zsb, zsb0, &
-   !$acc                  subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_havg_zmax, subgrid_z_zmin, ibuvdir, zsmax, kcs )
+   !$acc                  subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_havg_zmax, subgrid_z_zmin, ibuvdir, zsmax, kcs ) vector_length(32)
    !$acc loop independent gang vector
+   !$omp parallel private ( ib, indb, nmb, nmi, ip, zsnmi, zsnmb, zs0nmb, zsuv, depthuv, dzuv, iuv, facint, hnmb, ui, ub ) if(nkcuv2 > 10000)
+   !$omp do schedule(dynamic, 64)
    do ib = 1, nkcuv2
       !
       indb   = ibkcuv2(ib)
       !
       nmb    = nmbkcuv2(ib)     ! nm index of kcs=2/3/5/6 boundary point
       !
-      if (kcs(nmb) == 6) cycle  ! Lateral boundary point. Fluxes computed in sfincs_momentum.f90
+      if (kcs(nmb) == 6) cycle  ! Lateral boundary point. Fluxes are computed in sfincs_momentum.f90.
       !
       nmi    = nmikcuv2(ib)     ! Index of kcs=1 point
       !
@@ -996,16 +1006,16 @@ contains
                !
                ! Regular
                !
-               if (zsnmi - zb(nmi)<=huthresh) then                  
-                  if (ibuvdir(ib)==1) then
+               if (zsnmi - zb(nmi) <= huthresh) then                  
+                  if (ibuvdir(ib) == 1) then
                      q(ip) = max(q(ip), 0.0) ! Nothing can flow out
                   else
                      q(ip) = min(q(ip), 0.0) ! Nothing can flow out
                   endif
                endif
                !
-               if (zsnmb - zb(nmb)<huthresh) then
-                  if (ibuvdir(ib)==1) then
+               if (zsnmb - zb(nmb) < huthresh) then
+                  if (ibuvdir(ib) == 1) then
                      q(ip) = min(q(ip), 0.0) ! Nothing can flow in
                   else
                      q(ip) = max(q(ip), 0.0) ! Nothing can flow in
@@ -1015,11 +1025,11 @@ contains
             !
             ! Limit velocities (this does not change fluxes, but may prevent advection term from exploding in the next time step)
             !
-            uv(ip)  = max(min(q(ip)/hnmb, 4.0), -4.0)
+            uv(ip)  = max(min(q(ip) / hnmb, 4.0), -4.0)
             !
          endif
          !
-         if (btfilter>=-1.0e-6) then
+         if (btfilter >= -1.0e-6) then
             !
             ! Added a little bit of relaxation in uvmean to avoid persistent jets shooting into the model
             ! Using: facrel = 1.0 - min(dt/btrelax, 1.0)
@@ -1046,7 +1056,8 @@ contains
       endif
       !
    enddo
-   !
+   !$omp end do
+   !$omp end parallel
    !$acc end parallel
    !
    end subroutine
@@ -1086,14 +1097,14 @@ contains
       !
       call update_boundary_conditions(t, dt)
       !
-      ! Update boundary fluxes()
+      ! Update boundary fluxes
       !
       call update_boundary_fluxes(dt)
       !
    endif
    !
    call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
+   tloop = tloop + 1.0 * (count1 - count0) / count_rate
    !
    end subroutine
    !

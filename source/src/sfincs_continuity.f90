@@ -77,9 +77,8 @@ contains
    !
    if (nsrcdrn > 0) then
       ! 
-      !!$acc serial present( zs, zb, nmindsrc, qtsrc, cell_area, cell_area_m2, z_flags_iref )
-      !$acc parallel present( zs, zb, nmindsrc, qtsrc, cell_area, cell_area_m2, z_flags_iref )
-      !$acc loop gang vector
+      !$acc serial present( zs, zb, nmindsrc, qtsrc, cell_area, cell_area_m2, z_flags_iref )
+      !$acc loop
       do isrc = 1, nsrcdrn
          ! 
          nm = nmindsrc(isrc)
@@ -95,8 +94,7 @@ contains
          endif
          ! 
       enddo
-      !!$acc end serial
-      !$acc end parallel
+      !$acc end serial
       ! 
    endif   
    !
@@ -441,7 +439,7 @@ contains
       endif
       !
       ! We got the volume change dvol in each active cell from fluxes
-      ! Now first added precip and qext
+      ! Now first add precip and qext
       ! Then adjust for storage volume
       ! Then update the volume and compute new water level           
       !
