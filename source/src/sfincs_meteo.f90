@@ -1129,11 +1129,11 @@ contains
                ! No effective infiltration if there is no water
                !  
                if (subgrid) then
-                  if (z_volume(nm)<=0.0) then
+                  if (z_volume(nm) <= 0.0) then
                      prcp(nm) = 0.0
                   endif
                else
-                  if (zs(nm)<=zb(nm)) then
+                  if (zs(nm) <= zb(nm)) then
                      prcp(nm) = 0.0
                   endif
                endif
@@ -1170,7 +1170,7 @@ contains
             endif   
             !
             if (patmos) then
-               patm(nm)  =patm(nm) * smfac + gapres * oneminsmfac
+               patm(nm)  = patm(nm) * smfac + gapres * oneminsmfac
             endif   
             !
             if (precip) then
@@ -1283,19 +1283,18 @@ contains
          elseif (dr0>dr1 + pi) then    
              dr1 = dr1 + 2*pi
          endif
-         vdir = dr0*(1.0 - twfac) + dr1*twfac
+         vdir = dr0 * (1.0 - twfac) + dr1 * twfac
          !
-         cd = cdval(int(vmag*10)+1)
+         cd = cdval(int(vmag * 10) + 1)
          !
-         twu = vmag**2*cos(vdir)*rhoa*cd/rhow
-         twv = vmag**2*sin(vdir)*rhoa*cd/rhow
+         twu = vmag**2 * cos(vdir) * rhoa * cd / rhow
+         twv = vmag**2 * sin(vdir) * rhoa * cd / rhow
          !
          !$omp parallel &
          !$omp private ( nm ) &
          !$omp shared ( tauwu,tauwv )
          !$omp do
          !$acc parallel, present( tauwu, tauwv )
-!         !$acc parallel, present( tauwu, tauwv ), async(1)
          !$acc loop independent gang vector
          do nm = 1, np
             tauwu(nm) = twu
@@ -1309,8 +1308,8 @@ contains
          !
          if (store_wind) then
              !
-             windu = vmag*cos(vdir)
-             windv = vmag*sin(vdir)
+             windu = vmag * cos(vdir)
+             windv = vmag * sin(vdir)
              !
          endif
          !   
@@ -1344,9 +1343,9 @@ contains
    !
    itp = max(min(itp, ntprcp), 1)
    !
-   twfac  = (t - tprcpt(itp - 1))/(tprcpt(itp) - tprcpt(itp - 1))
+   twfac  = (t - tprcpt(itp - 1)) / (tprcpt(itp) - tprcpt(itp - 1))
    !
-   ptmp = (tprcpv(itp - 1)*(1.0 - twfac) + tprcpv(itp)*twfac)/(1000*3600) ! rain in m/s
+   ptmp = (tprcpv(itp - 1) * (1.0 - twfac) + tprcpv(itp) * twfac) / (1000 * 3600) ! rain in m/s
    !
    !$omp parallel &
    !$omp private ( nm )
@@ -1356,7 +1355,7 @@ contains
    do nm = 1, np
       prcp(nm)    = ptmp
       netprcp(nm) = ptmp
-      cumprcp(nm) = cumprcp(nm) + prcp(nm)*dt
+      cumprcp(nm) = cumprcp(nm) + ptmp * dt
    enddo   
    !$acc end parallel
    !$omp end do

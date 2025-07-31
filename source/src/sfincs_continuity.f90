@@ -73,11 +73,17 @@ contains
       !
    endif
    !
+   !$acc parallel present( kcs, zs, zb, netprcp, prcp, q, qext, zsmax, zsm, maxzsm, &
+   !$acc                   z_flags_iref, uv_flags_iref, &
+   !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
+   !$acc                   dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area,  &
+   !$acc                   nmindsrc, qtsrc, &
+   !$acc                   z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num )
+   !
    ! First discharges (don't do this parallel, as it's probably not worth it)
    !
    if (nsrcdrn > 0) then
       ! 
-      !$acc serial present( zs, zb, nmindsrc, qtsrc, cell_area, cell_area_m2, z_flags_iref )
       !$acc loop
       do isrc = 1, nsrcdrn
          ! 
@@ -85,25 +91,17 @@ contains
          ! 
          if (crsgeo) then
             ! 
-            zs(nmindsrc(isrc))   = max(zs(nm) + qtsrc(isrc) * dt / cell_area_m2(nm), zb(nm))
+            zs(nmindsrc(isrc)) = max(zs(nm) + qtsrc(isrc) * dt / cell_area_m2(nm), zb(nm))
             ! 
          else
             ! 
-            zs(nmindsrc(isrc))   = max(zs(nm) + qtsrc(isrc) * dt / cell_area(z_flags_iref(nm)), zb(nm))
+            zs(nmindsrc(isrc)) = max(zs(nm) + qtsrc(isrc) * dt / cell_area(z_flags_iref(nm)), zb(nm))
             ! 
          endif
          ! 
       enddo
-      !$acc end serial
       ! 
-   endif   
-   !
-   !$acc parallel present( kcs, zs, zb, netprcp, prcp, q, qext, zsmax, zsm, maxzsm, &
-   !$acc                   z_flags_iref, uv_flags_iref, &
-   !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
-   !$acc                   dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area,  &
-   !$acc                   nmindsrc, qtsrc, &
-   !$acc                   z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num )
+   endif
    !
    !$omp parallel &
    !$omp private ( nm,dvol,nmd,nmu,ndm,num,qnmd,qnmu,qndm,qnum,iwm)
