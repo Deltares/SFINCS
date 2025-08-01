@@ -194,6 +194,7 @@ module sfincs_data
       !
       logical       :: waves
       logical       :: wind
+      logical       :: snapwavewind      
       logical       :: patmos
       logical       :: precip
       logical       :: spw_precip
