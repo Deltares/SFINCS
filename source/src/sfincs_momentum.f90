@@ -96,10 +96,6 @@ contains
    !
    min_dt = dtmax
    !
-   !!$acc update device(min_dt)
-   !
-   ! Copy flux and velocity from previous time step
-   !
    ! For some reason, it is necessary to set num_gangs here! Without, the program launches only 1 gang, and everything becomes VERY slow!
    !
    !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, zsderv, &
@@ -110,6 +106,8 @@ contains
    !$acc                    uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
    !$acc                    zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, &
    !$acc                    dxrinvc, fcorio2d, nuvisc, z_volume, gnapp2 ) num_gangs( 1024 ) vector_length( 128 )
+   !
+   ! Copy flux and velocity from previous time step
    !
    !$omp parallel &
    !$omp private ( ip )
@@ -748,8 +746,6 @@ contains
    endif
    !
    !$acc end parallel
-   !
-   !!$acc update host(min_dt)
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate

@@ -1086,11 +1086,11 @@ contains
       !$omp parallel &
       !$omp private ( nm )
       !$omp do
-      !$acc parallel, present(tauwu, tauwv,  tauwu0, tauwv0, tauwu1, tauwv1, &
-      !$acc                  windu, windv, windu0, windv0, windu1, windv1, windmax, &
-      !$acc                  patm, patm0, patm1, &
-      !$acc                  prcp, prcp0, prcp1, cumprcp, netprcp, &
-      !$acc                  zs, zb, z_volume )
+      !$acc parallel, present( tauwu, tauwv,  tauwu0, tauwv0, tauwu1, tauwv1, &
+      !$acc                    windu, windv, windu0, windv0, windu1, windv1, windmax, &
+      !$acc                    patm, patm0, patm1, &
+      !$acc                    prcp, prcp0, prcp1, cumprcp, netprcp, &
+      !$acc                    zs, zb, z_volume )
       !$acc loop independent gang vector
       do nm = 1, np
          !
@@ -1140,8 +1140,13 @@ contains
                !
             endif
             !
-            netprcp(nm) = prcp(nm)            
-            cumprcp(nm) = cumprcp(nm) + prcp(nm) * dt
+            netprcp(nm) = prcp(nm)
+            !
+            if (store_cumulative_precipitation) then
+               !
+               cumprcp(nm) = cumprcp(nm) + prcp(nm) * dt
+               !
+            endif   
             !
          endif   
          !
@@ -1353,9 +1358,14 @@ contains
    !$acc parallel present( prcp, cumprcp, netprcp )
    !$acc loop independent gang vector
    do nm = 1, np
+      !
       prcp(nm)    = ptmp
       netprcp(nm) = ptmp
-      cumprcp(nm) = cumprcp(nm) + ptmp * dt
+      !
+      if (store_cumulative_precipitation) then
+         cumprcp(nm) = cumprcp(nm) + ptmp * dt
+      endif   
+      !
    enddo   
    !$acc end parallel
    !$omp end do
