@@ -203,5 +203,93 @@ contains
     end select
   end subroutine
 
+    function get_var_names(self) result(names) bind(c)
+    class(Sfincs_BMI), intent(in) :: self
+    character(len=128), dimension(5) :: names
+
+    names(1) = "zs"
+    names(2) = "qx"
+    names(3) = "qy"
+    names(4) = "elevation"
+    names(5) = "mask"
+  end function
+
+  function get_var_type(self, name) result(type_str) bind(c)
+    class(Sfincs_BMI), intent(in) :: self
+    character(len=128), intent(in) :: name
+    character(len=128) :: type_str
+
+    select case (trim(name))
+    case ("zs", "qx", "qy", "elevation", "mask")
+      type_str = "double"
+    case default
+      type_str = "unknown"
+    end select
+  end function
+
+  subroutine get_value(self, name, dest) bind(c)
+    class(Sfincs_BMI), intent(in) :: self
+    character(len=*), intent(in) :: name
+    real(real64), intent(out) :: dest(:)
+
+    select case (trim(name))
+    case ("zs")
+      dest = reshape(self%state%zs, [size(dest)])
+    case ("qx")
+      dest = reshape(self%state%qx, [size(dest)])
+    case ("qy")
+      dest = reshape(self%state%qy, [size(dest)])
+    case ("elevation")
+      dest = reshape(self%state%elevation, [size(dest)])
+    case ("mask")
+      dest = reshape(self%state%mask, [size(dest)])
+    end select
+  end subroutine
+
+  subroutine get_value_ptr(self, name, ptr) bind(c)
+    class(Sfincs_BMI), intent(in) :: self
+    character(len=*), intent(in) :: name
+    real(real64), pointer :: ptr(:,:)
+
+    select case (trim(name))
+    case ("zs")
+      ptr => self%state%zs
+    case ("qx")
+      ptr => self%state%qx
+    case ("qy")
+      ptr => self%state%qy
+    case ("elevation")
+      ptr => self%state%elevation
+    case ("mask")
+      ptr => self%state%mask
+    end select
+  end subroutine
+
+  function get_grid_shape(self, grid_id, shape) result(ierr) bind(c)
+    class(Sfincs_BMI), intent(in) :: self
+    integer, intent(in) :: grid_id
+    integer, intent(out) :: shape(2)
+    integer :: ierr
+
+    shape(1) = self%state%m
+    shape(2) = self%state%n
+    ierr = 0
+  end function
+
+  function get_grid_type(self, grid_id) result(type_str) bind(c)
+    class(Sfincs_BMI), intent(in) :: self
+    integer, intent(in) :: grid_id
+    character(len=128) :: type_str
+    type_str = "uniform_rectilinear"
+  end function
+
+  function get_var_grid(self, name) result(grid_id) bind(c)
+    class(Sfincs_BMI), intent(in) :: self
+    character(len=*), intent(in) :: name
+    integer :: grid_id
+    grid_id = 0
+  end function
+
+
 end module sfincs_bmi_module
 
