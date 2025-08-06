@@ -1519,7 +1519,7 @@
       !
    endif   
    !
-   if (t<tspinup) then
+   if (t < tspinup) then
       !
       zwav = zwav * (t - t0) / (tspinup - t0)
       zwav_inc = zwav_inc * (t - t0) / (tspinup - t0)

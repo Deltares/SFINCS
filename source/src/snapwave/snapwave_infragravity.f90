@@ -59,6 +59,12 @@ module snapwave_infragravity
        call write_log(logstr, 0)   
        !        
        depth = 5.0
+       !
+    elseif (depth > 200.0) then
+       !
+       ! Limit depth to 200 m. Larger depth can result in NaNs. @Tim, why?
+       !
+       depth = 200.0
        !        
     endif	
     !
