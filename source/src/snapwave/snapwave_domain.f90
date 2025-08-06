@@ -2036,7 +2036,7 @@ end subroutine neuboundaries
             nfaces           = nfaces + 1
             faces(1, nfaces) = md1
             faces(2, nfaces) = ip
-            faces(3, nfaces) = mu1
+            faces(3, nfaces) = nu1
             !
          endif
          !
