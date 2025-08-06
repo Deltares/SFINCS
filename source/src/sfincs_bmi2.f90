@@ -2,11 +2,11 @@
 module sfincs_bmi_module
   use iso_c_binding
   use iso_fortran_env, only: real64
-  use bmif_2_0_mod, only: Bmi_F90_Interface
+  use bmif_2_0, only: Bmi_F90_Interface
   use sfincs_core, only: Sfincs_State, init_sfincs, update_sfincs, finalize_sfincs
   implicit none
 
-  type, extends(Bmi_F90_Interface) :: Sfincs_BMI
+  type, extends(bmi) :: Sfincs_BMI
     type(Sfincs_State) :: state
   end type Sfincs_BMI
 
@@ -177,238 +177,20 @@ contains
     rank = 2
   end function
 
-  function get_grid_type(self, grid) result(grid_type) bind(c)
-    class(Sfincs_BMI), intent(in) :: self
-    integer, intent(in) :: grid
-    character(len=64) :: grid_type
-    grid_type = "uniform_rectilinear"
-  end function
-
-  subroutine set_value(self, name, src) bind(c)
-    class(Sfincs_BMI), intent(inout) :: self
-    character(len=*), intent(in) :: name
-    type(c_ptr), intent(in) :: src
-    real(real64), pointer :: p(:)
-
-    select case (trim(name))
-    case ("zs")
-      call c_f_pointer(src, p, [size(self%state%zs)])
-      self%state%zs = reshape(p, shape(self%state%zs))
-    case ("qx")
-      call c_f_pointer(src, p, [size(self%state%qx)])
-      self%state%qx = reshape(p, shape(self%state%qx))
-    case ("qy")
-      call c_f_pointer(src, p, [size(self%state%qy)])
-      self%state%qy = reshape(p, shape(self%state%qy))
-    end select
-  end subroutine
-
-    function get_var_names(self) result(names) bind(c)
-    class(Sfincs_BMI), intent(in) :: self
-    character(len=128), dimension(5) :: names
-
-    names(1) = "zs"
-    names(2) = "qx"
-    names(3) = "qy"
-    names(4) = "elevation"
-    names(5) = "mask"
-  end function
-
-
-
-
-
-
-
-
-end module sfincs_bmi_module
-
-
-  function get_input_var_names(self) result(names) bind(c)
-    class(Sfincs_BMI), intent(in) :: self
-    character(len=128), dimension(0) :: names
-  end function get_input_var_names
-
-  function get_output_var_names(self) result(names) bind(c)
-    class(Sfincs_BMI), intent(in) :: self
-    character(len=128), dimension(5) :: names
-    names(1) = "zs"
-    names(2) = "qx"
-    names(3) = "qy"
-    names(4) = "elevation"
-    names(5) = "mask"
-  end function get_output_var_names
-
-! ---- BMI 2.0 COMPLETE METHODS ----
-
-  function get_current_time(self) result(time) bind(c)
-    class(Sfincs_BMI), intent(in) :: self
-    real(real64) :: time
-    time = self%state%current_time
-  end function get_current_time
-
-  function get_start_time(self) result(time) bind(c)
-    class(Sfincs_BMI), intent(in) :: self
-    real(real64) :: time
-    time = 0.0
-  end function get_start_time
-
-  function get_end_time(self) result(time) bind(c)
-    class(Sfincs_BMI), intent(in) :: self
-    real(real64) :: time
-    time = 1.0e6
-  end function get_end_time
-
-  function get_time_step(self) result(dt) bind(c)
-    class(Sfincs_BMI), intent(in) :: self
-    real(real64) :: dt
-    dt = self%state%dt
-  end function get_time_step
-
-  function get_var_names(self) result(names) bind(c)
-    class(Sfincs_BMI), intent(in) :: self
-    character(len=128), dimension(5) :: names
-    names = (/"zs", "qx", "qy", "elevation", "mask"/)
-  end function get_var_names
-
-  function get_var_type(self, name) result(type_str) bind(c)
-    class(Sfincs_BMI), intent(in) :: self
-    character(len=*), intent(in) :: name
-    character(len=128) :: type_str
-    type_str = "double"
-  end function get_var_type
-
-  function get_var_units(self, name) result(units) bind(c)
-    class(Sfincs_BMI), intent(in) :: self
-    character(len=*), intent(in) :: name
-    character(len=128) :: units
-    select case (trim(name))
-    case ("zs", "elevation")
-      units = "m"
-    case ("qx", "qy")
-      units = "m3/s"
-    case ("mask")
-      units = "none"
-    case default
-      units = "unknown"
-    end select
-  end function get_var_units
-
-  function get_var_itemsize(self, name) result(size) bind(c)
-    class(Sfincs_BMI), intent(in) :: self
-    character(len=*), intent(in) :: name
-    integer :: size
-    size = 8  ! real64 = 8 bytes
-  end function get_var_itemsize
-
-  function get_var_nbytes(self, name) result(nbytes) bind(c)
-    class(Sfincs_BMI), intent(in) :: self
-    character(len=*), intent(in) :: name
-    integer :: nbytes
-    nbytes = 8 * self%state%m * self%state%n
-  end function get_var_nbytes
-
-  function get_var_location(self, name) result(location) bind(c)
-    class(Sfincs_BMI), intent(in) :: self
-    character(len=*), intent(in) :: name
-    character(len=128) :: location
-    location = "node"
-  end function get_var_location
-
-  function get_var_grid(self, name) result(grid_id) bind(c)
-    class(Sfincs_BMI), intent(in) :: self
-    character(len=*), intent(in) :: name
-    integer :: grid_id
-    grid_id = 0
-  end function get_var_grid
-
   function get_grid_type(self, grid_id) result(grid_type) bind(c)
     class(Sfincs_BMI), intent(in) :: self
     integer, intent(in) :: grid_id
     character(len=128) :: grid_type
-    grid_type = "uniform_rectilinear"
+
+    select case (grid_id)
+    case (0)
+      grid_type = "uniform_rectilinear"
+    case (1)
+      grid_type = "scalar"
+    case default
+      grid_type = "-"
+    end select
   end function get_grid_type
 
-  function get_grid_shape(self, grid_id, shape) result(status) bind(c)
-    class(Sfincs_BMI), intent(in) :: self
-    integer, intent(in) :: grid_id
-    integer, intent(out) :: shape(2)
-    integer :: status
-    shape(1) = self%state%m
-    shape(2) = self%state%n
-    status = 0
-  end function get_grid_shape
 
-  function get_grid_spacing(self, grid_id, spacing) result(status) bind(c)
-    class(Sfincs_BMI), intent(in) :: self
-    integer, intent(in) :: grid_id
-    real(real64), intent(out) :: spacing(2)
-    integer :: status
-    spacing(1) = self%state%dx
-    spacing(2) = self%state%dy
-    status = 0
-  end function get_grid_spacing
-
-  function get_grid_origin(self, grid_id, origin) result(status) bind(c)
-    class(Sfincs_BMI), intent(in) :: self
-    integer, intent(in) :: grid_id
-    real(real64), intent(out) :: origin(2)
-    integer :: status
-    origin(1) = 0.0
-    origin(2) = 0.0
-    status = 0
-  end function get_grid_origin
-
-  subroutine get_value(self, name, dest) bind(c)
-    class(Sfincs_BMI), intent(in) :: self
-    character(len=*), intent(in) :: name
-    real(real64), intent(out) :: dest(:)
-    select case (trim(name))
-    case ("zs")
-      dest = reshape(self%state%zs, [size(dest)])
-    case ("qx")
-      dest = reshape(self%state%qx, [size(dest)])
-    case ("qy")
-      dest = reshape(self%state%qy, [size(dest)])
-    case ("elevation")
-      dest = reshape(self%state%elevation, [size(dest)])
-    case ("mask")
-      dest = reshape(self%state%mask, [size(dest)])
-    end select
-  end subroutine get_value
-
-  subroutine get_value_ptr(self, name, ptr) bind(c)
-    class(Sfincs_BMI), intent(in) :: self
-    character(len=*), intent(in) :: name
-    real(real64), pointer :: ptr(:,:)
-    select case (trim(name))
-    case ("zs")
-      ptr => self%state%zs
-    case ("qx")
-      ptr => self%state%qx
-    case ("qy")
-      ptr => self%state%qy
-    case ("elevation")
-      ptr => self%state%elevation
-    case ("mask")
-      ptr => self%state%mask
-    end select
-  end subroutine get_value_ptr
-
-  subroutine set_value(self, name, values) bind(c)
-    class(Sfincs_BMI), intent(inout) :: self
-    character(len=*), intent(in) :: name
-    real(real64), intent(in) :: values(:)
-    select case (trim(name))
-    case ("zs")
-      self%state%zs = reshape(values, shape(self%state%zs))
-    case ("qx")
-      self%state%qx = reshape(values, shape(self%state%qx))
-    case ("qy")
-      self%state%qy = reshape(values, shape(self%state%qy))
-    case ("elevation")
-      self%state%elevation = reshape(values, shape(self%state%elevation))
-    case ("mask")
-      self%state%mask = reshape(values, shape(self%state%mask))
-    end select
-  end subroutine set_value
+end module sfincs_bmi_module
