@@ -275,22 +275,13 @@ contains
     if (allocated(this%component_name)) deallocate(this%component_name)
     if (allocated(this%time_units))     deallocate(this%time_units)
 
-    if (allocated(this%input_names))  call deallocate(this%input_names)
-    if (allocated(this%output_names)) call deallocate(this%output_names)
+    if (allocated(this%input_names))  deallocate(this%input_names)
+    if (allocated(this%output_names)) deallocate(this%output_names)
 
     !nullify(this%z, this%h, this%un, this%vn, this%xz, this%yz, this%xu, this%yu, this%xv, this%yv)
     !nullify(this%component_name, this%time_units, this%input_names, this%output_names)
 
     status = BMI_SUCCESS
-  contains
-    subroutine dealloc_name_list(list)
-      character(len=:), pointer :: list(:)
-      integer :: k
-      do k = 1, size(list)
-      !if (associated(list(k))) deallocate(list(k))
-      end do
-      !deallocate(list)
-    end subroutine dealloc_name_list
   end function sfincs_finalize
 
 !======================================================================
