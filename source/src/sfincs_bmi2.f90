@@ -27,6 +27,10 @@ module sfincs_bmi2
   real(c_double), save, target, allocatable :: vn_store(:)  ! v-velocity [m/s]
   real(c_double), save, target, allocatable :: xv_store(:), yv_store(:)
 
+  ! rainfall input over z-grid (nodes/cell centers), units m s-1
+  real(c_double), save, target, allocatable :: rain_store(:)
+
+
   !------------------------
   ! Time bookkeeping
   !------------------------
@@ -49,6 +53,9 @@ module sfincs_bmi2
     integer(c_int),    pointer        :: state_i(:)  => null()
     real(c_float),     pointer        :: state_r(:)  => null()
     real(c_double),    pointer        :: state_d(:)  => null()
+
+    real(c_double),    pointer        :: rain(:)     => null()
+
     
     character(len=:), allocatable :: component_name
     character(len=:), allocatable :: time_units
@@ -183,6 +190,17 @@ contains
       vn_store = 0.0d0
     end if
 
+
+
+    ! Allocate rainfall field on z-grid
+    if (.not. allocated(rain_store)) then
+      allocate(rain_store(nz))
+      rain_store = 0.0d0
+    end if
+
+    this%rain => rain_store
+
+
     ! Pointer-associate type components
     this%z  => z_store
     this%h  => h_store
@@ -202,10 +220,17 @@ contains
       this%time_units = 's'
     end if
 
+
+    ! if (.not. allocated(this%input_names)) then
+    !   allocate(character(len=1) :: this%input_names(0))
+    ! end if
+
+
     if (.not. allocated(this%input_names)) then
-      ! zero-length list is okay; give it a dummy len so ALLOCATE is valid
-      allocate(character(len=1) :: this%input_names(0))
+      allocate(character(len=BMI_MAX_COMPONENT_NAME) :: this%input_names(1))
+      this%input_names(1) = 'rain_rate'
     end if
+
 
     if (.not. allocated(this%output_names)) then
       allocate(character(len=BMI_MAX_COMPONENT_NAME) :: this%output_names(4))
@@ -239,8 +264,12 @@ contains
     ! Placeholder: shallow update (advect nothing, just a toy trend)
     do i = 1, size(this%z)
       this%z(i) = this%z(i) + 0.0d0
-      this%h(i) = max(0.0d0, this%h(i) + 0.0d0)
     end do
+
+    do i = 1, size(this%h)
+      this%h(i) = max(0.0d0, this%h(i) + rain_store(i) * dt_s)
+    end do
+
     current_time_s = current_time_s + dt_s
     status = BMI_SUCCESS
   end function sfincs_update
@@ -277,6 +306,8 @@ contains
 
     if (allocated(this%input_names))  deallocate(this%input_names)
     if (allocated(this%output_names)) deallocate(this%output_names)
+
+    if (allocated(rain_store)) deallocate(rain_store)
 
     !nullify(this%z, this%h, this%un, this%vn, this%xz, this%yz, this%xu, this%yu, this%xv, this%yv)
     !nullify(this%component_name, this%time_units, this%input_names, this%output_names)
@@ -412,12 +443,13 @@ contains
     integer(c_int),    intent(out):: grid
     integer(c_int)                :: status
     select case (trim(name))
-    case('water_surface_elevation','water_depth'); grid = 1_c_int   ! z-grid
-    case('velocity_x');                              grid = 2_c_int   ! u-grid
-    case('velocity_y');                              grid = 3_c_int   ! v-grid
-    case default;                                    grid = -1_c_int; status = BMI_FAILURE; return
+    case('water_surface_elevation','water_depth','rain_rate'); grid = 1_c_int   ! z-grid
+    case('velocity_x');                                        grid = 2_c_int   ! u-grid
+    case('velocity_y');                                        grid = 3_c_int   ! v-grid
+    case default;                                              grid = -1_c_int; status = BMI_FAILURE; return
     end select
     status = BMI_SUCCESS
+
   end function sfincs_get_var_grid
 
   function sfincs_get_var_type(this, name, type) result(status)
@@ -436,6 +468,7 @@ contains
     integer(c_int)                   :: status
     select case (trim(name))
     case('water_surface_elevation','water_depth'); call assign_trim(units, 'm')
+    case('rain_rate');                             call assign_trim(units, 'm s-1')
     case('velocity_x','velocity_y');               call assign_trim(units, 'm s-1')
     case default;                                  call assign_trim(units, '1'); status = BMI_FAILURE; return
     end select
@@ -836,6 +869,7 @@ contains
     select case (trim(name))
     case('velocity_x'); n = min(size(src), size(this%un)); if (n>0) this%un(1:n) = real(src(1:n), c_double)
     case('velocity_y'); n = min(size(src), size(this%vn)); if (n>0) this%vn(1:n) = real(src(1:n), c_double)
+    case('rain_rate');  n = min(size(src), size(rain_store)); if (n>0) rain_store(1:n) = real(src(1:n), c_double)
     case default; status = BMI_FAILURE; return
     end select
     status = BMI_SUCCESS
@@ -848,10 +882,11 @@ contains
     integer(c_int)                   :: status
     integer :: n
     select case (trim(name))
-    case('water_surface_elevation'); n = min(size(src), size(this%z));  if (n>0) this%z(1:n)  = src(1:n)
+    case('water_surface_elevation');  n = min(size(src), size(this%z));  if (n>0) this%z(1:n)  = src(1:n)
     case('water_depth');              n = min(size(src), size(this%h));  if (n>0) this%h(1:n)  = src(1:n)
     case('velocity_x');               n = min(size(src), size(this%un)); if (n>0) this%un(1:n) = src(1:n)
     case('velocity_y');               n = min(size(src), size(this%vn)); if (n>0) this%vn(1:n) = src(1:n)
+    case('rain_rate');                n = min(size(src), size(rain_store)); if (n>0) rain_store(1:n) = src(1:n)
     case default; status = BMI_FAILURE; return
     end select
     status = BMI_SUCCESS
@@ -886,6 +921,13 @@ contains
         i0 = inds(k)
         if (i0>=1 .and. i0<=size(this%vn)) this%vn(i0) = real(src(k), c_double)
       end do
+    case('rain_rate')
+      n = min(size(src), size(inds))
+      do k = 1, n
+        i0 = inds(k)
+        if (i0>=1 .and. i0<=size(rain_store)) rain_store(i0) = real(src(k), c_double)
+      end do
+
     case default
       status = BMI_FAILURE; return
     end select
@@ -924,6 +966,12 @@ contains
         i0 = inds(k)
         if (i0>=1 .and. i0<=size(this%vn)) this%vn(i0) = src(k)
       end do
+    case('rain_rate')
+      n = min(size(src), size(inds))
+      do k = 1, n
+        i0 = inds(k)
+        if (i0>=1 .and. i0<=size(rain_store)) rain_store(i0) = src(k)
+      end do
     case default
       status = BMI_FAILURE; return
     end select
@@ -944,10 +992,11 @@ contains
     class(sfincs_bmi), intent(in) :: this
     character(len=*),  intent(in) :: name
     select case (trim(name))
-    case('water_surface_elevation'); n = size(this%z)
+    case('water_surface_elevation');  n = size(this%z)
     case('water_depth');              n = size(this%h)
     case('velocity_x');               n = size(this%un)
     case('velocity_y');               n = size(this%vn)
+    case('rain_rate');                n = size(rain_store)
     case default;                     n = -1
     end select
   end function var_size
