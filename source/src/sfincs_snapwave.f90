@@ -485,6 +485,7 @@ contains
    use snapwave_boundaries
    !
    real*8    :: t
+   integer   :: k
    ! 
    depth = snapwave_depth
    !
@@ -518,6 +519,21 @@ contains
    ! Convert wave force to correct unit [Dw/C] as expected by SFINCS, assumed to be piecewise (seems to work)
    snapwave_Fx                    = Fx * rho * depth
    snapwave_Fy                    = Fy * rho * depth
+   !
+   ! Loop over points and set Tp, cg, direction, spreading to 0 where H and/or H_ig are zero
+   ! TL: needed because e.g. Tp is set to Tpini initially, so shows values even if cell remains dry with H=0
+   do k = 1, no_nodes
+       if (snapwave_H(k) <= 0) then
+           snapwave_Tp(k) = 0
+           snapwave_mean_direction(k) = 0
+           snapwave_directional_spreading(k) = 0
+           snapwave_cg(k) = 0
+       endif
+       !
+       if (snapwave_H_ig(k) <= 0) then
+           snapwave_Tp_ig(k) = 0        
+       endif       
+   enddo   
    !
    ! Wave periods from SnapWave, used in e.g. wavemakers - TL: moved behind call update_boundary_conditions & compute_wave_field so values at first timestep are not 0
    snapwave_tpmean = tpmean_bwv
