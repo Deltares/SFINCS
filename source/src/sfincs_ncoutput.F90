@@ -2808,12 +2808,12 @@ contains
             !
             hm0obs(iobs)   = hm0(nm)
             hm0igobs(iobs) = hm0_ig(nm)
-            tpobs(iobs)    = snapwave_tpmean
-            tpigobs(iobs)  = snapwave_tpigmean            
+            tpobs(iobs)    = sw_tp(nm)
+            tpigobs(iobs)  = sw_tp_ig(nm)            
             !
             if (store_wave_direction) then
                !
-               wavdirobs(iobs)   = snapwave_mean_direction(nm)
+               wavdirobs(iobs)   = mean_wave_direction(nm)
                dirsprobs(iobs)   = wave_directional_spreading(nm)
                !
             endif
