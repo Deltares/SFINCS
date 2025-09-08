@@ -2485,8 +2485,6 @@ contains
          dfig = 0.0   
          allocate(cg(np))
          cg = 0.0
-         allocate(Qb(np))
-         qb = 0.0  
          allocate(betamean(np))
          betamean = 0.0     
          allocate(srcig(np))
