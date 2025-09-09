@@ -1,5 +1,5 @@
 module sfincs_bmi2
-  use, intrinsic :: iso_c_binding, only: c_int, c_float, c_double, c_sizeof
+  use, intrinsic :: iso_c_binding, only: c_int, c_float, c_double
   use bmif_2_0,   only: bmi, BMI_SUCCESS, BMI_FAILURE, BMI_MAX_COMPONENT_NAME
   implicit none
   private
@@ -29,7 +29,6 @@ module sfincs_bmi2
 
   ! rainfall input over z-grid (nodes/cell centers), units m s-1
   real(c_double), save, target, allocatable :: rain_store(:)
-
 
   !------------------------
   ! Time bookkeeping
@@ -146,152 +145,68 @@ module sfincs_bmi2
     procedure :: set_value_at_indices_double=> sfincs_set_value_at_indices_double
   end type sfincs_bmi
 
-
 contains
-
-
 
 !======================================================================
 !                       LIFECYCLE
 !======================================================================
   function sfincs_initialize(this, config_file) result(status)
-  use, intrinsic :: iso_fortran_env, only: stderr => error_unit
-  class(sfincs_bmi), intent(out)   :: this
-  character(len=*),  intent(in)    :: config_file
-  integer                         :: status
-  integer                         :: i
-  ! Local clock helpers
-  double precision :: dt_local, start_local, end_local
-  integer          :: n_steps
-
-  ! 1) Read config if provided; otherwise set defaults
-  if (len_trim(config_file) > 0) then
-    call read_init_config(this, config_file, status)
-    if (status /= BMI_SUCCESS) return
-  else
-    start_time_s   = 0.0d0
-    dt_s           = 60.0d0
-    end_time_s     = 24.0d0 * 3600.0d0
-    current_time_s = start_time_s
-  end if
-
-  ! 2) Sanity/derivations similar to SCHISM initialize
-  dt_local    = dt_s
-  start_local = start_time_s
-  end_local   = end_time_s
-
-  if (dt_local <= 0.0d0) then
-    write(stderr,'(a)') 'Error: dt_seconds (time_step_size) must be > 0.'
-    status = BMI_FAILURE
-    return
-  end if
-
-  ! If end time wasn’t set, default to 24 steps
-  if (end_local <= start_local) then
-    n_steps   = 24
-    end_local = start_local + dble(n_steps) * dt_local
-  end if
-
-  if (end_local < start_local) then
-    write(stderr,'(a)') 'Error: end_time < start_time after derivation.'
-    status = BMI_FAILURE
-    return
-  end if
-
-  ! Apply back to module clock
-  start_time_s   = start_local
-  end_time_s     = end_local
-  dt_s           = dt_local
-  current_time_s = start_time_s
-
-  ! 3) Allocate simple demo domain (replace with real SFINCS wiring later)
-  if (nz <= 0) then
-    nz = 10_c_int
-    allocate(z_store(nz), h_store(nz), xz_store(nz), yz_store(nz))
-    do i = 1, nz
-      xz_store(i) = real(i-1, c_double)
-      yz_store(i) = 0.0d0
-    end do
-    z_store = 0.0d0
-    h_store = 0.0d0
-  end if
-
-  if (nu <= 0) then
-    nu = 10_c_int
-    allocate(un_store(nu), xu_store(nu), yu_store(nu))
-    do i = 1, nu
-      xu_store(i) = real(i-1, c_double) + 0.5d0
-      yu_store(i) = 0.0d0
-    end do
-    un_store = 0.0d0
-  end if
-
-  if (nv <= 0) then
-    nv = 10_c_int
-    allocate(vn_store(nv), xv_store(nv), yv_store(nv))
-    do i = 1, nv
-      xv_store(i) = real(i-1, c_double)
-      yv_store(i) = 0.5d0
-    end do
-    vn_store = 0.0d0
-  end if
-
-  ! Rainfall field on z-grid
-  if (.not. allocated(rain_store)) then
-    allocate(rain_store(nz))
-    rain_store = 0.0d0
-  end if
-  this%rain => rain_store
-
-  ! 4) Pointer-associate state to module TARGET arrays
-  this%z  => z_store
-  this%h  => h_store
-  this%un => un_store
-  this%vn => vn_store
-  this%xz => xz_store; this%yz => yz_store
-  this%xu => xu_store; this%yu => yu_store
-  this%xv => xv_store; this%yv => yv_store
-
-  ! 5) Allocate/assign scalar/pointer-len strings
-  if (.not. associated(this%component_name)) then
-    allocate(character(len=BMI_MAX_COMPONENT_NAME) :: this%component_name)
-    this%component_name = 'SFINCS-BMI'
-  end if
-
-  if (.not. associated(this%time_units)) then
-    allocate(character(len=16) :: this%time_units)
-    this%time_units = 's'
-  end if
-
-  ! 6) Inputs/outputs advertised to NGen
-  if (.not. associated(this%input_names)) then
-    allocate(character(len=BMI_MAX_COMPONENT_NAME) :: this%input_names(1))
-    this%input_names(1) = 'rain_rate'
-  end if
-
-  if (.not. associated(this%output_names)) then
-    allocate(character(len=BMI_MAX_COMPONENT_NAME) :: this%output_names(4))
-    this%output_names = [ character(len=BMI_MAX_COMPONENT_NAME) :: &
-         'water_surface_elevation', 'water_depth', 'velocity_x', 'velocity_y' ]
-  end if
-
-  status = BMI_SUCCESS
-end function sfincs_initialize
-
-
-  function sfincs_initialize_old(this, config_file) result(status)
+    use, intrinsic :: iso_fortran_env, only: stderr => error_unit
     class(sfincs_bmi), intent(out)   :: this
     character(len=*),  intent(in)    :: config_file
-    integer                          :: status
-    integer                          :: i
+    integer                         :: status
+    integer                         :: i
+    ! Local clock helpers
+    double precision :: dt_local, start_local, end_local
+    integer          :: n_steps
 
-    ! Allocate simple demo domain if not already; replace with real SFINCS init later
+    ! 1) Read config if provided; otherwise set defaults
+    if (len_trim(config_file) > 0) then
+      call read_init_config(this, config_file, status)
+      if (status /= BMI_SUCCESS) return
+    else
+      start_time_s   = 0.0d0
+      dt_s           = 60.0d0
+      end_time_s     = 24.0d0 * 3600.0d0
+      current_time_s = start_time_s
+    end if
+
+    ! 2) Sanity/derivations (like SCHISM initialize)
+    dt_local    = dt_s
+    start_local = start_time_s
+    end_local   = end_time_s
+
+    if (dt_local <= 0.0d0) then
+      write(stderr,'(a)') 'Error: dt_seconds (time_step_size) must be > 0.'
+      status = BMI_FAILURE
+      return
+    end if
+
+    ! If end time wasn’t set, default to 24 steps
+    if (end_local <= start_local) then
+      n_steps   = 24
+      end_local = start_local + dble(n_steps) * dt_local
+    end if
+
+    if (end_local < start_local) then
+      write(stderr,'(a)') 'Error: end_time < start_time after derivation.'
+      status = BMI_FAILURE
+      return
+    end if
+
+    ! Apply back to module clock
+    start_time_s   = start_local
+    end_time_s     = end_local
+    dt_s           = dt_local
+    current_time_s = start_time_s
+
+    ! 3) Allocate simple demo domain (replace with real SFINCS wiring later)
     if (nz <= 0) then
       nz = 10
       allocate(z_store(nz), h_store(nz), xz_store(nz), yz_store(nz))
       do i = 1, nz
         xz_store(i) = real(i-1, c_double)
-        yz_store(i) = real(0, c_double)
+        yz_store(i) = 0.0d0
       end do
       z_store = 0.0d0
       h_store = 0.0d0
@@ -315,6 +230,87 @@ end function sfincs_initialize
         yv_store(i) = 0.5d0
       end do
       vn_store = 0.0d0
+    end if
+
+    ! Rainfall field on z-grid
+    if (.not. allocated(rain_store)) then
+      allocate(rain_store(nz))
+      rain_store = 0.0d0
+    end if
+    this%rain => rain_store
+
+    ! 4) Pointer-associate state to module TARGET arrays
+    this%z  => z_store
+    this%h  => h_store
+    this%un => un_store
+    this%vn => vn_store
+    this%xz => xz_store; this%yz => yz_store
+    this%xu => xu_store; this%yu => yu_store
+    this%xv => xv_store; this%yv => yv_store
+
+    ! 5) Allocate/assign scalar/pointer-len strings
+    if (.not. associated(this%component_name)) then
+      allocate(character(len=BMI_MAX_COMPONENT_NAME) :: this%component_name)
+      this%component_name = 'SFINCS-BMI'
+    end if
+
+    if (.not. associated(this%time_units)) then
+      allocate(character(len=16) :: this%time_units)
+      this%time_units = 's'
+    end if
+
+    ! 6) Inputs/outputs advertised to NGen
+    if (.not. associated(this%input_names)) then
+      allocate(character(len=BMI_MAX_COMPONENT_NAME) :: this%input_names(1))
+      this%input_names(1) = 'rain_rate'
+    end if
+
+    if (.not. associated(this%output_names)) then
+      allocate(character(len=BMI_MAX_COMPONENT_NAME) :: this%output_names(4))
+      this%output_names = [ character(len=BMI_MAX_COMPONENT_NAME) :: &
+           'water_surface_elevation', 'water_depth', 'velocity_x', 'velocity_y' ]
+    end if
+
+    status = BMI_SUCCESS
+  end function sfincs_initialize
+
+  ! Keeping your old initializer for reference/testing
+  function sfincs_initialize_old(this, config_file) result(status)
+    class(sfincs_bmi), intent(out)   :: this
+    character(len=*),  intent(in)    :: config_file
+    integer                          :: status
+    integer                          :: i
+
+    ! Allocate simple demo domain if not already; replace with real SFINCS init later
+    if (nz <= 0) then
+      nz = 10
+      allocate(z_store(nz), h_store(nz), xz_store(nz), yz_store(nz))
+      do i = 1, nz
+        xz_store(i) = real(i-1, c_double)
+        yz_store(i) = 0.0d0
+      end do
+      z_store = 0.0d0
+      h_store = 0.0d0
+    end if
+
+    if (nu <= 0) then
+      nu = 10
+      allocate(un_store(nu), xu_store(nu), yu_store(nu))
+      do i = 1, nu
+        xu_store(i) = real(i-1, c_double) + 0.5d0
+        yu_store(i) = 0.0d0
+      end do
+      un_store = 0.0d0
+    end if
+
+    if (nv <= 0) then
+      nv = 10
+      allocate(vn_store(nv), xv_store(nv), yv_store(nv))
+      do i = 1, nv
+        xv_store(i) = real(i-1, c_double)
+        yv_store(i) = 0.5d0
+      end do
+        vn_store = 0.0d0
     end if
 
     ! Allocate rainfall field on z-grid
@@ -364,13 +360,6 @@ end function sfincs_initialize
     end if
 
     status = BMI_SUCCESS
-  contains
-    function make_name(s) result(p)
-      character(len=*), intent(in) :: s
-      character(len=:), pointer    :: p
-      allocate(character(len=len_trim(s)) :: p)
-      p = trim(s)
-    end function make_name
   end function sfincs_initialize_old
 
   function sfincs_update(this) result(status)
@@ -431,7 +420,6 @@ end function sfincs_initialize
 !======================================================================
 !                 COMPONENT / I/O VARIABLE NAMES
 !======================================================================
-
   function sfincs_get_component_name(this, name) result(status)
     class(sfincs_bmi), intent(in) :: this
     character(len=*), pointer, intent(out) :: name
@@ -443,7 +431,7 @@ end function sfincs_initialize
       nullify(name)
       status = BMI_FAILURE
     end if
-  end function
+  end function sfincs_get_component_name
 
   function sfincs_get_input_item_count(this, count) result(status)
     class(sfincs_bmi), intent(in) :: this
@@ -477,7 +465,6 @@ end function sfincs_initialize
     if (.not. associated(this%input_names)) then
       status = BMI_FAILURE; return
     end if
-    ! Caller is expected to have provided an array of sufficient size & length.
     n = min(size(names), size(this%input_names))
     do k = 1, n
       call assign_trim(names(k), this%input_names(k))
@@ -827,11 +814,11 @@ end function sfincs_initialize
     integer                       :: status
     integer :: n
     select case (trim(name))
-    case('water_surface_elevation'); n = min(size(dest), size(this%z));  if (n>0) dest(1:n) = real(this%z(1:n),  c_float)
-    case('water_depth');              n = min(size(dest), size(this%h));  if (n>0) dest(1:n) = real(this%h(1:n),  c_float)
-    case('velocity_x');               n = min(size(dest), size(this%un)); if (n>0) dest(1:n) = real(this%un(1:n), c_float)
-    case('velocity_y');               n = min(size(dest), size(this%vn)); if (n>0) dest(1:n) = real(this%vn(1:n), c_float)
-    case('rain_rate');                n = min(size(dest), size(this%rain)); if (n>0) dest(1:n) = real(this%rain(1:n), c_float)
+    case('water_surface_elevation'); n = min(size(dest), size(this%z));   if (n>0) dest(1:n) = real(this%z(1:n),  c_float)
+    case('water_depth');              n = min(size(dest), size(this%h));   if (n>0) dest(1:n) = real(this%h(1:n),  c_float)
+    case('velocity_x');               n = min(size(dest), size(this%un));  if (n>0) dest(1:n) = real(this%un(1:n), c_float)
+    case('velocity_y');               n = min(size(dest), size(this%vn));  if (n>0) dest(1:n) = real(this%vn(1:n), c_float)
+    case('rain_rate');                n = min(size(dest), size(this%rain));if (n>0) dest(1:n) = real(this%rain(1:n), c_float)
     case default; status = BMI_FAILURE; return
     end select
     status = BMI_SUCCESS
@@ -862,20 +849,20 @@ end function sfincs_initialize
     character(len=*),  intent(in) :: name
     integer, pointer,  intent(inout) :: dest_ptr(:)
     integer                       :: status
-    ! No default-kind integer state exposed; return failure.
+    ! No default-kind integer state exposed
     nullify(dest_ptr)
     status = BMI_FAILURE
-  end function
+  end function sfincs_get_value_ptr_int
 
   function sfincs_get_value_ptr_float(this, name, dest_ptr) result(status)
     class(sfincs_bmi), intent(in) :: this
     character(len=*),  intent(in) :: name
     real, pointer,     intent(inout) :: dest_ptr(:)
     integer                       :: status
-    ! No default-kind real state exposed; return failure.
+    ! No default-kind real arrays are exposed by this BMI; use doubles
     nullify(dest_ptr)
     status = BMI_FAILURE
-  end function
+  end function sfincs_get_value_ptr_float
 
   function sfincs_get_value_ptr_double(this, name, dest_ptr) result(status)
     class(sfincs_bmi), intent(in) :: this
@@ -974,9 +961,9 @@ end function sfincs_initialize
     integer                       :: status
     integer :: n
     select case (trim(name))
-    case('velocity_x'); n = min(size(src), size(this%un));  if (n>0) this%un(1:n)       = real(src(1:n), c_double)
-    case('velocity_y'); n = min(size(src), size(this%vn));  if (n>0) this%vn(1:n)       = real(src(1:n), c_double)
-    case('rain_rate');  n = min(size(src), size(rain_store)); if (n>0) rain_store(1:n)  = real(src(1:n), c_double)
+    case('velocity_x'); n = min(size(src), size(this%un));   if (n>0) this%un(1:n)       = real(src(1:n), c_double)
+    case('velocity_y'); n = min(size(src), size(this%vn));   if (n>0) this%vn(1:n)       = real(src(1:n), c_double)
+    case('rain_rate');  n = min(size(src), size(rain_store));if (n>0) rain_store(1:n)    = real(src(1:n), c_double)
     case default; status = BMI_FAILURE; return
     end select
     status = BMI_SUCCESS
@@ -989,10 +976,10 @@ end function sfincs_initialize
     integer                       :: status
     integer :: n
     select case (trim(name))
-    case('water_surface_elevation');  n = min(size(src), size(this%z));  if (n>0) this%z(1:n)   = src(1:n)
-    case('water_depth');              n = min(size(src), size(this%h));  if (n>0) this%h(1:n)   = src(1:n)
-    case('velocity_x');               n = min(size(src), size(this%un)); if (n>0) this%un(1:n)  = src(1:n)
-    case('velocity_y');               n = min(size(src), size(this%vn)); if (n>0) this%vn(1:n)  = src(1:n)
+    case('water_surface_elevation');  n = min(size(src), size(this%z));   if (n>0) this%z(1:n)   = src(1:n)
+    case('water_depth');              n = min(size(src), size(this%h));   if (n>0) this%h(1:n)   = src(1:n)
+    case('velocity_x');               n = min(size(src), size(this%un));  if (n>0) this%un(1:n)  = src(1:n)
+    case('velocity_y');               n = min(size(src), size(this%vn));  if (n>0) this%vn(1:n)  = src(1:n)
     case('rain_rate');                n = min(size(src), size(rain_store)); if (n>0) rain_store(1:n) = src(1:n)
     case default; status = BMI_FAILURE; return
     end select
@@ -1107,86 +1094,86 @@ end function sfincs_initialize
     end select
   end function var_size
 
-  ! Put this near the end of sfincs_bmi2.f90 (in the CONTAINS section), as a private helper:
+  !---------------------------
+  ! Config (namelist) reader
+  !---------------------------
+  subroutine read_init_config(this, config_file, status)
+    use, intrinsic :: iso_fortran_env, only: stderr => error_unit
+    implicit none
+    class(sfincs_bmi), intent(inout) :: this
+    character(len=*),  intent(in)    :: config_file
+    integer,           intent(out)   :: status
 
+    ! locals
+    integer :: rc, fu
+    logical :: exists
+    character(len=1000) :: line
 
-subroutine read_init_config(this, config_file, status)
-  use, intrinsic :: iso_fortran_env, only: stderr => error_unit
-  implicit none
-  class(sfincs_bmi), intent(inout) :: this
-  character(len=*),  intent(in)    :: config_file
-  integer,           intent(out)   :: status
+    ! namelist items (provide sensible defaults)
+    double precision :: model_start_time, model_end_time, time_step_size
+    integer          :: num_time_steps
 
-  ! locals
-  integer :: rc, fu
-  logical :: exists
-  character(len=1000) :: line
+    namelist /sfincs/ model_start_time, model_end_time, time_step_size, num_time_steps
 
-  ! namelist items (provide sensible defaults)
-  double precision :: model_start_time, model_end_time, time_step_size
-  integer          :: num_time_steps
+    ! defaults if not present in file
+    model_start_time = 0.0d0
+    model_end_time   = -1.0d0
+    time_step_size   = 60.0d0
+    num_time_steps   = -1
 
-  namelist /sfincs/ model_start_time, model_end_time, time_step_size, num_time_steps
+    ! ensure file exists
+    inquire(file=trim(config_file), exist=exists)
+    if (.not. exists) then
+      write (stderr, '(3a)') 'Error: input file "', trim(config_file), '" does not exist.'
+      status = BMI_FAILURE
+      return
+    end if
 
-  ! defaults if not present in file
-  model_start_time = 0.0d0
-  model_end_time   = -1.0d0
-  time_step_size   = 60.0d0
-  num_time_steps   = -1
+    ! open and read NAMELIST
+    open (action='read', file=trim(config_file), iostat=rc, newunit=fu)
+    if (rc /= 0) then
+      write (stderr,'(3a,i0)') 'Error: cannot open "', trim(config_file), '", iostat=', rc
+      status = BMI_FAILURE
+      return
+    end if
 
-  ! ensure file exists
-  inquire(file=trim(config_file), exist=exists)
-  if (.not. exists) then
-    write (stderr, '(3a)') 'Error: input file "', trim(config_file), '" does not exist.'
-    status = BMI_FAILURE
-    return
-  end if
-
-  ! open and read NAMELIST
-  open (action='read', file=trim(config_file), iostat=rc, newunit=fu)
-  if (rc /= 0) then
-    write (stderr,'(3a,i0)') 'Error: cannot open "', trim(config_file), '", iostat=', rc
-    status = BMI_FAILURE
-    return
-  end if
-
-  read (nml=sfincs, iostat=rc, unit=fu)
-  if (rc /= 0) then
-    backspace(fu)
-    read(fu,fmt='(A)') line
-    write(stderr,'(A)') 'Invalid line in namelist: '//trim(line)
-    write(stderr,'(3a)') 'Error: invalid namelist in "', trim(config_file), '".'
+    read (nml=sfincs, iostat=rc, unit=fu)
+    if (rc /= 0) then
+      backspace(fu)
+      read(fu,fmt='(A)') line
+      write(stderr,'(A)') 'Invalid line in namelist: '//trim(line)
+      write(stderr,'(3a)') 'Error: invalid namelist in "', trim(config_file), '".'
+      close(fu)
+      status = BMI_FAILURE
+      return
+    end if
     close(fu)
-    status = BMI_FAILURE
-    return
-  end if
-  close(fu)
 
-  ! derive end time from num_time_steps if needed
-  if (model_end_time < 0.0d0 .and. num_time_steps >= 0) then
-    model_end_time = model_start_time + dble(num_time_steps) * time_step_size
-  end if
+    ! derive end time from num_time_steps if needed
+    if (model_end_time < 0.0d0 .and. num_time_steps >= 0) then
+      model_end_time = model_start_time + dble(num_time_steps) * time_step_size
+    end if
 
-  ! basic validation
-  if (time_step_size <= 0.0d0) then
-    write(stderr,'(a)') 'Error: time_step_size must be > 0.'
-    status = BMI_FAILURE
-    return
-  end if
-  if (model_end_time < model_start_time) then
-    write(stderr,'(a)') 'Error: model_end_time must be >= model_start_time.'
-    status = BMI_FAILURE
-    return
-  end if
+    ! basic validation
+    if (time_step_size <= 0.0d0) then
+      write(stderr,'(a)') 'Error: time_step_size must be > 0.'
+      status = BMI_FAILURE
+      return
+    end if
+    if (model_end_time < model_start_time) then
+      write(stderr,'(a)') 'Error: model_end_time must be >= model_start_time.'
+      status = BMI_FAILURE
+      return
+    end if
 
-  ! apply to module-scope clock (used by the BMI methods)
-  start_time_s   = model_start_time
-  end_time_s     = model_end_time
-  dt_s           = time_step_size
-  current_time_s = start_time_s
+    ! apply to module-scope clock (used by the BMI methods)
+    start_time_s   = model_start_time
+    end_time_s     = model_end_time
+    dt_s           = time_step_size
+    current_time_s = start_time_s
 
-  status = BMI_SUCCESS
-end subroutine read_init_config
+    status = BMI_SUCCESS
+  end subroutine read_init_config
 
   subroutine assert_ok(condition, msg)
     logical, intent(in) :: condition
@@ -1197,9 +1184,9 @@ end subroutine read_init_config
       else
         print *, "Assertion failed."
       end if
-      ! For development: stop 1
-      ! For production: prefer returning BMI_FAILURE from caller instead of stopping.
+      ! For production, prefer returning BMI_FAILURE from caller instead of STOP.
     end if
   end subroutine assert_ok
+
 end module sfincs_bmi2
 
