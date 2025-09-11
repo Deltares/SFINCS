@@ -203,7 +203,8 @@ module sfincs_data
       logical       :: store_maximum_waterlevel
       logical       :: store_maximum_waterdepth
       logical       :: store_maximum_velocity
-      logical       :: store_maximum_flux      
+      logical       :: store_maximum_flux
+      logical       :: store_tmax_zs
       logical       :: store_velocity
       logical       :: store_twet
       logical       :: store_hsubgrid
@@ -259,6 +260,7 @@ module sfincs_data
       integer storevel
       integer storecumprcp
       integer storetwet
+      integer storetmax_zs
       integer storeqdrain
       integer storezvolume
       integer storemeteo
@@ -530,6 +532,7 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: uv0
       real*8, dimension(:),   allocatable :: z_volume
       real*4, dimension(:),   allocatable :: twet
+      real*4, dimension(:),   allocatable :: tmax_zs
       real*4, dimension(:),   allocatable :: tsunami_arrival_time
       real*4, dimension(:),   allocatable :: zs0
       real*4, dimension(:),   allocatable :: zsderv
