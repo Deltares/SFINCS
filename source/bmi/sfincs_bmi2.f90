@@ -1,5 +1,5 @@
 module sfincs_bmi2
-  use, intrinsic :: iso_c_binding, only: c_int, c_float, c_double
+  use, intrinsic :: iso_c_binding, only: c_int, c_float, c_double, c_sizeof
   use bmif_2_0,   only: bmi, BMI_SUCCESS, BMI_FAILURE, BMI_MAX_COMPONENT_NAME
   implicit none
   private
@@ -30,6 +30,21 @@ module sfincs_bmi2
   ! rainfall input over z-grid (nodes/cell centers), units m s-1
   real(c_double), save, target, allocatable :: rain_store(:)
 
+  ! NEW: meteorology inputs over z-grid
+  real(c_double), save, target, allocatable :: windu_store(:)  ! wind u [m s-1] at z-grid
+  real(c_double), save, target, allocatable :: windv_store(:)  ! wind v [m s-1] at z-grid
+  real(c_double), save, target, allocatable :: pres_store(:)   ! air pressure [Pa] at z-grid
+
+  ! NEW: open boundary stage grid
+  integer,        save :: nb = 0
+  real(c_double), save, target, allocatable :: bstage_store(:) ! boundary water level [m]
+  real(c_double), save, target, allocatable :: xb_store(:), yb_store(:)
+
+  ! NEW: point-source discharge grid
+  integer,        save :: ns = 0
+  real(c_double), save, target, allocatable :: qsrc_store(:)   ! source discharge [m3 s-1]
+  real(c_double), save, target, allocatable :: xs_store(:), ys_store(:)
+
   !------------------------
   ! Time bookkeeping
   !------------------------
@@ -54,6 +69,11 @@ module sfincs_bmi2
     real(c_double),    pointer        :: state_d(:)  => null()
 
     real(c_double),    pointer        :: rain(:)     => null()
+    real(c_double),    pointer        :: wind_u(:)   => null()
+    real(c_double),    pointer        :: wind_v(:)   => null()
+    real(c_double),    pointer        :: air_p(:)    => null()
+    real(c_double),    pointer        :: bnd_stage(:)=> null()
+    real(c_double),    pointer        :: qsrc(:)     => null()
 
     ! Use POINTER (not ALLOCATABLE) so we can test with ASSOCIATED()
     character(len=:), pointer     :: component_name => null()
@@ -74,6 +94,12 @@ module sfincs_bmi2
     real(c_double), pointer :: yu(:) => null()
     real(c_double), pointer :: xv(:) => null()
     real(c_double), pointer :: yv(:) => null()
+
+    ! NEW: coords for boundary and source point sets
+    real(c_double), pointer :: xb(:) => null()
+    real(c_double), pointer :: yb(:) => null()
+    real(c_double), pointer :: xs(:) => null()
+    real(c_double), pointer :: ys(:) => null()
 
   contains
     procedure :: initialize                 => sfincs_initialize
@@ -145,6 +171,7 @@ module sfincs_bmi2
     procedure :: set_value_at_indices_double=> sfincs_set_value_at_indices_double
   end type sfincs_bmi
 
+
 contains
 
 !======================================================================
@@ -157,8 +184,8 @@ contains
     integer                         :: status
     integer                         :: i
     ! Local clock helpers
-    double precision :: dt_local, start_local, end_local
-    integer          :: n_steps
+    real(c_double) :: dt_local, start_local, end_local
+    integer        :: n_steps
 
     ! 1) Read config if provided; otherwise set defaults
     if (len_trim(config_file) > 0) then
@@ -171,7 +198,7 @@ contains
       current_time_s = start_time_s
     end if
 
-    ! 2) Sanity/derivations (like SCHISM initialize)
+    ! 2) Sanity/derivations similar to SCHISM initialize
     dt_local    = dt_s
     start_local = start_time_s
     end_local   = end_time_s
@@ -182,7 +209,6 @@ contains
       return
     end if
 
-    ! If end time wasn’t set, default to 24 steps
     if (end_local <= start_local) then
       n_steps   = 24
       end_local = start_local + dble(n_steps) * dt_local
@@ -239,6 +265,47 @@ contains
     end if
     this%rain => rain_store
 
+    ! NEW: met inputs on z-grid
+    if (.not. allocated(windu_store)) then
+      allocate(windu_store(nz)); windu_store = 0.0d0
+    end if
+    if (.not. allocated(windv_store)) then
+      allocate(windv_store(nz)); windv_store = 0.0d0
+    end if
+    if (.not. allocated(pres_store)) then
+      allocate(pres_store(nz)); pres_store = 0.0d0
+    end if
+    this%wind_u => windu_store
+    this%wind_v => windv_store
+    this%air_p  => pres_store
+
+    ! NEW: boundary and source point sets (0-sized ok; real SFINCS should set nb, ns)
+    if (nb < 0) nb = 0
+    if (.not. allocated(bstage_store)) allocate(bstage_store(nb))
+    if (.not. allocated(xb_store))     allocate(xb_store(nb))
+    if (.not. allocated(yb_store))     allocate(yb_store(nb))
+    if (nb > 0) then
+      bstage_store = 0.0d0
+      xb_store     = 0.0d0
+      yb_store     = 0.0d0
+    end if
+    this%bnd_stage => bstage_store
+    this%xb        => xb_store
+    this%yb        => yb_store
+
+    if (ns < 0) ns = 0
+    if (.not. allocated(qsrc_store)) allocate(qsrc_store(ns))
+    if (.not. allocated(xs_store))   allocate(xs_store(ns))
+    if (.not. allocated(ys_store))   allocate(ys_store(ns))
+    if (ns > 0) then
+      qsrc_store = 0.0d0
+      xs_store   = 0.0d0
+      ys_store   = 0.0d0
+    end if
+    this%qsrc => qsrc_store
+    this%xs   => xs_store
+    this%ys   => ys_store
+
     ! 4) Pointer-associate state to module TARGET arrays
     this%z  => z_store
     this%h  => h_store
@@ -261,8 +328,10 @@ contains
 
     ! 6) Inputs/outputs advertised to NGen
     if (.not. associated(this%input_names)) then
-      allocate(character(len=BMI_MAX_COMPONENT_NAME) :: this%input_names(1))
-      this%input_names(1) = 'rain_rate'
+      ! Keep existing + add wind/pressure/boundary/source
+      allocate(character(len=BMI_MAX_COMPONENT_NAME) :: this%input_names(6))
+      this%input_names = [ character(len=BMI_MAX_COMPONENT_NAME) :: &
+           'rain_rate', 'wind_u', 'wind_v', 'air_pressure', 'boundary_water_level', 'source_discharge' ]
     end if
 
     if (.not. associated(this%output_names)) then
@@ -274,93 +343,6 @@ contains
     status = BMI_SUCCESS
   end function sfincs_initialize
 
-  ! Keeping your old initializer for reference/testing
-  function sfincs_initialize_old(this, config_file) result(status)
-    class(sfincs_bmi), intent(out)   :: this
-    character(len=*),  intent(in)    :: config_file
-    integer                          :: status
-    integer                          :: i
-
-    ! Allocate simple demo domain if not already; replace with real SFINCS init later
-    if (nz <= 0) then
-      nz = 10
-      allocate(z_store(nz), h_store(nz), xz_store(nz), yz_store(nz))
-      do i = 1, nz
-        xz_store(i) = real(i-1, c_double)
-        yz_store(i) = 0.0d0
-      end do
-      z_store = 0.0d0
-      h_store = 0.0d0
-    end if
-
-    if (nu <= 0) then
-      nu = 10
-      allocate(un_store(nu), xu_store(nu), yu_store(nu))
-      do i = 1, nu
-        xu_store(i) = real(i-1, c_double) + 0.5d0
-        yu_store(i) = 0.0d0
-      end do
-      un_store = 0.0d0
-    end if
-
-    if (nv <= 0) then
-      nv = 10
-      allocate(vn_store(nv), xv_store(nv), yv_store(nv))
-      do i = 1, nv
-        xv_store(i) = real(i-1, c_double)
-        yv_store(i) = 0.5d0
-      end do
-        vn_store = 0.0d0
-    end if
-
-    ! Allocate rainfall field on z-grid
-    if (.not. allocated(rain_store)) then
-      allocate(rain_store(nz))
-      rain_store = 0.0d0
-    end if
-
-    this%rain => rain_store
-
-    ! Pointer-associate type components
-    this%z  => z_store
-    this%h  => h_store
-    this%un => un_store
-    this%vn => vn_store
-    this%xz => xz_store; this%yz => yz_store
-    this%xu => xu_store; this%yu => yu_store
-    this%xv => xv_store; this%yv => yv_store
-
-    if (.not. associated(this%component_name)) then
-      allocate(character(len=BMI_MAX_COMPONENT_NAME) :: this%component_name)
-      this%component_name = 'SFINCS-BMI'
-    end if
-
-    if (.not. associated(this%time_units)) then
-      allocate(character(len=16) :: this%time_units)
-      this%time_units = 's'
-    end if
-
-    if (.not. associated(this%input_names)) then
-      allocate(character(len=BMI_MAX_COMPONENT_NAME) :: this%input_names(1))
-      this%input_names(1) = 'rain_rate'
-    end if
-
-    if (.not. associated(this%output_names)) then
-      allocate(character(len=BMI_MAX_COMPONENT_NAME) :: this%output_names(4))
-      this%output_names = [ character(len=BMI_MAX_COMPONENT_NAME) :: &
-           'water_surface_elevation', 'water_depth', 'velocity_x', 'velocity_y' ]
-    end if
-
-    ! Timebook
-    current_time_s = 0.0d0
-    start_time_s   = 0.0d0
-    end_time_s     = 86400.0d0  ! 1 day default
-    if (len_trim(config_file) > 0) then
-      ! TODO: parse config_file to set dt, times, sizes; call real SFINCS init
-    end if
-
-    status = BMI_SUCCESS
-  end function sfincs_initialize_old
 
   function sfincs_update(this) result(status)
     class(sfincs_bmi), intent(inout) :: this
@@ -382,7 +364,7 @@ contains
 
   function sfincs_update_until(this, time) result(status)
     class(sfincs_bmi), intent(inout) :: this
-    double precision,   intent(in)   :: time
+    real(c_double),   intent(in)     :: time
     integer                          :: status
     do while (current_time_s + dt_s <= time)
       status = sfincs_update(this)
@@ -412,7 +394,18 @@ contains
     if (associated(this%input_names))    deallocate(this%input_names)
     if (associated(this%output_names))   deallocate(this%output_names)
 
-    if (allocated(rain_store)) deallocate(rain_store)
+    if (allocated(rain_store))  deallocate(rain_store)
+    if (allocated(windu_store)) deallocate(windu_store)
+    if (allocated(windv_store)) deallocate(windv_store)
+    if (allocated(pres_store))  deallocate(pres_store)
+
+    if (allocated(bstage_store)) deallocate(bstage_store)
+    if (allocated(xb_store))     deallocate(xb_store)
+    if (allocated(yb_store))     deallocate(yb_store)
+
+    if (allocated(qsrc_store))   deallocate(qsrc_store)
+    if (allocated(xs_store))     deallocate(xs_store)
+    if (allocated(ys_store))     deallocate(ys_store)
 
     status = BMI_SUCCESS
   end function sfincs_finalize
@@ -420,6 +413,7 @@ contains
 !======================================================================
 !                 COMPONENT / I/O VARIABLE NAMES
 !======================================================================
+
   function sfincs_get_component_name(this, name) result(status)
     class(sfincs_bmi), intent(in) :: this
     character(len=*), pointer, intent(out) :: name
@@ -431,7 +425,7 @@ contains
       nullify(name)
       status = BMI_FAILURE
     end if
-  end function sfincs_get_component_name
+  end function
 
   function sfincs_get_input_item_count(this, count) result(status)
     class(sfincs_bmi), intent(in) :: this
@@ -460,8 +454,8 @@ contains
   function sfincs_get_input_var_names(this, names) result(status)
     class(sfincs_bmi), intent(in)             :: this
     character(len=*), pointer, intent(out)    :: names(:)
-    integer                                    :: status
-    integer                                    :: k, n
+    integer                                   :: status
+    integer                                   :: k, n
     if (.not. associated(this%input_names)) then
       status = BMI_FAILURE; return
     end if
@@ -475,8 +469,8 @@ contains
   function sfincs_get_output_var_names(this, names) result(status)
     class(sfincs_bmi), intent(in)             :: this
     character(len=*), pointer, intent(out)    :: names(:)
-    integer                                    :: status
-    integer                                    :: k, n
+    integer                                   :: status
+    integer                                   :: k, n
     if (.not. associated(this%output_names)) then
       status = BMI_FAILURE; return
     end if
@@ -492,7 +486,7 @@ contains
 !======================================================================
   function sfincs_get_start_time(this, time) result(status)
     class(sfincs_bmi), intent(in) :: this
-    double precision, intent(out) :: time
+    real(c_double), intent(out)   :: time
     integer                       :: status
     time = start_time_s
     status = BMI_SUCCESS
@@ -500,7 +494,7 @@ contains
 
   function sfincs_get_end_time(this, time) result(status)
     class(sfincs_bmi), intent(in) :: this
-    double precision, intent(out) :: time
+    real(c_double), intent(out)   :: time
     integer                       :: status
     time = end_time_s
     status = BMI_SUCCESS
@@ -508,7 +502,7 @@ contains
 
   function sfincs_get_current_time(this, time) result(status)
     class(sfincs_bmi), intent(in) :: this
-    double precision, intent(out) :: time
+    real(c_double), intent(out)   :: time
     integer                       :: status
     time = current_time_s
     status = BMI_SUCCESS
@@ -516,7 +510,7 @@ contains
 
   function sfincs_get_time_step(this, time_step) result(status)
     class(sfincs_bmi), intent(in) :: this
-    double precision, intent(out) :: time_step
+    real(c_double), intent(out)   :: time_step
     integer                       :: status
     time_step = dt_s
     status = BMI_SUCCESS
@@ -543,10 +537,18 @@ contains
     integer,           intent(out):: grid
     integer                       :: status
     select case (trim(name))
-    case('water_surface_elevation','water_depth','rain_rate'); grid = 1   ! z-grid
-    case('velocity_x');                                        grid = 2   ! u-grid
-    case('velocity_y');                                        grid = 3   ! v-grid
-    case default;                                              grid = -1; status = BMI_FAILURE; return
+    case('water_surface_elevation','water_depth','rain_rate','wind_u','wind_v','air_pressure')
+      grid = 1   ! z-grid
+    case('velocity_x')
+      grid = 2   ! u-grid
+    case('velocity_y')
+      grid = 3   ! v-grid
+    case('boundary_water_level')
+      grid = 4   ! boundary points
+    case('source_discharge')
+      grid = 5   ! source points
+    case default
+      grid = -1; status = BMI_FAILURE; return
     end select
     status = BMI_SUCCESS
   end function sfincs_get_var_grid
@@ -568,7 +570,11 @@ contains
     select case (trim(name))
     case('water_surface_elevation','water_depth'); call assign_trim(units, 'm')
     case('rain_rate');                             call assign_trim(units, 'm s-1')
+    case('wind_u','wind_v');                       call assign_trim(units, 'm s-1')
+    case('air_pressure');                          call assign_trim(units, 'Pa')
     case('velocity_x','velocity_y');               call assign_trim(units, 'm s-1')
+    case('boundary_water_level');                  call assign_trim(units, 'm')
+    case('source_discharge');                      call assign_trim(units, 'm3 s-1')
     case default;                                  call assign_trim(units, '1'); status = BMI_FAILURE; return
     end select
     status = BMI_SUCCESS
@@ -579,7 +585,7 @@ contains
     character(len=*),  intent(in) :: name
     integer,           intent(out):: size
     integer                       :: status
-    size = 8    ! bytes per double
+    size = int(c_sizeof(0.0d0), c_int)  ! 8 bytes for double
     status = BMI_SUCCESS
   end function sfincs_get_var_itemsize
 
@@ -593,7 +599,7 @@ contains
     if (n < 0) then
       nbytes = 0; status = BMI_FAILURE; return
     end if
-    nbytes = 8*n
+    nbytes = int(8*n, c_int)
     status = BMI_SUCCESS
   end function sfincs_get_var_nbytes
 
@@ -603,9 +609,14 @@ contains
     character(len=*),  intent(out):: location
     integer                       :: status
     select case (trim(name))
-    case('water_surface_elevation','water_depth','rain_rate'); call assign_trim(location,'node')
-    case('velocity_x','velocity_y');                           call assign_trim(location,'edge')
-    case default;                                              call assign_trim(location,'unknown'); status = BMI_FAILURE; return
+    case('water_surface_elevation','water_depth','rain_rate','wind_u','wind_v','air_pressure')
+      call assign_trim(location,'node')
+    case('velocity_x','velocity_y')
+      call assign_trim(location,'edge')
+    case('boundary_water_level','source_discharge')
+      call assign_trim(location,'node')
+    case default
+      call assign_trim(location,'unknown'); status = BMI_FAILURE; return
     end select
     status = BMI_SUCCESS
   end function sfincs_get_var_location
@@ -640,7 +651,9 @@ contains
     case (1); size = nz
     case (2); size = nu
     case (3); size = nv
-    case default;   size = 0; status = BMI_FAILURE; return
+    case (4); size = nb
+    case (5); size = ns
+    case default; size = 0; status = BMI_FAILURE; return
     end select
     status = BMI_SUCCESS
   end function sfincs_get_grid_size
@@ -655,6 +668,8 @@ contains
       case (1); shape(1) = nz
       case (2); shape(1) = nu
       case (3); shape(1) = nv
+      case (4); shape(1) = nb
+      case (5); shape(1) = ns
       case default;   status = BMI_FAILURE; return
       end select
       status = BMI_SUCCESS
@@ -666,9 +681,8 @@ contains
   function sfincs_get_grid_spacing(this, grid, spacing) result(status)
     class(sfincs_bmi), intent(in) :: this
     integer,           intent(in) :: grid
-    double precision,  intent(out):: spacing(:)
+    real(c_double),    intent(out):: spacing(:)
     integer                       :: status
-    ! Unstructured: spacing undefined; return zeros
     if (size(spacing) >= 1) spacing(1) = 0.0d0
     status = BMI_SUCCESS
   end function sfincs_get_grid_spacing
@@ -676,7 +690,7 @@ contains
   function sfincs_get_grid_origin(this, grid, origin) result(status)
     class(sfincs_bmi), intent(in) :: this
     integer,           intent(in) :: grid
-    double precision,  intent(out):: origin(:)
+    real(c_double),    intent(out):: origin(:)
     integer                       :: status
     if (size(origin) >= 1) origin(1) = 0.0d0
     status = BMI_SUCCESS
@@ -685,13 +699,15 @@ contains
   function sfincs_get_grid_x(this, grid, x) result(status)
     class(sfincs_bmi), intent(in) :: this
     integer,           intent(in) :: grid
-    double precision,  intent(out):: x(:)
+    real(c_double),    intent(out):: x(:)
     integer                       :: status
     integer :: n
     select case (grid)
     case (1); n = min(size(x), nz); if (n>0) x(1:n) = this%xz(1:n)
     case (2); n = min(size(x), nu); if (n>0) x(1:n) = this%xu(1:n)
     case (3); n = min(size(x), nv); if (n>0) x(1:n) = this%xv(1:n)
+    case (4); n = min(size(x), nb); if (n>0) x(1:n) = this%xb(1:n)
+    case (5); n = min(size(x), ns); if (n>0) x(1:n) = this%xs(1:n)
     case default; status = BMI_FAILURE; return
     end select
     status = BMI_SUCCESS
@@ -700,13 +716,15 @@ contains
   function sfincs_get_grid_y(this, grid, y) result(status)
     class(sfincs_bmi), intent(in) :: this
     integer,           intent(in) :: grid
-    double precision,  intent(out):: y(:)
+    real(c_double),    intent(out):: y(:)
     integer                       :: status
     integer :: n
     select case (grid)
     case (1); n = min(size(y), nz); if (n>0) y(1:n) = this%yz(1:n)
     case (2); n = min(size(y), nu); if (n>0) y(1:n) = this%yu(1:n)
     case (3); n = min(size(y), nv); if (n>0) y(1:n) = this%yv(1:n)
+    case (4); n = min(size(y), nb); if (n>0) y(1:n) = this%yb(1:n)
+    case (5); n = min(size(y), ns); if (n>0) y(1:n) = this%ys(1:n)
     case default; status = BMI_FAILURE; return
     end select
     status = BMI_SUCCESS
@@ -715,13 +733,13 @@ contains
   function sfincs_get_grid_z(this, grid, z) result(status)
     class(sfincs_bmi), intent(in) :: this
     integer,           intent(in) :: grid
-    double precision,  intent(out):: z(:)
+    real(c_double),    intent(out):: z(:)
     integer                       :: status
     if (size(z) >= 1) z(1) = 0.0d0
     status = BMI_SUCCESS
   end function sfincs_get_grid_z
 
-  ! Connectivity: provide flattened 1-D outputs as requested (names + rank 1)
+  ! Connectivity helpers (flat lists; not used)
   function sfincs_get_grid_node_count(this, grid, count) result(status)
     class(sfincs_bmi), intent(in) :: this
     integer,           intent(in) :: grid
@@ -731,6 +749,8 @@ contains
     case(1); count = nz
     case(2); count = nu
     case(3); count = nv
+    case(4); count = nb
+    case(5); count = ns
     case default;  count = 0; status = BMI_FAILURE; return
     end select
     status = BMI_SUCCESS
@@ -766,7 +786,7 @@ contains
   function sfincs_get_grid_edge_nodes(this, grid, edge_nodes) result(status)
     class(sfincs_bmi), intent(in) :: this
     integer,           intent(in) :: grid
-    integer,           intent(out):: edge_nodes(:)   ! flattened pairs
+    integer,           intent(out):: edge_nodes(:)
     integer                       :: status
     if (size(edge_nodes) > 0) edge_nodes = 0
     status = BMI_SUCCESS
@@ -775,7 +795,7 @@ contains
   function sfincs_get_grid_face_edges(this, grid, face_edges) result(status)
     class(sfincs_bmi), intent(in) :: this
     integer,           intent(in) :: grid
-    integer,           intent(out):: face_edges(:)   ! flattened pairs
+    integer,           intent(out):: face_edges(:)
     integer                       :: status
     if (size(face_edges) > 0) face_edges = 0
     status = BMI_SUCCESS
@@ -784,7 +804,7 @@ contains
   function sfincs_get_grid_face_nodes(this, grid, face_nodes) result(status)
     class(sfincs_bmi), intent(in) :: this
     integer,           intent(in) :: grid
-    integer,           intent(out):: face_nodes(:)   ! flattened list
+    integer,           intent(out):: face_nodes(:)
     integer                       :: status
     if (size(face_nodes) > 0) face_nodes = 0
     status = BMI_SUCCESS
@@ -819,6 +839,11 @@ contains
     case('velocity_x');               n = min(size(dest), size(this%un));  if (n>0) dest(1:n) = real(this%un(1:n), c_float)
     case('velocity_y');               n = min(size(dest), size(this%vn));  if (n>0) dest(1:n) = real(this%vn(1:n), c_float)
     case('rain_rate');                n = min(size(dest), size(this%rain));if (n>0) dest(1:n) = real(this%rain(1:n), c_float)
+    case('wind_u');                   n = min(size(dest), size(this%wind_u)); if (n>0) dest(1:n) = real(this%wind_u(1:n), c_float)
+    case('wind_v');                   n = min(size(dest), size(this%wind_v)); if (n>0) dest(1:n) = real(this%wind_v(1:n), c_float)
+    case('air_pressure');             n = min(size(dest), size(this%air_p));  if (n>0) dest(1:n) = real(this%air_p(1:n),  c_float)
+    case('boundary_water_level');     n = min(size(dest), size(this%bnd_stage)); if (n>0) dest(1:n) = real(this%bnd_stage(1:n), c_float)
+    case('source_discharge');         n = min(size(dest), size(this%qsrc)); if (n>0) dest(1:n) = real(this%qsrc(1:n), c_float)
     case default; status = BMI_FAILURE; return
     end select
     status = BMI_SUCCESS
@@ -827,15 +852,20 @@ contains
   function sfincs_get_value_double(this, name, dest) result(status)
     class(sfincs_bmi), intent(in) :: this
     character(len=*),  intent(in) :: name
-    double precision,  intent(inout)  :: dest(:)
+    real(c_double),     intent(inout)  :: dest(:)
     integer                       :: status
     integer :: n
     select case (trim(name))
-    case('water_surface_elevation'); n = min(size(dest), size(this%z));  if (n>0) dest(1:n) = this%z(1:n)
-    case('water_depth');              n = min(size(dest), size(this%h));  if (n>0) dest(1:n) = this%h(1:n)
-    case('velocity_x');               n = min(size(dest), size(this%un)); if (n>0) dest(1:n) = this%un(1:n)
-    case('velocity_y');               n = min(size(dest), size(this%vn)); if (n>0) dest(1:n) = this%vn(1:n)
-    case('rain_rate');                n = min(size(dest), size(this%rain)); if (n>0) dest(1:n) = this%rain(1:n)
+    case('water_surface_elevation'); n = min(size(dest), size(this%z));   if (n>0) dest(1:n) = this%z(1:n)
+    case('water_depth');              n = min(size(dest), size(this%h));   if (n>0) dest(1:n) = this%h(1:n)
+    case('velocity_x');               n = min(size(dest), size(this%un));  if (n>0) dest(1:n) = this%un(1:n)
+    case('velocity_y');               n = min(size(dest), size(this%vn));  if (n>0) dest(1:n) = this%vn(1:n)
+    case('rain_rate');                n = min(size(dest), size(this%rain));if (n>0) dest(1:n) = this%rain(1:n)
+    case('wind_u');                   n = min(size(dest), size(this%wind_u)); if (n>0) dest(1:n) = this%wind_u(1:n)
+    case('wind_v');                   n = min(size(dest), size(this%wind_v)); if (n>0) dest(1:n) = this%wind_v(1:n)
+    case('air_pressure');             n = min(size(dest), size(this%air_p));  if (n>0) dest(1:n) = this%air_p(1:n)
+    case('boundary_water_level');     n = min(size(dest), size(this%bnd_stage)); if (n>0) dest(1:n) = this%bnd_stage(1:n)
+    case('source_discharge');         n = min(size(dest), size(this%qsrc)); if (n>0) dest(1:n) = this%qsrc(1:n)
     case default; status = BMI_FAILURE; return
     end select
     status = BMI_SUCCESS
@@ -849,32 +879,36 @@ contains
     character(len=*),  intent(in) :: name
     integer, pointer,  intent(inout) :: dest_ptr(:)
     integer                       :: status
-    ! No default-kind integer state exposed
     nullify(dest_ptr)
     status = BMI_FAILURE
-  end function sfincs_get_value_ptr_int
+  end function
 
   function sfincs_get_value_ptr_float(this, name, dest_ptr) result(status)
     class(sfincs_bmi), intent(in) :: this
     character(len=*),  intent(in) :: name
-    real, pointer,     intent(inout) :: dest_ptr(:)
+    real(c_float), pointer, intent(inout) :: dest_ptr(:)
     integer                       :: status
-    ! No default-kind real arrays are exposed by this BMI; use doubles
+    ! This BMI exposes doubles; no float backing arrays -> return failure by design
     nullify(dest_ptr)
     status = BMI_FAILURE
-  end function sfincs_get_value_ptr_float
+  end function
 
   function sfincs_get_value_ptr_double(this, name, dest_ptr) result(status)
     class(sfincs_bmi), intent(in) :: this
     character(len=*),  intent(in) :: name
-    double precision, pointer, intent(inout) :: dest_ptr(:)
+    real(c_double), pointer, intent(inout) :: dest_ptr(:)
     integer                       :: status
     select case (trim(name))
     case('water_surface_elevation'); dest_ptr => this%z
-    case('water_depth');              dest_ptr => this%h
-    case('velocity_x');               dest_ptr => this%un
-    case('velocity_y');               dest_ptr => this%vn
-    case('rain_rate');                dest_ptr => this%rain
+    case('water_depth');             dest_ptr => this%h
+    case('velocity_x');              dest_ptr => this%un
+    case('velocity_y');              dest_ptr => this%vn
+    case('rain_rate');               dest_ptr => this%rain
+    case('wind_u');                  dest_ptr => this%wind_u
+    case('wind_v');                  dest_ptr => this%wind_v
+    case('air_pressure');            dest_ptr => this%air_p
+    case('boundary_water_level');    dest_ptr => this%bnd_stage
+    case('source_discharge');        dest_ptr => this%qsrc
     case default; nullify(dest_ptr); status = BMI_FAILURE; return
     end select
     status = BMI_SUCCESS
@@ -908,11 +942,16 @@ contains
     do k = 1, n
       i0 = inds(k)
       select case (trim(name))
-      case('water_surface_elevation'); if (i0>=1 .and. i0<=size(this%z))  dest(k) = real(this%z(i0),  c_float)
-      case('water_depth');              if (i0>=1 .and. i0<=size(this%h))  dest(k) = real(this%h(i0),  c_float)
-      case('velocity_x');               if (i0>=1 .and. i0<=size(this%un)) dest(k) = real(this%un(i0), c_float)
-      case('velocity_y');               if (i0>=1 .and. i0<=size(this%vn)) dest(k) = real(this%vn(i0), c_float)
+      case('water_surface_elevation'); if (i0>=1 .and. i0<=size(this%z))   dest(k) = real(this%z(i0),  c_float)
+      case('water_depth');              if (i0>=1 .and. i0<=size(this%h))   dest(k) = real(this%h(i0),  c_float)
+      case('velocity_x');               if (i0>=1 .and. i0<=size(this%un))  dest(k) = real(this%un(i0), c_float)
+      case('velocity_y');               if (i0>=1 .and. i0<=size(this%vn))  dest(k) = real(this%vn(i0), c_float)
       case('rain_rate');                if (i0>=1 .and. i0<=size(this%rain)) dest(k) = real(this%rain(i0), c_float)
+      case('wind_u');                   if (i0>=1 .and. i0<=size(this%wind_u)) dest(k) = real(this%wind_u(i0), c_float)
+      case('wind_v');                   if (i0>=1 .and. i0<=size(this%wind_v)) dest(k) = real(this%wind_v(i0), c_float)
+      case('air_pressure');             if (i0>=1 .and. i0<=size(this%air_p))  dest(k) = real(this%air_p(i0), c_float)
+      case('boundary_water_level');     if (i0>=1 .and. i0<=size(this%bnd_stage)) dest(k) = real(this%bnd_stage(i0), c_float)
+      case('source_discharge');         if (i0>=1 .and. i0<=size(this%qsrc)) dest(k) = real(this%qsrc(i0), c_float)
       case default
         status = BMI_FAILURE; return
       end select
@@ -923,19 +962,24 @@ contains
   function sfincs_get_value_at_indices_double(this, name, dest, inds) result(status)
     class(sfincs_bmi), intent(in) :: this
     character(len=*),  intent(in) :: name
-    double precision,   intent(inout) :: dest(:)
-    integer,            intent(in) :: inds(:)
+    real(c_double),    intent(inout) :: dest(:)
+    integer,           intent(in) :: inds(:)
     integer                       :: status
     integer :: k, n, i0
     n = min(size(dest), size(inds))
     do k = 1, n
       i0 = inds(k)
       select case (trim(name))
-      case('water_surface_elevation'); if (i0>=1 .and. i0<=size(this%z))  dest(k) = this%z(i0)
-      case('water_depth');              if (i0>=1 .and. i0<=size(this%h))  dest(k) = this%h(i0)
-      case('velocity_x');               if (i0>=1 .and. i0<=size(this%un)) dest(k) = this%un(i0)
-      case('velocity_y');               if (i0>=1 .and. i0<=size(this%vn)) dest(k) = this%vn(i0)
+      case('water_surface_elevation'); if (i0>=1 .and. i0<=size(this%z))   dest(k) = this%z(i0)
+      case('water_depth');              if (i0>=1 .and. i0<=size(this%h))   dest(k) = this%h(i0)
+      case('velocity_x');               if (i0>=1 .and. i0<=size(this%un))  dest(k) = this%un(i0)
+      case('velocity_y');               if (i0>=1 .and. i0<=size(this%vn))  dest(k) = this%vn(i0)
       case('rain_rate');                if (i0>=1 .and. i0<=size(this%rain)) dest(k) = this%rain(i0)
+      case('wind_u');                   if (i0>=1 .and. i0<=size(this%wind_u)) dest(k) = this%wind_u(i0)
+      case('wind_v');                   if (i0>=1 .and. i0<=size(this%wind_v)) dest(k) = this%wind_v(i0)
+      case('air_pressure');             if (i0>=1 .and. i0<=size(this%air_p))  dest(k) = this%air_p(i0)
+      case('boundary_water_level');     if (i0>=1 .and. i0<=size(this%bnd_stage)) dest(k) = this%bnd_stage(i0)
+      case('source_discharge');         if (i0>=1 .and. i0<=size(this%qsrc)) dest(k) = this%qsrc(i0)
       case default
         status = BMI_FAILURE; return
       end select
@@ -961,9 +1005,14 @@ contains
     integer                       :: status
     integer :: n
     select case (trim(name))
-    case('velocity_x'); n = min(size(src), size(this%un));   if (n>0) this%un(1:n)       = real(src(1:n), c_double)
-    case('velocity_y'); n = min(size(src), size(this%vn));   if (n>0) this%vn(1:n)       = real(src(1:n), c_double)
-    case('rain_rate');  n = min(size(src), size(rain_store));if (n>0) rain_store(1:n)    = real(src(1:n), c_double)
+    case('velocity_x');           n = min(size(src), size(this%un));   if (n>0) this%un(1:n)        = real(src(1:n), c_double)
+    case('velocity_y');           n = min(size(src), size(this%vn));   if (n>0) this%vn(1:n)        = real(src(1:n), c_double)
+    case('rain_rate');            n = min(size(src), size(rain_store)); if (n>0) rain_store(1:n)     = real(src(1:n), c_double)
+    case('wind_u');               n = min(size(src), size(windu_store)); if (n>0) windu_store(1:n)   = real(src(1:n), c_double)
+    case('wind_v');               n = min(size(src), size(windv_store)); if (n>0) windv_store(1:n)   = real(src(1:n), c_double)
+    case('air_pressure');         n = min(size(src), size(pres_store));  if (n>0) pres_store(1:n)    = real(src(1:n), c_double)
+    case('boundary_water_level'); n = min(size(src), size(bstage_store));if (n>0) bstage_store(1:n)  = real(src(1:n), c_double)
+    case('source_discharge');     n = min(size(src), size(qsrc_store));  if (n>0) qsrc_store(1:n)    = real(src(1:n), c_double)
     case default; status = BMI_FAILURE; return
     end select
     status = BMI_SUCCESS
@@ -972,7 +1021,7 @@ contains
   function sfincs_set_value_double(this, name, src) result(status)
     class(sfincs_bmi), intent(inout) :: this
     character(len=*),  intent(in)    :: name
-    double precision,  intent(in)    :: src(:)
+    real(c_double),    intent(in)    :: src(:)
     integer                       :: status
     integer :: n
     select case (trim(name))
@@ -980,7 +1029,12 @@ contains
     case('water_depth');              n = min(size(src), size(this%h));   if (n>0) this%h(1:n)   = src(1:n)
     case('velocity_x');               n = min(size(src), size(this%un));  if (n>0) this%un(1:n)  = src(1:n)
     case('velocity_y');               n = min(size(src), size(this%vn));  if (n>0) this%vn(1:n)  = src(1:n)
-    case('rain_rate');                n = min(size(src), size(rain_store)); if (n>0) rain_store(1:n) = src(1:n)
+    case('rain_rate');                n = min(size(src), size(rain_store)); if (n>0) rain_store(1:n)   = src(1:n)
+    case('wind_u');                   n = min(size(src), size(windu_store));if (n>0) windu_store(1:n)  = src(1:n)
+    case('wind_v');                   n = min(size(src), size(windv_store));if (n>0) windv_store(1:n)  = src(1:n)
+    case('air_pressure');             n = min(size(src), size(pres_store)); if (n>0) pres_store(1:n)   = src(1:n)
+    case('boundary_water_level');     n = min(size(src), size(bstage_store)); if (n>0) bstage_store(1:n) = src(1:n)
+    case('source_discharge');         n = min(size(src), size(qsrc_store));   if (n>0) qsrc_store(1:n)   = src(1:n)
     case default; status = BMI_FAILURE; return
     end select
     status = BMI_SUCCESS
@@ -1021,6 +1075,36 @@ contains
         i0 = inds(k)
         if (i0>=1 .and. i0<=size(rain_store)) rain_store(i0) = real(src(k), c_double)
       end do
+    case('wind_u')
+      n = min(size(src), size(inds))
+      do k = 1, n
+        i0 = inds(k)
+        if (i0>=1 .and. i0<=size(windu_store)) windu_store(i0) = real(src(k), c_double)
+      end do
+    case('wind_v')
+      n = min(size(src), size(inds))
+      do k = 1, n
+        i0 = inds(k)
+        if (i0>=1 .and. i0<=size(windv_store)) windv_store(i0) = real(src(k), c_double)
+      end do
+    case('air_pressure')
+      n = min(size(src), size(inds))
+      do k = 1, n
+        i0 = inds(k)
+        if (i0>=1 .and. i0<=size(pres_store)) pres_store(i0) = real(src(k), c_double)
+      end do
+    case('boundary_water_level')
+      n = min(size(src), size(inds))
+      do k = 1, n
+        i0 = inds(k)
+        if (i0>=1 .and. i0<=size(bstage_store)) bstage_store(i0) = real(src(k), c_double)
+      end do
+    case('source_discharge')
+      n = min(size(src), size(inds))
+      do k = 1, n
+        i0 = inds(k)
+        if (i0>=1 .and. i0<=size(qsrc_store)) qsrc_store(i0) = real(src(k), c_double)
+      end do
     case default
       status = BMI_FAILURE; return
     end select
@@ -1031,7 +1115,7 @@ contains
     class(sfincs_bmi), intent(inout) :: this
     character(len=*),  intent(in)    :: name
     integer,           intent(in)    :: inds(:)
-    double precision,  intent(in)    :: src(:)
+    real(c_double),    intent(in)    :: src(:)
     integer                       :: status
     integer :: k, n, i0
     select case (trim(name))
@@ -1065,13 +1149,44 @@ contains
         i0 = inds(k)
         if (i0>=1 .and. i0<=size(rain_store)) rain_store(i0) = src(k)
       end do
+    case('wind_u')
+      n = min(size(src), size(inds))
+      do k = 1, n
+        i0 = inds(k)
+        if (i0>=1 .and. i0<=size(windu_store)) windu_store(i0) = src(k)
+      end do
+    case('wind_v')
+      n = min(size(src), size(inds))
+      do k = 1, n
+        i0 = inds(k)
+        if (i0>=1 .and. i0<=size(windv_store)) windv_store(i0) = src(k)
+      end do
+    case('air_pressure')
+      n = min(size(src), size(inds))
+      do k = 1, n
+        i0 = inds(k)
+        if (i0>=1 .and. i0<=size(pres_store)) pres_store(i0) = src(k)
+      end do
+    case('boundary_water_level')
+      n = min(size(src), size(inds))
+      do k = 1, n
+        i0 = inds(k)
+        if (i0>=1 .and. i0<=size(bstage_store)) bstage_store(i0) = src(k)
+      end do
+    case('source_discharge')
+      n = min(size(src), size(inds))
+      do k = 1, n
+        i0 = inds(k)
+        if (i0>=1 .and. i0<=size(qsrc_store)) qsrc_store(i0) = src(k)
+      end do
     case default
       status = BMI_FAILURE; return
     end select
     status = BMI_SUCCESS
   end function sfincs_set_value_at_indices_double
 
-!======================================================================
+
+  !======================================================================
 !                         SMALL HELPERS
 !======================================================================
   subroutine assign_trim(lhs, rhs)
@@ -1089,14 +1204,27 @@ contains
     case('water_depth');              n = size(this%h)
     case('velocity_x');               n = size(this%un)
     case('velocity_y');               n = size(this%vn)
-    case('rain_rate');                n = size(rain_store)
+    case('rain_rate');                n = size(this%rain)
+    case('wind_u');                   n = size(this%wind_u)
+    case('wind_v');                   n = size(this%wind_v)
+    case('air_pressure');             n = size(this%air_p)
+    case('boundary_water_level');     n = size(this%bnd_stage)
+    case('source_discharge');         n = size(this%qsrc)
     case default;                     n = -1
     end select
   end function var_size
 
-  !---------------------------
-  ! Config (namelist) reader
-  !---------------------------
+!----------------------------------------------------------------------
+! Config reader (SCHISM-style, adapted for SFINCS test BMI)
+! Expects a namelist like:
+!   &sfincs
+!     model_start_time = 0.0,
+!     model_end_time   = 86400.0,
+!     time_step_size   = 60.0,
+!     num_time_steps   = -1
+!   /
+! If model_end_time < 0 and num_time_steps >= 0, we derive end time.
+!----------------------------------------------------------------------
   subroutine read_init_config(this, config_file, status)
     use, intrinsic :: iso_fortran_env, only: stderr => error_unit
     implicit none
@@ -1110,8 +1238,8 @@ contains
     character(len=1000) :: line
 
     ! namelist items (provide sensible defaults)
-    double precision :: model_start_time, model_end_time, time_step_size
-    integer          :: num_time_steps
+    real(c_double) :: model_start_time, model_end_time, time_step_size
+    integer        :: num_time_steps
 
     namelist /sfincs/ model_start_time, model_end_time, time_step_size, num_time_steps
 
@@ -1180,11 +1308,12 @@ contains
     character(len=*), intent(in), optional :: msg
     if (.not. condition) then
       if (present(msg)) then
-        print *, "Assertion failed:", trim(msg)
+        write(*,*) "Assertion failed:", trim(msg)
       else
-        print *, "Assertion failed."
+        write(*,*) "Assertion failed."
       end if
-      ! For production, prefer returning BMI_FAILURE from caller instead of STOP.
+      ! NOTE: Prefer callers to return BMI_FAILURE rather than STOP here.
+      ! stop 1
     end if
   end subroutine assert_ok
 
