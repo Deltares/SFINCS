@@ -3222,7 +3222,6 @@ contains
         NF90(nf90_put_att(ncid, varid, 'epsg_code',epsg_code))  
         NF90(nf90_put_att(ncid, varid, 'stopdepth',stopdepth))  
         NF90(nf90_put_att(ncid, varid, 'advlim',advlim))  
-        NF90(nf90_put_att(ncid, varid, 'qlim',qlim))  
         NF90(nf90_put_att(ncid, varid, 'qinf_zmin',qinf_zmin))    
         NF90(nf90_put_att(ncid, varid, 'btfilter', btfilter))                     
         NF90(nf90_put_att(ncid, varid, 'sfacinf', sfacinf))  

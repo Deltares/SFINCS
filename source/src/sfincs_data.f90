@@ -68,7 +68,6 @@ module sfincs_data
       real*4 gapres
       real*4 stopdepth
       real*4 advlim
-      real*4 qlim
       real*4 slopelim
       real*4 twet_threshold
       real*4, dimension(:), allocatable :: cd_wnd
@@ -231,7 +230,6 @@ module sfincs_data
       logical       :: use_spw_precip
       logical       :: friction2d
       logical       :: advection_limiter
-      logical       :: flux_limiter
       logical       :: advection_mask
       logical       :: wiggle_suppression
       logical       :: wmrandom      

@@ -843,17 +843,6 @@ contains
             !
             uv(ip)  = max(min(q(ip)/hnmb, 4.0), -4.0)
             !
-            if (flux_limiter) then
-                !
-                ! Limit this
-                if (q(ip) < 0) then
-                    q(ip) = max(q(ip), qlim*-1)
-                else
-                    q(ip) = min(q(ip), qlim)
-                endif
-                !
-            endif 
-            !
          endif
          !
          if (btfilter>=-1.0e-6) then
@@ -879,6 +868,7 @@ contains
          if (store_maximum_waterlevel) then
             !
             ! Store when the maximum water level changed
+            !
             if (store_tmax_zs) then
                 if (zs(nmb) > zsmax(nmb)) then
                     tmax_zs(nm) = t
@@ -886,6 +876,7 @@ contains
             endif
             !
             zsmax(nmb) = max(zsmax(nmb), zs(nmb))
+            !
          endif
          !
       endif

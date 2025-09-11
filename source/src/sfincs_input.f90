@@ -97,7 +97,6 @@ contains
    call read_char_input(500,'epsg',epsg_code,'nil')      
    call read_real_input(500,'stopdepth',stopdepth,100.0)
    call read_real_input(500,'advlim',advlim,9999.9)
-   call read_real_input(500,'qlim',qlim,9999.9)
    call read_real_input(500,'slopelim',slopelim,9999.9)
    call read_real_input(500,'qinf_zmin',qinf_zmin,0.0)
    call read_real_input(500,'btfilter',btfilter,60.0)
@@ -529,7 +528,6 @@ contains
    endif
    !
    advection_limiter = .false.
-   flux_limiter      = .false.
    !   
    if (advection) then
       !
@@ -550,12 +548,6 @@ contains
       if (advlim < 9999.0) then 
          !
          advection_limiter = .true.
-         !
-      endif
-      !
-      if (qlim < 9999.0) then 
-         !
-         flux_limiter = .true.
          !
       endif
       !
