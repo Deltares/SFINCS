@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<VisualStudioUserFile ProjectCreator="Intel Fortran" Keyword="Console Application" Version="11.0" ProjectIdGuid="{84DFC66B-C675-4F50-8A9A-62E7E483ACDD}">
-	<Configurations>
-		<Configuration Name="Debug|x64" WorkingDirectory="p:\CoSMoS_PS\08_larger_domains\04_modelruns\version017\20241018_synthetic_future_withchange_mean_100yr\01_King\000_high\SY010_default_local_wiggle_supression_on_wetdry005_btfilter3600_VS\">
-		</Configuration>
-		<Configuration Name="Release|x64" WorkingDirectory="p:\CoSMoS_PS\08_larger_domains\04_modelruns\version017\20241018_synthetic_future_withchange_mean_100yr\01_King\000_high\SY010_default_local_wiggle_supression_on_wetdry005_btfilter3600_VS\">
-		</Configuration>
-	</Configurations></VisualStudioUserFile>
