@@ -193,7 +193,7 @@ module sfincs_output
       endif
       !
       if (store_maximum_velocity) then
-         vmax =-999.0 ! Set vmax back to a small value
+         vmax = -999.0 ! Set vmax back to a small value
          !$acc update device(vmax)
       endif
       !
