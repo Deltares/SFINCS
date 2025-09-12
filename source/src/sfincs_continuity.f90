@@ -2,13 +2,14 @@ module sfincs_continuity
 
 contains
    
-   subroutine compute_water_levels(dt, tloop)
+   subroutine compute_water_levels(t, dt, tloop)
    !
    use sfincs_data
    !
    implicit none
    !
    real*4           :: dt
+   real*8           :: t
    !
    integer          :: count0
    integer          :: count1
@@ -20,7 +21,7 @@ contains
    !
    if (subgrid) then
       !
-      call compute_water_levels_subgrid(dt)
+      call compute_water_levels_subgrid(dt,t)
       !
    else
       !
@@ -251,13 +252,14 @@ contains
    end subroutine
 
    
-   subroutine compute_water_levels_subgrid(dt)
+   subroutine compute_water_levels_subgrid(dt,t)
    !
    use sfincs_data
    !
    implicit none
    !
    real*4           :: dt
+   real*8           :: t
    !
    integer          :: nm
    integer          :: isrc
@@ -577,6 +579,18 @@ contains
       ! zsmax used by default, therefore keep in standard continuity loop:         
       !
       if (store_maximum_waterlevel) then
+         !
+         ! Store when the maximum water level changed
+         !
+         if (store_tmax_zs) then
+             if (zs(nm) > zsmax(nm)) then
+                 if ( (zs(nm) - subgrid_z_zmin(nm)) > huthresh) then
+                    tmax_zs(nm) = t
+                 endif
+             endif
+         endif
+         !
+         ! Store the maximum water level itself
          !
          zsmax(nm) = max(zsmax(nm), zs(nm))
          !
