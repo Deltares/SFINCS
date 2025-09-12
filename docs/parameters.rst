@@ -243,7 +243,7 @@ More parameters for model input (only for advanced users)
 	  :min:			1.0e-3
 	  :max:			Inf	  
 	tspinup
-	  :description:		Duration of spinup period after tstart where water level variation at the boundary is dampened
+	  :description:		Duration of spinup period after tstart, where the water level variation at the boundary is dampened, between values in the 'bzsfile' input and the value of 'zsini' (even if using rstfile as initial condition)
 	  :units:		s
 	  :default:		0
 	  :min:			0

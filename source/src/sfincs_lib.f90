@@ -91,7 +91,7 @@ module sfincs_lib
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
    build_revision = "$Rev: v2.2.1-alpha col d'Eze"
-   build_date     = "$Date: 2025-06-02"
+   build_date     = "$Date: 2025-09-08"
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)
@@ -586,7 +586,7 @@ module sfincs_lib
       !      
       ! Update water levels
       !
-      call compute_water_levels(dt, tloopcont)
+      call compute_water_levels(t, dt, tloopcont)
       !
       ! OUTPUT
       !      

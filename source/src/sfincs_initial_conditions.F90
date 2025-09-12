@@ -294,9 +294,7 @@ contains
       !          
       ! Get dimensions id's: nr points  
       !
-      ! NF90(nf90_inq_dimid(net_file_ini%ncid, "mesh2d_nFaces", net_file_ini%np_dimid))
-      NF90(nf90_inq_dimid(net_file_ini%ncid, "np", net_file_ini%np_dimid))
-      ! NF90(nf90_inq_dimid(net_file_ini%ncid, "npuv", net_file_ini%npuv_dimid))
+      NF90(nf90_inq_dimid(net_file_ini%ncid, "mesh2d_nFaces", net_file_ini%np_dimid))
       !
       ! Get dimensions sizes    
       !

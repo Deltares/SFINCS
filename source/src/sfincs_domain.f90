@@ -2485,8 +2485,6 @@ contains
          dfig = 0.0   
          allocate(cg(np))
          cg = 0.0
-         allocate(Qb(np))
-         qb = 0.0  
          allocate(betamean(np))
          betamean = 0.0     
          allocate(srcig(np))
@@ -2528,6 +2526,10 @@ contains
        allocate(twet(np))
    endif
    !
+   if (store_tmax_zs) then
+       allocate(tmax_zs(np))
+   endif
+   !
    if (store_tsunami_arrival_time) then
       allocate(tsunami_arrival_time(np))
    endif
@@ -2566,11 +2568,15 @@ contains
    endif
    !
    if (store_maximum_velocity) then
-      vmax = 0.0
+      vmax = -999.0
    endif
    !
    if (store_twet) then
       twet = 0.0
+   endif
+   !
+   if (store_tmax_zs) then
+      tmax_zs = -999.0
    endif
    !
    uv = 0.0
