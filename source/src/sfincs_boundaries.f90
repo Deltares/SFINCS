@@ -88,7 +88,6 @@ contains
          close(500)
          !
       else
-         !
          ntbnd = 2
          !
          allocate(t_bnd(ntbnd))
@@ -306,6 +305,8 @@ contains
    !
    if (bcafile(1:4) /= 'none' .and. nbnd > 0 .and. use_bcafile) then
       !
+      call write_log('Info    : reading tidal components', 0)
+      !       
       ! First pass: count number of sets and number of components in first set
       !
       ! NOTE 1 : The number of component sets in the bca file must match the number of points in the bnd file!
@@ -445,9 +446,10 @@ contains
       !
       tidal_component_frequency = tidal_component_frequency / 3600 ! Convert to rad/s      
       !
-      !do ios = 1, nr_tidal_components
-      !   write(*,'(a,20f16.3)')tidal_component_names(ios), (180.0 / pi) * tidal_component_frequency(ios) * 3600.0,tidal_component_data(1,ios,1), (180.0 / pi) * tidal_component_data(2,ios,1)
-      !enddo   
+      do ios = 1, nr_tidal_components
+         write(logstr,'(a,20f16.3)')tidal_component_names(ios), (180.0 / pi) * tidal_component_frequency(ios) * 3600.0,tidal_component_data(1,ios,1), (180.0 / pi) * tidal_component_data(2,ios,1)         
+         call write_log(logstr, 0)
+      enddo   
       !
    endif      
    !
