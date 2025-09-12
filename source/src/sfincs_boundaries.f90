@@ -195,7 +195,7 @@ contains
          !
          ! This really should not happen
          !
-         call stop_sfincs('Downstream river points found in mask, without boundary conditions (missing bdrfile in sfincs.inp) !', 1)
+         call stop_sfincs('Error! Downstream river points found in mask, without boundary conditions (missing bdrfile in sfincs.inp) !', 1)
          !
       endif
       !
@@ -690,7 +690,6 @@ contains
          !         
          do iw = 1, 3
             !
-!            write(*,*)ib,iw,nm_nbr_gbp(iw, ib),w_nbr_gbp(iw, ib)
             nm = nm_nbr_gbp(iw, ib) ! nm index of internal neighbor
             !
             if (nm > 0) then
