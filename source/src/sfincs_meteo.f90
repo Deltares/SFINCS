@@ -88,6 +88,7 @@ contains
             spw_precip = .false.
             ! 
          endif
+         !
       endif
       !
    endif   
@@ -113,7 +114,7 @@ contains
          call write_log(logstr, 0)
          !       
          do it = 1, spw_nt
-            call deg2utm(spw_ye(it),spw_xe(it),xx,yy,utmzone)
+            call deg2utm(spw_ye(it), spw_xe(it), xx, yy, utmzone)
             spw_xe(it) = xx
             spw_ye(it) = yy
          enddo
@@ -126,7 +127,7 @@ contains
       !
       call write_log('Info    : reading amu and amv file', 0)
       !  
-      call read_amuv_dimensions(amufile,amuv_nt,amuv_nrows,amuv_ncols,amuv_x_llcorner,amuv_y_llcorner,amuv_dx,amuv_dy,amuv_nquant)
+      call read_amuv_dimensions(amufile, amuv_nt, amuv_nrows, amuv_ncols, amuv_x_llcorner, amuv_y_llcorner, amuv_dx, amuv_dy, amuv_nquant)
       !
       ! Allocate
       !
@@ -136,8 +137,8 @@ contains
       allocate(amuv_wu01(amuv_nrows, amuv_ncols))
       allocate(amuv_wv01(amuv_nrows, amuv_ncols))
       !
-      call read_amuv_file(amufile,amuv_nt,amuv_nrows,amuv_ncols,amuv_times,amuv_wu,trefstr)
-      call read_amuv_file(amvfile,amuv_nt,amuv_nrows,amuv_ncols,amuv_times,amuv_wv,trefstr)
+      call read_amuv_file(amufile, amuv_nt, amuv_nrows, amuv_ncols, amuv_times, amuv_wu, trefstr)
+      call read_amuv_file(amvfile, amuv_nt, amuv_nrows, amuv_ncols, amuv_times, amuv_wv, trefstr)
       !
    elseif (netamuamvfile(1:4) /= 'none') then   ! FEWS compatible Netcdf amu&amv wind spatial input
       !
@@ -424,16 +425,16 @@ contains
       !
       ! Eye
       ! 
-      spw_xe01 = spw_xe(itw0)*(1.0 - twfac) + spw_xe(itw1)*twfac
-      spw_ye01 = spw_ye(itw0)*(1.0 - twfac) + spw_ye(itw1)*twfac
+      spw_xe01 = spw_xe(itw0) * (1.0 - twfac) + spw_xe(itw1) * twfac
+      spw_ye01 = spw_ye(itw0) * (1.0 - twfac) + spw_ye(itw1) * twfac
       !
       ! Wind, pressure, precipitation
       !
       do irow = 1, spw_nrows
          do icol = 1, spw_ncols
             !
-            spw_wu01(irow, icol) = spw_wu(itw0, irow, icol)*(1.0 - twfac)   + spw_wu(itw1, irow, icol)*twfac
-            spw_wv01(irow, icol) = spw_wv(itw0, irow, icol)*(1.0 - twfac)   + spw_wv(itw1, irow, icol)*twfac
+            spw_wu01(irow, icol) = spw_wu(itw0, irow, icol) * (1.0 - twfac)   + spw_wu(itw1, irow, icol) * twfac
+            spw_wv01(irow, icol) = spw_wv(itw0, irow, icol) * (1.0 - twfac)   + spw_wv(itw1, irow, icol) * twfac
             !
             if (patmos) then
                spw_pabs01(irow, icol) = spw_pabs(itw0, irow, icol) * (1.0 - twfac) + spw_pabs(itw1, irow, icol) * twfac
@@ -531,27 +532,27 @@ contains
          !
          ! Determine row indices
          !
-         idstspw = int(dstspw/dradspw)
+         idstspw = int(dstspw / dradspw)
          idstspw = max(idstspw, 1)
          ind1(1) = idstspw
          ind1(2) = idstspw
          ind1(3) = idstspw + 1
          ind1(4) = idstspw + 1
          if (ind1(3)>spw_nrows) cycle             
-         dj1     = (dstspw - dradspw*idstspw) / dradspw
+         dj1     = (dstspw - dradspw * idstspw) / dradspw
          phispw  = 0.5*pi - atan2(dye, dxe) ! Geographic
-         phispw  = modulo(phispw, 2*pi)
+         phispw  = modulo(phispw, 2 * pi)
          !
          ! Determine column indices
          !
-         iphispw = min(int(phispw/dphispw) + 1, spw_ncols)
+         iphispw = min(int(phispw / dphispw) + 1, spw_ncols)
          ind2(1) = iphispw
          ind2(2) = iphispw + 1
          ind2(3) = iphispw + 1
          ind2(4) = iphispw
-         if (ind2(2)>spw_ncols) ind2(2) = 1
-         if (ind2(3)>spw_ncols) ind2(3) = 1
-         di1     = (phispw - dphispw*(iphispw-1)) / dphispw
+         if (ind2(2) > spw_ncols) ind2(2) = 1
+         if (ind2(3) > spw_ncols) ind2(3) = 1
+         di1     = (phispw - dphispw * (iphispw - 1)) / dphispw
          !
          ! Weight factors
          !    
@@ -569,15 +570,15 @@ contains
          !                 
          do ip = 1, 4
             !
-            wup     = wup + f(ip)*spw_wu01(ind1(ip),ind2(ip))
-            wvp     = wvp + f(ip)*spw_wv01(ind1(ip),ind2(ip))
+            wup     = wup + f(ip) * spw_wu01(ind1(ip), ind2(ip))
+            wvp     = wvp + f(ip) * spw_wv01(ind1(ip), ind2(ip))
             !
             if (patmos) then
-               pcp  = pcp + f(ip)*spw_pabs01(ind1(ip),ind2(ip))
+               pcp  = pcp + f(ip) * spw_pabs01(ind1(ip), ind2(ip))
             endif
             !
             if (precip .and. spw_precip) then
-               prp  = prp + f(ip)*spw_prcp01(ind1(ip),ind2(ip))
+               prp  = prp + f(ip) * spw_prcp01(ind1(ip), ind2(ip))
             endif
             !
          enddo
@@ -586,19 +587,19 @@ contains
          !
          vmag   = sqrt(wup**2 + wvp**2)
          !
-         if (waveage>0) then
+         if (waveage > 0.0) then
             !
             ! Determine Cd with wave age based on LGX method
             !
             wa = max(min(waveage, 1.99), 0.1001)
             !
-            ivm = max(int(vmag/2.0), 1)
-            iwa = int(wa/0.1)
-            cd = 0.001*cdlgx(ivm, iwa)
+            ivm = max(int(vmag / 2.0), 1)
+            iwa = int(wa / 0.1)
+            cd = 0.001 * cdlgx(ivm, iwa)
             !
          else
             !
-            cd = cdval(int(vmag*10) + 1)
+            cd = cdval(int(vmag * 10) + 1)
             !
          endif
          !
@@ -616,30 +617,30 @@ contains
             !
             ! Reduction of wind speed over land (Westerink et al., 2008. A Basin- to Channel-Scale Unstructured Grid Hurricane Storm Surge Model Applied to Southern Louisiana)
             !
-            z0marine = 0.001835*cd*vmag**2 ! 0.018*cd*vmag**2/9.81, should maybe use a look-up table for this
+            z0marine = 0.001835 * cd * vmag**2 ! 0.018*cd*vmag**2/9.81, should maybe use a look-up table for this
             !
             ! Determine z0land
             !
-            wdir   = 270.0 - atan2(wvp, wup)*180/pi ! Nautical degrees
+            wdir   = 270.0 - atan2(wvp, wup) * 180 / pi ! Nautical degrees
             if (wdir<0.0)    wdir = wdir + 360.0
             if (wdir>=360.0) wdir = wdir - 360.0
-            idir   = int(wdir/30) + 1
-            facint = (wdir - (idir - 1)*30.0) / 30
-            if (idir<12) then
-               z0l    = z0land(idir, nm) + (z0land(idir + 1, nm) - z0land(idir, nm))*facint
+            idir   = int(wdir / 30) + 1
+            facint = (wdir - (idir - 1) * 30.0) / 30
+            if (idir < 12) then
+               z0l    = z0land(idir, nm) + (z0land(idir + 1, nm) - z0land(idir, nm)) * facint
             else
-               z0l    = z0land(  12, nm) + (z0land(       1, nm) - z0land(  12, nm))*facint
+               z0l    = z0land(  12, nm) + (z0land(       1, nm) - z0land(  12, nm)) * facint
             endif   
             !
             if (z0l>z0marine) then
                !
                ! Should really use look-up table for this next very non-linear bit
                !
-               id   = min(int(0.2*z0l/z0marine) + 1, 101)
+               id   = min(int(0.2 * z0l / z0marine) + 1, 101)
                fd   = z0land_table(id) ! fd   = (z0marine/z0l)**0.0706
-               vmag = fd*vmag
-               wup  = fd*wup
-               wvp  = fd*wvp
+               vmag = fd8 * vmag
+               wup  = fd * wup
+               wvp  = fd * wvp
                !
             endif
             !
@@ -647,38 +648,38 @@ contains
          !
          if (itw==1) then
             ! 
-            tauwu0(nm) = (1.0 - merge_frac)*tauwu0(nm) + merge_frac*vmag*( cosrot*wup + sinrot*wvp)*rhoa*cd/rhow
-            tauwv0(nm) = (1.0 - merge_frac)*tauwv0(nm) + merge_frac*vmag*(-sinrot*wup + cosrot*wvp)*rhoa*cd/rhow
+            tauwu0(nm) = (1.0 - merge_frac) * tauwu0(nm) + merge_frac * vmag * ( cosrot * wup + sinrot * wvp) * rhoa * cd / rhow
+            tauwv0(nm) = (1.0 - merge_frac) * tauwv0(nm) + merge_frac * vmag * (-sinrot * wup + cosrot * wvp) * rhoa * cd / rhow
             ! 
             if (patmos) then
-               patm0(nm)  = (1.0 - merge_frac)*patm0(nm) + merge_frac*pcp
+               patm0(nm)  = (1.0 - merge_frac) * patm0(nm) + merge_frac * pcp
             endif
             ! 
             if (precip .and. spw_precip) then
-               prcp0(nm)  = (1.0 - merge_frac)*prcp0(nm) + merge_frac*prp/(1000*3600) ! m/s
+               prcp0(nm)  = (1.0 - merge_frac) * prcp0(nm) + merge_frac*prp / (1000 * 3600) ! m/s
             endif
             ! 
             if (store_wind) then
-               windu0(nm) = (1.0 - merge_frac)*windu0(nm) + merge_frac*wup
-               windv0(nm) = (1.0 - merge_frac)*windv0(nm) + merge_frac*wvp
+               windu0(nm) = (1.0 - merge_frac) * windu0(nm) + merge_frac * wup
+               windv0(nm) = (1.0 - merge_frac) * windv0(nm) + merge_frac * wvp
             endif   
             ! 
          else
             ! 
-            tauwu1(nm) = (1.0 - merge_frac)*tauwu1(nm) + merge_frac*vmag*( cosrot*wup + sinrot*wvp)*rhoa*cd/rhow
-            tauwv1(nm) = (1.0 - merge_frac)*tauwv1(nm) + merge_frac*vmag*(-sinrot*wup + cosrot*wvp)*rhoa*cd/rhow
+            tauwu1(nm) = (1.0 - merge_frac) * tauwu1(nm) + merge_frac * vmag * ( cosrot * wup + sinrot * wvp) * rhoa * cd / rhow
+            tauwv1(nm) = (1.0 - merge_frac) * tauwv1(nm) + merge_frac * vmag * (-sinrot * wup + cosrot * wvp) * rhoa * cd / rhow
             ! 
             if (patmos) then
-               patm1(nm)  = (1.0 - merge_frac)*patm1(nm) + merge_frac*pcp
+               patm1(nm)  = (1.0 - merge_frac) * patm1(nm) + merge_frac * pcp
             endif
             ! 
             if (precip .and. spw_precip) then
-               prcp1(nm)  = (1.0 - merge_frac)*prcp1(nm) + merge_frac*prp/(1000*3600) ! m/s
+               prcp1(nm)  = (1.0 - merge_frac) * prcp1(nm) + merge_frac * prp / (1000 * 3600) ! m/s
             endif
             ! 
             if (store_wind) then
-               windu1(nm) = (1.0 - merge_frac)*windu1(nm) + merge_frac*wup
-               windv1(nm) = (1.0 - merge_frac)*windv1(nm) + merge_frac*wvp
+               windu1(nm) = (1.0 - merge_frac) * windu1(nm) + merge_frac * wup
+               windv1(nm) = (1.0 - merge_frac) * windv1(nm) + merge_frac * wvp
             endif   
             ! 
          endif
@@ -895,6 +896,7 @@ contains
             itw0 = itspw
          endif
       enddo
+      !
       itw1 = itw0 + 1
       itw1 = min(itw1, amp_nt)
       !
@@ -1157,13 +1159,13 @@ contains
          !
          if (wind) then
             !
-            tauwu(nm) = tauwu0(nm)*onemintwfact + tauwu1(nm)*twfact
-            tauwv(nm) = tauwv0(nm)*onemintwfact + tauwv1(nm)*twfact
+            tauwu(nm) = tauwu0(nm) * onemintwfact + tauwu1(nm) * twfact
+            tauwv(nm) = tauwv0(nm) * onemintwfact + tauwv1(nm) * twfact
             !
             if (store_wind) then
                !
-               windu(nm) = windu0(nm)*onemintwfact + windu1(nm)*twfact
-               windv(nm) = windv0(nm)*onemintwfact + windv1(nm)*twfact
+               windu(nm) = windu0(nm) * onemintwfact + windu1(nm) * twfact
+               windv(nm) = windv0(nm) * onemintwfact + windv1(nm) * twfact
                !
                if (store_wind_max) then
                   windmax(nm) = max(windmax(nm), sqrt(windu(nm)**2 + windv(nm)**2))
@@ -1174,12 +1176,12 @@ contains
          endif   
          !
          if (patmos) then
-            patm(nm)  = patm0(nm)*onemintwfact  + patm1(nm)*twfact  ! atmospheric pressure (Pa)
+            patm(nm)  = patm0(nm) * onemintwfact  + patm1(nm) * twfact  ! atmospheric pressure (Pa)
          endif   
          !
          if (precip) then
             !
-            prcp(nm)    = prcp0(nm)*onemintwfact  + prcp1(nm)*twfact  ! rainfall in m/s !!!
+            prcp(nm)    = prcp0(nm) * onemintwfact  + prcp1(nm) * twfact  ! rainfall in m/s !!!
             !
             ! Don't allow negative prcp (e.g. hardfixing infiltration/evaporation on model when forcing effective rainfall) when there's no water in the cell (same as check for constant infiltration)
             !
@@ -1188,18 +1190,18 @@ contains
                  ! No effective infiltration if there is no water
                  !  
                  if (subgrid) then
-                    if (z_volume(nm)<=0.0) then
+                    if (z_volume(nm) <= 0.0) then
                        prcp(nm) = 0.0
                     endif
                  else
-                    if (zs(nm)<=zb(nm)) then
+                    if (zs(nm) <= zb(nm)) then
                        prcp(nm) = 0.0
                     endif
                  endif            
             endif
             !
             netprcp(nm) = prcp(nm)            
-            cumprcp(nm) = cumprcp(nm) + prcp(nm)*dt
+            cumprcp(nm) = cumprcp(nm) + prcp(nm) * dt
             !
          endif   
          !
@@ -1212,7 +1214,7 @@ contains
       !
       if ((t < (tspinup - 1.0e-3)) .and. spinup_meteo) then
          !
-         smfac = (t - t0)/(tspinup - t0)
+         smfac = (t - t0) / (tspinup - t0)
          oneminsmfac = 1.0 - smfac
          !
          !$omp parallel &
@@ -1223,17 +1225,17 @@ contains
          do nm = 1, np
             !
             if (wind) then
-               tauwu(nm) = tauwu(nm)*smfac
-               tauwv(nm) = tauwv(nm)*smfac
+               tauwu(nm) = tauwu(nm) * smfac
+               tauwv(nm) = tauwv(nm) * smfac
             endif   
             !
             if (patmos) then
-               patm(nm)  =patm(nm)*smfac + gapres*oneminsmfac
+               patm(nm)  =patm(nm) * smfac + gapres * oneminsmfac
             endif   
             !
             if (precip) then
                !  
-               netprcp(nm) = netprcp(nm)*smfac
+               netprcp(nm) = netprcp(nm) * smfac
                !  
                ! Don't allow negative netprcp during spinup (e.g. hardfixing infiltration/evaporation on model when forcing effective rainfall) when there's no water in the cell (same as check for constant infiltration)
                !  
@@ -1242,11 +1244,11 @@ contains
                   ! No effective infiltration if there is no water
                   !  
                   if (subgrid) then
-                     if (z_volume(nm)<=0.0) then
+                     if (z_volume(nm) <= 0.0) then
                         netprcp(nm) = 0.0
                      endif
                   else
-                     if (zs(nm)<=zb(nm)) then
+                     if (zs(nm) <= zb(nm)) then
                         netprcp(nm) = 0.0
                      endif
                   endif            
@@ -1261,7 +1263,7 @@ contains
          !
       endif         
       !   
-      if (patmos .and. pavbnd>0.0) then
+      if (patmos .and. pavbnd > 0.0) then
          !
          !$acc serial, present( patmb, nmindbnd, patm ), async(1) 
          do ib = 1, ngbnd
@@ -1319,22 +1321,22 @@ contains
       !
       if (twnd(itw)>t) then
          !
-         twfac  = (t - twnd(itw - 1))/(twnd(itw) - twnd(itw - 1))
+         twfac  = (t - twnd(itw - 1)) / (twnd(itw) - twnd(itw - 1))
          !
-         vmag = wndmag(itw - 1)*(1.0 - twfac) + wndmag(itw)*twfac
-         dr0  = modulo(wnddir(itw - 1), 2*pi)
-         dr1  = modulo(wnddir(itw ),    2*pi)
-         if (dr1>dr0 + pi) then
-             dr0 = dr0 + 2*pi
-         elseif (dr0>dr1 + pi) then    
-             dr1 = dr1 + 2*pi
+         vmag = wndmag(itw - 1) * (1.0 - twfac) + wndmag(itw) * twfac
+         dr0  = modulo(wnddir(itw - 1), 2 * pi)
+         dr1  = modulo(wnddir(itw ),    2 * pi)
+         if (dr1 > dr0 + pi) then
+             dr0 = dr0 + 2 * pi
+         elseif (dr0 > dr1 + pi) then    
+             dr1 = dr1 + 2 * pi
          endif
-         vdir = dr0*(1.0 - twfac) + dr1*twfac
+         vdir = dr0 * (1.0 - twfac) + dr1 * twfac
          !
-         cd = cdval(int(vmag*10)+1)
+         cd = cdval(int(vmag * 10) + 1)
          !
-         twu = vmag**2*cos(vdir)*rhoa*cd/rhow
-         twv = vmag**2*sin(vdir)*rhoa*cd/rhow
+         twu = vmag**2 * cos(vdir) * rhoa * cd / rhow
+         twv = vmag**2 * sin(vdir) * rhoa * cd / rhow
          !
          !$omp parallel &
          !$omp private ( nm ) &
@@ -1354,8 +1356,8 @@ contains
          !
          if (store_wind) then
              !
-             windu = vmag*cos(vdir)
-             windv = vmag*sin(vdir)
+             windu = vmag * cos(vdir)
+             windv = vmag * sin(vdir)
              !
          endif
          !   
@@ -1389,9 +1391,9 @@ contains
    !
    itp = max(min(itp, ntprcp), 1)
    !
-   twfac  = (t - tprcpt(itp - 1))/(tprcpt(itp) - tprcpt(itp - 1))
+   twfac  = (t - tprcpt(itp - 1)) / (tprcpt(itp) - tprcpt(itp - 1))
    !
-   ptmp = (tprcpv(itp - 1)*(1.0 - twfac) + tprcpv(itp)*twfac)/(1000*3600) ! rain in m/s
+   ptmp = (tprcpv(itp - 1) * (1.0 - twfac) + tprcpv(itp) * twfac) / (1000*3600) ! rain in m/s
    !
    !$omp parallel &
    !$omp private ( nm )
@@ -1400,7 +1402,7 @@ contains
    do nm = 1, np
       prcp(nm)    = ptmp
       netprcp(nm) = ptmp
-      cumprcp(nm) = cumprcp(nm) + prcp(nm)*dt
+      cumprcp(nm) = cumprcp(nm) + prcp(nm) * dt
    enddo   
    !$acc end kernels
    !$omp end do
