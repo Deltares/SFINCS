@@ -317,6 +317,7 @@ contains
    endif
    !
    ! Store sigma (only for Green-Ampt)
+   !
    if (inftype == 'gai') then
       NF90(nf90_def_var(map_file%ncid, 'sigma', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%Seff_varid)) ! time-varying sigma
       NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, '_FillValue', FILL_VALUE))   
@@ -327,6 +328,7 @@ contains
    endif
    !
    ! Store current infiltration (only for Horton)
+   !
    if (inftype == 'hor') then
       NF90(nf90_def_var(map_file%ncid, 'f', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%Seff_varid)) ! time-varying sigma
       NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, '_FillValue', FILL_VALUE))   
@@ -745,11 +747,15 @@ contains
          !
          n    = z_index_z_n(nm)
          m    = z_index_z_m(nm)
-         !      
+         !
          if (inftype == 'con' .or. inftype == 'c2d') then
-            zsg(m, n) = qinffield(nm)*3600*1000
+            !
+            zsg(m, n) = qinffield(nm) * 3600 * 1000 ! Convert to mm / hour
+            !
          else
+            !
             zsg(m, n) = qinffield(nm)
+            !
          endif
          ! 
       enddo
@@ -973,6 +979,7 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%time_varid, 'long_name', 'time_in_seconds_since_' // trim(trefstr_iso8601) ))  
    !
    ! Time varying map output
+   !
    NF90(nf90_def_var(map_file%ncid, 'zs', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%zs_varid)) ! time-varying water level map
    NF90(nf90_def_var_deflate(map_file%ncid, map_file%zs_varid, 1, 1, nc_deflate_level))
    NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, '_FillValue', FILL_VALUE))
@@ -1008,6 +1015,7 @@ contains
    endif
    !
    ! Time varying spatial output
+   !
    if (store_maximum_waterlevel) then
       NF90(nf90_def_var(map_file%ncid, 'timemax', NF90_FLOAT, (/map_file%timemax_dimid/), map_file%timemax_varid)) ! time      
       NF90(nf90_put_att(map_file%ncid, map_file%timemax_varid, 'units', 'seconds since ' // trim(trefstr_iso8601) ))  ! time stamp following ISO 8601
@@ -1402,7 +1410,7 @@ contains
          do nmq = 1, quadtree_nr_points
             nm = index_sfincs_in_quadtree(nmq)
             if (nm>0) then
-               vtmp(nmq) = qinfmap(nm)*3600*1000
+               vtmp(nmq) = qinffield(nm) * 3600 * 1000
             endif
          enddo 
       else
@@ -2041,8 +2049,9 @@ contains
       !
    endif
    !
-   ! Store S_effective (only for CN method with recovery)
    if (inftype == 'cnb') then
+      !
+      ! Store S_effective (only for CN method with recovery)
       !
       zsg = FILL_VALUE
       !
@@ -2057,9 +2066,9 @@ contains
       !
       NF90(nf90_put_var(map_file%ncid, map_file%Seff_varid, zsg, (/1, 1, ntmapout/)))
       !
-   !
-   ! Store maximum soil moisture deficit (only for green-ampt)
    elseif (inftype == 'gai') then
+      !
+      ! Store maximum soil moisture deficit (only for green-ampt)
       !
       zsg = FILL_VALUE
       !
@@ -2074,9 +2083,9 @@ contains
       !
       NF90(nf90_put_var(map_file%ncid, map_file%Seff_varid, zsg, (/1, 1, ntmapout/)))
       !
-   !
-   ! Store current infiltration from Horton
    elseif (inftype == 'hor') then
+      !
+      ! Store current infiltration from Horton
       !
       zsg = FILL_VALUE
       !
@@ -2091,7 +2100,6 @@ contains
       !
       NF90(nf90_put_var(map_file%ncid, map_file%Seff_varid, zsg, (/1, 1, ntmapout/)))
       !
-   !
    endif
    !           
    if (store_meteo) then
