@@ -354,7 +354,21 @@ contains
          !
       endif   
       !
-   endif            
+   endif
+   !
+   if (factor_spw_size /= 1.0) then
+      !
+      write(logstr,'(a,f6.3)')'Info    : applying factor on spiderweb size ', factor_spw_size
+      call write_log(logstr, 0)
+      !       
+      if (spw_wind) then
+         !
+         spw_radius = factor_spw_size * spw_radius
+         dradspw    = spw_radius / spw_nrows
+         !
+      endif
+      !
+   endif   
    !   
    end subroutine
    !

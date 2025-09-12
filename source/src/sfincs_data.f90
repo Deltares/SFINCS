@@ -104,6 +104,7 @@ module sfincs_data
       real*4 factor_wind
       real*4 factor_pres
       real*4 factor_prcp
+      real*4 factor_spw_size
       !
       real*4 freqminig
       real*4 freqmaxig
