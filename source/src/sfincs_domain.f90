@@ -1763,6 +1763,7 @@ contains
          if (kcs(nm) == 3) outflow_boundaries_in_mask = .true.
          if (kcs(nm) == 5) downstream_river_boundaries_in_mask = .true.
          if (kcs(nm) == 6) neumann_boundaries_in_mask = .true.
+         ! Neumann - Need nm indices of internal points, determined in sfincs_boundaries.f90
          !
       endif
    enddo
@@ -1772,12 +1773,6 @@ contains
    allocate(nmindbnd(ngbnd))
    allocate(zsb(ngbnd))
    allocate(zsb0(ngbnd))
-   !
-   if (neumann_boundaries_in_mask) then
-      !
-      ! Need nm indices of internal points (let's do this in sfincs_boundary.f90)
-      !      
-   endif   
    !
    zsb  = 0.0  ! Total water level at boundary grid point
    zsb0 = 0.0  ! Filtered water level at boundary grid point
