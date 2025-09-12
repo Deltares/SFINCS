@@ -254,6 +254,7 @@ module sfincs_data
       logical       :: nonhydrostatic
       logical       :: h73table
       logical       :: wave_enhanced_roughness
+      logical       :: use_bcafile
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax

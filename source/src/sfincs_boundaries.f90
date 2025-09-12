@@ -300,11 +300,11 @@ contains
 !   enddo
 
    !
-   ! If bca file is present, read it
+   ! If bca file is present (and use_bcafile = true, which is the default), read it
    !
    nr_tidal_components = 0
    !
-   if (bcafile(1:4) /= 'none' .and. nbnd >0) then
+   if (bcafile(1:4) /= 'none' .and. nbnd > 0 .and. use_bcafile) then
       !
       ! First pass: count number of sets and number of components in first set
       !
