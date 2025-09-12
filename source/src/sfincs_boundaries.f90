@@ -391,7 +391,13 @@ contains
          !
          ! zsb = w1 * (zs(i1) - slope*dx1) + w2 * (zs(i2) - slope*dx2) + w3 * (zs(i3) - slope*dx3)
          !
-         ! Quadtree refinement is not allowed near river outflow boundaries! This would get too complicated for now.          
+         ! Quadtree refinement is not allowed near river outflow boundaries! This would get too complicated for now. 
+         if (z_index_z_md1(nm)>0 .or. z_index_z_md2(nm)>0 .or. z_index_z_mu1(nm)>0 .or. z_index_z_mu2(nm)>0 .or. z_index_z_nd1(nm)>0 .or. z_index_z_nd2(nm)>0 .or. z_index_z_nu1(nm)>0 .or. z_index_z_nu2(nm)>0) then
+             ! Finer on the left, right, below or above
+             !
+             call stop_sfincs('Error! Quadtree refinement is not allowed near river outflow boundaries! SFINCS has stopped!', 1)
+             !
+         endif              
          ! Also, grid cells must be square, which is already checked on in subroutine read_boundary_data
          !
          slope_gbp(ib) = slope_bdr(ib1)
