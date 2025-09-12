@@ -2,7 +2,7 @@ module sfincs_meteo
 
 contains
 
-    subroutine read_meteo_data()  
+   subroutine read_meteo_data()  
    !
    ! Read different meteo input types
    !
@@ -17,12 +17,24 @@ contains
    !
    real*4 dummy, wnd, xx, yy
    !
+   logical spw_wind, am_wind, am_pres, am_prcp, tm_wind, tm_prcp
+   !
+   ! Set temporal flags to false
+   !
    spw_precip = .false.
+   spw_wind   = .false.
+   am_wind    = .false.
+   am_pres    = .false. 
+   am_prcp    = .false.
+   tm_wind    = .false.
+   tm_prcp    = .false.
    !
    if (spwfile(1:4) /= 'none') then
       !
       write(logstr,'(a,a)')'Info    : reading spiderweb file ', trim(spwfile)
       call write_log(logstr, 0)
+      !
+      spw_wind = .true.
       !  
       call read_spw_dimensions(spwfile,spw_nt,spw_nrows,spw_ncols,spw_radius,spw_nquant)
       !
@@ -49,21 +61,22 @@ contains
       !
       spw_pabs = gapres - spw_pdrp
       !
-      dradspw = spw_radius/spw_nrows
-      dphispw = 2*pi/spw_ncols
+      dradspw = spw_radius / spw_nrows
+      dphispw = 2 * pi / spw_ncols
       !      
       ! Compute u and v components of wind
       !
       do it = 1, spw_nt
          do irow = 1, spw_nrows
             do icol = 1, spw_ncols
-               spw_wu(it, irow, icol) = spw_vmag(it, irow, icol)*cos(pi*(270.0 - spw_vdir(it, irow, icol))/180)
-               spw_wv(it, irow, icol) = spw_vmag(it, irow, icol)*sin(pi*(270.0 - spw_vdir(it, irow, icol))/180)
+               spw_wu(it, irow, icol) = spw_vmag(it, irow, icol) * cos(pi * (270.0 - spw_vdir(it, irow, icol)) / 180)
+               spw_wv(it, irow, icol) = spw_vmag(it, irow, icol) * sin(pi * (270.0 - spw_vdir(it, irow, icol)) / 180)
             enddo
          enddo
       enddo
       !
-      if (spw_nquant==4) then
+      if (spw_nquant == 4) then
+         !
          if (use_spw_precip) then
             ! 
             spw_precip = .true.
@@ -83,6 +96,8 @@ contains
       ! 
       write(logstr,'(a,a)')'Info    : reading netcdf spiderweb file ', trim(netspwfile)
       call write_log(logstr, 0)
+      !
+      spw_wind = .true.
       !
       call read_netcdf_spw_data()
       !
@@ -128,7 +143,7 @@ contains
       !
       call read_netcdf_amuv_data()
       !
-      allocate(amuv_wu01(amuv_nrows, amuv_ncols)) !(has to be allocated somewhere)
+      allocate(amuv_wu01(amuv_nrows, amuv_ncols))
       allocate(amuv_wv01(amuv_nrows, amuv_ncols))
       !
    endif
@@ -145,13 +160,13 @@ contains
       allocate(ampr_pr(ampr_nt, ampr_nrows, ampr_ncols))
       allocate(ampr_pr01(ampr_nrows, ampr_ncols))
       !
-      call read_amuv_file(amprfile,ampr_nt,ampr_nrows,ampr_ncols,ampr_times,ampr_pr,trefstr)
+      call read_amuv_file(amprfile, ampr_nt, ampr_nrows, ampr_ncols, ampr_times, ampr_pr, trefstr)
       !
    elseif (netamprfile(1:4) /= 'none') then   ! FEWS compatible Netcdf ampr precipitation spatial input
       !
       call read_netcdf_ampr_data()
       !
-      allocate(ampr_pr01(ampr_nrows, ampr_ncols))!(has to be allocated somewhere)
+      allocate(ampr_pr01(ampr_nrows, ampr_ncols)) ! (has to be allocated somewhere)
       !
    endif
    !
@@ -159,7 +174,7 @@ contains
       !
       call write_log('Info    : reading amp file', 0)
       !  
-      call read_amuv_dimensions(ampfile,amp_nt,amp_nrows,amp_ncols,amp_x_llcorner,amp_y_llcorner,amp_dx,amp_dy,amp_nquant)
+      call read_amuv_dimensions(ampfile, amp_nt, amp_nrows, amp_ncols, amp_x_llcorner, amp_y_llcorner, amp_dx, amp_dy, amp_nquant)
       !
       ! Allocate
       !
@@ -167,7 +182,7 @@ contains
       allocate(amp_patm(amp_nt, amp_nrows, amp_ncols))
       allocate(amp_patm01(amp_nrows, amp_ncols))
       !
-      call read_amuv_file(ampfile,amp_nt,amp_nrows,amp_ncols,amp_times,amp_patm,trefstr)
+      call read_amuv_file(ampfile, amp_nt, amp_nrows, amp_ncols, amp_times, amp_patm, trefstr)
       !
    elseif (netampfile(1:4) /= 'none') then   ! FEWS compatible Netcdf amp barometric pressure spatial input
       !
@@ -250,6 +265,79 @@ contains
          endif
       enddo   
    enddo
+   !
+   ! Now apply wind, pressure and rain enhancement factors: factor_wind, factor_pres, factor_precip (default all set to 1.0)
+   !
+   if (factor_wind /= 1.0) then
+      !
+      write(logstr,'(a,f6.3)')'Info    : applying factor on wind speeds ', factor_wind
+      call write_log(logstr, 0)
+      !
+      if (spw_wind) then
+         !
+         spw_wu = factor_wind * spw_wu
+         spw_wv = factor_wind * spw_wv
+         !
+      endif
+      !
+      if (am_wind) then
+         !
+         amuv_wu = factor_wind * amuv_wu
+         amuv_wv = factor_wind * amuv_wv
+         !
+      endif
+      !
+      if (tm_wind) then
+         !
+         wndmag = factor_wind * wndmag
+         !
+      endif   
+      !
+   endif
+   !
+   if (factor_pres /= 1.0) then
+      !
+      write(logstr,'(a,f6.3)')'Info    : applying factor on pressure drop ', factor_pres
+      call write_log(logstr, 0)
+      !       
+      if (spw_wind) then
+         !
+         spw_pabs = gapres - factor_pres * (gapres - spw_pabs)
+         !
+      endif
+      !
+      if (am_pres) then
+         !
+         amp_patm = gapres - factor_pres * (gapres - amp_patm)
+         !
+      endif
+      !
+   endif      
+   !
+   if (factor_prcp /= 1.0) then
+      !
+      write(logstr,'(a,f6.3)')'Info    : applying factor on precipitation ', factor_prcp
+      call write_log(logstr, 0)
+      !
+      if (spw_precip) then
+         !
+         spw_prcp = factor_prcp * spw_prcp
+         !
+      endif
+      !
+      if (am_prcp) then
+         !
+         ampr_pr = factor_prcp * ampr_pr
+         !
+      endif
+      !
+      if (tm_prcp) then
+         !
+         tprcpv = factor_prcp * tprcpv
+         !
+      endif   
+      !
+   endif            
    !   
    end subroutine
    !

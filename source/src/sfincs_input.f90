@@ -133,7 +133,10 @@ contains
    call read_int_input(500, 'nh_itermax', nh_itermax, 100)
    call read_logical_input(500, 'h73table', h73table, .false.)   
    call read_real_input(500, 'rugdepth', runup_gauge_depth, 0.05)
-   call read_logical_input(500, 'wave_enhanced_roughness', wave_enhanced_roughness, .false.)  
+   call read_logical_input(500, 'wave_enhanced_roughness', wave_enhanced_roughness, .false.)
+   call read_real_input(500, 'factor_wind', factor_wind, 1.0)
+   call read_real_input(500, 'factor_pres', factor_pres, 1.0)
+   call read_real_input(500, 'factor_prcp', factor_prcp, 1.0)
    !
    ! Domain
    !
