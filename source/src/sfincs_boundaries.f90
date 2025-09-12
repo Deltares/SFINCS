@@ -384,7 +384,14 @@ contains
          !
          ! zsb = w1 * (zs(i1) - slope*dx1) + w2 * (zs(i2) - slope*dx2) + w3 * (zs(i3) - slope*dx3)
          !
-         ! Quadtree refinement is not allowed near river outflow boundaries! This would get too complicated for now. Also, grid cells must be square.
+         ! Quadtree refinement is not allowed near river outflow boundaries! This would get too complicated for now. 
+         
+         ! Also, grid cells must be square.
+         if (dx /= dy) then
+             write(logstr,'(a)')'Error! downstream river boundary bdrfile is only alowed for dx=dy grids! SFINCS has stopped!' 
+             call stop_sfincs(logstr, 3)
+         endif         
+         !
          !
          slope_gbp(ib) = slope_bdr(ib1)
          !
