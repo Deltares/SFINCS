@@ -9,10 +9,13 @@ contains
    implicit none
    !
    integer :: ip, nm, nmu
-   real*4  :: Uw, Uc, zsu, hu, n_app, n_base, cd, cdeff, fenh, uu, vu
+   real*4  :: Uw, Uc, zsu, hu, n_app, n_base, cd, cdeff, uu, vu
    !
    if (.not. wave_enhanced_roughness) return
    !
+   !$omp parallel &
+   !$omp private ( ip, nm, nmu, Uw,uu, vu, Uc, zsu, hu, n_base, cd, cdeff, n_app )
+   !$omp do schedule ( dynamic, 256 )
    do ip = 1, npuv
       !
       if (kcuv(ip) == 1 .or. kcuv(ip) == 6) then
@@ -48,7 +51,7 @@ contains
          !
          ! Use Ruessink (2001) formulation
          !
-         cdeff = cd * sqrt((1.16*Uw)**2 + Uc**2) / Uc
+         cdeff = cd * sqrt((1.16 * Uw)**2 + Uc**2) / Uc
          !
          ! Use the Grant & Madsen (1979) or Soulsby (1997) formulation instead
          !
@@ -60,7 +63,13 @@ contains
          !
       endif
       !
-   enddo   
+   enddo
+   !$omp end do
+   !$omp end parallel
+   !
+   ! gnapp2 is only computed on the CPU, so must update GPU memory now
+   !
+   !$acc update device(gnapp2)
    !
    end subroutine
    
