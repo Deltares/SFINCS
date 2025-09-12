@@ -654,7 +654,7 @@ contains
                !
                id   = min(int(0.2 * z0l / z0marine) + 1, 101)
                fd   = z0land_table(id) ! fd   = (z0marine/z0l)**0.0706
-               vmag = fd8 * vmag
+               vmag = fd * vmag
                wup  = fd * wup
                wvp  = fd * wvp
                !
