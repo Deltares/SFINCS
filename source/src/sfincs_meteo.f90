@@ -125,6 +125,8 @@ contains
    !
    if (amufile(1:4) /= 'none') then
       !
+      am_wind = .true.      
+      !
       call write_log('Info    : reading amu and amv file', 0)
       !  
       call read_amuv_dimensions(amufile, amuv_nt, amuv_nrows, amuv_ncols, amuv_x_llcorner, amuv_y_llcorner, amuv_dx, amuv_dy, amuv_nquant)
@@ -142,6 +144,8 @@ contains
       !
    elseif (netamuamvfile(1:4) /= 'none') then   ! FEWS compatible Netcdf amu&amv wind spatial input
       !
+      am_wind = .true.
+      !
       call read_netcdf_amuv_data()
       !
       allocate(amuv_wu01(amuv_nrows, amuv_ncols))
@@ -150,6 +154,8 @@ contains
    endif
    ! 
    if (amprfile(1:4) /= 'none') then
+      !
+      am_prcp = .true.
       !
       call write_log('Info    : reading ampr file', 0)
       !  
@@ -165,6 +171,8 @@ contains
       !
    elseif (netamprfile(1:4) /= 'none') then   ! FEWS compatible Netcdf ampr precipitation spatial input
       !
+      am_prcp = .true.
+      !
       call read_netcdf_ampr_data()
       !
       allocate(ampr_pr01(ampr_nrows, ampr_ncols)) ! (has to be allocated somewhere)
@@ -172,6 +180,8 @@ contains
    endif
    !
    if (ampfile(1:4) /= 'none') then
+      !
+      am_pres = .true.
       !
       call write_log('Info    : reading amp file', 0)
       !  
@@ -187,6 +197,8 @@ contains
       !
    elseif (netampfile(1:4) /= 'none') then   ! FEWS compatible Netcdf amp barometric pressure spatial input
       !
+      am_pres = .true.
+      !
       call read_netcdf_amp_data()
       !
       allocate(amp_patm01(amp_nrows, amp_ncols)) ! (has to be allocated somewhere)
@@ -194,6 +206,8 @@ contains
    endif
    !
    if (wndfile(1:4) /= 'none') then
+      !
+      tm_wind = .true.
       !
       ! Wind in time series file 
       write(logstr,'(a,a)')'Info    : reading ', trim(wndfile)    
@@ -224,6 +238,8 @@ contains
    endif   
    !
    if (prcpfile(1:4) /= 'none') then
+      !
+      tm_prcp = .true.
       !
       ! Rainfall in time series file 
       write(logstr,'(a,a)')'Info    : reading prcp file ', trim(prcpfile)    
