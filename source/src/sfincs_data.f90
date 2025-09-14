@@ -783,6 +783,9 @@ module sfincs_data
       integer*4, dimension(:),  allocatable :: nmindsrc
       integer*1, dimension(:),  allocatable :: drainage_type
       real*4, dimension(:,:),   allocatable :: drainage_params
+      real*4, dimension(:),     allocatable :: drainage_distance
+      real*4, dimension(:),     allocatable :: drainage_closing_time
+      real*4, dimension(:),     allocatable :: drainage_fraction_open
       real*4, dimension(:),     allocatable :: xsrc
       real*4, dimension(:),     allocatable :: ysrc
       !!!
