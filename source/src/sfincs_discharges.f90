@@ -14,7 +14,7 @@ contains
    real*4, dimension(:),     allocatable :: xsnk
    real*4, dimension(:),     allocatable :: ysnk
    !
-   real*4 xtmp, ytmp, dummy
+   real*4 xtmp, ytmp, dummy, xsnk_tmp, ysnk_tmp, xsrc_tmp, ysrc_tmp
    !
    integer isrc, itsrc, idrn, nm, m, n, stat, j, iref
    !
@@ -192,14 +192,24 @@ contains
       allocate(ysnk(ndrn))
       !
       allocate(drainage_type(ndrn))
-      allocate(drainage_params(ndrn,5))
+      allocate(drainage_params(ndrn, 5))
+      allocate(drainage_distance(ndrn))
+      allocate(drainage_fraction_open(ndrn))
+      allocate(drainage_closing_time(ndrn))
+      !
+      drainage_distance = 0.0
+      drainage_fraction_open = 1.0   ! initially fully open (should fix this based on zmin and zmax in params)
+      drainage_closing_time = 300.0  ! default opening / closing time 300 s - should really be in input file
       !
       do idrn = 1, ndrn
          read(501,*)xsnk(idrn),ysnk(idrn),xsrc(idrn),ysrc(idrn),drainage_type(idrn),drainage_params(idrn,1),drainage_params(idrn,2),drainage_params(idrn,3),drainage_params(idrn,4),drainage_params(idrn,5)
       enddo
+      !
       close(501)
       !
       ! Determine m and n indices of source and sinks
+      !
+      ! Should use quadtree.f90 for this !!!
       !
       do idrn = 1, ndrn
          !
@@ -279,7 +289,17 @@ contains
                !
             enddo   
             !
-         enddo   
+         enddo
+         !
+         ! Get coords of source and sink points, and compute distance between them
+         ! This is needed for controlled gates (type 4)
+         !
+         xsnk_tmp = z_xz(nmindsrc(nsrc + idrn*2 - 1))
+         ysnk_tmp = z_yz(nmindsrc(nsrc + idrn*2 - 1))
+         xsrc_tmp = z_xz(nmindsrc(nsrc + idrn*2))
+         ysrc_tmp = z_yz(nmindsrc(nsrc + idrn*2))
+         !
+         drainage_distance(idrn) = sqrt( (xsrc_tmp - xsnk_tmp)**2 + (ysrc_tmp - ysnk_tmp)**2 )
          !
       enddo
       !
@@ -322,6 +342,9 @@ contains
    real*4           :: dt
    real*4           :: qq
    real*4           :: qq0
+   !
+   real*4           :: dzds, frac, wdt, zsill, zmin, zmax, mng, hgate, dfrac
+   integer          :: idir
    !
    integer isrc, itsrc, idrn, jin, jout, nmin, nmout
    !
@@ -387,31 +410,31 @@ contains
                !
                if (zs(nmin)>zs(nmout)) then
                   !
-                  qq  = drainage_params(idrn,1)*sqrt(zs(nmin) - zs(nmout))
+                  qq  = drainage_params(idrn,1) * sqrt(zs(nmin) - zs(nmout))
                   !
                else
                   !
-                  qq  = -drainage_params(idrn,1)*sqrt(zs(nmout) - zs(nmin))
+                  qq  = -drainage_params(idrn, 1) * sqrt(zs(nmout) - zs(nmin))
                   !
                endif
                !
                if (subgrid) then
                   if (qq>0.0) then
-                     qq = min(qq, max(z_volume(nmin),0.0)/dt)
+                     qq = min(qq, max(z_volume(nmin), 0.0) / dt)
                   else
-                     qq = max(qq, -max(z_volume(nmout),0.0)/dt)
+                     qq = max(qq, -max(z_volume(nmout) , 0.0) / dt)
                   endif
                else
                   if (qq>0.0) then
-                     qq = min(qq, max((zs(nmin) - zb(nmin))*area,0.0)/dt)
+                     qq = min(qq, max((zs(nmin) - zb(nmin)) * area, 0.0) / dt)
                   else
-                     qq = max(qq, -max((zs(nmout) - zb(nmout))*area,0.0)/dt)
+                     qq = max(qq, -max((zs(nmout) - zb(nmout)) * area, 0.0) / dt)
                   endif
                endif
                !
                ! Add some relaxation
                ! structure_relax in seconds => gives ratio between new and old discharge (default 10s)
-               qq = 1/(structure_relax/dt)*qq + (1-(1/(structure_relax/dt)))*qq0
+               qq = 1.0 / (structure_relax / dt) * qq + (1.0 - (1.0 / (structure_relax / dt))) * qq0
                !qq = 0.10*qq + 0.90*qq0 - old implementation
                !
                qtsrc(jin)  = -qq
@@ -423,33 +446,33 @@ contains
                !
                qq0 = -qtsrc(jin) ! Previous time step, directed from intake to outfall
                !
-               if (zs(nmin)>zs(nmout)) then
+               if (zs(nmin) > zs(nmout)) then
                   !
-                  qq  = drainage_params(idrn,1)*sqrt(zs(nmin) - zs(nmout))
+                  qq  = drainage_params(idrn, 1) * sqrt(zs(nmin) - zs(nmout))
                   !
                else
                   !
-                  qq  = -drainage_params(idrn,1)*sqrt(zs(nmout) - zs(nmin))
+                  qq  = -drainage_params(idrn,1) * sqrt(zs(nmout) - zs(nmin))
                   !
                endif
                !
                if (subgrid) then
-                  if (qq>0.0) then
-                     qq = min(qq, max(z_volume(nmin),0.0)/dt)
+                  if (qq > 0.0) then
+                     qq = min(qq, max(z_volume(nmin), 0.0) / dt)
                   else
-                     qq = max(qq, -max(z_volume(nmout),0.0)/dt)
+                     qq = max(qq, -max(z_volume(nmout), 0.0) / dt)
                   endif
                else
                   if (qq>0.0) then
-                     qq = min(qq, max((zs(nmin) - zb(nmin))*area,0.0)/dt)
+                     qq = min(qq, max((zs(nmin) - zb(nmin)) * area, 0.0) / dt)
                   else
-                     qq = max(qq, -max((zs(nmout) - zb(nmout))*area,0.0)/dt)
+                     qq = max(qq, -max((zs(nmout) - zb(nmout)) * area,0.0) / dt)
                   endif
                endif
                !
                ! Add some relaxation
                ! structure_relax in seconds => gives ratio between new and old discharge (default 10s)
-               qq = 1/(structure_relax/dt)*qq + (1-(1/(structure_relax/dt)))*qq0
+               qq = 1.0 / (structure_relax / dt) * qq + (1.0 - (1.0 / (structure_relax / dt))) * qq0
                !qq = 0.10*qq + 0.90*qq0 - old implementation
                !
                ! Make sure it can only flow from intake to outfall point
@@ -457,6 +480,55 @@ contains
                qq = max(qq, 0.0)
                qtsrc(jin)  = -qq
                qtsrc(jout) =  qq
+               !
+            case(4)
+               !
+               ! Controlled gate
+               ! Compute water level slope
+               !
+               dzds = (zs(nmout) - zs(nmin)) / drainage_distance(idrn) ! water level slope
+               frac = drainage_fraction_open(idrn)                     ! fraction open (from previous time step)
+               !
+               wdt   = drainage_params(idrn, 1)                   ! width
+               zsill = drainage_params(idrn, 2)                   ! sill elevation
+               zmin  = drainage_params(idrn, 3)                   ! min water level for fully open
+               zmax  = drainage_params(idrn, 4)                   ! max water level for fully open
+               mng   = 0.024                                      ! Manning's n (hard coded for now, should be in input file)
+               hgate = max(max(zs(nmin), zs(nmout)) - zsill, 0.0) ! water depth
+               dfrac = dt / drainage_closing_time(idrn)           ! change in fraction open per time step
+               !
+               qq0 = -qtsrc(jin) / (wdt * max(frac, 0.001))       ! Discharge (in m2/s) from previous time step, exluding fraction open
+               !
+               ! Update fraction open
+               !
+               if (zs(nmin) > zmax .or. zs(nmin) < zmin) then
+                  !
+                  ! Water level is higher than zmax or lower than zmin so need to close the gate
+                  !
+                  frac = max(frac - dfrac, 0.0)
+                  !
+               else
+                  !
+                  ! Water level is in allowable range, so need to open the gate
+                  !
+                  frac = min(frac + dfrac, 1.0)
+                  !
+               endif
+               !
+               drainage_fraction_open(idrn) = frac
+               !
+               ! Use Manning's equation to compute discharge
+               !
+               !qq = frac * idir * wdt * sqrt(abs(dzds)) * hgate**(5.0 / 3.0) / mng0
+               !
+               ! Use Bates et al. (2010) formulation to include inertia effects
+               !
+               qq = (qq0 - g * hgate * dzds * dt) / (1.0 + g * mng**2 * dt * abs(qq0) / hgate**(7.0 / 3.0))
+               !
+               write(*,'(20e16.6)')qq,zs(nmin),zs(nmout),dzds,frac
+               !
+               qtsrc(jin)  = -qq * wdt * frac
+               qtsrc(jout) =  qq * wdt * frac
                !
             end select
          endif   
