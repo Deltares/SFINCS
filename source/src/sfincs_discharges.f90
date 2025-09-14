@@ -530,15 +530,11 @@ contains
                !
                drainage_fraction_open(idrn) = frac
                !
-               ! Use Manning's equation to compute discharge
-               !
-               !qq = frac * idir * wdt * sqrt(abs(dzds)) * hgate**(5.0 / 3.0) / mng0
-               !
                ! Use Bates et al. (2010) formulation to include inertia effects
                !
                qq = (qq0 - g * hgate * dzds * dt) / (1.0 + g * mng**2 * dt * abs(qq0) / hgate**(7.0 / 3.0))
                !
-               write(*,'(20e16.6)')qq,zs(nmin),zs(nmout),dzds,frac
+               !write(*,'(20e16.6)')qq,zs(nmin),zs(nmout),dzds,frac
                !
                qtsrc(jin)  = -qq * wdt * frac
                qtsrc(jout) =  qq * wdt * frac
