@@ -132,6 +132,7 @@ contains
    call read_real_input(500, 'nh_tol', nh_tol, 0.001)
    call read_int_input(500, 'nh_itermax', nh_itermax, 100)
    call read_logical_input(500, 'h73table', h73table, .false.)   
+   call read_real_input(500, 'rugdepth', runup_gauge_depth, 0.05)
    call read_logical_input(500, 'wave_enhanced_roughness', wave_enhanced_roughness, .false.)  
    !
    ! Domain
@@ -201,11 +202,13 @@ contains
    ! Output
    call read_char_input(500,'obsfile',obsfile,'none')
    call read_char_input(500,'crsfile',crsfile,'none')
+   call read_char_input(500, 'rugfile', rugfile, 'none')
    call read_int_input(500,'storevelmax',storevelmax,0)
    call read_int_input(500,'storefluxmax',storefluxmax,0)
    call read_int_input(500,'storevel',storevel,0)
    call read_int_input(500,'storecumprcp',storecumprcp,0)
    call read_int_input(500,'storetwet',storetwet,0)
+   call read_int_input(500,'storetmax_zs',storetmax_zs,0)
    call read_int_input(500,'storehsubgrid',storehsubgrid,0)
    call read_logical_input(500, 'storehmean', store_hmean, .false.)      
    call read_real_input(500,'twet_threshold',twet_threshold,0.01)
@@ -399,11 +402,13 @@ contains
    endif
    !
    snapwave = .false.
+   snapwavewind = .false.
    if (isnapwave==1) then
       snapwave = .true.
       !
       if (iwind==1) then
-          store_wind = .true. 
+          store_wind = .true.
+          snapwavewind = .true.
           ! For running SnapWave with wind growth, we need to store the wind speed & direction to be able to pass it from SFINCS to SnapWave. 
           ! Independent from wndfile or 2D meteo input, handled by store_wind.
       endif  
@@ -412,6 +417,11 @@ contains
    store_twet = .false.
    if (storetwet==1) then
       store_twet = .true.
+   endif
+   !
+   store_tmax_zs = .false.
+   if (storetmax_zs==1) then
+      store_tmax_zs = .true.
    endif
    !
    store_cumulative_precipitation = .false.

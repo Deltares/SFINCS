@@ -100,6 +100,7 @@ module sfincs_data
       real*4 nh_tstop
       integer nh_itermax
       real*4 nh_tol
+      real*4 runup_gauge_depth
       !
       real*4 freqminig
       real*4 freqmaxig
@@ -124,6 +125,7 @@ module sfincs_data
       character*256 :: wstfile
       character*256 :: obsfile
       character*256 :: crsfile
+      character*256 :: rugfile
       character*256 :: srcfile
       character*256 :: disfile
       character*256 :: drnfile
@@ -185,6 +187,7 @@ module sfincs_data
       !
       logical       :: waves
       logical       :: wind
+      logical       :: snapwavewind      
       logical       :: patmos
       logical       :: precip
       logical       :: spw_precip
@@ -196,7 +199,8 @@ module sfincs_data
       logical       :: store_maximum_waterlevel
       logical       :: store_maximum_waterdepth
       logical       :: store_maximum_velocity
-      logical       :: store_maximum_flux      
+      logical       :: store_maximum_flux
+      logical       :: store_tmax_zs
       logical       :: store_velocity
       logical       :: store_twet
       logical       :: store_hsubgrid
@@ -256,6 +260,7 @@ module sfincs_data
       integer storevel
       integer storecumprcp
       integer storetwet
+      integer storetmax_zs
       integer storeqdrain
       integer storezvolume
       integer storemeteo
@@ -528,6 +533,7 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: uv0
       real*8, dimension(:),   allocatable :: z_volume
       real*4, dimension(:),   allocatable :: twet
+      real*4, dimension(:),   allocatable :: tmax_zs
       real*4, dimension(:),   allocatable :: tsunami_arrival_time
       real*4, dimension(:),   allocatable :: zs0
       real*4, dimension(:),   allocatable :: zsderv
@@ -573,7 +579,6 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: dwig
       real*4, dimension(:),   allocatable :: dfig
       real*4, dimension(:),   allocatable :: cg    
-      real*4, dimension(:),   allocatable :: qb      
       real*4, dimension(:),   allocatable :: betamean
       real*4, dimension(:),   allocatable :: srcig      
       real*4, dimension(:),   allocatable :: alphaig      
@@ -594,7 +599,7 @@ module sfincs_data
       integer,            dimension(:,:),   allocatable :: nm_nbr_gbp       ! nm index of upstream neighbor (for downstream river boundaries)
       real*4,             dimension(:,:),   allocatable :: w_nbr_gbp        ! weight of upstream neighbor (for downstream river boundaries)
       real*4,             dimension(:,:),   allocatable :: d_nbr_gbp        ! distance to upstream neighbor (for downstream river boundaries)
-      real*4,             dimension(:),     allocatable :: slope_gbp        ! river slope (for downstream river boundaries)
+      integer,            dimension(:),     allocatable :: index_bdr_gbp    ! index of downstream boundary point (for lateral neumann boundary conditions)
       integer,            dimension(:),     allocatable :: nmi_gbp          ! nm index of internal point (for lateral neumann boundary conditions)
       real*4,             dimension(:),     allocatable :: zsb              ! water level with waves
       real*4,             dimension(:),     allocatable :: zsb0             ! water level without waves
@@ -612,10 +617,10 @@ module sfincs_data
       !
       ! Downstream river boundary points
       !
-      real*4, dimension(:),     allocatable :: x_bdr
-      real*4, dimension(:),     allocatable :: y_bdr
-      real*4, dimension(:),     allocatable :: slope_bdr
-      real*4, dimension(:),     allocatable :: azimuth_bdr
+      real*4,  dimension(:),     allocatable :: x_bdr
+      real*4,  dimension(:),     allocatable :: y_bdr
+      integer, dimension(:),     allocatable :: index_zsi_bdr
+      real*4,  dimension(:),     allocatable :: dzs_bdr
       !
       ! IG frequencies
       !
@@ -753,6 +758,13 @@ module sfincs_data
       integer, dimension(:,:),   allocatable   :: crs_uv_index
       integer, dimension(:,:),   allocatable   :: crs_idir
       character*256, dimension(:), allocatable :: namecrs
+      !!!
+      !!! Run-up gauges
+      !!!
+      integer                                  :: nr_runup_gauges
+      integer, dimension(:,:),   allocatable   :: runup_gauge_nm
+      character*256, dimension(:), allocatable :: runup_gauge_name
+      integer, dimension(:),     allocatable   :: runup_gauge_nrp
       !
       real*4 :: waveage
       !
