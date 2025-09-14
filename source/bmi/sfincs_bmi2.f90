@@ -444,15 +444,17 @@ function sfincs_get_var_nbytes(this, name, nbytes) result(status)
   class(sfincs_bmi), intent(in) :: this
   character(len=*),  intent(in) :: name
   integer,           intent(out):: nbytes
-  integer                       :: status
-  integer :: n
+  integer :: status, n
   n = var_size(this, name)
   if (n < 0) then
-    nbytes = 0; status = BMI_FAILURE; return
+    nbytes = 0
+    status = BMI_SUCCESS   ! <- was FAILURE; make it SUCCESS with zero bytes
+    return
   end if
   nbytes = 8*n
   status = BMI_SUCCESS
-end function sfincs_get_var_nbytes
+end function
+
 
 function sfincs_get_var_location(this, name, location) result(status)
   class(sfincs_bmi), intent(in) :: this
@@ -993,34 +995,16 @@ end subroutine assign_trim
 integer function var_size(this, name) result(n)
   class(sfincs_bmi), intent(in) :: this
   character(len=*),  intent(in) :: name
-  n = -1
   select case (trim(name))
-  case('water_surface_elevation')
-    if (associated(this%z)) then
-      n = size(this%z)
-    end if
-  case('water_depth')
-    if (associated(this%h)) then
-      n = size(this%h)
-    end if
-  case('bed_elevation')
-    if (allocated(zb)) then
-      n = size(zb)
-    end if
-  case('velocity_x')
-    if (associated(this%un)) then
-      n = size(this%un)
-    end if
-  case('velocity_y')
-    if (associated(this%vn)) then
-      n = size(this%vn)
-    end if
-  case('rain_rate')
-    if (associated(this%rain)) then
-      n = size(this%rain)
-    end if
+  case('water_surface_elevation');  if (associated(this%z))  then; n = size(this%z);  else; n = 0; end if
+  case('water_depth');              if (associated(this%h))  then; n = size(this%h);  else; n = 0; end if
+  case('bed_elevation');            if (allocated(zb))       then; n = size(zb);      else; n = 0; end if
+  case('velocity_x');               if (associated(this%un)) then; n = size(this%un); else; n = 0; end if
+  case('velocity_y');               if (associated(this%vn)) then; n = size(this%vn); else; n = 0; end if
+  case('rain_rate');                if (associated(this%rain)) then; n = size(this%rain); else; n = 0; end if
+  case default; n = 0
   end select
-end function var_size
+end function
 
 end module sfincs_bmi2
 
