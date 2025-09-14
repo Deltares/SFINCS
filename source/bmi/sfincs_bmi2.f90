@@ -13,6 +13,7 @@ module sfincs_bmi2
   ! Module-scope mirror buffers (TARGET so BMI can pointer-alias them)
   !========================
   integer,        save :: nz = 0, nu = 0, nv = 0
+  real(c_double), save, target, allocatable :: zb_store(:)   ! bed elevation [m]
   real(c_double), save, target, allocatable :: z_store(:)    ! water surface elevation [m]
   real(c_double), save, target, allocatable :: h_store(:)    ! water depth [m] (derived: max(0, zs - zb))
   real(c_double), save, target, allocatable :: un_store(:)   ! u-velocity [m/s] (no source -> zero, size 0)
@@ -37,6 +38,7 @@ module sfincs_bmi2
     character(len=:), pointer :: output_names(:)=> null()
 
     ! BMI-visible state (aliases to the TARGET mirrors above)
+    real(c_double), pointer :: bed(:) => null()
     real(c_double), pointer :: z(:)  => null()
     real(c_double), pointer :: h(:)  => null()
     real(c_double), pointer :: un(:) => null()
@@ -123,10 +125,17 @@ module sfincs_bmi2
 
 contains
 
-! ---------------- internal: mirror from real SFINCS arrays ----------------
+!----------------------------------------------------------------------
+! Pull the latest arrays from sfincs_data into the BMI-facing mirrors.
+! This makes the BMI succeed with size=0 when SFINCS hasn't allocated yet,
+! and use real SFINCS arrays as soon as they exist.
+!----------------------------------------------------------------------
 subroutine refresh_from_sfincs()
+  use, intrinsic :: iso_c_binding, only: c_double
+  implicit none
   integer :: n
 
+  ! --- water surface (zs) -> z_store and nz ---
   if (allocated(zs)) then
     n = size(zs)
     if (.not. allocated(z_store) .or. size(z_store) /= n) then
@@ -135,21 +144,40 @@ subroutine refresh_from_sfincs()
     end if
     z_store = real(zs, c_double)
     nz = n
+  else
+    ! no zs yet
+    if (allocated(z_store)) deallocate(z_store)
+    nz = 0
   end if
 
+  ! --- bed elevation (zb) -> zb_store ---
   if (allocated(zb)) then
     n = size(zb)
+    if (.not. allocated(zb_store) .or. size(zb_store) /= n) then
+      if (allocated(zb_store)) deallocate(zb_store)
+      allocate(zb_store(n))
+    end if
+    zb_store = real(zb, c_double)
+  else
+    if (allocated(zb_store)) deallocate(zb_store)
+  end if
+
+  ! --- depth (h) from zs & zb (clipped to >= 0) ---
+  if (allocated(zb) .and. allocated(zs)) then
+    n = size(zs)   ! already matched via SFINCS
     if (.not. allocated(h_store) .or. size(h_store) /= n) then
       if (allocated(h_store)) deallocate(h_store)
       allocate(h_store(n))
     end if
-    if (allocated(zs)) then
-      h_store = max(0.0d0, real(zs, c_double) - real(zb, c_double))
-    else
+    h_store = max(0.0d0, real(zs, c_double) - real(zb, c_double))
+  else
+    if (allocated(h_store)) then
+      ! keep any existing size, but zero it (no valid zs/zb yet)
       h_store = 0.0d0
     end if
   end if
 
+  ! --- rainfall (prcp) -> rain_store ---
   if (allocated(prcp)) then
     n = size(prcp)
     if (.not. allocated(rain_store) .or. size(rain_store) /= n) then
@@ -157,28 +185,37 @@ subroutine refresh_from_sfincs()
       allocate(rain_store(n))
     end if
     rain_store = real(prcp, c_double)
+  else
+    if (allocated(rain_store)) deallocate(rain_store)
   end if
 
+  ! --- coordinates for z-grid (cell centers / nodes) ---
   if (allocated(z_xz)) then
     n = size(z_xz)
     if (.not. allocated(xz_store) .or. size(xz_store) /= n) then
       if (allocated(xz_store)) deallocate(xz_store)
       allocate(xz_store(n))
     end if
-    xz_store = z_xz
+    xz_store = real(z_xz, c_double)
     nz = max(nz, n)
+  else
+    if (allocated(xz_store)) deallocate(xz_store)
   end if
+
   if (allocated(z_yz)) then
     n = size(z_yz)
     if (.not. allocated(yz_store) .or. size(yz_store) /= n) then
       if (allocated(yz_store)) deallocate(yz_store)
       allocate(yz_store(n))
     end if
-    yz_store = z_yz
+    yz_store = real(z_yz, c_double)
+  else
+    if (allocated(yz_store)) deallocate(yz_store)
   end if
 
-  ! u/v grids are not provided by sfincs_data -> keep zero-sized mirrors
+  ! --- u/v grids are not exposed from sfincs_data: keep zero-sized mirrors ---
   nu = 0; nv = 0
+
   if (allocated(xu_store)) deallocate(xu_store)
   if (allocated(yu_store)) deallocate(yu_store)
   if (allocated(xv_store)) deallocate(xv_store)
@@ -191,10 +228,15 @@ end subroutine refresh_from_sfincs
 !                       LIFECYCLE
 !======================================================================
 function sfincs_initialize(this, config_file) result(status)
-  class(sfincs_bmi), intent(out)   :: this
-  character(len=*),  intent(in)    :: config_file
-  integer                         :: status
+  use, intrinsic :: iso_c_binding, only: c_double
+  implicit none
+  class(sfincs_bmi), intent(out) :: this
+  character(len=*),  intent(in)  :: config_file
+  integer                        :: status
 
+  integer :: nmini, i
+
+  ! -- set strings & advertised I/O lists (deferred-length pointers)
   if (.not. associated(this%component_name)) then
     allocate(character(len=BMI_MAX_COMPONENT_NAME) :: this%component_name)
     this%component_name = 'SFINCS-BMI'
@@ -213,20 +255,49 @@ function sfincs_initialize(this, config_file) result(status)
          'water_surface_elevation', 'water_depth', 'bed_elevation' ]
   end if
 
+  ! -- pull whatever SFINCS has allocated so far into BMI mirrors
   call refresh_from_sfincs()
 
+  ! -- if SFINCS hasn't allocated anything yet, create a tiny fallback domain
+  if (nz <= 0) then
+    nmini = 4
+    nz = nmini
+
+    if (allocated(z_store))  deallocate(z_store)
+    if (allocated(h_store))  deallocate(h_store)
+    if (allocated(zb_store)) deallocate(zb_store)
+    if (allocated(xz_store)) deallocate(xz_store)
+    if (allocated(yz_store)) deallocate(yz_store)
+    if (allocated(rain_store)) deallocate(rain_store)
+
+    allocate(z_store(nz), h_store(nz), zb_store(nz), xz_store(nz), yz_store(nz), rain_store(nz))
+
+    do i = 1, nz
+      xz_store(i) = dble(i-1)
+      yz_store(i) = 0.0d0
+      zb_store(i) = 0.0d0
+      z_store(i)  = 0.0d0
+      h_store(i)  = max(0.0d0, z_store(i) - zb_store(i))
+      rain_store(i) = 0.0d0
+    end do
+
+    ! keep u/v empty (not exposed by sfincs_data)
+    nu = 0; nv = 0
+  end if
+
+  ! -- (re)associate BMI pointers to the current mirrors
   if (allocated(z_store))  this%z  => z_store
   if (allocated(h_store))  this%h  => h_store
-  if (allocated(un_store)) this%un => un_store    ! likely not allocated (nu=0)
-  if (allocated(vn_store)) this%vn => vn_store    ! likely not allocated (nv=0)
   if (allocated(xz_store)) this%xz => xz_store
   if (allocated(yz_store)) this%yz => yz_store
-  ! u/v coords not available -> leave these disassociated
   if (allocated(rain_store)) this%rain => rain_store
+  ! (u/v not provided -> leave this%un / this%vn disassociated)
 
+  ! -- simple clock defaults (no dependency on SFINCS internals)
   start_time_s   = 0.0d0
   current_time_s = start_time_s
   end_time_s     = 0.0d0
+  dt_s           = 60.0d0
 
   status = BMI_SUCCESS
 end function sfincs_initialize
