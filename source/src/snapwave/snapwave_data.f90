@@ -71,7 +71,6 @@ module snapwave_data
    real*4,  dimension(:),       allocatable    :: SwE                     ! directionally integrated wind input energy
    real*4,  dimension(:),       allocatable    :: SwA                     ! directionally integrated wind input wave action   
    !
-   real*4,  dimension(:),       allocatable    :: Qb
    real*4,  dimension(:),       allocatable    :: beta
    real*4,  dimension(:),       allocatable    :: srcig
    real*4,  dimension(:),       allocatable    :: alphaig   

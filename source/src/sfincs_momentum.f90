@@ -10,6 +10,12 @@ contains
    !
    ! Computes fluxes over subgrid u and v points
    !
+contains
+   !
+   subroutine compute_fluxes(dt, min_dt, tloop)
+   !
+   ! Computes fluxes over subgrid u and v points
+   !
    integer   :: count0
    integer   :: count1
    integer   :: count_rate
