@@ -448,7 +448,6 @@ contains
                ! Add some relaxation
                ! structure_relax in seconds => gives ratio between new and old discharge (default 10s)
                qq = 1.0 / (structure_relax / dt) * qq + (1.0 - (1.0 / (structure_relax / dt))) * qq0
-               !qq = 0.10*qq + 0.90*qq0 - old implementation
                !
                qtsrc(jin)  = -qq
                qtsrc(jout) =  qq
@@ -486,7 +485,6 @@ contains
                ! Add some relaxation
                ! structure_relax in seconds => gives ratio between new and old discharge (default 10s)
                qq = 1.0 / (structure_relax / dt) * qq + (1.0 - (1.0 / (structure_relax / dt))) * qq0
-               !qq = 0.10*qq + 0.90*qq0 - old implementation
                !
                ! Make sure it can only flow from intake to outfall point
                !
@@ -510,7 +508,7 @@ contains
                hgate = max(max(zs(nmin), zs(nmout)) - zsill, 0.0) ! water depth
                dfrac = dt / drainage_closing_time(idrn)           ! change in fraction open per time step
                !
-               qq0 = -qtsrc(jin) / (wdt * max(frac, 0.001))       ! Discharge (in m2/s) from previous time step, exluding fraction open
+               qq0 = -qtsrc(jin) / (wdt * max(frac, 0.001))       ! Discharge (in m2/s) from previous time step, excluding fraction open
                !
                ! Update fraction open
                !
@@ -534,10 +532,28 @@ contains
                !
                qq = (qq0 - g * hgate * dzds * dt) / (1.0 + g * mng**2 * dt * abs(qq0) / hgate**(7.0 / 3.0))
                !
-               !write(*,'(20e16.6)')qq,zs(nmin),zs(nmout),dzds,frac
+               ! Multiply with width and fraction open
                !
-               qtsrc(jin)  = -qq * wdt * frac
-               qtsrc(jout) =  qq * wdt * frac
+               qq = qq * wdt * frac
+               !
+               if (subgrid) then
+                  if (qq > 0.0) then
+                     qq = min(qq, max(z_volume(nmin), 0.0) / dt)
+                  else
+                     qq = max(qq, -max(z_volume(nmout), 0.0) / dt)
+                  endif
+               else
+                  if (qq>0.0) then
+                     qq = min(qq, max((zs(nmin) - zb(nmin)) * area, 0.0) / dt)
+                  else
+                     qq = max(qq, -max((zs(nmout) - zb(nmout)) * area,0.0) / dt)
+                  endif
+               endif               
+               !
+               qtsrc(jin)  = -qq
+               qtsrc(jout) =  qq
+               !
+               !write(*,'(20e16.6)')qq,zs(nmin),zs(nmout),dzds,frac
                !
             end select
          endif   
