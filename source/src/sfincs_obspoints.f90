@@ -7,6 +7,7 @@ contains
    ! Reads obs files
    !
    use sfincs_data
+   use sfincs_log
    use sfincs_error
    use quadtree
    !
@@ -15,6 +16,8 @@ contains
    real*4 xtmp, ytmp, dummy, di1, dj1
    !
    integer iobs, nm, m, n, nmq, stat, j1, j2, jdq, iref
+   !
+   logical ok
    !
    character(len=256)        :: line
    character(len=256)        :: line2
@@ -29,6 +32,8 @@ contains
       ! 
       write(logstr,'(a)')'Info    : reading observation points'
       call write_log(logstr, 0)
+      !
+      ok = check_file_exists(obsfile, 'Observation points file', .true.)
       !
       open(500, file=trim(obsfile))       
       do while(.true.)

@@ -1,5 +1,8 @@
    module sfincs_wavemaker
 
+   use sfincs_log
+   use sfincs_error
+
    contains
 
    subroutine read_wavemaker_polylines()
@@ -63,7 +66,7 @@
    write(logstr,*)'Reading wavemaker polyline file ...'
    call write_log(logstr, 0)
    !
-   ! Loop through all polylines
+   iok = check_file_exists(wvmfile, 'Wave maker file', .true.)
    !
    open(500, file=trim(wvmfile))
    do while(.true.)

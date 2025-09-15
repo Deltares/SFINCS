@@ -1,5 +1,8 @@
    module sfincs_structures
 
+   use sfincs_error
+   use sfincs_log
+   
    contains
 
    subroutine read_structures()
@@ -95,6 +98,8 @@
    !
    write(logstr,'(a)')'Info    : reading weir file'
    call write_log(logstr, 0)
+   !
+   okay = check_file_exists(filename, 'Weir file', .true.)
    !
    ! Read structures file
    !
@@ -391,6 +396,7 @@
    real      :: dst, dstmin, xxx, yyy, dstx, dsty
    real      :: dummy
    character :: cdummy
+   logical   :: ok
    !
    real*4,  dimension(:),   allocatable :: xthd
    real*4,  dimension(:),   allocatable :: ythd
@@ -405,6 +411,8 @@
    total_nr_points = 0
    !
    if (thdfile(1:4) /= 'none') then
+      !
+      ok = check_file_exists(thdfile, 'Thin dams file', .true.)
       !
       ! First count number of polylines
       !

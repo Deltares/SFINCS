@@ -9,6 +9,7 @@ contains
    use sfincs_data
    use sfincs_date
    use sfincs_log
+   use sfincs_error
    !
    implicit none
    !
@@ -35,11 +36,14 @@ contains
    integer iwavemaker      
    integer iwavemaker_spectrum  
    integer ispwprecip
-   logical iviscosity   
+   logical iviscosity
+   logical ok
    !
    character*256 wmsigstr 
    character*256 advstr 
    !   
+   ok = check_file_exists('sfincs.inp', 'SFINCS input file', .true.)
+   !
    open(500, file='sfincs.inp')   
    !
    call read_int_input(500,'mmax',mmax,0)
