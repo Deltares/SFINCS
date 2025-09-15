@@ -267,25 +267,16 @@ contains
          !
       endif
       !
-   else   
+   else
+      !
+      if (bdrfile(1:4) /= 'none') then
+         !
+         write(logstr,'(a)')'Warning : Found bdr file in sfincs.inp, but no downstream river points in were found in the mask!'
+         call write_log(logstr, 0)
+         !  
+      endif
       !
    endif
-!   !
-!   ! Infragravity frequencies
-!   !
-!   allocate(freqig(nfreqsig))
-!   allocate(costig(nfreqsig))
-!   allocate(phiig(nfreqsig))
-!   allocate(dphiig(nfreqsig))
-!   dfreqig = (freqmaxig - freqminig)/nfreqsig
-!   do ifreq = 1, nfreqsig
-!      freqig(ifreq) = freqminig + ifreq*dfreqig - 0.5*dfreqig
-!      call RANDOM_NUMBER(r)
-!      phiig(ifreq) = r*2*3.1416
-!!      call RANDOM_NUMBER(r)
-!      dphiig(ifreq) = 1.0e-6*2*3.1416/freqig(ifreq)
-!   enddo
-
    !
    ! If bca file is present (and use_bcafile = true, which is the default), read it
    !
@@ -429,25 +420,16 @@ contains
       !      
       i_date_time = time_to_vector(0.0d0, trefstr)
       !
-      !
       call update_nodal_factors(i_date_time, tidal_component_names, nr_tidal_components, nbnd, tidal_component_data, tidal_component_frequency)
       !
       tidal_component_frequency = tidal_component_frequency / 3600 ! Convert to rad/s      
       !
-      do ios = 1, nr_tidal_components
-         write(logstr,'(a,20f16.3)')tidal_component_names(ios), (180.0 / pi) * tidal_component_frequency(ios) * 3600.0,tidal_component_data(1,ios,1), (180.0 / pi) * tidal_component_data(2,ios,1)         
-         call write_log(logstr, 0)
-      enddo   
+      !do ios = 1, nr_tidal_components
+      !   write(logstr,'(a,20f16.3)')tidal_component_names(ios), (180.0 / pi) * tidal_component_frequency(ios) * 3600.0,tidal_component_data(1,ios,1), (180.0 / pi) * tidal_component_data(2,ios,1)         
+      !   call write_log(logstr, 0)
+      !enddo   
       !
    endif      
-      if (bdrfile(1:4) /= 'none') then
-         !
-         write(logstr,'(a)')'Warning : Found bdr file in sfincs.inp, but no downstream river points in were found in the mask!'
-         call write_log(logstr, 0)
-         !  
-      endif
-      !
-   endif   
    !
    end subroutine
 
@@ -680,34 +662,6 @@ contains
       !
    else
       !
-      tbfac  = (tb - t_bnd(itb0))/max(t_bnd(itb1) - t_bnd(itb0), 1.0e-6)
-      !
-      do ib = 1, nbnd ! Loop along boundary points
-         !
-         ! Tide and surge
-         !
-         zstb = zs_bnd(ib, itb0) + (zs_bnd(ib, itb1) - zs_bnd(ib, itb0))*tbfac
-         !
-         ! Add astronomical tides
-         !
-         if (nr_tidal_components > 0) then
-            !
-            do ic = 1, nr_tidal_components
-               !
-               zstb = zstb + tidal_component_data(1, ic, ib) * cos(tidal_component_frequency(ic) * t - tidal_component_data(2, ic, ib))
-               !
-            enddo   
-            !
-         endif   
-         !
-         zst_bnd(ib) = zstb
-         !
-         if (bzifile(1:4) /= 'none') then
-            !
-            ! Incoming infragravity waves
-            !
-            zsit_bnd(ib) = zsi_bnd(ib, itb0) + (zsi_bnd(ib, itb1) - zsi_bnd(ib, itb0))*tbfac
-            !
       do itb = itbndlast, ntbnd ! Loop in time
          if (t_bnd(itb) > (t + 1.0e-6)) then
             itb0 = itb - 1
@@ -718,30 +672,39 @@ contains
          endif
       enddo 
       !
-   endif            
-   !
-   tbfac  = (tb - t_bnd(itb0))/max(t_bnd(itb1) - t_bnd(itb0), 1.0e-6)
+      tbfac  = (tb - t_bnd(itb0)) / max(t_bnd(itb1) - t_bnd(itb0), 1.0e-6)
+      !
+   endif   
    !
    do ib = 1, nbnd ! Loop along boundary points
       !
       ! Tide and surge
       !
-      zstb = zs_bnd(ib, itb0) + (zs_bnd(ib, itb1) - zs_bnd(ib, itb0))*tbfac
+      zstb = zs_bnd(ib, itb0) + (zs_bnd(ib, itb1) - zs_bnd(ib, itb0)) * tbfac
+      !
+      ! Add astronomical tides
+      !
+      if (nr_tidal_components > 0) then
+         !
+         do ic = 1, nr_tidal_components
+            !
+            zstb = zstb + tidal_component_data(1, ic, ib) * cos(tidal_component_frequency(ic) * t - tidal_component_data(2, ic, ib))
+            !
+         enddo   
+         !
+      endif   
       !
       zst_bnd(ib) = zstb
       !
       if (bzifile(1:4) /= 'none') then
          !
-      enddo
-      !      
-   endif
          ! Incoming infragravity waves
          !
-         zsit_bnd(ib) = zsi_bnd(ib, itb0) + (zsi_bnd(ib, itb1) - zsi_bnd(ib, itb0))*tbfac
+         zsit_bnd(ib) = zsi_bnd(ib, itb0) + (zsi_bnd(ib, itb1) - zsi_bnd(ib, itb0)) * tbfac
          !
       endif
       !
-   enddo
+   enddo    
    !
    end subroutine
    
