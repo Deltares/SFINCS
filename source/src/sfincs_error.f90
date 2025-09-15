@@ -11,7 +11,7 @@ module sfincs_error
    integer, intent(in)          :: error_code
    character(len=*), intent(in) :: message
    !
-   write(logstr,'(a, a)')'Error   : ', message
+   logstr = 'Error   : ' // trim(message)
    call write_log(logstr, 1)
    stop error_code
    !   
