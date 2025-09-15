@@ -219,13 +219,6 @@ contains
          !
          close(500)
          !
-         ! To use bdrfile option, grid cells must be square
-         !
-         if (dx /= dy) then
-             call stop_sfincs('Error! downstream river boundary bdrfile option is only alowed for dx=dy grids! SFINCS has stopped!', 1)
-         endif         
-         !
-         !
       else
          !
          ! This really should not happen
@@ -406,15 +399,6 @@ contains
             !
          enddo
          !
-         ! Quadtree refinement is not allowed near river outflow boundaries! This would get too complicated for now. 
-         if (z_index_z_md1(nm)>0 .or. z_index_z_md2(nm)>0 .or. z_index_z_mu1(nm)>0 .or. z_index_z_mu2(nm)>0 .or. z_index_z_nd1(nm)>0 .or. z_index_z_nd2(nm)>0 .or. z_index_z_nu1(nm)>0 .or. z_index_z_nu2(nm)>0) then
-             ! Finer on the left, right, below or above
-             !
-             call stop_sfincs('Error! Quadtree refinement is not allowed near river outflow boundaries! SFINCS has stopped!', 1)
-             !
-         endif              
-         ! Also, grid cells must be square, which is already checked on in subroutine read_boundary_data
-         !         
          index_bdr_gbp(ib) = ib1
          !
       elseif (kcs(nm) == 6) then  ! This cell is a Neumann boundary point
