@@ -153,6 +153,7 @@ contains
    call read_real_input(500, 'factor_pres', factor_pres, 1.0)
    call read_real_input(500, 'factor_prcp', factor_prcp, 1.0)
    call read_real_input(500, 'factor_spw_size', factor_spw_size, 1.0)   
+   call read_logical_input(500, 'use_bcafile', use_bcafile, .true.)
    !
    ! Domain
    !
