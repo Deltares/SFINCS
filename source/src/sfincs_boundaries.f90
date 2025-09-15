@@ -88,6 +88,18 @@ contains
          close(500)
          !
       else
+         !
+         ! There is a bnd file, but no bzs file. Set all water levels at boundary to 0.0.
+         ! This is possible when we force with a bca file.
+         ! However, if there is no bca file, give a warning that the bzs file is missing.
+         !
+         if (bcafile(1:4) == 'none') then
+            !
+            write(logstr,'(a)')'Warning! Boundary points defined in bnd file without boundary conditions (bzs or bca file). Using water level of 0.0 m at these points.'
+            call write_log(logstr, 1)
+            !
+         endif   
+         !
          ntbnd = 2
          !
          allocate(t_bnd(ntbnd))
@@ -96,7 +108,8 @@ contains
          !
          t_bnd(1) = t0
          t_bnd(2) = t1
-         zs_bnd = 0.0
+         zs_bnd   = 0.0
+         zst_bnd  = 0.0
          !
       endif   
       !
@@ -138,30 +151,29 @@ contains
          !
       endif   
       !
-   elseif (include_boundaries) then   
+   elseif (include_boundaries) then
       !
-      write(logstr,'(a)')'Warning! Boundary cells found in mask, without boundary conditions. Using water level of 0.0 m at these points.'
+      ! No bnd file provided, but there are open boundaries in the mask. Add one bnd point and set water levels to 0.0.
+      !
+      write(logstr,'(a)')'Warning! Boundary cells found in mask without boundary points from bnd file. Setting water level at 0.0 m at mask boundary cells.'
       call write_log(logstr, 1)
       !
       nbnd = 1
       allocate(x_bnd(nbnd))
       allocate(y_bnd(nbnd))
-      x_bnd(1) = 0.0
-      y_bnd(1) = 0.0
+      x_bnd = 0.0
+      y_bnd = 0.0
       !
       ntbnd = 2
       !
       allocate(t_bnd(ntbnd))
-      allocate(zs_bnd(nbnd,ntbnd))
+      allocate(zs_bnd(nbnd, ntbnd))
       allocate(zst_bnd(nbnd))
       !
       t_bnd(1) = t0
       t_bnd(2) = t1
-      zs_bnd(1,1) = 0.0
-      zs_bnd(2,1) = 0.0
-      zs_bnd(1,2) = 0.0
-      zs_bnd(2,2) = 0.0
-      zst_bnd(1)  = 0.0      
+      zs_bnd   = 0.0
+      zst_bnd  = 0.0      
       !
    endif
    !
@@ -172,7 +184,7 @@ contains
    do ib = 1, nbnd
       do itb = 1, ntbnd
          !
-         if (zs_bnd(ib, itb)<-99.0 .or. zs_bnd(ib, itb)>990.0) then
+         if (zs_bnd(ib, itb) < -99.0 .or. zs_bnd(ib, itb) > 990.0) then
             !
             iok = 0
             !
