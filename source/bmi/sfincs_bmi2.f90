@@ -135,7 +135,7 @@ subroutine refresh_from_sfincs()
   implicit none
   integer :: n
 
-  ! --- water surface (zs) -> z_store and nz ---
+  ! -- water surface (zs) --
   if (allocated(zs)) then
     n = size(zs)
     if (.not. allocated(z_store) .or. size(z_store) /= n) then
@@ -145,12 +145,11 @@ subroutine refresh_from_sfincs()
     z_store = real(zs, c_double)
     nz = n
   else
-    ! no zs yet
     if (allocated(z_store)) deallocate(z_store)
     nz = 0
   end if
 
-  ! --- bed elevation (zb) -> zb_store ---
+  ! -- bed elevation (zb) --
   if (allocated(zb)) then
     n = size(zb)
     if (.not. allocated(zb_store) .or. size(zb_store) /= n) then
@@ -162,22 +161,19 @@ subroutine refresh_from_sfincs()
     if (allocated(zb_store)) deallocate(zb_store)
   end if
 
-  ! --- depth (h) from zs & zb (clipped to >= 0) ---
-  if (allocated(zb) .and. allocated(zs)) then
-    n = size(zs)   ! already matched via SFINCS
+  ! -- depth from zs & zb (clip at 0) --
+  if (allocated(zs) .and. allocated(zb)) then
+    n = size(zs)
     if (.not. allocated(h_store) .or. size(h_store) /= n) then
       if (allocated(h_store)) deallocate(h_store)
       allocate(h_store(n))
     end if
     h_store = max(0.0d0, real(zs, c_double) - real(zb, c_double))
   else
-    if (allocated(h_store)) then
-      ! keep any existing size, but zero it (no valid zs/zb yet)
-      h_store = 0.0d0
-    end if
+    if (allocated(h_store)) h_store = 0.0d0
   end if
 
-  ! --- rainfall (prcp) -> rain_store ---
+  ! -- rainfall (prcp) --
   if (allocated(prcp)) then
     n = size(prcp)
     if (.not. allocated(rain_store) .or. size(rain_store) /= n) then
@@ -189,7 +185,7 @@ subroutine refresh_from_sfincs()
     if (allocated(rain_store)) deallocate(rain_store)
   end if
 
-  ! --- coordinates for z-grid (cell centers / nodes) ---
+  ! -- z-grid coordinates --
   if (allocated(z_xz)) then
     n = size(z_xz)
     if (.not. allocated(xz_store) .or. size(xz_store) /= n) then
@@ -213,9 +209,8 @@ subroutine refresh_from_sfincs()
     if (allocated(yz_store)) deallocate(yz_store)
   end if
 
-  ! --- u/v grids are not exposed from sfincs_data: keep zero-sized mirrors ---
+  ! -- u/v not exposed from sfincs_data; keep mirrors empty
   nu = 0; nv = 0
-
   if (allocated(xu_store)) deallocate(xu_store)
   if (allocated(yu_store)) deallocate(yu_store)
   if (allocated(xv_store)) deallocate(xv_store)
@@ -233,10 +228,9 @@ function sfincs_initialize(this, config_file) result(status)
   class(sfincs_bmi), intent(out) :: this
   character(len=*),  intent(in)  :: config_file
   integer                        :: status
-
   integer :: nmini, i
 
-  ! -- set strings & advertised I/O lists (deferred-length pointers)
+  ! -- names and I/O lists
   if (.not. associated(this%component_name)) then
     allocate(character(len=BMI_MAX_COMPONENT_NAME) :: this%component_name)
     this%component_name = 'SFINCS-BMI'
@@ -255,10 +249,10 @@ function sfincs_initialize(this, config_file) result(status)
          'water_surface_elevation', 'water_depth', 'bed_elevation' ]
   end if
 
-  ! -- pull whatever SFINCS has allocated so far into BMI mirrors
+  ! -- pull arrays from SFINCS if already allocated
   call refresh_from_sfincs()
 
-  ! -- if SFINCS hasn't allocated anything yet, create a tiny fallback domain
+  ! -- provide a tiny fallback if SFINCS hasn't filled anything yet
   if (nz <= 0) then
     nmini = 4
     nz = nmini
@@ -273,27 +267,26 @@ function sfincs_initialize(this, config_file) result(status)
     allocate(z_store(nz), h_store(nz), zb_store(nz), xz_store(nz), yz_store(nz), rain_store(nz))
 
     do i = 1, nz
-      xz_store(i) = dble(i-1)
-      yz_store(i) = 0.0d0
-      zb_store(i) = 0.0d0
-      z_store(i)  = 0.0d0
-      h_store(i)  = max(0.0d0, z_store(i) - zb_store(i))
+      xz_store(i)   = dble(i-1)
+      yz_store(i)   = 0.0d0
+      zb_store(i)   = 0.0d0
+      z_store(i)    = 0.0d0
+      h_store(i)    = max(0.0d0, z_store(i) - zb_store(i))
       rain_store(i) = 0.0d0
     end do
 
-    ! keep u/v empty (not exposed by sfincs_data)
     nu = 0; nv = 0
   end if
 
-  ! -- (re)associate BMI pointers to the current mirrors
-  if (allocated(z_store))  this%z  => z_store
-  if (allocated(h_store))  this%h  => h_store
-  if (allocated(xz_store)) this%xz => xz_store
-  if (allocated(yz_store)) this%yz => yz_store
-  if (allocated(rain_store)) this%rain => rain_store
-  ! (u/v not provided -> leave this%un / this%vn disassociated)
+  ! -- (re)associate BMI pointers
+  if (allocated(z_store))   this%z   => z_store
+  if (allocated(h_store))   this%h   => h_store
+  if (allocated(xz_store))  this%xz  => xz_store
+  if (allocated(yz_store))  this%yz  => yz_store
+  if (allocated(rain_store))this%rain=> rain_store
+  ! u/v remain disassociated (not provided by sfincs_data)
 
-  ! -- simple clock defaults (no dependency on SFINCS internals)
+  ! -- time bookkeeping (simple defaults)
   start_time_s   = 0.0d0
   current_time_s = start_time_s
   end_time_s     = 0.0d0
@@ -781,12 +774,12 @@ function sfincs_get_value_double(this, name, dest) result(status)
     n = min(size(dest), size(this%z));  if (n>0 .and. associated(this%z))  dest(1:n) = this%z(1:n)
   case('water_depth')
     n = min(size(dest), size(this%h));  if (n>0 .and. associated(this%h))  dest(1:n) = this%h(1:n)
-  case('bed_elevation')
-    if (allocated(zb)) then
-      n = min(size(dest), size(zb)); if (n>0) dest(1:n) = real(zb(1:n),c_double)
-    else
-      status = BMI_FAILURE; return
-    end if
+  !case('bed_elevation')
+  !  if (allocated(zb)) then
+  !    n = min(size(dest), size(zb)); if (n>0) dest(1:n) = real(zb(1:n),c_double)
+  !  else
+  !    status = BMI_FAILURE; return
+  !  end if
   case('velocity_x')
     if (associated(this%un)) then
       n = min(size(dest), size(this%un)); if (n>0) dest(1:n) = this%un(1:n)
@@ -801,6 +794,14 @@ function sfincs_get_value_double(this, name, dest) result(status)
     else
       status = BMI_FAILURE; return
     end if
+  case('bed_elevation')
+    if (allocated(zb_store)) then
+      n = min(size(dest), size(zb_store))
+      if (n>0) dest(1:n) = zb_store(1:n)
+      status = BMI_SUCCESS
+    else
+      status = BMI_FAILURE
+  end if
   case default
     status = BMI_FAILURE; return
   end select
@@ -840,6 +841,7 @@ function sfincs_get_value_ptr_double(this, name, dest_ptr) result(status)
   case('velocity_y');               if (associated(this%vn))  dest_ptr => this%vn
   case('rain_rate');                if (associated(this%rain))dest_ptr => this%rain
   case('bed_elevation');            nullify(dest_ptr); status=BMI_FAILURE; return  ! cannot point to zb (not TARGET)
+  !case('bed_elevation');  n = merge(size(zb_store), -1, allocated(zb_store))
   case default
     nullify(dest_ptr); status = BMI_FAILURE; return
   end select
