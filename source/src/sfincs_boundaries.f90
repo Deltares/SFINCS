@@ -75,6 +75,8 @@ contains
       !
       if (bzsfile(1:4) /= 'none') then
          !
+         ok = check_file_exists(bzsfile, 'Boundary conditions file', .true.)
+         !         
          open(500, file=trim(bzsfile))
          do while(.true.)
             read(500,*,iostat = stat)dummy
@@ -94,6 +96,17 @@ contains
          close(500)
          !
       else
+         !
+         ! There is a bnd file, but no bzs file. Set all water levels at boundary to 0.0.
+         ! This is possible when we force with a bca file.
+         ! However, if there is no bca file, give a warning that the bzs file is missing.
+         !
+         if (bcafile(1:4) == 'none') then
+            !
+            write(logstr,'(a)')'Warning! Boundary points defined in bnd file without boundary conditions (bzs or bca file). Using water level of 0.0 m at these points.'
+            call write_log(logstr, 1)
+            !
+         endif   
          !
          ntbnd = 2
          !
@@ -149,28 +162,27 @@ contains
       !
    elseif (water_level_boundaries_in_mask) then   
       !
-      write(logstr,'(a)')'Warning! Boundary cells found in mask, without boundary conditions. Using water level of 0.0 m at these points.'
+      ! No bnd file provided, but there are open boundaries in the mask. Add one bnd point and set water levels to 0.0.
+      !
+      write(logstr,'(a)')'Warning! Boundary cells found in mask without boundary points from bnd file. Setting water level at 0.0 m at mask boundary cells.'
       call write_log(logstr, 1)
       !
       nbnd = 1
       allocate(x_bnd(nbnd))
       allocate(y_bnd(nbnd))
-      x_bnd(1) = 0.0
-      y_bnd(1) = 0.0
+      x_bnd = 0.0
+      y_bnd = 0.0
       !
       ntbnd = 2
       !
       allocate(t_bnd(ntbnd))
-      allocate(zs_bnd(nbnd,ntbnd))
+      allocate(zs_bnd(nbnd, ntbnd))
       allocate(zst_bnd(nbnd))
       !
       t_bnd(1) = t0
       t_bnd(2) = t1
-      zs_bnd(1,1) = 0.0
-      zs_bnd(2,1) = 0.0
-      zs_bnd(1,2) = 0.0
-      zs_bnd(2,2) = 0.0
-      zst_bnd(1)  = 0.0      
+      zs_bnd   = 0.0
+      zst_bnd  = 0.0      
       !
    endif
    !
@@ -181,7 +193,7 @@ contains
    do ib = 1, nbnd
       do itb = 1, ntbnd
          !
-         if (zs_bnd(ib, itb)<-99.0 .or. zs_bnd(ib, itb)>990.0) then
+         if (zs_bnd(ib, itb) < -99.0 .or. zs_bnd(ib, itb) > 990.0) then
             !
             iok = 0
             !
@@ -258,7 +270,7 @@ contains
          !
          ! This really should not happen
          !
-         call stop_sfincs('Downstream river points found in mask, without boundary conditions (missing bdrfile in sfincs.inp) !', 1)
+         call stop_sfincs('Error ! Downstream river points found in mask, without boundary conditions (missing bdrfile in sfincs.inp) !', 1)
          !
       endif
       !
@@ -273,11 +285,13 @@ contains
       !
    endif   
    !
-   ! If bca file is present, read it
+   ! If bca file is present (and use_bcafile = true, which is the default), read it
    !
    nr_tidal_components = 0
    !
-   if (bcafile(1:4) /= 'none' .and. nbnd > 0) then
+   if (bcafile(1:4) /= 'none' .and. nbnd > 0 .and. use_bcafile) then
+      !
+      call write_log('Info    : reading tidal components', 0)
       !
       ! First pass: count number of sets and number of components in first set
       !
@@ -444,8 +458,7 @@ contains
    integer nm, m, n, nb, ib1, ib2, ib, ic, ibnd, ibdr, iref
    integer nmi
    !
-   real x, y, dst1, dst2, dst, phi_riv, phi_r
-   real*4 :: w_1, w_2, w_3, d_1, d_2, d_3 
+   real x, y, dst1, dst2, dst
    !
    ! Check there are points from bnd file and/or bdr file and that kcs mask contains 2/3/5/6
    !
@@ -642,11 +655,9 @@ contains
    !
    real*4 zstb, tbfac, hs, tp, wd, tb
    !
-   if (nbnd == 0) then
-      !
-      return
-      !
-   endif   
+   if (nbnd == 0) return ! no boundary points
+   !
+   ! Interpolate boundary conditions in time
    !
    if (t_bnd(1) > (t - 1.0e-3)) then  ! use first time in boundary conditions       
       !
@@ -689,7 +700,6 @@ contains
          do ic = 1, nr_tidal_components
             !
             zstb = zstb + tidal_component_data(1, ic, ib) * cos(tidal_component_frequency(ic) * t - tidal_component_data(2, ic, ib))
-            !write(*,*)tidal_component_data(1, ic, ib) * cos(tidal_component_frequency(ic) * t - tidal_component_data(2, ic, ib))
             !
          enddo   
          !
