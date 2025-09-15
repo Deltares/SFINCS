@@ -11,9 +11,9 @@ contains
    !
    use sfincs_ncinput
    use sfincs_data
+   use quadtree
    use sfincs_date
    use astro
-   use quadtree
    !
    implicit none
    !
@@ -55,6 +55,8 @@ contains
       !
       call write_log('Info    : reading water level boundaries', 0)
       !
+      ok = check_file_exists(bndfile, 'Boundary points file', .true.)
+      !
       open(500, file=trim(bndfile))
       do while(.true.)
          read(500,*,iostat = stat)dummy
@@ -73,6 +75,8 @@ contains
       !
       if (bzsfile(1:4) /= 'none') then
          !
+         ok = check_file_exists(bzsfile, 'Boundary conditions file', .true.)
+         !         
          open(500, file=trim(bzsfile))
          do while(.true.)
             read(500,*,iostat = stat)dummy
@@ -123,6 +127,8 @@ contains
          !
          allocate(zsi_bnd(nbnd,ntbnd))
          allocate(zsit_bnd(nbnd))
+         !
+         ok = check_file_exists(bzifile, 'Boundary infragravity time series file', .true.)
          !
          open(500, file=trim(bzifile))
          do itb = 1, ntbnd
@@ -217,6 +223,8 @@ contains
          write(logstr,'(a)')'Info    : reading downstream river boundaries'
          call write_log(logstr, 0)
          !
+         ok = check_file_exists(bdrfile, 'Downstream boundary points file', .true.)
+         !
          open(500, file=trim(bdrfile))
          do while(.true.)
             read(500,*,iostat = stat)dummy
@@ -263,11 +271,11 @@ contains
          !
          ! This really should not happen
          !
-         call stop_sfincs('Error! Downstream river points found in mask, without boundary conditions (missing bdrfile in sfincs.inp) !', 1)
+         call stop_sfincs('Error ! Downstream river points found in mask, without boundary conditions (missing bdrfile in sfincs.inp) !', 1)
          !
       endif
       !
-   else
+   else   
       !
       if (bdrfile(1:4) /= 'none') then
          !
@@ -276,7 +284,7 @@ contains
          !  
       endif
       !
-   endif
+   endif   
    !
    ! If bca file is present (and use_bcafile = true, which is the default), read it
    !
@@ -285,7 +293,7 @@ contains
    if (bcafile(1:4) /= 'none' .and. nbnd > 0 .and. use_bcafile) then
       !
       call write_log('Info    : reading tidal components', 0)
-      !       
+      !
       ! First pass: count number of sets and number of components in first set
       !
       ! NOTE 1 : The number of component sets in the bca file must match the number of points in the bnd file!
@@ -300,6 +308,7 @@ contains
       do
          !
          read(500, '(A)', iostat=ios) line
+         line = clean_line(line)
          !
          if (ios /= 0) exit
          !
@@ -338,6 +347,7 @@ contains
             endif   
             !
          endif
+         !
       enddo
       !
       ! Check whether n_sets is same as nbnd (otherwise give error)
@@ -378,6 +388,7 @@ contains
       !
       do
          read(500, '(A)', iostat=ios) line
+         line = clean_line(line)
          !
          if (ios /= 0) exit
          !
@@ -420,13 +431,13 @@ contains
       !      
       i_date_time = time_to_vector(0.0d0, trefstr)
       !
+      !
       call update_nodal_factors(i_date_time, tidal_component_names, nr_tidal_components, nbnd, tidal_component_data, tidal_component_frequency)
       !
-      tidal_component_frequency = tidal_component_frequency / 3600 ! Convert to rad/s      
+      tidal_component_frequency = tidal_component_frequency / 3600 ! Convert to rad/s
       !
       !do ios = 1, nr_tidal_components
-      !   write(logstr,'(a,20f16.3)')tidal_component_names(ios), (180.0 / pi) * tidal_component_frequency(ios) * 3600.0,tidal_component_data(1,ios,1), (180.0 / pi) * tidal_component_data(2,ios,1)         
-      !   call write_log(logstr, 0)
+      !   write(*,'(a,20f16.3)')tidal_component_names(ios), (180.0 / pi) * tidal_component_frequency(ios) * 3600.0,tidal_component_data(1,ios,1), (180.0 / pi) * tidal_component_data(2,ios,1)
       !enddo   
       !
    endif      
@@ -625,6 +636,7 @@ contains
          endif
          !
       endif
+      !
    enddo
    !
    end subroutine
@@ -644,11 +656,11 @@ contains
    !
    real*4 zstb, tbfac, hs, tp, wd, tb
    !
-   if (nbnd == 0) return
+   if (nbnd == 0) return ! no boundary points
    !
    ! Interpolate boundary conditions in time
    !
-   if (t_bnd(1) > (t - 1.0e-3)) then ! use first time in boundary conditions
+   if (t_bnd(1) > (t - 1.0e-3)) then  ! use first time in boundary conditions       
       !
       itb0 = 1
       itb1 = 1
@@ -670,17 +682,17 @@ contains
             itbndlast = itb - 1
             exit
          endif
-      enddo 
+      enddo
       !
-      tbfac  = (tb - t_bnd(itb0)) / max(t_bnd(itb1) - t_bnd(itb0), 1.0e-6)
-      !
-   endif   
+   endif
+   !
+   tbfac  = (tb - t_bnd(itb0)) / max(t_bnd(itb1) - t_bnd(itb0), 1.0e-6)
    !
    do ib = 1, nbnd ! Loop along boundary points
       !
       ! Tide and surge
       !
-      zstb = zs_bnd(ib, itb0) + (zs_bnd(ib, itb1) - zs_bnd(ib, itb0)) * tbfac
+      zstb = zs_bnd(ib, itb0) + (zs_bnd(ib, itb1) - zs_bnd(ib, itb0))*tbfac
       !
       ! Add astronomical tides
       !
@@ -700,11 +712,11 @@ contains
          !
          ! Incoming infragravity waves
          !
-         zsit_bnd(ib) = zsi_bnd(ib, itb0) + (zsi_bnd(ib, itb1) - zsi_bnd(ib, itb0)) * tbfac
+         zsit_bnd(ib) = zsi_bnd(ib, itb0) + (zsi_bnd(ib, itb1) - zsi_bnd(ib, itb0))*tbfac
          !
       endif
-      !
-   enddo    
+       !
+   enddo 
    !
    end subroutine
    
@@ -717,27 +729,33 @@ contains
    !
    implicit none
    !
-   integer ib, ifreq, ic, nm, ibuv, nmi, nmb, indb, iw, ibdr
+   integer ib, nmb, ibdr
    !
    real*8                            :: t
    real                              :: dt
    !
    real*8 zst
-   real*4 hst, l0t, wdt, ksi, zsetup, zig, a, angdiff, angfac, hm0ig, tmmin01ig, fp
+   real*4 zsetup
+   real*4 zig
    real*4 zs0act
    real*4 smfac
    real*4 zs0smooth
-   real*4 sumw
+   logical :: has_bzi
+   !
+   has_bzi = (bzifile(1:4) /= 'none')
    !
    ! Set water level in all boundary points on grid
+   ! This loop is all done on the CPU
    !
+   !$omp parallel private ( ib, nmb, zst, zsetup, zig, smfac, zs0act, ibdr, zs0smooth ) if(ngbnd > 10000)
+   !$omp do schedule(dynamic, 64)
    do ib = 1, ngbnd
       !
       nmb = nmindbnd(ib)
       !
       ! kcs = 1 : regular point
       ! kcs = 2 : water level boundary point
-      ! kcs = 3 : outflow boundary point
+      ! kcs = 3 : outflow boundary point (water levels were set at initialization, so no need to update them here)
       ! kcs = 4 : wave maker point
       ! kcs = 5 : river outflow point (dzs/dx = i)
       ! kcs = 6 : lateral (coastal) boundary point (Neumann dzs/dx = 0.0)
@@ -775,9 +793,9 @@ contains
          !
          ! Incoming IG waves from file (this will overrule IG signal computed before)
          !
-         if (bzifile(1:4) /= 'none') then
+         if (has_bzi) then
             !
-            if (nbnd>1) then
+            if (nbnd > 1) then
                !
                ! Interpolation of nearby points
                !
@@ -853,11 +871,15 @@ contains
          ! No need to set zsb and zsb0, as flux for this type of boundary is solved in sfincs_momentum.f90.
          ! Lateral boundary u/v points have kcuv=6. They are skipped in update_boundary_fluxes.
          !
+         ! TODO: OPENACC!!!!
+         !
          zs(nmb) = zs(nmi_gbp(ib)) ! nm index of internal point. Technically there can be more than one internal point. This always uses the last point that was found.
          !         
       endif
       !
    enddo
+   !$omp end do
+   !$omp end parallel
    !
    end subroutine
 
@@ -879,22 +901,24 @@ contains
    !
    !$acc update device( zsb0, zsb ), async(1)
    !
-   factime = min(dt/btfilter, 1.0)
+   factime = min(dt / btfilter, 1.0)
    one_minus_factime = 1.0 - factime
-   facrel  = 1.0 - min(dt/btrelax, 1.0)
+   facrel  = 1.0 - min(dt / btrelax, 1.0)
    !
    ! UV fluxes at boundaries
    !
-   !$acc kernels present(index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, kcuv, zs, z_volume, q, uvmean, uv, zb, zbuv, zsb, zsb0, &
-   !$acc                 subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_havg_zmax, subgrid_z_zmin, ibuvdir, zsmax ), async(1)
-   !$acc loop independent, private(ib)
+   !$acc parallel present( index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, kcuv, zs, z_volume, q, uvmean, uv, zb, zbuv, zsb, zsb0, &
+   !$acc                  subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_havg_zmax, subgrid_z_zmin, ibuvdir, zsmax, kcs ) vector_length(32), async(1)
+   !$acc loop independent gang vector
+   !$omp parallel private ( ib, indb, nmb, nmi, ip, zsnmi, zsnmb, zs0nmb, zsuv, depthuv, dzuv, iuv, facint, hnmb, ui, ub ) if(nkcuv2 > 10000)
+   !$omp do schedule(dynamic, 64)
    do ib = 1, nkcuv2
       !
       indb   = ibkcuv2(ib)
       !
       nmb    = nmbkcuv2(ib)     ! nm index of kcs=2/3/5/6 boundary point
       !
-      if (kcs(nmb) == 6) cycle  ! Lateral boundary point. Fluxes computed in sfincs_momentum.f90
+      if (kcs(nmb) == 6) cycle  ! Lateral boundary point. Fluxes are computed in sfincs_momentum.f90.
       !
       nmi    = nmikcuv2(ib)     ! Index of kcs=1 point
       !
@@ -903,9 +927,6 @@ contains
       zsnmi  = zs(nmi)          ! total water level inside model
       zsnmb  = zsb(indb)        ! total water level at boundary
       zs0nmb = zsb0(indb)       ! average water level inside model (without waves)
-      !
-      zsnmb  = zsb(indb)     ! total water level at boundary
-      zs0nmb = zsb0(indb)    ! average water level inside model (without waves)
       !
       if (bndtype == 1) then
          !
@@ -963,6 +984,16 @@ contains
             !
             q(ip) = ub * hnmb + uvmean(ib)            
             !
+            ! Riemann
+            !
+            ! R = ubnd + 2 * sqrt(g * hnmb) ! from bca or bzs/buv
+            !
+            ! hnmi = hnmb + zsnmi - zsnmb
+            !
+            ! ub = R - 2 * sqrt(g * hnmi)
+            !
+            ! q(ip) = ub * hnmb
+            !
             if (subgrid) then
                !
                ! Sub-grid
@@ -987,16 +1018,16 @@ contains
                !
                ! Regular
                !
-               if (zsnmi - zb(nmi)<=huthresh) then                  
-                  if (ibuvdir(ib)==1) then
+               if (zsnmi - zb(nmi) <= huthresh) then                  
+                  if (ibuvdir(ib) == 1) then
                      q(ip) = max(q(ip), 0.0) ! Nothing can flow out
                   else
                      q(ip) = min(q(ip), 0.0) ! Nothing can flow out
                   endif
                endif
                !
-               if (zsnmb - zb(nmb)<huthresh) then
-                  if (ibuvdir(ib)==1) then
+               if (zsnmb - zb(nmb) < huthresh) then
+                  if (ibuvdir(ib) == 1) then
                      q(ip) = min(q(ip), 0.0) ! Nothing can flow in
                   else
                      q(ip) = max(q(ip), 0.0) ! Nothing can flow in
@@ -1006,11 +1037,11 @@ contains
             !
             ! Limit velocities (this does not change fluxes, but may prevent advection term from exploding in the next time step)
             !
-            uv(ip)  = max(min(q(ip)/hnmb, 4.0), -4.0)
+            uv(ip)  = max(min(q(ip) / hnmb, 4.0), -4.0)
             !
          endif
          !
-         if (btfilter>=-1.0e-6) then
+         if (btfilter >= -1.0e-6) then
             !
             ! Added a little bit of relaxation in uvmean to avoid persistent jets shooting into the model
             ! Using: facrel = 1.0 - min(dt/btrelax, 1.0)
@@ -1047,8 +1078,9 @@ contains
       endif
       !
    enddo
-   !
-   !$acc end kernels
+   !$omp end do
+   !$omp end parallel
+   !$acc end parallel
    !
    end subroutine
 
@@ -1087,14 +1119,14 @@ contains
       !
       call update_boundary_conditions(t, dt)
       !
-      ! Update boundary fluxes()
+      ! Update boundary fluxes
       !
       call update_boundary_fluxes(dt, t)
       !
    endif
    !
    call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
+   tloop = tloop + 1.0 * (count1 - count0) / count_rate
    !
    end subroutine
    !
@@ -1163,5 +1195,16 @@ contains
    !
    end function
    
-   
+   function clean_line(s) result(out)
+   !
+   character(len=*), intent(in) :: s
+   character(len=len(s)) :: out
+   integer :: i
+   !      
+   out = trim(adjustl(s))
+   i = index(out, char(13))
+   if (i > 0) out = out(:i-1)
+   !
+   end function 
+
 end module
