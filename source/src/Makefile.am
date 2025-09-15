@@ -47,13 +47,14 @@ libsfincs_la_SOURCES = \
 	sfincs_snapwave.f90 \
 	deg2utm.f90 \
 	sfincs_meteo.f90 \
-        bicgstab_solver_ilu.f90 \
+    bicgstab_solver_ilu.f90 \
 	sfincs_nonhydrostatic.f90 \
 	sfincs_ncoutput.F90 \
 	sfincs_output.f90 \
 	sfincs_momentum.f90 \
 	sfincs_wavemaker.f90 \
 	sfincs_infiltration.f90 \
+	sfincs_openacc.f90 \
 	sfincs_lib.f90 \
 	sfincs_bmi.f90
         

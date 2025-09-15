@@ -22,6 +22,7 @@ module sfincs_lib
    use sfincs_snapwave
    use sfincs_wavemaker
    use sfincs_nonhydrostatic
+   use sfincs_openacc
    use sfincs_log
    !
    implicit none
@@ -53,7 +54,6 @@ module sfincs_lib
    real*8   :: t
    real*8   :: tout
    real*4   :: dt
-   real*4   :: min_dt
    real*8   :: tmapout
    real*8   :: tmaxout
    real*8   :: trstout
@@ -293,7 +293,7 @@ module sfincs_lib
    ! 
    call deallocate_quadtree()
    !
-   !call acc_init( acc_device_nvidia )
+   call initialize_openacc() ! Enter data region
    !
    ierr = error
    !
@@ -561,7 +561,7 @@ module sfincs_lib
       !
       ! First compute fluxes
       !
-      call compute_fluxes(dt, min_dt, tloopflux)
+      call compute_fluxes(dt, tloopflux)
       !
       if (wavemaker) then
          !
@@ -652,9 +652,6 @@ module sfincs_lib
       !
    enddo
    !
-   !
-   !$acc end data
-   !
    end function sfincs_update
    !
    !-----------------------------------------------------------------------------------------------------!
@@ -669,6 +666,8 @@ module sfincs_lib
    tfinish_all = 1.0 * (count1 - count00) / count_rate
    !
    call finalize_output(t,ntmaxout,tloopoutput,tmaxout)
+   !
+   call finalize_openacc() ! Exit data region
    !
    dtavg = dtavg/nt
    !
