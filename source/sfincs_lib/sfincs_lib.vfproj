@@ -58,25 +58,27 @@
 					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
 				</FileConfiguration>
 			</File>
-			<File RelativePath="..\src\sfincs_boundaries.f90"/>
+			<File RelativePath="..\src\sfincs_boundaries.f90">
+			</File>
 			<File RelativePath="..\src\sfincs_continuity.f90"/>
 			<File RelativePath="..\src\sfincs_crosssections.f90"/>
 			<File RelativePath="..\src\sfincs_data.f90">
 			</File>
 			<File RelativePath="..\src\sfincs_date.f90"/>
-			<File RelativePath="..\src\sfincs_discharges.f90"/>
-			<File RelativePath="..\src\sfincs_domain.f90">
+			<File RelativePath="..\src\sfincs_discharges.f90">
 			</File>
+			<File RelativePath="..\src\sfincs_domain.f90"/>
 			<File RelativePath="..\src\sfincs_error.f90"/>
-			<File RelativePath="..\src\sfincs_infiltration.f90"/>
+			<File RelativePath="..\src\sfincs_infiltration.f90">
+			</File>
 			<File RelativePath="..\src\sfincs_initial_conditions.F90"/>
-			<File RelativePath="..\src\sfincs_input.f90">
+			<File RelativePath="..\src\sfincs_input.f90"/>
+			<File RelativePath="..\src\sfincs_lib.f90">
 			</File>
-			<File RelativePath="..\src\sfincs_lib.f90"/>
 			<File RelativePath="..\src\sfincs_log.f90"/>
-			<File RelativePath="..\src\sfincs_meteo.f90"/>
-			<File RelativePath="..\src\sfincs_momentum.f90">
+			<File RelativePath="..\src\sfincs_meteo.f90">
 			</File>
+			<File RelativePath="..\src\sfincs_momentum.f90"/>
 			<File RelativePath="..\src\sfincs_ncinput.F90">
 				<FileConfiguration Name="Release|x64">
 					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
@@ -95,12 +97,14 @@
 			</File>
 			<File RelativePath="..\src\sfincs_nonhydrostatic.f90"/>
 			<File RelativePath="..\src\sfincs_obspoints.f90"/>
-			<File RelativePath="..\src\sfincs_output.f90">
-			</File>
+			<File RelativePath="..\src\sfincs_openacc.f90"/>
+			<File RelativePath="..\src\sfincs_output.f90"/>
 			<File RelativePath="..\src\sfincs_runup_gauges.f90"/>
-			<File RelativePath="..\src\sfincs_snapwave.f90"/>
+			<File RelativePath="..\src\sfincs_snapwave.f90">
+			</File>
 			<File RelativePath="..\src\sfincs_spiderweb.f90"/>
-			<File RelativePath="..\src\sfincs_structures.f90"/>
+			<File RelativePath="..\src\sfincs_structures.f90">
+			</File>
 			<File RelativePath="..\src\sfincs_subgrid.F90">
 				<FileConfiguration Name="Release|x64">
 					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
@@ -110,7 +114,8 @@
 				</FileConfiguration>
 			</File>
 			<File RelativePath="..\src\sfincs_wave_enhanced_roughness.f90"/>
-			<File RelativePath="..\src\sfincs_wavemaker.f90"/>
+			<File RelativePath="..\src\sfincs_wavemaker.f90">
+			</File>
 		</Filter>
 	</Files>
 	<Globals/>

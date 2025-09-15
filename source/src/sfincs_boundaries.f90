@@ -671,7 +671,7 @@ contains
    !
    real*4 ui, ub, dzuv, facint, zsuv, depthuv
    !
-   !$acc update device( zsb0, zsb ), async(1)
+   !$acc update device( zsb0, zsb )
    !
    factime = min(dt/btfilter, 1.0)
    one_minus_factime = 1.0 - factime
@@ -679,9 +679,9 @@ contains
    !
    ! UV fluxes at boundaries
    !
-   !$acc kernels present(index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, kcuv, zs, z_volume, q, uvmean, uv, zb, zbuv, zsb, zsb0, &
-   !$acc                 subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_havg_zmax, subgrid_z_zmin, ibuvdir, zsmax ), async(1)
-   !$acc loop independent, private(ib)
+   !$acc parallel present( index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, kcuv, zs, z_volume, q, uvmean, uv, zb, zbuv, zsb, zsb0, &
+   !$acc                  subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_havg_zmax, subgrid_z_zmin, ibuvdir, zsmax, kcs ) vector_length(32)
+   !$acc loop independent gang vector
    do ib = 1, nkcuv2
       !
       indb   = ibkcuv2(ib)
@@ -842,7 +842,7 @@ contains
       !
    enddo
    !
-   !$acc end kernels
+   !$acc end parallel
    !
    end subroutine
 

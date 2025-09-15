@@ -1061,10 +1061,12 @@ contains
       !$omp parallel &
       !$omp private ( nm )
       !$omp do
-      !$acc kernels, present(tauwu, tauwv,  tauwu0, tauwv0, tauwu1, tauwv1, &
-      !$acc                  windu, windv, windu0, windv0, windu1, windv1, windmax, &
-      !$acc                  patm, patm0, patm1, prcp, prcp0, prcp1, cumprcp, netprcp, zs, zb, z_volume ), async(1)
-      !$acc loop independent, private(nm)
+      !$acc parallel, present( tauwu, tauwv,  tauwu0, tauwv0, tauwu1, tauwv1, &
+      !$acc                    windu, windv, windu0, windv0, windu1, windv1, windmax, &
+      !$acc                    patm, patm0, patm1, &
+      !$acc                    prcp, prcp0, prcp1, cumprcp, netprcp, &
+      !$acc                    zs, zb, z_volume )
+      !$acc loop independent gang vector
       do nm = 1, np
          !
          if (wind) then
@@ -1118,7 +1120,7 @@ contains
       enddo   
       !$omp end do
       !$omp end parallel
-      !$acc end kernels
+      !$acc end parallel
       !
       ! Apply spin-up factor
       !
@@ -1130,8 +1132,8 @@ contains
          !$omp parallel &
          !$omp private ( nm )
          !$omp do
-         !$acc kernels, present( tauwu, tauwv, patm, prcp, netprcp, zs, zb, z_volume ), async(1)
-         !$acc loop independent, private(nm)
+         !$acc parallel, present( tauwu, tauwv, patm, prcp, netprcp, zs, zb, z_volume )
+         !$acc loop independent gang vector
          do nm = 1, np
             !
             if (wind) then
@@ -1169,21 +1171,31 @@ contains
          enddo   
          !$omp end do
          !$omp end parallel
-         !$acc end kernels
+         !$acc end parallel
          !
       endif         
       !   
       if (patmos .and. pavbnd>0.0) then
          !
-         !$acc serial, present( patmb, nmindbnd, patm ), async(1) 
+         ! Update atmospheric pressure at boundary points (patmb)
+         !
+         !$omp parallel &
+         !$omp private ( ib )
+         !$omp do
+         !$acc parallel, present( patmb, nmindbnd, patm )
+         !$acc loop independent gang vector
          do ib = 1, ngbnd
+            !
             patmb(ib) = patm(nmindbnd(ib))
+            !
          enddo
-         !$acc end serial
+         !$omp end do
+         !$omp end parallel
+         !$acc end parallel
          !
          ! patmb is used at boundary points in the CPU part of update_boundary_conditions (should try to make this faster)
          !
-         !$acc update host(patmb), async(1)
+         !$acc update host(patmb)
          !
       endif
       !   
@@ -1252,13 +1264,13 @@ contains
          !$omp private ( nm ) &
          !$omp shared ( tauwu,tauwv )
          !$omp do
-         !$acc kernels, present( tauwu, tauwv ), async(1)
-         !$acc loop independent, private(nm)
+         !$acc parallel, present( tauwu, tauwv )
+         !$acc loop independent gang vector
          do nm = 1, np
             tauwu(nm) = twu
             tauwv(nm) = twv
          enddo   
-         !$acc end kernels
+         !$acc end parallel
          !$omp end do
          !$omp end parallel
          !
@@ -1308,13 +1320,14 @@ contains
    !$omp parallel &
    !$omp private ( nm )
    !$omp do
-   !$acc kernels present( prcp, cumprcp, netprcp )
+   !$acc parallel present( prcp, cumprcp, netprcp )
+   !$acc loop independent gang vector
    do nm = 1, np
       prcp(nm)    = ptmp
       netprcp(nm) = ptmp
       cumprcp(nm) = cumprcp(nm) + prcp(nm)*dt
    enddo   
-   !$acc end kernels
+   !$acc end parallel
    !$omp end do
    !$omp end parallel
    !
@@ -1347,7 +1360,7 @@ contains
       !
       call update_amuv_data()
       !
-      !$acc update device(tauwu0,tauwu1,tauwv0,tauwv1), async(1)
+      !$acc update device( tauwu0, tauwu1, tauwv0, tauwv1)
       !
    endif
    !
@@ -1355,7 +1368,7 @@ contains
       !
       call update_amp_data()
       !
-      !$acc update device(patm0,patm1), async(1)
+      !$acc update device( patm0, patm1 ) 
       !
    endif
    !
@@ -1363,7 +1376,7 @@ contains
       !
       call update_ampr_data()
       !
-      !$acc update device(prcp0,prcp1), async(1)
+      !$acc update device( prcp0, prcp1 )
       !
    endif
    !      
@@ -1371,11 +1384,11 @@ contains
       !
       call update_spiderweb_data()
       !
-      !$acc update device(tauwu0,tauwu1,tauwv0,tauwv1,patm0,patm1), async(1)
+      !$acc update device( tauwu0, tauwu1, tauwv0, tauwv1, patm0, patm1 )
       !
       if (precip) then
          !
-         !$acc update device(prcp0,prcp1), async(1)
+         !$acc update device( prcp0, prcp1 )
          !
       endif
       !

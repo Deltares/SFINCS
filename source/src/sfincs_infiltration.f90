@@ -24,8 +24,8 @@ contains
       !$omp parallel &
       !$omp private ( nm )
       !$omp do
-      !$acc kernels present( qinfmap, qinffield, z_volume, zs, zb, netprcp,cuminf ), async(1)
-      !$acc loop independent, private( nm )
+      !$acc parallel present( qinfmap, qinffield, z_volume, zs, zb, netprcp, cuminf )
+      !$acc loop independent gang vector
       do nm = 1, np
          !
          qinfmap(nm) = qinffield(nm) ! Set spatially varying infiltration field
@@ -61,8 +61,7 @@ contains
       enddo
       !$omp end do
       !$omp end parallel
-      !$acc end kernels
-      !$acc wait(1)
+      !$acc end parallel
       !
    elseif (inftype == 'cna') then
       !
@@ -71,8 +70,8 @@ contains
       !$omp parallel &
       !$omp private ( Qq,I,nm )
       !$omp do
-      !$acc kernels present( qinfmap, qinffield, prcp, netprcp, cumprcp, cuminf ), async(1)
-      !$acc loop independent, private( Qq, I, nm )
+      !$acc parallel present( qinfmap, qinffield, prcp, netprcp, cumprcp, cuminf )
+      !$acc loop independent gang vector
       do nm = 1, np
          !
          ! Check if Ia (0.2 x S) is larger than cumulative rainfall
@@ -108,8 +107,7 @@ contains
       enddo
       !$omp end do
       !$omp end parallel
-      !$acc end kernels
-      !$acc wait(1)
+      !$acc end parallel
       !
    elseif (inftype == 'cnb') then
       !
@@ -118,8 +116,8 @@ contains
       !$omp parallel &
       !$omp private ( Qq,I,nm )       
       !$omp do       
-      !$acc kernels present( qinfmap, prcp, netprcp, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1 ), async(1)
-      !$acc loop independent, private( Qq, I, nm )
+      !$acc parallel present( qinfmap, prcp, netprcp, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, qinffield, inf_kr )
+      !$acc loop independent gang vector
       do nm = 1, np
          !
          ! If there is precip in this grid cell for this time step  
@@ -215,8 +213,7 @@ contains
       enddo
       !$omp end do
       !$omp end parallel 
-      !$acc end kernels
-      !$acc wait(1)
+      !$acc end parallel
       !
    elseif (inftype == 'gai') then
       !
@@ -225,9 +222,9 @@ contains
       !$omp parallel &
       !$omp private ( nm )
       !$omp do              
-      !$acc kernels present( qinfmap, prcp, netprcp, cuminf, rain_T1,  &
-      !$acc                  ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr ), async(1)
-      !$acc loop independent, private( nm )
+      !$acc parallel present( qinfmap, prcp, netprcp, cuminf, rain_T1,  &
+      !$acc                  ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr )
+      !$acc loop independent gang vector
       do nm = 1, np
          !
          ! If there is precip in this grid cell for this time step?
@@ -300,8 +297,7 @@ contains
       enddo
       !$omp end do
       !$omp end parallel       
-      !$acc end kernels
-      !$acc wait(1)
+      !$acc end parallel
       !
    elseif (inftype == 'hor') then
       !
@@ -310,9 +306,9 @@ contains
       !$omp parallel &
       !$omp private  ( nm, Qq, I, a, hh_local )
       !$omp do              
-      !$acc kernels present( qinfmap, prcp, netprcp, cuminf, cell_area_m2, cell_area, z_flags_iref, z_volume, zs, zb, rain_T1,  &
-      !$acc                  horton_kd, horton_fc, horton_f0 ), async(1)
-      !$acc loop independent, private( nm, Qq, I, a, hh_local )
+      !$acc parallel present( qinfmap, prcp, netprcp, cuminf, cell_area_m2, cell_area, z_flags_iref, z_volume, zs, zb, rain_T1,  &
+      !$acc                  horton_kd, horton_fc, horton_f0 )
+      !$acc loop independent gang vector
       do nm = 1, np
          !
          ! Get local water depth estimate
@@ -416,8 +412,7 @@ contains
       enddo
       !$omp end do
       !$omp end parallel 
-      !$acc end kernels
-      !$acc wait(1)
+      !$acc end parallel
       !
    endif
    !
