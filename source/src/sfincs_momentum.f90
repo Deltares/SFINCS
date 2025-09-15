@@ -134,9 +134,9 @@ contains
    !$acc loop independent, reduction( min : min_dt ), gang, vector
    do ip = 1, npuv
       !
-      if (kcuv(ip)==1) then
+      if (kcuv(ip) == 1 .or. kcuv(ip) == 6) then
          !
-         ! Regular UV point 
+         ! Regular UV point (or a coastal lateral boundary point)
          !
          ! Indices of surrounding water level points
          !
