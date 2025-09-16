@@ -1849,10 +1849,10 @@ contains
    if (ndrn>0) then
       !
       NF90(nf90_def_var(his_file%ncid, 'drainage_discharge', NF90_FLOAT, (/his_file%drain_dimid, his_file%time_dimid/), his_file%drain_varid)) ! time-varying discharge through drainage structure
-      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, '_FillValue', FILL_VALUE))   
-      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'units', 'm3 s-1'))
-      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'long_name', 'discharge through drainage structure'))
-      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'coordinates', 'drainage_name'))
+      NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, 'units', 'm3 s-1'))
+      NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, 'long_name', 'discharge through drainage structure'))
+      NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, 'coordinates', 'drainage_name'))
       !
    endif   
    !   
