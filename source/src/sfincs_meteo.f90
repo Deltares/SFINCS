@@ -1273,7 +1273,7 @@ contains
       !
       ! Apply spin-up factor
       !
-      if ((t < (tspinup - 1.0e-3)) .and. spinup_meteo) then
+      if (t < (tspinup - 1.0e-3) .and. spinup_meteo) then
          !
          smfac = (t - t0) / (tspinup - t0)
          oneminsmfac = 1.0 - smfac
@@ -1328,9 +1328,9 @@ contains
          !
          ! Update atmospheric pressure at boundary points (patmb)
          !
-         !$omp parallel &
-         !$omp private ( ib )
-         !$omp do
+!         !$omp parallel &
+!         !$omp private ( ib )
+!         !$omp do
          !!$acc serial, present( patmb, nmindbnd, patm )
          !$acc parallel, present( patmb, nmindbnd, patm )
          !$acc loop independent gang vector
@@ -1339,8 +1339,8 @@ contains
             patmb(ib) = patm(nmindbnd(ib))
             !
          enddo
-         !$omp end do
-         !$omp end parallel
+!         !$omp end do
+!         !$omp end parallel
          !!$acc end serial
          !$acc end parallel
          !
@@ -1371,7 +1371,7 @@ contains
    endif
    !
    call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
+   tloop = tloop + 1.0 * (count1 - count0) / count_rate
    !         
    end subroutine
 
