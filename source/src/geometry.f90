@@ -295,5 +295,131 @@ contains
    !
    end function
    
+   subroutine interp_segment(x, y, nx, qx, qy, i1, i2, w1, w2)
+   !
+   !  Purpose  : Given a set of 2D data point coordinates and a query point,
+   !             determine which two data points should be used for linear
+   !             interpolation, and return the corresponding indices and
+   !             interpolation weights.
+   !
+   !  Method   :
+   !    1. Finds the nearest data point to the query point (index i1).
+   !    2. For every other data point (i2), forms the line segment (i1,i2).
+   !    3. Projects the query point onto the segment.
+   !    4. If the projection lies inside the segment (0 <= t <= 1),
+   !       the candidate is accepted and the perpendicular distance is
+   !       computed. The segment with the smallest distance between the
+   !       query point and the second among all candidates
+   !       is selected.
+   !    5. If a valid segment is found, return:
+   !          - indices (i1,i2)
+   !          - weights (w1,w2) such that interpolated value =
+   !              w1*z(i1) + w2*z(i2)
+   !    6. If no valid projection is found, fall back to nearest point only:
+   !          - i1 = nearest point
+   !          - i2 = -1
+   !          - w1 = 1.0, w2 = 0.0
+   !
+   !  Notes    :
+   !    - A "degenerate segment" (two points with identical coordinates)
+   !      is skipped to avoid division by zero in the projection formula.
+   !    - The function does not use the data values themselves, only the
+   !      coordinates, so it can be reused in different contexts.
+   !
+   !  Inputs   :
+   !    x(nx), y(nx)  : coordinates of data points
+   !    nx            : number of data points
+   !    qx, qy        : coordinates of query point
+   !
+   !  Outputs  :
+   !    i1, i2        : indices of chosen data points
+   !    w1, w2        : interpolation weights
+   !
+   implicit none
+   !
+   integer, intent(in) :: nx
+   real*4, intent(in) :: x(nx), y(nx)
+   real*4, intent(in) :: qx, qy
+   integer, intent(out) :: i1, i2
+   real*4, intent(out) :: w1, w2
+   !
+   integer :: i, best_i
+   real*4 :: dx, dy, d, dmin
+   real*4 :: dxs, dys, ab2, t, dst, dst_best
+   real*4 :: qpx, qpy
+   !
+   ! initialize outputs
+   !
+   i1 = -1
+   i2 = -1
+   w1 = 1.0
+   w2 = 0.0
+   !
+   !-----------------------------
+   ! find nearest point to query
+   !-----------------------------
+   !
+   dmin = 1.0e9
+   !
+   do i = 1, nx
+      dx = qx - x(i)
+      dy = qy - y(i)
+      d = sqrt(dx * dx + dy * dy)
+      if (d < dmin) then
+         dmin = d
+         i1 = i
+      endif
+   enddo
+   !
+   !-----------------------------
+   ! search best projection
+   !-----------------------------
+   !
+   dst_best = 1.0e9
+   best_i = -1
+   !
+   do i = 1, nx
+      !
+      if (i == i1) cycle ! this is the index of the nearest point
+      !
+      dxs = x(i) - x(i1)
+      dys = y(i) - y(i1)
+      ab2 = dxs*dxs + dys*dys
+      !
+      if (ab2 == 0.0) cycle  ! degenerate segment
+      !
+      t = ((qx - x(i1))*dxs + (qy - y(i1))*dys) / ab2
+      !
+      if (t >= 0.0 .and. t <= 1.0) then
+         !
+         ! projection point
+         !
+         qpx = x(i1) + t*dxs
+         qpy = y(i1) + t*dys
+         !
+         ! Distance of query point to second point
+         !
+         dst = sqrt((qx - x(i))**2 + (qy - y(i))**2)
+         !
+         if (dst < dst_best) then
+            dst_best = dst
+            best_i = i
+            w1 = 1.0 - t
+            w2 = t
+         endif
+         !
+      endif
+   enddo
+   !
+   if (best_i /= -1) then
+      i2 = best_i
+   else
+      ! no valid projection -> nearest only
+      i2 = i1
+      w1 = 1.0
+      w2 = 0.0
+   end if
+
+end subroutine interp_segment
    
 end module

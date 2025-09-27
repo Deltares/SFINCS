@@ -23,13 +23,13 @@ contains
    update_grid_boundary_points = .true.
    itwbndlast = 2
    !
-   if (snapwave_jonswapfile /= '') then
+   if (snapwave_jonswapfile(1:4) /= 'none') then
       !
       ! Read data from timeseries in single point
       !
       call read_boundary_data_singlepoint()
       !
-   elseif (netsnapwavefile /= '') then
+   elseif (netsnapwavefile(1:4) /= 'none') then
       ! 
       ! Read space- and time-varying data from netcdf file
       !       
@@ -44,8 +44,6 @@ contains
    endif   
    !
    ! Compute reference table between wave nwbd boundary support points and grid boundary points 
-   !
-   call find_boundary_indices()
    !
    ! Allocate later needed variables (interpolated values in time):
    !
@@ -96,7 +94,7 @@ contains
    end subroutine
 
    
-   subroutine read_boundary_enclosure ()
+   subroutine read_boundary_enclosure()
    !
    ! Reads enc file
    !
@@ -461,7 +459,7 @@ subroutine update_boundary_conditions(t)
    !
    ! Update boundary conditions at boundary points
    !
-   call update_boundary_points(t)
+   call update_boundary_points(t, .false.)
    !
    ! Update wind forcing 
    !
@@ -499,7 +497,7 @@ subroutine update_boundary_conditions(t)
    !
 end subroutine   
    
-subroutine update_boundary_points(t)
+subroutine update_boundary_points(t, just_time_series)
    !
    ! Update vardens at boundary points
    !
@@ -515,7 +513,7 @@ subroutine update_boundary_points(t)
    real*4  :: tbfac
    real*4  :: hs, tps, wd, dsp, zst, thetamin, thetamax, E0, ms, modth, E0_ig
    real*4  :: hlocal
-   logical :: always_update_bnd_spec
+   logical :: always_update_bnd_spec, just_time_series
    !
    always_update_bnd_spec = .true.
    !
@@ -564,7 +562,7 @@ subroutine update_boundary_points(t)
       !
       ! Limit wave height (0 < hs < 25)
       !
-      if ((hs < 0.0) .or. (hs > 25.0)) then
+      if (hs < 0.0 .or. hs > 25.0) then
          !
       	write(logstr,*)'DEBUG SnapWave - input wave height is outside acceptable range of 0-25 m: ',hs, ' and is therefore limited back to this range, please check whether your input is realistic!'
          call write_log(logstr, 1)
@@ -603,6 +601,14 @@ subroutine update_boundary_points(t)
       dst_bwv(ib) = dsp
       !
    enddo
+   !
+   if (just_time_series) then
+      !
+      ! Probably running SFINCS in bathtub mode
+      !
+      return
+      !
+   endif   
    !
    ! Now generate wave spectra at the boundary points
    !

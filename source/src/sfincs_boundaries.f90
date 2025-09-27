@@ -532,6 +532,8 @@ contains
             !
             ! Multiple points in bnd file, so use distance-based weighting
             !
+            !call interp_segment(x_bnd, y_bnd, nbnd, z_xz(ip), z_yz(ip), i1, i2, w1, w2)
+            !
             dst1 = 1.0e10
             dst2 = 1.0e10
             ib1 = 0
@@ -781,7 +783,7 @@ contains
          !
          if (patmos .and. pavbnd>1.0) then
             !
-            ! Barometric pressure correction
+            ! Barometric pressure correction (why not move this to the boundary points?)
             !
             zst = zst + (pavbnd - patmb(ib)) / (rhow * 9.81)
             !
@@ -1114,13 +1116,18 @@ contains
          !
       endif
       !
-      ! Update boundary conditions at grid points (water levels)
       !
-      call update_boundary_conditions(t, dt)
-      !
-      ! Update boundary fluxes
-      !
-      call update_boundary_fluxes(dt, t)
+      if (.not. bathtub) then
+         !
+         ! Update boundary conditions at grid points (water levels)
+         !
+         call update_boundary_conditions(t, dt)
+         !
+         ! Update boundary fluxes
+         !
+         call update_boundary_fluxes(dt, t)
+         !
+      endif
       !
    endif
    !

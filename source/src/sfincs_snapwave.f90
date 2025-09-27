@@ -105,6 +105,8 @@ contains
    !
    call read_boundary_data()
    !
+   call find_boundary_indices()
+   !
    call write_log('', 1)
    !
    snapwave_no_nodes = no_nodes
@@ -631,18 +633,18 @@ contains
    !
    ! Input files
    !
-   call read_char_input(500, 'snapwave_jonswapfile', snapwave_jonswapfile, '')
-   call read_char_input(500, 'snapwave_bndfile', snapwave_bndfile, '')
-   call read_char_input(500, 'snapwave_encfile', snapwave_encfile, '')
-   call read_char_input(500, 'snapwave_bhsfile', snapwave_bhsfile, '')
-   call read_char_input(500, 'snapwave_btpfile', snapwave_btpfile, '')
-   call read_char_input(500, 'snapwave_bwdfile', snapwave_bwdfile, '')
-   call read_char_input(500, 'snapwave_bdsfile', snapwave_bdsfile,'') 
+   call read_char_input(500, 'snapwave_jonswapfile', snapwave_jonswapfile, 'none')
+   call read_char_input(500, 'snapwave_bndfile', snapwave_bndfile, 'none')
+   call read_char_input(500, 'snapwave_encfile', snapwave_encfile, 'none')
+   call read_char_input(500, 'snapwave_bhsfile', snapwave_bhsfile, 'none')
+   call read_char_input(500, 'snapwave_btpfile', snapwave_btpfile, 'none')
+   call read_char_input(500, 'snapwave_bwdfile', snapwave_bwdfile, 'none')
+   call read_char_input(500, 'snapwave_bdsfile', snapwave_bdsfile,'none') 
    call read_char_input(500, 'snapwave_upwfile', upwfile, 'snapwave.upw')
-   call read_char_input(500, 'snapwave_mskfile', mskfile, '')
+   call read_char_input(500, 'snapwave_mskfile', mskfile, 'none')
    call read_char_input(500, 'snapwave_depfile', depfile, 'none')   
    call read_char_input(500, 'snapwave_ncfile',  gridfile, 'snapwave_net.nc')   
-   call read_char_input(500, 'netsnapwavefile', netsnapwavefile, '')
+   call read_char_input(500, 'netsnapwavefile', netsnapwavefile, 'none')
    call read_char_input(500, 'tref', trefstr, '20000101 000000')   ! Read again > needed in sfincs_ncinput.F90   
    !
    close(500)
