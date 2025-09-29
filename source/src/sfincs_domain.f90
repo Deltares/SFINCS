@@ -1419,7 +1419,7 @@ contains
          !
          if (iref>1) then
             !         
-            dyrinvc(iref) = 1.0*(3*dyrm(iref)/2)
+            dyrinvc(iref) = 1.0 / (3 * dyrm(iref) / 2)
             !
          endif   
          !
@@ -1470,19 +1470,19 @@ contains
       do iref = 1, nref
          !
          dxrm(iref)      = dxr(iref)
-         dxrinv(iref)    = 1.0/dxrm(iref)
+         dxrinv(iref)    = 1.0 / dxrm(iref)
          dxr2inv(iref)   = dxrinv(iref)**2
          !
          dyrm(iref)      = dyr(iref)
-         dyrinv(iref)    = 1.0/dyrm(iref)
+         dyrinv(iref)    = 1.0 / dyrm(iref)
          dyr2inv(iref)   = dyrinv(iref)**2
          !
          cell_area(iref) = dxrm(iref)*dyrm(iref)
          !
          if (iref>1) then
             !         
-            dxrinvc(iref) = 1.0/(3*dxrm(iref)/2)
-            dyrinvc(iref) = 1.0*(3*dyrm(iref)/2)
+            dxrinvc(iref) = 1.0 / (3 * dxrm(iref) / 2)
+            dyrinvc(iref) = 1.0 / (3 * dyrm(iref) / 2)
             !
          endif   
          !

@@ -105,7 +105,7 @@ contains
    !$acc                    uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc                    uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
    !$acc                    zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, &
-   !$acc                    dxrinvc, fcorio2d, nuvisc, z_volume, gnapp2 ) num_gangs( 1024 ) vector_length( 128 )
+   !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, gnapp2 ) num_gangs( 1024 ) vector_length( 128 )
    !
    ! Copy flux and velocity from previous time step
    !
@@ -213,14 +213,14 @@ contains
                   !
                   if (idir==0) then
                      !
-                     dxuvinv = 1.0 / (3*(1.0/dxminv(ip))/2)
+                     dxuvinv = 1.0 / (3 * (1.0 / dxminv(ip)) / 2)
                      dyuvinv = dyrinv(iref)
                      dxuv2inv = 0.0 ! no viscosity term
                      dyuv2inv = dyr2inv(iref)
                      !
                   else   
                      !
-                     dxuvinv = 1.0 / (3*(1.0/dyrinv(iref))/2)
+                     dxuvinv = 1.0 / (3 * (1.0 / dyrinv(iref)) / 2)
                      dyuvinv  = dxminv(ip)
                      dxuv2inv = 0.0 ! no viscosity term
                      dyuv2inv = dxm2inv(ip)
@@ -276,7 +276,7 @@ contains
                      !
                      ! V point
                      !
-                     dxuvinv  = dyrinv(iref)
+                     dxuvinv  = dyrinvc(iref)
                      dyuvinv  = dxrinv(iref)
                      dxuv2inv = 0.0
                      dyuv2inv = dxr2inv(iref)
