@@ -124,7 +124,7 @@ contains
       !$omp parallel &
       !$omp private ( Qq,I,nm )       
       !$omp do       
-      !$acc parallel present( qinfmap, prcp, netprcp, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, qinffield, inf_kr ), async(1)
+      !$acc parallel present( qinfmap, prcp, netprcp, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, qinffield, inf_kr )
       !$acc loop independent gang vector
       do nm = 1, np
          !

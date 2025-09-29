@@ -1535,6 +1535,7 @@ contains
       call update_ampr_data()
       !
       !$acc update device(prcp0,prcp1), async(1)
+!      !$acc update device(prcp0,prcp1), async(1)
       !
    endif
    !      
