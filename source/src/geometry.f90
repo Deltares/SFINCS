@@ -124,6 +124,7 @@ contains
    function direction(ax, ay, bx, by, cx, cy) result(dr)
    !
    real    :: val
+   real    :: ax, ay, bx, by, cx, cy
    integer :: dr
    !
    val = (by - ay)*(cx - bx) - (bx - ax)*(cy - by)

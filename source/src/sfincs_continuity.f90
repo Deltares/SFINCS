@@ -608,8 +608,6 @@ contains
    !         
    !$acc end parallel
    !         
-   !!$acc wait(1)
-   !         
    end subroutine
    
    subroutine compute_store_variables(dt)

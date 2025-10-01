@@ -231,7 +231,7 @@ subroutine kompbs(l         )
 !
 ! Global variables
 !
-    character(80), dimension(234), intent(out) :: l
+    character(80), dimension(235), intent(out) :: l
                                    !!  Array with tidal components
 !
 !

@@ -98,21 +98,14 @@ contains
    !
    ! For some reason, it is necessary to set num_gangs here! Without, the program launches only 1 gang, and everything becomes VERY slow!
    !
-   !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, zsderv, &
-   !$acc                    uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
-   !$acc                    subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
-   !$acc                    subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
-   !$acc                    uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
-   !$acc                    uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
-   !$acc                    zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, &
-   !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, gnapp2 ) num_gangs( 1024 ) vector_length( 128 )
    !
    ! Copy flux and velocity from previous time step
    !
+   !$acc parallel, present( q, q0, uv, uv0 )
    !$omp parallel &
    !$omp private ( ip )
    !$omp do
-   !$acc loop independent gang vector
+   !$acc loop gang vector
    do ip = 1, npuv + ncuv
       !
       q0(ip)  = q(ip)
@@ -121,16 +114,25 @@ contains
    enddo
    !$omp end do
    !$omp end parallel
+   !$acc end parallel
    !
    ! Update fluxes
    !
+   !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, zsderv, &
+   !$acc                    uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
+   !$acc                    subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
+   !$acc                    subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
+   !$acc                    uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
+   !$acc                    uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
+   !$acc                    zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, &
+   !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, gnapp2 ) num_gangs( 1024 ) vector_length( 128 )
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
    !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73 ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
-   !$acc loop reduction( min : min_dt ) independent gang vector
+   !$acc loop reduction( min : min_dt ) gang vector
    do ip = 1, npuv
       !
       if (kcuv(ip) == 1 .or. kcuv(ip) == 6) then
@@ -276,9 +278,10 @@ contains
                      !
                      ! V point
                      !
+                     !dxuvinv  = dyrinv(iref) 
                      dxuvinv  = dyrinvc(iref)
                      dyuvinv  = dxrinv(iref)
-                     dxuv2inv = 0.0
+                     dxuv2inv = 0.0 ! no viscosity
                      dyuv2inv = dxr2inv(iref)
                      !
                   endif   
@@ -722,16 +725,18 @@ contains
    enddo   
    !$omp end do
    !$omp end parallel
+   !$acc end parallel
    !
    if (ncuv > 0) then
       !
       ! Loop through combined uv points and determine average uv and q
       ! The combined q and uv values are used in the continuity equation and in the netcdf output
       !
+      !$acc parallel, present( q, uv, cuv_index_uv, cuv_index_uv1, cuv_index_uv2  )
       !$omp parallel &
       !$omp private ( icuv )
       !$omp do
-      !$acc loop independent gang vector
+      !$acc loop gang vector
       do icuv = 1, ncuv
          !
          ! Average of the two uv points
@@ -742,10 +747,9 @@ contains
       enddo
       !$omp end do
       !$omp end parallel
+      !$acc end parallel
       !
    endif
-   !
-   !$acc end parallel
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate

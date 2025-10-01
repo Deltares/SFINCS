@@ -38,7 +38,7 @@ contains
       !
       allocate(inizs(np))
       allocate(inizs4(np))      
-      allocate(iniq(npuv))
+      allocate(iniq(npuv + ncuv + 1))
       !
       inizs = zini
       inizs4 = zini      
@@ -185,6 +185,7 @@ contains
       !
       integer    :: rsttype
       real*4     :: rdummy
+      integer    :: ib
       !
       open(unit = 500, file = trim(rstfile), form = 'unformatted', access = 'stream')
       !
@@ -221,7 +222,8 @@ contains
          !      
          ! Read fluxes q
          !
-         if (rsttype==1 .or. rsttype==2 .or. rsttype==4 .or. rsttype==5 .or. rsttype==6) then     
+         if (rsttype==1 .or. rsttype==2 .or. rsttype==4 .or. rsttype==5 .or. rsttype==6) then
+            !
             read(500)rdummy
             read(500)iniq
             read(500)rdummy
@@ -229,6 +231,7 @@ contains
             read(500)rdummy
             read(500)uvmean
             read(500)rdummy
+            !
          endif
          !
          if (rsttype==4) then ! Infiltration method cnb 
