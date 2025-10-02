@@ -1637,11 +1637,7 @@ subroutine momeqveg(no_nodes, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd,
             integral = integral + (0.5 * Cd * b * N * hvegeff * unl(t) * abs(unl(t) ) ) * dt
         enddo
         ! Convert to force per unit mass and sum
-        Fvgnlt = integral / depth / rho ! original
-        !Fvgnlt = integral / depth / Trep !         
-        !Fvgnlt = -integral / depth / rho !         
-        !Fvgnlt = integral / depth / rho / Trep !/ rho
-        !Fvgnlt = -integral / depth / Trep !> really reduces the setup
+        Fvgnlt = -integral / depth / Trep !> units match with F(k) m/s2
         
         Fvw = Fvw + Fvgnlt
     enddo
@@ -1751,7 +1747,6 @@ subroutine swvegnonlin(no_nodes, kwav, depth, H, g, Trep, unl)
         urf1 = urf1 * (w1(k) * cs + w2(k) * sn )
         urf2 = sum(urf1, 2)
         unl(k,:) = urf2 * sqrt(g * depth(k) )
-        !etaw0(k,:) = unl0 (i ,j ,:) * sqrt (max( depth(k ) ,0 ) / g ) #TL: not used in case of SnapWave
     enddo   
     !
     write(*,*)'Ended swvegnonlin'
