@@ -166,6 +166,8 @@ contains
    !$omp end do
    !$omp end parallel
    !
+   !$acc update device( zs, zsmax )
+   !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0 * (count1 - count0) / count_rate
    !

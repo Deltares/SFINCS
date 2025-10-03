@@ -655,7 +655,7 @@ contains
          !
       endif
       !
-      !dthisout = dtmapout
+      dthisout = bathtub_dt
       !
       ! Turn off some processes not needed for bathtub flooding
       !
