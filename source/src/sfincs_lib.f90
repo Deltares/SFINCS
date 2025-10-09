@@ -93,8 +93,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.2.1-alpha col d'Eze-branch: MvO combo, gates & meteo factors"
-   build_date     = "$Date: 2025-09-24"
+   build_revision = "$Rev: v2.2.1-alpha col d'Eze-branch: MvO combo, gates & meteo factors & fixed quadtree restart & weir fix"
+   build_date     = "$Date: 2025-10-09"
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)
