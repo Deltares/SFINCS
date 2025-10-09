@@ -75,6 +75,59 @@ contains
    !
    end function
 
+   
+   function check_intersect_new(x11, y11, x12, y12, x21, y21, x22, y22) result(iok)
+   !
+   implicit none
+   !
+   real(4), intent(in) :: x11, y11, x12, y12
+   real(4), intent(in) :: x21, y21, x22, y22
+   logical :: iok
+   real(4) :: d1, d2, d3, d4
+   real(4), parameter :: eps = 1.0e-12
+   !
+   ! Compute orientation values
+   !
+   d1 = (x11 - x21) * (y22 - y21) - (y11 - y21) * (x22 - x21)
+   d2 = (x12 - x21) * (y22 - y21) - (y12 - y21) * (x22 - x21)
+   d3 = (x21 - x11) * (y12 - y11) - (y21 - y11) * (x12 - x11)
+   d4 = (x22 - x11) * (y12 - y11) - (y22 - y11) * (x12 - x11)
+   ! 
+   iok = .false.
+   !
+   ! Proper intersection
+   !
+   if (((d1 > eps .and. d2 < -eps) .or. (d1 < -eps .and. d2 > eps)) .and. &
+      ((d3 > eps .and. d4 < -eps) .or. (d3 < -eps .and. d4 > eps))) then
+      iok = .true.
+      return
+   endif
+   !   
+   ! Check for colinear and overlapping cases
+   !   
+   if (abs(d1) <= eps .and. on_segment(x21, y21, x22, y22, x11, y11)) iok = .true.
+   if (abs(d2) <= eps .and. on_segment(x21, y21, x22, y22, x12, y12)) iok = .true.
+   if (abs(d3) <= eps .and. on_segment(x11, y11, x12, y12, x21, y21)) iok = .true.
+   if (abs(d4) <= eps .and. on_segment(x11, y11, x12, y12, x22, y22)) iok = .true.
+   !    
+   contains
+      !
+      pure function on_segment(x1, y1, x2, y2, x, y) result(res)
+      !
+      implicit none
+      !
+      real(4), intent(in) :: x1, y1, x2, y2, x, y
+      logical :: res
+      real(4), parameter :: eps = 1.0e-12
+      !
+      res = (min(x1, x2) - eps <= x .and. x <= max(x1, x2) + eps .and. &
+               min(y1, y2) - eps <= y .and. y <= max(y1, y2) + eps)
+      !  
+      end function on_segment
+      !
+   end function check_intersect_new
+   
+   
    function check_intersect(x11,y11,x12,y12,x21,y21,x22,y22) result(iok)
    !
    implicit none

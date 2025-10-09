@@ -1328,9 +1328,6 @@ contains
          !
          ! Update atmospheric pressure at boundary points (patmb)
          !
-!         !$omp parallel &
-!         !$omp private ( ib )
-!         !$omp do
          !!$acc serial, present( patmb, nmindbnd, patm )
          !$acc parallel, present( patmb, nmindbnd, patm )
          !$acc loop independent gang vector
@@ -1339,8 +1336,6 @@ contains
             patmb(ib) = patm(nmindbnd(ib))
             !
          enddo
-!         !$omp end do
-!         !$omp end parallel
          !!$acc end serial
          !$acc end parallel
          !
@@ -1516,8 +1511,13 @@ contains
       !
       call update_amuv_data()
       !
-      !$acc update device(tauwu0,tauwu1,tauwv0,tauwv1)
-!      !$acc update device(tauwu0,tauwu1,tauwv0,tauwv1), async(1)
+      !$acc update device( tauwu0, tauwu1, tauwv0, tauwv1)
+      !
+      if (store_wind) then
+         !
+         !$acc update device( windu0, windu1, windv0, windv1)
+         !
+      endif
       !
    endif
    !
@@ -1526,7 +1526,6 @@ contains
       call update_amp_data()
       !
       !$acc update device( patm0, patm1 )
-!      !$acc update device(patm0,patm1), async(1)
       !
    endif
    !
