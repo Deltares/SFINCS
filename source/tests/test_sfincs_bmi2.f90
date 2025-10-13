@@ -4,10 +4,14 @@ program test_sfincs_bmi2
   use sfincs_bmi2, only: sfincs_bmi
   implicit none
 
-  ! ---------- tiny test utils ----------
   integer :: n_pass = 0, n_fail = 0
 
+  ! Run then summarize (must be before CONTAINS)
+  call run_all_tests()
+  call summary_and_stop()
+
 contains
+  ! ---------- tiny test utils ----------
   subroutine check(cond, msg)
     logical, intent(in) :: cond
     character(len=*), intent(in) :: msg
@@ -49,19 +53,9 @@ contains
   ! =========================================================
   ! ================   MAIN TEST SEQUENCE   =================
   ! =========================================================
-  ! Wrapped in a separate subroutine to keep CONTAINS clean.
-  !
-  ! NOTE: This test assumes sfincs_bmi2 default initialization:
-  !   nx=10, ny=10, dx=dy=100, x0=y0=0, dt=1, t_start=0, t_end=3600
-  !
-  call run_all_tests()
-  call summary_and_stop()
-
-contains
-
   subroutine run_all_tests()
     type(sfincs_bmi) :: m
-    integer :: s, nx, ny, n, i, j, k
+    integer :: s, nx, ny, n, i
     integer :: count, grid, rank, sizei, shp(2)
     double precision :: spacing(2), origin(2)
     double precision, allocatable :: x(:), y(:), z(:)
@@ -70,18 +64,17 @@ contains
     character(len=32) :: time_units, var_units, var_type, var_loc, grid_type
     double precision :: t0, t1, tcur, dt
     integer :: nbytes, itemsize
-    ! buffers for values
     real(real32), allocatable :: fbuf(:), fbuf2(:)
     real(real64), allocatable :: dbuf(:), dbuf2(:)
     real(real32), pointer     :: fptr(:) => null()
     real(real64), pointer     :: dptr(:) => null()
-    integer, allocatable      :: inds(:)
+    integer,      allocatable :: inds(:)
+    integer,      pointer     :: iptr(:) => null()   ! for get_value_ptr_int (pointer dummy)
     integer :: tmpi
 
     ! ---------- initialize ----------
     s = m%initialize(''); call check_status_is(s, BMI_SUCCESS, 'initialize')
 
-    ! After init, infer sizes expected by module defaults
     nx = 10; ny = 10; n = nx*ny
     call check(m%nx==nx .and. m%ny==ny, 'grid dims nx,ny')
     call check(rel_eq(m%dx,100.d0,1d-12) .and. rel_eq(m%dy,100.d0,1d-12), 'spacing dx,dy')
@@ -158,15 +151,13 @@ contains
     s = m%get_grid_x(1, x);             call check_status_is(s,BMI_SUCCESS,'get_grid_x')
     s = m%get_grid_y(1, y);             call check_status_is(s,BMI_SUCCESS,'get_grid_y')
     s = m%get_grid_z(1, z);             call check_status_is(s,BMI_SUCCESS,'get_grid_z')
-    ! Check a few coordinates
     call check(rel_eq(x(1),  50.d0,1d-12),'x(1)=50')
     call check(rel_eq(y(1),  50.d0,1d-12),'y(1)=50')
     call check(all(z == 0.d0), 'z all zeros')
 
-    ! Also check failure for wrong grid id
     s = m%get_grid_rank(2, rank);       call check_status_is(s,BMI_FAILURE,'get_grid_rank wrong grid')
 
-    ! ---------- unstructured stubs (all must fail) ----------
+    ! ---------- unstructured stubs ----------
     s = m%get_grid_edge_count(1, tmpi);       call check_status_is(s,BMI_FAILURE,'get_grid_edge_count (stub)')
     s = m%get_grid_face_count(1, tmpi);       call check_status_is(s,BMI_FAILURE,'get_grid_face_count (stub)')
     s = m%get_grid_node_count(1, tmpi);       call check_status_is(s,BMI_FAILURE,'get_grid_node_count (stub)')
@@ -183,19 +174,16 @@ contains
     s = m%get_value_float('zs', fbuf);  call check_status_is(s,BMI_SUCCESS,'get_value_float zs (zeros)')
     call check(all(fbuf == 0.0_real32),'zs initially zero')
 
-    ! pointer getter
     s = m%get_value_ptr_float('zs', fptr); call check_status_is(s,BMI_SUCCESS,'get_value_ptr_float zs')
     call check(associated(fptr),'fptr associated')
     call check(size(fptr)==n,'fptr size')
 
-    ! set_value_float (full array)
     fbuf = 2.0_real32
     s = m%set_value_float('zs', fbuf);  call check_status_is(s,BMI_SUCCESS,'set_value_float zs')
     fbuf2 = -7.0_real32
     s = m%get_value_float('zs', fbuf2); call check_status_is(s,BMI_SUCCESS,'get_value_float zs after set')
     call check(all(fbuf2 == 2.0_real32),'zs now 2.0')
 
-    ! set_value_at_indices_float on zb
     allocate(inds(n))
     do i=1,n; inds(i)=i; end do
     fbuf = 1.0_real32
@@ -204,17 +192,12 @@ contains
     s = m%get_value_float('zb', fbuf2); call check_status_is(s,BMI_SUCCESS,'get_value_float zb after set_at_indices')
     call check(all(fbuf2 == 1.0_real32),'zb now 1.0')
 
-    ! depth (float) has not been recomputed by float setter; but double mirror is updated.
-    ! Verify double depth is max(zs - zb, 0) via double getter (see next section).
-
-    ! get_value_at_indices_float (sample)
     fbuf2 = -5.0_real32
     inds = [( (i), i=1,10 )]
     s = m%get_value_at_indices_float('zs', fbuf2(1:10), inds(1:10))
     call check_status_is(s,BMI_SUCCESS,'get_value_at_indices_float zs subset')
     call check(all(fbuf2(1:10) == 2.0_real32), 'subset zs values are 2.0')
 
-    ! unknown name & undersized buffer should fail
     s = m%get_value_float('unknown', fbuf);      call check_status_is(s,BMI_FAILURE,'get_value_float unknown')
     s = m%get_value_ptr_float('unknown', fptr);  call check_status_is(s,BMI_FAILURE,'get_value_ptr_float unknown')
     deallocate(fbuf, fbuf2, inds)
@@ -225,27 +208,22 @@ contains
     s = m%get_value_double('zs', dbuf);  call check_status_is(s,BMI_SUCCESS,'get_value_double zs')
     call check(all(dbuf == 2.0_real64),'zs double mirror 2.0')
 
-    ! depth double should reflect zs(=2) - zb(=1) => 1
     dbuf = -9.0_real64
     s = m%get_value_double('depth', dbuf); call check_status_is(s,BMI_SUCCESS,'get_value_double depth')
     call check(all(dbuf == 1.0_real64), 'depth double == 1.0')
 
-    ! pointer getter double
     s = m%get_value_ptr_double('zb', dptr); call check_status_is(s,BMI_SUCCESS,'get_value_ptr_double zb')
     call check(associated(dptr),'dptr associated'); call check(size(dptr)==n,'dptr size')
 
-    ! set_value_double for zs to 3.5; this should propagate back to float buffers via sync_float_buffers
     dbuf2 = 3.5_real64
     s = m%set_value_double('zs', dbuf2); call check_status_is(s,BMI_SUCCESS,'set_value_double zs -> 3.5')
 
-    ! Check zs (float) now 3.5 and depth double recomputed accordingly (3.5-1.0=2.5)
     allocate(fbuf(n))
     s = m%get_value_float('zs', fbuf); call check_status_is(s,BMI_SUCCESS,'get_value_float zs after set_double')
     call check(all(abs(real(fbuf,real64)-3.5_real64) < 1e-6_real64),'zs float ~ 3.5 after double set')
     s = m%get_value_double('depth', dbuf); call check_status_is(s,BMI_SUCCESS,'get_value_double depth after set_double')
     call check(all(abs(dbuf-2.5_real64) < 1e-12_real64),'depth double == 2.5')
 
-    ! set_value_at_indices_double for depth directly to 7.0; float mirror should follow
     do i=1,n; dbuf(i)=7.0_real64; end do
     allocate(inds(n)); do i=1,n; inds(i)=i; end do
     s = m%set_value_at_indices_double('depth', inds, dbuf); call check_status_is(s,BMI_SUCCESS,'set_value_at_indices_double depth -> 7.0')
@@ -256,18 +234,16 @@ contains
 
     deallocate(fbuf, dbuf, dbuf2)
 
-    ! ---------- integer suite (all stubs -> failure) ----------
+    ! ---------- integer suite (stubs -> failure) ----------
     allocate(inds(5)); inds = [1,2,3,4,5]
-    allocate(fbuf(5)); fbuf = 0.0_real32
-    s = m%get_value_int('zs', inds);                 call check_status_is(s,BMI_FAILURE,'get_value_int (stub)')
-    s = m%set_value_int('zs', inds);                 call check_status_is(s,BMI_FAILURE,'set_value_int (stub)')
-    ! ptr & at_indices int
-    nullify(fptr)  ! just to reuse symbol with wrong type is not allowed; use a different var
-    ! We only verify the status codes:
-    s = m%get_value_ptr_int('zs', inds);             call check_status_is(s,BMI_FAILURE,'get_value_ptr_int (stub)')
-    s = m%get_value_at_indices_int('zs', inds, inds);call check_status_is(s,BMI_FAILURE,'get_value_at_indices_int (stub)')
-    s = m%set_value_at_indices_int('zs', inds, inds);call check_status_is(s,BMI_FAILURE,'set_value_at_indices_int (stub)')
-    deallocate(inds, fbuf)
+    s = m%get_value_int('zs', inds);                  call check_status_is(s,BMI_FAILURE,'get_value_int (stub)')
+    s = m%set_value_int('zs', inds);                  call check_status_is(s,BMI_FAILURE,'set_value_int (stub)')
+    nullify(iptr)
+    s = m%get_value_ptr_int('zs', iptr);              call check_status_is(s,BMI_FAILURE,'get_value_ptr_int (stub)')
+    call check(.not. associated(iptr), 'iptr not associated (stub failure path)')
+    s = m%get_value_at_indices_int('zs', inds, inds); call check_status_is(s,BMI_FAILURE,'get_value_at_indices_int (stub)')
+    s = m%set_value_at_indices_int('zs', inds, inds); call check_status_is(s,BMI_FAILURE,'set_value_at_indices_int (stub)')
+    deallocate(inds)
 
     ! ---------- update / update_until ----------
     s = m%get_current_time(tcur); call check_status_is(s,BMI_SUCCESS,'current time before update')
@@ -279,15 +255,12 @@ contains
     s = m%get_current_time(tcur); call check_status_is(s,BMI_SUCCESS,'current time after update_until')
     call check(rel_eq(tcur,5.d0,1d-12), 'time == 5')
 
-    ! update_until with time earlier than current should succeed and not change time
     s = m%update_until(2.d0);     call check_status_is(s,BMI_SUCCESS,'update_until earlier time is no-op')
     s = m%get_current_time(dt);   call check_status_is(s,BMI_SUCCESS,'time after no-op update_until')
     call check(rel_eq(dt,tcur,1d-12),'time unchanged after no-op')
 
     ! ---------- finalize ----------
     s = m%finalize(); call check_status_is(s,BMI_SUCCESS,'finalize')
-
-    ! After finalize, update should fail
     s = m%update();   call check_status_is(s,BMI_FAILURE,'update after finalize should fail')
   end subroutine run_all_tests
 

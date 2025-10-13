@@ -234,16 +234,43 @@ contains
   !============================
   !== Model info
   !============================
-  function sfincs_bmi_get_component_name(this, name) result(status)
-    class(sfincs_bmi),         intent(in)  :: this
-    character(len=*), pointer, intent(out) :: name
-    integer :: status
-    if (associated(this%component_name)) then
-      name => this%component_name; status = BMI_SUCCESS
-    else
-      nullify(name); status = BMI_FAILURE
-    end if
-  end function sfincs_bmi_get_component_name
+
+  ! get_component_name
+function sfincs_bmi_get_component_name(this, name) result(status)
+  class(sfincs_bmi),         intent(in)  :: this
+  character(len=:), pointer, intent(out) :: name
+  integer :: status
+  if (associated(this%component_name)) then
+    name => this%component_name; status = BMI_SUCCESS
+  else
+    nullify(name); status = BMI_FAILURE
+  end if
+end function sfincs_bmi_get_component_name
+
+! get_input_var_names
+function sfincs_bmi_get_input_var_names(this, names) result(status)
+  class(sfincs_bmi),         intent(in)  :: this
+  character(len=:), pointer, intent(out) :: names(:)
+  integer :: status
+  if (associated(this%input_names)) then
+    names => this%input_names; status = BMI_SUCCESS
+  else
+    nullify(names); status = BMI_FAILURE
+  end if
+end function sfincs_bmi_get_input_var_names
+
+! get_output_var_names
+function sfincs_bmi_get_output_var_names(this, names) result(status)
+  class(sfincs_bmi),         intent(in)  :: this
+  character(len=:), pointer, intent(out) :: names(:)
+  integer :: status
+  if (associated(this%output_names)) then
+    names => this%output_names; status = BMI_SUCCESS
+  else
+    nullify(names); status = BMI_FAILURE
+  end if
+end function sfincs_bmi_get_output_var_names
+
 
   function sfincs_bmi_get_input_item_count(this, count) result(status)
     class(sfincs_bmi), intent(in)  :: this
@@ -258,28 +285,6 @@ contains
     integer :: status
     count = 3; status = BMI_SUCCESS
   end function sfincs_bmi_get_output_item_count
-
-  function sfincs_bmi_get_input_var_names(this, names) result(status)
-    class(sfincs_bmi),         intent(in)  :: this
-    character(len=*), pointer, intent(out) :: names(:)
-    integer :: status
-    if (associated(this%input_names)) then
-      names => this%input_names; status = BMI_SUCCESS
-    else
-      nullify(names); status = BMI_FAILURE
-    end if
-  end function sfincs_bmi_get_input_var_names
-
-  function sfincs_bmi_get_output_var_names(this, names) result(status)
-    class(sfincs_bmi),         intent(in)  :: this
-    character(len=*), pointer, intent(out) :: names(:)
-    integer :: status
-    if (associated(this%output_names)) then
-      names => this%output_names; status = BMI_SUCCESS
-    else
-      nullify(names); status = BMI_FAILURE
-    end if
-  end function sfincs_bmi_get_output_var_names
 
   !============================
   !== Time
