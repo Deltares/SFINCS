@@ -42,6 +42,8 @@ contains
    !
    if (netbndbzsbzifile(1:4) /= 'none') then    ! FEWS compatible Netcdf water level time-series input
       !
+      ok = check_file_exists(netbndbzsbzifile, 'Netcdf water level input netbndbzsbzi file', .true.)    
+      !
       call read_netcdf_boundary_data()
       !
       if ((t_bnd(1) > (t0 + 1.0)) .or. (t_bnd(ntbnd) < (t1 - 1.0))) then
@@ -55,7 +57,7 @@ contains
       !
       call write_log('Info    : reading water level boundaries', 0)
       !
-      ok = check_file_exists(bndfile, 'Boundary points file', .true.)
+      ok = check_file_exists(bndfile, 'Water level input locations bnd file', .true.)      
       !
       open(500, file=trim(bndfile))
       do while(.true.)
@@ -75,7 +77,7 @@ contains
       !
       if (bzsfile(1:4) /= 'none') then
          !
-         ok = check_file_exists(bzsfile, 'Boundary conditions file', .true.)
+         ok = check_file_exists(bzsfile, 'Boundary conditions bzs file', .true.)
          !         
          open(500, file=trim(bzsfile))
          do while(.true.)
@@ -128,7 +130,7 @@ contains
          allocate(zsi_bnd(nbnd,ntbnd))
          allocate(zsit_bnd(nbnd))
          !
-         ok = check_file_exists(bzifile, 'Boundary infragravity time series file', .true.)
+         ok = check_file_exists(bzifile, 'Boundary infragravity time series bzi file', .true.)
          !
          open(500, file=trim(bzifile))
          do itb = 1, ntbnd
@@ -223,7 +225,7 @@ contains
          write(logstr,'(a)')'Info    : reading downstream river boundaries'
          call write_log(logstr, 0)
          !
-         ok = check_file_exists(bdrfile, 'Downstream boundary points file', .true.)
+         ok = check_file_exists(bdrfile, 'Downstream boundary points bdr file', .true.)
          !
          open(500, file=trim(bdrfile))
          do while(.true.)
@@ -293,6 +295,9 @@ contains
    if (bcafile(1:4) /= 'none' .and. nbnd > 0 .and. use_bcafile) then
       !
       call write_log('Info    : reading tidal components', 0)
+      !
+      ok = check_file_exists(bcafile, 'Astro boundary conditions bca file', .true.)
+      !
       !
       ! First pass: count number of sets and number of components in first set
       !
