@@ -2,7 +2,7 @@ module sfincs_meteo
 
 contains
 
-   subroutine read_meteo_data()  
+    subroutine read_meteo_data()  
    !
    ! Read different meteo input types
    !
@@ -10,7 +10,6 @@ contains
    use sfincs_spiderweb
    use sfincs_ncinput
    use sfincs_log
-   use sfincs_error
    !
    implicit none
    !   
@@ -18,16 +17,12 @@ contains
    !
    real*4 dummy, wnd, xx, yy
    !
-   logical :: ok
-   !
    spw_precip = .false.
    !
    if (spwfile(1:4) /= 'none') then
       !
       write(logstr,'(a,a)')'Info    : reading spiderweb file ', trim(spwfile)
       call write_log(logstr, 0)
-      !
-      ok = check_file_exists(spwfile, 'Spiderweb file', .true.)
       !  
       call read_spw_dimensions(spwfile,spw_nt,spw_nrows,spw_ncols,spw_radius,spw_nquant)
       !
@@ -89,8 +84,6 @@ contains
       write(logstr,'(a,a)')'Info    : reading netcdf spiderweb file ', trim(netspwfile)
       call write_log(logstr, 0)
       !
-      ok = check_file_exists(netspwfile, 'Spiderweb netCDF file', .true.)
-      !
       call read_netcdf_spw_data()
       !
    endif
@@ -117,8 +110,6 @@ contains
    if (amufile(1:4) /= 'none') then
       !
       call write_log('Info    : reading amu and amv file', 0)
-      !
-      ok = check_file_exists(amufile, 'AMU file', .true.)
       !  
       call read_amuv_dimensions(amufile,amuv_nt,amuv_nrows,amuv_ncols,amuv_x_llcorner,amuv_y_llcorner,amuv_dx,amuv_dy,amuv_nquant)
       !
@@ -135,8 +126,6 @@ contains
       !
    elseif (netamuamvfile(1:4) /= 'none') then   ! FEWS compatible Netcdf amu&amv wind spatial input
       !
-      ok = check_file_exists(amvfile, 'AMV file', .true.)
-      !
       call read_netcdf_amuv_data()
       !
       allocate(amuv_wu01(amuv_nrows, amuv_ncols)) !(has to be allocated somewhere)
@@ -148,8 +137,6 @@ contains
       !
       call write_log('Info    : reading ampr file', 0)
       !  
-      ok = check_file_exists(amprfile, 'AMPR file', .true.)
-      !
       call read_amuv_dimensions(amprfile,ampr_nt,ampr_nrows,ampr_ncols,ampr_x_llcorner,ampr_y_llcorner,ampr_dx,ampr_dy,ampr_nquant)
       !
       ! Allocate
@@ -162,8 +149,6 @@ contains
       !
    elseif (netamprfile(1:4) /= 'none') then   ! FEWS compatible Netcdf ampr precipitation spatial input
       !
-      ok = check_file_exists(netamprfile, 'AMPR netCDF file', .true.)
-      !
       call read_netcdf_ampr_data()
       !
       allocate(ampr_pr01(ampr_nrows, ampr_ncols))!(has to be allocated somewhere)
@@ -174,8 +159,6 @@ contains
       !
       call write_log('Info    : reading amp file', 0)
       !  
-      ok = check_file_exists(ampfile, 'AMP file', .true.)
-      !
       call read_amuv_dimensions(ampfile,amp_nt,amp_nrows,amp_ncols,amp_x_llcorner,amp_y_llcorner,amp_dx,amp_dy,amp_nquant)
       !
       ! Allocate
@@ -188,8 +171,6 @@ contains
       !
    elseif (netampfile(1:4) /= 'none') then   ! FEWS compatible Netcdf amp barometric pressure spatial input
       !
-      ok = check_file_exists(netampfile, 'AMP netCDF file', .true.)
-      !  
       call read_netcdf_amp_data()
       !
       allocate(amp_patm01(amp_nrows, amp_ncols)) ! (has to be allocated somewhere)
@@ -199,11 +180,8 @@ contains
    if (wndfile(1:4) /= 'none') then
       !
       ! Wind in time series file 
-      !
       write(logstr,'(a,a)')'Info    : reading ', trim(wndfile)    
       call write_log(logstr, 0)
-      !
-      ok = check_file_exists(wndfile, 'Wind file', .true.)
       !
       ntwnd = 0
       itwndlast = 1
@@ -234,8 +212,6 @@ contains
       ! Rainfall in time series file 
       write(logstr,'(a,a)')'Info    : reading prcp file ', trim(prcpfile)    
       call write_log(logstr, 0)
-      !
-      ok = check_file_exists(prcpfile, 'Precipitation file', .true.)
       !
       ntprcp = 0 
       itprcplast = 1
@@ -306,6 +282,7 @@ contains
    real*4 fd
    real*4 wdir
    real*4 facint
+   real*4 dxe, dye
    !
    do itw = 1, 2
       !      
@@ -393,10 +370,18 @@ contains
          ! Compute tauwu0, tauwv0, pabs0, prcp0 at spw_t0
          !
          if (crsgeo) then
-            dstspw  = sqrt(((cos(spw_ye01*pi/180)*111111)*(x - spw_xe01))**2 + (111111*(y - spw_ye01))**2) ! Distance to eye
+            !
+            dxe = (cos(spw_ye01 * pi / 180) * 111111) * (x - spw_xe01)
+            dye = 111111 * (y - spw_ye01)
+            !
          else
-            dstspw  = sqrt((x - spw_xe01)**2 + (y - spw_ye01)**2) ! Distance to eye
+            !
+            dxe = x - spw_xe01
+            dye = y - spw_ye01
+            !
          endif
+         !
+         dstspw = sqrt(dxe**2 + dye**2)
          !
          ! Initialize meteo data, but only if we don't also use background meteo
          !
@@ -466,7 +451,7 @@ contains
          ind1(4) = idstspw + 1
          if (ind1(3)>spw_nrows) cycle             
          dj1     = (dstspw - dradspw*idstspw) / dradspw
-         phispw  = 0.5*pi - atan2(y - spw_ye01, x - spw_xe01) ! Geographic
+         phispw  = 0.5*pi - atan2(dye, dxe) ! Geographic
          phispw  = modulo(phispw, 2*pi)
          !
          ! Determine column indices
@@ -531,8 +516,8 @@ contains
          !
          ! Merge frac for merging with background winds
          !
-         if (dstspw>spw_merge_frac*spw_radius) then
-            merge_frac = 2*(spw_radius - dstspw)/spw_radius
+         if (dstspw > spw_merge_frac * spw_radius) then
+            merge_frac = (1.0 / (1.0 - min(spw_merge_frac, 0.999))) * (spw_radius - dstspw) / spw_radius
          else
             merge_frac = 1.0
          endif

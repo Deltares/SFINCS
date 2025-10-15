@@ -1,7 +1,4 @@
 module sfincs_discharges
-   
-   use sfincs_log
-   use sfincs_error
 
 contains
    !
@@ -21,8 +18,6 @@ contains
    !
    integer isrc, itsrc, idrn, nm, m, n, stat, j, iref
    !
-   logical :: ok
-   !
    ! Read discharge points
    !
    nsrc  = 0
@@ -31,8 +26,6 @@ contains
    itsrclast = 1
    !
    if (srcfile(1:4) /= 'none') then
-      !
-      ok = check_file_exists(srcfile, 'Source points file', .true.)
       !
       write(logstr,'(a)')'Info    : reading discharges'
       call write_log(logstr, 0)
@@ -49,14 +42,19 @@ contains
       !
       call read_netcdf_discharge_data()  ! reads nsrc, ntsrc, xsrc, ysrc, qsrc, and tsrc
       !
+      if ((tsrc(1) > (t0 + 1.0)) .or. (tsrc(ntsrc) < (t1 - 1.0))) then
+         !
+         write(logstr,'(a)')' WARNING! Times in discharge file do not cover entire simulation period!'
+         call write_log(logstr, 1)
+         !
+      endif         
+      !
    endif   
    !
    if (drnfile(1:4) /= 'none') then
       !
       write(logstr,'(a)')'Info    : reading drainage file'
       call write_log(logstr, 0)
-      !
-      ok = check_file_exists(drnfile, 'Drainage points file', .true.)
       !
       open(501, file=trim(drnfile))
       do while(.true.)
@@ -90,8 +88,6 @@ contains
       !
       ! Read discharge time series
       !
-      ok = check_file_exists(disfile, 'Discharge time series file', .true.)
-      !
       open(502, file=trim(disfile))
       do while(.true.)
          read(502,*,iostat = stat)dummy
@@ -105,6 +101,29 @@ contains
          read(502,*)tsrc(itsrc),(qsrc(isrc, itsrc), isrc = 1, nsrc)
       enddo
       close(502)
+      !
+      if ((tsrc(1) > (t0 + 1.0)) .or. (tsrc(ntsrc) < (t1 - 1.0))) then
+         ! 
+         write(logstr,'(a)')'Warning! Times in discharge file do not cover entire simulation period !'
+         call write_log(logstr, 1)
+         !
+         if (tsrc(1) > (t0 + 1.0)) then
+            ! 
+            write(logstr,'(a)')'Warning! Adjusting first time in discharge time series !'
+            call write_log(logstr, 1)
+            !
+            tsrc(1) = t0 - 1.0
+            !
+         else
+            ! 
+            write(logstr,'(a)')'Warning! Adjusting last time in discharge time series !'
+            call write_log(logstr, 1)
+            !
+            tsrc(ntsrc) = t1 + 1.0
+            !
+         endif
+         !
+      endif   
       !
    endif  
    !

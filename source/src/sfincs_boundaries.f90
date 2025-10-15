@@ -11,10 +11,12 @@ contains
    !
    use sfincs_ncinput
    use sfincs_data
+   use quadtree
    !
    implicit none
    !
-   integer n, itb, ib, stat, ifreq, iok
+   integer n, itb, ib, stat, ifreq, iok, ibdr
+   real*4  :: x_bdr_in, y_bdr_in, slope_bdr, distance_bdr
    logical :: ok
    !
    real*4 dummy,r
@@ -40,8 +42,6 @@ contains
       !
       call write_log('Info    : reading water level boundaries', 0)
       !
-      ok = check_file_exists(bndfile, 'Boundary points file', .true.)
-      !
       open(500, file=trim(bndfile))
       do while(.true.)
          read(500,*,iostat = stat)dummy
@@ -57,8 +57,6 @@ contains
       close(500)
       !
       ! Read water level boundary conditions file
-      !
-      ok = check_file_exists(bzsfile, 'Boundary time series file', .true.)
       !
       open(500, file=trim(bzsfile))
       do while(.true.)
@@ -84,8 +82,6 @@ contains
          !
          allocate(zsi_bnd(nbnd,ntbnd))
          allocate(zsit_bnd(nbnd))
-         !
-         ok = check_file_exists(bzifile, 'Boundary infragravity time series file', .true.)
          !
          open(500, file=trim(bzifile))
          do itb = 1, ntbnd
@@ -169,84 +165,6 @@ contains
       call write_log(logstr, 1)
       ! 
    endif
-!   !
-!   ! Read wave boundaries
-!   !
-!   nwbnd = 0
-!   ntwbnd = 0
-!   !
-!   if (bwvfile(1:4) /= 'none') then
-!      !
-!      write(logstr,'(a)')'Info    : reading wave boundaries'
-!      call write_log(logstr, 0)
-!      !
-!      ! Locations
-!      !
-!      open(500, file=trim(bwvfile))
-!      do while(.true.)
-!         read(500,*,iostat = stat)dummy
-!         if (stat<0) exit
-!         nwbnd = nwbnd + 1
-!      enddo
-!      rewind(500)
-!      allocate(x_bwv(nwbnd))
-!      allocate(y_bwv(nwbnd))
-!      do n = 1, nwbnd
-!         read(500,*)x_bwv(n),y_bwv(n)
-!      enddo
-!      close(500)
-!      !
-!      ! Wave time series
-!      !
-!      ! First find times in bhs file
-!      !
-!      open(500, file=trim(bhsfile))
-!      do while(.true.)
-!         read(500,*,iostat = stat)dummy
-!         if (stat<0) exit
-!         ntwbnd = ntwbnd + 1
-!      enddo
-!      close(500)
-!      !
-!      allocate(t_bwv(ntwbnd))
-!      allocate(hst_bwv(nwbnd))
-!      allocate(l0t_bwv(nwbnd))
-!      allocate(tpt_bwv(nwbnd))
-!      allocate(wdt_bwv(nwbnd))
-!!      allocate(setupt_bwv(nwbnd))
-!      !
-!      ! Hs (significant wave height)
-!      ! Times in btp and bwd files must be the same as in bhs file!
-!      !
-!      open(500, file=trim(bhsfile))
-!      allocate(hs_bwv(nwbnd,ntwbnd))
-!      do itb = 1, ntwbnd
-!         read(500,*)t_bwv(itb),(hs_bwv(ib, itb), ib = 1, nwbnd)
-!      enddo
-!      close(500)
-!      !
-!      ! Tp (peak period)
-!      !
-!      open(500, file=trim(btpfile))
-!      allocate(tp_bwv(nwbnd,ntwbnd))
-!      do itb = 1, ntwbnd
-!         read(500,*)t_bwv(itb),(tp_bwv(ib, itb), ib = 1, nwbnd)
-!      enddo
-!      close(500)
-!      !
-!      if (bwdfile(1:4) /= 'none') then
-!         !
-!         ! Wd (wave direction)
-!         !
-!         open(500, file=trim(bwdfile))
-!         allocate(wd_bwv(nwbnd,ntwbnd))
-!         do itb = 1, ntwbnd
-!            read(500,*)t_bwv(itb),(wd_bwv(ib, itb), ib = 1, nwbnd)
-!         enddo
-!         close(500)
-!         wd_bwv = (270.0 - wd_bwv)*pi/180 ! Convert to cartesian going to
-!         !
-!      endif
    !
    ! Now the downstream river boundaries. No time series, just points, slope and direction
    !
@@ -259,29 +177,53 @@ contains
          write(logstr,'(a)')'Info    : reading downstream river boundaries'
          call write_log(logstr, 0)
          !
-         ok = check_file_exists(bdrfile, 'Downstream boundary points file', .true.)
-         !
          open(500, file=trim(bdrfile))
          do while(.true.)
             read(500,*,iostat = stat)dummy
             if (stat<0) exit
             nbdr = nbdr + 1
          enddo
+         !
          rewind(500)
+         !
          allocate(x_bdr(nbdr))
          allocate(y_bdr(nbdr))
-         allocate(slope_bdr(nbdr))
-         allocate(azimuth_bdr(nbdr))      
-         do n = 1, nbdr
-            read(500,*)x_bdr(n), y_bdr(n), slope_bdr(n), azimuth_bdr(n)
+         allocate(index_zsi_bdr(nbdr))
+         allocate(dzs_bdr(nbdr))
+         !          
+         do ibdr = 1, nbdr
+            !
+            read(500,*)x_bdr(ibdr), y_bdr(ibdr), x_bdr_in, y_bdr_in, slope_bdr, distance_bdr
+            !
+            ! Find grid cell that contains the internal point
+            !
+            index_zsi_bdr(ibdr) = find_quadtree_cell(x_bdr_in, y_bdr_in)
+            !
+            ! Water level difference between internal point and downstream boundary
+            !
+            if (distance_bdr < 0.0) then
+               !
+               ! Distance not provided. Take distance between two points in bdr file.
+               !
+               dzs_bdr(ibdr) = - slope_bdr * sqrt( (x_bdr_in - x_bdr(ibdr))**2 + (y_bdr_in - y_bdr(ibdr))**2 )
+               !
+            else
+               !
+               ! Distance is provided.
+               !
+               dzs_bdr(ibdr) = - slope_bdr * distance_bdr
+               !
+            endif   
+            !
          enddo
+         !
          close(500)
          !
       else
          !
          ! This really should not happen
          !
-         call stop_sfincs('Downstream river points found in mask, without boundary conditions (missing bdrfile in sfincs.inp) !', 1)
+         call stop_sfincs('Error! Downstream river points found in mask, without boundary conditions (missing bdrfile in sfincs.inp) !', 1)
          !
       endif
       !
@@ -309,13 +251,11 @@ contains
    !
    ! Determine indices and weights of boundary points
    ! For tide and surge, these are the indices and weights of the points in the bnd file
-   ! For waves, these are the indices and weights of the points in the cst file
    !
    integer nm, m, n, nb, ib1, ib2, ib, ic, ibnd, ibdr, iref
-   integer nm_1, nm_2, nm_3, nmi
+   integer nmi
    !
-   real x, y, dst1, dst2, dst, phi_riv, phi_r
-   real*4 :: w_1, w_2, w_3, d_1, d_2, d_3 
+   real x, y, dst1, dst2, dst
    !
    ! Check there are points from bnd file and/or bdr file and that kcs mask contains 2/3/5/6
    !
@@ -353,15 +293,11 @@ contains
    !
    if (downstream_river_boundaries_in_mask) then
       !
-      ! There are downstream river boundaries, so we need indices, weights and distances of upstream points
+      ! There are downstream river boundaries
       !
-      allocate(nm_nbr_gbp(3, ngbnd))
-      allocate(w_nbr_gbp(3, ngbnd))
-      allocate(d_nbr_gbp(3, ngbnd))
+      allocate(index_bdr_gbp(ngbnd))
       !
-      nm_nbr_gbp = 0
-      w_nbr_gbp  = 0.0
-      d_nbr_gbp  = 0.0
+      index_bdr_gbp = 0
       !
    endif
    !
@@ -463,94 +399,7 @@ contains
             !
          enddo
          !
-         ! Now we need to determine info on how to obtain zs for this cell at each time step based on slope and direction in bdr file.
-         ! The problem is that a grid boundary cell can have up to three internal neighbors inside the domain.
-         ! Of each of these points, we need: nm index, projected distance to line perpendicular to river, and weight.
-         ! In case of three neighbors, zsb will then be computed in update_boundary_conditions as:
-         !
-         ! zsb = w1 * (zs(i1) - slope*dx1) + w2 * (zs(i2) - slope*dx2) + w3 * (zs(i3) - slope*dx3)
-         !
-         ! Quadtree refinement is not allowed near river outflow boundaries! This would get too complicated for now. Also, grid cells must be square.
-         !
-         slope_gbp(ib) = slope_bdr(ib1)
-         !
-         ! Indices of boundary cell
-         !
-         n = z_index_z_n(nm) 
-         m = z_index_z_m(nm)
-         iref = z_flags_iref(nm)
-         !
-         ! Virtually rotate grid to 0.0 and river direction (where the river is flowing from) accordingly
-         !
-         phi_riv = modulo(2 * pi * (90.0 - azimuth_bdr(ib1)) - rotation, 2 * pi)
-         !
-         if (phi_riv < 0.5 * pi) then
-            !
-            ! Neighbors in NE
-            !
-            nm_1 = find_sfincs_cell(n    , m + 1, iref)
-            nm_2 = find_sfincs_cell(n + 1, m + 1, iref)
-            nm_3 = find_sfincs_cell(n + 1, m    , iref)
-            !
-            phi_r = phi_riv
-            !
-         elseif (phi_riv < pi) then
-            !
-            ! Neighbors in NW
-            !
-            nm_1 = find_sfincs_cell(n + 1, m    , iref)
-            nm_2 = find_sfincs_cell(n + 1, m - 1, iref)
-            nm_3 = find_sfincs_cell(n    , m - 1, iref)
-            !
-            phi_r = phi_riv - 0.5 * pi
-            !
-         elseif (phi_riv < 1.5 * pi) then
-            !
-            ! Neighbors in SE
-            !
-            nm_1 = find_sfincs_cell(n    , m - 1, iref)
-            nm_2 = find_sfincs_cell(n - 1, m - 1, iref)
-            nm_3 = find_sfincs_cell(n - 1, m    , iref)
-            !
-            phi_r = phi_riv - 1.0 * pi
-            !
-         else
-            !
-            ! Neighbors in SW
-            !
-            nm_1 = find_sfincs_cell(n - 1, m    , iref)
-            nm_2 = find_sfincs_cell(n - 1, m + 1, iref)
-            nm_3 = find_sfincs_cell(n    , m + 1, iref)
-            !
-            phi_r = phi_riv - 1.5 * pi
-            !
-         endif
-         !
-         ! Now compute weights
-         !
-         w_1 = cos(phi_r) / (cos(phi_r) + sin(2 * phi_r) + sin(phi_r))
-         w_2 = sin(2 * phi_r) / (cos(phi_r) + sin(2 * phi_r) + sin(phi_r))
-         w_3 = sin(phi_r) / (cos(phi_r) + sin(2 * phi_r) + sin(phi_r))
-         !
-         ! And the distances
-         !
-         d_1 = cos(phi_r) * dxr(iref)
-         d_2 = (1.0 + (sqrt(2.0) - 1.0) * sin(2 * phi_r)) * dxr(iref)
-         d_3 = sin(phi_r) * dxr(iref)
-         !
-         ! Fill nbr arrays
-         !
-         nm_nbr_gbp(1, ib) = nm_1
-         nm_nbr_gbp(2, ib) = nm_2
-         nm_nbr_gbp(3, ib) = nm_3
-         !
-         w_nbr_gbp(1, ib) = w_1
-         w_nbr_gbp(2, ib) = w_2
-         w_nbr_gbp(3, ib) = w_3
-         !
-         d_nbr_gbp(1, ib) = d_1
-         d_nbr_gbp(2, ib) = d_2
-         d_nbr_gbp(3, ib) = d_3
+         index_bdr_gbp(ib) = ib1
          !
       elseif (kcs(nm) == 6) then  ! This cell is a Neumann boundary point
          !
@@ -662,7 +511,7 @@ contains
    !
    implicit none
    !
-   integer ib, ifreq, ic, nm, ibuv, nmi, nmb, indb, iw
+   integer ib, ifreq, ic, nm, ibuv, nmi, nmb, indb, iw, ibdr
    !
    real*8                            :: t
    real                              :: dt
@@ -726,13 +575,13 @@ contains
                !
                ! Interpolation of nearby points
                !
-               zig   = zsit_bnd(ind1_bnd_gbp(ib)) * fac_bnd_gbp(ib)  + zsit_bnd(ind2_bnd_gbp(ib)) * (1.0 - fac_bnd_gbp(ib))
+               zig = zsit_bnd(ind1_bnd_gbp(ib)) * fac_bnd_gbp(ib)  + zsit_bnd(ind2_bnd_gbp(ib)) * (1.0 - fac_bnd_gbp(ib))
                !
             else
                !
                ! Just use the value of the one boundary point
                !
-               zig   = zsit_bnd(1)
+               zig = zsit_bnd(1)
                !
             endif
             !
@@ -771,48 +620,20 @@ contains
          !
          ! Get water levels from inside model, and adjust for slope.
          !
-         zst = 0.0
-         sumw = 0.0
-         !         
-         do iw = 1, 3
-            !
-            nm = nm_nbr_gbp(iw, ib) ! nm index of internal neighbor
-            !
-            if (nm > 0) then
-               !
-               ! Check that this point is not dry. If so, skip.
-               !
-               if (subgrid) then
-                  if (zs(nm) < subgrid_z_zmin(nmb) + 0.01) cycle
-               else
-                  if (zs(nm) < zb(nmb) + huthresh) cycle
-               endif
-               !
-               zst = zst + w_nbr_gbp(iw, ib) * (zs(nm) - slope_gbp(ib) * w_nbr_gbp(iw, ib))
-               sumw = sumw + w_nbr_gbp(iw, ib)
-               !
-            endif
-            !
-         enddo
+         ibdr = index_bdr_gbp(ib) ! index of the downstream boundary point that forces this grid boundary point ib
          !
-         if (sumw > 1.0e-6) then
-            !
-            zst = zst / sumw
-            !
-         else
-            !
-            ! No wet upstream point found, so set water level equal to bed level
-            !
-            zst = -99999.0
-            !
-         endif   
+         zst = zs(index_zsi_bdr(ibdr)) + dzs_bdr(ibdr) ! internal water level minus slope * distance
          !
          ! Make sure water level is not below bed level
          !
          if (subgrid) then
+            !
             zst = max(zst, subgrid_z_zmin(nmb))
+            !
          else
+            !
             zst = max(zst, zb(nmb))
+            !
          endif
          !
          zsb(ib) = zst
@@ -835,7 +656,7 @@ contains
    end subroutine
 
 
-   subroutine update_boundary_fluxes(dt)
+   subroutine update_boundary_fluxes(dt, t)
    !
    ! Update fluxes qx and qy at boundary points
    !
@@ -846,6 +667,7 @@ contains
    integer ib, nm, nmi, nmb, iuv, indb, ip
    real*4  hnmb, dt, zsnmi, zsnmb, zs0nmb, facrel
    real*4  factime, one_minus_factime
+   real*8           :: t
    !
    real*4 ui, ub, dzuv, facint, zsuv, depthuv
    !
@@ -914,7 +736,7 @@ contains
             !
          else
             !
-            hnmb   = max(0.5*(zsnmb + zsnmi) - zbuv(ip), huthresh)
+            hnmb   = max(0.5 * (zsnmb + zsnmi) - zbuv(ip), huthresh)
             zsnmb  = max(zsnmb,  zb(nmb))
             zs0nmb = max(zs0nmb, zb(nmb))
             !
@@ -1003,7 +825,17 @@ contains
          ! Store maximum water levels also on the boundary
          !
          if (store_maximum_waterlevel) then
+            !
+            ! Store when the maximum water level changed
+            !
+            if (store_tmax_zs) then
+                if (zs(nmb) > zsmax(nmb)) then
+                    tmax_zs(nm) = t
+                endif
+            endif
+            !
             zsmax(nmb) = max(zsmax(nmb), zs(nmb))
+            !
          endif
          !
       endif
@@ -1051,7 +883,7 @@ contains
       !
       ! Update boundary fluxes()
       !
-      call update_boundary_fluxes(dt)
+      call update_boundary_fluxes(dt, t)
       !
    endif
    !

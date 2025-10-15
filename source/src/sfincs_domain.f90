@@ -1763,6 +1763,7 @@ contains
          if (kcs(nm) == 3) outflow_boundaries_in_mask = .true.
          if (kcs(nm) == 5) downstream_river_boundaries_in_mask = .true.
          if (kcs(nm) == 6) neumann_boundaries_in_mask = .true.
+         ! Neumann - Need nm indices of internal points, determined in sfincs_boundaries.f90
          !
       endif
    enddo
@@ -1772,12 +1773,6 @@ contains
    allocate(nmindbnd(ngbnd))
    allocate(zsb(ngbnd))
    allocate(zsb0(ngbnd))
-   !
-   if (neumann_boundaries_in_mask) then
-      !
-      ! Need nm indices of internal points (let's do this in sfincs_boundary.f90)
-      !      
-   endif   
    !
    zsb  = 0.0  ! Total water level at boundary grid point
    zsb0 = 0.0  ! Filtered water level at boundary grid point
@@ -2109,6 +2104,9 @@ contains
          call write_log(logstr, 0)
          !
          allocate(qinffield(np))
+         !
+         ! Note : qinf has already been converted to m/s in sfincs_input.f90 !
+         !
          do nm = 1, np
              if (subgrid) then
                  if (subgrid_z_zmin(nm) > qinf_zmin) then
@@ -2141,9 +2139,7 @@ contains
          read(500)qinffield
          close(500)
          !
-         do nm = 1, np
-            qinffield(nm) = qinffield(nm)/3.6e3/1.0e3   ! convert to +m/s
-         enddo
+         qinffield = qinffield / 3600 / 1000   ! convert to +m/s         
          !
       elseif (inftype == 'cna') then
          !
@@ -2153,6 +2149,7 @@ contains
          call write_log(logstr, 0)
          !
          allocate(qinffield(np))
+         !
          qinffield = 0.0
          !
          write(logstr,'(a,a)')'Info    : reading scs file ',trim(scsfile)
@@ -2162,9 +2159,8 @@ contains
          close(500)
          !
          ! already convert qinffield from inches to m here
-         do nm = 1, np
-            qinffield(nm) = qinffield(nm)*0.0254   !to m
-         enddo      
+         !
+         qinffield = qinffield * 0.0254   ! to m
          !
       elseif (inftype == 'cnb') then  
          !
@@ -2193,6 +2189,7 @@ contains
          !
          ! Compute recovery                     ! Equation 4-36        
          ! Allocate Ks
+         !
          allocate(ksfield(np))
          ksfield = 0.0
          write(logstr,'(a,a)')'Info    : reading ks file ',trim(ksfile)
@@ -2202,6 +2199,7 @@ contains
          close(502)
          !
          ! Compute recovery                     ! Equation 4-36
+         !
          allocate(inf_kr(np))
          inf_kr = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr (/25.4)
                                                 ! /75 is conversion to recovery rate (in days)
@@ -2225,6 +2223,7 @@ contains
          call write_log('Info    : turning on process infiltration (via Green-Ampt)', 0)
          ! 
          ! Allocate suction head at the wetting front 
+         !
          allocate(GA_head(np))
          GA_head = 0.0
          write(logstr,'(a,a)')'Info    : reading psi file ',trim(psifile)
@@ -2234,6 +2233,7 @@ contains
          close(500)
          !
          ! Allocate maximum soil moisture deficit
+         !
          allocate(GA_sigma_max(np))
          GA_sigma_max = 0.0
          write(logstr,'(a,a)')'Info    : reading sigma file ',trim(sigmafile)
@@ -2243,6 +2243,7 @@ contains
          close(501)
          !
          ! Allocate saturated hydraulic conductivity
+         !
          allocate(ksfield(np))
          ksfield = 0.0
          write(logstr,'(a,a)')'Info    : reading ks file ',trim(ksfile)
@@ -2252,28 +2253,33 @@ contains
          close(502)
          !
          ! Compute recovery                         ! Equation 4-36
+         !
          allocate(inf_kr(np))
          inf_kr     = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr (/25.4)
                                                     ! /75 is conversion to recovery rate (in days)
          
          allocate(rain_T1(np))                      ! minimum amount of time that a soil must remain in recovery 
          rain_T1    = 0.0         
+         !
          ! Allocate support variables
+         !
          allocate(GA_sigma(np))                     ! variable for sigma_max_du
          GA_sigma   = GA_sigma_max
          allocate(GA_F(np))                         ! total infiltration
          GA_F       = 0.0
          allocate(GA_Lu(np))                        ! depth of upper soil recovery zone
-         GA_Lu      = 4 *sqrt(25.4) * sqrt(ksfield) ! Equation 4-33
+         GA_Lu      = 4 * sqrt(25.4) * sqrt(ksfield) ! Equation 4-33
          !
          ! Input values for green-ampt are in mm and mm/hr, but computation is in m a m/s
-         GA_head    = GA_head/1000                  ! from mm to m
-         GA_Lu      = GA_Lu/1000                    ! from mm to m
-         ksfield    = ksfield/1000/3600             ! from mm/hr to m/s
+         !
+         GA_head    = GA_head / 1000                  ! from mm to m
+         GA_Lu      = GA_Lu / 1000                    ! from mm to m
+         ksfield    = ksfield / 1000 / 3600           ! from mm/hr to m/s
          ! 
          ! First time step doesnt have an estimate yet
+         !
          allocate(qinffield(np))
-         qinffield(nm) = 0.00
+         qinffield(nm) = 0.0
          !
       elseif (inftype == 'hor') then  
          !
@@ -2334,12 +2340,17 @@ contains
    subroutine initialize_storage_volume()
    !
    use sfincs_data
+   use sfincs_ncinput
    !
    implicit none
+   !
+   integer :: nchar
    !
    if (use_storage_volume) then 
       !
       ! Spatially-varying storage volume for green infra
+      !
+      allocate(storage_volume(np))
       !
       write(logstr,'(a)')'Info    : turning on Storage Green Infrastructure'      
       call write_log(logstr, 0)
@@ -2348,10 +2359,24 @@ contains
       !
       write(logstr,'(a,a)')'Info    : reading vol file ',trim(volfile)
       call write_log(logstr, 0)
-      allocate(storage_volume(np))
-      open(unit = 500, file = trim(volfile), form = 'unformatted', access = 'stream')
-      read(500)storage_volume
-      close(500)
+      !
+      nchar = len_trim(volfile)
+      !
+      if (volfile(nchar - 1 : nchar) == 'nc') then
+         !
+         ! Read netcdf file
+         !
+         call read_netcdf_storage_volume()
+         !
+      else
+         !
+         ! Read from binary file
+         !      
+         open(unit = 500, file = trim(volfile), form = 'unformatted', access = 'stream')
+         read(500)storage_volume
+         close(500)
+         !
+      endif   
       !
    endif
    !
@@ -2495,8 +2520,6 @@ contains
          dfig = 0.0   
          allocate(cg(np))
          cg = 0.0
-         allocate(Qb(np))
-         qb = 0.0  
          allocate(betamean(np))
          betamean = 0.0     
          allocate(srcig(np))
@@ -2538,6 +2561,10 @@ contains
        allocate(twet(np))
    endif
    !
+   if (store_tmax_zs) then
+       allocate(tmax_zs(np))
+   endif
+   !
    if (store_tsunami_arrival_time) then
       allocate(tsunami_arrival_time(np))
    endif
@@ -2576,11 +2603,15 @@ contains
    endif
    !
    if (store_maximum_velocity) then
-      vmax = 0.0
+      vmax = -999.0
    endif
    !
    if (store_twet) then
       twet = 0.0
+   endif
+   !
+   if (store_tmax_zs) then
+      tmax_zs = -999.0
    endif
    !
    uv = 0.0
@@ -2671,6 +2702,16 @@ contains
       !
    endif
    !
+   if (wave_enhanced_roughness) then
+      !
+      allocate(uorb(np))
+      allocate(gnapp2(npuv))
+      !
+      uorb = 0.0      
+      gnapp2 = 0.0
+      !
+   endif   
+   !
    end subroutine
 
 
@@ -2695,7 +2736,6 @@ contains
    !
    ! In quadtree
    !
-   if (allocated(quadtree_level)) deallocate(quadtree_level)
    if (allocated(quadtree_md)) deallocate(quadtree_md)
    if (allocated(quadtree_md1)) deallocate(quadtree_md1)
    if (allocated(quadtree_md2)) deallocate(quadtree_md2)
@@ -2715,13 +2755,21 @@ contains
    if (allocated(quadtree_xz)) deallocate(quadtree_xz)
    if (allocated(quadtree_yz)) deallocate(quadtree_yz)
    if (allocated(quadtree_zz)) deallocate(quadtree_zz)
-   if (allocated(quadtree_nm_indices)) deallocate(quadtree_nm_indices)
-   if (allocated(quadtree_first_point_per_level)) deallocate(quadtree_first_point_per_level)  
-   if (allocated(quadtree_last_point_per_level)) deallocate(quadtree_last_point_per_level)      
-   if (allocated(quadtree_dxr)) deallocate(quadtree_dxr)
-   if (allocated(quadtree_dyr)) deallocate(quadtree_dyr)
    if (allocated(quadtree_mask)) deallocate(quadtree_mask)
    if (allocated(quadtree_snapwave_mask)) deallocate(quadtree_snapwave_mask)
+   !
+   if (.not. bmi) then 
+      !
+      ! These may be used when finding grid cell when using BMI
+      !
+      if (allocated(quadtree_level)) deallocate(quadtree_level)
+      if (allocated(quadtree_nm_indices)) deallocate(quadtree_nm_indices)
+      if (allocated(quadtree_first_point_per_level)) deallocate(quadtree_first_point_per_level)  
+      if (allocated(quadtree_last_point_per_level)) deallocate(quadtree_last_point_per_level)      
+      if (allocated(quadtree_dxr)) deallocate(quadtree_dxr)
+      if (allocated(quadtree_dyr)) deallocate(quadtree_dyr)
+      !
+   endif
    !
    end subroutine
    

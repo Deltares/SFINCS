@@ -2,9 +2,8 @@ module sfincs_data
 
       !!! Revision data
       character*256 :: build_revision, build_date
-      !!!
+      !!!!
       !!! Time variables
-      !!!
       real    :: tstart_all, tfinish_all
       real*4  :: dtavg
       !!!
@@ -119,11 +118,7 @@ module sfincs_data
       character*256 :: bndfile
       character*256 :: bzsfile
       character*256 :: bzifile
-      character*256 :: bwvfile
-      character*256 :: bhsfile
-      character*256 :: btpfile
-      character*256 :: bwdfile
-      character*256 :: bdsfile
+      character*256 :: bdrfile
       character*256 :: wfpfile
       character*256 :: whifile
       character*256 :: wtifile
@@ -172,7 +167,6 @@ module sfincs_data
       character*256 :: wvmfile
       character*256 :: qtrfile
       character*256 :: volfile
-      character*256 :: bdrfile
       !
       character*256 :: trefstr_iso8601
       character*41  :: treftimefews
@@ -193,6 +187,7 @@ module sfincs_data
       !
       logical       :: waves
       logical       :: wind
+      logical       :: snapwavewind      
       logical       :: patmos
       logical       :: precip
       logical       :: spw_precip
@@ -204,7 +199,8 @@ module sfincs_data
       logical       :: store_maximum_waterlevel
       logical       :: store_maximum_waterdepth
       logical       :: store_maximum_velocity
-      logical       :: store_maximum_flux      
+      logical       :: store_maximum_flux
+      logical       :: store_tmax_zs
       logical       :: store_velocity
       logical       :: store_twet
       logical       :: store_hsubgrid
@@ -241,7 +237,7 @@ module sfincs_data
       logical       :: wavemaker
       logical       :: wavemaker_mobile
       logical       :: use_quadtree
-      LOGICAL       :: use_quadtree_output
+      logical       :: use_quadtree_output
       logical       :: interpolate_zst
       logical       :: advection
       logical       :: thetasmoothing            
@@ -256,14 +252,15 @@ module sfincs_data
       logical       :: store_dynamic_bed_level
       logical       :: nonhydrostatic
       logical       :: h73table
+      logical       :: wave_enhanced_roughness
       !!!
       !!! sfincs_input.f90 switches
-      !!!
       integer storevelmax
       integer storefluxmax
       integer storevel
       integer storecumprcp
       integer storetwet
+      integer storetmax_zs
       integer storeqdrain
       integer storezvolume
       integer storemeteo
@@ -436,7 +433,6 @@ module sfincs_data
       integer*4, dimension(:), allocatable :: wavemaker_ndm
       integer*4, dimension(:), allocatable :: z_index_wavemaker
       real*4                               :: wavemaker_freduv      
-      real*4                               :: wavemaker_Tinc2ig
       logical                              :: wavemaker_spectrum
       !
       ! Wave maker time series
@@ -537,10 +533,13 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: uv0
       real*8, dimension(:),   allocatable :: z_volume
       real*4, dimension(:),   allocatable :: twet
+      real*4, dimension(:),   allocatable :: tmax_zs
       real*4, dimension(:),   allocatable :: tsunami_arrival_time
       real*4, dimension(:),   allocatable :: zs0
       real*4, dimension(:),   allocatable :: zsderv
       real*4, dimension(:),   allocatable, target :: qext
+      real*4, dimension(:),   allocatable, target :: uorb
+      real*4, dimension(:),   allocatable :: gnapp2
       !
       real*4, dimension(:),   allocatable :: tauwu
       real*4, dimension(:),   allocatable :: tauwv
@@ -580,7 +579,6 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: dwig
       real*4, dimension(:),   allocatable :: dfig
       real*4, dimension(:),   allocatable :: cg    
-      real*4, dimension(:),   allocatable :: qb      
       real*4, dimension(:),   allocatable :: betamean
       real*4, dimension(:),   allocatable :: srcig      
       real*4, dimension(:),   allocatable :: alphaig      
@@ -601,7 +599,7 @@ module sfincs_data
       integer,            dimension(:,:),   allocatable :: nm_nbr_gbp       ! nm index of upstream neighbor (for downstream river boundaries)
       real*4,             dimension(:,:),   allocatable :: w_nbr_gbp        ! weight of upstream neighbor (for downstream river boundaries)
       real*4,             dimension(:,:),   allocatable :: d_nbr_gbp        ! distance to upstream neighbor (for downstream river boundaries)
-      real*4,             dimension(:),     allocatable :: slope_gbp        ! river slope (for downstream river boundaries)
+      integer,            dimension(:),     allocatable :: index_bdr_gbp    ! index of downstream boundary point (for lateral neumann boundary conditions)
       integer,            dimension(:),     allocatable :: nmi_gbp          ! nm index of internal point (for lateral neumann boundary conditions)
       real*4,             dimension(:),     allocatable :: zsb              ! water level with waves
       real*4,             dimension(:),     allocatable :: zsb0             ! water level without waves
@@ -617,40 +615,14 @@ module sfincs_data
       real*4, dimension(:),     allocatable :: zst_bnd
       real*4, dimension(:),     allocatable :: zsit_bnd
       !
-      ! Water level boundary points
+      ! Downstream river boundary points
       !
-      real*4, dimension(:),     allocatable :: x_bdr
-      real*4, dimension(:),     allocatable :: y_bdr
-      real*4, dimension(:),     allocatable :: slope_bdr
-      real*4, dimension(:),     allocatable :: azimuth_bdr
-      !      
-      ! Wave boundary points
+      real*4,  dimension(:),     allocatable :: x_bdr
+      real*4,  dimension(:),     allocatable :: y_bdr
+      integer, dimension(:),     allocatable :: index_zsi_bdr
+      real*4,  dimension(:),     allocatable :: dzs_bdr
       !
-      !real*4, dimension(:),     allocatable :: x_bwv
-      !real*4, dimension(:),     allocatable :: y_bwv
-      !real*4, dimension(:),     allocatable :: t_bwv
-      !real*4, dimension(:,:),   allocatable :: hs_bwv
-      !real*4, dimension(:,:),   allocatable :: tp_bwv
-      !real*4, dimension(:,:),   allocatable :: wd_bwv
-      !real*4, dimension(:),     allocatable :: hst_bwv
-      !real*4, dimension(:),     allocatable :: tpt_bwv
-      !real*4, dimension(:),     allocatable :: l0t_bwv
-      !real*4, dimension(:),     allocatable :: wdt_bwv
-      !
-      ! cst points (should remove these?)
-      !
-      !integer                               :: ncst
-      !real*4, dimension(:),     allocatable :: x_cst
-      !real*4, dimension(:),     allocatable :: y_cst
-      !real*4, dimension(:),     allocatable :: slope_cst
-      !real*4, dimension(:),     allocatable :: angle_cst
-      !real*4, dimension(:),     allocatable :: zsetup_cst
-      !real*4, dimension(:),     allocatable :: zig_cst
-      !real*4, dimension(:),     allocatable :: fac_bwv_cst
-      !integer*4, dimension(:),  allocatable :: ind1_bwv_cst
-      !integer*4, dimension(:),  allocatable :: ind2_bwv_cst
-      !
-      ! IG frequencies (for wave makers)
+      ! IG frequencies
       !
       real*4, dimension(:),     allocatable :: freqig
       real*4, dimension(:),     allocatable :: costig
@@ -793,7 +765,6 @@ module sfincs_data
       integer, dimension(:,:),   allocatable   :: runup_gauge_nm
       character*256, dimension(:), allocatable :: runup_gauge_name
       integer, dimension(:),     allocatable   :: runup_gauge_nrp
-      !!!      
       !
       real*4 :: waveage
       !
@@ -1008,16 +979,13 @@ module sfincs_data
     if(allocated(prcp0)) deallocate(prcp0)
     if(allocated(prcp1)) deallocate(prcp1)
     !
-!    if(allocated(kfuv)) deallocate(kfuv)
+    ! if(allocated(kfuv)) deallocate(kfuv)
     !
     ! Grid boundary points
     !
     if(allocated(ind1_bnd_gbp)) deallocate(ind1_bnd_gbp)
     if(allocated(ind2_bnd_gbp)) deallocate(ind2_bnd_gbp)
-    !if(allocated(ind1_cst_gbp)) deallocate(ind1_cst_gbp)
-    !if(allocated(ind2_cst_gbp)) deallocate(ind2_cst_gbp)
     if(allocated(fac_bnd_gbp))  deallocate(fac_bnd_gbp)
-    !if(allocated(fac_cst_gbp))  deallocate(fac_cst_gbp)
     if(allocated(zsb))          deallocate(zsb)
     if(allocated(zsb0))         deallocate(zsb0)
     !
@@ -1030,31 +998,6 @@ module sfincs_data
     if(allocated(zsi_bnd)) deallocate(zsi_bnd)
     if(allocated(zst_bnd)) deallocate(zst_bnd)
     if(allocated(zsit_bnd)) deallocate(zsit_bnd)
-    !
-    ! Wave boundary points
-    !
-    !if(allocated(x_bwv)) deallocate(x_bwv)
-    !if(allocated(y_bwv)) deallocate(y_bwv)
-    !if(allocated(t_bwv)) deallocate(t_bwv)
-    !if(allocated(hs_bwv)) deallocate(hs_bwv)
-    !if(allocated(tp_bwv)) deallocate(tp_bwv)
-    !if(allocated(wd_bwv)) deallocate(wd_bwv)
-    !if(allocated(hst_bwv)) deallocate(hst_bwv)
-    !if(allocated(tpt_bwv)) deallocate(tpt_bwv)
-    !if(allocated(l0t_bwv)) deallocate(l0t_bwv)
-    !if(allocated(wdt_bwv)) deallocate(wdt_bwv)
-    !
-    ! cst points
-    !
-    !if(allocated(x_cst)) deallocate(x_cst)
-    !if(allocated(y_cst)) deallocate(y_cst)
-    !if(allocated(slope_cst)) deallocate(slope_cst)
-    !if(allocated(angle_cst)) deallocate(angle_cst)
-    !if(allocated(zsetup_cst)) deallocate(zsetup_cst)
-    !if(allocated(zig_cst)) deallocate(zig_cst)
-    !if(allocated(fac_bwv_cst)) deallocate(fac_bwv_cst)
-    !if(allocated(ind1_bwv_cst)) deallocate(ind1_bwv_cst)
-    !if(allocated(ind2_bwv_cst)) deallocate(ind2_bwv_cst)
     !
     ! IG frequencies
     !

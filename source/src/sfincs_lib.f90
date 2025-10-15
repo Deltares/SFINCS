@@ -32,6 +32,7 @@ module sfincs_lib
    public :: sfincs_finalize
    !
    ! exposed to get start time, current time and dt
+   !
    public :: t
    public :: dt
    !
@@ -91,8 +92,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.2.0 col d'Eze-branch:runup_gauges"
-   build_date     = "$Date: 2025-05-15"
+   build_revision = "$Rev: v2.2.1-alpha col d'Eze"
+   build_date     = "$Date: 2025-09-08"
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)
@@ -155,7 +156,7 @@ module sfincs_lib
    !
    call read_crs_file()         ! Reads cross sections
    !
-   call read_rug_file()         ! Reads cross sections
+   call read_rug_file()         ! Read runup gauge file
    !
    call read_discharges()       ! Reads dis and src file
    !
@@ -305,6 +306,8 @@ module sfincs_lib
    call write_log(logstr, 1)
    call write_log('', 1)
    !
+   call system_clock(count00, count_rate, count_max)   
+   !
    end function sfincs_initialize
    !
    !-----------------------------------------------------------------------------------------------------!
@@ -336,10 +339,14 @@ module sfincs_lib
    !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
    !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, & 
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
-   !$acc               prcp, prcp0, prcp1, cumprcp, netprcp, prcp, qinfmap, cuminf, qext, & 
+   !$acc               prcp, prcp0, prcp1, cumprcp, netprcp, prcp, qext, & 
    !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
    !$acc               gn2uv, fcorio2d, min_dt, storage_volume, nuvisc, &
-   !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2 )
+   !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
+   !$acc               x73, &
+   !$acc               gnapp2, &
+   !$acc               qinffield, qinfmap, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, &
+   !$acc               ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, horton_kd, horton_fc, horton_f0 )
    !
    ! Set target time: if dt range is negative, do not modify t1
    !
@@ -372,8 +379,6 @@ module sfincs_lib
    endif
    !
    ! Start computational loop
-   !
-   call system_clock(count00, count_rate, count_max)
    !
    do while (t < tend)
       !
@@ -587,7 +592,7 @@ module sfincs_lib
       !      
       ! Update water levels
       !
-      call compute_water_levels(dt, tloopcont)
+      call compute_water_levels(t, dt, tloopcont)
       !
       ! OUTPUT
       !      
@@ -716,9 +721,6 @@ module sfincs_lib
    write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in continuity     : ',tloopcont,' (',100*tloopcont/(tfinish_all - tstart_all),'%)'
    call write_log(logstr, 1)
    !
-   write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in output         : ',tloopoutput,' (',100*tloopoutput/(tfinish_all - tstart_all),'%)'
-   call write_log(logstr, 1)
-   !
    if (snapwave) then
       write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in SnapWave       : ',tloopsnapwave,' (',100*tloopsnapwave/(tfinish_all - tstart_all),'%)'
       call write_log(logstr, 1)
@@ -728,6 +730,10 @@ module sfincs_lib
       write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in wave maker     : ',tloopwavemaker,' (',100*tloopwavemaker/(tfinish_all - tstart_all),'%)'
       call write_log(logstr, 1)
    endif
+   !
+   write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in output         : ',tloopoutput,' (',100*tloopoutput/(tfinish_all - tstart_all),'%)'
+   call write_log(logstr, 1)
+   !
    call write_log('', 1)
    write(logstr,'(a,20f10.3)')        ' Average time step (s)  : ',dtavg
    !

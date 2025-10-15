@@ -21,8 +21,6 @@ contains
    !
    real*4, dimension(:), allocatable :: value
    !
-   logical :: ok
-   !
    ! Read observation points
    !
    nobs = 0
@@ -32,8 +30,6 @@ contains
       write(logstr,'(a)')'Info    : reading observation points'
       call write_log(logstr, 0)
       !
-      ok = check_file_exists(obsfile, 'Observation points file', .true.)
-      !
       open(500, file=trim(obsfile))       
       do while(.true.)
          read(500,*,iostat = stat)dummy
@@ -41,7 +37,6 @@ contains
          nobs = nobs + 1
       enddo
       rewind(500)
-      !
       allocate(xobs(nobs))
       allocate(yobs(nobs))
       allocate(zobs(nobs))
@@ -56,7 +51,6 @@ contains
       allocate(zbobs(nobs))      
       !
       allocate(nmwindobs(nobs))
-      ! allocate(wobs(4, nobs))
       !
       allocate(value(2))
       !
@@ -124,7 +118,6 @@ contains
                 endif
                 !
                 iref = z_flags_iref(nm)
-                !
             endif         
             !
             write(logstr,'(a,i0,a,a,a,i0,a,i0,a,i0,a,i0,a,f0.3)')'Info    : observation point ',iobs,' : "',trim(nameobs(iobs)),'" nm=',nm,' n=',n,' m=',m,' iref=',iref,' z=',zbobs(iobs)

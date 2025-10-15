@@ -1,8 +1,5 @@
    module sfincs_structures
 
-   use sfincs_error
-   use sfincs_log
-   
    contains
 
    subroutine read_structures()
@@ -98,8 +95,6 @@
    !
    write(logstr,'(a)')'Info    : reading weir file'
    call write_log(logstr, 0)
-   !
-   okay = check_file_exists(filename, 'Structures file', .true.)
    !
    ! Read structures file
    !
@@ -391,12 +386,11 @@
    !
    implicit none
    !
-   integer ip, nm, nthd, nrows, ncols, irow, stat, ithd, nr_points, iuv, indx
+   integer ip, nm, nthd, nrows, ncols, irow, stat, ithd, nr_points, total_nr_points, iuv, indx
    !
    real      :: dst, dstmin, xxx, yyy, dstx, dsty
    real      :: dummy
    character :: cdummy
-   logical   :: ok
    !
    real*4,  dimension(:),   allocatable :: xthd
    real*4,  dimension(:),   allocatable :: ythd
@@ -408,10 +402,9 @@
    ! Read thin dams file
    !
    nthd = 0
+   total_nr_points = 0
    !
    if (thdfile(1:4) /= 'none') then
-      !
-      ok = check_file_exists(thdfile, 'Thin dams file', .true.)
       !
       ! First count number of polylines
       !
@@ -459,11 +452,13 @@
          deallocate(xthd)
          deallocate(ythd)
          !
+         total_nr_points = total_nr_points + nr_points
+         !
       enddo
       !
       close(500)
       !
-      write(logstr,'(a,i0,a)')'Info    : ', nr_points,' structure points found'
+      write(logstr,'(a,i0,a)')'Info    : ', total_nr_points,' structure u/v points found'
       call write_log(logstr, 0)
       !
    endif   

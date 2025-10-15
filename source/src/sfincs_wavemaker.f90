@@ -1,8 +1,5 @@
    module sfincs_wavemaker
 
-   use sfincs_log
-   use sfincs_error
-
    contains
 
    subroutine read_wavemaker_polylines()
@@ -66,7 +63,7 @@
    write(logstr,*)'Reading wavemaker polyline file ...'
    call write_log(logstr, 0)
    !
-   iok = check_file_exists(wvmfile, 'Wave maker file', .true.)
+   ! Loop through all polylines
    !
    open(500, file=trim(wvmfile))
    do while(.true.)
@@ -142,7 +139,7 @@
       !
       ! Check if these cells have neighbor closer to shore that is also a wavemaker point
       !
-      if (indwm(ip) == 1) then
+      if (indwm(ip)==1) then
          !
          iok = .false.
          !
@@ -150,6 +147,7 @@
             !
             ! Check right and above
             !
+!            nmu = z_index_uv_mu(ip)    ! index of 1st uv neighbor to the right
             nmu = z_index_uv_mu1(ip)    ! index of 1st uv neighbor to the right
             !
             if (nmu>0) then
@@ -439,7 +437,7 @@
             endif
          endif   
          !
-         if (iok .and. kcs(ip) == 1) then
+         if (iok) then
             !
             ! This is a valid wave maker point
             !
@@ -1126,6 +1124,7 @@
    !
    ! Set flags for kcuv points
    !
+   write(logstr,*)'Setting wave maker flags ...'
    call write_log(logstr, 0)   
    !
    do iwm = 1, wavemaker_nr_uv_points
@@ -1310,12 +1309,12 @@
    allocate(costig(nfreqsig))
    allocate(phiig(nfreqsig))
    allocate(dphiig(nfreqsig))
-   dfreqig = (freqmaxig - freqminig) / nfreqsig
+   dfreqig = (freqmaxig - freqminig)/nfreqsig
    do ifreq = 1, nfreqsig
-      freqig(ifreq) = freqminig + ifreq * dfreqig - 0.5 * dfreqig
+      freqig(ifreq) = freqminig + ifreq*dfreqig - 0.5*dfreqig
       call RANDOM_NUMBER(r)
-      phiig(ifreq) = r * 2 * 3.1416
-      dphiig(ifreq) = 1.0e-6 * 2 * 3.1416 / freqig(ifreq)
+      phiig(ifreq) = r*2*3.1416
+      dphiig(ifreq) = 1.0e-6*2*3.1416/freqig(ifreq)
    enddo
    !
    end subroutine
@@ -1334,7 +1333,8 @@
    real*4  hnmb, dt, zsnmi, zsnmb, zs0nmb, zwav
    real*4  alpha, beta
    real*8  t, tb
-   real*4 tbfac, hs, tp, tpsum, setup, fm, a
+   real*4  a, fp
+   real*4 tbfac, hs, tp, tpsum, setup
    !
    real*4 ui, ub, dzuv, facint, zsuv, depthuv, uvm0
    !
@@ -1403,57 +1403,36 @@
       !
       tp = snapwave_tpigmean ! TL: Now calculated in SnapWave, different options for using a period based on Herbers spectrum (snapwave_tpig_opt, if snapwave_use_herbers=1, or user defined snapwave_Tinc2ig ratio (if snapwave_use_herbers = 0)
       !
-      ! We may want to use Herbers for computation of IG waves in SnapWave, but we want to have control over peak IG period at wave makers
-      !
-      if (wavemaker_Tinc2ig > 0.0) then
-         !
-         ! Use factor on mean Tp_inc at boundaries
-         !
-         tp = snapwave_tpmean * wavemaker_Tinc2ig
-         !
-      endif
-      ! 
    endif      
    !
-   alpha   = min(dt / wmtfilter, 1.0)
-   beta    = min(dt / (0.2 * wmtfilter), 1.0)
+   alpha   = min(dt/wmtfilter, 1.0)
+   beta    = min(dt/(0.2*wmtfilter), 1.0)
    !
    if (wavemaker_spectrum) then
       !
       ! First update phases
       !
       do ifreq = 1, nfreqsig
-         !
          phiig(ifreq) = phiig(ifreq) + dphiig(ifreq)*dt
-         costig(ifreq) = cos(2 * pi * t * freqig(ifreq) + phiig(ifreq))
-         !
+         costig(ifreq) = cos(2*pi*t*freqig(ifreq) + phiig(ifreq))
       enddo
       !
-      fm = 1.0 / tp ! Wave period
+      fp = 1.0/tp ! Wave period
       !
       ! Now spectrum and wave excitation
       !
       zwav = 0.0
-      !      
+      !
       do ifreq = 1, nfreqsig
-         !
-         ! The ISSC spectrum (also known as Bretschneider or modified Pierson-Moskowitz)
-         !
-         !a = 2 * 0.3125 * (fm**4) * (freqig(ifreq)**-5) * (exp(-1.25 * (freqig(ifreq) / fm)**-4))
-         !
-         ! Use this spectral shape instead
-         !
-         a = 0.125 * (fm**-2) * freqig(ifreq) * (exp(-freqig(ifreq) / fm))
-         !
-         zwav = zwav + costig(ifreq) * sqrt(a * dfreqig)
-         !
+         a = 0.125*(1.0**2)*(fp**(-2))*freqig(ifreq)*exp(-freqig(ifreq)/fp)
+         zwav = zwav + costig(ifreq)*sqrt(a*dfreqig)
       enddo
       !
    else
       !
       ! Monochromatic signal
       !
-      zwav = 0.5 * sin(2 * pi * t / tp)
+      zwav = 0.5*sin(2*pi*t/tp)
       !
    endif   
    !
@@ -1484,18 +1463,18 @@
          !
          ! Take wave height from boundary conditions file (weighted average of two nearby forcing points)
          !
-         hs    = wmf_hm0_ig_t(wavemaker_index_wmfp1(ib)) * wavemaker_fac_wmfp(ib) + wmf_hm0_ig_t(wavemaker_index_wmfp2(ib)) * (1.0 - wavemaker_fac_wmfp(ib))
-         setup = wmf_setup_t(wavemaker_index_wmfp1(ib)) * wavemaker_fac_wmfp(ib)  + wmf_setup_t(wavemaker_index_wmfp2(ib)) * (1.0 - wavemaker_fac_wmfp(ib))
+         hs    = wmf_hm0_ig_t(wavemaker_index_wmfp1(ib))*wavemaker_fac_wmfp(ib) + wmf_hm0_ig_t(wavemaker_index_wmfp2(ib))*(1.0 - wavemaker_fac_wmfp(ib))
+         setup = wmf_setup_t(wavemaker_index_wmfp1(ib))*wavemaker_fac_wmfp(ib)  + wmf_setup_t(wavemaker_index_wmfp2(ib))*(1.0 - wavemaker_fac_wmfp(ib))
          !
          zs0nmb = zs(nmb) + setup            ! average water level inside model without waves (this should be zs)
-         zsnmb  = zs0nmb + zwav * hs         ! total water level in wave maker (i.e. mean water level plus wave)         
+         zsnmb  = zs0nmb + zwav*hs           ! total water level in wave maker (i.e. mean water level plus wave)         
          !
       else
          !
          ! Take wave height from SnapWave
          !
-         zs0nmb = zs(nmb)                     ! average water level inside model without waves (this should be zs)
-         zsnmb  = zs0nmb + zwav * hm0_ig(nmb) ! total water level in wave maker (i.e. mean water level plus wave)
+         zs0nmb = zs(nmb)                    ! average water level inside model without waves (this should be zs)
+         zsnmb  = zs0nmb + zwav*hm0_ig(nmb)  ! total water level in wave maker (i.e. mean water level plus wave)
          !
       endif   
       !
@@ -1559,8 +1538,8 @@
          ! Use double exponential time filter
          !
          uvm0 = wavemaker_uvmean(ib) ! Previous time step
-         wavemaker_uvmean(ib)  = alpha * q(ip)   + wavemaker_freduv * (1.0 - alpha) * (wavemaker_uvmean(ib) + wavemaker_uvtrend(ib))
-         wavemaker_uvtrend(ib) = beta * (wavemaker_uvmean(ib) - uvm0) + (1.0 - beta) * wavemaker_uvtrend(ib)
+         wavemaker_uvmean(ib)  = alpha*q(ip)   + wavemaker_freduv*(1.0 - alpha)*(wavemaker_uvmean(ib) + wavemaker_uvtrend(ib))
+         wavemaker_uvtrend(ib) = beta*(wavemaker_uvmean(ib) - uvm0) + (1.0 - beta)*wavemaker_uvtrend(ib)
          !
       else
          !

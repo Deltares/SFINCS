@@ -1,13 +1,16 @@
 module sfincs_bmi
+   !
    use iso_c_binding
    use sfincs_lib
    use sfincs_data
    use sfincs_domain
-   
+   use sfincs_wave_enhanced_roughness
+   !   
    implicit none
    private
-
+   !
    ! routines
+   !
    public :: initialize
    public :: update
    public :: update_until
@@ -21,8 +24,13 @@ module sfincs_bmi
    public :: get_time_step
    public :: get_current_time
    public :: update_zbuv
-
+   public :: update_apparent_roughness
+   public :: get_sfincs_cell_index
+   public :: get_sfincs_cell_indices
+   public :: get_sfincs_cell_area
+   !
    ! constants
+   !
    public :: BMI_LENVARADDRESS
    public :: BMI_LENVARTYPE
    public :: BMI_LENGRIDTYPE
@@ -49,6 +57,7 @@ contains
    !DEC$ ATTRIBUTES DLLEXPORT :: initialize
       integer(kind=c_int) :: ierr
       bmi  = .true.
+      use_qext = .true.
       ierr = sfincs_initialize()
 
    end function initialize
@@ -110,6 +119,8 @@ contains
          c_data = c_loc(subgrid_z_zmin)
       case("qext")
          c_data = c_loc(qext)
+      case("uorb")
+         c_data = c_loc(uorb)
       case default
          c_data = c_null_ptr
          ierr = -1
@@ -131,7 +142,7 @@ contains
       var_shape = (/0, 0, 0, 0, 0, 0/)
       
       select case(var_name)
-      case("z_xz", "z_yz", "zs", "zb")
+      case("z_xz", "z_yz", "zs", "zb", "uorb")
          var_shape(1) = size(zs)
       case("subgrid_z_zmin")
          var_shape(1) = size(subgrid_z_zmin)
@@ -159,7 +170,7 @@ contains
       var_name = char_array_to_string(c_var_name, strlen(c_var_name, BMI_LENVARADDRESS))
 
       select case(var_name)
-      case("z_xz", "z_yz", "zb", "subgrid_z_zmin", "qext")
+      case("z_xz", "z_yz", "zb", "subgrid_z_zmin", "qext", "uorb")
          type_name = "float"
       case("zs")
          type_name = "double"
@@ -187,7 +198,7 @@ contains
       var_name = char_array_to_string(c_var_name, strlen(c_var_name, BMI_LENVARADDRESS))
       
       select case(var_name)
-      case("z_xz", "z_yz", "zs", "zb", "subgrid_z_zmin", "qext")
+      case("z_xz", "z_yz", "zs", "zb", "subgrid_z_zmin", "qext", "uorb")
          rank = 1
       case default
          ierr = -1
@@ -216,7 +227,7 @@ contains
       select case(flag_name)
       case("qext")
          use_qext = bval
-         write(*,*)'use_qext = ', use_qext 
+         !write(*,*)'use_qext = ', use_qext 
       case default
          ierr = -1
       end select
@@ -272,6 +283,94 @@ contains
    
    end function update_zbuv
    
+   function update_apparent_roughness() result(ierr) bind(C, name="update_apparent_roughness")
+   ! Update apparent roughness at uv points
+   !DEC$ ATTRIBUTES DLLEXPORT :: update_apparent_roughness
+      integer(kind=c_int) :: ierr
+      !
+      ! This should be called after uorb has been updated
+      !      
+      call update_wave_enhanced_roughness() ! sits in sfincs_wave_enhanced_roughness.f90
+      !
+      ierr = 0
+      !    
+   end function update_apparent_roughness
+   
+   function get_sfincs_cell_index(x, y, indx) result(ierr) bind(C, name="get_sfincs_cell_index")
+   ! Return (1-based) cell index of SFINCS domain
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_sfincs_cell_index
+      use quadtree
+      !         
+      real(c_double), intent(in)  :: x
+      real(c_double), intent(in)  :: y
+      integer(c_int), intent(out) :: indx
+      integer(kind=c_int)         :: ierr
+      integer                     :: nmq
+      !
+      !
+      nmq = find_quadtree_cell(real(x, kind=4), real(y, kind=4))
+      indx = index_sfincs_in_quadtree(nmq)
+      !
+      ierr = 0
+      !
+   end function get_sfincs_cell_index
+
+   function get_sfincs_cell_indices(x, y, indx, n) result(ierr) bind(C, name="get_sfincs_cell_indices")
+   ! Return (1-based) cell index of SFINCS domain
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_sfincs_cell_indices
+      use quadtree
+      !         
+      real(c_double), intent(in)  :: x(n)
+      real(c_double), intent(in)  :: y(n)
+      integer(c_int), intent(out) :: indx(n)
+      integer(c_int), value       :: n
+      integer(kind=c_int)         :: ierr
+      integer                     :: nmq
+      integer                     :: iq
+      !
+      do iq = 1, n
+         !
+         nmq = find_quadtree_cell(real(x(iq), kind=4), real(y(iq), kind=4))
+         !
+         if (nmq > 0.0) then
+            !
+            indx(iq) = index_sfincs_in_quadtree(nmq)
+            !
+         else
+            !
+            indx(iq) = 0
+            !
+         endif   
+         !
+      enddo
+      !
+      ierr = 0
+      !
+   end function get_sfincs_cell_indices
+   
+   function get_sfincs_cell_area(indx, area) result(ierr) bind(C, name="get_sfincs_cell_area")
+   !DEC$ ATTRIBUTES DLLEXPORT :: get_sfincs_cell_area
+      !         
+      integer(kind=c_int), intent(in) :: indx
+      real(c_double), intent(out)     :: area
+      integer(kind=c_int)             :: ierr
+      real*4                          :: a
+      !
+      if (crsgeo) then
+         !
+         a = cell_area_m2(indx)
+         !
+      else   
+         !
+         a = cell_area(z_flags_iref(indx))
+         !
+      endif
+      !
+      area = real(a, kind=8)
+      !
+      ierr = 0
+      !
+   end function get_sfincs_cell_area
    
    !> @brief Get the last error in the BMI as a character array
    !! with size BMI_LENERRMESSAGE

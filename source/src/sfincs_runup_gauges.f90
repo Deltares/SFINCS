@@ -170,13 +170,13 @@ contains
             !
             ! Point is okay
             !
-            zru(irug) = real(zs(nm), real(4))
+            zru(irug) = zs(nm)
             !
          else
             !
             ! Shallower than runup_gauge_depth
             !
-            exit
+            !exit
             !
          endif
          !

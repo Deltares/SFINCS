@@ -472,11 +472,20 @@ subroutine update_boundary_conditions(t)
    ! Make directional grid around boundary mean wave/wind direction
    !
    thetamean = wdmean_bwv
-   if (ntwbnd > 0) then
-      call make_theta_grid(wdmean_bwv)
-   else
+   if (wind) then
+      ! 
       thetamean=u10dmean
+      !
       call make_theta_grid(u10dmean)
+      !
+      call write_log('INFO SnapWave - Making directional grid around boundary mean wind direction', 0)
+      !
+   else
+      !
+      call make_theta_grid(wdmean_bwv)
+      !
+      call write_log('INFO SnapWave - Making directional grid around boundary mean wave direction', 0)
+      !
    endif 
    !
    ! Build spectra on the boundary support points
@@ -665,26 +674,12 @@ subroutine update_boundary_points(t)
    !
    thetamean = wdmean_bwv
    !
-   ind = nint(thetamean / dtheta) + 1
-   !
-   do itheta = 1, ntheta
-!      i360(itheta) = mod2(itheta + ind - 10, 36)
-      i360(itheta) = mod2(itheta + ind - (1 + ntheta / 2), ntheta * 2)
-   enddo
-   !
-   do itheta = 1, ntheta
-      !
-      theta(itheta) = theta360(i360(itheta))
-      !
-      do k = 1, no_nodes
-         w(1, itheta, k)    = w360(1, i360(itheta), k)
-         w(2, itheta, k)    = w360(2, i360(itheta), k)
-         prev(1, itheta, k) = prev360(1, i360(itheta), k)
-         prev(2, itheta, k) = prev360(2, i360(itheta), k)
-         ds(itheta, k)      = ds360(i360(itheta), k)
-      enddo
-      !
-   enddo   
+   if (ntwbnd > 0) then
+      call make_theta_grid(wdmean_bwv)
+   else
+      thetamean=u10dmean
+      call make_theta_grid(u10dmean)
+   endif 
    !
    ! Build spectra on wave boundary support points
    !

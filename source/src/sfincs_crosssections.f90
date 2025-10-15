@@ -1,8 +1,5 @@
 module sfincs_crosssections
 
-   use sfincs_log
-   use sfincs_error
-
 contains
 
    subroutine read_crs_file()
@@ -30,8 +27,6 @@ contains
    integer, dimension(:),   allocatable :: uv_indices   
    integer, dimension(:),   allocatable :: vertices
    !
-   logical :: ok
-   !
    ! Read cross sections file
    !
    ncrs = 0
@@ -40,8 +35,6 @@ contains
    if (crsfile(1:4) /= 'none') then
       ! 
       call write_log('Info    : reading cross sections', 0)
-      !
-      ok = check_file_exists(crsfile, 'Cross sections file', .true.)
       !
       ! First count number of polylines
       !
