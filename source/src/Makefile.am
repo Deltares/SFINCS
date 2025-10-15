@@ -38,6 +38,7 @@ libsfincs_la_SOURCES = \
 	sfincs_boundaries.f90 \
 	sfincs_continuity.f90 \
 	sfincs_crosssections.f90 \
+	sfincs_runup_gauges.f90 \
 	sfincs_discharges.f90 \
 	sfincs_subgrid.F90 \
 	sfincs_domain.f90 \
