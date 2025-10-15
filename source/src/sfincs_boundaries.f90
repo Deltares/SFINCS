@@ -324,11 +324,15 @@ contains
          !
          if (ios /= 0) exit
          !
-         if (trim(line) == '[forcing]') then
+         if (trim(line) == '[forcing]' .or. trim(line) == '[Forcing]') then
             !
             n_sets = n_sets + 1
             !
          elseif (index(line, 'Quantity') > 0 .or. index(line, 'Unit') > 0 .or. index(line, 'Name') > 0 .or. index(line, 'Function') > 0) then
+            !
+            cycle  ! skip line
+            !
+         elseif (index(line, 'quantity') > 0 .or. index(line, 'unit') > 0 .or. index(line, 'name') > 0 .or. index(line, 'function') > 0) then
             !
             cycle  ! skip line
             !
@@ -365,7 +369,7 @@ contains
       !
       if (n_sets /= nbnd) then
          !
-         write(*,*)'ERROR! Number of astronomical tidal datasets in *.bca file does not match number of boundary points in *.bnd file !'
+         write(*,*)'ERROR! Number of astronomical tidal datasets in *.bca file ( ',n_sets,' ) does not match number of boundary points in *.bnd file (' ,nbnd,' )!'
          !
       endif
       !
@@ -420,6 +424,10 @@ contains
             !
             cycle  ! skip metadata
             !
+         elseif (index(line, 'quantity') > 0 .or. index(line, 'unit') > 0 .or. index(line, 'name') > 0 .or. index(line, 'function') > 0) then
+            !
+            cycle  ! skip metadata
+            !
          else
             !
             ! Try to read a data line
@@ -445,12 +453,7 @@ contains
       call update_nodal_factors(i_date_time, tidal_component_names, nr_tidal_components, nbnd, tidal_component_data, tidal_component_frequency)
       !
       tidal_component_frequency = tidal_component_frequency / 3600 ! Convert to rad/s      
-      !
-      do ios = 1, nr_tidal_components
-         write(logstr,'(a,20f16.3)')tidal_component_names(ios), (180.0 / pi) * tidal_component_frequency(ios) * 3600.0,tidal_component_data(1,ios,1), (180.0 / pi) * tidal_component_data(2,ios,1)         
-         call write_log(logstr, 0)
-      enddo   
-      !
+      ! 
    endif      
    !
    end subroutine
