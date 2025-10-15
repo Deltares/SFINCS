@@ -311,11 +311,15 @@ contains
          !
          if (ios /= 0) exit
          !
-         if (trim(line) == '[forcing]') then
+         if (trim(line) == '[forcing]' .or. trim(line) == '[Forcing]') then
             !
             n_sets = n_sets + 1
             !
          elseif (index(line, 'Quantity') > 0 .or. index(line, 'Unit') > 0 .or. index(line, 'Name') > 0 .or. index(line, 'Function') > 0) then
+            !
+            cycle  ! skip line
+            !
+         elseif (index(line, 'quantity') > 0 .or. index(line, 'unit') > 0 .or. index(line, 'name') > 0 .or. index(line, 'function') > 0) then
             !
             cycle  ! skip line
             !
@@ -348,6 +352,7 @@ contains
          endif
          !
       enddo
+      write(*,*)'nsets',n_sets,'ncomponents',n_components, 'has_a0', has_a0
       !
       ! Check whether n_sets is same as nbnd (otherwise give error)
       !
@@ -391,7 +396,7 @@ contains
          !
          if (ios /= 0) exit
          !
-         if (trim(line) == '[forcing]') then
+         if (trim(line) == '[forcing]' .or. trim(line) == '[Forcing]') then
             !
             current_set = current_set + 1
             current_component = 0
@@ -408,6 +413,10 @@ contains
          elseif (index(line, 'Quantity') > 0 .or. index(line, 'Unit') > 0 .or. index(line, 'Name') > 0 .or. index(line, 'Function') > 0) then
             !
             cycle  ! skip metadata
+            !
+         elseif (index(line, 'quantity') > 0 .or. index(line, 'unit') > 0 .or. index(line, 'name') > 0 .or. index(line, 'function') > 0) then
+            !
+            cycle  ! skip line
             !
          else
             !
