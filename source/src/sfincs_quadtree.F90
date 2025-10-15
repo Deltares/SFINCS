@@ -2,6 +2,7 @@
 module quadtree
    !
    use sfincs_log
+   use sfincs_error
    use netcdf
    !
    integer*4                                       :: quadtree_nr_points
@@ -74,6 +75,7 @@ contains
    integer*1 :: iversion
    integer :: np, nm, n, m, iref, nmx, ireflast, ip, iepsg
    real*4  :: pi, cosrot, sinrot
+   logical :: ok
    !
    pi = 3.141592653589793
    !
@@ -84,6 +86,8 @@ contains
    if (index(qtrfile, '.nc') > 0) then
       quadtree_netcdf = .true.
    endif
+   !
+   ok = check_file_exists(qtrfile, 'Quadtree qtr file', .true.)
    !
    if (quadtree_netcdf) then
       call quadtree_read_file_netcdf(qtrfile, snapwave, nonhydrostatic)

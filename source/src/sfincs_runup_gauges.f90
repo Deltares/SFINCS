@@ -19,6 +19,7 @@ contains
    real      :: dummy
    real*4    :: xru0, yru0, xru1, yru1, x, y
    real*4    :: rlen, rdx, rdy, dxstep
+   logical ok
    !
    character(len=256) :: cdummy
    !
@@ -32,8 +33,8 @@ contains
       ! 
       call write_log('Info    : reading run-up gauges', 0)
       !
-      ok = check_file_exists(rugfile, 'Run-up gauge file', .true.)
-      !
+      ok = check_file_exists(obsfile, 'Run-up gauge rug file', .true.)
+      !      
       ! First count number of polylines
       !
       open(500, file=trim(rugfile))
