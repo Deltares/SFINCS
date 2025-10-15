@@ -352,7 +352,6 @@ contains
          endif
          !
       enddo
-      write(*,*)'nsets',n_sets,'ncomponents',n_components, 'has_a0', has_a0
       !
       ! Check whether n_sets is same as nbnd (otherwise give error)
       !
@@ -443,10 +442,6 @@ contains
       call update_nodal_factors(i_date_time, tidal_component_names, nr_tidal_components, nbnd, tidal_component_data, tidal_component_frequency)
       !
       tidal_component_frequency = tidal_component_frequency / 3600 ! Convert to rad/s
-      !
-      !do ios = 1, nr_tidal_components
-      !   write(*,'(a,20f16.3)')tidal_component_names(ios), (180.0 / pi) * tidal_component_frequency(ios) * 3600.0,tidal_component_data(1,ios,1), (180.0 / pi) * tidal_component_data(2,ios,1)
-      !enddo   
       !
    endif      
    !
