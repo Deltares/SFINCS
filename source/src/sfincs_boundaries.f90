@@ -29,6 +29,8 @@ contains
    !
    if (netbndbzsbzifile(1:4) /= 'none') then    ! FEWS compatible Netcdf water level time-series input
       !
+      ok = check_file_exists(netbndbzsbzifile, 'Netcdf water level input netbndbzsbzi file', .true.)    
+      !
       call read_netcdf_boundary_data()
       !
       if ((t_bnd(1) > (t0 + 1.0)) .or. (t_bnd(ntbnd) < (t1 - 1.0))) then
@@ -41,6 +43,8 @@ contains
    elseif (bndfile(1:4) /= 'none') then    ! Normal ascii input files
       !
       call write_log('Info    : reading water level boundaries', 0)
+      !
+      ok = check_file_exists(bndfile, 'Water level input locations bnd file', .true.)      
       !
       open(500, file=trim(bndfile))
       do while(.true.)
@@ -58,6 +62,8 @@ contains
       !
       ! Read water level boundary conditions file
       !
+      ok = check_file_exists(bzsfile, 'Water level timeseries bzs file', .true.)    
+      !      
       open(500, file=trim(bzsfile))
       do while(.true.)
          read(500,*,iostat = stat)dummy
@@ -82,6 +88,8 @@ contains
          !
          allocate(zsi_bnd(nbnd,ntbnd))
          allocate(zsit_bnd(nbnd))
+         !
+         ok = check_file_exists(bzifile, 'Incoming water level input timeseries bzi file', .true.)
          !
          open(500, file=trim(bzifile))
          do itb = 1, ntbnd
@@ -176,6 +184,8 @@ contains
          !
          write(logstr,'(a)')'Info    : reading downstream river boundaries'
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(srcfile, 'Downstream river boundaries bdr file', .true.)      
          !
          open(500, file=trim(bdrfile))
          do while(.true.)

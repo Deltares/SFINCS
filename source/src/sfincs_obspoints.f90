@@ -33,7 +33,7 @@ contains
       write(logstr,'(a)')'Info    : reading observation points'
       call write_log(logstr, 0)
       !
-      ok = check_file_exists(obsfile, 'Observation points file', .true.)
+      ok = check_file_exists(obsfile, 'Observation points obs file', .true.)
       !
       open(500, file=trim(obsfile))       
       do while(.true.)

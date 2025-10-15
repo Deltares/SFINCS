@@ -87,7 +87,7 @@ contains
       quadtree_netcdf = .true.
    endif
    !
-   ok = check_file_exists(qtrfile, 'Quadtree file', .true.)
+   ok = check_file_exists(qtrfile, 'Quadtree qtr file', .true.)
    !
    if (quadtree_netcdf) then
       call quadtree_read_file_netcdf(qtrfile, snapwave, nonhydrostatic)

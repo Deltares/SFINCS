@@ -1,5 +1,8 @@
 module sfincs_discharges
 
+   use sfincs_log
+   use sfincs_error
+   
 contains
    !
    subroutine read_discharges()
@@ -17,6 +20,7 @@ contains
    real*4 xtmp, ytmp, dummy
    !
    integer isrc, itsrc, idrn, nm, m, n, stat, j, iref
+   logical ok
    !
    ! Read discharge points
    !
@@ -30,6 +34,8 @@ contains
       write(logstr,'(a)')'Info    : reading discharges'
       call write_log(logstr, 0)
       !
+      ok = check_file_exists(srcfile, 'River input locations src file', .true.)      
+      !
       open(500, file=trim(srcfile))
       do while(.true.)
          read(500,*,iostat = stat)dummy
@@ -39,6 +45,8 @@ contains
       rewind(500)
       !
    elseif (netsrcdisfile(1:4) /= 'none') then    ! FEWS compatible Netcdf discharge time-series input
+      !
+      ok = check_file_exists(netsrcdisfile, 'Netcdf river input netsrcdis file', .true.)       
       !
       call read_netcdf_discharge_data()  ! reads nsrc, ntsrc, xsrc, ysrc, qsrc, and tsrc
       !
@@ -55,6 +63,8 @@ contains
       !
       write(logstr,'(a)')'Info    : reading drainage file'
       call write_log(logstr, 0)
+      !
+      ok = check_file_exists(srcfile, 'Drainage drn file', .true.)      
       !
       open(501, file=trim(drnfile))
       do while(.true.)
@@ -88,6 +98,8 @@ contains
       !
       ! Read discharge time series
       !
+      ok = check_file_exists(disfile, 'River discharge timeseries dis file', .true.)      
+      !      
       open(502, file=trim(disfile))
       do while(.true.)
          read(502,*,iostat = stat)dummy

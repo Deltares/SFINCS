@@ -412,7 +412,7 @@
    !
    if (thdfile(1:4) /= 'none') then
       !
-      ok = check_file_exists(thdfile, 'Thin dams file', .true.)
+      ok = check_file_exists(thdfile, 'Thin dams thd file', .true.)
       !
       ! First count number of polylines
       !

@@ -41,7 +41,7 @@ contains
       ! 
       call write_log('Info    : reading cross sections', 0)
       !
-      ok = check_file_exists(crsfile, 'Cross sections file', .true.)
+      ok = check_file_exists(crsfile, 'Cross sections crs file', .true.)
       !
       ! First count number of polylines
       !

@@ -2158,7 +2158,7 @@ contains
          write(logstr,'(a,a)')'Info    : reading infiltration file ', trim(qinffile)
          call write_log(logstr, 0)
          !
-         ok = check_file_exists(qinffile, 'Infiltration file', .true.)
+         ok = check_file_exists(qinffile, 'Infiltration qinf file', .true.)
          !
          allocate(qinffield(np))
          open(unit = 500, file = trim(qinffile), form = 'unformatted', access = 'stream')
@@ -2420,7 +2420,7 @@ contains
       !
       nchar = len_trim(volfile)
       !
-      ok = check_file_exists(volfile, 'Storage volume file', .true.)
+      ok = check_file_exists(volfile, 'Storage volume vol file', .true.)
       !
       if (volfile(nchar - 1 : nchar) == 'nc') then
          !

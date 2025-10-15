@@ -25,7 +25,7 @@ contains
    !
    logical :: ok
    !
-   ok = check_file_exists(sbgfile, 'Sub-grid file', .true.)
+   ok = check_file_exists(sbgfile, 'Sub-grid sbg file', .true.)
    !
    ! Check what sort of file we're dealing with
    !
