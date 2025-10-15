@@ -19,8 +19,9 @@ libsfincs_la_SOURCES = \
 	sfincs_date.f90 \
 	sfincs_spiderweb.f90 \
 	sfincs_data.f90 \
-	geometry.f90 \
-	quadtree.f90 \
+    ../third_party_open/Delft3D/astro.f90 \
+	../third_party_open/utils/geometry.f90 \
+	sfincs_quadtree.f90 \
 	sfincs_error.f90 \		
 	snapwave/interp.F90 \
 	snapwave/snapwave_data.f90 \
@@ -45,9 +46,9 @@ libsfincs_la_SOURCES = \
 	sfincs_runup_gauges.f90 \
 	sfincs_wave_enhanced_roughness.f90 \
 	sfincs_snapwave.f90 \
-	deg2utm.f90 \
+	../third_party_open/utils/deg2utm.f90 \
 	sfincs_meteo.f90 \
-        bicgstab_solver_ilu.f90 \
+    ../third_party_open/bicgstab/bicgstab_solver_ilu.f90 \
 	sfincs_nonhydrostatic.f90 \
 	sfincs_ncoutput.F90 \
 	sfincs_output.f90 \

@@ -324,6 +324,43 @@ CONTAINS
        !
        write(date_string, '(I4,I0.2,I0.2,A1,I0.2,I0.2,I0.2)')  yyyy, mm, dd, '.', hh, mn, ss
        !
+   end function
+   !
+   function time_to_vector(t_sec, tref_string) result (date_time_vector)
+       !   
+       character*15                 :: date_string
+       character*15                 :: tref_string
+       real*8                       :: t_sec
+       integer yyyy,mm,dd,hh,mn,ss,ndays_add
+       real zfraction,secs_time,sec_add,ref_fraction
+       integer, dimension(6)        :: date_time_vector
+       type(j_date) :: jd
+       !
+       ! assume an input format of yyyymmdd HHMMSS
+       !
+       read(tref_string,'(I4,2I2,1X,3I2)')yyyy,mm,dd,hh,mn,ss 
+       ref_fraction = real(hh)/24 + real(mn)/1440 + real(ss)/86400
+       jd = SetYMD (yyyy, mm, dd, 0.0)
+       !
+       sec_add = ref_fraction*86400 + t_sec
+       ndays_add = int(sec_add/86400)
+       secs_time = sec_add - ndays_add*86400.0       
+       jd%day = jd%day + 1.0*ndays_add
+       !
+       call YMD(jd, yyyy, mm, dd, zfraction)
+       hh = int(secs_time/3600)
+       mn = int((secs_time - hh*3600)/60)
+       ss = int(secs_time - hh*3600 - mn*60)
+       !
+       ! return a formatted date
+       !
+       date_time_vector(1) = yyyy
+       date_time_vector(2) = mm
+       date_time_vector(3) = dd
+       date_time_vector(4) = hh
+       date_time_vector(5) = mn
+       date_time_vector(6) = ss
+       !
    end function   
    !
    subroutine timer(t)
