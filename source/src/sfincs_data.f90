@@ -117,6 +117,7 @@ module sfincs_data
       character*256 :: mskfile
       character*256 :: bndfile
       character*256 :: bzsfile
+      character*256 :: bcafile
       character*256 :: bzifile
       character*256 :: bdrfile
       character*256 :: wfpfile
@@ -253,6 +254,7 @@ module sfincs_data
       logical       :: nonhydrostatic
       logical       :: h73table
       logical       :: wave_enhanced_roughness
+      logical       :: use_bcafile
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
@@ -615,6 +617,13 @@ module sfincs_data
       real*4, dimension(:),     allocatable :: zst_bnd
       real*4, dimension(:),     allocatable :: zsit_bnd
       !
+      ! Astro tide data
+      !
+      integer*4                             :: nr_tidal_components
+      real*8, dimension(:),     allocatable :: tidal_component_frequency
+      real*8, dimension(:,:,:), allocatable :: tidal_component_data
+      !
+      ! Wave boundary points
       ! Downstream river boundary points
       !
       real*4,  dimension(:),     allocatable :: x_bdr

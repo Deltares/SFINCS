@@ -134,6 +134,7 @@ contains
    call read_logical_input(500, 'h73table', h73table, .false.)   
    call read_real_input(500, 'rugdepth', runup_gauge_depth, 0.05)
    call read_logical_input(500, 'wave_enhanced_roughness', wave_enhanced_roughness, .false.)  
+   call read_logical_input(500, 'use_bcafile', use_bcafile, .true.)   
    !
    ! Domain
    !
@@ -156,6 +157,7 @@ contains
    !
    call read_char_input(500,'bndfile',bndfile,'none')
    call read_char_input(500,'bzsfile',bzsfile,'none')
+   call read_char_input(500,'bcafile',bcafile,'none')
    call read_char_input(500,'bzifile',bzifile,'none')
    call read_char_input(500, 'bdrfile', bdrfile, 'none')
    call read_char_input(500,'wfpfile',wfpfile,'none')
