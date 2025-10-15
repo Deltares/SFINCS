@@ -21,8 +21,6 @@ contains
    !
    real*4, dimension(:), allocatable :: value
    !
-   logical :: ok
-   !
    ! Read observation points
    !
    nobs = 0
@@ -31,12 +29,6 @@ contains
       ! 
       write(logstr,'(a)')'Info    : reading observation points'
       call write_log(logstr, 0)
-      !
-      ok = check_file_exists(obsfile, 'obs file')
-      !
-      if (.not. ok) then
-         return
-      endif   
       !
       open(500, file=trim(obsfile))       
       do while(.true.)
@@ -59,7 +51,6 @@ contains
       allocate(zbobs(nobs))      
       !
       allocate(nmwindobs(nobs))
-      allocate(wobs(4, nobs))
       !
       allocate(value(2))
       !
