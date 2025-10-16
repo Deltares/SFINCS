@@ -19,7 +19,6 @@ contains
    real      :: dummy
    real*4    :: xru0, yru0, xru1, yru1, x, y
    real*4    :: rlen, rdx, rdy, dxstep
-   logical ok
    !
    character(len=256) :: cdummy
    !
