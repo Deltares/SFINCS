@@ -21,8 +21,8 @@ libsfincs_la_SOURCES = \
 	sfincs_data.f90 \
     ../third_party_open/Delft3D/astro.f90 \
 	../third_party_open/utils/geometry.f90 \
-	sfincs_quadtree.f90 \
 	sfincs_error.f90 \		
+	sfincs_quadtree.f90 \
 	snapwave/interp.F90 \
 	snapwave/snapwave_data.f90 \
 	snapwave/snapwave_ncinput.F90 \		
