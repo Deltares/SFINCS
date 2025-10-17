@@ -3,6 +3,7 @@ module sfincs_initial_conditions
    !
    use sfincs_data
    use sfincs_log
+   use sfincs_error
    use netcdf       
    !
    type net_type_ini
@@ -53,6 +54,8 @@ contains
          write(logstr,'(a,a)')'Info    : reading restart file ', trim(rstfile)
          call write_log(logstr, 0)
          !
+         iok = check_file_exists(rstfile, 'Restart file', .true.)
+         !
          call read_binary_restart_file() ! Note - older type real*4 for zs
          !
       elseif (zsinifile(1:4) /= 'none') then 
@@ -62,6 +65,8 @@ contains
          !
          write(logstr,'(a,a)')'Info    : reading initial conditions file ', trim(zsinifile)
          call write_log(logstr, 0)
+         !
+         iok = check_file_exists(zsinifile, 'Binary initial conditions ini file', .true.)
          !
          call read_zsini_file()
          !
@@ -74,6 +79,8 @@ contains
          !
          write(logstr,'(a,a)')'Info    : reading NetCDF initial conditions file ', trim(zsinifile)
          call write_log(logstr, 0)
+         !
+         iok = check_file_exists(ncinifile, 'NetCDF initial conditions file', .true.)
          !
          call read_nc_ini_file()
          !
@@ -268,7 +275,7 @@ contains
       write(logstr,'(a,a)')'Info    : reading zsini file ', trim(zsinifile)
       call write_log(logstr, 0)
       !
-      call write_log('Warning : binary ini files from SFINCS v2.1.1 and older are not compatible with SFINCS v2.1.2+, remake your inifile containing zs as real*8 double precision', 0)  
+      call write_log('Warning : binary ini files from SFINCS v2.1.1 and older are not compatible with SFINCS v2.1.2+, remake your inifile containing zs as real*8 double precision', 0)
       !
       open(unit = 500, file = trim(zsinifile), form = 'unformatted', access = 'stream')
       read(500)inizs4

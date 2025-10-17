@@ -9,6 +9,7 @@ contains
    use sfincs_data
    use sfincs_date
    use sfincs_log
+   use sfincs_error
    !
    implicit none
    !
@@ -35,11 +36,14 @@ contains
    integer iwavemaker      
    integer iwavemaker_spectrum  
    integer ispwprecip
-   logical iviscosity   
+   logical iviscosity
+   logical ok
    !
    character*256 wmsigstr 
    character*256 advstr 
    !   
+   ok = check_file_exists('sfincs.inp', 'SFINCS input file', .true.)
+   !
    open(500, file='sfincs.inp')   
    !
    call read_int_input(500,'mmax',mmax,0)
@@ -134,6 +138,7 @@ contains
    call read_logical_input(500, 'h73table', h73table, .false.)   
    call read_real_input(500, 'rugdepth', runup_gauge_depth, 0.05)
    call read_logical_input(500, 'wave_enhanced_roughness', wave_enhanced_roughness, .false.)
+   call read_logical_input(500, 'use_bcafile', use_bcafile, .true.)   
    call read_real_input(500, 'factor_wind', factor_wind, 1.0)
    call read_real_input(500, 'factor_pres', factor_pres, 1.0)
    call read_real_input(500, 'factor_prcp', factor_prcp, 1.0)
@@ -160,6 +165,7 @@ contains
    !
    call read_char_input(500,'bndfile',bndfile,'none')
    call read_char_input(500,'bzsfile',bzsfile,'none')
+   call read_char_input(500,'bcafile',bcafile,'none')
    call read_char_input(500,'bzifile',bzifile,'none')
    call read_char_input(500, 'bdrfile', bdrfile, 'none')
    call read_char_input(500,'wfpfile',wfpfile,'none')

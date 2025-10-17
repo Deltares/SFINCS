@@ -9,6 +9,7 @@ module sfincs_lib
    use sfincs_boundaries
    use sfincs_obspoints
    use sfincs_crosssections
+   use sfincs_runup_gauges
    use sfincs_discharges
    use sfincs_meteo
    use sfincs_infiltration
@@ -72,7 +73,7 @@ module sfincs_lib
    logical  :: update_meteo
    logical  :: update_waves
    !
-   real :: tstart, tfinish, tloopflux, tloopcont, tloopstruc, tloopbnd, tloopsrc, tloopwnd1, tloopwnd2, tloopoutput, tloopsnapwave, tloopwavemaker, tloopnonh
+   real :: tstart, tfinish, tloopflux, tloopcont, tloopstruc, tloopbnd, tloopsrc, tloopwnd1, tloopwnd2, tloopinf, tloopoutput, tloopsnapwave, tloopwavemaker, tloopnonh
    real :: time_per_timestep
    real :: tinput
    real :: percdone,percdonenext,trun,trem
@@ -154,6 +155,8 @@ module sfincs_lib
    call read_obs_points()       ! Reads obs file
    !
    call read_crs_file()         ! Reads cross sections
+   !
+   call read_rug_file()         ! Read runup gauge file
    !
    call read_discharges()       ! Reads dis and src file
    !
@@ -281,6 +284,7 @@ module sfincs_lib
    tloopsrc       = 0.0
    tloopwnd1      = 0.0
    tloopwnd2      = 0.0
+   tloopinf       = 0.0
    tloopsnapwave  = 0.0
    tloopwavemaker = 0.0
    tloopnonh      = 0.0
@@ -523,7 +527,7 @@ module sfincs_lib
              !
              ! Compute infiltration rates
              !
-             call update_infiltration_map(dt)
+             call update_infiltration_map(dt, tloopinf)
              !
          endif
          !
@@ -675,64 +679,69 @@ module sfincs_lib
    call write_log('', 1)
    call write_log('---------- Simulation finished -----------', 1)                  
    call write_log('', 1)
-   write(logstr,'(a,f10.3)')          ' Total time             : ',tinput + tfinish_all - tstart_all
+   write(logstr,'(a,f10.3)')             ' Total time             : ', tinput + tfinish_all - tstart_all
    call write_log(logstr, 1)
-   write(logstr,'(a,f10.3)')          ' Total simulation time  : ',tfinish_all - tstart_all
+   write(logstr,'(a,f10.3)')             ' Total simulation time  : ', tfinish_all - tstart_all
    call write_log(logstr, 1)
-   write(logstr,'(a,f10.3)')          ' Time in input          : ',tinput
+   write(logstr,'(a,f10.3)')             ' Time in input          : ', tinput
    call write_log(logstr, 1)
    !
    if (boundaries_in_mask) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in boundaries     : ',tloopbnd,' (',100*tloopbnd/(tfinish_all - tstart_all),'%)'
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in boundaries     : ', tloopbnd, ' (', 100 * tloopbnd / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
    endif   
    !
    if (nsrc>0 .or. ndrn>0) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in discharges     : ',tloopsrc,' (',100*tloopsrc/(tfinish_all - tstart_all),'%)'
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in discharges     : ', tloopsrc, ' (', 100 * tloopsrc / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
    endif   
    !
    if (meteo3d)  then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in meteo fields   : ',tloopwnd1,' (',100*tloopwnd1/(tfinish_all - tstart_all),'%)'
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in meteo fields   : ', tloopwnd1, ' (', 100 * tloopwnd1 / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
    endif   
    !
    if (wind .or. patmos .or. precip) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in meteo forcing  : ',tloopwnd2,' (',100*tloopwnd2/(tfinish_all - tstart_all),'%)'
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in meteo forcing  : ', tloopwnd2, ' (', 100 * tloopwnd2 / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
    endif   
    !
-   write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in momentum       : ',tloopflux,' (',100*tloopflux/(tfinish_all - tstart_all),'%)'
+   if (infiltration) then
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in infiltration   : ', tloopinf, ' (', 100 * tloopinf / (tfinish_all - tstart_all), '%)'
+      call write_log(logstr, 1)
+   endif
+   !
+   write(logstr,'(a,f10.3,a,f5.1,a)')    ' Time in momentum       : ', tloopflux, ' (', 100 * tloopflux / (tfinish_all - tstart_all), '%)'
    call write_log(logstr, 1)
    !
    if (nonhydrostatic) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in non-hydrostatic: ',tloopnonh,' (',100*tloopnonh/(tfinish_all - tstart_all),'%)'
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in non-hydrostatic: ', tloopnonh, ' (', 100 * tloopnonh / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
    endif
    !
    if (nrstructures>0) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in structures     : ',tloopstruc,' (',100*tloopstruc/(tfinish_all - tstart_all),'%)'
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in structures     : ', tloopstruc, ' (', 100 * tloopstruc / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
    endif
    !
-   write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in continuity     : ',tloopcont,' (',100*tloopcont/(tfinish_all - tstart_all),'%)'
+   write(logstr,'(a,f10.3,a,f5.1,a)')    ' Time in continuity     : ', tloopcont, ' (', 100 * tloopcont / (tfinish_all - tstart_all), '%)'
    call write_log(logstr, 1)
    !
    if (snapwave) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in SnapWave       : ',tloopsnapwave,' (',100*tloopsnapwave/(tfinish_all - tstart_all),'%)'
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in SnapWave       : ', tloopsnapwave, ' (', 100 * tloopsnapwave / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
    endif
    !
    if (wavemaker) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in wave maker     : ',tloopwavemaker,' (',100*tloopwavemaker/(tfinish_all - tstart_all),'%)'
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in wave maker     : ', tloopwavemaker, ' (', 100 * tloopwavemaker / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
    endif
    !
-   write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in output         : ',tloopoutput,' (',100*tloopoutput/(tfinish_all - tstart_all),'%)'
+   write(logstr,'(a,f10.3,a,f5.1,a)')    ' Time in output         : ', tloopoutput, ' (', 100 * tloopoutput / (tfinish_all - tstart_all), '%)'
    call write_log(logstr, 1)
    !
    call write_log('', 1)
-   write(logstr,'(a,20f10.3)')        ' Average time step (s)  : ',dtavg
+   write(logstr,'(a,20f10.3)')           ' Average time step (s)  : ',dtavg
    !
    call write_log(logstr, 1)
    call write_log('', 1)
@@ -745,6 +754,7 @@ module sfincs_lib
       write(123,'(f10.3,a)')tloopsrc,' % discharges'
       write(123,'(f10.3,a)')tloopwnd1,' % meteo1'
       write(123,'(f10.3,a)')tloopwnd2,' % meteo2'
+      write(123,'(f10.3,a)')tloopinf,' % infiltration'
       write(123,'(f10.3,a)')tloopflux,' % momentum'
       write(123,'(f10.3,a)')tloopstruc,' % structures'
       write(123,'(f10.3,a)')tloopcont,' % continuity'

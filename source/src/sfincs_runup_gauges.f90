@@ -22,6 +22,8 @@ contains
    !
    character(len=256) :: cdummy
    !
+   logical   :: ok
+   !
    ! Read cross sections file
    !
    nr_runup_gauges = 0
@@ -30,6 +32,8 @@ contains
       ! 
       call write_log('Info    : reading run-up gauges', 0)
       !
+      ok = check_file_exists(obsfile, 'Run-up gauge rug file', .true.)
+      !      
       ! First count number of polylines
       !
       open(500, file=trim(rugfile))
