@@ -101,6 +101,10 @@ module sfincs_data
       integer nh_itermax
       real*4 nh_tol
       real*4 runup_gauge_depth
+      real*4 factor_wind
+      real*4 factor_pres
+      real*4 factor_prcp
+      real*4 factor_spw_size
       !
       real*4 freqminig
       real*4 freqmaxig
