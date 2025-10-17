@@ -92,7 +92,7 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.2.1-alpha col d'Eze-branch:moving_gates"
+   build_revision = "$Rev: v2.3.0-alpha mt.Faber"
    build_date     = "$Date: 2025-10-17"
    !
    call write_log('', 1)
