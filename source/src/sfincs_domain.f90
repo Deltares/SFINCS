@@ -1,6 +1,7 @@
 module sfincs_domain
 
    use sfincs_log
+   use sfincs_error
 
 contains
 
@@ -71,7 +72,12 @@ contains
    precip  = .false.
    patmos  = .false.
    meteo3d = .false.
-   include_boundaries = .false.   
+   !
+   boundaries_in_mask = .false.
+   water_level_boundaries_in_mask = .false.
+   outflow_boundaries_in_mask = .false.
+   downstream_river_boundaries_in_mask = .false.
+   neumann_boundaries_in_mask = .false.
    !
    if (spwfile(1:4) /= 'none' .or. wndfile(1:4) /= 'none' .or. amufile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       !
@@ -131,6 +137,7 @@ contains
    integer ip, n, m, nm, nmu, num, iref, npu, npv, ndm, nmd, iq
    integer ndmu, nmdu, numu
    integer irefuv, npuvtotal, icuv
+   logical ok
    !
    ! Temporary arrays
    !
@@ -188,6 +195,8 @@ contains
          !
          ! Read mask file
          !
+         ok = check_file_exists(mskfile, 'Mask file', .true.)
+         !
          open(500, file=trim(mskfile))
          do n = 1, nmax
             read(500,*)(kcsg(n, m), m = 1, mmax)
@@ -225,6 +234,9 @@ contains
          !
          write(logstr,'(a,a)')'Info    : reading index file ', trim(indexfile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(indexfile, 'Index file', .true.)
+         !
          open(unit = 500, file = trim(indexfile), form = 'unformatted', access = 'stream')
          read(500)np
          allocate(indices(np))
@@ -286,6 +298,8 @@ contains
          !
          write(logstr,'(a,a)')'Info    : reading mask file : ', trim(mskfile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(mskfile, 'Mask file', .true.)
          !
          open(unit = 500, file = trim(mskfile), form = 'unformatted', access = 'stream')
          read(500)msk
@@ -767,8 +781,8 @@ contains
             ! Flags to describe uv point 
             !
             uv_flags_iref(ip)                  = z_flags_iref(nm) 
-            uv_flags_dir(ip)                   = 0 ! u point
-            uv_flags_type(ip)                  = -1! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
+            uv_flags_dir(ip)                   = 0  ! u point
+            uv_flags_type(ip)                  = -1 ! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
             !
          endif
          !
@@ -1362,8 +1376,8 @@ contains
       m    = z_index_z_m(nm)
       iref = z_flags_iref(nm)
       !
-      z_xz(nm) = x0 + cosrot*(1.0*(m - 0.5))*dxr(iref) - sinrot*(1.0*(n - 0.5))*dyr(iref)
-      z_yz(nm) = y0 + sinrot*(1.0*(m - 0.5))*dxr(iref) + cosrot*(1.0*(n - 0.5))*dyr(iref)
+      z_xz(nm) = x0 + cosrot * (1.0 * (m - 0.5)) * dxr(iref) - sinrot * (1.0 * (n - 0.5)) * dyr(iref)
+      z_yz(nm) = y0 + sinrot * (1.0 * (m - 0.5)) * dxr(iref) + cosrot * (1.0 * (n - 0.5)) * dyr(iref)
       !
    enddo
    !
@@ -1572,6 +1586,8 @@ contains
    integer :: n
    integer :: m
    !
+   logical :: ok
+   !
    ! DEPTHS
    !
    if (.not. subgrid) then
@@ -1590,8 +1606,10 @@ contains
          !
          if (depfile(1:4) /= 'none') then
             !
-            write(logstr,'(a,a)')'Info    :reading dep file : ',trim(depfile)
+            write(logstr,'(a,a)')'Info    : reading dep file : ',trim(depfile)
             call write_log(logstr, 0)
+            !
+            ok = check_file_exists(depfile, 'Dep file', .true.)
             !
             open(unit = 500, file = trim(depfile), form = 'unformatted', access = 'stream')
             read(500)zb
@@ -1614,6 +1632,8 @@ contains
             !
             allocate(zbg(nmax, mmax))
             !
+            ok = check_file_exists(depfile, 'Dep file', .true.)
+            !
             open(500, file=trim(depfile))
             do n = 1, nmax
                read(500,*)(zbg(n, m), m = 1, mmax)
@@ -1633,6 +1653,8 @@ contains
             deallocate(zbg)
             !
          else
+            !
+            ok = check_file_exists(depfile, 'Dep file', .true.)
             !
             open(unit = 500, file = trim(depfile), form = 'unformatted', access = 'stream')
             read(500)zb
@@ -1741,12 +1763,24 @@ contains
    !
    ! First count number of boundary cells
    !
+   ! kcs = 2 : water level
+   ! kcs = 3 : outflow
+   ! kcs = 5 : river
+   ! kcs = 6 : lateral (coastal, dzs/dx = 0.0), in which case we set kcuv = 6 and we do not add this point to the boundary u/v points ! We do add this point to the grid boundary points (later on).
+   !
    ngbnd = 0
+   !
    do nm = 1, np
-      if (kcs(nm)==2 .or. kcs(nm)==3) then
+      if (kcs(nm) == 2 .or. kcs(nm) == 3 .or. kcs(nm) == 5 .or. kcs(nm) == 6) then
          !
-         include_boundaries = .true.
+         boundaries_in_mask = .true.
          ngbnd = ngbnd + 1
+         !
+         if (kcs(nm) == 2) water_level_boundaries_in_mask = .true.
+         if (kcs(nm) == 3) outflow_boundaries_in_mask = .true.
+         if (kcs(nm) == 5) downstream_river_boundaries_in_mask = .true.
+         if (kcs(nm) == 6) neumann_boundaries_in_mask = .true.
+         ! Neumann - Need nm indices of internal points, determined in sfincs_boundaries.f90
          !
       endif
    enddo
@@ -1756,7 +1790,6 @@ contains
    allocate(nmindbnd(ngbnd))
    allocate(zsb(ngbnd))
    allocate(zsb0(ngbnd))
-   allocate(ibndtype(ngbnd)) ! 0 for outflow boundary, 1 for regular boundary
    !
    zsb  = 0.0  ! Total water level at boundary grid point
    zsb0 = 0.0  ! Filtered water level at boundary grid point
@@ -1767,35 +1800,19 @@ contains
    !
    do nm = 1, np
       !
-      if (kcs(nm)==2 .or. kcs(nm)==3) then
+      if (kcs(nm) == 2 .or. kcs(nm) == 3 .or. kcs(nm) == 5 .or. kcs(nm) == 6) then
          !
          ! This is a boundary point
          !
          ngbnd = ngbnd + 1
          nmindbnd(ngbnd) = nm
          !
-         ! Determine whether this is a regular or outflow grid point
-         !
-         if (kcs(nm)==2) then
-            !
-            ! Regular boundary point
-            !
-            ibndtype(ngbnd) = 1
-            !
-         else
-            !
-            ! Outflow boundary point (set kcs back to 2)
-            !
-            ibndtype(ngbnd) = 0
-!            kcs(nm) = 2
-            !
-         endif   
       endif
    enddo
    !
    ! UV boundary points
    !
-   nkcuv2 = 0 ! Number of points with kcuv=2
+   nkcuv2 = 0 ! Number of points with kcuv=2 or kcuv=6
    kcuv   = 0
    !
    do ip = 1, npuv
@@ -1803,25 +1820,46 @@ contains
       nm  = uv_index_z_nm(ip)
       nmu = uv_index_z_nmu(ip)
       !
-      if (kcs(nm)>1 .and. kcs(nmu)>1)  then
+      if (kcs(nm) > 1 .and. kcs(nmu) > 1)  then
          !
          ! Two surrounding boundary points
          !
-         kcuv(ip) = 0 ! Is this really necessary
+         kcuv(ip) = 0 ! Is this really necessary ?
          !
-      elseif (kcs(nm)*kcs(nmu) == 0) then
-            !
-            ! One or two surrounding inactive points, so make this velocity point inactive
-            !
-            kcuv(ip) = 0
-            !
-      elseif ((kcs(nm)==1 .and. kcs(nmu)>1) .or. (kcs(nm)>1 .and. kcs(nmu)==1))  then
+      elseif (kcs(nm) * kcs(nmu) == 0) then
          !
-         ! One surrounding boundary points, so make this velocity point a boundary point
+         ! One or two surrounding inactive points, so make this velocity point inactive
+         !
+         kcuv(ip) = 0
+         !
+      elseif ((kcs(nm) == 1 .and. kcs(nmu) == 2) .or. (kcs(nm) == 2 .and. kcs(nmu) == 1))  then
+         !
+         ! One surrounding water level boundary point, so make this velocity point a boundary point
          !
          kcuv(ip) = 2
          nkcuv2 = nkcuv2 + 1
          !
+      elseif ((kcs(nm) == 1 .and. kcs(nmu) == 3) .or. (kcs(nm) == 3 .and. kcs(nmu) == 1))  then
+         !
+         ! One surrounding outflow boundary point, so make this velocity point a boundary point
+         !
+         kcuv(ip) = 2
+         nkcuv2 = nkcuv2 + 1
+         !
+      elseif ((kcs(nm) == 1 .and. kcs(nmu) == 5) .or. (kcs(nm) == 5 .and. kcs(nmu) == 1))  then
+         !
+         ! One surrounding downstream river boundary point, so make this velocity point a boundary point
+         !
+         kcuv(ip) = 2
+         nkcuv2 = nkcuv2 + 1
+         !
+      elseif ((kcs(nm) == 1 .and. kcs(nmu) == 6) .or. (kcs(nm) == 6 .and. kcs(nmu) == 1))  then
+         !
+         ! Lateral coastal boundary
+         !
+         kcuv(ip) = 6
+         nkcuv2 = nkcuv2 + 1
+         !         
       else
          !
          kcuv(ip) = 1
@@ -1845,7 +1883,7 @@ contains
    !
    do ip = 1, npuv
       !
-      if (kcuv(ip)==2) then
+      if (kcuv(ip) == 2 .or. kcuv(ip) == 6) then
          !
          ikcuv2 = ikcuv2 + 1       ! Counter for kcuv==2 points
          index_kcuv2(ikcuv2) = ip
@@ -1875,13 +1913,16 @@ contains
          !         
          do ib = 1, ngbnd
             !
-            if (nmindbnd(ib)==nmbkcuv2(ikcuv2)) then
+            if (nmindbnd(ib) == nmbkcuv2(ikcuv2)) then
                !
                ibkcuv2(ikcuv2) = ib ! index in grid boundary array of this uv boundary point
                !
-               ! Set water levels for this point (this only happens here)
+               ! Check if this is an outflow boundary (kcs=3)
                !
-               if (ibndtype(ib)==0) then
+               if (kcs(nmindbnd(ib)) == 3) then
+                  !
+                  ! Set water levels for this point (this only happens here, so these do not change throughout the simulation)
+                  !
                   if (subgrid) then
                      zsb0(ib) = subgrid_z_zmin(nmindbnd(ib))
                      zsb(ib)  = zsb0(ib)
@@ -1912,6 +1953,7 @@ contains
    integer :: ip
    integer :: nm
    integer :: nmu
+   logical :: ok
    !
    ! FRICTION COEFFICIENTS (only for regular bathymetry, as for subgrid the Manning's n values are stored in the tables)
    !
@@ -1928,6 +1970,9 @@ contains
          allocate(rghfield(np))
          write(logstr,'(a,a)')'Info    : reading roughness file ',trim(manningfile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(manningfile, 'Roughness file', .true.)
+         !
          open(unit = 500, file = trim(manningfile), form = 'unformatted', access = 'stream')
          read(500)rghfield
          close(500)
@@ -1979,6 +2024,8 @@ contains
    implicit none
    !
    integer :: nm
+   !
+   logical :: ok
    !
    ! INFILTRATION
    !
@@ -2110,6 +2157,9 @@ contains
          !
          write(logstr,'(a,a)')'Info    : reading infiltration file ', trim(qinffile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(qinffile, 'Infiltration qinf file', .true.)
+         !
          allocate(qinffield(np))
          open(unit = 500, file = trim(qinffile), form = 'unformatted', access = 'stream')
          read(500)qinffield
@@ -2130,6 +2180,9 @@ contains
          !
          write(logstr,'(a,a)')'Info    : reading scs file ',trim(scsfile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(scsfile, 'Infiltration scs file', .true.)
+         !
          open(unit = 500, file = trim(scsfile), form = 'unformatted', access = 'stream')
          read(500)qinffield
          close(500)
@@ -2150,6 +2203,9 @@ contains
          qinffield = 0.0
          write(logstr,'(a,a)')'Info    : reading smax file ',trim(smaxfile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(smaxfile, 'Infiltration smax file', .true.)
+         !
          open(unit = 500, file = trim(smaxfile), form = 'unformatted', access = 'stream')
          read(500)qinffield
          close(500)
@@ -2159,6 +2215,9 @@ contains
          scs_Se = 0.0
          write(logstr,'(a,a)')'Info    : reading seff file ',trim(sefffile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(sefffile, 'Infiltration seff file', .true.)
+         !
          open(unit = 501, file = trim(sefffile), form = 'unformatted', access = 'stream')
          read(501)scs_Se
          close(501)
@@ -2170,6 +2229,9 @@ contains
          ksfield = 0.0
          write(logstr,'(a,a)')'Info    : reading ks file ',trim(ksfile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(ksfile, 'Infiltration ks file', .true.)
+         !
          open(unit = 502, file = trim(ksfile), form = 'unformatted', access = 'stream')
          read(502)ksfield
          close(502)
@@ -2204,6 +2266,9 @@ contains
          GA_head = 0.0
          write(logstr,'(a,a)')'Info    : reading psi file ',trim(psifile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(psifile, 'Infiltration psi file', .true.)
+         !
          open(unit = 500, file = trim(psifile), form = 'unformatted', access = 'stream')
          read(500)GA_head
          close(500)
@@ -2214,6 +2279,9 @@ contains
          GA_sigma_max = 0.0
          write(logstr,'(a,a)')'Info    : reading sigma file ',trim(sigmafile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(sigmafile, 'Infiltration sigma file', .true.)
+         !
          open(unit = 501, file = trim(sigmafile), form = 'unformatted', access = 'stream')
          read(501)GA_sigma_max
          close(501)
@@ -2224,6 +2292,9 @@ contains
          ksfield = 0.0
          write(logstr,'(a,a)')'Info    : reading ks file ',trim(ksfile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(ksfile, 'Infiltration ks file', .true.)
+         !
          open(unit = 502, file = trim(ksfile), form = 'unformatted', access = 'stream')
          read(502)ksfield
          close(502)
@@ -2269,6 +2340,9 @@ contains
          horton_fc = 0.0
          write(logstr,'(a,a)')'Info    : reading fc file ',trim(fcfile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(fcfile, 'Infiltration fc file', .true.)
+         !
          open(unit = 500, file = trim(fcfile), form = 'unformatted', access = 'stream')
          read(500)horton_fc
          close(500)
@@ -2278,6 +2352,9 @@ contains
          horton_f0 = 0.0
          write(logstr,'(a,a)')'Info    : reading f0 file ',trim(f0file)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(f0file, 'Infiltration f0 file', .true.)
+         !
          open(unit = 501, file = trim(f0file), form = 'unformatted', access = 'stream')
          read(501)horton_f0
          close(501)
@@ -2290,9 +2367,13 @@ contains
          horton_kd = 0.0
          write(logstr,'(a,a)')'Info    : reading kd file ',trim(kdfile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(kdfile, 'Infiltration kd file', .true.)
+         !
          open(unit = 502, file = trim(kdfile), form = 'unformatted', access = 'stream')
          read(502)horton_kd
          close(502)
+         !
          write(logstr,'(a,a)')'Using constant recovery rate that is based on constant factor relative to ',trim(kdfile)
          call write_log(logstr, 0)         
          !
@@ -2321,6 +2402,7 @@ contains
    implicit none
    !
    integer :: nchar
+   logical :: ok
    !
    if (use_storage_volume) then 
       !
@@ -2337,6 +2419,8 @@ contains
       call write_log(logstr, 0)
       !
       nchar = len_trim(volfile)
+      !
+      ok = check_file_exists(volfile, 'Storage volume vol file', .true.)
       !
       if (volfile(nchar - 1 : nchar) == 'nc') then
          !
