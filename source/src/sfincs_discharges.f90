@@ -437,6 +437,9 @@ contains
                         !
                         drainage_status(idrn) = 3
                         !
+                        write(logstr,'(a,i0,a,f0.1)')'Info ! Opening structure ',idrn,' at t= ',t
+                        call write_log(logstr, 0)                        
+                        !
                      endif
                      !
                   elseif (drainage_status(idrn) == 1) then
@@ -449,6 +452,9 @@ contains
                         !
                         drainage_status(idrn) = 2
                         !
+                        write(logstr,'(a,i0,a,f0.1)')'Info ! Closing structure ',idrn,' at t= ',t
+                        call write_log(logstr, 0)                        
+                        !                        
                      endif
                      !
                   endif                        
