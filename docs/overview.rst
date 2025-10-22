@@ -150,7 +150,7 @@ SFINCS has been applied in these international projects, with attached links to 
 
 * `Modelling coastal flooding for the entire country of Denmark by the Danish Coastal Authority for the EU Floods Directive <https://specials.deltares.nl/impact_report_2023/estimating_flood_impacts>`_  `(also see video) <https://www.youtube.com/watch?v=TbzTC82ijyU&t=15s&ab_channel=Deltares>`_
 
-.. figure:: ./figures/MapChart_Map.png
+.. figure:: ./figures/docs/figures/Countries_covered_by_SFINCS_models.png
    :width: 600px
    :align: center
 
