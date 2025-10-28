@@ -1,6 +1,7 @@
 module sfincs_snapwave
    !
    use sfincs_log
+   use sfincs_input
    !    
    implicit none
    !     
@@ -110,9 +111,9 @@ contains
    !
    allocate(snapwave_z(no_nodes))
    allocate(snapwave_depth(no_nodes))
-   allocate(snapwave_mask(no_nodes))  
-   allocate(snapwave_u10(no_nodes))   
-   allocate(snapwave_u10dir(no_nodes))      
+   allocate(snapwave_mask(no_nodes))
+   allocate(snapwave_u10(no_nodes))
+   allocate(snapwave_u10dir(no_nodes))
    !
    snapwave_z     = zb
    snapwave_depth = 0.0
@@ -561,7 +562,8 @@ contains
    call read_real_input(500,'snapwave_dtheta',dtheta,10.0)
    call read_real_input(500,'snapwave_crit',crit,0.00001) !TL: Old default was 0.01
    call read_int_input(500,'snapwave_nrsweeps',nr_sweeps,4)
-   call read_int_input(500,'snapwave_niter',niter, 10) !TL: Old default was 40  
+   call read_int_input(500,'snapwave_niter',niter, 10) !TL: Old default was 40
+   call read_int_input (500,'snapwave_upwindref',upwindref, 0)
    call read_int_input(500,'snapwave_baldock_opt',baldock_opt,1)     
    call read_real_input(500,'snapwave_baldock_ratio',baldock_ratio,0.2)
    call read_real_input(500,'rgh_lev_land',rghlevland,0.0)
@@ -613,6 +615,7 @@ contains
    call read_char_input(500,'snapwave_depfile',depfile,'none')   
    call read_char_input(500,'snapwave_ncfile', gridfile,'snapwave_net.nc')   
    call read_char_input(500,'netsnapwavefile',netsnapwavefile,'')
+   call read_logical_input(500,'storesnapwavegrid',storesnapwavegrid,.false.)
    call read_char_input(500,'tref',trefstr,'20000101 000000')   ! Read again > needed in sfincs_ncinput.F90   
    !
    close(500)
@@ -658,119 +661,4 @@ contains
    !
    end subroutine 
 
-   
-    
-   subroutine read_real_input(fileid,keyword,value,default)
-   !
-   character(*), intent(in) :: keyword
-   character(len=256)       :: keystr
-   character(len=256)       :: valstr
-   character(len=256)       :: line
-   integer, intent(in)      :: fileid
-   real*4, intent(out)      :: value
-   real*4, intent(in)       :: default
-   integer j,stat
-   !
-   value = default
-   rewind(fileid)   
-   do while(.true.)
-      read(fileid,'(a)',iostat = stat)line
-      if (stat<0) exit
-      j=index(line,'=')      
-      keystr = trim(line(1:j-1))
-      if (trim(keystr)==trim(keyword)) then
-         valstr = trim(line(j+1:256))
-         read(valstr,*)value
-         exit
-      endif
-   enddo 
-   !
-   end  subroutine  
-
-   subroutine read_real_array_input(fileid,keyword,value,default,nr)
-   !
-   character(*), intent(in) :: keyword
-   character(len=256)       :: keystr
-   character(len=256)       :: valstr
-   character(len=256)       :: line
-   integer, intent(in)      :: fileid
-   integer, intent(in)      :: nr
-   real*4, dimension(:), intent(out), allocatable :: value
-   real*4, intent(in)       :: default
-   integer j,stat, m
-   !
-   allocate(value(nr))
-   !
-   value = default
-   rewind(fileid)   
-   do while(.true.)
-      read(fileid,'(a)',iostat = stat)line
-      if (stat<0) exit
-      j=index(line,'=')      
-      keystr = trim(line(1:j-1))
-      if (trim(keystr)==trim(keyword)) then
-         valstr = trim(line(j+1:256))
-         read(valstr,*)(value(m), m = 1, nr)
-         exit
-      endif
-   enddo 
-   !
-   end  subroutine  
-
-   
-   subroutine read_int_input(fileid,keyword,value,default)
-   !
-   character(*), intent(in) :: keyword
-   character(len=256)       :: keystr
-   character(len=256)       :: valstr
-   character(len=256)       :: line
-   integer, intent(in)      :: fileid
-   integer, intent(out)     :: value
-   integer, intent(in)      :: default
-   integer j,stat
-   !
-   value = default
-   rewind(fileid)   
-   do while(.true.)
-      read(fileid,'(a)',iostat = stat)line
-      if (stat<0) exit
-      j=index(line,'=')      
-      keystr = trim(line(1:j-1))
-      if (trim(keystr)==trim(keyword)) then
-         valstr = trim(line(j+1:256))
-         read(valstr,*)value         
-         exit
-      endif
-   enddo 
-   !
-   end subroutine
-
-   
-   subroutine read_char_input(fileid,keyword,value,default)
-   !
-   character(*), intent(in)  :: keyword
-   character(len=256)        :: keystr
-   character(len=256)        :: valstr
-   character(len=256)        :: line
-   integer, intent(in)       :: fileid
-   character(*), intent(in)  :: default
-   character(*), intent(out) :: value
-   integer j,stat
-   !
-   value = default
-   rewind(fileid)   
-   do while(.true.)
-      read(fileid,'(a)',iostat = stat)line
-      if (stat<0) exit
-      j=index(line,'=')      
-      keystr = trim(line(1:j-1))
-      if (trim(keystr)==trim(keyword)) then
-         valstr = adjustl(trim(line(j+1:256)))
-         value = valstr
-         exit
-      endif
-   enddo 
-   !
-   end subroutine 
-   
 end module

@@ -29,7 +29,7 @@ module snapwave_data
    real*4                                      :: thetamean=-999.         ! mean wave direction
    real*4,  dimension(:),       allocatable    :: buf                     ! buffer for writing output to netcdf
    integer, dimension(:,:),     allocatable    :: kp                      ! surrounding points for each grid point (unstructured)
-   logical, dimension(:),       allocatable    :: inner                   ! mask for inner points (not on any boundary)
+   !logical, dimension(:),       allocatable    :: inner                   ! mask for inner points (not on any boundary)
    integer, dimension(:),       allocatable    :: neumannconnected        ! neumann boundary indices connected to inner points
    integer                                     :: noneumannpts            ! number of neumann boundary points
    real*4,  dimension(:),       allocatable    :: theta                   ! wave angles,sine and cosine of wave angles
@@ -141,24 +141,24 @@ module snapwave_data
    real*4,             dimension(:),   allocatable :: fac_bwv_cst         ! weight of closest wave boundary point
    integer*4,          dimension(:),   allocatable :: nmindact            ! index of grid point at active grid    
    !   
-   integer*4 mmax
-   integer*4 nmax
-   real*4 dx
-   real*4 dy
-   real*4 x0
-   real*4 y0
-   real*4 rotation
-   real*4 cosrot
-   real*4 sinrot
+   integer*4                                       :: mmax
+   integer*4                                       :: nmax
+   real*4                                          :: dx
+   real*4                                          :: dy
+   real*4                                          :: x0
+   real*4                                          :: y0
+   real*4                                          :: rotation
+   real*4                                          :: cosrot
+   real*4                                          :: sinrot
    !
    ! Timing
    !
-   real*8 :: tstart
-   real*8 :: tstop
-   real*4 :: timestep
+   real*8                                          :: tstart
+   real*8                                          :: tstop
+   real*4                                          :: timestep
    !
-   character*232                               :: map_filename
-   character*232                               :: his_filename
+   character*232                                   :: map_filename
+   character*232                                   :: his_filename
    ! 
    ! Local input variables
    !
@@ -239,7 +239,8 @@ module snapwave_data
    real*4                                    :: Tini
    real*4                                    :: sigmin
    real*4                                    :: sigmax   
-   integer                                   :: wind_opt     ! option of wind growth on (1) or off (0)         
+   integer                                   :: wind_opt     ! option of wind growth on (1) or off (0)
+   integer                                   :: upwindref    ! use central scheme (0) or upwind (1) for refraction
    !
    ! Vegetation parameters
    !
@@ -282,6 +283,7 @@ module snapwave_data
    !
    logical                                   :: restart
    logical                                   :: coupled_to_sfincs
+   logical                                   :: storesnapwavegrid
    !
    integer                                   :: nr_quadtree_points
    !
