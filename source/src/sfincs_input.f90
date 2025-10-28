@@ -9,6 +9,7 @@ contains
    use sfincs_data
    use sfincs_date
    use sfincs_log
+   use sfincs_error
    !
    implicit none
    !
@@ -35,11 +36,14 @@ contains
    integer iwavemaker      
    integer iwavemaker_spectrum  
    integer ispwprecip
-   logical iviscosity   
+   logical iviscosity
+   logical ok
    !
    character*256 wmsigstr 
    character*256 advstr 
    !   
+   ok = check_file_exists('sfincs.inp', 'SFINCS input file', .true.)
+   !
    open(500, file='sfincs.inp')   
    !
    call read_int_input(500,'mmax',mmax,0)
@@ -133,7 +137,12 @@ contains
    call read_int_input(500, 'nh_itermax', nh_itermax, 100)
    call read_logical_input(500, 'h73table', h73table, .false.)   
    call read_real_input(500, 'rugdepth', runup_gauge_depth, 0.05)
-   call read_logical_input(500, 'wave_enhanced_roughness', wave_enhanced_roughness, .false.)  
+   call read_logical_input(500, 'wave_enhanced_roughness', wave_enhanced_roughness, .false.)
+   call read_logical_input(500, 'use_bcafile', use_bcafile, .true.)   
+   call read_real_input(500, 'factor_wind', factor_wind, 1.0)
+   call read_real_input(500, 'factor_pres', factor_pres, 1.0)
+   call read_real_input(500, 'factor_prcp', factor_prcp, 1.0)
+   call read_real_input(500, 'factor_spw_size', factor_spw_size, 1.0)   
    !
    ! Domain
    !
@@ -156,12 +165,9 @@ contains
    !
    call read_char_input(500,'bndfile',bndfile,'none')
    call read_char_input(500,'bzsfile',bzsfile,'none')
+   call read_char_input(500,'bcafile',bcafile,'none')
    call read_char_input(500,'bzifile',bzifile,'none')
-   call read_char_input(500,'bwvfile',bwvfile,'none')
-   call read_char_input(500,'bhsfile',bhsfile,'none')
-   call read_char_input(500,'btpfile',btpfile,'none')
-   call read_char_input(500,'bwdfile',bwdfile,'none')
-   call read_char_input(500,'bdsfile',bdsfile,'none')
+   call read_char_input(500, 'bdrfile', bdrfile, 'none')
    call read_char_input(500,'wfpfile',wfpfile,'none')
    call read_char_input(500,'whifile',whifile,'none')
    call read_char_input(500,'wtifile',wtifile,'none')
@@ -212,6 +218,7 @@ contains
    call read_int_input(500,'storevel',storevel,0)
    call read_int_input(500,'storecumprcp',storecumprcp,0)
    call read_int_input(500,'storetwet',storetwet,0)
+   call read_int_input(500,'storetmax_zs',storetmax_zs,0)
    call read_int_input(500,'storehsubgrid',storehsubgrid,0)
    call read_logical_input(500, 'storehmean', store_hmean, .false.)      
    call read_real_input(500,'twet_threshold',twet_threshold,0.01)
@@ -405,11 +412,13 @@ contains
    endif
    !
    snapwave = .false.
+   snapwavewind = .false.
    if (isnapwave==1) then
       snapwave = .true.
       !
       if (iwind==1) then
-          store_wind = .true. 
+          store_wind = .true.
+          snapwavewind = .true.
           ! For running SnapWave with wind growth, we need to store the wind speed & direction to be able to pass it from SFINCS to SnapWave. 
           ! Independent from wndfile or 2D meteo input, handled by store_wind.
       endif  
@@ -418,6 +427,11 @@ contains
    store_twet = .false.
    if (storetwet==1) then
       store_twet = .true.
+   endif
+   !
+   store_tmax_zs = .false.
+   if (storetmax_zs==1) then
+      store_tmax_zs = .true.
    endif
    !
    store_cumulative_precipitation = .false.

@@ -145,7 +145,6 @@ contains
    allocate(Df(no_nodes))
    allocate(Df_ig(no_nodes))
    allocate(thetam(no_nodes))
-   allocate(Qb(no_nodes))
    allocate(beta(no_nodes))
    allocate(srcig(no_nodes))
    allocate(alphaig(no_nodes))

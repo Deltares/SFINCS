@@ -3,6 +3,7 @@ module sfincs_subgrid
    !
    use netcdf       
    use sfincs_log
+   use sfincs_error
    !
    type net_type_subgrid
        integer :: ncid
@@ -21,6 +22,10 @@ contains
    use sfincs_data
    !
    implicit none
+   !
+   logical :: ok
+   !
+   ok = check_file_exists(sbgfile, 'Sub-grid sbg file', .true.)
    !
    ! Check what sort of file we're dealing with
    !

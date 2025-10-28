@@ -27,7 +27,6 @@ module sfincs_snapwave
    real*4,    dimension(:),   allocatable    :: snapwave_Dwig
    real*4,    dimension(:),   allocatable    :: snapwave_Dfig
    real*4,    dimension(:),   allocatable    :: snapwave_cg
-   real*4,    dimension(:),   allocatable    :: snapwave_Qb
    real*4,    dimension(:),   allocatable    :: snapwave_beta
    real*4,    dimension(:),   allocatable    :: snapwave_srcig
    real*4,    dimension(:),   allocatable    :: snapwave_alphaig   
@@ -268,7 +267,6 @@ contains
    real*4,    dimension(:), allocatable       :: dwig0
    real*4,    dimension(:), allocatable       :: dfig0   
    real*4,    dimension(:), allocatable       :: cg0   
-   real*4,    dimension(:), allocatable       :: qb0   
    real*4,    dimension(:), allocatable       :: beta0 
    real*4,    dimension(:), allocatable       :: srcig0      
    real*4,    dimension(:), allocatable       :: alphaig0   
@@ -284,7 +282,6 @@ contains
    allocate(dwig0(np))
    allocate(dfig0(np))  
    allocate(cg0(np))  
-   allocate(qb0(np))   
    allocate(beta0(np))   
    allocate(srcig0(np))      
    allocate(alphaig0(np))      
@@ -296,7 +293,6 @@ contains
    dwig0 = 0.0
    dfig0 = 0.0
    cg0 = 0.0
-   qb0 = 0.0
    beta0 = 0.0
    srcig0 = 0.0
    alphaig0 = 0.0   
@@ -333,40 +329,44 @@ contains
    !
    ! Determine SnapWave wind
    !
-   if (wind) then
+   if (wind) then ! =We have wind inputs given to SFINCS
       !
-      do nm = 1, snapwave_no_nodes
-         !
-         ip = index_sfincs_in_snapwave(nm) ! matching index in SFINCS mesh
-         !
-         if (ip>0) then
-            !
-            ! A matching SFINCS point is found
-            !
-            ! Convert to umag & dir, as in ncoutput_update_his: 
-            !
-            u10 = sqrt(windu(ip)**2 + windv(ip)**2)
-            !
-            u10dir = atan2(windv(ip), windu(ip))*180/pi
-            !
-	        if (u10dir<0.0) u10dir = u10dir + 360.0
-            if (u10dir>360.0) u10dir = u10dir - 360.0    
-            !
-            snapwave_u10(nm) = max(u10, 0.0)     
-            snapwave_u10dir(nm) = u10dir / 180.0 * pi ! from nautical coming from in degrees to cartesian going to in radians
-            !
-         else
-            !
-            ! Use 0.0 wind speed and direction
-            !
-            snapwave_u10(nm) = 0.0
-            snapwave_u10dir(nm) = 0.0            
-            !
-         endif   
-         !
-      enddo   
+      if (snapwavewind) then ! =We have windgrowth in SnapWave turned on 
+          !
+          do nm = 1, snapwave_no_nodes
+             !
+             ip = index_sfincs_in_snapwave(nm) ! matching index in SFINCS mesh
+             !
+             if (ip>0) then
+                !
+                ! A matching SFINCS point is found
+                !
+                ! Convert to umag & dir, as in ncoutput_update_his: 
+                !
+                u10 = sqrt(windu(ip)**2 + windv(ip)**2)
+                !
+                u10dir = atan2(windv(ip), windu(ip))*180/pi
+                !
+	            if (u10dir<0.0) u10dir = u10dir + 360.0
+                if (u10dir>360.0) u10dir = u10dir - 360.0    
+                !
+                snapwave_u10(nm) = max(u10, 0.0)     
+                snapwave_u10dir(nm) = u10dir / 180.0 * pi ! from nautical coming from in degrees to cartesian going to in radians
+                !
+             else
+                !
+                ! Use 0.0 wind speed and direction
+                !
+                snapwave_u10(nm) = 0.0
+                snapwave_u10dir(nm) = 0.0            
+                !
+             endif   
+             !
+          enddo   
+          !
+      endif
       !
-   endif
+   endif   
    !
    call compute_snapwave(t)
    !
@@ -387,7 +387,6 @@ contains
          dwig0(nm)  = snapwave_Dwig(ip)   
          dfig0(nm)  = snapwave_Dfig(ip)
          cg0(nm)    = snapwave_cg(ip)
-         qb0(nm)    = snapwave_Qb(ip)
          beta0(nm)  = snapwave_beta(ip)
          srcig0(nm) = snapwave_srcig(ip)
          alphaig0(nm) = snapwave_alphaig(ip)
@@ -411,7 +410,6 @@ contains
          dwig0(nm)  = 0.0
          dfig0(nm)  = 0.0
          cg0(nm)    = 0.0
-         qb0(nm)    = 0.0
          beta0(nm)  = 0.0
          srcig0(nm) = 0.0
          alphaig0(nm) = 0.0         
@@ -431,7 +429,6 @@ contains
          dwig(nm)       = dwig0(nm)
          dfig(nm)       = dfig0(nm)
          cg(nm)         = cg0(nm)   
-         qb(nm)         = qb0(nm)         
          betamean(nm)   = beta0(nm)         
          srcig(nm)      = srcig0(nm)         
          alphaig(nm)    = alphaig0(nm)                  
@@ -482,6 +479,7 @@ contains
    use snapwave_boundaries
    !
    real*8    :: t
+   integer   :: k
    ! 
    depth = snapwave_depth
    !
@@ -507,7 +505,6 @@ contains
    snapwave_Dwig                  = Dw_ig
    snapwave_Dfig                  = Df_ig
    snapwave_cg                    = cg
-   snapwave_Qb                    = Qb
    snapwave_beta                  = beta
    snapwave_srcig                 = srcig
    snapwave_alphaig               = alphaig   
@@ -515,6 +512,21 @@ contains
    ! Convert wave force to correct unit [Dw/C] as expected by SFINCS, assumed to be piecewise (seems to work)
    snapwave_Fx                    = Fx * rho * depth
    snapwave_Fy                    = Fy * rho * depth
+   !
+   ! Loop over points and set Tp, cg, direction, spreading to 0 where H and/or H_ig are zero
+   ! TL: needed because e.g. Tp is set to Tpini initially, so shows values even if cell remains dry with H=0
+   do k = 1, no_nodes
+       if (snapwave_H(k) <= 0) then
+           snapwave_Tp(k) = 0
+           snapwave_mean_direction(k) = 0
+           snapwave_directional_spreading(k) = 0
+           snapwave_cg(k) = 0
+       endif
+       !
+       if (snapwave_H_ig(k) <= 0) then
+           snapwave_Tp_ig(k) = 0        
+       endif       
+   enddo   
    !
    ! Wave periods from SnapWave, used in e.g. wavemakers - TL: moved behind call update_boundary_conditions & compute_wave_field so values at first timestep are not 0
    snapwave_tpmean = tpmean_bwv

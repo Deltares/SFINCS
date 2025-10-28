@@ -1,5 +1,8 @@
    module sfincs_wavemaker
 
+   use sfincs_log
+   use sfincs_error
+
    contains
 
    subroutine read_wavemaker_polylines()
@@ -45,7 +48,7 @@
    integer*4, dimension(:),     allocatable :: cell_indices
    integer*4, dimension(:),     allocatable :: indwm
    !
-   logical :: iok
+   logical :: iok, ok
    !
    integer ib1, ib2, ib, ic, nmb, nrwvm
    !
@@ -63,7 +66,7 @@
    write(logstr,*)'Reading wavemaker polyline file ...'
    call write_log(logstr, 0)
    !
-   ! Loop through all polylines
+   ok = check_file_exists(wvmfile, 'Wave maker wvm file', .true.)
    !
    open(500, file=trim(wvmfile))
    do while(.true.)
@@ -1153,6 +1156,8 @@
       !
       ! Locations
       !
+      ok = check_file_exists(wfpfile, 'Wave maker wfp file', .true.)
+      !
       open(500, file=trim(wfpfile))
       do while(.true.)
          read(500,*,iostat = stat)dummy
@@ -1171,6 +1176,8 @@
       !
       ! First find times in whi file
       !
+      ok = check_file_exists(wfpfile, 'Wave maker whi file', .true.)
+      !      
       open(500, file=trim(whifile))
       do while(.true.)
          read(500,*,iostat = stat)dummy
@@ -1198,6 +1205,8 @@
       !
       ! Tp IG (peak period)
       !
+      ok = check_file_exists(wtifile, 'Wave maker wti file', .true.)
+      !      
       open(500, file=trim(wtifile))
       allocate(wmf_tp_ig(nwmfp, ntwmfp))
       do itb = 1, ntwmfp
@@ -1210,6 +1219,9 @@
       allocate(wmf_setup(nwmfp, ntwmfp))
       wmf_setup = 0.0
       if (wstfile(1:4) /= 'none') then
+         !
+         ok = check_file_exists(wstfile, 'Wave maker wsr file', .true.)
+         ! 
          open(500, file=trim(wstfile))
          do itb = 1, ntwmfp
             read(500,*)wmf_time(itb),(wmf_setup(ib, itb), ib = 1, nwmfp)

@@ -47,10 +47,13 @@
 				<File RelativePath="..\src\snapwave\snapwave_solver.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_windsource.f90"/>
 			</Filter>
-			<File RelativePath="..\src\bicgstab_solver_ilu.f90"/>
-			<File RelativePath="..\src\deg2utm.f90"/>
-			<File RelativePath="..\src\geometry.f90"/>
-			<File RelativePath="..\src\quadtree.F90">
+			<File RelativePath="..\third_party_open\Delft3D\astro.f90">
+			</File>
+			<File RelativePath="..\third_party_open\bicgstab\bicgstab_solver_ilu.f90">
+			</File>
+			<File RelativePath="..\third_party_open\utils\deg2utm.f90"/>
+			<File RelativePath="..\third_party_open\utils\geometry.f90"/>
+			<File RelativePath="..\src\sfincs_quadtree.F90">
 				<FileConfiguration Name="Release|x64">
 					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
 				</FileConfiguration>
