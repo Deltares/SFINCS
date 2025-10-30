@@ -927,7 +927,8 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
                   !
                   ip  = z_index_uv_mu1(nm)
                   nmu = uv_index_z_nmu(ip)
-                  iok = check_intersect_new(xpa, ypa, xpb, ypb, z_xz(nm), z_yz(nm), z_xz(nmu), z_yz(nmu))
+                  iok = check_intersect(xpa, ypa, xpb, ypb, z_xz(nm), z_yz(nm), z_xz(nmu), z_yz(nmu))
+                  !iok = cross(xpa, ypa, xpb, ypb, z_xz(nm), z_yz(nm), z_xz(nmu), z_yz(nmu))
                   !
                   if (iok) then
                      ind(ip) = ipol
@@ -942,7 +943,8 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
                   !
                   ip  = z_index_uv_mu2(nm)
                   nmu = uv_index_z_nmu(ip)
-                  iok = check_intersect_new(xpa, ypa, xpb, ypb, z_xz(nm), z_yz(nm), z_xz(nmu), z_yz(nmu))
+                  iok = check_intersect(xpa, ypa, xpb, ypb, z_xz(nm), z_yz(nm), z_xz(nmu), z_yz(nmu))
+                  !iok = cross(xpa, ypa, xpb, ypb, z_xz(nm), z_yz(nm), z_xz(nmu), z_yz(nmu))
                   !
                   if (iok) then
                      ind(ip) = ipol
@@ -957,7 +959,8 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
                   !
                   ip  = z_index_uv_nu1(nm)
                   nmu = uv_index_z_nmu(ip)
-                  iok = check_intersect_new(xpa, ypa, xpb, ypb, z_xz(nm), z_yz(nm), z_xz(nmu), z_yz(nmu))
+                  iok = check_intersect(xpa, ypa, xpb, ypb, z_xz(nm), z_yz(nm), z_xz(nmu), z_yz(nmu))
+                  !iok = cross(xpa, ypa, xpb, ypb, z_xz(nm), z_yz(nm), z_xz(nmu), z_yz(nmu))
                   !
                   if (iok) then
                      ind(ip) = ipol
@@ -972,7 +975,8 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
                   !
                   ip  = z_index_uv_nu2(nm)
                   nmu = uv_index_z_nmu(ip)
-                  iok = check_intersect_new(xpa, ypa, xpb, ypb, z_xz(nm), z_yz(nm), z_xz(nmu), z_yz(nmu))
+                  iok = check_intersect(xpa, ypa, xpb, ypb, z_xz(nm), z_yz(nm), z_xz(nmu), z_yz(nmu))
+                  !iok = cross(xpa, ypa, xpb, ypb, z_xz(nm), z_yz(nm), z_xz(nmu), z_yz(nmu))
                   !
                   if (iok) then
                      ind(ip) = ipol

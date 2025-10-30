@@ -525,7 +525,7 @@ contains
          !
          ! Initialize meteo data, but only if we don't also use background meteo
          !
-         if (itw==1) then
+         if (itw == 1) then
             !
             if (amufile(1:4) == 'none' .and. netamuamvfile(1:4) == 'none') then            
                !
@@ -540,14 +540,14 @@ contains
             endif
             !
             if (patmos) then
-               if (ampfile(1:4) == 'none') then            
-                  patm0(nm)  = gapres
+               if (ampfile(1:4) == 'none' .and. netampfile == 'none') then
+                  patm0(nm) = gapres
                endif
             endif   
             !
             if (precip .and. spw_precip) then
               if (amprfile(1:4) == 'none' .and. netamprfile(1:4) == 'none') then            
-                  prcp0(nm)  = 0.0 ! m/s
+                  prcp0(nm) = 0.0 ! m/s
                endif
             endif
             !
@@ -566,20 +566,20 @@ contains
             endif
             !
             if (patmos) then
-               if (ampfile(1:4) == 'none') then            
-                  patm1(nm)  = gapres
+               if (ampfile(1:4) == 'none' .and. netampfile == 'none') then
+                  patm1(nm) = gapres
                endif
             endif   
             !
             if (precip .and. spw_precip) then
                if (amprfile(1:4) == 'none' .and. netamprfile(1:4) == 'none') then            
-                  prcp1(nm)  = 0.0 ! m/s
+                  prcp1(nm) = 0.0 ! m/s
                endif
             endif
             !
          endif
-         !          
-         if (dstspw>spw_radius) cycle ! Point outside spiderweb
+         !
+         if (dstspw > spw_radius) cycle ! Point outside spiderweb
          !
          ! Determine row indices
          !
@@ -589,7 +589,7 @@ contains
          ind1(2) = idstspw
          ind1(3) = idstspw + 1
          ind1(4) = idstspw + 1
-         if (ind1(3)>spw_nrows) cycle             
+         if (ind1(3) > spw_nrows) cycle
          dj1     = (dstspw - dradspw * idstspw) / dradspw
          phispw  = 0.5*pi - atan2(dye, dxe) ! Geographic
          phispw  = modulo(phispw, 2 * pi)
@@ -697,17 +697,17 @@ contains
             !
          endif
          !
-         if (itw==1) then
+         if (itw == 1) then
             ! 
             tauwu0(nm) = (1.0 - merge_frac) * tauwu0(nm) + merge_frac * vmag * ( cosrot * wup + sinrot * wvp) * rhoa * cd / rhow
             tauwv0(nm) = (1.0 - merge_frac) * tauwv0(nm) + merge_frac * vmag * (-sinrot * wup + cosrot * wvp) * rhoa * cd / rhow
             ! 
             if (patmos) then
-               patm0(nm)  = (1.0 - merge_frac) * patm0(nm) + merge_frac * pcp
+               patm0(nm) = (1.0 - merge_frac) * patm0(nm) + merge_frac * pcp
             endif
             ! 
             if (precip .and. spw_precip) then
-               prcp0(nm)  = (1.0 - merge_frac) * prcp0(nm) + merge_frac*prp / (1000 * 3600) ! m/s
+               prcp0(nm) = (1.0 - merge_frac) * prcp0(nm) + merge_frac * prp / (1000 * 3600) ! m/s
             endif
             ! 
             if (store_wind) then
@@ -729,8 +729,10 @@ contains
             endif
             ! 
             if (store_wind) then
+               !
                windu1(nm) = (1.0 - merge_frac) * windu1(nm) + merge_frac * wup
                windv1(nm) = (1.0 - merge_frac) * windv1(nm) + merge_frac * wvp
+               !
             endif   
             ! 
          endif
@@ -965,8 +967,8 @@ contains
       !
       ! Loop through grid points
       !
-      yul = amp_y_llcorner + (amp_nrows - 1)*amp_dy + 0.5*amp_dy
-      xll = amp_x_llcorner + 0.5*amp_dx
+      yul = amp_y_llcorner + (amp_nrows - 1) * amp_dy + 0.5 * amp_dy
+      xll = amp_x_llcorner + 0.5 * amp_dx
       !
       do nm = 1, np
          !
@@ -975,23 +977,23 @@ contains
          !
          ! Determine row indices
          !
-         iy = int((yul - y)/amp_dy) + 1
+         iy = int((yul - y) / amp_dy) + 1
          ind1(1) = iy
          ind1(2) = iy
          ind1(3) = iy + 1
          ind1(4) = iy + 1
-         dj1     = (yul - (iy - 1)*amp_dy - y) / amp_dy
+         dj1     = (yul - (iy - 1) * amp_dy - y) / amp_dy
          !
          ! Determine column indices
          !
-         ix = int((x - xll)/amp_dx) + 1
+         ix = int((x - xll) / amp_dx) + 1
          ind2(1) = ix
          ind2(2) = ix + 1
          ind2(3) = ix + 1
          ind2(4) = ix
-         di1     = (x - (xll + (ix - 1)*amp_dx)) / amp_dx
+         di1     = (x - (xll + (ix - 1) * amp_dx)) / amp_dx
          !
-         if (iy<=1 .or. iy>=amp_nrows .or. ix<=0 .or. ix>=amp_ncols) then
+         if (iy <= 1 .or. iy >= amp_nrows .or. ix <= 0 .or. ix >= amp_ncols) then
             !
             ! Point outside rectangular amp grid
             !
@@ -1022,11 +1024,11 @@ contains
          !                 
          do ip = 1, 4
             !
-            pr = pr + f(ip)*amp_patm01(ind1(ip),ind2(ip))
+            pr = pr + f(ip) * amp_patm01(ind1(ip), ind2(ip))
             !
          enddo
          !
-         if (itw==1) then
+         if (itw == 1) then
             patm0(nm)  = pr
          else
             patm1(nm)  = pr
@@ -1154,14 +1156,14 @@ contains
          !                 
          do ip = 1, 4
             !
-            prp     = prp + f(ip)*ampr_pr01(ind1(ip),ind2(ip))
+            prp     = prp + f(ip) * ampr_pr01(ind1(ip), ind2(ip))
             !
          enddo
          !
-         if (itw==1) then
-            prcp0(nm)  = prp/(1000*3600) ! m/s
+         if (itw == 1) then
+            prcp0(nm)  = prp / (1000 * 3600) ! m/s
          else
-            prcp1(nm)  = prp/(1000*3600) ! m/s
+            prcp1(nm)  = prp / (1000 * 3600) ! m/s
          endif
          !
       enddo                          
@@ -1511,21 +1513,11 @@ contains
       !
       call update_amuv_data()
       !
-      !$acc update device( tauwu0, tauwu1, tauwv0, tauwv1)
-      !
-      if (store_wind) then
-         !
-         !$acc update device( windu0, windu1, windv0, windv1)
-         !
-      endif
-      !
    endif
    !
    if ((ampfile(1:4) /= 'none' .or. netampfile(1:4) /= 'none') .and. patmos) then
       !
       call update_amp_data()
-      !
-      !$acc update device( patm0, patm1 )
       !
    endif
    !
@@ -1533,24 +1525,27 @@ contains
       !
       call update_ampr_data()
       !
-      !$acc update device(prcp0,prcp1), async(1)
-!      !$acc update device(prcp0,prcp1), async(1)
-      !
    endif
    !      
    if (spwfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       !
       call update_spiderweb_data()
       !
-      !$acc update device( tauwu0, tauwu1, tauwv0, tauwv1, patm0, patm1 )
-!      !$acc update device(tauwu0,tauwu1,tauwv0,tauwv1,patm0,patm1), async(1)
+   endif
+   !
+   ! Update wind and atmospheric pressure fields on device
+   !
+   !$acc update device( tauwu0, tauwu1, tauwv0, tauwv1, patm0, patm1 )
+   !
+   if (store_wind) then
       !
-      if (precip) then
-         !
-         !$acc update device( prcp0, prcp1 )
-!         !$acc update device(prcp0,prcp1), async(1)
-         !
-      endif
+      !$acc update device( windu0, windu1, windv0, windv1 )
+      !
+   endif
+   !   
+   if (precip) then
+      !
+      !$acc update device( prcp0, prcp1 )
       !
    endif
    !
