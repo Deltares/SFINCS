@@ -99,7 +99,7 @@
    write(logstr,'(a)')'Info    : reading weir file'
    call write_log(logstr, 0)
    !
-   okay = check_file_exists(filename, 'Structures file', .true.)
+   okay = check_file_exists(filename, 'Weir file', .true.)
    !
    ! Read structures file
    !
@@ -412,7 +412,7 @@
    !
    if (thdfile(1:4) /= 'none') then
       !
-      ok = check_file_exists(thdfile, 'Thin dams file', .true.)
+      ok = check_file_exists(thdfile, 'Thin dams thd file', .true.)
       !
       ! First count number of polylines
       !

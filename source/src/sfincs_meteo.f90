@@ -19,6 +19,7 @@ contains
    real*4 dummy, wnd, xx, yy
    !
    logical :: ok
+   !
    logical spw_wind, am_wind, am_pres, am_prcp, tm_wind, tm_prcp
    !
    ! Set temporal flags to false
@@ -36,7 +37,8 @@ contains
       write(logstr,'(a,a)')'Info    : reading spiderweb file ', trim(spwfile)
       call write_log(logstr, 0)
       !
-      ok = check_file_exists(spwfile, 'Spiderweb file', .true.)
+      ok = check_file_exists(spwfile, 'Spiderweb spw file', .true.)
+      !
       spw_wind = .true.
       !  
       call read_spw_dimensions(spwfile,spw_nt,spw_nrows,spw_ncols,spw_radius,spw_nquant)
@@ -101,7 +103,8 @@ contains
       write(logstr,'(a,a)')'Info    : reading netcdf spiderweb file ', trim(netspwfile)
       call write_log(logstr, 0)
       !
-      ok = check_file_exists(netspwfile, 'Spiderweb netCDF file', .true.)
+      ok = check_file_exists(netspwfile, 'Spiderweb netCDF netspw file', .true.)
+      !
       spw_wind = .true.
       !
       call read_netcdf_spw_data()
@@ -127,14 +130,14 @@ contains
       !
    endif   
    !
-   if (amufile(1:4) /= 'none') then
-      !
-      am_wind = .true.      
+   if (amufile(1:4) /= 'none') then    
       !
       call write_log('Info    : reading amu and amv file', 0)
       !
-      ok = check_file_exists(amufile, 'AMU file', .true.)
-      ok = check_file_exists(amvfile, 'AMV file', .true.)
+      ok = check_file_exists(amufile, 'Meteo ascii wind amu file', .true.)
+      ok = check_file_exists(amvfile, 'Meteo ascii wind amv file', .true.)
+      !
+      am_wind = .true.        
       !  
       call read_amuv_dimensions(amufile, amuv_nt, amuv_nrows, amuv_ncols, amuv_x_llcorner, amuv_y_llcorner, amuv_dx, amuv_dy, amuv_nquant)
       !
@@ -151,7 +154,10 @@ contains
       !
    elseif (netamuamvfile(1:4) /= 'none') then   ! FEWS compatible Netcdf amu&amv wind spatial input
       !
-      ok = check_file_exists(netamuamvfile, 'NetCDF wind file', .true.)
+      call write_log('Info    : reading NetCDF wind netamuamv file', 0)
+      !       
+      ok = check_file_exists(netamuamvfile, 'Meteo NetCDF wind netamuamv file', .true.)
+      !
       am_wind = .true.
       !
       call read_netcdf_amuv_data()
@@ -163,11 +169,11 @@ contains
    ! 
    if (amprfile(1:4) /= 'none') then
       !
-      am_prcp = .true.
-      !
       call write_log('Info    : reading ampr file', 0)
       !  
-      ok = check_file_exists(amprfile, 'AMPR file', .true.)
+      ok = check_file_exists(amprfile, 'Meteo ascii rainfall ampr file', .true.)
+      !
+      am_prcp = .true.      
       !
       call read_amuv_dimensions(amprfile,ampr_nt,ampr_nrows,ampr_ncols,ampr_x_llcorner,ampr_y_llcorner,ampr_dx,ampr_dy,ampr_nquant)
       !
@@ -192,13 +198,12 @@ contains
    !
    if (ampfile(1:4) /= 'none') then
       !
-      am_pres = .true.
-      !
       call write_log('Info    : reading amp file', 0)
       !  
-      ok = check_file_exists(ampfile, 'AMP file', .true.)
+      ok = check_file_exists(ampfile, 'Meteo ascii pressure amp file', .true.)
       !
-      call read_amuv_dimensions(ampfile,amp_nt,amp_nrows,amp_ncols,amp_x_llcorner,amp_y_llcorner,amp_dx,amp_dy,amp_nquant)
+      am_pres = .true.      
+      !
       call read_amuv_dimensions(ampfile, amp_nt, amp_nrows, amp_ncols, amp_x_llcorner, amp_y_llcorner, amp_dx, amp_dy, amp_nquant)
       !
       ! Allocate
@@ -211,8 +216,10 @@ contains
       !
    elseif (netampfile(1:4) /= 'none') then   ! FEWS compatible Netcdf amp barometric pressure spatial input
       !
-      ok = check_file_exists(netampfile, 'AMP netCDF file', .true.)
-      !  
+      call write_log('Info    : reading NetCDF pressure netamp file', 0)
+      !       
+      ok = check_file_exists(netampfile, 'Meteo netCDF pressure netamp file', .true.)
+      !
       am_pres = .true.
       !
       call read_netcdf_amp_data()
@@ -223,14 +230,14 @@ contains
    !
    if (wndfile(1:4) /= 'none') then
       !
-      tm_wind = .true.
-      !
       ! Wind in time series file 
       !
       write(logstr,'(a,a)')'Info    : reading ', trim(wndfile)    
       call write_log(logstr, 0)
       !
-      ok = check_file_exists(wndfile, 'Wind file', .true.)
+      ok = check_file_exists(wndfile, 'Wind wnd file', .true.)
+      !       
+      tm_wind = .true.      
       !
       ntwnd = 0
       itwndlast = 1
@@ -264,7 +271,9 @@ contains
       write(logstr,'(a,a)')'Info    : reading prcp file ', trim(prcpfile)    
       call write_log(logstr, 0)
       !
-      ok = check_file_exists(prcpfile, 'Precipitation file', .true.)
+      ok = check_file_exists(prcpfile, 'Precipitation prcp file', .true.)
+      !
+      tm_prcp = .true.      
       !
       ntprcp = 0 
       itprcplast = 1
@@ -1238,33 +1247,27 @@ contains
          !
          if (precip) then
             !
-            prcp(nm) = prcp0(nm) * onemintwfact  + prcp1(nm) * twfact  ! rainfall in m/s !!!
+            prcp(nm)    = prcp0(nm) * onemintwfact  + prcp1(nm) * twfact  ! rainfall in m/s !!!
             !
             ! Don't allow negative prcp (e.g. hardfixing infiltration/evaporation on model when forcing effective rainfall) when there's no water in the cell (same as check for constant infiltration)
             !
-            if (prcp(nm) < 0.0) then
-               !  
-               ! No effective infiltration if there is no water
-               !  
-               if (subgrid) then
-                  if (z_volume(nm) <= 0.0) then
-                     prcp(nm) = 0.0
-                  endif
-               else
-                  if (zs(nm) <= zb(nm)) then
-                     prcp(nm) = 0.0
-                  endif
-               endif
-               !
+            if (prcp(nm) < 0) then
+                 !  
+                 ! No effective infiltration if there is no water
+                 !  
+                 if (subgrid) then
+                    if (z_volume(nm) <= 0.0) then
+                       prcp(nm) = 0.0
+                    endif
+                 else
+                    if (zs(nm) <= zb(nm)) then
+                       prcp(nm) = 0.0
+                    endif
+                 endif            
             endif
             !
-            netprcp(nm) = prcp(nm)
-            !
-            if (store_cumulative_precipitation) then
-               !
-               cumprcp(nm) = cumprcp(nm) + prcp(nm) * dt
-               !
-            endif   
+            netprcp(nm) = prcp(nm)            
+            cumprcp(nm) = cumprcp(nm) + prcp(nm) * dt
             !
          endif   
          !
@@ -1293,7 +1296,7 @@ contains
             endif   
             !
             if (patmos) then
-               patm(nm)  = patm(nm) * smfac + gapres * oneminsmfac
+               patm(nm) = patm(nm) * smfac + gapres * oneminsmfac
             endif   
             !
             if (precip) then

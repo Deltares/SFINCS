@@ -42,6 +42,8 @@ contains
    !
    if (netbndbzsbzifile(1:4) /= 'none') then    ! FEWS compatible Netcdf water level time-series input
       !
+      ok = check_file_exists(netbndbzsbzifile, 'Netcdf water level input netbndbzsbzi file', .true.)    
+      !
       call read_netcdf_boundary_data()
       !
       if ((t_bnd(1) > (t0 + 1.0)) .or. (t_bnd(ntbnd) < (t1 - 1.0))) then
@@ -55,7 +57,7 @@ contains
       !
       call write_log('Info    : reading water level boundaries', 0)
       !
-      ok = check_file_exists(bndfile, 'Boundary points file', .true.)
+      ok = check_file_exists(bndfile, 'Water level input locations bnd file', .true.)      
       !
       open(500, file=trim(bndfile))
       do while(.true.)
@@ -75,7 +77,7 @@ contains
       !
       if (bzsfile(1:4) /= 'none') then
          !
-         ok = check_file_exists(bzsfile, 'Boundary conditions file', .true.)
+         ok = check_file_exists(bzsfile, 'Boundary conditions bzs file', .true.)
          !         
          open(500, file=trim(bzsfile))
          do while(.true.)
@@ -116,7 +118,8 @@ contains
          !
          t_bnd(1) = t0
          t_bnd(2) = t1
-         zs_bnd = 0.0
+         zs_bnd   = 0.0
+         zst_bnd  = 0.0
          !
       endif   
       !
@@ -127,7 +130,7 @@ contains
          allocate(zsi_bnd(nbnd,ntbnd))
          allocate(zsit_bnd(nbnd))
          !
-         ok = check_file_exists(bzifile, 'Boundary infragravity time series file', .true.)
+         ok = check_file_exists(bzifile, 'Boundary infragravity time series bzi file', .true.)
          !
          open(500, file=trim(bzifile))
          do itb = 1, ntbnd
@@ -222,7 +225,7 @@ contains
          write(logstr,'(a)')'Info    : reading downstream river boundaries'
          call write_log(logstr, 0)
          !
-         ok = check_file_exists(bdrfile, 'Downstream boundary points file', .true.)
+         ok = check_file_exists(bdrfile, 'Downstream boundary points bdr file', .true.)
          !
          open(500, file=trim(bdrfile))
          do while(.true.)
@@ -293,6 +296,9 @@ contains
       !
       call write_log('Info    : reading tidal components', 0)
       !
+      ok = check_file_exists(bcafile, 'Astro boundary conditions bca file', .true.)
+      !
+      !
       ! First pass: count number of sets and number of components in first set
       !
       ! NOTE 1 : The number of component sets in the bca file must match the number of points in the bnd file!
@@ -357,7 +363,7 @@ contains
       !
       if (n_sets /= nbnd) then
          !
-         write(*,*)'ERROR! Number of astronomical tidal datasets in *.bca file does not match number of boundary points in *.bnd file !'
+         write(*,*)'ERROR! Number of astronomical tidal datasets in *.bca file ( ',n_sets,' ) does not match number of boundary points in *.bnd file (' ,nbnd,' )!'
          !
       endif
       !
@@ -415,7 +421,7 @@ contains
             !
          elseif (index(line, 'quantity') > 0 .or. index(line, 'unit') > 0 .or. index(line, 'name') > 0 .or. index(line, 'function') > 0) then
             !
-            cycle  ! skip line
+            cycle  ! skip metadata
             !
          else
             !
@@ -535,8 +541,6 @@ contains
          if (nbnd > 1) then
             !
             ! Multiple points in bnd file, so use distance-based weighting
-            !
-            !call interp_segment(x_bnd, y_bnd, nbnd, z_xz(ip), z_yz(ip), i1, i2, w1, w2)
             !
             dst1 = 1.0e10
             dst2 = 1.0e10

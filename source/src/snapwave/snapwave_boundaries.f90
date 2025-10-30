@@ -1,6 +1,7 @@
 module snapwave_boundaries
 
    use sfincs_log
+   use sfincs_error   
     
 contains   
    
@@ -18,6 +19,8 @@ contains
    !
    implicit none
    !
+   logical ok
+   !
    nwbnd  = 0
    ntwbnd = 0
    update_grid_boundary_points = .true.
@@ -27,12 +30,16 @@ contains
       !
       ! Read data from timeseries in single point
       !
+      ok = check_file_exists(snapwave_jonswapfile, 'SnapWave timeseries input snapwave_jonswap file', .true.)
+      !  
       call read_boundary_data_singlepoint()
       !
    elseif (netsnapwavefile(1:4) /= 'none') then
       ! 
       ! Read space- and time-varying data from netcdf file
       !       
+      ok = check_file_exists(netsnapwavefile, 'Netcdf SnapWave input netsnapwave file', .true.)
+      !
       call read_netcdf_wave_boundary_data()      
       ! 
    else
@@ -189,13 +196,17 @@ contains
    !
    real*4 dummy,r
    !
+   logical ok
+   !
    ! Read wave boundaries
    !
    if (snapwave_bndfile(1:4) /= 'none') then    ! Normal ascii input files
       ! temporarily use this input of hs/tp/wavdir/dirspr in separate files, later change to DFM type tim-files
       !
       write(logstr,*)'Reading wave boundary locations ...'
-      call write_log(logstr, 0)      
+      call write_log(logstr, 0)
+      !
+      ok = check_file_exists(snapwave_bndfile, 'SnapWave timeseries input snapwave_bnd file', .true.)
       !
       open(500, file=trim(snapwave_bndfile)) !as in bwvfile of SFINCS
       do while(.true.)
@@ -220,6 +231,8 @@ contains
       !
       ! First find times in bhs file
       !
+      ok = check_file_exists(snapwave_bhsfile, 'SnapWave timeseries input snapwave_bhs file', .true.)
+      !      
       open(500, file=trim(snapwave_bhsfile))
       do while(.true.)
          read(500,*,iostat = stat)dummy
@@ -242,6 +255,8 @@ contains
       !      
       ! Tp (peak period)
       !
+      ok = check_file_exists(snapwave_btpfile, 'SnapWave timeseries input snapwave_btp file', .true.)
+      !      
       open(500, file=trim(snapwave_btpfile))
       allocate(tp_bwv(nwbnd, ntwbnd))
       do itb = 1, ntwbnd
@@ -251,6 +266,8 @@ contains
       !
       ! Wd (wave direction)
       !
+      ok = check_file_exists(snapwave_bwdfile, 'SnapWave timeseries input snapwave_bwd file', .true.)
+      !      
       open(500, file=trim(snapwave_bwdfile))
       allocate(wd_bwv(nwbnd, ntwbnd))
       do itb = 1, ntwbnd
@@ -260,6 +277,8 @@ contains
       !
       ! Ds (directional spreading)
       !
+      ok = check_file_exists(snapwave_bdsfile, 'SnapWave timeseries input snapwave_bds file', .true.)
+      !      
       open(500, file=trim(snapwave_bdsfile))
       allocate(ds_bwv(nwbnd, ntwbnd))
       do itb = 1, ntwbnd

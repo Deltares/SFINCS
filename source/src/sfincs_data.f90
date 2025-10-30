@@ -651,6 +651,7 @@ module sfincs_data
       real*8, dimension(:,:,:), allocatable :: tidal_component_data
       !
       ! Wave boundary points
+      ! Downstream river boundary points
       !
       !real*4, dimension(:),     allocatable :: x_bwv
       !real*4, dimension(:),     allocatable :: y_bwv

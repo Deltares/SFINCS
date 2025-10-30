@@ -25,9 +25,9 @@ contains
    !
    logical :: ok
    !
-   ! Check what sort of file we're dealing with
+   ok = check_file_exists(sbgfile, 'Sub-grid sbg file', .true.)
    !
-   ok = check_file_exists(sbgfile, 'Sub-grid file', .true.)
+   ! Check what sort of file we're dealing with
    !
    NF90(nf90_open(trim(sbgfile), NF90_CLOBBER, net_file_sbg%ncid))
    !

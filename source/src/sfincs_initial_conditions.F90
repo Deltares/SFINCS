@@ -66,7 +66,7 @@ contains
          write(logstr,'(a,a)')'Info    : reading initial conditions file ', trim(zsinifile)
          call write_log(logstr, 0)
          !
-         iok = check_file_exists(zsinifile, 'Initial conditions file', .true.)
+         iok = check_file_exists(zsinifile, 'Binary initial conditions ini file', .true.)
          !
          call read_zsini_file()
          !
@@ -278,7 +278,7 @@ contains
       write(logstr,'(a,a)')'Info    : reading zsini file ', trim(zsinifile)
       call write_log(logstr, 0)
       !
-      call write_log('Warning : binary ini files from SFINCS v2.1.1 and older are not compatible with SFINCS v2.1.2+, remake your inifile containing zs as real*8 double precision', 0)  
+      call write_log('Warning : binary ini files from SFINCS v2.1.1 and older are not compatible with SFINCS v2.1.2+, remake your inifile containing zs as real*8 double precision', 0)
       !
       open(unit = 500, file = trim(zsinifile), form = 'unformatted', access = 'stream')
       read(500)inizs4
