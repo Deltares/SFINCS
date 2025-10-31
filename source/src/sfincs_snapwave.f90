@@ -174,9 +174,12 @@ contains
    integer, dimension(snapwave_no_nodes),  intent(in) :: index_quadtree_in_snapwave
    integer, dimension(quadtree_nr_points), intent(in) :: index_snapwave_in_quadtree
    !
-   integer :: ipsw, ipsf, iq, ip
+   integer :: ipsw, ipsf, iq, ip, counter
    !
-   real*4  :: xsw, ysw, dstmin, dst
+   real*4  :: xsw, ysw, dstmin, dst, min_distance 
+   !
+   real*4 :: distances(np)
+   integer :: closest_index(1)
    !
    logical :: nearest_warning
    !   
@@ -189,9 +192,15 @@ contains
    index_sfincs_in_snapwave = 0
    index_snapwave_in_sfincs = 0
    index_sw_in_qt = 0
+   counter = 0
+   distances = 0.0
+   min_distance = 0.0
    !
    ! Loop through SnapWave points
    !
+   write(logstr,'(a,i0)')'snapwave_no_nodes   : ',snapwave_no_nodes
+   call write_log(logstr, 1)     
+      
    do ipsw = 1, snapwave_no_nodes
       iq   = index_quadtree_in_snapwave(ipsw)
       ipsf = index_sfincs_in_quadtree(iq)
@@ -200,33 +209,100 @@ contains
          !
          ! SFINCS not active at this SnapWave node, so find the nearest SFINCS point
          !
+         counter = counter + 1
+         !
+         nearest_warning = .true. ! to print warning to screen that 'extrapolation' is performed         
+         !
+         write(logstr,'(i0)')ipsw
+         call write_log(logstr, 1)  
+         !
          xsw = quadtree_xz(iq)
          ysw = quadtree_yz(iq)
          !
          dstmin = 1.0e6
          !
+         ! Calculate the distance for each coordinate
+         !$omp parallel &
+         !$omp private ( ip, dst )
+         !$omp do
          do ip = 1, np
-            !
-            dst = sqrt((z_xz(ip) - xsw)**2 + (z_yz(ip) - ysw)**2)
-            !
-            if (dst < dstmin) then
-               !
-               ipsf = ip
-               dstmin = dst
-               !
-               nearest_warning = .true. ! to print warning to screen that 'extrapolation' is performed
-               !
-            endif
-            !
+             !
+             dst = sqrt((z_xz(ip) - xsw)**2 + (z_yz(ip) - ysw)**2)
+             !
+             distances(ip) = dst
+             !
          enddo
+         !$omp end do         
+         !$omp end parallel             
          !
+         ! Find the minimum distance
+         min_distance = minval(distances)         
+         !
+         if (min_distance < dstmin) then
+             ! Find the index of the minimum distance
+             closest_index = minloc(distances)
+             !
+             ! To conform shapes
+             ipsf = closest_index(1)
+             !
+         endif         
+         !
+         !write(logstr,'(a,i0)')'shape distances:',SHAPE(distances)
+         !call write_log(logstr, 1)            
+         !write(logstr,'(a,i0)')'shape closest_index:',SHAPE(closest_index)
+         !call write_log(logstr, 1)        
+         !write(logstr,'(a,i0)')'shape ipsf:',SHAPE(ipsf)
+         !call write_log(logstr, 1)             
+         !         
       endif
       !
+
+         
       index_sfincs_in_snapwave(ipsw) = ipsf
       !
-      index_sw_in_qt(iq) = ipsw
+      index_sw_in_qt(iq) = ipsw      
       !
-   enddo   
+   enddo                           
+             
+         !! Find the minimum distance and corresponding index > faster but still slow for 4 million cell grid
+         !!$omp single
+         !do ip = 1, np
+         !    if (distances(ip) < dstmin) then
+         !        dstmin = distances(ip)
+         !        ipsf = ip
+         !    endif
+         !enddo
+         !!$omp end single
+         !   
+         !
+         ! this version is even slower:
+        ! !$omp parallel &
+        ! !$omp private ( ip, dst)
+        ! !$omp do         
+        ! do ip = 1, np
+        !    !
+        !    dst = sqrt((z_xz(ip) - xsw)**2 + (z_yz(ip) - ysw)**2)
+        !    !
+        !    !$omp critical            
+        !    if (dst < dstmin) then
+        !       !
+        !       ipsf = ip
+        !       dstmin = dst
+        !       !
+        !       !
+        !    endif
+        !    !$omp end critical
+        !    !
+        ! enddo
+        !!$omp end do
+        !!$omp end parallel
+      !endif
+      !!
+      !index_sfincs_in_snapwave(ipsw) = ipsf
+      !!
+      !index_sw_in_qt(iq) = ipsw
+      !
+   !enddo   
    !
    ! Loop through SFINCS points
    !
@@ -239,7 +315,8 @@ contains
    ! Print warning message
    !
    if (nearest_warning) then
-      call write_log('Info   : some SnapWave node(s) do not have a matching SFINCS point, so water depth and wind conditions from the nearest SFINCS point within 1000 km are used for SnapWave calculation', 1)
+      write(logstr,'(a,i0,a)')'SnapWave: Info   : ',counter,' SnapWave node(s) do not have a matching SFINCS point, so water depth and wind conditions from the nearest SFINCS point within 1000 km are used for SnapWave calculation '
+      call write_log(logstr, 1)         
    endif   
    !
    end subroutine
