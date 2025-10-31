@@ -234,6 +234,7 @@ contains
    call read_int_input(500,'storewavdir', istorewavdir, 0)
    call read_logical_input(500,'regular_output_on_mesh',use_quadtree_output,.false.)
    call read_logical_input(500, 'store_dynamic_bed_level', store_dynamic_bed_level, .false.)
+   call read_logical_input(500,'snapwave_use_nearest',snapwave_use_nearest,.true.)   
    call read_int_input(500,'percentage_done',percdoneval,5)
    ! Limit to range (0,100)
    percdoneval = max(min(percdoneval,100), 0)
