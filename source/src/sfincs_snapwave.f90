@@ -238,20 +238,14 @@ contains
              min_distance = minval(distances)         
              !
              if (min_distance < dstmin) then
+                 !
                  ! Find the index of the minimum distance
                  closest_index = minloc(distances)
                  !
                  ! To conform shapes
                  ipsf = closest_index(1)
                  !
-             endif         
-             !
-             !write(logstr,'(a,i0)')'shape distances:',SHAPE(distances)
-             !call write_log(logstr, 1)            
-             !write(logstr,'(a,i0)')'shape closest_index:',SHAPE(closest_index)
-             !call write_log(logstr, 1)        
-             !write(logstr,'(a,i0)')'shape ipsf:',SHAPE(ipsf)
-             !call write_log(logstr, 1)             
+             endif       
              !        
          endif         
       endif
@@ -260,47 +254,7 @@ contains
       !
       index_sw_in_qt(iq) = ipsw      
       !
-   enddo                           
-             
-         !! Find the minimum distance and corresponding index > faster but still slow for 4 million cell grid
-         !!$omp single
-         !do ip = 1, np
-         !    if (distances(ip) < dstmin) then
-         !        dstmin = distances(ip)
-         !        ipsf = ip
-         !    endif
-         !enddo
-         !!$omp end single
-         !   
-         !
-         ! this version is even slower:
-        ! !$omp parallel &
-        ! !$omp private ( ip, dst)
-        ! !$omp do         
-        ! do ip = 1, np
-        !    !
-        !    dst = sqrt((z_xz(ip) - xsw)**2 + (z_yz(ip) - ysw)**2)
-        !    !
-        !    !$omp critical            
-        !    if (dst < dstmin) then
-        !       !
-        !       ipsf = ip
-        !       dstmin = dst
-        !       !
-        !       !
-        !    endif
-        !    !$omp end critical
-        !    !
-        ! enddo
-        !!$omp end do
-        !!$omp end parallel
-      !endif
-      !!
-      !index_sfincs_in_snapwave(ipsw) = ipsf
-      !!
-      !index_sw_in_qt(iq) = ipsw
-      !
-   !enddo   
+   enddo             
    !
    ! Loop through SFINCS points
    !
@@ -319,7 +273,8 @@ contains
           write(logstr,'(a,i0,a)')'SnapWave: Info   : ',counter,' SnapWave node(s) do not have a matching SFINCS point, water level at these points is set to 0.0 '          
       endif      
       ! 
-      call write_log(logstr, 1)         
+      call write_log(logstr, 1)
+      !
    endif   
    !
    end subroutine
