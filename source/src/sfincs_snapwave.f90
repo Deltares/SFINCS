@@ -198,66 +198,64 @@ contains
    !
    ! Loop through SnapWave points
    !
-   write(logstr,'(a,i0)')'snapwave_no_nodes   : ',snapwave_no_nodes
-   call write_log(logstr, 1)     
-      
    do ipsw = 1, snapwave_no_nodes
       iq   = index_quadtree_in_snapwave(ipsw)
       ipsf = index_sfincs_in_quadtree(iq)
       !
-      if (ipsf == 0) then
+      if (ipsf == 0 ) then
          !
          ! SFINCS not active at this SnapWave node, so find the nearest SFINCS point
          !
          counter = counter + 1
          !
-         nearest_warning = .true. ! to print warning to screen that 'extrapolation' is performed         
+         nearest_warning = .true. ! to print warning to screen that 'extrapolation' is performed
          !
-         write(logstr,'(i0)')ipsw
-         call write_log(logstr, 1)  
-         !
-         xsw = quadtree_xz(iq)
-         ysw = quadtree_yz(iq)
-         !
-         dstmin = 1.0e6
-         !
-         ! Calculate the distance for each coordinate
-         !$omp parallel &
-         !$omp private ( ip, dst )
-         !$omp do
-         do ip = 1, np
+         if (snapwave_use_nearest) then
              !
-             dst = sqrt((z_xz(ip) - xsw)**2 + (z_yz(ip) - ysw)**2)
+             write(logstr,'(i0)')ipsw
+             call write_log(logstr, 1)  
              !
-             distances(ip) = dst
+             xsw = quadtree_xz(iq)
+             ysw = quadtree_yz(iq)
              !
-         enddo
-         !$omp end do         
-         !$omp end parallel             
-         !
-         ! Find the minimum distance
-         min_distance = minval(distances)         
-         !
-         if (min_distance < dstmin) then
-             ! Find the index of the minimum distance
-             closest_index = minloc(distances)
+             dstmin = 1.0e6
              !
-             ! To conform shapes
-             ipsf = closest_index(1)
+             ! Calculate the distance for each coordinate
+             !$omp parallel &
+             !$omp private ( ip, dst )
+             !$omp do
+             do ip = 1, np
+                 !
+                 dst = sqrt((z_xz(ip) - xsw)**2 + (z_yz(ip) - ysw)**2)
+                 !
+                 distances(ip) = dst
+                 !
+             enddo
+             !$omp end do         
+             !$omp end parallel             
              !
+             ! Find the minimum distance
+             min_distance = minval(distances)         
+             !
+             if (min_distance < dstmin) then
+                 ! Find the index of the minimum distance
+                 closest_index = minloc(distances)
+                 !
+                 ! To conform shapes
+                 ipsf = closest_index(1)
+                 !
+             endif         
+             !
+             !write(logstr,'(a,i0)')'shape distances:',SHAPE(distances)
+             !call write_log(logstr, 1)            
+             !write(logstr,'(a,i0)')'shape closest_index:',SHAPE(closest_index)
+             !call write_log(logstr, 1)        
+             !write(logstr,'(a,i0)')'shape ipsf:',SHAPE(ipsf)
+             !call write_log(logstr, 1)             
+             !        
          endif         
-         !
-         !write(logstr,'(a,i0)')'shape distances:',SHAPE(distances)
-         !call write_log(logstr, 1)            
-         !write(logstr,'(a,i0)')'shape closest_index:',SHAPE(closest_index)
-         !call write_log(logstr, 1)        
-         !write(logstr,'(a,i0)')'shape ipsf:',SHAPE(ipsf)
-         !call write_log(logstr, 1)             
-         !         
       endif
-      !
-
-         
+      !         
       index_sfincs_in_snapwave(ipsw) = ipsf
       !
       index_sw_in_qt(iq) = ipsw      
@@ -315,7 +313,12 @@ contains
    ! Print warning message
    !
    if (nearest_warning) then
-      write(logstr,'(a,i0,a)')'SnapWave: Info   : ',counter,' SnapWave node(s) do not have a matching SFINCS point, so water depth and wind conditions from the nearest SFINCS point within 1000 km are used for SnapWave calculation '
+      if (snapwave_use_nearest) then
+          write(logstr,'(a,i0,a)')'SnapWave: Info   : ',counter,' SnapWave node(s) do not have a matching SFINCS point, so water depth and wind conditions from the nearest SFINCS point within 1000 km are used for SnapWave calculation '
+      else
+          write(logstr,'(a,i0,a)')'SnapWave: Info   : ',counter,' SnapWave node(s) do not have a matching SFINCS point, water level at these points is set to 0.0 '          
+      endif      
+      ! 
       call write_log(logstr, 1)         
    endif   
    !

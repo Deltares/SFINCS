@@ -259,6 +259,7 @@ module sfincs_data
       logical       :: h73table
       logical       :: wave_enhanced_roughness
       logical       :: use_bcafile
+      LOGICAL       :: snapwave_use_nearest
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
