@@ -112,7 +112,6 @@ contains
    !
    ! Allocation of spatial arrays
    !
-   !allocate(inner(no_nodes))
    allocate(depth(no_nodes))
    allocate(dhdx(no_nodes))
    allocate(dhdy(no_nodes))
@@ -326,7 +325,6 @@ contains
               if (neumannconnected(k)>0) then
                   if (msk(k)==1) then
                       ! k is inner and can be neumannconnected
-                      !inner(neumannconnected(k))= .false.
                       msk(neumannconnected(k)) = 3 !TL: should already be 3, but left it like in SnapWave SVN
                   else
                       ! we don't allow neumannconnected links if the node is an open boundary
