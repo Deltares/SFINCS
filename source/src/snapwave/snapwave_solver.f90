@@ -657,7 +657,7 @@ module snapwave_solver
                      !
                   endif
                   !
-                   do itheta = 1, ntheta
+                  do itheta = 1, ntheta
                      !
                      R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta)*eeprev(itheta)/ds(itheta, k) - srcig_local(itheta, k) * shinc2ig
                      !
@@ -680,9 +680,12 @@ module snapwave_solver
                      A(ntheta) = -ctheta(ntheta - 1, k)*oneover2dtheta
                      B(ntheta) = oneoverdt + cg(k)/ds(ntheta,k) + DoverE(k)
                      C(ntheta) = ctheta(1, k)*oneover2dtheta
+                     !
                   else
                      ! upwind scheme
+                     ! 
                      do itheta = 2, ntheta - 1
+                        !
                         if (ctheta(itheta,k)<0) then
                            A(itheta)=0.d0
                            B(itheta)=oneoverdt-ctheta(itheta,k) * oneoverdtheta+cg(k)/ds(itheta,k)+DoverE(k)
@@ -692,6 +695,7 @@ module snapwave_solver
                            B(itheta)=oneoverdt+ctheta(itheta,k) * oneoverdtheta+cg(k)/ds(itheta,k)+DoverE(k)
                            C(itheta)=0
                         endif       
+                        !
                      enddo
                      ! 
                      if (ctheta(1,k)<0) then
@@ -704,6 +708,7 @@ module snapwave_solver
                         C(1)=0.d0
                         R(1)=0.d0
                      endif
+                     !
                      if (ctheta(ntheta,k)>0) then
                         A(ntheta)=-ctheta(ntheta-1,k)/dtheta
                         B(ntheta)=oneoverdt+ctheta(ntheta,k) * oneoverdtheta+cg(k)/ds(ntheta,k)+DoverE(k)
@@ -819,33 +824,74 @@ module snapwave_solver
                         !
                      enddo
                      !
-                     do itheta = 2, ntheta - 1
+                     if (upwindref == 0) then
                         !
-                        A_ig(itheta) = -ctheta_ig(itheta - 1, k)*oneover2dtheta
-                        B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
-                        C_ig(itheta) = ctheta_ig(itheta + 1, k)*oneover2dtheta
+                        do itheta = 2, ntheta - 1
+                           !
+                           A_ig(itheta) = -ctheta_ig(itheta - 1, k)*oneover2dtheta
+                           B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
+                           C_ig(itheta) = ctheta_ig(itheta + 1, k)*oneover2dtheta
+                           !
+                        enddo
                         !
-                     enddo
-                     !
-                     if (ctheta_ig(1,k)<0) then
-                        A_ig(1) = 0.0
-                        B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k)
-                        C_ig(1) = ctheta_ig(2, k)/dtheta
+                        A_ig(1) = -ctheta_ig(ntheta, k)*oneover2dtheta
+                        B_ig(1) = oneoverdt + cg_ig(k)/ds(1,k) + DoverE_ig(k)
+                        C_ig(1) = ctheta_ig(2, k)*oneover2dtheta
+                        !
+                        A_ig(ntheta) = -ctheta_ig(ntheta - 1, k)*oneover2dtheta
+                        B_ig(ntheta) = oneoverdt + cg_ig(k)/ds(ntheta,k) + DoverE_ig(k)
+                        C_ig(ntheta) = ctheta_ig(1, k)*oneover2dtheta
+                        !
                      else
-                        A_ig(1)=0.0
-                        B_ig(1)=1.0/dt + cg_ig(k)/ds(1, k) + DoverE_ig(k)
-                        C_ig(1)=0.0
-                     endif
-                     !
-                     if (ctheta_ig(ntheta, k)>0) then
-                        A_ig(ntheta) = -ctheta_ig(ntheta - 1, k)/dtheta
-                        B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
-                        C_ig(ntheta) = 0.0
-                     else
-                        A_ig(ntheta) = 0.0
-                        B_ig(ntheta) = oneoverdt + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
-                        C_ig(ntheta) = 0.0
-                     endif
+                        ! upwind scheme      
+                        ! 
+                        do itheta = 2, ntheta - 1
+                           !
+                           if (ctheta_ig(itheta,k)<0) then
+                              !
+                              A_ig(itheta)=0.d0
+                              B_ig(itheta)=oneoverdt-ctheta_ig(itheta,k) * oneoverdtheta+cg_ig(k)/ds(itheta,k)+DoverE_ig(k)
+                              C_ig(itheta)=ctheta_ig(itheta+1,k) * oneoverdtheta
+                              !
+                           else
+                              ! 
+                              A_ig(itheta)=-ctheta_ig(itheta-1,k)/dtheta
+                              B_ig(itheta)=oneoverdt+ctheta_ig(itheta,k) * oneoverdtheta+cg_ig(k)/ds(itheta,k)+DoverE_ig(k)
+                              C_ig(itheta)=0
+                              !
+                           endif
+                           !
+                        enddo
+                        !
+                        if (ctheta_ig(1,k)<0) then
+                           ! 
+                           A_ig(1) = 0.0
+                           B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k)
+                           C_ig(1) = ctheta_ig(2, k)/dtheta
+                           !
+                        else
+                           ! 
+                           A_ig(1)=0.0
+                           B_ig(1)=1.0/dt + cg_ig(k)/ds(1, k) + DoverE_ig(k)
+                           C_ig(1)=0.0
+                           !
+                        endif
+                        !
+                        if (ctheta_ig(ntheta, k)>0) then
+                           ! 
+                           A_ig(ntheta) = -ctheta_ig(ntheta - 1, k)/dtheta
+                           B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
+                           C_ig(ntheta) = 0.0
+                           !
+                        else
+                           ! 
+                           A_ig(ntheta) = 0.0
+                           B_ig(ntheta) = oneoverdt + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
+                           C_ig(ntheta) = 0.0
+                           !
+                        endif
+                        !
+                     endif                     
                      !
                      ! Solve tridiagonal system per point
                      !
