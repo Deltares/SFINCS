@@ -72,44 +72,42 @@ contains
       !
       factime = min(dt/wmtfilter, 1.0)
       !
-   endif   
+   endif
+   !
+   !$acc parallel present( kcs, zs, zb, netprcp, prcp, q, qext, zsmax, zsm, maxzsm, &
+   !$acc                   z_flags_iref, uv_flags_iref, &
+   !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
+   !$acc                   dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area,  &
+   !$acc                   nmindsrc, qtsrc, &
+   !$acc                   z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num )
    !
    ! First discharges (don't do this parallel, as it's probably not worth it)
-   ! Should try to do this in a smart way for openacc
    !
    if (nsrcdrn > 0) then
       ! 
-      !$acc serial, present( zs,nmindsrc,qtsrc,zb,cell_area,z_flags_iref ), async(1)
-      ! 
+      !$acc loop
       do isrc = 1, nsrcdrn
          ! 
          nm = nmindsrc(isrc)
          ! 
          if (crsgeo) then
             ! 
-            zs(nmindsrc(isrc))   = max(zs(nm) + qtsrc(isrc)*dt / cell_area_m2(nm), zb(nm))
+            zs(nmindsrc(isrc)) = max(zs(nm) + qtsrc(isrc) * dt / cell_area_m2(nm), zb(nm))
             ! 
          else
             ! 
-            zs(nmindsrc(isrc))   = max(zs(nm) + qtsrc(isrc)*dt / cell_area(z_flags_iref(nm)), zb(nm))
+            zs(nmindsrc(isrc)) = max(zs(nm) + qtsrc(isrc) * dt / cell_area(z_flags_iref(nm)), zb(nm))
             ! 
          endif
          ! 
       enddo
       ! 
-      !$acc end serial
-      ! 
-   endif   
+   endif
    !
    !$omp parallel &
    !$omp private ( nm,dvol,nmd,nmu,ndm,num,qnmd,qnmu,qndm,qnum,iwm)
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels present( kcs, zs, zb, netprcp, prcp, q, qext, zsmax, zsm, maxzsm, &
-   !$acc                  z_flags_iref, uv_flags_iref, &
-   !$acc                  z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
-   !$acc                  dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area,  &
-   !$acc                  z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num), async(1)
-   !$acc loop independent, private( nm )
+   !$acc loop gang vector
    do nm = 1, np
       ! 
       if (kcs(nm) == 1) then ! Regular point
@@ -246,8 +244,7 @@ contains
    enddo
    !$omp end do
    !$omp end parallel
-   !$acc end kernels
-   !$acc wait(1)
+   !$acc end parallel
    !         
    end subroutine
 
@@ -288,6 +285,7 @@ contains
    real*4           :: dv
    real*4           :: zs00
    real*4           :: zs11
+   real*4           :: rtmp
    !
    if (wavemaker) then
       !
@@ -295,74 +293,39 @@ contains
       !
    endif   
    !
-   !$acc parallel present( kcs, zs, zs0, zb, z_volume, zsmax, zsm, nmindsrc, qtsrc, maxzsm, zsderv, &
-   !$acc                   subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
-   !$acc                   netprcp, prcp, q, qext, z_flags_iref, uv_flags_iref, &
-   !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
-   !$acc                   dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area, &
-   !$acc                   z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, storage_volume), &
-   !$acc                   num_gangs( 512 ), vector_length( 128 ), async(1)
-   !
    ! First discharges (don't do this parallel, as it's probably not worth it)
-   ! Should try to do this in a smart way for openacc
+   ! NVFORTAN turns this into a sequential loop (!$acc loop seq)
    !
    if (nsrcdrn > 0) then
-      ! 
+      !
+      !$acc serial present( z_volume, nmindsrc, qtsrc )
       do isrc = 1, nsrcdrn
-         ! 
-         if (nmindsrc(isrc) > 0) then ! Is this even possible?
-            ! 
-            z_volume(nmindsrc(isrc)) = max(z_volume(nmindsrc(isrc)) + qtsrc(isrc) * dt, 0.0)         
-            ! 
-         endif   
-         ! 
+         !
+         nm = nmindsrc(isrc)
+         z_volume(nm) = z_volume(nm) + qtsrc(isrc) * dt
+         !
       enddo
-      ! 
-   endif   
+      !$acc end serial
+      !
+   endif
    !
    !$omp parallel &
    !$omp private ( dvol,dzsdt,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,iwm,qnmd,qnmu,qndm,qnum,dv,zs00,zs11 )
    !$omp do schedule ( dynamic, 256 )
-   !$acc loop independent, gang, vector
+   !$acc parallel present( kcs, zs, zs0, zb, z_volume, zsmax, zsm, maxzsm, zsderv, &
+   !$acc                   subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
+   !$acc                   netprcp, prcp, q, qext, z_flags_iref, uv_flags_iref, &
+   !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
+   !$acc                   dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area, &   
+   !$acc                   z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, storage_volume)
+   !$acc loop gang vector
    do nm = 1, np
       !
       ! And now water level changes due to horizontal fluxes
       !
       dvol = 0.0
       !
-      if (kcs(nm)==1) then
-         !
-         if (crsgeo) then
-            !
-            a = cell_area_m2(nm)
-            !
-         else   
-            !
-            a = cell_area(z_flags_iref(nm))
-            !
-         endif
-         !   
-         dzsdt = 0.0
-         !   
-         if (precip) then
-            !
-            ! Add nett rainfall 
-            !
-            dzsdt = dzsdt + netprcp(nm)
-            !
-         endif
-         !
-         if (use_qext) then
-            !
-            ! Add external source (e.g. from XMI coupling) 
-            ! 
-            dzsdt = dzsdt + qext(nm)
-            !
-         endif
-         !
-         ! dvol is still in m/s, so multiply with a * dt to get m^3
-         !
-         dvol = dzsdt * a * dt
+      if (kcs(nm) == 1) then
          !
          nmd = z_index_uv_md(nm)
          nmu = z_index_uv_mu(nm)
@@ -404,12 +367,12 @@ contains
             endif   
             !
          endif   
-      endif ! kcs==1    
+      endif ! kcs==1
       !
       if (wavemaker .and. kcs(nm) == 4) then
          !
          ! Wave maker point (seaward of wave maker)
-         ! Here we use the mean flux at the location of the wave maker 
+         ! Here we use the mean flux at the location of the wave maker
          !
          iwm = z_index_wavemaker(nm)
          !
@@ -473,11 +436,51 @@ contains
          !
       endif
       !
-      ! We got the volume change dvol in each active cell
-      ! Now update the volume and compute new water level           
+      ! We got the volume change dvol in each active cell from fluxes
+      ! Now first add precip and qext
+      ! Then adjust for storage volume
+      ! Then update the volume and compute new water level           
       !
-      if (kcs(nm) == 1 .or. kcs(nm) == 4) then 
-         !      
+      if (kcs(nm) == 1 .or. kcs(nm) == 4) then
+         !
+         ! Obtain cell area
+         !
+         if (crsgeo) then
+            !
+            a = cell_area_m2(nm)
+            !
+         else   
+            !
+            a = cell_area(z_flags_iref(nm))
+            !
+         endif
+         !
+         if (precip .or. use_qext) then
+            !
+            dzsdt = 0.0
+            !   
+            if (precip) then
+               !
+               ! Add nett rainfall 
+               !
+               dzsdt = dzsdt + netprcp(nm)
+               !
+            endif
+            !
+            if (use_qext) then
+               !
+               ! Add external source (e.g. from XMI coupling) 
+               ! 
+               dzsdt = dzsdt + qext(nm)
+               !
+            endif
+            !
+            ! dzsdt is still in m/s, so multiply with a * dt to get m^3
+            !
+            dvol = dvol + dzsdt * a * dt         
+            !      
+         endif
+         !
          if (use_storage_volume) then
             !
             ! If water enters the cell through a point discharge, it will NOT end up in storage volume !  
@@ -551,6 +554,7 @@ contains
             !
          endif
          !
+         !
          if (wiggle_suppression) then 
             ! 
             zsderv(nm) = zs(nm) - 2 * zs11 + zs00
@@ -602,8 +606,6 @@ contains
    !         
    !$acc end parallel
    !         
-   !$acc wait(1)
-   !         
    end subroutine
    
    subroutine compute_store_variables(dt)
@@ -629,9 +631,9 @@ contains
    !$omp parallel &
    !$omp private ( nmd, nmu, ndm, num, quz, qvz, qz, uvz )
    !$omp do schedule ( dynamic, 256 )
-   !$acc kernels present( kcs, zs, zb, subgrid_z_zmin, q, uv, vmax, qmax, twet, &
-   !$acc                  z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu), async(2)
-   !$acc loop independent, private( nm )   
+   !$acc parallel present( kcs, zs, zb, subgrid_z_zmin, q, uv, vmax, qmax, twet, &
+   !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu )
+   !$acc loop gang vector 
    do nm = 1, np
       !
       ! And now water level changes due to horizontal fluxes
@@ -698,8 +700,7 @@ contains
    enddo   
    !$omp end do
    !$omp end parallel
-   !$acc end kernels
-   !$acc wait(2)
+   !$acc end parallel
    !       
    end subroutine
    

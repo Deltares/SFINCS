@@ -555,8 +555,8 @@
    !   
    call system_clock(count0, count_rate, count_max)
    !
-   !$acc kernels, present(zs, q, uv, structure_uv_index, uv_index_z_nm, uv_index_z_nmu, structure_parameters, structure_type, structure_length), async(1)
-   !$acc loop independent
+   !$acc parallel, present(zs, q, uv, structure_uv_index, uv_index_z_nm, uv_index_z_nmu, structure_parameters, structure_type, structure_length)
+   !$acc loop independent gang vector
    do istruc = 1, nrstructures
       !
       ip     = structure_uv_index(istruc)
@@ -622,7 +622,7 @@
       q(ip)  = qstruc*idir ! Add relaxation here !!!
       !
    enddo
-   !$acc end kernels
+   !$acc end parallel
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
