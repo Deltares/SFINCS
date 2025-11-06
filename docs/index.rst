@@ -7,13 +7,16 @@ Welcome to SFINCS's documentation!
 ======================================
 
 **What is SFINCS?**
+
 SFINCS is a super-fast open-source flood model developed at Deltares. 
 It enables rapid simulation of storm surge, riverine (fluvial) flooding, rainfall-runoff (pluvial), and wave-driven flooding from national, regional to local scales. 
 Designed to run in minutes instead of days, SFINCS supports scenario testing, operational forecasting, and climate adaptation planning worldwide. 
 
-.. figure:: ./figures/SFINCS_logo.png
-   :width: 300px
+.. figure:: ./figures/Charleston_flooding.png
+   :width: 450px
    :align: center
+
+
    
 **Open source & licensing:** 
 
@@ -31,7 +34,11 @@ While basic user help is provided free of charge, Deltares also offers structure
 These packages (e.g. Basic and Advanced) include guaranteed support hours, faster response time, consulting and configuration help, model setup, etc. 
 For more, see “Support Packages” or contact software@deltares.nl 
 
-**Scientific Foundations:** 
+**Scientific Foundation:** 
+
+SFINCS has been widely validated and applied in numerous scientific studies and practical applications worldwide.
+The model has been adopted by both the scientific community and practitioners for flood risk assessment, emergency planning, and climate adaptation strategies.
+The main SFINCS publications are listed below for reference and have reached 150+ citations.
 
 Key publications:
 
@@ -45,7 +52,7 @@ Key publications:
 
 * For a background on recent developments and new features in SFINCS, see "Developments" in this manual.
 
-* For answers how to get started with SFINCS, see "Getting started" in this manual.
+* For answers on pracatical steps to start using SFINCS, see "Getting started" in this manual.
 
 * The main user manual section continues with guidance on model setup, input parameters, output formats, and advanced features such as compiling and customizing SFINCS. 
 
@@ -59,8 +66,12 @@ Key publications:
 
 **Contact:** 
 
-Mail 'sfincs@deltares.nl' for questions that are not answered yet by this documentation.
+Mail sfincs@deltares.nl for questions that are not answered yet by this documentation.
    
+.. figure:: ./figures/SFINCS_logo.png
+   :width: 300px
+   :align: center
+      
 Acknowledgements
 ================
 
@@ -68,9 +79,6 @@ SFINCS is developed at Deltares and initiated by Maarten van Ormondt.
 This documentation is developed and maintained by Tim Leijnse and Roel de Goede.
 The SFINCS team also includes Koen van Asselt, Tycho Bovenschen, Ap van Dongeren, and Kees Nederhoff.
 
-.. figure:: ./figures/Charleston_flooding.png
-   :width: 450px
-   :align: center
 
 .. toctree::
    :maxdepth: 3
