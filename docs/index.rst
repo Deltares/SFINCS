@@ -13,7 +13,7 @@ It enables rapid simulation of storm surge, riverine (fluvial) flooding, rainfal
 Designed to run in minutes instead of days, SFINCS supports scenario testing, operational forecasting, and climate adaptation planning worldwide. 
 
 .. figure:: ./figures/SFINCS_text_logo.png
-   :width: 600px
+   :width: 800px
    :align: center
    
 **Open source & licensing:** 
@@ -32,11 +32,11 @@ While basic user help is provided free of charge, Deltares also offers structure
 These packages (e.g. Basic and Advanced) include guaranteed support hours, faster response time, consulting and configuration help, model setup, etc. 
 For more, see “Support Packages” or contact software@deltares.nl 
 
-**Scientific Foundation:** 
+**Scientific Foundation and model adoptation:** 
 
 SFINCS has been widely validated and applied in numerous scientific studies and practical applications worldwide.
-The model has been adopted by both the scientific community and practitioners for flood risk assessment, emergency planning, and climate adaptation strategies.
-The main SFINCS publications are listed below for reference and have reached 150+ citations.
+The model has been adopted by both the scientific community, where the main SFINCS publications have reached 150+ citations and are listed below for reference.
+SFINCS has also been adopted by practitioners for flood risk assessment, emergency planning, and climate adaptation strategies, with 1000+ downloads of the SFINCS executable and counting...
 
 Key publications:
 
