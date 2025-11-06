@@ -139,19 +139,22 @@ Drainage Pumps and Culverts
 
 **Introduction**
 
-In SFINCS, drainage pumps and culverts are specified using the same input file format, with the structure type distinguished by an indicator:
+In SFINCS, drainage pumps, culverts and check valves (one way culverts) are specified using the same input file format, with the structure type distinguished by an indicator:
+
 - type=1: Drainage pump
 - type=2: Culvert
+- type=3: Check valve
 
 A drainage pump moves water from a retraction point (source location) to an outflow point (sink location) at a specified discharge rate, as long as there is enough water available at the retraction point. The discharge rate is defined using the par1 parameter.
 
-For culverts**, par1 represents the discharge capacity. The actual flow through the culvert depends on the water level difference (head difference) between the upstream and downstream ends. This gradient determines how much water flows through the culvert based on the capacity defined in par1.
+For culverts, par1 represents the discharge capacity. The actual flow through the culvert depends on the water level difference (head difference) between the upstream and downstream ends. This gradient determines how much water flows through the culvert based on the capacity defined in par1.
 
+The check valve requires the same par1 discharge capacity input as a culvert, but only allows flow in one direction, preventing backflow (e.g. for a one-way tide gate). Water is only flowing if the water level at input point 1 is larger than the water level at output point 2.
 
 **Input Parameters**
 
 - x & y locations: Coordinates for the retraction (source) and outflow (sink) points.
-- Type: Specifies if the structure is a drainage pump (type=1) or a culvert (type=2).
+- Type: Specifies if the structure is a drainage pump (type=1), a culvert (type=2) or a check valve (type=3).
 - par1: Sets the discharge capacity. Additional parameters (par2 to par5) are included as placeholders for future updates.
 
 You can know how much discharge is extracted by the model in the sfincs_his.nc output by specifying 'storeqdrain=1' from SFINCS v2.0.2 onwards, see the description in "Input parameters".
