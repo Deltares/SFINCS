@@ -12,11 +12,9 @@ SFINCS is a super-fast open-source flood model developed at Deltares.
 It enables rapid simulation of storm surge, riverine (fluvial) flooding, rainfall-runoff (pluvial), and wave-driven flooding from national, regional to local scales. 
 Designed to run in minutes instead of days, SFINCS supports scenario testing, operational forecasting, and climate adaptation planning worldwide. 
 
-.. figure:: ./figures/Charleston_flooding.png
-   :width: 450px
+.. figure:: ./figures/SFINCS_text_logo.png
+   :width: 600px
    :align: center
-
-
    
 **Open source & licensing:** 
 
@@ -68,10 +66,6 @@ Key publications:
 
 Mail sfincs@deltares.nl for questions that are not answered yet by this documentation.
    
-.. figure:: ./figures/SFINCS_logo.png
-   :width: 300px
-   :align: center
-      
 Acknowledgements
 ================
 
@@ -79,6 +73,9 @@ SFINCS is developed at Deltares and initiated by Maarten van Ormondt.
 This documentation is developed and maintained by Tim Leijnse and Roel de Goede.
 The SFINCS team also includes Koen van Asselt, Tycho Bovenschen, Ap van Dongeren, and Kees Nederhoff.
 
+.. figure:: ./figures/Charleston_flooding.png
+   :width: 450px
+   :align: center
 
 .. toctree::
    :maxdepth: 3
