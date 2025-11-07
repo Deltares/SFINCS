@@ -6,6 +6,7 @@ module sfincs_data
       !!! Time variables
       real    :: tstart_all, tfinish_all
       real*4  :: dtavg
+      real*4  :: min_dt
       !!!
       !!! Error code
       integer :: error
@@ -212,6 +213,7 @@ module sfincs_data
       logical       :: store_hmean      
       logical       :: store_qdrain
       logical       :: store_zvolume
+      logical       :: store_storagevolume            
       logical       :: store_meteo
       logical       :: store_wind      
       logical       :: store_wind_max
@@ -259,6 +261,7 @@ module sfincs_data
       logical       :: h73table
       logical       :: wave_enhanced_roughness
       logical       :: use_bcafile
+      LOGICAL       :: snapwave_use_nearest
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
@@ -269,6 +272,7 @@ module sfincs_data
       integer storetmax_zs
       integer storeqdrain
       integer storezvolume
+      integer storestoragevolume      
       integer storemeteo
       integer storehsubgrid
       integer wrttimeoutput
@@ -763,9 +767,9 @@ module sfincs_data
       integer*1, dimension(:),     allocatable :: structure_type
       real*4,    dimension(:,:),   allocatable :: structure_parameters
       real*4,    dimension(:),     allocatable :: structure_length
-!      real*4,    dimension(:),     allocatable :: struc_x
-!      real*4,    dimension(:),     allocatable :: struc_y
-!      real*4,    dimension(:),     allocatable :: struc_height
+      !
+      integer                                  :: nrthindams
+      integer,   dimension(:),     allocatable :: thindam_uv_index
       !!!
       !!! Cross-sections
       !!!

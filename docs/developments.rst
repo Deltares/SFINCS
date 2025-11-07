@@ -55,6 +55,7 @@ The code consists of all functionality of the 2025.01 'v2.2.0 col d'Eze' release
 * Added infiltration to logfile processes section.
 * Added explanation on how to use the check valve option in drainage structures in the documentation.
 * Add description for utmzone input in case of spiderwebs in latlon
+
 * New Python setup tools HydroMT-SFINCS release > recommended to use this new version (v1.2.1) instead of the last release!
 
 Bugfixes:

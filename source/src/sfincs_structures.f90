@@ -466,6 +466,11 @@
       !
       close(500)
       !
+      nrthindams = total_nr_points
+      !
+      allocate(thindam_uv_index(nrthindams))
+      thindam_uv_index = uv_indices
+      !
       write(logstr,'(a,i0,a)')'Info    : ', total_nr_points,' structure u/v points found'
       call write_log(logstr, 0)
       !
@@ -522,6 +527,52 @@
    end subroutine
    
    
+   subroutine give_thindam_information(struc_info)
+   !
+   ! Subroutine to provide structure information to output
+   use sfincs_data
+   !
+   implicit none
+   !
+   integer                      :: n, m, istruc, nm, nmu, ip
+   real*4, dimension(:,:), allocatable   :: struc_info
+   real*4, dimension(:,:), allocatable :: xg
+   real*4, dimension(:,:), allocatable :: yg
+   
+   ! Make empty struc_info
+   allocate(struc_info(nrthindams,2))
+   struc_info = 0.0
+   ! 
+   ! Define the grid 
+   !
+   allocate(xg(mmax + 1, nmax + 1))
+   allocate(yg(mmax + 1, nmax + 1))
+   !
+   do n = 1, nmax + 1
+       do m = 1, mmax + 1
+           xg(m, n) = x0 + cosrot*(1.0*(m - 1))*dx - sinrot*(1.0*(n - 1))*dy
+           yg(m, n) = y0 + sinrot*(1.0*(m - 1))*dx + cosrot*(1.0*(n - 1))*dy
+       enddo
+   enddo
+   !
+   ! Get coordinates and height
+   !
+   do istruc = 1, nrthindams
+       !
+       ! Get index
+       ip       = thindam_uv_index(istruc)
+       nmu      = uv_index_z_nmu(ip)
+       nm       = uv_index_z_nm(ip)
+       ! 
+       ! Get coordinates of face
+       struc_info(istruc,1) = z_xz(nmu)*0.5 + z_xz(nm)*0.5
+       struc_info(istruc,2) = z_yz(nmu)*0.5 + z_yz(nm)*0.5
+       !
+   enddo
+   !
+   end subroutine
+
+   
    subroutine compute_fluxes_over_structures(tloop)
    !
    ! Computes fluxes over structures (THIS HAS TO BE SERIOUSLY IMPROVED!!!)
@@ -555,8 +606,8 @@
    !   
    call system_clock(count0, count_rate, count_max)
    !
-   !$acc kernels, present(zs, q, uv, structure_uv_index, uv_index_z_nm, uv_index_z_nmu, structure_parameters, structure_type, structure_length), async(1)
-   !$acc loop independent
+   !$acc parallel, present(zs, q, uv, structure_uv_index, uv_index_z_nm, uv_index_z_nmu, structure_parameters, structure_type, structure_length)
+   !$acc loop independent gang vector
    do istruc = 1, nrstructures
       !
       ip     = structure_uv_index(istruc)
@@ -622,7 +673,7 @@
       q(ip)  = qstruc*idir ! Add relaxation here !!!
       !
    enddo
-   !$acc end kernels
+   !$acc end parallel
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate

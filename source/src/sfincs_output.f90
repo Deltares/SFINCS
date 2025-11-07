@@ -62,7 +62,7 @@ module sfincs_output
    !
    ! Create his file if either observation points, cross-sections, structures or drains present
    !
-   if (dthisout>1.0e-6 .and. (nobs>0 .or. nrcrosssections>0 .or. nrstructures>0 .or. ndrn>0 .or. nr_runup_gauges>0 )) then
+   if (dthisout>1.0e-6 .and. (nobs>0 .or. nrcrosssections>0 .or. nrstructures>0 .or. nrthindams>0 .or. ndrn>0 .or. nr_runup_gauges>0 )) then
       !
       thisout     = t0
       !
@@ -127,8 +127,19 @@ module sfincs_output
       endif   
       !
       if (write_rst) then
+         !
          !$acc update host(q)
-      endif   
+         !$acc update host(uvmean)
+         !
+      endif
+      !
+      if (store_meteo) then
+         !
+         !$acc update host(windu)
+         !$acc update host(windv)
+         !$acc update host(patm)
+         !
+      endif
       !      
    endif
    !
@@ -665,6 +676,7 @@ module sfincs_output
    real*8        :: tt
    !
    real*4, dimension(:),   allocatable :: zs4
+   !
    allocate(zs4(np))
    !
    ! Map from real*8 to real*4
@@ -718,9 +730,9 @@ module sfincs_output
    else ! default option remains type 1 without infiltration in restart
       !
       write(911)1    
-      write(911)zs4
-      write(911)q
-      write(911)uvmean        
+      write(911)zs4     
+      write(911)q ! Note: q is actually larger than npuv! It has size npuv + ncuv + 1
+      write(911)uvmean
       !
    endif   
    ! 
