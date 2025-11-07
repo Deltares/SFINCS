@@ -398,7 +398,7 @@ Parameters for model output
 	  :units:		-
 	  :default:		0
 	storetmax_zs
-	  :description:		Flag to turn on writing away the time stamp that the maximum water surface elevation during simulation occured (storetmax_zs = 1)
+	  :description:		Flag to turn on writing away the time stamp that the maximum water surface elevation during simulation occured (storetmax_zs = 1). Only if zsmax output is saved (dtmaxout > 0).
 	  :units:		-
 	  :default:		0	  
 	debug
