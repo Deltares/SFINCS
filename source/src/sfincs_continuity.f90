@@ -302,7 +302,10 @@ contains
       do isrc = 1, nsrcdrn
          !
          nm = nmindsrc(isrc)
-         z_volume(nm) = z_volume(nm) + qtsrc(isrc) * dt
+         !
+         if ((z_volume(nm) >= 0) . or. ((qtsrc(isrc)<0.0) . and. (z_volume(nm) >= 0)) then
+            z_volume(nm) = z_volume(nm) + qtsrc(isrc) * dt
+         endif
          !
       enddo
       !$acc end serial
