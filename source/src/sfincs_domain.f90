@@ -2621,8 +2621,8 @@ contains
        allocate(twet(np))
    endif
    !
-   if (store_tmax_zs) then
-       allocate(tmax_zs(np))
+   if (store_t_zsmax) then
+       allocate(t_zsmax(np))
    endif
    !
    if (store_tsunami_arrival_time) then
@@ -2670,8 +2670,8 @@ contains
       twet = 0.0
    endif
    !
-   if (store_tmax_zs) then
-      tmax_zs = -999.0
+   if (store_t_zsmax) then
+      t_zsmax = -999.0
    endif
    !
    uv = 0.0

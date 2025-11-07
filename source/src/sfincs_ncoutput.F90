@@ -15,7 +15,7 @@ module sfincs_ncoutput
       integer :: corner_x_varid, corner_y_varid, face_x_varid, face_y_varid, crs_varid, grid_varid 
       integer :: zb_varid, msk_varid, qinf_varid
       integer :: time_varid, timemax_varid
-      integer :: zs_varid, zsmax_varid, h_varid, u_varid, v_varid, tmax_varid, Seff_varid, tmax_zs_varid
+      integer :: zs_varid, zsmax_varid, h_varid, u_varid, v_varid, tmax_varid, Seff_varid, t_zsmax_varid
       integer :: zvolume_varid, storagevolume_varid
       integer :: hmax_varid, vmax_varid, qmax_varid, cumprcp_varid, cuminf_varid, windmax_varid
       integer :: patm_varid, wind_u_varid, wind_v_varid, precip_varid        
@@ -411,15 +411,15 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%tmax_varid, 'coordinates', 'x y'))
    endif
    !
-   if (store_tmax_zs) then
-      NF90(nf90_def_var(map_file%ncid, 'tmax_zs', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%timemax_dimid/), map_file%tmax_zs_varid)) ! when zsmax occured
-      NF90(nf90_def_var_deflate(map_file%ncid, map_file%tmax_zs_varid, 1, 1, nc_deflate_level)) ! deflate
-      NF90(nf90_put_att(map_file%ncid, map_file%tmax_zs_varid, '_FillValue', FILL_VALUE))
-      NF90(nf90_put_att(map_file%ncid, map_file%tmax_zs_varid, 'units', 'seconds since ' // trim(trefstr_iso8601) ))  ! time stamp following ISO 8601
-      NF90(nf90_put_att(map_file%ncid, map_file%tmax_zs_varid, 'standard_name', 'time of max water level')) 
-      NF90(nf90_put_att(map_file%ncid, map_file%tmax_zs_varid, 'long_name', 'time when zsmax occurs'))  
-      NF90(nf90_put_att(map_file%ncid, map_file%tmax_zs_varid, 'cell_methods', 'time: max'))    
-      NF90(nf90_put_att(map_file%ncid, map_file%tmax_zs_varid, 'coordinates', 'x y'))
+   if (store_t_zsmax) then
+      NF90(nf90_def_var(map_file%ncid, 't_zsmax', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%timemax_dimid/), map_file%t_zsmax_varid)) ! when zsmax occured
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%t_zsmax_varid, 1, 1, nc_deflate_level)) ! deflate
+      NF90(nf90_put_att(map_file%ncid, map_file%t_zsmax_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%t_zsmax_varid, 'units', 'seconds since ' // trim(trefstr_iso8601) ))  ! time stamp following ISO 8601
+      NF90(nf90_put_att(map_file%ncid, map_file%t_zsmax_varid, 'standard_name', 'time of max water level')) 
+      NF90(nf90_put_att(map_file%ncid, map_file%t_zsmax_varid, 'long_name', 'time when zsmax occurs'))  
+      NF90(nf90_put_att(map_file%ncid, map_file%t_zsmax_varid, 'cell_methods', 'time: max'))    
+      NF90(nf90_put_att(map_file%ncid, map_file%t_zsmax_varid, 'coordinates', 'x y'))
    endif
    !
    if (store_maximum_waterlevel) then
@@ -1105,14 +1105,14 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%tmax_varid, 'cell_methods', 'time: sum'))
    endif
    !
-   if (store_tmax_zs) then
-      NF90(nf90_def_var(map_file%ncid, 'tmax_zs', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%timemax_dimid/), map_file%tmax_zs_varid)) ! time-varying duration wet cell
-      NF90(nf90_def_var_deflate(map_file%ncid, map_file%tmax_varid, 1, 1, nc_deflate_level))
-      NF90(nf90_put_att(map_file%ncid, map_file%tmax_zs_varid, '_FillValue', FILL_VALUE))
-      NF90(nf90_put_att(map_file%ncid, map_file%tmax_zs_varid, 'units', 'seconds since ' // trim(trefstr_iso8601) ))  ! time stamp following ISO 8601
-      NF90(nf90_put_att(map_file%ncid, map_file%tmax_zs_varid, 'standard_name', 'time of max water level')) 
-      NF90(nf90_put_att(map_file%ncid, map_file%tmax_zs_varid, 'long_name', 'time when zsmax occurs'))   
-      NF90(nf90_put_att(map_file%ncid, map_file%tmax_zs_varid, 'cell_methods', 'time: max'))
+   if (store_t_zsmax) then
+      NF90(nf90_def_var(map_file%ncid, 't_zsmax', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%timemax_dimid/), map_file%t_zsmax_varid)) ! time-varying time stap of max water level in cell
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%t_zsmax_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%t_zsmax_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%t_zsmax_varid, 'units', 'seconds since ' // trim(trefstr_iso8601) ))  ! time stamp following ISO 8601
+      NF90(nf90_put_att(map_file%ncid, map_file%t_zsmax_varid, 'standard_name', 'time of max water level')) 
+      NF90(nf90_put_att(map_file%ncid, map_file%t_zsmax_varid, 'long_name', 'time when zsmax occurs'))   
+      NF90(nf90_put_att(map_file%ncid, map_file%t_zsmax_varid, 'cell_methods', 'time: max'))
    endif
    !
    if (store_maximum_waterlevel) then
@@ -3348,23 +3348,23 @@ contains
       do nm = 1, np
          n              = z_index_z_n(nm)
          m              = z_index_z_m(nm)
-         zstmp(m, n)     = twet(nm) 
+         zstmp(m, n)    = twet(nm) 
       enddo
       NF90(nf90_put_var(map_file%ncid, map_file%tmax_varid, zstmp, (/1, 1, ntmaxout/))) ! write tmax   
    endif
    !
    ! When zsmax => t
    !
-   if (store_tmax_zs) then
+   if (store_t_zsmax) then
       zstmp = FILL_VALUE
       do nm = 1, np
          n              = z_index_z_n(nm)
-         m               = z_index_z_m(nm)
-         if (tmax_zs(nm) > 0) then
-            zstmp(m, n)     = tmax_zs(nm) 
+         m              = z_index_z_m(nm)
+         if (t_zsmax(nm) > 0) then
+            zstmp(m, n)     = t_zsmax(nm) 
          endif
       enddo
-      NF90(nf90_put_var(map_file%ncid, map_file%tmax_zs_varid, zstmp, (/1, 1, ntmaxout/))) ! write tmax_zs   
+      NF90(nf90_put_var(map_file%ncid, map_file%t_zsmax_varid, zstmp, (/1, 1, ntmaxout/))) ! write t_zsmax
    endif
    !
    ! Maximum wind speed
@@ -3561,17 +3561,17 @@ contains
    endif
    !
    ! When zsmax occured
-   if (store_tmax_zs) then
+   if (store_t_zsmax) then
        zstmp = FILL_VALUE       
        do nmq = 1, quadtree_nr_points
            nm = index_sfincs_in_quadtree(nmq)
            if (nm>0) then                                 
                if (kcs(nm)>0) then
-                   zstmp(nmq) = tmax_zs(nm)
+                   zstmp(nmq) = t_zsmax(nm)
                endif
            endif
        enddo
-      NF90(nf90_put_var(map_file%ncid, map_file%tmax_zs_varid, zstmp, (/1, ntmaxout/))) ! write tmax_zs   
+      NF90(nf90_put_var(map_file%ncid, map_file%t_zsmax_varid, zstmp, (/1, ntmaxout/))) ! write t_zsmax
    endif
    !
    ! Maximum wind speed

@@ -48,7 +48,7 @@ The code consists of all functionality of the 2025.01 'v2.2.0 col d'Eze' release
 
 * 'Check if file exists' functionality for all input files, to avoid silent failures/skipping when files are not found. SFINCS will stop if a declared filename in sfincs.inp is not found when read in.
 * Storage volume option for green infrastructure "volfile", including HydroMT-SFINCS setup function.
-* Flag to turn on writing away the time stamp that the maximum water elevation during simulation occured (storetmax_zs = 1).
+* Flag to turn on writing away the time stamp that the maximum water elevation during simulation occured (storetzsmax = 1).
 * Flag to turn on writing away the volume in the subgrid cells (storezvolume = 1).
 * Flag to turn on writing away the volume in the storage volume cells (storestoragevolume = 1).
 * For thin dams now also the snapped x&y locations are written to the his-file, as for weirfiles.
