@@ -650,7 +650,7 @@ Structures
 	  :required:		no
 	  :format:		asc	 
 	drnfile = sfincs.drn
-	  :description:		Drainage pumps and culverts are both specified using the same format file, put with a different indication of the type (type=1 is drainage pump, type=2 is culvert).
+	  :description:		Drainage pumps, culverts and check valves are both specified using the same format file, put with a different indication of the type (type=1 is drainage pump, type=2 is culvert and type=3 is check valve).
 	  :units:		coordinates: m in projected UTM zone, discharges in m^3/s.
 	  :required:		no
 	  :format:		asc	 
