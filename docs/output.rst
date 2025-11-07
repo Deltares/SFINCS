@@ -257,6 +257,14 @@ This file is only created if observation points are supplied in the 'obsfile', o
 	  :description:		weir height on snapped location on SFINCS grid of weirs in projected reference system
 	  :standard_name:	projection_x_coordinate	  
 	  :units:		m above reference level 	  	  
+	thindam_x
+	  :description:		x coordinate of snapped location on SFINCS grid of thin dams in projected reference system
+	  :standard_name:	projection_x_coordinate	  
+	  :units:		m in projected reference system	 	  
+	thindam_y
+	  :description:		y coordinate of snapped location on SFINCS grid of thin dams in projected reference system
+	  :standard_name:	projection_y_coordinate	  
+	  :units:		m in projected reference system	 	  
 	point_zb
 	  :description:		Bed level elevation of observation points.
 	  :standard_name:	altitude	  
