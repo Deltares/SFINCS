@@ -254,6 +254,12 @@ More parameters for model input (only for advanced users)
 	  :default:		0
 	  :min:			0
 	  :max:			1	
+	utmzone
+	  :description:		Option to convert the coordinates of a spiderweb with lat&lon coordinates in degrees to the x&y coordinates in meters of the UTM zone of your SFINCS model grid, 'utmzone=16N' (northern hemisphere) of 'utmzone=36S' (southern hemisphere) in sfincs.inp, default is off (nil).
+	  :units:		-
+	  :default:		nil
+	  :min:			-
+	  :max:			-
 	h73table
 	  :description:		Option to use lookup table to calculate nonlinear term h^(7/3) in momentum equation, depending on model schematisation can lead to ~0-30% speedup of model, default is off (0)
 	  :units:		logical
@@ -644,7 +650,7 @@ Structures
 	  :required:		no
 	  :format:		asc	 
 	drnfile = sfincs.drn
-	  :description:		Drainage pumps and culverts are both specified using the same format file, put with a different indication of the type (type=1 is drainage pump, type=2 is culvert).
+	  :description:		Drainage pumps, culverts and check valves are both specified using the same format file, put with a different indication of the type (type=1 is drainage pump, type=2 is culvert and type=3 is check valve).
 	  :units:		coordinates: m in projected UTM zone, discharges in m^3/s.
 	  :required:		no
 	  :format:		asc	 

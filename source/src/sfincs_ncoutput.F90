@@ -1048,9 +1048,9 @@ contains
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%tmax_varid, 1, 1, nc_deflate_level))
       NF90(nf90_put_att(map_file%ncid, map_file%tmax_zs_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(map_file%ncid, map_file%tmax_zs_varid, 'units', 'seconds since ' // trim(trefstr_iso8601) ))  ! time stamp following ISO 8601
-      NF90(nf90_put_att(map_file%ncid, map_file%tmax_zs_varid, 'standard_name', 'duration cell is considered wet')) 
-      NF90(nf90_put_att(map_file%ncid, map_file%tmax_zs_varid, 'long_name', 'duration_wet_cell'))   
-      NF90(nf90_put_att(map_file%ncid, map_file%tmax_zs_varid, 'cell_methods', 'time: sum'))
+      NF90(nf90_put_att(map_file%ncid, map_file%tmax_zs_varid, 'standard_name', 'time of max water level')) 
+      NF90(nf90_put_att(map_file%ncid, map_file%tmax_zs_varid, 'long_name', 'time when zsmax occurs'))   
+      NF90(nf90_put_att(map_file%ncid, map_file%tmax_zs_varid, 'cell_methods', 'time: max'))
    endif
    !
    if (store_maximum_waterlevel) then
