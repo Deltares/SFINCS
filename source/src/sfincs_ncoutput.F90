@@ -39,12 +39,13 @@ module sfincs_ncoutput
       integer :: ncid   
       integer :: time_dimid 
       integer :: points_dimid, pointnamelength_dimid
-      integer :: crosssections_dimid, structures_dimid, drain_dimid, runup_gauges_dimid
+      integer :: crosssections_dimid, structures_dimid, thindams_dimid, drain_dimid, runup_gauges_dimid
       integer :: runtime_dimid
       integer :: point_x_varid, point_y_varid, station_x_varid, station_y_varid, crs_varid, qinf_varid, S_varid  
       integer :: station_id_varid, station_name_varid
       integer :: crosssection_name_varid
       integer :: structure_height_varid, structure_x_varid, structure_y_varid
+      integer :: thindam_x_varid, thindam_y_varid      
       integer :: drain_varid, drain_name_varid
       integer :: zb_varid
       integer :: time_varid
@@ -1449,7 +1450,11 @@ contains
    real*4, dimension(:,:), allocatable :: struc_info
    real*4, dimension(:), allocatable :: struc_x
    real*4, dimension(:), allocatable :: struc_y
-   real*4, dimension(:), allocatable :: struc_height   
+   real*4, dimension(:), allocatable :: struc_height
+   !
+   real*4, dimension(:,:), allocatable :: thindam_info
+   real*4, dimension(:), allocatable :: thindam_x
+   real*4, dimension(:), allocatable :: thindam_y   
    !
    if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0 .and. nr_runup_gauges==0) then ! If no observation points, cross-sections, structures, drains or run-up gauges; his file is not created        
       return
@@ -1477,6 +1482,10 @@ contains
    !
    if (nrstructures>0) then   
       NF90(nf90_def_dim(his_file%ncid, 'structures', nrstructures, his_file%structures_dimid)) ! nr of structures (weir)
+   endif   
+   !
+   if (nrthindams>0) then   
+      NF90(nf90_def_dim(his_file%ncid, 'thindams', nrthindams, his_file%thindams_dimid)) ! nr of structures (thin dam)
    endif   
    !
    if (nr_runup_gauges > 0) then   
@@ -1574,7 +1583,23 @@ contains
       NF90(nf90_put_att(his_file%ncid, his_file%structure_height_varid, 'standard_name', 'altitude'))
       NF90(nf90_put_att(his_file%ncid, his_file%structure_height_varid, 'long_name', 'interpolated_structure_height_above_reference_level'))      
       !
-   endif         
+   endif
+   !
+   if (nrthindams>0) then
+      !
+      NF90(nf90_def_var(his_file%ncid, 'thindam_x', NF90_FLOAT, (/his_file%thindams_dimid/), his_file%thindam_x_varid))  ! snapped coordinate as used in sfincs
+      NF90(nf90_put_att(his_file%ncid, his_file%thindam_x_varid, 'units', 'm'))
+      NF90(nf90_put_att(his_file%ncid, his_file%thindam_x_varid, 'standard_name', 'projection_x_coordinate'))
+      NF90(nf90_put_att(his_file%ncid, his_file%thindam_x_varid, 'long_name', 'thindam_x'))    
+      NF90(nf90_put_att(his_file%ncid, his_file%thindam_x_varid, 'grid_mapping', 'crs'))       
+      !
+      NF90(nf90_def_var(his_file%ncid, 'thindam_y', NF90_FLOAT, (/his_file%thindams_dimid/), his_file%thindam_y_varid))  ! snapped coordinate as used in sfincs
+      NF90(nf90_put_att(his_file%ncid, his_file%thindam_y_varid, 'units', 'm'))
+      NF90(nf90_put_att(his_file%ncid, his_file%thindam_y_varid, 'standard_name', 'projection_y_coordinate'))
+      NF90(nf90_put_att(his_file%ncid, his_file%thindam_y_varid, 'long_name', 'thindam_y'))    
+      NF90(nf90_put_att(his_file%ncid, his_file%thindam_y_varid, 'grid_mapping', 'crs'))   
+      !
+   endif   
    !
    ! Time variables 
    trefstr_iso8601 = date_to_iso8601(trefstr)
@@ -1888,6 +1913,7 @@ contains
       !
       ! Allocate structure
       call give_structure_information(struc_info)
+      !
       allocate(struc_x(nrstructures))
       allocate(struc_y(nrstructures))
       allocate(struc_height(nrstructures))
@@ -1907,7 +1933,27 @@ contains
       NF90(nf90_put_var(his_file%ncid,  his_file%structure_height_varid, struc_height)) ! write structure_height, input struc_height
       !      
    endif
-   !   
+   !
+   if (nrthindams>0) then
+      !
+      ! Allocate structure
+      call give_thindam_information(thindam_info)
+      !
+      allocate(thindam_x(nrthindams))
+      allocate(thindam_y(nrthindams))
+      !
+      do istruc = 1, nrthindams
+         !
+         thindam_x(istruc)        = thindam_info(istruc,1)
+         thindam_y(istruc)        = thindam_info(istruc,2)
+         !
+      enddo      
+      NF90(nf90_put_var(his_file%ncid,  his_file%thindam_x_varid, thindam_x)) ! write thindam_x
+      !
+      NF90(nf90_put_var(his_file%ncid,  his_file%thindam_y_varid, thindam_y)) ! write thindam_y
+      !       
+   endif   
+   !
    NF90(nf90_put_var(his_file%ncid, his_file%station_x_varid, xobs)) ! write station_x, input xobs
    !    
    NF90(nf90_put_var(his_file%ncid, his_file%station_y_varid, yobs)) ! write station_y, input yobs
@@ -3482,7 +3528,7 @@ contains
    !   
    implicit none   
    !   
-   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0) then ! If no observation points, cross-sections, structures or drains; hisfile        
+   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nrthindams==0 .and. ndrn==0) then ! If no observation points, cross-sections, structures 9weir or thin dam), or drains; hisfile        
         return
    endif   
    !

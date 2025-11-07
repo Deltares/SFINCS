@@ -62,7 +62,7 @@ module sfincs_output
    !
    ! Create his file if either observation points, cross-sections, structures or drains present
    !
-   if (dthisout>1.0e-6 .and. (nobs>0 .or. nrcrosssections>0 .or. nrstructures>0 .or. ndrn>0 .or. nr_runup_gauges>0 )) then
+   if (dthisout>1.0e-6 .and. (nobs>0 .or. nrcrosssections>0 .or. nrstructures>0 .or. nrthindams>0 .or. ndrn>0 .or. nr_runup_gauges>0 )) then
       !
       thisout     = t0
       !

@@ -92,8 +92,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.3.0-alpha mt.Faber-branch:224"
-   build_date     = "$Date: 2025-10-31"
+   build_revision = "$Rev: v2.3.0 mt. Faber"
+   build_date     = "$Date: 2025-11-07"
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)

@@ -764,9 +764,9 @@ module sfincs_data
       integer*1, dimension(:),     allocatable :: structure_type
       real*4,    dimension(:,:),   allocatable :: structure_parameters
       real*4,    dimension(:),     allocatable :: structure_length
-!      real*4,    dimension(:),     allocatable :: struc_x
-!      real*4,    dimension(:),     allocatable :: struc_y
-!      real*4,    dimension(:),     allocatable :: struc_height
+      !
+      integer                                  :: nrthindams
+      integer,   dimension(:),     allocatable :: thindam_uv_index
       !!!
       !!! Cross-sections
       !!!
