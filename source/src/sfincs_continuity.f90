@@ -240,10 +240,10 @@ contains
          !
          ! Store when the maximum water level changed
          !
-         if (store_tmax_zs) then
+         if (store_t_zsmax) then
              if (zs(nm) > zsmax(nm)) then
                  if ( (zs(nm) - zb(nm)) > huthresh) then
-                    tmax_zs(nm) = t
+                    t_zsmax(nm) = t
                  endif
              endif
          endif
@@ -601,10 +601,10 @@ contains
          !
          ! Store when the maximum water level changed
          !
-         if (store_tmax_zs) then
+         if (store_t_zsmax) then
              if (zs(nm) > zsmax(nm)) then
                  if ( (zs(nm) - subgrid_z_zmin(nm)) > huthresh) then
-                    tmax_zs(nm) = t
+                    t_zsmax(nm) = t
                  endif
              endif
          endif

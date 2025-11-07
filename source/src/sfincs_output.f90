@@ -178,8 +178,8 @@ module sfincs_output
       if (store_twet) then
          !$acc update host(twet)
       endif
-      if (store_tmax_zs) then
-         !$acc update host(tmax_zs)
+      if (store_t_zsmax) then
+         !$acc update host(t_zsmax)
       endif
       !
       if (store_cumulative_precipitation) then
@@ -229,9 +229,9 @@ module sfincs_output
          !$acc update device(twet)
       endif
       !      
-      if (store_tmax_zs) then
-         tmax_zs = -999.0 ! Set tmax_zs back to a small value
-         !$acc update device(tmax_zs)
+      if (store_t_zsmax) then
+         t_zsmax = -999.0 ! Set t_zsmax back to a small value
+         !$acc update device(t_zsmax)
       endif
    endif
    !
@@ -374,8 +374,8 @@ module sfincs_output
       open(unit = 855, status = 'replace', file = 'qmax.dat', form = 'unformatted')
    endif
    !
-   if (store_tmax_zs) then
-      open(unit = 856, status = 'replace', file = 'tmax_zs.dat', form = 'unformatted')
+   if (store_t_zsmax) then
+      open(unit = 856, status = 'replace', file = 't_zsmax.dat', form = 'unformatted')
    endif
    !
    end subroutine
@@ -521,8 +521,8 @@ module sfincs_output
       write(855)qmax
    endif
    ! 
-   if (store_tmax_zs) then
-      write(856)tmax_zs
+   if (store_t_zsmax) then
+      write(856)t_zsmax
    endif
    ! 
    end subroutine
