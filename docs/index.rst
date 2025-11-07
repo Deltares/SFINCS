@@ -16,6 +16,7 @@ Designed to run in minutes instead of days, SFINCS supports scenario testing, op
    :width: 800px
    :align: center
    
+   
 **Open source & licensing:** 
 
 The SFINCS source code is released under the GNU GPL v3.0 license. You can: 
