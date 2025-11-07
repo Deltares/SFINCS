@@ -44,22 +44,31 @@ docker pull deltares/sfincs-cpu:sfincs-v2.3.0-mt-Faber-Release
 
 Changes:
 
-The code consists of all functionality of the 2025.01 'v2.2.0 col d'Eze' release, with the following major changes/additions:
+The code consists of all functionality of the 2025.01 'v2.2.0 col d'Eze' release, with the following main changes/additions:
 
 * 'Check if file exists' functionality for all input files, to avoid silent failures/skipping when files are not found. SFINCS will stop if a declared filename in sfincs.inp is not found when read in.
 * Storage volume option for green infrastructure "volfile", including HydroMT-SFINCS setup function.
 * Flag to turn on writing away the time stamp that the maximum water surface elevation during simulation occured (storetmax_zs = 1)
+* Added infiltration to logfile processes section
 * New Python setup tools HydroMT-SFINCS release > recommended to use this new version instead of the last release (v1.2.1)!
+
+Bugfixes:
+
+* Fixed bug when spw_merge_frac is different from default 0.5.
 
 Advanced user options - currently as alpha/beta functionality:
 
 * NOTE - please contact Deltares-SFINCS group in case you want to use any of this functionality.
 
 * Update of the integrated SnapWave solver to be consistent the latest standalone version (https://doi.org/10.5194/egusphere-2025-492).
+* Option to include or exclude wind from SFINCS to SnapWave coupling, to include wind growth on wave heights or not
 * Added Neumann water level boundary condition option.
 * Added downstream riverine water level boundary condition option.
+* Added runup gauge option
 * Added variations on drainage structures with moveable gates, triggered by either water level exceedance or provided time.
 * Added option to use bcafile astronomical boundary conditions to internally generate tidal water levels at msk=2 boundary, similar to Delft3D.
+* Added option of meteo enhancement factors.
+* Added wave enhanced roughness when bmi coupled with hurrywave.
 * Upgraded GPU implementation for consistent results with CPU version.
 * Upgraded BMI implementation exposing more variables to be altered.
 
