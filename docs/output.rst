@@ -191,7 +191,15 @@ In case of netcdf output, the given parameters mean the following:
 	v
 	  :description:		Instantaneous flow velocity in v-direction per 'dtout' timestep, corresponding with netcdf variable 'time'.
 	  :standard_name:	sea_water_y_velocity	  
-	  :units:		m/s		  
+	  :units:		m/s	
+	subgrid_volume
+	  :description:		Instantaneous subgrid volume per 'dtout' timestep, corresponding with netcdf variable 'time'.
+	  :standard_name:	subgrid_volume_in_cell	  
+	  :units:		m^3
+	storage_volume
+	  :description:		Instantaneous storage volume per 'dtout' timestep, corresponding with netcdf variable 'time'.
+	  :standard_name:	storage_volume_in_cell	  
+	  :units:		m^3	  
 	timemax
 	  :description:		Time of global map output per 'dtmaxout' timestep.
 	  :standard_name:	time	  
@@ -213,7 +221,7 @@ In case of netcdf output, the given parameters mean the following:
 	  :units:		m	  
 	cumprcp
 	  :description:		Cumulative precipitation depth over whole simulation.
-	  :units:		m
+	  :units:		m	  	  
 	inp
 	  :description:		Copy of all the supplied input to SFINCS from 'sfincs.inp'.
 	  :units:		-
