@@ -48,6 +48,7 @@ The code consists of all functionality of the 2025.01 'v2.2.0 col d'Eze' release
 
 * 'Check if file exists' functionality for all input files, to avoid silent failures/skipping when files are not found. SFINCS will stop if a declared filename in sfincs.inp is not found when read in.
 * Storage volume option for green infrastructure "volfile", including HydroMT-SFINCS setup function.
+* Flag to turn on writing away the time stamp that the maximum water surface elevation during simulation occured (storetmax_zs = 1)
 * New Python setup tools HydroMT-SFINCS release > recommended to use this new version instead of the last release (v1.2.1)!
 
 Advanced user options - currently as alpha/beta functionality:

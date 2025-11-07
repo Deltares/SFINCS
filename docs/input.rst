@@ -531,6 +531,41 @@ The recovery of the infiltration rate during dry weather (kr) is calculated as f
 This option also supports restart functionality. 
 
 
+Storage volume
+^^^^^
+
+Storage volume for green infrastructure on the 2D grid, specifies the maximum storage volume of water per grid cell in cubic meters.
+Water will be stored in this storage volume before it will contribute to surface runoff.
+
+**NOTE - Only useable in subgrid mode **
+
+**volfile = sfincs.vol**
+
+.. code-block:: text
+
+	<vol_value x0,y0> <vol_value x1,y0> 
+
+	<vol_value x0,y1> <vol_value x1,y1>
+
+	e.g.
+	1.0 1.2
+	0.0	0.0
+ 	
+**Python example using HydroMT-SFINCS**
+
+.. code-block:: text
+	
+	sf.setup_storage_volume(
+		storage_locs="storage_locs.geojson",
+		volume: 1000.0,
+		height: None,
+		merge=True
+	)
+	
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.SfincsModel.setup_storage_volume.html
+
+
 Observation points
 ^^^^^
 
