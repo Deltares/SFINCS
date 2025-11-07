@@ -43,13 +43,14 @@ contains
    end subroutine
 
    
-   subroutine compute_water_levels_regular(dt)
+   subroutine compute_water_levels_regular(dt,t)
    !
    use sfincs_data
    !
    implicit none
    !
    real*4           :: dt
+   real*8           :: t   
    !
    integer          :: nm
    integer          :: isrc
