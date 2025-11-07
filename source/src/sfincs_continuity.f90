@@ -285,7 +285,6 @@ contains
    real*4           :: dv
    real*4           :: zs00
    real*4           :: zs11
-   real*4           :: rtmp
    !
    if (wavemaker) then
       !
@@ -303,7 +302,7 @@ contains
          !
          nm = nmindsrc(isrc)
          !
-         if ((z_volume(nm) >= 0) . or. ((qtsrc(isrc)<0.0) . and. (z_volume(nm) >= 0)) then
+         if ((z_volume(nm) >= 0) .or. ((qtsrc(isrc)<0.0) .and. (z_volume(nm) >= 0))) then
             z_volume(nm) = z_volume(nm) + qtsrc(isrc) * dt
          endif
          !
