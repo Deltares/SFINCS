@@ -208,6 +208,10 @@ In case of netcdf output, the given parameters mean the following:
 	  :description:		Maximum water level per 'dtmaxout' timestep, only given if dtmaxout>0, corresponding with netcdf variable 'timemax'.
 	  :standard_name:	maximum of sea_surface_height_above_mean_sea_level	  
 	  :units:		m above reference level
+	t_zsmax
+	  :description:		Time of max water level per cell and per 'dtmaxout' timestep, only given if dtmaxout>0, corresponding with netcdf variable 'timemax'.
+	  :standard_name:	maximum of sea_surface_height_above_mean_sea_level	  
+	  :units:		m above reference level	  
 	vmax
 	  :description:		Maximum flow velocity proxy per 'dtmaxout' timestep, only given if dtmaxout>0, corresponding with netcdf variable 'timemax'.
 	  :standard_name:	maximum_flow_velocity	  
