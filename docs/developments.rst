@@ -2,24 +2,23 @@ Developments
 =====
 
 SFINCS has continuely being developed since 2017, and many great features have been added over the years.
-Hereby some examples regarding subgrid features and GPU computing.
 
 Development status
 -----
 
-See here a schematic overview of the SFINCS development status at 2024 August, at the time of the v2.1.1 Dollerup release.
-Indicated are new functionality for SFINCS itself (core), and model setup/post-processing using HydroMT-SFINCS and Delft Dashboard (Python).
+See here a schematic overview of the SFINCS development status at November 2025, at the time of the v2.3.0 mt. Faber release.
+Indicated are new functionality for SFINCS itself (core), and model setup/post-processing using HydroMT-SFINCS (Python).
 
-.. figure:: ./figures/Overview_status_SFINCS.drawio.png
+.. figure:: ./figures/Overview_status_SFINCS-2025.02.drawio.png
    :width: 600px
    :align: center
 
-   Overview of SFINCS development status 2025.01 Release
+   Overview of SFINCS development status 2025.02 Release
 
 Known issues
 -----
 
-Known issues of the current SFINCS main version and last release are (improvements are work in progress):
+Known issues of the current SFINCS main version and last release are listed here:
 
 * The BMI implementation in SFINCS is up to date with XMI (BMI + extensions - Hughes et al. 2022), to be used with 'xmipy' (https://github.com/Deltares/xmipy) and related functions (https://deltares.github.io/xmipy/xmipy.html), which is however not up to date with the latests CSDMS standard BMI implementation 2.0.
 * The combination of netspwfile with large difference in reference time between the spiderweb and the SFINCS simulation itself, might not run correctly in the Docker version. Use the ascii spwfile input or the Windows build executable which work correctly.
@@ -27,6 +26,52 @@ Known issues of the current SFINCS main version and last release are (improvemen
 
 Releases Changelog
 -----
+
+Official open source version 2025.02: v2.3.0 mt. Faber release
+^^^^^
+
+The second official 2025 release of SFINCS, the v2.3.0 mt Faber release, 'Modernizing Tasks in Flood Assessments for Better Emergency Response', is now available!
+
+This contains open access to the source code from Github: https://github.com/Deltares/SFINCS/releases/tag/v2.3.0_mt_Faber_release.
+
+As pre-compiled Windows executable:
+
+https://download.deltares.nl/en/sfincs/
+
+As Docker container:
+
+docker pull deltares/sfincs-cpu:sfincs-v2.3.0-mt-Faber-Release
+
+Changes:
+
+The code consists of all functionality of the 2025.01 'v2.2.0 col d'Eze' release, with the following main changes/additions:
+
+* 'Check if file exists' functionality for all input files, to avoid silent failures/skipping when files are not found. SFINCS will stop if a declared filename in sfincs.inp is not found when read in.
+* Storage volume option for green infrastructure "volfile", including HydroMT-SFINCS setup function.
+* Flag to turn on writing away the time stamp that the maximum water surface elevation during simulation occured (storetmax_zs = 1).
+* For thin dams now also the snapped x&y locations are written to the his-file, like for weirfiles.
+* Added infiltration to logfile processes section.
+* New Python setup tools HydroMT-SFINCS release > recommended to use this new version (v1.2.1) instead of the last release!
+
+Bugfixes:
+
+* Fixed bug when spw_merge_frac is different from default 0.5.
+
+Advanced user options - currently as alpha/beta functionality:
+
+* NOTE - please contact Deltares-SFINCS group in case you want to use any of this functionality.
+
+* Update of the integrated SnapWave solver to be consistent the latest standalone version (https://doi.org/10.5194/egusphere-2025-492).
+* Option to include or exclude wind from SFINCS to SnapWave coupling, to include wind growth on wave heights or not
+* Added Neumann water level boundary condition option.
+* Added downstream riverine water level boundary condition option.
+* Added runup gauge option
+* Added variations on drainage structures with moveable gates, triggered by either water level exceedance or provided time.
+* Added option to use bcafile astronomical boundary conditions to internally generate tidal water levels at msk=2 boundary, similar to Delft3D.
+* Added option of meteo enhancement factors.
+* Added wave enhanced roughness when bmi coupled with hurrywave.
+* Upgraded GPU implementation for consistent results with CPU version.
+* Upgraded BMI implementation exposing more variables to be altered.
 
 Official open source version 2025.01: v2.2.0 col d'Eze release
 ^^^^^
@@ -199,6 +244,8 @@ These version 1 revisions contained all standard SFINCS functionality for the re
 
 Recent advancements in accuracy: subgrid mode
 -----
+
+Hereby some examples regarding subgrid features and GPU computing.
 
 What are subgrid features?
 ^^^^^
