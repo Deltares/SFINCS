@@ -25,7 +25,7 @@ contains
       !
    else
       !
-      call compute_water_levels_regular(dt)
+      call compute_water_levels_regular(dt,t)
       !
    endif  
    !
