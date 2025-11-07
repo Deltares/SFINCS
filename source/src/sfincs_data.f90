@@ -213,6 +213,7 @@ module sfincs_data
       logical       :: store_hmean      
       logical       :: store_qdrain
       logical       :: store_zvolume
+      logical       :: store_storagevolume            
       logical       :: store_meteo
       logical       :: store_wind      
       logical       :: store_wind_max
@@ -271,6 +272,7 @@ module sfincs_data
       integer storetmax_zs
       integer storeqdrain
       integer storezvolume
+      integer storestoragevolume      
       integer storemeteo
       integer storehsubgrid
       integer wrttimeoutput

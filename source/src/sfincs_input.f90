@@ -226,6 +226,7 @@ contains
    call read_real_input(500,'tsunami_arrival_threshold',tsunami_arrival_threshold,0.01)
    call read_int_input(500,'storeqdrain',storeqdrain,1)
    call read_int_input(500,'storezvolume',storezvolume,0)
+   call read_int_input(500,'storestoragevolume',storestoragevolume,0)
    call read_int_input(500,'writeruntime',wrttimeoutput,0)
    call read_logical_input(500,'debug',debug,.false.)
    call read_int_input(500,'storemeteo',storemeteo,0)
@@ -502,6 +503,7 @@ contains
    endif
    !
    store_zvolume = .false.
+   !
    if (subgrid) then
        if (storezvolume==1) then
           store_zvolume = .true.
@@ -575,9 +577,16 @@ contains
    endif      
    !
    use_storage_volume = .false.
+   store_storagevolume = .false.
+   !
    if (volfile(1:4) /= 'none') then
       if (subgrid) then
          use_storage_volume = .true.
+         !
+         if (storestoragevolume==1) then
+             store_storagevolume = .true.
+         endif    
+         ! 
       else
          call write_log('Warning : storage volume only supported for subgrid topographies!', 1)
       endif

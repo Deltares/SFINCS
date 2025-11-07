@@ -15,7 +15,8 @@ module sfincs_ncoutput
       integer :: corner_x_varid, corner_y_varid, face_x_varid, face_y_varid, crs_varid, grid_varid 
       integer :: zb_varid, msk_varid, qinf_varid
       integer :: time_varid, timemax_varid
-      integer :: zs_varid, zsmax_varid, h_varid, u_varid, v_varid, tmax_varid, Seff_varid, tmax_zs_varid 
+      integer :: zs_varid, zsmax_varid, h_varid, u_varid, v_varid, tmax_varid, Seff_varid, tmax_zs_varid
+      integer :: zvolume_varid, storagevolume_varid
       integer :: hmax_varid, vmax_varid, qmax_varid, cumprcp_varid, cuminf_varid, windmax_varid
       integer :: patm_varid, wind_u_varid, wind_v_varid, precip_varid        
       integer :: hm0_varid, hm0ig_varid, snapwavemsk_varid, tp_varid, tpig_varid, wavdir_varid, dirspr_varid
@@ -303,6 +304,36 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%v_varid, 'standard_name', 'northward_sea_water_velocity')) ! not truly eastward when rotated, eastward_sea_water_velocity
       NF90(nf90_put_att(map_file%ncid, map_file%v_varid, 'long_name', 'flow_velocity_y_direction'))     
       NF90(nf90_put_att(map_file%ncid, map_file%v_varid, 'coordinates', 'x y'))
+   endif
+   !
+   ! Volume in subgrid cell and storage volume
+   !
+   if (subgrid) then
+      !
+      if (store_zvolume) then
+         !
+         NF90(nf90_def_var(map_file%ncid, 'subgrid_volume', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%zvolume_varid)) ! time-varying z_volume map
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%zvolume_varid, 1, 1, nc_deflate_level)) ! deflate
+         NF90(nf90_put_att(map_file%ncid, map_file%zvolume_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(map_file%ncid, map_file%zvolume_varid, 'units', 'm3'))
+         NF90(nf90_put_att(map_file%ncid, map_file%zvolume_varid, 'standard_name', 'subgrid_volume_in_cell')) 
+         NF90(nf90_put_att(map_file%ncid, map_file%zvolume_varid, 'long_name', 'subgrid_volume_in_cell'))  
+         NF90(nf90_put_att(map_file%ncid, map_file%zvolume_varid, 'coordinates', 'x y'))
+         ! 
+      endif
+      !
+      if (store_storagevolume) then
+         !
+         NF90(nf90_def_var(map_file%ncid, 'storage_volume', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%storagevolume_varid)) ! time-varying storage_volume map
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%storagevolume_varid, 1, 1, nc_deflate_level)) ! deflate
+         NF90(nf90_put_att(map_file%ncid, map_file%storagevolume_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(map_file%ncid, map_file%storagevolume_varid, 'units', 'm3'))
+         NF90(nf90_put_att(map_file%ncid, map_file%storagevolume_varid, 'standard_name', 'storage_volume_in_cell')) 
+         NF90(nf90_put_att(map_file%ncid, map_file%storagevolume_varid, 'long_name', 'storage_volume_in_cell'))  
+         NF90(nf90_put_att(map_file%ncid, map_file%storagevolume_varid, 'coordinates', 'x y'))
+         !           
+      endif
+      !      
    endif
    !
    ! Store S_effective (only for CN method with recovery)
@@ -1015,6 +1046,37 @@ contains
       !
    endif
    !
+   ! Volume in subgrid cell and storage volume
+   !
+   if (subgrid) then
+      !
+      if (store_zvolume) then
+         !
+         NF90(nf90_def_var(map_file%ncid, 'subgrid_volume', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%zvolume_varid)) ! time-varying z_volume map
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%zvolume_varid, 1, 1, nc_deflate_level))          
+         NF90(nf90_put_att(map_file%ncid, map_file%zvolume_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(map_file%ncid, map_file%zvolume_varid, 'units', 'm3'))
+         NF90(nf90_put_att(map_file%ncid, map_file%zvolume_varid, 'standard_name', 'subgrid_volume_in_cell')) 
+         NF90(nf90_put_att(map_file%ncid, map_file%zvolume_varid, 'long_name', 'subgrid_volume_in_cell'))  
+         NF90(nf90_put_att(map_file%ncid, map_file%zvolume_varid, 'coordinates', 'x y'))
+         ! 
+      endif
+      !
+      if (store_storagevolume) then
+         !
+         NF90(nf90_def_var(map_file%ncid, 'storage_volume', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%storagevolume_varid)) ! time-varying storage_volume map
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%storagevolume_varid, 1, 1, nc_deflate_level)) ! deflate
+         NF90(nf90_put_att(map_file%ncid, map_file%storagevolume_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(map_file%ncid, map_file%storagevolume_varid, 'units', 'm3'))
+         NF90(nf90_put_att(map_file%ncid, map_file%storagevolume_varid, 'standard_name', 'storage_volume_in_cell')) 
+         NF90(nf90_put_att(map_file%ncid, map_file%storagevolume_varid, 'long_name', 'storage_volume_in_cell'))  
+         NF90(nf90_put_att(map_file%ncid, map_file%storagevolume_varid, 'coordinates', 'x y'))
+         !           
+      endif
+      !      
+   endif
+   !   
+   
    ! Time varying spatial output
    !
    if (store_maximum_waterlevel) then
@@ -2095,6 +2157,44 @@ contains
       !
    endif
    !
+   if (subgrid) then
+      !
+      if (store_zvolume) then
+         !
+         zsg = FILL_VALUE       
+         !
+         do nm = 1, np
+            !
+            n    = z_index_z_n(nm)
+            m    = z_index_z_m(nm)
+            !      
+            zsg(m, n) = z_volume(nm)
+            !
+         enddo
+         ! 
+         NF90(nf90_put_var(map_file%ncid, map_file%zvolume_varid, zsg, (/1, 1, ntmapout/))) ! write z_volume         
+         !
+      endif
+      !
+      if (store_storagevolume) then
+         !
+         zsg = FILL_VALUE       
+         !
+         do nm = 1, np
+            !
+            n    = z_index_z_n(nm)
+            m    = z_index_z_m(nm)
+            !      
+            zsg(m, n) = storage_volume(nm)
+            !
+         enddo
+         ! 
+         NF90(nf90_put_var(map_file%ncid, map_file%storagevolume_varid, zsg, (/1, 1, ntmapout/))) ! write storage_volume         
+         !        
+      endif
+      !      
+   endif   
+   !
    if (inftype == 'cnb') then
       !
       ! Store S_effective (only for CN method with recovery)
@@ -2492,7 +2592,49 @@ contains
          NF90(nf90_put_var(map_file%ncid, map_file%v_varid, vtmp, (/1, ntmapout/)))
          !
       endif
-      ! 
+      !
+      if (subgrid) then
+         !
+         if (store_zvolume) then
+            !
+            vtmp = FILL_VALUE
+            !
+            do nmq = 1, quadtree_nr_points
+               !
+               nm = index_sfincs_in_quadtree(nmq)
+               !
+               if (nm>0) then
+                  ! 
+                  vtmp(nmq) = z_volume(nm)
+                  !
+               endif   
+            enddo
+            !
+            NF90(nf90_put_var(map_file%ncid, map_file%zvolume_varid, vtmp, (/1, ntmapout/)))            
+            ! 
+         endif
+         !
+         if (store_storagevolume) then
+            !
+            vtmp = FILL_VALUE
+            !
+            do nmq = 1, quadtree_nr_points
+               !
+               nm = index_sfincs_in_quadtree(nmq)
+               !
+               if (nm>0) then
+                  ! 
+                  vtmp(nmq) = storage_volume(nm)
+                  !
+               endif   
+            enddo
+            !
+            NF90(nf90_put_var(map_file%ncid, map_file%storagevolume_varid, vtmp, (/1, ntmapout/)))            
+            ! 
+         endif
+         !      
+      endif      
+      !
       if (store_meteo) then  
           !
           if (wind) then
