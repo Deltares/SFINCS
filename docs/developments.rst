@@ -54,13 +54,14 @@ The code consists of all functionality of the 2025.01 'v2.2.0 col d'Eze' release
 * For thin dams now also the snapped x&y locations are written to the his-file, as for weirfiles.
 * Added infiltration to logfile processes section.
 * Added explanation on how to use the check valve option in drainage structures in the documentation.
-* Add description for utmzone input in case of spiderwebs in latlon
+* Add description for utmzone input in case of spiderwebs in latlon.
 
 * New Python setup tools HydroMT-SFINCS release > recommended to use this new version (v1.2.1) instead of the last release!
 
 Bugfixes:
 
-* Fixed bug with restartfile where fluxes were not read in fully correctly due to mismatch length of variable
+* Fixed bug with restartfile where fluxes were not read in fully correctly due to mismatch length of variable.
+* Fixed bug in quadtree variable dyrinvc use and definition.
 * Fixed bug when spw_merge_frac is different from default 0.5.
 
 Advanced user options - currently as alpha/beta functionality:
@@ -68,10 +69,10 @@ Advanced user options - currently as alpha/beta functionality:
 * NOTE - please contact Deltares-SFINCS group in case you want to use any of this functionality.
 
 * Update of the integrated SnapWave solver to be consistent the latest standalone version (https://doi.org/10.5194/egusphere-2025-492).
-* Option to include or exclude wind from SFINCS to SnapWave coupling, to include wind growth on wave heights or not
+* Option to include or exclude wind from SFINCS to SnapWave coupling, to include wind growth on wave heights or not.
 * Added Neumann water level boundary condition option.
 * Added downstream riverine water level boundary condition option.
-* Added runup gauge option
+* Added runup gauge option.
 * Added variations on drainage structures with moveable gates, triggered by either water level exceedance or provided time.
 * Added option to use bcafile astronomical boundary conditions to internally generate tidal water levels at msk=2 boundary, similar to Delft3D.
 * Added option of meteo enhancement factors.
