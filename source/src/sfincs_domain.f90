@@ -1491,7 +1491,7 @@ contains
          if (iref>1) then
             !         
             dxrinvc(iref) = 1.0/(3*dxrm(iref)/2)
-            dyrinvc(iref) = 1.0*(3*dyrm(iref)/2)
+            dyrinvc(iref) = 1.0/(3*dyrm(iref)/2)
             !
          endif   
          !
