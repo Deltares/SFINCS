@@ -60,6 +60,7 @@ The code consists of all functionality of the 2025.01 'v2.2.0 col d'Eze' release
 
 Bugfixes:
 
+* Fixed bug with restartfile where fluxes were not read in fully correctly due to mismatch length of variable
 * Fixed bug when spw_merge_frac is different from default 0.5.
 
 Advanced user options - currently as alpha/beta functionality:
