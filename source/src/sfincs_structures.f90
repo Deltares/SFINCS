@@ -466,17 +466,12 @@
          deallocate(ythd)
          !
          total_nr_points = total_nr_points + nr_points
-         !
-         write(*,*)'length uv_indices',size(uv_indices)
-         write(*,*)'uv_indices',uv_indices         
+         !    
       enddo
       !
       close(500)
       !
-      !
       nrthindams = total_nr_points
-      !
-
       !      
       allocate(thindam_uv_index(nrthindams))
       !
@@ -487,11 +482,10 @@
          if (istruc(ip)==1) then
             !
             nstruc = nstruc + 1
-            thindam_uv_index(nstruc) = ip      
+            thindam_uv_index(nstruc) = ip
+            !
          endif
-      enddo
-      
-      !thindam_uv_index = uv_indices
+      enddo      
       !
       write(logstr,'(a,i0,a)')'Info    : ', total_nr_points,' structure u/v points found'
       call write_log(logstr, 0)
@@ -577,9 +571,7 @@
        enddo
    enddo
    !
-   ! Get coordinates and height
-   write(*,*)'nrthindams',nrthindams
-   write(*,*)'thindam_uv_index',thindam_uv_index
+   ! Get coordinates
    !
    do istruc = 1, nrthindams
        !
