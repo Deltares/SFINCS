@@ -391,7 +391,7 @@
    !
    implicit none
    !
-   integer ip, nm, nthd, nrows, ncols, irow, stat, ithd, nr_points, total_nr_points, iuv, indx
+   integer ip, nm, nthd, nstruc, nrows, ncols, irow, stat, ithd, nr_points, total_nr_points, iuv, indx
    !
    real      :: dst, dstmin, xxx, yyy, dstx, dsty
    real      :: dummy
@@ -404,11 +404,15 @@
    real*4,  dimension(2)                :: yp
    integer, dimension(:),   allocatable :: uv_indices   
    integer, dimension(:),   allocatable :: vertices
+   integer*1, dimension(:), allocatable  :: istruc  
    !
    ! Read thin dams file
    !
    nthd = 0
    total_nr_points = 0
+   !
+   allocate(istruc(npuv))
+   istruc = 0   
    !
    if (thdfile(1:4) /= 'none') then
       !
@@ -454,6 +458,7 @@
             !
             indx = uv_indices(iuv)
             kcuv(indx) = 0
+            istruc(indx) = 1            
             !
          enddo
          !
@@ -462,14 +467,31 @@
          !
          total_nr_points = total_nr_points + nr_points
          !
+         write(*,*)'length uv_indices',size(uv_indices)
+         write(*,*)'uv_indices',uv_indices         
       enddo
       !
       close(500)
       !
+      !
       nrthindams = total_nr_points
       !
+
+      !      
       allocate(thindam_uv_index(nrthindams))
-      thindam_uv_index = uv_indices
+      !
+      nstruc = 0
+      !
+      do ip = 1, npuv
+         !
+         if (istruc(ip)==1) then
+            !
+            nstruc = nstruc + 1
+            thindam_uv_index(nstruc) = ip      
+         endif
+      enddo
+      
+      !thindam_uv_index = uv_indices
       !
       write(logstr,'(a,i0,a)')'Info    : ', total_nr_points,' structure u/v points found'
       call write_log(logstr, 0)
@@ -556,6 +578,8 @@
    enddo
    !
    ! Get coordinates and height
+   write(*,*)'nrthindams',nrthindams
+   write(*,*)'thindam_uv_index',thindam_uv_index
    !
    do istruc = 1, nrthindams
        !
