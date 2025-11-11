@@ -18,8 +18,9 @@ Indicated are new functionality for SFINCS itself (core), and model setup/post-p
 Known issues
 -----
 
-Known issues of the current SFINCS main version and last release are listed here:
+Known issues/warnings of the current SFINCS main version and last release are listed here:
 
+* If you are still using restartfiles from SFINCS 2023 Cauberg release or older, you should remake your restartfiles to overcome potential issues with running the col d'Eze, mt Faber or future releaeses! 
 * The BMI implementation in SFINCS is up to date with XMI (BMI + extensions - Hughes et al. 2022), to be used with 'xmipy' (https://github.com/Deltares/xmipy) and related functions (https://deltares.github.io/xmipy/xmipy.html), which is however not up to date with the latests CSDMS standard BMI implementation 2.0.
 * The combination of netspwfile with large difference in reference time between the spiderweb and the SFINCS simulation itself, might not run correctly in the Docker version. Use the ascii spwfile input or the Windows build executable which work correctly.
 * Docker GPU version of Deltares latest is not fully functional. If you'd want to use the GPU version of SFINCS, get in touch to set up a collaboration.
@@ -60,7 +61,7 @@ The code consists of all functionality of the 2025.01 'v2.2.0 col d'Eze' release
 
 Bugfixes:
 
-* Fixed bug with restartfile where fluxes were not read in fully correctly due to mismatch length of variable.
+* Fixed bug with restartfile where fluxes were not read in fully correctly due to mismatch length of variable (dummy +1). NOTE - if you are still using restartfiles from SFINCS 2023 Cauberg release or older, you should remake your restartfiles to overcome potential issues! 
 * Fixed bug in quadtree variable dyrinvc use and definition.
 * Fixed bug when spw_merge_frac is different from default 0.5.
 
