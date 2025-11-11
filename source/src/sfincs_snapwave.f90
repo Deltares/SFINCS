@@ -550,15 +550,15 @@ contains
    ! Loop over points and set Tp, cg, direction, spreading to 0 where H and/or H_ig are zero
    ! TL: needed because e.g. Tp is set to Tpini initially, so shows values even if cell remains dry with H=0
    do k = 1, no_nodes
-       if (snapwave_H(k) <= 0) then
-           snapwave_Tp(k) = 0
-           snapwave_mean_direction(k) = 0
-           snapwave_directional_spreading(k) = 0
-           snapwave_cg(k) = 0
+       if (snapwave_H(k) <= 0.0) then
+           snapwave_Tp(k) = 0.0
+           snapwave_mean_direction(k) = 0.0
+           snapwave_directional_spreading(k) = 0.0
+           snapwave_cg(k) = 0.0
        endif
        !
-       if (snapwave_H_ig(k) <= 0) then
-           snapwave_Tp_ig(k) = 0        
+       if (snapwave_H_ig(k) <= 0.0) then
+           snapwave_Tp_ig(k) = 0.0        
        endif       
    enddo   
    !
