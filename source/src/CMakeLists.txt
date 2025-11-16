@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.19)
 project(sfincs LANGUAGES Fortran)
 
+# ---------------- Global PIC for shared libs ----------------
+# Ensure all objects are built with -fPIC, so we can link them into libsfincs_bmi.so
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # ---------------- Options ----------------
 option(SFINCS_ENABLE_NETCDF "Enable NetCDF-Fortran I/O" ON)
 option(SFINCS_ENABLE_OPENMP "Enable OpenMP for Fortran" OFF)
@@ -81,6 +85,7 @@ endif()
 # ====================================================================
 set(_CORE_CANDIDATES
   bmi.f90
+  deg2utm.f90
   sfincs_spiderweb.f90
   sfincs_error.f90
   sfincs_input.f90
@@ -140,6 +145,7 @@ endif()
 add_library(sfincs_core_objs OBJECT ${SFINCS_CORE_SOURCES})
 set_target_properties(sfincs_core_objs PROPERTIES
   Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/mod/sfincs_core
+  POSITION_INDEPENDENT_CODE ON          # ensure OBJECT files are built with -fPIC
 )
 if(_F_FLAGS)
   target_compile_options(sfincs_core_objs PRIVATE ${_F_FLAGS})
@@ -171,6 +177,7 @@ add_library(sfincs_core STATIC
 set_target_properties(sfincs_core PROPERTIES
   OUTPUT_NAME sfincs_core
   Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/mod/sfincs_core
+  POSITION_INDEPENDENT_CODE ON       # needed so we can link into shared sfincs_bmi
 )
 if(_F_FLAGS)
   target_compile_options(sfincs_core PRIVATE ${_F_FLAGS})
@@ -207,10 +214,12 @@ endif()
 set(SFINCS_BMI_SOURCES "")
 _append_if_exists(SFINCS_BMI_SOURCES sfincs_bmi2.f90)
 if(NOT SFINCS_BMI_SOURCES STREQUAL "")
-  add_library(sfincs_bmi STATIC ${SFINCS_BMI_SOURCES})
+  # Build sfincs_bmi as a SHARED library -> libsfincs_bmi.so
+  add_library(sfincs_bmi SHARED ${SFINCS_BMI_SOURCES})
   set_target_properties(sfincs_bmi PROPERTIES
     OUTPUT_NAME sfincs_bmi
     Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/mod/sfincs_bmi
+    POSITION_INDEPENDENT_CODE ON
   )
   if(_F_FLAGS)
     target_compile_options(sfincs_bmi PRIVATE ${_F_FLAGS})
@@ -241,7 +250,7 @@ install(TARGETS sfincs_core
 )
 if(TARGET sfincs_bmi)
   install(TARGETS sfincs_bmi
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
 endif()
 install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/mod/sfincs_core
