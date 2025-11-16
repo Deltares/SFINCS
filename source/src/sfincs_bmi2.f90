@@ -51,7 +51,9 @@ module sfincs_bmi2
     character(len=:), pointer :: input_names(:)  => null()
     character(len=:), pointer :: output_names(:) => null()
 
-    logical :: is_initialized = .false.
+    logical :: is_initialized   = .false.
+    logical :: depth_is_derived = .true.
+
   contains
     ! lifecycle
     procedure :: initialize                 => sfincs_bmi_initialize
@@ -143,6 +145,8 @@ contains
     this%t_start = 0.0d0; this%t_end = 3600.0d0
     this%t = this%t_start
 
+    this%depth_is_derived = .true.
+
     ncell = this%nx * this%ny
     allocate(this%zs(ncell), this%zb(ncell), this%depth(ncell))
     this%zs = 0.0_real32; this%zb = 0.0_real32; this%depth = 0.0_real32
@@ -227,6 +231,7 @@ contains
     if (allocated(this%depth_d)) deallocate(this%depth_d)
     nullify(this%component_name, this%input_names, this%output_names)
     this%is_initialized = .false.
+    this%depth_is_derived = .true.
     status = BMI_SUCCESS
   end function sfincs_bmi_finalize
 
@@ -610,47 +615,91 @@ contains
   !============================
   !== Values (FLOAT)
   !============================
-  function sfincs_bmi_get_value_float(this, name, dest) result(status)
-    class(sfincs_bmi), intent(in)  :: this
-    character(len=*),  intent(in)  :: name
-    real(real32),      intent(inout) :: dest(:)
-    integer :: status
-    select case (trim(name))
-    case (VAR_ZS)
-      if (size(dest)<size(this%zs))    then; status=BMI_FAILURE; return; endif
-      dest = this%zs
-    case (VAR_ZB)
-      if (size(dest)<size(this%zb))    then; status=BMI_FAILURE; return; endif
-      dest = this%zb
-    case (VAR_DEPTH)
-      if (size(dest)<size(this%depth)) then; status=BMI_FAILURE; return; endif
+function sfincs_bmi_get_value_float(this, name, dest) result(status)
+  class(sfincs_bmi), intent(in)    :: this
+  character(len=*),  intent(in)    :: name
+  real(real32),      intent(inout) :: dest(:)
+  integer :: status
+
+  select case (trim(name))
+  case (VAR_ZS)
+    if (size(dest) < size(this%zs)) then
+      status = BMI_FAILURE
+      return
+    end if
+    dest = this%zs
+
+  case (VAR_ZB)
+    if (size(dest) < size(this%zb)) then
+      status = BMI_FAILURE
+      return
+    end if
+    dest = this%zb
+
+  case (VAR_DEPTH)
+    if (size(dest) < size(this%zs)) then
+      ! use zs size as canonical grid size
+      status = BMI_FAILURE
+      return
+    end if
+
+    if (this%depth_is_derived) then
+      ! Depth is derived from zs and zb: compute on the fly
+      dest = max(this%zs - this%zb, 0.0_real32)
+    else
+      ! Depth has been explicitly set by the user; use stored array
+      if (.not. allocated(this%depth)) then
+        status = BMI_FAILURE
+        return
+      end if
       dest = this%depth
-    case default
-      status = BMI_FAILURE; return
-    end select
-    status = BMI_SUCCESS
-  end function sfincs_bmi_get_value_float
+    end if
+
+  case default
+    status = BMI_FAILURE
+    return
+  end select
+
+  status = BMI_SUCCESS
+end function sfincs_bmi_get_value_float
 
   function sfincs_bmi_set_value_float(this, name, src) result(status)
     class(sfincs_bmi), intent(inout) :: this
     character(len=*),  intent(in)    :: name
     real(real32),      intent(in)    :: src(:)
     integer :: status
+
     select case (trim(name))
     case (VAR_ZS)
-      if (size(src)<size(this%zs))    then; status=BMI_FAILURE; return; endif
-      this%zs    = src
+      if (size(src) < size(this%zs)) then
+        status = BMI_FAILURE; return
+      end if
+      this%zs = src
+      call sync_double_buffers(this)
+      call sync_module_ptr_buffers(this)
+
     case (VAR_ZB)
-      if (size(src)<size(this%zb))    then; status=BMI_FAILURE; return; endif
-      this%zb    = src
+      if (size(src) < size(this%zb)) then
+        status = BMI_FAILURE; return
+      end if
+      this%zb = src
+      call sync_double_buffers(this)
+      call sync_module_ptr_buffers(this)
+
     case (VAR_DEPTH)
-      if (size(src)<size(this%depth)) then; status=BMI_FAILURE; return; endif
+      if (size(src) < size(this%depth)) then
+        status = BMI_FAILURE; return
+      end if
       this%depth = src
+      this%depth_d = real(this%depth, kind=real64)
+      this%depth_is_derived = .false.
+      call sync_module_ptr_buffers(this)
+
     case default
-      status = BMI_FAILURE; return
+      status = BMI_FAILURE
+      return
     end select
-    call sync_double_buffers(this)
-    call sync_module_ptr_buffers(this)
+
     status = BMI_SUCCESS
   end function sfincs_bmi_set_value_float
 
@@ -689,16 +738,36 @@ contains
     real(real32),      intent(in)    :: src(:)
     integer :: status, k, n
     real(real32), pointer :: p(:) => null()
-    status = this%get_value_ptr_float(name, p); if (status /= BMI_SUCCESS) return
-    n = size(inds); if (size(src)<n) then; status=BMI_FAILURE; return; endif
-    do k = 1, n; p(inds(k)) = src(k); end do
-    ! reflect into components
+
+    status = this%get_value_ptr_float(name, p)
+    if (status /= BMI_SUCCESS) return
+
+    n = size(inds)
+    if (size(src) < n) then
+      status = BMI_FAILURE
+      return
+    end if
+
+    do k = 1, n
+      p(inds(k)) = src(k)
+    end do
+
     select case (trim(name))
-    case (VAR_ZS);    this%zs    = g_zs_f
-    case (VAR_ZB);    this%zb    = g_zb_f
-    case (VAR_DEPTH); this%depth = g_depth_f
+    case (VAR_ZS)
+      this%zs = g_zs_f
+      call sync_double_buffers(this)
+
+    case (VAR_ZB)
+      this%zb = g_zb_f
+      call sync_double_buffers(this)
+
+    case (VAR_DEPTH)
+      this%depth = g_depth_f
+      this%depth_d = real(this%depth, kind=real64)
+      this%depth_is_derived = .false.
+
     end select
-    call sync_double_buffers(this)
+
     call sync_module_ptr_buffers(this)
     status = BMI_SUCCESS
   end function sfincs_bmi_set_value_at_indices_float
@@ -706,24 +775,37 @@ contains
   !============================
   !== Values (DOUBLE)
   !============================
-  function sfincs_bmi_get_value_double(this, name, dest) result(status)
+    function sfincs_bmi_get_value_double(this, name, dest) result(status)
     class(sfincs_bmi), intent(in)  :: this
     character(len=*),  intent(in)  :: name
     real(real64),      intent(inout) :: dest(:)
     integer :: status
+
     select case (trim(name))
     case (VAR_ZS)
-      if (size(dest)<size(this%zs_d))    then; status=BMI_FAILURE; return; endif
+      if (size(dest) < size(this%zs_d)) then
+        status = BMI_FAILURE; return
+      end if
       dest = this%zs_d
+
     case (VAR_ZB)
-      if (size(dest)<size(this%zb_d))    then; status=BMI_FAILURE; return; endif
+      if (size(dest) < size(this%zb_d)) then
+        status = BMI_FAILURE; return
+      end if
       dest = this%zb_d
+
     case (VAR_DEPTH)
-      if (size(dest)<size(this%depth_d)) then; status=BMI_FAILURE; return; endif
+      if (size(dest) < size(this%depth_d)) then
+        status = BMI_FAILURE; return
+      end if
+      ! Always use the maintained double buffer for depth
       dest = this%depth_d
+
     case default
-      status = BMI_FAILURE; return
+      status = BMI_FAILURE
+      return
     end select
+
     status = BMI_SUCCESS
   end function sfincs_bmi_get_value_double
 
@@ -759,6 +841,7 @@ contains
       ! Here depth is explicitly set by the user: do NOT recompute from zs/zb
       this%depth_d = src
       this%depth   = real(src, kind=real32)
+      this%depth_is_derived = .false.
       call sync_module_ptr_buffers(this)
 
     case default
@@ -833,6 +916,7 @@ contains
       ! p => g_depth_d; user explicitly sets depth only
       this%depth_d = g_depth_d
       this%depth   = real(this%depth_d, kind=real32)
+      this%depth_is_derived = .false.
       ! IMPORTANT: no recompute from zs/zb here
 
     case default
@@ -927,21 +1011,20 @@ contains
   subroutine sync_double_buffers(this)
     class(sfincs_bmi), intent(inout) :: this
     if (.not. allocated(this%zs_d)) return
-    ! Derived from float fields
-    this%zs_d    = real(this%zs,    kind=real64)
-    this%zb_d    = real(this%zb,    kind=real64)
+    this%zs_d = real(this%zs, kind=real64)
+    this%zb_d = real(this%zb, kind=real64)
     this%depth_d = max(this%zs_d - this%zb_d, 0.0_real64)
+    this%depth_is_derived = .true.
   end subroutine sync_double_buffers
 
   subroutine sync_float_buffers(this)
     class(sfincs_bmi), intent(inout) :: this
     if (.not. allocated(this%zs)) return
-    ! Derived from double fields
     this%zs = real(this%zs_d, kind=real32)
     this%zb = real(this%zb_d, kind=real32)
-    ! IMPORTANT: only recompute depth here when we are using depth as derived
     this%depth_d = max(this%zs_d - this%zb_d, 0.0_real64)
     this%depth   = real(this%depth_d, kind=real32)
+    this%depth_is_derived = .true.
   end subroutine sync_float_buffers
 
 end module sfincs_bmi2
