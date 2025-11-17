@@ -285,6 +285,13 @@ endforeach()
 if(_TEST_SRC STREQUAL "")
   message(STATUS "SFINCS: test source not found (tests/test_sfincs_bmi2.f90). Skipping test target.")
 else()
+  # Directory that contains a real sfincs.inp for the BMI test.
+  # Default is your XMI example, but can be overridden at configure time:
+  #   -DSFINCS_BMI_TEST_WORKDIR=/path/to/another/example
+  set(SFINCS_BMI_TEST_WORKDIR
+      "/home/mohammed.karim/SFINCS/XMI_EXAMPLE"
+      CACHE PATH "Directory containing sfincs.inp for BMI test")
+
   add_executable(test_sfincs_bmi2 ${_TEST_SRC})
 
   # Use same warning flags for the test
@@ -317,7 +324,10 @@ else()
     )
   endif()
 
-  # Register with CTest
+  # Register with CTest and point it at the real SFINCS example dir
   add_test(NAME test_sfincs_bmi2 COMMAND test_sfincs_bmi2)
+  set_tests_properties(test_sfincs_bmi2 PROPERTIES
+    WORKING_DIRECTORY "${SFINCS_BMI_TEST_WORKDIR}"
+  )
 endif()
 

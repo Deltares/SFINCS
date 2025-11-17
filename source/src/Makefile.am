@@ -50,7 +50,7 @@ libsfincs_la_SOURCES = \
 	sfincs_wavemaker.f90 \
 	sfincs_infiltration.f90 \
 	sfincs_lib.f90 \
-	sfincs_bmi.f90
+	sfincs_bmi2.f90
         
 libsfincs_la_LIBADD = \
 	$(top_builddir)/third_party_open/netcdf/netcdf-fortran-4.4.4/fortran/libnetcdff.la

@@ -384,7 +384,14 @@ contains
 
     s = m%get_current_time(t_after)
     call check_status_is(s, BMI_SUCCESS, 'current time after update')
-    call check(rel_eq(t_after, t_before + dt, 1d-8), 'time advanced by dt')
+
+    ! SFINCS uses adaptive time-stepping, so we only require that time advances forward,
+    ! not that it equals t_before + dt exactly.
+    call check(t_after > t_before, 'time advanced forward (variable-step model)')
+
+    ! New test: time should still be within [t_start, t_end + eps]
+    call check(t_after >= t0 .and. t_after <= t1 + 1d-8, &
+               'time after update within [t_start, t_end + eps]')
 
     ! update_until forward in time
     s = m%update_until(t_after + 5.d0)
