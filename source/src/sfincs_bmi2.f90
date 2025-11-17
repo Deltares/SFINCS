@@ -1,8 +1,10 @@
 module sfincs_bmi2
-  !! BMI 2.0 wrapper for SFINCS (rectilinear grid, mock implementation)
+  !! BMI 2.0 wrapper for SFINCS (rectilinear grid, real implementation)
   !! Exposes outputs: zs, zb, depth (= max(zs - zb, 0))
   use, intrinsic :: iso_fortran_env, only: real32, real64
   use bmif_2_0,  only: bmi, BMI_SUCCESS, BMI_FAILURE
+  use sfincs_data, only: nmax, mmax, np, zs, zb, t0, t1   ! adjust if needed
+  use sfincs_lib,  only: sfincs_initialize, sfincs_update, sfincs_finalize, t, dt
   implicit none
   private
 
@@ -36,7 +38,7 @@ module sfincs_bmi2
     real(real64) :: t_start = 0.0d0
     real(real64) :: t_end   = 0.0d0
 
-    ! --- Model state (allocatable; not TARGET)
+    ! --- Model state (allocatable; not TARGET, but mirrored from sfincs_data)
     real(real32), allocatable :: zs    (:)
     real(real32), allocatable :: zb    (:)
     real(real32), allocatable :: depth (:)
@@ -132,37 +134,84 @@ contains
   !== Lifecycle
   !============================
   function sfincs_bmi_initialize(this, config_file) result(status)
+    !! BMI initialize: call real sfincs_initialize, then mirror state into BMI arrays.
     class(sfincs_bmi), intent(out) :: this
     character(len=*),  intent(in)  :: config_file
     integer :: status
-    integer :: ncell, L
+    integer :: ierr
+    integer :: ncell
+    integer :: L
+    character(len=:), allocatable :: cfg
 
-    ! MOCK implementation: ignore config_file, use fixed grid
-    this%nx = 10; this%ny = 10
-    this%dx = 100.0d0; this%dy = 100.0d0
-    this%x0 = 0.0d0;   this%y0 = 0.0d0
-    this%dt = 1.0d0
-    this%t_start = 0.0d0; this%t_end = 3600.0d0
-    this%t = this%t_start
+    ! --------------------------
+    ! 1) Call real SFINCS init
+    ! --------------------------
+    if (len_trim(config_file) == 0) then
+      ! Default to local sfincs.inp if BMI caller passes empty string
+      cfg = 'sfincs.inp'
+    else
+      cfg = trim(config_file)
+    end if
+
+    ierr = sfincs_initialize(cfg)
+    if (ierr /= 0) then
+      status = BMI_FAILURE
+      return
+    end if
+
+    ! --------------------------
+    ! 2) Mirror time info
+    ! --------------------------
+    this%t_start = t0   ! from sfincs_data
+    this%t_end   = t1   ! from sfincs_data
+    this%t       = t    ! from sfincs_lib (current time)
+
+    ! Choose a BMI "logical" time step: small fraction of full range.
+    if (this%t_end > this%t_start) then
+      this%dt = max(1.0d0, (this%t_end - this%t_start) / 100.d0)
+    else
+      this%dt = 1.0d0
+    end if
+
+    ! --------------------------
+    ! 3) Grid info
+    ! --------------------------
+    ! Use np as the number of cells. Represent as a 2D grid with ny=1, nx=np.
+    ! This keeps things simple but still gives rank=2 as required by BMI.
+    ncell    = np
+    this%ny  = 1
+    this%nx  = ncell
+    this%dx  = 1.0d0
+    this%dy  = 1.0d0
+    this%x0  = 0.0d0
+    this%y0  = 0.0d0
+    this%rotation = 0.0d0
+
+    ! --------------------------
+    ! 4) Allocate BMI state and pull from core
+    ! --------------------------
+    allocate(this%zs(ncell), this%zb(ncell), this%depth(ncell))
+    allocate(this%zs_d(ncell), this%zb_d(ncell), this%depth_d(ncell))
+
+    call sync_from_sfincs_core(this)
 
     this%depth_is_derived = .true.
 
-    ncell = this%nx * this%ny
-    allocate(this%zs(ncell), this%zb(ncell), this%depth(ncell))
-    this%zs = 0.0_real32; this%zb = 0.0_real32; this%depth = 0.0_real32
-
-    allocate(this%zs_d(ncell), this%zb_d(ncell), this%depth_d(ncell))
-    call sync_double_buffers(this)
-
-    ! Pointer-return strings/arrays
+    ! --------------------------
+    ! 5) Pointer-return strings/arrays
+    ! --------------------------
     if (.not. allocated(g_component_name)) allocate(character(len=13) :: g_component_name)
     g_component_name = 'SFINCS BMI 2.0'
+
     if (.not. allocated(g_time_units))     allocate(character(len=1) :: g_time_units)
     g_time_units = 's'
+
     if (.not. allocated(g_units_m))        allocate(character(len=1) :: g_units_m)
     g_units_m = 'm'
+
     if (.not. allocated(g_loc_node))       allocate(character(len=4) :: g_loc_node)
     g_loc_node   = 'node'
+
     if (.not. allocated(g_grid_rect))      allocate(character(len=19) :: g_grid_rect)
     g_grid_rect  = 'uniform_rectilinear'
 
@@ -191,48 +240,109 @@ contains
   end function sfincs_bmi_initialize
 
   function sfincs_bmi_update(this) result(status)
+    !! BMI update: advance model by ~this%dt using real sfincs_update.
     class(sfincs_bmi), intent(inout) :: this
     integer :: status
+    integer :: ierr
+    double precision :: dtrange
+
     if (.not. this%is_initialized) then
-      status = BMI_FAILURE; return
+      status = BMI_FAILURE
+      return
     end if
 
-    ! Simple time advance
-    this%t = this%t + this%dt
+    write(*,*) 'BMI-DEBUG: entering sfincs_bmi_update'
+    write(*,*) 'BMI-DEBUG: this%t_before = ', this%t
+    write(*,*) 'BMI-DEBUG: this%dt       = ', this%dt
 
-    call sync_double_buffers(this)
-    call sync_module_ptr_buffers(this)
+    ! SFINCS semantics: sfincs_update(dtrange) advances from t to t + dtrange.
+    ! We use BMI's logical dt for dtrange.
+    dtrange = this%dt
+    write(*,*) 'BMI-DEBUG: calling sfincs_update with dtrange = ', dble(this%dt)
+    ierr = sfincs_update(dtrange)
+    write(*,*) 'BMI-DEBUG: sfincs_update returned ierr=', ierr
+    write(*,*) 'BMI-DEBUG: core t, dt after update: t =', t, ' dt =', dt
+    if (ierr /= 0) then
+      status = BMI_FAILURE
+      return
+    end if
+
+    ! Mirror time from SFINCS core back into BMI
+    this%t = t          ! t from sfincs_lib
+    ! t_start/t_end remain as originally set from t0,t1
+
+    ! Pull updated zs/zb/depth from core into BMI buffers
+    call sync_from_sfincs_core(this)
 
     status = BMI_SUCCESS
   end function sfincs_bmi_update
 
   function sfincs_bmi_update_until(this, time) result(status)
+    !! BMI update_until: advance SFINCS until current_time >= time.
     class(sfincs_bmi), intent(inout) :: this
     double precision,  intent(in)    :: time
     integer :: status
+    integer :: ierr
+    double precision :: dtrange
+
     if (.not. this%is_initialized) then
-      status = BMI_FAILURE; return
+      status = BMI_FAILURE
+      return
     end if
-    do while (this%t + this%dt <= time + 1.0d-12)
-      status = this%update()
-      if (status /= BMI_SUCCESS) return
-    end do
+
+    ! No-op if target time is not in the future.
+    if (time <= this%t + 1.0d-12) then
+      status = BMI_SUCCESS
+      return
+    end if
+
+    dtrange = time - this%t
+
+    ierr = sfincs_update(dtrange)
+    if (ierr /= 0) then
+      status = BMI_FAILURE
+      return
+    end if
+
+    ! Mirror time and state from core
+    this%t = t
+    call sync_from_sfincs_core(this)
+
     status = BMI_SUCCESS
   end function sfincs_bmi_update_until
 
   function sfincs_bmi_finalize(this) result(status)
+    !! BMI finalize: call real sfincs_finalize, then clean BMI buffers.
     class(sfincs_bmi), intent(inout) :: this
     integer :: status
-    if (allocated(this%zs))    deallocate(this%zs)
-    if (allocated(this%zb))    deallocate(this%zb)
-    if (allocated(this%depth)) deallocate(this%depth)
+    integer :: ierr
+
+    if (.not. this%is_initialized) then
+      ! Even if not initialized, treat as success for BMI semantics
+      status = BMI_SUCCESS
+      return
+    end if
+
+    ! Call the real SFINCS finalizer
+    ierr = sfincs_finalize()
+
+    ! BMI-level cleanup
+    if (allocated(this%zs))      deallocate(this%zs)
+    if (allocated(this%zb))      deallocate(this%zb)
+    if (allocated(this%depth))   deallocate(this%depth)
     if (allocated(this%zs_d))    deallocate(this%zs_d)
     if (allocated(this%zb_d))    deallocate(this%zb_d)
     if (allocated(this%depth_d)) deallocate(this%depth_d)
+
     nullify(this%component_name, this%input_names, this%output_names)
-    this%is_initialized = .false.
+    this%is_initialized   = .false.
     this%depth_is_derived = .true.
-    status = BMI_SUCCESS
+
+    if (ierr /= 0) then
+      status = BMI_FAILURE
+    else
+      status = BMI_SUCCESS
+    end if
   end function sfincs_bmi_finalize
 
   !============================
@@ -615,53 +725,53 @@ contains
   !============================
   !== Values (FLOAT)
   !============================
-function sfincs_bmi_get_value_float(this, name, dest) result(status)
-  class(sfincs_bmi), intent(in)    :: this
-  character(len=*),  intent(in)    :: name
-  real(real32),      intent(inout) :: dest(:)
-  integer :: status
+  function sfincs_bmi_get_value_float(this, name, dest) result(status)
+    class(sfincs_bmi), intent(in)    :: this
+    character(len=*),  intent(in)    :: name
+    real(real32),      intent(inout) :: dest(:)
+    integer :: status
 
-  select case (trim(name))
-  case (VAR_ZS)
-    if (size(dest) < size(this%zs)) then
-      status = BMI_FAILURE
-      return
-    end if
-    dest = this%zs
-
-  case (VAR_ZB)
-    if (size(dest) < size(this%zb)) then
-      status = BMI_FAILURE
-      return
-    end if
-    dest = this%zb
-
-  case (VAR_DEPTH)
-    if (size(dest) < size(this%zs)) then
-      ! use zs size as canonical grid size
-      status = BMI_FAILURE
-      return
-    end if
-
-    if (this%depth_is_derived) then
-      ! Depth is derived from zs and zb: compute on the fly
-      dest = max(this%zs - this%zb, 0.0_real32)
-    else
-      ! Depth has been explicitly set by the user; use stored array
-      if (.not. allocated(this%depth)) then
+    select case (trim(name))
+    case (VAR_ZS)
+      if (size(dest) < size(this%zs)) then
         status = BMI_FAILURE
         return
       end if
-      dest = this%depth
-    end if
+      dest = this%zs
 
-  case default
-    status = BMI_FAILURE
-    return
-  end select
+    case (VAR_ZB)
+      if (size(dest) < size(this%zb)) then
+        status = BMI_FAILURE
+        return
+      end if
+      dest = this%zb
 
-  status = BMI_SUCCESS
-end function sfincs_bmi_get_value_float
+    case (VAR_DEPTH)
+      if (size(dest) < size(this%zs)) then
+        ! use zs size as canonical grid size
+        status = BMI_FAILURE
+        return
+      end if
+
+      if (this%depth_is_derived) then
+        ! Depth is derived from zs and zb: compute on the fly
+        dest = max(this%zs - this%zb, 0.0_real32)
+      else
+        ! Depth has been explicitly set by the user; use stored array
+        if (.not. allocated(this%depth)) then
+          status = BMI_FAILURE
+          return
+        end if
+        dest = this%depth
+      end if
+
+    case default
+      status = BMI_FAILURE
+      return
+    end select
+
+    status = BMI_SUCCESS
+  end function sfincs_bmi_get_value_float
 
   function sfincs_bmi_set_value_float(this, name, src) result(status)
     class(sfincs_bmi), intent(inout) :: this
@@ -775,7 +885,7 @@ end function sfincs_bmi_get_value_float
   !============================
   !== Values (DOUBLE)
   !============================
-    function sfincs_bmi_get_value_double(this, name, dest) result(status)
+  function sfincs_bmi_get_value_double(this, name, dest) result(status)
     class(sfincs_bmi), intent(in)  :: this
     character(len=*),  intent(in)  :: name
     real(real64),      intent(inout) :: dest(:)
@@ -984,6 +1094,36 @@ end function sfincs_bmi_get_value_float
     case default; is_known_var = .false.
     end select
   end function is_known_var
+
+  ! Mirror core SFINCS arrays into BMI arrays
+  subroutine sync_from_sfincs_core(this)
+    !! Copy zs/zb from sfincs_data into BMI state and refresh mirrors/pointers.
+    class(sfincs_bmi), intent(inout) :: this
+    integer :: ncell
+
+    ! We assume sfincs_data exports:
+    !   integer :: np
+    !   real(real32) :: zs(:), zb(:)
+    !
+    ! and that np is the length of zs/zb.
+    ncell = np
+
+    if (.not. allocated(this%zs)) then
+      allocate(this%zs(ncell), this%zb(ncell), this%depth(ncell))
+    end if
+    if (.not. allocated(this%zs_d)) then
+      allocate(this%zs_d(ncell), this%zb_d(ncell), this%depth_d(ncell))
+    end if
+
+    ! Copy real model state into BMI arrays
+    this%zs    = zs(1:ncell)
+    this%zb    = zb(1:ncell)
+    this%depth = max(this%zs - this%zb, 0.0_real32)
+
+    ! Maintain double-precision mirrors and module-level pointer buffers
+    call sync_double_buffers(this)
+    call ensure_module_ptr_buffers(this)
+  end subroutine sync_from_sfincs_core
 
   subroutine ensure_module_ptr_buffers(this)
     class(sfincs_bmi), intent(in) :: this
