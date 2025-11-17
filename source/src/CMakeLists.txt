@@ -331,3 +331,22 @@ else()
   )
 endif()
 
+# ============================================================
+# Build XMI shared library: libsfincs_dll.so
+# ============================================================
+set(SFINCS_DLL_SOURCES "${SFINCS_SOURCE_DIR}/sfincs_dll.f90")
+
+add_library(sfincs_dll SHARED ${SFINCS_DLL_SOURCES})
+set_target_properties(sfincs_dll PROPERTIES
+    OUTPUT_NAME sfincs_dll
+    POSITION_INDEPENDENT_CODE ON
+    Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/mod/sfincs_dll
+)
+
+target_link_libraries(sfincs_dll PUBLIC sfincs_bmi)
+target_include_directories(sfincs_dll PUBLIC
+    ${CMAKE_CURRENT_BINARY_DIR}/mod/sfincs_bmi
+    ${CMAKE_CURRENT_BINARY_DIR}/mod/sfincs_core
+    ${SFINCS_SOURCE_DIR}
+)
+
