@@ -507,6 +507,12 @@ subroutine update_boundary_conditions(t)
       !
    endif 
    !
+   write(*,*)'w',w
+   write(*,*)'prev',prev
+   write(*,*)'ds',ds
+   write(*,*)'theta',theta
+   write(*,*)'i360',i360      
+   
    ! Build spectra on the boundary support points
    !
    !call build_boundary_support_points_spectra() TODO - TL: later can clean up this code by also using this function
@@ -729,6 +735,9 @@ subroutine update_boundary_points(t)
       endif
    endif
    !         
+   write(*,*)'eet_bwv',eet_bwv
+   
+   write(*,*)'eet_bwv_ig',eet_bwv_ig
 end subroutine update_boundary_points
 !
 subroutine update_wind_field()
@@ -856,6 +865,8 @@ subroutine update_boundaries()
    ! Loop through grid boundary points
    ! Now for all grid boundary points do spatial interpolation of the wave spectra from boundary points at polygon
    !   
+   write(*,*)'ee_ig before',ee_ig
+   
    do ib = 1, nb
       !
       k = nmindbnd(ib)
@@ -895,6 +906,7 @@ subroutine update_boundaries()
       endif      
    endif          
    !
+   write(*,*)'ee_ig',ee_ig
    end subroutine   
    
    

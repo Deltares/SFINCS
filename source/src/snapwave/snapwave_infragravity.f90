@@ -45,6 +45,7 @@ module snapwave_infragravity
     ! Call function that calculates Hig0 following Herbers, as also implemented in XBeach and secordspec2 in Matlab
     ! Loosely based on 3 step calculation in waveparams.F90 of XBeach (build_jonswap, build_etdir, build_boundw), here all in 1 subroutine calculate_herbers
     !
+    write(*,*)'depth',depth
     if (depth < 5.0) then
 	    write(logstr,*)'ERROR SnapWave - depth at boundary input point ',x_bwv, y_bwv,' dropped below 5 m: ',depth, ' which might lead to large values of Hm0ig as bc, especially when directional spreading is low! Please specify input in deeper water. '
         call write_log(logstr, 1)   
@@ -70,6 +71,8 @@ module snapwave_infragravity
         !write(*,*)'DEBUG - computed hm0ig at boundary exceeds 3 meter: ',hsig, ' and is therefore limited back to 3 m!'
 	    !hsig = min(hsig, 3.0)
     endif	        
+    write(*,*)'hsig',hsig
+    
     !
     ! Choose what wave period option value for IG to choose:
     ! Options: 1=Tm01, 2=Tpsmooth, 3=Tp, 4=Tm-1,0
@@ -101,6 +104,8 @@ module snapwave_infragravity
         call write_log(logstr, 1)        
     endif	         
     !   
+    write(*,*)'tpig',tpig
+    
     end subroutine
    
     !-------------------------Supporting subroutines-------------------------!

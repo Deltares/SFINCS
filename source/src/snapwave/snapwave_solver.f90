@@ -405,6 +405,7 @@ module snapwave_solver
    !   
    ! Set inner to false for all points at grid edge or adjacent to dry point
    !
+   write(*,*)'inner',inner
    do k=1,no_nodes
       ! 
       do itheta = 1, ntheta
@@ -429,6 +430,8 @@ module snapwave_solver
          endif
       enddo
    enddo
+   write(*,*)'inner 2',inner
+   
    !
    !
    ! 0-a) Set boundary and initial conditions      
@@ -461,6 +464,9 @@ module snapwave_solver
       endif
    enddo
    !
+   write(*,*)'H_ig inner ',H_ig
+   write(*,*)'E_ig inner ',E_ig
+   
    ! 0-b) Determine IG source/sink term
    !
    if (igwaves) then
@@ -946,6 +952,8 @@ module snapwave_solver
       !
    enddo
    callno=callno+1
+   write(*,*)'H_ig inner after solver',H_ig
+   write(*,*)'E_ig inner after solver',E_ig   
    !
    end subroutine solve_energy_balance2Dstat
 
