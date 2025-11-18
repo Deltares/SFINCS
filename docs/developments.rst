@@ -64,6 +64,7 @@ Bugfixes:
 * Fixed bug with restartfile where fluxes were not read in fully correctly due to mismatch length of variable (dummy +1). NOTE - if you are still using restartfiles from SFINCS 2023 Cauberg release or older, you should remake your restartfiles to overcome potential issues! 
 * Fixed bug in quadtree variable dyrinvc use and definition.
 * Fixed bug when spw_merge_frac is different from default 0.5.
+* Fixed bug in use of SnapWave with IG balance in relation to definition of inner cells
 
 Advanced user options - currently as alpha/beta functionality:
 
