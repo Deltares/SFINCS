@@ -418,7 +418,7 @@ module snapwave_solver
             !
             inner(k) = .false.
             !
-			elseif ((k1==1 .and. k2==1)) then
+			elseif ((k1==1 .and. k2==1)) then ! TL: for now still needed for a working IG solver
 			   inner(k)=.false.
                exit                       
          !elseif (depth(k1) < hmin .or. depth(k2) < hmin .or. (k1 == 1 .and. k2 == 1)) then
