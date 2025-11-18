@@ -419,7 +419,10 @@ module snapwave_solver
             !
             inner(k) = .false.
             !
-         elseif (depth(k1) < hmin .or. depth(k2) < hmin .or. (k1 == 1 .and. k2 == 1)) then
+			elseif ((k1==1 .and. k2==1)) then
+			   inner(k)=.false.
+               exit                       
+         !elseif (depth(k1) < hmin .or. depth(k2) < hmin .or. (k1 == 1 .and. k2 == 1)) then
             !
             ! Do not change inner here! It should be static! In a next update of the wave fields, these points may be wet.
             !
