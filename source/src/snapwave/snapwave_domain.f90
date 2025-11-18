@@ -1,6 +1,9 @@
+#define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)
 module snapwave_domain
 
    use sfincs_log
+   
+   implicit none
     
 contains
 
@@ -9,11 +12,13 @@ contains
    use snapwave_data
    use snapwave_boundaries
    use interp
-   use sfincs_error      
+   use sfincs_error
+   !
+   implicit none
    !
    ! Local input variables
    !
-   integer                                     :: k, j, k1, k2, nzs, ntp, inout
+   integer                                     :: k, j, k1, k2, nzs, ntp, inout, itheta
    integer*4, dimension(:),     allocatable    :: indices
    real*8,    dimension(:),     allocatable    :: theta360d0 ! wave angles,sine and cosine of wave angles
    real*8,    dimension(:,:),   allocatable    :: ds360d0
@@ -21,6 +26,7 @@ contains
    integer*4                                   :: idummy
    character*2                                 :: ext
    logical                                     :: generate_upw, exists
+   character(len=256)                          :: snapwave_ncfname
 !   real*8  :: xmn, ymn
    !
    ! First set some constants
@@ -67,12 +73,12 @@ contains
       !
       ! No grid given ... Should probably give an error here.
       !
-   endif    
+   endif
    !
    call write_log('------------------------------------------', 1)
    call write_log('SnapWave Computational mesh ', 1)
    call write_log('------------------------------------------', 1)
-   write(logstr,'(a,i9)')'Number of active SnapWave nodes: ', no_nodes   
+   write(logstr,'(a,i9)')'Number of active SnapWave nodes: ', no_nodes
    call write_log(logstr, 1)   
    write(logstr,'(a,i9)')'Number of active SnapWave cells: ', no_faces
    call write_log(logstr, 1)   
@@ -81,7 +87,13 @@ contains
    !
    do k = 1, no_faces
       if (face_nodes(4,k)==0) face_nodes(4,k) = -999
-   enddo 
+   enddo
+   !
+   ! write mesh to file
+   if (storesnapwavegrid) then
+      snapwave_ncfname = 'snapwavegrid.nc'
+      call write_snapwave_mesh(snapwave_ncfname, sferic == 1)
+   end if
    !
    ! Done with the mesh
    !
@@ -100,7 +112,6 @@ contains
    !
    ! Allocation of spatial arrays
    !
-   allocate(inner(no_nodes))
    allocate(depth(no_nodes))
    allocate(dhdx(no_nodes))
    allocate(dhdy(no_nodes))
@@ -305,7 +316,7 @@ contains
       ! We already have all msk=3 Neumann points, now find each their nearest cell 'neumannconnected' using new 'neuboundaries_light'
       call neuboundaries_light(x,y,msk,no_nodes,tol,neumannconnected) 
       !
-      if (ANY(neumannconnected > 0)) then
+      if (any(neumannconnected > 0)) then
           !
           write(logstr,*)'SnapWave: Neumann connected boundaries found ...'
           call write_log(logstr, 0)          
@@ -314,8 +325,7 @@ contains
               if (neumannconnected(k)>0) then
                   if (msk(k)==1) then
                       ! k is inner and can be neumannconnected
-                      inner(neumannconnected(k))= .false.
-                      msk(neumannconnected(k)) = 3 !TL: should already by 3, but left it like in SnapWave SVN
+                      msk(neumannconnected(k)) = 3 !TL: should already be 3, but left it like in SnapWave SVN
                   else
                       ! we don't allow neumannconnected links if the node is an open boundary
                       neumannconnected(k) = 0  
@@ -346,15 +356,15 @@ contains
    !
    ! Set inner cell indices, boundary cells are set in snapwave_boundaries
    !
-   do k = 1, no_nodes
-       !
-       if (msk(k)==1) then
-            inner(k) = .true.
-       else
-            inner(k) = .false.
-       endif
-       !
-   enddo   
+   !do k = 1, no_nodes
+   !    !
+   !    if (msk(k)==1) then
+   !         inner(k) = .true.
+   !    else
+   !         inner(k) = .false.
+   !    endif
+   !    !
+   !enddo   
    !
    write(logstr,*)'Number of boundary SnapWave nodes : ',nb
    call write_log(logstr, 0)
@@ -378,6 +388,7 @@ contains
    integer                                            :: ind1,ind2
    integer                                            :: ip,nploc
    integer                                            :: k, itheta
+   integer                                            :: np
    real*8                                             :: circumf_eq=40075017.,circumf_pole=40007863.
    !
    ! Find upwind neighbours for each cell in an unstructured grid x,y (1d
@@ -430,7 +441,7 @@ contains
    real*8, dimension(2),intent(in)  :: x, y
    real*8, dimension(2),intent(out) :: W
    real*8, intent(out)              :: ds, xi, yi
-   real*8                           :: eps, m, a, b, n, L, d1, d2
+   real*8                           :: eps, m, a, b, n, L, d1, d2, err
    !
    eps = 1.0e-2
    !
@@ -482,9 +493,11 @@ contains
    integer, dimension(4)                        :: kpts, edge
    integer, dimension(np)                       :: surr_points
    integer, dimension(np)                       :: surr_pts
+   integer                                      :: k, inode, knode, kn, isp, isp2, kcell, jj, next, j, ip
    real*4,  dimension(np)                       :: xp,yp,zp              ! x,y,z of sorted surrounding nodes for each node
+   real*4, parameter                            :: pi = 3.141592653589793
    real*8                                       :: circumf_eq=40075017.,circumf_pole=40007863.
-   real*4                                       :: dxp,dyp
+   real*4                                       :: dxp,dyp,sxz, syz, sx2, sy2
    !
    allocate(no_connected_cells(no_nodes))
    allocate(connected_cells(12,no_nodes))
@@ -768,6 +781,7 @@ contains
    
    integer                               :: ib,k,ibnd
    real*4                                :: alpha, cosa,sina
+   real*4                                :: x1,y1,xend
    
    ibnd=0
    do ib=1,nb-1
@@ -1151,6 +1165,7 @@ end subroutine neuboundaries
    integer*1                                   :: mu
    integer*1                                   :: nu
    integer*1                                   :: mnu
+   integer                                     :: nfaces
    !
    logical                                     :: load_quadtree
    logical                                     :: n_odd
@@ -2123,5 +2138,134 @@ end subroutine neuboundaries
    enddo   
    !
    end subroutine
+   
+   subroutine write_snapwave_mesh(fname, crsgeo)
+      use snapwave_data
+      use netcdf
+   
+      implicit none
+      
+      character(len=256), intent(in) :: fname
+      logical, intent(in)            :: crsgeo
+   
+      integer :: ncid
+      integer :: nmesh2d_node_dimid, nmesh2d_face_dimid, max_nmesh2d_face_nodes_dimid
+      integer :: mesh2d_varid
+      integer :: mesh2d_node_x_varid, mesh2d_node_y_varid, crs_varid
+      integer :: mesh2d_face_nodes_varid
+      integer :: zb_varid
+      !
+      integer, parameter :: nc_deflate_level = 2
+      real*4, parameter  :: FILL_VALUE = -99999.0
+      !
+      ! dimensions
+      NF90(nf90_create(trim(fname), ior(NF90_CLOBBER, NF90_NETCDF4), ncid))
+      NF90(nf90_def_dim(ncid, 'nmesh2d_node', no_nodes, nmesh2d_node_dimid))
+      NF90(nf90_def_dim(ncid, 'nmesh2d_face', no_faces, nmesh2d_face_dimid))
+      NF90(nf90_def_dim(ncid, 'max_nmesh2d_face_nodes', 4, max_nmesh2d_face_nodes_dimid))
+      !
+      ! global attributes
+      NF90(nf90_put_att(ncid,nf90_global, "Conventions", "Conventions = 'CF-1.8 UGRID-1.0 Deltares-0.10'"))
+      NF90(nf90_put_att(ncid,nf90_global, "Build-Revision-Date-Netcdf-library", trim(nf90_inq_libvers())))
+      NF90(nf90_put_att(ncid,nf90_global, "Producer", "SFINCS model: Super-Fast INundation of CoastS"))
+      NF90(nf90_put_att(ncid,nf90_global, "Build-Revision", trim(build_revision))) 
+      NF90(nf90_put_att(ncid,nf90_global, "Build-Date", trim(build_date)))
+      NF90(nf90_put_att(ncid,nf90_global, "title", "Snapwave grid"))
+      !
+      ! mesh topology
+      NF90(nf90_def_var(ncid, 'mesh2d', NF90_INT, mesh2d_varid))
+      NF90(nf90_put_att(ncid, mesh2d_varid, 'cf_role', 'mesh_topology'))
+      NF90(nf90_put_att(ncid, mesh2d_varid, 'long_name', 'Topology data of 2D network'))
+      NF90(nf90_put_att(ncid, mesh2d_varid, 'topology_dimension', 2))
+      NF90(nf90_put_att(ncid, mesh2d_varid, 'node_coordinates', 'mesh2d_node_x mesh2d_node_y'))
+      NF90(nf90_put_att(ncid, mesh2d_varid, 'node_dimension', 'nmesh2d_node'))
+      NF90(nf90_put_att(ncid, mesh2d_varid, 'max_face_nodes_dimension', 'max_nmesh2d_face_nodes'))
+      NF90(nf90_put_att(ncid, mesh2d_varid, 'face_node_connectivity', 'mesh2d_face_nodes'))
+      NF90(nf90_put_att(ncid, mesh2d_varid, 'face_dimension', 'nmesh2d_face'))
+      !
+      if (crsgeo) then
+         !
+         NF90(nf90_def_var(ncid, 'mesh2d_node_x', NF90_FLOAT, (/nmesh2d_node_dimid/), mesh2d_node_x_varid)) ! location of zb, zs etc. in cell centre
+         NF90(nf90_def_var_deflate(ncid, mesh2d_node_x_varid, 1, 1, nc_deflate_level))
+         NF90(nf90_put_att(ncid, mesh2d_node_x_varid, 'units', 'degrees'))
+         NF90(nf90_put_att(ncid, mesh2d_node_x_varid, 'standard_name', 'longitude'))
+         NF90(nf90_put_att(ncid, mesh2d_node_x_varid, 'long_name', 'longitude'))
+         NF90(nf90_put_att(ncid, mesh2d_node_x_varid, 'mesh', 'mesh2d'))
+         NF90(nf90_put_att(ncid, mesh2d_node_x_varid, 'location', 'node'))
+         !
+         NF90(nf90_def_var(ncid, 'mesh2d_node_y', NF90_FLOAT, (/nmesh2d_node_dimid/), mesh2d_node_y_varid)) ! location of zb, zs etc. in cell centre
+         NF90(nf90_def_var_deflate(ncid, mesh2d_node_y_varid, 1, 1, nc_deflate_level))
+         NF90(nf90_put_att(ncid, mesh2d_node_y_varid, 'units', 'degrees'))
+         NF90(nf90_put_att(ncid, mesh2d_node_y_varid, 'standard_name', 'latitude'))
+         NF90(nf90_put_att(ncid, mesh2d_node_y_varid, 'long_name', 'latitude'))
+         NF90(nf90_put_att(ncid, mesh2d_node_y_varid, 'mesh', 'mesh2d'))
+         NF90(nf90_put_att(ncid, mesh2d_node_y_varid, 'location', 'node'))
+         !
+      else
+         !
+         NF90(nf90_def_var(ncid, 'mesh2d_node_x', NF90_DOUBLE, (/nmesh2d_node_dimid/), mesh2d_node_x_varid)) ! location of zb, zs etc. in cell centre
+         NF90(nf90_def_var_deflate(ncid, mesh2d_node_x_varid, 1, 1, nc_deflate_level))
+         NF90(nf90_put_att(ncid, mesh2d_node_x_varid, 'units', 'm'))
+         NF90(nf90_put_att(ncid, mesh2d_node_x_varid, 'standard_name', 'projection_x_coordinate'))
+         NF90(nf90_put_att(ncid, mesh2d_node_x_varid, 'long_name', 'x-coordinate of mesh nodes'))
+         NF90(nf90_put_att(ncid, mesh2d_node_x_varid, 'mesh', 'mesh2d'))
+         NF90(nf90_put_att(ncid, mesh2d_node_x_varid, 'location', 'node'))
+         !
+         NF90(nf90_def_var(ncid, 'mesh2d_node_y', NF90_DOUBLE, (/nmesh2d_node_dimid/), mesh2d_node_y_varid)) ! location of zb, zs etc. in cell centre
+         NF90(nf90_def_var_deflate(ncid, mesh2d_node_y_varid, 1, 1, nc_deflate_level))
+         NF90(nf90_put_att(ncid, mesh2d_node_y_varid, 'units', 'm'))
+         NF90(nf90_put_att(ncid, mesh2d_node_y_varid, 'standard_name', 'projection_y_coordinate'))
+         NF90(nf90_put_att(ncid, mesh2d_node_y_varid, 'long_name', 'y-coordinate of mesh nodes'))
+         NF90(nf90_put_att(ncid, mesh2d_node_y_varid, 'mesh', 'mesh2d'))
+         NF90(nf90_put_att(ncid, mesh2d_node_y_varid, 'location', 'node'))
+         !
+      endif
+      !
+      NF90(nf90_def_var(ncid, 'mesh2d_face_nodes', NF90_INT, (/max_nmesh2d_face_nodes_dimid, nmesh2d_face_dimid/), mesh2d_face_nodes_varid)) ! location of zb, zs etc. in cell centre
+      NF90(nf90_def_var_deflate(ncid, mesh2d_face_nodes_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(ncid, mesh2d_face_nodes_varid, 'cf_role', 'face_node_connectivity'))
+      NF90(nf90_put_att(ncid, mesh2d_face_nodes_varid, 'mesh', 'mesh2d'))
+      NF90(nf90_put_att(ncid, mesh2d_face_nodes_varid, 'location', 'face'))
+      NF90(nf90_put_att(ncid, mesh2d_face_nodes_varid, 'long_name', 'Mapping from every face to its corner nodes (counterclockwise)'))
+      NF90(nf90_put_att(ncid, mesh2d_face_nodes_varid, 'start_index', 1))
+      NF90(nf90_put_att(ncid, mesh2d_face_nodes_varid, '_FillValue', -999))
+      !
+      NF90(nf90_def_var(ncid, 'crs', NF90_INT, crs_varid)) ! For EPSG code
+      NF90(nf90_put_att(ncid, crs_varid, 'EPSG', '-'))
+      !
+      NF90(nf90_def_var(ncid, 'mesh2d_node_z', NF90_FLOAT, (/nmesh2d_node_dimid/), zb_varid)) ! bed level in cell centre
+      NF90(nf90_def_var_deflate(ncid, zb_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(ncid, zb_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(ncid, zb_varid, 'units', 'm'))
+      NF90(nf90_put_att(ncid, zb_varid, 'standard_name', 'altitude'))
+      NF90(nf90_put_att(ncid, zb_varid, 'long_name', 'bed_level_above_reference_level'))
+      !
+      NF90(nf90_enddef(ncid))
+      !
+      ! put variables
+      NF90(nf90_put_var(ncid, mesh2d_node_x_varid, x)) ! write node x 
+      NF90(nf90_put_var(ncid, mesh2d_node_y_varid, y)) ! write node y
+      NF90(nf90_put_var(ncid, mesh2d_face_nodes_varid, face_nodes))
+      NF90(nf90_put_var(ncid, zb_varid, zb))
+      
+      ! close file
+      NF90(nf90_close(ncid))
+   
+   end subroutine write_snapwave_mesh
+   !
+   subroutine handle_err(status,file,line)
+      use netcdf
+      !
+      integer, intent ( in)    :: status
+      character(*), intent(in) :: file
+      integer, intent ( in)    :: line
+      !   
+      if (status /= nf90_noerr) then
+         !   !UNIT=6 for stdout and UNIT=0 for stderr.
+         write(0,'("NETCDF ERROR: ",a,i6,":",a)') file,line,trim(nf90_strerror(status))
+         !
+      endif
+      !
+   end subroutine handle_err
    
 end module
