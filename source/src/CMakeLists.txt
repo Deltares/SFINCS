@@ -211,10 +211,13 @@ endif()
 # ====================================================================
 # OPTIONAL: BMI wrapper (if sfincs_bmi2.f90 exists)
 # ====================================================================
+# OPTIONAL: BMI wrapper (if sfincs_bmi2.f90 exists)
 set(SFINCS_BMI_SOURCES "")
 _append_if_exists(SFINCS_BMI_SOURCES sfincs_bmi2.f90)
+# NEW: also add the XMI shim if present
+_append_if_exists(SFINCS_BMI_SOURCES sfincs_dll.f90)
+
 if(NOT SFINCS_BMI_SOURCES STREQUAL "")
-  # Build sfincs_bmi as a SHARED library -> libsfincs_bmi.so
   add_library(sfincs_bmi SHARED ${SFINCS_BMI_SOURCES})
   set_target_properties(sfincs_bmi PROPERTIES
     OUTPUT_NAME sfincs_bmi
@@ -231,6 +234,7 @@ if(NOT SFINCS_BMI_SOURCES STREQUAL "")
     ${SNAPWAVE_DIR}
   )
   target_link_libraries(sfincs_bmi PUBLIC sfincs_core)
+
   if(SFINCS_ENABLE_NETCDF AND NETCDFF_FOUND AND NETCDF_PREFIX)
     target_link_directories(sfincs_bmi PUBLIC
       ${NETCDF_PREFIX}/lib
@@ -334,19 +338,18 @@ endif()
 # ============================================================
 # Build XMI shared library: libsfincs_dll.so
 # ============================================================
-set(SFINCS_DLL_SOURCES "${SFINCS_SOURCE_DIR}/sfincs_dll.f90")
+# OPTIONAL: BMI wrapper (if sfincs_bmi2.f90 exists)
 
-add_library(sfincs_dll SHARED ${SFINCS_DLL_SOURCES})
-set_target_properties(sfincs_dll PROPERTIES
-    OUTPUT_NAME sfincs_dll
-    POSITION_INDEPENDENT_CODE ON
-    Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/mod/sfincs_dll
-)
 
-target_link_libraries(sfincs_dll PUBLIC sfincs_bmi)
-target_include_directories(sfincs_dll PUBLIC
+set(_TEST_REAL "${CMAKE_CURRENT_SOURCE_DIR}/../tests/test_sfincs_bmi2_real.f90")
+if(EXISTS "${_TEST_REAL}")
+  add_executable(test_sfincs_bmi2_real ${_TEST_REAL})
+  target_link_libraries(test_sfincs_bmi2_real PRIVATE sfincs_bmi)
+  target_include_directories(test_sfincs_bmi2_real PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR}/mod/sfincs_bmi
     ${CMAKE_CURRENT_BINARY_DIR}/mod/sfincs_core
     ${SFINCS_SOURCE_DIR}
-)
+  )
+  add_test(NAME test_sfincs_bmi2_real COMMAND test_sfincs_bmi2_real)
+endif()
 
