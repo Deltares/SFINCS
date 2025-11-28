@@ -539,7 +539,7 @@ module sfincs_ncinput
    character (len=256)            :: y_varname
    character (len=256), parameter :: time_varname   = 'time'
    character (len=256), parameter :: prcp_varname   = 'Precipitation' ! Does the first character 'p' here need to be lower or upper case?!
-   character (len=256), parameter :: units          = 'units'     
+   character (len=256), parameter :: units          = 'units'
    !
    !   if (crsgeo) then
    !      x_varname    = 'lon'
@@ -573,6 +573,14 @@ module sfincs_ncinput
    NF90(nf90_inq_varid(net_file_ampr%ncid, y_varname,    net_file_ampr%py_varid) )  ! Also, has to be a rectilinear raster, not curvilinear! 
    NF90(nf90_inq_varid(net_file_ampr%ncid, time_varname, net_file_ampr%time_varid) )
    NF90(nf90_inq_varid(net_file_ampr%ncid, prcp_varname, net_file_ampr%prcp_varid) )
+   !
+   if (net_file_ampr%prcp_varid == 0) then
+      !
+      ! Tried with uppercase 'P' but not found, so try lowercase 'p' now
+      !
+      NF90(nf90_inq_varid(net_file_ampr%ncid, 'precipitation', net_file_ampr%prcp_varid) )
+      !
+   endif
    !   
    ! Allocate
    !

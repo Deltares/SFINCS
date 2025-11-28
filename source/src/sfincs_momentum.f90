@@ -402,7 +402,7 @@ contains
                !
                ! Turn off advection next to open boundaries
                !
-               if (mask_adv(ip) == 1) then
+!               if (mask_adv(ip) == 1) then
                   ! 
                   dqxudx = 0.0  
                   dqyudy = 0.0  
@@ -494,7 +494,7 @@ contains
                   !
                   frc = frc + adv
                   !
-               endif
+!               endif
                !   
             endif   
             !

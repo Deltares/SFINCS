@@ -902,7 +902,7 @@ module snapwave_solver
          write(logstr,'(a,i6,a,f10.5,a,f7.2)')'   iteration ', iter / 4 ,' error = ', error,'   %ok = ', percok
          call write_log(logstr, 0)         
          !
-         if (error < crit .or. percok > 99.99) then
+         if (error < crit .or. percok > 99.0) then
             !
             write(logstr,'(a,i6,a,f10.5,a,f7.2)')'   converged at iteration ', iter / 4 ,' error = ',error,'   %ok = ', percok
             call write_log(logstr, 0)            
