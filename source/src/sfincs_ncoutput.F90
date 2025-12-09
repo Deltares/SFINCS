@@ -15,7 +15,8 @@ module sfincs_ncoutput
       integer :: corner_x_varid, corner_y_varid, face_x_varid, face_y_varid, crs_varid, grid_varid 
       integer :: zb_varid, msk_varid, qinf_varid
       integer :: time_varid, timemax_varid
-      integer :: zs_varid, zsmax_varid, h_varid, u_varid, v_varid, tmax_varid, Seff_varid 
+      integer :: zs_varid, zsmax_varid, h_varid, u_varid, v_varid, tmax_varid, Seff_varid, t_zsmax_varid
+      integer :: zvolume_varid, storagevolume_varid
       integer :: hmax_varid, vmax_varid, qmax_varid, cumprcp_varid, cuminf_varid, windmax_varid
       integer :: patm_varid, wind_u_varid, wind_v_varid, precip_varid        
       integer :: hm0_varid, hm0ig_varid, snapwavemsk_varid, tp_varid, tpig_varid, wavdir_varid, dirspr_varid
@@ -39,12 +40,13 @@ module sfincs_ncoutput
       integer :: ncid   
       integer :: time_dimid 
       integer :: points_dimid, pointnamelength_dimid
-      integer :: crosssections_dimid, structures_dimid, drain_dimid, runup_gauges_dimid
+      integer :: crosssections_dimid, structures_dimid, thindams_dimid, drain_dimid, runup_gauges_dimid
       integer :: runtime_dimid
       integer :: point_x_varid, point_y_varid, station_x_varid, station_y_varid, crs_varid, qinf_varid, S_varid  
       integer :: station_id_varid, station_name_varid
       integer :: crosssection_name_varid
       integer :: structure_height_varid, structure_x_varid, structure_y_varid
+      integer :: thindam_x_varid, thindam_y_varid      
       integer :: drain_varid, drain_name_varid
       integer :: zb_varid
       integer :: time_varid
@@ -52,7 +54,7 @@ module sfincs_ncoutput
       integer :: patm_varid, wind_speed_varid, wind_dir_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid  
       integer :: hm0_varid, hm0ig_varid, zsm_varid, tp_varid, tpig_varid, wavdir_varid, dirspr_varid
-      integer :: dw_varid, df_varid, dwig_varid, dfig_varid, cg_varid, qb_varid, beta_varid, srcig_varid, alphaig_varid
+      integer :: dw_varid, df_varid, dwig_varid, dfig_varid, cg_varid, beta_varid, srcig_varid, alphaig_varid
       integer :: runup_gauge_name_varid, runup_gauge_zs_varid
       !
    end type
@@ -304,6 +306,36 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%v_varid, 'coordinates', 'x y'))
    endif
    !
+   ! Volume in subgrid cell and storage volume
+   !
+   if (subgrid) then
+      !
+      if (store_zvolume) then
+         !
+         NF90(nf90_def_var(map_file%ncid, 'subgrid_volume', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%zvolume_varid)) ! time-varying z_volume map
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%zvolume_varid, 1, 1, nc_deflate_level)) ! deflate
+         NF90(nf90_put_att(map_file%ncid, map_file%zvolume_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(map_file%ncid, map_file%zvolume_varid, 'units', 'm3'))
+         NF90(nf90_put_att(map_file%ncid, map_file%zvolume_varid, 'standard_name', 'subgrid_volume_in_cell')) 
+         NF90(nf90_put_att(map_file%ncid, map_file%zvolume_varid, 'long_name', 'subgrid_volume_in_cell'))  
+         NF90(nf90_put_att(map_file%ncid, map_file%zvolume_varid, 'coordinates', 'x y'))
+         ! 
+      endif
+      !
+      if (store_storagevolume) then
+         !
+         NF90(nf90_def_var(map_file%ncid, 'storage_volume', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%storagevolume_varid)) ! time-varying storage_volume map
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%storagevolume_varid, 1, 1, nc_deflate_level)) ! deflate
+         NF90(nf90_put_att(map_file%ncid, map_file%storagevolume_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(map_file%ncid, map_file%storagevolume_varid, 'units', 'm3'))
+         NF90(nf90_put_att(map_file%ncid, map_file%storagevolume_varid, 'standard_name', 'storage_volume_in_cell')) 
+         NF90(nf90_put_att(map_file%ncid, map_file%storagevolume_varid, 'long_name', 'storage_volume_in_cell'))  
+         NF90(nf90_put_att(map_file%ncid, map_file%storagevolume_varid, 'coordinates', 'x y'))
+         !           
+      endif
+      !      
+   endif
+   !
    ! Store S_effective (only for CN method with recovery)
    !
    if (inftype == 'cnb') then
@@ -317,6 +349,7 @@ contains
    endif
    !
    ! Store sigma (only for Green-Ampt)
+   !
    if (inftype == 'gai') then
       NF90(nf90_def_var(map_file%ncid, 'sigma', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%Seff_varid)) ! time-varying sigma
       NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, '_FillValue', FILL_VALUE))   
@@ -327,6 +360,7 @@ contains
    endif
    !
    ! Store current infiltration (only for Horton)
+   !
    if (inftype == 'hor') then
       NF90(nf90_def_var(map_file%ncid, 'f', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%Seff_varid)) ! time-varying sigma
       NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, '_FillValue', FILL_VALUE))   
@@ -375,6 +409,17 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%tmax_varid, 'long_name', 'duration_wet_cell'))  
       NF90(nf90_put_att(map_file%ncid, map_file%tmax_varid, 'cell_methods', 'time: sum'))    
       NF90(nf90_put_att(map_file%ncid, map_file%tmax_varid, 'coordinates', 'x y'))
+   endif
+   !
+   if (store_t_zsmax) then
+      NF90(nf90_def_var(map_file%ncid, 't_zsmax', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%timemax_dimid/), map_file%t_zsmax_varid)) ! when zsmax occured
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%t_zsmax_varid, 1, 1, nc_deflate_level)) ! deflate
+      NF90(nf90_put_att(map_file%ncid, map_file%t_zsmax_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%t_zsmax_varid, 'units', 'seconds since ' // trim(trefstr_iso8601) ))  ! time stamp following ISO 8601
+      NF90(nf90_put_att(map_file%ncid, map_file%t_zsmax_varid, 'standard_name', 'time of max water level')) 
+      NF90(nf90_put_att(map_file%ncid, map_file%t_zsmax_varid, 'long_name', 'time when zsmax occurs'))  
+      NF90(nf90_put_att(map_file%ncid, map_file%t_zsmax_varid, 'cell_methods', 'time: max'))    
+      NF90(nf90_put_att(map_file%ncid, map_file%t_zsmax_varid, 'coordinates', 'x y'))
    endif
    !
    if (store_maximum_waterlevel) then
@@ -734,11 +779,15 @@ contains
          !
          n    = z_index_z_n(nm)
          m    = z_index_z_m(nm)
-         !      
+         !
          if (inftype == 'con' .or. inftype == 'c2d') then
-            zsg(m, n) = qinffield(nm)*3600*1000
+            !
+            zsg(m, n) = qinffield(nm) * 3600 * 1000 ! Convert to mm / hour
+            !
          else
+            !
             zsg(m, n) = qinffield(nm)
+            !
          endif
          ! 
       enddo
@@ -962,6 +1011,7 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%time_varid, 'long_name', 'time_in_seconds_since_' // trim(trefstr_iso8601) ))  
    !
    ! Time varying map output
+   !
    NF90(nf90_def_var(map_file%ncid, 'zs', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%zs_varid)) ! time-varying water level map
    NF90(nf90_def_var_deflate(map_file%ncid, map_file%zs_varid, 1, 1, nc_deflate_level))
    NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, '_FillValue', FILL_VALUE))
@@ -996,7 +1046,39 @@ contains
       !
    endif
    !
+   ! Volume in subgrid cell and storage volume
+   !
+   if (subgrid) then
+      !
+      if (store_zvolume) then
+         !
+         NF90(nf90_def_var(map_file%ncid, 'subgrid_volume', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%zvolume_varid)) ! time-varying z_volume map
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%zvolume_varid, 1, 1, nc_deflate_level))          
+         NF90(nf90_put_att(map_file%ncid, map_file%zvolume_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(map_file%ncid, map_file%zvolume_varid, 'units', 'm3'))
+         NF90(nf90_put_att(map_file%ncid, map_file%zvolume_varid, 'standard_name', 'subgrid_volume_in_cell')) 
+         NF90(nf90_put_att(map_file%ncid, map_file%zvolume_varid, 'long_name', 'subgrid_volume_in_cell'))  
+         NF90(nf90_put_att(map_file%ncid, map_file%zvolume_varid, 'coordinates', 'x y'))
+         ! 
+      endif
+      !
+      if (store_storagevolume) then
+         !
+         NF90(nf90_def_var(map_file%ncid, 'storage_volume', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%storagevolume_varid)) ! time-varying storage_volume map
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%storagevolume_varid, 1, 1, nc_deflate_level)) ! deflate
+         NF90(nf90_put_att(map_file%ncid, map_file%storagevolume_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(map_file%ncid, map_file%storagevolume_varid, 'units', 'm3'))
+         NF90(nf90_put_att(map_file%ncid, map_file%storagevolume_varid, 'standard_name', 'storage_volume_in_cell')) 
+         NF90(nf90_put_att(map_file%ncid, map_file%storagevolume_varid, 'long_name', 'storage_volume_in_cell'))  
+         NF90(nf90_put_att(map_file%ncid, map_file%storagevolume_varid, 'coordinates', 'x y'))
+         !           
+      endif
+      !      
+   endif
+   !   
+   
    ! Time varying spatial output
+   !
    if (store_maximum_waterlevel) then
       NF90(nf90_def_var(map_file%ncid, 'timemax', NF90_FLOAT, (/map_file%timemax_dimid/), map_file%timemax_varid)) ! time      
       NF90(nf90_put_att(map_file%ncid, map_file%timemax_varid, 'units', 'seconds since ' // trim(trefstr_iso8601) ))  ! time stamp following ISO 8601
@@ -1021,6 +1103,16 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%tmax_varid, 'standard_name', 'duration cell is considered wet')) 
       NF90(nf90_put_att(map_file%ncid, map_file%tmax_varid, 'long_name', 'duration_wet_cell'))   
       NF90(nf90_put_att(map_file%ncid, map_file%tmax_varid, 'cell_methods', 'time: sum'))
+   endif
+   !
+   if (store_t_zsmax) then
+      NF90(nf90_def_var(map_file%ncid, 't_zsmax', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%timemax_dimid/), map_file%t_zsmax_varid)) ! time-varying time stap of max water level in cell
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%t_zsmax_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%t_zsmax_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%t_zsmax_varid, 'units', 'seconds since ' // trim(trefstr_iso8601) ))  ! time stamp following ISO 8601
+      NF90(nf90_put_att(map_file%ncid, map_file%t_zsmax_varid, 'standard_name', 'time of max water level')) 
+      NF90(nf90_put_att(map_file%ncid, map_file%t_zsmax_varid, 'long_name', 'time when zsmax occurs'))   
+      NF90(nf90_put_att(map_file%ncid, map_file%t_zsmax_varid, 'cell_methods', 'time: max'))
    endif
    !
    if (store_maximum_waterlevel) then
@@ -1381,7 +1473,7 @@ contains
          do nmq = 1, quadtree_nr_points
             nm = index_sfincs_in_quadtree(nmq)
             if (nm>0) then
-               vtmp(nmq) = qinfmap(nm)*3600*1000
+               vtmp(nmq) = qinffield(nm) * 3600 * 1000
             endif
          enddo 
       else
@@ -1420,7 +1512,11 @@ contains
    real*4, dimension(:,:), allocatable :: struc_info
    real*4, dimension(:), allocatable :: struc_x
    real*4, dimension(:), allocatable :: struc_y
-   real*4, dimension(:), allocatable :: struc_height   
+   real*4, dimension(:), allocatable :: struc_height
+   !
+   real*4, dimension(:,:), allocatable :: thindam_info
+   real*4, dimension(:), allocatable :: thindam_x
+   real*4, dimension(:), allocatable :: thindam_y   
    !
    if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0 .and. nr_runup_gauges==0) then ! If no observation points, cross-sections, structures, drains or run-up gauges; his file is not created        
       return
@@ -1448,6 +1544,10 @@ contains
    !
    if (nrstructures>0) then   
       NF90(nf90_def_dim(his_file%ncid, 'structures', nrstructures, his_file%structures_dimid)) ! nr of structures (weir)
+   endif   
+   !
+   if (nrthindams>0) then   
+      NF90(nf90_def_dim(his_file%ncid, 'thindams', nrthindams, his_file%thindams_dimid)) ! nr of structures (thin dam)
    endif   
    !
    if (nr_runup_gauges > 0) then   
@@ -1545,7 +1645,23 @@ contains
       NF90(nf90_put_att(his_file%ncid, his_file%structure_height_varid, 'standard_name', 'altitude'))
       NF90(nf90_put_att(his_file%ncid, his_file%structure_height_varid, 'long_name', 'interpolated_structure_height_above_reference_level'))      
       !
-   endif         
+   endif
+   !
+   if (nrthindams>0) then
+      !
+      NF90(nf90_def_var(his_file%ncid, 'thindam_x', NF90_FLOAT, (/his_file%thindams_dimid/), his_file%thindam_x_varid))  ! snapped coordinate as used in sfincs
+      NF90(nf90_put_att(his_file%ncid, his_file%thindam_x_varid, 'units', 'm'))
+      NF90(nf90_put_att(his_file%ncid, his_file%thindam_x_varid, 'standard_name', 'projection_x_coordinate'))
+      NF90(nf90_put_att(his_file%ncid, his_file%thindam_x_varid, 'long_name', 'thindam_x'))    
+      NF90(nf90_put_att(his_file%ncid, his_file%thindam_x_varid, 'grid_mapping', 'crs'))       
+      !
+      NF90(nf90_def_var(his_file%ncid, 'thindam_y', NF90_FLOAT, (/his_file%thindams_dimid/), his_file%thindam_y_varid))  ! snapped coordinate as used in sfincs
+      NF90(nf90_put_att(his_file%ncid, his_file%thindam_y_varid, 'units', 'm'))
+      NF90(nf90_put_att(his_file%ncid, his_file%thindam_y_varid, 'standard_name', 'projection_y_coordinate'))
+      NF90(nf90_put_att(his_file%ncid, his_file%thindam_y_varid, 'long_name', 'thindam_y'))    
+      NF90(nf90_put_att(his_file%ncid, his_file%thindam_y_varid, 'grid_mapping', 'crs'))   
+      !
+   endif   
    !
    ! Time variables 
    trefstr_iso8601 = date_to_iso8601(trefstr)
@@ -1733,13 +1849,6 @@ contains
          NF90(nf90_put_att(his_file%ncid, his_file%cg_varid, 'long_name', 'wave group velocity'))  
          NF90(nf90_put_att(his_file%ncid, his_file%cg_varid, 'coordinates', 'station_id station_name point_x point_y'))
          !               
-         !NF90(nf90_def_var(his_file%ncid, 'qb', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%qb_varid)) ! time-varying water level point
-         !NF90(nf90_put_att(his_file%ncid, his_file%qb_varid, '_FillValue', FILL_VALUE))
-         !NF90(nf90_put_att(his_file%ncid, his_file%qb_varid, 'units', '-'))
-         !NF90(nf90_put_att(his_file%ncid, his_file%qb_varid, 'standard_name', 'fraction_breaking_waves')) 
-         !NF90(nf90_put_att(his_file%ncid, his_file%qb_varid, 'long_name', 'fraction breaking waves'))  
-         !NF90(nf90_put_att(his_file%ncid, his_file%qb_varid, 'coordinates', 'station_id station_name point_x point_y'))
-         !               
          NF90(nf90_def_var(his_file%ncid, 'beta', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%beta_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%beta_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%beta_varid, 'units', '-'))
@@ -1866,6 +1975,7 @@ contains
       !
       ! Allocate structure
       call give_structure_information(struc_info)
+      !
       allocate(struc_x(nrstructures))
       allocate(struc_y(nrstructures))
       allocate(struc_height(nrstructures))
@@ -1885,7 +1995,27 @@ contains
       NF90(nf90_put_var(his_file%ncid,  his_file%structure_height_varid, struc_height)) ! write structure_height, input struc_height
       !      
    endif
-   !   
+   !
+   if (nrthindams>0) then
+      !
+      ! Allocate structure
+      call give_thindam_information(thindam_info)
+      !
+      allocate(thindam_x(nrthindams))
+      allocate(thindam_y(nrthindams))
+      !
+      do istruc = 1, nrthindams
+         !
+         thindam_x(istruc)        = thindam_info(istruc,1)
+         thindam_y(istruc)        = thindam_info(istruc,2)
+         !
+      enddo      
+      NF90(nf90_put_var(his_file%ncid,  his_file%thindam_x_varid, thindam_x)) ! write thindam_x
+      !
+      NF90(nf90_put_var(his_file%ncid,  his_file%thindam_y_varid, thindam_y)) ! write thindam_y
+      !       
+   endif   
+   !
    NF90(nf90_put_var(his_file%ncid, his_file%station_x_varid, xobs)) ! write station_x, input xobs
    !    
    NF90(nf90_put_var(his_file%ncid, his_file%station_y_varid, yobs)) ! write station_y, input yobs
@@ -2027,8 +2157,47 @@ contains
       !
    endif
    !
-   ! Store S_effective (only for CN method with recovery)
+   if (subgrid) then
+      !
+      if (store_zvolume) then
+         !
+         zsg = FILL_VALUE       
+         !
+         do nm = 1, np
+            !
+            n    = z_index_z_n(nm)
+            m    = z_index_z_m(nm)
+            !      
+            zsg(m, n) = z_volume(nm)
+            !
+         enddo
+         ! 
+         NF90(nf90_put_var(map_file%ncid, map_file%zvolume_varid, zsg, (/1, 1, ntmapout/))) ! write z_volume         
+         !
+      endif
+      !
+      if (store_storagevolume) then
+         !
+         zsg = FILL_VALUE       
+         !
+         do nm = 1, np
+            !
+            n    = z_index_z_n(nm)
+            m    = z_index_z_m(nm)
+            !      
+            zsg(m, n) = storage_volume(nm)
+            !
+         enddo
+         ! 
+         NF90(nf90_put_var(map_file%ncid, map_file%storagevolume_varid, zsg, (/1, 1, ntmapout/))) ! write storage_volume         
+         !        
+      endif
+      !      
+   endif   
+   !
    if (inftype == 'cnb') then
+      !
+      ! Store S_effective (only for CN method with recovery)
       !
       zsg = FILL_VALUE
       !
@@ -2043,9 +2212,9 @@ contains
       !
       NF90(nf90_put_var(map_file%ncid, map_file%Seff_varid, zsg, (/1, 1, ntmapout/)))
       !
-   !
-   ! Store maximum soil moisture deficit (only for green-ampt)
    elseif (inftype == 'gai') then
+      !
+      ! Store maximum soil moisture deficit (only for green-ampt)
       !
       zsg = FILL_VALUE
       !
@@ -2060,9 +2229,9 @@ contains
       !
       NF90(nf90_put_var(map_file%ncid, map_file%Seff_varid, zsg, (/1, 1, ntmapout/)))
       !
-   !
-   ! Store current infiltration from Horton
    elseif (inftype == 'hor') then
+      !
+      ! Store current infiltration from Horton
       !
       zsg = FILL_VALUE
       !
@@ -2077,7 +2246,6 @@ contains
       !
       NF90(nf90_put_var(map_file%ncid, map_file%Seff_varid, zsg, (/1, 1, ntmapout/)))
       !
-   !
    endif
    !           
    if (store_meteo) then
@@ -2424,7 +2592,49 @@ contains
          NF90(nf90_put_var(map_file%ncid, map_file%v_varid, vtmp, (/1, ntmapout/)))
          !
       endif
-      ! 
+      !
+      if (subgrid) then
+         !
+         if (store_zvolume) then
+            !
+            vtmp = FILL_VALUE
+            !
+            do nmq = 1, quadtree_nr_points
+               !
+               nm = index_sfincs_in_quadtree(nmq)
+               !
+               if (nm>0) then
+                  ! 
+                  vtmp(nmq) = z_volume(nm)
+                  !
+               endif   
+            enddo
+            !
+            NF90(nf90_put_var(map_file%ncid, map_file%zvolume_varid, vtmp, (/1, ntmapout/)))            
+            ! 
+         endif
+         !
+         if (store_storagevolume) then
+            !
+            vtmp = FILL_VALUE
+            !
+            do nmq = 1, quadtree_nr_points
+               !
+               nm = index_sfincs_in_quadtree(nmq)
+               !
+               if (nm>0) then
+                  ! 
+                  vtmp(nmq) = storage_volume(nm)
+                  !
+               endif   
+            enddo
+            !
+            NF90(nf90_put_var(map_file%ncid, map_file%storagevolume_varid, vtmp, (/1, ntmapout/)))            
+            ! 
+         endif
+         !      
+      endif      
+      !
       if (store_meteo) then  
           !
           if (wind) then
@@ -2705,7 +2915,6 @@ contains
    real*4, dimension(nobs) :: dwigobs
    real*4, dimension(nobs) :: dfigobs
    real*4, dimension(nobs) :: cgobs
-   !real*4, dimension(nobs) :: qbobs
    real*4, dimension(nobs) :: betaobs
    real*4, dimension(nobs) :: srcigobs
    real*4, dimension(nobs) :: alphaigobs
@@ -2729,7 +2938,6 @@ contains
    dwobs        = FILL_VALUE
    dfobs        = FILL_VALUE
    cgobs        = FILL_VALUE
-   !qbobs        = FILL_VALUE
    betaobs      = FILL_VALUE
    srcigobs     = FILL_VALUE
    alphaigobs   = FILL_VALUE   
@@ -2808,12 +3016,12 @@ contains
             !
             hm0obs(iobs)   = hm0(nm)
             hm0igobs(iobs) = hm0_ig(nm)
-            tpobs(iobs)    = snapwave_tpmean
-            tpigobs(iobs)  = snapwave_tpigmean            
+            tpobs(iobs)    = sw_tp(nm)
+            tpigobs(iobs)  = sw_tp_ig(nm)            
             !
             if (store_wave_direction) then
                !
-               wavdirobs(iobs)   = snapwave_mean_direction(nm)
+               wavdirobs(iobs)   = mean_wave_direction(nm)
                dirsprobs(iobs)   = wave_directional_spreading(nm)
                !
             endif
@@ -2831,7 +3039,6 @@ contains
                dwigobs(iobs)  = dwig(nm)
                dfigobs(iobs)  = dfig(nm)
                cgobs(iobs)    = cg(nm) 
-               !qbobs(iobs)    = qb(nm)               
                betaobs(iobs)  = betamean(nm)               
                srcigobs(iobs) = srcig(nm)               
                alphaigobs(iobs) = alphaig(nm)                              
@@ -2895,7 +3102,6 @@ contains
          !
          NF90(nf90_put_var(his_file%ncid, his_file%cg_varid, cgobs, (/1, nthisout/)))
          !
-         !NF90(nf90_put_var(his_file%ncid, his_file%qb_varid, qbobs, (/1, nthisout/)))
          NF90(nf90_put_var(his_file%ncid, his_file%beta_varid, betaobs, (/1, nthisout/)))
          NF90(nf90_put_var(his_file%ncid, his_file%srcig_varid, srcigobs, (/1, nthisout/)))                  
          NF90(nf90_put_var(his_file%ncid, his_file%alphaig_varid, alphaigobs, (/1, nthisout/)))         
@@ -3142,9 +3348,23 @@ contains
       do nm = 1, np
          n              = z_index_z_n(nm)
          m              = z_index_z_m(nm)
-         zstmp(m, n)     = twet(nm) 
+         zstmp(m, n)    = twet(nm) 
       enddo
       NF90(nf90_put_var(map_file%ncid, map_file%tmax_varid, zstmp, (/1, 1, ntmaxout/))) ! write tmax   
+   endif
+   !
+   ! When zsmax => t
+   !
+   if (store_t_zsmax) then
+      zstmp = FILL_VALUE
+      do nm = 1, np
+         n              = z_index_z_n(nm)
+         m              = z_index_z_m(nm)
+         if (t_zsmax(nm) > 0) then
+            zstmp(m, n)     = t_zsmax(nm) 
+         endif
+      enddo
+      NF90(nf90_put_var(map_file%ncid, map_file%t_zsmax_varid, zstmp, (/1, 1, ntmaxout/))) ! write t_zsmax
    endif
    !
    ! Maximum wind speed
@@ -3337,7 +3557,21 @@ contains
                endif
            endif
        enddo
-      NF90(nf90_put_var(map_file%ncid, map_file%tmax_varid, zstmp, (/1, ntmaxout/))) ! write tmax   
+      NF90(nf90_put_var(map_file%ncid, map_file%tmax_varid, zstmp, (/1, ntmaxout/))) ! write twet   
+   endif
+   !
+   ! When zsmax occured
+   if (store_t_zsmax) then
+       zstmp = FILL_VALUE       
+       do nmq = 1, quadtree_nr_points
+           nm = index_sfincs_in_quadtree(nmq)
+           if (nm>0) then                                 
+               if (kcs(nm)>0) then
+                   zstmp(nmq) = t_zsmax(nm)
+               endif
+           endif
+       enddo
+      NF90(nf90_put_var(map_file%ncid, map_file%t_zsmax_varid, zstmp, (/1, ntmaxout/))) ! write t_zsmax
    endif
    !
    ! Maximum wind speed
@@ -3436,7 +3670,7 @@ contains
    !   
    implicit none   
    !   
-   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0) then ! If no observation points, cross-sections, structures or drains; hisfile        
+   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nrthindams==0 .and. ndrn==0) then ! If no observation points, cross-sections, structures 9weir or thin dam), or drains; hisfile        
         return
    endif   
    !
@@ -3550,7 +3784,6 @@ contains
         NF90(nf90_put_att(ncid, varid, 'rstfile',rstfile))        
         NF90(nf90_put_att(ncid, varid, 'mskfile',mskfile))        
         NF90(nf90_put_att(ncid, varid, 'indexfile',indexfile))        
-        NF90(nf90_put_att(ncid, varid, 'cstfile',cstfile))             
         NF90(nf90_put_att(ncid, varid, 'sbgfile',sbgfile))        
         NF90(nf90_put_att(ncid, varid, 'thdfile',thdfile))        
         NF90(nf90_put_att(ncid, varid, 'weirfile',weirfile))        
@@ -3562,11 +3795,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'bndfile',bndfile))        
         NF90(nf90_put_att(ncid, varid, 'bzsfile',bzsfile))        
         NF90(nf90_put_att(ncid, varid, 'bzifile',bzifile))        
-        NF90(nf90_put_att(ncid, varid, 'bwvfile',bwvfile))        
-        NF90(nf90_put_att(ncid, varid, 'bhsfile',bhsfile))        
-        NF90(nf90_put_att(ncid, varid, 'btpfile',btpfile))        
-        NF90(nf90_put_att(ncid, varid, 'bwdfile',bwdfile))  
-        NF90(nf90_put_att(ncid, varid, 'bdsfile',bdsfile))   
+        NF90(nf90_put_att(ncid, varid, 'bdrfile',bdrfile))        
         NF90(nf90_put_att(ncid, varid, 'wfpfile',wfpfile))   
         NF90(nf90_put_att(ncid, varid, 'whifile',whifile))   
         NF90(nf90_put_att(ncid, varid, 'wtifile',wtifile))   

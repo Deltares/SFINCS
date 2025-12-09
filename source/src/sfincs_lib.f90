@@ -9,6 +9,7 @@ module sfincs_lib
    use sfincs_boundaries
    use sfincs_obspoints
    use sfincs_crosssections
+   use sfincs_runup_gauges
    use sfincs_discharges
    use sfincs_meteo
    use sfincs_infiltration
@@ -22,6 +23,7 @@ module sfincs_lib
    use sfincs_snapwave
    use sfincs_wavemaker
    use sfincs_nonhydrostatic
+   use sfincs_openacc
    use sfincs_log
    !
    implicit none
@@ -31,6 +33,7 @@ module sfincs_lib
    public :: sfincs_finalize
    !
    ! exposed to get start time, current time and dt
+   !
    public :: t
    public :: dt
    !
@@ -52,7 +55,6 @@ module sfincs_lib
    real*8   :: t
    real*8   :: tout
    real*4   :: dt
-   real*4   :: min_dt
    real*8   :: tmapout
    real*8   :: tmaxout
    real*8   :: trstout
@@ -71,7 +73,7 @@ module sfincs_lib
    logical  :: update_meteo
    logical  :: update_waves
    !
-   real :: tstart, tfinish, tloopflux, tloopcont, tloopstruc, tloopbnd, tloopsrc, tloopwnd1, tloopwnd2, tloopoutput, tloopsnapwave, tloopwavemaker, tloopnonh
+   real :: tstart, tfinish, tloopflux, tloopcont, tloopstruc, tloopbnd, tloopsrc, tloopwnd1, tloopwnd2, tloopinf, tloopoutput, tloopsnapwave, tloopwavemaker, tloopnonh
    real :: time_per_timestep
    real :: tinput
    real :: percdone,percdonenext,trun,trem
@@ -90,8 +92,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.2.1-alpha col d'Eze"
-   build_date     = "$Date: 2025-07-03"
+   build_revision = "$Rev: v2.3.0 mt. Faber Release"
+   build_date     = "$Date: 2025-11-18"
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)
@@ -146,15 +148,15 @@ module sfincs_lib
    !
    call read_structures()       ! Reads thd files and sets kcuv to zero where necessary
    !
-   call write_log('Reading boundary data ...', 0) 
    call read_boundary_data()    ! Reads bnd, bzs, etc files
    !
    call find_boundary_indices()
    !
-   call write_log('Reading observation points ...', 0) 
    call read_obs_points()       ! Reads obs file
    !
    call read_crs_file()         ! Reads cross sections
+   !
+   call read_rug_file()         ! Read runup gauge file
    !
    call read_discharges()       ! Reads dis and src file
    !
@@ -218,6 +220,11 @@ module sfincs_lib
    else   
       call write_log('Precipitation        : no', 1)
    endif
+   if (infiltration) then
+      call write_log('Infiltration         : yes', 1)
+   else   
+      call write_log('Infiltration         : no', 1)
+   endif   
    if (snapwave) then
       call write_log('SnapWave             : yes', 1)
    else
@@ -249,7 +256,7 @@ module sfincs_lib
    !
    call system_clock(count1, count_rate, count_max)
    !
-   tinput  = 1.0*(count1 - count0)/count_rate
+   tinput  = 1.0 * (count1 - count0) / count_rate
    !
    ! Initialize some parameters
    !
@@ -282,6 +289,7 @@ module sfincs_lib
    tloopsrc       = 0.0
    tloopwnd1      = 0.0
    tloopwnd2      = 0.0
+   tloopinf       = 0.0
    tloopsnapwave  = 0.0
    tloopwavemaker = 0.0
    tloopnonh      = 0.0
@@ -294,7 +302,7 @@ module sfincs_lib
    ! 
    call deallocate_quadtree()
    !
-   !call acc_init( acc_device_nvidia )
+   call initialize_openacc() ! Enter data region
    !
    ierr = error
    !
@@ -319,28 +327,6 @@ module sfincs_lib
    logical                       :: single_time_step 
    !
    ierr = 0
-   !
-   ! Copy arrays to GPU memory
-   ! 
-   !$acc data, copyin( kcs, kfuv, kcuv, zs, zs0, zsderv, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, maxzsm, qmax, vmax, twet, zsm, z_volume, &
-   !$acc               z_flags_iref, uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
-   !$acc               index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, zsb, zsb0, ibuvdir, uvmean, &
-   !$acc               subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
-   !$acc               subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
-   !$acc               subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
-   !$acc               z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
-   !$acc               uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
-   !$acc               uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
-   !$acc               nmindsrc, qtsrc, drainage_type, drainage_params, &
-   !$acc               z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, &
-   !$acc               fwuv, &
-   !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
-   !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, & 
-   !$acc               patm, patm0, patm1, patmb, nmindbnd, &
-   !$acc               prcp, prcp0, prcp1, cumprcp, netprcp, prcp, qinfmap, cuminf, qext, & 
-   !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
-   !$acc               gn2uv, fcorio2d, min_dt, storage_volume, nuvisc, &
-   !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2 )
    !
    ! Set target time: if dt range is negative, do not modify t1
    !
@@ -520,7 +506,7 @@ module sfincs_lib
              !
              ! Compute infiltration rates
              !
-             call update_infiltration_map(dt)
+             call update_infiltration_map(dt, tloopinf)
              !
          endif
          !
@@ -558,7 +544,7 @@ module sfincs_lib
       !
       ! First compute fluxes
       !
-      call compute_fluxes(dt, min_dt, tloopflux)
+      call compute_fluxes(dt, tloopflux)
       !
       if (wavemaker) then
          !
@@ -586,7 +572,7 @@ module sfincs_lib
       !      
       ! Update water levels
       !
-      call compute_water_levels(dt, tloopcont)
+      call compute_water_levels(t, dt, tloopcont)
       !
       ! OUTPUT
       !      
@@ -600,7 +586,7 @@ module sfincs_lib
       !      
       ! Stop loop in case of instabilities (make sure time step 'dtmin' does not get too small compared to 'uvmax' flow velocity)
       !
-      if (dtchk<dtmin .and. nt>1) then
+      if (dtchk < dtmin .and. nt > 1) then
          !
          error = 1
          !
@@ -624,8 +610,10 @@ module sfincs_lib
          percdonenext = 1.0 * (int(percdone) + percdoneval) 
          !
          call system_clock(count1, count_rate, count_max)
+         !
          trun  = 1.0*(count1 - count00)/count_rate
          trem = trun / max(0.01*percdone, 1.0e-6) - trun
+         !
          if (int(percdone)>0) then
             write(logstr,'(i4,a,f7.1,a)')int(percdone),'% complete, ',trem,' s remaining ...'
             call write_log(logstr, 1)
@@ -647,9 +635,6 @@ module sfincs_lib
       !
    enddo
    !
-   !
-   !$acc end data
-   !
    end function sfincs_update
    !
    !-----------------------------------------------------------------------------------------------------!
@@ -665,69 +650,76 @@ module sfincs_lib
    !
    call finalize_output(t,ntmaxout,tloopoutput,tmaxout)
    !
-   dtavg = dtavg/nt
+   call finalize_openacc() ! Exit data region
+   !
+   dtavg = dtavg / (nt - 1)
    !
    call write_log('', 1)
    call write_log('---------- Simulation finished -----------', 1)                  
    call write_log('', 1)
-   write(logstr,'(a,f10.3)')          ' Total time             : ',tinput + tfinish_all - tstart_all
+   write(logstr,'(a,f10.3)')             ' Total time             : ', tinput + tfinish_all - tstart_all
    call write_log(logstr, 1)
-   write(logstr,'(a,f10.3)')          ' Total simulation time  : ',tfinish_all - tstart_all
+   write(logstr,'(a,f10.3)')             ' Total simulation time  : ', tfinish_all - tstart_all
    call write_log(logstr, 1)
-   write(logstr,'(a,f10.3)')          ' Time in input          : ',tinput
+   write(logstr,'(a,f10.3)')             ' Time in input          : ', tinput
    call write_log(logstr, 1)
    !
-   if (include_boundaries) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in boundaries     : ',tloopbnd,' (',100*tloopbnd/(tfinish_all - tstart_all),'%)'
+   if (boundaries_in_mask) then
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in boundaries     : ', tloopbnd, ' (', 100 * tloopbnd / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
    endif   
    !
    if (nsrc>0 .or. ndrn>0) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in discharges     : ',tloopsrc,' (',100*tloopsrc/(tfinish_all - tstart_all),'%)'
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in discharges     : ', tloopsrc, ' (', 100 * tloopsrc / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
    endif   
    !
    if (meteo3d)  then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in meteo fields   : ',tloopwnd1,' (',100*tloopwnd1/(tfinish_all - tstart_all),'%)'
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in meteo fields   : ', tloopwnd1, ' (', 100 * tloopwnd1 / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
    endif   
    !
    if (wind .or. patmos .or. precip) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in meteo forcing  : ',tloopwnd2,' (',100*tloopwnd2/(tfinish_all - tstart_all),'%)'
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in meteo forcing  : ', tloopwnd2, ' (', 100 * tloopwnd2 / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
    endif   
    !
-   write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in momentum       : ',tloopflux,' (',100*tloopflux/(tfinish_all - tstart_all),'%)'
+   if (infiltration) then
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in infiltration   : ', tloopinf, ' (', 100 * tloopinf / (tfinish_all - tstart_all), '%)'
+      call write_log(logstr, 1)
+   endif
+   !
+   write(logstr,'(a,f10.3,a,f5.1,a)')    ' Time in momentum       : ', tloopflux, ' (', 100 * tloopflux / (tfinish_all - tstart_all), '%)'
    call write_log(logstr, 1)
    !
    if (nonhydrostatic) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in non-hydrostatic: ',tloopnonh,' (',100*tloopnonh/(tfinish_all - tstart_all),'%)'
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in non-hydrostatic: ', tloopnonh, ' (', 100 * tloopnonh / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
    endif
    !
    if (nrstructures>0) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in structures     : ',tloopstruc,' (',100*tloopstruc/(tfinish_all - tstart_all),'%)'
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in structures     : ', tloopstruc, ' (', 100 * tloopstruc / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
    endif
    !
-   write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in continuity     : ',tloopcont,' (',100*tloopcont/(tfinish_all - tstart_all),'%)'
+   write(logstr,'(a,f10.3,a,f5.1,a)')    ' Time in continuity     : ', tloopcont, ' (', 100 * tloopcont / (tfinish_all - tstart_all), '%)'
    call write_log(logstr, 1)
    !
    if (snapwave) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in SnapWave       : ',tloopsnapwave,' (',100*tloopsnapwave/(tfinish_all - tstart_all),'%)'
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in SnapWave       : ', tloopsnapwave, ' (', 100 * tloopsnapwave / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
    endif
    !
    if (wavemaker) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in wave maker     : ',tloopwavemaker,' (',100*tloopwavemaker/(tfinish_all - tstart_all),'%)'
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in wave maker     : ', tloopwavemaker, ' (', 100 * tloopwavemaker / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
    endif
    !
-   write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in output         : ',tloopoutput,' (',100*tloopoutput/(tfinish_all - tstart_all),'%)'
+   write(logstr,'(a,f10.3,a,f5.1,a)')    ' Time in output         : ', tloopoutput, ' (', 100 * tloopoutput / (tfinish_all - tstart_all), '%)'
    call write_log(logstr, 1)
    !
    call write_log('', 1)
-   write(logstr,'(a,20f10.3)')        ' Average time step (s)  : ',dtavg
+   write(logstr,'(a,20f10.3)')           ' Average time step (s)  : ', dtavg
    !
    call write_log(logstr, 1)
    call write_log('', 1)
@@ -740,6 +732,7 @@ module sfincs_lib
       write(123,'(f10.3,a)')tloopsrc,' % discharges'
       write(123,'(f10.3,a)')tloopwnd1,' % meteo1'
       write(123,'(f10.3,a)')tloopwnd2,' % meteo2'
+      write(123,'(f10.3,a)')tloopinf,' % infiltration'
       write(123,'(f10.3,a)')tloopflux,' % momentum'
       write(123,'(f10.3,a)')tloopstruc,' % structures'
       write(123,'(f10.3,a)')tloopcont,' % continuity'

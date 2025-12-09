@@ -47,36 +47,25 @@
 				<File RelativePath="..\src\snapwave\snapwave_solver.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_windsource.f90"/>
 			</Filter>
-			<File RelativePath="..\src\bicgstab_solver_ilu.f90"/>
-			<File RelativePath="..\src\deg2utm.f90"/>
-			<File RelativePath="..\src\geometry.f90"/>
-			<File RelativePath="..\src\quadtree.F90">
-				<FileConfiguration Name="Release|x64">
-					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
-				</FileConfiguration>
-				<FileConfiguration Name="Debug|x64">
-					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
-				</FileConfiguration>
-			</File>
+			<File RelativePath="..\third_party_open\Delft3D\astro.f90"/>
+			<File RelativePath="..\third_party_open\bicgstab\bicgstab_solver_ilu.f90"/>
+			<File RelativePath="..\third_party_open\utils\deg2utm.f90"/>
+			<File RelativePath="..\third_party_open\utils\geometry.f90"/>
 			<File RelativePath="..\src\sfincs_boundaries.f90"/>
 			<File RelativePath="..\src\sfincs_continuity.f90"/>
 			<File RelativePath="..\src\sfincs_crosssections.f90"/>
-			<File RelativePath="..\src\sfincs_data.f90">
-			</File>
+			<File RelativePath="..\src\sfincs_data.f90"/>
 			<File RelativePath="..\src\sfincs_date.f90"/>
 			<File RelativePath="..\src\sfincs_discharges.f90"/>
-			<File RelativePath="..\src\sfincs_domain.f90">
-			</File>
+			<File RelativePath="..\src\sfincs_domain.f90"/>
 			<File RelativePath="..\src\sfincs_error.f90"/>
 			<File RelativePath="..\src\sfincs_infiltration.f90"/>
 			<File RelativePath="..\src\sfincs_initial_conditions.F90"/>
-			<File RelativePath="..\src\sfincs_input.f90">
-			</File>
+			<File RelativePath="..\src\sfincs_input.f90"/>
 			<File RelativePath="..\src\sfincs_lib.f90"/>
 			<File RelativePath="..\src\sfincs_log.f90"/>
 			<File RelativePath="..\src\sfincs_meteo.f90"/>
-			<File RelativePath="..\src\sfincs_momentum.f90">
-			</File>
+			<File RelativePath="..\src\sfincs_momentum.f90"/>
 			<File RelativePath="..\src\sfincs_ncinput.F90">
 				<FileConfiguration Name="Release|x64">
 					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
@@ -95,7 +84,15 @@
 			</File>
 			<File RelativePath="..\src\sfincs_nonhydrostatic.f90"/>
 			<File RelativePath="..\src\sfincs_obspoints.f90"/>
-			<File RelativePath="..\src\sfincs_output.f90">
+			<File RelativePath="..\src\sfincs_openacc.f90"/>
+			<File RelativePath="..\src\sfincs_output.f90"/>
+			<File RelativePath="..\src\sfincs_quadtree.F90">
+				<FileConfiguration Name="Release|x64">
+					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
+				</FileConfiguration>
+				<FileConfiguration Name="Debug|x64">
+					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
+				</FileConfiguration>
 			</File>
 			<File RelativePath="..\src\sfincs_runup_gauges.f90"/>
 			<File RelativePath="..\src\sfincs_snapwave.f90"/>

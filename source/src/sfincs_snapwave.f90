@@ -26,7 +26,6 @@ module sfincs_snapwave
    real*4,    dimension(:),   allocatable    :: snapwave_Dwig
    real*4,    dimension(:),   allocatable    :: snapwave_Dfig
    real*4,    dimension(:),   allocatable    :: snapwave_cg
-   real*4,    dimension(:),   allocatable    :: snapwave_Qb
    real*4,    dimension(:),   allocatable    :: snapwave_beta
    real*4,    dimension(:),   allocatable    :: snapwave_srcig
    real*4,    dimension(:),   allocatable    :: snapwave_alphaig   
@@ -175,9 +174,12 @@ contains
    integer, dimension(snapwave_no_nodes),  intent(in) :: index_quadtree_in_snapwave
    integer, dimension(quadtree_nr_points), intent(in) :: index_snapwave_in_quadtree
    !
-   integer :: ipsw, ipsf, iq, ip
+   integer :: ipsw, ipsf, iq, ip, counter
    !
-   real*4  :: xsw, ysw, dstmin, dst
+   real*4  :: xsw, ysw, dstmin, dst, min_distance 
+   !
+   real*4 :: distances(np)
+   integer :: closest_index(1)
    !
    logical :: nearest_warning
    !   
@@ -190,6 +192,9 @@ contains
    index_sfincs_in_snapwave = 0
    index_snapwave_in_sfincs = 0
    index_sw_in_qt = 0
+   counter = 0
+   distances = 0.0
+   min_distance = 0.0
    !
    ! Loop through SnapWave points
    !
@@ -197,37 +202,59 @@ contains
       iq   = index_quadtree_in_snapwave(ipsw)
       ipsf = index_sfincs_in_quadtree(iq)
       !
-      if (ipsf == 0) then
+      if (ipsf == 0 ) then
          !
          ! SFINCS not active at this SnapWave node, so find the nearest SFINCS point
          !
-         xsw = quadtree_xz(iq)
-         ysw = quadtree_yz(iq)
+         counter = counter + 1
          !
-         dstmin = 1.0e6
+         nearest_warning = .true. ! to print warning to screen that 'extrapolation' is performed
          !
-         do ip = 1, np
-            !
-            dst = sqrt((z_xz(ip) - xsw)**2 + (z_yz(ip) - ysw)**2)
-            !
-            if (dst < dstmin) then
-               !
-               ipsf = ip
-               dstmin = dst
-               !
-               nearest_warning = .true. ! to print warning to screen that 'extrapolation' is performed
-               !
-            endif
-            !
-         enddo
-         !
+         if (snapwave_use_nearest) then
+             !
+             write(logstr,'(i0)')ipsw
+             call write_log(logstr, 1)  
+             !
+             xsw = quadtree_xz(iq)
+             ysw = quadtree_yz(iq)
+             !
+             dstmin = 1.0e6
+             !
+             ! Calculate the distance for each coordinate
+             !$omp parallel &
+             !$omp private ( ip, dst )
+             !$omp do
+             do ip = 1, np
+                 !
+                 dst = sqrt((z_xz(ip) - xsw)**2 + (z_yz(ip) - ysw)**2)
+                 !
+                 distances(ip) = dst
+                 !
+             enddo
+             !$omp end do         
+             !$omp end parallel             
+             !
+             ! Find the minimum distance
+             min_distance = minval(distances)         
+             !
+             if (min_distance < dstmin) then
+                 !
+                 ! Find the index of the minimum distance
+                 closest_index = minloc(distances)
+                 !
+                 ! To conform shapes
+                 ipsf = closest_index(1)
+                 !
+             endif       
+             !        
+         endif         
       endif
-      !
+      !         
       index_sfincs_in_snapwave(ipsw) = ipsf
       !
-      index_sw_in_qt(iq) = ipsw
+      index_sw_in_qt(iq) = ipsw      
       !
-   enddo   
+   enddo             
    !
    ! Loop through SFINCS points
    !
@@ -240,7 +267,14 @@ contains
    ! Print warning message
    !
    if (nearest_warning) then
-      call write_log('Info   : some SnapWave node(s) do not have a matching SFINCS point, so water depth and wind conditions from the nearest SFINCS point within 1000 km are used for SnapWave calculation', 1)
+      if (snapwave_use_nearest) then
+          write(logstr,'(a,i0,a)')'SnapWave: Info   : ',counter,' SnapWave node(s) do not have a matching SFINCS point, so water depth and wind conditions from the nearest SFINCS point within 1000 km are used for SnapWave calculation '
+      else
+          write(logstr,'(a,i0,a)')'SnapWave: Info   : ',counter,' SnapWave node(s) do not have a matching SFINCS point, water level at these points is set to 0.0 '          
+      endif      
+      ! 
+      call write_log(logstr, 1)
+      !
    endif   
    !
    end subroutine
@@ -267,7 +301,6 @@ contains
    real*4,    dimension(:), allocatable       :: dwig0
    real*4,    dimension(:), allocatable       :: dfig0   
    real*4,    dimension(:), allocatable       :: cg0   
-   real*4,    dimension(:), allocatable       :: qb0   
    real*4,    dimension(:), allocatable       :: beta0 
    real*4,    dimension(:), allocatable       :: srcig0      
    real*4,    dimension(:), allocatable       :: alphaig0   
@@ -283,7 +316,6 @@ contains
    allocate(dwig0(np))
    allocate(dfig0(np))  
    allocate(cg0(np))  
-   allocate(qb0(np))   
    allocate(beta0(np))   
    allocate(srcig0(np))      
    allocate(alphaig0(np))      
@@ -295,7 +327,6 @@ contains
    dwig0 = 0.0
    dfig0 = 0.0
    cg0 = 0.0
-   qb0 = 0.0
    beta0 = 0.0
    srcig0 = 0.0
    alphaig0 = 0.0   
@@ -390,7 +421,6 @@ contains
          dwig0(nm)  = snapwave_Dwig(ip)   
          dfig0(nm)  = snapwave_Dfig(ip)
          cg0(nm)    = snapwave_cg(ip)
-         qb0(nm)    = snapwave_Qb(ip)
          beta0(nm)  = snapwave_beta(ip)
          srcig0(nm) = snapwave_srcig(ip)
          alphaig0(nm) = snapwave_alphaig(ip)
@@ -414,7 +444,6 @@ contains
          dwig0(nm)  = 0.0
          dfig0(nm)  = 0.0
          cg0(nm)    = 0.0
-         qb0(nm)    = 0.0
          beta0(nm)  = 0.0
          srcig0(nm) = 0.0
          alphaig0(nm) = 0.0         
@@ -434,7 +463,6 @@ contains
          dwig(nm)       = dwig0(nm)
          dfig(nm)       = dfig0(nm)
          cg(nm)         = cg0(nm)   
-         qb(nm)         = qb0(nm)         
          betamean(nm)   = beta0(nm)         
          srcig(nm)      = srcig0(nm)         
          alphaig(nm)    = alphaig0(nm)                  
@@ -470,7 +498,7 @@ contains
       !
    enddo
    !
-   !$acc update device(fwuv), async(1)
+   !$acc update device(fwuv)
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
@@ -485,6 +513,7 @@ contains
    use snapwave_boundaries
    !
    real*8    :: t
+   integer   :: k
    ! 
    depth = snapwave_depth
    !
@@ -510,7 +539,6 @@ contains
    snapwave_Dwig                  = Dw_ig
    snapwave_Dfig                  = Df_ig
    snapwave_cg                    = cg
-   snapwave_Qb                    = Qb
    snapwave_beta                  = beta
    snapwave_srcig                 = srcig
    snapwave_alphaig               = alphaig   
@@ -518,6 +546,21 @@ contains
    ! Convert wave force to correct unit [Dw/C] as expected by SFINCS, assumed to be piecewise (seems to work)
    snapwave_Fx                    = Fx * rho * depth
    snapwave_Fy                    = Fy * rho * depth
+   !
+   ! Loop over points and set Tp, cg, direction, spreading to 0 where H and/or H_ig are zero
+   ! TL: needed because e.g. Tp is set to Tpini initially, so shows values even if cell remains dry with H=0
+   do k = 1, no_nodes
+       if (snapwave_H(k) <= 0.0) then
+           snapwave_Tp(k) = 0.0
+           snapwave_mean_direction(k) = 0.0
+           snapwave_directional_spreading(k) = 0.0
+           snapwave_cg(k) = 0.0
+       endif
+       !
+       if (snapwave_H_ig(k) <= 0.0) then
+           snapwave_Tp_ig(k) = 0.0        
+       endif       
+   enddo   
    !
    ! Wave periods from SnapWave, used in e.g. wavemakers - TL: moved behind call update_boundary_conditions & compute_wave_field so values at first timestep are not 0
    snapwave_tpmean = tpmean_bwv
