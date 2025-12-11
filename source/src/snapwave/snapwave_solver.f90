@@ -275,6 +275,7 @@ module snapwave_solver
    real*4                                     :: uorbi
    integer                                    :: sweep,iter            ! sweep number, number of iterations
    integer                                    :: k,k1,k2,count,kn,itheta ! counters (k is grid index)
+   logical, dimension(:), allocatable         :: innermsk               ! mask for inner grid points
    integer, dimension(:,:), allocatable       :: indx                   ! index for grid sorted per sweep direction
    real*4, dimension(:,:), allocatable        :: eeold               ! wave energy density, energy density previous iteration
    real*4, dimension(:), allocatable          :: Eold                   ! mean wave energy, previous iteration
@@ -295,7 +296,6 @@ module snapwave_solver
    real*4, dimension(:), allocatable          :: E_ig                   ! mean wave energy
    real*4, dimension(:), allocatable          :: diff                   ! maximum difference of wave energy relative to previous iteration
    real*4, dimension(:), allocatable          :: ra                     ! coordinate in sweep direction
-   !real*4, dimension(:), allocatable          :: sig
    real*4, dimension(:), allocatable          :: sigm_ig
    integer, dimension(4)                      :: shift
    real*4                                     :: pi = 4.*atan(1.0)
@@ -348,7 +348,7 @@ module snapwave_solver
    allocate(R(ntheta)); R=0.0
    allocate(DoverE(no_nodes)); DoverE=0.0
    allocate(E(no_nodes)); E=waveps
-   allocate(Eold(no_nodes)); Eold=0.0   
+   allocate(Eold(no_nodes)); Eold=0.0
    !
    if (igwaves) then
       allocate(A_ig(ntheta)); A_ig=0.0
@@ -361,9 +361,10 @@ module snapwave_solver
       allocate(E_ig(no_nodes)); E_ig=waveps
       !allocate(T_ig(no_nodes)); T_ig=0.0
       allocate(sigm_ig(no_nodes)); sigm_ig=0.0
-      allocate(depthprev(ntheta,no_nodes)); depthprev=0.0                     
-      allocate(beta_local(ntheta,no_nodes)); beta_local=0.0        
+      allocate(depthprev(ntheta,no_nodes)); depthprev=0.0
+      allocate(beta_local(ntheta,no_nodes)); beta_local=0.0
       allocate(alphaig_local(ntheta,no_nodes)); alphaig_local=0.0
+      allocate(innermsk(no_nodes)); innermsk = msk==1
    endif
    !
    if (wind) then
@@ -467,7 +468,7 @@ module snapwave_solver
       !      
       ! Actual determining of source term: 
       !          
-      call determine_infragravity_source_sink_term([msk==1], no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
+      call determine_infragravity_source_sink_term(innermsk, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
       !         
       ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev, beta_local
       ! in: the rest
@@ -552,7 +553,7 @@ module snapwave_solver
                 !
                 ! Actual determining of source term - every first sweep of iteration
                 !          
-                call determine_infragravity_source_sink_term([msk==1], no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
+                call determine_infragravity_source_sink_term(innermsk, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
                 !    
             endif
             !
