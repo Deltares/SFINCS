@@ -266,3 +266,7 @@ There have been various journal publications and conference posters where SFINCS
 
 * "The importance of waves in large-scale coastal compound flooding: A case study of Hurricane Florence (2018)". Leijnse et al. (2025). https://doi.org/10.1016/j.coastaleng.2025.104726
 
+* "Accelerating compound flood risk assessments through active learning: A case study of Charleston County (USA)". Terlinden-Ruhl et al. (2025). https://doi.org/10.5194/nhess-25-1353-2025, 2025.
+
+* "A multiscale modelling framework of coastal flooding events for global to local flood hazard assessments". Benito et al. (2025).  https://doi.org/10.5194/nhess-25-2287-2025, 2025.
+

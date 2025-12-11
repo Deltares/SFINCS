@@ -38,7 +38,7 @@ module snapwave_solver
          !$omp parallel do private(k)
          do k = 1, no_nodes
             if (msk(k)==1) then
-               ee(:,k) = waveps
+               ee(:,k) = waveps               
             endif
          enddo
          !$omp end parallel do
@@ -105,7 +105,7 @@ module snapwave_solver
       do itheta = 1, ntheta
          do k = 1, no_nodes
             ctheta(itheta,k)    = sig(k)/sinh(min(2.0*kwav(k)*depth(k), 50.0))*(dhdx(k)*sin(theta(itheta)) - dhdy(k)*cos(theta(itheta)))
-         end do
+         enddo      
       enddo
       !$omp end parallel do
       !
@@ -610,10 +610,9 @@ module snapwave_solver
                     sig(k)  = max(sig(k),sigmin)
                     sig(k)  = min(sig(k),sigmax)
                     Ak      = Ek/sig(k) ! to avoid small T in windinput
-                    !if (wind) then
-                       aaprev=min(aaprev,eeprev/sigmin)
-                       aaprev=max(aaprev,eeprev/sigmax)
-                    !endif
+                    !
+                    aaprev=min(aaprev,eeprev/sigmin)
+                    aaprev=max(aaprev,eeprev/sigmax)
                     !                    
                     call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:,k))    
                   endif
@@ -657,30 +656,30 @@ module snapwave_solver
                      !
                   endif
                   !
-                  do itheta = 1, ntheta
+                   do itheta = 1, ntheta
                      !
                      R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta)*eeprev(itheta)/ds(itheta, k) - srcig_local(itheta, k) * shinc2ig
                      !
-                  enddo
+                  enddo                  
                   !
                   if (upwindref == 0) then
                      !
-                     do itheta = 2, ntheta - 1
-                        !
-                        A(itheta) = -ctheta(itheta - 1, k)*oneover2dtheta
-                        B(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverE(k)
-                        C(itheta) = ctheta(itheta + 1, k)*oneover2dtheta
-                        !
-                     enddo
+                  do itheta = 2, ntheta - 1
                      !
-                     A(1) = -ctheta(ntheta, k)*oneover2dtheta
-                     B(1) = oneoverdt + cg(k)/ds(1,k) + DoverE(k)
-                     C(1) = ctheta(2, k)*oneover2dtheta
+                     A(itheta) = -ctheta(itheta - 1, k)*oneover2dtheta
+                     B(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverE(k)
+                     C(itheta) = ctheta(itheta + 1, k)*oneover2dtheta
                      !
-                     A(ntheta) = -ctheta(ntheta - 1, k)*oneover2dtheta
-                     B(ntheta) = oneoverdt + cg(k)/ds(ntheta,k) + DoverE(k)
-                     C(ntheta) = ctheta(1, k)*oneover2dtheta
-                     !
+                  enddo
+                  !
+                  A(1) = -ctheta(ntheta, k)*oneover2dtheta
+                  B(1) = oneoverdt + cg(k)/ds(1,k) + DoverE(k)
+                  C(1) = ctheta(2, k)*oneover2dtheta
+                  !
+                  A(ntheta) = -ctheta(ntheta - 1, k)*oneover2dtheta
+                  B(ntheta) = oneoverdt + cg(k)/ds(ntheta,k) + DoverE(k)
+                  C(ntheta) = ctheta(1, k)*oneover2dtheta
+                  !
                   else
                      ! upwind scheme
                      ! 
@@ -725,8 +724,8 @@ module snapwave_solver
                   !
                   if (wind) then
                      do itheta = 1, ntheta
-                        R_aa(itheta) = (oneoverdt) * aa(itheta, k) + cgprev(itheta) * aaprev(itheta) / ds(itheta, k)
-                     end do
+                        R_aa(itheta) = (oneoverdt)*aa(itheta, k) + cgprev(itheta)*aaprev(itheta)/ds(itheta, k)
+                     enddo
                      
                      if (upwindref ==0) then
                         do itheta = 1, ntheta
@@ -740,20 +739,20 @@ module snapwave_solver
                               B_aa(itheta) = oneoverdt +ctheta(itheta,k) * oneoverdtheta + cg(k) / ds(itheta, k) + DoverA(k)
                            endif
                         end do
-                        !
-                        if (ctheta(1, k) < 0) then
-                           B_aa(1) = oneoverdt - ctheta(1, k) / dtheta + cg(k) / ds(1, k) + DoverA(k)
-                        else
+                     !
+                     if (ctheta(1,k)<0) then
+                        B_aa(1) = oneoverdt - ctheta(1, k)/dtheta + cg(k)/ds(1, k) + DoverA(k)
+                     else
                            B_aa(1) = oneoverdt 
                            R_aa(1) = 0.d0
-                        end if
-                        !
-                        if (ctheta(ntheta, k) > 0) then
-                           B_aa(ntheta) = oneoverdt + ctheta(ntheta, k) / dtheta + cg(k) / ds(ntheta, k) + DoverA(k)
-                        else
+                     endif
+                     !
+                     if (ctheta(ntheta, k)>0) then
+                        B_aa(ntheta) = oneoverdt + ctheta(ntheta, k)/dtheta + cg(k)/ds(ntheta, k) + DoverA(k)
+                     else
                            B_aa(ntheta) = oneoverdt 
                            R_aa(ntheta) = 0.d0
-                        end if
+                     endif
                         !
                      endif
                      !
@@ -826,14 +825,14 @@ module snapwave_solver
                      !
                      if (upwindref == 0) then
                         !
-                        do itheta = 2, ntheta - 1
-                           !
-                           A_ig(itheta) = -ctheta_ig(itheta - 1, k)*oneover2dtheta
-                           B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
-                           C_ig(itheta) = ctheta_ig(itheta + 1, k)*oneover2dtheta
-                           !
-                        enddo
+                     do itheta = 2, ntheta - 1
                         !
+                        A_ig(itheta) = -ctheta_ig(itheta - 1, k)*oneover2dtheta
+                        B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
+                        C_ig(itheta) = ctheta_ig(itheta + 1, k)*oneover2dtheta
+                        !
+                     enddo
+                     !
                         A_ig(1) = -ctheta_ig(ntheta, k)*oneover2dtheta
                         B_ig(1) = oneoverdt + cg_ig(k)/ds(1,k) + DoverE_ig(k)
                         C_ig(1) = ctheta_ig(2, k)*oneover2dtheta
@@ -863,35 +862,34 @@ module snapwave_solver
                            !
                         enddo
                         !
-                        if (ctheta_ig(1,k)<0) then
+                     if (ctheta_ig(1,k)<0) then
                            ! 
-                           A_ig(1) = 0.0
-                           B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k)
-                           C_ig(1) = ctheta_ig(2, k)/dtheta
+                        A_ig(1) = 0.0
+                        B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k)
+                        C_ig(1) = ctheta_ig(2, k)/dtheta
                            !
-                        else
+                     else
+                        A_ig(1)=0.0
+                        B_ig(1)=1.0/dt + cg_ig(k)/ds(1, k) + DoverE_ig(k)
+                        C_ig(1)=0.0
+                           !
+                     endif
+                     !
+                     if (ctheta_ig(ntheta, k)>0) then
                            ! 
-                           A_ig(1)=0.0
-                           B_ig(1)=1.0/dt + cg_ig(k)/ds(1, k) + DoverE_ig(k)
-                           C_ig(1)=0.0
+                        A_ig(ntheta) = -ctheta_ig(ntheta - 1, k)/dtheta
+                        B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
+                        C_ig(ntheta) = 0.0
+                           !
+                     else
+                           ! 
+                        A_ig(ntheta) = 0.0
+                        B_ig(ntheta) = oneoverdt + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
+                        C_ig(ntheta) = 0.0
                            !
                         endif
                         !
-                        if (ctheta_ig(ntheta, k)>0) then
-                           ! 
-                           A_ig(ntheta) = -ctheta_ig(ntheta - 1, k)/dtheta
-                           B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
-                           C_ig(ntheta) = 0.0
-                           !
-                        else
-                           ! 
-                           A_ig(ntheta) = 0.0
-                           B_ig(ntheta) = oneoverdt + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
-                           C_ig(ntheta) = 0.0
-                           !
-                        endif
-                        !
-                     endif                     
+                     endif
                      !
                      ! Solve tridiagonal system per point
                      !
