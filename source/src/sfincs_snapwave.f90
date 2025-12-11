@@ -669,7 +669,7 @@ contains
    !
    igwaves          = .true.
    igherbers        = .false.
-   iterative_srcig  = .false.   
+   iterative_srcig  = .false.
    !
    if (igwaves_opt==0) then
       igwaves       = .false.
@@ -681,9 +681,9 @@ contains
       !
       if (herbers_opt==0) then
          write(logstr,*)'SnapWave: IG bc using use eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
-         call write_log(logstr, 1)         
+         call write_log(logstr, 1)
       else
-         igherbers     = .true.          
+         igherbers     = .true.
       endif
       !
    endif
@@ -706,6 +706,6 @@ contains
    restart           = .true.
    coupled_to_sfincs = .true.
    !
-   end subroutine 
+   end subroutine read_snapwave_input
 
 end module
