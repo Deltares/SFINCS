@@ -35,28 +35,34 @@ module snapwave_solver
          !
          ! Set energies to 0.0; note that boundary values have been set in update_boundaries
          !
+         !$omp parallel do private(k)
          do k = 1, no_nodes
-            if (inner(k)) then
-               ee(:,k) = waveps               
+            if (msk(k)==1) then
+               ee(:,k) = waveps
             endif
          enddo
+         !$omp end parallel do
          !
          ee_ig = waveps
          !
-         restart=1 !TODO TL: CHECK > we need this turned on right now for IG...
+         !restart=1 !TODO TL: CHECK > we need this turned on right now for IG
+         !          ! JR: restart = .true. is the default (sfincs_snapwave.f90, line 706), and cannot be changed
+                    !     so this code block never has any effect
          !
       endif
       !
       ! Initialize wave period
       !
+      !$omp parallel do private(k)
       do k = 1, no_nodes
-         if (inner(k)) then
+         if (msk(k)==1) then
             Tp(k) = Tpini
          endif
          if (neumannconnected(k)>0) then
             Tp(neumannconnected(k))=Tpini
          endif
       enddo
+      !$omp end parallel do
       !
       ! Compute celerities and refraction speed
       !
@@ -80,47 +86,64 @@ module snapwave_solver
          kwav_ig = 0.0 
       endif
       !
+      !$omp parallel do private(k)
       do k = 1, no_nodes
          sinhkh(k)    = sinh(min(kwav(k)*depth(k), 50.0))
          Hmx(k)       = gamma*depth(k)
       enddo
+      !$omp end parallel do
+
       if (igwaves) then          
+         !$omp parallel do private(k)
          do k = 1, no_nodes             
             Hmx_ig(k)    = 0.88/kwav_ig(k)*tanh(gamma_ig*kwav_ig(k)*depth(k)/0.88) ! Note - uses gamma_ig
          enddo
+         !$omp end parallel do
       else
          Hmx_ig    = 0.0
       endif
       !   
+      !$omp parallel do private(k,itheta)
       do itheta = 1, ntheta
-         ctheta(itheta,:)    = sig/sinh(min(2.0*kwav*depth, 50.0))*(dhdx*sin(theta(itheta)) - dhdy*cos(theta(itheta)))
+         do k = 1, no_nodes
+            ctheta(itheta,k)    = sig(k)/sinh(min(2.0*kwav(k)*depth(k), 50.0))*(dhdx(k)*sin(theta(itheta)) - dhdy(k)*cos(theta(itheta)))
+         enddo      
       enddo
+      !$omp end parallel do
       !
       if (igwaves) then
+         !$omp parallel do private(k,itheta)
          do itheta = 1, ntheta
-            ctheta_ig(itheta,:) = sigm_ig/sinh(min(2.0*kwav_ig*depth, 50.0))*(dhdx*sin(theta(itheta)) - dhdy*cos(theta(itheta)))
+            do k = 1, no_nodes
+               ctheta_ig(itheta, k) = sigm_ig(k) / sinh(min(2.0 * kwav_ig(k) * depth(k), 50.0)) * (dhdx(k) * sin(theta(itheta)) - dhdy(k) * cos(theta(itheta)))
+            enddo          
          enddo
+         !$omp end parallel do
       else
          ctheta_ig = 0.0
       endif
       !
       ! Limit unrealistic refraction speed to 1/2 pi per wave period
       !
+      !$omp parallel do private(k)
       do k = 1, no_nodes
          ctheta(:,k)    = sign(1.0, ctheta(:,k))*min(abs(ctheta(:, k)), sig(k)/4)
       enddo
+      !$omp end parallel do
       !
       if (igwaves) then
+         !$omp parallel do private(k)
            do k=1, no_nodes
               ctheta_ig(:,k) = sign(1.0, ctheta_ig(:,k))*min(abs(ctheta_ig(:, k)), sigm_ig(k)/4.0)
            enddo
+         !$omp end parallel do
       endif
       !
       ! Solve the directional wave energy balance on an unstructured grid
       !
       call timer(t2)
       !
-      call solve_energy_balance2Dstat (x,y,dhdx, dhdy, no_nodes,inner, &
+      call solve_energy_balance2Dstat (x,y,dhdx, dhdy, no_nodes,msk, &
                                          w, ds, prev,   &
                                          neumannconnected,       &
                                          theta,ntheta,thetamean, &
@@ -128,7 +151,7 @@ module snapwave_solver
                                          Tp,Tp_ig,dt,rho,alpha,gamma, gammax, &
                                          wind,   &
                                          H,Dw,F,Df,thetam,sinhkh,&
-                                         Hmx, ee, windspreadfac, u10, niter, crit, &
+                                         Hmx, ee, windspreadfac, u10, niter, crit, upwindref, &
                                          hmin, baldock_ratio, baldock_ratio_ig, &
                                          aa, sig, jadcgdx, sigmin, sigmax,&
                                          c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
@@ -145,7 +168,7 @@ module snapwave_solver
    end subroutine
    
    
-   subroutine solve_energy_balance2Dstat(x,y,dhdx, dhdy, no_nodes,inner, &
+   subroutine solve_energy_balance2Dstat(x,y,dhdx, dhdy, no_nodes,msk, &
                                          w, ds, prev,   &
                                          neumannconnected,       &
                                          theta,ntheta,thetamean, &
@@ -153,7 +176,7 @@ module snapwave_solver
                                          Tp,T_ig,dt,rho,alfa,gamma, gammax, &
                                          wind,   &
                                          H,Dw,F,Df,thetam,sinhkh,&
-                                         Hmx, ee, windspreadfac, u10, niter, crit, &
+                                         Hmx, ee, windspreadfac, u10, niter, crit, upwindref, &
                                          hmin, baldock_ratio, baldock_ratio_ig, &       
                                          aa, sig, jadcgdx, sigmin, sigmax,&
                                          c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
@@ -177,7 +200,7 @@ module snapwave_solver
    real*4, dimension(ntheta,no_nodes), intent(in)   :: ds                     ! distance to interpolated upwind point, per grid point and direction
    real*4, intent(in)                               :: thetamean              ! mean offshore wave direction (rad)
    real*4, dimension(ntheta), intent(in)            :: theta                  ! distribution of wave angles and offshore wave energy density
-   logical, dimension(no_nodes), intent(inout)      :: inner                  ! mask of inner grid points (not on boundary)
+   integer*1, dimension(no_nodes), intent(inout)    :: msk                    ! mask of inner grid points (not on boundary)
    logical, intent(in)                              :: wind                   ! logical wind on/off
    logical, intent(in)                              :: igwaves                ! logical IG waves on/off
    logical, intent(in)                              :: iterative_srcig        ! option whether IG source/sink term should be calculated implicitly (iterative_srcig = 1), or just a priori based on effectively incident wave energy from previous timestep only (iterative_srcig=0, explicitly, bit faster)
@@ -218,6 +241,7 @@ module snapwave_solver
    real*4, dimension(no_nodes), intent(in)          :: Hmx_ig                 ! Hmax
    real*4, dimension(no_nodes), intent(in)          :: u10                    ! wind speed and direction
    integer,                     intent(in)          :: niter                  ! max number of iterations
+   integer,                     intent(in)          :: upwindref              ! refraction scheme
    real*4,                      intent(in)          :: crit                   ! relative accuracy for stopping criterion
    integer                                          :: ig_opt                 ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)
    !
@@ -251,6 +275,7 @@ module snapwave_solver
    real*4                                     :: uorbi
    integer                                    :: sweep,iter            ! sweep number, number of iterations
    integer                                    :: k,k1,k2,count,kn,itheta ! counters (k is grid index)
+   logical, dimension(:), allocatable         :: innermsk               ! mask for inner grid points
    integer, dimension(:,:), allocatable       :: indx                   ! index for grid sorted per sweep direction
    real*4, dimension(:,:), allocatable        :: eeold               ! wave energy density, energy density previous iteration
    real*4, dimension(:), allocatable          :: Eold                   ! mean wave energy, previous iteration
@@ -271,7 +296,6 @@ module snapwave_solver
    real*4, dimension(:), allocatable          :: E_ig                   ! mean wave energy
    real*4, dimension(:), allocatable          :: diff                   ! maximum difference of wave energy relative to previous iteration
    real*4, dimension(:), allocatable          :: ra                     ! coordinate in sweep direction
-   !real*4, dimension(:), allocatable          :: sig
    real*4, dimension(:), allocatable          :: sigm_ig
    integer, dimension(4)                      :: shift
    real*4                                     :: pi = 4.*atan(1.0)
@@ -279,7 +303,7 @@ module snapwave_solver
    real*4                                     :: hmin                   ! minimum water depth! TL: make user changeable also here according to 'snapwave_hmin' in sfincs.inp   
    real*4                                     :: fac=1.0             ! underrelaxation factor for DoverA
    real*4                                     :: oneoverdt
-   real*4                                     :: oneover2dtheta
+   real*4                                     :: oneover2dtheta, oneoverdtheta
    real*4                                     :: rhog8
    real*4                                     :: Dfk
    real*4                                     :: Dwk
@@ -324,7 +348,7 @@ module snapwave_solver
    allocate(R(ntheta)); R=0.0
    allocate(DoverE(no_nodes)); DoverE=0.0
    allocate(E(no_nodes)); E=waveps
-   allocate(Eold(no_nodes)); Eold=0.0   
+   allocate(Eold(no_nodes)); Eold=0.0
    !
    if (igwaves) then
       allocate(A_ig(ntheta)); A_ig=0.0
@@ -337,9 +361,10 @@ module snapwave_solver
       allocate(E_ig(no_nodes)); E_ig=waveps
       !allocate(T_ig(no_nodes)); T_ig=0.0
       allocate(sigm_ig(no_nodes)); sigm_ig=0.0
-      allocate(depthprev(ntheta,no_nodes)); depthprev=0.0                     
-      allocate(beta_local(ntheta,no_nodes)); beta_local=0.0        
+      allocate(depthprev(ntheta,no_nodes)); depthprev=0.0
+      allocate(beta_local(ntheta,no_nodes)); beta_local=0.0
       allocate(alphaig_local(ntheta,no_nodes)); alphaig_local=0.0
+      allocate(innermsk(no_nodes)); innermsk = msk==1
    endif
    !
    if (wind) then
@@ -373,6 +398,7 @@ module snapwave_solver
       sig         = 2*pi/Tp
    endif
    oneoverdt      = 1.0/dt
+   oneoverdtheta = 1.0 / dtheta
    oneover2dtheta = 1.0/2.0/dtheta
    rhog8          = 0.125*rho*g
    thetam         = 0.0
@@ -405,49 +431,20 @@ module snapwave_solver
    !   
    ! Set inner to false for all points at grid edge or adjacent to dry point
    !
-   do k=1,no_nodes
-      ! 
-      do itheta = 1, ntheta
-         !
-         k1 = prev(1, itheta, k)
-         k2 = prev(2, itheta, k)
-         !
-         if (k1 * k2 == 0) then
-            !
-            ! No upwind point (is this check not already done somewhere before?)
-            !
-            inner(k) = .false.
-            !
-			elseif ((k1==1 .and. k2==1)) then ! TL: for now still needed for a working IG solver
-			   inner(k)=.false.
-               exit                       
-         !elseif (depth(k1) < hmin .or. depth(k2) < hmin .or. (k1 == 1 .and. k2 == 1)) then
-            !
-            ! Do not change inner here! It should be static! In a next update of the wave fields, these points may be wet.
-            !
-            !inner(k) = .false.
-            !
-            !exit
-            !
-         endif
-      enddo
-   enddo  
-   !
-   !
    ! 0-a) Set boundary and initial conditions      
    !
    do k = 1, no_nodes
       !
       ! Boundary condition at sea side (uniform)
       !
-      if (.not.inner(k)) then
+      if (msk(k)==2) then
          !
          ee(:,k)=max(ee(:,k),waveps)
          E(k)      = sum(ee(:, k))*dtheta
          H(k)      = sqrt(8*E(k)/rho/g)
          thetam(k) = atan2(sum(ee(:, k)*sin(theta)), sum(ee(:, k)*cos(theta)))
          !
-         !ee_ig(:, k)  = eeinc2ig*ee(:,k) !TODO TL: determined in snapwave_boundaries.f90        
+         !ee_ig(:, k)  = eeinc2ig*ee(:,k) !TODO TL: determined in snapwave_boundaries.f90
          !
          if (igwaves) then             
             E_ig(k)      = sum(ee_ig(:, k))*dtheta
@@ -456,7 +453,6 @@ module snapwave_solver
          ! 
          if (wind) then
             sig(k)    = 2*pi/Tp(k)
-           !aa(:,k)   = max(aa(:,k),waveps/sig(k))
             aa(:,k)   = max(ee(:,k),waveps)/sig(k)
             Ak        = E(k)/sig(k)
          endif
@@ -472,20 +468,20 @@ module snapwave_solver
       !      
       ! Actual determining of source term: 
       !          
-      call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
+      call determine_infragravity_source_sink_term(innermsk, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
       !         
       ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev, beta_local
       ! in: the rest
       !
-      ! NOTE - This is based on the energy in the precious SnapWave timestep 'ee' and 'ee_ig', and waveheight 'H', which should therefore be made available. 
+      ! NOTE - This is based on the energy in the previous SnapWave timestep 'ee' and 'ee_ig', and waveheight 'H', which should therefore be made available. 
       !
-   endif             
+   endif
    !
    ! 0-c) Set initial condition at inner cells  
    !
    do k = 1, no_nodes   
       ! 
-      if (inner(k)) then
+      if (msk(k)==1) then
          !
          if (wind) then
              ee(:,k) = waveps
@@ -535,9 +531,11 @@ module snapwave_solver
       !
       if (sweep==1) then
          eeold = ee
+         !$omp parallel do private(k)
          do k = 1, no_nodes
             Eold(k) = sum(eeold(:, k))
          enddo
+         !$omp end parallel do
          !
          if (igwaves) then
             !        
@@ -546,7 +544,7 @@ module snapwave_solver
                 ! 
                 do k = 1, no_nodes   
                    ! 
-                   if (inner(k)) then             
+                   if (msk(k)==1) then             
                        !
                        H(k)      = sqrt(8*sum(ee(:, k))*dtheta/rho/g)                   
                        !
@@ -555,7 +553,7 @@ module snapwave_solver
                 !
                 ! Actual determining of source term - every first sweep of iteration
                 !          
-                call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
+                call determine_infragravity_source_sink_term(innermsk, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
                 !    
             endif
             !
@@ -569,7 +567,7 @@ module snapwave_solver
          !
          k=indx(count, sweep)
          !
-         if (inner(k)) then
+         if (msk(k)==1) then
             if (depth(k)>1.1*hmin) then
                !
                if (ok(k) == 0)  then
@@ -609,13 +607,15 @@ module snapwave_solver
                     ee(:,k) = ee(:,k) / depthlimfac
                     aa(:,k) = aa(:,k) / depthlimfac                   
                     sig(k)  = Ek/Ak
+                    if (Ek<1d-3) then
+                       sig(k)=sigmax
+                    end if
                     sig(k)  = max(sig(k),sigmin)
                     sig(k)  = min(sig(k),sigmax)
                     Ak      = Ek/sig(k) ! to avoid small T in windinput
-                    if (wind) then
-                       aaprev=min(aaprev,eeprev/sigmin)
-                       aaprev=max(aaprev,eeprev/sigmax)
-                    endif
+                    !
+                    aaprev=min(aaprev,eeprev/sigmin)
+                    aaprev=max(aaprev,eeprev/sigmax)
                     !                    
                     call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:,k))    
                   endif
@@ -623,7 +623,7 @@ module snapwave_solver
                   ! Fill DoverE 
                   uorbi    = 0.5*sig(k)*Hk/sinhkh(k)
                   Dfk      = 0.28*rho*fw(k)*uorbi**3
-                  !if (Hk>0.) then !
+                  !
                   if (Hk>baldock_ratio*Hmx(k)) then
                      call baldock(rho, g, alfa, gamma, depth(k), Hk, 2*pi/sig(k) , 1, Dwk, Hmx(k))
                   else
@@ -665,6 +665,8 @@ module snapwave_solver
                      !
                   enddo                  
                   !
+                  if (upwindref == 0) then
+                     !
                   do itheta = 2, ntheta - 1
                      !
                      A(itheta) = -ctheta(itheta - 1, k)*oneover2dtheta
@@ -681,29 +683,82 @@ module snapwave_solver
                   B(ntheta) = oneoverdt + cg(k)/ds(ntheta,k) + DoverE(k)
                   C(ntheta) = ctheta(1, k)*oneover2dtheta
                   !
+                  else
+                     ! upwind scheme
+                     ! 
+                     do itheta = 2, ntheta - 1
+                        !
+                        if (ctheta(itheta,k)<0) then
+                           A(itheta)=0.d0
+                           B(itheta)=oneoverdt-ctheta(itheta,k) * oneoverdtheta+cg(k)/ds(itheta,k)+DoverE(k)
+                           C(itheta)=ctheta(itheta+1,k) * oneoverdtheta
+                        else
+                           A(itheta)=-ctheta(itheta-1,k)/dtheta
+                           B(itheta)=oneoverdt+ctheta(itheta,k) * oneoverdtheta+cg(k)/ds(itheta,k)+DoverE(k)
+                           C(itheta)=0
+                        endif       
+                        !
+                     enddo
+                     ! 
+                     if (ctheta(1,k)<0) then
+                        A(1)=0.d0
+                        B(1)=oneoverdt-ctheta(1,k) * oneoverdtheta+cg(k)/ds(1,k)+DoverE(k)
+                        C(1)=ctheta(2,k) * oneoverdtheta
+                     else
+                        A(1)=0.d0
+                        B(1)=oneoverdt
+                        C(1)=0.d0
+                        R(1)=0.d0
+                     endif
+                     !
+                     if (ctheta(ntheta,k)>0) then
+                        A(ntheta)=-ctheta(ntheta-1,k)/dtheta
+                        B(ntheta)=oneoverdt+ctheta(ntheta,k) * oneoverdtheta+cg(k)/ds(ntheta,k)+DoverE(k)
+                        C(ntheta)=0
+                     else
+                        A(ntheta)=0.d0
+                        B(ntheta)=oneoverdt
+                        C(ntheta)=0.d0
+                        R(ntheta)=0.d0
+                     endif
+                  end if
+                  !
                   ! Solve tridiagonal system per point
                   !
                   if (wind) then
-                     do itheta = 2, ntheta - 1
-                        B_aa(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverA(k)       
+                     do itheta = 1, ntheta
                         R_aa(itheta) = (oneoverdt)*aa(itheta, k) + cgprev(itheta)*aaprev(itheta)/ds(itheta, k)
                      enddo
                      !
+                     if (upwindref ==0) then
+                        do itheta = 1, ntheta
+                           B_aa(itheta) = oneoverdt + cg(k) / ds(itheta, k) + DoverA(k)
+                        end do
+                     else
+                        do itheta = 2, ntheta - 1
+                           if (ctheta(itheta,k)<0) then
+                              B_aa(itheta) = oneoverdt -ctheta(itheta,k) * oneoverdtheta + cg(k) / ds(itheta, k) + DoverA(k)
+                           else
+                              B_aa(itheta) = oneoverdt +ctheta(itheta,k) * oneoverdtheta + cg(k) / ds(itheta, k) + DoverA(k)
+                           endif
+                        end do
+                     !
                      if (ctheta(1,k)<0) then
                         B_aa(1) = oneoverdt - ctheta(1, k)/dtheta + cg(k)/ds(1, k) + DoverA(k)
-                        R_aa(1) = (oneoverdt)*aa(1, k) + cgprev(1)*aaprev(1)/ds(1, k) 
                      else
-                        B_aa(1) = oneoverdt + cg(k)/ds(1, k) + DoverA(k)
-                        R_aa(1) = (oneoverdt)*aa(1, k) + cgprev(1)*aaprev(1)/ds(1, k)
+                           B_aa(1) = oneoverdt 
+                           R_aa(1) = 0.d0
                      endif
                      !
                      if (ctheta(ntheta, k)>0) then
                         B_aa(ntheta) = oneoverdt + ctheta(ntheta, k)/dtheta + cg(k)/ds(ntheta, k) + DoverA(k)
-                        R_aa(ntheta) = (oneoverdt )*aa(ntheta,k) + cgprev(ntheta)*aaprev(ntheta)/ds(ntheta, k)
                      else
-                        B_aa(ntheta) = oneoverdt + cg(k)/ds(ntheta, k) + DoverA(k)
-                        R_aa(ntheta) = (oneoverdt)*aa(ntheta,k) + cgprev(ntheta)*aaprev(ntheta)/ds(ntheta, k)
+                           B_aa(ntheta) = oneoverdt 
+                           R_aa(ntheta) = 0.d0
                      endif
+                        !
+                     endif
+                     !
                      R(:)    = R(:)    + WsorE(:,k)
                      R_aa(:) = R_aa(:) + WsorA(:,k)
                      !
@@ -724,6 +779,9 @@ module snapwave_solver
                      aa(:,k) = aa(:,k)/depthlimfac
                      !
                      sig(k)  = Ek/Ak
+                     if (Ek<1d-3) then
+                        sig(k)=sigmax
+                     endif
                      sig(k)  = max(sig(k),sigmin)
                      sig(k)  = min(sig(k),sigmax)
                      call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:,k))   
@@ -768,32 +826,72 @@ module snapwave_solver
                         !
                      enddo
                      !
-                     do itheta = 2, ntheta - 1
+                     if (upwindref == 0) then
                         !
-                        A_ig(itheta) = -ctheta_ig(itheta - 1, k)*oneover2dtheta
-                        B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
-                        C_ig(itheta) = ctheta_ig(itheta + 1, k)*oneover2dtheta
+                        do itheta = 2, ntheta - 1
+                           !
+                           A_ig(itheta) = -ctheta_ig(itheta - 1, k)*oneover2dtheta
+                           B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
+                           C_ig(itheta) = ctheta_ig(itheta + 1, k)*oneover2dtheta
+                           !
+                        enddo
                         !
-                     enddo
-                     !
+                        A_ig(1) = -ctheta_ig(ntheta, k)*oneover2dtheta
+                        B_ig(1) = oneoverdt + cg_ig(k)/ds(1,k) + DoverE_ig(k)
+                        C_ig(1) = ctheta_ig(2, k)*oneover2dtheta
+                        !
+                        A_ig(ntheta) = -ctheta_ig(ntheta - 1, k)*oneover2dtheta
+                        B_ig(ntheta) = oneoverdt + cg_ig(k)/ds(ntheta,k) + DoverE_ig(k)
+                        C_ig(ntheta) = ctheta_ig(1, k)*oneover2dtheta
+                        !
+                     else
+                        ! upwind scheme      
+                        ! 
+                        do itheta = 2, ntheta - 1
+                           !
+                           if (ctheta_ig(itheta,k)<0) then
+                              !
+                              A_ig(itheta)=0.d0
+                              B_ig(itheta)=oneoverdt-ctheta_ig(itheta,k) * oneoverdtheta+cg_ig(k)/ds(itheta,k)+DoverE_ig(k)
+                              C_ig(itheta)=ctheta_ig(itheta+1,k) * oneoverdtheta
+                              !
+                           else
+                              ! 
+                              A_ig(itheta)=-ctheta_ig(itheta-1,k)/dtheta
+                              B_ig(itheta)=oneoverdt+ctheta_ig(itheta,k) * oneoverdtheta+cg_ig(k)/ds(itheta,k)+DoverE_ig(k)
+                              C_ig(itheta)=0
+                              !
+                           endif
+                           !
+                        enddo
+                        !
                      if (ctheta_ig(1,k)<0) then
+                        !
                         A_ig(1) = 0.0
                         B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k)
                         C_ig(1) = ctheta_ig(2, k)/dtheta
+                        !
                      else
                         A_ig(1)=0.0
                         B_ig(1)=1.0/dt + cg_ig(k)/ds(1, k) + DoverE_ig(k)
                         C_ig(1)=0.0
+                        !
                      endif
                      !
                      if (ctheta_ig(ntheta, k)>0) then
+                        !
                         A_ig(ntheta) = -ctheta_ig(ntheta - 1, k)/dtheta
                         B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
                         C_ig(ntheta) = 0.0
+                        !
                      else
+                        !
                         A_ig(ntheta) = 0.0
                         B_ig(ntheta) = oneoverdt + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
                         C_ig(ntheta) = 0.0
+                        !
+                        endif
+                        !
                      endif
                      !
                      ! Solve tridiagonal system per point
@@ -827,7 +925,7 @@ module snapwave_solver
             kwav(kn) = kwav(k)
             Hmx(kn) = Hmx(k)
             ee(:, kn) = ee(:, k)
-            ee_ig(:, kn) = ee_ig(:, k) ! TL: Added Neumann option for IG            
+            ee_ig(:, kn) = ee_ig(:, k) ! TL: Added Neumann option for IG
             ctheta(:, kn) = ctheta(:, k)
             cg(kn) = cg(k)
             if (wind) then
@@ -887,6 +985,7 @@ module snapwave_solver
       !
    enddo
    !
+   !$omp parallel do private(k, uorbi)
    do k=1,no_nodes
       !
       ! Compute directionally integrated parameters for output
@@ -948,6 +1047,7 @@ module snapwave_solver
          endif
       !
    enddo
+   !$omp end parallel do
    callno=callno+1
    !
    end subroutine solve_energy_balance2Dstat
