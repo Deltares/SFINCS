@@ -356,12 +356,15 @@ contains
    !
    if (ndrn > 0) then
       !
-      !$acc serial, present( z_volume, zs, zb, nmindsrc, qtsrc, drainage_type, drainage_params )
+      ! Changed serial loops to parallel loops with independent clause. Gives identical results as long as only a single sink/source point appears in each grid cell
+      !$acc parallel present( z_volume, zs, zb, nmindsrc, qtsrc, drainage_type, drainage_params )
+      !$acc loop independent gang vector
       do idrn = 1, ndrn
          !
          jin  = nsrc + idrn * 2 - 1
          jout = nsrc + idrn * 2
          !
+         ! Consider to add a check if any of the nmin and nmout are identical as the loop would only work in serial (current code produces wrong results). If check is positive either terminate (decide that SFINCS can handle only one source/sink point per grid cell) or fall back to serial loop
          nmin  = nmindsrc(jin)
          nmout = nmindsrc(jout)
          !
@@ -437,8 +440,9 @@ contains
                         !
                         drainage_status(idrn) = 3
                         !
-                        write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Opening structure ',idrn,' at t= ',t
-                        call write_log(logstr, 0)                        
+                        !Had to comment out to compile using nvfortran - the gpu cannot output the types used.
+                        !write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Opening structure ',idrn,' at t= ',t
+                        !call write_log(logstr, 0)                        
                         !
                      endif
                      !
@@ -452,8 +456,9 @@ contains
                         !
                         drainage_status(idrn) = 2
                         !
-                        write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Closing structure ',idrn,' at t= ',t
-                        call write_log(logstr, 0)                        
+                        !Had to comment out to compile using nvfortran - the gpu cannot output the types used.
+                        !write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Closing structure ',idrn,' at t= ',t
+                        !call write_log(logstr, 0)                        
                         !                        
                      endif
                      !
@@ -533,8 +538,9 @@ contains
                         !
                         drainage_status(idrn) = 3
                         !
-                        write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Opening structure ',idrn,' at t= ',t
-                        call write_log(logstr, 0)                        
+                        !Had to comment out to compile using nvfortran - the gpu cannot output the types used.
+                        !write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Opening structure ',idrn,' at t= ',t
+                        !call write_log(logstr, 0)                        
                         !
                      endif
                      !
@@ -548,8 +554,8 @@ contains
                         !
                         drainage_status(idrn) = 2
                         !
-                        write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Closing structure ',idrn,' at t= ',t
-                        call write_log(logstr, 0)                        
+                        !write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Closing structure ',idrn,' at t= ',t
+                        !call write_log(logstr, 0)                        
                         !                        
                      endif
                      !
@@ -632,7 +638,7 @@ contains
          endif
          !
       enddo
-      !$acc end serial
+      !$acc end parallel
       !
    endif
    !
