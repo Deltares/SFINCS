@@ -2,8 +2,11 @@ module sfincs_bmi2
   !! BMI 2.0 wrapper for SFINCS (rectilinear grid, real implementation)
   !! Exposes outputs: zs, zb, depth (= max(zs - zb, 0))
   use, intrinsic :: iso_fortran_env, only: real32, real64
-  use bmif_2_0,  only: bmi, BMI_SUCCESS, BMI_FAILURE
-  use sfincs_data, only: nmax, mmax, np, zs, zb, t0, t1   ! adjust if needed
+  !use bmif_2_0,  only: bmi, BMI_SUCCESS, BMI_FAILURE
+  use bmif_2_0_iso,  only: bmi, BMI_SUCCESS, BMI_FAILURE, BMI_MAX_COMPONENT_NAME, &
+                         BMI_MAX_VAR_NAME, BMI_MAX_UNITS_NAME, BMI_MAX_TYPE_NAME
+
+  use sfincs_data, only: nmax, mmax, np, zs, zb, t0, t1, netprcp   ! adjust if needed
   use sfincs_lib,  only: sfincs_initialize, sfincs_update, sfincs_finalize, t, dt
   implicit none
   private
@@ -142,6 +145,9 @@ contains
     integer :: ncell
     integer :: L
     character(len=:), allocatable :: cfg
+
+
+    write(*,*) " sfincs_bmi_initialize config_file = ", config_file
 
     ! --------------------------
     ! 1) Call real SFINCS init
@@ -360,7 +366,7 @@ contains
     end if
   end function sfincs_bmi_get_component_name
 
-  function sfincs_bmi_get_input_var_names(this, names) result(status)
+  function sfincs_bmi_get_input_var_names_old(this, names) result(status)
     class(sfincs_bmi),         intent(in)  :: this
     character(len=:), pointer, intent(out) :: names(:)
     integer :: status
@@ -369,7 +375,18 @@ contains
     else
       nullify(names); status = BMI_FAILURE
     end if
+  end function sfincs_bmi_get_input_var_names_old
+
+  function sfincs_bmi_get_input_var_names(this, names) result(status)
+    class(sfincs_bmi), intent(in) :: this
+    character(len=:), pointer, intent(out) :: names(:)
+    integer :: status
+
+    allocate(character(len=9) :: names(1))
+    names(1) = 'rain_rate'
+    status = BMI_SUCCESS
   end function sfincs_bmi_get_input_var_names
+
 
   function sfincs_bmi_get_output_var_names(this, names) result(status)
     class(sfincs_bmi),         intent(in)  :: this
@@ -384,12 +401,22 @@ contains
     status = BMI_SUCCESS
   end function sfincs_bmi_get_output_var_names
 
-  function sfincs_bmi_get_input_item_count(this, count) result(status)
+  function sfincs_bmi_get_input_item_count_old(this, count) result(status)
     class(sfincs_bmi), intent(in)  :: this
     integer,          intent(out) :: count
     integer :: status
     count = 0; status = BMI_SUCCESS
+  end function sfincs_bmi_get_input_item_count_old
+
+  function sfincs_bmi_get_input_item_count(this, count) result(status)
+    class(sfincs_bmi), intent(in) :: this
+    integer, intent(out) :: count
+    integer :: status
+
+    count = 1
+    status = BMI_SUCCESS
   end function sfincs_bmi_get_input_item_count
+
 
   function sfincs_bmi_get_output_item_count(this, count) result(status)
     class(sfincs_bmi), intent(in)  :: this
@@ -448,6 +475,12 @@ contains
     character(len=*),  intent(in)  :: name
     integer,           intent(out) :: grid
     integer :: status
+
+    if (trim(name) == 'rain_rate') then
+      grid = 1
+      status = BMI_SUCCESS
+      return
+    end if
     if (is_known_var(name)) then
       grid = GRID_ID; status = BMI_SUCCESS
     else
@@ -478,6 +511,9 @@ contains
     select case (trim(name))
     case (VAR_ZS, VAR_ZB, VAR_DEPTH)
       units = g_units_m; status = BMI_SUCCESS
+    case ('rain_rate')
+      units = 'm s-1'
+      status = BMI_SUCCESS
     case default
       units = ''; status = BMI_FAILURE
     end select
@@ -517,6 +553,11 @@ contains
     end if
     if (.not. allocated(g_loc_node)) then
       allocate(character(len=4) :: g_loc_node); g_loc_node = 'node'
+    end if
+    if (trim(name) == 'rain_rate') then
+      location = 'node'
+      status = BMI_SUCCESS
+      return
     end if
     location = g_loc_node
     status = BMI_SUCCESS
@@ -804,6 +845,20 @@ contains
       this%depth_d = real(this%depth, kind=real64)
       this%depth_is_derived = .false.
       call sync_module_ptr_buffers(this)
+
+    case ('rain_rate')
+ 
+      if (.not. allocated(netprcp)) then
+        status = BMI_FAILURE
+        return
+      end if
+      if (size(src) /= size(netprcp)) then
+        status = BMI_FAILURE
+        return
+      end if
+      netprcp = src
+      status = BMI_SUCCESS
+      return
 
     case default
       status = BMI_FAILURE
