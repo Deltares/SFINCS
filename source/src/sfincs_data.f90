@@ -757,6 +757,7 @@ module sfincs_data
       real*4, dimension(:),     allocatable :: drainage_distance
       integer*1, dimension(:),  allocatable :: drainage_status
       real*4, dimension(:),     allocatable :: drainage_fraction_open
+      real*4, dimension(:),     allocatable :: breach_width
       real*4, dimension(:),     allocatable :: xsrc
       real*4, dimension(:),     allocatable :: ysrc
       !!!

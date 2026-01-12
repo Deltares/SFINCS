@@ -1,0 +1,172 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\git\\SFINCS\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\git\\SFINCS\\source\\src\\sfincs_boundaries.f90||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:source\\src\\sfincs_boundaries.f90||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\git\\SFINCS\\docs\\parameters.rst||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:docs\\parameters.rst||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\git\\SFINCS\\source\\src\\sfincs_meteo.f90||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:source\\src\\sfincs_meteo.f90||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\git\\SFINCS\\source\\src\\sfincs_domain.f90||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:source\\src\\sfincs_domain.f90||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\git\\SFINCS\\source\\src\\sfincs_input.f90||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:source\\src\\sfincs_input.f90||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\git\\SFINCS\\source\\src\\sfincs_ncoutput.F90||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:source\\src\\sfincs_ncoutput.F90||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\git\\SFINCS\\source\\src\\sfincs_data.f90||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:source\\src\\sfincs_data.f90||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\git\\SFINCS\\docs\\input.rst||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:docs\\input.rst||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\git\\SFINCS\\source\\src\\sfincs_infiltration.f90||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:source\\src\\sfincs_infiltration.f90||{8B382828-6202-11D1-8870-0000F87579D2}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 4,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "sfincs_domain.f90",
+              "DocumentMoniker": "C:\\git\\SFINCS\\source\\src\\sfincs_domain.f90",
+              "RelativeDocumentMoniker": "source\\src\\sfincs_domain.f90",
+              "ToolTip": "C:\\git\\SFINCS\\source\\src\\sfincs_domain.f90",
+              "RelativeToolTip": "source\\src\\sfincs_domain.f90",
+              "ViewState": "AgIAAEAJAAAAAAAAAAAAAI4JAAAQAAAAAAAAAA==",
+              "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAC5SURBVEhL7ZO9DcMgEIUf6XxzUVkMEXkCRmGCKEOgVMwFJSkikHLhx3Zw0viTKHyc9enZeiLGCAAQQmAr3vvXyxVomiCSIITQXC5wB3DlQ843gsyDbnyE2S9ASaCUet8sIKWE1jo/twQXfrEG5xyMMXyM2S/5JKoJrLV5icN3eIIkICKxK8EWhgr458FoQYld/6AHEeXWHp5giEApVe3PEEGLU9DlFHSpNnkPqf0/bfJHghH8J8FRPAFpM2GbpGwBHAAAAABJRU5ErkJggg==",
+              "WhenOpened": "2025-05-21T07:26:34.715Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "sfincs_ncoutput.F90",
+              "DocumentMoniker": "C:\\git\\SFINCS\\source\\src\\sfincs_ncoutput.F90",
+              "RelativeDocumentMoniker": "source\\src\\sfincs_ncoutput.F90",
+              "ToolTip": "C:\\git\\SFINCS\\source\\src\\sfincs_ncoutput.F90",
+              "RelativeToolTip": "source\\src\\sfincs_ncoutput.F90",
+              "ViewState": "AgIAAEoMAAAAAAAAAAAqwF8MAAA2AAAAAAAAAA==",
+              "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAC5SURBVEhL7ZO9DcMgEIUf6XxzUVkMEXkCRmGCKEOgVMwFJSkikHLhx3Zw0viTKHyc9enZeiLGCAAQQmAr3vvXyxVomiCSIITQXC5wB3DlQ843gsyDbnyE2S9ASaCUet8sIKWE1jo/twQXfrEG5xyMMXyM2S/5JKoJrLV5icN3eIIkICKxK8EWhgr458FoQYld/6AHEeXWHp5giEApVe3PEEGLU9DlFHSpNnkPqf0/bfJHghH8J8FRPAFpM2GbpGwBHAAAAABJRU5ErkJggg==",
+              "WhenOpened": "2025-06-11T11:01:42.942Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "sfincs_meteo.f90",
+              "DocumentMoniker": "C:\\git\\SFINCS\\source\\src\\sfincs_meteo.f90",
+              "RelativeDocumentMoniker": "source\\src\\sfincs_meteo.f90",
+              "ToolTip": "C:\\git\\SFINCS\\source\\src\\sfincs_meteo.f90",
+              "RelativeToolTip": "source\\src\\sfincs_meteo.f90",
+              "ViewState": "AgIAAIwEAAAAAAAAAAAAAIwEAAAdAAAAAAAAAA==",
+              "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAC5SURBVEhL7ZO9DcMgEIUf6XxzUVkMEXkCRmGCKEOgVMwFJSkikHLhx3Zw0viTKHyc9enZeiLGCAAQQmAr3vvXyxVomiCSIITQXC5wB3DlQ843gsyDbnyE2S9ASaCUet8sIKWE1jo/twQXfrEG5xyMMXyM2S/5JKoJrLV5icN3eIIkICKxK8EWhgr458FoQYld/6AHEeXWHp5giEApVe3PEEGLU9DlFHSpNnkPqf0/bfJHghH8J8FRPAFpM2GbpGwBHAAAAABJRU5ErkJggg==",
+              "WhenOpened": "2025-06-11T11:01:08.224Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "sfincs_data.f90",
+              "DocumentMoniker": "C:\\git\\SFINCS\\source\\src\\sfincs_data.f90",
+              "RelativeDocumentMoniker": "source\\src\\sfincs_data.f90",
+              "ToolTip": "C:\\git\\SFINCS\\source\\src\\sfincs_data.f90",
+              "RelativeToolTip": "source\\src\\sfincs_data.f90",
+              "ViewState": "AgIAAEIAAAAAAAAAAAAAAEIAAAATAAAAAAAAAA==",
+              "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAC5SURBVEhL7ZO9DcMgEIUf6XxzUVkMEXkCRmGCKEOgVMwFJSkikHLhx3Zw0viTKHyc9enZeiLGCAAQQmAr3vvXyxVomiCSIITQXC5wB3DlQ843gsyDbnyE2S9ASaCUet8sIKWE1jo/twQXfrEG5xyMMXyM2S/5JKoJrLV5icN3eIIkICKxK8EWhgr458FoQYld/6AHEeXWHp5giEApVe3PEEGLU9DlFHSpNnkPqf0/bfJHghH8J8FRPAFpM2GbpGwBHAAAAABJRU5ErkJggg==",
+              "WhenOpened": "2025-06-11T11:01:05.09Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "sfincs_boundaries.f90",
+              "DocumentMoniker": "C:\\git\\SFINCS\\source\\src\\sfincs_boundaries.f90",
+              "RelativeDocumentMoniker": "source\\src\\sfincs_boundaries.f90",
+              "ToolTip": "C:\\git\\SFINCS\\source\\src\\sfincs_boundaries.f90",
+              "RelativeToolTip": "source\\src\\sfincs_boundaries.f90",
+              "ViewState": "AgIAAJcCAAAAAAAAAAAgwKECAAARAAAAAAAAAA==",
+              "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAC5SURBVEhL7ZO9DcMgEIUf6XxzUVkMEXkCRmGCKEOgVMwFJSkikHLhx3Zw0viTKHyc9enZeiLGCAAQQmAr3vvXyxVomiCSIITQXC5wB3DlQ843gsyDbnyE2S9ASaCUet8sIKWE1jo/twQXfrEG5xyMMXyM2S/5JKoJrLV5icN3eIIkICKxK8EWhgr458FoQYld/6AHEeXWHp5giEApVe3PEEGLU9DlFHSpNnkPqf0/bfJHghH8J8FRPAFpM2GbpGwBHAAAAABJRU5ErkJggg==",
+              "WhenOpened": "2025-06-11T11:00:56.18Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "parameters.rst",
+              "DocumentMoniker": "C:\\git\\SFINCS\\docs\\parameters.rst",
+              "RelativeDocumentMoniker": "docs\\parameters.rst",
+              "ToolTip": "C:\\git\\SFINCS\\docs\\parameters.rst",
+              "RelativeToolTip": "docs\\parameters.rst",
+              "ViewState": "AgIAAMMAAAAAAAAAAAAAANAAAAAtAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-06-11T11:00:46.094Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "input.rst",
+              "DocumentMoniker": "C:\\git\\SFINCS\\docs\\input.rst",
+              "RelativeDocumentMoniker": "docs\\input.rst",
+              "ToolTip": "C:\\git\\SFINCS\\docs\\input.rst",
+              "RelativeToolTip": "docs\\input.rst",
+              "ViewState": "AgIAAFICAAAAAAAAAAAAAFgCAAAlAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-06-11T11:00:35.905Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "sfincs_infiltration.f90",
+              "DocumentMoniker": "C:\\git\\SFINCS\\source\\src\\sfincs_infiltration.f90",
+              "RelativeDocumentMoniker": "source\\src\\sfincs_infiltration.f90",
+              "ToolTip": "C:\\git\\SFINCS\\source\\src\\sfincs_infiltration.f90",
+              "RelativeToolTip": "source\\src\\sfincs_infiltration.f90",
+              "ViewState": "AgIAAGwAAAAAAAAAAAAwwGkAAAANAAAAAAAAAA==",
+              "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAC5SURBVEhL7ZO9DcMgEIUf6XxzUVkMEXkCRmGCKEOgVMwFJSkikHLhx3Zw0viTKHyc9enZeiLGCAAQQmAr3vvXyxVomiCSIITQXC5wB3DlQ843gsyDbnyE2S9ASaCUet8sIKWE1jo/twQXfrEG5xyMMXyM2S/5JKoJrLV5icN3eIIkICKxK8EWhgr458FoQYld/6AHEeXWHp5giEApVe3PEEGLU9DlFHSpNnkPqf0/bfJHghH8J8FRPAFpM2GbpGwBHAAAAABJRU5ErkJggg==",
+              "WhenOpened": "2025-05-21T07:19:23.653Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "sfincs_input.f90",
+              "DocumentMoniker": "C:\\git\\SFINCS\\source\\src\\sfincs_input.f90",
+              "RelativeDocumentMoniker": "source\\src\\sfincs_input.f90",
+              "ToolTip": "C:\\git\\SFINCS\\source\\src\\sfincs_input.f90",
+              "RelativeToolTip": "source\\src\\sfincs_input.f90",
+              "ViewState": "AgIAAEYAAAAAAAAAAAAqwFsAAAArAAAAAAAAAA==",
+              "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAC5SURBVEhL7ZO9DcMgEIUf6XxzUVkMEXkCRmGCKEOgVMwFJSkikHLhx3Zw0viTKHyc9enZeiLGCAAQQmAr3vvXyxVomiCSIITQXC5wB3DlQ843gsyDbnyE2S9ASaCUet8sIKWE1jo/twQXfrEG5xyMMXyM2S/5JKoJrLV5icN3eIIkICKxK8EWhgr458FoQYld/6AHEeXWHp5giEApVe3PEEGLU9DlFHSpNnkPqf0/bfJHghH8J8FRPAFpM2GbpGwBHAAAAABJRU5ErkJggg==",
+              "WhenOpened": "2025-01-15T14:05:20.173Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
