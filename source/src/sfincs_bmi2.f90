@@ -17,6 +17,12 @@ module sfincs_bmi2
   character(len=*), parameter :: VAR_ZB    = 'zb'
   character(len=*), parameter :: VAR_DEPTH = 'depth'
   character(len=*), parameter :: VAR_BEDLEVEL = 'bedlevel'
+  character(len=*), parameter :: VAR_U    = 'vx'
+  character(len=*), parameter :: VAR_V    = 'vy'
+
+  character(len=*), parameter :: VAR_ETA2  = 'eta2'
+  character(len=*), parameter :: VAR_TROUTE_ETA2 = 'troute_eta2'
+
 
   ! Module-level TARGET buffers (for BMI pointer getters)
   real(real32), target, allocatable, save :: g_zs_f(:), g_zb_f(:), g_depth_f(:)
@@ -51,6 +57,8 @@ module sfincs_bmi2
     real(real64), allocatable :: zs_d    (:)
     real(real64), allocatable :: zb_d    (:)
     real(real64), allocatable :: depth_d (:)
+
+    real(real64), allocatable :: u_d(:), v_d(:)
 
     ! --- BMI pointer-return strings/arrays
     character(len=:), pointer :: component_name => null()
@@ -225,14 +233,20 @@ contains
     ! No BMI inputs for now
     if (.not. allocated(g_input_names))    allocate(character(len=1) :: g_input_names(0))
 
+    !allocate(this%u_d(ncell), this%v_d(ncell))
+    this%u_d = 0.0_real64
+    this%v_d = 0.0_real64
+
     ! outputs: zs, zb, depth
     if (.not. allocated(g_output_names)) then
-      L = max(len(VAR_ZS), max(len(VAR_ZB), len(VAR_DEPTH)))
-      allocate(character(len=L) :: g_output_names(3))
+      L = max(len(VAR_ZS), max(len(VAR_ZB), len(VAR_DEPTH), len(VAR_U), len(VAR_V)))
+      allocate(character(len=L) :: g_output_names(5))
     end if
     g_output_names(1) = VAR_ZS
     g_output_names(2) = VAR_ZB
     g_output_names(3) = VAR_DEPTH
+    g_output_names(4) = VAR_U
+    g_output_names(5) = VAR_V
 
     ! Bind pointer-return fields
     this%component_name => g_component_name
@@ -399,6 +413,8 @@ contains
     names(1) = VAR_ZS
     names(2) = VAR_ZB
     names(3) = VAR_DEPTH
+    names(4) = VAR_U
+    names(5) = VAR_V
     status = BMI_SUCCESS
   end function sfincs_bmi_get_output_var_names
 
@@ -495,8 +511,11 @@ contains
   character(len=*),  intent(in)  :: name
   character(len=*),  intent(out) :: type
   integer :: status
+  character(len=:), allocatable :: c
 
-  if (is_known_var(name)) then
+  c = canon_var_name(name)
+
+  if (is_known_var(c)) then
     type = 'double'
     status = BMI_SUCCESS
   else
@@ -517,7 +536,7 @@ end function sfincs_bmi_get_var_type
       allocate(character(len=1) :: g_units_m); g_units_m = 'm'
     end if
     select case (cname)
-    case (VAR_ZS, VAR_ZB, VAR_DEPTH)
+    case (VAR_ZS, VAR_ZB, VAR_DEPTH, VAR_U, VAR_V)
       units = g_units_m; status = BMI_SUCCESS
     case ('rain_rate')
       units = 'm s-1'
@@ -532,8 +551,11 @@ function sfincs_bmi_get_var_itemsize(this, name, size) result(status)
   character(len=*),  intent(in)  :: name
   integer,           intent(out) :: size
   integer :: status
+  character(len=:), allocatable :: c
 
-  if (is_known_var(name)) then
+  c = canon_var_name(name)
+
+  if (is_known_var(c)) then
     size = 8          ! "double"
     status = BMI_SUCCESS
   else
@@ -547,28 +569,62 @@ function sfincs_bmi_get_var_nbytes(this, name, nbytes) result(status)
   character(len=*),  intent(in)  :: name
   integer,           intent(out) :: nbytes
   integer :: status, sz
-  integer :: n
+  character(len=:), allocatable :: c
 
-  status = this%get_var_itemsize(name, sz)
+  c = canon_var_name(name)
+
+  status = this%get_var_itemsize(c, sz)
   if (status /= BMI_SUCCESS) then
     nbytes = 0
     return
   end if
 
-  ! Prefer nx*ny; fallback to allocated buffer length if needed
-  n = this%nx * this%ny
-  if (n <= 0) then
+  select case (trim(c))
+  case (VAR_ZS)
     if (allocated(this%zs_d)) then
-      n = size(this%zs_d)
+      nbytes = sz * size(this%zs_d)
+      status = BMI_SUCCESS
     else
-      nbytes = 0
-      status = BMI_FAILURE
-      return
+      nbytes = 0; status = BMI_FAILURE
     end if
-  end if
 
-  nbytes = sz * n
-end function sfincs_bmi_get_var_nbytes
+  case (VAR_ZB)
+    if (allocated(this%zb_d)) then
+      nbytes = sz * size(this%zb_d)
+      status = BMI_SUCCESS
+    else
+      nbytes = 0; status = BMI_FAILURE
+    end if
+
+  case (VAR_DEPTH)
+    if (allocated(this%depth_d)) then
+      nbytes = sz * size(this%depth_d)
+      status = BMI_SUCCESS
+    else
+      nbytes = 0; status = BMI_FAILURE
+    end if
+
+  case (VAR_U)
+    if (allocated(this%u_d)) then
+      nbytes = sz * size(this%u_d)
+      status = BMI_SUCCESS
+    else
+      nbytes = 0; status = BMI_FAILURE
+    end if
+
+  case (VAR_V)
+    if (allocated(this%v_d)) then
+      nbytes = sz * size(this%v_d)
+      status = BMI_SUCCESS
+    else
+      nbytes = 0; status = BMI_FAILURE
+    end if
+
+  case default
+    nbytes = 0
+    status = BMI_FAILURE
+  end select
+end function
 
   function sfincs_bmi_get_var_location(this, name, location) result(status)
     class(sfincs_bmi), intent(in)  :: this
@@ -1009,6 +1065,22 @@ end function sfincs_bmi_get_var_nbytes
   case (VAR_DEPTH)
     dest(1:n) = this%depth_d(1:n)
     status = BMI_SUCCESS
+    case (VAR_U)
+    ! If you don’t yet have core U, return zeros for now (keeps NGen running)
+    if (allocated(this%u_d)) then
+      dest(1:n) = this%u_d(1:n)
+    else
+      dest(1:n) = 0.0_real64
+    end if
+    status = BMI_SUCCESS
+
+  case (VAR_V)
+    if (allocated(this%v_d)) then
+      dest(1:n) = this%v_d(1:n)
+    else
+      dest(1:n) = 0.0_real64
+    end if
+    status = BMI_SUCCESS
   case default
     status = BMI_FAILURE
   end select
@@ -1201,25 +1273,36 @@ end function sfincs_bmi_get_value_double
     end do
 end function lower_str
 
-  function canon_var_name(name) result(canon)
-    character(len=*), intent(in) :: name
-    character(len=:), allocatable :: canon
-    character(len=:), allocatable :: cname
+function canon_var_name(name) result(canon)
+  character(len=*), intent(in) :: name
+  character(len=:), allocatable :: canon
+  character(len=:), allocatable :: cname
 
-    cname = lower_str(trim(name))
+  cname = lower_str(trim(name))
 
-    ! Map common aliases -> canonical internal names
-    select case (cname)
-    case ('zs', 'eta2', 'troute_eta2', 'waterlevel', 'water_level', 'stage', 'surface', 'sea_surface_height')
-      canon = VAR_ZS
-    case ('zb', 'bedlevel', 'bed_level', 'bathymetry', 'bed_elevation', 'bottom_elevation')
-      canon = VAR_ZB
-    case ('depth', 'waterdepth', 'water_depth', 'h', 'water_height')
-      canon = VAR_DEPTH
-    case default
-      canon = cname
-    end select
-  end function canon_var_name
+  ! Map common aliases -> canonical internal names
+  select case (cname)
+  case ('zs', 'waterlevel', 'water_level', 'stage', 'surface', 'sea_surface_height', &
+        'eta2', 'troute_eta2')
+    canon = VAR_ZS
+
+  case ('zb', 'bedlevel', 'bed_level', 'bathymetry', 'bed_elevation', 'bottom_elevation')
+    canon = VAR_ZB
+
+  case ('depth', 'waterdepth', 'water_depth', 'h', 'water_height')
+    canon = VAR_DEPTH
+
+  case ('vx', 'u', 'ux', 'velx', 'velocityx', 'x_velocity', 'u_velocity')
+    canon = VAR_U
+
+  case ('vy', 'v', 'uy', 'vely', 'velocityy', 'y_velocity', 'v_velocity')
+    canon = VAR_V
+
+  case default
+    canon = cname
+  end select
+end function canon_var_name
+
 
   logical function is_known_var(name)
   character(len=*), intent(in) :: name
@@ -1228,7 +1311,7 @@ end function lower_str
   c = canon_var_name(name)
 
   select case (trim(c))
-  case (VAR_ZS, VAR_ZB, VAR_DEPTH)
+  case (VAR_ZS, VAR_ZB, VAR_DEPTH, VAR_U, VAR_V)
     is_known_var = .true.
   case default
     is_known_var = .false.
@@ -1256,6 +1339,17 @@ subroutine sync_from_sfincs_core(this)
     return
   end if
 
+  if (.not. allocated(this%u_d)) then
+    allocate(this%u_d(ncell), this%v_d(ncell))
+  else if (size(this%u_d) /= ncell) then
+    deallocate(this%u_d, this%v_d)
+    allocate(this%u_d(ncell), this%v_d(ncell))
+  end if
+
+  this%u_d = 0.0_real64
+  this%v_d = 0.0_real64
+
+
   ! Guard: if core arrays aren't allocated yet, don't touch them
   ! (Assumes zs/zb are allocatable in sfincs_data, which is typical.)
   if (.not. allocated(zs) .or. .not. allocated(zb)) then
@@ -1267,6 +1361,7 @@ subroutine sync_from_sfincs_core(this)
     end if
     call ensure_module_ptr_buffers(this)
     return
+
   end if
 
   ! Guard: don't overrun if np is wrong
