@@ -16,6 +16,7 @@ module sfincs_bmi2
   character(len=*), parameter :: VAR_ZS    = 'zs'
   character(len=*), parameter :: VAR_ZB    = 'zb'
   character(len=*), parameter :: VAR_DEPTH = 'depth'
+  character(len=*), parameter :: VAR_BEDLEVEL = 'bedlevel'
 
   ! Module-level TARGET buffers (for BMI pointer getters)
   real(real32), target, allocatable, save :: g_zs_f(:), g_zb_f(:), g_depth_f(:)
@@ -488,27 +489,34 @@ contains
     end if
   end function sfincs_bmi_get_var_grid
 
+
   function sfincs_bmi_get_var_type(this, name, type) result(status)
-    class(sfincs_bmi), intent(in)  :: this
-    character(len=*),  intent(in)  :: name
-    character(len=*),  intent(out) :: type
-    integer :: status
-    if (is_known_var(name)) then
-      type = 'real'; status = BMI_SUCCESS
-    else
-      type = ''; status = BMI_FAILURE
-    end if
-  end function sfincs_bmi_get_var_type
+  class(sfincs_bmi), intent(in)  :: this
+  character(len=*),  intent(in)  :: name
+  character(len=*),  intent(out) :: type
+  integer :: status
+
+  if (is_known_var(name)) then
+    type = 'double'
+    status = BMI_SUCCESS
+  else
+    type = ''
+    status = BMI_FAILURE
+  end if
+end function sfincs_bmi_get_var_type
 
   function sfincs_bmi_get_var_units(this, name, units) result(status)
     class(sfincs_bmi), intent(in)  :: this
     character(len=*),  intent(in)  :: name
     character(len=*),  intent(out) :: units
     integer :: status
+    character(len=:), allocatable :: cname
+
+    cname = canon_var_name(name)
     if (.not. allocated(g_units_m)) then
       allocate(character(len=1) :: g_units_m); g_units_m = 'm'
     end if
-    select case (trim(name))
+    select case (cname)
     case (VAR_ZS, VAR_ZB, VAR_DEPTH)
       units = g_units_m; status = BMI_SUCCESS
     case ('rain_rate')
@@ -519,29 +527,48 @@ contains
     end select
   end function sfincs_bmi_get_var_units
 
-  function sfincs_bmi_get_var_itemsize(this, name, size) result(status)
-    class(sfincs_bmi), intent(in)  :: this
-    character(len=*),  intent(in)  :: name
-    integer,           intent(out) :: size
-    integer :: status
-    if (is_known_var(name)) then
-      size = 4; status = BMI_SUCCESS
-    else
-      size = 0; status = BMI_FAILURE
-    end if
-  end function sfincs_bmi_get_var_itemsize
+function sfincs_bmi_get_var_itemsize(this, name, size) result(status)
+  class(sfincs_bmi), intent(in)  :: this
+  character(len=*),  intent(in)  :: name
+  integer,           intent(out) :: size
+  integer :: status
 
-  function sfincs_bmi_get_var_nbytes(this, name, nbytes) result(status)
-    class(sfincs_bmi), intent(in)  :: this
-    character(len=*),  intent(in)  :: name
-    integer,           intent(out) :: nbytes
-    integer :: status, sz
-    status = this%get_var_itemsize(name, sz)
-    if (status /= BMI_SUCCESS) then
-      nbytes = 0; return
+  if (is_known_var(name)) then
+    size = 8          ! "double"
+    status = BMI_SUCCESS
+  else
+    size = 0
+    status = BMI_FAILURE
+  end if
+end function sfincs_bmi_get_var_itemsize
+
+function sfincs_bmi_get_var_nbytes(this, name, nbytes) result(status)
+  class(sfincs_bmi), intent(in)  :: this
+  character(len=*),  intent(in)  :: name
+  integer,           intent(out) :: nbytes
+  integer :: status, sz
+  integer :: n
+
+  status = this%get_var_itemsize(name, sz)
+  if (status /= BMI_SUCCESS) then
+    nbytes = 0
+    return
+  end if
+
+  ! Prefer nx*ny; fallback to allocated buffer length if needed
+  n = this%nx * this%ny
+  if (n <= 0) then
+    if (allocated(this%zs_d)) then
+      n = size(this%zs_d)
+    else
+      nbytes = 0
+      status = BMI_FAILURE
+      return
     end if
-    nbytes = sz * this%nx * this%ny
-  end function sfincs_bmi_get_var_nbytes
+  end if
+
+  nbytes = sz * n
+end function sfincs_bmi_get_var_nbytes
 
   function sfincs_bmi_get_var_location(this, name, location) result(status)
     class(sfincs_bmi), intent(in)  :: this
@@ -940,47 +967,64 @@ contains
   !============================
   !== Values (DOUBLE)
   !============================
+  
   function sfincs_bmi_get_value_double(this, name, dest) result(status)
-    class(sfincs_bmi), intent(in)  :: this
-    character(len=*),  intent(in)  :: name
-    real(real64),      intent(inout) :: dest(:)
-    integer :: status
+  class(sfincs_bmi), intent(in)    :: this
+  character(len=*),  intent(in)    :: name
+  real(real64),      intent(inout) :: dest(:)
+  integer :: status
+  character(len=:), allocatable :: c
+  integer :: n
 
-    select case (trim(name))
-    case (VAR_ZS)
-      if (size(dest) < size(this%zs_d)) then
-        status = BMI_FAILURE; return
-      end if
-      dest = this%zs_d
+  c = canon_var_name(name)
 
-    case (VAR_ZB)
-      if (size(dest) < size(this%zb_d)) then
-        status = BMI_FAILURE; return
-      end if
-      dest = this%zb_d
-
-    case (VAR_DEPTH)
-      if (size(dest) < size(this%depth_d)) then
-        status = BMI_FAILURE; return
-      end if
-      ! Always use the maintained double buffer for depth
-      dest = this%depth_d
-
-    case default
+  ! Determine expected length
+  n = this%nx * this%ny
+  if (n <= 0) then
+    if (allocated(this%zs_d)) then
+      n = size(this%zs_d)
+    else
       status = BMI_FAILURE
       return
-    end select
+    end if
+  end if
 
+  if (size(dest) < n) then
+    status = BMI_FAILURE
+    return
+  end if
+
+  if (.not. allocated(this%zs_d)) then
+    status = BMI_FAILURE
+    return
+  end if
+
+  select case (trim(c))
+  case (VAR_ZS)
+    dest(1:n) = this%zs_d(1:n)
     status = BMI_SUCCESS
-  end function sfincs_bmi_get_value_double
+  case (VAR_ZB)
+    dest(1:n) = this%zb_d(1:n)
+    status = BMI_SUCCESS
+  case (VAR_DEPTH)
+    dest(1:n) = this%depth_d(1:n)
+    status = BMI_SUCCESS
+  case default
+    status = BMI_FAILURE
+  end select
+end function sfincs_bmi_get_value_double
 
+  
   function sfincs_bmi_set_value_double(this, name, src) result(status)
     class(sfincs_bmi), intent(inout) :: this
     character(len=*),  intent(in)    :: name
     real(real64),      intent(in)    :: src(:)
     integer :: status
+    character(len=:), allocatable :: cname
 
-    select case (trim(name))
+    cname = canon_var_name(name)
+
+    select case (trim(cname))
     case (VAR_ZS)
       if (.not. allocated(this%zs_d) .or. size(src) < size(this%zs_d)) then
         status = BMI_FAILURE; return
@@ -1022,6 +1066,7 @@ contains
     character(len=*),  intent(in) :: name
     real(real64),      pointer, intent(inout) :: dest_ptr(:)
     integer :: status
+
     nullify(dest_ptr)
     select case (trim(name))
     case (VAR_ZS);    dest_ptr => g_zs_d
@@ -1143,36 +1188,53 @@ contains
   !== Helpers
   !============================
 
-  pure function canon_var_name(name) result(v)
-    character(len=*), intent(in) :: name
-    character(len=len_trim(name)) :: v
+  function lower_str(str) result(out)
+    character(len=*), intent(in) :: str
+    character(len=len(str)) :: out
     integer :: i
 
-    v = adjustl(trim(name))
-
-    ! lower-case in place
-    do i = 1, len_trim(v)
-      if (iachar(v(i:i)) >= iachar('A') .and. iachar(v(i:i)) <= iachar('Z')) then
-        v(i:i) = achar(iachar(v(i:i)) + 32)
-      end if
+    out = str
+    do i = 1, len(str)
+        if (iachar(str(i:i)) >= iachar('A') .and. iachar(str(i:i)) <= iachar('Z')) then
+            out(i:i) = achar(iachar(str(i:i)) + 32)
+        end if
     end do
+end function lower_str
 
-    ! aliases -> internal names
-    select case (v)
-    case ('bedlevel', 'bed_level', 'bed-level', 'bed elevation', 'bed_elevation', 'bedlevation', 'bedlev', 'bed')
-      v = 'zb'
-    case ('waterlevel', 'water_level', 'water-level', 'water elevation', 'water_elevation', 'wse', 'stage')
-      v = 'zs'
+  function canon_var_name(name) result(canon)
+    character(len=*), intent(in) :: name
+    character(len=:), allocatable :: canon
+    character(len=:), allocatable :: cname
+
+    cname = lower_str(trim(name))
+
+    ! Map common aliases -> canonical internal names
+    select case (cname)
+    case ('zs', 'waterlevel', 'water_level', 'stage', 'surface', 'sea_surface_height')
+      canon = VAR_ZS
+    case ('zb', 'bedlevel', 'bed_level', 'bathymetry', 'bed_elevation', 'bottom_elevation')
+      canon = VAR_ZB
+    case ('depth', 'waterdepth', 'water_depth', 'h', 'water_height')
+      canon = VAR_DEPTH
+    case default
+      canon = cname
     end select
   end function canon_var_name
 
   logical function is_known_var(name)
-    character(len=*), intent(in) :: name
-    select case (trim(name))
-    case (VAR_ZS, VAR_ZB, VAR_DEPTH); is_known_var = .true.
-    case default; is_known_var = .false.
-    end select
-  end function is_known_var
+  character(len=*), intent(in) :: name
+  character(len=:), allocatable :: c
+
+  c = canon_var_name(name)
+
+  select case (trim(c))
+  case (VAR_ZS, VAR_ZB, VAR_DEPTH)
+    is_known_var = .true.
+  case default
+    is_known_var = .false.
+  end select
+end function is_known_var
+
 
   ! Mirror core SFINCS arrays into BMI arrays
 subroutine sync_from_sfincs_core(this)
