@@ -1142,6 +1142,30 @@ contains
   !============================
   !== Helpers
   !============================
+
+  pure function canon_var_name(name) result(v)
+    character(len=*), intent(in) :: name
+    character(len=len_trim(name)) :: v
+    integer :: i
+
+    v = adjustl(trim(name))
+
+    ! lower-case in place
+    do i = 1, len_trim(v)
+      if (iachar(v(i:i)) >= iachar('A') .and. iachar(v(i:i)) <= iachar('Z')) then
+        v(i:i) = achar(iachar(v(i:i)) + 32)
+      end if
+    end do
+
+    ! aliases -> internal names
+    select case (v)
+    case ('bedlevel', 'bed_level', 'bed-level', 'bed elevation', 'bed_elevation', 'bedlevation', 'bedlev', 'bed')
+      v = 'zb'
+    case ('waterlevel', 'water_level', 'water-level', 'water elevation', 'water_elevation', 'wse', 'stage')
+      v = 'zs'
+    end select
+  end function canon_var_name
+
   logical function is_known_var(name)
     character(len=*), intent(in) :: name
     select case (trim(name))
@@ -1151,34 +1175,63 @@ contains
   end function is_known_var
 
   ! Mirror core SFINCS arrays into BMI arrays
-  subroutine sync_from_sfincs_core(this)
-    !! Copy zs/zb from sfincs_data into BMI state and refresh mirrors/pointers.
-    class(sfincs_bmi), intent(inout) :: this
-    integer :: ncell
+subroutine sync_from_sfincs_core(this)
+  class(sfincs_bmi), intent(inout) :: this
+  integer :: ncell
 
-    ! We assume sfincs_data exports:
-    !   integer :: np
-    !   real(real32) :: zs(:), zb(:)
-    !
-    ! and that np is the length of zs/zb.
-    ncell = np
+  ! np should be the active cell count from sfincs_data
+  ncell = np
 
+  ! Guard: if model arrays aren't ready yet, keep BMI arrays empty and return safely
+  if (ncell <= 0) then
     if (.not. allocated(this%zs)) then
-      allocate(this%zs(ncell), this%zb(ncell), this%depth(ncell))
+      allocate(this%zs(0), this%zb(0), this%depth(0))
     end if
     if (.not. allocated(this%zs_d)) then
-      allocate(this%zs_d(ncell), this%zb_d(ncell), this%depth_d(ncell))
+      allocate(this%zs_d(0), this%zb_d(0), this%depth_d(0))
     end if
-
-    ! Copy real model state into BMI arrays
-    this%zs    = zs(1:ncell)
-    this%zb    = zb(1:ncell)
-    this%depth = max(this%zs - this%zb, 0.0_real32)
-
-    ! Maintain double-precision mirrors and module-level pointer buffers
-    call sync_double_buffers(this)
     call ensure_module_ptr_buffers(this)
-  end subroutine sync_from_sfincs_core
+    return
+  end if
+
+  ! Guard: if core arrays aren't allocated yet, don't touch them
+  ! (Assumes zs/zb are allocatable in sfincs_data, which is typical.)
+  if (.not. allocated(zs) .or. .not. allocated(zb)) then
+    if (.not. allocated(this%zs)) then
+      allocate(this%zs(0), this%zb(0), this%depth(0))
+    end if
+    if (.not. allocated(this%zs_d)) then
+      allocate(this%zs_d(0), this%zb_d(0), this%depth_d(0))
+    end if
+    call ensure_module_ptr_buffers(this)
+    return
+  end if
+
+  ! Guard: don't overrun if np is wrong
+  if (size(zs) < ncell) ncell = size(zs)
+  if (size(zb) < ncell) ncell = min(ncell, size(zb))
+
+  if (.not. allocated(this%zs)) then
+    allocate(this%zs(ncell), this%zb(ncell), this%depth(ncell))
+  else if (size(this%zs) /= ncell) then
+    deallocate(this%zs, this%zb, this%depth)
+    allocate(this%zs(ncell), this%zb(ncell), this%depth(ncell))
+  end if
+
+  if (.not. allocated(this%zs_d)) then
+    allocate(this%zs_d(ncell), this%zb_d(ncell), this%depth_d(ncell))
+  else if (size(this%zs_d) /= ncell) then
+    deallocate(this%zs_d, this%zb_d, this%depth_d)
+    allocate(this%zs_d(ncell), this%zb_d(ncell), this%depth_d(ncell))
+  end if
+
+  this%zs    = zs(1:ncell)
+  this%zb    = zb(1:ncell)
+  this%depth = max(this%zs - this%zb, 0.0_real32)
+
+  call sync_double_buffers(this)
+  call ensure_module_ptr_buffers(this)
+end subroutine sync_from_sfincs_core
 
   subroutine ensure_module_ptr_buffers(this)
     class(sfincs_bmi), intent(in) :: this

@@ -269,3 +269,93 @@ if(TARGET sfincs_bmi)
   install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/mod/sfincs_bmi DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} OPTIONAL)
 endif()
 
+
+# ====================================================================
+# ================================ Tests ==============================
+# ====================================================================
+include(CTest)
+enable_testing()
+
+# Try to locate the test source in two common places:
+#   1) <repo_root>/tests/test_sfincs_bmi2.f90        (recommended)
+#   2) <this dir>/tests/test_sfincs_bmi2.f90         (fallback)
+set(_TEST_CANDIDATES
+  ${CMAKE_CURRENT_SOURCE_DIR}/../tests/test_sfincs_bmi2.f90
+  ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_sfincs_bmi2.f90
+)
+
+set(_TEST_SRC "")
+foreach(_c ${_TEST_CANDIDATES})
+  if(EXISTS "${_c}")
+    set(_TEST_SRC "${_c}")
+    break()
+  endif()
+endforeach()
+
+if(_TEST_SRC STREQUAL "")
+  message(STATUS "SFINCS: test source not found (tests/test_sfincs_bmi2.f90). Skipping test target.")
+else()
+  # Directory that contains a real sfincs.inp for the BMI test.
+  # Default is your XMI example, but can be overridden at configure time:
+  #   -DSFINCS_BMI_TEST_WORKDIR=/path/to/another/example
+  set(SFINCS_BMI_TEST_WORKDIR
+      "/home/mohammed.karim/SFINCS/XMI_EXAMPLE"
+      CACHE PATH "Directory containing sfincs.inp for BMI test")
+
+  add_executable(test_sfincs_bmi2 ${_TEST_SRC})
+
+  # Use same warning flags for the test
+  if(_F_FLAGS)
+    target_compile_options(test_sfincs_bmi2 PRIVATE ${_F_FLAGS})
+  endif()
+
+  # Keep test .mod files separate
+  set_target_properties(test_sfincs_bmi2 PROPERTIES
+    Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/mod/tests
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+  )
+
+  # Prefer to link the existing BMI lib if present (Option A)
+  if(TARGET sfincs_bmi)
+    target_link_libraries(test_sfincs_bmi2 PRIVATE sfincs_bmi)
+    target_include_directories(test_sfincs_bmi2 PRIVATE
+      ${CMAKE_CURRENT_BINARY_DIR}/mod/sfincs_bmi
+      ${CMAKE_CURRENT_BINARY_DIR}/mod/sfincs_core
+      ${SFINCS_SOURCE_DIR}
+    )
+  else()
+    message(WARNING "Target sfincs_bmi not found; building test with sfincs_bmi2.f90 directly (Option B).")
+    # Compile the BMI wrapper directly into the test; link the core library.
+    target_sources(test_sfincs_bmi2 PRIVATE ${SFINCS_SOURCE_DIR}/sfincs_bmi2.f90)
+    target_link_libraries(test_sfincs_bmi2 PRIVATE sfincs_core)
+    target_include_directories(test_sfincs_bmi2 PRIVATE
+      ${CMAKE_CURRENT_BINARY_DIR}/mod/sfincs_core
+      ${SFINCS_SOURCE_DIR}
+    )
+  endif()
+
+  # Register with CTest and point it at the real SFINCS example dir
+  add_test(NAME test_sfincs_bmi2 COMMAND test_sfincs_bmi2)
+  set_tests_properties(test_sfincs_bmi2 PROPERTIES
+    WORKING_DIRECTORY "${SFINCS_BMI_TEST_WORKDIR}"
+  )
+endif()
+
+# ============================================================
+# Build XMI shared library: libsfincs_dll.so
+# ============================================================
+# OPTIONAL: BMI wrapper (if sfincs_bmi2.f90 exists)
+
+
+set(_TEST_REAL "${CMAKE_CURRENT_SOURCE_DIR}/../tests/test_sfincs_bmi2_real.f90")
+if(EXISTS "${_TEST_REAL}")
+  add_executable(test_sfincs_bmi2_real ${_TEST_REAL})
+  target_link_libraries(test_sfincs_bmi2_real PRIVATE sfincs_bmi)
+  target_include_directories(test_sfincs_bmi2_real PRIVATE
+    ${CMAKE_CURRENT_BINARY_DIR}/mod/sfincs_bmi
+    ${CMAKE_CURRENT_BINARY_DIR}/mod/sfincs_core
+    ${SFINCS_SOURCE_DIR}
+  )
+  add_test(NAME test_sfincs_bmi2_real COMMAND test_sfincs_bmi2_real)
+endif()
+
