@@ -1210,7 +1210,7 @@ end function lower_str
 
     ! Map common aliases -> canonical internal names
     select case (cname)
-    case ('zs', 'waterlevel', 'water_level', 'stage', 'surface', 'sea_surface_height')
+    case ('zs', 'eta2', 'troute_eta2', 'waterlevel', 'water_level', 'stage', 'surface', 'sea_surface_height')
       canon = VAR_ZS
     case ('zb', 'bedlevel', 'bed_level', 'bathymetry', 'bed_elevation', 'bottom_elevation')
       canon = VAR_ZB
