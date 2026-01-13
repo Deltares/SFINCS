@@ -28,6 +28,13 @@ module sfincs_bmi2
   real(real32), target, allocatable, save :: g_zs_f(:), g_zb_f(:), g_depth_f(:)
   real(real64), target, allocatable, save :: g_zs_d(:), g_zb_d(:), g_depth_d(:)
 
+    ! Module-level TARGET buffers (for BMI pointer getters)
+  real(real32), target, allocatable, save :: g_zs_f(:), g_zb_f(:), g_depth_f(:)
+  real(real64), target, allocatable, save :: g_zs_d(:), g_zb_d(:), g_depth_d(:)
+
+  real(real64), target, allocatable, save :: g_u_d(:), g_v_d(:)
+
+
   ! Module-level strings / arrays used for pointer-string returns
   character(len=:), allocatable, target, save :: g_component_name
   character(len=:), allocatable, target, save :: g_time_units
@@ -243,11 +250,11 @@ contains
     this%u_d = 0.0_real64
     this%v_d = 0.0_real64
 
-    ! If you also keep float versions:
-    if (.not. allocated(this%u)) allocate(this%u(ncell))
-    if (.not. allocated(this%v)) allocate(this%v(ncell))
-    this%u = 0.0_real32
-    this%v = 0.0_real32
+    ! also keep float versions:
+    !if (.not. allocated(this%u)) allocate(this%u(ncell))
+    !if (.not. allocated(this%v)) allocate(this%v(ncell))
+    !this%u = 0.0_real32
+    !this%v = 0.0_real32
 
     ! outputs: zs, zb, depth
     if (.not. allocated(g_output_names)) then
@@ -414,13 +421,11 @@ contains
     status = BMI_SUCCESS
   end function sfincs_bmi_get_input_var_names
 
-
 function sfincs_bmi_get_output_var_names(this, names) result(status)
   class(sfincs_bmi),         intent(in)  :: this
   character(len=:), pointer, intent(out) :: names(:)
   integer :: status
 
-  ! Return pointer to persistent array (no allocate => no leak)
   if (associated(this%output_names)) then
     names => this%output_names
     status = BMI_SUCCESS
@@ -432,6 +437,7 @@ function sfincs_bmi_get_output_var_names(this, names) result(status)
     status = BMI_FAILURE
   end if
 end function sfincs_bmi_get_output_var_names
+
 
   function sfincs_bmi_get_input_item_count_old(this, count) result(status)
     class(sfincs_bmi), intent(in)  :: this
@@ -985,28 +991,35 @@ function sfincs_bmi_get_value_ptr_float(this, name, dest_ptr) result(status)
   case (VAR_ZS);    dest_ptr => g_zs_f
   case (VAR_ZB);    dest_ptr => g_zb_f
   case (VAR_DEPTH); dest_ptr => g_depth_f
-  case (VAR_U);     dest_ptr => g_u_f
-  case (VAR_V);     dest_ptr => g_v_f
   case default
     status = BMI_FAILURE
     return
   end select
-
   status = BMI_SUCCESS
 end function sfincs_bmi_get_value_ptr_float
 
-  function sfincs_bmi_get_value_at_indices_float(this, name, dest, inds) result(status)
-    class(sfincs_bmi), intent(in)  :: this
-    character(len=*),  intent(in)  :: name
-    real(real32),      intent(inout) :: dest(:)
-    integer,           intent(in)  :: inds(:)
-    integer :: status, k, n
-    real(real32), pointer :: p(:) => null()
-    status = this%get_value_ptr_float(name, p); if (status /= BMI_SUCCESS) return
-    n = size(inds); if (size(dest)<n) then; status=BMI_FAILURE; return; endif
-    do k = 1, n; dest(k) = p(inds(k)); end do
-    status = BMI_SUCCESS
-  end function sfincs_bmi_get_value_at_indices_float
+function sfincs_bmi_get_value_ptr_double(this, name, dest_ptr) result(status)
+  class(sfincs_bmi), intent(in) :: this
+  character(len=*),  intent(in) :: name
+  real(real64),      pointer, intent(inout) :: dest_ptr(:)
+  integer :: status
+  character(len=:), allocatable :: cname
+
+  nullify(dest_ptr)
+  cname = canon_var_name(name)
+
+  select case (trim(cname))
+  case (VAR_ZS);    dest_ptr => g_zs_d
+  case (VAR_ZB);    dest_ptr => g_zb_d
+  case (VAR_DEPTH); dest_ptr => g_depth_d
+  case (VAR_U);     dest_ptr => g_u_d
+  case (VAR_V);     dest_ptr => g_v_d
+  case default
+    status = BMI_FAILURE
+    return
+  end select
+  status = BMI_SUCCESS
+end function sfincs_bmi_get_value_ptr_double
 
   function sfincs_bmi_set_value_at_indices_float(this, name, inds, src) result(status)
     class(sfincs_bmi), intent(inout) :: this
@@ -1310,38 +1323,30 @@ end function sfincs_bmi_get_value_ptr_double
     end do
 end function lower_str
 
-function canon_var_name(name) result(canon)
-  character(len=*), intent(in) :: name
-  character(len=:), allocatable :: canon
-  character(len=:), allocatable :: cname
+  function canon_var_name(name) result(canon)
+    character(len=*), intent(in) :: name
+    character(len=:), allocatable :: canon
+    character(len=:), allocatable :: cname
 
-  cname = lower_str(trim(name))
+    cname = lower_str(trim(name))
 
-  ! Map common aliases -> canonical internal names
-  select case (cname)
-  case ('zs', 'waterlevel', 'water_level', 'stage', 'surface', 'sea_surface_height', &
-        'eta2', 'troute_eta2')
-    canon = VAR_ZS
+    select case (cname)
+    case ('zs','waterlevel','water_level','stage','surface','sea_surface_height','eta2','troute_eta2')
+      canon = VAR_ZS
+    case ('zb','bedlevel','bed_level','bathymetry','bed_elevation','bottom_elevation')
+      canon = VAR_ZB
+    case ('depth','waterdepth','water_depth','h','water_height')
+      canon = VAR_DEPTH
+    case ('vx','u','uu','velx','velocity_x')
+      canon = VAR_U
+    case ('vy','v','vv','vely','velocity_y')
+      canon = VAR_V
+    case default
+      canon = cname
+    end select
+  end function canon_var_name
 
-  case ('zb', 'bedlevel', 'bed_level', 'bathymetry', 'bed_elevation', 'bottom_elevation')
-    canon = VAR_ZB
-
-  case ('depth', 'waterdepth', 'water_depth', 'h', 'water_height')
-    canon = VAR_DEPTH
-
-  case ('vx', 'u', 'ux', 'velx', 'velocityx', 'x_velocity', 'u_velocity')
-    canon = VAR_U
-
-  case ('vy', 'v', 'uy', 'vely', 'velocityy', 'y_velocity', 'v_velocity')
-    canon = VAR_V
-
-  case default
-    canon = cname
-  end select
-end function canon_var_name
-
-
-  logical function is_known_var(name)
+logical function is_known_var(name)
   character(len=*), intent(in) :: name
   character(len=:), allocatable :: c
 
@@ -1440,42 +1445,53 @@ end subroutine sync_from_sfincs_core
 
     if (.not. allocated(g_u_d)) allocate(g_u_d(size(this%zs_d)))
     if (.not. allocated(g_v_d)) allocate(g_v_d(size(this%zs_d)))
-    if (.not. allocated(g_u_f)) allocate(g_u_f(size(this%zs)))
-    if (.not. allocated(g_v_f)) allocate(g_v_f(size(this%zs)))
+    ! if (.not. allocated(g_u_f)) allocate(g_u_f(size(this%zs)))
+    ! if (.not. allocated(g_v_f)) allocate(g_v_f(size(this%zs)))
 
     call sync_module_ptr_buffers(this)
   end subroutine ensure_module_ptr_buffers
 
-
-  subroutine sync_module_ptr_buffers(this)
+subroutine sync_module_ptr_buffers(this)
   class(sfincs_bmi), intent(in) :: this
   integer :: n
 
-  if (allocated(this%zs_d) .and. allocated(g_zs_d)) then
-    n = min(size(this%zs_d), size(g_zs_d))
-    g_zs_d(1:n) = this%zs_d(1:n)
+  ! protect mismatched sizes
+  if (allocated(g_zs_f) .and. allocated(this%zs)) then
+    n = min(size(g_zs_f), size(this%zs))
+    if (n > 0) g_zs_f(1:n) = this%zs(1:n)
   end if
-  ! ... existing for zb/depth ...
+  if (allocated(g_zb_f) .and. allocated(this%zb)) then
+    n = min(size(g_zb_f), size(this%zb))
+    if (n > 0) g_zb_f(1:n) = this%zb(1:n)
+  end if
+  if (allocated(g_depth_f) .and. allocated(this%depth)) then
+    n = min(size(g_depth_f), size(this%depth))
+    if (n > 0) g_depth_f(1:n) = this%depth(1:n)
+  end if
 
-  if (allocated(this%u_d) .and. allocated(g_u_d)) then
-    n = min(size(this%u_d), size(g_u_d))
-    g_u_d(1:n) = this%u_d(1:n)
+  if (allocated(g_zs_d) .and. allocated(this%zs_d)) then
+    n = min(size(g_zs_d), size(this%zs_d))
+    if (n > 0) g_zs_d(1:n) = this%zs_d(1:n)
   end if
-  if (allocated(this%v_d) .and. allocated(g_v_d)) then
-    n = min(size(this%v_d), size(g_v_d))
-    g_v_d(1:n) = this%v_d(1:n)
+  if (allocated(g_zb_d) .and. allocated(this%zb_d)) then
+    n = min(size(g_zb_d), size(this%zb_d))
+    if (n > 0) g_zb_d(1:n) = this%zb_d(1:n)
+  end if
+  if (allocated(g_depth_d) .and. allocated(this%depth_d)) then
+    n = min(size(g_depth_d), size(this%depth_d))
+    if (n > 0) g_depth_d(1:n) = this%depth_d(1:n)
   end if
 
-  if (allocated(this%u) .and. allocated(g_u_f)) then
-    n = min(size(this%u), size(g_u_f))
-    g_u_f(1:n) = this%u(1:n)
+  ! ADD velocities (double only)
+  if (allocated(g_u_d) .and. allocated(this%u_d)) then
+    n = min(size(g_u_d), size(this%u_d))
+    if (n > 0) g_u_d(1:n) = this%u_d(1:n)
   end if
-  if (allocated(this%v) .and. allocated(g_v_f)) then
-    n = min(size(this%v), size(g_v_f))
-    g_v_f(1:n) = this%v(1:n)
+  if (allocated(g_v_d) .and. allocated(this%v_d)) then
+    n = min(size(g_v_d), size(this%v_d))
+    if (n > 0) g_v_d(1:n) = this%v_d(1:n)
   end if
 end subroutine sync_module_ptr_buffers
-
 
   subroutine sync_double_buffers(this)
     class(sfincs_bmi), intent(inout) :: this
