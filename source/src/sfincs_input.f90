@@ -9,6 +9,7 @@ contains
    use sfincs_data
    use sfincs_date
    use sfincs_log
+   use sfincs_error
    !
    implicit none
    !
@@ -35,11 +36,14 @@ contains
    integer iwavemaker      
    integer iwavemaker_spectrum  
    integer ispwprecip
-   logical iviscosity   
+   logical iviscosity
+   logical ok
    !
    character*256 wmsigstr 
    character*256 advstr 
    !   
+   ok = check_file_exists('sfincs.inp', 'SFINCS input file', .true.)
+   !
    open(500, file='sfincs.inp')   
    !
    call read_int_input(500,'mmax',mmax,0)
@@ -134,6 +138,7 @@ contains
    call read_logical_input(500, 'h73table', h73table, .false.)   
    call read_real_input(500, 'rugdepth', runup_gauge_depth, 0.05)
    call read_logical_input(500, 'wave_enhanced_roughness', wave_enhanced_roughness, .false.)
+   call read_logical_input(500, 'use_bcafile', use_bcafile, .true.)   
    call read_real_input(500, 'factor_wind', factor_wind, 1.0)
    call read_real_input(500, 'factor_pres', factor_pres, 1.0)
    call read_real_input(500, 'factor_prcp', factor_prcp, 1.0)
@@ -160,6 +165,7 @@ contains
    !
    call read_char_input(500,'bndfile',bndfile,'none')
    call read_char_input(500,'bzsfile',bzsfile,'none')
+   call read_char_input(500,'bcafile',bcafile,'none')
    call read_char_input(500,'bzifile',bzifile,'none')
    call read_char_input(500, 'bdrfile', bdrfile, 'none')
    call read_char_input(500,'wfpfile',wfpfile,'none')
@@ -212,7 +218,7 @@ contains
    call read_int_input(500,'storevel',storevel,0)
    call read_int_input(500,'storecumprcp',storecumprcp,0)
    call read_int_input(500,'storetwet',storetwet,0)
-   call read_int_input(500,'storetmax_zs',storetmax_zs,0)
+   call read_int_input(500,'storetzsmax',storetzsmax,0)
    call read_int_input(500,'storehsubgrid',storehsubgrid,0)
    call read_logical_input(500, 'storehmean', store_hmean, .false.)      
    call read_real_input(500,'twet_threshold',twet_threshold,0.01)
@@ -220,6 +226,7 @@ contains
    call read_real_input(500,'tsunami_arrival_threshold',tsunami_arrival_threshold,0.01)
    call read_int_input(500,'storeqdrain',storeqdrain,1)
    call read_int_input(500,'storezvolume',storezvolume,0)
+   call read_int_input(500,'storestoragevolume',storestoragevolume,0)
    call read_int_input(500,'writeruntime',wrttimeoutput,0)
    call read_logical_input(500,'debug',debug,.false.)
    call read_int_input(500,'storemeteo',storemeteo,0)
@@ -228,6 +235,7 @@ contains
    call read_int_input(500,'storewavdir', istorewavdir, 0)
    call read_logical_input(500,'regular_output_on_mesh',use_quadtree_output,.false.)
    call read_logical_input(500, 'store_dynamic_bed_level', store_dynamic_bed_level, .false.)
+   call read_logical_input(500,'snapwave_use_nearest',snapwave_use_nearest,.true.)   
    call read_int_input(500,'percentage_done',percdoneval,5)
    ! Limit to range (0,100)
    percdoneval = max(min(percdoneval,100), 0)
@@ -423,9 +431,9 @@ contains
       store_twet = .true.
    endif
    !
-   store_tmax_zs = .false.
-   if (storetmax_zs==1) then
-      store_tmax_zs = .true.
+   store_t_zsmax = .false.
+   if (storetzsmax==1) then
+      store_t_zsmax = .true.
    endif
    !
    store_cumulative_precipitation = .false.
@@ -495,6 +503,7 @@ contains
    endif
    !
    store_zvolume = .false.
+   !
    if (subgrid) then
        if (storezvolume==1) then
           store_zvolume = .true.
@@ -568,9 +577,16 @@ contains
    endif      
    !
    use_storage_volume = .false.
+   store_storagevolume = .false.
+   !
    if (volfile(1:4) /= 'none') then
       if (subgrid) then
          use_storage_volume = .true.
+         !
+         if (storestoragevolume==1) then
+             store_storagevolume = .true.
+         endif    
+         ! 
       else
          call write_log('Warning : storage volume only supported for subgrid topographies!', 1)
       endif

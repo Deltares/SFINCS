@@ -46,30 +46,39 @@ module snapwave_infragravity
     ! Loosely based on 3 step calculation in waveparams.F90 of XBeach (build_jonswap, build_etdir, build_boundw), here all in 1 subroutine calculate_herbers
     !
     if (depth < 5.0) then
-	    write(logstr,*)'ERROR SnapWave - depth at boundary input point ',x_bwv, y_bwv,' dropped below 5 m: ',depth, ' which might lead to large values of Hm0ig as bc, especially when directional spreading is low! Please specify input in deeper water. '
+        !
+	    write(logstr,*)'ERROR SnapWave - depth at boundary input point ',x_bwv, y_bwv,' dropped below 5 m: ',depth
+        call write_log(logstr, 1)     
+        !
+        write(logstr,*)'This might lead to large values of Hm0ig as bc, especially when directional spreading is low! Please specify input in deeper water. '
         call write_log(logstr, 1)   
         !
         write(logstr,*)'Depth set back to 5 meters for stability, simulation will continue.'
         call write_log(logstr, 1)   
         !        
         depth = 5.0
+        !
     endif	
     !
     call compute_herbers(hsig, Tm01, Tm10, Tp, Tpsmooth, hsinc, tpinc, scoeff, jonswapgam, depth, correctHm0) ![out,out,out,out,out, in,in,in,in,in,in]
     !   
     ! Catch NaN values (if depth=0 probably) or unrealistically large values above 2 meters
     if (hsig < 0.0) then
+        !
 	    write(logstr,*)'DEBUG SnapWave - computed hm0ig at boundary dropped below 0 m: ',hsig, ' and is therefore limited back to 0 m!'
         call write_log(logstr, 1)        
 	    hsig = max(hsig, 0.0)
-    endif	
+        !
+    endif
+    !
     if (hsig > 3.0) then
+        !
 	    write(logstr,*)'DEBUG SnapWave - computed hm0ig at boundary exceeds 3 meter: ',hsig, ' - please check whether this might be realistic!'
-        call write_log(logstr, 1)        
-	    
+        call write_log(logstr, 1)        	    
         !write(*,*)'DEBUG - computed hm0ig at boundary exceeds 3 meter: ',hsig, ' and is therefore limited back to 3 m!'
 	    !hsig = min(hsig, 3.0)
-    endif	        
+        !
+    endif
     !
     ! Choose what wave period option value for IG to choose:
     ! Options: 1=Tm01, 2=Tpsmooth, 3=Tp, 4=Tm-1,0
@@ -100,7 +109,7 @@ module snapwave_infragravity
 	    write(logstr,*)'DEBUG SnapWave - computed tpig/tpinc ratio at offshore boundary increased above 20 and might be unrealistic! value: ',tpig/tpinc
         call write_log(logstr, 1)        
     endif	         
-    !   
+    !
     end subroutine
    
     !-------------------------Supporting subroutines-------------------------!

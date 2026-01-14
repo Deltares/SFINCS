@@ -1,4 +1,237 @@
-<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/26.2.2 Chrome/134.0.6998.178 Electron/35.1.2 Safari/537.36" version="26.2.2" pages="2">
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.2.7 Chrome/138.0.7204.251 Electron/37.7.1 Safari/537.36" version="28.2.7" pages="3">
+  <diagram name="2025.02" id="aK0kP_N4jQMKRPiWlbiZ">
+    <mxGraphModel dx="2276" dy="1941" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-0" />
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-1" parent="waFQ-T_xhHWpfo2nkpwz-0" />
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-2" value="Model building/analyzing" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="-180" y="120" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-3" value="Model core" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="-40" y="120" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-4" value="DDB Python" style="rounded=1;whiteSpace=wrap;html=1;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="420" y="370" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-5" value="Beta functionality" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="180" y="20" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-6" value="Quadtree mesh" style="rounded=1;whiteSpace=wrap;html=1;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="260" y="450" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-7" value="BMI (XMI compatible upgrade)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="-40" y="530" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-8" value="Green infra storage volume" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="-40" y="610" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-9" value="Wave makers" style="rounded=1;whiteSpace=wrap;html=1;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="260" y="370" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-10" value="Coupling to SnapWave" style="rounded=1;whiteSpace=wrap;html=1;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="260" y="210" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-11" value="Nonhydrostratic term" style="rounded=1;whiteSpace=wrap;html=1;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="560" y="290" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-12" value="Alpha functionality" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="480" y="20" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="waFQ-T_xhHWpfo2nkpwz-1" source="waFQ-T_xhHWpfo2nkpwz-14" target="waFQ-T_xhHWpfo2nkpwz-2" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="-60" y="100" />
+              <mxPoint x="-120" y="100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-14" value="New functionality" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="-120" y="20" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-15" value="Improved HydroMT-SFINCS&lt;br&gt;Subgrid generation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="-180" y="210" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-16" value="Model building/analyzing" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="120" y="120" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-17" value="Model core" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="260" y="120" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-18" value="Model building/analyzing" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="420" y="120" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-19" value="Model core" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="560" y="120" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" parent="waFQ-T_xhHWpfo2nkpwz-1" source="waFQ-T_xhHWpfo2nkpwz-14" target="waFQ-T_xhHWpfo2nkpwz-3" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-50" y="110" as="sourcePoint" />
+            <mxPoint x="-110" y="130" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="-60" y="100" />
+              <mxPoint x="20" y="100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-21" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="waFQ-T_xhHWpfo2nkpwz-1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="240" y="100" as="sourcePoint" />
+            <mxPoint x="180" y="120" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="180" y="100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-22" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" parent="waFQ-T_xhHWpfo2nkpwz-1" source="waFQ-T_xhHWpfo2nkpwz-5" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="240" y="100" as="sourcePoint" />
+            <mxPoint x="320" y="120" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="240" y="100" />
+              <mxPoint x="320" y="100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-23" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="waFQ-T_xhHWpfo2nkpwz-1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="540" y="100" as="sourcePoint" />
+            <mxPoint x="480" y="120" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="480" y="100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-24" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" parent="waFQ-T_xhHWpfo2nkpwz-1" source="waFQ-T_xhHWpfo2nkpwz-12" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="540" y="100" as="sourcePoint" />
+            <mxPoint x="620" y="120" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="540" y="100" />
+              <mxPoint x="620" y="100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-25" value="Improved numerical stability subgrid mode" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="-40" y="210" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-26" value="Development status SFINCS &amp;amp; HydroMT-SFINCS 2025.02 version" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#76608a;strokeColor=#432D57;rounded=1;shadow=1;fontColor=#ffffff;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="-120" y="-60" width="1020" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-27" value="Pre-alpha functionality" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#f9f7ed;strokeColor=#36393d;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="780" y="20" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-28" value="HydroMT-SFINCS&lt;br&gt;Quadtree model" style="rounded=1;whiteSpace=wrap;html=1;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="420" y="210" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-29" value="Model building/analyzing" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="720" y="120" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-30" value="Model core" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="860" y="120" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-31" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="waFQ-T_xhHWpfo2nkpwz-1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="840" y="100" as="sourcePoint" />
+            <mxPoint x="780" y="120" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="780" y="100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-32" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" parent="waFQ-T_xhHWpfo2nkpwz-1" source="waFQ-T_xhHWpfo2nkpwz-27" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="840" y="100" as="sourcePoint" />
+            <mxPoint x="920" y="120" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="840" y="100" />
+              <mxPoint x="920" y="100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-33" value="Urban drainage coupling" style="rounded=1;whiteSpace=wrap;html=1;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="560" y="370" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-34" value="Weirs in subgrid" style="rounded=1;whiteSpace=wrap;html=1;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="860" y="210" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-35" value="Wave overtopping formula" style="rounded=1;whiteSpace=wrap;html=1;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="860" y="290" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-36" value="Advection-Diffusion Solver" style="rounded=1;whiteSpace=wrap;html=1;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="860" y="370" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-37" value="SnapWave coupling and wave maker in HydroMT-SFINCS" style="rounded=1;whiteSpace=wrap;html=1;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="420" y="290" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-38" value="Horton infiltration in HydroMT-SFINCS" style="rounded=1;whiteSpace=wrap;html=1;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="720" y="210" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-39" value="file_exist-checks for all files" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="-40" y="450" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-40" value="Replacement of stopdepth criteria by velocity based" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="-40" y="290" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-41" value="Automatic sfincs.log output file" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="-40" y="370" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-42" value="Green infra storage volume" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="-180" y="290" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-43" value="GPU version" style="rounded=1;whiteSpace=wrap;html=1;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="260" y="770" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waFQ-T_xhHWpfo2nkpwz-44" value="HydroMT-SFINCS&lt;br&gt;upgrade to HydroMT core V1 version" style="rounded=1;whiteSpace=wrap;html=1;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="120" y="210" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rdauW5a_MvzELYR8U60j-0" value="Movable gates" style="rounded=1;whiteSpace=wrap;html=1;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="260" y="610" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rdauW5a_MvzELYR8U60j-1" value="Neumann and downstream water level boundaries" style="rounded=1;whiteSpace=wrap;html=1;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="260" y="530" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rdauW5a_MvzELYR8U60j-2" value="Astronomic boundary conditions" style="rounded=1;whiteSpace=wrap;html=1;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="260" y="690" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rdauW5a_MvzELYR8U60j-3" value="Updated SnapWave version including wind growth" style="rounded=1;whiteSpace=wrap;html=1;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="260" y="290" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rdauW5a_MvzELYR8U60j-4" value="Wave runup gauge" style="rounded=1;whiteSpace=wrap;html=1;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="560" y="210" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rdauW5a_MvzELYR8U60j-5" value="Vegetation effects in coupled SnapWave model" style="rounded=1;whiteSpace=wrap;html=1;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="560" y="450" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rdauW5a_MvzELYR8U60j-6" value="Green&amp;amp;Ampt infiltration in HydroMT-SFINCS" style="rounded=1;whiteSpace=wrap;html=1;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="120" y="290" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rdauW5a_MvzELYR8U60j-7" value="Updated docs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="-40" y="690" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rdauW5a_MvzELYR8U60j-8" value="" style="endArrow=none;dashed=1;html=1;dashPattern=1 3;strokeWidth=2;rounded=0;" parent="waFQ-T_xhHWpfo2nkpwz-1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="-50" y="440" as="sourcePoint" />
+            <mxPoint x="90" y="440" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rdauW5a_MvzELYR8U60j-9" value="&lt;b&gt;2025.01&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;fontColor=#333333;strokeColor=none;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="-130" y="400" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rdauW5a_MvzELYR8U60j-10" value="&lt;b&gt;2025.02&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;fontColor=#333333;strokeColor=none;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="-130" y="720" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rdauW5a_MvzELYR8U60j-11" value="" style="endArrow=none;dashed=1;html=1;dashPattern=1 3;strokeWidth=2;rounded=0;" parent="waFQ-T_xhHWpfo2nkpwz-1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="-50" y="760" as="sourcePoint" />
+            <mxPoint x="90" y="760" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rdauW5a_MvzELYR8U60j-12" value="New v1.2.1 release" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" parent="waFQ-T_xhHWpfo2nkpwz-1" vertex="1">
+          <mxGeometry x="-180" y="450" width="120" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
   <diagram name="2025.01" id="EyYBBKXp6Arr5E_HvH0r">
     <mxGraphModel dx="2278" dy="1941" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>

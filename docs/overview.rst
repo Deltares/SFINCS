@@ -150,7 +150,7 @@ SFINCS has been applied in these international projects, with attached links to 
 
 * `Modelling coastal flooding for the entire country of Denmark by the Danish Coastal Authority for the EU Floods Directive <https://specials.deltares.nl/impact_report_2023/estimating_flood_impacts>`_  `(also see video) <https://www.youtube.com/watch?v=TbzTC82ijyU&t=15s&ab_channel=Deltares>`_
 
-.. figure:: ./figures/MapChart_Map.png
+.. figure:: ./figures/Countries_covered_by_SFINCS_models.png
    :width: 600px
    :align: center
 
@@ -265,4 +265,8 @@ There have been various journal publications and conference posters where SFINCS
 * "Tropical cyclone induced compound flooding in Madagascar: a coupled modeling approach". Khan et al. (2025). https://doi.org/10.1007/s11069-025-07209-z
 
 * "The importance of waves in large-scale coastal compound flooding: A case study of Hurricane Florence (2018)". Leijnse et al. (2025). https://doi.org/10.1016/j.coastaleng.2025.104726
+
+* "Accelerating compound flood risk assessments through active learning: A case study of Charleston County (USA)". Terlinden-Ruhl et al. (2025). https://doi.org/10.5194/nhess-25-1353-2025, 2025.
+
+* "A multiscale modelling framework of coastal flooding events for global to local flood hazard assessments". Benito et al. (2025).  https://doi.org/10.5194/nhess-25-2287-2025, 2025.
 

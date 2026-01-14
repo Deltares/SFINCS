@@ -10,12 +10,15 @@ contains
    use sfincs_spiderweb
    use sfincs_ncinput
    use sfincs_log
+   use sfincs_error
    !
    implicit none
    !   
    integer it, irow, icol, stat, iw, icd
    !
    real*4 dummy, wnd, xx, yy
+   !
+   logical :: ok
    !
    logical spw_wind, am_wind, am_pres, am_prcp, tm_wind, tm_prcp
    !
@@ -33,6 +36,8 @@ contains
       !
       write(logstr,'(a,a)')'Info    : reading spiderweb file ', trim(spwfile)
       call write_log(logstr, 0)
+      !
+      ok = check_file_exists(spwfile, 'Spiderweb spw file', .true.)
       !
       spw_wind = .true.
       !  
@@ -98,6 +103,8 @@ contains
       write(logstr,'(a,a)')'Info    : reading netcdf spiderweb file ', trim(netspwfile)
       call write_log(logstr, 0)
       !
+      ok = check_file_exists(netspwfile, 'Spiderweb netCDF netspw file', .true.)
+      !
       spw_wind = .true.
       !
       call read_netcdf_spw_data()
@@ -123,11 +130,16 @@ contains
       !
    endif   
    !
-   if (amufile(1:4) /= 'none') then
+   if (amufile(1:4) /= 'none') then    
       !
       am_wind = .true.      
       !
       call write_log('Info    : reading amu and amv file', 0)
+      !  
+      ok = check_file_exists(amufile, 'Meteo ascii wind amu file', .true.)
+      ok = check_file_exists(amvfile, 'Meteo ascii wind amv file', .true.)
+      !
+      am_wind = .true.        
       !  
       call read_amuv_dimensions(amufile, amuv_nt, amuv_nrows, amuv_ncols, amuv_x_llcorner, amuv_y_llcorner, amuv_dx, amuv_dy, amuv_nquant)
       !
@@ -144,6 +156,10 @@ contains
       !
    elseif (netamuamvfile(1:4) /= 'none') then   ! FEWS compatible Netcdf amu&amv wind spatial input
       !
+      call write_log('Info    : reading NetCDF wind netamuamv file', 0)
+      !       
+      ok = check_file_exists(netamuamvfile, 'Meteo NetCDF wind netamuamv file', .true.)
+      !
       am_wind = .true.
       !
       call read_netcdf_amuv_data()
@@ -159,6 +175,10 @@ contains
       !
       call write_log('Info    : reading ampr file', 0)
       !  
+      ok = check_file_exists(amprfile, 'Meteo ascii rainfall ampr file', .true.)
+      !
+      am_prcp = .true.      
+      !
       call read_amuv_dimensions(amprfile,ampr_nt,ampr_nrows,ampr_ncols,ampr_x_llcorner,ampr_y_llcorner,ampr_dx,ampr_dy,ampr_nquant)
       !
       ! Allocate
@@ -170,6 +190,10 @@ contains
       call read_amuv_file(amprfile, ampr_nt, ampr_nrows, ampr_ncols, ampr_times, ampr_pr, trefstr)
       !
    elseif (netamprfile(1:4) /= 'none') then   ! FEWS compatible Netcdf ampr precipitation spatial input
+      !
+      call write_log('Info    : reading NetCDF rainfall netampr file', 0)
+      !       
+      ok = check_file_exists(netamprfile, 'Meteo NetCDF rainfall netampr file', .true.)
       !
       am_prcp = .true.
       !
@@ -185,6 +209,10 @@ contains
       !
       call write_log('Info    : reading amp file', 0)
       !  
+      ok = check_file_exists(ampfile, 'Meteo ascii pressure amp file', .true.)
+      !
+      am_pres = .true.      
+      !
       call read_amuv_dimensions(ampfile, amp_nt, amp_nrows, amp_ncols, amp_x_llcorner, amp_y_llcorner, amp_dx, amp_dy, amp_nquant)
       !
       ! Allocate
@@ -196,6 +224,10 @@ contains
       call read_amuv_file(ampfile, amp_nt, amp_nrows, amp_ncols, amp_times, amp_patm, trefstr)
       !
    elseif (netampfile(1:4) /= 'none') then   ! FEWS compatible Netcdf amp barometric pressure spatial input
+      !
+      call write_log('Info    : reading NetCDF pressure netamp file', 0)
+      !       
+      ok = check_file_exists(netampfile, 'Meteo netCDF pressure netamp file', .true.)
       !
       am_pres = .true.
       !
@@ -212,6 +244,10 @@ contains
       ! Wind in time series file 
       write(logstr,'(a,a)')'Info    : reading ', trim(wndfile)    
       call write_log(logstr, 0)
+      !
+      ok = check_file_exists(wndfile, 'Wind wnd file', .true.)
+      !       
+      tm_wind = .true.      
       !
       ntwnd = 0
       itwndlast = 1
@@ -244,6 +280,10 @@ contains
       ! Rainfall in time series file 
       write(logstr,'(a,a)')'Info    : reading prcp file ', trim(prcpfile)    
       call write_log(logstr, 0)
+      !
+      ok = check_file_exists(prcpfile, 'Precipitation prcp file', .true.)
+      !
+      tm_prcp = .true.      
       !
       ntprcp = 0 
       itprcplast = 1
@@ -1181,10 +1221,12 @@ contains
       !$omp parallel &
       !$omp private ( nm )
       !$omp do
-      !$acc kernels, present(tauwu, tauwv,  tauwu0, tauwv0, tauwu1, tauwv1, &
-      !$acc                  windu, windv, windu0, windv0, windu1, windv1, windmax, &
-      !$acc                  patm, patm0, patm1, prcp, prcp0, prcp1, cumprcp, netprcp, zs, zb, z_volume ), async(1)
-      !$acc loop independent, private(nm)
+      !$acc parallel, present( tauwu, tauwv,  tauwu0, tauwv0, tauwu1, tauwv1, &
+      !$acc                    windu, windv, windu0, windv0, windu1, windv1, windmax, &
+      !$acc                    patm, patm0, patm1, &
+      !$acc                    prcp, prcp0, prcp1, cumprcp, netprcp, &
+      !$acc                    zs, zb, z_volume )
+      !$acc loop gang vector
       do nm = 1, np
          !
          if (wind) then
@@ -1238,7 +1280,7 @@ contains
       enddo   
       !$omp end do
       !$omp end parallel
-      !$acc end kernels
+      !$acc end parallel
       !
       ! Apply spin-up factor
       !
@@ -1250,8 +1292,8 @@ contains
          !$omp parallel &
          !$omp private ( nm )
          !$omp do
-         !$acc kernels, present( tauwu, tauwv, patm, prcp, netprcp, zs, zb, z_volume ), async(1)
-         !$acc loop independent, private(nm)
+         !$acc parallel, present( tauwu, tauwv, patm, prcp, netprcp, zs, zb, z_volume )
+         !$acc loop gang vector
          do nm = 1, np
             !
             if (wind) then
@@ -1289,21 +1331,26 @@ contains
          enddo   
          !$omp end do
          !$omp end parallel
-         !$acc end kernels
+         !$acc end parallel
          !
       endif         
       !   
       if (patmos .and. pavbnd > 0.0) then
          !
-         !$acc serial, present( patmb, nmindbnd, patm ), async(1) 
+         ! Update atmospheric pressure at boundary points (patmb)
+         !
+         !$acc parallel, present( patmb, nmindbnd, patm )
+         !$acc loop gang vector
          do ib = 1, ngbnd
+            !
             patmb(ib) = patm(nmindbnd(ib))
+            !
          enddo
-         !$acc end serial
+         !$acc end parallel
          !
          ! patmb is used at boundary points in the CPU part of update_boundary_conditions (should try to make this faster)
          !
-         !$acc update host(patmb), async(1)
+         !$acc update host(patmb)
          !
       endif
       !   
@@ -1372,13 +1419,13 @@ contains
          !$omp private ( nm ) &
          !$omp shared ( tauwu,tauwv )
          !$omp do
-         !$acc kernels, present( tauwu, tauwv ), async(1)
-         !$acc loop independent, private(nm)
+         !$acc parallel, present( tauwu, tauwv )
+         !$acc loop gang vector
          do nm = 1, np
             tauwu(nm) = twu
             tauwv(nm) = twv
          enddo   
-         !$acc end kernels
+         !$acc end parallel
          !$omp end do
          !$omp end parallel
          !
@@ -1428,13 +1475,19 @@ contains
    !$omp parallel &
    !$omp private ( nm )
    !$omp do
-   !$acc kernels present( prcp, cumprcp, netprcp )
+   !$acc parallel present( prcp, cumprcp, netprcp )
+   !$acc loop gang vector
    do nm = 1, np
+      !
       prcp(nm)    = ptmp
       netprcp(nm) = ptmp
-      cumprcp(nm) = cumprcp(nm) + prcp(nm) * dt
+      !
+      if (store_cumulative_precipitation) then
+         cumprcp(nm) = cumprcp(nm) + ptmp * dt
+      endif   
+      !
    enddo   
-   !$acc end kernels
+   !$acc end parallel
    !$omp end do
    !$omp end parallel
    !
@@ -1467,15 +1520,11 @@ contains
       !
       call update_amuv_data()
       !
-      !$acc update device(tauwu0,tauwu1,tauwv0,tauwv1), async(1)
-      !
    endif
    !
    if ((ampfile(1:4) /= 'none' .or. netampfile(1:4) /= 'none') .and. patmos) then
       !
       call update_amp_data()
-      !
-      !$acc update device(patm0,patm1), async(1)
       !
    endif
    !
@@ -1483,21 +1532,27 @@ contains
       !
       call update_ampr_data()
       !
-      !$acc update device(prcp0,prcp1), async(1)
-      !
    endif
    !      
    if (spwfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       !
       call update_spiderweb_data()
       !
-      !$acc update device(tauwu0,tauwu1,tauwv0,tauwv1,patm0,patm1), async(1)
+   endif
+   !
+   ! Update wind and atmospheric pressure fields on device
+   !
+   !$acc update device( tauwu0, tauwu1, tauwv0, tauwv1, patm0, patm1 )
+   !
+   if (store_wind) then
       !
-      if (precip) then
-         !
-         !$acc update device(prcp0,prcp1), async(1)
-         !
-      endif
+      !$acc update device( windu0, windu1, windv0, windv1 )
+      !
+   endif
+   !   
+   if (precip) then
+      !
+      !$acc update device( prcp0, prcp1 )
       !
    endif
    !

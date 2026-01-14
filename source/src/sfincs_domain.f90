@@ -1,6 +1,7 @@
 module sfincs_domain
 
    use sfincs_log
+   use sfincs_error
 
 contains
 
@@ -136,6 +137,7 @@ contains
    integer ip, n, m, nm, nmu, num, iref, npu, npv, ndm, nmd, iq
    integer ndmu, nmdu, numu
    integer irefuv, npuvtotal, icuv
+   logical ok
    !
    ! Temporary arrays
    !
@@ -193,6 +195,8 @@ contains
          !
          ! Read mask file
          !
+         ok = check_file_exists(mskfile, 'Mask file', .true.)
+         !
          open(500, file=trim(mskfile))
          do n = 1, nmax
             read(500,*)(kcsg(n, m), m = 1, mmax)
@@ -230,6 +234,9 @@ contains
          !
          write(logstr,'(a,a)')'Info    : reading index file ', trim(indexfile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(indexfile, 'Index file', .true.)
+         !
          open(unit = 500, file = trim(indexfile), form = 'unformatted', access = 'stream')
          read(500)np
          allocate(indices(np))
@@ -291,6 +298,8 @@ contains
          !
          write(logstr,'(a,a)')'Info    : reading mask file : ', trim(mskfile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(mskfile, 'Mask file', .true.)
          !
          open(unit = 500, file = trim(mskfile), form = 'unformatted', access = 'stream')
          read(500)msk
@@ -1482,7 +1491,7 @@ contains
          if (iref>1) then
             !         
             dxrinvc(iref) = 1.0/(3*dxrm(iref)/2)
-            dyrinvc(iref) = 1.0*(3*dyrm(iref)/2)
+            dyrinvc(iref) = 1.0/(3*dyrm(iref)/2)
             !
          endif   
          !
@@ -1577,6 +1586,8 @@ contains
    integer :: n
    integer :: m
    !
+   logical :: ok
+   !
    ! DEPTHS
    !
    if (.not. subgrid) then
@@ -1595,8 +1606,10 @@ contains
          !
          if (depfile(1:4) /= 'none') then
             !
-            write(logstr,'(a,a)')'Info    :reading dep file : ',trim(depfile)
+            write(logstr,'(a,a)')'Info    : reading dep file : ',trim(depfile)
             call write_log(logstr, 0)
+            !
+            ok = check_file_exists(depfile, 'Dep file', .true.)
             !
             open(unit = 500, file = trim(depfile), form = 'unformatted', access = 'stream')
             read(500)zb
@@ -1619,6 +1632,8 @@ contains
             !
             allocate(zbg(nmax, mmax))
             !
+            ok = check_file_exists(depfile, 'Dep file', .true.)
+            !
             open(500, file=trim(depfile))
             do n = 1, nmax
                read(500,*)(zbg(n, m), m = 1, mmax)
@@ -1638,6 +1653,8 @@ contains
             deallocate(zbg)
             !
          else
+            !
+            ok = check_file_exists(depfile, 'Dep file', .true.)
             !
             open(unit = 500, file = trim(depfile), form = 'unformatted', access = 'stream')
             read(500)zb
@@ -1936,6 +1953,7 @@ contains
    integer :: ip
    integer :: nm
    integer :: nmu
+   logical :: ok
    !
    ! FRICTION COEFFICIENTS (only for regular bathymetry, as for subgrid the Manning's n values are stored in the tables)
    !
@@ -1952,6 +1970,9 @@ contains
          allocate(rghfield(np))
          write(logstr,'(a,a)')'Info    : reading roughness file ',trim(manningfile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(manningfile, 'Roughness file', .true.)
+         !
          open(unit = 500, file = trim(manningfile), form = 'unformatted', access = 'stream')
          read(500)rghfield
          close(500)
@@ -2003,6 +2024,8 @@ contains
    implicit none
    !
    integer :: nm
+   !
+   logical :: ok
    !
    ! INFILTRATION
    !
@@ -2134,6 +2157,9 @@ contains
          !
          write(logstr,'(a,a)')'Info    : reading infiltration file ', trim(qinffile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(qinffile, 'Infiltration qinf file', .true.)
+         !
          allocate(qinffield(np))
          open(unit = 500, file = trim(qinffile), form = 'unformatted', access = 'stream')
          read(500)qinffield
@@ -2154,6 +2180,9 @@ contains
          !
          write(logstr,'(a,a)')'Info    : reading scs file ',trim(scsfile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(scsfile, 'Infiltration scs file', .true.)
+         !
          open(unit = 500, file = trim(scsfile), form = 'unformatted', access = 'stream')
          read(500)qinffield
          close(500)
@@ -2174,6 +2203,9 @@ contains
          qinffield = 0.0
          write(logstr,'(a,a)')'Info    : reading smax file ',trim(smaxfile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(smaxfile, 'Infiltration smax file', .true.)
+         !
          open(unit = 500, file = trim(smaxfile), form = 'unformatted', access = 'stream')
          read(500)qinffield
          close(500)
@@ -2183,6 +2215,9 @@ contains
          scs_Se = 0.0
          write(logstr,'(a,a)')'Info    : reading seff file ',trim(sefffile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(sefffile, 'Infiltration seff file', .true.)
+         !
          open(unit = 501, file = trim(sefffile), form = 'unformatted', access = 'stream')
          read(501)scs_Se
          close(501)
@@ -2194,6 +2229,9 @@ contains
          ksfield = 0.0
          write(logstr,'(a,a)')'Info    : reading ks file ',trim(ksfile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(ksfile, 'Infiltration ks file', .true.)
+         !
          open(unit = 502, file = trim(ksfile), form = 'unformatted', access = 'stream')
          read(502)ksfield
          close(502)
@@ -2228,6 +2266,9 @@ contains
          GA_head = 0.0
          write(logstr,'(a,a)')'Info    : reading psi file ',trim(psifile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(psifile, 'Infiltration psi file', .true.)
+         !
          open(unit = 500, file = trim(psifile), form = 'unformatted', access = 'stream')
          read(500)GA_head
          close(500)
@@ -2238,6 +2279,9 @@ contains
          GA_sigma_max = 0.0
          write(logstr,'(a,a)')'Info    : reading sigma file ',trim(sigmafile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(sigmafile, 'Infiltration sigma file', .true.)
+         !
          open(unit = 501, file = trim(sigmafile), form = 'unformatted', access = 'stream')
          read(501)GA_sigma_max
          close(501)
@@ -2248,6 +2292,9 @@ contains
          ksfield = 0.0
          write(logstr,'(a,a)')'Info    : reading ks file ',trim(ksfile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(ksfile, 'Infiltration ks file', .true.)
+         !
          open(unit = 502, file = trim(ksfile), form = 'unformatted', access = 'stream')
          read(502)ksfield
          close(502)
@@ -2293,6 +2340,9 @@ contains
          horton_fc = 0.0
          write(logstr,'(a,a)')'Info    : reading fc file ',trim(fcfile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(fcfile, 'Infiltration fc file', .true.)
+         !
          open(unit = 500, file = trim(fcfile), form = 'unformatted', access = 'stream')
          read(500)horton_fc
          close(500)
@@ -2302,6 +2352,9 @@ contains
          horton_f0 = 0.0
          write(logstr,'(a,a)')'Info    : reading f0 file ',trim(f0file)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(f0file, 'Infiltration f0 file', .true.)
+         !
          open(unit = 501, file = trim(f0file), form = 'unformatted', access = 'stream')
          read(501)horton_f0
          close(501)
@@ -2314,9 +2367,13 @@ contains
          horton_kd = 0.0
          write(logstr,'(a,a)')'Info    : reading kd file ',trim(kdfile)
          call write_log(logstr, 0)
+         !
+         ok = check_file_exists(kdfile, 'Infiltration kd file', .true.)
+         !
          open(unit = 502, file = trim(kdfile), form = 'unformatted', access = 'stream')
          read(502)horton_kd
          close(502)
+         !
          write(logstr,'(a,a)')'Using constant recovery rate that is based on constant factor relative to ',trim(kdfile)
          call write_log(logstr, 0)         
          !
@@ -2345,6 +2402,7 @@ contains
    implicit none
    !
    integer :: nchar
+   logical :: ok
    !
    if (use_storage_volume) then 
       !
@@ -2361,6 +2419,8 @@ contains
       call write_log(logstr, 0)
       !
       nchar = len_trim(volfile)
+      !
+      ok = check_file_exists(volfile, 'Storage volume vol file', .true.)
       !
       if (volfile(nchar - 1 : nchar) == 'nc') then
          !
@@ -2561,8 +2621,8 @@ contains
        allocate(twet(np))
    endif
    !
-   if (store_tmax_zs) then
-       allocate(tmax_zs(np))
+   if (store_t_zsmax) then
+       allocate(t_zsmax(np))
    endif
    !
    if (store_tsunami_arrival_time) then
@@ -2610,8 +2670,8 @@ contains
       twet = 0.0
    endif
    !
-   if (store_tmax_zs) then
-      tmax_zs = -999.0
+   if (store_t_zsmax) then
+      t_zsmax = -999.0
    endif
    !
    uv = 0.0
