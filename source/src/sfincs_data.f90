@@ -763,6 +763,7 @@ module sfincs_data
       !!!
       !!! Breaching parameters
       !!!
+      real*4, dimension(:),     allocatable :: breach_width
       real*4, dimension(:),     allocatable :: parameters_Visser_phase1
       
       !!!

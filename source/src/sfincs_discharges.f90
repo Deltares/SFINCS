@@ -196,7 +196,7 @@ contains
       allocate(xsnk(ndrn))
       allocate(ysnk(ndrn))
       
-      allocate(parameters_Visser_phase1(ndrn))
+      
       !
       allocate(drainage_type(ndrn))
       allocate(drainage_params(ndrn, 6))
@@ -208,7 +208,7 @@ contains
       drainage_distance = 0.0
       drainage_fraction_open = 1.0   ! initially fully open (should fix this based on zmin and zmax in params)
       drainage_status = 1            ! open (0=closed, 1=open, 2=closing, 3=opening)
-      parameters_Visser_phase1 = 0
+      
       !
       do idrn = 1, ndrn
          !
@@ -239,6 +239,10 @@ contains
             ! Drainage_type 7: Tadesse (6 parameters: time of breaching, breach duration, final_breach_width, final_breach_level, crest level of the dike, initial breach width)
 
             !
+            allocate(breach_width(ndrn))
+            breach_width= 0.0
+            allocate(parameters_Visser_phase1(ndrn))
+            parameters_Visser_phase1 = 0
             npars = 6
             !
          endif
@@ -357,8 +361,8 @@ contains
    real*4           :: qq0
    !
    real*4           :: dzds, frac, wdt, zsill, zmin, zmax, mng, hgate, dfrac, tcls, topen, tclose
-   real*4           :: m_afvoercoeff, dike_core, tbreach, z_crest, z_min, t_0, t_phase1, B0, Z, B, f1, f2, uc, dB
-   real*4           :: breach_duration, final_breach_width, final_breach_level, B_0, t_end
+   real*4           :: m_afvoercoeff, dike_core, tbreach, z_crest, z_min, t_0, t_phase1, B0, Z, B, f1, f2, uc, dB, B_old, denom
+   real*4           :: breach_duration, final_breach_width, final_breach_level, B_0, t_end, dt_hr, tau_hr, H, dBdt
    real*4           :: stage, beta, beta1, beta0, breach_bottom, breach_level, test_value
    real*4           :: alpha, crest_level, W, polder_level, t0_Visser
    real*4           :: d50, d90, Cf, Kappa, water_temperature, p, phi
@@ -640,7 +644,7 @@ contains
                case(7)
                   !
                    ! Dike breaching based on Verheij (2003)
-                  !
+                  !   
                   m_afvoercoeff   = drainage_params(idrn, 1)                  ! afvoercoefficient, 
                   dike_core = drainage_params(idrn, 2)                        ! material of dike core (1 = sand and 2 = clay), 
                   tbreach   = drainage_params(idrn, 3)                        ! time of breaching, 
@@ -650,9 +654,10 @@ contains
                   !
 				  t_phase1 = tbreach + t_0
 				  B0 = 10.0   ! initial breach width
-				  Z = z_crest ! Initial crest level of the breach
-				  B=0.0       ! initially no breach width
+				  ! Z = z_crest ! Initial crest level of the breach
+				  ! B=0.0       ! initially no breach width
                   !
+                  B_old = breach_width(idrn)
 				  if (dike_core == 1.0) then
 				    !
 					! dike core made of sand
@@ -673,36 +678,74 @@ contains
                         !
                         ! Start of phase 1: lowering of the crest
                         !
-						B = B0 ! no widening of the breach yet
+						breach_width(idrn) = B0 ! no widening of the breach yet
 						Z = z_crest - (z_crest - z_min)*(t-tbreach)/t_0 ! lowering of the crest lineair with time
                   elseif (t >= t_phase1) then
 						!
 						! Start of phase 2: widening
 						!
-                        if (zs(nmout)>z_min) then
-                            ! Downstream water level above crest level
-						    dB = f1 * 9.81**0.5 * (zs(nmin) - zs(nmout))**1.5/(log(10.0)*uc) * LOG( 1.0+f2 * 9.81/uc * (t-t_phase1)/3600) ! widening of the breach
+                        ! Once phase 2 begins, crest is at minimum
+                        Z = z_min
+
+                        ! Choose downstream level per your earlier logic
+                        if (zs(nmout) > z_min) then
+                            H = zs(nmin) - zs(nmout)
                         else
-                            ! Downstream water level not above crest level
-                            dB = f1 * 9.81**0.5 * (zs(nmin) - z_min)**1.5/(log(10.0)*uc) * LOG( 1.0+f2 * 9.81/uc * (t-t_phase1)/3600) ! widening of the breach
+                            H = zs(nmin) - z_min
                         endif
-                        dB = MAX(dB, 0.0) ! breach width cannot decrease
-                        B = B0 + dB   ! Updating breach width
+                        
+                            ! Prevent negative head (no widening if no driving head)
+                        H = MAX(H, 0.0)
+
+                        ! Convert time since phase2 start to hours if your formulation expects hours
+                        ! Your earlier (15) used /3600, so keep consistency here:
+                        tau_hr = (t - t_phase1) / 3600.0
+                        dt_hr  = dt / 3600.0
+
+                        ! Denominator term: 1 + (f2*g/uc) * (t_i - t0)
+                        denom = 1.0 + (f2 * g / uc) * tau_hr
+                        denom = MAX(denom, 1.0e-12)   ! safety
+
+                        ! dB/dt at time t_i  [units: m/hour if dt_hr used]
+                        dBdt = (f1 * f2 / LOG(10.0)) * ( (g * H)**1.5 ) / (uc*uc) * (1.0 / denom)
+
+                        ! No negative widening rate
+                        dBdt = MAX(dBdt, 0.0)
+
+                        ! update width
+                        breach_width(idrn) = B_old + dBdt * dt_hr
+                      
+                      
+                        ! if (zs(nmout)>z_min) then
+                            ! Downstream water level above crest level
+						!    dB = f1 * 9.81**0.5 * (zs(nmin) - zs(nmout))**1.5/(log(10.0)*uc) * LOG( 1.0+f2 * 9.81/uc * (t-t_phase1)/3600) ! widening of the breach
+                        !    dB_dt = 
+                        !else
+                            ! Downstream water level not above crest level
+                        !    dB = f1 * 9.81**0.5 * (zs(nmin) - z_min)**1.5/(log(10.0)*uc) * LOG( 1.0+f2 * 9.81/uc * (t-t_phase1)/3600) ! widening of the breach
+                        !endif
+                        !dB = MAX(dB, 0.0) ! breach width cannot decrease
+                        !breach_width(idrn) = MAX(B_old, B0 + dB) 
                    endif
                   
 				   if (t >= tbreach .and. zs(nmin)>Z) then
                     !   After breaching time and water level at intake point is above crest level
-                    if (zs(nmout) > 2/3*zs(nmin)) then
+                    if (zs(nmout) > (2.0/3.0)*zs(nmin)) then
                         ! Fully submerged flow
-				        qq = m_afvoercoeff * B * (zs(nmin) - Z) * sqrt(2.0 * 9.81 * (zs(nmin) - Z)) 
+				        qq = m_afvoercoeff * breach_width(idrn)  * (zs(nmin) - Z) * sqrt(2.0 * 9.81 * (zs(nmin) - Z)) 
+                        write(logstr,'(A,F0.1,A,ES14.6,A,F0.2)')'Breach at time: ', t,  'submerged discharge flow: ',qq, ' Width of Breach: ', breach_width(idrn)
+                        call write_log(logstr, 0) 
                     else
                         ! Free flow
-                        qq = 1.71 * B * sqrt(9.81) * (zs(nmin) - Z)**1.5
+                        qq = 1.71 * breach_width(idrn) * sqrt(9.81) * (zs(nmin) - Z)**1.5
+                        write(logstr,'(A,F0.1,A,ES14.6,A,F0.2)')'Breach at time: ', t,  'free discharge flow: ',qq, ' Width of Breach: ', breach_width(idrn)
+                         call write_log(logstr, 0)    
                     endif
                    else
                     ! No discharge through dike if t<tbreach and water level is below crest level
 			        qq = 0.0 
                    endif
+                   ! ---- write discharge to log ----
 
                case(8)
                   !
