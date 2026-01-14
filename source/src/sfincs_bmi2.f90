@@ -28,10 +28,6 @@ module sfincs_bmi2
   real(real32), target, allocatable, save :: g_zs_f(:), g_zb_f(:), g_depth_f(:)
   real(real64), target, allocatable, save :: g_zs_d(:), g_zb_d(:), g_depth_d(:)
 
-    ! Module-level TARGET buffers (for BMI pointer getters)
-  real(real32), target, allocatable, save :: g_zs_f(:), g_zb_f(:), g_depth_f(:)
-  real(real64), target, allocatable, save :: g_zs_d(:), g_zb_d(:), g_depth_d(:)
-
   real(real64), target, allocatable, save :: g_u_d(:), g_v_d(:)
 
 
@@ -241,8 +237,8 @@ contains
     if (.not. allocated(g_input_names))    allocate(character(len=1) :: g_input_names(0))
 
     ! ---- Allocate BMI state arrays ----
-    allocate(this%zs(ncell), this%zb(ncell), this%depth(ncell))
-    allocate(this%zs_d(ncell), this%zb_d(ncell), this%depth_d(ncell))
+    !allocate(this%zs(ncell), this%zb(ncell), this%depth(ncell))
+    !allocate(this%zs_d(ncell), this%zb_d(ncell), this%depth_d(ncell))
 
     ! ---- Allocate velocity buffers too ----
     if (.not. allocated(this%u_d)) allocate(this%u_d(ncell))
@@ -1021,6 +1017,19 @@ function sfincs_bmi_get_value_ptr_double(this, name, dest_ptr) result(status)
   status = BMI_SUCCESS
 end function sfincs_bmi_get_value_ptr_double
 
+  function sfincs_bmi_get_value_at_indices_float(this, name, dest, inds) result(status)
+    class(sfincs_bmi), intent(in)  :: this
+    character(len=*),  intent(in)  :: name
+    real(real32),      intent(inout) :: dest(:)
+    integer,           intent(in)  :: inds(:)
+    integer :: status, k, n
+    real(real32), pointer :: p(:) => null()
+    status = this%get_value_ptr_float(name, p); if (status /= BMI_SUCCESS) return
+    n = size(inds); if (size(dest)<n) then; status=BMI_FAILURE; return; endif
+    do k = 1, n; dest(k) = p(inds(k)); end do
+    status = BMI_SUCCESS
+  end function sfincs_bmi_get_value_at_indices_float
+
   function sfincs_bmi_set_value_at_indices_float(this, name, inds, src) result(status)
     class(sfincs_bmi), intent(inout) :: this
     character(len=*),  intent(in)    :: name
@@ -1174,30 +1183,6 @@ end function sfincs_bmi_get_value_double
 
     status = BMI_SUCCESS
   end function sfincs_bmi_set_value_double
-
-  function sfincs_bmi_get_value_ptr_double(this, name, dest_ptr) result(status)
-  class(sfincs_bmi), intent(in) :: this
-  character(len=*),  intent(in) :: name
-  real(real64),      pointer, intent(inout) :: dest_ptr(:)
-  integer :: status
-  character(len=:), allocatable :: cname
-
-  nullify(dest_ptr)
-  cname = canon_var_name(name)
-
-  select case (trim(cname))
-  case (VAR_ZS);    dest_ptr => g_zs_d
-  case (VAR_ZB);    dest_ptr => g_zb_d
-  case (VAR_DEPTH); dest_ptr => g_depth_d
-  case (VAR_U);     dest_ptr => g_u_d
-  case (VAR_V);     dest_ptr => g_v_d
-  case default
-    status = BMI_FAILURE
-    return
-  end select
-
-  status = BMI_SUCCESS
-end function sfincs_bmi_get_value_ptr_double
 
   function sfincs_bmi_get_value_at_indices_double(this, name, dest, inds) result(status)
     class(sfincs_bmi), intent(in)  :: this
