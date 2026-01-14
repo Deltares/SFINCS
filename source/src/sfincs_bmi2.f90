@@ -25,11 +25,10 @@ module sfincs_bmi2
 
 
   ! Module-level TARGET buffers (for BMI pointer getters)
+  real(real32), target, allocatable, save :: g_u_f(:), g_v_f(:)
   real(real32), target, allocatable, save :: g_zs_f(:), g_zb_f(:), g_depth_f(:)
   real(real64), target, allocatable, save :: g_zs_d(:), g_zb_d(:), g_depth_d(:)
-
   real(real64), target, allocatable, save :: g_u_d(:), g_v_d(:)
-
 
   ! Module-level strings / arrays used for pointer-string returns
   character(len=:), allocatable, target, save :: g_component_name
@@ -370,6 +369,27 @@ contains
     if (allocated(this%zb_d))    deallocate(this%zb_d)
     if (allocated(this%depth_d)) deallocate(this%depth_d)
 
+     ! ---- Free module-level TARGET buffers to satisfy LeakSanitizer ----
+    if (allocated(g_zs_f))    deallocate(g_zs_f)
+if (allocated(g_zb_f))    deallocate(g_zb_f)
+if (allocated(g_depth_f)) deallocate(g_depth_f)
+if (allocated(g_zs_d))    deallocate(g_zs_d)
+if (allocated(g_zb_d))    deallocate(g_zb_d)
+if (allocated(g_depth_d)) deallocate(g_depth_d)
+if (allocated(g_u_f))     deallocate(g_u_f)
+if (allocated(g_v_f))     deallocate(g_v_f)
+if (allocated(g_u_d))     deallocate(g_u_d)
+if (allocated(g_v_d))     deallocate(g_v_d)
+
+if (allocated(g_input_names))  deallocate(g_input_names)
+if (allocated(g_output_names)) deallocate(g_output_names)
+
+if (allocated(g_component_name)) deallocate(g_component_name)
+if (allocated(g_time_units))     deallocate(g_time_units)
+if (allocated(g_units_m))        deallocate(g_units_m)
+if (allocated(g_loc_node))       deallocate(g_loc_node)
+if (allocated(g_grid_rect))      deallocate(g_grid_rect)
+
     nullify(this%component_name, this%input_names, this%output_names)
     this%is_initialized   = .false.
     this%depth_is_derived = .true.
@@ -422,27 +442,18 @@ function sfincs_bmi_get_output_var_names(this, names) result(status)
   character(len=:), pointer, intent(out) :: names(:)
   integer :: status
 
-  if (associated(this%output_names)) then
-    names => this%output_names
-    status = BMI_SUCCESS
-  else if (allocated(g_output_names)) then
-    names => g_output_names
-    status = BMI_SUCCESS
-  else
-    nullify(names)
+  nullify(names)
+
+  if (.not. allocated(g_output_names)) then
     status = BMI_FAILURE
+    return
   end if
+
+  names => g_output_names
+  status = BMI_SUCCESS
 end function sfincs_bmi_get_output_var_names
 
-
-  function sfincs_bmi_get_input_item_count_old(this, count) result(status)
-    class(sfincs_bmi), intent(in)  :: this
-    integer,          intent(out) :: count
-    integer :: status
-    count = 0; status = BMI_SUCCESS
-  end function sfincs_bmi_get_input_item_count_old
-
-  function sfincs_bmi_get_input_item_count(this, count) result(status)
+function sfincs_bmi_get_input_item_count(this, count) result(status)
     class(sfincs_bmi), intent(in) :: this
     integer, intent(out) :: count
     integer :: status
@@ -451,13 +462,19 @@ end function sfincs_bmi_get_output_var_names
     status = BMI_SUCCESS
   end function sfincs_bmi_get_input_item_count
 
+function sfincs_bmi_get_output_item_count(this, count) result(status)
+  class(sfincs_bmi), intent(in)  :: this
+  integer,          intent(out) :: count
+  integer :: status
 
-  function sfincs_bmi_get_output_item_count(this, count) result(status)
-    class(sfincs_bmi), intent(in)  :: this
-    integer,          intent(out) :: count
-    integer :: status
-    count = 3; status = BMI_SUCCESS
-  end function sfincs_bmi_get_output_item_count
+  if (allocated(g_output_names)) then
+    count = size(g_output_names)
+    status = BMI_SUCCESS
+  else
+    count = 0
+    status = BMI_FAILURE
+  end if
+end function sfincs_bmi_get_output_item_count
 
   !============================
   !== Time
@@ -523,24 +540,6 @@ end function sfincs_bmi_get_output_var_names
   end function sfincs_bmi_get_var_grid
 
 
-  function sfincs_bmi_get_var_type(this, name, type) result(status)
-  class(sfincs_bmi), intent(in)  :: this
-  character(len=*),  intent(in)  :: name
-  character(len=*),  intent(out) :: type
-  integer :: status
-  character(len=:), allocatable :: c
-
-  c = canon_var_name(name)
-
-  if (is_known_var(c)) then
-    type = 'double'
-    status = BMI_SUCCESS
-  else
-    type = ''
-    status = BMI_FAILURE
-  end if
-end function sfincs_bmi_get_var_type
-
   function sfincs_bmi_get_var_units(this, name, units) result(status)
     class(sfincs_bmi), intent(in)  :: this
     character(len=*),  intent(in)  :: name
@@ -568,17 +567,30 @@ end function sfincs_bmi_get_var_type
     end select
   end function sfincs_bmi_get_var_units
 
+function sfincs_bmi_get_var_type(this, name, type) result(status)
+  class(sfincs_bmi), intent(in)  :: this
+  character(len=*),  intent(in)  :: name
+  character(len=*),  intent(out) :: type
+  integer :: status
+
+  if (is_known_var(name)) then
+    type = 'double'
+    status = BMI_SUCCESS
+  else
+    type = ''
+    status = BMI_FAILURE
+  end if
+end function sfincs_bmi_get_var_type
+
+
 function sfincs_bmi_get_var_itemsize(this, name, size) result(status)
   class(sfincs_bmi), intent(in)  :: this
   character(len=*),  intent(in)  :: name
   integer,           intent(out) :: size
   integer :: status
-  character(len=:), allocatable :: c
 
-  c = canon_var_name(name)
-
-  if (is_known_var(c)) then
-    size = 8          ! "double"
+  if (is_known_var(name)) then
+    size = 8
     status = BMI_SUCCESS
   else
     size = 0
@@ -586,67 +598,29 @@ function sfincs_bmi_get_var_itemsize(this, name, size) result(status)
   end if
 end function sfincs_bmi_get_var_itemsize
 
+
 function sfincs_bmi_get_var_nbytes(this, name, nbytes) result(status)
   class(sfincs_bmi), intent(in)  :: this
   character(len=*),  intent(in)  :: name
   integer,           intent(out) :: nbytes
-  integer :: status, sz
-  character(len=:), allocatable :: c
+  integer :: status, sz, n
 
-  c = canon_var_name(name)
-
-  status = this%get_var_itemsize(c, sz)
+  status = this%get_var_itemsize(name, sz)
   if (status /= BMI_SUCCESS) then
     nbytes = 0
     return
   end if
 
-  select case (trim(c))
-  case (VAR_ZS)
-    if (allocated(this%zs_d)) then
-      nbytes = sz * size(this%zs_d)
-      status = BMI_SUCCESS
-    else
-      nbytes = 0; status = BMI_FAILURE
-    end if
+  ! Prefer actual allocated state length (safer than nx*ny if you reshape)
+  if (allocated(this%zs_d)) then
+    n = size(this%zs_d)
+  else
+    n = this%nx * this%ny
+  end if
 
-  case (VAR_ZB)
-    if (allocated(this%zb_d)) then
-      nbytes = sz * size(this%zb_d)
-      status = BMI_SUCCESS
-    else
-      nbytes = 0; status = BMI_FAILURE
-    end if
-
-  case (VAR_DEPTH)
-    if (allocated(this%depth_d)) then
-      nbytes = sz * size(this%depth_d)
-      status = BMI_SUCCESS
-    else
-      nbytes = 0; status = BMI_FAILURE
-    end if
-
-  case (VAR_U)
-    if (allocated(this%u_d)) then
-      nbytes = sz * size(this%u_d)
-      status = BMI_SUCCESS
-    else
-      nbytes = 0; status = BMI_FAILURE
-    end if
-
-  case (VAR_V)
-    if (allocated(this%v_d)) then
-      nbytes = sz * size(this%v_d)
-      status = BMI_SUCCESS
-    else
-      nbytes = 0; status = BMI_FAILURE
-    end if
-
-  case default
-    nbytes = 0
-    status = BMI_FAILURE
-  end select
-end function
+  if (n < 0) n = 0
+  nbytes = sz * n
+end function sfincs_bmi_get_var_nbytes
 
   function sfincs_bmi_get_var_location(this, name, location) result(status)
     class(sfincs_bmi), intent(in)  :: this
@@ -999,12 +973,12 @@ function sfincs_bmi_get_value_ptr_double(this, name, dest_ptr) result(status)
   character(len=*),  intent(in) :: name
   real(real64),      pointer, intent(inout) :: dest_ptr(:)
   integer :: status
-  character(len=:), allocatable :: cname
+  character(len=:), allocatable :: c
 
   nullify(dest_ptr)
-  cname = canon_var_name(name)
+  c = canon_var_name(name)
 
-  select case (trim(cname))
+  select case (trim(c))
   case (VAR_ZS);    dest_ptr => g_zs_d
   case (VAR_ZB);    dest_ptr => g_zb_d
   case (VAR_DEPTH); dest_ptr => g_depth_d
@@ -1014,6 +988,7 @@ function sfincs_bmi_get_value_ptr_double(this, name, dest_ptr) result(status)
     status = BMI_FAILURE
     return
   end select
+
   status = BMI_SUCCESS
 end function sfincs_bmi_get_value_ptr_double
 
@@ -1308,33 +1283,45 @@ end function sfincs_bmi_get_value_double
     end do
 end function lower_str
 
-  function canon_var_name(name) result(canon)
-    character(len=*), intent(in) :: name
-    character(len=:), allocatable :: canon
-    character(len=:), allocatable :: cname
+function canon_var_name(name) result(canon)
+  character(len=*), intent(in) :: name
+  character(len=:), allocatable :: canon
+  character(len=:), allocatable :: cname
 
-    cname = lower_str(trim(name))
+  cname = lower_str(trim(name))
 
-    select case (cname)
-    case ('zs','waterlevel','water_level','stage','surface','sea_surface_height','eta2','troute_eta2')
-      canon = VAR_ZS
-    case ('zb','bedlevel','bed_level','bathymetry','bed_elevation','bottom_elevation')
-      canon = VAR_ZB
-    case ('depth','waterdepth','water_depth','h','water_height')
-      canon = VAR_DEPTH
-    case ('vx','u','uu','velx','velocity_x')
-      canon = VAR_U
-    case ('vy','v','vv','vely','velocity_y')
-      canon = VAR_V
-    case default
-      canon = cname
-    end select
-  end function canon_var_name
+  select case (cname)
+  ! water surface
+  case ('zs','eta2','waterlevel','water_level','stage','surface','sea_surface_height')
+    canon = VAR_ZS
+
+  ! bed elevation
+  case ('zb','bedlevel','bed_level','bathymetry','bed_elevation','bottom_elevation')
+    canon = VAR_ZB
+
+  ! routed/coupling alias of eta2
+  case ('troute_eta2','troute-eta2','trouteeta2')
+    canon = VAR_ZS   ! treat as alias for now
+
+  ! velocities
+  case ('vx','u','uu','velx','velocity_x')
+    canon = VAR_U
+  case ('vy','v','vv','vely','velocity_y')
+    canon = VAR_V
+
+  ! derived depth
+  case ('depth','waterdepth','water_depth','h','water_height')
+    canon = VAR_DEPTH
+
+  case default
+    canon = cname
+  end select
+end function canon_var_name
+
 
 logical function is_known_var(name)
   character(len=*), intent(in) :: name
   character(len=:), allocatable :: c
-
   c = canon_var_name(name)
 
   select case (trim(c))
@@ -1344,7 +1331,6 @@ logical function is_known_var(name)
     is_known_var = .false.
   end select
 end function is_known_var
-
 
   ! Mirror core SFINCS arrays into BMI arrays
 subroutine sync_from_sfincs_core(this)
@@ -1417,64 +1403,63 @@ subroutine sync_from_sfincs_core(this)
   call ensure_module_ptr_buffers(this)
 end subroutine sync_from_sfincs_core
 
-  subroutine ensure_module_ptr_buffers(this)
-    class(sfincs_bmi), intent(in) :: this
-    integer :: n
+subroutine ensure_module_ptr_buffers(this)
+  class(sfincs_bmi), intent(in) :: this
+  integer :: n
+
+  if (allocated(this%zs_d)) then
+    n = size(this%zs_d)
+  else
     n = this%nx * this%ny
-    if (.not. allocated(g_zs_f))    allocate(g_zs_f(n))
-    if (.not. allocated(g_zb_f))    allocate(g_zb_f(n))
-    if (.not. allocated(g_depth_f)) allocate(g_depth_f(n))
-    if (.not. allocated(g_zs_d))    allocate(g_zs_d(n))
-    if (.not. allocated(g_zb_d))    allocate(g_zb_d(n))
-    if (.not. allocated(g_depth_d)) allocate(g_depth_d(n))
+  end if
+  if (n < 0) n = 0
 
-    if (.not. allocated(g_u_d)) allocate(g_u_d(size(this%zs_d)))
-    if (.not. allocated(g_v_d)) allocate(g_v_d(size(this%zs_d)))
-    ! if (.not. allocated(g_u_f)) allocate(g_u_f(size(this%zs)))
-    ! if (.not. allocated(g_v_f)) allocate(g_v_f(size(this%zs)))
+  if (.not. allocated(g_zs_f))    allocate(g_zs_f(n))
+  if (.not. allocated(g_zb_f))    allocate(g_zb_f(n))
+  if (.not. allocated(g_depth_f)) allocate(g_depth_f(n))
 
-    call sync_module_ptr_buffers(this)
-  end subroutine ensure_module_ptr_buffers
+  if (.not. allocated(g_zs_d))    allocate(g_zs_d(n))
+  if (.not. allocated(g_zb_d))    allocate(g_zb_d(n))
+  if (.not. allocated(g_depth_d)) allocate(g_depth_d(n))
+
+  if (.not. allocated(g_u_f))     allocate(g_u_f(n))
+  if (.not. allocated(g_v_f))     allocate(g_v_f(n))
+  if (.not. allocated(g_u_d))     allocate(g_u_d(n))
+  if (.not. allocated(g_v_d))     allocate(g_v_d(n))
+
+  call sync_module_ptr_buffers(this)
+end subroutine ensure_module_ptr_buffers
 
 subroutine sync_module_ptr_buffers(this)
   class(sfincs_bmi), intent(in) :: this
   integer :: n
 
-  ! protect mismatched sizes
-  if (allocated(g_zs_f) .and. allocated(this%zs)) then
-    n = min(size(g_zs_f), size(this%zs))
-    if (n > 0) g_zs_f(1:n) = this%zs(1:n)
-  end if
-  if (allocated(g_zb_f) .and. allocated(this%zb)) then
-    n = min(size(g_zb_f), size(this%zb))
-    if (n > 0) g_zb_f(1:n) = this%zb(1:n)
-  end if
-  if (allocated(g_depth_f) .and. allocated(this%depth)) then
-    n = min(size(g_depth_f), size(this%depth))
-    if (n > 0) g_depth_f(1:n) = this%depth(1:n)
+  if (allocated(this%zs)) then
+    n = size(this%zs)
+  else
+    n = 0
   end if
 
-  if (allocated(g_zs_d) .and. allocated(this%zs_d)) then
-    n = min(size(g_zs_d), size(this%zs_d))
-    if (n > 0) g_zs_d(1:n) = this%zs_d(1:n)
-  end if
-  if (allocated(g_zb_d) .and. allocated(this%zb_d)) then
-    n = min(size(g_zb_d), size(this%zb_d))
-    if (n > 0) g_zb_d(1:n) = this%zb_d(1:n)
-  end if
-  if (allocated(g_depth_d) .and. allocated(this%depth_d)) then
-    n = min(size(g_depth_d), size(this%depth_d))
-    if (n > 0) g_depth_d(1:n) = this%depth_d(1:n)
+  if (n > 0) then
+    if (allocated(g_zs_f))    g_zs_f(1:n)    = this%zs(1:n)
+    if (allocated(g_zb_f))    g_zb_f(1:n)    = this%zb(1:n)
+    if (allocated(g_depth_f)) g_depth_f(1:n) = this%depth(1:n)
+    if (allocated(g_u_f))     g_u_f(1:n)     = real(this%u_d(1:n), kind=real32)
+    if (allocated(g_v_f))     g_v_f(1:n)     = real(this%v_d(1:n), kind=real32)
   end if
 
-  ! ADD velocities (double only)
-  if (allocated(g_u_d) .and. allocated(this%u_d)) then
-    n = min(size(g_u_d), size(this%u_d))
-    if (n > 0) g_u_d(1:n) = this%u_d(1:n)
+  if (allocated(this%zs_d)) then
+    n = size(this%zs_d)
+  else
+    n = 0
   end if
-  if (allocated(g_v_d) .and. allocated(this%v_d)) then
-    n = min(size(g_v_d), size(this%v_d))
-    if (n > 0) g_v_d(1:n) = this%v_d(1:n)
+
+  if (n > 0) then
+    if (allocated(g_zs_d))    g_zs_d(1:n)    = this%zs_d(1:n)
+    if (allocated(g_zb_d))    g_zb_d(1:n)    = this%zb_d(1:n)
+    if (allocated(g_depth_d)) g_depth_d(1:n) = this%depth_d(1:n)
+    if (allocated(g_u_d))     g_u_d(1:n)     = this%u_d(1:n)
+    if (allocated(g_v_d))     g_v_d(1:n)     = this%v_d(1:n)
   end if
 end subroutine sync_module_ptr_buffers
 
