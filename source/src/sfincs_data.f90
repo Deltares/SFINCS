@@ -759,6 +759,12 @@ module sfincs_data
       real*4, dimension(:),     allocatable :: drainage_fraction_open
       real*4, dimension(:),     allocatable :: xsrc
       real*4, dimension(:),     allocatable :: ysrc
+      
+      !!!
+      !!! Breaching parameters
+      !!!
+      real*4, dimension(:),     allocatable :: parameters_Visser_phase1
+      
       !!!
       !!! Structures
       !!!
