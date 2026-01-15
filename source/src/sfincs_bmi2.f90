@@ -352,6 +352,8 @@ contains
     integer :: status
     integer :: ierr
 
+    write(*,*) 'BMI-DEBUG: ENTER sfincs_bmi_finalize'
+
     if (.not. this%is_initialized) then
       ! Even if not initialized, treat as success for BMI semantics
       status = BMI_SUCCESS
@@ -427,31 +429,23 @@ if (allocated(g_grid_rect))      deallocate(g_grid_rect)
     end if
   end function sfincs_bmi_get_input_var_names_old
 
-  function sfincs_bmi_get_input_var_names(this, names) result(status)
-    class(sfincs_bmi), intent(in) :: this
-    character(len=:), pointer, intent(out) :: names(:)
-    integer :: status
+function sfincs_bmi_get_input_var_names(this, names) result(status)
+  class(sfincs_bmi),         intent(in)  :: this
+  character(len=:), pointer, intent(out) :: names(:)
+  integer :: status
 
-    allocate(character(len=9) :: names(1))
-    names(1) = 'rain_rate'
-    status = BMI_SUCCESS
-  end function sfincs_bmi_get_input_var_names
+  names => this%input_names    ! or names => g_input_names
+  status = BMI_SUCCESS
+end function
 
 function sfincs_bmi_get_output_var_names(this, names) result(status)
   class(sfincs_bmi),         intent(in)  :: this
   character(len=:), pointer, intent(out) :: names(:)
   integer :: status
 
-  nullify(names)
-
-  if (.not. allocated(g_output_names)) then
-    status = BMI_FAILURE
-    return
-  end if
-
-  names => g_output_names
+  names => this%output_names   ! or names => g_output_names
   status = BMI_SUCCESS
-end function sfincs_bmi_get_output_var_names
+end function
 
 function sfincs_bmi_get_input_item_count(this, count) result(status)
     class(sfincs_bmi), intent(in) :: this
