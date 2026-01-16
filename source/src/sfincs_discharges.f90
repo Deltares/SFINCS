@@ -13,6 +13,7 @@ module sfincs_discharges
      real*4 :: slope_flow_velocity
      real*4 :: discharge
      real*4 :: t1
+     real*4 :: t2
    end type NormalFlow
 
 
@@ -239,10 +240,30 @@ contains
             ! Drainage_type 7: Tadesse (6 parameters: time of breaching, breach duration, final_breach_width, final_breach_level, crest level of the dike, initial breach width)
 
             !
+            
+            allocate(running_Visser_phase1(ndrn))
+            running_Visser_phase1 = 0
+            allocate(running_Visser_phase2(ndrn))
+            running_Visser_phase2 = 0
+            
+            
+            allocate(discharge_t1(ndrn))
+            discharge_t1 = 0
+            allocate(t1_Visser(ndrn))
+            t1_Visser = 0
+            
             allocate(breach_width(ndrn))
-            breach_width= 0.0
-            allocate(parameters_Visser_phase1(ndrn))
-            parameters_Visser_phase1 = 0
+            breach_width= 0.0            
+            allocate(breach_bottom_Visser(ndrn))
+            breach_bottom_Visser = 0
+            allocate(breach_level_Visser(ndrn))
+            breach_level_Visser = 0
+            
+            allocate(discharge_t2(ndrn))
+            discharge_t2 = 0
+            allocate(t2_Visser(ndrn))
+            t2_Visser = 0
+            
             npars = 6
             !
          endif
@@ -364,11 +385,11 @@ contains
    real*4           :: m_afvoercoeff, dike_core, tbreach, z_crest, z_min, t_0, t_phase1, B0, Z, B, f1, f2, uc, dB, B_old, denom
    real*4           :: breach_duration, final_breach_width, final_breach_level, B_0, t_end, dt_hr, tau_hr, H, dBdt
    real*4           :: stage, beta, beta1, beta0, breach_bottom, breach_level, test_value
-   real*4           :: alpha, crest_level, W, polder_level, t0_Visser
+   real*4           :: alpha, crest_level, W, polder_level, t0_Visser, crest_width
    real*4           :: d50, d90, Cf, Kappa, water_temperature, p, phi
    real*4           :: sediment_density, water_density, delta, dyn_viscosity, sediment_fall_velocity
-   real*4           :: discharge_t1, t1_Visser, outside_water_level, polder_water_level, gamma0,n_t1
-   type(NormalFlow) :: results_t1
+   real*4           :: outside_water_level, polder_water_level, gamma0,n_t1
+   type(NormalFlow) :: results_t1,results_t2
    
    
    !
@@ -801,18 +822,25 @@ contains
                   beta0   = drainage_params(idrn, 1)      ! Inner slope angle of the dike (radians)
                   alpha   = drainage_params(idrn, 2)      ! Outside slope angle of the dike (radians)
                   crest_level = drainage_params(idrn, 3)                 
-                  W   = drainage_params(idrn, 4)          ! Length of the weir to calculate the discharge coefficient
+                  crest_width   = drainage_params(idrn, 4)          ! Crest width of the dike
                   polder_level = drainage_params(idrn, 5)
                   t0_Visser = drainage_params(idrn, 6)          ! Time of initiation of breaching
                   
+                  
+                  
+                  outside_water_level = zs(nmin)
+                  polder_water_level = zs(nmout)
+                  
+                  !!! Initial conditions !!!!
+                            
                   !! Assume starting breach dimensions
-                  breach_bottom = 1 ! breach width
+                  breach_bottom = 1.0 ! breach width
                   breach_level = 0.75 !!!!!! TO DO make it crest level dependent starting breach level
                   
                   !! Assume breach parameters
                   beta1 =  40 * 3.141592653589793 / 180.0 ! critical inside slope angle of the dike (radians)
-                  d50 = 220 ! um
-                  d90 = 350 ! um
+                  d50 = 220.0/10**6 ! m
+                  d90 = 350.0/10**6 ! m
                   Cf = 0.025 ! Friction coefficient
                   Kappa = 0.41 ! Von Karman constant
                   water_temperature = 17.0 ! degrees Celsius
@@ -829,51 +857,63 @@ contains
                   dyn_viscosity = dynamic_viscosity(water_temperature, water_density)
                   sediment_fall_velocity = calc_sediment_fall_velocity(d50, delta, dyn_viscosity)
                   
-                  outside_water_level = zs(nmin)
-                  polder_water_level = zs(nmout)
-                  
                   if (t >= t0_Visser) then
-                      
-                     if (parameters_Visser_phase1(ndrn) == 0) then
-                        call write_log('------------ calculating phase 1 ------------', 1)
-                        write(logstr,'(a,f6.3)')'Outside water level: ', zs(nmin)
-                        call write_log(logstr,1)
-                        results_t1 = stage_1(t0_Visser, breach_bottom, polder_level, polder_water_level, breach_level, beta1, beta0, outside_water_level, gamma0, alpha, W, crest_level, d50, d90, Cf, kappa, delta, p, phi, sediment_fall_velocity)
-                        discharge_t1 = results_t1%discharge
-                        t1_Visser = results_t1%t1
-                        
-                        
-                        write(logstr,'(a,f6.5,a,f6.5, a)')'Calculated t1 (', t1_Visser, ') with a discharge of (', discharge_t1, ' m3/s)'
-                        call write_log(logstr,1)
-                        parameters_Visser_phase1(ndrn) = 1
-                     end if
-                     !
-                     ! Stage 0: No breaching
-                     if (t < t1_Visser) then
-                        !
-                        qq = discharge_t1
-                        !
-                     !
-                  !elseif (t >= t1 .and. t < t2) then
-                     !
-                     ! Stage 1: Initiation of breaching
-                     !qq = testing_function(beta)
-                  !elseif (t >= t2 .and. t < t3) then
-                     !
-                     ! Stage 2: Breach growth
-                     !qq = testing_function(beta)
-                     !
-                  !elseif (t >= t3) then
-                     !
-                     ! Stage 3: Breach stabilization
-                     !qq = testing_function(beta)
-                     !
-                      else
-                         !
-                         qq = 0.0
+                      if (running_Visser_phase1(ndrn) == 0) then
+                            
+                            call write_log('------------ calculating phase 1 ------------', 1)
+                            write(logstr,'(a,f6.3,a,f6.3)')'Outside water level: ', zs(nmin), ' Polder water level: ', zs(nmout)
+                            call write_log(logstr,1)
+                            W = breach_crest_length(crest_width, crest_level, breach_level, alpha, beta0)
+                            results_t1 = stage_1(t0_Visser, breach_bottom, polder_level, polder_water_level, breach_level, beta1, beta0, outside_water_level, gamma0, alpha, W, crest_level, d50, d90, Cf, kappa, delta, p, phi, sediment_fall_velocity)
+                            discharge_t1(ndrn) = results_t1%discharge
+                            t1_Visser(ndrn) = results_t1%t1
+                            write(logstr,'(a,f10.5,a,f6.5, a)')'Calculated t1 (', t1_Visser, ') with a discharge of (', discharge_t1, ' m3/s)'
+                            call write_log(logstr,1)
+                            running_Visser_phase1(ndrn) = 1
                       end if
-                     !
+                  
+                  
+                      if (t >= t1_Visser(ndrn)) then
+                          if (running_Visser_phase2(ndrn) == 0) then
+                                
+                                
+                        
+                                call write_log('------------ calculating phase 2 ------------', 1)
+                                write(logstr,'(a,f6.3,a,f6.3)')'Outside water level: ', zs(nmin), ' Polder water level: ', zs(nmout)
+                                call write_log(logstr,1)
+                                W = breach_crest_length(crest_width, crest_level, breach_level, alpha, beta0) !! TO DO: change beta0 to beta1 for phase 2
+                                results_t2 = stage_2(t1_Visser(ndrn),polder_level, breach_bottom, breach_level, polder_water_level,beta1, outside_water_level, gamma0, alpha, W, crest_level, d50, d90, Cf, kappa, delta, p, phi, sediment_fall_velocity)
+                                discharge_t2(ndrn) = results_t2%discharge
+                                t2_Visser(ndrn) = results_t2%t2
+                                write(logstr,'(a,G12.5,a,f6.5, a)')'Calculated t2 (', t2_Visser, ') with a discharge of (', discharge_t2, ' m3/s)'
+                                call write_log(logstr,1)
+                                running_Visser_phase2(ndrn) = 1
+                          end if
+                       end if 
+                  end if 
+                  
+                  
+                  !! Calculting discharge depending on phase of breaching
+                  if (t < t0_Visser) then
+                      qq = 0.0
+                     
+
+                  elseif ((t >= t0_Visser) .AND. (t < t1_Visser(ndrn))) then
+                        !
+                        qq = discharge_t1(ndrn)
+                        breach_bottom_Visser(ndrn) = breach_bottom
+                        breach_level_Visser(ndrn) = breach_level
+                        
+
+                  elseif (t >= t1_Visser(ndrn) .and. t < t2_Visser(ndrn)) then
+                        qq = discharge_t2(ndrn)
+                        breach_bottom_Visser(ndrn) = breach_bottom
+                        breach_level_Visser(ndrn) = breach_level
+                  else
+                        !
+                        qq = 0.0
                   end if
+
             end select
             !
             ! Add some relaxation
@@ -916,6 +956,37 @@ contains
    !
    end subroutine
    
+   function breach_crest_length(crest_width, crest_level, breach_level, slope_angle_outer, slope_angle_inner) result (W)
+   implicit none
+   REAL*4:: crest_width, crest_level, breach_level, slope_angle_outer, slope_angle_inner
+   REAL*4:: W, pi
+   
+   pi = 3.141592653589793
+   
+   if (crest_width < 0) then
+        write(logstr,'(a,f6.4,a)') "Crest width: ",crest_width," is negative!"
+        error stop logstr
+   end if
+   
+   if (crest_level <= breach_level) then
+       write(logstr,'(a,f6.4,a,f6.4)') "Crest level: ", crest_level," is below breach level: ",breach_level
+       error stop logstr
+   end if
+   
+   if (slope_angle_outer > pi/2 .or. slope_angle_outer <= 0) then
+        write(logstr,'(a,f6.4,a)') "Dike outer slope angle: ",slope_angle_outer," is not within range! The range is: 0 < radians <= pi/2"
+        error stop logstr
+   end if
+   
+   if (slope_angle_inner > pi/2 .or. slope_angle_inner <= 0) then
+        write(logstr,'(a,f6.4,a)') "Dike inner slope angle: ",slope_angle_inner," is not within range! The range is: 0 < radians <= pi/2"
+        error stop logstr
+   end if
+    
+   W = (crest_width + (crest_level - breach_level) * (1 / tan(slope_angle_outer) + 1 / tan(slope_angle_inner)))
+   end function
+   
+   
    function dynamic_viscosity(water_temperature, water_density) result (nu)
    !Computes the dynamic viscosity of water in Ns/m^2.
    implicit none
@@ -926,10 +997,10 @@ contains
    temp_min = 0
    temp_max = 40
 
-   if (0 <= water_temperature <= 20) then
+   if ((0 <= water_temperature) .AND. (water_temperature <= 20)) then
         nu = ((water_density + 1505) / (2500 * water_density) * 10**(13 / (10 - 0.081 * (20 - water_temperature)) - 4.3))
 
-   elseif (20 < water_temperature <= 40) then
+   elseif ((20 < water_temperature) .AND. (water_temperature<= 40)) then
         nu = ((water_density + 1505) / (2500 * water_density) * 10**((1.33 * (20 - water_temperature) / (water_temperature + 104)) - 3.0))
    else
         error stop "Water temperature is out of range! The valid range is 0 to 40 degrees Celsius"
@@ -944,11 +1015,15 @@ contains
    REAL*4:: g, d50_min
    g = 9.81  ! m/s2, gravitational acceleration
    d50_min = 1e-6
+   !write(logstr,'(a,f6.3,a,f6.3)')'d50_min: ', d50_min, ' rel_density: ', rel_density
+   !call write_log(logstr,1)
+   !write(logstr,'(a,G12.3,a,f6.3)')'dyn_viscosity: ', dyn_viscosity, ' rel_density: ', rel_density
+   !call write_log(logstr,1)
 
-   if (1e-6 <= d50 <= 1e-4) then
+   if ((1e-6 <= d50) .AND. (d50<= 1e-4)) then
         ws = rel_density * g * d50**2 / (18 * dyn_viscosity)
 
-   elseif (1e-4 < d50 < 1e-3) then
+   elseif ((1e-4 < d50) .AND. (d50 < 1e-3)) then
         ws = ((10 * dyn_viscosity) / d50* (((1 + 0.01 * rel_density * g * d50**3 * dyn_viscosity**(-2))**0.5) - 1))
 
    elseif (d50 >= 1e-3) then
@@ -956,6 +1031,8 @@ contains
    else
         error stop "The value for d50 is out of range!"
    end if
+   !write(logstr,'(a,G12.3)')'ws: ', ws
+   !call write_log(logstr,1)
     
    end function
    
@@ -981,9 +1058,14 @@ contains
    
    ! Estimate critical water depth from frictionless flow (2/3=0.7 of water depth)
    crit_water_depth = 0.7 * (water_level - breach_level)
+   
+   write(logstr,'(a,f6.4,a,f6.4,a,f6.4)') 'START crit_water_depth: ', crit_water_depth, ' water_level: ', water_level, ' breach_level:', breach_level
+   call write_log(logstr,1)
 
    ! Define an iteration variable to start while loop
    crit_water_depth_iter = 0.9 * crit_water_depth
+   write(logstr,'(a,f6.4,a,f6.3,a,f6.3)') 'START crit_water_depth_iter: ', crit_water_depth_iter, ' crit_water_depth: ', crit_water_depth
+   call write_log(logstr,1)
    
    
    do while (abs((crit_water_depth - crit_water_depth_iter) / crit_water_depth) > 0.01)
@@ -996,7 +1078,7 @@ contains
 
     if (crit_water_depth < 0) then
         !error stop "Water depth ", crit_water_depth, " is negative! because outside water level is ", outside_water_level, " and breach level is ", breach_level
-        write(logstr,'(a,f6.2,a,f6.2,a,f6.2, a)')"Warning: Critical water depth is negative (",crit_water_depth,") because outside water level (", water_level ,") is below breach level (",breach_level,"). Setting critical water depth to zero."
+        write(logstr,'(a,f6.4,a,f6.4,a,f6.4, a)')"Warning: Critical water depth is negative (",crit_water_depth,") because outside water level (", water_level ,") is below breach level (",breach_level,"). Setting critical water depth to zero."
         error stop logstr
     end if
 
@@ -1011,6 +1093,8 @@ contains
     ! Update estimate of critical water depth
     crit_water_depth = (2.0 / (2.0 + breach_width_avg_water_depth / breach_width_waterline)) * &
                      (water_level - breach_level)
+    write(logstr,'(a,f6.4,a,f6.4,a,f6.4,a,f6.4)') 'crit_water_depth: ', crit_water_depth, ' breach_level: ', breach_level, ' breach_width_avg_water_depth:', breach_width_avg_water_depth, ' breach_width_waterline:', breach_width_waterline
+    call write_log(logstr,1)
    end do
    end function 
    
@@ -1063,9 +1147,14 @@ contains
    g = 9.81
    ! Estimate the normal water depth
    normal_water_depth = 0.3 * (water_level - breach_level)
+   write(logstr,'(a,G12.6,a,G12.6)') 'Start** water_level:', water_level, ' breach_level:', breach_level
+   call write_log(logstr,1)
 
    breach_width_avg_water_depth = breach_width_bottom + (normal_water_depth / tan(slope_angle_breach))
    normal_water_depth = ((friction_coeff * (discharge / breach_width_avg_water_depth)**2) / (g * sin(slope_angle_dike)))**(1.0/3.0)
+   write(logstr,'(a,G12.6,a,G12.6)') 'Start** breach_width_avg_water_depth:', breach_width_avg_water_depth, ' normal_water_depth:', normal_water_depth
+   call write_log(logstr,1)
+
 
    ! Define an iteration variable to start the while loop
    normal_water_depth_iter = 0.9 * normal_water_depth
@@ -1079,6 +1168,7 @@ contains
         theta = calc_shields_parameter(normal_flow_velocity, delta, d50, friction_coeff)
         friction_coeff = calc_friction_coefficient(theta, hydraulic_radius, d90, kappa)
    end do
+
    
    res%normal_water_depth = normal_water_depth
    res%normal_flow_velocity = normal_flow_velocity
@@ -1091,6 +1181,12 @@ contains
    implicit none
    REAL*4:: flow_velocity, delta, d50, friction_coeff, g, theta
    g = 9.81
+   
+   write(logstr,'(a,G12.6,a, G12.6)') 'friction_coeff:', friction_coeff, ' flow_velocity:', flow_velocity
+   call write_log(logstr,1)
+   write(logstr,'(a,G12.6,a,f6.4)') ' d50:', d50, ' delta:', delta
+   call write_log(logstr,1)
+   
    if (friction_coeff <= 0) then
         error stop "Friction coefficient is non-positive!"
    end if
@@ -1127,6 +1223,12 @@ contains
 
    ! New estimate of the friction coefficient
    friction_coeff = kappa**2 / ((log(12 * hydraulic_radius / k))**2.0)
+   
+   write(logstr,'(a,G12.6,a,f6.4,a, G12.6)') 'friction_coeff:', friction_coeff, ' theta:', theta, ' hydraulic_radius:', hydraulic_radius
+   call write_log(logstr,1)
+   write(logstr,'(a,G12.6,a,f6.4)') ' d90:', d90, ' kappa:', kappa
+   call write_log(logstr,1)
+   
    end function
    
    function calc_hydraulic_radius(water_depth, breach_width_bottom, breach_width_avg_water_depth, slope_angle_breach) result (hydraulic_radius)
@@ -1430,6 +1532,11 @@ contains
     
    ! sediment suspended load transport
    ss = 0.01 * friction_coeff * flow_velocity**n / (delta * g * ws * cos(slope_angle)**2)
+   write(logstr,'(a,G12.6,a,G12.6,a,G12.6)') 'phi:', phi, ' slope_angle:',slope_angle, 'ws', ws
+   call write_log(logstr,1)
+   
+   write(logstr,'(a,G12.6,a,G12.6)') 'ss:', ss, ' sb:',sb
+   call write_log(logstr,1)
 
    ! sediment total transport
    stt = sb + ss
@@ -1504,6 +1611,9 @@ contains
    breach_width_avg_water_depth = calc_breach_width_avg_water_depth(breach_bottom, crit_water_depth, gamma0)
    breach_width_waterline = calc_breach_width_waterline(breach_bottom, crit_water_depth, gamma0)
    breach_width_total = calc_breach_width_total(breach_bottom, crest_level, breach_level, gamma0)
+   
+   write(logstr,'(a,f6.4,a,f6.4,a,f6.4)') 'breach_width_avg_water_depth:', breach_width_avg_water_depth, ' breach_width_waterline:', breach_width_waterline, ' breach_width_total:', breach_width_total
+   call write_log(logstr,1)
 
    nf = normal_flow_conditions(outside_water_level, breach_level, breach_bottom, discharge, gamma0, beta, delta, d50, d90, Cf, kappa)
     
@@ -1520,6 +1630,9 @@ contains
    ! Compute breach width for normal flow depth
    normal_breach_width_avg_water_depth = calc_breach_width_avg_water_depth(breach_bottom, normal_water_depth, gamma0)
    normal_breach_width_waterline = calc_breach_width_waterline(breach_bottom, normal_water_depth, gamma0)
+   
+   write(logstr,'(a,f6.4,a,f6.4,a,f6.4)') 'friction_coeff:', friction_coeff, ' normal_breach_width_avg_water_depth:', normal_breach_width_avg_water_depth, ' normal_breach_width_waterline:', normal_breach_width_waterline
+   call write_log(logstr,1)
 
    ! Compute the width-averaged normal water depth
    normal_water_depth_width_avg = calc_water_depth_width_avg(normal_water_depth, normal_breach_width_avg_water_depth, normal_breach_width_waterline)
@@ -1530,6 +1643,8 @@ contains
    ! Compute adaptation length to reach normal flow conditions
    adap_length_flow = calc_adaptation_length_flow(froude_number, normal_water_depth, beta)
 
+   write(logstr,'(a,f6.4,a,f6.4,a,f6.4)') 'normal_water_depth_width_avg:', normal_water_depth_width_avg, ' froude_number:', froude_number, ' adap_length_flow:', adap_length_flow
+   call write_log(logstr,1)
    ! Compute adaptation length to reach equilibrium sediment transport
    adap_length_sediment = calc_adaptation_length_sediment(discharge, normal_breach_width_avg_water_depth, sediment_fall_velocity, beta1)
    adap_length_sediment = adap_length_sediment * breach_width_waterline / breach_width_total
@@ -1543,6 +1658,161 @@ contains
    ! If normal flow conditions are not reached at the inner toe, set the
    ! location for flow conditions that determine sediment transport at inner toe.
    slope_loc = min(adap_length_flow, length_slope - (polder_water_level / sin(beta)))
+   
+   write(logstr,'(a,f6.4,a,f6.4,a,f6.4)') 'adap_length_sediment:', adap_length_sediment, ' length_slope:', length_slope, ' slope_loc:', slope_loc
+   call write_log(logstr,1)
+
+   ! Determine the sediment transport. If FLOWSLOPE == True, determine sediment transport at slope_loc.
+   if (FLOWSLOPE) then
+        res = flow_along_slope(discharge, crit_water_depth, normal_water_depth, breach_bottom, gamma0, adap_length_flow, slope_loc)
+        water_depth_slope = res%water_depth
+        flow_velocity_slope = res%slope_flow_velocity
+        
+        breach_width_avg_water_depth_slope = calc_breach_width_avg_water_depth(breach_bottom, water_depth_slope,gamma0)
+        hydraulic_radius_slope = calc_hydraulic_radius(water_depth_slope, breach_bottom, breach_width_avg_water_depth_slope, gamma0)
+        friction_coeff_slope = iter_friction_coefficient(friction_coeff, flow_velocity_slope, hydraulic_radius_slope, delta, d50, d90, kappa)
+        theta = calc_shields_parameter(flow_velocity_slope, delta, d50, friction_coeff_slope)
+        sediment_transport_capacity = bagnold_visser(delta, p, d50, phi, sediment_fall_velocity, flow_velocity_slope, beta, friction_coeff_slope)
+        n= sediment_transport_capacity%n
+        stt = sediment_transport_capacity%stt 
+        ![stt, n] = sediment_transport_capacity(params, flow_velocity_slope, water_depth_slope, beta, adap_length_sediment, theta, friction_coeff_slope, params.formula_stc1)
+        ! Compute time duration of stage I
+        t1 = t0 + ((breach_width_total / breach_width_waterline) * (1 - p) * adap_length_sediment * (beta1 - beta0) * slope_loc / (stt * (1 + 5 * n * (slope_loc / adap_length_flow) *(normal_flow_velocity / flow_velocity_slope - 1))))
+   else
+        theta = calc_shields_parameter(normal_flow_velocity, delta, d50, friction_coeff) 
+        sediment_transport_capacity = bagnold_visser(delta, p, d50, phi, sediment_fall_velocity, normal_flow_velocity, beta, friction_coeff)
+        n= sediment_transport_capacity%n
+        stt = sediment_transport_capacity%stt
+        !write(logstr,'(a,f6.5,a,f6.5)') 'theta:', theta, ' sediment_transport_capacity:', sediment_transport_capacity
+        !call write_log(logstr,1)
+        
+        write(logstr,'(a,f6.4,a,G12.6)') ' n:', n, ' stt:', stt
+        call write_log(logstr,1)
+        ![stt, n] = sediment_transport_capacity(params, normal_flow_velocity, normal_water_depth, beta, adap_length_sediment, theta, friction_coeff, params.formula_stc1)
+        ! Compute time duration of stage I
+        t1 = t0 + ((breach_width_total / breach_width_waterline) * (1 - p) * adap_length_sediment * (beta1 - beta0) * slope_loc / stt)
+        !write(logstr,'(a,f10.4,a,f10.4)') 't1:', t1, ' t0:', t0
+        !call write_log(logstr,1)
+        
+        !write(logstr,'(a,f6.4,a,f6.4,a,f6.4)') 'p:', p, ' beta1:', beta1, ' beta0:', beta0
+        !call write_log(logstr,1)
+   end if
+   
+   results_t1%discharge = discharge
+   results_t1%t1  = t1
+   end function
+   
+   function stage_2(t1, polder_level, breach_bottom, breach_level, polder_water_level,beta1, outside_water_level, gamma0, alpha, W, crest_level, d50, d90, Cf, kappa, delta, p, phi, sediment_fall_velocity) result(results_t2) !  
+   implicit none
+   REAL*4:: t0, polder_level, polder_water_level, breach_bottom, breach_level, beta1, t1
+   REAL*4:: outside_water_level, gamma0
+   REAL*4:: alpha, W, crest_level, d50, d90, Cf, kappa, delta, p, phi, sediment_fall_velocity
+   REAL*4:: beta, crit_water_depth
+   REAL*4:: crit_breach_width_avg_water_depth, crit_breach_width_waterline
+   REAL*4:: crit_flow_velocity, discharge_coeff, discharge
+   REAL*4:: breach_width_avg_water_depth, breach_width_waterline, breach_width_total
+   REAL*4:: normal_water_depth, normal_flow_velocity, friction_coeff
+   REAL*4:: normal_breach_width_avg_water_depth, normal_breach_width_waterline
+   REAL*4:: normal_water_depth_width_avg, froude_number
+   REAL*4:: adap_length_flow, adap_length_sediment, length_slope
+   REAL*4:: slope_loc
+   REAL*4:: water_depth_slope, flow_velocity_slope
+   REAL*4:: breach_width_avg_water_depth_slope, hydraulic_radius_slope, friction_coeff_slope
+   REAL*4:: theta, stt, n
+   REAL*4:: t2
+   
+   logical :: FLOWSLOPE,sediment_density,water_density
+   
+   type(NormalFlow) :: results_t2
+   
+   type(NormalFlow) :: nf
+   !real(dp) :: normal_water_depth, normal_flow_velocity, friction_coeff_out
+   
+   type(NormalFlow) :: res
+   !real(dp) :: water_depth, slope_flow_velocity
+   
+   type(NormalFlow) :: sediment_transport_capacity
+   !real(dp) :: n, stt
+   
+
+   ! Compute critical flow depth
+   crit_water_depth = calc_crit_water_depth(outside_water_level, breach_level, breach_bottom, gamma0)
+   write(logstr,'(a,f6.4)') 'crit_water_depth:', crit_water_depth
+   call write_log(logstr,1)
+   
+   ! Compute breach widths for critical flow depth
+   crit_breach_width_avg_water_depth = calc_breach_width_avg_water_depth(breach_bottom, crit_water_depth,gamma0)
+   crit_breach_width_waterline = calc_breach_width_waterline(breach_bottom, crit_water_depth, gamma0)
+
+   ! Compute critical flow velocity
+   crit_flow_velocity = calc_crit_flow_velocity(crit_water_depth, crit_breach_width_avg_water_depth,  crit_breach_width_waterline)
+   write(logstr,'(a,f6.4)') 'crit_flow_velocity:', crit_flow_velocity
+   call write_log(logstr,1)
+   
+   discharge_coeff = calc_discharge_coeff('Zerihun2020', alpha, beta1, outside_water_level, breach_level, W/2)
+   write(logstr,'(a,f6.4)') 'discharge_coeff:', discharge_coeff
+   call write_log(logstr,1)
+
+   ! Compute discharge
+   discharge = calc_discharge(crit_breach_width_avg_water_depth, crit_water_depth, crit_flow_velocity, discharge_coeff)
+   write(logstr,'(a,f6.5)') 'discharge:', discharge
+   call write_log(logstr,1)
+
+   ! Compute breach widths
+   breach_width_avg_water_depth = calc_breach_width_avg_water_depth(breach_bottom, crit_water_depth, gamma0)
+   breach_width_waterline = calc_breach_width_waterline(breach_bottom, crit_water_depth, gamma0)
+   breach_width_total = calc_breach_width_total(breach_bottom, crest_level, breach_level, gamma0)
+   
+   write(logstr,'(a,f6.4,a,f6.4,a,f6.4)') 'breach_width_avg_water_depth:', breach_width_avg_water_depth, ' breach_width_waterline:', breach_width_waterline, ' breach_width_total:', breach_width_total
+   call write_log(logstr,1)
+
+   nf = normal_flow_conditions(outside_water_level, breach_level, breach_bottom, discharge, gamma0, beta1, delta, d50, d90, Cf, kappa)
+    
+   normal_water_depth   = nf%normal_water_depth
+   
+   write(logstr,'(a,f6.4)') 'normal_water_depth:', normal_water_depth
+   call write_log(logstr,1)
+   normal_flow_velocity = nf%normal_flow_velocity
+   
+   write(logstr,'(a,f6.4)') 'normal_flow_velocity:', normal_flow_velocity
+   call write_log(logstr,1)
+   friction_coeff   = nf%friction_coeff
+
+   ! Compute breach width for normal flow depth
+   normal_breach_width_avg_water_depth = calc_breach_width_avg_water_depth(breach_bottom, normal_water_depth, gamma0)
+   normal_breach_width_waterline = calc_breach_width_waterline(breach_bottom, normal_water_depth, gamma0)
+   
+   write(logstr,'(a,f6.4,a,f6.4,a,f6.4)') 'friction_coeff:', friction_coeff, ' normal_breach_width_avg_water_depth:', normal_breach_width_avg_water_depth, ' normal_breach_width_waterline:', normal_breach_width_waterline
+   call write_log(logstr,1)
+
+   ! Compute the width-averaged normal water depth
+   normal_water_depth_width_avg = calc_water_depth_width_avg(normal_water_depth, normal_breach_width_avg_water_depth, normal_breach_width_waterline)
+
+   ! Compute Froude number
+   froude_number = calc_froude_number(normal_flow_velocity, normal_water_depth_width_avg, beta1)
+
+   ! Compute adaptation length to reach normal flow conditions
+   adap_length_flow = calc_adaptation_length_flow(froude_number, normal_water_depth, beta1)
+
+   write(logstr,'(a,f6.4,a,f6.4,a,f6.4)') 'normal_water_depth_width_avg:', normal_water_depth_width_avg, ' froude_number:', froude_number, ' adap_length_flow:', adap_length_flow
+   call write_log(logstr,1)
+   ! Compute adaptation length to reach equilibrium sediment transport
+   adap_length_sediment = calc_adaptation_length_sediment(discharge, normal_breach_width_avg_water_depth, sediment_fall_velocity, beta1)
+   adap_length_sediment = adap_length_sediment * breach_width_waterline / breach_width_total
+
+   ! Sediment capacity adaptation length cannot be smaller than normal flow
+   ! adaptation length (as long as velocity increases, capacity increases)
+   adap_length_sediment = max(adap_length_sediment, adap_length_flow)
+   ! Average inner slope length from breach level (Zbr) to inner toe (here: Zp)
+   length_slope = (breach_level - polder_level) / sin(beta1)
+   write(logstr,'(a,f12.4,a,f6.4)') 'polder_level:', polder_level, ' beta1:', beta1
+   call write_log(logstr,1)
+   ! If normal flow conditions are not reached at the inner toe, set the
+   ! location for flow conditions that determine sediment transport at inner toe.
+   slope_loc = min(adap_length_flow, max(length_slope - (polder_water_level / sin(beta1)),0.0))
+   
+   write(logstr,'(a,f6.4,a,f6.4,a,f6.4)') 'adap_length_sediment:', adap_length_sediment, ' length_slope:', length_slope, ' slope_loc:', slope_loc
+   call write_log(logstr,1)
 
    ! Determine the sediment transport. If FLOWSLOPE == True, determine sediment transport at slope_loc.
    if (FLOWSLOPE) then
@@ -1557,21 +1827,26 @@ contains
         sediment_transport_capacity = bagnold_visser(delta, p, d50, phi, sediment_fall_velocity, flow_velocity_slope, beta1, friction_coeff_slope)
         n= sediment_transport_capacity%n
         stt = sediment_transport_capacity%stt 
-        ![stt, n] = sediment_transport_capacity(params, flow_velocity_slope, water_depth_slope, beta, adap_length_sediment, theta, friction_coeff_slope, params.formula_stc1)
-        ! Compute time duration of stage I
-        t1 = t0 + ((breach_width_total / breach_width_waterline) * (1 - p) * adap_length_sediment * (beta1 - beta0) * slope_loc / (stt * (1 + 5 * n * (slope_loc / adap_length_flow) *(normal_flow_velocity / flow_velocity_slope - 1))))
    else
         theta = calc_shields_parameter(normal_flow_velocity, delta, d50, friction_coeff) 
         sediment_transport_capacity = bagnold_visser(delta, p, d50, phi, sediment_fall_velocity, normal_flow_velocity, beta1, friction_coeff)
         n= sediment_transport_capacity%n
         stt = sediment_transport_capacity%stt
-        ![stt, n] = sediment_transport_capacity(params, normal_flow_velocity, normal_water_depth, beta, adap_length_sediment, theta, friction_coeff, params.formula_stc1)
-        ! Compute time duration of stage I
-        t1 = t0 + ((breach_width_total / breach_width_waterline) * (1 - p) * adap_length_sediment * (beta1 - beta0) * slope_loc / stt)
+        !write(logstr,'(a,f6.5,a,f6.5)') 'theta:', theta, ' sediment_transport_capacity:', sediment_transport_capacity
+        !call write_log(logstr,1)
+        
+        write(logstr,'(a,f6.4,a,G12.6)') ' n:', n, ' stt:', stt
+        call write_log(logstr,1)
+
+   t2 = t1 + ((breach_width_total / breach_width_waterline) * W * (1 - p) * adap_length_sediment* sin(beta1) / stt)
+   write(logstr,'(a,f12.6,a,G12.6)') ' t1:', t1, ' W:', W
+   call write_log(logstr,1)
    end if
    
-   results_t1%discharge = discharge
-   results_t1%t1  = t1
+   results_t2%discharge = discharge
+   results_t2%t2  = t2
    end function
+   
+   
 
 end module

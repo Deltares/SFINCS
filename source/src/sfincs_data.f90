@@ -763,8 +763,16 @@ module sfincs_data
       !!!
       !!! Breaching parameters
       !!!
+
+      real*4, dimension(:),     allocatable :: running_Visser_phase1
+      real*4, dimension(:),     allocatable :: running_Visser_phase2
+      real*4, dimension(:),     allocatable :: discharge_t1
+      real*4, dimension(:),     allocatable :: t1_Visser
       real*4, dimension(:),     allocatable :: breach_width
-      real*4, dimension(:),     allocatable :: parameters_Visser_phase1
+      real*4, dimension(:),     allocatable :: breach_bottom_Visser
+      real*4, dimension(:),     allocatable :: breach_level_Visser
+      real*4, dimension(:),     allocatable :: discharge_t2
+      real*4, dimension(:),     allocatable :: t2_Visser
       
       !!!
       !!! Structures
