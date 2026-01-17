@@ -768,11 +768,14 @@ module sfincs_data
       real*4, dimension(:),     allocatable :: running_Visser_phase2
       real*4, dimension(:),     allocatable :: discharge_t1
       real*4, dimension(:),     allocatable :: t1_Visser
-      real*4, dimension(:),     allocatable :: breach_width
+      real*4, dimension(:),     allocatable :: breach_width ! also used for breach_width_total in Visser
       real*4, dimension(:),     allocatable :: breach_bottom_Visser
       real*4, dimension(:),     allocatable :: breach_level_Visser
+      real*4, dimension(:),     allocatable :: breach_width_waterline_Visser
+      real*4, dimension(:),     allocatable :: gamma0_Visser
       real*4, dimension(:),     allocatable :: discharge_t2
       real*4, dimension(:),     allocatable :: t2_Visser
+      !real*4, dimension(:),     allocatable :: t_previous_Visser
       
       !!!
       !!! Structures
