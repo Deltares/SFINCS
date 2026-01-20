@@ -775,6 +775,7 @@ module sfincs_data
       real*4, dimension(:),     allocatable :: gamma0_Visser
       real*4, dimension(:),     allocatable :: discharge_t2
       real*4, dimension(:),     allocatable :: t2_Visser
+      real*4, dimension(:),     allocatable :: end_visser
       !real*4, dimension(:),     allocatable :: t_previous_Visser
       
       !!!

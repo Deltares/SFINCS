@@ -272,6 +272,8 @@ contains
             discharge_t2 = 0.0
             allocate(t2_Visser(ndrn))
             t2_Visser = 0.0
+            allocate(end_visser(ndrn)) ! After phase 5 is done you can't go back to phase 4
+            end_visser = 0.0
             
             !allocate(t_previous_Visser)
             !t_previous_Visser = 0.0
@@ -401,7 +403,8 @@ contains
    real*4           :: d50, d90, Cf, Kappa, water_temperature, p, phi
    real*4           :: sediment_density, water_density, delta, dyn_viscosity, sediment_fall_velocity
    real*4           :: dstar, theta_crit, ni, k, breach_width_waterline, breach_width_total
-   real*4           :: outside_water_level, polder_water_level, gamma0, gamma1, outside_level, crit_water_depth
+   real*4           :: outside_water_level, polder_water_level, gamma0, gamma1, outside_level
+   real*4           :: discharge_coeff, crit_water_depth, flow_velocity, water_depth, breach_width_avg_water_depth
    character*256 :: formula
    type(NormalFlow) :: results_t1,results_t2,results_t3,results_t4,results_t5
    
@@ -956,7 +959,7 @@ contains
                         !breach_width(ndrn) = results_t3%breach_width_total 
                         !gamma0_Visser(ndrn) = gamma0
                   
-                  else
+                  elseif (end_visser(ndrn) == 0.0) then
                       !write(logstr,'(a,G12.5,a,f12.5,a,f12.5)')'breach_level: ', breach_level, ' outside_level: ', outside_level, ' outside_water_level: ', outside_water_level
                       !call write_log(logstr,1)
                       !write(logstr,'(a,f12.5,a,f12.5)') 'Polder_level: ', polder_level, ' polder_water_level: ', polder_water_level
@@ -990,6 +993,7 @@ contains
                             call write_log(logstr,1)
                             write(logstr,'(a,G12.5,a,f12.5)')'** CHECK STAGE 4: polder_water_level: ', polder_water_level, ' crit_water_depth: ', crit_water_depth
                             call write_log(logstr,1)
+                      
                       else if (polder_water_level - breach_level <= crit_water_depth) then
                           
                             call write_log('------------ Phase 4 ------------', 1)
@@ -1018,10 +1022,36 @@ contains
                             call write_log(logstr,1)
                             write(logstr,'(a,G12.5,a,f12.5,a,f12.5)')'breach_width_waterline: ', breach_width_waterline_Visser(ndrn), ' breach_width_total: ', breach_width(ndrn), ' gamma0: ', gamma0_Visser(ndrn)
                             call write_log(logstr,1)
+                      !else  if (outside_water_level < polder_water_level) then
+                            !call write_log('------------ Return flow ------------', 1)
+                            !discharge_coeff = 1.3
+                            !water_depth = outside_water_level - breach_level
+                            !breach_width_avg_water_depth = calc_breach_width_avg_water_depth(breach_bottom, water_depth, gamma1)
+                            !flow_velocity = (2.0 * 9.81 * (polder_water_level - outside_water_level)) ** 0.5
+                            !qq = discharge_coeff * breach_width_avg_water_depth * water_depth * flow_velocity
+                            !write(logstr,'(a,G12.5,a,G12.5,a,f12.5, a,f12.5)')'qq', qq,'water_depth: ', water_depth, ' breach_width_avg_water_depth: ', breach_width_avg_water_depth, ' flow_velocity:', flow_velocity
+                            !call write_log(logstr,1)
+                            !write(logstr,'(a,G12.5,a,f12.5)')'outside_water_level: ', outside_water_level, ' polder_water_level: ', polder_water_level
+                            !call write_log(logstr,1)
+                            
                       else
-                            qq = 0.0
+                            end_visser(ndrn) = 1.0
                       end if
-                        
+                  else if (end_visser(ndrn) == 1.0) then
+                        discharge_coeff = 1.3
+                        if (zs(nmin) > zs(nmout)) then
+                             ! normal flow through breach after breaching phases
+                             water_depth = zs(nmin) - breach_level
+                             breach_width_avg_water_depth = calc_breach_width_avg_water_depth(breach_bottom, water_depth, gamma1)
+                             qq = discharge_coeff *breach_width_avg_water_depth*water_depth* sqrt(2.0 * 9.81 *(zs(nmin) - zs(nmout)))
+                             !
+                        else
+                             ! return flow through breach after breaching phases
+                             water_depth = zs(nmout) - breach_level
+                             breach_width_avg_water_depth = calc_breach_width_avg_water_depth(breach_bottom, water_depth, gamma1)
+                             qq = - discharge_coeff * breach_width_avg_water_depth * water_depth * sqrt(2.0 * 9.81 *(zs(nmout) - zs(nmin)))
+                             !
+                        endif
                   end if
 
             end select
