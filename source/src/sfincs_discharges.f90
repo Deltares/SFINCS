@@ -984,7 +984,7 @@ contains
                             breach_width_waterline_Visser(ndrn) = results_t3%breach_width_waterline 
                             breach_width(ndrn) = results_t3%breach_width_total 
                             gamma0_Visser(ndrn) = results_t3%gamma0
-                            write(logstr,'(a,G12.5,a,f12.5, a,f12.5)')'breach_bottom_Visser(ndrn): ', breach_bottom_Visser(ndrn), ' breach_level_Visser(ndrn): ', breach_level_Visser(ndrn), ' qq:', qq
+                            write(logstr,'(a,G12.5,a,G12.5,a,f12.5, a,f12.5)')'dt', dt,'breach_bottom_Visser(ndrn): ', breach_bottom_Visser(ndrn), ' breach_level_Visser(ndrn): ', breach_level_Visser(ndrn), ' qq:', qq
                             call write_log(logstr,1)
                             write(logstr,'(a,G12.5,a,f12.5,a,f12.5)')'breach_width_waterline t2: ', breach_width_waterline_Visser(ndrn), ' breach_width_total: ', breach_width(ndrn), ' gamma0: ', gamma0_Visser(ndrn)
                             call write_log(logstr,1)
@@ -1000,7 +1000,7 @@ contains
                             breach_width_waterline_Visser(ndrn) = results_t4%breach_width_waterline 
                             breach_width(ndrn) = results_t4%breach_width_total 
                             gamma0_Visser(ndrn) = gamma0
-                            write(logstr,'(a,G12.5,a,f12.5, a,f12.5)')'breach_bottom_Visser(ndrn): ', breach_bottom_Visser(ndrn), ' breach_level_Visser(ndrn): ', breach_level_Visser(ndrn), ' qq:', qq
+                            write(logstr,'(a,G12.5,a,G12.5,a,f12.5, a,f12.5)')'dt', dt, 'breach_bottom_Visser(ndrn): ', breach_bottom_Visser(ndrn), ' breach_level_Visser(ndrn): ', breach_level_Visser(ndrn), ' qq:', qq
                             call write_log(logstr,1)
                             write(logstr,'(a,G12.5,a,f12.5,a,f12.5)')'breach_width_waterline: ', breach_width_waterline_Visser(ndrn), ' breach_width_total: ', breach_width(ndrn), ' gamma0: ', gamma0_Visser(ndrn)
                             call write_log(logstr,1)
@@ -1014,7 +1014,7 @@ contains
                             breach_width_waterline_Visser(ndrn) = results_t5%breach_width_waterline 
                             breach_width(ndrn) = results_t5%breach_width_total 
                             gamma0_Visser(ndrn) = gamma0
-                            write(logstr,'(a,G12.5,a,f12.5, a,f12.5)')'breach_bottom_Visser(ndrn): ', breach_bottom_Visser(ndrn), ' breach_level_Visser(ndrn): ', breach_level_Visser(ndrn), ' qq:', qq
+                            write(logstr,'(a,G12.5,a,G12.5,a,f12.5, a,f12.5)')'dt', dt,'breach_bottom_Visser(ndrn): ', breach_bottom_Visser(ndrn), ' breach_level_Visser(ndrn): ', breach_level_Visser(ndrn), ' qq:', qq
                             call write_log(logstr,1)
                             write(logstr,'(a,G12.5,a,f12.5,a,f12.5)')'breach_width_waterline: ', breach_width_waterline_Visser(ndrn), ' breach_width_total: ', breach_width(ndrn), ' gamma0: ', gamma0_Visser(ndrn)
                             call write_log(logstr,1)
