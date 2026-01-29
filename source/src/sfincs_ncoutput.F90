@@ -47,7 +47,7 @@ module sfincs_ncoutput
       integer :: crosssection_name_varid
       integer :: structure_height_varid, structure_x_varid, structure_y_varid
       integer :: thindam_x_varid, thindam_y_varid      
-      integer :: drain_varid, drain_name_varid
+      integer :: drain_varid, drain_name_varid, breach_width_varid, breach_level_varid
       integer :: zb_varid
       integer :: time_varid
       integer :: zs_varid, h_varid, u_varid, v_varid, prcp_varid, discharge_varid, uvmag_varid, uvdir_varid
@@ -1929,6 +1929,18 @@ contains
       NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'long_name', 'discharge through drainage structure'))
       NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'coordinates', 'drainage_name'))
       !
+      NF90(nf90_def_var(his_file%ncid, 'breach_width', NF90_FLOAT, (/his_file%drain_dimid, his_file%time_dimid/), his_file%breach_width_varid)) ! time-varying breach width
+      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'units', 'm'))
+      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'long_name', 'breach width'))
+      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'coordinates', 'drainage_name'))
+      !
+      NF90(nf90_def_var(his_file%ncid, 'breach_level', NF90_FLOAT, (/his_file%drain_dimid, his_file%time_dimid/), his_file%breach_level_varid)) ! time-varying breach width
+      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'units', 'm'))
+      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'long_name', 'breach level'))
+      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'coordinates', 'drainage_name'))
+      !
    endif   
    !   
    if (nr_runup_gauges > 0) then
@@ -2909,7 +2921,9 @@ contains
    real*4, dimension(nobs) :: tpigobs   
    real*4, dimension(nobs) :: wavdirobs
    real*4, dimension(nobs) :: dirsprobs
-   real*4, dimension(ndrn) :: q_drain   
+   real*4, dimension(ndrn) :: q_drain  
+   real*4, dimension(ndrn) :: breach_width_drain
+   real*4, dimension(ndrn) :: breach_level_drain
    real*4, dimension(nobs) :: dwobs
    real*4, dimension(nobs) :: dfobs
    real*4, dimension(nobs) :: dwigobs
@@ -3164,9 +3178,13 @@ contains
       do iobs = nsrc + 1, nsrcdrn, 2 !TL: as in sfincs_output.f90
          idrn = idrn + 1
          q_drain(idrn) = qtsrc(iobs)
+         breach_width_drain(idrn) = breach_width(iobs)
+         breach_level_drain(idrn) = breach_level_gather(iobs)
       enddo      
       !
       NF90(nf90_put_var(his_file%ncid, his_file%drain_varid, q_drain, (/1, nthisout/))) ! write discharge of sink point
+      NF90(nf90_put_var(his_file%ncid, his_file%breach_width_varid, breach_width_drain, (/1, nthisout/))) ! write breach width
+      NF90(nf90_put_var(his_file%ncid, his_file%breach_level_varid, breach_level_drain, (/1, nthisout/))) ! write breaching level
       !         
    endif
    !

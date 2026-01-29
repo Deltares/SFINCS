@@ -770,7 +770,7 @@ module sfincs_data
       real*4, dimension(:),     allocatable :: t1_Visser
       real*4, dimension(:),     allocatable :: breach_width ! also used for breach_width_total in Visser
       real*4, dimension(:),     allocatable :: breach_bottom_Visser
-      real*4, dimension(:),     allocatable :: breach_level_Visser
+      real*4, dimension(:),     allocatable :: breach_level_gather
       real*4, dimension(:),     allocatable :: breach_width_waterline_Visser
       real*4, dimension(:),     allocatable :: gamma0_Visser
       real*4, dimension(:),     allocatable :: discharge_t2
