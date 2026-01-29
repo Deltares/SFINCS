@@ -28,7 +28,14 @@
       ! Parameter 1 : Weir level (w.r.t. ref datum)
       ! Parameter 2 : Cd
       !
-      call read_structure_file(weirfile, 1, 2)
+      if (snapwave ==0) then
+          call write_log('------------ CALCULATING OVERFLOW ONLY ------------', 1)
+          call read_structure_file(weirfile, 1, 2)
+      else
+          call write_log('------------ CALCULATING OVERTOPPING AND OVERFLOW ------------', 1)
+          call read_structure_file(weirfile, 1, 2) ! if there are waves, use weir type 2, which contains wave overtopping
+      end if
+       !call read_structure_file(weirfile, 1, 2)
       !
    endif
    !
@@ -613,6 +620,9 @@
    real*4                       :: h1
    real*4                       :: h2
    real*4                       :: qstruc
+   real*4                       :: hm01, tm01, Lm01, breaker_parameter,alpha
+   real*4                       :: sm10, q_overtopping, q_max, Rc
+   real*4                       :: gamma_f,gamma_b,gamma_beta,gamma_nu,gamma_star
    !
    integer  :: count0
    integer  :: count1
@@ -681,6 +691,71 @@
             endif 
             !
          case(2)
+             
+            ! Calculate wave parameters
+            if  (hm0(nm)>hm0(nmu)) then ! TO DO: check maybe this does not work because the model does not have a wave height behind the structure
+               !idir = 1
+               hm01 = hm0(nm)
+               tm01 = sw_tp(nm)
+            else
+               !idir = -1
+               hm01 = hm0(nmu)
+               tm01 = sw_tp(nmu)
+            end if 
+            !g=9.81
+            !pi= 3.14159265359
+            Lm01 = g*tm01**2.0/(2.0*pi) ! deep water wavelength 
+            sm10 = hm01/Lm01
+            alpha = 0.523599 !slope of the front face of the structure, assuming 30 degrees here for now
+            breaker_parameter = TAN(alpha)/(hm01/Lm01)**0.5 !Iribarren number
+            
+            if  (zsnm>zsnmu) then
+               idir = 1
+               Rc = zsnm  - structure_parameters(1, istruc)
+               h2 = zsnmu - structure_parameters(1, istruc)
+            else
+               idir = -1
+               Rc = zsnmu - structure_parameters(1, istruc)
+               h2 = zsnm  - structure_parameters(1, istruc)
+            endif
+            
+            ! TO DO: add if loop if water level + wave height < structure height: no overtopping
+
+            if (Rc>=0) then
+                ! Influence of roughness of outer slope
+                if (hm01 < 0.75) then
+                    gamma_f = 1.15*hm01**0.5 ! If grass slope
+                else
+                    gamma_f = 1.0 ! for grass, concrete, asphalt, closed concrete block. 0.9 for basalt, basalton, placed revetment block according to Table 5.2 EuroTop Manual 2018
+                end if
+                
+                
+                gamma_b = 1 ! no Influence of an outer berm
+                gamma_beta = 1! Influence of oblique wave attack
+                gamma_nu = 1 ! No storm wall
+                gamma_star = 1 ! No storm wall and bullnose
+                if (breaker_parameter > 5 .OR. sm10>0.01) then
+                    ! 'normal overtopping equation, using the mean approach of the EuroTop Manual 2018, Eq.10 and 5.11
+                    q_overtopping = 0.023*sqrt(g*hm01**3.0)/SQRT(TAN(alpha))*gamma_b*breaker_parameter*exp(-(2.7*Rc/(breaker_parameter*hm01*gamma_b*gamma_f*gamma_beta*gamma_nu)**1.3))
+                    q_max = 0.09*SQRT(g*hm01**3.0)*exp(-(1.5*Rc/(hm01*gamma_f*gamma_beta*gamma_star)**1.3))
+                    qstruc = MIN(q_overtopping, q_max)
+                else
+                    ! Shallow forshore using the mean approach for shallow foreshore of the EuroTop Manual 2018, Eq. 5.15
+                    qstruc = 10**(-0.79)*SQRT(g*hm01**3.0)*exp(-Rc/(gamma_f*gamma_beta*hm01*(0.33+0.022*breaker_parameter)))
+                end if
+            else
+                if (h2 > 2.0 / 3.0 * Rc) then
+               !
+               ! fully submerged
+               !
+                    qstruc = Cd*h2*sqrt(2.0 * 9.81 * (Rc - h2))
+                else
+                    ! Overflow according to the EurOTop Manual 2018, Eq. 5.20
+                    qstruc = 0.54*SQRT(g*ABS(-Rc**3.0))
+                end if
+
+            end if          
+             
          case(3)
       end select
       !         
