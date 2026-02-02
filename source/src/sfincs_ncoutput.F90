@@ -47,7 +47,7 @@ module sfincs_ncoutput
       integer :: crosssection_name_varid
       integer :: structure_height_varid, structure_x_varid, structure_y_varid
       integer :: thindam_x_varid, thindam_y_varid      
-      integer :: drain_varid, drain_name_varid, breach_width_varid, breach_level_varid
+      integer :: drain_varid, drain_name_varid, breach_width_varid, breach_level_varid!, q_overflow_varid
       integer :: zb_varid
       integer :: time_varid
       integer :: zs_varid, h_varid, u_varid, v_varid, prcp_varid, discharge_varid, uvmag_varid, uvdir_varid
@@ -1513,6 +1513,7 @@ contains
    real*4, dimension(:), allocatable :: struc_x
    real*4, dimension(:), allocatable :: struc_y
    real*4, dimension(:), allocatable :: struc_height
+   !real*4, dimension(:), allocatable :: q_overflow_drain
    !
    real*4, dimension(:,:), allocatable :: thindam_info
    real*4, dimension(:), allocatable :: thindam_x
@@ -1643,7 +1644,7 @@ contains
       NF90(nf90_put_att(his_file%ncid, his_file%structure_height_varid, '_FillValue', FILL_VALUE))   
       NF90(nf90_put_att(his_file%ncid, his_file%structure_height_varid, 'units', 'm'))
       NF90(nf90_put_att(his_file%ncid, his_file%structure_height_varid, 'standard_name', 'altitude'))
-      NF90(nf90_put_att(his_file%ncid, his_file%structure_height_varid, 'long_name', 'interpolated_structure_height_above_reference_level'))      
+      NF90(nf90_put_att(his_file%ncid, his_file%structure_height_varid, 'long_name', 'interpolated_structure_height_above_reference_level'))     
       !
    endif
    !
@@ -1941,7 +1942,15 @@ contains
       NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'long_name', 'breach level'))
       NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'coordinates', 'drainage_name'))
       !
-   endif   
+   endif 
+   !if (nrstructures>0) then
+   !   NF90(nf90_def_var(his_file%ncid, 'q_overflow', NF90_FLOAT, (/his_file%time_dimid/), his_file%q_overflow_varid)) ! structure height 
+   !   NF90(nf90_put_att(his_file%ncid, his_file%structure_height_varid, '_FillValue', FILL_VALUE))   
+   !   NF90(nf90_put_att(his_file%ncid, his_file%structure_height_varid, 'units', 'm3/s'))
+   !   NF90(nf90_put_att(his_file%ncid, his_file%structure_height_varid, 'standard_name', 'discharge'))
+   !   NF90(nf90_put_att(his_file%ncid, his_file%structure_height_varid, 'long_name', 'overflow_discharge_over_structure'))    
+   !end if
+      
    !   
    if (nr_runup_gauges > 0) then
       !
@@ -1991,12 +2000,14 @@ contains
       allocate(struc_x(nrstructures))
       allocate(struc_y(nrstructures))
       allocate(struc_height(nrstructures))
+      !allocate(q_overflow_drain(nrstructures))
       !
       do istruc = 1, nrstructures
          !
          struc_x(istruc)        = struc_info(istruc,1)
          struc_y(istruc)        = struc_info(istruc,2)
          struc_height(istruc)   = struc_info(istruc,3)
+         !q_overflow_drain(istruc)   = q_overflow(istruc)
          !
       enddo
       !
@@ -2005,7 +2016,10 @@ contains
       NF90(nf90_put_var(his_file%ncid,  his_file%structure_y_varid, struc_y)) ! write structure_y, input struc_y
       !
       NF90(nf90_put_var(his_file%ncid,  his_file%structure_height_varid, struc_height)) ! write structure_height, input struc_height
-      !      
+      !
+      !NF90(nf90_put_var(his_file%ncid,  his_file%q_overflow_varid, q_overflow_drain)) ! write structure_height, input struc_height
+      !
+      !!      
    endif
    !
    if (nrthindams>0) then
@@ -2897,6 +2911,7 @@ contains
    implicit none   
    !
    integer :: iobs, nm, idrn
+   integer :: istruc   
    !
    integer :: nthisout      
    integer :: nmd1, nmu1, ndm1, num1
@@ -2924,6 +2939,7 @@ contains
    real*4, dimension(ndrn) :: q_drain  
    real*4, dimension(ndrn) :: breach_width_drain
    real*4, dimension(ndrn) :: breach_level_drain
+   !real*4, dimension(ndrn) :: q_overflow_drain
    real*4, dimension(nobs) :: dwobs
    real*4, dimension(nobs) :: dfobs
    real*4, dimension(nobs) :: dwigobs
@@ -3188,6 +3204,17 @@ contains
       !         
    endif
    !
+   !if (nrstructures>0) then
+   !     !
+   !     ! Get fluxes through structures          
+   !     !
+   !     !do istruc = 1, nrstructures
+   !     !    q_overflow_drain(istruc) = q_overflow(istruc)
+   !     !enddo      
+   !     !
+   !     NF90(nf90_put_var(his_file%ncid, his_file%q_overflow_varid, q_overflow, (/1, nthisout/))) ! write overtopping/overflow discharge of structures
+   !end if
+   
    if (store_velocity) then
       !
       NF90(nf90_put_var(his_file%ncid, his_file%u_varid, uobs, (/1, nthisout/)))

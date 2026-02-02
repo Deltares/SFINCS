@@ -786,6 +786,7 @@ module sfincs_data
       integer*1, dimension(:),     allocatable :: structure_type
       real*4,    dimension(:,:),   allocatable :: structure_parameters
       real*4,    dimension(:),     allocatable :: structure_length
+      real*4,  dimension(:),       allocatable :: q_overflow
       !
       integer                                  :: nrthindams
       integer,   dimension(:),     allocatable :: thindam_uv_index
