@@ -703,6 +703,12 @@ contains
             !
             min_dt = min(min_dt, 1.0 / ( max(sqrt(g * hu), abs(uv(ip)) ) * dxuvinv))
             !
+            ! Compute timestep per grid cell
+            if (timestep_analysis == .true.) then
+                min_timestep(nm) =   1.0 / ( max(sqrt(g * hu), abs(uv(ip)) ) * dxuvinv)
+                !write(*,*)min_timestep(nm), hu
+            endif
+            !
          else
             !
             q(ip)  = 0.0

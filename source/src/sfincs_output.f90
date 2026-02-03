@@ -458,6 +458,10 @@ module sfincs_output
           write(908)z_volume
       endif
       !
+      if (timestep_analysis == 1) then
+      write(900)average_timestep
+      write(901)times_limiting
+   endif
 !   endif
    !
    end subroutine

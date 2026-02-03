@@ -322,6 +322,7 @@ module sfincs_lib
    !
    double precision, intent(in)  :: dtrange
    integer                       :: ierr
+   integer                       :: nm
    real*8                        :: tend !< end of update interval
    real*4                        :: dtchk !< dt to check for instability
    logical                       :: single_time_step 
@@ -374,6 +375,20 @@ module sfincs_lib
       nt = nt + 1
       dt = alfa * min_dt ! min_dt was computed in sfincs_momentum.f90 without alfa
       dtchk = alfa * min_dt
+        if (timestep_analysis) then
+            do nm = 1, np
+                ! Only process wet cells (valid timestep > 0)
+                if (min_timestep(nm) > 0.0) then
+                    ! Update running average
+                    average_timestep(nm) = (average_timestep(nm) * real(times_wet(nm), kind(min_timestep)) + alfa * min_timestep(nm)) / real(times_wet(nm) + 1, kind(min_timestep))
+                    times_wet(nm) = times_wet(nm) + 1
+                    ! Check if this cell was limiting
+                    if (alfa * min_timestep(nm) <= dt) then
+                        times_limiting(nm) = times_limiting(nm) + 1
+                    end if
+                end if
+            end do
+        end if
       !
       ! A bit unclear why this happens, but large jumps in the time step lead to weird oscillations.
       ! In the 'original' sfincs v11 version, this behavior was supressed by the use of theta.

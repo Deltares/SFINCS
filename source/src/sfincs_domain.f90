@@ -2629,6 +2629,17 @@ contains
       allocate(tsunami_arrival_time(np))
    endif
    !
+   if (timestep_analysis) then
+      allocate(average_timestep(np))
+      allocate(min_timestep(np))
+      allocate(times_limiting(np))
+      allocate(times_wet(np))
+      average_timestep = 0.0
+      times_wet = 0
+      times_limiting   = 0
+      min_timestep = dtmax
+   endif
+   !
    ! Set initial conditions (found in module sfincs_initial_conditions)
    !
    call set_initial_conditions()
