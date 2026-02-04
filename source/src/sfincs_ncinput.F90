@@ -252,7 +252,7 @@ module sfincs_ncinput
    !
    implicit none   
    !
-   integer :: nm, ip, nrcells, precision
+   integer :: nm, ip, nrcells, status
    !
    character*256 :: ncfile   
    character*256 :: varname  
@@ -277,12 +277,17 @@ module sfincs_ncinput
    ! (=all quadtree cells, not just the active ones)
    !
    if (nrcells /=quadtree_nr_points) then
-      write(logstr,*)'Info - file: ',trim(ncfile),' contains ',nrcells, 'input points vs quadtree_nr_points: ',quadtree_nr_points,' in sfincs.nc quadtree grid'
-      call write_log(logstr, 0)        
-      call stop_sfincs('Error ! Number of grid points in netcdf input file does not match with that in sfincs.nc quadtree grid!', 1)
+      write(logstr,*)'Error    : netcdf input file ',trim(ncfile),' contains: ',nrcells, 'input points, while expected is: ',quadtree_nr_points,' as in sfincs.nc quadtree grid'    
+      call stop_sfincs(trim(logstr), 1)
    endif   
    !
-   NF90(nf90_inq_varid(net_file_generic%ncid, varname, net_file_generic%gen_varid))
+   status = nf90_inq_varid(net_file_generic%ncid, varname, net_file_generic%gen_varid)
+   !
+   ! Stop SFINCS if wanted variable was not found
+   if (status /= nf90_noerr) then
+       write(logstr,'(a,a,a,a,a)')'Error    : netcdf input file ',trim(ncfile),' does not contain needed variable: ',trim(varname),' !'       
+       call stop_sfincs(trim(logstr), 1)
+   endif
    !
    allocate(vartmp(nrcells))
    !
