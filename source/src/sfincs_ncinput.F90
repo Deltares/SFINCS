@@ -239,52 +239,12 @@ module sfincs_ncinput
    !
    implicit none   
    !
-   !real*8, dimension(:), allocatable :: vols
-   integer :: precision
-   !
-   character (len=256), parameter :: vol_varname = 'vol'
-   !
-   !NF90(nf90_open(trim(volfile), NF90_CLOBBER, net_file_vol%ncid))
-   !!
-   !! Get dimensions id's: nr points  
-   !!
-   !NF90(nf90_inq_dimid(net_file_vol%ncid, "mesh2d_nFaces", net_file_vol%np_dimid))
-   !!
-   !! Get dimensions sizes    
-   !!
-   !NF90(nf90_inquire_dimension(net_file_vol%ncid, net_file_vol%np_dimid, len = nrcells))   ! nr of cells
-   !!
-   !! Check that number of values in the cell matches quadtree_nr_points
-   !!
-   !! TODO: if (nrcells /=quadtree_nr_points) GIVE ERROR and stop simulation
-   !!
-   !NF90(nf90_inq_varid(net_file_vol%ncid, vol_varname, net_file_vol%vol_varid))
-   !!
-   !allocate(vols(nrcells))
-   !!
-   !NF90(nf90_get_var(net_file_vol%ncid, net_file_vol%vol_varid, vols(:)))
-   !
-   ! Call the generic function
-   precision = 4
-   !
-   call read_netcdf_quadtree_generic(trim(volfile), vol_varname, storage_volume, np, precision) !ncfile, varname, varout, size, precision)
-   
-   !! Map quadtree to sfincs --> Question: better in or out of function? 
-   !!
-   !do ip = 1, quadtree_nr_points
-   !   !
-   !   nm = index_sfincs_in_quadtree(ip)
-   !   !
-   !   storage_volume(nm) = vols(ip)
-   !   !
-   !enddo   
-   !
-   !NF90(nf90_close(net_file_vol%ncid))       
+
    ! 
    end subroutine
    
-   subroutine read_netcdf_quadtree_generic(ncfile, varname, var, npoints, precision)
-   ! For instance: storage_volume.nc, vol, storage_volume, np, 5
+   subroutine read_netcdf_quadtree_to_sfincs(ncfile, varname, var)
+   ! For instance: storage_volume.nc, vol, storage_volume
    !
    use netcdf
    use sfincs_data
@@ -292,24 +252,17 @@ module sfincs_ncinput
    !
    implicit none   
    !
-   integer :: nm, npoints, ip, nrcells, precision
+   integer :: nm, ip, nrcells, precision
    !
    character*256 :: ncfile   
    character*256 :: varname  
-   !character (len=256), parameter :: varname
    !
-   !real*precision, dimension(:), allocatable :: varout
-   real*4, dimension(npoints), intent(inout)       :: var ! variable that we are mapping to
-   
-   if (precision .eqv. 4) then
-       real*4, dimension(:), allocatable :: vartmp
-   elseif (precision .eqv. 8) then
-       real*8, dimension(:), allocatable :: vartmp
-   else
-       call write_log('ERROR    : precision should be 4 or 8 ...', 0)       
-   endif
+   real*4, dimension(np), intent(inout)       :: var ! variable that we are mapping to
+   !
+   real*4, dimension(:), allocatable :: vartmp
    !
    ! Open netcdf file
+   !
    NF90(nf90_open(trim(ncfile), NF90_CLOBBER, net_file_generic%ncid))
    !
    ! Get dimensions id's: nr points  
@@ -320,10 +273,14 @@ module sfincs_ncinput
    !
    NF90(nf90_inquire_dimension(net_file_generic%ncid, net_file_generic%np_dimid, len = nrcells))   ! nr of cells
    !
-   ! Check that number of values in the cell matches quadtree_nr_points
-   write(logstr,*)'Info - number of cells in file: ',nrcells, ' vs quadtree_nr_points: ',quadtree_nr_points
-   call write_log(logstr, 1) 
-   ! TODO: if (nrcells /=quadtree_nr_points) GIVE ERROR and stop simulation
+   ! Check that number of values in the cell matches quadtree_nr_points 
+   ! (=all quadtree cells, not just the active ones)
+   !
+   if (nrcells /=quadtree_nr_points) then
+      write(logstr,*)'Info - file: ',trim(ncfile),' contains ',nrcells, 'input points vs quadtree_nr_points: ',quadtree_nr_points,' in sfincs.nc quadtree grid'
+      call write_log(logstr, 0)        
+      call stop_sfincs('Error ! Number of grid points in netcdf input file does not match with that in sfincs.nc quadtree grid!', 1)
+   endif   
    !
    NF90(nf90_inq_varid(net_file_generic%ncid, varname, net_file_generic%gen_varid))
    !
@@ -331,7 +288,7 @@ module sfincs_ncinput
    !
    NF90(nf90_get_var(net_file_generic%ncid, net_file_generic%gen_varid, vartmp(:)))
    !
-   ! Map quadtree to sfincs > externally for now
+   ! Map quadtree to sfincs variable
    !
    do ip = 1, quadtree_nr_points
       !

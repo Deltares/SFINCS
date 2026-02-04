@@ -2403,6 +2403,7 @@ contains
    !
    integer :: nchar
    logical :: ok
+   character*256 :: varname   
    !
    if (use_storage_volume) then 
       !
@@ -2424,9 +2425,9 @@ contains
       !
       if (volfile(nchar - 1 : nchar) == 'nc') then
          !
-         ! Read netcdf file
-         !
-         call read_netcdf_storage_volume()
+         ! Call the generic quadtree nc file reader function
+         varname = 'vol'
+         call read_netcdf_quadtree_to_sfincs(volfile, varname, storage_volume) !ncfile, varname, varout)            
          !
       else
          !
