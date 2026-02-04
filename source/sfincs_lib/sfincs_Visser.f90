@@ -1,7 +1,7 @@
    module sfincs_Visser
        use sfincs_error
        use sfincs_log
-       type :: NormalFlow
+       type :: NormalFlow 
             real*4 :: n    ! velocity exponent
             real*4 :: stt  ! sediment total transport capacity
             real*4 :: normal_water_depth
