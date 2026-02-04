@@ -59,6 +59,11 @@ module sfincs_ncinput
        integer :: np_dimid
        integer :: vol_varid
    end type
+   type net_type_generic
+       integer :: ncid
+       integer :: np_dimid
+       integer :: gen_varid
+   end type   
    !
    type(net_type_bndbzsbzi) :: net_file_bndbzsbzi        
    type(net_type_srcdis)    :: net_file_srcdis        
@@ -66,7 +71,8 @@ module sfincs_ncinput
    type(net_type_amp)       :: net_file_amp 
    type(net_type_ampr)      :: net_file_ampr              
    type(net_type_spw)       :: net_file_spw              
-   type(net_type_vol)       :: net_file_vol              
+   type(net_type_vol)       :: net_file_vol  
+   type(net_type_generic)   :: net_file_generic                
 
    contains   
    
@@ -227,52 +233,117 @@ module sfincs_ncinput
 
    subroutine read_netcdf_storage_volume()
    !
+   !use netcdf
+   use sfincs_data
+   use quadtree
+   !
+   implicit none   
+   !
+   !real*8, dimension(:), allocatable :: vols
+   integer :: precision
+   !
+   character (len=256), parameter :: vol_varname = 'vol'
+   !
+   !NF90(nf90_open(trim(volfile), NF90_CLOBBER, net_file_vol%ncid))
+   !!
+   !! Get dimensions id's: nr points  
+   !!
+   !NF90(nf90_inq_dimid(net_file_vol%ncid, "mesh2d_nFaces", net_file_vol%np_dimid))
+   !!
+   !! Get dimensions sizes    
+   !!
+   !NF90(nf90_inquire_dimension(net_file_vol%ncid, net_file_vol%np_dimid, len = nrcells))   ! nr of cells
+   !!
+   !! Check that number of values in the cell matches quadtree_nr_points
+   !!
+   !! TODO: if (nrcells /=quadtree_nr_points) GIVE ERROR and stop simulation
+   !!
+   !NF90(nf90_inq_varid(net_file_vol%ncid, vol_varname, net_file_vol%vol_varid))
+   !!
+   !allocate(vols(nrcells))
+   !!
+   !NF90(nf90_get_var(net_file_vol%ncid, net_file_vol%vol_varid, vols(:)))
+   !
+   ! Call the generic function
+   precision = 4
+   !
+   call read_netcdf_quadtree_generic(trim(volfile), vol_varname, storage_volume, np, precision) !ncfile, varname, varout, size, precision)
+   
+   !! Map quadtree to sfincs --> Question: better in or out of function? 
+   !!
+   !do ip = 1, quadtree_nr_points
+   !   !
+   !   nm = index_sfincs_in_quadtree(ip)
+   !   !
+   !   storage_volume(nm) = vols(ip)
+   !   !
+   !enddo   
+   !
+   !NF90(nf90_close(net_file_vol%ncid))       
+   ! 
+   end subroutine
+   
+   subroutine read_netcdf_quadtree_generic(ncfile, varname, var, npoints, precision)
+   ! For instance: storage_volume.nc, vol, storage_volume, np, 5
+   !
    use netcdf
    use sfincs_data
    use quadtree
    !
    implicit none   
    !
-   real*8, dimension(:), allocatable :: vols
-   integer :: nrcells, nm, ip
+   integer :: nm, npoints, ip, nrcells, precision
    !
-   character (len=256), parameter :: vol_varname = 'vol'
+   character*256 :: ncfile   
+   character*256 :: varname  
+   !character (len=256), parameter :: varname
    !
-   NF90(nf90_open(trim(volfile), NF90_CLOBBER, net_file_vol%ncid))
+   !real*precision, dimension(:), allocatable :: varout
+   real*4, dimension(npoints), intent(inout)       :: var ! variable that we are mapping to
+   
+   if (precision .eqv. 4) then
+       real*4, dimension(:), allocatable :: vartmp
+   elseif (precision .eqv. 8) then
+       real*8, dimension(:), allocatable :: vartmp
+   else
+       call write_log('ERROR    : precision should be 4 or 8 ...', 0)       
+   endif
+   !
+   ! Open netcdf file
+   NF90(nf90_open(trim(ncfile), NF90_CLOBBER, net_file_generic%ncid))
    !
    ! Get dimensions id's: nr points  
    !
-   NF90(nf90_inq_dimid(net_file_vol%ncid, "mesh2d_nFaces", net_file_vol%np_dimid))
+   NF90(nf90_inq_dimid(net_file_generic%ncid, "mesh2d_nFaces", net_file_generic%np_dimid))
    !
    ! Get dimensions sizes    
    !
-   NF90(nf90_inquire_dimension(net_file_vol%ncid, net_file_vol%np_dimid, len = nrcells))   ! nr of cells
+   NF90(nf90_inquire_dimension(net_file_generic%ncid, net_file_generic%np_dimid, len = nrcells))   ! nr of cells
    !
    ! Check that number of values in the cell matches quadtree_nr_points
-   !
+   write(logstr,*)'Info - number of cells in file: ',nrcells, ' vs quadtree_nr_points: ',quadtree_nr_points
+   call write_log(logstr, 1) 
    ! TODO: if (nrcells /=quadtree_nr_points) GIVE ERROR and stop simulation
    !
-   NF90(nf90_inq_varid(net_file_vol%ncid, vol_varname, net_file_vol%vol_varid))
+   NF90(nf90_inq_varid(net_file_generic%ncid, varname, net_file_generic%gen_varid))
    !
-   allocate(vols(nrcells))
+   allocate(vartmp(nrcells))
    !
-   NF90(nf90_get_var(net_file_vol%ncid, net_file_vol%vol_varid, vols(:)))
+   NF90(nf90_get_var(net_file_generic%ncid, net_file_generic%gen_varid, vartmp(:)))
    !
-   ! Map quadtree to sfincs
+   ! Map quadtree to sfincs > externally for now
    !
    do ip = 1, quadtree_nr_points
       !
       nm = index_sfincs_in_quadtree(ip)
       !
-      storage_volume(nm) = vols(ip)
+      var(nm) = vartmp(ip)
       !
    enddo   
-   !
-   NF90(nf90_close(net_file_vol%ncid))       
+   !   
+   NF90(nf90_close(net_file_generic%ncid))       
    ! 
-   end subroutine
-   
-   
+   end subroutine   
    
    subroutine read_netcdf_amuv_data()
    ! Output is made exactly the same as original read_amuv_dimensions & read_amuv_file subroutines but then with data given by netcdf file
