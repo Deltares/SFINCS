@@ -29,11 +29,11 @@
       ! Parameter 2 : Cd
       !
       if (snapwave) then
-          call write_log('------------ CALCULATING OVERTOPPING AND OVERFLOW ONLY ------------', 1)
-          call read_structure_file(weirfile, 2, 2)
+          call write_log('------------ CALCULATING OVERTOPPING AND OVERFLOW ------------', 1)
+          call read_structure_file(weirfile, 2, 2) ! if there are waves, use weir type 2, which contains wave overtopping
       else
           call write_log('------------ CALCULATING OVERFLOW ------------', 1)
-          call read_structure_file(weirfile, 1, 2) ! if there are waves, use weir type 2, which contains wave overtopping
+          call read_structure_file(weirfile, 1, 2) 
       end if
       !call read_structure_file(weirfile, 1, 2)
       !
@@ -315,8 +315,6 @@
    allocate(structure_uv_index(nstruc))
    allocate(structure_type(nstruc))
    allocate(structure_length(nstruc))
-   !allocate(q_overflow(nstruc))
-   !q_overflow=0.0
    allocate(structure_parameters(npars, nstruc))
    !
    nstruc = 0
@@ -640,13 +638,10 @@
    !$acc parallel, present(zs, q, uv, structure_uv_index, uv_index_z_nm, uv_index_z_nmu, structure_parameters, structure_type, structure_length)
    !$acc loop independent gang vector
    do istruc = 1, nrstructures
-      
-      
       !
       ip     = structure_uv_index(istruc)
       !
       q(ip)  = 0.0
-      !q_overflow(istruc) = 0.0
       uv(ip) = 0.0
       !
       nm  = uv_index_z_nm(ip)
@@ -709,37 +704,34 @@
             !
          case(2)
             Cd = structure_parameters(2, istruc)
-            write(logstr,'(a,G12.5,a,G12.5,a,G12.5,a,G12.5)')'hm0(nm): ', hm0(nm), ' hm0(nmu): ', hm0(nmu), ' sw_tp(nm): ', sw_tp(nm), ' sw_tp(nmu): ', sw_tp(nmu)
-            call write_log(logstr,0)
              
+            !
             ! Calculate wave parameters
+            !
             if  (zsnm>zsnmu) then 
                hm01 = hm0(nm)
                tm01 = sw_tp(nm)
                idir = 1
                Rc = structure_parameters(1, istruc) - zsnm
                h2 = zsnmu - structure_parameters(1, istruc)
-               write(logstr,'(a,G12.5,a,G12.5,a,G12.5,a,G12.5,a,G12.5)')'idir = 1 -- zsnm: ', zsnm, ' - zsnmu: ', zsnmu, ' - structure_parameters(1, istruc)', structure_parameters(1, istruc), ' - h2: ', h2, ' - Rc: ', Rc
-               call write_log(logstr,0)
             else
                hm01 = hm0(nmu)
                tm01 = sw_tp(nmu)
                idir = -1
                Rc = structure_parameters(1, istruc) - zsnmu
                h2 = zsnm  - structure_parameters(1, istruc)
-               write(logstr,'(a,G12.5,a,G12.5,a,G12.5,a,G12.5,a,G12.5)')'idir = -1 -- zsnm: ', zsnm, ' - zsnmu: ', zsnmu, ' - structure_parameters(1, istruc)', structure_parameters(1, istruc), ' - h2: ', h2, ' - Rc: ', Rc
-               call write_log(logstr,0)
             end if 
 
             Lm01 = g*tm01**2.0/(2.0*pi) ! deep water wavelength 
             sm10 = hm01/Lm01
-            alpha = 0.523599 !slope of the front face of the structure, assuming 30 degrees here for now
+            alpha = 0.523599 !slope of the front face of the structure, assuming 30 degrees here for now, TO DO: do we want to make this a parameter?
             breaker_parameter = TAN(alpha)/(hm01/Lm01)**0.5 !Iribarren number
    
             if (Rc>=0 .AND. hm01>0) then 
                 ! 
                 !Overtopping if Rc >0 and if there are waves (hm01>0)
                 !
+                
                 ! Influence of roughness of outer slope
                 if (hm01 < 0.75) then
                     gamma_f = 1.15*hm01**0.5 ! If grass slope
@@ -747,28 +739,30 @@
                     gamma_f = 1.0 ! for grass, concrete, asphalt, closed concrete block. 0.9 for basalt, basalton, placed revetment block according to Table 5.2 EuroTop Manual 2018
                 end if
                 
-                gamma_b = 1 ! no Influence of an outer berm
-                gamma_beta = 1! Influence of oblique wave attack
-                gamma_nu = 1 ! No storm wall
-                gamma_star = 1 ! No storm wall and bullnose
+                gamma_b = 1 ! no Influence of an outer berm, TO DO: add this later
+                gamma_beta = 1! no Influence of oblique wave attack, TO DO: add this later
+                gamma_nu = 1 ! No storm wall, TO DO: add this later
+                gamma_star = 1 ! No storm wall and bullnose, TO DO: add this later
                 
                 if (breaker_parameter > 5 .OR. sm10>0.01) then
-                    ! 'normal overtopping equation, using the mean approach of the EuroTop Manual 2018, Eq.10 and 5.11
+                    ! 
+                    !normal overtopping equation, using the mean approach of the EuroTop Manual 2018, Eq.10 and 5.11
+                    !
                     q_overtopping = 0.023*sqrt(g*hm01**3.0)/SQRT(TAN(alpha))*gamma_b*breaker_parameter*exp(-(2.7*Rc/(breaker_parameter*hm01*gamma_b*gamma_f*gamma_beta*gamma_nu)**1.3))
                     q_max = 0.09*SQRT(g*hm01**3.0)*exp(-(1.5*Rc/(hm01*gamma_f*gamma_beta*gamma_star)**1.3))
                     qstruc = MIN(q_overtopping, q_max)
-                    write(logstr,'(a,G12.5,a,G12.5,a,G12.5)') 'Overtopping normal -- qstruc: ', qstruc, ' - q_max: ', q_max, ' - q_overtopping: ', q_overtopping
-                    call write_log(logstr,0)
                 else
+                    !
                     ! Shallow forshore using the mean approach for shallow foreshore of the EuroTop Manual 2018, Eq. 5.15
+                    !   
                     qstruc = 10**(-0.79)*SQRT(g*hm01**3.0)*exp(-Rc/(gamma_f*gamma_beta*hm01*(0.33+0.022*breaker_parameter)))
-                    write(logstr,'(a,G12.5,a,G12.5,a,G12.5)') 'Overtopping shallow foreshore -- qstruc: ', qstruc, ' - breaker_parameter: ', breaker_parameter, ' - gamma_f: ', gamma_f
-                    call write_log(logstr,0)
                 end if
+                
             elseif (Rc>=0 .AND. hm01==0) then
+                !
+                ! No waves, so no overtopping
+                !
                 qstruc = 0.0
-                write(logstr,'(a)') 'No overtopping -- no waves'
-                call write_log(logstr,0)
             else
                 ! 
                 !Overflow
@@ -778,15 +772,11 @@
                    ! fully submerged
                    !
                     qstruc = Cd*h2*sqrt(2.0 * 9.81 * (Rc - h2))
-                    write(logstr,'(a,G12.5,a,G12.5,a,G12.5)') 'Overflow fully submerged -- qstruc: ', qstruc, ' - Cd: ', Cd, ' - h2: ', h2
-                    call write_log(logstr,0)
                 else
                     ! 
                     ! Overflow according to the EurOTop Manual 2018, Eq. 5.20
                     !
                     qstruc = 0.54*SQRT(g*ABS(-Rc**3.0))
-                    write(logstr,'(a,G12.5,a,G12.5)') 'Overflow from eurotop -- qstruc: ', qstruc, ' - Rc: ', Rc
-                    call write_log(logstr,0)
                 end if
                
             end if          
@@ -797,9 +787,7 @@
       qstruc = qstruc * structure_length(istruc)
       !
       q(ip)  = qstruc*idir ! Add relaxation here !!!
-      !q_overflow(istruc) = qstruc*idir
-      write(logstr,'(a,G12.5,a,G12.5,a,G12.5)') 'istruc: ', istruc, ' - tloop: ', tloop, ' - qstruc: ', qstruc
-      call write_log(logstr,0)
+
    enddo
    !$acc end parallel
    !

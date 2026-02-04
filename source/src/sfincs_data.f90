@@ -764,19 +764,21 @@ module sfincs_data
       !!! Breaching parameters
       !!!
 
+      !! Needed to remember breach level and breach width at previous time step + to write them as output
+      real*4, dimension(:),     allocatable :: breach_level_gather
+      real*4, dimension(:),     allocatable :: breach_width ! used for breach_width_total in Visser
+      
+      !! Needed for Visser breaching model
       real*4, dimension(:),     allocatable :: running_Visser_phase1
       real*4, dimension(:),     allocatable :: running_Visser_phase2
       real*4, dimension(:),     allocatable :: discharge_t1
       real*4, dimension(:),     allocatable :: t1_Visser
-      real*4, dimension(:),     allocatable :: breach_width ! also used for breach_width_total in Visser
       real*4, dimension(:),     allocatable :: breach_bottom_Visser
-      real*4, dimension(:),     allocatable :: breach_level_gather
       real*4, dimension(:),     allocatable :: breach_width_waterline_Visser
       real*4, dimension(:),     allocatable :: gamma0_Visser
       real*4, dimension(:),     allocatable :: discharge_t2
       real*4, dimension(:),     allocatable :: t2_Visser
       real*4, dimension(:),     allocatable :: end_breaching
-      !real*4, dimension(:),     allocatable :: t_previous_Visser
       
       !!!
       !!! Structures
@@ -786,7 +788,6 @@ module sfincs_data
       integer*1, dimension(:),     allocatable :: structure_type
       real*4,    dimension(:,:),   allocatable :: structure_parameters
       real*4,    dimension(:),     allocatable :: structure_length
-      real*4,  dimension(:),       allocatable :: q_overflow
       !
       integer                                  :: nrthindams
       integer,   dimension(:),     allocatable :: thindam_uv_index
