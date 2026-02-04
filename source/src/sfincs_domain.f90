@@ -2162,7 +2162,7 @@ contains
       !
       ! 5) Check whether infiltration input type (orignal vs netcdf) are correctly matched to grid type (regular vs quadtree)
       !
-      if (inftype /= 'con') then !constant uniform works for both options
+      if (infiltration .and. inftype /= 'con') then !constant uniform works for both options
          ! 
          if (netcdf_infiltration) then
             !            
