@@ -59,6 +59,11 @@ module sfincs_ncinput
        integer :: np_dimid
        integer :: vol_varid
    end type
+   type net_type_generic
+       integer :: ncid
+       integer :: np_dimid
+       integer :: gen_varid
+   end type   
    !
    type(net_type_bndbzsbzi) :: net_file_bndbzsbzi        
    type(net_type_srcdis)    :: net_file_srcdis        
@@ -66,7 +71,8 @@ module sfincs_ncinput
    type(net_type_amp)       :: net_file_amp 
    type(net_type_ampr)      :: net_file_ampr              
    type(net_type_spw)       :: net_file_spw              
-   type(net_type_vol)       :: net_file_vol              
+   type(net_type_vol)       :: net_file_vol  
+   type(net_type_generic)   :: net_file_generic                
 
    contains   
    
@@ -227,52 +233,79 @@ module sfincs_ncinput
 
    subroutine read_netcdf_storage_volume()
    !
+   !use netcdf
+   use sfincs_data
+   use quadtree
+   !
+   implicit none   
+   !
+
+   ! 
+   end subroutine
+   
+   subroutine read_netcdf_quadtree_to_sfincs(ncfile, varname, var)
+   ! For instance: storage_volume.nc, vol, storage_volume
+   !
    use netcdf
    use sfincs_data
    use quadtree
    !
    implicit none   
    !
-   real*8, dimension(:), allocatable :: vols
-   integer :: nrcells, nm, ip
+   integer :: nm, ip, nrcells, status
    !
-   character (len=256), parameter :: vol_varname = 'vol'
+   character*256 :: ncfile   
+   character*256 :: varname  
    !
-   NF90(nf90_open(trim(volfile), NF90_CLOBBER, net_file_vol%ncid))
+   real*4, dimension(np), intent(inout)       :: var ! variable that we are mapping to
+   !
+   real*4, dimension(:), allocatable :: vartmp
+   !
+   ! Open netcdf file
+   !
+   NF90(nf90_open(trim(ncfile), NF90_CLOBBER, net_file_generic%ncid))
    !
    ! Get dimensions id's: nr points  
    !
-   NF90(nf90_inq_dimid(net_file_vol%ncid, "mesh2d_nFaces", net_file_vol%np_dimid))
+   NF90(nf90_inq_dimid(net_file_generic%ncid, "mesh2d_nFaces", net_file_generic%np_dimid))
    !
    ! Get dimensions sizes    
    !
-   NF90(nf90_inquire_dimension(net_file_vol%ncid, net_file_vol%np_dimid, len = nrcells))   ! nr of cells
+   NF90(nf90_inquire_dimension(net_file_generic%ncid, net_file_generic%np_dimid, len = nrcells))   ! nr of cells
    !
-   ! Check that number of values in the cell matches quadtree_nr_points
+   ! Check that number of values in the cell matches quadtree_nr_points 
+   ! (=all quadtree cells, not just the active ones)
    !
-   ! TODO: if (nrcells /=quadtree_nr_points) GIVE ERROR and stop simulation
+   if (nrcells /=quadtree_nr_points) then
+      write(logstr,*)'Error    : netcdf input file ',trim(ncfile),' contains: ',nrcells, 'input points, while expected is: ',quadtree_nr_points,' as in sfincs.nc quadtree grid'    
+      call stop_sfincs(trim(logstr), 1)
+   endif   
    !
-   NF90(nf90_inq_varid(net_file_vol%ncid, vol_varname, net_file_vol%vol_varid))
+   status = nf90_inq_varid(net_file_generic%ncid, varname, net_file_generic%gen_varid)
    !
-   allocate(vols(nrcells))
+   ! Stop SFINCS if wanted variable was not found
+   if (status /= nf90_noerr) then
+       write(logstr,'(a,a,a,a,a)')'Error    : netcdf input file ',trim(ncfile),' does not contain needed variable: ',trim(varname),' !'       
+       call stop_sfincs(trim(logstr), 1)
+   endif
    !
-   NF90(nf90_get_var(net_file_vol%ncid, net_file_vol%vol_varid, vols(:)))
+   allocate(vartmp(nrcells))
    !
-   ! Map quadtree to sfincs
+   NF90(nf90_get_var(net_file_generic%ncid, net_file_generic%gen_varid, vartmp(:)))
+   !
+   ! Map quadtree to sfincs variable
    !
    do ip = 1, quadtree_nr_points
       !
       nm = index_sfincs_in_quadtree(ip)
       !
-      storage_volume(nm) = vols(ip)
+      var(nm) = vartmp(ip)
       !
    enddo   
-   !
-   NF90(nf90_close(net_file_vol%ncid))       
+   !   
+   NF90(nf90_close(net_file_generic%ncid))       
    ! 
-   end subroutine
-   
-   
+   end subroutine   
    
    subroutine read_netcdf_amuv_data()
    ! Output is made exactly the same as original read_amuv_dimensions & read_amuv_file subroutines but then with data given by netcdf file
