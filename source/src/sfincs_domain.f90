@@ -2020,12 +2020,15 @@ contains
    subroutine initialize_infiltration()
    !
    use sfincs_data
+   use sfincs_ncinput   
    !
    implicit none
    !
    integer :: nm
    !
    logical :: ok
+   !
+   character*256 :: varname
    !
    ! INFILTRATION
    !
@@ -2034,6 +2037,7 @@ contains
    ! Note, infiltration methods not designed to be stacked
    !
    infiltration   = .false.
+   netcdf_infiltration   = .false.   
    !
    ! Four options for infiltration:
    !
@@ -2045,6 +2049,10 @@ contains
    !    Requires: cumprcp, cuminf, qinfmap, qinffield
    ! 4) Spatially-varying infiltration with CN numbers (new)
    !    Requires: qinfmap, qinffield, qinffield, ksfield, scs_P1, scs_F1, scs_Se and scs_rain (but not necessarily cuminf and cumprcp)
+   ! 5) Spatially-varying infiltration with the Green-Ampt (GA) model
+   !    Requires: qinfmap, qinffield, ksfield, GA_head, GA_sigma_max, GA_Lu
+   ! 6) Spatially-varying infiltration with the modified Horton Equation 
+   !    Requires: qinfmap, qinffield, horton_fc, horton_f0     
    !
    ! cumprcp and cuminf are stored in the netcdf output if store_cumulative_precipitation == .true. which is the default
    !
@@ -2053,11 +2061,27 @@ contains
    ! or:  
    !   b) inftype == 'cna' or inftype == 'cnb'
    !   
-   ! First we determine precipitation type
+   !!!!!!!!!!!!!!!!!!!!!
+   ! Initializing steps:
+   !!!!!!!!!!!!!!!!!!!!!
+   !
+   ! 1) First we determine infiltration type
    !
    if (precip) then
       !
-      if (qinf > 0.0) then   
+      if (netinfiltrationfile  /= 'none') then
+         !
+         ! inftype is user defined, keyword: 'netinftype' in sfincs.inp:
+         ! 
+         inftype = netinftype
+         !
+         ! inftype is either: c2d, cna, cnb, gai, hor
+         ! 'inftype = con' is not relevant for netcdf input
+         !
+         infiltration = .true.
+         netcdf_infiltration = .true.
+         !
+      elseif (qinf > 0.0) then   
          !
          ! Spatially-uniform constant infiltration (specified as +mm/hr)
          !
@@ -2102,7 +2126,7 @@ contains
          !
       endif
       !
-      ! We need cumprcp and cuminf
+      ! 2) We need cumprcp and cuminf
       !
       allocate(cumprcp(np))
       cumprcp = 0.0
@@ -2110,7 +2134,7 @@ contains
       allocate(cuminf(np))
       cuminf = 0.0
       !
-      ! Now allocate and read spatially-varying inputs 
+      ! 3) Now allocate and read spatially-varying inputs 
       !
       if (infiltration) then
          !
@@ -2119,9 +2143,53 @@ contains
          ! 
       endif
       !
+      ! 4) Pre-check whether netcdf infiltration file exists - once
+      !
+      if (netcdf_infiltration) then
+         !      
+         write(logstr,'(a)')'Info    : turning on infiltration from netcdf input file'      
+         call write_log(logstr, 0)
+         !
+         write(logstr,'(a,a)')'Info    : reading netcdf infiltration file ', trim(netinfiltrationfile)
+         call write_log(logstr, 0)
+         !
+         ok = check_file_exists(netinfiltrationfile, 'Infiltration netcdf file', .true.)
+         !
+         write(logstr,'(a,a)')'Info    : specified inftype is ', trim(inftype)
+         call write_log(logstr, 0)
+         !
+      endif
+      !
+      ! 5) Check whether infiltration input type (orignal vs netcdf) are correctly matched to grid type (regular vs quadtree)
+      !
+      if (infiltration .and. inftype /= 'con') then !constant uniform works for both options
+         ! 
+         if (netcdf_infiltration) then
+            !            
+            if (use_quadtree .eqv. .false.) then
+               ! 
+               call stop_sfincs('Error ! Netcdf infiltration input format can only be specified for quadtree mesh model !', 1)              
+               !
+            endif
+            !
+         else ! Original
+            ! 
+            if (use_quadtree .eqv. .true.) then
+               ! 
+               call stop_sfincs('Error ! Infiltration input for quadtree mesh model can only be specified using the netinfiltrationfile Netcdf ormat! !', 1)                       
+            endif 
+             ! 
+         endif
+         !
+      endif      
+      !      
+      ! 6) Read in data per type, either from ascii or general netcdf file
+      !
       if (inftype == 'con') then   
          !
          ! Spatially-uniform constant infiltration (specified as +mm/hr)
+         !
+         ! Note : Input directly in sfincs.inp, so no file needs to be read
          !
          write(logstr,'(a)')'Info    : turning on spatially-uniform constant infiltration'        
          call write_log(logstr, 0)
@@ -2153,17 +2221,32 @@ contains
          write(logstr,'(a)')'Info    : turning on spatially-varying constant infiltration'      
          call write_log(logstr, 0)
          !
-         ! Read spatially-varying infiltration (only binary, specified in +mm/hr)
-         !
-         write(logstr,'(a,a)')'Info    : reading infiltration file ', trim(qinffile)
-         call write_log(logstr, 0)
-         !
-         ok = check_file_exists(qinffile, 'Infiltration qinf file', .true.)
-         !
          allocate(qinffield(np))
-         open(unit = 500, file = trim(qinffile), form = 'unformatted', access = 'stream')
-         read(500)qinffield
-         close(500)
+         !
+         qinffield = 0.0         
+         !
+         ! Read spatially-varying infiltration (specified in +mm/hr)
+         !
+         if (netcdf_infiltration) then
+            !
+            ! Call the generic quadtree nc file reader function
+            varname = 'qinf'
+            call read_netcdf_quadtree_to_sfincs(netinfiltrationfile, varname, qinffield) !ncfile, varname, varout)               
+            !
+         else ! from separate qinffile - only binary:
+            ! 
+            write(logstr,'(a,a)')'Info    : reading infiltration file ', trim(qinffile)
+            call write_log(logstr, 0)
+            !
+            ok = check_file_exists(qinffile, 'Infiltration qinf file', .true.)
+            !
+            open(unit = 500, file = trim(qinffile), form = 'unformatted', access = 'stream')
+            read(500)qinffield
+            close(500)
+            !
+         endif
+         !
+         ! Generic needed conversion:
          !
          qinffield = qinffield / 3600 / 1000   ! convert to +m/s         
          !
@@ -2178,18 +2261,29 @@ contains
          !
          qinffield = 0.0
          !
-         write(logstr,'(a,a)')'Info    : reading scs file ',trim(scsfile)
-         call write_log(logstr, 0)
+         if (netcdf_infiltration) then
+            !
+            ! Call the generic quadtree nc file reader function
+            varname = 'scs'
+            call read_netcdf_quadtree_to_sfincs(netinfiltrationfile, varname, qinffield)               
+            !
+         else ! from separate scsfile - only binary:      
+            !
+            write(logstr,'(a,a)')'Info    : reading scs file ',trim(scsfile)
+            call write_log(logstr, 0)
+            !
+            ok = check_file_exists(scsfile, 'Infiltration scs file', .true.)
+            !
+            open(unit = 500, file = trim(scsfile), form = 'unformatted', access = 'stream')
+            read(500)qinffield
+            close(500)
+            !
+         endif
          !
-         ok = check_file_exists(scsfile, 'Infiltration scs file', .true.)
-         !
-         open(unit = 500, file = trim(scsfile), form = 'unformatted', access = 'stream')
-         read(500)qinffield
-         close(500)
-         !
-         ! already convert qinffield from inches to m here
+         ! Generic needed conversion:         
          !
          qinffield = qinffield * 0.0254   ! to m
+         ! already convert qinffield from inches to m here         
          !
       elseif (inftype == 'cnb') then  
          !
@@ -2201,48 +2295,83 @@ contains
          ! Allocate Smax
          allocate(qinffield(np))
          qinffield = 0.0
-         write(logstr,'(a,a)')'Info    : reading smax file ',trim(smaxfile)
-         call write_log(logstr, 0)
          !
-         ok = check_file_exists(smaxfile, 'Infiltration smax file', .true.)
-         !
-         open(unit = 500, file = trim(smaxfile), form = 'unformatted', access = 'stream')
-         read(500)qinffield
-         close(500)
+         if (netcdf_infiltration) then
+            !
+            ! Call the generic quadtree nc file reader function
+            varname = 'smax'
+            call read_netcdf_quadtree_to_sfincs(netinfiltrationfile, varname, qinffield)              
+            !
+         else ! from separate smaxfile - only binary:
+            ! 
+            write(logstr,'(a,a)')'Info    : reading smax file ',trim(smaxfile)
+            call write_log(logstr, 0)
+            !
+            ok = check_file_exists(smaxfile, 'Infiltration smax file', .true.)
+            !
+            open(unit = 500, file = trim(smaxfile), form = 'unformatted', access = 'stream')
+            read(500)qinffield
+            close(500)
+            ! 
+         endif         
          !
          ! Allocate Se
          allocate(scs_Se(np))
          scs_Se = 0.0
-         write(logstr,'(a,a)')'Info    : reading seff file ',trim(sefffile)
-         call write_log(logstr, 0)
          !
-         ok = check_file_exists(sefffile, 'Infiltration seff file', .true.)
+         if (netcdf_infiltration) then
+            !
+            ! Call the generic quadtree nc file reader function
+            varname = 'seff'
+            call read_netcdf_quadtree_to_sfincs(netinfiltrationfile, varname, scs_Se)              
+            !
+         else ! from separate sefffile - only binary:         
+            !
+            write(logstr,'(a,a)')'Info    : reading seff file ',trim(sefffile)
+            call write_log(logstr, 0)
+            !
+            ok = check_file_exists(sefffile, 'Infiltration seff file', .true.)
+            !
+            open(unit = 501, file = trim(sefffile), form = 'unformatted', access = 'stream')
+            read(501)scs_Se
+            close(501)
+            !
+         endif
          !
-         open(unit = 501, file = trim(sefffile), form = 'unformatted', access = 'stream')
-         read(501)scs_Se
-         close(501)
-         !
-         ! Compute recovery                     ! Equation 4-36        
          ! Allocate Ks
          !
          allocate(ksfield(np))
          ksfield = 0.0
-         write(logstr,'(a,a)')'Info    : reading ks file ',trim(ksfile)
-         call write_log(logstr, 0)
          !
-         ok = check_file_exists(ksfile, 'Infiltration ks file', .true.)
+         if (netcdf_infiltration) then
+            !
+            ! Call the generic quadtree nc file reader function
+            varname = 'ks'
+            call read_netcdf_quadtree_to_sfincs(netinfiltrationfile, varname, ksfield)              
+            !
+         else ! from separate ksfile - only binary:         
+            !
+            write(logstr,'(a,a)')'Info    : reading ks file ',trim(ksfile)
+            call write_log(logstr, 0)
+            !
+            ok = check_file_exists(ksfile, 'Infiltration ks file', .true.)
+            !
+            open(unit = 502, file = trim(ksfile), form = 'unformatted', access = 'stream')
+            read(502)ksfield
+            close(502)
+            !
+         endif
          !
-         open(unit = 502, file = trim(ksfile), form = 'unformatted', access = 'stream')
-         read(502)ksfield
-         close(502)
-         !
+         ! Generic needed conversion:         
+         !         
          ! Compute recovery                     ! Equation 4-36
          !
          allocate(inf_kr(np))
          inf_kr = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr (/25.4)
                                                 ! /75 is conversion to recovery rate (in days)
          !
-         ! Allocate support variables
+         ! Allocate support variables:
+         !
          allocate(scs_P1(np))
          scs_P1 = 0.0
          allocate(scs_F1(np))
@@ -2264,41 +2393,77 @@ contains
          !
          allocate(GA_head(np))
          GA_head = 0.0
-         write(logstr,'(a,a)')'Info    : reading psi file ',trim(psifile)
-         call write_log(logstr, 0)
          !
-         ok = check_file_exists(psifile, 'Infiltration psi file', .true.)
-         !
-         open(unit = 500, file = trim(psifile), form = 'unformatted', access = 'stream')
-         read(500)GA_head
-         close(500)
+         if (netcdf_infiltration) then
+            !
+            ! Call the generic quadtree nc file reader function
+            varname = 'psi'
+            call read_netcdf_quadtree_to_sfincs(netinfiltrationfile, varname, GA_head)             
+            !
+         else ! from separate psifile - only binary:
+             !
+             write(logstr,'(a,a)')'Info    : reading psi file ',trim(psifile)
+             call write_log(logstr, 0)
+             !
+             ok = check_file_exists(psifile, 'Infiltration psi file', .true.)
+             !
+             open(unit = 500, file = trim(psifile), form = 'unformatted', access = 'stream')
+             read(500)GA_head
+             close(500)
+             !
+         endif
          !
          ! Allocate maximum soil moisture deficit
          !
          allocate(GA_sigma_max(np))
          GA_sigma_max = 0.0
-         write(logstr,'(a,a)')'Info    : reading sigma file ',trim(sigmafile)
-         call write_log(logstr, 0)
          !
-         ok = check_file_exists(sigmafile, 'Infiltration sigma file', .true.)
-         !
-         open(unit = 501, file = trim(sigmafile), form = 'unformatted', access = 'stream')
-         read(501)GA_sigma_max
-         close(501)
+         if (netcdf_infiltration) then
+            !
+            ! Call the generic quadtree nc file reader function
+            varname = 'sigma'
+            call read_netcdf_quadtree_to_sfincs(netinfiltrationfile, varname, GA_sigma_max)
+            !
+         else ! from separate sigmafile - only binary:
+             !         
+             write(logstr,'(a,a)')'Info    : reading sigma file ',trim(sigmafile)
+             call write_log(logstr, 0)
+             !
+             ok = check_file_exists(sigmafile, 'Infiltration sigma file', .true.)
+             !
+             open(unit = 501, file = trim(sigmafile), form = 'unformatted', access = 'stream')
+             read(501)GA_sigma_max
+             close(501)
+             !
+         endif
          !
          ! Allocate saturated hydraulic conductivity
          !
          allocate(ksfield(np))
          ksfield = 0.0
-         write(logstr,'(a,a)')'Info    : reading ks file ',trim(ksfile)
-         call write_log(logstr, 0)
          !
-         ok = check_file_exists(ksfile, 'Infiltration ks file', .true.)
+         if (netcdf_infiltration) then
+            !
+            ! Call the generic quadtree nc file reader function
+            varname = 'ks'
+            call read_netcdf_quadtree_to_sfincs(netinfiltrationfile, varname, ksfield)
+            !
+         else ! from separate ksfile - only binary:
+             !             
+             write(logstr,'(a,a)')'Info    : reading ks file ',trim(ksfile)
+             call write_log(logstr, 0)
+             !
+             ok = check_file_exists(ksfile, 'Infiltration ks file', .true.)
+             !
+             open(unit = 502, file = trim(ksfile), form = 'unformatted', access = 'stream')
+             read(502)ksfield
+             close(502)
+             !
+         endif
+         
          !
-         open(unit = 502, file = trim(ksfile), form = 'unformatted', access = 'stream')
-         read(502)ksfield
-         close(502)
-         !
+         ! Generic needed conversion:         
+         !          
          ! Compute recovery                         ! Equation 4-36
          !
          allocate(inf_kr(np))
@@ -2325,6 +2490,8 @@ contains
          ! 
          ! First time step doesnt have an estimate yet
          !
+         ! Allocate support variables:
+         !
          allocate(qinffield(np))
          qinffield(nm) = 0.0
          !
@@ -2335,47 +2502,85 @@ contains
          call write_log('Info    : turning on process infiltration (via modified Horton)', 0)
          ! 
          ! Horton: final infiltration capacity (fc)
-         ! Note that qinffield = horton_fc
+         ! Note that qinffield = horton_fc (/3600/1000, see below)
+         !
          allocate(horton_fc(np))
          horton_fc = 0.0
-         write(logstr,'(a,a)')'Info    : reading fc file ',trim(fcfile)
-         call write_log(logstr, 0)
          !
-         ok = check_file_exists(fcfile, 'Infiltration fc file', .true.)
-         !
-         open(unit = 500, file = trim(fcfile), form = 'unformatted', access = 'stream')
-         read(500)horton_fc
-         close(500)
+         if (netcdf_infiltration) then
+            !
+            ! Call the generic quadtree nc file reader function
+            varname = 'fc'
+            call read_netcdf_quadtree_to_sfincs(netinfiltrationfile, varname, horton_fc)
+            !
+         else ! from separate fcfile - only binary:
+            !
+            write(logstr,'(a,a)')'Info    : reading fc file ',trim(fcfile)
+            call write_log(logstr, 0)
+            !
+            ok = check_file_exists(fcfile, 'Infiltration fc file', .true.)
+            !
+            open(unit = 500, file = trim(fcfile), form = 'unformatted', access = 'stream')
+            read(500)horton_fc
+            close(500)
+            !
+         endif
          !
          ! Horton: initial infiltration capacity (f0)
          allocate(horton_f0(np))
          horton_f0 = 0.0
-         write(logstr,'(a,a)')'Info    : reading f0 file ',trim(f0file)
-         call write_log(logstr, 0)
          !
-         ok = check_file_exists(f0file, 'Infiltration f0 file', .true.)
-         !
-         open(unit = 501, file = trim(f0file), form = 'unformatted', access = 'stream')
-         read(501)horton_f0
-         close(501)
-         !
-         ! Prescribe the current estimate (for output only; initial capacity)
-         qinffield = horton_f0/3600/1000
+         if (netcdf_infiltration) then
+            !
+            ! Call the generic quadtree nc file reader function
+            varname = 'f0'
+            call read_netcdf_quadtree_to_sfincs(netinfiltrationfile, varname, horton_f0)
+            !
+         else ! from separate f0file - only binary:
+            !         
+            write(logstr,'(a,a)')'Info    : reading f0 file ',trim(f0file)
+            call write_log(logstr, 0)
+            !
+            ok = check_file_exists(f0file, 'Infiltration f0 file', .true.)
+            !
+            open(unit = 501, file = trim(f0file), form = 'unformatted', access = 'stream')
+            read(501)horton_f0
+            close(501)
+            !
+         endif         
          !
          ! Empirical constant (1/hr) k => note that this is different than ks used in Curve Number and Green-Ampt
          allocate(horton_kd(np))
          horton_kd = 0.0
-         write(logstr,'(a,a)')'Info    : reading kd file ',trim(kdfile)
-         call write_log(logstr, 0)
          !
-         ok = check_file_exists(kdfile, 'Infiltration kd file', .true.)
+         if (netcdf_infiltration) then
+            !
+            ! Call the generic quadtree nc file reader function
+            varname = 'kd'
+            call read_netcdf_quadtree_to_sfincs(netinfiltrationfile, varname, horton_kd)
+            !
+         else ! from separate kdfile - only binary:
+            !             
+            write(logstr,'(a,a)')'Info    : reading kd file ',trim(kdfile)
+            call write_log(logstr, 0)
+            !
+            ok = check_file_exists(kdfile, 'Infiltration kd file', .true.)
+            !
+            open(unit = 502, file = trim(kdfile), form = 'unformatted', access = 'stream')
+            read(502)horton_kd
+            close(502)
+            !
+         endif
          !
-         open(unit = 502, file = trim(kdfile), form = 'unformatted', access = 'stream')
-         read(502)horton_kd
-         close(502)
-         !
-         write(logstr,'(a,a)')'Using constant recovery rate that is based on constant factor relative to ',trim(kdfile)
+         write(logstr,'(a,a)')'Info    : Using constant recovery rate that is based on constant factor relative to ',trim(kdfile)
          call write_log(logstr, 0)         
+         !
+         ! Generic needed conversion:         
+         !         
+         ! Prescribe the current estimate (for output only; initial capacity)
+         qinffield = horton_f0/3600/1000
+         !
+         ! Allocate support variables:
          !
          ! Estimate of time
          allocate(rain_T1(np))
@@ -2403,6 +2608,7 @@ contains
    !
    integer :: nchar
    logical :: ok
+   character*256 :: varname   
    !
    if (use_storage_volume) then 
       !
@@ -2424,9 +2630,9 @@ contains
       !
       if (volfile(nchar - 1 : nchar) == 'nc') then
          !
-         ! Read netcdf file
-         !
-         call read_netcdf_storage_volume()
+         ! Call the generic quadtree nc file reader function
+         varname = 'vol'
+         call read_netcdf_quadtree_to_sfincs(volfile, varname, storage_volume) !ncfile, varname, varout)            
          !
       else
          !
