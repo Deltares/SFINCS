@@ -1,4 +1,5 @@
    module sfincs_Visser
+        ! not added to github, not sure why
        use sfincs_error
        use sfincs_log
        type :: NormalFlow 
