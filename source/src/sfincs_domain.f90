@@ -2034,6 +2034,7 @@ contains
    ! Note, infiltration methods not designed to be stacked
    !
    infiltration   = .false.
+   netcdf_infiltration   = .false.   
    !
    ! Four options for infiltration:
    !
@@ -2045,6 +2046,10 @@ contains
    !    Requires: cumprcp, cuminf, qinfmap, qinffield
    ! 4) Spatially-varying infiltration with CN numbers (new)
    !    Requires: qinfmap, qinffield, qinffield, ksfield, scs_P1, scs_F1, scs_Se and scs_rain (but not necessarily cuminf and cumprcp)
+   ! 5) Spatially-varying infiltration with the Green-Ampt (GA) model
+   !    Requires: qinfmap, qinffield, ksfield, GA_head, GA_sigma_max, GA_Lu
+   ! 6) Spatially-varying infiltration with the modified Horton Equation 
+   !    Requires: qinfmap, qinffield, horton_fc, horton_f0     
    !
    ! cumprcp and cuminf are stored in the netcdf output if store_cumulative_precipitation == .true. which is the default
    !
@@ -2053,11 +2058,27 @@ contains
    ! or:  
    !   b) inftype == 'cna' or inftype == 'cnb'
    !   
-   ! First we determine precipitation type
+   !!!!!!!!!!!!!!!!!!!!!
+   ! Initializing steps:
+   !!!!!!!!!!!!!!!!!!!!!
+   !
+   ! 1) First we determine infiltration type
    !
    if (precip) then
       !
-      if (qinf > 0.0) then   
+      if (netinfiltrationfile  /= 'none') then
+         !
+         ! inftype is user defined, keyword: 'netinftype' in sfincs.inp:
+         ! 
+         inftype = netinftype
+         !
+         ! inftype is either: c2d, cna, cnb, gai, hor
+         ! 'inftype = con' is not relevant for netcdf input
+         !
+         infiltration = .true.
+         netcdf_infiltration = .true.
+         !
+      elseif (qinf > 0.0) then   
          !
          ! Spatially-uniform constant infiltration (specified as +mm/hr)
          !
@@ -2102,7 +2123,7 @@ contains
          !
       endif
       !
-      ! We need cumprcp and cuminf
+      ! 2) We need cumprcp and cuminf
       !
       allocate(cumprcp(np))
       cumprcp = 0.0
@@ -2110,7 +2131,7 @@ contains
       allocate(cuminf(np))
       cuminf = 0.0
       !
-      ! Now allocate and read spatially-varying inputs 
+      ! 3) Now allocate and read spatially-varying inputs 
       !
       if (infiltration) then
          !
@@ -2119,9 +2140,30 @@ contains
          ! 
       endif
       !
+      ! 4) Pre-check whether netcdf infiltration file exists - once
+      !
+      if (netcdf_infiltration) then
+         !      
+         write(logstr,'(a)')'Info    : turning on infiltration from netcdf input file'      
+         call write_log(logstr, 0)
+         !
+         write(logstr,'(a,a)')'Info    : reading netcdf infiltration file ', trim(netinfiltrationfile)
+         call write_log(logstr, 0)
+         !
+         ok = check_file_exists(netinfiltrationfile, 'Infiltration netcdf file', .true.)
+         !
+         write(logstr,'(a,a)')'Info    : specified inftype is ', trim(inftype)
+         call write_log(logstr, 0)
+         !
+      endif
+      !   
+      ! 5) Read in data per type, either from ascii or general netcdf file
+      !
       if (inftype == 'con') then   
          !
          ! Spatially-uniform constant infiltration (specified as +mm/hr)
+         !
+         ! Note : Input directly in sfincs.inp, so no file needs to be read
          !
          write(logstr,'(a)')'Info    : turning on spatially-uniform constant infiltration'        
          call write_log(logstr, 0)
