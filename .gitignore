@@ -1,6 +1,8 @@
 /source/sfincs/x64/Release/sfincs.obj
 /source/.vs
 /source/sfincs/*.u2d
+/source/sfincs/*.user
+/source/sfincs_lib/*.user
 /source/sfincs/x64/Release/BuildLog.htm
 /source/sfincs/x64/Release/sfincs.exe
 /source/sfincs/x64/Release/sfincs.exe.intermediate.manifest
