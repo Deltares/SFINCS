@@ -78,6 +78,14 @@ module sfincs_lib
    real :: tinput
    real :: percdone,percdonenext,trun,trem
    !
+   ! Optional time step diagnostics
+   !
+   integer                         :: timestep_diag_unit
+   logical                         :: timestep_diag_timeseries_open
+   real*8                          :: timestep_diag_next_time
+   integer, dimension(:), allocatable :: timestep_diag_count
+   real*4,    dimension(:), allocatable :: timestep_diag_min_dt
+   !
    contains
    !
    function sfincs_initialize() result(ierr)
@@ -297,6 +305,8 @@ module sfincs_lib
    call write_log('Initializing output ...', 0)
    !
    call initialize_output(tmapout, tmaxout, thisout, trstout)
+   !
+   call initialize_timestep_diagnostics()
    !
    ! Quadtree no longer needed, so deallocate (this is done in sfincs_domain.f90)
    ! 
@@ -546,6 +556,8 @@ module sfincs_lib
       !
       call compute_fluxes(dt, tloopflux)
       !
+      call update_timestep_diagnostics()
+      !
       if (wavemaker) then
          !
          call update_wavemaker_fluxes(t, dt, tloopwavemaker)
@@ -740,6 +752,8 @@ module sfincs_lib
       close(123)
    endif
    !
+   call finalize_timestep_diagnostics()
+   !
    call write_log('---------- Closing off SFINCS -----------', 1)
    !
    ! call finalize_parameters()
@@ -760,4 +774,185 @@ module sfincs_lib
    !
    end function sfincs_finalize
    !
+
+   subroutine initialize_timestep_diagnostics()
+   !
+   implicit none
+   !
+   integer :: ierr
+   !
+   timestep_diag_unit = -1
+   timestep_diag_timeseries_open = .false.
+   timestep_diag_next_time = real(t0, kind=8)
+   !
+   if (allocated(timestep_diag_count)) deallocate(timestep_diag_count)
+   if (allocated(timestep_diag_min_dt)) deallocate(timestep_diag_min_dt)
+   !
+   if (.not. timestep_diagnostics) return
+   !
+   allocate(timestep_diag_count(np))
+   allocate(timestep_diag_min_dt(np))
+   !
+   timestep_diag_count  = 0
+   timestep_diag_min_dt = 1.0e30
+   !
+   open(newunit=timestep_diag_unit, file='timestep_diagnostics.csv', status='replace', action='write', iostat=ierr)
+   if (ierr /= 0) then
+      timestep_diag_unit = -1
+      timestep_diag_timeseries_open = .false.
+      call write_log('Warning: could not open timestep_diagnostics.csv; continuing without timestep diagnostics time series output.', 1)
+   else
+      timestep_diag_timeseries_open = .true.
+      write(timestep_diag_unit,'(a)') 'it,t,dt_used,min_dt,dt_next,limiter_ip,nm,nmu,m_nm,n_nm,m_nmu,n_nmu,dx,hu,uv,cwave,cmax,reason'
+    endif
+    !
+    if (timestep_diag_timeseries_open) then
+       if (dt_timestep_diagnostics > 0.0) then
+          write(logstr,'(a,f0.3,a)') 'Info : Time step diagnostics enabled (dt_timestep_diagnostics=', dt_timestep_diagnostics, ' s).'
+       else
+          logstr = 'Info : Time step diagnostics enabled (writing every time step).'
+       endif
+    else
+       logstr = 'Info : Time step diagnostics enabled (domain stats only; no timestep_diagnostics.csv).'
+    endif
+    call write_log(logstr, 1)
+    !
+    end subroutine initialize_timestep_diagnostics
+
+   subroutine update_timestep_diagnostics()
+   !
+   implicit none
+   !
+   integer :: ip
+   integer :: nm
+   integer :: nmu
+   integer :: m_nm
+   integer :: n_nm
+   integer :: m_nmu
+   integer :: n_nmu
+   !
+   real*4  :: dt_next
+   !
+   real*4  :: dx
+   real*4  :: hu
+   real*4  :: uvloc
+   real*4  :: cwave
+   real*4  :: cmax
+    integer :: reason
+    !
+    if (.not. timestep_diagnostics) return
+    !
+    ip = timestep_diagnostics_uv_ip
+    !
+    ! Update domain statistics
+    !
+    if (allocated(timestep_diag_count) .and. allocated(timestep_diag_min_dt)) then
+       if (ip > 0 .and. ip <= npuv) then
+          nm  = uv_index_z_nm(ip)
+          nmu = uv_index_z_nmu(ip)
+          !
+          if (nm >= 1 .and. nm <= np) then
+             timestep_diag_count(nm)  = timestep_diag_count(nm) + 1
+             timestep_diag_min_dt(nm) = min(timestep_diag_min_dt(nm), timestep_diagnostics_uv_dt)
+          endif
+          !
+          if (nmu >= 1 .and. nmu <= np) then
+             timestep_diag_count(nmu)  = timestep_diag_count(nmu) + 1
+             timestep_diag_min_dt(nmu) = min(timestep_diag_min_dt(nmu), timestep_diagnostics_uv_dt)
+          endif
+          !
+       endif
+    endif
+    !
+    if (.not. timestep_diag_timeseries_open) return
+    !
+    ! Write time series output
+    !
+    if (dt_timestep_diagnostics > 0.0) then
+       if (t < timestep_diag_next_time) return
+   endif
+   !
+   dt_next = alfa * min_dt
+   !
+   nm = -1
+   nmu = -1
+   m_nm = -1
+   n_nm = -1
+   m_nmu = -1
+   n_nmu = -1
+   dx = timestep_diagnostics_uv_dx
+   hu = timestep_diagnostics_uv_hu
+   uvloc = timestep_diagnostics_uv_uv
+   cwave = timestep_diagnostics_uv_cwave
+   cmax  = timestep_diagnostics_uv_cmax
+   reason = timestep_diagnostics_uv_reason
+   !
+   if (ip > 0 .and. ip <= npuv) then
+      nm  = uv_index_z_nm(ip)
+      nmu = uv_index_z_nmu(ip)
+      if (nm >= 1 .and. nm <= np) then
+         m_nm = z_index_z_m(nm)
+         n_nm = z_index_z_n(nm)
+      endif
+      if (nmu >= 1 .and. nmu <= np) then
+         m_nmu = z_index_z_m(nmu)
+         n_nmu = z_index_z_n(nmu)
+      endif
+   endif
+   !
+   write(timestep_diag_unit,'(i0,a,f0.3,a,f0.6,a,f0.6,a,f0.6,a,i0,a,i0,a,i0,a,i0,a,i0,a,i0,a,i0,a,f0.6,a,f0.6,a,f0.6,a,f0.6,a,f0.6,a,i0)') &
+      nt, ',', t, ',', dt, ',', min_dt, ',', dt_next, ',', ip, ',', nm, ',', nmu, ',', m_nm, ',', n_nm, ',', m_nmu, ',', n_nmu, ',', &
+      dx, ',', hu, ',', uvloc, ',', cwave, ',', cmax, ',', reason
+   !
+   if (dt_timestep_diagnostics > 0.0) then
+      do while (t >= timestep_diag_next_time)
+         timestep_diag_next_time = timestep_diag_next_time + real(dt_timestep_diagnostics, kind=8)
+      enddo
+   endif
+   !
+   end subroutine update_timestep_diagnostics
+
+   subroutine finalize_timestep_diagnostics()
+   !
+   implicit none
+   !
+   integer :: unit_domain
+   integer :: ierr
+    integer :: nm
+    integer :: nlimcells
+    !
+    if (.not. timestep_diagnostics) return
+   !
+    if (timestep_diag_timeseries_open) then
+       close(timestep_diag_unit)
+       timestep_diag_unit = -1
+       timestep_diag_timeseries_open = .false.
+     endif
+    !
+    nlimcells = 0
+    if (allocated(timestep_diag_count)) nlimcells = count(timestep_diag_count > 0)
+    !
+    open(newunit=unit_domain, file='timestep_diagnostics_domain.csv', status='replace', action='write', iostat=ierr)
+    if (ierr == 0) then
+       write(unit_domain,'(a)') 'nm,m,n,iref,count,min_dt,dt_next'
+       do nm = 1, np
+          if (timestep_diag_count(nm) > 0) then
+             write(unit_domain,'(i0,a,i0,a,i0,a,i0,a,i0,a,f0.6,a,f0.6)') nm, ',', z_index_z_m(nm), ',', z_index_z_n(nm), ',', z_flags_iref(nm), ',', &
+                timestep_diag_count(nm), ',', timestep_diag_min_dt(nm), ',', alfa * timestep_diag_min_dt(nm)
+          endif
+       enddo
+       close(unit_domain)
+       write(logstr,'(a,i0,a)') 'Info : Wrote timestep diagnostics for ', nlimcells, ' limiting cells.'
+       call write_log(logstr, 1)
+    else
+       call write_log('Warning: could not open timestep_diagnostics_domain.csv; skipping write.', 1)
+       write(logstr,'(a,i0,a)') 'Info : Collected timestep diagnostics for ', nlimcells, ' limiting cells.'
+       call write_log(logstr, 1)
+    endif
+    !
+    if (allocated(timestep_diag_count)) deallocate(timestep_diag_count)
+    if (allocated(timestep_diag_min_dt)) deallocate(timestep_diag_min_dt)
+    !
+    end subroutine finalize_timestep_diagnostics
+
 end module sfincs_lib

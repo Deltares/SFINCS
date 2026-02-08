@@ -236,6 +236,12 @@ More parameters for model input (only for advanced users)
 	  :default:		60
 	  :min:			1.0e-3
 	  :max:			Inf
+	dt_timestep_diagnostics
+	  :description:		Interval in seconds for writing timestep diagnostics output (timestep_diagnostics.csv). Set to 0 to write every timestep. Only used when 'timestep_diagnostics = 1'.
+	  :units:		s
+	  :default:		0
+	  :min:			0
+	  :max:			Inf
 	dtmin
 	  :description:		Minimum allowed internal timestep.
 	  :units:		s
@@ -415,6 +421,12 @@ Parameters for model output
 	  :description:		Flag to turn on writing away every timestep to output as debug mode (debug = 1)
 	  :units:		-
 	  :default:		0	
+	timestep_diagnostics
+	  :description:		Flag to write timestep diagnostics output (timestep_diagnostics.csv and timestep_diagnostics_domain.csv). Helps identify cells that are limiting the global timestep. 
+	  :units:		logical
+	  :default:		0
+	  :min:			0
+	  :max:			1
 	percentage_done
 	  :description:		Setting of how frequent to show progress of SFINCS in terms of % and time remaining, default = 5%
 	  :units:		integer
