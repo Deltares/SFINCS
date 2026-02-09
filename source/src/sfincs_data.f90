@@ -275,6 +275,7 @@ module sfincs_data
       logical       :: wave_enhanced_roughness
       logical       :: use_bcafile
       LOGICAL       :: snapwave_use_nearest
+      logical       :: snapwave_his_legacy_names
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax

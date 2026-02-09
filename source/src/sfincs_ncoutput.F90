@@ -55,6 +55,10 @@ module sfincs_ncoutput
       integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid  
       integer :: hm0_varid, hm0ig_varid, zsm_varid, tp_varid, tpig_varid, wavdir_varid, dirspr_varid
       integer :: dw_varid, df_varid, dwig_varid, dfig_varid, cg_varid, beta_varid, srcig_varid, alphaig_varid
+      integer :: hm0_legacy_varid, hm0ig_legacy_varid, zsm_legacy_varid, tp_legacy_varid, tpig_legacy_varid
+      integer :: wavdir_legacy_varid, dirspr_legacy_varid
+      integer :: dw_legacy_varid, df_legacy_varid, dwig_legacy_varid, dfig_legacy_varid
+      integer :: cg_legacy_varid, beta_legacy_varid, srcig_legacy_varid, alphaig_legacy_varid
       integer :: runup_gauge_name_varid, runup_gauge_zs_varid
       !
    end type
@@ -1753,122 +1757,258 @@ contains
       NF90(nf90_put_att(his_file%ncid, his_file%S_varid, 'coordinates', 'station_id station_name point_x point_y'))
    endif
    !
+   his_file%hm0_legacy_varid = -1
+   his_file%hm0ig_legacy_varid = -1
+   his_file%tp_legacy_varid = -1
+   his_file%tpig_legacy_varid = -1
+   his_file%wavdir_legacy_varid = -1
+   his_file%dirspr_legacy_varid = -1
+   his_file%zsm_legacy_varid = -1
+   his_file%dw_legacy_varid = -1
+   his_file%df_legacy_varid = -1
+   his_file%dwig_legacy_varid = -1
+   his_file%dfig_legacy_varid = -1
+   his_file%cg_legacy_varid = -1
+   his_file%beta_legacy_varid = -1
+   his_file%srcig_legacy_varid = -1
+   his_file%alphaig_legacy_varid = -1
+   !
    if (snapwave) then  
       !
-      NF90(nf90_def_var(his_file%ncid, 'hm0', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%hm0_varid)) ! time-varying water level point
+      NF90(nf90_def_var(his_file%ncid, 'point_hm0', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%hm0_varid)) ! time-varying water level point
       NF90(nf90_put_att(his_file%ncid, his_file%hm0_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(his_file%ncid, his_file%hm0_varid, 'units', 'm'))
       NF90(nf90_put_att(his_file%ncid, his_file%hm0_varid, 'standard_name', 'hm0_wave_height')) 
       NF90(nf90_put_att(his_file%ncid, his_file%hm0_varid, 'long_name', 'Hm0 wave height'))  
       NF90(nf90_put_att(his_file%ncid, his_file%hm0_varid, 'coordinates', 'station_id station_name point_x point_y'))
+      if (snapwave_his_legacy_names) then
+         NF90(nf90_def_var(his_file%ncid, 'hm0', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%hm0_legacy_varid))
+         NF90(nf90_put_att(his_file%ncid, his_file%hm0_legacy_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(his_file%ncid, his_file%hm0_legacy_varid, 'units', 'm'))
+         NF90(nf90_put_att(his_file%ncid, his_file%hm0_legacy_varid, 'standard_name', 'hm0_wave_height')) 
+         NF90(nf90_put_att(his_file%ncid, his_file%hm0_legacy_varid, 'long_name', 'Hm0 wave height'))  
+         NF90(nf90_put_att(his_file%ncid, his_file%hm0_legacy_varid, 'coordinates', 'station_id station_name point_x point_y'))
+      endif
       !
-      NF90(nf90_def_var(his_file%ncid, 'hm0ig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%hm0ig_varid)) ! time-varying water level point
+      NF90(nf90_def_var(his_file%ncid, 'point_hm0ig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%hm0ig_varid)) ! time-varying water level point
       NF90(nf90_put_att(his_file%ncid, his_file%hm0ig_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(his_file%ncid, his_file%hm0ig_varid, 'units', 'm'))
       NF90(nf90_put_att(his_file%ncid, his_file%hm0ig_varid, 'standard_name', 'hm0_ig_wave_height')) 
       NF90(nf90_put_att(his_file%ncid, his_file%hm0ig_varid, 'long_name', 'Hm0 infragravity wave height'))  
       NF90(nf90_put_att(his_file%ncid, his_file%hm0ig_varid, 'coordinates', 'station_id station_name point_x point_y'))
+      if (snapwave_his_legacy_names) then
+         NF90(nf90_def_var(his_file%ncid, 'hm0ig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%hm0ig_legacy_varid))
+         NF90(nf90_put_att(his_file%ncid, his_file%hm0ig_legacy_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(his_file%ncid, his_file%hm0ig_legacy_varid, 'units', 'm'))
+         NF90(nf90_put_att(his_file%ncid, his_file%hm0ig_legacy_varid, 'standard_name', 'hm0_ig_wave_height')) 
+         NF90(nf90_put_att(his_file%ncid, his_file%hm0ig_legacy_varid, 'long_name', 'Hm0 infragravity wave height'))  
+         NF90(nf90_put_att(his_file%ncid, his_file%hm0ig_legacy_varid, 'coordinates', 'station_id station_name point_x point_y'))
+      endif
       !
-      NF90(nf90_def_var(his_file%ncid, 'tp', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%tp_varid)) ! time-varying water level point
+      NF90(nf90_def_var(his_file%ncid, 'point_tp', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%tp_varid)) ! time-varying water level point
       NF90(nf90_put_att(his_file%ncid, his_file%tp_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(his_file%ncid, his_file%tp_varid, 'units', 's'))
       NF90(nf90_put_att(his_file%ncid, his_file%tp_varid, 'standard_name', 'peak_wave_period')) 
       NF90(nf90_put_att(his_file%ncid, his_file%tp_varid, 'long_name', 'Peak wave period'))  
       NF90(nf90_put_att(his_file%ncid, his_file%tp_varid, 'coordinates', 'station_id station_name point_x point_y'))
+      if (snapwave_his_legacy_names) then
+         NF90(nf90_def_var(his_file%ncid, 'tp', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%tp_legacy_varid))
+         NF90(nf90_put_att(his_file%ncid, his_file%tp_legacy_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(his_file%ncid, his_file%tp_legacy_varid, 'units', 's'))
+         NF90(nf90_put_att(his_file%ncid, his_file%tp_legacy_varid, 'standard_name', 'peak_wave_period')) 
+         NF90(nf90_put_att(his_file%ncid, his_file%tp_legacy_varid, 'long_name', 'Peak wave period'))  
+         NF90(nf90_put_att(his_file%ncid, his_file%tp_legacy_varid, 'coordinates', 'station_id station_name point_x point_y'))
+      endif
       !
-      NF90(nf90_def_var(his_file%ncid, 'tpig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%tpig_varid)) ! time-varying water level point
+      NF90(nf90_def_var(his_file%ncid, 'point_tpig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%tpig_varid)) ! time-varying water level point
       NF90(nf90_put_att(his_file%ncid, his_file%tpig_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(his_file%ncid, his_file%tpig_varid, 'units', 's'))
       NF90(nf90_put_att(his_file%ncid, his_file%tpig_varid, 'standard_name', 'ig_peak_wave_period')) 
       NF90(nf90_put_att(his_file%ncid, his_file%tpig_varid, 'long_name', 'Peak wave period Infragravity wave'))  
       NF90(nf90_put_att(his_file%ncid, his_file%tpig_varid, 'coordinates', 'station_id station_name point_x point_y'))      
+      if (snapwave_his_legacy_names) then
+         NF90(nf90_def_var(his_file%ncid, 'tpig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%tpig_legacy_varid))
+         NF90(nf90_put_att(his_file%ncid, his_file%tpig_legacy_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(his_file%ncid, his_file%tpig_legacy_varid, 'units', 's'))
+         NF90(nf90_put_att(his_file%ncid, his_file%tpig_legacy_varid, 'standard_name', 'ig_peak_wave_period')) 
+         NF90(nf90_put_att(his_file%ncid, his_file%tpig_legacy_varid, 'long_name', 'Peak wave period Infragravity wave'))  
+         NF90(nf90_put_att(his_file%ncid, his_file%tpig_legacy_varid, 'coordinates', 'station_id station_name point_x point_y'))
+      endif
       !
       if (store_wave_direction) then
          !
-         NF90(nf90_def_var(his_file%ncid, 'wavdir', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%wavdir_varid)) ! time-varying water level point
+         NF90(nf90_def_var(his_file%ncid, 'point_wavdir', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%wavdir_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%wavdir_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%wavdir_varid, 'units', 'degrees'))
          NF90(nf90_put_att(his_file%ncid, his_file%wavdir_varid, 'standard_name', 'mean_wave_direction')) 
          NF90(nf90_put_att(his_file%ncid, his_file%wavdir_varid, 'long_name', 'Mean wave direction'))  
          NF90(nf90_put_att(his_file%ncid, his_file%wavdir_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         if (snapwave_his_legacy_names) then
+            NF90(nf90_def_var(his_file%ncid, 'wavdir', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%wavdir_legacy_varid))
+            NF90(nf90_put_att(his_file%ncid, his_file%wavdir_legacy_varid, '_FillValue', FILL_VALUE))
+            NF90(nf90_put_att(his_file%ncid, his_file%wavdir_legacy_varid, 'units', 'degrees'))
+            NF90(nf90_put_att(his_file%ncid, his_file%wavdir_legacy_varid, 'standard_name', 'mean_wave_direction')) 
+            NF90(nf90_put_att(his_file%ncid, his_file%wavdir_legacy_varid, 'long_name', 'Mean wave direction'))  
+            NF90(nf90_put_att(his_file%ncid, his_file%wavdir_legacy_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         endif
          !
-         NF90(nf90_def_var(his_file%ncid, 'dirspr', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dirspr_varid)) ! time-varying water level point
+         NF90(nf90_def_var(his_file%ncid, 'point_dirspr', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dirspr_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%dirspr_varid, '_FillValue', FILL_VALUE))
-         NF90(nf90_put_att(his_file%ncid, his_file%dirspr_varid, 'units', 's'))
+         NF90(nf90_put_att(his_file%ncid, his_file%dirspr_varid, 'units', 'degrees'))
          NF90(nf90_put_att(his_file%ncid, his_file%dirspr_varid, 'standard_name', 'wave_directional_spreading')) 
          NF90(nf90_put_att(his_file%ncid, his_file%dirspr_varid, 'long_name', 'Wave directional spreading'))  
          NF90(nf90_put_att(his_file%ncid, his_file%dirspr_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         if (snapwave_his_legacy_names) then
+            NF90(nf90_def_var(his_file%ncid, 'dirspr', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dirspr_legacy_varid))
+            NF90(nf90_put_att(his_file%ncid, his_file%dirspr_legacy_varid, '_FillValue', FILL_VALUE))
+            NF90(nf90_put_att(his_file%ncid, his_file%dirspr_legacy_varid, 'units', 'degrees'))
+            NF90(nf90_put_att(his_file%ncid, his_file%dirspr_legacy_varid, 'standard_name', 'wave_directional_spreading')) 
+            NF90(nf90_put_att(his_file%ncid, his_file%dirspr_legacy_varid, 'long_name', 'Wave directional spreading'))  
+            NF90(nf90_put_att(his_file%ncid, his_file%dirspr_legacy_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         endif
          !
       endif   
       !
       if (wavemaker) then
          !
-         NF90(nf90_def_var(his_file%ncid, 'zsm', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%zsm_varid)) ! time-varying water level point
+         NF90(nf90_def_var(his_file%ncid, 'point_zsm', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%zsm_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%zsm_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%zsm_varid, 'units', 'm'))
          NF90(nf90_put_att(his_file%ncid, his_file%zsm_varid, 'standard_name', 'filtered_water_level')) 
          NF90(nf90_put_att(his_file%ncid, his_file%zsm_varid, 'long_name', 'Filtered water level'))  
          NF90(nf90_put_att(his_file%ncid, his_file%zsm_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         if (snapwave_his_legacy_names) then
+            NF90(nf90_def_var(his_file%ncid, 'zsm', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%zsm_legacy_varid))
+            NF90(nf90_put_att(his_file%ncid, his_file%zsm_legacy_varid, '_FillValue', FILL_VALUE))
+            NF90(nf90_put_att(his_file%ncid, his_file%zsm_legacy_varid, 'units', 'm'))
+            NF90(nf90_put_att(his_file%ncid, his_file%zsm_legacy_varid, 'standard_name', 'filtered_water_level')) 
+            NF90(nf90_put_att(his_file%ncid, his_file%zsm_legacy_varid, 'long_name', 'Filtered water level'))  
+            NF90(nf90_put_att(his_file%ncid, his_file%zsm_legacy_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         endif
          !
       endif   
       !
       if (store_wave_forces) then
          !
-         NF90(nf90_def_var(his_file%ncid, 'dw', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dw_varid)) ! time-varying water level point
+         NF90(nf90_def_var(his_file%ncid, 'point_dw', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dw_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%dw_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%dw_varid, 'units', 'm'))
          NF90(nf90_put_att(his_file%ncid, his_file%dw_varid, 'standard_name', 'directionally_averaged_wave_breaking_dissipation')) 
          NF90(nf90_put_att(his_file%ncid, his_file%dw_varid, 'long_name', 'directionally averaged wave breaking dissipation'))  
          NF90(nf90_put_att(his_file%ncid, his_file%dw_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         if (snapwave_his_legacy_names) then
+            NF90(nf90_def_var(his_file%ncid, 'dw', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dw_legacy_varid))
+            NF90(nf90_put_att(his_file%ncid, his_file%dw_legacy_varid, '_FillValue', FILL_VALUE))
+            NF90(nf90_put_att(his_file%ncid, his_file%dw_legacy_varid, 'units', 'm'))
+            NF90(nf90_put_att(his_file%ncid, his_file%dw_legacy_varid, 'standard_name', 'directionally_averaged_wave_breaking_dissipation')) 
+            NF90(nf90_put_att(his_file%ncid, his_file%dw_legacy_varid, 'long_name', 'directionally averaged wave breaking dissipation'))  
+            NF90(nf90_put_att(his_file%ncid, his_file%dw_legacy_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         endif
          !      
-         NF90(nf90_def_var(his_file%ncid, 'df', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%df_varid)) ! time-varying water level point
+         NF90(nf90_def_var(his_file%ncid, 'point_df', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%df_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%df_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%df_varid, 'units', 'm'))
          NF90(nf90_put_att(his_file%ncid, his_file%df_varid, 'standard_name', 'directionally_averaged_wave_friction_dissipation')) 
          NF90(nf90_put_att(his_file%ncid, his_file%df_varid, 'long_name', 'directionally averaged wave friction dissipation'))  
          NF90(nf90_put_att(his_file%ncid, his_file%df_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         if (snapwave_his_legacy_names) then
+            NF90(nf90_def_var(his_file%ncid, 'df', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%df_legacy_varid))
+            NF90(nf90_put_att(his_file%ncid, his_file%df_legacy_varid, '_FillValue', FILL_VALUE))
+            NF90(nf90_put_att(his_file%ncid, his_file%df_legacy_varid, 'units', 'm'))
+            NF90(nf90_put_att(his_file%ncid, his_file%df_legacy_varid, 'standard_name', 'directionally_averaged_wave_friction_dissipation')) 
+            NF90(nf90_put_att(his_file%ncid, his_file%df_legacy_varid, 'long_name', 'directionally averaged wave friction dissipation'))  
+            NF90(nf90_put_att(his_file%ncid, his_file%df_legacy_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         endif
          !       
-         NF90(nf90_def_var(his_file%ncid, 'dwig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dwig_varid)) ! time-varying water level point
+         NF90(nf90_def_var(his_file%ncid, 'point_dwig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dwig_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%dwig_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%dwig_varid, 'units', 'm'))
          NF90(nf90_put_att(his_file%ncid, his_file%dwig_varid, 'standard_name', 'directionally_averaged_wave_breaking_dissipation_ig')) 
          NF90(nf90_put_att(his_file%ncid, his_file%dwig_varid, 'long_name', 'directionally averaged wave breaking dissipation ig'))  
          NF90(nf90_put_att(his_file%ncid, his_file%dwig_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         if (snapwave_his_legacy_names) then
+            NF90(nf90_def_var(his_file%ncid, 'dwig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dwig_legacy_varid))
+            NF90(nf90_put_att(his_file%ncid, his_file%dwig_legacy_varid, '_FillValue', FILL_VALUE))
+            NF90(nf90_put_att(his_file%ncid, his_file%dwig_legacy_varid, 'units', 'm'))
+            NF90(nf90_put_att(his_file%ncid, his_file%dwig_legacy_varid, 'standard_name', 'directionally_averaged_wave_breaking_dissipation_ig')) 
+            NF90(nf90_put_att(his_file%ncid, his_file%dwig_legacy_varid, 'long_name', 'directionally averaged wave breaking dissipation ig'))  
+            NF90(nf90_put_att(his_file%ncid, his_file%dwig_legacy_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         endif
          !      
-         NF90(nf90_def_var(his_file%ncid, 'dfig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dfig_varid)) ! time-varying water level point
+         NF90(nf90_def_var(his_file%ncid, 'point_dfig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dfig_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%dfig_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%dfig_varid, 'units', 'm'))
          NF90(nf90_put_att(his_file%ncid, his_file%dfig_varid, 'standard_name', 'directionally_averaged_wave_friction_dissipation_ig')) 
          NF90(nf90_put_att(his_file%ncid, his_file%dfig_varid, 'long_name', 'directionally averaged wave friction dissipation ig'))  
          NF90(nf90_put_att(his_file%ncid, his_file%dfig_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         if (snapwave_his_legacy_names) then
+            NF90(nf90_def_var(his_file%ncid, 'dfig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dfig_legacy_varid))
+            NF90(nf90_put_att(his_file%ncid, his_file%dfig_legacy_varid, '_FillValue', FILL_VALUE))
+            NF90(nf90_put_att(his_file%ncid, his_file%dfig_legacy_varid, 'units', 'm'))
+            NF90(nf90_put_att(his_file%ncid, his_file%dfig_legacy_varid, 'standard_name', 'directionally_averaged_wave_friction_dissipation_ig')) 
+            NF90(nf90_put_att(his_file%ncid, his_file%dfig_legacy_varid, 'long_name', 'directionally averaged wave friction dissipation ig'))  
+            NF90(nf90_put_att(his_file%ncid, his_file%dfig_legacy_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         endif
          !               
-         NF90(nf90_def_var(his_file%ncid, 'cg', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%cg_varid)) ! time-varying water level point
+         NF90(nf90_def_var(his_file%ncid, 'point_cg', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%cg_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%cg_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%cg_varid, 'units', 'm/s'))
          NF90(nf90_put_att(his_file%ncid, his_file%cg_varid, 'standard_name', 'wave_group_velocity')) 
          NF90(nf90_put_att(his_file%ncid, his_file%cg_varid, 'long_name', 'wave group velocity'))  
          NF90(nf90_put_att(his_file%ncid, his_file%cg_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         if (snapwave_his_legacy_names) then
+            NF90(nf90_def_var(his_file%ncid, 'cg', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%cg_legacy_varid))
+            NF90(nf90_put_att(his_file%ncid, his_file%cg_legacy_varid, '_FillValue', FILL_VALUE))
+            NF90(nf90_put_att(his_file%ncid, his_file%cg_legacy_varid, 'units', 'm/s'))
+            NF90(nf90_put_att(his_file%ncid, his_file%cg_legacy_varid, 'standard_name', 'wave_group_velocity')) 
+            NF90(nf90_put_att(his_file%ncid, his_file%cg_legacy_varid, 'long_name', 'wave group velocity'))  
+            NF90(nf90_put_att(his_file%ncid, his_file%cg_legacy_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         endif
          !               
-         NF90(nf90_def_var(his_file%ncid, 'beta', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%beta_varid)) ! time-varying water level point
+         NF90(nf90_def_var(his_file%ncid, 'point_beta', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%beta_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%beta_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%beta_varid, 'units', '-'))
          NF90(nf90_put_att(his_file%ncid, his_file%beta_varid, 'standard_name', 'directionally_averaged_local_bed_slope')) 
          NF90(nf90_put_att(his_file%ncid, his_file%beta_varid, 'long_name', 'directionally averaged normalised bed slope'))  
          NF90(nf90_put_att(his_file%ncid, his_file%beta_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         if (snapwave_his_legacy_names) then
+            NF90(nf90_def_var(his_file%ncid, 'beta', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%beta_legacy_varid))
+            NF90(nf90_put_att(his_file%ncid, his_file%beta_legacy_varid, '_FillValue', FILL_VALUE))
+            NF90(nf90_put_att(his_file%ncid, his_file%beta_legacy_varid, 'units', '-'))
+            NF90(nf90_put_att(his_file%ncid, his_file%beta_legacy_varid, 'standard_name', 'directionally_averaged_local_bed_slope')) 
+            NF90(nf90_put_att(his_file%ncid, his_file%beta_legacy_varid, 'long_name', 'directionally averaged normalised bed slope'))  
+            NF90(nf90_put_att(his_file%ncid, his_file%beta_legacy_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         endif
          !               
-         NF90(nf90_def_var(his_file%ncid, 'srcig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%srcig_varid)) ! time-varying water level point
+         NF90(nf90_def_var(his_file%ncid, 'point_srcig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%srcig_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%srcig_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%srcig_varid, 'units', '-'))
          NF90(nf90_put_att(his_file%ncid, his_file%srcig_varid, 'standard_name', 'directionally_averaged_ig_energy_source')) 
          NF90(nf90_put_att(his_file%ncid, his_file%srcig_varid, 'long_name', 'directionally averaged ig energy source'))  
          NF90(nf90_put_att(his_file%ncid, his_file%srcig_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         if (snapwave_his_legacy_names) then
+            NF90(nf90_def_var(his_file%ncid, 'srcig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%srcig_legacy_varid))
+            NF90(nf90_put_att(his_file%ncid, his_file%srcig_legacy_varid, '_FillValue', FILL_VALUE))
+            NF90(nf90_put_att(his_file%ncid, his_file%srcig_legacy_varid, 'units', '-'))
+            NF90(nf90_put_att(his_file%ncid, his_file%srcig_legacy_varid, 'standard_name', 'directionally_averaged_ig_energy_source')) 
+            NF90(nf90_put_att(his_file%ncid, his_file%srcig_legacy_varid, 'long_name', 'directionally averaged ig energy source'))  
+            NF90(nf90_put_att(his_file%ncid, his_file%srcig_legacy_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         endif
          !                   
-         NF90(nf90_def_var(his_file%ncid, 'alphaig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%alphaig_varid)) ! time-varying water level point
+         NF90(nf90_def_var(his_file%ncid, 'point_alphaig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%alphaig_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%alphaig_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%alphaig_varid, 'units', '-'))
          NF90(nf90_put_att(his_file%ncid, his_file%alphaig_varid, 'standard_name', 'directionally_averaged_infragravity_waves_shoaling_factor')) 
          NF90(nf90_put_att(his_file%ncid, his_file%alphaig_varid, 'long_name', 'directionally averaged infragravity waves shoaling factor'))  
          NF90(nf90_put_att(his_file%ncid, his_file%alphaig_varid, 'coordinates', 'station_id station_name point_x point_y'))         
+         if (snapwave_his_legacy_names) then
+            NF90(nf90_def_var(his_file%ncid, 'alphaig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%alphaig_legacy_varid))
+            NF90(nf90_put_att(his_file%ncid, his_file%alphaig_legacy_varid, '_FillValue', FILL_VALUE))
+            NF90(nf90_put_att(his_file%ncid, his_file%alphaig_legacy_varid, 'units', '-'))
+            NF90(nf90_put_att(his_file%ncid, his_file%alphaig_legacy_varid, 'standard_name', 'directionally_averaged_infragravity_waves_shoaling_factor')) 
+            NF90(nf90_put_att(his_file%ncid, his_file%alphaig_legacy_varid, 'long_name', 'directionally averaged infragravity waves shoaling factor'))  
+            NF90(nf90_put_att(his_file%ncid, his_file%alphaig_legacy_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         endif
          !
       endif
    endif
@@ -3077,18 +3217,33 @@ contains
       NF90(nf90_put_var(his_file%ncid, his_file%hm0_varid, hm0obs, (/1, nthisout/)))
       NF90(nf90_put_var(his_file%ncid, his_file%hm0ig_varid, hm0igobs, (/1, nthisout/)))
       NF90(nf90_put_var(his_file%ncid, his_file%tp_varid, tpobs, (/1, nthisout/)))
-      NF90(nf90_put_var(his_file%ncid, his_file%tpig_varid, tpigobs, (/1, nthisout/)))      
+      NF90(nf90_put_var(his_file%ncid, his_file%tpig_varid, tpigobs, (/1, nthisout/)))
+      if (snapwave_his_legacy_names) then
+         NF90(nf90_put_var(his_file%ncid, his_file%hm0_legacy_varid, hm0obs, (/1, nthisout/)))
+         NF90(nf90_put_var(his_file%ncid, his_file%hm0ig_legacy_varid, hm0igobs, (/1, nthisout/)))
+         NF90(nf90_put_var(his_file%ncid, his_file%tp_legacy_varid, tpobs, (/1, nthisout/)))
+         NF90(nf90_put_var(his_file%ncid, his_file%tpig_legacy_varid, tpigobs, (/1, nthisout/)))
+      endif
       !
       if (store_wave_direction) then
          !
          NF90(nf90_put_var(his_file%ncid, his_file%wavdir_varid, wavdirobs, (/1, nthisout/)))
-         !NF90(nf90_put_var(his_file%ncid, his_file%dirspr_varid, dirsprobs, (/1, nthisout/)))
+         if (snapwave_his_legacy_names) then
+            NF90(nf90_put_var(his_file%ncid, his_file%wavdir_legacy_varid, wavdirobs, (/1, nthisout/)))
+         endif
+         NF90(nf90_put_var(his_file%ncid, his_file%dirspr_varid, dirsprobs, (/1, nthisout/)))
+         if (snapwave_his_legacy_names) then
+            NF90(nf90_put_var(his_file%ncid, his_file%dirspr_legacy_varid, dirsprobs, (/1, nthisout/)))
+         endif
          !
       endif
       !            
       if (wavemaker) then
          !
          NF90(nf90_put_var(his_file%ncid, his_file%zsm_varid, zsmobs, (/1, nthisout/)))
+         if (snapwave_his_legacy_names) then
+            NF90(nf90_put_var(his_file%ncid, his_file%zsm_legacy_varid, zsmobs, (/1, nthisout/)))
+         endif
          !
       endif
       !
@@ -3104,7 +3259,17 @@ contains
          !
          NF90(nf90_put_var(his_file%ncid, his_file%beta_varid, betaobs, (/1, nthisout/)))
          NF90(nf90_put_var(his_file%ncid, his_file%srcig_varid, srcigobs, (/1, nthisout/)))                  
-         NF90(nf90_put_var(his_file%ncid, his_file%alphaig_varid, alphaigobs, (/1, nthisout/)))         
+         NF90(nf90_put_var(his_file%ncid, his_file%alphaig_varid, alphaigobs, (/1, nthisout/)))
+         if (snapwave_his_legacy_names) then
+            NF90(nf90_put_var(his_file%ncid, his_file%dw_legacy_varid, dwobs, (/1, nthisout/)))
+            NF90(nf90_put_var(his_file%ncid, his_file%df_legacy_varid, dfobs, (/1, nthisout/)))
+            NF90(nf90_put_var(his_file%ncid, his_file%dwig_legacy_varid, dwigobs, (/1, nthisout/)))
+            NF90(nf90_put_var(his_file%ncid, his_file%dfig_legacy_varid, dfigobs, (/1, nthisout/)))
+            NF90(nf90_put_var(his_file%ncid, his_file%cg_legacy_varid, cgobs, (/1, nthisout/)))
+            NF90(nf90_put_var(his_file%ncid, his_file%beta_legacy_varid, betaobs, (/1, nthisout/)))
+            NF90(nf90_put_var(his_file%ncid, his_file%srcig_legacy_varid, srcigobs, (/1, nthisout/)))
+            NF90(nf90_put_var(his_file%ncid, his_file%alphaig_legacy_varid, alphaigobs, (/1, nthisout/)))
+         endif
          !            
       endif
       !      
@@ -3850,6 +4015,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'storemaxwind',logical2int(store_wind_max))) 
         NF90(nf90_put_att(ncid, varid, 'storefw',logical2int(store_wave_forces)))         
         NF90(nf90_put_att(ncid, varid, 'storewavdir', logical2int(store_wave_direction))) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_his_legacy_names', logical2int(snapwave_his_legacy_names)))
         !
         NF90(nf90_put_att(ncid, varid, 'cdnrb', cd_nr))   
         NF90(nf90_put_att(ncid, varid, 'cdwnd', cd_wnd))        
