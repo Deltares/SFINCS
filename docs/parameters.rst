@@ -427,6 +427,12 @@ Parameters for model output
 	  :default:		0
 	  :min:			0
 	  :max:			1
+	snapwave_his_legacy_names
+	  :description:		Flag to also write legacy SnapWave variable names in sfincs_his.nc (e.g. hm0, tp, wavdir) next to point_ names for backward compatibility.
+	  :units:		logical
+	  :default:		0
+	  :min:			0
+	  :max:			1
 	percentage_done
 	  :description:		Setting of how frequent to show progress of SFINCS in terms of % and time remaining, default = 5%
 	  :units:		integer

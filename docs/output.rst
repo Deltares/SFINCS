@@ -326,6 +326,39 @@ This file is only created if observation points are supplied in the 'obsfile', o
 	  :description:		Instantaneous infiltration rate per 'dthisout' timestep, corresponding with netcdf variable 'time'.
 	  :standard_name:	point_qinf	  
 	  :units:		m
+	point_hm0
+	  :description:		Significant short-wave height per 'dthisout' timestep (only when SnapWave is enabled).
+	  :standard_name:	hm0_wave_height
+	  :units:		m
+	point_hm0ig
+	  :description:		Significant infragravity-wave height per 'dthisout' timestep (only when SnapWave is enabled).
+	  :standard_name:	hm0_ig_wave_height
+	  :units:		m
+	point_tp
+	  :description:		Peak wave period per 'dthisout' timestep (only when SnapWave is enabled).
+	  :standard_name:	peak_wave_period
+	  :units:		s
+	point_tpig
+	  :description:		Peak infragravity-wave period per 'dthisout' timestep (only when SnapWave is enabled).
+	  :standard_name:	ig_peak_wave_period
+	  :units:		s
+	point_wavdir
+	  :description:		Mean wave direction per 'dthisout' timestep (only when SnapWave is enabled and wave direction output is stored).
+	  :standard_name:	mean_wave_direction
+	  :units:		degrees
+	point_dirspr
+	  :description:		Wave directional spreading per 'dthisout' timestep (only when SnapWave is enabled and wave direction output is stored).
+	  :standard_name:	wave_directional_spreading
+	  :units:		degrees
+	point_zsm
+	  :description:		Filtered water level per 'dthisout' timestep (only when SnapWave is enabled and wavemaker is used).
+	  :standard_name:	filtered_water_level
+	  :units:		m
+	point_dw, point_df, point_dwig, point_dfig, point_cg, point_beta, point_srcig, point_alphaig
+	  :description:		Optional SnapWave force-related diagnostics at observation points (only when SnapWave is enabled and wave-force output is stored).
+	  :units:		see variable attributes in sfincs_his.nc
+	snapwave_his_legacy_names
+	  :description:		If enabled in sfincs.inp, SFINCS also writes legacy SnapWave his variable names (hm0, hm0ig, tp, tpig, wavdir, dirspr, zsm, dw, df, dwig, dfig, cg, beta, srcig, alphaig) in addition to the point_ names for backward compatibility.
 	crosssection_discharge
 	  :description:		Discharge through cross-section per 'dthisout' timestep, corresponding with netcdf variable 'time'.
 	  :standard_name:	discharge	  
