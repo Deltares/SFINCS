@@ -3866,6 +3866,7 @@ contains
         !
         NF90(nf90_put_att(ncid, varid, 'snapwave', logical2int(snapwave))) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_gamma', gamma)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_gammax', gammax))         
         NF90(nf90_put_att(ncid, varid, 'snapwave_alpha', alpha)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_hmin',hmin)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_fw',fw0)) 
