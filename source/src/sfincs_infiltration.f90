@@ -18,6 +18,11 @@ contains
    !
    character*256 :: varname
    !
+   character(len=3), parameter :: allowed_types(5) = &
+        ['c2d', 'cna', 'cnb', 'gai', 'hor']   
+
+   logical :: inftype_exists   
+   !
    ! INFILTRATION
    !
    ! Infiltration only works when rainfall is activated ! If you want infiltration without rainfall, use a precip file with 0.0s
@@ -64,8 +69,25 @@ contains
          ! inftype is either: c2d, cna, cnb, gai, hor
          ! 'inftype = con' is not relevant for netcdf input
          !
-         infiltration = .true.
-         netcdf_infiltration = .true.
+         ! Check if specified type is correct
+         !
+         inftype_exists = any(inftype == allowed_types)
+         !
+         if (inftype_exists) then
+            !
+            infiltration = .true.
+            netcdf_infiltration = .true.  
+            !
+            write(logstr,'(a,a)')'Info    : specified infiltrationtype is ', trim(inftype)
+            call write_log(logstr, 0)            
+            !
+         else
+            !
+            write(logstr,*)'Error    : infiltration input type ',trim(inftype),' is not part of supported types c2d cna cnb gai hor !'
+            call stop_sfincs(trim(logstr), 1)   
+            !
+         end if        
+         !
          !
       elseif (qinf > 0.0) then   
          !
@@ -140,9 +162,6 @@ contains
          call write_log(logstr, 0)
          !
          ok = check_file_exists(infiltrationfile, 'Infiltration netcdf file', .true.)
-         !
-         write(logstr,'(a,a)')'Info    : specified inftype is ', trim(inftype)
-         call write_log(logstr, 0)
          !
       endif
       !
