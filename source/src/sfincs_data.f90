@@ -160,7 +160,7 @@ module sfincs_data
       character*256 :: netampfile
       character*256 :: netamprfile
       character*256 :: netspwfile
-      character*256 :: netinfiltrationfile      
+      character*256 :: infiltrationfile      
       character*256 :: scsfile
       character*256 :: smaxfile
       character*256 :: sefffile
@@ -187,7 +187,6 @@ module sfincs_data
       character*3   :: outputtype_his
       character*3   :: utmzone
       character*3   :: inftype
-      character*3   :: netinftype            
       integer       :: epsg
       character*15  :: epsg_code
       integer       :: nc_deflate_level

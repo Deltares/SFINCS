@@ -2069,11 +2069,9 @@ contains
    !
    if (precip) then
       !
-      if (netinfiltrationfile  /= 'none') then
+      if (infiltrationfile  /= 'none') then
          !
-         ! inftype is user defined, keyword: 'netinftype' in sfincs.inp:
-         ! 
-         inftype = netinftype
+         ! inftype is user defined, keyword: 'inftype' in sfincs.inp:
          !
          ! inftype is either: c2d, cna, cnb, gai, hor
          ! 'inftype = con' is not relevant for netcdf input
@@ -2150,10 +2148,10 @@ contains
          write(logstr,'(a)')'Info    : turning on infiltration from netcdf input file'      
          call write_log(logstr, 0)
          !
-         write(logstr,'(a,a)')'Info    : reading netcdf infiltration file ', trim(netinfiltrationfile)
+         write(logstr,'(a,a)')'Info    : reading netcdf infiltration file ', trim(infiltrationfile)
          call write_log(logstr, 0)
          !
-         ok = check_file_exists(netinfiltrationfile, 'Infiltration netcdf file', .true.)
+         ok = check_file_exists(infiltrationfile, 'Infiltration netcdf file', .true.)
          !
          write(logstr,'(a,a)')'Info    : specified inftype is ', trim(inftype)
          call write_log(logstr, 0)
@@ -2176,7 +2174,7 @@ contains
             ! 
             if (use_quadtree .eqv. .true.) then
                ! 
-               call stop_sfincs('Error ! Infiltration input for quadtree mesh model can only be specified using the netinfiltrationfile Netcdf ormat! !', 1)                       
+               call stop_sfincs('Error ! Infiltration input for quadtree mesh model can only be specified using the infiltrationfile Netcdf format! !', 1)                       
             endif 
              ! 
          endif
@@ -2231,7 +2229,7 @@ contains
             !
             ! Call the generic quadtree nc file reader function
             varname = 'qinf'
-            call read_netcdf_quadtree_to_sfincs(netinfiltrationfile, varname, qinffield) !ncfile, varname, varout)               
+            call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, qinffield) !ncfile, varname, varout)               
             !
          else ! from separate qinffile - only binary:
             ! 
@@ -2265,7 +2263,7 @@ contains
             !
             ! Call the generic quadtree nc file reader function
             varname = 'scs'
-            call read_netcdf_quadtree_to_sfincs(netinfiltrationfile, varname, qinffield)               
+            call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, qinffield)               
             !
          else ! from separate scsfile - only binary:      
             !
@@ -2300,7 +2298,7 @@ contains
             !
             ! Call the generic quadtree nc file reader function
             varname = 'smax'
-            call read_netcdf_quadtree_to_sfincs(netinfiltrationfile, varname, qinffield)              
+            call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, qinffield)              
             !
          else ! from separate smaxfile - only binary:
             ! 
@@ -2323,7 +2321,7 @@ contains
             !
             ! Call the generic quadtree nc file reader function
             varname = 'seff'
-            call read_netcdf_quadtree_to_sfincs(netinfiltrationfile, varname, scs_Se)              
+            call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, scs_Se)              
             !
          else ! from separate sefffile - only binary:         
             !
@@ -2347,7 +2345,7 @@ contains
             !
             ! Call the generic quadtree nc file reader function
             varname = 'ks'
-            call read_netcdf_quadtree_to_sfincs(netinfiltrationfile, varname, ksfield)              
+            call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, ksfield)              
             !
          else ! from separate ksfile - only binary:         
             !
@@ -2398,7 +2396,7 @@ contains
             !
             ! Call the generic quadtree nc file reader function
             varname = 'psi'
-            call read_netcdf_quadtree_to_sfincs(netinfiltrationfile, varname, GA_head)             
+            call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, GA_head)             
             !
          else ! from separate psifile - only binary:
              !
@@ -2422,7 +2420,7 @@ contains
             !
             ! Call the generic quadtree nc file reader function
             varname = 'sigma'
-            call read_netcdf_quadtree_to_sfincs(netinfiltrationfile, varname, GA_sigma_max)
+            call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, GA_sigma_max)
             !
          else ! from separate sigmafile - only binary:
              !         
@@ -2446,7 +2444,7 @@ contains
             !
             ! Call the generic quadtree nc file reader function
             varname = 'ks'
-            call read_netcdf_quadtree_to_sfincs(netinfiltrationfile, varname, ksfield)
+            call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, ksfield)
             !
          else ! from separate ksfile - only binary:
              !             
@@ -2511,7 +2509,7 @@ contains
             !
             ! Call the generic quadtree nc file reader function
             varname = 'fc'
-            call read_netcdf_quadtree_to_sfincs(netinfiltrationfile, varname, horton_fc)
+            call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, horton_fc)
             !
          else ! from separate fcfile - only binary:
             !
@@ -2534,7 +2532,7 @@ contains
             !
             ! Call the generic quadtree nc file reader function
             varname = 'f0'
-            call read_netcdf_quadtree_to_sfincs(netinfiltrationfile, varname, horton_f0)
+            call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, horton_f0)
             !
          else ! from separate f0file - only binary:
             !         
@@ -2557,7 +2555,7 @@ contains
             !
             ! Call the generic quadtree nc file reader function
             varname = 'kd'
-            call read_netcdf_quadtree_to_sfincs(netinfiltrationfile, varname, horton_kd)
+            call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, horton_kd)
             !
          else ! from separate kdfile - only binary:
             !             
