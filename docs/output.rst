@@ -151,6 +151,15 @@ Besides model instabilities, other recurring problems might be:
 Output description
 =====
 
+Time step diagnostics (CSV)
+-----
+
+If you set 'timestep_diagnostics = 1' in **sfincs.inp**, SFINCS writes two optional diagnostic CSV files to the run directory:
+
+* **timestep_diagnostics.csv**: time series of the UV-point that limits the global timestep. The write interval can be controlled with 'dt_timestep_diagnostics' (seconds); set to 0 to write every timestep.
+* **timestep_diagnostics_domain.csv**: end-of-run domain summary for cells that were adjacent to a limiting UV-point at least once (includes how often they limited and the minimum limiting timestep).
+* In **timestep_diagnostics.csv**, the `reason` column indicates limiter type: `0` = wave-speed limited (`sqrt(g*h)`), `1` = velocity limited (`|u|`), `2` = limited by `dtmax` (no UV-point limiter for that step).
+
 Parameters netcdf file global (sfincs_map.nc)
 -----
 

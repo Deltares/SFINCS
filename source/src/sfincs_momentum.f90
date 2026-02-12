@@ -87,6 +87,20 @@ contains
    real*4    :: mdrv
    real*4    :: hu73
    !
+   ! Time step diagnostics (optional)
+   !
+   real*4    :: dtloc
+   real*4    :: cwave
+   real*4    :: cmax
+   real*4    :: local_diag_min_dt
+   real*4    :: local_diag_min_dx
+   real*4    :: local_diag_min_hu
+   real*4    :: local_diag_min_uv
+   real*4    :: local_diag_min_cwave
+   real*4    :: local_diag_min_cmax
+   integer   :: local_diag_min_ip
+   integer   :: local_diag_min_reason
+   !
    real*4, parameter :: expo = 1.0 / 3.0
    !integer, parameter :: expo = 1
    !
@@ -95,6 +109,19 @@ contains
    call system_clock(count0, count_rate, count_max)
    !
    min_dt = dtmax
+   !
+   ! Reset time step diagnostics (filled with limiting UV-point for this time step)
+   !
+   if (timestep_diagnostics) then
+      timestep_diagnostics_uv_ip     = 0
+      timestep_diagnostics_uv_dt     = dtmax
+      timestep_diagnostics_uv_dx     = -999.0
+      timestep_diagnostics_uv_hu     = 0.0
+      timestep_diagnostics_uv_uv     = 0.0
+      timestep_diagnostics_uv_cwave  = 0.0
+      timestep_diagnostics_uv_cmax   = 0.0
+      timestep_diagnostics_uv_reason = 2
+   endif
    !
    ! For some reason, it is necessary to set num_gangs here! Without, the program launches only 1 gang, and everything becomes VERY slow!
    !
@@ -128,8 +155,22 @@ contains
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73 ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73, &
+   !$omp           dtloc,cwave,cmax,local_diag_min_dt,local_diag_min_dx,local_diag_min_hu,local_diag_min_uv,local_diag_min_cwave, &
+   !$omp           local_diag_min_cmax,local_diag_min_ip,local_diag_min_reason ) &
    !$omp reduction ( min : min_dt  )
+
+   if (timestep_diagnostics) then
+      local_diag_min_dt     = dtmax
+      local_diag_min_dx     = -999.0
+      local_diag_min_hu     = 0.0
+      local_diag_min_uv     = 0.0
+      local_diag_min_cwave  = 0.0
+      local_diag_min_cmax   = 0.0
+      local_diag_min_ip     = 0
+      local_diag_min_reason = 2
+   endif
+
    !$omp do schedule ( dynamic, 256 )
    !$acc loop, reduction( min : min_dt ), gang, vector
    do ip = 1, npuv
@@ -701,7 +742,27 @@ contains
             ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
             ! Use maximum of sqrt(gh) and current velocity
             !
-            min_dt = min(min_dt, 1.0 / ( max(sqrt(g * hu), abs(uv(ip)) ) * dxuvinv))
+            cwave = sqrt(g * hu)
+            cmax  = max(cwave, abs(uv(ip)))
+            dtloc = 1.0 / (cmax * dxuvinv)
+            min_dt = min(min_dt, dtloc)
+
+            if (timestep_diagnostics) then
+               if (dtloc < local_diag_min_dt) then
+                  local_diag_min_dt    = dtloc
+                  local_diag_min_ip    = ip
+                  local_diag_min_dx    = 1.0 / dxuvinv
+                  local_diag_min_hu    = hu
+                  local_diag_min_uv    = uv(ip)
+                  local_diag_min_cwave = cwave
+                  local_diag_min_cmax  = cmax
+                  if (abs(uv(ip)) > cwave) then
+                     local_diag_min_reason = 1
+                  else
+                     local_diag_min_reason = 0
+                  endif
+               endif
+            endif
             !
          else
             !
@@ -714,6 +775,22 @@ contains
       endif
    enddo   
    !$omp end do
+
+   if (timestep_diagnostics) then
+      !$omp critical
+      if (local_diag_min_dt < timestep_diagnostics_uv_dt) then
+         timestep_diagnostics_uv_ip     = local_diag_min_ip
+         timestep_diagnostics_uv_dt     = local_diag_min_dt
+         timestep_diagnostics_uv_dx     = local_diag_min_dx
+         timestep_diagnostics_uv_hu     = local_diag_min_hu
+         timestep_diagnostics_uv_uv     = local_diag_min_uv
+         timestep_diagnostics_uv_cwave  = local_diag_min_cwave
+         timestep_diagnostics_uv_cmax   = local_diag_min_cmax
+         timestep_diagnostics_uv_reason = local_diag_min_reason
+      endif
+      !$omp end critical
+   endif
+
    !$omp end parallel
    !$acc end parallel
    !
