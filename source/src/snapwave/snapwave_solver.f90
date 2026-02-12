@@ -1,10 +1,10 @@
 module snapwave_solver
    
-      use sfincs_log
+   use sfincs_log
     
-      implicit none
+   implicit none
 
-   contains
+contains
    
    subroutine compute_wave_field()
       !
@@ -76,26 +76,34 @@ module snapwave_solver
       Cg      = nwav * C
       !
       if (igwaves) then
+         !
          cg_ig   = Cg
          expon   = -(sigm_ig * sqrt(depth / g))**2.5
          kwav_ig = sig**2 / g * (1.0 - exp(expon))**-0.4
+         !
       else
+         !
          cg_ig   = 0.0
          kwav_ig = 0.0 
+         !
       endif
       !
       do k = 1, no_nodes
          !
-         sinhkh(k)    = sinh(min(kwav(k) * depth(k), 50.0))
-         Hmx(k)       = gamma * depth(k)
+         sinhkh(k) = sinh(min(kwav(k) * depth(k), 50.0))
+         !Hmx(k)       = gamma * depth(k)
+         Hmx(k)    = 0.88 / kwav(k) * tanh(gamma * kwav(k) * depth(k) / 0.88)
          !
       enddo
       !
       if (igwaves) then          
          !
          do k = 1, no_nodes
+            !
+            ! Why is this different from Hmx for regular waves where we use gamma * h?
+            !
             Hmx_ig(k) = 0.88 / kwav_ig(k) * tanh(gamma_ig * kwav_ig(k) * depth(k) / 0.88) ! Note - uses gamma_ig
-            Hmx_ig(k) = gamma_ig * depth(k)
+            !
          enddo
          !
       else
@@ -292,10 +300,10 @@ module snapwave_solver
    !real*4, dimension(:), allocatable          :: sig
    real*4, dimension(:), allocatable          :: sigm_ig
    integer, dimension(4)                      :: shift
-   real*4                                     :: pi = 4.*atan(1.0)
-   real*4                                     :: g=9.81
+   real*4                                     :: pi = 4.0 * atan(1.0)
+   real*4                                     :: g = 9.81
    real*4                                     :: hmin                   ! minimum water depth! TL: make user changeable also here according to 'snapwave_hmin' in sfincs.inp   
-   real*4                                     :: fac=0.25             ! underrelaxation factor for DoverA
+   real*4                                     :: fac = 0.25             ! underrelaxation factor for DoverA
    real*4                                     :: oneoverdt
    real*4                                     :: oneover2dtheta
    real*4                                     :: rhog8
@@ -318,7 +326,6 @@ module snapwave_solver
    integer, save                              :: callno=1
    !
    integer                                    :: baldock_option    ! 1 or 2
-   real*4                                     :: baldock_hrms2hs
    !
    real*4, dimension(ntheta)                  :: sinth, costh            ! distribution of wave angles and offshore wave energy density   
    !
@@ -331,14 +338,18 @@ module snapwave_solver
    real*4                                     :: depthlimfac
    real*4                                     :: waveps=0.0001
    !
+   integer                                    :: breaking_model    = 1 ! Baldock (1) or BJ78 (2)
+   integer                                    :: breaking_model_ig = 1 ! Baldock (1) or BJ78 (2)
+   !
    ! Allocate local arrays
    !
    waveps = 0.0001
-   baldock_option = 1 ! 1 or 2, 2 avoids insufficient dissipation at steep coasts
-   !baldock_hrms2hs = sqrt(2.0) ! or use 1.0 for original implementation
-   baldock_hrms2hs = 1.0
+   baldock_option = 2 ! exponent to enhance breaking when H > Hmax
    !
-   fdrspr = 0.65
+   fdrspr = 1.0 ! This is a factor on the IG source term to account for directional spreading
+   !              of the incident wave energy, which reduces the IG wave energy generated.
+   !              Default is 1.0, but can be reduced to e.g. 0.65. A reduction leads to lowering
+   !              of the IG energy.
    !
    allocate(ok(no_nodes)); ok=0
    allocate(indx(no_nodes,4)); indx=0
@@ -484,22 +495,22 @@ module snapwave_solver
          !
          if (ok(k) == 1) cycle
          !
-         ee(:,k)   = max(ee(:, k), waveps)
+         ee(:, k)   = max(ee(:, k), waveps)
          !
-         ! Limit energy with gammax
-         !
-         depthlimfac = max(1.0, (sqrt(sum(ee(:, k)) * dtheta / rhog8) / (gammax * depth(k)) )**2.0)
-         depthlimfac = 1.0
-         ee(:,k)   = ee(:,k) / depthlimfac
+!         ! Limit energy with gammax
+!         !
+!         depthlimfac = max(1.0, (sqrt(sum(ee(:, k)) * dtheta / rhog8) / (gammax * depth(k)) )**2.0)
+!         depthlimfac = 1.0
+!         ee(:,k)   = ee(:,k) / depthlimfac
          !
          E(k)      = sum(ee(:, k)) * dtheta
          H(k)      = sqrt(8 * E(k) / rho / g)
          !
          if (igwaves) then
             !
-            depthlimfac = max(1.0, (sqrt(sum(ee_ig(:, k)) * dtheta / rhog8) / (gammax * depth(k)) )**2.0)
-            depthlimfac = 1.0
-            ee_ig(:,k)  = ee_ig(:,k) / depthlimfac
+!            depthlimfac = max(1.0, (sqrt(sum(ee_ig(:, k)) * dtheta / rhog8) / (gammax * depth(k)) )**2.0)
+!            depthlimfac = 1.0
+!            ee_ig(:,k)  = ee_ig(:,k) / depthlimfac
             !
             E_ig(k) = sum(ee_ig(:, k)) * dtheta
             H_ig(k) = sqrt(8 * E_ig(k) / rho / g)
@@ -644,9 +655,25 @@ module snapwave_solver
                   !
                   if (Hk > baldock_ratio * Hmx(k)) then
                      !
-                     ! Baldock may expect Hs so multiply H and Hmax with baldock_hrms2hs (sqrt(2))
-                     !
-                     call baldock(rho, g, alfa, gamma, depth(k), Hk * baldock_hrms2hs, 2 * pi / sig(k) , baldock_option, Dwk, Hmx(k) * baldock_hrms2hs)
+                     if (breaking_model == 1) then
+                        !
+                        ! Baldock
+                        !
+                        call baldock(rho, g, alfa, gamma, depth(k), Hk, 2 * pi / sig(k) , baldock_option, Dwk, Hmx(k))
+                        !
+                     elseif (breaking_model == 2) then
+                        !
+                        ! BJ78
+                        !
+                        call bj78(rho, g, alfa, gamma, depth(k), Hk, 2 * pi / sig(k) , baldock_option, Dwk, Hmx(k))
+                        !
+                     else
+                        !
+                        ! No breaking
+                        !
+                        Dwk = 0.0
+                        !
+                     endif
                      !
                   else
                      !
@@ -770,13 +797,22 @@ module snapwave_solver
                      !
                      ee(:, k) = max(ee(:, k), waveps)
                      !
-                  endif !wind 
+                  endif ! wind
+                  !
+                  if (gammax < 998.0) then
+                     !
+                     ! Limit incident energy with gammax
+                     !
+                     depthlimfac = max(1.0, (sqrt(sum(ee(:, k)) * dtheta / rhog8) / (gammax * depth(k)) )**2.0)
+                     ee(:,k)   = ee(:,k) / depthlimfac
+                     !
+                  endif   
                   !
                   ! IG
                   !
                   if (igwaves) then
                      !
-                     ! Update Hk
+                     ! Update Hk (because used in bottom friction)
                      !
                      H(k) = sqrt(8 * sum(ee(:, k)) * dtheta / rho / g)
                      ! 
@@ -788,16 +824,27 @@ module snapwave_solver
                      !
                      if (Hk_ig > baldock_ratio_ig * Hmx_ig(k)) then
                         !
-                        call baldock(rho, g, alfa_ig, gamma_ig, depth(k), Hk_ig * baldock_hrms2hs, T_ig(k), baldock_option, Dwk_ig, Hmx_ig(k) * baldock_hrms2hs)
-                        !
+                        if (breaking_model_ig == 1) then
+                           !
+                           call baldock(rho, g, alfa_ig, gamma_ig, depth(k), Hk_ig, T_ig(k), baldock_option, Dwk_ig, Hmx_ig(k))
+                           !
+                        elseif (breaking_model_ig == 2) then
+                           !
+                           call bj78(rho, g, alfa_ig, gamma_ig, depth(k), Hk_ig, T_ig(k), baldock_option, Dwk_ig, Hmx_ig(k))
+                           !
+                        else
+                           !
+                           ! No wave breaking
+                           !
+                           Dwk_ig = 0.0
+                           !
+                        endif   
+                        !                           
                      else
                         !
                         Dwk_ig = 0.0
                         !
                      endif
-                     if (k==1000) then
-                        write(*,'(a,20e16.6)')'depth(k),Hk_ig,Hmx_ig(k),Dwk_ig',depth(k),Hk_ig,Hmx_ig(k),Dwk_ig,cg_ig(k)
-                     endif   
                      !
                      ! Store dissipation terms for output
                      !
@@ -858,6 +905,15 @@ module snapwave_solver
                      ee_ig(:, k) = 0.0
                      !
                   endif
+                  !
+                  if (gammax < 998.0) then
+                     !
+                     ! Limit IG energy with gammax.
+                     !
+                     depthlimfac = max(1.0, (sqrt(sum(ee_ig(:, k)) * dtheta / rhog8) / (gammax * depth(k)) )**2.0)
+                     ee_ig(:, k) = ee_ig(:,k) / depthlimfac
+                     !
+                  endif   
                   !
                endif
                !
@@ -1013,7 +1069,7 @@ module snapwave_solver
    !
    end subroutine solve_tridiag
 
-   subroutine baldock (rho,g,alfa,gamma,depth,H,T,opt,Dw,Hmax)
+   subroutine baldock (rho, g, alfa, gamma, depth, H, T, iexp, Dw, Hmax)
    !
    real*4, intent(in)                :: rho
    real*4, intent(in)                :: g
@@ -1022,7 +1078,7 @@ module snapwave_solver
    real*4, intent(in)                :: depth
    real*4, intent(in)                :: H
    real*4, intent(in)                :: T
-   integer, intent(in)               :: opt
+   integer, intent(in)               :: iexp
    real*4, intent(out)               :: Dw
    real*4, intent(in)                :: Hmax
    real*4                            :: Hloc
@@ -1032,34 +1088,71 @@ module snapwave_solver
    !
    Hloc = max(H, 1.e-6)
    !
-   if (opt == 1) then
+   if (iexp > 0 .and. Hloc > Hmax) then
       !
-      ! Add extra dissipation when Hloc exceeds Hmax (apparently needed at very steep coast lines)
+      ! Add extra dissipation when Hloc exceeds Hmax.
+      ! This is needed at very steep coast lines, where BJ78 dissipation cannot always keep up with
+      ! the wave height increase due to shoaling. The extra dissipation is added by multiplying
+      ! the BJ78 dissipation with a factor f, which is larger than 1 when Hloc > Hmax.
       !
-      if (Hloc > Hmax) then
-         !
-         f = (Hloc / Hmax)**2
-         !
-      else
-         !
-         f = 1.0
-         !
-      endif
+      f = (Hloc / Hmax)**iexp
       !
-      !f = 1.0
+   else  
       !
-      Dw = 0.28 * alfa * rho * g / T * exp( - (Hmax / Hloc)**2) * (Hmax**2 + Hloc**2) * f
-!      if (depth<2.0 .and. gamma>0.95) then
-!         write(*,'(a,20e16.6)')'Dw, Hmax, Hloc, depth, f',Dw, Hmax, Hloc, depth, f
-!      endif   
-      !
-   else
-      !
-      Dw = 0.28 * alfa * rho * g / T * exp( - (Hmax / Hloc)**2) * (Hmax**3 + Hloc**3) / gamma / depth
+      f = 1.0
       !
    endif
    !
+   Dw = 0.28 * alfa * rho * g / T * exp( - (Hmax / Hloc)**2) * (Hmax**2 + Hloc**2) * f
+   !
+!   else
+!      !
+!      Dw = 0.28 * alfa * rho * g / T * exp( - (Hmax / Hloc)**2) * (Hmax**3 + Hloc**3) / gamma / depth
+!      !
+!   endif
+   !
    end subroutine baldock
+   
+
+   subroutine bj78(rho, g, alfa, gamma, depth, H, T, iexp, Dw, Hmax)
+   !
+   real*4, intent(in)                :: rho
+   real*4, intent(in)                :: g
+   real*4, intent(in)                :: alfa
+   real*4, intent(in)                :: gamma
+   real*4, intent(in)                :: depth
+   real*4, intent(in)                :: H
+   real*4, intent(in)                :: T
+   integer, intent(in)               :: iexp
+   real*4, intent(out)               :: Dw
+   real*4, intent(in)                :: Hmax
+   real*4                            :: Hloc
+   real*4                            :: f
+   !
+   ! Compute dissipation according to Battjes and Janssen (1978)
+   !
+   Hloc = max(H, 1.e-6)
+   !
+   if (iexp > 0 .and. Hloc > Hmax) then
+      !
+      ! Add extra dissipation when Hloc exceeds Hmax.
+      ! This is needed at very steep coast lines, where BJ78 dissipation cannot always keep up with
+      ! the wave height increase due to shoaling. The extra dissipation is added by multiplying
+      ! the BJ78 dissipation with a factor f, which is larger than 1 when Hloc > Hmax.
+      !
+      f = (Hloc / Hmax)**iexp
+      !
+   else  
+      !
+      f = 1.0
+      !
+   endif
+   !
+   Dw = 0.25 * rho * g / T * exp( - (Hmax / Hloc)**2) * (Hloc**3 / depth) * f
+   !
+   end subroutine bj78
+   
+   
    
    subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local)
     !   
