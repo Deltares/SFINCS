@@ -91,8 +91,8 @@ contains
       do k = 1, no_nodes
          !
          sinhkh(k) = sinh(min(kwav(k) * depth(k), 50.0))
-         !Hmx(k)       = gamma * depth(k)
          Hmx(k)    = 0.88 / kwav(k) * tanh(gamma * kwav(k) * depth(k) / 0.88)
+         Hmx(k)       = gamma * depth(k)
          !
       enddo
       !
@@ -1320,8 +1320,8 @@ contains
    beta2 = 0.5
    beta3 = 17.7104
    beta4 = 1
-   beta5 = 0.7
-   !beta5 = 0.5 ! change this back !!!
+   !beta5 = 0.7
+   beta5 = 0.5 ! change this back !!!
    beta6 = 0.11841
    beta7 = 0.34037
    !
