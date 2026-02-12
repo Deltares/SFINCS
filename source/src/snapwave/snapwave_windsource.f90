@@ -4,7 +4,7 @@ module snapwave_windsource
    !
    contains
    ! 
-   subroutine numerical_limiter(ntheta,ee,aa,waveps,hh,dtheta,rho,g,gamma,sigmin,sigmax,H,E,A,sig)
+   subroutine numerical_limiter(ntheta,ee,aa,waveps,hh,dtheta,rho,g,gamma,gammax,sigmin,sigmax,H,E,A,sig)
       implicit none
       !
       integer,intent(in)                      :: ntheta
@@ -16,6 +16,7 @@ module snapwave_windsource
       real*4,intent(in)                       :: rho
       real*4,intent(in)                       :: g
       real*4,intent(in)                       :: gamma
+      real*4,intent(in)                       :: gammax
       real*4,intent(in)                       :: sigmin
       real*4,intent(in)                       :: sigmax  
       !
@@ -40,7 +41,7 @@ module snapwave_windsource
       ! depth limitation of energy and corresponding wave period, from directionally integrated params
       !
       H=sqrt(8.0*E/rho/g)    
-      depthlimfac = max(1.0,(H/(gamma*hh))**2)   
+      depthlimfac = max(1.0,(H/(gammax*hh))**2)   
       H=min(H,gamma*hh)
       !  
       E = E/depthlimfac
@@ -175,7 +176,8 @@ module snapwave_windsource
          !
          !gradT component computed from dimensional parameters, made dimensionless in last step
          !
-         Tprev = 2.d0*pi*aaprev(itheta)/eeprev(itheta)
+         Tprev = 2.d0*pi*aaprev(itheta)/max(eeprev(itheta), 1e-3)
+         Tprev = max(Tprev, 1.0)
          deltaT = T-Tprev
          call disper_approx_1(hh,T,kdum,cg1)
          call disper_approx_1(hh,Tprev,kdum,cg2)  
