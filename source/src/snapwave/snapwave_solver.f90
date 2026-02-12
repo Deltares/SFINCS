@@ -1055,7 +1055,9 @@ module snapwave_solver
     real*4, dimension(ntheta,no_nodes)               :: Sxx             ! Radiation Stress
     real*4, dimension(:), allocatable                :: Sxxprev         ! radiation stress at upwind intersection point  
     real*4, dimension(:), allocatable                :: Hprev           ! Incident wave height at upwind intersection point  
+    real*4, dimension(:), allocatable                :: Eprev           ! Mean incident wave energy at upwind intersection point      
     real*4, dimension(:), allocatable                :: Eprev_ig        ! Mean infragravity wave energy at upwind intersection point    
+    real*4, dimension(no_nodes)                      :: E_local         ! mean wave energy waves - just local               
     real*4, dimension(no_nodes)                      :: E_ig_local      ! mean wave energy infragravity waves - just local               
     real*4                                           :: dSxx            ! difference in Radiation stress
     real*4                                           :: Sxx_cons        ! conservative estimate of radiation stress using conservative shoaling     
@@ -1063,17 +1065,26 @@ module snapwave_solver
     ! Allocate internal variables
     allocate(Sxxprev(ntheta))       
     allocate(Hprev(ntheta))  
-    allocate(Eprev_ig(ntheta))      
+    allocate(Eprev(ntheta))    
+    allocate(Eprev_ig(ntheta))          
     !
     Sxx = 0.0
+    Hprev = 0.0
+    Eprev = 0.0
+    Eprev_ig = 0.0
+    !    
+    E_local = 0.0
     E_ig_local = 0.0
     !
     do k = 1, no_nodes
         !
         if (inner(k)) then    
             !
+            ! Update E (not saved from previous timestep) 
+            E_local(k)         = sum(ee(:,k))*dtheta
+            !
             ! Update E_ig (not saved from previous timestep)
-            E_ig_local(k)      = sum(ee_ig(:, k))*dtheta
+            E_ig_local(k)      = sum(ee_ig(:, k))*dtheta     
             !                        
             ! Compute exchange source term inc to ig waves - per direction      
             !
@@ -1099,15 +1110,21 @@ module snapwave_solver
                     ! TL - Note: cg_ig = cg
                     cgprev(itheta)      = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
                     !              
-                    Sxx(itheta,k1)      = ((2.0 * max(0.0,min(1.0,nwav(k1)))) - 0.5) * ee(itheta, k1) ! limit so value of nwav is between 0 and 1
-                    Sxx(itheta,k2)      = ((2.0 * max(0.0,min(1.0,nwav(k2)))) - 0.5) * ee(itheta, k2) ! limit so value of nwav is between 0 and 1
+                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3) then 
+                        Sxx(itheta,k1)      = ((2.0 * max(0.0,min(1.0,nwav(k1)))) - 0.5) * ee(itheta, k1) ! limit so value of nwav is between 0 and 1
+                        Sxx(itheta,k2)      = ((2.0 * max(0.0,min(1.0,nwav(k2)))) - 0.5) * ee(itheta, k2) ! limit so value of nwav is between 0 and 1
+                    elseif (ig_opt == 4) then 
+                        Sxx(itheta,k1)      = ((2.0 * max(0.0,min(1.0,nwav(k1)))) - 0.5) * E_local(k1) ! limit so value of nwav is between 0 and 1
+                        Sxx(itheta,k2)      = ((2.0 * max(0.0,min(1.0,nwav(k2)))) - 0.5) * E_local(k2) ! limit so value of nwav is between 0 and 1                        
+                    endif                    
                     !
                     Sxxprev(itheta)     = w(1, itheta, k)*Sxx(itheta,k1) + w(2, itheta, k)*Sxx(itheta,k2)
                     !
                     eeprev(itheta)      = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)  
                     eeprev_ig(itheta)   = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)   
                     !
-                    Eprev_ig(itheta)    = w(1, itheta, k)*E_ig_local(k1) + w(2, itheta, k)*E_ig_local(k2)                          
+                    Eprev(itheta)       = w(1, itheta, k)*E_local(k1) + w(2, itheta, k)*E_local(k2)     
+                    Eprev_ig(itheta)    = w(1, itheta, k)*E_ig_local(k1) + w(2, itheta, k)*E_ig_local(k2)                                              
                     !
                     Hprev(itheta)       = w(1, itheta, k)*H(k1) + w(2, itheta, k)*H(k2)                         
                     !     
@@ -1117,7 +1134,7 @@ module snapwave_solver
                     !
                     ! Determine dSxx and IG source/sink term 'srcig'
                     !
-                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3) then 
+                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 4) then 
                         !
                         ! Calculate shoaling parameter alpha_ig following Leijnse et al. (2024)
                         !  
@@ -1145,6 +1162,12 @@ module snapwave_solver
                                 !
                                 dSxx = Sxx(itheta,k) - Sxxprev(itheta)                        
                                 !
+                            elseif (ig_opt == 4) then ! Option using conservative shoaling for dSxx/dx  
+                                ! now using Eprev instead of eeprev
+                                Sxx_cons = Eprev(itheta) * cgprev(itheta) / cg_ig(k) * ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5)
+                                !
+                                dSxx = Sxx_cons - Sxxprev(itheta)                                
+                                !
                             endif
                             !
                             dSxx = max(dSxx, 0.0)
@@ -1153,7 +1176,7 @@ module snapwave_solver
                                !
                                srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(eeprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k)
                                !
-                            elseif (ig_opt == 3) then
+                            elseif (ig_opt == 3 .or. ig_opt == 4) then
                                ! Base on E_prev_ig instead of eeprev_ig(itheta) > no bins but total energy
                                srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k)   
                             endif                        
