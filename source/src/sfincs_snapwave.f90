@@ -210,10 +210,7 @@ contains
          !
          nearest_warning = .true. ! to print warning to screen that 'extrapolation' is performed
          !
-         if (snapwave_use_nearest) then
-             !
-             write(logstr,'(i0)')ipsw
-             call write_log(logstr, 1)  
+         if (snapwave_use_nearest) then 
              !
              xsw = quadtree_xz(iq)
              ysw = quadtree_yz(iq)
@@ -598,7 +595,7 @@ contains
    ! Input section
    !
    call read_real_input(500,'snapwave_gamma',gamma,0.7)
-   call read_real_input(500,'snapwave_gammax',gammax,0.6)   
+   call read_real_input(500,'snapwave_gammax',gammax,2.0)   
    call read_real_input(500,'snapwave_alpha',alpha,1.0)
    call read_real_input(500,'snapwave_hmin',hmin,0.1)
    call read_real_input(500,'snapwave_fw',fw0,0.01)

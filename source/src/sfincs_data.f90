@@ -86,6 +86,7 @@ module sfincs_data
       real*4 tsunami_arrival_threshold
       real*4 dtwave
       real*4 wmtfilter
+      real*4 wavemaker_hmin
       real*4 horton_kr_kd
       real*4 btrelax
       real*4 structure_relax
