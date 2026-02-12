@@ -472,7 +472,7 @@ module snapwave_solver
       !      
       ! Actual determining of source term: 
       !          
-      call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
+      call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
       !         
       ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev, beta_local
       ! in: the rest
@@ -555,7 +555,7 @@ module snapwave_solver
                 !
                 ! Actual determining of source term - every first sweep of iteration
                 !          
-                call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
+                call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
                 !    
             endif
             !
@@ -1018,7 +1018,7 @@ module snapwave_solver
    !
    end subroutine baldock
    
-   subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local)
+   subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local)
     !   
     implicit none
     !  
@@ -1032,11 +1032,12 @@ module snapwave_solver
     real*4, dimension(no_nodes), intent(in)          :: nwav            ! wave number n  
     real*4, dimension(no_nodes), intent(in)          :: depth           ! water depth
     real*4, dimension(no_nodes), intent(in)          :: zb              ! actual bed level       
-    real*4, dimension(no_nodes), intent(in)          :: H               ! wave height        
+    real*4, dimension(no_nodes), intent(in)          :: H               ! wave height  
     real*4, dimension(ntheta,no_nodes), intent(in)   :: ee              ! energy density
-    real*4, dimension(ntheta,no_nodes), intent(in)   :: ee_ig           ! energy density infragravity waves
+    real*4, dimension(ntheta,no_nodes), intent(in)   :: ee_ig           ! energy density infragravity waves    
     integer, intent(in)                              :: ig_opt          ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)    
     real*4, intent(in)                               :: alphaigfac      ! Multiplication factor for IG shoaling source/sink term, default = 1.0
+    real*4, intent(in)                               :: dtheta          ! directional resolution
     !
     ! Inout variables
     real*4, dimension(:,:), intent(inout)            :: alphaig_local   ! Local infragravity wave shoaling parameter alpha
@@ -1054,19 +1055,26 @@ module snapwave_solver
     real*4, dimension(ntheta,no_nodes)               :: Sxx             ! Radiation Stress
     real*4, dimension(:), allocatable                :: Sxxprev         ! radiation stress at upwind intersection point  
     real*4, dimension(:), allocatable                :: Hprev           ! Incident wave height at upwind intersection point  
+    real*4, dimension(:), allocatable                :: Eprev_ig        ! Mean infragravity wave energy at upwind intersection point    
+    real*4, dimension(no_nodes)                      :: E_ig_local      ! mean wave energy infragravity waves - just local               
     real*4                                           :: dSxx            ! difference in Radiation stress
     real*4                                           :: Sxx_cons        ! conservative estimate of radiation stress using conservative shoaling     
     !   
     ! Allocate internal variables
     allocate(Sxxprev(ntheta))       
     allocate(Hprev(ntheta))  
+    allocate(Eprev_ig(ntheta))      
     !
     Sxx = 0.0
+    E_ig_local = 0.0
     !
     do k = 1, no_nodes
         !
         if (inner(k)) then    
             !
+            ! Update E_ig (not saved from previous timestep)
+            E_ig_local(k)      = sum(ee_ig(:, k))*dtheta
+            !                        
             ! Compute exchange source term inc to ig waves - per direction      
             !
             do itheta = 1, ntheta
@@ -1097,9 +1105,11 @@ module snapwave_solver
                     Sxxprev(itheta)     = w(1, itheta, k)*Sxx(itheta,k1) + w(2, itheta, k)*Sxx(itheta,k2)
                     !
                     eeprev(itheta)      = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)  
-                    eeprev_ig(itheta)   = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)      
+                    eeprev_ig(itheta)   = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)   
                     !
-                    Hprev(itheta)       = w(1, itheta, k)*H(k1) + w(2, itheta, k)*H(k2)     
+                    Eprev_ig(itheta)    = w(1, itheta, k)*E_ig_local(k1) + w(2, itheta, k)*E_ig_local(k2)                          
+                    !
+                    Hprev(itheta)       = w(1, itheta, k)*H(k1) + w(2, itheta, k)*H(k2)                         
                     !     
                     ! Determine relative waterdepth 'gam'
                     !
@@ -1107,7 +1117,7 @@ module snapwave_solver
                     !
                     ! Determine dSxx and IG source/sink term 'srcig'
                     !
-                    if (ig_opt == 1 .or. ig_opt == 2) then 
+                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3) then 
                         !
                         ! Calculate shoaling parameter alpha_ig following Leijnse et al. (2024)
                         !  
@@ -1121,26 +1131,32 @@ module snapwave_solver
                             srcig_local(itheta, k) = 0.0 !Avoid big jumps in dSxx that can happen if a upwind point is a boundary point with Hinc=0
                             !
                         else
-                        !              
-                        if (ig_opt == 1) then ! Option using conservative shoaling for dSxx/dx
+                            !              
+                            if (ig_opt == 1 .or. ig_opt == 3) then ! Option using conservative shoaling for dSxx/dx
+                                !
+                                ! Calculate Sxx based on conservative shoaling of upwind point's energy: 
+                                ! Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
+                                Sxx_cons = eeprev(itheta) * cgprev(itheta) / cg_ig(k) * ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5)
+                                ! Note - limit so value of nwav is between 0 and 1, and Sxx therefore doesn't become NaN for nwav=Infinite  
+                                !
+                                dSxx = Sxx_cons - Sxxprev(itheta)
+                                !
+                            elseif (ig_opt == 2) then ! Option taking actual difference for dSxx/dx
+                                !
+                                dSxx = Sxx(itheta,k) - Sxxprev(itheta)                        
+                                !
+                            endif
                             !
-                            ! Calculate Sxx based on conservative shoaling of upwind point's energy: 
-                            ! Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
-                            Sxx_cons = eeprev(itheta) * cgprev(itheta) / cg_ig(k) * ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5)
-                            ! Note - limit so value of nwav is between 0 and 1, and Sxx therefore doesn't become NaN for nwav=Infinite  
+                            dSxx = max(dSxx, 0.0)
                             !
-                            dSxx = Sxx_cons - Sxxprev(itheta)
-                            !
-                        elseif (ig_opt == 2) then ! Option taking actual difference for dSxx/dx
-                            !
-                            dSxx = Sxx(itheta,k) - Sxxprev(itheta)                        
-                            !
-                        endif
-                        !
-                        dSxx = max(dSxx, 0.0)
-                        !
-                        srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(eeprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k)
-                        !                         
+                            if (ig_opt == 1 .or. ig_opt == 2) then
+                               !
+                               srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(eeprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k)
+                               !
+                            elseif (ig_opt == 3) then
+                               ! Base on E_prev_ig instead of eeprev_ig(itheta) > no bins but total energy
+                               srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k)   
+                            endif                        
                         endif                      
                         !                                        
                     else  ! TL: option to add future parameterisations here for e.g. coral reef type coasts
