@@ -8,6 +8,17 @@ module sfincs_data
       real*4  :: dtavg
       real*4  :: min_dt
       !!!
+      !!! Optional time step diagnostics (set in sfincs_momentum.f90)
+      !!!
+      integer*4 :: timestep_diagnostics_uv_ip
+      real*4    :: timestep_diagnostics_uv_dt
+      real*4    :: timestep_diagnostics_uv_dx
+      real*4    :: timestep_diagnostics_uv_hu
+      real*4    :: timestep_diagnostics_uv_uv
+      real*4    :: timestep_diagnostics_uv_cwave
+      real*4    :: timestep_diagnostics_uv_cmax
+      integer*4 :: timestep_diagnostics_uv_reason ! 0=wave, 1=velocity, 2=dtmax cap
+      !!!
       !!! Error code
       integer :: error
       character*256 :: error_message
@@ -54,6 +65,7 @@ module sfincs_data
       real*4 hmin_cfl
       real*4 dtmax
       real*4 dtmin
+      real*4 dt_timestep_diagnostics
       real*4 zini
       real*4 x0
       real*4 y0
@@ -227,6 +239,7 @@ module sfincs_data
       logical       :: bziwaves
       logical       :: infiltration
       logical       :: debug
+      logical       :: timestep_diagnostics
       logical       :: radstr
       logical       :: crsgeo
       logical       :: ampr_block
@@ -263,6 +276,7 @@ module sfincs_data
       logical       :: wave_enhanced_roughness
       logical       :: use_bcafile
       LOGICAL       :: snapwave_use_nearest
+      logical       :: snapwave_his_legacy_names
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
