@@ -93,8 +93,9 @@ module snapwave_solver
       !
       if (igwaves) then          
          !
-         do k = 1, no_nodes             
+         do k = 1, no_nodes
             Hmx_ig(k) = 0.88 / kwav_ig(k) * tanh(gamma_ig * kwav_ig(k) * depth(k) / 0.88) ! Note - uses gamma_ig
+            Hmx_ig(k) = gamma_ig * depth(k)
          enddo
          !
       else
@@ -488,6 +489,7 @@ module snapwave_solver
          ! Limit energy with gammax
          !
          depthlimfac = max(1.0, (sqrt(sum(ee(:, k)) * dtheta / rhog8) / (gammax * depth(k)) )**2.0)
+         depthlimfac = 1.0
          ee(:,k)   = ee(:,k) / depthlimfac
          !
          E(k)      = sum(ee(:, k)) * dtheta
@@ -496,6 +498,7 @@ module snapwave_solver
          if (igwaves) then
             !
             depthlimfac = max(1.0, (sqrt(sum(ee_ig(:, k)) * dtheta / rhog8) / (gammax * depth(k)) )**2.0)
+            depthlimfac = 1.0
             ee_ig(:,k)  = ee_ig(:,k) / depthlimfac
             !
             E_ig(k) = sum(ee_ig(:, k)) * dtheta
@@ -775,7 +778,7 @@ module snapwave_solver
                      !
                      ! Update Hk
                      !
-                     H(k)      = sqrt(8 * sum(ee(:, k)) * dtheta / rho / g)
+                     H(k) = sqrt(8 * sum(ee(:, k)) * dtheta / rho / g)
                      ! 
                      ! Bottom friction Henderson and Bowen (2002) - D = 0.015*rhow*(9.81/depth(k))**1.5*(Hk/sqrt(8.0))*Hk_ig**2/8
                      !
@@ -792,6 +795,9 @@ module snapwave_solver
                         Dwk_ig = 0.0
                         !
                      endif
+                     if (k==1000) then
+                        write(*,'(a,20e16.6)')'depth(k),Hk_ig,Hmx_ig(k),Dwk_ig',depth(k),Hk_ig,Hmx_ig(k),Dwk_ig,cg_ig(k)
+                     endif   
                      !
                      ! Store dissipation terms for output
                      !
@@ -1028,17 +1034,24 @@ module snapwave_solver
    !
    if (opt == 1) then
       !
-      ! Add some extra dissipation when Hloc exceeds Hmax (apparently needed at very steep coast lines)
+      ! Add extra dissipation when Hloc exceeds Hmax (apparently needed at very steep coast lines)
       !
-      !if (Hloc > Hmax) then
-      !   f = (Hloc / Hmax)**5
-      !else
-      !   f = 1.0
-      !endif
+      if (Hloc > Hmax) then
+         !
+         f = (Hloc / Hmax)**2
+         !
+      else
+         !
+         f = 1.0
+         !
+      endif
       !
-      f = 1.0
+      !f = 1.0
       !
       Dw = 0.28 * alfa * rho * g / T * exp( - (Hmax / Hloc)**2) * (Hmax**2 + Hloc**2) * f
+!      if (depth<2.0 .and. gamma>0.95) then
+!         write(*,'(a,20e16.6)')'Dw, Hmax, Hloc, depth, f',Dw, Hmax, Hloc, depth, f
+!      endif   
       !
    else
       !
