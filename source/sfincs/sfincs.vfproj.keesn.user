@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VisualStudioUserFile ProjectCreator="Intel Fortran" Keyword="Console Application" Version="11.0" ProjectIdGuid="{84DFC66B-C675-4F50-8A9A-62E7E483ACDD}">
+	<Configurations>
+		<Configuration Name="Debug|x64" WorkingDirectory="d:\software\SFINCS\20250702_testing_GreenAmpt\vanPeter\models_new_dem_and_infiltration\willemstad_surroundings\">
+		</Configuration>
+		<Configuration Name="Release|x64" WorkingDirectory="d:\software\SFINCS\20250702_testing_GreenAmpt\vanPeter\models_new_dem_and_infiltration\willemstad_surroundings\">
+		</Configuration>
+	</Configurations></VisualStudioUserFile>
