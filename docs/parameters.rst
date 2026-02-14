@@ -415,6 +415,17 @@ Parameters for model output
 	  :description:		Flag to turn on writing away every timestep to output as debug mode (debug = 1)
 	  :units:		-
 	  :default:		0	
+	timestep_diagnostics
+	  :description:		Flag to write timestep limiter diagnostics to csv files (timestep_diagnostics = 1). Writes `timestep_diagnostics.csv` during the run and `timestep_diagnostics_domain.csv` at the end of the run. Reason codes: 0=wave-speed limited, 1=velocity limited, 2=dtmax cap.
+	  :units:		-
+	  :default:		0
+	  :min:			0
+	  :max:			1
+	dt_timestep_diagnostics
+	  :description:		Write interval (in seconds) for `timestep_diagnostics.csv`; set to 0 to write every timestep.
+	  :units:		s
+	  :default:		0
+	  :min:			0
 	percentage_done
 	  :description:		Setting of how frequent to show progress of SFINCS in terms of % and time remaining, default = 5%
 	  :units:		integer
