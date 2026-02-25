@@ -1239,6 +1239,7 @@ module snapwave_solver
    beta3 = 17.7104
    beta4 = 1
    beta5 = 0.7
+   !beta5 = 0.5   
    beta6 = 0.11841
    beta7 = 0.34037
    !
@@ -1254,7 +1255,8 @@ module snapwave_solver
           !
        elseif (gam >= beta7) then ! shallow water - for gam>0.7 the fit automatically goes to 0
           !
-          alphaig = exp(-beta3 * beta ** beta4) * (max(beta5 - gam, 0.0)) * beta6           
+          alphaig = exp(-beta3 * beta ** beta4) * (max(beta5 - gam, 0.0)) * beta6    
+          !alphaig = exp(-beta3 * beta ** beta4) * (max(0.5 - gam, 0.0)) * beta6                     
           !
        else ! for safety, but negative gamma should not occur
           ! 
