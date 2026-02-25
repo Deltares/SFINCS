@@ -86,7 +86,8 @@ module snapwave_solver
       enddo
       if (igwaves) then          
          do k = 1, no_nodes             
-            Hmx_ig(k)    = 0.88/kwav_ig(k)*tanh(gamma_ig*kwav_ig(k)*depth(k)/0.88) ! Note - uses gamma_ig
+            !Hmx_ig(k)    = 0.88/kwav_ig(k)*tanh(gamma_ig*kwav_ig(k)*depth(k)/0.88) ! Note - uses gamma_ig
+            Hmx_ig(k)       = gamma_ig*depth(k)            
          enddo
       else
          Hmx_ig    = 0.0
