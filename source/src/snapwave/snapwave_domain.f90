@@ -200,6 +200,7 @@ contains
    prev360 = 0
    H       = 0.0
    H_ig    = 0.0
+   Dw      = 0.0
    aa     = 0.0
    sig    = 0.0
    WsorE  = 0.0
