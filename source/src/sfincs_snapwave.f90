@@ -237,10 +237,11 @@ contains
    ! Loop through SFINCS points
    !
    do ipsf = 1, np
+      !
       iq   = index_quadtree_in_sfincs(ipsf)
       ipsw = index_snapwave_in_quadtree(iq)
       index_snapwave_in_sfincs(ipsf) = ipsw
-      !if (ipsf==16513) write(*,*)'snapwave',ipsw
+      !
    enddo   
    !
    ! Print warning message

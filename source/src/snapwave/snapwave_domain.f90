@@ -391,7 +391,7 @@ contains
                   ysect=[y(ind1)-y(k), y(ind2)-y(k)]*circumf_pole/360.0
                   call intersect_angle(0.d0, 0.d0, theta(itheta) + pi, xsect, ysect, ww, dss, xi, yi)
                   
-               endif               
+               endif
                if (dss/=0) then
                   w(1, itheta,k) = ww(1)
                   w(2, itheta,k) = ww(2)
@@ -1139,7 +1139,7 @@ end subroutine neuboundaries
    ! 4) Loop through all points and make cells for points where msk==1.
    !    The node indices in the cells will point to the indices of the entire quadtree.
    !    In a second temporary mask array msk_tmp2, determine which nodes are actually active (being part a cell)
-   ! 5) Set back snapwave_mask = 2&3 values of wave boudnary and neumann cells
+   ! 5) Set back snapwave_mask = 2&3 values of wave boundary and neumann cells
    ! 6) Count actual number of active nodes and cells, and allocate arrays
    ! 7) Set node data and re-map indices 
    !
@@ -2030,7 +2030,7 @@ end subroutine neuboundaries
       ! Check for inactive cell top left
       !
       if (md == 0 .and. nu == 0 .and. md1 > 0 .and. nu1 > 0) then
-         if (msk_tmp(md1) == 2 .and. msk_tmp(nu1) == 2 .and. msk_tmp(ip) == 1) then
+         if (msk_tmp(md1) == 2 .and. msk_tmp(nu1) == 2 .and. msk_tmp(ip) == 1 .and. quadtree_nu1(md1) == 0) then
             !
             nfaces           = nfaces + 1
             faces(1, nfaces) = md1
@@ -2044,7 +2044,7 @@ end subroutine neuboundaries
       ! Check for inactive cell bottom left
       !
       if (md == 0 .and. nd == 0 .and. md1 > 0 .and. nd1 > 0) then
-         if (msk_tmp(md1) == 2 .and. msk_tmp(nd1) == 2 .and. msk_tmp(ip) == 1) then
+         if (msk_tmp(md1) == 2 .and. msk_tmp(nd1) == 2 .and. msk_tmp(ip) == 1 .and. quadtree_nd1(md1) == 0) then
             !
             nfaces           = nfaces + 1
             faces(1, nfaces) = md1
@@ -2058,7 +2058,7 @@ end subroutine neuboundaries
       ! Check for inactive cell top right
       !
       if (mu == 0 .and. nu == 0 .and. mu1 > 0 .and. nu1 > 0) then
-         if (msk_tmp(mu1) == 2 .and. msk_tmp(nu1) == 2 .and. msk_tmp(ip) == 1) then
+         if (msk_tmp(mu1) == 2 .and. msk_tmp(nu1) == 2 .and. msk_tmp(ip) == 1 .and. quadtree_nu1(mu1) == 0) then
             !
             nfaces           = nfaces + 1
             faces(1, nfaces) = ip
@@ -2072,7 +2072,7 @@ end subroutine neuboundaries
       ! Check for inactive cell bottom right
       !
       if (mu == 0 .and. nd == 0 .and. mu1 > 0 .and. nd1 > 0) then
-         if (msk_tmp(mu1) == 2 .and. msk_tmp(nd1) == 2 .and. msk_tmp(ip) == 1) then
+         if (msk_tmp(mu1) == 2 .and. msk_tmp(nd1) == 2 .and. msk_tmp(ip) == 1 .and. quadtree_nd1(mu1) == 0) then
             !
             nfaces           = nfaces + 1
             faces(1, nfaces) = ip
