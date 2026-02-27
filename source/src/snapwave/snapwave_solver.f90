@@ -134,7 +134,7 @@ module snapwave_solver
                                          aa, sig, jadcgdx, sigmin, sigmax,&
                                          c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
-                                         beta, srcig, alphaig, Dw_ig, Df_ig, &
+                                         beta, srcig, alphaig, Dw_ig, Df_ig, qb, gam, &
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
                                          zb, nwav, ig_opt, alpha_ig, gamma_ig, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
       !
@@ -159,7 +159,7 @@ module snapwave_solver
                                          aa, sig, jadcgdx, sigmin, sigmax,&
                                          c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
-                                         betamean, srcig, alphaig, Dw_ig, Df_ig, &       
+                                         betamean, srcig, alphaig, Dw_ig, Df_ig, qb, gam, &       
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
                                          zb, nwav, ig_opt, alfa_ig, gamma_ig, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
    !
@@ -196,6 +196,8 @@ module snapwave_solver
    real*4, dimension(ntheta,no_nodes), intent(in)   :: ctheta_ig              ! refractioon speed
    real*4, dimension(no_nodes), intent(in)          :: fw                     ! wave friction factor
    real*4, dimension(no_nodes), intent(in)          :: fw_ig                  ! wave friction factor
+   real*4, dimension(no_nodes), intent(out)         :: qb                     ! Fraction of breaking waves according to Baldock's formulation 
+   real*4, dimension(no_nodes), intent(out)         :: gam                    ! Local incident wave height water depth ratio
    real*4, dimension(no_nodes), intent(out)         :: betamean               ! Mean local bed slope parameter  
    real*4, dimension(no_nodes), intent(out)         :: srcig                  ! Directionally averaged incident wave sink/infragravity source term 
    real*4, dimension(no_nodes), intent(out)         :: alphaig                ! Mean IG shoaling parameter alpha    
@@ -258,7 +260,9 @@ module snapwave_solver
    real*4, dimension(:,:), allocatable        :: srcig_local            ! Energy source/sink term because of IG wave energy transfer from incident waves
    real*4, dimension(:,:), allocatable        :: beta_local             ! Local bed slope based on bed level per direction      
    real*4, dimension(:,:), allocatable        :: alphaig_local          ! Local infragravity wave shoaling parameter alpha
-   real*4, dimension(:,:), allocatable        :: depthprev              ! water depth at upwind intersection point per direction     
+   real*4, dimension(:,:), allocatable        :: depthprev              ! water depth at upwind intersection point per direction
+   real*4, dimension(:,:), allocatable        :: qb_local               !     
+   real*4, dimension(:,:), allocatable        :: gam_local              !   
    real*4, dimension(:), allocatable          :: dee                    ! difference with energy previous iteration
    real*4, dimension(:), allocatable          :: eeprev, cgprev         ! energy density and group velocity at upwind intersection point
    real*4, dimension(:), allocatable          :: eeprev_ig, cgprev_ig   ! energy density and group velocity at upwind intersection point
@@ -341,6 +345,9 @@ module snapwave_solver
       allocate(depthprev(ntheta,no_nodes)); depthprev=0.0                     
       allocate(beta_local(ntheta,no_nodes)); beta_local=0.0        
       allocate(alphaig_local(ntheta,no_nodes)); alphaig_local=0.0
+      allocate(qb_local(ntheta,no_nodes)); qb_local=0.0        
+      allocate(gam_local(ntheta,no_nodes)); gam_local=0.0        
+      
    endif
    !
    if (wind) then
@@ -473,7 +480,7 @@ module snapwave_solver
       !      
       ! Actual determining of source term: 
       !          
-      call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx) 
+      call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local) 
       !         
       ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev, beta_local
       ! in: the rest
@@ -556,7 +563,7 @@ module snapwave_solver
                 !
                 ! Actual determining of source term - every first sweep of iteration
                 !          
-                call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx) 
+                call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local) 
                 !    
             endif
             !
@@ -939,6 +946,16 @@ module snapwave_solver
                !
                srcig(k)   = sum(srcig_local(:,k)) /ntheta ! real mean                    
                !
+               !qb(k)   = sum(qb_local(:,k)) /ntheta ! real mean  
+               qb(k)   = maxval(qb_local(:,k)) ! max 
+               !
+               !gam(k)   = sum(gam_local(:,k)) /ntheta ! real mean
+               gam(k)   = maxval(gam_local(:,k)) ! max        
+               !
+               !if (qb(k) > 0.01) then
+               !   write(*,*)'k qb gam',k, qb_local(:,k), gam_local(:,k)
+               !endif               
+               !               
             endif
             !
             if (wind) then
@@ -1019,7 +1036,7 @@ module snapwave_solver
    !
    end subroutine baldock
    
-   subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx)
+   subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local)
     !   
     implicit none
     !  
@@ -1047,7 +1064,9 @@ module snapwave_solver
     real*4, dimension(:,:), intent(inout)            :: srcig_local     ! Energy source/sink term because of IG wave shoaling
     real*4, dimension(:), intent(inout)              :: eeprev, cgprev  ! energy density and group velocity at upwind intersection point
     real*4, dimension(:), intent(inout)              :: eeprev_ig       ! energy density  at upwind intersection point 
-    real*4, dimension(ntheta,no_nodes), intent(inout):: beta_local      ! Local bed slope based on bed level per direction              
+    real*4, dimension(ntheta,no_nodes), intent(inout):: beta_local      ! Local bed slope based on bed level per direction   
+    real*4, dimension(ntheta,no_nodes), intent(inout):: qb_local        ! 
+    real*4, dimension(ntheta,no_nodes), intent(inout):: gam_local       !     
     !
     ! Internal variables
     integer                                          :: itheta          ! directional counter
@@ -1113,14 +1132,17 @@ module snapwave_solver
                     !
                     !betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin)) ! TL: in case in the future we would need the normalised bed slope again   
                     !
+                    ! Fraction of breaking waves, based on H(k)
+                    !Qb = min(max(exp(-(Hmx(k)/H(k))**2), 0.0), 1.0) ! Qb percentage of breaking waves according to Baldock's formulation, between 0 and  1
+                    ! Base on upwind point:
+                    Qb = min(max(exp(-((w(1, itheta, k)*Hmx(k1) + w(2, itheta, k)*Hmx(k2)) / Hprev(itheta))**2), 0.0), 1.0) ! Qb percentage of breaking waves according to Baldock's formulation, between 0 and  1                    
+                    !
+                    qb_local(itheta, k) = Qb
+                    !                       
                     ! TL - Note: cg_ig = cg
                     if (ig_opt == 8) then
                         !
                         ! Free waves if incident waves start breaking (defined here as 1%)
-                        !
-                        Qb = exp(-(Hmx(k) / H(k))**2)
-                        ! Base on upwind point:
-                        !Qb = exp(-((w(1, itheta, k)*Hmx(k1) + w(2, itheta, k)*Hmx(k2)) / Hprev(itheta))**2)
                         !         
                         if (Qb > 0.01) then  
                             !     
@@ -1154,6 +1176,8 @@ module snapwave_solver
                     ! Determine relative waterdepth 'gam'
                     !
                     gam = max(0.5*(Hprev(itheta)/depthprev(itheta,k) + H(k)/depth(k)), 0.0) ! mean gamma over current and upwind point
+                    !
+                    gam_local(itheta, k) = gam
                     !
                     ! Determine dSxx and IG source/sink term 'srcig'
                     !
@@ -1206,14 +1230,8 @@ module snapwave_solver
                                !
                             elseif (ig_opt == 7) then
                                ! Base on E_prev_ig instead of eeprev_ig(itheta) > no bins but total energy
+                               !
                                ! Now also reduced by fraction of breaking waves (1-Qb)
-                               Qb = exp(-(Hmx(k) / H(k))**2)
-                               !
-                               ! Base on upwind point:                               
-                               !Qb = exp(-((w(1, itheta, k)*Hmx(k1) + w(2, itheta, k)*Hmx(k2)) / Hprev(itheta))**2)                   
-                               !
-                               ! Limit to [0,1] just in case
-                               Qb = min(Qb,max(Qb, 0.0),1.0)
                                !
                                srcig_local(itheta, k) = (1 - Qb) * alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k)
                                !
@@ -1245,10 +1263,6 @@ module snapwave_solver
                                 !
                                 ! Free waves if incident waves start breaking (defined here as 1%)
                                 !
-                                !Qb = exp(-(Hmx(k) / H(k))**2)
-                                ! Base on upwind point:
-                                Qb = exp(-((w(1, itheta, k)*Hmx(k1) + w(2, itheta, k)*Hmx(k2)) / Hprev(itheta))**2)
-                                !         
                                 if (Qb > 0.01) then  
                                     !                                                     
                                     srcig_local(itheta, k) = 0.0
@@ -1258,10 +1272,6 @@ module snapwave_solver
                             elseif (ig_opt == 8) then
                                 !
                                 ! Free waves if incident waves start breaking (defined here as 1%)
-                                !
-                                Qb = exp(-(Hmx(k) / H(k))**2)
-                                ! Base on upwind point:
-                                !Qb = exp(-((w(1, itheta, k)*Hmx(k1) + w(2, itheta, k)*Hmx(k2)) / Hprev(itheta))**2)
                                 !         
                                 if (Qb > 0.01) then  
                                     !     

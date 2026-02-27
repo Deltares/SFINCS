@@ -136,6 +136,8 @@ contains
    allocate(beta(no_nodes))
    allocate(srcig(no_nodes))
    allocate(alphaig(no_nodes))
+   allocate(qb(no_nodes))
+   allocate(gam(no_nodes))   
 !   allocate(uorb(no_nodes))
    allocate(ctheta(ntheta,no_nodes))
    allocate(ctheta_ig(ntheta,no_nodes))

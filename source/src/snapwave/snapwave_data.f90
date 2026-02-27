@@ -73,6 +73,8 @@ module snapwave_data
    real*4,  dimension(:),       allocatable    :: beta
    real*4,  dimension(:),       allocatable    :: srcig
    real*4,  dimension(:),       allocatable    :: alphaig   
+   real*4,  dimension(:),       allocatable    :: qb
+   real*4,  dimension(:),       allocatable    :: gam   
    !
    integer*4,  dimension(:),     allocatable    :: index_snapwave_in_quadtree
    integer*4,  dimension(:),     allocatable    :: index_quadtree_in_snapwave
