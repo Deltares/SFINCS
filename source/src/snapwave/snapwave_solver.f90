@@ -1115,7 +1115,7 @@ module snapwave_solver
                     ! TL - Note: cg_ig = cg
                     cgprev(itheta)      = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
                     !              
-                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 5 .or. ig_opt == 6) then 
+                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 7) then 
                         Sxx(itheta,k1)      = ((2.0 * max(0.0,min(1.0,nwav(k1)))) - 0.5) * ee(itheta, k1) ! limit so value of nwav is between 0 and 1
                         Sxx(itheta,k2)      = ((2.0 * max(0.0,min(1.0,nwav(k2)))) - 0.5) * ee(itheta, k2) ! limit so value of nwav is between 0 and 1
                     elseif (ig_opt == 4) then 
@@ -1139,7 +1139,7 @@ module snapwave_solver
                     !
                     ! Determine dSxx and IG source/sink term 'srcig'
                     !
-                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 4 .or. ig_opt == 5 .or. ig_opt == 6) then 
+                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 4 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 7) then 
                         !
                         ! Calculate shoaling parameter alpha_ig following Leijnse et al. (2024)
                         !  
@@ -1154,7 +1154,7 @@ module snapwave_solver
                             !
                         else
                             !              
-                            if (ig_opt == 1 .or. ig_opt == 3 .or. ig_opt == 5 .or. ig_opt == 6) then ! Option using conservative shoaling for dSxx/dx
+                            if (ig_opt == 1 .or. ig_opt == 3 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 7) then ! Option using conservative shoaling for dSxx/dx
                                 !
                                 ! Calculate Sxx based on conservative shoaling of upwind point's energy: 
                                 ! Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
@@ -1183,7 +1183,22 @@ module snapwave_solver
                                !
                             elseif (ig_opt == 3 .or. ig_opt == 4 .or. ig_opt == 5 .or. ig_opt == 6) then
                                ! Base on E_prev_ig instead of eeprev_ig(itheta) > no bins but total energy
-                               srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k)   
+                               ! 
+                               srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k)
+                               !
+                            elseif (ig_opt == 7) then
+                               ! Base on E_prev_ig instead of eeprev_ig(itheta) > no bins but total energy
+                               ! Now also reduced by fraction of breaking waves (1-Qb)
+                               Qb = exp(-(Hmx(k) / H(k))**2)
+                               !
+                               ! Base on upwind point:                               
+                               !Qb = exp(-((w(1, itheta, k)*Hmx(k1) + w(2, itheta, k)*Hmx(k2)) / Hprev(itheta))**2)                   
+                               !
+                               ! Limit to [0,1] just in case
+                               Qb = min(Qb,max(Qb, 0.0),1.0)
+                               !
+                               srcig_local(itheta, k) = (1 - Qb) * alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k)
+                               !
                             endif
                             !
                             ! Limit srcig to only where incident waves are not maximum dissipated
