@@ -189,7 +189,7 @@ module snapwave_solver
    real*4, dimension(no_nodes), intent(in)          :: kwav_ig                ! wave number
    real*4, dimension(no_nodes), intent(inout)       :: cg                     ! group velocity
    real*4, dimension(ntheta,no_nodes), intent(inout):: ctheta                 ! refractioon speed
-   real*4, dimension(no_nodes), intent(in)          :: cg_ig                  ! group velocity
+   real*4, dimension(no_nodes), intent(inout)       :: cg_ig                  ! group velocity
    real*4, dimension(no_nodes), intent(in)          :: nwav                   ! wave number n      
    real*4, dimension(ntheta,no_nodes), intent(inout):: ee                     ! 
    real*4, dimension(ntheta,no_nodes), intent(inout):: ee_ig                  ! 
@@ -1029,7 +1029,7 @@ module snapwave_solver
     real*4,  dimension(2,ntheta,no_nodes),intent(in) :: w               ! weights of upwind grid points, 2 per grid point and per wave direction
     real*4, dimension(ntheta,no_nodes), intent(in)   :: ds              ! distance to interpolated upwind point, per grid point and direction   
     integer, dimension(2,ntheta,no_nodes),intent(in) :: prev            ! two upwind grid points per grid point and wave direction    
-    real*4, dimension(no_nodes), intent(in)          :: cg_ig           ! group velocity
+    real*4, dimension(no_nodes), intent(inout)       :: cg_ig           ! group velocity
     real*4, dimension(no_nodes), intent(in)          :: nwav            ! wave number n  
     real*4, dimension(no_nodes), intent(in)          :: depth           ! water depth
     real*4, dimension(no_nodes), intent(in)          :: zb              ! actual bed level       
@@ -1065,6 +1065,7 @@ module snapwave_solver
     real*4                                           :: dSxx            ! difference in Radiation stress
     real*4                                           :: Sxx_cons        ! conservative estimate of radiation stress using conservative shoaling     
     real*4                                           :: delta_Dw        ! difference of Dw compared to upwind point, to get sign for max breaking point
+    real*4                                           :: Dwprev
     real*4                                           :: Qb              ! Percentage of breaking incident waves
     !   
     ! Allocate internal variables
@@ -1113,9 +1114,26 @@ module snapwave_solver
                     !betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin)) ! TL: in case in the future we would need the normalised bed slope again   
                     !
                     ! TL - Note: cg_ig = cg
+                    if (ig_opt == 8) then
+                        !
+                        ! Free waves if incident waves start breaking (defined here as 1%)
+                        !
+                        Qb = exp(-(Hmx(k) / H(k))**2)
+                        ! Base on upwind point:
+                        !Qb = exp(-((w(1, itheta, k)*Hmx(k1) + w(2, itheta, k)*Hmx(k2)) / Hprev(itheta))**2)
+                        !         
+                        if (Qb > 0.01) then  
+                            !     
+                            cg_ig(k) = sqrt(9.81 * depth(k))
+                            cg_ig(k1) = sqrt(9.81 * depth(k1))
+                            cg_ig(k2) = sqrt(9.81 * depth(k2))                            
+                            !
+                        endif      
+                    endif
+                    !
                     cgprev(itheta)      = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
                     !              
-                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 7) then 
+                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 7 .or. ig_opt == 8) then 
                         Sxx(itheta,k1)      = ((2.0 * max(0.0,min(1.0,nwav(k1)))) - 0.5) * ee(itheta, k1) ! limit so value of nwav is between 0 and 1
                         Sxx(itheta,k2)      = ((2.0 * max(0.0,min(1.0,nwav(k2)))) - 0.5) * ee(itheta, k2) ! limit so value of nwav is between 0 and 1
                     elseif (ig_opt == 4) then 
@@ -1139,7 +1157,7 @@ module snapwave_solver
                     !
                     ! Determine dSxx and IG source/sink term 'srcig'
                     !
-                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 4 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 7) then 
+                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 4 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 7 .or. ig_opt == 8) then 
                         !
                         ! Calculate shoaling parameter alpha_ig following Leijnse et al. (2024)
                         !  
@@ -1154,7 +1172,7 @@ module snapwave_solver
                             !
                         else
                             !              
-                            if (ig_opt == 1 .or. ig_opt == 3 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 7) then ! Option using conservative shoaling for dSxx/dx
+                            if (ig_opt == 1 .or. ig_opt == 3 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 7 .or. ig_opt == 8) then ! Option using conservative shoaling for dSxx/dx
                                 !
                                 ! Calculate Sxx based on conservative shoaling of upwind point's energy: 
                                 ! Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
@@ -1181,7 +1199,7 @@ module snapwave_solver
                                !
                                srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(eeprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k)
                                !
-                            elseif (ig_opt == 3 .or. ig_opt == 4 .or. ig_opt == 5 .or. ig_opt == 6) then
+                            elseif (ig_opt == 3 .or. ig_opt == 4 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 8) then
                                ! Base on E_prev_ig instead of eeprev_ig(itheta) > no bins but total energy
                                ! 
                                srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k)
@@ -1211,7 +1229,8 @@ module snapwave_solver
                                 !
                                 !write(*,*)'Dw', Dw
                                 !
-                                delta_Dw = Dw(k) - (w(1, itheta, k)*Dw(k1) + w(2, itheta, k)*Dw(k2))
+                                Dwprev = w(1, itheta, k)*Dw(k1) + w(2, itheta, k)*Dw(k2)
+                                delta_Dw = Dw(k) - Dwprev
                                 !
                                 if (delta_Dw < 0.0) then
                                     !
@@ -1236,6 +1255,32 @@ module snapwave_solver
                                     !
                                 endif                                
                                 !
+                            elseif (ig_opt == 8) then
+                                !
+                                ! Free waves if incident waves start breaking (defined here as 1%)
+                                !
+                                Qb = exp(-(Hmx(k) / H(k))**2)
+                                ! Base on upwind point:
+                                !Qb = exp(-((w(1, itheta, k)*Hmx(k1) + w(2, itheta, k)*Hmx(k2)) / Hprev(itheta))**2)
+                                !         
+                                if (Qb > 0.01) then  
+                                    !     
+                                    !cg_ig(k) = SQRT(9.81 * depth(k))
+                                    srcig_local(itheta, k) = 0.0
+                                    !
+                                endif                                  !
+                                
+                                !Dwprev = w(1, itheta, k)*Dw(k1) + w(2, itheta, k)*Dw(k2)
+                                !delta_Dw = Dw(k) - Dwprev
+                                !!
+                                !! More strict 
+                                !if (delta_Dw < 0.0 .and. Dwprev > 0.0 .and. Dw(k) < 0.0 ) then
+                                !    !
+                                !    !write(*,*)'delta_Dw', delta_Dw
+                                !    srcig_local(itheta, k) = 0.0
+                                !    !
+                                !endif
+                                !                                
                             endif                            
                             !
                         endif                      
