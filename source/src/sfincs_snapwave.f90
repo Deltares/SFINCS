@@ -26,6 +26,7 @@ module sfincs_snapwave
    real*4,    dimension(:),   allocatable    :: snapwave_Dwig
    real*4,    dimension(:),   allocatable    :: snapwave_Dfig
    real*4,    dimension(:),   allocatable    :: snapwave_cg
+   real*4,    dimension(:),   allocatable    :: snapwave_cgig   
    real*4,    dimension(:),   allocatable    :: snapwave_qb
    real*4,    dimension(:),   allocatable    :: snapwave_gam      
    real*4,    dimension(:),   allocatable    :: snapwave_beta
@@ -300,6 +301,7 @@ contains
    real*4,    dimension(:), allocatable       :: dwig0
    real*4,    dimension(:), allocatable       :: dfig0   
    real*4,    dimension(:), allocatable       :: cg0  
+   real*4,    dimension(:), allocatable       :: cgig0   
    real*4,    dimension(:), allocatable       :: qb0   
    real*4,    dimension(:), allocatable       :: gam0   
    real*4,    dimension(:), allocatable       :: beta0 
@@ -317,6 +319,7 @@ contains
    allocate(dwig0(np))
    allocate(dfig0(np))  
    allocate(cg0(np))
+   allocate(cgig0(np))   
    allocate(qb0(np)) 
    allocate(gam0(np))      
    allocate(beta0(np))   
@@ -330,6 +333,7 @@ contains
    dwig0 = 0.0
    dfig0 = 0.0
    cg0 = 0.0
+   cgig0 = 0.0   
    qb0 = 0.0
    gam0 = 0.0
    beta0 = 0.0
@@ -426,6 +430,7 @@ contains
          dwig0(nm)  = snapwave_Dwig(ip)   
          dfig0(nm)  = snapwave_Dfig(ip)
          cg0(nm)    = snapwave_cg(ip)
+         cgig0(nm)  = snapwave_cgig(ip)         
          qb0(nm)    = snapwave_qb(ip)
          gam0(nm)   = snapwave_gam(ip)         
          beta0(nm)  = snapwave_beta(ip)
@@ -451,6 +456,7 @@ contains
          dwig0(nm)  = 0.0
          dfig0(nm)  = 0.0
          cg0(nm)    = 0.0
+         cgig0(nm)  = 0.0         
          qb0(nm)    = 0.0
          gam0(nm)   = 0.0         
          beta0(nm)  = 0.0
@@ -471,7 +477,8 @@ contains
          df(nm)         = df0(nm)         
          dwig(nm)       = dwig0(nm)
          dfig(nm)       = dfig0(nm)
-         cg(nm)         = cg0(nm)  
+         cg(nm)         = cg0(nm) 
+         cgig(nm)       = cgig0(nm)         
          qb(nm)         = qb0(nm)   
          gam(nm)        = gam0(nm)         
          betamean(nm)   = beta0(nm)         
@@ -550,6 +557,7 @@ contains
    snapwave_Dwig                  = Dw_ig
    snapwave_Dfig                  = Df_ig
    snapwave_cg                    = cg
+   snapwave_cgig                  = cg_ig   
    snapwave_qb                    = qb
    snapwave_gam                   = gam   
    snapwave_beta                  = beta
@@ -573,7 +581,8 @@ contains
        endif
        !
        if (snapwave_H_ig(k) <= 0.0) then
-           snapwave_Tp_ig(k) = 0.0        
+           snapwave_Tp_ig(k) = 0.0   
+           snapwave_cgig(k) = 0.0           
        endif       
    enddo   
    !

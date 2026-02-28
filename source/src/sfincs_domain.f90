@@ -2581,6 +2581,8 @@ contains
          dfig = 0.0   
          allocate(cg(np))
          cg = 0.0
+         allocate(cgig(np))
+         cgig = 0.0         
          allocate(qb(np))
          qb = 0.0   
          allocate(gam(np))

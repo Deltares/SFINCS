@@ -1147,8 +1147,8 @@ module snapwave_solver
                         if (Qb > 0.01) then  
                             !     
                             cg_ig(k) = sqrt(9.81 * depth(k))
-                            cg_ig(k1) = sqrt(9.81 * depth(k1))
-                            cg_ig(k2) = sqrt(9.81 * depth(k2))                            
+                            !cg_ig(k1) = sqrt(9.81 * depth(k1))
+                            !cg_ig(k2) = sqrt(9.81 * depth(k2))                            
                             !
                         endif      
                     endif
