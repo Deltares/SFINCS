@@ -480,7 +480,7 @@ module snapwave_solver
       !      
       ! Actual determining of source term: 
       !          
-      call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local) 
+      call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma) 
       !         
       ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev, beta_local
       ! in: the rest
@@ -563,7 +563,7 @@ module snapwave_solver
                 !
                 ! Actual determining of source term - every first sweep of iteration
                 !          
-                call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local) 
+                call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma) 
                 !    
             endif
             !
@@ -1036,7 +1036,7 @@ module snapwave_solver
    !
    end subroutine baldock
    
-   subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local)
+   subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma)
     !   
     implicit none
     !  
@@ -1056,6 +1056,7 @@ module snapwave_solver
     integer, intent(in)                              :: ig_opt          ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)    
     real*4, intent(in)                               :: alphaigfac      ! Multiplication factor for IG shoaling source/sink term, default = 1.0
     real*4, intent(in)                               :: dtheta          ! directional resolution
+    real*4, intent(in)                               :: gamma           ! coefficients in Baldock wave breaking dissipation    
     real*4, dimension(no_nodes), intent(in)          :: Dw              ! wave breaking dissipation
     real*4, dimension(no_nodes), intent(in)          :: Hmx             ! Hmax        
     !
@@ -1285,7 +1286,8 @@ module snapwave_solver
                                 ! Free waves if incident waves start breaking (defined here as gam=Hm0,inc / h > 0.5)
                                 !         
                                 ! gam is in Hrms, so multiply by sqrt(2)
-                                if ((gam * sqrt(2.0)) > 0.5) then  
+                                !if ((gam * sqrt(2.0)) > 0.5) then  
+                                if ((gam * sqrt(2.0)) > (2.0 / 3.0 * gamma)) then                                    
                                     !     
                                     srcig_local(itheta, k) = 0.0
                                     !
