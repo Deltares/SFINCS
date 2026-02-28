@@ -1155,7 +1155,7 @@ module snapwave_solver
                     !
                     cgprev(itheta)      = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
                     !              
-                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 7 .or. ig_opt == 8) then 
+                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 7 .or. ig_opt == 8 .or. ig_opt == 9) then 
                         Sxx(itheta,k1)      = ((2.0 * max(0.0,min(1.0,nwav(k1)))) - 0.5) * ee(itheta, k1) ! limit so value of nwav is between 0 and 1
                         Sxx(itheta,k2)      = ((2.0 * max(0.0,min(1.0,nwav(k2)))) - 0.5) * ee(itheta, k2) ! limit so value of nwav is between 0 and 1
                     elseif (ig_opt == 4) then 
@@ -1181,7 +1181,7 @@ module snapwave_solver
                     !
                     ! Determine dSxx and IG source/sink term 'srcig'
                     !
-                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 4 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 7 .or. ig_opt == 8) then 
+                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 4 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 7 .or. ig_opt == 8 .or. ig_opt == 9) then 
                         !
                         ! Calculate shoaling parameter alpha_ig following Leijnse et al. (2024)
                         !  
@@ -1196,7 +1196,7 @@ module snapwave_solver
                             !
                         else
                             !              
-                            if (ig_opt == 1 .or. ig_opt == 3 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 7 .or. ig_opt == 8) then ! Option using conservative shoaling for dSxx/dx
+                            if (ig_opt == 1 .or. ig_opt == 3 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 7 .or. ig_opt == 8 .or. ig_opt == 9) then ! Option using conservative shoaling for dSxx/dx
                                 !
                                 ! Calculate Sxx based on conservative shoaling of upwind point's energy: 
                                 ! Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
@@ -1223,7 +1223,7 @@ module snapwave_solver
                                !
                                srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(eeprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k)
                                !
-                            elseif (ig_opt == 3 .or. ig_opt == 4 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 8) then
+                            elseif (ig_opt == 3 .or. ig_opt == 4 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 8 .or. ig_opt == 9) then
                                ! Base on E_prev_ig instead of eeprev_ig(itheta) > no bins but total energy
                                ! 
                                srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k)
@@ -1278,19 +1278,18 @@ module snapwave_solver
                                     !cg_ig(k) = SQRT(9.81 * depth(k))
                                     srcig_local(itheta, k) = 0.0
                                     !
-                                endif                                  !
-                                
-                                !Dwprev = w(1, itheta, k)*Dw(k1) + w(2, itheta, k)*Dw(k2)
-                                !delta_Dw = Dw(k) - Dwprev
-                                !!
-                                !! More strict 
-                                !if (delta_Dw < 0.0 .and. Dwprev > 0.0 .and. Dw(k) < 0.0 ) then
-                                !    !
-                                !    !write(*,*)'delta_Dw', delta_Dw
-                                !    srcig_local(itheta, k) = 0.0
-                                !    !
-                                !endif
-                                !                                
+                                endif                                  
+                                !
+                            elseif (ig_opt == 9) then
+                                !
+                                ! Free waves if incident waves start breaking (defined here as gam=Hm0,inc / h > 0.5)
+                                !         
+                                ! gam is in Hrms, so multiply by sqrt(2)
+                                if ((gam * sqrt(2.0)) > 0.5) then  
+                                    !     
+                                    srcig_local(itheta, k) = 0.0
+                                    !
+                                endif                          
                             endif                            
                             !
                         endif                      
