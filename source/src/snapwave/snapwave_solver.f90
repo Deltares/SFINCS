@@ -946,9 +946,6 @@ contains
             if (diff(k) / eemax < crit) then
                ok(k) = 1
             endif   
-            !if (k==6399) then
-            !   write(*,*)diff(k) / eemax,crit,ok(k)
-            !endif
             !
          enddo
          !
@@ -1091,9 +1088,9 @@ contains
    if (iexp > 0 .and. Hloc > Hmax) then
       !
       ! Add extra dissipation when Hloc exceeds Hmax.
-      ! This is needed at very steep coast lines, where BJ78 dissipation cannot always keep up with
+      ! This is needed at very steep coast lines, where Baldock dissipation cannot always keep up with
       ! the wave height increase due to shoaling. The extra dissipation is added by multiplying
-      ! the BJ78 dissipation with a factor f, which is larger than 1 when Hloc > Hmax.
+      ! the Baldock dissipation with a factor f, which is larger than 1 when Hloc > Hmax.
       !
       f = (Hloc / Hmax)**iexp
       !

@@ -389,8 +389,37 @@ contains
          !
       endif
       !
+   endif
+   !
+   ! Check if meteo data covers the entire simulation period.
+   !
+   if (am_wind) then
+      !
+      if (amuv_times(1) > t0 + 1.0 .or. amuv_times(amuv_nt) < t1 - 1.0) then
+         write(logstr,'(a)')'Warning! Times in spatially-varying wind input file do not cover entire simulation period! Using nearest available data.'
+         call write_log(logstr, 1)
+      endif
+      !
    endif   
-   !   
+   !
+   if (am_pres) then
+      !
+      if (amp_times(1) > t0 + 1.0 .or. amp_times(amp_nt) < t1 - 1.0) then
+         write(logstr,'(a)')'Warning! Times in spatially-varying pressure input file do not cover entire simulation period! Using nearest available data.'
+         call write_log(logstr, 1)
+      endif
+      !
+   endif
+   !
+   if (am_prcp) then
+      !
+      if (ampr_times(1) > t0 + 1.0 .or. ampr_times(ampr_nt) < t1 - 1.0) then
+         write(logstr,'(a)')'Warning! Times in spatially-varying precipitation input file do not cover entire simulation period! Using nearest available data.'
+         call write_log(logstr, 1)
+      endif
+      !
+   endif   
+   !
    end subroutine
    !
    !
@@ -773,11 +802,17 @@ contains
          meteo_t = meteo_t1
       endif
       !
+      ! Make sure that meteo_t is within the range of amuv_times, if not, use first or last time in amuv_times.
+      !
+      meteo_t = max(meteo_t, amuv_times(1))
+      meteo_t = min(meteo_t, amuv_times(amuv_nt))
+      !
       do itspw = 1, amuv_nt
          if (amuv_times(itspw)<=meteo_t) then
             itw0 = itspw
          endif
       enddo
+      !
       itw1 = itw0 + 1
       itw1 = min(itw1, amuv_nt)
       !
@@ -942,6 +977,11 @@ contains
          meteo_t = meteo_t1
       endif
       !
+      ! Make sure that meteo_t is within the range of amp_times, if not, use first or last time in amp_times.
+      !
+      meteo_t = max(meteo_t, amp_times(1))
+      meteo_t = min(meteo_t, amp_times(amp_nt))
+      !
       ! Find time indices in amp file
       !
       do itspw = 1, amp_nt
@@ -1067,10 +1107,15 @@ contains
          meteo_t = meteo_t1
       endif
       !
+      ! Make sure that meteo_t is within the range of amuv_times, if not, use first or last time in amuv_times.
+      !
+      meteo_t = max(meteo_t, ampr_times(1))
+      meteo_t = min(meteo_t, ampr_times(ampr_nt))
+      !
       ! Find time indices in ampr file
       !
       do itspw = 1, ampr_nt
-         if (ampr_times(itspw)<=meteo_t) then
+         if (ampr_times(itspw) <= meteo_t) then
             itw0 = itspw
          endif
       enddo
