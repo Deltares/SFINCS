@@ -1140,20 +1140,6 @@ module snapwave_solver
                     !
                     qb_local(itheta, k) = Qb
                     !                       
-                    ! TL - Note: cg_ig = cg
-                    if (ig_opt == 8) then
-                        !
-                        ! Free waves if incident waves start breaking (defined here as 1%)
-                        !         
-                        if (Qb > 0.01) then  
-                            !     
-                            cg_ig(k) = sqrt(9.81 * depth(k))
-                            !cg_ig(k1) = sqrt(9.81 * depth(k1))
-                            !cg_ig(k2) = sqrt(9.81 * depth(k2))                            
-                            !
-                        endif      
-                    endif
-                    !
                     cgprev(itheta)      = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
                     !              
                     if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 7 .or. ig_opt == 8 .or. ig_opt == 9) then 
@@ -1179,6 +1165,30 @@ module snapwave_solver
                     gam = max(0.5*(Hprev(itheta)/depthprev(itheta,k) + H(k)/depth(k)), 0.0) ! mean gamma over current and upwind point
                     !
                     gam_local(itheta, k) = gam
+                    !
+                    ! Adjust cg_ig for free infragravity waves release in surfzone
+                    ! TL - Note: cg_ig = cg
+                    if (ig_opt == 8 .or. ig_opt == 9) then
+                        !
+                        ! Free waves if incident waves start breaking (defined here as 1%)
+                        !         
+                        if (Qb > 0.01) then  
+                            !     
+                            cg_ig(k) = sqrt(9.81 * depth(k))
+                            !cg_ig(k1) = sqrt(9.81 * depth(k1)) !TL - Note: if adjusted, then cgprev from above should also be updated
+                            !cg_ig(k2) = sqrt(9.81 * depth(k2))                            
+                            !
+                        endif     
+                        !
+                    elseif (ig_opt == 9) then
+                        !
+                        if ((gam * sqrt(2.0)) > (2.0 / 3.0 * gamma)) then                                    
+                            !
+                            cg_ig(k) = sqrt(9.81 * depth(k))
+                            !                            
+                        endif
+                        !
+                    endif                    
                     !
                     ! Determine dSxx and IG source/sink term 'srcig'
                     !
