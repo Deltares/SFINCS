@@ -48,7 +48,7 @@
    integer*4, dimension(:),     allocatable :: cell_indices
    integer*4, dimension(:),     allocatable :: indwm
    !
-   logical :: iok
+   logical :: iok, ok
    !
    integer ib1, ib2, ib, ic, nmb, nrwvm
    !
@@ -66,7 +66,7 @@
    write(logstr,*)'Reading wavemaker polyline file ...'
    call write_log(logstr, 0)
    !
-   iok = check_file_exists(wvmfile, 'Wave maker file', .true.)
+   ok = check_file_exists(wvmfile, 'Wave maker wvm file', .true.)
    !
    open(500, file=trim(wvmfile))
    do while(.true.)
@@ -1154,6 +1154,8 @@
       !
       ! Locations
       !
+      ok = check_file_exists(wfpfile, 'Wave maker wfp file', .true.)
+      !
       open(500, file=trim(wfpfile))
       do while(.true.)
          read(500,*,iostat = stat)dummy
@@ -1172,6 +1174,8 @@
       !
       ! First find times in whi file
       !
+      ok = check_file_exists(wfpfile, 'Wave maker whi file', .true.)
+      !      
       open(500, file=trim(whifile))
       do while(.true.)
          read(500,*,iostat = stat)dummy
@@ -1199,6 +1203,8 @@
       !
       ! Tp IG (peak period)
       !
+      ok = check_file_exists(wtifile, 'Wave maker wti file', .true.)
+      !      
       open(500, file=trim(wtifile))
       allocate(wmf_tp_ig(nwmfp, ntwmfp))
       do itb = 1, ntwmfp
@@ -1211,6 +1217,9 @@
       allocate(wmf_setup(nwmfp, ntwmfp))
       wmf_setup = 0.0
       if (wstfile(1:4) /= 'none') then
+         !
+         ok = check_file_exists(wstfile, 'Wave maker wsr file', .true.)
+         ! 
          open(500, file=trim(wstfile))
          do itb = 1, ntwmfp
             read(500,*)wmf_time(itb),(wmf_setup(ib, itb), ib = 1, nwmfp)
@@ -1526,6 +1535,10 @@
       !
    endif
    !
+   ! UV fluxes at wave makers
+   !
+   ! No OMP acceleration here?
+   !
    !$acc parallel present( wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, &
    !$acc                  zs, q, hm0, hm0_ig, zb, zbuv, subgrid_z_zmax, &
    !$acc                  wmf_hm0_ig_t, wmf_setup_t, wavemaker_index_wmfp1, wavemaker_index_wmfp2, wavemaker_fac_wmfp, &
@@ -1614,15 +1627,15 @@
          !
       else
          !
-         hnmb   = max(0.5*(zsnmb + zsnmi) - zbuv(ip), huthresh)
-         zsnmb  = max(zsnmb,  zb(nmb))
+         hnmb   = 0.5 * (zsnmb + zsnmi) - zbuv(ip)
+         zsnmb  = max(zsnmb, zb(nmb))
          zs0nmb = max(zs0nmb, zb(nmb))
          !
       endif
       !
-      ! Weakly reflective boundary
+      ! Use weakly reflective boundary condition 
       !
-      if (hnmb < huthresh + 1.0e-3) then ! huthresh has been set to 0.0 in case of subgrid, so add small number to avoid zero division
+      if (hnmb < wavemaker_hmin) then
          !
          ! Very shallow
          !
@@ -1632,18 +1645,18 @@
       else
          !
          ui = sqrt(g / hnmb) * (zsnmb - zs0nmb)
-         ub = wavemaker_idir(ib) * (2*ui - sqrt(g / hnmb) * (zsnmi - zs0nmb)) * wavemaker_angfac(ib)
+         ub = wavemaker_idir(ib) * (2 * ui - sqrt(g / hnmb) * (zsnmi - zs0nmb)) * wavemaker_angfac(ib)
          !
          q(ip) = ub * hnmb + wavemaker_uvmean(ib)
          !
       endif
       !
-      if (wmtfilter>=0.0) then
+      if (wmtfilter >= 0.0) then
          !
          ! Use double exponential time filter
          !
          uvm0 = wavemaker_uvmean(ib) ! Previous time step
-         wavemaker_uvmean(ib)  = alpha * q(ip)   + wavemaker_freduv * (1.0 - alpha) * (wavemaker_uvmean(ib) + wavemaker_uvtrend(ib))
+         wavemaker_uvmean(ib)  = alpha * q(ip) + wavemaker_freduv * (1.0 - alpha) * (wavemaker_uvmean(ib) + wavemaker_uvtrend(ib))
          wavemaker_uvtrend(ib) = beta * (wavemaker_uvmean(ib) - uvm0) + (1.0 - beta) * wavemaker_uvtrend(ib)
          !
       else
@@ -1653,7 +1666,6 @@
       endif
       !
    enddo
-   !
    !$acc end parallel
    !
    call system_clock(count1, count_rate, count_max)

@@ -98,7 +98,6 @@ contains
    !
    ! For some reason, it is necessary to set num_gangs here! Without, the program launches only 1 gang, and everything becomes VERY slow!
    !
-   !
    ! Copy flux and velocity from previous time step
    !
    !$acc parallel, present( q, q0, uv, uv0 )
@@ -112,11 +111,11 @@ contains
       uv0(ip) = uv(ip)
       !
    enddo
+   !$acc end parallel
    !$omp end do
    !$omp end parallel
-   !$acc end parallel
    !
-   ! Update fluxes
+   ! Copy flux and velocity from previous time step
    !
    !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, zsderv, &
    !$acc                    uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
@@ -278,7 +277,6 @@ contains
                      !
                      ! V point
                      !
-                     !dxuvinv  = dyrinv(iref) 
                      dxuvinv  = dyrinvc(iref)
                      dyuvinv  = dxrinv(iref)
                      dxuv2inv = 0.0 ! no viscosity
@@ -745,6 +743,7 @@ contains
          uv(cuv_index_uv(icuv)) = (uv(cuv_index_uv1(icuv)) + uv(cuv_index_uv2(icuv))) / 2
          !
       enddo
+      !$acc end parallel
       !$omp end do
       !$omp end parallel
       !$acc end parallel

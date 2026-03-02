@@ -87,6 +87,7 @@ module sfincs_data
       real*4 tsunami_arrival_threshold
       real*4 dtwave
       real*4 wmtfilter
+      real*4 wavemaker_hmin
       real*4 horton_kr_kd
       real*4 btrelax
       real*4 structure_relax
@@ -211,13 +212,14 @@ module sfincs_data
       logical       :: store_maximum_waterdepth
       logical       :: store_maximum_velocity
       logical       :: store_maximum_flux
-      logical       :: store_tmax_zs
+      logical       :: store_t_zsmax
       logical       :: store_velocity
       logical       :: store_twet
       logical       :: store_hsubgrid
       logical       :: store_hmean      
       logical       :: store_qdrain
       logical       :: store_zvolume
+      logical       :: store_storagevolume            
       logical       :: store_meteo
       logical       :: store_wind      
       logical       :: store_wind_max
@@ -268,6 +270,7 @@ module sfincs_data
       logical       :: use_bcafile
       logical       :: bathtub
       logical       :: bathtub_snapwave      
+      LOGICAL       :: snapwave_use_nearest
       !!!
       !!! sfincs_input.f90 switches
       !!!
@@ -276,9 +279,10 @@ module sfincs_data
       integer storevel
       integer storecumprcp
       integer storetwet
-      integer storetmax_zs
+      integer storetzsmax
       integer storeqdrain
       integer storezvolume
+      integer storestoragevolume      
       integer storemeteo
       integer storehsubgrid
       integer wrttimeoutput
@@ -555,7 +559,7 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: uv0
       real*8, dimension(:),   allocatable :: z_volume
       real*4, dimension(:),   allocatable :: twet
-      real*4, dimension(:),   allocatable :: tmax_zs
+      real*4, dimension(:),   allocatable :: t_zsmax
       real*4, dimension(:),   allocatable :: tsunami_arrival_time
       real*4, dimension(:),   allocatable :: zs0
       real*4, dimension(:),   allocatable :: zsderv
@@ -637,13 +641,6 @@ module sfincs_data
       real*4, dimension(:),     allocatable :: zst_bnd
       real*4, dimension(:),     allocatable :: zsit_bnd
       !
-      ! Downstream river boundary points
-      !
-      real*4,  dimension(:),     allocatable :: x_bdr
-      real*4,  dimension(:),     allocatable :: y_bdr
-      integer, dimension(:),     allocatable :: index_zsi_bdr
-      real*4,  dimension(:),     allocatable :: dzs_bdr
-      !      
       ! Astro tide data
       !
       integer*4                             :: nr_tidal_components
@@ -651,6 +648,7 @@ module sfincs_data
       real*8, dimension(:,:,:), allocatable :: tidal_component_data
       !
       ! Wave boundary points
+      ! Downstream river boundary points
       !
       !real*4, dimension(:),     allocatable :: x_bwv
       !real*4, dimension(:),     allocatable :: y_bwv
@@ -670,6 +668,10 @@ module sfincs_data
       real*4, dimension(:),     allocatable :: phiinc
       real*4, dimension(:),     allocatable :: dphiinc
       real*4                                :: dfreqinc
+      real*4,  dimension(:),     allocatable :: x_bdr
+      real*4,  dimension(:),     allocatable :: y_bdr
+      integer, dimension(:),     allocatable :: index_zsi_bdr
+      real*4,  dimension(:),     allocatable :: dzs_bdr
       !
       ! IG frequencies (for wave makers)
       !
@@ -799,9 +801,9 @@ module sfincs_data
       integer*1, dimension(:),     allocatable :: structure_type
       real*4,    dimension(:,:),   allocatable :: structure_parameters
       real*4,    dimension(:),     allocatable :: structure_length
-!      real*4,    dimension(:),     allocatable :: struc_x
-!      real*4,    dimension(:),     allocatable :: struc_y
-!      real*4,    dimension(:),     allocatable :: struc_height
+      !
+      integer                                  :: nrthindams
+      integer,   dimension(:),     allocatable :: thindam_uv_index
       !!!
       !!! Cross-sections
       !!!

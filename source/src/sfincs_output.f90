@@ -62,7 +62,7 @@ module sfincs_output
    !
    ! Create his file if either observation points, cross-sections, structures or drains present
    !
-   if (dthisout>1.0e-6 .and. (nobs>0 .or. nrcrosssections>0 .or. nrstructures>0 .or. ndrn>0 .or. nr_runup_gauges>0 )) then
+   if (dthisout>1.0e-6 .and. (nobs>0 .or. nrcrosssections>0 .or. nrstructures>0 .or. nrthindams>0 .or. ndrn>0 .or. nr_runup_gauges>0 )) then
       !
       thisout     = t0
       !
@@ -178,8 +178,8 @@ module sfincs_output
       if (store_twet) then
          !$acc update host(twet)
       endif
-      if (store_tmax_zs) then
-         !$acc update host(tmax_zs)
+      if (store_t_zsmax) then
+         !$acc update host(t_zsmax)
       endif
       !
       if (store_cumulative_precipitation) then
@@ -229,9 +229,9 @@ module sfincs_output
          !$acc update device(twet)
       endif
       !      
-      if (store_tmax_zs) then
-         tmax_zs = -999.0 ! Set tmax_zs back to a small value
-         !$acc update device(tmax_zs)
+      if (store_t_zsmax) then
+         t_zsmax = -999.0 ! Set t_zsmax back to a small value
+         !$acc update device(t_zsmax)
       endif
    endif
    !
@@ -374,8 +374,8 @@ module sfincs_output
       open(unit = 855, status = 'replace', file = 'qmax.dat', form = 'unformatted')
    endif
    !
-   if (store_tmax_zs) then
-      open(unit = 856, status = 'replace', file = 'tmax_zs.dat', form = 'unformatted')
+   if (store_t_zsmax) then
+      open(unit = 856, status = 'replace', file = 't_zsmax.dat', form = 'unformatted')
    endif
    !
    end subroutine
@@ -521,8 +521,8 @@ module sfincs_output
       write(855)qmax
    endif
    ! 
-   if (store_tmax_zs) then
-      write(856)tmax_zs
+   if (store_t_zsmax) then
+      write(856)t_zsmax
    endif
    ! 
    end subroutine
@@ -677,8 +677,6 @@ module sfincs_output
    !
    real*4, dimension(:),   allocatable :: zs4
    !
-   integer :: ib
-   !
    allocate(zs4(np))
    !
    ! Map from real*8 to real*4
@@ -732,9 +730,8 @@ module sfincs_output
    else ! default option remains type 1 without infiltration in restart
       !
       write(911)1    
-      write(911)zs4
-      ! q is actually larger than npuv! It has size npuv + ncuv + 1
-      write(911)q
+      write(911)zs4     
+      write(911)q ! Note: q is actually larger than npuv! It has size npuv + ncuv + 1
       write(911)uvmean
       !
    endif   

@@ -93,8 +93,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.2.1-alpha col d'Eze-branch: MvO combo, gates & meteo factors & fixed quadtree restart & weir fix"
-   build_date     = "$Date: 2026-02-24"
+   build_revision = "$Rev: v2.3.1 Mount Faber"
+   build_date     = "$Date: 2025-12-18"
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)
@@ -162,7 +162,7 @@ module sfincs_lib
    !
    call read_crs_file()         ! Reads cross sections
    !
-   call read_rug_file()         ! Reads cross sections
+   call read_rug_file()         ! Read runup gauge file
    !
    call read_discharges()       ! Reads dis and src file
    !
@@ -234,6 +234,11 @@ module sfincs_lib
    else   
       call write_log('Precipitation        : no', 1)
    endif
+   if (infiltration) then
+      call write_log('Infiltration         : yes', 1)
+   else   
+      call write_log('Infiltration         : no', 1)
+   endif   
    if (snapwave) then
       call write_log('SnapWave             : yes', 1)
    else

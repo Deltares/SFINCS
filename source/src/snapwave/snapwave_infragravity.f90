@@ -73,7 +73,7 @@ module snapwave_infragravity
     ! Catch NaN values (if depth=0 probably) or unrealistically large values above 2 meters
     if (hsig < 0.0) then
        !
-	    write(logstr,*)'DEBUG SnapWave - computed hm0ig at boundary dropped below 0 m: ',hsig, ' and is therefore limited back to 0 m!'
+	   write(logstr,*)'DEBUG SnapWave - computed hm0ig at boundary dropped below 0 m: ',hsig, ' and is therefore limited back to 0 m!'
        call write_log(logstr, 1)        
        !
 	    hsig = max(hsig, 0.0)
@@ -87,7 +87,8 @@ module snapwave_infragravity
        !
 	    !write(*,*)'DEBUG - computed hm0ig at boundary exceeds 3 meter: ',hsig, ' and is therefore limited back to 3 m!'
 	    !hsig = min(hsig, 3.0)
-    endif	        
+        !
+    endif
     !
     ! Choose what wave period option value for IG to choose:
     ! Options: 1=Tm01, 2=Tpsmooth, 3=Tp, 4=Tm-1,0
@@ -118,7 +119,7 @@ module snapwave_infragravity
 	    write(logstr,*)'DEBUG SnapWave - computed tpig/tpinc ratio at offshore boundary increased above 20 and might be unrealistic! value: ',tpig/tpinc
        call write_log(logstr, 1)        
     endif	         
-    !   
+    !
     end subroutine
    
     !-------------------------Supporting subroutines-------------------------!

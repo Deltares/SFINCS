@@ -25,7 +25,7 @@ contains
       !
    else
       !
-      call compute_water_levels_regular(dt)
+      call compute_water_levels_regular(dt,t)
       !
    endif  
    !
@@ -43,13 +43,14 @@ contains
    end subroutine
 
    
-   subroutine compute_water_levels_regular(dt)
+   subroutine compute_water_levels_regular(dt,t)
    !
    use sfincs_data
    !
    implicit none
    !
    real*4           :: dt
+   real*8           :: t   
    !
    integer          :: nm
    integer          :: isrc
@@ -237,6 +238,18 @@ contains
       !
       if (store_maximum_waterlevel) then
          !
+         ! Store when the maximum water level changed
+         !
+         if (store_t_zsmax) then
+             if (zs(nm) > zsmax(nm)) then
+                 if ( (zs(nm) - zb(nm)) > huthresh) then
+                    t_zsmax(nm) = t
+                 endif
+             endif
+         endif
+         !
+         ! Store the maximum water level itself
+         !
          zsmax(nm) = max(zsmax(nm), zs(nm))
          !
       endif
@@ -245,7 +258,6 @@ contains
    !$omp end do
    !$omp end parallel
    !$acc end parallel
-   !!$acc wait(1)
    !         
    end subroutine
 
@@ -303,23 +315,25 @@ contains
       do isrc = 1, nsrcdrn
          !
          nm = nmindsrc(isrc)
-         z_volume(nm) = z_volume(nm) + qtsrc(isrc) * dt
+         !
+         if ((z_volume(nm) >= 0) .or. ((qtsrc(isrc)<0.0) .and. (z_volume(nm) >= 0))) then
+            z_volume(nm) = z_volume(nm) + qtsrc(isrc) * dt
+         endif
          !
       enddo
       !$acc end serial
       !
    endif
    !
+   !$omp parallel &
+   !$omp private ( dvol,dzsdt,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,iwm,qnmd,qnmu,qndm,qnum,dv,zs00,zs11 )
+   !$omp do schedule ( dynamic, 256 )
    !$acc parallel present( kcs, zs, zs0, zb, z_volume, zsmax, zsm, maxzsm, zsderv, &
    !$acc                   subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
    !$acc                   netprcp, prcp, q, qext, z_flags_iref, uv_flags_iref, &
    !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
    !$acc                   dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area, &   
    !$acc                   z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, storage_volume)
-   !
-   !$omp parallel &
-   !$omp private ( dvol,dzsdt,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,iwm,qnmd,qnmu,qndm,qnum,dv,zs00,zs11 )
-   !$omp do schedule ( dynamic, 256 )
    !$acc loop gang vector
    do nm = 1, np
       !
@@ -588,10 +602,10 @@ contains
          !
          ! Store when the maximum water level changed
          !
-         if (store_tmax_zs) then
+         if (store_t_zsmax) then
              if (zs(nm) > zsmax(nm)) then
                  if ( (zs(nm) - subgrid_z_zmin(nm)) > huthresh) then
-                    tmax_zs(nm) = t
+                    t_zsmax(nm) = t
                  endif
              endif
          endif
@@ -703,7 +717,6 @@ contains
    !$omp end do
    !$omp end parallel
    !$acc end parallel
-   !!$acc wait(2)
    !       
    end subroutine
    
