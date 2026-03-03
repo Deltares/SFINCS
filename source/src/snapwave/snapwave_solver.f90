@@ -165,8 +165,8 @@ contains
       !
       call timer(t3)
       !
-      Fx = F*cos(thetam)
-      Fy = F*sin(thetam)
+      Fx = F * cos(thetam)
+      Fy = F * sin(thetam)
       !
    end subroutine
    

@@ -32,8 +32,6 @@ contains
    integer, dimension(:),   allocatable :: uv_indices   
    integer, dimension(:),   allocatable :: vertices
    !
-   logical :: ok
-   !
    ! Read cross sections file
    !
    ncrs = 0
