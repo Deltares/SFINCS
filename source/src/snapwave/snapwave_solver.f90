@@ -484,7 +484,7 @@ module snapwave_solver
           !
           call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev,   eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma) 
           !
-      else
+      else ! ig_opt 11, 12
           !
           call determine_infragravity_source_sink_term_overE(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma) 
           !                    
@@ -575,7 +575,7 @@ module snapwave_solver
                     !
                     call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma) 
                     !
-                else
+                else ! ig_opt 11, 12
                     !
                     call determine_infragravity_source_sink_term_overE(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma) 
                     !                    
@@ -700,7 +700,7 @@ module snapwave_solver
                      if (ig_opt > 0 .and. ig_opt < 12) then    
                         B(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverE(k)
                      else
-                        B(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverE(k) - srcig_local(itheta, k) * shinc2ig                         
+                        B(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverE(k) + srcig_local(itheta, k) * shinc2ig                         
                      endif                     
                      !
                      C(itheta) = ctheta(itheta + 1, k)*oneover2dtheta
@@ -717,8 +717,8 @@ module snapwave_solver
                       B(1) = oneoverdt + cg(k)/ds(1,k) + DoverE(k)
                       B(ntheta) = oneoverdt + cg(k)/ds(ntheta,k) + DoverE(k)                  
                   else
-                      B(1) = oneoverdt + cg(k)/ds(1,k) + DoverE(k) - srcig_local(1, k) * shinc2ig                         
-                      B(ntheta) = oneoverdt + cg(k)/ds(ntheta,k) + DoverE(k) - srcig_local(ntheta, k) * shinc2ig                                                   
+                      B(1) = oneoverdt + cg(k)/ds(1,k) + DoverE(k) + srcig_local(1, k) * shinc2ig                         
+                      B(ntheta) = oneoverdt + cg(k)/ds(ntheta,k) + DoverE(k) + srcig_local(ntheta, k) * shinc2ig                                                   
                   endif                                    
                   !
                   ! Solve tridiagonal system per point
@@ -819,7 +819,7 @@ module snapwave_solver
                         if (ig_opt > 0 .and. ig_opt < 12) then                                                  
                             B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
                         else
-                            B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k) + srcig_local(itheta, k)                            
+                            B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k) - srcig_local(itheta, k)                            
                         endif
                         !
                         C_ig(itheta) = ctheta_ig(itheta + 1, k)*oneover2dtheta
@@ -831,7 +831,7 @@ module snapwave_solver
                         if (ig_opt > 0 .and. ig_opt < 12) then                        
                             B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k)
                         else
-                            B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k) + srcig_local(itheta, k)
+                            B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k) - srcig_local(itheta, k)
                         endif
                         !
                         C_ig(1) = ctheta_ig(2, k)/dtheta
@@ -841,7 +841,7 @@ module snapwave_solver
                         if (ig_opt > 0 .and. ig_opt < 12) then
                             B_ig(1)=1.0/dt + cg_ig(k)/ds(1, k) + DoverE_ig(k)
                         else
-                            B_ig(1)=1.0/dt + cg_ig(k)/ds(1, k) + DoverE_ig(k) + srcig_local(itheta, k)                           
+                            B_ig(1)=1.0/dt + cg_ig(k)/ds(1, k) + DoverE_ig(k) - srcig_local(itheta, k)                           
                         endif
                         !
                         C_ig(1)=0.0
@@ -853,7 +853,7 @@ module snapwave_solver
                         if (ig_opt > 0 .and. ig_opt < 12) then        
                             B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
                         else
-                            B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k) + srcig_local(itheta, k)                            
+                            B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k) - srcig_local(itheta, k)                            
                         endif
                         !
                         C_ig(ntheta) = 0.0
@@ -863,7 +863,7 @@ module snapwave_solver
                         if (ig_opt > 0 .and. ig_opt < 12) then                                
                             B_ig(ntheta) = oneoverdt + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
                         else
-                            B_ig(ntheta) = oneoverdt + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k) + srcig_local(itheta, k)
+                            B_ig(ntheta) = oneoverdt + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k) - srcig_local(itheta, k)
                         endif                        
                         !
                         C_ig(ntheta) = 0.0
@@ -1572,7 +1572,7 @@ module snapwave_solver
                     !
                     ! Adjust cg_ig for free infragravity waves release in surfzone
                     ! TL - Note: cg_ig = cg
-                    if (ig_opt == 11) then
+                    if (ig_opt == 11 .or. ig_opt == 12) then
                         !
                         if ((gam * sqrt(2.0)) > (2.0 / 3.0 * gamma)) then                                    
                             !
@@ -1580,12 +1580,11 @@ module snapwave_solver
                             !                            
                         endif
                         !
-                    endif                        
-                  
+                    endif                  
                     !
                     ! Determine dSxx and IG source/sink term 'srcig'
                     !
-                    if (ig_opt == 11) then 
+                    if (ig_opt == 11 .or. ig_opt == 12) then 
                         !
                         ! Calculate shoaling parameter alpha_ig following Leijnse et al. (2024)
                         !  
@@ -1600,7 +1599,7 @@ module snapwave_solver
                             !
                         else
                             !              
-                            if (ig_opt == 11) then ! Option using conservative shoaling for dSxx/dx
+                            if (ig_opt == 11 .or. ig_opt == 12) then ! Option using conservative shoaling for dSxx/dx
                                 !
                                 ! Calculate Sxx based on conservative shoaling of upwind point's energy: 
                                 ! Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
@@ -1616,13 +1615,13 @@ module snapwave_solver
                             if (ig_opt == 11) then
                                !
                                ! Base on E_prev_ig instead of eeprev_ig(itheta) > no bins but total energy
-                               ! 
+                               ! NOTE - already here multiplied with ee(itheta,k), for direct inclusion in 'R'-term
                                srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k) /max(E_local(k), 1.0e-6) * ee(itheta,k)
                                !
                             elseif (ig_opt == 12) then
                                !
                                ! Base on E_prev_ig instead of eeprev_ig(itheta) > no bins but total energy
-                               ! NOTE - in main script this is multiplied with ee(itheta,k) to get directional energy
+                               ! NOTE - in main script this is multiplied with ee(itheta,k) to get directional energy, for direct inclusion in 'B'-term
                                ! 
                                srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k) /max(E_local(k), 1.0e-6) !* ee(itheta,k)                               
                             endif
@@ -1633,7 +1632,7 @@ module snapwave_solver
                             !
                             ! Ergo, it is assumed that after this point IG waves are free, and no bound wave forcing is happening anymore, so srcig should be 0 from here on
                             !
-                            if (ig_opt == 11) then
+                            if (ig_opt == 11 .or. ig_opt == 12) then
                                 !
                                 ! Free waves if incident waves start breaking (defined here as gam=Hm0,inc / h > 0.5)
                                 !         
