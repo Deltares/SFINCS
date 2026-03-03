@@ -479,7 +479,7 @@ module snapwave_solver
       ! As defined in Leijnse, van Ormondt, van Dongeren, Aerts & Muis et al. 2024 
       !      
       ! Actual determining of source term: 
-      !          
+      !
       call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma) 
       !         
       ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev, beta_local
@@ -1081,7 +1081,8 @@ module snapwave_solver
     real*4, dimension(:), allocatable                :: Eprev           ! Mean incident wave energy at upwind intersection point      
     real*4, dimension(:), allocatable                :: Eprev_ig        ! Mean infragravity wave energy at upwind intersection point    
     real*4, dimension(no_nodes)                      :: E_local         ! mean wave energy waves - just local               
-    real*4, dimension(no_nodes)                      :: E_ig_local      ! mean wave energy infragravity waves - just local               
+    real*4, dimension(no_nodes)                      :: E_ig_local      ! mean wave energy infragravity waves - just local
+    real*4, dimension(no_nodes)                      :: SxxoverE        ! Sxx over E    
     real*4                                           :: dSxx            ! difference in Radiation stress
     real*4                                           :: Sxx_cons        ! conservative estimate of radiation stress using conservative shoaling     
     real*4                                           :: delta_Dw        ! difference of Dw compared to upwind point, to get sign for max breaking point
@@ -1100,7 +1101,31 @@ module snapwave_solver
     Eprev_ig = 0.0
     !    
     E_local = 0.0
-    E_ig_local = 0.0    
+    E_ig_local = 0.0
+    SxxoverE = 0.0
+    !
+    ! Precompute all Sxx
+    if (ig_opt == 10) then
+        !
+        do k = 1, no_nodes
+            !
+            if (inner(k)) then
+                !
+                ! Update E (not saved from previous timestep)
+                !
+                E_local(k)         = sum(ee(:,k))*dtheta                
+                !
+                ! As for dissipation calculate SxxoverE(k)
+                !
+                SxxoverE(k)      = (((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5) * E_local(k))/max(E_local(k), 1.0e-6)
+                ! as DoverE(k) = (Dwk + Dfk)/max(Ek, 1.0e-6)
+                !
+            endif
+        enddo        
+        !
+    endif
+    !
+    ! Actual computation of srcig
     !
     do k = 1, no_nodes
         !
@@ -1147,7 +1172,12 @@ module snapwave_solver
                         Sxx(itheta,k2)      = ((2.0 * max(0.0,min(1.0,nwav(k2)))) - 0.5) * ee(itheta, k2) ! limit so value of nwav is between 0 and 1
                     elseif (ig_opt == 4) then 
                         Sxx(itheta,k1)      = ((2.0 * max(0.0,min(1.0,nwav(k1)))) - 0.5) * E_local(k1) ! limit so value of nwav is between 0 and 1
-                        Sxx(itheta,k2)      = ((2.0 * max(0.0,min(1.0,nwav(k2)))) - 0.5) * E_local(k2) ! limit so value of nwav is between 0 and 1                        
+                        Sxx(itheta,k2)      = ((2.0 * max(0.0,min(1.0,nwav(k2)))) - 0.5) * E_local(k2) ! limit so value of nwav is between 0 and 1             
+                    elseif (ig_opt == 10) then
+                        !
+                        Sxx(itheta,k1) = SxxoverE(k1) * ee(itheta, k1)
+                        Sxx(itheta,k2) = SxxoverE(k2) * ee(itheta, k2)
+                        !
                     endif                    
                     !
                     Sxxprev(itheta)     = w(1, itheta, k)*Sxx(itheta,k1) + w(2, itheta, k)*Sxx(itheta,k2)
@@ -1168,31 +1198,34 @@ module snapwave_solver
                     !
                     ! Adjust cg_ig for free infragravity waves release in surfzone
                     ! TL - Note: cg_ig = cg
-                    if (ig_opt == 8 .or. ig_opt == 9) then
+                    if (ig_opt == 8 .or. ig_opt == 9 .or. ig_opt == 10) then
                         !
-                        ! Free waves if incident waves start breaking (defined here as 1%)
-                        !         
-                        if (Qb > 0.01) then  
-                            !     
-                            cg_ig(k) = sqrt(9.81 * depth(k))
-                            !cg_ig(k1) = sqrt(9.81 * depth(k1)) !TL - Note: if adjusted, then cgprev from above should also be updated
-                            !cg_ig(k2) = sqrt(9.81 * depth(k2))                            
+                        if (ig_opt == 8 ) then
+                            ! Free waves if incident waves start breaking (defined here as 1%)
+                            !         
+                            if (Qb > 0.01) then  
+                                !     
+                                cg_ig(k) = sqrt(9.81 * depth(k))
+                                !cg_ig(k1) = sqrt(9.81 * depth(k1)) !TL - Note: if adjusted, then cgprev from above should also be updated
+                                !cg_ig(k2) = sqrt(9.81 * depth(k2))                            
+                                !
+                            endif     
                             !
-                        endif     
-                        !
-                    elseif (ig_opt == 9) then
-                        !
-                        if ((gam * sqrt(2.0)) > (2.0 / 3.0 * gamma)) then                                    
+                        elseif (ig_opt == 9 .or. ig_opt == 10) then
                             !
-                            cg_ig(k) = sqrt(9.81 * depth(k))
-                            !                            
-                        endif
+                            if ((gam * sqrt(2.0)) > (2.0 / 3.0 * gamma)) then                                    
+                                !
+                                cg_ig(k) = sqrt(9.81 * depth(k))
+                                !                            
+                            endif
+                            !
+                        endif                        
                         !
                     endif                    
                     !
                     ! Determine dSxx and IG source/sink term 'srcig'
                     !
-                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 4 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 7 .or. ig_opt == 8 .or. ig_opt == 9) then 
+                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 4 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 7 .or. ig_opt == 8 .or. ig_opt == 9 .or. ig_opt == 10) then 
                         !
                         ! Calculate shoaling parameter alpha_ig following Leijnse et al. (2024)
                         !  
@@ -1226,6 +1259,15 @@ module snapwave_solver
                                 !
                                 dSxx = Sxx_cons - Sxxprev(itheta)                                
                                 !
+                            elseif (ig_opt == 10) then
+                                !
+                                ! TODO: think whether using eeprev(itheta) rather than E_local is isue or not!
+                                !Sxx_cons = eeprev(itheta) * cgprev(itheta) / cg_ig(k) * ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5)                                
+                                Sxx_cons = Eprev(itheta) /max(E_local(k), 1.0e-6) * ee(itheta,k) * cgprev(itheta) / cg_ig(k) * ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5)
+                                
+                                !
+                                dSxx = Sxx_cons - Sxxprev(itheta)
+                                !                                
                             endif
                             !
                             dSxx = max(dSxx, 0.0)
@@ -1234,7 +1276,7 @@ module snapwave_solver
                                !
                                srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(eeprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k)
                                !
-                            elseif (ig_opt == 3 .or. ig_opt == 4 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 8 .or. ig_opt == 9) then
+                            elseif (ig_opt == 3 .or. ig_opt == 4 .or. ig_opt == 5 .or. ig_opt == 6 .or. ig_opt == 8 .or. ig_opt == 9 .or. ig_opt == 10) then
                                ! Base on E_prev_ig instead of eeprev_ig(itheta) > no bins but total energy
                                ! 
                                srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k)
@@ -1291,7 +1333,7 @@ module snapwave_solver
                                     !
                                 endif                                  
                                 !
-                            elseif (ig_opt == 9) then
+                            elseif (ig_opt == 9 .or. ig_opt == 10) then
                                 !
                                 ! Free waves if incident waves start breaking (defined here as gam=Hm0,inc / h > 0.5)
                                 !         
