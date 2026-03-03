@@ -480,7 +480,7 @@ module snapwave_solver
       !      
       ! Actual determining of source term: 
       !
-      if (ig_opt > 0 .AND. ig_opt < 11) then
+      if (ig_opt > 0 .and. ig_opt < 11) then
           !
           call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev,   eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma) 
           !
@@ -571,7 +571,7 @@ module snapwave_solver
                 !
                 ! Actual determining of source term - every first sweep of iteration
                 !          
-                if (ig_opt > 0 .AND. ig_opt < 11) then
+                if (ig_opt > 0 .and. ig_opt < 11) then
                     !
                     call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma) 
                     !
@@ -685,25 +685,41 @@ module snapwave_solver
                   !
                    do itheta = 1, ntheta
                      !
-                     R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta)*eeprev(itheta)/ds(itheta, k) - srcig_local(itheta, k) * shinc2ig
+                     if (ig_opt > 0 .and. ig_opt < 11) then
+                        R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta)*eeprev(itheta)/ds(itheta, k) - srcig_local(itheta, k) * shinc2ig
+                     else
+                        R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta)*eeprev(itheta)/ds(itheta, k)
+                     endif                     
                      !
                   enddo                  
                   !
                   do itheta = 2, ntheta - 1
                      !
                      A(itheta) = -ctheta(itheta - 1, k)*oneover2dtheta
-                     B(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverE(k)
+                     !
+                     if (ig_opt > 0 .and. ig_opt < 11) then    
+                        B(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverE(k)
+                     else
+                        B(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverE(k) - srcig_local(itheta, k) * shinc2ig                         
+                     endif                     
+                     !
                      C(itheta) = ctheta(itheta + 1, k)*oneover2dtheta
                      !
                   enddo
                   !
                   A(1) = -ctheta(ntheta, k)*oneover2dtheta
-                  B(1) = oneoverdt + cg(k)/ds(1,k) + DoverE(k)
                   C(1) = ctheta(2, k)*oneover2dtheta
                   !
                   A(ntheta) = -ctheta(ntheta - 1, k)*oneover2dtheta
-                  B(ntheta) = oneoverdt + cg(k)/ds(ntheta,k) + DoverE(k)
                   C(ntheta) = ctheta(1, k)*oneover2dtheta
+                  !
+                  if (ig_opt > 0 .and. ig_opt < 11) then    
+                      B(1) = oneoverdt + cg(k)/ds(1,k) + DoverE(k)
+                      B(ntheta) = oneoverdt + cg(k)/ds(ntheta,k) + DoverE(k)                  
+                  else
+                      B(1) = oneoverdt + cg(k)/ds(1,k) + DoverE(k) - srcig_local(1, k) * shinc2ig                         
+                      B(ntheta) = oneoverdt + cg(k)/ds(ntheta,k) + DoverE(k) - srcig_local(ntheta, k) * shinc2ig                                                   
+                  endif                                    
                   !
                   ! Solve tridiagonal system per point
                   !
@@ -788,35 +804,68 @@ module snapwave_solver
                      !
                      do itheta = 1, ntheta
                         !
-                        R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta)*eeprev_ig(itheta)/ds(itheta, k) + srcig_local(itheta, k) !TL: new version
+                        if (ig_opt > 0 .and. ig_opt < 11) then                          
+                            R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta)*eeprev_ig(itheta)/ds(itheta, k) + srcig_local(itheta, k)
+                        else
+                            R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta)*eeprev_ig(itheta)/ds(itheta, k)
+                        endif                        
                         !
                      enddo
                      !
                      do itheta = 2, ntheta - 1
                         !
                         A_ig(itheta) = -ctheta_ig(itheta - 1, k)*oneover2dtheta
-                        B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
+                        !
+                        if (ig_opt > 0 .and. ig_opt < 11) then                                                  
+                            B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
+                        else
+                            B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k) + srcig_local(itheta, k)                            
+                        endif
+                        !
                         C_ig(itheta) = ctheta_ig(itheta + 1, k)*oneover2dtheta
                         !
                      enddo
                      !
                      if (ctheta_ig(1,k)<0) then
                         A_ig(1) = 0.0
-                        B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k)
+                        if (ig_opt > 0 .and. ig_opt < 11) then                        
+                            B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k)
+                        else
+                            B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k) + srcig_local(itheta, k)
+                        endif
+                        !
                         C_ig(1) = ctheta_ig(2, k)/dtheta
                      else
                         A_ig(1)=0.0
-                        B_ig(1)=1.0/dt + cg_ig(k)/ds(1, k) + DoverE_ig(k)
+                        !
+                        if (ig_opt > 0 .and. ig_opt < 11) then
+                            B_ig(1)=1.0/dt + cg_ig(k)/ds(1, k) + DoverE_ig(k)
+                        else
+                            B_ig(1)=1.0/dt + cg_ig(k)/ds(1, k) + DoverE_ig(k) + srcig_local(itheta, k)                           
+                        endif
+                        !
                         C_ig(1)=0.0
                      endif
                      !
                      if (ctheta_ig(ntheta, k)>0) then
                         A_ig(ntheta) = -ctheta_ig(ntheta - 1, k)/dtheta
-                        B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
+                        !
+                        if (ig_opt > 0 .and. ig_opt < 11) then        
+                            B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
+                        else
+                            B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k) + srcig_local(itheta, k)                            
+                        endif
+                        !
                         C_ig(ntheta) = 0.0
                      else
                         A_ig(ntheta) = 0.0
-                        B_ig(ntheta) = oneoverdt + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
+                        !
+                        if (ig_opt > 0 .and. ig_opt < 11) then                                
+                            B_ig(ntheta) = oneoverdt + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
+                        else
+                            B_ig(ntheta) = oneoverdt + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k) + srcig_local(itheta, k)
+                        endif                        
+                        !
                         C_ig(ntheta) = 0.0
                      endif
                      !
@@ -1566,7 +1615,7 @@ module snapwave_solver
                                ! Base on E_prev_ig instead of eeprev_ig(itheta) > no bins but total energy
                                ! NOTE - in main script this is multiplied with ee(itheta,k) / E(k) to get directional energy
                                ! 
-                               srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k) * ee(itheta,k) / E_local(k)
+                               srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k) /max(E_local(k), 1.0e-6) !* ee(itheta,k)
                                !
                             endif
                             !
@@ -1581,7 +1630,6 @@ module snapwave_solver
                                 ! Free waves if incident waves start breaking (defined here as gam=Hm0,inc / h > 0.5)
                                 !         
                                 ! gam is in Hrms, so multiply by sqrt(2)
-                                !if ((gam * sqrt(2.0)) > 0.5) then  
                                 if ((gam * sqrt(2.0)) > (2.0 / 3.0 * gamma)) then                                    
                                     !     
                                     srcig_local(itheta, k) = 0.0
