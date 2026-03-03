@@ -1511,7 +1511,7 @@ module snapwave_solver
             !
         endif
         !
-        ! Calculate Sxx for all point - FIXME double check correct also for not inner
+        ! Calculate Sxx for all points - FIXME double check correct also for not inner
         !
         Sxx(k)      = (((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5) * E_local(k))
         !
@@ -1537,6 +1537,9 @@ module snapwave_solver
                     depthprev(itheta,k)     = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)           
                     !            
                     beta_local(itheta,k)  = max((w(1, itheta, k)*(zb(k) - zb(k1)) + w(2, itheta, k)*(zb(k) - zb(k2)))/ds(itheta, k), 0.0)
+                    !
+                    ! FIXME - shorter, but also same result?
+                    !beta_local(itheta,k)  = max(zb(k) - (w(1, itheta, k) * zb(k1) + w(2, itheta, k) * zb(k2))/ds(itheta, k), 0.0)                    
                     !
                     ! Notes:
                     ! - use actual bed level now for slope, because depth changes because of wave setup/tide/surge
