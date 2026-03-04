@@ -3180,9 +3180,12 @@ contains
       do iobs = nsrc + 1, nsrcdrn, 2 !TL: as in sfincs_output.f90
          idrn = idrn + 1
          q_drain(idrn) = qtsrc(iobs)
-         breach_width_drain(idrn) = breach_width(iobs)
-         breach_level_drain(idrn) = breach_level_gather(iobs)
-      enddo      
+
+      enddo
+      do idrn = 1, ndrn
+         breach_width_drain(idrn) = breach_width(idrn)
+         breach_level_drain(idrn) = breach_level_gather(idrn)
+      enddo
       !
       NF90(nf90_put_var(his_file%ncid, his_file%drain_varid, q_drain, (/1, nthisout/))) ! write discharge of sink point
       NF90(nf90_put_var(his_file%ncid, his_file%breach_width_varid, breach_width_drain, (/1, nthisout/))) ! write breach width

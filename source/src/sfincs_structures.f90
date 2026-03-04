@@ -23,11 +23,15 @@
    !
    if (weirfile(1:4) /= 'none') then
       !
-      ! Weir (type = 1), 2 parameters
+      ! if Weir (type = 1), 2 parameters
       !
       ! Parameter 1 : Weir level (w.r.t. ref datum)
       ! Parameter 2 : Cd
       !
+      ! if Weir (type = 2), 2 parameters
+      !
+      ! Parameter 1 : Weir level (w.r.t. ref datum)
+       ! Parameter 2 : dike normal angle in degrees (0 degrees is north, increasing clockwise)
       if (snapwave) then
           call write_log('------------ CALCULATING OVERTOPPING AND OVERFLOW ------------', 1)
           call read_structure_file(weirfile, 2, 2) ! if there are waves, use weir type 2, which contains wave overtopping
@@ -622,7 +626,7 @@
    real*4                       :: qstruc
    real*4                       :: hm01, tm01, Lm01, breaker_parameter,alpha
    real*4                       :: sm10, q_overtopping, q_max, Rc
-   real*4                       :: gamma_f,gamma_b,gamma_beta,gamma_nu,gamma_star
+   real*4                       :: gamma_f,gamma_b,gamma_beta,gamma_nu,gamma_star,angle_dike_wave, wave_direction_deg, dike_normal_deg
    !
    integer  :: count0
    integer  :: count1
@@ -651,19 +655,19 @@
       zsnmu = zs(nmu)      
       !
       
-      if (snapwave) then
-          if (zsnm+hm0(nm)*4<structure_parameters(1, istruc) .and. zsnmu+hm0(nmu)*4<structure_parameters(1, istruc)) then  
-             !
-             cycle ! No flow over structure
-             !
-          endif 
-      else
-          if (zsnm<structure_parameters(1, istruc) .and. zsnmu<structure_parameters(1, istruc)) then         
-             !
-             cycle ! No flow over structure
-             !
-          endif   
-      end if
+      !if (snapwave) then
+      !    if (zsnm+hm0(nm)*4<structure_parameters(1, istruc) .and. zsnmu+hm0(nmu)*4<structure_parameters(1, istruc)) then  
+      !       !
+      !       cycle ! No flow over structure
+      !       !
+      !    endif 
+      !else
+            if (zsnm<structure_parameters(1, istruc) .and. zsnmu<structure_parameters(1, istruc)) then         
+                !
+                cycle ! No flow over structure
+                !
+            endif   
+      !end if
       !
       select case(structure_type(istruc))
          case(1)
@@ -703,7 +707,9 @@
             endif 
             !
          case(2)
-            Cd = structure_parameters(2, istruc)
+            Cd = 0.6
+            dike_normal_deg = structure_parameters(2, istruc) ! Direction of the outward-facing normal of the dike (degrees). Example: a north-facing slope has normal = 0°, east-facing = 90°.
+
              
             !
             ! Calculate wave parameters
@@ -714,12 +720,14 @@
                idir = 1
                Rc = structure_parameters(1, istruc) - zsnm
                h2 = zsnmu - structure_parameters(1, istruc)
+               wave_direction_deg = mean_wave_direction(nm) ! Wave direction in degrees, with 0 degrees being north and increasing clockwise
             else
                hm01 = hm0(nmu)
                tm01 = sw_tp(nmu)
                idir = -1
                Rc = structure_parameters(1, istruc) - zsnmu
                h2 = zsnm  - structure_parameters(1, istruc)
+               wave_direction_deg = mean_wave_direction(nmu)
             end if 
 
             Lm01 = g*tm01**2.0/(2.0*pi) ! deep water wavelength 
@@ -740,7 +748,15 @@
                 end if
                 
                 gamma_b = 1 ! no Influence of an outer berm, TO DO: add this later
-                gamma_beta = 1! no Influence of oblique wave attack, TO DO: add this later
+                
+                angle_dike_wave = wave_direction_deg - dike_normal_deg
+                angle_dike_wave = mod(angle_dike_wave + 180.0, 360.0) - 180.0
+                if (angle_dike_wave >0 .and. angle_dike_wave < 80) then
+                    gamma_beta = 1 - 0.0033 * ABS(angle_dike_wave)! Influence of oblique wave attack for short crested waves based on overtopping manual see equation 5.29 
+                elseif (ABS(angle_dike_wave) >= 80) then
+                    gamma_beta = 0.736                    
+                end if
+                
                 gamma_nu = 1 ! No storm wall, TO DO: add this later
                 gamma_star = 1 ! No storm wall and bullnose, TO DO: add this later
                 
