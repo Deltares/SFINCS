@@ -1949,7 +1949,6 @@ contains
    !
    implicit none
    !
-   real*4, dimension(:),     allocatable :: rghfield
    !
    integer :: ip
    integer :: nm
@@ -1981,11 +1980,11 @@ contains
          !         
          ok = check_file_exists(manningfile, 'Roughness file', .true.)
          !
-         if (volfile(nchar - 1 : nchar) == 'nc') then
+         if (manningfile(nchar - 1 : nchar) == 'nc') then
             !
             ! Call the generic quadtree nc file reader function
             varname = 'manning'
-            call read_netcdf_quadtree_to_sfincs(manningfile, varname, rghfield) !ncfile, varname, varout)            
+            call read_netcdf_quadtree_to_sfincs(manningfile, varname, rghfield) !ncfile, varname, varout)      
             !
          else
             !
