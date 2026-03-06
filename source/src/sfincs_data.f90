@@ -373,6 +373,7 @@ module sfincs_data
       real*4,             dimension(:),   allocatable, target :: z_yz
       real*4,             dimension(:),   allocatable :: cell_area_m2
       real*4,             dimension(:),   allocatable :: nuvisc      
+      real*4,             dimension(:),   allocatable :: rghfield      
       !
       ! UV-points
       !
