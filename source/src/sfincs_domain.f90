@@ -1946,15 +1946,18 @@ contains
    subroutine initialize_roughness()
    !
    use sfincs_data
+   use sfincs_ncinput   
    !
    implicit none
    !
-   real*4, dimension(:),     allocatable :: rghfield
    !
    integer :: ip
    integer :: nm
    integer :: nmu
    logical :: ok
+   !
+   integer :: nchar
+   character*256 :: varname
    !
    ! FRICTION COEFFICIENTS (only for regular bathymetry, as for subgrid the Manning's n values are stored in the tables)
    !
@@ -1964,19 +1967,35 @@ contains
       !
       gn2uv = 9.81*0.02*0.02
       !
-      if (manningfile(1:4) /= 'none') then
+      if (manningfile(1:4) /= 'none') then 
          !
          ! Read spatially-varying friction
+         ! File is either binary or netcdf
          !
          allocate(rghfield(np))
+         !
          write(logstr,'(a,a)')'Info    : reading roughness file ',trim(manningfile)
          call write_log(logstr, 0)
          !
+         nchar = len_trim(manningfile)
+         !         
          ok = check_file_exists(manningfile, 'Roughness file', .true.)
          !
-         open(unit = 500, file = trim(manningfile), form = 'unformatted', access = 'stream')
-         read(500)rghfield
-         close(500)
+         if (manningfile(nchar - 1 : nchar) == 'nc') then
+            !
+            ! Call the generic quadtree nc file reader function
+            varname = 'manning'
+            call read_netcdf_quadtree_to_sfincs(manningfile, varname, rghfield) !ncfile, varname, varout)      
+            !
+         else
+            !
+            ! Read from binary file
+            !               
+            open(unit = 500, file = trim(manningfile), form = 'unformatted', access = 'stream')
+            read(500)rghfield
+            close(500)
+            !
+         endif
          !
          do ip = 1, npuv
             nm  = uv_index_z_nm(ip)
@@ -2013,6 +2032,16 @@ contains
          enddo
          !
       endif
+   else
+      !
+      ! Give warning if manningfile is supplied, but also a subgrid file
+      !
+      if (manningfile(1:4) /= 'none') then 
+         !
+         call write_log('Warning   : manningfile input will be ignored because SFINCS will use the friction information from sbgfile!', 1)
+         !
+      endif
+       !
    endif
    !
    end subroutine
