@@ -619,7 +619,7 @@ module snapwave_solver
                      !
                   enddo
                   !
-                  Ek = sum(eeprev)*dtheta     ! to check                
+                  Ek = sum(eeprev)*dtheta     ! to check  - Maarten: should not be 'eeprev'?              
                   !
                   depthlimfac = max(1.0, (sqrt(Ek/rhog8)/(gammax*depth(k)))**2.0)
                   Hk = min(sqrt(Ek/rhog8), gamma*depth(k))
@@ -782,7 +782,7 @@ module snapwave_solver
                   ! IG
                   !
                   if (igwaves) then
-                     Ek_ig       = sum(eeprev_ig)*dtheta                  
+                     Ek_ig       = sum(eeprev_ig)*dtheta    ! to check  - Maarten: should not be 'eeprev_ig'?               
                      !Hk_ig       = sqrt(Ek_ig/rhog8) !org trunk
                      Hk_ig       = min(sqrt(Ek_ig/rhog8), gamma_ig*depth(k))  !TL: Question - why not this one?                     
                      Ek_ig       = rhog8*Hk_ig**2
