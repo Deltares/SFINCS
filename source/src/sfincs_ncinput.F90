@@ -299,7 +299,9 @@ module sfincs_ncinput
       !
       nm = index_sfincs_in_quadtree(ip)
       !
-      var(nm) = vartmp(ip)
+      if (nm>0) then      
+         var(nm) = vartmp(ip)
+      endif      
       !
    enddo   
    !   
