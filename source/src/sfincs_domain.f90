@@ -2032,6 +2032,16 @@ contains
          enddo
          !
       endif
+   else
+      !
+      ! Give warning if manningfile is supplied, but also a subgrid file
+      !
+      if (manningfile(1:4) /= 'none') then 
+         !
+         call write_log('Warning   : manningfile input will be ignored because SFINCS will use the friction information from sbgfile!', 1)
+         !
+      endif
+       !
    endif
    !
    end subroutine
