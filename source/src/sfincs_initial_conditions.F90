@@ -54,32 +54,37 @@ contains
          !
       elseif (zsinifile(1:4) /= 'none') then 
          !
-         ! Read binary (!) initial water level file
-         ! Note - older type real*4 for zs 
-         !
-         write(logstr,'(a,a)')'Info    : reading initial conditions file ', trim(zsinifile)
+         write(logstr,'(a)')'Info    : initializing initial water level input'      
          call write_log(logstr, 0)
          !
-         iok = check_file_exists(zsinifile, 'Binary initial conditions ini file', .true.)
+         iok = check_file_exists(zsinifile, 'Initial conditions ini file', .true.)
          !
-         call read_zsini_file()
-         !
-      elseif (ncinifile(1:4) /= 'none') then 
-         !
-         ! Read netcdf (!) initial water level file
-         ! Note - newer type real*8 for zs 
-         !
-         ! NetCDF file
-         !
-         write(logstr,'(a,a)')'Info    : reading NetCDF initial conditions file ', trim(zsinifile)
-         call write_log(logstr, 0)
-         !
-         iok = check_file_exists(ncinifile, 'NetCDF initial conditions file', .true.)
-         !
-         !call read_nc_ini_file()
-         ! Call the generic quadtree nc file reader function - in real*8
-         varname = 'zs'
-         call read_netcdf_quadtree_to_sfincs_real8(ncinifile, varname, inizs) !ncfile, varname, varout)          
+         if (zsinifile(nchar - 1 : nchar) == 'nc') then
+             !
+            ! Read netcdf (!) initial water level file
+            ! Note - newer type real*8 for zs 
+            !
+            ! NetCDF file
+            !
+            write(logstr,'(a,a)')'Info    : reading NetCDF initial conditions file ', trim(zsinifile)
+            call write_log(logstr, 0)
+            !
+            !call read_nc_ini_file()
+            ! Call the generic quadtree nc file reader function - in real*8
+            varname = 'zs'
+            call read_netcdf_quadtree_to_sfincs_real8(zsinifile, varname, inizs) !ncfile, varname, varout)                
+            !
+         else                          
+            !
+            ! Read binary (!) initial water level file
+            ! Note - older type real*4 for zs 
+            !
+            write(logstr,'(a,a)')'Info    : reading binary initial conditions file ', trim(zsinifile)
+            call write_log(logstr, 0)             
+            !
+            call read_zsini_file()
+            !
+         endif
          !
       else
          !
