@@ -1267,7 +1267,7 @@ module snapwave_solver
                                 !
                             elseif (ig_opt == 2) then ! Option taking actual difference for dSxx/dx
                                 !
-                                dSxx = Sxx(itheta,k) - Sxxprev(itheta)                                    
+                                dSxx = Sxx(itheta) - Sxxprev(itheta)                                    
                             endif
                             !
                             dSxx = max(dSxx, 0.0)
