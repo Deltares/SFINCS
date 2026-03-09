@@ -1574,17 +1574,17 @@ module snapwave_solver
                     !
                     ! Adjust cg_ig for free infragravity waves release in surfzone
                     ! TL - Note: cg_ig = cg
-                    if (ig_opt == 11 .or. ig_opt == 12) then
-                        !
-                        !if ((gam * sqrt(2.0)) > (2.0 / 3.0 * gamma)) then
-                        !if ((gam * sqrt(2.0)) > (gamma_fac_br * gamma)) then
-                        if (gam > (gamma_fac_br * gamma)) then                                    
-                            !
-                            cg_ig(k) = sqrt(9.81 * depth(k))
-                            !
-                        endif
-                        !
-                    endif                  
+                    !if (ig_opt == 11 .or. ig_opt == 12) then
+                    !    !
+                    !    !if ((gam * sqrt(2.0)) > (2.0 / 3.0 * gamma)) then
+                    !    !if ((gam * sqrt(2.0)) > (gamma_fac_br * gamma)) then
+                    !    if (gam > (gamma_fac_br * gamma)) then                                    
+                    !        !
+                    !        cg_ig(k) = sqrt(9.81 * depth(k))
+                    !        !
+                    !    endif
+                    !    !
+                    !endif                  
                     !
                     ! Determine dSxx and IG source/sink term 'srcig'
                     !
@@ -1638,7 +1638,7 @@ module snapwave_solver
                             !
                             if (ig_opt == 11 .or. ig_opt == 12) then
                                 !
-                                ! Free waves if incident waves start breaking (defined here as gam=Hm0,inc / h > 0.5)
+                                ! Free waves if incident waves start breaking (defined here as gam=Hrms,inc / h > (gamma_fac_br * gamma))
                                 !         
                                 ! gam is in Hrms, so multiply by sqrt(2) for Hm0
                                 !if ((gam * sqrt(2.0)) > (2.0 / 3.0 * gamma)) then
