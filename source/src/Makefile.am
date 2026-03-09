@@ -15,24 +15,26 @@ lib_LTLIBRARIES = libsfincs.la
 
 #all sources for sfincs that go into the library (all but the program)
 libsfincs_la_SOURCES = \
+	sfincs_log.f90 \
 	sfincs_date.f90 \
 	sfincs_spiderweb.f90 \
 	sfincs_data.f90 \
-	geometry.f90 \
-	quadtree.f90 \
+    ../third_party_open/Delft3D/astro.f90 \
+	../third_party_open/utils/geometry.f90 \
 	sfincs_error.f90 \		
+	sfincs_quadtree.f90 \
 	snapwave/interp.F90 \
-	snapwave/snapwave_results.f90 \
 	snapwave/snapwave_data.f90 \
 	snapwave/snapwave_ncinput.F90 \		
 	snapwave/snapwave_infragravity.f90 \	
 	snapwave/snapwave_boundaries.f90 \
 	snapwave/snapwave_date.f90 \
-	snapwave/snapwave_ncoutput.F90 \
 	snapwave/snapwave_domain.f90 \
+	snapwave/snapwave_windsource.f90 \
 	snapwave/snapwave_solver.f90 \
 	sfincs_input.f90 \
 	sfincs_ncinput.F90 \
+	sfincs_initial_conditions.f90 \
 	sfincs_boundaries.f90 \
 	sfincs_continuity.f90 \
 	sfincs_crosssections.f90 \
@@ -41,19 +43,24 @@ libsfincs_la_SOURCES = \
 	sfincs_domain.f90 \
 	sfincs_structures.f90 \
 	sfincs_obspoints.f90 \
+	sfincs_runup_gauges.f90 \
+	sfincs_wave_enhanced_roughness.f90 \
 	sfincs_snapwave.f90 \
-	deg2utm.f90 \
+	../third_party_open/utils/deg2utm.f90 \
 	sfincs_meteo.f90 \
+    ../third_party_open/bicgstab/bicgstab_solver_ilu.f90 \
+	sfincs_nonhydrostatic.f90 \
 	sfincs_ncoutput.F90 \
 	sfincs_output.f90 \
 	sfincs_momentum.f90 \
 	sfincs_wavemaker.f90 \
 	sfincs_infiltration.f90 \
+	sfincs_openacc.f90 \
 	sfincs_lib.f90 \
 	sfincs_bmi.f90
         
 libsfincs_la_LIBADD = \
-	$(top_builddir)/third_party_open/netcdf/netcdf-fortran-4.4.4/fortran/libnetcdff.la
+	$(top_builddir)/third_party_open/netcdf/netcdf-fortran-4.6.1/fortran/libnetcdff.la
 # these files are not included
 # sfincs_lib_nonc.f90
 # sfincs_output_nonc.f90
@@ -75,7 +82,7 @@ sfincs.f90: sfincs_lib.mod
 sfincs_lib.mod: libsfincs.la
 
 
-AM_FCFLAGS=${NETCDF_CFLAGS} ${NETCDF_FORTRAN_CFLAGS} -I$(top_builddir)/third_party_open/netcdf/netcdf-fortran-4.4.4/fortran
+AM_FCFLAGS=${NETCDF_CFLAGS} ${NETCDF_FORTRAN_CFLAGS} -I$(top_builddir)/third_party_open/netcdf/netcdf-fortran-4.6.1/fortran
 AM_FCFLAGS+=${OPENMP_FCFLAGS}
 AM_FCFLAGS+=${OPENACC_CFLAGS}
 AM_FCFLAGS+=${-O3}

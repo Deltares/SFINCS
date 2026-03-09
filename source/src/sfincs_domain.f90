@@ -1,5 +1,8 @@
 module sfincs_domain
 
+   use sfincs_log
+   use sfincs_error
+
 contains
 
    subroutine initialize_domain()
@@ -25,9 +28,10 @@ contains
    !
    call initialize_hydro()
    !
-   if (quadtree_nr_levels==1 .and. use_quadtree) then
+   if (quadtree_nr_levels == 1 .and. .not. use_quadtree_output) then
       !
-      ! Only one refinement level found in quadtree file. Reverting to use_quadtree is false.
+      ! Only one refinement level found in quadtree file. 
+      ! Reverting to use_quadtree is false (default), with use_quadtree_output = false (default).
       ! This means netcdf output will be written to a regular grid.
       !
       use_quadtree = .false.
@@ -48,11 +52,16 @@ contains
    ! Set some flags
    !
    use_quadtree = .false.
+   !
    if (qtrfile(1:4) /= 'none') then
+      !
       use_quadtree = .true.
-      write(*,*)'Info : Preparing SFINCS grid on quadtree mesh ...'   
+      call write_log('Info    : using quadtree mesh', 0)
+      !
    else
-      write(*,*)'Info : Preparing SFINCS grid on regular mesh ...'      
+      !
+      call write_log('Info    : using regular mesh', 0)
+      !
    endif
    !
    ! Always turn off waves at boundaries. Using wave makers for that sort of thing now.
@@ -63,41 +72,47 @@ contains
    precip  = .false.
    patmos  = .false.
    meteo3d = .false.
-   include_boundaries = .false.   
+   !
+   boundaries_in_mask = .false.
+   water_level_boundaries_in_mask = .false.
+   outflow_boundaries_in_mask = .false.
+   downstream_river_boundaries_in_mask = .false.
+   neumann_boundaries_in_mask = .false.
    !
    if (spwfile(1:4) /= 'none' .or. wndfile(1:4) /= 'none' .or. amufile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       !
       wind = .true.
-      write(*,*)'Turning on process: Wind'
+      call write_log('Info    : turning on wind', 0)
       !
       if (spw_precip) then
-          precip = .true.
-          write(*,*)'Turning on process: Precipitation from spwfile'
+         precip = .true.
+         call write_log('Info    : turning on precipitation from spwfile', 0)
       endif
+      !
    endif
    !
    if ((ampfile(1:4) /= 'none' .or. netampfile(1:4) /= 'none' .or. spwfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') .and. baro==1) then
-       patmos = .true.
-       write(*,*)'Turning on process: Atmospheric pressure'       
+      patmos = .true.
+      call write_log('Info    : turning on atmospheric pressure', 0)
    endif
    !
    if (prcpfile(1:4) /= 'none' .or. amprfile(1:4) /= 'none' .or. netamprfile(1:4) /= 'none' .or. spw_precip) then
        precip = .true.
-       write(*,*)'Turning on process: Precipitation'       
+      call write_log('Info    : turning on precipitation', 0)
    endif
    !
    ! Check for time-spatially varying meteo
    !
    if (prcpfile(1:4) /= 'none' .or. spwfile(1:4) /= 'none' .or. amufile(1:4) /= 'none' .or. amprfile(1:4) /= 'none' .or. ampfile(1:4) /= 'none' .or. netampfile(1:4) /= 'none' .or. netamprfile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       meteo3d = .true.
-      write(*,*)'Turning on flag: meteo3d'
+      call write_log('Info    : using gridded meteo data', 0)
    endif
    !
    wind_reduction = .false.
    if (spwfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       if (z0lfile(1:4) /= 'none') then
          wind_reduction = .true.
-         write(*,*)'Turning on process: wind reduction over land'
+         call write_log('Info    : turning on wind reduction over land', 0)
       endif
    endif            
    !
@@ -119,11 +134,10 @@ contains
    !
    implicit none
    !
-   integer ip, n, m, nm, nmu, num, ib, iref, npu, npv, ipuv, ipu, ipv, iud, iuu, ndm, nmd, j, iq, nmx, ind
+   integer ip, n, m, nm, nmu, num, iref, npu, npv, ndm, nmd, iq
    integer ndmu, nmdu, numu
-   integer ikcuv2
-   integer npac, idummy
-   integer nrefuv, irefuv, npuvtotal, icuv
+   integer irefuv, npuvtotal, icuv
+   logical ok
    !
    ! Temporary arrays
    !
@@ -150,8 +164,9 @@ contains
    !
    integer*4,          dimension(:),   allocatable :: indices
    !
-   real*4 :: ylat
    real*4 :: dxymin
+   !
+   logical :: okay
    !
    ! READ MESH
    !
@@ -164,7 +179,7 @@ contains
       ! 
       ! Read quadtree file
       !
-      call quadtree_read_file(qtrfile)
+      call quadtree_read_file(qtrfile, snapwave, nonhydrostatic)
       !
    else
       !
@@ -172,13 +187,15 @@ contains
          !
          ! Read ASCII input
          !
-         write(*,*)'Reading ASCII input ...'
+         call write_log('Info : reading ASCII input ...', 0)
          !
          allocate(kcsg(nmax,  mmax))       ! KCS
          !
          kcsg = 0      
          !
          ! Read mask file
+         !
+         ok = check_file_exists(mskfile, 'Mask file', .true.)
          !
          open(500, file=trim(mskfile))
          do n = 1, nmax
@@ -215,7 +232,11 @@ contains
          !
          ! Read index file (first time, only read number of active points)
          !
-         write(*,*)'Reading index file : ', trim(indexfile), ' ...'
+         write(logstr,'(a,a)')'Info    : reading index file ', trim(indexfile)
+         call write_log(logstr, 0)
+         !
+         ok = check_file_exists(indexfile, 'Index file', .true.)
+         !
          open(unit = 500, file = trim(indexfile), form = 'unformatted', access = 'stream')
          read(500)np
          allocate(indices(np))
@@ -275,7 +296,10 @@ contains
          !
          ! Read mask file (must have same number of cells as quadtree file !)
          !
-         write(*,*)'Reading mask file : ', trim(mskfile), ' ...'
+         write(logstr,'(a,a)')'Info    : reading mask file : ', trim(mskfile)
+         call write_log(logstr, 0)
+         !
+         ok = check_file_exists(mskfile, 'Mask file', .true.)
          !
          open(unit = 500, file = trim(mskfile), form = 'unformatted', access = 'stream')
          read(500)msk
@@ -551,7 +575,8 @@ contains
          !
       enddo 
       ! 
-      write(*,*)'Number of refinement transitions : ', ncuv
+      write(logstr,'(a,i0)')'Info    : number of quadtree refinement transitions : ', ncuv
+      call write_log(logstr, 0)
       !
    endif
    !
@@ -756,8 +781,8 @@ contains
             ! Flags to describe uv point 
             !
             uv_flags_iref(ip)                  = z_flags_iref(nm) 
-            uv_flags_dir(ip)                   = 0 ! u point
-            uv_flags_type(ip)                  = -1! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
+            uv_flags_dir(ip)                   = 0  ! u point
+            uv_flags_type(ip)                  = -1 ! -1 is fine too coarse, 0 is normal, 1 is coarse to fine
             !
          endif
          !
@@ -1220,14 +1245,84 @@ contains
       ! 
    endif ! advection, viscosity, coriolis or thetasmoothing
    !
+   if (nonhydrostatic) then
+      !
+      ! Intialize mask for cells with non-hydrostatic corrections
+      !
+      allocate(mask_nonh(np))
+      !
+      mask_nonh = 0
+      !
+      do nm = 1, np
+         !
+         okay = .true.
+         !
+         if (kcs(nm) /= 1) cycle ! not a regular point
+         !
+         ! Check if point has 4 neighbors with kcs = 1
+         !
+         ! Left
+         !
+         if (z_flags_md(nm) /= 0) cycle ! not a regular neighbor
+         !
+         nmd = z_index_z_md1(nm)
+         !
+         if (nmd == 0) cycle ! no neighbor
+         !
+         if (kcs(nmd) /= 1) cycle ! neighbor is not a regular point
+         !
+         ! Right
+         !
+         if (z_flags_mu(nm) /= 0) cycle ! not a regular neighbor
+         !
+         nmu = z_index_z_mu1(nm)
+         !
+         if (nmu == 0) cycle ! no neighbor
+         !
+         if (kcs(nmu) /= 1) cycle ! neighbor is not a regular point
+         !
+         ! Bottom
+         !
+         if (z_flags_nd(nm) /= 0) cycle ! not a regular neighbor
+         !
+         ndm = z_index_z_nd1(nm)
+         !
+         if (ndm == 0) cycle ! no neighbor
+         !
+         if (kcs(ndm) /= 1) cycle ! neighbor is not a regular point
+         !
+         ! Top
+         !
+         if (z_flags_nu(nm) /= 0) cycle ! not a regular neighbor
+         !
+         num = z_index_z_nu1(nm)
+         !
+         if (num == 0) cycle ! no neighbor
+         !
+         if (kcs(num) /= 1) cycle ! neighbor is not a regular point
+         !
+         ! This cell has 4 regular neighbors, so copy from quadtree mask
+         !
+         mask_nonh(nm) = quadtree_nonh_mask(index_quadtree_in_sfincs(nm))
+         !
+      enddo
+      !
+   endif   
+   !
    ! Okay, got all the quadtree cells including indices, neighbors flags 
    !
-   write(*,*)'Number of active z points    : ', np
-   write(*,*)'Number of active u/v points  : ', npuv
+   call write_log('------------------------------------------', 1)
+   call write_log('Computational mesh', 1)
+   call write_log('------------------------------------------', 1)
+   write(logstr,'(a,i9)')'Number of active z points      : ', np
+   call write_log(logstr, 1)   
+   write(logstr,'(a,i9)')'Number of active u/v points    : ', npuv
+   call write_log(logstr, 1)
    !
    if (use_quadtree) then
       do iref = 1, nref
-         write(*,'(a,i3,a,i8)')' Number of cells in level ', iref, ' : ', quadtree_last_point_per_level(iref) - quadtree_first_point_per_level(iref) + 1
+         write(logstr,'(a,i3,a,i9)')'Number of cells in level ', iref, '   : ', quadtree_last_point_per_level(iref) - quadtree_first_point_per_level(iref) + 1
+         call write_log(logstr, 1)
       enddo
    endif
    !
@@ -1281,8 +1376,8 @@ contains
       m    = z_index_z_m(nm)
       iref = z_flags_iref(nm)
       !
-      z_xz(nm) = x0 + cosrot*(1.0*(m - 0.5))*dxr(iref) - sinrot*(1.0*(n - 0.5))*dyr(iref)
-      z_yz(nm) = y0 + sinrot*(1.0*(m - 0.5))*dxr(iref) + cosrot*(1.0*(n - 0.5))*dyr(iref)
+      z_xz(nm) = x0 + cosrot * (1.0 * (m - 0.5)) * dxr(iref) - sinrot * (1.0 * (n - 0.5)) * dyr(iref)
+      z_yz(nm) = y0 + sinrot * (1.0 * (m - 0.5)) * dxr(iref) + cosrot * (1.0 * (n - 0.5)) * dyr(iref)
       !
    enddo
    !
@@ -1295,7 +1390,6 @@ contains
       ! dxr and dyr are now in degrees. Must convert to metres.
       ! For dxr, we need a value for every uv point. For dyr, just multiply by 111111.1
       !
-      allocate(dxm(npuv)) 
       allocate(dxminv(npuv))   
       allocate(dxm2inv(npuv))
       !
@@ -1305,7 +1399,7 @@ contains
       allocate(dyrinvc(nref))
       !      
       allocate(cell_area_m2(np))
-      !
+      allocate(dxm(np)) 
       allocate(fcorio2d(np))
       !
       dyrinvc = 0.0
@@ -1317,13 +1411,12 @@ contains
          iref = uv_flags_iref(ip)
          nm   = uv_index_z_nm(ip)
          !
-         dxm(ip)     = dxr(iref)*111111.1*cos(z_yz(nm)*pi/180)
-         dxminv(ip)  = 1.0/dxm(ip)
+         dxminv(ip)  = 1.0 / ( dxr(iref) * 111111.1 * cos(z_yz(nm) * pi / 180) )
          dxm2inv(ip) = dxminv(ip)**2
          !
          ! Minimum grid spacing to determine dtmax 
          !  
-         dxymin = min(dxymin, dxm(iref))
+         dxymin = min(dxymin, 1.0 / dxminv(ip))
          !
       enddo   
       !
@@ -1351,15 +1444,16 @@ contains
          !
          iref = z_flags_iref(nm)
          !
-         cell_area_m2(nm) = dxr(iref)*111111.1*cos(z_yz(nm)*pi/180)*dyrm(iref) 
+         dxm(nm)          = dxr(iref) * 111111.1 * cos(z_yz(nm) * pi / 180)
+         cell_area_m2(nm) = dxm(nm) * dyrm(iref) 
          !         
       enddo   
       !
       ! Spatially varying Coriolis
       !
-      if (use_coriolis) then
+      if (coriolis) then
          do nm = 1, np            
-            fcorio2d(nm) = 2*7.2921e-05*sin(z_yz(nm)*pi/180)
+            fcorio2d(nm) = 2 * 7.2921e-05 * sin(z_yz(nm) * pi / 180)
          enddo
       endif   
       !
@@ -1397,7 +1491,7 @@ contains
          if (iref>1) then
             !         
             dxrinvc(iref) = 1.0/(3*dxrm(iref)/2)
-            dyrinvc(iref) = 1.0*(3*dyrm(iref)/2)
+            dyrinvc(iref) = 1.0/(3*dyrm(iref)/2)
             !
          endif   
          !
@@ -1410,8 +1504,24 @@ contains
       !
       ! Determine minimum and maximum time step
       !
-      dtmax = min(dtmax, dxymin/(sqrt(9.81*0.1)))
-      dtmin = alfa*dxymin/(sqrt(9.81*stopdepth)) ! If dt falls below this value, the simulation will stop
+      ! dtmax will ensure that time step does not become too large because all cells are dry
+      !
+      dtmax = min(dtmax, alfa * dxymin / (sqrt(9.81 * hmin_cfl)))
+      !
+      ! Compute dtmin (if dt falls below this value, the simulation will stop).
+      !
+      ! No longer use long wave celerity, OLD implementation with 'stopdepth'
+      !
+      ! dtmin = alfa * dxymin / (sqrt(9.81 * stopdepth))
+      !
+      ! Current velocity
+      !
+      ! dtmin = min(dtmin, alfa * dxymin / (1.25 * abs(uvmax)))
+      !
+      ! Would be better to stop the simulation if water level change exceeds a certain value
+      ! But use uvmax for now (which is typically set to a very high value)
+      !       
+      dtmin = alfa * dxymin / (1.25 * abs(uvmax))
       !
    endif   
    !
@@ -1449,12 +1559,14 @@ contains
         endif
         !
         if (use_quadtree) then
-            write(*,*)'Viscosity - nuvisc  = [', minval(nuvisc),'- ',maxval(nuvisc),']'           
+            write(logstr,'(a,e10.3,a,e10.3,a)')'Info    : viscosity - nuvisc  = [', minval(nuvisc),'- ',maxval(nuvisc),']'           
+            call write_log(logstr, 0)
         else
-            write(*,*)'Viscosity - nuvisc  = ', maxval(nuvisc)           
+            write(logstr,'(a,e10.3)')'Info    : viscosity - nuvisc  = ', maxval(nuvisc)           
+            call write_log(logstr, 0)
         endif            
         !
-   endif   
+   endif
    !
    end subroutine
 
@@ -1467,21 +1579,14 @@ contains
    implicit none
    !
    real*4, dimension(:,:),   allocatable :: zbg
-   real*4, dimension(:),     allocatable :: rtmp
-   real*4, dimension(:),     allocatable :: rtmpz
-   real*4, dimension(:),     allocatable :: rtmpuv
-   integer*4, dimension(:),  allocatable :: uv_index_qt_in_sf
    !
-   integer :: idummy
    integer :: ip
-   integer :: ilevel
    integer :: nm
    integer :: nmu
    integer :: n
    integer :: m
-   integer :: npzq
-   integer :: npuvq
-   integer :: npuvs
+   !
+   logical :: ok
    !
    ! DEPTHS
    !
@@ -1501,7 +1606,11 @@ contains
          !
          if (depfile(1:4) /= 'none') then
             !
-            write(*,*)'Reading dep file : ',trim(depfile)
+            write(logstr,'(a,a)')'Info    : reading dep file : ',trim(depfile)
+            call write_log(logstr, 0)
+            !
+            ok = check_file_exists(depfile, 'Dep file', .true.)
+            !
             open(unit = 500, file = trim(depfile), form = 'unformatted', access = 'stream')
             read(500)zb
             close(500)
@@ -1516,11 +1625,14 @@ contains
          !
       else
          !
-         write(*,*)'Reading dep file : ',trim(depfile)
+         write(logstr,'(a,a)')'Reading dep file : ',trim(depfile)
+         call write_log(logstr, 0)
          !
          if (inputtype=='asc') then
             !
             allocate(zbg(nmax, mmax))
+            !
+            ok = check_file_exists(depfile, 'Dep file', .true.)
             !
             open(500, file=trim(depfile))
             do n = 1, nmax
@@ -1541,6 +1653,8 @@ contains
             deallocate(zbg)
             !
          else
+            !
+            ok = check_file_exists(depfile, 'Dep file', .true.)
             !
             open(unit = 500, file = trim(depfile), form = 'unformatted', access = 'stream')
             read(500)zb
@@ -1586,9 +1700,50 @@ contains
       !
       call read_subgrid_file()
       !
+      ! In case of nonh, we also need zb
+      !
+      if (nonhydrostatic) then
+         !
+         allocate(zb(np))
+         !
+         if (use_quadtree) then
+            !
+            do ip = 1, np
+               zb(ip) = quadtree_zz(index_quadtree_in_sfincs(ip))
+            enddo   
+            !
+         else
+            !
+            ! Produce error message
+            !
+            call write_log('Error!    : combination of nonhydrostatic solver with quadtree grid with nr_levels > 1 is not supported ', 1)             
+            !
+         endif
+         !
+      endif
+      !
    endif
    !
    if (allocated(kcsg)) deallocate(kcsg)
+   !
+   end subroutine
+   
+   subroutine compute_zbuvmx()
+   !
+   use sfincs_data
+   !
+   integer :: ip
+   integer :: nm
+   integer :: nmu
+   !
+   do ip = 1, npuv
+      !
+      nm  = uv_index_z_nm(ip)
+      nmu = uv_index_z_nmu(ip)
+      !
+      zbuvmx(ip) = max(zb(nm), zb(nmu)) + huthresh
+      !   
+   enddo      
    !
    end subroutine
 
@@ -1598,25 +1753,34 @@ contains
    !
    implicit none
    !
-   integer :: idummy
    integer :: ip
    integer :: ib
    integer :: nm
    integer :: nmu
-   integer :: n
-   integer :: m
    integer :: ikcuv2
    !
    ! BOUNDARIES
    !
    ! First count number of boundary cells
    !
+   ! kcs = 2 : water level
+   ! kcs = 3 : outflow
+   ! kcs = 5 : river
+   ! kcs = 6 : lateral (coastal, dzs/dx = 0.0), in which case we set kcuv = 6 and we do not add this point to the boundary u/v points ! We do add this point to the grid boundary points (later on).
+   !
    ngbnd = 0
+   !
    do nm = 1, np
-      if (kcs(nm)==2 .or. kcs(nm)==3) then
+      if (kcs(nm) == 2 .or. kcs(nm) == 3 .or. kcs(nm) == 5 .or. kcs(nm) == 6) then
          !
-         include_boundaries = .true.
+         boundaries_in_mask = .true.
          ngbnd = ngbnd + 1
+         !
+         if (kcs(nm) == 2) water_level_boundaries_in_mask = .true.
+         if (kcs(nm) == 3) outflow_boundaries_in_mask = .true.
+         if (kcs(nm) == 5) downstream_river_boundaries_in_mask = .true.
+         if (kcs(nm) == 6) neumann_boundaries_in_mask = .true.
+         ! Neumann - Need nm indices of internal points, determined in sfincs_boundaries.f90
          !
       endif
    enddo
@@ -1626,7 +1790,6 @@ contains
    allocate(nmindbnd(ngbnd))
    allocate(zsb(ngbnd))
    allocate(zsb0(ngbnd))
-   allocate(ibndtype(ngbnd)) ! 0 for outflow boundary, 1 for regular boundary
    !
    zsb  = 0.0  ! Total water level at boundary grid point
    zsb0 = 0.0  ! Filtered water level at boundary grid point
@@ -1637,35 +1800,19 @@ contains
    !
    do nm = 1, np
       !
-      if (kcs(nm)==2 .or. kcs(nm)==3) then
+      if (kcs(nm) == 2 .or. kcs(nm) == 3 .or. kcs(nm) == 5 .or. kcs(nm) == 6) then
          !
          ! This is a boundary point
          !
          ngbnd = ngbnd + 1
          nmindbnd(ngbnd) = nm
          !
-         ! Determine whether this is a regular or outflow grid point
-         !
-         if (kcs(nm)==2) then
-            !
-            ! Regular boundary point
-            !
-            ibndtype(ngbnd) = 1
-            !
-         else
-            !
-            ! Outflow boundary point (set kcs back to 2)
-            !
-            ibndtype(ngbnd) = 0
-!            kcs(nm) = 2
-            !
-         endif   
       endif
    enddo
    !
    ! UV boundary points
    !
-   nkcuv2 = 0 ! Number of points with kcuv=2
+   nkcuv2 = 0 ! Number of points with kcuv=2 or kcuv=6
    kcuv   = 0
    !
    do ip = 1, npuv
@@ -1673,25 +1820,46 @@ contains
       nm  = uv_index_z_nm(ip)
       nmu = uv_index_z_nmu(ip)
       !
-      if (kcs(nm)>1 .and. kcs(nmu)>1)  then
+      if (kcs(nm) > 1 .and. kcs(nmu) > 1)  then
          !
          ! Two surrounding boundary points
          !
-         kcuv(ip) = 0 ! Is this really necessary
+         kcuv(ip) = 0 ! Is this really necessary ?
          !
-      elseif (kcs(nm)*kcs(nmu) == 0) then
-            !
-            ! One or two surrounding inactive points, so make this velocity point inactive
-            !
-            kcuv(ip) = 0
-            !
-      elseif ((kcs(nm)==1 .and. kcs(nmu)>1) .or. (kcs(nm)>1 .and. kcs(nmu)==1))  then
+      elseif (kcs(nm) * kcs(nmu) == 0) then
          !
-         ! One surrounding boundary points, so make this velocity point a boundary point
+         ! One or two surrounding inactive points, so make this velocity point inactive
+         !
+         kcuv(ip) = 0
+         !
+      elseif ((kcs(nm) == 1 .and. kcs(nmu) == 2) .or. (kcs(nm) == 2 .and. kcs(nmu) == 1))  then
+         !
+         ! One surrounding water level boundary point, so make this velocity point a boundary point
          !
          kcuv(ip) = 2
          nkcuv2 = nkcuv2 + 1
          !
+      elseif ((kcs(nm) == 1 .and. kcs(nmu) == 3) .or. (kcs(nm) == 3 .and. kcs(nmu) == 1))  then
+         !
+         ! One surrounding outflow boundary point, so make this velocity point a boundary point
+         !
+         kcuv(ip) = 2
+         nkcuv2 = nkcuv2 + 1
+         !
+      elseif ((kcs(nm) == 1 .and. kcs(nmu) == 5) .or. (kcs(nm) == 5 .and. kcs(nmu) == 1))  then
+         !
+         ! One surrounding downstream river boundary point, so make this velocity point a boundary point
+         !
+         kcuv(ip) = 2
+         nkcuv2 = nkcuv2 + 1
+         !
+      elseif ((kcs(nm) == 1 .and. kcs(nmu) == 6) .or. (kcs(nm) == 6 .and. kcs(nmu) == 1))  then
+         !
+         ! Lateral coastal boundary
+         !
+         kcuv(ip) = 6
+         nkcuv2 = nkcuv2 + 1
+         !         
       else
          !
          kcuv(ip) = 1
@@ -1715,7 +1883,7 @@ contains
    !
    do ip = 1, npuv
       !
-      if (kcuv(ip)==2) then
+      if (kcuv(ip) == 2 .or. kcuv(ip) == 6) then
          !
          ikcuv2 = ikcuv2 + 1       ! Counter for kcuv==2 points
          index_kcuv2(ikcuv2) = ip
@@ -1745,13 +1913,16 @@ contains
          !         
          do ib = 1, ngbnd
             !
-            if (nmindbnd(ib)==nmbkcuv2(ikcuv2)) then
+            if (nmindbnd(ib) == nmbkcuv2(ikcuv2)) then
                !
                ibkcuv2(ikcuv2) = ib ! index in grid boundary array of this uv boundary point
                !
-               ! Set water levels for this point (this only happens here)
+               ! Check if this is an outflow boundary (kcs=3)
                !
-               if (ibndtype(ib)==0) then
+               if (kcs(nmindbnd(ib)) == 3) then
+                  !
+                  ! Set water levels for this point (this only happens here, so these do not change throughout the simulation)
+                  !
                   if (subgrid) then
                      zsb0(ib) = subgrid_z_zmin(nmindbnd(ib))
                      zsb(ib)  = zsb0(ib)
@@ -1779,12 +1950,10 @@ contains
    !
    real*4, dimension(:),     allocatable :: rghfield
    !
-   integer :: idummy
    integer :: ip
    integer :: nm
    integer :: nmu
-   integer :: n
-   integer :: m
+   logical :: ok
    !
    ! FRICTION COEFFICIENTS (only for regular bathymetry, as for subgrid the Manning's n values are stored in the tables)
    !
@@ -1799,7 +1968,11 @@ contains
          ! Read spatially-varying friction
          !
          allocate(rghfield(np))
-         write(*,*)'Reading ',trim(manningfile), ' ...'
+         write(logstr,'(a,a)')'Info    : reading roughness file ',trim(manningfile)
+         call write_log(logstr, 0)
+         !
+         ok = check_file_exists(manningfile, 'Roughness file', .true.)
+         !
          open(unit = 500, file = trim(manningfile), form = 'unformatted', access = 'stream')
          read(500)rghfield
          close(500)
@@ -1850,14 +2023,9 @@ contains
    !
    implicit none
    !
-   real*4, dimension(:),     allocatable :: rghfield
-   !
-   integer :: idummy
-   integer :: ip
    integer :: nm
-   integer :: nmu
-   integer :: n
-   integer :: m
+   !
+   logical :: ok
    !
    ! INFILTRATION
    !
@@ -1884,7 +2052,7 @@ contains
    !   a) store_cumulative_precipitation == .true.
    ! or:  
    !   b) inftype == 'cna' or inftype == 'cnb'
-   !
+   !   
    ! First we determine precipitation type
    !
    if (precip) then
@@ -1909,6 +2077,7 @@ contains
          !
          inftype = 'cna'
          infiltration = .true.      
+         store_cumulative_precipitation = .true.
          !
       elseif (sefffile /= 'none') then  
          !
@@ -1934,17 +2103,13 @@ contains
          !
       endif
       !
-      if (precip) then
-         !
-         ! We need cumprcp and cuminf
-         !
-         allocate(cumprcp(np))
-         cumprcp = 0.0
-         !
-         allocate(cuminf(np))
-         cuminf = 0.0
-         ! 
-      endif
+      ! We need cumprcp and cuminf
+      !
+      allocate(cumprcp(np))
+      cumprcp = 0.0
+      !
+      allocate(cuminf(np))
+      cuminf = 0.0
       !
       ! Now allocate and read spatially-varying inputs 
       !
@@ -1959,9 +2124,13 @@ contains
          !
          ! Spatially-uniform constant infiltration (specified as +mm/hr)
          !
-         write(*,*)'Turning on process: Spatially-uniform constant infiltration'        
+         write(logstr,'(a)')'Info    : turning on spatially-uniform constant infiltration'        
+         call write_log(logstr, 0)
          !
          allocate(qinffield(np))
+         !
+         ! Note : qinf has already been converted to m/s in sfincs_input.f90 !
+         !
          do nm = 1, np
              if (subgrid) then
                  if (subgrid_z_zmin(nm) > qinf_zmin) then
@@ -1982,49 +2151,62 @@ contains
          !
          ! Spatially-varying constant infiltration
          !
-         write(*,*)'Turning on process: Spatially-varying constant infiltration'      
+         write(logstr,'(a)')'Info    : turning on spatially-varying constant infiltration'      
+         call write_log(logstr, 0)
          !
          ! Read spatially-varying infiltration (only binary, specified in +mm/hr)
          !
-         write(*,*)'Reading ', trim(qinffile), ' ...'
+         write(logstr,'(a,a)')'Info    : reading infiltration file ', trim(qinffile)
+         call write_log(logstr, 0)
+         !
+         ok = check_file_exists(qinffile, 'Infiltration qinf file', .true.)
+         !
          allocate(qinffield(np))
          open(unit = 500, file = trim(qinffile), form = 'unformatted', access = 'stream')
          read(500)qinffield
          close(500)
          !
-         do nm = 1, np
-            qinffield(nm) = qinffield(nm)/3.6e3/1.0e3   ! convert to +m/s
-         enddo
+         qinffield = qinffield / 3600 / 1000   ! convert to +m/s         
          !
       elseif (inftype == 'cna') then
          !
          ! Spatially-varying infiltration with CN numbers (old)
          !
-         write(*,*)'Turning on process: Infiltration (via Curve Number method - A)'               
+         write(logstr,'(a)')'Info    : turning on infiltration (via Curve Number method - A)'               
+         call write_log(logstr, 0)
          !
          allocate(qinffield(np))
+         !
          qinffield = 0.0
          !
-         write(*,*)'Reading ',trim(scsfile)
+         write(logstr,'(a,a)')'Info    : reading scs file ',trim(scsfile)
+         call write_log(logstr, 0)
+         !
+         ok = check_file_exists(scsfile, 'Infiltration scs file', .true.)
+         !
          open(unit = 500, file = trim(scsfile), form = 'unformatted', access = 'stream')
          read(500)qinffield
          close(500)
          !
          ! already convert qinffield from inches to m here
-         do nm = 1, np
-            qinffield(nm) = qinffield(nm)*0.0254   !to m
-         enddo      
+         !
+         qinffield = qinffield * 0.0254   ! to m
          !
       elseif (inftype == 'cnb') then  
          !
          ! Spatially-varying infiltration with CN numbers (new)
          !
-         write(*,*)'Turning on process: Infiltration (via Curve Number method - B)'            
+         write(logstr,'(a)')'Info    : turning on infiltration (via Curve Number method - B)' 
+         call write_log(logstr, 0)
          ! 
          ! Allocate Smax
          allocate(qinffield(np))
          qinffield = 0.0
-         write(*,*)'Reading ',trim(smaxfile)
+         write(logstr,'(a,a)')'Info    : reading smax file ',trim(smaxfile)
+         call write_log(logstr, 0)
+         !
+         ok = check_file_exists(smaxfile, 'Infiltration smax file', .true.)
+         !
          open(unit = 500, file = trim(smaxfile), form = 'unformatted', access = 'stream')
          read(500)qinffield
          close(500)
@@ -2032,21 +2214,31 @@ contains
          ! Allocate Se
          allocate(scs_Se(np))
          scs_Se = 0.0
-         write(*,*)'Reading ',trim(sefffile)
+         write(logstr,'(a,a)')'Info    : reading seff file ',trim(sefffile)
+         call write_log(logstr, 0)
+         !
+         ok = check_file_exists(sefffile, 'Infiltration seff file', .true.)
+         !
          open(unit = 501, file = trim(sefffile), form = 'unformatted', access = 'stream')
          read(501)scs_Se
          close(501)
          !
          ! Compute recovery                     ! Equation 4-36        
          ! Allocate Ks
+         !
          allocate(ksfield(np))
          ksfield = 0.0
-         write(*,*)'Reading ',trim(ksfile)
+         write(logstr,'(a,a)')'Info    : reading ks file ',trim(ksfile)
+         call write_log(logstr, 0)
+         !
+         ok = check_file_exists(ksfile, 'Infiltration ks file', .true.)
+         !
          open(unit = 502, file = trim(ksfile), form = 'unformatted', access = 'stream')
          read(502)ksfield
          close(502)
          !
          ! Compute recovery                     ! Equation 4-36
+         !
          allocate(inf_kr(np))
          inf_kr = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr (/25.4)
                                                 ! /75 is conversion to recovery rate (in days)
@@ -2067,67 +2259,91 @@ contains
          !
          ! Spatially-varying infiltration with the Green-Ampt (GA) model
          !
-         write(*,*)'Turning on process: Infiltration (via Green-Ampt)'            
+         call write_log('Info    : turning on process infiltration (via Green-Ampt)', 0)
          ! 
          ! Allocate suction head at the wetting front 
+         !
          allocate(GA_head(np))
          GA_head = 0.0
-         write(*,*)'Reading ',trim(psifile)
+         write(logstr,'(a,a)')'Info    : reading psi file ',trim(psifile)
+         call write_log(logstr, 0)
+         !
+         ok = check_file_exists(psifile, 'Infiltration psi file', .true.)
+         !
          open(unit = 500, file = trim(psifile), form = 'unformatted', access = 'stream')
          read(500)GA_head
          close(500)
          !
          ! Allocate maximum soil moisture deficit
+         !
          allocate(GA_sigma_max(np))
          GA_sigma_max = 0.0
-         write(*,*)'Reading ',trim(sigmafile)
+         write(logstr,'(a,a)')'Info    : reading sigma file ',trim(sigmafile)
+         call write_log(logstr, 0)
+         !
+         ok = check_file_exists(sigmafile, 'Infiltration sigma file', .true.)
+         !
          open(unit = 501, file = trim(sigmafile), form = 'unformatted', access = 'stream')
          read(501)GA_sigma_max
          close(501)
          !
          ! Allocate saturated hydraulic conductivity
+         !
          allocate(ksfield(np))
          ksfield = 0.0
-         write(*,*)'Reading ',trim(ksfile)
+         write(logstr,'(a,a)')'Info    : reading ks file ',trim(ksfile)
+         call write_log(logstr, 0)
+         !
+         ok = check_file_exists(ksfile, 'Infiltration ks file', .true.)
+         !
          open(unit = 502, file = trim(ksfile), form = 'unformatted', access = 'stream')
          read(502)ksfield
          close(502)
          !
          ! Compute recovery                         ! Equation 4-36
+         !
          allocate(inf_kr(np))
          inf_kr     = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr (/25.4)
                                                     ! /75 is conversion to recovery rate (in days)
          
          allocate(rain_T1(np))                      ! minimum amount of time that a soil must remain in recovery 
          rain_T1    = 0.0         
+         !
          ! Allocate support variables
+         !
          allocate(GA_sigma(np))                     ! variable for sigma_max_du
          GA_sigma   = GA_sigma_max
          allocate(GA_F(np))                         ! total infiltration
          GA_F       = 0.0
          allocate(GA_Lu(np))                        ! depth of upper soil recovery zone
-         GA_Lu      = 4 *sqrt(25.4) * sqrt(ksfield) ! Equation 4-33
+         GA_Lu      = 4 * sqrt(25.4) * sqrt(ksfield) ! Equation 4-33
          !
          ! Input values for green-ampt are in mm and mm/hr, but computation is in m a m/s
-         GA_head    = GA_head/1000                  ! from mm to m
-         GA_Lu      = GA_Lu/1000                    ! from mm to m
-         ksfield    = ksfield/1000/3600             ! from mm/hr to m/s
+         !
+         GA_head    = GA_head / 1000                  ! from mm to m
+         GA_Lu      = GA_Lu / 1000                    ! from mm to m
+         ksfield    = ksfield / 1000 / 3600           ! from mm/hr to m/s
          ! 
          ! First time step doesnt have an estimate yet
+         !
          allocate(qinffield(np))
-         qinffield(nm) = 0.00
+         qinffield(nm) = 0.0
          !
       elseif (inftype == 'hor') then  
          !
          ! Spatially-varying infiltration with the modified Horton Equation 
          !
-         write(*,*)'Turning on process: Infiltration (via modified Horton)'            
+         call write_log('Info    : turning on process infiltration (via modified Horton)', 0)
          ! 
          ! Horton: final infiltration capacity (fc)
          ! Note that qinffield = horton_fc
          allocate(horton_fc(np))
          horton_fc = 0.0
-         write(*,*)'Reading ',trim(fcfile)
+         write(logstr,'(a,a)')'Info    : reading fc file ',trim(fcfile)
+         call write_log(logstr, 0)
+         !
+         ok = check_file_exists(fcfile, 'Infiltration fc file', .true.)
+         !
          open(unit = 500, file = trim(fcfile), form = 'unformatted', access = 'stream')
          read(500)horton_fc
          close(500)
@@ -2135,7 +2351,11 @@ contains
          ! Horton: initial infiltration capacity (f0)
          allocate(horton_f0(np))
          horton_f0 = 0.0
-         write(*,*)'Reading ',trim(f0file)
+         write(logstr,'(a,a)')'Info    : reading f0 file ',trim(f0file)
+         call write_log(logstr, 0)
+         !
+         ok = check_file_exists(f0file, 'Infiltration f0 file', .true.)
+         !
          open(unit = 501, file = trim(f0file), form = 'unformatted', access = 'stream')
          read(501)horton_f0
          close(501)
@@ -2146,11 +2366,17 @@ contains
          ! Empirical constant (1/hr) k => note that this is different than ks used in Curve Number and Green-Ampt
          allocate(horton_kd(np))
          horton_kd = 0.0
-         write(*,*)'Reading ',trim(kdfile)
+         write(logstr,'(a,a)')'Info    : reading kd file ',trim(kdfile)
+         call write_log(logstr, 0)
+         !
+         ok = check_file_exists(kdfile, 'Infiltration kd file', .true.)
+         !
          open(unit = 502, file = trim(kdfile), form = 'unformatted', access = 'stream')
          read(502)horton_kd
          close(502)
-         write(*,*)'Using constant recovery rate that is based on constant factor relative to ',trim(kdfile)
+         !
+         write(logstr,'(a,a)')'Using constant recovery rate that is based on constant factor relative to ',trim(kdfile)
+         call write_log(logstr, 0)         
          !
          ! Estimate of time
          allocate(rain_T1(np))
@@ -2172,22 +2398,46 @@ contains
    subroutine initialize_storage_volume()
    !
    use sfincs_data
+   use sfincs_ncinput
    !
    implicit none
+   !
+   integer :: nchar
+   logical :: ok
    !
    if (use_storage_volume) then 
       !
       ! Spatially-varying storage volume for green infra
       !
-      write(*,*)'Turning on process: Storage Green Infrastructure'      
+      allocate(storage_volume(np))
+      !
+      write(logstr,'(a)')'Info    : turning on Storage Green Infrastructure'      
+      call write_log(logstr, 0)
       !
       ! Read spatially-varying storage per cell (m3)
       !
-      write(*,*)'Reading ', trim(volfile), ' ...'
-      allocate(storage_volume(np))
-      open(unit = 500, file = trim(volfile), form = 'unformatted', access = 'stream')
-      read(500)storage_volume
-      close(500)
+      write(logstr,'(a,a)')'Info    : reading vol file ',trim(volfile)
+      call write_log(logstr, 0)
+      !
+      nchar = len_trim(volfile)
+      !
+      ok = check_file_exists(volfile, 'Storage volume vol file', .true.)
+      !
+      if (volfile(nchar - 1 : nchar) == 'nc') then
+         !
+         ! Read netcdf file
+         !
+         call read_netcdf_storage_volume()
+         !
+      else
+         !
+         ! Read from binary file
+         !      
+         open(unit = 500, file = trim(volfile), form = 'unformatted', access = 'stream')
+         read(500)storage_volume
+         close(500)
+         !
+      endif   
       !
    endif
    !
@@ -2268,25 +2518,11 @@ contains
    !
    use sfincs_data
    use sfincs_subgrid
+   use sfincs_initial_conditions
    !
    implicit none
    !
-   real*4, dimension(:,:), allocatable :: inilev
-   real*4, dimension(:),   allocatable :: inizs
-   real*4, dimension(:),   allocatable :: iniq
-   !
-   integer    :: nm, m, n, ivol, num, nmu, ilevel, rsttype, ip, ind, iuv, icuv
-   real*4     :: dzvol
-   real*4     :: facint
-   real*4     :: rdummy
-   real*4     :: dzuv
-   real*4     :: zmax
-   real*4     :: zmin
-   real*4     :: one_minus_facint 
-   real*4     :: huv
-   real*4     :: zsuv   
-   !
-   logical   :: iok
+   integer    :: icuv
    !
    allocate(zs(np))
    !
@@ -2296,23 +2532,38 @@ contains
    allocate(q0(npuv + ncuv + 1))
    allocate(uv(npuv + ncuv + 1))
    allocate(uv0(npuv + ncuv + 1))
-   ! allocate(kfu(npuv))
    !
-   zs   = 0.0
-   q    = 0.0
-   q0   = 0.0
-   uv   = 0.0
-   uv0  = 0.0
-   ! kfu  = 1
+   allocate(kfuv(npuv))
+   ! 
+   zs  = 0.0
+   q   = 0.0
+   q0  = 0.0
+   uv  = 0.0
+   uv0 = 0.0
+   !
+   kfuv = 0 
+   !
+   if (wiggle_suppression) then 
+      ! 
+      allocate(zs0(np))
+      allocate(zsderv(np))
+      zs0 = 0.0
+      zsderv = 0.0
+      ! 
+   endif
    !
    if (snapwave) then
       !
       allocate(hm0(np))
       allocate(hm0_ig(np))
+      allocate(sw_tp(np))
+      allocate(sw_tp_ig(np))      
       allocate(fwuv(npuv))
       !
       hm0    = 0.0
       hm0_ig = 0.0
+      sw_tp     = 0.0
+      sw_tp_ig  = 0.0      
       fwuv   = 0.0
       !
       if (store_wave_forces) then
@@ -2330,8 +2581,6 @@ contains
          dfig = 0.0   
          allocate(cg(np))
          cg = 0.0
-         allocate(Qb(np))
-         qb = 0.0  
          allocate(betamean(np))
          betamean = 0.0     
          allocate(srcig(np))
@@ -2373,210 +2622,20 @@ contains
        allocate(twet(np))
    endif
    !
+   if (store_t_zsmax) then
+       allocate(t_zsmax(np))
+   endif
+   !
    if (store_tsunami_arrival_time) then
       allocate(tsunami_arrival_time(np))
    endif
    !
-   ! Initialize water level points
+   ! Set initial conditions (found in module sfincs_initial_conditions)
    !
-   if (rstfile(1:4) /= 'none') then
-      !
-      ! Binary restart file
-      !
-      allocate(inizs(np))
-      allocate(iniq(npuv))
-      !
-      write(*,*)'Reading restart file ', trim(rstfile), ' ...'
-      !
-      open(unit = 500, file = trim(rstfile), form = 'unformatted', access = 'stream')
-      !
-      ! Restartfile flavours:
-      ! 1: zs, q, uvmean  
-      ! 2: zs, q 
-      ! 3: zs  - 
-      ! 4: zs, q, uvmean and cnb infiltration (writing scs_Se)
-      ! 5: zs, q, uvmean and gai infiltration (writing GA_sigma & GA_F)
-      ! 6: zs, q, uvmean and hor infiltration (writing rain_T1)         
-      !
-      read(500)rdummy
-      read(500)rsttype
-      read(500)rdummy
-      !
-      if (rsttype<1 .or. rsttype >6) then
-          !
-          ! Give warning, rstfile input rsttype not recognized
-          !
-          write(*,*)'WARNING! rstfile not recognized, skipping restartfile input! rsttype should be 1-6, but found rsttype= ', rsttype 
-          !          
-          close(500)      
-          !          
-      else
-          ! Always read in inizs
-          !
-          read(500)rdummy
-          read(500)inizs
-          read(500)rdummy
-          !      
-          ! Read fluxes q
-          !
-          if (rsttype==1 .or. rsttype==2 .or. rsttype==4 .or. rsttype==5 .or. rsttype==6) then     
-             read(500)rdummy
-             read(500)iniq
-             read(500)rdummy
-             !
-             read(500)rdummy
-             read(500)uvmean
-             read(500)rdummy
-          endif
-          !
-          if (rsttype==4) then ! Infiltration method cnb 
-             !
-             read(500)rdummy                 
-             read(500)scs_Se
-             write(*,*)'Reading scs_Se from rstfile, overwrites input values of: ',trim(sefffile)
-             !
-          elseif (rsttype==5) then ! Infiltration method gai    
-             !
-             read(500)rdummy
-             read(500)GA_sigma
-             read(500)rdummy
-             read(500)GA_F
-             write(*,*)'Reading GA_sigma from rstfile, overwrites input values of: ',trim(sigmafile)        
-             !
-          elseif (rsttype==6) then ! Infiltration method horton
-              !
-              read(500)rdummy                               
-              read(500)rain_T1
-              write(*,*)'Reading rain_T1 from rstfile, complements input values of: ',trim(fcfile)        
-              !              
-          endif          
-          !
-          close(500)      
-          !
-          ! Water levels
-          !
-          do nm = 1, np
-             !
-             if (subgrid) then
-                zs(nm) = max(subgrid_z_zmin(nm), inizs(nm)) ! Water level at zini or bed level (whichever is higher)
-             else
-                zs(nm) = max(zb(nm), inizs(nm)) ! Water level at zini or bed level (whichever is higher)
-             endif
-             !
-          enddo      
-          !
-          ! Flux q (only for some types of restart file)      
-          !
-          if (rsttype==1 .or. rsttype==2 .or. rsttype==4 .or. rsttype==5) then
-             !
-             do ip = 1, npuv
-                !
-                q(ip) = iniq(ip)
-                !
-                ! Also need to compute initial uv
-                ! Use same method as used in sfincs_momentum.f90
-                !
-                nm  = uv_index_z_nm(ip)
-                nmu = uv_index_z_nmu(ip)
-                !
-                zsuv = max(zs(nm), zs(nmu)) ! water level at uv point 
-                !
-                iok = .false.
-                !
-                if (subgrid) then
-                   !
-                   zmin = subgrid_uv_zmin(ip)
-                   zmax = subgrid_uv_zmax(ip)
-                   !            
-                   if (zsuv>zmin + huthresh) then
-                      iok = .true.
-                   endif   
-                   !
-                else
-                   !            
-                   if (zsuv>zbuvmx(ip)) then
-                      iok = .true.
-                   endif   
-                   !            
-                endif   
-                !
-                if (iok) then
-                   !
-                   if (subgrid) then
-                      !
-                      if (zsuv>zmax - 1.0e-4) then
-                         !
-                         ! Entire cell is wet, no interpolation from table needed
-                         !
-                         huv    = subgrid_uv_havg_zmax(ip) + zsuv
-                         !
-                      else
-                         !
-                         ! Interpolation required
-                         !
-                         dzuv   = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nlevels - 1)
-                         iuv    = int((zsuv - subgrid_uv_zmin(ip))/dzuv) + 1
-                         facint = (zsuv - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv
-                         huv    = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint
-                         !                      
-                      endif
-                      !
-                      huv    = max(huv, huthresh)
-                      !
-                   else
-                      !
-                      huv    = max(zsuv - zbuv(ip), huthresh)
-                      !
-                   endif
-                   !
-                   uv(ip)   = max(min(q(ip)/huv, 4.0), -4.0)   
-                   !
-                endif   
-                !
-             enddo
-             !         
-          endif   
-          !
-          deallocate(inizs)
-          deallocate(iniq)
-          !
-      endif
-      !
-   elseif (zsinifile(1:4) /= 'none') then ! Read binary (!) initial water level file
-      !
-      allocate(inizs(np))
-      !       
-      write(*,*)'Reading ',trim(zsinifile)
-      open(unit = 500, file = trim(zsinifile), form = 'unformatted', access = 'stream')
-      read(500)inizs
-      close(500)       
-      !
-      do nm = 1, np
-         !
-         if (subgrid) then
-            zs(nm) = max(subgrid_z_zmin(nm), inizs(nm)) ! Water level at zini or bed level (whichever is higher)
-         else
-            zs(nm) = max(zb(nm), inizs(nm)) ! Water level at zini or bed level (whichever is higher)
-         endif
-         !
-      enddo       
-      !
-      deallocate(inizs)    
-      !
-   else
-      !
-      ! No initial conditions file
-      !
-      if (subgrid) then
-         do nm = 1, np
-            zs(nm)   = max(subgrid_z_zmin(nm), zini) ! Water level at zini or bed level (whichever is higher)
-         enddo
-      else
-         do nm = 1, np
-            zs(nm)   = max(zb(nm), zini) ! Water level at zini or bed level (whichever is higher)
-         enddo
-      endif
-      !
+   call set_initial_conditions()
+   !
+   if (wiggle_suppression) then 
+      zs0 = zs
    endif
    !
    ! Loop through combined uv points and determine average uv and q (this also happens at the end of sfincs_momentum.f90).
@@ -2605,11 +2664,15 @@ contains
    endif
    !
    if (store_maximum_velocity) then
-      vmax = 0.0
+      vmax = -999.0
    endif
    !
    if (store_twet) then
       twet = 0.0
+   endif
+   !
+   if (store_t_zsmax) then
+      t_zsmax = -999.0
    endif
    !
    uv = 0.0
@@ -2629,7 +2692,7 @@ contains
       tauwu1 = 0.0
       tauwv1 = 0.0
       !
-      if (store_meteo) then
+      if (store_wind) then
          !
          allocate(windu(np))
          allocate(windv(np))
@@ -2644,6 +2707,7 @@ contains
          windv0 = 0.0
          windu1 = 0.0
          windv1 = 0.0
+         !
          if (store_wind_max) then
             allocate(windmax(np))
             windmax = 0.0
@@ -2677,12 +2741,19 @@ contains
       prcp0   = 0.0
       prcp1   = 0.0
       !
-      allocate(cumprcpt(np))      
-      cumprcpt = 0.0
       allocate(netprcp(np))      
       netprcp  = 0.0
       !
    endif
+   !
+   if (use_qext) then
+      !
+      ! Allocating and initializing qext (used e.g. for BMI coupling with ground water model)
+      !
+      allocate(qext(np))
+      qext = 0.0
+      !
+   endif    
    !
    if (subgrid) then
       !
@@ -2691,6 +2762,16 @@ contains
       call compute_initial_subgrid_volumes()
       !
    endif
+   !
+   if (wave_enhanced_roughness) then
+      !
+      allocate(uorb(np))
+      allocate(gnapp2(npuv))
+      !
+      uorb = 0.0      
+      gnapp2 = 0.0
+      !
+   endif   
    !
    end subroutine
 
@@ -2716,7 +2797,6 @@ contains
    !
    ! In quadtree
    !
-   if (allocated(quadtree_level)) deallocate(quadtree_level)
    if (allocated(quadtree_md)) deallocate(quadtree_md)
    if (allocated(quadtree_md1)) deallocate(quadtree_md1)
    if (allocated(quadtree_md2)) deallocate(quadtree_md2)
@@ -2736,13 +2816,21 @@ contains
    if (allocated(quadtree_xz)) deallocate(quadtree_xz)
    if (allocated(quadtree_yz)) deallocate(quadtree_yz)
    if (allocated(quadtree_zz)) deallocate(quadtree_zz)
-   if (allocated(quadtree_nm_indices)) deallocate(quadtree_nm_indices)
-   if (allocated(quadtree_first_point_per_level)) deallocate(quadtree_first_point_per_level)  
-   if (allocated(quadtree_last_point_per_level)) deallocate(quadtree_last_point_per_level)      
-   if (allocated(quadtree_dxr)) deallocate(quadtree_dxr)
-   if (allocated(quadtree_dyr)) deallocate(quadtree_dyr)
    if (allocated(quadtree_mask)) deallocate(quadtree_mask)
    if (allocated(quadtree_snapwave_mask)) deallocate(quadtree_snapwave_mask)
+   !
+   if (.not. bmi) then 
+      !
+      ! These may be used when finding grid cell when using BMI
+      !
+      if (allocated(quadtree_level)) deallocate(quadtree_level)
+      if (allocated(quadtree_nm_indices)) deallocate(quadtree_nm_indices)
+      if (allocated(quadtree_first_point_per_level)) deallocate(quadtree_first_point_per_level)  
+      if (allocated(quadtree_last_point_per_level)) deallocate(quadtree_last_point_per_level)      
+      if (allocated(quadtree_dxr)) deallocate(quadtree_dxr)
+      if (allocated(quadtree_dyr)) deallocate(quadtree_dyr)
+      !
+   endif
    !
    end subroutine
    

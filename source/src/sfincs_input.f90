@@ -1,4 +1,4 @@
-﻿module sfincs_input
+module sfincs_input
 
 contains
 
@@ -8,6 +8,8 @@ contains
    !
    use sfincs_data
    use sfincs_date
+   use sfincs_log
+   use sfincs_error
    !
    implicit none
    !
@@ -24,6 +26,7 @@ contains
    integer ispinupmeteo
    integer isnapwave
    integer iwindmax
+   integer iwind   
    integer ioutfixed
    integer iadvection
    integer istorefw
@@ -33,12 +36,13 @@ contains
    integer iwavemaker      
    integer iwavemaker_spectrum  
    integer ispwprecip
-   logical iviscosity   
+   logical iviscosity
+   logical ok
    !
    character*256 wmsigstr 
    character*256 advstr 
    !   
-   write(*,*)'Reading input file ...'
+   ok = check_file_exists('sfincs.inp', 'SFINCS input file', .true.)
    !
    open(500, file='sfincs.inp')   
    !
@@ -64,6 +68,7 @@ contains
    call read_real_input(500,'dtwnd',dtwindupd,1800.0)
    call read_real_input(500,'alpha',alfa,0.50)
    call read_real_input(500,'theta',theta,1.0)
+   call read_real_input(500,'hmin_cfl',hmin_cfl,0.1)   
    call read_real_input(500,'manning',manning,0.04)
    call read_real_input(500,'manning_land',manning_land,-999.0)
    call read_real_input(500,'manning_sea',manning_sea,-999.0)
@@ -74,9 +79,8 @@ contains
    call read_real_input(500,'huthresh',huthresh,0.05)
    call read_real_input(500,'rhoa',rhoa,1.25)
    call read_real_input(500,'rhow',rhow,1024.0)
-   call read_real_input(500,'maxlev',max_elev,99999.0)
-   call read_char_input(500,'inputformat',inputtype,'asc')
-   call read_char_input(500,'outputformat',outputtype,'asc')
+   call read_char_input(500,'inputformat',inputtype,'bin')
+   call read_char_input(500,'outputformat',outputtype,'net')
    call read_char_input(500,'outputtype_map',outputtype_map,'nil')
    call read_char_input(500,'outputtype_his',outputtype_his,'nil')
    call read_int_input(500,'nc_deflate_level',nc_deflate_level,2)
@@ -92,14 +96,14 @@ contains
    call read_char_input(500,'utmzone',utmzone,'nil')
    call read_int_input(500,'epsg',epsg,0)
    call read_char_input(500,'epsg',epsg_code,'nil')      
-   call read_real_input(500,'stopdepth',stopdepth,100.0)
-   call read_real_input(500,'advlim',advlim,9999.9)
+   call read_real_input(500, 'advlim', advlim, 1.0)
+   call read_real_input(500,'slopelim',slopelim,9999.9)
    call read_real_input(500,'qinf_zmin',qinf_zmin,0.0)
    call read_real_input(500,'btfilter',btfilter,60.0)
    call read_real_input(500,'sfacinf',sfacinf,0.2)
    call read_int_input(500,'radstr',iradstr,0)
    call read_int_input(500,'crsgeo',igeo,0)
-   call read_int_input(500,'coriolis',icoriolis,1)
+   call read_logical_input(500, 'coriolis', coriolis, .true.)
    call read_int_input(500,'amprblock',iamprblock,1)
    call read_real_input(500,'spwmergefrac',spw_merge_frac,0.5)
    call read_int_input(500,'usespwprecip',ispwprecip,1)   
@@ -113,9 +117,33 @@ contains
    call read_real_input(500,'wmtfilter',wmtfilter,600.0)
    call read_real_input(500,'wmfred',wavemaker_freduv,0.99)
    call read_char_input(500,'wmsignal',wmsigstr,'spectrum')   
-   call read_logical_input(500,'wmrandom',wmrandom,.true.)   
+   call read_real_input(500, 'wmhmin', wavemaker_hmin, 0.1)
    call read_char_input(500,'advection_scheme',advstr,'upw1')   
    call read_real_input(500,'btrelax',btrelax,3600.0)
+   call read_logical_input(500,'wiggle_suppression', wiggle_suppression, .true.)
+   call read_real_input(500,'structure_relax',structure_relax,10.0)
+   call read_real_input(500,'wiggle_factor',wiggle_factor,0.1)
+   call read_real_input(500,'wiggle_threshold',wiggle_threshold,0.1)
+   call read_real_input(500, 'uvlim', uvlim, 10.0)
+   call read_real_input(500, 'uvmax', uvmax, 1000.0)
+   call read_logical_input(500,'friction2d',friction2d,.true.)
+   call read_logical_input(500,'advection_mask',advection_mask,.true.)
+   ! call read_real_input(500, 'dzdsbnd', dzdsbnd, 0.0001)
+   ! call read_real_input(500, 'manningbnd', manningbnd, 0.024)
+   call read_real_input(500, 'nuviscfac', nuviscfac, 100.0)
+   call read_logical_input(500, 'nonh', nonhydrostatic, .false.)   
+   call read_real_input(500, 'nh_fnudge', nh_fnudge, 0.9)
+   call read_real_input(500, 'nh_tstop', nh_tstop, -999.0)
+   call read_real_input(500, 'nh_tol', nh_tol, 0.001)
+   call read_int_input(500, 'nh_itermax', nh_itermax, 100)
+   call read_logical_input(500, 'h73table', h73table, .false.)   
+   call read_real_input(500, 'rugdepth', runup_gauge_depth, 0.05)
+   call read_logical_input(500, 'wave_enhanced_roughness', wave_enhanced_roughness, .false.)
+   call read_logical_input(500, 'use_bcafile', use_bcafile, .true.)   
+   call read_real_input(500, 'factor_wind', factor_wind, 1.0)
+   call read_real_input(500, 'factor_pres', factor_pres, 1.0)
+   call read_real_input(500, 'factor_prcp', factor_prcp, 1.0)
+   call read_real_input(500, 'factor_spw_size', factor_spw_size, 1.0)   
    !
    ! Domain
    !
@@ -123,6 +151,7 @@ contains
    call read_char_input(500,'depfile',depfile,'none')
    call read_char_input(500,'inifile',zsinifile,'none')
    call read_char_input(500,'rstfile',rstfile,'none')
+   call read_char_input(500,'ncinifile',ncinifile,'none')
    call read_char_input(500,'mskfile',mskfile,'none')
    call read_char_input(500,'indexfile',indexfile,'none')
    call read_char_input(500,'cstfile',cstfile,'none')
@@ -137,12 +166,9 @@ contains
    !
    call read_char_input(500,'bndfile',bndfile,'none')
    call read_char_input(500,'bzsfile',bzsfile,'none')
+   call read_char_input(500,'bcafile',bcafile,'none')
    call read_char_input(500,'bzifile',bzifile,'none')
-   call read_char_input(500,'bwvfile',bwvfile,'none')
-   call read_char_input(500,'bhsfile',bhsfile,'none')
-   call read_char_input(500,'btpfile',btpfile,'none')
-   call read_char_input(500,'bwdfile',bwdfile,'none')
-   call read_char_input(500,'bdsfile',bdsfile,'none')
+   call read_char_input(500, 'bdrfile', bdrfile, 'none')
    call read_char_input(500,'wfpfile',wfpfile,'none')
    call read_char_input(500,'whifile',whifile,'none')
    call read_char_input(500,'wtifile',wtifile,'none')
@@ -151,7 +177,11 @@ contains
    call read_char_input(500,'disfile',disfile,'none')
    call read_char_input(500,'spwfile',spwfile,'none')
    call read_char_input(500,'wndfile',wndfile,'none')
-   call read_char_input(500,'precipfile',prcpfile,'none')
+   call read_char_input(500,'prcfile',prcpfile,'none')
+   if (prcpfile(1:4) == 'none') then
+      ! Try with old keyword 
+      call read_char_input(500,'precipfile',prcpfile,'none')
+   endif  
    call read_char_input(500,'amufile',amufile,'none')
    call read_char_input(500,'amvfile',amvfile,'none')
    call read_char_input(500,'ampfile',ampfile,'none')
@@ -183,25 +213,36 @@ contains
    ! Output
    call read_char_input(500,'obsfile',obsfile,'none')
    call read_char_input(500,'crsfile',crsfile,'none')
+   call read_char_input(500, 'rugfile', rugfile, 'none')
    call read_int_input(500,'storevelmax',storevelmax,0)
    call read_int_input(500,'storefluxmax',storefluxmax,0)
    call read_int_input(500,'storevel',storevel,0)
    call read_int_input(500,'storecumprcp',storecumprcp,0)
    call read_int_input(500,'storetwet',storetwet,0)
+   call read_int_input(500,'storetzsmax',storetzsmax,0)
    call read_int_input(500,'storehsubgrid',storehsubgrid,0)
+   call read_logical_input(500, 'storehmean', store_hmean, .false.)      
    call read_real_input(500,'twet_threshold',twet_threshold,0.01)
    call read_int_input(500,'store_tsunami_arrival_time',itsunamitime,0)
    call read_real_input(500,'tsunami_arrival_threshold',tsunami_arrival_threshold,0.01)
    call read_int_input(500,'storeqdrain',storeqdrain,1)
    call read_int_input(500,'storezvolume',storezvolume,0)
+   call read_int_input(500,'storestoragevolume',storestoragevolume,0)
    call read_int_input(500,'writeruntime',wrttimeoutput,0)
    call read_logical_input(500,'debug',debug,.false.)
    call read_int_input(500,'storemeteo',storemeteo,0)
    call read_int_input(500,'storemaxwind',iwindmax,0)
    call read_int_input(500,'storefw', istorefw, 0)
    call read_int_input(500,'storewavdir', istorewavdir, 0)
-   call read_logical_input(500,'friction2d',friction2d,.true.)
-   call read_logical_input(500,'advection_mask',advection_mask,.true.)
+   call read_logical_input(500,'regular_output_on_mesh',use_quadtree_output,.false.)
+   call read_logical_input(500, 'store_dynamic_bed_level', store_dynamic_bed_level, .false.)
+   call read_logical_input(500,'snapwave_use_nearest',snapwave_use_nearest,.true.)   
+   call read_int_input(500,'percentage_done',percdoneval,5)
+   ! Limit to range (0,100)
+   percdoneval = max(min(percdoneval,100), 0)
+   !
+   ! Coupled SnapWave solver related
+   call read_int_input(500,'snapwave_wind',iwind,0)   
    !
    ! Wind drag
    !
@@ -242,7 +283,7 @@ contains
    !
    ! Check whether epsg code has been specified:
    if (epsg == 0) then
-       write(*,*)'WARNING: no epsg code defined' 
+       call write_log('Warning : no EPSG code defined', 0) 
    endif   
    !
    ! If tref not provided, assume tref=tstart
@@ -251,7 +292,8 @@ contains
        !
        trefstr = tstartstr
        !
-       write(*,*)'WARNING: no tref provided, set to tstart: ',trefstr
+       write(logstr,*)'Warning : no tref provided, set to tstart: ',trefstr
+       call write_log(logstr, 1)
        !
    endif
    !
@@ -287,29 +329,49 @@ contains
       imanning2d = 1
    endif   
    !
-   ! Coriolis parameter
+   ! CRS and Coriolis parameter
    !
-   fcorio = 2*7.2921e-05*sin(latitude*pi/180)
-   if (latitude>0.01 .or. latitude<-0.01) then
-      coriolis = .true.
+   fcorio = 0.0
+   !
+   if (igeo == 0) then
+      !
+      ! Projected (default with coriolis, unless latitude is 0.0)
+      !
+      crsgeo = .false.   
+      fcorio = 2 * 7.2921e-05 * sin(latitude * pi / 180)
+      !
+      if (latitude < 0.01 .and. latitude > -0.01) then
+         !
+         ! No Coriolis force 
+         ! 
+         coriolis = .false.
+         ! 
+      endif
+      !
    else
-      coriolis = .false.
-   endif
-   !
-   use_coriolis = .true.
-   crsgeo = .false.
-   if (igeo==1) then
-      coriolis = .true.
-      crsgeo   = .true.
-      if (icoriolis==1) then
-         use_coriolis = .true.
-         write(*,*)'Turning on process: Coriolis'               
-      else
-         use_coriolis = .false.
-      endif   
-      write(*,*)'Input grid interpreted as spherical coordinates, crsgeo= ',crsgeo
+      !
+      ! Geographic (default included coriolis, unless coriolis is turned off in input file)
+      ! fcorio2d will be determined in sfincs_domain.f90 
+      !
+      crsgeo = .true.   
       !
    endif
+   !
+   if (crsgeo) then
+      call write_log('Info    : input grid interpreted as geographic coordinates', 0)
+   else
+      call write_log('Info    : input grid interpreted as projected coordinates', 0)
+   endif    
+   !
+   if (coriolis) then
+      call write_log('Info    : turning on Coriolis', 0)         
+   else
+      call write_log('Info    : turning off Coriolis', 0)         
+   endif
+   !
+   if (.not. crsgeo .AND. .NOT. coriolis) then
+      call write_log('Info    : no Coriolis, as latitude is not specified in sfincs.inp', 0)
+   endif    
    !
    ! Output
    !
@@ -341,23 +403,38 @@ contains
       store_velocity = .true.
    endif
    !
-   store_hsubgrid = .false.
-   if (storehsubgrid==1) then
-      store_hsubgrid = .true.
-   endif   
-   !
    store_meteo = .false.
+   store_wind  = .false.   
    store_wind_max = .false.
    if (storemeteo==1) then
       store_meteo = .true.
+      store_wind = .true.      
       if (iwindmax==1) then
          store_wind_max = .true.
       endif
    endif
    !
+   snapwave = .false.
+   snapwavewind = .false.
+   if (isnapwave==1) then
+      snapwave = .true.
+      !
+      if (iwind==1) then
+          store_wind = .true.
+          snapwavewind = .true.
+          ! For running SnapWave with wind growth, we need to store the wind speed & direction to be able to pass it from SFINCS to SnapWave. 
+          ! Independent from wndfile or 2D meteo input, handled by store_wind.
+      endif  
+   endif 
+   !
    store_twet = .false.
    if (storetwet==1) then
       store_twet = .true.
+   endif
+   !
+   store_t_zsmax = .false.
+   if (storetzsmax==1) then
+      store_t_zsmax = .true.
    endif
    !
    store_cumulative_precipitation = .false.
@@ -400,24 +477,41 @@ contains
       !
       subgrid = .true.
       isubgrid = 1
-      write(*,*)'Info : Running SFINCS in subgrid mode ...'         
+      call write_log('Info    : running SFINCS with subgrid bathymetry', 0)
       !
    else
       !
       subgrid = .false.
       isubgrid = 0
-      write(*,*)'Info : Running SFINCS in regular mode ...'               
+      call write_log('Info    : running SFINCS with regular bathymetry', 0)
       !
    endif
    !
+   !
+   store_hsubgrid = .false.
+   if (storehsubgrid==1) then
+      store_hsubgrid = .true.
+   endif   
+   !
+   if (subgrid .eqv. .true. .and. store_hsubgrid .eqv. .true. .and. store_hmean .eqv. .false.) then
+      ! 
+      call write_log('Info    : storing maximum depth in subgrid cell for hmax output', 0)
+      !
+   elseif (subgrid .eqv. .true. .and. store_hsubgrid .eqv. .true. .and. store_hmean .eqv. .true.) then
+      !
+      call write_log('Info    : storing mean depth in subgrid cell for hmax output', 0)
+      !       
+   endif
+   !
    store_zvolume = .false.
+   !
    if (subgrid) then
        if (storezvolume==1) then
           store_zvolume = .true.
        endif
    endif
    !
-   store_tsunami_arrival_time = .false. ! Default use data in ampr file as block rather than linear interpolation
+   store_tsunami_arrival_time = .false. 
    if (itsunamitime==1) then
       store_tsunami_arrival_time = .true.
    endif      
@@ -426,10 +520,10 @@ contains
    viscosity = .false. 
    if (iviscosity) then
       viscosity = .true. 
-      write(*,*)'Turning on process: Viscosity'               
+      call write_log('Info    : turning on process: Viscosity', 0)
    endif   
    !
-   spinup_meteo = .true. ! Default use data in ampr file as block rather than linear interpolation
+   spinup_meteo = .true. 
    if (ispinupmeteo==0) then
       spinup_meteo = .false.
    endif      
@@ -438,11 +532,6 @@ contains
    if (ispwprecip==0) then
       use_spw_precip = .false.
    endif   
-   !
-   snapwave = .false.
-   if (isnapwave==1) then
-      snapwave = .true.
-   endif      
    !
    fixed_output_intervals = .true.
    if (ioutfixed==0) then
@@ -470,13 +559,15 @@ contains
       wavemaker = .true.
       iwavemaker = 1
       !
-      write(*,*)'Turning on process: Dynamic waves'               
+      call write_log('Info    : turning on process: Dynamic waves', 0)
       !
       if (wmsigstr(1:3) == 'mon') then
+         ! 
          ! Monochromatic
+         ! 
          wavemaker_spectrum = .false.
          !
-         write(*,*)'Use monochromatic wave spectrum'               
+         call write_log('Info    : use monochromatic wave spectrum', 0)
          !
       endif   
    endif
@@ -487,39 +578,61 @@ contains
    endif      
    !
    use_storage_volume = .false.
+   store_storagevolume = .false.
+   !
    if (volfile(1:4) /= 'none') then
       if (subgrid) then
          use_storage_volume = .true.
+         !
+         if (storestoragevolume==1) then
+             store_storagevolume = .true.
+         endif    
+         ! 
       else
-         write(*,*)'Warning: storage volume only supported for subgrid topographies!'
+         call write_log('Warning : storage volume only supported for subgrid topographies!', 1)
       endif
    endif
    !
-   advection_limiter = .false.
-   !   
    if (advection) then
       !
       ! Make 1st order upwind the default scheme
       !  
       advection_scheme = 1
+      !
+      call write_log('Info    : turning on advection', 0)
       ! 
       if (trim(advstr) == 'original') then
          advection_scheme = 0
-         write(*,*)'Advection scheme : Original'
+         call write_log('Info    : advection scheme : Original', 0)
       elseif (trim(advstr) == 'upw1') then
          advection_scheme = 1
-         write(*,*)'Advection scheme : First-order upwind'
+         call write_log('Info    : advection scheme : first-order upwind', 0)
       else
-         write(*,*)'Warning: advection scheme ', trim(advstr), ' not recognized! Using default upw1 instead!'
-      endif
-      !
-      if (advlim < 9999.0) then 
-         !
-         advection_limiter = .true.
-         !
+         write(logstr,*)'Warning : advection scheme ', trim(advstr), ' not recognized! Using default upw1 instead!'
+         call write_log(logstr, 1)
       endif
       !
    endif
+   !
+   if (nonhydrostatic) then
+      !
+      if (nh_tstop > 0.0) then
+         !
+         ! tstopnonh is provided so set it with respect to model reference time
+         !
+         nh_tstop = t0 + nh_tstop
+         !
+      else
+         !
+         ! tstopnonh is not provided so set it to tstop time + 999.0 s
+         !
+         nh_tstop = t1 + 999.0
+         !          
+      endif    
+      !
+   endif
+   !
+   ! normbnd = sqrt(dzdsbnd) / manningbnd
    !
    end subroutine
 
@@ -529,7 +642,6 @@ contains
    !
    character(*), intent(in) :: keyword
    character(len=256)       :: keystr
-   character(len=256)       :: keystr0
    character(len=256)       :: valstr
    character(len=256)       :: line
    integer, intent(in)      :: fileid
@@ -538,18 +650,25 @@ contains
    integer j,stat,ilen
    !
    value = default
+   !
    rewind(fileid)   
+   !
    do while(.true.)
+      !
       read(fileid,'(a)',iostat = stat)line
+      !
       if (stat==-1) exit
-      j=index(line,'=')      
-      keystr0 = trim(line(1:j-1))
-      call notabs(keystr0,keystr,ilen)
+      !
+      call read_line(line, keystr, valstr)
+      !
       if (trim(keystr)==trim(keyword)) then
-         valstr = trim(line(j+1:256))
-         read(valstr,*)value
+         !
+         read(valstr,*)value         
+         !
          exit
+         !
       endif
+      !
    enddo 
    !
    end  subroutine  
@@ -557,7 +676,6 @@ contains
    subroutine read_real_array_input(fileid,keyword,value,default,nr)
    !
    character(*), intent(in) :: keyword
-   character(len=256)       :: keystr0
    character(len=256)       :: keystr
    character(len=256)       :: valstr
    character(len=256)       :: line
@@ -570,18 +688,25 @@ contains
    allocate(value(nr))
    !
    value = default
+   !
    rewind(fileid)   
+   !
    do while(.true.)
+      !
       read(fileid,'(a)',iostat = stat)line
+      !
       if (stat==-1) exit
-      j=index(line,'=')      
-      keystr0 = trim(line(1:j-1))
-      call notabs(keystr0,keystr,ilen)
+      !
+      call read_line(line, keystr, valstr)
+      !
       if (trim(keystr)==trim(keyword)) then
-         valstr = trim(line(j+1:256))
+         !
          read(valstr,*)(value(m), m = 1, nr)
+         !
          exit
+         !
       endif
+      !
    enddo 
    !
    end  subroutine  
@@ -591,7 +716,6 @@ contains
    !
    character(*), intent(in) :: keyword
    character(len=256)       :: keystr
-   character(len=256)       :: keystr0
    character(len=256)       :: valstr
    character(len=256)       :: line
    integer, intent(in)      :: fileid
@@ -600,18 +724,25 @@ contains
    integer j,stat,ilen
    !
    value = default
+   !
    rewind(fileid)   
+   !
    do while(.true.)
+      !
       read(fileid,'(a)',iostat = stat)line
+      !
       if (stat==-1) exit
-      j=index(line,'=')      
-      keystr0 = trim(line(1:j-1))
-      call notabs(keystr0,keystr,ilen)
+      !
+      call read_line(line, keystr, valstr)
+      !
       if (trim(keystr)==trim(keyword)) then
-         valstr = trim(line(j+1:256))
+         !
          read(valstr,*)value         
+         !
          exit
+         !
       endif
+      !
    enddo 
    !
    end subroutine
@@ -627,21 +758,28 @@ contains
    integer, intent(in)       :: fileid
    character(*), intent(in)  :: default
    character(*), intent(out) :: value
-   integer j,stat,ilen
+   integer j,stat,ilen,jn
    !
    value = default
+   !
    rewind(fileid)   
+   !
    do while(.true.)
+      !
       read(fileid,'(a)',iostat = stat)line
+      !
       if (stat==-1) exit
-      j=index(line,'=')      
-      keystr0 = trim(line(1:j-1))
-      call notabs(keystr0,keystr,ilen)
+      !
+      call read_line(line, keystr, valstr)
+      !
       if (trim(keystr)==trim(keyword)) then
-         valstr = adjustl(trim(line(j+1:256)))
+         !
          value = valstr
+         !
          exit
+         !
       endif
+      !
    enddo 
    !
    end subroutine 
@@ -660,25 +798,92 @@ contains
    integer j,stat,ilen
    !
    value = default
+   !
    rewind(fileid)   
+   !
    do while(.true.)
+      !
       read(fileid,'(a)',iostat = stat)line
+      !
       if (stat==-1) exit
-      j=index(line,'=')      
-      keystr0 = trim(line(1:j-1))
-      call notabs(keystr0,keystr,ilen)
+      !
+      call read_line(line, keystr, valstr)
+      !
       if (trim(keystr)==trim(keyword)) then
-         valstr = adjustl(trim(line(j+1:256)))
+         !
          if (valstr(1:1) == '1' .or. valstr(1:1) == 'y' .or. valstr(1:1) == 'Y' .or. valstr(1:1) == 't' .or. valstr(1:1) == 'T') then
             value = .true.
          else
             value = .false.
          endif 
+         !
          exit
+         !
       endif
+      !
    enddo 
    !
    end subroutine 
+
+   subroutine read_line(line0, keystr, valstr)
+   !
+   ! Reads line from input file, returns keyword and value strings
+   !
+   character(*), intent(in)  :: line0
+   character(len=256)        :: line
+   character(*), intent(out) :: keystr
+   character(*), intent(out) :: valstr
+   integer j, ilen, jn
+   !
+   keystr = ''
+   valstr = '' 
+   !
+   ! Change tabs into spaces.
+   !
+   call notabs(line0, line, ilen)
+   !
+   ! Look for line ending character. Remove it if it exists.
+   !
+   jn = index(line, '\r')      
+   !
+   if (jn > 0) then
+      !
+      ! New line character detected (probably sfincs.inp with windows line endings, running in linux)
+      !
+      line = line(1 : jn - 1)            
+      ! 
+   endif
+   !
+   ! Remove leading and trailing spaces.
+   !
+   line = trim(line)
+   !
+   if (line(1:1) == '#' .or. line(1:1) == '!' .or. line(1:1) == '@') return
+   !
+   ! Find "="
+   !
+   j  = index(line, '=')
+   !
+   if (j == 0) return
+   !
+   keystr = trim(line(1:j-1))
+   !
+   valstr = trim(line(j+1:))
+   !
+   ! Remove comments
+   !
+   jn = index(valstr, '#')
+   !
+   if (jn > 0) then
+      !
+      valstr = trim(valstr(1 : jn - 1)) 
+      ! 
+   endif
+   !
+   valstr = adjustl(trim(valstr))
+   !
+   end subroutine 
+
 
    subroutine notabs(INSTR,OUTSTR,ILEN)
    ! @(#) convert tabs in input to spaces in output while maintaining columns, assuming a tab is set every 8 characters

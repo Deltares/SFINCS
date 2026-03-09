@@ -7,6 +7,7 @@ contains
    ! Reads obs files
    !
    use sfincs_data
+   use sfincs_log
    use sfincs_error
    use quadtree
    !
@@ -16,12 +17,12 @@ contains
    !
    integer iobs, nm, m, n, nmq, stat, j1, j2, jdq, iref
    !
+   logical ok
+   !
    character(len=256)        :: line
    character(len=256)        :: line2
    !
    real*4, dimension(:), allocatable :: value
-   !
-   logical :: ok
    !
    ! Read observation points
    !
@@ -29,11 +30,10 @@ contains
    !
    if (obsfile(1:4) /= 'none') then
       ! 
-      write(*,*)'Reading observation points ...'
+      write(logstr,'(a)')'Info    : reading observation points'
+      call write_log(logstr, 0)
       !
-      ok = check_file_exists(obsfile, 'obs file')      
-      !
-      if (.not. ok) return
+      ok = check_file_exists(obsfile, 'Observation points obs file', .true.)
       !
       open(500, file=trim(obsfile))       
       do while(.true.)
@@ -56,7 +56,6 @@ contains
       allocate(zbobs(nobs))      
       !
       allocate(nmwindobs(nobs))
-      allocate(wobs(4, nobs))
       !
       allocate(value(2))
       !
@@ -106,7 +105,7 @@ contains
          !
          if (nmq>0) then
             !
-            nm             = index_sfincs_in_quadtree(nmq)
+            nm = index_sfincs_in_quadtree(nmq)
             !
             if (nm > 0) then
                 !
@@ -126,11 +125,13 @@ contains
                 iref = z_flags_iref(nm)
             endif         
             !
-            ! write(*,'(a,i0,a,a,a,i0,a,i0,a,i0,a,i0,a,f0.3)')' Observation point ',iobs,' : "',trim(nameobs(iobs)),'" nm=',nm,' n=',n,' m=',m,' iref=',iref,' z=',zbobs(iobs)
+            write(logstr,'(a,i0,a,a,a,i0,a,i0,a,i0,a,i0,a,f0.3)')'Info    : observation point ',iobs,' : "',trim(nameobs(iobs)),'" nm=',nm,' n=',n,' m=',m,' iref=',iref,' z=',zbobs(iobs)
+            call write_log(logstr, 0)
             !
          else
             !
-            write(*,'(a,a,a)')' Warning : observation point "', trim(nameobs(iobs)), '" falls outside model domain.'
+            write(logstr,'(a,a,a)')'Warning ! Observation point "', trim(nameobs(iobs)), '" falls outside model domain !'
+            call write_log(logstr, 0)
             !
          endif   
          !

@@ -1,5 +1,8 @@
    module sfincs_structures
 
+   use sfincs_error
+   use sfincs_log
+   
    contains
 
    subroutine read_structures()
@@ -93,7 +96,10 @@
    integer,   dimension(:), allocatable  :: vertices 
    integer*1, dimension(:), allocatable  :: istruc
    !
-   write(*,*)'Reading weir file ...'
+   write(logstr,'(a)')'Info    : reading weir file'
+   call write_log(logstr, 0)
+   !
+   okay = check_file_exists(filename, 'Weir file', .true.)
    !
    ! Read structures file
    !
@@ -126,8 +132,6 @@
    rewind(500)
    !
    ! Loop through polylines
-   !
-!   open(600, file='structures.ldb')
    !
    do ithd = 1, nthd
       !
@@ -181,7 +185,7 @@
                dxs = dyrm(iref)
             else
                ! V point
-               dxs = dxm(indx)
+               dxs = 1.0 / dxminv(indx)
             endif   
          else   
             ! Projected coordinate system
@@ -333,7 +337,7 @@
                !
                ! V point
                !
-               dxs = dxm(ip)
+               dxs = 1.0 / dxminv(ip)
                !
             endif   
             !
@@ -371,7 +375,8 @@
    !
    nrstructures = nstruc
    !
-   write(*,*)nrstructures,' structure u/v points found'
+   write(logstr,'(a,i0,a)')'Info    : ', nrstructures, ' structure u/v points found'
+   call write_log(logstr, 0)
    !
    end subroutine
 
@@ -386,11 +391,12 @@
    !
    implicit none
    !
-   integer ip, nm, nthd, nrows, ncols, irow, stat, ithd, nr_points, iuv, indx
+   integer ip, nm, nthd, nstruc, nrows, ncols, irow, stat, ithd, nr_points, total_nr_points, iuv, indx
    !
    real      :: dst, dstmin, xxx, yyy, dstx, dsty
    real      :: dummy
    character :: cdummy
+   logical   :: ok
    !
    real*4,  dimension(:),   allocatable :: xthd
    real*4,  dimension(:),   allocatable :: ythd
@@ -398,12 +404,19 @@
    real*4,  dimension(2)                :: yp
    integer, dimension(:),   allocatable :: uv_indices   
    integer, dimension(:),   allocatable :: vertices
+   integer*1, dimension(:), allocatable  :: istruc  
    !
    ! Read thin dams file
    !
    nthd = 0
+   total_nr_points = 0
+   !
+   allocate(istruc(npuv))
+   istruc = 0   
    !
    if (thdfile(1:4) /= 'none') then
+      !
+      ok = check_file_exists(thdfile, 'Thin dams thd file', .true.)
       !
       ! First count number of polylines
       !
@@ -422,7 +435,8 @@
       !
       ! Loop through polylines
       !
-      write(*,'(a,a,a,i0,a)')' Reading ',trim(thdfile),' (', nthd, ' thin dams found) ...'
+      write(logstr,'(a,a,a,i0,a)')'Info    : reading ', trim(thdfile), ' (', nthd, ' thin dams found)'
+      call write_log(logstr, 0)
       !
       do ithd = 1, nthd
          !
@@ -444,17 +458,37 @@
             !
             indx = uv_indices(iuv)
             kcuv(indx) = 0
+            istruc(indx) = 1            
             !
          enddo
          !
          deallocate(xthd)
          deallocate(ythd)
          !
+         total_nr_points = total_nr_points + nr_points
+         !    
       enddo
       !
       close(500)
       !
-      write(*,*)nr_points,' structure points found'
+      nrthindams = total_nr_points
+      !      
+      allocate(thindam_uv_index(nrthindams))
+      !
+      nstruc = 0
+      !
+      do ip = 1, npuv
+         !
+         if (istruc(ip)==1) then
+            !
+            nstruc = nstruc + 1
+            thindam_uv_index(nstruc) = ip
+            !
+         endif
+      enddo      
+      !
+      write(logstr,'(a,i0,a)')'Info    : ', total_nr_points,' structure u/v points found'
+      call write_log(logstr, 0)
       !
    endif   
    !
@@ -509,6 +543,52 @@
    end subroutine
    
    
+   subroutine give_thindam_information(struc_info)
+   !
+   ! Subroutine to provide structure information to output
+   use sfincs_data
+   !
+   implicit none
+   !
+   integer                      :: n, m, istruc, nm, nmu, ip
+   real*4, dimension(:,:), allocatable   :: struc_info
+   real*4, dimension(:,:), allocatable :: xg
+   real*4, dimension(:,:), allocatable :: yg
+   
+   ! Make empty struc_info
+   allocate(struc_info(nrthindams,2))
+   struc_info = 0.0
+   ! 
+   ! Define the grid 
+   !
+   allocate(xg(mmax + 1, nmax + 1))
+   allocate(yg(mmax + 1, nmax + 1))
+   !
+   do n = 1, nmax + 1
+       do m = 1, mmax + 1
+           xg(m, n) = x0 + cosrot*(1.0*(m - 1))*dx - sinrot*(1.0*(n - 1))*dy
+           yg(m, n) = y0 + sinrot*(1.0*(m - 1))*dx + cosrot*(1.0*(n - 1))*dy
+       enddo
+   enddo
+   !
+   ! Get coordinates
+   !
+   do istruc = 1, nrthindams
+       !
+       ! Get index
+       ip       = thindam_uv_index(istruc)
+       nmu      = uv_index_z_nmu(ip)
+       nm       = uv_index_z_nm(ip)
+       ! 
+       ! Get coordinates of face
+       struc_info(istruc,1) = z_xz(nmu)*0.5 + z_xz(nm)*0.5
+       struc_info(istruc,2) = z_yz(nmu)*0.5 + z_yz(nm)*0.5
+       !
+   enddo
+   !
+   end subroutine
+
+   
    subroutine compute_fluxes_over_structures(tloop)
    !
    ! Computes fluxes over structures (THIS HAS TO BE SERIOUSLY IMPROVED!!!)
@@ -542,8 +622,8 @@
    !   
    call system_clock(count0, count_rate, count_max)
    !
-   !$acc kernels, present(zs, q, uv, structure_uv_index, uv_index_z_nm, uv_index_z_nmu, structure_parameters, structure_type, structure_length), async(1)
-   !$acc loop independent
+   !$acc parallel, present(zs, q, uv, structure_uv_index, uv_index_z_nm, uv_index_z_nmu, structure_parameters, structure_type, structure_length)
+   !$acc loop independent gang vector
    do istruc = 1, nrstructures
       !
       ip     = structure_uv_index(istruc)
@@ -609,7 +689,7 @@
       q(ip)  = qstruc*idir ! Add relaxation here !!!
       !
    enddo
-   !$acc end kernels
+   !$acc end parallel
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate

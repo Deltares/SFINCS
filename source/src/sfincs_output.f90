@@ -1,6 +1,7 @@
 module sfincs_output
 
    use sfincs_ncoutput
+   use sfincs_log
    
    contains
 
@@ -55,21 +56,26 @@ module sfincs_output
       !
       ! No restart file required
       !
-      trstout     = 1.0e9
+      trstout = 1.0e9
       !
    endif
    !
    ! Create his file if either observation points, cross-sections, structures or drains present
    !
-   if ((dthisout>1.0e-6) .and. ((nobs>0) .or. (nrcrosssections>0) .or. (nrstructures>0) .or. (ndrn>0))) then
+   if (dthisout>1.0e-6 .and. (nobs>0 .or. nrcrosssections>0 .or. nrstructures>0 .or. nrthindams>0 .or. ndrn>0 .or. nr_runup_gauges>0 )) then
+      !
       thisout     = t0
+      !
       if (outputtype_his == 'net') then    
          call ncoutput_his_init()
       else      
          call open_his_output()
       endif
+      !
    else
+      !
      thisout     = 1.0e9
+      !
    endif
    !   
    end subroutine
@@ -95,7 +101,6 @@ module sfincs_output
    integer  :: ntmapout 
    integer  :: ntmaxout
    integer  :: nthisout      
-   integer  :: nm
    !
    real*8   :: t
    !
@@ -122,8 +127,19 @@ module sfincs_output
       endif   
       !
       if (write_rst) then
+         !
          !$acc update host(q)
-      endif   
+         !$acc update host(uvmean)
+         !
+      endif
+      !
+      if (store_meteo) then
+         !
+         !$acc update host(windu)
+         !$acc update host(windv)
+         !$acc update host(patm)
+         !
+      endif
       !      
    endif
    !
@@ -147,7 +163,7 @@ module sfincs_output
    !      
    ! Maximum water level output maps
    !
-   if (write_max) then
+   if (write_max .and. dtmaxout > 0.0) then
       !
       !$acc update host(zsmax)
       !
@@ -161,6 +177,9 @@ module sfincs_output
       !      
       if (store_twet) then
          !$acc update host(twet)
+      endif
+      if (store_t_zsmax) then
+         !$acc update host(t_zsmax)
       endif
       !
       if (store_cumulative_precipitation) then
@@ -191,12 +210,12 @@ module sfincs_output
       endif
       !
       if (store_maximum_velocity) then
-         vmax = 0.0 ! Set vmax back to 0.0
+         vmax = -999.0 ! Set vmax back to a small value
          !$acc update device(vmax)
       endif
       !
       if (store_maximum_flux) then
-         qmax = 0.0 ! Set qmax back to 0.0
+         qmax = -999.0 ! Set qmax back to a small value
          !$acc update device(qmax)
       endif      
       !      
@@ -210,6 +229,10 @@ module sfincs_output
          !$acc update device(twet)
       endif
       !      
+      if (store_t_zsmax) then
+         t_zsmax = -999.0 ! Set t_zsmax back to a small value
+         !$acc update device(t_zsmax)
+      endif
    endif
    !
    !      
@@ -223,7 +246,7 @@ module sfincs_output
    !      
    ! Water level time series
    !
-   if (write_his .and. (nobs>0 .or. nrcrosssections>0)) then
+   if (write_his .and. (nobs>0 .or. nrcrosssections>0 .or. nr_runup_gauges>0)) then
       !      
       if (outputtype_his == 'net') then
          !      
@@ -257,15 +280,15 @@ module sfincs_output
        !write dtmax output if 1) value for dtmaxout wasn't achieved yet, 
        !or 2) in the last timeinterval, the full 'dtmaxout' wasn't achieved yet, but we still want the max over this interval
       ! 
-      write(*,'(a)')''       
-      write(*,*)'Info : Write maximum values at final timestep since t=dtmaxout was not reached yet...'
+      call write_log('', 1)
+      call write_log('Info : Write maximum values at final timestep since t=dtmaxout was not reached yet...', 1)
       ntmaxout = 1
       call write_output(t,.false.,.false.,.true.,.false.,0,ntmaxout,0,tloopoutput)
       !
    elseif (dtmaxout>1.e-6 .and. ntmaxout>0 .and. t < tmaxout) then
       !
-      write(*,'(a)')''       
-      write(*,*)'Info : Write maximum values at final timestep since t=dtmaxout was not reached yet for final interval...'
+      call write_log('', 1)
+      call write_log('Info : Write maximum values at final timestep since t=dtmaxout was not reached yet for final interval...', 1)
       ntmaxout = ntmaxout + 1
       !
       ! Write 'tstop' as timemax instead of actual (unrounded) 't'
@@ -347,6 +370,14 @@ module sfincs_output
       open(unit = 854, status = 'replace', file = 'cuminf.dat', form = 'unformatted')
    endif
    !
+   if (store_maximum_flux) then
+      open(unit = 855, status = 'replace', file = 'qmax.dat', form = 'unformatted')
+   endif
+   !
+   if (store_t_zsmax) then
+      open(unit = 856, status = 'replace', file = 't_zsmax.dat', form = 'unformatted')
+   endif
+   !
    end subroutine
    
 
@@ -356,9 +387,9 @@ module sfincs_output
    !
    implicit none
    !
-   integer                      :: nm, n, m
+   !integer                      :: nm, n, m
    !
-   real*4, dimension(:,:), allocatable :: zsg
+   !real*4, dimension(:,:), allocatable :: zsg
    !
 !   if (trim(outputtype_map)=='asc') then
 !      !
@@ -486,6 +517,14 @@ module sfincs_output
       write(854)cuminf
    endif
    ! 
+   if (store_maximum_flux) then
+      write(855)qmax
+   endif
+   ! 
+   if (store_t_zsmax) then
+      write(856)t_zsmax
+   endif
+   ! 
    end subroutine
    
    
@@ -570,7 +609,6 @@ module sfincs_output
    integer                      :: nm
    integer                      :: iobs   
    integer                      :: icrs   
-   integer                      :: ip   
    !
    real*8                             :: t
    real*4, dimension(nobs)            :: tprcp
@@ -637,6 +675,13 @@ module sfincs_output
    real*8        :: t
    real*8        :: tt
    !
+   real*4, dimension(:),   allocatable :: zs4
+   !
+   allocate(zs4(np))
+   !
+   ! Map from real*8 to real*4
+   zs4 = zs
+   !
    tt = 1.0*int(t)
    tstring = time_to_string(tt, trefstr)
    write(file_name,'(A,A,A)')'sfincs.',tstring,'.rst'
@@ -658,7 +703,7 @@ module sfincs_output
       if (inftype == 'cnb') then
          !
          write(911)4
-         write(911)zs
+         write(911)zs4
          write(911)q
          write(911)uvmean
          write(911)scs_Se
@@ -666,7 +711,7 @@ module sfincs_output
       elseif (inftype == 'gai') then
          !
          write(911)5
-         write(911)zs
+         write(911)zs4
          write(911)q
          write(911)uvmean
          write(911)GA_sigma
@@ -675,7 +720,7 @@ module sfincs_output
       elseif (inftype == 'hor') then
          !
          write(911)6
-         write(911)zs
+         write(911)zs4
          write(911)q
          write(911)uvmean
          write(911)rain_T1
@@ -685,9 +730,9 @@ module sfincs_output
    else ! default option remains type 1 without infiltration in restart
       !
       write(911)1    
-      write(911)zs
-      write(911)q
-      write(911)uvmean        
+      write(911)zs4     
+      write(911)q ! Note: q is actually larger than npuv! It has size npuv + ncuv + 1
+      write(911)uvmean
       !
    endif   
    ! 
@@ -695,17 +740,5 @@ module sfincs_output
    !
    end subroutine
 
-   
-   subroutine write_tsunami_arrival_file()
-   !
-   use sfincs_data
-   !
-   implicit none
-   !
-   open(unit = 911, status = 'replace', file = 'tsunami_arrival_time.dat', form = 'unformatted')
-   write(911)tsunami_arrival_time
-   close(911)   
-   !
-   end subroutine
    
 end module

@@ -127,11 +127,9 @@ This means that a too large water depth has occured somewhere in the domain, ind
 
 Possible problems can be:
 
-* The provided elevation file has very rapid changes in elevation, that locally lead to large water level gradients and fluxes. Possible solution: locally smooth the elevation data and provide this as a new depfile
+* The provided elevation file has very rapid changes in elevation, that locally lead to large water level gradients and fluxes. Possible solution: locally smooth the elevation data and provide this as a new depfile.
 
-* In general the internal timesteps of SFINCS might be too large. Possible solution: reduce timesteps by supplying a lower value of alpha (e.g. 0.5) or set a low enough value of 'dtmax'.
-
-* Sometimes a simulation might contain too large water depths are start in too deep water. This can potentially create problems as SFINCS is intented as a shallow water model.
+* In general the internal timesteps of SFINCS might be too large. Possible solution: reduce timesteps by supplying a lower value of alpha (e.g. 0.5), set a higher value for 'hmin_cfl' or set a low enough value of 'dtmax'.
 
 * When only forcing discharges in a for the rest entirely dry domain, the initial time steps can be too coarse to account for the needed timesteps when the discharge starts to flow. Possible solution: Make sure that part of the river/domain initially has water (limiting the time step) by specifying either 'zsini' or an 'inifile'.
 
@@ -139,10 +137,15 @@ Possible problems can be:
 
 * **Tip to check your model**: specify netcdf output and load in the sfincs_map.nc file (e.g. Quickplot, Panoply, Matlab, Python) and have a look at the variables 'zb' and 'msk'. Then you can see how SFINCS has interpreted the prodivided depfile and mskfile. Does map plots of these variables look weird? Probably something in your input file is not entirely correct!
 
+* When more stability is needed still, have a look at the input parameter options of 'advlim' or 'hmin_cfl'.
 
 Besides model instabilities, other recurring problems might be:
 
 * A specified (forcing) file/parameters is not read in > check whether you specified the name (e.g. netamuamvfile   = netamuamv.nc ) with **ONLY SPACES** in between the keyword and argument. SFINCS does not interpret a mixture of spaces and tabs well. This may cause a file or parameter to be read in as 'none', whereafter this is not used in the model simulation as wanted.
+
+* Also, check whether a certain expected forcing is coming through. SFINCS displays messages like "Turning on process: Precipitation", so if you force rainfall is this message is not visible in your log-file, something probably went wrong with the input file. Also for "Advection scheme", "Wind", "Atmospheric pressure", "Coriolis", "Viscosity", "Dynamic waves", "Infiltration XXX-type", "Precipitation from spwfile", "Storage Green Infrastructure".
+
+* SFINCS also gives input about certain files after reading in data and how these are snapped/interpreted. For instance for subgrid; "Number of subgrid levels : XXX", weirfile; "XXX structure u/v points found", wavemaker; "Number of wavemaker polylines found : XXX", observation points; "Warning : observation point XXX falls outside model domain.' - compare whether this is as expected.
 
 
 Output description
@@ -188,7 +191,15 @@ In case of netcdf output, the given parameters mean the following:
 	v
 	  :description:		Instantaneous flow velocity in v-direction per 'dtout' timestep, corresponding with netcdf variable 'time'.
 	  :standard_name:	sea_water_y_velocity	  
-	  :units:		m/s		  
+	  :units:		m/s	
+	subgrid_volume
+	  :description:		Instantaneous subgrid volume per 'dtout' timestep, corresponding with netcdf variable 'time'.
+	  :standard_name:	subgrid_volume_in_cell	  
+	  :units:		m^3
+	storage_volume
+	  :description:		Instantaneous storage volume per 'dtout' timestep, corresponding with netcdf variable 'time'.
+	  :standard_name:	storage_volume_in_cell	  
+	  :units:		m^3	  
 	timemax
 	  :description:		Time of global map output per 'dtmaxout' timestep.
 	  :standard_name:	time	  
@@ -197,6 +208,10 @@ In case of netcdf output, the given parameters mean the following:
 	  :description:		Maximum water level per 'dtmaxout' timestep, only given if dtmaxout>0, corresponding with netcdf variable 'timemax'.
 	  :standard_name:	maximum of sea_surface_height_above_mean_sea_level	  
 	  :units:		m above reference level
+	t_zsmax
+	  :description:		Time of max water level per cell and per 'dtmaxout' timestep, only given if dtmaxout>0, corresponding with netcdf variable 'timemax'.
+	  :standard_name:	maximum of sea_surface_height_above_mean_sea_level	  
+	  :units:		m above reference level	  
 	vmax
 	  :description:		Maximum flow velocity proxy per 'dtmaxout' timestep, only given if dtmaxout>0, corresponding with netcdf variable 'timemax'.
 	  :standard_name:	maximum_flow_velocity	  
@@ -210,7 +225,7 @@ In case of netcdf output, the given parameters mean the following:
 	  :units:		m	  
 	cumprcp
 	  :description:		Cumulative precipitation depth over whole simulation.
-	  :units:		m
+	  :units:		m	  	  
 	inp
 	  :description:		Copy of all the supplied input to SFINCS from 'sfincs.inp'.
 	  :units:		-
@@ -254,6 +269,14 @@ This file is only created if observation points are supplied in the 'obsfile', o
 	  :description:		weir height on snapped location on SFINCS grid of weirs in projected reference system
 	  :standard_name:	projection_x_coordinate	  
 	  :units:		m above reference level 	  	  
+	thindam_x
+	  :description:		x coordinate of snapped location on SFINCS grid of thin dams in projected reference system
+	  :standard_name:	projection_x_coordinate	  
+	  :units:		m in projected reference system	 	  
+	thindam_y
+	  :description:		y coordinate of snapped location on SFINCS grid of thin dams in projected reference system
+	  :standard_name:	projection_y_coordinate	  
+	  :units:		m in projected reference system	 	  
 	point_zb
 	  :description:		Bed level elevation of observation points.
 	  :standard_name:	altitude	  

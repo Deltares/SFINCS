@@ -2,6 +2,8 @@
 module sfincs_subgrid
    !
    use netcdf       
+   use sfincs_log
+   use sfincs_error
    !
    type net_type_subgrid
        integer :: ncid
@@ -21,6 +23,10 @@ contains
    !
    implicit none
    !
+   logical :: ok
+   !
+   ok = check_file_exists(sbgfile, 'Sub-grid sbg file', .true.)
+   !
    ! Check what sort of file we're dealing with
    !
    NF90(nf90_open(trim(sbgfile), NF90_CLOBBER, net_file_sbg%ncid))
@@ -39,7 +45,7 @@ contains
       !
       ! Binary format with hrep and navg
       !
-      write(*,*)'Warning : subgrid file has the "old" binary format, the simulation will continue, but we do recommended switching to the new Netcdf subgrid input format!'            ! 
+      call write_log('Warning : subgrid file has the "old" binary format, the simulation will continue, but we do recommended switching to the new Netcdf subgrid input format!', 0)
       !
       call read_subgrid_file_original()
       !
@@ -77,10 +83,13 @@ contains
    integer :: npuvs
    integer :: np_nc
    integer :: npuv_nc
+   logical :: subgrid_warning
+   !
+   subgrid_warning = .false.
    !
    ! Read subgrid data
    !
-   write(*,*)'Reading sub-grid netCDF file ...'
+   call write_log('Info   : reading sub-grid netCDF file', 0)
    !
    NF90(nf90_open(trim(sbgfile), NF90_CLOBBER, net_file_sbg%ncid))
    !          
@@ -145,7 +154,8 @@ contains
    allocate(uv_index(npuv))
    allocate(z_index(np))
    !
-   write(*,*)'Number of subgrid levels : ',subgrid_nlevels
+   write(logstr,'(a,i0)')'Info    : number of subgrid levels : ',subgrid_nlevels
+   call write_log(logstr, 0)
    !
    ! Need to make a new temporary re-mapping index array for the u and v points
    ! This is needed for reading in the subgrid file which has values for the entire quadtree grid
@@ -303,6 +313,10 @@ contains
       subgrid_uv_zmax(ip) = rtmpuv(uv_index(ip))
    enddo   
    !
+   do ip = 1, npuv
+      subgrid_uv_zmax(ip) = max(subgrid_uv_zmax(ip), subgrid_uv_zmin(ip) + 0.01)
+   enddo   
+   !
    NF90(nf90_get_var(net_file_sbg%ncid, net_file_sbg%uv_fnfit_varid, rtmpuv(:) ))
    !
    do ip = 1, npuv
@@ -350,19 +364,79 @@ contains
    do ip = 1, npuv
       nm = uv_index_z_nm(ip)
       nmu = uv_index_z_nmu(ip)
-      subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), subgrid_z_zmin(nm))
-      subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), subgrid_z_zmin(nmu))
-   enddo   
+      if (subgrid_z_zmin(nm) > subgrid_uv_zmin(ip)) then
+         ! This should normally never happen
+         !
+         if ((subgrid_z_zmin(nm) - subgrid_uv_zmin(ip)) > 0.1) then 
+            subgrid_warning = .true. ! to print warning to screen if difference > 10cm
+         endif
+         !
+         subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), subgrid_z_zmin(nm))
+         subgrid_uv_zmax(ip) = max(subgrid_uv_zmax(ip), subgrid_uv_zmin(ip) + 0.01) ! make sure that uv_zmax is at least 1 cm higher than uv_zmin
+      endif   
+      !
+      if (subgrid_z_zmin(nmu) > subgrid_uv_zmin(ip)) then
+         ! This should normally never happen
+         !
+         if ((subgrid_z_zmin(nmu) - subgrid_uv_zmin(ip)) > 0.1) then           
+            subgrid_warning = .true. ! to print warning to screen if difference > 10cm
+         endif
+         !
+         subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), subgrid_z_zmin(nmu))
+         subgrid_uv_zmax(ip) = max(subgrid_uv_zmax(ip), subgrid_uv_zmin(ip) + 0.01) ! make sure that uv_zmax is at least 1 cm higher than uv_zmin
+      endif   
+   enddo
+   !
+   ! Print warning message
+   !
+   if (subgrid_warning) then
+      call write_log('Warning   : some subgrid uv point(s) have a difference (z_zmin - uv_zmin) > 0.1m. Make sure you used HydroMT-SFINCS > v1.1.0 and check your input', 1)
+   endif   
    !
    ! Make sure zmax is always bigger than zmin
    !
+   subgrid_warning = .false. ! reuse for new check
+   !   
    do nm = 1, np
-      if (subgrid_z_zmax(nm) - subgrid_z_zmin(nm) < 0.001) subgrid_z_zmax(nm) = subgrid_z_zmax(nm) + 0.001
+      if (subgrid_z_zmax(nm) - subgrid_z_zmin(nm) <= 0.0) then
+         !
+         if (subgrid_z_zmax(nm) - subgrid_z_zmin(nm) < 0.0) then
+            subgrid_warning = .true. ! Only if something is really wrong           
+         endif
+         ! 
+         ! z_zmax == z_zmin is not necessarily an error but occurs when all subgrid pixels in a cell have the same value.
+         !
+         subgrid_z_zmax(nm) = subgrid_z_zmax(nm) + 0.01 ! make sure that z_zmax is at least 1 cm higher than z_zmin
+      endif   
    enddo
    !
-   do nm = 1, npuv
-      if (subgrid_uv_zmax(nm) - subgrid_uv_zmin(nm) < 0.001) subgrid_uv_zmax(nm) = subgrid_uv_zmax(nm) + 0.001
+   if (subgrid_warning) then
+      call write_log('Error   : some subgrid z point(s) have subgrid_z_zmax < subgrid_z_zmin, which should not happen. Check your model schematisation and/or rebuild your subgrid tables with a newer version of HydroMT-SFINCS', 1)
+   endif      
+   !
+   ! Make sure zmax is always bigger than zmin for uv point
+   !   
+   subgrid_warning = .false. ! reuse for new check
+   !
+   do ip = 1, npuv
+      if (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip) < 1.0e-7) then
+         ! 
+         if (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip) < 0.0) then
+            ! This should normally never happen
+            subgrid_warning = .true. ! Only if something is really wrong
+         endif
+         !         
+         ! uv_zmax == uv_zmin is not necessarily an error but occurs when all subgrid pixels in a cell have the same value.
+         !
+         subgrid_uv_zmax(ip) = subgrid_uv_zmax(ip) + 0.01 ! make sure that uv_zmax is at least 1 cm higher than uv_zmin
+      endif   
    enddo
+   !
+   ! Print warning message
+   !
+   if (subgrid_warning) then
+      call write_log('Error   : some subgrid uv point(s) have subgrid_uv_zmax < subgrid_uv_zmin, which should not happen. Check your model schematisation and/or rebuild your subgrid tables with a newer version of HydroMT-SFINCS', 1)
+   endif   
    !
    ! Make arrays for subgrid_uv_havg_zmax and subgrid_uv_nrep_zmax for faster searching
    !
@@ -414,7 +488,9 @@ contains
       ! This means that the subgrid file contains data for the entire quadtree. So also for points with kcs==0 !
       ! This also means that the data needs to be re-mapped to the active cell indices.
       !
-      write(*,*)'Reading ',trim(sbgfile), ' ...'
+      write(logstr,'(a,a)')'Info    : reading subgrid file ', trim(sbgfile)
+      call write_log(logstr, 0)
+      !
       open(unit = 500, file = trim(sbgfile), form = 'unformatted', access = 'stream')
       read(500)idummy ! version
       read(500)npzq ! nr cells
@@ -442,7 +518,8 @@ contains
       allocate(rtmpuv(npuvq))
       allocate(uv_index_qt_in_sf(npuv))
       !
-      write(*,*)'Number of subgrid levels : ',subgrid_nlevels
+      write(logstr,'(a,i0)')'Info    : number of subgrid levels : ', subgrid_nlevels
+      call write_log(logstr, 0)
       !
       ! Need to make a new temporary re-mapping index array for the u and v points
       ! This is needed for reading in the subgrid file which has values for the entire quadtree grid
@@ -594,13 +671,16 @@ contains
       !
       ! Subgrid file on regular grid
       !
-      write(*,*)'Reading ', trim(sbgfile), ' ...'
+      write(logstr,'(a,a)')'Info    : reading subgrid file ', trim(sbgfile)
+      call write_log(logstr, 0)
+      !
       open(unit = 500, file = trim(sbgfile), form = 'unformatted', access = 'stream')
       read(500)idummy ! nr cells
       read(500)ioption ! option
       read(500)subgrid_nlevels
       subgrid_nlevels = subgrid_nlevels + 1
-      write(*,*)'Number of subgrid levels : ',subgrid_nlevels - 1
+      write(logstr,'(a,i0)')'Info    : number of subgrid levels : ', subgrid_nlevels - 1
+      call write_log(logstr, 0)
       allocate(subgrid_z_zmin(np))
       allocate(subgrid_z_zmax(np))
       allocate(subgrid_z_volmax(np))

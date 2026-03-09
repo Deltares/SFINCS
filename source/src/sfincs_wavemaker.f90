@@ -1,5 +1,8 @@
    module sfincs_wavemaker
 
+   use sfincs_log
+   use sfincs_error
+
    contains
 
    subroutine read_wavemaker_polylines()
@@ -11,30 +14,17 @@
    !
    use sfincs_data
    use quadtree
-!   use sfincs_interpolation
    !
    implicit none
    !
-   integer*4 :: npol
    integer*4 :: nrows
    integer*4 :: ncols
    integer*4 :: stat
    integer*4 :: ipol
    integer*4 :: irow   
-!   integer*4 :: ncross
-!   integer*4 :: ncs
-!   integer*4 :: ic
-!   integer*4 :: icross
-!   integer*4 :: ipc
-   integer*4 :: i
    integer*4 :: j
-   integer*4 :: m
    integer*4 :: n
-   integer*4 :: nm
    integer*4 :: nmu
-!   integer*4 :: nrpts
-   integer*4 :: ind
-!   integer*4 :: indwm
    integer*4 :: nrw
    integer*4 :: ip
    integer*4 :: iwm
@@ -48,30 +38,17 @@
    real*4    :: phip
    !
    real*4    :: r
-!   real*4    :: dxcross
-!   real*4    :: dst
-!   real*4    :: xxx
-!   real*4    :: yyy
-!   real*4    :: lsec
-!   real*4    :: phi
    !
    character :: cdummy
-   character*256 :: filename
    !
    real*4,    dimension(:),     allocatable :: xpol
    real*4,    dimension(:),     allocatable :: ypol
    real*4,    dimension(:),     allocatable :: phi
-!   integer*4, dimension(:),     allocatable :: npts
-   !
-!   integer*4, dimension(:,:), allocatable   :: icode
-!   integer*4, dimension(:,:), allocatable   :: idummy
-!   real*8,    dimension(:,:), allocatable   :: xzd
-!   real*8,    dimension(:,:), allocatable   :: yzd
    !
    integer*4, dimension(:),     allocatable :: cell_indices
    integer*4, dimension(:),     allocatable :: indwm
    !
-   logical :: iok
+   logical :: iok, ok
    !
    integer ib1, ib2, ib, ic, nmb, nrwvm
    !
@@ -86,9 +63,10 @@
    nrw = 0
    nrwvm = 0
    !
-   write(*,*)'Reading wavemaker polyline file ...'
+   write(logstr,*)'Reading wavemaker polyline file ...'
+   call write_log(logstr, 0)
    !
-   ! Loop through all polylines
+   ok = check_file_exists(wvmfile, 'Wave maker wvm file', .true.)
    !
    open(500, file=trim(wvmfile))
    do while(.true.)
@@ -105,7 +83,8 @@
    !
    ! Loop through polylines
    !
-   write(*,'(a,a,a,i0,a)')' Reading ',trim(wvmfile),' (', nrwvm, ' wave makers polylines found) ...'
+   write(logstr,*)'Number of wavemaker polylines found : ', nrwvm
+   call write_log(logstr, 0)   
    !
    do ipol = 1, nrwvm
       !
@@ -752,7 +731,8 @@
    !
    ! Allocate arrays
    !
-   write(*,*)'Number of wavemaker u/v points : ', iwm
+   write(logstr,*)'Number of wavemaker u/v points : ', iwm
+   call write_log(logstr, 0)
    !
    wavemaker_nr_uv_points = iwm   
    !
@@ -773,7 +753,8 @@
    iwm = 0
    nok = 0
    !
-   write(*,*)'Setting wave makers ...' 
+   write(logstr,*)'Setting wave makers ...'
+   call write_log(logstr, 0)   
    !
    do ip = 1, np
       !
@@ -1146,7 +1127,8 @@
    !
    ! Set flags for kcuv points
    !
-   write(*,*)'Setting wave maker flags ...'
+   write(logstr,*)'Setting wave maker flags ...'
+   call write_log(logstr, 0)   
    !
    do iwm = 1, wavemaker_nr_uv_points
       !
@@ -1169,9 +1151,12 @@
       !
       wavemaker_timeseries = .true.
       !
-      write(*,*)'Reading wave conditions at wave makers ...'
+      write(logstr,*)'Reading wave conditions at wave makers ...'
+      call write_log(logstr, 0)      
       !
       ! Locations
+      !
+      ok = check_file_exists(wfpfile, 'Wave maker wfp file', .true.)
       !
       open(500, file=trim(wfpfile))
       do while(.true.)
@@ -1191,6 +1176,8 @@
       !
       ! First find times in whi file
       !
+      ok = check_file_exists(wfpfile, 'Wave maker whi file', .true.)
+      !      
       open(500, file=trim(whifile))
       do while(.true.)
          read(500,*,iostat = stat)dummy
@@ -1218,6 +1205,8 @@
       !
       ! Tp IG (peak period)
       !
+      ok = check_file_exists(wtifile, 'Wave maker wti file', .true.)
+      !      
       open(500, file=trim(wtifile))
       allocate(wmf_tp_ig(nwmfp, ntwmfp))
       do itb = 1, ntwmfp
@@ -1230,6 +1219,9 @@
       allocate(wmf_setup(nwmfp, ntwmfp))
       wmf_setup = 0.0
       if (wstfile(1:4) /= 'none') then
+         !
+         ok = check_file_exists(wstfile, 'Wave maker wsr file', .true.)
+         ! 
          open(500, file=trim(wstfile))
          do itb = 1, ntwmfp
             read(500,*)wmf_time(itb),(wmf_setup(ib, itb), ib = 1, nwmfp)
@@ -1237,9 +1229,26 @@
          close(500)
       endif
       !
-      if (wmf_time(1)>t0 + 1.0 .or. wmf_time(ntwmfp)<t1 - 1.0) then
+      if ((wmf_time(1) > (t0 + 1.0)) .or. (wmf_time(ntwmfp)< (t1 - 1.0))) then
          ! 
-         write(*,'(a)')' WARNING! Times in wave maker time series file do not cover entire simulation period!'
+         write(logstr,'(a)')' WARNING! Times in wave maker time series file do not cover entire simulation period !'
+         call write_log(logstr, 0)         
+         ! 
+         if (wmf_time(1) > (t0 + 1.0)) then
+            ! 
+            write(logstr,'(a)')' WARNING! Adjusting first time in wave maker time series !'
+            call write_log(logstr, 0)                                 
+            !
+            wmf_time(1) = t0 - 1.0
+            !
+         else
+            ! 
+            write(logstr,'(a)')' WARNING! Adjusting last time in wave maker time series !'
+            call write_log(logstr, 0)                     
+            !
+            wmf_time(ntwmfp) = t1 + 1.0
+            !
+         endif
          !
       endif   
       !
@@ -1332,11 +1341,10 @@
    !
    implicit none
    !
-   integer ib, nm, nmi, nmb, iuv, indb, idir, ip, ifreq, itb, itb0, itb1
+   integer ib, nmi, nmb, iuv, ip, ifreq, itb, itb0, itb1
    real*4  hnmb, dt, zsnmi, zsnmb, zs0nmb, zwav
    real*4  alpha, beta
    real*8  t, tb
-   real*4  sinth
    real*4  a, fp
    real*4 tbfac, hs, tp, tpsum, setup
    !
@@ -1446,15 +1454,16 @@
       !
    endif      
    !
-   !$acc kernels present( wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, &
-   !$acc                  zs, q, hm0_ig, zb, zbuv, &
+   ! UV fluxes at wave makers
+   !
+   ! No OMP acceleration here?
+   !
+   !$acc parallel present( wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, &
+   !$acc                  zs, q, hm0, hm0_ig, zb, zbuv, subgrid_z_zmax, &
    !$acc                  wmf_hm0_ig_t, wmf_setup_t, wavemaker_index_wmfp1, wavemaker_index_wmfp2, wavemaker_fac_wmfp, &
    !$acc                  wavemaker_uvmean, wavemaker_idir, wavemaker_angfac, wavemaker_freduv, wavemaker_uvtrend, & 
-   !$acc                  subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_z_zmin, subgrid_uv_havg_zmax), async(1)
-   ! 
-   ! UV fluxes at boundaries
-   !
-   !$acc loop independent, private(ib)
+   !$acc                  subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_z_zmin, subgrid_uv_havg_zmax)
+   !$acc loop
    do ib = 1, wavemaker_nr_uv_points
       !
       ip     = wavemaker_index_uv(ib)
@@ -1507,21 +1516,21 @@
             !
          endif
          !
-         hnmb   = max(depthuv, huthresh)
+         hnmb   = depthuv
          zsnmb  = max(zsnmb,  subgrid_z_zmin(nmb))
          zs0nmb = max(zs0nmb, subgrid_z_zmin(nmb))
          !
       else
          !
-         hnmb   = max(0.5*(zsnmb + zsnmi) - zbuv(ip), huthresh)
-         zsnmb  = max(zsnmb,  zb(nmb))
+         hnmb   = 0.5 * (zsnmb + zsnmi) - zbuv(ip)
+         zsnmb  = max(zsnmb, zb(nmb))
          zs0nmb = max(zs0nmb, zb(nmb))
          !
       endif
       !
-      ! Weakly reflective boundary
+      ! Use weakly reflective boundary condition 
       !
-      if (hnmb<huthresh) then
+      if (hnmb < wavemaker_hmin) then
          !
          ! Very shallow
          !
@@ -1530,20 +1539,20 @@
          !
       else
          !
-         ui = sqrt(g/hnmb)*(zsnmb - zs0nmb)
-         ub = wavemaker_idir(ib) * (2*ui - sqrt(g/hnmb)*(zsnmi - zs0nmb)) * wavemaker_angfac(ib)
+         ui = sqrt(g / hnmb) * (zsnmb - zs0nmb)
+         ub = wavemaker_idir(ib) * (2 * ui - sqrt(g / hnmb) * (zsnmi - zs0nmb)) * wavemaker_angfac(ib)
          !
-         q(ip) = ub*hnmb + wavemaker_uvmean(ib)
+         q(ip) = ub * hnmb + wavemaker_uvmean(ib)
          !
       endif
       !
-      if (wmtfilter>=0.0) then
+      if (wmtfilter >= 0.0) then
          !
          ! Use double exponential time filter
          !
          uvm0 = wavemaker_uvmean(ib) ! Previous time step
-         wavemaker_uvmean(ib)  = alpha*q(ip)   + wavemaker_freduv*(1.0 - alpha)*(wavemaker_uvmean(ib) + wavemaker_uvtrend(ib))
-         wavemaker_uvtrend(ib) = beta*(wavemaker_uvmean(ib) - uvm0) + (1.0 - beta)*wavemaker_uvtrend(ib)
+         wavemaker_uvmean(ib)  = alpha * q(ip) + wavemaker_freduv * (1.0 - alpha) * (wavemaker_uvmean(ib) + wavemaker_uvtrend(ib))
+         wavemaker_uvtrend(ib) = beta * (wavemaker_uvmean(ib) - uvm0) + (1.0 - beta) * wavemaker_uvtrend(ib)
          !
       else
          !
@@ -1552,8 +1561,7 @@
       endif
       !
    enddo
-   !
-   !$acc end kernels
+   !$acc end parallel
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate

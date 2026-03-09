@@ -2,6 +2,8 @@
 module sfincs_ncinput
    !
    use netcdf       
+   use sfincs_spiderweb
+   use sfincs_log
    !
    implicit none
    !
@@ -52,6 +54,11 @@ module sfincs_ncinput
        integer :: xeye_varid, yeye_varid, peye_varid
        integer :: wind_x_varid, wind_y_varid, pressure_varid, precip_varid
    end type      
+   type net_type_vol
+       integer :: ncid
+       integer :: np_dimid
+       integer :: vol_varid
+   end type
    !
    type(net_type_bndbzsbzi) :: net_file_bndbzsbzi        
    type(net_type_srcdis)    :: net_file_srcdis        
@@ -59,6 +66,7 @@ module sfincs_ncinput
    type(net_type_amp)       :: net_file_amp 
    type(net_type_ampr)      :: net_file_ampr              
    type(net_type_spw)       :: net_file_spw              
+   type(net_type_vol)       :: net_file_vol              
 
    contains   
    
@@ -70,7 +78,7 @@ module sfincs_ncinput
    !
    implicit none   
    !
-   ! Wanted variable names for Fews compatible netcdf input
+   ! Variable names for Fews compatible netcdf input
    !
    character (len=256)            :: x_varname
    character (len=256)            :: y_varname
@@ -79,15 +87,15 @@ module sfincs_ncinput
    character (len=256), parameter :: zi_varname   = 'zi'   
    character (len=256), parameter :: units        = 'units'  
    !
-!   if (crsgeo) then
-!      x_varname    = 'lon'
-!      y_varname    = 'lat'  
-!   else
-      x_varname    = 'x'
-      y_varname    = 'y'  
-!   endif   
+   !   if (crsgeo) then
+   !      x_varname    = 'lon'
+   !      y_varname    = 'lat'  
+   !   else
+   x_varname    = 'x'
+   y_varname    = 'y'  
+   !   endif   
    !
-   write(*,*)'Reading FEWS compatible netcdf type water level boundaries (bnd, bzs, bzi)...'
+   call write_log('Info    : reading FEWS compatible netcdf type water level boundaries (bnd, bzs, bzi)...', 0)
    !
    ! Actual reading of data
    !
@@ -128,7 +136,7 @@ module sfincs_ncinput
    !   
    if (net_file_bndbzsbzi%zi_varid /= 0) then     ! Allocate and read if bzi data is present
       bziwaves = .true.   ! turn on flag
-      write(*,*)'   Incident waves are forced...'      
+      !write(*,*)'   Incident waves are forced...'      
       !      
       allocate(zsi_bnd(nbnd,ntbnd))
       allocate(zsit_bnd(nbnd))
@@ -156,7 +164,7 @@ module sfincs_ncinput
    !
    implicit none   
    !
-   ! Wanted variable names for Fews compatible netcdf input
+   ! Variable names for Fews compatible netcdf input
    !
    character (len=256)            :: x_varname
    character (len=256)            :: y_varname
@@ -164,15 +172,15 @@ module sfincs_ncinput
    character (len=256), parameter :: q_varname    = 'discharge'
    character (len=256), parameter :: units        = 'units'  
    !
-!   if (crsgeo) then
-!      x_varname    = 'lon'
-!      y_varname    = 'lat'  
-!   else
-      x_varname    = 'x'
-      y_varname    = 'y'  
-!   endif   
+   !   if (crsgeo) then
+   !      x_varname    = 'lon'
+   !      y_varname    = 'lat'  
+   !   else
+   x_varname    = 'x'
+   y_varname    = 'y'  
+   !   endif   
    !
-   write(*,*)'Reading FEWS compatible netcdf type discharges ...'
+   call write_log('Reading FEWS compatible netcdf type discharges', 0)
    !
    ! Actual reading of data
    !
@@ -216,6 +224,54 @@ module sfincs_ncinput
    ! 
    end subroutine
 
+
+   subroutine read_netcdf_storage_volume()
+   !
+   use netcdf
+   use sfincs_data
+   use quadtree
+   !
+   implicit none   
+   !
+   real*8, dimension(:), allocatable :: vols
+   integer :: nrcells, nm, ip
+   !
+   character (len=256), parameter :: vol_varname = 'vol'
+   !
+   NF90(nf90_open(trim(volfile), NF90_CLOBBER, net_file_vol%ncid))
+   !
+   ! Get dimensions id's: nr points  
+   !
+   NF90(nf90_inq_dimid(net_file_vol%ncid, "mesh2d_nFaces", net_file_vol%np_dimid))
+   !
+   ! Get dimensions sizes    
+   !
+   NF90(nf90_inquire_dimension(net_file_vol%ncid, net_file_vol%np_dimid, len = nrcells))   ! nr of cells
+   !
+   ! Check that number of values in the cell matches quadtree_nr_points
+   !
+   ! TODO: if (nrcells /=quadtree_nr_points) GIVE ERROR and stop simulation
+   !
+   NF90(nf90_inq_varid(net_file_vol%ncid, vol_varname, net_file_vol%vol_varid))
+   !
+   allocate(vols(nrcells))
+   !
+   NF90(nf90_get_var(net_file_vol%ncid, net_file_vol%vol_varid, vols(:)))
+   !
+   ! Map quadtree to sfincs
+   !
+   do ip = 1, quadtree_nr_points
+      !
+      nm = index_sfincs_in_quadtree(ip)
+      !
+      storage_volume(nm) = vols(ip)
+      !
+   enddo   
+   !
+   NF90(nf90_close(net_file_vol%ncid))       
+   ! 
+   end subroutine
+   
    
    
    subroutine read_netcdf_amuv_data()
@@ -239,7 +295,7 @@ module sfincs_ncinput
    real*4, dimension(:),     allocatable :: wx
    real*4, dimension(:),     allocatable :: wy
    !
-   ! Wanted variable names for Fews compatible netcdf input for amu/amv
+   ! Variable names for Fews compatible netcdf input for amu/amv
    !
    character (len=256)            :: x_varname
    character (len=256)            :: y_varname
@@ -248,15 +304,15 @@ module sfincs_ncinput
    character (len=256), parameter :: wu_varname     = 'eastward_wind'     
    character (len=256), parameter :: units          = 'units'     
    !
-!   if (crsgeo) then
-!      x_varname    = 'lon'
-!      y_varname    = 'lat'  
-!   else
-      x_varname    = 'x'
-      y_varname    = 'y'  
-!   endif   
+   !   if (crsgeo) then
+   !      x_varname    = 'lon'
+   !      y_varname    = 'lat'  
+   !   else
+   x_varname    = 'x'
+   y_varname    = 'y'  
+   !   endif   
    !
-   write(*,*)'Reading FEWS compatible NetCDF type wind input ...'
+   call write_log('Info    : reading FEWS compatible NetCDF type wind input', 0)
    !
    ! Actual reading of data
    !
@@ -361,7 +417,7 @@ module sfincs_ncinput
    real*4, dimension(:),     allocatable :: px
    real*4, dimension(:),     allocatable :: py
    !
-   ! Wanted variable names for Fews compatible netcdf input for prcp
+   ! Variable names for Fews compatible netcdf input for prcp
    !
    character (len=256)            :: x_varname
    character (len=256)            :: y_varname
@@ -369,15 +425,15 @@ module sfincs_ncinput
    character (len=256), parameter :: patm_varname   = 'barometric_pressure'
    character (len=256), parameter :: units          = 'units'     
    !
-!   if (crsgeo) then
-!      x_varname    = 'lon'
-!      y_varname    = 'lat'  
-!   else
-      x_varname    = 'x'
-      y_varname    = 'y'  
-!   endif   
+   !   if (crsgeo) then
+   !      x_varname    = 'lon'
+   !      y_varname    = 'lat'  
+   !   else
+   x_varname    = 'x'
+   y_varname    = 'y'  
+   !   endif   
    !
-   write(*,*)'Reading FEWS compatible NetCDF type barometric pressure input ...'
+   call write_log('Info    : reading FEWS compatible NetCDF type barometric pressure input', 0)
    !
    ! Actual reading of data
    !
@@ -475,7 +531,7 @@ module sfincs_ncinput
    real*4, dimension(:),     allocatable :: px
    real*4, dimension(:),     allocatable :: py
    !
-   ! Wanted variable names for Fews compatible netcdf input for prcp
+   ! Variable names for Fews compatible netcdf input for prcp
    !
    character (len=256)            :: x_varname
    character (len=256)            :: y_varname
@@ -483,15 +539,15 @@ module sfincs_ncinput
    character (len=256), parameter :: prcp_varname   = 'Precipitation'
    character (len=256), parameter :: units          = 'units'     
    !
-!   if (crsgeo) then
-!      x_varname    = 'lon'
-!      y_varname    = 'lat'  
-!   else
-      x_varname    = 'x'
-      y_varname    = 'y'  
-!   endif   
+   !   if (crsgeo) then
+   !      x_varname    = 'lon'
+   !      y_varname    = 'lat'  
+   !   else
+   x_varname    = 'x'
+   y_varname    = 'y'  
+   !   endif   
    !
-   write(*,*)'Reading FEWS compatible NetCDF type precipitation input ...'
+   call write_log('Info    : reading FEWS compatible NetCDF type precipitation input', 0)
    !
    ! Actual reading of data
    !
@@ -575,26 +631,30 @@ module sfincs_ncinput
     !
     implicit none   
     !
-    integer nt, status
+    integer status, it
+    character*256                           :: line
+    integer*8                               :: dtsec
     real*4, dimension(:,:,:),   allocatable :: prtmp 
     real*4, dimension(:,:,:),   allocatable :: ampr_prtmp 
-   
-    write(*,*)'subroutine NetCDF spiderweb ...'
     !
     ! Actual reading of data
+    !
     NF90(nf90_open(trim(netspwfile), NF90_CLOBBER, net_file_spw%ncid))     
     !
     ! Get dimensions id's: time, range and azimuth
+    !
     NF90(nf90_inq_dimid(net_file_spw%ncid, "time",    net_file_spw%time_dimid))
     NF90(nf90_inq_dimid(net_file_spw%ncid, "range",   net_file_spw%nrows_dimid)) 
     NF90(nf90_inq_dimid(net_file_spw%ncid, "azimuth", net_file_spw%ncols_dimid))
     !
     ! Get dimensions sizes: time, cols, rows      
+    !
     NF90(nf90_inquire_dimension(net_file_spw%ncid, net_file_spw%time_dimid,  len = spw_nt))      !nr of timesteps in file
     NF90(nf90_inquire_dimension(net_file_spw%ncid, net_file_spw%nrows_dimid, len = spw_nrows))   !nr of rows    
     NF90(nf90_inquire_dimension(net_file_spw%ncid, net_file_spw%ncols_dimid, len = spw_ncols))   !nr of cols    
-
+    !
     ! Get variable id's
+    !
     NF90(nf90_inq_varid(net_file_spw%ncid, "time",              net_file_spw%time_varid) )
     NF90(nf90_inq_varid(net_file_spw%ncid, "range",             net_file_spw%range_varid) )
     NF90(nf90_inq_varid(net_file_spw%ncid, "azimuth",           net_file_spw%azimuth_varid) )
@@ -602,25 +662,34 @@ module sfincs_ncinput
     NF90(nf90_inq_varid(net_file_spw%ncid, "latitude_eye",      net_file_spw%yeye_varid) )  
     NF90(nf90_inq_varid(net_file_spw%ncid, "wind_x",            net_file_spw%wind_x_varid) )  
     NF90(nf90_inq_varid(net_file_spw%ncid, "wind_y",            net_file_spw%wind_y_varid) )  
-    NF90(nf90_inq_varid(net_file_spw%ncid, "pressure",          net_file_spw%pressure_varid) )  
+    NF90(nf90_inq_varid(net_file_spw%ncid, "pressure",          net_file_spw%pressure_varid) )   ! Note: absolute pressure, not pressure drop
     !
     ! Attempt to get the variable ID for "precipitation"
+    !
     status = NF90_INQ_VARID(net_file_spw%ncid, "precipitation", net_file_spw%precip_varid)
     !
     ! Check the status
+    !
     if (status /= NF90_NOERR) then
+       !
        ! Handle error: variable does not exist
-       write(*,*) "Error: Variable 'precipitation' does not exist in the NetCDF file."
+       ! 
+       call write_log('Warning: variable precipitation does not exist in the NetCDF file !', 0)
+       ! 
        spw_precip   = .false.
        precip       = .false.
+       !
     else
+       !
        NF90(nf90_inq_varid(net_file_spw%ncid, "precipitation",          net_file_spw%precip_varid) )
        spw_precip   = .true.
        precip       = .true.
-       write(*,*)'Turning on process: Precipitation from spwfile'
+       call write_log('Info    : turning on precipitation from spw file', 0)
+       !
     endif
     !
     ! Allocate
+    !
     allocate(spw_times(spw_nt))
     allocate(spw_xe(spw_nt))
     allocate(spw_ye(spw_nt))
@@ -628,14 +697,15 @@ module sfincs_ncinput
     allocate(spw_radia(spw_nrows))
     allocate(spw_wu(spw_nt, spw_nrows, spw_ncols))
     allocate(spw_wv(spw_nt, spw_nrows, spw_ncols))
-    allocate(spw_pdrp(spw_nt, spw_nrows, spw_ncols))
+    allocate(spw_pabs(spw_nt, spw_nrows, spw_ncols))
     allocate(spw_prcp(spw_nt, spw_nrows, spw_ncols))
-    allocate(spw_pdrp01(spw_nrows, spw_ncols))
+    allocate(spw_pabs01(spw_nrows, spw_ncols))
     allocate(spw_prcp01(spw_nrows, spw_ncols))
     allocate(spw_wu01(spw_nrows, spw_ncols))
     allocate(spw_wv01(spw_nrows, spw_ncols))
-      
+    !      
     ! Support variables
+    !      
     allocate(prtmp(spw_nrows, spw_ncols,1))
     allocate(ampr_prtmp(1, spw_nrows, spw_ncols))   
     !
@@ -646,49 +716,58 @@ module sfincs_ncinput
     NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%range_varid, spw_radia(:)))
     !
     ! We only need to know the maxima
-    spw_radius  = spw_radia(spw_nrows)
-    dradspw     = spw_radius/spw_nrows
-    dphispw     = 2*pi/spw_ncols
+    spw_radius = spw_radia(spw_nrows)
+    dradspw    = spw_radius/spw_nrows
+    dphispw    = 2 * pi / spw_ncols
     !
     ! Read matrix values
     !
-    do nt = 1, spw_nt 
+    do it = 1, spw_nt 
        !
        ! Read wind_x
        !
-       NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%wind_x_varid, prtmp, start = (/ 1, 1, nt /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
+       NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%wind_x_varid, prtmp, start = (/ 1, 1, it /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
        ampr_prtmp = reshape( prtmp, (/ 1, spw_nrows, spw_ncols /), ORDER = (/ 3, 2, 1 /))            
-       spw_wu(nt,:,:) = ampr_prtmp(1,:,:)
+       spw_wu(it,:,:) = ampr_prtmp(1,:,:)
        !
        ! Read wind_y
        !
-       NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%wind_y_varid, prtmp, start = (/ 1, 1, nt /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
+       NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%wind_y_varid, prtmp, start = (/ 1, 1, it /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
        ampr_prtmp = reshape( prtmp, (/ 1, spw_nrows, spw_ncols /), ORDER = (/ 3, 2, 1 /))            
-       spw_wv(nt,:,:) = ampr_prtmp(1,:,:)
+       spw_wv(it,:,:) = ampr_prtmp(1,:,:)
        !
-       ! Read pressure
+       ! Read pressure (stored as absolute, NOTE: different than in original ascii spwfile)
        !
-       NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%pressure_varid, prtmp, start = (/ 1, 1, nt /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
+       NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%pressure_varid, prtmp, start = (/ 1, 1, it /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
        ampr_prtmp = reshape( prtmp, (/ 1, spw_nrows, spw_ncols /), ORDER = (/ 3, 2, 1 /))            
-       spw_pdrp(nt,:,:) = ampr_prtmp(1,:,:)
+       spw_pabs(it,:,:) = ampr_prtmp(1,:,:)       
        !
        ! Read rainfall
        !
        if (spw_precip) then
-          NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%precip_varid, prtmp, start = (/ 1, 1, nt /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
+          NF90(nf90_get_var(net_file_spw%ncid, net_file_spw%precip_varid, prtmp, start = (/ 1, 1, it /), count = (/ spw_ncols, spw_nrows, 1 /))) ! be aware of start indices
           ampr_prtmp = reshape( prtmp, (/ 1, spw_nrows, spw_ncols /), ORDER = (/ 3, 2, 1 /))            
-          spw_prcp(nt,:,:) = ampr_prtmp(1,:,:)
+          spw_prcp(it,:,:) = ampr_prtmp(1,:,:)
        endif
        !
     enddo
     ! 
-    ! Read time attibute and convert time
-    NF90(nf90_get_att(net_file_spw%ncid, net_file_spw%time_varid,'units', treftimefews))
-    spw_times = convert_spw_nc_date(spw_times, spw_nt, treftimefews, trefstr)
-    !       
+    ! Read time attibute and convert time to seconds since tref
+    ! 
+    NF90(nf90_get_att(net_file_spw%ncid, net_file_spw%time_varid, 'units', treftimefews))
+    !
+    do it = 1, spw_nt
+       ! 
+       write(line, '(a,f0.2,a,a)') 'TIME           = ', spw_times(it), ' ', treftimefews
+       call compute_time_in_seconds(line,trefstr,dtsec)
+       spw_times(it) = dtsec * 1.0
+       ! 
+    enddo    
+    !
     ! Close netcdf
-    NF90(nf90_close(net_file_spw%ncid))     
-
+    !       
+    NF90(nf90_close(net_file_spw%ncid))
+    !
    end subroutine
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -697,16 +776,10 @@ module sfincs_ncinput
       integer, intent ( in)    :: status
       character(*), intent(in) :: file
       integer, intent ( in)    :: line
-      integer :: status2
-   
+      !   
       if(status /= nf90_noerr) then
       !   !UNIT=6 for stdout and UNIT=0 for stderr.
          write(0,'("NETCDF ERROR: ",a,i6,":",a)') file,line,trim(nf90_strerror(status))
-      !   write(0,*) 'closing file'
-      !   !status2 = nf90_close(net_file_bndbzs%ncid) ! even uit gezet omdat hij net_file_bndbzs en ncid niet kent omdat het locale variabelen zijn
-      !   !if (status2 /= nf90_noerr) then
-      !   !   write(0,*) 'NETCDF ERROR: ', __FILE__,__LINE__,trim(nf90_strerror(status2))
-      !   !end if
       end if
    end subroutine handle_err
    !

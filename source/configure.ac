@@ -65,5 +65,5 @@ AC_CONFIG_FILES([
         src/Makefile
 ])
 dnl we'll try to include netcdf-fortran in the binary so all fortran code is portable
-AC_CONFIG_SUBDIRS([third_party_open/netcdf/netcdf-fortran-4.4.4])
+AC_CONFIG_SUBDIRS([third_party_open/netcdf/netcdf-fortran-4.6.1])
 AC_OUTPUT

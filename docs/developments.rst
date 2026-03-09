@@ -2,30 +2,179 @@ Developments
 =====
 
 SFINCS has continuely being developed since 2017, and many great features have been added over the years.
-Hereby some examples regarding subgrid features and GPU computing.
 
 Development status
 -----
 
-See here a schematic overview of the SFINCS development status at Q4 2023, at the time of the v2.0.3 Cauberg release.
-Indicated are new functionality for SFINCS itself (core), and model setup/post-processing using HydroMT-SFINCS and Delft Dashboard (Python).
+See here a schematic overview of the SFINCS development status at November 2025, at the time of the v2.3.0 mt. Faber release.
+Indicated are new functionality for SFINCS itself (core), and model setup/post-processing using HydroMT-SFINCS (Python).
 
-.. figure:: ./figures/Overview_status_SFINCS.drawio.png
+.. figure:: ./figures/Overview_status_SFINCS-2025.02.drawio.png
    :width: 600px
    :align: center
 
-   Overview of SFINCS development status Q4 2023
+   Overview of SFINCS development status 2025.02 Release
 
 Known issues
 -----
 
-Known issues of the current SFINCS main version and last release are (improvements are work in progress):
+Known issues/warnings of the current SFINCS main version and last release are listed here:
 
-* The BMI implementation in SFINCS is up to date with openearth/bmi-python, which is however not up to date with the latests CSDMS standard BMI implementation
+* If you are still using restartfiles from SFINCS 2023 Cauberg release or older, you should remake your restartfiles to overcome potential issues with running the col d'Eze, mt Faber or future releaeses! 
+* The BMI implementation in SFINCS is up to date with XMI (BMI + extensions - Hughes et al. 2022), to be used with 'xmipy' (https://github.com/Deltares/xmipy) and related functions (https://deltares.github.io/xmipy/xmipy.html), which is however not up to date with the latests CSDMS standard BMI implementation 2.0.
 * The combination of netspwfile with large difference in reference time between the spiderweb and the SFINCS simulation itself, might not run correctly in the Docker version. Use the ascii spwfile input or the Windows build executable which work correctly.
+* Docker GPU version of Deltares latest is not fully functional. If you'd want to use the GPU version of SFINCS, get in touch to set up a collaboration.
 
 Releases Changelog
 -----
+
+Official open source version 2025.02: v2.3.0 mt. Faber release
+^^^^^
+
+The second official 2025 release of SFINCS, the v2.3.0 mt Faber release, 'Modernizing Tasks in Flood Assessments for Better Emergency Response', is now available!
+
+This contains open access to the source code from Github: https://github.com/Deltares/SFINCS/releases/tag/v2.3.0_mt_Faber_release.
+
+As pre-compiled Windows executable:
+
+https://download.deltares.nl/en/sfincs/
+
+As Docker container:
+
+docker pull deltares/sfincs-cpu:sfincs-v2.3.0-mt-Faber-Release
+
+Changes:
+
+The code consists of all functionality of the 2025.01 'v2.2.0 col d'Eze' release, with the following main changes/additions:
+
+* 'Check if file exists' functionality for all input files, to avoid silent failures/skipping when files are not found. SFINCS will stop if a declared filename in sfincs.inp is not found when read in.
+* Storage volume option for green infrastructure "volfile", including HydroMT-SFINCS setup function.
+* Flag to turn on writing away the time stamp that the maximum water elevation during simulation occured (storetzsmax = 1).
+* Flag to turn on writing away the volume in the subgrid cells (storezvolume = 1).
+* Flag to turn on writing away the volume in the storage volume cells (storestoragevolume = 1).
+* For thin dams now also the snapped x&y locations are written to the his-file, as for weirfiles.
+* Added infiltration to logfile processes section.
+* Added explanation on how to use the check valve option in drainage structures in the documentation.
+* Add description for utmzone input in case of spiderwebs in latlon.
+
+* New Python setup tools HydroMT-SFINCS release > recommended to use this new version (v1.2.1) instead of the last release!
+
+Bugfixes:
+
+* Fixed bug with restartfile where fluxes were not read in fully correctly due to mismatch length of variable (dummy +1). NOTE - if you are still using restartfiles from SFINCS 2023 Cauberg release or older, you should remake your restartfiles to overcome potential issues! 
+* Fixed bug in quadtree variable dyrinvc use and definition.
+* Fixed bug when spw_merge_frac is different from default 0.5.
+* Fixed bug in use of SnapWave with IG balance in relation to definition of inner cells
+
+Advanced user options - currently as alpha/beta functionality:
+
+* NOTE - please contact Deltares-SFINCS group in case you want to use any of this functionality.
+
+* Update of the integrated SnapWave solver to be consistent the latest standalone version (https://doi.org/10.5194/egusphere-2025-492).
+* Option to include or exclude wind from SFINCS to SnapWave coupling, to include wind growth on wave heights or not.
+* Added Neumann water level boundary condition option.
+* Added downstream riverine water level boundary condition option.
+* Added runup gauge option.
+* Added variations on drainage structures with moveable gates, triggered by either water level exceedance or provided time.
+* Added option to use bcafile astronomical boundary conditions to internally generate tidal water levels at msk=2 boundary, similar to Delft3D.
+* Added option of meteo enhancement factors.
+* Added wave enhanced roughness when bmi coupled with hurrywave.
+* Upgraded GPU implementation for consistent results with CPU version.
+* Upgraded BMI implementation exposing more variables to be altered.
+
+Official open source version 2025.01: v2.2.0 col d'Eze release
+^^^^^
+
+The first official 2025 release of SFINCS, the v2.2.0 col d'Eze release, 'Easing over bumps in fast compound flood modelling together', is now available!
+
+This contains open access to the source code from Github: https://github.com/Deltares/SFINCS/releases/tag/v2.2.0_col_dEze_release.
+
+As pre-compiled Windows executable:
+
+https://download.deltares.nl/en/sfincs/
+
+As Docker container:
+
+docker pull deltares/sfincs-cpu:sfincs-v2.2.0-col-dEze-Release
+
+Changes:
+
+The code consists of all functionality of the v2.1.1 release, with the following major changes/additions:
+
+* Improvements on numerical stability. Achieved through additions of uvmax, hmin_cfl, uvlim, slopelim, advlim (see below) to replace the old stability criteria using 'stopdepth' with square root of gh (removed, see below). Impacts both regular gridded as subgrid model simulations.
+* Improvements subgrid mode through added checks on input file, subgrid mode consistent with SFINCS subgrid paper: van Ormondt et al. (2025): https://doi.org/10.5194/gmd-18-843-2025. 
+* Addition of automatic creation of a 'sfincs.log' output file. Implemented so that only a shortened output is send to screen (or in 'sfincs_log.txt' as in our examples using 'run.bat' batchfile), and a longer more elaborate version to the 'sfincs.log' file.
+  NOTE - in the run.bat batchfile you can therefore not specify '/sfincs.exe>sfincs.log' anymore, since that conflicts with the automatically generated file. Any other name (as sfincs_log.txt in our examples) will do, or don't specify an output file for the messages to the screen at all!
+* Added more clear overview of what parameters are turned on or off by displaying a summarizing table in the log file and to screen messages (e.g. coriolis, also see below). 
+* Added option to set how frequent to show progress of SFINCS in terms of % and time remaining in sfincs.inp using percentage_done (default = 5%). So can also be said to e.g. every 1%, or 10%.
+* Update of the integrated SnapWave solver to be consistent with the Roelvink et al. 2025 version (https://doi.org/10.5194/egusphere-2025-492).
+* New Python setup tools HydroMT-SFINCS release > highly recommended to use this new version instead of the last release (v1.1.0)!
+* Update of executable license from 'Deltares free trial copy' to 'Deltares freeware license', to be accepted upon downloading from portal (same as before). For details always read the full license (LICENSING CONDITIONS DELTARES FREEWARE EXECUTABLE.txt).
+
+Detailed overview additions/changes:
+
+* stopdepth - REMOVED in SFINCS v2.2.0, replaced by 'uvmax' to determine possible instabilities based on flow velocities rather than maximum water depth!
+* uvmax - possibility to set maximum flux velocity (default 1000 m/s), used to determine minimum timestep, below which simulation is classified as unstable and stopped. Replaces 'stopdepth'.
+* hmin_cfl - possibility to set minimum water depth to determine maximum timestep using CFL-conditions.
+* uvlim - possibility to limit flux velocity (default 10 m/s).
+* slopelim - possibility to apply slope limiter to dzdx (turned off by default, by setting to 9999.9).
+* advlim - updated use of the advection limiter, new default is 1.0, whereby limiter is turned on by default.
+* coriolis - clarification of use in model and logfile: for projected coordinate systems only turned on if a latitude is provided other than 0 (default, latitude = 0.0, means no coriolis terms used in momentum equation). For large scale applications on spherical grid, the coriolis term is turned on by default.
+* waterlevel 'zs' and volume 'z_volume' internal variables in SFINCS kernel are now stored as double precision.
+
+Bugfixes:
+
+* Bugfix structures (pump, culvert, valve) so they cannot fall dry to NaNs in case the sink term cell becomes fully dry.
+* Bugfix advection scheme. Influence on real world application cases in our testbed is small/negligible.
+
+Advanced user options - currently as alpha/beta functionality:
+
+* NOTE - please contact Deltares-SFINCS group in case you want to use any of this functionality.
+
+* Upgraded BMI implementation to be complient with that of XMI (BMI + extensions - Hughes et al. 2022), to be used with 'xmipy' (https://github.com/Deltares/xmipy) and related functions (https://deltares.github.io/xmipy/xmipy.html).
+* Nonhydrostatic pressure correction (for tsunami wave modelling), keywords nonh = yes (default no) and 'nh_tstop', 'nh_fnudge', 'nh_tol', 'nh_itermax'. Also added option to specify 'nonh_mask' to turn on nonh correction only in part of the domain.
+* Added lookup table for h^(7/3) term in momentum equation. Potentially faster. Keyword h73table = 1/yes/true (default: false).
+* Added option to store subgrid hmean (rather than zs - z_zmin), keyword storehmean = yes (default no)
+
+Official open source version 2024.01: v2.1.1 Dollerup release
+^^^^^
+
+The first official 2024 release of SFINCS, the v2.1.1 Dollerup release, 'Conquering challenges in compound flood modelling together', is now available!
+
+This contains open access to the source code from Github: https://github.com/Deltares/SFINCS/releases/tag/v2.1.1_Dollerup_release.
+
+As pre-compiled Windows executable:
+
+https://download.deltares.nl/en/sfincs/
+
+As Docker container:
+
+docker pull deltares/sfincs-cpu:sfincs-v2.1.1-Dollerup-Release
+
+Changes:
+
+The code consists of all functionality of the v2.0.3 release, with the following major changes/additions:
+
+Added functionality:
+
+* New advection scheme 'advection_scheme = upw1' > new default! Old implementation still available as 'advection_scheme = original'.
+* Option to include 2D component of friction term 'friction2d = true' > new default! Old implementation still available as 'friction2d = false'.
+* New Python setup tools HydroMT-SFINCS release v1.1.0 > highly recommended to use this new version!
+* New subgrid methodology including wet fraction as in Van Ormondt et al. (2024, in review), only available through net netcdf input file through new HydroMT-SFINCS version, recommended! Old implementation still available when providing the original binary file, then all wet fractions are assumed to be 1.
+* Upgraded coupled and integrated stationary wave solver 'SnapWave' including Infragravity wave energy balance following Leijnse et al. (2024).
+* New recommended default combination that with new advection scheme: alpha=0.50, theta=1.0, advection=1 (is now always 2D), viscosity=1.
+
+Other changes:
+
+* Improved stability for cell that from being dry becomes wet.
+* Extra output variable to netcdf output files 'status', for easy checking whether a batch of simulations have all run succesfully: a value of 0 means no error
+* Added option to specify in case of a 1 layer model (either quadtree input, or original input), whether you want the output as mesh quadtree netcdf (1), or regular gridded netcdf (0, default). Keyword: regular_output_on_mesh (0, default, =logical)
+* netspwfile input for precipitation should be absolute atmospheric pressure, not the pressure drop.
+* Upgrade Windows compiler to IFX 2024.
+* Upgraded Netcdf version to newer native versions of Unidata: netCDF 4.9.2 & netcdf-fortran-4.6.1
+* Updated documentation.
+* Added tests in skillbed report.
+
 
 Official open source version Q4 2023: v2.0.3 Cauberg release
 ^^^^^
@@ -104,6 +253,8 @@ These version 1 revisions contained all standard SFINCS functionality for the re
 
 Recent advancements in accuracy: subgrid mode
 -----
+
+Hereby some examples regarding subgrid features and GPU computing.
 
 What are subgrid features?
 ^^^^^
