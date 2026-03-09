@@ -33,7 +33,7 @@ module sfincs_bmi2
   ! Module-level strings / arrays used for pointer-string returns
   character(len=:), allocatable, target, save :: g_component_name
   character(len=:), allocatable, target, save :: g_time_units
-  character(len=:), allocatable, target, save :: g_input_names(:), g_output_names(:)
+  !character(len=:), allocatable, target, save :: g_input_names(:), g_output_names(:)
   character(len=:), allocatable, target, save :: g_loc_node, g_grid_rect, g_units_m
 
   type, extends(bmi) :: sfincs_bmi
@@ -264,8 +264,8 @@ contains
 
     ! Bind pointer-return fields
     this%component_name => g_component_name
-    this%input_names    => g_input_names
-    this%output_names   => g_output_names
+    !this%input_names    => g_input_names
+    !this%output_names   => g_output_names
 
     ! Module-level TARGET buffers for pointer getters
     call ensure_module_ptr_buffers(this)
@@ -294,6 +294,10 @@ contains
     ! We use BMI's logical dt for dtrange.
     dtrange = this%dt
     write(*,*) 'BMI-DEBUG: calling sfincs_update with dtrange = ', dble(this%dt)
+    write(*,*) 'BMI-TRACE pre-update: t=', t, ' dt=', dt
+    write(*,*) 'BMI-TRACE pre-update: np=', np
+    if (allocated(zs)) write(*,*) 'BMI-TRACE pre-update zs(1:5)=', zs(1:min(5,size(zs)))
+    if (allocated(zb)) write(*,*) 'BMI-TRACE pre-update zb(1:5)=', zb(1:min(5,size(zb)))
     ierr = sfincs_update(dtrange)
     write(*,*) 'BMI-DEBUG: sfincs_update returned ierr=', ierr
     write(*,*) 'BMI-DEBUG: core t, dt after update: t =', t, ' dt =', dt
@@ -392,7 +396,8 @@ if (allocated(g_units_m))        deallocate(g_units_m)
 if (allocated(g_loc_node))       deallocate(g_loc_node)
 if (allocated(g_grid_rect))      deallocate(g_grid_rect)
 
-    nullify(this%component_name, this%input_names, this%output_names)
+    !nullify(this%component_name, this%input_names, this%output_names)
+    nullify(this%component_name)
     this%is_initialized   = .false.
     this%depth_is_derived = .true.
 
@@ -418,6 +423,35 @@ if (allocated(g_grid_rect))      deallocate(g_grid_rect)
     end if
   end function sfincs_bmi_get_component_name
 
+  function sfincs_bmi_get_input_var_names(this, names) result(status)
+  class(sfincs_bmi),         intent(in)  :: this
+  character(len=:), pointer, intent(out) :: names(:)
+  integer :: status
+
+  if (allocated(g_input_names)) then
+    names => g_input_names
+    status = BMI_SUCCESS
+  else
+    nullify(names)
+    status = BMI_FAILURE
+  end if
+end function sfincs_bmi_get_input_var_names
+
+function sfincs_bmi_get_output_var_names(this, names) result(status)
+  class(sfincs_bmi),         intent(in)  :: this
+  character(len=:), pointer, intent(out) :: names(:)
+  integer :: status
+
+  if (allocated(g_output_names)) then
+    names => g_output_names
+    status = BMI_SUCCESS
+  else
+    nullify(names)
+    status = BMI_FAILURE
+  end if
+end function sfincs_bmi_get_output_var_names
+
+
   function sfincs_bmi_get_input_var_names_old(this, names) result(status)
     class(sfincs_bmi),         intent(in)  :: this
     character(len=:), pointer, intent(out) :: names(:)
@@ -429,7 +463,7 @@ if (allocated(g_grid_rect))      deallocate(g_grid_rect)
     end if
   end function sfincs_bmi_get_input_var_names_old
 
-function sfincs_bmi_get_input_var_names(this, names) result(status)
+function sfincs_bmi_get_input_var_names_old2(this, names) result(status)
   class(sfincs_bmi),         intent(in)  :: this
   character(len=:), pointer, intent(out) :: names(:)
   integer :: status
@@ -438,7 +472,7 @@ function sfincs_bmi_get_input_var_names(this, names) result(status)
   status = BMI_SUCCESS
 end function
 
-function sfincs_bmi_get_output_var_names(this, names) result(status)
+function sfincs_bmi_get_output_var_names_old(this, names) result(status)
   class(sfincs_bmi),         intent(in)  :: this
   character(len=:), pointer, intent(out) :: names(:)
   integer :: status
