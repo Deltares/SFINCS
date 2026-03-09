@@ -537,6 +537,8 @@ Storage volume
 Storage volume for green infrastructure on the 2D grid, specifies the maximum storage volume of water per grid cell in cubic meters.
 Water will be stored in this storage volume before it will contribute to surface runoff.
 
+**NOTE - Only useable in subgrid mode (on either regular or quadtree grid)**
+
 **volfile = sfincs.vol**
 
 .. code-block:: text
