@@ -136,7 +136,7 @@ module snapwave_solver
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
                                          beta, srcig, alphaig, Dw_ig, Df_ig, qb, gam, &
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
-                                         zb, nwav, ig_opt, alpha_ig, gamma_ig, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
+                                         zb, nwav, ig_opt, alpha_ig, gamma_ig, gamma_fac_br, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
       !
       call timer(t3)
       !
@@ -161,7 +161,7 @@ module snapwave_solver
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
                                          betamean, srcig, alphaig, Dw_ig, Df_ig, qb, gam, &       
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
-                                         zb, nwav, ig_opt, alfa_ig, gamma_ig, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
+                                         zb, nwav, ig_opt, alfa_ig, gamma_ig, gamma_fac_br, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
    !
    use snapwave_windsource
    !use snapwave_ncoutput ! TL: removed, we don't use this in SF+SW
@@ -297,6 +297,7 @@ module snapwave_solver
    real*4                                     :: Ek_ig
    real*4                                     :: Hk_ig
    real*4                                     :: alfa_ig,gamma_ig  ! coefficients in Baldock wave breaking dissipation model for IG waves
+   real*4                                     :: gamma_fac_br    ! factor times gamma that is used to determine the maximum incident wave breaking point in the surf zone using local incident wave height over water depth ratio, among others used to set the IG source term to 0 shallower than this point
    real*4                                     :: eeinc2ig          ! ratio of incident wave energy as first estimate of IG wave energy at boundary
    real*4                                     :: Tinc2ig           ! ratio compared to period Tinc to estimate Tig
    real*4                                     :: alphaigfac        ! Multiplication factor for IG shoaling source/sink term, default = 1.0
@@ -486,7 +487,7 @@ module snapwave_solver
           !
       else ! ig_opt 11, 12
           !
-          call determine_infragravity_source_sink_term_overE(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma) 
+          call determine_infragravity_source_sink_term_overE(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma, gamma_fac_br) 
           !                    
       endif  
       !         
@@ -577,7 +578,7 @@ module snapwave_solver
                     !
                 else ! ig_opt 11, 12
                     !
-                    call determine_infragravity_source_sink_term_overE(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma) 
+                    call determine_infragravity_source_sink_term_overE(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma, gamma_fac_br) 
                     !                    
                 endif                                    
                 !    
@@ -1121,7 +1122,7 @@ module snapwave_solver
     integer, intent(in)                              :: ig_opt          ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)    
     real*4, intent(in)                               :: alphaigfac      ! Multiplication factor for IG shoaling source/sink term, default = 1.0
     real*4, intent(in)                               :: dtheta          ! directional resolution
-    real*4, intent(in)                               :: gamma           ! coefficients in Baldock wave breaking dissipation    
+    real*4, intent(in)                               :: gamma           ! coefficients in Baldock wave breaking dissipation 
     real*4, dimension(no_nodes), intent(in)          :: Dw              ! wave breaking dissipation
     real*4, dimension(no_nodes), intent(in)          :: Hmx             ! Hmax        
     !
@@ -1278,7 +1279,7 @@ module snapwave_solver
                             !
                         elseif (ig_opt == 9 .or. ig_opt == 10) then
                             !
-                            if ((gam * sqrt(2.0)) > (2.0 / 3.0 * gamma)) then                                    
+                            if ((gam * sqrt(2.0)) > (2.0 / 3.0 * gamma)) then
                                 !
                                 cg_ig(k) = sqrt(9.81 * depth(k))
                                 !                            
@@ -1404,7 +1405,7 @@ module snapwave_solver
                                 !         
                                 ! gam is in Hrms, so multiply by sqrt(2)
                                 !if ((gam * sqrt(2.0)) > 0.5) then  
-                                if ((gam * sqrt(2.0)) > (2.0 / 3.0 * gamma)) then                                    
+                                if ((gam * sqrt(2.0)) > (2.0 / 3.0 * gamma)) then
                                     !     
                                     srcig_local(itheta, k) = 0.0
                                     !
@@ -1431,7 +1432,7 @@ module snapwave_solver
     !    
    end subroutine determine_infragravity_source_sink_term   
    
-   subroutine determine_infragravity_source_sink_term_overE(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig,  cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma)
+   subroutine determine_infragravity_source_sink_term_overE(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig,  cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma, gamma_fac_br)
     !   
     implicit none
     !  
@@ -1452,6 +1453,7 @@ module snapwave_solver
     real*4, intent(in)                               :: alphaigfac      ! Multiplication factor for IG shoaling source/sink term, default = 1.0
     real*4, intent(in)                               :: dtheta          ! directional resolution
     real*4, intent(in)                               :: gamma           ! coefficients in Baldock wave breaking dissipation    
+    real*4, intent(in)                               :: gamma_fac_br    ! factor times gamma that is used to determine the maximum incident wave breaking point in the surf zone using local incident wave height over water depth ratio, among others used to set the IG source term to 0 shallower than this point
     real*4, dimension(no_nodes), intent(in)          :: Dw              ! wave breaking dissipation
     real*4, dimension(no_nodes), intent(in)          :: Hmx             ! Hmax        
     !
@@ -1574,10 +1576,12 @@ module snapwave_solver
                     ! TL - Note: cg_ig = cg
                     if (ig_opt == 11 .or. ig_opt == 12) then
                         !
-                        if ((gam * sqrt(2.0)) > (2.0 / 3.0 * gamma)) then                                    
+                        !if ((gam * sqrt(2.0)) > (2.0 / 3.0 * gamma)) then
+                        !if ((gam * sqrt(2.0)) > (gamma_fac_br * gamma)) then
+                        if (gam > (gamma_fac_br * gamma)) then                                    
                             !
                             cg_ig(k) = sqrt(9.81 * depth(k))
-                            !                            
+                            !
                         endif
                         !
                     endif                  
@@ -1636,9 +1640,11 @@ module snapwave_solver
                                 !
                                 ! Free waves if incident waves start breaking (defined here as gam=Hm0,inc / h > 0.5)
                                 !         
-                                ! gam is in Hrms, so multiply by sqrt(2)
-                                if ((gam * sqrt(2.0)) > (2.0 / 3.0 * gamma)) then                                    
-                                    !     
+                                ! gam is in Hrms, so multiply by sqrt(2) for Hm0
+                                !if ((gam * sqrt(2.0)) > (2.0 / 3.0 * gamma)) then
+                                !if ((gam * sqrt(2.0)) > (gamma_fac_br * gamma)) then
+                                if (gam > (gamma_fac_br * gamma)) then                                    
+                                    !
                                     srcig_local(itheta, k) = 0.0
                                     !
                                 endif                          
