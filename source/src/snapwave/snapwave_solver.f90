@@ -1135,8 +1135,9 @@ module snapwave_solver
     real*4                                           :: dSxx            ! difference in Radiation stress
     real*4                                           :: Sxx_cons        ! conservative estimate of radiation stress using conservative shoaling     
     real*4                                           :: delta_Dw        ! difference of Dw compared to upwind point, to get sign for max breaking point
-    real*4                                           :: Dwprev
     real*4                                           :: Qb              ! Percentage of breaking incident waves
+    real*4                                           :: transition_factor ! Transition factor for letting srcig go to zero smoothly, around gamma*gamma_fac_br
+    real*4                                           :: transition_factor_width ! Width factor of generalized (Fermi–Dirac style) transfer function with adjustable midpoint and width
     !   
     ! Allocate internal variables
     allocate(Sxxprev(ntheta))       
@@ -1151,6 +1152,10 @@ module snapwave_solver
     !    
     E_local = 0.0
     E_ig_local = 0.0
+    !
+    ! Used is generalized (Fermi–Dirac style) transfer function with adjustable midpoint and width
+    !
+    transition_factor_width = 0.005    
     !
     ! Precompute all Sxx - FIXME - add parallellisation
     !
@@ -1289,7 +1294,7 @@ module snapwave_solver
                             !
                             ! Ergo, it is assumed that after this point IG waves are free, and no bound wave forcing is happening anymore, so srcig should be 0 from here on
                             !
-                            if (ig_opt == 1 .or. ig_opt == 11 .or. ig_opt == 2 .or. ig_opt == 3) then
+                            if (ig_opt == 11 .or. ig_opt == 2 .or. ig_opt == 3) then
                                 !
                                 ! Free waves and no IG source/sink term if incident waves start breaking
                                 !         
@@ -1298,8 +1303,17 @@ module snapwave_solver
                                     !
                                     srcig_local(itheta, k) = 0.0
                                     !
-                                endif                          
-                            endif                            
+                                endif    
+                                !
+                            elseif (ig_opt == 1) then
+                                !
+                                ! Let srcig transition to 0 more smoothly using fac_transition that reduced from 1 to 0 around gamma_fac_br * snapwave_gamma
+                                !
+                                transition_factor = 1.0 - (1.0 / (1.0 + exp(- (gam - (gamma_fac_br * gamma)) / transition_factor_width)))
+                                !
+                                srcig_local(itheta, k) = transition_factor * srcig_local(itheta, k)
+                                !
+                            endif
                             !
                         endif                      
                         !                                        
