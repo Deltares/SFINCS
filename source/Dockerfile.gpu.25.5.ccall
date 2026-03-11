@@ -1,4 +1,8 @@
 FROM nvcr.io/nvidia/nvhpc:25.5-devel-cuda_multi-ubuntu22.04
+
+# Disable NVIDIA auto-setup behavior
+ENTRYPOINT []
+
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update && apt install -y dos2unix
 RUN apt update && apt install -y libnetcdf-dev build-essential autoconf automake libtool pkg-config tzdata
