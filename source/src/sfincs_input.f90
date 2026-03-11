@@ -144,6 +144,9 @@ contains
    call read_real_input(500, 'factor_pres', factor_pres, 1.0)
    call read_real_input(500, 'factor_prcp', factor_prcp, 1.0)
    call read_real_input(500, 'factor_spw_size', factor_spw_size, 1.0)   
+   call read_logical_input(500, 'bathtub', bathtub, .false.)
+   call read_real_input(500, 'bathtub_fachs', bathtub_fac_hs, 0.2)
+   call read_real_input(500, 'bathtub_dt', bathtub_dt, -999.0)
    !
    ! Domain
    !
