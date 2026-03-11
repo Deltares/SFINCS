@@ -262,7 +262,9 @@ module sfincs_data
       logical       :: h73table
       logical       :: wave_enhanced_roughness
       logical       :: use_bcafile
-      LOGICAL       :: snapwave_use_nearest
+      logical       :: snapwave_use_nearest
+      logical       :: bathtub
+      logical       :: bathtub_snapwave      
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
@@ -788,6 +790,9 @@ module sfincs_data
       integer, dimension(:),     allocatable   :: runup_gauge_nrp
       !
       real*4 :: waveage
+      !
+      real*4 :: bathtub_dt
+      real*4 :: bathtub_fac_hs
       !
       ! LGX Cd table
       !

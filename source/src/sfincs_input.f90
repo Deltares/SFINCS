@@ -632,6 +632,44 @@ contains
       !
    endif
    !
+   if (bathtub) then
+      !
+      call write_log('Info    : turning on process: Bathtub flooding', 0)
+      !
+      ! Set time step
+      !
+      if (bathtub_dt < 0.0) then
+         !
+         ! Time step for simulation not defined so use same as map output
+         !
+         bathtub_dt = dtmapout
+         !
+      endif
+      !
+      dthisout = bathtub_dt
+      !
+      ! Turn off some processes not needed for bathtub flooding
+      !
+      nsrc = 0
+      ndrn = 0
+      !
+      meteo3d = .false.
+      wind = .false.
+      store_meteo = .false.
+      store_wind = .false.
+      store_wind_max = .false.
+      precip = .false.
+      patmos = .false.
+      if (snapwave) then
+         bathtub_snapwave = .true.
+      endif
+      snapwave = .false.
+      infiltration = .false.
+      store_velocity = .false.
+      store_maximum_velocity = .false.
+      !
+   endif
+   !
    ! normbnd = sqrt(dzdsbnd) / manningbnd
    !
    end subroutine
