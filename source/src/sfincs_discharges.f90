@@ -437,8 +437,11 @@ contains
                         !
                         drainage_status(idrn) = 3
                         !
-                        !write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Opening structure ',idrn,' at t= ',t
-                        !call write_log(logstr, 0)                        
+                        #ifdef SKIP_THIS
+                           ! Code that NVFORTRAN will NOT compile                        
+                            write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Opening structure ',idrn,' at t= ',t
+                            call write_log(logstr, 0)            
+                        #endif                            
                         !
                      endif
                      !
@@ -452,8 +455,10 @@ contains
                         !
                         drainage_status(idrn) = 2
                         !
-                        !write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Closing structure ',idrn,' at t= ',t
-                        !call write_log(logstr, 0)                        
+                        #ifdef SKIP_THIS                        
+                            write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Closing structure ',idrn,' at t= ',t
+                            call write_log(logstr, 0)
+                        #endif
                         !                        
                      endif
                      !
@@ -533,8 +538,10 @@ contains
                         !
                         drainage_status(idrn) = 3
                         !
-                        !write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Opening structure ',idrn,' at t= ',t
-                        !call write_log(logstr, 0)                        
+                        #ifdef SKIP_THIS                        
+                            write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Opening structure ',idrn,' at t= ',t
+                            call write_log(logstr, 0)                        
+                        #endif                                                        
                         !
                      endif
                      !
@@ -548,8 +555,10 @@ contains
                         !
                         drainage_status(idrn) = 2
                         !
-                        !write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Closing structure ',idrn,' at t= ',t
-                        !call write_log(logstr, 0)                        
+                        #ifdef SKIP_THIS                        
+                            write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Closing structure ',idrn,' at t= ',t
+                            call write_log(logstr, 0)
+                        #endif                                                        
                         !                        
                      endif
                      !
