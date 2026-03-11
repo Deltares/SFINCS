@@ -566,7 +566,7 @@ contains
                         #else
                             write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Closing structure ',idrn,' at t= ',t
                             call write_log(logstr, 0)
-                        #endif                                                        
+                        #endif
                         !                        
                      endif
                      !
