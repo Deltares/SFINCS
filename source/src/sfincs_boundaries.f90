@@ -791,7 +791,7 @@ contains
          !
          if (patmos .and. pavbnd>1.0) then
             !
-            ! Barometric pressure correction (why not move this to the boundary points?)
+            ! Barometric pressure correction
             !
             zst = zst + (pavbnd - patmb(ib)) / (rhow * 9.81)
             !
