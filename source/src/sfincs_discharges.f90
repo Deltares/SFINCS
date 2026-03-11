@@ -437,8 +437,10 @@ contains
                         !
                         drainage_status(idrn) = 3
                         !
-                        #ifdef SKIP_THIS
-                           ! Code that NVFORTRAN will NOT compile                        
+                        #ifdef __NVFORTRAN__
+                           ! Code that NVFORTRAN will NOT compile                           
+                        #else
+                           ! Code that Intel Windows compiler and gfortran CPU will compile
                             write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Opening structure ',idrn,' at t= ',t
                             call write_log(logstr, 0)            
                         #endif                            
@@ -455,7 +457,9 @@ contains
                         !
                         drainage_status(idrn) = 2
                         !
-                        #ifdef SKIP_THIS                        
+                        #ifdef __NVFORTRAN__        
+                        !
+                        #else                        
                             write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Closing structure ',idrn,' at t= ',t
                             call write_log(logstr, 0)
                         #endif
@@ -538,7 +542,9 @@ contains
                         !
                         drainage_status(idrn) = 3
                         !
-                        #ifdef SKIP_THIS                        
+                        #ifdef __NVFORTRAN__                    
+                        !
+                        #else
                             write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Opening structure ',idrn,' at t= ',t
                             call write_log(logstr, 0)                        
                         #endif                                                        
@@ -555,7 +561,9 @@ contains
                         !
                         drainage_status(idrn) = 2
                         !
-                        #ifdef SKIP_THIS                        
+                        #ifdef __NVFORTRAN__   
+                        !
+                        #else
                             write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Closing structure ',idrn,' at t= ',t
                             call write_log(logstr, 0)
                         #endif                                                        
