@@ -401,7 +401,7 @@ contains
          !
          if (ios /= 0) exit
          !
-         if (trim(line) == '[forcing]') then
+         if (trim(line) == '[forcing]' .or. trim(line) == '[Forcing]') then
             !
             current_set = current_set + 1
             current_component = 0
@@ -448,10 +448,6 @@ contains
       call update_nodal_factors(i_date_time, tidal_component_names, nr_tidal_components, nbnd, tidal_component_data, tidal_component_frequency)
       !
       tidal_component_frequency = tidal_component_frequency / 3600 ! Convert to rad/s
-      !
-      !do ios = 1, nr_tidal_components
-      !   write(*,'(a,20f16.3)')tidal_component_names(ios), (180.0 / pi) * tidal_component_frequency(ios) * 3600.0,tidal_component_data(1,ios,1), (180.0 / pi) * tidal_component_data(2,ios,1)
-      !enddo   
       !
    endif      
    !
@@ -1128,13 +1124,20 @@ contains
          !
       endif
       !
-      ! Update boundary conditions at grid points (water levels)
+      ! In case of bathtub, we do not need to update boundary conditions at grid points or boundary fluxes,
+      ! as these are not used in bathtub mode
       !
-      call update_boundary_conditions(t, dt)
-      !
-      ! Update boundary fluxes
-      !
-      call update_boundary_fluxes(dt, t)
+      if (.not. bathtub) then
+         !      
+         ! Update boundary conditions at grid points (water levels)
+         !
+         call update_boundary_conditions(t, dt)
+         !
+         ! Update boundary fluxes
+         !
+         call update_boundary_fluxes(dt, t)
+         !
+      endif
       !
    endif
    !
