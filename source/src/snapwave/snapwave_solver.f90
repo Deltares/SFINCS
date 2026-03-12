@@ -1303,7 +1303,7 @@ contains
    
    subroutine estimate_shoaling_parameter_alphaig(beta, gam, alphaig)
    !
-   real*4, intent(in)                :: beta
+   real*4                            :: beta
    real*4, intent(in)                :: gam 
    real*4, intent(out)               :: alphaig
    !
@@ -1317,10 +1317,12 @@ contains
    beta2 = 0.5
    beta3 = 17.7104
    beta4 = 1
-   !beta5 = 0.7
-   beta5 = 0.5 ! change this back !!!
+   beta5 = 0.7
+   !beta5 = 0.5 ! change this back !!!
    beta6 = 0.11841
    beta7 = 0.34037
+   !
+   !beta = min(beta, 0.1)
    !
    if (beta <= 0.0) then
        !
