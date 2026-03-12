@@ -1,6 +1,7 @@
-module sfincs_momentum   
+module sfincs_momentum
    !
    use sfincs_data
+   use sfincs_timestep_diag
    !
    implicit none
    !
@@ -95,6 +96,7 @@ contains
    call system_clock(count0, count_rate, count_max)
    !
    min_dt = dtmax
+   if (timestep_analysis) min_timestep = dtmax ! Reset per-cell limits; dry cells will retain dtmax
    !
    ! For some reason, it is necessary to set num_gangs here! Without, the program launches only 1 gang, and everything becomes VERY slow!
    !
@@ -704,10 +706,7 @@ contains
             min_dt = min(min_dt, 1.0 / ( max(sqrt(g * hu), abs(uv(ip)) ) * dxuvinv))
             !
             ! Compute timestep per grid cell
-            if (timestep_analysis == .true.) then
-                min_timestep(nm) =   1.0 / ( max(sqrt(g * hu), abs(uv(ip)) ) * dxuvinv)
-                !write(*,*)min_timestep(nm), hu
-            endif
+            if (timestep_analysis) call compute_cell_min_timestep(nm, hu, uv(ip), dxuvinv)
             !
          else
             !
