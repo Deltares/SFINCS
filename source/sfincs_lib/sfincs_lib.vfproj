@@ -31,6 +31,7 @@
 		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
 			<Filter Name="snapwave">
 				<File RelativePath="..\src\snapwave\interp.F90"/>
+				<File RelativePath="..\src\snapwave\RFveg.inc"/>
 				<File RelativePath="..\src\snapwave\snapwave_boundaries.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_data.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_date.f90"/>
@@ -44,6 +45,7 @@
 						<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
 					</FileConfiguration>
 				</File>
+				<File RelativePath="..\src\snapwave\snapwave_RFtable.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_solver.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_windsource.f90"/>
 			</Filter>
