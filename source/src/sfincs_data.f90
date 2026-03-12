@@ -94,6 +94,7 @@ module sfincs_data
       real*4 wiggle_threshold
       real*4 uvlim
       real*4 uvmax
+      real*4 dt_timestep_diagnostics
       !real*4 normbnd
       !real*4 dzdsbnd
       !real*4 manningbnd
@@ -232,6 +233,8 @@ module sfincs_data
       logical       :: ampr_block
       logical       :: global
       logical       :: store_tsunami_arrival_time
+      logical       :: timestep_analysis
+      logical       :: timestep_diagnostics
       logical       :: viscosity
       logical       :: spinup_meteo
       logical       :: snapwave
@@ -551,6 +554,11 @@ module sfincs_data
       real*4, dimension(:),   allocatable, target :: qext
       real*4, dimension(:),   allocatable, target :: uorb
       real*4, dimension(:),   allocatable :: gnapp2
+      !
+      real*4, dimension(:),   allocatable :: average_timestep
+      real*4, dimension(:),   allocatable :: min_timestep
+      integer*4, dimension(:),   allocatable :: times_limiting
+      integer*4, dimension(:),   allocatable :: times_wet
       !
       real*4, dimension(:),   allocatable :: tauwu
       real*4, dimension(:),   allocatable :: tauwv
@@ -979,6 +987,10 @@ module sfincs_data
     if(allocated(uv)) deallocate(uv)
     if(allocated(uv0)) deallocate(uv0)
     if(allocated(twet)) deallocate(twet)
+    if(allocated(average_timestep)) deallocate(average_timestep)
+    if(allocated(min_timestep)) deallocate(min_timestep)
+    if(allocated(times_limiting)) deallocate(times_limiting)
+    if(allocated(times_wet)) deallocate(times_wet)
     if(allocated(qext)) deallocate(qext)
     !
 !    if(allocated(huu)) deallocate(huu)

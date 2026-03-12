@@ -20,14 +20,16 @@ contains
    integer iradstr
    integer igeo
    integer icoriolis
-   integer iamprblock
-   integer iglobal
-   integer itsunamitime
-   integer ispinupmeteo
-   integer isnapwave
-   integer iwindmax
-   integer iwind   
-   integer ioutfixed
+    integer iamprblock
+    integer iglobal
+    integer itsunamitime
+    integer itimestep_analysis
+    integer itimestep_diagnostics
+    integer ispinupmeteo
+    integer isnapwave
+    integer iwindmax
+    integer iwind   
+    integer ioutfixed
    integer iadvection
    integer istorefw
    integer istorewavdir   
@@ -116,8 +118,8 @@ contains
    call read_int_input(500,'dtoutfixed', ioutfixed, 1)
    call read_real_input(500,'wmtfilter',wmtfilter,600.0)
    call read_real_input(500,'wmfred',wavemaker_freduv,0.99)
-   call read_char_input(500,'wmsignal',wmsigstr,'spectrum')   
-   call read_real_input(500, 'wmhmin', wavemaker_hmin, 0.1)
+   call read_char_input(500,'wmsignal',wmsigstr,'spectrum')
+   call read_real_input(500, 'wmhmin', wavemaker_hmin, 0.1)   
    call read_char_input(500,'advection_scheme',advstr,'upw1')   
    call read_real_input(500,'btrelax',btrelax,3600.0)
    call read_logical_input(500,'wiggle_suppression', wiggle_suppression, .true.)
@@ -224,12 +226,15 @@ contains
    call read_logical_input(500, 'storehmean', store_hmean, .false.)      
    call read_real_input(500,'twet_threshold',twet_threshold,0.01)
    call read_int_input(500,'store_tsunami_arrival_time',itsunamitime,0)
-   call read_real_input(500,'tsunami_arrival_threshold',tsunami_arrival_threshold,0.01)
-   call read_int_input(500,'storeqdrain',storeqdrain,1)
-   call read_int_input(500,'storezvolume',storezvolume,0)
-   call read_int_input(500,'storestoragevolume',storestoragevolume,0)
-   call read_int_input(500,'writeruntime',wrttimeoutput,0)
-   call read_logical_input(500,'debug',debug,.false.)
+    call read_real_input(500,'tsunami_arrival_threshold',tsunami_arrival_threshold,0.01)
+    call read_int_input(500,'timestep_analysis',itimestep_analysis,0)
+    call read_int_input(500,'timestep_diagnostics',itimestep_diagnostics,0)
+    call read_real_input(500,'dt_timestep_diagnostics',dt_timestep_diagnostics,0.0)
+    call read_int_input(500,'storeqdrain',storeqdrain,1)
+    call read_int_input(500,'storezvolume',storezvolume,0)
+    call read_int_input(500,'storestoragevolume',storestoragevolume,0)
+    call read_int_input(500,'writeruntime',wrttimeoutput,0)
+    call read_logical_input(500,'debug',debug,.false.)
    call read_int_input(500,'storemeteo',storemeteo,0)
    call read_int_input(500,'storemaxwind',iwindmax,0)
    call read_int_input(500,'storefw', istorefw, 0)
@@ -278,7 +283,6 @@ contains
    if (dtmapout==0.0) then
       call read_real_input(500,'dtmapout',dtmapout,0.0)
    endif   
-   !
    close(500)
    !
    ! Check whether epsg code has been specified:
@@ -516,8 +520,19 @@ contains
       store_tsunami_arrival_time = .true.
    endif      
    !
-   !   
-   viscosity = .false. 
+    timestep_analysis = .false. 
+    if (itimestep_analysis==1) then
+       timestep_analysis = .true.
+    endif      
+    !
+    timestep_diagnostics = .false.
+    if (itimestep_diagnostics==1) then
+       timestep_diagnostics = .true.
+    endif
+    dt_timestep_diagnostics = max(dt_timestep_diagnostics, 0.0)
+    !
+    !   
+    viscosity = .false. 
    if (iviscosity) then
       viscosity = .true. 
       call write_log('Info    : turning on process: Viscosity', 0)

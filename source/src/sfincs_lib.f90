@@ -24,6 +24,7 @@ module sfincs_lib
    use sfincs_wavemaker
    use sfincs_nonhydrostatic
    use sfincs_openacc
+   use sfincs_timestep_diagnostics
    use sfincs_log
    !
    implicit none
@@ -144,13 +145,15 @@ module sfincs_lib
    call read_meteo_data()       ! Reads meteo data (amu, amv, spw file etc.)
    !
    call write_log('Preparing domain ...', 0) 
-   call initialize_domain()     ! Reads dep, msk, index files, creates index, flag and depth arrays, initializes hydro quantities
-   !
-   call read_structures()       ! Reads thd files and sets kcuv to zero where necessary
-   !
-   call read_boundary_data()    ! Reads bnd, bzs, etc files
-   !
-   call find_boundary_indices()
+    call initialize_domain()     ! Reads dep, msk, index files, creates index, flag and depth arrays, initializes hydro quantities
+    !
+    call read_structures()       ! Reads thd files and sets kcuv to zero where necessary
+    !
+    if (timestep_diagnostics) call timestep_diagnostics_initialize()
+    !
+    call read_boundary_data()    ! Reads bnd, bzs, etc files
+    !
+    call find_boundary_indices()
    !
    call read_obs_points()       ! Reads obs file
    !
@@ -545,6 +548,7 @@ module sfincs_lib
       ! First compute fluxes
       !
       call compute_fluxes(dt, tloopflux)
+      if (timestep_diagnostics .or. timestep_analysis) call timestep_diagnostics_update(nt, t, dt)
       !
       if (wavemaker) then
          !
@@ -649,6 +653,8 @@ module sfincs_lib
    tfinish_all = 1.0 * (count1 - count00) / count_rate
    !
    call finalize_output(t,ntmaxout,tloopoutput,tmaxout)
+   !
+   if (timestep_diagnostics) call timestep_diagnostics_finalize()
    !
    call finalize_openacc() ! Exit data region
    !

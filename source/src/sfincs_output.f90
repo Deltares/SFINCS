@@ -332,11 +332,20 @@ module sfincs_output
       if (store_cumulative_precipitation) then
           open(unit = 903, file = 'cumprcp.txt')
       endif      
+      if (timestep_analysis) then
+         open(unit = 909, file = 'average_timestep.txt')
+         open(unit = 910, file = 'times_limiting.txt')
+      endif
    else
       open(unit = 900, status = 'replace', file = 'zs.dat', form = 'unformatted')
       !
       if (store_zvolume) then
-        open(unit = 908, status = 'replace', file = 'z_volume.dat', form = 'unformatted')
+         open(unit = 908, status = 'replace', file = 'z_volume.dat', form = 'unformatted')
+      endif
+      !
+      if (timestep_analysis) then
+         open(unit = 909, status = 'replace', file = 'average_timestep.dat', form = 'unformatted')
+         open(unit = 910, status = 'replace', file = 'times_limiting.dat', form = 'unformatted')
       endif
    endif
    !
@@ -458,6 +467,10 @@ module sfincs_output
           write(908)z_volume
       endif
       !
+      if (timestep_analysis) then
+         write(909)average_timestep
+         write(910)times_limiting
+      endif
 !   endif
    !
    end subroutine
@@ -535,12 +548,23 @@ module sfincs_output
    implicit none
    !
    if (dtmapout>1.e-6) then
-      close(900)
-      close(901)
-      close(902)
+      if (trim(outputtype_map) == 'asc') then
+         close(900)
+         close(901)
+         close(902)
+         if (store_cumulative_precipitation) then
+            close(903)
+         endif
+      else
+         close(900)
+         if (store_zvolume) then
+            close(908)
+         endif
+      endif
       !
-      if (store_zvolume) then
-         close(908)
+      if (timestep_analysis) then
+         close(909)
+         close(910)
       endif
    endif   
    !
