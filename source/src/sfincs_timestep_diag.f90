@@ -34,7 +34,7 @@ module sfincs_timestep_diag
             ! 
             ! Update running average for wet cells
             !
-            average_timestep(nm) = (average_timestep(nm) * real(times_wet(nm), kind(min_timestep)) + alfa * min_timestep(nm)) / real(times_wet(nm) + 1, kind(min_timestep))
+            average_timestep(nm) = (average_timestep(nm) * times_wet(nm) + alfa * min_timestep(nm)) / (times_wet(nm) + 1)
             !
             times_wet(nm) = times_wet(nm) + 1
             !

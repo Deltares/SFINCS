@@ -3710,7 +3710,7 @@ contains
          !
          if (nm > 0 .and. kcs(nm) > 0) then
              !
-             vtmp(nmq) = real(times_limiting(nm))
+             vtmp(nmq) = times_limiting(nm)
              !
          endif         
          !
@@ -3750,7 +3750,7 @@ contains
          n = z_index_z_n(nm)
          m = z_index_z_m(nm)
          !
-         zsg(m, n) = real(times_limiting(nm))
+         zsg(m, n) = times_limiting(nm)
          !
       enddo
       !

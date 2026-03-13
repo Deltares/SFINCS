@@ -2635,8 +2635,8 @@ contains
       allocate(times_limiting(np))
       allocate(times_wet(np))
       average_timestep = 0.0
-      times_wet = 0
-      times_limiting   = 0
+      times_wet = 0.0
+      times_limiting   = 0.0
       min_timestep = dtmax
    endif
    !

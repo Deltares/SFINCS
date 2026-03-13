@@ -554,8 +554,8 @@ module sfincs_data
       !
       real*4, dimension(:),   allocatable :: average_timestep
       real*4, dimension(:),   allocatable :: min_timestep
-      integer*4, dimension(:),   allocatable :: times_limiting
-      integer*4, dimension(:),   allocatable :: times_wet
+      real*4, dimension(:),   allocatable :: times_limiting
+      real*4, dimension(:),   allocatable :: times_wet
       !
       real*4, dimension(:),   allocatable :: tauwu
       real*4, dimension(:),   allocatable :: tauwv
