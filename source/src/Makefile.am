@@ -4,7 +4,7 @@
 #   Fedor.Baart@deltares.nl
 #   11 nov 2020
 #
-#   Copyright (C)  Stichting Deltares, 2011-2013.
+#   Copyright (C)  Stichting Deltares, 2016-2026.
 #-------------------------------------------------------------------------------
 
 bin_PROGRAMS = sfincs
@@ -40,11 +40,11 @@ libsfincs_la_SOURCES = \
 	sfincs_crosssections.f90 \
 	sfincs_discharges.f90 \
 	sfincs_subgrid.F90 \
+	sfincs_timestep_analysis.f90 \	
 	sfincs_domain.f90 \
 	sfincs_structures.f90 \
 	sfincs_obspoints.f90 \
 	sfincs_runup_gauges.f90 \
-	sfincs_timestep_analysis.f90 \
 	sfincs_wave_enhanced_roughness.f90 \
 	sfincs_snapwave.f90 \
 	../third_party_open/utils/deg2utm.f90 \
