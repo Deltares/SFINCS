@@ -726,15 +726,17 @@ module sfincs_lib
    call write_log(logstr, 1)
    !
    call write_log('', 1)
+   !
    write(logstr,'(a,20f10.3)')           ' Average time step (s)  : ', dtavg
+   call write_log(logstr, 1)
+   !
+   call write_log('', 1)
    !
    if (timestep_analysis) then
       !
-      !Most limiting cell was nm x&y , met uv index > xx% of the time 
+      call finalize_timestep_analysis()
       !
    endif   
-   call write_log(logstr, 1)
-   call write_log('', 1)
    !
    if (write_time_output) then
       open(123,file='runtimes.txt')

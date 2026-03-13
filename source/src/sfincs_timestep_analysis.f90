@@ -1,8 +1,10 @@
 module sfincs_timestep_analysis
    !
-   ! Modules
    use sfincs_data
+   use sfincs_log
    !
+   implicit none
+   !   
    contains
    !
    subroutine initialize_timestep_analysis()
@@ -19,6 +21,8 @@ module sfincs_timestep_analysis
       !
    endsubroutine
        
+   
+   
    subroutine timestep_analysis_update(min_dt)    
       !
       ! Update running statistics immediately after compute_fluxes.
@@ -26,7 +30,7 @@ module sfincs_timestep_analysis
       ! have a computed value < dtmax, dry cells retain dtmax and are skipped.
       !
       real*4, intent(in) :: min_dt
-      integer            :: nm
+      integer            :: ip
       !
       !$omp parallel &
       !$omp private ( ip )
@@ -64,5 +68,47 @@ module sfincs_timestep_analysis
       !$acc end parallel         
       !
    end subroutine timestep_analysis_update
+   
+   
+   
+   subroutine finalize_timestep_analysis()    
+      !      
+      integer :: ip, nm, nmu
+      real*4 :: xuv, yuv, percentage_limiting
+      !      
+      if (maxval(timestep_analysis_times_limiting) > 0) then
+          !
+          ip      = maxloc(timestep_analysis_times_limiting, dim=1)
+          !
+          percentage_limiting = maxval(timestep_analysis_times_limiting) / maxval(timestep_analysis_times_wet) * 100.0 ! percentage limiting
+          !
+      else
+          !
+          ! No limiting grid cells, all limited by dtmax
+          !
+          ip = 0    
+          !
+      endif
+      !       
+      nm  = uv_index_z_nm(ip)
+      nmu = uv_index_z_nmu(ip)
+      !
+      ! Coordinates of flux link (check if flux link above...)
+      !
+      xuv = 0.5 * (z_xz(nm) + z_xz(nmu))
+      yuv = 0.5 * (z_yz(nm) + z_yz(nmu))
+      !
+      write(logstr,'(a,f10.3,a)')           ' Max timestep limiting  : ', percentage_limiting, ' % '
+      call write_log(logstr, 1)           
+      !write(logstr,'(a,i,a,f10.3,a,f10.3)')           ' uv : ', ip, ' x : ', xuv, ' y : ', yuv
+      !call write_log(logstr, 1)
+      write(logstr,'(a,20i)')               '    uv  : ', ip
+      call write_log(logstr, 1) 
+      write(logstr,'(a,20f10.3)')           '    x   : ', xuv
+      call write_log(logstr, 1) 
+      write(logstr,'(a,20f10.3)')           '    y   : ', yuv
+      call write_log(logstr, 1)          
+      !           
+   end subroutine finalize_timestep_analysis
    !
 end module sfincs_timestep_analysis
