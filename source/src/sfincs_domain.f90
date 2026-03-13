@@ -2793,14 +2793,20 @@ contains
    !
    ! In sfincs_data
    !
-   if (allocated(z_index_uv_md1)) deallocate(z_index_uv_md1)
-   if (allocated(z_index_uv_md2)) deallocate(z_index_uv_md2)
-   if (allocated(z_index_uv_mu1)) deallocate(z_index_uv_mu1)
-   if (allocated(z_index_uv_mu2)) deallocate(z_index_uv_mu2)
-   if (allocated(z_index_uv_nd1)) deallocate(z_index_uv_nd1)
-   if (allocated(z_index_uv_nd2)) deallocate(z_index_uv_nd2)
-   if (allocated(z_index_uv_nu1)) deallocate(z_index_uv_nu1)
-   if (allocated(z_index_uv_nu2)) deallocate(z_index_uv_nu2)
+   ! The following arrays are still needed for the timestep analysis (see sfincs_ncoutput.F90)
+   !
+   if (.not. timestep_analysis) then
+      !
+      if (allocated(z_index_uv_md1)) deallocate(z_index_uv_md1)
+      if (allocated(z_index_uv_md2)) deallocate(z_index_uv_md2)
+      if (allocated(z_index_uv_mu1)) deallocate(z_index_uv_mu1)
+      if (allocated(z_index_uv_mu2)) deallocate(z_index_uv_mu2)
+      if (allocated(z_index_uv_nd1)) deallocate(z_index_uv_nd1)
+      if (allocated(z_index_uv_nd2)) deallocate(z_index_uv_nd2)
+      if (allocated(z_index_uv_nu1)) deallocate(z_index_uv_nu1)
+      if (allocated(z_index_uv_nu2)) deallocate(z_index_uv_nu2)
+      !
+   endif
    !
    ! In quadtree
    !

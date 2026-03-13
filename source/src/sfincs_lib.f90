@@ -655,7 +655,13 @@ module sfincs_lib
    tstart_all = 0.0
    tfinish_all = 1.0 * (count1 - count00) / count_rate
    !
-   call finalize_output(t,ntmaxout,tloopoutput,tmaxout)
+   if (timestep_analysis) then
+      !
+      call timestep_analysis_finalize(nt)
+      !
+   endif     
+   !
+   call finalize_output(t, ntmaxout, tloopoutput, tmaxout)
    !
    call finalize_openacc() ! Exit data region
    !
@@ -734,7 +740,7 @@ module sfincs_lib
    !
    if (timestep_analysis) then
       !
-      call finalize_timestep_analysis()
+      call timestep_analysis_write_log()
       !
    endif   
    !
@@ -754,7 +760,7 @@ module sfincs_lib
       close(123)
    endif
    !
-   call write_log('---------- Closing off SFINCS -----------', 1)
+   call write_log('----------- Closing off SFINCS -----------', 1)
    !
    ! call finalize_parameters()
    !
