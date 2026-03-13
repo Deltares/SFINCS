@@ -225,7 +225,7 @@ contains
    call read_real_input(500,'twet_threshold',twet_threshold,0.01)
    call read_int_input(500,'store_tsunami_arrival_time',itsunamitime,0)
    call read_real_input(500,'tsunami_arrival_threshold',tsunami_arrival_threshold,0.01)
-   call read_int_input(500,'timestep_analysis',itimestep_analysis,0)
+   call read_logical_input(500,'timestep_analysis',timestep_analysis,.false.)
    call read_int_input(500,'storeqdrain',storeqdrain,1)
    call read_int_input(500,'storezvolume',storezvolume,0)
    call read_int_input(500,'storestoragevolume',storestoragevolume,0)
@@ -516,12 +516,6 @@ contains
    if (itsunamitime==1) then
       store_tsunami_arrival_time = .true.
    endif      
-   !
-   timestep_analysis = .false. 
-   if (itimestep_analysis==1) then
-      timestep_analysis = .true.
-   endif      
-   !
    !   
    viscosity = .false. 
    if (iviscosity) then

@@ -44,7 +44,7 @@ libsfincs_la_SOURCES = \
 	sfincs_structures.f90 \
 	sfincs_obspoints.f90 \
 	sfincs_runup_gauges.f90 \
-	sfincs_timestep_diag.f90 \
+	sfincs_timestep_analysis.f90 \
 	sfincs_wave_enhanced_roughness.f90 \
 	sfincs_snapwave.f90 \
 	../third_party_open/utils/deg2utm.f90 \

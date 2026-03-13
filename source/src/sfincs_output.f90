@@ -456,12 +456,7 @@ module sfincs_output
       !
       if (store_zvolume) then
           write(908)z_volume
-      endif
-      !
-      if (timestep_analysis == 1) then
-          write(900)average_timestep
-          write(901)times_limiting
-      endif      
+      endif   
 !   endif
    !
    end subroutine

@@ -1,7 +1,6 @@
 module sfincs_momentum
    !
    use sfincs_data
-   use sfincs_timestep_diag
    !
    implicit none
    !
@@ -88,6 +87,8 @@ contains
    real*4    :: mdrv
    real*4    :: hu73
    !
+   real*4    :: min_dt_ip
+   !
    real*4, parameter :: expo = 1.0 / 3.0
    !integer, parameter :: expo = 1
    !
@@ -99,7 +100,21 @@ contains
    !
    if (timestep_analysis) then
        !
-       min_timestep = dtmax ! Reset per-cell limits; dry cells will retain dtmax
+       ! Do in loop for updating on GPU
+       !
+       !$acc parallel, present( timestep_analysis_required_timestep )
+       !$omp parallel &
+       !$omp private ( ip )
+       !$omp do
+       !$acc loop gang vector       
+       do ip = 1, npuv
+          ! 
+          timestep_analysis_required_timestep(ip) = dtmax ! Reset per-cell limits; dry cells will retain dtmax
+          !
+       enddo
+       !$acc end parallel
+       !$omp end do
+       !$omp end parallel       
        !
    endif   
    !
@@ -135,7 +150,7 @@ contains
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73 ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73,min_dt_ip ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop, reduction( min : min_dt ), gang, vector
@@ -708,13 +723,15 @@ contains
             ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
             ! Use maximum of sqrt(gh) and current velocity
             !
-            min_dt = min(min_dt, 1.0 / ( max(sqrt(g * hu), abs(uv(ip)) ) * dxuvinv))
+            min_dt_ip = 1.0 / ( max(sqrt(g * hu), abs(uv(ip)) ) * dxuvinv)
+            !
+            min_dt = min(min_dt, min_dt_ip)
             !
             ! Compute timestep per grid cell
             !
             if (timestep_analysis) then
                 !
-                call compute_cell_min_timestep(nm, hu, uv(ip), dxuvinv)
+                timestep_analysis_required_timestep(ip) = min_dt_ip
                 !
             endif            
             !

@@ -25,7 +25,7 @@ module sfincs_lib
    use sfincs_nonhydrostatic
    use sfincs_openacc
    use sfincs_log
-   use sfincs_timestep_diag
+   use sfincs_timestep_analysis
    !
    implicit none
    !
@@ -544,12 +544,12 @@ module sfincs_lib
       ! And now for the real computations !
       !
       ! First compute fluxes
-      !
+      !      
       call compute_fluxes(dt, tloopflux)
       !
       if (timestep_analysis) then
           !
-          call timestep_diagnostics_update(dt)
+          call timestep_analysis_update(min_dt)
           !
       endif      
       !
@@ -728,6 +728,11 @@ module sfincs_lib
    call write_log('', 1)
    write(logstr,'(a,20f10.3)')           ' Average time step (s)  : ', dtavg
    !
+   if (timestep_analysis) then
+      !
+      !Most limiting cell was nm x&y , met uv index > xx% of the time 
+      !
+   endif   
    call write_log(logstr, 1)
    call write_log('', 1)
    !
