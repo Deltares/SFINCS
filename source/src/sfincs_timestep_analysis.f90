@@ -42,19 +42,25 @@ module sfincs_timestep_analysis
          !
          if (kcuv(ip) == 1 .or. kcuv(ip) == 6) then
             !
-            ! Update running average for wet cells
+            ! Check if uv point is wet
             !
-            timestep_analysis_average_required_timestep(ip) = timestep_analysis_average_required_timestep(ip) + timestep_analysis_required_timestep(ip) 
-            !
-            ! Note - final conversion to average is done in timestep_analysis_finalize()
-            !
-            timestep_analysis_times_wet(ip) = timestep_analysis_times_wet(ip) + 1
-            !
-            ! Check if this cell was limiting the global timestep
-            !
-            if (timestep_analysis_required_timestep(ip) <= min_dt + 1.0e-6) then            
-               ! 
-               timestep_analysis_times_limiting(ip) = timestep_analysis_times_limiting(ip) + 1
+            if (kfuv(ip) == 1) then
+               !
+               ! Update running average for wet cells
+               !
+               timestep_analysis_average_required_timestep(ip) = timestep_analysis_average_required_timestep(ip) + timestep_analysis_required_timestep(ip) 
+               !
+               ! Note - final conversion to average is done in timestep_analysis_finalize()
+               !
+               timestep_analysis_times_wet(ip) = timestep_analysis_times_wet(ip) + 1
+               !
+               ! Check if this cell was limiting the global timestep
+               !
+               if (timestep_analysis_required_timestep(ip) <= min_dt + 1.0e-6) then            
+                  ! 
+                  timestep_analysis_times_limiting(ip) = timestep_analysis_times_limiting(ip) + 1
+                  !
+               endif
                !
             endif
             !
