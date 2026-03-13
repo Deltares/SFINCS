@@ -93,8 +93,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.3.0 mt. Faber Release"
-   build_date     = "$Date: 2025-11-18"
+   build_revision = "$Rev: v2.3.1 mt. Faber+"
+   build_date     = "$Date: 2026-03-13"
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)
@@ -323,7 +323,6 @@ module sfincs_lib
    !
    double precision, intent(in)  :: dtrange
    integer                       :: ierr
-   integer                       :: nm
    real*8                        :: tend !< end of update interval
    real*4                        :: dtchk !< dt to check for instability
    logical                       :: single_time_step 
@@ -547,7 +546,12 @@ module sfincs_lib
       ! First compute fluxes
       !
       call compute_fluxes(dt, tloopflux)
-      if (timestep_analysis) call timestep_diagnostics_update(dt)
+      !
+      if (timestep_analysis) then
+          !
+          call timestep_diagnostics_update(dt)
+          !
+      endif      
       !
       if (wavemaker) then
          !

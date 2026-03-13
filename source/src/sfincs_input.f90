@@ -278,7 +278,8 @@ contains
    !
    if (dtmapout==0.0) then
       call read_real_input(500,'dtmapout',dtmapout,0.0)
-   endif   
+   endif
+   !
    close(500)
    !
    ! Check whether epsg code has been specified:

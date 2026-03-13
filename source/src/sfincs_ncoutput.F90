@@ -3655,7 +3655,11 @@ contains
    NF90(nf90_put_var(map_file%ncid, map_file%average_dt_varid,  dtavg))
    NF90(nf90_put_var(map_file%ncid, map_file%status_varid,  error))
    !
-   if (timestep_analysis) call ncoutput_write_timestep_diagnostics()
+   if (timestep_analysis) then
+       !
+       call ncoutput_write_timestep_diagnostics()
+       !
+   endif   
    !
    NF90(nf90_close(map_file%ncid))
    !
@@ -3681,18 +3685,37 @@ contains
       !
       ! Average time step
       vtmp = FILL_VALUE
+      !
       do nmq = 1, quadtree_nr_points
+         ! 
          nm = index_sfincs_in_quadtree(nmq)
-         if (nm > 0 .and. kcs(nm) > 0 .and. average_timestep(nm) > 0.0) vtmp(nmq) = average_timestep(nm)
+         !
+         if (nm > 0 .and. kcs(nm) > 0 .and. average_timestep(nm) > 0.0) then
+            !   
+            vtmp(nmq) = average_timestep(nm)
+            !
+        endif
+        ! 
       enddo
+      !
       NF90(nf90_put_var(map_file%ncid, map_file%average_timestep_varid, vtmp))
       !
       ! Times limiting
+      !
       vtmp = FILL_VALUE
+      !
       do nmq = 1, quadtree_nr_points
+         ! 
          nm = index_sfincs_in_quadtree(nmq)
-         if (nm > 0 .and. kcs(nm) > 0) vtmp(nmq) = real(times_limiting(nm))
+         !
+         if (nm > 0 .and. kcs(nm) > 0) then
+             !
+             vtmp(nmq) = real(times_limiting(nm))
+             !
+         endif         
+         !
       enddo
+      !
       NF90(nf90_put_var(map_file%ncid, map_file%times_limiting_varid, vtmp))
       !
       deallocate(vtmp)
@@ -3703,22 +3726,34 @@ contains
       !
       ! Average time step
       zsg = FILL_VALUE
+      !
       do nm = 1, np
+         ! 
          if (average_timestep(nm) > 0.0) then
+            ! 
             n = z_index_z_n(nm)
             m = z_index_z_m(nm)
+            !
             zsg(m, n) = average_timestep(nm)
+            !
          endif
+         !
       enddo
+      !
       NF90(nf90_put_var(map_file%ncid, map_file%average_timestep_varid, zsg))
       !
       ! Times limiting
       zsg = FILL_VALUE
+      !
       do nm = 1, np
+         ! 
          n = z_index_z_n(nm)
          m = z_index_z_m(nm)
+         !
          zsg(m, n) = real(times_limiting(nm))
+         !
       enddo
+      !
       NF90(nf90_put_var(map_file%ncid, map_file%times_limiting_varid, zsg))
       !
       deallocate(zsg)
