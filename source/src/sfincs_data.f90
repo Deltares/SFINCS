@@ -85,8 +85,6 @@ module sfincs_data
       real*4 spw_merge_frac
       real*4 tsunami_arrival_threshold
       real*4 dtwave
-      real*4 wmtfilter
-      real*4 wavemaker_hmin
       real*4 horton_kr_kd
       real*4 btrelax
       real*4 structure_relax
@@ -108,10 +106,6 @@ module sfincs_data
       real*4 factor_prcp
       real*4 factor_spw_size
       !
-      real*4 freqminig
-      real*4 freqmaxig
-      integer nfreqsig
-      !
       integer mmax
       integer nmax
       integer bndtype
@@ -126,10 +120,10 @@ module sfincs_data
       character*256 :: bcafile
       character*256 :: bzifile
       character*256 :: bdrfile
-      character*256 :: wfpfile
-      character*256 :: whifile
-      character*256 :: wtifile
-      character*256 :: wstfile
+!      character*256 :: wfpfile
+!      character*256 :: whifile
+!      character*256 :: wtifile
+!      character*256 :: wstfile
       character*256 :: obsfile
       character*256 :: crsfile
       character*256 :: rugfile
@@ -171,7 +165,6 @@ module sfincs_data
       character*256 :: fcfile
       character*256 :: kdfile
       character*256 :: z0lfile
-      character*256 :: wvmfile
       character*256 :: qtrfile
       character*256 :: volfile
       !
@@ -242,8 +235,6 @@ module sfincs_data
       logical       :: downstream_river_boundaries_in_mask
       logical       :: neumann_boundaries_in_mask
       logical       :: use_uv
-      logical       :: wavemaker
-      logical       :: wavemaker_mobile
       logical       :: use_quadtree
       logical       :: use_quadtree_output
       logical       :: interpolate_zst
@@ -256,7 +247,6 @@ module sfincs_data
       logical       :: friction2d
       logical       :: advection_mask
       logical       :: wiggle_suppression
-      logical       :: wmrandom      
       logical       :: store_dynamic_bed_level
       logical       :: nonhydrostatic
       logical       :: h73table
@@ -427,9 +417,38 @@ module sfincs_data
       !
       real*4, dimension(:),   allocatable :: uvmean
       !
-      ! Wave maker points
+      !!! Wave makers
+      !
+      character*256 :: wavemaker_wvmfile ! polylines
+      character*256 :: wavemaker_wfpfile ! forcing points
+      character*256 :: wavemaker_whifile ! wave heights
+      character*256 :: wavemaker_wtifile ! wave periods
+      character*256 :: wavemaker_wstfile ! wave setup
+      !
+      logical       :: wavemaker
+      logical       :: wavemaker_mobile
+      logical       :: wavemaker_hig
+      logical       :: wavemaker_hinc
+      logical       :: wavemaker_spectrum
+      logical       :: wavemaker_random
+      logical       :: wavemaker_timeseries
       !
       integer*4                            :: wavemaker_nr_uv_points
+      real*4                               :: wavemaker_filter_time
+      real*4                               :: wavemaker_filter_fred      
+      real*4                               :: wavemaker_tinc2ig
+      real*4                               :: wavemaker_surfslope
+      real*4                               :: wavemaker_hm0_ig_factor
+      real*4                               :: wavemaker_hm0_inc_factor
+      real*4                               :: wavemaker_gammax
+      real*4                               :: wavemaker_tpmin
+      real*4                               :: wavemaker_hmin
+      real*4                               :: wavemaker_freqmin_ig
+      real*4                               :: wavemaker_freqmax_ig
+      integer                              :: wavemaker_nfreqs_ig
+      real*4                               :: wavemaker_freqmin_inc
+      real*4                               :: wavemaker_freqmax_inc
+      integer                              :: wavemaker_nfreqs_inc
       integer*4, dimension(:), allocatable :: wavemaker_index_uv
       integer*4, dimension(:), allocatable :: wavemaker_index_nmi
       integer*4, dimension(:), allocatable :: wavemaker_index_nmb
@@ -443,69 +462,78 @@ module sfincs_data
       integer*4, dimension(:), allocatable :: wavemaker_num
       integer*4, dimension(:), allocatable :: wavemaker_ndm
       integer*4, dimension(:), allocatable :: z_index_wavemaker
-      real*4                               :: wavemaker_freduv      
-      logical                              :: wavemaker_spectrum
+      !
+      ! IG and incident frequencies
+      !
+      real*4, dimension(:),     allocatable :: wavemaker_freq_ig
+      real*4, dimension(:),     allocatable :: wavemaker_cost_ig
+      real*4, dimension(:),     allocatable :: wavemaker_phi_ig
+      real*4, dimension(:),     allocatable :: wavemaker_dphi_ig
+      real*4                                :: wavemaker_dfreq_ig
+      !
+      real*4, dimension(:),     allocatable :: wavemaker_freq_inc
+      real*4, dimension(:),     allocatable :: wavemaker_cost_inc
+      real*4, dimension(:),     allocatable :: wavemaker_phi_inc
+      real*4, dimension(:),     allocatable :: wavemaker_dphi_inc
+      real*4                                :: wavemaker_dfreq_inc
       !
       ! Wave maker time series
       !
-      integer*4                             :: nwmfp
-      integer*4                             :: ntwmfp
-      integer*4                             :: itwmfplast
-      logical                               :: wavemaker_timeseries
+      integer*4                             :: wavemaker_nr_forcing_points
+      integer*4                             :: wavemaker_nr_forcing_timesteps
+      integer*4                             :: wavemaker_itlast
       integer*4, dimension(:), allocatable  :: wavemaker_index_wmfp1
       integer*4, dimension(:), allocatable  :: wavemaker_index_wmfp2
-      real*4, dimension(:),     allocatable :: x_wmfp
-      real*4, dimension(:),     allocatable :: y_wmfp
-      real*4, dimension(:),     allocatable :: wmf_time
-      real*4, dimension(:,:),   allocatable :: wmf_hm0_ig
-      real*4, dimension(:,:),   allocatable :: wmf_tp_ig
-      real*4, dimension(:,:),   allocatable :: wmf_setup
-      real*4, dimension(:),     allocatable :: wmf_hm0_ig_t
-      real*4, dimension(:),     allocatable :: wmf_tp_ig_t
-      real*4, dimension(:),     allocatable :: wmf_setup_t
-      !      
-!      integer*4                              :: wavemaker_nr_cross
-!      integer*4                              :: wavemaker_nr_along
-!      real*4                                 :: wavemaker_dx_cross
-!      real*4                                 :: wavemaker_dx_along
- !     real*8,    dimension(:),   allocatable :: wavemaker_cross_x
- !     real*8,    dimension(:),   allocatable :: wavemaker_cross_y
- !     real*8,    dimension(:,:), allocatable :: wavemaker_cross_w
- !     integer*4, dimension(:,:), allocatable :: wavemaker_cross_i
- !     real*4,    dimension(:),   allocatable :: wavemaker_cross_phi
+      real*4, dimension(:),     allocatable :: wavemaker_forcing_time
+      real*4, dimension(:,:),   allocatable :: wavemaker_forcing_hm0_ig
+      real*4, dimension(:,:),   allocatable :: wavemaker_forcing_tp_ig
+      real*4, dimension(:,:),   allocatable :: wavemaker_forcing_setup
+      !
+      ! Following is for mobile wave makers.
+      ! This feature has been turned off, but we keep the variables here in case
+      ! we want to turn it back on in the future.
+      !      integer*4                              :: wavemaker_nr_cross
+      !      integer*4                              :: wavemaker_nr_along
+      !      real*4                                 :: wavemaker_dx_cross
+      !      real*4                                 :: wavemaker_dx_along
+      !     real*8,    dimension(:),   allocatable :: wavemaker_cross_x
+      !     real*8,    dimension(:),   allocatable :: wavemaker_cross_y
+      !     real*8,    dimension(:,:), allocatable :: wavemaker_cross_w
+      !     integer*4, dimension(:,:), allocatable :: wavemaker_cross_i
+      !     real*4,    dimension(:),   allocatable :: wavemaker_cross_phi
       !
       ! NM
       !
-!      integer*4, dimension(:),   allocatable :: wavemaker_index_z_in_nm     ! points to index of wm maker water level points (size=np) 
+      !      integer*4, dimension(:),   allocatable :: wavemaker_index_z_in_nm     ! points to index of wm maker water level points (size=np) 
       !
       ! WMZ
       !
-!      integer*4, dimension(:),   allocatable :: wavemaker_index_u0_in_z    ! points to index of wm maker u points to the left (size = nr wave maker water level points) 
-!      integer*4, dimension(:),   allocatable :: wavemaker_index_u1_in_z    ! points to index of wm maker u points to the right (size = nr wave maker water level points) 
- !     integer*4, dimension(:),   allocatable :: wavemaker_index_v0_in_z    ! points to index of wm maker v points below (size = nr wave maker water level points) 
-!      integer*4, dimension(:),   allocatable :: wavemaker_index_v1_in_z    ! points to index of wm maker v points above (size = nr wave maker water level points) 
-!      integer*4, dimension(:),   allocatable :: wavemaker_index_nm_in_z    ! points to nm index (size=nr wave maker water level points) 
-!      real*4,    dimension(:),   allocatable :: wavemaker_zwav      
+      !      integer*4, dimension(:),   allocatable :: wavemaker_index_u0_in_z    ! points to index of wm maker u points to the left (size = nr wave maker water level points) 
+      !      integer*4, dimension(:),   allocatable :: wavemaker_index_u1_in_z    ! points to index of wm maker u points to the right (size = nr wave maker water level points) 
+      !     integer*4, dimension(:),   allocatable :: wavemaker_index_v0_in_z    ! points to index of wm maker v points below (size = nr wave maker water level points) 
+      !      integer*4, dimension(:),   allocatable :: wavemaker_index_v1_in_z    ! points to index of wm maker v points above (size = nr wave maker water level points) 
+      !      integer*4, dimension(:),   allocatable :: wavemaker_index_nm_in_z    ! points to nm index (size=nr wave maker water level points) 
+      !      real*4,    dimension(:),   allocatable :: wavemaker_zwav      
       !
       ! WMU
       !
-!      integer*4, dimension(:),   allocatable :: wavemaker_index_nm_in_u
-!      integer*4, dimension(:),   allocatable :: wavemaker_index_nmi_in_u
-!      integer*4, dimension(:),   allocatable :: wavemaker_index_nmb_in_u
-!      integer*4, dimension(:),   allocatable :: wavemaker_index_z_in_u
-!      integer*4, dimension(:),   allocatable :: wavemaker_idir_u
-!      real*4,    dimension(:),   allocatable :: wavemaker_qxm      
-!      real*4,    dimension(:),   allocatable :: wavemaker_angfac_u
+      !      integer*4, dimension(:),   allocatable :: wavemaker_index_nm_in_u
+      !      integer*4, dimension(:),   allocatable :: wavemaker_index_nmi_in_u
+      !      integer*4, dimension(:),   allocatable :: wavemaker_index_nmb_in_u
+      !      integer*4, dimension(:),   allocatable :: wavemaker_index_z_in_u
+      !      integer*4, dimension(:),   allocatable :: wavemaker_idir_u
+      !      real*4,    dimension(:),   allocatable :: wavemaker_qxm      
+      !      real*4,    dimension(:),   allocatable :: wavemaker_angfac_u
       !
       ! WMV
       !
-!      integer*4, dimension(:),   allocatable :: wavemaker_index_nm_in_v
-!      integer*4, dimension(:),   allocatable :: wavemaker_index_nmi_in_v
-!      integer*4, dimension(:),   allocatable :: wavemaker_index_nmb_in_v
-!      integer*4, dimension(:),   allocatable :: wavemaker_index_z_in_v
-!      integer*4, dimension(:),   allocatable :: wavemaker_idir_v
-!      real*4,    dimension(:),   allocatable :: wavemaker_qym
-!      real*4,    dimension(:),   allocatable :: wavemaker_angfac_v
+      !      integer*4, dimension(:),   allocatable :: wavemaker_index_nm_in_v
+      !      integer*4, dimension(:),   allocatable :: wavemaker_index_nmi_in_v
+      !      integer*4, dimension(:),   allocatable :: wavemaker_index_nmb_in_v
+      !      integer*4, dimension(:),   allocatable :: wavemaker_index_z_in_v
+      !      integer*4, dimension(:),   allocatable :: wavemaker_idir_v
+      !      real*4,    dimension(:),   allocatable :: wavemaker_qym
+      !      real*4,    dimension(:),   allocatable :: wavemaker_angfac_v
       !
       ! Sub-grid
       !
@@ -528,9 +556,7 @@ module sfincs_data
       !
       ! Dynamic data on the grid
       !
-      ! The only double precision array is zs. z_volume is already limited by the 20 m depth limit, but it may be a good idea to make z_volume also double precision.
-      ! Ideally, we'd use double precision for zs in regular mode, and for z_volume in subgrid mode.
-      ! However, that would require using separate zs and z_volume arrays for regular and subgrid, which is probably not worth the trouble.
+      ! The only double precision arrays are zs and z_volume. 
       !
       real*4, dimension(:),   allocatable :: zsmax
       real*4, dimension(:),   allocatable :: vmax
@@ -639,14 +665,6 @@ module sfincs_data
       real*4,  dimension(:),     allocatable :: y_bdr
       integer, dimension(:),     allocatable :: index_zsi_bdr
       real*4,  dimension(:),     allocatable :: dzs_bdr
-      !
-      ! IG frequencies
-      !
-      real*4, dimension(:),     allocatable :: freqig
-      real*4, dimension(:),     allocatable :: costig
-      real*4, dimension(:),     allocatable :: phiig
-      real*4, dimension(:),     allocatable :: dphiig
-      real*4                                :: dfreqig
       !!!
       !!! Meteo data
       !!!
@@ -892,6 +910,8 @@ module sfincs_data
    !
    implicit none
    !
+   ! MvO says: "I really do not think this deallocation nonsense is necessary!!!"
+   !
    ! memory cleanup
 !    if(allocated(indices)) deallocate(indices)
     if(allocated(nmindbnd)) deallocate(nmindbnd)
@@ -1022,10 +1042,10 @@ module sfincs_data
     !
     ! IG frequencies
     !
-    if(allocated(freqig)) deallocate(freqig)
-    if(allocated(costig)) deallocate(costig)
-    if(allocated(phiig)) deallocate(phiig)
-    if(allocated(dphiig)) deallocate(dphiig)
+    if(allocated(wavemaker_freq_ig)) deallocate(wavemaker_freq_ig)
+    if(allocated(wavemaker_cost_ig)) deallocate(wavemaker_cost_ig)
+    if(allocated(wavemaker_phi_ig)) deallocate(wavemaker_phi_ig)
+    if(allocated(wavemaker_dphi_ig)) deallocate(wavemaker_dphi_ig)
     !
     if(allocated(spw_times)) deallocate(spw_times)
     if(allocated(spw_xe)) deallocate(spw_xe)
