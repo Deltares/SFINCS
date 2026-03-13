@@ -16,7 +16,7 @@ For more information regarding specific parameters see the pages 'Input paramete
    :width: 800px
    :align: center
 
-   Overview of input file of SFINCS with indication whther they are required or not	
+   Overview of input file of SFINCS with indication whether they are required or not	
 	
 Example of sfincs.inp
 -----
@@ -261,7 +261,7 @@ Subgrid tables
 The SFINCS model functionality has been extended so that SFINCS can also calculate flooding with the use of subgrid tables.
 Hereby high-resolution elevation data is used to derive relations between the water level and the volume in a cell to do the continuity update, and a representative water depth used to calculate momentum fluxes.
 The derivation of these subgrid tables is a pre-processing step outside of the model, that only needs to be done once!
-The advantage of the subgrid version of SFINCS is that generally one can compute on coarsed grid sizes, while still having accurate results utilizing the high-resolution elevation data to its full potential.
+The advantage of the subgrid version of SFINCS is that generally one can compute on coarser grid sizes, while still having accurate results utilizing the high-resolution elevation data to its full potential.
 Recommended Netcdf file input option available from SFINCS 2024.01 release onwards as in Van Ormondt et al. 2025, binary file option still possible for backwards compatability.
 
 **Python example using HydroMT-SFINCS**
@@ -353,14 +353,14 @@ Infiltration processes play a critical role in flood mitigation as they determin
 
 SFINCS allows the specification of the following options for accounting for infiltration:
 1.	Uniform constant-in-time value
-2.	Spatially varying constant -in-time value 
+2.	Spatially varying constant-in-time value 
 3.	The Curve Number method: empirical rainfall-runoff model 
 4.	The Green-Ampt method: empirical rainfall-runoff model
 5.	The Horton infiltration method
 
 Infiltration is specified with either constant in time values in mm/hr (both uniform and spatially varying), or using more detailed parameters for the Curve Number method, The Green-Ampt method or Horton method.
 
-**NOTE - Infiltration in SFINCS is only turned on when any rainfall is forced'** 
+**NOTE - Infiltration in SFINCS is only turned on when any rainfall is forced** 
 
 **NOTE - Infiltration methods in SFINCS are not designed to be stacked**
 
@@ -374,7 +374,7 @@ Specify the keyword:
 
 	qinf = 1.0
 	
-**NOTE - To have some control that no infiltration is added an areas like the sea for this spatially uniform constant in time infiltration method, only infiltration is added to cells above a certain elevation above the bed level reference height**
+**NOTE - To have some control that no infiltration is added to areas like the sea for this spatially uniform constant in time infiltration method, only infiltration is added to cells above a certain elevation above the bed level reference height**
 
 **NOTE - By default this is set to 0, qinf_zmin = 0 (default), so below e.g. MSL, no infiltration is added**
 
@@ -417,7 +417,7 @@ In its classic form, the Curve Number model uses the following equation to relat
 
 **S = (1000./CN - 10)**
 
-**Q = (P^2./(P+Smax)**
+**Q = (P^2/(P+Smax))**
 
 where Smax = the soil's maximum moisture storage capacity. Smax typically derived from a tabulated 'curve number' CN that varies with soil type and antecedent condition. It should be emphasized that these equations use units of inches while in SFINCS we apply the metric system. 
 
@@ -450,7 +450,7 @@ For spatially varying infiltration values per cell using the Curve Number method
 	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
 	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
 
-The user can also specify the sfacinf which control the initial abstraction or the amount of water before runoff, such as infiltration, or rainfall interception by vegetation; historically, it has generally been assumed that sfacinf = 0.2 (default, however, for urbanized watersheds lower values can be expected (e.g. 0.05). 
+The user can also specify the sfacinf which controls the initial abstraction or the amount of water before runoff, such as infiltration, or rainfall interception by vegetation; historically, it has generally been assumed that sfacinf = 0.2 (default, however, for urbanized watersheds lower values can be expected (e.g. 0.05). 
 
 This option doesn't support restart functionality. 
 
@@ -496,7 +496,7 @@ The basic form of the Green-Ampt equation is expressed as follows:
 
 In which t is time, K is the saturated hydraulic conductivity, delta_theta is defined as the soil capacity (the difference between the saturated and initial moisture content) and sigma is the soil suction head.
 
-Within SFINCS, the Green-Ampt method can be used as follows. The user needs to provide the following variables. For a range of typically values see Table 1. For all variables, one needs to specify these values per cell with the same grid based input as the depfile using a binary file:
+Within SFINCS, the Green-Ampt method can be used as follows. The user needs to provide the following variables. For a range of typical values see Table 1. For all variables, one needs to specify these values per cell with the same grid based input as the depfile using a binary file:
 
 * ksfile: saturated hydraulic conductivity in mm/hr
 * sigmafile: soil moisture deficit in [-]
@@ -537,7 +537,7 @@ Storage volume
 Storage volume for green infrastructure on the 2D grid, specifies the maximum storage volume of water per grid cell in cubic meters.
 Water will be stored in this storage volume before it will contribute to surface runoff.
 
-**NOTE - Only useable in subgrid mode **
+**NOTE - Only useable in subgrid mode (on either regular or quadtree grid)**
 
 **volfile = sfincs.vol**
 
@@ -557,8 +557,8 @@ Water will be stored in this storage volume before it will contribute to surface
 	
 	sf.setup_storage_volume(
 		storage_locs="storage_locs.geojson",
-		volume: 1000.0,
-		height: None,
+		volume=1000.0,
+		height=None,
 		merge=True
 	)
 	
@@ -818,7 +818,7 @@ Increasing the value of 'nuvisc' increases the viscosity term and effectively in
 	viscosity 	= 1
 	nuvisc 		= 0.01
 
-	nuviscdim 	= Depricated after Cauberg release of SFINCS.
+	nuviscdim 	= Deprecated after Cauberg release of SFINCS.
 	
 **Drag Coefficients:**
 

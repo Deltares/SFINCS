@@ -1516,21 +1516,21 @@
             !
          endif
          !
-         hnmb   = max(depthuv, huthresh)
+         hnmb   = depthuv
          zsnmb  = max(zsnmb,  subgrid_z_zmin(nmb))
          zs0nmb = max(zs0nmb, subgrid_z_zmin(nmb))
          !
       else
          !
-         hnmb   = max(0.5*(zsnmb + zsnmi) - zbuv(ip), huthresh)
-         zsnmb  = max(zsnmb,  zb(nmb))
+         hnmb   = 0.5 * (zsnmb + zsnmi) - zbuv(ip)
+         zsnmb  = max(zsnmb, zb(nmb))
          zs0nmb = max(zs0nmb, zb(nmb))
          !
       endif
       !
-      ! Weakly reflective boundary
+      ! Use weakly reflective boundary condition 
       !
-      if (hnmb<huthresh) then
+      if (hnmb < wavemaker_hmin) then
          !
          ! Very shallow
          !
@@ -1539,20 +1539,20 @@
          !
       else
          !
-         ui = sqrt(g/hnmb)*(zsnmb - zs0nmb)
-         ub = wavemaker_idir(ib) * (2*ui - sqrt(g/hnmb)*(zsnmi - zs0nmb)) * wavemaker_angfac(ib)
+         ui = sqrt(g / hnmb) * (zsnmb - zs0nmb)
+         ub = wavemaker_idir(ib) * (2 * ui - sqrt(g / hnmb) * (zsnmi - zs0nmb)) * wavemaker_angfac(ib)
          !
-         q(ip) = ub*hnmb + wavemaker_uvmean(ib)
+         q(ip) = ub * hnmb + wavemaker_uvmean(ib)
          !
       endif
       !
-      if (wmtfilter>=0.0) then
+      if (wmtfilter >= 0.0) then
          !
          ! Use double exponential time filter
          !
          uvm0 = wavemaker_uvmean(ib) ! Previous time step
-         wavemaker_uvmean(ib)  = alpha*q(ip)   + wavemaker_freduv*(1.0 - alpha)*(wavemaker_uvmean(ib) + wavemaker_uvtrend(ib))
-         wavemaker_uvtrend(ib) = beta*(wavemaker_uvmean(ib) - uvm0) + (1.0 - beta)*wavemaker_uvtrend(ib)
+         wavemaker_uvmean(ib)  = alpha * q(ip) + wavemaker_freduv * (1.0 - alpha) * (wavemaker_uvmean(ib) + wavemaker_uvtrend(ib))
+         wavemaker_uvtrend(ib) = beta * (wavemaker_uvmean(ib) - uvm0) + (1.0 - beta) * wavemaker_uvtrend(ib)
          !
       else
          !
