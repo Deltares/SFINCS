@@ -74,13 +74,17 @@ module sfincs_timestep_analysis
    subroutine finalize_timestep_analysis()    
       !      
       integer :: ip, nm, nmu
-      real*4 :: xuv, yuv, percentage_limiting
+      real*4 :: xuv, yuv, percentage_limiting, max_times_limiting, max_times_wet
       !      
-      if (maxval(timestep_analysis_times_limiting) > 0) then
+      if (maxval(timestep_analysis_times_limiting) > 0.0) then
           !
           ip      = maxloc(timestep_analysis_times_limiting, dim=1)
           !
-          percentage_limiting = maxval(timestep_analysis_times_limiting) / maxval(timestep_analysis_times_wet) * 100.0 ! percentage limiting
+          max_times_limiting = maxval(timestep_analysis_times_limiting)
+          !
+          max_times_wet = maxval(timestep_analysis_times_wet)           
+          !
+          percentage_limiting = max_times_limiting / max_times_wet * 100.0 ! percentage limiting
           !
       else
           !
@@ -108,7 +112,7 @@ module sfincs_timestep_analysis
       call write_log(logstr, 1) 
       write(logstr,'(a,20f10.3)')           '    y   : ', yuv
       call write_log(logstr, 1)          
-      !           
+      !        
    end subroutine finalize_timestep_analysis
    !
 end module sfincs_timestep_analysis
