@@ -410,7 +410,11 @@ Parameters for model output
 	storetzsmax
 	  :description:		Flag to turn on writing away the time stamp that the maximum water surface elevation during simulation occured (storetzsmax = 1). Only if zsmax output is saved (dtmaxout > 0).
 	  :units:		-
-	  :default:		0	  
+	  :default:		0	
+	timestep_analysis
+	  :description:		Flag to write timestep limiter variables `average_required_timestep` and `percentage_limiting_timestep` to the sfincs_map.nc file to analyse what cells are limiting the global timestep
+	  :units:		-
+	  :default:		0		  
 	debug
 	  :description:		Flag to turn on writing away every timestep to output as debug mode (debug = 1)
 	  :units:		-
