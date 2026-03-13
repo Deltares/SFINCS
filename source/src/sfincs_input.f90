@@ -23,7 +23,6 @@ contains
    integer iamprblock
    integer iglobal
    integer itsunamitime
-   integer itimestep_analysis
    integer ispinupmeteo
    integer isnapwave
    integer iwindmax
