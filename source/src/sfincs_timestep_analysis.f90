@@ -106,11 +106,11 @@ module sfincs_timestep_analysis
       call write_log(logstr, 1)           
       !write(logstr,'(a,i,a,f10.3,a,f10.3)')           ' uv : ', ip, ' x : ', xuv, ' y : ', yuv
       !call write_log(logstr, 1)
-      write(logstr,'(a,20i10)')               '    uv  : ', ip
+      write(logstr,'(a,20i10)')             '                    uv  : ', ip
       call write_log(logstr, 1) 
-      write(logstr,'(a,20f10.3)')           '    x   : ', xuv
+      write(logstr,'(a,20f10.3)')           '                    x   : ', xuv
       call write_log(logstr, 1) 
-      write(logstr,'(a,20f10.3)')           '    y   : ', yuv
+      write(logstr,'(a,20f10.3)')           '                    y   : ', yuv
       call write_log(logstr, 1)          
       !        
    end subroutine finalize_timestep_analysis
