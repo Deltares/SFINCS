@@ -3735,11 +3735,11 @@ contains
             !
             maximum_times_limiting = max(timestep_analysis_times_limiting(nmd1), timestep_analysis_times_limiting(nmu1), timestep_analysis_times_limiting(ndm1), timestep_analysis_times_limiting(num1))
             !            
-            if (maximum_times_limiting > 0.0) then
+            !if (maximum_times_limiting > 0.0) then
                !
                vtmp(nmq) = maximum_times_limiting / maxval(timestep_analysis_times_wet) * 100.0 ! percentage limiting             
                !
-            endif            
+            !endif            
             !
          endif         
          !
@@ -3764,7 +3764,8 @@ contains
          nmd1 = z_index_uv_md(nm)
 		 nmu1 = z_index_uv_mu(nm)
          ndm1 = z_index_uv_nd(nm)
-         num1 = z_index_uv_nu(nm)                     
+         num1 = z_index_uv_nu(nm)         
+         ! FIXME - any checks like this needed?          if (ndm1>0) then
          !
          minimum_average_required_wet_timestep = min(timestep_analysis_average_required_timestep(nmd1)/timestep_analysis_times_wet(nmd1), timestep_analysis_average_required_timestep(nmu1)/timestep_analysis_times_wet(nmu1), timestep_analysis_average_required_timestep(ndm1)/timestep_analysis_times_wet(ndm1), timestep_analysis_average_required_timestep(num1)/timestep_analysis_times_wet(num1))
          !   
@@ -3795,11 +3796,11 @@ contains
          !
          maximum_times_limiting = max(timestep_analysis_times_limiting(nmd1), timestep_analysis_times_limiting(nmu1), timestep_analysis_times_limiting(ndm1), timestep_analysis_times_limiting(num1))
          !            
-         if (maximum_times_limiting > 0.0) then
+         !if (maximum_times_limiting > 0.0) then
             !
             zsg(m, n) = maximum_times_limiting / maxval(timestep_analysis_times_wet) * 100.0 ! percentage limiting
             !
-         endif  
+         !endif  
          !
       enddo
       !
