@@ -21,7 +21,7 @@ module sfincs_ncoutput
       integer :: patm_varid, wind_u_varid, wind_v_varid, precip_varid        
       integer :: hm0_varid, hm0ig_varid, snapwavemsk_varid, tp_varid, tpig_varid, wavdir_varid, dirspr_varid
       integer :: fwx_varid, fwy_varid, beta_varid, snapwavedepth_varid
-      integer :: zsm_varid, tsunami_arrival_time_varid, average_timestep_varid, times_limiting_varid
+      integer :: zsm_varid, tsunami_arrival_time_varid, average_required_timestep_varid, percentage_limiting_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid
       integer :: pnonh_varid
       integer :: subgridslope_varid
@@ -460,24 +460,24 @@ contains
    if (timestep_analysis) then
       !
       ! Average time step (written once at end of simulation, no time dimension)
-      NF90(nf90_def_var(map_file%ncid, 'average_timestep', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid/), map_file%average_timestep_varid))
-      NF90(nf90_def_var_deflate(map_file%ncid, map_file%average_timestep_varid, 1, 1, nc_deflate_level)) ! deflate
-      NF90(nf90_put_att(map_file%ncid, map_file%average_timestep_varid, '_FillValue', FILL_VALUE))
-      NF90(nf90_put_att(map_file%ncid, map_file%average_timestep_varid, 'units', 's'))
-      NF90(nf90_put_att(map_file%ncid, map_file%average_timestep_varid, 'standard_name', 'average_timestep'))
-      NF90(nf90_put_att(map_file%ncid, map_file%average_timestep_varid, 'long_name', 'average_timestep'))
-      NF90(nf90_put_att(map_file%ncid, map_file%average_timestep_varid, 'cell_methods', 'time: average'))
-      NF90(nf90_put_att(map_file%ncid, map_file%average_timestep_varid, 'coordinates', 'x y'))
+      NF90(nf90_def_var(map_file%ncid, 'average_required_timestep', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid/), map_file%average_required_timestep_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%average_required_timestep_varid, 1, 1, nc_deflate_level)) ! deflate
+      NF90(nf90_put_att(map_file%ncid, map_file%average_required_timestep_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%average_required_timestep_varid, 'units', 's'))
+      NF90(nf90_put_att(map_file%ncid, map_file%average_required_timestep_varid, 'standard_name', 'average_required_timestep'))
+      NF90(nf90_put_att(map_file%ncid, map_file%average_required_timestep_varid, 'long_name', 'average_required_timestep'))
+      NF90(nf90_put_att(map_file%ncid, map_file%average_required_timestep_varid, 'cell_methods', 'time: average'))
+      NF90(nf90_put_att(map_file%ncid, map_file%average_required_timestep_varid, 'coordinates', 'x y'))
       !
       ! Times limiting (written once at end of simulation, no time dimension)
-      NF90(nf90_def_var(map_file%ncid, 'times_limiting', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid/), map_file%times_limiting_varid))
-      NF90(nf90_def_var_deflate(map_file%ncid, map_file%times_limiting_varid, 1, 1, nc_deflate_level)) ! deflate
-      NF90(nf90_put_att(map_file%ncid, map_file%times_limiting_varid, '_FillValue', FILL_VALUE))
-      NF90(nf90_put_att(map_file%ncid, map_file%times_limiting_varid, 'units', '-'))
-      NF90(nf90_put_att(map_file%ncid, map_file%times_limiting_varid, 'standard_name', 'times_limiting'))
-      NF90(nf90_put_att(map_file%ncid, map_file%times_limiting_varid, 'long_name', 'number_of_times_cell_was_limiting_timestep'))
-      NF90(nf90_put_att(map_file%ncid, map_file%times_limiting_varid, 'cell_methods', 'time: maximum'))
-      NF90(nf90_put_att(map_file%ncid, map_file%times_limiting_varid, 'coordinates', 'x y'))
+      NF90(nf90_def_var(map_file%ncid, 'percentage_limiting_timestep', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid/), map_file%percentage_limiting_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%percentage_limiting_varid, 1, 1, nc_deflate_level)) ! deflate
+      NF90(nf90_put_att(map_file%ncid, map_file%percentage_limiting_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%percentage_limiting_varid, 'units', '%'))
+      NF90(nf90_put_att(map_file%ncid, map_file%percentage_limiting_varid, 'standard_name', 'percentage_limiting_timestep'))
+      NF90(nf90_put_att(map_file%ncid, map_file%percentage_limiting_varid, 'long_name', 'percentage_cell_was_limiting_timestep'))
+      NF90(nf90_put_att(map_file%ncid, map_file%percentage_limiting_varid, 'cell_methods', 'time: maximum'))
+      NF90(nf90_put_att(map_file%ncid, map_file%percentage_limiting_varid, 'coordinates', 'x y'))
       !
    endif
    !
@@ -1174,22 +1174,22 @@ contains
    if (timestep_analysis) then
       !
       ! Average time step (written once at end of simulation, no time dimension)
-      NF90(nf90_def_var(map_file%ncid, 'average_timestep', NF90_FLOAT, (/map_file%nmesh2d_face_dimid/), map_file%average_timestep_varid))
-      NF90(nf90_def_var_deflate(map_file%ncid, map_file%average_timestep_varid, 1, 1, nc_deflate_level)) ! deflate
-      NF90(nf90_put_att(map_file%ncid, map_file%average_timestep_varid, '_FillValue', FILL_VALUE))
-      NF90(nf90_put_att(map_file%ncid, map_file%average_timestep_varid, 'units', 's'))
-      NF90(nf90_put_att(map_file%ncid, map_file%average_timestep_varid, 'standard_name', 'average_timestep'))
-      NF90(nf90_put_att(map_file%ncid, map_file%average_timestep_varid, 'long_name', 'average_timestep'))
-      NF90(nf90_put_att(map_file%ncid, map_file%average_timestep_varid, 'cell_methods', 'time: average'))
+      NF90(nf90_def_var(map_file%ncid, 'average_required_timestep', NF90_FLOAT, (/map_file%nmesh2d_face_dimid/), map_file%average_required_timestep_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%average_required_timestep_varid, 1, 1, nc_deflate_level)) ! deflate
+      NF90(nf90_put_att(map_file%ncid, map_file%average_required_timestep_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%average_required_timestep_varid, 'units', 's'))
+      NF90(nf90_put_att(map_file%ncid, map_file%average_required_timestep_varid, 'standard_name', 'average_required_timestep'))
+      NF90(nf90_put_att(map_file%ncid, map_file%average_required_timestep_varid, 'long_name', 'average_required_timestep'))
+      NF90(nf90_put_att(map_file%ncid, map_file%average_required_timestep_varid, 'cell_methods', 'time: average'))
       !
       ! Times limiting (written once at end of simulation, no time dimension)
-      NF90(nf90_def_var(map_file%ncid, 'times_limiting', NF90_FLOAT, (/map_file%nmesh2d_face_dimid/), map_file%times_limiting_varid))
-      NF90(nf90_def_var_deflate(map_file%ncid, map_file%times_limiting_varid, 1, 1, nc_deflate_level)) ! deflate
-      NF90(nf90_put_att(map_file%ncid, map_file%times_limiting_varid, '_FillValue', FILL_VALUE))
-      NF90(nf90_put_att(map_file%ncid, map_file%times_limiting_varid, 'units', '-'))
-      NF90(nf90_put_att(map_file%ncid, map_file%times_limiting_varid, 'standard_name', 'times_limiting'))
-      NF90(nf90_put_att(map_file%ncid, map_file%times_limiting_varid, 'long_name', 'number_of_times_cell_was_limiting_timestep'))
-      NF90(nf90_put_att(map_file%ncid, map_file%times_limiting_varid, 'cell_methods', 'time: maximum'))
+      NF90(nf90_def_var(map_file%ncid, 'percentage_limiting_timestep', NF90_FLOAT, (/map_file%nmesh2d_face_dimid/), map_file%percentage_limiting_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%percentage_limiting_varid, 1, 1, nc_deflate_level)) ! deflate
+      NF90(nf90_put_att(map_file%ncid, map_file%percentage_limiting_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%percentage_limiting_varid, 'units', '%'))
+      NF90(nf90_put_att(map_file%ncid, map_file%percentage_limiting_varid, 'standard_name', 'percentage_limiting_timestep'))
+      NF90(nf90_put_att(map_file%ncid, map_file%percentage_limiting_varid, 'long_name', 'percentage_cell_was_limiting_timestep'))
+      NF90(nf90_put_att(map_file%ncid, map_file%percentage_limiting_varid, 'cell_methods', 'time: maximum'))
       !
    endif
    !
@@ -3657,7 +3657,11 @@ contains
    !
    if (timestep_analysis) then
        !
-       call ncoutput_write_timestep_diagnostics()
+       !$acc update host(timestep_analysis_average_required_timestep)
+       !$acc update host(times_wet)
+       !$acc update host(times_limiting)       
+       !       
+       call ncoutput_write_timestep_analysis()
        !
    endif   
    !
@@ -3667,8 +3671,8 @@ contains
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   subroutine ncoutput_write_timestep_diagnostics()
-   ! Write average_timestep and times_limiting once at end of simulation (no time dimension)
+   subroutine ncoutput_write_timestep_analysis()
+   ! Write timestep_analysis_average_required_timestep and times_limiting once at end of simulation (no time dimension)
    !
    use sfincs_data
    use quadtree
@@ -3677,7 +3681,8 @@ contains
    !
    real*4, dimension(:),   allocatable :: vtmp
    real*4, dimension(:,:), allocatable :: zsg
-   integer :: nm, nmq, n, m
+   real*4  :: minimum_average_required_wet_timestep, maximum_times_limiting
+   integer :: nm, nmq, n, m, nmd1, nmu1, ndm1, num1
    !
    if (use_quadtree) then
       !
@@ -3690,15 +3695,28 @@ contains
          ! 
          nm = index_sfincs_in_quadtree(nmq)
          !
-         if (nm > 0 .and. kcs(nm) > 0 .and. average_timestep(nm) > 0.0) then
-            !   
-            vtmp(nmq) = average_timestep(nm)
+         nmd1 = z_index_uv_md(nm)
+		 nmu1 = z_index_uv_mu(nm)
+         ndm1 = z_index_uv_nd(nm)
+         num1 = z_index_uv_nu(nm)         
+         !
+         if (nm > 0 .and. kcs(nm) > 0) then
+            !
+            minimum_average_required_wet_timestep = min(timestep_analysis_average_required_timestep(nmd1)/timestep_analysis_times_wet(nmd1), timestep_analysis_average_required_timestep(nmu1)/timestep_analysis_times_wet(nmu1), timestep_analysis_average_required_timestep(ndm1)/timestep_analysis_times_wet(ndm1), timestep_analysis_average_required_timestep(num1)/timestep_analysis_times_wet(num1))
+            !
+            if (minimum_average_required_wet_timestep > 0.0) then
+               ! 
+               ! timestep_analysis_average_required_timestep was not multiplied with alfa yet
+               !
+               vtmp(nmq) = alfa * minimum_average_required_wet_timestep 
+               !
+            endif
             !
         endif
         ! 
       enddo
       !
-      NF90(nf90_put_var(map_file%ncid, map_file%average_timestep_varid, vtmp))
+      NF90(nf90_put_var(map_file%ncid, map_file%average_required_timestep_varid, vtmp))
       !
       ! Times limiting
       !
@@ -3708,15 +3726,26 @@ contains
          ! 
          nm = index_sfincs_in_quadtree(nmq)
          !
+         nmd1 = z_index_uv_md(nm)
+		 nmu1 = z_index_uv_mu(nm)
+         ndm1 = z_index_uv_nd(nm)
+         num1 = z_index_uv_nu(nm)         
+         !
          if (nm > 0 .and. kcs(nm) > 0) then
-             !
-             vtmp(nmq) = times_limiting(nm)
-             !
+            !
+            maximum_times_limiting = max(timestep_analysis_times_limiting(nmd1), timestep_analysis_times_limiting(nmu1), timestep_analysis_times_limiting(ndm1), timestep_analysis_times_limiting(num1))
+            !            
+            if (maximum_times_limiting > 0.0) then
+               !
+               vtmp(nmq) = maximum_times_limiting / maxval(timestep_analysis_times_wet) * 100.0 ! percentage limiting             
+               !
+            endif            
+            !
          endif         
          !
       enddo
       !
-      NF90(nf90_put_var(map_file%ncid, map_file%times_limiting_varid, vtmp))
+      NF90(nf90_put_var(map_file%ncid, map_file%percentage_limiting_varid, vtmp))
       !
       deallocate(vtmp)
       !
@@ -3729,18 +3758,27 @@ contains
       !
       do nm = 1, np
          ! 
-         if (average_timestep(nm) > 0.0) then
-            ! 
-            n = z_index_z_n(nm)
-            m = z_index_z_m(nm)
+         n = z_index_z_n(nm)
+         m = z_index_z_m(nm)
+         !
+         nmd1 = z_index_uv_md(nm)
+		 nmu1 = z_index_uv_mu(nm)
+         ndm1 = z_index_uv_nd(nm)
+         num1 = z_index_uv_nu(nm)                     
+         !
+         minimum_average_required_wet_timestep = min(timestep_analysis_average_required_timestep(nmd1)/timestep_analysis_times_wet(nmd1), timestep_analysis_average_required_timestep(nmu1)/timestep_analysis_times_wet(nmu1), timestep_analysis_average_required_timestep(ndm1)/timestep_analysis_times_wet(ndm1), timestep_analysis_average_required_timestep(num1)/timestep_analysis_times_wet(num1))
+         !   
+         if (minimum_average_required_wet_timestep > 0.0) then
             !
-            zsg(m, n) = average_timestep(nm)
+            ! timestep_analysis_average_required_timestep was not multiplied with alfa yet
+            !             
+            zsg(m, n) = alfa * minimum_average_required_wet_timestep
             !
          endif
          !
       enddo
       !
-      NF90(nf90_put_var(map_file%ncid, map_file%average_timestep_varid, zsg))
+      NF90(nf90_put_var(map_file%ncid, map_file%average_required_timestep_varid, zsg))
       !
       ! Times limiting
       zsg = FILL_VALUE
@@ -3750,17 +3788,28 @@ contains
          n = z_index_z_n(nm)
          m = z_index_z_m(nm)
          !
-         zsg(m, n) = times_limiting(nm)
+         nmd1 = z_index_uv_md(nm)
+		 nmu1 = z_index_uv_mu(nm)
+         ndm1 = z_index_uv_nd(nm)
+         num1 = z_index_uv_nu(nm)         
+         !
+         maximum_times_limiting = max(timestep_analysis_times_limiting(nmd1), timestep_analysis_times_limiting(nmu1), timestep_analysis_times_limiting(ndm1), timestep_analysis_times_limiting(num1))
+         !            
+         if (maximum_times_limiting > 0.0) then
+            !
+            zsg(m, n) = maximum_times_limiting / maxval(timestep_analysis_times_wet) * 100.0 ! percentage limiting
+            !
+         endif  
          !
       enddo
       !
-      NF90(nf90_put_var(map_file%ncid, map_file%times_limiting_varid, zsg))
+      NF90(nf90_put_var(map_file%ncid, map_file%percentage_limiting_varid, zsg))
       !
       deallocate(zsg)
       !
    endif
    !
-   end subroutine ncoutput_write_timestep_diagnostics
+   end subroutine ncoutput_write_timestep_analysis
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !

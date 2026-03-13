@@ -22,7 +22,7 @@ module sfincs_timestep_analysis
    subroutine timestep_analysis_update(min_dt)    
       !
       ! Update running statistics immediately after compute_fluxes.
-      ! min_timestep was initialised to dtmax in compute_fluxes; wet cells
+      ! timestep_analysis_required_timestep was initialised to dtmax in compute_fluxes; wet cells
       ! have a computed value < dtmax, dry cells retain dtmax and are skipped.
       !
       real*4, intent(in) :: min_dt
@@ -31,14 +31,14 @@ module sfincs_timestep_analysis
       !$omp parallel &
       !$omp private ( ip )
       !$omp do
-      !$acc parallel, present( timestep_analysis_required_timestep, timestep_analysis_required_timestep, timestep_analysis_times_wet, timestep_analysis_times_limiting, kcuv)
+      !$acc parallel, present( timestep_analysis_average_required_timestep, timestep_analysis_required_timestep, timestep_analysis_times_wet, timestep_analysis_times_limiting, kcuv)
       !$acc loop gang vector
       !
       do ip = 1, npuv
          !
          if (kcuv(ip) == 1 .or. kcuv(ip) == 6) then
              !
-             if (min_timestep(ip) < dtmax) then
+             if (timestep_analysis_required_timestep(ip) < dtmax) then
                 ! 
                 ! Update running average for wet cells
                 !
