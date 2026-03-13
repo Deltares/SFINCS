@@ -270,7 +270,7 @@ contains
           write(logstr,'(a,i0,a)')'SnapWave: Info   : ',counter,' SnapWave node(s) do not have a matching SFINCS point, water level at these points is set to 0.0 '          
       endif      
       ! 
-      call write_log(logstr, 1)
+      call write_log(logstr, 0)
       !
    endif   
    !
