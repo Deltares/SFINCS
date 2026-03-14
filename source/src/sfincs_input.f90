@@ -77,6 +77,7 @@ contains
    call read_real_input(500,'qinf',qinf,0.0)
    call read_real_input(500,'dtmax',dtmax,60.0)
    call read_real_input(500,'huthresh',huthresh,0.05)
+   call read_real_input(500,'huvmin', huvmin, 0.0)                   ! Minimum depth for calculating velocity (uv = q / max(hu, huvmin) used for output and advection)
    call read_real_input(500,'rhoa',rhoa,1.25)
    call read_real_input(500,'rhow',rhow,1024.0)
    call read_char_input(500,'inputformat',inputtype,'bin')
