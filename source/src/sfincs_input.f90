@@ -117,6 +117,7 @@ contains
    call read_real_input(500,'wmtfilter',wmtfilter,600.0)
    call read_real_input(500,'wmfred',wavemaker_freduv,0.99)
    call read_char_input(500,'wmsignal',wmsigstr,'spectrum')   
+   call read_real_input(500, 'wmhmin', wavemaker_hmin, 0.1)
    call read_char_input(500,'advection_scheme',advstr,'upw1')   
    call read_real_input(500,'btrelax',btrelax,3600.0)
    call read_logical_input(500,'wiggle_suppression', wiggle_suppression, .true.)

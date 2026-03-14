@@ -2077,6 +2077,7 @@ contains
          !
          inftype = 'cna'
          infiltration = .true.      
+         store_cumulative_precipitation = .true.
          !
       elseif (sefffile /= 'none') then  
          !
