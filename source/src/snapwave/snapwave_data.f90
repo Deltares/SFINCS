@@ -49,8 +49,8 @@ module snapwave_data
    real*4,  dimension(:,:),     allocatable    :: ctheta360               ! refraction speed, per grid point and direction
 !   real*4,  dimension(:),       allocatable    :: xn,yn,zn               ! coordinates of nodes of unstructured grid
    real*4,  dimension(:),       allocatable    :: dzdx,dzdy               ! bed slopes at nodes of unstructured grid
-   integer, dimension(:,:),     allocatable    :: face_nodes         ! node numbers connected to each cell
-   integer, dimension(:,:),     allocatable    :: edge_nodes             ! node numbers connected to each edge
+   integer, dimension(:,:),     allocatable    :: face_nodes              ! node numbers connected to each cell
+   integer, dimension(:,:),     allocatable    :: edge_nodes              ! node numbers connected to each edge
    real*4,  dimension(:),       allocatable    :: bndindx
    real*4,  dimension(:),       allocatable    :: tau
 !   real*4,  dimension(:,:),     allocatable    :: Fluxtab
@@ -62,6 +62,7 @@ module snapwave_data
    real*4,  dimension(:),       allocatable    :: Hmx_ig
    real*4,  dimension(:,:),     allocatable    :: ee                      ! directional energy density
    real*4,  dimension(:,:),     allocatable    :: ee_ig                   ! directional infragravity energy density
+   real*4,  dimension(:),       allocatable    :: DoverE
    !
    real*4,  dimension(:,:),     allocatable    :: aa                      ! directional action density
    real*4,  dimension(:),       allocatable    :: sig                     ! mean frequency
