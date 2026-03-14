@@ -505,9 +505,7 @@ contains
          !
          if (neumannconnected(k) /= 0) then
             !
-            ! Flip indices around compared to orginal implementation
-            !
-            ! Do we really need all of these?
+            ! Do we really need all of these? Hmx?
             !
             kn = neumannconnected(k) ! Index of internal point
             !
@@ -764,14 +762,10 @@ contains
                      !
                   endif ! wind
                   !
-                  if (gammax < 998.0) then
-                     !
-                     ! Limit incident energy with gammax
-                     !
-                     depthlimfac = max(1.0, (sqrt(sum(ee(:, k)) * dtheta / rhog8) / (gammax * depth(k)) )**2.0)
-                     ee(:,k)     = ee(:,k) / depthlimfac
-                     !
-                  endif   
+                  ! Limit incident energy with gammax
+                  !
+                  depthlimfac = max(1.0, (sqrt(sum(ee(:, k)) * dtheta / rhog8) / (gammax * depth(k)) )**2.0)
+                  ee(:,k)     = ee(:,k) / depthlimfac
                   !
                   ! IG
                   !
@@ -863,14 +857,10 @@ contains
                      !
                   endif
                   !
-                  if (gammax < 998.0) then
-                     !
-                     ! Limit IG energy with gammax
-                     !
-                     depthlimfac = max(1.0, (sqrt(sum(ee_ig(:, k)) * dtheta / rhog8) / (gammax * depth(k)) )**2.0)
-                     ee_ig(:, k) = ee_ig(:,k) / depthlimfac
-                     !
-                  endif   
+                  ! Limit IG energy with gammax
+                  !
+                  depthlimfac = max(1.0, (sqrt(sum(ee_ig(:, k)) * dtheta / rhog8) / (gammax * depth(k)) )**2.0)
+                  ee_ig(:, k) = ee_ig(:,k) / depthlimfac
                   !
                endif
                !
