@@ -1162,7 +1162,8 @@ module snapwave_solver
     transition_factor_width_1 = 0.005 
     transition_factor_width_2 = 0.002
     beta_limit_1 = 0.07
-    beta_limit_2 = beta_limit_1 - 0.01    
+    !beta_limit_2 = beta_limit_1 - 0.01  
+    beta_limit_2 = beta_limit_1 - 0.02    
     !
     ! Precompute all Sxx - FIXME - add parallellisation
     !
