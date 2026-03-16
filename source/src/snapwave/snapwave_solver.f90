@@ -1137,7 +1137,11 @@ module snapwave_solver
     real*4                                           :: delta_Dw        ! difference of Dw compared to upwind point, to get sign for max breaking point
     real*4                                           :: Qb              ! Percentage of breaking incident waves
     real*4                                           :: transition_factor ! Transition factor for letting srcig go to zero smoothly, around gamma*gamma_fac_br
-    real*4                                           :: transition_factor_width ! Width factor of generalized (Fermi–Dirac style) transfer function with adjustable midpoint and width
+    real*4                                           :: transition_factor_width_1 ! Width factor of generalized (Fermi–Dirac style) transfer function with adjustable midpoint and width
+    real*4                                           :: transition_factor_width_2 ! Width factor of generalized (Fermi–Dirac style) transfer function with adjustable midpoint and width    
+    real*4                                           :: gamma_fac_br_transition ! Transitioned version of gamma_fac_br, so that for steep slopes it remains 1.0
+    real*4                                           :: beta_limit_1    ! Cut-off beta_local for end of validity alphaig formulation of Leijnse et al. 2024
+    real*4                                           :: beta_limit_2    ! Beta_local limit for transition function
     !   
     ! Allocate internal variables
     allocate(Sxxprev(ntheta))       
@@ -1155,7 +1159,10 @@ module snapwave_solver
     !
     ! Used is generalized (Fermi–Dirac style) transfer function with adjustable midpoint and width
     !
-    transition_factor_width = 0.005    
+    transition_factor_width_1 = 0.005 
+    transition_factor_width_2 = 0.002
+    beta_limit_1 = 0.07
+    beta_limit_2 = beta_limit_1 - 0.01    
     !
     ! Precompute all Sxx - FIXME - add parallellisation
     !
@@ -1246,17 +1253,16 @@ module snapwave_solver
                     !
                     ! Determine dSxx and IG source/sink term 'srcig'
                     !
-                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 11 .or. ig_opt == 12) then 
+                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 11 .or. ig_opt == 12 .or. ig_opt == 13) then 
                         !
                         ! Calculate shoaling parameter alpha_ig following Leijnse et al. (2024)
                         !  
-                        if (ig_opt == 12) then
+                        if (ig_opt == 12 .or. ig_opt == 13) then
                             !
                             ! Limit beta to max 0.1 before going into alphaig parametrisation
                             !
-                            !beta_local(itheta,k) = min(beta_local(itheta,k), 0.1)
-                            beta_local(itheta,k) = min(beta_local(itheta,k), 0.07)
-                            
+                            !beta_local(itheta,k) = min(beta_local(itheta,k), 0.07)
+                            beta_local(itheta,k) = min(beta_local(itheta,k), beta_limit_1)                            
                             !
                         endif
                         !
@@ -1271,7 +1277,7 @@ module snapwave_solver
                             !
                         else
                             !              
-                            if (ig_opt == 1 .or. ig_opt == 3 .or. ig_opt == 11 .or. ig_opt == 12) then ! Option using conservative shoaling for dSxx/dx
+                            if (ig_opt == 1 .or. ig_opt == 3 .or. ig_opt == 11 .or. ig_opt == 12 .or. ig_opt == 13) then ! Option using conservative shoaling for dSxx/dx
                                 !
                                 ! Calculate Sxx based on conservative shoaling of upwind point's energy: 
                                 ! Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
@@ -1287,7 +1293,7 @@ module snapwave_solver
                             !
                             dSxx = max(dSxx, 0.0)
                             !
-                            if (ig_opt == 1 .or. ig_opt == 11 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 12) then
+                            if (ig_opt == 1 .or. ig_opt == 11 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 12 .or. ig_opt == 13) then
                                !
                                ! Base on E_prev_ig instead of eeprev_ig(itheta) > no bins but total energy
                                ! NOTE - already here multiplied with ee(itheta,k), for direct inclusion in 'R'-term
@@ -1319,10 +1325,22 @@ module snapwave_solver
                                 !
                                 ! Let srcig transition to 0 more smoothly using fac_transition that reduced from 1 to 0 around gamma_fac_br * snapwave_gamma
                                 !
-                                transition_factor = 1.0 - (1.0 / (1.0 + exp(- (gam - (gamma_fac_br * gamma)) / transition_factor_width)))
+                                transition_factor = 1.0 - (1.0 / (1.0 + exp(- (gam - (gamma_fac_br * gamma)) / transition_factor_width_1)))
                                 !
                                 srcig_local(itheta, k) = transition_factor * srcig_local(itheta, k)
                                 !
+                            elseif (ig_opt == 13) then
+                                !
+                                ! Let srcig transition to 0 more smoothly using fac_transition that reduced from 1 to 0 around gamma_fac_br * snapwave_gamma
+                                !
+                                ! But, only for beta_local < 0.07, so adjust based on beta_local so that transition_factor = 1.0 for Beta_local = 0.07
+                                !
+                                gamma_fac_br_transition = gamma_fac_br + ((1-gamma_fac_br) / (1 + exp(- (beta_local(itheta,k) - beta_limit_2) / transition_factor_width_2)))
+                                !
+                                transition_factor = 1.0 - (1.0 / (1.0 + exp(- (gam - (gamma_fac_br_transition * gamma)) / transition_factor_width_1)))
+                                !
+                                srcig_local(itheta, k) = transition_factor * srcig_local(itheta, k)                                
+                                !                                
                             endif
                             !
                         endif                      
