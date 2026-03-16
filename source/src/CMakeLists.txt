@@ -18,6 +18,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # ---------------- Source root ----------------
 set(SFINCS_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE PATH "Directory with SFINCS Fortran sources")
+set(SFINCS_SOURCE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." CACHE PATH "SFINCS source tree root")
+set(SFINCS_THIRD_PARTY_DIR "${SFINCS_SOURCE_ROOT}/third_party_open" CACHE PATH "SFINCS third-party source dir")
 
 function(_append_if_exists outvar)
   foreach(_f IN LISTS ARGN)
@@ -122,13 +124,12 @@ endif()
 # ====================================================================
 set(_CORE_CANDIDATES
   bmi.f90
-  deg2utm.f90
-  astro.f90
+  #deg2utm.f90
+  #astro.f90
   sfincs_spiderweb.f90
   sfincs_error.f90
   sfincs_log.f90
   sfincs_input.f90
-  sfincs_initial_conditions.f90
   sfincs_domain.f90
   sfincs_structures.f90
   sfincs_boundaries.f90
@@ -137,8 +138,9 @@ set(_CORE_CANDIDATES
   sfincs_discharges.f90
   sfincs_meteo.f90
   sfincs_runup_gauges.f90
-  geometry.f90
-  quadtree.F90
+  #geometry.f90
+  sfincs_initial_conditions.F90
+  sfincs_quadtree.F90
   sfincs_subgrid.F90
   sfincs_infiltration.f90
   sfincs_data.f90
@@ -156,6 +158,27 @@ set(_CORE_CANDIDATES
 
 set(SFINCS_CORE_SOURCES "")
 _append_first_match(SFINCS_CORE_SOURCES ${_CORE_CANDIDATES})
+
+function(_append_third_party_if_exists outvar)
+  foreach(_f IN LISTS ARGN)
+    if(EXISTS "${SFINCS_THIRD_PARTY_DIR}/${_f}")
+      list(APPEND ${outvar} "${SFINCS_THIRD_PARTY_DIR}/${_f}")
+    else()
+      message(WARNING "SFINCS: missing third-party source (skipped): ${SFINCS_THIRD_PARTY_DIR}/${_f}")
+    endif()
+  endforeach()
+  list(REMOVE_DUPLICATES ${outvar})
+  set(${outvar} "${${outvar}}" PARENT_SCOPE)
+endfunction()
+
+# Third-party sources required by merged Deltares SFINCS
+_append_third_party_if_exists(SFINCS_CORE_SOURCES
+  "utils/geometry.f90"
+  "utils/deg2utm.f90"
+  "Delft3D/astro.f90"
+  "bicgstab/bicgstab_solver_ilu.f90"
+)
+
 
 set(SNAPWAVE_DIR "${SFINCS_SOURCE_DIR}/snapwave")
 if(EXISTS "${SNAPWAVE_DIR}")
@@ -194,7 +217,12 @@ target_include_directories(sfincs_core_objs PUBLIC
   ${CMAKE_CURRENT_BINARY_DIR}/mod/sfincs_core
   ${SFINCS_SOURCE_DIR}
   ${SNAPWAVE_DIR}
+  ${SFINCS_THIRD_PARTY_DIR}
+  ${SFINCS_THIRD_PARTY_DIR}/utils
+  ${SFINCS_THIRD_PARTY_DIR}/Delft3D
+  ${SFINCS_THIRD_PARTY_DIR}/bicgstab
 )
+
 
 if(SFINCS_ENABLE_NETCDF AND NETCDFF_FOUND)
   target_include_directories(sfincs_core_objs PUBLIC ${NETCDF_INCLUDE_DIR})
@@ -230,6 +258,10 @@ target_include_directories(sfincs_core PUBLIC
   ${CMAKE_CURRENT_BINARY_DIR}/mod/sfincs_core
   ${SFINCS_SOURCE_DIR}
   ${SNAPWAVE_DIR}
+  ${SFINCS_THIRD_PARTY_DIR}
+  ${SFINCS_THIRD_PARTY_DIR}/utils
+  ${SFINCS_THIRD_PARTY_DIR}/Delft3D
+  ${SFINCS_THIRD_PARTY_DIR}/bicgstab
 )
 
 if(SFINCS_ENABLE_NETCDF AND NETCDFF_FOUND)
@@ -280,12 +312,16 @@ if(NOT SFINCS_BMI_SOURCES STREQUAL "")
     target_compile_options(sfincs_bmi PRIVATE ${_F_FLAGS})
   endif()
 
-  target_include_directories(sfincs_bmi PUBLIC
-    ${CMAKE_CURRENT_BINARY_DIR}/mod/sfincs_bmi
-    ${CMAKE_CURRENT_BINARY_DIR}/mod/sfincs_core
-    ${SFINCS_SOURCE_DIR}
-    ${SNAPWAVE_DIR}
-  )
+target_include_directories(sfincs_bmi PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR}/mod/sfincs_bmi
+  ${CMAKE_CURRENT_BINARY_DIR}/mod/sfincs_core
+  ${SFINCS_SOURCE_DIR}
+  ${SNAPWAVE_DIR}
+  ${SFINCS_THIRD_PARTY_DIR}
+  ${SFINCS_THIRD_PARTY_DIR}/utils
+  ${SFINCS_THIRD_PARTY_DIR}/Delft3D
+  ${SFINCS_THIRD_PARTY_DIR}/bicgstab
+)
 
   if(SFINCS_ENABLE_NETCDF AND NETCDFF_FOUND)
     if(NETCDF_C_LIB)
