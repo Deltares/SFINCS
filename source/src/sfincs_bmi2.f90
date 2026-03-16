@@ -33,8 +33,14 @@ module sfincs_bmi2
   ! Module-level strings / arrays used for pointer-string returns
   character(len=:), allocatable, target, save :: g_component_name
   character(len=:), allocatable, target, save :: g_time_units
-  !character(len=:), allocatable, target, save :: g_input_names(:), g_output_names(:)
+  ! character(len=:), allocatable, target, save :: g_input_names(:), g_output_names(:)
   character(len=:), allocatable, target, save :: g_loc_node, g_grid_rect, g_units_m
+  character(len=5), target, save :: g_output_names(5) = [ &
+       'zs   ', &
+       'zb   ', &
+       'depth', &
+       'vx   ', &
+       'vy   '  ]
 
   type, extends(bmi) :: sfincs_bmi
     ! --- Grid & time ---
@@ -64,8 +70,8 @@ module sfincs_bmi2
 
     ! --- BMI pointer-return strings/arrays
     character(len=:), pointer :: component_name => null()
-    character(len=:), pointer :: input_names(:)  => null()
-    character(len=:), pointer :: output_names(:) => null()
+    ! character(len=:), pointer :: input_names(:)  => null()
+    ! character(len=:), pointer :: output_names(:) => null()
 
     logical :: is_initialized   = .false.
     logical :: depth_is_derived = .true.
@@ -148,29 +154,20 @@ contains
   !== Lifecycle
   !============================
   function sfincs_bmi_initialize(this, config_file) result(status)
-    !! BMI initialize: call real sfincs_initialize, then mirror state into BMI arrays.
+    !! BMI initialize: call real SFINCS init, then mirror state into BMI arrays.
     class(sfincs_bmi), intent(out) :: this
     character(len=*),  intent(in)  :: config_file
     integer :: status
     integer :: ierr
     integer :: ncell
-    integer :: L
-    character(len=:), allocatable :: cfg
-
 
     write(*,*) " sfincs_bmi_initialize config_file = ", config_file
 
     ! --------------------------
     ! 1) Call real SFINCS init
     ! --------------------------
-    if (len_trim(config_file) == 0) then
-      ! Default to local sfincs.inp if BMI caller passes empty string
-      cfg = 'sfincs.inp'
-    else
-      cfg = trim(config_file)
-    end if
-
-    ierr = sfincs_initialize(cfg)
+    ! Merged Deltares SFINCS initialize no longer takes a config-file argument.
+    ierr = sfincs_initialize()
     if (ierr /= 0) then
       status = BMI_FAILURE
       return
@@ -179,11 +176,10 @@ contains
     ! --------------------------
     ! 2) Mirror time info
     ! --------------------------
-    this%t_start = t0   ! from sfincs_data
-    this%t_end   = t1   ! from sfincs_data
-    this%t       = t    ! from sfincs_lib (current time)
+    this%t_start = t0
+    this%t_end   = t1
+    this%t       = t
 
-    ! Choose a BMI "logical" time step: small fraction of full range.
     if (this%t_end > this%t_start) then
       this%dt = max(1.0d0, (this%t_end - this%t_start) / 100.d0)
     else
@@ -193,8 +189,6 @@ contains
     ! --------------------------
     ! 3) Grid info
     ! --------------------------
-    ! Use np as the number of cells. Represent as a 2D grid with ny=1, nx=np.
-    ! This keeps things simple but still gives rank=2 as required by BMI.
     ncell    = np
     this%ny  = 1
     this%nx  = ncell
@@ -209,70 +203,41 @@ contains
     ! --------------------------
     allocate(this%zs(ncell), this%zb(ncell), this%depth(ncell))
     allocate(this%zs_d(ncell), this%zb_d(ncell), this%depth_d(ncell))
+    allocate(this%u_d(ncell), this%v_d(ncell))
+
+    this%u_d = 0.0_real64
+    this%v_d = 0.0_real64
 
     call sync_from_sfincs_core(this)
 
     this%depth_is_derived = .true.
 
     ! --------------------------
-    ! 5) Pointer-return strings/arrays
+    ! 5) Pointer-return strings
     ! --------------------------
     if (.not. allocated(g_component_name)) allocate(character(len=13) :: g_component_name)
     g_component_name = 'SFINCS BMI 2.0'
 
-    if (.not. allocated(g_time_units))     allocate(character(len=1) :: g_time_units)
+    if (.not. allocated(g_time_units)) allocate(character(len=1) :: g_time_units)
     g_time_units = 's'
 
-    if (.not. allocated(g_units_m))        allocate(character(len=1) :: g_units_m)
+    if (.not. allocated(g_units_m)) allocate(character(len=1) :: g_units_m)
     g_units_m = 'm'
 
-    if (.not. allocated(g_loc_node))       allocate(character(len=4) :: g_loc_node)
-    g_loc_node   = 'node'
+    if (.not. allocated(g_loc_node)) allocate(character(len=4) :: g_loc_node)
+    g_loc_node = 'node'
 
-    if (.not. allocated(g_grid_rect))      allocate(character(len=19) :: g_grid_rect)
-    g_grid_rect  = 'uniform_rectilinear'
+    if (.not. allocated(g_grid_rect)) allocate(character(len=19) :: g_grid_rect)
+    g_grid_rect = 'uniform_rectilinear'
 
-    ! No BMI inputs for now
-    if (.not. allocated(g_input_names))    allocate(character(len=1) :: g_input_names(0))
-
-    ! ---- Allocate BMI state arrays ----
-    !allocate(this%zs(ncell), this%zb(ncell), this%depth(ncell))
-    !allocate(this%zs_d(ncell), this%zb_d(ncell), this%depth_d(ncell))
-
-    ! ---- Allocate velocity buffers too ----
-    if (.not. allocated(this%u_d)) allocate(this%u_d(ncell))
-    if (.not. allocated(this%v_d)) allocate(this%v_d(ncell))
-    this%u_d = 0.0_real64
-    this%v_d = 0.0_real64
-
-    ! also keep float versions:
-    !if (.not. allocated(this%u)) allocate(this%u(ncell))
-    !if (.not. allocated(this%v)) allocate(this%v(ncell))
-    !this%u = 0.0_real32
-    !this%v = 0.0_real32
-
-    ! outputs: zs, zb, depth
-    if (.not. allocated(g_output_names)) then
-      L = max(len(VAR_ZS), max(len(VAR_ZB), len(VAR_DEPTH), len(VAR_U), len(VAR_V)))
-      allocate(character(len=L) :: g_output_names(5))
-    end if
-    g_output_names(1) = VAR_ZS
-    g_output_names(2) = VAR_ZB
-    g_output_names(3) = VAR_DEPTH
-    g_output_names(4) = VAR_U
-    g_output_names(5) = VAR_V
-
-    ! Bind pointer-return fields
     this%component_name => g_component_name
-    !this%input_names    => g_input_names
-    !this%output_names   => g_output_names
 
-    ! Module-level TARGET buffers for pointer getters
     call ensure_module_ptr_buffers(this)
 
     this%is_initialized = .true.
     status = BMI_SUCCESS
   end function sfincs_bmi_initialize
+
 
   function sfincs_bmi_update(this) result(status)
     !! BMI update: advance model by ~this%dt using real sfincs_update.
@@ -359,45 +324,40 @@ contains
     write(*,*) 'BMI-DEBUG: ENTER sfincs_bmi_finalize'
 
     if (.not. this%is_initialized) then
-      ! Even if not initialized, treat as success for BMI semantics
       status = BMI_SUCCESS
       return
     end if
 
-    ! Call the real SFINCS finalizer
     ierr = sfincs_finalize()
 
-    ! BMI-level cleanup
     if (allocated(this%zs))      deallocate(this%zs)
     if (allocated(this%zb))      deallocate(this%zb)
     if (allocated(this%depth))   deallocate(this%depth)
     if (allocated(this%zs_d))    deallocate(this%zs_d)
     if (allocated(this%zb_d))    deallocate(this%zb_d)
     if (allocated(this%depth_d)) deallocate(this%depth_d)
+    if (allocated(this%u_d))     deallocate(this%u_d)
+    if (allocated(this%v_d))     deallocate(this%v_d)
 
-     ! ---- Free module-level TARGET buffers to satisfy LeakSanitizer ----
     if (allocated(g_zs_f))    deallocate(g_zs_f)
-if (allocated(g_zb_f))    deallocate(g_zb_f)
-if (allocated(g_depth_f)) deallocate(g_depth_f)
-if (allocated(g_zs_d))    deallocate(g_zs_d)
-if (allocated(g_zb_d))    deallocate(g_zb_d)
-if (allocated(g_depth_d)) deallocate(g_depth_d)
-if (allocated(g_u_f))     deallocate(g_u_f)
-if (allocated(g_v_f))     deallocate(g_v_f)
-if (allocated(g_u_d))     deallocate(g_u_d)
-if (allocated(g_v_d))     deallocate(g_v_d)
+    if (allocated(g_zb_f))    deallocate(g_zb_f)
+    if (allocated(g_depth_f)) deallocate(g_depth_f)
+    if (allocated(g_zs_d))    deallocate(g_zs_d)
+    if (allocated(g_zb_d))    deallocate(g_zb_d)
+    if (allocated(g_depth_d)) deallocate(g_depth_d)
+    if (allocated(g_u_f))     deallocate(g_u_f)
+    if (allocated(g_v_f))     deallocate(g_v_f)
+    if (allocated(g_u_d))     deallocate(g_u_d)
+    if (allocated(g_v_d))     deallocate(g_v_d)
 
-if (allocated(g_input_names))  deallocate(g_input_names)
-if (allocated(g_output_names)) deallocate(g_output_names)
+    if (allocated(g_component_name)) deallocate(g_component_name)
+    if (allocated(g_time_units))     deallocate(g_time_units)
+    if (allocated(g_units_m))        deallocate(g_units_m)
+    if (allocated(g_loc_node))       deallocate(g_loc_node)
+    if (allocated(g_grid_rect))      deallocate(g_grid_rect)
 
-if (allocated(g_component_name)) deallocate(g_component_name)
-if (allocated(g_time_units))     deallocate(g_time_units)
-if (allocated(g_units_m))        deallocate(g_units_m)
-if (allocated(g_loc_node))       deallocate(g_loc_node)
-if (allocated(g_grid_rect))      deallocate(g_grid_rect)
-
-    !nullify(this%component_name, this%input_names, this%output_names)
     nullify(this%component_name)
+
     this%is_initialized   = .false.
     this%depth_is_derived = .true.
 
@@ -424,85 +384,40 @@ if (allocated(g_grid_rect))      deallocate(g_grid_rect)
   end function sfincs_bmi_get_component_name
 
   function sfincs_bmi_get_input_var_names(this, names) result(status)
-  class(sfincs_bmi),         intent(in)  :: this
-  character(len=:), pointer, intent(out) :: names(:)
-  integer :: status
-
-  if (allocated(g_input_names)) then
-    names => g_input_names
-    status = BMI_SUCCESS
-  else
-    nullify(names)
-    status = BMI_FAILURE
-  end if
-end function sfincs_bmi_get_input_var_names
-
-function sfincs_bmi_get_output_var_names(this, names) result(status)
-  class(sfincs_bmi),         intent(in)  :: this
-  character(len=:), pointer, intent(out) :: names(:)
-  integer :: status
-
-  if (allocated(g_output_names)) then
-    names => g_output_names
-    status = BMI_SUCCESS
-  else
-    nullify(names)
-    status = BMI_FAILURE
-  end if
-end function sfincs_bmi_get_output_var_names
-
-
-  function sfincs_bmi_get_input_var_names_old(this, names) result(status)
     class(sfincs_bmi),         intent(in)  :: this
     character(len=:), pointer, intent(out) :: names(:)
     integer :: status
-    if (associated(this%input_names)) then
-      names => this%input_names; status = BMI_SUCCESS
-    else
-      nullify(names); status = BMI_FAILURE
-    end if
-  end function sfincs_bmi_get_input_var_names_old
 
-function sfincs_bmi_get_input_var_names_old2(this, names) result(status)
-  class(sfincs_bmi),         intent(in)  :: this
-  character(len=:), pointer, intent(out) :: names(:)
-  integer :: status
+    nullify(names)
+    status = BMI_FAILURE
+  end function sfincs_bmi_get_input_var_names
 
-  names => this%input_names    ! or names => g_input_names
-  status = BMI_SUCCESS
-end function
+  function sfincs_bmi_get_output_var_names(this, names) result(status)
+    class(sfincs_bmi),         intent(in)  :: this
+    character(len=:), pointer, intent(out) :: names(:)
+    integer :: status
 
-function sfincs_bmi_get_output_var_names_old(this, names) result(status)
-  class(sfincs_bmi),         intent(in)  :: this
-  character(len=:), pointer, intent(out) :: names(:)
-  integer :: status
+    names => g_output_names
+    status = BMI_SUCCESS
+  end function sfincs_bmi_get_output_var_names
 
-  names => this%output_names   ! or names => g_output_names
-  status = BMI_SUCCESS
-end function
-
-function sfincs_bmi_get_input_item_count(this, count) result(status)
+  function sfincs_bmi_get_input_item_count(this, count) result(status)
     class(sfincs_bmi), intent(in) :: this
     integer, intent(out) :: count
     integer :: status
 
-    count = 1
+    count = 0
     status = BMI_SUCCESS
   end function sfincs_bmi_get_input_item_count
 
-function sfincs_bmi_get_output_item_count(this, count) result(status)
-  class(sfincs_bmi), intent(in)  :: this
-  integer,          intent(out) :: count
-  integer :: status
+  function sfincs_bmi_get_output_item_count(this, count) result(status)
+    class(sfincs_bmi), intent(in)  :: this
+    integer,          intent(out) :: count
+    integer :: status
 
-  if (allocated(g_output_names)) then
-    count = size(g_output_names)
+    count = 5
     status = BMI_SUCCESS
-  else
-    count = 0
-    status = BMI_FAILURE
-  end if
-end function sfincs_bmi_get_output_item_count
+  end function sfincs_bmi_get_output_item_count
 
   !============================
   !== Time
@@ -549,24 +464,21 @@ end function sfincs_bmi_get_output_item_count
   !============================
   !== Var metadata
   !============================
+
   function sfincs_bmi_get_var_grid(this, name, grid) result(status)
     class(sfincs_bmi), intent(in)  :: this
     character(len=*),  intent(in)  :: name
     integer,           intent(out) :: grid
     integer :: status
 
-    if (trim(name) == 'rain_rate') then
-      grid = 1
-      status = BMI_SUCCESS
-      return
-    end if
     if (is_known_var(name)) then
-      grid = GRID_ID; status = BMI_SUCCESS
+      grid = GRID_ID
+      status = BMI_SUCCESS
     else
-      grid = -1; status = BMI_FAILURE
+      grid = -1
+      status = BMI_FAILURE
     end if
   end function sfincs_bmi_get_var_grid
-
 
   function sfincs_bmi_get_var_units(this, name, units) result(status)
     class(sfincs_bmi), intent(in)  :: this
@@ -576,9 +488,6 @@ end function sfincs_bmi_get_output_item_count
     character(len=:), allocatable :: cname
 
     cname = canon_var_name(name)
-    if (.not. allocated(g_units_m)) then
-      allocate(character(len=1) :: g_units_m); g_units_m = 'm'
-    end if
 
     select case (trim(cname))
     case (VAR_ZS, VAR_ZB, VAR_DEPTH)
@@ -587,11 +496,9 @@ end function sfincs_bmi_get_output_item_count
     case (VAR_U, VAR_V)
       units = 'm s-1'
       status = BMI_SUCCESS
-    case ('rain_rate')
-      units = 'm s-1'
-      status = BMI_SUCCESS
     case default
-      units = ''; status = BMI_FAILURE
+      units = ''
+      status = BMI_FAILURE
     end select
   end function sfincs_bmi_get_var_units
 
@@ -655,20 +562,22 @@ end function sfincs_bmi_get_var_nbytes
     character(len=*),  intent(in)  :: name
     character(len=*),  intent(out) :: location
     integer :: status
+
     if (.not. is_known_var(name)) then
-      location = ''; status = BMI_FAILURE; return
-    end if
-    if (.not. allocated(g_loc_node)) then
-      allocate(character(len=4) :: g_loc_node); g_loc_node = 'node'
-    end if
-    if (trim(name) == 'rain_rate') then
-      location = 'node'
-      status = BMI_SUCCESS
+      location = ''
+      status = BMI_FAILURE
       return
     end if
+
+    if (.not. allocated(g_loc_node)) then
+      allocate(character(len=4) :: g_loc_node)
+      g_loc_node = 'node'
+    end if
+
     location = g_loc_node
     status = BMI_SUCCESS
   end function sfincs_bmi_get_var_location
+
 
   !============================
   !== Grid metadata (rectilinear)
@@ -878,8 +787,11 @@ end function sfincs_bmi_get_var_nbytes
     character(len=*),  intent(in)    :: name
     real(real32),      intent(inout) :: dest(:)
     integer :: status
+    character(len=:), allocatable :: cname
 
-    select case (trim(name))
+    cname = canon_var_name(name)
+
+    select case (trim(cname))
     case (VAR_ZS)
       if (size(dest) < size(this%zs)) then
         status = BMI_FAILURE
@@ -896,21 +808,42 @@ end function sfincs_bmi_get_var_nbytes
 
     case (VAR_DEPTH)
       if (size(dest) < size(this%zs)) then
-        ! use zs size as canonical grid size
         status = BMI_FAILURE
         return
       end if
 
       if (this%depth_is_derived) then
-        ! Depth is derived from zs and zb: compute on the fly
         dest = max(this%zs - this%zb, 0.0_real32)
       else
-        ! Depth has been explicitly set by the user; use stored array
         if (.not. allocated(this%depth)) then
           status = BMI_FAILURE
           return
         end if
         dest = this%depth
+      end if
+
+    case (VAR_U)
+      if (allocated(g_u_f)) then
+        if (size(dest) < size(g_u_f)) then
+          status = BMI_FAILURE
+          return
+        end if
+        dest = g_u_f
+      else
+        status = BMI_FAILURE
+        return
+      end if
+
+    case (VAR_V)
+      if (allocated(g_v_f)) then
+        if (size(dest) < size(g_v_f)) then
+          status = BMI_FAILURE
+          return
+        end if
+        dest = g_v_f
+      else
+        status = BMI_FAILURE
+        return
       end if
 
     case default
@@ -926,11 +859,15 @@ end function sfincs_bmi_get_var_nbytes
     character(len=*),  intent(in)    :: name
     real(real32),      intent(in)    :: src(:)
     integer :: status
+    character(len=:), allocatable :: cname
 
-    select case (trim(name))
+    cname = canon_var_name(name)
+
+    select case (trim(cname))
     case (VAR_ZS)
       if (size(src) < size(this%zs)) then
-        status = BMI_FAILURE; return
+        status = BMI_FAILURE
+        return
       end if
       this%zs = src
       call sync_double_buffers(this)
@@ -938,7 +875,8 @@ end function sfincs_bmi_get_var_nbytes
 
     case (VAR_ZB)
       if (size(src) < size(this%zb)) then
-        status = BMI_FAILURE; return
+        status = BMI_FAILURE
+        return
       end if
       this%zb = src
       call sync_double_buffers(this)
@@ -946,26 +884,13 @@ end function sfincs_bmi_get_var_nbytes
 
     case (VAR_DEPTH)
       if (size(src) < size(this%depth)) then
-        status = BMI_FAILURE; return
+        status = BMI_FAILURE
+        return
       end if
       this%depth = src
       this%depth_d = real(this%depth, kind=real64)
       this%depth_is_derived = .false.
       call sync_module_ptr_buffers(this)
-
-    case ('rain_rate')
- 
-      if (.not. allocated(netprcp)) then
-        status = BMI_FAILURE
-        return
-      end if
-      if (size(src) /= size(netprcp)) then
-        status = BMI_FAILURE
-        return
-      end if
-      netprcp = src
-      status = BMI_SUCCESS
-      return
 
     case default
       status = BMI_FAILURE
