@@ -10,6 +10,7 @@ contains
    use snapwave_boundaries
    use interp
    use sfincs_error      
+   use quadtree
    !
    ! Local input variables
    !
@@ -89,10 +90,7 @@ contains
    !if (ja_vegetation==1) then
    !   call veggie_init()   
    !else
-   allocate(veg_Cd(no_nodes, no_secveg))
-   allocate(veg_ah(no_nodes, no_secveg))
-   allocate(veg_bstems(no_nodes,  no_secveg))
-   allocate(veg_Nstems(no_nodes,  no_secveg))
+
    !endif   
    !
    ntheta360 = nint(360./dtheta)
@@ -2113,7 +2111,7 @@ end subroutine neuboundaries
       !
    enddo   
    !
-   ! Loop through cells to re-maps the face nodes
+   ! STEP 8 - Loop through cells to re-maps the face nodes
    !
    do iface = 1, no_faces
       do j = 1, 4
@@ -2124,6 +2122,41 @@ end subroutine neuboundaries
          endif   
       enddo   
    enddo   
+   !
+  ! STEP 9 - if vegetation, re-map veggie input from quadtree netcdf file
+   ! Set 'no_secveg' from quadtree.F90 for use in snapwave_data
+   no_secveg = quadtree_no_secveg
+   allocate(veg_Cd(no_nodes, no_secveg))
+   allocate(veg_ah(no_nodes, no_secveg))
+   allocate(veg_bstems(no_nodes,  no_secveg))
+   allocate(veg_Nstems(no_nodes,  no_secveg)) 
+   veg_Cd = 0.0
+   veg_ah = 0.0
+   veg_bstems = 0.0
+   veg_Nstems = 0.0
+   !
+   if (vegetation) then 
+      ! copy from the quadtree snapwave_veg
+      nac = 0
+      !
+      do ip = 1, quadtree_nr_points 
+         !
+         if (msk_tmp2(ip)>0) then
+            !
+            nac = nac + 1
+            !
+            ! Set node values for all points in the vertical
+            do iq = 1, no_secveg
+               veg_Cd(nac,iq)   = quadtree_snapwave_veg_Cd(ip,iq)
+               veg_ah(nac,iq)   = quadtree_snapwave_veg_ah(ip,iq)
+               veg_bstems(nac,iq)   = quadtree_snapwave_veg_bstems(ip,iq)
+               veg_Nstems(nac,iq)   = quadtree_snapwave_veg_Nstems(ip,iq)
+            enddo            
+            !
+         endif
+      enddo      
+      !
+   endif
    !
    end subroutine
    

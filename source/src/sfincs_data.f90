@@ -202,6 +202,7 @@ module sfincs_data
       logical       :: subgrid
       logical       :: manning2d ! spatially-varying roughness
       logical       :: coriolis
+      logical       :: vegetation      
       logical       :: store_cumulative_precipitation
       logical       :: store_maximum_waterlevel
       logical       :: store_maximum_waterdepth
@@ -216,6 +217,7 @@ module sfincs_data
       logical       :: store_zvolume
       logical       :: store_storagevolume            
       logical       :: store_meteo
+      logical       :: store_vegetation
       logical       :: store_wind      
       logical       :: store_wind_max
       logical       :: store_wave_forces
