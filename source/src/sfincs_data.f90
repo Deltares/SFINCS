@@ -589,7 +589,10 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: df      
       real*4, dimension(:),   allocatable :: dwig
       real*4, dimension(:),   allocatable :: dfig
-      real*4, dimension(:),   allocatable :: cg    
+      real*4, dimension(:),   allocatable :: cg
+      real*4, dimension(:),   allocatable :: cgig      
+      real*4, dimension(:),   allocatable :: qb
+      real*4, dimension(:),   allocatable :: gam      
       real*4, dimension(:),   allocatable :: betamean
       real*4, dimension(:),   allocatable :: srcig      
       real*4, dimension(:),   allocatable :: alphaig      

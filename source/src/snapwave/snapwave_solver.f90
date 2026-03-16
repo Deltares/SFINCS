@@ -86,7 +86,8 @@ module snapwave_solver
       enddo
       if (igwaves) then          
          do k = 1, no_nodes             
-            Hmx_ig(k)    = 0.88/kwav_ig(k)*tanh(gamma_ig*kwav_ig(k)*depth(k)/0.88) ! Note - uses gamma_ig
+            !Hmx_ig(k)    = 0.88/kwav_ig(k)*tanh(gamma_ig*kwav_ig(k)*depth(k)/0.88) ! Note - uses gamma_ig
+            Hmx_ig(k)       = gamma_ig*depth(k)            
          enddo
       else
          Hmx_ig    = 0.0
@@ -133,9 +134,9 @@ module snapwave_solver
                                          aa, sig, jadcgdx, sigmin, sigmax,&
                                          c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
-                                         beta, srcig, alphaig, Dw_ig, Df_ig, &
+                                         beta, srcig, alphaig, Dw_ig, Df_ig, qb, gam, &
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
-                                         zb, nwav, ig_opt, alpha_ig, gamma_ig, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
+                                         zb, nwav, ig_opt, alpha_ig, gamma_ig, gamma_fac_br, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
       !
       call timer(t3)
       !
@@ -158,9 +159,9 @@ module snapwave_solver
                                          aa, sig, jadcgdx, sigmin, sigmax,&
                                          c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
-                                         betamean, srcig, alphaig, Dw_ig, Df_ig, &       
+                                         betamean, srcig, alphaig, Dw_ig, Df_ig, qb, gam, &       
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
-                                         zb, nwav, ig_opt, alfa_ig, gamma_ig, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
+                                         zb, nwav, ig_opt, alfa_ig, gamma_ig, gamma_fac_br, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
    !
    use snapwave_windsource
    !use snapwave_ncoutput ! TL: removed, we don't use this in SF+SW
@@ -188,13 +189,15 @@ module snapwave_solver
    real*4, dimension(no_nodes), intent(in)          :: kwav_ig                ! wave number
    real*4, dimension(no_nodes), intent(inout)       :: cg                     ! group velocity
    real*4, dimension(ntheta,no_nodes), intent(inout):: ctheta                 ! refractioon speed
-   real*4, dimension(no_nodes), intent(in)          :: cg_ig                  ! group velocity
+   real*4, dimension(no_nodes), intent(inout)       :: cg_ig                  ! group velocity
    real*4, dimension(no_nodes), intent(in)          :: nwav                   ! wave number n      
    real*4, dimension(ntheta,no_nodes), intent(inout):: ee                     ! 
    real*4, dimension(ntheta,no_nodes), intent(inout):: ee_ig                  ! 
    real*4, dimension(ntheta,no_nodes), intent(in)   :: ctheta_ig              ! refractioon speed
    real*4, dimension(no_nodes), intent(in)          :: fw                     ! wave friction factor
    real*4, dimension(no_nodes), intent(in)          :: fw_ig                  ! wave friction factor
+   real*4, dimension(no_nodes), intent(out)         :: qb                     ! Fraction of breaking waves according to Baldock's formulation 
+   real*4, dimension(no_nodes), intent(out)         :: gam                    ! Local incident wave height water depth ratio
    real*4, dimension(no_nodes), intent(out)         :: betamean               ! Mean local bed slope parameter  
    real*4, dimension(no_nodes), intent(out)         :: srcig                  ! Directionally averaged incident wave sink/infragravity source term 
    real*4, dimension(no_nodes), intent(out)         :: alphaig                ! Mean IG shoaling parameter alpha    
@@ -205,7 +208,7 @@ module snapwave_solver
    real*4, intent(in)                               :: baldock_ratio_ig       ! option controlling from what depth wave breaking should take place for IG waves: (Hk_ig>baldock_ratio_ig*Hmx_ig(k)), default baldock_ratio_ig=0.2     
    real*4, dimension(no_nodes), intent(inout)       :: H                      ! wave height - TODO - TL - CHECK > inout needed to have updated 'H' for determining srcig
    real*4, dimension(no_nodes), intent(out)         :: H_ig                   ! wave height
-   real*4, dimension(no_nodes), intent(out)         :: Dw                     ! wave breaking dissipation
+   real*4, dimension(no_nodes), intent(inout)       :: Dw                     ! wave breaking dissipation
    real*4, dimension(no_nodes), intent(out)         :: Dw_ig                  ! wave breaking dissipation IG   
    real*4, dimension(no_nodes), intent(out)         :: F                      ! wave force Dw/C/rho/h
    real*4, dimension(no_nodes), intent(out)         :: Df                     ! wave friction dissipation
@@ -257,7 +260,9 @@ module snapwave_solver
    real*4, dimension(:,:), allocatable        :: srcig_local            ! Energy source/sink term because of IG wave energy transfer from incident waves
    real*4, dimension(:,:), allocatable        :: beta_local             ! Local bed slope based on bed level per direction      
    real*4, dimension(:,:), allocatable        :: alphaig_local          ! Local infragravity wave shoaling parameter alpha
-   real*4, dimension(:,:), allocatable        :: depthprev              ! water depth at upwind intersection point per direction     
+   real*4, dimension(:,:), allocatable        :: depthprev              ! water depth at upwind intersection point per direction
+   real*4, dimension(:,:), allocatable        :: qb_local               ! local percentage of breaking waves Qb    
+   real*4, dimension(:,:), allocatable        :: gam_local              ! local incident wave height over water depth ratio  
    real*4, dimension(:), allocatable          :: dee                    ! difference with energy previous iteration
    real*4, dimension(:), allocatable          :: eeprev, cgprev         ! energy density and group velocity at upwind intersection point
    real*4, dimension(:), allocatable          :: eeprev_ig, cgprev_ig   ! energy density and group velocity at upwind intersection point
@@ -292,6 +297,7 @@ module snapwave_solver
    real*4                                     :: Ek_ig
    real*4                                     :: Hk_ig
    real*4                                     :: alfa_ig,gamma_ig  ! coefficients in Baldock wave breaking dissipation model for IG waves
+   real*4                                     :: gamma_fac_br    ! factor times gamma that is used to determine the maximum incident wave breaking point in the surf zone using local incident wave height over water depth ratio, among others used to set the IG source term to 0 shallower than this point
    real*4                                     :: eeinc2ig          ! ratio of incident wave energy as first estimate of IG wave energy at boundary
    real*4                                     :: Tinc2ig           ! ratio compared to period Tinc to estimate Tig
    real*4                                     :: alphaigfac        ! Multiplication factor for IG shoaling source/sink term, default = 1.0
@@ -340,6 +346,9 @@ module snapwave_solver
       allocate(depthprev(ntheta,no_nodes)); depthprev=0.0                     
       allocate(beta_local(ntheta,no_nodes)); beta_local=0.0        
       allocate(alphaig_local(ntheta,no_nodes)); alphaig_local=0.0
+      allocate(qb_local(ntheta,no_nodes)); qb_local=0.0        
+      allocate(gam_local(ntheta,no_nodes)); gam_local=0.0        
+      
    endif
    !
    if (wind) then
@@ -359,7 +368,7 @@ module snapwave_solver
    enddo
    !   
    df   = 0.0
-   dw   = 0.0
+   !dw              = 0.0 ! TODO - TL: CHeck > needed for restart for IG > set to 0 now in snapwave_domain.f90   
    F    = 0.0
    !
    ok             = 0
@@ -471,10 +480,10 @@ module snapwave_solver
       ! As defined in Leijnse, van Ormondt, van Dongeren, Aerts & Muis et al. 2024 
       !      
       ! Actual determining of source term: 
-      !          
-      call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
+      !
+      call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma, gamma_fac_br) 
       !         
-      ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev, beta_local
+      ! inout: alphaig_local, srcig_local, cgprev, beta_local, qb_local, gam_local
       ! in: the rest
       !
       ! NOTE - This is based on the energy in the precious SnapWave timestep 'ee' and 'ee_ig', and waveheight 'H', which should therefore be made available. 
@@ -555,7 +564,7 @@ module snapwave_solver
                 !
                 ! Actual determining of source term - every first sweep of iteration
                 !          
-                call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
+                call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma, gamma_fac_br)                                 
                 !    
             endif
             !
@@ -595,7 +604,7 @@ module snapwave_solver
                      !
                   enddo
                   !
-                  Ek = sum(eeprev)*dtheta     ! to check                
+                  Ek = sum(eeprev)*dtheta     ! to check  - Maarten: should not be 'eeprev'?              
                   !
                   depthlimfac = max(1.0, (sqrt(Ek/rhog8)/(gammax*depth(k)))**2.0)
                   Hk = min(sqrt(Ek/rhog8), gamma*depth(k))
@@ -661,25 +670,41 @@ module snapwave_solver
                   !
                    do itheta = 1, ntheta
                      !
-                     R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta)*eeprev(itheta)/ds(itheta, k) - srcig_local(itheta, k) * shinc2ig
+                     if (ig_opt > 0 .and. ig_opt < 20) then
+                        R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta)*eeprev(itheta)/ds(itheta, k) - srcig_local(itheta, k) * shinc2ig
+                     else
+                        R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta)*eeprev(itheta)/ds(itheta, k)
+                     endif                     
                      !
                   enddo                  
                   !
                   do itheta = 2, ntheta - 1
                      !
                      A(itheta) = -ctheta(itheta - 1, k)*oneover2dtheta
-                     B(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverE(k)
+                     !
+                     if (ig_opt > 0 .and. ig_opt < 20) then    
+                        B(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverE(k)
+                     else
+                        B(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverE(k) + srcig_local(itheta, k) * shinc2ig                         
+                     endif                     
+                     !
                      C(itheta) = ctheta(itheta + 1, k)*oneover2dtheta
                      !
                   enddo
                   !
                   A(1) = -ctheta(ntheta, k)*oneover2dtheta
-                  B(1) = oneoverdt + cg(k)/ds(1,k) + DoverE(k)
                   C(1) = ctheta(2, k)*oneover2dtheta
                   !
                   A(ntheta) = -ctheta(ntheta - 1, k)*oneover2dtheta
-                  B(ntheta) = oneoverdt + cg(k)/ds(ntheta,k) + DoverE(k)
                   C(ntheta) = ctheta(1, k)*oneover2dtheta
+                  !
+                  if (ig_opt > 0 .and. ig_opt < 20) then    
+                      B(1) = oneoverdt + cg(k)/ds(1,k) + DoverE(k)
+                      B(ntheta) = oneoverdt + cg(k)/ds(ntheta,k) + DoverE(k)                  
+                  else
+                      B(1) = oneoverdt + cg(k)/ds(1,k) + DoverE(k) + srcig_local(1, k) * shinc2ig                         
+                      B(ntheta) = oneoverdt + cg(k)/ds(ntheta,k) + DoverE(k) + srcig_local(ntheta, k) * shinc2ig                                                   
+                  endif                                    
                   !
                   ! Solve tridiagonal system per point
                   !
@@ -742,7 +767,7 @@ module snapwave_solver
                   ! IG
                   !
                   if (igwaves) then
-                     Ek_ig       = sum(eeprev_ig)*dtheta                  
+                     Ek_ig       = sum(eeprev_ig)*dtheta    ! to check  - Maarten: should not be 'eeprev_ig'?               
                      !Hk_ig       = sqrt(Ek_ig/rhog8) !org trunk
                      Hk_ig       = min(sqrt(Ek_ig/rhog8), gamma_ig*depth(k))  !TL: Question - why not this one?                     
                      Ek_ig       = rhog8*Hk_ig**2
@@ -764,35 +789,68 @@ module snapwave_solver
                      !
                      do itheta = 1, ntheta
                         !
-                        R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta)*eeprev_ig(itheta)/ds(itheta, k) + srcig_local(itheta, k) !TL: new version
+                        if (ig_opt > 0 .and. ig_opt < 20) then                          
+                            R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta)*eeprev_ig(itheta)/ds(itheta, k) + srcig_local(itheta, k)
+                        else
+                            R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta)*eeprev_ig(itheta)/ds(itheta, k)
+                        endif                        
                         !
                      enddo
                      !
                      do itheta = 2, ntheta - 1
                         !
                         A_ig(itheta) = -ctheta_ig(itheta - 1, k)*oneover2dtheta
-                        B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
+                        !
+                        if (ig_opt > 0 .and. ig_opt < 20) then                                                  
+                            B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
+                        else
+                            B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k) - srcig_local(itheta, k)                            
+                        endif
+                        !
                         C_ig(itheta) = ctheta_ig(itheta + 1, k)*oneover2dtheta
                         !
                      enddo
                      !
                      if (ctheta_ig(1,k)<0) then
                         A_ig(1) = 0.0
-                        B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k)
+                        if (ig_opt > 0 .and. ig_opt < 20) then                        
+                            B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k)
+                        else
+                            B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k) - srcig_local(itheta, k)
+                        endif
+                        !
                         C_ig(1) = ctheta_ig(2, k)/dtheta
                      else
                         A_ig(1)=0.0
-                        B_ig(1)=1.0/dt + cg_ig(k)/ds(1, k) + DoverE_ig(k)
+                        !
+                        if (ig_opt > 0 .and. ig_opt < 20) then
+                            B_ig(1)=1.0/dt + cg_ig(k)/ds(1, k) + DoverE_ig(k)
+                        else
+                            B_ig(1)=1.0/dt + cg_ig(k)/ds(1, k) + DoverE_ig(k) - srcig_local(itheta, k)                           
+                        endif
+                        !
                         C_ig(1)=0.0
                      endif
                      !
                      if (ctheta_ig(ntheta, k)>0) then
                         A_ig(ntheta) = -ctheta_ig(ntheta - 1, k)/dtheta
-                        B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
+                        !
+                        if (ig_opt > 0 .and. ig_opt < 20) then        
+                            B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
+                        else
+                            B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k) - srcig_local(itheta, k)                            
+                        endif
+                        !
                         C_ig(ntheta) = 0.0
                      else
                         A_ig(ntheta) = 0.0
-                        B_ig(ntheta) = oneoverdt + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
+                        !
+                        if (ig_opt > 0 .and. ig_opt < 20) then                                
+                            B_ig(ntheta) = oneoverdt + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
+                        else
+                            B_ig(ntheta) = oneoverdt + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k) - srcig_local(itheta, k)
+                        endif                        
+                        !
                         C_ig(ntheta) = 0.0
                      endif
                      !
@@ -938,6 +996,16 @@ module snapwave_solver
                !
                srcig(k)   = sum(srcig_local(:,k)) /ntheta ! real mean                    
                !
+               !qb(k)   = sum(qb_local(:,k)) /ntheta ! real mean  
+               qb(k)   = maxval(qb_local(:,k)) ! max 
+               !
+               !gam(k)   = sum(gam_local(:,k)) /ntheta ! real mean
+               gam(k)   = maxval(gam_local(:,k)) ! max        
+               !
+               !if (qb(k) > 0.01) then
+               !   write(*,*)'k qb gam',k, qb_local(:,k), gam_local(:,k)
+               !endif               
+               !               
             endif
             !
             if (wind) then
@@ -1017,8 +1085,8 @@ module snapwave_solver
    endif
    !
    end subroutine baldock
-   
-   subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local)
+      
+   subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig,  cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma, gamma_fac_br)
     !   
     implicit none
     !  
@@ -1028,22 +1096,28 @@ module snapwave_solver
     real*4,  dimension(2,ntheta,no_nodes),intent(in) :: w               ! weights of upwind grid points, 2 per grid point and per wave direction
     real*4, dimension(ntheta,no_nodes), intent(in)   :: ds              ! distance to interpolated upwind point, per grid point and direction   
     integer, dimension(2,ntheta,no_nodes),intent(in) :: prev            ! two upwind grid points per grid point and wave direction    
-    real*4, dimension(no_nodes), intent(in)          :: cg_ig           ! group velocity
+    real*4, dimension(no_nodes), intent(inout)       :: cg_ig           ! group velocity
     real*4, dimension(no_nodes), intent(in)          :: nwav            ! wave number n  
     real*4, dimension(no_nodes), intent(in)          :: depth           ! water depth
     real*4, dimension(no_nodes), intent(in)          :: zb              ! actual bed level       
-    real*4, dimension(no_nodes), intent(in)          :: H               ! wave height        
+    real*4, dimension(no_nodes), intent(in)          :: H               ! wave height  
     real*4, dimension(ntheta,no_nodes), intent(in)   :: ee              ! energy density
-    real*4, dimension(ntheta,no_nodes), intent(in)   :: ee_ig           ! energy density infragravity waves
+    real*4, dimension(ntheta,no_nodes), intent(in)   :: ee_ig           ! energy density infragravity waves    
     integer, intent(in)                              :: ig_opt          ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)    
     real*4, intent(in)                               :: alphaigfac      ! Multiplication factor for IG shoaling source/sink term, default = 1.0
+    real*4, intent(in)                               :: dtheta          ! directional resolution
+    real*4, intent(in)                               :: gamma           ! coefficients in Baldock wave breaking dissipation    
+    real*4, intent(in)                               :: gamma_fac_br    ! factor times gamma that is used to determine the maximum incident wave breaking point in the surf zone using local incident wave height over water depth ratio, among others used to set the IG source term to 0 shallower than this point
+    real*4, dimension(no_nodes), intent(in)          :: Dw              ! wave breaking dissipation
+    real*4, dimension(no_nodes), intent(in)          :: Hmx             ! Hmax        
     !
     ! Inout variables
     real*4, dimension(:,:), intent(inout)            :: alphaig_local   ! Local infragravity wave shoaling parameter alpha
     real*4, dimension(:,:), intent(inout)            :: srcig_local     ! Energy source/sink term because of IG wave shoaling
-    real*4, dimension(:), intent(inout)              :: eeprev, cgprev  ! energy density and group velocity at upwind intersection point
-    real*4, dimension(:), intent(inout)              :: eeprev_ig       ! energy density  at upwind intersection point 
-    real*4, dimension(ntheta,no_nodes), intent(inout):: beta_local      ! Local bed slope based on bed level per direction              
+    real*4, dimension(:), intent(inout)              :: cgprev          ! group velocity at upwind intersection point
+    real*4, dimension(ntheta,no_nodes), intent(inout):: beta_local      ! Local bed slope based on bed level per direction   
+    real*4, dimension(ntheta,no_nodes), intent(inout):: qb_local        ! local percentage of breaking waves Qb
+    real*4, dimension(ntheta,no_nodes), intent(inout):: gam_local       ! local incident wave height over water depth ratio     
     !
     ! Internal variables
     integer                                          :: itheta          ! directional counter
@@ -1051,22 +1125,73 @@ module snapwave_solver
     integer                                          :: k1,k2           ! upwind counters (k is grid index)
     real*4                                           :: gam             ! local gamma (Hinc / depth ratio)   
     real*4, dimension(ntheta,no_nodes)               :: depthprev       ! water depth at upwind intersection point         
-    real*4, dimension(ntheta,no_nodes)               :: Sxx             ! Radiation Stress
+    real*4, dimension(no_nodes)                      :: Sxx             ! Radiation Stress
     real*4, dimension(:), allocatable                :: Sxxprev         ! radiation stress at upwind intersection point  
     real*4, dimension(:), allocatable                :: Hprev           ! Incident wave height at upwind intersection point  
+    real*4, dimension(:), allocatable                :: Eprev           ! Mean incident wave energy at upwind intersection point      
+    real*4, dimension(:), allocatable                :: Eprev_ig        ! Mean infragravity wave energy at upwind intersection point    
+    real*4, dimension(no_nodes)                      :: E_local         ! mean wave energy waves - just local               
+    real*4, dimension(no_nodes)                      :: E_ig_local      ! mean wave energy infragravity waves - just local
     real*4                                           :: dSxx            ! difference in Radiation stress
     real*4                                           :: Sxx_cons        ! conservative estimate of radiation stress using conservative shoaling     
+    real*4                                           :: delta_Dw        ! difference of Dw compared to upwind point, to get sign for max breaking point
+    real*4                                           :: Qb              ! Percentage of breaking incident waves
+    real*4                                           :: transition_factor ! Transition factor for letting srcig go to zero smoothly, around gamma*gamma_fac_br
+    real*4                                           :: transition_factor_width_1 ! Width factor of generalized (Fermi–Dirac style) transfer function with adjustable midpoint and width
+    real*4                                           :: transition_factor_width_2 ! Width factor of generalized (Fermi–Dirac style) transfer function with adjustable midpoint and width    
+    real*4                                           :: gamma_fac_br_transition ! Transitioned version of gamma_fac_br, so that for steep slopes it remains 1.0
+    real*4                                           :: beta_limit_1    ! Cut-off beta_local for end of validity alphaig formulation of Leijnse et al. 2024
+    real*4                                           :: beta_limit_2    ! Beta_local limit for transition function
     !   
     ! Allocate internal variables
     allocate(Sxxprev(ntheta))       
     allocate(Hprev(ntheta))  
+    allocate(Eprev(ntheta))    
+    allocate(Eprev_ig(ntheta))          
     !
     Sxx = 0.0
+    Hprev = 0.0
+    Eprev = 0.0
+    Eprev_ig = 0.0
+    !    
+    E_local = 0.0
+    E_ig_local = 0.0
+    !
+    ! Used is generalized (Fermi–Dirac style) transfer function with adjustable midpoint and width
+    !
+    transition_factor_width_1 = 0.005 
+    transition_factor_width_2 = 0.002
+    beta_limit_1 = 0.07
+    !beta_limit_2 = beta_limit_1 - 0.01  
+    beta_limit_2 = beta_limit_1 - 0.02    
+    !
+    ! Precompute all Sxx - FIXME - add parallellisation
+    !
+    do k = 1, no_nodes
+        !
+        if (inner(k)) then
+            !
+            ! Update E (not saved from previous timestep)
+            !
+            E_local(k)         = sum(ee(:,k))*dtheta                
+            !
+            ! Update E_ig (not saved from previous timestep)
+            E_ig_local(k)      = sum(ee_ig(:, k))*dtheta   
+            !
+        endif
+        !
+        ! Calculate Sxx for all points - FIXME double check correct also for not inner
+        !
+        Sxx(k)      = (((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5) * E_local(k))
+        !
+    enddo        
+    !
+    ! Actual computation of srcig
     !
     do k = 1, no_nodes
         !
         if (inner(k)) then    
-            !
+            !                        
             ! Compute exchange source term inc to ig waves - per direction      
             !
             do itheta = 1, ntheta
@@ -1081,6 +1206,9 @@ module snapwave_solver
                     !            
                     beta_local(itheta,k)  = max((w(1, itheta, k)*(zb(k) - zb(k1)) + w(2, itheta, k)*(zb(k) - zb(k2)))/ds(itheta, k), 0.0)
                     !
+                    ! FIXME - shorter, but also same result?
+                    !beta_local(itheta,k)  = max(zb(k) - (w(1, itheta, k) * zb(k1) + w(2, itheta, k) * zb(k2))/ds(itheta, k), 0.0)                    
+                    !
                     ! Notes:
                     ! - use actual bed level now for slope, because depth changes because of wave setup/tide/surge
                     ! - in zb, depth is negative > therefore zb(k) minus zb(k1)
@@ -1088,29 +1216,57 @@ module snapwave_solver
                     !
                     !betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin)) ! TL: in case in the future we would need the normalised bed slope again   
                     !
-                    ! TL - Note: cg_ig = cg
+                    ! Fraction of breaking waves, based on H(k)
+                    !Qb = min(max(exp(-(Hmx(k)/H(k))**2), 0.0), 1.0) ! Qb percentage of breaking waves according to Baldock's formulation, between 0 and  1
+                    ! Base on upwind point:
+                    Qb = min(max(exp(-((w(1, itheta, k)*Hmx(k1) + w(2, itheta, k)*Hmx(k2)) / Hprev(itheta))**2), 0.0), 1.0) ! Qb percentage of breaking waves according to Baldock's formulation, between 0 and  1                    
+                    !
+                    qb_local(itheta, k) = Qb
+                    !                       
                     cgprev(itheta)      = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
-                    !              
-                    Sxx(itheta,k1)      = ((2.0 * max(0.0,min(1.0,nwav(k1)))) - 0.5) * ee(itheta, k1) ! limit so value of nwav is between 0 and 1
-                    Sxx(itheta,k2)      = ((2.0 * max(0.0,min(1.0,nwav(k2)))) - 0.5) * ee(itheta, k2) ! limit so value of nwav is between 0 and 1
                     !
-                    Sxxprev(itheta)     = w(1, itheta, k)*Sxx(itheta,k1) + w(2, itheta, k)*Sxx(itheta,k2)
+                    Sxxprev(itheta)     = w(1, itheta, k)*Sxx(k1) + w(2, itheta, k)*Sxx(k2)
                     !
-                    eeprev(itheta)      = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)  
-                    eeprev_ig(itheta)   = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)      
+                    Eprev(itheta)       = w(1, itheta, k)*E_local(k1) + w(2, itheta, k)*E_local(k2)     
+                    Eprev_ig(itheta)    = w(1, itheta, k)*E_ig_local(k1) + w(2, itheta, k)*E_ig_local(k2)                                              
                     !
-                    Hprev(itheta)       = w(1, itheta, k)*H(k1) + w(2, itheta, k)*H(k2)     
+                    Hprev(itheta)       = w(1, itheta, k)*H(k1) + w(2, itheta, k)*H(k2)                         
                     !     
                     ! Determine relative waterdepth 'gam'
                     !
                     gam = max(0.5*(Hprev(itheta)/depthprev(itheta,k) + H(k)/depth(k)), 0.0) ! mean gamma over current and upwind point
                     !
+                    gam_local(itheta, k) = gam
+                    !
+                    ! Free waves and no IG source/sink term if incident waves start breaking
+                    !
+                    ! Adjust cg_ig for free infragravity waves release in surfzone
+                    ! TL - Note: cg_ig = cg
+                    if (ig_opt == 3) then
+                        !
+                        if (gam > (gamma_fac_br * gamma)) then                                    
+                            !
+                            cg_ig(k) = sqrt(9.81 * depth(k))
+                            !
+                        endif
+                        !
+                    endif                  
+                    !
                     ! Determine dSxx and IG source/sink term 'srcig'
                     !
-                    if (ig_opt == 1 .or. ig_opt == 2) then 
+                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 11 .or. ig_opt == 12 .or. ig_opt == 13) then 
                         !
                         ! Calculate shoaling parameter alpha_ig following Leijnse et al. (2024)
                         !  
+                        if (ig_opt == 12 .or. ig_opt == 13) then
+                            !
+                            ! Limit beta to max 0.1 before going into alphaig parametrisation
+                            !
+                            !beta_local(itheta,k) = min(beta_local(itheta,k), 0.07)
+                            beta_local(itheta,k) = min(beta_local(itheta,k), beta_limit_1)                            
+                            !
+                        endif
+                        !
                         call estimate_shoaling_parameter_alphaig(beta_local(itheta,k), gam, alphaig_local(itheta,k)) ! [input, input, output]
                         !                
                         ! Now calculate source term component
@@ -1121,26 +1277,73 @@ module snapwave_solver
                             srcig_local(itheta, k) = 0.0 !Avoid big jumps in dSxx that can happen if a upwind point is a boundary point with Hinc=0
                             !
                         else
-                        !              
-                        if (ig_opt == 1) then ! Option using conservative shoaling for dSxx/dx
+                            !              
+                            if (ig_opt == 1 .or. ig_opt == 3 .or. ig_opt == 11 .or. ig_opt == 12 .or. ig_opt == 13) then ! Option using conservative shoaling for dSxx/dx
+                                !
+                                ! Calculate Sxx based on conservative shoaling of upwind point's energy: 
+                                ! Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
+                                Sxx_cons = Eprev(itheta) * cgprev(itheta) / cg_ig(k) * ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5)
+                                ! Note - limit so value of nwav is between 0 and 1, and Sxx therefore doesn't become NaN for nwav=Infinite  
+                                !
+                                dSxx = Sxx_cons - Sxxprev(itheta)
+                                !
+                            elseif (ig_opt == 2) then ! Option taking actual difference for dSxx/dx
+                                !
+                                dSxx = Sxx(itheta) - Sxxprev(itheta)                                    
+                            endif
                             !
-                            ! Calculate Sxx based on conservative shoaling of upwind point's energy: 
-                            ! Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
-                            Sxx_cons = eeprev(itheta) * cgprev(itheta) / cg_ig(k) * ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5)
-                            ! Note - limit so value of nwav is between 0 and 1, and Sxx therefore doesn't become NaN for nwav=Infinite  
+                            dSxx = max(dSxx, 0.0)
                             !
-                            dSxx = Sxx_cons - Sxxprev(itheta)
+                            if (ig_opt == 1 .or. ig_opt == 11 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 12 .or. ig_opt == 13) then
+                               !
+                               ! Base on E_prev_ig instead of eeprev_ig(itheta) > no bins but total energy
+                               ! NOTE - already here multiplied with ee(itheta,k), for direct inclusion in 'R'-term
+                               srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k) /max(E_local(k), 1.0e-6) * ee(itheta,k)
+                               !
+                            !elseif (ig_opt == 20) then
+                               !
+                               ! NOTE - in main script this is multiplied with ee(itheta,k) to get directional energy, for direct inclusion in 'B'-term
+                               ! 
+                               !srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k) /max(E_local(k), 1.0e-6) !* ee(itheta,k)                               
+                            endif
                             !
-                        elseif (ig_opt == 2) then ! Option taking actual difference for dSxx/dx
+                            ! Limit srcig to 0 after waves start (significantly) breaking, as defined here as gam=Hrms,inc / h > (gamma_fac_br * gamma)
                             !
-                            dSxx = Sxx(itheta,k) - Sxxprev(itheta)                        
+                            ! Ergo, it is assumed that after this point IG waves are free, and no bound wave forcing is happening anymore, so srcig should be 0 from here on
                             !
-                        endif
-                        !
-                        dSxx = max(dSxx, 0.0)
-                        !
-                        srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(eeprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k)
-                        !                         
+                            if (ig_opt == 11 .or. ig_opt == 2 .or. ig_opt == 3) then
+                                !
+                                ! Free waves and no IG source/sink term if incident waves start breaking
+                                !         
+                                ! Note - gam is in Hrms
+                                if (gam > (gamma_fac_br * gamma)) then                                    
+                                    !
+                                    srcig_local(itheta, k) = 0.0
+                                    !
+                                endif    
+                                !
+                            elseif (ig_opt == 1 .or. ig_opt == 12) then
+                                !
+                                ! Let srcig transition to 0 more smoothly using fac_transition that reduced from 1 to 0 around gamma_fac_br * snapwave_gamma
+                                !
+                                transition_factor = 1.0 - (1.0 / (1.0 + exp(- (gam - (gamma_fac_br * gamma)) / transition_factor_width_1)))
+                                !
+                                srcig_local(itheta, k) = transition_factor * srcig_local(itheta, k)
+                                !
+                            elseif (ig_opt == 13) then
+                                !
+                                ! Let srcig transition to 0 more smoothly using fac_transition that reduced from 1 to 0 around gamma_fac_br * snapwave_gamma
+                                !
+                                ! But, only for beta_local < 0.07, so adjust based on beta_local so that transition_factor = 1.0 for Beta_local = 0.07
+                                !
+                                gamma_fac_br_transition = gamma_fac_br + ((1-gamma_fac_br) / (1 + exp(- (beta_local(itheta,k) - beta_limit_2) / transition_factor_width_2)))
+                                !
+                                transition_factor = 1.0 - (1.0 / (1.0 + exp(- (gam - (gamma_fac_br_transition * gamma)) / transition_factor_width_1)))
+                                !
+                                srcig_local(itheta, k) = transition_factor * srcig_local(itheta, k)                                
+                                !                                
+                            endif
+                            !
                         endif                      
                         !                                        
                     else  ! TL: option to add future parameterisations here for e.g. coral reef type coasts
@@ -1176,6 +1379,7 @@ module snapwave_solver
    beta3 = 17.7104
    beta4 = 1
    beta5 = 0.7
+   !beta5 = 0.5   
    beta6 = 0.11841
    beta7 = 0.34037
    !
@@ -1190,8 +1394,10 @@ module snapwave_solver
           alphaig = exp(-beta3 * beta ** beta4) * ((beta5 - gam) * beta6 + (beta7 - gam) * (beta1 / beta ** beta2)) 
           !
        elseif (gam >= beta7) then ! shallow water - for gam>0.7 the fit automatically goes to 0
+       !elseif (gam >= beta7 .and. gam < 0.5) then ! shallow water - for gam>0.7 the fit automatically goes to 0
           !
-          alphaig = exp(-beta3 * beta ** beta4) * (max(beta5 - gam, 0.0)) * beta6           
+          alphaig = exp(-beta3 * beta ** beta4) * (max(beta5 - gam, 0.0)) * beta6    
+          !alphaig = exp(-beta3 * beta ** beta4) * (max(0.5 - gam, 0.0)) * beta6    
           !
        else ! for safety, but negative gamma should not occur
           ! 

@@ -26,6 +26,9 @@ module sfincs_snapwave
    real*4,    dimension(:),   allocatable    :: snapwave_Dwig
    real*4,    dimension(:),   allocatable    :: snapwave_Dfig
    real*4,    dimension(:),   allocatable    :: snapwave_cg
+   real*4,    dimension(:),   allocatable    :: snapwave_cgig   
+   real*4,    dimension(:),   allocatable    :: snapwave_qb
+   real*4,    dimension(:),   allocatable    :: snapwave_gam      
    real*4,    dimension(:),   allocatable    :: snapwave_beta
    real*4,    dimension(:),   allocatable    :: snapwave_srcig
    real*4,    dimension(:),   allocatable    :: snapwave_alphaig   
@@ -297,7 +300,10 @@ contains
    real*4,    dimension(:), allocatable       :: df0   
    real*4,    dimension(:), allocatable       :: dwig0
    real*4,    dimension(:), allocatable       :: dfig0   
-   real*4,    dimension(:), allocatable       :: cg0   
+   real*4,    dimension(:), allocatable       :: cg0  
+   real*4,    dimension(:), allocatable       :: cgig0   
+   real*4,    dimension(:), allocatable       :: qb0   
+   real*4,    dimension(:), allocatable       :: gam0   
    real*4,    dimension(:), allocatable       :: beta0 
    real*4,    dimension(:), allocatable       :: srcig0      
    real*4,    dimension(:), allocatable       :: alphaig0   
@@ -312,7 +318,10 @@ contains
    allocate(df0(np))   
    allocate(dwig0(np))
    allocate(dfig0(np))  
-   allocate(cg0(np))  
+   allocate(cg0(np))
+   allocate(cgig0(np))   
+   allocate(qb0(np)) 
+   allocate(gam0(np))      
    allocate(beta0(np))   
    allocate(srcig0(np))      
    allocate(alphaig0(np))      
@@ -324,6 +333,9 @@ contains
    dwig0 = 0.0
    dfig0 = 0.0
    cg0 = 0.0
+   cgig0 = 0.0   
+   qb0 = 0.0
+   gam0 = 0.0
    beta0 = 0.0
    srcig0 = 0.0
    alphaig0 = 0.0   
@@ -418,6 +430,9 @@ contains
          dwig0(nm)  = snapwave_Dwig(ip)   
          dfig0(nm)  = snapwave_Dfig(ip)
          cg0(nm)    = snapwave_cg(ip)
+         cgig0(nm)  = snapwave_cgig(ip)         
+         qb0(nm)    = snapwave_qb(ip)
+         gam0(nm)   = snapwave_gam(ip)         
          beta0(nm)  = snapwave_beta(ip)
          srcig0(nm) = snapwave_srcig(ip)
          alphaig0(nm) = snapwave_alphaig(ip)
@@ -441,6 +456,9 @@ contains
          dwig0(nm)  = 0.0
          dfig0(nm)  = 0.0
          cg0(nm)    = 0.0
+         cgig0(nm)  = 0.0         
+         qb0(nm)    = 0.0
+         gam0(nm)   = 0.0         
          beta0(nm)  = 0.0
          srcig0(nm) = 0.0
          alphaig0(nm) = 0.0         
@@ -459,7 +477,10 @@ contains
          df(nm)         = df0(nm)         
          dwig(nm)       = dwig0(nm)
          dfig(nm)       = dfig0(nm)
-         cg(nm)         = cg0(nm)   
+         cg(nm)         = cg0(nm) 
+         cgig(nm)       = cgig0(nm)         
+         qb(nm)         = qb0(nm)   
+         gam(nm)        = gam0(nm)         
          betamean(nm)   = beta0(nm)         
          srcig(nm)      = srcig0(nm)         
          alphaig(nm)    = alphaig0(nm)                  
@@ -536,6 +557,9 @@ contains
    snapwave_Dwig                  = Dw_ig
    snapwave_Dfig                  = Df_ig
    snapwave_cg                    = cg
+   snapwave_cgig                  = cg_ig   
+   snapwave_qb                    = qb
+   snapwave_gam                   = gam   
    snapwave_beta                  = beta
    snapwave_srcig                 = srcig
    snapwave_alphaig               = alphaig   
@@ -552,10 +576,13 @@ contains
            snapwave_mean_direction(k) = 0.0
            snapwave_directional_spreading(k) = 0.0
            snapwave_cg(k) = 0.0
+           snapwave_qb(k) = 0.0
+           snapwave_gam(k) = 0.0           
        endif
        !
        if (snapwave_H_ig(k) <= 0.0) then
-           snapwave_Tp_ig(k) = 0.0        
+           snapwave_Tp_ig(k) = 0.0   
+           snapwave_cgig(k) = 0.0           
        endif       
    enddo   
    !
@@ -621,8 +648,10 @@ contains
    !
    ! Settings related to IG waves:   
    call read_int_input(500,'snapwave_igwaves',igwaves_opt,1)   
-   call read_real_input(500,'snapwave_alpha_ig',alpha_ig,1.0) !TODO choose whether snapwave_alphaig or snapwave_gamma_ig  
-   call read_real_input(500,'snapwave_gammaig',gamma_ig,0.2)   
+   call read_real_input(500,'snapwave_alpha_ig',alpha_ig,1.0) !FIXME choose whether snapwave_alphaig or snapwave_gamma_ig  
+   call read_real_input(500,'snapwave_gammaig',gamma_ig,0.7)  !FIXME choose whether snapwave_alphaig or snapwave_gamma_ig  
+   !call read_real_input(500,'snapwave_gamma_fac_br',gamma_fac_br,2.0/3.0) ! factor times gamma that is used to determine the maximum incident wave breaking point in the surf zone using local incident wave height over water depth ratio, among others used to set the IG source term to 0 shallower than this point   
+   call read_real_input(500,'snapwave_gamma_fac_br',gamma_fac_br,0.45) ! factor times gamma that is used to determine the maximum incident wave breaking point in the surf zone using local incident wave height over water depth ratio, among others used to set the IG source term to 0 shallower than this point     
    call read_real_input(500,'snapwave_shinc2ig',shinc2ig,1.0)                   ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 1=default=all energy as sink)
    call read_real_input(500,'snapwave_alphaigfac',alphaigfac,1.0)               ! Multiplication factor for IG shoaling source/sink term         
    call read_real_input(500,'snapwave_baldock_ratio_ig',baldock_ratio_ig,0.2)       
