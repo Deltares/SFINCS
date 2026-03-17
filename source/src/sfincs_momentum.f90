@@ -140,12 +140,17 @@ contains
                 ! Indices of surrounding water level points
                 !
                 nm  = uv_index_z_nm(ip)   
+                nmu = uv_index_z_nmu(ip) 
+               !
+               veg_CdBNstems = 0.5*(veg_CdBNstems(nm,iveg)+veg_CdBNstems(nmu,iveg))                
                 !
    		        !do iveg=1,quadtree_no_secveg ! for each vertical vegetation section
                 !
                 iveg = 1
                 !
-                veg_fvm(nm, iveg) = 0.5 * veg_CdBNstems(nm, iveg) * uv0(ip) * abs(uv0(ip)) / rhow 
+                !veg_fvm(nm, iveg) = 0.5 * veg_CdBNstems(nm, iveg) * uv0(ip) * abs(uv0(ip)) / rhow 
+                veg_fvm(ip, iveg) = 0.5 * veg_CdBNstems * uv0(ip) * abs(uv0(ip)) / rhow 
+                
                 ! in flux loop only still needs to be multiplied with 'hvegeff', which can still change
                 !
                 ! NOTE: veg_CdBNstems = quadtree_snapwave_veg_Cd(nm, iveg) * quadtree_snapwave_veg_bstems(nm, iveg) * quadtree_snapwave_veg_Nstems(nm, iveg)
@@ -651,9 +656,16 @@ contains
 
 
 
-
+               nm  = uv_index_z_nm(ip)
+               nmu = uv_index_z_nmu(ip) 
                !
-               fvm = veg_fvm(nm,iveg) * min(quadtree_snapwave_veg_ah(ip,iveg), hu)
+               veg_ah = 0.5*(quadtree_snapwave_veg_ah(nm,iveg)+quadtree_snapwave_veg_ah(nmu,iveg))
+               
+               fvm = veg_fvm(ip,iveg) * min(veg_ah, hu)
+
+               
+               !
+               !fvm = veg_fvm(nm,iveg) * min(quadtree_snapwave_veg_ah(ip,iveg), hu)
                ! FIXME Question TL: water depth per layer, or always compared to lower bed level, or?
                !               
                frc = frc - fvm ! FIXME - minus OR plus?

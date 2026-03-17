@@ -374,7 +374,9 @@ contains
          allocate(quadtree_snapwave_veg_Nstems(np, quadtree_no_secveg))
          !
          allocate(veg_CdBNstems(np, quadtree_no_secveg))
-         allocate(veg_fvm(np, quadtree_no_secveg))         
+         !allocate(veg_fvm(np, quadtree_no_secveg)) 
+         allocate(veg_fvm(npuv, quadtree_no_secveg))         !TODO - CHeck npuv
+         
          !
          veg_CdBNstems = 0.0
          veg_fvm = 0.0
