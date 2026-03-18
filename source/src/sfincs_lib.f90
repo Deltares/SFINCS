@@ -573,23 +573,7 @@ module sfincs_lib
          !
       endif   
       !
-<<<<<<< 267-timestep-analysis-output
-      ! And now for the real computations !
-      !
-      ! First compute fluxes
-      !      
-      call compute_fluxes(dt, tloopflux)
-      !
-      if (timestep_analysis) then
-          !
-          call timestep_analysis_update(min_dt)
-          !
-      endif      
-      !
-      if (wavemaker) then
-=======
       if (bathtub) then
->>>>>>> main
          !
          ! In bathtub mode, only update water levels based on boundary conditions
          !
