@@ -401,7 +401,7 @@ module sfincs_lib
          if (nt > 1) then
             !
             dt = bathtub_dt
-            dtchk = alfa * dt
+            dtchk = bathtub_dt
             !
          endif   
          !
