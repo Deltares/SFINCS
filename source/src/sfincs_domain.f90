@@ -23,7 +23,9 @@ contains
    !
    call initialize_roughness()
    !
-   call initialize_infiltration() ! see: sfincs_infiltration.f90
+   call initialize_infiltration() ! see: sfincs_infiltration.f90 (includes bucket model if bucketfile specified)
+   !
+   call initialize_drainage_mimic()
    !
    call initialize_storage_volume()
    !
@@ -2042,6 +2044,82 @@ contains
          !
       endif
        !
+   endif
+   !
+   end subroutine
+
+
+   subroutine initialize_drainage_mimic()
+   !
+   use sfincs_data
+   use sfincs_ncinput
+   !
+   implicit none
+   !
+   integer :: nm
+   integer :: nchar
+   logical :: ok
+   character*256 :: varname
+   !
+   ! Check if drainage mimic is enabled
+   !
+   if (qdrain_uniform > 0.0 .or. drainagefile /= 'none') then
+      !
+      use_drainage_mimic = .true.
+      !
+      allocate(qdrain_rate(np))
+      !
+      if (drainagefile /= 'none') then
+         !
+         ! Spatially-varying drainage rate
+         !
+         write(logstr,'(a)')'Info    : turning on drainage mimic (spatially-varying)'
+         call write_log(logstr, 0)
+         !
+         nchar = len_trim(drainagefile)
+         ok = check_file_exists(drainagefile, 'Drainage file', .true.)
+         !
+         if (drainagefile(nchar - 1 : nchar) == 'nc') then
+            !
+            varname = 'drainage_rate'
+            call read_netcdf_quadtree_to_sfincs(drainagefile, varname, qdrain_rate)
+            !
+            ! Convert from mm/hr to m/s
+            !
+            qdrain_rate = qdrain_rate / 3600.0 / 1000.0
+            !
+         else
+            !
+            ! Read from binary file (assumed to be in mm/hr)
+            !
+            open(unit = 500, file = trim(drainagefile), form = 'unformatted', access = 'stream')
+            read(500)qdrain_rate
+            close(500)
+            !
+            ! Convert from mm/hr to m/s
+            !
+            qdrain_rate = qdrain_rate / 3600.0 / 1000.0
+            !
+         endif
+         !
+      else
+         !
+         ! Uniform drainage rate (already converted to m/s in sfincs_input.f90)
+         !
+         write(logstr,'(a,f10.4,a)')'Info    : turning on drainage mimic (uniform, ', qdrain_uniform * 3600.0 * 1000.0, ' mm/hr)'
+         call write_log(logstr, 0)
+         !
+         qdrain_rate = qdrain_uniform
+         !
+      endif
+      !
+   else
+      !
+      ! Allocate minimal arrays for OpenACC compatibility
+      !
+      allocate(qdrain_rate(1))
+      qdrain_rate = 0.0
+      !
    endif
    !
    end subroutine

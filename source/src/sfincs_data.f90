@@ -170,6 +170,8 @@ module sfincs_data
       character*256 :: f0file
       character*256 :: fcfile
       character*256 :: kdfile
+      character*256 :: drainagefile
+      character*256 :: bucketfile
       character*256 :: z0lfile
       character*256 :: wvmfile
       character*256 :: qtrfile
@@ -407,6 +409,20 @@ module sfincs_data
       ! Storage volume
       !
       real*4, dimension(:),   allocatable :: storage_volume  ! Storage volume green infra
+      !
+      ! Drainage mimic - constant removal rate representing subsurface drainage
+      !
+      logical       :: use_drainage_mimic = .false.
+      real*4        :: qdrain_uniform = 0.0                                    ! uniform drainage rate (mm/hr input, stored as m/s)
+      real*4, dimension(:),   allocatable :: qdrain_rate                       ! drainage rate per cell (m/s)
+      !
+      ! Bucket model - finite capacity reservoir with linear drainage
+      !
+      logical       :: use_bucket_model = .false.
+      real*4, dimension(:),   allocatable :: bucket_volume                     ! current storage (m)
+      real*4, dimension(:),   allocatable :: bucket_capacity                   ! max capacity S_max (m)
+      real*4, dimension(:),   allocatable :: bucket_k                          ! drainage coefficient (1/s)
+      real*4, dimension(:),   allocatable :: bucket_drain_rate                 ! net removal from surface this step (m/s)
       !
       ! Wind reduction for spiderweb winds
       !
@@ -924,6 +940,11 @@ module sfincs_data
     if(allocated(qinffield)) deallocate(qinffield)
     if(allocated(ksfield)) deallocate(ksfield)
     if(allocated(scs_Se)) deallocate(scs_Se)
+    if(allocated(qdrain_rate)) deallocate(qdrain_rate)
+    if(allocated(bucket_volume)) deallocate(bucket_volume)
+    if(allocated(bucket_capacity)) deallocate(bucket_capacity)
+    if(allocated(bucket_k)) deallocate(bucket_k)
+    if(allocated(bucket_drain_rate)) deallocate(bucket_drain_rate)
     if(allocated(nuvisc)) deallocate(nuvisc)    
     !
     ! Boundary velocity points

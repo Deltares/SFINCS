@@ -209,8 +209,12 @@ contains
    call read_char_input(500,'netampfile',netampfile,'none')      
    call read_char_input(500,'netspwfile',netspwfile,'none')
    !
-   call read_char_input(500,'infiltrationfile',infiltrationfile,'none')   
+   ! Infiltration and losses
+   call read_char_input(500,'infiltrationfile',infiltrationfile,'none')
    call read_char_input(500,'infiltrationtype',inftype,'none')
+   call read_char_input(500,'bucketfile',bucketfile,'none')         ! bucket model (infiltration flavor 'bkt')
+   call read_real_input(500,'qdrain',qdrain_uniform,0.0)            ! drainage mimic (mm/hr)
+   call read_char_input(500,'drainagefile',drainagefile,'none')     ! spatially-varying drainage rates
    !
    ! Output
    call read_char_input(500,'obsfile',obsfile,'none')
@@ -313,6 +317,7 @@ contains
    gn2       = 9.81*0.02*0.02 ! Only to be used in subgrid
    !
    qinf = qinf/(3600*1000)
+   qdrain_uniform = qdrain_uniform/(3600*1000)   ! Convert mm/hr to m/s
    !
    rotation = rotation*pi/180
    cosrot   = cos(rotation)

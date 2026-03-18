@@ -500,25 +500,11 @@ module sfincs_lib
          !
          call update_meteo_forcing(t, dt, tloopwnd2)
          !
-         ! Update infiltration
-         !
-         if (infiltration) then
-             !
-             ! Compute infiltration rates
-             !
-             call update_infiltration_map(dt, tloopinf)
-             !
-         endif
-         !
       endif   
       !
       ! Update boundary conditions
       !
       call update_boundaries(t, dt, tloopbnd)
-      !
-      ! Update discharges
-      !
-      call update_discharges(t, dt, tloopsrc)
       !
       if (snapwave .and. update_waves) then
          !
@@ -570,9 +556,9 @@ module sfincs_lib
          !
       endif
       !      
-      ! Update water levels
+      ! Update continuity (discharges, infiltration, drainage, water levels)
       !
-      call compute_water_levels(t, dt, tloopcont)
+      call update_continuity(t, dt, tloopsrc, tloopinf, tloopcont)
       !
       ! OUTPUT
       !      

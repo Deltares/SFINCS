@@ -1214,7 +1214,7 @@ contains
       !$acc parallel, present( tauwu, tauwv,  tauwu0, tauwv0, tauwu1, tauwv1, &
       !$acc                    windu, windv, windu0, windv0, windu1, windv1, windmax, &
       !$acc                    patm, patm0, patm1, &
-      !$acc                    prcp, prcp0, prcp1, cumprcp, netprcp, &
+      !$acc                    prcp, prcp0, prcp1, cumprcp, &
       !$acc                    zs, zb, z_volume )
       !$acc loop gang vector
       do nm = 1, np
@@ -1262,7 +1262,6 @@ contains
                  endif            
             endif
             !
-            netprcp(nm) = prcp(nm)            
             cumprcp(nm) = cumprcp(nm) + prcp(nm) * dt
             !
          endif   
@@ -1282,40 +1281,38 @@ contains
          !$omp parallel &
          !$omp private ( nm )
          !$omp do
-         !$acc parallel, present( tauwu, tauwv, patm, prcp, netprcp, zs, zb, z_volume )
+         !$acc parallel, present( tauwu, tauwv, patm, prcp, zs, zb, z_volume )
          !$acc loop gang vector
          do nm = 1, np
             !
             if (wind) then
                tauwu(nm) = tauwu(nm) * smfac
                tauwv(nm) = tauwv(nm) * smfac
-            endif   
+            endif
             !
             if (patmos) then
                patm(nm)  =patm(nm) * smfac + gapres * oneminsmfac
-            endif   
+            endif
             !
             if (precip) then
-               !  
-               netprcp(nm) = netprcp(nm) * smfac
-               !  
-               ! Don't allow negative netprcp during spinup (e.g. hardfixing infiltration/evaporation on model when forcing effective rainfall) when there's no water in the cell (same as check for constant infiltration)
-               !  
-               if (netprcp(nm) < 0.0) then
-                  !  
-                  ! No effective infiltration if there is no water
-                  !  
+               !
+               prcp(nm) = prcp(nm) * smfac
+               !
+               ! Don't allow negative precip during spinup when there's no water in the cell
+               !
+               if (prcp(nm) < 0.0) then
+                  !
                   if (subgrid) then
                      if (z_volume(nm) <= 0.0) then
-                        netprcp(nm) = 0.0
+                        prcp(nm) = 0.0
                      endif
                   else
                      if (zs(nm) <= zb(nm)) then
-                        netprcp(nm) = 0.0
+                        prcp(nm) = 0.0
                      endif
-                  endif            
-                  !  
-               endif               
+                  endif
+                  !
+               endif
             endif   
             !
          enddo   
@@ -1465,12 +1462,11 @@ contains
    !$omp parallel &
    !$omp private ( nm )
    !$omp do
-   !$acc parallel present( prcp, cumprcp, netprcp )
+   !$acc parallel present( prcp, cumprcp )
    !$acc loop gang vector
    do nm = 1, np
       !
       prcp(nm)    = ptmp
-      netprcp(nm) = ptmp
       !
       if (store_cumulative_precipitation) then
          cumprcp(nm) = cumprcp(nm) + ptmp * dt
