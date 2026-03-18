@@ -98,8 +98,8 @@ module sfincs_timestep_analysis
    ! Copy arrays from GPU to CPU
    !
    !$acc update host(timestep_analysis_average_required_timestep)
-   !$acc update host(times_wet)
-   !$acc update host(times_limiting)       
+   !$acc update host(timestep_analysis_times_wet)
+   !$acc update host(timestep_analysis_times_limiting)       
    !
    do nm = 1, np
       !
