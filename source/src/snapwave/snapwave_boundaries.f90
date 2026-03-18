@@ -26,7 +26,7 @@ contains
    update_grid_boundary_points = .true.
    itwbndlast = 2
    !
-   if (snapwave_jonswapfile /= '') then
+   if (snapwave_jonswapfile /= 'none') then
       !
       ! Read data from timeseries in single point
       !
@@ -34,7 +34,7 @@ contains
       !  
       call read_boundary_data_singlepoint()
       !
-   elseif (netsnapwavefile /= '') then
+   elseif (netsnapwavefile /= 'none') then
       ! 
       ! Read space- and time-varying data from netcdf file
       !       
