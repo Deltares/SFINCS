@@ -34,7 +34,7 @@ contains
    !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
    !$acc               x73, &
    !$acc               gnapp2, &
-   !$acc               min_timestep, average_timestep, times_wet, times_limiting, &   
+   !$acc               timestep_analysis_average_required_timestep_per_cell, timestep_analysis_percentage_limiting_per_cell, timestep_analysis_times_wet, timestep_analysis_times_limiting, &   
    !$acc               qinffield, qinfmap, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, &
    !$acc               ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, horton_kd, horton_fc, horton_f0 )
    !
@@ -64,7 +64,7 @@ contains
    !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
    !$acc               x73, &
    !$acc               gnapp2, &
-   !$acc               min_timestep, average_timestep, times_wet, times_limiting, &  
+   !$acc               timestep_analysis_average_required_timestep_per_cell, timestep_analysis_percentage_limiting_per_cell, timestep_analysis_times_wet, timestep_analysis_times_limiting, &  
    !$acc               qinffield, qinfmap, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, &
    !$acc               ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, horton_kd, horton_fc, horton_f0 )
    !

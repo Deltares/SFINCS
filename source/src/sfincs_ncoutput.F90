@@ -3671,7 +3671,7 @@ contains
    !
    subroutine ncoutput_write_timestep_analysis()
    !
-   ! Write timestep_analysis_average_required_timestep and times_limiting once at end of simulation (no time dimension)
+   ! Write timestep_analysis_average_required_timestep and timestep_analysis_percentage_limiting_per_cell once at end of simulation (no time dimension)
    !
    use sfincs_data
    use quadtree
