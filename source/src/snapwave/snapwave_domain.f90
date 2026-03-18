@@ -57,7 +57,7 @@ contains
       !
       call read_snapwave_ascii_mesh()
       !
-   elseif (mskfile/='') then
+   elseif (mskfile/='none') then
       !
       ! Read structured index and mask files (same as SFINCS regular grid input)
       !
