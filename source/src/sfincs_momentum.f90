@@ -146,7 +146,7 @@ contains
    !$acc                    uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc                    uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
    !$acc                    zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, &
-   !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, gnapp2, x73 ) num_gangs( 1024 ) vector_length( 128 )
+   !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, gnapp2, x73, timestep_analysis_required_timestep ) num_gangs( 1024 ) vector_length( 128 )
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
