@@ -131,7 +131,7 @@ Possible problems can be:
 
 * In general the internal timesteps of SFINCS might be too large. Possible solution: reduce timesteps by supplying a lower value of alpha (e.g. 0.5), set a higher value for 'hmin_cfl' or set a low enough value of 'dtmax'.
 
-* To analyze which locations are limiting the global timestep, enable `timestep_diagnostics = 1` in `sfincs.inp` to write variables `average_required_timestep` and `percentage_limiting_timestep` to the sfincs_map.nc file.
+* To analyze which locations are limiting the global timestep, enable `timestep_analysis = 1` in `sfincs.inp` to write variables `average_required_timestep` and `percentage_limiting_timestep` to the sfincs_map.nc file. See the Timestep analysis section in the Model settings for more details.
 
 * When only forcing discharges in a for the rest entirely dry domain, the initial time steps can be too coarse to account for the needed timesteps when the discharge starts to flow. Possible solution: Make sure that part of the river/domain initially has water (limiting the time step) by specifying either 'zsini' or an 'inifile'.
 
@@ -236,8 +236,8 @@ In case of netcdf output, the given parameters mean the following:
 	  :units:		s	
 	average_dt
 	  :description:		Model average timestep in seconds, as displayed by SFINCS to the screen.
-	  :units:		s	
-	  
+	  :units:		s
+
 Parameters netcdf file observation points (sfincs_his.nc)
 -----	
 
