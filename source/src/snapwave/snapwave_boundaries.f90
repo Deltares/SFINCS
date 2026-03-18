@@ -26,7 +26,7 @@ contains
    update_grid_boundary_points = .true.
    itwbndlast = 2
    !
-   if (snapwave_jonswapfile /= '') then
+   if (snapwave_jonswapfile /= 'none') then
       !
       ! Read data from timeseries in single point
       !
@@ -34,7 +34,7 @@ contains
       !  
       call read_boundary_data_singlepoint()
       !
-   elseif (netsnapwavefile /= '') then
+   elseif (netsnapwavefile /= 'none') then
       ! 
       ! Read space- and time-varying data from netcdf file
       !       
@@ -480,7 +480,7 @@ subroutine update_boundary_conditions(t)
    !
    ! Update boundary conditions at boundary points
    !
-   call update_boundary_points(t)
+   call update_boundary_points(t, .false.)
    !
    ! Update wind forcing 
    !
@@ -491,6 +491,7 @@ subroutine update_boundary_conditions(t)
    ! Make directional grid around boundary mean wave/wind direction
    !
    thetamean = wdmean_bwv
+   !
    if (wind) then
       ! 
       thetamean=u10dmean
@@ -517,7 +518,7 @@ subroutine update_boundary_conditions(t)
    !
 end subroutine   
    
-subroutine update_boundary_points(t)
+subroutine update_boundary_points(t, just_time_series)
    !
    ! Update vardens at boundary points
    !
@@ -533,7 +534,7 @@ subroutine update_boundary_points(t)
    real*4  :: tbfac
    real*4  :: hs, tps, wd, dsp, zst, thetamin, thetamax, E0, ms, modth, E0_ig
    real*4  :: hlocal
-   logical :: always_update_bnd_spec
+   logical :: always_update_bnd_spec, just_time_series
    !
    always_update_bnd_spec = .true.
    !
@@ -617,6 +618,14 @@ subroutine update_boundary_points(t)
       !
    enddo
    !
+   if (just_time_series) then
+      !
+      ! Probably running SFINCS in bathtub mode
+      !
+      return
+      !
+   endif   
+   !
 !   do itb = itwbndlast, ntwbnd ! Loop in time
 !      !
 !      if (t_bwv(itb)>t) then
@@ -650,6 +659,7 @@ subroutine update_boundary_points(t)
    !
    ! Average wave period and direction to determine theta grid
    !
+   hsmean_bwv = sum(hst_bwv) / size(hst_bwv)
    tpmean_bwv = sum(tpt_bwv)/size(tpt_bwv)
    !zsmean_bwv = sum(zst_bwv)/size(zst_bwv)
    !depth      = max(zsmean_bwv - zb,hmin) ! TL: For SFINCS we don't want this, because it overrides the real updated water depth we're inserting
