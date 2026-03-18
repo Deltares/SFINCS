@@ -1,7 +1,7 @@
 --- !Missed
 Pass:            sdagisel
 Name:            FastISelFailure
-DebugLoc:        { File: 'D:\Git\SFINCS\main\SFINCS\source\src\sfincs.f90', 
+DebugLoc:        { File: 'C:\Users\leijnse\repos\SFINCS\source\src\sfincs.f90', 
                    Line: 1, Column: 0 }
 Function:        MAIN__
 Args:
@@ -11,12 +11,14 @@ Args:
 --- !Analysis
 Pass:            prologepilog
 Name:            StackSize
-DebugLoc:        { File: 'D:\Git\SFINCS\main\SFINCS\source\src\sfincs.f90', 
+DebugLoc:        { File: 'C:\Users\leijnse\repos\SFINCS\source\src\sfincs.f90', 
                    Line: 1, Column: 0 }
 Function:        MAIN__
 Args:
-  - NumStackBytes:   '1128'
-  - String:          ' stack bytes in function'
+  - NumStackBytes:   '104'
+  - String:          ' stack bytes in function '''
+  - Function:        MAIN__
+  - String:          ''''
 ...
 --- !Analysis
 Pass:            asm-printer
@@ -34,12 +36,12 @@ Args:
 --- !Analysis
 Pass:            asm-printer
 Name:            InstructionMix
-DebugLoc:        { File: 'D:\Git\SFINCS\main\SFINCS\source\src\sfincs.f90', 
-                   Line: 15, Column: 0 }
+DebugLoc:        { File: 'C:\Users\leijnse\repos\SFINCS\source\src\sfincs.f90', 
+                   Line: 18, Column: 0 }
 Function:        MAIN__
 Args:
   - String:          'BasicBlock: '
-  - BasicBlock:      call.pre.list7_then
+  - BasicBlock:      bb_new6_then
   - String:          "\n"
   - String:          ''
   - String:          ': '
@@ -62,8 +64,8 @@ Args:
 --- !Analysis
 Pass:            asm-printer
 Name:            InstructionMix
-DebugLoc:        { File: 'D:\Git\SFINCS\main\SFINCS\source\src\sfincs.f90', 
-                   Line: 18, Column: 0 }
+DebugLoc:        { File: 'C:\Users\leijnse\repos\SFINCS\source\src\sfincs.f90', 
+                   Line: 25, Column: 0 }
 Function:        MAIN__
 Args:
   - String:          'BasicBlock: '
@@ -77,8 +79,8 @@ Args:
 --- !Analysis
 Pass:            asm-printer
 Name:            InstructionMix
-DebugLoc:        { File: 'D:\Git\SFINCS\main\SFINCS\source\src\sfincs.f90', 
-                   Line: 19, Column: 0 }
+DebugLoc:        { File: 'C:\Users\leijnse\repos\SFINCS\source\src\sfincs.f90', 
+                   Line: 29, Column: 0 }
 Function:        MAIN__
 Args:
   - String:          'BasicBlock: '
@@ -105,8 +107,8 @@ Args:
 --- !Analysis
 Pass:            asm-printer
 Name:            InstructionMix
-DebugLoc:        { File: 'D:\Git\SFINCS\main\SFINCS\source\src\sfincs.f90', 
-                   Line: 24, Column: 0 }
+DebugLoc:        { File: 'C:\Users\leijnse\repos\SFINCS\source\src\sfincs.f90', 
+                   Line: 35, Column: 0 }
 Function:        MAIN__
 Args:
   - String:          'BasicBlock: '
@@ -120,7 +122,7 @@ Args:
 --- !Analysis
 Pass:            asm-printer
 Name:            InstructionCount
-DebugLoc:        { File: 'D:\Git\SFINCS\main\SFINCS\source\src\sfincs.f90', 
+DebugLoc:        { File: 'C:\Users\leijnse\repos\SFINCS\source\src\sfincs.f90', 
                    Line: 1, Column: 0 }
 Function:        MAIN__
 Args:
