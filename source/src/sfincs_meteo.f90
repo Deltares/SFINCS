@@ -132,8 +132,6 @@ contains
    !
    if (amufile(1:4) /= 'none') then    
       !
-      am_wind = .true.      
-      !
       call write_log('Info    : reading amu and amv file', 0)
       !
       ok = check_file_exists(amufile, 'Meteo ascii wind amu file', .true.)
@@ -171,8 +169,6 @@ contains
    ! 
    if (amprfile(1:4) /= 'none') then
       !
-      am_prcp = .true.
-      !
       call write_log('Info    : reading ampr file', 0)
       !  
       ok = check_file_exists(amprfile, 'Meteo ascii rainfall ampr file', .true.)
@@ -204,8 +200,6 @@ contains
    endif
    !
    if (ampfile(1:4) /= 'none') then
-      !
-      am_pres = .true.
       !
       call write_log('Info    : reading amp file', 0)
       !  
