@@ -27,6 +27,7 @@ contains
       real*4     :: huv
       real*4     :: zsuv   
       ! 
+      integer :: nchar      
       logical   :: iok
       character*256 :: varname      
       !
