@@ -31,15 +31,9 @@
 		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
 			<Filter Name="snapwave">
 				<File RelativePath="..\src\snapwave\interp.F90"/>
-<<<<<<< 267-timestep-analysis-output
-				<File RelativePath="..\src\snapwave\snapwave_boundaries.f90"/>
-				<File RelativePath="..\src\snapwave\snapwave_data.f90">
-				</File>
-=======
 				<File RelativePath="..\src\snapwave\snapwave_boundaries.f90">
 				</File>
 				<File RelativePath="..\src\snapwave\snapwave_data.f90"/>
->>>>>>> main
 				<File RelativePath="..\src\snapwave\snapwave_date.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_domain.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_infragravity.f90"/>
@@ -59,14 +53,9 @@
 			<File RelativePath="..\third_party_open\bicgstab\bicgstab_solver_ilu.f90"/>
 			<File RelativePath="..\third_party_open\utils\deg2utm.f90"/>
 			<File RelativePath="..\third_party_open\utils\geometry.f90"/>
-<<<<<<< 267-timestep-analysis-output
-			<File RelativePath="..\src\sfincs_boundaries.f90">
-			</File>
-=======
 			<File RelativePath="..\src\sfincs_bathtub.f90">
 			</File>
 			<File RelativePath="..\src\sfincs_boundaries.f90"/>
->>>>>>> main
 			<File RelativePath="..\src\sfincs_continuity.f90"/>
 			<File RelativePath="..\src\sfincs_crosssections.f90"/>
 			<File RelativePath="..\src\sfincs_data.f90">
@@ -77,19 +66,10 @@
 			</File>
 			<File RelativePath="..\src\sfincs_error.f90"/>
 			<File RelativePath="..\src\sfincs_infiltration.f90"/>
-<<<<<<< 267-timestep-analysis-output
-			<File RelativePath="..\src\sfincs_initial_conditions.F90">
-			</File>
-			<File RelativePath="..\src\sfincs_input.f90">
-			</File>
-			<File RelativePath="..\src\sfincs_lib.f90">
-			</File>
-=======
 			<File RelativePath="..\src\sfincs_initial_conditions.F90"/>
 			<File RelativePath="..\src\sfincs_input.f90">
 			</File>
 			<File RelativePath="..\src\sfincs_lib.f90"/>
->>>>>>> main
 			<File RelativePath="..\src\sfincs_log.f90"/>
 			<File RelativePath="..\src\sfincs_meteo.f90">
 			</File>
