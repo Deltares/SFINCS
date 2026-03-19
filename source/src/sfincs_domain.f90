@@ -45,6 +45,10 @@ contains
       !
    endif
    !
+   call set_advection_mask()
+   !
+   call fill_h73_tables()
+   !
    end subroutine
 
 
@@ -110,7 +114,7 @@ contains
    !
    ! Check for time-spatially varying meteo
    !
-   if (prcpfile(1:4) /= 'none' .or. spwfile(1:4) /= 'none' .or. amufile(1:4) /= 'none' .or. amprfile(1:4) /= 'none' .or. ampfile(1:4) /= 'none' .or. netampfile(1:4) /= 'none' .or. netamprfile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
+   if (spwfile(1:4) /= 'none' .or. amufile(1:4) /= 'none' .or. amprfile(1:4) /= 'none' .or. ampfile(1:4) /= 'none' .or. netampfile(1:4) /= 'none' .or. netamprfile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       meteo3d = .true.
       call write_log('Info    : using gridded meteo data', 0)
    endif
@@ -1435,7 +1439,7 @@ contains
          !
          if (iref>1) then
             !         
-            dyrinvc(iref) = 1.0*(3*dyrm(iref)/2)
+            dyrinvc(iref) = 1.0 / (3 * dyrm(iref) / 2)
             !
          endif   
          !
@@ -1486,19 +1490,19 @@ contains
       do iref = 1, nref
          !
          dxrm(iref)      = dxr(iref)
-         dxrinv(iref)    = 1.0/dxrm(iref)
+         dxrinv(iref)    = 1.0 / dxrm(iref)
          dxr2inv(iref)   = dxrinv(iref)**2
          !
          dyrm(iref)      = dyr(iref)
-         dyrinv(iref)    = 1.0/dyrm(iref)
+         dyrinv(iref)    = 1.0 / dyrm(iref)
          dyr2inv(iref)   = dyrinv(iref)**2
          !
          cell_area(iref) = dxrm(iref)*dyrm(iref)
          !
          if (iref>1) then
             !         
-            dxrinvc(iref) = 1.0/(3*dxrm(iref)/2)
-            dyrinvc(iref) = 1.0/(3*dyrm(iref)/2)
+            dxrinvc(iref) = 1.0 / (3 * dxrm(iref) / 2)
+            dyrinvc(iref) = 1.0 / (3 * dyrm(iref) / 2)
             !
          endif   
          !
@@ -2092,6 +2096,7 @@ contains
          !
          inftype = 'cnb'
          infiltration = .true.      
+         store_cumulative_precipitation = .true.
          !
       elseif (psifile /= 'none') then  
          !
@@ -2108,15 +2113,29 @@ contains
          infiltration   = .true.
          store_meteo    = .true.
          !
+      else
+         !
+         ! No infiltration
+         !
+         inftype        = 'non'
+         infiltration   = .false.
+         !         
       endif
       !
-      ! We need cumprcp and cuminf
+      ! This (initialize_infiltration) does not seem like the most logical place to initialize these variables.
+      ! Perhaps doing it in initialize_hydro makes more sense.
       !
-      allocate(cumprcp(np))
-      cumprcp = 0.0
-      !
-      allocate(cuminf(np))
-      cuminf = 0.0
+      if (store_cumulative_precipitation) then
+         !
+         ! We need cumprcp and cuminf
+         !
+         allocate(cumprcp(np))
+         cumprcp = 0.0
+         !
+         allocate(cuminf(np))
+         cuminf = 0.0
+         !
+      endif
       !
       ! Now allocate and read spatially-varying inputs 
       !
@@ -2139,19 +2158,19 @@ contains
          ! Note : qinf has already been converted to m/s in sfincs_input.f90 !
          !
          do nm = 1, np
-             if (subgrid) then
-                 if (subgrid_z_zmin(nm) > qinf_zmin) then
-                    qinffield(nm) = qinf
-                 else
-                    qinffield(nm) = 0.0
-                 endif
-             else
-                 if (zb(nm) > qinf_zmin) then
-                    qinffield(nm) = qinf
-                 else
-                    qinffield(nm) = 0.0
-                 endif
-             endif
+            if (subgrid) then
+               if (subgrid_z_zmin(nm) > qinf_zmin) then
+                  qinffield(nm) = qinf
+               else
+                  qinffield(nm) = 0.0
+               endif
+            else
+               if (zb(nm) > qinf_zmin) then
+                  qinffield(nm) = qinf
+               else
+                  qinffield(nm) = 0.0
+               endif
+            endif
          enddo
          !
       elseif (inftype == 'c2d') then
@@ -2508,7 +2527,8 @@ contains
                   !
                   mask_adv(ip) = 0
                   !
-               endif  
+               endif
+               !  
             enddo 
             ! 
          endif

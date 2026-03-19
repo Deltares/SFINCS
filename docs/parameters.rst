@@ -229,6 +229,12 @@ More parameters for model input (only for advanced users)
 	  :units:		-
 	  :default:		9999.9
 	  :min:			0.0001
+	  :max:			9999.9	 
+	huvmin - added from SFINCS v2.3.1 onwards
+	  :description:		Minimum depth for calculating velocity (uv = q / max(hu, huvmin), used for output and advection
+	  :units:		-
+	  :default:		0.0
+	  :min:			0.0
 	  :max:			9999.9	  	  
 	dtmax
 	  :description:		Maximum allowed internal timestep.

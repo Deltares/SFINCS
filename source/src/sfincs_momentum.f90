@@ -714,9 +714,10 @@ contains
             !
             q(ip) = min(max(q(ip), - hu * uvlim), hu * uvlim)
             !
-            ! Compute velocity
+            ! Compute wet-averaged velocity. hu can become extremely small in subgrid mode,
+            ! so use huvmin to prevent unrealistically high velocities.
             !
-            uv(ip) = q(ip) / hu ! Store wet-averaged velocity
+            uv(ip) = q(ip) / max(hu, huvmin)
             !
             kfuv(ip) = 1
             !

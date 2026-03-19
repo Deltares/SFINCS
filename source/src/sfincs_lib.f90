@@ -270,10 +270,6 @@ module sfincs_lib
       !
    endif   
    !
-   call set_advection_mask()
-   !
-   call fill_h73_tables() 
-   !
    call system_clock(count1, count_rate, count_max)
    !
    tinput  = 1.0 * (count1 - count0) / count_rate

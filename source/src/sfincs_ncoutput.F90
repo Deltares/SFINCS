@@ -50,7 +50,7 @@ module sfincs_ncoutput
       integer :: drain_varid, drain_name_varid
       integer :: zb_varid
       integer :: time_varid
-      integer :: zs_varid, h_varid, u_varid, v_varid, prcp_varid, discharge_varid, uvmag_varid, uvdir_varid
+      integer :: zs_varid, h_varid, u_varid, v_varid, prcp_varid, cumprcp_varid, discharge_varid, uvmag_varid, uvdir_varid
       integer :: patm_varid, wind_speed_varid, wind_dir_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid  
       integer :: hm0_varid, hm0ig_varid, zsm_varid, tp_varid, tpig_varid, wavdir_varid, dirspr_varid
@@ -1948,12 +1948,24 @@ contains
          !
       endif
       !
-      if (precip) then      
+      if (precip) then
+         !
          NF90(nf90_def_var(his_file%ncid, 'point_prcp', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%prcp_varid)) ! time-varying prcp point 
          NF90(nf90_put_att(his_file%ncid, his_file%prcp_varid, '_FillValue', FILL_VALUE))   
          NF90(nf90_put_att(his_file%ncid, his_file%prcp_varid, 'units', 'mm hr-1'))
          NF90(nf90_put_att(his_file%ncid, his_file%prcp_varid, 'long_name', 'precipitation_rate'))        
          NF90(nf90_put_att(his_file%ncid, his_file%prcp_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         !
+         if (store_cumulative_precipitation) then
+            !
+            NF90(nf90_def_var(his_file%ncid, 'point_cumprcp', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%cumprcp_varid)) ! time-varying prcp point 
+            NF90(nf90_put_att(his_file%ncid, his_file%cumprcp_varid, '_FillValue', FILL_VALUE))   
+            NF90(nf90_put_att(his_file%ncid, his_file%cumprcp_varid, 'units', 'm'))
+            NF90(nf90_put_att(his_file%ncid, his_file%cumprcp_varid, 'long_name', 'cumulative_precipitation'))        
+            NF90(nf90_put_att(his_file%ncid, his_file%cumprcp_varid, 'coordinates', 'station_id station_name point_x point_y'))
+            !
+         endif
+         !
       endif
       ! 
    endif   
@@ -1971,10 +1983,10 @@ contains
    if (ndrn>0) then
       !
       NF90(nf90_def_var(his_file%ncid, 'drainage_discharge', NF90_FLOAT, (/his_file%drain_dimid, his_file%time_dimid/), his_file%drain_varid)) ! time-varying discharge through drainage structure
-      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, '_FillValue', FILL_VALUE))   
-      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'units', 'm3 s-1'))
-      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'long_name', 'discharge through drainage structure'))
-      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'coordinates', 'drainage_name'))
+      NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, 'units', 'm3 s-1'))
+      NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, 'long_name', 'discharge through drainage structure'))
+      NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, 'coordinates', 'drainage_name'))
       !
    endif   
    !   
@@ -2944,6 +2956,7 @@ contains
    real*4, dimension(nobs) :: uvmag   
    real*4, dimension(nobs) :: uvdir   
    real*4, dimension(nobs) :: tprcp
+   real*4, dimension(nobs) :: tcumprcp
    real*4, dimension(nobs) :: tqinf
    real*4, dimension(nobs) :: tS_effective
    real*4, dimension(nobs) :: tpatm
@@ -2976,6 +2989,7 @@ contains
    wavdirobs    = FILL_VALUE         
    dirsprobs    = FILL_VALUE         
    tprcp        = FILL_VALUE
+   tcumprcp     = FILL_VALUE
    tqinf        = FILL_VALUE
    tS_effective = FILL_VALUE
    tpatm        = FILL_VALUE
@@ -3011,27 +3025,32 @@ contains
             nmu1 = z_index_uv_mu(nm)
             ndm1 = z_index_uv_nd(nm)
             num1 = z_index_uv_mu(nm)
-            uz  = 0.5*(uv(nmd1) + uv(nmu1))
-            vz  = 0.5*(uv(ndm1) + uv(num1))
+            uz  = 0.5 * (uv(nmd1) + uv(nmu1))
+            vz  = 0.5 * (uv(ndm1) + uv(num1))
             !
-            uobs(iobs)  = cosrot*uz - sinrot*vz                         
-            vobs(iobs)  = sinrot*uz + cosrot*vz
+            uobs(iobs)  = cosrot * uz - sinrot * vz                         
+            vobs(iobs)  = sinrot * uz + cosrot * vz
             uvmag(iobs) = sqrt(uobs(iobs)**2 + vobs(iobs)**2)
-            uvdir(iobs) = atan2(vobs(iobs), uobs(iobs))*180/pi
+            uvdir(iobs) = atan2(vobs(iobs), uobs(iobs)) * 180 / pi
             !
          endif
          !
          if (infiltration) then
             !
-            tqinf(iobs) = qinfmap(nm)*3.6e3*1.0e3 ! show as mm/hr
+            tqinf(iobs) = qinfmap(nm) * 3600000 ! show as mm/hr
             ! 
             ! Output for CN and GA method
             !
             if (inftype == 'cnb') then
+               !
                tS_effective(iobs) = scs_Se(nm)
+               !
             elseif (inftype == 'gai') then
+               !
                tS_effective(iobs) = GA_sigma(nm)
+               !
             endif
+            !
          endif  
          !
          if (store_meteo) then
@@ -3039,9 +3058,9 @@ contains
             if (wind) then
                !
                twndmag(iobs) = sqrt(windu(nm)**2 + windv(nm)**2)
-               twnddir(iobs) = 270.0 - atan2(windv(nm), windu(nm))*180/pi
-               if (twnddir(iobs)<0.0) twnddir(iobs) = twnddir(iobs) + 360.0
-               if (twnddir(iobs)>360.0) twnddir(iobs) = twnddir(iobs) - 360.0
+               twnddir(iobs) = 270.0 - atan2(windv(nm), windu(nm)) * 180 / pi
+               if (twnddir(iobs) < 0.0) twnddir(iobs) = twnddir(iobs) + 360.0
+               if (twnddir(iobs) > 360.0) twnddir(iobs) = twnddir(iobs) - 360.0
                !
             endif   
             !
@@ -3053,7 +3072,13 @@ contains
             !
             if (precip) then
                !
-               tprcp(iobs) = prcp(nm)*3600000 ! show as mm/hr
+               tprcp(iobs) = prcp(nm) * 3600000 ! show as mm/hr
+               !
+               if (store_cumulative_precipitation) then
+                  !
+                  tcumprcp(iobs) = cumprcp(nm) ! show as m
+                  !
+               endif   
                !
             endif
             !         
@@ -3175,6 +3200,12 @@ contains
       if (precip) then
          !
          NF90(nf90_put_var(his_file%ncid, his_file%prcp_varid, tprcp, (/1, nthisout/))) ! write prcp
+         !
+         if (store_cumulative_precipitation) then
+            !
+            NF90(nf90_put_var(his_file%ncid, his_file%cumprcp_varid, tcumprcp, (/1, nthisout/))) ! write cumulative prcp
+            !
+         endif   
          !
       endif
       !   
