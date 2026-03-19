@@ -1909,7 +1909,7 @@ contains
          NF90(nf90_put_att(his_file%ncid, his_file%prcp_varid, 'long_name', 'precipitation_rate'))        
          NF90(nf90_put_att(his_file%ncid, his_file%prcp_varid, 'coordinates', 'station_id station_name point_x point_y'))
          !
-         if (storecumprcp) then
+         if (store_cumulative_precipitation) then
             !
             NF90(nf90_def_var(his_file%ncid, 'point_cumprcp', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%cumprcp_varid)) ! time-varying prcp point 
             NF90(nf90_put_att(his_file%ncid, his_file%cumprcp_varid, '_FillValue', FILL_VALUE))   
@@ -3027,7 +3027,7 @@ contains
                !
                tprcp(iobs) = prcp(nm) * 3600000 ! show as mm/hr
                !
-               if (storecumprcp) then
+               if (store_cumulative_precipitation) then
                   !
                   tcumprcp(iobs) = cumprcp(nm) ! show as m
                   !
@@ -3154,7 +3154,7 @@ contains
          !
          NF90(nf90_put_var(his_file%ncid, his_file%prcp_varid, tprcp, (/1, nthisout/))) ! write prcp
          !
-         if (storecumprcp) then
+         if (store_cumulative_precipitation) then
             !
             NF90(nf90_put_var(his_file%ncid, his_file%cumprcp_varid, tcumprcp, (/1, nthisout/))) ! write cumulative prcp
             !
