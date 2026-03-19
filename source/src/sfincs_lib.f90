@@ -95,7 +95,7 @@ module sfincs_lib
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
    build_revision = "$Rev: v2.3.1 mt. Faber+:branch267"
-   build_date     = "$Date: 2026-03-18"
+   build_date     = "$Date: 2026-03-19"
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)
@@ -586,6 +586,12 @@ module sfincs_lib
          ! First compute fluxes
          !
          call compute_fluxes(dt, tloopflux)
+         !
+         if (timestep_analysis) then
+             !
+             call timestep_analysis_update(min_dt)
+             !
+         endif           
          !
          if (wavemaker) then
             !
