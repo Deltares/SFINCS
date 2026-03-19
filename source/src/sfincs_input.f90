@@ -213,8 +213,8 @@ contains
    call read_char_input(500,'netampfile',netampfile,'none')      
    call read_char_input(500,'netspwfile',netspwfile,'none')
    !
-   call read_char_input(500,'infiltrationfile',infiltrationfile,'none')   
-   call read_char_input(500,'infiltrationtype',inftype,'none')
+   call read_char_input(500,'infiltration_file',infiltrationfile,'none')   
+   call read_char_input(500,'infiltration_type',inftype,'none')
    !
    ! Output
    call read_char_input(500,'obsfile',obsfile,'none')
