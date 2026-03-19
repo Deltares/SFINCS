@@ -160,6 +160,7 @@ module sfincs_data
       character*256 :: netampfile
       character*256 :: netamprfile
       character*256 :: netspwfile
+      character*256 :: infiltrationfile      
       character*256 :: scsfile
       character*256 :: smaxfile
       character*256 :: sefffile
@@ -225,6 +226,7 @@ module sfincs_data
       logical       :: write_time_output
       logical       :: bziwaves
       logical       :: infiltration
+      LOGICAL       :: netcdf_infiltration
       logical       :: debug
       logical       :: radstr
       logical       :: crsgeo
