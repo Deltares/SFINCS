@@ -35,7 +35,7 @@ module sfincs_timestep_analysis
       !$omp parallel &
       !$omp private ( ip )
       !$omp do
-      !$acc parallel, present( timestep_analysis_average_required_timestep, timestep_analysis_required_timestep, timestep_analysis_times_wet, timestep_analysis_times_limiting, kcuv)
+      !$acc parallel, present( timestep_analysis_average_required_timestep, timestep_analysis_required_timestep, timestep_analysis_times_wet, timestep_analysis_times_limiting, kcuv, kfuv)
       !$acc loop gang vector
       !
       do ip = 1, npuv
