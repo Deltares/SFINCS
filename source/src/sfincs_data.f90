@@ -139,7 +139,6 @@ module sfincs_data
       character*256 :: drnfile
       character*256 :: zsinifile
       character*256 :: rstfile
-      character*256 :: ncinifile
       character*256 :: indexfile
       character*256 :: bindepfile
       character*256 :: binmskfile
@@ -162,6 +161,7 @@ module sfincs_data
       character*256 :: netampfile
       character*256 :: netamprfile
       character*256 :: netspwfile
+      character*256 :: infiltrationfile      
       character*256 :: scsfile
       character*256 :: smaxfile
       character*256 :: sefffile
@@ -227,6 +227,7 @@ module sfincs_data
       logical       :: write_time_output
       logical       :: bziwaves
       logical       :: infiltration
+      LOGICAL       :: netcdf_infiltration
       logical       :: debug
       logical       :: radstr
       logical       :: crsgeo
@@ -378,6 +379,7 @@ module sfincs_data
       real*4,             dimension(:),   allocatable, target :: z_yz
       real*4,             dimension(:),   allocatable :: cell_area_m2
       real*4,             dimension(:),   allocatable :: nuvisc      
+      real*4,             dimension(:),   allocatable :: rghfield      
       !
       ! UV-points
       !

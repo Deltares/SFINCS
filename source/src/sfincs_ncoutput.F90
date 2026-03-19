@@ -23,6 +23,7 @@ module sfincs_ncoutput
       integer :: fwx_varid, fwy_varid, beta_varid, snapwavedepth_varid
       integer :: zsm_varid, tsunami_arrival_time_varid, average_required_timestep_varid, percentage_limiting_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid
+      integer :: manning_varid
       integer :: pnonh_varid
       integer :: subgridslope_varid
       !
@@ -239,6 +240,16 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'standard_name', 'altitude'))
       NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'long_name', 'bed_level_above_reference_level'))   
       NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'coordinates', 'x y'))   
+   endif
+   !
+   if (.not. subgrid) then
+      NF90(nf90_def_var(map_file%ncid, 'manning', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid/), map_file%manning_varid)) ! bed level in cell centre
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%manning_varid, 1, 1, nc_deflate_level)) ! deflate
+      NF90(nf90_put_att(map_file%ncid, map_file%manning_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(map_file%ncid, map_file%manning_varid, 'units', 's/m^1/3'))
+      NF90(nf90_put_att(map_file%ncid, map_file%manning_varid, 'standard_name', 'manning'))
+      NF90(nf90_put_att(map_file%ncid, map_file%manning_varid, 'long_name', 'manning_roughness'))   
+      NF90(nf90_put_att(map_file%ncid, map_file%manning_varid, 'coordinates', 'x y'))                               
    endif
    !
    if (subgrid .and. store_hsubgrid .and. store_hmean) then
@@ -793,6 +804,25 @@ contains
       !
    endif
    !
+   ! Write Manning (only non-subgrid model)
+   !
+   if (.not. subgrid .and. manning2d) then
+      ! 
+      zsg = FILL_VALUE       
+      !
+      do nm = 1, np
+         !
+         n    = z_index_z_n(nm)
+         m    = z_index_z_m(nm)
+         !      
+         zsg(m, n) = rghfield(nm) ! gn2uv is on uv-points, but rghfield is in center         
+         !
+      enddo
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%manning_varid, zsg, (/1, 1/)))    
+      !                              
+   endif
+   !
    ! Write infiltration map
    !
    if (infiltration) then
@@ -839,7 +869,7 @@ contains
    !
    implicit none   
    !   
-   integer    :: nm, nmq, n, m, nn, ntmx, n_nodes, n_faces, iref
+   integer    :: nm, nmq, nmu1, num1, n, m, nn, ntmx, n_nodes, n_faces, iref
    real*4     :: dxx, dyy
    !
    real,      dimension(:),   allocatable :: nodes_x
@@ -1001,6 +1031,17 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'units', 'm'))
    NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'standard_name', 'altitude'))
    NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'long_name', 'bed_level_above_reference_level'))   
+   !
+   if (.not. subgrid) then
+      !
+      NF90(nf90_def_var(map_file%ncid, 'manning', NF90_FLOAT, (/map_file%nmesh2d_face_dimid/), map_file%manning_varid)) ! bed level in cell centre
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%manning_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%manning_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(map_file%ncid, map_file%manning_varid, 'units', 's/m^1/3'))
+      NF90(nf90_put_att(map_file%ncid, map_file%manning_varid, 'standard_name', 'manning'))
+      NF90(nf90_put_att(map_file%ncid, map_file%manning_varid, 'long_name', 'manning_roughness'))       
+      !
+   endif
    !
    if (subgrid .and. store_hsubgrid .and. store_hmean) then
       !
@@ -1510,6 +1551,28 @@ contains
       !
    endif
    !   
+   ! Write Manning (only non-subgrid model)
+   !   
+   if (.not. subgrid .and. manning2d) then
+      !
+      vtmp = FILL_VALUE
+      !
+      do nmq = 1, quadtree_nr_points
+         !
+         nm = index_sfincs_in_quadtree(nmq)
+         !
+         if (nm>0) then
+            ! 
+            vtmp(nmq) = rghfield(nm) ! gn2uv is on uv-points, but rghfield is in center  
+            !
+         endif    
+         ! 
+      enddo 
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%manning_varid, vtmp))  
+      !
+   endif
+   !
    ! Write infiltration map
    !   
    vtmp = FILL_VALUE

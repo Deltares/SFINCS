@@ -155,7 +155,6 @@ contains
    call read_char_input(500,'depfile',depfile,'none')
    call read_char_input(500,'inifile',zsinifile,'none')
    call read_char_input(500,'rstfile',rstfile,'none')
-   call read_char_input(500,'ncinifile',ncinifile,'none')
    call read_char_input(500,'mskfile',mskfile,'none')
    call read_char_input(500,'indexfile',indexfile,'none')
    call read_char_input(500,'cstfile',cstfile,'none')
@@ -212,7 +211,10 @@ contains
    call read_char_input(500,'netamuamvfile',netamuamvfile,'none')                  
    call read_char_input(500,'netamprfile',netamprfile,'none')      
    call read_char_input(500,'netampfile',netampfile,'none')      
-   call read_char_input(500,'netspwfile',netspwfile,'none')      
+   call read_char_input(500,'netspwfile',netspwfile,'none')
+   !
+   call read_char_input(500,'infiltration_file',infiltrationfile,'none')   
+   call read_char_input(500,'infiltration_type',inftype,'none')
    !
    ! Output
    call read_char_input(500,'obsfile',obsfile,'none')
