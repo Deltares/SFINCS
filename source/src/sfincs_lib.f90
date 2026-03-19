@@ -23,8 +23,10 @@ module sfincs_lib
    use sfincs_snapwave
    use sfincs_wavemaker
    use sfincs_nonhydrostatic
+   use sfincs_bathtub
    use sfincs_openacc
    use sfincs_log
+   use sfincs_timestep_analysis
    !
    implicit none
    !
@@ -92,8 +94,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.3.1 mt. Faber+branch-272"
-   build_date     = "$Date: 2026-03-06"
+   build_revision = "$Rev: v2.3.2-alpha mt. Faber+"
+   build_date     = "$Date: 2026-03-19"
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)
@@ -140,8 +142,13 @@ module sfincs_lib
    call write_log('Reading input file ...', 0) 
    call read_sfincs_input()     ! Reads sfincs.inp
    !
-   call write_log('Reading meteo data ...', 0) 
-   call read_meteo_data()       ! Reads meteo data (amu, amv, spw file etc.)
+   if (.not. bathtub) then
+      !
+      call write_log('Reading meteo data ...', 0)
+      !
+      call read_meteo_data()       ! Reads meteo data (amu, amv, spw file etc.)
+      !
+   endif   
    !
    call write_log('Preparing domain ...', 0) 
    call initialize_domain()     ! Reads dep, msk, index files, creates index, flag and depth arrays, initializes hydro quantities
@@ -175,6 +182,14 @@ module sfincs_lib
       call read_wavemaker_polylines()
       !
    endif
+   !
+   if (bathtub) then
+      !
+      call write_log('Initialize bathtub mode ...', 0) 
+      !
+      call initialize_bathtub()
+      !
+   endif   
    !
    call write_log('', 1)   
    call write_log('------------------------------------------', 1)
@@ -240,6 +255,11 @@ module sfincs_lib
    else
       ! call write_log('Non-hydrostatic         : no', 1)
    endif   
+   if (bathtub) then
+      call write_log('Bathtub              : yes', 1)
+   else
+      ! call write_log('Bathtub              : no', 1)
+   endif   
    call write_log('------------------------------------------', 1) 
    call write_log('', 1)   
    !
@@ -249,10 +269,6 @@ module sfincs_lib
       call couple_snapwave(crsgeo)
       !
    endif   
-   !
-   call set_advection_mask()
-   !
-   call fill_h73_tables() 
    !
    call system_clock(count1, count_rate, count_max)
    !
@@ -324,7 +340,7 @@ module sfincs_lib
    integer                       :: ierr
    real*8                        :: tend !< end of update interval
    real*4                        :: dtchk !< dt to check for instability
-   logical                       :: single_time_step 
+   logical                       :: single_time_step
    !
    ierr = 0
    !
@@ -374,6 +390,19 @@ module sfincs_lib
       nt = nt + 1
       dt = alfa * min_dt ! min_dt was computed in sfincs_momentum.f90 without alfa
       dtchk = alfa * min_dt
+      !
+      if (bathtub) then
+         !
+         ! In bathtub mode, use fixed time step
+         !
+         if (nt > 1) then
+            !
+            dt = bathtub_dt
+            dtchk = bathtub_dt
+            !
+         endif   
+         !
+      endif
       !
       ! A bit unclear why this happens, but large jumps in the time step lead to weird oscillations.
       ! In the 'original' sfincs v11 version, this behavior was supressed by the use of theta.
@@ -438,7 +467,7 @@ module sfincs_lib
       !
       ! Check whether history output is required at this time step
       !
-      if (t>=thisout) then
+      if (t >= thisout) then
          !
          write_his = .true.
          nthisout  = nthisout + 1
@@ -447,7 +476,7 @@ module sfincs_lib
          !
       endif
       !
-      if (debug .and. t>=t0out) then
+      if (debug .and. t >= t0out) then
          !
          ! Write every time step to map and his file when in debug mode
          !
@@ -540,39 +569,55 @@ module sfincs_lib
          !
       endif   
       !
-      ! And now for the real computations !
-      !
-      ! First compute fluxes
-      !
-      call compute_fluxes(dt, tloopflux)
-      !
-      if (wavemaker) then
+      if (bathtub) then
          !
-         call update_wavemaker_fluxes(t, dt, tloopwavemaker)
-         !         
-      endif   
-      !
-      if (nrstructures>0) then
+         ! In bathtub mode, only update water levels based on boundary conditions
          !
-         call compute_fluxes_over_structures(tloopstruc)
+         call bathtub_compute_water_levels(tloopcont)
          !
-      endif
-      !      
-      if (nonhydrostatic) then
+      else
          !
-         if (t < nh_tstop) then ! Check if non-hydrostatic corrections still need to be made
+         ! And now for the real computations ! Unless we're in bathtub mode
+         !
+         ! First compute fluxes
+         !
+         call compute_fluxes(dt, tloopflux)
+         !
+         if (timestep_analysis) then
+             !
+             call timestep_analysis_update(min_dt)
+             !
+         endif           
+         !
+         if (wavemaker) then
             !
-            ! Apply non-hydrostatic pressure corrections to q and uv
-            !
-            call compute_nonhydrostatic(dt, tloopnonh)
-            !
+            call update_wavemaker_fluxes(t, dt, tloopwavemaker)
+            !         
          endif   
          !
-      endif
-      !      
-      ! Update water levels
-      !
-      call compute_water_levels(t, dt, tloopcont)
+         if (nrstructures>0) then
+            !
+            call compute_fluxes_over_structures(tloopstruc)
+            !
+         endif
+         !      
+         if (nonhydrostatic) then
+            !
+            if (t < nh_tstop) then ! Check if non-hydrostatic corrections still need to be made
+               !
+               ! Apply non-hydrostatic pressure corrections to q and uv
+               !
+               call compute_nonhydrostatic(dt, tloopnonh)
+               !
+            endif   
+            !
+         endif
+         !      
+         ! Update water levels
+         !
+         call compute_water_levels(t, dt, tloopcont)
+         !
+      endif   
       !
       ! OUTPUT
       !      
@@ -648,7 +693,13 @@ module sfincs_lib
    tstart_all = 0.0
    tfinish_all = 1.0 * (count1 - count00) / count_rate
    !
-   call finalize_output(t,ntmaxout,tloopoutput,tmaxout)
+   if (timestep_analysis) then
+      !
+      call timestep_analysis_finalize(nt)
+      !
+   endif     
+   !
+   call finalize_output(t, ntmaxout, tloopoutput, tmaxout)
    !
    call finalize_openacc() ! Exit data region
    !
@@ -719,10 +770,17 @@ module sfincs_lib
    call write_log(logstr, 1)
    !
    call write_log('', 1)
-   write(logstr,'(a,20f10.3)')           ' Average time step (s)  : ', dtavg
    !
+   write(logstr,'(a,20f10.3)')           ' Average time step (s)  : ', dtavg
    call write_log(logstr, 1)
+   !
    call write_log('', 1)
+   !
+   if (timestep_analysis) then
+      !
+      call timestep_analysis_write_log()
+      !
+   endif   
    !
    if (write_time_output) then
       open(123,file='runtimes.txt')
@@ -740,7 +798,7 @@ module sfincs_lib
       close(123)
    endif
    !
-   call write_log('---------- Closing off SFINCS -----------', 1)
+   call write_log('----------- Closing off SFINCS -----------', 1)
    !
    ! call finalize_parameters()
    !

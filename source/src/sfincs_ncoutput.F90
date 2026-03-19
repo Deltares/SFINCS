@@ -21,7 +21,7 @@ module sfincs_ncoutput
       integer :: patm_varid, wind_u_varid, wind_v_varid, precip_varid        
       integer :: hm0_varid, hm0ig_varid, snapwavemsk_varid, tp_varid, tpig_varid, wavdir_varid, dirspr_varid
       integer :: fwx_varid, fwy_varid, beta_varid, snapwavedepth_varid
-      integer :: zsm_varid, tsunami_arrival_time_varid
+      integer :: zsm_varid, tsunami_arrival_time_varid, average_required_timestep_varid, percentage_limiting_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid
       integer :: manning_varid
       integer :: pnonh_varid
@@ -51,7 +51,7 @@ module sfincs_ncoutput
       integer :: drain_varid, drain_name_varid
       integer :: zb_varid
       integer :: time_varid
-      integer :: zs_varid, h_varid, u_varid, v_varid, prcp_varid, discharge_varid, uvmag_varid, uvdir_varid
+      integer :: zs_varid, h_varid, u_varid, v_varid, prcp_varid, cumprcp_varid, discharge_varid, uvmag_varid, uvdir_varid
       integer :: patm_varid, wind_speed_varid, wind_dir_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid  
       integer :: hm0_varid, hm0ig_varid, zsm_varid, tp_varid, tpig_varid, wavdir_varid, dirspr_varid
@@ -465,8 +465,32 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'standard_name', 'maximum_flux')) ! no standard name available
       NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'long_name', 'maximum_flux')) 
       NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'cell_methods', 'time: maximum'))
-      NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'coordinates', 'x y'))      
-   endif   
+      NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'coordinates', 'x y'))
+   endif
+   !
+   if (timestep_analysis) then
+      !
+      ! Average time step (written once at end of simulation, no time dimension)
+      NF90(nf90_def_var(map_file%ncid, 'average_required_timestep', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid/), map_file%average_required_timestep_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%average_required_timestep_varid, 1, 1, nc_deflate_level)) ! deflate
+      NF90(nf90_put_att(map_file%ncid, map_file%average_required_timestep_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%average_required_timestep_varid, 'units', 's'))
+      NF90(nf90_put_att(map_file%ncid, map_file%average_required_timestep_varid, 'standard_name', 'average_required_timestep'))
+      NF90(nf90_put_att(map_file%ncid, map_file%average_required_timestep_varid, 'long_name', 'average_required_timestep'))
+      NF90(nf90_put_att(map_file%ncid, map_file%average_required_timestep_varid, 'cell_methods', 'time: average'))
+      NF90(nf90_put_att(map_file%ncid, map_file%average_required_timestep_varid, 'coordinates', 'x y'))
+      !
+      ! Times limiting (written once at end of simulation, no time dimension)
+      NF90(nf90_def_var(map_file%ncid, 'percentage_limiting_timestep', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid/), map_file%percentage_limiting_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%percentage_limiting_varid, 1, 1, nc_deflate_level)) ! deflate
+      NF90(nf90_put_att(map_file%ncid, map_file%percentage_limiting_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%percentage_limiting_varid, 'units', '%'))
+      NF90(nf90_put_att(map_file%ncid, map_file%percentage_limiting_varid, 'standard_name', 'percentage_limiting_timestep'))
+      NF90(nf90_put_att(map_file%ncid, map_file%percentage_limiting_varid, 'long_name', 'percentage_cell_was_limiting_timestep'))
+      NF90(nf90_put_att(map_file%ncid, map_file%percentage_limiting_varid, 'cell_methods', 'time: maximum'))
+      NF90(nf90_put_att(map_file%ncid, map_file%percentage_limiting_varid, 'coordinates', 'x y'))
+      !
+   endif
    !
    if (store_cumulative_precipitation) then
        NF90(nf90_def_var(map_file%ncid, 'cuminf', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%timemax_dimid/), map_file%cuminf_varid)) ! time-varying cumulative infiltration map
@@ -1186,7 +1210,7 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'standard_name', 'maximum_flux')) ! no standard name available
       NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'long_name', 'maximum_flux')) 
       NF90(nf90_put_att(map_file%ncid, map_file%qmax_varid, 'cell_methods', 'time: maximum'))
-   endif      
+   endif
    !
    ! Store cumulative rainfall 
    !
@@ -1365,7 +1389,7 @@ contains
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%tsunami_arrival_time_varid, 1, 1, nc_deflate_level)) ! deflate
       !
    endif
-   !   
+   !
    if (infiltration) then
        NF90(nf90_def_var(map_file%ncid, 'qinf', NF90_FLOAT, (/map_file%nmesh2d_face_dimid/), map_file%qinf_varid))
        NF90(nf90_def_var_deflate(map_file%ncid, map_file%qinf_varid, 1, 1, nc_deflate_level))
@@ -1404,7 +1428,30 @@ contains
       ! 
    endif
    !
-   ! Add for final output:
+   if (timestep_analysis) then
+      !
+      ! Average time step (written once at end of simulation, no time dimension)
+      NF90(nf90_def_var(map_file%ncid, 'average_required_timestep', NF90_FLOAT, (/map_file%nmesh2d_face_dimid/), map_file%average_required_timestep_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%average_required_timestep_varid, 1, 1, nc_deflate_level)) ! deflate
+      NF90(nf90_put_att(map_file%ncid, map_file%average_required_timestep_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%average_required_timestep_varid, 'units', 's'))
+      NF90(nf90_put_att(map_file%ncid, map_file%average_required_timestep_varid, 'standard_name', 'average_required_timestep'))
+      NF90(nf90_put_att(map_file%ncid, map_file%average_required_timestep_varid, 'long_name', 'average_required_timestep'))
+      !NF90(nf90_put_att(map_file%ncid, map_file%average_required_timestep_varid, 'cell_methods', 'time: average'))
+      !
+      ! Times limiting (written once at end of simulation, no time dimension)
+      NF90(nf90_def_var(map_file%ncid, 'percentage_limiting_timestep', NF90_FLOAT, (/map_file%nmesh2d_face_dimid/), map_file%percentage_limiting_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%percentage_limiting_varid, 1, 1, nc_deflate_level)) ! deflate
+      NF90(nf90_put_att(map_file%ncid, map_file%percentage_limiting_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%percentage_limiting_varid, 'units', '%'))
+      NF90(nf90_put_att(map_file%ncid, map_file%percentage_limiting_varid, 'standard_name', 'percentage_limiting_timestep'))
+      NF90(nf90_put_att(map_file%ncid, map_file%percentage_limiting_varid, 'long_name', 'percentage_cell_was_limiting_timestep'))
+      !NF90(nf90_put_att(map_file%ncid, map_file%percentage_limiting_varid, 'cell_methods', 'time: maximum'))
+      !
+   endif
+   !
+   ! Add for final output
+   !
    NF90(nf90_def_var(map_file%ncid, 'total_runtime', NF90_FLOAT, (/map_file%runtime_dimid/),map_file%total_runtime_varid))
    NF90(nf90_put_att(map_file%ncid, map_file%total_runtime_varid, 'units', 's'))   
    NF90(nf90_put_att(map_file%ncid, map_file%total_runtime_varid, 'long_name', 'total_model_runtime_in_seconds'))
@@ -1818,28 +1865,28 @@ contains
    !
    if (snapwave) then  
       !
-      NF90(nf90_def_var(his_file%ncid, 'hm0', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%hm0_varid)) ! time-varying water level point
+      NF90(nf90_def_var(his_file%ncid, 'point_hm0', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%hm0_varid)) ! time-varying water level point
       NF90(nf90_put_att(his_file%ncid, his_file%hm0_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(his_file%ncid, his_file%hm0_varid, 'units', 'm'))
       NF90(nf90_put_att(his_file%ncid, his_file%hm0_varid, 'standard_name', 'hm0_wave_height')) 
       NF90(nf90_put_att(his_file%ncid, his_file%hm0_varid, 'long_name', 'Hm0 wave height'))  
       NF90(nf90_put_att(his_file%ncid, his_file%hm0_varid, 'coordinates', 'station_id station_name point_x point_y'))
       !
-      NF90(nf90_def_var(his_file%ncid, 'hm0ig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%hm0ig_varid)) ! time-varying water level point
+      NF90(nf90_def_var(his_file%ncid, 'point_hm0ig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%hm0ig_varid)) ! time-varying water level point
       NF90(nf90_put_att(his_file%ncid, his_file%hm0ig_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(his_file%ncid, his_file%hm0ig_varid, 'units', 'm'))
       NF90(nf90_put_att(his_file%ncid, his_file%hm0ig_varid, 'standard_name', 'hm0_ig_wave_height')) 
       NF90(nf90_put_att(his_file%ncid, his_file%hm0ig_varid, 'long_name', 'Hm0 infragravity wave height'))  
       NF90(nf90_put_att(his_file%ncid, his_file%hm0ig_varid, 'coordinates', 'station_id station_name point_x point_y'))
       !
-      NF90(nf90_def_var(his_file%ncid, 'tp', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%tp_varid)) ! time-varying water level point
+      NF90(nf90_def_var(his_file%ncid, 'point_tp', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%tp_varid)) ! time-varying water level point
       NF90(nf90_put_att(his_file%ncid, his_file%tp_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(his_file%ncid, his_file%tp_varid, 'units', 's'))
       NF90(nf90_put_att(his_file%ncid, his_file%tp_varid, 'standard_name', 'peak_wave_period')) 
       NF90(nf90_put_att(his_file%ncid, his_file%tp_varid, 'long_name', 'Peak wave period'))  
       NF90(nf90_put_att(his_file%ncid, his_file%tp_varid, 'coordinates', 'station_id station_name point_x point_y'))
       !
-      NF90(nf90_def_var(his_file%ncid, 'tpig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%tpig_varid)) ! time-varying water level point
+      NF90(nf90_def_var(his_file%ncid, 'point_tpig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%tpig_varid)) ! time-varying water level point
       NF90(nf90_put_att(his_file%ncid, his_file%tpig_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(his_file%ncid, his_file%tpig_varid, 'units', 's'))
       NF90(nf90_put_att(his_file%ncid, his_file%tpig_varid, 'standard_name', 'ig_peak_wave_period')) 
@@ -1848,14 +1895,14 @@ contains
       !
       if (store_wave_direction) then
          !
-         NF90(nf90_def_var(his_file%ncid, 'wavdir', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%wavdir_varid)) ! time-varying water level point
+         NF90(nf90_def_var(his_file%ncid, 'point_wavdir', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%wavdir_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%wavdir_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%wavdir_varid, 'units', 'degrees'))
          NF90(nf90_put_att(his_file%ncid, his_file%wavdir_varid, 'standard_name', 'mean_wave_direction')) 
          NF90(nf90_put_att(his_file%ncid, his_file%wavdir_varid, 'long_name', 'Mean wave direction'))  
          NF90(nf90_put_att(his_file%ncid, his_file%wavdir_varid, 'coordinates', 'station_id station_name point_x point_y'))
          !
-         NF90(nf90_def_var(his_file%ncid, 'dirspr', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dirspr_varid)) ! time-varying water level point
+         NF90(nf90_def_var(his_file%ncid, 'point_dirspr', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dirspr_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%dirspr_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%dirspr_varid, 'units', 's'))
          NF90(nf90_put_att(his_file%ncid, his_file%dirspr_varid, 'standard_name', 'wave_directional_spreading')) 
@@ -1866,7 +1913,7 @@ contains
       !
       if (wavemaker) then
          !
-         NF90(nf90_def_var(his_file%ncid, 'zsm', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%zsm_varid)) ! time-varying water level point
+         NF90(nf90_def_var(his_file%ncid, 'point_zsm', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%zsm_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%zsm_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%zsm_varid, 'units', 'm'))
          NF90(nf90_put_att(his_file%ncid, his_file%zsm_varid, 'standard_name', 'filtered_water_level')) 
@@ -1877,56 +1924,56 @@ contains
       !
       if (store_wave_forces) then
          !
-         NF90(nf90_def_var(his_file%ncid, 'dw', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dw_varid)) ! time-varying water level point
+         NF90(nf90_def_var(his_file%ncid, 'point_dw', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dw_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%dw_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%dw_varid, 'units', 'm'))
          NF90(nf90_put_att(his_file%ncid, his_file%dw_varid, 'standard_name', 'directionally_averaged_wave_breaking_dissipation')) 
          NF90(nf90_put_att(his_file%ncid, his_file%dw_varid, 'long_name', 'directionally averaged wave breaking dissipation'))  
          NF90(nf90_put_att(his_file%ncid, his_file%dw_varid, 'coordinates', 'station_id station_name point_x point_y'))
          !      
-         NF90(nf90_def_var(his_file%ncid, 'df', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%df_varid)) ! time-varying water level point
+         NF90(nf90_def_var(his_file%ncid, 'point_df', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%df_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%df_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%df_varid, 'units', 'm'))
          NF90(nf90_put_att(his_file%ncid, his_file%df_varid, 'standard_name', 'directionally_averaged_wave_friction_dissipation')) 
          NF90(nf90_put_att(his_file%ncid, his_file%df_varid, 'long_name', 'directionally averaged wave friction dissipation'))  
          NF90(nf90_put_att(his_file%ncid, his_file%df_varid, 'coordinates', 'station_id station_name point_x point_y'))
          !       
-         NF90(nf90_def_var(his_file%ncid, 'dwig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dwig_varid)) ! time-varying water level point
+         NF90(nf90_def_var(his_file%ncid, 'point_dwig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dwig_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%dwig_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%dwig_varid, 'units', 'm'))
          NF90(nf90_put_att(his_file%ncid, his_file%dwig_varid, 'standard_name', 'directionally_averaged_wave_breaking_dissipation_ig')) 
          NF90(nf90_put_att(his_file%ncid, his_file%dwig_varid, 'long_name', 'directionally averaged wave breaking dissipation ig'))  
          NF90(nf90_put_att(his_file%ncid, his_file%dwig_varid, 'coordinates', 'station_id station_name point_x point_y'))
          !      
-         NF90(nf90_def_var(his_file%ncid, 'dfig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dfig_varid)) ! time-varying water level point
+         NF90(nf90_def_var(his_file%ncid, 'point_dfig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%dfig_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%dfig_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%dfig_varid, 'units', 'm'))
          NF90(nf90_put_att(his_file%ncid, his_file%dfig_varid, 'standard_name', 'directionally_averaged_wave_friction_dissipation_ig')) 
          NF90(nf90_put_att(his_file%ncid, his_file%dfig_varid, 'long_name', 'directionally averaged wave friction dissipation ig'))  
          NF90(nf90_put_att(his_file%ncid, his_file%dfig_varid, 'coordinates', 'station_id station_name point_x point_y'))
          !               
-         NF90(nf90_def_var(his_file%ncid, 'cg', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%cg_varid)) ! time-varying water level point
+         NF90(nf90_def_var(his_file%ncid, 'point_cg', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%cg_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%cg_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%cg_varid, 'units', 'm/s'))
          NF90(nf90_put_att(his_file%ncid, his_file%cg_varid, 'standard_name', 'wave_group_velocity')) 
          NF90(nf90_put_att(his_file%ncid, his_file%cg_varid, 'long_name', 'wave group velocity'))  
          NF90(nf90_put_att(his_file%ncid, his_file%cg_varid, 'coordinates', 'station_id station_name point_x point_y'))
          !               
-         NF90(nf90_def_var(his_file%ncid, 'beta', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%beta_varid)) ! time-varying water level point
+         NF90(nf90_def_var(his_file%ncid, 'point_beta', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%beta_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%beta_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%beta_varid, 'units', '-'))
          NF90(nf90_put_att(his_file%ncid, his_file%beta_varid, 'standard_name', 'directionally_averaged_local_bed_slope')) 
          NF90(nf90_put_att(his_file%ncid, his_file%beta_varid, 'long_name', 'directionally averaged normalised bed slope'))  
          NF90(nf90_put_att(his_file%ncid, his_file%beta_varid, 'coordinates', 'station_id station_name point_x point_y'))
          !               
-         NF90(nf90_def_var(his_file%ncid, 'srcig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%srcig_varid)) ! time-varying water level point
+         NF90(nf90_def_var(his_file%ncid, 'point_srcig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%srcig_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%srcig_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%srcig_varid, 'units', '-'))
          NF90(nf90_put_att(his_file%ncid, his_file%srcig_varid, 'standard_name', 'directionally_averaged_ig_energy_source')) 
          NF90(nf90_put_att(his_file%ncid, his_file%srcig_varid, 'long_name', 'directionally averaged ig energy source'))  
          NF90(nf90_put_att(his_file%ncid, his_file%srcig_varid, 'coordinates', 'station_id station_name point_x point_y'))
          !                   
-         NF90(nf90_def_var(his_file%ncid, 'alphaig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%alphaig_varid)) ! time-varying water level point
+         NF90(nf90_def_var(his_file%ncid, 'point_alphaig', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%alphaig_varid)) ! time-varying water level point
          NF90(nf90_put_att(his_file%ncid, his_file%alphaig_varid, '_FillValue', FILL_VALUE))
          NF90(nf90_put_att(his_file%ncid, his_file%alphaig_varid, 'units', '-'))
          NF90(nf90_put_att(his_file%ncid, his_file%alphaig_varid, 'standard_name', 'directionally_averaged_infragravity_waves_shoaling_factor')) 
@@ -1964,12 +2011,24 @@ contains
          !
       endif
       !
-      if (precip) then      
+      if (precip) then
+         !
          NF90(nf90_def_var(his_file%ncid, 'point_prcp', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%prcp_varid)) ! time-varying prcp point 
          NF90(nf90_put_att(his_file%ncid, his_file%prcp_varid, '_FillValue', FILL_VALUE))   
          NF90(nf90_put_att(his_file%ncid, his_file%prcp_varid, 'units', 'mm hr-1'))
          NF90(nf90_put_att(his_file%ncid, his_file%prcp_varid, 'long_name', 'precipitation_rate'))        
          NF90(nf90_put_att(his_file%ncid, his_file%prcp_varid, 'coordinates', 'station_id station_name point_x point_y'))
+         !
+         if (store_cumulative_precipitation) then
+            !
+            NF90(nf90_def_var(his_file%ncid, 'point_cumprcp', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%cumprcp_varid)) ! time-varying prcp point 
+            NF90(nf90_put_att(his_file%ncid, his_file%cumprcp_varid, '_FillValue', FILL_VALUE))   
+            NF90(nf90_put_att(his_file%ncid, his_file%cumprcp_varid, 'units', 'm'))
+            NF90(nf90_put_att(his_file%ncid, his_file%cumprcp_varid, 'long_name', 'cumulative_precipitation'))        
+            NF90(nf90_put_att(his_file%ncid, his_file%cumprcp_varid, 'coordinates', 'station_id station_name point_x point_y'))
+            !
+         endif
+         !
       endif
       ! 
    endif   
@@ -1987,10 +2046,10 @@ contains
    if (ndrn>0) then
       !
       NF90(nf90_def_var(his_file%ncid, 'drainage_discharge', NF90_FLOAT, (/his_file%drain_dimid, his_file%time_dimid/), his_file%drain_varid)) ! time-varying discharge through drainage structure
-      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, '_FillValue', FILL_VALUE))   
-      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'units', 'm3 s-1'))
-      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'long_name', 'discharge through drainage structure'))
-      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'coordinates', 'drainage_name'))
+      NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, 'units', 'm3 s-1'))
+      NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, 'long_name', 'discharge through drainage structure'))
+      NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, 'coordinates', 'drainage_name'))
       !
    endif   
    !   
@@ -2960,6 +3019,7 @@ contains
    real*4, dimension(nobs) :: uvmag   
    real*4, dimension(nobs) :: uvdir   
    real*4, dimension(nobs) :: tprcp
+   real*4, dimension(nobs) :: tcumprcp
    real*4, dimension(nobs) :: tqinf
    real*4, dimension(nobs) :: tS_effective
    real*4, dimension(nobs) :: tpatm
@@ -2992,6 +3052,7 @@ contains
    wavdirobs    = FILL_VALUE         
    dirsprobs    = FILL_VALUE         
    tprcp        = FILL_VALUE
+   tcumprcp     = FILL_VALUE
    tqinf        = FILL_VALUE
    tS_effective = FILL_VALUE
    tpatm        = FILL_VALUE
@@ -3027,27 +3088,32 @@ contains
             nmu1 = z_index_uv_mu(nm)
             ndm1 = z_index_uv_nd(nm)
             num1 = z_index_uv_mu(nm)
-            uz  = 0.5*(uv(nmd1) + uv(nmu1))
-            vz  = 0.5*(uv(ndm1) + uv(num1))
+            uz  = 0.5 * (uv(nmd1) + uv(nmu1))
+            vz  = 0.5 * (uv(ndm1) + uv(num1))
             !
-            uobs(iobs)  = cosrot*uz - sinrot*vz                         
-            vobs(iobs)  = sinrot*uz + cosrot*vz
+            uobs(iobs)  = cosrot * uz - sinrot * vz                         
+            vobs(iobs)  = sinrot * uz + cosrot * vz
             uvmag(iobs) = sqrt(uobs(iobs)**2 + vobs(iobs)**2)
-            uvdir(iobs) = atan2(vobs(iobs), uobs(iobs))*180/pi
+            uvdir(iobs) = atan2(vobs(iobs), uobs(iobs)) * 180 / pi
             !
          endif
          !
          if (infiltration) then
             !
-            tqinf(iobs) = qinfmap(nm)*3.6e3*1.0e3 ! show as mm/hr
+            tqinf(iobs) = qinfmap(nm) * 3600000 ! show as mm/hr
             ! 
             ! Output for CN and GA method
             !
             if (inftype == 'cnb') then
+               !
                tS_effective(iobs) = scs_Se(nm)
+               !
             elseif (inftype == 'gai') then
+               !
                tS_effective(iobs) = GA_sigma(nm)
+               !
             endif
+            !
          endif  
          !
          if (store_meteo) then
@@ -3055,9 +3121,9 @@ contains
             if (wind) then
                !
                twndmag(iobs) = sqrt(windu(nm)**2 + windv(nm)**2)
-               twnddir(iobs) = 270.0 - atan2(windv(nm), windu(nm))*180/pi
-               if (twnddir(iobs)<0.0) twnddir(iobs) = twnddir(iobs) + 360.0
-               if (twnddir(iobs)>360.0) twnddir(iobs) = twnddir(iobs) - 360.0
+               twnddir(iobs) = 270.0 - atan2(windv(nm), windu(nm)) * 180 / pi
+               if (twnddir(iobs) < 0.0) twnddir(iobs) = twnddir(iobs) + 360.0
+               if (twnddir(iobs) > 360.0) twnddir(iobs) = twnddir(iobs) - 360.0
                !
             endif   
             !
@@ -3069,7 +3135,13 @@ contains
             !
             if (precip) then
                !
-               tprcp(iobs) = prcp(nm)*3600000 ! show as mm/hr
+               tprcp(iobs) = prcp(nm) * 3600000 ! show as mm/hr
+               !
+               if (store_cumulative_precipitation) then
+                  !
+                  tcumprcp(iobs) = cumprcp(nm) ! show as m
+                  !
+               endif   
                !
             endif
             !         
@@ -3191,6 +3263,12 @@ contains
       if (precip) then
          !
          NF90(nf90_put_var(his_file%ncid, his_file%prcp_varid, tprcp, (/1, nthisout/))) ! write prcp
+         !
+         if (store_cumulative_precipitation) then
+            !
+            NF90(nf90_put_var(his_file%ncid, his_file%cumprcp_varid, tcumprcp, (/1, nthisout/))) ! write cumulative prcp
+            !
+         endif   
          !
       endif
       !   
@@ -3656,6 +3734,7 @@ contains
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
    !
    subroutine ncoutput_map_finalize() 
+   !
    ! Add total runtime, dtavg to file and close
    !
    use sfincs_data
@@ -3668,16 +3747,98 @@ contains
       !
    endif
    !
-   NF90(nf90_put_var(map_file%ncid, map_file%total_runtime_varid, tfinish_all - tstart_all)) 
-   NF90(nf90_put_var(map_file%ncid, map_file%average_dt_varid,  dtavg)) 
-   NF90(nf90_put_var(map_file%ncid, map_file%status_varid,  error))    
+   if (timestep_analysis) then
+       !
+       call ncoutput_write_timestep_analysis()
+       !
+   endif   
+   !
+   NF90(nf90_put_var(map_file%ncid, map_file%total_runtime_varid, tfinish_all - tstart_all))
+   NF90(nf90_put_var(map_file%ncid, map_file%average_dt_varid,  dtavg))
+   NF90(nf90_put_var(map_file%ncid, map_file%status_varid,  error))
    !
    NF90(nf90_close(map_file%ncid))
    !
-   end subroutine
+   end subroutine ncoutput_map_finalize
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   !   
+   !
+   subroutine ncoutput_write_timestep_analysis()
+   !
+   ! Write timestep_analysis_average_required_timestep and timestep_analysis_percentage_limiting_per_cell once at end of simulation (no time dimension)
+   !
+   use sfincs_data
+   use quadtree
+   !
+   implicit none
+   !
+   real*4, dimension(:),   allocatable :: vtmp1, vtmp2, vtmp3
+   real*4, dimension(:,:), allocatable :: zsg1, zsg2
+   integer :: nm, nmq, n, m
+   !
+   if (use_quadtree) then
+      !
+      allocate(vtmp1(quadtree_nr_points))
+      allocate(vtmp2(quadtree_nr_points))
+      !
+      vtmp1 = FILL_VALUE
+      vtmp2 = FILL_VALUE
+      !
+      do nm = 1, np
+         !
+         nmq = index_quadtree_in_sfincs(nm)
+         !
+         if (timestep_analysis_average_required_timestep_per_cell(nm) > 0.0) then
+            !
+            vtmp1(nmq) = timestep_analysis_average_required_timestep_per_cell(nm)
+            !
+         endif
+         !
+         vtmp2(nmq) = timestep_analysis_percentage_limiting_per_cell(nm)
+         ! 
+      enddo
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%average_required_timestep_varid, vtmp1))
+      NF90(nf90_put_var(map_file%ncid, map_file%percentage_limiting_varid, vtmp2))
+      !
+      deallocate(vtmp1)
+      deallocate(vtmp2)
+      !
+   else
+      !
+      allocate(zsg1(mmax, nmax))
+      allocate(zsg2(mmax, nmax))
+      !
+      zsg1 = FILL_VALUE
+      zsg2 = FILL_VALUE
+      !
+      do nm = 1, np
+         !
+         n = z_index_z_n(nm)
+         m = z_index_z_m(nm)
+         !
+         if (timestep_analysis_average_required_timestep_per_cell(nm) > 0.0) then
+            !
+            zsg1(m, n) = timestep_analysis_average_required_timestep_per_cell(nm)
+            !
+         endif
+         !
+         zsg2(m, n) = timestep_analysis_percentage_limiting_per_cell(nm)
+         ! 
+      enddo
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%average_required_timestep_varid, zsg1))
+      NF90(nf90_put_var(map_file%ncid, map_file%percentage_limiting_varid, zsg2))
+      !
+      deallocate(zsg1)
+      deallocate(zsg2)
+      !
+   endif   
+   !
+   end subroutine ncoutput_write_timestep_analysis
+   !
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !
    subroutine ncoutput_write_tsunami_arrival_time() 
    ! Add tsunami_arrival_time
    use sfincs_data
@@ -3752,7 +3913,7 @@ contains
    use sfincs_data
    !
    ! Because of overlapping names, only important specific values from snapwave_data
-   use snapwave_data, only: gamma, alpha, hmin, fw0, fw0_ig, dt, tol, dtheta, crit, nr_sweeps, baldock_opt, baldock_ratio, &
+   use snapwave_data, only: gamma, gammax, alpha, hmin, fw0, fw0_ig, dt, tol, dtheta, crit, nr_sweeps, baldock_opt, baldock_ratio, &
        igwaves_opt, alpha_ig, gamma_ig, shinc2ig, alphaigfac, baldock_ratio_ig, ig_opt, herbers_opt, tpig_opt, eeinc2ig, tinc2ig, &
        snapwave_jonswapfile, snapwave_encfile, snapwave_bndfile, snapwave_bhsfile, snapwave_btpfile, snapwave_bwdfile, snapwave_bdsfile, upwfile, gridfile
    
@@ -3929,6 +4090,7 @@ contains
         !
         NF90(nf90_put_att(ncid, varid, 'snapwave', logical2int(snapwave))) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_gamma', gamma)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_gammax', gammax))         
         NF90(nf90_put_att(ncid, varid, 'snapwave_alpha', alpha)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_hmin',hmin)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_fw',fw0)) 

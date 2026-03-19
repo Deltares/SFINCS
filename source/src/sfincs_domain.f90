@@ -10,6 +10,7 @@ contains
    use sfincs_data
    use quadtree
    use sfincs_infiltration   
+   use sfincs_timestep_analysis   
    !
    implicit none
    !
@@ -29,6 +30,12 @@ contains
    !
    call initialize_hydro()
    !
+   if (timestep_analysis) then
+      !
+      call initialize_timestep_analysis()
+      ! 
+   endif   
+   !
    if (quadtree_nr_levels == 1 .and. .not. use_quadtree_output) then
       !
       ! Only one refinement level found in quadtree file. 
@@ -38,6 +45,10 @@ contains
       use_quadtree = .false.
       !
    endif
+   !
+   call set_advection_mask()
+   !
+   call fill_h73_tables()
    !
    end subroutine
 
@@ -104,7 +115,7 @@ contains
    !
    ! Check for time-spatially varying meteo
    !
-   if (prcpfile(1:4) /= 'none' .or. spwfile(1:4) /= 'none' .or. amufile(1:4) /= 'none' .or. amprfile(1:4) /= 'none' .or. ampfile(1:4) /= 'none' .or. netampfile(1:4) /= 'none' .or. netamprfile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
+   if (spwfile(1:4) /= 'none' .or. amufile(1:4) /= 'none' .or. amprfile(1:4) /= 'none' .or. ampfile(1:4) /= 'none' .or. netampfile(1:4) /= 'none' .or. netamprfile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       meteo3d = .true.
       call write_log('Info    : using gridded meteo data', 0)
    endif
@@ -1429,7 +1440,7 @@ contains
          !
          if (iref>1) then
             !         
-            dyrinvc(iref) = 1.0*(3*dyrm(iref)/2)
+            dyrinvc(iref) = 1.0 / (3 * dyrm(iref) / 2)
             !
          endif   
          !
@@ -1480,19 +1491,19 @@ contains
       do iref = 1, nref
          !
          dxrm(iref)      = dxr(iref)
-         dxrinv(iref)    = 1.0/dxrm(iref)
+         dxrinv(iref)    = 1.0 / dxrm(iref)
          dxr2inv(iref)   = dxrinv(iref)**2
          !
          dyrm(iref)      = dyr(iref)
-         dyrinv(iref)    = 1.0/dyrm(iref)
+         dyrinv(iref)    = 1.0 / dyrm(iref)
          dyr2inv(iref)   = dyrinv(iref)**2
          !
          cell_area(iref) = dxrm(iref)*dyrm(iref)
          !
          if (iref>1) then
             !         
-            dxrinvc(iref) = 1.0/(3*dxrm(iref)/2)
-            dyrinvc(iref) = 1.0/(3*dyrm(iref)/2)
+            dxrinvc(iref) = 1.0 / (3 * dxrm(iref) / 2)
+            dyrinvc(iref) = 1.0 / (3 * dyrm(iref) / 2)
             !
          endif   
          !
@@ -2154,7 +2165,8 @@ contains
                   !
                   mask_adv(ip) = 0
                   !
-               endif  
+               endif
+               !  
             enddo 
             ! 
          endif
@@ -2439,14 +2451,20 @@ contains
    !
    ! In sfincs_data
    !
-   if (allocated(z_index_uv_md1)) deallocate(z_index_uv_md1)
-   if (allocated(z_index_uv_md2)) deallocate(z_index_uv_md2)
-   if (allocated(z_index_uv_mu1)) deallocate(z_index_uv_mu1)
-   if (allocated(z_index_uv_mu2)) deallocate(z_index_uv_mu2)
-   if (allocated(z_index_uv_nd1)) deallocate(z_index_uv_nd1)
-   if (allocated(z_index_uv_nd2)) deallocate(z_index_uv_nd2)
-   if (allocated(z_index_uv_nu1)) deallocate(z_index_uv_nu1)
-   if (allocated(z_index_uv_nu2)) deallocate(z_index_uv_nu2)
+   ! The following arrays are still needed for the timestep analysis (see sfincs_ncoutput.F90)
+   !
+   if (.not. timestep_analysis) then
+      !
+      if (allocated(z_index_uv_md1)) deallocate(z_index_uv_md1)
+      if (allocated(z_index_uv_md2)) deallocate(z_index_uv_md2)
+      if (allocated(z_index_uv_mu1)) deallocate(z_index_uv_mu1)
+      if (allocated(z_index_uv_mu2)) deallocate(z_index_uv_mu2)
+      if (allocated(z_index_uv_nd1)) deallocate(z_index_uv_nd1)
+      if (allocated(z_index_uv_nd2)) deallocate(z_index_uv_nd2)
+      if (allocated(z_index_uv_nu1)) deallocate(z_index_uv_nu1)
+      if (allocated(z_index_uv_nu2)) deallocate(z_index_uv_nu2)
+      !
+   endif
    !
    ! In quadtree
    !
