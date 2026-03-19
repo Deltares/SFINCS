@@ -735,7 +735,25 @@ When using a spiderweb-file for the wind input, the values are updated every 'dt
 	dthisout 	= 600
 	dtwnd 		= 1800
 
-Input format 
+Timestep analysis
+^^^^^
+
+When ``timestep_analysis = 1`` is set in ``sfincs.inp``, SFINCS tracks which grid cells
+are constraining the global adaptive timestep during the simulation. At the end of the
+simulation, two diagnostic variables are written to ``sfincs_map.nc``:
+
+	average_required_timestep
+	  :description:		The time-averaged CFL-limited timestep at each cell (scaled by the Courant factor ``alpha``), taking the minimum across surrounding U/V flux points. Cells that were never wet during the simulation are assigned a value of -1.
+	  :units:		s
+
+	percentage_limiting_timestep
+	  :description:		The percentage of total simulation timesteps during which a cell's required timestep was the global minimum (i.e., it was the bottleneck). High values indicate cells that frequently limit the overall model performance.
+	  :units:		%
+
+Additionally, a summary is written to the log file identifying the single most limiting
+U/V point, its coordinates, and how often it was the bottleneck.
+
+Input format
 ^^^^^
 
 The depth/mask/index-files can be binary or ASCII files. 

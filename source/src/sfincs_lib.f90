@@ -26,6 +26,7 @@ module sfincs_lib
    use sfincs_bathtub
    use sfincs_openacc
    use sfincs_log
+   use sfincs_timestep_analysis
    !
    implicit none
    !
@@ -93,8 +94,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.3.1 mt. Faber+"
-   build_date     = "$Date: 2026-03-18"
+   build_revision = "$Rev: v2.3.2-alpha mt. Faber+"
+   build_date     = "$Date: 2026-03-19"
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)
@@ -586,6 +587,12 @@ module sfincs_lib
          !
          call compute_fluxes(dt, tloopflux)
          !
+         if (timestep_analysis) then
+             !
+             call timestep_analysis_update(min_dt)
+             !
+         endif           
+         !
          if (wavemaker) then
             !
             call update_wavemaker_fluxes(t, dt, tloopwavemaker)
@@ -690,7 +697,13 @@ module sfincs_lib
    tstart_all = 0.0
    tfinish_all = 1.0 * (count1 - count00) / count_rate
    !
-   call finalize_output(t,ntmaxout,tloopoutput,tmaxout)
+   if (timestep_analysis) then
+      !
+      call timestep_analysis_finalize(nt)
+      !
+   endif     
+   !
+   call finalize_output(t, ntmaxout, tloopoutput, tmaxout)
    !
    call finalize_openacc() ! Exit data region
    !
@@ -761,10 +774,17 @@ module sfincs_lib
    call write_log(logstr, 1)
    !
    call write_log('', 1)
-   write(logstr,'(a,20f10.3)')           ' Average time step (s)  : ', dtavg
    !
+   write(logstr,'(a,20f10.3)')           ' Average time step (s)  : ', dtavg
    call write_log(logstr, 1)
+   !
    call write_log('', 1)
+   !
+   if (timestep_analysis) then
+      !
+      call timestep_analysis_write_log()
+      !
+   endif   
    !
    if (write_time_output) then
       open(123,file='runtimes.txt')
@@ -782,7 +802,7 @@ module sfincs_lib
       close(123)
    endif
    !
-   call write_log('---------- Closing off SFINCS -----------', 1)
+   call write_log('----------- Closing off SFINCS -----------', 1)
    !
    ! call finalize_parameters()
    !

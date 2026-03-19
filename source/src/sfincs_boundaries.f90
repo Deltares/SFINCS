@@ -626,23 +626,48 @@ contains
          !
          nmi = find_sfincs_cell(n, m + 1, iref)
          if (nmi > 0) then
-            if (kcs(nmi) == 1) nmi_gbp(ib) = nmi
+            if (kcs(nmi) == 1) then
+                nmi_gbp(ib) = nmi
+            else
+                nmi = 0
+            endif            
          endif
          !
          nmi = find_sfincs_cell(n + 1, m, iref)
          if (nmi > 0) then 
-            if (kcs(nmi) == 1) nmi_gbp(ib) = nmi
+            if (kcs(nmi) == 1) then
+                nmi_gbp(ib) = nmi
+            else
+                nmi = 0
+            endif                    
          endif
          !
          nmi = find_sfincs_cell(n, m - 1, iref)
          if (nmi > 0) then 
-            if (kcs(nmi) == 1) nmi_gbp(ib) = nmi
+            if (kcs(nmi) == 1) then
+                nmi_gbp(ib) = nmi
+            else
+                nmi = 0
+            endif                        
          endif
          !
          nmi = find_sfincs_cell(n - 1, m, iref)
          if (nmi > 0) then 
-            if (kcs(nmi) == 1) nmi_gbp(ib) = nmi
+            if (kcs(nmi) == 1) then
+                nmi_gbp(ib) = nmi
+            else
+                nmi = 0
+            endif                        
          endif
+         !
+         if (nmi == 0) then
+            !
+            ! No active msk=1 point found in any of the  neighbours, reset cell to inactive
+            !
+            kcs(nm) = 0
+            ! 
+         endif
+         
          !
       endif
       !
@@ -755,7 +780,7 @@ contains
    !
    ! Set water level in all boundary points on grid
    ! This loop is all done on the CPU
-   !
+   !   
    !$omp parallel private ( ib, nmb, zst, zsetup, zig, smfac, zs0act, ibdr, zs0smooth ) if(ngbnd > 10000)
    !$omp do schedule(dynamic, 64)
    do ib = 1, ngbnd
@@ -881,8 +906,8 @@ contains
          ! Lateral boundary u/v points have kcuv=6. They are skipped in update_boundary_fluxes.
          !
          ! TODO: OPENACC!!!!
-         !
-         zs(nmb) = zs(nmi_gbp(ib)) ! nm index of internal point. Technically there can be more than one internal point. This always uses the last point that was found.
+         !                           
+         zs(nmb) = zs(nmi_gbp(ib)) ! nm index of internal point. Technically there can be more than one internal point. This always uses the last point that was found.                     
          !         
       endif
       !

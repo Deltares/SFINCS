@@ -232,6 +232,7 @@ module sfincs_data
       logical       :: ampr_block
       logical       :: global
       logical       :: store_tsunami_arrival_time
+      logical       :: timestep_analysis
       logical       :: viscosity
       logical       :: spinup_meteo
       logical       :: snapwave
@@ -553,6 +554,13 @@ module sfincs_data
       real*4, dimension(:),   allocatable, target :: qext
       real*4, dimension(:),   allocatable, target :: uorb
       real*4, dimension(:),   allocatable :: gnapp2
+      !
+      real*4, dimension(:),   allocatable :: timestep_analysis_average_required_timestep !average_timestep
+      real*4, dimension(:),   allocatable :: timestep_analysis_required_timestep
+      integer*4, dimension(:),allocatable :: timestep_analysis_times_limiting
+      integer*4, dimension(:),allocatable :: timestep_analysis_times_wet
+      real*4, dimension(:),   allocatable :: timestep_analysis_average_required_timestep_per_cell ! output array
+      real*4, dimension(:),   allocatable :: timestep_analysis_percentage_limiting_per_cell       ! output array
       !
       real*4, dimension(:),   allocatable :: tauwu
       real*4, dimension(:),   allocatable :: tauwv
