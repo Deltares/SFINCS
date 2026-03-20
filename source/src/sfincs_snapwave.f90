@@ -105,7 +105,7 @@ contains
    !
    call read_boundary_data()
    !
-   call find_boundary_indices()
+   !call find_boundary_indices() ! > is already called in read_boundary_data()
    !
    call write_log('', 1)
    !
