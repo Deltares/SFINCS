@@ -643,9 +643,9 @@ contains
    call read_real_input(500, 'snapwave_gammaig', gamma_ig, 0.2)                  ! Wave breaking parameter for IG waves, default=0.2
    call read_real_input(500, 'snapwave_shinc2ig', shinc2ig, 1.0)                 ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 1=default=all energy as sink)
    call read_real_input(500, 'snapwave_alphaigfac', alphaigfac, 1.0)             ! Multiplication factor for IG shoaling source/sink term
-   call read_real_input(500, 'snapwave_baldock_ratio_ig', baldock_ratio_ig, 0.2) ! ?     
-   call read_int_input(500, 'snapwave_ig_opt', ig_opt, 1)                        ! ?     
-   call read_int_input(500, 'snapwave_iterative_srcig', iterative_srcig_opt, 1)  ! Option whether to calculate IG source/sink term in iterative lower (better, but potentially slower, 1=default), or effectively based on previous timestep (faster, potential mismatch, =0)
+   call read_real_input(500, 'snapwave_baldock_ratio_ig', baldock_ratio_ig, 0.2) ! ! option controlling from what depth wave breaking should take place for IG waves, default baldock_ratio_ig=0.2    
+   call read_int_input(500, 'snapwave_ig_opt', ig_opt, 1)                        ! option of IG wave settings (1 = default = conservative shoaling based dSxx as in Leijnse et al. 2024)   
+   call read_int_input(500, 'snapwave_iterative_srcig', iterative_srcig_opt, 0)  ! Option whether to calculate IG source/sink term in iterative lower (better, but potentially slower, 1), or effectively based on previous timestep (faster, potential mismatch, =0=default)
    !
    ! IG boundary conditions options
    !
