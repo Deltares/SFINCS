@@ -410,9 +410,9 @@ module sfincs_data
       !
       real*4, dimension(:),   allocatable :: storage_volume  ! Storage volume green infra
       !
-      ! Drainage mimic - constant removal rate representing subsurface drainage
+      ! Drainage - constant removal rate representing subsurface drainage
       !
-      logical       :: use_drainage_mimic = .false.
+      logical       :: drainage = .false.
       real*4        :: qdrain_uniform = 0.0                                    ! uniform drainage rate (mm/hr input, stored as m/s)
       real*4, dimension(:),   allocatable :: qdrain_rate                       ! drainage rate per cell (m/s)
       !

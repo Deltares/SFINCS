@@ -2061,11 +2061,11 @@ contains
    logical :: ok
    character*256 :: varname
    !
-   ! Check if drainage mimic is enabled
+   ! Check if drainage is enabled
    !
    if (qdrain_uniform > 0.0 .or. drainagefile /= 'none') then
       !
-      use_drainage_mimic = .true.
+      drainage = .true.
       !
       allocate(qdrain_rate(np))
       !

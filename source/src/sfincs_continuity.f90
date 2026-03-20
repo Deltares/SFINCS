@@ -182,7 +182,7 @@ contains
          !
          ! C3. Drainage mimic (-)
          !
-         if (use_drainage_mimic) then
+         if (drainage) then
             zs(nm) = zs(nm) - qdrain_rate(nm) * dt
          endif
          !
@@ -551,7 +551,7 @@ contains
          !
          ! C3. Drainage mimic (-)
          !
-         if (use_drainage_mimic) then
+         if (drainage) then
             dzsdt = dzsdt - qdrain_rate(nm)
          endif
          !

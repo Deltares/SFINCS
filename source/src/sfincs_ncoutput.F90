@@ -214,12 +214,16 @@ contains
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'suction head at the wetting front - Green and Ampt')) 
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'm'))
        elseif (inftype == 'hor') then
-           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'f0')) 
-           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'initial infiltration rate - Horton')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'f0'))
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'initial infiltration rate - Horton'))
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'm'))
+       elseif (inftype == 'bkt') then
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'bucket_capacity'))
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'maximum bucket storage capacity'))
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'mm'))
        else
-           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'qinf')) 
-           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'infiltration rate - constant in time')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'qinf'))
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'infiltration rate - constant in time'))
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'mm h-1'))
        endif
    endif
@@ -370,14 +374,25 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'coordinates', 'corner_x corner_y'))
    endif
    !
-   ! Store current infiltration (only for Horton)
+   ! Store current infiltration capacity (only for Horton)
    !
    if (inftype == 'hor') then
-      NF90(nf90_def_var(map_file%ncid, 'f', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%Seff_varid)) ! time-varying sigma
-      NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_def_var(map_file%ncid, 'f', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%Seff_varid)) ! time-varying f
+      NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'units', 'mm h-1'))
-      NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'standard_name', 'sigma')) 
-      NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'long_name', 'current infiltration capacity'))     
+      NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'standard_name', 'f'))
+      NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'long_name', 'current infiltration capacity'))
+      NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'coordinates', 'corner_x corner_y'))
+   endif
+   !
+   ! Store current bucket storage (only for Bucket model)
+   !
+   if (inftype == 'bkt') then
+      NF90(nf90_def_var(map_file%ncid, 'bucket_volume', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%Seff_varid)) ! time-varying bucket volume
+      NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'units', 'm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'standard_name', 'bucket_volume'))
+      NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'long_name', 'current bucket storage'))
       NF90(nf90_put_att(map_file%ncid, map_file%Seff_varid, 'coordinates', 'corner_x corner_y'))
    endif
    !
@@ -801,9 +816,9 @@ contains
    !
    ! Write infiltration map
    !
-   if (infiltration) then
+   if (infiltration .and. allocated(qinffield)) then
       !
-      zsg = FILL_VALUE       
+      zsg = FILL_VALUE
       !
       do nm = 1, np
          !
@@ -819,10 +834,26 @@ contains
             zsg(m, n) = qinffield(nm)
             !
          endif
-         ! 
+         !
       enddo
       !
       NF90(nf90_put_var(map_file%ncid, map_file%qinf_varid, zsg, (/1, 1/))) ! write infiltration map
+      !
+   endif
+   !
+   ! Write bucket capacity map (static)
+   !
+   if (inftype == 'bkt' .and. allocated(bucket_capacity)) then
+      !
+      zsg = FILL_VALUE
+      !
+      do nm = 1, np
+         n    = z_index_z_n(nm)
+         m    = z_index_z_m(nm)
+         zsg(m, n) = bucket_capacity(nm) * 1000.0 ! m to mm
+      enddo
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%qinf_varid, zsg, (/1, 1/))) ! write bucket capacity map
       !
    endif
    !
@@ -1383,12 +1414,16 @@ contains
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'suction head at the wetting front - Green and Ampt')) 
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'm'))
        elseif (inftype == 'hor') then
-           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'f0')) 
-           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'initial infiltration rate - Horton')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'f0'))
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'initial infiltration rate - Horton'))
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'mm h-1'))
+       elseif (inftype == 'bkt') then
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'bucket_capacity'))
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'maximum bucket storage capacity'))
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'mm'))
        else
-           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'qinf')) 
-           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'infiltration rate - constant in time')) 
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'standard_name', 'qinf'))
+           NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'long_name', 'infiltration rate - constant in time'))
            NF90(nf90_put_att(map_file%ncid, map_file%qinf_varid, 'units', 'mm h-1'))
        endif
    endif
@@ -1530,7 +1565,7 @@ contains
    !   
    vtmp = FILL_VALUE
    !
-   if (infiltration) then
+   if (infiltration .and. allocated(qinffield)) then
       !
       if (inftype == 'con' .or. inftype == 'c2d') then
          do nmq = 1, quadtree_nr_points
@@ -1538,17 +1573,34 @@ contains
             if (nm>0) then
                vtmp(nmq) = qinffield(nm) * 3600 * 1000
             endif
-         enddo 
+         enddo
       else
          do nmq = 1, quadtree_nr_points
             nm = index_sfincs_in_quadtree(nmq)
             if (nm>0) then
                vtmp(nmq) = qinffield(nm)
             endif
-         enddo 
+         enddo
       endif
       !
       NF90(nf90_put_var(map_file%ncid, map_file%qinf_varid, vtmp)) ! write infiltration map
+      !
+   endif
+   !
+   ! Write bucket capacity map (static)
+   !
+   if (inftype == 'bkt' .and. allocated(bucket_capacity)) then
+      !
+      vtmp = FILL_VALUE
+      !
+      do nmq = 1, quadtree_nr_points
+         nm = index_sfincs_in_quadtree(nmq)
+         if (nm>0) then
+            vtmp(nmq) = bucket_capacity(nm) * 1000.0 ! m to mm
+         endif
+      enddo
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%qinf_varid, vtmp)) ! write bucket capacity map
       !
    endif
    !
@@ -1810,9 +1862,29 @@ contains
    !
    if (inftype == 'gai') then
       NF90(nf90_def_var(his_file%ncid, 'point_S', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%S_varid)) ! time-varying S
-      NF90(nf90_put_att(his_file%ncid, his_file%S_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(his_file%ncid, his_file%S_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(his_file%ncid, his_file%S_varid, 'units', 'm'))
-      NF90(nf90_put_att(his_file%ncid, his_file%S_varid, 'long_name', 'maximum soil moisture deficit')) 
+      NF90(nf90_put_att(his_file%ncid, his_file%S_varid, 'long_name', 'maximum soil moisture deficit'))
+      NF90(nf90_put_att(his_file%ncid, his_file%S_varid, 'coordinates', 'station_id station_name point_x point_y'))
+   endif
+   !
+   ! More output for Horton method
+   !
+   if (inftype == 'hor') then
+      NF90(nf90_def_var(his_file%ncid, 'point_S', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%S_varid)) ! time-varying f
+      NF90(nf90_put_att(his_file%ncid, his_file%S_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(his_file%ncid, his_file%S_varid, 'units', 'mm hr-1'))
+      NF90(nf90_put_att(his_file%ncid, his_file%S_varid, 'long_name', 'current infiltration capacity'))
+      NF90(nf90_put_att(his_file%ncid, his_file%S_varid, 'coordinates', 'station_id station_name point_x point_y'))
+   endif
+   !
+   ! More output for Bucket model
+   !
+   if (inftype == 'bkt') then
+      NF90(nf90_def_var(his_file%ncid, 'point_S', NF90_FLOAT, (/his_file%points_dimid, his_file%time_dimid/), his_file%S_varid)) ! time-varying bucket volume
+      NF90(nf90_put_att(his_file%ncid, his_file%S_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(his_file%ncid, his_file%S_varid, 'units', 'm'))
+      NF90(nf90_put_att(his_file%ncid, his_file%S_varid, 'long_name', 'current bucket storage'))
       NF90(nf90_put_att(his_file%ncid, his_file%S_varid, 'coordinates', 'station_id station_name point_x point_y'))
    endif
    !
@@ -1987,10 +2059,10 @@ contains
    if (ndrn>0) then
       !
       NF90(nf90_def_var(his_file%ncid, 'drainage_discharge', NF90_FLOAT, (/his_file%drain_dimid, his_file%time_dimid/), his_file%drain_varid)) ! time-varying discharge through drainage structure
-      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, '_FillValue', FILL_VALUE))   
-      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'units', 'm3 s-1'))
-      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'long_name', 'discharge through drainage structure'))
-      NF90(nf90_put_att(his_file%ncid, his_file%discharge_varid, 'coordinates', 'drainage_name'))
+      NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, 'units', 'm3 s-1'))
+      NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, 'long_name', 'discharge through drainage structure'))
+      NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, 'coordinates', 'drainage_name'))
       !
    endif   
    !   
@@ -2302,8 +2374,25 @@ contains
          !
          n    = z_index_z_n(nm)
          m    = z_index_z_m(nm)
-         !      
+         !
          zsg(m, n) = qinfmap(nm)
+         !
+      enddo
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%Seff_varid, zsg, (/1, 1, ntmapout/)))
+      !
+   elseif (inftype == 'bkt') then
+      !
+      ! Store current bucket volume
+      !
+      zsg = FILL_VALUE
+      !
+      do nm = 1, np
+         !
+         n    = z_index_z_n(nm)
+         m    = z_index_z_m(nm)
+         !
+         zsg(m, n) = bucket_volume(nm)
          !
       enddo
       !
@@ -3047,8 +3136,12 @@ contains
                tS_effective(iobs) = scs_Se(nm)
             elseif (inftype == 'gai') then
                tS_effective(iobs) = GA_sigma(nm)
+            elseif (inftype == 'hor') then
+               tS_effective(iobs) = qinfmap(nm)*3.6e3*1.0e3 ! current f in mm/hr
+            elseif (inftype == 'bkt') then
+               tS_effective(iobs) = bucket_volume(nm)        ! current bucket storage in m
             endif
-         endif  
+         endif
          !
          if (store_meteo) then
             !
@@ -3127,9 +3220,7 @@ contains
       !
       NF90(nf90_put_var(his_file%ncid, his_file%qinf_varid, tqinf, (/1, nthisout/))) ! write qinf
       !
-      if (inftype == 'cnb') then
-         NF90(nf90_put_var(his_file%ncid, his_file%S_varid, tS_effective, (/1, nthisout/))) ! write S
-      elseif (inftype == 'gai') then
+      if (inftype == 'cnb' .or. inftype == 'gai' .or. inftype == 'hor' .or. inftype == 'bkt') then
          NF90(nf90_put_var(his_file%ncid, his_file%S_varid, tS_effective, (/1, nthisout/))) ! write S
       endif
       !

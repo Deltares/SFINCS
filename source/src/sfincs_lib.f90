@@ -92,8 +92,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.3.1 mt. Faber+branch-272"
-   build_date     = "$Date: 2026-03-06"
+   build_revision = "$Rev: v2.3.1 mt. Faber+branch-redo-infiltration"
+   build_date     = "$Date: 2026-03-19"
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)
@@ -225,6 +225,11 @@ module sfincs_lib
    else   
       call write_log('Infiltration         : no', 1)
    endif   
+   if (drainage) then
+      call write_log('Drainage             : yes', 1)
+   else   
+      call write_log('Drainage             : no', 1)
+   endif 
    if (snapwave) then
       call write_log('SnapWave             : yes', 1)
    else
