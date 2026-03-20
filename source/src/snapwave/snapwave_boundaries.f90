@@ -679,26 +679,12 @@ subroutine update_boundary_points(t, just_time_series)
    !
    thetamean = wdmean_bwv
    !
-   ind = nint(thetamean / dtheta) + 1
-   !
-   do itheta = 1, ntheta
-      !      i360(itheta) = mod2(itheta + ind - 10, 36)
-      i360(itheta) = mod2(itheta + ind - (1 + ntheta / 2), ntheta * 2)
-   enddo
-   !
-   do itheta = 1, ntheta
-      !
-      theta(itheta) = theta360(i360(itheta))
-      !
-      do k = 1, no_nodes
-         w(1, itheta, k)    = w360(1, i360(itheta), k)
-         w(2, itheta, k)    = w360(2, i360(itheta), k)
-         prev(1, itheta, k) = prev360(1, i360(itheta), k)
-         prev(2, itheta, k) = prev360(2, i360(itheta), k)
-         ds(itheta, k)      = ds360(i360(itheta), k)
-      enddo
-      !
-   enddo   
+   if (ntwbnd > 0) then
+      call make_theta_grid(wdmean_bwv)
+   else
+      thetamean=u10dmean
+      call make_theta_grid(u10dmean)
+   endif 
    !
    ! Build spectra on wave boundary support points
    !
@@ -706,10 +692,10 @@ subroutine update_boundary_points(t, just_time_series)
       !
       E0   = 0.0625 * rho * g * hst_bwv(ib)**2
       ms   = 1.0 / dst_bwv(ib)**2 - 1.0
-      dist = sign(1.0,cos(theta - thetamean))*abs(cos(theta - thetamean))**ms
-      where (abs(mod(pi+theta - thetamean,2.0*pi)-pi)>0.999*pi/2.0) dist = 0.0      
+      dist = sign(1.0, cos(theta - thetamean)) * abs(cos(theta - thetamean))**ms
+      where (abs(mod(pi + theta - thetamean, 2.0* pi) - pi) > 0.999 * pi / 2.0) dist = 0.0      
       !
-      eet_bwv(:,ib) = dist/sum(dist)*E0/dtheta
+      eet_bwv(:,ib) = dist / sum(dist) * E0 / dtheta
       !      
    enddo
    !
@@ -780,7 +766,7 @@ subroutine make_theta_grid(central_theta)
    !
    ! Definition of directional grid
    !   
-   ind=nint(central_theta/dtheta)-ntheta/2;
+   ind = nint(central_theta / dtheta) - ntheta / 2
    do itheta = 1, ntheta
       i360(itheta)=mod2(itheta+ind,ntheta360)
    enddo
@@ -790,6 +776,7 @@ subroutine make_theta_grid(central_theta)
       theta(itheta) = theta360(i360(itheta))
       !
       do k = 1, no_nodes
+         !
          w(1, itheta, k)    = w360(1, i360(itheta), k)
          w(2, itheta, k)    = w360(2, i360(itheta), k)
          prev(1, itheta, k) = prev360(1, i360(itheta), k)
@@ -797,6 +784,7 @@ subroutine make_theta_grid(central_theta)
          ds(itheta, k)      = ds360(i360(itheta), k)
          !
          windspreadfac(itheta, k) = windspread360(i360(itheta), k)
+         !
       enddo
       !
    enddo  
