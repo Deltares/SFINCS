@@ -67,3 +67,17 @@ source/sfincs/sfincs.opt.yaml
 /source/third_party_open/netcdf/netcdf-fortran-4.6.1/Debug
 source/build.log
 source/build.log
+/source/build_nvfortran_gpu.sh
+/source/build_nvfortran_gpu_h7.sh
+/source/build_docker_local_gpu.sh
+/source/Dockerfile.xpu
+/source/Dockerfile.gpu.update01
+/source/Singularityfile-gpu.def
+/source/Dockerfile.gpu.ccall
+/source/Dockerfile.gpu.test
+/source/Dockerfile.gpu.cc75
+/source/Dockerfile.gpu.cc86
+/source/Dockerfile.gpu.cc90
+/source/Dockerfile.gpu.25.5.ccall
+/source/Dockerfile.gpu.25.7.ccall
+/source/Dockerfile.gpu
