@@ -3689,7 +3689,7 @@ contains
    use sfincs_data
    !
    ! Because of overlapping names, only important specific values from snapwave_data
-   use snapwave_data, only: gamma, gammax, alpha, hmin, fw0, fw0_ig, dt, tol, dtheta, crit, nr_sweeps, baldock_opt, baldock_ratio, &
+   use snapwave_data, only: gamma, gammax, alpha, hmin, fw0, fw0_ig, dt, tol, dtheta, crit, nr_sweeps, baldock_exponent, baldock_ratio, &
        igwaves_opt, alpha_ig, gamma_ig, shinc2ig, alphaigfac, baldock_ratio_ig, ig_opt, herbers_opt, tpig_opt, eeinc2ig, tinc2ig, &
        snapwave_jonswapfile, snapwave_encfile, snapwave_bndfile, snapwave_bhsfile, snapwave_btpfile, snapwave_bwdfile, snapwave_bdsfile, upwfile, gridfile
    
@@ -3876,7 +3876,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'snapwave_dtheta',dtheta)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_crit',crit)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_nrsweeps',nr_sweeps)) 
-        NF90(nf90_put_att(ncid, varid, 'snapwave_baldock_opt',baldock_opt)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_baldock_exponent',baldock_exponent)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_baldock_ratio',baldock_ratio)) 
         !
         ! SnapWave IG
