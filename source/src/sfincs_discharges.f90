@@ -209,7 +209,7 @@ contains
             !
             npars = 1
             !
-         elseif (drainage_type(idrn) == 4) then
+         elseif (drainage_type(idrn) == 4 .or. drainage_type(idrn) == 5) then
             !
             ! Controlled gate (6 parameters : width, sill elevation, manning, zmin, zmax, closing time)
             !
@@ -329,7 +329,7 @@ contains
    real*4           :: qq
    real*4           :: qq0
    !
-   real*4           :: dzds, frac, wdt, zsill, zmin, zmax, mng, hgate, dfrac, tcls
+   real*4           :: dzds, frac, wdt, zsill, zmin, zmax, mng, hgate, dfrac, tcls, topen, tclose
    integer          :: idir
    !
    integer isrc, itsrc, idrn, jin, jout, nmin, nmout
@@ -437,6 +437,9 @@ contains
                         !
                         drainage_status(idrn) = 3
                         !
+                        write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Opening structure ',idrn,' at t= ',t
+                        call write_log(logstr, 0)                        
+                        !
                      endif
                      !
                   elseif (drainage_status(idrn) == 1) then
@@ -449,6 +452,9 @@ contains
                         !
                         drainage_status(idrn) = 2
                         !
+                        write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Closing structure ',idrn,' at t= ',t
+                        call write_log(logstr, 0)                        
+                        !                        
                      endif
                      !
                   endif                        
@@ -497,6 +503,102 @@ contains
                   !
                   qq = qq * wdt * frac
                   !
+               case(5)
+                  !
+                  ! Controlled gate. Gate opens and closes at set user input times (only, and once), still using closing time.
+                  !
+                  wdt   = drainage_params(idrn, 1)                        ! width
+                  zsill = drainage_params(idrn, 2)                        ! sill elevation
+                  mng   = drainage_params(idrn, 3)                        ! Manning's n
+                  tclose = drainage_params(idrn, 4)                       ! time wrt tref for closing gate
+                  topen  = drainage_params(idrn, 5)                       ! time wrt tref for opening gate
+                  tcls  = drainage_params(idrn, 6)                        ! closing time (seconds)
+                  !
+                  dzds = (zs(nmout) - zs(nmin)) / drainage_distance(idrn) ! water level slope
+                  frac = drainage_fraction_open(idrn)                     ! fraction open (from previous time step)
+                  hgate = max(max(zs(nmin), zs(nmout)) - zsill, 0.0)      ! water depth
+                  dfrac = dt / tcls                                       ! change in fraction open per time step
+                  !
+                  qq0 = -qtsrc(jin) / (wdt * max(frac, 0.001))            ! discharge (in m2/s) from previous time step, excluding fraction open
+                  !
+                  ! Get status of gate
+                  !
+                  if (drainage_status(idrn) == 0) then
+                     !
+                     ! Gate fully closed
+                     !
+                     if (t >= topen) then
+                        !
+                        ! Time has passed 'topen', so need to open the gate
+                        !
+                        drainage_status(idrn) = 3
+                        !
+                        write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Opening structure ',idrn,' at t= ',t
+                        call write_log(logstr, 0)                        
+                        !
+                     endif
+                     !
+                  elseif (drainage_status(idrn) == 1) then
+                     !
+                     ! Gate fully open
+                     !
+                     if (t >= tclose .and. t < topen) then
+                        !
+                        ! Time has passed 'tclose', so need to close the gate
+                        !
+                        drainage_status(idrn) = 2
+                        !
+                        write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Closing structure ',idrn,' at t= ',t
+                        call write_log(logstr, 0)                        
+                        !                        
+                     endif
+                     !
+                  endif                        
+                  !
+                  ! Update fraction open
+                  !
+                  if (drainage_status(idrn) == 2) then
+                     !
+                     ! Gate is closing
+                     !
+                     frac = frac - dfrac
+                     !
+                     if (frac < 0.0) then
+                        !
+                        ! Gate is now fully closed
+                        !
+                        frac = 0.0
+                        drainage_status(idrn) = 0
+                        !
+                     endif
+                     !
+                  elseif (drainage_status(idrn) == 3) then
+                     !
+                     ! Gate is opening
+                     !
+                     frac = frac + dfrac
+                     !
+                     if (frac > 1.0) then
+                        !
+                        ! Gate is now fully open
+                        !
+                        frac = 1.0
+                        drainage_status(idrn) = 1
+                        !
+                     endif
+                     !
+                  endif
+                  !
+                  drainage_fraction_open(idrn) = frac
+                  !
+                  ! Use Bates et al. (2010) formulation to include inertia effects
+                  !
+                  qq = (qq0 - g * hgate * dzds * dt) / (1.0 + g * mng**2 * dt * abs(qq0) / hgate**(7.0 / 3.0))
+                  !
+                  ! Multiply with width and fraction open to get discharge in m3/s
+                  !
+                  qq = qq * wdt * frac
+                  !                  
             end select
             !
             ! Add some relaxation

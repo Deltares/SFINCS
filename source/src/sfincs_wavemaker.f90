@@ -1454,15 +1454,16 @@
       !
    endif      
    !
-   !$acc kernels present( wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, &
-   !$acc                  zs, q, hm0_ig, zb, zbuv, &
+   ! UV fluxes at wave makers
+   !
+   ! No OMP acceleration here?
+   !
+   !$acc parallel present( wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, &
+   !$acc                  zs, q, hm0, hm0_ig, zb, zbuv, subgrid_z_zmax, &
    !$acc                  wmf_hm0_ig_t, wmf_setup_t, wavemaker_index_wmfp1, wavemaker_index_wmfp2, wavemaker_fac_wmfp, &
    !$acc                  wavemaker_uvmean, wavemaker_idir, wavemaker_angfac, wavemaker_freduv, wavemaker_uvtrend, & 
-   !$acc                  subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_z_zmin, subgrid_uv_havg_zmax), async(1)
-   ! 
-   ! UV fluxes at boundaries
-   !
-   !$acc loop independent, private(ib)
+   !$acc                  subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_z_zmin, subgrid_uv_havg_zmax)
+   !$acc loop
    do ib = 1, wavemaker_nr_uv_points
       !
       ip     = wavemaker_index_uv(ib)
@@ -1560,8 +1561,7 @@
       endif
       !
    enddo
-   !
-   !$acc end kernels
+   !$acc end parallel
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate

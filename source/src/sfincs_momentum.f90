@@ -6,7 +6,7 @@ module sfincs_momentum
    !
 contains
    !
-   subroutine compute_fluxes(dt, min_dt, tloop)
+   subroutine compute_fluxes(dt, tloop)
    !
    ! Computes fluxes over subgrid u and v points
    !
@@ -41,7 +41,6 @@ contains
    real*4    :: adv
    real*4    :: fcoriouv
    real*4    :: frc
-   real*4    :: min_dt
    real*4    :: gammax
    real*4    :: facmax
    real*4    :: wsumax
@@ -97,7 +96,24 @@ contains
    !
    min_dt = dtmax
    !
-   !$acc update device(min_dt), async(1)
+   ! For some reason, it is necessary to set num_gangs here! Without, the program launches only 1 gang, and everything becomes VERY slow!
+   !
+   ! Copy flux and velocity from previous time step
+   !
+   !$acc parallel, present( q, q0, uv, uv0 )
+   !$omp parallel &
+   !$omp private ( ip )
+   !$omp do
+   !$acc loop gang vector
+   do ip = 1, npuv + ncuv
+      !
+      q0(ip)  = q(ip)
+      uv0(ip) = uv(ip)
+      !
+   enddo
+   !$acc end parallel
+   !$omp end do
+   !$omp end parallel
    !
    ! Copy flux and velocity from previous time step
    !
@@ -108,30 +124,14 @@ contains
    !$acc                    uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc                    uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
    !$acc                    zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, &
-   !$acc                    dxrinvc, fcorio2d, nuvisc, x73 ), num_gangs( 512 ), vector_length( 128 ), async(1)
-   !
-   !$omp parallel &
-   !$omp private ( ip )
-   !$omp do
-   !$acc loop independent, gang, vector
-   do ip = 1, npuv + ncuv
-      !
-      q0(ip)  = q(ip)
-      uv0(ip) = uv(ip)
-      !
-   enddo
-   !$omp end do
-   !$omp end parallel
-   !
-   ! Update fluxes
-   !
+   !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, gnapp2, x73 ) num_gangs( 1024 ) vector_length( 128 )
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
    !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73 ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
-   !$acc loop independent, reduction( min : min_dt ), gang, vector
+   !$acc loop, reduction( min : min_dt ), gang, vector
    do ip = 1, npuv
       !
       if (kcuv(ip) == 1 .or. kcuv(ip) == 6) then
@@ -277,9 +277,9 @@ contains
                      !
                      ! V point
                      !
-                     dxuvinv  = dyrinv(iref)
+                     dxuvinv  = dyrinvc(iref)
                      dyuvinv  = dxrinv(iref)
-                     dxuv2inv = 0.0
+                     dxuv2inv = 0.0 ! no viscosity
                      dyuv2inv = dxr2inv(iref)
                      !
                   endif   
@@ -715,6 +715,7 @@ contains
    enddo   
    !$omp end do
    !$omp end parallel
+   !$acc end parallel
    !
    if (ncuv > 0) then
       !
@@ -724,7 +725,8 @@ contains
       !$omp parallel &
       !$omp private ( icuv )
       !$omp do
-      !$acc loop independent, gang, vector
+      !$acc parallel, present( q, uv, cuv_index_uv, cuv_index_uv1, cuv_index_uv2  )
+      !$acc loop gang vector
       do icuv = 1, ncuv
          !
          ! Average of the two uv points
@@ -733,14 +735,11 @@ contains
          uv(cuv_index_uv(icuv)) = (uv(cuv_index_uv1(icuv)) + uv(cuv_index_uv2(icuv))) / 2
          !
       enddo
+      !$acc end parallel
       !$omp end do
       !$omp end parallel
       !
    endif
-   !
-   !$acc end parallel
-   !
-   !$acc update host(min_dt), async(1)
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate

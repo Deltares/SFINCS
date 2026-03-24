@@ -69,7 +69,7 @@ module snapwave_infragravity
 	    
         !write(*,*)'DEBUG - computed hm0ig at boundary exceeds 3 meter: ',hsig, ' and is therefore limited back to 3 m!'
 	    !hsig = min(hsig, 3.0)
-    endif	        
+    endif
     !
     ! Choose what wave period option value for IG to choose:
     ! Options: 1=Tm01, 2=Tpsmooth, 3=Tp, 4=Tm-1,0
@@ -100,7 +100,7 @@ module snapwave_infragravity
 	    write(logstr,*)'DEBUG SnapWave - computed tpig/tpinc ratio at offshore boundary increased above 20 and might be unrealistic! value: ',tpig/tpinc
         call write_log(logstr, 1)        
     endif	         
-    !   
+    !
     end subroutine
    
     !-------------------------Supporting subroutines-------------------------!

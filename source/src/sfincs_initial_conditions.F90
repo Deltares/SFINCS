@@ -38,7 +38,7 @@ contains
       !
       allocate(inizs(np))
       allocate(inizs4(np))      
-      allocate(iniq(npuv))
+      allocate(iniq(npuv+ncuv+1)) ! Note: q is actually larger than npuv! It has size npuv + ncuv + 1
       !
       inizs = zini
       inizs4 = zini      

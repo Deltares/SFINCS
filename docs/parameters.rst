@@ -254,6 +254,12 @@ More parameters for model input (only for advanced users)
 	  :default:		0
 	  :min:			0
 	  :max:			1	
+	utmzone
+	  :description:		Option to convert the coordinates of a spiderweb with lat&lon coordinates in degrees to the x&y coordinates in meters of the UTM zone of your SFINCS model grid, 'utmzone=16N' (northern hemisphere) of 'utmzone=36S' (southern hemisphere) in sfincs.inp, default is off (nil).
+	  :units:		-
+	  :default:		nil
+	  :min:			-
+	  :max:			-
 	h73table
 	  :description:		Option to use lookup table to calculate nonlinear term h^(7/3) in momentum equation, depending on model schematisation can lead to ~0-30% speedup of model, default is off (0)
 	  :units:		logical
@@ -388,7 +394,11 @@ Parameters for model output
 	storezvolume
 	  :description:		Flag to turn on writing away water volumes for the subgrid mode during simulation (storezvolume = 1)
 	  :units:		-
-	  :default:		0		  
+	  :default:		0	
+	storestoragevolume
+	  :description:		Flag to turn on writing away storage volumes for the subgrid mode during simulation (storestoragevolume = 1)
+	  :units:		-
+	  :default:		0		  	  
 	storemeteo
 	  :description:		Flag to turn on writing away meteo input data during simulation (storemeteo = 1)
 	  :units:		-
@@ -396,7 +406,11 @@ Parameters for model output
 	storemaxwind
 	  :description:		Flag to turn on writing away maximum wind speed during simulation (storemaxwind = 1)
 	  :units:		-
-	  :default:		0	
+	  :default:		0
+	storetzsmax
+	  :description:		Flag to turn on writing away the time stamp that the maximum water surface elevation during simulation occured (storetzsmax = 1). Only if zsmax output is saved (dtmaxout > 0).
+	  :units:		-
+	  :default:		0	  
 	debug
 	  :description:		Flag to turn on writing away every timestep to output as debug mode (debug = 1)
 	  :units:		-
@@ -516,7 +530,12 @@ Domain
 	  :description:		To get output time-series of discharge through a cross-section, cross_sections have to be specified.
 	  :units:		m in projected UTM zone
 	  :required:		no (only if cross-section output is wanted)
-	  :format:		tekal		  	  
+	  :format:		tekal
+	volfile = sfincs.vol
+	  :description:		Green infrastructure spatially varying storage volume in m3 per grid cell, with the same grid based input as the depfile using a **binary file**.
+	  :units:		m3
+	  :required:		no
+	  :format:		**bin**
 	inifile = sfincs.ini
 	  :description:		For spatially varying initial water level per cell, with the same grid based input as the depfile using a **binary file**. In older version this was an ascii file still, not from official release v2.0.0 onwards!
 	  :units:		m above reference level
@@ -644,7 +663,7 @@ Structures
 	  :required:		no
 	  :format:		asc	 
 	drnfile = sfincs.drn
-	  :description:		Drainage pumps and culverts are both specified using the same format file, put with a different indication of the type (type=1 is drainage pump, type=2 is culvert).
+	  :description:		Drainage pumps, culverts and check valves are both specified using the same format file, put with a different indication of the type (type=1 is drainage pump, type=2 is culvert and type=3 is check valve).
 	  :units:		coordinates: m in projected UTM zone, discharges in m^3/s.
 	  :required:		no
 	  :format:		asc	 

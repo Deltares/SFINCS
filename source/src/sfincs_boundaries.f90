@@ -1078,9 +1078,9 @@ contains
             !
             ! Store when the maximum water level changed
             !
-            if (store_tmax_zs) then
+            if (store_t_zsmax) then
                 if (zs(nmb) > zsmax(nmb)) then
-                    tmax_zs(nm) = t
+                    t_zsmax(nm) = t
                 endif
             endif
             !

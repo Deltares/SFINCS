@@ -238,8 +238,10 @@ Spatially varying spiderweb
 ^^^^^^^^^
 
 The option of forcing spiderweb files is only relevant for tropical cyclones, as these time and spatially varying wind fields are constructed and written in a polar coordinate system.
-For generation of these spiderweb files use Deltares' Wind Enhancement Scheme tool (WES, see https://content.oss.deltares.nl/delft3d/manuals/Delft3D-WES_User_Manual.pdf, OET Matlab equivalent, the Coastal Hazards Toolkit or other methods). If you have issues with the generation of a spiderweb, feel free to get in touch.
+For generation of these spiderweb files use Deltares' Wind Enhancement Scheme tool (WES, see https://content.oss.deltares.nl/delft3d/manuals/Delft3D-WES_User_Manual.pdf, OET Matlab equivalent, the Coastal Hazards Toolkit or other methods).
 There are two options for spatially varying spiderweb. There is the 'traditional' ASCII format and the netcdf option. Both options support the possibility to include rainfall too.
+By default, it is assumed that the coordinates in the spiderweb files are in x&y (meters), in the same coordinate system as the SFINCS grid.
+In case only a version with lat&lon coordinates (degrees) is available, this can be converted within SFINCS itself by specifying 'utmzone=16N' (northern hemisphere) of 'utmzone=36S' (southern hemisphere) in sfincs.inp.
 
 **Spiderweb-input-ascii:**
 

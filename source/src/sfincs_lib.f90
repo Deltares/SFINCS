@@ -23,6 +23,7 @@ module sfincs_lib
    use sfincs_snapwave
    use sfincs_wavemaker
    use sfincs_nonhydrostatic
+   use sfincs_openacc
    use sfincs_log
    !
    implicit none
@@ -54,7 +55,6 @@ module sfincs_lib
    real*8   :: t
    real*8   :: tout
    real*4   :: dt
-   real*4   :: min_dt
    real*8   :: tmapout
    real*8   :: tmaxout
    real*8   :: trstout
@@ -92,8 +92,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.3.0-alpha mt.Faber"
-   build_date     = "$Date: 2025-10-17"
+   build_revision = "$Rev: v2.3.0 mt. Faber Release"
+   build_date     = "$Date: 2025-11-18"
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)
@@ -220,6 +220,11 @@ module sfincs_lib
    else   
       call write_log('Precipitation        : no', 1)
    endif
+   if (infiltration) then
+      call write_log('Infiltration         : yes', 1)
+   else   
+      call write_log('Infiltration         : no', 1)
+   endif   
    if (snapwave) then
       call write_log('SnapWave             : yes', 1)
    else
@@ -297,7 +302,7 @@ module sfincs_lib
    ! 
    call deallocate_quadtree()
    !
-   !call acc_init( acc_device_nvidia )
+   call initialize_openacc() ! Enter data region
    !
    ierr = error
    !
@@ -322,32 +327,6 @@ module sfincs_lib
    logical                       :: single_time_step 
    !
    ierr = 0
-   !
-   ! Copy arrays to GPU memory
-   ! 
-   !$acc data, copyin( kcs, kfuv, kcuv, zs, zs0, zsderv, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, maxzsm, qmax, vmax, twet, zsm, z_volume, &
-   !$acc               z_flags_iref, uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
-   !$acc               index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, zsb, zsb0, ibuvdir, uvmean, &
-   !$acc               subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
-   !$acc               subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
-   !$acc               subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
-   !$acc               z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
-   !$acc               uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
-   !$acc               uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
-   !$acc               nmindsrc, qtsrc, drainage_type, drainage_params, &
-   !$acc               z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, &
-   !$acc               fwuv, &
-   !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
-   !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, & 
-   !$acc               patm, patm0, patm1, patmb, nmindbnd, &
-   !$acc               prcp, prcp0, prcp1, cumprcp, netprcp, prcp, qext, & 
-   !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
-   !$acc               gn2uv, fcorio2d, min_dt, storage_volume, nuvisc, &
-   !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
-   !$acc               x73, &
-   !$acc               gnapp2, &
-   !$acc               qinffield, qinfmap, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, &
-   !$acc               ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, horton_kd, horton_fc, horton_f0 )
    !
    ! Set target time: if dt range is negative, do not modify t1
    !
@@ -565,7 +544,7 @@ module sfincs_lib
       !
       ! First compute fluxes
       !
-      call compute_fluxes(dt, min_dt, tloopflux)
+      call compute_fluxes(dt, tloopflux)
       !
       if (wavemaker) then
          !
@@ -656,9 +635,6 @@ module sfincs_lib
       !
    enddo
    !
-   !
-   !$acc end data
-   !
    end function sfincs_update
    !
    !-----------------------------------------------------------------------------------------------------!
@@ -674,7 +650,9 @@ module sfincs_lib
    !
    call finalize_output(t,ntmaxout,tloopoutput,tmaxout)
    !
-   dtavg = dtavg/nt
+   call finalize_openacc() ! Exit data region
+   !
+   dtavg = dtavg / (nt - 1)
    !
    call write_log('', 1)
    call write_log('---------- Simulation finished -----------', 1)                  
@@ -741,7 +719,7 @@ module sfincs_lib
    call write_log(logstr, 1)
    !
    call write_log('', 1)
-   write(logstr,'(a,20f10.3)')           ' Average time step (s)  : ',dtavg
+   write(logstr,'(a,20f10.3)')           ' Average time step (s)  : ', dtavg
    !
    call write_log(logstr, 1)
    call write_log('', 1)
