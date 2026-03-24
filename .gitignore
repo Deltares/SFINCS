@@ -63,3 +63,9 @@ __pycache__
 testbed/data/*
 testbed/.vscode/*
 testbed/logs/*
+/source/build_gpu.sh
+/source/Singularityfile-gpu.def
+/source/Dockerfile.xpu
+/source/LICENSING CONDITIONS for Free Trial Copy.txt
+/source/Dockerfile.gpu
+/source/Dockerfile.gpu.test
