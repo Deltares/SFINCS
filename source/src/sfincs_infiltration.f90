@@ -177,22 +177,18 @@ contains
       ! 5) Check whether infiltration input type (orignal vs netcdf) are correctly matched to grid type (regular vs quadtree)
       !
       if (infiltration .and. inftype /= 'con') then !constant uniform works for both options
-         ! 
-         if (netcdf_infiltration) then
-            !            
-            if (use_quadtree .eqv. .false.) then
-               ! 
-               call stop_sfincs('Error ! Netcdf infiltration input format can only be specified for quadtree mesh model !', 1)              
+         !
+         ! Netcdf infiltration works for both regular and quadtree grids
+         ! (regular grids populate quadtree_nr_points and index_sfincs_in_quadtree
+         !  via make_quadtree_from_indices)
+         !
+         if (.not. netcdf_infiltration) then
+            !
+            if (use_quadtree .eqv. .true.) then
                !
+               call stop_sfincs('Error ! Infiltration input for quadtree mesh model can only be specified using the infiltrationfile Netcdf format! !', 1)
             endif
             !
-         else ! Original
-            ! 
-            if (use_quadtree .eqv. .true.) then
-               ! 
-               call stop_sfincs('Error ! Infiltration input for quadtree mesh model can only be specified using the infiltrationfile Netcdf format! !', 1)                       
-            endif 
-             ! 
          endif
          !
       endif      
