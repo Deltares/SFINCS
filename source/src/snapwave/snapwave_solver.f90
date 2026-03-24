@@ -149,7 +149,7 @@ contains
                                          wind,   &
                                          H,Dw,F,Df,thetam,sinhkh,&
                                          Hmx, ee, windspreadfac, u10, niter, crit, &
-                                         hmin, baldock_ratio, baldock_ratio_ig, &
+                                         hmin, baldock_ratio, baldock_ratio_ig, baldock_exponent, &
                                          aa, sig, jadcgdx, sigmin, sigmax,&
                                          c_dispT, DoverE, WsorE, WsorA, SwE, SwA, Tpini, &
                                          igwaves, kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
@@ -175,7 +175,7 @@ contains
                                          wind,   &
                                          H,Dw,F,Df,thetam,sinhkh,&
                                          Hmx, ee, windspreadfac, u10, niter, crit, &
-                                         hmin, baldock_ratio, baldock_ratio_ig, &       
+                                         hmin, baldock_ratio, baldock_ratio_ig, baldock_exponent, &       
                                          aa, sig, jadcgdx, sigmin, sigmax,&
                                          c_dispT, DoverE, WsorE, WsorA, SwE, SwA, Tpini, &
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
@@ -318,7 +318,7 @@ contains
    real*4                                     :: shinc2ig          ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 0=default)   
    real*4                                     :: fdrspr            ! Inc-IG reduction factor to account for directional spreading  
    integer, save                              :: callno=1
-   integer                                    :: baldock_exponent  ! 0, 1 or 2
+   integer, intent(in)                        :: baldock_exponent  ! Exponent for multiplying the Baldock dissipation with a factor 'f = (Hloc / Hmax)**iexp' to enhance breaking when H > Hmax, with iexp = 0 (default, means unused), 1 or 2 
    !
    real*4, dimension(ntheta)                  :: sinth, costh            ! distribution of wave angles and offshore wave energy density   
    !
@@ -334,7 +334,6 @@ contains
    ! Allocate local arrays
    !
    waveps = 0.0001
-   baldock_exponent = 2 ! exponent to enhance breaking when H > Hmax
    !
    fdrspr = 1.0 ! This is a factor on the IG source term to account for directional spreading
    !              of the incident wave energy, which reduces the IG wave energy generated.

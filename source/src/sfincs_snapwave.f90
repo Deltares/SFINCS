@@ -606,8 +606,9 @@ contains
    call read_real_input(500,'snapwave_crit',crit,0.00001) !TL: Old default was 0.01
    call read_int_input(500,'snapwave_nrsweeps',nr_sweeps,4)
    call read_int_input(500,'snapwave_niter',niter, 10) !TL: Old default was 40  
-   call read_int_input(500,'snapwave_baldock_opt',baldock_opt,1)     
+   !call read_int_input(500,'snapwave_baldock_opt',baldock_opt,1)     
    call read_real_input(500,'snapwave_baldock_ratio',baldock_ratio,0.2)
+   call read_int_input(500,'snapwave_baldock_exponent',baldock_exponent,0)   ! Exponent for multiplying the Baldock dissipation with a factor 'f = (Hloc / Hmax)**iexp' to enhance breaking when H > Hmax, with iexp = 0 (default, means unused), 1 or 2      
    call read_real_input(500,'rgh_lev_land',rghlevland,0.0)
    call read_real_input(500,'snapwave_fw_ratio',fwratio,1.0)
    call read_real_input(500,'snapwave_fwig_ratio',fwigratio,1.0)
