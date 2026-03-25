@@ -41,8 +41,6 @@ contains
          !
          ee_ig = waveps
          !
-         restart = 1 !TODO TL: CHECK > we need this turned on right now for IG...
-         !
       endif
       !
       ! Initialize wave period
