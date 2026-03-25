@@ -6,7 +6,7 @@ WORKDIR /usr/src/sfincs
 # Install software into /usr/local by default
 # No OpenACC for GNU/CPU build
 # RUN autoreconf -ivf && ./autogen.sh && FFLAGS="-w -fallow-argument-mismatch -O2" && FCFLAGS="-w -fallow-argument-mismatch -O2 -fopenmp -O3" ./configure --disable-openacc && make && make install
-RUN chmod -R 777 autogen.sh
+# RUN chmod -R 777 autogen.sh
 # -fallow-argument-mismatch needed for https://github.com/Unidata/netcdf-fortran/issues/212
 ENV FCFLAGS="-fopenmp -O3 -fallow-argument-mismatch -w"
 ENV FFLAGS="-fopenmp -O3 -fallow-argument-mismatch -w"
