@@ -1,6 +1,7 @@
 module sfincs_snapwave
    !
    use sfincs_log
+   use sfincs_error
    !    
    implicit none
    !     
@@ -33,6 +34,7 @@ module sfincs_snapwave
    integer*4, dimension(:),   allocatable    :: index_snapwave_in_sfincs
    integer*4, dimension(:),   allocatable    :: index_sfincs_in_snapwave
    integer*4, dimension(:),   allocatable    :: index_sw_in_qt ! used in sfincs_ncoutput (copy of index_snapwave_in_quadtree from snapwave_data)
+   real*4                                    :: snapwave_hsmean
    real*4                                    :: snapwave_tpmean
    real*4                                    :: snapwave_tpigmean   
    !
@@ -103,6 +105,8 @@ contains
    !
    call read_boundary_data()
    !
+   !call find_boundary_indices() ! > is already called in read_boundary_data()
+   !
    call write_log('', 1)
    !
    snapwave_no_nodes = no_nodes
@@ -121,13 +125,14 @@ contains
       snapwave_u10dir = 0.0
    endif
    !
+   snapwave_hsmean = 0.0
    snapwave_tpmean = 0.0
    snapwave_tpigmean = 0.0   
-
    !   
    call find_matching_cells(index_quadtree_in_snapwave, index_snapwave_in_quadtree)
    !
    ! Copy final snapwave mask from snapwave_domain for output in sfincs_ncoutput
+   !
    snapwave_mask = msk   
    !
    call write_log('------------------------------------------', 1)
@@ -199,6 +204,7 @@ contains
    ! Loop through SnapWave points
    !
    do ipsw = 1, snapwave_no_nodes
+      !
       iq   = index_quadtree_in_snapwave(ipsw)
       ipsf = index_sfincs_in_quadtree(iq)
       !
@@ -256,9 +262,11 @@ contains
    ! Loop through SFINCS points
    !
    do ipsf = 1, np
+      !
       iq   = index_quadtree_in_sfincs(ipsf)
       ipsw = index_snapwave_in_quadtree(iq)
       index_snapwave_in_sfincs(ipsf) = ipsw
+      !
    enddo   
    !
    ! Print warning message
@@ -270,7 +278,7 @@ contains
           write(logstr,'(a,i0,a)')'SnapWave: Info   : ',counter,' SnapWave node(s) do not have a matching SFINCS point, water level at these points is set to 0.0 '          
       endif      
       ! 
-      call write_log(logstr, 1)
+      call write_log(logstr, 0)
       !
    endif   
    !
@@ -298,6 +306,7 @@ contains
    real*4,    dimension(:), allocatable       :: dwig0
    real*4,    dimension(:), allocatable       :: dfig0   
    real*4,    dimension(:), allocatable       :: cg0   
+   !real*4,    dimension(:), allocatable       :: qb0   
    real*4,    dimension(:), allocatable       :: beta0 
    real*4,    dimension(:), allocatable       :: srcig0      
    real*4,    dimension(:), allocatable       :: alphaig0   
@@ -313,6 +322,7 @@ contains
    allocate(dwig0(np))
    allocate(dfig0(np))  
    allocate(cg0(np))  
+   !allocate(qb0(np))   
    allocate(beta0(np))   
    allocate(srcig0(np))      
    allocate(alphaig0(np))      
@@ -324,6 +334,7 @@ contains
    dwig0 = 0.0
    dfig0 = 0.0
    cg0 = 0.0
+   !qb0 = 0.0
    beta0 = 0.0
    srcig0 = 0.0
    alphaig0 = 0.0   
@@ -334,13 +345,14 @@ contains
       !
       ip = index_sfincs_in_snapwave(nm) ! matching index in SFINCS mesh
       !
-      if (ip>0) then
+      if (ip > 0) then
          !
          ! A matching SFINCS point is found
          !
+
          if (wavemaker) then
             !
-            snapwave_depth(nm) = max(zsm(ip) - snapwave_z(nm), 0.00001)      
+            snapwave_depth(nm) = max(zsm(ip) - snapwave_z(nm), 0.00001)
             !
          else   
             !
@@ -418,6 +430,7 @@ contains
          dwig0(nm)  = snapwave_Dwig(ip)   
          dfig0(nm)  = snapwave_Dfig(ip)
          cg0(nm)    = snapwave_cg(ip)
+         !qb0(nm)    = snapwave_Qb(ip)
          beta0(nm)  = snapwave_beta(ip)
          srcig0(nm) = snapwave_srcig(ip)
          alphaig0(nm) = snapwave_alphaig(ip)
@@ -441,6 +454,7 @@ contains
          dwig0(nm)  = 0.0
          dfig0(nm)  = 0.0
          cg0(nm)    = 0.0
+         !qb0(nm)    = 0.0
          beta0(nm)  = 0.0
          srcig0(nm) = 0.0
          alphaig0(nm) = 0.0         
@@ -460,6 +474,7 @@ contains
          dwig(nm)       = dwig0(nm)
          dfig(nm)       = dfig0(nm)
          cg(nm)         = cg0(nm)   
+         !qb(nm)         = qb0(nm)         
          betamean(nm)   = beta0(nm)         
          srcig(nm)      = srcig0(nm)         
          alphaig(nm)    = alphaig0(nm)                  
@@ -468,8 +483,8 @@ contains
       !
    enddo   
    !   
-   hm0 = hm0*sqrt(2.0)
-   hm0_ig = hm0_ig*sqrt(2.0)
+   hm0 = hm0 * sqrt(2.0)
+   hm0_ig = hm0_ig * sqrt(2.0)
    !
    do ip = 1, npuv
       !
@@ -529,7 +544,7 @@ contains
    snapwave_H_ig                  = H_ig
    snapwave_Tp                    = Tp
    snapwave_Tp_ig                 = Tp_ig   
-   snapwave_mean_direction        = modulo(270.0 - thetam*180.0/pi+360.0, 360.)
+   snapwave_mean_direction        = modulo(270.0 - thetam * 180 / pi + 360.0, 360.0)
    snapwave_directional_spreading = thetam  ! TL: CORRECT? > is not spreading but mean direction?
    snapwave_Dw                    = Dw
    snapwave_Df                    = Df
@@ -560,6 +575,8 @@ contains
    enddo   
    !
    ! Wave periods from SnapWave, used in e.g. wavemakers - TL: moved behind call update_boundary_conditions & compute_wave_field so values at first timestep are not 0
+   !
+   snapwave_hsmean = hsmean_bwv
    snapwave_tpmean = tpmean_bwv
    !
    ! Do quick check whether incoming Tpig value seems realistic, before using it:
@@ -615,8 +632,8 @@ contains
    call read_real_input(500,'snapwave_fwig_ratio',fwigratio,1.0)
    call read_real_input(500,'snapwave_Tpini',Tpini,1.0)
    call read_int_input (500,'snapwave_mwind',mwind,2)      
-   call read_real_input(500,'snapwave_sigmin',sigmin,8.0*atan(1.0)/25.0)
-   call read_real_input(500,'snapwave_sigmax',sigmax,8.0*atan(1.0)/1.0)   
+   call read_real_input(500,'snapwave_sigmin',sigmin,8.0 * atan(1.0) / 25.0)
+   call read_real_input(500,'snapwave_sigmax',sigmax,8.0 * atan(1.0) / 1.0)   
    call read_int_input (500,'snapwave_jadcgdx',jadcgdx,1)
    call read_real_input(500,'snapwave_c_dispT',c_dispT,1.0)   
    call read_real_input(500,'snapwave_sector',sector,180.0)
@@ -647,20 +664,21 @@ contains
    call read_int_input(500, 'vegetation', vegetation_opt, 0)
    !
    ! Input files
-   call read_char_input(500,'snapwave_jonswapfile',snapwave_jonswapfile,'')
-   call read_char_input(500,'snapwave_bndfile',snapwave_bndfile,'')
-   call read_char_input(500,'snapwave_encfile',snapwave_encfile,'')
-   call read_char_input(500,'snapwave_bhsfile',snapwave_bhsfile,'')
-   call read_char_input(500,'snapwave_btpfile',snapwave_btpfile,'')
-   call read_char_input(500,'snapwave_bwdfile',snapwave_bwdfile,'')
-   call read_char_input(500,'snapwave_bdsfile',snapwave_bdsfile,'') 
-   call read_char_input(500,'snapwave_upwfile',upwfile,'snapwave.upw')
-   call read_char_input(500,'snapwave_mskfile',mskfile,'')
-   call read_char_input(500,'snapwave_depfile',depfile,'none')   
-   call read_char_input(500,'snapwave_ncfile', gridfile,'snapwave_net.nc')   
-   call read_char_input(500,'netsnapwavefile',netsnapwavefile,'')
-   call read_logical_input(500,'storesnapwavegrid',storesnapwavegrid,.false.)
-   call read_char_input(500,'tref',trefstr,'20000101 000000')   ! Read again > needed in sfincs_ncinput.F90   
+   !
+   call read_char_input(500, 'snapwave_jonswapfile', snapwave_jonswapfile, 'none')
+   call read_char_input(500, 'snapwave_bndfile', snapwave_bndfile, 'none')
+   call read_char_input(500, 'snapwave_encfile', snapwave_encfile, 'none')
+   call read_char_input(500, 'snapwave_bhsfile', snapwave_bhsfile, 'none')
+   call read_char_input(500, 'snapwave_btpfile', snapwave_btpfile, 'none')
+   call read_char_input(500, 'snapwave_bwdfile', snapwave_bwdfile, 'none')
+   call read_char_input(500, 'snapwave_bdsfile', snapwave_bdsfile,'none') 
+   call read_char_input(500, 'snapwave_upwfile', upwfile, 'snapwave.upw')
+   call read_char_input(500, 'snapwave_mskfile', mskfile, 'none')
+   call read_char_input(500, 'snapwave_depfile', depfile, 'none')   
+   call read_char_input(500, 'snapwave_ncfile',  gridfile, 'snapwave_net.nc')   
+   call read_char_input(500, 'netsnapwavefile', netsnapwavefile, 'none')
+   call read_logical_input(500,'storesnapwavegrid',storesnapwavegrid,.false.)   
+   call read_char_input(500, 'tref', trefstr, '20000101 000000')   ! Read again > needed in sfincs_ncinput.F90   
    !
    close(500)
    !
@@ -669,7 +687,9 @@ contains
    iterative_srcig  = .false.   
    !
    if (igwaves_opt==0) then
+      !
       igwaves       = .false.
+      !
    else
       ! 
       if (iterative_srcig_opt==1) then
@@ -677,27 +697,34 @@ contains
       endif      
       !
       if (herbers_opt==0) then
+         !
          write(logstr,*)'SnapWave: IG bc using use eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
-         call write_log(logstr, 1)         
+         call write_log(logstr, 0)         
+         !
       else
+         !
          igherbers     = .true.          
+         !
       endif
       !
    endif
    !
-   wind          = .true.
+   wind = .true.
    if (wind_opt==0) then
-      wind       = .false.
+      wind = .false.
    endif   
    !
-   vegetation          = .true.
-   if (vegetation_opt==0) then
-      vegetation       = .false.
+   vegetation = .true.
+   !
+   if (vegetation_opt == 0) then
+      vegetation = .false.
    endif   
    !
    if (nr_sweeps /= 1 .and. nr_sweeps /= 4) then
+      !
       nr_sweeps = 4
       call write_log('SnapWave: Warning! nr_sweeps must be 1 or 4! Now set to 4.', 1)
+      !
    endif
    ! 
    restart           = .true.

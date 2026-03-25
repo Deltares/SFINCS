@@ -133,7 +133,7 @@ contains
    if (amufile(1:4) /= 'none') then    
       !
       call write_log('Info    : reading amu and amv file', 0)
-      !  
+      !
       ok = check_file_exists(amufile, 'Meteo ascii wind amu file', .true.)
       ok = check_file_exists(amvfile, 'Meteo ascii wind amv file', .true.)
       !
@@ -233,13 +233,14 @@ contains
    !
    if (wndfile(1:4) /= 'none') then
       !
+      tm_wind = .true.
+      !
       ! Wind in time series file 
+      !
       write(logstr,'(a,a)')'Info    : reading ', trim(wndfile)    
       call write_log(logstr, 0)
       !
       ok = check_file_exists(wndfile, 'Wind wnd file', .true.)
-      !       
-      tm_wind = .true.      
       !
       ntwnd = 0
       itwndlast = 1
@@ -267,13 +268,13 @@ contains
    !
    if (prcpfile(1:4) /= 'none') then
       !
+      tm_prcp = .true.
+      !
       ! Rainfall in time series file 
       write(logstr,'(a,a)')'Info    : reading prcp file ', trim(prcpfile)    
       call write_log(logstr, 0)
       !
       ok = check_file_exists(prcpfile, 'Precipitation prcp file', .true.)
-      !
-      tm_prcp = .true.      
       !
       ntprcp = 0 
       itprcplast = 1
@@ -398,8 +399,37 @@ contains
          !
       endif
       !
+   endif
+   !
+   ! Check if meteo data covers the entire simulation period.
+   !
+   if (am_wind) then
+      !
+      if (amuv_times(1) > t0 + 1.0 .or. amuv_times(amuv_nt) < t1 - 1.0) then
+         write(logstr,'(a)')'Warning! Times in spatially-varying wind input file do not cover entire simulation period! Using nearest available data.'
+         call write_log(logstr, 1)
+      endif
+      !
    endif   
-   !   
+   !
+   if (am_pres) then
+      !
+      if (amp_times(1) > t0 + 1.0 .or. amp_times(amp_nt) < t1 - 1.0) then
+         write(logstr,'(a)')'Warning! Times in spatially-varying pressure input file do not cover entire simulation period! Using nearest available data.'
+         call write_log(logstr, 1)
+      endif
+      !
+   endif
+   !
+   if (am_prcp) then
+      !
+      if (ampr_times(1) > t0 + 1.0 .or. ampr_times(ampr_nt) < t1 - 1.0) then
+         write(logstr,'(a)')'Warning! Times in spatially-varying precipitation input file do not cover entire simulation period! Using nearest available data.'
+         call write_log(logstr, 1)
+      endif
+      !
+   endif   
+   !
    end subroutine
    !
    !
@@ -435,51 +465,50 @@ contains
    !
    do itw = 1, 2
       !      
-      ! Find time indices in spw file
-      !
-      if (itw==1) then
+      if (itw == 1) then
          meteo_t = meteo_t0
       else
          meteo_t = meteo_t1
       endif
       !
-      itw0 = 1
-      do itspw = 1, spw_nt
-         if (spw_times(itspw)<=meteo_t) then
-            itw0 = itspw
-         endif
-      enddo
-      itw1 = itw0 + 1
-      itw1 = min(itw1, spw_nt)
-      !
-      meteo_t = min(meteo_t, spw_times(itw1))
-      !
-      twfac  = (meteo_t - spw_times(itw0))/max(spw_times(itw1) - spw_times(itw0), 1.0e-6)
-      tspinup_fac = 1.0 
-      !
-      ! Check if spw data is not yet available
-      ! If so, use first time in spw 
+      ! Check if meteo_t is in available time range
       !
       if (meteo_t < spw_times(1)) then
+         !
+         ! Time is before first time in spw file, so use first time step and apply spin-up factor to
+         ! ramp up from zero over 6 hours (21600 seconds)         
          !
          itw0 = 1
          itw1 = 1
          twfac = 1.0         
-         !
          tspinup_fac = max(1.0 - (spw_times(1) - meteo_t) / 21600.0, 0.0)
          !
-      endif
-      !
-      ! Check if spw data is no longer available
-      ! If so, use last time in spw 
-      !
-      if (meteo_t > spw_times(spw_nt)) then
+      elseif (meteo_t > spw_times(spw_nt)) then
+         !
+         ! Time is after last time in spw file, so use last time step and apply spin-up factor to
+         ! ramp down to zero over 6 hours (21600 seconds)
          !
          itw0 = spw_nt
          itw1 = spw_nt
          twfac = 1.0         
-         !
          tspinup_fac = max(1.0 - (meteo_t - spw_times(spw_nt)) / 21600.0, 0.0)
+         !
+      else
+         !
+         ! meteo_t falls within time range of spw file, so find the two time steps itw0 and itw1 that meteo_t falls between 
+         ! and compute temporal interpolation factor twfac
+         !
+         itw0 = 1
+         do itspw = 1, spw_nt
+            if (spw_times(itspw) <= meteo_t) then
+               itw0 = itspw
+            endif
+         enddo
+         !
+         itw1 = itw0 + 1
+         itw1 = min(itw1, spw_nt)
+         twfac  = (meteo_t - spw_times(itw0)) / max(spw_times(itw1) - spw_times(itw0), 1.0e-6)
+         tspinup_fac = 1.0 
          !
       endif
       !
@@ -534,7 +563,7 @@ contains
          !
          ! Initialize meteo data, but only if we don't also use background meteo
          !
-         if (itw==1) then
+         if (itw == 1) then
             !
             if (amufile(1:4) == 'none' .and. netamuamvfile(1:4) == 'none') then            
                !
@@ -549,14 +578,14 @@ contains
             endif
             !
             if (patmos) then
-               if (ampfile(1:4) == 'none') then            
-                  patm0(nm)  = gapres
+               if (ampfile(1:4) == 'none' .and. netampfile == 'none') then
+                  patm0(nm) = gapres
                endif
             endif   
             !
             if (precip .and. spw_precip) then
               if (amprfile(1:4) == 'none' .and. netamprfile(1:4) == 'none') then            
-                  prcp0(nm)  = 0.0 ! m/s
+                  prcp0(nm) = 0.0 ! m/s
                endif
             endif
             !
@@ -575,20 +604,20 @@ contains
             endif
             !
             if (patmos) then
-               if (ampfile(1:4) == 'none') then            
-                  patm1(nm)  = gapres
+               if (ampfile(1:4) == 'none' .and. netampfile == 'none') then
+                  patm1(nm) = gapres
                endif
             endif   
             !
             if (precip .and. spw_precip) then
                if (amprfile(1:4) == 'none' .and. netamprfile(1:4) == 'none') then            
-                  prcp1(nm)  = 0.0 ! m/s
+                  prcp1(nm) = 0.0 ! m/s
                endif
             endif
             !
          endif
-         !          
-         if (dstspw>spw_radius) cycle ! Point outside spiderweb
+         !
+         if (dstspw > spw_radius) cycle ! Point outside spiderweb
          !
          ! Determine row indices
          !
@@ -598,7 +627,7 @@ contains
          ind1(2) = idstspw
          ind1(3) = idstspw + 1
          ind1(4) = idstspw + 1
-         if (ind1(3)>spw_nrows) cycle             
+         if (ind1(3) > spw_nrows) cycle
          dj1     = (dstspw - dradspw * idstspw) / dradspw
          phispw  = 0.5*pi - atan2(dye, dxe) ! Geographic
          phispw  = modulo(phispw, 2 * pi)
@@ -706,17 +735,17 @@ contains
             !
          endif
          !
-         if (itw==1) then
+         if (itw == 1) then
             ! 
             tauwu0(nm) = (1.0 - merge_frac) * tauwu0(nm) + merge_frac * vmag * ( cosrot * wup + sinrot * wvp) * rhoa * cd / rhow
             tauwv0(nm) = (1.0 - merge_frac) * tauwv0(nm) + merge_frac * vmag * (-sinrot * wup + cosrot * wvp) * rhoa * cd / rhow
             ! 
             if (patmos) then
-               patm0(nm)  = (1.0 - merge_frac) * patm0(nm) + merge_frac * pcp
+               patm0(nm) = (1.0 - merge_frac) * patm0(nm) + merge_frac * pcp
             endif
             ! 
             if (precip .and. spw_precip) then
-               prcp0(nm)  = (1.0 - merge_frac) * prcp0(nm) + merge_frac*prp / (1000 * 3600) ! m/s
+               prcp0(nm) = (1.0 - merge_frac) * prcp0(nm) + merge_frac * prp / (1000 * 3600) ! m/s
             endif
             ! 
             if (store_wind) then
@@ -738,8 +767,10 @@ contains
             endif
             ! 
             if (store_wind) then
+               !
                windu1(nm) = (1.0 - merge_frac) * windu1(nm) + merge_frac * wup
                windv1(nm) = (1.0 - merge_frac) * windv1(nm) + merge_frac * wvp
+               !
             endif   
             ! 
          endif
@@ -780,11 +811,17 @@ contains
          meteo_t = meteo_t1
       endif
       !
+      ! Make sure that meteo_t is within the range of amuv_times, if not, use first or last time in amuv_times.
+      !
+      meteo_t = max(meteo_t, amuv_times(1))
+      meteo_t = min(meteo_t, amuv_times(amuv_nt))
+      !
       do itspw = 1, amuv_nt
          if (amuv_times(itspw)<=meteo_t) then
             itw0 = itspw
          endif
       enddo
+      !
       itw1 = itw0 + 1
       itw1 = min(itw1, amuv_nt)
       !
@@ -949,6 +986,11 @@ contains
          meteo_t = meteo_t1
       endif
       !
+      ! Make sure that meteo_t is within the range of amp_times, if not, use first or last time in amp_times.
+      !
+      meteo_t = max(meteo_t, amp_times(1))
+      meteo_t = min(meteo_t, amp_times(amp_nt))
+      !
       ! Find time indices in amp file
       !
       do itspw = 1, amp_nt
@@ -974,8 +1016,8 @@ contains
       !
       ! Loop through grid points
       !
-      yul = amp_y_llcorner + (amp_nrows - 1)*amp_dy + 0.5*amp_dy
-      xll = amp_x_llcorner + 0.5*amp_dx
+      yul = amp_y_llcorner + (amp_nrows - 1) * amp_dy + 0.5 * amp_dy
+      xll = amp_x_llcorner + 0.5 * amp_dx
       !
       do nm = 1, np
          !
@@ -984,23 +1026,23 @@ contains
          !
          ! Determine row indices
          !
-         iy = int((yul - y)/amp_dy) + 1
+         iy = int((yul - y) / amp_dy) + 1
          ind1(1) = iy
          ind1(2) = iy
          ind1(3) = iy + 1
          ind1(4) = iy + 1
-         dj1     = (yul - (iy - 1)*amp_dy - y) / amp_dy
+         dj1     = (yul - (iy - 1) * amp_dy - y) / amp_dy
          !
          ! Determine column indices
          !
-         ix = int((x - xll)/amp_dx) + 1
+         ix = int((x - xll) / amp_dx) + 1
          ind2(1) = ix
          ind2(2) = ix + 1
          ind2(3) = ix + 1
          ind2(4) = ix
-         di1     = (x - (xll + (ix - 1)*amp_dx)) / amp_dx
+         di1     = (x - (xll + (ix - 1) * amp_dx)) / amp_dx
          !
-         if (iy<=1 .or. iy>=amp_nrows .or. ix<=0 .or. ix>=amp_ncols) then
+         if (iy <= 1 .or. iy >= amp_nrows .or. ix <= 0 .or. ix >= amp_ncols) then
             !
             ! Point outside rectangular amp grid
             !
@@ -1031,11 +1073,11 @@ contains
          !                 
          do ip = 1, 4
             !
-            pr = pr + f(ip)*amp_patm01(ind1(ip),ind2(ip))
+            pr = pr + f(ip) * amp_patm01(ind1(ip), ind2(ip))
             !
          enddo
          !
-         if (itw==1) then
+         if (itw == 1) then
             patm0(nm)  = pr
          else
             patm1(nm)  = pr
@@ -1074,10 +1116,15 @@ contains
          meteo_t = meteo_t1
       endif
       !
+      ! Make sure that meteo_t is within the range of amuv_times, if not, use first or last time in amuv_times.
+      !
+      meteo_t = max(meteo_t, ampr_times(1))
+      meteo_t = min(meteo_t, ampr_times(ampr_nt))
+      !
       ! Find time indices in ampr file
       !
       do itspw = 1, ampr_nt
-         if (ampr_times(itspw)<=meteo_t) then
+         if (ampr_times(itspw) <= meteo_t) then
             itw0 = itspw
          endif
       enddo
@@ -1163,14 +1210,14 @@ contains
          !                 
          do ip = 1, 4
             !
-            prp     = prp + f(ip)*ampr_pr01(ind1(ip),ind2(ip))
+            prp     = prp + f(ip) * ampr_pr01(ind1(ip), ind2(ip))
             !
          enddo
          !
-         if (itw==1) then
-            prcp0(nm)  = prp/(1000*3600) ! m/s
+         if (itw == 1) then
+            prcp0(nm)  = prp / (1000 * 3600) ! m/s
          else
-            prcp1(nm)  = prp/(1000*3600) ! m/s
+            prcp1(nm)  = prp / (1000 * 3600) ! m/s
          endif
          !
       enddo                          
@@ -1205,7 +1252,7 @@ contains
    !
    if (meteo3d) then
       !
-      twfact  = (t - meteo_t0)/(meteo_t1 - meteo_t0)
+      twfact  = (t - meteo_t0) / (meteo_t1 - meteo_t0)
       onemintwfact = 1.0 - twfact
       !
       !$omp parallel &
@@ -1216,7 +1263,7 @@ contains
       !$acc                    patm, patm0, patm1, &
       !$acc                    prcp, prcp0, prcp1, cumprcp, netprcp, &
       !$acc                    zs, zb, z_volume )
-      !$acc loop gang vector
+      !$acc loop independent gang vector
       do nm = 1, np
          !
          if (wind) then
@@ -1238,32 +1285,40 @@ contains
          endif   
          !
          if (patmos) then
-            patm(nm)  = patm0(nm) * onemintwfact  + patm1(nm) * twfact  ! atmospheric pressure (Pa)
+            !
+            patm(nm) = patm0(nm) * onemintwfact  + patm1(nm) * twfact  ! atmospheric pressure (Pa)
+            !
          endif   
          !
          if (precip) then
             !
-            prcp(nm)    = prcp0(nm) * onemintwfact  + prcp1(nm) * twfact  ! rainfall in m/s !!!
+            prcp(nm) = prcp0(nm) * onemintwfact  + prcp1(nm) * twfact  ! rainfall in m/s !!!
             !
             ! Don't allow negative prcp (e.g. hardfixing infiltration/evaporation on model when forcing effective rainfall) when there's no water in the cell (same as check for constant infiltration)
             !
-            if (prcp(nm) < 0) then
-                 !  
-                 ! No effective infiltration if there is no water
-                 !  
-                 if (subgrid) then
-                    if (z_volume(nm) <= 0.0) then
-                       prcp(nm) = 0.0
-                    endif
-                 else
-                    if (zs(nm) <= zb(nm)) then
-                       prcp(nm) = 0.0
-                    endif
-                 endif            
+            if (prcp(nm) < 0.0) then
+               !  
+               ! No effective infiltration if there is no water
+               !  
+               if (subgrid) then
+                  if (z_volume(nm) <= 0.0) then
+                     prcp(nm) = 0.0
+                  endif
+               else
+                  if (zs(nm) <= zb(nm)) then
+                     prcp(nm) = 0.0
+                  endif
+               endif
+               !
             endif
             !
-            netprcp(nm) = prcp(nm)            
-            cumprcp(nm) = cumprcp(nm) + prcp(nm) * dt
+            netprcp(nm) = prcp(nm)
+            !
+            if (store_cumulative_precipitation) then
+               !
+               cumprcp(nm) = cumprcp(nm) + prcp(nm) * dt
+               !
+            endif   
             !
          endif   
          !
@@ -1274,7 +1329,7 @@ contains
       !
       ! Apply spin-up factor
       !
-      if ((t < (tspinup - 1.0e-3)) .and. spinup_meteo) then
+      if (t < (tspinup - 1.0e-3) .and. spinup_meteo) then
          !
          smfac = (t - t0) / (tspinup - t0)
          oneminsmfac = 1.0 - smfac
@@ -1283,7 +1338,7 @@ contains
          !$omp private ( nm )
          !$omp do
          !$acc parallel, present( tauwu, tauwv, patm, prcp, netprcp, zs, zb, z_volume )
-         !$acc loop gang vector
+         !$acc loop independent gang vector
          do nm = 1, np
             !
             if (wind) then
@@ -1292,7 +1347,7 @@ contains
             endif   
             !
             if (patmos) then
-               patm(nm)  =patm(nm) * smfac + gapres * oneminsmfac
+               patm(nm)  = patm(nm) * smfac + gapres * oneminsmfac
             endif   
             !
             if (precip) then
@@ -1330,7 +1385,7 @@ contains
          ! Update atmospheric pressure at boundary points (patmb)
          !
          !$acc parallel, present( patmb, nmindbnd, patm )
-         !$acc loop gang vector
+         !$acc loop independent gang vector
          do ib = 1, ngbnd
             !
             patmb(ib) = patm(nmindbnd(ib))
@@ -1365,7 +1420,7 @@ contains
    endif
    !
    call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
+   tloop = tloop + 1.0 * (count1 - count0) / count_rate
    !         
    end subroutine
 
@@ -1410,7 +1465,7 @@ contains
          !$omp shared ( tauwu,tauwv )
          !$omp do
          !$acc parallel, present( tauwu, tauwv )
-         !$acc loop gang vector
+         !$acc loop independent gang vector
          do nm = 1, np
             tauwu(nm) = twu
             tauwv(nm) = twv
@@ -1460,13 +1515,13 @@ contains
    !
    twfac  = (t - tprcpt(itp - 1)) / (tprcpt(itp) - tprcpt(itp - 1))
    !
-   ptmp = (tprcpv(itp - 1) * (1.0 - twfac) + tprcpv(itp) * twfac) / (1000*3600) ! rain in m/s
+   ptmp = (tprcpv(itp - 1) * (1.0 - twfac) + tprcpv(itp) * twfac) / (1000 * 3600) ! rain in m/s
    !
    !$omp parallel &
    !$omp private ( nm )
    !$omp do
    !$acc parallel present( prcp, cumprcp, netprcp )
-   !$acc loop gang vector
+   !$acc loop independent gang vector
    do nm = 1, np
       !
       prcp(nm)    = ptmp
