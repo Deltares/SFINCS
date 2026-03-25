@@ -34,7 +34,8 @@
 				<File RelativePath="..\src\snapwave\snapwave_boundaries.f90">
 				</File>
 				<File RelativePath="..\src\snapwave\snapwave_data.f90"/>
-				<File RelativePath="..\src\snapwave\snapwave_date.f90"/>
+				<File RelativePath="..\src\snapwave\snapwave_date.f90">
+				</File>
 				<File RelativePath="..\src\snapwave\snapwave_domain.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_infragravity.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_ncinput.F90">
@@ -50,14 +51,16 @@
 				<File RelativePath="..\src\snapwave\snapwave_windsource.f90"/>
 			</Filter>
 			<File RelativePath="..\third_party_open\Delft3D\astro.f90"/>
-			<File RelativePath="..\third_party_open\bicgstab\bicgstab_solver_ilu.f90"/>
+			<File RelativePath="..\third_party_open\bicgstab\bicgstab_solver_ilu.f90">
+			</File>
 			<File RelativePath="..\third_party_open\utils\deg2utm.f90"/>
 			<File RelativePath="..\third_party_open\utils\geometry.f90"/>
 			<File RelativePath="..\src\sfincs_bathtub.f90">
 			</File>
 			<File RelativePath="..\src\sfincs_boundaries.f90"/>
 			<File RelativePath="..\src\sfincs_continuity.f90"/>
-			<File RelativePath="..\src\sfincs_crosssections.f90"/>
+			<File RelativePath="..\src\sfincs_crosssections.f90">
+			</File>
 			<File RelativePath="..\src\sfincs_data.f90">
 			</File>
 			<File RelativePath="..\src\sfincs_date.f90"/>
@@ -104,8 +107,11 @@
 					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
 				</FileConfiguration>
 			</File>
+			<File RelativePath="..\src\sfincs_read.f90">
+			</File>
 			<File RelativePath="..\src\sfincs_runup_gauges.f90"/>
-			<File RelativePath="..\src\sfincs_snapwave.f90"/>
+			<File RelativePath="..\src\sfincs_snapwave.f90">
+			</File>
 			<File RelativePath="..\src\sfincs_spiderweb.f90"/>
 			<File RelativePath="..\src\sfincs_structures.f90"/>
 			<File RelativePath="..\src\sfincs_subgrid.F90">
