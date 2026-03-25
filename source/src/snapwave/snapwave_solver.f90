@@ -551,6 +551,8 @@ contains
          !
          if (sweep == 1 .or. iterative_srcig) then
             !
+            ! Determining of IG source term as defined in Leijnse et al. 2024 
+            !      
             call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, &
                                                          ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, & 
                                                          alphaig_local, beta_local, srcig_local) 
@@ -615,8 +617,6 @@ contains
                      endif
                      !
                   enddo
-                  !
-                  ! Fill DoverE 
                   !
                   ! Bottom friction
                   !
@@ -1094,6 +1094,13 @@ contains
    
    
    subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local)
+    !   
+    ! Determining of IG source term as defined in Leijnse et al. 2024 
+    !
+    ! inout: alphaig_local, srcig_local, eeprev, eeprev_ig, cgprev, beta_local
+    ! in: the rest
+    !
+    ! NOTE - This is based on the energy in the precious SnapWave timestep 'ee' and 'ee_ig', and waveheight 'H', which should therefore be made available. 
     !   
     implicit none
     !  
