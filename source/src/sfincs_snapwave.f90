@@ -596,7 +596,7 @@ contains
    ! Input section
    !
    call read_real_input(500,'snapwave_gamma',gamma,0.7)
-   call read_real_input(500,'snapwave_gammax',gammax,2.0)   
+   call read_real_input(500,'snapwave_gammax',gammax,2.0) ! MvO - Changed default gammax from 0.6 to 2.0     
    call read_real_input(500,'snapwave_alpha',alpha,1.0)
    call read_real_input(500,'snapwave_hmin',hmin,0.1)
    call read_real_input(500,'snapwave_fw',fw0,0.01)
@@ -604,7 +604,7 @@ contains
    call read_real_input(500,'snapwave_dt',dt,36000.0)
    call read_real_input(500,'snapwave_tol',tol,1000.0)
    call read_real_input(500,'snapwave_dtheta',dtheta,10.0)
-   call read_real_input(500,'snapwave_crit',crit,0.00001) !TL: Old default was 0.01
+   call read_real_input(500,'snapwave_crit',crit,0.00001) !TL: Old default was 0.01 > main is 0.001
    call read_int_input(500,'snapwave_nrsweeps',nr_sweeps,4)
    call read_int_input(500,'snapwave_niter',niter, 10) !TL: Old default was 40  
    !call read_int_input(500,'snapwave_baldock_opt',baldock_opt,1)     
@@ -647,7 +647,7 @@ contains
    call read_int_input(500, 'vegetation', vegetation_opt, 0)
    !
    ! Input files
-   call read_char_input(500,'snapwave_jonswapfile',snapwave_jonswapfile,'')
+   call read_char_input(500,'snapwave_jonswapfile',snapwave_jonswapfile,'noe')
    call read_char_input(500,'snapwave_bndfile',snapwave_bndfile,'')
    call read_char_input(500,'snapwave_encfile',snapwave_encfile,'')
    call read_char_input(500,'snapwave_bhsfile',snapwave_bhsfile,'')
