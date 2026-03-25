@@ -518,9 +518,9 @@ contains
                !
                sig(k) = sig(kn)
                Tp(k) = 2 * pi / sig(kn)
-               WsorE(:,k) = WsorE(:,kn)
-               WsorA(:,k) = WsorA(:,kn)
-               aa(:,k) = aa(:,kn)
+               WsorE(:, k) = WsorE(:, kn)
+               WsorA(:, k) = WsorA(:, kn)
+               aa(:, k) = aa(:, kn)
                !
             endif
             !
@@ -645,7 +645,7 @@ contains
                   !
                   if (vegetation) then
                      !
-                     call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, g, Hk, Dvegk)
+                     call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k, :), veg_bstems(k, :), veg_Nstems(k, :), veg_Cd(k, :), depth(k), rho, g, Hk, Dvegk)
                      !
                   else
                      !
@@ -691,10 +691,11 @@ contains
                      !
                      ! MvO: in compute_celerities, Hmx is computed again. Why?  
                      !
-                     call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:,k))                         
+                     call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:, k))                         
                      !
-                     call windinput(u10(k), rho, g, depth(k), ntheta, windspreadfac(:,k), Ek, Ak, cg(k), ee(:,k), aa(:,k), ds(:,k), WsorE(:,k), WsorA(:,k), jadcgdx)   
+                     call windinput(u10(k), rho, g, depth(k), ntheta, windspreadfac(:, k), Ek, Ak, cg(k), ee(:, k), aa(:, k), ds(:, k), WsorE(:, k), WsorA(:, k), jadcgdx)   
                      !
+                     ! initial conditions are not equal to bc conditions 
                      DwT = - c_dispT / (1.0 - ndissip) * (2 * pi) / sig(k)**2 * cg(k) * kwav(k) * DoverE(k) 
                      DwAk = 1.0 / 2.0 / pi * (E(k) * DwT + 2.0 * pi * Ak * DoverE(k) )
                      !
@@ -739,15 +740,15 @@ contains
                         !
                      endif
                      !
-                     R(:)    = R(:)    + WsorE(:,k)
-                     R_aa(:) = R_aa(:) + WsorA(:,k)
+                     R(:)    = R(:)    + WsorE(:, k)
+                     R_aa(:) = R_aa(:) + WsorA(:, k)
                      !
-                     call solve_tridiag(A, B, C, R, ee(:,k), ntheta)
-                     call solve_tridiag(A, B_aa, C, R_aa, aa(:,k), ntheta)
+                     call solve_tridiag(A, B, C, R, ee(:, k), ntheta)
+                     call solve_tridiag(A, B_aa, C, R_aa, aa(:, k), ntheta)
                      !
                      ee(:, k) = max(ee(:, k), waveps)
-                     aa(:,k) = max(aa(:,k), waveps / sigmax)
-                     aa(:,k) = max(aa(:,k), waveps / sig(k))
+                     aa(:, k) = max(aa(:, k), waveps / sigmax)
+                     aa(:, k) = max(aa(:, k), waveps / sig(k))
                      !
                   else
                      !
@@ -762,7 +763,7 @@ contains
                   ! Limit incident energy with gammax
                   !
                   depthlimfac = max(1.0, (sqrt(sum(ee(:, k)) * dtheta / rhog8) / (gammax * depth(k)) )**2.0)
-                  ee(:,k)     = ee(:,k) / depthlimfac
+                  ee(:, k)     = ee(:, k) / depthlimfac
                   !
                   ! IG
                   !
@@ -845,7 +846,7 @@ contains
                      !
                      ! Solve tridiagonal system per point
                      !
-                     call solve_tridiag(A_ig, B_ig, C_ig, R_ig, ee_ig(:,k), ntheta)
+                     call solve_tridiag(A_ig, B_ig, C_ig, R_ig, ee_ig(:, k), ntheta)
                      ee_ig(:, k) = max(ee_ig(:, k), 0.0)
                      !  
                   else
@@ -857,7 +858,7 @@ contains
                   ! Limit IG energy with gammax
                   !
                   depthlimfac = max(1.0, (sqrt(sum(ee_ig(:, k)) * dtheta / rhog8) / (gammax * depth(k)) )**2.0)
-                  ee_ig(:, k) = ee_ig(:,k) / depthlimfac
+                  ee_ig(:, k) = ee_ig(:, k) / depthlimfac
                   !
                endif
                !
@@ -866,7 +867,7 @@ contains
                ee(:, k) = 0.0
                !
                if (wind) then
-                  aa(:,k)  = 0.0
+                  aa(:, k)  = 0.0
                endif
                !
                ee_ig(:, k) = 0.0
@@ -943,11 +944,11 @@ contains
             !
             ! average beta, alphaig, srcig over directions
             !
-            betamean(k) = sum(beta_local(:,k)) / ntheta ! real mean
+            betamean(k) = sum(beta_local(:, k)) / ntheta ! real mean
             !               
-            alphaig(k) = sum(alphaig_local(:,k)) / ntheta ! real mean 
+            alphaig(k) = sum(alphaig_local(:, k)) / ntheta ! real mean 
             !
-            srcig(k)   = sum(srcig_local(:,k)) / ntheta ! real mean
+            srcig(k)   = sum(srcig_local(:, k)) / ntheta ! real mean
             !
          endif
          !
