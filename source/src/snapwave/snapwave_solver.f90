@@ -689,11 +689,28 @@ contains
                   !
                   if (wind) then
                      !
+                     !
+                     Ak = sum(aaprev)*dtheta
+                     !
+                     Ak = Ak/depthlimfac                   
+                     ee(:,k) = ee(:,k) / depthlimfac
+                     aa(:,k) = aa(:,k) / depthlimfac                   
+                     sig(k)  = Ek/Ak
+                     sig(k)  = max(sig(k),sigmin)
+                     sig(k)  = min(sig(k),sigmax)
+                     Ak      = Ek/sig(k) ! to avoid small T in windinput
+                     aaprev=min(aaprev,eeprev/sigmin)
+                     aaprev=max(aaprev,eeprev/sigmax)
+                     !
                      ! MvO: in compute_celerities, Hmx is computed again. Why?  
                      !
                      call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:, k))                         
                      !
-                     call windinput(u10(k), rho, g, depth(k), ntheta, windspreadfac(:, k), Ek, Ak, cg(k), ee(:, k), aa(:, k), ds(:, k), WsorE(:, k), WsorA(:, k), jadcgdx)   
+                     if (iter==1) then
+                        call windinput(u10(k), rho, g, depth(k), ntheta, windspreadfac(:,k), Ek, Ak, cg(k), eeprev, aaprev, ds(:,k), WsorE(:,k), WsorA(:,k), jadcgdx)
+                     else
+                        call windinput(u10(k), rho, g, depth(k), ntheta, windspreadfac(:,k), Ek, Ak, cg(k), ee(:,k), aa(:,k), ds(:,k), WsorE(:,k), WsorA(:,k), jadcgdx)   
+                     endif                     
                      !
                      ! initial conditions are not equal to bc conditions 
                      DwT = - c_dispT / (1.0 - ndissip) * (2 * pi) / sig(k)**2 * cg(k) * kwav(k) * DoverE(k) 
@@ -749,6 +766,24 @@ contains
                      ee(:, k) = max(ee(:, k), waveps)
                      aa(:, k) = max(aa(:, k), waveps / sigmax)
                      aa(:, k) = max(aa(:, k), waveps / sig(k))
+                     !
+                     Ek       = sum(ee(:, k))*dtheta     
+                     Ak       = sum(aa(:,k))*dtheta
+                     !
+                     depthlimfac = max(1.0, (sqrt(Ek/rhog8)/(gammax*depth(k)))**2.0)
+                     Hk = sqrt(Ek/rhog8/depthlimfac)
+                     Ek = Ek/depthlimfac
+                     Ak = Ak/depthlimfac
+                     ee(:,k) = ee(:,k)/depthlimfac
+                     aa(:,k) = aa(:,k)/depthlimfac
+                     !
+                     sig(k)  = Ek/Ak
+                     sig(k)  = max(sig(k),sigmin)
+                     sig(k)  = min(sig(k),sigmax)
+                     call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:,k))   
+                     if (sig(k)<0.1) then
+                         a=1
+                     endif                     
                      !
                   else
                      !
