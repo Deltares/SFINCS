@@ -10,7 +10,8 @@ WORKDIR /usr/src/sfincs
 # -fallow-argument-mismatch needed for https://github.com/Unidata/netcdf-fortran/issues/212
 ENV FCFLAGS="-fopenmp -O3 -fallow-argument-mismatch -w"
 ENV FFLAGS="-fopenmp -O3 -fallow-argument-mismatch -w"
-RUN autoreconf -ivf && ./autogen.sh && ./configure --disable-openacc && make && make install
+#RUN autoreconf -ivf && ./autogen.sh && ./configure --disable-openacc && make && make install
+RUN autoreconf -ivf && ./configure --disable-openacc && make && make install
 
 # Make a new container and copy /usr/local so we only have the source
 FROM ubuntu:jammy
