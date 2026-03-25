@@ -770,7 +770,7 @@ contains
                      !
                      ! Update Hk (because used in bottom friction)
                      !
-                     H(k) = sqrt(8 * sum(ee(:, k)) * dtheta / rho / g)
+                     Hk = sqrt(8 * sum(ee(:, k)) * dtheta / rho / g)                     
                      ! 
                      ! Bottom friction Henderson and Bowen (2002) - D = 0.015*rhow*(9.81/depth(k))**1.5*(Hk/sqrt(8.0))*Hk_ig**2/8
                      !
