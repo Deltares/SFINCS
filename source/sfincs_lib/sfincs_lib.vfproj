@@ -35,7 +35,8 @@
 				<File RelativePath="..\src\snapwave\snapwave_data.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_date.f90">
 				</File>
-				<File RelativePath="..\src\snapwave\snapwave_domain.f90"/>
+				<File RelativePath="..\src\snapwave\snapwave_domain.f90">
+				</File>
 				<File RelativePath="..\src\snapwave\snapwave_infragravity.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_ncinput.F90">
 					<FileConfiguration Name="Release|x64">
@@ -44,6 +45,8 @@
 					<FileConfiguration Name="Debug|x64">
 						<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
 					</FileConfiguration>
+				</File>
+				<File RelativePath="..\src\snapwave\snapwave_ncoutput.F90">
 				</File>
 				<File RelativePath="..\src\snapwave\snapwave_solver.f90">
 				</File>

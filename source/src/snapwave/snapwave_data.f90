@@ -281,6 +281,7 @@ module snapwave_data
    !
    logical                                   :: restart
    logical                                   :: coupled_to_sfincs
+   logical                                   :: storesnapwavegrid   
    !
    integer                                   :: nr_quadtree_points
    !
