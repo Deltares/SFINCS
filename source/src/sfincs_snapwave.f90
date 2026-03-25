@@ -678,6 +678,7 @@ contains
    call read_char_input(500, 'snapwave_depfile', depfile, 'none')   
    call read_char_input(500, 'snapwave_ncfile',  gridfile, 'snapwave_net.nc')   
    call read_char_input(500, 'netsnapwavefile', netsnapwavefile, 'none')
+   call read_logical_input(500,'storesnapwavegrid',storesnapwavegrid,.false.)
    call read_char_input(500, 'tref', trefstr, '20000101 000000')   ! Read again > needed in sfincs_ncinput.F90   
    !
    close(500)

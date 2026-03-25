@@ -8,6 +8,7 @@ contains
    !
    use snapwave_data
    use snapwave_boundaries
+   use snapwave_ncoutput   
    use interp
    use sfincs_error      
    !
@@ -21,6 +22,7 @@ contains
    integer*4                                   :: idummy
    character*2                                 :: ext
    logical                                     :: generate_upw, exists
+   character(len=256)                          :: snapwave_ncfname
 !   real*8  :: xmn, ymn
    !
    ! First set some constants
@@ -82,6 +84,15 @@ contains
    do k = 1, no_faces
       if (face_nodes(4,k)==0) face_nodes(4,k) = -999
    enddo 
+   !
+   ! write mesh to file
+   if (storesnapwavegrid) then
+      !
+      snapwave_ncfname = 'snapwavegrid.nc'
+      !
+      call write_snapwave_mesh(snapwave_ncfname, sferic == 1)
+      !
+   endif
    !
    ! Done with the mesh
    !
