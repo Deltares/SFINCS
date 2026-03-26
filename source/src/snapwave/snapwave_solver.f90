@@ -699,7 +699,7 @@ contains
                      sig(k)  = max(sig(k),sigmin)
                      sig(k)  = min(sig(k),sigmax)
                      Ak      = Ek/sig(k) ! to avoid small T in windinput
-                     if (k==6) write(*,'(3i8,20f10.3)')k,k1,k2,sig(k),Ek,Ak
+                     if (k==6) write(*,'(3i8,20f10.3)')k,k1,k2,sig(k),Ek,Ak,Hk
 
                      aaprev=min(aaprev,eeprev/sigmin)
                      aaprev=max(aaprev,eeprev/sigmax)
@@ -782,7 +782,7 @@ contains
                      sig(k)  = Ek/Ak
                      sig(k)  = max(sig(k),sigmin)
                      sig(k)  = min(sig(k),sigmax)
-                     if (k==6) write(*,'(3i8,20f10.3)')k,k1,k2,sig(k),Ek,Ak
+                     if (k==6) write(*,'(3i8,20f10.3)')k,k1,k2,sig(k),Ek,Ak,Hk
                      call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:,k))   
                      if (sig(k)<0.1) then
                          a=1
