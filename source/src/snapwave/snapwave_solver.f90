@@ -519,7 +519,7 @@ module snapwave_solver
             ! 
             uorbi    = 0.5 * sig(k) * Hk / sinhkh(k)
             Dfk      = 0.28 * rho * fw(k) * uorbi**3
-            call baldock(rho, g, alfa, gamma, depth(k), Hk, Tp(k), 1, Dwk, Hmx(k))
+            call baldock(rho, g, alfa, gamma, depth(k), Hk, Tp(k), baldock_exponent, Dwk, Hmx(k))
             DoverE(k) = (Dwk + Dfk) / max(Ek, 1.0e-6)
             !
          endif
@@ -529,7 +529,7 @@ module snapwave_solver
             call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:,k))  
             uorbi    = 0.5 * sig(k) * Hk / sinhkh(k)  
             Dfk      = 0.28 * rho * fw(k) * uorbi**3
-            call baldock(rho, g, alfa, gamma, depth(k), Hk, 2.0 * pi / sig(k), 1, Dwk, Hmx(k))
+            call baldock(rho, g, alfa, gamma, depth(k), Hk, 2.0 * pi / sig(k), baldock_exponent, Dwk, Hmx(k))
             DoverE(k) = (Dwk + Dfk) / max(Ek, 1.0e-6)      
             !
             ! initial conditions are not equal to bc conditions  
@@ -645,7 +645,7 @@ module snapwave_solver
                   Dfk      = 0.28 * rho * fw(k) * uorbi**3
                   !
                   if (Hk>baldock_ratio*Hmx(k)) then
-                     call baldock(rho, g, alfa, gamma, depth(k), Hk, 2*pi/sig(k) , 1, Dwk, Hmx(k))
+                     call baldock(rho, g, alfa, gamma, depth(k), Hk, 2*pi/sig(k), baldock_exponent, Dwk, Hmx(k))
                   else
                      Dwk   = 0.
                   endif
@@ -782,7 +782,7 @@ module snapwave_solver
                      !
                      if (Hk_ig > baldock_ratio_ig * Hmx_ig(k)) then
                         ! 
-                        call baldock(rho, g, alfa_ig, gamma_ig, depth(k), Hk_ig, T_ig(k), 1, Dwk_ig, Hmx_ig(k))
+                        call baldock(rho, g, alfa_ig, gamma_ig, depth(k), Hk_ig, T_ig(k), baldock_exponent, Dwk_ig, Hmx_ig(k))
                         !                        
                      else
                         ! 
@@ -945,10 +945,10 @@ module snapwave_solver
           Df(k)     = 0.28 * rho * fw(k) * uorbi**3
           !                     
           if (wind) then
-              call baldock(rho, g, alfa, gamma, depth(k), H(k), 2.0*pi/sig(k), 1, Dw(k), Hmx(k))
+              call baldock(rho, g, alfa, gamma, depth(k), H(k), 2.0*pi/sig(k), baldock_exponent, Dw(k), Hmx(k))
               F(k) = Dw(k) * kwav(k) / sig(k) / rho / depth(k)
           else
-              call baldock(rho, g, alfa, gamma, depth(k), H(k), Tp(k), 1, Dw(k), Hmx(k))
+              call baldock(rho, g, alfa, gamma, depth(k), H(k), Tp(k), baldock_exponent, Dw(k), Hmx(k))
               F(k) = Dw(k) * kwav(k) / sig(k) / rho / depth(k)
               !F(k) = (Dw(k) + Df(k))*kwav(k)/sig(k)/rho/depth(k)               
               !F(k) = (Dw(k) + Df(k))*kwav(k)/sigm ! TODO TL: before was this, now multiplied with rho*depth(k) in sfincs_snapwave.f90        
@@ -969,7 +969,7 @@ module snapwave_solver
              !
              Df_ig(k)     = fw_ig(k) * 0.0361 * (9.81 / depth(k))**1.5 * H(k) * E_ig(k) !org               
              !
-             call baldock(rho, g, alfa_ig, gamma_ig, depth(k), H_ig(k), T_ig(k), 1, Dw_ig(k), Hmx_ig(k))               
+             call baldock(rho, g, alfa_ig, gamma_ig, depth(k), H_ig(k), T_ig(k), baldock_exponent, Dw_ig(k), Hmx_ig(k))               
              !
              ! average beta, alphaig, srcig over directions
              betamean(k) = sum(beta_local(:,k)) / ntheta ! real mean
@@ -1034,7 +1034,7 @@ module snapwave_solver
    !
    end subroutine solve_tridiag
 
-   subroutine baldock (rho,g,alfa,gamma,depth,H,T,opt,Dw,Hmax)
+   subroutine baldock (rho, g, alfa, gamma, depth, H, T, iexp, Dw, Hmax)
    !
    real*4, intent(in)                :: rho
    real*4, intent(in)                :: g
@@ -1043,21 +1043,36 @@ module snapwave_solver
    real*4, intent(in)                :: depth
    real*4, intent(in)                :: H
    real*4, intent(in)                :: T
-   integer, intent(in)               :: opt
+   integer, intent(in)               :: iexp
    real*4, intent(out)               :: Dw
    real*4, intent(in)                :: Hmax
    real*4                            :: Hloc
+   real*4                            :: f   
    !
    ! Compute dissipation according to Baldock
    !
-   Hloc=max(H,1.e-6)
-   if (opt==1) then
-      Dw=0.28*alfa*rho*g/T*exp(-(Hmax/Hloc)**2)*(Hmax**2+Hloc**2)
-      !Dw=0.25*alfa*rho*g/T*exp(-(Hmax/Hloc)**2)*(Hmax**2+Hloc**2) !Old
-   else
-      Dw=0.28*alfa*rho*g/T*exp(-(Hmax/Hloc)**2)*(Hmax**3+Hloc**3)/gamma/depth
-      !Dw=0.25*alfa*rho*g/T*exp(-(Hmax/Hloc)**2)*(Hmax**3+Hloc**3)/gamma/depth !Old     
+   Hloc = max(H, 1.e-6)
+   !
+   if (iexp > 0 .and. Hloc > Hmax) then
+      !
+      ! Add extra dissipation when Hloc exceeds Hmax.
+      ! This is needed at very steep coast lines, where Baldock dissipation cannot always keep up with
+      ! the wave height increase due to shoaling. The extra dissipation is added by multiplying
+      ! the Baldock dissipation with a factor f, which is larger than 1 when Hloc > Hmax.
+      !
+      f = (Hloc / Hmax)**iexp
+      !
+   else  
+      !
+      f = 1.0
+      !
    endif
+   !
+   Dw = 0.28 * alfa * rho * g / T * exp( - (Hmax / Hloc)**2) * (Hmax**2 + Hloc**2) * f
+   !
+   ! Other options for wave breaking dissipation (not used, but left here for reference)
+   !
+   ! Dw = 0.28 * alfa * rho * g / T * exp( - (Hmax / Hloc)**2) * (Hmax**3 + Hloc**3) / gamma / depth
    !
    end subroutine baldock
    
