@@ -62,6 +62,7 @@ module snapwave_data
    real*4,  dimension(:),       allocatable    :: Hmx_ig
    real*4,  dimension(:,:),     allocatable    :: ee                      ! directional energy density
    real*4,  dimension(:,:),     allocatable    :: ee_ig                   ! directional infragravity energy density
+   real*4,  dimension(:),       allocatable    :: DoverE   
    !
    real*4,  dimension(:,:),     allocatable    :: aa                      ! directional action density
    real*4,  dimension(:),       allocatable    :: sig                     ! mean frequency
@@ -172,10 +173,9 @@ module snapwave_data
    real*4                                    :: fwcutoff        ! depth below which to apply space-varying fw
    real*4                                    :: alpha,gamma     ! coefficients in Baldock wave breaking dissipation model
    real*4                                    :: gammax          ! max wave height/water depth ratio   
-   integer                                   :: baldock_opt     ! option of Baldock wave breaking dissipation model (opt=1 is without gamma&depth, else is including)
+   !integer                                   :: baldock_opt     ! option of Baldock wave breaking dissipation model (opt=1 is without gamma&depth, else is including)
    real*4                                    :: baldock_ratio   ! option controlling from what depth wave breaking should take place: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio=0.2 
-   ! TODO - TL: bring back baldock_ratio?
- 
+   integer                                   :: baldock_exponent! Exponent for multiplying the Baldock dissipation with a factor 'f = (Hloc / Hmax)**iexp' to enhance breaking when H > Hmax, with iexp = 0 (default, means unused), 1 or 2    
    real*4                                    :: hmin            ! minimum water depth
    character*256                             :: gridfile        ! name of gridfile (Delft3D .grd format)
    integer                                   :: sferic          ! sferical (1) or cartesian (0) grid
