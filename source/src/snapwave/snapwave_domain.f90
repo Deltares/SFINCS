@@ -1068,6 +1068,8 @@ contains
    integer                                     :: m
    integer                                     :: mu1
    integer                                     :: mu2
+   integer                                     :: md1
+   integer                                     :: md2   
    integer                                     :: mnu1
    integer                                     :: nra
    integer*1                                   :: mu
@@ -1088,7 +1090,7 @@ contains
    ! 4) Loop through all points and make cells for points where msk==1.
    !    The node indices in the cells will point to the indices of the entire quadtree.
    !    In a second temporary mask array msk_tmp2, determine which nodes are actually active (being part a cell)
-   ! 5) Set back snapwave_mask = 2&3 values of wave boudnary and neumann cells
+   ! 5) Set back snapwave_mask = 2&3 values of wave boundary and neumann cells
    ! 6) Count actual number of active nodes and cells, and allocate arrays
    ! 7) Set node data and re-map indices 
    !
@@ -1179,6 +1181,8 @@ contains
    !
    allocate(faces(4, 4*quadtree_nr_points)) ! max 4 nodes per faces, and max 4 faces per node
    !
+   faces = 0
+   !   
    nfaces = 0
    !   
    do ip = 1, quadtree_nr_points
@@ -1337,47 +1341,6 @@ contains
             endif
          endif
          !   
-         if (mnu1==0) then
-            ! Didn't find it going to the right, try via above
-!             if nu==0
-!                 ! same level above
-!                 if nu1>0
-!                     if buq.mu(nu1)==0
-!                         ! same level above right
-!                         if buq.mu1(nu1)>0
-!                             ! and it exists
-!                             mnu=0;
-!                             mnu1=buq.mu1(nu1);
-!                         end
-!                     end
-!                 end
-!             elseif mu==-1
-!                 ! coarser above
-!                 if nu1>0
-!                     if buq.mu(nu1)==0
-!                         ! same level above right
-!                         if buq.mu1(nu1)>0
-!                             ! and it exists
-!                             mnu=-1;
-!                             mnu1=buq.mu1(nu1);
-!                         end
-!                     end
-!                 end
-!             else
-!                 ! finer above
-!                 if nu2>0
-!                     if buq.mu(nu2)==0
-!                         ! same level above right
-!                         if buq.mu1(nu2)>0
-!                             ! and it exists
-!                             mnu=1;
-!                             mnu1=buq.mu1(nu2);
-!                         end
-!                     end
-!                 end
-!             end
-         endif
-         !
          ! Okay, found all the neighbors!
          !
          ! Now let's see what sort of cells we need
@@ -1386,7 +1349,6 @@ contains
             !
             ! Type 1 - Most normal cell possible
             !
-!            write(*,'(a,20i6)')'ip,mu,nu,mnu,mu1,nu1,mnu1',ip,mu,nu,mnu,mu1,nu1,mnu1
             if (mu1>0 .and. nu1>0 .and. mnu1>0) then
                nfaces = nfaces + 1
                faces(1, nfaces) = ip
@@ -1601,14 +1563,6 @@ contains
                msk_tmp2(nu1)    = 1
             endif
             !
-!%         elseif (mu==-1 .and. nu==0 .and. mnu==0 .and. odd(buq.n(ip)))
-!%             % Type 9
-!%             if mu1>0 .and. nu1>0
-!%                 nfaces=nfaces+1;
-!%                 faces(1, nfaces) = ip;
-!%                 faces(2, nfaces) = mu1;
-!%                 faces(3, nfaces) = nu1;
-!%             end
          elseif (mu==-1 .and. nu==-1 .and. mnu==-1) then
             !
             ! Type 10
@@ -1957,6 +1911,79 @@ contains
          endif
       endif 
       !
+      ! Add triangles around stair case boundaries
+      !
+      ! Inactive cell top left
+      !
+      mu  = quadtree_mu(ip)
+      mu1 = quadtree_mu1(ip)
+      mu2 = quadtree_mu2(ip)
+      md  = quadtree_md(ip)
+      md1 = quadtree_md1(ip)
+      md2 = quadtree_md2(ip)
+      nu  = quadtree_nu(ip)
+      nu1 = quadtree_nu1(ip)
+      nu2 = quadtree_nu2(ip)
+      nd  = quadtree_nd(ip)
+      nd1 = quadtree_nd1(ip)
+      nd2 = quadtree_nd2(ip)
+      !
+      ! Check for inactive cell top left
+      !
+      if (md == 0 .and. nu == 0 .and. md1 > 0 .and. nu1 > 0) then
+         if (msk_tmp(md1) == 2 .and. msk_tmp(nu1) == 2 .and. msk_tmp(ip) == 1 .and. quadtree_nu1(md1) == 0) then
+            !
+            nfaces           = nfaces + 1
+            faces(1, nfaces) = md1
+            faces(2, nfaces) = ip
+            faces(3, nfaces) = nu1
+            !
+         endif
+         !
+      endif
+      !
+      ! Check for inactive cell bottom left
+      !
+      if (md == 0 .and. nd == 0 .and. md1 > 0 .and. nd1 > 0) then
+         if (msk_tmp(md1) == 2 .and. msk_tmp(nd1) == 2 .and. msk_tmp(ip) == 1 .and. quadtree_nd1(md1) == 0) then
+            !
+            nfaces           = nfaces + 1
+            faces(1, nfaces) = md1
+            faces(2, nfaces) = nd1
+            faces(3, nfaces) = ip
+            !
+         endif
+         !
+      endif
+      !
+      ! Check for inactive cell top right
+      !
+      if (mu == 0 .and. nu == 0 .and. mu1 > 0 .and. nu1 > 0) then
+         if (msk_tmp(mu1) == 2 .and. msk_tmp(nu1) == 2 .and. msk_tmp(ip) == 1 .and. quadtree_nu1(mu1) == 0) then
+            !
+            nfaces           = nfaces + 1
+            faces(1, nfaces) = ip
+            faces(2, nfaces) = mu1
+            faces(3, nfaces) = nu1
+            !
+         endif
+         !
+      endif
+      !
+      ! Check for inactive cell bottom right
+      !
+      if (mu == 0 .and. nd == 0 .and. mu1 > 0 .and. nd1 > 0) then
+         if (msk_tmp(mu1) == 2 .and. msk_tmp(nd1) == 2 .and. msk_tmp(ip) == 1 .and. quadtree_nd1(mu1) == 0) then
+            !
+            nfaces           = nfaces + 1
+            faces(1, nfaces) = ip
+            faces(2, nfaces) = nd1
+            faces(3, nfaces) = mu1
+            !
+         endif
+         !
+      endif      
+      !
    enddo
    !
    ! STEP 5 - set back snapwave_mask = 2&3 values
@@ -2020,7 +2047,6 @@ contains
          !
          ! Set node values
          !
-!         zb(nac)  = zb_tmp(ip)
          zb(nac)  = quadtree_zz(ip)
          x(nac)   = quadtree_xz(ip)
          y(nac)   = quadtree_yz(ip)
