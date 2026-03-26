@@ -512,7 +512,7 @@ module snapwave_solver
          !
          ! Make sure DoverE is filled based on previous ee
          Ek       = sum(ee(:, k)) * dtheta      
-         Hk       = min(sqrt(Ek / rhog8), gamma * depth(k))
+         Hk       = sqrt(Ek / rhog8) ! min(sqrt(Ek / rhog8), gamma * depth(k))
          Ek       = rhog8 * Hk**2
          !
          if (.not. wind) then
@@ -618,7 +618,7 @@ module snapwave_solver
                   Ek = sum(eeprev)*dtheta     ! to check                
                   !
                   depthlimfac = max(1.0, (sqrt(Ek / rhog8) / (gammax * depth(k)))**2.0)
-                  Hk = min(sqrt(Ek / rhog8), gamma * depth(k))
+                  Hk = sqrt(Ek / rhog8) !min(sqrt(Ek / rhog8), gamma * depth(k))
                   Ek = Ek / depthlimfac
                   !
                   if (wind) then
@@ -644,7 +644,7 @@ module snapwave_solver
                   uorbi    = 0.5 * sig(k) * Hk / sinhkh(k)
                   Dfk      = 0.28 * rho * fw(k) * uorbi**3
                   !
-                  if (Hk>baldock_ratio*Hmx(k)) then
+                  if (Hk > baldock_ratio * Hmx(k)) then
                      call baldock(rho, g, alfa, gamma, depth(k), Hk, 2*pi/sig(k), baldock_exponent, Dwk, Hmx(k))
                   else
                      Dwk   = 0.
@@ -770,8 +770,8 @@ module snapwave_solver
                   !
                   if (igwaves) then
                      Ek_ig       = sum(eeprev_ig) * dtheta                  
-                     !Hk_ig       = sqrt(Ek_ig/rhog8) !org trunk
-                     Hk_ig       = min(sqrt(Ek_ig / rhog8), gamma_ig * depth(k))  !TL: Question - why not this one?                     
+                     Hk_ig       = sqrt(Ek_ig/rhog8) !org trunk
+                     !Hk_ig       = min(sqrt(Ek_ig / rhog8), gamma_ig * depth(k))  !TL: Question - why not this one?                     
                      Ek_ig       = rhog8 * Hk_ig**2
                      ! 
                      ! Bottom friction Henderson and Bowen (2002) - D = 0.015*rhow*(9.81/depth(k))**1.5*(Hk/sqrt(8.0))*Hk_ig**2/8
@@ -938,7 +938,7 @@ module snapwave_solver
           thetam(k) = atan2(sum(ee(:, k) * sin(theta)), sum(ee(:, k) * cos(theta)))
           !
           if (wind) then
-              uorbi     = 0.5 * sig(k) * Hk / sinhkh(k)
+              uorbi     = 0.5 * sig(k) * H(k) / sinhkh(k)
           else
               uorbi     = pi * H(k) / Tp(k) / sinhkh(k) !! to check if we want array
           endif
