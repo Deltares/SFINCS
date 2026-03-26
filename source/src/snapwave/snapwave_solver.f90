@@ -295,7 +295,9 @@ module snapwave_solver
    real*4                                     :: pi = 4.0 * atan(1.0)
    real*4                                     :: g = 9.81
    real*4                                     :: hmin                   ! minimum water depth! TL: make user changeable also here according to 'snapwave_hmin' in sfincs.inp   
-   real*4                                     :: fac=1.0             ! underrelaxation factor for DoverA
+   !real*4                                     :: fac=1.0             ! underrelaxation factor for DoverA
+   real*4                                     :: relax_factor_DoverA = 0.25 ! underrelaxation factor for DoverA (set to 1.0 to disable)
+   real*4                                     :: relax_factor_DoverE = 0.25 ! underrelaxation factor for DoverE (set to 1.0 to disable)   
    real*4                                     :: oneoverdt
    real*4                                     :: oneover2dtheta
    real*4                                     :: rhog8
@@ -654,7 +656,10 @@ module snapwave_solver
                       Dvegk = 0.
                   endif
                   !
-                  DoverE(k) = (Dwk + Dfk + Dvegk) / max(Ek, 1.0e-6)
+                  !DoverE(k) = (Dwk + Dfk + Dvegk) / max(Ek, 1.0e-6)
+                  ! Use some under relaxation (unless relax_factor_DoverE is set to 1.0)
+                  !
+                  DoverE(k) = (1.0 - relax_factor_DoverE) * DoverE(k) + relax_factor_DoverE * (Dwk + Dfk + Dvegk) / max(Ek, 1.0e-6)                  
                   !
                   if (wind) then
                      !
@@ -670,7 +675,7 @@ module snapwave_solver
                      if (iter==1) then
                         DoverA(k) = DwAk / max(Ak,1e-6) 
                      else
-                        DoverA(k) = (1.0 - fac) * DoverA(k) + fac * DwAk/max(Ak,1.e-6) 
+                        DoverA(k) = (1.0 - relax_factor_DoverA) * DoverA(k) + relax_factor_DoverA * DwAk / max(Ak,1.e-6) 
                      endif
                      !                     
                      call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:,k))  
@@ -785,8 +790,7 @@ module snapwave_solver
                         !
                      endif
                      !
-                     DoverE_ig(k) = (Dwk_ig + Dfk_ig) / max(Ek_ig, 1.0e-6) ! org trunk
-                     !DoverE_ig(k) = (1.0 - fac)*DoverE_ig(k) + fac*(Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0e-6) ! TODO - TL CHECK - why not with relaxation anymore?                 
+                     DoverE_ig(k) = (Dwk_ig + Dfk_ig) / max(Ek_ig, 1.0e-6) ! Not using underrelaxation for IG dissipation for now, but we could add this if needed (relax_factor_DoverE_ig) 
                      !
                      do itheta = 1, ntheta
                         !
