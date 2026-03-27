@@ -395,9 +395,13 @@ contains
    if (dtheta < 0.0) dtheta = dtheta + 2*pi
    !
    if (wind) then
-      sig         = 2 * pi / Tpini
+      !
+      sig = 2 * pi / Tpini
+      !
    else
-      sig         = 2 * pi / Tp
+      !
+      sig = 2 * pi / Tp
+      !
    endif
    !
    oneoverdt      = 1.0 / dt
@@ -419,6 +423,20 @@ contains
       WsorE = 0.0
       WsorA = 0.0
       Ak = waveps / sigmax
+      Tp = Tpini
+      !
+      do k = 1, no_nodes
+         !
+         sig(k) = 2 * pi / Tp(k)
+         sig(k) = min(max(sig(k), sigmin), sigmax)
+         !
+         if (.not. inner(k)) then
+            aa(:, k) = max(ee(:, k), waveps) / sig(k)
+         endif
+         !
+         call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:,k))
+         !
+      enddo         
       !
    endif
    !   
@@ -462,8 +480,6 @@ contains
    !
    do iter = 1, niter * 4
       !
-      ! write(*,*)'iter=',iter
-      !
       sweep = mod(iter, 4) !TODO - TL: problem that we don't have option for sweep = 1 anymore?
       !
       if (sweep == 0) then
@@ -478,9 +494,9 @@ contains
          !
          if (ok(k) == 1) cycle
          !
-         ee(:, k)   = max(ee(:, k), waveps)
+         ee(:, k) = max(ee(:, k), waveps)
          !
-         E(k)      = sum(ee(:, k)) * dtheta
+         E(k)     = sum(ee(:, k)) * dtheta
          H(k)      = sqrt(8 * E(k) / rho / g)
          !
          if (igwaves) then
@@ -490,14 +506,6 @@ contains
             !
          endif
          ! 
-         if (wind) then
-            !
-            sig(k)  = 2 * pi / Tp(k)
-            sig(k)  = min(max(sig(k), sigmin), sigmax)
-            aa(:, k) = max(ee(:, k), waveps) / sig(k)
-            !
-         endif
-         !
          ! Set Neumann boundaries
          !
          if (neumannconnected(k) /= 0) then
@@ -524,8 +532,8 @@ contains
                !
             endif
             !
-            Df(kn) = Df(kn)
-            Dw(kn) = Dw(kn)
+            Df(k) = Df(kn)
+            Dw(k) = Dw(kn)
             !
          endif
          !
@@ -567,350 +575,300 @@ contains
          !
          k = indx(count, sweep)
          !
-         if (inner(k)) then ! Regular point
+         ! Skip non-inner (boundary) nodes
+         !
+         if (.not. inner(k)) cycle
+         !
+         ! For nodes below minimum depth: zero out energy and skip
+         !
+         if (depth(k) <= hmin) then
             !
-            ! Set Ek, Hk, Ek_ig, Hk_ig and Ak
+            ee(:, k)    = 0.0
+            if (wind) aa(:, k) = 0.0
+            ee_ig(:, k) = 0.0
+            cycle
             !
-            Ek = E(k)
-            Hk = H(k)
+         endif
+         !
+         ! Skip nodes that have already converged
+         !
+         if (ok(k) == 1) cycle
+         !
+         ! Retrieve integrated quantities computed in the start-of-sweep pre-loop
+         !
+         Ek = E(k)
+         Hk = H(k)
+         !
+         if (igwaves) then
+            !
+            Ek_ig = E_ig(k)
+            Hk_ig = H_ig(k)
+            !
+         endif
+         !
+         ! --- Step 1: Upwind energy, group velocity (and action for wind) ------------
+         !
+         do itheta = 1, ntheta
+            !
+            k1 = prev(1, itheta, k)
+            k2 = prev(2, itheta, k)
+            !
+            eeprev(itheta) = w(1, itheta, k) * ee(itheta, k1) + w(2, itheta, k) * ee(itheta, k2)
+            cgprev(itheta) = w(1, itheta, k) * cg(k1)         + w(2, itheta, k) * cg(k2)
             !
             if (igwaves) then
-               !
-               Ek_ig = E_ig(k)
-               Hk_ig = H_ig(k)
-               !
-            endif   
-            !
-            if (wind) then
-               !               
-               Ak = Ek / sig(k)
-               !
+               eeprev_ig(itheta) = w(1, itheta, k) * ee_ig(itheta, k1) + w(2, itheta, k) * ee_ig(itheta, k2)
+               cgprev_ig(itheta) = w(1, itheta, k) * cg_ig(k1)         + w(2, itheta, k) * cg_ig(k2)
             endif
             !
-            if (depth(k) > hmin) then
-               !
-               if (ok(k) == 0) then ! Only perform computations on wet inner points that are not yet converged (ok=1)
-                  !
-                  ! Get upwind data
-                  !
-                  do itheta = 1, ntheta
-                     !
-                     k1 = prev(1, itheta, k)
-                     k2 = prev(2, itheta, k)
-                     !
-                     eeprev(itheta) = w(1, itheta, k) * ee(itheta, k1) + w(2, itheta, k) * ee(itheta, k2)
-                     cgprev(itheta) = w(1, itheta, k) * cg(k1) + w(2, itheta, k) * cg(k2)
-                     !
-                     if (igwaves) then
-                        !
-                        eeprev_ig(itheta) = w(1, itheta, k) * ee_ig(itheta, k1) + w(2, itheta, k) * ee_ig(itheta, k2)
-                        cgprev_ig(itheta) = w(1, itheta, k) * cg_ig(k1) + w(2, itheta, k) * cg_ig(k2)
-                        !
-                     endif
-                     !
-                     if (wind) then
-                        !
-                        aaprev(itheta) = w(1, itheta, k) * aa(itheta, k1) + w(2, itheta, k) * aa(itheta, k2)
-                        aaprev(itheta) = min(aaprev(itheta), eeprev(itheta) / sigmin)
-                        aaprev(itheta) = max(aaprev(itheta), eeprev(itheta) / sigmax)                        
-                        !
-                     endif
-                     !
-                  enddo
-                  !
-                  ! Bottom friction
-                  !
-                  uorbi = 0.5 * sig(k) * Hk / sinhkh(k)
-                  Dfk   = 0.28 * rho * fw(k) * uorbi**3
-                  !
-                  ! Wave breaking
-                  !
-                  ! First check if wave breaking could occur based on Baldock criterion (Hk > baldock_ratio * Hmx(k))
-                  !
-                  if (Hk > baldock_ratio * Hmx(k)) then
-                     !
-                     ! Baldock
-                     !
-                     call baldock(rho, g, alfa, gamma, depth(k), Hk, 2 * pi / sig(k) , baldock_exponent, Dwk, Hmx(k))
-                     !
-                  else
-                     !
-                     ! No breaking
-                     !
-                     Dwk = 0.0
-                     !
-                  endif
-                  !
-                  ! Vegetation
-                  !
-                  if (vegetation) then
-                     !
-                     call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k, :), veg_bstems(k, :), veg_Nstems(k, :), veg_Cd(k, :), depth(k), rho, g, Hk, Dvegk)
-                     !
-                  else
-                     !
-                     Dvegk = 0.0
-                     !
-                  endif
-                  !
-                  ! Use some under relaxation (unless relax_factor_DoverE is set to 1.0)
-                  !
-                  DoverE(k) = (1.0 - relax_factor_DoverE) * DoverE(k) + relax_factor_DoverE * (Dwk + Dfk + Dvegk) / max(Ek, 1.0e-6)
-                  !
-                  ! Store dissipation terms for output
-                  !
-                  Df(k) = Dfk
-                  Dw(k) = Dwk
-                  Dveg(k) = Dvegk
-                  !
-                  do itheta = 1, ntheta
-                     !
-                     R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta) * eeprev(itheta) / ds(itheta, k) - srcig_local(itheta, k) * shinc2ig * fdrspr
-                     !
-                  enddo                  
-                  !
-                  do itheta = 2, ntheta - 1
-                     !
-                     A(itheta) = -ctheta(itheta - 1, k) * oneover2dtheta
-                     B(itheta) = oneoverdt + cg(k) / ds(itheta,k) + DoverE(k)
-                     C(itheta) = ctheta(itheta + 1, k) * oneover2dtheta
-                     !
-                  enddo
-                  !
-                  A(1) = -ctheta(ntheta, k) * oneover2dtheta
-                  B(1) = oneoverdt + cg(k) / ds(1,k) + DoverE(k)
-                  C(1) = ctheta(2, k) * oneover2dtheta
-                  !
-                  A(ntheta) = -ctheta(ntheta - 1, k) * oneover2dtheta
-                  B(ntheta) = oneoverdt + cg(k) / ds(ntheta,k) + DoverE(k)
-                  C(ntheta) = ctheta(1, k) * oneover2dtheta
-                  !
-                  ! Solve tridiagonal system per point
-                  !
-                  if (wind) then
-                     !
-                     !
-                     Ak = sum(aaprev)*dtheta
-                     !
-                     Ak = Ak/depthlimfac                   
-                     ee(:,k) = ee(:,k) / depthlimfac
-                     aa(:,k) = aa(:,k) / depthlimfac                   
-                     sig(k)  = Ek/Ak
-                     sig(k)  = max(sig(k),sigmin)
-                     sig(k)  = min(sig(k),sigmax)
-                     Ak      = Ek/sig(k) ! to avoid small T in windinput
-                     if (k==6) write(*,'(3i8,20f10.3)')k,k1,k2,sig(k),Ek,Ak,Hk
-
-                     aaprev=min(aaprev,eeprev/sigmin)
-                     aaprev=max(aaprev,eeprev/sigmax)
-                     !
-                     ! MvO: in compute_celerities, Hmx is computed again. Why?  
-                     !
-                     call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:, k))                         
-                     !
-                     if (iter==1) then
-                        call windinput(u10(k), rho, g, depth(k), ntheta, windspreadfac(:,k), Ek, Ak, cg(k), eeprev, aaprev, ds(:,k), WsorE(:,k), WsorA(:,k), jadcgdx)
-                     else
-                        call windinput(u10(k), rho, g, depth(k), ntheta, windspreadfac(:,k), Ek, Ak, cg(k), ee(:,k), aa(:,k), ds(:,k), WsorE(:,k), WsorA(:,k), jadcgdx)   
-                     endif                     
-                     !
-                     ! initial conditions are not equal to bc conditions 
-                     DwT = - c_dispT / (1.0 - ndissip) * (2 * pi) / sig(k)**2 * cg(k) * kwav(k) * DoverE(k) 
-                     DwAk = 1.0 / 2.0 / pi * (E(k) * DwT + 2.0 * pi * Ak * DoverE(k) )
-                     !
-                     if (iter == 1) then
-                        !
-                        DoverA(k) = DwAk / max(Ak, 1e-6)
-                        !
-                     else
-                        !
-                        DoverA(k) = (1.0 - relax_factor_DoverA) * DoverA(k) + relax_factor_DoverA * DwAk / max(Ak, 1.0e-6) 
-                        !
-                     endif
-                     !
-                     do itheta = 2, ntheta - 1
-                        !
-                        B_aa(itheta) = oneoverdt + cg(k) / ds(itheta,k) + DoverA(k)       
-                        R_aa(itheta) = (oneoverdt) * aa(itheta, k) + cgprev(itheta) * aaprev(itheta) / ds(itheta, k)
-                        !
-                     enddo
-                     !
-                     if (ctheta(1, k) < 0) then
-                        !
-                        B_aa(1) = oneoverdt - ctheta(1, k) / dtheta + cg(k) / ds(1, k) + DoverA(k)
-                        R_aa(1) = (oneoverdt) * aa(1, k) + cgprev(1) * aaprev(1) / ds(1, k) 
-                        !
-                     else
-                        !
-                        B_aa(1) = oneoverdt + cg(k) / ds(1, k) + DoverA(k)
-                        R_aa(1) = (oneoverdt) * aa(1, k) + cgprev(1) * aaprev(1) / ds(1, k)
-                        !
-                     endif
-                     !
-                     if (ctheta(ntheta, k) > 0) then
-                        !
-                        B_aa(ntheta) = oneoverdt + ctheta(ntheta, k) / dtheta + cg(k) / ds(ntheta, k) + DoverA(k)
-                        R_aa(ntheta) = oneoverdt * aa(ntheta,k) + cgprev(ntheta) * aaprev(ntheta) / ds(ntheta, k)
-                        !
-                     else
-                        !
-                        B_aa(ntheta) = oneoverdt + cg(k) / ds(ntheta, k) + DoverA(k)
-                        R_aa(ntheta) = (oneoverdt) * aa(ntheta,k) + cgprev(ntheta) * aaprev(ntheta) / ds(ntheta, k)
-                        !
-                     endif
-                     !
-                     R(:)    = R(:)    + WsorE(:, k)
-                     R_aa(:) = R_aa(:) + WsorA(:, k)
-                     !
-                     call solve_tridiag(A, B, C, R, ee(:, k), ntheta)
-                     call solve_tridiag(A, B_aa, C, R_aa, aa(:, k), ntheta)
-                     !
-                     ee(:, k) = max(ee(:, k), waveps)
-                     aa(:, k) = max(aa(:, k), waveps / sigmax)
-                     aa(:, k) = max(aa(:, k), waveps / sig(k))
-                     !
-                     Ek       = sum(ee(:, k))*dtheta     
-                     Ak       = sum(aa(:,k))*dtheta
-                     !
-                     depthlimfac = max(1.0, (sqrt(Ek/rhog8)/(gammax*depth(k)))**2.0)
-                     Hk = sqrt(Ek/rhog8/depthlimfac)
-                     Ek = Ek/depthlimfac
-                     Ak = Ak/depthlimfac
-                     ee(:,k) = ee(:,k)/depthlimfac
-                     aa(:,k) = aa(:,k)/depthlimfac
-                     !
-                     sig(k)  = Ek/Ak
-                     sig(k)  = max(sig(k),sigmin)
-                     sig(k)  = min(sig(k),sigmax)
-                     if (k==6) write(*,'(3i8,20f10.3)')k,k1,k2,sig(k),Ek,Ak,Hk
-                     call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:,k))   
-                     if (sig(k)<0.1) then
-                         a=1
-                     endif                     
-                     !
-                  else
-                     !
-                     ! Solve tridiagonal system per point
-                     !
-                     call solve_tridiag(A, B, C, R, ee(:, k), ntheta)
-                     !
-                     ee(:, k) = max(ee(:, k), waveps)
-                     !
-                  endif ! wind
-                  !
-                  ! Limit incident energy with gammax
-                  !
-                  depthlimfac = max(1.0, (sqrt(sum(ee(:, k)) * dtheta / rhog8) / (gammax * depth(k)) )**2.0)
-                  ee(:, k)     = ee(:, k) / depthlimfac
-                  !
-                  ! IG
-                  !
-                  if (igwaves) then
-                     !
-                     ! Update Hk (because used in bottom friction)
-                     !
-                     Hk = sqrt(8 * sum(ee(:, k)) * dtheta / rho / g)                     
-                     ! 
-                     ! Bottom friction Henderson and Bowen (2002) - D = 0.015*rhow*(9.81/depth(k))**1.5*(Hk/sqrt(8.0))*Hk_ig**2/8
-                     !
-                     Dfk_ig = fw_ig(k) * 0.0361 * (9.81 / depth(k))**1.5 * Hk * Ek_ig
-                     !
-                     ! Dissipation of infragravity waves
-                     !
-                     if (Hk_ig > baldock_ratio_ig * Hmx_ig(k)) then
-                        !
-                        ! MvO: gamma_ig is not used in Baldock, on Hmx_ig !
-                        !
-                        call baldock(rho, g, alfa_ig, gamma_ig, depth(k), Hk_ig, T_ig(k), baldock_exponent, Dwk_ig, Hmx_ig(k))
-                        !
-                     else
-                        !
-                        ! No wave breaking
-                        !
-                        Dwk_ig = 0.0
-                        !
-                     endif
-                     !
-                     ! Store dissipation terms for output
-                     !
-                     Df_ig(k) = Dfk_ig
-                     Dw_ig(k) = Dwk_ig
-                     !
-                     ! Not using underrelaxation for IG dissipation for now, but we could add this if needed (relax_factor_DoverE_ig)
-                     !
-                     DoverE_ig(k) = (Dwk_ig + Dfk_ig) / max(Ek_ig, 1.0e-6)
-                     !
-                     do itheta = 1, ntheta
-                        !
-                        R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta) * eeprev_ig(itheta) / ds(itheta, k) + srcig_local(itheta, k) * fdrspr
-                        !
-                     enddo
-                     !
-                     do itheta = 2, ntheta - 1
-                        !
-                        A_ig(itheta) = - ctheta_ig(itheta - 1, k) * oneover2dtheta
-                        B_ig(itheta) = oneoverdt + cg_ig(k) / ds(itheta,k) + DoverE_ig(k)
-                        C_ig(itheta) = ctheta_ig(itheta + 1, k) * oneover2dtheta
-                        !
-                     enddo
-                     !
-                     if (ctheta_ig(1,k) < 0) then
-                        !
-                        A_ig(1) = 0.0
-                        B_ig(1) = oneoverdt - ctheta_ig(1, k) / dtheta + cg_ig(k) / ds(1, k) + DoverE_ig(k)
-                        C_ig(1) = ctheta_ig(2, k) / dtheta
-                        !
-                     else
-                        !
-                        A_ig(1) = 0.0
-                        B_ig(1) = 1.0 / dt + cg_ig(k) / ds(1, k) + DoverE_ig(k)
-                        C_ig(1) = 0.0
-                        !
-                     endif
-                     !
-                     if (ctheta_ig(ntheta, k) > 0) then
-                        !
-                        A_ig(ntheta) = -ctheta_ig(ntheta - 1, k) / dtheta
-                        B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k) / dtheta + cg_ig(k) / ds(ntheta, k) + DoverE_ig(k)
-                        C_ig(ntheta) = 0.0
-                        !
-                     else
-                        !
-                        A_ig(ntheta) = 0.0
-                        B_ig(ntheta) = oneoverdt + cg_ig(k) / ds(ntheta, k) + DoverE_ig(k)
-                        C_ig(ntheta) = 0.0
-                        !
-                     endif
-                     !
-                     ! Solve tridiagonal system per point
-                     !
-                     call solve_tridiag(A_ig, B_ig, C_ig, R_ig, ee_ig(:, k), ntheta)
-                     ee_ig(:, k) = max(ee_ig(:, k), 0.0)
-                     !  
-                  else
-                     !
-                     ee_ig(:, k) = 0.0
-                     !
-                  endif
-                  !
-                  ! Limit IG energy with gammax
-                  !
-                  depthlimfac = max(1.0, (sqrt(sum(ee_ig(:, k)) * dtheta / rhog8) / (gammax * depth(k)) )**2.0)
-                  ee_ig(:, k) = ee_ig(:, k) / depthlimfac
-                  !
-               endif
-               !
+            if (wind) then
+               aaprev(itheta) = w(1, itheta, k) * aa(itheta, k1) + w(2, itheta, k) * aa(itheta, k2)
+               aaprev(itheta) = min(aaprev(itheta), eeprev(itheta) / sigmin)
+               aaprev(itheta) = max(aaprev(itheta), eeprev(itheta) / sigmax)
+            endif
+            !
+         enddo
+         !
+         ! --- Step 2: Pre-solve sig and celerities from upwind Ek/Ak (wind only) ----
+         !
+         ! The upwind Ek/Ak provides the best pre-solve estimate of local sig, so that
+         ! both the ee and aa matrices are assembled with a consistent cg(k).
+         ! Post-solve, sig is updated from the solved Ek/Ak in Step 6.
+         !
+         if (wind) then
+            !
+            Ek     = sum(eeprev) * dtheta
+            Ak     = sum(aaprev) * dtheta
+            sig(k) = max(min(Ek / Ak, sigmax), sigmin)
+            Ak     = Ek / sig(k)
+            aaprev = min(aaprev, eeprev / sigmin)
+            aaprev = max(aaprev, eeprev / sigmax)
+            call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, &
+                                    dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:, k))
+            !
+         endif
+         !
+         ! --- Step 3: Source and sink terms ------------------------------------------
+         !
+         ! Bottom friction
+         !
+         uorbi = 0.5 * sig(k) * Hk / sinhkh(k)
+         Dfk   = 0.28 * rho * fw(k) * uorbi**3
+         !
+         ! Wave breaking (Baldock)
+         ! First check if wave breaking could occur based on Baldock criterion (Hk > baldock_ratio * Hmx(k))
+         !
+         if (Hk > baldock_ratio * Hmx(k)) then
+            !
+            call baldock(rho, g, alfa, gamma, depth(k), Hk, 2 * pi / sig(k), baldock_exponent, Dwk, Hmx(k))
+            !
+         else
+            !
+            ! No wave breaking according to Baldock criterion
+            !
+            Dwk = 0.0
+            !
+         endif
+         !
+         ! Vegetation
+         !
+         if (vegetation) then
+            !
+            call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k, :), veg_bstems(k, :), &
+                        veg_Nstems(k, :), veg_Cd(k, :), depth(k), rho, g, Hk, Dvegk)
+            !
+         else
+            !
+            Dvegk = 0.0
+            !
+         endif
+         !
+         ! Energy dissipation ratio (with under-relaxation)
+         !
+         DoverE(k) = (1.0 - relax_factor_DoverE) * DoverE(k) &
+                   + relax_factor_DoverE * (Dwk + Dfk + Dvegk) / max(Ek, 1.0e-6)
+         !
+         Df(k)   = Dfk
+         Dw(k)   = Dwk
+         Dveg(k) = Dvegk
+         !
+         ! Wind source terms and action dissipation ratio DoverA (wind only)
+         !
+         if (wind) then
+            !
+            if (iter == 1) then
+               call windinput(u10(k), rho, g, depth(k), ntheta, windspreadfac(:, k), Ek, Ak, cg(k), &
+                              eeprev, aaprev, ds(:, k), WsorE(:, k), WsorA(:, k), jadcgdx)
             else
-               !
-               ee(:, k) = 0.0
-               !
-               if (wind) then
-                  aa(:, k)  = 0.0
-               endif
-               !
-               ee_ig(:, k) = 0.0
-               !               
-            endif 
+               call windinput(u10(k), rho, g, depth(k), ntheta, windspreadfac(:, k), Ek, Ak, cg(k), &
+                              ee(:, k), aa(:, k), ds(:, k), WsorE(:, k), WsorA(:, k), jadcgdx)
+            endif
+            !
+            DwT  = -c_dispT / (1.0 - ndissip) * (2.0 * pi) / sig(k)**2 * cg(k) * kwav(k) * DoverE(k)
+            DwAk = 1.0 / (2.0 * pi) * (E(k) * DwT + 2.0 * pi * Ak * DoverE(k))
+            !
+            if (iter == 1) then
+               DoverA(k) = DwAk / max(Ak, 1.0e-6)
+            else
+               DoverA(k) = (1.0 - relax_factor_DoverA) * DoverA(k) &
+                         + relax_factor_DoverA * DwAk / max(Ak, 1.0e-6)
+            endif
+            !
+         endif
+         !
+         ! --- Step 4: Assemble and solve energy balance (ee) -------------------------
+         !
+         do itheta = 1, ntheta
+            !
+            R(itheta) = oneoverdt * ee(itheta, k) + cgprev(itheta) * eeprev(itheta) / ds(itheta, k) &
+                      - srcig_local(itheta, k) * shinc2ig * fdrspr
+            !
+         enddo
+         !
+         do itheta = 2, ntheta - 1
+            !
+            A(itheta) = -ctheta(itheta - 1, k) * oneover2dtheta
+            B(itheta) =  oneoverdt + cg(k) / ds(itheta, k) + DoverE(k)
+            C(itheta) =  ctheta(itheta + 1, k) * oneover2dtheta
+            !
+         enddo
+         !
+         A(1) = - ctheta(ntheta, k) * oneover2dtheta
+         B(1) = oneoverdt + cg(k) / ds(1, k) + DoverE(k)
+         C(1) = ctheta(2, k) * oneover2dtheta
+         !
+         A(ntheta) = -ctheta(ntheta - 1, k) * oneover2dtheta
+         B(ntheta) =  oneoverdt + cg(k) / ds(ntheta, k) + DoverE(k)
+         C(ntheta) =  ctheta(1, k) * oneover2dtheta
+         !
+         if (wind) R(:) = R(:) + WsorE(:, k)
+         !
+         call solve_tridiag(A, B, C, R, ee(:, k), ntheta)
+         ee(:, k) = max(ee(:, k), waveps)
+         !
+         ! --- Step 5: Assemble and solve action balance (aa, wind only) ---------------
+         !
+         ! A and C are the same as for ee (refraction terms don't change).
+         ! Only B_aa differs: DoverA instead of DoverE, plus upwind BC for ctheta endpoints.
+         !
+         if (wind) then
+            !
+            do itheta = 2, ntheta - 1
+               B_aa(itheta) = oneoverdt + cg(k) / ds(itheta, k) + DoverA(k)
+               R_aa(itheta) = oneoverdt * aa(itheta, k) + cgprev(itheta) * aaprev(itheta) / ds(itheta, k)
+            enddo
+            !
+            if (ctheta(1, k) < 0.0) then
+               B_aa(1) = oneoverdt - ctheta(1, k) / dtheta + cg(k) / ds(1, k) + DoverA(k)
+            else
+               B_aa(1) = oneoverdt + cg(k) / ds(1, k) + DoverA(k)
+            endif
+            !
+            R_aa(1) = oneoverdt * aa(1, k) + cgprev(1) * aaprev(1) / ds(1, k)
+            !
+            if (ctheta(ntheta, k) > 0.0) then
+               B_aa(ntheta) = oneoverdt + ctheta(ntheta, k) / dtheta + cg(k) / ds(ntheta, k) + DoverA(k)
+            else
+               B_aa(ntheta) = oneoverdt + cg(k) / ds(ntheta, k) + DoverA(k)
+            endif
+            !
+            R_aa(ntheta) = oneoverdt * aa(ntheta, k) + cgprev(ntheta) * aaprev(ntheta) / ds(ntheta, k)
+            R_aa(:) = R_aa(:) + WsorA(:, k)
+            !
+            call solve_tridiag(A, B_aa, C, R_aa, aa(:, k), ntheta)
+            !
+            aa(:, k) = max(aa(:, k), waveps / sigmax)
+            aa(:, k) = max(aa(:, k), waveps / sig(k))
+            !
+         endif
+         !
+         ! --- Step 6: Depth-limit energy (and action), update sig and celerities -----
+         !
+         Ek          = sum(ee(:, k)) * dtheta
+         depthlimfac = max(1.0, (sqrt(Ek / rhog8) / (gammax * depth(k)))**2)
+         ee(:, k)    = ee(:, k) / depthlimfac
+         !
+         if (wind) then
+            !
+            Ek       = Ek / depthlimfac
+            Ak       = sum(aa(:, k)) * dtheta
+            Ak       = Ak / depthlimfac
+            aa(:, k) = aa(:, k) / depthlimfac
+            sig(k)   = max(min(Ek / Ak, sigmax), sigmin)
+            !
+            call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, &
+                                    dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:, k))
+            !
+         endif
+         !
+         ! --- Step 7: IG wave balance (optional) -------------------------------------
+         !
+         if (igwaves) then
+            !
+            ! Update incident Hk from post-solve ee (needed for IG bottom friction)
+            !
+            Hk     = sqrt(8.0 * sum(ee(:, k)) * dtheta / rho / g)
+            Dfk_ig = fw_ig(k) * 0.0361 * (9.81 / depth(k))**1.5 * Hk * Ek_ig
+            !
+            ! IG wave breaking (Baldock)
+            !
+            if (Hk_ig > baldock_ratio_ig * Hmx_ig(k)) then
+               call baldock(rho, g, alfa_ig, gamma_ig, depth(k), Hk_ig, T_ig(k), baldock_exponent, Dwk_ig, Hmx_ig(k))
+            else
+               Dwk_ig = 0.0
+            endif
+            !
+            Df_ig(k)     = Dfk_ig
+            Dw_ig(k)     = Dwk_ig
+            DoverE_ig(k) = (Dwk_ig + Dfk_ig) / max(Ek_ig, 1.0e-6)
+            !
+            ! IG RHS
+            !
+            do itheta = 1, ntheta
+               R_ig(itheta) = oneoverdt * ee_ig(itheta, k) &
+                            + cgprev_ig(itheta) * eeprev_ig(itheta) / ds(itheta, k) &
+                            + srcig_local(itheta, k) * fdrspr
+            enddo
+            !
+            ! IG matrix with directional boundary conditions
+            !
+            do itheta = 2, ntheta - 1
+               A_ig(itheta) = -ctheta_ig(itheta - 1, k) * oneover2dtheta
+               B_ig(itheta) =  oneoverdt + cg_ig(k) / ds(itheta, k) + DoverE_ig(k)
+               C_ig(itheta) =  ctheta_ig(itheta + 1, k) * oneover2dtheta
+            enddo
+            !
+            if (ctheta_ig(1, k) < 0.0) then
+               A_ig(1) = 0.0
+               B_ig(1) = oneoverdt - ctheta_ig(1, k) / dtheta + cg_ig(k) / ds(1, k) + DoverE_ig(k)
+               C_ig(1) = ctheta_ig(2, k) / dtheta
+            else
+               A_ig(1) = 0.0
+               B_ig(1) = oneoverdt + cg_ig(k) / ds(1, k) + DoverE_ig(k)
+               C_ig(1) = 0.0
+            endif
+            !
+            if (ctheta_ig(ntheta, k) > 0.0) then
+               A_ig(ntheta) = -ctheta_ig(ntheta - 1, k) / dtheta
+               B_ig(ntheta) =  oneoverdt + ctheta_ig(ntheta, k) / dtheta + cg_ig(k) / ds(ntheta, k) + DoverE_ig(k)
+               C_ig(ntheta) =  0.0
+            else
+               A_ig(ntheta) = 0.0
+               B_ig(ntheta) = oneoverdt + cg_ig(k) / ds(ntheta, k) + DoverE_ig(k)
+               C_ig(ntheta) = 0.0
+            endif
+            !
+            call solve_tridiag(A_ig, B_ig, C_ig, R_ig, ee_ig(:, k), ntheta)
+            ee_ig(:, k) = max(ee_ig(:, k), 0.0)
+            !
+            ! Depth-limit IG energy
+            !
+            depthlimfac = max(1.0, (sqrt(sum(ee_ig(:, k)) * dtheta / rhog8) / (gammax * depth(k)))**2)
+            ee_ig(:, k) = ee_ig(:, k) / depthlimfac
+            !
+         else
+            !
+            ee_ig(:, k) = 0.0
             !
          endif
          !
