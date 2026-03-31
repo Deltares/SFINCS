@@ -25,6 +25,7 @@ module sfincs_data
       !!! Input data from sfincs.inp
       !!!
       real*4 alfa                                ! courant factor
+      real*4 alfa_si                             ! courant factor for semi-implicit advective CFL (default 0.75)
       real*4 manning                             ! constant manning
       real*4 manning_land                        ! manning on land
       real*4 manning_sea                         ! manning on water
@@ -262,6 +263,10 @@ module sfincs_data
       logical       :: wmrandom      
       logical       :: store_dynamic_bed_level
       logical       :: nonhydrostatic
+      logical       :: semi_implicit
+      real*4        :: theta_si
+      integer       :: si_maxiter
+      real*4        :: si_tol
       logical       :: h73table
       logical       :: wave_enhanced_roughness
       logical       :: use_bcafile
@@ -557,6 +562,22 @@ module sfincs_data
       real*4, dimension(:),   allocatable, target :: qext
       real*4, dimension(:),   allocatable, target :: uorb
       real*4, dimension(:),   allocatable :: gnapp2
+      !
+      ! Semi-implicit solver arrays
+      !
+      real*4, dimension(:),   allocatable :: si_q_star       ! Explicit flux part (npuv)
+      real*4, dimension(:),   allocatable :: si_coeff        ! Implicit pressure coupling coeff per UV (npuv)
+      real*4, dimension(:),   allocatable :: si_rhs          ! RHS vector (nrows_si)
+      real*4, dimension(:),   allocatable :: si_x            ! Solution vector eta^{n+1} (nrows_si)
+      real*4, dimension(:),   allocatable :: si_AA           ! Sparse matrix values (nnz_si)
+      integer, dimension(:,:), allocatable :: si_index_sparse ! Sparse matrix index (5, nrows_si)
+      integer, dimension(:),  allocatable :: si_col_idx      ! CSR column indices (nnz_si)
+      integer, dimension(:),  allocatable :: si_row_ptr      ! CSR row pointers (nrows_si+1)
+      integer, dimension(:),  allocatable :: si_nm_of_row    ! nm index for each row
+      integer, dimension(:),  allocatable :: si_row_of_nm    ! row index for each nm
+      integer, dimension(:,:), allocatable :: si_uv_index    ! UV point indices per row (4, nrows_si)
+      integer :: nrows_si                                    ! Number of active rows in SI system
+      integer :: nnz_si                                      ! Number of non-zeros in SI matrix
       !
       real*4, dimension(:),   allocatable :: timestep_analysis_average_required_timestep !average_timestep
       real*4, dimension(:),   allocatable :: timestep_analysis_required_timestep
@@ -996,6 +1017,20 @@ module sfincs_data
     if(allocated(uv0)) deallocate(uv0)
     if(allocated(twet)) deallocate(twet)
     if(allocated(qext)) deallocate(qext)
+    !
+    ! Semi-implicit
+    !
+    if(allocated(si_q_star)) deallocate(si_q_star)
+    if(allocated(si_coeff)) deallocate(si_coeff)
+    if(allocated(si_rhs)) deallocate(si_rhs)
+    if(allocated(si_x)) deallocate(si_x)
+    if(allocated(si_AA)) deallocate(si_AA)
+    if(allocated(si_index_sparse)) deallocate(si_index_sparse)
+    if(allocated(si_col_idx)) deallocate(si_col_idx)
+    if(allocated(si_row_ptr)) deallocate(si_row_ptr)
+    if(allocated(si_nm_of_row)) deallocate(si_nm_of_row)
+    if(allocated(si_row_of_nm)) deallocate(si_row_of_nm)
+    if(allocated(si_uv_index)) deallocate(si_uv_index)
     !
 !    if(allocated(huu)) deallocate(huu)
 !    if(allocated(hvv)) deallocate(hvv)

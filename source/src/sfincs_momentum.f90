@@ -406,7 +406,17 @@ contains
                !
             endif
             !
-            frc = - g * hu * dzdx
+            if (semi_implicit) then
+               !
+               ! Semi-implicit: only use explicit weight (1-theta) of pressure gradient
+               !
+               frc = - (1.0 - theta_si) * g * hu * dzdx
+               !
+            else
+               !
+               frc = - g * hu * dzdx
+               !
+            endif
             !
             ! Advection term
             !
@@ -670,9 +680,23 @@ contains
                !
             endif
             ! 
-            q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / hu73)
+            if (semi_implicit) then
+               !
+               ! Semi-implicit: store explicit flux part and coupling coefficient
+               ! Actual flux will be computed in backsubstitute_fluxes_si
+               !
+               si_q_star(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / hu73)
+               si_coeff(ip)  = theta_si * g * hu * dt * dxuvinv / (1.0 + gnavg2 * dt * qfr / hu73)
+               !
+               ! Don't update q(ip) here; backsubstitution will do it
+               !
+            else
+               !
+               q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / hu73)
+               !
+            endif
             !
-            if (subgrid .and. wiggle_suppression) then 
+            if (subgrid .and. wiggle_suppression) then
                !
                ! If the acceleration of water level in cell nm is large and positive and in nmu large and negative, or vice versa, apply limiter to the flux. Only for subgrid.
                !
@@ -686,45 +710,75 @@ contains
                !
             endif
             !
-            ! Making sure that no water can flow out of a cell when its water depth is negative
-            !            
-            if (subgrid) then
+            if (.not. semi_implicit) then
                !
-               if (z_volume(nm) < 0.0) then
-                  q(ip) = min(q(ip), 0.0)
+               ! Making sure that no water can flow out of a cell when its water depth is negative
+               !
+               if (subgrid) then
+                  !
+                  if (z_volume(nm) < 0.0) then
+                     q(ip) = min(q(ip), 0.0)
+                  endif
+                  !
+                  if (z_volume(nmu) < 0.0) then
+                     q(ip) = max(q(ip), 0.0)
+                  endif
+                  !
+               else
+                  !
+                  if (zs(nm) < zb(nm)) then
+                     q(ip) = min(q(ip), 0.0)
+                  endif
+                  !
+                  if (zs(nmu) < zb(nmu)) then
+                     q(ip) = max(q(ip), 0.0)
+                  endif
+                  !
                endif
                !
-               if (z_volume(nmu) < 0.0) then
-                  q(ip) = max(q(ip), 0.0)
-               endif
+               ! Apply flux limiter (default 10 m/s)
                !
-            else
+               q(ip) = min(max(q(ip), - hu * uvlim), hu * uvlim)
                !
-               if (zs(nm) < zb(nm)) then
-                  q(ip) = min(q(ip), 0.0)
-               endif
+               ! Compute wet-averaged velocity. hu can become extremely small in subgrid mode,
+               ! so use huvmin to prevent unrealistically high velocities.
                !
-               if (zs(nmu) < zb(nmu)) then
-                  q(ip) = max(q(ip), 0.0)
-               endif
+               uv(ip) = q(ip) / max(hu, huvmin)
                !
             endif
-            !
-            ! Apply flux limiter (default 10 m/s)
-            !
-            q(ip) = min(max(q(ip), - hu * uvlim), hu * uvlim)
-            !
-            ! Compute wet-averaged velocity. hu can become extremely small in subgrid mode,
-            ! so use huvmin to prevent unrealistically high velocities.
-            !
-            uv(ip) = q(ip) / max(hu, huvmin)
             !
             kfuv(ip) = 1
             !
             ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
-            ! Use maximum of sqrt(gh) and current velocity
             !
-            min_dt_ip = 1.0 / ( max(sqrt(g * hu), abs(uv(ip)) ) * dxuvinv)
+            if (semi_implicit) then
+               !
+               ! Semi-implicit: gravity wave CFL is removed.
+               ! Only advective CFL remains (when advection is on).
+               ! Use higher velocity floor and only count sufficiently wet cells.
+               !
+               if (advection .and. hu > 2.0 * huthresh) then
+                  !
+                  ! Only apply advective CFL for cells with meaningful water depth
+                  ! to avoid thin-film cells with spurious high velocities
+                  !
+                  min_dt_ip = 1.0 / ( max(abs(uv(ip)), 1.0e-3) * dxuvinv)
+                  !
+               else
+                  !
+                  ! No advection or dry/nearly-dry cell: no CFL constraint
+                  !
+                  min_dt_ip = dtmax
+                  !
+               endif
+               !
+            else
+               !
+               ! Use maximum of sqrt(gh) and current velocity
+               !
+               min_dt_ip = 1.0 / ( max(sqrt(g * hu), abs(uv(ip)) ) * dxuvinv)
+               !
+            endif
             !
             min_dt = min(min_dt, min_dt_ip)
             !

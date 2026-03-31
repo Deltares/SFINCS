@@ -113,42 +113,55 @@ contains
       ! 
       if (kcs(nm) == 1) then ! Regular point
          !
-         if (precip) then
+         if (.not. semi_implicit) then
             !
-            zs(nm) = zs(nm) + netprcp(nm) * dt
+            ! Precipitation and qext: in semi-implicit mode these are included
+            ! in the pressure system RHS (sfincs_semi_implicit.f90), so skip here
+            !
+            if (precip) then
+               !
+               zs(nm) = zs(nm) + netprcp(nm) * dt
+               !
+            endif
+            !
+            if (use_qext) then
+               !
+               ! Add external source (e.g. from XMI coupling)
+               !
+               zs(nm) = zs(nm) + qext(nm) * dt
+               !
+            endif
             !
          endif
          !
-         if (use_qext) then
+         if (.not. semi_implicit) then
             !
-            ! Add external source (e.g. from XMI coupling) 
-            ! 
-            zs(nm) = zs(nm) + qext(nm) * dt 
+            ! Flux divergence update (skipped in semi-implicit mode: handled by pressure solver)
             !
-         endif
-         !
-         nmd = z_index_uv_md(nm)
-         nmu = z_index_uv_mu(nm)
-         ndm = z_index_uv_nd(nm)
-         num = z_index_uv_nu(nm)
-         !
-         if (crsgeo) then
+            nmd = z_index_uv_md(nm)
+            nmu = z_index_uv_mu(nm)
+            ndm = z_index_uv_nd(nm)
+            num = z_index_uv_nu(nm)
             !
-            ! Use cell width dxm (which varies with latitude)
-            !
-            zs(nm)   = zs(nm) + ( (q(nmd) - q(nmu)) / dxm(nm) + (q(ndm) - q(num)) * dyrinv(z_flags_iref(nm)) ) * dt
-            !
-            ! Should really be:
-            !
-            ! zs(nm)   = zs(nm) + ( (q(nmd) - q(nmu)) / dxm(nm) + (q(ndm) * f - q(num) / f) * dyrinv(z_flags_iref(nm)) ) * dt
-            !
-            ! Where f if a correction factor for the ratio between cell width at cell centre and cell bottom:
-            !
-            ! f = cos(y - 0.5*dy) / cos(y) (this holds both in northern and southern hemisphere)
-            ! 
-         else   
-            !
-            zs(nm)   = zs(nm) + ( (q(nmd) - q(nmu)) * dxrinv(z_flags_iref(nm)) + (q(ndm) - q(num)) * dyrinv(z_flags_iref(nm)) ) * dt
+            if (crsgeo) then
+               !
+               ! Use cell width dxm (which varies with latitude)
+               !
+               zs(nm)   = zs(nm) + ( (q(nmd) - q(nmu)) / dxm(nm) + (q(ndm) - q(num)) * dyrinv(z_flags_iref(nm)) ) * dt
+               !
+               ! Should really be:
+               !
+               ! zs(nm)   = zs(nm) + ( (q(nmd) - q(nmu)) / dxm(nm) + (q(ndm) * f - q(num) / f) * dyrinv(z_flags_iref(nm)) ) * dt
+               !
+               ! Where f if a correction factor for the ratio between cell width at cell centre and cell bottom:
+               !
+               ! f = cos(y - 0.5*dy) / cos(y) (this holds both in northern and southern hemisphere)
+               !
+            else
+               !
+               zs(nm)   = zs(nm) + ( (q(nmd) - q(nmu)) * dxrinv(z_flags_iref(nm)) + (q(ndm) - q(num)) * dyrinv(z_flags_iref(nm)) ) * dt
+               !
+            endif
             !
          endif
          !

@@ -23,6 +23,7 @@ module sfincs_lib
    use sfincs_snapwave
    use sfincs_wavemaker
    use sfincs_nonhydrostatic
+   use sfincs_semi_implicit
    use sfincs_bathtub
    use sfincs_openacc
    use sfincs_log
@@ -94,7 +95,7 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.3.2 mt. Faber+"
+   build_revision = "$Rev: v2.3.2 mt. Faber + semi-implicit"
    build_date     = "$Date: 2026-03-20"
    !
    call write_log('', 1)
@@ -171,11 +172,21 @@ module sfincs_lib
       !
       ! Initialize non-hydrostatic solver
       !
-      call write_log('Initialize non-hydrostatic solver ...', 0) 
+      call write_log('Initialize non-hydrostatic solver ...', 0)
       !
       call initialize_nonhydrostatic()
       !
-   endif   
+   endif
+   !
+   if (semi_implicit) then
+      !
+      ! Initialize semi-implicit pressure solver
+      !
+      call write_log('Initialize semi-implicit solver ...', 0)
+      !
+      call initialize_semi_implicit()
+      !
+   endif
    !
    if (wavemaker) then
       !
@@ -254,7 +265,12 @@ module sfincs_lib
       call write_log('Non-hydrostatic      : yes', 1)
    else
       ! call write_log('Non-hydrostatic         : no', 1)
-   endif   
+   endif
+   if (semi_implicit) then
+      call write_log('Semi-implicit        : yes', 1)
+   else
+      ! call write_log('Semi-implicit           : no', 1)
+   endif
    if (bathtub) then
       call write_log('Bathtub              : yes', 1)
    else
@@ -388,8 +404,14 @@ module sfincs_lib
       ! New time step
       !
       nt = nt + 1
-      dt = alfa * min_dt ! min_dt was computed in sfincs_momentum.f90 without alfa
-      dtchk = alfa * min_dt
+      !
+      if (semi_implicit) then
+         dt = alfa_si * min_dt  ! Semi-implicit: use less conservative safety factor (default 0.75)
+         dtchk = alfa_si * min_dt
+      else
+         dt = alfa * min_dt ! min_dt was computed in sfincs_momentum.f90 without alfa
+         dtchk = alfa * min_dt
+      endif
       !
       if (bathtub) then
          !
@@ -600,7 +622,17 @@ module sfincs_lib
             call compute_fluxes_over_structures(tloopstruc)
             !
          endif
-         !      
+         !
+         if (semi_implicit) then
+            !
+            ! Semi-implicit: assemble and solve Helmholtz pressure system,
+            ! then back-substitute to get corrected fluxes and water levels
+            !
+            call assemble_and_solve_pressure(dt)
+            call backsubstitute_fluxes_si(dt)
+            !
+         endif
+         !
          if (nonhydrostatic) then
             !
             if (t < nh_tstop) then ! Check if non-hydrostatic corrections still need to be made
@@ -755,6 +787,13 @@ module sfincs_lib
    !
    write(logstr,'(a,f10.3,a,f5.1,a)')    ' Time in continuity     : ', tloopcont, ' (', 100 * tloopcont / (tfinish_all - tstart_all), '%)'
    call write_log(logstr, 1)
+   !
+   if (semi_implicit) then
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in SI solver      : ', get_tloop_si(), ' (', 100 * get_tloop_si() / (tfinish_all - tstart_all), '%)'
+      call write_log(logstr, 1)
+      write(logstr,'(a,f6.1,a,i0)') ' SI CG iterations avg   :  ', get_si_iter_avg(), '  max: ', get_si_iter_max()
+      call write_log(logstr, 1)
+   endif
    !
    if (snapwave) then
       write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in SnapWave       : ', tloopsnapwave, ' (', 100 * tloopsnapwave / (tfinish_all - tstart_all), '%)'

@@ -92,6 +92,7 @@
 				</FileConfiguration>
 			</File>
 			<File RelativePath="..\src\sfincs_nonhydrostatic.f90"/>
+			<File RelativePath="..\src\sfincs_semi_implicit.f90"/>
 			<File RelativePath="..\src\sfincs_obspoints.f90"/>
 			<File RelativePath="..\src\sfincs_openacc.f90">
 			</File>
