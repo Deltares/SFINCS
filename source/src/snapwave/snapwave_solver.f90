@@ -486,6 +486,8 @@ contains
          sweep = 4
       endif
       !
+      !write(*,*)'iter:', iter, 'sweep:', sweep
+      !
       ! At start of each sweep, compute E, H, E_ig and H_ig, and aa
       !
       ! This loop can be parallelized !
@@ -788,18 +790,18 @@ contains
          depthlimfac = max(1.0, (sqrt(Ek / rhog8) / (gammax * depth(k)))**2)
          ee(:, k)    = ee(:, k) / depthlimfac
          !
-         if (wind) then
-            !
-            Ek       = Ek / depthlimfac
-            Ak       = sum(aa(:, k)) * dtheta
-            Ak       = Ak / depthlimfac
-            aa(:, k) = aa(:, k) / depthlimfac
-            sig(k)   = max(min(Ek / Ak, sigmax), sigmin)
-            !
-            call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, &
-                                    dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:, k))
-            !
-         endif
+!         if (wind) then
+!            !
+!            Ek       = Ek / depthlimfac
+!            Ak       = sum(aa(:, k)) * dtheta
+!            Ak       = Ak / depthlimfac
+!            aa(:, k) = aa(:, k) / depthlimfac
+!            sig(k)   = max(min(Ek / Ak, sigmax), sigmin)
+!            !
+!            call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, &
+!                                    dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:, k))
+!            !
+!         endif
          !
          ! --- Step 7: IG wave balance (optional) -------------------------------------
          !
