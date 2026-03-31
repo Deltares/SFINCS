@@ -213,6 +213,7 @@ contains
    call read_char_input(500,'infiltrationfile',infiltrationfile,'none')
    call read_char_input(500,'infiltrationtype',inftype,'none')
    call read_char_input(500,'bucketfile',bucketfile,'none')         ! bucket model (infiltration flavor 'bkt')
+   call read_real_input(500,'bucket_loss_frac',bucket_loss_default,0.0)  ! bucket loss fraction (0-1)
    call read_real_input(500,'qdrain',qdrain_uniform,0.0)            ! drainage mimic (mm/hr)
    call read_char_input(500,'drainagefile',drainagefile,'none')     ! spatially-varying drainage rates
    !

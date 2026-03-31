@@ -36,7 +36,7 @@ contains
    !$acc               gnapp2, &
    !$acc               qinffield, qinfmap, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, &
    !$acc               ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, horton_kd, horton_fc, horton_f0, &
-   !$acc               qdrain_rate, bucket_volume, bucket_capacity, bucket_k, bucket_drain_rate )
+   !$acc               qdrain_rate, bucket_volume, bucket_capacity, bucket_k, bucket_drain_rate, bucket_loss, bucket_runoff )
    !   
    end subroutine
    ! 
@@ -66,7 +66,7 @@ contains
    !$acc               gnapp2, &
    !$acc               qinffield, qinfmap, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, &
    !$acc               ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, horton_kd, horton_fc, horton_f0, &
-   !$acc               qdrain_rate, bucket_volume, bucket_capacity, bucket_k, bucket_drain_rate )
+   !$acc               qdrain_rate, bucket_volume, bucket_capacity, bucket_k, bucket_drain_rate, bucket_loss, bucket_runoff )
    !   
    end
    !

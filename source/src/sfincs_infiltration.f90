@@ -1059,12 +1059,13 @@ contains
 
    subroutine initialize_bucket_model()
    !
+   use netcdf
    use sfincs_data
    use sfincs_ncinput
    !
    implicit none
    !
-   integer :: nchar
+   integer :: nchar, status, ncid, varid
    logical :: ok
    character*256 :: varname
    !
@@ -1079,11 +1080,15 @@ contains
       allocate(bucket_k(np))
       allocate(bucket_volume(np))
       allocate(bucket_drain_rate(np))
+      allocate(bucket_loss(np))
+      allocate(bucket_runoff(np))
       !
-      bucket_capacity  = 0.0
-      bucket_k         = 0.0
-      bucket_volume    = 0.0
+      bucket_capacity   = 0.0
+      bucket_k          = 0.0
+      bucket_volume     = 0.0
       bucket_drain_rate = 0.0
+      bucket_loss       = bucket_loss_default
+      bucket_runoff     = 0.0
       !
       if (netcdf_infiltration) then
          !
@@ -1096,6 +1101,18 @@ contains
          varname = 'bucket_k'
          call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, bucket_k)
          bucket_k = bucket_k / 3600.0   ! 1/hr to 1/s
+         !
+         ! Try reading spatially-varying loss fraction (optional, falls back to uniform)
+         status = nf90_open(trim(infiltrationfile), NF90_NOWRITE, ncid)
+         if (status == nf90_noerr) then
+            status = nf90_inq_varid(ncid, 'bucket_loss', varid)
+            nchar = nf90_close(ncid)
+            if (status == nf90_noerr) then
+               varname = 'bucket_loss'
+               call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, bucket_loss)
+               call write_log('Info    : read spatially-varying bucket_loss from infiltrationfile', 0)
+            endif
+         endif
          !
       elseif (bucketfile /= 'none') then
          !
@@ -1115,6 +1132,18 @@ contains
             varname = 'bucket_k'
             call read_netcdf_quadtree_to_sfincs(bucketfile, varname, bucket_k)
             bucket_k = bucket_k / 3600.0   ! 1/hr to 1/s
+            !
+            ! Try reading spatially-varying loss fraction (optional, falls back to uniform)
+            status = nf90_open(trim(bucketfile), NF90_NOWRITE, ncid)
+            if (status == nf90_noerr) then
+               status = nf90_inq_varid(ncid, 'bucket_loss', varid)
+               nchar = nf90_close(ncid)
+               if (status == nf90_noerr) then
+                  varname = 'bucket_loss'
+                  call read_netcdf_quadtree_to_sfincs(bucketfile, varname, bucket_loss)
+                  call write_log('Info    : read spatially-varying bucket_loss from bucketfile', 0)
+               endif
+            endif
             !
          else
             !
@@ -1136,6 +1165,8 @@ contains
       !
       write(logstr,'(a,f10.4,a)')'Info    : bucket max capacity = ', maxval(bucket_capacity) * 1000.0, ' mm'
       call write_log(logstr, 0)
+      write(logstr,'(a,f6.3)')'Info    : bucket loss fraction = ', maxval(bucket_loss)
+      call write_log(logstr, 0)
       !
    else
       !
@@ -1145,10 +1176,14 @@ contains
       allocate(bucket_k(1))
       allocate(bucket_volume(1))
       allocate(bucket_drain_rate(1))
+      allocate(bucket_loss(1))
+      allocate(bucket_runoff(1))
       bucket_capacity   = 0.0
       bucket_k          = 0.0
       bucket_volume     = 0.0
       bucket_drain_rate = 0.0
+      bucket_loss       = 0.0
+      bucket_runoff     = 0.0
       !
    endif
    !
@@ -1157,8 +1192,16 @@ contains
 
    subroutine compute_bucket_drainage(dt)
    !
-   ! Bucket model: finite capacity reservoir with linear drainage (HBV/wflow style)
-   ! Recovery is inherent - bucket drains during dry periods via Q=k*S, restoring capacity
+   ! Bucket model with loss: linear reservoir + loss fraction (HBV/wflow style)
+   !
+   ! Steps per cell:
+   !   1. P_eff = P * (1 - loss)       -- fraction lost to ET/deep percolation
+   !   2. Fill bucket with P_eff (up to Smax capacity)
+   !   3. Drain bucket: S(t+dt) = S(t)*exp(-k*dt), drainage returned as runoff
+   !   4. qinfmap = P - runoff         -- net removal from surface
+   !
+   ! In continuity: zs += prcp*dt - qinfmap*dt = bucket_runoff*dt
+   ! => Only bucket drainage reaches the surface water level
    !
    ! Literature: Linear reservoir (Nash, 1957), HBV soil moisture bucket (Bergstrom, 1995)
    !
@@ -1170,34 +1213,55 @@ contains
    integer          :: nm
    real*4           :: exp_factor
    real*4           :: drain_vol
-   real*4           :: available_water
+   real*4           :: P_eff
    real*4           :: available_cap
    real*4           :: actual_inflow
+   real*4           :: precip_rate
    !
-   !$omp parallel do private(nm, exp_factor, drain_vol, available_water, available_cap, actual_inflow)
+   !$omp parallel do private(nm, exp_factor, drain_vol, P_eff, available_cap, actual_inflow, precip_rate)
+   !$acc parallel present( kcs, prcp, qinfmap, cuminf, bucket_volume, bucket_capacity, bucket_k, &
+   !$acc                   bucket_drain_rate, bucket_loss, bucket_runoff )
+   !$acc loop independent gang vector
    do nm = 1, np
       !
-      if (kcs(nm) == 1 .and. bucket_capacity(nm) > 0.0) then
+      if (kcs(nm) == 1 .and. bucket_k(nm) > 0.0) then
          !
-         ! Step 1: Drain current storage (analytical linear reservoir solution)
+         ! Step 1: Compute effective precipitation (after loss)
+         !
+         precip_rate = max(prcp(nm), 0.0)
+         P_eff = precip_rate * (1.0 - bucket_loss(nm))             ! m/s after loss
+         !
+         ! Step 2: Fill bucket with effective precip (up to capacity)
+         !
+         if (bucket_capacity(nm) > 0.0) then
+            available_cap = bucket_capacity(nm) - bucket_volume(nm)
+            actual_inflow = min(P_eff * dt, available_cap)          ! m
+         else
+            ! No capacity limit (Smax = 0 means infinite)
+            actual_inflow = P_eff * dt                              ! m
+         endif
+         bucket_volume(nm) = bucket_volume(nm) + actual_inflow
+         !
+         ! Step 3: Drain bucket (analytical linear reservoir)
          ! S(t+dt) = S(t) * exp(-k*dt), drainage = S(t) - S(t+dt)
          !
          exp_factor = exp(-bucket_k(nm) * dt)
-         drain_vol = bucket_volume(nm) * (1.0 - exp_factor)
+         drain_vol = bucket_volume(nm) * (1.0 - exp_factor)        ! m drained this step
          bucket_volume(nm) = bucket_volume(nm) * exp_factor
          !
-         ! Step 2: Fill bucket from available rainfall
+         ! Step 4: Bucket drainage becomes runoff returned to surface
          !
-         available_water = max(prcp(nm), 0.0) * dt   ! m of water available
-         available_cap = bucket_capacity(nm) - bucket_volume(nm)
-         actual_inflow = min(available_water, available_cap)
-         bucket_volume(nm) = bucket_volume(nm) + actual_inflow
+         bucket_runoff(nm) = drain_vol / dt                         ! m/s
          !
-         ! Step 3: Set qinfmap = what entered the bucket (removed from surface)
-         ! This is used by continuity as the infiltration loss term
+         ! Step 5: Set qinfmap = loss + what entered bucket - what drained back
+         ! In continuity: zs += prcp*dt - qinfmap*dt
+         ! Water balance: qinfmap = prcp*loss + actual_inflow/dt - bucket_runoff
+         ! When bucket has room:  actual_inflow = P_eff*dt => qinfmap = prcp - bucket_runoff
+         ! When bucket is full:   actual_inflow = 0       => qinfmap can be negative (drainage > inflow)
          !
-         qinfmap(nm) = actual_inflow / dt
-         bucket_drain_rate(nm) = actual_inflow / dt
+         qinfmap(nm) = precip_rate * bucket_loss(nm) + actual_inflow / dt - bucket_runoff(nm)
+         !
+         bucket_drain_rate(nm) = bucket_runoff(nm)
          !
          if (store_cumulative_precipitation) then
             cuminf(nm) = cuminf(nm) + qinfmap(nm) * dt
@@ -1207,10 +1271,12 @@ contains
          !
          qinfmap(nm) = 0.0
          bucket_drain_rate(nm) = 0.0
+         bucket_runoff(nm) = 0.0
          !
       endif
       !
    enddo
+   !$acc end parallel
    !$omp end parallel do
    !
    end subroutine

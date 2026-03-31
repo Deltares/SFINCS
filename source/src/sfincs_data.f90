@@ -419,10 +419,13 @@ module sfincs_data
       ! Bucket model - finite capacity reservoir with linear drainage
       !
       logical       :: use_bucket_model = .false.
+      real*4        :: bucket_loss_default = 0.0                                ! uniform loss fraction from sfincs.inp (0-1)
       real*4, dimension(:),   allocatable :: bucket_volume                     ! current storage (m)
       real*4, dimension(:),   allocatable :: bucket_capacity                   ! max capacity S_max (m)
       real*4, dimension(:),   allocatable :: bucket_k                          ! drainage coefficient (1/s)
       real*4, dimension(:),   allocatable :: bucket_drain_rate                 ! net removal from surface this step (m/s)
+      real*4, dimension(:),   allocatable :: bucket_loss                       ! loss fraction per cell (0-1), ET/deep percolation
+      real*4, dimension(:),   allocatable :: bucket_runoff                     ! bucket drainage returned as surface runoff (m/s)
       !
       ! Wind reduction for spiderweb winds
       !
@@ -945,7 +948,9 @@ module sfincs_data
     if(allocated(bucket_capacity)) deallocate(bucket_capacity)
     if(allocated(bucket_k)) deallocate(bucket_k)
     if(allocated(bucket_drain_rate)) deallocate(bucket_drain_rate)
-    if(allocated(nuvisc)) deallocate(nuvisc)    
+    if(allocated(bucket_loss)) deallocate(bucket_loss)
+    if(allocated(bucket_runoff)) deallocate(bucket_runoff)
+    if(allocated(nuvisc)) deallocate(nuvisc)
     !
     ! Boundary velocity points
     !
