@@ -1205,27 +1205,26 @@ module snapwave_solver
                     !
                     ! Adjust cg_ig for free infragravity waves release in surfzone
                     ! TL - Note: cg_ig = cg
-                    if (ig_opt == 3) then
-                        !
-                        if (gam > (gamma_fac_br * gamma)) then                                    
-                            !
-                            cg_ig(k) = sqrt(9.81 * depth(k))
-                            !
-                        endif
-                        !
-                    endif                  
+                    !if (ig_opt == X) then
+                    !    !
+                    !    if (gam > (gamma_fac_br * gamma)) then                                    
+                    !        !
+                    !        cg_ig(k) = sqrt(9.81 * depth(k))
+                    !        !
+                    !    endif
+                    !    !
+                    !endif                  
                     !
                     ! Determine dSxx and IG source/sink term 'srcig'
                     !
-                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 11 .or. ig_opt == 12 .or. ig_opt == 13) then 
+                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 12 .or. ig_opt == 13) then 
                         !
                         ! Calculate shoaling parameter alpha_ig following Leijnse et al. (2024)
                         !  
                         if (ig_opt == 12 .or. ig_opt == 13) then
                             !
-                            ! Limit beta to max 0.1 before going into alphaig parametrisation
+                            ! Limit beta to max 0.07 (=beta_limit_1) before going into alphaig parametrisation
                             !
-                            !beta_local(itheta,k) = min(beta_local(itheta,k), 0.07)
                             beta_local(itheta,k) = min(beta_local(itheta,k), beta_limit_1)                            
                             !
                         endif
@@ -1241,7 +1240,7 @@ module snapwave_solver
                             !
                         else
                             !              
-                            if (ig_opt == 1 .or. ig_opt == 3 .or. ig_opt == 11 .or. ig_opt == 12 .or. ig_opt == 13) then ! Option using conservative shoaling for dSxx/dx
+                            if (ig_opt == 1 .or. ig_opt == 12 .or. ig_opt == 13) then ! Option using conservative shoaling for dSxx/dx
                                 !
                                 ! Calculate Sxx based on conservative shoaling of upwind point's energy: 
                                 ! Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
@@ -1257,37 +1256,33 @@ module snapwave_solver
                             !
                             dSxx = max(dSxx, 0.0)
                             !
-                            if (ig_opt == 1 .or. ig_opt == 11 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 12 .or. ig_opt == 13) then
-                               !
-                               ! Base on E_prev_ig instead of eeprev_ig(itheta) > no bins but total energy
-                               ! NOTE - already here multiplied with ee(itheta,k), for direct inclusion in 'R'-term
-                               srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k) /max(E_local(k), 1.0e-6) * ee(itheta,k)
-                               !
+                            !if (ig_opt == 1 .or. ig_opt == 2.or. ig_opt == 12 .or. ig_opt == 13) then
+                            !
+                            ! Base on E_prev_ig instead of eeprev_ig(itheta) > no bins but total energy
+                            ! NOTE - already here multiplied with ee(itheta,k), for direct inclusion in 'R'-term
+                            srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k) /max(E_local(k), 1.0e-6) * ee(itheta,k)
+                            !
                             !elseif (ig_opt == 20) then
                                !
                                ! NOTE - in main script this is multiplied with ee(itheta,k) to get directional energy, for direct inclusion in 'B'-term
                                ! 
                                !srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k) /max(E_local(k), 1.0e-6) !* ee(itheta,k)                               
-                            endif
+                            !endif
                             !
                             ! Limit srcig to 0 after waves start (significantly) breaking, as defined here as gam=Hrms,inc / h > (gamma_fac_br * gamma)
                             !
                             ! Ergo, it is assumed that after this point IG waves are free, and no bound wave forcing is happening anymore, so srcig should be 0 from here on
                             !
-                            if (ig_opt == 11 .or. ig_opt == 2 .or. ig_opt == 3) then
-                                !
-                                ! Free waves and no IG source/sink term if incident waves start breaking
-                                !         
-                                ! Note - gam is in Hrms
-                                if (gam > (gamma_fac_br * gamma)) then                                    
-                                    !
-                                    srcig_local(itheta, k) = 0.0
-                                    !
-                                endif    
-                                !
-                            elseif (ig_opt == 1 .or. ig_opt == 12) then
+                            if (ig_opt == 12) then
                                 !
                                 ! Let srcig transition to 0 more smoothly using fac_transition that reduced from 1 to 0 around gamma_fac_br * snapwave_gamma
+                                ! Similar as before, but then smooth:
+                                !    ! Note - gam is in Hrms
+                                !    if (gam > (gamma_fac_br * gamma)) then                                    
+                                !        !
+                                !        srcig_local(itheta, k) = 0.0
+                                !        !
+                                !    endif   
                                 !
                                 transition_factor = 1.0 - (1.0 / (1.0 + exp(- (gam - (gamma_fac_br * gamma)) / transition_factor_width_1)))
                                 !
