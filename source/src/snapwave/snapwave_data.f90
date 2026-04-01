@@ -272,6 +272,7 @@ module snapwave_data
                                                                 ! ... or just a priori based on effectively incident wave energy from previous timestep only   
    integer                                   :: herbers_opt     ! Choice whether you want IG Hm0&Tp be calculated by herbers (=1, default), or want to specify user defined values (0> then snapwave_eeinc2ig & snapwave_Tinc2ig are used) 
    integer                                   :: tpig_opt        ! IG wave period option based on Herbers calculated spectrum, only used if herbers_opt = 1. Options are: 1=Tm01 (default), 2=Tpsmooth, 3=Tp, 4=Tm-1,0    
+   real*4                                    :: steep_fac1, steep_fac2, steep_fac3, steep_fac4, steep_fac5  
    !
    ! Switches
    logical                                   :: igwaves             ! switch whether include IG or not

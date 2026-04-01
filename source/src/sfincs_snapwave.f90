@@ -658,6 +658,13 @@ contains
    call read_int_input(500,'snapwave_ig_opt',ig_opt,1)     
    call read_int_input(500,'snapwave_iterative_srcig',iterative_srcig_opt,0)        ! Option whether to calculate IG source/sink term in iterative lower (better, but potentially slower, 1=default), or effectively based on previous timestep (faster, potential mismatch, =0)
    !
+   ! IG steep slope related:
+   call read_real_input(500,'snapwave_steep_fac1',steep_fac1,0.0) ! Cut-off gamma, below this alphaig_steep = 0       
+   call read_real_input(500,'snapwave_steep_fac2',steep_fac2,0.1) ! Multiplication factor     
+   call read_real_input(500,'snapwave_steep_fac3',steep_fac3,0.07) ! Cut-off beta, below this alphaig_steep = 0, and above this it increases with beta     
+   call read_real_input(500,'snapwave_steep_fac4',steep_fac4,0.6) ! Exponent      
+   call read_real_input(500,'snapwave_steep_fac5',steep_fac5,1.0) ! Cut-off gamma, above this alphaig_steep = 0        
+   !
    ! IG boundary conditions options:
    call read_int_input(500,'snapwave_use_herbers',herbers_opt,1)    ! Choice whether you want IG Hm0&Tp be calculated by herbers (=1, default), or want to specify user defined values (0> then snapwave_eeinc2ig & snapwave_Tinc2ig are used) 
    call read_int_input(500,'snapwave_tpig_opt',tpig_opt,1) ! IG wave period option based on Herbers calculated spectrum, only used if snapwave_use_herbers = 1. Options are: 1=Tm01 (default), 2=Tpsmooth, 3=Tp, 4=Tm-1,0   

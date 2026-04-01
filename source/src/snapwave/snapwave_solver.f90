@@ -135,6 +135,7 @@ module snapwave_solver
                                          c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
                                          beta, srcig, alphaig, Dw_ig, Df_ig, qb, gam, &
+                                         steep_fac1, steep_fac2, steep_fac3, steep_fac4, steep_fac5, &          
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
                                          zb, nwav, ig_opt, alpha_ig, gamma_ig, gamma_fac_br, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
       !
@@ -160,6 +161,7 @@ module snapwave_solver
                                          c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
                                          betamean, srcig, alphaig, Dw_ig, Df_ig, qb, gam, &       
+                                         steep_fac1, steep_fac2, steep_fac3, steep_fac4, steep_fac5, &
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
                                          zb, nwav, ig_opt, alfa_ig, gamma_ig, gamma_fac_br, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
    !
@@ -222,7 +224,8 @@ module snapwave_solver
    real*4, dimension(no_nodes), intent(in)          :: u10                    ! wind speed and direction
    integer,                     intent(in)          :: niter                  ! max number of iterations
    real*4,                      intent(in)          :: crit                   ! relative accuracy for stopping criterion
-   integer                                          :: ig_opt                 ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)
+   integer,                     intent(in)          :: ig_opt                 ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)
+   real*4,                      intent(in)          :: steep_fac1, steep_fac2, steep_fac3, steep_fac4, steep_fac5                 
    !
    ! wind source vars
    !
@@ -481,7 +484,7 @@ module snapwave_solver
       !      
       ! Actual determining of source term: 
       !
-      call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma, gamma_fac_br) 
+      call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma, gamma_fac_br, steep_fac1, steep_fac2, steep_fac3, steep_fac4, steep_fac5) 
       !         
       ! inout: alphaig_local, srcig_local, cgprev, beta_local, qb_local, gam_local
       ! in: the rest
@@ -564,7 +567,7 @@ module snapwave_solver
                 !
                 ! Actual determining of source term - every first sweep of iteration
                 !          
-                call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma, gamma_fac_br)                                 
+                call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma, gamma_fac_br, steep_fac1, steep_fac2, steep_fac3, steep_fac4, steep_fac5)                                 
                 !    
             endif
             !
@@ -1049,7 +1052,7 @@ module snapwave_solver
    !
    end subroutine baldock
       
-   subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig,  cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma, gamma_fac_br)
+   subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig,  cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma, gamma_fac_br, steep_fac1, steep_fac2, steep_fac3, steep_fac4, steep_fac5)
     !   
     implicit none
     !  
@@ -1072,7 +1075,8 @@ module snapwave_solver
     real*4, intent(in)                               :: gamma           ! coefficients in Baldock wave breaking dissipation    
     real*4, intent(in)                               :: gamma_fac_br    ! factor times gamma that is used to determine the maximum incident wave breaking point in the surf zone using local incident wave height over water depth ratio, among others used to set the IG source term to 0 shallower than this point
     real*4, dimension(no_nodes), intent(in)          :: Dw              ! wave breaking dissipation
-    real*4, dimension(no_nodes), intent(in)          :: Hmx             ! Hmax        
+    real*4, dimension(no_nodes), intent(in)          :: Hmx             ! Hmax    
+    real*4, intent(in)                               :: steep_fac1, steep_fac2, steep_fac3, steep_fac4, steep_fac5
     !
     ! Inout variables
     real*4, dimension(:,:), intent(inout)            :: alphaig_local   ! Local infragravity wave shoaling parameter alpha
@@ -1235,7 +1239,8 @@ module snapwave_solver
                         !
                         if (ig_opt == 14 .or. ig_opt == 15) then
                             !
-                            call estimate_shoaling_parameter_alphaig_steep_slopes(beta_local(itheta,k), gam, alphaig_local(itheta,k)) ! [input, input, inout]                            
+                            call estimate_shoaling_parameter_alphaig_steep_slopes(beta_local(itheta,k), gam, alphaig_local(itheta,k), steep_fac1, steep_fac2, steep_fac3, steep_fac4, steep_fac5) 
+                            ! [input, input, inout, input, input, input, input, input] 
                             !
                         endif                            
                         !                
@@ -1381,12 +1386,13 @@ module snapwave_solver
    end subroutine estimate_shoaling_parameter_alphaig 
    
    
-   subroutine estimate_shoaling_parameter_alphaig_steep_slopes(beta, gam, alphaig) ! [input, input, inout] 
+   subroutine estimate_shoaling_parameter_alphaig_steep_slopes(beta, gam, alphaig, fac1, fac2, fac3, fac4, fac5) 
+   ! [input, input, inout, input, input, input, input, input] 
    real*4, intent(in)                :: beta
    real*4, intent(in)                :: gam 
    real*4, intent(inout)             :: alphaig
    !
-   real*4                            :: fac1, fac2, fac3, fac4, fac5
+   real*4, intent(in)                :: fac1, fac2, fac3, fac4, fac5
    real*4                            :: alphaig_steep
    !
    ! Estimate shoaling parameter alphaig - for steep slopes with beta > 0.07
@@ -1399,11 +1405,11 @@ module snapwave_solver
    ! Determine constants
    !
    !fac1 = 0.3 !Cut-off gamma, below this alphaig_steep = 0   
-   fac1 = 0.0 !Cut-off gamma, below this alphaig_steep = 0  
-   fac2 = 0.1 ! Multiplication factor
-   fac3 = 0.07 ! Cut-off beta, below this alphaig_steep = 0, and above this it increases with beta
-   fac4 = 0.6 ! Exponent
-   fac5 = 1.0 ! Cut-off gamma, above this alphaig_steep = 0
+   !fac1 = 0.0 !Cut-off gamma, below this alphaig_steep = 0  
+   !fac2 = 0.1 ! Multiplication factor
+   !fac3 = 0.07 ! Cut-off beta, below this alphaig_steep = 0, and above this it increases with beta
+   !fac4 = 0.6 ! Exponent
+   !fac5 = 1.0 ! Cut-off gamma, above this alphaig_steep = 0
    !
    ! For deep water or negative slope, alphaig_steep = 0
    !
