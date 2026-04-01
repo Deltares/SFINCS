@@ -1217,11 +1217,11 @@ module snapwave_solver
                     !
                     ! Determine dSxx and IG source/sink term 'srcig'
                     !
-                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 12 .or. ig_opt == 13 .or. ig_opt == 14 .or. ig_opt == 15) then 
+                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 11 .or. ig_opt == 12 .or. ig_opt == 13 .or. ig_opt == 14 .or. ig_opt == 15) then 
                         !
                         ! Calculate shoaling parameter alpha_ig following Leijnse et al. (2024)
                         !  
-                        if (ig_opt == 12 .or. ig_opt == 13) then
+                        if (ig_opt == 11 .or. ig_opt == 12 .or. ig_opt == 13) then
                             !
                             ! Limit beta to max 0.07 (=beta_limit_1) before going into alphaig parametrisation
                             !
@@ -1248,7 +1248,7 @@ module snapwave_solver
                             !
                         else
                             !              
-                            if (ig_opt == 1 .or. ig_opt == 12 .or. ig_opt == 13 .or. ig_opt == 14 .or. ig_opt == 15) then ! Option using conservative shoaling for dSxx/dx
+                            if (ig_opt == 1 .or. ig_opt == 11 .or. ig_opt == 12 .or. ig_opt == 13 .or. ig_opt == 14 .or. ig_opt == 15) then ! Option using conservative shoaling for dSxx/dx
                                 !
                                 ! Calculate Sxx based on conservative shoaling of upwind point's energy: 
                                 ! Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
