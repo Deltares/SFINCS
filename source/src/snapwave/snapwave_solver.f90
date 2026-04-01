@@ -1217,7 +1217,7 @@ module snapwave_solver
                     !
                     ! Determine dSxx and IG source/sink term 'srcig'
                     !
-                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 12 .or. ig_opt == 13) then 
+                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 12 .or. ig_opt == 13 .or. ig_opt == 14 .or. ig_opt == 15) then 
                         !
                         ! Calculate shoaling parameter alpha_ig following Leijnse et al. (2024)
                         !  
@@ -1230,6 +1230,14 @@ module snapwave_solver
                         endif
                         !
                         call estimate_shoaling_parameter_alphaig(beta_local(itheta,k), gam, alphaig_local(itheta,k)) ! [input, input, output]
+                        !
+                        ! Steep slope addition
+                        !
+                        if (ig_opt == 14 .or. ig_opt == 15) then
+                            !
+                            call estimate_shoaling_parameter_alphaig_steep_slopes(beta_local(itheta,k), gam, alphaig_local(itheta,k)) ! [input, input, inout]                            
+                            !
+                        endif                            
                         !                
                         ! Now calculate source term component
                         !         
@@ -1240,7 +1248,7 @@ module snapwave_solver
                             !
                         else
                             !              
-                            if (ig_opt == 1 .or. ig_opt == 12 .or. ig_opt == 13) then ! Option using conservative shoaling for dSxx/dx
+                            if (ig_opt == 1 .or. ig_opt == 12 .or. ig_opt == 13 .or. ig_opt == 14 .or. ig_opt == 15) then ! Option using conservative shoaling for dSxx/dx
                                 !
                                 ! Calculate Sxx based on conservative shoaling of upwind point's energy: 
                                 ! Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
@@ -1288,7 +1296,7 @@ module snapwave_solver
                                 !
                                 srcig_local(itheta, k) = transition_factor * srcig_local(itheta, k)
                                 !
-                            elseif (ig_opt == 13) then
+                            elseif (ig_opt == 13 .or. ig_opt == 15) then
                                 !
                                 ! Let srcig transition to 0 more smoothly using fac_transition that reduced from 1 to 0 around gamma_fac_br * snapwave_gamma
                                 !
@@ -1371,6 +1379,71 @@ module snapwave_solver
    alphaig = min(alphaig, 1.0)   
    !             
    end subroutine estimate_shoaling_parameter_alphaig 
+   
+   
+   subroutine estimate_shoaling_parameter_alphaig_steep_slopes(beta, gam, alphaig) ! [input, input, inout] 
+   real*4, intent(in)                :: beta
+   real*4, intent(in)                :: gam 
+   real*4, intent(inout)             :: alphaig
+   !
+   real*4                            :: fac1, fac2, fac3, fac4, fac5
+   real*4                            :: alphaig_steep
+   !
+   ! Estimate shoaling parameter alphaig - for steep slopes with beta > 0.07
+   ! These were not covered in training dataset of Leijnse et al. 2024
+   !
+   !alphaig_total = alphaig Eq11 + alphaig_steep 
+   !alphaig_steep = 0.1 * max(beta-0.07, 0)^0.6 * max(1.0-gamma, 0)
+   !alphaig_steep = fac2 * max(beta-fac3, 0)**fac4 * max(fac5-gam, 0) 
+   !
+   ! Determine constants
+   !
+   !fac1 = 0.3 !Cut-off gamma, below this alphaig_steep = 0   
+   fac1 = 0.0 !Cut-off gamma, below this alphaig_steep = 0  
+   fac2 = 0.1 ! Multiplication factor
+   fac3 = 0.07 ! Cut-off beta, below this alphaig_steep = 0, and above this it increases with beta
+   fac4 = 0.6 ! Exponent
+   fac5 = 1.0 ! Cut-off gamma, above this alphaig_steep = 0
+   !
+   ! For deep water or negative slope, alphaig_steep = 0
+   !
+   alphaig_steep = 0.0
+   !
+   !if (beta > 0.0) then
+   !    write(*,*)'Starting alphaig steep slope addition, beta, gam, alphaig before', beta, gam, alphaig   
+   !endif
+   !
+   ! If positively increasing local bed slope beta
+   !
+   if (beta > 0.0) then       
+       !
+       if (gam >= fac1) then ! shallow(er) water - for gam>1.0 (=fac5) the fit automatically goes to 0
+          !
+          alphaig_steep = fac2 * (max(beta - fac3, 0.0) ** fac4) * (max(fac5 - gam, 0.0))
+          !
+       else ! for gam < fac1
+          ! 
+          alphaig_steep = 0.0
+          ! 
+       endif
+       !
+   endif   
+   !
+   !if (beta > 0.0) then   
+   !   write(*,*)'Calculated alphaig_steep addition', alphaig_steep
+   !endif   
+   !
+   ! Combine
+   !
+   alphaig = alphaig + alphaig_steep
+   !
+   ! Limit total alphaig between [0, 1] to prevent large overshoots in case of low gamma and very small beta
+   !
+   alphaig = max(alphaig, 0.0)
+   alphaig = min(alphaig, 1.0)   
+   !             
+   end subroutine estimate_shoaling_parameter_alphaig_steep_slopes 
+   
    
    subroutine hpsort_eps_epw (n, ra, ind, eps)
    !---------------------------------------------------------------------
