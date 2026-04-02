@@ -819,7 +819,10 @@ contains
             !
             Df_ig(k)     = Dfk_ig
             Dw_ig(k)     = Dwk_ig
+            !
+            ! Not using underrelaxation for IG dissipation for now, but we could add this if needed (relax_factor_DoverE_ig)
             DoverE_ig(k) = (Dwk_ig + Dfk_ig) / max(Ek_ig, 1.0e-6)
+            ! 
             !
             ! IG RHS
             !
