@@ -91,14 +91,15 @@ contains
       do k = 1, no_nodes
          !
          sinhkh(k) = sinh(min(kwav(k) * depth(k), 50.0))
-         Hmx(k)    = 0.88 / kwav(k) * tanh(gamma * kwav(k) * depth(k) / 0.88)
+         !Hmx(k)    = 0.88 / kwav(k) * tanh(gamma * kwav(k) * depth(k) / 0.88)
          Hmx(k)    = gamma * depth(k)
          !
          if (igwaves) then
             !
             ! Why is this different from Hmx for regular waves where we use gamma * h?
             !
-            Hmx_ig(k) = 0.88 / kwav_ig(k) * tanh(gamma_ig * kwav_ig(k) * depth(k) / 0.88) ! Note - uses gamma_ig
+            !Hmx_ig(k) = 0.88 / kwav_ig(k) * tanh(gamma_ig * kwav_ig(k) * depth(k) / 0.88) ! Note - uses gamma_ig
+            Hmx_ig(k)    = gamma_ig * depth(k)
             !
          endif
          !
