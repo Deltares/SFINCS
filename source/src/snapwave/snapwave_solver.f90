@@ -1253,7 +1253,7 @@ contains
                     !                       
                     cgprev(itheta)      = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
                     !
-                    Sxxprev(itheta)     = w(1, itheta, k) * Sxx(itheta,k1) + w(2, itheta, k) * Sxx(itheta,k2)
+                    Sxxprev(itheta)     = w(1, itheta, k) * Sxx(k1) + w(2, itheta, k) * Sxx(k2)
                     !
                     Eprev(itheta)       = w(1, itheta, k) * E_local(k1) + w(2, itheta, k) * E_local(k2)     
                     Eprev_ig(itheta)    = w(1, itheta, k) * E_ig_local(k1) + w(2, itheta, k) * E_ig_local(k2)                                              
