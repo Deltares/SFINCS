@@ -2,6 +2,8 @@ module sfincs_domain
 
    use sfincs_log
    use sfincs_error
+   use sfincs_structures
+   use sfincs_buildings					   
 
 contains
 
@@ -1579,6 +1581,46 @@ contains
         endif            
         !
    endif
+       !
+	   if (has_buildings) then
+
+		  write (*, *) 'Initializing building module...'
+
+		  ! Initialize with grid parameters
+		  call initialize_buildings()
+
+		  ! Read building polygons
+		  call read_building_file(bldfile, ios_bld)
+
+		  if (ios_bld /= 0) then
+			 write (*, '(A)') 'ERROR: Failed to read building file'
+			 has_buildings = .false.
+		  else
+			 ! Read building properties file if provided (detention volumes, gutter spacing)
+			 if (has_building_properties) then
+				call read_building_properties_file(bprfile, ios_bld)
+				if (ios_bld /= 0) then
+				   write (*, '(A)') 'WARNING: Failed to read building properties file'
+				   write (*, '(A)') '         Using default values (no detention, uniform distribution)'
+				   has_building_properties = .false.
+				end if
+			 end if
+
+			 ! Identify cells inside buildings
+			 call identify_building_cells()
+
+			 ! Identify perimeter cells
+			 call identify_perimeter_cells()
+
+			 ! Identify gutter cells if gutter system is enabled
+			 if (use_building_gutters) then
+				call identify_gutter_cells()
+			 end if
+
+			 write (*, *) 'Building module initialized successfully'
+		  end if
+
+	   end if
    !
    end subroutine
 

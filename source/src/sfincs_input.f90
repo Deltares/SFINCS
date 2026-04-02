@@ -10,6 +10,7 @@ contains
    use sfincs_date
    use sfincs_log
    use sfincs_error
+   use sfincs_buildings
    !
    implicit none
    !
@@ -245,6 +246,24 @@ contains
    call read_logical_input(500, 'store_dynamic_bed_level', store_dynamic_bed_level, .false.)
    call read_logical_input(500,'snapwave_use_nearest',snapwave_use_nearest,.true.)   
    call read_int_input(500,'percentage_done',percdoneval,5)
+   !
+   ! Building files
+   !
+   call read_char_input(500, 'bldfile', bldfile, 'none')      
+   if (trim(bldfile) /= 'none') then                           
+      has_buildings = .true.
+      write(*,'(A,A)') '  Building file: ', trim(bldfile)
+   end if
+   !
+   ! Building properties file (detention volumes and gutter spacing)
+   !
+   call read_char_input(500, 'bprfile', bprfile, 'none')      
+   if (trim(bprfile) /= 'none') then                           
+      has_building_properties = .true.
+      write(*,'(A,A)') '  Building properties file: ', trim(bprfile)
+   end if
+   !
+   !			   
    ! Limit to range (0,100)
    percdoneval = max(min(percdoneval,100), 0)
    !
