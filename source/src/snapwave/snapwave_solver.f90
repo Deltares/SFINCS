@@ -1051,46 +1051,6 @@ contains
    !
    end subroutine baldock
    
-
-!   subroutine bj78(rho, g, alfa, gamma, depth, H, T, iexp, Dw, Hmax)
-!   !
-!   real*4, intent(in)                :: rho
-!   real*4, intent(in)                :: g
-!   real*4, intent(in)                :: alfa
-!   real*4, intent(in)                :: gamma
-!   real*4, intent(in)                :: depth
-!   real*4, intent(in)                :: H
-!   real*4, intent(in)                :: T
-!   integer, intent(in)               :: iexp
-!   real*4, intent(out)               :: Dw
-!   real*4, intent(in)                :: Hmax
-!   real*4                            :: Hloc
-!   real*4                            :: f
-!   !
-!   ! Compute dissipation according to Battjes and Janssen (1978)
-!   !
-!   Hloc = max(H, 1.e-6)
-!   !
-!   if (iexp > 0 .and. Hloc > Hmax) then
-!      !
-!      ! Add extra dissipation when Hloc exceeds Hmax.
-!      ! This is needed at very steep coast lines, where BJ78 dissipation cannot always keep up with
-!      ! the wave height increase due to shoaling. The extra dissipation is added by multiplying
-!      ! the BJ78 dissipation with a factor f, which is larger than 1 when Hloc > Hmax.
-!      !
-!      f = (Hloc / Hmax)**iexp
-!      !
-!   else  
-!      !
-!      f = 1.0
-!      !
-!   endif
-!   !
-!   Dw = 0.25 * rho * g / T * exp( - (Hmax / Hloc)**2) * (Hloc**3 / depth) * f
-!   !
-!   end subroutine bj78
-   
-   
    
    subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local)
     !   
