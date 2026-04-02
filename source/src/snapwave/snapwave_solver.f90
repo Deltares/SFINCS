@@ -135,6 +135,7 @@ module snapwave_solver
                                          c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
                                          beta, srcig, alphaig, Dw_ig, Df_ig, qb, gam, &
+                                         steep_fac1, steep_fac2, steep_fac3, steep_fac4, steep_fac5, &          
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
                                          zb, nwav, ig_opt, alpha_ig, gamma_ig, gamma_fac_br, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
       !
@@ -160,6 +161,7 @@ module snapwave_solver
                                          c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
                                          betamean, srcig, alphaig, Dw_ig, Df_ig, qb, gam, &       
+                                         steep_fac1, steep_fac2, steep_fac3, steep_fac4, steep_fac5, &
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
                                          zb, nwav, ig_opt, alfa_ig, gamma_ig, gamma_fac_br, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
    !
@@ -222,7 +224,8 @@ module snapwave_solver
    real*4, dimension(no_nodes), intent(in)          :: u10                    ! wind speed and direction
    integer,                     intent(in)          :: niter                  ! max number of iterations
    real*4,                      intent(in)          :: crit                   ! relative accuracy for stopping criterion
-   integer                                          :: ig_opt                 ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)
+   integer,                     intent(in)          :: ig_opt                 ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)
+   real*4,                      intent(in)          :: steep_fac1, steep_fac2, steep_fac3, steep_fac4, steep_fac5                 
    !
    ! wind source vars
    !
@@ -487,7 +490,7 @@ module snapwave_solver
       !      
       ! Actual determining of source term: 
       !
-      call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma, gamma_fac_br) 
+      call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma, gamma_fac_br, steep_fac1, steep_fac2, steep_fac3, steep_fac4, steep_fac5) 
       !         
       ! inout: alphaig_local, srcig_local, cgprev, beta_local, qb_local, gam_local
       ! in: the rest
@@ -570,7 +573,7 @@ module snapwave_solver
                 !
                 ! Actual determining of source term - every first sweep of iteration
                 !          
-                call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma, gamma_fac_br)                                 
+                call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma, gamma_fac_br, steep_fac1, steep_fac2, steep_fac3, steep_fac4, steep_fac5)                                 
                 !    
             endif
             !
@@ -680,11 +683,7 @@ module snapwave_solver
                   !
                    do itheta = 1, ntheta
                      !
-                     if (ig_opt > 0 .and. ig_opt < 20) then
-                        R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta)*eeprev(itheta)/ds(itheta, k) - srcig_local(itheta, k) * shinc2ig
-                     else
-                        R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta)*eeprev(itheta)/ds(itheta, k)
-                     endif                     
+                     R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta)*eeprev(itheta)/ds(itheta, k) - srcig_local(itheta, k) * shinc2ig                  
                      !
                   enddo                  
                   !
@@ -692,11 +691,7 @@ module snapwave_solver
                      !
                      A(itheta) = -ctheta(itheta - 1, k)*oneover2dtheta
                      !
-                     if (ig_opt > 0 .and. ig_opt < 20) then    
-                        B(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverE(k)
-                     else
-                        B(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverE(k) + srcig_local(itheta, k) * shinc2ig                         
-                     endif                     
+                     B(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverE(k)                   
                      !
                      C(itheta) = ctheta(itheta + 1, k)*oneover2dtheta
                      !
@@ -708,13 +703,8 @@ module snapwave_solver
                   A(ntheta) = -ctheta(ntheta - 1, k)*oneover2dtheta
                   C(ntheta) = ctheta(1, k)*oneover2dtheta
                   !
-                  if (ig_opt > 0 .and. ig_opt < 20) then    
-                      B(1) = oneoverdt + cg(k)/ds(1,k) + DoverE(k)
-                      B(ntheta) = oneoverdt + cg(k)/ds(ntheta,k) + DoverE(k)                  
-                  else
-                      B(1) = oneoverdt + cg(k)/ds(1,k) + DoverE(k) + srcig_local(1, k) * shinc2ig                         
-                      B(ntheta) = oneoverdt + cg(k)/ds(ntheta,k) + DoverE(k) + srcig_local(ntheta, k) * shinc2ig                                                   
-                  endif                                    
+                  B(1) = oneoverdt + cg(k)/ds(1,k) + DoverE(k)
+                  B(ntheta) = oneoverdt + cg(k)/ds(ntheta,k) + DoverE(k)                                                    
                   !
                   ! Solve tridiagonal system per point
                   !
@@ -799,11 +789,7 @@ module snapwave_solver
                      !
                      do itheta = 1, ntheta
                         !
-                        if (ig_opt > 0 .and. ig_opt < 20) then                          
-                            R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta)*eeprev_ig(itheta)/ds(itheta, k) + srcig_local(itheta, k)
-                        else
-                            R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta)*eeprev_ig(itheta)/ds(itheta, k)
-                        endif                        
+                        R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta)*eeprev_ig(itheta)/ds(itheta, k) + srcig_local(itheta, k)                     
                         !
                      enddo
                      !
@@ -811,11 +797,7 @@ module snapwave_solver
                         !
                         A_ig(itheta) = -ctheta_ig(itheta - 1, k)*oneover2dtheta
                         !
-                        if (ig_opt > 0 .and. ig_opt < 20) then                                                  
-                            B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
-                        else
-                            B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k) - srcig_local(itheta, k)                            
-                        endif
+                        B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
                         !
                         C_ig(itheta) = ctheta_ig(itheta + 1, k)*oneover2dtheta
                         !
@@ -823,21 +805,13 @@ module snapwave_solver
                      !
                      if (ctheta_ig(1,k)<0) then
                         A_ig(1) = 0.0
-                        if (ig_opt > 0 .and. ig_opt < 20) then                        
-                            B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k)
-                        else
-                            B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k) - srcig_local(itheta, k)
-                        endif
+                        B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k)
                         !
                         C_ig(1) = ctheta_ig(2, k)/dtheta
                      else
                         A_ig(1)=0.0
                         !
-                        if (ig_opt > 0 .and. ig_opt < 20) then
-                            B_ig(1)=1.0/dt + cg_ig(k)/ds(1, k) + DoverE_ig(k)
-                        else
-                            B_ig(1)=1.0/dt + cg_ig(k)/ds(1, k) + DoverE_ig(k) - srcig_local(itheta, k)                           
-                        endif
+                        B_ig(1)=1.0/dt + cg_ig(k)/ds(1, k) + DoverE_ig(k)
                         !
                         C_ig(1)=0.0
                      endif
@@ -845,21 +819,13 @@ module snapwave_solver
                      if (ctheta_ig(ntheta, k)>0) then
                         A_ig(ntheta) = -ctheta_ig(ntheta - 1, k)/dtheta
                         !
-                        if (ig_opt > 0 .and. ig_opt < 20) then        
-                            B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
-                        else
-                            B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k) - srcig_local(itheta, k)                            
-                        endif
+                        B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
                         !
                         C_ig(ntheta) = 0.0
                      else
                         A_ig(ntheta) = 0.0
                         !
-                        if (ig_opt > 0 .and. ig_opt < 20) then                                
-                            B_ig(ntheta) = oneoverdt + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
-                        else
-                            B_ig(ntheta) = oneoverdt + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k) - srcig_local(itheta, k)
-                        endif                        
+                        B_ig(ntheta) = oneoverdt + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)                       
                         !
                         C_ig(ntheta) = 0.0
                      endif
@@ -1135,7 +1101,7 @@ module snapwave_solver
    !
    end subroutine baldock
       
-   subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig,  cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma, gamma_fac_br)
+   subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig,  cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, Dw, Hmx, qb_local, gam_local, gamma, gamma_fac_br, steep_fac1, steep_fac2, steep_fac3, steep_fac4, steep_fac5)
     !   
     implicit none
     !  
@@ -1158,7 +1124,8 @@ module snapwave_solver
     real*4, intent(in)                               :: gamma           ! coefficients in Baldock wave breaking dissipation    
     real*4, intent(in)                               :: gamma_fac_br    ! factor times gamma that is used to determine the maximum incident wave breaking point in the surf zone using local incident wave height over water depth ratio, among others used to set the IG source term to 0 shallower than this point
     real*4, dimension(no_nodes), intent(in)          :: Dw              ! wave breaking dissipation
-    real*4, dimension(no_nodes), intent(in)          :: Hmx             ! Hmax        
+    real*4, dimension(no_nodes), intent(in)          :: Hmx             ! Hmax    
+    real*4, intent(in)                               :: steep_fac1, steep_fac2, steep_fac3, steep_fac4, steep_fac5
     !
     ! Inout variables
     real*4, dimension(:,:), intent(inout)            :: alphaig_local   ! Local infragravity wave shoaling parameter alpha
@@ -1291,32 +1258,40 @@ module snapwave_solver
                     !
                     ! Adjust cg_ig for free infragravity waves release in surfzone
                     ! TL - Note: cg_ig = cg
-                    if (ig_opt == 3) then
-                        !
-                        if (gam > (gamma_fac_br * gamma)) then                                    
-                            !
-                            cg_ig(k) = sqrt(9.81 * depth(k))
-                            !
-                        endif
-                        !
-                    endif                  
+                    !if (ig_opt == X) then
+                    !    !
+                    !    if (gam > (gamma_fac_br * gamma)) then                                    
+                    !        !
+                    !        cg_ig(k) = sqrt(9.81 * depth(k))
+                    !        !
+                    !    endif
+                    !    !
+                    !endif                  
                     !
                     ! Determine dSxx and IG source/sink term 'srcig'
                     !
-                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 11 .or. ig_opt == 12 .or. ig_opt == 13) then 
+                    if (ig_opt == 1 .or. ig_opt == 2 .or. ig_opt == 11 .or. ig_opt == 12 .or. ig_opt == 13 .or. ig_opt == 14 .or. ig_opt == 15) then 
                         !
                         ! Calculate shoaling parameter alpha_ig following Leijnse et al. (2024)
                         !  
-                        if (ig_opt == 12 .or. ig_opt == 13) then
+                        if (ig_opt == 11 .or. ig_opt == 12 .or. ig_opt == 13) then
                             !
-                            ! Limit beta to max 0.1 before going into alphaig parametrisation
+                            ! Limit beta to max 0.07 (=beta_limit_1) before going into alphaig parametrisation
                             !
-                            !beta_local(itheta,k) = min(beta_local(itheta,k), 0.07)
                             beta_local(itheta,k) = min(beta_local(itheta,k), beta_limit_1)                            
                             !
                         endif
                         !
                         call estimate_shoaling_parameter_alphaig(beta_local(itheta,k), gam, alphaig_local(itheta,k)) ! [input, input, output]
+                        !
+                        ! Steep slope addition
+                        !
+                        if (ig_opt == 14 .or. ig_opt == 15) then
+                            !
+                            call estimate_shoaling_parameter_alphaig_steep_slopes(beta_local(itheta,k), gam, alphaig_local(itheta,k), steep_fac1, steep_fac2, steep_fac3, steep_fac4, steep_fac5) 
+                            ! [input, input, inout, input, input, input, input, input] 
+                            !
+                        endif                            
                         !                
                         ! Now calculate source term component
                         !         
@@ -1327,7 +1302,7 @@ module snapwave_solver
                             !
                         else
                             !              
-                            if (ig_opt == 1 .or. ig_opt == 3 .or. ig_opt == 11 .or. ig_opt == 12 .or. ig_opt == 13) then ! Option using conservative shoaling for dSxx/dx
+                            if (ig_opt == 1 .or. ig_opt == 11 .or. ig_opt == 12 .or. ig_opt == 13 .or. ig_opt == 14 .or. ig_opt == 15) then ! Option using conservative shoaling for dSxx/dx
                                 !
                                 ! Calculate Sxx based on conservative shoaling of upwind point's energy: 
                                 ! Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
@@ -1343,43 +1318,39 @@ module snapwave_solver
                             !
                             dSxx = max(dSxx, 0.0)
                             !
-                            if (ig_opt == 1 .or. ig_opt == 11 .or. ig_opt == 2 .or. ig_opt == 3 .or. ig_opt == 12 .or. ig_opt == 13) then
-                               !
-                               ! Base on E_prev_ig instead of eeprev_ig(itheta) > no bins but total energy
-                               ! NOTE - already here multiplied with ee(itheta,k), for direct inclusion in 'R'-term
-                               srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k) /max(E_local(k), 1.0e-6) * ee(itheta,k)
-                               !
+                            !if (ig_opt == 1 .or. ig_opt == 2.or. ig_opt == 12 .or. ig_opt == 13) then
+                            !
+                            ! Base on E_prev_ig instead of eeprev_ig(itheta) > no bins but total energy
+                            ! NOTE - already here multiplied with ee(itheta,k), for direct inclusion in 'R'-term
+                            srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k) /max(E_local(k), 1.0e-6) * ee(itheta,k)
+                            !
                             !elseif (ig_opt == 20) then
                                !
                                ! NOTE - in main script this is multiplied with ee(itheta,k) to get directional energy, for direct inclusion in 'B'-term
                                ! 
                                !srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k) /max(E_local(k), 1.0e-6) !* ee(itheta,k)                               
-                            endif
+                            !endif
                             !
                             ! Limit srcig to 0 after waves start (significantly) breaking, as defined here as gam=Hrms,inc / h > (gamma_fac_br * gamma)
                             !
                             ! Ergo, it is assumed that after this point IG waves are free, and no bound wave forcing is happening anymore, so srcig should be 0 from here on
                             !
-                            if (ig_opt == 11 .or. ig_opt == 2 .or. ig_opt == 3) then
-                                !
-                                ! Free waves and no IG source/sink term if incident waves start breaking
-                                !         
-                                ! Note - gam is in Hrms
-                                if (gam > (gamma_fac_br * gamma)) then                                    
-                                    !
-                                    srcig_local(itheta, k) = 0.0
-                                    !
-                                endif    
-                                !
-                            elseif (ig_opt == 1 .or. ig_opt == 12) then
+                            if (ig_opt == 12) then
                                 !
                                 ! Let srcig transition to 0 more smoothly using fac_transition that reduced from 1 to 0 around gamma_fac_br * snapwave_gamma
+                                ! Similar as before, but then smooth:
+                                !    ! Note - gam is in Hrms
+                                !    if (gam > (gamma_fac_br * gamma)) then                                    
+                                !        !
+                                !        srcig_local(itheta, k) = 0.0
+                                !        !
+                                !    endif   
                                 !
                                 transition_factor = 1.0 - (1.0 / (1.0 + exp(- (gam - (gamma_fac_br * gamma)) / transition_factor_width_1)))
                                 !
                                 srcig_local(itheta, k) = transition_factor * srcig_local(itheta, k)
                                 !
-                            elseif (ig_opt == 13) then
+                            elseif (ig_opt == 13 .or. ig_opt == 15) then
                                 !
                                 ! Let srcig transition to 0 more smoothly using fac_transition that reduced from 1 to 0 around gamma_fac_br * snapwave_gamma
                                 !
@@ -1462,6 +1433,72 @@ module snapwave_solver
    alphaig = min(alphaig, 1.0)   
    !             
    end subroutine estimate_shoaling_parameter_alphaig 
+   
+   
+   subroutine estimate_shoaling_parameter_alphaig_steep_slopes(beta, gam, alphaig, fac1, fac2, fac3, fac4, fac5) 
+   ! [input, input, inout, input, input, input, input, input] 
+   real*4, intent(in)                :: beta
+   real*4, intent(in)                :: gam 
+   real*4, intent(inout)             :: alphaig
+   !
+   real*4, intent(in)                :: fac1, fac2, fac3, fac4, fac5
+   real*4                            :: alphaig_steep
+   !
+   ! Estimate shoaling parameter alphaig - for steep slopes with beta > 0.07
+   ! These were not covered in training dataset of Leijnse et al. 2024
+   !
+   !alphaig_total = alphaig Eq11 + alphaig_steep 
+   !alphaig_steep = 0.1 * max(beta-0.07, 0)^0.6 * max(1.0-gamma, 0)
+   !alphaig_steep = fac2 * max(beta-fac3, 0)**fac4 * max(fac5-gam, 0) 
+   !
+   ! Determine constants
+   !
+   !fac1 = 0.3 !Cut-off gamma, below this alphaig_steep = 0   
+   !fac1 = 0.0 !Cut-off gamma, below this alphaig_steep = 0  
+   !fac2 = 0.1 ! Multiplication factor
+   !fac3 = 0.07 ! Cut-off beta, below this alphaig_steep = 0, and above this it increases with beta
+   !fac4 = 0.6 ! Exponent
+   !fac5 = 1.0 ! Cut-off gamma, above this alphaig_steep = 0
+   !
+   ! For deep water or negative slope, alphaig_steep = 0
+   !
+   alphaig_steep = 0.0
+   !
+   !if (beta > 0.0) then
+   !    write(*,*)'Starting alphaig steep slope addition, beta, gam, alphaig before', beta, gam, alphaig   
+   !endif
+   !
+   ! If positively increasing local bed slope beta
+   !
+   if (beta > 0.0) then       
+       !
+       if (gam >= fac1) then ! shallow(er) water - for gam>1.0 (=fac5) the fit automatically goes to 0
+          !
+          alphaig_steep = fac2 * (max(beta - fac3, 0.0) ** fac4) * (max(fac5 - gam, 0.0))
+          !
+       else ! for gam < fac1
+          ! 
+          alphaig_steep = 0.0
+          ! 
+       endif
+       !
+   endif   
+   !
+   !if (beta > 0.0) then   
+   !   write(*,*)'Calculated alphaig_steep addition', alphaig_steep
+   !endif   
+   !
+   ! Combine
+   !
+   alphaig = alphaig + alphaig_steep
+   !
+   ! Limit total alphaig between [0, 1] to prevent large overshoots in case of low gamma and very small beta
+   !
+   alphaig = max(alphaig, 0.0)
+   alphaig = min(alphaig, 1.0)   
+   !             
+   end subroutine estimate_shoaling_parameter_alphaig_steep_slopes 
+   
    
    subroutine hpsort_eps_epw (n, ra, ind, eps)
    !---------------------------------------------------------------------
