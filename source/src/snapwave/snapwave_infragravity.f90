@@ -43,23 +43,19 @@ module snapwave_infragravity
     scoeff = (2/ds**2) - 1
     !  
     ! Call function that calculates Hig0 following Herbers, as also implemented in XBeach and secordspec2 in Matlab
-    ! Loosely based on 3 step calculation in waveparams.F90 of XBeach (build_jonswap, build_etdir, build_boundw), here all in 1 subroutine calculate_herbers
+    ! Loosely based on 3 step calculation in waveparams.F90 of XBeach (build_jonswap, build_etdir, build_boundw), here all in 1 subroutine compute_herbers
     !
-    if (depth < 5.0) then
-        !
-        ! MvO - Is this really the best check? Does not seem very non-dimensional. Maybe something like hsig / depth > 0.5 ?        
-        !
-	    write(logstr,*)'ERROR SnapWave - depth at boundary input point ',x_bwv, y_bwv,' dropped below 5 m: ',depth
-        call write_log(logstr, 1)     
-        !
-        write(logstr,*)'This might lead to large values of Hm0ig as bc, especially when directional spreading is low! Please specify input in deeper water. '
-        call write_log(logstr, 1)   
-        !
-        write(logstr,*)'Depth set back to 5 meters for stability, simulation will continue.'
-        call write_log(logstr, 1)   
-        !        
-        depth = 5.0
-        !
+    if (hsinc / depth > 0.5) then
+       !
+	   write(logstr, *)'ERROR SnapWave - Hs over depth at boundary input point ', x_bwv, ',', y_bwv,' is larger then 0.5: ', hsinc / depth
+       call write_log(logstr, 0)   
+	   write(logstr, *)'This may lead to large values of Hm0ig as bc, especially when directional spreading is low! Please specify input in deeper water.'
+       call write_log(logstr, 0)   
+       write(logstr,*)'Depth set back to 2.0 * hsinc meters for stability, simulation will continue.'
+       call write_log(logstr, 0)   
+       !        
+       depth = 2.0 * hsinc
+       !
     elseif (depth > 200.0) then
        !
        ! Limit depth to 200 m. Larger depth can result in NaNs. @Tim, why?
@@ -77,9 +73,7 @@ module snapwave_infragravity
         call write_log(logstr, 1)        
 	    hsig = max(hsig, 0.0)
         !
-    endif
-    !
-    if (hsig > 3.0) then
+    elseif (hsig > 3.0) then
         !
 	    write(logstr,*)'DEBUG SnapWave - computed hm0ig at boundary exceeds 3 meter: ',hsig, ' - please check whether this might be realistic!'
         call write_log(logstr, 1)        	    
