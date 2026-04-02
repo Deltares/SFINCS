@@ -216,6 +216,8 @@ module snapwave_data
    real*4                                    :: rghlevland       ! Elevation separation as in SFINCS for simple elevation varying roughness
    real*4                                    :: fwratio          ! Above 'rghlevland' elevation of zb, the friction for incident waves is multiplied with value 'fwratio'
    real*4                                    :: fwigratio        ! Above 'rghlevland' elevation of zb, the friction for IG waves is multiplied with value 'fwratio'      
+   real*4                                    :: relax_factor_DoverA    ! underrelaxation factor for DoverA (set to 1.0 to disable)
+   real*4                                    :: relax_factor_DoverE    ! underrelaxation factor for DoverE (set to 1.0 to disable)      
    !
    character*3                               :: outputformat
    integer                                   :: ja_save_each_iter       ! logical to save output after each iteration or not   

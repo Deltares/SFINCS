@@ -139,17 +139,18 @@
       call timer(t2)
       !
       call solve_energy_balance2Dstat (x,y,dhdx, dhdy, no_nodes,inner, &
-                                         w, ds, prev,   &
-                                         neumannconnected,       &
+                                         w, ds, prev, &
+                                         neumannconnected, &
                                          theta,ntheta,thetamean, &
-                                         depth,kwav,cg,ctheta,fw,     &
+                                         depth,kwav,cg,ctheta,fw, &
                                          Tp,Tp_ig,dt,rho,alpha,gamma, gammax, &
-                                         wind,   &
-                                         H,Dw,F,Df,thetam,sinhkh,&
+                                         wind, &
+                                         H,Dw,F,Df,thetam,sinhkh, &
                                          Hmx, ee, windspreadfac, u10, niter, crit, &
                                          hmin, baldock_ratio, baldock_ratio_ig, baldock_exponent, &
-                                         aa, sig, jadcgdx, sigmin, sigmax,&
-                                         c_dispT, DoverE, WsorE, WsorA, SwE, SwA, Tpini, &
+                                         aa, sig, jadcgdx, sigmin, sigmax, &
+                                         DoverE, relax_factor_DoverE, relax_factor_DoverA, &             
+                                         c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
                                          igwaves, kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
                                          beta, srcig, alphaig, Dw_ig, Df_ig, &
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
@@ -164,18 +165,19 @@
    
    
    subroutine solve_energy_balance2Dstat(x,y,dhdx, dhdy, no_nodes,inner, &
-                                         w, ds, prev,   &
-                                         neumannconnected,       &
+                                         w, ds, prev, &
+                                         neumannconnected, &
                                          theta,ntheta,thetamean, &
-                                         depth,kwav,cg,ctheta,fw,     &
+                                         depth,kwav,cg,ctheta,fw, &
                                          Tp,T_ig,dt,rho,alfa,gamma, gammax, &
-                                         wind,   &
-                                         H,Dw,F,Df,thetam,sinhkh,&
+                                         wind, &
+                                         H,Dw,F,Df,thetam,sinhkh, &
                                          Hmx, ee, windspreadfac, u10, niter, crit, &
                                          hmin, baldock_ratio, baldock_ratio_ig, baldock_exponent, &       
-                                         aa, sig, jadcgdx, sigmin, sigmax,&
-                                         c_dispT, DoverE, WsorE, WsorA, SwE, SwA, Tpini, &
-                                         igwaves, kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
+                                         aa, sig, jadcgdx, sigmin, sigmax, &
+                                         DoverE, relax_factor_DoverE, relax_factor_DoverA, &   
+                                         c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
+                                         igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
                                          betamean, srcig, alphaig, Dw_ig, Df_ig, &       
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
                                          zb, nwav, ig_opt, alfa_ig, gamma_ig, gamma_fac_br, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
@@ -237,7 +239,9 @@
    real*4, dimension(no_nodes), intent(in)          :: u10                    ! wind speed and direction
    integer,                     intent(in)          :: niter                  ! max number of iterations
    real*4,                      intent(in)          :: crit                   ! relative accuracy for stopping criterion
-   integer                                          :: ig_opt                 ! option of IG wave settings (1 = default = conservative shoaling based dSxx as in Leijnse et al. 2024)  
+   integer,                     intent(in)          :: ig_opt                 ! option of IG wave settings (1 = default = conservative shoaling based dSxx as in Leijnse et al. 2024)  
+   real*4,                      intent(in)          :: relax_factor_DoverA    ! underrelaxation factor for DoverA (set to 1.0 to disable)
+   real*4,                      intent(in)          :: relax_factor_DoverE    ! underrelaxation factor for DoverE (set to 1.0 to disable)   
    !
    ! wind source vars
    !
@@ -295,9 +299,6 @@
    real*4                                     :: pi = 4.0 * atan(1.0)
    real*4                                     :: g = 9.81
    real*4                                     :: hmin                   ! minimum water depth! TL: make user changeable also here according to 'snapwave_hmin' in sfincs.inp   
-   !real*4                                     :: fac=1.0             ! underrelaxation factor for DoverA
-   real*4                                     :: relax_factor_DoverA = 0.25 ! underrelaxation factor for DoverA (set to 1.0 to disable)
-   real*4                                     :: relax_factor_DoverE = 0.25 ! underrelaxation factor for DoverE (set to 1.0 to disable)   
    real*4                                     :: oneoverdt
    real*4                                     :: oneover2dtheta
    real*4                                     :: rhog8
