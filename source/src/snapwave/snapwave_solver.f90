@@ -33,11 +33,13 @@ contains
          !
          ! Set energies to 0.0; note that boundary values have been set in update_boundaries
          !
+         !$omp parallel do schedule(static)
          do k = 1, no_nodes
             if (inner(k)) then
-               ee(:, k) = waveps               
+               ee(:, k) = waveps
             endif
          enddo
+         !$omp end parallel do
          !
          ee_ig = waveps
          !
@@ -45,6 +47,7 @@ contains
       !
       ! Initialize wave period
       !
+      !$omp parallel do schedule(static)
       do k = 1, no_nodes
          !
          if (inner(k)) then
@@ -60,6 +63,7 @@ contains
          endif
          !
       enddo
+      !$omp end parallel do
       !
       ! Compute celerities and refraction speed
       !
@@ -88,6 +92,7 @@ contains
       !
       ! Set Hmx and sinh(kh) for regular waves, and Hmx_ig for IG waves. Note that we use the same gamma for regular and IG waves, but this can be easily changed if needed.
       !
+      !$omp parallel do schedule(static)
       do k = 1, no_nodes
          !
          sinhkh(k) = sinh(min(kwav(k) * depth(k), 50.0))
@@ -104,6 +109,7 @@ contains
          endif
          !
       enddo
+      !$omp end parallel do
       !   
       do itheta = 1, ntheta
          !
@@ -125,14 +131,22 @@ contains
       !
       ! Limit unrealistic refraction speed to 1/2 pi per wave period
       !
+      !$omp parallel do schedule(static)
       do k = 1, no_nodes
+         ! 
          ctheta(:,k)    = sign(1.0, ctheta(:,k)) * min(abs(ctheta(:, k)), sig(k) / 4)
+         !
       enddo
+      !$omp end parallel do
       !
       if (igwaves) then
+         !$omp parallel do schedule(static)
          do k=1, no_nodes
+            ! 
             ctheta_ig(:,k) = sign(1.0, ctheta_ig(:,k)) * min(abs(ctheta_ig(:, k)), sigm_ig(k) / 4)
+            !
          enddo
+         !$omp end parallel do
       endif
       !
       ! Solve the directional wave energy balance on an unstructured grid
@@ -501,8 +515,7 @@ contains
       !
       ! At start of each sweep, compute E, H, E_ig and H_ig, and aa
       !
-      ! This loop can be parallelized !
-      !
+      !$omp parallel do private(kn) schedule(static)
       do k = 1, no_nodes
          !
          if (ok(k) == 1) cycle
@@ -518,7 +531,7 @@ contains
             H_ig(k) = sqrt(8 * E_ig(k) / rho / g)
             !
          endif
-         ! 
+         !
          ! Set Neumann boundaries
          !
          if (neumannconnected(k) /= 0) then
@@ -550,7 +563,8 @@ contains
             !
          endif
          !
-      enddo      
+      enddo
+      !$omp end parallel do
       !
       if (sweep == 1) then
          !
@@ -560,13 +574,15 @@ contains
              !
              eeold_ig = ee_ig
              !
-         endif         
+         endif
          !
+         !$omp parallel do schedule(static)
          do k = 1, no_nodes
             !
             Eold(k) = sum(eeold(:, k))
             !
          enddo
+         !$omp end parallel do
          !
       endif
       !
@@ -581,8 +597,8 @@ contains
             ! Determining of IG source term as defined in Leijnse et al. 2024 
             !      
             call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, &
-                                                         ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, & 
-                                                         alphaig_local, beta_local, srcig_local) 
+                                                         ee, ee_ig, ig_opt, alphaigfac, &
+                                                         alphaig_local, beta_local, srcig_local)
             !
          endif
          !
@@ -900,6 +916,7 @@ contains
          !
          ! Check convergence after all 4 sweeps
          !
+         !$omp parallel do private(dee) schedule(static)
          do k = 1, no_nodes
             !
             dee     = ee(:, k) - eeold(:, k)
@@ -910,6 +927,7 @@ contains
             endif
             !
          enddo
+         !$omp end parallel do
          !
          ! Percentage of converged points
          !
@@ -924,6 +942,7 @@ contains
          !
          if (igwaves) then
             !
+            !$omp parallel do private(dee) schedule(static)
             do k = 1, no_nodes
                !
                dee        = ee_ig(:, k) - eeold_ig(:, k)
@@ -934,6 +953,7 @@ contains
                endif
                !
             enddo
+            !$omp end parallel do
             !
             percok_ig = sum(ok_ig) / dble(no_nodes) * 100.0
             eemax_ig  = maxval(ee_ig)
@@ -982,6 +1002,7 @@ contains
       !
    enddo
    !
+   !$omp parallel do schedule(static)
    do k = 1, no_nodes
       !
       ! Compute some directionally integrated parameters for output
@@ -1005,8 +1026,8 @@ contains
             ! average beta, alphaig, srcig over directions
             !
             betamean(k) = sum(beta_local(:, k)) / ntheta ! real mean
-            !               
-            alphaig(k) = sum(alphaig_local(:, k)) / ntheta ! real mean 
+            !
+            alphaig(k) = sum(alphaig_local(:, k)) / ntheta ! real mean
             !
             srcig(k)   = sum(srcig_local(:, k)) / ntheta ! real mean
             !
@@ -1015,13 +1036,14 @@ contains
          if (wind) then
             !
             Tp(k)  = 2 * pi / sig(k)
-            SwE(k) = sum(WsorE(:, k)) * dtheta    
+            SwE(k) = sum(WsorE(:, k)) * dtheta
             SwA(k) = sum(WsorA(:, k)) * dtheta    !(2*pi*sum(WsorA(:,k))*dtheta - 2*pi/sig(k)*SwE(k)) / E(k)
             !
          endif
       endif
       !
    enddo
+   !$omp end parallel do
    !
    callno = callno + 1
    !
@@ -1114,14 +1136,14 @@ contains
    end subroutine baldock
    
    
-   subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local)
-    !   
-    ! Determining of IG source term as defined in Leijnse et al. 2024 
+   subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local)
     !
-    ! inout: alphaig_local, srcig_local, eeprev, eeprev_ig, cgprev, beta_local
+    ! Determining of IG source term as defined in Leijnse et al. 2024
+    !
+    ! inout: alphaig_local, srcig_local, beta_local
     ! in: the rest
     !
-    ! NOTE - This is based on the energy in the precious SnapWave timestep 'ee' and 'ee_ig', and waveheight 'H', which should therefore be made available. 
+    ! NOTE - This is based on the energy in the previous SnapWave timestep 'ee' and 'ee_ig', and waveheight 'H', which should therefore be made available.
     !   
     implicit none
     !  
@@ -1143,52 +1165,63 @@ contains
     real*4, intent(in)                               :: alphaigfac      ! Multiplication factor for IG shoaling source/sink term, default = 1.0
     !
     ! Inout variables
-    !   
+    !
     real*4, dimension(:,:), intent(inout)            :: alphaig_local   ! Local infragravity wave shoaling parameter alpha
     real*4, dimension(:,:), intent(inout)            :: srcig_local     ! Energy source/sink term because of IG wave shoaling
-    real*4, dimension(:), intent(inout)              :: eeprev, cgprev  ! energy density and group velocity at upwind intersection point
-    real*4, dimension(:), intent(inout)              :: eeprev_ig       ! energy density  at upwind intersection point 
-    real*4, dimension(ntheta,no_nodes), intent(inout):: beta_local      ! Local bed slope based on bed level per direction              
+    real*4, dimension(ntheta,no_nodes), intent(inout):: beta_local      ! Local bed slope based on bed level per direction
     !
     ! Internal variables
-    !   
+    !
     integer                                          :: itheta          ! directional counter
-    integer                                          :: k               ! counters (k is grid index)    
+    integer                                          :: k               ! counters (k is grid index)
     integer                                          :: k1,k2           ! upwind counters (k is grid index)
-    real*4                                           :: gam             ! local gamma (Hinc / depth ratio)   
-    real*4, dimension(ntheta,no_nodes)               :: depthprev       ! water depth at upwind intersection point         
+    real*4                                           :: gam             ! local gamma (Hinc / depth ratio)
+    real*4, dimension(ntheta,no_nodes)               :: depthprev       ! water depth at upwind intersection point
     real*4, dimension(ntheta,no_nodes)               :: Sxx             ! Radiation Stress
-    real*4, dimension(:), allocatable                :: Sxxprev         ! radiation stress at upwind intersection point  
-    real*4, dimension(:), allocatable                :: Hprev           ! Incident wave height at upwind intersection point  
+    real*4, dimension(ntheta)                        :: Sxxprev         ! radiation stress at upwind point
+    real*4, dimension(ntheta)                        :: Hprev           ! wave height at upwind point
+    real*4, dimension(ntheta)                        :: cgprev          ! group velocity at upwind point
+    real*4, dimension(ntheta)                        :: eeprev          ! energy density at upwind point
+    real*4, dimension(ntheta)                        :: eeprev_ig       ! IG energy density at upwind point
     real*4                                           :: dSxx            ! difference in Radiation stress
-    real*4                                           :: Sxx_cons        ! conservative estimate of radiation stress using conservative shoaling     
-    !   
-    ! Allocate internal variables
-    !   
-    allocate(Sxxprev(ntheta))       
-    allocate(Hprev(ntheta))  
+    real*4                                           :: Sxx_cons        ! conservative estimate of radiation stress using conservative shoaling
     !
-    Sxx = 0.0
+    ! Pre-compute Sxx for all nodes
     !
-    ! This loop can be parallelized !
+    !$omp parallel do private(itheta) schedule(static)
+    do k = 1, no_nodes
+        do itheta = 1, ntheta
+            Sxx(itheta, k) = ((2.0 * max(0.0, min(1.0, nwav(k)))) - 0.5) * ee(itheta, k)
+        enddo
+    enddo
+    !$omp end parallel do
     !
+    ! Main loop: compute IG source/sink term per node.
+    ! All writes target the column (itheta, k), so the loop is data-independent across k.
+    ! Per-k scratch arrays (cgprev, eeprev, eeprev_ig, Sxxprev, Hprev) are
+    ! listed as private so each thread gets its own copy on the stack.
+    !
+    !$omp parallel do &
+    !$omp&   private(itheta, k1, k2, gam, dSxx, Sxx_cons, &
+    !$omp&           cgprev, eeprev, eeprev_ig, Sxxprev, Hprev) &
+    !$omp&   schedule(static)
     do k = 1, no_nodes
         !
-        if (inner(k)) then    
+        if (inner(k)) then
             !
-            ! Compute exchange source term inc to ig waves - per direction      
+            ! Compute exchange source term inc to ig waves - per direction
             !
             do itheta = 1, ntheta
                 !
                 k1 = prev(1, itheta, k)
                 k2 = prev(2, itheta, k)
                 !
-                if (k1 > 0 .and. k2 > 0) then ! IMPORTANT - for some reason (k1*k2)>0 is not reliable always, resulting in directions being uncorrectly skipped!!!    
+                if (k1 > 0 .and. k2 > 0) then ! IMPORTANT - for some reason (k1*k2)>0 is not reliable always, resulting in directions being uncorrectly skipped!!!
                     !
                     ! First calculate upwind direction dependent variables
                     !
-                    depthprev(itheta,k)     = w(1, itheta, k) * depth(k1) + w(2, itheta, k) * depth(k2)           
-                    !            
+                    depthprev(itheta,k)   = w(1, itheta, k) * depth(k1) + w(2, itheta, k) * depth(k2)
+                    !
                     beta_local(itheta,k)  = max((w(1, itheta, k) * (zb(k) - zb(k1)) + w(2, itheta, k) * (zb(k) - zb(k2))) / ds(itheta, k), 0.0)
                     !
                     ! Notes:
@@ -1196,20 +1229,19 @@ contains
                     ! - in zb, depth is negative > therefore zb(k) minus zb(k1)
                     ! - beta=0 means a horizontal or decreasing slope > need alphaig=0 then in IG src/sink term
                     !
-                    !betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin)) ! TL: in case in the future we would need the normalised bed slope again   
+                    !betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin)) ! TL: in case in the future we would need the normalised bed slope again
                     !
-                    cgprev(itheta)      = w(1, itheta, k) * cg_ig(k1) + w(2, itheta, k) * cg_ig(k2)
-                    !              
-                    Sxx(itheta,k1)      = ((2.0 * max(0.0, min(1.0, nwav(k1)))) - 0.5) * ee(itheta, k1) ! limit so value of nwav is between 0 and 1
-                    Sxx(itheta,k2)      = ((2.0 * max(0.0, min(1.0, nwav(k2)))) - 0.5) * ee(itheta, k2) ! limit so value of nwav is between 0 and 1
+                    cgprev(itheta)    = w(1, itheta, k) * cg_ig(k1) + w(2, itheta, k) * cg_ig(k2)
                     !
-                    Sxxprev(itheta)     = w(1, itheta, k) * Sxx(itheta,k1) + w(2, itheta, k) * Sxx(itheta,k2)
+                    ! Sxx is pre-computed for all nodes before this parallel loop
                     !
-                    eeprev(itheta)      = w(1, itheta, k) * ee(itheta, k1) + w(2, itheta, k) * ee(itheta, k2)  
-                    eeprev_ig(itheta)   = w(1, itheta, k) * ee_ig(itheta, k1) + w(2, itheta, k) * ee_ig(itheta, k2)      
+                    Sxxprev(itheta)       = w(1, itheta, k) * Sxx(itheta,k1) + w(2, itheta, k) * Sxx(itheta,k2)
                     !
-                    Hprev(itheta)       = w(1, itheta, k) * H(k1) + w(2, itheta, k) * H(k2)     
-                    !     
+                    eeprev(itheta)    = w(1, itheta, k) * ee(itheta, k1) + w(2, itheta, k) * ee(itheta, k2)
+                    eeprev_ig(itheta) = w(1, itheta, k) * ee_ig(itheta, k1) + w(2, itheta, k) * ee_ig(itheta, k2)
+                    !
+                    Hprev(itheta)         = w(1, itheta, k) * H(k1) + w(2, itheta, k) * H(k2)
+                    !
                     ! Determine relative waterdepth 'gam'
                     !
                     gam = max(0.5 * (Hprev(itheta) / depthprev(itheta,k) + H(k) / depth(k)), 0.0) ! mean gamma over current and upwind point
@@ -1237,13 +1269,13 @@ contains
                                ! Calculate Sxx based on conservative shoaling of upwind point's energy: 
                                ! Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
                                Sxx_cons = eeprev(itheta) * cgprev(itheta) / cg_ig(k) * ((2.0 * max(0.0,min(1.0, nwav(k)))) - 0.5)
-                               ! Note - limit so value of nwav is between 0 and 1, and Sxx therefore doesn't become NaN for nwav=Infinite  
+                               ! Note - limit so value of nwav is between 0 and 1, and Sxx therefore doesn't become NaN for nwav=Infinite
                                !
                                dSxx = Sxx_cons - Sxxprev(itheta)
-                               ! 
+                               !
                            elseif (ig_opt == 2) then ! Option taking actual difference for dSxx/dx
                                !
-                               dSxx = Sxx(itheta,k) - Sxxprev(itheta)                        
+                               dSxx = Sxx(itheta,k) - Sxxprev(itheta)
                                !
                            endif
                            !
@@ -1263,12 +1295,13 @@ contains
                     !   
                 endif
                 !
-            enddo  
+            enddo
             !
         endif
         !
-    enddo    
-    !    
+    enddo
+    !$omp end parallel do
+    !
    end subroutine determine_infragravity_source_sink_term   
    
    subroutine estimate_shoaling_parameter_alphaig(beta, gam, alphaig)
