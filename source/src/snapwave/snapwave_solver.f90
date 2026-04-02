@@ -271,12 +271,16 @@ contains
    ! Local variables and arrays
    !
    integer, dimension(:), allocatable         :: ok                     ! mask for fully iterated points
-   real*4                                     :: eemax,dtheta           ! maximum wave energy density, directional resolution
+   integer, dimension(:), allocatable         :: ok_ig                  ! mask for fully iterated IG points   
+   real*4                                     :: dtheta                 ! directional resolution
+   real*4                                     :: eemax                  ! maximum wave energy density   
+   real*4                                     :: eemax_ig               ! maximum IG wave energy density
    real*4                                     :: uorbi
    integer                                    :: sweep,iter            ! sweep number, number of iterations
    integer                                    :: k,k1,k2,count,kn,itheta ! counters (k is grid index)
    integer, dimension(:,:), allocatable       :: indx                   ! index for grid sorted per sweep direction
    real*4, dimension(:,:), allocatable        :: eeold               ! wave energy density, energy density previous iteration
+   real*4, dimension(:,:), allocatable        :: eeold_ig            ! IG wave energy density, energy density previous iteration
    real*4, dimension(:), allocatable          :: Eold                   ! mean wave energy, previous iteration
    real*4, dimension(:,:), allocatable        :: srcig_local            ! Energy source/sink term because of IG wave energy transfer from incident waves
    real*4, dimension(:,:), allocatable        :: beta_local             ! Local bed slope based on bed level per direction      
@@ -293,6 +297,7 @@ contains
    real*4, dimension(:), allocatable          :: E                      ! mean wave energy
    real*4, dimension(:), allocatable          :: E_ig                   ! mean wave energy
    real*4, dimension(:), allocatable          :: diff                   ! maximum difference of wave energy relative to previous iteration
+   real*4, dimension(:), allocatable          :: diff_ig                ! maximum difference of IG wave energy relative to previous iteration
    real*4, dimension(:), allocatable          :: ra                     ! coordinate in sweep direction
    real*4, dimension(:), allocatable          :: sigm_ig
    integer, dimension(4)                      :: shift
@@ -307,7 +312,9 @@ contains
    real*4                                     :: Ek
    real*4                                     :: Hk
    real*4                                     :: percok
+   real*4                                     :: percok_ig              ! percentage of converged IG points   
    real*4                                     :: error
+   real*4                                     :: error_ig               ! relative maximum IG wave error
    real*4                                     :: Dfk_ig
    real*4                                     :: Dwk_ig
    real*4                                     :: Ek_ig
@@ -358,9 +365,12 @@ contains
       allocate(DoverE_ig(no_nodes)); DoverE_ig=0.0
       allocate(E_ig(no_nodes)); E_ig=waveps
       allocate(sigm_ig(no_nodes)); sigm_ig=0.0
-      allocate(depthprev(ntheta,no_nodes)); depthprev=0.0                     
-      allocate(beta_local(ntheta,no_nodes)); beta_local=0.0        
+      allocate(depthprev(ntheta,no_nodes)); depthprev=0.0
+      allocate(beta_local(ntheta,no_nodes)); beta_local=0.0
       allocate(alphaig_local(ntheta,no_nodes)); alphaig_local=0.0
+      allocate(eeold_ig(ntheta,no_nodes)); eeold_ig=0.0
+      allocate(diff_ig(no_nodes)); diff_ig=0.0
+      allocate(ok_ig(no_nodes)); ok_ig=0
    endif
    !
    if (wind) then
@@ -387,6 +397,10 @@ contains
    ok     = 0
    indx   = 0
    eemax  = maxval(ee)
+   if (igwaves) then
+      ok_ig   = 0
+      eemax_ig = maxval(ee_ig)
+   endif
    dtheta = theta(2) - theta(1)
    !
    if (dtheta < 0.0) dtheta = dtheta + 2*pi
@@ -541,6 +555,12 @@ contains
       if (sweep == 1) then
          !
          eeold = ee
+         !
+         if (igwaves) then
+             !
+             eeold_ig = ee_ig
+             !
+         endif         
          !
          do k = 1, no_nodes
             !
@@ -887,7 +907,7 @@ contains
             !
             if (diff(k) / eemax < crit) then
                ok(k) = 1
-            endif   
+            endif
             !
          enddo
          !
@@ -900,19 +920,61 @@ contains
          !
          error = maxval(diff) / eemax
          !
-         write(logstr,'(a,i6,a,f10.5,a,f7.2)')'   iteration ', iter / 4 ,' error = ', error,'   %ok = ', percok
-         call write_log(logstr, 0)         
+         ! Check convergence of IG waves
          !
-         if (error < crit .or. percok > 99.0) then
+         if (igwaves) then
             !
-            write(logstr,'(a,i6,a,f10.5,a,f7.2)')'   converged at iteration ', iter / 4 ,' error = ',error,'   %ok = ', percok
-            call write_log(logstr, 0)            
-            exit
+            do k = 1, no_nodes
+               !
+               dee        = ee_ig(:, k) - eeold_ig(:, k)
+               diff_ig(k) = maxval(abs(dee))
+               !
+               if (diff_ig(k) / eemax_ig < crit) then
+                  ok_ig(k) = 1
+               endif
+               !
+            enddo
             !
-         elseif (iter == niter * 4) then ! Made it to the end without reaching 'error<crit', still want output
+            percok_ig = sum(ok_ig) / dble(no_nodes) * 100.0
+            eemax_ig  = maxval(ee_ig)
+            error_ig  = maxval(diff_ig) / eemax_ig
             !
-            write(logstr,'(a,i6,a,f10.5,a,f7.2)')'    ended at iteration ', iter / 4 ,' error = ', error,'   %ok = ', percok
-            call write_log(logstr, 0)                
+            write(logstr,'(a,i6,a,f10.5,a,f7.2,a,f10.5,a,f7.2)')'   iteration ', iter / 4 , &
+               ' error = ', error,'   %ok = ', percok,'   error_ig = ', error_ig,'   %ok_ig = ', percok_ig
+            call write_log(logstr, 0)
+            !
+            if ((error < crit .or. percok > 99.0)) then!.and. (error_ig < crit .or. percok_ig > 99.0)) then
+               !
+               write(logstr,'(a,i6,a,f10.5,a,f7.2,a,f10.5,a,f7.2)')'   converged at iteration ', iter / 4 , &
+                  ' error = ', error,'   %ok = ', percok,'   error_ig = ', error_ig,'   %ok_ig = ', percok_ig
+               call write_log(logstr, 0)
+               exit
+               !
+            elseif (iter == niter * 4) then ! Made it to the end without reaching 'error<crit', still want output
+               !
+               write(logstr,'(a,i6,a,f10.5,a,f7.2,a,f10.5,a,f7.2)')'    ended at iteration ', iter / 4 , &
+                  ' error = ', error,'   %ok = ', percok,'   error_ig = ', error_ig,'   %ok_ig = ', percok_ig
+               call write_log(logstr, 0)
+               !
+            endif
+            !
+         else
+            !
+            write(logstr,'(a,i6,a,f10.5,a,f7.2)')'   iteration ', iter / 4 ,' error = ', error,'   %ok = ', percok
+            call write_log(logstr, 0)
+            !
+            if (error < crit .or. percok > 99.0) then
+               !
+               write(logstr,'(a,i6,a,f10.5,a,f7.2)')'   converged at iteration ', iter / 4 ,' error = ',error,'   %ok = ', percok
+               call write_log(logstr, 0)
+               exit
+               !
+            elseif (iter == niter * 4) then ! Made it to the end without reaching 'error<crit', still want output
+               !
+               write(logstr,'(a,i6,a,f10.5,a,f7.2)')'    ended at iteration ', iter / 4 ,' error = ', error,'   %ok = ', percok
+               call write_log(logstr, 0)
+               !
+            endif
             !
          endif
          !
