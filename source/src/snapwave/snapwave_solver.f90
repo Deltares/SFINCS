@@ -1227,7 +1227,6 @@ contains
     !
     real*4, dimension(:,:), intent(inout)            :: alphaig_local   ! Local infragravity wave shoaling parameter alpha
     real*4, dimension(:,:), intent(inout)            :: srcig_local     ! Energy source/sink term because of IG wave shoaling
-    real*4, dimension(:), intent(inout)              :: cgprev          ! group velocity at upwind intersection point
     real*4, dimension(ntheta,no_nodes), intent(inout):: beta_local      ! Local bed slope based on bed level per direction   
     real*4, dimension(ntheta,no_nodes), intent(inout):: qb_local        ! local percentage of breaking waves Qb
     real*4, dimension(ntheta,no_nodes), intent(inout):: gam_local       ! local incident wave height over water depth ratio     
