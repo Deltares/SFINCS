@@ -320,6 +320,9 @@ contains
       !
       call neuboundaries_light(x, y, msk, no_nodes, neumannconnected) 
       !
+      write(logstr,*)'SnapWave: Neumann connected boundaries found ...'
+      call write_log(logstr, 0) 
+      !
    else
       !
       neumannconnected = 0       
