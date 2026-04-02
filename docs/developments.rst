@@ -24,6 +24,7 @@ Known issues/warnings of the current SFINCS main version and last release are li
 * The BMI implementation in SFINCS is up to date with XMI (BMI + extensions - Hughes et al. 2022), to be used with 'xmipy' (https://github.com/Deltares/xmipy) and related functions (https://deltares.github.io/xmipy/xmipy.html), which is however not up to date with the latests CSDMS standard BMI implementation 2.0.
 * The combination of netspwfile with large difference in reference time between the spiderweb and the SFINCS simulation itself, might not run correctly in the Docker version. Use the ascii spwfile input or the Windows build executable which work correctly.
 * Docker GPU version of Deltares latest is not fully functional. If you'd want to use the GPU version of SFINCS, get in touch to set up a collaboration.
+* Curve number infiltration requires storecumprcp = 1, if not too much infiltration will lead to unrealistic results.
 
 Releases Changelog
 -----
