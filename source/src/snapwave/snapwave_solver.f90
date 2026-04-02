@@ -317,7 +317,6 @@ contains
    real*4                                     :: Tinc2ig           ! ratio compared to period Tinc to estimate Tig
    real*4                                     :: alphaigfac        ! Multiplication factor for IG shoaling source/sink term, default = 1.0
    real*4                                     :: shinc2ig          ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 0=default)   
-   real*4                                     :: fdrspr            ! Inc-IG reduction factor to account for directional spreading  
    integer, save                              :: callno=1
    integer, intent(in)                        :: baldock_exponent  ! Exponent for multiplying the Baldock dissipation with a factor 'f = (Hloc / Hmax)**iexp' to enhance breaking when H > Hmax, with iexp = 0 (default, means unused), 1 or 2 
    !
@@ -335,11 +334,6 @@ contains
    ! Allocate local arrays
    !
    waveps = 0.0001
-   !
-   fdrspr = 1.0 ! This is a factor on the IG source term to account for directional spreading
-   !              of the incident wave energy, which reduces the IG wave energy generated.
-   !              Default is 1.0, but can be reduced to e.g. 0.65. A reduction leads to lowering
-   !              of the IG energy.
    !
    allocate(ok(no_nodes)); ok=0
    allocate(indx(no_nodes,4)); indx=0
@@ -726,7 +720,7 @@ contains
          do itheta = 1, ntheta
             !
             R(itheta) = oneoverdt * ee(itheta, k) + cgprev(itheta) * eeprev(itheta) / ds(itheta, k) &
-                      - srcig_local(itheta, k) * shinc2ig * fdrspr
+                      - srcig_local(itheta, k) * shinc2ig
             !
          enddo
          !
@@ -832,7 +826,7 @@ contains
             do itheta = 1, ntheta
                R_ig(itheta) = oneoverdt * ee_ig(itheta, k) &
                             + cgprev_ig(itheta) * eeprev_ig(itheta) / ds(itheta, k) &
-                            + srcig_local(itheta, k) * fdrspr
+                            + srcig_local(itheta, k)
             enddo
             !
             ! IG matrix with directional boundary conditions
