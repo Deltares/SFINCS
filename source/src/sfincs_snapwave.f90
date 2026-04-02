@@ -658,6 +658,8 @@ contains
    call read_int_input (500,'snapwave_jadcgdx',jadcgdx,1)
    call read_real_input(500,'snapwave_c_dispT',c_dispT,1.0)   
    call read_real_input(500,'snapwave_sector',sector,180.0)
+   call read_real_input(500,'snapwave_relax_factor_DoverA',relax_factor_DoverA,0.25) ! underrelaxation factor for DoverA (set to 1.0 to disable)   
+   call read_real_input(500,'snapwave_relax_factor_DoverE',relax_factor_DoverE,0.25) ! underrelaxation factor for DoverE (set to 1.0 to disable)   
    !
    ! Settings related to IG waves:   
    call read_int_input(500,'snapwave_igwaves',igwaves_opt,1)   
