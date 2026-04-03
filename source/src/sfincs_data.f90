@@ -120,10 +120,6 @@ module sfincs_data
       character*256 :: bcafile
       character*256 :: bzifile
       character*256 :: bdrfile
-!      character*256 :: wfpfile
-!      character*256 :: whifile
-!      character*256 :: wtifile
-!      character*256 :: wstfile
       character*256 :: obsfile
       character*256 :: crsfile
       character*256 :: rugfile
