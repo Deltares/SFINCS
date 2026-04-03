@@ -624,8 +624,13 @@ contains
          !
          ! Get index of internal point
          !
+         write(*,*)'nmi_gbp(ib)= ',nmi_gbp(ib)
+         !
+         write(*,*)'nmi= ',nmi
          nmi = find_sfincs_cell(n, m + 1, iref)
+         write(*,*)'nmi= ',nmi
          if (nmi > 0) then
+             write(*,*)'kcs(nmi)= ',kcs(nmi)                                                
             if (kcs(nmi) == 1) then
                 nmi_gbp(ib) = nmi
             else
@@ -634,7 +639,9 @@ contains
          endif
          !
          nmi = find_sfincs_cell(n + 1, m, iref)
+         write(*,*)'nmi= ',nmi
          if (nmi > 0) then 
+             write(*,*)'kcs(nmi)= ',kcs(nmi)                                                
             if (kcs(nmi) == 1) then
                 nmi_gbp(ib) = nmi
             else
@@ -643,7 +650,9 @@ contains
          endif
          !
          nmi = find_sfincs_cell(n, m - 1, iref)
+         write(*,*)'nmi= ',nmi
          if (nmi > 0) then 
+             write(*,*)'kcs(nmi)= ',kcs(nmi)                                                
             if (kcs(nmi) == 1) then
                 nmi_gbp(ib) = nmi
             else
@@ -652,7 +661,9 @@ contains
          endif
          !
          nmi = find_sfincs_cell(n - 1, m, iref)
+         write(*,*)'nmi= ',nmi
          if (nmi > 0) then 
+             write(*,*)'kcs(nmi)= ',kcs(nmi)                                   
             if (kcs(nmi) == 1) then
                 nmi_gbp(ib) = nmi
             else
@@ -660,10 +671,14 @@ contains
             endif                        
          endif
          !
-         if (nmi == 0) then
+         write(*,*)'nmi_gbp(ib)= ',nmi_gbp(ib)
+         
+         !if (nmi == 0) then
+         if (nmi_gbp(ib) == 0) then              
             !
-            ! No active msk=1 point found in any of the  neighbours, reset cell to inactive
+            ! No active msk=1 point found in any of the neighbours, reset cell to inactive
             !
+            write(*,*)'Changed nmi nm from 6 to 0', nmi, nm
             kcs(nm) = 0
             ! 
          endif
