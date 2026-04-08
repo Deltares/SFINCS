@@ -1436,7 +1436,7 @@
       enddo
       !
       tp_ig = tpsum / wavemaker_nr_forcing_points ! Take average Tp from boundary points
-      tp_inc = 10.0 ! update this!
+      tp_inc = 10.0 ! Later make it possible to also specify Tp_inc in time series forcing, but for now just add a fixed value (that is not used)
       !
    else
       !
