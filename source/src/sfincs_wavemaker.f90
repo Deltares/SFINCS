@@ -1611,9 +1611,12 @@
          !
          ! Limit incident wave height (not IG?)
          !
-         zinc = min(zinc,  wavemaker_gammax * dwvm)
+         !zinc = min(zinc,  wavemaker_gammax * dwvm)
          !
-         zsnmb  = zs0nmb + zig + zinc ! total water level in wave maker (i.e. mean water level plus wave)
+         !zsnmb  = zs0nmb + zig + zinc ! total water level in wave maker (i.e. mean water level plus wave)         
+         !
+         zsnmb  = zs0nmb + min(zinc + zig,  wavemaker_gammax * dwvm) ! total water level in wave maker (i.e. mean water level plus wave)
+         !
          !
       endif   
       !
