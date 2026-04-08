@@ -1470,6 +1470,8 @@
       endif
       !
       tp_inc = max(snapwave_tpmean, wavemaker_tpmin)
+      !
+      tp_ig = max(tp_ig, wavemaker_tpmin)      
       ! 
    endif      
    !
