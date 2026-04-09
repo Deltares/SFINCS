@@ -449,6 +449,7 @@ For spatially varying infiltration values per cell using the Curve Number method
 	More information: 
 	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
 	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.grid.SfincsInfiltration.create_cn.html
 
 The user can also specify the sfacinf which controls the initial abstraction or the amount of water before runoff, such as infiltration, or rainfall interception by vegetation; historically, it has generally been assumed that sfacinf = 0.2 (default, however, for urbanized watersheds lower values can be expected (e.g. 0.05). 
 
@@ -464,7 +465,7 @@ Within SFINCS, the Curve number method with recovery can be used as follows. The
 
 Using the saturated hydraulic conductivity, a recovery variables recovery constant (kr) and minimum recovery time before a new rainfall event occurs (hours) are computed similar to SWMM. 
 The Curve Number has been implemented in hydromt-SFINCS.
-See https://deltares.github.io/hydromt_sfincs/ for more information.
+See https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.grid.SfincsInfiltration.create_cn_with_recovery.html for more information.
 
 This option does support restart functionality. 
 
