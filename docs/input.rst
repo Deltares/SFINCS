@@ -90,8 +90,8 @@ Example of sfincs.inp
 	sf.config.write()
 
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
-	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html	
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.config.SfincsConfig.update.html
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/1_build_from_script.html	
 
 Domain
 -----
@@ -153,8 +153,8 @@ If desired the grid can also be rotated using 'rotation', in degrees from the x-
 	)
 
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
-	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html	
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.grid.SfincsGrid.create_from_region.html
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/1_build_from_script.html	
 
 Depth file
 ^^^^^
@@ -192,8 +192,9 @@ The reference level is not known to SFINCS (and not relevant for the computation
 	sf.elevation.create(elevation_list=datasets_dep)
 
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
-	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html	
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.grid.SfincsElevation.create.html
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/1_build_from_script.html
+	
 	
 Mask file
 ^^^^^
@@ -240,8 +241,9 @@ And afterwards with the function 'mask.create_boundary' to define of the active 
 	sf.mask.create_boundary(btype="outflow", include_polygon=gdf_include, reset_bounds=True)
 
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
-	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html	
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.grid.SfincsMask.create_active.html
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.grid.SfincsMask.create_boundary.html
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/1_build_from_script.html
 	
 Index file
 ^^^^^
@@ -279,8 +281,8 @@ Recommended Netcdf file input option available from SFINCS 2024.01 release onwar
 	)
 	
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
-	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html	
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.grid.SfincsSubgridTable.create.html
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/1_build_from_script.html
 
 Friction
 ^^^^^
@@ -343,9 +345,9 @@ For spatially varying friction values per cell use the manningfile option, with 
 	)
 	
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
-	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
-	
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.grid.SfincsRoughness.create.html
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/1_build_from_script.html
+
 Infiltration
 ^^^^^
 
@@ -407,7 +409,7 @@ For spatially varying infiltration values per cell use the qinffile option, with
 	)
 
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.grid.SfincsInfiltration.create_constant.html
 
 The Curve Number method:
 %%%%%
@@ -447,9 +449,8 @@ For spatially varying infiltration values per cell using the Curve Number method
 	)
 	
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
-	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
 	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.grid.SfincsInfiltration.create_cn.html
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/1_build_from_script.html
 
 The user can also specify the sfacinf which controls the initial abstraction or the amount of water before runoff, such as infiltration, or rainfall interception by vegetation; historically, it has generally been assumed that sfacinf = 0.2 (default, however, for urbanized watersheds lower values can be expected (e.g. 0.05). 
 
@@ -483,7 +484,7 @@ This option does support restart functionality.
 	)
 	
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.grid.SfincsInfiltration.create_cn_with_recovery.html
 
 The Green-Ampt method:
 %%%%%
@@ -597,9 +598,8 @@ Also, names of a station can be provided with quotes '' (maximum of 256 characte
 	)
 	
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
-	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
 	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.geometries.SfincsObservationPoints.create.html
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/1_build_from_script.html
 
 Cross-sections for discharge output
 ^^^^^
@@ -647,8 +647,6 @@ The output is available as 'crosssection_discharge' in sfincs_his.nc, see the de
 	)
 	
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
-	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
 	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.geometries.SfincsCrossSections.create.html
 
 Initial water level
@@ -690,8 +688,6 @@ Alternatively, you can specify initial conditions using a restart file, see belo
 	)
 	
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
-	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
 	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.grid.SfincsInitialConditions.create.html
 
 Restart file
