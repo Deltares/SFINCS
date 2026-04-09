@@ -1,4 +1,4 @@
-User manual - structures
+﻿User manual - structures
 =====
 
 Overview
@@ -64,7 +64,7 @@ The supplied polylines are snapped onto the SFINCS grid within the model.
 	
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 
 	sf.thin_dams.create(
 		locations="thdfile_input.geojson",
@@ -116,7 +116,7 @@ The snapped coordinates are available in sfincs_his.nc as structure_x, structure
 	
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 
 	sf.weirs.create(
 		locations="weirfile_input.geojson",
@@ -180,7 +180,7 @@ You can know how much discharge is extracted by the model in the sfincs_his.nc o
 	
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 
 	sf.drainage_structures.create(
 		locations="drainage_input.geojson",

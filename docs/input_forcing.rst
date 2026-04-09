@@ -1,4 +1,4 @@
-User manual - forcing
+﻿User manual - forcing
 =======
 
 Overview
@@ -78,7 +78,7 @@ Times are specified in seconds with respect to SFINCS' internal reference time '
 	
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 
 	NOTE - The python function both creates the bnd and bzs file, so you don't need to create them separately.
 	
@@ -178,7 +178,7 @@ Times are specified in seconds with respect to SFINCS' internal reference time '
 	
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 
 	NOTE - The python function both creates the src and dis file, so you don't need to create them separately.
 	
@@ -340,7 +340,7 @@ See those files for more information.
 
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 
 	sf.wind.create(
 		wind="era5_hourly",
@@ -352,7 +352,7 @@ See those files for more information.
 
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 
 	sf.precipitation.create(
 		precip="era5_hourly",
@@ -366,7 +366,7 @@ See those files for more information.
 
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 
 	sf.pressure.create(
 		press=None,
@@ -401,7 +401,7 @@ Times are specified in seconds with respect to SFINCS' internal reference time '
 
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 
 	sf.wind.create_uniform(
 		timeseries=None,
@@ -431,7 +431,7 @@ Rain input in mm/hr, times are specified in seconds with respect to SFINCS' inte
 	
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 
 	sf.precipitation.create_uniform(
 		timeseries=None,

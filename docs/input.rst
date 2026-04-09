@@ -1,4 +1,4 @@
-User manual - general
+﻿User manual - general
 =====
 
 Overview
@@ -67,7 +67,7 @@ Example of sfincs.inp
 
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 	
 	sf.config.update(
 		**{
@@ -130,7 +130,7 @@ If desired the grid can also be rotated using 'rotation', in degrees from the x-
 	
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 	
 	sf.grid.create(
 		x0=318650,
@@ -182,7 +182,7 @@ The reference level is not known to SFINCS (and not relevant for the computation
 	
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 	
 	# In this example we want to combine 2 elevation datasets, merit_hydro as elevation and gebco as bathymetry, in that order.
 
@@ -228,7 +228,7 @@ And afterwards with the function 'mask.create_boundary' to define of the active 
 	
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 	
 	# Choosing how to choose you active cells can be based on multiple criteria, here we only specify a minimum elevation of -5 meters
 	sf.mask.create_active(zmin=-5, reset_mask=True)
@@ -266,7 +266,7 @@ Recommended Netcdf file input option available from SFINCS 2024.01 release onwar
 
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 	
 	sf.subgrid.create(
 		elevation_list=datasets_dep,
@@ -333,7 +333,7 @@ For spatially varying friction values per cell use the manningfile option, with 
 	
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 	
 	sf.roughness.create(
 	    roughness_list=datasets_rgh,
@@ -397,7 +397,7 @@ For spatially varying infiltration values per cell use the qinffile option, with
 
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 	
 	sf.infiltration.create_constant(
 		qinf=None,
@@ -439,7 +439,7 @@ For spatially varying infiltration values per cell using the Curve Number method
 
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 	
 	sf.infiltration.create_cn(
 		"gcn250",
@@ -470,7 +470,7 @@ This option does support restart functionality.
 
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 	
 	sf.infiltration.create_cn_with_recovery(
 		lulc="gcn250",
@@ -553,7 +553,7 @@ Water will be stored in this storage volume before it will contribute to surface
  	
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 	
 	sf.storage_volume.create(
 		storage_locs="storage_locs.geojson",
@@ -588,7 +588,7 @@ Also, names of a station can be provided with quotes '' (maximum of 256 characte
  	
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 	
 	sf.observation_points.create(
 		locations="observation_points.geojson",
@@ -637,7 +637,7 @@ The output is available as 'crosssection_discharge' in sfincs_his.nc, see the de
 	
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 
 	sf.cross_sections.create(
 		locations="observation_lines.geojson",

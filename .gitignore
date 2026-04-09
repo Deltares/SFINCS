@@ -67,3 +67,4 @@ source/sfincs/sfincs.opt.yaml
 /source/third_party_open/netcdf/netcdf-fortran-4.6.1/Debug
 source/sfincs_lib/*.user
 source/sfincs/*.user
+docs/_build
