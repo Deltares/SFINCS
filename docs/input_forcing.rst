@@ -92,7 +92,7 @@ Times are specified in seconds with respect to SFINCS' internal reference time '
 	)
 	
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.forcing.SfincsWaterLevel.create.html
 	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
 	
 Waves
@@ -195,7 +195,7 @@ Times are specified in seconds with respect to SFINCS' internal reference time '
 	NOTE - setup_discharge_forcing_from_grid is not yet available in HydroMT-SFINCS v2.
 
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.forcing.SfincsDischargePoints.create.html
 	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
 	
 Netcdf format input
@@ -348,7 +348,7 @@ See those files for more information.
 	)
 
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.forcing.SfincsWind.create.html
 
 **Python example using HydroMT-SFINCS**
 
@@ -361,7 +361,7 @@ See those files for more information.
 	)
 	
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.forcing.SfincsPrecipitation.create.html
 	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
 
 **Python example using HydroMT-SFINCS**
@@ -375,7 +375,7 @@ See those files for more information.
 	)
 	
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.forcing.SfincsPressure.create.html
 
 Spatially uniform
 ^^^^^^^^^
@@ -410,7 +410,7 @@ Times are specified in seconds with respect to SFINCS' internal reference time '
 	)
 
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.forcing.SfincsWind.create_uniform.html
 
 **Spatially uniform rain:**
 
@@ -445,5 +445,5 @@ Rain input in mm/hr, times are specified in seconds with respect to SFINCS' inte
 		aggregate=True,
 	)
 
-	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	More information:
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.forcing.SfincsPrecipitation.create_uniform.html
