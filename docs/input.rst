@@ -564,7 +564,7 @@ Water will be stored in this storage volume before it will contribute to surface
 	)
 
 	More information:
-	https://deltares.github.io/hydromt_sfincs/
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.grid.SfincsStorageVolume.create.html
 
 
 Observation points
@@ -599,6 +599,7 @@ Also, names of a station can be provided with quotes '' (maximum of 256 characte
 	More information: 
 	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
 	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.geometries.SfincsObservationPoints.create.html
 
 Cross-sections for discharge output
 ^^^^^
@@ -648,6 +649,7 @@ The output is available as 'crosssection_discharge' in sfincs_his.nc, see the de
 	More information: 
 	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
 	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.geometries.SfincsCrossSections.create.html
 
 Initial water level
 ^^^^^
@@ -678,7 +680,20 @@ Alternatively, you can specify initial conditions using a restart file, see belo
 	e.g.
 	1.0 	1.2
 	0.0	0.0
+
+**Python example using HydroMT-SFINCS**
+
+.. code-block:: python
+
+	sf.initial_conditions.create(
+		ini ="ini_raster.geotiff",
+	)
 	
+	More information: 
+	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.grid.SfincsInitialConditions.create.html
+
 Restart file
 ^^^^^
 
