@@ -82,9 +82,9 @@ Times are specified in seconds with respect to SFINCS' internal reference time '
 
 	NOTE - The python function both creates the bnd and bzs file, so you don't need to create them separately.
 	
-	sf.setup_waterlevel_forcing(
+	sf.water_level.create(
 		geodataset=None,
-		timeseries=None, 
+		timeseries=None,
 		locations=None,
 		offset=None,
 		buffer=None,
@@ -105,7 +105,7 @@ The signal should be around 0.
 
 **NOTE - Specified time should be the same in both the bzs and bzi files - generally on a high frequency of seconds**
 
-**NOTE - There is not a specific Python function yet, but one could call the setup_waterlevel_forcing function twice with saving the files in between and changing their names**
+**NOTE - There is not a specific Python function yet, but one could call the water_level.create function twice with saving the files in between and changing their names**
 
 **bzifile = sfincs.bzi**
 
@@ -182,20 +182,17 @@ Times are specified in seconds with respect to SFINCS' internal reference time '
 
 	NOTE - The python function both creates the src and dis file, so you don't need to create them separately.
 	
-	sf.setup_discharge_forcing(
+	sf.discharge_points.create(
 		geodataset=None,
-		timeseries=None, 
+		timeseries=None,
 		locations=None,
 		merge=True,
 		buffer=None,
 	)
-	
+
 	OR by subtracting results from a 2D hydrological model output like wflow (https://www.deltares.nl/en/software-and-data/products/wflow-catchment-hydrology):
 
-	sf.setup_discharge_forcing_from_grid(
-		discharge=None,
-		locations=None,
-	)
+	NOTE - setup_discharge_forcing_from_grid is not yet available in HydroMT-SFINCS v2.
 
 	More information: 
 	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
@@ -345,9 +342,9 @@ See those files for more information.
 
 .. code-block:: text
 
-	sf.setup_wind_forcing_from_grid(
+	sf.wind.create(
 		wind="era5_hourly",
-		dst_res=None, 
+		dst_res=None,
 	)
 
 	More information: 
@@ -357,9 +354,9 @@ See those files for more information.
 
 .. code-block:: text
 
-	sf.setup_precip_forcing_from_grid(
+	sf.precipitation.create(
 		precip="era5_hourly",
-		dst_res=None, 
+		dst_res=None,
 		aggregate=False,
 	)
 	
@@ -371,9 +368,9 @@ See those files for more information.
 
 .. code-block:: text
 
-	sf.setup_pressure_forcing_from_grid(
+	sf.pressure.create(
 		press=None,
-		dst_res=None, 
+		dst_res=None,
 		fill_value=101325,
 	)
 	
@@ -406,7 +403,7 @@ Times are specified in seconds with respect to SFINCS' internal reference time '
 
 .. code-block:: text
 
-	sf.setup_wind_forcing(
+	sf.wind.create_uniform(
 		timeseries=None,
 		magnitude=None,
 		direction=None
@@ -436,14 +433,14 @@ Rain input in mm/hr, times are specified in seconds with respect to SFINCS' inte
 
 .. code-block:: text
 
-	sf.setup_precip_forcing(
+	sf.precipitation.create_uniform(
 		timeseries=None,
 		magnitude=None,
 	)
 
 	OR by aggregating 2D field data into 1 spatially uniform time series:
 
-	sf.setup_precip_forcing_from_grid(
+	sf.precipitation.create(
 		precip=None,
 		aggregate=True,
 	)

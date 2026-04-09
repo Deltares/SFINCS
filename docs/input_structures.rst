@@ -66,9 +66,8 @@ The supplied polylines are snapped onto the SFINCS grid within the model.
 
 .. code-block:: text
 
-	sf.setup_structures(
-		structures="thdfile_input.geojson",
-		stype='thd',
+	sf.thin_dams.create(
+		locations="thdfile_input.geojson",
 		merge=True
 	)
 	
@@ -119,10 +118,9 @@ The snapped coordinates are available in sfincs_his.nc as structure_x, structure
 
 .. code-block:: text
 
-	sf.setup_structures(
-		structures="weirfile_input.geojson",
-		stype='weir',
-		dz=None
+	sf.weirs.create(
+		locations="weirfile_input.geojson",
+		dz=None,
 		merge=True
 	)
 	
@@ -184,19 +182,19 @@ You can know how much discharge is extracted by the model in the sfincs_his.nc o
 
 .. code-block:: text
 
-	sf.setup_drainage_structures(
-		structures="drainage_input.geojson",
-		stype='pump'
-		discharge=100.0
+	sf.drainage_structures.create(
+		locations="drainage_input.geojson",
+		stype='pump',
+		discharge=100.0,
 		merge=True
 	)
-	
+
 	OR as a culvert:
-	
-	sf.setup_drainage_structures(
-		structures="drainage_input.geojson",
-		stype='culvert'
-		discharge=100.0
+
+	sf.drainage_structures.create(
+		locations="drainage_input.geojson",
+		stype='culvert',
+		discharge=100.0,
 		merge=True
 	)
 

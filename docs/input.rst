@@ -69,7 +69,7 @@ Example of sfincs.inp
 
 .. code-block:: text
 	
-	sf.setup_config(
+	sf.config.update(
 		**{
 		"x0": 0,
 		"y0": 0,
@@ -85,9 +85,9 @@ Example of sfincs.inp
 		"dtout": 3600,
 		"obsfile": "sfincs.obs",
 		}
-	)	
-	
-	sf.write_config(config_fn: str = 'sfincs.inp')
+	)
+
+	sf.config.write()
 
 	More information: 
 	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
@@ -132,7 +132,7 @@ If desired the grid can also be rotated using 'rotation', in degrees from the x-
 
 .. code-block:: text
 	
-	sf.setup_grid(
+	sf.grid.create(
 		x0=318650,
 		y0=5040000,
 		dx=50.0,
@@ -142,10 +142,10 @@ If desired the grid can also be rotated using 'rotation', in degrees from the x-
 		rotation=27,
 		epsg=32633,
 	)
-	
+
 	# Alternatively, we can also use a shape/geojson file to define the grid:
 
-	sf.setup_grid_from_region(
+	sf.grid.create_from_region(
 		region = {'geom': 'data/region.geojson'},
 		res= 50,
 		rotated=True,
@@ -189,7 +189,7 @@ The reference level is not known to SFINCS (and not relevant for the computation
 	datasets_dep = [{"elevtn": "merit_hydro", "zmin": 0.001}, {"elevtn": "gebco"}]
 
 	# Add depth information to modelgrid based on these chosen datasets
-	sf.setup_dep(datasets_dep=datasets_dep)
+	sf.elevation.create(elevation_list=datasets_dep)
 
 	More information: 
 	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
@@ -205,8 +205,8 @@ Cells with a value of 0 are inactive and no fluxes from/to these cells are calcu
 If boundary water levels are supplied, these are only forced to the cells with a value of 2. 
 At outflow cells (msk=3), the water level is not forced, but water depth at that cell is artificially kept at zero (no water).
 Cells with a value of 1 are normal active cells, where the water level is calculated and fluxes are calculated to/from these cells.
-The file can be made with the HydroMT-SFINCS function 'setup_mask_active' to define what cells should be active.
-And afterwards with the function 'setup_mask_bounds' to define of the active cells which ones are boundary or outflow cells.
+The file can be made with the HydroMT-SFINCS function 'mask.create_active' to define what cells should be active.
+And afterwards with the function 'mask.create_boundary' to define of the active cells which ones are boundary or outflow cells.
 
 .. figure:: ./figures/SFINCS_mask_grid.PNG
    :width: 400px
@@ -231,13 +231,13 @@ And afterwards with the function 'setup_mask_bounds' to define of the active cel
 .. code-block:: text
 	
 	# Choosing how to choose you active cells can be based on multiple criteria, here we only specify a minimum elevation of -5 meters
-	sf.setup_mask_active(zmin=-5, reset_mask=True)
+	sf.mask.create_active(zmin=-5, reset_mask=True)
 
 	# Here we add water level cells along the coastal boundary, for cells up to an elevation of -5 meters
-	sf.setup_mask_bounds(btype="waterlevel", zmax=-5, reset_bounds=True)
+	sf.mask.create_boundary(btype="waterlevel", zmax=-5, reset_bounds=True)
 
 	# Here we add outflow cells, only where clicked in shapefile along part of the lateral boundaries
-	sf.setup_mask_bounds(btype="outflow", include_mask=gdf_include, reset_bounds=True)
+	sf.mask.create_boundary(btype="outflow", include_polygon=gdf_include, reset_bounds=True)
 
 	More information: 
 	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
@@ -268,10 +268,10 @@ Recommended Netcdf file input option available from SFINCS 2024.01 release onwar
 
 .. code-block:: text
 	
-	sf.setup_subgrid(
-		datasets_dep=datasets_dep,
-		datasets_rgh=datasets_rgh,
-		datasets_riv=datasets_riv,
+	sf.subgrid.create(
+		elevation_list=datasets_dep,
+		roughness_list=datasets_rgh,
+		river_list=datasets_riv,
 		nlevels=10,
 		nr_subgrid_pixels=10,
 		write_dep_tif=True,
@@ -289,7 +289,7 @@ Different roughness values can great impact modelled flooding and thereby SFINCS
 
 Friction is specified with a Manning roughness coefficient 'n' [s/m^{1/3}] and can be done spatially uniform, land/sea value based or spatially varying.
 
-The following options are **ONLY** relevant for the **regular** version of SFINCS, in the subgrid version of SFINCS roughness is already included in the generation of the subgrid sbgfile, see 'setup_subgrid', and supplied additional keywords and files will **NOT** be used!
+The following options are **ONLY** relevant for the **regular** version of SFINCS, in the subgrid version of SFINCS roughness is already included in the generation of the subgrid sbgfile, see 'subgrid.create', and supplied additional keywords and files will **NOT** be used!
 
 
 Spatially uniform:
@@ -335,8 +335,8 @@ For spatially varying friction values per cell use the manningfile option, with 
 
 .. code-block:: text
 	
-	sf.setup_manning_roughness(
-	    datasets_rgh=datasets_rgh,
+	sf.roughness.create(
+	    roughness_list=datasets_rgh,
 	    manning_land=0.04,
 	    manning_sea=0.02,
 	    rgh_lev_land=0,  # the minimum elevation of the land
@@ -399,7 +399,7 @@ For spatially varying infiltration values per cell use the qinffile option, with
 
 .. code-block:: text
 	
-	sf.setup_constant_infiltration(
+	sf.infiltration.create_constant(
 		qinf=None,
 		lulc=None,
 		reclass_table=None,
@@ -441,7 +441,7 @@ For spatially varying infiltration values per cell using the Curve Number method
 
 .. code-block:: text
 	
-	sf.setup_cn_infiltration(
+	sf.infiltration.create_cn(
 		"gcn250",
 		antecedent_moisture="avg",
 	)
@@ -463,8 +463,8 @@ Within SFINCS, the Curve number method with recovery can be used as follows. The
 * ksfile: saturated hydraulic conductivity in mm/hr
 
 Using the saturated hydraulic conductivity, a recovery variables recovery constant (kr) and minimum recovery time before a new rainfall event occurs (hours) are computed similar to SWMM. 
-The Curve Number has been implemented in hydromt-SFINCS. 
-See https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.SfincsModel.setup_cn_infiltration_with_ks.html for more information.
+The Curve Number has been implemented in hydromt-SFINCS.
+See https://deltares.github.io/hydromt_sfincs/ for more information.
 
 This option does support restart functionality. 
 
@@ -472,7 +472,7 @@ This option does support restart functionality.
 
 .. code-block:: text
 	
-	sf.setup_cn_infiltration_with_ks(
+	sf.infiltration.create_cn_with_recovery(
 		lulc="gcn250",
 		hsg="hsg_NLCD",
 		ksat="ksat_NLCD",
@@ -555,15 +555,15 @@ Water will be stored in this storage volume before it will contribute to surface
 
 .. code-block:: text
 	
-	sf.setup_storage_volume(
+	sf.storage_volume.create(
 		storage_locs="storage_locs.geojson",
 		volume=1000.0,
 		height=None,
 		merge=True
 	)
-	
-	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.SfincsModel.setup_storage_volume.html
+
+	More information:
+	https://deltares.github.io/hydromt_sfincs/
 
 
 Observation points
@@ -590,7 +590,7 @@ Also, names of a station can be provided with quotes '' (maximum of 256 characte
 
 .. code-block:: text
 	
-	sf.setup_observation_points(
+	sf.observation_points.create(
 		locations="observation_points.geojson",
 		merge=True
 	)
@@ -639,7 +639,7 @@ The output is available as 'crosssection_discharge' in sfincs_his.nc, see the de
 
 .. code-block:: text
 
-	sf.setup_observation_lines(
+	sf.cross_sections.create(
 		locations="observation_lines.geojson",
 		merge=True
 	)
