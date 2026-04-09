@@ -72,7 +72,7 @@ The supplied polylines are snapped onto the SFINCS grid within the model.
 	)
 	
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.geometries.SfincsThinDams.create.html
 
 Weirs
 ^^^^^
@@ -125,8 +125,7 @@ The snapped coordinates are available in sfincs_his.nc as structure_x, structure
 	)
 	
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
-	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.geometries.SfincsWeirs.create.html
 
 **NOTE - If your weir elevation is unknown a priori, you can also let HydroMT-SFINCS derive this from an input (high-resolution) DEM by specifying 'dep'**
 
@@ -199,8 +198,8 @@ You can know how much discharge is extracted by the model in the sfincs_his.nc o
 	)
 
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
-	
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.geometries.SfincsDrainageStructures.create.html
+
 **Calculating Culvert Discharge Capacity**
 
 For culverts, par1 (discharge capacity) can be calculated as:
