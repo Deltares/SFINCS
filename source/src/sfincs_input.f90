@@ -162,6 +162,7 @@ contains
    call read_char_input(500,'manningfile',manningfile,'none')   
    call read_char_input(500,'drnfile',drnfile,'none')
    call read_char_input(500,'volfile',volfile,'none')
+   call read_char_input(500,'vegetationfile',veggiefile,'none')   
    !
    ! Forcing
    !

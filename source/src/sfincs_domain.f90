@@ -26,6 +26,8 @@ contains
    !
    call initialize_storage_volume()
    !
+   call initialize_vegetation()
+   !   
    call initialize_hydro()
    !
    if (quadtree_nr_levels == 1 .and. .not. use_quadtree_output) then
