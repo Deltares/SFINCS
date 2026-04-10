@@ -423,6 +423,14 @@ module sfincs_data
       !
       real*4, dimension(:),   allocatable :: uvmean
       !
+      ! Vegetation
+      !
+      integer                                           :: vegetation_vertical_segments ! nr of vegetation sections in vertical
+      real*4,             dimension(:,:),   allocatable :: vegetation_cd
+      real*4,             dimension(:,:),   allocatable :: vegetation_stems_height
+      real*4,             dimension(:,:),   allocatable :: vegetation_stems_width
+      real*4,             dimension(:,:),   allocatable :: vegetation_stems_density
+      !
       !!! Wave makers
       !
       character*256 :: wavemaker_wvmfile ! polylines

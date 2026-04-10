@@ -34,7 +34,7 @@ contains
         ! Get dimension of vertical sections 
         NF90(nf90_inq_dimid(net_file_qtr%ncid, "nsec", net_file_qtr%nsec_dimid))          
         !
-        NF90(nf90_inquire_dimension(net_file_qtr%ncid, net_file_qtr%nsec_dimid, len = quadtree_no_secveg))     
+        NF90(nf90_inquire_dimension(net_file_qtr%ncid, net_file_qtr%nsec_dimid, len = vegetation_vertical_segments))     
         ! 
         ! get ids of variables 
         NF90(nf90_inq_varid(net_file_qtr%ncid, 'snapwave_veg_Cd',  net_file_qtr%snapwave_veg_Cd_varid))
