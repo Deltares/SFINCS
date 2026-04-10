@@ -25,8 +25,6 @@ contains
    integer itsunamitime
    integer ispinupmeteo
    integer isnapwave
-   integer ivegetationsnapwave
-   integer ivegetationsfincs   
    integer iwindmax
    integer iwind   
    integer ioutfixed
@@ -146,6 +144,7 @@ contains
    call read_real_input(500, 'factor_pres', factor_pres, 1.0)
    call read_real_input(500, 'factor_prcp', factor_prcp, 1.0)
    call read_real_input(500, 'factor_spw_size', factor_spw_size, 1.0)   
+   call read_logical_input(500,'vegetation',vegetation,.false.)   
    !
    ! Domain
    !
@@ -243,11 +242,9 @@ contains
    ! Limit to range (0,100)
    percdoneval = max(min(percdoneval,100), 0)
    !
-   call read_int_input(500,'vegetation',ivegetationsfincs,0)      
-   !   
    ! Coupled SnapWave solver related
    call read_int_input(500,'snapwave_wind',iwind,0)   
-   call read_int_input(500,'snapwave_vegetation',ivegetationsnapwave,0)   
+   call read_logical_input(500,'snapwave_vegetation',snapwave_vegetation,.false.)   
    !
    ! Wind drag
    !
@@ -433,10 +430,11 @@ contains
    endif 
    !
    store_vegetation = .false.   
-   if (ivegetationsnapwave==1 .or. ivegetationsfincs==1) then
+   if (vegetation==.true. .or. snapwave_vegetation==.true.) then
        !
        store_vegetation = .true.
        ! vegetation can be used in SnapWave and/or SFINCS calculations
+       !
    endif  
    !
    store_twet = .false.
@@ -534,11 +532,6 @@ contains
       viscosity = .true. 
       call write_log('Info    : turning on process: Viscosity', 0)
    endif   
-   !
-   vegetation = .false.
-   if (ivegetationsfincs>0) then
-      vegetation = .true.
-   endif      
    !
    spinup_meteo = .true. 
    if (ispinupmeteo==0) then

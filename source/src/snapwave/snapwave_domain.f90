@@ -86,13 +86,6 @@ contains
    !
    ! Done with the mesh
    !
-   ! keep on also if ja_vegetation==0, so array Dveg is initialized with zeroes
-   !if (ja_vegetation==1) then
-   !   call veggie_init()   
-   !else
-
-   !endif   
-   !
    ntheta360 = nint(360./dtheta)
    ntheta    = nint(sector/dtheta)   
    !
