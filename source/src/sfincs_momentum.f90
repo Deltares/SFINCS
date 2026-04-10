@@ -155,7 +155,7 @@ contains
          !
          ! Regular UV point 
          !
-   		 do iveg=1,vegetation_vertical_segments ! for each vertical vegetation section
+   		 do iveg=1, vegetation_vertical_segments ! for each vertical vegetation section
             !
             vegetation_fvm_except_height(ip, iveg) = vegetation_stems_cd_width_density_uv(ip,iveg) * uv0(ip) * abs(uv0(ip))                 
             !
@@ -642,11 +642,16 @@ contains
                !
                ! Vegetation drag due to mean flow
                ! 
-               !do iveg=1,quadtree_no_secveg ! for each vertical vegetation section
-               !   fvm = fvm + veg_fvm(nm,iveg) * min(quadtree_snapwave_veg_ah(ip,iveg), hu)
-               !enddo
+               fvm = 0.0
                !
-               ! With all pre-calculateable terms already pre-determined for Fvm, beside effective depth:
+               ! Everything already pre-determined for Fvm, beside effective depth
+               !
+               !do iveg=1, vegetation_vertical_segments ! for each vertical vegetation section
+               !   ! 
+               !   fvm = fvm + vegetation_fvm_except_height(ip,iveg) * min(vegetation_stems_height_uv(ip,iveg), hu)
+               !   !
+               !enddo
+               !               
 			   iveg=1 !for testing keep at 1
                !
                fvm = vegetation_fvm_except_height(ip,iveg) * min(vegetation_stems_height_uv(ip,iveg), hu)
