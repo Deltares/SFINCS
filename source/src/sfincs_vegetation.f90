@@ -38,6 +38,12 @@ contains
         !varname = 'vegetation_vertical_segments' ! TODO: change input into this
         call read_netcdf_quadtree_get_dimension(veggiefile, varname, vegetation_vertical_segments) !ncfile, varname, varout)
         !        
+        if (vegetation_vertical_segments > 4) then
+            !
+            call stop_sfincs('Error ! Maximum allowed vertical sections for vegetation specified in vegetationfile is 4 !', 1)
+            !
+        endif        
+        !
         ! allocate variables
         allocate(vegetation_cd(np, vegetation_vertical_segments))
         allocate(vegetation_stems_height(np, vegetation_vertical_segments)) !=vegetation_ah
