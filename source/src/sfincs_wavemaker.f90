@@ -1540,7 +1540,7 @@
       !
       ! Monochromatic signal
       !
-      if (wavemaker_hinc) then
+      if (wavemaker_hig) then
          !
          zwav_ig = 0.5 * sin(2 * pi * t / tp_ig)
          !
