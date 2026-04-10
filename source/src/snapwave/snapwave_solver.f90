@@ -643,10 +643,6 @@ module snapwave_solver
                   endif
                   !
                   DoverE(k) = (Dwk + Dfk + Dvegk)/max(Ek, 1.0e-6)
-                  !if (Dvegk > 0.0) then
-                  !   write(logstr,*)'k ',k,'depth(k)',depth(k),'Hk ',Hk,'Ek ',Ek,'Dwk ', Dwk,'Dfk ', Dfk,'Dvegk ', Dvegk,'DoverE veggie ', DoverE(k),'DoverE org ', (Dwk + Dfk)/max(Ek, 1.0e-6)
-                  !   call write_log(logstr, 0)                                    
-                  !endif
                   !
                   if (wind) then
                      !
@@ -900,10 +896,8 @@ module snapwave_solver
    if (vegetation) then
       ! 
       ! Compute the non-linear wave velocity time series (unl) using a wave shape model > only needs to be called once per calling SnapWave
-      !write(*,*)'Call swvegnonlin'
       !          
       call swvegnonlin(no_nodes, kwav, depth, H, g, Tp, unl, etaw0)       
-      !write(*,*)'Finished swvegnonlin'
       !        
    endif
    !
@@ -929,18 +923,14 @@ module snapwave_solver
             else
                call baldock(rho, g, alfa, gamma, depth(k), H(k), Tp(k), 1, Dw(k), Hmx(k))
                F(k) = Dw(k)*kwav(k)/sig(k)/rho/depth(k)
-               !F(k) = (Dw(k) + Df(k))*kwav(k)/sig(k)/rho/depth(k)               
-               !F(k) = (Dw(k) + Df(k))*kwav(k)/sigm ! TODO TL: before was this, now multiplied with rho*depth(k) in sfincs_snapwave.f90        
             endif
             !
             if (vegetation) then
                 !
                 ! Compute wave dissipation due to vegetation
-                !write(*,*)'Call vegatt'                
                 call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, g, H(k), Dveg(k)) 
                 !
                 ! Now also call 'momeqveg' to compute wave drag force due to vegetation
-                !write(*,*)'Call momeqveg'                
                 call momeqveg(no_nodes, no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, H(k), Tp(k), unl(k,:), Fvw(k))
                 ! NOTE - TL: for now replaced 'Trep' by 'Tp(k)' 
                 !
@@ -949,24 +939,9 @@ module snapwave_solver
                 Fvw(k) = 0.                
             endif
 	        !
-            !F(k) = Dw(k)*kwav(k)/sig(k)/rho/depth(k)
-            !F(k) = (Dw(k) + Df(k))*kwav(k)/sig(k)/rho/depth(k) 	     
             F(k) = (Dw(k) + Dveg(k))*kwav(k)/sig(k)/rho/depth(k)
-            F(k) = F(k) + Fvw(k) ! FIXME - still *kwav(k)/sig(k) ??? 
-            
-	        !F(k) = (Dw(k) + Df(k))*kwav(k)/sigm ! TODO TL: before was this, now multiplied with rho*depth(k) in sfincs_snapwave.f90  
             !
-            !if (vegetation) then                
-            !    if (Dveg(k) > 0.0) then
-            !        write(logstr,*)'k ',k,'depth(k)',depth(k),'H(k) ',H(k),'Dw(k) ', Dw(k),'Dveg(k) ', Dveg(k),'Hmx(k) ', Hmx(k),'kwav(k) ', kwav(k),'sig(k) ', sig(k), 'thetam(k)',thetam(k),'F(k) ',F(k)
-            !        call write_log(logstr, 0)  
-            !    endif
-            !else
-            !    if (H(k) > 0.0) then                
-            !        write(logstr,*)'k ',k,'depth(k)',depth(k),'H(k) ',H(k),'Dw(k) ', Dw(k),'Hmx(k) ', Hmx(k),'kwav(k) ', kwav(k),'sig(k) ', sig(k), 'thetam(k)',thetam(k),'F(k) ',F(k)
-            !        call write_log(logstr, 0)                      
-            !    endif                
-            !endif             
+            F(k) = F(k) + Fvw(k) ! FIXME - still *kwav(k)/sig(k) ???          
             !
             if (igwaves) then
                !
@@ -1615,9 +1590,7 @@ subroutine momeqveg(no_nodes, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd,
     integer :: m, t
     real*4 :: dt, hvegeff, Fvgnlt, integral
     real*4 :: Cd, b, N
-    !
-    !write(*,*)'Started momeqveg'
-    
+    !    
     ! Initialize output force
     !
     Fvw = 0.0
@@ -1644,8 +1617,7 @@ subroutine momeqveg(no_nodes, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd,
         
         Fvw = Fvw + Fvgnlt
     enddo
-    !write(*,*)'Ended momeqveg'
-    
+    !    
 end subroutine momeqveg    
    
 subroutine swvegnonlin(no_nodes, kwav, depth, H, g, Trep, unl, etaw0)
