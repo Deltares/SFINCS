@@ -77,6 +77,7 @@ contains
    call read_real_input(500,'qinf',qinf,0.0)
    call read_real_input(500,'dtmax',dtmax,60.0)
    call read_real_input(500,'huthresh',huthresh,0.05)
+   call read_real_input(500,'huvmin', huvmin, 0.0)                   ! Minimum depth for calculating velocity (uv = q / max(hu, huvmin) used for output and advection)
    call read_real_input(500,'rhoa',rhoa,1.25)
    call read_real_input(500,'rhow',rhow,1024.0)
    call read_char_input(500,'inputformat',inputtype,'bin')
@@ -200,6 +201,9 @@ contains
    call read_real_input(500, 'factor_pres', factor_pres, 1.0)
    call read_real_input(500, 'factor_prcp', factor_prcp, 1.0)
    call read_real_input(500, 'factor_spw_size', factor_spw_size, 1.0)   
+   call read_logical_input(500, 'bathtub', bathtub, .false.)
+   call read_real_input(500, 'bathtub_fachs', bathtub_fac_hs, 0.2)
+   call read_real_input(500, 'bathtub_dt', bathtub_dt, -999.0)
    !
    ! Domain
    !
@@ -207,7 +211,6 @@ contains
    call read_char_input(500,'depfile',depfile,'none')
    call read_char_input(500,'inifile',zsinifile,'none')
    call read_char_input(500,'rstfile',rstfile,'none')
-   call read_char_input(500,'ncinifile',ncinifile,'none')
    call read_char_input(500,'mskfile',mskfile,'none')
    call read_char_input(500,'indexfile',indexfile,'none')
    call read_char_input(500,'cstfile',cstfile,'none')
@@ -259,7 +262,10 @@ contains
    call read_char_input(500,'netamuamvfile',netamuamvfile,'none')                  
    call read_char_input(500,'netamprfile',netamprfile,'none')      
    call read_char_input(500,'netampfile',netampfile,'none')      
-   call read_char_input(500,'netspwfile',netspwfile,'none')      
+   call read_char_input(500,'netspwfile',netspwfile,'none')
+   !
+   call read_char_input(500,'infiltration_file',infiltrationfile,'none')   
+   call read_char_input(500,'infiltration_type',inftype,'none')
    !
    ! Output
    call read_char_input(500,'obsfile',obsfile,'none')
@@ -276,6 +282,7 @@ contains
    call read_real_input(500,'twet_threshold',twet_threshold,0.01)
    call read_int_input(500,'store_tsunami_arrival_time',itsunamitime,0)
    call read_real_input(500,'tsunami_arrival_threshold',tsunami_arrival_threshold,0.01)
+   call read_logical_input(500,'timestep_analysis',timestep_analysis,.false.)
    call read_int_input(500,'storeqdrain',storeqdrain,1)
    call read_int_input(500,'storezvolume',storezvolume,0)
    call read_int_input(500,'storestoragevolume',storestoragevolume,0)
@@ -328,7 +335,7 @@ contains
    !
    if (dtmapout==0.0) then
       call read_real_input(500,'dtmapout',dtmapout,0.0)
-   endif   
+   endif
    !
    close(500)
    !
@@ -566,7 +573,6 @@ contains
    if (itsunamitime==1) then
       store_tsunami_arrival_time = .true.
    endif      
-   !
    !   
    viscosity = .false. 
    if (iviscosity) then
@@ -682,6 +688,44 @@ contains
          nh_tstop = t1 + 999.0
          !          
       endif    
+      !
+   endif
+   !
+   if (bathtub) then
+      !
+      call write_log('Info    : turning on process: Bathtub flooding', 0)
+      !
+      ! Set time step
+      !
+      if (bathtub_dt < 0.0) then
+         !
+         ! Time step for simulation not defined so use same as map output
+         !
+         bathtub_dt = dtmapout
+         !
+      endif
+      !
+      dthisout = bathtub_dt
+      !
+      ! Turn off some processes not needed for bathtub flooding
+      !
+      nsrc = 0
+      ndrn = 0
+      !
+      meteo3d = .false.
+      wind = .false.
+      store_meteo = .false.
+      store_wind = .false.
+      store_wind_max = .false.
+      precip = .false.
+      patmos = .false.
+      if (snapwave) then
+         bathtub_snapwave = .true.
+      endif
+      snapwave = .false.
+      infiltration = .false.
+      store_velocity = .false.
+      store_maximum_velocity = .false.
       !
    endif
    !

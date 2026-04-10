@@ -9,6 +9,8 @@ contains
    !
    use sfincs_data
    use quadtree
+   use sfincs_infiltration   
+   use sfincs_timestep_analysis   
    !
    implicit none
    !
@@ -22,11 +24,17 @@ contains
    !
    call initialize_roughness()
    !
-   call initialize_infiltration()
+   call initialize_infiltration() ! see: sfincs_infiltration.f90
    !
    call initialize_storage_volume()
    !
    call initialize_hydro()
+   !
+   if (timestep_analysis) then
+      !
+      call initialize_timestep_analysis()
+      ! 
+   endif   
    !
    if (quadtree_nr_levels == 1 .and. .not. use_quadtree_output) then
       !
@@ -37,6 +45,10 @@ contains
       use_quadtree = .false.
       !
    endif
+   !
+   call set_advection_mask()
+   !
+   call fill_h73_tables()
    !
    end subroutine
 
@@ -103,7 +115,7 @@ contains
    !
    ! Check for time-spatially varying meteo
    !
-   if (prcpfile(1:4) /= 'none' .or. spwfile(1:4) /= 'none' .or. amufile(1:4) /= 'none' .or. amprfile(1:4) /= 'none' .or. ampfile(1:4) /= 'none' .or. netampfile(1:4) /= 'none' .or. netamprfile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
+   if (spwfile(1:4) /= 'none' .or. amufile(1:4) /= 'none' .or. amprfile(1:4) /= 'none' .or. ampfile(1:4) /= 'none' .or. netampfile(1:4) /= 'none' .or. netamprfile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none' .or. netspwfile(1:4) /= 'none') then
       meteo3d = .true.
       call write_log('Info    : using gridded meteo data', 0)
    endif
@@ -1428,7 +1440,7 @@ contains
          !
          if (iref>1) then
             !         
-            dyrinvc(iref) = 1.0*(3*dyrm(iref)/2)
+            dyrinvc(iref) = 1.0 / (3 * dyrm(iref) / 2)
             !
          endif   
          !
@@ -1479,19 +1491,19 @@ contains
       do iref = 1, nref
          !
          dxrm(iref)      = dxr(iref)
-         dxrinv(iref)    = 1.0/dxrm(iref)
+         dxrinv(iref)    = 1.0 / dxrm(iref)
          dxr2inv(iref)   = dxrinv(iref)**2
          !
          dyrm(iref)      = dyr(iref)
-         dyrinv(iref)    = 1.0/dyrm(iref)
+         dyrinv(iref)    = 1.0 / dyrm(iref)
          dyr2inv(iref)   = dyrinv(iref)**2
          !
          cell_area(iref) = dxrm(iref)*dyrm(iref)
          !
          if (iref>1) then
             !         
-            dxrinvc(iref) = 1.0/(3*dxrm(iref)/2)
-            dyrinvc(iref) = 1.0/(3*dyrm(iref)/2)
+            dxrinvc(iref) = 1.0 / (3 * dxrm(iref) / 2)
+            dyrinvc(iref) = 1.0 / (3 * dyrm(iref) / 2)
             !
          endif   
          !
@@ -1945,15 +1957,18 @@ contains
    subroutine initialize_roughness()
    !
    use sfincs_data
+   use sfincs_ncinput   
    !
    implicit none
    !
-   real*4, dimension(:),     allocatable :: rghfield
    !
    integer :: ip
    integer :: nm
    integer :: nmu
    logical :: ok
+   !
+   integer :: nchar
+   character*256 :: varname
    !
    ! FRICTION COEFFICIENTS (only for regular bathymetry, as for subgrid the Manning's n values are stored in the tables)
    !
@@ -1963,19 +1978,35 @@ contains
       !
       gn2uv = 9.81*0.02*0.02
       !
-      if (manningfile(1:4) /= 'none') then
+      if (manningfile(1:4) /= 'none') then 
          !
          ! Read spatially-varying friction
+         ! File is either binary or netcdf
          !
          allocate(rghfield(np))
+         !
          write(logstr,'(a,a)')'Info    : reading roughness file ',trim(manningfile)
          call write_log(logstr, 0)
          !
+         nchar = len_trim(manningfile)
+         !         
          ok = check_file_exists(manningfile, 'Roughness file', .true.)
          !
-         open(unit = 500, file = trim(manningfile), form = 'unformatted', access = 'stream')
-         read(500)rghfield
-         close(500)
+         if (manningfile(nchar - 1 : nchar) == 'nc') then
+            !
+            ! Call the generic quadtree nc file reader function
+            varname = 'manning'
+            call read_netcdf_quadtree_to_sfincs(manningfile, varname, rghfield) !ncfile, varname, varout)      
+            !
+         else
+            !
+            ! Read from binary file
+            !               
+            open(unit = 500, file = trim(manningfile), form = 'unformatted', access = 'stream')
+            read(500)rghfield
+            close(500)
+            !
+         endif
          !
          do ip = 1, npuv
             nm  = uv_index_z_nm(ip)
@@ -2012,384 +2043,16 @@ contains
          enddo
          !
       endif
-   endif
-   !
-   end subroutine
-
-
-   subroutine initialize_infiltration()
-   !
-   use sfincs_data
-   !
-   implicit none
-   !
-   integer :: nm
-   !
-   logical :: ok
-   !
-   ! INFILTRATION
-   !
-   ! Infiltration only works when rainfall is activated ! If you want infiltration without rainfall, use a precip file with 0.0s
-   !
-   ! Note, infiltration methods not designed to be stacked
-   !
-   infiltration   = .false.
-   !
-   ! Four options for infiltration:
-   !
-   ! 1) Spatially-uniform constant infiltration
-   !    Requires: -
-   ! 2) Spatially-varying constant infiltration
-   !    Requires: qinfmap (does not require qinffield !)
-   ! 3) Spatially-varying infiltration with CN numbers (old)
-   !    Requires: cumprcp, cuminf, qinfmap, qinffield
-   ! 4) Spatially-varying infiltration with CN numbers (new)
-   !    Requires: qinfmap, qinffield, qinffield, ksfield, scs_P1, scs_F1, scs_Se and scs_rain (but not necessarily cuminf and cumprcp)
-   !
-   ! cumprcp and cuminf are stored in the netcdf output if store_cumulative_precipitation == .true. which is the default
-   !
-   ! We need to keep cumprcp and cuminf in memory when:
-   !   a) store_cumulative_precipitation == .true.
-   ! or:  
-   !   b) inftype == 'cna' or inftype == 'cnb'
-   !   
-   ! First we determine precipitation type
-   !
-   if (precip) then
-      !
-      if (qinf > 0.0) then   
-         !
-         ! Spatially-uniform constant infiltration (specified as +mm/hr)
-         !
-         inftype = 'con'
-         infiltration = .true.
-         ! 
-      elseif (qinffile /= 'none') then
-         !
-         ! Spatially-varying constant infiltration
-         !
-         inftype = 'c2d'
-         infiltration = .true.      
-         !
-      elseif (scsfile /= 'none') then
-         !
-         ! Spatially-varying infiltration with CN numbers (old)
-         !
-         inftype = 'cna'
-         infiltration = .true.      
-         store_cumulative_precipitation = .true.
-         !
-      elseif (sefffile /= 'none') then  
-         !
-         ! Spatially-varying infiltration with CN numbers (new)
-         !
-         inftype = 'cnb'
-         infiltration = .true.      
-         !
-      elseif (psifile /= 'none') then  
-         !
-         ! The Green-Ampt (GA) model for infiltration
-         !
-         inftype = 'gai'
-         infiltration = .true.      
-         !
-      elseif (f0file /= 'none') then  
-         !
-         ! The Horton Equation model for infiltration
-         !
-         inftype        = 'hor'
-         infiltration   = .true.
-         store_meteo    = .true.
-         !
-      endif
-      !
-      ! We need cumprcp and cuminf
-      !
-      allocate(cumprcp(np))
-      cumprcp = 0.0
-      !
-      allocate(cuminf(np))
-      cuminf = 0.0
-      !
-      ! Now allocate and read spatially-varying inputs 
-      !
-      if (infiltration) then
-         !
-         allocate(qinfmap(np))
-         qinfmap = 0.0
-         ! 
-      endif
-      !
-      if (inftype == 'con') then   
-         !
-         ! Spatially-uniform constant infiltration (specified as +mm/hr)
-         !
-         write(logstr,'(a)')'Info    : turning on spatially-uniform constant infiltration'        
-         call write_log(logstr, 0)
-         !
-         allocate(qinffield(np))
-         !
-         ! Note : qinf has already been converted to m/s in sfincs_input.f90 !
-         !
-         do nm = 1, np
-             if (subgrid) then
-                 if (subgrid_z_zmin(nm) > qinf_zmin) then
-                    qinffield(nm) = qinf
-                 else
-                    qinffield(nm) = 0.0
-                 endif
-             else
-                 if (zb(nm) > qinf_zmin) then
-                    qinffield(nm) = qinf
-                 else
-                    qinffield(nm) = 0.0
-                 endif
-             endif
-         enddo
-         !
-      elseif (inftype == 'c2d') then
-         !
-         ! Spatially-varying constant infiltration
-         !
-         write(logstr,'(a)')'Info    : turning on spatially-varying constant infiltration'      
-         call write_log(logstr, 0)
-         !
-         ! Read spatially-varying infiltration (only binary, specified in +mm/hr)
-         !
-         write(logstr,'(a,a)')'Info    : reading infiltration file ', trim(qinffile)
-         call write_log(logstr, 0)
-         !
-         ok = check_file_exists(qinffile, 'Infiltration qinf file', .true.)
-         !
-         allocate(qinffield(np))
-         open(unit = 500, file = trim(qinffile), form = 'unformatted', access = 'stream')
-         read(500)qinffield
-         close(500)
-         !
-         qinffield = qinffield / 3600 / 1000   ! convert to +m/s         
-         !
-      elseif (inftype == 'cna') then
-         !
-         ! Spatially-varying infiltration with CN numbers (old)
-         !
-         write(logstr,'(a)')'Info    : turning on infiltration (via Curve Number method - A)'               
-         call write_log(logstr, 0)
-         !
-         allocate(qinffield(np))
-         !
-         qinffield = 0.0
-         !
-         write(logstr,'(a,a)')'Info    : reading scs file ',trim(scsfile)
-         call write_log(logstr, 0)
-         !
-         ok = check_file_exists(scsfile, 'Infiltration scs file', .true.)
-         !
-         open(unit = 500, file = trim(scsfile), form = 'unformatted', access = 'stream')
-         read(500)qinffield
-         close(500)
-         !
-         ! already convert qinffield from inches to m here
-         !
-         qinffield = qinffield * 0.0254   ! to m
-         !
-      elseif (inftype == 'cnb') then  
-         !
-         ! Spatially-varying infiltration with CN numbers (new)
-         !
-         write(logstr,'(a)')'Info    : turning on infiltration (via Curve Number method - B)' 
-         call write_log(logstr, 0)
-         ! 
-         ! Allocate Smax
-         allocate(qinffield(np))
-         qinffield = 0.0
-         write(logstr,'(a,a)')'Info    : reading smax file ',trim(smaxfile)
-         call write_log(logstr, 0)
-         !
-         ok = check_file_exists(smaxfile, 'Infiltration smax file', .true.)
-         !
-         open(unit = 500, file = trim(smaxfile), form = 'unformatted', access = 'stream')
-         read(500)qinffield
-         close(500)
-         !
-         ! Allocate Se
-         allocate(scs_Se(np))
-         scs_Se = 0.0
-         write(logstr,'(a,a)')'Info    : reading seff file ',trim(sefffile)
-         call write_log(logstr, 0)
-         !
-         ok = check_file_exists(sefffile, 'Infiltration seff file', .true.)
-         !
-         open(unit = 501, file = trim(sefffile), form = 'unformatted', access = 'stream')
-         read(501)scs_Se
-         close(501)
-         !
-         ! Compute recovery                     ! Equation 4-36        
-         ! Allocate Ks
-         !
-         allocate(ksfield(np))
-         ksfield = 0.0
-         write(logstr,'(a,a)')'Info    : reading ks file ',trim(ksfile)
-         call write_log(logstr, 0)
-         !
-         ok = check_file_exists(ksfile, 'Infiltration ks file', .true.)
-         !
-         open(unit = 502, file = trim(ksfile), form = 'unformatted', access = 'stream')
-         read(502)ksfield
-         close(502)
-         !
-         ! Compute recovery                     ! Equation 4-36
-         !
-         allocate(inf_kr(np))
-         inf_kr = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr (/25.4)
-                                                ! /75 is conversion to recovery rate (in days)
-         !
-         ! Allocate support variables
-         allocate(scs_P1(np))
-         scs_P1 = 0.0
-         allocate(scs_F1(np))
-         scs_F1 = 0.0
-         allocate(rain_T1(np))
-         rain_T1 = 0.0
-         allocate(scs_S1(np))
-         scs_S1 = 0.0
-         allocate(scs_rain(np))
-         scs_rain = 0
-         !
-      elseif (inftype == 'gai') then  
-         !
-         ! Spatially-varying infiltration with the Green-Ampt (GA) model
-         !
-         call write_log('Info    : turning on process infiltration (via Green-Ampt)', 0)
-         ! 
-         ! Allocate suction head at the wetting front 
-         !
-         allocate(GA_head(np))
-         GA_head = 0.0
-         write(logstr,'(a,a)')'Info    : reading psi file ',trim(psifile)
-         call write_log(logstr, 0)
-         !
-         ok = check_file_exists(psifile, 'Infiltration psi file', .true.)
-         !
-         open(unit = 500, file = trim(psifile), form = 'unformatted', access = 'stream')
-         read(500)GA_head
-         close(500)
-         !
-         ! Allocate maximum soil moisture deficit
-         !
-         allocate(GA_sigma_max(np))
-         GA_sigma_max = 0.0
-         write(logstr,'(a,a)')'Info    : reading sigma file ',trim(sigmafile)
-         call write_log(logstr, 0)
-         !
-         ok = check_file_exists(sigmafile, 'Infiltration sigma file', .true.)
-         !
-         open(unit = 501, file = trim(sigmafile), form = 'unformatted', access = 'stream')
-         read(501)GA_sigma_max
-         close(501)
-         !
-         ! Allocate saturated hydraulic conductivity
-         !
-         allocate(ksfield(np))
-         ksfield = 0.0
-         write(logstr,'(a,a)')'Info    : reading ks file ',trim(ksfile)
-         call write_log(logstr, 0)
-         !
-         ok = check_file_exists(ksfile, 'Infiltration ks file', .true.)
-         !
-         open(unit = 502, file = trim(ksfile), form = 'unformatted', access = 'stream')
-         read(502)ksfield
-         close(502)
-         !
-         ! Compute recovery                         ! Equation 4-36
-         !
-         allocate(inf_kr(np))
-         inf_kr     = sqrt(ksfield/25.4) / 75       ! Note that we assume ksfield to be in mm/hr, convert it here to inch/hr (/25.4)
-                                                    ! /75 is conversion to recovery rate (in days)
-         
-         allocate(rain_T1(np))                      ! minimum amount of time that a soil must remain in recovery 
-         rain_T1    = 0.0         
-         !
-         ! Allocate support variables
-         !
-         allocate(GA_sigma(np))                     ! variable for sigma_max_du
-         GA_sigma   = GA_sigma_max
-         allocate(GA_F(np))                         ! total infiltration
-         GA_F       = 0.0
-         allocate(GA_Lu(np))                        ! depth of upper soil recovery zone
-         GA_Lu      = 4 * sqrt(25.4) * sqrt(ksfield) ! Equation 4-33
-         !
-         ! Input values for green-ampt are in mm and mm/hr, but computation is in m a m/s
-         !
-         GA_head    = GA_head / 1000                  ! from mm to m
-         GA_Lu      = GA_Lu / 1000                    ! from mm to m
-         ksfield    = ksfield / 1000 / 3600           ! from mm/hr to m/s
-         ! 
-         ! First time step doesnt have an estimate yet
-         !
-         allocate(qinffield(np))
-         qinffield(nm) = 0.0
-         !
-      elseif (inftype == 'hor') then  
-         !
-         ! Spatially-varying infiltration with the modified Horton Equation 
-         !
-         call write_log('Info    : turning on process infiltration (via modified Horton)', 0)
-         ! 
-         ! Horton: final infiltration capacity (fc)
-         ! Note that qinffield = horton_fc
-         allocate(horton_fc(np))
-         horton_fc = 0.0
-         write(logstr,'(a,a)')'Info    : reading fc file ',trim(fcfile)
-         call write_log(logstr, 0)
-         !
-         ok = check_file_exists(fcfile, 'Infiltration fc file', .true.)
-         !
-         open(unit = 500, file = trim(fcfile), form = 'unformatted', access = 'stream')
-         read(500)horton_fc
-         close(500)
-         !
-         ! Horton: initial infiltration capacity (f0)
-         allocate(horton_f0(np))
-         horton_f0 = 0.0
-         write(logstr,'(a,a)')'Info    : reading f0 file ',trim(f0file)
-         call write_log(logstr, 0)
-         !
-         ok = check_file_exists(f0file, 'Infiltration f0 file', .true.)
-         !
-         open(unit = 501, file = trim(f0file), form = 'unformatted', access = 'stream')
-         read(501)horton_f0
-         close(501)
-         !
-         ! Prescribe the current estimate (for output only; initial capacity)
-         qinffield = horton_f0/3600/1000
-         !
-         ! Empirical constant (1/hr) k => note that this is different than ks used in Curve Number and Green-Ampt
-         allocate(horton_kd(np))
-         horton_kd = 0.0
-         write(logstr,'(a,a)')'Info    : reading kd file ',trim(kdfile)
-         call write_log(logstr, 0)
-         !
-         ok = check_file_exists(kdfile, 'Infiltration kd file', .true.)
-         !
-         open(unit = 502, file = trim(kdfile), form = 'unformatted', access = 'stream')
-         read(502)horton_kd
-         close(502)
-         !
-         write(logstr,'(a,a)')'Using constant recovery rate that is based on constant factor relative to ',trim(kdfile)
-         call write_log(logstr, 0)         
-         !
-         ! Estimate of time
-         allocate(rain_T1(np))
-         rain_T1 = 0.0
-         !
-      endif
-      !
    else
       !
-      ! Overrule input
+      ! Give warning if manningfile is supplied, but also a subgrid file
       !
-      store_cumulative_precipitation = .false.
-      !
+      if (manningfile(1:4) /= 'none') then 
+         !
+         call write_log('Warning   : manningfile input will be ignored because SFINCS will use the friction information from sbgfile!', 1)
+         !
+      endif
+       !
    endif
    !
    end subroutine
@@ -2404,6 +2067,7 @@ contains
    !
    integer :: nchar
    logical :: ok
+   character*256 :: varname   
    !
    if (use_storage_volume) then 
       !
@@ -2425,9 +2089,9 @@ contains
       !
       if (volfile(nchar - 1 : nchar) == 'nc') then
          !
-         ! Read netcdf file
-         !
-         call read_netcdf_storage_volume()
+         ! Call the generic quadtree nc file reader function
+         varname = 'vol'
+         call read_netcdf_quadtree_to_sfincs(volfile, varname, storage_volume) !ncfile, varname, varout)            
          !
       else
          !
@@ -2501,7 +2165,8 @@ contains
                   !
                   mask_adv(ip) = 0
                   !
-               endif  
+               endif
+               !  
             enddo 
             ! 
          endif
@@ -2786,14 +2451,20 @@ contains
    !
    ! In sfincs_data
    !
-   if (allocated(z_index_uv_md1)) deallocate(z_index_uv_md1)
-   if (allocated(z_index_uv_md2)) deallocate(z_index_uv_md2)
-   if (allocated(z_index_uv_mu1)) deallocate(z_index_uv_mu1)
-   if (allocated(z_index_uv_mu2)) deallocate(z_index_uv_mu2)
-   if (allocated(z_index_uv_nd1)) deallocate(z_index_uv_nd1)
-   if (allocated(z_index_uv_nd2)) deallocate(z_index_uv_nd2)
-   if (allocated(z_index_uv_nu1)) deallocate(z_index_uv_nu1)
-   if (allocated(z_index_uv_nu2)) deallocate(z_index_uv_nu2)
+   ! The following arrays are still needed for the timestep analysis (see sfincs_ncoutput.F90)
+   !
+   if (.not. timestep_analysis) then
+      !
+      if (allocated(z_index_uv_md1)) deallocate(z_index_uv_md1)
+      if (allocated(z_index_uv_md2)) deallocate(z_index_uv_md2)
+      if (allocated(z_index_uv_mu1)) deallocate(z_index_uv_mu1)
+      if (allocated(z_index_uv_mu2)) deallocate(z_index_uv_mu2)
+      if (allocated(z_index_uv_nd1)) deallocate(z_index_uv_nd1)
+      if (allocated(z_index_uv_nd2)) deallocate(z_index_uv_nd2)
+      if (allocated(z_index_uv_nu1)) deallocate(z_index_uv_nu1)
+      if (allocated(z_index_uv_nu2)) deallocate(z_index_uv_nu2)
+      !
+   endif
    !
    ! In quadtree
    !

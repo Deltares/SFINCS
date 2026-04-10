@@ -23,7 +23,8 @@ Known issues/warnings of the current SFINCS main version and last release are li
 * If you are still using restartfiles from SFINCS 2023 Cauberg release or older, you should remake your restartfiles to overcome potential issues with running the col d'Eze, mt Faber or future releaeses! 
 * The BMI implementation in SFINCS is up to date with XMI (BMI + extensions - Hughes et al. 2022), to be used with 'xmipy' (https://github.com/Deltares/xmipy) and related functions (https://deltares.github.io/xmipy/xmipy.html), which is however not up to date with the latests CSDMS standard BMI implementation 2.0.
 * The combination of netspwfile with large difference in reference time between the spiderweb and the SFINCS simulation itself, might not run correctly in the Docker version. Use the ascii spwfile input or the Windows build executable which work correctly.
-* Docker GPU version of Deltares latest is not fully functional. If you'd want to use the GPU version of SFINCS, get in touch to set up a collaboration.
+* Docker GPU version of Deltares latest is not fully functional, and therefore removed from the repo. If you'd want to use the GPU version of SFINCS, get in touch to set up a collaboration.
+* Issue in SFINCS v2.3.0 mt Faber Release regarding Curve Number infiltration if storecumprcp = 0 (default), then infiltration is not processed correctly and can result to unrealistic results! Simple solution for now: put storecumprcp = 1 when using this infiltration option. This issue is already fixed in SFINCS main, and therefore also in the next official release!
 
 Releases Changelog
 -----

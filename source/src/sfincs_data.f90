@@ -59,6 +59,7 @@ module sfincs_data
       real*4 y0
       real*4 rotation
       real*4 huthresh
+      real*4 huvmin
       real*4 qinf
       real*4 tig
       real*4 tspinup
@@ -128,7 +129,6 @@ module sfincs_data
       character*256 :: drnfile
       character*256 :: zsinifile
       character*256 :: rstfile
-      character*256 :: ncinifile
       character*256 :: indexfile
       character*256 :: bindepfile
       character*256 :: binmskfile
@@ -151,6 +151,7 @@ module sfincs_data
       character*256 :: netampfile
       character*256 :: netamprfile
       character*256 :: netspwfile
+      character*256 :: infiltrationfile      
       character*256 :: scsfile
       character*256 :: smaxfile
       character*256 :: sefffile
@@ -215,12 +216,14 @@ module sfincs_data
       logical       :: write_time_output
       logical       :: bziwaves
       logical       :: infiltration
+      LOGICAL       :: netcdf_infiltration
       logical       :: debug
       logical       :: radstr
       logical       :: crsgeo
       logical       :: ampr_block
       logical       :: global
       logical       :: store_tsunami_arrival_time
+      logical       :: timestep_analysis
       logical       :: viscosity
       logical       :: spinup_meteo
       logical       :: snapwave
@@ -248,7 +251,9 @@ module sfincs_data
       logical       :: h73table
       logical       :: wave_enhanced_roughness
       logical       :: use_bcafile
-      LOGICAL       :: snapwave_use_nearest
+      logical       :: snapwave_use_nearest
+      logical       :: bathtub
+      logical       :: bathtub_snapwave      
       !!!
       !!! sfincs_input.f90 switches
       integer storevelmax
@@ -360,6 +365,7 @@ module sfincs_data
       real*4,             dimension(:),   allocatable, target :: z_yz
       real*4,             dimension(:),   allocatable :: cell_area_m2
       real*4,             dimension(:),   allocatable :: nuvisc      
+      real*4,             dimension(:),   allocatable :: rghfield      
       !
       ! UV-points
       !
@@ -573,6 +579,13 @@ module sfincs_data
       real*4, dimension(:),   allocatable, target :: qext
       real*4, dimension(:),   allocatable, target :: uorb
       real*4, dimension(:),   allocatable :: gnapp2
+      !
+      real*4, dimension(:),   allocatable :: timestep_analysis_average_required_timestep !average_timestep
+      real*4, dimension(:),   allocatable :: timestep_analysis_required_timestep
+      integer*4, dimension(:),allocatable :: timestep_analysis_times_limiting
+      integer*4, dimension(:),allocatable :: timestep_analysis_times_wet
+      real*4, dimension(:),   allocatable :: timestep_analysis_average_required_timestep_per_cell ! output array
+      real*4, dimension(:),   allocatable :: timestep_analysis_percentage_limiting_per_cell       ! output array
       !
       real*4, dimension(:),   allocatable :: tauwu
       real*4, dimension(:),   allocatable :: tauwv
@@ -802,6 +815,9 @@ module sfincs_data
       integer, dimension(:),     allocatable   :: runup_gauge_nrp
       !
       real*4 :: waveage
+      !
+      real*4 :: bathtub_dt
+      real*4 :: bathtub_fac_hs
       !
       ! LGX Cd table
       !
