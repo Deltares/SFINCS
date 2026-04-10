@@ -179,7 +179,7 @@ module sfincs_lib
    !
    if (wavemaker) then
       !
-      call read_wavemaker_polylines()
+      call initialize_wavemakers()
       !
    endif
    !
