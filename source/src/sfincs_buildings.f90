@@ -8,6 +8,8 @@ module sfincs_buildings
    ! 5. Optional gutter system with configurable spacing
    ! IMDC, 2025 (restructured by Deltares)
    !
+   use sfincs_log
+   !
    implicit none
    !
    type building_type
@@ -59,14 +61,14 @@ contains
    !
    integer :: ios
    !
-   write(*,'(A)') 'Info    : Setting up buildings ...'
+   call write_log('Info    : Setting up buildings ...', 1)
    !
    call initialize_building_masks()
    !
    call read_building_file(bldfile, ios)
    !
    if (ios /= 0) then
-      write(*,'(A)') 'ERROR: Failed to read building file'
+      call write_log('ERROR: Failed to read building file', 0)
       has_buildings = .false.
       return
    end if
@@ -74,8 +76,8 @@ contains
    if (len_trim(bprfile) > 0 .and. trim(bprfile) /= 'none') then
       call read_building_properties_file(bprfile, ios)
       if (ios /= 0) then
-         write(*,'(A)') 'WARNING: Failed to read building properties file'
-         write(*,'(A)') '         Using default values (no detention, uniform distribution)'
+         call write_log('WARNING: Failed to read building properties file', 0)
+         call write_log('         Using default values (no detention, uniform distribution)', 0)
       end if
    end if
    !
@@ -88,7 +90,7 @@ contains
    !
    call create_building_thin_dams()
    !
-   write(*,'(A)') 'Info    : Building setup complete'
+   call write_log('Info    : Building setup complete', 0)
    !
    end subroutine setup_buildings
    !
@@ -153,12 +155,14 @@ contains
    !
    open(newunit=iunit, file=trim(filename), status='old', action='read', iostat=ios_bld)
    if (ios_bld /= 0) then
-      write(*,'(A,A)') 'ERROR: Could not open building file: ', trim(filename)
+      write(logstr,'(A,A)') 'ERROR: Could not open building file: ', trim(filename)
+      call write_log(logstr, 0)
       ios_out = ios_bld
       return
    end if
    !
-   write(*,'(A,A)') 'Info    : Reading building file: ', trim(filename)
+   write(logstr,'(A,A)') 'Info    : Reading building file: ', trim(filename)
+   call write_log(logstr, 0)
    !
    ! Count buildings
    !
@@ -179,12 +183,13 @@ contains
    end do
    !
    if (nbuildings == 0) then
-      write(*,'(A)') 'WARNING: No buildings found in file'
+      call write_log('WARNING: No buildings found in file', 0)
       close(iunit)
       return
    end if
    !
-   write(*,'(A,I0,A)') 'Info    : Found ', nbuildings, ' buildings'
+   write(logstr,'(A,I0,A)') 'Info    : Found ', nbuildings, ' buildings'
+   call write_log(logstr, 0)
    !
    allocate(buildings(nbuildings))
    !
@@ -210,7 +215,8 @@ contains
       do i = 1, npoints
          read(iunit, *, iostat=ios_bld) xtmp, ytmp
          if (ios_bld /= 0) then
-            write(*,'(A,A)') 'ERROR: Reading coordinates for building ', trim(name)
+            write(logstr,'(A,A)') 'ERROR: Reading coordinates for building ', trim(name)
+            call write_log(logstr, 0)
             ios_out = ios_bld
             close(iunit)
             return
@@ -221,7 +227,8 @@ contains
       !
       if (buildings(ibld)%x(1) /= buildings(ibld)%x(npoints) .or. &
           buildings(ibld)%y(1) /= buildings(ibld)%y(npoints)) then
-         write(*,'(A,A,A)') 'WARNING: Building ', trim(name), ' polygon not closed'
+         write(logstr,'(A,A,A)') 'WARNING: Building ', trim(name), ' polygon not closed'
+         call write_log(logstr, 0)
       end if
       !
       buildings(ibld)%accumulated_rainfall = 0.0d0
@@ -239,7 +246,8 @@ contains
    !
    close(iunit)
    !
-   write(*,'(A,I0,A)') 'Info    : Successfully read ', nbuildings, ' buildings'
+   write(logstr,'(A,I0,A)') 'Info    : Successfully read ', nbuildings, ' buildings'
+   call write_log(logstr, 0)
    !
    end subroutine read_building_file
    !
@@ -261,12 +269,14 @@ contains
    !
    open(newunit=iunit, file=trim(filename), status='old', action='read', iostat=ios_bpr)
    if (ios_bpr /= 0) then
-      write(*,'(A,A)') 'ERROR: Could not open building properties file: ', trim(filename)
+      write(logstr,'(A,A)') 'ERROR: Could not open building properties file: ', trim(filename)
+      call write_log(logstr, 0)
       ios_out = ios_bpr
       return
    end if
    !
-   write(*,'(A,A)') 'Info    : Reading building properties file: ', trim(filename)
+   write(logstr,'(A,A)') 'Info    : Reading building properties file: ', trim(filename)
+   call write_log(logstr, 0)
    !
    do
       read(iunit, '(A)', iostat=ios_bpr) line
@@ -276,7 +286,8 @@ contains
       !
       read(line, *, iostat=ios_bpr) name, det_vol, gut_spacing
       if (ios_bpr /= 0) then
-         write(*,'(A,A)') 'WARNING: Could not parse line: ', trim(line)
+         write(logstr,'(A,A)') 'WARNING: Could not parse line: ', trim(line)
+         call write_log(logstr, 0)
          cycle
       end if
       !
@@ -295,9 +306,10 @@ contains
    !
    close(iunit)
    !
-   write(*,'(A,I0,A,I0,A)') 'Info    : Matched properties for ', nmatched, ' of ', nbuildings, ' buildings'
-   if (use_building_detention) write(*,'(A)') 'Info    : Building detention volumes enabled'
-   if (use_building_gutters) write(*,'(A)') 'Info    : Building gutter system enabled'
+   write(logstr,'(A,I0,A,I0,A)') 'Info    : Matched properties for ', nmatched, ' of ', nbuildings, ' buildings'
+   call write_log(logstr, 0)
+   if (use_building_detention) call write_log('Info    : Building detention volumes enabled', 0)
+   if (use_building_gutters) call write_log('Info    : Building gutter system enabled', 0)
    !
    end subroutine read_building_properties_file
    !
@@ -313,7 +325,7 @@ contains
    logical :: inside
    integer, allocatable :: temp_cells(:)
    !
-   write(*,'(A)') 'Info    : Identifying building cells ...'
+   call write_log('Info    : Identifying building cells ...', 0)
    !
    ncells = mmax * nmax
    !
@@ -358,7 +370,7 @@ contains
       !
    end do
    !
-   write(*,'(A)') 'Info    : Building cell identification complete'
+   call write_log('Info    : Building cell identification complete', 0)
    !
    end subroutine identify_building_cells
    !
@@ -417,7 +429,7 @@ contains
    integer, allocatable :: temp_perimeter(:)
    integer :: ncells
    !
-   write(*,'(A)') 'Info    : Identifying perimeter cells ...'
+   call write_log('Info    : Identifying perimeter cells ...', 0)
    !
    ncells = mmax * nmax
    !
@@ -459,7 +471,7 @@ contains
       !
    end do
    !
-   write(*,'(A)') 'Info    : Perimeter cell identification complete'
+   call write_log('Info    : Perimeter cell identification complete', 0)
    !
    end subroutine identify_perimeter_cells
    !
@@ -480,7 +492,7 @@ contains
    integer :: temp_ip
    logical :: first_cell
    !
-   write(*,'(A)') 'Info    : Identifying gutter outlet cells ...'
+   call write_log('Info    : Identifying gutter outlet cells ...', 0)
    !
    do ibld = 1, nbuildings
       !
@@ -588,7 +600,7 @@ contains
       !
    end do
    !
-   write(*,'(A)') 'Info    : Gutter cell identification complete'
+   call write_log('Info    : Gutter cell identification complete', 0)
    !
    end subroutine identify_gutter_cells
    !
@@ -604,7 +616,8 @@ contains
    real*4, allocatable :: xthd(:), ythd(:)
    integer, allocatable :: uv_indices(:), vertices(:)
    !
-   write(*,'(A,I0,A)') 'Info    : Processing ', nbuildings, ' buildings as thin dams'
+   write(logstr,'(A,I0,A)') 'Info    : Processing ', nbuildings, ' buildings as thin dams'
+   call write_log(logstr, 0)
    !
    do ibld = 1, nbuildings
       !
@@ -625,7 +638,8 @@ contains
       !
    end do
    !
-   write(*,'(A,I0,A)') 'Info    : Processed ', nbuildings, ' buildings as thin dams'
+   write(logstr,'(A,I0,A)') 'Info    : Processed ', nbuildings, ' buildings as thin dams'
+   call write_log(logstr, 0)
    !
    end subroutine create_building_thin_dams
    !
