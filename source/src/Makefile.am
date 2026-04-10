@@ -4,7 +4,7 @@
 #   Fedor.Baart@deltares.nl
 #   11 nov 2020
 #
-#   Copyright (C)  Stichting Deltares, 2011-2013.
+#   Copyright (C)  Stichting Deltares, 2016-2026.
 #-------------------------------------------------------------------------------
 
 bin_PROGRAMS = sfincs
@@ -19,13 +19,16 @@ libsfincs_la_SOURCES = \
 	sfincs_date.f90 \
 	sfincs_spiderweb.f90 \
 	sfincs_data.f90 \
-    ../third_party_open/Delft3D/astro.f90 \
+	sfincs_read.f90 \
+        ../third_party_open/Delft3D/astro.f90 \
 	../third_party_open/utils/geometry.f90 \
 	sfincs_error.f90 \		
 	sfincs_quadtree.f90 \
+	sfincs_vegetation.f90 \
 	snapwave/interp.F90 \
 	snapwave/snapwave_data.f90 \
-	snapwave/snapwave_ncinput.F90 \		
+	snapwave/snapwave_ncinput.F90 \
+	snapwave/snapwave_ncoutput.F90 \	
 	snapwave/snapwave_infragravity.f90 \	
 	snapwave/snapwave_boundaries.f90 \
 	snapwave/snapwave_date.f90 \
@@ -40,6 +43,8 @@ libsfincs_la_SOURCES = \
 	sfincs_crosssections.f90 \
 	sfincs_discharges.f90 \
 	sfincs_subgrid.F90 \
+	sfincs_timestep_analysis.f90 \	
+	sfincs_infiltration.f90 \	
 	sfincs_domain.f90 \
 	sfincs_structures.f90 \
 	sfincs_obspoints.f90 \
@@ -48,13 +53,13 @@ libsfincs_la_SOURCES = \
 	sfincs_snapwave.f90 \
 	../third_party_open/utils/deg2utm.f90 \
 	sfincs_meteo.f90 \
-    ../third_party_open/bicgstab/bicgstab_solver_ilu.f90 \
+        ../third_party_open/bicgstab/bicgstab_solver_ilu.f90 \
 	sfincs_nonhydrostatic.f90 \
 	sfincs_ncoutput.F90 \
 	sfincs_output.f90 \
 	sfincs_momentum.f90 \
 	sfincs_wavemaker.f90 \
-	sfincs_infiltration.f90 \
+	sfincs_bathtub.f90 \
 	sfincs_openacc.f90 \
 	sfincs_lib.f90 \
 	sfincs_bmi.f90

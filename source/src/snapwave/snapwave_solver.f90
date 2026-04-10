@@ -1,9 +1,10 @@
 module snapwave_solver
    
-      use sfincs_log
+   use sfincs_log
     
-      implicit none
-   contains
+   implicit none
+
+contains
    
    subroutine compute_wave_field()
       !
@@ -13,10 +14,7 @@ module snapwave_solver
       !
       !real*8, intent(in)   :: time > TL: not used in this implementation
       !
-      real*4               :: tpb
-      !
       real*4, parameter    :: waveps = 1e-5
-      !real*4, dimension(:), allocatable   :: sig
       real*4, dimension(:), allocatable   :: sigm_ig
       real*4, dimension(:), allocatable   :: expon
       !
@@ -27,7 +25,7 @@ module snapwave_solver
       allocate(sigm_ig(no_nodes))
       !
       g     = 9.81
-      pi    = 4.*atan(1.)
+      pi    = 4 * atan(1.0)
       !
       call timer(t0)
       !
@@ -35,85 +33,120 @@ module snapwave_solver
          !
          ! Set energies to 0.0; note that boundary values have been set in update_boundaries
          !
+         !$omp parallel do schedule(static)
          do k = 1, no_nodes
             if (inner(k)) then
-               ee(:,k) = waveps               
+               ee(:, k) = waveps
             endif
          enddo
+         !$omp end parallel do
          !
          ee_ig = waveps
-         !
-         restart=1 !TODO TL: CHECK > we need this turned on right now for IG...
          !
       endif
       !
       ! Initialize wave period
       !
+      !$omp parallel do schedule(static)
       do k = 1, no_nodes
+         !
          if (inner(k)) then
+            !
             Tp(k) = Tpini
+            !
          endif
-         if (neumannconnected(k)>0) then
-            Tp(neumannconnected(k))=Tpini
+         !
+         if (neumannconnected(k) > 0) then
+            !
+            Tp(neumannconnected(k)) = Tpini
+            !
          endif
+         !
       enddo
+      !$omp end parallel do
       !
       ! Compute celerities and refraction speed
       !
-      Tp     = max(tpmean_bwv,Tpini)   ! to check voor windgroei
-      sig    = 2.0*pi/Tp
+      Tp      = max(tpmean_bwv, Tpini)   ! to check voor windgroei
+      sig     = 2.0 * pi / Tp
       Tp_ig   = tpmean_bwv_ig! TL: now determined in snapwave_boundaries.f90 instead of Tinc2ig*Tp
-      sigm_ig = 2.0*pi/Tp_ig !TODO - TL: Question do we want Tp_ig now as contant, or also spatially varying like Tp ?
-      !
-      expon   = -(sig*sqrt(depth/g))**(2.5)
-      kwav    = sig**2/g*(1.0-exp(expon))**(-0.4)
-      C       = sig/kwav
-      nwav    = 0.5+kwav*depth/sinh(min(2*kwav*depth,50.0))
-      Cg      = nwav*C
+      sigm_ig = 2.0 * pi / Tp_ig !TODO - TL: Question do we want Tp_ig now as contant, or also spatially varying like Tp ?
+      expon   = - (sig * sqrt(depth / g))**2.5
+      kwav    = sig**2 / g * (1.0 - exp(expon))**-0.4
+      C       = sig / kwav
+      nwav    = 0.5 + kwav * depth / sinh(min(2 * kwav * depth, 50.0))
+      Cg      = nwav * C
       !
       if (igwaves) then
+         !
          cg_ig   = Cg
-         expon   = -(sigm_ig*sqrt(depth/g))**(2.5)
-         kwav_ig  = sig**2/g*(1.0-exp(expon))**(-0.4)
+         expon   = -(sigm_ig * sqrt(depth / g))**2.5
+         kwav_ig = sig**2 / g * (1.0 - exp(expon))**-0.4
+         !
       else
+         !
          cg_ig   = 0.0
          kwav_ig = 0.0 
+         !
       endif
       !
+      ! Set Hmx and sinh(kh) for regular waves, and Hmx_ig for IG waves. Note that we use the same gamma for regular and IG waves, but this can be easily changed if needed.
+      !
+      !$omp parallel do schedule(static)
       do k = 1, no_nodes
-         sinhkh(k)    = sinh(min(kwav(k)*depth(k), 50.0))
-         Hmx(k)       = gamma*depth(k)
+         !
+         sinhkh(k) = sinh(min(kwav(k) * depth(k), 50.0))
+         !Hmx(k)    = 0.88 / kwav(k) * tanh(gamma * kwav(k) * depth(k) / 0.88)
+         Hmx(k)    = gamma * depth(k)
+         !
+         if (igwaves) then
+            !
+            ! Why is this different from Hmx for regular waves where we use gamma * h?
+            !
+            !Hmx_ig(k) = 0.88 / kwav_ig(k) * tanh(gamma_ig * kwav_ig(k) * depth(k) / 0.88) ! Note - uses gamma_ig
+            Hmx_ig(k)    = gamma_ig * depth(k)
+            !
+         endif
+         !
       enddo
-      if (igwaves) then          
-         do k = 1, no_nodes             
-            Hmx_ig(k)    = 0.88/kwav_ig(k)*tanh(gamma_ig*kwav_ig(k)*depth(k)/0.88) ! Note - uses gamma_ig
-         enddo
-      else
-         Hmx_ig    = 0.0
-      endif
+      !$omp end parallel do
       !   
       do itheta = 1, ntheta
-         ctheta(itheta,:)    = sig/sinh(min(2.0*kwav*depth, 50.0))*(dhdx*sin(theta(itheta)) - dhdy*cos(theta(itheta)))
+         !
+         ctheta(itheta,:)    = sig / sinh(min(2 * kwav * depth, 50.0)) * (dhdx * sin(theta(itheta)) - dhdy * cos(theta(itheta)))
+         !
       enddo
       !
       if (igwaves) then
+         !
          do itheta = 1, ntheta
-            ctheta_ig(itheta,:) = sigm_ig/sinh(min(2.0*kwav_ig*depth, 50.0))*(dhdx*sin(theta(itheta)) - dhdy*cos(theta(itheta)))
+            ctheta_ig(itheta,:) = sigm_ig / sinh(min(2 * kwav_ig * depth, 50.0)) * (dhdx * sin(theta(itheta)) - dhdy * cos(theta(itheta)))
          enddo
+         !
       else
+         !
          ctheta_ig = 0.0
+         !
       endif
       !
       ! Limit unrealistic refraction speed to 1/2 pi per wave period
       !
+      !$omp parallel do schedule(static)
       do k = 1, no_nodes
-         ctheta(:,k)    = sign(1.0, ctheta(:,k))*min(abs(ctheta(:, k)), sig(k)/4)
+         ! 
+         ctheta(:,k)    = sign(1.0, ctheta(:,k)) * min(abs(ctheta(:, k)), sig(k) / 4)
+         !
       enddo
+      !$omp end parallel do
       !
       if (igwaves) then
-           do k=1, no_nodes
-              ctheta_ig(:,k) = sign(1.0, ctheta_ig(:,k))*min(abs(ctheta_ig(:, k)), sigm_ig(k)/4.0)
-           enddo
+         !$omp parallel do schedule(static)
+         do k=1, no_nodes
+            ! 
+            ctheta_ig(:,k) = sign(1.0, ctheta_ig(:,k)) * min(abs(ctheta_ig(:, k)), sigm_ig(k) / 4)
+            !
+         enddo
+         !$omp end parallel do
       endif
       !
       ! Solve the directional wave energy balance on an unstructured grid
@@ -121,41 +154,44 @@ module snapwave_solver
       call timer(t2)
       !
       call solve_energy_balance2Dstat (x,y,dhdx, dhdy, no_nodes,inner, &
-                                         w, ds, prev,   &
-                                         neumannconnected,       &
+                                         w, ds, prev, &
+                                         neumannconnected, &
                                          theta,ntheta,thetamean, &
-                                         depth,kwav,cg,ctheta,fw,     &
+                                         depth,kwav,cg,ctheta,fw, &
                                          Tp,Tp_ig,dt,rho,alpha,gamma, gammax, &
-                                         wind,   &
-                                         H,Dw,F,Df,thetam,sinhkh,&
+                                         wind, &
+                                         H,Dw,F,Df,thetam,sinhkh, &
                                          Hmx, ee, windspreadfac, u10, niter, crit, &
-                                         hmin, baldock_ratio, baldock_ratio_ig, &
-                                         aa, sig, jadcgdx, sigmin, sigmax,&
+                                         hmin, baldock_ratio, baldock_ratio_ig, baldock_exponent, &
+                                         aa, sig, jadcgdx, sigmin, sigmax, &
+                                         DoverE, relax_factor_DoverE, relax_factor_DoverA, &             
                                          c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
-                                         igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
+                                         igwaves, kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
                                          beta, srcig, alphaig, Dw_ig, Df_ig, &
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
                                          zb, nwav, ig_opt, alpha_ig, gamma_ig, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
       !
       call timer(t3)
       !
-      Fx = F*cos(thetam)
-      Fy = F*sin(thetam)
+      Fx = F * cos(thetam)
+      Fy = F * sin(thetam)
       !
    end subroutine
    
    
+   
    subroutine solve_energy_balance2Dstat(x,y,dhdx, dhdy, no_nodes,inner, &
-                                         w, ds, prev,   &
-                                         neumannconnected,       &
+                                         w, ds, prev, &
+                                         neumannconnected, &
                                          theta,ntheta,thetamean, &
-                                         depth,kwav,cg,ctheta,fw,     &
+                                         depth,kwav,cg,ctheta,fw, &
                                          Tp,T_ig,dt,rho,alfa,gamma, gammax, &
-                                         wind,   &
-                                         H,Dw,F,Df,thetam,sinhkh,&
+                                         wind, &
+                                         H,Dw,F,Df,thetam,sinhkh, &
                                          Hmx, ee, windspreadfac, u10, niter, crit, &
-                                         hmin, baldock_ratio, baldock_ratio_ig, &       
-                                         aa, sig, jadcgdx, sigmin, sigmax,&
+                                         hmin, baldock_ratio, baldock_ratio_ig, baldock_exponent, &       
+                                         aa, sig, jadcgdx, sigmin, sigmax, &
+                                         DoverE, relax_factor_DoverE, relax_factor_DoverA, &   
                                          c_dispT, WsorE, WsorA, SwE, SwA, Tpini, &
                                          igwaves,kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
                                          betamean, srcig, alphaig, Dw_ig, Df_ig, &       
@@ -163,7 +199,6 @@ module snapwave_solver
                                          zb, nwav, ig_opt, alfa_ig, gamma_ig, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
    !
    use snapwave_windsource
-   !use snapwave_ncoutput ! TL: removed, we don't use this in SF+SW
    !
    implicit none
    !
@@ -203,7 +238,7 @@ module snapwave_solver
    real*4, intent(in)                               :: alfa,gamma, gammax     ! coefficients in Baldock wave breaking dissipation
    real*4, intent(in)                               :: baldock_ratio          ! option controlling from what depth wave breaking should take place: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio=0.2
    real*4, intent(in)                               :: baldock_ratio_ig       ! option controlling from what depth wave breaking should take place for IG waves: (Hk_ig>baldock_ratio_ig*Hmx_ig(k)), default baldock_ratio_ig=0.2     
-   real*4, dimension(no_nodes), intent(inout)       :: H                      ! wave height - TODO - TL - CHECK > inout needed to have updated 'H' for determining srcig
+   real*4, dimension(no_nodes), intent(out)         :: H                      ! wave height
    real*4, dimension(no_nodes), intent(out)         :: H_ig                   ! wave height
    real*4, dimension(no_nodes), intent(out)         :: Dw                     ! wave breaking dissipation
    real*4, dimension(no_nodes), intent(out)         :: Dw_ig                  ! wave breaking dissipation IG   
@@ -219,7 +254,9 @@ module snapwave_solver
    real*4, dimension(no_nodes), intent(in)          :: u10                    ! wind speed and direction
    integer,                     intent(in)          :: niter                  ! max number of iterations
    real*4,                      intent(in)          :: crit                   ! relative accuracy for stopping criterion
-   integer                                          :: ig_opt                 ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)
+   integer,                     intent(in)          :: ig_opt                 ! option of IG wave settings (1 = default = conservative shoaling based dSxx as in Leijnse et al. 2024)  
+   real*4,                      intent(in)          :: relax_factor_DoverA    ! underrelaxation factor for DoverA (set to 1.0 to disable)
+   real*4,                      intent(in)          :: relax_factor_DoverE    ! underrelaxation factor for DoverE (set to 1.0 to disable)   
    !
    ! wind source vars
    !
@@ -227,6 +264,7 @@ module snapwave_solver
    real*4, intent(in)                                  :: sigmin, sigmax, c_dispT
    real*4, dimension(ntheta, no_nodes), intent(in)     :: windspreadfac        !< [-] distribution array for wind input
    real*4, dimension(ntheta,no_nodes),  intent(inout)  :: aa    
+   real*4, dimension(no_nodes),         intent(inout)  :: DoverE
    real*4, dimension(ntheta,no_nodes),  intent(out)    :: WsorE, WsorA
    real*4, dimension(no_nodes),         intent(out)    :: SwE, SwA
    real*4, dimension(no_nodes),         intent(inout)  :: sig
@@ -250,12 +288,16 @@ module snapwave_solver
    ! Local variables and arrays
    !
    integer, dimension(:), allocatable         :: ok                     ! mask for fully iterated points
-   real*4                                     :: eemax,dtheta           ! maximum wave energy density, directional resolution
+   integer, dimension(:), allocatable         :: ok_ig                  ! mask for fully iterated IG points   
+   real*4                                     :: dtheta                 ! directional resolution
+   real*4                                     :: eemax                  ! maximum wave energy density   
+   real*4                                     :: eemax_ig               ! maximum IG wave energy density
    real*4                                     :: uorbi
    integer                                    :: sweep,iter            ! sweep number, number of iterations
    integer                                    :: k,k1,k2,count,kn,itheta ! counters (k is grid index)
    integer, dimension(:,:), allocatable       :: indx                   ! index for grid sorted per sweep direction
    real*4, dimension(:,:), allocatable        :: eeold               ! wave energy density, energy density previous iteration
+   real*4, dimension(:,:), allocatable        :: eeold_ig            ! IG wave energy density, energy density previous iteration
    real*4, dimension(:), allocatable          :: Eold                   ! mean wave energy, previous iteration
    real*4, dimension(:,:), allocatable        :: srcig_local            ! Energy source/sink term because of IG wave energy transfer from incident waves
    real*4, dimension(:,:), allocatable        :: beta_local             ! Local bed slope based on bed level per direction      
@@ -267,20 +309,18 @@ module snapwave_solver
    real*4, dimension(:), allocatable          :: A,B,C,R                ! coefficients in the tridiagonal matrix solved per point
    real*4, dimension(:), allocatable          :: B_aa,R_aa,aaprev       ! coefficients in the tridiagonal matrix solved per point
    real*4, dimension(:), allocatable          :: A_ig,B_ig,C_ig,R_ig    ! coefficients in the tridiagonal matrix solved per point
-   real*4, dimension(:), allocatable          :: DoverE                 ! ratio of mean wave dissipation over mean wave energy
    real*4, dimension(:), allocatable          :: DoverA                 ! ratio of mean wave dissipation over mean wave energy
    real*4, dimension(:), allocatable          :: DoverE_ig              ! ratio of mean wave dissipation over mean wave energy
    real*4, dimension(:), allocatable          :: E                      ! mean wave energy
    real*4, dimension(:), allocatable          :: E_ig                   ! mean wave energy
    real*4, dimension(:), allocatable          :: diff                   ! maximum difference of wave energy relative to previous iteration
+   real*4, dimension(:), allocatable          :: diff_ig                ! maximum difference of IG wave energy relative to previous iteration
    real*4, dimension(:), allocatable          :: ra                     ! coordinate in sweep direction
-   !real*4, dimension(:), allocatable          :: sig
    real*4, dimension(:), allocatable          :: sigm_ig
    integer, dimension(4)                      :: shift
-   real*4                                     :: pi = 4.*atan(1.0)
-   real*4                                     :: g=9.81
+   real*4                                     :: pi = 4.0 * atan(1.0)
+   real*4                                     :: g = 9.81
    real*4                                     :: hmin                   ! minimum water depth! TL: make user changeable also here according to 'snapwave_hmin' in sfincs.inp   
-   real*4                                     :: fac=1.0             ! underrelaxation factor for DoverA
    real*4                                     :: oneoverdt
    real*4                                     :: oneover2dtheta
    real*4                                     :: rhog8
@@ -289,7 +329,9 @@ module snapwave_solver
    real*4                                     :: Ek
    real*4                                     :: Hk
    real*4                                     :: percok
+   real*4                                     :: percok_ig              ! percentage of converged IG points   
    real*4                                     :: error
+   real*4                                     :: error_ig               ! relative maximum IG wave error
    real*4                                     :: Dfk_ig
    real*4                                     :: Dwk_ig
    real*4                                     :: Ek_ig
@@ -300,21 +342,23 @@ module snapwave_solver
    real*4                                     :: alphaigfac        ! Multiplication factor for IG shoaling source/sink term, default = 1.0
    real*4                                     :: shinc2ig          ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 0=default)   
    integer, save                              :: callno=1
+   integer, intent(in)                        :: baldock_exponent  ! Exponent for multiplying the Baldock dissipation with a factor 'f = (Hloc / Hmax)**iexp' to enhance breaking when H > Hmax, with iexp = 0 (default, means unused), 1 or 2 
    !
-   real*4, dimension(ntheta)                  :: sinth,costh            ! distribution of wave angles and offshore wave energy density   
+   real*4, dimension(ntheta)                  :: sinth, costh            ! distribution of wave angles and offshore wave energy density   
    !
-   !local wind source vars
+   ! Local wind source vars
    !
    real*4                                     :: Ak
    real*4                                     :: DwT
    real*4                                     :: DwAk
-   real*4                                     :: ndissip      !       
-   real*4                                     :: depthlimfac=1.0
+   real*4                                     :: ndissip    
+   real*4                                     :: depthlimfac
    real*4                                     :: waveps=0.0001
    !
    ! Allocate local arrays
    !
-   waveps         = 0.0001
+   waveps = 0.0001
+   !
    allocate(ok(no_nodes)); ok=0
    allocate(indx(no_nodes,4)); indx=0
    allocate(eeold(ntheta,no_nodes)); eeold=0.0
@@ -325,7 +369,6 @@ module snapwave_solver
    allocate(B(ntheta)); B=0.0
    allocate(C(ntheta)); C=0.0
    allocate(R(ntheta)); R=0.0
-   allocate(DoverE(no_nodes)); DoverE=0.0
    allocate(E(no_nodes)); E=waveps
    allocate(Eold(no_nodes)); Eold=0.0   
    !
@@ -338,11 +381,13 @@ module snapwave_solver
       allocate(cgprev_ig(ntheta)); cgprev_ig=0.0
       allocate(DoverE_ig(no_nodes)); DoverE_ig=0.0
       allocate(E_ig(no_nodes)); E_ig=waveps
-      !allocate(T_ig(no_nodes)); T_ig=0.0
       allocate(sigm_ig(no_nodes)); sigm_ig=0.0
-      allocate(depthprev(ntheta,no_nodes)); depthprev=0.0                     
-      allocate(beta_local(ntheta,no_nodes)); beta_local=0.0        
+      allocate(depthprev(ntheta,no_nodes)); depthprev=0.0
+      allocate(beta_local(ntheta,no_nodes)); beta_local=0.0
       allocate(alphaig_local(ntheta,no_nodes)); alphaig_local=0.0
+      allocate(eeold_ig(ntheta,no_nodes)); eeold_ig=0.0
+      allocate(diff_ig(no_nodes)); diff_ig=0.0
+      allocate(ok_ig(no_nodes)); ok_ig=0
    endif
    !
    if (wind) then
@@ -361,23 +406,35 @@ module snapwave_solver
       costh(itheta) = cos(theta(itheta))
    enddo
    !   
-   df   = 0.0
-   dw   = 0.0
+   Df   = 0.0
+   Dw   = 0.0
+   Dveg = 0.0
    F    = 0.0
    !
-   ok             = 0
-   indx           = 0
-   eemax          = maxval(ee)
-   dtheta         = theta(2) - theta(1)
-   if (dtheta<0.)   dtheta = dtheta + 2.*pi
-   if (wind) then
-      sig         = 2*pi/Tpini
-   else
-      sig         = 2*pi/Tp
+   ok     = 0
+   indx   = 0
+   eemax  = maxval(ee)
+   if (igwaves) then
+      ok_ig   = 0
+      eemax_ig = maxval(ee_ig)
    endif
-   oneoverdt      = 1.0/dt
-   oneover2dtheta = 1.0/2.0/dtheta
-   rhog8          = 0.125*rho*g
+   dtheta = theta(2) - theta(1)
+   !
+   if (dtheta < 0.0) dtheta = dtheta + 2*pi
+   !
+   if (wind) then
+      !
+      sig = 2 * pi / Tpini
+      !
+   else
+      !
+      sig = 2 * pi / Tp
+      !
+   endif
+   !
+   oneoverdt      = 1.0 / dt
+   oneover2dtheta = 1.0 / 2.0 / dtheta
+   rhog8          = 0.125 * rho * g
    thetam         = 0.0
    !H              = 0.0 ! TODO - TL: CHeck > needed for restart for IG > set to 0 now in snapwave_domain.f90
    Dveg           = 0.0
@@ -386,33 +443,51 @@ module snapwave_solver
    etaw0          = 0.0
    !
    if (igwaves) then
-      !T_ig = Tinc2ig*Tp
-      sigm_ig        = 2*pi/T_ig
+      !
+      sigm_ig        = 2 * pi / T_ig
       DoverE_ig      = 0.0
+      !
    endif
    !
    if (wind) then
+      !
       DoverA = 0.0      
       ndissip = 3.0
       WsorE = 0.0
       WsorA = 0.0
-      Ak = waveps/sigmax
+      Ak = waveps / sigmax
+      Tp = Tpini
+      !
+      do k = 1, no_nodes
+         !
+         sig(k) = 2 * pi / Tp(k)
+         sig(k) = min(max(sig(k), sigmin), sigmax)
+         !
+         if (.not. inner(k)) then
+            aa(:, k) = max(ee(:, k), waveps) / sig(k)
+         endif
+         !
+         call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:,k))
+         !
+      enddo         
+      !
    endif
    !   
-   ! Sort coordinates in sweep directions
+   ! Sort coordinates in sweep directions (can we not do this already in snapwave_domain?)
    !
-   shift = [0,1,-1,2]
+   shift = [0, 1, -1, 2]
+   !
    do sweep = 1, 4
       !
-      ra = x*cos(thetamean + 0.5*pi*shift(sweep)) + y*sin(thetamean + 0.5*pi*shift(sweep))
+      ra = x * cos(thetamean + 0.5 * pi * shift(sweep)) + y * sin(thetamean + 0.5 * pi * shift(sweep))
       call hpsort_eps_epw(no_nodes, ra , indx(:, sweep), 1.0e-6)
       !
    enddo
-   !   
-   ! Set inner to false for all points at grid edge or adjacent to dry point
    !
-   do k=1,no_nodes
-      ! 
+   ! Set inner to false for all points at grid edge
+   !
+   do k = 1, no_nodes
+      !
       do itheta = 1, ntheta
          !
          k1 = prev(1, itheta, k)
@@ -424,148 +499,116 @@ module snapwave_solver
             !
             inner(k) = .false.
             !
-			elseif ((k1==1 .and. k2==1)) then ! TL: for now still needed for a working IG solver
-			   inner(k)=.false.
-               exit                       
-         !elseif (depth(k1) < hmin .or. depth(k2) < hmin .or. (k1 == 1 .and. k2 == 1)) then
+         elseif (k1==1 .and. k2==1) then ! TL: for now still needed for a working IG solver
             !
-            ! Do not change inner here! It should be static! In a next update of the wave fields, these points may be wet.
-            !
-            !inner(k) = .false.
-            !
-            !exit
+			   inner(k) = .false.
+            exit                       
             !
          endif
+         !
       enddo
    enddo  
    !
-   !
-   ! 0-a) Set boundary and initial conditions      
-   !
-   do k = 1, no_nodes
-      !
-      ! Boundary condition at sea side (uniform)
-      !
-      if (.not.inner(k)) then
-         !
-         ee(:,k)=max(ee(:,k),waveps)
-         E(k)      = sum(ee(:, k))*dtheta
-         H(k)      = sqrt(8*E(k)/rho/g)
-         thetam(k) = atan2(sum(ee(:, k)*sin(theta)), sum(ee(:, k)*cos(theta)))
-         !
-         !ee_ig(:, k)  = eeinc2ig*ee(:,k) !TODO TL: determined in snapwave_boundaries.f90        
-         !
-         if (igwaves) then             
-            E_ig(k)      = sum(ee_ig(:, k))*dtheta
-            H_ig(k)      = sqrt(8*E_ig(k)/rho/g)
-         endif
-         ! 
-         if (wind) then
-            sig(k)    = 2*pi/Tp(k)
-           !aa(:,k)   = max(aa(:,k),waveps/sig(k))
-            aa(:,k)   = max(ee(:,k),waveps)/sig(k)
-            Ak        = E(k)/sig(k)
-         endif
-         !
-      endif
-   enddo
-   !
-   ! 0-b) Determine IG source/sink term
-   !
-   if (igwaves) then
-      !        
-      ! As defined in Leijnse, van Ormondt, van Dongeren, Aerts & Muis et al. 2024 
-      !      
-      ! Actual determining of source term: 
-      !          
-      call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
-      !         
-      ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev, beta_local
-      ! in: the rest
-      !
-      ! NOTE - This is based on the energy in the precious SnapWave timestep 'ee' and 'ee_ig', and waveheight 'H', which should therefore be made available. 
-      !
-   endif             
-   !
-   ! 0-c) Set initial condition at inner cells  
-   !
-   do k = 1, no_nodes   
-      ! 
-      if (inner(k)) then
-         !
-         if (wind) then
-             ee(:,k) = waveps
-             sig(k)  = 2*pi/Tpini
-             aa(:,k) = ee(:,k)/sig(k)
-         else
-             ee(:,k) = waveps
-         endif
-         !
-         ! Make sure DoverE is filled based on previous ee
-         Ek       = sum(ee(:, k))*dtheta      
-         Hk       = min(sqrt(Ek/rhog8), gamma*depth(k))
-         Ek       = rhog8*Hk**2
-         if (.not. wind) then
-            uorbi    = 0.5*sig(k)*Hk/sinhkh(k)
-            Dfk      = 0.28*rho*fw(k)*uorbi**3
-            call baldock(rho, g, alfa, gamma, depth(k), Hk, Tp(k), 1, Dwk, Hmx(k))
-            DoverE(k) = (Dwk + Dfk)/max(Ek, 1.0e-6)
-         endif
-         !
-         if (wind) then
-            call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:,k))  
-            uorbi    = 0.5*sig(k)*Hk/sinhkh(k)  
-            Dfk      = 0.28*rho*fw(k)*uorbi**3
-            call baldock(rho, g, alfa, gamma, depth(k), Hk, 2.0*pi/sig(k), 1, Dwk, Hmx(k))
-            DoverE(k) = (Dwk + Dfk)/max(Ek, 1.0e-6)      
-            !
-            ! initial conditions are not equal to bc conditions  
-            DwT = - c_dispT/(1.0 -ndissip)*(2.*pi)/sig(k)**2*cg(k)*kwav(k) * DoverE(k)
-            DwAk = 0.5/pi * (E(k)*DwT+2.0*pi*Ak*DoverE(k) )
-            DoverA(k) = DwAk/max(Ak,1e-6) 
-         endif
-         !
-      endif
-      !
-   enddo        
-   !
    ! Start iteration
    !
-   do iter=1,niter
+   do iter = 1, niter * 4
       !
       sweep = mod(iter, 4) !TODO - TL: problem that we don't have option for sweep = 1 anymore?
       !
-      if (sweep==0) then
+      if (sweep == 0) then
          sweep = 4
       endif
       !
-      if (sweep==1) then
-         eeold = ee
-         do k = 1, no_nodes
-            Eold(k) = sum(eeold(:, k))
-         enddo
+      !write(*,*)'iter:', iter, 'sweep:', sweep
+      !
+      ! At start of each sweep, compute E, H, E_ig and H_ig, and aa
+      !
+      !$omp parallel do private(kn) schedule(static)
+      do k = 1, no_nodes
+         !
+         if (ok(k) == 1) cycle
+         !
+         ee(:, k) = max(ee(:, k), waveps)
+         !
+         E(k)     = sum(ee(:, k)) * dtheta
+         H(k)      = sqrt(8 * E(k) / rho / g)
          !
          if (igwaves) then
-            !        
-            if (iterative_srcig) then 
-                ! Update H(k) based on updated ee(:,k), as used in IG source term to determine alphaig
-                ! 
-                do k = 1, no_nodes   
-                   ! 
-                   if (inner(k)) then             
-                       !
-                       H(k)      = sqrt(8*sum(ee(:, k))*dtheta/rho/g)                   
-                       !
-                   endif               
-                enddo
-                !
-                ! Actual determining of source term - every first sweep of iteration
-                !          
-                call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
-                !    
+            !
+            E_ig(k) = sum(ee_ig(:, k)) * dtheta
+            H_ig(k) = sqrt(8 * E_ig(k) / rho / g)
+            !
+         endif
+         !
+         ! Set Neumann boundaries
+         !
+         if (neumannconnected(k) /= 0) then
+            !
+            ! Do we really need all of these? Hmx?
+            !
+            kn = neumannconnected(k) ! Index of internal point
+            !
+            sinhkh(k) = sinhkh(kn)
+            kwav(k) = kwav(kn)
+            Hmx(k) = Hmx(kn)
+            ee(:, k) = ee(:, kn)
+            ee_ig(:, k) = ee_ig(:, kn)
+            ctheta(:, k) = ctheta(:, kn)
+            cg(k) = cg(kn)
+            !
+            if (wind) then
+               !
+               sig(k) = sig(kn)
+               Tp(k) = 2 * pi / sig(kn)
+               WsorE(:, k) = WsorE(:, kn)
+               WsorA(:, k) = WsorA(:, kn)
+               aa(:, k) = aa(:, kn)
+               !
             endif
             !
-         endif   
+            Df(k) = Df(kn)
+            Dw(k) = Dw(kn)
+            !
+         endif
+         !
+      enddo
+      !$omp end parallel do
+      !
+      if (sweep == 1) then
+         !
+         eeold = ee
+         !
+         if (igwaves) then
+             !
+             eeold_ig = ee_ig
+             !
+         endif
+         !
+         !$omp parallel do schedule(static)
+         do k = 1, no_nodes
+            !
+            Eold(k) = sum(eeold(:, k))
+            !
+         enddo
+         !$omp end parallel do
+         !
+      endif
+      !
+      ! Update IG source and sink terms
+      !
+      if (igwaves) then
+         !
+         ! Do this in each first sweep, or (in case of iterative_srcig) in every sweep 
+         !
+         if (sweep == 1 .or. iterative_srcig) then
+            !
+            ! Determining of IG source term as defined in Leijnse et al. 2024 
+            !      
+            call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, &
+                                                         ee, ee_ig, ig_opt, alphaigfac, &
+                                                         alphaig_local, beta_local, srcig_local)
+            !
+         endif
          !
       endif
       !
@@ -573,282 +616,306 @@ module snapwave_solver
       !
       do count = 1, no_nodes
          !
-         k=indx(count, sweep)
+         k = indx(count, sweep)
          !
-         if (inner(k)) then
-            if (depth(k)>1.1*hmin) then
-               !
-               if (ok(k) == 0)  then
-                  !
-                  ! Only perform computations on wet inner points that are not yet converged (ok)
-                  !
-                  do itheta = 1, ntheta
-                     !
-                     k1 = prev(1, itheta, k)
-                     k2 = prev(2, itheta, k)
-                     !
-                     eeprev(itheta) = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)
-                     cgprev(itheta) = w(1, itheta, k)*cg(k1) + w(2, itheta, k)*cg(k2)
-                     !
-                     if (igwaves) then
-                        eeprev_ig(itheta) = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)
-                        cgprev_ig(itheta) = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
-                     endif
-                     !
-                     if (wind) then
-                        aaprev(itheta) = w(1, itheta, k)*aa(itheta, k1) + w(2, itheta, k)*aa(itheta, k2)
-                     endif
-                     !
-                  enddo
-                  !
-                  Ek = sum(eeprev)*dtheta     ! to check                
-                  !
-                  depthlimfac = max(1.0, (sqrt(Ek/rhog8)/(gammax*depth(k)))**2.0)
-                  Hk = min(sqrt(Ek/rhog8), gamma*depth(k))
-                  Ek = Ek/depthlimfac
-                  !
-                  if (wind) then
-                    !
-                    Ak = sum(aaprev)*dtheta
-                    !
-                    Ak = Ak/depthlimfac                   
-                    ee(:,k) = ee(:,k) / depthlimfac
-                    aa(:,k) = aa(:,k) / depthlimfac                   
-                    sig(k)  = Ek/Ak
-                    sig(k)  = max(sig(k),sigmin)
-                    sig(k)  = min(sig(k),sigmax)
-                    Ak      = Ek/sig(k) ! to avoid small T in windinput
-                    if (wind) then
-                       aaprev=min(aaprev,eeprev/sigmin)
-                       aaprev=max(aaprev,eeprev/sigmax)
-                    endif
-                    !                    
-                    call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:,k))    
-                  endif
-                  ! 
-                  ! Fill DoverE 
-                  uorbi    = 0.5*sig(k)*Hk/sinhkh(k)
-                  Dfk      = 0.28*rho*fw(k)*uorbi**3
-                  !if (Hk>0.) then !
-                  if (Hk>baldock_ratio*Hmx(k)) then
-                     call baldock(rho, g, alfa, gamma, depth(k), Hk, 2*pi/sig(k) , 1, Dwk, Hmx(k))
-                  else
-                     Dwk   = 0.
-                  endif
-                  !                  
-                  if (vegetation) then
-                      call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, g, Hk, Dvegk)
-                  else
-                      Dvegk = 0.
-                  endif
-                  !
-                  DoverE(k) = (Dwk + Dfk + Dvegk)/max(Ek, 1.0e-6)
-                  !if (Dvegk > 0.0) then
-                  !   write(logstr,*)'k ',k,'depth(k)',depth(k),'Hk ',Hk,'Ek ',Ek,'Dwk ', Dwk,'Dfk ', Dfk,'Dvegk ', Dvegk,'DoverE veggie ', DoverE(k),'DoverE org ', (Dwk + Dfk)/max(Ek, 1.0e-6)
-                  !   call write_log(logstr, 0)                                    
-                  !endif
-                  !
-                  if (wind) then
-                     !
-                     if (iter==1) then
-                        call windinput(u10(k), rho, g, depth(k), ntheta, windspreadfac(:,k), Ek, Ak, cg(k), eeprev, aaprev, ds(:,k), WsorE(:,k), WsorA(:,k), jadcgdx)
-                     else
-                        call windinput(u10(k), rho, g, depth(k), ntheta, windspreadfac(:,k), Ek, Ak, cg(k), ee(:,k), aa(:,k), ds(:,k), WsorE(:,k), WsorA(:,k), jadcgdx)   
-                     endif
-                     !
-                     DwT = - c_dispT/(1.0 -ndissip)*(2.0*pi)/sig(k)**2*cg(k)*kwav(k) * DoverE(k) 
-                     DwAk = 1/2.0/pi * (E(k)*DwT+2.0*pi*Ak*DoverE(k) )
-                     !
-                     if (iter==1) then
-                        DoverA(k) = DwAk/max(Ak,1e-6) 
-                     else
-                        DoverA(k) = (1.0-fac)*DoverA(k)+fac*DwAk/max(Ak,1.e-6) 
-                     endif
-                     !                     
-                     call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:,k))  
-                     !
-                  endif
-                  !
-                   do itheta = 1, ntheta
-                     !
-                     R(itheta) = oneoverdt*ee(itheta, k) + cgprev(itheta)*eeprev(itheta)/ds(itheta, k) - srcig_local(itheta, k) * shinc2ig
-                     !
-                  enddo                  
-                  !
-                  do itheta = 2, ntheta - 1
-                     !
-                     A(itheta) = -ctheta(itheta - 1, k)*oneover2dtheta
-                     B(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverE(k)
-                     C(itheta) = ctheta(itheta + 1, k)*oneover2dtheta
-                     !
-                  enddo
-                  !
-                  A(1) = -ctheta(ntheta, k)*oneover2dtheta
-                  B(1) = oneoverdt + cg(k)/ds(1,k) + DoverE(k)
-                  C(1) = ctheta(2, k)*oneover2dtheta
-                  !
-                  A(ntheta) = -ctheta(ntheta - 1, k)*oneover2dtheta
-                  B(ntheta) = oneoverdt + cg(k)/ds(ntheta,k) + DoverE(k)
-                  C(ntheta) = ctheta(1, k)*oneover2dtheta
-                  !
-                  ! Solve tridiagonal system per point
-                  !
-                  if (wind) then
-                     do itheta = 2, ntheta - 1
-                        B_aa(itheta) = oneoverdt + cg(k)/ds(itheta,k) + DoverA(k)       
-                        R_aa(itheta) = (oneoverdt)*aa(itheta, k) + cgprev(itheta)*aaprev(itheta)/ds(itheta, k)
-                     enddo
-                     !
-                     if (ctheta(1,k)<0) then
-                        B_aa(1) = oneoverdt - ctheta(1, k)/dtheta + cg(k)/ds(1, k) + DoverA(k)
-                        R_aa(1) = (oneoverdt)*aa(1, k) + cgprev(1)*aaprev(1)/ds(1, k) 
-                     else
-                        B_aa(1) = oneoverdt + cg(k)/ds(1, k) + DoverA(k)
-                        R_aa(1) = (oneoverdt)*aa(1, k) + cgprev(1)*aaprev(1)/ds(1, k)
-                     endif
-                     !
-                     if (ctheta(ntheta, k)>0) then
-                        B_aa(ntheta) = oneoverdt + ctheta(ntheta, k)/dtheta + cg(k)/ds(ntheta, k) + DoverA(k)
-                        R_aa(ntheta) = (oneoverdt )*aa(ntheta,k) + cgprev(ntheta)*aaprev(ntheta)/ds(ntheta, k)
-                     else
-                        B_aa(ntheta) = oneoverdt + cg(k)/ds(ntheta, k) + DoverA(k)
-                        R_aa(ntheta) = (oneoverdt)*aa(ntheta,k) + cgprev(ntheta)*aaprev(ntheta)/ds(ntheta, k)
-                     endif
-                     R(:)    = R(:)    + WsorE(:,k)
-                     R_aa(:) = R_aa(:) + WsorA(:,k)
-                     !
-                     call solve_tridiag(A, B, C, R, ee(:,k), ntheta)
-                     call solve_tridiag(A,B_aa,C,R_aa,aa(:,k),ntheta)
-                     ee(:, k) = max(ee(:, k), waveps)
-                     aa(:,k) = max(aa(:,k),waveps/sigmax)
-                     aa(:,k) = max(aa(:,k),waveps/sig(k))
-                     !
-                     Ek       = sum(ee(:, k))*dtheta     
-                     Ak       = sum(aa(:,k))*dtheta
-                     !
-                     depthlimfac = max(1.0, (sqrt(Ek/rhog8)/(gammax*depth(k)))**2.0)
-                     Hk = sqrt(Ek/rhog8/depthlimfac)
-                     Ek = Ek/depthlimfac
-                     Ak = Ak/depthlimfac
-                     ee(:,k) = ee(:,k)/depthlimfac
-                     aa(:,k) = aa(:,k)/depthlimfac
-                     !
-                     sig(k)  = Ek/Ak
-                     sig(k)  = max(sig(k),sigmin)
-                     sig(k)  = min(sig(k),sigmax)
-                     call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:,k))   
-                     if (sig(k)<0.1) then
-                         a=1
-                     endif
-                  else
-                     !
-                     ! Solve tridiagonal system per point
-                     !
-                     call solve_tridiag(A, B, C, R, ee(:,k), ntheta)
-                     ee(:, k) = max(ee(:, k),waveps)
-                     !
-                  endif !wind 
-                  !
-                  ! IG
-                  !
-                  if (igwaves) then
-                     Ek_ig       = sum(eeprev_ig)*dtheta                  
-                     !Hk_ig       = sqrt(Ek_ig/rhog8) !org trunk
-                     Hk_ig       = min(sqrt(Ek_ig/rhog8), gamma_ig*depth(k))  !TL: Question - why not this one?                     
-                     Ek_ig       = rhog8*Hk_ig**2
-                     ! 
-                     ! Bottom friction Henderson and Bowen (2002) - D = 0.015*rhow*(9.81/depth(k))**1.5*(Hk/sqrt(8.0))*Hk_ig**2/8
-                     !
-                     Dfk_ig      = fw_ig(k)*0.0361*(9.81/depth(k))**1.5*Hk*Ek_ig
-                     !
-                     ! Dissipation of infragravity waves
-                     !
-                     if (Hk_ig>baldock_ratio_ig*Hmx_ig(k)) then
-                        call baldock(rho, g, alfa_ig, gamma_ig, depth(k), Hk_ig, T_ig(k), 1, Dwk_ig, Hmx_ig(k))
-                     else
-                        Dwk_ig   = 0.
-                     endif
-                     !
-                     DoverE_ig(k) = (Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0e-6) ! org trunk
-                     !DoverE_ig(k) = (1.0 - fac)*DoverE_ig(k) + fac*(Dwk_ig + Dfk_ig)/max(Ek_ig, 1.0e-6) ! TODO - TL CHECK - why not with relaxation anymore?                 
-                     !
-                     do itheta = 1, ntheta
-                        !
-                        R_ig(itheta) = oneoverdt*ee_ig(itheta, k) + cgprev_ig(itheta)*eeprev_ig(itheta)/ds(itheta, k) + srcig_local(itheta, k) !TL: new version
-                        !
-                     enddo
-                     !
-                     do itheta = 2, ntheta - 1
-                        !
-                        A_ig(itheta) = -ctheta_ig(itheta - 1, k)*oneover2dtheta
-                        B_ig(itheta) = oneoverdt + cg_ig(k)/ds(itheta,k) + DoverE_ig(k)
-                        C_ig(itheta) = ctheta_ig(itheta + 1, k)*oneover2dtheta
-                        !
-                     enddo
-                     !
-                     if (ctheta_ig(1,k)<0) then
-                        A_ig(1) = 0.0
-                        B_ig(1) = oneoverdt - ctheta_ig(1, k)/dtheta + cg_ig(k)/ds(1, k) + DoverE_ig(k)
-                        C_ig(1) = ctheta_ig(2, k)/dtheta
-                     else
-                        A_ig(1)=0.0
-                        B_ig(1)=1.0/dt + cg_ig(k)/ds(1, k) + DoverE_ig(k)
-                        C_ig(1)=0.0
-                     endif
-                     !
-                     if (ctheta_ig(ntheta, k)>0) then
-                        A_ig(ntheta) = -ctheta_ig(ntheta - 1, k)/dtheta
-                        B_ig(ntheta) = oneoverdt + ctheta_ig(ntheta, k)/dtheta + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
-                        C_ig(ntheta) = 0.0
-                     else
-                        A_ig(ntheta) = 0.0
-                        B_ig(ntheta) = oneoverdt + cg_ig(k)/ds(ntheta, k) + DoverE_ig(k)
-                        C_ig(ntheta) = 0.0
-                     endif
-                     !
-                     ! Solve tridiagonal system per point
-                     !
-                     call solve_tridiag(A_ig, B_ig, C_ig, R_ig, ee_ig(:,k), ntheta)
-                     ee_ig(:, k) = max(ee_ig(:, k), 0.0)
-                     !  
-                  else
-                     !
-                     ee_ig(:, k) = 0.0
-                     !
-                  endif
-                  !
-               endif
-               !
-            else
-               !
-               ee(:, k) = 0.0
-               if (wind) then
-                  aa(:,k)  = 0.0
-               endif
-               ee_ig(:, k) = 0.0
-               !               
-            endif 
+         ! Skip non-inner (boundary) nodes
+         !
+         if (.not. inner(k)) cycle
+         !
+         ! For nodes below minimum depth: zero out energy and skip
+         !
+         if (depth(k) <= hmin) then
+            !
+            ee(:, k)    = 0.0
+            if (wind) aa(:, k) = 0.0
+            ee_ig(:, k) = 0.0
+            cycle
             !
          endif
          !
-         if (neumannconnected(k)/=0) then
-            kn = neumannconnected(k)
-            sinhkh(kn) = sinhkh(k)
-            kwav(kn) = kwav(k)
-            Hmx(kn) = Hmx(k)
-            ee(:, kn) = ee(:, k)
-            ee_ig(:, kn) = ee_ig(:, k) ! TL: Added Neumann option for IG            
-            ctheta(:, kn) = ctheta(:, k)
-            cg(kn) = cg(k)
-            if (wind) then
-               sig(kn) = sig(k)
-               Tp(kn) = 2.0*pi/sig(k)
-               WsorE(:,kn) = WsorE(:,k)
-               WsorA(:,kn) = WsorA(:,k)
-               aa(:,kn) = aa(:,k)
+         ! Skip nodes that have already converged
+         !
+         if (ok(k) == 1) cycle
+         !
+         ! Retrieve integrated quantities computed in the start-of-sweep pre-loop
+         !
+         Ek = E(k)
+         Hk = H(k)
+         !
+         if (igwaves) then
+            !
+            Ek_ig = E_ig(k)
+            Hk_ig = H_ig(k)
+            !
+         endif
+         !
+         ! --- Step 1: Upwind energy, group velocity (and action for wind) ------------
+         !
+         do itheta = 1, ntheta
+            !
+            k1 = prev(1, itheta, k)
+            k2 = prev(2, itheta, k)
+            !
+            eeprev(itheta) = w(1, itheta, k) * ee(itheta, k1) + w(2, itheta, k) * ee(itheta, k2)
+            cgprev(itheta) = w(1, itheta, k) * cg(k1)         + w(2, itheta, k) * cg(k2)
+            !
+            if (igwaves) then
+               eeprev_ig(itheta) = w(1, itheta, k) * ee_ig(itheta, k1) + w(2, itheta, k) * ee_ig(itheta, k2)
+               cgprev_ig(itheta) = w(1, itheta, k) * cg_ig(k1)         + w(2, itheta, k) * cg_ig(k2)
             endif
-            Df(kn) = Df(k)
-            Dw(kn) = Dw(k)
+            !
+            if (wind) then
+               aaprev(itheta) = w(1, itheta, k) * aa(itheta, k1) + w(2, itheta, k) * aa(itheta, k2)
+               aaprev(itheta) = min(aaprev(itheta), eeprev(itheta) / sigmin)
+               aaprev(itheta) = max(aaprev(itheta), eeprev(itheta) / sigmax)
+            endif
+            !
+         enddo
+         !
+         ! --- Step 2: Pre-solve sig and celerities from upwind Ek/Ak (wind only) ----
+         !
+         ! The upwind Ek/Ak provides the best pre-solve estimate of local sig, so that
+         ! both the ee and aa matrices are assembled with a consistent cg(k).
+         ! Post-solve, sig is updated from the solved Ek/Ak in Step 6.
+         !
+         if (wind) then
+            !
+            Ek     = sum(eeprev) * dtheta
+            Ak     = sum(aaprev) * dtheta
+            sig(k) = max(min(Ek / Ak, sigmax), sigmin)
+            Ak     = Ek / sig(k)
+            aaprev = min(aaprev, eeprev / sigmin)
+            aaprev = max(aaprev, eeprev / sigmax)
+            call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, &
+                                    dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:, k))
+            !
+         endif
+         !
+         ! --- Step 3: Source and sink terms ------------------------------------------
+         !
+         ! Bottom friction
+         !
+         uorbi = 0.5 * sig(k) * Hk / sinhkh(k)
+         Dfk   = 0.28 * rho * fw(k) * uorbi**3
+         !
+         ! Wave breaking (Baldock)
+         ! First check if wave breaking could occur based on Baldock criterion (Hk > baldock_ratio * Hmx(k))
+         !
+         if (Hk > baldock_ratio * Hmx(k)) then
+            !
+            call baldock(rho, g, alfa, gamma, depth(k), Hk, 2 * pi / sig(k), baldock_exponent, Dwk, Hmx(k))
+            !
+         else
+            !
+            ! No wave breaking according to Baldock criterion
+            !
+            Dwk = 0.0
+            !
+         endif
+         !
+         ! Vegetation
+         !
+         if (vegetation) then
+            !
+            call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k, :), veg_bstems(k, :), &
+                        veg_Nstems(k, :), veg_Cd(k, :), depth(k), rho, g, Hk, Dvegk)
+            !
+         else
+            !
+            Dvegk = 0.0
+            !
+         endif
+         !
+         ! Energy dissipation ratio (with under-relaxation)
+         !
+         DoverE(k) = (1.0 - relax_factor_DoverE) * DoverE(k) &
+                   + relax_factor_DoverE * (Dwk + Dfk + Dvegk) / max(Ek, 1.0e-6)
+         !
+         Df(k)   = Dfk
+         Dw(k)   = Dwk
+         Dveg(k) = Dvegk
+         !
+         ! Wind source terms and action dissipation ratio DoverA (wind only)
+         !
+         if (wind) then
+            !
+            if (iter == 1) then
+               call windinput(u10(k), rho, g, depth(k), ntheta, windspreadfac(:, k), Ek, Ak, cg(k), &
+                              eeprev, aaprev, ds(:, k), WsorE(:, k), WsorA(:, k), jadcgdx)
+            else
+               call windinput(u10(k), rho, g, depth(k), ntheta, windspreadfac(:, k), Ek, Ak, cg(k), &
+                              ee(:, k), aa(:, k), ds(:, k), WsorE(:, k), WsorA(:, k), jadcgdx)
+            endif
+            !
+            DwT  = -c_dispT / (1.0 - ndissip) * (2.0 * pi) / sig(k)**2 * cg(k) * kwav(k) * DoverE(k)
+            DwAk = 1.0 / (2.0 * pi) * (E(k) * DwT + 2.0 * pi * Ak * DoverE(k))
+            !
+            if (iter == 1) then
+               DoverA(k) = DwAk / max(Ak, 1.0e-6)
+            else
+               DoverA(k) = (1.0 - relax_factor_DoverA) * DoverA(k) &
+                         + relax_factor_DoverA * DwAk / max(Ak, 1.0e-6)
+            endif
+            !
+         endif
+         !
+         ! --- Step 4: Assemble and solve energy balance (ee) -------------------------
+         !
+         do itheta = 1, ntheta
+            !
+            R(itheta) = oneoverdt * ee(itheta, k) + cgprev(itheta) * eeprev(itheta) / ds(itheta, k) &
+                      - srcig_local(itheta, k) * shinc2ig
+            !
+         enddo
+         !
+         do itheta = 2, ntheta - 1
+            !
+            A(itheta) = -ctheta(itheta - 1, k) * oneover2dtheta
+            B(itheta) =  oneoverdt + cg(k) / ds(itheta, k) + DoverE(k)
+            C(itheta) =  ctheta(itheta + 1, k) * oneover2dtheta
+            !
+         enddo
+         !
+         A(1) = - ctheta(ntheta, k) * oneover2dtheta
+         B(1) = oneoverdt + cg(k) / ds(1, k) + DoverE(k)
+         C(1) = ctheta(2, k) * oneover2dtheta
+         !
+         A(ntheta) = -ctheta(ntheta - 1, k) * oneover2dtheta
+         B(ntheta) =  oneoverdt + cg(k) / ds(ntheta, k) + DoverE(k)
+         C(ntheta) =  ctheta(1, k) * oneover2dtheta
+         !
+         if (wind) R(:) = R(:) + WsorE(:, k)
+         !
+         call solve_tridiag(A, B, C, R, ee(:, k), ntheta)
+         ee(:, k) = max(ee(:, k), waveps)
+         !
+         ! --- Step 5: Assemble and solve action balance (aa, wind only) ---------------
+         !
+         ! A and C are the same as for ee (refraction terms don't change).
+         ! Only B_aa differs: DoverA instead of DoverE, plus upwind BC for ctheta endpoints.
+         !
+         if (wind) then
+            !
+            do itheta = 2, ntheta - 1
+               B_aa(itheta) = oneoverdt + cg(k) / ds(itheta, k) + DoverA(k)
+               R_aa(itheta) = oneoverdt * aa(itheta, k) + cgprev(itheta) * aaprev(itheta) / ds(itheta, k)
+            enddo
+            !
+            if (ctheta(1, k) < 0.0) then
+               B_aa(1) = oneoverdt - ctheta(1, k) / dtheta + cg(k) / ds(1, k) + DoverA(k)
+            else
+               B_aa(1) = oneoverdt + cg(k) / ds(1, k) + DoverA(k)
+            endif
+            !
+            R_aa(1) = oneoverdt * aa(1, k) + cgprev(1) * aaprev(1) / ds(1, k)
+            !
+            if (ctheta(ntheta, k) > 0.0) then
+               B_aa(ntheta) = oneoverdt + ctheta(ntheta, k) / dtheta + cg(k) / ds(ntheta, k) + DoverA(k)
+            else
+               B_aa(ntheta) = oneoverdt + cg(k) / ds(ntheta, k) + DoverA(k)
+            endif
+            !
+            R_aa(ntheta) = oneoverdt * aa(ntheta, k) + cgprev(ntheta) * aaprev(ntheta) / ds(ntheta, k)
+            R_aa(:) = R_aa(:) + WsorA(:, k)
+            !
+            call solve_tridiag(A, B_aa, C, R_aa, aa(:, k), ntheta)
+            !
+            aa(:, k) = max(aa(:, k), waveps / sigmax)
+            aa(:, k) = max(aa(:, k), waveps / sig(k))
+            !
+         endif
+         !
+         ! --- Step 6: Depth-limit energy (and action), update sig and celerities -----
+         !
+         Ek          = sum(ee(:, k)) * dtheta
+         depthlimfac = max(1.0, (sqrt(Ek / rhog8) / (gammax * depth(k)))**2)
+         ee(:, k)    = ee(:, k) / depthlimfac
+         !
+!         if (wind) then
+!            !
+!            Ek       = Ek / depthlimfac
+!            Ak       = sum(aa(:, k)) * dtheta
+!            Ak       = Ak / depthlimfac
+!            aa(:, k) = aa(:, k) / depthlimfac
+!            sig(k)   = max(min(Ek / Ak, sigmax), sigmin)
+!            !
+!            call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, &
+!                                    dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:, k))
+!            !
+!         endif
+         !
+         ! --- Step 7: IG wave balance (optional) -------------------------------------
+         !
+         if (igwaves) then
+            !
+            ! Update incident Hk from post-solve ee (needed for IG bottom friction)
+            !
+            Hk     = sqrt(8.0 * sum(ee(:, k)) * dtheta / rho / g)
+            Dfk_ig = fw_ig(k) * 0.0361 * (9.81 / depth(k))**1.5 * Hk * Ek_ig
+            !
+            ! IG wave breaking (Baldock)
+            !
+            if (Hk_ig > baldock_ratio_ig * Hmx_ig(k)) then
+               call baldock(rho, g, alfa_ig, gamma_ig, depth(k), Hk_ig, T_ig(k), baldock_exponent, Dwk_ig, Hmx_ig(k))
+            else
+               Dwk_ig = 0.0
+            endif
+            !
+            Df_ig(k)     = Dfk_ig
+            Dw_ig(k)     = Dwk_ig
+            !
+            ! Not using underrelaxation for IG dissipation for now, but we could add this if needed (relax_factor_DoverE_ig)
+            DoverE_ig(k) = (Dwk_ig + Dfk_ig) / max(Ek_ig, 1.0e-6)
+            ! 
+            !
+            ! IG RHS
+            !
+            do itheta = 1, ntheta
+               R_ig(itheta) = oneoverdt * ee_ig(itheta, k) &
+                            + cgprev_ig(itheta) * eeprev_ig(itheta) / ds(itheta, k) &
+                            + srcig_local(itheta, k)
+            enddo
+            !
+            ! IG matrix with directional boundary conditions
+            !
+            do itheta = 2, ntheta - 1
+               A_ig(itheta) = -ctheta_ig(itheta - 1, k) * oneover2dtheta
+               B_ig(itheta) =  oneoverdt + cg_ig(k) / ds(itheta, k) + DoverE_ig(k)
+               C_ig(itheta) =  ctheta_ig(itheta + 1, k) * oneover2dtheta
+            enddo
+            !
+            if (ctheta_ig(1, k) < 0.0) then
+               A_ig(1) = 0.0
+               B_ig(1) = oneoverdt - ctheta_ig(1, k) / dtheta + cg_ig(k) / ds(1, k) + DoverE_ig(k)
+               C_ig(1) = ctheta_ig(2, k) / dtheta
+            else
+               A_ig(1) = 0.0
+               B_ig(1) = oneoverdt + cg_ig(k) / ds(1, k) + DoverE_ig(k)
+               C_ig(1) = 0.0
+            endif
+            !
+            if (ctheta_ig(ntheta, k) > 0.0) then
+               A_ig(ntheta) = -ctheta_ig(ntheta - 1, k) / dtheta
+               B_ig(ntheta) =  oneoverdt + ctheta_ig(ntheta, k) / dtheta + cg_ig(k) / ds(ntheta, k) + DoverE_ig(k)
+               C_ig(ntheta) =  0.0
+            else
+               A_ig(ntheta) = 0.0
+               B_ig(ntheta) = oneoverdt + cg_ig(k) / ds(ntheta, k) + DoverE_ig(k)
+               C_ig(ntheta) = 0.0
+            endif
+            !
+            call solve_tridiag(A_ig, B_ig, C_ig, R_ig, ee_ig(:, k), ntheta)
+            ee_ig(:, k) = max(ee_ig(:, k), 0.0)
+            !
+            ! Depth-limit IG energy
+            !
+            depthlimfac = max(1.0, (sqrt(sum(ee_ig(:, k)) * dtheta / rhog8) / (gammax * depth(k)))**2)
+            ee_ig(:, k) = ee_ig(:, k) / depthlimfac
+            !
+         else
+            !
+            ee_ig(:, k) = 0.0
+            !
          endif
          !
       enddo
@@ -857,147 +924,186 @@ module snapwave_solver
          !
          ! Check convergence after all 4 sweeps
          !
+         !$omp parallel do private(dee) schedule(static)
          do k = 1, no_nodes
             !
             dee     = ee(:, k) - eeold(:, k)
             diff(k) = maxval(abs(dee))
             !
-            if (diff(k)/eemax<crit ) then
+            if (diff(k) / eemax < crit) then
                ok(k) = 1
-            endif   
+            endif
             !
          enddo
+         !$omp end parallel do
          !
          ! Percentage of converged points
          !
-         percok = sum(ok)/dble(no_nodes)*100.0
+         percok = sum(ok) / dble(no_nodes) * 100.0
          eemax  = maxval(ee)
          !
          ! Relative maximum error
          !
-         error = maxval(diff)/eemax
+         error = maxval(diff) / eemax
          !
-         write(logstr,'(a,i6,a,f10.5,a,f7.2)')'   iteration ',iter/4 ,' error = ',error,'   %ok = ',percok
-         call write_log(logstr, 0)         
+         ! Check convergence of IG waves
          !
-         if (error<crit) then
-            write(logstr,'(a,i6,a,f10.5,a,f7.2)')'   converged at iteration ',iter/4 ,' error = ',error,'   %ok = ',percok
-            call write_log(logstr, 0)            
-            exit
+         if (igwaves) then
+            !
+            !$omp parallel do private(dee) schedule(static)
+            do k = 1, no_nodes
+               !
+               dee        = ee_ig(:, k) - eeold_ig(:, k)
+               diff_ig(k) = maxval(abs(dee))
+               !
+               if (diff_ig(k) / eemax_ig < crit) then
+                  ok_ig(k) = 1
+               endif
+               !
+            enddo
+            !$omp end parallel do
+            !
+            percok_ig = sum(ok_ig) / dble(no_nodes) * 100.0
+            eemax_ig  = maxval(ee_ig)
+            error_ig  = maxval(diff_ig) / eemax_ig
+            !
+            write(logstr,'(a,i6,a,f10.5,a,f7.2,a,f10.5,a,f7.2)')'   iteration ', iter / 4 , &
+               ' error = ', error,'   %ok = ', percok,'   error_ig = ', error_ig,'   %ok_ig = ', percok_ig
+            call write_log(logstr, 0)
+            !
+            if ((error < crit .or. percok > 99.0)) then!.and. (error_ig < crit .or. percok_ig > 99.0)) then
+               !
+               write(logstr,'(a,i6,a,f10.5,a,f7.2,a,f10.5,a,f7.2)')'   converged at iteration ', iter / 4 , &
+                  ' error = ', error,'   %ok = ', percok,'   error_ig = ', error_ig,'   %ok_ig = ', percok_ig
+               call write_log(logstr, 0)
+               exit
+               !
+            elseif (iter == niter * 4) then ! Made it to the end without reaching 'error<crit', still want output
+               !
+               write(logstr,'(a,i6,a,f10.5,a,f7.2,a,f10.5,a,f7.2)')'    ended at iteration ', iter / 4 , &
+                  ' error = ', error,'   %ok = ', percok,'   error_ig = ', error_ig,'   %ok_ig = ', percok_ig
+               call write_log(logstr, 0)
+               !
+            endif
+            !
          else
-             if (iter == niter) then !made it to the end without reaching 'error<crit', still want output
-                write(logstr,'(a,i6,a,f10.5,a,f7.2)')'    ended at iteration ',iter/4 ,' error = ',error,'   %ok = ',percok
-                call write_log(logstr, 0)                
-             endif
+            !
+            write(logstr,'(a,i6,a,f10.5,a,f7.2)')'   iteration ', iter / 4 ,' error = ', error,'   %ok = ', percok
+            call write_log(logstr, 0)
+            !
+            if (error < crit .or. percok > 99.0) then
+               !
+               write(logstr,'(a,i6,a,f10.5,a,f7.2)')'   converged at iteration ', iter / 4 ,' error = ',error,'   %ok = ', percok
+               call write_log(logstr, 0)
+               exit
+               !
+            elseif (iter == niter * 4) then ! Made it to the end without reaching 'error<crit', still want output
+               !
+               write(logstr,'(a,i6,a,f10.5,a,f7.2)')'    ended at iteration ', iter / 4 ,' error = ', error,'   %ok = ', percok
+               call write_log(logstr, 0)
+               !
+            endif
+            !
          endif
          !
       endif
       !
-      ! write output every iteration > TL: removed in this implementation
+   enddo
+   !
+   !$omp parallel do schedule(static)
+   do k = 1, no_nodes
+      !
+      ! Compute some directionally integrated parameters for output
+      !
+      if (depth(k) > hmin) then
+         !
+         E(k) = sum(ee(:, k)) * dtheta
+         H(k) = sqrt(8 * E(k) / rho / g)
+         !
+         thetam(k) = atan2(sum(ee(:, k) * sin(theta)), sum(ee(:, k) * cos(theta)))
+         !
+         if (igwaves) then
+            !
+            ! IG wave height
+            !
+            E_ig(k) = sum(ee_ig(:, k)) * dtheta
+            H_ig(k) = sqrt(8 * E_ig(k) / rho / g)
+            !
+            ! average beta, alphaig, srcig over directions
+            !
+            betamean(k) = sum(beta_local(:, k)) / ntheta ! real mean
+            !
+            alphaig(k) = sum(alphaig_local(:, k)) / ntheta ! real mean
+            !
+            srcig(k)   = sum(srcig_local(:, k)) / ntheta ! real mean
+            !
+         endif
+         !
+         if (wind) then
+            !
+            Tp(k)  = 2 * pi / sig(k)
+            SwE(k) = sum(WsorE(:, k)) * dtheta
+            SwA(k) = sum(WsorA(:, k)) * dtheta    !(2*pi*sum(WsorA(:,k))*dtheta - 2*pi/sig(k)*SwE(k)) / E(k)
+            !
+         endif
+      endif
       !
    enddo
+   !$omp end parallel do
+   !
+   ! For vegetation, need to compute unl using updated H(k)
    !
    if (vegetation) then
       ! 
       ! Compute the non-linear wave velocity time series (unl) using a wave shape model > only needs to be called once per calling SnapWave
-      !write(*,*)'Call swvegnonlin'
       !          
       call swvegnonlin(no_nodes, kwav, depth, H, g, Tp, unl, etaw0)       
-      !write(*,*)'Finished swvegnonlin'
-      !        
-   endif
+      !       
+   endif   
    !
-   do k=1,no_nodes
+   ! Update wave forces - depends on vegetation
+   !$omp parallel do schedule(static)
+   do k = 1, no_nodes
       !
-      ! Compute directionally integrated parameters for output
+      ! Compute some directionally integrated parameters for output
       !
-         if (depth(k)>1.1*hmin) then
+      if (depth(k) > hmin) then   
+         !
+         ! Update wave breaking dissipation > FIXME - should be called again using updated H(k) or not? 
+         !if (wind) then
+         !   call baldock(rho, g, alfa, gamma, depth(k), H(k), 2.0*pi/sig(k), 1, Dw(k), Hmx(k))
+         !else
+         !   call baldock(rho, g, alfa, gamma, depth(k), H(k), Tp(k), 1, Dw(k), Hmx(k))
+         !endif
+         !
+         ! Update wave forces
+         F(k) = Dw(k) * kwav(k) / sig(k) / rho / depth(k)
+         !
+         ! In case of vegetation, we also need to update the vegetation dissipation and compute wave drag force due to vegetation
+         !
+         if (vegetation) then
             !
-            E(k)      = sum(ee(:,k))*dtheta
-            H(k)      = sqrt(8*E(k)/rho/g)
-            thetam(k) = atan2(sum(ee(:, k)*sin(theta)),sum(ee(:, k)*cos(theta)))
-            if (wind) then
-               uorbi     = 0.5*sig(k)*Hk/sinhkh(k)
-            else
-               uorbi     = pi*H(k)/Tp(k)/sinhkh(k) !! to check if we want array
-            endif
-            Df(k)     = 0.28*rho*fw(k)*uorbi**3
-            !                     
-            if (wind) then
-               call baldock(rho, g, alfa, gamma, depth(k), H(k), 2.0*pi/sig(k), 1, Dw(k), Hmx(k))
-               F(k) = Dw(k)*kwav(k)/sig(k)/rho/depth(k)
-            else
-               call baldock(rho, g, alfa, gamma, depth(k), H(k), Tp(k), 1, Dw(k), Hmx(k))
-               F(k) = Dw(k)*kwav(k)/sig(k)/rho/depth(k)
-               !F(k) = (Dw(k) + Df(k))*kwav(k)/sig(k)/rho/depth(k)               
-               !F(k) = (Dw(k) + Df(k))*kwav(k)/sigm ! TODO TL: before was this, now multiplied with rho*depth(k) in sfincs_snapwave.f90        
-            endif
+            ! Compute wave dissipation due to vegetation > FIXME - correct that it should be called again to update Dveg based on updated H(k)?
             !
-            if (vegetation) then
-                !
-                ! Compute wave dissipation due to vegetation
-                !write(*,*)'Call vegatt'                
-                call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, g, H(k), Dveg(k)) 
-                !
-                ! Now also call 'momeqveg' to compute wave drag force due to vegetation
-                !write(*,*)'Call momeqveg'                
-                call momeqveg(no_nodes, no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, H(k), Tp(k), unl(k,:), Fvw(k))
-                ! NOTE - TL: for now replaced 'Trep' by 'Tp(k)' 
-                !
-            else
-                Dveg(k) = 0.
-                Fvw(k) = 0.                
-            endif
-	        !
-            !F(k) = Dw(k)*kwav(k)/sig(k)/rho/depth(k)
-            !F(k) = (Dw(k) + Df(k))*kwav(k)/sig(k)/rho/depth(k) 	     
-            F(k) = (Dw(k) + Dveg(k))*kwav(k)/sig(k)/rho/depth(k)
-            F(k) = F(k) + Fvw(k) ! FIXME - still *kwav(k)/sig(k) ??? 
-            
-	        !F(k) = (Dw(k) + Df(k))*kwav(k)/sigm ! TODO TL: before was this, now multiplied with rho*depth(k) in sfincs_snapwave.f90  
+            call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, g, H(k), Dveg(k)) 
             !
-            !if (vegetation) then                
-            !    if (Dveg(k) > 0.0) then
-            !        write(logstr,*)'k ',k,'depth(k)',depth(k),'H(k) ',H(k),'Dw(k) ', Dw(k),'Dveg(k) ', Dveg(k),'Hmx(k) ', Hmx(k),'kwav(k) ', kwav(k),'sig(k) ', sig(k), 'thetam(k)',thetam(k),'F(k) ',F(k)
-            !        call write_log(logstr, 0)  
-            !    endif
-            !else
-            !    if (H(k) > 0.0) then                
-            !        write(logstr,*)'k ',k,'depth(k)',depth(k),'H(k) ',H(k),'Dw(k) ', Dw(k),'Hmx(k) ', Hmx(k),'kwav(k) ', kwav(k),'sig(k) ', sig(k), 'thetam(k)',thetam(k),'F(k) ',F(k)
-            !        call write_log(logstr, 0)                      
-            !    endif                
-            !endif             
+            F(k) = F(k) + ( Dveg(k) * kwav(k) / sig(k) / rho / depth(k) )
             !
-            if (igwaves) then
-               !
-               ! IG wave height
-               !
-               E_ig(k)      = sum(ee_ig(:,k))*dtheta
-               H_ig(k)      = sqrt(8*E_ig(k)/rho/g)
-               !
-               Df_ig(k)     = fw_ig(k)*0.0361*(9.81/depth(k))**1.5*H(k)*E_ig(k) !org               
-               !
-               call baldock(rho, g, alfa_ig, gamma_ig, depth(k), H_ig(k), T_ig(k), 1, Dw_ig(k), Hmx_ig(k))               
-               !
-               ! average beta, alphaig, srcig over directions
-               betamean(k) = sum(beta_local(:,k))/ntheta ! real mean
-               !betamean(k)   = maxval(beta_local(:,k))
-               !               
-               alphaig(k) = sum(alphaig_local(:,k))/ntheta ! real mean 
-               !
-               srcig(k)   = sum(srcig_local(:,k)) /ntheta ! real mean                    
-               !
-            endif
+            ! Now also call 'momeqveg' to compute wave drag force due to vegetation Fvw
             !
-            if (wind) then
-                Tp(k)  = 2.0*pi/sig(k)
-                SwE(k) = sum(WsorE(:,k))*dtheta    
-                SwA(k) = sum(WsorA(:,k))*dtheta    !(2*pi*sum(WsorA(:,k))*dtheta - 2*pi/sig(k)*SwE(k)) / E(k)
-            endif
+            call momeqveg(no_nodes, no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, H(k), Tp(k), unl(k,:), Fvw(k))
+            ! NOTE - TL: for now replaced 'Trep' by 'Tp(k)'       
+            !
+            F(k) = F(k) + Fvw(k) ! FIXME - still *kwav(k)/sig(k) ???
+            !
          endif
+         !
+      endif
       !
    enddo
-   callno=callno+1
+   !$omp end parallel do
+   !   
+   callno = callno + 1
    !
    end subroutine solve_energy_balance2Dstat
 
@@ -1005,14 +1111,13 @@ module snapwave_solver
    subroutine solve_tridiag(a, b, c, d, x, n)
    !
    implicit none
+   !
    !	 a - sub-diagonal (means it is the diagonal below the main diagonal)
    !	 b - the main diagonal
    !	 c - sup-diagonal (means it is the diagonal above the main diagonal)
    !	 d - right part
    !	 x - the answer
    !	 n - number of equations
-
-!   integer,parameter :: r8 = kind(1.)
    !
    integer,intent(in) :: n
    real*4,dimension(n),intent(in) :: a, b, c, d
@@ -1023,24 +1128,30 @@ module snapwave_solver
    !
    ! initialize c-prime and d-prime
    !
-   cp(1) = c(1)/b(1)
-   dp(1) = d(1)/b(1)
+   cp(1) = c(1) / b(1)
+   dp(1) = d(1) / b(1)
+   !
    ! solve for vectors c-prime and d-prime
+   !
    do i = 2, n
-      m = b(i) - cp(i - 1)*a(i)
-      cp(i) = c(i)/m
-      dp(i) = (d(i) - dp(i - 1)*a(i))/m
+      m = b(i) - cp(i - 1) * a(i)
+      cp(i) = c(i) / m
+      dp(i) = (d(i) - dp(i - 1) * a(i)) / m
    enddo
+   !
    ! initialize x
+   !
    x(n) = dp(n)
+   !
    ! solve for x from the vectors c-prime and d-prime
-   do i = n-1, 1, -1
-      x(i) = dp(i) - cp(i)*x(i + 1)
+   !
+   do i = n - 1, 1, - 1
+      x(i) = dp(i) - cp(i) * x(i + 1)
    end do
    !
    end subroutine solve_tridiag
 
-   subroutine baldock (rho,g,alfa,gamma,depth,H,T,opt,Dw,Hmax)
+   subroutine baldock (rho, g, alfa, gamma, depth, H, T, iexp, Dw, Hmax)
    !
    real*4, intent(in)                :: rho
    real*4, intent(in)                :: g
@@ -1049,29 +1160,53 @@ module snapwave_solver
    real*4, intent(in)                :: depth
    real*4, intent(in)                :: H
    real*4, intent(in)                :: T
-   integer, intent(in)               :: opt
+   integer, intent(in)               :: iexp
    real*4, intent(out)               :: Dw
    real*4, intent(in)                :: Hmax
    real*4                            :: Hloc
+   real*4                            :: f
    !
    ! Compute dissipation according to Baldock
    !
-   Hloc=max(H,1.e-6)
-   if (opt==1) then
-      Dw=0.28*alfa*rho*g/T*exp(-(Hmax/Hloc)**2)*(Hmax**2+Hloc**2)
-      !Dw=0.25*alfa*rho*g/T*exp(-(Hmax/Hloc)**2)*(Hmax**2+Hloc**2) !Old
-   else
-      Dw=0.28*alfa*rho*g/T*exp(-(Hmax/Hloc)**2)*(Hmax**3+Hloc**3)/gamma/depth
-      !Dw=0.25*alfa*rho*g/T*exp(-(Hmax/Hloc)**2)*(Hmax**3+Hloc**3)/gamma/depth !Old     
+   Hloc = max(H, 1.e-6)
+   !
+   if (iexp > 0 .and. Hloc > Hmax) then
+      !
+      ! Add extra dissipation when Hloc exceeds Hmax.
+      ! This is needed at very steep coast lines, where Baldock dissipation cannot always keep up with
+      ! the wave height increase due to shoaling. The extra dissipation is added by multiplying
+      ! the Baldock dissipation with a factor f, which is larger than 1 when Hloc > Hmax.
+      !
+      f = (Hloc / Hmax)**iexp
+      !
+   else  
+      !
+      f = 1.0
+      !
    endif
+   !
+   Dw = 0.28 * alfa * rho * g / T * exp( - (Hmax / Hloc)**2) * (Hmax**2 + Hloc**2) * f
+   !
+   ! Other options for wave breaking dissipation (not used, but left here for reference)
+   !
+   ! Dw = 0.28 * alfa * rho * g / T * exp( - (Hmax / Hloc)**2) * (Hmax**3 + Hloc**3) / gamma / depth
    !
    end subroutine baldock
    
-   subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local)
+   
+   subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local)
+    !
+    ! Determining of IG source term as defined in Leijnse et al. 2024
+    !
+    ! inout: alphaig_local, srcig_local, beta_local
+    ! in: the rest
+    !
+    ! NOTE - This is based on the energy in the previous SnapWave timestep 'ee' and 'ee_ig', and waveheight 'H', which should therefore be made available.
     !   
     implicit none
     !  
     ! Incoming variables
+    !   
     logical, dimension(no_nodes), intent(in)         :: inner           ! mask of inner grid points (not on boundary)    
     integer, intent(in)                              :: no_nodes,ntheta ! number of grid points, number of directions  
     real*4,  dimension(2,ntheta,no_nodes),intent(in) :: w               ! weights of upwind grid points, 2 per grid point and per wave direction
@@ -1086,73 +1221,113 @@ module snapwave_solver
     real*4, dimension(ntheta,no_nodes), intent(in)   :: ee_ig           ! energy density infragravity waves
     integer, intent(in)                              :: ig_opt          ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)    
     real*4, intent(in)                               :: alphaigfac      ! Multiplication factor for IG shoaling source/sink term, default = 1.0
+    real*4, intent(in)                               :: dtheta          ! directional resolution    
     !
     ! Inout variables
+    !
     real*4, dimension(:,:), intent(inout)            :: alphaig_local   ! Local infragravity wave shoaling parameter alpha
     real*4, dimension(:,:), intent(inout)            :: srcig_local     ! Energy source/sink term because of IG wave shoaling
-    real*4, dimension(:), intent(inout)              :: eeprev, cgprev  ! energy density and group velocity at upwind intersection point
-    real*4, dimension(:), intent(inout)              :: eeprev_ig       ! energy density  at upwind intersection point 
-    real*4, dimension(ntheta,no_nodes), intent(inout):: beta_local      ! Local bed slope based on bed level per direction              
+    real*4, dimension(ntheta,no_nodes), intent(inout):: beta_local      ! Local bed slope based on bed level per direction
     !
     ! Internal variables
+    !
     integer                                          :: itheta          ! directional counter
-    integer                                          :: k               ! counters (k is grid index)    
+    integer                                          :: k               ! counters (k is grid index)
     integer                                          :: k1,k2           ! upwind counters (k is grid index)
-    real*4                                           :: gam             ! local gamma (Hinc / depth ratio)   
-    real*4, dimension(ntheta,no_nodes)               :: depthprev       ! water depth at upwind intersection point         
-    real*4, dimension(ntheta,no_nodes)               :: Sxx             ! Radiation Stress
-    real*4, dimension(:), allocatable                :: Sxxprev         ! radiation stress at upwind intersection point  
-    real*4, dimension(:), allocatable                :: Hprev           ! Incident wave height at upwind intersection point  
+    real*4                                           :: gam             ! local gamma (Hinc / depth ratio)
+    real*4, dimension(ntheta,no_nodes)               :: depthprev       ! water depth at upwind intersection point
+    real*4, dimension(no_nodes)                      :: Sxx             ! radiation Stress
+    real*4, dimension(ntheta)                        :: Sxxprev         ! radiation stress at upwind point
+    real*4, dimension(ntheta)                        :: Hprev           ! wave height at upwind point
+    real*4, dimension(ntheta)                        :: cgprev          ! group velocity at upwind point
+    real*4, dimension(ntheta)                        :: Eprev           ! Mean incident wave energy at upwind intersection point      
+    real*4, dimension(ntheta)                        :: Eprev_ig        ! Mean infragravity wave energy at upwind intersection point      
+    real*4, dimension(no_nodes)                      :: E_local         ! mean wave energy waves - just local               
+    real*4, dimension(no_nodes)                      :: E_ig_local      ! mean wave energy infragravity waves - just local    
     real*4                                           :: dSxx            ! difference in Radiation stress
-    real*4                                           :: Sxx_cons        ! conservative estimate of radiation stress using conservative shoaling     
-    !   
-    ! Allocate internal variables
-    allocate(Sxxprev(ntheta))       
-    allocate(Hprev(ntheta))  
+    real*4                                           :: Sxx_cons        ! conservative estimate of radiation stress using conservative shoaling
+    !
+    ! Set internal variables
     !
     Sxx = 0.0
+    Hprev = 0.0
+    Eprev = 0.0
+    Eprev_ig = 0.0
     !
+    E_local    = 0.0
+    E_ig_local = 0.0
+    Sxx        = 0.0    
+    ! Pre-compute Sxx for all nodes
+    !
+    !$omp parallel do schedule(static)
     do k = 1, no_nodes
         !
-        if (inner(k)) then    
+        if (inner(k)) then !TODO: check whether should be on only 'inner' or not
             !
-            ! Compute exchange source term inc to ig waves - per direction      
+            ! Update E (not saved from previous timestep)
+            !
+            E_local(k)         = sum(ee(:,k)) * dtheta                
+            !
+            ! Update E_ig (not saved from previous timestep)
+            !
+            E_ig_local(k)      = sum(ee_ig(:, k)) * dtheta   
+            !
+        endif
+        !
+        Sxx(k) = ((2.0 * max(0.0, min(1.0, nwav(k)))) - 0.5) * E_local(k)
+        !
+    enddo
+    !$omp end parallel do
+    !
+    ! Main loop: compute IG source/sink term per node.
+    ! All writes target the column (itheta, k), so the loop is data-independent across k.
+    ! Per-k scratch arrays (cgprev, Eprev, Eprev_ig, Sxxprev, Hprev) are
+    ! listed as private so each thread gets its own copy on the stack.
+    !
+    !$omp parallel do &
+    !$omp&   private(itheta, k1, k2, gam, dSxx, Sxx_cons, &
+    !$omp&           cgprev, Eprev, Eprev_ig, Sxxprev, Hprev) &
+    !$omp&   schedule(static)
+    do k = 1, no_nodes
+        !
+        if (inner(k)) then
+            !
+            ! Compute exchange source term inc to ig waves - per direction
             !
             do itheta = 1, ntheta
                 !
                 k1 = prev(1, itheta, k)
                 k2 = prev(2, itheta, k)
                 !
-                if (k1>0 .and. k2>0) then ! IMPORTANT - for some reason (k1*k2)>0 is not reliable always, resulting in directions being uncorrectly skipped!!!    
+                if (k1 > 0 .and. k2 > 0) then ! IMPORTANT - for some reason (k1*k2)>0 is not reliable always, resulting in directions being uncorrectly skipped!!!
                     !
                     ! First calculate upwind direction dependent variables
-                    depthprev(itheta,k)     = w(1, itheta, k)*depth(k1) + w(2, itheta, k)*depth(k2)           
-                    !            
-                    beta_local(itheta,k)  = max((w(1, itheta, k)*(zb(k) - zb(k1)) + w(2, itheta, k)*(zb(k) - zb(k2)))/ds(itheta, k), 0.0)
+                    !
+                    depthprev(itheta,k)   = w(1, itheta, k) * depth(k1) + w(2, itheta, k) * depth(k2)
+                    !
+                    beta_local(itheta,k)  = max((w(1, itheta, k) * (zb(k) - zb(k1)) + w(2, itheta, k) * (zb(k) - zb(k2))) / ds(itheta, k), 0.0)
                     !
                     ! Notes:
                     ! - use actual bed level now for slope, because depth changes because of wave setup/tide/surge
                     ! - in zb, depth is negative > therefore zb(k) minus zb(k1)
                     ! - beta=0 means a horizontal or decreasing slope > need alphaig=0 then in IG src/sink term
                     !
-                    !betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin)) ! TL: in case in the future we would need the normalised bed slope again   
+                    !betan_local(itheta,k) = (beta/sigm_ig)*sqrt(9.81/max(depth(k), hmin)) ! TL: in case in the future we would need the normalised bed slope again
                     !
-                    ! TL - Note: cg_ig = cg
-                    cgprev(itheta)      = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
-                    !              
-                    Sxx(itheta,k1)      = ((2.0 * max(0.0,min(1.0,nwav(k1)))) - 0.5) * ee(itheta, k1) ! limit so value of nwav is between 0 and 1
-                    Sxx(itheta,k2)      = ((2.0 * max(0.0,min(1.0,nwav(k2)))) - 0.5) * ee(itheta, k2) ! limit so value of nwav is between 0 and 1
+                    cgprev(itheta)    = w(1, itheta, k) * cg_ig(k1) + w(2, itheta, k) * cg_ig(k2)
                     !
-                    Sxxprev(itheta)     = w(1, itheta, k)*Sxx(itheta,k1) + w(2, itheta, k)*Sxx(itheta,k2)
+                    ! Sxx is pre-computed for all nodes before this parallel loop
                     !
-                    eeprev(itheta)      = w(1, itheta, k)*ee(itheta, k1) + w(2, itheta, k)*ee(itheta, k2)  
-                    eeprev_ig(itheta)   = w(1, itheta, k)*ee_ig(itheta, k1) + w(2, itheta, k)*ee_ig(itheta, k2)      
+                    Sxxprev(itheta)       = w(1, itheta, k) * Sxx(k1) + w(2, itheta, k) * Sxx(k2)
                     !
-                    Hprev(itheta)       = w(1, itheta, k)*H(k1) + w(2, itheta, k)*H(k2)     
-                    !     
+                    Eprev(itheta)       = w(1, itheta, k) * E_local(k1) + w(2, itheta, k) * E_local(k2)     
+                    Eprev_ig(itheta)    = w(1, itheta, k) * E_ig_local(k1) + w(2, itheta, k) * E_ig_local(k2)  
+                    !
+                    Hprev(itheta)         = w(1, itheta, k) * H(k1) + w(2, itheta, k) * H(k2)
+                    !
                     ! Determine relative waterdepth 'gam'
                     !
-                    gam = max(0.5*(Hprev(itheta)/depthprev(itheta,k) + H(k)/depth(k)), 0.0) ! mean gamma over current and upwind point
+                    gam = max(0.5 * (Hprev(itheta) / depthprev(itheta,k) + H(k) / depth(k)), 0.0) ! mean gamma over current and upwind point
                     !
                     ! Determine dSxx and IG source/sink term 'srcig'
                     !
@@ -1160,36 +1335,41 @@ module snapwave_solver
                         !
                         ! Calculate shoaling parameter alpha_ig following Leijnse et al. (2024)
                         !  
-                        call estimate_shoaling_parameter_alphaig(beta_local(itheta,k), gam, alphaig_local(itheta,k)) ! [input, input, output]
+                        call estimate_shoaling_parameter_alphaig(beta_local(itheta, k), gam, alphaig_local(itheta, k)) ! [input, input, output]
                         !                
                         ! Now calculate source term component
                         !         
                         ! Newest dSxx/dx based method, using estimate of Sxx(k) using conservative shoaling
-                        if (Sxxprev(itheta)<=0.0) then 
-                            !
-                            srcig_local(itheta, k) = 0.0 !Avoid big jumps in dSxx that can happen if a upwind point is a boundary point with Hinc=0
-                            !
+                        !
+                        if (Sxxprev(itheta) <= 0.0) then 
+                           !
+                           srcig_local(itheta, k) = 0.0 !Avoid big jumps in dSxx that can happen if a upwind point is a boundary point with Hinc=0
+                           !
                         else
-                        !              
-                        if (ig_opt == 1) then ! Option using conservative shoaling for dSxx/dx
-                            !
-                            ! Calculate Sxx based on conservative shoaling of upwind point's energy: 
-                            ! Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
-                            Sxx_cons = eeprev(itheta) * cgprev(itheta) / cg_ig(k) * ((2.0 * max(0.0,min(1.0,nwav(k)))) - 0.5)
-                            ! Note - limit so value of nwav is between 0 and 1, and Sxx therefore doesn't become NaN for nwav=Infinite  
-                            !
-                            dSxx = Sxx_cons - Sxxprev(itheta)
-                            !
-                        elseif (ig_opt == 2) then ! Option taking actual difference for dSxx/dx
-                            !
-                            dSxx = Sxx(itheta,k) - Sxxprev(itheta)                        
-                            !
-                        endif
-                        !
-                        dSxx = max(dSxx, 0.0)
-                        !
-                        srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(eeprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k)
-                        !                         
+                           !              
+                           if (ig_opt == 1) then ! Option using conservative shoaling for dSxx/dx
+                               !
+                               ! Calculate Sxx based on conservative shoaling of upwind point's energy: 
+                               ! Sxx_cons = E(i-1) * Cg(i-1) / Cg * (2 * n(i) - 0.5)
+                               !
+                               Sxx_cons = Eprev(itheta) * cgprev(itheta) / cg_ig(k) * ((2.0 * max(0.0, min(1.0, nwav(k)))) - 0.5)
+                               !
+                               ! Note - limit so value of nwav is between 0 and 1, and Sxx therefore doesn't become NaN for nwav=Infinite
+                               !
+                               dSxx = Sxx_cons - Sxxprev(itheta)
+                               !
+                           elseif (ig_opt == 2) then ! Option taking actual difference for dSxx/dx
+                               !
+                               dSxx = Sxx(k) - Sxxprev(itheta)
+                               !
+                           endif
+                           !
+                           dSxx = max(dSxx, 0.0)
+                           !
+                           ! Base on E_prev_ig instead of eeprev_ig(itheta) > no bins but total energy
+                           ! NOTE - already here multiplied with ee(itheta,k), for direct inclusion in 'R'-term
+                           srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k) /max(E_local(k), 1.0e-6) * ee(itheta,k)                           
+                           !
                         endif                      
                         !                                        
                     else  ! TL: option to add future parameterisations here for e.g. coral reef type coasts
@@ -1202,15 +1382,17 @@ module snapwave_solver
                     !   
                 endif
                 !
-            enddo  
+            enddo
             !
         endif
         !
-    enddo    
-    !    
+    enddo
+    !$omp end parallel do
+    !
    end subroutine determine_infragravity_source_sink_term   
    
    subroutine estimate_shoaling_parameter_alphaig(beta, gam, alphaig)
+   !
    real*4, intent(in)                :: beta
    real*4, intent(in)                :: gam 
    real*4, intent(out)               :: alphaig
@@ -1220,6 +1402,7 @@ module snapwave_solver
    ! Estimate shoaling parameter alphaig - as in Leijnse et al. (2024)
    !
    ! Determine constants 
+   !
    beta1 = 0.016993
    beta2 = 0.5
    beta3 = 17.7104
@@ -1401,8 +1584,8 @@ module snapwave_solver
    subroutine timer(t)
    real*4,intent(out)               :: t
    integer*4                        :: count,count_rate,count_max
-   call system_clock (count,count_rate,count_max)
-   t = real(count)/count_rate
+   call system_clock (count,count_rate, count_max)
+   t = real(count) / count_rate
    end subroutine timer
 
    subroutine vegatt(sigm, no_nodes, kwav, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, depth, rho, g, H, Dveg) 
@@ -1525,27 +1708,29 @@ module snapwave_solver
 		Dveg = Dvg
     end subroutine swvegatt
     
-	subroutine bulkdragcoeff(ahh, m, Cdterm, no_nodes, no_secveg, depth, H, kwav, veg_bstems, sigm)!(ahh,m,i,Cdterm)
+	subroutine bulkdragcoeff(ahh, m, Cdterm, no_nodes, no_secveg, depth, H, kwav, veg_bstems, sigm) !(ahh,m,i,Cdterm)
+      !
 		!    Michele Bendoni: subroutine to calculate bulk drag coefficient for short wave
 		!    energy dissipation based on the Keulegan-Carpenter number (adapted from XBeach)
 		!    Ozeren et al. (2013) or Mendez and Losada (2004)	 
-        !
+      !
 		implicit none
-	    !
+	   !
 		real*4,  intent(out)                            :: Cdterm
 		real*4,  intent(in)                             :: ahh              ! [m] plant (total) height
 		integer, intent(in)                             :: m
-        integer, intent(in)                             :: no_nodes         ! number of unstructured grid nodes
-        integer, intent(in)                             :: no_secveg
-        real*4, intent(in)                              :: depth            ! bed level, water depth
-        real*4, intent(in)                              :: H                ! wave height
+      integer, intent(in)                             :: no_nodes         ! number of unstructured grid nodes
+      integer, intent(in)                             :: no_secveg
+      real*4, intent(in)                              :: depth            ! bed level, water depth
+      real*4, intent(in)                              :: H                ! wave height
 		real*4, intent(in)                              :: kwav             ! wave number
-        real*4, intent(in)                              :: veg_bstems       ! Width/diameter of individual vegetation stems [m]
-        real*4, intent(in)                              :: sigm             ! [rad/s] mean frequency
-	    !	
+      real*4, intent(in)                              :: veg_bstems       ! Width/diameter of individual vegetation stems [m]
+      real*4, intent(in)                              :: sigm             ! [rad/s] mean frequency
+      !	
 		! Local variables
+      !	
 		real*4                                          :: pi                        ! 3.14159
-        real*4                                          :: alfav            ! [-] ratio between plant height and water depth
+      real*4                                          :: alfav            ! [-] ratio between plant height and water depth
 		real*4                                          :: um               ! [m/s] typical velocity acting on the plant
 		real*4                                          :: Tp               ! [s] reference wave period
 		real*4                                          :: KC               ! [-] Keulegan-Carpenter number
@@ -1553,12 +1738,14 @@ module snapwave_solver
 		integer                                         :: myflag           ! 1 => Ozeren et al. (2013); 2 => Mendez and Losada (2004)
 		!
 		myflag = 2
-        pi = 4.d0*atan(1.d0)
+      pi = 4.d0*atan(1.d0)
 		!
 		! Representative wave period
+		!
 		Tp = 2*pi/sigm 
 		!
 		! Coefficient alfa
+		!
 		if (ahh>=depth) then
 			alfav = 1.d0
 		else
@@ -1573,6 +1760,7 @@ module snapwave_solver
 		KC = um*Tp/veg_bstems
 		!
 		! Bulk drag coefficient
+		!
 		if (myflag == 1) then
 			!
 			! Approach from Ozeren et al. (2013), eq?
@@ -1582,17 +1770,20 @@ module snapwave_solver
 			else
 				Cdterm = 0.036d0+50.d0/(10.d0**0.926d0)
 			endif
+         !
 		elseif (myflag == 2) then
 			!
 			! Approach from Mendez and Losada (2004), eq. 40
 			! Only applicable for Laminaria Hyperborea (kelp)???
 			!
 			Q = KC/(alfav**0.76d0)
+			!
 			if (Q>=7) then
 				Cdterm = exp(-0.0138*Q)/(Q**0.3d0)
 			else
 				Cdterm = exp(-0.0138*7)/(7**0.3d0)
 			endif
+			!
 		endif
 		!
     end subroutine bulkdragcoeff
@@ -1615,9 +1806,7 @@ subroutine momeqveg(no_nodes, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd,
     integer :: m, t
     real*4 :: dt, hvegeff, Fvgnlt, integral
     real*4 :: Cd, b, N
-    !
-    !write(*,*)'Started momeqveg'
-    
+    !    
     ! Initialize output force
     !
     Fvw = 0.0
@@ -1644,8 +1833,7 @@ subroutine momeqveg(no_nodes, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd,
         
         Fvw = Fvw + Fvgnlt
     enddo
-    !write(*,*)'Ended momeqveg'
-    
+    !    
 end subroutine momeqveg    
    
 subroutine swvegnonlin(no_nodes, kwav, depth, H, g, Trep, unl, etaw0)

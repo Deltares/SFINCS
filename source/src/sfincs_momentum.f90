@@ -1,4 +1,4 @@
-module sfincs_momentum   
+module sfincs_momentum
    !
    use sfincs_data
    !
@@ -7,8 +7,6 @@ module sfincs_momentum
 contains
    !
    subroutine compute_fluxes(dt, tloop)
-   !  
-   use quadtree ! TEMP - to get the veggie variables, not the final solution, should go through sfincs_domain.f90   
    !
    ! Computes fluxes over subgrid u and v points
    !
@@ -25,8 +23,7 @@ contains
    integer   :: nmu
    integer   :: n
    integer   :: m
-   integer   :: iveg
-
+   !
    integer   :: idir
    integer   :: iref
    integer   :: itype
@@ -90,6 +87,8 @@ contains
    real*4    :: mdrv
    real*4    :: hu73
    !
+   real*4    :: min_dt_ip
+   !
    real*4, parameter :: expo = 1.0 / 3.0
    !integer, parameter :: expo = 1
    !
@@ -98,6 +97,26 @@ contains
    call system_clock(count0, count_rate, count_max)
    !
    min_dt = dtmax
+   !
+   if (timestep_analysis) then
+       !
+       ! Do in loop for updating on GPU
+       !
+       !$acc parallel, present( timestep_analysis_required_timestep )
+       !$omp parallel &
+       !$omp private ( ip )
+       !$omp do
+       !$acc loop gang vector       
+       do ip = 1, npuv
+          ! 
+          timestep_analysis_required_timestep(ip) = dtmax ! Reset per-cell limits; dry cells will retain dtmax
+          !
+       enddo
+       !$acc end parallel
+       !$omp end do
+       !$omp end parallel       
+       !
+   endif   
    !
    ! For some reason, it is necessary to set num_gangs here! Without, the program launches only 1 gang, and everything becomes VERY slow!
    !
@@ -118,54 +137,6 @@ contains
    !$omp end do
    !$omp end parallel
    !
-   !Precalculate veggie terms:
-   !
-   if (vegetation) then
-       ! New : vegetation drag due to mean flow
-       !
-	   if (quadtree_no_secveg > 0) then 
-          ! only in case vegetation is present
-          ! 
-          !$omp parallel &
-          !$omp private ( ip, nm, iveg )
-          !$omp do
-          !$acc loop independent, gang, vector
-          ! 
-          do ip = 1, npuv
-             !
-             !if (kcuv(ip)==1) then
-                !
-                ! Regular UV point 
-                !
-                ! Indices of surrounding water level points
-                !
-                nm  = uv_index_z_nm(ip)   
-                nmu = uv_index_z_nmu(ip) 
-               !
-               veg_CdBNstems = 0.5*(veg_CdBNstems(nm,iveg)+veg_CdBNstems(nmu,iveg))                
-                !
-   		        !do iveg=1,quadtree_no_secveg ! for each vertical vegetation section
-                !
-                iveg = 1
-                !
-                !veg_fvm(nm, iveg) = 0.5 * veg_CdBNstems(nm, iveg) * uv0(ip) * abs(uv0(ip)) / rhow 
-                veg_fvm(ip, iveg) = 0.5 * veg_CdBNstems * uv0(ip) * abs(uv0(ip)) / rhow 
-                
-                ! in flux loop only still needs to be multiplied with 'hvegeff', which can still change
-                !
-                ! NOTE: veg_CdBNstems = quadtree_snapwave_veg_Cd(nm, iveg) * quadtree_snapwave_veg_bstems(nm, iveg) * quadtree_snapwave_veg_Nstems(nm, iveg)
-                !
-             !endif
-          enddo   
-          !$omp end do
-          !$omp end parallel   
-       else
-          ! 
-          vegetation = .false.
-          !
-       endif
-   endif   
-   !
    ! Copy flux and velocity from previous time step
    !
    !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, zsderv, &
@@ -175,11 +146,11 @@ contains
    !$acc                    uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc                    uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
    !$acc                    zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, &
-   !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, gnapp2, x73 ) num_gangs( 1024 ) vector_length( 128 )
+   !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, gnapp2, x73, timestep_analysis_required_timestep ) num_gangs( 1024 ) vector_length( 128 )
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73 ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73,min_dt_ip ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop, reduction( min : min_dt ), gang, vector
@@ -632,47 +603,6 @@ contains
                !
             endif
             !
-            if (vegetation) then
-               ! New : vegetation drag due to mean flow
-
-               !
-
-               !
-               !fvm = 0.0
-               !
-			   !do iveg=1,quadtree_no_secveg ! for each vertical vegetation section
-               !   fvm = fvm + veg_fvm(nm,iveg) * min(quadtree_snapwave_veg_ah(ip,iveg), hu)
-               !enddo
-               !
-               ! With all pre-calculateable terms already pre-determined for Fvm, beside effective depth:
-			   iveg=1 !for testing keep at 1
-
-
-
-
-
-
-
-
-
-
-               nm  = uv_index_z_nm(ip)
-               nmu = uv_index_z_nmu(ip) 
-               !
-               veg_ah = 0.5*(quadtree_snapwave_veg_ah(nm,iveg)+quadtree_snapwave_veg_ah(nmu,iveg))
-               
-               fvm = veg_fvm(ip,iveg) * min(veg_ah, hu)
-
-               
-               !
-               !fvm = veg_fvm(nm,iveg) * min(quadtree_snapwave_veg_ah(ip,iveg), hu)
-               ! FIXME Question TL: water depth per layer, or always compared to lower bed level, or?
-               !               
-               frc = frc - fvm ! FIXME - minus OR plus?
-               !frc = frc + fvm ! FIXME - minus OR plus?
-               !
-            endif 
-            !
             ! Compute flux qfr used for friction term
             !
             if (kfuv(ip) == 0) then
@@ -784,16 +714,27 @@ contains
             !
             q(ip) = min(max(q(ip), - hu * uvlim), hu * uvlim)
             !
-            ! Compute velocity
+            ! Compute wet-averaged velocity. hu can become extremely small in subgrid mode,
+            ! so use huvmin to prevent unrealistically high velocities.
             !
-            uv(ip) = q(ip) / hu ! Store wet-averaged velocity
+            uv(ip) = q(ip) / max(hu, huvmin)
             !
             kfuv(ip) = 1
             !
             ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
             ! Use maximum of sqrt(gh) and current velocity
             !
-            min_dt = min(min_dt, 1.0 / ( max(sqrt(g * hu), abs(uv(ip)) ) * dxuvinv))
+            min_dt_ip = 1.0 / ( max(sqrt(g * hu), abs(uv(ip)) ) * dxuvinv)
+            !
+            min_dt = min(min_dt, min_dt_ip)
+            !
+            ! Compute timestep per grid cell
+            !
+            if (timestep_analysis) then
+                !
+                timestep_analysis_required_timestep(ip) = min_dt_ip
+                !
+            endif            
             !
          else
             !
