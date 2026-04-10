@@ -77,6 +77,7 @@ contains
    call read_real_input(500,'qinf',qinf,0.0)
    call read_real_input(500,'dtmax',dtmax,60.0)
    call read_real_input(500,'huthresh',huthresh,0.05)
+   call read_real_input(500,'huvmin', huvmin, 0.0)                   ! Minimum depth for calculating velocity (uv = q / max(hu, huvmin) used for output and advection)
    call read_real_input(500,'rhoa',rhoa,1.25)
    call read_real_input(500,'rhow',rhow,1024.0)
    call read_char_input(500,'inputformat',inputtype,'bin')
@@ -86,9 +87,6 @@ contains
    call read_int_input(500,'nc_deflate_level',nc_deflate_level,2)
    call read_int_input(500,'bndtype',bndtype,1)
    call read_int_input(500,'advection',iadvection,1)
-   call read_int_input(500,'nfreqsig',nfreqsig,100)
-   call read_real_input(500,'freqminig',freqminig,0.0)
-   call read_real_input(500,'freqmaxig',freqmaxig,0.1)
    call read_real_input(500,'latitude',latitude,0.0)
    call read_real_input(500,'pavbnd',pavbnd,0.0)
    call read_real_input(500,'gapres',gapres,101200.0)
@@ -114,10 +112,68 @@ contains
    call read_real_input(500,'waveage',waveage,-999.0)
    call read_int_input(500,'snapwave', isnapwave, 0)
    call read_int_input(500,'dtoutfixed', ioutfixed, 1)
-   call read_real_input(500,'wmtfilter',wmtfilter,600.0)
-   call read_real_input(500,'wmfred',wavemaker_freduv,0.99)
-   call read_char_input(500,'wmsignal',wmsigstr,'spectrum')   
-   call read_real_input(500, 'wmhmin', wavemaker_hmin, 0.1)
+   !
+   ! Wave maker parameters
+   !
+   ! First read some deprecated keywords for backward compatibility (to be removed later)
+   !
+   call read_char_input(500, 'wavemaker_wvmfile',        wavemaker_wvmfile,        'none')     ! wavemaker polyline file
+   if (wavemaker_wvmfile(1:4) == 'none') call read_char_input(500, 'wvmfile',    wavemaker_wvmfile,        'none') ! old keyword       
+   !   
+   call read_char_input(500, 'wavemaker_wfpfile',        wavemaker_wfpfile,        'none')     ! wavemaker forcing points file
+   if (wavemaker_wfpfile(1:4) == 'none') call read_char_input(500, 'wfpfile',    wavemaker_wfpfile,        'none')   
+   !
+   call read_char_input(500, 'wavemaker_whifile',        wavemaker_whifile,        'none')     ! wavemaker wave height time series file
+   if (wavemaker_whifile(1:4) == 'none') call read_char_input(500, 'whifile',    wavemaker_whifile,        'none')
+   !
+   call read_char_input(500, 'wavemaker_wtifile',        wavemaker_wtifile,        'none')     ! wavemaker wave period time series file
+   if (wavemaker_wtifile(1:4) == 'none') call read_char_input(500, 'wtifile',    wavemaker_wtifile,        'none')
+   !   
+   call read_char_input(500, 'wavemaker_wstfile',        wavemaker_wstfile,        'none')     ! wavemaker wave set-up time series file
+   if (wavemaker_wstfile(1:4) == 'none') call read_char_input(500, 'wstfile',    wavemaker_wstfile,        'none')
+   !     
+   ! Overwrite with new keywords, if provided by user (for backward compatibility, to be removed later)
+   call read_real_input(500, 'wmtfilter',                wavemaker_filter_time,    600.0)      ! time scale for wavemaker filter (in seconds)   
+   call read_real_input(500, 'wavemaker_filter_time',    wavemaker_filter_time,    wavemaker_filter_time) 
+   !        
+   call read_real_input(500, 'wmfred',                   wavemaker_filter_fred,    0.99)       ! fred for wavemaker filter (reduces chance of jets)
+   call read_real_input(500, 'wavemaker_filter_fred',    wavemaker_filter_fred,    wavemaker_filter_fred)   
+   !
+   call read_char_input(500, 'wmsignal',                 wmsigstr,                 'spectrum') ! wavemaker signal type (spectrum or monochromatic)      
+   call read_char_input(500, 'wavemaker_signal',         wmsigstr,                 trim(wmsigstr)) 
+   !
+   call read_real_input(500, 'wmhmin',                   wavemaker_hmin,           0.1)        ! minimum water depth for wave generation (in m) 
+   call read_real_input(500, 'wavemaker_hmin',           wavemaker_hmin,           wavemaker_hmin)  
+   !
+   call read_int_input(500,  'nfreqsinc',                wavemaker_nfreqs_inc,     100)        ! wavemaker number of frequencies for incident wave spectrum   
+   call read_int_input(500,  'wavemaker_nfreqs_inc',     wavemaker_nfreqs_inc,     wavemaker_nfreqs_inc)       
+   !
+   call read_real_input(500, 'freqmininc',               wavemaker_freqmin_inc,    0.04)       ! wavemaker minimum frequency for incident wave spectrum (in Hz)   
+   call read_real_input(500, 'wavemaker_freqmin_inc',    wavemaker_freqmin_inc,    wavemaker_freqmin_inc)       
+   !
+   call read_real_input(500, 'freqmaxinc',               wavemaker_freqmax_inc,    1.0)        ! wavemaker maximum frequency for incident wave spectrum (in Hz)
+   call read_real_input(500, 'wavemaker_freqmax_inc',    wavemaker_freqmax_inc,    wavemaker_freqmax_inc)        
+   !
+   call read_int_input(500,  'nfreqsig',                 wavemaker_nfreqs_ig,      100)        ! wavemaker number of frequencies for IG wave spectrum
+   call read_int_input(500,  'wavemaker_nfreqs_ig',      wavemaker_nfreqs_ig,      wavemaker_nfreqs_ig)        
+   !
+   call read_real_input(500, 'freqminig',                wavemaker_freqmin_ig,     0.0)        ! wavemaker minimum frequency for IG wave spectrum (in Hz)
+   call read_real_input(500, 'wavemaker_freqmin_ig',     wavemaker_freqmin_ig,     wavemaker_freqmin_ig)        
+   !
+   call read_real_input(500, 'freqmaxig',                wavemaker_freqmax_ig,     0.1)        ! wavemaker maximum frequency for IG wave spectrum (in Hz)
+   call read_real_input(500, 'wavemaker_freqmax_ig',     wavemaker_freqmax_ig,     wavemaker_freqmax_ig)        
+   ! New variables that have no backward compatibility version
+   !
+   call read_real_input(500, 'wavemaker_tinc2ig',        wavemaker_tinc2ig,        -1.0)       ! wavemaker ig/inc wave period ratio (set <= 0.0 to use Herbers)
+   call read_real_input(500, 'wavemaker_surfslope',      wavemaker_surfslope,      -1.0)       ! wavemaker surf zone slope to compute Tp_ig with empirical run-up equation (van Ormondt et al., 2021))
+   call read_real_input(500, 'wavemaker_hm0_ig_factor',  wavemaker_hm0_ig_factor,  1.0)        ! wavemaker Hm0 IG wave factor
+   call read_real_input(500, 'wavemaker_hm0_inc_factor', wavemaker_hm0_inc_factor, 1.0)        ! wavemaker Hm0 inc wave factor
+   call read_real_input(500, 'wavemaker_gammax',         wavemaker_gammax,         1.0)        ! wavemaker gammax
+   call read_real_input(500, 'wavemaker_tpmin',          wavemaker_tpmin,          1.0)        ! wavemaker tpmin
+   call read_logical_input(500, 'wavemaker_hig',         wavemaker_hig,            .true.)     ! wavemaker include IG waves
+   call read_logical_input(500, 'wavemaker_hinc',        wavemaker_hinc,           .false.)    ! wavemaker include incident waves
+   !
+   ! Numerical parameters
    call read_char_input(500,'advection_scheme',advstr,'upw1')   
    call read_real_input(500,'btrelax',btrelax,3600.0)
    call read_logical_input(500,'wiggle_suppression', wiggle_suppression, .true.)
@@ -144,6 +200,9 @@ contains
    call read_real_input(500, 'factor_pres', factor_pres, 1.0)
    call read_real_input(500, 'factor_prcp', factor_prcp, 1.0)
    call read_real_input(500, 'factor_spw_size', factor_spw_size, 1.0)   
+   call read_logical_input(500, 'bathtub', bathtub, .false.)
+   call read_real_input(500, 'bathtub_fachs', bathtub_fac_hs, 0.2)
+   call read_real_input(500, 'bathtub_dt', bathtub_dt, -999.0)
    call read_logical_input(500,'vegetation',vegetation,.false.)   
    !
    ! Domain
@@ -152,7 +211,6 @@ contains
    call read_char_input(500,'depfile',depfile,'none')
    call read_char_input(500,'inifile',zsinifile,'none')
    call read_char_input(500,'rstfile',rstfile,'none')
-   call read_char_input(500,'ncinifile',ncinifile,'none')
    call read_char_input(500,'mskfile',mskfile,'none')
    call read_char_input(500,'indexfile',indexfile,'none')
    call read_char_input(500,'cstfile',cstfile,'none')
@@ -171,10 +229,6 @@ contains
    call read_char_input(500,'bcafile',bcafile,'none')
    call read_char_input(500,'bzifile',bzifile,'none')
    call read_char_input(500, 'bdrfile', bdrfile, 'none')
-   call read_char_input(500,'wfpfile',wfpfile,'none')
-   call read_char_input(500,'whifile',whifile,'none')
-   call read_char_input(500,'wtifile',wtifile,'none')
-   call read_char_input(500,'wstfile',wstfile,'none')
    call read_char_input(500,'srcfile',srcfile,'none')
    call read_char_input(500,'disfile',disfile,'none')
    call read_char_input(500,'spwfile',spwfile,'none')
@@ -189,7 +243,6 @@ contains
    call read_char_input(500,'ampfile',ampfile,'none')
    call read_char_input(500,'amprfile',amprfile,'none')
    call read_char_input(500,'z0lfile',z0lfile,'none')
-   call read_char_input(500,'wvmfile',wvmfile,'none')
    call read_char_input(500,'qinffile',qinffile,'none')
    ! Curve Number files
    call read_char_input(500,'scsfile',scsfile,'none')           
@@ -210,7 +263,10 @@ contains
    call read_char_input(500,'netamuamvfile',netamuamvfile,'none')                  
    call read_char_input(500,'netamprfile',netamprfile,'none')      
    call read_char_input(500,'netampfile',netampfile,'none')      
-   call read_char_input(500,'netspwfile',netspwfile,'none')      
+   call read_char_input(500,'netspwfile',netspwfile,'none')
+   !
+   call read_char_input(500,'infiltration_file',infiltrationfile,'none')   
+   call read_char_input(500,'infiltration_type',inftype,'none')
    !
    ! Output
    call read_char_input(500,'obsfile',obsfile,'none')
@@ -227,6 +283,7 @@ contains
    call read_real_input(500,'twet_threshold',twet_threshold,0.01)
    call read_int_input(500,'store_tsunami_arrival_time',itsunamitime,0)
    call read_real_input(500,'tsunami_arrival_threshold',tsunami_arrival_threshold,0.01)
+   call read_logical_input(500,'timestep_analysis',timestep_analysis,.false.)
    call read_int_input(500,'storeqdrain',storeqdrain,1)
    call read_int_input(500,'storezvolume',storezvolume,0)
    call read_int_input(500,'storestoragevolume',storestoragevolume,0)
@@ -280,7 +337,7 @@ contains
    !
    if (dtmapout==0.0) then
       call read_real_input(500,'dtmapout',dtmapout,0.0)
-   endif   
+   endif
    !
    close(500)
    !
@@ -526,7 +583,6 @@ contains
    if (itsunamitime==1) then
       store_tsunami_arrival_time = .true.
    endif      
-   !
    !   
    viscosity = .false. 
    if (iviscosity) then
@@ -566,7 +622,9 @@ contains
    !
    wavemaker = .false.
    wavemaker_spectrum = .true.
-   if (wvmfile(1:4) /= 'none') then
+   !
+   if (wavemaker_wvmfile(1:4) /= 'none') then
+      !
       wavemaker = .true.
       iwavemaker = 1
       !
@@ -640,6 +698,44 @@ contains
          nh_tstop = t1 + 999.0
          !          
       endif    
+      !
+   endif
+   !
+   if (bathtub) then
+      !
+      call write_log('Info    : turning on process: Bathtub flooding', 0)
+      !
+      ! Set time step
+      !
+      if (bathtub_dt < 0.0) then
+         !
+         ! Time step for simulation not defined so use same as map output
+         !
+         bathtub_dt = dtmapout
+         !
+      endif
+      !
+      dthisout = bathtub_dt
+      !
+      ! Turn off some processes not needed for bathtub flooding
+      !
+      nsrc = 0
+      ndrn = 0
+      !
+      meteo3d = .false.
+      wind = .false.
+      store_meteo = .false.
+      store_wind = .false.
+      store_wind_max = .false.
+      precip = .false.
+      patmos = .false.
+      if (snapwave) then
+         bathtub_snapwave = .true.
+      endif
+      snapwave = .false.
+      infiltration = .false.
+      store_velocity = .false.
+      store_maximum_velocity = .false.
       !
    endif
    !

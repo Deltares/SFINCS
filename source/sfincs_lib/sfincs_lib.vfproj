@@ -58,6 +58,8 @@
 			<File RelativePath="..\third_party_open\bicgstab\bicgstab_solver_ilu.f90"/>
 			<File RelativePath="..\third_party_open\utils\deg2utm.f90"/>
 			<File RelativePath="..\third_party_open\utils\geometry.f90"/>
+			<File RelativePath="..\src\sfincs_bathtub.f90">
+			</File>
 			<File RelativePath="..\src\sfincs_boundaries.f90"/>
 			<File RelativePath="..\src\sfincs_continuity.f90"/>
 			<File RelativePath="..\src\sfincs_crosssections.f90">
@@ -98,7 +100,8 @@
 			</File>
 			<File RelativePath="..\src\sfincs_nonhydrostatic.f90"/>
 			<File RelativePath="..\src\sfincs_obspoints.f90"/>
-			<File RelativePath="..\src\sfincs_openacc.f90"/>
+			<File RelativePath="..\src\sfincs_openacc.f90">
+			</File>
 			<File RelativePath="..\src\sfincs_output.f90"/>
 			<File RelativePath="..\src\sfincs_quadtree.F90">
 				<FileConfiguration Name="Release|x64">
@@ -122,6 +125,8 @@
 				</FileConfiguration>
 			</File>
 			<File RelativePath="..\src\sfincs_vegetation.f90">
+			</File>
+			<File RelativePath="..\src\sfincs_timestep_analysis.f90">
 			</File>
 			<File RelativePath="..\src\sfincs_wave_enhanced_roughness.f90"/>
 			<File RelativePath="..\src\sfincs_wavemaker.f90"/>
