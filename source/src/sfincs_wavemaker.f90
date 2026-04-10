@@ -1130,8 +1130,6 @@
    !
    ! Set flags for kcuv points
    !
-   call write_log(logstr, 0)   
-   !
    do iwm = 1, wavemaker_nr_uv_points
       !
       ip = wavemaker_index_uv(iwm)
