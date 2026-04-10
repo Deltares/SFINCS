@@ -133,36 +133,35 @@ contains
    if (wavemaker_wstfile(1:4) == 'none') call read_char_input(500, 'wstfile',    wavemaker_wstfile,        'none')
    !     
    ! Overwrite with new keywords, if provided by user (for backward compatibility, to be removed later)
-   call read_real_input(500, 'wmtfilter',                wavemaker_filter_time,    600.0)   
-   call read_real_input(500, 'wavemaker_filter_time',    wavemaker_filter_time,    600.0)      ! time scale for wavemaker filter (in seconds)
+   call read_real_input(500, 'wmtfilter',                wavemaker_filter_time,    600.0)      ! time scale for wavemaker filter (in seconds)   
+   call read_real_input(500, 'wavemaker_filter_time',    wavemaker_filter_time,    wavemaker_filter_time) 
    !        
-   call read_real_input(500, 'wmfred',                   wavemaker_filter_fred,    0.99)   
-   call read_real_input(500, 'wavemaker_filter_fred',    wavemaker_filter_fred,    0.99)       ! fred for wavemaker filter (reduces chance of jets)
+   call read_real_input(500, 'wmfred',                   wavemaker_filter_fred,    0.99)       ! fred for wavemaker filter (reduces chance of jets)
+   call read_real_input(500, 'wavemaker_filter_fred',    wavemaker_filter_fred,    wavemaker_filter_fred)   
    !
-   call read_char_input(500, 'wmsignal',                 wmsigstr,                 'spectrum')      
-   call read_char_input(500, 'wavemaker_signal',         wmsigstr,                 'spectrum')  ! wavemaker signal type (spectrum or monochromatic)
+   call read_char_input(500, 'wmsignal',                 wmsigstr,                 'spectrum') ! wavemaker signal type (spectrum or monochromatic)      
+   call read_char_input(500, 'wavemaker_signal',         wmsigstr,                 trim(wmsigstr)) 
    !
-   call read_real_input(500, 'wmhmin',                   wavemaker_hmin,           0.1)   
-   call read_real_input(500, 'wavemaker_hmin',           wavemaker_hmin,           0.1)        ! minimum water depth for wave generation (in m)
+   call read_real_input(500, 'wmhmin',                   wavemaker_hmin,           0.1)        ! minimum water depth for wave generation (in m) 
+   call read_real_input(500, 'wavemaker_hmin',           wavemaker_hmin,           wavemaker_hmin)  
    !
-   call read_int_input(500,  'nfreqsinc',                wavemaker_nfreqs_inc,     100)   
-   call read_int_input(500,  'wavemaker_nfreqs_inc',     wavemaker_nfreqs_inc,     100)        ! wavemaker number of frequencies for incident wave spectrum
+   call read_int_input(500,  'nfreqsinc',                wavemaker_nfreqs_inc,     100)        ! wavemaker number of frequencies for incident wave spectrum   
+   call read_int_input(500,  'wavemaker_nfreqs_inc',     wavemaker_nfreqs_inc,     wavemaker_nfreqs_inc)       
    !
-   call read_real_input(500, 'freqmininc',               wavemaker_freqmin_inc,    0.04)   
-   call read_real_input(500, 'wavemaker_freqmin_inc',    wavemaker_freqmin_inc,    0.04)       ! wavemaker minimum frequency for incident wave spectrum (in Hz)
+   call read_real_input(500, 'freqmininc',               wavemaker_freqmin_inc,    0.04)       ! wavemaker minimum frequency for incident wave spectrum (in Hz)   
+   call read_real_input(500, 'wavemaker_freqmin_inc',    wavemaker_freqmin_inc,    wavemaker_freqmin_inc)       
    !
-   call read_real_input(500, 'freqmaxinc',               wavemaker_freqmax_inc,    1.0)   
-   call read_real_input(500, 'wavemaker_freqmax_inc',    wavemaker_freqmax_inc,    1.0)        ! wavemaker maximum frequency for incident wave spectrum (in Hz)
+   call read_real_input(500, 'freqmaxinc',               wavemaker_freqmax_inc,    1.0)        ! wavemaker maximum frequency for incident wave spectrum (in Hz)
+   call read_real_input(500, 'wavemaker_freqmax_inc',    wavemaker_freqmax_inc,    wavemaker_freqmax_inc)        
    !
-   call read_int_input(500,  'nfreqsig',                 wavemaker_nfreqs_ig,      100)   
-   call read_int_input(500,  'wavemaker_nfreqs_ig',      wavemaker_nfreqs_ig,      100)        ! wavemaker number of frequencies for IG wave spectrum
+   call read_int_input(500,  'nfreqsig',                 wavemaker_nfreqs_ig,      100)        ! wavemaker number of frequencies for IG wave spectrum
+   call read_int_input(500,  'wavemaker_nfreqs_ig',      wavemaker_nfreqs_ig,      wavemaker_nfreqs_ig)        
    !
-   call read_real_input(500, 'freqminig',                wavemaker_freqmin_ig,     0.0)   
-   call read_real_input(500, 'wavemaker_freqmin_ig',     wavemaker_freqmin_ig,     0.0)        ! wavemaker minimum frequency for IG wave spectrum (in Hz)
+   call read_real_input(500, 'freqminig',                wavemaker_freqmin_ig,     0.0)        ! wavemaker minimum frequency for IG wave spectrum (in Hz)
+   call read_real_input(500, 'wavemaker_freqmin_ig',     wavemaker_freqmin_ig,     wavemaker_freqmin_ig)        
    !
-   call read_real_input(500, 'freqmaxig',                wavemaker_freqmax_ig,     0.1)   
-   call read_real_input(500, 'wavemaker_freqmax_ig',     wavemaker_freqmax_ig,     0.1)        ! wavemaker maximum frequency for IG wave spectrum (in Hz)
-   !
+   call read_real_input(500, 'freqmaxig',                wavemaker_freqmax_ig,     0.1)        ! wavemaker maximum frequency for IG wave spectrum (in Hz)
+   call read_real_input(500, 'wavemaker_freqmax_ig',     wavemaker_freqmax_ig,     wavemaker_freqmax_ig)        
    ! New variables that have no backward compatibility version
    !
    call read_real_input(500, 'wavemaker_tinc2ig',        wavemaker_tinc2ig,        -1.0)       ! wavemaker ig/inc wave period ratio (set <= 0.0 to use Herbers)
