@@ -18,6 +18,12 @@ contains
     !
     character*256 :: varname
     !
+    if (use_quadtree .eqv. .false.) then
+        ! 
+        call stop_sfincs('Error ! Netcdf vegetation input format can only be specified for quadtree mesh model !', 1)              
+        !
+    endif
+    !
     if (store_vegetation) then !either SFINCS and/or SnapWave needs veggie input
         !              
         write(logstr,'(a,a)')'Info    : reading vegetation file ',trim(veggiefile)
@@ -68,8 +74,6 @@ contains
         call read_netcdf_quadtree_to_sfincs(veggiefile, varname, vegetation_stems_density) !ncfile, varname, varout)
 
     endif
-   
-    
     !
     end subroutine    
         
