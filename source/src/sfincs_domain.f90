@@ -10,6 +10,7 @@ contains
    use sfincs_data
    use quadtree
    use sfincs_infiltration   
+   use sfincs_vegetation
    use sfincs_timestep_analysis   
    !
    implicit none
