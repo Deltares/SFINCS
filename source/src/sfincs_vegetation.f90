@@ -12,7 +12,7 @@ contains
     !
     implicit none
     !
-    integer :: nm
+    integer :: nm, iveg
     !
     logical :: ok
     !
@@ -35,12 +35,15 @@ contains
         !
         ! Call the generic quadtree nc file reader function
         varname = 'nsec'
-        !varname = 'vegetation_vertical_segments' ! TODO: change input into this
+        !varname = 'vegetation_vertical_segments' ! TODO: change naming netcdf file into this
         call read_netcdf_quadtree_get_dimension(veggiefile, varname, vegetation_vertical_segments) !ncfile, varname, varout)
         !        
         if (vegetation_vertical_segments > 4) then
             !
-            call stop_sfincs('Error ! Maximum allowed vertical sections for vegetation specified in vegetationfile is 4 !', 1)
+            call stop_sfincs('Error ! Maximum allowed vertical sections in vegetationfile is 4 !', 1)
+        elseif(vegetation_vertical_segments == 0) then
+            !
+            call stop_sfincs('Error ! Prescribed vertical sections in vegetationfile is 0 !', 1)                        
             !
         endif        
         !
@@ -74,8 +77,33 @@ contains
         varname = 'snapwave_veg_Nstems'
         !varname = 'vegetation_stems_density' ! TODO: change naming netcdf file into this
         call read_netcdf_quadtree_to_sfincs(veggiefile, varname, vegetation_stems_density) !ncfile, varname, varout)
-
+        !
     endif
+    !
+    ! For SFINCS precalculate cd * bstems * Nstems for each vertical section - FIXME, already convert from np to uv?
+    !
+    if (vegetation) then
+        !
+        allocate(vegetation_stems_cd_width_density(np, vegetation_vertical_segments))
+        !
+        !allocate(vegetation_fvm(np, vegetation_vertical_segments)) 
+        allocate(vegetation_fvm(npuv, vegetation_vertical_segments))            
+        !
+        vegetation_stems_cd_width_density = 0.0
+        vegetation_fvm = 0.0
+        fvm = 0.0              
+        !
+        do nm = 1, np
+            !
+            do iveg = 1, vegetation_vertical_segments
+                !
+                vegetation_stems_cd_width_density(nm,iveg) = vegetation_cd(nm,iveg) * vegetation_stems_width(nm,iveg) * vegetation_stems_density(nm,iveg)
+                !
+            enddo            
+            !    
+        enddo                 
+        !            
+    endif        
     !
     end subroutine    
         

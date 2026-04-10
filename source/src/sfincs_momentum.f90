@@ -21,6 +21,7 @@ contains
    integer   :: ip
    integer   :: nm
    integer   :: nmu
+   integer   :: iveg   
    integer   :: n
    integer   :: m
    !
@@ -137,6 +138,49 @@ contains
    !$omp end do
    !$omp end parallel
    !
+   !Precalculate veggie terms:
+   !
+   if (vegetation) then
+       ! New : vegetation drag due to mean flow
+       !
+       ! only in case vegetation is present > already checked in initialize_vegetation
+       ! 
+       !$omp parallel &
+       !$omp private ( ip, nm, iveg )
+       !$omp do
+       !$acc loop independent, gang, vector
+       ! 
+       do ip = 1, npuv
+         !
+         !if (kcuv(ip)==1) then
+         !
+         ! Regular UV point 
+         !
+         ! Indices of surrounding water level points
+         !
+         nm  = uv_index_z_nm(ip)   
+         nmu = uv_index_z_nmu(ip) 
+         !
+         veg_CdBNstems = 0.5 * (vegetation_stems_cd_width_density(nm,iveg) + vegetation_stems_cd_width_density(nmu,iveg))                
+         !
+   		 !do iveg=1,quadtree_no_secveg ! for each vertical vegetation section
+         !
+         iveg = 1
+         !
+         !vegetation_fvm(nm, iveg) = 0.5 * veg_CdBNstems(nm, iveg) * uv0(ip) * abs(uv0(ip)) / rhow 
+         vegetation_fvm(ip, iveg) = 0.5 * veg_CdBNstems * uv0(ip) * abs(uv0(ip)) / rhow                 
+         ! in flux loop only still needs to be multiplied with 'hvegeff', which can still change
+         !
+         ! NOTE: veg_CdBNstems = quadtree_snapwave_veg_Cd(nm, iveg) * quadtree_snapwave_veg_bstems(nm, iveg) * quadtree_snapwave_veg_Nstems(nm, iveg)
+         !
+         !endif
+      enddo   
+      !$omp end do
+      !$omp end parallel   
+      !$acc end parallel          
+      !  
+   endif   
+   !   
    ! Copy flux and velocity from previous time step
    !
    !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, zsderv, &
@@ -603,6 +647,34 @@ contains
                !
             endif
             !
+            if (vegetation) then
+               ! New : vegetation drag due to mean flow
+               ! 
+               !fvm = 0.0
+               !
+			   !do iveg=1,quadtree_no_secveg ! for each vertical vegetation section
+               !   fvm = fvm + veg_fvm(nm,iveg) * min(quadtree_snapwave_veg_ah(ip,iveg), hu)
+               !enddo
+               !
+               ! With all pre-calculateable terms already pre-determined for Fvm, beside effective depth:
+			   iveg=1 !for testing keep at 1
+               ! 
+               nm  = uv_index_z_nm(ip)
+               nmu = uv_index_z_nmu(ip) 
+               !
+               veg_ah = 0.5*(vegetation_stems_height(nm,iveg)+vegetation_stems_height(nmu,iveg)) ! FIXME - also pre-calculate
+               !
+               fvm = vegetation_fvm(ip,iveg) * min(veg_ah, hu)
+               ! 
+               !
+               !fvm = veg_fvm(nm,iveg) * min(quadtree_snapwave_veg_ah(ip,iveg), hu)
+               ! FIXME Question TL: water depth per layer, or always compared to lower bed level, or?
+               !               
+               frc = frc - fvm ! FIXME - minus OR plus?
+               !frc = frc + fvm ! FIXME - minus OR plus?
+               !
+            endif 
+            !            
             ! Compute flux qfr used for friction term
             !
             if (kfuv(ip) == 0) then

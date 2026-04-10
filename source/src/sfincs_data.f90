@@ -430,6 +430,9 @@ module sfincs_data
       real*4,             dimension(:,:),   allocatable :: vegetation_stems_height
       real*4,             dimension(:,:),   allocatable :: vegetation_stems_width
       real*4,             dimension(:,:),   allocatable :: vegetation_stems_density
+      real*4,             dimension(:,:),   allocatable :: vegetation_stems_cd_width_density
+      real*4,             dimension(:,:),   allocatable :: vegetation_fvm
+      real*4                                            :: fvm
       !
       !!! Wave makers
       !
