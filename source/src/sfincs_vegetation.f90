@@ -12,7 +12,7 @@ contains
     !
     implicit none
     !
-    integer :: nm, iveg
+    integer :: nm, nmu, ip, iveg
     !
     logical :: ok
     !
@@ -80,24 +80,34 @@ contains
         !
     endif
     !
-    ! For SFINCS precalculate cd * bstems * Nstems for each vertical section - FIXME, already convert from np to uv?
+    ! For SFINCS precalculate cd * bstems * Nstems for each vertical section, as well as the vegetation height on uv points
     !
     if (vegetation) then
         !
-        allocate(vegetation_stems_cd_width_density(np, vegetation_vertical_segments))
+        allocate(vegetation_stems_cd_width_density_uv(npuv, vegetation_vertical_segments)) ! product of cd, width and density on uv points
         !
-        !allocate(vegetation_fvm(np, vegetation_vertical_segments)) 
-        allocate(vegetation_fvm(npuv, vegetation_vertical_segments))            
+        allocate(vegetation_stems_height_uv(npuv, vegetation_vertical_segments)) !=vegetation height on uv points
         !
-        vegetation_stems_cd_width_density = 0.0
-        vegetation_fvm = 0.0
+        allocate(vegetation_fvm_except_height(npuv, vegetation_vertical_segments))            
+        !
+        vegetation_stems_cd_width_density_uv = 0.0
+        vegetation_stems_height_uv = 0.0        
+        vegetation_fvm_except_height = 0.0
+        !
         fvm = 0.0              
         !
-        do nm = 1, np
+        do ip = 1, npuv
             !
+            nm  = uv_index_z_nm(ip)   
+            nmu = uv_index_z_nmu(ip) 
+            !         
             do iveg = 1, vegetation_vertical_segments
                 !
-                vegetation_stems_cd_width_density(nm,iveg) = vegetation_cd(nm,iveg) * vegetation_stems_width(nm,iveg) * vegetation_stems_density(nm,iveg)
+                vegetation_stems_height_uv(ip,iveg) = 0.5*(vegetation_stems_height(nm,iveg)+vegetation_stems_height(nmu,iveg))                
+                !                
+                vegetation_stems_cd_width_density_uv(ip,iveg) = 0.5 * (0.5 * (vegetation_cd(nm,iveg) + vegetation_cd(nmu,iveg))) * (0.5 * (vegetation_stems_width(nm,iveg) + vegetation_stems_width(nmu,iveg))) * (0.5 * (vegetation_stems_density(nm,iveg) + vegetation_stems_density(nmu,iveg)))  / rhow
+                !
+                ! vegetation_stems_cd_width_density = 0.5 * cd * stems_width * stems_density / rhow, so everything that is precalculatable
                 !
             enddo            
             !    

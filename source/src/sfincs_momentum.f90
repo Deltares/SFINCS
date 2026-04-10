@@ -138,42 +138,33 @@ contains
    !$omp end do
    !$omp end parallel
    !
-   !Precalculate veggie terms:
-   !
    if (vegetation) then
-       ! New : vegetation drag due to mean flow
        !
-       ! only in case vegetation is present > already checked in initialize_vegetation
+       ! Vegetation drag due to mean flow
+       !
+       ! Pre-determine all that is possible for calculating Fvm 
        ! 
        !$omp parallel &
-       !$omp private ( ip, nm, iveg )
+       !$omp private ( ip, iveg )
        !$omp do
-       !$acc loop independent, gang, vector
+       !$acc parallel, present( vegetation_fvm_except_height, vegetation_stems_cd_width_density, uv0 )
        ! 
-       do ip = 1, npuv
+       do ip = 1, npuv ! FIXME - does parallelization with openmp/acc work well with loop in loop?
          !
-         !if (kcuv(ip)==1) then
+         !if (kcuv(ip)==1) then ! FIXME - discuss for what type of points we want to do this
          !
          ! Regular UV point 
          !
-         ! Indices of surrounding water level points
+   		 do iveg=1,vegetation_vertical_segments ! for each vertical vegetation section
+            !
+            vegetation_fvm_except_height(ip, iveg) = vegetation_stems_cd_width_density_uv(ip,iveg) * uv0(ip) * abs(uv0(ip))                 
+            !
+            ! in flux loop only still needs to be multiplied with effective water depth, which can still change below
+            !
+            ! NOTE: vegetation_stems_cd_width_density = 0.5 * vegetation_cd * vegetation_stems_width * vegetation_stems_density / rhow
+            !
+         enddo
          !
-         nm  = uv_index_z_nm(ip)   
-         nmu = uv_index_z_nmu(ip) 
-         !
-         veg_CdBNstems = 0.5 * (vegetation_stems_cd_width_density(nm,iveg) + vegetation_stems_cd_width_density(nmu,iveg))                
-         !
-   		 !do iveg=1,quadtree_no_secveg ! for each vertical vegetation section
-         !
-         iveg = 1
-         !
-         !vegetation_fvm(nm, iveg) = 0.5 * veg_CdBNstems(nm, iveg) * uv0(ip) * abs(uv0(ip)) / rhow 
-         vegetation_fvm(ip, iveg) = 0.5 * veg_CdBNstems * uv0(ip) * abs(uv0(ip)) / rhow                 
-         ! in flux loop only still needs to be multiplied with 'hvegeff', which can still change
-         !
-         ! NOTE: veg_CdBNstems = quadtree_snapwave_veg_Cd(nm, iveg) * quadtree_snapwave_veg_bstems(nm, iveg) * quadtree_snapwave_veg_Nstems(nm, iveg)
-         !
-         !endif
       enddo   
       !$omp end do
       !$omp end parallel   
@@ -648,30 +639,21 @@ contains
             endif
             !
             if (vegetation) then
-               ! New : vegetation drag due to mean flow
-               ! 
-               !fvm = 0.0
                !
-			   !do iveg=1,quadtree_no_secveg ! for each vertical vegetation section
+               ! Vegetation drag due to mean flow
+               ! 
+               !do iveg=1,quadtree_no_secveg ! for each vertical vegetation section
                !   fvm = fvm + veg_fvm(nm,iveg) * min(quadtree_snapwave_veg_ah(ip,iveg), hu)
                !enddo
                !
                ! With all pre-calculateable terms already pre-determined for Fvm, beside effective depth:
 			   iveg=1 !for testing keep at 1
+               !
+               fvm = vegetation_fvm_except_height(ip,iveg) * min(vegetation_stems_height_uv(ip,iveg), hu)
                ! 
-               nm  = uv_index_z_nm(ip)
-               nmu = uv_index_z_nmu(ip) 
-               !
-               veg_ah = 0.5*(vegetation_stems_height(nm,iveg)+vegetation_stems_height(nmu,iveg)) ! FIXME - also pre-calculate
-               !
-               fvm = vegetation_fvm(ip,iveg) * min(veg_ah, hu)
-               ! 
-               !
-               !fvm = veg_fvm(nm,iveg) * min(quadtree_snapwave_veg_ah(ip,iveg), hu)
-               ! FIXME Question TL: water depth per layer, or always compared to lower bed level, or?
+               ! FIXME - water depth per layer, or always compared to lower bed level, or?
                !               
-               frc = frc - fvm ! FIXME - minus OR plus?
-               !frc = frc + fvm ! FIXME - minus OR plus?
+               frc = frc - fvm
                !
             endif 
             !            

@@ -428,10 +428,11 @@ module sfincs_data
       integer                                           :: vegetation_vertical_segments ! nr of vegetation sections in vertical
       real*4,             dimension(:,:),   allocatable :: vegetation_cd
       real*4,             dimension(:,:),   allocatable :: vegetation_stems_height
+      real*4,             dimension(:,:),   allocatable :: vegetation_stems_height_uv      
       real*4,             dimension(:,:),   allocatable :: vegetation_stems_width
       real*4,             dimension(:,:),   allocatable :: vegetation_stems_density
-      real*4,             dimension(:,:),   allocatable :: vegetation_stems_cd_width_density
-      real*4,             dimension(:,:),   allocatable :: vegetation_fvm
+      real*4,             dimension(:,:),   allocatable :: vegetation_stems_cd_width_density_uv
+      real*4,             dimension(:,:),   allocatable :: vegetation_fvm_except_height
       real*4                                            :: fvm
       !
       !!! Wave makers
