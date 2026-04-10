@@ -139,17 +139,17 @@ contains
    !$omp end parallel
    !
    if (vegetation) then
-       !
-       ! Vegetation drag due to mean flow
-       !
-       ! Pre-determine all that is possible for calculating Fvm 
-       ! 
-       !$omp parallel &
-       !$omp private ( ip, iveg )
-       !$omp do
-       !$acc parallel, present( vegetation_fvm_except_height, vegetation_stems_cd_width_density, uv0 )
-       ! 
-       do ip = 1, npuv ! FIXME - does parallelization with openmp/acc work well with loop in loop?
+      !
+      ! Vegetation drag due to mean flow
+      !
+      ! Pre-determine all that is possible for calculating Fvm 
+      ! 
+      !$omp parallel &
+      !$omp private ( ip, iveg )
+      !$omp do
+      !$acc parallel, present( vegetation_fvm_except_height, vegetation_stems_cd_width_density, uv0 )
+      ! 
+      do ip = 1, npuv ! FIXME - does parallelization with openmp/acc work well with loop in loop?
          !
          !if (kcuv(ip)==1) then ! FIXME - discuss for what type of points we want to do this
          !
@@ -181,11 +181,11 @@ contains
    !$acc                    uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc                    uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
    !$acc                    zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, &
-   !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, gnapp2, x73, timestep_analysis_required_timestep ) num_gangs( 1024 ) vector_length( 128 )
+   !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, gnapp2, x73, timestep_analysis_required_timestep, vegetation_fvm_except_height, vegetation_stems_height_uv ) num_gangs( 1024 ) vector_length( 128 )
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73,min_dt_ip ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73,min_dt_ip,iveg ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop, reduction( min : min_dt ), gang, vector
