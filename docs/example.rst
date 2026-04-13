@@ -22,10 +22,12 @@ HydroMT (Eilander et al. 2022 https://doi.org/10.5194/egusphere-2022-149) is a m
 Besides globally available DEMs it can also retrieve spatially varying infiltration and manning roughness data based on landuse maps.
 Also, it is possible to burn in rivers or setup a offline coupled model together with the hydrological Wflow model that will provide boundary conditions as river discharge.
 
+**NOTE - As of HydroMT-SFINCS v2.0.0, the API uses a component-based architecture. The old ``setup_*`` methods (e.g. ``setup_grid``, ``setup_dep``) have been replaced by component methods (e.g. ``sf.grid.create()``, ``sf.elevation.create()``). See the migration guide for details.**
+
 * For more information regarding the SFINCS plugin of HydroMT see: https://deltares.github.io/hydromt_sfincs/
 * For more information regarding HydroMT in general see: https://deltares.github.io/hydromt/
-* For more user flexibility, it is also possible now to access individual setup components to build your own model or forcing from scratch, see: https://deltares.github.io/hydromt_sfincs/latest/user_guide/sfincs.html
-* For an example of building a model from scratch in Python see: https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_py.html
+* For the HydroMT-SFINCS v2 migration guide see: https://deltares.github.io/hydromt_sfincs/
+* For an example of building a model from scratch in Python see: https://deltares.github.io/hydromt_sfincs/
 
 Delft Dashboard 
 -----

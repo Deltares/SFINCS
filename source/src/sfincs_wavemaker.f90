@@ -5,7 +5,7 @@
 
    contains
 
-   subroutine read_wavemaker_polylines()
+   subroutine initialize_wavemakers()
    !
    ! Reads polylines files
    ! Computes cross sections
@@ -48,6 +48,9 @@
    integer*4, dimension(:),     allocatable :: cell_indices
    integer*4, dimension(:),     allocatable :: indwm
    !
+   real*4, dimension(:),     allocatable :: wavemaker_xfp
+   real*4, dimension(:),     allocatable :: wavemaker_yfp   
+   !
    logical :: iok, ok
    !
    integer ib1, ib2, ib, ic, nmb, nrwvm
@@ -66,9 +69,9 @@
    write(logstr,*)'Reading wavemaker polyline file ...'
    call write_log(logstr, 0)
    !
-   ok = check_file_exists(wvmfile, 'Wave maker wvm file', .true.)
+   ok = check_file_exists(wavemaker_wvmfile, 'Wave maker wvm file', .true.)
    !
-   open(500, file=trim(wvmfile))
+   open(500, file=trim(wavemaker_wvmfile))
    do while(.true.)
       read(500,*,iostat = stat)cdummy
       if (stat<0) exit      
@@ -98,33 +101,34 @@
          read(500,*)xpol(irow),ypol(irow)
       enddo   
       !
-      do irow = 1, nrows - 1     
-          ! Determine angle with respect to grid orientation
-          !
-          phip = atan2(ypol(irow + 1) - ypol(irow), xpol(irow + 1) - xpol(irow)) + 0.5*pi
-          phip = phip - rotation
-          if (phip>=2*pi) phip = phip - 2*pi
-          if (phip<0.0)   phip = phip + 2*pi
-          !
-          call find_cells_intersected_by_line(cell_indices, nr_cells, xpol(irow), ypol(irow), xpol(irow + 1), ypol(irow + 1))
-          !
-          do j = 1, nr_cells
-             !
-             ip = index_sfincs_in_quadtree(cell_indices(j))
-             !
-             if (ip > 0) then
-                 !
-                 if (indwm(ip) == 0) then
-                    !
-                    indwm(ip) = 1 ! set temporary flag to 1
-                    phi(ip)   = phip
-                    nrw       = nrw + 1
-                    !
-                 endif   
-             endif             
-             !
-          enddo  
-          !
+      do irow = 1, nrows - 1
+         !
+         ! Determine angle with respect to grid orientation
+         !
+         phip = atan2(ypol(irow + 1) - ypol(irow), xpol(irow + 1) - xpol(irow)) + 0.5 * pi
+         phip = phip - rotation
+         if (phip >= 2 * pi) phip = phip - 2 * pi
+         if (phip < 0.0)   phip = phip + 2 * pi
+         !
+         call find_cells_intersected_by_line(cell_indices, nr_cells, xpol(irow), ypol(irow), xpol(irow + 1), ypol(irow + 1))
+         !
+         do j = 1, nr_cells
+            !
+            ip = index_sfincs_in_quadtree(cell_indices(j))
+            !
+            if (ip > 0) then
+               !
+               if (indwm(ip) == 0) then
+                  !
+                  indwm(ip) = 1 ! set temporary flag to 1
+                  phi(ip)   = phip
+                  nrw       = nrw + 1
+                  !
+               endif   
+            endif             
+            !
+         enddo  
+         !
       enddo
       !
       deallocate(xpol)
@@ -142,22 +146,21 @@
       !
       ! Check if these cells have neighbor closer to shore that is also a wavemaker point
       !
-      if (indwm(ip)==1) then
+      if (indwm(ip) == 1) then
          !
          iok = .false.
          !
-         if (phi(ip)>=0.0 .and. phi(ip)<0.5*pi) then
+         if (phi(ip) >= 0.0 .and. phi(ip) < 0.5 * pi) then
             !
             ! Check right and above
             !
-!            nmu = z_index_uv_mu(ip)    ! index of 1st uv neighbor to the right
             nmu = z_index_uv_mu1(ip)    ! index of 1st uv neighbor to the right
             !
-            if (nmu>0) then
+            if (nmu > 0) then
                !
                iz = uv_index_z_nmu(nmu)
                !
-               if (indwm(iz)==0) then
+               if (indwm(iz) == 0) then
                   !
                   ! This neighbor is not a wavemaker, so this point is a valid wave maker point
                   !
@@ -170,11 +173,11 @@
                !
                nmu = z_index_uv_mu2(ip)    ! index of 2nd uv neighbor to the right
                !
-               if (nmu>0) then
+               if (nmu > 0) then
                   !
                   iz = uv_index_z_nmu(nmu)
                   !
-                  if (indwm(iz)==0) then
+                  if (indwm(iz) == 0) then
                      !
                      ! This neighbor is not a wavemaker, so this point is a valid wave maker point
                      !
@@ -440,7 +443,7 @@
             endif
          endif   
          !
-         if (iok) then
+         if (iok .and. kcs(ip) == 1) then
             !
             ! This is a valid wave maker point
             !
@@ -478,7 +481,7 @@
          !
          z_index_wavemaker(ip) = nok
          !
-         if (phi(ip)>=0.0 .and. phi(ip)<0.5*pi) then
+         if (phi(ip) >= 0.0 .and. phi(ip) < 0.5*pi) then
             !
             ! Check right
             !
@@ -1127,9 +1130,6 @@
    !
    ! Set flags for kcuv points
    !
-   write(logstr,*)'Setting wave maker flags ...'
-   call write_log(logstr, 0)   
-   !
    do iwm = 1, wavemaker_nr_uv_points
       !
       ip = wavemaker_index_uv(iwm)
@@ -1141,13 +1141,13 @@
    !
    ! Read wave maker forcing points
    !
-   nwmfp  = 0     ! Total number of wave maker forcing points
-   ntwmfp = 0     ! Number of time steps in wave maker forcing time series
-   itwmfplast = 1 ! Last time point read in time series file 
+   wavemaker_nr_forcing_points  = 0     ! Total number of wave maker forcing points
+   wavemaker_nr_forcing_timesteps = 0     ! Number of time steps in wave maker forcing time series
+   wavemaker_itlast = 1 ! Last time point read in time series file 
    !
    wavemaker_timeseries = .false.
    !
-   if (wfpfile(1:4) /= 'none') then
+   if (wavemaker_wfpfile(1:4) /= 'none') then
       !
       wavemaker_timeseries = .true.
       !
@@ -1156,19 +1156,19 @@
       !
       ! Locations
       !
-      ok = check_file_exists(wfpfile, 'Wave maker wfp file', .true.)
+      ok = check_file_exists(wavemaker_wfpfile, 'Wave maker wfp file', .true.)
       !
-      open(500, file=trim(wfpfile))
+      open(500, file=trim(wavemaker_wfpfile))
       do while(.true.)
          read(500,*,iostat = stat)dummy
          if (stat<0) exit
-         nwmfp = nwmfp + 1
+         wavemaker_nr_forcing_points = wavemaker_nr_forcing_points + 1
       enddo
       rewind(500)
-      allocate(x_wmfp(nwmfp))
-      allocate(y_wmfp(nwmfp))
-      do n = 1, nwmfp
-         read(500,*)x_wmfp(n),y_wmfp(n)
+      allocate(wavemaker_xfp(wavemaker_nr_forcing_points))
+      allocate(wavemaker_yfp(wavemaker_nr_forcing_points))
+      do n = 1, wavemaker_nr_forcing_points
+         read(500,*)wavemaker_xfp(n),wavemaker_yfp(n)
       enddo
       close(500)
       !
@@ -1176,77 +1176,72 @@
       !
       ! First find times in whi file
       !
-      ok = check_file_exists(wfpfile, 'Wave maker whi file', .true.)
+      ok = check_file_exists(wavemaker_wfpfile, 'Wave maker wfp file', .true.)
       !      
-      open(500, file=trim(whifile))
+      open(500, file=trim(wavemaker_whifile))
       do while(.true.)
          read(500,*,iostat = stat)dummy
          if (stat<0) exit
-         ntwmfp = ntwmfp + 1
+         wavemaker_nr_forcing_timesteps = wavemaker_nr_forcing_timesteps + 1
       enddo
       close(500)
       !
-      allocate(wmf_time(ntwmfp))
-      !
-      ! Instantaneous values at wave maker forcing points
-      allocate(wmf_hm0_ig_t(nwmfp))
-      allocate(wmf_tp_ig_t(nwmfp))
-      allocate(wmf_setup_t(nwmfp))
+      allocate(wavemaker_forcing_time(wavemaker_nr_forcing_timesteps))
       !
       ! Hm0 IG (significant wave height)
       ! Times in wti and wst files must be the same as in whi file!
       !
-      open(500, file=trim(whifile))
-      allocate(wmf_hm0_ig(nwmfp, ntwmfp))
-      do itb = 1, ntwmfp
-         read(500,*)wmf_time(itb),(wmf_hm0_ig(ib, itb), ib = 1, nwmfp)
+      open(500, file=trim(wavemaker_whifile))
+      allocate(wavemaker_forcing_hm0_ig(wavemaker_nr_forcing_points, wavemaker_nr_forcing_timesteps))
+      do itb = 1, wavemaker_nr_forcing_timesteps
+         read(500,*)wavemaker_forcing_time(itb),(wavemaker_forcing_hm0_ig(ib, itb), ib = 1, wavemaker_nr_forcing_points)
       enddo
       close(500)
       !
       ! Tp IG (peak period)
       !
-      ok = check_file_exists(wtifile, 'Wave maker wti file', .true.)
+      ok = check_file_exists(wavemaker_wtifile, 'Wave maker wti file', .true.)
       !      
-      open(500, file=trim(wtifile))
-      allocate(wmf_tp_ig(nwmfp, ntwmfp))
-      do itb = 1, ntwmfp
-         read(500,*)wmf_time(itb),(wmf_tp_ig(ib, itb), ib = 1, nwmfp)
+      open(500, file=trim(wavemaker_wtifile))
+      allocate(wavemaker_forcing_tp_ig(wavemaker_nr_forcing_points, wavemaker_nr_forcing_timesteps))
+      do itb = 1, wavemaker_nr_forcing_timesteps
+         read(500,*)wavemaker_forcing_time(itb),(wavemaker_forcing_tp_ig(ib, itb), ib = 1, wavemaker_nr_forcing_points)
       enddo
       close(500)
       !
       ! Set-up
       !
-      allocate(wmf_setup(nwmfp, ntwmfp))
-      wmf_setup = 0.0
-      if (wstfile(1:4) /= 'none') then
+      allocate(wavemaker_forcing_setup(wavemaker_nr_forcing_points, wavemaker_nr_forcing_timesteps))
+      wavemaker_forcing_setup = 0.0
+      if (wavemaker_wstfile(1:4) /= 'none') then
          !
-         ok = check_file_exists(wstfile, 'Wave maker wsr file', .true.)
+         ok = check_file_exists(wavemaker_wstfile, 'Wave maker wst file', .true.)
          ! 
-         open(500, file=trim(wstfile))
-         do itb = 1, ntwmfp
-            read(500,*)wmf_time(itb),(wmf_setup(ib, itb), ib = 1, nwmfp)
+         open(500, file=trim(wavemaker_wstfile))
+         do itb = 1, wavemaker_nr_forcing_timesteps
+            read(500,*)wavemaker_forcing_time(itb),(wavemaker_forcing_setup(ib, itb), ib = 1, wavemaker_nr_forcing_points)
          enddo
          close(500)
       endif
       !
-      if ((wmf_time(1) > (t0 + 1.0)) .or. (wmf_time(ntwmfp)< (t1 - 1.0))) then
+      if ((wavemaker_forcing_time(1) > (t0 + 1.0)) .or. (wavemaker_forcing_time(wavemaker_nr_forcing_timesteps) < (t1 - 1.0))) then
          ! 
          write(logstr,'(a)')' WARNING! Times in wave maker time series file do not cover entire simulation period !'
          call write_log(logstr, 0)         
          ! 
-         if (wmf_time(1) > (t0 + 1.0)) then
+         if (wavemaker_forcing_time(1) > (t0 + 1.0)) then
             ! 
             write(logstr,'(a)')' WARNING! Adjusting first time in wave maker time series !'
             call write_log(logstr, 0)                                 
             !
-            wmf_time(1) = t0 - 1.0
+            wavemaker_forcing_time(1) = t0 - 1.0
             !
          else
             ! 
             write(logstr,'(a)')' WARNING! Adjusting last time in wave maker time series !'
             call write_log(logstr, 0)                     
             !
-            wmf_time(ntwmfp) = t1 + 1.0
+            wavemaker_forcing_time(wavemaker_nr_forcing_timesteps) = t1 + 1.0
             !
          endif
          !
@@ -1265,7 +1260,7 @@
          x = z_xz(nmb) ! x-coordinate of cell centre behind wave maker u/v point
          y = z_yz(nmb) ! x-coordinate of cell centre behind wave maker u/v point
          !
-         if (nwmfp>1) then ! More than one wave maker forcing point
+         if (wavemaker_nr_forcing_points>1) then ! More than one wave maker forcing point
             !
             dst1 = 1.0e10
             dst2 = 1.0e10
@@ -1274,11 +1269,11 @@
             !
             ! Loop through all water level boundary points
             !
-            do ic = 1, nwmfp
+            do ic = 1, wavemaker_nr_forcing_points
                !
                ! Compute distance of this point to grid boundary point
                !
-               dst = sqrt((x_wmfp(ic) - x)**2 + (y_wmfp(ic) - y)**2)
+               dst = sqrt((wavemaker_xfp(ic) - x)**2 + ( wavemaker_yfp(ic) - y)**2)
                !
                if (dst<dst1) then
                   !
@@ -1317,17 +1312,33 @@
    !
    ! Infragravity frequencies
    !   
-   allocate(freqig(nfreqsig))
-   allocate(costig(nfreqsig))
-   allocate(phiig(nfreqsig))
-   allocate(dphiig(nfreqsig))
-   dfreqig = (freqmaxig - freqminig)/nfreqsig
-   do ifreq = 1, nfreqsig
-      freqig(ifreq) = freqminig + ifreq*dfreqig - 0.5*dfreqig
-      call RANDOM_NUMBER(r)
-      phiig(ifreq) = r*2*3.1416
-      dphiig(ifreq) = 1.0e-6*2*3.1416/freqig(ifreq)
+   allocate(wavemaker_freq_ig(wavemaker_nfreqs_ig))
+   allocate(wavemaker_cost_ig(wavemaker_nfreqs_ig))
+   allocate(wavemaker_phi_ig(wavemaker_nfreqs_ig))
+   allocate(wavemaker_dphi_ig(wavemaker_nfreqs_ig))
+   wavemaker_dfreq_ig = (wavemaker_freqmax_ig - wavemaker_freqmin_ig) / wavemaker_nfreqs_ig
+   do ifreq = 1, wavemaker_nfreqs_ig
+      wavemaker_freq_ig(ifreq) = wavemaker_freqmin_ig + ifreq * wavemaker_dfreq_ig - 0.5 * wavemaker_dfreq_ig
+      call random_number(r)
+      wavemaker_phi_ig(ifreq) = r * 2 * 3.1416
+      wavemaker_dphi_ig(ifreq) = 1.0e-6 * 2 * 3.1416 / wavemaker_freq_ig(ifreq)
    enddo
+   !
+   if (wavemaker_hinc) then
+      !
+      allocate(wavemaker_freq_inc(wavemaker_nfreqs_inc))
+      allocate(wavemaker_cost_inc(wavemaker_nfreqs_inc))
+      allocate(wavemaker_phi_inc(wavemaker_nfreqs_inc))
+      allocate(wavemaker_dphi_inc(wavemaker_nfreqs_inc))
+      wavemaker_dfreq_inc = (wavemaker_freqmax_inc - wavemaker_freqmin_inc) / wavemaker_nfreqs_inc
+      do ifreq = 1, wavemaker_nfreqs_inc
+         wavemaker_freq_inc(ifreq) = wavemaker_freqmin_inc + ifreq * wavemaker_dfreq_inc - 0.5 * wavemaker_dfreq_inc
+         call random_number(r)
+         wavemaker_phi_inc(ifreq) = r * 2 * 3.1416
+         wavemaker_dphi_inc(ifreq) = 1.0e-6 * 2 * 3.1416 / wavemaker_freq_inc(ifreq)
+      enddo
+      !
+   endif   
    !
    end subroutine
 
@@ -1341,14 +1352,13 @@
    !
    implicit none
    !
-   integer ib, nmi, nmb, iuv, ip, ifreq, itb, itb0, itb1
-   real*4  hnmb, dt, zsnmi, zsnmb, zs0nmb, zwav
-   real*4  alpha, beta
-   real*8  t, tb
-   real*4  a, fp
-   real*4 tbfac, hs, tp, tpsum, setup
-   !
-   real*4 ui, ub, dzuv, facint, zsuv, depthuv, uvm0
+   integer :: ib, nmi, nmb, iuv, ip, ifreq, itb, itb0, itb1, kst
+   real*4  :: hnmb, dt, zsnmi, zsnmb, zs0nmb, zwav_ig, zwav_inc
+   real*4  :: alpha, beta
+   real*8  :: t, tb
+   real*4  :: tbfac, hs, tp_ig, tp_inc, tpsum, setup, fm_ig, a, fm_inc
+   real*4  :: wave_steepness, betas, zinc, zig, dwvm, ztot, hm0_inc
+   real*4  :: ui, ub, dzuv, facint, zsuv, depthuv, uvm0
    !
    integer  :: count0
    integer  :: count1
@@ -1356,103 +1366,200 @@
    integer  :: count_max
    real     :: tloop
    !
+   real*4, dimension(:),     allocatable :: wavemaker_forcing_hm0_ig_t
+   real*4, dimension(:),     allocatable :: wavemaker_forcing_tp_ig_t
+   real*4, dimension(:),     allocatable :: wavemaker_forcing_setup_t   
+   !
    call system_clock(count0, count_rate, count_max)
    !
-   ! First update wave heights at boundary points (only need if conditions come from time series file)
+   ! Factors for double-exponential filtering
+   !
+   alpha = min(dt / wavemaker_filter_time, 1.0)
+   beta  = min(dt / (0.2 * wavemaker_filter_time), 1.0)
+   !
+   ! For time series forcing, we now update values at the forcing points and determine Tp_ig
+   ! For forcing with SnapWave, we only need to determine Tp_ig
    !
    if (wavemaker_timeseries) then
       !
+      ! Only IG wave forcing supported at the moment !
+      !
+      allocate(wavemaker_forcing_hm0_ig_t(wavemaker_nr_forcing_points))
+      allocate(wavemaker_forcing_tp_ig_t(wavemaker_nr_forcing_points))
+      allocate(wavemaker_forcing_setup_t(wavemaker_nr_forcing_points))
+      !
       ! Interpolate boundary conditions in time
       !
-      if (wmf_time(1)>t - 1.0e-3) then ! use first time in boundary conditions
+      if (wavemaker_forcing_time(1) > t - 1.0e-3) then ! use first time in boundary conditions
          !
          itb0 = 1
          itb1 = 1
-         tb   = wmf_time(itb0)
+         tb   = wavemaker_forcing_time(itb0)
          !
-      elseif (wmf_time(ntwmfp)<t + 1.0e-3) then  ! use last time in boundary conditions       
+      elseif (wavemaker_forcing_time(wavemaker_nr_forcing_timesteps) < t + 1.0e-3) then  ! use last time in boundary conditions       
          !
-         itb0 = ntwmfp
-         itb1 = ntwmfp
-         tb   = wmf_time(itb0)
+         itb0 = wavemaker_nr_forcing_timesteps
+         itb1 = wavemaker_nr_forcing_timesteps
+         tb   = wavemaker_forcing_time(itb0)
          !
       else
          !
-         do itb = itwmfplast, ntwmfp ! Loop in time
-            if (wmf_time(itb)>t + 1.0e-6) then
+         do itb = wavemaker_itlast, wavemaker_nr_forcing_timesteps ! Loop in time
+            if (wavemaker_forcing_time(itb) > t + 1.0e-6) then
                itb0 = itb - 1
                itb1 = itb
                tb   = t
-               itwmfplast = itb - 1
+               wavemaker_itlast = itb - 1
                exit
             endif
          enddo 
          !
       endif            
       !
-      tbfac  = (tb - wmf_time(itb0))/max(wmf_time(itb1) - wmf_time(itb0), 1.0e-6)
+      tbfac  = (tb - wavemaker_forcing_time(itb0)) / max(wavemaker_forcing_time(itb1) - wavemaker_forcing_time(itb0), 1.0e-6)
       !
       tpsum = 0.0
       !
-      do ib = 1, nwmfp ! Loop along forcing points
+      do ib = 1, wavemaker_nr_forcing_points ! Loop along forcing points
          !
-         hs    = wmf_hm0_ig(ib, itb0) + (wmf_hm0_ig(ib, itb1) - wmf_hm0_ig(ib, itb0))*tbfac
-         tp    = wmf_tp_ig(ib, itb0)  + (wmf_tp_ig(ib, itb1)  - wmf_tp_ig(ib, itb0))*tbfac
-         setup = wmf_setup(ib, itb0)  + (wmf_setup(ib, itb1)  - wmf_setup(ib, itb0))*tbfac
+         hs    = wavemaker_forcing_hm0_ig(ib, itb0) + (wavemaker_forcing_hm0_ig(ib, itb1) - wavemaker_forcing_hm0_ig(ib, itb0)) * tbfac
+         tp_ig = wavemaker_forcing_tp_ig(ib, itb0)  + (wavemaker_forcing_tp_ig(ib, itb1)  - wavemaker_forcing_tp_ig(ib, itb0)) * tbfac
+         setup = wavemaker_forcing_setup(ib, itb0)  + (wavemaker_forcing_setup(ib, itb1)  - wavemaker_forcing_setup(ib, itb0)) * tbfac
          !
-         wmf_hm0_ig_t(ib) = hs
-         wmf_setup_t(ib)  = setup
+         wavemaker_forcing_hm0_ig_t(ib) = hs
+         wavemaker_forcing_setup_t(ib)  = setup
          !
-         tpsum = tpsum + tp
+         tpsum = tpsum + tp_ig
          !
       enddo
       !
-      tp = tpsum / nwmfp ! Take average Tp from boundary points
+      tp_ig = tpsum / wavemaker_nr_forcing_points ! Take average Tp from boundary points
+      tp_inc = 10.0 ! Later make it possible to also specify Tp_inc in time series forcing, but for now just add a fixed value (that is not used)
       !
    else
       !
       ! Use mean peak period from SnapWave boundary conditions
       !
-      tp = snapwave_tpigmean ! TL: Now calculated in SnapWave, different options for using a period based on Herbers spectrum (snapwave_tpig_opt, if snapwave_use_herbers=1, or user defined snapwave_Tinc2ig ratio (if snapwave_use_herbers = 0)
+      tp_ig = snapwave_tpigmean ! TL: Now calculated in SnapWave, different options for using a period based on Herbers spectrum (snapwave_tpig_opt, if snapwave_use_herbers=1, or user defined snapwave_Tinc2ig ratio (if snapwave_use_herbers = 0)
       !
+      ! We may want to use Herbers for computation of IG waves in SnapWave, but we want to have control over peak IG period at wave makers.
+      !
+      if (wavemaker_Tinc2ig > 0.0) then
+         !
+         ! Use factor on mean Tp_inc at boundaries
+         !
+         tp_ig = snapwave_tpmean * wavemaker_Tinc2ig
+         !
+!      elseif (wavemaker_surfslope > 0.0) then ! Dean a
+!         !
+!         ! Turn this option off now, because snapwave_hsmean is not available in current branch
+!         ! Will need to be updated if we want to use this option, but it is not a priority at the moment
+!         !
+!         ! Estimate surfzone slope from Dean's a, using gambr = 1.0
+!         !
+!         betas = snapwave_hsmean / (snapwave_hsmean / (1.0 * wavemaker_surfslope))**(3.0 / 2.0)
+!         !
+!         wave_steepness = snapwave_hsmean / (1.56 * snapwave_tpmean**2)
+!         !
+!         ! From empirical run-up equation (van Ormondt et al., 2021), but slightly adjusted
+!         !
+!         tp_ig = snapwave_tpmean * max(1.86 * betas**-0.43 * wave_steepness**0.07, 5.0)
+!         !
+      endif
+      !
+      tp_inc = max(snapwave_tpmean, wavemaker_tpmin)
+      !
+      tp_ig = max(tp_ig, wavemaker_tpmin)      
+      ! 
    endif      
    !
-   alpha   = min(dt/wmtfilter, 1.0)
-   beta    = min(dt/(0.2*wmtfilter), 1.0)
+   ! Now determine zwav_ig and zwav_inc based on spectrum or monochromatic signal.
+   ! Time series of zwav_ig and zwav_inc will be used to modulate water level at wave maker points.
+   ! They both give at Hm0 of 1.0 m, and therefore need to be scaled with the data at the wave maker points (either from time series or SnapWave boundary conditions)
+   !
+   zwav_ig = 0.0
+   zwav_inc = 0.0
    !
    if (wavemaker_spectrum) then
       !
-      ! First update phases
+      ! Infragravity waves
       !
-      do ifreq = 1, nfreqsig
-         phiig(ifreq) = phiig(ifreq) + dphiig(ifreq)*dt
-         costig(ifreq) = cos(2*pi*t*freqig(ifreq) + phiig(ifreq))
-      enddo
+      if (wavemaker_hig) then
+         !
+         fm_ig = 1.0 / tp_ig ! Wave period
+         !
+         ! Now spectrum and wave excitation
+         !
+         do ifreq = 1, wavemaker_nfreqs_ig
+            !
+            ! Update phase
+            !
+            wavemaker_phi_ig(ifreq) = modulo(wavemaker_phi_ig(ifreq) + wavemaker_dphi_ig(ifreq) * dt, 2 * pi)
+            wavemaker_cost_ig(ifreq) = cos(2 * pi * t * wavemaker_freq_ig(ifreq) + wavemaker_phi_ig(ifreq))         
+            !
+            ! Use this spectral shape instead
+            !
+            a = 0.125 * (fm_ig**-2) * wavemaker_freq_ig(ifreq) * (exp(-wavemaker_freq_ig(ifreq) / fm_ig))
+            !
+            zwav_ig = zwav_ig + wavemaker_cost_ig(ifreq) * sqrt(a * wavemaker_dfreq_ig)
+            !
+         enddo
+         !
+      endif
       !
-      fp = 1.0/tp ! Wave period
-      !
-      ! Now spectrum and wave excitation
-      !
-      zwav = 0.0
-      !
-      do ifreq = 1, nfreqsig
-         a = 0.125*(1.0**2)*(fp**(-2))*freqig(ifreq)*exp(-freqig(ifreq)/fp)
-         zwav = zwav + costig(ifreq)*sqrt(a*dfreqig)
-      enddo
+      if (wavemaker_hinc) then
+         !
+         fm_inc = 1.0 / tp_inc ! Wave period
+         !
+         do ifreq = 1, wavemaker_nfreqs_ig
+            !
+            wavemaker_phi_inc(ifreq) = modulo(wavemaker_phi_inc(ifreq) + wavemaker_dphi_inc(ifreq) * dt, 2 * pi)
+            wavemaker_cost_inc(ifreq) = cos(2 * pi * t * wavemaker_freq_inc(ifreq) + wavemaker_phi_inc(ifreq))
+            !
+            ! The ISSC spectrum (also known as Bretschneider or modified Pierson-Moskowitz)
+            !
+            a = 0.625 * (fm_inc**4) * (wavemaker_freq_inc(ifreq)**-5) * (exp(-1.25 * (wavemaker_freq_inc(ifreq) / fm_inc)**-4))
+            !
+            zwav_inc = zwav_inc + wavemaker_cost_inc(ifreq) * sqrt(a * wavemaker_dfreq_inc)  
+            !
+         enddo
+         !
+         !zwav_inc = 0.5 * sin(2 * pi * t / tp_inc)
+         !
+         ! Saw tooth
+         !
+         !zwav_inc = - mod(t, tp_inc) / tp_inc + 0.5
+         !
+         ! Let zwav_inc be modulated by zwav_ig (i.e. higher incident waves at the peaks of the IG wave)
+         !
+         !zwav_inc = zwav_inc * sqrt(max(zwav + 1.0, 0.0)) ! this assumes zwav is somewhere between -0.5 and +0.5
+         !
+      endif   
       !
    else
       !
       ! Monochromatic signal
       !
-      zwav = 0.5*sin(2*pi*t/tp)
+      if (wavemaker_hig) then
+         !
+         zwav_ig = 0.5 * sin(2 * pi * t / tp_ig)
+         !
+      endif
+      !
+      if (wavemaker_hinc) then
+         !
+         zwav_inc = 0.5 * sin(2 * pi * t / tp_inc)
+         !
+      endif   
       !
    endif   
    !
-   if (t<tspinup) then
+   if (t < tspinup) then
       !
-      zwav = zwav * (t - t0)/(tspinup - t0)
+      zwav_ig = zwav_ig * (t - t0) / (tspinup - t0)
+      zwav_inc = zwav_inc * (t - t0) / (tspinup - t0)
       !
-   endif      
+   endif
    !
    ! UV fluxes at wave makers
    !
@@ -1460,10 +1567,10 @@
    !
    !$acc parallel present( wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, &
    !$acc                  zs, q, hm0, hm0_ig, zb, zbuv, subgrid_z_zmax, &
-   !$acc                  wmf_hm0_ig_t, wmf_setup_t, wavemaker_index_wmfp1, wavemaker_index_wmfp2, wavemaker_fac_wmfp, &
-   !$acc                  wavemaker_uvmean, wavemaker_idir, wavemaker_angfac, wavemaker_freduv, wavemaker_uvtrend, & 
+   !$acc                  wavemaker_forcing_hm0_ig_t, wavemaker_forcing_setup_t, wavemaker_index_wmfp1, wavemaker_index_wmfp2, wavemaker_fac_wmfp, &
+   !$acc                  wavemaker_uvmean, wavemaker_idir, wavemaker_angfac, wavemaker_uvtrend, & 
    !$acc                  subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_z_zmin, subgrid_uv_havg_zmax)
-   !$acc loop
+   !$acc loop independent gang vector
    do ib = 1, wavemaker_nr_uv_points
       !
       ip     = wavemaker_index_uv(ib)
@@ -1472,22 +1579,39 @@
       !
       zsnmi  = zs(nmi)                    ! total water level on wave side inside model
       !
+      ! Now determine total water levels (zs0nmb and zsnmb) on boundary (i.e. wave maker) side,
+      ! which is based on mean water level plus wave height
+      !
       if (wavemaker_timeseries) then
          !
          ! Take wave height from boundary conditions file (weighted average of two nearby forcing points)
          !
-         hs    = wmf_hm0_ig_t(wavemaker_index_wmfp1(ib))*wavemaker_fac_wmfp(ib) + wmf_hm0_ig_t(wavemaker_index_wmfp2(ib))*(1.0 - wavemaker_fac_wmfp(ib))
-         setup = wmf_setup_t(wavemaker_index_wmfp1(ib))*wavemaker_fac_wmfp(ib)  + wmf_setup_t(wavemaker_index_wmfp2(ib))*(1.0 - wavemaker_fac_wmfp(ib))
+         hs    = wavemaker_forcing_hm0_ig_t(wavemaker_index_wmfp1(ib)) * wavemaker_fac_wmfp(ib) + wavemaker_forcing_hm0_ig_t(wavemaker_index_wmfp2(ib)) * (1.0 - wavemaker_fac_wmfp(ib))
+         setup = wavemaker_forcing_setup_t(wavemaker_index_wmfp1(ib)) * wavemaker_fac_wmfp(ib)  + wavemaker_forcing_setup_t(wavemaker_index_wmfp2(ib)) * (1.0 - wavemaker_fac_wmfp(ib))
          !
          zs0nmb = zs(nmb) + setup            ! average water level inside model without waves (this should be zs)
-         zsnmb  = zs0nmb + zwav*hs           ! total water level in wave maker (i.e. mean water level plus wave)         
+         zsnmb  = zs0nmb + zwav_ig * hs      ! total water level in wave maker (i.e. mean water level plus wave)         
          !
       else
          !
          ! Take wave height from SnapWave
          !
-         zs0nmb = zs(nmb)                    ! average water level inside model without waves (this should be zs)
-         zsnmb  = zs0nmb + zwav*hm0_ig(nmb)  ! total water level in wave maker (i.e. mean water level plus wave)
+         zs0nmb = zs(nmb) ! average water level inside model without waves
+         !
+         zig    = wavemaker_hm0_ig_factor * zwav_ig * hm0_ig(nmb)
+         zinc   = wavemaker_hm0_inc_factor * zwav_inc * hm0(nmb)
+         !
+         ! Compute water depth including IG wave
+         !
+         if (subgrid) then
+            dwvm   = max(zs0nmb + zig - subgrid_z_zmax(nmb), 0.0) ! depth at wave maker
+         else
+            dwvm   = max(zs0nmb + zig - zb(nmb), 0.0) ! depth at wave maker
+         endif
+         !
+         ! Limit incident wave height
+         !
+         zsnmb  = zs0nmb + min(zinc + zig,  wavemaker_gammax * dwvm) ! total water level in wave maker (i.e. mean water level plus wave)
          !
       endif   
       !
@@ -1495,20 +1619,20 @@
          !
          zsuv = max(zsnmb, zsnmi)
          !
-         if (zsuv>=subgrid_uv_zmax(ip) - 1.0e-3) then
+         if (zsuv >= subgrid_uv_zmax(ip) - 1.0e-3) then
             !
             ! Entire cell is wet, no interpolation from table needed
             !
             depthuv  = subgrid_uv_havg_zmax(ip) + zsuv
             !
-         elseif (zsuv>subgrid_uv_zmin(ip)) then
+         elseif (zsuv > subgrid_uv_zmin(ip)) then
             !
             ! Interpolation required
             !            
             dzuv    = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip)) / (subgrid_nlevels - 1)
-            iuv     = int((zsuv - subgrid_uv_zmin(ip))/dzuv) + 1
-            facint  = (zsuv - (subgrid_uv_zmin(ip) + (iuv - 1)*dzuv) ) / dzuv
-            depthuv = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip))*facint
+            iuv     = int((zsuv - subgrid_uv_zmin(ip)) / dzuv) + 1
+            facint  = (zsuv - (subgrid_uv_zmin(ip) + (iuv - 1) * dzuv) ) / dzuv
+            depthuv = subgrid_uv_havg(iuv, ip) + (subgrid_uv_havg(iuv + 1, ip) - subgrid_uv_havg(iuv, ip)) * facint
             !
          else
             !
@@ -1546,12 +1670,12 @@
          !
       endif
       !
-      if (wmtfilter >= 0.0) then
+      if (wavemaker_filter_time >= 0.0) then
          !
          ! Use double exponential time filter
          !
          uvm0 = wavemaker_uvmean(ib) ! Previous time step
-         wavemaker_uvmean(ib)  = alpha * q(ip) + wavemaker_freduv * (1.0 - alpha) * (wavemaker_uvmean(ib) + wavemaker_uvtrend(ib))
+         wavemaker_uvmean(ib)  = alpha * q(ip) + wavemaker_filter_fred * (1.0 - alpha) * (wavemaker_uvmean(ib) + wavemaker_uvtrend(ib))
          wavemaker_uvtrend(ib) = beta * (wavemaker_uvmean(ib) - uvm0) + (1.0 - beta) * wavemaker_uvtrend(ib)
          !
       else
