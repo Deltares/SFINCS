@@ -513,13 +513,13 @@ contains
          !
          ! U point
          !         
-         fwuv(ip) = (0.5*(cosrot*fwx0(nm) + sinrot*fwy0(nm)) + 0.5*( cosrot*fwx0(nmu) + sinrot*fwy0(nmu)))/rhow
-         !         
+         fwuv(ip) = waveforces_ratio * (0.5 * (cosrot * fwx0(nm) + sinrot * fwy0(nm)) + 0.5 * ( cosrot * fwx0(nmu) + sinrot * fwy0(nmu))) / rhow
+         ! waveforces_ratio = 1.0 by default, but can be set to 0 to avoid double counting incident setup if wavemaker_hinc true        
       else
          !
          ! V point
          !         
-         fwuv(ip) = (0.5*(-sinrot*fwx0(nm) + cosrot*fwy0(nm)) + 0.5*(-sinrot*fwx0(nmu) + cosrot*fwy0(nmu)))/rhow
+         fwuv(ip) = waveforces_ratio * (0.5 * (-sinrot * fwx0(nm) + cosrot * fwy0(nm)) + 0.5 * (-sinrot * fwx0(nmu) + cosrot * fwy0(nmu))) / rhow
          !         
       endif   
       !

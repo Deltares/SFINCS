@@ -304,8 +304,9 @@ contains
    call read_int_input(500,'vegetation',ivegetationsfincs,0)      
    !   
    ! Coupled SnapWave solver related
-   call read_int_input(500,'snapwave_wind',iwind,0)   
-   call read_int_input(500,'snapwave_vegetation',ivegetationsnapwave,0)   
+   call read_int_input(500,'snapwave_wind',iwind,0)  
+   call read_int_input(500,'snapwave_vegetation',ivegetationsnapwave,0)
+   call read_real_input(500,'snapwave_waveforces_ratio',waveforces_ratio,1.0)
    !
    ! Wind drag
    !

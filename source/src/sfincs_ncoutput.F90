@@ -4150,6 +4150,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'snapwave_nrsweeps',nr_sweeps)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_baldock_exponent',baldock_exponent)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_baldock_ratio',baldock_ratio)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_waveforces_ratio',waveforces_ratio))         
         !
         ! SnapWave IG
         !
