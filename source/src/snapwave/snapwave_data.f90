@@ -49,8 +49,8 @@ module snapwave_data
    real*4,  dimension(:,:),     allocatable    :: ctheta360               ! refraction speed, per grid point and direction
 !   real*4,  dimension(:),       allocatable    :: xn,yn,zn               ! coordinates of nodes of unstructured grid
    real*4,  dimension(:),       allocatable    :: dzdx,dzdy               ! bed slopes at nodes of unstructured grid
-   integer, dimension(:,:),     allocatable    :: face_nodes         ! node numbers connected to each cell
-   integer, dimension(:,:),     allocatable    :: edge_nodes             ! node numbers connected to each edge
+   integer, dimension(:,:),     allocatable    :: face_nodes              ! node numbers connected to each cell
+   integer, dimension(:,:),     allocatable    :: edge_nodes              ! node numbers connected to each edge
    real*4,  dimension(:),       allocatable    :: bndindx
    real*4,  dimension(:),       allocatable    :: tau
 !   real*4,  dimension(:,:),     allocatable    :: Fluxtab
@@ -62,6 +62,7 @@ module snapwave_data
    real*4,  dimension(:),       allocatable    :: Hmx_ig
    real*4,  dimension(:,:),     allocatable    :: ee                      ! directional energy density
    real*4,  dimension(:,:),     allocatable    :: ee_ig                   ! directional infragravity energy density
+   real*4,  dimension(:),       allocatable    :: DoverE
    !
    real*4,  dimension(:,:),     allocatable    :: aa                      ! directional action density
    real*4,  dimension(:),       allocatable    :: sig                     ! mean frequency
@@ -73,6 +74,8 @@ module snapwave_data
    real*4,  dimension(:),       allocatable    :: beta
    real*4,  dimension(:),       allocatable    :: srcig
    real*4,  dimension(:),       allocatable    :: alphaig   
+   real*4,  dimension(:),       allocatable    :: qb
+   real*4,  dimension(:),       allocatable    :: gam   
    !
    integer*4,  dimension(:),     allocatable    :: index_snapwave_in_quadtree
    integer*4,  dimension(:),     allocatable    :: index_quadtree_in_snapwave
@@ -172,10 +175,9 @@ module snapwave_data
    real*4                                    :: fwcutoff        ! depth below which to apply space-varying fw
    real*4                                    :: alpha,gamma     ! coefficients in Baldock wave breaking dissipation model
    real*4                                    :: gammax          ! max wave height/water depth ratio   
-   integer                                   :: baldock_opt     ! option of Baldock wave breaking dissipation model (opt=1 is without gamma&depth, else is including)
+   !integer                                   :: baldock_opt     ! option of Baldock wave breaking dissipation model (opt=1 is without gamma&depth, else is including)
    real*4                                    :: baldock_ratio   ! option controlling from what depth wave breaking should take place: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio=0.2 
-   ! TODO - TL: bring back baldock_ratio?
- 
+   integer                                   :: baldock_exponent! Exponent for multiplying the Baldock dissipation with a factor 'f = (Hloc / Hmax)**iexp' to enhance breaking when H > Hmax, with iexp = 0 (default, means unused), 1 or 2 
    real*4                                    :: hmin            ! minimum water depth
    character*256                             :: gridfile        ! name of gridfile (Delft3D .grd format)
    integer                                   :: sferic          ! sferical (1) or cartesian (0) grid
@@ -216,6 +218,8 @@ module snapwave_data
    real*4                                    :: rghlevland       ! Elevation separation as in SFINCS for simple elevation varying roughness
    real*4                                    :: fwratio          ! Above 'rghlevland' elevation of zb, the friction for incident waves is multiplied with value 'fwratio'
    real*4                                    :: fwigratio        ! Above 'rghlevland' elevation of zb, the friction for IG waves is multiplied with value 'fwratio'      
+   real*4                                    :: relax_factor_DoverA    ! underrelaxation factor for DoverA (set to 1.0 to disable)
+   real*4                                    :: relax_factor_DoverE    ! underrelaxation factor for DoverE (set to 1.0 to disable)      
    !
    character*3                               :: outputformat
    integer                                   :: ja_save_each_iter       ! logical to save output after each iteration or not   
@@ -259,6 +263,7 @@ module snapwave_data
    !
    integer                                   :: ig_opt          ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)   
    real*4                                    :: alpha_ig,gamma_ig ! coefficients in Baldock wave breaking dissipation model for IG waves
+   real*4                                    :: gamma_fac_br    ! factor times gamma that is used to determine the maximum incident wave breaking point in the surf zone using local incident wave height over water depth ratio, among others used to set the IG source term to 0 shallower than this point
    real*4                                    :: shinc2ig        ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 0=default)
    real*4                                    :: alphaigfac      ! Multiplication factor for IG shoaling source/sink term, default = 1.0
    real*4                                    :: eeinc2ig        ! ratio of incident wave energy as first estimate of IG wave energy at boundary
@@ -270,6 +275,7 @@ module snapwave_data
                                                                 ! ... or just a priori based on effectively incident wave energy from previous timestep only   
    integer                                   :: herbers_opt     ! Choice whether you want IG Hm0&Tp be calculated by herbers (=1, default), or want to specify user defined values (0> then snapwave_eeinc2ig & snapwave_Tinc2ig are used) 
    integer                                   :: tpig_opt        ! IG wave period option based on Herbers calculated spectrum, only used if herbers_opt = 1. Options are: 1=Tm01 (default), 2=Tpsmooth, 3=Tp, 4=Tm-1,0    
+   real*4                                    :: steep_fac1, steep_fac2, steep_fac3, steep_fac4, steep_fac5  
    !
    ! Switches
    logical                                   :: igwaves             ! switch whether include IG or not
@@ -282,6 +288,7 @@ module snapwave_data
    !
    logical                                   :: restart
    logical                                   :: coupled_to_sfincs
+   logical                                   :: storesnapwavegrid   
    !
    integer                                   :: nr_quadtree_points
    !

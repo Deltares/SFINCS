@@ -106,6 +106,7 @@ module sfincs_data
       real*4 factor_pres
       real*4 factor_prcp
       real*4 factor_spw_size
+      real*4 waveforces_ratio
       !
       integer mmax
       integer nmax
@@ -192,6 +193,7 @@ module sfincs_data
       logical       :: subgrid
       logical       :: manning2d ! spatially-varying roughness
       logical       :: coriolis
+      logical       :: vegetation      
       logical       :: store_cumulative_precipitation
       logical       :: store_maximum_waterlevel
       logical       :: store_maximum_waterdepth
@@ -206,6 +208,7 @@ module sfincs_data
       logical       :: store_zvolume
       logical       :: store_storagevolume            
       logical       :: store_meteo
+      logical       :: store_vegetation
       logical       :: store_wind      
       logical       :: store_wind_max
       logical       :: store_wave_forces
@@ -624,7 +627,10 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: df      
       real*4, dimension(:),   allocatable :: dwig
       real*4, dimension(:),   allocatable :: dfig
-      real*4, dimension(:),   allocatable :: cg    
+      real*4, dimension(:),   allocatable :: cg
+      real*4, dimension(:),   allocatable :: cgig      
+      real*4, dimension(:),   allocatable :: qb
+      real*4, dimension(:),   allocatable :: gam      
       real*4, dimension(:),   allocatable :: betamean
       real*4, dimension(:),   allocatable :: srcig      
       real*4, dimension(:),   allocatable :: alphaig      
