@@ -952,7 +952,7 @@ contains
    NF90(nf90_def_dim(map_file%ncid, 'runtime', 1, map_file%runtime_dimid)) ! total_runtime, average_dt
    !
    if (store_vegetation) then
-      NF90(nf90_def_dim(map_file%ncid, 'nsec', vegetation_vertical_segments, map_file%nsec_dimid)) ! number of vegetation vertical sections
+      NF90(nf90_def_dim(map_file%ncid, 'vegetation_vertical_segments', vegetation_vertical_segments, map_file%nsec_dimid)) ! number of vegetation vertical sections
    endif
    !
    ! Some metadata attributes
