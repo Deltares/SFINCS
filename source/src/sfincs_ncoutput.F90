@@ -26,6 +26,9 @@ module sfincs_ncoutput
       integer :: manning_varid
       integer :: pnonh_varid
       integer :: subgridslope_varid
+      ! Vegetation
+      integer :: nsec_dimid
+      integer :: veg_cd_varid, veg_ah_varid, veg_bstems_varid, veg_Nstems_varid
       !
       integer :: mesh2d_varid
       integer :: mesh2d_node_x_varid, mesh2d_node_y_varid
@@ -869,7 +872,7 @@ contains
    !
    implicit none   
    !   
-   integer    :: nm, nmq, nmu1, num1, n, m, nn, ntmx, n_nodes, n_faces, iref
+   integer    :: nm, nmq, nmu1, num1, n, m, nn, ntmx, n_nodes, n_faces, iref, isec
    real*4     :: dxx, dyy
    !
    real,      dimension(:),   allocatable :: nodes_x
@@ -877,6 +880,7 @@ contains
    integer*4, dimension(:,:), allocatable :: face_nodes
    real*4,    dimension(:),   allocatable :: vtmp
    integer*4, dimension(:),   allocatable :: vtmpi
+   real*4,    dimension(:,:), allocatable :: vtmp2d
    !
    ! Very lazy for now
    !
@@ -943,11 +947,15 @@ contains
    ! Time
    !
    NF90(nf90_def_dim(map_file%ncid, 'time', NF90_UNLIMITED, map_file%time_dimid)) ! time
-   ntmx = max(ceiling((t1out - t0out)/dtmaxout), 1)   
+   ntmx = max(ceiling((t1out - t0out)/dtmaxout), 1)
    NF90(nf90_def_dim(map_file%ncid, 'timemax', ntmx, map_file%timemax_dimid)) ! time
-   NF90(nf90_def_dim(map_file%ncid, 'runtime', 1, map_file%runtime_dimid)) ! total_runtime, average_dt       
+   NF90(nf90_def_dim(map_file%ncid, 'runtime', 1, map_file%runtime_dimid)) ! total_runtime, average_dt
    !
-   ! Some metadata attributes 
+   if (store_vegetation) then
+      NF90(nf90_def_dim(map_file%ncid, 'nsec', vegetation_vertical_segments, map_file%nsec_dimid)) ! number of vegetation vertical sections
+   endif
+   !
+   ! Some metadata attributes
    !
    NF90(nf90_put_att(map_file%ncid,nf90_global, "Conventions", "Conventions = 'CF-1.8 UGRID-1.0 Deltares-0.10'")) 
    NF90(nf90_put_att(map_file%ncid,nf90_global, "Build-Revision-Date-Netcdf-library", trim(nf90_inq_libvers()))) ! version of netcdf library
@@ -1064,9 +1072,41 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'units', '-'))
    NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'standard_name', 'mask'))
    NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'long_name', 'msk_active_cells')) 
-   NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'description', 'inactive=0, active=1, normal_boundary=2, outflow_boundary=3, wavemaker=4'))    
+   NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'description', 'inactive=0, active=1, normal_boundary=2, outflow_boundary=3, wavemaker=4'))
    !
-   ! Time variables   
+   if (store_vegetation) then
+      !
+      NF90(nf90_def_var(map_file%ncid, 'snapwave_veg_Cd', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%nsec_dimid/), map_file%veg_cd_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%veg_cd_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%veg_cd_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%veg_cd_varid, 'units', '-'))
+      NF90(nf90_put_att(map_file%ncid, map_file%veg_cd_varid, 'standard_name', 'vegetation_cd'))
+      NF90(nf90_put_att(map_file%ncid, map_file%veg_cd_varid, 'long_name', 'bulk_drag_coefficient_per_vegetation_section'))
+      !
+      NF90(nf90_def_var(map_file%ncid, 'snapwave_veg_ah', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%nsec_dimid/), map_file%veg_ah_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%veg_ah_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%veg_ah_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%veg_ah_varid, 'units', 'm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%veg_ah_varid, 'standard_name', 'vegetation_stems_height'))
+      NF90(nf90_put_att(map_file%ncid, map_file%veg_ah_varid, 'long_name', 'vegetation_section_thickness'))
+      !
+      NF90(nf90_def_var(map_file%ncid, 'snapwave_veg_bstems', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%nsec_dimid/), map_file%veg_bstems_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%veg_bstems_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%veg_bstems_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%veg_bstems_varid, 'units', 'm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%veg_bstems_varid, 'standard_name', 'vegetation_stems_width'))
+      NF90(nf90_put_att(map_file%ncid, map_file%veg_bstems_varid, 'long_name', 'width_of_individual_vegetation_stems_per_section'))
+      !
+      NF90(nf90_def_var(map_file%ncid, 'snapwave_veg_Nstems', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%nsec_dimid/), map_file%veg_Nstems_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%veg_Nstems_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%veg_Nstems_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%veg_Nstems_varid, 'units', 'm-2'))
+      NF90(nf90_put_att(map_file%ncid, map_file%veg_Nstems_varid, 'standard_name', 'vegetation_stems_density'))
+      NF90(nf90_put_att(map_file%ncid, map_file%veg_Nstems_varid, 'long_name', 'number_of_stems_per_unit_horizontal_area_per_section'))
+      !
+   endif
+   !
+   ! Time variables
    !
    trefstr_iso8601 = date_to_iso8601(trefstr)
    !
@@ -1599,13 +1639,67 @@ contains
       !
    endif
    !
+   ! Write vegetation fields (static, written once at init)
+   !
+   if (store_vegetation) then
+      !
+      allocate(vtmp2d(n_faces, vegetation_vertical_segments))
+      !
+      vtmp2d = FILL_VALUE
+      do nmq = 1, quadtree_nr_points
+         nm = index_sfincs_in_quadtree(nmq)
+         if (nm > 0) then
+            do isec = 1, vegetation_vertical_segments
+               vtmp2d(nmq, isec) = vegetation_cd(nm, isec)
+            enddo
+         endif
+      enddo
+      NF90(nf90_put_var(map_file%ncid, map_file%veg_cd_varid, vtmp2d))
+      !
+      vtmp2d = FILL_VALUE
+      do nmq = 1, quadtree_nr_points
+         nm = index_sfincs_in_quadtree(nmq)
+         if (nm > 0) then
+            do isec = 1, vegetation_vertical_segments
+               vtmp2d(nmq, isec) = vegetation_stems_height(nm, isec)
+            enddo
+         endif
+      enddo
+      NF90(nf90_put_var(map_file%ncid, map_file%veg_ah_varid, vtmp2d))
+      !
+      vtmp2d = FILL_VALUE
+      do nmq = 1, quadtree_nr_points
+         nm = index_sfincs_in_quadtree(nmq)
+         if (nm > 0) then
+            do isec = 1, vegetation_vertical_segments
+               vtmp2d(nmq, isec) = vegetation_stems_width(nm, isec)
+            enddo
+         endif
+      enddo
+      NF90(nf90_put_var(map_file%ncid, map_file%veg_bstems_varid, vtmp2d))
+      !
+      vtmp2d = FILL_VALUE
+      do nmq = 1, quadtree_nr_points
+         nm = index_sfincs_in_quadtree(nmq)
+         if (nm > 0) then
+            do isec = 1, vegetation_vertical_segments
+               vtmp2d(nmq, isec) = vegetation_stems_density(nm, isec)
+            enddo
+         endif
+      enddo
+      NF90(nf90_put_var(map_file%ncid, map_file%veg_Nstems_varid, vtmp2d))
+      !
+      deallocate(vtmp2d)
+      !
+   endif
+   !
    ! write away intermediate data
    !
    NF90(nf90_sync(map_file%ncid)) !write away intermediate data
    !
    end subroutine
-   
-   
+
+
    subroutine ncoutput_his_init()
    !
    ! 1. Initialise dimensions/variables/attributes
