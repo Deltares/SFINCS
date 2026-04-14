@@ -171,6 +171,45 @@ contains
         !
     endif
     !
-    end subroutine    
-        
-end module    
+    ! -----------------------------------------------------------------------
+    ! Summary: vegetation drag pre-computation
+    ! -----------------------------------------------------------------------
+    !
+    ! INPUT (read from vegetation NetCDF file, on z-points):
+    !   vegetation_cd             : bulk drag coefficient            [-]        (np, nsec)
+    !   vegetation_stems_height   : section thickness, stacked bed upward [m]  (np, nsec)
+    !   vegetation_stems_width    : stem diameter                    [m]        (np, nsec)
+    !   vegetation_stems_density  : stem density                     [m-2]      (np, nsec)
+    !
+    ! STEP 1 - interpolate to uv-points and pre-multiply constants:
+    !   vegetation_stems_height_uv(ip,iveg)          = average of nm and nmu cell heights
+    !   vegetation_stems_cd_width_density_uv(ip,iveg) = 0.5 * cd * b * N / rho_w
+    !     (factor 0.5 and rho_w division folded in once; never recomputed at runtime)
+    !
+    ! STEP 2 - build lookup table (vegetation_nlookup equidistant depth bins):
+    !   hmax(ip) = sum of all section heights  (total vegetation height)
+    !   dh(ip)   = hmax / vegetation_nlookup   (bin width, stored for runtime use)
+    !   For each bin k (depth level h_k = k * dh):
+    !     table(ip,k) = sum_iveg [ cd_wd(ip,iveg) * max(0, min(sec_top, h_k) - sec_bot) ]
+    !   This is the cumulative drag integral up to depth h_k.
+    !   Sections are stacked from the bed (sec_bot = sum of previous section heights),
+    !   consistent with the swvegatt convention in snapwave_solver.f90.
+    !
+    ! STEP 3 - pre-compute slope table (avoids subtraction at runtime):
+    !   slope_table(ip,k) = table(ip,k+1) - table(ip,k)
+    !
+    ! RUNTIME USE (compute_fluxes in sfincs_momentum.f90):
+    !   Given water depth hu at a uv-point:
+    !     frac   = min(hu, hmax(ip)) / dh(ip)        ! fractional bin index
+    !     ik     = floor(frac)                         ! integer bin
+    !     frac   = frac - ik                           ! remainder for interpolation
+    !     cd_eff = table(ip,ik) + frac * slope(ip,ik) ! O(1) lookup, no section loop
+    !   Vegetation drag force (explicit, added to frc):
+    !     F_veg  = -phi * cd_eff * u0 * |u0|
+    !   Flux update (Manning friction handled implicitly in denominator):
+    !     q_new  = (q_old + (F_ext + F_veg) * dt) / (1 + g*n^2*|q|/hu^(7/3) * dt)
+    ! -----------------------------------------------------------------------
+    !
+    end subroutine
+
+end module
