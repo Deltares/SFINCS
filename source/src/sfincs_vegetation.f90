@@ -82,6 +82,8 @@ contains
     !
     ! For SFINCS precalculate cd * bstems * Nstems for each vertical section, as well as the vegetation height on uv points
     !
+    ! TODO - do this now as pre-processing table    
+    !
     if (vegetation) then
         !
         allocate(vegetation_stems_cd_width_density_uv(npuv, vegetation_vertical_segments)) ! product of cd, width and density on uv points
@@ -113,7 +115,7 @@ contains
             !    
         enddo                 
         !            
-    endif        
+    endif  
     !
     end subroutine    
         

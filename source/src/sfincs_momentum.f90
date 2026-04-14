@@ -645,16 +645,16 @@ contains
                fvm = 0.0
                !
                ! Everything already pre-determined for Fvm, beside effective depth
-               !
-               !do iveg=1, vegetation_vertical_segments ! for each vertical vegetation section
-               !   ! 
-               !   fvm = fvm + vegetation_fvm_except_height(ip,iveg) * min(vegetation_stems_height_uv(ip,iveg), hu)
-               !   !
-               !enddo
+               
+               do iveg=1, vegetation_vertical_segments ! for each vertical vegetation section
+                  ! 
+                  fvm = fvm + vegetation_fvm_except_height(ip,iveg) * min(vegetation_stems_height_uv(ip,iveg), hu)
+                  !
+               enddo
                !               
-			   iveg=1 !for testing keep at 1
-               !
-               fvm = vegetation_fvm_except_height(ip,iveg) * min(vegetation_stems_height_uv(ip,iveg), hu)
+			   !iveg=1 !for testing keep at 1
+      !         !
+      !         fvm = vegetation_fvm_except_height(ip,iveg) * min(vegetation_stems_height_uv(ip,iveg), hu)
                ! 
                ! FIXME - water depth per layer, or always compared to lower bed level, or?
                !               
