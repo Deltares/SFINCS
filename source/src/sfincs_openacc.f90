@@ -34,12 +34,13 @@ contains
    !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
    !$acc               x73, &
    !$acc               gnapp2, &
+   !$acc               timestep_analysis_required_timestep, timestep_analysis_average_required_timestep, timestep_analysis_times_wet, timestep_analysis_times_limiting, &
    !$acc               qinffield, qinfmap, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, &
    !$acc               ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, horton_kd, horton_fc, horton_f0, &
    !$acc               qdrain_rate, bucket_volume, bucket_capacity, bucket_k, bucket_drain_rate, bucket_loss, bucket_runoff )
    !   
    end subroutine
-   ! 
+   !
    subroutine finalize_openacc()
    !
    !$acc exit data delete( kcs, kfuv, kcuv, zs, zs0, zsderv, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, maxzsm, qmax, vmax, twet, zsm, z_volume, &
@@ -64,6 +65,7 @@ contains
    !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
    !$acc               x73, &
    !$acc               gnapp2, &
+   !$acc               timestep_analysis_required_timestep, timestep_analysis_average_required_timestep, timestep_analysis_times_wet, timestep_analysis_times_limiting, &   
    !$acc               qinffield, qinfmap, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, &
    !$acc               ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, horton_kd, horton_fc, horton_f0, &
    !$acc               qdrain_rate, bucket_volume, bucket_capacity, bucket_k, bucket_drain_rate, bucket_loss, bucket_runoff )

@@ -147,7 +147,8 @@ module sfincs_ncinput
       allocate(zsi_bnd(nbnd,ntbnd))
       allocate(zsit_bnd(nbnd))
       !      
-      NF90(nf90_get_var(net_file_bndbzsbzi%ncid, net_file_bndbzsbzi%zi_varid, zsi_bnd(:,:)) )              
+      NF90(nf90_get_var(net_file_bndbzsbzi%ncid, net_file_bndbzsbzi%zi_varid, zsi_bnd(:,:)) )
+      !
    endif      
    !
    ! Read time attibute
@@ -309,7 +310,75 @@ module sfincs_ncinput
    ! 
    end subroutine   
    
+   subroutine read_netcdf_quadtree_to_sfincs_real8(ncfile, varname, var)
+   ! For instance: storage_volume.nc, vol, storage_volume
+   !
+   use netcdf
+   use sfincs_data
+   use quadtree
+   !
+   implicit none   
+   !
+   integer :: nm, ip, nrcells, status
+   !
+   character*256 :: ncfile   
+   character*256 :: varname  
+   !
+   real*8, dimension(np), intent(inout)       :: var ! variable that we are mapping to
+   !
+   real*4, dimension(:), allocatable :: vartmp
+   !
+   ! Open netcdf file
+   !
+   NF90(nf90_open(trim(ncfile), NF90_CLOBBER, net_file_generic%ncid))
+   !
+   ! Get dimensions id's: nr points  
+   !
+   NF90(nf90_inq_dimid(net_file_generic%ncid, "mesh2d_nFaces", net_file_generic%np_dimid))
+   !
+   ! Get dimensions sizes    
+   !
+   NF90(nf90_inquire_dimension(net_file_generic%ncid, net_file_generic%np_dimid, len = nrcells))   ! nr of cells
+   !
+   ! Check that number of values in the cell matches quadtree_nr_points 
+   ! (=all quadtree cells, not just the active ones)
+   !
+   if (nrcells /=quadtree_nr_points) then
+      write(logstr,*)'Error    : netcdf input file ',trim(ncfile),' contains: ',nrcells, 'input points, while expected is: ',quadtree_nr_points,' as in sfincs.nc quadtree grid'    
+      call stop_sfincs(trim(logstr), 1)
+   endif   
+   !
+   status = nf90_inq_varid(net_file_generic%ncid, varname, net_file_generic%gen_varid)
+   !
+   ! Stop SFINCS if wanted variable was not found
+   if (status /= nf90_noerr) then
+       write(logstr,'(a,a,a,a,a)')'Error    : netcdf input file ',trim(ncfile),' does not contain needed variable: ',trim(varname),' !'       
+       call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   allocate(vartmp(nrcells))
+   !
+   NF90(nf90_get_var(net_file_generic%ncid, net_file_generic%gen_varid, vartmp(:)))
+   !
+   ! Map quadtree to sfincs variable
+   !
+   do ip = 1, quadtree_nr_points
+      !
+      nm = index_sfincs_in_quadtree(ip)
+      !
+      if (nm>0) then      
+         var(nm) = vartmp(ip)
+      endif      
+      !
+   enddo   
+   !   
+   NF90(nf90_close(net_file_generic%ncid))       
+   ! 
+   end subroutine   
+   
+   
    subroutine read_netcdf_amuv_data()
+   !
    ! Output is made exactly the same as original read_amuv_dimensions & read_amuv_file subroutines but then with data given by netcdf file
    !
    use sfincs_date   
@@ -571,8 +640,8 @@ module sfincs_ncinput
    character (len=256)            :: x_varname
    character (len=256)            :: y_varname
    character (len=256), parameter :: time_varname   = 'time'
-   character (len=256), parameter :: prcp_varname   = 'Precipitation'
-   character (len=256), parameter :: units          = 'units'     
+   character (len=256), parameter :: prcp_varname   = 'Precipitation' ! Does the first character 'p' here need to be lower or upper case?!
+   character (len=256), parameter :: units          = 'units'
    !
    !   if (crsgeo) then
    !      x_varname    = 'lon'
@@ -605,7 +674,15 @@ module sfincs_ncinput
    NF90(nf90_inq_varid(net_file_ampr%ncid, x_varname,    net_file_ampr%px_varid) )  ! Has to be same as SFINCS grid
    NF90(nf90_inq_varid(net_file_ampr%ncid, y_varname,    net_file_ampr%py_varid) )  ! Also, has to be a rectilinear raster, not curvilinear! 
    NF90(nf90_inq_varid(net_file_ampr%ncid, time_varname, net_file_ampr%time_varid) )
-   NF90(nf90_inq_varid(net_file_ampr%ncid, prcp_varname, net_file_ampr%prcp_varid) )      
+   NF90(nf90_inq_varid(net_file_ampr%ncid, prcp_varname, net_file_ampr%prcp_varid) )
+   !
+   if (net_file_ampr%prcp_varid == 0) then
+      !
+      ! Tried with uppercase 'P' but not found, so try lowercase 'p' now
+      !
+      NF90(nf90_inq_varid(net_file_ampr%ncid, 'precipitation', net_file_ampr%prcp_varid) )
+      !
+   endif
    !   
    ! Allocate
    !

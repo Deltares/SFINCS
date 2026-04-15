@@ -786,8 +786,8 @@ contains
          !
       enddo
       !
-      do nm = 1, np
-         subgrid_uv_nrep(1, nm) = subgrid_uv_nrep(2, nm)
+      do ip = 1, npuv
+         subgrid_uv_nrep(1, ip) = subgrid_uv_nrep(2, ip)
       enddo 
       !
       ! V zmin
@@ -859,12 +859,12 @@ contains
          !
       enddo
       !
-      do nm = 1, np
-         subgrid_uv_nrep(1, nm) = subgrid_uv_nrep(2, nm)
+      do ip = 1, npuv
+         subgrid_uv_nrep(1, ip) = subgrid_uv_nrep(2, ip)
       enddo 
       !
-      do nm = 1, np
-         subgrid_uv_nrep(1, nm) = subgrid_uv_nrep(2, nm)
+      do ip = 1, npuv
+         subgrid_uv_nrep(1, ip) = subgrid_uv_nrep(2, ip)
       enddo
       !
       close(500)

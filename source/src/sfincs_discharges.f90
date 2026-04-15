@@ -437,8 +437,12 @@ contains
                         !
                         drainage_status(idrn) = 3
                         !
-                        write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Opening structure ',idrn,' at t= ',t
-                        call write_log(logstr, 0)                        
+                        ! Lines below only work with Windows intel compiler, can be used for debugging
+                        !
+                        ! Actual discharges through drainage structure can always be checked if 'storeqdrain=1' in sfincs.inp
+                        !
+                        !write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Opening structure ',idrn,' at t= ',t
+                        !call write_log(logstr, 0)            
                         !
                      endif
                      !
@@ -451,9 +455,9 @@ contains
                         ! Water level is NOT in allowable range, so need to close the gate
                         !
                         drainage_status(idrn) = 2
-                        !
-                        write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Closing structure ',idrn,' at t= ',t
-                        call write_log(logstr, 0)                        
+                        !                                        
+                        !write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Closing structure ',idrn,' at t= ',t
+                        !call write_log(logstr, 0)
                         !                        
                      endif
                      !
@@ -533,8 +537,8 @@ contains
                         !
                         drainage_status(idrn) = 3
                         !
-                        write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Opening structure ',idrn,' at t= ',t
-                        call write_log(logstr, 0)                        
+                        !write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Opening structure ',idrn,' at t= ',t
+                        !call write_log(logstr, 0)                        
                         !
                      endif
                      !
@@ -548,8 +552,8 @@ contains
                         !
                         drainage_status(idrn) = 2
                         !
-                        write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Closing structure ',idrn,' at t= ',t
-                        call write_log(logstr, 0)                        
+                        !write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Closing structure ',idrn,' at t= ',t
+                        !call write_log(logstr, 0)
                         !                        
                      endif
                      !
