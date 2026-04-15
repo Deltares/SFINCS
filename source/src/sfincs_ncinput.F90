@@ -121,7 +121,8 @@ module sfincs_ncinput
    NF90(nf90_inq_varid(net_file_bndbzsbzi%ncid, time_varname, net_file_bndbzsbzi%time_varid) )
    NF90(nf90_inq_varid(net_file_bndbzsbzi%ncid, zs_varname, net_file_bndbzsbzi%zs_varid) )    
    !try: block
-   NF90(nf90_inq_varid(net_file_bndbzsbzi%ncid, zi_varname, net_file_bndbzsbzi%zi_varid) )   ! add try statement ?       
+   net_file_bndbzsbzi%zi_varid = 0   ! initialize to 0 so guard (zi_varid /= 0) works when variable is absent
+   NF90(nf90_inq_varid(net_file_bndbzsbzi%ncid, zi_varname, net_file_bndbzsbzi%zi_varid) )   ! add try statement ?
    !     exit try ! Exit the try block in case of normal execution
    !     !continue ! Jump here in case of an error
    !     write(*,*)'No bziwaves specified in netbndbzsbzifile'
