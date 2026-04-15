@@ -41,6 +41,7 @@ contains
    !
    character*256 wmsigstr 
    character*256 advstr 
+   character*256 removed_input
    !   
    ok = check_file_exists('sfincs.inp', 'SFINCS input file', .true.)
    !
@@ -241,20 +242,7 @@ contains
    call read_char_input(500,'ampfile',ampfile,'none')
    call read_char_input(500,'amprfile',amprfile,'none')
    call read_char_input(500,'z0lfile',z0lfile,'none')
-   call read_char_input(500,'qinffile',qinffile,'none')
-   ! Curve Number files
-   call read_char_input(500,'scsfile',scsfile,'none')           
-   call read_char_input(500,'smaxfile',smaxfile,'none')
-   call read_char_input(500,'sefffile',sefffile,'none')
-   ! Green and Ampt files
-   call read_char_input(500,'psifile',psifile,'none')           ! suction head [mm]
-   call read_char_input(500,'sigmafile',sigmafile,'none')       ! maximum moisture deficit θdmax [-]
-   call read_char_input(500,'ksfile',ksfile,'none')             ! saturated hydraulic conductivity [mm/hr]
-   ! Horton file
-   call read_char_input(500,'f0file',f0file,'none')             ! Maximum (Initial) Infiltration Capacity, F0
-   call read_char_input(500,'fcfile',fcfile,'none')             ! Minimum (Asymptotic) Infiltration Rate, Fc
-   call read_char_input(500,'kdfile',kdfile,'none')             ! k = empirical constant (hr-1) of decay
-   call read_real_input(500,'horton_kr_kd',horton_kr_kd,10.0)   ! recovery goes 10 times as SLOW as decay
+   call read_char_input(500,'wvmfile',wvmfile,'none')
    ! Netcdf input
    call read_char_input(500,'netbndbzsbzifile',netbndbzsbzifile,'none')  
    call read_char_input(500,'netsrcdisfile',netsrcdisfile,'none')  
@@ -266,10 +254,38 @@ contains
    ! Infiltration and losses
    call read_char_input(500,'infiltrationfile',infiltrationfile,'none')
    call read_char_input(500,'infiltrationtype',inftype,'none')
-   call read_char_input(500,'bucketfile',bucketfile,'none')         ! bucket model (infiltration flavor 'bkt')
-   call read_real_input(500,'bucket_loss_frac',bucket_loss_default,0.0)  ! bucket loss fraction (0-1)
-   call read_real_input(500,'qdrain',qdrain_uniform,0.0)            ! drainage mimic (mm/hr)
    call read_char_input(500,'drainagefile',drainagefile,'none')     ! spatially-varying drainage rates
+   call read_char_input(500,'bucketfile',removed_input,'__removed_keyword_not_present__')
+   if (trim(removed_input) /= '__removed_keyword_not_present__') then
+      write(logstr,'(a)') 'Error    : keyword bucketfile has been removed. Use infiltrationfile together with infiltrationtype = bkt.'
+      call stop_sfincs(trim(logstr), 1)
+   endif
+   call read_char_input(500,'bucket_loss_frac',removed_input,'__removed_keyword_not_present__')
+   if (trim(removed_input) /= '__removed_keyword_not_present__') then
+      write(logstr,'(a)') 'Error    : keyword bucket_loss_frac has been removed. Add bucket_loss to infiltrationfile instead.'
+      call stop_sfincs(trim(logstr), 1)
+   endif
+   call read_char_input(500,'qdrain',removed_input,'__removed_keyword_not_present__')
+   if (trim(removed_input) /= '__removed_keyword_not_present__') then
+      write(logstr,'(a)') 'Error    : keyword qdrain has been removed. Use drainagefile for drainage mimic input.'
+      call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   ! Legacy binary infiltration input (backward compatibility only; remove in a future cleanup)
+   call read_char_input(500,'qinffile',qinffile,'none')
+   ! Curve Number files (legacy binary support)
+   call read_char_input(500,'scsfile',scsfile,'none')
+   call read_char_input(500,'smaxfile',smaxfile,'none')
+   call read_char_input(500,'sefffile',sefffile,'none')
+   ! Green and Ampt files (legacy binary support)
+   call read_char_input(500,'psifile',psifile,'none')           ! suction head [mm]
+   call read_char_input(500,'sigmafile',sigmafile,'none')       ! maximum moisture deficit theta_dmax [-]
+   call read_char_input(500,'ksfile',ksfile,'none')             ! saturated hydraulic conductivity [mm/hr]
+   ! Horton files (legacy binary support)
+   call read_char_input(500,'f0file',f0file,'none')             ! Maximum (Initial) Infiltration Capacity, F0
+   call read_char_input(500,'fcfile',fcfile,'none')             ! Minimum (Asymptotic) Infiltration Rate, Fc
+   call read_char_input(500,'kdfile',kdfile,'none')             ! k = empirical constant (hr-1) of decay
+   call read_real_input(500,'horton_kr_kd',horton_kr_kd,10.0)   ! recovery goes 10 times as SLOW as decay
    !
    ! Output
    call read_char_input(500,'obsfile',obsfile,'none')
@@ -373,7 +389,6 @@ contains
    gn2       = 9.81*0.02*0.02 ! Only to be used in subgrid
    !
    qinf = qinf/(3600*1000)
-   qdrain_uniform = qdrain_uniform/(3600*1000)   ! Convert mm/hr to m/s
    !
    rotation = rotation*pi/180
    cosrot   = cos(rotation)
