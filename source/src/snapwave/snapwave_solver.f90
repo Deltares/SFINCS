@@ -1351,9 +1351,9 @@ module snapwave_solver
 
    subroutine timer(t)
    real*4,intent(out)               :: t
-   integer*4                        :: count,count_rate,count_max
+   integer*8                        :: count,count_rate,count_max
    call system_clock (count,count_rate,count_max)
-   t = real(count)/count_rate
+   t = real(count)/real(count_rate)
    end subroutine timer
 
    subroutine vegatt(sigm, no_nodes, kwav, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, depth, rho, g, H, Dveg) 

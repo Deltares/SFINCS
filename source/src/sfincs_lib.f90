@@ -41,13 +41,10 @@ module sfincs_lib
    !
    private
    !
-   integer*8  :: count0
-   integer*8  :: count00
-   integer*8  :: countdt0
-   integer*8  :: countdt1
-   integer*8  :: count1
-   integer*8  :: count_rate
-   integer*8  :: count_max
+   real*8     :: t0_clock
+   real*8     :: t00_clock
+   real*8     :: tdt0_clock
+   real*8     :: t1_clock
    integer    :: nt
    !
    integer  :: ntmapout
@@ -134,7 +131,7 @@ module sfincs_lib
    call write_log('Build-Date: '//trim(build_date), 1)
    call write_log('', 1)
    !
-   call system_clock(count0, count_rate, count_max)
+   t0_clock = omp_get_wtime()
    !
    call write_log('------ Preparing model simulation --------', 1)
    call write_log('', 1)
@@ -270,9 +267,9 @@ module sfincs_lib
       !
    endif   
    !
-   call system_clock(count1, count_rate, count_max)
+   t1_clock = omp_get_wtime()
    !
-   tinput  = 1.0 * (count1 - count0) / count_rate
+   tinput  = real(t1_clock - t0_clock)
    !
    ! Initialize some parameters
    !
@@ -328,7 +325,7 @@ module sfincs_lib
    call write_log(logstr, 1)
    call write_log('', 1)
    !
-   call system_clock(count00, count_rate, count_max)   
+   t00_clock = omp_get_wtime()
    !
    end function sfincs_initialize
    !
@@ -378,7 +375,7 @@ module sfincs_lib
    !
    do while (t < tend)
       !
-      call system_clock(countdt0, count_rate, count_max)
+      tdt0_clock = omp_get_wtime()
       !
       write_map = .false.
       write_his = .false.
@@ -654,9 +651,9 @@ module sfincs_lib
          ! percdoneval is increment of % to show to log, default=+5%
          percdonenext = 1.0 * (int(percdone) + percdoneval) 
          !
-         call system_clock(count1, count_rate, count_max)
+         t1_clock = omp_get_wtime()
          !
-         trun  = 1.0*(count1 - count00)/count_rate
+         trun  = real(t1_clock - t00_clock)
          trem = trun / max(0.01*percdone, 1.0e-6) - trun
          !
          if (int(percdone)>0) then
@@ -688,10 +685,10 @@ module sfincs_lib
    !
    integer :: ierr
    !
-   call system_clock(count1, count_rate, count_max)
+   t1_clock = omp_get_wtime()
    !
    tstart_all = 0.0
-   tfinish_all = 1.0 * (count1 - count00) / count_rate
+   tfinish_all = real(t1_clock - t00_clock)
    !
    if (timestep_analysis) then
       !

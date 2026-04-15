@@ -1360,10 +1360,10 @@
    real*4  :: wave_steepness, betas, zinc, zig, dwvm, ztot, hm0_inc
    real*4  :: ui, ub, dzuv, facint, zsuv, depthuv, uvm0
    !
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
+   integer*8 :: count0
+   integer*8 :: count1
+   integer*8 :: count_rate
+   integer*8 :: count_max
    real     :: tloop
    !
    real*4, dimension(:),     allocatable :: wavemaker_forcing_hm0_ig_t

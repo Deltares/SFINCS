@@ -619,10 +619,10 @@ contains
    real*4  :: hh_local, a
    real*4  :: dt   
    !
-   integer   :: count0
-   integer   :: count1
-   integer   :: count_rate
-   integer   :: count_max
+   integer*8 :: count0
+   integer*8 :: count1
+   integer*8 :: count_rate
+   integer*8 :: count_max
    real      :: tloop
    !
    call system_clock(count0, count_rate, count_max)

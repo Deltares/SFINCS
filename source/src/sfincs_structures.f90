@@ -614,12 +614,12 @@
    real*4                       :: h2
    real*4                       :: qstruc
    !
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
+   integer*8 :: count0
+   integer*8 :: count1
+   integer*8 :: count_rate
+   integer*8 :: count_max
    real     :: tloop
-   !   
+   !
    call system_clock(count0, count_rate, count_max)
    !
    !$acc parallel, present(zs, q, uv, structure_uv_index, uv_index_z_nm, uv_index_z_nmu, structure_parameters, structure_type, structure_length)
