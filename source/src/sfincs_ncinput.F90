@@ -90,8 +90,9 @@ module sfincs_ncinput
    character (len=256)            :: y_varname
    character (len=256), parameter :: time_varname = 'time'
    character (len=256), parameter :: zs_varname   = 'zs'
-   character (len=256), parameter :: zi_varname   = 'zi'   
-   character (len=256), parameter :: units        = 'units'  
+   character (len=256), parameter :: zi_varname   = 'zi'
+   character (len=256), parameter :: units        = 'units'
+   integer                        :: istat
    !
    !   if (crsgeo) then
    !      x_varname    = 'lon'
@@ -120,13 +121,13 @@ module sfincs_ncinput
    NF90(nf90_inq_varid(net_file_bndbzsbzi%ncid, y_varname, net_file_bndbzsbzi%y_varid) )
    NF90(nf90_inq_varid(net_file_bndbzsbzi%ncid, time_varname, net_file_bndbzsbzi%time_varid) )
    NF90(nf90_inq_varid(net_file_bndbzsbzi%ncid, zs_varname, net_file_bndbzsbzi%zs_varid) )    
-   !try: block
-   net_file_bndbzsbzi%zi_varid = 0   ! initialize to 0 so guard (zi_varid /= 0) works when variable is absent
-   NF90(nf90_inq_varid(net_file_bndbzsbzi%ncid, zi_varname, net_file_bndbzsbzi%zi_varid) )   ! add try statement ?
-   !     exit try ! Exit the try block in case of normal execution
-   !     !continue ! Jump here in case of an error
-   !     write(*,*)'No bziwaves specified in netbndbzsbzifile'
-   !end block try
+   ! zi is optional — query without the NF90 error macro so absence is not treated as an error
+   net_file_bndbzsbzi%zi_varid = 0
+   istat = nf90_inq_varid(net_file_bndbzsbzi%ncid, zi_varname, net_file_bndbzsbzi%zi_varid)
+   if (istat /= NF90_NOERR) then
+      net_file_bndbzsbzi%zi_varid = 0   ! inq_varid may overwrite on error; reset explicitly
+      call write_log('Info    : no zi variable in netbndbzsbzifile; bziwaves disabled.', 0)
+   endif
    !
    ! Allocate variables   
    allocate(x_bnd(nbnd))
