@@ -304,7 +304,7 @@
             !
             if (nmu>0) then
                !
-               iz = uv_index_z_nm(ip)
+               iz = uv_index_z_nm(nmu)
                !
                if (indwm(iz)==0) then
                   !
