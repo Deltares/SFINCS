@@ -1106,7 +1106,7 @@ contains
             !
             if (store_t_zsmax) then
                 if (zs(nmb) > zsmax(nmb)) then
-                    t_zsmax(nm) = t
+                    t_zsmax(nmb) = t
                 endif
             endif
             !
