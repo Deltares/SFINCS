@@ -81,7 +81,7 @@ contains
          !
          cg_ig   = Cg
          expon   = -(sigm_ig * sqrt(depth / g))**2.5
-         kwav_ig = sig**2 / g * (1.0 - exp(expon))**-0.4
+         kwav_ig = sigm_ig**2 / g * (1.0 - exp(expon))**-0.4
          !
       else
          !
