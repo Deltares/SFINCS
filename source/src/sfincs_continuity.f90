@@ -12,7 +12,7 @@ contains
    !    1. Rainfall (+)                         => already computed in sfincs_meteo (prcp)
    !    2. Infiltration (-)                     => computed in sfincs_infiltration (qinfmap)
    !       (includes: con, c2d, cna, cnb, gai, hor, bkt flavors)
-   !    3. Drainage mimic (-)                   => simple constant rate (qdrain_rate)
+   !    3. Drainage mimic (-)                   => drainage rate field (qdrain_rate)
    !    4. External source/sink qext (+/-)      => set via BMI coupling
    !    5. Storage volume                       => depression storage (subgrid only)
    !

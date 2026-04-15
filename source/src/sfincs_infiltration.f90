@@ -47,7 +47,7 @@ contains
    ! 6) 'hor' - Modified Horton equation
    !    Requires: f0file or infiltrationfile
    ! 7) 'bkt' - Bucket model (linear reservoir, HBV/wflow style)
-   !    Requires: bucketfile (netcdf with bucket_smax and bucket_k)     
+   !    Requires: infiltrationfile with bucket_smax, bucket_k and bucket_loss
    !
    ! cumprcp and cuminf are stored in the netcdf output if store_cumulative_precipitation == .true. which is the default
    !
@@ -63,6 +63,12 @@ contains
    ! 1) First we determine infiltration type
    !
    if (precip) then
+      !
+      if (inftype == 'bkt' .and. infiltrationfile == 'none') then
+         !
+         call stop_sfincs('Error ! Bucket model requires infiltrationfile together with infiltrationtype = bkt !', 1)
+         !
+      endif
       !
       if (infiltrationfile  /= 'none') then
          !
@@ -134,13 +140,6 @@ contains
          infiltration   = .true.
          store_meteo    = .true.
          !
-      elseif (bucketfile /= 'none') then
-         !
-         ! Bucket model (linear reservoir)
-         !
-         inftype        = 'bkt'
-         infiltration   = .true.
-         !
       endif
       !
       ! 2) We need cumprcp and cuminf
@@ -182,27 +181,11 @@ contains
          ! (regular grids populate quadtree_nr_points and index_sfincs_in_quadtree
          !  via make_quadtree_from_indices)
          !
-         ! Bucket model uses bucketfile (not infiltrationfile), but supports netcdf natively
-         !
          if (.not. netcdf_infiltration) then
             !
             if (use_quadtree .eqv. .true.) then
                !
-               ! Allow bucket model with netcdf bucketfile on quadtree grids
-               !
-               if (inftype == 'bkt' .and. bucketfile /= 'none') then
-                  !
-                  if (bucketfile(len_trim(bucketfile) - 1 : len_trim(bucketfile)) /= 'nc') then
-                     !
-                     call stop_sfincs('Error ! Bucket model on quadtree mesh requires a netcdf bucketfile (.nc) !', 1)
-                     !
-                  endif
-                  !
-               else
-                  !
-                  call stop_sfincs('Error ! Infiltration input for quadtree mesh model can only be specified using the infiltrationfile Netcdf format! !', 1)
-                  !
-               endif
+               call stop_sfincs('Error ! Infiltration input for quadtree mesh model can only be specified using the infiltrationfile Netcdf format! !', 1)
                !
             endif
             !
@@ -1065,11 +1048,10 @@ contains
    !
    implicit none
    !
-   integer :: nchar, status, ncid, varid
-   logical :: ok
+   integer :: status, ncid, varid
    character*256 :: varname
    !
-   if (bucketfile /= 'none' .or. netcdf_infiltration) then
+   if (netcdf_infiltration) then
       !
       use_bucket_model = .true.
       !
@@ -1087,81 +1069,37 @@ contains
       bucket_k          = 0.0
       bucket_volume     = 0.0
       bucket_drain_rate = 0.0
-      bucket_loss       = bucket_loss_default
+      bucket_loss       = 0.0
       bucket_runoff     = 0.0
       !
-      if (netcdf_infiltration) then
-         !
-         ! Read from infiltrationfile (netcdf) - works for both regular and quadtree grids
-         !
-         varname = 'bucket_smax'
-         call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, bucket_capacity)
-         bucket_capacity = bucket_capacity / 1000.0   ! mm to m
-         !
-         varname = 'bucket_k'
-         call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, bucket_k)
-         bucket_k = bucket_k / 3600.0   ! 1/hr to 1/s
-         !
-         ! Try reading spatially-varying loss fraction (optional, falls back to uniform)
-         status = nf90_open(trim(infiltrationfile), NF90_NOWRITE, ncid)
-         if (status == nf90_noerr) then
-            status = nf90_inq_varid(ncid, 'bucket_loss', varid)
-            nchar = nf90_close(ncid)
-            if (status == nf90_noerr) then
-               varname = 'bucket_loss'
-               call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, bucket_loss)
-               call write_log('Info    : read spatially-varying bucket_loss from infiltrationfile', 0)
-            endif
-         endif
-         !
-      elseif (bucketfile /= 'none') then
-         !
-         nchar = len_trim(bucketfile)
-         ok = check_file_exists(bucketfile, 'Bucket model file', .true.)
-         !
-         if (bucketfile(nchar - 1 : nchar) == 'nc') then
-            !
-            ! Read bucket capacity (S_max) in mm, convert to m
-            !
-            varname = 'bucket_smax'
-            call read_netcdf_quadtree_to_sfincs(bucketfile, varname, bucket_capacity)
-            bucket_capacity = bucket_capacity / 1000.0   ! mm to m
-            !
-            ! Read drainage coefficient (k) in 1/hr, convert to 1/s
-            !
-            varname = 'bucket_k'
-            call read_netcdf_quadtree_to_sfincs(bucketfile, varname, bucket_k)
-            bucket_k = bucket_k / 3600.0   ! 1/hr to 1/s
-            !
-            ! Try reading spatially-varying loss fraction (optional, falls back to uniform)
-            status = nf90_open(trim(bucketfile), NF90_NOWRITE, ncid)
-            if (status == nf90_noerr) then
-               status = nf90_inq_varid(ncid, 'bucket_loss', varid)
-               nchar = nf90_close(ncid)
-               if (status == nf90_noerr) then
-                  varname = 'bucket_loss'
-                  call read_netcdf_quadtree_to_sfincs(bucketfile, varname, bucket_loss)
-                  call write_log('Info    : read spatially-varying bucket_loss from bucketfile', 0)
-               endif
-            endif
-            !
-         else
-            !
-            ! Read from binary files
-            !
-            open(unit = 500, file = trim(bucketfile), form = 'unformatted', access = 'stream')
-            read(500)bucket_capacity
-            close(500)
-            bucket_capacity = bucket_capacity / 1000.0   ! mm to m
-            !
-            ! For binary input, k needs a separate file - not supported yet
-            ! Default k = 0.1/hr
-            !
-            bucket_k = 0.1 / 3600.0
-            !
-         endif
-         !
+      !
+      ! Read from infiltrationfile (netcdf) - works for both regular and quadtree grids
+      !
+      varname = 'bucket_smax'
+      call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, bucket_capacity)
+      bucket_capacity = bucket_capacity / 1000.0   ! mm to m
+      !
+      varname = 'bucket_k'
+      call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, bucket_k)
+      bucket_k = bucket_k / 3600.0   ! 1/hr to 1/s
+      !
+      status = nf90_open(trim(infiltrationfile), NF90_NOWRITE, ncid)
+      if (status /= nf90_noerr) then
+         call stop_sfincs('Error ! Cannot open infiltrationfile for bucket model input !', 1)
       endif
+      !
+      status = nf90_inq_varid(ncid, 'bucket_loss', varid)
+      if (nf90_close(ncid) /= nf90_noerr) then
+         call stop_sfincs('Error ! Cannot close infiltrationfile after checking bucket model variables !', 1)
+      endif
+      !
+      if (status /= nf90_noerr) then
+         call stop_sfincs('Error ! Bucket model requires variable bucket_loss in infiltrationfile !', 1)
+      endif
+      !
+      varname = 'bucket_loss'
+      call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, bucket_loss)
+      call write_log('Info    : read spatially-varying bucket_loss from infiltrationfile', 0)
       !
       write(logstr,'(a,f10.4,a)')'Info    : bucket max capacity = ', maxval(bucket_capacity) * 1000.0, ' mm'
       call write_log(logstr, 0)

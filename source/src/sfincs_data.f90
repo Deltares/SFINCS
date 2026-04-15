@@ -171,7 +171,6 @@ module sfincs_data
       character*256 :: fcfile
       character*256 :: kdfile
       character*256 :: drainagefile
-      character*256 :: bucketfile
       character*256 :: z0lfile
       character*256 :: wvmfile
       character*256 :: qtrfile
@@ -413,13 +412,11 @@ module sfincs_data
       ! Drainage - constant removal rate representing subsurface drainage
       !
       logical       :: drainage = .false.
-      real*4        :: qdrain_uniform = 0.0                                    ! uniform drainage rate (mm/hr input, stored as m/s)
       real*4, dimension(:),   allocatable :: qdrain_rate                       ! drainage rate per cell (m/s)
       !
       ! Bucket model - finite capacity reservoir with linear drainage
       !
       logical       :: use_bucket_model = .false.
-      real*4        :: bucket_loss_default = 0.0                                ! uniform loss fraction from sfincs.inp (0-1)
       real*4, dimension(:),   allocatable :: bucket_volume                     ! current storage (m)
       real*4, dimension(:),   allocatable :: bucket_capacity                   ! max capacity S_max (m)
       real*4, dimension(:),   allocatable :: bucket_k                          ! drainage coefficient (1/s)
