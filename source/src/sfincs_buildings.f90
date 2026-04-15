@@ -44,7 +44,6 @@ module sfincs_buildings
    real*8 :: total_runoff_from_buildings = 0.0d0
    real*8 :: total_detention_stored = 0.0d0
    !
-   logical :: has_building_properties = .false.
    logical :: use_building_detention = .false.
    logical :: use_building_gutters = .false.
    !
@@ -349,6 +348,10 @@ contains
                !
                is_building_cell(ip) = .true.
                building_id(ip) = ibld
+               !
+               ! Set kcs=0 to make cell inactive: suppresses continuity update
+               ! AND prevents any boundary or inflow assignment on building cells.
+               !
                kcs(ip) = 0
                !
                buildings(ibld)%ncells_inside = buildings(ibld)%ncells_inside + 1
@@ -409,9 +412,12 @@ contains
    inside = .false.
    j = nv
    do i = 1, nv
-      intersect = ((yv(i) > yp) .neqv. (yv(j) > yp)) .and. &
-                  (xp < (xv(j) - xv(i))*(yp - yv(i))/(yv(j) - yv(i)) + xv(i))
-      if (intersect) inside = .not. inside
+      ! Guard against horizontal edges (yv(j)==yv(i)) before dividing:
+      !
+      if ((yv(i) > yp) .neqv. (yv(j) > yp)) then
+         if (xp < (xv(j) - xv(i))*(yp - yv(i))/(yv(j) - yv(i)) + xv(i)) &
+            inside = .not. inside
+      end if
       j = i
    end do
    !
@@ -635,6 +641,8 @@ contains
       end do
       !
       deallocate(xthd, ythd)
+      if (allocated(uv_indices)) deallocate(uv_indices)
+      if (allocated(vertices))   deallocate(vertices)
       !
    end do
    !
@@ -645,6 +653,9 @@ contains
    !
    !
    subroutine accumulate_building_rainfall(precip, dt)
+   !
+   ! precip is rainfall rate in m/s; dt in seconds; dx/dy in m.
+   ! rain_volume = rate [m/s] * dt [s] * area [m^2] => volume in m^3.
    !
    use sfincs_data, only: dx, dy, netprcp
    !
@@ -720,7 +731,7 @@ contains
          dh = volume_per_cell / cell_area
          do ic = 1, buildings(ibld)%ncells_gutter
             ip = buildings(ibld)%cells_gutter(ic)
-            zs(ip) = zs(ip) + real(dh, 4)
+            zs(ip) = zs(ip) + dh
          end do
       else
          if (buildings(ibld)%ncells_perimeter == 0) cycle
@@ -728,7 +739,7 @@ contains
          dh = volume_per_cell / cell_area
          do ic = 1, buildings(ibld)%ncells_perimeter
             ip = buildings(ibld)%cells_perimeter(ic)
-            zs(ip) = zs(ip) + real(dh, 4)
+            zs(ip) = zs(ip) + dh
          end do
       end if
       !
@@ -739,5 +750,40 @@ contains
    end do
    !
    end subroutine redistribute_building_water
+   !
+   !
+   subroutine finalize_buildings()
+   !
+   ! Deallocate all module-level and per-building allocatables.
+   ! Called from sfincs_finalize to avoid leaks in DLL/BMI use.
+   !
+   implicit none
+   !
+   integer :: ibld
+   !
+   if (allocated(buildings)) then
+      do ibld = 1, nbuildings
+         if (allocated(buildings(ibld)%x))              deallocate(buildings(ibld)%x)
+         if (allocated(buildings(ibld)%y))              deallocate(buildings(ibld)%y)
+         if (allocated(buildings(ibld)%cells_inside))   deallocate(buildings(ibld)%cells_inside)
+         if (allocated(buildings(ibld)%cells_perimeter))deallocate(buildings(ibld)%cells_perimeter)
+         if (allocated(buildings(ibld)%cells_gutter))   deallocate(buildings(ibld)%cells_gutter)
+      end do
+      deallocate(buildings)
+   end if
+   !
+   if (allocated(is_building_cell))  deallocate(is_building_cell)
+   if (allocated(is_perimeter_cell)) deallocate(is_perimeter_cell)
+   if (allocated(is_gutter_cell))    deallocate(is_gutter_cell)
+   if (allocated(building_id))       deallocate(building_id)
+   !
+   nbuildings = 0
+   use_building_detention = .false.
+   use_building_gutters   = .false.
+   total_rain_on_buildings    = 0.0d0
+   total_runoff_from_buildings = 0.0d0
+   total_detention_stored     = 0.0d0
+   !
+   end subroutine finalize_buildings
    !
 end module sfincs_buildings

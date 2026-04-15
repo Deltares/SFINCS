@@ -14,7 +14,7 @@ module sfincs_lib
    use sfincs_meteo
    use sfincs_infiltration
    use sfincs_data
-   use sfincs_buildings, only: setup_buildings, update_buildings
+   use sfincs_buildings, only: setup_buildings, update_buildings, finalize_buildings
    use sfincs_date
    use sfincs_output
    use sfincs_ncinput
@@ -811,7 +811,9 @@ module sfincs_lib
    !
    call write_log('----------- Closing off SFINCS -----------', 1)
    !
-   ! call finalize_parameters()
+   call finalize_parameters()
+   !
+   if (has_buildings) call finalize_buildings()   
    !
    ierr = 0
    !
