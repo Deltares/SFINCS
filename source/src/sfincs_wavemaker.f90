@@ -16,7 +16,7 @@
    use quadtree
    !
    implicit none
-   !
+   !wavemaker_nfreqs_ig
    integer*4 :: nrows
    integer*4 :: ncols
    integer*4 :: stat
@@ -1511,7 +1511,7 @@
          !
          fm_inc = 1.0 / tp_inc ! Wave period
          !
-         do ifreq = 1, wavemaker_nfreqs_ig
+         do ifreq = 1, wavemaker_nfreqs_inc
             !
             wavemaker_phi_inc(ifreq) = modulo(wavemaker_phi_inc(ifreq) + wavemaker_dphi_inc(ifreq) * dt, 2 * pi)
             wavemaker_cost_inc(ifreq) = cos(2 * pi * t * wavemaker_freq_inc(ifreq) + wavemaker_phi_inc(ifreq))
