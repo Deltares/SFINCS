@@ -39,6 +39,7 @@ module sfincs_buildings
    logical, allocatable :: is_perimeter_cell(:)
    logical, allocatable :: is_gutter_cell(:)
    integer, allocatable :: building_id(:)
+   real*4,  allocatable :: detention_level_cell(:)  ! current detention as equiv. water depth [m] per cell
    !
    real*8 :: total_rain_on_buildings = 0.0d0
    real*8 :: total_runoff_from_buildings = 0.0d0
@@ -127,12 +128,14 @@ contains
       allocate(is_perimeter_cell(ncells))
       allocate(is_gutter_cell(ncells))
       allocate(building_id(ncells))
+      allocate(detention_level_cell(ncells))
    end if
    !
    is_building_cell = .false.
    is_perimeter_cell = .false.
    is_gutter_cell = .false.
    building_id = 0
+   detention_level_cell = 0.0
    !
    end subroutine initialize_building_masks
    !
@@ -749,6 +752,20 @@ contains
       !
    end do
    !
+   ! Update per-cell detention equivalent depth [m] for output
+   !
+   if (use_building_detention) then
+      do ibld = 1, nbuildings
+         if (buildings(ibld)%total_area > 0.0d0) then
+            do ic = 1, buildings(ibld)%ncells_inside
+               ip = buildings(ibld)%cells_inside(ic)
+               detention_level_cell(ip) = real(buildings(ibld)%current_detention / &
+                                               buildings(ibld)%total_area, 4)
+            end do
+         end if
+      end do
+   end if
+   !
    end subroutine redistribute_building_water
    !
    !
@@ -772,10 +789,11 @@ contains
       deallocate(buildings)
    end if
    !
-   if (allocated(is_building_cell))  deallocate(is_building_cell)
-   if (allocated(is_perimeter_cell)) deallocate(is_perimeter_cell)
-   if (allocated(is_gutter_cell))    deallocate(is_gutter_cell)
-   if (allocated(building_id))       deallocate(building_id)
+   if (allocated(is_building_cell))      deallocate(is_building_cell)
+   if (allocated(is_perimeter_cell))     deallocate(is_perimeter_cell)
+   if (allocated(is_gutter_cell))        deallocate(is_gutter_cell)
+   if (allocated(building_id))           deallocate(building_id)
+   if (allocated(detention_level_cell))  deallocate(detention_level_cell)
    !
    nbuildings = 0
    use_building_detention = .false.
