@@ -118,7 +118,13 @@ contains
       do itsrc = 1, ntsrc
          read(502,*)tsrc(itsrc), (qsrc(isrc, itsrc), isrc = 1, nsrc)
       enddo
-      close(502)
+      close(502)  
+      !
+   endif  
+   !
+   if (nsrc > 0) then
+      !
+      ! Check times at once for either srcfile or netsrcdisfile
       !
       if ((tsrc(1) > (t0 + 1.0)) .or. (tsrc(ntsrc) < (t1 - 1.0))) then
          ! 
@@ -141,12 +147,8 @@ contains
             !
          endif
          !
-      endif   
-      !
-   endif  
-   !
-   if (nsrc > 0) then
-      !
+      endif        
+      ! 
       ! Determine m and n indices of sources
       !
       do isrc = 1, nsrc
