@@ -118,7 +118,13 @@ contains
       do itsrc = 1, ntsrc
          read(502,*)tsrc(itsrc), (qsrc(isrc, itsrc), isrc = 1, nsrc)
       enddo
-      close(502)
+      close(502)  
+      !
+   endif  
+   !
+   if (nsrc > 0) then
+      !
+      ! Check times at once for either srcfile or netsrcdisfile
       !
       if ((tsrc(1) > (t0 + 1.0)) .or. (tsrc(ntsrc) < (t1 - 1.0))) then
          ! 
@@ -141,12 +147,8 @@ contains
             !
          endif
          !
-      endif   
-      !
-   endif  
-   !
-   if (nsrc > 0) then
-      !
+      endif        
+      ! 
       ! Determine m and n indices of sources
       !
       do isrc = 1, nsrc
@@ -277,15 +279,20 @@ contains
             !
          endif
          !
-         ! Get coords of source and sink points, and compute distance between them
-         ! This is needed for controlled gates (type 4)
+         ! Get coords of source and sink points, and compute distance between them.
+         ! Only do this when both points were found inside the active grid (nmindsrc > 0);
+         ! if either point is outside, skip to avoid an index-0 array access.
          !
-         xsnk_tmp = z_xz(nmindsrc(nsrc + idrn * 2 - 1))
-         ysnk_tmp = z_yz(nmindsrc(nsrc + idrn * 2 - 1))
-         xsrc_tmp = z_xz(nmindsrc(nsrc + idrn * 2))
-         ysrc_tmp = z_yz(nmindsrc(nsrc + idrn * 2))
-         !
-         drainage_distance(idrn) = sqrt( (xsrc_tmp - xsnk_tmp)**2 + (ysrc_tmp - ysnk_tmp)**2 )
+         if (nmindsrc(nsrc + idrn * 2 - 1) > 0 .and. nmindsrc(nsrc + idrn * 2) > 0) then
+            !
+            xsnk_tmp = z_xz(nmindsrc(nsrc + idrn * 2 - 1))
+            ysnk_tmp = z_yz(nmindsrc(nsrc + idrn * 2 - 1))
+            xsrc_tmp = z_xz(nmindsrc(nsrc + idrn * 2))
+            ysrc_tmp = z_yz(nmindsrc(nsrc + idrn * 2))
+            !
+            drainage_distance(idrn) = sqrt( (xsrc_tmp - xsnk_tmp)**2 + (ysrc_tmp - ysnk_tmp)**2 )
+            !
+         endif
          !
       enddo
       !
