@@ -815,6 +815,13 @@ module sfincs_data
       character*256, dimension(:), allocatable :: runup_gauge_name
       integer, dimension(:),     allocatable   :: runup_gauge_nrp
       !
+      !
+      ! Buildings
+      !
+      logical                                  :: has_buildings = .false.
+      character*256                            :: bldfile = ''
+      character*256                            :: bprfile = ''
+      !
       real*4 :: waveage
       !
       real*4 :: bathtub_dt

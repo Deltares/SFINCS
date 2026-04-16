@@ -298,6 +298,12 @@ contains
    ! Limit to range (0,100)
    percdoneval = max(min(percdoneval,100), 0)
    !
+   ! Buildings
+   !
+   call read_char_input(500,'bldfile',bldfile,'none')
+   if (trim(bldfile) /= 'none') has_buildings = .true.
+   call read_char_input(500,'bprfile',bprfile,'none')
+   !
    ! Coupled SnapWave solver related
    call read_int_input(500,'snapwave_wind',iwind,0)  
    call read_real_input(500,'snapwave_waveforces_factor',waveforces_factor,1.0)   
