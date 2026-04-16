@@ -277,15 +277,20 @@ contains
             !
          endif
          !
-         ! Get coords of source and sink points, and compute distance between them
-         ! This is needed for controlled gates (type 4)
+         ! Get coords of source and sink points, and compute distance between them.
+         ! Only do this when both points were found inside the active grid (nmindsrc > 0);
+         ! if either point is outside, skip to avoid an index-0 array access.
          !
-         xsnk_tmp = z_xz(nmindsrc(nsrc + idrn * 2 - 1))
-         ysnk_tmp = z_yz(nmindsrc(nsrc + idrn * 2 - 1))
-         xsrc_tmp = z_xz(nmindsrc(nsrc + idrn * 2))
-         ysrc_tmp = z_yz(nmindsrc(nsrc + idrn * 2))
-         !
-         drainage_distance(idrn) = sqrt( (xsrc_tmp - xsnk_tmp)**2 + (ysrc_tmp - ysnk_tmp)**2 )
+         if (nmindsrc(nsrc + idrn * 2 - 1) > 0 .and. nmindsrc(nsrc + idrn * 2) > 0) then
+            !
+            xsnk_tmp = z_xz(nmindsrc(nsrc + idrn * 2 - 1))
+            ysnk_tmp = z_yz(nmindsrc(nsrc + idrn * 2 - 1))
+            xsrc_tmp = z_xz(nmindsrc(nsrc + idrn * 2))
+            ysrc_tmp = z_yz(nmindsrc(nsrc + idrn * 2))
+            !
+            drainage_distance(idrn) = sqrt( (xsrc_tmp - xsnk_tmp)**2 + (ysrc_tmp - ysnk_tmp)**2 )
+            !
+         endif
          !
       enddo
       !
