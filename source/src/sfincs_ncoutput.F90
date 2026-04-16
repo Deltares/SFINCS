@@ -41,7 +41,7 @@ module sfincs_ncoutput
       integer :: ncid   
       integer :: time_dimid 
       integer :: points_dimid, pointnamelength_dimid
-      integer :: crosssections_dimid, structures_dimid, thindams_dimid, drain_dimid, runup_gauges_dimid
+      integer :: crosssections_dimid, structures_dimid, thindams_dimid, drain_dimid, runup_gauges_dimid, river_dimid
       integer :: runtime_dimid
       integer :: point_x_varid, point_y_varid, station_x_varid, station_y_varid, crs_varid, qinf_varid, S_varid  
       integer :: station_id_varid, station_name_varid
@@ -49,6 +49,7 @@ module sfincs_ncoutput
       integer :: structure_height_varid, structure_x_varid, structure_y_varid
       integer :: thindam_x_varid, thindam_y_varid      
       integer :: drain_varid, drain_name_varid
+      integer :: river_varid
       integer :: zb_varid
       integer :: time_varid
       integer :: zs_varid, h_varid, u_varid, v_varid, prcp_varid, cumprcp_varid, discharge_varid, uvmag_varid, uvdir_varid
@@ -1628,7 +1629,7 @@ contains
    real*4, dimension(:), allocatable :: thindam_x
    real*4, dimension(:), allocatable :: thindam_y   
    !
-   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0 .and. nr_runup_gauges==0) then ! If no observation points, cross-sections, structures, drains or run-up gauges; his file is not created        
+   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0 .and. nsrc==0 .and. nr_runup_gauges==0) then ! If no observation points, cross-sections, structures, drains, river sources or run-up gauges; his file is not created
       return
    endif
    !
@@ -1648,8 +1649,12 @@ contains
       NF90(nf90_def_dim(his_file%ncid, 'crosssections', nrcrosssections, his_file%crosssections_dimid)) ! nr of crosssections
    endif
    !
-   if (ndrn>0) then   
+   if (ndrn>0) then
       NF90(nf90_def_dim(his_file%ncid, 'drainage', ndrn, his_file%drain_dimid)) ! nr of drainage structures
+   endif
+   !
+   if (nsrc>0) then
+      NF90(nf90_def_dim(his_file%ncid, 'rivers', nsrc, his_file%river_dimid)) ! nr of river point sources
    endif
    !
    if (nrstructures>0) then   
@@ -2046,12 +2051,21 @@ contains
    if (ndrn>0) then
       !
       NF90(nf90_def_var(his_file%ncid, 'drainage_discharge', NF90_FLOAT, (/his_file%drain_dimid, his_file%time_dimid/), his_file%drain_varid)) ! time-varying discharge through drainage structure
-      NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, '_FillValue', FILL_VALUE))   
+      NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, 'units', 'm3 s-1'))
       NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, 'long_name', 'discharge through drainage structure'))
       NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, 'coordinates', 'drainage_name'))
       !
-   endif   
+   endif
+   !
+   if (nsrc>0) then
+      !
+      NF90(nf90_def_var(his_file%ncid, 'river_discharge', NF90_FLOAT, (/his_file%river_dimid, his_file%time_dimid/), his_file%river_varid)) ! time-varying river point discharge
+      NF90(nf90_put_att(his_file%ncid, his_file%river_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(his_file%ncid, his_file%river_varid, 'units', 'm3 s-1'))
+      NF90(nf90_put_att(his_file%ncid, his_file%river_varid, 'long_name', 'river point discharge'))
+      !
+   endif
    !   
    if (nr_runup_gauges > 0) then
       !
@@ -3032,7 +3046,6 @@ contains
    real*4, dimension(nobs) :: tpigobs   
    real*4, dimension(nobs) :: wavdirobs
    real*4, dimension(nobs) :: dirsprobs
-   real*4, dimension(ndrn) :: q_drain   
    real*4, dimension(nobs) :: dwobs
    real*4, dimension(nobs) :: dfobs
    real*4, dimension(nobs) :: dwigobs
@@ -3058,7 +3071,6 @@ contains
    tpatm        = FILL_VALUE
    twndmag      = FILL_VALUE
    twnddir      = FILL_VALUE
-   q_drain      = FILL_VALUE
    dwobs        = FILL_VALUE
    dfobs        = FILL_VALUE
    cgobs        = FILL_VALUE
@@ -3298,17 +3310,18 @@ contains
    !
    if (ndrn>0) then
       !
+      !$acc update host(qdrain)
+      !
+      NF90(nf90_put_var(his_file%ncid, his_file%drain_varid, qdrain, (/1, nthisout/))) ! write per-structure discharge
+      !
+   endif
+   !
+   if (nsrc>0) then
+      !
       !$acc update host(qtsrc)
-      ! Get fluxes through drainage structure             
       !
-      idrn = 0
-      do iobs = nsrc + 1, nsrcdrn, 2 !TL: as in sfincs_output.f90
-         idrn = idrn + 1
-         q_drain(idrn) = qtsrc(iobs)
-      enddo      
+      NF90(nf90_put_var(his_file%ncid, his_file%river_varid, qtsrc, (/1, nthisout/))) ! write per-river-source discharge
       !
-      NF90(nf90_put_var(his_file%ncid, his_file%drain_varid, q_drain, (/1, nthisout/))) ! write discharge of sink point
-      !         
    endif
    !
    if (store_velocity) then
@@ -3894,7 +3907,7 @@ contains
    !   
    implicit none   
    !   
-   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nrthindams==0 .and. ndrn==0) then ! If no observation points, cross-sections, structures 9weir or thin dam), or drains; hisfile        
+   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nrthindams==0 .and. ndrn==0 .and. nsrc==0) then ! If no observation points, cross-sections, structures (weir or thin dam), drains or river sources; hisfile        
         return
    endif   
    !

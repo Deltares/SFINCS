@@ -2199,12 +2199,18 @@ contains
    allocate(uv0(npuv + ncuv + 1))
    !
    allocate(kfuv(npuv))
-   ! 
-   zs  = 0.0
-   q   = 0.0
-   q0  = 0.0
-   uv  = 0.0
-   uv0 = 0.0
+   !
+   ! Cell-wise discharge accumulator (point sources + drainage structures),
+   ! read by sfincs_continuity.
+   !
+   allocate(qsrc(np))
+   !
+   zs   = 0.0
+   q    = 0.0
+   q0   = 0.0
+   uv   = 0.0
+   uv0  = 0.0
+   qsrc = 0.0
    !
    kfuv = 0 
    !

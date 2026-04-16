@@ -588,7 +588,11 @@ module sfincs_output
       open(unit = 966, file = trim('qt.txt'))
       close(unit = 966 ,status='delete')
    endif
-   if (nsrcdrn>0) then
+   if (nsrc>0) then
+      open(unit = 969, file = trim('qriver.txt'))
+      close(unit = 969 ,status='delete')
+   endif
+   if (ndrn>0) then
       open(unit = 970, file = trim('qdrain.txt'))
       close(unit = 970 ,status='delete')
    endif
@@ -653,10 +657,17 @@ module sfincs_output
       !
    endif
    !
-   if (ndrn>0 .and. store_qdrain) then
+   if (nsrc>0) then
       !$acc update host(qtsrc)
+      open(unit = 969, file = trim('qriver.txt'), access='append')
+      write(969,'(f12.1,10000f9.3)')t,(qtsrc(iobs), iobs = 1, nsrc)
+      close(969)
+   endif
+   !
+   if (ndrn>0 .and. store_qdrain) then
+      !$acc update host(qdrain)
       open(unit = 970, file = trim('qdrain.txt'), access='append')
-      write(970,'(f12.1,10000f9.3)')t,(qtsrc(iobs), iobs = nsrc + 1, nsrcdrn, 2)
+      write(970,'(f12.1,10000f9.3)')t,(qdrain(iobs), iobs = 1, ndrn)
       close(970)
    endif
    !

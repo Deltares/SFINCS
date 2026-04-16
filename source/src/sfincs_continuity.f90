@@ -79,31 +79,26 @@ contains
    !$acc                   z_flags_iref, uv_flags_iref, &
    !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
    !$acc                   dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area,  &
-   !$acc                   nmindsrc, qtsrc, &
+   !$acc                   qsrc, &
    !$acc                   z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num )
    !
-   ! First discharges (don't do this parallel, as it's probably not worth it)
+   ! Apply cell-wise discharges (rivers + src-point structures, accumulated
+   ! into qsrc by sfincs_discharges and sfincs_src_structures).
    !
-   if (nsrcdrn > 0) then
-      ! 
-      !$acc loop
-      do isrc = 1, nsrcdrn
-         ! 
-         nm = nmindsrc(isrc)
-         ! 
+   !$acc loop
+   do nm = 1, np
+      !
+      if (qsrc(nm) /= 0.0) then
+         !
          if (crsgeo) then
-            ! 
-            zs(nmindsrc(isrc)) = max(zs(nm) + qtsrc(isrc) * dt / cell_area_m2(nm), zb(nm))
-            ! 
+            zs(nm) = max(zs(nm) + qsrc(nm) * dt / cell_area_m2(nm), zb(nm))
          else
-            ! 
-            zs(nmindsrc(isrc)) = max(zs(nm) + qtsrc(isrc) * dt / cell_area(z_flags_iref(nm)), zb(nm))
-            ! 
+            zs(nm) = max(zs(nm) + qsrc(nm) * dt / cell_area(z_flags_iref(nm)), zb(nm))
          endif
-         ! 
-      enddo
-      ! 
-   endif
+         !
+      endif
+      !
+   enddo
    !
    !$omp parallel &
    !$omp private ( nm,dvol,nmd,nmu,ndm,num,qnmd,qnmu,qndm,qnum,iwm)
@@ -305,24 +300,18 @@ contains
       !
    endif   
    !
-   ! First discharges (don't do this parallel, as it's probably not worth it)
-   ! NVFORTAN turns this into a sequential loop (!$acc loop seq)
+   ! Apply cell-wise discharges to z_volume (rivers + src-point structures,
+   ! accumulated into qsrc by sfincs_discharges and sfincs_src_structures).
    !
-   if (nsrcdrn > 0) then
-      !
-      !$acc serial present( z_volume, nmindsrc, qtsrc )
-      do isrc = 1, nsrcdrn
-         !
-         nm = nmindsrc(isrc)
-         !
-         if ((z_volume(nm) >= 0) .or. ((qtsrc(isrc)<0.0) .and. (z_volume(nm) >= 0))) then
-            z_volume(nm) = z_volume(nm) + qtsrc(isrc) * dt
-         endif
-         !
-      enddo
-      !$acc end serial
-      !
-   endif
+   !$acc parallel loop present( z_volume, qsrc )
+   !$omp parallel do schedule ( static )
+   do nm = 1, np
+      if (qsrc(nm) /= 0.0 .and. z_volume(nm) >= 0) then
+         z_volume(nm) = z_volume(nm) + qsrc(nm) * dt
+      endif
+   enddo
+   !$omp end parallel do
+   !$acc end parallel loop
    !
    !$omp parallel &
    !$omp private ( dvol,dzsdt,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,iwm,qnmd,qnmu,qndm,qnum,dv,zs00,zs11 )

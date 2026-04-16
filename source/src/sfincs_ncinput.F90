@@ -218,13 +218,13 @@ module sfincs_ncinput
    allocate(xsrc(nsrc))
    allocate(ysrc(nsrc)) 
    allocate(tsrc(ntsrc))
-   allocate(qsrc(nsrc,ntsrc))
+   allocate(qsrc_ts(nsrc,ntsrc))
    !
    ! Read values
    NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%x_varid,    xsrc(:)) )
    NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%y_varid,    ysrc(:)) )
-   NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%time_varid, tsrc(:)) ) 
-   NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%q_varid,    qsrc(:,:)) )   
+   NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%time_varid, tsrc(:)) )
+   NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%q_varid,    qsrc_ts(:,:)) )
    !   
    ! Read time attibute
    !

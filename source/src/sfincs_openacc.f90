@@ -21,7 +21,7 @@ contains
    !$acc               z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
    !$acc               uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc               uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
-   !$acc               nmindsrc, qtsrc, drainage_type, drainage_params, &
+   !$acc               qsrc, qtsrc, qdrain, nmindsrc, nmindrn_in, nmindrn_out, drainage_type, drainage_params, drainage_distance, drainage_status, drainage_fraction_open, &
    !$acc               z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, &
    !$acc               structure_uv_index, structure_parameters, structure_type, structure_length, &
    !$acc               fwuv, &
@@ -51,7 +51,7 @@ contains
    !$acc               z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
    !$acc               uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc               uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
-   !$acc               nmindsrc, qtsrc, drainage_type, drainage_params, &
+   !$acc               qsrc, qtsrc, qdrain, nmindsrc, nmindrn_in, nmindrn_out, drainage_type, drainage_params, drainage_distance, drainage_status, drainage_fraction_open, &
    !$acc               z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, &
    !$acc               structure_uv_index, structure_parameters, structure_type, structure_length, &
    !$acc               fwuv, &

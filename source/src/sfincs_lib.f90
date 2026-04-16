@@ -11,6 +11,7 @@ module sfincs_lib
    use sfincs_crosssections
    use sfincs_runup_gauges
    use sfincs_discharges
+   use sfincs_src_structures
    use sfincs_meteo
    use sfincs_infiltration
    use sfincs_data
@@ -165,7 +166,9 @@ module sfincs_lib
    !
    call read_rug_file()         ! Read runup gauge file
    !
-   call read_discharges()       ! Reads dis and src file
+   call initialize_discharges()       ! Reads dis and src file (river point discharges)
+   !
+   call initialize_src_structures()   ! Reads drn file (pumps / culverts / check valves / gates)
    !
    if (nonhydrostatic) then
       !
@@ -545,9 +548,10 @@ module sfincs_lib
       !
       call update_boundaries(t, dt, tloopbnd)
       !
-      ! Update discharges
+      ! Update discharges (river sources) and src-point structures (pumps/gates/...)
       !
       call update_discharges(t, dt, tloopsrc)
+      call update_src_structures(t, dt, tloopsrc)
       !
       if (snapwave .and. update_waves) then
          !

@@ -772,22 +772,36 @@ module sfincs_data
       !!!
       !!! Discharges and drainage
       !!!
+      ! Cell-wise accumulated discharge used by continuity. Size np. Zeroed
+      ! each step, then both sfincs_discharges and sfincs_src_structures
+      ! accumulate into it.
+      !
+      real*4, dimension(:),     allocatable :: qsrc        ! (np)   cell-wise discharge [m3/s]
+      !
+      ! River point discharges (sfincs_discharges)
+      !
       integer                               :: nsrc
-      integer                               :: ndrn
-      integer                               :: nsrcdrn
       integer                               :: ntsrc
       integer                               :: itsrclast
-      real*4, dimension(:),     allocatable :: tsrc
-      real*4, dimension(:,:),   allocatable :: qsrc
-      real*4, dimension(:),     allocatable :: qtsrc
-      integer*4, dimension(:),  allocatable :: nmindsrc
+      real*4, dimension(:),     allocatable :: tsrc        ! (ntsrc) time stamps of river discharge time series
+      real*4, dimension(:,:),   allocatable :: qsrc_ts     ! (nsrc, ntsrc) river discharge time series matrix
+      real*4, dimension(:),     allocatable :: qtsrc       ! (nsrc) interpolated discharge at current time, for his output
+      integer*4, dimension(:),  allocatable :: nmindsrc    ! (nsrc) river source cell indices
+      real*4, dimension(:),     allocatable :: xsrc
+      real*4, dimension(:),     allocatable :: ysrc
+      !
+      ! Src-point structures: pumps, culverts, check valves, controlled gates
+      ! (sfincs_src_structures)
+      !
+      integer                               :: ndrn
+      integer*4, dimension(:),  allocatable :: nmindrn_in  ! (ndrn) intake  (sink)    cell indices
+      integer*4, dimension(:),  allocatable :: nmindrn_out ! (ndrn) outfall (source)  cell indices
+      real*4, dimension(:),     allocatable :: qdrain      ! (ndrn) signed discharge per structure, for his output
       integer*1, dimension(:),  allocatable :: drainage_type
       real*4, dimension(:,:),   allocatable :: drainage_params
       real*4, dimension(:),     allocatable :: drainage_distance
       integer*1, dimension(:),  allocatable :: drainage_status
       real*4, dimension(:),     allocatable :: drainage_fraction_open
-      real*4, dimension(:),     allocatable :: xsrc
-      real*4, dimension(:),     allocatable :: ysrc
       !!!
       !!! Structures
       !!!
@@ -1111,10 +1125,14 @@ module sfincs_data
     !!!
     !!! Discharges
     !!!
-    if(allocated(tsrc)) deallocate(tsrc)
     if(allocated(qsrc)) deallocate(qsrc)
+    if(allocated(tsrc)) deallocate(tsrc)
+    if(allocated(qsrc_ts)) deallocate(qsrc_ts)
     if(allocated(qtsrc)) deallocate(qtsrc)
     if(allocated(nmindsrc)) deallocate(nmindsrc)
+    if(allocated(nmindrn_in)) deallocate(nmindrn_in)
+    if(allocated(nmindrn_out)) deallocate(nmindrn_out)
+    if(allocated(qdrain)) deallocate(qdrain)
     !!!
     !!! Structures
     !!!
