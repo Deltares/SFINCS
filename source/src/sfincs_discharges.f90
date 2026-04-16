@@ -347,20 +347,12 @@ contains
    !
    if (nsrc > 0) then
       do itsrc = itsrclast, ntsrc
-         ! Find first point in time series larger than t
+         ! Find first point in time series large than t
          if (tsrc(itsrc) > t) then
-            if (itsrc == 1) then
-               ! t is before the first time record: flat extrapolation using first value
-               do isrc = 1, nsrc
-                  qtsrc(isrc) = qsrc(isrc, 1)
-               enddo
-               itsrclast = 1
-            else
-               do isrc = 1, nsrc
-                  qtsrc(isrc) = qsrc(isrc, itsrc - 1) + (qsrc(isrc, itsrc) - qsrc(isrc, itsrc - 1)) * (t - tsrc(itsrc - 1)) / (tsrc(itsrc) - tsrc(itsrc - 1))
-               enddo
-               itsrclast = itsrc - 1
-            endif
+            do isrc = 1, nsrc
+               qtsrc(isrc) = qsrc(isrc, itsrc - 1) + (qsrc(isrc, itsrc) - qsrc(isrc, itsrc - 1)) * (t - tsrc(itsrc - 1)) / (tsrc(itsrc) - tsrc(itsrc - 1))
+            enddo
+            itsrclast = itsrc - 1
             exit
          endif
       enddo
