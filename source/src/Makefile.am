@@ -15,6 +15,41 @@ lib_LTLIBRARIES = libsfincs.la
 
 #all sources for sfincs that go into the library (all but the program)
 libsfincs_la_SOURCES = \
+	../third_party_open/utils/toml-f/src/tomlf/constants.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/version.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/de/token.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/utils/io.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/datetime.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/error.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/utils.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/type/value.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/utils/sort.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/terminal.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/diagnostic.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/de/abc.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/de/context.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/structure/list.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/structure/map.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/structure/node.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/structure/array_list.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/structure/ordered_map.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/structure.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/type/array.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/type/keyval.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/type/table.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/type.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/ser.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/de/lexer.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/de/parser.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/de.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/build/build_keyval.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/build/merge.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/build/build_table.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/build/build_array.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/build/path.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/build.f90 \
+	../third_party_open/utils/toml-f/src/tomlf/all.f90 \
+	../third_party_open/utils/toml-f/src/tomlf.f90 \
 	sfincs_log.f90 \
 	sfincs_date.f90 \
 	sfincs_spiderweb.f90 \
