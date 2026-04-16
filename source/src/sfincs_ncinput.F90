@@ -92,7 +92,7 @@ module sfincs_ncinput
    character (len=256), parameter :: zs_varname   = 'zs'
    character (len=256), parameter :: zi_varname   = 'zi'
    character (len=256), parameter :: units        = 'units'
-   integer                        :: istat
+   integer                        :: status
    !
    !   if (crsgeo) then
    !      x_varname    = 'lon'
@@ -121,12 +121,19 @@ module sfincs_ncinput
    NF90(nf90_inq_varid(net_file_bndbzsbzi%ncid, y_varname, net_file_bndbzsbzi%y_varid) )
    NF90(nf90_inq_varid(net_file_bndbzsbzi%ncid, time_varname, net_file_bndbzsbzi%time_varid) )
    NF90(nf90_inq_varid(net_file_bndbzsbzi%ncid, zs_varname, net_file_bndbzsbzi%zs_varid) )    
+   !
    ! zi is optional — query without the NF90 error macro so absence is not treated as an error
-   net_file_bndbzsbzi%zi_varid = 0
-   istat = nf90_inq_varid(net_file_bndbzsbzi%ncid, zi_varname, net_file_bndbzsbzi%zi_varid)
-   if (istat /= NF90_NOERR) then
-      net_file_bndbzsbzi%zi_varid = 0   ! inq_varid may overwrite on error; reset explicitly
+   !
+   bziwaves = .true.
+   !
+   status = nf90_inq_varid(net_file_bndbzsbzi%ncid, zi_varname, net_file_bndbzsbzi%zi_varid)
+   !
+   if (status /= nf90_noerr) then
+      !
+      bziwaves = .false.   ! turn off flag
+      !
       call write_log('Info    : no zi variable in netbndbzsbzifile; bziwaves disabled.', 0)
+      !
    endif
    !
    ! Allocate variables   
@@ -142,9 +149,7 @@ module sfincs_ncinput
    NF90(nf90_get_var(net_file_bndbzsbzi%ncid, net_file_bndbzsbzi%time_varid, t_bnd(:)) ) 
    NF90(nf90_get_var(net_file_bndbzsbzi%ncid, net_file_bndbzsbzi%zs_varid, zs_bnd(:,:)) )   
    !   
-   if (net_file_bndbzsbzi%zi_varid /= 0) then     ! Allocate and read if bzi data is present
-      bziwaves = .true.   ! turn on flag
-      !write(*,*)'   Incident waves are forced...'      
+   if (bziwaves) then     ! Allocate and read if bzi data is present      
       !      
       allocate(zsi_bnd(nbnd,ntbnd))
       allocate(zsit_bnd(nbnd))
