@@ -283,6 +283,7 @@ contains
    call read_real_input(500,'tsunami_arrival_threshold',tsunami_arrival_threshold,0.01)
    call read_logical_input(500,'timestep_analysis',timestep_analysis,.false.)
    call read_int_input(500,'storeqdrain',storeqdrain,1)
+   call read_logical_input(500,'store_river_discharge',store_river_discharge,.false.)
    call read_int_input(500,'storezvolume',storezvolume,0)
    call read_int_input(500,'storestoragevolume',storestoragevolume,0)
    call read_int_input(500,'writeruntime',wrttimeoutput,0)

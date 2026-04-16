@@ -155,7 +155,8 @@ contains
    real    :: tloop
    !
    integer :: count0, count1, count_rate, count_max
-   integer :: isrc, itsrc, nm
+   integer :: isrc, itsrc, nm, it_prev, it_next
+   real*4  :: wt
    !
    call system_clock(count0, count_rate, count_max)
    !
@@ -167,26 +168,30 @@ contains
    !
    if (nsrc > 0) then
       !
+      ! Locate the bracketing interval in tsrc and compute the interpolation
+      ! weight once. Then run a single parallel loop that both interpolates
+      ! qtsrc and accumulates it into qsrc.
+      !
+      it_prev = itsrclast
+      it_next = itsrclast + 1
       do itsrc = itsrclast, ntsrc
          if (tsrc(itsrc) > t) then
-            do isrc = 1, nsrc
-               qtsrc(isrc) = qsrc_ts(isrc, itsrc - 1) &
-                           + (qsrc_ts(isrc, itsrc) - qsrc_ts(isrc, itsrc - 1)) &
-                           * (t - tsrc(itsrc - 1)) / (tsrc(itsrc) - tsrc(itsrc - 1))
-            enddo
-            itsrclast = itsrc - 1
+            it_prev = itsrc - 1
+            it_next = itsrc
+            itsrclast = it_prev
             exit
          endif
       enddo
+      wt = (t - tsrc(it_prev)) / (tsrc(it_next) - tsrc(it_prev))
       !
-      !$acc update device(qtsrc)
+      ! Atomic accumulation because two river sources (or a river and a
+      ! structure) can share a cell.
       !
-      ! Accumulate river sources into the cell-wise qsrc. Atomic because
-      ! two river sources (or a river and a structure) can share a cell.
-      !
-      !$acc parallel loop present( qsrc, qtsrc, nmindsrc ) private( nm )
+      !$acc parallel loop present( qsrc, qtsrc, nmindsrc, qsrc_ts ) private( nm )
       !$omp parallel do private( nm ) schedule ( static )
       do isrc = 1, nsrc
+         qtsrc(isrc) = qsrc_ts(isrc, it_prev) &
+                     + (qsrc_ts(isrc, it_next) - qsrc_ts(isrc, it_prev)) * wt
          nm = nmindsrc(isrc)
          if (nm > 0) then
             !$acc atomic update

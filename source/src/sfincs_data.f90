@@ -204,6 +204,7 @@ module sfincs_data
       logical       :: store_hsubgrid
       logical       :: store_hmean      
       logical       :: store_qdrain
+      logical       :: store_river_discharge
       logical       :: store_zvolume
       logical       :: store_storagevolume            
       logical       :: store_meteo

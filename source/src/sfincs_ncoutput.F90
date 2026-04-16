@@ -1629,7 +1629,7 @@ contains
    real*4, dimension(:), allocatable :: thindam_x
    real*4, dimension(:), allocatable :: thindam_y   
    !
-   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0 .and. nsrc==0 .and. nr_runup_gauges==0) then ! If no observation points, cross-sections, structures, drains, river sources or run-up gauges; his file is not created
+   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0 .and. .not. (nsrc>0 .and. store_river_discharge) .and. nr_runup_gauges==0) then ! If no observation points, cross-sections, structures, drains, river sources (when store_river_discharge) or run-up gauges; his file is not created
       return
    endif
    !
@@ -1653,7 +1653,7 @@ contains
       NF90(nf90_def_dim(his_file%ncid, 'drainage', ndrn, his_file%drain_dimid)) ! nr of drainage structures
    endif
    !
-   if (nsrc>0) then
+   if (nsrc>0 .and. store_river_discharge) then
       NF90(nf90_def_dim(his_file%ncid, 'rivers', nsrc, his_file%river_dimid)) ! nr of river point sources
    endif
    !
@@ -2058,7 +2058,7 @@ contains
       !
    endif
    !
-   if (nsrc>0) then
+   if (nsrc>0 .and. store_river_discharge) then
       !
       NF90(nf90_def_var(his_file%ncid, 'river_discharge', NF90_FLOAT, (/his_file%river_dimid, his_file%time_dimid/), his_file%river_varid)) ! time-varying river point discharge
       NF90(nf90_put_att(his_file%ncid, his_file%river_varid, '_FillValue', FILL_VALUE))
@@ -3316,7 +3316,7 @@ contains
       !
    endif
    !
-   if (nsrc>0) then
+   if (nsrc>0 .and. store_river_discharge) then
       !
       !$acc update host(qtsrc)
       !
@@ -3907,7 +3907,7 @@ contains
    !   
    implicit none   
    !   
-   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nrthindams==0 .and. ndrn==0 .and. nsrc==0) then ! If no observation points, cross-sections, structures (weir or thin dam), drains or river sources; hisfile        
+   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nrthindams==0 .and. ndrn==0 .and. .not. (nsrc>0 .and. store_river_discharge)) then ! If no observation points, cross-sections, structures (weir or thin dam), drains or river sources (when store_river_discharge); hisfile        
         return
    endif   
    !

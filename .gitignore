@@ -65,3 +65,6 @@ source/third_party_open/netcdf/x64
 source/sfincs/sfincs.opt.yaml
 /source/sfincs_lib/*.yaml
 /source/third_party_open/netcdf/netcdf-fortran-4.6.1/Debug
+
+# Local Claude Code agents / settings (not shared with co-developers)
+.claude/
