@@ -29,6 +29,43 @@
 		<Filter Name="Header Files" Filter="fi;fd"/>
 		<Filter Name="Resource Files" Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"/>
 		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
+			<Filter Name="toml-f">
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\all.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\build.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\build\build_array.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\build\build_keyval.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\build\merge.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\build\path.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\build\build_table.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\constants.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\datetime.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\de.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\de\abc.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\de\context.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\de\lexer.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\de\parser.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\de\token.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\diagnostic.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\error.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\ser.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\structure.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\structure\array_list.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\structure\list.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\structure\map.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\structure\node.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\structure\ordered_map.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\terminal.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\type.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\type\array.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\type\keyval.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\type\table.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\type\value.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\utils.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\utils\io.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\utils\sort.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\version.f90"/>
+			</Filter>
 			<Filter Name="snapwave">
 				<File RelativePath="..\src\snapwave\interp.F90"/>
 				<File RelativePath="..\src\snapwave\snapwave_boundaries.f90">

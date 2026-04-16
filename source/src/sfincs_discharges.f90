@@ -13,7 +13,7 @@ module sfincs_discharges
    !
    use sfincs_log
    use sfincs_error
-
+   !
 contains
    !
    subroutine initialize_discharges()
@@ -44,11 +44,15 @@ contains
       ok = check_file_exists(srcfile, 'River input locations src file', .true.)
       !
       open(500, file=trim(srcfile))
+      !
       do while (.true.)
+         !
          read(500, *, iostat=stat) dummy
          if (stat < 0) exit
          nsrc = nsrc + 1
+         !
       enddo
+      !
       rewind(500)
       !
    elseif (netsrcdisfile(1:4) /= 'none') then    ! FEWS-compatible NetCDF discharge time series
@@ -58,8 +62,10 @@ contains
       call read_netcdf_discharge_data()   ! sets nsrc, ntsrc, xsrc, ysrc, qsrc_ts, tsrc
       !
       if ((tsrc(1) > (t0 + 1.0)) .or. (tsrc(ntsrc) < (t1 - 1.0))) then
+         !
          write(logstr,'(a)') ' WARNING! Times in discharge file do not cover entire simulation period!'
          call write_log(logstr, 1)
+         !
       endif
       !
    endif
@@ -68,6 +74,7 @@ contains
    !
    allocate(nmindsrc(nsrc))
    allocate(qtsrc(nsrc))
+   !
    nmindsrc = 0
    qtsrc    = 0.0
    !
@@ -79,8 +86,11 @@ contains
       allocate(ysrc(nsrc))
       !
       do n = 1, nsrc
+         !
          read(500, *) xsrc(n), ysrc(n)
+         !
       enddo
+      !
       close(500)
       !
       ! Read discharge time series
@@ -88,17 +98,25 @@ contains
       ok = check_file_exists(disfile, 'River discharge timeseries dis file', .true.)
       !
       open(502, file=trim(disfile))
+      !
       do while (.true.)
+         !
          read(502, *, iostat=stat) dummy
          if (stat < 0) exit
          ntsrc = ntsrc + 1
+         !
       enddo
+      !
       rewind(502)
       allocate(tsrc(ntsrc))
       allocate(qsrc_ts(nsrc, ntsrc))
+      !
       do itsrc = 1, ntsrc
+         !
          read(502, *) tsrc(itsrc), (qsrc_ts(isrc, itsrc), isrc = 1, nsrc)
+         !
       enddo
+      !
       close(502)
       !
       if ((tsrc(1) > (t0 + 1.0)) .or. (tsrc(ntsrc) < (t1 - 1.0))) then
@@ -107,13 +125,17 @@ contains
          call write_log(logstr, 1)
          !
          if (tsrc(1) > (t0 + 1.0)) then
+            !
             write(logstr,'(a)') 'Warning! Adjusting first time in discharge time series !'
             call write_log(logstr, 1)
             tsrc(1) = t0 - 1.0
+            !
          else
+            !
             write(logstr,'(a)') 'Warning! Adjusting last time in discharge time series !'
             call write_log(logstr, 1)
             tsrc(ntsrc) = t1 + 1.0
+            !
          endif
          !
       endif
@@ -125,8 +147,11 @@ contains
    do isrc = 1, nsrc
       !
       nmq = find_quadtree_cell(xsrc(isrc), ysrc(isrc))
+      !
       if (nmq > 0) then
+         !
          nmindsrc(isrc) = index_sfincs_in_quadtree(nmq)
+         !
       endif
       !
    enddo
@@ -174,14 +199,20 @@ contains
       !
       it_prev = itsrclast
       it_next = itsrclast + 1
+      !
       do itsrc = itsrclast, ntsrc
+         !
          if (tsrc(itsrc) > t) then
+            !
             it_prev = itsrc - 1
             it_next = itsrc
             itsrclast = it_prev
             exit
+            !
          endif
+         !
       enddo
+      !
       wt = (t - tsrc(it_prev)) / (tsrc(it_next) - tsrc(it_prev))
       !
       ! Atomic accumulation because two river sources (or a river and a
@@ -190,14 +221,18 @@ contains
       !$acc parallel loop present( qsrc, qtsrc, nmindsrc, qsrc_ts ) private( nm )
       !$omp parallel do private( nm ) schedule ( static )
       do isrc = 1, nsrc
-         qtsrc(isrc) = qsrc_ts(isrc, it_prev) &
-                     + (qsrc_ts(isrc, it_next) - qsrc_ts(isrc, it_prev)) * wt
+         !
+         qtsrc(isrc) = qsrc_ts(isrc, it_prev) + (qsrc_ts(isrc, it_next) - qsrc_ts(isrc, it_prev)) * wt
          nm = nmindsrc(isrc)
+         !
          if (nm > 0) then
+            !
             !$acc atomic update
             !$omp atomic
             qsrc(nm) = qsrc(nm) + qtsrc(isrc)
+            !
          endif
+         !
       enddo
       !$omp end parallel do
       !$acc end parallel loop
