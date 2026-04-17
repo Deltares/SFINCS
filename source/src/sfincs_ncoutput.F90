@@ -1613,13 +1613,14 @@ contains
    ! 2. write grid/msk/zb to file
    !
    use sfincs_date
-   use sfincs_data   
+   use sfincs_data
    use sfincs_structures
+   use sfincs_src_structures, only: nr_src_structures
    !
-   implicit none   
+   implicit none
    !
-   integer                      :: istruc   
-   !  
+   integer                      :: istruc
+   !
    real*4, dimension(:,:), allocatable :: struc_info
    real*4, dimension(:), allocatable :: struc_x
    real*4, dimension(:), allocatable :: struc_y
@@ -1629,7 +1630,7 @@ contains
    real*4, dimension(:), allocatable :: thindam_x
    real*4, dimension(:), allocatable :: thindam_y   
    !
-   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0 .and. .not. (nsrc>0 .and. store_river_discharge) .and. nr_runup_gauges==0) then ! If no observation points, cross-sections, structures, drains, river sources (when store_river_discharge) or run-up gauges; his file is not created
+   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nr_src_structures==0 .and. .not. (nsrc>0 .and. store_river_discharge) .and. nr_runup_gauges==0) then ! If no observation points, cross-sections, structures, drains, river sources (when store_river_discharge) or run-up gauges; his file is not created
       return
    endif
    !
@@ -1649,8 +1650,8 @@ contains
       NF90(nf90_def_dim(his_file%ncid, 'crosssections', nrcrosssections, his_file%crosssections_dimid)) ! nr of crosssections
    endif
    !
-   if (ndrn>0) then
-      NF90(nf90_def_dim(his_file%ncid, 'drainage', ndrn, his_file%drain_dimid)) ! nr of drainage structures
+   if (nr_src_structures>0) then
+      NF90(nf90_def_dim(his_file%ncid, 'drainage', nr_src_structures, his_file%drain_dimid)) ! nr of drainage structures
    endif
    !
    if (nsrc>0 .and. store_river_discharge) then
@@ -2048,7 +2049,7 @@ contains
       !
    endif
    !   
-   if (ndrn>0) then
+   if (nr_src_structures>0) then
       !
       NF90(nf90_def_var(his_file%ncid, 'drainage_discharge', NF90_FLOAT, (/his_file%drain_dimid, his_file%time_dimid/), his_file%drain_varid)) ! time-varying discharge through drainage structure
       NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, '_FillValue', FILL_VALUE))
@@ -3013,14 +3014,15 @@ contains
    subroutine ncoutput_update_his(t,nthisout)
    ! Write time, zs, u, v, prcp of points 
    !
-   use sfincs_data   
+   use sfincs_data
    use sfincs_crosssections
    use sfincs_runup_gauges
    use sfincs_snapwave
+   use sfincs_src_structures, only: nr_src_structures, qstruc
    !
-   implicit none   
+   implicit none
    !
-   integer :: iobs, nm, idrn
+   integer :: iobs, nm, istruc
    !
    integer :: nthisout      
    integer :: nmd1, nmu1, ndm1, num1
@@ -3308,11 +3310,11 @@ contains
       !
    endif
    !
-   if (ndrn>0) then
+   if (nr_src_structures>0) then
       !
-      !$acc update host(qdrain)
+      !$acc update host(qstruc)
       !
-      NF90(nf90_put_var(his_file%ncid, his_file%drain_varid, qdrain, (/1, nthisout/))) ! write per-structure discharge
+      NF90(nf90_put_var(his_file%ncid, his_file%drain_varid, qstruc, (/1, nthisout/))) ! write per-structure discharge
       !
    endif
    !
@@ -3904,10 +3906,11 @@ contains
    ! Add total runtime, dtavg to file and close
    !
    use sfincs_data
-   !   
-   implicit none   
-   !   
-   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nrthindams==0 .and. ndrn==0 .and. .not. (nsrc>0 .and. store_river_discharge)) then ! If no observation points, cross-sections, structures (weir or thin dam), drains or river sources (when store_river_discharge); hisfile        
+   use sfincs_src_structures, only: nr_src_structures
+   !
+   implicit none
+   !
+   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nrthindams==0 .and. nr_src_structures==0 .and. .not. (nsrc>0 .and. store_river_discharge)) then ! If no observation points, cross-sections, structures (weir or thin dam), drains or river sources (when store_river_discharge); hisfile
         return
    endif   
    !

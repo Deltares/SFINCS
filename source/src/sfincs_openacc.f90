@@ -1,6 +1,9 @@
 module sfincs_openacc
    !
    use sfincs_data
+   use sfincs_src_structures
+   use sfincs_rule_expression, only: rule_opcode, rule_atom, rule_cmp, rule_threshold, &
+                                     rule_start, rule_length
    !
    implicit none
    !
@@ -21,18 +24,20 @@ contains
    !$acc               z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
    !$acc               uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc               uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
-   !$acc               qsrc, qtsrc, qdrain, nmindsrc, nmindrn_in, nmindrn_out, drainage_type, &
-   !$acc               drainage_q, drainage_par1, drainage_par2, drainage_par3, drainage_cd, &
-   !$acc               drainage_width, drainage_sill_elevation, drainage_mannings_n, &
-   !$acc               drainage_zmin, drainage_zmax, drainage_t_close, &
-   !$acc               drainage_distance, drainage_status, drainage_fraction_open, &
+   !$acc               qsrc, qtsrc, qstruc, nmindsrc, struc_nm_in, struc_nm_out, struc_type, &
+   !$acc               struc_q, struc_par1, struc_par2, struc_par3, struc_cd, &
+   !$acc               struc_width, struc_sill_elevation, struc_mannings_n, &
+   !$acc               struc_zmin, struc_zmax, struc_t_close, &
+   !$acc               struc_distance, struc_status, struc_fraction_open, &
+   !$acc               struc_rule_open, struc_rule_close, &
+   !$acc               rule_opcode, rule_atom, rule_cmp, rule_threshold, rule_start, rule_length, &
    !$acc               z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, &
    !$acc               structure_uv_index, structure_parameters, structure_type, structure_length, &
    !$acc               fwuv, &
    !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
-   !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, & 
+   !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, &
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
-   !$acc               prcp, prcp0, prcp1, cumprcp, netprcp, prcp, qext, & 
+   !$acc               prcp, prcp0, prcp1, cumprcp, netprcp, prcp, qext, &
    !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dyrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
    !$acc               gn2uv, fcorio2d, storage_volume, nuvisc, &
    !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
@@ -55,11 +60,13 @@ contains
    !$acc               z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
    !$acc               uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc               uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
-   !$acc               qsrc, qtsrc, qdrain, nmindsrc, nmindrn_in, nmindrn_out, drainage_type, &
-   !$acc               drainage_q, drainage_par1, drainage_par2, drainage_par3, drainage_cd, &
-   !$acc               drainage_width, drainage_sill_elevation, drainage_mannings_n, &
-   !$acc               drainage_zmin, drainage_zmax, drainage_t_close, &
-   !$acc               drainage_distance, drainage_status, drainage_fraction_open, &
+   !$acc               qsrc, qtsrc, qstruc, nmindsrc, struc_nm_in, struc_nm_out, struc_type, &
+   !$acc               struc_q, struc_par1, struc_par2, struc_par3, struc_cd, &
+   !$acc               struc_width, struc_sill_elevation, struc_mannings_n, &
+   !$acc               struc_zmin, struc_zmax, struc_t_close, &
+   !$acc               struc_distance, struc_status, struc_fraction_open, &
+   !$acc               struc_rule_open, struc_rule_close, &
+   !$acc               rule_opcode, rule_atom, rule_cmp, rule_threshold, rule_start, rule_length, &
    !$acc               z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, &
    !$acc               structure_uv_index, structure_parameters, structure_type, structure_length, &
    !$acc               fwuv, &

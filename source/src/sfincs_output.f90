@@ -8,6 +8,7 @@ module sfincs_output
    subroutine initialize_output(tmapout,tmaxout,thisout, trstout)
    !
    use sfincs_data
+   use sfincs_src_structures, only: nr_src_structures
    !
    implicit none
    !
@@ -62,7 +63,7 @@ module sfincs_output
    !
    ! Create his file if either observation points, cross-sections, structures or drains present
    !
-   if (dthisout>1.0e-6 .and. (nobs>0 .or. nrcrosssections>0 .or. nrstructures>0 .or. nrthindams>0 .or. ndrn>0 .or. nr_runup_gauges>0 )) then
+   if (dthisout>1.0e-6 .and. (nobs>0 .or. nrcrosssections>0 .or. nrstructures>0 .or. nrthindams>0 .or. nr_src_structures>0 .or. nr_runup_gauges>0 )) then
       !
       thisout     = t0
       !
@@ -575,6 +576,7 @@ module sfincs_output
    subroutine open_his_output()
    !
    use sfincs_data
+   use sfincs_src_structures, only: nr_src_structures
    !
    implicit none
    !
@@ -592,7 +594,7 @@ module sfincs_output
       open(unit = 969, file = trim('qriver.txt'))
       close(unit = 969 ,status='delete')
    endif
-   if (ndrn>0) then
+   if (nr_src_structures>0) then
       open(unit = 970, file = trim('qdrain.txt'))
       close(unit = 970 ,status='delete')
    endif
@@ -606,6 +608,7 @@ module sfincs_output
    !
    use sfincs_data
    use sfincs_crosssections
+   use sfincs_src_structures, only: nr_src_structures, qstruc
    !
    implicit none
    !
@@ -664,10 +667,10 @@ module sfincs_output
       close(969)
    endif
    !
-   if (ndrn>0 .and. store_qdrain) then
-      !$acc update host(qdrain)
+   if (nr_src_structures>0 .and. store_qdrain) then
+      !$acc update host(qstruc)
       open(unit = 970, file = trim('qdrain.txt'), access='append')
-      write(970,'(f12.1,10000f9.3)')t,(qdrain(iobs), iobs = 1, ndrn)
+      write(970,'(f12.1,10000f9.3)')t,(qstruc(iobs), iobs = 1, nr_src_structures)
       close(970)
    endif
    !

@@ -15,15 +15,16 @@ module sfincs_src_structures
    ! Runtime handoff to the continuity module is via the cell-wise qsrc(np)
    ! array (in sfincs_data): this module accumulates qq on intake (struc_nm_in)
    ! and outfall (struc_nm_out) cells. Per-structure signed discharge is also
-   ! stored in qstruc(nstruc) for his output.
+   ! stored in qstruc(nr_src_structures) for his output.
    !
    ! Concurrency: qsrc updates use atomic because two structures (or a river
    ! source and a structure) can land in the same cell.
    !
    use sfincs_log
    use sfincs_error
+   use sfincs_rule_expression, only: add_rule, evaluate_rule, finalize_rule_storage
    !
-   private :: parse_action_kind, parse_rule_lhs, parse_comparator, parse_rule_rhs, parse_structure_type, to_lower, check_required
+   private :: parse_structure_type, to_lower, check_required
    private :: initialize_src_structures_legacy
    private :: allocate_struc_flat_arrays, finalize_src_structures_state
    private :: marshal_src_structures_to_flat_arrays
@@ -42,53 +43,15 @@ module sfincs_src_structures
    integer, parameter :: structure_culvert     = 3
    integer, parameter :: structure_gate        = 4
    !
-   ! Action kind codes
-   !
-   integer, parameter :: ACTION_OPEN     = 1
-   integer, parameter :: ACTION_CLOSE    = 2
-   !
-   ! Rule left-hand-side kind codes
-   !
-   integer, parameter :: RULE_LHS_Z1     = 1
-   integer, parameter :: RULE_LHS_Z2     = 2
-   !
-   ! Rule comparator codes
-   !
-   integer, parameter :: CMP_LT          = 1
-   integer, parameter :: CMP_LE          = 2
-   integer, parameter :: CMP_GT          = 3
-   integer, parameter :: CMP_GE          = 4
-   integer, parameter :: CMP_EQ          = 5
-   integer, parameter :: CMP_NE          = 6
-   !
-   ! Rule right-hand-side kind codes
-   !
-   integer, parameter :: RULE_RHS_PAR1   = 1
-   integer, parameter :: RULE_RHS_PAR2   = 2
-   integer, parameter :: RULE_RHS_PAR3   = 3
-   integer, parameter :: RULE_RHS_CONST  = 4
-   !
    ! ------------------------------------------------------------------
-   ! Derived types for the keyword-based src structure input.
+   ! Derived type for the TOML-based src structure input.
    !
-   ! Scaffolding only - not yet wired into any reader or the runtime.
+   ! Gate open/close triggers are described by small boolean expressions
+   ! in strings (e.g. "(z1<0.5 | z2-z1>0.05) & z2<1.5"). Those strings
+   ! live here as raw characters on the derived type; the parser runs
+   ! during marshalling and emits bytecode into the shared rule_*
+   ! streams owned by the sfincs_rule_expression module.
    ! ------------------------------------------------------------------
-   !
-   type :: t_src_action
-      !
-      integer :: kind         ! ACTION_OPEN / ACTION_CLOSE
-      real    :: value        ! payload (e.g. target state / timing), unused for now
-      !
-   end type t_src_action
-   !
-   type :: t_src_rule
-      !
-      integer :: lhs_kind     ! RULE_LHS_*
-      integer :: comparator   ! CMP_*
-      integer :: rhs_kind     ! RULE_RHS_*
-      real    :: rhs_value    ! only used when rhs_kind == RULE_RHS_CONST
-      !
-   end type t_src_rule
    !
    type :: t_src_structure
       !
@@ -138,10 +101,11 @@ module sfincs_src_structures
       real :: par2
       real :: par3
       !
-      ! Actions and rules
+      ! Gate control rule expressions (raw strings; parsed by marshal).
+      ! Either or both may be unallocated, meaning "no trigger for this action".
       !
-      type(t_src_action), allocatable :: actions(:)
-      type(t_src_rule),   allocatable :: rules(:)
+      character(len=:), allocatable :: rule_open
+      character(len=:), allocatable :: rule_close
       !
    end type t_src_structure
    !
@@ -154,7 +118,7 @@ module sfincs_src_structures
    ! directly (struc_type, struc_q, struc_par1, etc.).
    ! ------------------------------------------------------------------
    !
-   type(t_src_structure), allocatable :: src_structures(:)
+   type(t_src_structure), allocatable :: src_structures(:)   ! intermediate derived-type array; flattened + deallocated by marshal_src_structures_to_flat_arrays on the toml path (gpu deep-copy avoidance).
    !
    ! ------------------------------------------------------------------
    ! Module-level runtime state for src structures (moved from sfincs_data).
@@ -179,9 +143,9 @@ module sfincs_src_structures
    !
    ! Cell mapping
    !
-   integer, public :: nstruc
-   integer*4, dimension(:), allocatable, public :: struc_nm_in   ! (nstruc) intake  (sink)   cell indices
-   integer*4, dimension(:), allocatable, public :: struc_nm_out  ! (nstruc) outfall (source) cell indices
+   integer, public :: nr_src_structures
+   integer*4, dimension(:), allocatable, public :: struc_nm_in   ! (nr_src_structures) intake  (sink)   cell indices
+   integer*4, dimension(:), allocatable, public :: struc_nm_out  ! (nr_src_structures) outfall (source) cell indices
    !
    ! Coordinates
    !
@@ -207,9 +171,16 @@ module sfincs_src_structures
    !
    ! Runtime state
    !
-   real*4, dimension(:), allocatable, public :: qstruc                   ! (nstruc) signed discharge per structure, mirrors the qsrc pattern
+   real*4, dimension(:), allocatable, public :: qstruc                   ! (nr_src_structures) signed discharge per structure, mirrors the qsrc pattern
    !
-
+   ! ------------------------------------------------------------------
+   ! Per-structure rule ids into the registry owned by sfincs_rule_expression.
+   ! A rule_id of 0 means "no rule; never fires".
+   ! ------------------------------------------------------------------
+   !
+   integer, dimension(:), allocatable, public :: struc_rule_open       ! (nr_src_structures) rule_id for open action, 0 = no rule
+   integer, dimension(:), allocatable, public :: struc_rule_close      ! (nr_src_structures) rule_id for close action, 0 = no rule
+   !
 contains
    !
    subroutine initialize_src_structures()
@@ -292,7 +263,7 @@ contains
    !
    ! Parse drnfile in the fixed-column legacy format and populate the
    ! struc_* flat arrays, plus struc_nm_in/out and the
-   ! output buffer qstruc(nstruc). Post-processing (cell-index lookup,
+   ! output buffer qstruc(nr_src_structures). Post-processing (cell-index lookup,
    ! distance, default status / fraction_open) is deferred to
    ! finalize_src_structures_state(), which is shared with the TOML path.
    !
@@ -305,7 +276,7 @@ contains
    logical   :: ok
    character(len=256) :: drainage_line
    !
-   nstruc = 0
+   nr_src_structures = 0
    !
    if (drnfile(1:4) == 'none') return
    !
@@ -319,25 +290,25 @@ contains
       !
       read(501, *, iostat=stat) dummy
       if (stat < 0) exit
-      nstruc = nstruc + 1
+      nr_src_structures = nr_src_structures + 1
       !
    enddo
    !
    rewind(501)
    !
-   if (nstruc <= 0) then
+   if (nr_src_structures <= 0) then
       !
       close(501)
       return
       !
    endif
    !
-   write(logstr,'(a,a,a,i0,a)')' Reading ', trim(drnfile), ' (', nstruc, ' drainage points found) ...'
+   write(logstr,'(a,a,a,i0,a)')' Reading ', trim(drnfile), ' (', nr_src_structures, ' drainage points found) ...'
    call write_log(logstr, 0)
    !
-   call allocate_struc_flat_arrays(nstruc)
+   call allocate_struc_flat_arrays(nr_src_structures)
    !
-   do istruc = 1, nstruc
+   do istruc = 1, nr_src_structures
       !
       read(501, '(a)') drainage_line
       !
@@ -424,6 +395,12 @@ contains
    !
    close(501)
    !
+   ! Ensure the shared rule-expression stream is allocated (to size 0
+   ! if no rules were ever parsed) so downstream openacc directives can
+   ! reference rule_* safely.
+   !
+   call finalize_rule_storage()
+   !
    ! Cell-index lookup, centre-to-centre distance, mismatch warning.
    !
    call finalize_src_structures_state()
@@ -473,6 +450,8 @@ contains
    if (allocated(struc_zmin)) deallocate(struc_zmin)
    if (allocated(struc_zmax)) deallocate(struc_zmax)
    if (allocated(struc_t_close)) deallocate(struc_t_close)
+   if (allocated(struc_rule_open))       deallocate(struc_rule_open)
+   if (allocated(struc_rule_close))      deallocate(struc_rule_close)
    !
    allocate(struc_nm_in(n))
    allocate(struc_nm_out(n))
@@ -504,6 +483,11 @@ contains
    allocate(struc_zmin(n))
    allocate(struc_zmax(n))
    allocate(struc_t_close(n))
+   allocate(struc_rule_open(n))
+   allocate(struc_rule_close(n))
+   !
+   struc_rule_open  = 0
+   struc_rule_close = 0
    !
    struc_nm_in             = 0
    struc_nm_out            = 0
@@ -553,7 +537,7 @@ contains
    integer :: istruc, nmq
    real*4  :: xsnk_tmp, ysnk_tmp, xsrc_tmp, ysrc_tmp
    !
-   do istruc = 1, nstruc
+   do istruc = 1, nr_src_structures
       !
       nmq = find_quadtree_cell(struc_src_1_x(istruc), struc_src_1_y(istruc))
       if (nmq > 0) struc_nm_in(istruc)  = index_sfincs_in_quadtree(nmq)
@@ -585,6 +569,34 @@ contains
    end subroutine
    !
    !
+   ! ------------------------------------------------------------------
+   ! why does this marshal exist?
+   !
+   ! the runtime reads all src-structure state from flat per-struct
+   ! arrays (the struc_* family: struc_type, struc_q, struc_par1, ...).
+   ! the toml reader, however, naturally produces a derived-type array
+   ! src_structures(:) of t_src_structure, which carries allocatable
+   ! components: character(len=:), allocatable :: id, name, plus the
+   ! nested actions(:) and rules(:) arrays.
+   !
+   ! nvfortran's openacc implicit deep-copy of derived types that
+   ! contain allocatable components has been unreliable in practice:
+   ! pushing a type(...), allocatable :: arr(:) with nested allocatables
+   ! to the device tends to produce runtime issues. flat arrays of
+   ! primitive types (real, integer, fixed-length character) copy
+   ! cleanly across !$acc enter data copyin(...), so we keep the live
+   ! runtime state in those.
+   !
+   ! this routine is the one-shot bridge: toml -> src_structures(:)
+   ! -> struc_* flat arrays -> deallocate(src_structures). after it
+   ! runs, nothing of the derived-type array survives, so no gpu
+   ! region ever sees a problematic allocatable-in-derived-type.
+   !
+   ! the legacy fixed-column reader populates the same struc_* flat
+   ! arrays directly and therefore does not need this marshal; the
+   ! two input paths converge here.
+   ! ------------------------------------------------------------------
+   !
    subroutine marshal_src_structures_to_flat_arrays()
    !
    ! Copy the module-level src_structures(:) array (populated by
@@ -595,26 +607,29 @@ contains
    ! should not yet be allocated when this is called; allocate_struc_flat_arrays
    ! defensively deallocates any residual allocation first.
    !
-   ! Note: %actions and %rules are dropped at this point. They are not
-   ! consumed by any downstream runtime code yet. Follow-up work: add flat
-   ! arrays for action / rule counts and element data, and copy those in
-   ! this helper before the deallocation.
+   ! Rule expressions (rule_open / rule_close) are handed to
+   ! sfincs_rule_expression's add_rule, which appends bytecode to its
+   ! shared stream, registers a new rule, and returns an integer rule_id
+   ! per structure. finalize_rule_storage is called at the end to shrink
+   ! the stream and registry to fit (and to allocate zero-length arrays
+   ! when no rules were seen).
    !
    use sfincs_data
    !
    implicit none
    !
-   integer :: i, n
+   integer :: i, n, ierr_parse
+   character(len=256) :: errmsg
    !
    if (.not. allocated(src_structures)) then
       !
-      nstruc = 0
+      nr_src_structures = 0
       return
       !
    endif
    !
    n = size(src_structures)
-   nstruc = n
+   nr_src_structures = n
    !
    if (n <= 0) then
       !
@@ -624,6 +639,9 @@ contains
    endif
    !
    call allocate_struc_flat_arrays(n)
+   !
+   ! Copy scalar / vector per-structure fields and parse rule
+   ! expressions into the shared rule_* stream via add_rule.
    !
    do i = 1, n
       !
@@ -683,7 +701,46 @@ contains
       struc_zmax(i)           = src_structures(i)%zmax
       struc_t_close(i)        = src_structures(i)%t_close
       !
+      ! Parse rule expressions. Missing / empty strings leave the
+      ! rule_id at 0, which the evaluator interprets as "never fires".
+      !
+      if (allocated(src_structures(i)%rule_open)) then
+         !
+         call add_rule(src_structures(i)%rule_open, &
+              struc_rule_open(i), ierr_parse, errmsg)
+         !
+         if (ierr_parse /= 0) then
+            !
+            write(logstr,'(a,a,a,a)')' Error ! src_structure "', trim(struc_id(i)), &
+                 '" rules.open parse failed: ', trim(errmsg)
+            call write_log(logstr, 1)
+            call stop_sfincs(logstr, -1)
+            !
+         endif
+         !
+      endif
+      !
+      if (allocated(src_structures(i)%rule_close)) then
+         !
+         call add_rule(src_structures(i)%rule_close, &
+              struc_rule_close(i), ierr_parse, errmsg)
+         !
+         if (ierr_parse /= 0) then
+            !
+            write(logstr,'(a,a,a,a)')' Error ! src_structure "', trim(struc_id(i)), &
+                 '" rules.close parse failed: ', trim(errmsg)
+            call write_log(logstr, 1)
+            call stop_sfincs(logstr, -1)
+            !
+         endif
+         !
+      endif
+      !
    enddo
+   !
+   ! Shrink the shared rule stream to exactly the concatenated length.
+   !
+   call finalize_rule_storage()
    !
    ! Shared post-processing.
    !
@@ -700,7 +757,7 @@ contains
    !
    ! Compute discharges through each drainage structure, accumulate them
    ! into qsrc(np) (intake: -qq, outfall: +qq), and store per-structure
-   ! signed discharge in qstruc(nstruc) for his output.
+   ! signed discharge in qstruc(nr_src_structures) for his output.
    !
    ! Called AFTER update_discharges, which zeros qsrc first.
    !
@@ -720,7 +777,7 @@ contains
    real*4  :: qq, qq0
    real*4  :: dzds, frac, wdt, zsill, zmin, zmax, mng, hgate, dfrac, tcls, topen, tclose
    !
-   if (nstruc <= 0) return
+   if (nr_src_structures <= 0) return
    !
    call system_clock(count0, count_rate, count_max)
    !
@@ -738,7 +795,7 @@ contains
    !$omp   private( nmin, nmout, qq, qq0, dzds, frac, wdt, zsill, &
    !$omp            zmin, zmax, mng, hgate, dfrac, tcls, topen, tclose ) &
    !$omp   schedule ( static )
-   do istruc = 1, nstruc
+   do istruc = 1, nr_src_structures
       !
       nmin  = struc_nm_in(istruc)
       nmout = struc_nm_out(istruc)
@@ -974,8 +1031,8 @@ contains
    !    width = ... ; sill_elevation = ... ; mannings_n = ...
    !    zmin = ... ; zmax = ... ; t_close = ...
    !    cd = ... ; par1 = ... ; par2 = ... ; par3 = ...
-   !    actions = [ { kind = "open",  value = 10.0 }, ... ]
-   !    rules   = [ { lhs = "z1", comparator = ">", rhs = "par1" }, ... ]
+   !    rules.open  = "(z1<0.5 | z2-z1>0.05) & z2<1.5"   ! optional trigger expr
+   !    rules.close = "z2>2.0"                           ! optional trigger expr
    !
    ! Per-type required keys (enforced on parse):
    !    pump        : x, y, q
@@ -1001,11 +1058,10 @@ contains
    !
    type(toml_table), allocatable    :: top
    type(toml_error), allocatable    :: err
-   type(toml_array), pointer        :: arr_structs, arr_actions, arr_rules
-   type(toml_table), pointer        :: tbl_struct, tbl_entry
-   character(len=:), allocatable    :: id_str, name_str, type_str, kind_str, lhs_str, cmp_str, rhs_str
-   integer                          :: n_struct, n_act, n_rule, i, j, stat
-   real                             :: rval
+   type(toml_array), pointer        :: arr_structs
+   type(toml_table), pointer        :: tbl_struct, tbl_rules
+   character(len=:), allocatable    :: id_str, name_str, type_str, rule_str
+   integer                          :: n_struct, i, stat
    !
    ierr = 0
    !
@@ -1194,164 +1250,22 @@ contains
       call get_value(tbl_struct, 'par2',           structures(i)%par2,           0.0, stat=stat)
       call get_value(tbl_struct, 'par3',           structures(i)%par3,           0.0, stat=stat)
       !
-      ! Optional actions array
+      ! Optional rules sub-table with string "open" / "close" expressions.
+      ! Absent sub-table, or absent keys within it, leaves the rule strings
+      ! unallocated on the derived type; marshal treats that as "no trigger".
       !
-      nullify(arr_actions)
-      call get_value(tbl_struct, 'actions', arr_actions, requested=.false., stat=stat)
+      nullify(tbl_rules)
+      call get_value(tbl_struct, 'rules', tbl_rules, requested=.false., stat=stat)
       !
-      if (associated(arr_actions)) then
+      if (associated(tbl_rules)) then
          !
-         n_act = len(arr_actions)
-         allocate(structures(i)%actions(n_act))
+         if (allocated(rule_str)) deallocate(rule_str)
+         call get_value(tbl_rules, 'open', rule_str, stat=stat)
+         if (allocated(rule_str)) structures(i)%rule_open = rule_str
          !
-         do j = 1, n_act
-            !
-            nullify(tbl_entry)
-            call get_value(arr_actions, j, tbl_entry, stat=stat)
-            !
-            if (.not. associated(tbl_entry)) then
-               !
-               write(logstr,'(a,i0,a,i0,a)')' Error ! actions entry ', j, &
-                    ' of src_structure ', i, ' is not a table'
-               call write_log(logstr, 1)
-               call cleanup_on_error()
-               return
-               !
-            endif
-            !
-            if (allocated(kind_str)) deallocate(kind_str)
-            call get_value(tbl_entry, 'kind', kind_str, stat=stat)
-            !
-            if (.not. allocated(kind_str)) then
-               !
-               write(logstr,'(a,i0,a,i0)')' Error ! Missing "kind" in actions entry ', j, &
-                    ' of src_structure ', i
-               call write_log(logstr, 1)
-               call cleanup_on_error()
-               return
-               !
-            endif
-            !
-            call parse_action_kind(kind_str, structures(i)%actions(j)%kind, ierr)
-            !
-            if (ierr /= 0) then
-               !
-               write(logstr,'(a,a,a,i0,a,i0)')' Error ! Unknown action kind "', trim(kind_str), &
-                    '" in actions entry ', j, ' of src_structure ', i
-               call write_log(logstr, 1)
-               call cleanup_on_error()
-               return
-               !
-            endif
-            !
-            rval = 0.0
-            call get_value(tbl_entry, 'value', rval, stat=stat)
-            structures(i)%actions(j)%value = rval
-            !
-         enddo
-         !
-      else
-         !
-         allocate(structures(i)%actions(0))
-         !
-      endif
-      !
-      ! Optional rules array
-      !
-      nullify(arr_rules)
-      call get_value(tbl_struct, 'rules', arr_rules, requested=.false., stat=stat)
-      !
-      if (associated(arr_rules)) then
-         !
-         n_rule = len(arr_rules)
-         allocate(structures(i)%rules(n_rule))
-         !
-         do j = 1, n_rule
-            !
-            nullify(tbl_entry)
-            call get_value(arr_rules, j, tbl_entry, stat=stat)
-            !
-            if (.not. associated(tbl_entry)) then
-               !
-               write(logstr,'(a,i0,a,i0,a)')' Error ! rules entry ', j, &
-                    ' of src_structure ', i, ' is not a table'
-               call write_log(logstr, 1)
-               call cleanup_on_error()
-               return
-               !
-            endif
-            !
-            if (allocated(lhs_str)) deallocate(lhs_str)
-            if (allocated(cmp_str)) deallocate(cmp_str)
-            if (allocated(rhs_str)) deallocate(rhs_str)
-            !
-            call get_value(tbl_entry, 'lhs',        lhs_str, stat=stat)
-            call get_value(tbl_entry, 'comparator', cmp_str, stat=stat)
-            call get_value(tbl_entry, 'rhs',        rhs_str, stat=stat)
-            !
-            if (.not. allocated(lhs_str) .or. .not. allocated(cmp_str) .or. &
-                .not. allocated(rhs_str)) then
-               !
-               write(logstr,'(a,i0,a,i0)')' Error ! rules entry ', j, &
-                    ' needs lhs/comparator/rhs keys in src_structure ', i
-               call write_log(logstr, 1)
-               ierr = 1
-               call cleanup_on_error()
-               return
-               !
-            endif
-            !
-            call parse_rule_lhs(lhs_str, structures(i)%rules(j)%lhs_kind, ierr)
-            !
-            if (ierr /= 0) then
-               !
-               write(logstr,'(a,a,a,i0,a,i0)')' Error ! Unknown rule lhs "', trim(lhs_str), &
-                    '" in rules entry ', j, ' of src_structure ', i
-               call write_log(logstr, 1)
-               call cleanup_on_error()
-               return
-               !
-            endif
-            !
-            call parse_comparator(cmp_str, structures(i)%rules(j)%comparator, ierr)
-            !
-            if (ierr /= 0) then
-               !
-               write(logstr,'(a,a,a,i0,a,i0)')' Error ! Unknown comparator "', trim(cmp_str), &
-                    '" in rules entry ', j, ' of src_structure ', i
-               call write_log(logstr, 1)
-               call cleanup_on_error()
-               return
-               !
-            endif
-            !
-            call parse_rule_rhs(rhs_str, structures(i)%rules(j)%rhs_kind, ierr)
-            !
-            if (ierr /= 0) then
-               !
-               write(logstr,'(a,a,a,i0,a,i0)')' Error ! Unknown rule rhs "', trim(rhs_str), &
-                    '" in rules entry ', j, ' of src_structure ', i
-               call write_log(logstr, 1)
-               call cleanup_on_error()
-               return
-               !
-            endif
-            !
-            rval = 0.0
-            !
-            if (structures(i)%rules(j)%rhs_kind == RULE_RHS_CONST) then
-               !
-               call get_value(tbl_entry, 'rhs_value', rval, stat=stat)
-               !
-            endif
-            !
-            structures(i)%rules(j)%rhs_value = rval
-            !
-         enddo
-         !
-      else
-         !
-         allocate(structures(i)%rules(0))
+         if (allocated(rule_str)) deallocate(rule_str)
+         call get_value(tbl_rules, 'close', rule_str, stat=stat)
+         if (allocated(rule_str)) structures(i)%rule_close = rule_str
          !
       endif
       !
@@ -1402,41 +1316,6 @@ contains
    end subroutine
    !
    !
-   subroutine parse_action_kind(str, code, ierr)
-   !
-   ! Translate a TOML action "kind" string to one of the ACTION_* codes.
-   !
-   implicit none
-   !
-   character(len=*), intent(in) :: str
-   integer, intent(out)         :: code
-   integer, intent(out)         :: ierr
-   !
-   character(len=:), allocatable :: s
-   !
-   ierr = 0
-   code = 0
-   s    = to_lower(str)
-   !
-   select case (s)
-      !
-      case ('open')
-         !
-         code = ACTION_OPEN
-         !
-      case ('close')
-         !
-         code = ACTION_CLOSE
-         !
-      case default
-         !
-         ierr = 1
-         !
-   end select
-   !
-   end subroutine
-   !
-   !
    subroutine parse_structure_type(str, code, ierr)
    !
    ! Translate a TOML "type" string to one of the structure_* codes.
@@ -1470,132 +1349,6 @@ contains
       case ('gate')
          !
          code = structure_gate
-         !
-      case default
-         !
-         ierr = 1
-         !
-   end select
-   !
-   end subroutine
-   !
-   !
-   subroutine parse_rule_lhs(str, code, ierr)
-   !
-   ! Translate a TOML rule "lhs" string to one of the RULE_LHS_* codes.
-   !
-   implicit none
-   !
-   character(len=*), intent(in) :: str
-   integer, intent(out)         :: code
-   integer, intent(out)         :: ierr
-   !
-   character(len=:), allocatable :: s
-   !
-   ierr = 0
-   code = 0
-   s    = to_lower(str)
-   !
-   select case (s)
-      !
-      case ('z1')
-         !
-         code = RULE_LHS_Z1
-         !
-      case ('z2')
-         !
-         code = RULE_LHS_Z2
-         !
-      case default
-         !
-         ierr = 1
-         !
-   end select
-   !
-   end subroutine
-   !
-   !
-   subroutine parse_comparator(str, code, ierr)
-   !
-   ! Translate a TOML "comparator" string to one of the CMP_* codes.
-   !
-   implicit none
-   !
-   character(len=*), intent(in) :: str
-   integer, intent(out)         :: code
-   integer, intent(out)         :: ierr
-   !
-   ierr = 0
-   code = 0
-   !
-   select case (trim(str))
-      !
-      case ('<')
-         !
-         code = CMP_LT
-         !
-      case ('<=')
-         !
-         code = CMP_LE
-         !
-      case ('>')
-         !
-         code = CMP_GT
-         !
-      case ('>=')
-         !
-         code = CMP_GE
-         !
-      case ('==')
-         !
-         code = CMP_EQ
-         !
-      case ('!=')
-         !
-         code = CMP_NE
-         !
-      case default
-         !
-         ierr = 1
-         !
-   end select
-   !
-   end subroutine
-   !
-   !
-   subroutine parse_rule_rhs(str, code, ierr)
-   !
-   ! Translate a TOML rule "rhs" string to one of the RULE_RHS_* codes.
-   !
-   implicit none
-   !
-   character(len=*), intent(in) :: str
-   integer, intent(out)         :: code
-   integer, intent(out)         :: ierr
-   !
-   character(len=:), allocatable :: s
-   !
-   ierr = 0
-   code = 0
-   s    = to_lower(str)
-   !
-   select case (s)
-      !
-      case ('par1')
-         !
-         code = RULE_RHS_PAR1
-         !
-      case ('par2')
-         !
-         code = RULE_RHS_PAR2
-         !
-      case ('par3')
-         !
-         code = RULE_RHS_PAR3
-         !
-      case ('const')
-         !
-         code = RULE_RHS_CONST
          !
       case default
          !

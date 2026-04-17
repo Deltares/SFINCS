@@ -10,6 +10,7 @@ contains
    use sfincs_date
    use sfincs_log
    use sfincs_error
+   use sfincs_src_structures, only: nr_src_structures
    !
    implicit none
    !
@@ -321,7 +322,7 @@ contains
       cd_wnd(3) =  50.0
       cd_val(1) = 0.0010
       cd_val(2) = 0.0025
-      cd_val(3) = 0.0015
+      cd_val(3) = 0.0025
       !
    else
       !
@@ -711,7 +712,7 @@ contains
       ! Turn off some processes not needed for bathtub flooding
       !
       nsrc = 0
-      ndrn = 0
+      nr_src_structures = 0
       !
       meteo3d = .false.
       wind = .false.

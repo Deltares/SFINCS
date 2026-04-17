@@ -99,6 +99,7 @@
 			</File>
 			<File RelativePath="..\src\sfincs_date.f90"/>
 			<File RelativePath="..\src\sfincs_discharges.f90"/>
+			<File RelativePath="..\src\sfincs_rule_expression.f90"/>
 			<File RelativePath="..\src\sfincs_src_structures.f90"/>
 			<File RelativePath="..\src\sfincs_domain.f90">
 			</File>

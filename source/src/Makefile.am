@@ -74,6 +74,7 @@ libsfincs_la_SOURCES = \
 	sfincs_continuity.f90 \
 	sfincs_crosssections.f90 \
 	sfincs_discharges.f90 \
+	sfincs_rule_expression.f90 \
 	sfincs_src_structures.f90 \
 	sfincs_subgrid.F90 \
 	sfincs_timestep_analysis.f90 \	
