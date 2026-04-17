@@ -791,18 +791,8 @@ module sfincs_data
       real*4, dimension(:),     allocatable :: xsrc
       real*4, dimension(:),     allocatable :: ysrc
       !
-      ! Src-point structures: pumps, culverts, check valves, controlled gates
-      ! (sfincs_src_structures)
-      !
-      integer                               :: ndrn
-      integer*4, dimension(:),  allocatable :: nmindrn_in  ! (ndrn) intake  (sink)    cell indices
-      integer*4, dimension(:),  allocatable :: nmindrn_out ! (ndrn) outfall (source)  cell indices
-      real*4, dimension(:),     allocatable :: qdrain      ! (ndrn) signed discharge per structure, for his output
-      integer*1, dimension(:),  allocatable :: drainage_type
-      real*4, dimension(:,:),   allocatable :: drainage_params
-      real*4, dimension(:),     allocatable :: drainage_distance
-      integer*1, dimension(:),  allocatable :: drainage_status
-      real*4, dimension(:),     allocatable :: drainage_fraction_open
+      ! Src-point structures (pumps, culverts, check valves, controlled gates)
+      ! live in module sfincs_src_structures.
       !!!
       !!! Structures
       !!!
@@ -1131,9 +1121,9 @@ module sfincs_data
     if(allocated(qsrc_ts)) deallocate(qsrc_ts)
     if(allocated(qtsrc)) deallocate(qtsrc)
     if(allocated(nmindsrc)) deallocate(nmindsrc)
-    if(allocated(nmindrn_in)) deallocate(nmindrn_in)
-    if(allocated(nmindrn_out)) deallocate(nmindrn_out)
-    if(allocated(qdrain)) deallocate(qdrain)
+    !
+    ! Src-point structure state is owned by sfincs_src_structures and is
+    ! deallocated there.
     !!!
     !!! Structures
     !!!

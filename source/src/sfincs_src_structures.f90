@@ -13,9 +13,9 @@ module sfincs_src_structures
    ! each module has a single responsibility.
    !
    ! Runtime handoff to the continuity module is via the cell-wise qsrc(np)
-   ! array (in sfincs_data): this module accumulates qq on intake (nmindrn_in)
-   ! and outfall (nmindrn_out) cells. Per-structure signed discharge is also
-   ! stored in qdrain(ndrn) for his output.
+   ! array (in sfincs_data): this module accumulates qq on intake (struc_nm_in)
+   ! and outfall (struc_nm_out) cells. Per-structure signed discharge is also
+   ! stored in qstruc(nstruc) for his output.
    !
    ! Concurrency: qsrc updates use atomic because two structures (or a river
    ! source and a structure) can land in the same cell.
@@ -25,6 +25,8 @@ module sfincs_src_structures
    !
    private :: parse_action_kind, parse_rule_lhs, parse_comparator, parse_rule_rhs, parse_structure_type, to_lower, check_required
    private :: initialize_src_structures_legacy
+   private :: allocate_struc_flat_arrays, finalize_src_structures_state
+   private :: marshal_src_structures_to_flat_arrays
    !
    ! ------------------------------------------------------------------
    ! Named constants for the keyword-based src structure input.
@@ -148,11 +150,64 @@ module sfincs_src_structures
    !
    ! Populated by the dispatcher when the drn file parses as TOML.
    ! Not yet consumed by any downstream runtime code - wiring is a later
-   ! step. The legacy path continues to populate the flat arrays in
-   ! sfincs_data (drainage_type, drainage_params, etc.).
+   ! step. The legacy path continues to populate the flat arrays below
+   ! directly (struc_type, struc_q, struc_par1, etc.).
    ! ------------------------------------------------------------------
    !
    type(t_src_structure), allocatable :: src_structures(:)
+   !
+   ! ------------------------------------------------------------------
+   ! Module-level runtime state for src structures (moved from sfincs_data).
+   ! Populated by the legacy reader or by marshal_src_structures_to_flat_arrays
+   ! from the TOML path; consumed by update_src_structures and the his output.
+   ! Public so downstream modules (sfincs_openacc, sfincs_output, sfincs_ncoutput,
+   ! sfincs_lib) can reference them.
+   ! ------------------------------------------------------------------
+   !
+   ! Meta / id
+   !
+   integer, parameter :: struc_id_len = 128            ! max length of struct id / name strings
+   character(len=struc_id_len), dimension(:), allocatable, public :: struc_id
+   character(len=struc_id_len), dimension(:), allocatable, public :: struc_name
+   !
+   ! Kind / state
+   !
+   integer*1, dimension(:), allocatable, public :: struc_type
+   integer*1, dimension(:), allocatable, public :: struc_status
+   real*4,    dimension(:), allocatable, public :: struc_distance
+   real*4,    dimension(:), allocatable, public :: struc_fraction_open
+   !
+   ! Cell mapping
+   !
+   integer, public :: nstruc
+   integer*4, dimension(:), allocatable, public :: struc_nm_in   ! (nstruc) intake  (sink)   cell indices
+   integer*4, dimension(:), allocatable, public :: struc_nm_out  ! (nstruc) outfall (source) cell indices
+   !
+   ! Coordinates
+   !
+   real*4, dimension(:), allocatable, public :: struc_x,       struc_y
+   real*4, dimension(:), allocatable, public :: struc_src_1_x, struc_src_1_y
+   real*4, dimension(:), allocatable, public :: struc_src_2_x, struc_src_2_y
+   real*4, dimension(:), allocatable, public :: struc_obs_1_x, struc_obs_1_y
+   real*4, dimension(:), allocatable, public :: struc_obs_2_x, struc_obs_2_y
+   !
+   ! Named parameters
+   !
+   real*4, dimension(:), allocatable, public :: struc_q                  ! pump discharge
+   real*4, dimension(:), allocatable, public :: struc_cd                 ! generic discharge coefficient
+   real*4, dimension(:), allocatable, public :: struc_par1               ! generic par1 (e.g. culvert / check_valve flow coef, or schedule-gate tclose)
+   real*4, dimension(:), allocatable, public :: struc_par2               ! generic par2 (e.g. schedule-gate topen)
+   real*4, dimension(:), allocatable, public :: struc_par3               ! generic par3
+   real*4, dimension(:), allocatable, public :: struc_width              ! gate width
+   real*4, dimension(:), allocatable, public :: struc_sill_elevation     ! gate sill elevation
+   real*4, dimension(:), allocatable, public :: struc_mannings_n         ! gate Manning's n
+   real*4, dimension(:), allocatable, public :: struc_zmin               ! gate min water level for open
+   real*4, dimension(:), allocatable, public :: struc_zmax               ! gate max water level for open
+   real*4, dimension(:), allocatable, public :: struc_t_close            ! gate closing time (s)
+   !
+   ! Runtime state
+   !
+   real*4, dimension(:), allocatable, public :: qstruc                   ! (nstruc) signed discharge per structure, mirrors the qsrc pattern
    !
 
 contains
@@ -164,7 +219,7 @@ contains
    ! Probes the file with toml-f. If it parses as TOML, the TOML reader
    ! populates the module-level src_structures(:) array. If toml-f rejects
    ! it, falls back to the legacy fixed-column reader, which populates the
-   ! drainage_* arrays in sfincs_data.
+   ! struc_* arrays in sfincs_src_structures.
    !
    ! If a file parses as TOML but fails semantic validation (e.g. a
    ! missing required field), that is treated as a hard error: we do NOT
@@ -209,6 +264,12 @@ contains
          !
       endif
       !
+      ! Flatten the parsed derived-type array into the module-level
+      ! struc_* 1D arrays, then deallocate src_structures(:). Both paths
+      ! leave runtime state in the same shape.
+      !
+      call marshal_src_structures_to_flat_arrays()
+      !
       return
       !
    else
@@ -229,23 +290,22 @@ contains
    !
    subroutine initialize_src_structures_legacy()
    !
-   ! Parse drnfile in the fixed-column legacy format and populate
-   ! drainage_type/_params/_status/_distance/_fraction_open,
-   ! nmindrn_in(ndrn), nmindrn_out(ndrn), and the output buffer qdrain(ndrn).
+   ! Parse drnfile in the fixed-column legacy format and populate the
+   ! struc_* flat arrays, plus struc_nm_in/out and the
+   ! output buffer qstruc(nstruc). Post-processing (cell-index lookup,
+   ! distance, default status / fraction_open) is deferred to
+   ! finalize_src_structures_state(), which is shared with the TOML path.
    !
    use sfincs_data
-   use quadtree
    !
    implicit none
    !
-   real*4, dimension(:), allocatable :: xsrc_drn, ysrc_drn
-   real*4, dimension(:), allocatable :: xsnk,     ysnk
    real*4    :: dummy, xsnk_tmp, ysnk_tmp, xsrc_tmp, ysrc_tmp
-   integer   :: idrn, nmq, stat, npars
+   integer   :: istruc, stat, npars, dtype
    logical   :: ok
    character(len=256) :: drainage_line
    !
-   ndrn = 0
+   nstruc = 0
    !
    if (drnfile(1:4) == 'none') return
    !
@@ -259,59 +319,40 @@ contains
       !
       read(501, *, iostat=stat) dummy
       if (stat < 0) exit
-      ndrn = ndrn + 1
+      nstruc = nstruc + 1
       !
    enddo
    !
    rewind(501)
    !
-   if (ndrn <= 0) then
+   if (nstruc <= 0) then
       !
       close(501)
       return
       !
    endif
    !
-   write(logstr,'(a,a,a,i0,a)')' Reading ', trim(drnfile), ' (', ndrn, ' drainage points found) ...'
+   write(logstr,'(a,a,a,i0,a)')' Reading ', trim(drnfile), ' (', nstruc, ' drainage points found) ...'
    call write_log(logstr, 0)
    !
-   allocate(xsrc_drn(ndrn))
-   allocate(ysrc_drn(ndrn))
-   allocate(xsnk(ndrn))
-   allocate(ysnk(ndrn))
+   call allocate_struc_flat_arrays(nstruc)
    !
-   allocate(nmindrn_in(ndrn))
-   allocate(nmindrn_out(ndrn))
-   allocate(qdrain(ndrn))
-   allocate(drainage_type(ndrn))
-   allocate(drainage_params(ndrn, 6))
-   allocate(drainage_status(ndrn))
-   allocate(drainage_distance(ndrn))
-   allocate(drainage_fraction_open(ndrn))
-   !
-   nmindrn_in             = 0
-   nmindrn_out            = 0
-   qdrain                 = 0.0
-   drainage_params        = 0.0
-   drainage_distance      = 0.0
-   drainage_fraction_open = 1.0   ! initially fully open (could be refined from zmin/zmax)
-   drainage_status        = 1     ! 0=closed, 1=open, 2=closing, 3=opening
-   !
-   do idrn = 1, ndrn
+   do istruc = 1, nstruc
       !
       read(501, '(a)') drainage_line
       !
       ! Determine drainage type first (5th integer in the line)
       !
-      read(drainage_line, *, iostat=stat) xsnk_tmp, ysnk_tmp, xsrc_tmp, ysrc_tmp, drainage_type(idrn)
+      read(drainage_line, *, iostat=stat) xsnk_tmp, ysnk_tmp, xsrc_tmp, ysrc_tmp, struc_type(istruc)
       !
+      dtype = struc_type(istruc)
       npars = 0
       !
-      if (drainage_type(idrn) == 1 .or. drainage_type(idrn) == 2 .or. drainage_type(idrn) == 3) then
+      if (dtype == 1 .or. dtype == 2 .or. dtype == 3) then
          !
          npars = 1      ! pump, culvert, or check valve
          !
-      elseif (drainage_type(idrn) == 4 .or. drainage_type(idrn) == 5) then
+      elseif (dtype == 4 .or. dtype == 5) then
          !
          npars = 6      ! controlled gate (width, sill, manning, zmin/tclose, zmax/topen, closing time)
          !
@@ -319,28 +360,62 @@ contains
       !
       if (npars == 0) then
          !
-         write(logstr,'(a,i0,a)') 'Drainage type ', drainage_type(idrn), ' not recognized !'
+         write(logstr,'(a,i0,a)') 'Drainage type ', dtype, ' not recognized !'
          call stop_sfincs(logstr, -1)
          !
       endif
       !
       if (npars == 1) then
          !
-         read(drainage_line, *, iostat=stat) xsnk(idrn), ysnk(idrn), xsrc_drn(idrn), ysrc_drn(idrn), &
-              drainage_type(idrn), drainage_params(idrn, 1)
+         ! pump        -> col 1 = q
+         ! culvert     -> col 1 = par1 (flow coefficient)
+         ! check_valve -> col 1 = par1 (flow coefficient)
+         !
+         if (dtype == 1) then
+            !
+            read(drainage_line, *, iostat=stat) struc_src_1_x(istruc), struc_src_1_y(istruc), &
+                 struc_src_2_x(istruc), struc_src_2_y(istruc), &
+                 struc_type(istruc), struc_q(istruc)
+            !
+         else
+            !
+            read(drainage_line, *, iostat=stat) struc_src_1_x(istruc), struc_src_1_y(istruc), &
+                 struc_src_2_x(istruc), struc_src_2_y(istruc), &
+                 struc_type(istruc), struc_par1(istruc)
+            !
+         endif
          !
       elseif (npars == 6) then
          !
-         read(drainage_line, *, iostat=stat) xsnk(idrn), ysnk(idrn), xsrc_drn(idrn), ysrc_drn(idrn), &
-              drainage_type(idrn), drainage_params(idrn, 1), drainage_params(idrn, 2), &
-              drainage_params(idrn, 3), drainage_params(idrn, 4), drainage_params(idrn, 5), &
-              drainage_params(idrn, 6)
+         ! gate water-level triggered (type 4)
+         !   cols 1..6 = width, sill_elevation, mannings_n, zmin, zmax, t_close
+         ! gate schedule triggered (type 5)
+         !   cols 1..6 = width, sill_elevation, mannings_n, par1 (tclose),
+         !               par2 (topen), t_close
+         !
+         if (dtype == 4) then
+            !
+            read(drainage_line, *, iostat=stat) struc_src_1_x(istruc), struc_src_1_y(istruc), &
+                 struc_src_2_x(istruc), struc_src_2_y(istruc), &
+                 struc_type(istruc), struc_width(istruc), struc_sill_elevation(istruc), &
+                 struc_mannings_n(istruc), struc_zmin(istruc), struc_zmax(istruc), &
+                 struc_t_close(istruc)
+            !
+         else
+            !
+            read(drainage_line, *, iostat=stat) struc_src_1_x(istruc), struc_src_1_y(istruc), &
+                 struc_src_2_x(istruc), struc_src_2_y(istruc), &
+                 struc_type(istruc), struc_width(istruc), struc_sill_elevation(istruc), &
+                 struc_mannings_n(istruc), struc_par1(istruc), struc_par2(istruc), &
+                 struc_t_close(istruc)
+            !
+         endif
          !
       endif
       !
       if (stat /= 0) then
          !
-         write(logstr,'(a,i0,a,i0,a)') 'Drainage type ', drainage_type(idrn), ' requires ', npars, ' parameters !'
+         write(logstr,'(a,i0,a,i0,a)') 'Drainage type ', dtype, ' requires ', npars, ' parameters !'
          call stop_sfincs(logstr, -1)
          !
       endif
@@ -349,35 +424,156 @@ contains
    !
    close(501)
    !
-   ! Map intake / outfall points to cell indices and compute centre-to-centre
-   ! distance (needed by controlled-gate types 4 and 5).
+   ! Cell-index lookup, centre-to-centre distance, mismatch warning.
    !
-   do idrn = 1, ndrn
+   call finalize_src_structures_state()
+   !
+   end subroutine
+   !
+   !
+   subroutine allocate_struc_flat_arrays(n)
+   !
+   ! Allocate every struc_* flat array to size n and initialise defaults.
+   ! Used by both the legacy reader and the TOML marshal helper.
+   ! Defensively deallocates first so re-entry is safe.
+   !
+   use sfincs_data
+   !
+   implicit none
+   !
+   integer, intent(in) :: n
+   !
+   if (allocated(struc_nm_in)) deallocate(struc_nm_in)
+   if (allocated(struc_nm_out)) deallocate(struc_nm_out)
+   if (allocated(qstruc)) deallocate(qstruc)
+   if (allocated(struc_type)) deallocate(struc_type)
+   if (allocated(struc_distance)) deallocate(struc_distance)
+   if (allocated(struc_status)) deallocate(struc_status)
+   if (allocated(struc_fraction_open)) deallocate(struc_fraction_open)
+   if (allocated(struc_id)) deallocate(struc_id)
+   if (allocated(struc_name)) deallocate(struc_name)
+   if (allocated(struc_x)) deallocate(struc_x)
+   if (allocated(struc_y)) deallocate(struc_y)
+   if (allocated(struc_src_1_x)) deallocate(struc_src_1_x)
+   if (allocated(struc_src_1_y)) deallocate(struc_src_1_y)
+   if (allocated(struc_src_2_x)) deallocate(struc_src_2_x)
+   if (allocated(struc_src_2_y)) deallocate(struc_src_2_y)
+   if (allocated(struc_obs_1_x)) deallocate(struc_obs_1_x)
+   if (allocated(struc_obs_1_y)) deallocate(struc_obs_1_y)
+   if (allocated(struc_obs_2_x)) deallocate(struc_obs_2_x)
+   if (allocated(struc_obs_2_y)) deallocate(struc_obs_2_y)
+   if (allocated(struc_q)) deallocate(struc_q)
+   if (allocated(struc_par1)) deallocate(struc_par1)
+   if (allocated(struc_par2)) deallocate(struc_par2)
+   if (allocated(struc_par3)) deallocate(struc_par3)
+   if (allocated(struc_cd)) deallocate(struc_cd)
+   if (allocated(struc_width)) deallocate(struc_width)
+   if (allocated(struc_sill_elevation)) deallocate(struc_sill_elevation)
+   if (allocated(struc_mannings_n)) deallocate(struc_mannings_n)
+   if (allocated(struc_zmin)) deallocate(struc_zmin)
+   if (allocated(struc_zmax)) deallocate(struc_zmax)
+   if (allocated(struc_t_close)) deallocate(struc_t_close)
+   !
+   allocate(struc_nm_in(n))
+   allocate(struc_nm_out(n))
+   allocate(qstruc(n))
+   allocate(struc_type(n))
+   allocate(struc_distance(n))
+   allocate(struc_status(n))
+   allocate(struc_fraction_open(n))
+   allocate(struc_id(n))
+   allocate(struc_name(n))
+   allocate(struc_x(n))
+   allocate(struc_y(n))
+   allocate(struc_src_1_x(n))
+   allocate(struc_src_1_y(n))
+   allocate(struc_src_2_x(n))
+   allocate(struc_src_2_y(n))
+   allocate(struc_obs_1_x(n))
+   allocate(struc_obs_1_y(n))
+   allocate(struc_obs_2_x(n))
+   allocate(struc_obs_2_y(n))
+   allocate(struc_q(n))
+   allocate(struc_par1(n))
+   allocate(struc_par2(n))
+   allocate(struc_par3(n))
+   allocate(struc_cd(n))
+   allocate(struc_width(n))
+   allocate(struc_sill_elevation(n))
+   allocate(struc_mannings_n(n))
+   allocate(struc_zmin(n))
+   allocate(struc_zmax(n))
+   allocate(struc_t_close(n))
+   !
+   struc_nm_in             = 0
+   struc_nm_out            = 0
+   qstruc                 = 0.0
+   struc_type          = 0
+   struc_distance      = 0.0
+   struc_fraction_open = 1.0   ! initially fully open (could be refined from zmin/zmax)
+   struc_status        = 1     ! 0=closed, 1=open, 2=closing, 3=opening
+   struc_id            = ' '
+   struc_name          = ' '
+   struc_x             = 0.0
+   struc_y             = 0.0
+   struc_src_1_x       = 0.0
+   struc_src_1_y       = 0.0
+   struc_src_2_x       = 0.0
+   struc_src_2_y       = 0.0
+   struc_obs_1_x       = 0.0
+   struc_obs_1_y       = 0.0
+   struc_obs_2_x       = 0.0
+   struc_obs_2_y       = 0.0
+   struc_q             = 0.0
+   struc_par1          = 0.0
+   struc_par2          = 0.0
+   struc_par3          = 0.0
+   struc_cd            = 0.0
+   struc_width         = 0.0
+   struc_sill_elevation= 0.0
+   struc_mannings_n    = 0.0
+   struc_zmin          = 0.0
+   struc_zmax          = 0.0
+   struc_t_close       = 0.0
+   !
+   end subroutine
+   !
+   !
+   subroutine finalize_src_structures_state()
+   !
+   ! Shared post-processing for both the legacy and TOML paths. Looks up
+   ! intake / outfall cell indices from the struc_src_1_* / _2_* coords
+   ! and computes centre-to-centre distance.
+   !
+   use sfincs_data
+   use quadtree
+   !
+   implicit none
+   !
+   integer :: istruc, nmq
+   real*4  :: xsnk_tmp, ysnk_tmp, xsrc_tmp, ysrc_tmp
+   !
+   do istruc = 1, nstruc
       !
-      nmq = find_quadtree_cell(xsnk(idrn), ysnk(idrn))
-      if (nmq > 0) nmindrn_in(idrn)  = index_sfincs_in_quadtree(nmq)
+      nmq = find_quadtree_cell(struc_src_1_x(istruc), struc_src_1_y(istruc))
+      if (nmq > 0) struc_nm_in(istruc)  = index_sfincs_in_quadtree(nmq)
       !
-      nmq = find_quadtree_cell(xsrc_drn(idrn), ysrc_drn(idrn))
-      if (nmq > 0) nmindrn_out(idrn) = index_sfincs_in_quadtree(nmq)
+      nmq = find_quadtree_cell(struc_src_2_x(istruc), struc_src_2_y(istruc))
+      if (nmq > 0) struc_nm_out(istruc) = index_sfincs_in_quadtree(nmq)
       !
-      if (nmindrn_in(idrn) > 0 .and. nmindrn_out(idrn) > 0) then
+      if (struc_nm_in(istruc) > 0 .and. struc_nm_out(istruc) > 0) then
          !
-         xsnk_tmp = z_xz(nmindrn_in(idrn))
-         ysnk_tmp = z_yz(nmindrn_in(idrn))
-         xsrc_tmp = z_xz(nmindrn_out(idrn))
-         ysrc_tmp = z_yz(nmindrn_out(idrn))
-         drainage_distance(idrn) = sqrt( (xsrc_tmp - xsnk_tmp)**2 + (ysrc_tmp - ysnk_tmp)**2 )
+         xsnk_tmp = z_xz(struc_nm_in(istruc))
+         ysnk_tmp = z_yz(struc_nm_in(istruc))
+         xsrc_tmp = z_xz(struc_nm_out(istruc))
+         ysrc_tmp = z_yz(struc_nm_out(istruc))
+         struc_distance(istruc) = sqrt( (xsrc_tmp - xsnk_tmp)**2 + (ysrc_tmp - ysnk_tmp)**2 )
          !
       endif
       !
    enddo
    !
-   deallocate(xsrc_drn)
-   deallocate(ysrc_drn)
-   deallocate(xsnk)
-   deallocate(ysnk)
-   !
-   if (any(nmindrn_in == 0) .or. any(nmindrn_out == 0)) then
+   if (any(struc_nm_in == 0) .or. any(struc_nm_out == 0)) then
       !
       write(logstr,'(a)') 'Warning ! For some sink/source drainage points no matching active grid cell was found!'
       call write_log(logstr, 0)
@@ -389,11 +585,122 @@ contains
    end subroutine
    !
    !
+   subroutine marshal_src_structures_to_flat_arrays()
+   !
+   ! Copy the module-level src_structures(:) array (populated by
+   ! read_toml_src_structures) into the struc_* flat arrays, then run
+   ! the shared post-processing and deallocate src_structures(:).
+   !
+   ! The TOML and legacy paths are mutually exclusive, so the flat arrays
+   ! should not yet be allocated when this is called; allocate_struc_flat_arrays
+   ! defensively deallocates any residual allocation first.
+   !
+   ! Note: %actions and %rules are dropped at this point. They are not
+   ! consumed by any downstream runtime code yet. Follow-up work: add flat
+   ! arrays for action / rule counts and element data, and copy those in
+   ! this helper before the deallocation.
+   !
+   use sfincs_data
+   !
+   implicit none
+   !
+   integer :: i, n
+   !
+   if (.not. allocated(src_structures)) then
+      !
+      nstruc = 0
+      return
+      !
+   endif
+   !
+   n = size(src_structures)
+   nstruc = n
+   !
+   if (n <= 0) then
+      !
+      deallocate(src_structures)
+      return
+      !
+   endif
+   !
+   call allocate_struc_flat_arrays(n)
+   !
+   do i = 1, n
+      !
+      ! String fields: truncation warning if longer than struc_id_len.
+      !
+      if (allocated(src_structures(i)%id)) then
+         !
+         if (len(src_structures(i)%id) > struc_id_len) then
+            !
+            write(logstr,'(a,i0,a,i0,a)')' Warning ! src_structure id length > ', struc_id_len, &
+                 ' at entry ', i, '; truncating'
+            call write_log(logstr, 0)
+            !
+         endif
+         !
+         struc_id(i) = src_structures(i)%id
+         !
+      endif
+      !
+      if (allocated(src_structures(i)%name)) then
+         !
+         if (len(src_structures(i)%name) > struc_id_len) then
+            !
+            write(logstr,'(a,i0,a,i0,a)')' Warning ! src_structure name length > ', struc_id_len, &
+                 ' at entry ', i, '; truncating'
+            call write_log(logstr, 0)
+            !
+         endif
+         !
+         struc_name(i) = src_structures(i)%name
+         !
+      endif
+      !
+      struc_type(i)   = int(src_structures(i)%structure_type, 1)
+      struc_status(i) = int(src_structures(i)%status, 1)
+      !
+      struc_x(i)       = src_structures(i)%x
+      struc_y(i)       = src_structures(i)%y
+      struc_src_1_x(i) = src_structures(i)%src_1_x
+      struc_src_1_y(i) = src_structures(i)%src_1_y
+      struc_src_2_x(i) = src_structures(i)%src_2_x
+      struc_src_2_y(i) = src_structures(i)%src_2_y
+      struc_obs_1_x(i) = src_structures(i)%obs_1_x
+      struc_obs_1_y(i) = src_structures(i)%obs_1_y
+      struc_obs_2_x(i) = src_structures(i)%obs_2_x
+      struc_obs_2_y(i) = src_structures(i)%obs_2_y
+      !
+      struc_q(i)              = src_structures(i)%q
+      struc_par1(i)           = src_structures(i)%par1
+      struc_par2(i)           = src_structures(i)%par2
+      struc_par3(i)           = src_structures(i)%par3
+      struc_cd(i)             = src_structures(i)%cd
+      struc_width(i)          = src_structures(i)%width
+      struc_sill_elevation(i) = src_structures(i)%sill_elevation
+      struc_mannings_n(i)     = src_structures(i)%mannings_n
+      struc_zmin(i)           = src_structures(i)%zmin
+      struc_zmax(i)           = src_structures(i)%zmax
+      struc_t_close(i)        = src_structures(i)%t_close
+      !
+   enddo
+   !
+   ! Shared post-processing.
+   !
+   call finalize_src_structures_state()
+   !
+   ! Drop the derived-type array; flat arrays carry all runtime state now.
+   !
+   deallocate(src_structures)
+   !
+   end subroutine
+   !
+   !
    subroutine update_src_structures(t, dt, tloop)
    !
    ! Compute discharges through each drainage structure, accumulate them
    ! into qsrc(np) (intake: -qq, outfall: +qq), and store per-structure
-   ! signed discharge in qdrain(ndrn) for his output.
+   ! signed discharge in qstruc(nstruc) for his output.
    !
    ! Called AFTER update_discharges, which zeros qsrc first.
    !
@@ -409,38 +716,42 @@ contains
    real    :: tloop
    !
    integer :: count0, count1, count_rate, count_max
-   integer :: idrn, nmin, nmout
+   integer :: istruc, nmin, nmout
    real*4  :: qq, qq0
    real*4  :: dzds, frac, wdt, zsill, zmin, zmax, mng, hgate, dfrac, tcls, topen, tclose
    !
-   if (ndrn <= 0) return
+   if (nstruc <= 0) return
    !
    call system_clock(count0, count_rate, count_max)
    !
-   !$acc parallel loop present( z_volume, zs, zb, qsrc, qdrain, &
-   !$acc                        nmindrn_in, nmindrn_out, &
-   !$acc                        drainage_type, drainage_params, &
-   !$acc                        drainage_distance, drainage_status, drainage_fraction_open ) &
+   !$acc parallel loop present( z_volume, zs, zb, qsrc, qstruc, &
+   !$acc                        struc_nm_in, struc_nm_out, &
+   !$acc                        struc_type, &
+   !$acc                        struc_q, struc_par1, struc_par2, &
+   !$acc                        struc_width, struc_sill_elevation, &
+   !$acc                        struc_mannings_n, struc_zmin, struc_zmax, &
+   !$acc                        struc_t_close, &
+   !$acc                        struc_distance, struc_status, struc_fraction_open ) &
    !$acc              private( nmin, nmout, qq, qq0, dzds, frac, wdt, zsill, &
    !$acc                       zmin, zmax, mng, hgate, dfrac, tcls, topen, tclose )
    !$omp parallel do &
    !$omp   private( nmin, nmout, qq, qq0, dzds, frac, wdt, zsill, &
    !$omp            zmin, zmax, mng, hgate, dfrac, tcls, topen, tclose ) &
    !$omp   schedule ( static )
-   do idrn = 1, ndrn
+   do istruc = 1, nstruc
       !
-      nmin  = nmindrn_in(idrn)
-      nmout = nmindrn_out(idrn)
+      nmin  = struc_nm_in(istruc)
+      nmout = struc_nm_out(istruc)
       !
       if (nmin > 0 .and. nmout > 0) then
          !
-         select case(drainage_type(idrn))
+         select case(struc_type(istruc))
             !
             case(1)
                !
                ! Pump
                !
-               qq = drainage_params(idrn, 1)
+               qq = struc_q(istruc)
                !
             case(2)
                !
@@ -448,11 +759,11 @@ contains
                !
                if (zs(nmin) > zs(nmout)) then
                   !
-                  qq =  drainage_params(idrn, 1) * sqrt(zs(nmin)  - zs(nmout))
+                  qq =  struc_par1(istruc) * sqrt(zs(nmin)  - zs(nmout))
                   !
                else
                   !
-                  qq = -drainage_params(idrn, 1) * sqrt(zs(nmout) - zs(nmin))
+                  qq = -struc_par1(istruc) * sqrt(zs(nmout) - zs(nmin))
                   !
                endif
                !
@@ -462,11 +773,11 @@ contains
                !
                if (zs(nmin) > zs(nmout)) then
                   !
-                  qq =  drainage_params(idrn, 1) * sqrt(zs(nmin)  - zs(nmout))
+                  qq =  struc_par1(istruc) * sqrt(zs(nmin)  - zs(nmout))
                   !
                else
                   !
-                  qq = -drainage_params(idrn, 1) * sqrt(zs(nmout) - zs(nmin))
+                  qq = -struc_par1(istruc) * sqrt(zs(nmout) - zs(nmin))
                   !
                endif
                !
@@ -476,55 +787,55 @@ contains
                !
                ! Controlled gate - opens when intake water level is between zmin and zmax.
                !
-               wdt   = drainage_params(idrn, 1)                        ! width
-               zsill = drainage_params(idrn, 2)                        ! sill elevation
-               mng   = drainage_params(idrn, 3)                        ! Manning's n
-               zmin  = drainage_params(idrn, 4)                        ! min water level for open
-               zmax  = drainage_params(idrn, 5)                        ! max water level for open
-               tcls  = drainage_params(idrn, 6)                        ! closing time (s)
+               wdt   = struc_width(istruc)                            ! width
+               zsill = struc_sill_elevation(istruc)                   ! sill elevation
+               mng   = struc_mannings_n(istruc)                       ! Manning's n
+               zmin  = struc_zmin(istruc)                             ! min water level for open
+               zmax  = struc_zmax(istruc)                             ! max water level for open
+               tcls  = struc_t_close(istruc)                          ! closing time (s)
                !
-               dzds  = (zs(nmout) - zs(nmin)) / drainage_distance(idrn)
-               frac  = drainage_fraction_open(idrn)
+               dzds  = (zs(nmout) - zs(nmin)) / struc_distance(istruc)
+               frac  = struc_fraction_open(istruc)
                hgate = max(max(zs(nmin), zs(nmout)) - zsill, 0.0)
                dfrac = dt / tcls
                !
-               qq0 = qdrain(idrn) / (wdt * max(frac, 0.001))           ! previous discharge per unit width, ignoring fraction
+               qq0 = qstruc(istruc) / (wdt * max(frac, 0.001))           ! previous discharge per unit width, ignoring fraction
                !
-               if (drainage_status(idrn) == 0) then
+               if (struc_status(istruc) == 0) then
                   !
-                  if (zs(nmin) > zmin .and. zs(nmin) < zmax) drainage_status(idrn) = 3
+                  if (zs(nmin) > zmin .and. zs(nmin) < zmax) struc_status(istruc) = 3
                   !
-               elseif (drainage_status(idrn) == 1) then
+               elseif (struc_status(istruc) == 1) then
                   !
-                  if (zs(nmin) <= zmin .or. zs(nmin) >= zmax) drainage_status(idrn) = 2
+                  if (zs(nmin) <= zmin .or. zs(nmin) >= zmax) struc_status(istruc) = 2
                   !
                endif
                !
-               if (drainage_status(idrn) == 2) then
+               if (struc_status(istruc) == 2) then
                   !
                   frac = frac - dfrac
                   !
                   if (frac < 0.0) then
                      !
                      frac = 0.0
-                     drainage_status(idrn) = 0
+                     struc_status(istruc) = 0
                      !
                   endif
                   !
-               elseif (drainage_status(idrn) == 3) then
+               elseif (struc_status(istruc) == 3) then
                   !
                   frac = frac + dfrac
                   !
                   if (frac > 1.0) then
                      !
                      frac = 1.0
-                     drainage_status(idrn) = 1
+                     struc_status(istruc) = 1
                      !
                   endif
                   !
                endif
                !
-               drainage_fraction_open(idrn) = frac
+               struc_fraction_open(istruc) = frac
                !
                qq = (qq0 - g * hgate * dzds * dt) / (1.0 + g * mng**2 * dt * abs(qq0) / hgate**(7.0 / 3.0))
                qq = qq * wdt * frac
@@ -533,55 +844,55 @@ contains
                !
                ! Controlled gate - schedule triggered (one open/close window).
                !
-               wdt    = drainage_params(idrn, 1)                       ! width
-               zsill  = drainage_params(idrn, 2)                       ! sill elevation
-               mng    = drainage_params(idrn, 3)                       ! Manning's n
-               tclose = drainage_params(idrn, 4)                       ! time wrt tref to close
-               topen  = drainage_params(idrn, 5)                       ! time wrt tref to open
-               tcls   = drainage_params(idrn, 6)                       ! closing time (s)
+               wdt    = struc_width(istruc)                           ! width
+               zsill  = struc_sill_elevation(istruc)                  ! sill elevation
+               mng    = struc_mannings_n(istruc)                      ! Manning's n
+               tclose = struc_par1(istruc)                            ! time wrt tref to close
+               topen  = struc_par2(istruc)                            ! time wrt tref to open
+               tcls   = struc_t_close(istruc)                         ! closing time (s)
                !
-               dzds  = (zs(nmout) - zs(nmin)) / drainage_distance(idrn)
-               frac  = drainage_fraction_open(idrn)
+               dzds  = (zs(nmout) - zs(nmin)) / struc_distance(istruc)
+               frac  = struc_fraction_open(istruc)
                hgate = max(max(zs(nmin), zs(nmout)) - zsill, 0.0)
                dfrac = dt / tcls
                !
-               qq0 = qdrain(idrn) / (wdt * max(frac, 0.001))
+               qq0 = qstruc(istruc) / (wdt * max(frac, 0.001))
                !
-               if (drainage_status(idrn) == 0) then
+               if (struc_status(istruc) == 0) then
                   !
-                  if (t >= topen) drainage_status(idrn) = 3
+                  if (t >= topen) struc_status(istruc) = 3
                   !
-               elseif (drainage_status(idrn) == 1) then
+               elseif (struc_status(istruc) == 1) then
                   !
-                  if (t >= tclose .and. t < topen) drainage_status(idrn) = 2
+                  if (t >= tclose .and. t < topen) struc_status(istruc) = 2
                   !
                endif
                !
-               if (drainage_status(idrn) == 2) then
+               if (struc_status(istruc) == 2) then
                   !
                   frac = frac - dfrac
                   !
                   if (frac < 0.0) then
                      !
                      frac = 0.0
-                     drainage_status(idrn) = 0
+                     struc_status(istruc) = 0
                      !
                   endif
                   !
-               elseif (drainage_status(idrn) == 3) then
+               elseif (struc_status(istruc) == 3) then
                   !
                   frac = frac + dfrac
                   !
                   if (frac > 1.0) then
                      !
                      frac = 1.0
-                     drainage_status(idrn) = 1
+                     struc_status(istruc) = 1
                      !
                   endif
                   !
                endif
                !
-               drainage_fraction_open(idrn) = frac
+               struc_fraction_open(istruc) = frac
                !
                qq = (qq0 - g * hgate * dzds * dt) / (1.0 + g * mng**2 * dt * abs(qq0) / hgate**(7.0 / 3.0))
                qq = qq * wdt * frac
@@ -590,7 +901,7 @@ contains
          !
          ! Relaxation: blend new and previous discharge to damp oscillations.
          !
-         qq = 1.0 / (structure_relax / dt) * qq + (1.0 - (1.0 / (structure_relax / dt))) * qdrain(idrn)
+         qq = 1.0 / (structure_relax / dt) * qq + (1.0 - (1.0 / (structure_relax / dt))) * qstruc(istruc)
          !
          ! Limit discharge by available volume in the intake / outfall cell.
          !
@@ -620,7 +931,7 @@ contains
             !
          endif
          !
-         qdrain(idrn) = qq
+         qstruc(istruc) = qq
          !
          ! Accumulate into cell-wise qsrc. Atomic guards against multiple
          ! structures (or a river and a structure) in the same cell.
