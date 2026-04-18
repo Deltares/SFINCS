@@ -781,13 +781,14 @@ module sfincs_data
       !
       ! River point discharges (sfincs_discharges)
       !
-      integer                               :: nsrc
+      ! Identifiers that are read by sfincs_input / sfincs_ncinput stay here;
+      ! the pure discharge-module-only state (itsrclast, nmindsrc, qtsrc,
+      ! src_name, src_name_len) has been moved into sfincs_discharges.
+      !
+      integer                               :: nr_discharge_points
       integer                               :: ntsrc
-      integer                               :: itsrclast
       real*4, dimension(:),     allocatable :: tsrc        ! (ntsrc) time stamps of river discharge time series
-      real*4, dimension(:,:),   allocatable :: qsrc_ts     ! (nsrc, ntsrc) river discharge time series matrix
-      real*4, dimension(:),     allocatable :: qtsrc       ! (nsrc) interpolated discharge at current time, for his output
-      integer*4, dimension(:),  allocatable :: nmindsrc    ! (nsrc) river source cell indices
+      real*4, dimension(:,:),   allocatable :: qsrc_ts     ! (nr_discharge_points, ntsrc) river discharge time series matrix
       real*4, dimension(:),     allocatable :: xsrc
       real*4, dimension(:),     allocatable :: ysrc
       !
@@ -1119,8 +1120,9 @@ module sfincs_data
     if(allocated(qsrc)) deallocate(qsrc)
     if(allocated(tsrc)) deallocate(tsrc)
     if(allocated(qsrc_ts)) deallocate(qsrc_ts)
-    if(allocated(qtsrc)) deallocate(qtsrc)
-    if(allocated(nmindsrc)) deallocate(nmindsrc)
+    !
+    ! River-point-discharge module-private state (qtsrc, nmindsrc, src_name)
+    ! is owned by sfincs_discharges and is deallocated there.
     !
     ! Src-point structure state is owned by sfincs_src_structures and is
     ! deallocated there.

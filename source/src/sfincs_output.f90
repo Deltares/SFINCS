@@ -590,7 +590,7 @@ module sfincs_output
       open(unit = 966, file = trim('qt.txt'))
       close(unit = 966 ,status='delete')
    endif
-   if (nsrc>0) then
+   if (nr_discharge_points>0) then
       open(unit = 969, file = trim('qriver.txt'))
       close(unit = 969 ,status='delete')
    endif
@@ -608,7 +608,8 @@ module sfincs_output
    !
    use sfincs_data
    use sfincs_crosssections
-   use sfincs_src_structures, only: nr_src_structures, qstruc
+   use sfincs_src_structures, only: nr_src_structures, q_src_struc
+   use sfincs_discharges,     only: qtsrc
    !
    implicit none
    !
@@ -660,17 +661,17 @@ module sfincs_output
       !
    endif
    !
-   if (nsrc>0) then
+   if (nr_discharge_points>0) then
       !$acc update host(qtsrc)
       open(unit = 969, file = trim('qriver.txt'), access='append')
-      write(969,'(f12.1,10000f9.3)')t,(qtsrc(iobs), iobs = 1, nsrc)
+      write(969,'(f12.1,10000f9.3)')t,(qtsrc(iobs), iobs = 1, nr_discharge_points)
       close(969)
    endif
    !
    if (nr_src_structures>0 .and. store_qdrain) then
-      !$acc update host(qstruc)
+      !$acc update host(q_src_struc)
       open(unit = 970, file = trim('qdrain.txt'), access='append')
-      write(970,'(f12.1,10000f9.3)')t,(qstruc(iobs), iobs = 1, nr_src_structures)
+      write(970,'(f12.1,10000f9.3)')t,(q_src_struc(iobs), iobs = 1, nr_src_structures)
       close(970)
    endif
    !

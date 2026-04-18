@@ -1,9 +1,9 @@
 module sfincs_discharges
    !
-   ! River point discharges: nsrc (x,y) locations from srcfile with matching
+   ! River point discharges: nr_discharge_points (x,y) locations from srcfile with matching
    ! time series qsrc_ts(:,:) from disfile, OR from a FEWS-style netCDF input
    ! via netsrcdisfile. Interpolates to the current model time every step,
-   ! stores the interpolated value in qtsrc(nsrc) (for his output), and
+   ! stores the interpolated value in qtsrc(nr_discharge_points) (for his output), and
    ! accumulates the per-cell discharge into the global qsrc(np) array used
    ! by sfincs_continuity.
    !
@@ -14,11 +14,38 @@ module sfincs_discharges
    use sfincs_log
    use sfincs_error
    !
+   implicit none
+   !
+   ! ------------------------------------------------------------------
+   ! Module-level runtime state for river point discharges (moved from
+   ! sfincs_data). The count, coordinate arrays, file-path strings, and
+   ! qsrc_ts / tsrc / ntsrc stay in sfincs_data because they are also
+   ! set by sfincs_input (keyword reader) or sfincs_ncinput (which this
+   ! module uses, so a back-reference would be circular).
+   !
+   ! Public so downstream output modules (sfincs_output, sfincs_ncoutput)
+   ! and the openacc bookkeeping module can reference them.
+   ! ------------------------------------------------------------------
+   !
+   ! Name length (matches src_struc_name_len from sfincs_src_structures).
+   !
+   integer, parameter, public :: src_name_len = 128
+   !
+   ! Per-river-source names
+   !
+   character(len=src_name_len), dimension(:), allocatable, public :: src_name   ! (nr_discharge_points) user-supplied or auto-generated names for river point sources
+   !
+   ! Runtime state
+   !
+   integer,                                   public :: itsrclast   ! last-used bracket index into tsrc, for time-series interpolation
+   real*4,    dimension(:), allocatable,      public :: qtsrc       ! (nr_discharge_points) interpolated discharge at current time, for his output
+   integer*4, dimension(:), allocatable,      public :: nmindsrc    ! (nr_discharge_points) river source cell indices
+   !
 contains
    !
    subroutine initialize_discharges()
    !
-   ! Read src/dis or netsrcdis. Allocate nmindsrc(nsrc), qtsrc(nsrc).
+   ! Read src/dis or netsrcdis. Allocate nmindsrc(nr_discharge_points), qtsrc(nr_discharge_points).
    !
    use sfincs_data
    use sfincs_ncinput
@@ -27,16 +54,16 @@ contains
    implicit none
    !
    real*4    :: dummy
-   integer   :: isrc, itsrc, nmq, n, stat
+   integer   :: isrc, itsrc, nmq, n, stat, ntok
    logical   :: ok
+   character(len=1024) :: line, line_trim
+   character(len=src_name_len) :: name_tmp
    !
-   nsrc      = 0
-   ntsrc     = 0
-   itsrclast = 1
+   nr_discharge_points = 0
+   ntsrc               = 0
+   itsrclast           = 1
    !
    if (srcfile(1:4) /= 'none') then
-      !
-      ok = check_file_exists(srcfile, 'Source points file', .true.)
       !
       write(logstr,'(a)') 'Info    : reading discharges'
       call write_log(logstr, 0)
@@ -49,7 +76,7 @@ contains
          !
          read(500, *, iostat=stat) dummy
          if (stat < 0) exit
-         nsrc = nsrc + 1
+         nr_discharge_points = nr_discharge_points + 1
          !
       enddo
       !
@@ -59,7 +86,24 @@ contains
       !
       ok = check_file_exists(netsrcdisfile, 'Netcdf river input netsrcdis file', .true.)
       !
-      call read_netcdf_discharge_data()   ! sets nsrc, ntsrc, xsrc, ysrc, qsrc_ts, tsrc
+      call read_netcdf_discharge_data()   ! sets nr_discharge_points, ntsrc, xsrc, ysrc, qsrc_ts, tsrc
+      !
+      ! The netcdf discharge file does not carry per-point names; auto-generate
+      ! the same way as the 2-column srcfile path.
+      !
+      if (nr_discharge_points > 0) then
+         !
+         allocate(src_name(nr_discharge_points))
+         !
+         src_name = ' '
+         !
+         do n = 1, nr_discharge_points
+            !
+            write(src_name(n), '(a,i4.4)') 'discharge_', n
+            !
+         enddo
+         !
+      endif
       !
       if ((tsrc(1) > (t0 + 1.0)) .or. (tsrc(ntsrc) < (t1 - 1.0))) then
          !
@@ -70,10 +114,10 @@ contains
       !
    endif
    !
-   if (nsrc <= 0) return
+   if (nr_discharge_points <= 0) return
    !
-   allocate(nmindsrc(nsrc))
-   allocate(qtsrc(nsrc))
+   allocate(nmindsrc(nr_discharge_points))
+   allocate(qtsrc(nr_discharge_points))
    !
    nmindsrc = 0
    qtsrc    = 0.0
@@ -82,12 +126,40 @@ contains
    !
    if (srcfile(1:4) /= 'none') then
       !
-      allocate(xsrc(nsrc))
-      allocate(ysrc(nsrc))
+      allocate(xsrc(nr_discharge_points))
+      allocate(ysrc(nr_discharge_points))
+      allocate(src_name(nr_discharge_points))
       !
-      do n = 1, nsrc
+      src_name = ' '
+      !
+      do n = 1, nr_discharge_points
          !
-         read(500, *) xsrc(n), ysrc(n)
+         read(500, '(a)') line
+         line_trim = adjustl(line)
+         !
+         ! Count whitespace-separated tokens on the line.
+         !
+         call count_tokens(line_trim, ntok)
+         !
+         if (ntok == 2) then
+            !
+            read(line_trim, *) xsrc(n), ysrc(n)
+            write(src_name(n), '(a,i4.4)') 'discharge_', n
+            !
+         elseif (ntok == 3) then
+            !
+            read(line_trim, *) xsrc(n), ysrc(n), name_tmp
+            src_name(n) = adjustl(trim(name_tmp))
+            !
+         else
+            !
+            write(logstr,'(a,i0,a,i0,a)') ' Error ! src file line ', n, ' has ', ntok, &
+               ' tokens -- expected 2 (x y) or 3 (x y name) !'
+            call write_log(logstr, 1)
+            error = 1
+            return
+            !
+         endif
          !
       enddo
       !
@@ -109,11 +181,11 @@ contains
       !
       rewind(502)
       allocate(tsrc(ntsrc))
-      allocate(qsrc_ts(nsrc, ntsrc))
+      allocate(qsrc_ts(nr_discharge_points, ntsrc))
       !
       do itsrc = 1, ntsrc
          !
-         read(502, *) tsrc(itsrc), (qsrc_ts(isrc, itsrc), isrc = 1, nsrc)
+         read(502, *) tsrc(itsrc), (qsrc_ts(isrc, itsrc), isrc = 1, nr_discharge_points)
          !
       enddo
       !
@@ -144,7 +216,7 @@ contains
    !
    ! --- Map river sources to grid cells --------------------------------
    !
-   do isrc = 1, nsrc
+   do isrc = 1, nr_discharge_points
       !
       nmq = find_quadtree_cell(xsrc(isrc), ysrc(isrc))
       !
@@ -165,7 +237,7 @@ contains
    subroutine update_discharges(t, dt, tloop)
    !
    ! Zero qsrc(np); interpolate the river discharge time series to t,
-   ! store in qtsrc(1..nsrc), and accumulate into qsrc(nmindsrc(:)).
+   ! store in qtsrc(1..nr_discharge_points), and accumulate into qsrc(nmindsrc(:)).
    !
    ! update_discharges is called BEFORE update_src_structures -- that is
    ! why it owns the qsrc zeroing. Both routines then additively write
@@ -191,7 +263,7 @@ contains
    qsrc = 0.0
    !$acc end kernels
    !
-   if (nsrc > 0) then
+   if (nr_discharge_points > 0) then
       !
       ! Locate the bracketing interval in tsrc and compute the interpolation
       ! weight once. Then run a single parallel loop that both interpolates
@@ -213,6 +285,13 @@ contains
          !
       enddo
       !
+      ! Clamp to valid bracket. If t is outside [tsrc(1), tsrc(ntsrc)] (which
+      ! can happen on the netcdf path, where the srcfile pre-padding is not
+      ! applied), hold the endpoint value rather than read out of bounds.
+      !
+      it_prev = min(max(it_prev, 1), ntsrc - 1)
+      it_next = it_prev + 1
+      !
       wt = (t - tsrc(it_prev)) / (tsrc(it_next) - tsrc(it_prev))
       !
       ! Atomic accumulation because two river sources (or a river and a
@@ -220,7 +299,7 @@ contains
       !
       !$acc parallel loop present( qsrc, qtsrc, nmindsrc, qsrc_ts ) private( nm )
       !$omp parallel do private( nm ) schedule ( static )
-      do isrc = 1, nsrc
+      do isrc = 1, nr_discharge_points
          !
          qtsrc(isrc) = qsrc_ts(isrc, it_prev) + (qsrc_ts(isrc, it_next) - qsrc_ts(isrc, it_prev)) * wt
          nm = nmindsrc(isrc)
@@ -241,6 +320,47 @@ contains
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0 * (count1 - count0) / count_rate
+   !
+   end subroutine
+   !
+   subroutine count_tokens(line, ntok)
+   !
+   ! Count the number of whitespace-separated tokens in a string.
+   ! Whitespace = spaces and tabs. Empty string returns 0.
+   !
+   implicit none
+   !
+   character(len=*), intent(in)  :: line
+   integer,          intent(out) :: ntok
+   !
+   integer :: i, n
+   logical :: in_tok
+   character(len=1) :: c
+   !
+   ntok   = 0
+   in_tok = .false.
+   n      = len_trim(line)
+   !
+   do i = 1, n
+      !
+      c = line(i:i)
+      !
+      if (c == ' ' .or. c == char(9)) then
+         !
+         in_tok = .false.
+         !
+      else
+         !
+         if (.not. in_tok) then
+            !
+            ntok   = ntok + 1
+            in_tok = .true.
+            !
+         endif
+         !
+      endif
+      !
+   enddo
    !
    end subroutine
 

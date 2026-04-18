@@ -13,9 +13,9 @@ module sfincs_src_structures
    ! each module has a single responsibility.
    !
    ! Runtime handoff to the continuity module is via the cell-wise qsrc(np)
-   ! array (in sfincs_data): this module accumulates qq on intake (struc_nm_in)
-   ! and outfall (struc_nm_out) cells. Per-structure signed discharge is also
-   ! stored in qstruc(nr_src_structures) for his output.
+   ! array (in sfincs_data): this module accumulates qq on intake (src_struc_nm_in)
+   ! and outfall (src_struc_nm_out) cells. Per-structure signed discharge is also
+   ! stored in q_src_struc(nr_src_structures) for his output.
    !
    ! Concurrency: qsrc updates use atomic because two structures (or a river
    ! source and a structure) can land in the same cell.
@@ -26,18 +26,11 @@ module sfincs_src_structures
    !
    private :: parse_structure_type, to_lower, check_required
    private :: convert_legacy_to_toml
-   private :: allocate_struc_flat_arrays, finalize_src_structures_state
-   private :: marshal_src_structures_to_flat_arrays
-   private :: initialize_gate_status, write_src_structures_log_summary
+   private :: write_src_structures_log_summary
    !
    ! ------------------------------------------------------------------
-   ! Named constants for the keyword-based src structure input.
-   !
-   ! These are scaffolding for a future TOML/YAML reader; no runtime
-   ! code consumes them yet.
-   ! ------------------------------------------------------------------
-   !
    ! Structure type codes
+   ! ------------------------------------------------------------------
    !
    integer, parameter :: structure_pump        = 1
    integer, parameter :: structure_check_valve = 2
@@ -107,11 +100,8 @@ module sfincs_src_structures
    !
    ! ------------------------------------------------------------------
    ! Module-level storage for structures parsed from a TOML input file.
-   !
-   ! Populated by the dispatcher when the drn file parses as TOML.
-   ! Not yet consumed by any downstream runtime code - wiring is a later
-   ! step. The legacy path continues to populate the flat arrays below
-   ! directly (struc_type, struc_q, struc_flow_coef, etc.).
+   ! Populated by the dispatcher and flattened into the flat arrays below
+   ! by the marshal.
    ! ------------------------------------------------------------------
    !
    type(t_src_structure), allocatable :: src_structures(:)   ! intermediate derived-type array; flattened + deallocated by marshal_src_structures_to_flat_arrays on the toml path (gpu deep-copy avoidance).
@@ -126,65 +116,65 @@ module sfincs_src_structures
    !
    ! Meta / name
    !
-   integer, parameter :: struc_name_len = 128          ! max length of struct name strings
-   character(len=struc_name_len), dimension(:), allocatable, public :: struc_name
+   integer, parameter :: src_struc_name_len = 128          ! max length of struct name strings
+   character(len=src_struc_name_len), dimension(:), allocatable, public :: src_struc_name
    !
    ! Kind / state
    !
-   integer*1, dimension(:), allocatable, public :: struc_type
-   integer*1, dimension(:), allocatable, public :: struc_status
-   real*4,    dimension(:), allocatable, public :: struc_distance
-   real*4,    dimension(:), allocatable, public :: struc_fraction_open
+   integer*1, dimension(:), allocatable, public :: src_struc_type
+   integer*1, dimension(:), allocatable, public :: src_struc_status
+   real*4,    dimension(:), allocatable, public :: src_struc_distance
+   real*4,    dimension(:), allocatable, public :: src_struc_fraction_open
    !
    ! Cell mapping
    !
    integer, public :: nr_src_structures
-   integer*4, dimension(:), allocatable, public :: struc_nm_in     ! (nr_src_structures) intake  (sink)   cell indices
-   integer*4, dimension(:), allocatable, public :: struc_nm_out    ! (nr_src_structures) outfall (source) cell indices
-   integer*4, dimension(:), allocatable, public :: struc_nm_obs_1  ! (nr_src_structures) obs_1 cell indices (gate rule inputs; defaults to src_1 cell)
-   integer*4, dimension(:), allocatable, public :: struc_nm_obs_2  ! (nr_src_structures) obs_2 cell indices (gate rule inputs; defaults to src_2 cell)
+   integer*4, dimension(:), allocatable, public :: src_struc_nm_in     ! (nr_src_structures) intake  (sink)   cell indices
+   integer*4, dimension(:), allocatable, public :: src_struc_nm_out    ! (nr_src_structures) outfall (source) cell indices
+   integer*4, dimension(:), allocatable, public :: src_struc_nm_obs_1  ! (nr_src_structures) obs_1 cell indices (gate rule inputs; defaults to src_1 cell)
+   integer*4, dimension(:), allocatable, public :: src_struc_nm_obs_2  ! (nr_src_structures) obs_2 cell indices (gate rule inputs; defaults to src_2 cell)
    !
    ! Gate transition timer (simulation time at which current status was entered).
    ! Only meaningful for structure_gate; ignored for other types.
    !
-   real*4,    dimension(:), allocatable, public :: struc_t_state
+   real*4,    dimension(:), allocatable, public :: src_struc_t_state
    !
    ! Coordinates
    !
-   real*4, dimension(:), allocatable, public :: struc_src_1_x, struc_src_1_y
-   real*4, dimension(:), allocatable, public :: struc_src_2_x, struc_src_2_y
-   real*4, dimension(:), allocatable, public :: struc_obs_1_x, struc_obs_1_y
-   real*4, dimension(:), allocatable, public :: struc_obs_2_x, struc_obs_2_y
+   real*4, dimension(:), allocatable, public :: src_struc_src_1_x, src_struc_src_1_y
+   real*4, dimension(:), allocatable, public :: src_struc_src_2_x, src_struc_src_2_y
+   real*4, dimension(:), allocatable, public :: src_struc_obs_1_x, src_struc_obs_1_y
+   real*4, dimension(:), allocatable, public :: src_struc_obs_2_x, src_struc_obs_2_y
    !
    ! Named parameters
    !
-   real*4, dimension(:), allocatable, public :: struc_q                  ! pump discharge
-   real*4, dimension(:), allocatable, public :: struc_qmax               ! max discharge magnitude (safety clamp)
-   real*4, dimension(:), allocatable, public :: struc_flow_coef          ! culvert / check_valve flow coefficient
-   real*4, dimension(:), allocatable, public :: struc_width              ! gate width
-   real*4, dimension(:), allocatable, public :: struc_sill_elevation     ! gate sill elevation
-   real*4, dimension(:), allocatable, public :: struc_mannings_n         ! gate Manning's n
-   real*4, dimension(:), allocatable, public :: struc_opening_duration   ! gate opening duration (s)
-   real*4, dimension(:), allocatable, public :: struc_closing_duration   ! gate closing duration (s)
+   real*4, dimension(:), allocatable, public :: src_struc_q                  ! pump discharge
+   real*4, dimension(:), allocatable, public :: src_struc_qmax               ! max discharge magnitude (safety clamp)
+   real*4, dimension(:), allocatable, public :: src_struc_flow_coef          ! culvert / check_valve flow coefficient
+   real*4, dimension(:), allocatable, public :: src_struc_width              ! gate width
+   real*4, dimension(:), allocatable, public :: src_struc_sill_elevation     ! gate sill elevation
+   real*4, dimension(:), allocatable, public :: src_struc_mannings_n         ! gate Manning's n
+   real*4, dimension(:), allocatable, public :: src_struc_opening_duration   ! gate opening duration (s)
+   real*4, dimension(:), allocatable, public :: src_struc_closing_duration   ! gate closing duration (s)
    !
    ! Runtime state
    !
-   real*4, dimension(:), allocatable, public :: qstruc                   ! (nr_src_structures) signed discharge per structure, mirrors the qsrc pattern
+   real*4, dimension(:), allocatable, public :: q_src_struc                   ! (nr_src_structures) signed discharge per structure, mirrors the qsrc pattern
    !
    ! ------------------------------------------------------------------
    ! Per-structure rule ids into the registry owned by sfincs_rule_expression.
    ! A rule_id of 0 means "no rule; never fires".
    !
-   ! struc_rule_open_src / struc_rule_close_src hold the raw source strings
+   ! src_struc_rule_open_src / src_struc_rule_close_src hold the raw source strings
    ! (for log emission only); these do not need to travel to GPU.
    ! ------------------------------------------------------------------
    !
-   integer, dimension(:), allocatable, public :: struc_rule_open       ! (nr_src_structures) rule_id for open action, 0 = no rule
-   integer, dimension(:), allocatable, public :: struc_rule_close      ! (nr_src_structures) rule_id for close action, 0 = no rule
+   integer, dimension(:), allocatable, public :: src_struc_rule_open       ! (nr_src_structures) rule_id for open action, 0 = no rule
+   integer, dimension(:), allocatable, public :: src_struc_rule_close      ! (nr_src_structures) rule_id for close action, 0 = no rule
    !
-   integer, parameter :: struc_rule_src_len = 256
-   character(len=struc_rule_src_len), dimension(:), allocatable, public :: struc_rule_open_src
-   character(len=struc_rule_src_len), dimension(:), allocatable, public :: struc_rule_close_src
+   integer, parameter :: src_struc_rule_src_len = 256
+   character(len=src_struc_rule_src_len), dimension(:), allocatable, public :: src_struc_rule_open_src
+   character(len=src_struc_rule_src_len), dimension(:), allocatable, public :: src_struc_rule_close_src
    !
 contains
    !
@@ -202,25 +192,58 @@ contains
    ! If a file parses as TOML but fails semantic validation (e.g. a
    ! missing required field), that is treated as a hard error.
    !
+   ! After parsing, the derived-type src_structures(:) array is flattened
+   ! into the src_struc_* 1D arrays (the runtime's sole state representation),
+   ! grid-cell indices and distances are resolved, a descriptive block is
+   ! written to the log, and gate statuses are seeded from the initial
+   ! water-level field.
+   !
    use sfincs_data
+   use quadtree
    use tomlf, only : toml_table, toml_error, toml_load
    !
    implicit none
+   !
+   ! Dispatcher locals
    !
    type(toml_table), allocatable :: probe_top
    type(toml_error), allocatable :: probe_err
    integer                       :: ierr_toml, ierr_conv
    logical                       :: ok, is_toml
    character(len=512)            :: toml_path
-   integer                       :: n, p
+   !
+   ! Marshal locals
+   !
+   integer                       :: i, ierr_parse
+   character(len=256)            :: errmsg
+   !
+   ! Cell-index / distance locals
+   !
+   integer                       :: istruc, nmq
+   real*4                        :: xsnk_tmp, ysnk_tmp, xsrc_tmp, ysrc_tmp
+   !
+   ! Gate-status seeding locals
+   !
+   integer                       :: nm1, nm2
+   real                          :: z1, z2
+   logical                       :: open_fires, close_fires
+   character(len=16)             :: status_str
    !
    if (drnfile(1:4) == 'none') return
    !
+   ! ------------------------------------------------------------------
+   ! Existence check
+   ! ------------------------------------------------------------------
+   !
    ok = check_file_exists(drnfile, 'Drainage points drn file', .true.)
+   !
+   ! ------------------------------------------------------------------
+   ! Probe TOML / convert legacy / re-read TOML
    !
    ! Probe: try to parse as TOML. This is a cheap check; on success we
    ! discard the probe table and let read_toml_src_structures re-parse,
    ! which keeps the two code paths decoupled.
+   ! ------------------------------------------------------------------
    !
    call toml_load(probe_top, drnfile, error=probe_err)
    !
@@ -238,34 +261,10 @@ contains
    else
       !
       ! Legacy path: transcribe to a TOML sibling file, then fall through
-      ! to the TOML reader. Derived path: if drnfile ends in ".drn"
-      ! (case-insensitive), insert ".toml" before the extension; else
-      ! append ".toml".
+      ! to the TOML reader. The converter derives its own output path from
+      ! drnfile.
       !
-      n = len_trim(drnfile)
-      p = 0
-      !
-      if (n >= 4) then
-         !
-         if (to_lower(drnfile(n-3:n)) == '.drn') then
-            !
-            p = n - 3
-            !
-         endif
-         !
-      endif
-      !
-      if (p > 0) then
-         !
-         toml_path = drnfile(1:p-1) // '.toml' // drnfile(p:n)
-         !
-      else
-         !
-         toml_path = drnfile(1:n) // '.toml'
-         !
-      endif
-      !
-      call convert_legacy_to_toml(drnfile, trim(toml_path), ierr_conv)
+      call convert_legacy_to_toml(drnfile, toml_path, ierr_conv)
       !
       if (ierr_conv /= 0) then
          !
@@ -286,296 +285,153 @@ contains
       !
    endif
    !
-   ! Flatten the parsed derived-type array into the module-level
-   ! struc_* 1D arrays, then deallocate src_structures(:).
-   !
-   call marshal_src_structures_to_flat_arrays()
-   !
-   ! Dump a per-structure description block to the log file.
-   !
-   call write_src_structures_log_summary()
-   !
-   ! Seed gate status + fraction_open from the initial water-level field.
-   ! zs(:) has already been populated by initialize_domain -> initialize_hydro
-   ! -> set_initial_conditions by the time we get here, so obs-point lookups
-   ! against zs are valid. Emitted after the summary so the per-gate init
-   ! status lines trail the structure block they annotate.
-   !
-   call initialize_gate_status()
-   !
-   end subroutine
-   !
-   !
-   subroutine allocate_struc_flat_arrays(n)
-   !
-   ! Allocate every struc_* flat array to size n and initialise defaults.
-   ! Used by both the legacy reader and the TOML marshal helper.
-   ! Defensively deallocates first so re-entry is safe.
-   !
-   use sfincs_data
-   !
-   implicit none
-   !
-   integer, intent(in) :: n
-   !
-   if (allocated(struc_nm_in)) deallocate(struc_nm_in)
-   if (allocated(struc_nm_out)) deallocate(struc_nm_out)
-   if (allocated(struc_nm_obs_1)) deallocate(struc_nm_obs_1)
-   if (allocated(struc_nm_obs_2)) deallocate(struc_nm_obs_2)
-   if (allocated(qstruc)) deallocate(qstruc)
-   if (allocated(struc_type)) deallocate(struc_type)
-   if (allocated(struc_distance)) deallocate(struc_distance)
-   if (allocated(struc_status)) deallocate(struc_status)
-   if (allocated(struc_fraction_open)) deallocate(struc_fraction_open)
-   if (allocated(struc_t_state)) deallocate(struc_t_state)
-   if (allocated(struc_name)) deallocate(struc_name)
-   if (allocated(struc_src_1_x)) deallocate(struc_src_1_x)
-   if (allocated(struc_src_1_y)) deallocate(struc_src_1_y)
-   if (allocated(struc_src_2_x)) deallocate(struc_src_2_x)
-   if (allocated(struc_src_2_y)) deallocate(struc_src_2_y)
-   if (allocated(struc_obs_1_x)) deallocate(struc_obs_1_x)
-   if (allocated(struc_obs_1_y)) deallocate(struc_obs_1_y)
-   if (allocated(struc_obs_2_x)) deallocate(struc_obs_2_x)
-   if (allocated(struc_obs_2_y)) deallocate(struc_obs_2_y)
-   if (allocated(struc_q)) deallocate(struc_q)
-   if (allocated(struc_qmax)) deallocate(struc_qmax)
-   if (allocated(struc_flow_coef)) deallocate(struc_flow_coef)
-   if (allocated(struc_width)) deallocate(struc_width)
-   if (allocated(struc_sill_elevation)) deallocate(struc_sill_elevation)
-   if (allocated(struc_mannings_n)) deallocate(struc_mannings_n)
-   if (allocated(struc_opening_duration)) deallocate(struc_opening_duration)
-   if (allocated(struc_closing_duration)) deallocate(struc_closing_duration)
-   if (allocated(struc_rule_open))       deallocate(struc_rule_open)
-   if (allocated(struc_rule_close))      deallocate(struc_rule_close)
-   if (allocated(struc_rule_open_src))   deallocate(struc_rule_open_src)
-   if (allocated(struc_rule_close_src))  deallocate(struc_rule_close_src)
-   !
-   allocate(struc_nm_in(n))
-   allocate(struc_nm_out(n))
-   allocate(struc_nm_obs_1(n))
-   allocate(struc_nm_obs_2(n))
-   allocate(qstruc(n))
-   allocate(struc_type(n))
-   allocate(struc_distance(n))
-   allocate(struc_status(n))
-   allocate(struc_fraction_open(n))
-   allocate(struc_t_state(n))
-   allocate(struc_name(n))
-   allocate(struc_src_1_x(n))
-   allocate(struc_src_1_y(n))
-   allocate(struc_src_2_x(n))
-   allocate(struc_src_2_y(n))
-   allocate(struc_obs_1_x(n))
-   allocate(struc_obs_1_y(n))
-   allocate(struc_obs_2_x(n))
-   allocate(struc_obs_2_y(n))
-   allocate(struc_q(n))
-   allocate(struc_qmax(n))
-   allocate(struc_flow_coef(n))
-   allocate(struc_width(n))
-   allocate(struc_sill_elevation(n))
-   allocate(struc_mannings_n(n))
-   allocate(struc_opening_duration(n))
-   allocate(struc_closing_duration(n))
-   allocate(struc_rule_open(n))
-   allocate(struc_rule_close(n))
-   allocate(struc_rule_open_src(n))
-   allocate(struc_rule_close_src(n))
-   !
-   struc_rule_open      = 0
-   struc_rule_close     = 0
-   struc_rule_open_src  = ' '
-   struc_rule_close_src = ' '
-   !
-   struc_nm_in          = 0
-   struc_nm_out         = 0
-   struc_nm_obs_1       = 0
-   struc_nm_obs_2       = 0
-   qstruc               = 0.0
-   struc_type           = 0
-   struc_distance       = 0.0
-   struc_fraction_open  = 1.0   ! 1.0 => no-op multiplier for non-gate types; gates get their real value from initialize_gate_status
-   struc_status         = 0     ! 0=closed, 1=open, 2=opening, 3=closing
-   struc_t_state        = 0.0
-   struc_name           = ' '
-   struc_src_1_x        = 0.0
-   struc_src_1_y        = 0.0
-   struc_src_2_x        = 0.0
-   struc_src_2_y        = 0.0
-   struc_obs_1_x        = 0.0
-   struc_obs_1_y        = 0.0
-   struc_obs_2_x        = 0.0
-   struc_obs_2_y        = 0.0
-   struc_q              = 0.0
-   struc_qmax           = 1.0e30
-   struc_flow_coef      = 1.0
-   struc_width          = 0.0
-   struc_sill_elevation = 0.0
-   struc_mannings_n     = 0.024
-   struc_opening_duration = 600.0
-   struc_closing_duration = 600.0
-   !
-   end subroutine
-   !
-   !
-   subroutine finalize_src_structures_state()
-   !
-   ! Shared post-processing for both the legacy and TOML paths. Looks up
-   ! intake / outfall cell indices from the struc_src_1_* / _2_* coords
-   ! and computes centre-to-centre distance.
-   !
-   use sfincs_data
-   use quadtree
-   !
-   implicit none
-   !
-   integer :: istruc, nmq
-   real*4  :: xsnk_tmp, ysnk_tmp, xsrc_tmp, ysrc_tmp
-   !
-   do istruc = 1, nr_src_structures
-      !
-      nmq = find_quadtree_cell(struc_src_1_x(istruc), struc_src_1_y(istruc))
-      if (nmq > 0) struc_nm_in(istruc)  = index_sfincs_in_quadtree(nmq)
-      !
-      nmq = find_quadtree_cell(struc_src_2_x(istruc), struc_src_2_y(istruc))
-      if (nmq > 0) struc_nm_out(istruc) = index_sfincs_in_quadtree(nmq)
-      !
-      ! obs cell indices feed the gate rule evaluator. The marshal has
-      ! already defaulted obs_*_x/y to src_*_x/y when the TOML reader
-      ! did not see the keys, so this lookup gives us obs_1 == src_1
-      ! and obs_2 == src_2 for those cases without extra branching.
-      !
-      nmq = find_quadtree_cell(struc_obs_1_x(istruc), struc_obs_1_y(istruc))
-      if (nmq > 0) struc_nm_obs_1(istruc) = index_sfincs_in_quadtree(nmq)
-      !
-      nmq = find_quadtree_cell(struc_obs_2_x(istruc), struc_obs_2_y(istruc))
-      if (nmq > 0) struc_nm_obs_2(istruc) = index_sfincs_in_quadtree(nmq)
-      !
-      if (struc_nm_in(istruc) > 0 .and. struc_nm_out(istruc) > 0) then
-         !
-         xsnk_tmp = z_xz(struc_nm_in(istruc))
-         ysnk_tmp = z_yz(struc_nm_in(istruc))
-         xsrc_tmp = z_xz(struc_nm_out(istruc))
-         ysrc_tmp = z_yz(struc_nm_out(istruc))
-         struc_distance(istruc) = sqrt( (xsrc_tmp - xsnk_tmp)**2 + (ysrc_tmp - ysnk_tmp)**2 )
-         !
-      endif
-      !
-   enddo
-   !
-   if (any(struc_nm_in == 0) .or. any(struc_nm_out == 0)) then
-      !
-      write(logstr,'(a)') 'Warning ! For some sink/source drainage points no matching active grid cell was found!'
-      call write_log(logstr, 0)
-      write(logstr,'(a)') 'Warning ! These points will be skipped, please check your input!'
-      call write_log(logstr, 0)
-      !
-   endif
-   !
-   end subroutine
-   !
-   !
-   subroutine marshal_src_structures_to_flat_arrays()
-   !
-   ! Copy the module-level src_structures(:) array (populated by
-   ! read_toml_src_structures) into the struc_* flat arrays, then run
-   ! the shared post-processing and deallocate src_structures(:).
-   !
-   ! The TOML and legacy paths are mutually exclusive, so the flat arrays
-   ! should not yet be allocated when this is called; allocate_struc_flat_arrays
-   ! defensively deallocates any residual allocation first.
-   !
-   ! Rule expressions (rule_open / rule_close) are handed to
-   ! sfincs_rule_expression's add_rule, which appends bytecode to its
-   ! shared stream, registers a new rule, and returns an integer rule_id
-   ! per structure. finalize_rule_storage is called at the end to shrink
-   ! the stream and registry to fit (and to allocate zero-length arrays
-   ! when no rules were seen).
-   !
    ! ------------------------------------------------------------------
-   ! why does this marshal exist?
+   ! Marshal src_structures(:) -> src_struc_* flat arrays.
    !
-   ! the runtime reads all src-structure state from flat per-struct
-   ! arrays (the struc_* family: struc_type, struc_q, struc_flow_coef, ...).
-   ! the toml reader, however, naturally produces a derived-type array
+   ! The runtime reads all src-structure state from flat per-struct
+   ! arrays (the src_struc_* family: src_struc_type, src_struc_q, src_struc_flow_coef, ...).
+   ! The TOML reader, however, naturally produces a derived-type array
    ! src_structures(:) of t_src_structure, which carries allocatable
-   ! components: character(len=:), allocatable :: name, plus the
-   ! nested actions(:) and rules(:) arrays.
+   ! components: character(len=:), allocatable :: name, plus the rule
+   ! expression strings.
    !
    ! nvfortran's openacc implicit deep-copy of derived types that
    ! contain allocatable components has been unreliable in practice:
    ! pushing a type(...), allocatable :: arr(:) with nested allocatables
-   ! to the device tends to produce runtime issues. flat arrays of
+   ! to the device tends to produce runtime issues. Flat arrays of
    ! primitive types (real, integer, fixed-length character) copy
    ! cleanly across !$acc enter data copyin(...), so we keep the live
    ! runtime state in those.
    !
-   ! this routine is the one-shot bridge: toml -> src_structures(:)
-   ! -> struc_* flat arrays -> deallocate(src_structures). after it
+   ! The marshal is the one-shot bridge: toml -> src_structures(:)
+   ! -> src_struc_* flat arrays -> deallocate(src_structures). After it
    ! runs, nothing of the derived-type array survives, so no gpu
    ! region ever sees a problematic allocatable-in-derived-type.
-   !
-   ! the legacy fixed-column reader populates the same struc_* flat
-   ! arrays directly and therefore does not need this marshal; the
-   ! two input paths converge here.
    ! ------------------------------------------------------------------
-   !
-   use sfincs_data
-   !
-   implicit none
-   !
-   integer :: i, n, ierr_parse
-   character(len=256) :: errmsg
    !
    if (.not. allocated(src_structures)) then
       !
       nr_src_structures = 0
+      !
+      call write_src_structures_log_summary()
+      !
       return
       !
    endif
    !
-   n = size(src_structures)
-   nr_src_structures = n
+   nr_src_structures = size(src_structures)
    !
-   if (n <= 0) then
+   if (nr_src_structures <= 0) then
       !
       deallocate(src_structures)
+      !
+      call write_src_structures_log_summary()
+      !
       return
       !
    endif
    !
-   call allocate_struc_flat_arrays(n)
+   ! ------------------------------------------------------------------
+   ! Allocate flat arrays to size nr_src_structures and seed defaults.
+   ! ------------------------------------------------------------------
    !
-   ! Copy scalar / vector per-structure fields and parse rule
-   ! expressions into the shared rule_* stream via add_rule.
+   allocate(src_struc_nm_in(nr_src_structures))
+   allocate(src_struc_nm_out(nr_src_structures))
+   allocate(src_struc_nm_obs_1(nr_src_structures))
+   allocate(src_struc_nm_obs_2(nr_src_structures))
+   allocate(q_src_struc(nr_src_structures))
+   allocate(src_struc_type(nr_src_structures))
+   allocate(src_struc_distance(nr_src_structures))
+   allocate(src_struc_status(nr_src_structures))
+   allocate(src_struc_fraction_open(nr_src_structures))
+   allocate(src_struc_t_state(nr_src_structures))
+   allocate(src_struc_name(nr_src_structures))
+   allocate(src_struc_src_1_x(nr_src_structures))
+   allocate(src_struc_src_1_y(nr_src_structures))
+   allocate(src_struc_src_2_x(nr_src_structures))
+   allocate(src_struc_src_2_y(nr_src_structures))
+   allocate(src_struc_obs_1_x(nr_src_structures))
+   allocate(src_struc_obs_1_y(nr_src_structures))
+   allocate(src_struc_obs_2_x(nr_src_structures))
+   allocate(src_struc_obs_2_y(nr_src_structures))
+   allocate(src_struc_q(nr_src_structures))
+   allocate(src_struc_qmax(nr_src_structures))
+   allocate(src_struc_flow_coef(nr_src_structures))
+   allocate(src_struc_width(nr_src_structures))
+   allocate(src_struc_sill_elevation(nr_src_structures))
+   allocate(src_struc_mannings_n(nr_src_structures))
+   allocate(src_struc_opening_duration(nr_src_structures))
+   allocate(src_struc_closing_duration(nr_src_structures))
+   allocate(src_struc_rule_open(nr_src_structures))
+   allocate(src_struc_rule_close(nr_src_structures))
+   allocate(src_struc_rule_open_src(nr_src_structures))
+   allocate(src_struc_rule_close_src(nr_src_structures))
    !
-   do i = 1, n
+   src_struc_rule_open      = 0
+   src_struc_rule_close     = 0
+   src_struc_rule_open_src  = ' '
+   src_struc_rule_close_src = ' '
+   !
+   src_struc_nm_in          = 0
+   src_struc_nm_out         = 0
+   src_struc_nm_obs_1       = 0
+   src_struc_nm_obs_2       = 0
+   q_src_struc               = 0.0
+   src_struc_type           = 0
+   src_struc_distance       = 0.0
+   src_struc_fraction_open  = 1.0   ! 1.0 => no-op multiplier for non-gate types; gates get their real value from the gate-status seeding pass below
+   src_struc_status         = 0     ! 0=closed, 1=open, 2=opening, 3=closing
+   src_struc_t_state        = 0.0
+   src_struc_name           = ' '
+   src_struc_src_1_x        = 0.0
+   src_struc_src_1_y        = 0.0
+   src_struc_src_2_x        = 0.0
+   src_struc_src_2_y        = 0.0
+   src_struc_obs_1_x        = 0.0
+   src_struc_obs_1_y        = 0.0
+   src_struc_obs_2_x        = 0.0
+   src_struc_obs_2_y        = 0.0
+   src_struc_q              = 0.0
+   src_struc_qmax           = 1.0e30
+   src_struc_flow_coef      = 1.0
+   src_struc_width          = 0.0
+   src_struc_sill_elevation = 0.0
+   src_struc_mannings_n     = 0.024
+   src_struc_opening_duration = 600.0
+   src_struc_closing_duration = 600.0
+   !
+   ! ------------------------------------------------------------------
+   ! Copy scalar / coord / string / parameter fields from src_structures(:)
+   ! into the flat arrays, and parse rule source strings via add_rule.
+   ! ------------------------------------------------------------------
+   !
+   do i = 1, nr_src_structures
       !
-      ! String fields: truncation warning if longer than struc_name_len.
+      ! String fields: truncation warning if longer than src_struc_name_len.
       !
       if (allocated(src_structures(i)%name)) then
          !
-         if (len(src_structures(i)%name) > struc_name_len) then
+         if (len(src_structures(i)%name) > src_struc_name_len) then
             !
-            write(logstr,'(a,i0,a,i0,a)')' Warning ! src_structure name length > ', struc_name_len, &
+            write(logstr,'(a,i0,a,i0,a)')' Warning ! src_structure name length > ', src_struc_name_len, &
                  ' at entry ', i, '; truncating'
             call write_log(logstr, 0)
             !
          endif
          !
-         struc_name(i) = src_structures(i)%name
+         src_struc_name(i) = src_structures(i)%name
          !
       endif
       !
-      struc_type(i)   = int(src_structures(i)%structure_type, 1)
+      src_struc_type(i)   = int(src_structures(i)%structure_type, 1)
       !
-      ! struc_status is runtime-only (not on the TOML type); leave it at
-      ! the default of 0 (open) set by allocate_struc_flat_arrays.
+      ! src_struc_status is runtime-only (not on the TOML type); leave it at
+      ! the default of 0 (closed) set above.
       !
-      struc_src_1_x(i) = src_structures(i)%src_1_x
-      struc_src_1_y(i) = src_structures(i)%src_1_y
-      struc_src_2_x(i) = src_structures(i)%src_2_x
-      struc_src_2_y(i) = src_structures(i)%src_2_y
+      src_struc_src_1_x(i) = src_structures(i)%src_1_x
+      src_struc_src_1_y(i) = src_structures(i)%src_1_y
+      src_struc_src_2_x(i) = src_structures(i)%src_2_x
+      src_struc_src_2_y(i) = src_structures(i)%src_2_y
       !
       ! obs_1 / obs_2 default to the corresponding src_* when the TOML
       ! reader did not see the key (tracked via has_obs_1 / has_obs_2).
@@ -583,36 +439,36 @@ contains
       !
       if (src_structures(i)%has_obs_1) then
          !
-         struc_obs_1_x(i) = src_structures(i)%obs_1_x
-         struc_obs_1_y(i) = src_structures(i)%obs_1_y
+         src_struc_obs_1_x(i) = src_structures(i)%obs_1_x
+         src_struc_obs_1_y(i) = src_structures(i)%obs_1_y
          !
       else
          !
-         struc_obs_1_x(i) = src_structures(i)%src_1_x
-         struc_obs_1_y(i) = src_structures(i)%src_1_y
+         src_struc_obs_1_x(i) = src_structures(i)%src_1_x
+         src_struc_obs_1_y(i) = src_structures(i)%src_1_y
          !
       endif
       !
       if (src_structures(i)%has_obs_2) then
          !
-         struc_obs_2_x(i) = src_structures(i)%obs_2_x
-         struc_obs_2_y(i) = src_structures(i)%obs_2_y
+         src_struc_obs_2_x(i) = src_structures(i)%obs_2_x
+         src_struc_obs_2_y(i) = src_structures(i)%obs_2_y
          !
       else
          !
-         struc_obs_2_x(i) = src_structures(i)%src_2_x
-         struc_obs_2_y(i) = src_structures(i)%src_2_y
+         src_struc_obs_2_x(i) = src_structures(i)%src_2_x
+         src_struc_obs_2_y(i) = src_structures(i)%src_2_y
          !
       endif
       !
-      struc_q(i)                 = src_structures(i)%q
-      struc_qmax(i)              = src_structures(i)%qmax
-      struc_flow_coef(i)         = src_structures(i)%flow_coef
-      struc_width(i)             = src_structures(i)%width
-      struc_sill_elevation(i)    = src_structures(i)%sill_elevation
-      struc_mannings_n(i)        = src_structures(i)%mannings_n
-      struc_opening_duration(i)  = src_structures(i)%opening_duration
-      struc_closing_duration(i)  = src_structures(i)%closing_duration
+      src_struc_q(i)                 = src_structures(i)%q
+      src_struc_qmax(i)              = src_structures(i)%qmax
+      src_struc_flow_coef(i)         = src_structures(i)%flow_coef
+      src_struc_width(i)             = src_structures(i)%width
+      src_struc_sill_elevation(i)    = src_structures(i)%sill_elevation
+      src_struc_mannings_n(i)        = src_structures(i)%mannings_n
+      src_struc_opening_duration(i)  = src_structures(i)%opening_duration
+      src_struc_closing_duration(i)  = src_structures(i)%closing_duration
       !
       ! Parse rule expressions. Missing / empty strings leave the
       ! rule_id at 0, which the evaluator interprets as "never fires".
@@ -621,52 +477,187 @@ contains
       if (allocated(src_structures(i)%rule_open)) then
          !
          call add_rule(src_structures(i)%rule_open, &
-              struc_rule_open(i), ierr_parse, errmsg)
+              src_struc_rule_open(i), ierr_parse, errmsg)
          !
          if (ierr_parse /= 0) then
             !
-            write(logstr,'(a,a,a,a)')' Error ! src_structure "', trim(struc_name(i)), &
-                 '" rules.open parse failed: ', trim(errmsg)
+            write(logstr,'(a,a,a,a)')' Error ! src_structure "', trim(src_struc_name(i)), &
+                 '" rules_open parse failed: ', trim(errmsg)
             call write_log(logstr, 1)
             call stop_sfincs(trim(logstr), -1)
             !
          endif
          !
-         struc_rule_open_src(i) = src_structures(i)%rule_open
+         src_struc_rule_open_src(i) = src_structures(i)%rule_open
          !
       endif
       !
       if (allocated(src_structures(i)%rule_close)) then
          !
          call add_rule(src_structures(i)%rule_close, &
-              struc_rule_close(i), ierr_parse, errmsg)
+              src_struc_rule_close(i), ierr_parse, errmsg)
          !
          if (ierr_parse /= 0) then
             !
-            write(logstr,'(a,a,a,a)')' Error ! src_structure "', trim(struc_name(i)), &
-                 '" rules.close parse failed: ', trim(errmsg)
+            write(logstr,'(a,a,a,a)')' Error ! src_structure "', trim(src_struc_name(i)), &
+                 '" rules_close parse failed: ', trim(errmsg)
             call write_log(logstr, 1)
             call stop_sfincs(trim(logstr), -1)
             !
          endif
          !
-         struc_rule_close_src(i) = src_structures(i)%rule_close
+         src_struc_rule_close_src(i) = src_structures(i)%rule_close
          !
       endif
       !
    enddo
    !
-   ! Shrink the shared rule stream to exactly the concatenated length.
+   ! ------------------------------------------------------------------
+   ! Shrink the shared rule bytecode stream to exactly the concatenated
+   ! length (also allocates zero-length arrays when no rules were seen).
+   ! ------------------------------------------------------------------
    !
    call finalize_rule_storage()
    !
-   ! Shared post-processing.
-   !
-   call finalize_src_structures_state()
-   !
+   ! ------------------------------------------------------------------
    ! Drop the derived-type array; flat arrays carry all runtime state now.
+   ! ------------------------------------------------------------------
    !
    deallocate(src_structures)
+   !
+   ! ------------------------------------------------------------------
+   ! Resolve cell-index lookups (src_struc_nm_in / _out / _obs_1 / _obs_2)
+   ! and centre-to-centre distance from coordinate pairs.
+   ! ------------------------------------------------------------------
+   !
+   do istruc = 1, nr_src_structures
+      !
+      nmq = find_quadtree_cell(src_struc_src_1_x(istruc), src_struc_src_1_y(istruc))
+      if (nmq > 0) src_struc_nm_in(istruc)  = index_sfincs_in_quadtree(nmq)
+      !
+      nmq = find_quadtree_cell(src_struc_src_2_x(istruc), src_struc_src_2_y(istruc))
+      if (nmq > 0) src_struc_nm_out(istruc) = index_sfincs_in_quadtree(nmq)
+      !
+      ! obs cell indices feed the gate rule evaluator. The marshal has
+      ! already defaulted obs_*_x/y to src_*_x/y when the TOML reader
+      ! did not see the keys, so this lookup gives us obs_1 == src_1
+      ! and obs_2 == src_2 for those cases without extra branching.
+      !
+      nmq = find_quadtree_cell(src_struc_obs_1_x(istruc), src_struc_obs_1_y(istruc))
+      if (nmq > 0) src_struc_nm_obs_1(istruc) = index_sfincs_in_quadtree(nmq)
+      !
+      nmq = find_quadtree_cell(src_struc_obs_2_x(istruc), src_struc_obs_2_y(istruc))
+      if (nmq > 0) src_struc_nm_obs_2(istruc) = index_sfincs_in_quadtree(nmq)
+      !
+      if (src_struc_nm_in(istruc) > 0 .and. src_struc_nm_out(istruc) > 0) then
+         !
+         xsnk_tmp = z_xz(src_struc_nm_in(istruc))
+         ysnk_tmp = z_yz(src_struc_nm_in(istruc))
+         xsrc_tmp = z_xz(src_struc_nm_out(istruc))
+         ysrc_tmp = z_yz(src_struc_nm_out(istruc))
+         src_struc_distance(istruc) = sqrt( (xsrc_tmp - xsnk_tmp)**2 + (ysrc_tmp - ysnk_tmp)**2 )
+         !
+      endif
+      !
+   enddo
+   !
+   if (any(src_struc_nm_in == 0) .or. any(src_struc_nm_out == 0)) then
+      !
+      write(logstr,'(a)') 'Warning ! For some sink/source drainage points no matching active grid cell was found!'
+      call write_log(logstr, 0)
+      write(logstr,'(a)') 'Warning ! These points will be skipped, please check your input!'
+      call write_log(logstr, 0)
+      !
+   endif
+   !
+   ! ------------------------------------------------------------------
+   ! Write the per-structure descriptive block to the log file.
+   ! Emitted before the gate-status seeding so the per-gate init status
+   ! lines trail the structure block they annotate.
+   ! ------------------------------------------------------------------
+   !
+   call write_src_structures_log_summary()
+   !
+   ! ------------------------------------------------------------------
+   ! Gate-specific initial status from the current zs field.
+   !
+   ! zs(:) has already been populated by initialize_domain -> initialize_hydro
+   ! -> set_initial_conditions by the time we get here, so obs-point lookups
+   ! against zs are valid. For non-gate structures the defaults assigned
+   ! above (status=0=closed, fraction_open=1.0) already encode "no-op".
+   !
+   ! Status encoding: 0=closed, 1=open, 2=opening, 3=closing.
+   ! ------------------------------------------------------------------
+   !
+   do istruc = 1, nr_src_structures
+      !
+      if (src_struc_type(istruc) /= structure_gate) cycle
+      !
+      nm1 = src_struc_nm_obs_1(istruc)
+      nm2 = src_struc_nm_obs_2(istruc)
+      !
+      if (nm1 > 0) then
+         !
+         z1 = real(zs(nm1), 4)
+         !
+      else
+         !
+         z1 = 0.0
+         !
+      endif
+      !
+      if (nm2 > 0) then
+         !
+         z2 = real(zs(nm2), 4)
+         !
+      else
+         !
+         z2 = 0.0
+         !
+      endif
+      !
+      open_fires  = evaluate_rule(src_struc_rule_open(istruc),  z1, z2)
+      close_fires = evaluate_rule(src_struc_rule_close(istruc), z1, z2)
+      !
+      if (open_fires .and. .not. close_fires) then
+         !
+         src_struc_status(istruc)        = 1
+         src_struc_fraction_open(istruc) = 1.0
+         status_str                  = 'open'
+         !
+      elseif (.not. open_fires .and. close_fires) then
+         !
+         src_struc_status(istruc)        = 0
+         src_struc_fraction_open(istruc) = 0.0
+         status_str                  = 'closed'
+         !
+      elseif (open_fires .and. close_fires) then
+         !
+         src_struc_status(istruc)        = 1
+         src_struc_fraction_open(istruc) = 1.0
+         status_str                  = 'open'
+         write(logstr,'(a,a,a)')'Warning ! gate ', trim(src_struc_name(istruc)), &
+              ': both open and close rules fire at init; keeping gate open'
+         call write_log(logstr, 0)
+         !
+      else
+         !
+         src_struc_status(istruc)        = 0
+         src_struc_fraction_open(istruc) = 0.0
+         status_str                  = 'closed'
+         !
+      endif
+      !
+      ! Transition timer is only consulted after a transition triggers;
+      ! seed with t0 so the first rule-driven transition has a sane baseline.
+      !
+      src_struc_t_state(istruc) = t0
+      !
+      write(logstr,'(a,a,a,a)')'gate ', trim(src_struc_name(istruc)), &
+           ' initialised status=', trim(status_str)
+      call write_log(logstr, 0)
+      !
+   enddo
    !
    end subroutine
    !
@@ -675,7 +666,7 @@ contains
    !
    ! Compute discharges through each drainage structure, accumulate them
    ! into qsrc(np) (intake: -qq, outfall: +qq), and store per-structure
-   ! signed discharge in qstruc(nr_src_structures) for his output.
+   ! signed discharge in q_src_struc(nr_src_structures) for his output.
    !
    ! Called AFTER update_discharges, which zeros qsrc first.
    !
@@ -693,47 +684,47 @@ contains
    integer :: count0, count1, count_rate, count_max
    integer :: istruc, nmin, nmout, nm_o1, nm_o2
    real*4  :: qq, qqmax, elapsed, z1r, z2r
-   real*4  :: frac, wdt, mng, zsill, dist, dzds, hgate, qq0
+   real*4  :: frac, wdt, mng, zsill, dist, dzds, hgate, qq0, alpha
    logical :: open_fires, close_fires
    !
    if (nr_src_structures <= 0) return
    !
    call system_clock(count0, count_rate, count_max)
    !
-   !$acc parallel loop present( z_volume, zs, zb, qsrc, qstruc, &
-   !$acc                        struc_nm_in, struc_nm_out, &
-   !$acc                        struc_nm_obs_1, struc_nm_obs_2, &
-   !$acc                        struc_type, &
-   !$acc                        struc_q, struc_qmax, struc_flow_coef, &
-   !$acc                        struc_width, struc_sill_elevation, &
-   !$acc                        struc_mannings_n, &
-   !$acc                        struc_opening_duration, struc_closing_duration, &
-   !$acc                        struc_distance, struc_status, struc_fraction_open, &
-   !$acc                        struc_t_state, &
-   !$acc                        struc_rule_open, struc_rule_close, &
+   !$acc parallel loop present( z_volume, zs, zb, qsrc, q_src_struc, &
+   !$acc                        src_struc_nm_in, src_struc_nm_out, &
+   !$acc                        src_struc_nm_obs_1, src_struc_nm_obs_2, &
+   !$acc                        src_struc_type, &
+   !$acc                        src_struc_q, src_struc_qmax, src_struc_flow_coef, &
+   !$acc                        src_struc_width, src_struc_sill_elevation, &
+   !$acc                        src_struc_mannings_n, &
+   !$acc                        src_struc_opening_duration, src_struc_closing_duration, &
+   !$acc                        src_struc_distance, src_struc_status, src_struc_fraction_open, &
+   !$acc                        src_struc_t_state, &
+   !$acc                        src_struc_rule_open, src_struc_rule_close, &
    !$acc                        rule_opcode, rule_atom, rule_cmp, rule_threshold, &
    !$acc                        rule_start, rule_length ) &
    !$acc              private( nmin, nmout, nm_o1, nm_o2, qq, qqmax, elapsed, &
-   !$acc                       z1r, z2r, frac, wdt, mng, zsill, dist, dzds, hgate, qq0, &
+   !$acc                       z1r, z2r, frac, wdt, mng, zsill, dist, dzds, hgate, qq0, alpha, &
    !$acc                       open_fires, close_fires )
    !$omp parallel do &
    !$omp   private( nmin, nmout, nm_o1, nm_o2, qq, qqmax, elapsed, &
-   !$omp            z1r, z2r, frac, wdt, mng, zsill, dist, dzds, hgate, qq0, &
+   !$omp            z1r, z2r, frac, wdt, mng, zsill, dist, dzds, hgate, qq0, alpha, &
    !$omp            open_fires, close_fires ) &
    !$omp   schedule ( static )
    do istruc = 1, nr_src_structures
       !
-      nmin  = struc_nm_in(istruc)
-      nmout = struc_nm_out(istruc)
-      qqmax = struc_qmax(istruc)
+      nmin  = src_struc_nm_in(istruc)
+      nmout = src_struc_nm_out(istruc)
+      qqmax = src_struc_qmax(istruc)
       !
       if (nmin > 0 .and. nmout > 0) then
          !
-         select case(struc_type(istruc))
+         select case(src_struc_type(istruc))
             !
             case(structure_pump)
                !
-               qq = struc_q(istruc)
+               qq = src_struc_q(istruc)
                !
             case(structure_culvert)
                !
@@ -741,11 +732,11 @@ contains
                !
                if (zs(nmin) > zs(nmout)) then
                   !
-                  qq =  struc_flow_coef(istruc) * sqrt(zs(nmin)  - zs(nmout))
+                  qq =  src_struc_flow_coef(istruc) * sqrt(zs(nmin)  - zs(nmout))
                   !
                else
                   !
-                  qq = -struc_flow_coef(istruc) * sqrt(zs(nmout) - zs(nmin))
+                  qq = -src_struc_flow_coef(istruc) * sqrt(zs(nmout) - zs(nmin))
                   !
                endif
                !
@@ -755,7 +746,7 @@ contains
                !
                ! One-way: flow only when z(in) > z(out); clipped to [0, qmax].
                !
-               qq = struc_flow_coef(istruc) * sqrt(max(0.0, zs(nmin) - zs(nmout)))
+               qq = src_struc_flow_coef(istruc) * sqrt(max(0.0, zs(nmin) - zs(nmout)))
                qq = min(qq, qqmax)
                !
             case(structure_gate)
@@ -768,8 +759,8 @@ contains
                ! the terminal (0) and (1) states; transient states (2, 3)
                ! advance purely on elapsed time so they cannot thrash.
                !
-               nm_o1 = struc_nm_obs_1(istruc)
-               nm_o2 = struc_nm_obs_2(istruc)
+               nm_o1 = src_struc_nm_obs_1(istruc)
+               nm_o2 = src_struc_nm_obs_2(istruc)
                !
                if (nm_o1 > 0) then
                   !
@@ -791,18 +782,18 @@ contains
                   !
                endif
                !
-               select case (int(struc_status(istruc)))
+               select case (int(src_struc_status(istruc)))
                   !
                   case (0)
                      !
                      ! closed - look for an open trigger
                      !
-                     open_fires = evaluate_rule(struc_rule_open(istruc), z1r, z2r)
+                     open_fires = evaluate_rule(src_struc_rule_open(istruc), z1r, z2r)
                      !
                      if (open_fires) then
                         !
-                        struc_status(istruc)  = 2
-                        struc_t_state(istruc) = real(t, 4)
+                        src_struc_status(istruc)  = 2
+                        src_struc_t_state(istruc) = real(t, 4)
                         !
                      endif
                      !
@@ -810,12 +801,12 @@ contains
                      !
                      ! open - look for a close trigger
                      !
-                     close_fires = evaluate_rule(struc_rule_close(istruc), z1r, z2r)
+                     close_fires = evaluate_rule(src_struc_rule_close(istruc), z1r, z2r)
                      !
                      if (close_fires) then
                         !
-                        struc_status(istruc)  = 3
-                        struc_t_state(istruc) = real(t, 4)
+                        src_struc_status(istruc)  = 3
+                        src_struc_t_state(istruc) = real(t, 4)
                         !
                      endif
                      !
@@ -823,17 +814,17 @@ contains
                      !
                      ! opening - advance on elapsed time; do not re-check rules
                      !
-                     elapsed = real(t, 4) - struc_t_state(istruc)
+                     elapsed = real(t, 4) - src_struc_t_state(istruc)
                      !
-                     if (struc_opening_duration(istruc) <= 0.0 .or. &
-                         elapsed >= struc_opening_duration(istruc)) then
+                     if (src_struc_opening_duration(istruc) <= 0.0 .or. &
+                         elapsed >= src_struc_opening_duration(istruc)) then
                         !
-                        struc_status(istruc)        = 1
-                        struc_fraction_open(istruc) = 1.0
+                        src_struc_status(istruc)        = 1
+                        src_struc_fraction_open(istruc) = 1.0
                         !
                      else
                         !
-                        struc_fraction_open(istruc) = elapsed / struc_opening_duration(istruc)
+                        src_struc_fraction_open(istruc) = elapsed / src_struc_opening_duration(istruc)
                         !
                      endif
                      !
@@ -841,17 +832,17 @@ contains
                      !
                      ! closing - advance on elapsed time; do not re-check rules
                      !
-                     elapsed = real(t, 4) - struc_t_state(istruc)
+                     elapsed = real(t, 4) - src_struc_t_state(istruc)
                      !
-                     if (struc_closing_duration(istruc) <= 0.0 .or. &
-                         elapsed >= struc_closing_duration(istruc)) then
+                     if (src_struc_closing_duration(istruc) <= 0.0 .or. &
+                         elapsed >= src_struc_closing_duration(istruc)) then
                         !
-                        struc_status(istruc)        = 0
-                        struc_fraction_open(istruc) = 0.0
+                        src_struc_status(istruc)        = 0
+                        src_struc_fraction_open(istruc) = 0.0
                         !
                      else
                         !
-                        struc_fraction_open(istruc) = 1.0 - elapsed / struc_closing_duration(istruc)
+                        src_struc_fraction_open(istruc) = 1.0 - elapsed / src_struc_closing_duration(istruc)
                         !
                      endif
                      !
@@ -863,25 +854,25 @@ contains
                !              (1 + g*n^2*dt*|q^n| / h^{7/3})
                ! with h = max(max(zs_in, zs_out) - zsill, 0).
                ! Multiply by width * fraction_open to get the structure
-               ! discharge. qstruc(istruc) holds q from the previous step
+               ! discharge. q_src_struc(istruc) holds q from the previous step
                ! in full (signed, m^3/s) discharge form, so convert via
                ! width * fraction_open to get qq0 in per-unit-width units.
                ! Sign convention: qq > 0 means flow nmin -> nmout, matching
                ! dzds = (zs_out - zs_in)/dist (positive downstream level
                ! -> negative dzds -> positive qq).
                !
-               frac  = struc_fraction_open(istruc)
-               wdt   = struc_width(istruc)
-               mng   = struc_mannings_n(istruc)
-               zsill = struc_sill_elevation(istruc)
-               dist  = struc_distance(istruc)
+               frac  = src_struc_fraction_open(istruc)
+               wdt   = src_struc_width(istruc)
+               mng   = src_struc_mannings_n(istruc)
+               zsill = src_struc_sill_elevation(istruc)
+               dist  = src_struc_distance(istruc)
                !
                dzds  = (real(zs(nmout), 4) - real(zs(nmin), 4)) / dist
                hgate = max(max(real(zs(nmin), 4), real(zs(nmout), 4)) - zsill, 0.0)
                !
                if (hgate > 0.0 .and. frac > 0.0) then
                   !
-                  qq0 = qstruc(istruc) / (wdt * max(frac, 0.001))
+                  qq0 = q_src_struc(istruc) / (wdt * max(frac, 0.001))
                   qq  = (qq0 - g * hgate * dzds * dt) / &
                         (1.0 + g * mng * mng * dt * abs(qq0) / hgate**(7.0/3.0))
                   qq  = qq * wdt * frac
@@ -897,15 +888,9 @@ contains
          end select
          !
          ! Relaxation: blend new and previous discharge to damp oscillations.
-         ! Gates use the Bates (2010) inertial form which already carries
-         ! its own temporal inertia via qq0; additional blending would
-         ! double-damp and suppress the dynamic response.
          !
-         if (struc_type(istruc) /= structure_gate) then
-            !
-            qq = 1.0 / (structure_relax / dt) * qq + (1.0 - (1.0 / (structure_relax / dt))) * qstruc(istruc)
-            !
-         endif
+         alpha = dt / structure_relax
+         qq = alpha * qq + (1.0 - alpha) * q_src_struc(istruc)
          !
          ! Limit discharge by available volume in the intake / outfall cell.
          !
@@ -935,7 +920,7 @@ contains
             !
          endif
          !
-         qstruc(istruc) = qq
+         q_src_struc(istruc) = qq
          !
          ! Accumulate into cell-wise qsrc. Atomic guards against multiple
          ! structures (or a river and a structure) in the same cell.
@@ -976,8 +961,8 @@ contains
    !    width = ... ; sill_elevation = ... ; mannings_n = ...
    !    opening_duration = ... ; closing_duration = ...
    !    flow_coef = ...              ! culvert / check_valve flow coefficient
-   !    rules.open  = "(z1<0.5 | z2-z1>0.05) & z2<1.5"   ! optional trigger expr
-   !    rules.close = "z2>2.0"                           ! optional trigger expr
+   !    rules_open  = "(z1<0.5 | z2-z1>0.05) & z2<1.5"   ! optional trigger expr
+   !    rules_close = "z2>2.0"                           ! optional trigger expr
    !
    ! Per-type required keys (enforced on parse):
    !    pump        : name, src_1_x, src_1_y, src_2_x, src_2_y, q
@@ -1003,9 +988,9 @@ contains
    type(toml_table), allocatable    :: top
    type(toml_error), allocatable    :: err
    type(toml_array), pointer        :: arr_structs
-   type(toml_table), pointer        :: tbl_struct, tbl_rules
+   type(toml_table), pointer        :: tbl_struct
    character(len=:), allocatable    :: name_str, type_str, rule_str
-   integer                          :: n_struct, i, stat
+   integer                          :: n_struct, i, stat, ierr_parse
    !
    ierr = 0
    !
@@ -1094,10 +1079,11 @@ contains
          !
       endif
       !
-      call parse_structure_type(type_str, structures(i)%structure_type, ierr)
+      call parse_structure_type(type_str, structures(i)%structure_type, ierr_parse)
       !
-      if (ierr /= 0) then
+      if (ierr_parse /= 0) then
          !
+         ierr = ierr_parse
          write(logstr,'(a,a,a,i0)')' Error ! Unknown structure type "', trim(type_str), &
               '" in src_structure entry ', i
          call write_log(logstr, 1)
@@ -1171,24 +1157,17 @@ contains
       call get_value(tbl_struct, 'closing_duration', structures(i)%closing_duration, 600.0,  stat=stat)
       call get_value(tbl_struct, 'flow_coef',        structures(i)%flow_coef,        1.0,    stat=stat)
       !
-      ! Optional rules sub-table with string "open" / "close" expressions.
-      ! Absent sub-table, or absent keys within it, leaves the rule strings
-      ! unallocated on the derived type; marshal treats that as "no trigger".
+      ! Optional rules_open / rules_close string expressions. Absent keys
+      ! leave the rule strings unallocated on the derived type; marshal
+      ! treats that as "no trigger".
       !
-      nullify(tbl_rules)
-      call get_value(tbl_struct, 'rules', tbl_rules, requested=.false., stat=stat)
+      if (allocated(rule_str)) deallocate(rule_str)
+      call get_value(tbl_struct, 'rules_open', rule_str, stat=stat)
+      if (allocated(rule_str)) structures(i)%rule_open = rule_str
       !
-      if (associated(tbl_rules)) then
-         !
-         if (allocated(rule_str)) deallocate(rule_str)
-         call get_value(tbl_rules, 'open', rule_str, stat=stat)
-         if (allocated(rule_str)) structures(i)%rule_open = rule_str
-         !
-         if (allocated(rule_str)) deallocate(rule_str)
-         call get_value(tbl_rules, 'close', rule_str, stat=stat)
-         if (allocated(rule_str)) structures(i)%rule_close = rule_str
-         !
-      endif
+      if (allocated(rule_str)) deallocate(rule_str)
+      call get_value(tbl_struct, 'rules_close', rule_str, stat=stat)
+      if (allocated(rule_str)) structures(i)%rule_close = rule_str
       !
    enddo
    !
@@ -1309,101 +1288,6 @@ contains
    end function
    !
    !
-   subroutine initialize_gate_status()
-   !
-   ! Seed each gate's status and fraction_open from the initial water-level
-   ! field. Called right after the marshal, by which point zs(:) has already
-   ! been populated by initialize_hydro -> set_initial_conditions. For
-   ! non-gate structures the defaults from allocate_struc_flat_arrays
-   ! (status=0=closed, fraction_open=1.0) already encode "no-op"; we only
-   ! touch rows where struc_type == structure_gate.
-   !
-   ! Status encoding: 0=closed, 1=open, 2=opening, 3=closing.
-   !
-   use sfincs_data
-   !
-   implicit none
-   !
-   integer :: istruc, nm1, nm2
-   real    :: z1, z2
-   logical :: open_fires, close_fires
-   character(len=16) :: status_str
-   !
-   if (nr_src_structures <= 0) return
-   !
-   do istruc = 1, nr_src_structures
-      !
-      if (struc_type(istruc) /= structure_gate) cycle
-      !
-      nm1 = struc_nm_obs_1(istruc)
-      nm2 = struc_nm_obs_2(istruc)
-      !
-      if (nm1 > 0) then
-         !
-         z1 = real(zs(nm1), 4)
-         !
-      else
-         !
-         z1 = 0.0
-         !
-      endif
-      !
-      if (nm2 > 0) then
-         !
-         z2 = real(zs(nm2), 4)
-         !
-      else
-         !
-         z2 = 0.0
-         !
-      endif
-      !
-      open_fires  = evaluate_rule(struc_rule_open(istruc),  z1, z2)
-      close_fires = evaluate_rule(struc_rule_close(istruc), z1, z2)
-      !
-      if (open_fires .and. .not. close_fires) then
-         !
-         struc_status(istruc)        = 1
-         struc_fraction_open(istruc) = 1.0
-         status_str                  = 'open'
-         !
-      elseif (.not. open_fires .and. close_fires) then
-         !
-         struc_status(istruc)        = 0
-         struc_fraction_open(istruc) = 0.0
-         status_str                  = 'closed'
-         !
-      elseif (open_fires .and. close_fires) then
-         !
-         struc_status(istruc)        = 1
-         struc_fraction_open(istruc) = 1.0
-         status_str                  = 'open'
-         write(logstr,'(a,a,a)')'Warning ! gate ', trim(struc_name(istruc)), &
-              ': both open and close rules fire at init; keeping gate open'
-         call write_log(logstr, 0)
-         !
-      else
-         !
-         struc_status(istruc)        = 0
-         struc_fraction_open(istruc) = 0.0
-         status_str                  = 'closed'
-         !
-      endif
-      !
-      ! Transition timer is only consulted after a transition triggers;
-      ! seed with t0 so the first rule-driven transition has a sane baseline.
-      !
-      struc_t_state(istruc) = t0
-      !
-      write(logstr,'(a,a,a,a)')'gate ', trim(struc_name(istruc)), &
-           ' initialised status=', trim(status_str)
-      call write_log(logstr, 0)
-      !
-   enddo
-   !
-   end subroutine
-   !
-   !
    subroutine write_src_structures_log_summary()
    !
    ! Emit a one-block-per-structure description of every parsed src
@@ -1427,7 +1311,7 @@ contains
    !
    do i = 1, nr_src_structures
       !
-      select case (int(struc_type(i)))
+      select case (int(src_struc_type(i)))
          !
          case (structure_pump)
             !
@@ -1454,84 +1338,84 @@ contains
       write(logstr,'(a,i0,a)')'Structure ', i, ':'
       call write_log(logstr, 0)
       !
-      write(logstr,'(a,a)')'  name:        ', trim(struc_name(i))
+      write(logstr,'(a,a)')'  name:        ', trim(src_struc_name(i))
       call write_log(logstr, 0)
       !
       write(logstr,'(a,a)')'  type:        ', trim(type_str)
       call write_log(logstr, 0)
       !
-      write(logstr,'(a,f0.3,a,f0.3,a)')'  src_1:       (', struc_src_1_x(i), ', ', struc_src_1_y(i), ')'
+      write(logstr,'(a,f0.3,a,f0.3,a)')'  src_1:       (', src_struc_src_1_x(i), ', ', src_struc_src_1_y(i), ')'
       call write_log(logstr, 0)
       !
-      write(logstr,'(a,f0.3,a,f0.3,a)')'  src_2:       (', struc_src_2_x(i), ', ', struc_src_2_y(i), ')'
+      write(logstr,'(a,f0.3,a,f0.3,a)')'  src_2:       (', src_struc_src_2_x(i), ', ', src_struc_src_2_y(i), ')'
       call write_log(logstr, 0)
       !
       ! obs coords are meaningful for culvert / check_valve / gate.
       !
-      if (struc_type(i) == structure_culvert   .or. &
-          struc_type(i) == structure_check_valve .or. &
-          struc_type(i) == structure_gate) then
+      if (src_struc_type(i) == structure_culvert   .or. &
+          src_struc_type(i) == structure_check_valve .or. &
+          src_struc_type(i) == structure_gate) then
          !
-         write(logstr,'(a,f0.3,a,f0.3,a)')'  obs_1:       (', struc_obs_1_x(i), ', ', struc_obs_1_y(i), ')'
+         write(logstr,'(a,f0.3,a,f0.3,a)')'  obs_1:       (', src_struc_obs_1_x(i), ', ', src_struc_obs_1_y(i), ')'
          call write_log(logstr, 0)
          !
-         write(logstr,'(a,f0.3,a,f0.3,a)')'  obs_2:       (', struc_obs_2_x(i), ', ', struc_obs_2_y(i), ')'
-         call write_log(logstr, 0)
-         !
-      endif
-      !
-      if (struc_type(i) == structure_pump) then
-         !
-         write(logstr,'(a,f0.4,a)')'  discharge:   ', struc_q(i), ' (m3/s)'
+         write(logstr,'(a,f0.3,a,f0.3,a)')'  obs_2:       (', src_struc_obs_2_x(i), ', ', src_struc_obs_2_y(i), ')'
          call write_log(logstr, 0)
          !
       endif
       !
-      if (struc_type(i) == structure_culvert   .or. &
-          struc_type(i) == structure_check_valve .or. &
-          struc_type(i) == structure_gate) then
+      if (src_struc_type(i) == structure_pump) then
          !
-         write(logstr,'(a,es12.4,a)')'  qmax:        ', struc_qmax(i), ' (m3/s)'
+         write(logstr,'(a,f0.4,a)')'  discharge:   ', src_struc_q(i), ' (m3/s)'
          call write_log(logstr, 0)
          !
       endif
       !
-      if (struc_type(i) == structure_culvert .or. &
-          struc_type(i) == structure_check_valve) then
+      if (src_struc_type(i) == structure_culvert   .or. &
+          src_struc_type(i) == structure_check_valve .or. &
+          src_struc_type(i) == structure_gate) then
          !
-         write(logstr,'(a,f0.4)')'  flow_coef:   ', struc_flow_coef(i)
+         write(logstr,'(a,es12.4,a)')'  qmax:        ', src_struc_qmax(i), ' (m3/s)'
          call write_log(logstr, 0)
          !
       endif
       !
-      if (struc_type(i) == structure_gate) then
+      if (src_struc_type(i) == structure_culvert .or. &
+          src_struc_type(i) == structure_check_valve) then
          !
-         write(logstr,'(a,f0.4,a)')'  width:       ', struc_width(i), ' (m)'
-         call write_log(logstr, 0)
-         !
-         write(logstr,'(a,f0.4,a)')'  sill_elev.:  ', struc_sill_elevation(i), ' (m)'
-         call write_log(logstr, 0)
-         !
-         write(logstr,'(a,f0.4)')'  mannings_n:  ', struc_mannings_n(i)
-         call write_log(logstr, 0)
-         !
-         write(logstr,'(a,f0.2,a)')'  opening:     ', struc_opening_duration(i), ' (s)'
-         call write_log(logstr, 0)
-         !
-         write(logstr,'(a,f0.2,a)')'  closing:     ', struc_closing_duration(i), ' (s)'
+         write(logstr,'(a,f0.4)')'  flow_coef:   ', src_struc_flow_coef(i)
          call write_log(logstr, 0)
          !
       endif
       !
-      if (struc_rule_open(i) > 0) then
+      if (src_struc_type(i) == structure_gate) then
          !
-         if (len_trim(struc_rule_open_src(i)) > 0) then
+         write(logstr,'(a,f0.4,a)')'  width:       ', src_struc_width(i), ' (m)'
+         call write_log(logstr, 0)
+         !
+         write(logstr,'(a,f0.4,a)')'  sill_elev.:  ', src_struc_sill_elevation(i), ' (m)'
+         call write_log(logstr, 0)
+         !
+         write(logstr,'(a,f0.4)')'  mannings_n:  ', src_struc_mannings_n(i)
+         call write_log(logstr, 0)
+         !
+         write(logstr,'(a,f0.2,a)')'  opening:     ', src_struc_opening_duration(i), ' (s)'
+         call write_log(logstr, 0)
+         !
+         write(logstr,'(a,f0.2,a)')'  closing:     ', src_struc_closing_duration(i), ' (s)'
+         call write_log(logstr, 0)
+         !
+      endif
+      !
+      if (src_struc_rule_open(i) > 0) then
+         !
+         if (len_trim(src_struc_rule_open_src(i)) > 0) then
             !
-            write(logstr,'(a,a,a)')'  rules.open:  "', trim(struc_rule_open_src(i)), '"'
+            write(logstr,'(a,a,a)')'  rules_open:  "', trim(src_struc_rule_open_src(i)), '"'
             !
          else
             !
-            write(logstr,'(a)')'  rules.open:  (set)'
+            write(logstr,'(a)')'  rules_open:  (set)'
             !
          endif
          !
@@ -1539,15 +1423,15 @@ contains
          !
       endif
       !
-      if (struc_rule_close(i) > 0) then
+      if (src_struc_rule_close(i) > 0) then
          !
-         if (len_trim(struc_rule_close_src(i)) > 0) then
+         if (len_trim(src_struc_rule_close_src(i)) > 0) then
             !
-            write(logstr,'(a,a,a)')'  rules.close: "', trim(struc_rule_close_src(i)), '"'
+            write(logstr,'(a,a,a)')'  rules_close: "', trim(src_struc_rule_close_src(i)), '"'
             !
          else
             !
-            write(logstr,'(a)')'  rules.close: (set)'
+            write(logstr,'(a)')'  rules_close: (set)'
             !
          endif
          !
@@ -1572,6 +1456,11 @@ contains
    ! Schedule-triggered gates (legacy dtype 5) are refused; the new rule
    ! grammar is water-level-only and has no time atom.
    !
+   ! The output path is derived from legacy_path: if it ends in ".drn"
+   ! (case-insensitive) the suffix ".toml" is inserted before the ".drn",
+   ! otherwise ".toml" is appended. The resolved path is returned in
+   ! toml_path for the caller to feed into the TOML reader.
+   !
    ! The converter is deliberately minimal: no coord sanity checks, no
    ! duplicate-name detection, no preservation of comments. It exists only
    ! to remove the parallel legacy parsing machinery that used to live
@@ -1580,10 +1469,11 @@ contains
    implicit none
    !
    character(len=*), intent(in)  :: legacy_path
-   character(len=*), intent(in)  :: toml_path
+   character(len=*), intent(out) :: toml_path
    integer,          intent(out) :: ierr
    !
    integer            :: u_in, u_out, stat, n_struct, dtype
+   integer            :: len_in, ext_pos
    real*4             :: x2, y2, x1, y1, par
    real*4             :: g_width, g_sill, g_mann, g_zmin, g_zmax, g_tcls
    character(len=512) :: line, trimmed
@@ -1596,6 +1486,33 @@ contains
    n_struct = 0
    u_in     = 501
    u_out    = 502
+   !
+   ! Derive the TOML sibling path from legacy_path. If legacy_path ends
+   ! in ".drn" (case-insensitive), insert ".toml" before the extension;
+   ! else append ".toml".
+   !
+   len_in  = len_trim(legacy_path)
+   ext_pos = 0
+   !
+   if (len_in >= 4) then
+      !
+      if (to_lower(legacy_path(len_in-3:len_in)) == '.drn') then
+         !
+         ext_pos = len_in - 3
+         !
+      endif
+      !
+   endif
+   !
+   if (ext_pos > 0) then
+      !
+      toml_path = legacy_path(1:ext_pos-1) // '.toml' // legacy_path(ext_pos:len_in)
+      !
+   else
+      !
+      toml_path = legacy_path(1:len_in) // '.toml'
+      !
+   endif
    !
    open(u_in,  file=trim(legacy_path), status='old',     action='read',  iostat=stat)
    !
@@ -1637,10 +1554,10 @@ contains
       if (len_trim(trimmed) == 0) cycle
       if (trimmed(1:1) == '#' .or. trimmed(1:1) == '!') cycle
       !
-      ! Columns: x2, y2, x1, y1, dtype, par.
-      ! (legacy snk -> src_2; legacy src -> src_1).
+      ! Columns: x1, y1, x2, y2, dtype, par.
+      ! (legacy xsnk=intake -> src_1; legacy xsrc=outfall -> src_2).
       !
-      read(line, *, iostat=stat) x2, y2, x1, y1, dtype, par
+      read(line, *, iostat=stat) x1, y1, x2, y2, dtype, par
       !
       if (stat /= 0) then
          !
@@ -1680,7 +1597,7 @@ contains
             !   width, sill_elevation, mannings_n, zmin, zmax, t_close.
             ! Re-read the whole line to pull those extra columns.
             !
-            read(line, *, iostat=stat) x2, y2, x1, y1, dtype, &
+            read(line, *, iostat=stat) x1, y1, x2, y2, dtype, &
                  g_width, g_sill, g_mann, g_zmin, g_zmax, g_tcls
             !
             if (stat /= 0) then
@@ -1727,8 +1644,8 @@ contains
             write(u_out,'(a,es14.6)')  'mannings_n       = ', g_mann
             write(u_out,'(a,es14.6)')  'opening_duration = ', g_tcls
             write(u_out,'(a,es14.6)')  'closing_duration = ', g_tcls
-            write(u_out,'(a,a,a)')     'rules.open       = "', trim(rule_open_str),  '"'
-            write(u_out,'(a,a,a)')     'rules.close      = "', trim(rule_close_str), '"'
+            write(u_out,'(a,a,a)')     'rules_open       = "', trim(rule_open_str),  '"'
+            write(u_out,'(a,a,a)')     'rules_close      = "', trim(rule_close_str), '"'
             write(u_out,'(a)')         ''
             !
             cycle

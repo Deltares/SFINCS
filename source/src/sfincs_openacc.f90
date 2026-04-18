@@ -2,6 +2,7 @@ module sfincs_openacc
    !
    use sfincs_data
    use sfincs_src_structures
+   use sfincs_discharges,      only: qtsrc, nmindsrc
    use sfincs_rule_expression, only: rule_opcode, rule_atom, rule_cmp, rule_threshold, &
                                      rule_start, rule_length
    !
@@ -24,13 +25,13 @@ contains
    !$acc               z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
    !$acc               uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc               uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
-   !$acc               qsrc, qtsrc, qstruc, nmindsrc, struc_nm_in, struc_nm_out, struc_type, &
-   !$acc               struc_nm_obs_1, struc_nm_obs_2, &
-   !$acc               struc_q, struc_qmax, struc_flow_coef, &
-   !$acc               struc_width, struc_sill_elevation, struc_mannings_n, &
-   !$acc               struc_opening_duration, struc_closing_duration, &
-   !$acc               struc_distance, struc_status, struc_fraction_open, struc_t_state, &
-   !$acc               struc_rule_open, struc_rule_close, &
+   !$acc               qsrc, qtsrc, q_src_struc, nmindsrc, src_struc_nm_in, src_struc_nm_out, src_struc_type, &
+   !$acc               src_struc_nm_obs_1, src_struc_nm_obs_2, &
+   !$acc               src_struc_q, src_struc_qmax, src_struc_flow_coef, &
+   !$acc               src_struc_width, src_struc_sill_elevation, src_struc_mannings_n, &
+   !$acc               src_struc_opening_duration, src_struc_closing_duration, &
+   !$acc               src_struc_distance, src_struc_status, src_struc_fraction_open, src_struc_t_state, &
+   !$acc               src_struc_rule_open, src_struc_rule_close, &
    !$acc               rule_opcode, rule_atom, rule_cmp, rule_threshold, rule_start, rule_length, &
    !$acc               z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, &
    !$acc               structure_uv_index, structure_parameters, structure_type, structure_length, &
@@ -61,13 +62,13 @@ contains
    !$acc               z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
    !$acc               uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc               uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
-   !$acc               qsrc, qtsrc, qstruc, nmindsrc, struc_nm_in, struc_nm_out, struc_type, &
-   !$acc               struc_nm_obs_1, struc_nm_obs_2, &
-   !$acc               struc_q, struc_qmax, struc_flow_coef, &
-   !$acc               struc_width, struc_sill_elevation, struc_mannings_n, &
-   !$acc               struc_opening_duration, struc_closing_duration, &
-   !$acc               struc_distance, struc_status, struc_fraction_open, struc_t_state, &
-   !$acc               struc_rule_open, struc_rule_close, &
+   !$acc               qsrc, qtsrc, q_src_struc, nmindsrc, src_struc_nm_in, src_struc_nm_out, src_struc_type, &
+   !$acc               src_struc_nm_obs_1, src_struc_nm_obs_2, &
+   !$acc               src_struc_q, src_struc_qmax, src_struc_flow_coef, &
+   !$acc               src_struc_width, src_struc_sill_elevation, src_struc_mannings_n, &
+   !$acc               src_struc_opening_duration, src_struc_closing_duration, &
+   !$acc               src_struc_distance, src_struc_status, src_struc_fraction_open, src_struc_t_state, &
+   !$acc               src_struc_rule_open, src_struc_rule_close, &
    !$acc               rule_opcode, rule_atom, rule_cmp, rule_threshold, rule_start, rule_length, &
    !$acc               z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, &
    !$acc               structure_uv_index, structure_parameters, structure_type, structure_length, &

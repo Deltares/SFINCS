@@ -711,7 +711,7 @@ contains
       !
       ! Turn off some processes not needed for bathtub flooding
       !
-      nsrc = 0
+      nr_discharge_points = 0
       nr_src_structures = 0
       !
       meteo3d = .false.

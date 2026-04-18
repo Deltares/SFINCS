@@ -49,7 +49,7 @@ module sfincs_ncoutput
       integer :: structure_height_varid, structure_x_varid, structure_y_varid
       integer :: thindam_x_varid, thindam_y_varid      
       integer :: drain_varid, drain_name_varid
-      integer :: river_varid
+      integer :: river_varid, river_name_varid
       integer :: zb_varid
       integer :: time_varid
       integer :: zs_varid, h_varid, u_varid, v_varid, prcp_varid, cumprcp_varid, discharge_varid, uvmag_varid, uvdir_varid
@@ -1615,7 +1615,8 @@ contains
    use sfincs_date
    use sfincs_data
    use sfincs_structures
-   use sfincs_src_structures, only: nr_src_structures
+   use sfincs_src_structures, only: nr_src_structures, src_struc_name
+   use sfincs_discharges,     only: src_name
    !
    implicit none
    !
@@ -1628,9 +1629,12 @@ contains
    !
    real*4, dimension(:,:), allocatable :: thindam_info
    real*4, dimension(:), allocatable :: thindam_x
-   real*4, dimension(:), allocatable :: thindam_y   
+   real*4, dimension(:), allocatable :: thindam_y
    !
-   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nr_src_structures==0 .and. .not. (nsrc>0 .and. store_river_discharge) .and. nr_runup_gauges==0) then ! If no observation points, cross-sections, structures, drains, river sources (when store_river_discharge) or run-up gauges; his file is not created
+   character*256, dimension(:), allocatable :: drain_name_buf
+   character*256, dimension(:), allocatable :: river_name_buf
+   !
+   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nr_src_structures==0 .and. .not. (nr_discharge_points>0 .and. store_river_discharge) .and. nr_runup_gauges==0) then ! If no observation points, cross-sections, structures, drains, river sources (when store_river_discharge) or run-up gauges; his file is not created
       return
    endif
    !
@@ -1654,8 +1658,8 @@ contains
       NF90(nf90_def_dim(his_file%ncid, 'drainage', nr_src_structures, his_file%drain_dimid)) ! nr of drainage structures
    endif
    !
-   if (nsrc>0 .and. store_river_discharge) then
-      NF90(nf90_def_dim(his_file%ncid, 'rivers', nsrc, his_file%river_dimid)) ! nr of river point sources
+   if (nr_discharge_points>0 .and. store_river_discharge) then
+      NF90(nf90_def_dim(his_file%ncid, 'rivers', nr_discharge_points, his_file%river_dimid)) ! nr of river point sources
    endif
    !
    if (nrstructures>0) then   
@@ -1698,9 +1702,17 @@ contains
    !
    if (nr_runup_gauges > 0) then
       NF90(nf90_def_var(his_file%ncid, 'runup_gauge_name', NF90_CHAR, (/his_file%pointnamelength_dimid, his_file%runup_gauges_dimid/), his_file%runup_gauge_name_varid))
-   endif      
+   endif
    !
-   !NF90(nf90_put_att(his_file%ncid, his_file%station_name_varid, 'units', '-')) !not wanted in fews   
+   if (nr_src_structures > 0) then
+      NF90(nf90_def_var(his_file%ncid, 'drainage_name', NF90_CHAR, (/his_file%pointnamelength_dimid, his_file%drain_dimid/), his_file%drain_name_varid))
+   endif
+   !
+   if (nr_discharge_points > 0 .and. store_river_discharge) then
+      NF90(nf90_def_var(his_file%ncid, 'river_name', NF90_CHAR, (/his_file%pointnamelength_dimid, his_file%river_dimid/), his_file%river_name_varid))
+   endif
+   !
+   !NF90(nf90_put_att(his_file%ncid, his_file%station_name_varid, 'units', '-')) !not wanted in fews
    !
    ! Domain
    NF90(nf90_def_var(his_file%ncid, 'station_x', NF90_FLOAT, (/his_file%points_dimid/), his_file%station_x_varid))   ! non snapped input coordinate 
@@ -2059,12 +2071,13 @@ contains
       !
    endif
    !
-   if (nsrc>0 .and. store_river_discharge) then
+   if (nr_discharge_points>0 .and. store_river_discharge) then
       !
       NF90(nf90_def_var(his_file%ncid, 'river_discharge', NF90_FLOAT, (/his_file%river_dimid, his_file%time_dimid/), his_file%river_varid)) ! time-varying river point discharge
       NF90(nf90_put_att(his_file%ncid, his_file%river_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(his_file%ncid, his_file%river_varid, 'units', 'm3 s-1'))
       NF90(nf90_put_att(his_file%ncid, his_file%river_varid, 'long_name', 'river point discharge'))
+      NF90(nf90_put_att(his_file%ncid, his_file%river_varid, 'coordinates', 'river_name'))
       !
    endif
    !   
@@ -2106,7 +2119,46 @@ contains
    !
    if (nr_runup_gauges > 0) then
       NF90(nf90_put_var(his_file%ncid, his_file%runup_gauge_name_varid, runup_gauge_name))  ! write rug name
-   endif   
+   endif
+   !
+   if (nr_src_structures > 0) then
+      !
+      ! Copy src_struc_name (length src_struc_name_len = 128) into a length-256 buffer
+      ! to match the pointnamelength netCDF dimension used for all his_file name
+      ! variables.
+      !
+      allocate(drain_name_buf(nr_src_structures))
+      !
+      do istruc = 1, nr_src_structures
+         !
+         drain_name_buf(istruc) = src_struc_name(istruc)
+         !
+      enddo
+      !
+      NF90(nf90_put_var(his_file%ncid, his_file%drain_name_varid, drain_name_buf))  ! write drainage_name
+      !
+      deallocate(drain_name_buf)
+      !
+   endif
+   !
+   if (nr_discharge_points > 0 .and. store_river_discharge) then
+      !
+      ! Copy src_name (length src_name_len) into a length-256 buffer to match
+      ! the pointnamelength netCDF dimension.
+      !
+      allocate(river_name_buf(nr_discharge_points))
+      !
+      do istruc = 1, nr_discharge_points
+         !
+         river_name_buf(istruc) = src_name(istruc)
+         !
+      enddo
+      !
+      NF90(nf90_put_var(his_file%ncid, his_file%river_name_varid, river_name_buf))  ! write river_name
+      !
+      deallocate(river_name_buf)
+      !
+   endif
    !
    if (nrstructures>0) then
       !
@@ -3018,7 +3070,8 @@ contains
    use sfincs_crosssections
    use sfincs_runup_gauges
    use sfincs_snapwave
-   use sfincs_src_structures, only: nr_src_structures, qstruc
+   use sfincs_src_structures, only: nr_src_structures, q_src_struc
+   use sfincs_discharges,     only: qtsrc
    !
    implicit none
    !
@@ -3312,13 +3365,13 @@ contains
    !
    if (nr_src_structures>0) then
       !
-      !$acc update host(qstruc)
+      !$acc update host(q_src_struc)
       !
-      NF90(nf90_put_var(his_file%ncid, his_file%drain_varid, qstruc, (/1, nthisout/))) ! write per-structure discharge
+      NF90(nf90_put_var(his_file%ncid, his_file%drain_varid, q_src_struc, (/1, nthisout/))) ! write per-structure discharge
       !
    endif
    !
-   if (nsrc>0 .and. store_river_discharge) then
+   if (nr_discharge_points>0 .and. store_river_discharge) then
       !
       !$acc update host(qtsrc)
       !
@@ -3910,7 +3963,7 @@ contains
    !
    implicit none
    !
-   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nrthindams==0 .and. nr_src_structures==0 .and. .not. (nsrc>0 .and. store_river_discharge)) then ! If no observation points, cross-sections, structures (weir or thin dam), drains or river sources (when store_river_discharge); hisfile
+   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nrthindams==0 .and. nr_src_structures==0 .and. .not. (nr_discharge_points>0 .and. store_river_discharge)) then ! If no observation points, cross-sections, structures (weir or thin dam), drains or river sources (when store_river_discharge); hisfile
         return
    endif   
    !

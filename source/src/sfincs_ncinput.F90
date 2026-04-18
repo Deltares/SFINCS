@@ -206,7 +206,7 @@ module sfincs_ncinput
    !
    ! Get dimensions sizes: time, stations      
    NF90(nf90_inquire_dimension(net_file_srcdis%ncid, net_file_srcdis%time_dimid,   len = ntsrc))   !nr of timesteps in file
-   NF90(nf90_inquire_dimension(net_file_srcdis%ncid, net_file_srcdis%points_dimid, len = nsrc))  !nr of discharge points     
+   NF90(nf90_inquire_dimension(net_file_srcdis%ncid, net_file_srcdis%points_dimid, len = nr_discharge_points))  !nr of discharge points
    !
    ! Get variable id's
    NF90(nf90_inq_varid(net_file_srcdis%ncid, x_varname,    net_file_srcdis%x_varid) )  ! Has to be in the same UTM zone as SFINCS grid
@@ -215,10 +215,10 @@ module sfincs_ncinput
    NF90(nf90_inq_varid(net_file_srcdis%ncid, q_varname,    net_file_srcdis%q_varid) )    
    !
    ! Allocate variables   
-   allocate(xsrc(nsrc))
-   allocate(ysrc(nsrc)) 
+   allocate(xsrc(nr_discharge_points))
+   allocate(ysrc(nr_discharge_points))
    allocate(tsrc(ntsrc))
-   allocate(qsrc_ts(nsrc,ntsrc))
+   allocate(qsrc_ts(nr_discharge_points,ntsrc))
    !
    ! Read values
    NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%x_varid,    xsrc(:)) )

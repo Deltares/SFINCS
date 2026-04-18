@@ -724,7 +724,7 @@ module sfincs_lib
       call write_log(logstr, 1)
    endif   
    !
-   if (nsrc>0 .or. nr_src_structures>0) then
+   if (nr_discharge_points>0 .or. nr_src_structures>0) then
       write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in discharges     : ', tloopsrc, ' (', 100 * tloopsrc / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
    endif   
