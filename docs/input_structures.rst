@@ -526,16 +526,8 @@ Set ``storeqdrain = 1`` in ``sfincs.inp`` to write the time-series discharge per
        merge=True
    )
 
-   # OR as a culvert:
+The ``discharge`` argument above is the pump discharge and applies to pumps only. Culverts and gates carry their own geometry-based parameters (width, height, inverts, flow coefficients, etc.) rather than a single discharge value — see the HydroMT-SFINCS documentation for the full argument list per structure type:
 
-   sf.drainage_structures.create(
-       locations="drainage_input.geojson",
-       stype='culvert',
-       discharge=100.0,
-       merge=True
-   )
-
-More information:
 https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.geometries.SfincsDrainageStructures.create.html
 
 **Legacy fixed-column drn format**
