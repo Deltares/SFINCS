@@ -424,9 +424,15 @@ Each structure has an internal state machine with four states:
 - ``2`` — opening (transient, time-based)
 - ``3`` — closing (transient, time-based)
 
-On a time step, if the current state is ``0`` (closed), the ``rules_open`` expression is evaluated; if it fires, the state advances to ``2`` (opening) and ``fraction_open`` ramps from 0 to 1 linearly over ``opening_duration`` seconds. Symmetrically, from state ``1`` (open) a firing ``rules_close`` expression moves the state to ``3`` (closing) with ``fraction_open`` ramping from 1 to 0 over ``closing_duration`` seconds. The transient states advance on elapsed time only, so rule hysteresis cannot thrash. When ``opening_duration`` (or ``closing_duration``) is ``0.0``, the transition is instantaneous and the transient state is skipped. Structures that specify neither ``rules_open`` nor ``rules_close`` stay at the init-time default (``status = 1``, ``fraction_open = 1.0``) and the state-machine scaling is a no-op.
+At every time step, SFINCS checks the current state of the structure. If the structure is closed, it evaluates the ``rules_open`` expression; when that rule becomes true, the structure starts opening and ``fraction_open`` increases linearly from 0 to 1 over ``opening_duration`` seconds. If the structure is open, it evaluates the ``rules_close`` expression; when that rule becomes true, the structure starts closing and ``fraction_open`` decreases linearly from 1 to 0 over ``closing_duration`` seconds. While a structure is opening or closing, SFINCS only looks at the clock — the rules are not re-checked — so the structure cannot rapidly toggle on and off. Set ``opening_duration`` or ``closing_duration`` to ``0.0`` for an instantaneous transition. A structure without rules simply stays fully open for the entire simulation.
 
-The rule expressions use a compact boolean grammar. Atoms are ``z1``, ``z2``, and ``z2-z1`` (all three case-insensitive); there is **no** ``z1-z2`` atom — invert the comparison sign instead. ``z1`` is the water level in the ``obs_1`` cell and ``z2`` is the water level in the ``obs_2`` cell. Comparison operators are ``<`` and ``>`` only (no ``<=`` / ``>=``). Boolean connectives are ``&`` (and) and ``|`` (or); parentheses can be used for grouping.
+The rules use a small expression language. The building blocks are:
+
+- ``z1`` — water level at the ``obs_1`` cell (m)
+- ``z2`` — water level at the ``obs_2`` cell (m)
+- ``z2-z1`` — the head difference (m); note there is no ``z1-z2`` form, so flip the comparison sign instead (``z1-z2 > 0.1`` becomes ``z2-z1 < -0.1``)
+
+You compare one of these against a number using ``<`` or ``>`` (the ``<=`` and ``>=`` forms are not supported). Multiple comparisons can be combined with ``&`` for "and" and ``|`` for "or", and you can use parentheses to group them. All names are case-insensitive.
 
 Examples:
 
@@ -439,7 +445,7 @@ Examples:
 
 **Discharge relaxation: structure_relax**
 
-Discharges from src structures are relaxation-blended between time steps to damp oscillations:
+Discharges from drainage structures are relaxation-blended between time steps to damp oscillations:
 
 .. math::
 
