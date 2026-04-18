@@ -25,10 +25,11 @@ contains
    !$acc               uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc               uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
    !$acc               qsrc, qtsrc, qstruc, nmindsrc, struc_nm_in, struc_nm_out, struc_type, &
-   !$acc               struc_q, struc_par1, struc_par2, struc_par3, struc_cd, &
+   !$acc               struc_nm_obs_1, struc_nm_obs_2, &
+   !$acc               struc_q, struc_qmax, struc_flow_coef, &
    !$acc               struc_width, struc_sill_elevation, struc_mannings_n, &
-   !$acc               struc_zmin, struc_zmax, struc_t_close, &
-   !$acc               struc_distance, struc_status, struc_fraction_open, &
+   !$acc               struc_opening_duration, struc_closing_duration, &
+   !$acc               struc_distance, struc_status, struc_fraction_open, struc_t_state, &
    !$acc               struc_rule_open, struc_rule_close, &
    !$acc               rule_opcode, rule_atom, rule_cmp, rule_threshold, rule_start, rule_length, &
    !$acc               z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, &
@@ -61,10 +62,11 @@ contains
    !$acc               uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc               uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
    !$acc               qsrc, qtsrc, qstruc, nmindsrc, struc_nm_in, struc_nm_out, struc_type, &
-   !$acc               struc_q, struc_par1, struc_par2, struc_par3, struc_cd, &
+   !$acc               struc_nm_obs_1, struc_nm_obs_2, &
+   !$acc               struc_q, struc_qmax, struc_flow_coef, &
    !$acc               struc_width, struc_sill_elevation, struc_mannings_n, &
-   !$acc               struc_zmin, struc_zmax, struc_t_close, &
-   !$acc               struc_distance, struc_status, struc_fraction_open, &
+   !$acc               struc_opening_duration, struc_closing_duration, &
+   !$acc               struc_distance, struc_status, struc_fraction_open, struc_t_state, &
    !$acc               struc_rule_open, struc_rule_close, &
    !$acc               rule_opcode, rule_atom, rule_cmp, rule_threshold, rule_start, rule_length, &
    !$acc               z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, &
