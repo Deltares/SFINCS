@@ -11,6 +11,22 @@ module sfincs_discharges
    ! live in sfincs_src_structures. The two modules no longer share any
    ! arrays -- they cooperate only by both writing into qsrc(np).
    !
+   ! -----------------------------------------------------------------
+   ! Subroutines in this module:
+   !
+   !   initialize_discharges
+   !     Read srcfile/disfile (ascii) or netsrcdisfile (netcdf), resolve
+   !     each source to its quadtree cell, and allocate runtime state.
+   !
+   !   update_discharges
+   !     Zero qsrc(np), interpolate the river discharge time series to the
+   !     current time, and accumulate into qsrc at each source cell.
+   !
+   !   count_tokens
+   !     Count whitespace-separated tokens in a string; used to decide
+   !     between the 2-column (x y) and 3-column (x y name) src formats.
+   ! -----------------------------------------------------------------
+   !
    use sfincs_log
    use sfincs_error
    !
@@ -45,7 +61,15 @@ contains
    !
    subroutine initialize_discharges()
    !
-   ! Read src/dis or netsrcdis. Allocate nmindsrc(nr_discharge_points), qtsrc(nr_discharge_points).
+   ! Read the river-point-discharge input and wire each source up to a grid
+   ! cell. Two mutually-exclusive input paths:
+   !   - srcfile (+ disfile): ascii, 2-column (x y) or 3-column (x y name)
+   !     location file plus a separate time-series file.
+   !   - netsrcdisfile: FEWS-style netcdf with locations and time series
+   !     in one file (no per-point names; auto-generated).
+   ! Allocates nmindsrc(nr_discharge_points) and qtsrc(nr_discharge_points),
+   ! and populates shared tsrc/qsrc_ts arrays in sfincs_data.
+   ! Called once at init time.
    !
    use sfincs_data
    use sfincs_ncinput

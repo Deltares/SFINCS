@@ -26,10 +26,14 @@ contains
    !$acc               uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc               uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
    !$acc               qsrc, qtsrc, q_src_struc, nmindsrc, src_struc_nm_in, src_struc_nm_out, src_struc_type, &
+   !$acc               src_struc_direction, &
    !$acc               src_struc_nm_obs_1, src_struc_nm_obs_2, &
-   !$acc               src_struc_q, src_struc_qmax, src_struc_flow_coef, &
+   !$acc               src_struc_q, src_struc_flow_coef, &
    !$acc               src_struc_width, src_struc_sill_elevation, src_struc_mannings_n, &
    !$acc               src_struc_opening_duration, src_struc_closing_duration, &
+   !$acc               src_struc_height, &
+   !$acc               src_struc_invert_1, src_struc_invert_2, &
+   !$acc               src_struc_submergence_ratio, &
    !$acc               src_struc_distance, src_struc_status, src_struc_fraction_open, src_struc_t_state, &
    !$acc               src_struc_rule_open, src_struc_rule_close, &
    !$acc               rule_opcode, rule_atom, rule_cmp, rule_threshold, rule_start, rule_length, &
@@ -63,10 +67,14 @@ contains
    !$acc               uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc               uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
    !$acc               qsrc, qtsrc, q_src_struc, nmindsrc, src_struc_nm_in, src_struc_nm_out, src_struc_type, &
+   !$acc               src_struc_direction, &
    !$acc               src_struc_nm_obs_1, src_struc_nm_obs_2, &
-   !$acc               src_struc_q, src_struc_qmax, src_struc_flow_coef, &
+   !$acc               src_struc_q, src_struc_flow_coef, &
    !$acc               src_struc_width, src_struc_sill_elevation, src_struc_mannings_n, &
    !$acc               src_struc_opening_duration, src_struc_closing_duration, &
+   !$acc               src_struc_height, &
+   !$acc               src_struc_invert_1, src_struc_invert_2, &
+   !$acc               src_struc_submergence_ratio, &
    !$acc               src_struc_distance, src_struc_status, src_struc_fraction_open, src_struc_t_state, &
    !$acc               src_struc_rule_open, src_struc_rule_close, &
    !$acc               rule_opcode, rule_atom, rule_cmp, rule_threshold, rule_start, rule_length, &

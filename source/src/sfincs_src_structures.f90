@@ -2,11 +2,15 @@ module sfincs_src_structures
    !
    ! Point structures that move water between two grid cells by user-specified
    ! rules rather than by momentum conservation:
-   !    type 1 - pump          (fixed discharge)
-   !    type 2 - culvert       (bidirectional)
-   !    type 3 - check valve   (unidirectional culvert)
-   !    type 4 - controlled gate, water-level triggered
-   !    type 5 - controlled gate, schedule triggered
+   !    type 1 - pump           (fixed discharge)
+   !    type 3 - culvert_simple (bidirectional, optional direction filter)
+   !    type 4 - gate           (rule-driven state machine, bidirectional)
+   !    type 6 - culvert        (physics-based pipe flow with entrance /
+   !                             friction / exit losses, bidirectional,
+   !                             optional direction filter)
+   !
+   ! Legacy TOML alias accepted by the parser:
+   !    "check_valve" -> culvert_simple + direction = "positive"
    !
    ! These used to live in sfincs_discharges.f90 alongside the river point
    ! discharges read from src/dis/netsrcdis. They have been split out so that
@@ -20,11 +24,50 @@ module sfincs_src_structures
    ! Concurrency: qsrc updates use atomic because two structures (or a river
    ! source and a structure) can land in the same cell.
    !
+   ! -----------------------------------------------------------------
+   ! Subroutines in this module:
+   !
+   !   initialize_src_structures
+   !     Main entry point. Detects legacy vs TOML, dispatches through the
+   !     TOML reader, flattens into src_struc_* arrays, resolves grid-cell
+   !     indices, and seeds rule-driven gate statuses from the initial zs.
+   !
+   !   update_src_structures
+   !     Called per time step. Advances the open/close state machine for
+   !     rule-driven structures, evaluates the per-type flux formula, and
+   !     accumulates signed discharges into qsrc and q_src_struc.
+   !
+   !   read_toml_src_structures
+   !     Parse a TOML drn file into an allocatable t_src_structure(:) array.
+   !     Validates required per-type keys; returns ierr /= 0 on failure.
+   !
+   !   check_required
+   !     Helper for read_toml_src_structures: verifies that every key in a
+   !     required-key list is present in a given TOML table.
+   !
+   !   parse_structure_type
+   !     Translate a TOML "type" string to one of the structure_* codes.
+   !
+   !   parse_direction
+   !     Translate a TOML "direction" string to one of the direction_* codes.
+   !
+   !   to_lower
+   !     Return a lowercase copy of a string (ASCII).
+   !
+   !   write_src_structures_log_summary
+   !     Emit a one-block-per-structure human-readable description to the
+   !     log file; called once at init time after marshalling.
+   !
+   !   convert_legacy_to_toml
+   !     Transcribe a legacy fixed-column .drn file into a TOML sibling so
+   !     the downstream code only has to consume the TOML schema.
+   ! -----------------------------------------------------------------
+   !
    use sfincs_log
    use sfincs_error
    use sfincs_rule_expression, only: add_rule, evaluate_rule, finalize_rule_storage
    !
-   private :: parse_structure_type, to_lower, check_required
+   private :: parse_structure_type, parse_direction, to_lower, check_required
    private :: convert_legacy_to_toml
    private :: write_src_structures_log_summary
    !
@@ -32,10 +75,25 @@ module sfincs_src_structures
    ! Structure type codes
    ! ------------------------------------------------------------------
    !
-   integer, parameter :: structure_pump        = 1
-   integer, parameter :: structure_check_valve = 2
-   integer, parameter :: structure_culvert     = 3
-   integer, parameter :: structure_gate        = 4
+   integer, parameter :: structure_pump           = 1
+   integer, parameter :: structure_culvert_simple = 3
+   integer, parameter :: structure_gate           = 4
+   integer, parameter :: structure_culvert        = 6
+   !
+   ! Direction filter codes (culvert_simple / culvert). Controls which sign
+   ! of discharge is allowed through the structure. Default is "both".
+   !
+   integer, parameter :: direction_both     = 1
+   integer, parameter :: direction_positive = 2
+   integer, parameter :: direction_negative = 3
+   !
+   ! ------------------------------------------------------------------
+   ! Pump reduction curve depth (m). Pump discharge is scaled by
+   ! min(1, h_up/reduction_depth) so the pump cannot pump the intake
+   ! cell dry. Fixed constant, not user-tunable.
+   ! ------------------------------------------------------------------
+   !
+   real*4, parameter :: reduction_depth = 0.1
    !
    ! ------------------------------------------------------------------
    ! Derived type for the TOML-based src structure input.
@@ -58,6 +116,11 @@ module sfincs_src_structures
       !
       integer :: structure_type
       !
+      ! Direction filter (one of direction_both / _positive / _negative).
+      ! Honoured only for culvert_simple and culvert; other types ignore it.
+      !
+      integer :: direction
+      !
       ! Geometry - src_1/src_2 define the intake/outfall cell pair;
       ! obs_1/obs_2 are optional and default to src_1/src_2 in the
       ! marshal when the TOML reader did not see the keys (tracked via
@@ -73,22 +136,31 @@ module sfincs_src_structures
       ! Parameters
       !
       ! q                 - pump discharge
-      ! qmax              - maximum discharge magnitude (safety clamp)
-      ! width             - gate width
+      ! width             - gate / culvert width
       ! sill_elevation    - gate sill elevation
       ! mannings_n        - gate Manning's n
       ! opening_duration  - time (s) to go from closed to fully open
       ! closing_duration  - time (s) to go from open to fully closed
-      ! flow_coef         - culvert / check_valve flow coefficient
+      ! flow_coef         - culvert_simple / check_valve / culvert flow coefficient
+      ! height            - culvert pipe height (m, rectangular cross-section)
+      ! invert_1          - culvert bed elevation at src_1 end (m)
+      ! invert_2          - culvert bed elevation at src_2 end (m)
+      ! submergence_ratio - culvert submergence threshold h_dn/h_up (-)
       !
       real :: q
-      real :: qmax
       real :: width
       real :: sill_elevation
       real :: mannings_n
       real :: opening_duration
       real :: closing_duration
       real :: flow_coef
+      !
+      ! Detailed-culvert geometry + submergence threshold
+      !
+      real :: height
+      real :: invert_1
+      real :: invert_2
+      real :: submergence_ratio
       !
       ! Gate control rule expressions (raw strings; parsed by marshal).
       ! Either or both may be unallocated, meaning "no trigger for this action".
@@ -122,6 +194,7 @@ module sfincs_src_structures
    ! Kind / state
    !
    integer*1, dimension(:), allocatable, public :: src_struc_type
+   integer,   dimension(:), allocatable, public :: src_struc_direction   ! direction_* code; honoured by culvert_simple and culvert
    integer*1, dimension(:), allocatable, public :: src_struc_status
    real*4,    dimension(:), allocatable, public :: src_struc_distance
    real*4,    dimension(:), allocatable, public :: src_struc_fraction_open
@@ -149,13 +222,22 @@ module sfincs_src_structures
    ! Named parameters
    !
    real*4, dimension(:), allocatable, public :: src_struc_q                  ! pump discharge
-   real*4, dimension(:), allocatable, public :: src_struc_qmax               ! max discharge magnitude (safety clamp)
-   real*4, dimension(:), allocatable, public :: src_struc_flow_coef          ! culvert / check_valve flow coefficient
-   real*4, dimension(:), allocatable, public :: src_struc_width              ! gate width
+   real*4, dimension(:), allocatable, public :: src_struc_flow_coef          ! culvert_simple / check_valve / culvert flow coefficient
+   real*4, dimension(:), allocatable, public :: src_struc_width              ! gate / culvert width
    real*4, dimension(:), allocatable, public :: src_struc_sill_elevation     ! gate sill elevation
-   real*4, dimension(:), allocatable, public :: src_struc_mannings_n         ! gate Manning's n
+   real*4, dimension(:), allocatable, public :: src_struc_mannings_n         ! gate / culvert Manning's n
    real*4, dimension(:), allocatable, public :: src_struc_opening_duration   ! gate opening duration (s)
    real*4, dimension(:), allocatable, public :: src_struc_closing_duration   ! gate closing duration (s)
+   !
+   ! Detailed-culvert geometry
+   !
+   real*4, dimension(:), allocatable, public :: src_struc_height             ! culvert pipe height (m)
+   real*4, dimension(:), allocatable, public :: src_struc_invert_1           ! culvert bed elevation at src_1 end (m)
+   real*4, dimension(:), allocatable, public :: src_struc_invert_2           ! culvert bed elevation at src_2 end (m)
+   !
+   ! Detailed-culvert submergence threshold
+   !
+   real*4, dimension(:), allocatable, public :: src_struc_submergence_ratio  ! culvert submergence threshold h_dn/h_up (-)
    !
    ! Runtime state
    !
@@ -341,6 +423,7 @@ contains
    allocate(src_struc_nm_obs_2(nr_src_structures))
    allocate(q_src_struc(nr_src_structures))
    allocate(src_struc_type(nr_src_structures))
+   allocate(src_struc_direction(nr_src_structures))
    allocate(src_struc_distance(nr_src_structures))
    allocate(src_struc_status(nr_src_structures))
    allocate(src_struc_fraction_open(nr_src_structures))
@@ -355,13 +438,16 @@ contains
    allocate(src_struc_obs_2_x(nr_src_structures))
    allocate(src_struc_obs_2_y(nr_src_structures))
    allocate(src_struc_q(nr_src_structures))
-   allocate(src_struc_qmax(nr_src_structures))
    allocate(src_struc_flow_coef(nr_src_structures))
    allocate(src_struc_width(nr_src_structures))
    allocate(src_struc_sill_elevation(nr_src_structures))
    allocate(src_struc_mannings_n(nr_src_structures))
    allocate(src_struc_opening_duration(nr_src_structures))
    allocate(src_struc_closing_duration(nr_src_structures))
+   allocate(src_struc_height(nr_src_structures))
+   allocate(src_struc_invert_1(nr_src_structures))
+   allocate(src_struc_invert_2(nr_src_structures))
+   allocate(src_struc_submergence_ratio(nr_src_structures))
    allocate(src_struc_rule_open(nr_src_structures))
    allocate(src_struc_rule_close(nr_src_structures))
    allocate(src_struc_rule_open_src(nr_src_structures))
@@ -378,9 +464,10 @@ contains
    src_struc_nm_obs_2       = 0
    q_src_struc               = 0.0
    src_struc_type           = 0
+   src_struc_direction      = direction_both
    src_struc_distance       = 0.0
-   src_struc_fraction_open  = 1.0   ! 1.0 => no-op multiplier for non-gate types; gates get their real value from the gate-status seeding pass below
-   src_struc_status         = 0     ! 0=closed, 1=open, 2=opening, 3=closing
+   src_struc_fraction_open  = 1.0   ! default "fully open": structures without rules bypass the state machine and use this as a no-op multiplier in the common-tail scaling
+   src_struc_status         = 1     ! 0=closed, 1=open, 2=opening, 3=closing; default open (see above). Rule-driven structures overwrite this in the init-time seeding below.
    src_struc_t_state        = 0.0
    src_struc_name           = ' '
    src_struc_src_1_x        = 0.0
@@ -392,13 +479,16 @@ contains
    src_struc_obs_2_x        = 0.0
    src_struc_obs_2_y        = 0.0
    src_struc_q              = 0.0
-   src_struc_qmax           = 1.0e30
    src_struc_flow_coef      = 1.0
    src_struc_width          = 0.0
    src_struc_sill_elevation = 0.0
    src_struc_mannings_n     = 0.024
    src_struc_opening_duration = 600.0
    src_struc_closing_duration = 600.0
+   src_struc_height           = 0.0
+   src_struc_invert_1         = 0.0
+   src_struc_invert_2         = 0.0
+   src_struc_submergence_ratio = 0.667
    !
    ! ------------------------------------------------------------------
    ! Copy scalar / coord / string / parameter fields from src_structures(:)
@@ -423,7 +513,8 @@ contains
          !
       endif
       !
-      src_struc_type(i)   = int(src_structures(i)%structure_type, 1)
+      src_struc_type(i)      = int(src_structures(i)%structure_type, 1)
+      src_struc_direction(i) = src_structures(i)%direction
       !
       ! src_struc_status is runtime-only (not on the TOML type); leave it at
       ! the default of 0 (closed) set above.
@@ -462,13 +553,16 @@ contains
       endif
       !
       src_struc_q(i)                 = src_structures(i)%q
-      src_struc_qmax(i)              = src_structures(i)%qmax
       src_struc_flow_coef(i)         = src_structures(i)%flow_coef
       src_struc_width(i)             = src_structures(i)%width
       src_struc_sill_elevation(i)    = src_structures(i)%sill_elevation
       src_struc_mannings_n(i)        = src_structures(i)%mannings_n
       src_struc_opening_duration(i)  = src_structures(i)%opening_duration
       src_struc_closing_duration(i)  = src_structures(i)%closing_duration
+      src_struc_height(i)            = src_structures(i)%height
+      src_struc_invert_1(i)          = src_structures(i)%invert_1
+      src_struc_invert_2(i)          = src_structures(i)%invert_2
+      src_struc_submergence_ratio(i) = src_structures(i)%submergence_ratio
       !
       ! Parse rule expressions. Missing / empty strings leave the
       ! rule_id at 0, which the evaluator interprets as "never fires".
@@ -579,19 +673,23 @@ contains
    call write_src_structures_log_summary()
    !
    ! ------------------------------------------------------------------
-   ! Gate-specific initial status from the current zs field.
+   ! Initial-status seeding for rule-driven structures.
    !
    ! zs(:) has already been populated by initialize_domain -> initialize_hydro
    ! -> set_initial_conditions by the time we get here, so obs-point lookups
-   ! against zs are valid. For non-gate structures the defaults assigned
-   ! above (status=0=closed, fraction_open=1.0) already encode "no-op".
+   ! against zs are valid. For structures with no rule expressions the defaults
+   ! assigned above (status=1=open, fraction_open=1.0) already encode "no-op":
+   ! the state machine is skipped at runtime and the common-tail scaling by
+   ! fraction_open is a 1.0 multiply.
    !
    ! Status encoding: 0=closed, 1=open, 2=opening, 3=closing.
    ! ------------------------------------------------------------------
    !
    do istruc = 1, nr_src_structures
       !
-      if (src_struc_type(istruc) /= structure_gate) cycle
+      ! Skip structures without rules - keep the "always open" defaults.
+      !
+      if (src_struc_rule_open(istruc) <= 0 .and. src_struc_rule_close(istruc) <= 0) cycle
       !
       nm1 = src_struc_nm_obs_1(istruc)
       nm2 = src_struc_nm_obs_2(istruc)
@@ -636,8 +734,8 @@ contains
          src_struc_status(istruc)        = 1
          src_struc_fraction_open(istruc) = 1.0
          status_str                  = 'open'
-         write(logstr,'(a,a,a)')'Warning ! gate ', trim(src_struc_name(istruc)), &
-              ': both open and close rules fire at init; keeping gate open'
+         write(logstr,'(a,a,a,a)')'Warning ! structure ', trim(src_struc_name(istruc)), &
+              ': both open and close rules fire at init; keeping structure open'
          call write_log(logstr, 0)
          !
       else
@@ -653,7 +751,7 @@ contains
       !
       src_struc_t_state(istruc) = t0
       !
-      write(logstr,'(a,a,a,a)')'gate ', trim(src_struc_name(istruc)), &
+      write(logstr,'(a,a,a,a)')'structure ', trim(src_struc_name(istruc)), &
            ' initialised status=', trim(status_str)
       call write_log(logstr, 0)
       !
@@ -683,8 +781,10 @@ contains
    !
    integer :: count0, count1, count_rate, count_max
    integer :: istruc, nmin, nmout, nm_o1, nm_o2
-   real*4  :: qq, qqmax, elapsed, z1r, z2r
+   real*4  :: qq, elapsed, z1r, z2r
    real*4  :: frac, wdt, mng, zsill, dist, dzds, hgate, qq0, alpha
+   real*4  :: dh, a_eff
+   real*4  :: h_up, h_dn, qq_sign
    logical :: open_fires, close_fires
    !
    if (nr_src_structures <= 0) return
@@ -694,31 +794,151 @@ contains
    !$acc parallel loop present( z_volume, zs, zb, qsrc, q_src_struc, &
    !$acc                        src_struc_nm_in, src_struc_nm_out, &
    !$acc                        src_struc_nm_obs_1, src_struc_nm_obs_2, &
-   !$acc                        src_struc_type, &
-   !$acc                        src_struc_q, src_struc_qmax, src_struc_flow_coef, &
+   !$acc                        src_struc_type, src_struc_direction, &
+   !$acc                        src_struc_q, src_struc_flow_coef, &
    !$acc                        src_struc_width, src_struc_sill_elevation, &
    !$acc                        src_struc_mannings_n, &
    !$acc                        src_struc_opening_duration, src_struc_closing_duration, &
+   !$acc                        src_struc_height, &
+   !$acc                        src_struc_invert_1, src_struc_invert_2, &
+   !$acc                        src_struc_submergence_ratio, &
    !$acc                        src_struc_distance, src_struc_status, src_struc_fraction_open, &
    !$acc                        src_struc_t_state, &
    !$acc                        src_struc_rule_open, src_struc_rule_close, &
    !$acc                        rule_opcode, rule_atom, rule_cmp, rule_threshold, &
    !$acc                        rule_start, rule_length ) &
-   !$acc              private( nmin, nmout, nm_o1, nm_o2, qq, qqmax, elapsed, &
+   !$acc              private( nmin, nmout, nm_o1, nm_o2, qq, elapsed, &
    !$acc                       z1r, z2r, frac, wdt, mng, zsill, dist, dzds, hgate, qq0, alpha, &
+   !$acc                       dh, a_eff, &
+   !$acc                       h_up, h_dn, qq_sign, &
    !$acc                       open_fires, close_fires )
    !$omp parallel do &
-   !$omp   private( nmin, nmout, nm_o1, nm_o2, qq, qqmax, elapsed, &
+   !$omp   private( nmin, nmout, nm_o1, nm_o2, qq, elapsed, &
    !$omp            z1r, z2r, frac, wdt, mng, zsill, dist, dzds, hgate, qq0, alpha, &
+   !$omp            dh, a_eff, &
+   !$omp            h_up, h_dn, qq_sign, &
    !$omp            open_fires, close_fires ) &
    !$omp   schedule ( static )
    do istruc = 1, nr_src_structures
       !
       nmin  = src_struc_nm_in(istruc)
       nmout = src_struc_nm_out(istruc)
-      qqmax = src_struc_qmax(istruc)
       !
       if (nmin > 0 .and. nmout > 0) then
+         !
+         ! ---------------------------------------------------------------
+         ! Open/close rule state machine (any structure type, any status).
+         !
+         ! Only runs if the user provided at least one of rules_open /
+         ! rules_close. Structures without rules stay at the init-time
+         ! defaults (status=1=open, fraction_open=1.0), which turns the
+         ! common-tail scaling below into a no-op.
+         !
+         ! Status codes: 0=closed, 1=open, 2=opening, 3=closing.
+         ! Transient states 2 and 3 advance purely on elapsed time so the
+         ! state machine cannot thrash; rule evaluation happens in the
+         ! terminal states 0 and 1 only. Obs points feed the rule inputs
+         ! and default to the src pair in the marshal.
+         ! ---------------------------------------------------------------
+         !
+         if (src_struc_rule_open(istruc) > 0 .or. src_struc_rule_close(istruc) > 0) then
+            !
+            nm_o1 = src_struc_nm_obs_1(istruc)
+            nm_o2 = src_struc_nm_obs_2(istruc)
+            !
+            if (nm_o1 > 0) then
+               !
+               z1r = real(zs(nm_o1), 4)
+               !
+            else
+               !
+               z1r = 0.0
+               !
+            endif
+            !
+            if (nm_o2 > 0) then
+               !
+               z2r = real(zs(nm_o2), 4)
+               !
+            else
+               !
+               z2r = 0.0
+               !
+            endif
+            !
+            select case (int(src_struc_status(istruc)))
+               !
+               case (0)
+                  !
+                  ! closed - look for an open trigger
+                  !
+                  open_fires = evaluate_rule(src_struc_rule_open(istruc), z1r, z2r)
+                  !
+                  if (open_fires) then
+                     !
+                     src_struc_status(istruc)  = 2
+                     src_struc_t_state(istruc) = real(t, 4)
+                     !
+                  endif
+                  !
+               case (1)
+                  !
+                  ! open - look for a close trigger
+                  !
+                  close_fires = evaluate_rule(src_struc_rule_close(istruc), z1r, z2r)
+                  !
+                  if (close_fires) then
+                     !
+                     src_struc_status(istruc)  = 3
+                     src_struc_t_state(istruc) = real(t, 4)
+                     !
+                  endif
+                  !
+               case (2)
+                  !
+                  ! opening - advance on elapsed time; do not re-check rules
+                  !
+                  elapsed = real(t, 4) - src_struc_t_state(istruc)
+                  !
+                  if (src_struc_opening_duration(istruc) <= 0.0 .or. &
+                      elapsed >= src_struc_opening_duration(istruc)) then
+                     !
+                     src_struc_status(istruc)        = 1
+                     src_struc_fraction_open(istruc) = 1.0
+                     !
+                  else
+                     !
+                     src_struc_fraction_open(istruc) = elapsed / src_struc_opening_duration(istruc)
+                     !
+                  endif
+                  !
+               case (3)
+                  !
+                  ! closing - advance on elapsed time; do not re-check rules
+                  !
+                  elapsed = real(t, 4) - src_struc_t_state(istruc)
+                  !
+                  if (src_struc_closing_duration(istruc) <= 0.0 .or. &
+                      elapsed >= src_struc_closing_duration(istruc)) then
+                     !
+                     src_struc_status(istruc)        = 0
+                     src_struc_fraction_open(istruc) = 0.0
+                     !
+                  else
+                     !
+                     src_struc_fraction_open(istruc) = 1.0 - elapsed / src_struc_closing_duration(istruc)
+                     !
+                  endif
+                  !
+            end select
+            !
+         endif
+         !
+         ! ---------------------------------------------------------------
+         ! Per-type flux formula. Produces a raw signed discharge qq in
+         ! m^3/s, before the common-tail scaling by fraction_open and
+         ! direction filter.
+         ! ---------------------------------------------------------------
          !
          select case(src_struc_type(istruc))
             !
@@ -726,9 +946,19 @@ contains
                !
                qq = src_struc_q(istruc)
                !
-            case(structure_culvert)
+               ! Reduction curve: scale by upstream depth so the pump cannot
+               ! pump the intake cell dry. reduction_depth is a module-level
+               ! constant (see top of module); not user-tunable.
                !
-               ! Bidirectional: Q = flow_coef * sign(dh) * sqrt(|dh|)
+               h_up = max(real(zs(nmin), 4) - zb(nmin), 0.0)
+               qq   = qq * min(1.0, h_up / reduction_depth)
+               !
+            case(structure_culvert_simple)
+               !
+               ! Bidirectional: Q = flow_coef * sign(dh) * sqrt(|dh|).
+               ! The legacy "check_valve" alias maps to direction_positive
+               ! in the parser; the direction filter in the common tail
+               ! below restricts the allowed sign when requested.
                !
                if (zs(nmin) > zs(nmout)) then
                   !
@@ -740,126 +970,21 @@ contains
                   !
                endif
                !
-               qq = sign(min(abs(qq), qqmax), qq)
-               !
-            case(structure_check_valve)
-               !
-               ! One-way: flow only when z(in) > z(out); clipped to [0, qmax].
-               !
-               qq = src_struc_flow_coef(istruc) * sqrt(max(0.0, zs(nmin) - zs(nmout)))
-               qq = min(qq, qqmax)
-               !
             case(structure_gate)
                !
-               ! Rule-driven state machine + bidirectional culvert-style
-               ! flow, scaled by the momentary open fraction.
-               !
-               ! Status codes: 0=closed, 1=open, 2=opening, 3=closing.
-               ! Opening/closing re-use the rule-evaluation branch only in
-               ! the terminal (0) and (1) states; transient states (2, 3)
-               ! advance purely on elapsed time so they cannot thrash.
-               !
-               nm_o1 = src_struc_nm_obs_1(istruc)
-               nm_o2 = src_struc_nm_obs_2(istruc)
-               !
-               if (nm_o1 > 0) then
-                  !
-                  z1r = real(zs(nm_o1), 4)
-                  !
-               else
-                  !
-                  z1r = 0.0
-                  !
-               endif
-               !
-               if (nm_o2 > 0) then
-                  !
-                  z2r = real(zs(nm_o2), 4)
-                  !
-               else
-                  !
-                  z2r = 0.0
-                  !
-               endif
-               !
-               select case (int(src_struc_status(istruc)))
-                  !
-                  case (0)
-                     !
-                     ! closed - look for an open trigger
-                     !
-                     open_fires = evaluate_rule(src_struc_rule_open(istruc), z1r, z2r)
-                     !
-                     if (open_fires) then
-                        !
-                        src_struc_status(istruc)  = 2
-                        src_struc_t_state(istruc) = real(t, 4)
-                        !
-                     endif
-                     !
-                  case (1)
-                     !
-                     ! open - look for a close trigger
-                     !
-                     close_fires = evaluate_rule(src_struc_rule_close(istruc), z1r, z2r)
-                     !
-                     if (close_fires) then
-                        !
-                        src_struc_status(istruc)  = 3
-                        src_struc_t_state(istruc) = real(t, 4)
-                        !
-                     endif
-                     !
-                  case (2)
-                     !
-                     ! opening - advance on elapsed time; do not re-check rules
-                     !
-                     elapsed = real(t, 4) - src_struc_t_state(istruc)
-                     !
-                     if (src_struc_opening_duration(istruc) <= 0.0 .or. &
-                         elapsed >= src_struc_opening_duration(istruc)) then
-                        !
-                        src_struc_status(istruc)        = 1
-                        src_struc_fraction_open(istruc) = 1.0
-                        !
-                     else
-                        !
-                        src_struc_fraction_open(istruc) = elapsed / src_struc_opening_duration(istruc)
-                        !
-                     endif
-                     !
-                  case (3)
-                     !
-                     ! closing - advance on elapsed time; do not re-check rules
-                     !
-                     elapsed = real(t, 4) - src_struc_t_state(istruc)
-                     !
-                     if (src_struc_closing_duration(istruc) <= 0.0 .or. &
-                         elapsed >= src_struc_closing_duration(istruc)) then
-                        !
-                        src_struc_status(istruc)        = 0
-                        src_struc_fraction_open(istruc) = 0.0
-                        !
-                     else
-                        !
-                        src_struc_fraction_open(istruc) = 1.0 - elapsed / src_struc_closing_duration(istruc)
-                        !
-                     endif
-                     !
-               end select
-               !
-               ! Flow uses the src pair (nmin/nmout), not the obs pair.
-               ! Bates et al. (2010) inertial formulation, per unit width:
+               ! Bidirectional culvert-style flow. Flow uses the src pair
+               ! (nmin/nmout), not the obs pair. Bates et al. (2010)
+               ! inertial formulation, per unit width:
                !    q^{n+1} = (q^n - g*h*(dzs/ds)*dt) /
                !              (1 + g*n^2*dt*|q^n| / h^{7/3})
                ! with h = max(max(zs_in, zs_out) - zsill, 0).
-               ! Multiply by width * fraction_open to get the structure
-               ! discharge. q_src_struc(istruc) holds q from the previous step
-               ! in full (signed, m^3/s) discharge form, so convert via
-               ! width * fraction_open to get qq0 in per-unit-width units.
-               ! Sign convention: qq > 0 means flow nmin -> nmout, matching
-               ! dzds = (zs_out - zs_in)/dist (positive downstream level
-               ! -> negative dzds -> positive qq).
+               ! Multiply by width to get the full structure discharge;
+               ! scaling by fraction_open happens in the common tail.
+               ! q_src_struc(istruc) holds the previous step's discharge
+               ! after the full common-tail scaling (width*fraction_open),
+               ! so unscale by (width*fraction_open) to recover qq0 in
+               ! per-unit-width form. Sign convention: qq > 0 means flow
+               ! nmin -> nmout, matching dzds = (zs_out - zs_in)/dist.
                !
                frac  = src_struc_fraction_open(istruc)
                wdt   = src_struc_width(istruc)
@@ -875,7 +1000,8 @@ contains
                   qq0 = q_src_struc(istruc) / (wdt * max(frac, 0.001))
                   qq  = (qq0 - g * hgate * dzds * dt) / &
                         (1.0 + g * mng * mng * dt * abs(qq0) / hgate**(7.0/3.0))
-                  qq  = qq * wdt * frac
+                  qq  = qq * wdt
+                  qq  = src_struc_flow_coef(istruc) * qq
                   !
                else
                   !
@@ -883,13 +1009,85 @@ contains
                   !
                endif
                !
-               qq = sign(min(abs(qq), qqmax), qq)
+            case(structure_culvert)
+               !
+               ! Regime-aware culvert. The controlling sill is the higher
+               ! of the two inverts (flow cannot pass until the upstream
+               ! water level reaches it). Upstream / downstream are picked
+               ! by the water-level difference, so the structure is
+               ! bidirectional and the direction filter in the common tail
+               ! below restricts the sign when requested.
+               !
+               ! Two regimes, selected by h_dn/h_up against the user-set
+               ! submergence_ratio threshold (default 2/3 = 0.667, the
+               ! standard broad-crested-weir / Villemonte value):
+               !
+               !    submerged (h_dn/h_up >= threshold):
+               !       qq = flow_coef * a_eff * sqrt(2 g |dh|)
+               !    free / inlet-controlled (h_dn/h_up < threshold):
+               !       qq = flow_coef * a_eff * sqrt(2 g  h_up)
+               !
+               ! The flow area a_eff = width * min(h_up, height) caps at
+               ! the barrel height, so a deeply-submerged inlet can't
+               ! give unbounded discharge.
+               !
+               zsill = max(src_struc_invert_1(istruc), src_struc_invert_2(istruc))
+               !
+               dh = real(zs(nmin), 4) - real(zs(nmout), 4)
+               !
+               if (dh >= 0.0) then
+                  !
+                  h_up    = max(real(zs(nmin),  4) - zsill, 0.0)
+                  h_dn    = max(real(zs(nmout), 4) - zsill, 0.0)
+                  qq_sign =  1.0
+                  !
+               else
+                  !
+                  h_up    = max(real(zs(nmout), 4) - zsill, 0.0)
+                  h_dn    = max(real(zs(nmin),  4) - zsill, 0.0)
+                  qq_sign = -1.0
+                  !
+               endif
+               !
+               if (h_up <= 0.0) then
+                  !
+                  qq = 0.0
+                  !
+               else
+                  !
+                  a_eff = src_struc_width(istruc) * min(h_up, src_struc_height(istruc))
+                  !
+                  if (h_dn / h_up >= src_struc_submergence_ratio(istruc)) then
+                     !
+                     qq = qq_sign * src_struc_flow_coef(istruc) * a_eff * sqrt(2.0 * g * abs(dh))
+                     !
+                  else
+                     !
+                     qq = qq_sign * src_struc_flow_coef(istruc) * a_eff * sqrt(2.0 * g * h_up)
+                     !
+                  endif
+                  !
+               endif
                !
          end select
          !
-         ! Relaxation: blend new and previous discharge to damp oscillations.
+         ! ---------------------------------------------------------------
+         ! Common tail: scale by fraction_open (state-machine output) and
+         ! apply the direction filter. Structures without rules sit at
+         ! fraction_open=1.0 so the scaling is a no-op; structures with
+         ! direction_both (the default) see the filter as a no-op too.
+         ! ---------------------------------------------------------------
          !
-         alpha = dt / structure_relax
+         qq = qq * src_struc_fraction_open(istruc)
+         !
+         if (src_struc_direction(istruc) == direction_positive .and. qq < 0.0) qq = 0.0
+         if (src_struc_direction(istruc) == direction_negative .and. qq > 0.0) qq = 0.0
+         !
+         ! Relaxation: blend new and previous discharge to damp oscillations.
+         ! structure_relax is a dimensionless step count: alpha = 1/N damps
+         ! the discharge response over roughly N time steps. Typical 1-10.
+         !
+         alpha = 1.0 / structure_relax
          qq = alpha * qq + (1.0 - alpha) * q_src_struc(istruc)
          !
          ! Limit discharge by available volume in the intake / outfall cell.
@@ -953,22 +1151,35 @@ contains
    !
    !    [[src_structure]]
    !    name = "south_tide_gate"     ! required, string (sole identifier)
-   !    type = "gate"                ! required, one of pump/check_valve/culvert/gate
+   !    type = "gate"                ! required, one of pump/culvert_simple/gate/culvert
+   !                                 ! legacy alias: "check_valve" -> culvert_simple + direction="positive"
+   !                                 ! note: "culvert" now resolves to the detailed-culvert physics type;
+   !                                 !       users wanting the lumped one-coefficient form must say
+   !                                 !       "culvert_simple" explicitly. Orifice behaviour is recoverable
+   !                                 !       as "culvert" with submergence_ratio = 0.0.
+   !    direction = "both"           ! optional, culvert_simple/culvert only
+   !                                 ! one of "both" (default), "positive", "negative"
+   !                                 ! positive: allow flow src_1 -> src_2 only
+   !                                 ! negative: allow flow src_2 -> src_1 only
    !    src_1_x = ... ; src_1_y = ... ; src_2_x = ... ; src_2_y = ...
    !    obs_1_x = ... ; obs_1_y = ... ; obs_2_x = ... ; obs_2_y = ...
    !    q = ...                      ! pump discharge
-   !    qmax = ...                   ! max discharge magnitude (safety clamp)
    !    width = ... ; sill_elevation = ... ; mannings_n = ...
    !    opening_duration = ... ; closing_duration = ...
-   !    flow_coef = ...              ! culvert / check_valve flow coefficient
+   !    flow_coef = ...              ! culvert_simple / culvert flow coefficient
+   !    height = ...                                 ! culvert pipe height (m)
+   !    invert_1 = ... ; invert_2 = ...              ! culvert invert elevations at src_1/src_2 ends
+   !    submergence_ratio = ...                      ! culvert submergence threshold h_dn/h_up (-)
    !    rules_open  = "(z1<0.5 | z2-z1>0.05) & z2<1.5"   ! optional trigger expr
    !    rules_close = "z2>2.0"                           ! optional trigger expr
    !
    ! Per-type required keys (enforced on parse):
-   !    pump        : name, src_1_x, src_1_y, src_2_x, src_2_y, q
-   !    culvert     : name, src_1_x, src_1_y, src_2_x, src_2_y, flow_coef
-   !    check_valve : name, src_1_x, src_1_y, src_2_x, src_2_y
-   !    gate        : name, src_1_x, src_1_y, src_2_x, src_2_y, width, sill_elevation
+   !    pump           : name, src_1_x, src_1_y, src_2_x, src_2_y, q
+   !    culvert_simple : name, src_1_x, src_1_y, src_2_x, src_2_y, flow_coef
+   !    gate           : name, src_1_x, src_1_y, src_2_x, src_2_y, width, sill_elevation
+   !    culvert        : name, src_1_x, src_1_y, src_2_x, src_2_y,
+   !                     width, height, invert_1, invert_2
+   !                     (optional: flow_coef=0.6, submergence_ratio=0.667)
    !
    ! On success, structures is allocated to the exact number of entries
    ! (can be 0). On any I/O or parse failure, structures is left
@@ -989,7 +1200,7 @@ contains
    type(toml_error), allocatable    :: err
    type(toml_array), pointer        :: arr_structs
    type(toml_table), pointer        :: tbl_struct
-   character(len=:), allocatable    :: name_str, type_str, rule_str
+   character(len=:), allocatable    :: name_str, type_str, rule_str, dir_str, type_str_lc
    integer                          :: n_struct, i, stat, ierr_parse
    !
    ierr = 0
@@ -1102,12 +1313,7 @@ contains
             call check_required(tbl_struct, [ character(len=16) :: &
                  'name', 'src_1_x', 'src_1_y', 'src_2_x', 'src_2_y', 'q' ], i, ierr)
             !
-         case (structure_check_valve)
-            !
-            call check_required(tbl_struct, [ character(len=16) :: &
-                 'name', 'src_1_x', 'src_1_y', 'src_2_x', 'src_2_y' ], i, ierr)
-            !
-         case (structure_culvert)
+         case (structure_culvert_simple)
             !
             call check_required(tbl_struct, [ character(len=16) :: &
                  'name', 'src_1_x', 'src_1_y', 'src_2_x', 'src_2_y', 'flow_coef' ], i, ierr)
@@ -1117,6 +1323,12 @@ contains
             call check_required(tbl_struct, [ character(len=16) :: &
                  'name', 'src_1_x', 'src_1_y', 'src_2_x', 'src_2_y', &
                  'width', 'sill_elevation' ], i, ierr)
+            !
+         case (structure_culvert)
+            !
+            call check_required(tbl_struct, [ character(len=16) :: &
+                 'name', 'src_1_x', 'src_1_y', 'src_2_x', 'src_2_y', &
+                 'width', 'height', 'invert_1', 'invert_2' ], i, ierr)
             !
       end select
       !
@@ -1149,13 +1361,89 @@ contains
       ! arithmetic and to match the legacy-reader fallbacks.
       !
       call get_value(tbl_struct, 'q',                structures(i)%q,                0.0,    stat=stat)
-      call get_value(tbl_struct, 'qmax',             structures(i)%qmax,             1.0e30, stat=stat)
       call get_value(tbl_struct, 'width',            structures(i)%width,            0.0,    stat=stat)
       call get_value(tbl_struct, 'sill_elevation',   structures(i)%sill_elevation,   0.0,    stat=stat)
-      call get_value(tbl_struct, 'mannings_n',       structures(i)%mannings_n,       0.024,  stat=stat)
-      call get_value(tbl_struct, 'opening_duration', structures(i)%opening_duration, 600.0,  stat=stat)
-      call get_value(tbl_struct, 'closing_duration', structures(i)%closing_duration, 600.0,  stat=stat)
-      call get_value(tbl_struct, 'flow_coef',        structures(i)%flow_coef,        1.0,    stat=stat)
+      !
+      ! opening_duration / closing_duration default depends on type: gate keeps
+      ! its historical 600 s (legacy "dtype 4" gates always had finite ramp
+      ! durations), pump / culvert_simple / culvert default to 0 s (instant
+      ! open/close when a rule fires; skips the transient states 2 and 3).
+      !
+      if (structures(i)%structure_type == structure_gate) then
+         !
+         call get_value(tbl_struct, 'opening_duration', structures(i)%opening_duration, 600.0, stat=stat)
+         call get_value(tbl_struct, 'closing_duration', structures(i)%closing_duration, 600.0, stat=stat)
+         !
+      else
+         !
+         call get_value(tbl_struct, 'opening_duration', structures(i)%opening_duration, 0.0, stat=stat)
+         call get_value(tbl_struct, 'closing_duration', structures(i)%closing_duration, 0.0, stat=stat)
+         !
+      endif
+      !
+      ! flow_coef default differs by type: 1.0 for culvert_simple (legacy
+      ! lumped one-coefficient form), 0.6 for the detailed culvert
+      ! (standard orifice discharge coefficient).
+      !
+      if (structures(i)%structure_type == structure_culvert) then
+         !
+         call get_value(tbl_struct, 'flow_coef', structures(i)%flow_coef, 0.6, stat=stat)
+         !
+      else
+         !
+         call get_value(tbl_struct, 'flow_coef', structures(i)%flow_coef, 1.0, stat=stat)
+         !
+      endif
+      !
+      ! mannings_n (gate only). Default 0.024 for concrete-lined gate sill.
+      !
+      call get_value(tbl_struct, 'mannings_n', structures(i)%mannings_n, 0.024, stat=stat)
+      !
+      ! Detailed-culvert geometry + submergence threshold. Geometry keys
+      ! are required (enforced above); submergence_ratio defaults to 2/3
+      ! (0.667), the standard broad-crested-weir / Villemonte value.
+      !
+      call get_value(tbl_struct, 'height',            structures(i)%height,            0.0,   stat=stat)
+      call get_value(tbl_struct, 'invert_1',          structures(i)%invert_1,          0.0,   stat=stat)
+      call get_value(tbl_struct, 'invert_2',          structures(i)%invert_2,          0.0,   stat=stat)
+      call get_value(tbl_struct, 'submergence_ratio', structures(i)%submergence_ratio, 0.667, stat=stat)
+      !
+      ! Optional direction filter (culvert_simple / culvert). Default is
+      ! direction_both. Unknown strings are a hard error.
+      !
+      structures(i)%direction = direction_both
+      !
+      if (allocated(dir_str)) deallocate(dir_str)
+      call get_value(tbl_struct, 'direction', dir_str, stat=stat)
+      !
+      if (allocated(dir_str)) then
+         !
+         call parse_direction(dir_str, structures(i)%direction, ierr_parse)
+         !
+         if (ierr_parse /= 0) then
+            !
+            ierr = ierr_parse
+            write(logstr,'(a,a,a,i0)')' Error ! Unknown direction "', trim(dir_str), &
+                 '" in src_structure entry ', i
+            call write_log(logstr, 1)
+            call cleanup_on_error()
+            return
+            !
+         endif
+         !
+      endif
+      !
+      ! Legacy alias side-effect: "check_valve" always pins direction_positive
+      ! regardless of any explicit direction key. Detect on the lowered type
+      ! string so "Check_Valve" etc. are handled identically.
+      !
+      type_str_lc = to_lower(type_str)
+      !
+      if (type_str_lc == 'check_valve') then
+         !
+         structures(i)%direction = direction_positive
+         !
+      endif
       !
       ! Optional rules_open / rules_close string expressions. Absent keys
       ! leave the rule strings unallocated on the derived type; marshal
@@ -1174,6 +1462,10 @@ contains
    contains
       !
       subroutine cleanup_on_error()
+      !
+      ! Internal helper for the parse loop: drop the partially-filled
+      ! structures(:) array so the caller always sees it unallocated on
+      ! error exit. Trivial deallocator.
       !
       if (allocated(structures)) deallocate(structures)
       !
@@ -1221,6 +1513,14 @@ contains
    !
    ! Translate a TOML "type" string to one of the structure_* codes.
    !
+   ! Legacy alias accepted (quietly, no warning):
+   !    "check_valve" -> structure_culvert_simple
+   !                     (caller is responsible for pinning direction_positive)
+   !
+   ! Note: "culvert" now resolves to structure_culvert (the detailed
+   ! physics-based pipe-flow type). Users wanting the lumped one-coefficient
+   ! form must say "culvert_simple" explicitly.
+   !
    implicit none
    !
    character(len=*), intent(in) :: str
@@ -1239,17 +1539,57 @@ contains
          !
          code = structure_pump
          !
-      case ('check_valve')
+      case ('culvert_simple', 'check_valve')
          !
-         code = structure_check_valve
+         code = structure_culvert_simple
+         !
+      case ('gate')
+         !
+         code = structure_gate
          !
       case ('culvert')
          !
          code = structure_culvert
          !
-      case ('gate')
+      case default
          !
-         code = structure_gate
+         ierr = 1
+         !
+   end select
+   !
+   end subroutine
+   !
+   !
+   subroutine parse_direction(str, code, ierr)
+   !
+   ! Translate a TOML "direction" string to one of the direction_* codes.
+   ! Accepts "both" / "positive" / "negative" case-insensitively.
+   !
+   implicit none
+   !
+   character(len=*), intent(in) :: str
+   integer, intent(out)         :: code
+   integer, intent(out)         :: ierr
+   !
+   character(len=:), allocatable :: s
+   !
+   ierr = 0
+   code = 0
+   s    = to_lower(str)
+   !
+   select case (s)
+      !
+      case ('both')
+         !
+         code = direction_both
+         !
+      case ('positive')
+         !
+         code = direction_positive
+         !
+      case ('negative')
+         !
+         code = direction_negative
          !
       case default
          !
@@ -1297,7 +1637,7 @@ contains
    implicit none
    !
    integer :: i
-   character(len=32) :: type_str
+   character(len=32) :: type_str, dir_str
    !
    if (nr_src_structures <= 0) return
    !
@@ -1317,17 +1657,17 @@ contains
             !
             type_str = 'pump'
             !
-         case (structure_culvert)
+         case (structure_culvert_simple)
             !
-            type_str = 'culvert'
-            !
-         case (structure_check_valve)
-            !
-            type_str = 'check_valve'
+            type_str = 'culvert_simple'
             !
          case (structure_gate)
             !
             type_str = 'gate'
+            !
+         case (structure_culvert)
+            !
+            type_str = 'culvert'
             !
          case default
             !
@@ -1350,10 +1690,9 @@ contains
       write(logstr,'(a,f0.3,a,f0.3,a)')'  src_2:       (', src_struc_src_2_x(i), ', ', src_struc_src_2_y(i), ')'
       call write_log(logstr, 0)
       !
-      ! obs coords are meaningful for culvert / check_valve / gate.
+      ! obs coords are meaningful for culvert_simple / gate.
       !
-      if (src_struc_type(i) == structure_culvert   .or. &
-          src_struc_type(i) == structure_check_valve .or. &
+      if (src_struc_type(i) == structure_culvert_simple .or. &
           src_struc_type(i) == structure_gate) then
          !
          write(logstr,'(a,f0.3,a,f0.3,a)')'  obs_1:       (', src_struc_obs_1_x(i), ', ', src_struc_obs_1_y(i), ')'
@@ -1371,19 +1710,61 @@ contains
          !
       endif
       !
-      if (src_struc_type(i) == structure_culvert   .or. &
-          src_struc_type(i) == structure_check_valve .or. &
-          src_struc_type(i) == structure_gate) then
+      if (src_struc_type(i) == structure_culvert_simple) then
          !
-         write(logstr,'(a,es12.4,a)')'  qmax:        ', src_struc_qmax(i), ' (m3/s)'
+         write(logstr,'(a,f0.4)')'  flow_coef:   ', src_struc_flow_coef(i)
          call write_log(logstr, 0)
          !
       endif
       !
-      if (src_struc_type(i) == structure_culvert .or. &
-          src_struc_type(i) == structure_check_valve) then
+      ! Direction filter (culvert_simple / culvert)
+      !
+      if (src_struc_type(i) == structure_culvert_simple .or. &
+          src_struc_type(i) == structure_culvert) then
+         !
+         select case (src_struc_direction(i))
+            !
+            case (direction_both)
+               !
+               dir_str = 'both'
+               !
+            case (direction_positive)
+               !
+               dir_str = 'positive'
+               !
+            case (direction_negative)
+               !
+               dir_str = 'negative'
+               !
+            case default
+               !
+               dir_str = 'unknown'
+               !
+         end select
+         !
+         write(logstr,'(a,a)')'  direction:   ', trim(dir_str)
+         call write_log(logstr, 0)
+         !
+      endif
+      !
+      if (src_struc_type(i) == structure_culvert) then
+         !
+         write(logstr,'(a,f0.4,a)')'  width:       ', src_struc_width(i), ' (m)'
+         call write_log(logstr, 0)
+         !
+         write(logstr,'(a,f0.4,a)')'  height:      ', src_struc_height(i), ' (m)'
+         call write_log(logstr, 0)
+         !
+         write(logstr,'(a,f0.4,a)')'  invert_1:    ', src_struc_invert_1(i), ' (m)'
+         call write_log(logstr, 0)
+         !
+         write(logstr,'(a,f0.4,a)')'  invert_2:    ', src_struc_invert_2(i), ' (m)'
+         call write_log(logstr, 0)
          !
          write(logstr,'(a,f0.4)')'  flow_coef:   ', src_struc_flow_coef(i)
+         call write_log(logstr, 0)
+         !
+         write(logstr,'(a,f0.4)')'  submerg_r:   ', src_struc_submergence_ratio(i)
          call write_log(logstr, 0)
          !
       endif
@@ -1439,6 +1820,25 @@ contains
          !
       endif
       !
+      ! Opening/closing durations. For gate structures these are always
+      ! printed (above); for other types only print if rules are set and
+      ! the duration is non-zero (non-default).
+      !
+      if (src_struc_type(i) /= structure_gate) then
+         !
+         if ((src_struc_rule_open(i)  > 0 .or. src_struc_rule_close(i) > 0) .and. &
+             (src_struc_opening_duration(i) > 0.0 .or. src_struc_closing_duration(i) > 0.0)) then
+            !
+            write(logstr,'(a,f0.2,a)')'  opening:     ', src_struc_opening_duration(i), ' (s)'
+            call write_log(logstr, 0)
+            !
+            write(logstr,'(a,f0.2,a)')'  closing:     ', src_struc_closing_duration(i), ' (s)'
+            call write_log(logstr, 0)
+            !
+         endif
+         !
+      endif
+      !
       call write_log('', 0)
       !
    enddo
@@ -1478,7 +1878,7 @@ contains
    real*4             :: g_width, g_sill, g_mann, g_zmin, g_zmax, g_tcls
    character(len=512) :: line, trimmed
    character(len=32)  :: name_str
-   character(len=16)  :: type_name, par_name
+   character(len=16)  :: type_name, par_name, dir_name
    character(len=13)  :: zmin_str, zmax_str
    character(len=128) :: rule_open_str, rule_close_str
    !
@@ -1574,6 +1974,12 @@ contains
       !
       ! Branch on dtype. Gates (4, 5) and unknown codes set ierr and bail.
       !
+      ! dir_name is left blank unless dtype pins a direction filter; a blank
+      ! dir_name causes the emitter below to skip the direction key entirely,
+      ! which reads back as direction_both (the default).
+      !
+      dir_name = ''
+      !
       select case (dtype)
          !
          case (1)
@@ -1583,13 +1989,18 @@ contains
             !
          case (2)
             !
-            type_name = 'culvert'
+            ! legacy culvert -> bidirectional culvert_simple
+            !
+            type_name = 'culvert_simple'
             par_name  = 'flow_coef'
             !
          case (3)
             !
-            type_name = 'check_valve'
+            ! legacy check_valve -> culvert_simple with direction = "positive"
+            !
+            type_name = 'culvert_simple'
             par_name  = 'flow_coef'
+            dir_name  = 'positive'
             !
          case (4)
             !
@@ -1676,6 +2087,13 @@ contains
       write(u_out,'(a)')         '[[src_structure]]'
       write(u_out,'(a,a,a)')     'name    = "', trim(name_str), '"'
       write(u_out,'(a,a,a)')     'type    = "', trim(type_name),'"'
+      !
+      if (len_trim(dir_name) > 0) then
+         !
+         write(u_out,'(a,a,a)')  'direction = "', trim(dir_name), '"'
+         !
+      endif
+      !
       write(u_out,'(a,es14.6)')  'src_1_x = ', x1
       write(u_out,'(a,es14.6)')  'src_1_y = ', y1
       write(u_out,'(a,es14.6)')  'src_2_x = ', x2
