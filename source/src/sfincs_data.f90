@@ -162,6 +162,7 @@ module sfincs_data
       character*256 :: f0file
       character*256 :: fcfile
       character*256 :: kdfile
+      character*256 :: drainagefile
       character*256 :: z0lfile
       character*256 :: qtrfile
       character*256 :: volfile
@@ -399,6 +400,21 @@ module sfincs_data
       ! Storage volume
       !
       real*4, dimension(:),   allocatable :: storage_volume  ! Storage volume green infra
+      !
+      ! Drainage - constant removal rate representing subsurface drainage
+      !
+      logical       :: drainage = .false.
+      real*4, dimension(:),   allocatable :: qdrain_rate                       ! drainage rate per cell (m/s)
+      !
+      ! Bucket model - finite capacity reservoir with linear drainage
+      !
+      logical       :: use_bucket_model = .false.
+      real*4, dimension(:),   allocatable :: bucket_volume                     ! current storage (m)
+      real*4, dimension(:),   allocatable :: bucket_capacity                   ! max capacity S_max (m)
+      real*4, dimension(:),   allocatable :: bucket_k                          ! drainage coefficient (1/s)
+      real*4, dimension(:),   allocatable :: bucket_drain_rate                 ! net removal from surface this step (m/s)
+      real*4, dimension(:),   allocatable :: bucket_loss                       ! loss fraction per cell (0-1), ET/deep percolation
+      real*4, dimension(:),   allocatable :: bucket_runoff                     ! bucket drainage returned as surface runoff (m/s)
       !
       ! Wind reduction for spiderweb winds
       !
@@ -961,7 +977,14 @@ module sfincs_data
     if(allocated(qinffield)) deallocate(qinffield)
     if(allocated(ksfield)) deallocate(ksfield)
     if(allocated(scs_Se)) deallocate(scs_Se)
-    if(allocated(nuvisc)) deallocate(nuvisc)    
+    if(allocated(qdrain_rate)) deallocate(qdrain_rate)
+    if(allocated(bucket_volume)) deallocate(bucket_volume)
+    if(allocated(bucket_capacity)) deallocate(bucket_capacity)
+    if(allocated(bucket_k)) deallocate(bucket_k)
+    if(allocated(bucket_drain_rate)) deallocate(bucket_drain_rate)
+    if(allocated(bucket_loss)) deallocate(bucket_loss)
+    if(allocated(bucket_runoff)) deallocate(bucket_runoff)
+    if(allocated(nuvisc)) deallocate(nuvisc)
     !
     ! Boundary velocity points
     !

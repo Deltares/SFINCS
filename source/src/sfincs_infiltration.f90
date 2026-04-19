@@ -18,8 +18,8 @@ contains
    !
    character*256 :: varname
    !
-   character(len=3), parameter :: allowed_types(5) = &
-        ['c2d', 'cna', 'cnb', 'gai', 'hor']   
+   character(len=3), parameter :: allowed_types(6) = &
+        ['c2d', 'cna', 'cnb', 'gai', 'hor', 'bkt']   
 
    logical :: inftype_exists   
    !
@@ -32,20 +32,22 @@ contains
    infiltration   = .false.
    netcdf_infiltration   = .false.   
    !
-   ! Four options for infiltration:
+   ! Seven infiltration flavors (inftype):
    !
-   ! 1) Spatially-uniform constant infiltration
-   !    Requires: -
-   ! 2) Spatially-varying constant infiltration
-   !    Requires: qinfmap (does not require qinffield !)
-   ! 3) Spatially-varying infiltration with CN numbers (old)
-   !    Requires: cumprcp, cuminf, qinfmap, qinffield
-   ! 4) Spatially-varying infiltration with CN numbers (new)
-   !    Requires: qinfmap, qinffield, qinffield, ksfield, scs_P1, scs_F1, scs_Se and scs_rain (but not necessarily cuminf and cumprcp)
-   ! 5) Spatially-varying infiltration with the Green-Ampt (GA) model
-   !    Requires: qinfmap, qinffield, ksfield, GA_head, GA_sigma_max, GA_Lu
-   ! 6) Spatially-varying infiltration with the modified Horton Equation 
-   !    Requires: qinfmap, qinffield, horton_fc, horton_f0     
+   ! 1) 'con' - Spatially-uniform constant infiltration
+   !    Requires: qinf (mm/hr in sfincs.inp)
+   ! 2) 'c2d' - Spatially-varying constant infiltration
+   !    Requires: qinffile or infiltrationfile
+   ! 3) 'cna' - SCS Curve Number (old, no recovery)
+   !    Requires: scsfile or infiltrationfile
+   ! 4) 'cnb' - SCS Curve Number (new, with recovery)
+   !    Requires: sefffile or infiltrationfile
+   ! 5) 'gai' - Green-Ampt infiltration
+   !    Requires: psifile or infiltrationfile
+   ! 6) 'hor' - Modified Horton equation
+   !    Requires: f0file or infiltrationfile
+   ! 7) 'bkt' - Bucket model (linear reservoir, HBV/wflow style)
+   !    Requires: infiltrationfile with bucket_smax, bucket_k and bucket_loss
    !
    ! cumprcp and cuminf are stored in the netcdf output if store_cumulative_precipitation == .true. which is the default
    !
@@ -61,6 +63,12 @@ contains
    ! 1) First we determine infiltration type
    !
    if (precip) then
+      !
+      if (inftype == 'bkt' .and. infiltrationfile == 'none') then
+         !
+         call stop_sfincs('Error ! Bucket model requires infiltrationfile together with infiltrationtype = bkt !', 1)
+         !
+      endif
       !
       if (infiltrationfile  /= 'none') then
          !
@@ -83,7 +91,7 @@ contains
             !
          else
             !
-            write(logstr,*)'Error    : infiltration input type ',trim(inftype),' is not part of supported types c2d cna cnb gai hor !'
+            write(logstr,*)'Error    : infiltration input type ',trim(inftype),' is not part of supported types c2d cna cnb gai hor bkt !'
             call stop_sfincs(trim(logstr), 1)   
             !
          end if        
@@ -124,7 +132,7 @@ contains
          inftype = 'gai'
          infiltration = .true.      
          !
-      elseif (f0file /= 'none') then  
+      elseif (f0file /= 'none') then
          !
          ! The Horton Equation model for infiltration
          !
@@ -168,22 +176,19 @@ contains
       ! 5) Check whether infiltration input type (orignal vs netcdf) are correctly matched to grid type (regular vs quadtree)
       !
       if (infiltration .and. inftype /= 'con') then !constant uniform works for both options
-         ! 
-         if (netcdf_infiltration) then
-            !            
-            if (use_quadtree .eqv. .false.) then
-               ! 
-               call stop_sfincs('Error ! Netcdf infiltration input format can only be specified for quadtree mesh model !', 1)              
+         !
+         ! Netcdf infiltration works for both regular and quadtree grids
+         ! (regular grids populate quadtree_nr_points and index_sfincs_in_quadtree
+         !  via make_quadtree_from_indices)
+         !
+         if (.not. netcdf_infiltration) then
+            !
+            if (use_quadtree .eqv. .true.) then
+               !
+               call stop_sfincs('Error ! Infiltration input for quadtree mesh model can only be specified using the infiltrationfile Netcdf format! !', 1)
                !
             endif
             !
-         else ! Original
-            ! 
-            if (use_quadtree .eqv. .true.) then
-               ! 
-               call stop_sfincs('Error ! Infiltration input for quadtree mesh model can only be specified using the infiltrationfile Netcdf format! !', 1)                       
-            endif 
-             ! 
          endif
          !
       endif      
@@ -498,7 +503,7 @@ contains
          ! Allocate support variables:
          !
          allocate(qinffield(np))
-         qinffield(nm) = 0.0
+         qinffield = 0.0
          !
       elseif (inftype == 'hor') then  
          !
@@ -591,6 +596,14 @@ contains
          allocate(rain_T1(np))
          rain_T1 = 0.0
          !
+      elseif (inftype == 'bkt') then
+         !
+         ! Bucket model (linear reservoir) - mimics hydrology models like wflow/HBV
+         !
+         call write_log('Info    : turning on process infiltration (via bucket model)', 0)
+         !
+         call initialize_bucket_model()
+         !
       endif
       !
    else
@@ -634,7 +647,7 @@ contains
       !$omp parallel &
       !$omp private ( nm )
       !$omp do
-      !$acc parallel present( qinfmap, qinffield, z_volume, zs, zb, netprcp, cuminf )
+      !$acc parallel present( qinfmap, qinffield, z_volume, zs, zb, cuminf )
       !$acc loop independent gang vector
       do nm = 1, np
          !
@@ -656,17 +669,13 @@ contains
             !
          endif
          !
-         ! Compute nett precip
-         !
-         netprcp(nm) = netprcp(nm) - qinfmap(nm)
-         !
          if (store_cumulative_precipitation) then
             !
             ! Compute cumulative infiltration
             !
             cuminf(nm) = cuminf(nm) + qinfmap(nm) * dt
             !
-         endif   
+         endif
          !
       enddo
       !$omp end do
@@ -680,7 +689,7 @@ contains
       !$omp parallel &
       !$omp private ( Qq,I,nm )
       !$omp do
-      !$acc parallel present( qinfmap, qinffield, prcp, netprcp, cumprcp, cuminf )
+      !$acc parallel present( qinfmap, qinffield, prcp, cumprcp, cuminf )
       !$acc loop independent gang vector
       do nm = 1, np
          !
@@ -702,10 +711,6 @@ contains
             !
          endif   
          !
-         ! Compute nett precip
-         !
-         netprcp(nm) = netprcp(nm) - qinfmap(nm)
-         ! 
          if (store_cumulative_precipitation) then
             !
             ! Compute cumulative infiltration
@@ -726,7 +731,7 @@ contains
       !$omp parallel &
       !$omp private ( Qq,I,nm )       
       !$omp do       
-      !$acc parallel present( qinfmap, prcp, netprcp, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, qinffield, inf_kr )
+      !$acc parallel present( qinfmap, prcp, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, qinffield, inf_kr )
       !$acc loop independent gang vector
       do nm = 1, np
          !
@@ -808,10 +813,6 @@ contains
             !
          endif
          !
-         ! Compute nett precip
-         !
-         netprcp(nm) = netprcp(nm) - qinfmap(nm)
-         !
          if (store_cumulative_precipitation) then
             !
             ! Compute cumulative infiltration
@@ -822,7 +823,7 @@ contains
          !
       enddo
       !$omp end do
-      !$omp end parallel 
+      !$omp end parallel
       !$acc end parallel
       !
    elseif (inftype == 'gai') then
@@ -832,7 +833,7 @@ contains
       !$omp parallel &
       !$omp private ( nm )
       !$omp do              
-      !$acc parallel present( qinfmap, prcp, netprcp, cuminf, rain_T1,  &
+      !$acc parallel present( qinfmap, prcp, cuminf, rain_T1,  &
       !$acc                  ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr )
       !$acc loop independent gang vector
       do nm = 1, np
@@ -853,8 +854,18 @@ contains
                !
                ! Larger amounts of rainfall - Equation 4-27 from SWMM manual
                !
-               qinfmap(nm) = (ksfield(nm) * (1.0 + (GA_head(np) * GA_sigma(np)) / GA_F(nm)))
-               qinfmap(nm) = max(min(qinfmap(nm), prcp(nm)), 0.0)     ! never more than rainfall and and never negative
+               if (GA_F(nm) < 1.0e-10) then
+                  !
+                  ! No cumulative infiltration yet (first timestep) - all rainfall infiltrates
+                  !
+                  qinfmap(nm) = prcp(nm)
+                  !
+               else
+                  !
+                  qinfmap(nm) = (ksfield(nm) * (1.0 + (GA_head(nm) * GA_sigma(nm)) / GA_F(nm)))
+                  qinfmap(nm) = max(min(qinfmap(nm), prcp(nm)), 0.0)     ! never more than rainfall and never negative
+                  !
+               endif
                !
             endif
             !
@@ -891,11 +902,6 @@ contains
             endif
          endif
          ! 
-         ! Compute nett precip
-         !
-         !qinffield(nm)  = qinfmap(nm) ! Really ? Why ?
-         netprcp(nm)    = netprcp(nm) - qinfmap(nm)
-         !
          if (store_cumulative_precipitation) then
             !
             ! Compute cumulative infiltration
@@ -906,7 +912,7 @@ contains
          !
       enddo
       !$omp end do
-      !$omp end parallel       
+      !$omp end parallel
       !$acc end parallel
       !
    elseif (inftype == 'hor') then
@@ -916,7 +922,7 @@ contains
       !$omp parallel &
       !$omp private  ( nm, Qq, I, a, hh_local )
       !$omp do              
-      !$acc parallel present( qinfmap, prcp, netprcp, cuminf, cell_area_m2, cell_area, z_flags_iref, z_volume, zs, zb, rain_T1,  &
+      !$acc parallel present( qinfmap, prcp, cuminf, cell_area_m2, cell_area, z_flags_iref, z_volume, zs, zb, rain_T1,  &
       !$acc                  horton_kd, horton_fc, horton_f0 )
       !$acc loop independent gang vector
       do nm = 1, np
@@ -1007,10 +1013,6 @@ contains
             !
          endif
          !
-         ! Compute nett precip
-         !
-         netprcp(nm)    = netprcp(nm) - qinfmap(nm)
-         !
          if (store_cumulative_precipitation) then
             !
             ! Compute cumulative infiltration
@@ -1021,14 +1023,201 @@ contains
          !
       enddo
       !$omp end do
-      !$omp end parallel 
+      !$omp end parallel
       !$acc end parallel
+      !
+   elseif (inftype == 'bkt') then
+      !
+      ! Bucket model (linear reservoir)
+      !
+      call compute_bucket_drainage(dt)
       !
    endif
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0 * (count1 - count0) / count_rate
    !
-   end subroutine   
+   end subroutine
+
+
+   subroutine initialize_bucket_model()
+   !
+   use netcdf
+   use sfincs_data
+   use sfincs_ncinput
+   !
+   implicit none
+   !
+   integer :: status, ncid, varid
+   character*256 :: varname
+   !
+   if (netcdf_infiltration) then
+      !
+      use_bucket_model = .true.
+      !
+      write(logstr,'(a)')'Info    : turning on bucket model (linear reservoir)'
+      call write_log(logstr, 0)
+      !
+      allocate(bucket_capacity(np))
+      allocate(bucket_k(np))
+      allocate(bucket_volume(np))
+      allocate(bucket_drain_rate(np))
+      allocate(bucket_loss(np))
+      allocate(bucket_runoff(np))
+      !
+      bucket_capacity   = 0.0
+      bucket_k          = 0.0
+      bucket_volume     = 0.0
+      bucket_drain_rate = 0.0
+      bucket_loss       = 0.0
+      bucket_runoff     = 0.0
+      !
+      !
+      ! Read from infiltrationfile (netcdf) - works for both regular and quadtree grids
+      !
+      varname = 'bucket_smax'
+      call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, bucket_capacity)
+      bucket_capacity = bucket_capacity / 1000.0   ! mm to m
+      !
+      varname = 'bucket_k'
+      call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, bucket_k)
+      bucket_k = bucket_k / 3600.0   ! 1/hr to 1/s
+      !
+      status = nf90_open(trim(infiltrationfile), NF90_NOWRITE, ncid)
+      if (status /= nf90_noerr) then
+         call stop_sfincs('Error ! Cannot open infiltrationfile for bucket model input !', 1)
+      endif
+      !
+      status = nf90_inq_varid(ncid, 'bucket_loss', varid)
+      if (nf90_close(ncid) /= nf90_noerr) then
+         call stop_sfincs('Error ! Cannot close infiltrationfile after checking bucket model variables !', 1)
+      endif
+      !
+      if (status /= nf90_noerr) then
+         call stop_sfincs('Error ! Bucket model requires variable bucket_loss in infiltrationfile !', 1)
+      endif
+      !
+      varname = 'bucket_loss'
+      call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, bucket_loss)
+      call write_log('Info    : read spatially-varying bucket_loss from infiltrationfile', 0)
+      !
+      write(logstr,'(a,f10.4,a)')'Info    : bucket max capacity = ', maxval(bucket_capacity) * 1000.0, ' mm'
+      call write_log(logstr, 0)
+      write(logstr,'(a,f6.3)')'Info    : bucket loss fraction = ', maxval(bucket_loss)
+      call write_log(logstr, 0)
+      !
+   else
+      !
+      ! Allocate minimal arrays for OpenACC compatibility
+      !
+      allocate(bucket_capacity(1))
+      allocate(bucket_k(1))
+      allocate(bucket_volume(1))
+      allocate(bucket_drain_rate(1))
+      allocate(bucket_loss(1))
+      allocate(bucket_runoff(1))
+      bucket_capacity   = 0.0
+      bucket_k          = 0.0
+      bucket_volume     = 0.0
+      bucket_drain_rate = 0.0
+      bucket_loss       = 0.0
+      bucket_runoff     = 0.0
+      !
+   endif
+   !
+   end subroutine
+
+
+   subroutine compute_bucket_drainage(dt)
+   !
+   ! Bucket model with loss: linear reservoir + loss fraction (HBV/wflow style)
+   !
+   ! Steps per cell:
+   !   1. P_eff = P * (1 - loss)       -- fraction lost to ET/deep percolation
+   !   2. Fill bucket with P_eff (up to Smax capacity)
+   !   3. Drain bucket: S(t+dt) = S(t)*exp(-k*dt), drainage returned as runoff
+   !   4. qinfmap = P - runoff         -- net removal from surface
+   !
+   ! In continuity: zs += prcp*dt - qinfmap*dt = bucket_runoff*dt
+   ! => Only bucket drainage reaches the surface water level
+   !
+   ! Literature: Linear reservoir (Nash, 1957), HBV soil moisture bucket (Bergstrom, 1995)
+   !
+   use sfincs_data
+   !
+   implicit none
+   !
+   real*4           :: dt
+   integer          :: nm
+   real*4           :: exp_factor
+   real*4           :: drain_vol
+   real*4           :: P_eff
+   real*4           :: available_cap
+   real*4           :: actual_inflow
+   real*4           :: precip_rate
+   !
+   !$omp parallel do private(nm, exp_factor, drain_vol, P_eff, available_cap, actual_inflow, precip_rate)
+   !$acc parallel present( kcs, prcp, qinfmap, cuminf, bucket_volume, bucket_capacity, bucket_k, &
+   !$acc                   bucket_drain_rate, bucket_loss, bucket_runoff )
+   !$acc loop independent gang vector
+   do nm = 1, np
+      !
+      if (kcs(nm) == 1 .and. bucket_k(nm) > 0.0) then
+         !
+         ! Step 1: Compute effective precipitation (after loss)
+         !
+         precip_rate = max(prcp(nm), 0.0)
+         P_eff = precip_rate * (1.0 - bucket_loss(nm))             ! m/s after loss
+         !
+         ! Step 2: Fill bucket with effective precip (up to capacity)
+         !
+         if (bucket_capacity(nm) > 0.0) then
+            available_cap = bucket_capacity(nm) - bucket_volume(nm)
+            actual_inflow = min(P_eff * dt, available_cap)          ! m
+         else
+            ! No capacity limit (Smax = 0 means infinite)
+            actual_inflow = P_eff * dt                              ! m
+         endif
+         bucket_volume(nm) = bucket_volume(nm) + actual_inflow
+         !
+         ! Step 3: Drain bucket (analytical linear reservoir)
+         ! S(t+dt) = S(t) * exp(-k*dt), drainage = S(t) - S(t+dt)
+         !
+         exp_factor = exp(-bucket_k(nm) * dt)
+         drain_vol = bucket_volume(nm) * (1.0 - exp_factor)        ! m drained this step
+         bucket_volume(nm) = bucket_volume(nm) * exp_factor
+         !
+         ! Step 4: Bucket drainage becomes runoff returned to surface
+         !
+         bucket_runoff(nm) = drain_vol / dt                         ! m/s
+         !
+         ! Step 5: Set qinfmap = loss + what entered bucket - what drained back
+         ! In continuity: zs += prcp*dt - qinfmap*dt
+         ! Water balance: qinfmap = prcp*loss + actual_inflow/dt - bucket_runoff
+         ! When bucket has room:  actual_inflow = P_eff*dt => qinfmap = prcp - bucket_runoff
+         ! When bucket is full:   actual_inflow = 0       => qinfmap can be negative (drainage > inflow)
+         !
+         qinfmap(nm) = precip_rate * bucket_loss(nm) + actual_inflow / dt - bucket_runoff(nm)
+         !
+         bucket_drain_rate(nm) = bucket_runoff(nm)
+         !
+         if (store_cumulative_precipitation) then
+            cuminf(nm) = cuminf(nm) + qinfmap(nm) * dt
+         endif
+         !
+      else
+         !
+         qinfmap(nm) = 0.0
+         bucket_drain_rate(nm) = 0.0
+         bucket_runoff(nm) = 0.0
+         !
+      endif
+      !
+   enddo
+   !$acc end parallel
+   !$omp end parallel do
+   !
+   end subroutine
+
 
 end module

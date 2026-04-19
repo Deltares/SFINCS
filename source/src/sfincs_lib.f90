@@ -95,8 +95,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.3.2 mt. Faber+branch:318"
-   build_date     = "$Date: 2025-04-13"
+   build_revision = "$Rev: v2.3.2 Mount Faber + branch-redo-infiltration + urban_drainage + discharges"
+   build_date     = "$Date: 2026-04-19"
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)
@@ -243,6 +243,11 @@ module sfincs_lib
    else   
       call write_log('Infiltration         : no', 1)
    endif   
+   if (drainage) then
+      call write_log('Drainage             : yes', 1)
+   else   
+      call write_log('Drainage             : no', 1)
+   endif 
    if (snapwave) then
       call write_log('SnapWave             : yes', 1)
    else
@@ -532,16 +537,6 @@ module sfincs_lib
          !
          call update_meteo_forcing(t, dt, tloopwnd2)
          !
-         ! Update infiltration
-         !
-         if (infiltration) then
-             !
-             ! Compute infiltration rates
-             !
-             call update_infiltration_map(dt, tloopinf)
-             !
-         endif
-         !
       endif   
       !
       ! Update boundary conditions
@@ -619,7 +614,11 @@ module sfincs_lib
          !      
          ! Update water levels
          !
-         call compute_water_levels(t, dt, tloopcont)
+         !call compute_water_levels(t, dt, tloopcont)
+         !      
+         ! Update continuity (discharges, infiltration, drainage, water levels)
+         !
+         call update_continuity(t, dt, tloopsrc, tloopinf, tloopcont)
          !
       endif   
       !

@@ -24,7 +24,9 @@ contains
    !
    call initialize_roughness()
    !
-   call initialize_infiltration() ! see: sfincs_infiltration.f90
+   call initialize_infiltration() ! see: sfincs_infiltration.f90 (includes bucket model if infiltrationtype='bkt')
+   !
+   call initialize_drainage_mimic()
    !
    call initialize_storage_volume()
    !
@@ -2046,6 +2048,76 @@ contains
    else
       !
       ! Give warning if manningfile is supplied, but also a subgrid file
+      !
+      if (manningfile(1:4) /= 'none') then 
+         !
+         call write_log('Warning   : manningfile input will be ignored because SFINCS will use the friction information from sbgfile!', 1)
+         !
+      endif
+       !
+   endif
+   !
+   end subroutine
+
+
+   subroutine initialize_drainage_mimic()
+   !
+   use sfincs_data
+   use sfincs_ncinput
+   !
+   implicit none
+   !
+   integer :: nm
+   integer :: nchar
+   logical :: ok
+   character*256 :: varname
+   !
+   ! Check if drainage is enabled
+   !
+   if (drainagefile /= 'none') then
+      !
+      drainage = .true.
+      !
+      allocate(qdrain_rate(np))
+      !
+      !
+      ! Spatially-varying drainage rate
+      !
+      write(logstr,'(a)')'Info    : turning on drainage mimic (spatially-varying)'
+      call write_log(logstr, 0)
+      !
+      nchar = len_trim(drainagefile)
+      ok = check_file_exists(drainagefile, 'Drainage file', .true.)
+      !
+      if (drainagefile(nchar - 1 : nchar) == 'nc') then
+         !
+         varname = 'drainage_rate'
+         call read_netcdf_quadtree_to_sfincs(drainagefile, varname, qdrain_rate)
+         !
+         ! Convert from mm/hr to m/s
+         !
+         qdrain_rate = qdrain_rate / 3600.0 / 1000.0
+         !
+      else
+         !
+         ! Read from binary file (assumed to be in mm/hr)
+         !
+         open(unit = 500, file = trim(drainagefile), form = 'unformatted', access = 'stream')
+         read(500)qdrain_rate
+         close(500)
+         !
+         ! Convert from mm/hr to m/s
+         !
+         qdrain_rate = qdrain_rate / 3600.0 / 1000.0
+         !
+      endif
+      !
+   else
+      !
+      ! Allocate minimal arrays for OpenACC compatibility
+      !
+      allocate(qdrain_rate(1))
+      qdrain_rate = 0.0
       !
       if (manningfile(1:4) /= 'none') then 
          !

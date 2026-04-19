@@ -51,8 +51,9 @@ contains
    !$acc               gnapp2, &
    !$acc               timestep_analysis_required_timestep, timestep_analysis_average_required_timestep, timestep_analysis_times_wet, timestep_analysis_times_limiting, &
    !$acc               qinffield, qinfmap, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, &
-   !$acc               ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, horton_kd, horton_fc, horton_f0 )
-   !
+   !$acc               ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, horton_kd, horton_fc, horton_f0, &
+   !$acc               qdrain_rate, bucket_volume, bucket_capacity, bucket_k, bucket_drain_rate, bucket_loss, bucket_runoff )
+   !   
    end subroutine
    !
    subroutine finalize_openacc()
@@ -84,7 +85,7 @@ contains
    !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
    !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, & 
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
-   !$acc               prcp, prcp0, prcp1, cumprcp, netprcp, prcp, qext, & 
+   !$acc               prcp, prcp0, prcp1, cumprcp, qext, &
    !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
    !$acc               gn2uv, fcorio2d, storage_volume, nuvisc, &
    !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
@@ -92,8 +93,9 @@ contains
    !$acc               gnapp2, &
    !$acc               timestep_analysis_required_timestep, timestep_analysis_average_required_timestep, timestep_analysis_times_wet, timestep_analysis_times_limiting, &   
    !$acc               qinffield, qinfmap, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, &
-   !$acc               ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, horton_kd, horton_fc, horton_f0 )
-   !
-   end subroutine finalize_openacc
+   !$acc               ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, horton_kd, horton_fc, horton_f0, &
+   !$acc               qdrain_rate, bucket_volume, bucket_capacity, bucket_k, bucket_drain_rate, bucket_loss, bucket_runoff )
+   !   
+   end
    !
 end module
