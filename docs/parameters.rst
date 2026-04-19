@@ -396,7 +396,15 @@ Parameters for model output
 	storeqdrain
 	  :description:		Flag to turn on writing away drainage discharge during simulation (storeqdrain = 1)
 	  :units:		-
-	  :default:		0	
+	  :default:		0
+	store_urban_drainage_discharge
+	  :description:		Flag to turn on writing away per-zone outfall discharge to 'sfincs_his.nc' on 'dthisout' interval (only effective when 'urbfile' is specified).
+	  :units:		-
+	  :default:		0
+	store_cumulative_urban_drainage
+	  :description:		Flag to turn on writing away cumulative urban drainage depth (drained volume / cell area, in m) per cell to 'sfincs_map.nc' on 'dtmaxout' interval (only effective when 'urbfile' is specified).
+	  :units:		-
+	  :default:		0
 	storezvolume
 	  :description:		Flag to turn on writing away water volumes for the subgrid mode during simulation (storezvolume = 1)
 	  :units:		-
@@ -690,5 +698,14 @@ Structures
 	  :description:		Drainage pumps, culverts and check valves are both specified using the same format file, put with a different indication of the type (type=1 is drainage pump, type=2 is culvert and type=3 is check valve).
 	  :units:		coordinates: m in projected UTM zone, discharges in m^3/s.
 	  :required:		no
-	  :format:		asc	 
-	  
+	  :format:		asc
+
+Urban drainage
+-----
+
+	urbfile = sfincs.urb
+	  :description:		TOML file declaring one or more urban-drainage zones. Each zone is a polygon mapped to a single outfall cell; zone cells drain to the outfall at a design rate (specified either as design_precip in mm/hr or max_outfall_rate in m^3/s), and the outfall can push water back into the cells unless a check valve is set. See 'Urban Drainage' in the user manual for the full schema.
+	  :units:		coordinates: m in projected UTM zone; design rate in mm/hr or m^3/s; thresholds in m.
+	  :required:		no
+	  :format:		toml
+

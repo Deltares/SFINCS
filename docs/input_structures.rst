@@ -1,5 +1,5 @@
-﻿User manual - structures
-=====
+﻿Structures
+==========
 
 Overview
 -----

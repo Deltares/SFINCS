@@ -35,6 +35,24 @@ Compound flooding?
 Compound flooding is described as events occurring in coastal areas where the interaction of high sea levels, large river discharges and local precipitation causes (extreme) flooding (Wahl et al., 2015).
 To simulate compound flooding events, a model needs to be able to model all these types of forcings. Therefore, SFINCS includes fluvial, pluvial, tidal, wind- and wave-driven processes!
 
+How to cite?
+^^^^^^^^^^^^
+When using SFINCS in academic work, please cite the following references as appropriate:
+
+* **For any reference to SFINCS** (introduction and validation of the base model):
+
+  Leijnse, T., van Ormondt, M., Nederhoff, C.M., van Dongeren, A. (2021). Modeling compound flooding in coastal systems using a computationally efficient reduced-physics solver: including fluvial, pluvial, tidal, wind- and wave-driven processes. *Coastal Engineering*, 165, 103852. https://doi.org/10.1016/j.coastaleng.2021.103852
+
+* **When using subgrid features**:
+
+  van Ormondt, M., Leijnse, T., de Goede, R., Nederhoff, K., and van Dongeren, A. (2025). Subgrid corrections for the linear inertial equations of a compound flood model – a case study using SFINCS 2.1.1 Dollerup release. *Geoscientific Model Development*, 18, 843–861. https://doi.org/10.5194/gmd-18-843-2025
+
+* **When referring to a specific SFINCS executable / release**, cite the Zenodo archive for that version. For the current 2.3.0 Mt Faber release:
+
+  van Ormondt, M., Leijnse, T., Nederhoff, K., de Goede, R., van Dongeren, A., Bovenschen, T., van Asselt, K., Roelvink, D., Reyns, J., & van der Lugt, M. (2025). *SFINCS: Super-Fast INundation of CoastS model (2.3.0 mt Faber Release 2025.02)*. Zenodo. https://doi.org/10.5281/zenodo.17651112
+
+For a broader list of SFINCS-related publications, see the "Publications" section at the end of this page.
+
 Application areas
 -----------------
 

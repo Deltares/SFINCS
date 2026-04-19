@@ -1,5 +1,5 @@
-﻿User manual - general
-=====
+﻿General
+=======
 
 Overview
 -----
