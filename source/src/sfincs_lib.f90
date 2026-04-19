@@ -407,10 +407,7 @@ module sfincs_lib
       !
       call update_boundaries(t, dt)
       !
-      ! Update discharges (river sources) and src-point structures (pumps/gates/...)
-      !
-      !call update_discharges(t, dt)
-      !call update_src_structures(t, dt)
+      ! Update SnapWave
       !
       if (snapwave .and. update_waves) then
          !
@@ -464,7 +461,7 @@ module sfincs_lib
             !
          endif
          !      
-         ! Update continuity (discharges, drainage structures, infiltration, urban drainage, water levels)
+         ! Update continuity (discharges, drainage structures, infiltration, urban drainage, qext, water levels)
          !
          call update_continuity(t, dt)
          !
@@ -543,7 +540,7 @@ module sfincs_lib
    !
    if (write_time_output) then
       !
-      call timer_write_runtimes_file(123, 'runtimes.txt')
+      call write_runtimes_file(123, 'runtimes.txt')
       !
    endif
    !
