@@ -296,11 +296,12 @@ contains
       call get_keyword(500, 'kdfile',                          kdfile,                          'none')            ! Horton decay constant k (legacy binary, 1/hr)
       call get_keyword(500, 'horton_kr_kd',                    horton_kr_kd,                    10.0)              ! Horton recovery/decay ratio
       !
-      ! Output files
+      ! Output
       !
       call get_keyword(500, 'obsfile',                         obsfile,                         'none')            ! observation-point locations file
       call get_keyword(500, 'crsfile',                         crsfile,                         'none')            ! cross-section polyline file
       call get_keyword(500, 'rugfile',                         rugfile,                         'none')            ! runup-gauge locations file
+      call get_keyword(500, 'store_maximum_waterlevel',        store_maximum_waterlevel,        .true.)            ! store maximum water level on dtmaxout interval (only if dtmaxout > 0)
       call get_keyword(500, 'storevelmax',                     store_maximum_velocity,          .false.)           ! store maximum flow velocity on dtmaxout interval (only if dtmaxout > 0)
       call get_keyword(500, 'storefluxmax',                    store_maximum_flux,              .false.)           ! store maximum flux on dtmaxout interval (only if dtmaxout > 0)
       call get_keyword(500, 'storevel',                        store_velocity,                  .false.)           ! store velocity on dtout interval
@@ -451,14 +452,18 @@ contains
       t0out = max(t0out, t0)
       if (t1out < -900.0) t1out = t1
       !
-      store_maximum_waterlevel = .false.
       if (dtmaxout > 0.0) store_maximum_waterlevel = .true.
       !
       ! Apply gates to the flags now that the full set of inputs has been read.
       !
       if (dtmaxout <= 0.0) then
-         store_maximum_velocity = .false.
-         store_maximum_flux     = .false.
+         !
+         ! Are there more to be added here?
+         !
+         store_maximum_waterlevel = .false.
+         store_maximum_velocity   = .false.
+         store_maximum_flux       = .false.
+         !
       endif
       !
       ! storemeteo implies store_wind (SFINCS needs 2D wind to feed the
