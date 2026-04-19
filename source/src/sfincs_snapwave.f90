@@ -285,17 +285,12 @@ contains
    end subroutine
 
    
-   subroutine update_wave_field(t, tloop)
+   subroutine update_wave_field(t)
    !
    use sfincs_data
+   use sfincs_timers
    !
    implicit none
-   !
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
    !
    real*4   :: u10, u10dir
    !   
@@ -313,7 +308,7 @@ contains
    integer   :: ip, nm, nmu, idir
    real*8    :: t
    !
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('SnapWave')
    !
    allocate(fwx0(np))
    allocate(fwy0(np))
@@ -512,8 +507,7 @@ contains
    !
    !$acc update device(fwuv)
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
+   call timer_stop('SnapWave')
    !
    end subroutine
 

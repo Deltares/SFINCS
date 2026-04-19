@@ -3733,13 +3733,14 @@ contains
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
    !
-   subroutine ncoutput_map_finalize() 
+   subroutine ncoutput_map_finalize()
    !
    ! Add total runtime, dtavg to file and close
    !
    use sfincs_data
-   !   
-   implicit none   
+   use sfincs_timers, only: timer_elapsed
+   !
+   implicit none
    !
    if (store_tsunami_arrival_time) then
       !
@@ -3751,9 +3752,9 @@ contains
        !
        call ncoutput_write_timestep_analysis()
        !
-   endif   
+   endif
    !
-   NF90(nf90_put_var(map_file%ncid, map_file%total_runtime_varid, tfinish_all - tstart_all))
+   NF90(nf90_put_var(map_file%ncid, map_file%total_runtime_varid, real(timer_elapsed('Simulation loop'), 4)))
    NF90(nf90_put_var(map_file%ncid, map_file%average_dt_varid,  dtavg))
    NF90(nf90_put_var(map_file%ncid, map_file%status_varid,  error))
    !
@@ -3891,14 +3892,15 @@ contains
    ! Add total runtime, dtavg to file and close
    !
    use sfincs_data
-   !   
-   implicit none   
-   !   
-   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nrthindams==0 .and. ndrn==0) then ! If no observation points, cross-sections, structures 9weir or thin dam), or drains; hisfile        
-        return
-   endif   
+   use sfincs_timers, only: timer_elapsed
    !
-   NF90(nf90_put_var(his_file%ncid, his_file%total_runtime_varid, tfinish_all - tstart_all)) 
+   implicit none
+   !
+   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nrthindams==0 .and. ndrn==0) then ! If no observation points, cross-sections, structures 9weir or thin dam), or drains; hisfile
+        return
+   endif
+   !
+   NF90(nf90_put_var(his_file%ncid, his_file%total_runtime_varid, real(timer_elapsed('Simulation loop'), 4)))
    NF90(nf90_put_var(his_file%ncid, his_file%average_dt_varid,  dtavg)) 
    NF90(nf90_put_var(his_file%ncid, his_file%status_varid,  error))       
    !   

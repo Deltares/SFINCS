@@ -1343,12 +1343,13 @@
    end subroutine
 
 
-   subroutine update_wavemaker_fluxes(t, dt, tloop)
+   subroutine update_wavemaker_fluxes(t, dt)
    !
    ! Update fluxes qx and qy at wave maker points
    !
    use sfincs_data
    use sfincs_snapwave
+   use sfincs_timers
    !
    implicit none
    !
@@ -1360,17 +1361,11 @@
    real*4  :: wave_steepness, betas, zinc, zig, dwvm, ztot, hm0_inc
    real*4  :: ui, ub, dzuv, facint, zsuv, depthuv, uvm0
    !
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
-   !
    real*4, dimension(:),     allocatable :: wavemaker_forcing_hm0_ig_t
    real*4, dimension(:),     allocatable :: wavemaker_forcing_tp_ig_t
-   real*4, dimension(:),     allocatable :: wavemaker_forcing_setup_t   
+   real*4, dimension(:),     allocatable :: wavemaker_forcing_setup_t
    !
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('Wavemaker')
    !
    ! Factors for double-exponential filtering
    !
@@ -1687,9 +1682,8 @@
    enddo
    !$acc end parallel
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
+   call timer_stop('Wavemaker')
    !
    end subroutine
-      
+
    end module

@@ -81,30 +81,25 @@ module sfincs_output
    end subroutine
 
    
-   subroutine write_output(t,write_map,write_his,write_max,write_rst,ntmapout,ntmaxout,nthisout,tloop)
+   subroutine write_output(t,write_map,write_his,write_max,write_rst,ntmapout,ntmaxout,nthisout)
    !
    use sfincs_data
+   use sfincs_timers
    !
    implicit none
    !
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
-   !
-   logical  :: write_map   
+   logical  :: write_map
    logical  :: write_max
-   logical  :: write_his   
-   logical  :: write_rst   
+   logical  :: write_his
+   logical  :: write_rst
    !
-   integer  :: ntmapout 
+   integer  :: ntmapout
    integer  :: ntmaxout
-   integer  :: nthisout      
+   integer  :: nthisout
    !
    real*8   :: t
    !
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('Output')
    !
    ! Time-varying water level output maps
    !
@@ -260,12 +255,11 @@ module sfincs_output
       !
    endif
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
-   !   
+   call timer_stop('Output')
+   !
    end subroutine
-   
-   subroutine finalize_output(t, ntmaxout, tloopoutput, tmaxout)
+
+   subroutine finalize_output(t, ntmaxout, tmaxout)
    !
    use sfincs_data
    !
@@ -273,17 +267,16 @@ module sfincs_output
    !
    integer  :: ntmaxout
    real*8   :: t, t2
-   real     :: tloopoutput 
-   real*8   :: tmaxout   
-   !   
-   if (dtmaxout>1.e-6 .and. ntmaxout == 0) then 
-       !write dtmax output if 1) value for dtmaxout wasn't achieved yet, 
+   real*8   :: tmaxout
+   !
+   if (dtmaxout>1.e-6 .and. ntmaxout == 0) then
+       !write dtmax output if 1) value for dtmaxout wasn't achieved yet,
        !or 2) in the last timeinterval, the full 'dtmaxout' wasn't achieved yet, but we still want the max over this interval
-      ! 
+      !
       call write_log('', 1)
       call write_log('Info : Write maximum values at final timestep since t=dtmaxout was not reached yet...', 1)
       ntmaxout = 1
-      call write_output(t,.false.,.false.,.true.,.false.,0,ntmaxout,0,tloopoutput)
+      call write_output(t,.false.,.false.,.true.,.false.,0,ntmaxout,0)
       !
    elseif (dtmaxout>1.e-6 .and. ntmaxout>0 .and. t < tmaxout) then
       !
@@ -294,7 +287,7 @@ module sfincs_output
       ! Write 'tstop' as timemax instead of actual (unrounded) 't'
       t2 = t1
       !
-      call write_output(t2,.false.,.false.,.true.,.false.,0,ntmaxout,0,tloopoutput)       
+      call write_output(t2,.false.,.false.,.true.,.false.,0,ntmaxout,0)
       !
    endif
    !
