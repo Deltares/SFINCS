@@ -12,6 +12,7 @@ module sfincs_lib
    use sfincs_runup_gauges
    use sfincs_discharges
    use sfincs_src_structures
+   use sfincs_urban_drainage
    use sfincs_meteo
    use sfincs_infiltration
    use sfincs_data
@@ -126,6 +127,8 @@ module sfincs_lib
    call initialize_discharges()       ! Reads dis and src file (river point discharges)
    !
    call initialize_src_structures()   ! Reads drn file (pumps / culverts / check valves / gates)
+   !
+   call initialize_urban_drainage()   ! Reads urb file (per-zone polygon drainage + outfall)
    !
    if (nonhydrostatic) then
       !

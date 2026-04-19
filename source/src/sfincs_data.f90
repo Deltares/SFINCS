@@ -125,6 +125,7 @@ module sfincs_data
       character*256 :: srcfile
       character*256 :: disfile
       character*256 :: drnfile
+      character*256 :: urbfile
       character*256 :: zsinifile
       character*256 :: rstfile
       character*256 :: indexfile
@@ -216,6 +217,9 @@ module sfincs_data
       logical       :: write_time_output
       logical       :: bziwaves
       logical       :: infiltration
+      logical       :: urban_drainage
+      logical       :: store_urban_drainage_discharge
+      logical       :: store_cumulative_urban_drainage
       LOGICAL       :: netcdf_infiltration
       logical       :: debug
       logical       :: radstr

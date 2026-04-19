@@ -220,6 +220,7 @@ contains
    call read_char_input(500,'weirfile',weirfile,'none')
    call read_char_input(500,'manningfile',manningfile,'none')   
    call read_char_input(500,'drnfile',drnfile,'none')
+   call read_char_input(500,'urbfile',urbfile,'none')
    call read_char_input(500,'volfile',volfile,'none')
    !
    ! Forcing
@@ -305,6 +306,8 @@ contains
    call read_logical_input(500,'timestep_analysis',timestep_analysis,.false.)
    call read_int_input(500,'storeqdrain',storeqdrain,1)
    call read_logical_input(500,'store_river_discharge',store_river_discharge,.false.)
+   call read_logical_input(500,'store_urban_drainage_discharge',store_urban_drainage_discharge,.false.)
+   call read_logical_input(500,'store_cumulative_urban_drainage',store_cumulative_urban_drainage,.false.)
    call read_int_input(500,'storezvolume',storezvolume,0)
    call read_int_input(500,'storestoragevolume',storestoragevolume,0)
    call read_int_input(500,'writeruntime',wrttimeoutput,0)

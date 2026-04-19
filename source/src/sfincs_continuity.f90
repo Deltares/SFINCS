@@ -69,6 +69,7 @@ contains
       use sfincs_infiltration
       use sfincs_discharges
       use sfincs_src_structures
+      use sfincs_urban_drainage
       !
       implicit none
       !
@@ -95,13 +96,13 @@ contains
          !
       endif
       !
-      ! 5. Urban drainage
+      ! 5. Urban drainage => update_urban_drainage (adds to qsrc)
       !
-      !if (urban_drainage) then
-      !   !
-      !   call update_urban_drainage(t, dt)
-      !   !
-      !endif
+      if (urban_drainage) then
+         !
+         call update_urban_drainage(t, dt)
+         !
+      endif
       !
       ! 6. External source/sink (+/-) => add qext to qsrc (set via BMI coupling)
       !

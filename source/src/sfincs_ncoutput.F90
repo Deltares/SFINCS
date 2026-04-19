@@ -18,6 +18,7 @@ module sfincs_ncoutput
       integer :: zs_varid, zsmax_varid, h_varid, u_varid, v_varid, tmax_varid, Seff_varid, t_zsmax_varid
       integer :: zvolume_varid, storagevolume_varid
       integer :: hmax_varid, vmax_varid, qmax_varid, cumprcp_varid, cuminf_varid, windmax_varid
+      integer :: cumulative_urbdrain_varid
       integer :: patm_varid, wind_u_varid, wind_v_varid, precip_varid        
       integer :: hm0_varid, hm0ig_varid, snapwavemsk_varid, tp_varid, tpig_varid, wavdir_varid, dirspr_varid
       integer :: fwx_varid, fwy_varid, beta_varid, snapwavedepth_varid
@@ -42,6 +43,7 @@ module sfincs_ncoutput
       integer :: time_dimid 
       integer :: points_dimid, pointnamelength_dimid
       integer :: crosssections_dimid, structures_dimid, thindams_dimid, drain_dimid, runup_gauges_dimid, river_dimid
+      integer :: urbdrain_dimid
       integer :: runtime_dimid
       integer :: point_x_varid, point_y_varid, station_x_varid, station_y_varid, crs_varid, qinf_varid, S_varid  
       integer :: station_id_varid, station_name_varid
@@ -50,6 +52,7 @@ module sfincs_ncoutput
       integer :: thindam_x_varid, thindam_y_varid      
       integer :: drain_varid, drain_name_varid
       integer :: river_varid, river_name_varid
+      integer :: urbdrain_varid, urbdrain_name_varid
       integer :: zb_varid
       integer :: time_varid
       integer :: zs_varid, h_varid, u_varid, v_varid, prcp_varid, cumprcp_varid, discharge_varid, uvmag_varid, uvdir_varid
@@ -419,12 +422,22 @@ contains
    if (store_cumulative_precipitation) then
       NF90(nf90_def_var(map_file%ncid, 'cumprcp', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%timemax_dimid/), map_file%cumprcp_varid)) ! time-varying maximum water level map
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%cumprcp_varid, 1, 1, nc_deflate_level)) ! deflate
-      NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, '_FillValue', FILL_VALUE))          
+      NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'units', 'm'))
-      NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'long_name', 'cumulative_precipitation_depth')) 
-      NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'standard_name', 'cumulative_precipitation_depth')) 
-      NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'cell_methods', 'time: sum'))       
+      NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'long_name', 'cumulative_precipitation_depth'))
+      NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'standard_name', 'cumulative_precipitation_depth'))
+      NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'cell_methods', 'time: sum'))
       NF90(nf90_put_att(map_file%ncid, map_file%cumprcp_varid, 'coordinates', 'x y'))
+   endif
+   !
+   if (store_cumulative_urban_drainage .and. urban_drainage) then
+      NF90(nf90_def_var(map_file%ncid, 'urban_drainage_cumulative_depth', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%timemax_dimid/), map_file%cumulative_urbdrain_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%cumulative_urbdrain_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%cumulative_urbdrain_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%cumulative_urbdrain_varid, 'units', 'm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%cumulative_urbdrain_varid, 'long_name', 'cumulative_urban_drainage_depth'))
+      NF90(nf90_put_att(map_file%ncid, map_file%cumulative_urbdrain_varid, 'cell_methods', 'time: sum'))
+      NF90(nf90_put_att(map_file%ncid, map_file%cumulative_urbdrain_varid, 'coordinates', 'x y'))
    endif
    !
    if (store_twet) then
@@ -1261,10 +1274,21 @@ contains
       !
       NF90(nf90_def_var(map_file%ncid, 'cuminf', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%timemax_dimid/), map_file%cuminf_varid)) ! cumulative infiltration map
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%cuminf_varid, 1, 1, nc_deflate_level))
-      NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, '_FillValue', FILL_VALUE))          
+      NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, 'units', 'm'))
-      NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, 'long_name', 'cumulative_infiltration_depth')) 
-      NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, 'cell_methods', 'time: sum'))     
+      NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, 'long_name', 'cumulative_infiltration_depth'))
+      NF90(nf90_put_att(map_file%ncid, map_file%cuminf_varid, 'cell_methods', 'time: sum'))
+      !
+   endif
+   !
+   if (store_cumulative_urban_drainage .and. urban_drainage) then
+      !
+      NF90(nf90_def_var(map_file%ncid, 'urban_drainage_cumulative_depth', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%timemax_dimid/), map_file%cumulative_urbdrain_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%cumulative_urbdrain_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%cumulative_urbdrain_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%cumulative_urbdrain_varid, 'units', 'm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%cumulative_urbdrain_varid, 'long_name', 'cumulative_urban_drainage_depth'))
+      NF90(nf90_put_att(map_file%ncid, map_file%cumulative_urbdrain_varid, 'cell_methods', 'time: sum'))
       !
    endif
    !
@@ -1669,6 +1693,7 @@ contains
    use sfincs_structures
    use sfincs_src_structures, only: nr_src_structures, src_struc_name
    use sfincs_discharges,     only: src_name
+   use sfincs_urban_drainage, only: nr_urban_drainage_zones, urb_zone_name
    !
    implicit none
    !
@@ -1685,8 +1710,9 @@ contains
    !
    character*256, dimension(:), allocatable :: drain_name_buf
    character*256, dimension(:), allocatable :: river_name_buf
+   character*256, dimension(:), allocatable :: urbdrain_name_buf
    !
-   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nr_src_structures==0 .and. .not. (nr_discharge_points>0 .and. store_river_discharge) .and. nr_runup_gauges==0) then ! If no observation points, cross-sections, structures, drains, river sources (when store_river_discharge) or run-up gauges; his file is not created
+   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nr_src_structures==0 .and. .not. (nr_discharge_points>0 .and. store_river_discharge) .and. .not. (nr_urban_drainage_zones>0 .and. store_urban_drainage_discharge) .and. nr_runup_gauges==0) then ! If no observation points, cross-sections, structures, drains, river sources, urban drainage zones or run-up gauges; his file is not created
       return
    endif
    !
@@ -1714,7 +1740,11 @@ contains
       NF90(nf90_def_dim(his_file%ncid, 'rivers', nr_discharge_points, his_file%river_dimid)) ! nr of river point sources
    endif
    !
-   if (nrstructures>0) then   
+   if (nr_urban_drainage_zones > 0 .and. store_urban_drainage_discharge) then
+      NF90(nf90_def_dim(his_file%ncid, 'urban_drainage_zones', nr_urban_drainage_zones, his_file%urbdrain_dimid)) ! nr of urban drainage zones
+   endif
+   !
+   if (nrstructures>0) then
       NF90(nf90_def_dim(his_file%ncid, 'structures', nrstructures, his_file%structures_dimid)) ! nr of structures (weir)
    endif   
    !
@@ -1762,6 +1792,10 @@ contains
    !
    if (nr_discharge_points > 0 .and. store_river_discharge) then
       NF90(nf90_def_var(his_file%ncid, 'river_name', NF90_CHAR, (/his_file%pointnamelength_dimid, his_file%river_dimid/), his_file%river_name_varid))
+   endif
+   !
+   if (nr_urban_drainage_zones > 0 .and. store_urban_drainage_discharge) then
+      NF90(nf90_def_var(his_file%ncid, 'urban_drainage_zone_name', NF90_CHAR, (/his_file%pointnamelength_dimid, his_file%urbdrain_dimid/), his_file%urbdrain_name_varid))
    endif
    !
    !NF90(nf90_put_att(his_file%ncid, his_file%station_name_varid, 'units', '-')) !not wanted in fews
@@ -2152,6 +2186,16 @@ contains
       NF90(nf90_put_att(his_file%ncid, his_file%river_varid, 'coordinates', 'river_name'))
       !
    endif
+   !
+   if (nr_urban_drainage_zones > 0 .and. store_urban_drainage_discharge) then
+      !
+      NF90(nf90_def_var(his_file%ncid, 'urban_drainage_discharge', NF90_FLOAT, (/his_file%urbdrain_dimid, his_file%time_dimid/), his_file%urbdrain_varid)) ! per-zone outfall discharge
+      NF90(nf90_put_att(his_file%ncid, his_file%urbdrain_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(his_file%ncid, his_file%urbdrain_varid, 'units', 'm3 s-1'))
+      NF90(nf90_put_att(his_file%ncid, his_file%urbdrain_varid, 'long_name', 'urban drainage zone net outfall discharge'))
+      NF90(nf90_put_att(his_file%ncid, his_file%urbdrain_varid, 'coordinates', 'urban_drainage_zone_name'))
+      !
+   endif
    !   
    if (nr_runup_gauges > 0) then
       !
@@ -2229,6 +2273,22 @@ contains
       NF90(nf90_put_var(his_file%ncid, his_file%river_name_varid, river_name_buf))  ! write river_name
       !
       deallocate(river_name_buf)
+      !
+   endif
+   !
+   if (nr_urban_drainage_zones > 0 .and. store_urban_drainage_discharge) then
+      !
+      allocate(urbdrain_name_buf(nr_urban_drainage_zones))
+      !
+      do istruc = 1, nr_urban_drainage_zones
+         !
+         urbdrain_name_buf(istruc) = urb_zone_name(istruc)
+         !
+      enddo
+      !
+      NF90(nf90_put_var(his_file%ncid, his_file%urbdrain_name_varid, urbdrain_name_buf))  ! write urban_drainage_zone_name
+      !
+      deallocate(urbdrain_name_buf)
       !
    endif
    !
@@ -3161,6 +3221,7 @@ contains
    use sfincs_snapwave
    use sfincs_src_structures, only: nr_src_structures, q_src_struc
    use sfincs_discharges,     only: qtsrc
+   use sfincs_urban_drainage, only: nr_urban_drainage_zones, urban_drainage_q_outfall
    !
    implicit none
    !
@@ -3468,6 +3529,12 @@ contains
       !
    endif
    !
+   if (nr_urban_drainage_zones > 0 .and. store_urban_drainage_discharge) then
+      !
+      NF90(nf90_put_var(his_file%ncid, his_file%urbdrain_varid, urban_drainage_q_outfall, (/1, nthisout/))) ! write per-zone outfall discharge
+      !
+   endif
+   !
    if (store_velocity) then
       !
       NF90(nf90_put_var(his_file%ncid, his_file%u_varid, uobs, (/1, nthisout/)))
@@ -3487,9 +3554,10 @@ contains
    !
    ! write zsmax per dtmaxout
    !
-   use sfincs_data   
+   use sfincs_data
+   use sfincs_urban_drainage, only: urban_drainage_cumulative_volume
    !
-   implicit none   
+   implicit none
    !
    integer :: nm, n, m
    !
@@ -3611,7 +3679,30 @@ contains
          zstmp(m, n)    = cuminf(nm) 
       enddo
       !
-      NF90(nf90_put_var(map_file%ncid, map_file%cuminf_varid, zstmp, (/1, 1, ntmaxout/))) ! write cuminf   
+      NF90(nf90_put_var(map_file%ncid, map_file%cuminf_varid, zstmp, (/1, 1, ntmaxout/))) ! write cuminf
+      !
+   endif
+   !
+   ! Cumulative urban drainage depth (volume / cell_area)
+   !
+   if (store_cumulative_urban_drainage .and. urban_drainage) then
+      !
+      zstmp = FILL_VALUE
+      !
+      do nm = 1, np
+         !
+         n = z_index_z_n(nm)
+         m = z_index_z_m(nm)
+         !
+         if (crsgeo) then
+            zstmp(m, n) = urban_drainage_cumulative_volume(nm) / cell_area_m2(nm)
+         else
+            zstmp(m, n) = urban_drainage_cumulative_volume(nm) / cell_area(z_flags_iref(nm))
+         endif
+         !
+      enddo
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%cumulative_urbdrain_varid, zstmp, (/1, 1, ntmaxout/))) ! write cumulative urban drainage depth
       !
    endif
    !
@@ -3684,11 +3775,12 @@ contains
    !
    ! write zsmax per dtmaxout
    !
-   use sfincs_data  
+   use sfincs_data
    !use sfincs_snapwave
    use quadtree
+   use sfincs_urban_drainage, only: urban_drainage_cumulative_volume
    !
-   implicit none   
+   implicit none
    !
    integer                              :: nmq, nm, ntmaxout
    real*8                               :: t  
@@ -3812,9 +3904,32 @@ contains
                endif
            endif           
        enddo
-       NF90(nf90_put_var(map_file%ncid, map_file%cuminf_varid, zstmp, (/1, ntmaxout/))) ! write cuminf      
-       !       
-   endif      
+       NF90(nf90_put_var(map_file%ncid, map_file%cuminf_varid, zstmp, (/1, ntmaxout/))) ! write cuminf
+       !
+   endif
+   !
+   ! Cumulative urban drainage depth (volume / cell_area)
+   !
+   if (store_cumulative_urban_drainage .and. urban_drainage) then
+       !
+       zstmp = FILL_VALUE
+       !
+       do nmq = 1, quadtree_nr_points
+           nm = index_sfincs_in_quadtree(nmq)
+           if (nm > 0) then
+               if (kcs(nm) > 0) then
+                   if (crsgeo) then
+                       zstmp(nmq) = urban_drainage_cumulative_volume(nm) / cell_area_m2(nm)
+                   else
+                       zstmp(nmq) = urban_drainage_cumulative_volume(nm) / cell_area(z_flags_iref(nm))
+                   endif
+               endif
+           endif
+       enddo
+       !
+       NF90(nf90_put_var(map_file%ncid, map_file%cumulative_urbdrain_varid, zstmp, (/1, ntmaxout/))) ! write cumulative urban drainage depth
+       !
+   endif
    !
    ! Maximum flow velocity
    if (store_maximum_velocity) then
@@ -4051,10 +4166,11 @@ contains
    use sfincs_data
    use sfincs_src_structures, only: nr_src_structures
    use sfincs_timers, only: timer_elapsed
+   use sfincs_urban_drainage, only: nr_urban_drainage_zones
    !
    implicit none
    !
-   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nrthindams==0 .and. nr_src_structures==0 .and. .not. (nr_discharge_points>0 .and. store_river_discharge)) then ! If no observation points, cross-sections, structures (weir or thin dam), drains or river sources (when store_river_discharge); hisfile
+   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nrthindams==0 .and. nr_src_structures==0 .and. .not. (nr_discharge_points>0 .and. store_river_discharge) .and. .not. (nr_urban_drainage_zones>0 .and. store_urban_drainage_discharge)) then ! If no observation points, cross-sections, structures (weir or thin dam), drains, river sources or urban drainage zones; hisfile
         return
    endif
    !

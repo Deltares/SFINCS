@@ -158,6 +158,8 @@
 			</File>
 			<File RelativePath="..\src\sfincs_timestep_analysis.f90">
 			</File>
+			<File RelativePath="..\src\utils\sfincs_polygons.f90"/>
+			<File RelativePath="..\src\sfincs_urban_drainage.f90"/>
 			<File RelativePath="..\src\sfincs_wave_enhanced_roughness.f90"/>
 			<File RelativePath="..\src\sfincs_wavemaker.f90"/>
 		</Filter>
