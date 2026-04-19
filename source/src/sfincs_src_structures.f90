@@ -788,7 +788,7 @@ contains
    !
    if (nr_src_structures <= 0) return
    !
-   call timer_start('Src structures')
+   call timer_start('Drainage structures')
    !
    !$acc parallel loop present( z_volume, zs, zb, qsrc, q_src_struc, &
    !$acc                        src_struc_nm_in, src_struc_nm_out, &
@@ -1135,7 +1135,7 @@ contains
    !$omp end parallel do
    !$acc end parallel loop
    !
-   call timer_stop('Src structures')
+   call timer_stop('Drainage structures')
    !
    end subroutine
    !

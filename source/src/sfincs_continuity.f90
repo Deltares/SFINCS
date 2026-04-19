@@ -6,73 +6,85 @@ contains
    !
    ! Unified continuity update: orchestrates all water balance terms
    !
-   ! A. Discharges, sources and sinks          => computed in sfincs_discharges
-   ! B. Hydrodynamic fluxes (q)                => already computed in sfincs_momentum
-   ! C. Main adjustments:
-   !    1. Rainfall (+)                         => already computed in sfincs_meteo (prcp)
-   !    2. Infiltration (-)                     => computed in sfincs_infiltration (qinfmap)
-   !       (includes: con, c2d, cna, cnb, gai, hor, bkt flavors)
-   !    3. Drainage mimic (-)                   => drainage rate field (qdrain_rate)
-   !    4. External source/sink qext (+/-)      => set via BMI coupling
-   !    5. Storage volume                       => depression storage (subgrid only)
+   ! A. Point sources and sinks (all accumulated into qsrc):
+   !    1. River discharges (+/-)               => update_discharges (zeros and accumulates qsrc)
+   !    2. Drainage structures (+/-)            => update_src_structures (adds to qsrc)
+   !    3. External source/sink qext (+/-)      => added to qsrc here (BMI coupling)
+   ! B. Infiltration rate field qinfmap (-)     => update_infiltration_map
+   !                                              (flavors: con, c2d, cna, cnb, gai, hor, bkt)
+   ! C. Hydrodynamic fluxes q                   => already computed in sfincs_momentum
    !
-   ! compute_water_levels then applies all terms to update zs/z_volume:
-   !    A. Discharges (+/-)                     => outside main loop
-   !    B. Hydrodynamic fluxes                  => div(q) * dt
-   !    C1. Rainfall (+)                        => prcp * dt
-   !    C2. Infiltration (-)                    => qinfmap * dt
-   !    C3. Drainage mimic (-)                  => qdrain_rate * dt
-   !    C4. External source/sink (+/-)          => qext * dt
-   !    C5. Storage volume                      => absorbs excess volume
-   !
-   use sfincs_data
-   use sfincs_infiltration
-   use sfincs_discharges
-   !
-   implicit none
-   !
-   real*8           :: t
-   real*4           :: dt
-   !
-   ! A. Update discharges, sources and sinks
-   !
-   call update_discharges(t, dt)
-   !
-   ! C2. Compute infiltration rates => qinfmap (all flavors including bucket)
-   !
-   if (infiltration) then
-      call update_infiltration_map(dt)
-   endif
-   !
-   ! C1, C3, C4, C5: rainfall, drainage mimic, qext, storage_volume
-   !    => nothing to compute, these are direct rates applied in compute_water_levels
-   !
-   ! B + C: Update water levels (applies all terms)
-   !
-   call compute_water_levels(t, dt)
-   !
-   end subroutine
-
-
-   subroutine compute_water_levels(t, dt)
+   ! compute_water_levels_{regular,subgrid} then updates zs/z_volume using:
+   !    - qsrc * dt                             => point source/sink contribution
+   !    - div(q) * dt                           => horizontal flux divergence
+   !    - storage volume                        => absorbs excess volume (subgrid only)
    !
    use sfincs_data
    use sfincs_timers
+   use sfincs_infiltration
+   use sfincs_discharges
+   use sfincs_src_structures
    !
    implicit none
    !
-   real*4           :: dt
    real*8           :: t
+   real*4           :: dt
+   !
+   integer          :: nm
+   !
+   ! A1. River discharges => update_discharges (zeros qsrc, then accumulates)
+   !
+   call update_discharges(t, dt)
+   !
+   ! A2. Drainage structures (pumps/gates/culverts/...) => update_src_structures (adds to qsrc)
+   !
+   call update_src_structures(t, dt)
+   !
+   ! B. Compute infiltration rates => qinfmap (all flavors including bucket)
+   !
+   if (infiltration) then
+      !
+      call update_infiltration_map(dt)
+      !
+   endif
+   !
+   ! Urban drainage
+   !
+   !if (urban_drainage) then
+   !   !
+   !   call update_urban_drainage(t, dt)
+   !   !
+   !endif
+   !
+   ! A3. External source/sink (+/-) => add qext to qsrc (set via BMI coupling)
+   !
+   if (use_qext) then
+      !
+      !$omp parallel &
+      !$omp private ( nm )
+      !$omp do
+      !$acc loop gang vector
+      do nm = 1, np
+         !
+         qsrc(nm) = qsrc(nm) + qext(nm)
+         !
+      enddo
+      !$acc end loop
+      !$omp end parallel
+      !
+   endif
+   !
+   ! Update water levels: applies qsrc * dt and flux divergence to zs/z_volume
    !
    call timer_start('Continuity')
    !
    if (subgrid) then
       !
-      call compute_water_levels_subgrid(dt,t)
+      call compute_water_levels_subgrid(dt, t)
       !
    else
       !
-      call compute_water_levels_regular(dt,t)
+      call compute_water_levels_regular(dt, t)
       !
    endif
    !
@@ -87,9 +99,9 @@ contains
    call timer_stop('Continuity')
    !
    end subroutine
-
-   
-   subroutine compute_water_levels_regular(dt,t)
+   !
+   !
+   subroutine compute_water_levels_regular(dt, t)
    !
    use sfincs_data
    !
@@ -99,7 +111,6 @@ contains
    real*8           :: t   
    !
    integer          :: nm
-   integer          :: isrc
    !
    integer          :: iwm
    !
@@ -113,7 +124,6 @@ contains
    real*4           :: qnum
    real*4           :: qndm
    real*4           :: factime
-   real*4           :: dvol    
    !
    if (snapwave) then ! need to compute filtered water levels for snapwave
       !
@@ -128,54 +138,24 @@ contains
    !$acc                   qsrc, &
    !$acc                   z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num )
    !
-   ! Apply cell-wise discharges (rivers + src-point structures, accumulated
-   ! into qsrc by sfincs_discharges and sfincs_src_structures).
-   !
-   !$acc loop
-   do nm = 1, np
-      !
-      if (qsrc(nm) /= 0.0) then
-         !
-         if (crsgeo) then
-            zs(nm) = max(zs(nm) + qsrc(nm) * dt / cell_area_m2(nm), zb(nm))
-         else
-            zs(nm) = max(zs(nm) + qsrc(nm) * dt / cell_area(z_flags_iref(nm)), zb(nm))
-         endif
-         !
-      endif
-      !
-   enddo
-   !
    !$omp parallel &
-   !$omp private ( nm,dvol,nmd,nmu,ndm,num,qnmd,qnmu,qndm,qnum,iwm)
+   !$omp private ( nm, nmd, nmu, ndm, num, qnmd, qnmu, qndm, qnum, iwm )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop gang vector
    do nm = 1, np
       !
       if (kcs(nm) == 1) then ! Regular point
          !
-         ! C1. Rainfall (+)
+         ! Apply cell-wise discharges qsrc (rivers, drainage structures, qext)
          !
-         if (precip) then
-            zs(nm) = zs(nm) + prcp(nm) * dt
-         endif
-         !
-         ! C2. Infiltration (-) (includes all flavors: con, c2d, cna, cnb, gai, hor, bkt)
-         !
-         if (infiltration) then
-            zs(nm) = zs(nm) - qinfmap(nm) * dt
-         endif
-         !
-         ! C3. Drainage mimic (-)
-         !
-         if (drainage) then
-            zs(nm) = zs(nm) - qdrain_rate(nm) * dt
-         endif
-         !
-         ! C4. External source/sink (+/-)
-         !
-         if (use_qext) then
-            zs(nm) = zs(nm) + qext(nm) * dt
+         if (qsrc(nm) /= 0.0) then
+            !
+            if (crsgeo) then
+               zs(nm) = max(zs(nm) + qsrc(nm) * dt / cell_area_m2(nm), zb(nm))
+            else
+               zs(nm) = max(zs(nm) + qsrc(nm) * dt / cell_area(z_flags_iref(nm)), zb(nm))
+            endif
+            !
          endif
          !
          nmd = z_index_uv_md(nm)
@@ -323,10 +303,8 @@ contains
    real*8           :: t
    !
    integer          :: nm
-   integer          :: isrc
    !
    integer          :: iwm
-   integer          :: ind
    !
    integer          :: nmu
    integer          :: nmd
@@ -334,8 +312,7 @@ contains
    integer          :: ndm
    !
    real*4           :: factime
-   real*4           :: dvol  
-   real*4           :: dzsdt
+   real*4           :: dvol
    !
    real*4           :: qnmu
    real*4           :: qnmd
@@ -356,28 +333,17 @@ contains
       !
    endif   
    !
-   ! Apply cell-wise discharges to z_volume (rivers + src-point structures,
-   ! accumulated into qsrc by sfincs_discharges and sfincs_src_structures).
-   !
-   !$acc parallel loop present( z_volume, qsrc )
-   !$omp parallel do schedule ( static )
-   do nm = 1, np
-      if (qsrc(nm) /= 0.0 .and. z_volume(nm) >= 0) then
-         z_volume(nm) = z_volume(nm) + qsrc(nm) * dt
-      endif
-   enddo
-   !$omp end parallel do
-   !$acc end parallel loop
-   !
    !$omp parallel &
-   !$omp private ( dvol,dzsdt,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,iwm,qnmd,qnmu,qndm,qnum,dv,zs00,zs11 )
+   !$omp private ( dvol, nmd, nmu, ndm, num, a, iuv, facint, dzvol, iwm, &
+   !$omp           qnmd, qnmu, qndm, qnum, dv, zs00, zs11 )
    !$omp do schedule ( dynamic, 256 )
    !$acc parallel present( kcs, zs, zs0, zb, z_volume, zsmax, zsm, maxzsm, zsderv, &
    !$acc                   subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
    !$acc                   prcp, q, qext, qinfmap, qdrain_rate, z_flags_iref, uv_flags_iref, &
    !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
    !$acc                   dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area, &
-   !$acc                   z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, storage_volume)
+   !$acc                   z_index_wavemaker, wavemaker_uvmean, &
+   !$acc                   wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, storage_volume)
    !$acc loop gang vector
    do nm = 1, np
       !
@@ -386,6 +352,14 @@ contains
       dvol = 0.0
       !
       if (kcs(nm) == 1) then
+         !
+         ! Apply cell-wise discharges qsrc (rivers, drainage structures, qext)
+         !
+         if (qsrc(nm) /= 0.0) then
+            !
+            dvol = dvol + qsrc(nm) * dt
+            !
+         endif
          !
          nmd = z_index_uv_md(nm)
          nmu = z_index_uv_mu(nm)
@@ -513,38 +487,6 @@ contains
             !
             a = cell_area(z_flags_iref(nm))
             !
-         endif
-         !
-         dzsdt = 0.0
-         !
-         ! C1. Rainfall (+)
-         !
-         if (precip) then
-            dzsdt = dzsdt + prcp(nm)
-         endif
-         !
-         ! C2. Infiltration (-) (includes all flavors: con, c2d, cna, cnb, gai, hor, bkt)
-         !
-         if (infiltration) then
-            dzsdt = dzsdt - qinfmap(nm)
-         endif
-         !
-         ! C3. Drainage mimic (-)
-         !
-         if (drainage) then
-            dzsdt = dzsdt - qdrain_rate(nm)
-         endif
-         !
-         ! C4. External source/sink (+/-)
-         !
-         if (use_qext) then
-            dzsdt = dzsdt + qext(nm)
-         endif
-         !
-         ! dzsdt is still in m/s, so multiply with a * dt to get m^3
-         !
-         if (dzsdt /= 0.0) then
-            dvol = dvol + dzsdt * a * dt
          endif
          !
          ! C5. Storage volume

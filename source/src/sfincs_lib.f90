@@ -152,8 +152,6 @@ module sfincs_lib
       !
    endif   
    !
-   call screendump_processes()
-   !
    if (snapwave) then
       !
       call write_log('Coupling with SnapWave ...', 1)
@@ -162,6 +160,8 @@ module sfincs_lib
    endif   
    !
    call timer_stop('Input')
+   !
+   call screendump_processes()
    !
    ! Initialize some parameters
    !
@@ -410,8 +410,8 @@ module sfincs_lib
       !
       ! Update discharges (river sources) and src-point structures (pumps/gates/...)
       !
-      call update_discharges(t, dt)
-      call update_src_structures(t, dt)
+      !call update_discharges(t, dt)
+      !call update_src_structures(t, dt)
       !
       if (snapwave .and. update_waves) then
          !
@@ -465,9 +465,7 @@ module sfincs_lib
             !
          endif
          !      
-         ! Update water levels
-         !
-         ! Update continuity (discharges, infiltration, drainage, water levels)
+         ! Update continuity (discharges, drainage structures, infiltration, urban drainage, water levels)
          !
          call update_continuity(t, dt)
          !
