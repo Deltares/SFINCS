@@ -86,8 +86,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.3.2 mt. Faber+branch:318"
-   build_date     = "$Date: 2025-04-13"
+   build_revision = "$Rev: v2.3.2 Mount Faber + screen dump + timers"
+   build_date     = "$Date: 2025-04-19"
    !
    call screendump_startup()
    !
@@ -107,7 +107,8 @@ module sfincs_lib
       !
    endif   
    !
-   call write_log('Preparing domain ...', 0) 
+   call write_log('Preparing domain ...', 0)
+   !
    call initialize_domain()     ! Reads dep, msk, index files, creates index, flag and depth arrays, initializes hydro quantities
    !
    call read_structures()       ! Reads thd files and sets kcuv to zero where necessary
@@ -275,11 +276,6 @@ module sfincs_lib
          !
       endif
       !
-      ! A bit unclear why this happens, but large jumps in the time step lead to weird oscillations.
-      ! In the 'original' sfincs v11 version, this behavior was supressed by the use of theta.
-      ! Avoid this, by not not changing time step dt (used in momentum equation), but only changing dtt,
-      ! which is used in the time updating and continuity equation.
-      !
       ! Update time
       !
       t = t + dt
@@ -304,11 +300,14 @@ module sfincs_lib
          ntmaxout  = ntmaxout + 1    ! now also keep track of nr of max output
          tout      = max(tmaxout, t - dt) 
          !
-         if (t < t1) then 
-            tmaxout   = tmaxout + dtmaxout       
+         if (t < t1) then
+            !
+            tmaxout   = tmaxout + dtmaxout
+            !
             ! in case the last 'dt' made us exactly past tstop time 't1', 
             ! then we don't want to flag later another dtmax output timestep in 'finalize_output' check,
-            ! so if t > t1 don't add 'dtmaxout' again            
+            ! so if t > t1 don't add 'dtmaxout' again
+            !
          endif         
          !
       endif
@@ -422,23 +421,11 @@ module sfincs_lib
       !
       if (snapwave .and. update_waves) then
          !
-         call timer(t3)          
+         ! Update wave fields from SnapWave coupling (this happens at intervals of dtwave)
          !
          call update_wave_field(t)
          !
-         call timer(t4)                   
-         write(logstr,'(a,f10.1,a,f6.2,a)')'Computing SnapWave at t = ', t, ' s took ', t4 - t3, ' seconds'         
-         call write_log(logstr, 0)
-         !
-         ! Maybe we'll add moving wave makers back at some point
-         !
-         ! if (wavemaker) then
-         !    !
-         !    call update_wavemaker_points(tloopwavemaker)   
-         !    !
-         ! endif   
-         !
-      endif   
+      endif
       !
       if (bathtub) then
          !
