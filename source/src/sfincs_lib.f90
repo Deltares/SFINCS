@@ -71,7 +71,6 @@ module sfincs_lib
    logical  :: update_waves
    !
    real :: time_per_timestep
-   real :: percdone,percdonenext,trun,trem
    !
    contains
    !
@@ -519,25 +518,7 @@ module sfincs_lib
          !
       endif
       !
-      percdone = min(100 * (t - t0) / (t1 - t0), 100.0)
-      !
-      if (percdone >= percdonenext) then
-         !
-         ! percdoneval is increment of % to show to log, default=+5%
-         percdonenext = 1.0 * (int(percdone) + percdoneval)
-         !
-         trun = real(timer_elapsed('Simulation loop'), 4)
-         trem = trun / max(0.01*percdone, 1.0e-6) - trun
-         !
-         if (int(percdone)>0) then
-            write(logstr,'(i4,a,f7.1,a)')int(percdone),'% complete, ',trem,' s remaining ...'
-            call write_log(logstr, 1)
-         else
-            write(logstr,'(i4,a,f7.1,a)')int(percdone),'% complete,       - s remaining ...'
-            call write_log(logstr, 1)
-         endif   
-         !
-      endif
+      call screendump_progress(t, t0, t1)
       !
       if (single_time_step) then
          !
@@ -572,23 +553,7 @@ module sfincs_lib
    !
    dtavg = dtavg / (nt - 1)
    !
-   call write_log('', 1)
-   call write_log('---------- Simulation finished -----------', 1)
-   call write_log('', 1)
-   !
-   call timer_write_headers(1)
-   !
-   ! Per-phase timing summary. Percentages are relative to the total wall
-   ! time of the simulation loop.
-   !
-   call timer_write_summary(1, timer_elapsed('Simulation loop'), 0.0005_8)
-   !
-   call write_log('', 1)
-   !
-   write(logstr,'(a,20f10.3)')           ' Average time step (s)  : ', dtavg
-   call write_log(logstr, 1)
-   !
-   call write_log('', 1)
+   call screendump_run_finished(dtavg)
    !
    if (timestep_analysis) then
       !
