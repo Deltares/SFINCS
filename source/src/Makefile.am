@@ -51,6 +51,7 @@ libsfincs_la_SOURCES = \
 	../third_party_open/utils/toml-f/src/tomlf/all.f90 \
 	../third_party_open/utils/toml-f/src/tomlf.f90 \
 	sfincs_log.f90 \
+	sfincs_timers.f90 \
 	sfincs_date.f90 \
 	sfincs_spiderweb.f90 \
 	sfincs_data.f90 \
@@ -95,6 +96,7 @@ libsfincs_la_SOURCES = \
 	sfincs_wavemaker.f90 \
 	sfincs_bathtub.f90 \
 	sfincs_openacc.f90 \
+	sfincs_screendump.f90 \
 	sfincs_lib.f90 \
 	sfincs_bmi.f90
         

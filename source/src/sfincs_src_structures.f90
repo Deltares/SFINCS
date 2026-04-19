@@ -760,7 +760,7 @@ contains
    end subroutine
    !
    !
-   subroutine update_src_structures(t, dt, tloop)
+   subroutine update_src_structures(t, dt)
    !
    ! Compute discharges through each drainage structure, accumulate them
    ! into qsrc(np) (intake: -qq, outfall: +qq), and store per-structure
@@ -772,14 +772,13 @@ contains
    ! and a structure) writing to the same cell under parallel execution.
    !
    use sfincs_data
+   use sfincs_timers
    !
    implicit none
    !
    real*8  :: t
    real*4  :: dt
-   real    :: tloop
    !
-   integer :: count0, count1, count_rate, count_max
    integer :: istruc, nmin, nmout, nm_o1, nm_o2
    real*4  :: qq, elapsed, z1r, z2r
    real*4  :: frac, wdt, mng, zsill, dist, dzds, hgate, qq0, alpha
@@ -789,7 +788,7 @@ contains
    !
    if (nr_src_structures <= 0) return
    !
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('Src structures')
    !
    !$acc parallel loop present( z_volume, zs, zb, qsrc, q_src_struc, &
    !$acc                        src_struc_nm_in, src_struc_nm_out, &
@@ -1136,8 +1135,7 @@ contains
    !$omp end parallel do
    !$acc end parallel loop
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0 * (count1 - count0) / count_rate
+   call timer_stop('Src structures')
    !
    end subroutine
    !

@@ -2,7 +2,7 @@ module sfincs_continuity
 
 contains
 
-   subroutine update_continuity(t, dt, tloopsrc, tloopinf, tloopcont)
+   subroutine update_continuity(t, dt)
    !
    ! Unified continuity update: orchestrates all water balance terms
    !
@@ -33,18 +33,15 @@ contains
    !
    real*8           :: t
    real*4           :: dt
-   real             :: tloopsrc
-   real             :: tloopinf
-   real             :: tloopcont
    !
    ! A. Update discharges, sources and sinks
    !
-   call update_discharges(t, dt, tloopsrc)
+   call update_discharges(t, dt)
    !
    ! C2. Compute infiltration rates => qinfmap (all flavors including bucket)
    !
    if (infiltration) then
-      call update_infiltration_map(dt, tloopinf)
+      call update_infiltration_map(dt)
    endif
    !
    ! C1, C3, C4, C5: rainfall, drainage mimic, qext, storage_volume
@@ -52,27 +49,22 @@ contains
    !
    ! B + C: Update water levels (applies all terms)
    !
-   call compute_water_levels(t, dt, tloopcont)
+   call compute_water_levels(t, dt)
    !
    end subroutine
 
 
-   subroutine compute_water_levels(t, dt, tloop)
+   subroutine compute_water_levels(t, dt)
    !
    use sfincs_data
+   use sfincs_timers
    !
    implicit none
    !
    real*4           :: dt
    real*8           :: t
    !
-   integer          :: count0
-   integer          :: count1
-   integer          :: count_rate
-   integer          :: count_max
-   real             :: tloop
-   !
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('Continuity')
    !
    if (subgrid) then
       !
@@ -82,18 +74,17 @@ contains
       !
       call compute_water_levels_regular(dt,t)
       !
-   endif  
+   endif
    !
    ! Put non-default store options in a separate subroutine (all but zsmax) to save computation time when not used (both regular and subgrid):
    !
-   if ((store_maximum_velocity .eqv. .true.) .or. (store_maximum_flux .eqv. .true.) .or. (store_twet .eqv. .true.)) then    
-      ! 
-      call compute_store_variables(dt)       
-      !    
+   if ((store_maximum_velocity .eqv. .true.) .or. (store_maximum_flux .eqv. .true.) .or. (store_twet .eqv. .true.)) then
+      !
+      call compute_store_variables(dt)
+      !
    endif
-   !   
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
+   !
+   call timer_stop('Continuity')
    !
    end subroutine
 

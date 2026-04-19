@@ -68,6 +68,7 @@ source/sfincs/sfincs.opt.yaml
 
 # Local Claude Code agents / settings (not shared with co-developers)
 .claude/
+# Sphinx build output
 /docs/_build
 /source/build_nvfortran_gpu_h7.sh
 /source/build_nvfortran_gpu.sh

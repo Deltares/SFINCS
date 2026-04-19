@@ -258,7 +258,7 @@ contains
    end subroutine
    !
    !
-   subroutine update_discharges(t, dt, tloop)
+   subroutine update_discharges(t, dt)
    !
    ! Zero qsrc(np); interpolate the river discharge time series to t,
    ! store in qtsrc(1..nr_discharge_points), and accumulate into qsrc(nmindsrc(:)).
@@ -268,18 +268,17 @@ contains
    ! their contributions.
    !
    use sfincs_data
+   use sfincs_timers
    !
    implicit none
    !
    real*8  :: t
    real*4  :: dt
-   real    :: tloop
    !
-   integer :: count0, count1, count_rate, count_max
    integer :: isrc, itsrc, nm, it_prev, it_next
    real*4  :: wt
    !
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('Discharges')
    !
    ! Zero qsrc for this step. sfincs_src_structures will add to it next.
    !
@@ -342,8 +341,7 @@ contains
       !
    endif
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0 * (count1 - count0) / count_rate
+   call timer_stop('Discharges')
    !
    end subroutine
    !

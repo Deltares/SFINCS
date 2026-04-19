@@ -243,7 +243,6 @@ contains
    call read_char_input(500,'ampfile',ampfile,'none')
    call read_char_input(500,'amprfile',amprfile,'none')
    call read_char_input(500,'z0lfile',z0lfile,'none')
-   call read_char_input(500,'wvmfile',wvmfile,'none')
    ! Netcdf input
    call read_char_input(500,'netbndbzsbzifile',netbndbzsbzifile,'none')  
    call read_char_input(500,'netsrcdisfile',netsrcdisfile,'none')  

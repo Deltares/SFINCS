@@ -285,35 +285,34 @@ contains
    end subroutine
 
    
-   subroutine update_wave_field(t, tloop)
+   subroutine update_wave_field(t)
    !
    use sfincs_data
+   use sfincs_timers
+   use sfincs_date, only: timer
    !
    implicit none
    !
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
-   !
    real*4   :: u10, u10dir
-   !   
+   !
    real*4,    dimension(:), allocatable       :: fwx0
    real*4,    dimension(:), allocatable       :: fwy0
    real*4,    dimension(:), allocatable       :: dw0
-   real*4,    dimension(:), allocatable       :: df0   
+   real*4,    dimension(:), allocatable       :: df0
    real*4,    dimension(:), allocatable       :: dwig0
-   real*4,    dimension(:), allocatable       :: dfig0   
-   real*4,    dimension(:), allocatable       :: cg0   
-   !real*4,    dimension(:), allocatable       :: qb0   
-   real*4,    dimension(:), allocatable       :: beta0 
-   real*4,    dimension(:), allocatable       :: srcig0      
-   real*4,    dimension(:), allocatable       :: alphaig0   
+   real*4,    dimension(:), allocatable       :: dfig0
+   real*4,    dimension(:), allocatable       :: cg0
+   !real*4,    dimension(:), allocatable       :: qb0
+   real*4,    dimension(:), allocatable       :: beta0
+   real*4,    dimension(:), allocatable       :: srcig0
+   real*4,    dimension(:), allocatable       :: alphaig0
    integer   :: ip, nm, nmu, idir
    real*8    :: t
+   real*4    :: t3, t4
    !
-   call system_clock(count0, count_rate, count_max)
+   call timer(t3)
+   !
+   call timer_start('SnapWave')
    !
    allocate(fwx0(np))
    allocate(fwy0(np))
@@ -512,8 +511,12 @@ contains
    !
    !$acc update device(fwuv)
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
+   call timer_stop('SnapWave')
+   !
+   call timer(t4)
+   !
+   write(logstr,'(a,f10.1,a,f6.2,a)')'Computing SnapWave at t = ', t, ' s took ', t4 - t3, ' seconds'
+   call write_log(logstr, 0)
    !
    end subroutine
 
