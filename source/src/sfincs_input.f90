@@ -174,10 +174,7 @@ contains
       call get_keyword(500, 'snapwave',                        snapwave,                        .false.)           ! enable coupled SnapWave wave solver
       call get_keyword(500, 'dtoutfixed',                      fixed_output_intervals,          .true.)            ! snap map/his to exact intervals (true) or let them drift with dt (false)
       !
-      ! Wave maker parameters. Each call tries the modern `wavemaker_*`
-      ! keyword first and falls back to the legacy shortname in the
-      ! trailing array; a deprecation warning is emitted per legacy
-      ! match.
+      ! Wave maker parameters
       !
       call get_keyword(500, 'wavemaker_wvmfile',               wavemaker_wvmfile,               'none',    ['wvmfile'])    ! wavemaker polyline file
       call get_keyword(500, 'wavemaker_wfpfile',               wavemaker_wfpfile,               'none',    ['wfpfile'])    ! wavemaker forcing points file

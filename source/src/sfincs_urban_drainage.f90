@@ -2,69 +2,81 @@ module sfincs_urban_drainage
    !
    ! Simple urban-drainage sink/source model for SFINCS.
    !
-   ! Each zone is a polygon in horizontal plane. Cells inside the polygon
-   ! drain at a design rate capped by available water; flow is bidirectional
-   ! so the outfall cell can push water back into the cells (tide / surge)
-   ! unless a check valve is specified. All flow for a zone is collected at a
-   ! single outfall cell, so the per-zone net flux is added as a point
-   ! source / sink there.
+   ! Each zone is a polygon in the horizontal plane and has one of two
+   ! types:
    !
-   ! Per-cell discharge (drain from cell to outfall, positive sign).
-   ! In subgrid mode the effective bed elevation is subgrid_z_zmin(nm)
-   ! instead of zb(nm) — this affects both the ponding-depth gate and
-   ! the design-head floor.
+   !   piped_drainage  — cells inside the polygon drain to a single
+   !                     outfall cell through a conceptual buried pipe
+   !                     network. Flow is bidirectional: during high
+   !                     water at the outfall (tide / surge), water can
+   !                     push back into the zone cells unless a check
+   !                     valve is configured. The per-zone net flux is
+   !                     added as a point source/sink at the outfall.
+   !
+   !   injection_well  — water is pumped out of the zone cells (evenly
+   !                     split across the cells in the polygon) and
+   !                     disappears from the model underground. There is
+   !                     no outfall and no backflow. Pumping stops when
+   !                     the cumulative injected volume reaches the
+   !                     well's maximum capacity.
+   !
+   ! Common mechanics (both types):
+   !
+   !    dt-capped per-cell drain: q = min(ramp * qmax(nm), h_cell * A(nm) / dt)
+   !    ramp = min(h_cell / h_threshold, 1) if h_threshold > 0, else 1
+   !    h_cell = zs(nm) - (subgrid ? subgrid_z_zmin(nm) : zb(nm))
+   !
+   ! Piped drainage specifics:
    !
    !    dzs = zs(nm) - zs(outfall)
-   !    if dzs > 0:
-   !       h_cell = zs(nm) - (subgrid ? subgrid_z_zmin(nm) : zb(nm))
-   !       if h_cell <= 0: skip
-   !       ramp = min(h_cell / h_threshold, 1) if h_threshold > 0, else 1
-   !       q = min( ramp * qmax(nm), h_cell * cell_area(nm) / dt )
-   !       so q ramps linearly from 0 to qmax as depth goes from 0 to
-   !       h_threshold, then caps at qmax.
-   !    else:
-   !       q = -backflow_coef(nm) * sqrt(-dzs), capped at -qmax(nm)
-   !       suppressed if the zone has a check valve
+   !    if dzs > 0: drain as above (positive q, water leaves cell)
+   !    if dzs < 0: backflow q = -backflow_coef(nm)*sqrt(-dzs), capped at
+   !                -qmax(nm); suppressed entirely by check_valve
+   !    Per-cell qmax from the design precipitation rate:
+   !       qmax(nm) = design_precip_mm_hr * 1e-3 / 3600 * cell_area(nm)
+   !    Alternatively the user may supply max_outfall_rate [m3/s] for the
+   !    whole zone (exclusive with design_precip per zone); design_precip
+   !    is then derived as
+   !       design_precip_mm_hr = max_outfall_rate / zone_area * 1000 * 3600
+   !    which distributes the capacity proportionally to cell area.
+   !    Per-cell design-head (bed_elev is subgrid_z_zmin in subgrid mode,
+   !    zb otherwise):
+   !       dh_design(nm) = max(bed_elev(nm) - bed_elev(outfall), dh_design_min)
+   !       backflow_coef(nm) = qmax(nm) / sqrt(dh_design(nm))
    !
-   ! Per-cell design-head (bed_elev is subgrid_z_zmin in subgrid mode,
-   ! zb otherwise):
+   ! Injection well specifics:
    !
-   !    dh_design(nm) = max( bed_elev(nm) - bed_elev(outfall), dh_design_min )
-   !    backflow_coef(nm) = qmax(nm) / sqrt(dh_design(nm))
-   !
-   ! qmax from the design precipitation rate:
-   !
-   !    qmax(nm) = design_precip_mm_hr * 1e-3 / 3600 * cell_area(nm)  [m3/s]
-   !
-   ! Alternatively the user may supply max_outfall_rate [m3/s] for the
-   ! whole zone (exclusive with design_precip per zone); design_precip is
-   ! then derived as
-   !
-   !    design_precip_mm_hr = max_outfall_rate / zone_area * 1000 * 3600
-   !
-   ! which distributes the capacity proportionally to cell area.
+   !    Per-cell qmax is area-weighted, so the sum across zone cells is
+   !    exactly injection_rate and refinement-level changes inside a
+   !    zone don't shift the per-cell flux relative to cell area:
+   !       qmax(nm) = injection_rate * cell_area(nm) / zone_area
+   !    The zone holds a running cumulative_injection(iz) = sum(qd*dt)
+   !    across cells and time steps. Once cumulative_injection(iz)
+   !    reaches urb_zone_maximum_capacity(iz), pumping is skipped for
+   !    that zone (flow drops to zero).
    !
    ! Subroutines:
    !
    !   initialize_urban_drainage()
-   !     Top-level driver. Calls read_urban_drainage, loads polygons, marks
-   !     cells per zone (last zone wins on overlap), snaps outfall coords to
-   !     the nearest active cell, precomputes per-cell qmax and
-   !     backflow_coef. Called from sfincs_lib (once at init time).
+   !     Top-level driver. Calls read_urban_drainage, loads polygons,
+   !     marks cells per zone (last zone wins on overlap), snaps outfall
+   !     coords to the nearest active cell (piped_drainage only),
+   !     precomputes per-cell qmax and backflow_coef. Called from
+   !     sfincs_lib (once at init time).
    !
    !   read_urban_drainage(filename, ierr)
-   !     Parses the *.urb TOML file into the per-zone arrays. Called from
-   !     initialize_urban_drainage (this module).
+   !     Parses the *.urb TOML file into the per-zone arrays. Called
+   !     from initialize_urban_drainage (this module).
    !
    !   update_urban_drainage(t, dt)
-   !     Per-time-step entry: accumulates signed discharges into qsrc, and
-   !     adds the outfall contribution at each zone's outfall cell. Called
-   !     from update_continuity (sfincs_continuity).
+   !     Per-time-step entry: accumulates signed discharges into qsrc
+   !     and adds the zone contribution at the outfall cell (for
+   !     piped_drainage zones). Called from update_continuity
+   !     (sfincs_continuity).
    !
    !   write_urban_drainage_log_summary()
-   !     Prints a one-block-per-zone summary (name, polygon file, cell
-   !     count, total area, design precip, total qmax, thresholds, outfall)
-   !     to the log. Called from initialize_urban_drainage (this module).
+   !     Prints a one-block-per-zone summary to the log. Called from
+   !     initialize_urban_drainage (this module).
    !
    use sfincs_log
    use sfincs_error
@@ -78,44 +90,56 @@ module sfincs_urban_drainage
    public :: initialize_urban_drainage
    public :: update_urban_drainage
    !
+   ! Zone type identifiers. Kept public so ncoutput can branch on type
+   ! when writing per-zone output variables.
+   !
+   integer, parameter, public :: urb_type_piped_drainage = 1
+   integer, parameter, public :: urb_type_injection_well = 2
+   !
    ! Per-zone runtime state. Sized nr_urban_drainage_zones.
    !
    integer, public :: nr_urban_drainage_zones = 0
    !
-   character(len=64), dimension(:), allocatable, public :: urb_zone_name
-   character(len=64), dimension(:), allocatable, public :: urb_zone_type
-   character(len=256), dimension(:), allocatable        :: urb_zone_polygon_file
+   character(len=64),  dimension(:), allocatable, public :: urb_zone_name
+   character(len=64),  dimension(:), allocatable, public :: urb_zone_type      ! original TOML type string (for logging)
+   character(len=256), dimension(:), allocatable         :: urb_zone_polygon_file
+   integer,            dimension(:), allocatable, public :: urb_zone_type_id   ! one of urb_type_*
    !
-   real*4,  dimension(:), allocatable, public :: urb_zone_outfall_x
-   real*4,  dimension(:), allocatable, public :: urb_zone_outfall_y
-   real*4,  dimension(:), allocatable, public :: urb_zone_design_precip      ! mm/hr (either given directly or derived from max_outfall_rate)
-   real*4,  dimension(:), allocatable, public :: urb_zone_max_outfall_rate   ! m3/s; 0.0 if input was design_precip instead
-   real*4,  dimension(:), allocatable, public :: urb_zone_h_threshold        ! m ponding threshold
-   real*4,  dimension(:), allocatable, public :: urb_zone_dh_design_min      ! m floor on design head
-   logical, dimension(:), allocatable, public :: urb_zone_include_outfall
-   logical, dimension(:), allocatable, public :: urb_zone_check_valve
+   real*4,  dimension(:), allocatable, public :: urb_zone_outfall_x          ! m (piped_drainage)
+   real*4,  dimension(:), allocatable, public :: urb_zone_outfall_y          ! m (piped_drainage)
+   real*4,  dimension(:), allocatable, public :: urb_zone_design_precip      ! mm/hr (piped_drainage; either direct or derived from max_outfall_rate)
+   real*4,  dimension(:), allocatable, public :: urb_zone_max_outfall_rate   ! m3/s (piped_drainage; 0.0 if input was design_precip)
+   real*4,  dimension(:), allocatable, public :: urb_zone_injection_rate     ! m3/s (injection_well)
+   real*4,  dimension(:), allocatable, public :: urb_zone_maximum_capacity   ! m3 (injection_well)
+   real*4,  dimension(:), allocatable, public :: urb_zone_h_threshold        ! m ponding threshold (both types)
+   real*4,  dimension(:), allocatable, public :: urb_zone_dh_design_min      ! m floor on design head (piped_drainage)
+   logical, dimension(:), allocatable, public :: urb_zone_include_outfall    ! (piped_drainage)
+   logical, dimension(:), allocatable, public :: urb_zone_check_valve        ! (piped_drainage)
    !
-   integer, dimension(:), allocatable, public :: urban_drainage_outfall_index  ! cell index, 0 if none
-   real*4,  dimension(:), allocatable, public :: urban_drainage_q_outfall     ! m3/s per zone, per step
-   real*4,  dimension(:), allocatable, public :: urb_zone_area                ! m2, sum of cell areas in zone
-   integer, dimension(:), allocatable, public :: urb_zone_n_cells             ! number of cells in zone
-   real*4,  dimension(:), allocatable, public :: urb_zone_qmax_total          ! m3/s, sum of per-cell qmax
+   integer, dimension(:), allocatable, public :: urban_drainage_outfall_index   ! cell index, 0 if none
+   real*4,  dimension(:), allocatable, public :: urban_drainage_q_total         ! m3/s per zone, per step (total discharge leaving zone cells)
+   real*4,  dimension(:), allocatable, public :: urb_zone_cumulative_injection  ! m3 accumulated per zone (injection_well)
+   real*4,  dimension(:), allocatable, public :: urb_zone_area                  ! m2, sum of cell areas in zone
+   integer, dimension(:), allocatable, public :: urb_zone_n_cells               ! number of cells in zone
+   real*4,  dimension(:), allocatable, public :: urb_zone_qmax_total            ! m3/s, sum of per-cell qmax
    !
    ! Per-cell runtime state. Sized np.
    !
-   integer, dimension(:), allocatable, public :: urban_drainage_zone_indices  ! 0 if not in any zone
-   real*4,  dimension(:), allocatable, public :: urban_drainage_qmax          ! m3/s cap per cell
-   real*4,  dimension(:), allocatable, public :: urban_drainage_backflow_coef ! qmax / sqrt(dh_design)
-   real*4,  dimension(:), allocatable, public :: urban_drainage_cumulative_volume       ! m3 accumulated (optional)
+   integer, dimension(:), allocatable, public :: urban_drainage_zone_indices       ! 0 if not in any zone
+   real*4,  dimension(:), allocatable, public :: urban_drainage_qmax               ! m3/s cap per cell
+   real*4,  dimension(:), allocatable, public :: urban_drainage_backflow_coef      ! qmax / sqrt(dh_design), piped_drainage only
+   real*4,  dimension(:), allocatable, public :: urban_drainage_cumulative_volume  ! m3 accumulated per cell
    !
 contains
+   !
+   !-----------------------------------------------------------------------------------------------------!
    !
    subroutine initialize_urban_drainage()
       !
       ! Top-level initializer for urban drainage. Parses *.urb TOML file,
       ! loads polygons, stamps cells per zone (last-wins on overlap), snaps
-      ! outfall coords to the nearest active cell, and precomputes per-cell
-      ! qmax and backflow coefficients.
+      ! outfall coords (piped_drainage zones only) to the nearest active
+      ! cell, and precomputes per-cell qmax and backflow coefficients.
       !
       ! Sets sfincs_data::urban_drainage = .true. when at least one zone is
       ! loaded and has at least one participating cell. Otherwise leaves it
@@ -155,18 +179,20 @@ contains
          return
       endif
       !
-      ! Allocate per-zone snapped outfall index and per-step accumulator.
+      ! Allocate per-zone snapped outfall index and per-step accumulators.
       !
       allocate(urban_drainage_outfall_index(nr_urban_drainage_zones))
-      allocate(urban_drainage_q_outfall(nr_urban_drainage_zones))
+      allocate(urban_drainage_q_total(nr_urban_drainage_zones))
+      allocate(urb_zone_cumulative_injection(nr_urban_drainage_zones))
       allocate(urb_zone_area(nr_urban_drainage_zones))
       allocate(urb_zone_n_cells(nr_urban_drainage_zones))
       allocate(urb_zone_qmax_total(nr_urban_drainage_zones))
-      urban_drainage_outfall_index = 0
-      urban_drainage_q_outfall     = 0.0
-      urb_zone_area                = 0.0
-      urb_zone_n_cells             = 0
-      urb_zone_qmax_total          = 0.0
+      urban_drainage_outfall_index  = 0
+      urban_drainage_q_total        = 0.0
+      urb_zone_cumulative_injection = 0.0
+      urb_zone_area                 = 0.0
+      urb_zone_n_cells              = 0
+      urb_zone_qmax_total           = 0.0
       !
       ! Allocate per-cell state.
       !
@@ -249,12 +275,13 @@ contains
       endif
       deallocate(inside)
       !
-      ! Snap outfall coordinates to nearest active cell.
+      ! Snap outfall coordinates to nearest active cell (piped_drainage only).
       !
       n_outfalls = 0
       !
       do iz = 1, nr_urban_drainage_zones
          !
+         if (urb_zone_type_id(iz) /= urb_type_piped_drainage) cycle
          if (.not. urb_zone_include_outfall(iz)) cycle
          !
          nmq = find_quadtree_cell(urb_zone_outfall_x(iz), urb_zone_outfall_y(iz))
@@ -270,10 +297,9 @@ contains
          !
       enddo
       !
-      ! Precompute per-cell qmax and backflow coef. Done in two passes so
-      ! that zones specified via max_outfall_rate can derive their
-      ! design_precip from the now-known total zone area. This keeps the
-      ! per-cell qmax formula uniform across both input styles.
+      ! Precompute per-cell qmax and backflow coef. Two passes: first
+      ! accumulate per-zone area and cell count, then derive design_precip
+      ! where needed and compute per-cell qmax.
       !
       ! Pass 1: accumulate area and cell count per zone.
       !
@@ -296,26 +322,38 @@ contains
          !
       enddo
       !
-      ! Derive design_precip for zones that were given max_outfall_rate.
-      ! design_precip [mm/hr] = max_outfall_rate / area * 1000 * 3600.
+      ! Derive design_precip for piped_drainage zones that were given
+      ! max_outfall_rate. Error out on injection_well zones with zero cells.
       !
       do iz = 1, nr_urban_drainage_zones
          !
-         if (urb_zone_max_outfall_rate(iz) > 0.0) then
+         if (urb_zone_type_id(iz) == urb_type_piped_drainage) then
             !
-            if (urb_zone_area(iz) <= 0.0) then
-               write(logstr,'(a,a,a)')' Error ! urban_drainage_zone "', trim(urb_zone_name(iz)), &
-                    '" has max_outfall_rate set but zero participating cells; cannot derive design_precip'
-               call stop_sfincs(trim(logstr), -1)
+            if (urb_zone_max_outfall_rate(iz) > 0.0) then
+               !
+               if (urb_zone_area(iz) <= 0.0) then
+                  write(logstr,'(a,a,a)')' Error ! urban_drainage_zone "', trim(urb_zone_name(iz)), &
+                       '" has max_outfall_rate set but zero participating cells; cannot derive design_precip'
+                  call stop_sfincs(trim(logstr), -1)
+               endif
+               !
+               urb_zone_design_precip(iz) = urb_zone_max_outfall_rate(iz) / urb_zone_area(iz) * 1000.0 * 3600.0
+               !
             endif
             !
-            urb_zone_design_precip(iz) = urb_zone_max_outfall_rate(iz) / urb_zone_area(iz) * 1000.0 * 3600.0
+         elseif (urb_zone_type_id(iz) == urb_type_injection_well) then
+            !
+            if (urb_zone_n_cells(iz) <= 0) then
+               write(logstr,'(a,a,a)')' Error ! urban_drainage_zone "', trim(urb_zone_name(iz)), &
+                    '" is an injection_well with zero participating cells'
+               call stop_sfincs(trim(logstr), -1)
+            endif
             !
          endif
          !
       enddo
       !
-      ! Pass 2: compute per-cell qmax and backflow coefficient.
+      ! Pass 2: compute per-cell qmax and (piped only) backflow coefficient.
       !
       do nm = 1, np
          !
@@ -328,20 +366,31 @@ contains
             area_nm = cell_area(z_flags_iref(nm))
          endif
          !
-         ! mm/hr -> m/s then m3/s
-         !
-         urban_drainage_qmax(nm) = urb_zone_design_precip(iz) * 1.0e-3 / 3600.0 * area_nm
-         !
-         io = urban_drainage_outfall_index(iz)
-         !
-         if (io > 0) then
-            dh_min = urb_zone_dh_design_min(iz)
-            if (subgrid) then
-               dzb = max(subgrid_z_zmin(nm) - subgrid_z_zmin(io), dh_min)
-            else
-               dzb = max(zb(nm) - zb(io), dh_min)
+         if (urb_zone_type_id(iz) == urb_type_piped_drainage) then
+            !
+            ! mm/hr -> m/s then m3/s
+            !
+            urban_drainage_qmax(nm) = urb_zone_design_precip(iz) * 1.0e-3 / 3600.0 * area_nm
+            !
+            io = urban_drainage_outfall_index(iz)
+            !
+            if (io > 0) then
+               dh_min = urb_zone_dh_design_min(iz)
+               if (subgrid) then
+                  dzb = max(subgrid_z_zmin(nm) - subgrid_z_zmin(io), dh_min)
+               else
+                  dzb = max(zb(nm) - zb(io), dh_min)
+               endif
+               urban_drainage_backflow_coef(nm) = urban_drainage_qmax(nm) / sqrt(dzb)
             endif
-            urban_drainage_backflow_coef(nm) = urban_drainage_qmax(nm) / sqrt(dzb)
+            !
+         elseif (urb_zone_type_id(iz) == urb_type_injection_well) then
+            !
+            ! Split pump capacity across the zone by cell area so the sum
+            ! over zone cells equals injection_rate exactly.
+            !
+            urban_drainage_qmax(nm) = urb_zone_injection_rate(iz) * area_nm / urb_zone_area(iz)
+            !
          endif
          !
          urb_zone_qmax_total(iz) = urb_zone_qmax_total(iz) + urban_drainage_qmax(nm)
@@ -363,12 +412,15 @@ contains
    subroutine update_urban_drainage(t, dt)
       !
       ! Per-time-step entry: accumulate signed discharges into qsrc for
-      ! cells inside drainage zones, and deposit the summed per-zone flux at
-      ! each zone's outfall cell.
+      ! cells inside drainage zones, add the zone contribution at each
+      ! piped_drainage outfall cell, and accumulate the per-zone
+      ! cumulative injection volume for injection_well zones.
       !
-      ! Sign convention: qd > 0 means water leaves the cell (drains to the
-      ! outfall). qsrc(nm) -= qd subtracts that flux from the cell and the
-      ! same amount is added back at the outfall.
+      ! Sign convention: qd > 0 means water leaves the cell (drains to
+      ! outfall or underground). qsrc(nm) -= qd subtracts that flux from
+      ! the cell; for piped_drainage zones the same amount is added back
+      ! at the outfall cell. injection_well zones don't return water to
+      ! the model.
       !
       ! Called from: update_continuity (sfincs_continuity), once per time
       ! step, after update_src_structures.
@@ -380,52 +432,49 @@ contains
       real*8, intent(in) :: t
       real*4, intent(in) :: dt
       !
-      integer :: nm, iz, io
+      integer :: nm, iz, io, type_id
       real*4  :: dzs, qd, area_nm, h_cell, ramp
       !
       if (nr_urban_drainage_zones <= 0) return
       !
       call timer_start('urban drainage')
       !
-      !$acc kernels present(urban_drainage_q_outfall)
-      urban_drainage_q_outfall = 0.0
+      !$acc kernels present(urban_drainage_q_total)
+      urban_drainage_q_total = 0.0
       !$acc end kernels
       !
-      !$acc parallel loop present( qsrc, zs, zb, subgrid_z_zmin, cell_area, cell_area_m2, z_flags_iref, &
+      !$acc parallel loop present( qsrc, zs, zb, subgrid_z_zmin,z_volume, cell_area, cell_area_m2, z_flags_iref, &
       !$acc                        urban_drainage_zone_indices, urban_drainage_outfall_index, &
       !$acc                        urban_drainage_qmax, urban_drainage_backflow_coef, &
-      !$acc                        urban_drainage_q_outfall, urban_drainage_cumulative_volume, &
+      !$acc                        urban_drainage_q_total, urban_drainage_cumulative_volume, &
+      !$acc                        urb_zone_type_id, urb_zone_maximum_capacity, urb_zone_cumulative_injection, &
       !$acc                        urb_zone_h_threshold, urb_zone_check_valve ) &
-      !$acc                reduction(+:urban_drainage_q_outfall)
+      !$acc                reduction(+:urban_drainage_q_total)
       !$omp parallel do default(shared) &
-      !$omp private(nm, iz, io, dzs, qd, area_nm, h_cell, ramp) &
-      !$omp reduction(+:urban_drainage_q_outfall) schedule(static)
+      !$omp private(nm, iz, io, type_id, dzs, qd, area_nm, h_cell, ramp) &
+      !$omp reduction(+:urban_drainage_q_total) schedule(static)
       do nm = 1, np
          !
          iz = urban_drainage_zone_indices(nm)
          if (iz == 0) cycle
          !
-         io = urban_drainage_outfall_index(iz)
-         if (io <= 0) cycle
+         type_id = urb_zone_type_id(iz)
          !
-         dzs = zs(nm) - zs(io)
-         !
-         if (dzs > 0.0) then
+         if (type_id == urb_type_injection_well) then
             !
-            ! Drain from cell. In subgrid mode the effective bed is the
-            ! subgrid minimum, not the cell-center zb.
+            ! Skip entirely once the well has reached maximum capacity.
+            ! Small overshoot of one dt is acceptable; we do not scale
+            ! per-cell flux to hit the cap exactly.
+            !
+            if (urb_zone_cumulative_injection(iz) >= urb_zone_maximum_capacity(iz)) cycle
             !
             if (subgrid) then
                h_cell = zs(nm) - subgrid_z_zmin(nm)
             else
                h_cell = zs(nm) - zb(nm)
             endif
-            if (h_cell <= 0.0) cycle
             !
-            ! Linear ramp on the design-rate cap: zero discharge at h = 0,
-            ! full qmax at h >= h_threshold. Removes the wiggle that the
-            ! hard on/off gate produced near the threshold. Reduces to the
-            ! hard cap when h_threshold = 0 (default).
+            if (h_cell <= 0.0) cycle
             !
             if (urb_zone_h_threshold(iz) > 0.0) then
                ramp = min(h_cell / urb_zone_h_threshold(iz), 1.0)
@@ -439,46 +488,96 @@ contains
                area_nm = cell_area(z_flags_iref(nm))
             endif
             !
-            qd = min(ramp * urban_drainage_qmax(nm), h_cell * area_nm / dt)
+            if (subgrid) then
+               qd = min(ramp * urban_drainage_qmax(nm), z_volume(nm) / dt)
+            else
+               qd = min(ramp * urban_drainage_qmax(nm), h_cell * area_nm / dt)
+            endif
             !
          else
             !
-            ! Backflow from outfall. Blocked by a check valve.
+            ! piped_drainage
             !
-            if (urb_zone_check_valve(iz)) cycle
+            io = urban_drainage_outfall_index(iz)
+            if (io <= 0) cycle
             !
-            qd = -urban_drainage_backflow_coef(nm) * sqrt(-dzs)
-            if (qd < -urban_drainage_qmax(nm)) qd = -urban_drainage_qmax(nm)
+            dzs = zs(nm) - zs(io)
+            !
+            if (dzs > 0.0) then
+               !
+               if (subgrid) then
+                  h_cell = zs(nm) - subgrid_z_zmin(nm)
+               else
+                  h_cell = zs(nm) - zb(nm)
+               endif
+               if (h_cell <= 0.0) cycle
+               !
+               if (urb_zone_h_threshold(iz) > 0.0) then
+                  ramp = min(h_cell / urb_zone_h_threshold(iz), 1.0)
+               else
+                  ramp = 1.0
+               endif
+               !
+               if (crsgeo) then
+                  area_nm = cell_area_m2(nm)
+               else
+                  area_nm = cell_area(z_flags_iref(nm))
+               endif
+               !
+               if (subgrid) then
+                  qd = min(ramp * urban_drainage_qmax(nm), z_volume(nm) / dt)
+               else
+                  qd = min(ramp * urban_drainage_qmax(nm), h_cell * area_nm / dt)
+               endif
+               !
+            else
+               !
+               if (urb_zone_check_valve(iz)) cycle
+               !
+               qd = -urban_drainage_backflow_coef(nm) * sqrt(-dzs)
+               if (qd < -urban_drainage_qmax(nm)) qd = -urban_drainage_qmax(nm)
+               !
+            endif
             !
          endif
          !
          ! qsrc(nm) is unique per iteration (loop is over nm), no race.
-         ! The zone accumulator urban_drainage_q_outfall(iz) is summed via
-         ! the reduction(+) clause on the parent directive, so each thread
-         ! / gang gets a private copy that is combined at loop end — no
-         ! serializing atomic needed in the common hot path.
+         ! The zone accumulator urban_drainage_q_total(iz) is summed via
+         ! the reduction(+) clause on the parent directive, so each
+         ! thread / gang gets a private copy that is combined at loop end.
          !
          qsrc(nm) = qsrc(nm) - qd
          !
-         urban_drainage_q_outfall(iz) = urban_drainage_q_outfall(iz) + qd
+         urban_drainage_q_total(iz) = urban_drainage_q_total(iz) + qd
          !
          urban_drainage_cumulative_volume(nm) = urban_drainage_cumulative_volume(nm) + qd * dt
          !
       enddo
       !$omp end parallel do
       !
-      ! Second pass: add each zone's net flux back at the outfall cell.
-      ! Atomic guards against multiple zones snapping to the same outfall
-      ! cell (rare but possible).
+      ! Second pass: for piped_drainage zones, deposit the per-zone flux
+      ! at the outfall cell; for injection_well zones, accumulate the
+      ! cumulative injected volume.
       !
-      !$acc parallel loop present( qsrc, urban_drainage_outfall_index, urban_drainage_q_outfall )
+      !$acc parallel loop present( qsrc, urban_drainage_outfall_index, urban_drainage_q_total, &
+      !$acc                        urb_zone_type_id, urb_zone_cumulative_injection )
       do iz = 1, nr_urban_drainage_zones
          !
-         io = urban_drainage_outfall_index(iz)
-         if (io <= 0) cycle
-         !
-         !$acc atomic update
-         qsrc(io) = qsrc(io) + urban_drainage_q_outfall(iz)
+         if (urb_zone_type_id(iz) == urb_type_piped_drainage) then
+            !
+            io = urban_drainage_outfall_index(iz)
+            if (io <= 0) cycle
+            !
+            !$acc atomic update
+            qsrc(io) = qsrc(io) + urban_drainage_q_total(iz)
+            !
+         else
+            !
+            ! injection_well
+            !
+            urb_zone_cumulative_injection(iz) = urb_zone_cumulative_injection(iz) + urban_drainage_q_total(iz) * dt
+            !
+         endif
          !
       enddo
       !
@@ -490,11 +589,13 @@ contains
    !
    subroutine write_urban_drainage_log_summary()
       !
-      ! Emit a one-block-per-zone description of every parsed urban drainage
-      ! zone to the log file. Intended for operator review at init time.
+      ! Emit a one-block-per-zone description of every parsed urban
+      ! drainage zone to the log file. Intended for operator review at
+      ! init time.
       !
       ! Called from: initialize_urban_drainage (this module), once after
-      ! cells have been stamped and per-zone totals have been accumulated.
+      ! cells have been stamped and per-zone totals have been
+      ! accumulated.
       !
       implicit none
       !
@@ -515,62 +616,78 @@ contains
          write(logstr,'(a,i0,a)')'Zone ', iz, ':'
          call write_log(logstr, 0)
          !
-         write(logstr,'(a,a)')         '  name:            ', trim(urb_zone_name(iz))
+         write(logstr,'(a,a)')         '  name:             ', trim(urb_zone_name(iz))
          call write_log(logstr, 0)
          !
-         if (len_trim(urb_zone_type(iz)) > 0) then
-            write(logstr,'(a,a)')      '  type:            ', trim(urb_zone_type(iz))
-            call write_log(logstr, 0)
-         endif
-         !
-         write(logstr,'(a,a)')         '  polygon_file:    ', trim(urb_zone_polygon_file(iz))
+         write(logstr,'(a,a)')         '  type:             ', trim(urb_zone_type(iz))
          call write_log(logstr, 0)
          !
-         write(logstr,'(a,i0)')        '  cells_assigned:  ', urb_zone_n_cells(iz)
+         write(logstr,'(a,a)')         '  polygon_file:     ', trim(urb_zone_polygon_file(iz))
          call write_log(logstr, 0)
          !
-         write(logstr,'(a,f0.1,a)')    '  area:            ', urb_zone_area(iz), ' (m2)'
+         write(logstr,'(a,i0)')        '  cells_assigned:   ', urb_zone_n_cells(iz)
          call write_log(logstr, 0)
          !
-         if (urb_zone_max_outfall_rate(iz) > 0.0) then
-            write(logstr,'(a,f0.4,a)') '  max_outfall_rate:', urb_zone_max_outfall_rate(iz), ' (m3/s)'
-            call write_log(logstr, 0)
-            write(logstr,'(a,f0.2,a)') '  design_precip:   ', urb_zone_design_precip(iz), &
-                 ' (mm/hr, derived from max_outfall_rate)'
-            call write_log(logstr, 0)
-         else
-            write(logstr,'(a,f0.2,a)') '  design_precip:   ', urb_zone_design_precip(iz), ' (mm/hr)'
-            call write_log(logstr, 0)
-         endif
-         !
-         write(logstr,'(a,f0.4,a)')    '  qmax_total:      ', urb_zone_qmax_total(iz), ' (m3/s)'
+         write(logstr,'(a,f0.1,a)')    '  area:             ', urb_zone_area(iz), ' (m2)'
          call write_log(logstr, 0)
          !
-         write(logstr,'(a,f0.3,a)')    '  h_threshold:     ', urb_zone_h_threshold(iz), ' (m)'
-         call write_log(logstr, 0)
-         !
-         write(logstr,'(a,f0.3,a)')    '  dh_design_min:   ', urb_zone_dh_design_min(iz), ' (m)'
-         call write_log(logstr, 0)
-         !
-         if (urb_zone_include_outfall(iz)) then
-            write(logstr,'(a,f0.3,a,f0.3,a)')'  outfall:         (', urb_zone_outfall_x(iz), ', ', &
-                 urb_zone_outfall_y(iz), ')'
-            call write_log(logstr, 0)
+         if (urb_zone_type_id(iz) == urb_type_piped_drainage) then
             !
-            if (urban_drainage_outfall_index(iz) > 0) then
-               write(logstr,'(a,i0)')  '  outfall_index:   ', urban_drainage_outfall_index(iz)
+            if (urb_zone_max_outfall_rate(iz) > 0.0) then
+               write(logstr,'(a,f0.4,a)') '  max_outfall_rate: ', urb_zone_max_outfall_rate(iz), ' (m3/s)'
+               call write_log(logstr, 0)
+               write(logstr,'(a,f0.2,a)') '  design_precip:    ', urb_zone_design_precip(iz), &
+                    ' (mm/hr, derived from max_outfall_rate)'
                call write_log(logstr, 0)
             else
-               call write_log('  outfall_index:   (no active cell snapped)', 0)
+               write(logstr,'(a,f0.2,a)') '  design_precip:    ', urb_zone_design_precip(iz), ' (mm/hr)'
+               call write_log(logstr, 0)
             endif
-         else
-            call write_log('  outfall:         (disabled)', 0)
-         endif
-         !
-         if (urb_zone_check_valve(iz)) then
-            call write_log('  check_valve:     true', 0)
-         else
-            call write_log('  check_valve:     false', 0)
+            !
+            write(logstr,'(a,f0.4,a)')    '  qmax_total:       ', urb_zone_qmax_total(iz), ' (m3/s)'
+            call write_log(logstr, 0)
+            !
+            write(logstr,'(a,f0.3,a)')    '  h_threshold:      ', urb_zone_h_threshold(iz), ' (m)'
+            call write_log(logstr, 0)
+            !
+            write(logstr,'(a,f0.3,a)')    '  dh_design_min:    ', urb_zone_dh_design_min(iz), ' (m)'
+            call write_log(logstr, 0)
+            !
+            if (urb_zone_include_outfall(iz)) then
+               write(logstr,'(a,f0.3,a,f0.3,a)')'  outfall:          (', urb_zone_outfall_x(iz), ', ', &
+                    urb_zone_outfall_y(iz), ')'
+               call write_log(logstr, 0)
+               !
+               if (urban_drainage_outfall_index(iz) > 0) then
+                  write(logstr,'(a,i0)')  '  outfall_index:    ', urban_drainage_outfall_index(iz)
+                  call write_log(logstr, 0)
+               else
+                  call write_log('  outfall_index:    (no active cell snapped)', 0)
+               endif
+            else
+               call write_log('  outfall:          (disabled)', 0)
+            endif
+            !
+            if (urb_zone_check_valve(iz)) then
+               call write_log('  check_valve:      true', 0)
+            else
+               call write_log('  check_valve:      false', 0)
+            endif
+            !
+         elseif (urb_zone_type_id(iz) == urb_type_injection_well) then
+            !
+            write(logstr,'(a,f0.4,a)')    '  injection_rate:   ', urb_zone_injection_rate(iz), ' (m3/s)'
+            call write_log(logstr, 0)
+            !
+            write(logstr,'(a,f0.1,a)')    '  maximum_capacity: ', urb_zone_maximum_capacity(iz), ' (m3)'
+            call write_log(logstr, 0)
+            !
+            write(logstr,'(a,f0.4,a)')    '  qmax_total:       ', urb_zone_qmax_total(iz), ' (m3/s)'
+            call write_log(logstr, 0)
+            !
+            write(logstr,'(a,f0.3,a)')    '  h_threshold:      ', urb_zone_h_threshold(iz), ' (m)'
+            call write_log(logstr, 0)
+            !
          endif
          !
          call write_log('', 0)
@@ -588,18 +705,26 @@ contains
       ! Schema:
       !
       !    [[urban_drainage_zone]]
-      !    name            = "area 1"            ! required, string (matches polygon name)
-      !    type            = "drainage"          ! optional, free-form tag (reserved)
-      !    polygon_file    = "zones.tek"         ! required
-      !    outfall_x       = 950.0               ! required if include_outfall = true
-      !    outfall_y       = 150.0               ! required if include_outfall = true
-      !    design_precip   = 20.0                ! required if max_outfall_rate absent, mm/hr
-      !    max_outfall_rate = 6.0                ! alternative to design_precip, m3/s total zone capacity
-      !                                          ! exactly one of {design_precip, max_outfall_rate} must be given
-      !    h_threshold     = 0.0                 ! optional, m (default 0.0)
-      !    dh_design_min   = 0.1                 ! optional, m (default 0.1)
-      !    include_outfall = true                ! optional (default true)
-      !    check_valve     = true                ! optional (default false)
+      !    name              = "area 1"            ! required, string (matches polygon name)
+      !    type              = "piped_drainage"    ! required, one of: "piped_drainage", "injection_well"
+      !    polygon_file      = "zones.tek"         ! required
+      !
+      !    # piped_drainage keys:
+      !    outfall_x         = 950.0               ! required if include_outfall = true
+      !    outfall_y         = 150.0               ! required if include_outfall = true
+      !    design_precip     = 20.0                ! required if max_outfall_rate absent, mm/hr
+      !    max_outfall_rate  = 6.0                 ! alternative to design_precip, m3/s total zone capacity
+      !                                            ! exactly one of {design_precip, max_outfall_rate} must be given
+      !    dh_design_min     = 0.1                 ! optional, m (default 0.1)
+      !    include_outfall   = true                ! optional (default true)
+      !    check_valve       = true                ! optional (default false)
+      !
+      !    # injection_well keys:
+      !    injection_rate    = 0.5                 ! required, m3/s total zone pump rate
+      !    maximum_capacity  = 1000.0              ! required, m3 well total storage capacity
+      !
+      !    # common:
+      !    h_threshold       = 0.0                 ! optional, m (default 0.0)
       !
       ! Called from: initialize_urban_drainage (this module).
       !
@@ -616,7 +741,6 @@ contains
       type(toml_table), pointer     :: tbl_zone
       character(len=:), allocatable :: name_str, type_str, poly_str
       integer                       :: nz, i, stat
-      real*4                        :: r4_tmp
       real(kind=8)                  :: r8_tmp
       logical                       :: l_tmp, found
       !
@@ -661,27 +785,33 @@ contains
       !
       allocate(urb_zone_name(nz))
       allocate(urb_zone_type(nz))
+      allocate(urb_zone_type_id(nz))
       allocate(urb_zone_polygon_file(nz))
       allocate(urb_zone_outfall_x(nz))
       allocate(urb_zone_outfall_y(nz))
       allocate(urb_zone_design_precip(nz))
       allocate(urb_zone_max_outfall_rate(nz))
+      allocate(urb_zone_injection_rate(nz))
+      allocate(urb_zone_maximum_capacity(nz))
       allocate(urb_zone_h_threshold(nz))
       allocate(urb_zone_dh_design_min(nz))
       allocate(urb_zone_include_outfall(nz))
       allocate(urb_zone_check_valve(nz))
       !
-      urb_zone_name            = ''
-      urb_zone_type            = ''
-      urb_zone_polygon_file    = ''
-      urb_zone_outfall_x       = 0.0
-      urb_zone_outfall_y       = 0.0
+      urb_zone_name             = ''
+      urb_zone_type             = ''
+      urb_zone_type_id          = 0
+      urb_zone_polygon_file     = ''
+      urb_zone_outfall_x        = 0.0
+      urb_zone_outfall_y        = 0.0
       urb_zone_design_precip    = 0.0
       urb_zone_max_outfall_rate = 0.0
+      urb_zone_injection_rate   = 0.0
+      urb_zone_maximum_capacity = 0.0
       urb_zone_h_threshold      = 0.0
-      urb_zone_dh_design_min   = 0.1
-      urb_zone_include_outfall = .true.
-      urb_zone_check_valve     = .false.
+      urb_zone_dh_design_min    = 0.1
+      urb_zone_include_outfall  = .true.
+      urb_zone_check_valve      = .false.
       !
       do i = 1, nz
          !
@@ -704,9 +834,32 @@ contains
          endif
          urb_zone_name(i) = name_str
          !
+         ! type is now required and must resolve to a known type id.
+         !
          if (allocated(type_str)) deallocate(type_str)
          call get_value(tbl_zone, 'type', type_str, stat=stat)
-         if (allocated(type_str)) urb_zone_type(i) = type_str
+         if (.not. allocated(type_str)) then
+            write(logstr,'(a,a,a)')' Error ! Missing required "type" in urban_drainage_zone "', &
+                 trim(urb_zone_name(i)), '" (expected "piped_drainage" or "injection_well")'
+            call write_log(logstr, 1)
+            ierr = 1
+            return
+         endif
+         urb_zone_type(i) = type_str
+         !
+         select case (trim(type_str))
+         case ('piped_drainage')
+            urb_zone_type_id(i) = urb_type_piped_drainage
+         case ('injection_well')
+            urb_zone_type_id(i) = urb_type_injection_well
+         case default
+            write(logstr,'(a,a,a,a,a)')' Error ! Unknown type "', trim(type_str), &
+                 '" in urban_drainage_zone "', trim(urb_zone_name(i)), &
+                 '" (expected "piped_drainage" or "injection_well")'
+            call write_log(logstr, 1)
+            ierr = 1
+            return
+         end select
          !
          if (allocated(poly_str)) deallocate(poly_str)
          call get_value(tbl_zone, 'polygon_file', poly_str, stat=stat)
@@ -719,77 +872,104 @@ contains
          endif
          urb_zone_polygon_file(i) = poly_str
          !
-         call get_value(tbl_zone, 'outfall_x', r8_tmp, stat=stat)
-         if (stat == 0) urb_zone_outfall_x(i) = real(r8_tmp, 4)
-         !
-         call get_value(tbl_zone, 'outfall_y', r8_tmp, stat=stat)
-         if (stat == 0) urb_zone_outfall_y(i) = real(r8_tmp, 4)
-         !
-         ! Exactly one of design_precip / max_outfall_rate must be given.
-         ! has_key distinguishes "absent" from "present but 0.0", so a user
-         ! who really wants a zero-capacity zone can still write it.
-         !
-         block
-            logical :: has_precip, has_rate
-            has_precip = tbl_zone%has_key('design_precip')
-            has_rate   = tbl_zone%has_key('max_outfall_rate')
-            if (has_precip .and. has_rate) then
-               write(logstr,'(a,a,a)')' Error ! urban_drainage_zone "', trim(urb_zone_name(i)), &
-                    '" has both "design_precip" and "max_outfall_rate"; specify only one'
-               call write_log(logstr, 1)
-               ierr = 1
-               return
-            endif
-            if (.not. has_precip .and. .not. has_rate) then
-               write(logstr,'(a,a,a)')' Error ! urban_drainage_zone "', trim(urb_zone_name(i)), &
-                    '" needs "design_precip" (mm/hr) or "max_outfall_rate" (m3/s)'
-               call write_log(logstr, 1)
-               ierr = 1
-               return
-            endif
-            if (has_precip) then
-               call get_value(tbl_zone, 'design_precip', r8_tmp, stat=stat)
-               urb_zone_design_precip(i) = real(r8_tmp, 4)
-            else
-               call get_value(tbl_zone, 'max_outfall_rate', r8_tmp, stat=stat)
-               urb_zone_max_outfall_rate(i) = real(r8_tmp, 4)
-            endif
-         end block
+         ! h_threshold is common to both types.
          !
          call get_value(tbl_zone, 'h_threshold', r8_tmp, stat=stat)
          if (stat == 0) urb_zone_h_threshold(i) = real(r8_tmp, 4)
          !
-         call get_value(tbl_zone, 'dh_design_min', r8_tmp, stat=stat)
-         if (stat == 0) urb_zone_dh_design_min(i) = real(r8_tmp, 4)
+         ! Type-specific fields.
          !
-         call get_value(tbl_zone, 'include_outfall', l_tmp, stat=stat)
-         if (stat == 0) urb_zone_include_outfall(i) = l_tmp
-         !
-         call get_value(tbl_zone, 'check_valve', l_tmp, stat=stat)
-         if (stat == 0) urb_zone_check_valve(i) = l_tmp
-         !
-         ! Minimal sanity check on outfall: if include_outfall is true, outfall
-         ! coords must be specified (non-zero default is a weak check; keep it
-         ! simple by warning rather than failing — snap will catch bad values).
-         !
-         if (urb_zone_include_outfall(i)) then
-            found = (urb_zone_outfall_x(i) /= 0.0 .or. urb_zone_outfall_y(i) /= 0.0)
-            if (.not. found) then
-               write(logstr,'(a,a,a)')' Warning : urban_drainage_zone "', trim(urb_zone_name(i)), &
-                    '" has include_outfall = true but outfall_x, outfall_y both 0.0'
-               call write_log(logstr, 0)
+         if (urb_zone_type_id(i) == urb_type_piped_drainage) then
+            !
+            call get_value(tbl_zone, 'outfall_x', r8_tmp, stat=stat)
+            if (stat == 0) urb_zone_outfall_x(i) = real(r8_tmp, 4)
+            !
+            call get_value(tbl_zone, 'outfall_y', r8_tmp, stat=stat)
+            if (stat == 0) urb_zone_outfall_y(i) = real(r8_tmp, 4)
+            !
+            ! Exactly one of design_precip / max_outfall_rate must be given.
+            ! has_key distinguishes "absent" from "present but 0.0".
+            !
+            block
+               logical :: has_precip, has_rate
+               has_precip = tbl_zone%has_key('design_precip')
+               has_rate   = tbl_zone%has_key('max_outfall_rate')
+               if (has_precip .and. has_rate) then
+                  write(logstr,'(a,a,a)')' Error ! urban_drainage_zone "', trim(urb_zone_name(i)), &
+                       '" has both "design_precip" and "max_outfall_rate"; specify only one'
+                  call write_log(logstr, 1)
+                  ierr = 1
+                  return
+               endif
+               if (.not. has_precip .and. .not. has_rate) then
+                  write(logstr,'(a,a,a)')' Error ! piped_drainage zone "', trim(urb_zone_name(i)), &
+                       '" needs "design_precip" (mm/hr) or "max_outfall_rate" (m3/s)'
+                  call write_log(logstr, 1)
+                  ierr = 1
+                  return
+               endif
+               if (has_precip) then
+                  call get_value(tbl_zone, 'design_precip', r8_tmp, stat=stat)
+                  urb_zone_design_precip(i) = real(r8_tmp, 4)
+               else
+                  call get_value(tbl_zone, 'max_outfall_rate', r8_tmp, stat=stat)
+                  urb_zone_max_outfall_rate(i) = real(r8_tmp, 4)
+               endif
+            end block
+            !
+            call get_value(tbl_zone, 'dh_design_min', r8_tmp, stat=stat)
+            if (stat == 0) urb_zone_dh_design_min(i) = real(r8_tmp, 4)
+            if (urb_zone_dh_design_min(i) <= 0.0) urb_zone_dh_design_min(i) = 0.1
+            !
+            call get_value(tbl_zone, 'include_outfall', l_tmp, stat=stat)
+            if (stat == 0) urb_zone_include_outfall(i) = l_tmp
+            !
+            call get_value(tbl_zone, 'check_valve', l_tmp, stat=stat)
+            if (stat == 0) urb_zone_check_valve(i) = l_tmp
+            !
+            ! Minimal sanity check on outfall: if include_outfall is true,
+            ! outfall coords should be specified (warn only; snap will
+            ! catch bad values).
+            !
+            if (urb_zone_include_outfall(i)) then
+               found = (urb_zone_outfall_x(i) /= 0.0 .or. urb_zone_outfall_y(i) /= 0.0)
+               if (.not. found) then
+                  write(logstr,'(a,a,a)')' Warning : piped_drainage zone "', trim(urb_zone_name(i)), &
+                       '" has include_outfall = true but outfall_x, outfall_y both 0.0'
+                  call write_log(logstr, 0)
+               endif
             endif
+            !
+         elseif (urb_zone_type_id(i) == urb_type_injection_well) then
+            !
+            if (.not. tbl_zone%has_key('injection_rate')) then
+               write(logstr,'(a,a,a)')' Error ! injection_well zone "', trim(urb_zone_name(i)), &
+                    '" needs "injection_rate" (m3/s)'
+               call write_log(logstr, 1)
+               ierr = 1
+               return
+            endif
+            call get_value(tbl_zone, 'injection_rate', r8_tmp, stat=stat)
+            urb_zone_injection_rate(i) = real(r8_tmp, 4)
+            !
+            if (.not. tbl_zone%has_key('maximum_capacity')) then
+               write(logstr,'(a,a,a)')' Error ! injection_well zone "', trim(urb_zone_name(i)), &
+                    '" needs "maximum_capacity" (m3)'
+               call write_log(logstr, 1)
+               ierr = 1
+               return
+            endif
+            call get_value(tbl_zone, 'maximum_capacity', r8_tmp, stat=stat)
+            urb_zone_maximum_capacity(i) = real(r8_tmp, 4)
+            !
+            ! injection_well has no outfall or check valve.
+            !
+            urb_zone_include_outfall(i) = .false.
+            urb_zone_check_valve(i)     = .false.
+            !
          endif
          !
-         if (urb_zone_dh_design_min(i) <= 0.0) urb_zone_dh_design_min(i) = 0.1
-         !
       enddo
-      !
-      ! Keep the compiler from warning about unused variables in case get_value
-      ! signatures drift; r4_tmp is reserved for future per-zone scalars.
-      !
-      r4_tmp = 0.0
-      if (r4_tmp < 0.0) continue
       !
    end subroutine
    !

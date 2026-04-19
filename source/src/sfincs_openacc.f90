@@ -7,7 +7,9 @@ module sfincs_openacc
                                      rule_start, rule_length
    use sfincs_urban_drainage,  only: urban_drainage_zone_indices, urban_drainage_outfall_index, &
                                      urban_drainage_qmax, urban_drainage_backflow_coef, &
-                                     urban_drainage_q_outfall, urban_drainage_cumulative_volume, &
+                                     urban_drainage_q_total, urban_drainage_cumulative_volume, &
+                                     urb_zone_type_id, urb_zone_injection_rate, urb_zone_maximum_capacity, &
+                                     urb_zone_cumulative_injection, &
                                      urb_zone_h_threshold, urb_zone_check_valve, &
                                      urb_zone_dh_design_min
    !
@@ -59,7 +61,9 @@ contains
    !$acc               ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, horton_kd, horton_fc, horton_f0, &
    !$acc               bucket_volume, bucket_capacity, bucket_k, bucket_drain_rate, bucket_loss, bucket_runoff, &
    !$acc               urban_drainage_zone_indices, urban_drainage_outfall_index, urban_drainage_qmax, urban_drainage_backflow_coef, &
-   !$acc               urban_drainage_q_outfall, urban_drainage_cumulative_volume, &
+   !$acc               urban_drainage_q_total, urban_drainage_cumulative_volume, &
+   !$acc               urb_zone_type_id, urb_zone_injection_rate, urb_zone_maximum_capacity, &
+   !$acc               urb_zone_cumulative_injection, &
    !$acc               urb_zone_h_threshold, urb_zone_check_valve, urb_zone_dh_design_min )
    !
    end subroutine
@@ -104,7 +108,9 @@ contains
    !$acc               ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, horton_kd, horton_fc, horton_f0, &
    !$acc               bucket_volume, bucket_capacity, bucket_k, bucket_drain_rate, bucket_loss, bucket_runoff, &
    !$acc               urban_drainage_zone_indices, urban_drainage_outfall_index, urban_drainage_qmax, urban_drainage_backflow_coef, &
-   !$acc               urban_drainage_q_outfall, urban_drainage_cumulative_volume, &
+   !$acc               urban_drainage_q_total, urban_drainage_cumulative_volume, &
+   !$acc               urb_zone_type_id, urb_zone_injection_rate, urb_zone_maximum_capacity, &
+   !$acc               urb_zone_cumulative_injection, &
    !$acc               urb_zone_h_threshold, urb_zone_check_valve, urb_zone_dh_design_min )
    !
    end
