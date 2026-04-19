@@ -29,7 +29,6 @@ module sfincs_lib
    use sfincs_log
    use sfincs_timers
    use sfincs_timestep_analysis
-   use sfincs_screendump
    !
    implicit none
    !
@@ -90,7 +89,7 @@ module sfincs_lib
    build_revision = "$Rev: v2.3.2 Mount Faber + branch-redo-infiltration + urban_drainage + discharges + timers + screendump"
    build_date     = "$Date: 2026-04-19"
    !
-   call screendump_startup()
+   call write_startup_log()
    !
    call timer_start('Input')
    !
@@ -161,7 +160,7 @@ module sfincs_lib
    !
    call timer_stop('Input')
    !
-   call screendump_processes()
+   call write_processes_log()
    !
    ! Initialize some parameters
    !
@@ -499,7 +498,7 @@ module sfincs_lib
          !
       endif
       !
-      call screendump_progress(t, t0, t1)
+      call write_progress_log(t, t0, t1)
       !
       if (single_time_step) then
          !
@@ -534,7 +533,7 @@ module sfincs_lib
    !
    dtavg = dtavg / (nt - 1)
    !
-   call screendump_run_finished(dtavg)
+   call write_finished_log(dtavg)
    !
    if (timestep_analysis) then
       !
