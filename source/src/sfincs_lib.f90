@@ -28,6 +28,7 @@ module sfincs_lib
    use sfincs_log
    use sfincs_timers
    use sfincs_timestep_analysis
+   use sfincs_screendump
    !
    implicit none
    !
@@ -89,42 +90,7 @@ module sfincs_lib
    build_revision = "$Rev: v2.3.2 mt. Faber+branch:318"
    build_date     = "$Date: 2025-04-13"
    !
-   call write_log('', 1)
-   call write_log('------------ Welcome to SFINCS ------------', 1)
-   call write_log('', 1)
-   call write_log('  @@@@@  @@@@@@@ @@ @@  @@   @@@@   @@@@@ ', 1)
-   call write_log(' @@@ @@@ @@@@@@@ @@ @@@ @@ @@@@@@@ @@@ @@@', 1)
-   call write_log(' @@@     @@      @@ @@@ @@ @@   @@ @@@    ', 1)
-   call write_log('  @@@@@  @@@@@@  @@ @@@@@@ @@       @@@@@ ', 1)
-   call write_log('     @@@ @@      @@ @@ @@@ @@   @@     @@@', 1)
-   call write_log(' @@@ @@@ @@      @@ @@  @@  @@@@@@ @@@ @@@', 1)
-   call write_log('  @@@@@  @@      @@ @@   @   @@@@   @@@@@ ', 1)
-   call write_log('', 1)
-   call write_log('              ..............              ', 1)
-   call write_log('          ......:@@@@@@@@:......          ', 1)
-   call write_log('       ..::::..@@........@@.:::::..       ', 1)
-   call write_log('     ..:::::..@@..::..::..@@.::::::..     ', 1)
-   call write_log('    .::::::..@@............@@.:::::::.    ', 1)
-   call write_log('   .::::::..@@..............@@.:::::::.   ', 1)
-   call write_log('  .::::::::..@@............@@..::::::::.  ', 1)
-   call write_log(' .:::::::::...@@.@..@@..@.@@..::::::::::. ', 1)
-   call write_log(' .:::::::::...:@@@..@@..@@@:..:::::::::.. ', 1)
-   call write_log(' ............@@.@@..@@..@@.@@............ ', 1)
-   call write_log(' ^^^~~^^~~^^@@..............@@^^^~^^^~~^^ ', 1)
-   call write_log(' .::::::::::@@..............@@.:::::::::. ', 1)
-   call write_log('  .......:.@@.....@.....@....@@.:.......  ', 1)
-   call write_log('   .::....@@......@.@@@.@....@@.....::.   ', 1)
-   call write_log('    .:::~@@.:...:.@@...@@.:.:.@@~::::.    ', 1)
-   call write_log('     .::~@@@@@@@@@@.....@@@@@@@@@~::.     ', 1)
-   call write_log('       ..:~~~~~~~:.......:~~~~~~~:..      ', 1)
-   call write_log('          ......................          ', 1)
-   call write_log('              ..............              ', 1)
-   call write_log('', 1)
-   call write_log('------------------------------------------', 1)
-   call write_log('', 1)
-   call write_log('Build-Revision: '//trim(build_revision), 1)
-   call write_log('Build-Date: '//trim(build_date), 1)
-   call write_log('', 1)
+   call screendump_startup()
    !
    call timer_start('Input')
    !
@@ -183,77 +149,7 @@ module sfincs_lib
       !
    endif   
    !
-   call write_log('', 1)   
-   call write_log('------------------------------------------', 1)
-   call write_log('Processes', 1)
-   call write_log('------------------------------------------', 1)
-   if (subgrid) then
-      call write_log('Subgrid topography   : yes', 1)
-   else   
-      call write_log('Subgrid topography   : no', 1)
-   endif
-   if (use_quadtree) then
-      call write_log('Quadtree refinement  : yes', 1)
-   else   
-      call write_log('Quadtree refinement  : no', 1)
-   endif
-   if (advection) then 
-      call write_log('Advection            : yes', 1)
-   else   
-      call write_log('Advection            : no', 1)
-   endif
-   if (viscosity) then
-      call write_log('Viscosity            : yes', 1)
-   else   
-      call write_log('Viscosity            : no', 1)
-   endif
-   if (coriolis) then
-      call write_log('Coriolis             : yes', 1)
-   else   
-      call write_log('Coriolis             : no', 1)
-   endif
-   if (wind) then
-      call write_log('Wind                 : yes', 1)
-   else   
-      call write_log('Wind                 : no', 1)
-   endif
-   if (patmos) then
-      call write_log('Atmospheric pressure : yes', 1)
-   else   
-      call write_log('Atmospheric pressure : no', 1)
-   endif
-   if (precip) then
-      call write_log('Precipitation        : yes', 1)
-   else   
-      call write_log('Precipitation        : no', 1)
-   endif
-   if (infiltration) then
-      call write_log('Infiltration         : yes', 1)
-   else   
-      call write_log('Infiltration         : no', 1)
-   endif   
-   if (snapwave) then
-      call write_log('SnapWave             : yes', 1)
-   else
-      call write_log('SnapWave             : no', 1)
-   endif
-   if (wavemaker) then
-      call write_log('Wave paddles         : yes', 1)
-   else   
-      call write_log('Wave paddles         : no', 1)
-   endif
-   if (nonhydrostatic) then
-      call write_log('Non-hydrostatic      : yes', 1)
-   else
-      ! call write_log('Non-hydrostatic         : no', 1)
-   endif   
-   if (bathtub) then
-      call write_log('Bathtub              : yes', 1)
-   else
-      ! call write_log('Bathtub              : no', 1)
-   endif   
-   call write_log('------------------------------------------', 1) 
-   call write_log('', 1)   
+   call screendump_processes()
    !
    if (snapwave) then
       !
