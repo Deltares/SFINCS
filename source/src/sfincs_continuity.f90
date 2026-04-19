@@ -42,25 +42,29 @@ contains
    subroutine update_continuity(t, dt)
       !
       ! Unified continuity update: orchestrates all water balance terms
-      ! for one time step. Modifies qsrc in place (zeroed and
-      ! re-accumulated), advances zs (and z_volume on the subgrid path),
+      ! for one time step. Advances zs (and z_volume on the subgrid path),
       ! and optionally updates the store_* running maxima.
       !
       ! Called from: sfincs_lib (main time-stepping loop).
       !
       ! Sources and sinks (all accumulated into qsrc, in m3/s):
-      !    1. River discharges (+/-)               => update_discharges (zeros and accumulates qsrc)
-      !    2. Drainage structures (+/-)            => update_src_structures (adds to qsrc)
-      !    3. Precipitation (+)                    => update_meteo_forcing (precip * cell area)
-      !    4. Infiltration rate field qinfmap (-)  => update_infiltration_map (infiltration * cell area)
-      !                                              (flavors: con, c2d, cna, cnb, gai, hor, bkt)
-      !    5. Urban drainage                       => update_urban_drainage (adds to qsrc)
-      !    6. External source/sink qext (+/-)      => added to qsrc here (BMI coupling)      
+      !    1. Precipitation (+)                    => update_meteo_forcing (prcp * cell area),
+      !                                              already done before entering this routine
+      !    2. River discharges (+/-)               => update_discharges (adds to qsrc)
+      !    3. Drainage structures (+/-)            => update_src_structures (adds to qsrc)
+      !    4. Infiltration rate field qinfmap (-)  => update_infiltration_map (-qinfmap * cell area,
+      !                                              flavors: con, c2d, cna, cnb, gai, hor, bkt)
+      !    5. Urban drainage (+/-)                 => update_urban_drainage
+      !    6. External source/sink qext (+/-)      => added to qsrc here (BMI coupling)
+      !
+      ! qsrc itself is cleared at the end of compute_water_levels_{regular,
+      ! subgrid} (per active cell), so steps 1-6 above start from zero every
+      ! step without an explicit reset here.
       !
       ! Hydrodynamic fluxes q                      => computed in sfincs_momentum
       !
       ! compute_water_levels_{regular,subgrid} then updates zs/z_volume using:
-      !    - qsrc * dt                             => point source/sink contribution
+      !    - qsrc * dt                             => all sources/sinks above
       !    - div(q) * dt                           => horizontal flux divergence
       !    - storage volume                        => absorbs excess volume (subgrid only)
       !
@@ -78,17 +82,19 @@ contains
       !
       integer          :: nm
       !
-      ! 1. River discharges => update_discharges (adds to qsrc)
+      ! 1. Precipitation was already accumulated into qsrc by
+      !    update_meteo_forcing (called from sfincs_lib before this routine).
+      !
+      ! 2. River discharges => update_discharges (adds to qsrc)
       !
       call update_discharges(t, dt)
       !
-      ! 2. Drainage structures (pumps/gates/culverts/...) => update_src_structures (adds to qsrc)
+      ! 3. Drainage structures (pumps/gates/culverts/...) => update_src_structures (adds to qsrc)
       !
       call update_src_structures(t, dt)
       !
-      ! 3. Precipitation => update_meteo_forcing (adds to qsrc)
-      !
-      ! 4. Compute infiltration rates => qinfmap(adds to qsrc)
+      ! 4. Compute infiltration rates; update_infiltration_map also subtracts
+      !    qinfmap * cell_area from qsrc.
       !
       if (infiltration) then
          !
@@ -124,7 +130,7 @@ contains
       !
       ! Update water levels: applies qsrc * dt and flux divergence to zs/z_volume
       !
-      call timer_start('Continuity')
+      call timer_start('continuity')
       !
       if (subgrid) then
          !
@@ -144,7 +150,7 @@ contains
          !
       endif
       !
-      call timer_stop('Continuity')
+      call timer_stop('continuity')
       !
    end subroutine
    !
@@ -188,7 +194,7 @@ contains
          !
       endif
       !
-      !$acc parallel present( kcs, zs, zb, prcp, q, qext, qinfmap, qdrain_rate, zsmax, zsm, maxzsm, &
+      !$acc parallel present( kcs, zs, zb, q, qext, zsmax, zsm, maxzsm, &
       !$acc                   z_flags_iref, uv_flags_iref, &
       !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
       !$acc                   dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area,  &
@@ -411,7 +417,7 @@ contains
       !$omp do schedule ( dynamic, 256 )
       !$acc parallel present( kcs, zs, zs0, zb, z_volume, zsmax, zsm, maxzsm, zsderv, &
       !$acc                   subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
-      !$acc                   prcp, q, qext, qinfmap, qdrain_rate, z_flags_iref, uv_flags_iref, &
+      !$acc                   q, qext, z_flags_iref, uv_flags_iref, &
       !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
       !$acc                   dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area, &
       !$acc                   z_index_wavemaker, wavemaker_uvmean, &

@@ -1365,7 +1365,7 @@
    real*4, dimension(:),     allocatable :: wavemaker_forcing_tp_ig_t
    real*4, dimension(:),     allocatable :: wavemaker_forcing_setup_t
    !
-   call timer_start('Wavemaker')
+   call timer_start('wavemaker')
    !
    ! Factors for double-exponential filtering
    !
@@ -1682,7 +1682,7 @@
    enddo
    !$acc end parallel
    !
-   call timer_stop('Wavemaker')
+   call timer_stop('wavemaker')
    !
    end subroutine
 

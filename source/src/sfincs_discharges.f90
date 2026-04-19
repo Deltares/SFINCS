@@ -43,6 +43,17 @@ module sfincs_discharges
    ! Public so downstream output modules (sfincs_output, sfincs_ncoutput)
    ! and the openacc bookkeeping module can reference them.
    !
+   ! Input file paths (sfincs.inp keywords 'srcfile' / 'disfile' /
+   ! 'netsrcdisfile'); 'none' when the corresponding input is not supplied.
+   !
+   character(len=256), public :: srcfile
+   character(len=256), public :: disfile
+   character(len=256), public :: netsrcdisfile
+   !
+   ! Number of river discharge points resolved from the input files.
+   !
+   integer, public :: nr_discharge_points
+   !
    ! Name length (matches src_struc_name_len from sfincs_src_structures).
    !
    integer, parameter, public :: src_name_len = 128
@@ -86,6 +97,7 @@ contains
       character(len=1024) :: line, line_trim
       character(len=src_name_len) :: name_tmp
       !
+      discharges          = .false.
       nr_discharge_points = 0
       ntsrc               = 0
       itsrclast           = 1
@@ -113,7 +125,7 @@ contains
          !
          ok = check_file_exists(netsrcdisfile, 'Netcdf river input netsrcdis file', .true.)
          !
-         call read_netcdf_discharge_data()   ! sets nr_discharge_points, ntsrc, xsrc, ysrc, qsrc_ts, tsrc
+         call read_netcdf_discharge_data(netsrcdisfile, nr_discharge_points)   ! also sets ntsrc, xsrc, ysrc, qsrc_ts, tsrc (in sfincs_data)
          !
          ! The netcdf discharge file does not carry per-point names; auto-generate
          ! the same way as the 2-column srcfile path.
@@ -142,6 +154,8 @@ contains
       endif
       !
       if (nr_discharge_points <= 0) return
+      !
+      discharges = .true.
       !
       allocate(nmindsrc(nr_discharge_points))
       allocate(qtsrc(nr_discharge_points))
@@ -284,70 +298,68 @@ contains
       integer :: isrc, itsrc, nm, it_prev, it_next
       real*4  :: wt
       !
-      call timer_start('Discharges')
+      ! qsrc is not zeroed here. The water-level update at the end of the
+      ! previous step clears qsrc(nm) for every active cell, and
+      ! update_meteo_forcing has by now accumulated prcp*area into it for
+      ! the current step. update_discharges and the remaining continuity
+      ! steps just keep adding on top.
       !
-      ! Zero qsrc for this step. sfincs_src_structures will add to it next.
+      if (nr_discharge_points <= 0) return
       !
-      !$acc kernels present( qsrc )
-      qsrc = 0.0
-      !$acc end kernels
+      call timer_start('discharges')
       !
-      if (nr_discharge_points > 0) then
-         !
-         ! Locate the bracketing interval in tsrc and compute the interpolation
-         ! weight once. Then run a single parallel loop that both interpolates
-         ! qtsrc and accumulates it into qsrc.
-         !
-         it_prev = itsrclast
-         it_next = itsrclast + 1
-         !
-         do itsrc = itsrclast, ntsrc
-            !
-            if (tsrc(itsrc) > t) then
-               !
-               it_prev = itsrc - 1
-               it_next = itsrc
-               itsrclast = it_prev
-               exit
-               !
-            endif
-            !
-         enddo
-         !
-         ! Clamp to valid bracket. If t is outside [tsrc(1), tsrc(ntsrc)] (which
-         ! can happen on the netcdf path, where the srcfile pre-padding is not
-         ! applied), hold the endpoint value rather than read out of bounds.
-         !
-         it_prev = min(max(it_prev, 1), ntsrc - 1)
-         it_next = it_prev + 1
-         !
-         wt = (t - tsrc(it_prev)) / (tsrc(it_next) - tsrc(it_prev))
-         !
-         ! Atomic accumulation because two river sources (or a river and a
-         ! structure) can share a cell.
-         !
-         !$acc parallel loop present( qsrc, qtsrc, nmindsrc, qsrc_ts ) private( nm )
-         !$omp parallel do private( nm ) schedule ( static )
-         do isrc = 1, nr_discharge_points
-            !
-            qtsrc(isrc) = qsrc_ts(isrc, it_prev) + (qsrc_ts(isrc, it_next) - qsrc_ts(isrc, it_prev)) * wt
-            nm = nmindsrc(isrc)
-            !
-            if (nm > 0) then
-               !
-               !$acc atomic update
-               !$omp atomic
-               qsrc(nm) = qsrc(nm) + qtsrc(isrc)
-               !
-            endif
-            !
-         enddo
-         !$omp end parallel do
-         !$acc end parallel loop
-         !
-      endif
+      ! Locate the bracketing interval in tsrc and compute the interpolation
+      ! weight once. Then run a single parallel loop that both interpolates
+      ! qtsrc and accumulates it into qsrc.
       !
-      call timer_stop('Discharges')
+      it_prev = itsrclast
+      it_next = itsrclast + 1
+      !
+      do itsrc = itsrclast, ntsrc
+         !
+         if (tsrc(itsrc) > t) then
+            !
+            it_prev = itsrc - 1
+            it_next = itsrc
+            itsrclast = it_prev
+            exit
+            !
+         endif
+         !
+      enddo
+      !
+      ! Clamp to valid bracket. If t is outside [tsrc(1), tsrc(ntsrc)] (which
+      ! can happen on the netcdf path, where the srcfile pre-padding is not
+      ! applied), hold the endpoint value rather than read out of bounds.
+      !
+      it_prev = min(max(it_prev, 1), ntsrc - 1)
+      it_next = it_prev + 1
+      !
+      wt = (t - tsrc(it_prev)) / (tsrc(it_next) - tsrc(it_prev))
+      !
+      ! Atomic accumulation because two river sources (or a river and a
+      ! structure) can share a cell.
+      !
+      !$acc parallel loop present( qsrc, qtsrc, nmindsrc, qsrc_ts ) private( nm )
+      !$omp parallel do private( nm ) schedule ( static )
+      do isrc = 1, nr_discharge_points
+         !
+         qtsrc(isrc) = qsrc_ts(isrc, it_prev) + (qsrc_ts(isrc, it_next) - qsrc_ts(isrc, it_prev)) * wt
+         nm = nmindsrc(isrc)
+         !
+         if (nm > 0) then
+            !
+            !$acc atomic update
+            !$omp atomic
+            qsrc(nm) = qsrc(nm) + qtsrc(isrc)
+            !
+         endif
+         !
+      enddo
+      !$omp end parallel do
+      !$acc end parallel loop
+      !
+      call timer_stop('discharges')
       !
    end subroutine
    !

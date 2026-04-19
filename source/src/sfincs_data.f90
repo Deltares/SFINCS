@@ -122,9 +122,6 @@ module sfincs_data
       character*256 :: obsfile
       character*256 :: crsfile
       character*256 :: rugfile
-      character*256 :: srcfile
-      character*256 :: disfile
-      character*256 :: drnfile
       character*256 :: urbfile
       character*256 :: zsinifile
       character*256 :: rstfile
@@ -145,7 +142,6 @@ module sfincs_data
       character*256 :: weirfile
       character*256 :: qinffile
       character*256 :: netbndbzsbzifile
-      character*256 :: netsrcdisfile
       character*256 :: netamuamvfile
       character*256 :: netampfile
       character*256 :: netamprfile
@@ -160,7 +156,6 @@ module sfincs_data
       character*256 :: f0file
       character*256 :: fcfile
       character*256 :: kdfile
-      character*256 :: drainagefile
       character*256 :: z0lfile
       character*256 :: qtrfile
       character*256 :: volfile
@@ -217,6 +212,8 @@ module sfincs_data
       logical       :: write_time_output
       logical       :: bziwaves
       logical       :: infiltration
+      logical       :: discharges
+      logical       :: drainage_structures
       logical       :: urban_drainage
       logical       :: store_urban_drainage_discharge
       logical       :: store_cumulative_urban_drainage
@@ -401,11 +398,6 @@ module sfincs_data
       ! Storage volume
       !
       real*4, dimension(:),   allocatable :: storage_volume  ! Storage volume green infra
-      !
-      ! Drainage - constant removal rate representing subsurface drainage
-      !
-      logical       :: drainage = .false.
-      real*4, dimension(:),   allocatable :: qdrain_rate                       ! drainage rate per cell (m/s)
       !
       ! Bucket model - finite capacity reservoir with linear drainage
       !
@@ -802,7 +794,6 @@ module sfincs_data
       ! the pure discharge-module-only state (itsrclast, nmindsrc, qtsrc,
       ! src_name, src_name_len) has been moved into sfincs_discharges.
       !
-      integer                               :: nr_discharge_points
       integer                               :: ntsrc
       real*4, dimension(:),     allocatable :: tsrc        ! (ntsrc) time stamps of river discharge time series
       real*4, dimension(:,:),   allocatable :: qsrc_ts     ! (nr_discharge_points, ntsrc) river discharge time series matrix
@@ -978,7 +969,6 @@ module sfincs_data
     if(allocated(qinffield)) deallocate(qinffield)
     if(allocated(ksfield)) deallocate(ksfield)
     if(allocated(scs_Se)) deallocate(scs_Se)
-    if(allocated(qdrain_rate)) deallocate(qdrain_rate)
     if(allocated(bucket_volume)) deallocate(bucket_volume)
     if(allocated(bucket_capacity)) deallocate(bucket_capacity)
     if(allocated(bucket_k)) deallocate(bucket_k)

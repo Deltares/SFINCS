@@ -1139,7 +1139,7 @@ contains
    !
    if (boundaries_in_mask) then
       !
-      call timer_start('Boundaries')
+      call timer_start('boundaries')
       !
       if (nbnd > 0) then
          !
@@ -1164,7 +1164,7 @@ contains
          !
       endif
       !
-      call timer_stop('Boundaries')
+      call timer_stop('boundaries')
       !
    endif
    !

@@ -125,7 +125,7 @@ contains
    integer :: nm, i1, i2
    real*4  :: zbt, w1, w2
    !
-   call timer_start('Continuity')
+   call timer_start('continuity')
    !
    !$omp parallel &
    !$omp private ( nm, i1, i2, w1, w2 )
@@ -163,7 +163,7 @@ contains
    !
    !$acc update device( zs, zsmax )
    !
-   call timer_stop('Continuity')
+   call timer_stop('continuity')
    !
    end subroutine
 

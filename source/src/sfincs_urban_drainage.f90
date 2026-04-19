@@ -9,19 +9,27 @@ module sfincs_urban_drainage
    ! single outfall cell, so the per-zone net flux is added as a point
    ! source / sink there.
    !
-   ! Per-cell discharge (drain from cell to outfall, positive sign):
+   ! Per-cell discharge (drain from cell to outfall, positive sign).
+   ! In subgrid mode the effective bed elevation is subgrid_z_zmin(nm)
+   ! instead of zb(nm) — this affects both the ponding-depth gate and
+   ! the design-head floor.
    !
    !    dzs = zs(nm) - zs(outfall)
    !    if dzs > 0:
-   !       q = min( qmax(nm), max(zs(nm)-zb(nm),0) * cell_area(nm) / dt )
-   !       gated further by h_threshold on cell water depth
+   !       h_cell = zs(nm) - (subgrid ? subgrid_z_zmin(nm) : zb(nm))
+   !       if h_cell <= 0: skip
+   !       ramp = min(h_cell / h_threshold, 1) if h_threshold > 0, else 1
+   !       q = min( ramp * qmax(nm), h_cell * cell_area(nm) / dt )
+   !       so q ramps linearly from 0 to qmax as depth goes from 0 to
+   !       h_threshold, then caps at qmax.
    !    else:
    !       q = -backflow_coef(nm) * sqrt(-dzs), capped at -qmax(nm)
    !       suppressed if the zone has a check valve
    !
-   ! Per-cell design-head:
+   ! Per-cell design-head (bed_elev is subgrid_z_zmin in subgrid mode,
+   ! zb otherwise):
    !
-   !    dh_design(nm) = max( zb(nm) - zb(outfall), dh_design_min )
+   !    dh_design(nm) = max( bed_elev(nm) - bed_elev(outfall), dh_design_min )
    !    backflow_coef(nm) = qmax(nm) / sqrt(dh_design(nm))
    !
    ! qmax from the design precipitation rate:
@@ -61,6 +69,7 @@ module sfincs_urban_drainage
    use sfincs_log
    use sfincs_error
    use sfincs_polygons
+   use sfincs_timers
    !
    implicit none
    !
@@ -327,7 +336,11 @@ contains
          !
          if (io > 0) then
             dh_min = urb_zone_dh_design_min(iz)
-            dzb    = max(zb(nm) - zb(io), dh_min)
+            if (subgrid) then
+               dzb = max(subgrid_z_zmin(nm) - subgrid_z_zmin(io), dh_min)
+            else
+               dzb = max(zb(nm) - zb(io), dh_min)
+            endif
             urban_drainage_backflow_coef(nm) = urban_drainage_qmax(nm) / sqrt(dzb)
          endif
          !
@@ -368,21 +381,25 @@ contains
       real*4, intent(in) :: dt
       !
       integer :: nm, iz, io
-      real*4  :: dzs, qd, area_nm, h_cell
+      real*4  :: dzs, qd, area_nm, h_cell, ramp
       !
       if (nr_urban_drainage_zones <= 0) return
+      !
+      call timer_start('urban drainage')
       !
       !$acc kernels present(urban_drainage_q_outfall)
       urban_drainage_q_outfall = 0.0
       !$acc end kernels
       !
-      !$acc parallel loop present( qsrc, zs, zb, cell_area, cell_area_m2, z_flags_iref, &
+      !$acc parallel loop present( qsrc, zs, zb, subgrid_z_zmin, cell_area, cell_area_m2, z_flags_iref, &
       !$acc                        urban_drainage_zone_indices, urban_drainage_outfall_index, &
       !$acc                        urban_drainage_qmax, urban_drainage_backflow_coef, &
       !$acc                        urban_drainage_q_outfall, urban_drainage_cumulative_volume, &
-      !$acc                        urb_zone_h_threshold, urb_zone_check_valve )
+      !$acc                        urb_zone_h_threshold, urb_zone_check_valve ) &
+      !$acc                reduction(+:urban_drainage_q_outfall)
       !$omp parallel do default(shared) &
-      !$omp private(nm, iz, io, dzs, qd, area_nm, h_cell) schedule(static)
+      !$omp private(nm, iz, io, dzs, qd, area_nm, h_cell, ramp) &
+      !$omp reduction(+:urban_drainage_q_outfall) schedule(static)
       do nm = 1, np
          !
          iz = urban_drainage_zone_indices(nm)
@@ -395,10 +412,26 @@ contains
          !
          if (dzs > 0.0) then
             !
-            ! Drain from cell. Gate on cell ponding depth above grate.
+            ! Drain from cell. In subgrid mode the effective bed is the
+            ! subgrid minimum, not the cell-center zb.
             !
-            h_cell = zs(nm) - zb(nm)
-            if (h_cell <= urb_zone_h_threshold(iz)) cycle
+            if (subgrid) then
+               h_cell = zs(nm) - subgrid_z_zmin(nm)
+            else
+               h_cell = zs(nm) - zb(nm)
+            endif
+            if (h_cell <= 0.0) cycle
+            !
+            ! Linear ramp on the design-rate cap: zero discharge at h = 0,
+            ! full qmax at h >= h_threshold. Removes the wiggle that the
+            ! hard on/off gate produced near the threshold. Reduces to the
+            ! hard cap when h_threshold = 0 (default).
+            !
+            if (urb_zone_h_threshold(iz) > 0.0) then
+               ramp = min(h_cell / urb_zone_h_threshold(iz), 1.0)
+            else
+               ramp = 1.0
+            endif
             !
             if (crsgeo) then
                area_nm = cell_area_m2(nm)
@@ -406,7 +439,7 @@ contains
                area_nm = cell_area(z_flags_iref(nm))
             endif
             !
-            qd = min(urban_drainage_qmax(nm), h_cell * area_nm / dt)
+            qd = min(ramp * urban_drainage_qmax(nm), h_cell * area_nm / dt)
             !
          else
             !
@@ -420,14 +453,13 @@ contains
          endif
          !
          ! qsrc(nm) is unique per iteration (loop is over nm), no race.
-         ! The race is on urban_drainage_q_outfall(iz): multiple threads
-         ! (or gangs on device) may process cells belonging to the same
-         ! zone, so guard the zone-accumulator with atomic.
+         ! The zone accumulator urban_drainage_q_outfall(iz) is summed via
+         ! the reduction(+) clause on the parent directive, so each thread
+         ! / gang gets a private copy that is combined at loop end — no
+         ! serializing atomic needed in the common hot path.
          !
          qsrc(nm) = qsrc(nm) - qd
          !
-         !$acc atomic update
-         !$omp atomic
          urban_drainage_q_outfall(iz) = urban_drainage_q_outfall(iz) + qd
          !
          urban_drainage_cumulative_volume(nm) = urban_drainage_cumulative_volume(nm) + qd * dt
@@ -449,6 +481,8 @@ contains
          qsrc(io) = qsrc(io) + urban_drainage_q_outfall(iz)
          !
       enddo
+      !
+      call timer_stop('urban drainage')
       !
    end subroutine
    !

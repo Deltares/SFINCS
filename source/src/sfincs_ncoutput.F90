@@ -1692,7 +1692,7 @@ contains
    use sfincs_data
    use sfincs_structures
    use sfincs_src_structures, only: nr_src_structures, src_struc_name
-   use sfincs_discharges,     only: src_name
+   use sfincs_discharges,     only: src_name, nr_discharge_points
    use sfincs_urban_drainage, only: nr_urban_drainage_zones, urb_zone_name
    !
    implicit none
@@ -3220,7 +3220,7 @@ contains
    use sfincs_runup_gauges
    use sfincs_snapwave
    use sfincs_src_structures, only: nr_src_structures, q_src_struc
-   use sfincs_discharges,     only: qtsrc
+   use sfincs_discharges,     only: qtsrc, nr_discharge_points
    use sfincs_urban_drainage, only: nr_urban_drainage_zones, urban_drainage_q_outfall
    !
    implicit none
@@ -4026,7 +4026,7 @@ contains
        !
    endif
    !
-   NF90(nf90_put_var(map_file%ncid, map_file%total_runtime_varid, real(timer_elapsed('Simulation loop'), 4)))
+   NF90(nf90_put_var(map_file%ncid, map_file%total_runtime_varid, real(timer_elapsed('simulation'), 4)))
    NF90(nf90_put_var(map_file%ncid, map_file%average_dt_varid,  dtavg))
    NF90(nf90_put_var(map_file%ncid, map_file%status_varid,  error))
    !
@@ -4165,6 +4165,7 @@ contains
    !
    use sfincs_data
    use sfincs_src_structures, only: nr_src_structures
+   use sfincs_discharges,     only: nr_discharge_points
    use sfincs_timers, only: timer_elapsed
    use sfincs_urban_drainage, only: nr_urban_drainage_zones
    !
@@ -4174,7 +4175,7 @@ contains
         return
    endif
    !
-   NF90(nf90_put_var(his_file%ncid, his_file%total_runtime_varid, real(timer_elapsed('Simulation loop'), 4)))
+   NF90(nf90_put_var(his_file%ncid, his_file%total_runtime_varid, real(timer_elapsed('simulation'), 4)))
    NF90(nf90_put_var(his_file%ncid, his_file%average_dt_varid,  dtavg)) 
    NF90(nf90_put_var(his_file%ncid, his_file%status_varid,  error))       
    !   
@@ -4187,6 +4188,8 @@ contains
    subroutine ncoutput_add_params(ncid, varid)
    ! Add user params to netcdf file (both map & his)
    use sfincs_data
+   use sfincs_src_structures, only: drnfile
+   use sfincs_discharges,     only: srcfile, disfile, netsrcdisfile
    !
    ! Because of overlapping names, only important specific values from snapwave_data
    use snapwave_data, only: gamma, gammax, alpha, hmin, fw0, fw0_ig, dt, tol, dtheta, crit, nr_sweeps, baldock_opt, baldock_ratio, &
@@ -4324,8 +4327,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'amprfile',amprfile))  
         NF90(nf90_put_att(ncid, varid, 'infiltrationfile',infiltrationfile))
         NF90(nf90_put_att(ncid, varid, 'infiltrationtype',inftype))
-        NF90(nf90_put_att(ncid, varid, 'drainagefile',drainagefile))
-        NF90(nf90_put_att(ncid, varid, 'qinffile',qinffile))   
+        NF90(nf90_put_att(ncid, varid, 'qinffile',qinffile))
         NF90(nf90_put_att(ncid, varid, 'scsfile',scsfile)) 
         NF90(nf90_put_att(ncid, varid, 'smaxfile',smaxfile)) 
         NF90(nf90_put_att(ncid, varid, 'sefffile',sefffile)) 

@@ -92,7 +92,7 @@ module sfincs_lib
    !
    call write_startup_log()
    !
-   call timer_start('Input')
+   call timer_start('input')
    !
    call write_log('------ Preparing model simulation --------', 1)
    call write_log('', 1)
@@ -123,6 +123,8 @@ module sfincs_lib
    call read_crs_file()         ! Reads cross sections
    !
    call read_rug_file()         ! Read runup gauge file
+   !
+   call initialize_infiltration()     ! Reads qinf / scs / gai / horton / bucket infiltration inputs
    !
    call initialize_discharges()       ! Reads dis and src file (river point discharges)
    !
@@ -161,7 +163,7 @@ module sfincs_lib
       !
    endif   
    !
-   call timer_stop('Input')
+   call timer_stop('input')
    !
    call write_processes_log()
    !
@@ -207,7 +209,7 @@ module sfincs_lib
    call write_log(logstr, 1)
    call write_log('', 1)
    !
-   call timer_start('Simulation loop')
+   call timer_start('simulation')
    !
    end function sfincs_initialize
    !
@@ -519,7 +521,7 @@ module sfincs_lib
    !
    integer :: ierr
    !
-   call timer_stop('Simulation loop')
+   call timer_stop('simulation')
    !
    if (timestep_analysis) then
       !

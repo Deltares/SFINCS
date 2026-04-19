@@ -633,7 +633,7 @@ contains
    real*4  :: hh_local, a
    real*4  :: dt
    !
-   call timer_start('Infiltration')
+   call timer_start('infiltration')
    !
    if (inftype == 'con' .or. inftype == 'c2d') then
       !
@@ -1029,7 +1029,26 @@ contains
       !
    endif
    !
-   call timer_stop('Infiltration')
+   ! Apply the resulting infiltration-rate field to the point-source field
+   ! qsrc (m3/s). qinfmap is m/s, so multiply by cell area and subtract.
+   ! qsrc already holds this step's prcp*area contribution (from
+   ! update_meteo_forcing) plus any discharges / src-structures updates
+   ! done earlier in update_continuity.
+   !
+   !$acc parallel loop present( qsrc, qinfmap, cell_area, cell_area_m2, z_flags_iref )
+   !$omp parallel do default(shared) private(nm) schedule(static)
+   do nm = 1, np
+      !
+      if (crsgeo) then
+         qsrc(nm) = qsrc(nm) - qinfmap(nm) * cell_area_m2(nm)
+      else
+         qsrc(nm) = qsrc(nm) - qinfmap(nm) * cell_area(z_flags_iref(nm))
+      endif
+      !
+   enddo
+   !$omp end parallel do
+   !
+   call timer_stop('infiltration')
    !
    end subroutine
 

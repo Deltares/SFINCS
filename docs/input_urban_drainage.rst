@@ -71,7 +71,7 @@ The supported keys are:
 	When ``true``, the zone only drains outward. Backflow from the outfall into the cells (bay flooding through the pipe) is suppressed. Represents a flap valve / tide gate at the outfall.
 
 ``h_threshold`` (optional, m, default ``0.0``)
-	Minimum cell ponding depth required before the drain activates. Physically represents water needing to reach the inlet grate. Only applies to the outflow direction (cell to outfall); backflow is unaffected. Typical values: 0.02–0.05 m.
+	Depth over which the drainage rate ramps linearly from zero to ``q_max``. At cell ponding depth ``h_cell = 0`` the drainage is zero; at ``h_cell >= h_threshold`` it is at full ``q_max``; in between it is ``(h_cell / h_threshold) * q_max``. Physically represents water gradually reaching the inlet grate and also smooths the discharge time series compared to a hard on/off gate. Only applies to the outflow direction (cell to outfall); backflow is unaffected. Typical values: 0.02–0.05 m. Set to ``0.0`` to reproduce the hard-cap behaviour (full ``q_max`` for any ``h_cell > 0``).
 
 ``dh_design_min`` (optional, m, default ``0.1``)
 	Floor on the per-cell design head used to compute the backflow coefficient. Per-cell backflow discharge is
@@ -117,12 +117,13 @@ Per time step, for each active cell ``nm`` inside a zone ``iz`` with outfall cel
 .. math::
 	\Delta z_s = z_s(nm) - z_s(io)
 
-**Outflow** (``Δz_s > 0`` and cell depth above ``h_threshold``):
+**Outflow** (``Δz_s > 0`` and ``h_cell > 0``):
 
 .. math::
-	q = \min\left(q_{max}(nm), \frac{(z_s(nm) - z_b(nm)) \cdot A(nm)}{\Delta t}\right)
+	r    &= \min(h_{cell} / h_{threshold},\; 1) \quad \text{if } h_{threshold} > 0, \text{ else } 1 \\
+	q    &= \min\left(r \cdot q_{max}(nm),\; \frac{h_{cell} \cdot A(nm)}{\Delta t}\right)
 
-The ``min`` cap prevents draining more than is in the cell over one time step.
+where ``h_cell`` is ``zs - subgrid_z_zmin`` in subgrid mode, or ``zs - zb`` otherwise. The ramp factor ``r`` smooths the discharge near the grate; the ``min`` cap prevents draining more than is in the cell over one time step.
 
 **Backflow** (``Δz_s < 0`` and check valve off):
 

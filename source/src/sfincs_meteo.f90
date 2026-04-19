@@ -1243,7 +1243,7 @@ contains
    real*4                           :: oneminsmfac
    integer                          :: nm, ib
    !
-   call timer_start('Meteo forcing')
+   call timer_start('meteo forcing')
    !
    if (meteo3d) then
       !
@@ -1408,11 +1408,33 @@ contains
    !
    if (prcpfile(1:4) /= 'none') then
       !
-      call update_precipitation_from_timeseries(t, dt) 
+      call update_precipitation_from_timeseries(t, dt)
       !
    endif
    !
-   call timer_stop('Meteo forcing')
+   ! Apply rainfall to the point-source field qsrc (m3/s). prcp is m/s,
+   ! so multiply by cell area. qsrc was zeroed at the end of the previous
+   ! step inside the water-level update loops, so this is the first
+   ! accumulation into qsrc for the current step.
+   !
+   if (precip) then
+      !
+      !$acc parallel loop present( qsrc, prcp, cell_area, cell_area_m2, z_flags_iref )
+      !$omp parallel do default(shared) private(nm) schedule(static)
+      do nm = 1, np
+         !
+         if (crsgeo) then
+            qsrc(nm) = qsrc(nm) + prcp(nm) * cell_area_m2(nm)
+         else
+            qsrc(nm) = qsrc(nm) + prcp(nm) * cell_area(z_flags_iref(nm))
+         endif
+         !
+      enddo
+      !$omp end parallel do
+      !
+   endif
+   !
+   call timer_stop('meteo forcing')
    !
    end subroutine
 
@@ -1545,7 +1567,7 @@ contains
    !
    real*8   :: t
    !
-   call timer_start('Meteo fields')
+   call timer_start('meteo fields')
    !
    if (amufile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none') then
       !
@@ -1587,7 +1609,7 @@ contains
       !
    endif
    !
-   call timer_stop('Meteo fields')
+   call timer_stop('meteo fields')
    !
    end subroutine
 

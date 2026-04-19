@@ -198,6 +198,11 @@ module sfincs_src_structures
    real*4,    dimension(:), allocatable, public :: src_struc_distance
    real*4,    dimension(:), allocatable, public :: src_struc_fraction_open
    !
+   ! Input file path (sfincs.inp keyword 'drnfile'); 'none' when no drainage
+   ! structures file is supplied.
+   !
+   character(len=256), public :: drnfile
+   !
    ! Cell mapping
    !
    integer, public :: nr_src_structures
@@ -312,6 +317,8 @@ contains
       logical                       :: open_fires, close_fires
       character(len=16)             :: status_str
       !
+      drainage_structures = .false.
+      !
       if (drnfile(1:4) == 'none') return
       !
       ! Existence check
@@ -407,6 +414,8 @@ contains
          return
          !
       endif
+      !
+      drainage_structures = .true.
       !
       ! Allocate flat arrays to size nr_src_structures and seed defaults.
       !
@@ -772,7 +781,7 @@ contains
       !
       if (nr_src_structures <= 0) return
       !
-      call timer_start('Drainage structures')
+      call timer_start('drainage structures')
       !
       !$acc parallel loop present( z_volume, zs, zb, qsrc, q_src_struc, &
       !$acc                        src_struc_nm_in, src_struc_nm_out, &
@@ -1115,7 +1124,7 @@ contains
       !$omp end parallel do
       !$acc end parallel loop
       !
-      call timer_stop('Drainage structures')
+      call timer_stop('drainage structures')
       !
    end subroutine
    !

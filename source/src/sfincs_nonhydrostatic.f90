@@ -434,7 +434,7 @@ contains
    real*4, dimension(:), allocatable  :: AA
    real*4                             :: relres
    !
-   call timer_start('Non-hydrostatic')
+   call timer_start('non-hydrostatic')
    !
    allocate(QQ(nrows))
    allocate(AA(nr_vals_in_matrix))
@@ -733,7 +733,7 @@ contains
    !$omp end do
    !$omp end parallel
    !
-   call timer_stop('Non-hydrostatic')
+   call timer_stop('non-hydrostatic')
    !
    end subroutine
 

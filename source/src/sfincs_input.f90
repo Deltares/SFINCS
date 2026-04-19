@@ -10,7 +10,8 @@ contains
    use sfincs_date
    use sfincs_log
    use sfincs_error
-   use sfincs_src_structures, only: nr_src_structures
+   use sfincs_src_structures, only: nr_src_structures, drnfile
+   use sfincs_discharges,     only: srcfile, disfile, netsrcdisfile, nr_discharge_points
    !
    implicit none
    !
@@ -166,14 +167,14 @@ contains
    call read_real_input(500, 'wavemaker_freqmax_ig',     wavemaker_freqmax_ig,     wavemaker_freqmax_ig)        
    ! New variables that have no backward compatibility version
    !
-   call read_real_input(500, 'wavemaker_tinc2ig',        wavemaker_tinc2ig,        -1.0)       ! wavemaker ig/inc wave period ratio (set <= 0.0 to use Herbers)
-   call read_real_input(500, 'wavemaker_surfslope',      wavemaker_surfslope,      -1.0)       ! wavemaker surf zone slope to compute Tp_ig with empirical run-up equation (van Ormondt et al., 2021))
-   call read_real_input(500, 'wavemaker_hm0_ig_factor',  wavemaker_hm0_ig_factor,  1.0)        ! wavemaker Hm0 IG wave factor
-   call read_real_input(500, 'wavemaker_hm0_inc_factor', wavemaker_hm0_inc_factor, 1.0)        ! wavemaker Hm0 inc wave factor
-   call read_real_input(500, 'wavemaker_gammax',         wavemaker_gammax,         1.0)        ! wavemaker gammax
-   call read_real_input(500, 'wavemaker_tpmin',          wavemaker_tpmin,          1.0)        ! wavemaker tpmin
-   call read_logical_input(500, 'wavemaker_hig',         wavemaker_hig,            .true.)     ! wavemaker include IG waves
-   call read_logical_input(500, 'wavemaker_hinc',        wavemaker_hinc,           .false.)    ! wavemaker include incident waves
+   call read_real_input(500,    'wavemaker_tinc2ig',        wavemaker_tinc2ig,        -1.0)       ! wavemaker ig/inc wave period ratio (set <= 0.0 to use Herbers)
+   call read_real_input(500,    'wavemaker_surfslope',      wavemaker_surfslope,      -1.0)       ! wavemaker surf zone slope to compute Tp_ig with empirical run-up equation (van Ormondt et al., 2021))
+   call read_real_input(500,    'wavemaker_hm0_ig_factor',  wavemaker_hm0_ig_factor,  1.0)        ! wavemaker Hm0 IG wave factor
+   call read_real_input(500,    'wavemaker_hm0_inc_factor', wavemaker_hm0_inc_factor, 1.0)        ! wavemaker Hm0 inc wave factor
+   call read_real_input(500,    'wavemaker_gammax',         wavemaker_gammax,         1.0)        ! wavemaker gammax
+   call read_real_input(500,    'wavemaker_tpmin',          wavemaker_tpmin,          1.0)        ! wavemaker tpmin
+   call read_logical_input(500, 'wavemaker_hig',            wavemaker_hig,            .true.)     ! wavemaker include IG waves
+   call read_logical_input(500, 'wavemaker_hinc',           wavemaker_hinc,           .false.)    ! wavemaker include incident waves
    !
    ! Numerical parameters
    call read_char_input(500,'advection_scheme',advstr,'upw1')   
@@ -255,7 +256,6 @@ contains
    ! Infiltration and losses
    call read_char_input(500,'infiltrationfile',infiltrationfile,'none')
    call read_char_input(500,'infiltrationtype',inftype,'none')
-   call read_char_input(500,'drainagefile',drainagefile,'none')     ! spatially-varying drainage rates
    call read_char_input(500,'bucketfile',removed_input,'__removed_keyword_not_present__')
    if (trim(removed_input) /= '__removed_keyword_not_present__') then
       write(logstr,'(a)') 'Error    : keyword bucketfile has been removed. Use infiltrationfile together with infiltrationtype = bkt.'
@@ -264,11 +264,6 @@ contains
    call read_char_input(500,'bucket_loss_frac',removed_input,'__removed_keyword_not_present__')
    if (trim(removed_input) /= '__removed_keyword_not_present__') then
       write(logstr,'(a)') 'Error    : keyword bucket_loss_frac has been removed. Add bucket_loss to infiltrationfile instead.'
-      call stop_sfincs(trim(logstr), 1)
-   endif
-   call read_char_input(500,'qdrain',removed_input,'__removed_keyword_not_present__')
-   if (trim(removed_input) /= '__removed_keyword_not_present__') then
-      write(logstr,'(a)') 'Error    : keyword qdrain has been removed. Use drainagefile for drainage mimic input.'
       call stop_sfincs(trim(logstr), 1)
    endif
    !
@@ -732,10 +727,18 @@ contains
       !
       dthisout = bathtub_dt
       !
-      ! Turn off some processes not needed for bathtub flooding
+      ! Turn off some processes not needed for bathtub flooding.
+      ! Forcing the input file paths to 'none' makes each initialize_*
+      ! routine take its standard early-return path; that way the counters
+      ! (nr_discharge_points, nr_src_structures, nr_urban_drainage_zones)
+      ! and derived logicals (discharges, drainage_structures,
+      ! urban_drainage) stay consistent with the "no input" state.
       !
-      nr_discharge_points = 0
-      nr_src_structures = 0
+      srcfile       = 'none'
+      disfile       = 'none'
+      netsrcdisfile = 'none'
+      drnfile       = 'none'
+      urbfile       = 'none'
       !
       meteo3d = .false.
       wind = .false.

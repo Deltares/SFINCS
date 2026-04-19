@@ -615,7 +615,7 @@
    real*4                       :: h2
    real*4                       :: qstruc
    !
-   call timer_start('Structures')
+   call timer_start('structures')
    !
    !$acc parallel, present(zs, q, uv, structure_uv_index, uv_index_z_nm, uv_index_z_nmu, structure_parameters, structure_type, structure_length)
    !$acc loop independent gang vector
@@ -686,7 +686,7 @@
    enddo
    !$acc end parallel
    !
-   call timer_stop('Structures')
+   call timer_stop('structures')
    !
    end subroutine
    

@@ -100,7 +100,7 @@ module sfincs_output
    !
    real*8   :: t
    !
-   call timer_start('Output')
+   call timer_start('output')
    !
    ! Time-varying water level output maps
    !
@@ -256,7 +256,7 @@ module sfincs_output
       !
    endif
    !
-   call timer_stop('Output')
+   call timer_stop('output')
    !
    end subroutine
 
@@ -570,6 +570,7 @@ module sfincs_output
    !
    use sfincs_data
    use sfincs_src_structures, only: nr_src_structures
+   use sfincs_discharges,     only: nr_discharge_points
    !
    implicit none
    !
@@ -602,7 +603,7 @@ module sfincs_output
    use sfincs_data
    use sfincs_crosssections
    use sfincs_src_structures, only: nr_src_structures, q_src_struc
-   use sfincs_discharges,     only: qtsrc
+   use sfincs_discharges,     only: qtsrc, nr_discharge_points
    !
    implicit none
    !

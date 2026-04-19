@@ -25,7 +25,7 @@ module sfincs_log
    !
    !   write_progress_log(t, t0, t1)
    !     Per-timestep progress / ETA line. Called every time step from
-   !     the main loop in sfincs_lib. Uses timer_elapsed('Simulation loop').
+   !     the main loop in sfincs_lib. Uses timer_elapsed('simulation').
    !
    !   write_finished_log(dtavg)
    !     End-of-run banner + per-phase timer summary + average time step.
@@ -229,10 +229,22 @@ contains
          call write_log('Infiltration         : no', 1)
       endif
       !
-      if (drainage) then
-         call write_log('Drainage             : yes', 1)
+      if (discharges) then
+         call write_log('Discharges           : yes', 1)
       else
-         call write_log('Drainage             : no', 1)
+         call write_log('Discharges           : no', 1)
+      endif
+      !
+      if (drainage_structures) then
+         call write_log('Drainage structures  : yes', 1)
+      else
+         call write_log('Drainage structures  : no', 1)
+      endif
+      !
+      if (urban_drainage) then
+         call write_log('Urban drainage       : yes', 1)
+      else
+         call write_log('Urban drainage       : no', 1)
       endif
       !
       if (snapwave) then
@@ -271,7 +283,7 @@ contains
       ! Per-timestep progress reporter. Prints a "NN% complete, TT.T s
       ! remaining ..." line each time the simulated-time percentage
       ! crosses the next percdoneval threshold. Remaining time is
-      ! estimated from the wall-clock elapsed in the 'Simulation loop'
+      ! estimated from the wall-clock elapsed in the 'simulation'
       ! timer.
       !
       ! Called every time step from the main loop in sfincs_lib.
@@ -294,7 +306,7 @@ contains
          !
          percdonenext = 1.0 * (int(percdone) + percdoneval)
          !
-         trun = real(timer_elapsed('Simulation loop'), 4)
+         trun = real(timer_elapsed('simulation'), 4)
          trem = trun / max(0.01*percdone, 1.0e-6) - trun
          !
          if (int(percdone) > 0) then
@@ -337,7 +349,7 @@ contains
       ! Per-phase timing summary. Percentages are relative to the total
       ! wall time of the simulation loop.
       !
-      call write_timer_summary_log(1, timer_elapsed('Simulation loop'), 0.0005_8)
+      call write_timer_summary_log(1, timer_elapsed('simulation'), 0.0005_8)
       !
       call write_log('', 1)
       !
@@ -353,7 +365,7 @@ contains
    subroutine write_timer_headers_log(to_screen)
       !
       ! Write the three 'Total time / Total simulation time / Time in input' header
-      ! lines to the log, using the 'Input' and 'Simulation loop' named timers.
+      ! lines to the log, using the 'input' and 'simulation' named timers.
       !
       ! Called from: write_finished_log.
       !
@@ -362,16 +374,16 @@ contains
       real(8) :: t_input
       real(8) :: t_loop
       !
-      t_input = timer_elapsed('Input')
-      t_loop  = timer_elapsed('Simulation loop')
+      t_input = timer_elapsed('input')
+      t_loop  = timer_elapsed('simulation')
       !
-      write(logstr, '(a,f10.3)') ' Total time             : ', t_input + t_loop
+      write(logstr, '(a,f10.3)') ' Total time                   : ', t_input + t_loop
       call write_log(trim(logstr), to_screen)
       !
-!      write(logstr, '(a,f10.3)') ' Total simulation time  : ', t_loop
+!      write(logstr, '(a,f10.3)') ' Total simulation time        : ', t_loop
 !      call write_log(trim(logstr), to_screen)
       !
-      write(logstr, '(a,f10.3)') ' Time in input          : ', t_input
+      write(logstr, '(a,f10.3)') ' Time in input                : ', t_input
       call write_log(trim(logstr), to_screen)
       !
    end subroutine write_timer_headers_log
@@ -423,13 +435,13 @@ contains
          !
          ! Skip input (was already added in header)
          !
-         if (trim(timer_name_by_index(i)) == 'Input') cycle
+         if (trim(timer_name_by_index(i)) == 'input') cycle
          !
          pct    = 100.0_8 * t_el / denom
          tname  = timer_name_by_index(i)
          !
-         write(line, '(1x,a,t25,a,f10.3,a,f5.1,a,a,a)') &
-            trim(tname), ': ', t_el, ' (', pct, '%)'
+         write(line, '(1x,a,1x,a,t31,a,f10.3,a,f5.1,a,a,a)') &
+            'Time in', trim(tname), ': ', t_el, ' (', pct, '%)'
          !
          call write_log(trim(line), to_screen)
          !
@@ -453,18 +465,19 @@ contains
       !
       open(unit, file=filename)
       !
-      write(unit, '(f10.3,a)') real(timer_elapsed('Simulation loop'),     4), ' % total'
-      write(unit, '(f10.3,a)') real(timer_elapsed('Input'),               4), ' % input'
-      write(unit, '(f10.3,a)') real(timer_elapsed('Boundaries'),          4), ' % boundaries'
-      write(unit, '(f10.3,a)') real(timer_elapsed('Discharges'),          4), ' % discharges'
-      write(unit, '(f10.3,a)') real(timer_elapsed('Drainage structures'), 4), ' % drainage_structures'
-      write(unit, '(f10.3,a)') real(timer_elapsed('Meteo fields'),        4), ' % meteo1'
-      write(unit, '(f10.3,a)') real(timer_elapsed('Meteo forcing'),       4), ' % meteo2'
-      write(unit, '(f10.3,a)') real(timer_elapsed('Infiltration'),        4), ' % infiltration'
-      write(unit, '(f10.3,a)') real(timer_elapsed('Momentum'),            4), ' % momentum'
-      write(unit, '(f10.3,a)') real(timer_elapsed('Structures'),          4), ' % structures'
-      write(unit, '(f10.3,a)') real(timer_elapsed('Continuity'),          4), ' % continuity'
-      write(unit, '(f10.3,a)') real(timer_elapsed('Output'),              4), ' % output'
+      write(unit, '(f10.3,a)') real(timer_elapsed('simulation'),     4), ' % total'
+      write(unit, '(f10.3,a)') real(timer_elapsed('input'),               4), ' % input'
+      write(unit, '(f10.3,a)') real(timer_elapsed('boundaries'),          4), ' % boundaries'
+      write(unit, '(f10.3,a)') real(timer_elapsed('discharges'),          4), ' % discharges'
+      write(unit, '(f10.3,a)') real(timer_elapsed('drainage structures'), 4), ' % drainage_structures'
+      write(unit, '(f10.3,a)') real(timer_elapsed('urban drainage'),     4), ' % urban_drainage'
+      write(unit, '(f10.3,a)') real(timer_elapsed('meteo fields'),        4), ' % meteo1'
+      write(unit, '(f10.3,a)') real(timer_elapsed('meteo forcing'),       4), ' % meteo2'
+      write(unit, '(f10.3,a)') real(timer_elapsed('infiltration'),        4), ' % infiltration'
+      write(unit, '(f10.3,a)') real(timer_elapsed('momentum'),            4), ' % momentum'
+      write(unit, '(f10.3,a)') real(timer_elapsed('structures'),          4), ' % structures'
+      write(unit, '(f10.3,a)') real(timer_elapsed('continuity'),          4), ' % continuity'
+      write(unit, '(f10.3,a)') real(timer_elapsed('output'),              4), ' % output'
       !
       close(unit)
       !

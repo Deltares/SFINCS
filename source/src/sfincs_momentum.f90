@@ -89,7 +89,7 @@ contains
    !
    logical   :: iok
    !
-   call timer_start('Momentum')
+   call timer_start('momentum')
    !
    min_dt = dtmax
    !
@@ -770,7 +770,7 @@ contains
       !
    endif
    !
-   call timer_stop('Momentum')
+   call timer_stop('momentum')
    !
    end subroutine
    !

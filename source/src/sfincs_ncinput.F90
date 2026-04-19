@@ -170,13 +170,21 @@ module sfincs_ncinput
 
    
    
-   subroutine read_netcdf_discharge_data()
+   subroutine read_netcdf_discharge_data(netsrcdisfile, nr_discharge_points)
    !
-   use sfincs_date   
+   ! Read FEWS-compatible netCDF river-discharge input. netsrcdisfile is
+   ! passed in rather than pulled from a module to avoid a circular
+   ! dependency (the owning module sfincs_discharges `use`s this module
+   ! for the procedure).
+   !
+   use sfincs_date
    use netcdf
-   use sfincs_data   
+   use sfincs_data
    !
-   implicit none   
+   implicit none
+   !
+   character(len=*), intent(in)  :: netsrcdisfile
+   integer,          intent(out) :: nr_discharge_points
    !
    ! Variable names for Fews compatible netcdf input
    !
