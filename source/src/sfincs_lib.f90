@@ -26,6 +26,7 @@ module sfincs_lib
    use sfincs_bathtub
    use sfincs_openacc
    use sfincs_log
+   use sfincs_timers
    use sfincs_timestep_analysis
    !
    implicit none
@@ -41,13 +42,6 @@ module sfincs_lib
    !
    private
    !
-   integer*8  :: count0
-   integer*8  :: count00
-   integer*8  :: countdt0
-   integer*8  :: countdt1
-   integer*8  :: count1
-   integer*8  :: count_rate
-   integer*8  :: count_max
    integer    :: nt
    !
    integer  :: ntmapout
@@ -75,9 +69,7 @@ module sfincs_lib
    logical  :: update_meteo
    logical  :: update_waves
    !
-   real :: tstart, tfinish, tloopflux, tloopcont, tloopstruc, tloopbnd, tloopsrc, tloopwnd1, tloopwnd2, tloopinf, tloopoutput, tloopsnapwave, tloopwavemaker, tloopnonh
    real :: time_per_timestep
-   real :: tinput
    real :: percdone,percdonenext,trun,trem
    !
    contains
@@ -134,7 +126,7 @@ module sfincs_lib
    call write_log('Build-Date: '//trim(build_date), 1)
    call write_log('', 1)
    !
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('Input')
    !
    call write_log('------ Preparing model simulation --------', 1)
    call write_log('', 1)
@@ -270,9 +262,7 @@ module sfincs_lib
       !
    endif   
    !
-   call system_clock(count1, count_rate, count_max)
-   !
-   tinput  = 1.0 * (count1 - count0) / count_rate
+   call timer_stop('Input')
    !
    ! Initialize some parameters
    !
@@ -298,18 +288,6 @@ module sfincs_lib
    update_meteo = .false. ! update meteo fields
    update_waves = .false. ! update wave fields
    !
-   tloopflux      = 0.0
-   tloopcont      = 0.0
-   tloopstruc     = 0.0
-   tloopbnd       = 0.0
-   tloopsrc       = 0.0
-   tloopwnd1      = 0.0
-   tloopwnd2      = 0.0
-   tloopinf       = 0.0
-   tloopsnapwave  = 0.0
-   tloopwavemaker = 0.0
-   tloopnonh      = 0.0
-   !
    call write_log('Initializing output ...', 0)
    !
    call initialize_output(tmapout, tmaxout, thisout, trstout)
@@ -328,7 +306,7 @@ module sfincs_lib
    call write_log(logstr, 1)
    call write_log('', 1)
    !
-   call system_clock(count00, count_rate, count_max)   
+   call timer_start('Simulation loop')
    !
    end function sfincs_initialize
    !
@@ -377,8 +355,6 @@ module sfincs_lib
    ! Start computational loop
    !
    do while (t < tend)
-      !
-      call system_clock(countdt0, count_rate, count_max)
       !
       write_map = .false.
       write_his = .false.
@@ -521,13 +497,13 @@ module sfincs_lib
             ! Update spatially-varying meteo (this does not happen every time step)
             ! Read and interpolate to grid
             !
-            call update_meteo_fields(t, tloopwnd1)
+            call update_meteo_fields(t)
             !
          endif
          !
          ! Update forcing used in momentum and continuity equations (this does happen every time step)
          !
-         call update_meteo_forcing(t, dt, tloopwnd2)
+         call update_meteo_forcing(t, dt)
          !
          ! Update infiltration
          !
@@ -535,7 +511,7 @@ module sfincs_lib
              !
              ! Compute infiltration rates
              !
-             call update_infiltration_map(dt, tloopinf)
+             call update_infiltration_map(dt)
              !
          endif
          !
@@ -543,17 +519,17 @@ module sfincs_lib
       !
       ! Update boundary conditions
       !
-      call update_boundaries(t, dt, tloopbnd)
+      call update_boundaries(t, dt)
       !
       ! Update discharges
       !
-      call update_discharges(t, dt, tloopsrc)
+      call update_discharges(t, dt)
       !
       if (snapwave .and. update_waves) then
          !
          call timer(t3)          
          !
-         call update_wave_field(t, tloopsnapwave)
+         call update_wave_field(t)
          !
          call timer(t4)                   
          write(logstr,'(a,f10.1,a,f6.2,a)')'Computing SnapWave at t = ', t, ' s took ', t4 - t3, ' seconds'         
@@ -573,7 +549,7 @@ module sfincs_lib
          !
          ! In bathtub mode, only update water levels based on boundary conditions
          !
-         call bathtub_compute_water_levels(tloopcont)
+         call bathtub_compute_water_levels()
          !
       else
          !
@@ -581,7 +557,7 @@ module sfincs_lib
          !
          ! First compute fluxes
          !
-         call compute_fluxes(dt, tloopflux)
+         call compute_fluxes(dt)
          !
          if (timestep_analysis) then
              !
@@ -591,13 +567,13 @@ module sfincs_lib
          !
          if (wavemaker) then
             !
-            call update_wavemaker_fluxes(t, dt, tloopwavemaker)
+            call update_wavemaker_fluxes(t, dt)
             !         
          endif   
          !
          if (nrstructures>0) then
             !
-            call compute_fluxes_over_structures(tloopstruc)
+            call compute_fluxes_over_structures()
             !
          endif
          !      
@@ -607,7 +583,7 @@ module sfincs_lib
                !
                ! Apply non-hydrostatic pressure corrections to q and uv
                !
-               call compute_nonhydrostatic(dt, tloopnonh)
+               call compute_nonhydrostatic(dt)
                !
             endif   
             !
@@ -615,7 +591,7 @@ module sfincs_lib
          !      
          ! Update water levels
          !
-         call compute_water_levels(t, dt, tloopcont)
+         call compute_water_levels(t, dt)
          !
       endif   
       !
@@ -625,7 +601,7 @@ module sfincs_lib
          !
          ! if (.not. fixed_output_intervals) tout = t
          !
-         call write_output(tout, write_map, write_his, write_max, write_rst, ntmapout, ntmaxout, nthisout, tloopoutput)
+         call write_output(tout, write_map, write_his, write_max, write_rst, ntmapout, ntmaxout, nthisout)
          !
       endif
       !      
@@ -641,7 +617,7 @@ module sfincs_lib
          !
          ntmaxout = ntmaxout + 1 ! Max sure that max output is not called again through 'finalize_output' 
          !
-         call write_output(t, .true., .true., .true., .false., ntmapout + 1, ntmaxout, nthisout + 1, tloopoutput)
+         call write_output(t, .true., .true., .true., .false., ntmapout + 1, ntmaxout, nthisout + 1)
          !
          t = t1 + 1.0
          !
@@ -652,11 +628,9 @@ module sfincs_lib
       if (percdone >= percdonenext) then
          !
          ! percdoneval is increment of % to show to log, default=+5%
-         percdonenext = 1.0 * (int(percdone) + percdoneval) 
+         percdonenext = 1.0 * (int(percdone) + percdoneval)
          !
-         call system_clock(count1, count_rate, count_max)
-         !
-         trun  = 1.0*(count1 - count00)/count_rate
+         trun = real(timer_elapsed('Simulation loop'), 4)
          trem = trun / max(0.01*percdone, 1.0e-6) - trun
          !
          if (int(percdone)>0) then
@@ -688,86 +662,30 @@ module sfincs_lib
    !
    integer :: ierr
    !
-   call system_clock(count1, count_rate, count_max)
-   !
-   tstart_all = 0.0
-   tfinish_all = 1.0 * (count1 - count00) / count_rate
+   call timer_stop('Simulation loop')
    !
    if (timestep_analysis) then
       !
       call timestep_analysis_finalize(nt)
       !
-   endif     
+   endif
    !
-   call finalize_output(t, ntmaxout, tloopoutput, tmaxout)
+   call finalize_output(t, ntmaxout, tmaxout)
    !
    call finalize_openacc() ! Exit data region
    !
    dtavg = dtavg / (nt - 1)
    !
    call write_log('', 1)
-   call write_log('---------- Simulation finished -----------', 1)                  
+   call write_log('---------- Simulation finished -----------', 1)
    call write_log('', 1)
-   write(logstr,'(a,f10.3)')             ' Total time             : ', tinput + tfinish_all - tstart_all
-   call write_log(logstr, 1)
-   write(logstr,'(a,f10.3)')             ' Total simulation time  : ', tfinish_all - tstart_all
-   call write_log(logstr, 1)
-   write(logstr,'(a,f10.3)')             ' Time in input          : ', tinput
-   call write_log(logstr, 1)
    !
-   if (boundaries_in_mask) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in boundaries     : ', tloopbnd, ' (', 100 * tloopbnd / (tfinish_all - tstart_all), '%)'
-      call write_log(logstr, 1)
-   endif   
+   call timer_write_headers(1)
    !
-   if (nsrc>0 .or. ndrn>0) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in discharges     : ', tloopsrc, ' (', 100 * tloopsrc / (tfinish_all - tstart_all), '%)'
-      call write_log(logstr, 1)
-   endif   
+   ! Per-phase timing summary. Percentages are relative to the total wall
+   ! time of the simulation loop.
    !
-   if (meteo3d)  then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in meteo fields   : ', tloopwnd1, ' (', 100 * tloopwnd1 / (tfinish_all - tstart_all), '%)'
-      call write_log(logstr, 1)
-   endif   
-   !
-   if (wind .or. patmos .or. precip) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in meteo forcing  : ', tloopwnd2, ' (', 100 * tloopwnd2 / (tfinish_all - tstart_all), '%)'
-      call write_log(logstr, 1)
-   endif   
-   !
-   if (infiltration) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in infiltration   : ', tloopinf, ' (', 100 * tloopinf / (tfinish_all - tstart_all), '%)'
-      call write_log(logstr, 1)
-   endif
-   !
-   write(logstr,'(a,f10.3,a,f5.1,a)')    ' Time in momentum       : ', tloopflux, ' (', 100 * tloopflux / (tfinish_all - tstart_all), '%)'
-   call write_log(logstr, 1)
-   !
-   if (nonhydrostatic) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in non-hydrostatic: ', tloopnonh, ' (', 100 * tloopnonh / (tfinish_all - tstart_all), '%)'
-      call write_log(logstr, 1)
-   endif
-   !
-   if (nrstructures>0) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in structures     : ', tloopstruc, ' (', 100 * tloopstruc / (tfinish_all - tstart_all), '%)'
-      call write_log(logstr, 1)
-   endif
-   !
-   write(logstr,'(a,f10.3,a,f5.1,a)')    ' Time in continuity     : ', tloopcont, ' (', 100 * tloopcont / (tfinish_all - tstart_all), '%)'
-   call write_log(logstr, 1)
-   !
-   if (snapwave) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in SnapWave       : ', tloopsnapwave, ' (', 100 * tloopsnapwave / (tfinish_all - tstart_all), '%)'
-      call write_log(logstr, 1)
-   endif
-   !
-   if (wavemaker) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in wave maker     : ', tloopwavemaker, ' (', 100 * tloopwavemaker / (tfinish_all - tstart_all), '%)'
-      call write_log(logstr, 1)
-   endif
-   !
-   write(logstr,'(a,f10.3,a,f5.1,a)')    ' Time in output         : ', tloopoutput, ' (', 100 * tloopoutput / (tfinish_all - tstart_all), '%)'
-   call write_log(logstr, 1)
+   call timer_write_summary(1, timer_elapsed('Simulation loop'), 0.0005_8)
    !
    call write_log('', 1)
    !
@@ -780,22 +698,12 @@ module sfincs_lib
       !
       call timestep_analysis_write_log()
       !
-   endif   
+   endif
    !
    if (write_time_output) then
-      open(123,file='runtimes.txt')
-      write(123,'(f10.3,a)')tfinish_all - tstart_all,' % total'
-      write(123,'(f10.3,a)')tinput,' % input'
-      write(123,'(f10.3,a)')tloopbnd,' % boundaries'
-      write(123,'(f10.3,a)')tloopsrc,' % discharges'
-      write(123,'(f10.3,a)')tloopwnd1,' % meteo1'
-      write(123,'(f10.3,a)')tloopwnd2,' % meteo2'
-      write(123,'(f10.3,a)')tloopinf,' % infiltration'
-      write(123,'(f10.3,a)')tloopflux,' % momentum'
-      write(123,'(f10.3,a)')tloopstruc,' % structures'
-      write(123,'(f10.3,a)')tloopcont,' % continuity'
-      write(123,'(f10.3,a)')tloopoutput,' % output'
-      close(123)
+      !
+      call timer_write_runtimes_file(123, 'runtimes.txt')
+      !
    endif
    !
    call write_log('----------- Closing off SFINCS -----------', 1)

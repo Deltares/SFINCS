@@ -1226,19 +1226,14 @@ contains
    end subroutine
 
 
-   subroutine update_meteo_forcing(t, dt, tloop)
+   subroutine update_meteo_forcing(t, dt)
    !
    ! Update wind stresses and precipitation (this happens every time step)
    !
    use sfincs_data
+   use sfincs_timers
    !
    implicit none
-   !   
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
    !
    real*8                           :: t
    real*4                           :: dt
@@ -1248,7 +1243,7 @@ contains
    real*4                           :: oneminsmfac
    integer                          :: nm, ib
    !
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('Meteo forcing')
    !
    if (meteo3d) then
       !
@@ -1419,9 +1414,8 @@ contains
       !
    endif
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0 * (count1 - count0) / count_rate
-   !         
+   call timer_stop('Meteo forcing')
+   !
    end subroutine
 
 
@@ -1541,25 +1535,20 @@ contains
    end subroutine   
 
    
-   subroutine update_meteo_fields(t, tloop)
+   subroutine update_meteo_fields(t)
    !
    ! Update values at boundary points
    !
    use sfincs_data
+   use sfincs_timers
    !
    implicit none
-   !
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
    !
    integer  :: nm
    !
    real*8   :: t
    !
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('Meteo fields')
    !
    if (amufile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none') then
       !
@@ -1601,9 +1590,8 @@ contains
       !
    endif
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
-   !         
-   end subroutine   
+   call timer_stop('Meteo fields')
+   !
+   end subroutine
 
 end module
