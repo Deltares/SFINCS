@@ -97,6 +97,7 @@
 			<File RelativePath="..\src\sfincs_crosssections.f90"/>
 			<File RelativePath="..\src\sfincs_data.f90">
 			</File>
+			<File RelativePath="..\src\sfincs_timers.f90"/>
 			<File RelativePath="..\src\sfincs_date.f90"/>
 			<File RelativePath="..\src\sfincs_discharges.f90"/>
 			<File RelativePath="..\src\sfincs_rule_expression.f90"/>
@@ -155,7 +156,6 @@
 					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
 				</FileConfiguration>
 			</File>
-			<File RelativePath="..\src\sfincs_timers.f90"/>
 			<File RelativePath="..\src\sfincs_timestep_analysis.f90">
 			</File>
 			<File RelativePath="..\src\sfincs_wave_enhanced_roughness.f90"/>

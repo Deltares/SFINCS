@@ -368,8 +368,8 @@ contains
       write(logstr, '(a,f10.3)') ' Total time             : ', t_input + t_loop
       call write_log(trim(logstr), to_screen)
       !
-      write(logstr, '(a,f10.3)') ' Total simulation time  : ', t_loop
-      call write_log(trim(logstr), to_screen)
+!      write(logstr, '(a,f10.3)') ' Total simulation time  : ', t_loop
+!      call write_log(trim(logstr), to_screen)
       !
       write(logstr, '(a,f10.3)') ' Time in input          : ', t_input
       call write_log(trim(logstr), to_screen)
@@ -404,7 +404,6 @@ contains
       integer        :: i
       integer        :: n
       integer        :: ncalls
-      character(32)  :: call_label
       character(32)  :: tname
       character(256) :: line
       !
@@ -422,18 +421,15 @@ contains
          !
          if (t_el < min_elapsed) cycle
          !
+         ! Skip input (was already added in header)
+         !
+         if (trim(timer_name_by_index(i)) == 'Input') cycle
+         !
          pct    = 100.0_8 * t_el / denom
-         ncalls = timer_count_by_index(i)
          tname  = timer_name_by_index(i)
          !
-         if (ncalls == 1) then
-            write(call_label, '(i0,a)') ncalls, ' call'
-         else
-            write(call_label, '(i0,a)') ncalls, ' calls'
-         endif
-         !
          write(line, '(1x,a,t25,a,f10.3,a,f5.1,a,a,a)') &
-            trim(tname), ': ', t_el, ' (', pct, '%, ', trim(call_label), ')'
+            trim(tname), ': ', t_el, ' (', pct, '%)'
          !
          call write_log(trim(line), to_screen)
          !
