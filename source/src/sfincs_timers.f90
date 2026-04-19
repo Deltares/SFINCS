@@ -7,9 +7,11 @@ module sfincs_timers
    ! lazily: the first timer_start('name') with a new name creates it;
    ! subsequent calls find the existing record and accumulate.
    !
-   ! All timing is done via system_clock with integer*8 counts, so 64-bit
-   ! counters (typical on modern systems) do not wrap within any realistic
-   ! SFINCS run.
+   ! All timing is done via omp_get_wtime(), which returns real(8) wall
+   ! seconds and is guaranteed monotonic by OpenMP. This avoids two
+   ! pitfalls of system_clock: 32-bit count overflow on nanosecond clocks
+   ! (rolls over every ~2.15 s) and, under nvfortran + OpenACC GPU
+   ! offload, system_clock can return CPU time rather than wall time.
    !
    ! Thread safety: timer_start / timer_stop are intended to be called
    ! from the serial driver, outside of !$omp parallel regions. They are
@@ -54,6 +56,8 @@ module sfincs_timers
    !     time / call count by index. Indices run 1 .. timer_num_registered().
    !     Called from write_timer_summary_log in sfincs_log.
    !
+   use omp_lib
+   !
    implicit none
    !
    private
@@ -75,7 +79,7 @@ module sfincs_timers
    type :: timer_record
       character(len=name_len) :: name         = ''
       real(8)                 :: accumulated  = 0.0_8
-      integer(8)              :: last_start   = 0_8
+      real(8)                 :: last_start   = 0.0_8
       integer                 :: n_calls      = 0
       logical                 :: running      = .false.
       logical                 :: warned_start = .false.
@@ -147,7 +151,7 @@ contains
       !
       timers(idx)%name         = name
       timers(idx)%accumulated  = 0.0_8
-      timers(idx)%last_start   = 0_8
+      timers(idx)%last_start   = 0.0_8
       timers(idx)%n_calls      = 0
       timers(idx)%running      = .false.
       timers(idx)%warned_start = .false.
@@ -167,7 +171,6 @@ contains
       !
       character(len=*), intent(in) :: name
       integer                      :: idx
-      integer(8)                   :: c, rate
       !
       idx = timer_find_or_register(name)
       !
@@ -186,9 +189,7 @@ contains
          !
       endif
       !
-      call system_clock(c, rate)
-      !
-      timers(idx)%last_start = c
+      timers(idx)%last_start = omp_get_wtime()
       timers(idx)%running    = .true.
       !
    end subroutine timer_start
@@ -204,7 +205,6 @@ contains
       !
       character(len=*), intent(in) :: name
       integer                      :: idx
-      integer(8)                   :: c, rate
       !
       idx = timer_find(name)
       !
@@ -228,9 +228,7 @@ contains
          !
       endif
       !
-      call system_clock(c, rate)
-      !
-      timers(idx)%accumulated = timers(idx)%accumulated + real(c - timers(idx)%last_start, 8) / real(rate, 8)
+      timers(idx)%accumulated = timers(idx)%accumulated + (omp_get_wtime() - timers(idx)%last_start)
       timers(idx)%n_calls     = timers(idx)%n_calls + 1
       timers(idx)%running     = .false.
       !
@@ -271,7 +269,6 @@ contains
       !
       character(len=*), intent(in) :: name
       integer                      :: idx
-      integer(8)                   :: c, rate
       !
       idx = timer_find(name)
       !
@@ -284,9 +281,7 @@ contains
       !
       if (timers(idx)%running) then
          !
-         call system_clock(c, rate)
-         !
-         elapsed = elapsed + real(c - timers(idx)%last_start, 8) / real(rate, 8)
+         elapsed = elapsed + (omp_get_wtime() - timers(idx)%last_start)
          !
       endif
       !
