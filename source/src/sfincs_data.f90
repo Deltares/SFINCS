@@ -256,20 +256,6 @@ module sfincs_data
       logical       :: bathtub
       logical       :: bathtub_snapwave      
       !!!
-      !!! sfincs_input.f90 switches
-      integer storevelmax
-      integer storefluxmax
-      integer storevel
-      integer storecumprcp
-      integer storetwet
-      integer storetzsmax
-      integer storeqdrain
-      integer storezvolume
-      integer storestoragevolume      
-      integer storemeteo
-      integer storehsubgrid
-      integer wrttimeoutput
-      !!!
       !!! Static data
       !!!
       integer*4 :: np
