@@ -1149,8 +1149,8 @@ contains
       !                                 ! one of "both" (default), "positive", "negative"
       !                                 ! positive: allow flow src_1 -> src_2 only
       !                                 ! negative: allow flow src_2 -> src_1 only
-      !    src_1_x = ... ; src_1_y = ... ; src_2_x = ... ; src_2_y = ...
-      !    obs_1_x = ... ; obs_1_y = ... ; obs_2_x = ... ; obs_2_y = ...
+      !    src_1 = [x, y] ; src_2 = [x, y]
+      !    obs_1 = [x, y] ; obs_2 = [x, y]
       !    q = ...                      ! pump discharge
       !    width = ... ; sill_elevation = ... ; mannings_n = ...
       !    opening_duration = ... ; closing_duration = ...
@@ -1162,10 +1162,10 @@ contains
       !    rules_close = "z2>2.0"                           ! optional trigger expr
       !
       ! Per-type required keys (enforced on parse):
-      !    pump           : name, src_1_x, src_1_y, src_2_x, src_2_y, q
-      !    culvert_simple : name, src_1_x, src_1_y, src_2_x, src_2_y, flow_coef
-      !    gate           : name, src_1_x, src_1_y, src_2_x, src_2_y, width, sill_elevation
-      !    culvert        : name, src_1_x, src_1_y, src_2_x, src_2_y,
+      !    pump           : name, src_1, src_2, q
+      !    culvert_simple : name, src_1, src_2, flow_coef
+      !    gate           : name, src_1, src_2, width, sill_elevation
+      !    culvert        : name, src_1, src_2,
       !                     width, height, invert_1, invert_2
       !                     (optional: flow_coef=0.6, submergence_ratio=0.667)
       !
@@ -1301,24 +1301,30 @@ contains
             case (structure_pump)
                !
                call check_required(tbl_struct, [ character(len=16) :: &
-                    'name', 'src_1_x', 'src_1_y', 'src_2_x', 'src_2_y', 'q' ], i, ierr)
+                    'name', 'q' ], i, ierr)
+               call check_required_coord_pair(tbl_struct, 'src_1', i, ierr)
+               call check_required_coord_pair(tbl_struct, 'src_2', i, ierr)
                !
             case (structure_culvert_simple)
                !
                call check_required(tbl_struct, [ character(len=16) :: &
-                    'name', 'src_1_x', 'src_1_y', 'src_2_x', 'src_2_y', 'flow_coef' ], i, ierr)
+                    'name', 'flow_coef' ], i, ierr)
+               call check_required_coord_pair(tbl_struct, 'src_1', i, ierr)
+               call check_required_coord_pair(tbl_struct, 'src_2', i, ierr)
                !
             case (structure_gate)
                !
                call check_required(tbl_struct, [ character(len=16) :: &
-                    'name', 'src_1_x', 'src_1_y', 'src_2_x', 'src_2_y', &
-                    'width', 'sill_elevation' ], i, ierr)
+                    'name', 'width', 'sill_elevation' ], i, ierr)
+               call check_required_coord_pair(tbl_struct, 'src_1', i, ierr)
+               call check_required_coord_pair(tbl_struct, 'src_2', i, ierr)
                !
             case (structure_culvert)
                !
                call check_required(tbl_struct, [ character(len=16) :: &
-                    'name', 'src_1_x', 'src_1_y', 'src_2_x', 'src_2_y', &
-                    'width', 'height', 'invert_1', 'invert_2' ], i, ierr)
+                    'name', 'width', 'height', 'invert_1', 'invert_2' ], i, ierr)
+               call check_required_coord_pair(tbl_struct, 'src_1', i, ierr)
+               call check_required_coord_pair(tbl_struct, 'src_2', i, ierr)
                !
          end select
          !
@@ -1334,18 +1340,14 @@ contains
          ! presence here so the marshal can distinguish "user gave (0,0)"
          ! from "user gave nothing".
          !
-         call get_value(tbl_struct, 'src_1_x', structures(i)%src_1_x, 0.0, stat=stat)
-         call get_value(tbl_struct, 'src_1_y', structures(i)%src_1_y, 0.0, stat=stat)
-         call get_value(tbl_struct, 'src_2_x', structures(i)%src_2_x, 0.0, stat=stat)
-         call get_value(tbl_struct, 'src_2_y', structures(i)%src_2_y, 0.0, stat=stat)
+         call read_coord_pair(tbl_struct, 'src_1', structures(i)%src_1_x, structures(i)%src_1_y, i, ierr)
+         call read_coord_pair(tbl_struct, 'src_2', structures(i)%src_2_x, structures(i)%src_2_y, i, ierr)
          !
-         structures(i)%has_obs_1 = tbl_struct%has_key('obs_1_x') .or. tbl_struct%has_key('obs_1_y')
-         structures(i)%has_obs_2 = tbl_struct%has_key('obs_2_x') .or. tbl_struct%has_key('obs_2_y')
+         structures(i)%has_obs_1 = tbl_struct%has_key('obs_1')
+         structures(i)%has_obs_2 = tbl_struct%has_key('obs_2')
          !
-         call get_value(tbl_struct, 'obs_1_x', structures(i)%obs_1_x, 0.0, stat=stat)
-         call get_value(tbl_struct, 'obs_1_y', structures(i)%obs_1_y, 0.0, stat=stat)
-         call get_value(tbl_struct, 'obs_2_x', structures(i)%obs_2_x, 0.0, stat=stat)
-         call get_value(tbl_struct, 'obs_2_y', structures(i)%obs_2_y, 0.0, stat=stat)
+         call read_coord_pair(tbl_struct, 'obs_1', structures(i)%obs_1_x, structures(i)%obs_1_y, i, ierr)
+         call read_coord_pair(tbl_struct, 'obs_2', structures(i)%obs_2_x, structures(i)%obs_2_y, i, ierr)
          !
          ! Named physical parameters. Defaults are picked to avoid NaN in
          ! arithmetic and to match the legacy-reader fallbacks.
@@ -1502,6 +1504,97 @@ contains
          endif
          !
       enddo
+      !
+   end subroutine
+   !
+   !-----------------------------------------------------------------------------------------------------!
+   !
+   subroutine check_required_coord_pair(table, key_base, seq_index, ierr)
+      !
+      ! Verify that a coordinate pair "<key_base> = [x, y]" is present in the
+      ! TOML table. Emits a single missing-key error when absent.
+      !
+      ! Called from: read_toml_src_structures (this module), once per required
+      ! coordinate pair (src_1, src_2) in the per-type validation block.
+      !
+      use tomlf
+      !
+      implicit none
+      !
+      type(toml_table), pointer, intent(in)    :: table
+      character(len=*),          intent(in)    :: key_base
+      integer,                   intent(in)    :: seq_index
+      integer,                   intent(inout) :: ierr
+      !
+      if (.not. table%has_key(trim(key_base))) then
+         !
+         write(logstr,'(a,i0,a,a,a)')' Error ! Structure #', seq_index, &
+              ' is missing required coordinate pair "', trim(key_base), ' = [x, y]"'
+         call write_log(logstr, 1)
+         ierr = 1
+         !
+      endif
+      !
+   end subroutine
+   !
+   !-----------------------------------------------------------------------------------------------------!
+   !
+   subroutine read_coord_pair(table, key_base, x, y, seq_index, ierr)
+      !
+      ! Read a coordinate pair "<key_base> = [x, y]" from a TOML table.
+      !
+      ! If the key is absent, x and y are left at 0.0 and no error is raised
+      ! here — presence of required pairs is enforced separately by
+      ! check_required_coord_pair.
+      !
+      ! Called from: read_toml_src_structures (this module), once per
+      ! coordinate pair (src_1, src_2, obs_1, obs_2) per structure entry.
+      !
+      use tomlf
+      !
+      implicit none
+      !
+      type(toml_table), pointer, intent(in)    :: table
+      character(len=*),          intent(in)    :: key_base
+      real,                      intent(out)   :: x, y
+      integer,                   intent(in)    :: seq_index
+      integer,                   intent(inout) :: ierr
+      !
+      type(toml_array), pointer :: arr
+      integer                   :: n, stat
+      !
+      x = 0.0
+      y = 0.0
+      !
+      if (.not. table%has_key(trim(key_base))) return
+      !
+      nullify(arr)
+      call get_value(table, trim(key_base), arr, requested=.false., stat=stat)
+      !
+      if (.not. associated(arr)) then
+         !
+         write(logstr,'(a,a,a,i0,a)')' Error ! Key "', trim(key_base), &
+              '" in src_structure #', seq_index, ' must be a 2-element array [x, y]'
+         call write_log(logstr, 1)
+         ierr = 1
+         return
+         !
+      endif
+      !
+      n = len(arr)
+      !
+      if (n /= 2) then
+         !
+         write(logstr,'(a,a,a,i0,a,i0,a)')' Error ! Key "', trim(key_base), &
+              '" in src_structure #', seq_index, ' must have exactly 2 elements (got ', n, ')'
+         call write_log(logstr, 1)
+         ierr = 1
+         return
+         !
+      endif
+      !
+      call get_value(arr, 1, x, stat=stat)
+      call get_value(arr, 2, y, stat=stat)
       !
    end subroutine
    !
@@ -2063,10 +2156,8 @@ contains
                write(u_out,'(a)')         '[[src_structure]]'
                write(u_out,'(a,a,a)')     'name             = "', trim(name_str), '"'
                write(u_out,'(a)')         'type             = "gate"'
-               write(u_out,'(a,es14.6)')  'src_1_x          = ', x1
-               write(u_out,'(a,es14.6)')  'src_1_y          = ', y1
-               write(u_out,'(a,es14.6)')  'src_2_x          = ', x2
-               write(u_out,'(a,es14.6)')  'src_2_y          = ', y2
+               write(u_out,'(a,es14.6,a,es14.6,a)') 'src_1            = [', x1, ', ', y1, ']'
+               write(u_out,'(a,es14.6,a,es14.6,a)') 'src_2            = [', x2, ', ', y2, ']'
                write(u_out,'(a,es14.6)')  'width            = ', g_width
                write(u_out,'(a,es14.6)')  'sill_elevation   = ', g_sill
                write(u_out,'(a,es14.6)')  'mannings_n       = ', g_mann
@@ -2111,10 +2202,8 @@ contains
             !
          endif
          !
-         write(u_out,'(a,es14.6)')  'src_1_x = ', x1
-         write(u_out,'(a,es14.6)')  'src_1_y = ', y1
-         write(u_out,'(a,es14.6)')  'src_2_x = ', x2
-         write(u_out,'(a,es14.6)')  'src_2_y = ', y2
+         write(u_out,'(a,es14.6,a,es14.6,a)') 'src_1   = [', x1, ', ', y1, ']'
+         write(u_out,'(a,es14.6,a,es14.6,a)') 'src_2   = [', x2, ', ', y2, ']'
          write(u_out,'(a,a,a,es14.6)') trim(par_name), repeat(' ', max(1, 7 - len_trim(par_name))), '= ', par
          write(u_out,'(a)')         ''
          !
