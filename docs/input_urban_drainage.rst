@@ -42,8 +42,7 @@ Piped drainage example
 	name             = "downtown"
 	type             = "piped_drainage"
 	polygon_file     = "zones.tek"
-	outfall_x        = 950.0
-	outfall_y        = 150.0
+	outfall          = [950.0, 150.0]
 	design_precip    = 20.0
 	check_valve      = true
 
@@ -51,8 +50,7 @@ Piped drainage example
 	name             = "harbor_district"
 	type             = "piped_drainage"
 	polygon_file     = "zones.tek"
-	outfall_x        = 1020.0
-	outfall_y        = 180.0
+	outfall          = [1020.0, 180.0]
 	max_outfall_rate = 6.0
 
 Injection well example
@@ -91,7 +89,7 @@ Piped drainage keys
 ``max_outfall_rate`` (conditional, m³/s)
 	Total zone outfall capacity. Useful when you know what the outfall pipe can deliver but not the design storm it was sized for. SFINCS derives ``design_precip = max_outfall_rate / zone_area * 3.6e6`` from the zone's total polygon-covered area, so per-cell capacity is distributed proportionally to cell area. **Exactly one of** ``design_precip`` **or** ``max_outfall_rate`` **must be provided for piped_drainage zones.**
 
-``outfall_x``, ``outfall_y`` (required when ``include_outfall = true``)
+``outfall`` (required when ``include_outfall = true``, 2-element array ``[x, y]``)
 	Coordinates of the single point where all zone discharge is summed and deposited. Snapped to the nearest active cell. If no active cell can be found, zone contributions are silently discarded and a warning is logged.
 
 ``include_outfall`` (optional, bool, default ``true``)

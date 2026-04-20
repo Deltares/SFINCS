@@ -52,7 +52,7 @@ module sfincs_ncoutput
       integer :: thindam_x_varid, thindam_y_varid      
       integer :: drain_varid, drain_name_varid
       integer :: river_varid, river_name_varid
-      integer :: urbdrain_varid, urbdrain_name_varid, urbdrain_cuminj_varid
+      integer :: urbdrain_varid, urbdrain_name_varid
       integer :: zb_varid
       integer :: time_varid
       integer :: zs_varid, h_varid, u_varid, v_varid, prcp_varid, cumprcp_varid, discharge_varid, uvmag_varid, uvdir_varid
@@ -2189,17 +2189,11 @@ contains
    !
    if (nr_urban_drainage_zones > 0 .and. store_urban_drainage_discharge) then
       !
-      NF90(nf90_def_var(his_file%ncid, 'urban_drainage_discharge', NF90_FLOAT, (/his_file%urbdrain_dimid, his_file%time_dimid/), his_file%urbdrain_varid)) ! per-zone total discharge
+      NF90(nf90_def_var(his_file%ncid, 'urban_drainage_discharge', NF90_FLOAT, (/his_file%urbdrain_dimid, his_file%time_dimid/), his_file%urbdrain_varid)) ! per-zone outfall discharge
       NF90(nf90_put_att(his_file%ncid, his_file%urbdrain_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(his_file%ncid, his_file%urbdrain_varid, 'units', 'm3 s-1'))
-      NF90(nf90_put_att(his_file%ncid, his_file%urbdrain_varid, 'long_name', 'urban drainage zone total discharge'))
+      NF90(nf90_put_att(his_file%ncid, his_file%urbdrain_varid, 'long_name', 'urban drainage zone net outfall discharge'))
       NF90(nf90_put_att(his_file%ncid, his_file%urbdrain_varid, 'coordinates', 'urban_drainage_zone_name'))
-      !
-      NF90(nf90_def_var(his_file%ncid, 'cumulative_injection_volume', NF90_FLOAT, (/his_file%urbdrain_dimid, his_file%time_dimid/), his_file%urbdrain_cuminj_varid)) ! per-zone cumulative injected volume (injection_well)
-      NF90(nf90_put_att(his_file%ncid, his_file%urbdrain_cuminj_varid, '_FillValue', FILL_VALUE))
-      NF90(nf90_put_att(his_file%ncid, his_file%urbdrain_cuminj_varid, 'units', 'm3'))
-      NF90(nf90_put_att(his_file%ncid, his_file%urbdrain_cuminj_varid, 'long_name', 'urban drainage zone cumulative injection volume'))
-      NF90(nf90_put_att(his_file%ncid, his_file%urbdrain_cuminj_varid, 'coordinates', 'urban_drainage_zone_name'))
       !
    endif
    !   
@@ -3227,7 +3221,7 @@ contains
    use sfincs_snapwave
    use sfincs_src_structures, only: nr_src_structures, q_src_struc
    use sfincs_discharges,     only: qtsrc, nr_discharge_points
-   use sfincs_urban_drainage, only: nr_urban_drainage_zones, urban_drainage_q_total, urb_zone_cumulative_injection
+   use sfincs_urban_drainage, only: nr_urban_drainage_zones, urban_drainage_q_total
    !
    implicit none
    !
@@ -3538,8 +3532,6 @@ contains
    if (nr_urban_drainage_zones > 0 .and. store_urban_drainage_discharge) then
       !
       NF90(nf90_put_var(his_file%ncid, his_file%urbdrain_varid, urban_drainage_q_total, (/1, nthisout/))) ! write per-zone total discharge
-      !
-      NF90(nf90_put_var(his_file%ncid, his_file%urbdrain_cuminj_varid, urb_zone_cumulative_injection, (/1, nthisout/))) ! write per-zone cumulative injection volume
       !
    endif
    !

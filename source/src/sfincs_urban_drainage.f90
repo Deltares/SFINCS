@@ -628,34 +628,34 @@ contains
          write(logstr,'(a,i0)')        '  cells_assigned:   ', urb_zone_n_cells(iz)
          call write_log(logstr, 0)
          !
-         write(logstr,'(a,f0.1,a)')    '  area:             ', urb_zone_area(iz), ' (m2)'
+         write(logstr,'(a,a,a)')       '  area:             ', trim(fmt_real(urb_zone_area(iz), 1)), ' (m2)'
          call write_log(logstr, 0)
          !
          if (urb_zone_type_id(iz) == urb_type_piped_drainage) then
             !
             if (urb_zone_max_outfall_rate(iz) > 0.0) then
-               write(logstr,'(a,f0.4,a)') '  max_outfall_rate: ', urb_zone_max_outfall_rate(iz), ' (m3/s)'
+               write(logstr,'(a,a,a)')    '  max_outfall_rate: ', trim(fmt_real(urb_zone_max_outfall_rate(iz), 4)), ' (m3/s)'
                call write_log(logstr, 0)
-               write(logstr,'(a,f0.2,a)') '  design_precip:    ', urb_zone_design_precip(iz), &
+               write(logstr,'(a,a,a)')    '  design_precip:    ', trim(fmt_real(urb_zone_design_precip(iz), 2)), &
                     ' (mm/hr, derived from max_outfall_rate)'
                call write_log(logstr, 0)
             else
-               write(logstr,'(a,f0.2,a)') '  design_precip:    ', urb_zone_design_precip(iz), ' (mm/hr)'
+               write(logstr,'(a,a,a)')    '  design_precip:    ', trim(fmt_real(urb_zone_design_precip(iz), 2)), ' (mm/hr)'
                call write_log(logstr, 0)
             endif
             !
-            write(logstr,'(a,f0.4,a)')    '  qmax_total:       ', urb_zone_qmax_total(iz), ' (m3/s)'
+            write(logstr,'(a,a,a)')       '  qmax_total:       ', trim(fmt_real(urb_zone_qmax_total(iz), 4)), ' (m3/s)'
             call write_log(logstr, 0)
             !
-            write(logstr,'(a,f0.3,a)')    '  h_threshold:      ', urb_zone_h_threshold(iz), ' (m)'
+            write(logstr,'(a,a,a)')       '  h_threshold:      ', trim(fmt_real(urb_zone_h_threshold(iz), 3)), ' (m)'
             call write_log(logstr, 0)
             !
-            write(logstr,'(a,f0.3,a)')    '  dh_design_min:    ', urb_zone_dh_design_min(iz), ' (m)'
+            write(logstr,'(a,a,a)')       '  dh_design_min:    ', trim(fmt_real(urb_zone_dh_design_min(iz), 3)), ' (m)'
             call write_log(logstr, 0)
             !
             if (urb_zone_include_outfall(iz)) then
-               write(logstr,'(a,f0.3,a,f0.3,a)')'  outfall:          (', urb_zone_outfall_x(iz), ', ', &
-                    urb_zone_outfall_y(iz), ')'
+               write(logstr,'(a,a,a,a,a)') '  outfall:          [', trim(fmt_real(urb_zone_outfall_x(iz), 3)), ', ', &
+                    trim(fmt_real(urb_zone_outfall_y(iz), 3)), ']'
                call write_log(logstr, 0)
                !
                if (urban_drainage_outfall_index(iz) > 0) then
@@ -676,16 +676,16 @@ contains
             !
          elseif (urb_zone_type_id(iz) == urb_type_injection_well) then
             !
-            write(logstr,'(a,f0.4,a)')    '  injection_rate:   ', urb_zone_injection_rate(iz), ' (m3/s)'
+            write(logstr,'(a,a,a)')       '  injection_rate:   ', trim(fmt_real(urb_zone_injection_rate(iz), 4)), ' (m3/s)'
             call write_log(logstr, 0)
             !
-            write(logstr,'(a,f0.1,a)')    '  maximum_capacity: ', urb_zone_maximum_capacity(iz), ' (m3)'
+            write(logstr,'(a,a,a)')       '  maximum_capacity: ', trim(fmt_real(urb_zone_maximum_capacity(iz), 1)), ' (m3)'
             call write_log(logstr, 0)
             !
-            write(logstr,'(a,f0.4,a)')    '  qmax_total:       ', urb_zone_qmax_total(iz), ' (m3/s)'
+            write(logstr,'(a,a,a)')       '  qmax_total:       ', trim(fmt_real(urb_zone_qmax_total(iz), 4)), ' (m3/s)'
             call write_log(logstr, 0)
             !
-            write(logstr,'(a,f0.3,a)')    '  h_threshold:      ', urb_zone_h_threshold(iz), ' (m)'
+            write(logstr,'(a,a,a)')       '  h_threshold:      ', trim(fmt_real(urb_zone_h_threshold(iz), 3)), ' (m)'
             call write_log(logstr, 0)
             !
          endif
@@ -710,8 +710,7 @@ contains
       !    polygon_file      = "zones.tek"         ! required
       !
       !    # piped_drainage keys:
-      !    outfall_x         = 950.0               ! required if include_outfall = true
-      !    outfall_y         = 150.0               ! required if include_outfall = true
+      !    outfall           = [950.0, 150.0]      ! required if include_outfall = true, [x, y] pair
       !    design_precip     = 20.0                ! required if max_outfall_rate absent, mm/hr
       !    max_outfall_rate  = 6.0                 ! alternative to design_precip, m3/s total zone capacity
       !                                            ! exactly one of {design_precip, max_outfall_rate} must be given
@@ -881,11 +880,34 @@ contains
          !
          if (urb_zone_type_id(i) == urb_type_piped_drainage) then
             !
-            call get_value(tbl_zone, 'outfall_x', r8_tmp, stat=stat)
-            if (stat == 0) urb_zone_outfall_x(i) = real(r8_tmp, 4)
-            !
-            call get_value(tbl_zone, 'outfall_y', r8_tmp, stat=stat)
-            if (stat == 0) urb_zone_outfall_y(i) = real(r8_tmp, 4)
+            block
+               type(toml_array), pointer :: arr_outfall
+               integer                   :: n_out, stat_arr
+               !
+               nullify(arr_outfall)
+               call get_value(tbl_zone, 'outfall', arr_outfall, requested=.false., stat=stat_arr)
+               !
+               if (associated(arr_outfall)) then
+                  !
+                  n_out = len(arr_outfall)
+                  !
+                  if (n_out /= 2) then
+                     write(logstr,'(a,a,a,i0,a)')' Error ! urban_drainage_zone "', trim(urb_zone_name(i)), &
+                          '" key "outfall" must have exactly 2 elements (got ', n_out, ')'
+                     call write_log(logstr, 1)
+                     ierr = 1
+                     return
+                  endif
+                  !
+                  call get_value(arr_outfall, 1, r8_tmp, stat=stat_arr)
+                  urb_zone_outfall_x(i) = real(r8_tmp, 4)
+                  !
+                  call get_value(arr_outfall, 2, r8_tmp, stat=stat_arr)
+                  urb_zone_outfall_y(i) = real(r8_tmp, 4)
+                  !
+               endif
+               !
+            end block
             !
             ! Exactly one of design_precip / max_outfall_rate must be given.
             ! has_key distinguishes "absent" from "present but 0.0".
@@ -935,7 +957,7 @@ contains
                found = (urb_zone_outfall_x(i) /= 0.0 .or. urb_zone_outfall_y(i) /= 0.0)
                if (.not. found) then
                   write(logstr,'(a,a,a)')' Warning : piped_drainage zone "', trim(urb_zone_name(i)), &
-                       '" has include_outfall = true but outfall_x, outfall_y both 0.0'
+                       '" has include_outfall = true but outfall = [0.0, 0.0]'
                   call write_log(logstr, 0)
                endif
             endif

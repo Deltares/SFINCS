@@ -46,6 +46,13 @@ module sfincs_log
    !     original inline code in sfincs_lib produced. Called from
    !     sfincs_finalize (sfincs_lib) when write_time_output is set.
    !
+   !   fmt_real(val, decimals) result(s)
+   !     Format a real value with the minimum necessary field width and
+   !     a guaranteed leading zero for |val| < 1. Works around a quirk
+   !     in ifx that drops the leading zero for the "f0.d" edit
+   !     descriptor. Returns a 32-char string, left-justified; callers
+   !     use trim(fmt_real(...)) when embedding it in a larger format.
+   !
    use sfincs_timers
    !
    integer        :: fid
@@ -93,6 +100,45 @@ contains
       endif
       !
    end subroutine write_log
+   !
+   !-----------------------------------------------------------------------------------------------------!
+   !
+   function fmt_real(val, decimals) result(s)
+      !
+      ! Format a real with minimum width and a guaranteed leading zero
+      ! for |val| < 1. ifx's "f0.d" descriptor drops the leading zero in
+      ! that range, which is not standard-conforming; this helper rewrites
+      ! the result so the log output always reads "0.6670" rather than
+      ! ".6670".
+      !
+      ! Called from: write_src_structures_log_summary (sfincs_src_structures),
+      ! urban_drainage log summary (sfincs_urban_drainage), and anywhere
+      ! else a real needs to be embedded in a log line with the smallest
+      ! reasonable field width.
+      !
+      implicit none
+      !
+      real,    intent(in) :: val
+      integer, intent(in) :: decimals
+      character(len=32)   :: s
+      !
+      character(len=16)   :: fmt
+      !
+      write(fmt,'(a,i0,a)') '(f0.', decimals, ')'
+      write(s,fmt) val
+      s = adjustl(s)
+      !
+      if (s(1:1) == '.') then
+         !
+         s = '0' // s(1:len_trim(s))
+         !
+      else if (s(1:2) == '-.') then
+         !
+         s = '-0' // trim(s(2:))
+         !
+      endif
+      !
+   end function fmt_real
    !
    !-----------------------------------------------------------------------------------------------------!
    !

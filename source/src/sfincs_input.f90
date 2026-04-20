@@ -117,7 +117,7 @@ contains
       call get_keyword(500, 'tspinup',                         tspinup,                         0.0)               ! spin-up interval after t0 (s)
       call get_keyword(500, 't0out',                           t0out,                           -999.0)            ! output start time (s rel. tref); -999 = t0
       call get_keyword(500, 't1out',                           t1out,                           -999.0)            ! output stop time  (s rel. tref); -999 = t1
-      call get_keyword(500, 'dtout',                           dtmapout,                        0.0)               ! map output interval (s); 0 = no map output
+      call get_keyword(500, 'dtmapout',                        dtmapout,                        0.0, ['dtout'])    ! map output interval (s); 0 = no map output
       call get_keyword(500, 'dtmaxout',                        dtmaxout,                        9999999.0)         ! zsmax etc. interval (s); 0 = end-of-run only
       call get_keyword(500, 'dtrstout',                        dtrstout,                        0.0)               ! restart interval (s); 0 = no periodic restart
       call get_keyword(500, 'trstout',                         trst,                            -999.0)            ! single restart time (s rel. tref); -999 = unused
