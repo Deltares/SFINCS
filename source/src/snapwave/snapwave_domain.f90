@@ -11,6 +11,7 @@ contains
    use snapwave_ncoutput   
    use interp
    use sfincs_error      
+   use quadtree
    !
    ! Local input variables
    !
@@ -95,16 +96,6 @@ contains
    endif
    !
    ! Done with the mesh
-   !
-   ! keep on also if ja_vegetation==0, so array Dveg is initialized with zeroes
-   !if (ja_vegetation==1) then
-   !   call veggie_init()   
-   !else
-   allocate(veg_Cd(no_nodes, no_secveg))
-   allocate(veg_ah(no_nodes, no_secveg))
-   allocate(veg_bstems(no_nodes,  no_secveg))
-   allocate(veg_Nstems(no_nodes,  no_secveg))
-   !endif   
    !
    ntheta360 = nint(360./dtheta)
    ntheta    = nint(sector/dtheta)   
@@ -1051,6 +1042,9 @@ contains
    !
    use snapwave_data
    use quadtree
+   use sfincs_data, only: vegetation_cd, vegetation_stems_height, &
+                          vegetation_stems_width, vegetation_stems_density, &
+                          vegetation_vertical_segments   
    !
    ! Local input variables
    !
@@ -2047,7 +2041,7 @@ contains
       !
    enddo   
    !
-   ! Loop through cells to re-maps the face nodes
+   ! STEP 8 - Loop through cells to re-maps the face nodes
    !
    do iface = 1, no_faces
       do j = 1, 4
@@ -2058,6 +2052,44 @@ contains
          endif   
       enddo   
    enddo   
+   !
+   ! STEP 9 - if vegetation, re-map veggie input from quadtree netcdf vegetationfile
+   ! Set 'no_secveg' from sfincs_vegetation.f90 for use in snapwave_data
+   !
+   no_secveg = vegetation_vertical_segments
+   !
+   allocate(veg_Cd(no_nodes, no_secveg))
+   allocate(veg_ah(no_nodes, no_secveg))
+   allocate(veg_bstems(no_nodes,  no_secveg))
+   allocate(veg_Nstems(no_nodes,  no_secveg)) 
+   !
+   veg_Cd = 0.0
+   veg_ah = 0.0
+   veg_bstems = 0.0
+   veg_Nstems = 0.0
+   !
+   if (vegetation) then 
+      ! copy from the quadtree snapwave_veg
+      nac = 0
+      !
+      do ip = 1, quadtree_nr_points 
+         !
+         if (msk_tmp2(ip)>0) then
+            !
+            nac = nac + 1
+            !
+            ! Set node values for all points in the vertical
+            do iq = 1, no_secveg
+               veg_Cd(nac,iq)   = vegetation_cd(ip,iq)
+               veg_ah(nac,iq)   = vegetation_stems_height(ip,iq)
+               veg_bstems(nac,iq)   = vegetation_stems_width(ip,iq)
+               veg_Nstems(nac,iq)   = vegetation_stems_density(ip,iq)
+            enddo            
+            !
+         endif
+      enddo      
+      !
+   endif
    !
    end subroutine
    

@@ -583,17 +583,8 @@ contains
    if (igwaves) then
        !
        snapwave_tpigmean = tpmean_bwv_ig      
-       !   
-       if (snapwave_tpigmean < 10.0) then
-           ! These warnings should not occur here
-	       write(logstr,*)'DEBUG SFINCS_SnapWave - incoming tp for IG wave at wavemaker might be unrealistically small! value: ',snapwave_tpigmean
-           call write_log(logstr, 0)           
-       elseif (snapwave_tpigmean > 250.0) then
-	       write(logstr,*)'DEBUG SFINCS_SnapWave - incoming tp for IG wave at wavemaker might be unrealistically large! value: ',snapwave_tpigmean
-           call write_log(logstr, 0)   
-       endif	 
+       ! 
    endif
-   ! TL: NOTE - in first timestep run of SnapWave tp = 0, therefore excluded that case from the check     
    !
    end subroutine
 
@@ -663,7 +654,7 @@ contains
    !
    ! Vegetation input
    !
-   call read_int_input(500, 'vegetation', vegetation_opt, 0)
+   call read_int_input(500, 'snapwave_vegetation', vegetation_opt, 0)
    !
    ! Input files
    !

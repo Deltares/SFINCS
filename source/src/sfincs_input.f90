@@ -204,6 +204,7 @@ contains
    call read_logical_input(500, 'bathtub', bathtub, .false.)
    call read_real_input(500, 'bathtub_fachs', bathtub_fac_hs, 0.2)
    call read_real_input(500, 'bathtub_dt', bathtub_dt, -999.0)
+   call read_logical_input(500,'vegetation',vegetation,.false.)   
    !
    ! Domain
    !
@@ -220,6 +221,7 @@ contains
    call read_char_input(500,'manningfile',manningfile,'none')   
    call read_char_input(500,'drnfile',drnfile,'none')
    call read_char_input(500,'volfile',volfile,'none')
+   call read_char_input(500,'vegetationfile',veggiefile,'none')   
    !
    ! Forcing
    !
@@ -301,6 +303,7 @@ contains
    !
    ! Coupled SnapWave solver related
    call read_int_input(500,'snapwave_wind',iwind,0)   
+   call read_logical_input(500,'snapwave_vegetation',snapwave_vegetation,.false.)   
    !
    ! Wind drag
    !
@@ -484,6 +487,14 @@ contains
           ! Independent from wndfile or 2D meteo input, handled by store_wind.
       endif  
    endif 
+   !
+   store_vegetation = .false.   
+   if (vegetation==.true. .or. snapwave_vegetation==.true.) then
+       !
+       store_vegetation = .true.
+       ! vegetation can be used in SnapWave and/or SFINCS calculations
+       !
+   endif  
    !
    store_twet = .false.
    if (storetwet==1) then
