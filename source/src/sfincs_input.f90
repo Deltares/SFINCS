@@ -323,7 +323,7 @@ contains
       call get_keyword(500, 'storemaxwind',                    store_wind_max,                  .false.)           ! store maximum wind speed (requires storemeteo)
       call get_keyword(500, 'storefw',                         store_wave_forces,               .false.)           ! store wave-radiation forces
       call get_keyword(500, 'storewavdir',                     store_wave_direction,            .false.)           ! store wave direction
-      call get_keyword(500, 'regular_output_on_mesh',          use_quadtree_output,             .false.)           ! write quadtree output on regular m/n mesh
+      call get_keyword(500, 'output_on_quadtree_mesh',         use_quadtree_output,             .false., ['regular_output_on_mesh']) ! write quadtree output to quadtree mesh (only relevant for regular meshed grids)
       call get_keyword(500, 'store_dynamic_bed_level',         store_dynamic_bed_level,         .false.)           ! store time-varying bed level (subgrid)
       call get_keyword(500, 'snapwave_use_nearest',            snapwave_use_nearest,            .true.)            ! use nearest-neighbour lookup for SnapWave boundary points
       call get_keyword(500, 'percentage_done',                 percdoneval,                     5)                 ! progress-reporter interval (% complete)
