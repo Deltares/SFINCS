@@ -52,6 +52,7 @@ libsfincs_la_SOURCES = \
 	sfincs_meteo.f90 \
     ../third_party_open/bicgstab/bicgstab_solver_ilu.f90 \
 	sfincs_nonhydrostatic.f90 \
+	sfincs_nchelper.F90 \
 	sfincs_ncoutput.F90 \
 	sfincs_output.f90 \
 	sfincs_momentum.f90 \
