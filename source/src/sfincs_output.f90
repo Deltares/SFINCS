@@ -602,7 +602,7 @@ module sfincs_output
    !
    use sfincs_data
    use sfincs_crosssections
-   use sfincs_src_structures, only: nr_src_structures, q_src_struc
+   use sfincs_src_structures, only: nr_src_structures, src_struc_q_now
    use sfincs_discharges,     only: qtsrc, nr_discharge_points
    !
    implicit none
@@ -663,9 +663,9 @@ module sfincs_output
    endif
    !
    if (nr_src_structures>0 .and. store_qdrain) then
-      !$acc update host(q_src_struc)
+      !$acc update host(src_struc_q_now)
       open(unit = 970, file = trim('qdrain.txt'), access='append')
-      write(970,'(f12.1,10000f9.3)')t,(q_src_struc(iobs), iobs = 1, nr_src_structures)
+      write(970,'(f12.1,10000f9.3)')t,(src_struc_q_now(iobs), iobs = 1, nr_src_structures)
       close(970)
    endif
    !

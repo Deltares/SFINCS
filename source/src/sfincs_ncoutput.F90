@@ -3219,7 +3219,7 @@ contains
    use sfincs_crosssections
    use sfincs_runup_gauges
    use sfincs_snapwave
-   use sfincs_src_structures, only: nr_src_structures, q_src_struc
+   use sfincs_src_structures, only: nr_src_structures, src_struc_q_now
    use sfincs_discharges,     only: qtsrc, nr_discharge_points
    use sfincs_urban_drainage, only: nr_urban_drainage_zones, urban_drainage_q_total
    !
@@ -3515,9 +3515,9 @@ contains
    !
    if (nr_src_structures>0) then
       !
-      !$acc update host(q_src_struc)
+      !$acc update host(src_struc_q_now)
       !
-      NF90(nf90_put_var(his_file%ncid, his_file%drain_varid, q_src_struc, (/1, nthisout/))) ! write per-structure discharge
+      NF90(nf90_put_var(his_file%ncid, his_file%drain_varid, src_struc_q_now, (/1, nthisout/))) ! write per-structure discharge
       !
    endif
    !

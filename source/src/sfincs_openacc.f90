@@ -32,9 +32,9 @@ contains
    !$acc               z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
    !$acc               uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc               uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
-   !$acc               qsrc, qtsrc, q_src_struc, nmindsrc, src_struc_nm_in, src_struc_nm_out, src_struc_type, &
+   !$acc               qsrc, qtsrc, src_struc_q_now, nmindsrc, src_struc_nm_s1, src_struc_nm_s2, src_struc_type, &
    !$acc               src_struc_direction, &
-   !$acc               src_struc_nm_obs_1, src_struc_nm_obs_2, &
+   !$acc               src_struc_nm_o1, src_struc_nm_o2, &
    !$acc               src_struc_q, src_struc_flow_coef, &
    !$acc               src_struc_width, src_struc_sill_elevation, src_struc_mannings_n, &
    !$acc               src_struc_opening_duration, src_struc_closing_duration, &
@@ -79,9 +79,9 @@ contains
    !$acc               z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
    !$acc               uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc               uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
-   !$acc               qsrc, qtsrc, q_src_struc, nmindsrc, src_struc_nm_in, src_struc_nm_out, src_struc_type, &
+   !$acc               qsrc, qtsrc, src_struc_q_now, nmindsrc, src_struc_nm_s1, src_struc_nm_s2, src_struc_type, &
    !$acc               src_struc_direction, &
-   !$acc               src_struc_nm_obs_1, src_struc_nm_obs_2, &
+   !$acc               src_struc_nm_o1, src_struc_nm_o2, &
    !$acc               src_struc_q, src_struc_flow_coef, &
    !$acc               src_struc_width, src_struc_sill_elevation, src_struc_mannings_n, &
    !$acc               src_struc_opening_duration, src_struc_closing_duration, &
