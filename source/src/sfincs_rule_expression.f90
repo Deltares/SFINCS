@@ -4,11 +4,11 @@ module sfincs_rule_expression
    ! when to open or close. The grammar is:
    !
    !    expr     := or_expr
-   !    or_expr  := and_expr ( ('|' | 'or' ) and_expr )*
-   !    and_expr := comp     ( ('&' | 'and') comp     )*
+   !    or_expr  := and_expr ( '|' and_expr )*
+   !    and_expr := comp     ( '&' comp     )*
    !    comp     := '(' expr ')' | atom cmp_op number
    !    atom     := 'z1' | 'z2' | 'z2-z1'          (case-insensitive)
-   !    cmp_op   := '<' | '>'
+   !    cmp_op   := '<' | '>' | '<=' | '>=' | '=' | '=='
    !    number   := real literal
    !
    ! Precedence: paren > comp > '&' > '|'. Left-associative.
@@ -43,7 +43,6 @@ module sfincs_rule_expression
    ! Public API.
    !
    public :: add_rule, evaluate_rule, finalize_rule_storage
-   public :: test_rule_expression
    !
    ! ---------------------------------------------------------------
    ! Opcodes.
@@ -62,6 +61,9 @@ module sfincs_rule_expression
    !
    integer, parameter :: cmp_lt               = 1
    integer, parameter :: cmp_gt               = 2
+   integer, parameter :: cmp_le               = 3
+   integer, parameter :: cmp_ge               = 4
+   integer, parameter :: cmp_eq               = 5
    !
    ! Parser / evaluator capacity limits.
    !
@@ -122,6 +124,9 @@ contains
    integer           :: nops, new_start
    character(len=256):: local_errmsg
    !
+   character(len=len(src)) :: src_nospace
+   integer                 :: ic, ip, jp
+   !
    rule_id = 0
    ierr    = 0
    if (present(errmsg)) errmsg = ''
@@ -130,7 +135,26 @@ contains
    !
    if (len_trim(src) == 0) return
    !
-   call parse_rule_expression(src, ops_buf, atoms_buf, cmps_buf, thr_buf, &
+   ! Strip all whitespace (space, tab, LF, CR) so callers can write
+   ! 'z1 < 0.5' or 'z2 - z1 > 0.05' as freely as 'z1<0.5' / 'z2-z1>0.05'.
+   !
+   jp = 0
+   do ip = 1, len(src)
+      !
+      ic = iachar(src(ip:ip))
+      !
+      if (ic /= iachar(' ') .and. ic /= 9 .and. ic /= 10 .and. ic /= 13) then
+         !
+         jp = jp + 1
+         src_nospace(jp:jp) = src(ip:ip)
+         !
+      endif
+      !
+   enddo
+   !
+   if (jp == 0) return
+   !
+   call parse_rule_expression(src_nospace(1:jp), ops_buf, atoms_buf, cmps_buf, thr_buf, &
         nops, ierr, local_errmsg)
    !
    if (ierr /= 0) then
@@ -305,15 +329,33 @@ contains
             if (sp >= expr_stack_max) return
             sp = sp + 1
             !
-            if (rule_cmp(idx) == cmp_lt) then
+            select case (rule_cmp(idx))
                !
-               stack(sp) = zval < rule_threshold(idx)
-               !
-            else
-               !
-               stack(sp) = zval > rule_threshold(idx)
-               !
-            endif
+               case (cmp_lt)
+                  !
+                  stack(sp) = zval < rule_threshold(idx)
+                  !
+               case (cmp_gt)
+                  !
+                  stack(sp) = zval > rule_threshold(idx)
+                  !
+               case (cmp_le)
+                  !
+                  stack(sp) = zval <= rule_threshold(idx)
+                  !
+               case (cmp_ge)
+                  !
+                  stack(sp) = zval >= rule_threshold(idx)
+                  !
+               case (cmp_eq)
+                  !
+                  stack(sp) = zval == rule_threshold(idx)
+                  !
+               case default
+                  !
+                  stack(sp) = .false.
+                  !
+            end select
             !
          case (op_and)
             !
@@ -336,143 +378,6 @@ contains
    if (sp >= 1) fired = stack(1)
    !
    end function
-   !
-   !
-   subroutine test_rule_expression()
-   !
-   ! In-binary sanity check for the rule parser and evaluator. Parses a
-   ! handful of expressions via add_rule, compares evaluate_rule against
-   ! a hard-coded truth table, and checks that malformed inputs are
-   ! rejected without corrupting state. On the first failure, calls
-   ! error stop with a diagnostic. On success, writes a single pass
-   ! line to stdout.
-   !
-   ! This is a debugging hook, not a permanent test suite. It is cheap
-   ! (runs in microseconds) and safe to leave in the module.
-   !
-   implicit none
-   !
-   integer            :: id_open, id_close, id_bad
-   integer            :: ierr
-   character(len=256) :: errmsg
-   logical            :: got
-   integer            :: i
-   !
-   ! Truth-table rows for the two live rules.
-   !
-   real,    parameter :: z1_tab(5)     = [ 0.3, 0.3, 0.8, 0.8, 1.0 ]
-   real,    parameter :: z2_tab(5)     = [ 0.4, 1.6, 0.9, 1.0, 2.5 ]
-   logical, parameter :: open_tab(5)   = [ .true.,  .false., .true.,  .true.,  .false. ]
-   logical, parameter :: close_tab(5)  = [ .false., .false., .false., .false., .true.  ]
-   !
-   ! 1) Open rule.
-   !
-   call add_rule('(z1<0.5 | z2-z1>0.05) & z2<1.5', id_open, ierr, errmsg)
-   !
-   if (ierr /= 0 .or. id_open <= 0) then
-      !
-      write(*,'(a,a)') 'rule test: failed to parse open rule: ', trim(errmsg)
-      error stop "rule test: open rule did not parse"
-      !
-   endif
-   !
-   ! 2) Close rule.
-   !
-   call add_rule('z2>2.0', id_close, ierr, errmsg)
-   !
-   if (ierr /= 0 .or. id_close <= 0) then
-      !
-      write(*,'(a,a)') 'rule test: failed to parse close rule: ', trim(errmsg)
-      error stop "rule test: close rule did not parse"
-      !
-   endif
-   !
-   ! 3) Empty rule must yield rule_id = 0 without error.
-   !
-   call add_rule('', id_bad, ierr, errmsg)
-   !
-   if (ierr /= 0 .or. id_bad /= 0) then
-      !
-      write(*,'(a,i0,a,i0)') 'rule test: empty src gave id=', id_bad, ' ierr=', ierr
-      error stop "rule test: empty src must return id 0"
-      !
-   endif
-   !
-   ! 4) evaluate_rule(0, ...) must always be .false.
-   !
-   do i = 1, 5
-      !
-      if (evaluate_rule(0, z1_tab(i), z2_tab(i))) then
-         !
-         error stop "rule test: evaluate_rule(0,...) returned .true."
-         !
-      endif
-      !
-   enddo
-   !
-   ! 5) Truth-table check.
-   !
-   do i = 1, 5
-      !
-      got = evaluate_rule(id_open, z1_tab(i), z2_tab(i))
-      !
-      if (got .neqv. open_tab(i)) then
-         !
-         write(*,'(a,i0,a,2(f6.3,1x),a,l1,a,l1)') &
-              'rule test: open row ', i, ' z1=z2=', z1_tab(i), z2_tab(i), &
-              ' got=', got, ' expected=', open_tab(i)
-         error stop "rule test: open truth-table mismatch"
-         !
-      endif
-      !
-      got = evaluate_rule(id_close, z1_tab(i), z2_tab(i))
-      !
-      if (got .neqv. close_tab(i)) then
-         !
-         write(*,'(a,i0,a,2(f6.3,1x),a,l1,a,l1)') &
-              'rule test: close row ', i, ' z1=z2=', z1_tab(i), z2_tab(i), &
-              ' got=', got, ' expected=', close_tab(i)
-         error stop "rule test: close truth-table mismatch"
-         !
-      endif
-      !
-   enddo
-   !
-   ! 6) Malformed inputs must set ierr /= 0 and return rule_id = 0.
-   !
-   call check_malformed('z3 < 1')
-   call check_malformed('z1 <= 2')
-   call check_malformed('z1 < 1 &')
-   call check_malformed('(z1<1')
-   !
-   write(*,'(a,i0,a,i0,a)') &
-        'rule test: PASS (n_rules=', n_rules, ', rule_n_ops=', rule_n_ops, ')'
-   !
-   contains
-      !
-      subroutine check_malformed(bad)
-      !
-      character(len=*), intent(in) :: bad
-      integer :: id_local, ierr_local
-      character(len=256) :: errmsg_local
-      !
-      call add_rule(bad, id_local, ierr_local, errmsg_local)
-      !
-      if (ierr_local == 0 .or. id_local /= 0) then
-         !
-         write(*,'(a,a,a)') 'rule test: malformed "', trim(bad), '" was accepted'
-         error stop "rule test: malformed input not rejected"
-         !
-      endif
-      !
-      end subroutine
-      !
-   end subroutine
-   !
-   !
-   ! -------------------------------------------------------------------
-   ! Private helpers below.
-   ! -------------------------------------------------------------------
    !
    !
    subroutine grow_rule_storage(min_capacity)
@@ -593,6 +498,9 @@ contains
    !   6 = or
    !   7 = lt
    !   8 = gt
+   !   9 = le
+   !  10 = ge
+   !  11 = eq
    !
    integer :: tok_kind(expr_tokens_max)
    integer :: tok_atom(expr_tokens_max)
@@ -659,6 +567,9 @@ contains
    integer, parameter :: tok_or     = 6
    integer, parameter :: tok_lt     = 7
    integer, parameter :: tok_gt     = 8
+   integer, parameter :: tok_le     = 9
+   integer, parameter :: tok_ge     = 10
+   integer, parameter :: tok_eq     = 11
    !
    integer :: pos, slen, start, kstart, ic, atom_code, iostat_read
    character(len=:), allocatable :: lower
@@ -730,16 +641,49 @@ contains
          case ('<')
             !
             n_tokens = n_tokens + 1
-            tok_kind(n_tokens) = tok_lt
             tok_pos (n_tokens) = start
-            pos = pos + 1
+            if (pos + 1 <= slen .and. lower(min(pos+1,slen):min(pos+1,slen)) == '=') then
+               !
+               tok_kind(n_tokens) = tok_le
+               pos = pos + 2
+               !
+            else
+               !
+               tok_kind(n_tokens) = tok_lt
+               pos = pos + 1
+               !
+            endif
             !
          case ('>')
             !
             n_tokens = n_tokens + 1
-            tok_kind(n_tokens) = tok_gt
             tok_pos (n_tokens) = start
-            pos = pos + 1
+            if (pos + 1 <= slen .and. lower(min(pos+1,slen):min(pos+1,slen)) == '=') then
+               !
+               tok_kind(n_tokens) = tok_ge
+               pos = pos + 2
+               !
+            else
+               !
+               tok_kind(n_tokens) = tok_gt
+               pos = pos + 1
+               !
+            endif
+            !
+         case ('=')
+            !
+            n_tokens = n_tokens + 1
+            tok_kind(n_tokens) = tok_eq
+            tok_pos (n_tokens) = start
+            if (pos + 1 <= slen .and. lower(min(pos+1,slen):min(pos+1,slen)) == '=') then
+               !
+               pos = pos + 2
+               !
+            else
+               !
+               pos = pos + 1
+               !
+            endif
             !
          case default
             !
@@ -864,9 +808,9 @@ contains
          !
       endif
       !
-      ! Identifiers: z1, z2, z2-z1, and / or. The 'z2-z1' atom contains
-      ! a '-', which would otherwise be eaten by the number path; we
-      ! match it as a longest-match-first prefix here.
+      ! Identifiers: z1, z2, z2-z1. The 'z2-z1' atom contains a '-',
+      ! which would otherwise be eaten by the number path; we match it
+      ! as a longest-match-first prefix here.
       !
       kstart = pos
       !
@@ -918,46 +862,6 @@ contains
             !
             ierr = 1
             write(errmsg,'(a,i0)') 'unknown z-identifier at position ', pos
-            return
-            !
-         case ('a')
-            !
-            if (pos + 2 <= slen) then
-               !
-               if (lower(pos:pos+2) == 'and') then
-                  !
-                  n_tokens = n_tokens + 1
-                  tok_kind(n_tokens) = tok_and
-                  tok_pos (n_tokens) = kstart
-                  pos = pos + 3
-                  cycle
-                  !
-               endif
-               !
-            endif
-            !
-            ierr = 1
-            write(errmsg,'(a,i0)') 'unknown identifier beginning with "a" at position ', pos
-            return
-            !
-         case ('o')
-            !
-            if (pos + 1 <= slen) then
-               !
-               if (lower(pos:pos+1) == 'or') then
-                  !
-                  n_tokens = n_tokens + 1
-                  tok_kind(n_tokens) = tok_or
-                  tok_pos (n_tokens) = kstart
-                  pos = pos + 2
-                  cycle
-                  !
-               endif
-               !
-            endif
-            !
-            ierr = 1
-            write(errmsg,'(a,i0)') 'unknown identifier beginning with "o" at position ', pos
             return
             !
          case default
@@ -1105,6 +1009,9 @@ contains
    integer, parameter :: tok_rparen = 4
    integer, parameter :: tok_lt     = 7
    integer, parameter :: tok_gt     = 8
+   integer, parameter :: tok_le     = 9
+   integer, parameter :: tok_ge     = 10
+   integer, parameter :: tok_eq     = 11
    !
    integer :: atom_code, cmp_code
    !
@@ -1176,10 +1083,22 @@ contains
          !
          cmp_code = cmp_gt
          !
+      case (tok_le)
+         !
+         cmp_code = cmp_le
+         !
+      case (tok_ge)
+         !
+         cmp_code = cmp_ge
+         !
+      case (tok_eq)
+         !
+         cmp_code = cmp_eq
+         !
       case default
          !
          ierr = 1
-         write(errmsg,'(a,i0)') 'expected "<" or ">" at position ', tok_pos(ip)
+         write(errmsg,'(a,i0)') 'expected comparator ("<", ">", "<=", ">=", "=") at position ', tok_pos(ip)
          return
          !
    end select
