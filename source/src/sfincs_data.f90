@@ -106,6 +106,7 @@ module sfincs_data
       real*4 factor_pres
       real*4 factor_prcp
       real*4 factor_spw_size
+      real*4 waveforces_factor
       !
       integer mmax
       integer nmax
