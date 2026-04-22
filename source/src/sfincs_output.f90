@@ -19,11 +19,7 @@ module sfincs_output
    if (dtmapout>1.0e-6) then
       tmapout     = t0out
       if (outputtype_map == 'net') then
-         if (use_quadtree) then
-            call ncoutput_quadtree_map_init()
-         else
-            call ncoutput_regular_map_init()
-         endif         
+         call ncoutput_map_init()
       else    
          call open_map_output()       
       endif      
@@ -147,11 +143,7 @@ module sfincs_output
       !
       if (outputtype_map == 'net') then
          !
-         if (use_quadtree) then
-            call ncoutput_update_quadtree_map(t, ntmapout)
-         else
-            call ncoutput_update_regular_map(t, ntmapout)
-         endif
+         call ncoutput_update_map(t, ntmapout)
          !
       else
          !
@@ -192,11 +184,7 @@ module sfincs_output
       !
       if (outputtype_map == 'net') then
          !
-         if (use_quadtree) then
-            call ncoutput_update_quadtree_max(t, ntmaxout)
-         else   
-            call ncoutput_update_max(t, ntmaxout)
-         endif   
+         call ncoutput_update_max(t, ntmaxout)
          !      
       else
          !      
