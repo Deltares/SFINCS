@@ -94,8 +94,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.3.2 mt. Faber+branch:main+281+292+318+snapwave_domain_updates"
-   build_date     = "$Date: 2026-04-13"
+   build_revision = "$Rev: v2.3.2 mt. Faber+branch:main+281+292+318+snapwave_domain_updates+wavemaker_updates_igoptdefault15"
+   build_date     = "$Date: 2026-04-20"
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)
