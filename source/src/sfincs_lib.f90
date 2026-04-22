@@ -94,7 +94,7 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.3.2 mt. Faber+branch:main+281+292+318+snapwave_domain_updates+wavemaker_updates_igoptdefault15"
+   build_revision = "$Rev: v2.3.2 mt. Faber+branch:main+281+292+315+318+snapwave_domain_updates+wavemaker_updates_igoptdefault15"
    build_date     = "$Date: 2026-04-20"
    !
    call write_log('', 1)
@@ -255,6 +255,11 @@ module sfincs_lib
    else
       ! call write_log('Non-hydrostatic         : no', 1)
    endif   
+   if (vegetation) then
+      call write_log('Vegetation           : yes', 1)
+   else
+      ! call write_log('Vegetation           : no', 1)
+   endif      
    if (bathtub) then
       call write_log('Bathtub              : yes', 1)
    else

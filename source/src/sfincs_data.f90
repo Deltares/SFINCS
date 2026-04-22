@@ -429,8 +429,17 @@ module sfincs_data
       integer                                           :: vegetation_vertical_segments ! nr of vegetation sections in vertical
       real*4,             dimension(:,:),   allocatable :: vegetation_cd
       real*4,             dimension(:,:),   allocatable :: vegetation_stems_height
+      real*4,             dimension(:,:),   allocatable :: vegetation_stems_height_uv
       real*4,             dimension(:,:),   allocatable :: vegetation_stems_width
       real*4,             dimension(:,:),   allocatable :: vegetation_stems_density
+      real*4,             dimension(:,:),   allocatable :: vegetation_stems_cd_width_density_uv
+      ! Lookup table arrays (pre-computed in initialize_vegetation, used in compute_fluxes without inner loop)
+      integer                                           :: vegetation_nlookup                ! number of equidistant vertical sections in lookup table (default 20, set via sfincs.inp)
+      real*4,             dimension(:),     allocatable :: vegetation_lookup_hmin_uv         ! minimum vegetation height on uv points
+      real*4,             dimension(:),     allocatable :: vegetation_lookup_hmax_uv         ! maximum vegetation height on uv points
+      real*4,             dimension(:),     allocatable :: vegetation_lookup_dh_uv           ! bin width of lookup table: hmax / vegetation_nlookup, per uv point
+      real*4,             dimension(:,:),   allocatable :: vegetation_cd_sum_table           ! cumulative sum of cd*width*density at vegetation_nlookup equidistant depth levels, (npuv, 0:vegetation_nlookup)
+      real*4,             dimension(:,:),   allocatable :: vegetation_cd_slope_table         ! slope between consecutive table entries: table(k+1)-table(k), (npuv, 0:vegetation_nlookup-1)
       !
       !!! Wave makers
       !
