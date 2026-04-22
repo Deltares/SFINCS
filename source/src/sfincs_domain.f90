@@ -10,6 +10,7 @@ contains
    use sfincs_data
    use quadtree
    use sfincs_infiltration   
+   use sfincs_vegetation
    use sfincs_timestep_analysis   
    !
    implicit none
@@ -28,6 +29,8 @@ contains
    !
    call initialize_storage_volume()
    !
+   call initialize_vegetation()
+   !   
    call initialize_hydro()
    !
    if (timestep_analysis) then
@@ -191,7 +194,7 @@ contains
       ! 
       ! Read quadtree file
       !
-      call quadtree_read_file(qtrfile, snapwave, nonhydrostatic, store_vegetation)
+      call quadtree_read_file(qtrfile, snapwave, nonhydrostatic)
       !
    else
       !

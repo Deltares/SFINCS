@@ -47,14 +47,6 @@ module quadtree
    integer*1,          dimension(:),   allocatable :: quadtree_snapwave_mask
    integer*1,          dimension(:),   allocatable :: quadtree_nonh_mask
    !
-   real*4,             dimension(:,:),   allocatable :: quadtree_snapwave_veg_Cd
-   real*4,             dimension(:,:),   allocatable :: quadtree_snapwave_veg_ah
-   real*4,             dimension(:,:),   allocatable :: quadtree_snapwave_veg_bstems
-   real*4,             dimension(:,:),   allocatable :: quadtree_snapwave_veg_Nstems
-   real*4,             dimension(:,:),   allocatable :: veg_CdBNstems, veg_fvm
-   real*4                                            :: fvm    
-   !
-   integer   :: quadtree_no_secveg ! nr of vegetation sections in vertical   
    !
    type net_type_qtr
        integer :: ncid
@@ -64,20 +56,19 @@ module quadtree
        integer :: nu_varid, mu_varid, nd_varid, md_varid
        integer :: nu1_varid, mu1_varid, nd1_varid, md1_varid, nu2_varid, mu2_varid, nd2_varid, md2_varid
        integer :: z_varid, mask_varid, snapwave_mask_varid, nonh_mask_varid
-       integer :: snapwave_veg_Cd_varid, snapwave_veg_ah_varid, snapwave_veg_bstems_varid, snapwave_veg_Nstems_varid
    end type      
    type(net_type_qtr) :: net_file_qtr              
    !
 contains
    !
-   subroutine quadtree_read_file(qtrfile, snapwave, nonhydrostatic, store_vegetation)
+   subroutine quadtree_read_file(qtrfile, snapwave, nonhydrostatic)
    !
    ! Reads quadtree file
    !
    implicit none
    !
    character*256, intent(in)                       :: qtrfile
-   logical, intent(in)                             :: snapwave, nonhydrostatic, store_vegetation   
+   logical, intent(in)                             :: snapwave, nonhydrostatic   
    !
    real*4,             dimension(:),   allocatable :: dxr
    real*4,             dimension(:),   allocatable :: dyr
@@ -100,7 +91,7 @@ contains
    ok = check_file_exists(qtrfile, 'Quadtree qtr file', .true.)
    !
    if (quadtree_netcdf) then
-      call quadtree_read_file_netcdf(qtrfile, snapwave, nonhydrostatic, store_vegetation)
+      call quadtree_read_file_netcdf(qtrfile, snapwave, nonhydrostatic)
    else
       call quadtree_read_file_binary(qtrfile)
    endif
@@ -301,17 +292,17 @@ contains
    end subroutine
 
 
-   subroutine quadtree_read_file_netcdf(qtrfile, snapwave, nonhydrostatic, store_vegetation)
+   subroutine quadtree_read_file_netcdf(qtrfile, snapwave, nonhydrostatic)
    !
    ! Reads quadtree file from netcdf file
    !
    implicit none
    !
    character*256, intent(in) :: qtrfile
-   logical, intent(in)       :: snapwave, nonhydrostatic, store_vegetation
+   logical, intent(in)       :: snapwave, nonhydrostatic
    !
    integer*1 :: iversion
-   integer   :: np, nm, ip, iveg, iepsg, status
+   integer   :: np, nm, ip, iepsg, status
    !
    write(logstr,'(a,a)')'Info    : reading QuadTree netCDF file ', trim(qtrfile)
    call write_log(logstr, 0)
@@ -353,34 +344,7 @@ contains
       NF90(nf90_inq_varid(net_file_qtr%ncid, 'snapwave_mask',  net_file_qtr%snapwave_mask_varid))
       !
       allocate(quadtree_snapwave_mask(np))
-
-      if (store_vegetation) then ! only read snapwave_veg_Cd, _ah, _bstems, _Nstems if snapwave_vegetation turned on
-         ! 
-         ! Get dimension of vertical sections 
-         NF90(nf90_inq_dimid(net_file_qtr%ncid, "nsec", net_file_qtr%nsec_dimid))          
-         !
-         NF90(nf90_inquire_dimension(net_file_qtr%ncid, net_file_qtr%nsec_dimid, len = quadtree_no_secveg))     
-         ! 
-         ! get ids of variables 
-         NF90(nf90_inq_varid(net_file_qtr%ncid, 'snapwave_veg_Cd',  net_file_qtr%snapwave_veg_Cd_varid))
-         NF90(nf90_inq_varid(net_file_qtr%ncid, 'snapwave_veg_ah',  net_file_qtr%snapwave_veg_ah_varid))
-         NF90(nf90_inq_varid(net_file_qtr%ncid, 'snapwave_veg_bstems',  net_file_qtr%snapwave_veg_bstems_varid))
-         NF90(nf90_inq_varid(net_file_qtr%ncid, 'snapwave_veg_Nstems',  net_file_qtr%snapwave_veg_Nstems_varid))          
-         ! 
-         ! allocate variables
-         allocate(quadtree_snapwave_veg_Cd(np, quadtree_no_secveg))
-         allocate(quadtree_snapwave_veg_ah(np, quadtree_no_secveg))
-         allocate(quadtree_snapwave_veg_bstems(np, quadtree_no_secveg))
-         allocate(quadtree_snapwave_veg_Nstems(np, quadtree_no_secveg))
-         !
-         allocate(veg_CdBNstems(np, quadtree_no_secveg))
-         allocate(veg_fvm(np, quadtree_no_secveg))         
-         !
-         veg_CdBNstems = 0.0
-         veg_fvm = 0.0
-         fvm = 0.0         
-         !
-      endif      
+      !    
    endif
    !
    ! Allocate variables   
@@ -428,30 +392,9 @@ contains
    NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mask_varid,  quadtree_mask(:)))
    !
    if (snapwave) then    
-!
-      if (store_vegetation) then
-
-
-
-
-
-         !
-         NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%snapwave_veg_Cd_varid,  quadtree_snapwave_veg_Cd(:,:)))
-         NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%snapwave_veg_ah_varid,  quadtree_snapwave_veg_ah(:,:)))
-         NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%snapwave_veg_bstems_varid,  quadtree_snapwave_veg_bstems(:,:)))
-         NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%snapwave_veg_Nstems_varid,  quadtree_snapwave_veg_Nstems(:,:)))
-         !
-         ! Directly determine the multiplication of Cd*bstems*nstems:
-         !
-         do nm = 1, np
-            !
-            do iveg = 1, quadtree_no_secveg 
-                veg_CdBNstems(nm,iveg) = quadtree_snapwave_veg_Cd(nm,iveg) * quadtree_snapwave_veg_bstems(nm,iveg) * quadtree_snapwave_veg_Nstems(nm,iveg)
-            enddo            
-            !    
-         enddo         
-      endif 
+      !
       NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%snapwave_mask_varid,  quadtree_snapwave_mask(:)))
+      !
    endif
    !
    ! Nonhydrostatic mask

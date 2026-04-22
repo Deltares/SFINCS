@@ -68,7 +68,8 @@ source/sfincs/sfincs.opt.yaml
 /source/build_nvfortran_gpu_h7.sh
 /source/build_nvfortran_gpu.sh
 /source/Singularityfile-gpu.def
-/source/Dockerfile.gpu.update01
+/source/Dockerfile.xpu
 /source/Dockerfile.gpu.test
-/source/Dockerfile.gpu.25.5.ccall
+/source/Dockerfile.gpu.update01
 /source/Dockerfile.gpu
+/source/Dockerfile.gpu.25.5.ccall

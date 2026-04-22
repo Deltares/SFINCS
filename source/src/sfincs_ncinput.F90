@@ -244,6 +244,46 @@ module sfincs_ncinput
    ! 
    end subroutine
    
+   subroutine read_netcdf_quadtree_get_dimension(ncfile, varname, var)
+   ! For instance: vegetationfile, nsec, vegetation_vertical_segments
+   !
+   use netcdf
+   use sfincs_data
+   use quadtree
+   !
+   implicit none   
+   !
+   integer :: nm, ip, nrcells, status
+   !
+   character*256 :: ncfile   
+   character*256 :: varname  
+   !
+   integer, intent(inout)       :: var ! variable that we are mapping to
+   !
+   real*4, dimension(:), allocatable :: vartmp
+   !
+   ! Open netcdf file
+   !
+   NF90(nf90_open(trim(ncfile), NF90_CLOBBER, net_file_generic%ncid))
+   !
+   ! Get dimensions id's: nr points  
+   !
+   NF90(nf90_inq_dimid(net_file_generic%ncid, varname, net_file_generic%np_dimid))
+   !
+   ! Get dimensions sizes    
+   !
+   status = nf90_inquire_dimension(net_file_generic%ncid, net_file_generic%np_dimid, len = var)
+   !
+   ! Stop SFINCS if wanted variable was not found
+   if (status /= nf90_noerr) then
+       write(logstr,'(a,a,a,a,a)')'Error    : netcdf input file ',trim(ncfile),' does not contain needed variable: ',trim(varname),' !'       
+       call stop_sfincs(trim(logstr), 1)
+   endif
+   !   
+   NF90(nf90_close(net_file_generic%ncid))       
+   ! 
+   end subroutine   
+   
    subroutine read_netcdf_quadtree_to_sfincs(ncfile, varname, var)
    ! For instance: storage_volume.nc, vol, storage_volume
    !

@@ -26,8 +26,6 @@ contains
    integer itsunamitime
    integer ispinupmeteo
    integer isnapwave
-   integer ivegetationsnapwave
-   integer ivegetationsfincs   
    integer iwindmax
    integer iwind   
    integer ioutfixed
@@ -206,6 +204,7 @@ contains
    call read_logical_input(500, 'bathtub', bathtub, .false.)
    call read_real_input(500, 'bathtub_fachs', bathtub_fac_hs, 0.2)
    call read_real_input(500, 'bathtub_dt', bathtub_dt, -999.0)
+   call read_logical_input(500,'vegetation',vegetation,.false.)   
    !
    ! Domain
    !
@@ -222,6 +221,7 @@ contains
    call read_char_input(500,'manningfile',manningfile,'none')   
    call read_char_input(500,'drnfile',drnfile,'none')
    call read_char_input(500,'volfile',volfile,'none')
+   call read_char_input(500,'vegetationfile',veggiefile,'none')   
    !
    ! Forcing
    !
@@ -301,11 +301,9 @@ contains
    ! Limit to range (0,100)
    percdoneval = max(min(percdoneval,100), 0)
    !
-   call read_int_input(500,'vegetation',ivegetationsfincs,0)      
-   !   
    ! Coupled SnapWave solver related
    call read_int_input(500,'snapwave_wind',iwind,0)  
-   call read_int_input(500,'snapwave_vegetation',ivegetationsnapwave,0)
+   call read_logical_input(500,'snapwave_vegetation',snapwave_vegetation,.false.)
    call read_real_input(500,'snapwave_waveforces_ratio',waveforces_ratio,1.0)
    !
    ! Wind drag
@@ -492,10 +490,11 @@ contains
    endif 
    !
    store_vegetation = .false.   
-   if (ivegetationsnapwave==1 .or. ivegetationsfincs==1) then
+   if (vegetation==.true. .or. snapwave_vegetation==.true.) then
        !
        store_vegetation = .true.
        ! vegetation can be used in SnapWave and/or SFINCS calculations
+       !
    endif  
    !
    store_twet = .false.
@@ -592,11 +591,6 @@ contains
       viscosity = .true. 
       call write_log('Info    : turning on process: Viscosity', 0)
    endif   
-   !
-   vegetation = .false.
-   if (ivegetationsfincs>0) then
-      vegetation = .true.
-   endif      
    !
    spinup_meteo = .true. 
    if (ispinupmeteo==0) then

@@ -1018,16 +1018,6 @@ contains
       !
    enddo
    !
-   if (vegetation) then
-      ! 
-      ! Compute the non-linear wave velocity time series (unl) using a wave shape model > only needs to be called once per calling SnapWave
-      !write(*,*)'Call swvegnonlin'
-      !          
-      call swvegnonlin(no_nodes, kwav, depth, H, g, Tp, unl, etaw0)       
-      !write(*,*)'Finished swvegnonlin'
-      !        
-   endif
-   !
    !$omp parallel do schedule(static)
    do k = 1, no_nodes
       !
@@ -1039,28 +1029,6 @@ contains
          H(k) = sqrt(8 * E(k) / rho / g)
          !
          thetam(k) = atan2(sum(ee(:, k) * sin(theta)), sum(ee(:, k) * cos(theta)))
-         !
-         if (vegetation) then
-               !
-               ! Compute wave dissipation due to vegetation
-               !write(*,*)'Call vegatt'                
-               call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, g, H(k), Dveg(k)) 
-               !
-               ! Now also call 'momeqveg' to compute wave drag force due to vegetation
-               !write(*,*)'Call momeqveg'                
-               call momeqveg(no_nodes, no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, H(k), Tp(k), unl(k,:), Fvw(k))
-               ! NOTE - TL: for now replaced 'Trep' by 'Tp(k)' 
-               !
-         else
-               Dveg(k) = 0.
-               Fvw(k) = 0.                
-         endif
-         !
-         !F(k) = Dw(k) * kwav(k) / sig(k) / rho / depth(k)
-         F(k) = (Dw(k) + Dveg(k)) * kwav(k) / sig(k) / rho / depth(k)
-         !
-         F(k) = F(k) + Fvw(k) ! FIXME - still *kwav(k)/sig(k) ???      
-         !                  
          !
          if (igwaves) then
             !
@@ -1098,6 +1066,58 @@ contains
    enddo
    !$omp end parallel do
    !
+   ! For vegetation, need to compute unl using updated H(k)
+   !
+   if (vegetation) then
+      ! 
+      ! Compute the non-linear wave velocity time series (unl) using a wave shape model > only needs to be called once per calling SnapWave
+      !          
+      call swvegnonlin(no_nodes, kwav, depth, H, g, Tp, unl, etaw0)       
+      !       
+   endif   
+   !
+   ! Update wave forces - depends on vegetation
+   !$omp parallel do schedule(static)
+   do k = 1, no_nodes
+      !
+      ! Compute some directionally integrated parameters for output
+      !
+      if (depth(k) > hmin) then   
+         !
+         ! Update wave breaking dissipation > FIXME - should be called again using updated H(k) or not? 
+         !if (wind) then
+         !   call baldock(rho, g, alfa, gamma, depth(k), H(k), 2.0*pi/sig(k), 1, Dw(k), Hmx(k))
+         !else
+         !   call baldock(rho, g, alfa, gamma, depth(k), H(k), Tp(k), 1, Dw(k), Hmx(k))
+         !endif
+         !
+         ! Update wave forces
+         F(k) = Dw(k) * kwav(k) / sig(k) / rho / depth(k)
+         !
+         ! In case of vegetation, we also need to update the vegetation dissipation and compute wave drag force due to vegetation
+         !
+         if (vegetation) then
+            !
+            ! Compute wave dissipation due to vegetation > FIXME - correct that it should be called again to update Dveg based on updated H(k)?
+            !
+            call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, g, H(k), Dveg(k)) 
+            !
+            F(k) = F(k) + ( Dveg(k) * kwav(k) / sig(k) / rho / depth(k) )
+            !
+            ! Now also call 'momeqveg' to compute wave drag force due to vegetation Fvw
+            !
+            call momeqveg(no_nodes, no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, H(k), Tp(k), unl(k,:), Fvw(k))
+            ! NOTE - TL: for now replaced 'Trep' by 'Tp(k)'       
+            !
+            F(k) = F(k) + Fvw(k) ! FIXME - still *kwav(k)/sig(k) ???
+            !
+         endif
+         !
+      endif
+      !
+   enddo
+   !$omp end parallel do
+   !   
    callno = callno + 1
    !
    end subroutine solve_energy_balance2Dstat
@@ -1976,9 +1996,7 @@ subroutine momeqveg(no_nodes, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd,
     integer :: m, t
     real*4 :: dt, hvegeff, Fvgnlt, integral
     real*4 :: Cd, b, N
-    !
-    !write(*,*)'Started momeqveg'
-    
+    !    
     ! Initialize output force
     !
     Fvw = 0.0
@@ -2005,8 +2023,7 @@ subroutine momeqveg(no_nodes, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd,
         
         Fvw = Fvw + Fvgnlt
     enddo
-    !write(*,*)'Ended momeqveg'
-    
+    !    
 end subroutine momeqveg    
    
 subroutine swvegnonlin(no_nodes, kwav, depth, H, g, Trep, unl, etaw0)
