@@ -86,6 +86,7 @@ module sfincs_output
    !
    use sfincs_data
    use sfincs_timers
+   use sfincs_src_structures, only: nr_src_structures
    !
    implicit none
    !
@@ -242,7 +243,7 @@ module sfincs_output
    !      
    ! Water level time series
    !
-   if (write_his .and. (nobs>0 .or. nrcrosssections>0 .or. nr_runup_gauges>0)) then
+   if (write_his .and. (nobs>0 .or. nrcrosssections>0 .or. nr_src_structures>0 .or. nr_runup_gauges>0)) then
       !      
       if (outputtype_his == 'net') then
          !      
