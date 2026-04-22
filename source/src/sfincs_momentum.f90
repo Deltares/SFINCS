@@ -614,13 +614,11 @@ contains
                !
                if (vegetation_lookup_hmax_uv(ip) > 0.0 .and. hwet > 0.0) then
                   ! 
-                  frac_veg = min(hu, vegetation_lookup_hmax_uv(ip)) / vegetation_lookup_dh_uv(ip)
+                  frac_veg = min(hwet, vegetation_lookup_hmax_uv(ip)) / vegetation_lookup_dh_uv(ip)
                   !
                   ik_veg   = min(int(frac_veg), vegetation_nlookup - 1)
                   !
                   frac_veg = frac_veg - real(ik_veg)
-                  !
-                  ! FIXME - double check wet averaged vs grid averaged properties
                   !
                   frc = frc - phi * (vegetation_cd_sum_table(ip, ik_veg) + frac_veg * vegetation_cd_slope_table(ip, ik_veg)) * uv0(ip) * abs(uv0(ip))
                   !
