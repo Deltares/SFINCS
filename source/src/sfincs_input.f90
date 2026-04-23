@@ -70,7 +70,6 @@ module sfincs_input
       module procedure get_keyword_logical
    end interface
    !
-
 contains
    !
    !-----------------------------------------------------------------------------------------------------!

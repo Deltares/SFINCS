@@ -1805,16 +1805,16 @@ contains
          write(logstr,'(a,i0,a)')'Structure ', i, ':'
          call write_log(logstr, 0)
          !
-         write(logstr,'(a22,a)')              '  name:',              trim(src_struc_name(i))
+         write(logstr,'(a22,1x,a)')              '  name               :',              trim(src_struc_name(i))
          call write_log(logstr, 0)
          !
-         write(logstr,'(a22,a)')              '  type:',              trim(type_str)
+         write(logstr,'(a22,1x,a)')              '  type               :',              trim(type_str)
          call write_log(logstr, 0)
          !
-         write(logstr,'(a22,a,a,a,a,a)')      '  src_1:',             '(', trim(fmt_real(src_struc_x_s1(i), 3)), ', ', trim(fmt_real(src_struc_y_s1(i), 3)), ')'
+         write(logstr,'(a22,1x,a,a,a,a,a)')      '  src_1              :',             '(', trim(fmt_real(src_struc_x_s1(i), 3)), ', ', trim(fmt_real(src_struc_y_s1(i), 3)), ')'
          call write_log(logstr, 0)
          !
-         write(logstr,'(a22,a,a,a,a,a)')      '  src_2:',             '(', trim(fmt_real(src_struc_x_s2(i), 3)), ', ', trim(fmt_real(src_struc_y_s2(i), 3)), ')'
+         write(logstr,'(a22,1x,a,a,a,a,a)')      '  src_2              :',             '(', trim(fmt_real(src_struc_x_s2(i), 3)), ', ', trim(fmt_real(src_struc_y_s2(i), 3)), ')'
          call write_log(logstr, 0)
          !
          ! obs coords are meaningful for culvert_simple / gate.
@@ -1822,24 +1822,24 @@ contains
          if (src_struc_type(i) == structure_culvert_simple .or. &
              src_struc_type(i) == structure_gate) then
             !
-            write(logstr,'(a22,a,a,a,a,a)')   '  obs_1:',              '(', trim(fmt_real(src_struc_x_o1(i), 3)), ', ', trim(fmt_real(src_struc_y_o1(i), 3)), ')'
+            write(logstr,'(a22,1x,a,a,a,a,a)')   '  obs_1              :',              '(', trim(fmt_real(src_struc_x_o1(i), 3)), ', ', trim(fmt_real(src_struc_y_o1(i), 3)), ')'
             call write_log(logstr, 0)
             !
-            write(logstr,'(a22,a,a,a,a,a)')   '  obs_2:',              '(', trim(fmt_real(src_struc_x_o2(i), 3)), ', ', trim(fmt_real(src_struc_y_o2(i), 3)), ')'
+            write(logstr,'(a22,1x,a,a,a,a,a)')   '  obs_2              :',              '(', trim(fmt_real(src_struc_x_o2(i), 3)), ', ', trim(fmt_real(src_struc_y_o2(i), 3)), ')'
             call write_log(logstr, 0)
             !
          endif
          !
          if (src_struc_type(i) == structure_pump) then
             !
-            write(logstr,'(a22,a,a)')            '  discharge:',       trim(fmt_real(src_struc_q(i), 4)), ' (m3/s)'
+            write(logstr,'(a22,1x,a,a)')            '  discharge          :',       trim(fmt_real(src_struc_q(i), 4)), ' (m3/s)'
             call write_log(logstr, 0)
             !
          endif
          !
          if (src_struc_type(i) == structure_culvert_simple) then
             !
-            write(logstr,'(a22,a)')              '  flow_coef:',       trim(fmt_real(src_struc_flow_coef(i), 4))
+            write(logstr,'(a22,1x,a)')              '  flow_coef          :',       trim(fmt_real(src_struc_flow_coef(i), 4))
             call write_log(logstr, 0)
             !
          endif
@@ -1869,48 +1869,48 @@ contains
                   !
             end select
             !
-            write(logstr,'(a22,a)')              '  direction:',      trim(dir_str)
+            write(logstr,'(a22,1x,a)')              '  direction          :',      trim(dir_str)
             call write_log(logstr, 0)
             !
          endif
          !
          if (src_struc_type(i) == structure_culvert) then
             !
-            write(logstr,'(a22,a,a)')            '  width:',              trim(fmt_real(src_struc_width(i), 4)),             ' (m)'
+            write(logstr,'(a22,1x,a,a)')            '  width              :',              trim(fmt_real(src_struc_width(i), 4)),             ' (m)'
             call write_log(logstr, 0)
             !
-            write(logstr,'(a22,a,a)')            '  height:',             trim(fmt_real(src_struc_height(i), 4)),            ' (m)'
+            write(logstr,'(a22,1x,a,a)')            '  height             :',             trim(fmt_real(src_struc_height(i), 4)),            ' (m)'
             call write_log(logstr, 0)
             !
-            write(logstr,'(a22,a,a)')            '  invert_1:',           trim(fmt_real(src_struc_invert_1(i), 4)),          ' (m)'
+            write(logstr,'(a22,1x,a,a)')            '  invert_1           :',           trim(fmt_real(src_struc_invert_1(i), 4)),          ' (m)'
             call write_log(logstr, 0)
             !
-            write(logstr,'(a22,a,a)')            '  invert_2:',           trim(fmt_real(src_struc_invert_2(i), 4)),          ' (m)'
+            write(logstr,'(a22,1x,a,a)')            '  invert_2           :',           trim(fmt_real(src_struc_invert_2(i), 4)),          ' (m)'
             call write_log(logstr, 0)
             !
-            write(logstr,'(a22,a)')              '  flow_coef:',          trim(fmt_real(src_struc_flow_coef(i), 4))
+            write(logstr,'(a22,1x,a)')              '  flow_coef          :',          trim(fmt_real(src_struc_flow_coef(i), 4))
             call write_log(logstr, 0)
             !
-            write(logstr,'(a22,a)')              '  submergence_ratio:',  trim(fmt_real(src_struc_submergence_ratio(i), 4))
+            write(logstr,'(a22,1x,a)')              '  submergence_ratio  :',  trim(fmt_real(src_struc_submergence_ratio(i), 4))
             call write_log(logstr, 0)
             !
          endif
          !
          if (src_struc_type(i) == structure_gate) then
             !
-            write(logstr,'(a22,a,a)')            '  width:',              trim(fmt_real(src_struc_width(i), 4)),             ' (m)'
+            write(logstr,'(a22,1x,a,a)')            '  width              :',              trim(fmt_real(src_struc_width(i), 4)),             ' (m)'
             call write_log(logstr, 0)
             !
-            write(logstr,'(a22,a,a)')            '  sill_elevation:',     trim(fmt_real(src_struc_sill_elevation(i), 4)),    ' (m)'
+            write(logstr,'(a22,1x,a,a)')            '  sill_elevation     :',     trim(fmt_real(src_struc_sill_elevation(i), 4)),    ' (m)'
             call write_log(logstr, 0)
             !
-            write(logstr,'(a22,a)')              '  mannings_n:',         trim(fmt_real(src_struc_mannings_n(i), 4))
+            write(logstr,'(a22,1x,a)')              '  mannings_n         :',         trim(fmt_real(src_struc_mannings_n(i), 4))
             call write_log(logstr, 0)
             !
-            write(logstr,'(a22,a,a)')            '  opening_duration:',   trim(fmt_real(src_struc_opening_duration(i), 2)),  ' (s)'
+            write(logstr,'(a22,1x,a,a)')            '  opening_duration   :',   trim(fmt_real(src_struc_opening_duration(i), 2)),  ' (s)'
             call write_log(logstr, 0)
             !
-            write(logstr,'(a22,a,a)')            '  closing_duration:',   trim(fmt_real(src_struc_closing_duration(i), 2)),  ' (s)'
+            write(logstr,'(a22,1x,a,a)')            '  closing_duration   :',   trim(fmt_real(src_struc_closing_duration(i), 2)),  ' (s)'
             call write_log(logstr, 0)
             !
          endif
@@ -1919,11 +1919,11 @@ contains
             !
             if (len_trim(src_struc_rule_open_src(i)) > 0) then
                !
-               write(logstr,'(a22,a,a,a)')       '  rules_open:',       '"', trim(src_struc_rule_open_src(i)), '"'
+               write(logstr,'(a22,1x,a,a,a)')       '  rules_open         :',       '"', trim(src_struc_rule_open_src(i)), '"'
                !
             else
                !
-               write(logstr,'(a22,a)')           '  rules_open:',       '(set)'
+               write(logstr,'(a22,1x,a)')           '  rules_open         :',       '(set)'
                !
             endif
             !
@@ -1935,11 +1935,11 @@ contains
             !
             if (len_trim(src_struc_rule_close_src(i)) > 0) then
                !
-               write(logstr,'(a22,a,a,a)')       '  rules_close:',      '"', trim(src_struc_rule_close_src(i)), '"'
+               write(logstr,'(a22,1x,a,a,a)')       '  rules_close        :',      '"', trim(src_struc_rule_close_src(i)), '"'
                !
             else
                !
-               write(logstr,'(a22,a)')           '  rules_close:',      '(set)'
+               write(logstr,'(a22,1x,a)')           '  rules_close        :',      '(set)'
                !
             endif
             !
@@ -1956,10 +1956,10 @@ contains
             if ((src_struc_rule_open(i)  > 0 .or. src_struc_rule_close(i) > 0) .and. &
                 (src_struc_opening_duration(i) > 0.0 .or. src_struc_closing_duration(i) > 0.0)) then
                !
-               write(logstr,'(a22,a,a)')         '  opening_duration:',  trim(fmt_real(src_struc_opening_duration(i), 2)),  ' (s)'
+               write(logstr,'(a22,1x,a,a)')         '  opening_duration   :',  trim(fmt_real(src_struc_opening_duration(i), 2)),  ' (s)'
                call write_log(logstr, 0)
                !
-               write(logstr,'(a22,a,a)')         '  closing_duration:',  trim(fmt_real(src_struc_closing_duration(i), 2)),  ' (s)'
+               write(logstr,'(a22,1x,a,a)')         '  closing_duration   :',  trim(fmt_real(src_struc_closing_duration(i), 2)),  ' (s)'
                call write_log(logstr, 0)
                !
             endif
