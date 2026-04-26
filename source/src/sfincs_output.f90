@@ -456,8 +456,7 @@ module sfincs_output
       !
       if (store_zvolume) then
           write(908)z_volume
-      endif
-      !
+      endif   
 !   endif
    !
    end subroutine

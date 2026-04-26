@@ -71,7 +71,7 @@ contains
    !
    if (snapwave) then ! need to compute filtered water levels for snapwave
       !
-      factime = min(dt/wmtfilter, 1.0)
+      factime = min(dt / wavemaker_filter_time, 1.0)
       !
    endif
    !
@@ -301,7 +301,7 @@ contains
    !
    if (wavemaker) then
       !
-      factime = min(dt / wmtfilter, 1.0)
+      factime = min(dt / wavemaker_filter_time, 1.0)
       !
    endif   
    !

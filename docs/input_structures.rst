@@ -1,4 +1,4 @@
-User manual - structures
+﻿User manual - structures
 =====
 
 Overview
@@ -64,16 +64,15 @@ The supplied polylines are snapped onto the SFINCS grid within the model.
 	
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 
-	sf.setup_structures(
-		structures="thdfile_input.geojson",
-		stype='thd',
+	sf.thin_dams.create(
+		locations="thdfile_input.geojson",
 		merge=True
 	)
 	
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.geometries.SfincsThinDams.create.html
 
 Weirs
 ^^^^^
@@ -117,18 +116,16 @@ The snapped coordinates are available in sfincs_his.nc as structure_x, structure
 	
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 
-	sf.setup_structures(
-		structures="weirfile_input.geojson",
-		stype='weir',
-		dz=None
+	sf.weirs.create(
+		locations="weirfile_input.geojson",
+		dz=None,
 		merge=True
 	)
 	
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
-	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.geometries.SfincsWeirs.create.html
 
 **NOTE - If your weir elevation is unknown a priori, you can also let HydroMT-SFINCS derive this from an input (high-resolution) DEM by specifying 'dep'**
 
@@ -182,27 +179,27 @@ You can know how much discharge is extracted by the model in the sfincs_his.nc o
 	
 **Python example using HydroMT-SFINCS**
 
-.. code-block:: text
+.. code-block:: python
 
-	sf.setup_drainage_structures(
-		structures="drainage_input.geojson",
-		stype='pump'
-		discharge=100.0
+	sf.drainage_structures.create(
+		locations="drainage_input.geojson",
+		stype='pump',
+		discharge=100.0,
 		merge=True
 	)
-	
+
 	OR as a culvert:
-	
-	sf.setup_drainage_structures(
-		structures="drainage_input.geojson",
-		stype='culvert'
-		discharge=100.0
+
+	sf.drainage_structures.create(
+		locations="drainage_input.geojson",
+		stype='culvert',
+		discharge=100.0,
 		merge=True
 	)
 
 	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/api.html#setup-components
-	
+	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.geometries.SfincsDrainageStructures.create.html
+
 **Calculating Culvert Discharge Capacity**
 
 For culverts, par1 (discharge capacity) can be calculated as:

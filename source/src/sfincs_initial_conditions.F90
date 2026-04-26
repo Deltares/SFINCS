@@ -1,19 +1,10 @@
-#define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)   
 module sfincs_initial_conditions
    !
    use sfincs_data
    use sfincs_log
    use sfincs_error
    use netcdf       
-   !
-   type net_type_ini
-       integer :: ncid
-       integer :: np_dimid, npuv_dimid
-       integer :: zs_varid, q_varid, uv_varid
-   end type      
-   !
-   type(net_type_ini) :: net_file_ini              
-   !
+   !         
    real*8, dimension(:),   allocatable :: inizs
    real*4, dimension(:),   allocatable :: inizs4   
    real*4, dimension(:),   allocatable :: iniq
@@ -21,6 +12,8 @@ module sfincs_initial_conditions
 contains
    !
    subroutine set_initial_conditions()
+      !
+      use sfincs_ncinput      
       !
       ! Initialize SFINCS variables (qx, qy, zs etc.)
       !
@@ -34,7 +27,9 @@ contains
       real*4     :: huv
       real*4     :: zsuv   
       ! 
+      integer :: nchar      
       logical   :: iok
+      character*256 :: varname      
       !
       allocate(inizs(np))
       allocate(inizs4(np))      
@@ -60,29 +55,37 @@ contains
          !
       elseif (zsinifile(1:4) /= 'none') then 
          !
-         ! Read binary (!) initial water level file
-         ! Note - older type real*4 for zs 
-         !
-         write(logstr,'(a,a)')'Info    : reading initial conditions file ', trim(zsinifile)
+         write(logstr,'(a)')'Info    : initializing initial water level input'      
          call write_log(logstr, 0)
          !
-         iok = check_file_exists(zsinifile, 'Binary initial conditions ini file', .true.)
+         iok = check_file_exists(zsinifile, 'Initial conditions ini file', .true.)
          !
-         call read_zsini_file()
-         !
-      elseif (ncinifile(1:4) /= 'none') then 
-         !
-         ! Read netcdf (!) initial water level file
-         ! Note - newer type real*8 for zs 
-         !
-         ! NetCDF file
-         !
-         write(logstr,'(a,a)')'Info    : reading NetCDF initial conditions file ', trim(zsinifile)
-         call write_log(logstr, 0)
-         !
-         iok = check_file_exists(ncinifile, 'NetCDF initial conditions file', .true.)
-         !
-         call read_nc_ini_file()
+         if (zsinifile(nchar - 1 : nchar) == 'nc') then
+             !
+            ! Read netcdf (!) initial water level file
+            ! Note - newer type real*8 for zs 
+            !
+            ! NetCDF file
+            !
+            write(logstr,'(a,a)')'Info    : reading NetCDF initial conditions file ', trim(zsinifile)
+            call write_log(logstr, 0)
+            !
+            !call read_nc_ini_file()
+            ! Call the generic quadtree nc file reader function - in real*8
+            varname = 'zs'
+            call read_netcdf_quadtree_to_sfincs_real8(zsinifile, varname, inizs) !ncfile, varname, varout)                
+            !
+         else                          
+            !
+            ! Read binary (!) initial water level file
+            ! Note - older type real*4 for zs 
+            !
+            write(logstr,'(a,a)')'Info    : reading binary initial conditions file ', trim(zsinifile)
+            call write_log(logstr, 0)             
+            !
+            call read_zsini_file()
+            !
+         endif
          !
       else
          !
@@ -264,8 +267,6 @@ contains
       !
    end subroutine
    !
-   !
-   ! 
    subroutine read_zsini_file()
       !
       ! Binary zs ini file
@@ -285,66 +286,5 @@ contains
       inizs = inizs4
       !
    end subroutine
-   !
-   !
-   ! 
-   subroutine read_nc_ini_file()
-      !
-      ! NetCDF ini file
-      !
-      implicit none
-      !
-      real*8, dimension(:),   allocatable :: zsq
-      integer   :: npq, ip
-      !
-      NF90(nf90_open(trim(ncinifile), NF90_CLOBBER, net_file_ini%ncid))
-      !          
-      ! Get dimensions id's: nr points  
-      !
-      NF90(nf90_inq_dimid(net_file_ini%ncid, "mesh2d_nFaces", net_file_ini%np_dimid))
-      !
-      ! Get dimensions sizes    
-      !
-      NF90(nf90_inquire_dimension(net_file_ini%ncid, net_file_ini%np_dimid, len = npq))   ! total nr of cells in quadtree
-      !
-      ! Get variable id's
-      !
-      NF90(nf90_inq_varid(net_file_ini%ncid, 'zs', net_file_ini%zs_varid))
-      !
-      ! Allocate variables   
-      !
-      allocate(zsq(npq))
-      !
-      ! Read zs for all quadtree cells
-      !
-      NF90(nf90_get_var(net_file_ini%ncid, net_file_ini%zs_varid,     zsq(:)))
-      !      
-      ! Re-map to active SFINCS cells
-      !
-      do ip = 1, np
-         !
-         inizs(ip) = zsq(index_quadtree_in_sfincs(ip)) ! already in real*8 - expected
-         ! 
-      enddo
-      !
-      NF90(nf90_close(net_file_ini%ncid))       
-      !
-   end subroutine
-   !
-   !
-   !
-   subroutine handle_err(status,file,line)
-      !
-      integer, intent ( in)    :: status
-      character(*), intent(in) :: file
-      integer, intent ( in)    :: line
-      !   
-      if (status /= nf90_noerr) then
-         !   !UNIT=6 for stdout and UNIT=0 for stderr.
-         write(0,'("NETCDF ERROR: ",a,i6,":",a)') file,line,trim(nf90_strerror(status))
-         !
-      endif
-      !
-   end subroutine handle_err
    !
 end module
