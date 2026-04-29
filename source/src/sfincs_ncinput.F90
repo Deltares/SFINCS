@@ -476,6 +476,7 @@ module sfincs_ncinput
    ! attributes from a NetCDF variable and return them as separate arrays.
    !
    use netcdf
+   use sfincs_error
    use sfincs_log
    !
    implicit none
