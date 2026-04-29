@@ -221,7 +221,8 @@ contains
    call read_char_input(500,'manningfile',manningfile,'none')   
    call read_char_input(500,'drnfile',drnfile,'none')
    call read_char_input(500,'volfile',volfile,'none')
-   call read_char_input(500,'vegetationfile',veggiefile,'none')   
+   call read_char_input(500,'vegetationfile',veggiefile,'none')
+   call read_char_input(500,'vegfile_toml',veggiefile_toml,'none')   ! companion TOML lookup table; if set, veggiefile holds only vegetation_type integers
    !
    ! Forcing
    !
