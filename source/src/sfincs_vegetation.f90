@@ -38,7 +38,7 @@ contains
         !
         ok = check_file_exists(veggiefile, 'Vegetation file', .true.)
         !
-        if (trim(veggiefile_toml) == 'none') then
+        if (trim(veggietype_toml) == 'none') then
             !
             ! Old path: all four parameter arrays stored directly in the NetCDF per grid cell
             !
@@ -74,11 +74,11 @@ contains
         else
             !
             ! New path: veggiefile holds only integer vegetation_type per cell (CF flag conventions)
-            !           veggiefile_toml holds the parameter lookup table keyed by type name
+            !           veggietype_toml holds the parameter lookup table keyed by type name
             !
-            ok = check_file_exists(veggiefile_toml, 'Vegetation TOML file', .true.)
+            ok = check_file_exists(veggietype_toml, 'Vegetation TOML file', .true.)
             !
-            write(logstr,'(a,a)')'Info    : reading vegetation TOML file ',trim(veggiefile_toml)
+            write(logstr,'(a,a)')'Info    : reading vegetation TOML file ',trim(veggietype_toml)
             call write_log(logstr, 0)
             !
             ! Read CF flag attributes: flag_values=[0,1,2,...] and flag_meanings=["none","seagrass",...]
@@ -199,11 +199,11 @@ contains
     tmp_cd = 0.0;  tmp_ah = 0.0;  tmp_bstems = 0.0;  tmp_nstems = 0.0
     nlayers_per_type = 0
     !
-    call toml_load(table, trim(veggiefile_toml), error=parse_error)
+    call toml_load(table, trim(veggietype_toml), error=parse_error)
     !
     if (allocated(parse_error)) then
         write(logstr,'(a,a,a,a)')'Error    : failed to parse vegetation TOML file ', &
-            trim(veggiefile_toml), ': ', trim(parse_error%message)
+            trim(veggietype_toml), ': ', trim(parse_error%message)
         call stop_sfincs(trim(logstr), 1)
     endif
     !

@@ -165,7 +165,7 @@ module sfincs_data
       character*256 :: qtrfile
       character*256 :: volfile
       character*256 :: veggiefile
-      character*256 :: veggiefile_toml       ! TOML lookup table companion to veggiefile
+      character*256 :: veggietype_toml       ! TOML lookup table companion to veggiefile
       !
       character*256 :: trefstr_iso8601
       character*41  :: treftimefews
