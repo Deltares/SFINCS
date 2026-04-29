@@ -443,12 +443,23 @@ contains
    !
    if (wind) then
       !
-      DoverA = 0.0      
+      DoverA = 0.0
       ndissip = 3.0
       WsorE = 0.0
       WsorA = 0.0
       Ak = waveps / sigmax
-      Tp = Tpini
+      !
+      ! Re-initialise Tp at inner / neumann-connected cells only;
+      ! boundary cells must keep their prescribed Tp (set by
+      ! update_boundaries) so the wind iteration starts from the
+      ! correct boundary forcing.
+      !
+      do k = 1, no_nodes
+         !
+         if (inner(k)) Tp(k) = Tpini
+         if (neumannconnected(k) > 0) Tp(neumannconnected(k)) = Tpini
+         !
+      enddo
       !
       do k = 1, no_nodes
          !
@@ -461,7 +472,7 @@ contains
          !
          call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:,k))
          !
-      enddo         
+      enddo
       !
    endif
    !   
