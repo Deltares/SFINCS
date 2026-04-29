@@ -487,7 +487,7 @@ module snapwave_solver
       !      
       ! Actual determining of source term: 
       !          
-      call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
+      call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
       !         
       ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev, beta_local
       ! in: the rest
@@ -575,7 +575,7 @@ module snapwave_solver
                 !
                 ! Actual determining of source term - every first sweep of iteration
                 !          
-                call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, eeprev, eeprev_ig, cgprev, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
+                call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
                 !    
             endif
             !
@@ -1108,8 +1108,6 @@ module snapwave_solver
     ! Inout variables
     real*4, dimension(:,:), intent(inout)            :: alphaig_local   ! Local infragravity wave shoaling parameter alpha
     real*4, dimension(:,:), intent(inout)            :: srcig_local     ! Energy source/sink term because of IG wave shoaling
-    real*4, dimension(:), intent(inout)              :: eeprev, cgprev  ! energy density and group velocity at upwind intersection point
-    real*4, dimension(:), intent(inout)              :: eeprev_ig       ! energy density  at upwind intersection point 
     real*4, dimension(ntheta,no_nodes), intent(inout):: beta_local      ! Local bed slope based on bed level per direction              
     !
     ! Internal variables
@@ -1198,10 +1196,9 @@ module snapwave_solver
                     ! TL - Note: cg_ig = cg
                     cgprev(itheta)      = w(1, itheta, k)*cg_ig(k1) + w(2, itheta, k)*cg_ig(k2)
                     !              
-                    Sxx(itheta,k1)      = ((2.0 * max(0.0,min(1.0,nwav(k1)))) - 0.5) * ee(itheta, k1) ! limit so value of nwav is between 0 and 1
-                    Sxx(itheta,k2)      = ((2.0 * max(0.0,min(1.0,nwav(k2)))) - 0.5) * ee(itheta, k2) ! limit so value of nwav is between 0 and 1
+                    ! Sxx is pre-computed for all nodes before this parallel loop
                     !
-                    Sxxprev(itheta)       = w(1, itheta, k) * Sxx(k1) + w(2, itheta, k) * Sxx(k2)
+                    Sxxprev(itheta)     = w(1, itheta, k) * Sxx(k1) + w(2, itheta, k) * Sxx(k2)
                     !
                     Eprev(itheta)       = w(1, itheta, k) * E_local(k1) + w(2, itheta, k) * E_local(k2)     
                     Eprev_ig(itheta)    = w(1, itheta, k) * E_ig_local(k1) + w(2, itheta, k) * E_ig_local(k2)  
