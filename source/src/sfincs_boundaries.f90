@@ -659,12 +659,17 @@ contains
                 nmi = 0
             endif                        
          endif
-         !
-         if (nmi == 0) then
+         !         
+         if (nmi_gbp(ib) == 0) then              
             !
-            ! No active msk=1 point found in any of the  neighbours, reset cell to inactive
+            ! No active msk=1 point found in any of the neighbours, reset cell to inactive
             !
             kcs(nm) = 0
+            !
+            write(logstr,*)'Warning : Found a Neumann cell (msk=6) that does not have any valid neighbouring regular cell (msk=1)!'
+            call write_log(logstr, 0)
+            write(logstr,*)'Therefore cell set back to innactive (msk=0) for nm= ', nm
+            call write_log(logstr, 0)
             ! 
          endif
          
@@ -1101,7 +1106,7 @@ contains
             !
             if (store_t_zsmax) then
                 if (zs(nmb) > zsmax(nmb)) then
-                    t_zsmax(nm) = t
+                    t_zsmax(nmb) = t
                 endif
             endif
             !

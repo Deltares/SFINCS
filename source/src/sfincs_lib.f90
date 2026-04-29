@@ -95,7 +95,7 @@ module sfincs_lib
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
    build_revision = "$Rev: v2.3.2 mt. Faber+branch:snapwave_domain_updates_core"
-   build_date     = "$Date: 2026-03-26"
+   build_date     = "$Date: 2026-04-29"
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)
@@ -179,7 +179,7 @@ module sfincs_lib
    !
    if (wavemaker) then
       !
-      call read_wavemaker_polylines()
+      call initialize_wavemakers()
       !
    endif
    !
