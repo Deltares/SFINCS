@@ -1185,15 +1185,19 @@ contains
                         ! Driving head H = upstream head above z_min minus downstream.
                         !
                         z_breach = z_min_br
-                        h_up     = max(max(real(zs(nm_o1),4), real(zs(nm_o2),4)) - z_min_br, 0.0)
-                        h_dn     = max(min(real(zs(nm_o1),4), real(zs(nm_o2),4)) - z_min_br, 0.0)
-                        dh       = max(h_up - h_dn, 0.0)
                         tau_hr   = (real(t, 4) - t_phase1_br) / 3600.0
                         dt_hr    = dt / 3600.0
-                        denom    = max(1.0 + (f2 * g / uc_mat) * tau_hr, 1.0e-12)
-                        dBdt_br  = (f1 * f2 / log(10.0)) * (g * dh)**1.5 / &
-                                   (uc_mat * uc_mat * denom)
-                        B_breach = B_breach + max(dBdt_br, 0.0) * dt_hr
+                        ! Only widen when obs_1 (inside) is higher than obs_2 (outside).
+                        ! Reversed flow (ebb/return) is allowed but does not erode further.
+                        if (real(zs(nm_o1), 4) > real(zs(nm_o2), 4)) then
+                           h_up    = max(real(zs(nm_o1), 4) - z_min_br, 0.0)
+                           h_dn    = max(real(zs(nm_o2), 4) - z_min_br, 0.0)
+                           dh      = max(h_up - h_dn, 0.0)
+                           denom   = max(1.0 + (f2 * g / uc_mat) * tau_hr, 1.0e-12)
+                           dBdt_br = (f1 * f2 / log(10.0)) * (g * dh)**1.5 / &
+                                     (uc_mat * uc_mat * denom)
+                           B_breach = B_breach + max(dBdt_br, 0.0) * dt_hr
+                        endif
                         !
                      endif
                      !
