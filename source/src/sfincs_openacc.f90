@@ -41,6 +41,9 @@ contains
    !$acc               src_struc_height, &
    !$acc               src_struc_invert_1, src_struc_invert_2, &
    !$acc               src_struc_submergence_ratio, &
+   !$acc               src_struc_z_crest, src_struc_t_breach, src_struc_z_min, &
+   !$acc               src_struc_B0, src_struc_t0, src_struc_dike_core, &
+   !$acc               src_struc_breach_width, src_struc_breach_level, &
    !$acc               src_struc_distance, src_struc_status, src_struc_fraction_open, src_struc_t_state, &
    !$acc               src_struc_rule_open, src_struc_rule_close, &
    !$acc               rule_opcode, rule_atom, rule_cmp, rule_threshold, rule_start, rule_length, &
@@ -88,6 +91,9 @@ contains
    !$acc               src_struc_height, &
    !$acc               src_struc_invert_1, src_struc_invert_2, &
    !$acc               src_struc_submergence_ratio, &
+   !$acc               src_struc_z_crest, src_struc_t_breach, src_struc_z_min, &
+   !$acc               src_struc_B0, src_struc_t0, src_struc_dike_core, &
+   !$acc               src_struc_breach_width, src_struc_breach_level, &
    !$acc               src_struc_distance, src_struc_status, src_struc_fraction_open, src_struc_t_state, &
    !$acc               src_struc_rule_open, src_struc_rule_close, &
    !$acc               rule_opcode, rule_atom, rule_cmp, rule_threshold, rule_start, rule_length, &
@@ -95,7 +101,7 @@ contains
    !$acc               structure_uv_index, structure_parameters, structure_type, structure_length, &
    !$acc               fwuv, &
    !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
-   !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, & 
+   !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, &
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
    !$acc               prcp, prcp0, prcp1, cumprcp, qext, &
    !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &

@@ -215,6 +215,7 @@ module sfincs_data
       logical       :: infiltration
       logical       :: discharges
       logical       :: drainage_structures
+      logical       :: dike_breaching
       logical       :: urban_drainage
       logical       :: store_urban_drainage_discharge
       logical       :: store_cumulative_urban_drainage
