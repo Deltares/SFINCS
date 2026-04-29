@@ -123,6 +123,8 @@ contains
             !
             ! Expand lookup table to per-cell arrays
             !
+            ! FIXME - parallellisation possible?
+            !
             do nm = 1, np
                 type_idx = vegetation_type_index(nm)
                 if (type_idx == 0) cycle   ! type 0 = no vegetation
@@ -141,10 +143,10 @@ contains
                     call stop_sfincs(trim(logstr), 1)
                 endif
                 !
-                vegetation_stems_cd(nm,:)           = veg_cd_lookup(flag_idx,:)
-                vegetation_stems_height(nm,:) = veg_ah_lookup(flag_idx,:)
-                vegetation_stems_diameter(nm,:)  = veg_bstems_lookup(flag_idx,:)
-                vegetation_stems_density(nm,:) = veg_nstems_lookup(flag_idx,:)
+                vegetation_stems_cd(nm,:)       = veg_cd_lookup(flag_idx,:)
+                vegetation_stems_height(nm,:)   = veg_ah_lookup(flag_idx,:)
+                vegetation_stems_diameter(nm,:) = veg_bstems_lookup(flag_idx,:)
+                vegetation_stems_density(nm,:)  = veg_nstems_lookup(flag_idx,:)
                 !
             enddo
             !
@@ -169,46 +171,56 @@ contains
     !
     implicit none
     !
-    integer,            intent(in)  :: nflags
-    character(len=64),  intent(in)  :: flag_meanings(nflags)
+    integer,            intent(in)   :: nflags
+    character(len=64),  intent(in)   :: flag_meanings(nflags)
     real*4, allocatable, intent(out) :: veg_cd_lookup(:,:)
     real*4, allocatable, intent(out) :: veg_ah_lookup(:,:)
     real*4, allocatable, intent(out) :: veg_bstems_lookup(:,:)
     real*4, allocatable, intent(out) :: veg_nstems_lookup(:,:)
-    integer,            intent(out) :: max_layers
+    integer,            intent(out)  :: max_layers
     !
-    integer, parameter :: max_layers_limit = 64
+    integer, parameter               :: max_layers_limit = 64
     !
-    type(toml_table), allocatable :: table
-    type(toml_error), allocatable :: parse_error
-    type(toml_table), pointer     :: veg_table, type_table
-    type(toml_array), pointer     :: cd_arr, ah_arr, bstems_arr, nstems_arr
+    type(toml_table), allocatable    :: table
+    type(toml_error), allocatable    :: parse_error
+    type(toml_table), pointer        :: veg_table, type_table
+    type(toml_array), pointer        :: cd_arr, ah_arr, bstems_arr, nstems_arr
     !
-    real*4, allocatable :: tmp_cd(:,:), tmp_ah(:,:), tmp_bstems(:,:), tmp_nstems(:,:)
-    integer, allocatable :: nlayers_per_type(:)
+    real*4, allocatable              :: tmp_cd(:,:), tmp_ah(:,:), tmp_bstems(:,:), tmp_nstems(:,:)
+    integer, allocatable             :: nlayers_per_type(:)
     !
-    integer    :: it, il, nlayers, stat
-    real(kind=8) :: rval
-    character(len=64) :: typename
+    integer                          :: it, il, nlayers, stat
+    real(kind=8)                     :: rval
+    character(len=64)                :: typename
     !
     allocate(tmp_cd(nflags, max_layers_limit))
     allocate(tmp_ah(nflags, max_layers_limit))
     allocate(tmp_bstems(nflags, max_layers_limit))
     allocate(tmp_nstems(nflags, max_layers_limit))
     allocate(nlayers_per_type(nflags))
-    tmp_cd = 0.0;  tmp_ah = 0.0;  tmp_bstems = 0.0;  tmp_nstems = 0.0
+    !
+    tmp_cd = 0.0
+    tmp_ah = 0.0
+    tmp_bstems = 0.0
+    tmp_nstems = 0.0
+    !    
     nlayers_per_type = 0
     !
     call toml_load(table, trim(veggietype_toml), error=parse_error)
     !
     if (allocated(parse_error)) then
+        !
         write(logstr,'(a,a,a,a)')'Error    : failed to parse vegetation TOML file ', &
             trim(veggietype_toml), ': ', trim(parse_error%message)
+        !
         call stop_sfincs(trim(logstr), 1)
+        !
     endif
     !
     if (.not. allocated(table)) then
+        !
         call stop_sfincs('Error    : vegetation TOML file is empty or could not be read !', 1)
+        !
     endif
     !
     ! Expect a [vegetation_type] table at the root level
@@ -223,6 +235,7 @@ contains
     ! Loop over all names from CF flag_meanings and read their parameter arrays
     !
     do it = 1, nflags
+        !
         typename = trim(flag_meanings(it))
         !
         ! Skip the no-vegetation entry; its cells are handled by the zero initialisation above
@@ -239,7 +252,7 @@ contains
             cycle
         endif
         !
-        ! --- snapwave_veg_Cd ---
+        ! --- vegetation_stems_cd ---
         !
         nullify(cd_arr)
         call get_value(type_table, 'vegetation_stems_cd', cd_arr, stat=stat)
@@ -265,7 +278,7 @@ contains
             tmp_cd(it, il) = real(rval, kind=4)
         enddo
         !
-        ! --- snapwave_veg_ah ---
+        ! --- vegetation_stems_height ---
         !
         nullify(ah_arr)
         call get_value(type_table, 'vegetation_stems_height', ah_arr, stat=stat)
@@ -287,7 +300,7 @@ contains
             tmp_ah(it, il) = real(rval, kind=4)
         enddo
         !
-        ! --- snapwave_veg_bstems ---
+        ! --- vegetation_stems_diameter ---
         !
         nullify(bstems_arr)
         call get_value(type_table, 'vegetation_stems_diameter', bstems_arr, stat=stat)
@@ -309,7 +322,7 @@ contains
             tmp_bstems(it, il) = real(rval, kind=4)
         enddo
         !
-        ! --- snapwave_veg_Nstems ---
+        ! --- vegetation_stems_density ---
         !
         nullify(nstems_arr)
         call get_value(type_table, 'vegetation_stems_density', nstems_arr, stat=stat)
