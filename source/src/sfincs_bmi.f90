@@ -23,7 +23,7 @@ module sfincs_bmi
    public :: get_end_time
    public :: get_time_step
    public :: get_current_time
-   public :: update_zbuv
+   public :: bmi_update_bed_level
    public :: update_apparent_roughness
    public :: get_sfincs_cell_index
    public :: get_sfincs_cell_indices
@@ -119,6 +119,8 @@ contains
          c_data = c_loc(subgrid_z_zmin)
       case("qext")
          c_data = c_loc(qext)
+      case("dzbext")
+         c_data = c_loc(dzbext)
       case("uorb")
          c_data = c_loc(uorb)
       case default
@@ -150,6 +152,8 @@ contains
          var_shape(1) = size(z_index_z_n)
       case("qext")
          var_shape(1) = size(qext)
+      case("dzbext")
+         var_shape(1) = size(dzbext)
       case default
          ierr = -1
       end select
@@ -170,7 +174,7 @@ contains
       var_name = char_array_to_string(c_var_name, strlen(c_var_name, BMI_LENVARADDRESS))
 
       select case(var_name)
-      case("z_xz", "z_yz", "zb", "subgrid_z_zmin", "qext", "uorb")
+      case("z_xz", "z_yz", "zb", "subgrid_z_zmin", "qext", "dzbext", "uorb")
          type_name = "float"
       case("zs")
          type_name = "double"
@@ -198,7 +202,7 @@ contains
       var_name = char_array_to_string(c_var_name, strlen(c_var_name, BMI_LENVARADDRESS))
       
       select case(var_name)
-      case("z_xz", "z_yz", "zs", "zb", "subgrid_z_zmin", "qext", "uorb")
+      case("z_xz", "z_yz", "zs", "zb", "subgrid_z_zmin", "qext", "dzbext", "uorb")
          rank = 1
       case default
          ierr = -1
@@ -227,7 +231,23 @@ contains
       select case(flag_name)
       case("qext")
          use_qext = bval
-         !write(*,*)'use_qext = ', use_qext 
+         !write(*,*)'use_qext = ', use_qext
+      case("dzbext")
+         !
+         ! Lazily allocate the external delta-bed-level array on first enable.
+         ! Once allocated we keep it around; toggling the flag off later just
+         ! disables the update path without freeing memory (same pattern as
+         ! qext is handled elsewhere).
+         !
+         if (bval .and. .not. allocated(dzbext)) then
+            !
+            allocate(dzbext(np))
+            dzbext = 0.0
+            !
+         endif
+         !
+         use_dzbext = bval
+         !
       case default
          ierr = -1
       end select
@@ -274,14 +294,15 @@ contains
 
    end function get_current_time
 
-   function update_zbuv() result(ierr) bind(C, name="update_zbuv")
-   ! Update bed level at uv points
-   !DEC$ ATTRIBUTES DLLEXPORT :: update_zbuv
+   function bmi_update_bed_level() result(ierr) bind(C, name="update_bed_level")
+   ! Apply dzbext to the bed-level arrays (zb or subgrid_z_zmin/zmax and
+   ! subgrid_uv_zmin/zmax) and rebuild zbuvmx for non-subgrid runs.
+   !DEC$ ATTRIBUTES DLLEXPORT :: bmi_update_bed_level
       integer(kind=c_int) :: ierr
-      call compute_zbuvmx()
+      call update_bed_level()
       ierr = 0
-   
-   end function update_zbuv
+
+   end function bmi_update_bed_level
    
    function update_apparent_roughness() result(ierr) bind(C, name="update_apparent_roughness")
    ! Update apparent roughness at uv points

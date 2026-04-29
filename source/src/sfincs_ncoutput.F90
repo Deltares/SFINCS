@@ -1070,12 +1070,29 @@ contains
    NF90(nf90_def_var(map_file%ncid, 'crs', NF90_INT, map_file%crs_varid)) ! For EPSG code
    NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'EPSG', '-'))
    !
-   NF90(nf90_def_var(map_file%ncid, 'zb', NF90_FLOAT, (/map_file%nmesh2d_face_dimid/), map_file%zb_varid)) ! bed level in cell centre
-   NF90(nf90_def_var_deflate(map_file%ncid, map_file%zb_varid, 1, 1, nc_deflate_level))
-   NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, '_FillValue', FILL_VALUE))   
-   NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'units', 'm'))
-   NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'standard_name', 'altitude'))
-   NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'long_name', 'bed_level_above_reference_level'))   
+   if (store_dynamic_bed_level) then
+      !
+      ! Time-varying bed level: define zb with an extra time dimension
+      !
+      NF90(nf90_def_var(map_file%ncid, 'zb', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%zb_varid)) ! bed level in cell centre
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%zb_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'units', 'm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'standard_name', 'altitude'))
+      NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'long_name', 'bed_level_above_reference_level'))
+      !
+   else
+      !
+      ! Static bed level: define zb without a time dimension
+      !
+      NF90(nf90_def_var(map_file%ncid, 'zb', NF90_FLOAT, (/map_file%nmesh2d_face_dimid/), map_file%zb_varid)) ! bed level in cell centre
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%zb_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'units', 'm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'standard_name', 'altitude'))
+      NF90(nf90_put_att(map_file%ncid, map_file%zb_varid, 'long_name', 'bed_level_above_reference_level'))
+      !
+   endif
    !
    if (.not. subgrid) then
       !
@@ -1544,22 +1561,30 @@ contains
    !
    vtmp = FILL_VALUE
    !
-   if (subgrid) then
-      do nmq = 1, quadtree_nr_points
-         nm = index_sfincs_in_quadtree(nmq)
-         if (nm>0) then
-            vtmp(nmq) = subgrid_z_zmin(nm)
-         endif
-      enddo 
-      NF90(nf90_put_var(map_file%ncid, map_file%zb_varid, vtmp))
-   else
-      do nmq = 1, quadtree_nr_points
-         nm = index_sfincs_in_quadtree(nmq)
-         if (nm>0) then
-            vtmp(nmq) = zb(nm)
-         endif
-      enddo 
-      NF90(nf90_put_var(map_file%ncid, map_file%zb_varid, vtmp))
+   ! When store_dynamic_bed_level is enabled, zb has a time dimension, so the
+   ! static-shaped write is invalid here and must be skipped (the per-step
+   ! writer fills the variable instead).
+   !
+   if (.not. store_dynamic_bed_level) then
+      !
+      if (subgrid) then
+         do nmq = 1, quadtree_nr_points
+            nm = index_sfincs_in_quadtree(nmq)
+            if (nm>0) then
+               vtmp(nmq) = subgrid_z_zmin(nm)
+            endif
+         enddo
+         NF90(nf90_put_var(map_file%ncid, map_file%zb_varid, vtmp))
+      else
+         do nmq = 1, quadtree_nr_points
+            nm = index_sfincs_in_quadtree(nmq)
+            if (nm>0) then
+               vtmp(nmq) = zb(nm)
+            endif
+         enddo
+         NF90(nf90_put_var(map_file%ncid, map_file%zb_varid, vtmp))
+      endif
+      !
    endif
    !
    ! Subgrid slope
@@ -2397,20 +2422,24 @@ contains
    !
    NF90(nf90_put_var(map_file%ncid, map_file%zs_varid, zsg, (/1, 1, ntmapout/))) ! write zs
    !
-   if (store_dynamic_bed_level .and. .not. subgrid) then
+   if (store_dynamic_bed_level) then
       !
       do nm = 1, np
          !
          n = z_index_z_n(nm)
          m = z_index_z_m(nm)
-         !      
-         zsg(m, n) = zb(nm)
-         !      
+         !
+         if (subgrid) then
+            zsg(m, n) = subgrid_z_zmin(nm)
+         else
+            zsg(m, n) = zb(nm)
+         endif
+         !
       enddo
       !
-      NF90(nf90_put_var(map_file%ncid, map_file%zb_varid, zsg, (/1, 1, ntmapout/))) ! write zb
+      NF90(nf90_put_var(map_file%ncid, map_file%zb_varid, zsg, (/1, 1, ntmapout/))) ! write zb (subgrid_z_zmin for subgrid runs)
       !
-   endif   
+   endif
    !
    if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then   
       ! 
@@ -2864,8 +2893,34 @@ contains
       enddo
       !
       NF90(nf90_put_var(map_file%ncid, map_file%zs_varid, vtmp, (/1, ntmapout/))) ! write zs
-      ! 
-      ! Water depth 
+      !
+      ! Time-varying bed level
+      !
+      if (store_dynamic_bed_level) then
+         !
+         vtmp = FILL_VALUE
+         !
+         do nmq = 1, quadtree_nr_points
+            !
+            nm = index_sfincs_in_quadtree(nmq)
+            !
+            if (nm>0) then
+               !
+               if (subgrid) then
+                  vtmp(nmq) = subgrid_z_zmin(nm)
+               else
+                  vtmp(nmq) = zb(nm)
+               endif
+               !
+            endif
+            !
+         enddo
+         !
+         NF90(nf90_put_var(map_file%ncid, map_file%zb_varid, vtmp, (/1, ntmapout/))) ! write zb (subgrid_z_zmin for subgrid runs)
+         !
+      endif
+      !
+      ! Water depth
       !
       if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then   
          ! 
