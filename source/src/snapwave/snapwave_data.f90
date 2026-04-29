@@ -259,6 +259,7 @@ module snapwave_data
    !
    integer                                   :: ig_opt          ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)   
    real*4                                    :: alpha_ig,gamma_ig ! coefficients in Baldock wave breaking dissipation model for IG waves
+   real*4                                    :: gamma_fac_br    ! factor times gamma that is used to determine the maximum incident wave breaking point in the surf zone using local incident wave height over water depth ratio, among others used to set the IG source term to 0 shallower than this point   
    real*4                                    :: shinc2ig        ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 0=default)
    real*4                                    :: alphaigfac      ! Multiplication factor for IG shoaling source/sink term, default = 1.0
    real*4                                    :: eeinc2ig        ! ratio of incident wave energy as first estimate of IG wave energy at boundary

@@ -1,4 +1,4 @@
-module snapwave_solver
+﻿module snapwave_solver
    
       use sfincs_log
     
@@ -153,7 +153,7 @@ module snapwave_solver
                                          igwaves, kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
                                          beta, srcig, alphaig, Dw_ig, Df_ig, &
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
-                                         zb, nwav, ig_opt, alpha_ig, gamma_ig, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
+                                         zb, nwav, ig_opt, alpha_ig, gamma_ig, gamma_fac_br, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
       !
       call timer(t3)
       !
@@ -178,7 +178,7 @@ module snapwave_solver
                                          igwaves, kwav_ig, cg_ig,H_ig,ctheta_ig,Hmx_ig, ee_ig,fw_ig, &
                                          betamean, srcig, alphaig, Dw_ig, Df_ig, &       
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
-                                         zb, nwav, ig_opt, alfa_ig, gamma_ig, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
+                                         zb, nwav, ig_opt, alfa_ig, gamma_ig, gamma_fac_br, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
    !
    use snapwave_windsource
    !use snapwave_ncoutput ! TL: removed, we don't use this in SF+SW
@@ -312,6 +312,7 @@ module snapwave_solver
    real*4                                     :: Ek_ig
    real*4                                     :: Hk_ig
    real*4                                     :: alfa_ig,gamma_ig  ! coefficients in Baldock wave breaking dissipation model for IG waves
+   real*4                                     :: gamma_fac_br    ! factor times gamma that is used to determine the maximum incident wave breaking point in the surf zone using local incident wave height over water depth ratio, among others used to set the IG source term to 0 shallower than this point   
    real*4                                     :: eeinc2ig          ! ratio of incident wave energy as first estimate of IG wave energy at boundary
    real*4                                     :: Tinc2ig           ! ratio compared to period Tinc to estimate Tig
    real*4                                     :: alphaigfac        ! Multiplication factor for IG shoaling source/sink term, default = 1.0
@@ -487,7 +488,7 @@ module snapwave_solver
       !      
       ! Actual determining of source term: 
       !          
-      call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
+      call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, gamma, gamma_fac_br) 
       !         
       ! inout: alphaig_local, srcig_local - eeprev, eeprev_ig, cgprev, beta_local
       ! in: the rest
@@ -575,7 +576,7 @@ module snapwave_solver
                 !
                 ! Actual determining of source term - every first sweep of iteration
                 !          
-                call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local) 
+                call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, gamma, gamma_fac_br) 
                 !    
             endif
             !
@@ -1077,7 +1078,7 @@ module snapwave_solver
    end subroutine baldock
    
    
-   subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local)
+   subroutine determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, ee, ee_ig, ig_opt, alphaigfac, alphaig_local, beta_local, srcig_local, gamma, gamma_fac_br)
     !
     ! Determining of IG source term as defined in Leijnse et al. 2024
     !
@@ -1103,7 +1104,9 @@ module snapwave_solver
     real*4, dimension(ntheta,no_nodes), intent(in)   :: ee_ig           ! energy density infragravity waves
     integer, intent(in)                              :: ig_opt          ! option of IG wave settings (1 = default = conservative shoaling based dSxx and Baldock breaking)    
     real*4, intent(in)                               :: alphaigfac      ! Multiplication factor for IG shoaling source/sink term, default = 1.0
-    real*4, intent(in)                               :: dtheta          ! directional resolution    
+    real*4, intent(in)                               :: dtheta          ! directional resolution  
+    real*4, intent(in)                               :: gamma           ! coefficients in Baldock wave breaking dissipation    
+    real*4, intent(in)                               :: gamma_fac_br    ! factor times gamma that is used to determine the maximum incident wave breaking point in the surf zone using local incident wave height over water depth ratio, among others used to set the IG source term to 0 shallower than this point    
     !
     ! Inout variables
     real*4, dimension(:,:), intent(inout)            :: alphaig_local   ! Local infragravity wave shoaling parameter alpha
@@ -1126,6 +1129,12 @@ module snapwave_solver
     real*4, dimension(no_nodes)                      :: E_ig_local      ! mean wave energy infragravity waves - just local    
     real*4                                           :: dSxx            ! difference in Radiation stress
     real*4                                           :: Sxx_cons        ! conservative estimate of radiation stress using conservative shoaling
+    real*4                                           :: transition_factor ! Transition factor for letting srcig go to zero smoothly, around gamma*gamma_fac_br
+    real*4                                           :: transition_factor_width_1 ! Width factor of generalized (FermiDirac style) transfer function with adjustable midpoint and width
+    real*4                                           :: transition_factor_width_2 ! Width factor of generalized (FermiDirac style) transfer function with adjustable midpoint and width    
+    real*4                                           :: gamma_fac_br_transition ! Transitioned version of gamma_fac_br, so that for steep slopes it remains 1.0
+    real*4                                           :: beta_limit_1    ! Cut-off beta_local for end of validity alphaig formulation of Leijnse et al. 2024
+    real*4                                           :: beta_limit_2    ! Beta_local limit for transition function    
     !
     ! Set internal variables
     !
@@ -1136,7 +1145,15 @@ module snapwave_solver
     !
     E_local    = 0.0
     E_ig_local = 0.0
-    Sxx        = 0.0    
+    !
+    ! Used is generalized (FermiDirac style) transfer function with adjustable midpoint and width
+    !
+    transition_factor_width_1 = 0.005 
+    transition_factor_width_2 = 0.002
+    beta_limit_1 = 0.07
+    !beta_limit_2 = beta_limit_1 - 0.01  
+    beta_limit_2 = beta_limit_1 - 0.02    
+    !
     ! Pre-compute Sxx for all nodes
     !
     !$omp parallel do schedule(static)
@@ -1248,6 +1265,18 @@ module snapwave_solver
                            ! Base on E_prev_ig instead of eeprev_ig(itheta) > no bins but total energy
                            ! NOTE - already here multiplied with ee(itheta,k), for direct inclusion in 'R'-term
                            srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k) /max(E_local(k), 1.0e-6) * ee(itheta,k)                           
+                           !
+                           ! Limit srcig to 0 after waves start (significantly) breaking, as defined here as gam=Hrms,inc / h > (gamma_fac_br * gamma)
+                           ! Ergo, it is assumed that after this point IG waves are free, and no bound wave forcing is happening anymore, so srcig should be 0 from here on
+                           !                           
+                           ! Let srcig transition to 0 more smoothly using fac_transition that reduced from 1 to 0 around gamma_fac_br * snapwave_gamma
+                           ! But, only for beta_local < 0.07, so adjust based on beta_local so that transition_factor = 1.0 for Beta_local = 0.07
+                           !
+                           gamma_fac_br_transition = gamma_fac_br + ((1-gamma_fac_br) / (1 + exp(- (beta_local(itheta,k) - beta_limit_2) / transition_factor_width_2)))
+                           !
+                           transition_factor = 1.0 - (1.0 / (1.0 + exp(- (gam - (gamma_fac_br_transition * gamma)) / transition_factor_width_1)))
+                           !
+                           srcig_local(itheta, k) = transition_factor * srcig_local(itheta, k)                           
                            !
                         endif                      
                         !                                        

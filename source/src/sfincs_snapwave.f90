@@ -642,7 +642,8 @@ contains
    !
    call read_int_input(500, 'snapwave_igwaves', igwaves_opt, 1)                  ! Compute IG waves (1=default), or not (0)
    call read_real_input(500, 'snapwave_alpha_ig', alpha_ig, 1.0)                 ! TODO choose whether snapwave_alphaig or snapwave_gamma_ig  
-   call read_real_input(500, 'snapwave_gammaig', gamma_ig, 0.7)                  ! Wave breaking parameter for IG waves, default=0.2
+   call read_real_input(500, 'snapwave_gammaig', gamma_ig, 0.7)                  ! Wave breaking parameter for IG waves, default=0.7
+   call read_real_input(500,'snapwave_gamma_fac_br',gamma_fac_br,0.45) ! factor times gamma that is used to determine the maximum incident wave breaking point in the surf zone using local incident wave height over water depth ratio, among others used to set the IG source term to 0 shallower than this point   
    call read_real_input(500, 'snapwave_shinc2ig', shinc2ig, 1.0)                 ! Ratio of how much of the calculated IG wave source term, is subtracted from the incident wave energy (0-1, 1=default=all energy as sink)
    call read_real_input(500, 'snapwave_alphaigfac', alphaigfac, 1.0)             ! Multiplication factor for IG shoaling source/sink term
    call read_real_input(500, 'snapwave_baldock_ratio_ig', baldock_ratio_ig, 0.2) ! ! option controlling from what depth wave breaking should take place for IG waves, default baldock_ratio_ig=0.2    
