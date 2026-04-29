@@ -16,6 +16,7 @@ module sfincs_data
       !!!
       logical       :: bmi
       logical       :: use_qext
+      logical       :: use_dzbext
       !!!
       !!! Constants
       !!!
@@ -594,6 +595,7 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: zs0
       real*4, dimension(:),   allocatable :: zsderv
       real*4, dimension(:),   allocatable, target :: qext
+      real*4, dimension(:),   allocatable, target :: dzbext
       real*4, dimension(:),   allocatable, target :: uorb
       real*4, dimension(:),   allocatable :: gnapp2
       !
@@ -1029,6 +1031,7 @@ module sfincs_data
     if(allocated(uv0)) deallocate(uv0)
     if(allocated(twet)) deallocate(twet)
     if(allocated(qext)) deallocate(qext)
+    if(allocated(dzbext)) deallocate(dzbext)
     !
 !    if(allocated(huu)) deallocate(huu)
 !    if(allocated(hvv)) deallocate(hvv)
