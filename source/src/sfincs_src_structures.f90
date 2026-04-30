@@ -845,8 +845,10 @@ contains
       real*4  :: h_up, h_dn, qq_sign
       logical :: open_fires, close_fires
       !
-      real*4  :: z_breach, B_breach, z_crest_br, z_min_br, t_br, t0_br
-      real*4  :: f1, f2, uc_mat, t_phase1_br, tau_hr, dt_hr, denom, dBdt_br
+      real*4  :: crest_breach, width_breach, z_crest_breach, z_min_breach
+      real*4  :: tstart_breach, tstart_widening, t_phase1_deepening
+      real*4  :: vk_f1, vk_f2, uc_material, elapsed_widening_hr, dt_hr
+      real*4  :: widening_deceleration, widening_rate
       !
       if (nr_src_structures <= 0) return
       !
@@ -876,16 +878,20 @@ contains
       !$acc                       dh, a_eff, &
       !$acc                       h_up, h_dn, qq_sign, &
       !$acc                       open_fires, close_fires, &
-      !$acc                       z_breach, B_breach, z_crest_br, z_min_br, t_br, t0_br, &
-      !$acc                       f1, f2, uc_mat, t_phase1_br, tau_hr, dt_hr, denom, dBdt_br )
+      !$acc                       crest_breach, width_breach, z_crest_breach, z_min_breach, &
+      !$acc                       tstart_breach, tstart_widening, t_phase1_deepening, &
+      !$acc                       vk_f1, vk_f2, uc_material, elapsed_widening_hr, dt_hr, &
+      !$acc                       widening_deceleration, widening_rate )
       !$omp parallel do &
       !$omp   private( nm_s1, nm_s2, nm_o1, nm_o2, qq, elapsed, &
       !$omp            zs_o1, zs_o2, frac, wdt, mng, zsill, dist, dzds, hgate, qq0, alpha, &
       !$omp            dh, a_eff, &
       !$omp            h_up, h_dn, qq_sign, &
       !$omp            open_fires, close_fires, &
-      !$omp            z_breach, B_breach, z_crest_br, z_min_br, t_br, t0_br, &
-      !$omp            f1, f2, uc_mat, t_phase1_br, tau_hr, dt_hr, denom, dBdt_br ) &
+      !$omp            crest_breach, width_breach, z_crest_breach, z_min_breach, &
+      !$omp            tstart_breach, tstart_widening, t_phase1_deepening, &
+      !$omp            vk_f1, vk_f2, uc_material, elapsed_widening_hr, dt_hr, &
+      !$omp            widening_deceleration, widening_rate ) &
       !$omp   schedule ( static )
       do istruc = 1, nr_src_structures
          !
@@ -1152,82 +1158,82 @@ contains
                   nm_o1 = src_struc_nm_o1(istruc)
                   nm_o2 = src_struc_nm_o2(istruc)
                   !
-                  z_crest_br  = src_struc_z_crest(istruc)
-                  z_min_br    = src_struc_z_min(istruc)
-                  t_br        = src_struc_t_breach(istruc)
-                  t0_br       = src_struc_t0(istruc)
-                  t_phase1_br = t_br + t0_br
+                  z_crest_breach      = src_struc_z_crest(istruc)
+                  z_min_breach        = src_struc_z_min(istruc)
+                  tstart_breach       = src_struc_t_breach(istruc)
+                  tstart_widening     = src_struc_t0(istruc)
+                  t_phase1_deepening  = tstart_breach + tstart_widening
                   !
-                  B_breach = src_struc_breach_width(istruc)
-                  z_breach = src_struc_breach_level(istruc)
+                  width_breach = src_struc_breach_width(istruc)
+                  crest_breach = src_struc_breach_level(istruc)
                   !
                   if (src_struc_dike_core(istruc) == 1) then
-                     f1 = 1.3; f2 = 0.04; uc_mat = 0.2  ! sand
+                     vk_f1 = 1.3; vk_f2 = 0.04; uc_material = 0.2  ! sand
                   else
-                     f1 = 1.3; f2 = 0.04; uc_mat = 0.5  ! clay
+                     vk_f1 = 1.3; vk_f2 = 0.04; uc_material = 0.5  ! clay
                   endif
                   !
                   ! --- Breach geometry update ---
                   !
-                  if (real(t, 4) >= t_br) then
+                  if (real(t, 4) >= tstart_breach) then
                      !
-                     if (real(t, 4) < t_phase1_br) then
+                     if (real(t, 4) < t_phase1_deepening) then
                         !
                         ! Phase 1: crest lowers linearly to z_min over t0; width = B0
                         !
-                        z_breach = z_crest_br - (z_crest_br - z_min_br) * &
-                                   (real(t, 4) - t_br) / t0_br
-                        B_breach = src_struc_B0(istruc)
+                        crest_breach = z_crest_breach - (z_crest_breach - z_min_breach) * &
+                                       (real(t, 4) - tstart_breach) / tstart_widening
+                        width_breach = src_struc_B0(istruc)
                         !
                      else
                         !
                         ! Phase 2: crest at z_min, breach widens via Verheij formula.
                         ! Driving head H = upstream head above z_min minus downstream.
                         !
-                        z_breach = z_min_br
-                        tau_hr   = (real(t, 4) - t_phase1_br) / 3600.0
-                        dt_hr    = dt / 3600.0
+                        crest_breach        = z_min_breach
+                        elapsed_widening_hr = (real(t, 4) - t_phase1_deepening) / 3600.0
+                        dt_hr               = dt / 3600.0
                         ! Only widen when obs_1 (inside) is higher than obs_2 (outside).
                         ! Reversed flow (ebb/return) is allowed but does not erode further.
                         if (real(zs(nm_o1), 4) > real(zs(nm_o2), 4)) then
-                           h_up    = max(real(zs(nm_o1), 4) - z_min_br, 0.0)
-                           h_dn    = max(real(zs(nm_o2), 4) - z_min_br, 0.0)
-                           dh      = max(h_up - h_dn, 0.0)
-                           denom   = max(1.0 + (f2 * g / uc_mat) * tau_hr, 1.0e-12)
-                           dBdt_br = (f1 * f2 / log(10.0)) * (g * dh)**1.5 / &
-                                     (uc_mat * uc_mat * denom)
-                           B_breach = B_breach + max(dBdt_br, 0.0) * dt_hr
+                           h_up                 = max(real(zs(nm_o1), 4) - z_min_breach, 0.0)
+                           h_dn                 = max(real(zs(nm_o2), 4) - z_min_breach, 0.0)
+                           dh                   = max(h_up - h_dn, 0.0)
+                           widening_deceleration = max(1.0 + (vk_f2 * g / uc_material) * elapsed_widening_hr, 1.0e-12)
+                           widening_rate         = (vk_f1 * vk_f2 / log(10.0)) * (g * dh)**1.5 / &
+                                                   (uc_material * uc_material * widening_deceleration)
+                           width_breach = width_breach + max(widening_rate, 0.0) * dt_hr
                         endif
                         !
                      endif
                      !
                   else
-                     z_breach = z_crest_br
-                     B_breach = 0.0
+                     crest_breach = z_crest_breach
+                     width_breach = 0.0
                   endif
                   !
-                  src_struc_breach_level(istruc) = z_breach
-                  src_struc_breach_width(istruc) = B_breach
+                  src_struc_breach_level(istruc) = crest_breach
+                  src_struc_breach_width(istruc) = width_breach
                   !
                   ! --- Discharge through breach (culvert-style, obs-point WLs) ---
                   !
                   dh = real(zs(nm_o1), 4) - real(zs(nm_o2), 4)
                   if (dh >= 0.0) then
-                     h_up    = max(real(zs(nm_o1), 4) - z_breach, 0.0)
-                     h_dn    = max(real(zs(nm_o2), 4) - z_breach, 0.0)
+                     h_up    = max(real(zs(nm_o1), 4) - crest_breach, 0.0)
+                     h_dn    = max(real(zs(nm_o2), 4) - crest_breach, 0.0)
                      qq_sign = 1.0
                   else
-                     h_up    = max(real(zs(nm_o2), 4) - z_breach, 0.0)
-                     h_dn    = max(real(zs(nm_o1), 4) - z_breach, 0.0)
+                     h_up    = max(real(zs(nm_o2), 4) - crest_breach, 0.0)
+                     h_dn    = max(real(zs(nm_o1), 4) - crest_breach, 0.0)
                      qq_sign = -1.0
                   endif
                   !
-                  if (h_up <= 0.0 .or. B_breach <= 0.0) then
+                  if (h_up <= 0.0 .or. width_breach <= 0.0) then
                      qq = 0.0
                   elseif (h_dn / h_up >= src_struc_submergence_ratio(istruc)) then
-                     qq = qq_sign * B_breach * h_up * sqrt(2.0 * g * abs(dh))
+                     qq = qq_sign * width_breach * h_up * sqrt(2.0 * g * abs(dh))
                   else
-                     qq = qq_sign * 1.71 * B_breach * sqrt(g) * h_up**1.5
+                     qq = qq_sign * 1.71 * width_breach * sqrt(g) * h_up**1.5
                   endif
                   !
             end select
