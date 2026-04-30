@@ -159,17 +159,15 @@ contains
         !
     endif
     !
-! For SFINCS precalculate cd * bstems * Nstems for each vertical section, as well as the vegetation height on uv points
-    !
-    ! TODO - do this now as pre-processing table    
+    ! For SFINCS precalculate cd * bstems * Nstems for each vertical section, as well as the vegetation height on uv points
     !
     if (vegetation) then
         !
-        allocate(vegetation_stems_cd_width_density_uv(npuv, vegetation_vertical_segments)) ! product of cd, width and density on uv points
+        allocate(vegetation_stems_cd_diameter_density_uv(npuv, vegetation_vertical_segments)) ! product of cd, diameter and density on uv points
         !
         allocate(vegetation_stems_height_uv(npuv, vegetation_vertical_segments)) ! vegetation height on uv points
         !
-        vegetation_stems_cd_width_density_uv = 0.0
+        vegetation_stems_cd_diameter_density_uv = 0.0
         vegetation_stems_height_uv = 0.0
         !
         ! Interpolate vegetation properties from z-points to uv-points
@@ -183,15 +181,15 @@ contains
                 !
                 vegetation_stems_height_uv(ip,iveg) = 0.5*(vegetation_stems_height(nm,iveg)+vegetation_stems_height(nmu,iveg))
                 !
-                vegetation_stems_cd_width_density_uv(ip,iveg) = 0.5 * (0.5 * (vegetation_cd(nm,iveg) + vegetation_cd(nmu,iveg))) * (0.5 * (vegetation_stems_width(nm,iveg) + vegetation_stems_width(nmu,iveg))) * (0.5 * (vegetation_stems_density(nm,iveg) + vegetation_stems_density(nmu,iveg)))  / rhow
+                vegetation_stems_cd_diameter_density_uv(ip,iveg) = 0.5 * (0.5 * (vegetation_stems_cd(nm,iveg) + vegetation_stems_cd(nmu,iveg))) * (0.5 * (vegetation_stems_diameter(nm,iveg) + vegetation_stems_diameter(nmu,iveg))) * (0.5 * (vegetation_stems_density(nm,iveg) + vegetation_stems_density(nmu,iveg)))  / rhow
                 !
-                ! vegetation_stems_cd_width_density = 0.5 * cd * stems_width * stems_density / rhow, so everything that is precalculatable
+                ! vegetation_stems_cd_diameter_density = 0.5 * cd * stems_diameter * stems_density / rhow, so everything that is precalculatable
                 !
             enddo
             !
         enddo
         !
-        ! Pre-compute lookup table: cumulative sum of cd*width*density at vegetation_nlookup equidistant depth levels
+        ! Pre-compute lookup table: cumulative sum of cd*diameter*density at vegetation_nlookup equidistant depth levels
         ! Sections are stacked from the bed (consistent with swvegatt in snapwave_solver.f90):
         !   vegetation_cd_sum_table(ip, k) = sum_iveg( cd_wd(ip,iveg) * max(0, min(section_top_iveg, h_k) - section_bottom_iveg) )
         ! In compute_fluxes: fvm = table_lookup(ip, hu) * uv0 * |uv0|  (no inner do-loop needed)
@@ -228,7 +226,7 @@ contains
                     section_bottom = 0.0
                     do iveg = 1, vegetation_vertical_segments
                         section_top = section_bottom + vegetation_stems_height_uv(ip, iveg)
-                        vegetation_cd_sum_table(ip, k) = vegetation_cd_sum_table(ip, k) + vegetation_stems_cd_width_density_uv(ip, iveg) * max(0.0, min(section_top, h_k) - section_bottom)
+                        vegetation_cd_sum_table(ip, k) = vegetation_cd_sum_table(ip, k) + vegetation_stems_cd_diameter_density_uv(ip, iveg) * max(0.0, min(section_top, h_k) - section_bottom)
                         section_bottom = section_top
                     enddo
                 enddo
@@ -254,14 +252,14 @@ contains
     ! -----------------------------------------------------------------------
     !
     ! INPUT (read from vegetation NetCDF file, on z-points):
-    !   vegetation_cd             : bulk drag coefficient            [-]        (np, nsec)
+    !   vegetation_stems_cd       : bulk drag coefficient            [-]        (np, nsec)
     !   vegetation_stems_height   : section thickness, stacked bed upward [m]  (np, nsec)
-    !   vegetation_stems_width    : stem diameter                    [m]        (np, nsec)
+    !   vegetation_stems_diameter : stem diameter                    [m]        (np, nsec)
     !   vegetation_stems_density  : stem density                     [m-2]      (np, nsec)
     !
     ! STEP 1 - interpolate to uv-points and pre-multiply constants:
     !   vegetation_stems_height_uv(ip,iveg)          = average of nm and nmu cell heights
-    !   vegetation_stems_cd_width_density_uv(ip,iveg) = 0.5 * cd * b * N / rho_w
+    !   vegetation_stems_cd_diameter_density_uv(ip,iveg) = 0.5 * cd * b * N / rho_w
     !     (factor 0.5 and rho_w division folded in once; never recomputed at runtime)
     !
     ! STEP 2 - build lookup table (vegetation_nlookup equidistant depth bins):

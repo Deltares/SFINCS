@@ -433,7 +433,7 @@ module sfincs_data
       real*4,             dimension(:,:),   allocatable :: vegetation_stems_diameter
       real*4,             dimension(:,:),   allocatable :: vegetation_stems_density
       integer,            dimension(:),     allocatable :: vegetation_type_index       ! per-cell integer type id from NetCDF
-      real*4,             dimension(:,:),   allocatable :: vegetation_stems_cd_width_density_uv
+      real*4,             dimension(:,:),   allocatable :: vegetation_stems_cd_diameter_density_uv
       ! Lookup table arrays (pre-computed in initialize_vegetation, used in compute_fluxes without inner loop)
       integer                                           :: vegetation_nlookup                ! number of equidistant vertical sections in lookup table (default 20, set via sfincs.inp)
       real*4,             dimension(:),     allocatable :: vegetation_lookup_hmin_uv         ! minimum vegetation height on uv points
