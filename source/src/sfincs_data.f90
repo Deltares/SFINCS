@@ -165,6 +165,7 @@ module sfincs_data
       character*256 :: qtrfile
       character*256 :: volfile
       character*256 :: veggiefile
+      character*256 :: veggietype_toml       ! TOML lookup table companion to veggiefile
       !
       character*256 :: trefstr_iso8601
       character*41  :: treftimefews
@@ -426,11 +427,12 @@ module sfincs_data
       ! Vegetation
       !
       integer                                           :: vegetation_vertical_segments ! nr of vegetation sections in vertical
-      real*4,             dimension(:,:),   allocatable :: vegetation_cd
+      real*4,             dimension(:,:),   allocatable :: vegetation_stems_cd
       real*4,             dimension(:,:),   allocatable :: vegetation_stems_height
       real*4,             dimension(:,:),   allocatable :: vegetation_stems_height_uv
-      real*4,             dimension(:,:),   allocatable :: vegetation_stems_width
+      real*4,             dimension(:,:),   allocatable :: vegetation_stems_diameter
       real*4,             dimension(:,:),   allocatable :: vegetation_stems_density
+      integer,            dimension(:),     allocatable :: vegetation_type_index       ! per-cell integer type id from NetCDF
       real*4,             dimension(:,:),   allocatable :: vegetation_stems_cd_width_density_uv
       ! Lookup table arrays (pre-computed in initialize_vegetation, used in compute_fluxes without inner loop)
       integer                                           :: vegetation_nlookup                ! number of equidistant vertical sections in lookup table (default 20, set via sfincs.inp)

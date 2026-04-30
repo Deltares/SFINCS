@@ -412,11 +412,155 @@ module sfincs_ncinput
       !
    enddo   
    !   
-   NF90(nf90_close(net_file_generic%ncid))       
-   ! 
-   end subroutine   
-   
-   
+   NF90(nf90_close(net_file_generic%ncid))
+   !
+   end subroutine
+
+
+   subroutine read_netcdf_quadtree_integer(ncfile, varname, var)
+   ! Read a 1D integer variable from a quadtree NetCDF file and map to SFINCS active cells
+   !
+   use netcdf
+   use sfincs_data
+   use quadtree
+   !
+   implicit none
+   !
+   integer :: nm, ip, nrcells, status
+   !
+   character*256 :: ncfile
+   character*256 :: varname
+   !
+   integer, dimension(np), intent(inout) :: var
+   !
+   integer, dimension(:), allocatable :: vartmp
+   !
+   NF90(nf90_open(trim(ncfile), NF90_CLOBBER, net_file_generic%ncid))
+   !
+   NF90(nf90_inq_dimid(net_file_generic%ncid, "mesh2d_nFaces", net_file_generic%np_dimid))
+   !
+   NF90(nf90_inquire_dimension(net_file_generic%ncid, net_file_generic%np_dimid, len = nrcells))
+   !
+   if (nrcells /= quadtree_nr_points) then
+      write(logstr,*)'Error    : netcdf input file ',trim(ncfile),' contains: ',nrcells, &
+          ' input points, while expected is: ',quadtree_nr_points,' as in sfincs.nc quadtree grid'
+      call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   status = nf90_inq_varid(net_file_generic%ncid, varname, net_file_generic%gen_varid)
+   !
+   if (status /= nf90_noerr) then
+       write(logstr,'(a,a,a,a,a)')'Error    : netcdf input file ',trim(ncfile), &
+           ' does not contain needed variable: ',trim(varname),' !'
+       call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   allocate(vartmp(nrcells))
+   !
+   NF90(nf90_get_var(net_file_generic%ncid, net_file_generic%gen_varid, vartmp(:)))
+   !
+   do ip = 1, quadtree_nr_points
+      nm = index_sfincs_in_quadtree(ip)
+      if (nm > 0) var(nm) = vartmp(ip)
+   enddo
+   !
+   deallocate(vartmp)
+   !
+   NF90(nf90_close(net_file_generic%ncid))
+   !
+   end subroutine
+
+
+   subroutine read_netcdf_flag_meanings(ncfile, varname, flag_values, flag_meanings, nflags)
+   ! Read CF convention flag_values (integer array) and flag_meanings (space-separated string)
+   ! attributes from a NetCDF variable and return them as separate arrays.
+   !
+   use netcdf
+   use sfincs_error
+   use sfincs_log
+   !
+   implicit none
+   !
+   character*256, intent(in)                             :: ncfile
+   character*256, intent(in)                             :: varname
+   integer,            allocatable, intent(out)          :: flag_values(:)
+   character(len=64),  allocatable, intent(out)          :: flag_meanings(:)
+   integer,                         intent(out)          :: nflags
+   !
+   integer            :: ncid, varid, status, att_len
+   character(len=4096) :: meanings_str
+   integer            :: i, istart, itype
+   !
+   ! Open file in read-only mode
+   !
+   status = nf90_open(trim(ncfile), NF90_NOWRITE, ncid)
+   if (status /= nf90_noerr) then
+       write(logstr,'(a,a,a)')'Error    : cannot open NetCDF file ', trim(ncfile), ' !'
+       call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   status = nf90_inq_varid(ncid, trim(varname), varid)
+   if (status /= nf90_noerr) then
+       write(logstr,'(a,a,a,a,a)')'Error    : NetCDF file ',trim(ncfile), &
+           ' does not contain variable: ',trim(varname),' !'
+       call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   ! flag_values: CF attribute giving the integer id for each type; its length is nflags
+   !
+   status = nf90_inquire_attribute(ncid, varid, 'flag_values', len=nflags)
+   if (status /= nf90_noerr) then
+       write(logstr,'(a,a,a)')'Error    : variable ',trim(varname), &
+           ' in vegetation NetCDF has no flag_values attribute !'
+       call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   allocate(flag_values(nflags))
+   status = nf90_get_att(ncid, varid, 'flag_values', flag_values)
+   if (status /= nf90_noerr) then
+       write(logstr,'(a,a,a)')'Error    : cannot read flag_values attribute from variable ', &
+           trim(varname), ' !'
+       call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   ! flag_meanings: CF attribute with space-separated type names
+   !
+   status = nf90_inquire_attribute(ncid, varid, 'flag_meanings', len=att_len)
+   if (status /= nf90_noerr) then
+       write(logstr,'(a,a,a)')'Error    : variable ',trim(varname), &
+           ' in vegetation NetCDF has no flag_meanings attribute !'
+       call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   meanings_str = ' '
+   status = nf90_get_att(ncid, varid, 'flag_meanings', meanings_str)
+   if (status /= nf90_noerr) then
+       write(logstr,'(a,a,a)')'Error    : cannot read flag_meanings attribute from variable ', &
+           trim(varname), ' !'
+       call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   status = nf90_close(ncid)
+   !
+   ! Split space-separated flag_meanings string into individual name strings
+   !
+   allocate(flag_meanings(nflags))
+   flag_meanings = ' '
+   itype = 0
+   istart = 1
+   do i = 1, len_trim(meanings_str) + 1
+       if (i > len_trim(meanings_str) .or. meanings_str(i:i) == ' ') then
+           if (i > istart) then
+               itype = itype + 1
+               if (itype <= nflags) flag_meanings(itype) = meanings_str(istart:i-1)
+           endif
+           istart = i + 1
+       endif
+   enddo
+   !
+   end subroutine
+
+
    subroutine read_netcdf_amuv_data()
    !
    ! Output is made exactly the same as original read_amuv_dimensions & read_amuv_file subroutines but then with data given by netcdf file

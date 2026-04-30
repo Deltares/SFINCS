@@ -1042,8 +1042,8 @@ contains
    !
    use snapwave_data
    use quadtree
-   use sfincs_data, only: vegetation_cd, vegetation_stems_height, &
-                          vegetation_stems_width, vegetation_stems_density, &
+   use sfincs_data, only: vegetation_stems_cd, vegetation_stems_height, &
+                          vegetation_stems_diameter, vegetation_stems_density, &
                           vegetation_vertical_segments   
    !
    ! Local input variables
@@ -2080,10 +2080,10 @@ contains
             !
             ! Set node values for all points in the vertical
             do iq = 1, no_secveg
-               veg_Cd(nac,iq)   = vegetation_cd(ip,iq)
-               veg_ah(nac,iq)   = vegetation_stems_height(ip,iq)
-               veg_bstems(nac,iq)   = vegetation_stems_width(ip,iq)
-               veg_Nstems(nac,iq)   = vegetation_stems_density(ip,iq)
+               veg_Cd(nac,iq)     = vegetation_stems_cd(ip,iq)
+               veg_ah(nac,iq)     = vegetation_stems_height(ip,iq)
+               veg_bstems(nac,iq) = vegetation_stems_diameter(ip,iq)
+               veg_Nstems(nac,iq) = vegetation_stems_density(ip,iq)
             enddo            
             !
          endif
