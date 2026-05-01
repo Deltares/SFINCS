@@ -1076,11 +1076,11 @@ contains
    !
    if (store_vegetation) then
       !
-      NF90(nf90_def_var(map_file%ncid, 'vegetation_cd', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%nsec_dimid/), map_file%veg_cd_varid))
+      NF90(nf90_def_var(map_file%ncid, 'vegetation_stems_cd', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%nsec_dimid/), map_file%veg_cd_varid))
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%veg_cd_varid, 1, 1, nc_deflate_level))
       NF90(nf90_put_att(map_file%ncid, map_file%veg_cd_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(map_file%ncid, map_file%veg_cd_varid, 'units', '-'))
-      NF90(nf90_put_att(map_file%ncid, map_file%veg_cd_varid, 'standard_name', 'vegetation_cd'))
+      NF90(nf90_put_att(map_file%ncid, map_file%veg_cd_varid, 'standard_name', 'vegetation_stems_cd'))
       NF90(nf90_put_att(map_file%ncid, map_file%veg_cd_varid, 'long_name', 'bulk_drag_coefficient_per_vegetation_section'))
       !
       NF90(nf90_def_var(map_file%ncid, 'vegetation_stems_height', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%nsec_dimid/), map_file%veg_ah_varid))
