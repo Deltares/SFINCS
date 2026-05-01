@@ -222,7 +222,7 @@ contains
    call read_char_input(500,'drnfile',drnfile,'none')
    call read_char_input(500,'volfile',volfile,'none')
    call read_char_input(500,'vegetationfile',veggiefile,'none')
-   call read_char_input(500,'vegetationtype_toml',veggietype_toml,'none')   ! companion TOML lookup table; if set, veggiefile holds only vegetation_type integers
+   call read_char_input(500,'vegetationtype_toml',veggietype_toml,'none')   ! companion TOML lookup table; if set, vegetationfile holds only vegetation_type integers
    call read_int_input(500,'vegetation_nlookup',vegetation_nlookup,20)
    !
    ! Forcing

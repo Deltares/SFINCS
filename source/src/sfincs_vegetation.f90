@@ -485,6 +485,16 @@ contains
         call stop_sfincs('Error    : no valid vegetation types found in TOML file !', 1)
     endif
     !
+    allocate(veg_cd_lookup(nflags, max_layers))
+    allocate(veg_ah_lookup(nflags, max_layers))
+    allocate(veg_bstems_lookup(nflags, max_layers))
+    allocate(veg_nstems_lookup(nflags, max_layers))
+    !
+    veg_cd_lookup     = tmp_cd(:, 1:max_layers)
+    veg_ah_lookup     = tmp_ah(:, 1:max_layers)
+    veg_bstems_lookup = tmp_bstems(:, 1:max_layers)
+    veg_nstems_lookup = tmp_nstems(:, 1:max_layers)
+    !
     end subroutine
 
 
