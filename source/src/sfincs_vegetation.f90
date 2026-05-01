@@ -12,7 +12,8 @@ contains
     !
     implicit none
     !
-    integer :: nm, flag_idx, type_idx
+    integer :: nm, nmu, ip, iveg, k
+    real*4  :: dh_veg, h_k, section_bottom, section_top, flag_idx, type_idx
     integer :: max_layers, nflags
     !
     logical :: ok
@@ -157,6 +158,134 @@ contains
         endif
         !
     endif
+    !
+    ! For SFINCS precalculate cd * bstems * Nstems for each vertical section, as well as the vegetation height on uv points
+    !
+    if (vegetation) then
+        !
+        allocate(vegetation_stems_cd_diameter_density_uv(npuv, vegetation_vertical_segments)) ! product of cd, diameter and density on uv points
+        !
+        allocate(vegetation_stems_height_uv(npuv, vegetation_vertical_segments)) ! vegetation height on uv points
+        !
+        vegetation_stems_cd_diameter_density_uv = 0.0
+        vegetation_stems_height_uv = 0.0
+        !
+        ! Interpolate vegetation properties from z-points to uv-points
+        !
+        do ip = 1, npuv
+            !
+            nm  = uv_index_z_nm(ip)
+            nmu = uv_index_z_nmu(ip)
+            !
+            do iveg = 1, vegetation_vertical_segments
+                !
+                vegetation_stems_height_uv(ip,iveg) = 0.5*(vegetation_stems_height(nm,iveg)+vegetation_stems_height(nmu,iveg))
+                !
+                vegetation_stems_cd_diameter_density_uv(ip,iveg) = 0.5 * (0.5 * (vegetation_stems_cd(nm,iveg) + vegetation_stems_cd(nmu,iveg))) * (0.5 * (vegetation_stems_diameter(nm,iveg) + vegetation_stems_diameter(nmu,iveg))) * (0.5 * (vegetation_stems_density(nm,iveg) + vegetation_stems_density(nmu,iveg)))  / rhow
+                !
+                ! vegetation_stems_cd_diameter_density = 0.5 * cd * stems_diameter * stems_density / rhow, so everything that is precalculatable
+                !
+            enddo
+            !
+        enddo
+        !
+        ! Pre-compute lookup table: cumulative sum of cd*diameter*density at vegetation_nlookup equidistant depth levels
+        ! Sections are stacked from the bed (consistent with swvegatt in snapwave_solver.f90):
+        !   vegetation_cd_sum_table(ip, k) = sum_iveg( cd_wd(ip,iveg) * max(0, min(section_top_iveg, h_k) - section_bottom_iveg) )
+        ! In compute_fluxes: fvm = table_lookup(ip, hu) * uv0 * |uv0|  (no inner do-loop needed)
+        !
+        allocate(vegetation_lookup_hmin_uv(npuv))
+        allocate(vegetation_lookup_hmax_uv(npuv))
+        allocate(vegetation_lookup_dh_uv(npuv))
+        allocate(vegetation_cd_sum_table(npuv, 0:vegetation_nlookup))
+        allocate(vegetation_cd_slope_table(npuv, 0:vegetation_nlookup-1))
+        !
+        vegetation_lookup_hmin_uv  = 0.0
+        vegetation_lookup_hmax_uv  = 0.0
+        vegetation_lookup_dh_uv    = 0.0
+        vegetation_cd_sum_table    = 0.0
+        vegetation_cd_slope_table  = 0.0
+        !
+        !$omp parallel do private( ip, k, iveg, dh_veg, h_k, section_bottom, section_top ) schedule( static )
+        do ip = 1, npuv
+            !
+            ! Sections are stacked from the bed upward (consistent with swvegatt in snapwave_solver):
+            !   section_bottom(iveg) = sum of all previous section heights
+            !   section_top(iveg)    = section_bottom + vegetation_stems_height_uv(ip, iveg)
+            ! hmax = total vegetation height = sum of all section thicknesses
+            ! hmin = height of the bottom of the lowest section = 0 (all sections start at the bed)
+            !
+            vegetation_lookup_hmin_uv(ip) = 0.0
+            vegetation_lookup_hmax_uv(ip) = sum(vegetation_stems_height_uv(ip,:))
+            !
+            if (vegetation_lookup_hmax_uv(ip) > 0.0) then
+                dh_veg = vegetation_lookup_hmax_uv(ip) / real(vegetation_nlookup)
+                vegetation_lookup_dh_uv(ip) = dh_veg
+                do k = 1, vegetation_nlookup
+                    h_k = k * dh_veg
+                    section_bottom = 0.0
+                    do iveg = 1, vegetation_vertical_segments
+                        section_top = section_bottom + vegetation_stems_height_uv(ip, iveg)
+                        vegetation_cd_sum_table(ip, k) = vegetation_cd_sum_table(ip, k) + vegetation_stems_cd_diameter_density_uv(ip, iveg) * max(0.0, min(section_top, h_k) - section_bottom)
+                        section_bottom = section_top
+                    enddo
+                enddo
+            endif
+            !
+        enddo
+        !$omp end parallel do
+        !
+        ! Pre-compute slope between consecutive table entries to avoid the subtraction in compute_fluxes
+        !
+        !$omp parallel do private( ip, k ) schedule( static )
+        do ip = 1, npuv
+            do k = 0, vegetation_nlookup - 1
+                vegetation_cd_slope_table(ip, k) = vegetation_cd_sum_table(ip, k+1) - vegetation_cd_sum_table(ip, k)
+            enddo
+        enddo
+        !$omp end parallel do
+        !
+    endif
+    !
+    ! -----------------------------------------------------------------------
+    ! Summary: vegetation drag pre-computation
+    ! -----------------------------------------------------------------------
+    !
+    ! INPUT (read from vegetation NetCDF file, on z-points):
+    !   vegetation_stems_cd       : bulk drag coefficient            [-]        (np, nsec)
+    !   vegetation_stems_height   : section thickness, stacked bed upward [m]  (np, nsec)
+    !   vegetation_stems_diameter : stem diameter                    [m]        (np, nsec)
+    !   vegetation_stems_density  : stem density                     [m-2]      (np, nsec)
+    !
+    ! STEP 1 - interpolate to uv-points and pre-multiply constants:
+    !   vegetation_stems_height_uv(ip,iveg)          = average of nm and nmu cell heights
+    !   vegetation_stems_cd_diameter_density_uv(ip,iveg) = 0.5 * cd * b * N / rho_w
+    !     (factor 0.5 and rho_w division folded in once; never recomputed at runtime)
+    !
+    ! STEP 2 - build lookup table (vegetation_nlookup equidistant depth bins):
+    !   hmax(ip) = sum of all section heights  (total vegetation height)
+    !   dh(ip)   = hmax / vegetation_nlookup   (bin width, stored for runtime use)
+    !   For each bin k (depth level h_k = k * dh):
+    !     table(ip,k) = sum_iveg [ cd_wd(ip,iveg) * max(0, min(sec_top, h_k) - sec_bot) ]
+    !   This is the cumulative drag integral up to depth h_k.
+    !   Sections are stacked from the bed (sec_bot = sum of previous section heights),
+    !   consistent with the swvegatt convention in snapwave_solver.f90.
+    !
+    ! STEP 3 - pre-compute slope table (avoids subtraction at runtime):
+    !   slope_table(ip,k) = table(ip,k+1) - table(ip,k)
+    !
+    ! RUNTIME USE (compute_fluxes in sfincs_momentum.f90):
+    !   Given water depth hu at a uv-point:
+    !     frac   = min(hu, hmax(ip)) / dh(ip)        ! fractional bin index
+    !     ik     = floor(frac)                         ! integer bin
+    !     frac   = frac - ik                           ! remainder for interpolation
+    !     cd_eff = table(ip,ik) + frac * slope(ip,ik) ! O(1) lookup, no section loop
+    !   Vegetation drag force (explicit, added to frc):
+    !     F_veg  = -phi * cd_eff * u0 * |u0|
+    !   Flux update (Manning friction handled implicitly in denominator):
+    !     q_new  = (q_old + (F_ext + F_veg) * dt) / (1 + g*n^2*|q|/hu^(7/3) * dt)
+    ! -----------------------------------------------------------------------
+    !    
     !
     end subroutine
 
@@ -365,8 +494,6 @@ contains
     veg_ah_lookup     = tmp_ah(:, 1:max_layers)
     veg_bstems_lookup = tmp_bstems(:, 1:max_layers)
     veg_nstems_lookup = tmp_nstems(:, 1:max_layers)
-    !
-    deallocate(tmp_cd, tmp_ah, tmp_bstems, tmp_nstems, nlayers_per_type)
     !
     end subroutine
 

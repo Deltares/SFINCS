@@ -94,8 +94,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.3.2 mt. Faber+branch:292"
-   build_date     = "$Date: 2026-04-29"
+   build_revision = "$Rev: v2.3.2 mt. Faber+branch:292+315"
+   build_date     = "$Date: 2026-05-01"
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)
@@ -255,6 +255,11 @@ module sfincs_lib
    else
       ! call write_log('Non-hydrostatic         : no', 1)
    endif   
+   if (vegetation) then
+      call write_log('Vegetation           : yes', 1)
+   else
+      ! call write_log('Vegetation           : no', 1)
+   endif      
    if (bathtub) then
       call write_log('Bathtub              : yes', 1)
    else
