@@ -1125,26 +1125,21 @@ contains
 
    
    
-   subroutine update_boundaries(t, dt, tloop)
+   subroutine update_boundaries(t, dt)
    !
    ! Update all boundary conditions
    !
    use sfincs_data
+   use sfincs_timers
    !
    implicit none
-   !
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
    !
    real*8           :: t
    real*4           :: dt
    !
-   call system_clock(count0, count_rate, count_max)
-   !
    if (boundaries_in_mask) then
+      !
+      call timer_start('boundaries')
       !
       if (nbnd > 0) then
          !
@@ -1158,7 +1153,7 @@ contains
       ! as these are not used in bathtub mode
       !
       if (.not. bathtub) then
-         !      
+         !
          ! Update boundary conditions at grid points (water levels)
          !
          call update_boundary_conditions(t, dt)
@@ -1169,10 +1164,9 @@ contains
          !
       endif
       !
+      call timer_stop('boundaries')
+      !
    endif
-   !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0 * (count1 - count0) / count_rate
    !
    end subroutine
    !

@@ -1351,7 +1351,7 @@ module snapwave_solver
 
    subroutine timer(t)
    real*4,intent(out)               :: t
-   integer*4                        :: count,count_rate,count_max
+   integer*8                        :: count,count_rate,count_max
    call system_clock (count,count_rate,count_max)
    t = real(count)/count_rate
    end subroutine timer

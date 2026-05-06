@@ -4,7 +4,6 @@ module sfincs_data
       character*256 :: build_revision, build_date
       !!!!
       !!! Time variables
-      real    :: tstart_all, tfinish_all
       real*4  :: dtavg
       real*4  :: min_dt
       !!!
@@ -16,6 +15,7 @@ module sfincs_data
       !!!
       logical       :: bmi
       logical       :: use_qext
+      logical       :: use_dzbext
       !!!
       !!! Constants
       !!!
@@ -34,8 +34,6 @@ module sfincs_data
       real*4 gn2
       real*4 t0
       real*4 t1
-      real*4 t3
-      real*4 t4      
       real*4 dx
       real*4 dy
       real*4 dxinv
@@ -125,9 +123,7 @@ module sfincs_data
       character*256 :: obsfile
       character*256 :: crsfile
       character*256 :: rugfile
-      character*256 :: srcfile
-      character*256 :: disfile
-      character*256 :: drnfile
+      character*256 :: urbfile
       character*256 :: zsinifile
       character*256 :: rstfile
       character*256 :: indexfile
@@ -147,7 +143,6 @@ module sfincs_data
       character*256 :: weirfile
       character*256 :: qinffile
       character*256 :: netbndbzsbzifile
-      character*256 :: netsrcdisfile
       character*256 :: netamuamvfile
       character*256 :: netampfile
       character*256 :: netamprfile
@@ -204,6 +199,7 @@ module sfincs_data
       logical       :: store_hsubgrid
       logical       :: store_hmean      
       logical       :: store_qdrain
+      logical       :: store_river_discharge
       logical       :: store_zvolume
       logical       :: store_storagevolume            
       logical       :: store_meteo
@@ -217,6 +213,11 @@ module sfincs_data
       logical       :: write_time_output
       logical       :: bziwaves
       logical       :: infiltration
+      logical       :: discharges
+      logical       :: drainage_structures
+      logical       :: urban_drainage
+      logical       :: store_urban_drainage_discharge
+      logical       :: store_cumulative_urban_drainage
       LOGICAL       :: netcdf_infiltration
       logical       :: debug
       logical       :: radstr
@@ -255,20 +256,6 @@ module sfincs_data
       logical       :: snapwave_use_nearest
       logical       :: bathtub
       logical       :: bathtub_snapwave      
-      !!!
-      !!! sfincs_input.f90 switches
-      integer storevelmax
-      integer storefluxmax
-      integer storevel
-      integer storecumprcp
-      integer storetwet
-      integer storetzsmax
-      integer storeqdrain
-      integer storezvolume
-      integer storestoragevolume      
-      integer storemeteo
-      integer storehsubgrid
-      integer wrttimeoutput
       !!!
       !!! Static data
       !!!
@@ -398,6 +385,16 @@ module sfincs_data
       ! Storage volume
       !
       real*4, dimension(:),   allocatable :: storage_volume  ! Storage volume green infra
+      !
+      ! Bucket model - finite capacity reservoir with linear drainage
+      !
+      logical       :: use_bucket_model = .false.
+      real*4, dimension(:),   allocatable :: bucket_volume                     ! current storage (m)
+      real*4, dimension(:),   allocatable :: bucket_capacity                   ! max capacity S_max (m)
+      real*4, dimension(:),   allocatable :: bucket_k                          ! drainage coefficient (1/s)
+      real*4, dimension(:),   allocatable :: bucket_drain_rate                 ! net removal from surface this step (m/s)
+      real*4, dimension(:),   allocatable :: bucket_loss                       ! loss fraction per cell (0-1), ET/deep percolation
+      real*4, dimension(:),   allocatable :: bucket_runoff                     ! bucket drainage returned as surface runoff (m/s)
       !
       ! Wind reduction for spiderweb winds
       !
@@ -578,6 +575,7 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: zs0
       real*4, dimension(:),   allocatable :: zsderv
       real*4, dimension(:),   allocatable, target :: qext
+      real*4, dimension(:),   allocatable, target :: dzbext
       real*4, dimension(:),   allocatable, target :: uorb
       real*4, dimension(:),   allocatable :: gnapp2
       !
@@ -772,22 +770,26 @@ module sfincs_data
       !!!
       !!! Discharges and drainage
       !!!
-      integer                               :: nsrc
-      integer                               :: ndrn
-      integer                               :: nsrcdrn
+      ! Cell-wise accumulated discharge used by continuity. Size np. Zeroed
+      ! each step, then both sfincs_discharges and sfincs_src_structures
+      ! accumulate into it.
+      !
+      real*4, dimension(:),     allocatable :: qsrc        ! (np)   cell-wise discharge [m3/s]
+      !
+      ! River point discharges (sfincs_discharges)
+      !
+      ! Identifiers that are read by sfincs_input / sfincs_ncinput stay here;
+      ! the pure discharge-module-only state (itsrclast, nmindsrc, qtsrc,
+      ! src_name, src_name_len) has been moved into sfincs_discharges.
+      !
       integer                               :: ntsrc
-      integer                               :: itsrclast
-      real*4, dimension(:),     allocatable :: tsrc
-      real*4, dimension(:,:),   allocatable :: qsrc
-      real*4, dimension(:),     allocatable :: qtsrc
-      integer*4, dimension(:),  allocatable :: nmindsrc
-      integer*1, dimension(:),  allocatable :: drainage_type
-      real*4, dimension(:,:),   allocatable :: drainage_params
-      real*4, dimension(:),     allocatable :: drainage_distance
-      integer*1, dimension(:),  allocatable :: drainage_status
-      real*4, dimension(:),     allocatable :: drainage_fraction_open
+      real*4, dimension(:),     allocatable :: tsrc        ! (ntsrc) time stamps of river discharge time series
+      real*4, dimension(:,:),   allocatable :: qsrc_ts     ! (nr_discharge_points, ntsrc) river discharge time series matrix
       real*4, dimension(:),     allocatable :: xsrc
       real*4, dimension(:),     allocatable :: ysrc
+      !
+      ! Src-point structures (pumps, culverts, check valves, controlled gates)
+      ! live in module sfincs_src_structures.
       !!!
       !!! Structures
       !!!
@@ -955,7 +957,13 @@ module sfincs_data
     if(allocated(qinffield)) deallocate(qinffield)
     if(allocated(ksfield)) deallocate(ksfield)
     if(allocated(scs_Se)) deallocate(scs_Se)
-    if(allocated(nuvisc)) deallocate(nuvisc)    
+    if(allocated(bucket_volume)) deallocate(bucket_volume)
+    if(allocated(bucket_capacity)) deallocate(bucket_capacity)
+    if(allocated(bucket_k)) deallocate(bucket_k)
+    if(allocated(bucket_drain_rate)) deallocate(bucket_drain_rate)
+    if(allocated(bucket_loss)) deallocate(bucket_loss)
+    if(allocated(bucket_runoff)) deallocate(bucket_runoff)
+    if(allocated(nuvisc)) deallocate(nuvisc)
     !
     ! Boundary velocity points
     !
@@ -1013,6 +1021,7 @@ module sfincs_data
     if(allocated(uv0)) deallocate(uv0)
     if(allocated(twet)) deallocate(twet)
     if(allocated(qext)) deallocate(qext)
+    if(allocated(dzbext)) deallocate(dzbext)
     !
 !    if(allocated(huu)) deallocate(huu)
 !    if(allocated(hvv)) deallocate(hvv)
@@ -1111,10 +1120,15 @@ module sfincs_data
     !!!
     !!! Discharges
     !!!
-    if(allocated(tsrc)) deallocate(tsrc)
     if(allocated(qsrc)) deallocate(qsrc)
-    if(allocated(qtsrc)) deallocate(qtsrc)
-    if(allocated(nmindsrc)) deallocate(nmindsrc)
+    if(allocated(tsrc)) deallocate(tsrc)
+    if(allocated(qsrc_ts)) deallocate(qsrc_ts)
+    !
+    ! River-point-discharge module-private state (qtsrc, nmindsrc, src_name)
+    ! is owned by sfincs_discharges and is deallocated there.
+    !
+    ! Src-point structure state is owned by sfincs_src_structures and is
+    ! deallocated there.
     !!!
     !!! Structures
     !!!

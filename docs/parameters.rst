@@ -396,7 +396,15 @@ Parameters for model output
 	storeqdrain
 	  :description:		Flag to turn on writing away drainage discharge during simulation (storeqdrain = 1)
 	  :units:		-
-	  :default:		0	
+	  :default:		0
+	store_urban_drainage_discharge
+	  :description:		Flag to turn on writing away per-zone outfall discharge to 'sfincs_his.nc' on 'dthisout' interval (only effective when 'urbfile' is specified).
+	  :units:		-
+	  :default:		0
+	store_cumulative_urban_drainage
+	  :description:		Flag to turn on writing away cumulative urban drainage depth (drained volume / cell area, in m) per cell to 'sfincs_map.nc' on 'dtmaxout' interval (only effective when 'urbfile' is specified).
+	  :units:		-
+	  :default:		0
 	storezvolume
 	  :description:		Flag to turn on writing away water volumes for the subgrid mode during simulation (storezvolume = 1)
 	  :units:		-
@@ -475,54 +483,68 @@ Domain
 	  :units:		s/m^(1/3)
 	  :required:		no in case of regular mode, ignored in case of subgrid mode	  
 	  :format:		bin	 
+	infiltrationfile = sfincs.infiltration.nc
+	  :description:		Recommended NetCDF input for spatially varying infiltration and bucket-model losses. Use together with infiltrationtype.
+	  :units:		depends on selected infiltrationtype and variables in the NetCDF file
+	  :required:		no
+	  :format:		net
+	infiltrationtype = c2d | cna | cnb | gai | hor | bkt
+	  :description:		Selects which infiltration method is read from infiltrationfile. Bucket mode requires bucket_smax, bucket_k and bucket_loss in infiltrationfile.
+	  :units:		-
+	  :required:		Only when infiltrationfile is used
+	  :format:		asc
+	drainagefile = sfincs.drainage
+	  :description:		Spatially varying drainage mimic input in mm/hr. Can be a binary map or a NetCDF file with variable drainage_rate. This replaces the removed qdrain keyword.
+	  :units:		mm/hr
+	  :required:		no
+	  :format:		bin or net
 	qinffile = sfincs.qinf
-	  :description:		For spatially varying constant in time infiltration values per cell use the qinffile option, with the same grid based input as the depfile using a binary file.
+	  :description:		Backward compatibility only. For spatially varying constant in time infiltration values per cell prefer infiltrationfile with infiltrationtype = c2d.
 	  :units:		mm/hr
 	  :required:		no	  
 	  :format:		bin	  
 	scsfile = sfincs.scs
-	  :description:		For spatially varying infiltration values per cell using the Curve Number method A (without recovery) use the scsfile option, with the same grid based input as the depfile using a binary file.
+	  :description:		Backward compatibility only. For Curve Number method A (without recovery) prefer infiltrationfile with infiltrationtype = cna.
 	  :units:		-
 	  :required:		no	  
 	  :format:		bin	  	  
 	smaxfile = sfincs.smax
-	  :description:		For spatially varying infiltration values per cell using the Curve Number method B (with recovery) provide the smaxfile (as well as the sefffile and ksfile) as maximum soil moisture storage capacity in m, with the same grid based input as the depfile using a binary file.
+	  :description:		Backward compatibility only. For Curve Number method B (with recovery) prefer infiltrationfile with infiltrationtype = cnb. The smaxfile contains the maximum soil moisture storage capacity in m.
 	  :units:		m
 	  :required:		no	  
 	  :format:		bin	  	
 	sefffile = sfincs.seff
-	  :description:		For spatially varying infiltration values per cell using the Curve Number method B (with recovery) provide the sefffile (as well as the smaxfile and ksfile) as soil moisture storage capacity at the start in m, with the same grid based input as the depfile using a binary file.
+	  :description:		Backward compatibility only. For Curve Number method B (with recovery) prefer infiltrationfile with infiltrationtype = cnb. The sefffile contains soil moisture storage capacity at the start in m.
 	  :units:		m
 	  :required:		no	  
 	  :format:		bin	  
 	ksfile = sfincs.ks
-	  :description:		For spatially varying infiltration values per cell using the Curve Number method B (with recovery) provide the ksfile (as well as the smaxfile and sefffile) as saturated hydraulic conductivity in mm/hr, with the same grid based input as the depfile using a binary file.
-	  :description:		For spatially varying infiltration values per cell using the Green & Ampt method (with recovery) provide the ksfile (as well as the sigmafile and psifile) as saturated hydraulic conductivity in mm/hr, with the same grid based input as the depfile using a binary file.
+	  :description:		Backward compatibility only. For Curve Number method B (with recovery) and Green & Ampt infiltration prefer infiltrationfile with infiltrationtype = cnb or gai. The ksfile contains saturated hydraulic conductivity in mm/hr.
 	  :units:		mm/hr
 	  :required:		no	  
 	  :format:		bin	  
 	sigmafile = sfincs.sigma
-	  :description:		For spatially varying infiltration values per cell using the Green & Ampt method (with recovery) provide the sigmafile (as well as the psifile and ksfile) as suction head at the wetting front in mm, with the same grid based input as the depfile using a binary file.
-	  :units:		mm
-	  :required:		no	  
-	  :format:		bin	 
-	psifile = sfincs.psi
-	  :description:		For spatially varying infiltration values per cell using the Green & Ampt method (with recovery) provide the psifile (as well as the sigmafile and ksfile) as soil moisture deficit in [-], with the same grid based input as the depfile using a binary file.
+	  :description:		Backward compatibility only. For Green & Ampt infiltration prefer infiltrationfile with infiltrationtype = gai. The sigmafile contains soil moisture deficit in [-].
 	  :units:		-
 	  :required:		no	  
 	  :format:		bin	 
+	psifile = sfincs.psi
+	  :description:		Backward compatibility only. For Green & Ampt infiltration prefer infiltrationfile with infiltrationtype = gai. The psifile contains suction head at the wetting front in mm.
+	  :units:		mm
+	  :required:		no	  
+	  :format:		bin	 
 	f0file = sfincs.f0
-	  :description:		For spatially varying infiltration values per cell using the Horton method (with recovery) provide the f0file (as well as the fcfile and kdfile) as maximum (Initial) Infiltration Capacity in mm/hr, with the same grid based input as the depfile using a binary file.
+	  :description:		Backward compatibility only. For Horton infiltration prefer infiltrationfile with infiltrationtype = hor. The f0file contains maximum (initial) infiltration capacity in mm/hr.
 	  :units:		mm/hr
 	  :required:		no	  
 	  :format:		bin	
 	fcfile = sfincs.fc
-	  :description:		For spatially varying infiltration values per cell using the Horton method (with recovery) provide the fcfile (as well as the f0file and kdfile) as Minimum (Asymptotic) Infiltration Rate in mm/hr, with the same grid based input as the depfile using a binary file.
+	  :description:		Backward compatibility only. For Horton infiltration prefer infiltrationfile with infiltrationtype = hor. The fcfile contains the minimum (asymptotic) infiltration rate in mm/hr.
 	  :units:		mm/hr
 	  :required:		no	  
 	  :format:		bin	 	
 	kdfile = sfincs.kd
-	  :description:		For spatially varying infiltration values per cell using the Horton method (with recovery) provide the kdfile (as well as the f0file and fcfile) as empirical constant (hr-1) of decay, with the same grid based input as the depfile using a binary file.
+	  :description:		Backward compatibility only. For Horton infiltration prefer infiltrationfile with infiltrationtype = hor. The kdfile contains the empirical decay constant in hr-1.
 	  :units:		hr-1
 	  :required:		no	  
 	  :format:		bin	 		  	   	  
@@ -676,5 +698,14 @@ Structures
 	  :description:		Drainage pumps, culverts and check valves are both specified using the same format file, put with a different indication of the type (type=1 is drainage pump, type=2 is culvert and type=3 is check valve).
 	  :units:		coordinates: m in projected UTM zone, discharges in m^3/s.
 	  :required:		no
-	  :format:		asc	 
-	  
+	  :format:		asc
+
+Urban drainage
+-----
+
+	urbfile = sfincs.urb
+	  :description:		TOML file declaring one or more urban-drainage zones. Each zone is a polygon mapped to a single outfall cell; zone cells drain to the outfall at a design rate (specified either as design_precip in mm/hr or max_outfall_rate in m^3/s), and the outfall can push water back into the cells unless a check valve is set. See 'Urban Drainage' in the user manual for the full schema.
+	  :units:		coordinates: m in projected UTM zone; design rate in mm/hr or m^3/s; thresholds in m.
+	  :required:		no
+	  :format:		toml
+

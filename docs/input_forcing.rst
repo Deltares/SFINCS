@@ -1,4 +1,4 @@
-﻿User manual - forcing
+﻿Forcing
 =======
 
 Overview

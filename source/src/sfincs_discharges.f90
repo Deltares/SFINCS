@@ -1,157 +1,263 @@
 module sfincs_discharges
-   
+   !
+   ! River point discharges: nr_discharge_points (x,y) locations from srcfile with matching
+   ! time series qsrc_ts(:,:) from disfile, OR from a FEWS-style netCDF input
+   ! via netsrcdisfile. Interpolates to the current model time every step,
+   ! stores the interpolated value in qtsrc(nr_discharge_points) (for his output), and
+   ! accumulates the per-cell discharge into the global qsrc(np) array used
+   ! by sfincs_continuity.
+   !
+   ! Drainage structures (pumps, check valves, culverts, controlled gates)
+   ! live in sfincs_src_structures. The two modules no longer share any
+   ! arrays -- they cooperate only by both writing into qsrc(np).
+   !
+   ! Subroutines:
+   !
+   !   initialize_discharges()
+   !     Read srcfile/disfile (ascii) or netsrcdisfile (netcdf), resolve
+   !     each source to its quadtree cell, and allocate runtime state.
+   !     Called from sfincs_lib at init time.
+   !
+   !   update_discharges(t, dt)
+   !     Zero qsrc(np), interpolate the river discharge time series to the
+   !     current time, and accumulate into qsrc at each source cell.
+   !     Called from update_continuity (sfincs_continuity) once per
+   !     time step, before update_src_structures.
+   !
+   !   count_tokens(line, ntok)
+   !     Count whitespace-separated tokens in a string; used to decide
+   !     between the 2-column (x y) and 3-column (x y name) src formats.
+   !     Called from initialize_discharges (this module).
+   !
    use sfincs_log
    use sfincs_error
-
-contains
-   !
-   subroutine read_discharges()
-   !
-   ! Reads discharge files
-   !
-   use sfincs_data
-   use sfincs_ncinput
-   use quadtree
    !
    implicit none
    !
-   real*4, dimension(:),     allocatable :: xsnk
-   real*4, dimension(:),     allocatable :: ysnk
+   ! Module-level runtime state for river point discharges (moved from
+   ! sfincs_data). The count, coordinate arrays, file-path strings, and
+   ! qsrc_ts / tsrc / ntsrc stay in sfincs_data because they are also
+   ! set by sfincs_input (keyword reader) or sfincs_ncinput (which this
+   ! module uses, so a back-reference would be circular).
    !
-   real*4 dummy, xsnk_tmp, ysnk_tmp, xsrc_tmp, ysrc_tmp
+   ! Public so downstream output modules (sfincs_output, sfincs_ncoutput)
+   ! and the openacc bookkeeping module can reference them.
    !
-   integer isrc, itsrc, idrn, nm, m, n, stat, j, iref, nmq, npars
+   ! Input file paths (sfincs.inp keywords 'srcfile' / 'disfile' /
+   ! 'netsrcdisfile'); 'none' when the corresponding input is not supplied.
    !
-   logical :: ok
+   character(len=256), public :: srcfile
+   character(len=256), public :: disfile
+   character(len=256), public :: netsrcdisfile
    !
-   character(len=256) :: drainage_line, message 
+   ! Number of river discharge points resolved from the input files.
    !
-   ! Read discharge points
+   integer, public :: nr_discharge_points
    !
-   nsrc  = 0
-   ndrn  = 0
-   ntsrc = 0
-   itsrclast = 1
+   ! Name length (matches src_struc_name_len from sfincs_src_structures).
    !
-   if (srcfile(1:4) /= 'none') then
+   integer, parameter, public :: src_name_len = 128
+   !
+   ! Per-river-source names
+   !
+   character(len=src_name_len), dimension(:), allocatable, public :: src_name   ! (nr_discharge_points) user-supplied or auto-generated names for river point sources
+   !
+   ! Runtime state
+   !
+   integer,                                   public :: itsrclast   ! last-used bracket index into tsrc, for time-series interpolation
+   real*4,    dimension(:), allocatable,      public :: qtsrc       ! (nr_discharge_points) interpolated discharge at current time, for his output
+   integer*4, dimension(:), allocatable,      public :: nmindsrc    ! (nr_discharge_points) river source cell indices
+   !
+contains
+   !
+   !-----------------------------------------------------------------------------------------------------!
+   !
+   subroutine initialize_discharges()
       !
-      ok = check_file_exists(srcfile, 'Source points file', .true.)
+      ! Read the river-point-discharge input and wire each source up to a grid
+      ! cell. Two mutually-exclusive input paths:
+      !   - srcfile (+ disfile): ascii, 2-column (x y) or 3-column (x y name)
+      !     location file plus a separate time-series file.
+      !   - netsrcdisfile: FEWS-style netcdf with locations and time series
+      !     in one file (no per-point names; auto-generated).
+      ! Allocates nmindsrc(nr_discharge_points) and qtsrc(nr_discharge_points),
+      ! and populates shared tsrc/qsrc_ts arrays in sfincs_data.
       !
-      write(logstr,'(a)')'Info    : reading discharges'
-      call write_log(logstr, 0)
+      ! Called from: sfincs_lib (once, at init time).
       !
-      ok = check_file_exists(srcfile, 'River input locations src file', .true.)      
+      use sfincs_data
+      use sfincs_ncinput
+      use quadtree
       !
-      open(500, file=trim(srcfile))
-      do while(.true.)
-         read(500,*,iostat = stat)dummy
-         if (stat < 0) exit
-         nsrc = nsrc + 1
-      enddo
-      rewind(500)
+      implicit none
       !
-   elseif (netsrcdisfile(1:4) /= 'none') then    ! FEWS compatible Netcdf discharge time-series input
+      real*4    :: dummy
+      integer   :: isrc, itsrc, nmq, n, stat, ntok
+      logical   :: ok
+      character(len=1024) :: line, line_trim
+      character(len=src_name_len) :: name_tmp
       !
-      ok = check_file_exists(netsrcdisfile, 'Netcdf river input netsrcdis file', .true.)       
+      discharges          = .false.
+      nr_discharge_points = 0
+      ntsrc               = 0
+      itsrclast           = 1
       !
-      call read_netcdf_discharge_data()  ! reads nsrc, ntsrc, xsrc, ysrc, qsrc, and tsrc
-      !
-      if ((tsrc(1) > (t0 + 1.0)) .or. (tsrc(ntsrc) < (t1 - 1.0))) then
+      if (srcfile(1:4) /= 'none') then
          !
-         write(logstr,'(a)')' WARNING! Times in discharge file do not cover entire simulation period!'
-         call write_log(logstr, 1)
+         write(logstr,'(a)') 'Info    : reading discharges'
+         call write_log(logstr, 0)
          !
-      endif         
-      !
-   endif   
-   !
-   if (drnfile(1:4) /= 'none') then
-      !
-      write(logstr,'(a)')'Info    : reading drainage file'
-      call write_log(logstr, 0)
-      !
-      ok = check_file_exists(drnfile, 'Drainage points drn file', .true.)
-      !
-      open(501, file=trim(drnfile))
-      do while(.true.)
-         read(501,*,iostat = stat)dummy
-         if (stat < 0) exit
-         ndrn = ndrn + 1
-      enddo
-      rewind(501)
-   endif
-   !
-   nsrcdrn = nsrc + 2 * ndrn
-   !
-   if (nsrcdrn > 0) then
-      allocate(nmindsrc(nsrcdrn))
-      allocate(qtsrc(nsrcdrn))
-      nmindsrc = 0
-      qtsrc = 0.0
-   endif
-   !
-   if (srcfile(1:4) /= 'none') then
-      !
-      ! Actually read src and dis files
-      !
-      allocate(xsrc(nsrc))
-      allocate(ysrc(nsrc))
-      !
-      do n = 1, nsrc
-         read(500,*)xsrc(n), ysrc(n)
-      enddo
-      close(500)
-      !
-      ! Read discharge time series
-      !
-      ok = check_file_exists(disfile, 'River discharge timeseries dis file', .true.)      
-      !      
-      open(502, file=trim(disfile))
-      do while(.true.)
-         read(502,*,iostat = stat)dummy
-         if (stat < 0) exit
-         ntsrc = ntsrc + 1
-      enddo
-      rewind(502)
-      allocate(tsrc(ntsrc))
-      allocate(qsrc(nsrc,ntsrc))
-      do itsrc = 1, ntsrc
-         read(502,*)tsrc(itsrc), (qsrc(isrc, itsrc), isrc = 1, nsrc)
-      enddo
-      close(502)
-      !
-      if ((tsrc(1) > (t0 + 1.0)) .or. (tsrc(ntsrc) < (t1 - 1.0))) then
-         ! 
-         write(logstr,'(a)')'Warning! Times in discharge file do not cover entire simulation period !'
-         call write_log(logstr, 1)
+         ok = check_file_exists(srcfile, 'River input locations src file', .true.)
          !
-         if (tsrc(1) > (t0 + 1.0)) then
-            ! 
-            write(logstr,'(a)')'Warning! Adjusting first time in discharge time series !'
-            call write_log(logstr, 1)
+         open(500, file=trim(srcfile))
+         !
+         do while (.true.)
             !
-            tsrc(1) = t0 - 1.0
+            read(500, *, iostat=stat) dummy
+            if (stat < 0) exit
+            nr_discharge_points = nr_discharge_points + 1
             !
-         else
-            ! 
-            write(logstr,'(a)')'Warning! Adjusting last time in discharge time series !'
-            call write_log(logstr, 1)
+         enddo
+         !
+         rewind(500)
+         !
+      elseif (netsrcdisfile(1:4) /= 'none') then    ! FEWS-compatible NetCDF discharge time series
+         !
+         ok = check_file_exists(netsrcdisfile, 'Netcdf river input netsrcdis file', .true.)
+         !
+         call read_netcdf_discharge_data(netsrcdisfile, nr_discharge_points)   ! also sets ntsrc, xsrc, ysrc, qsrc_ts, tsrc (in sfincs_data)
+         !
+         ! The netcdf discharge file does not carry per-point names; auto-generate
+         ! the same way as the 2-column srcfile path.
+         !
+         if (nr_discharge_points > 0) then
             !
-            tsrc(ntsrc) = t1 + 1.0
+            allocate(src_name(nr_discharge_points))
+            !
+            src_name = ' '
+            !
+            do n = 1, nr_discharge_points
+               !
+               write(src_name(n), '(a,i4.4)') 'discharge_', n
+               !
+            enddo
             !
          endif
          !
-      endif   
-      !
-   endif  
-   !
-   if (nsrc > 0) then
-      !
-      ! Determine m and n indices of sources
-      !
-      do isrc = 1, nsrc
+         if ((tsrc(1) > (t0 + 1.0)) .or. (tsrc(ntsrc) < (t1 - 1.0))) then
+            !
+            write(logstr,'(a)') ' WARNING! Times in discharge file do not cover entire simulation period!'
+            call write_log(logstr, 1)
+            !
+         endif
          !
-         ! Find cell in quadtree first
+      endif
+      !
+      if (nr_discharge_points <= 0) return
+      !
+      discharges = .true.
+      !
+      allocate(nmindsrc(nr_discharge_points))
+      allocate(qtsrc(nr_discharge_points))
+      !
+      nmindsrc = 0
+      qtsrc    = 0.0
+      !
+      ! Read src/dis contents for the srcfile case
+      !
+      if (srcfile(1:4) /= 'none') then
+         !
+         allocate(xsrc(nr_discharge_points))
+         allocate(ysrc(nr_discharge_points))
+         allocate(src_name(nr_discharge_points))
+         !
+         src_name = ' '
+         !
+         do n = 1, nr_discharge_points
+            !
+            read(500, '(a)') line
+            line_trim = adjustl(line)
+            !
+            ! Count whitespace-separated tokens on the line.
+            !
+            call count_tokens(line_trim, ntok)
+            !
+            if (ntok == 2) then
+               !
+               read(line_trim, *) xsrc(n), ysrc(n)
+               write(src_name(n), '(a,i4.4)') 'discharge_', n
+               !
+            elseif (ntok == 3) then
+               !
+               read(line_trim, *) xsrc(n), ysrc(n), name_tmp
+               src_name(n) = adjustl(trim(name_tmp))
+               !
+            else
+               !
+               write(logstr,'(a,i0,a,i0,a)') ' Error ! src file line ', n, ' has ', ntok, &
+                  ' tokens -- expected 2 (x y) or 3 (x y name) !'
+               call write_log(logstr, 1)
+               error = 1
+               return
+               !
+            endif
+            !
+         enddo
+         !
+         close(500)
+         !
+         ! Read discharge time series
+         !
+         ok = check_file_exists(disfile, 'River discharge timeseries dis file', .true.)
+         !
+         open(502, file=trim(disfile))
+         !
+         do while (.true.)
+            !
+            read(502, *, iostat=stat) dummy
+            if (stat < 0) exit
+            ntsrc = ntsrc + 1
+            !
+         enddo
+         !
+         rewind(502)
+         allocate(tsrc(ntsrc))
+         allocate(qsrc_ts(nr_discharge_points, ntsrc))
+         !
+         do itsrc = 1, ntsrc
+            !
+            read(502, *) tsrc(itsrc), (qsrc_ts(isrc, itsrc), isrc = 1, nr_discharge_points)
+            !
+         enddo
+         !
+         close(502)
+         !
+         if ((tsrc(1) > (t0 + 1.0)) .or. (tsrc(ntsrc) < (t1 - 1.0))) then
+            !
+            write(logstr,'(a)') 'Warning! Times in discharge file do not cover entire simulation period !'
+            call write_log(logstr, 1)
+            !
+            if (tsrc(1) > (t0 + 1.0)) then
+               !
+               write(logstr,'(a)') 'Warning! Adjusting first time in discharge time series !'
+               call write_log(logstr, 1)
+               tsrc(1) = t0 - 1.0
+               !
+            else
+               !
+               write(logstr,'(a)') 'Warning! Adjusting last time in discharge time series !'
+               call write_log(logstr, 1)
+               tsrc(ntsrc) = t1 + 1.0
+               !
+            endif
+            !
+         endif
+         !
+      endif
+      !
+      ! Map river sources to grid cells
+      !
+      do isrc = 1, nr_discharge_points
          !
          nmq = find_quadtree_cell(xsrc(isrc), ysrc(isrc))
          !
@@ -160,489 +266,147 @@ contains
             nmindsrc(isrc) = index_sfincs_in_quadtree(nmq)
             !
          endif
-         !         
-      enddo
-      !
-      ! Don't need coordinates anymore, and xsrc and ysrc may be used for drainage points as well
-      !
-      deallocate(xsrc)
-      deallocate(ysrc)
-      !
-   endif   
-   !
-   ! And now the drainage points
-   !
-   if (ndrn>0) then
-      !
-      write(logstr,'(a,a,a,i0,a)')' Reading ',trim(drnfile),' (', ndrn, ' drainage points found) ...'
-      call write_log(logstr, 0)
-      !         
-      allocate(xsrc(ndrn))
-      allocate(ysrc(ndrn))
-      allocate(xsnk(ndrn))
-      allocate(ysnk(ndrn))
-      !
-      allocate(drainage_type(ndrn))
-      allocate(drainage_params(ndrn, 6))
-      allocate(drainage_status(ndrn))
-      allocate(drainage_distance(ndrn))
-      allocate(drainage_fraction_open(ndrn))
-      !
-      drainage_params = 0.0
-      drainage_distance = 0.0
-      drainage_fraction_open = 1.0   ! initially fully open (should fix this based on zmin and zmax in params)
-      drainage_status = 1            ! open (0=closed, 1=open, 2=closing, 3=opening)
-      !
-      do idrn = 1, ndrn
-         !
-         read(501, '(a)') drainage_line
-         !
-         ! First find out what type of drainage structure it is (integer 5th item in line)
-         !
-         read(drainage_line,*,iostat=stat)xsnk_tmp, ysnk_tmp, xsrc_tmp, ysrc_tmp, drainage_type(idrn)
-         !
-         npars = 0 ! Default (if npars stays 0, throw error)
-         !
-         if (drainage_type(idrn) == 1 .or. drainage_type(idrn) == 2 .or. drainage_type(idrn) == 3) then
-            !
-            ! Pump, culvert or check valve (1 parameter)
-            !
-            npars = 1
-            !
-         elseif (drainage_type(idrn) == 4 .or. drainage_type(idrn) == 5) then
-            !
-            ! Controlled gate (6 parameters : width, sill elevation, manning, zmin, zmax, closing time)
-            !
-            npars = 6
-            !
-         endif
-         !
-         if (npars == 0) then
-            !
-            write(logstr,'(a,i0,a)')'Drainage type ', drainage_type(idrn), ' not recognized !'
-            call stop_sfincs(logstr, -1)
-            !
-         endif               
-         !
-         if (npars == 1) then
-            !
-            ! Pump, culvert or check valve
-            !
-            read(drainage_line,*,iostat=stat)xsnk(idrn), ysnk(idrn), xsrc(idrn), ysrc(idrn), drainage_type(idrn), drainage_params(idrn,1)
-            !
-         elseif (npars == 6) then
-            !
-            ! Controlled gate, needs 6 parameters
-            !
-            read(drainage_line,*,iostat=stat)xsnk(idrn), ysnk(idrn), xsrc(idrn), ysrc(idrn), drainage_type(idrn), drainage_params(idrn,1), drainage_params(idrn,2), drainage_params(idrn,3), drainage_params(idrn,4), drainage_params(idrn,5), drainage_params(idrn,6)
-            !
-         endif
-         !
-         if (stat /= 0) then
-            !
-            write(logstr,'(a,i0,a,i0,a)')'Drainage type ', drainage_type(idrn), ' requires ', npars, ' parameters !'
-            call stop_sfincs(logstr, -1)
-            !
-         endif
-         !
-      enddo
-      !
-      close(501)
-      !
-      ! Determine nm indices of source and sinks
-      !
-      do idrn = 1, ndrn
-         !
-         ! Determine index of sink first
-         !
-         j = nsrc + idrn*2 - 1
-         !
-         nmq = find_quadtree_cell(xsnk(idrn), ysnk(idrn))
-         !
-         if (nmq > 0) then
-            !
-            nmindsrc(j) = index_sfincs_in_quadtree(nmq)
-            !
-         endif
-         !
-         ! And now the index of the source
-         !
-         j = nsrc + idrn * 2
-         !
-         nmq = find_quadtree_cell(xsrc(idrn), ysrc(idrn))
-         !
-         if (nmq > 0) then
-            !
-            nmindsrc(j) = index_sfincs_in_quadtree(nmq)
-            !
-         endif
-         !
-         ! Get coords of source and sink points, and compute distance between them
-         ! This is needed for controlled gates (type 4)
-         !
-         xsnk_tmp = z_xz(nmindsrc(nsrc + idrn * 2 - 1))
-         ysnk_tmp = z_yz(nmindsrc(nsrc + idrn * 2 - 1))
-         xsrc_tmp = z_xz(nmindsrc(nsrc + idrn * 2))
-         ysrc_tmp = z_yz(nmindsrc(nsrc + idrn * 2))
-         !
-         drainage_distance(idrn) = sqrt( (xsrc_tmp - xsnk_tmp)**2 + (ysrc_tmp - ysnk_tmp)**2 )
          !
       enddo
       !
       deallocate(xsrc)
       deallocate(ysrc)
-      deallocate(xsnk)
-      deallocate(ysnk)
       !
-      ! Check if all sink/source points have found an index
-      if (any(nmindsrc == 0)) then
-         !
-         write(logstr,'(a)')'Warning ! For some sink/source drainage points no matching active grid cell was found!'
-         call write_log(logstr, 0)
-         write(logstr,'(a)')'Warning ! These points will be skipped, please check your input!'
-         call write_log(logstr, 0)
-         !
-      endif      
-      !
-   endif
-   !
    end subroutine
    !
+   !-----------------------------------------------------------------------------------------------------!
    !
-   !
-   subroutine update_discharges(t, dt, tloop)
-   !
-   ! Update discharges
-   !
-   use sfincs_data
-   !
-   implicit none
-   !
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
-   !
-   real*8           :: t
-   real*4           :: dt
-   real*4           :: qq
-   real*4           :: qq0
-   !
-   real*4           :: dzds, frac, wdt, zsill, zmin, zmax, mng, hgate, dfrac, tcls, topen, tclose
-   integer          :: idir
-   !
-   integer isrc, itsrc, idrn, jin, jout, nmin, nmout
-   !
-   call system_clock(count0, count_rate, count_max)
-   !
-   ! Compute instantaneous discharges from point sources
-   !
-   if (nsrc > 0) then
+   subroutine update_discharges(t, dt)
+      !
+      ! Zero qsrc(np); interpolate the river discharge time series to t,
+      ! store in qtsrc(1..nr_discharge_points), and accumulate into qsrc(nmindsrc(:)).
+      !
+      ! update_discharges is called BEFORE update_src_structures -- that is
+      ! why it owns the qsrc zeroing. Both routines then additively write
+      ! their contributions.
+      !
+      ! Called from: update_continuity (sfincs_continuity), once per time step.
+      !
+      use sfincs_data
+      use sfincs_timers
+      !
+      implicit none
+      !
+      real*8  :: t
+      real*4  :: dt
+      !
+      integer :: isrc, itsrc, nm, it_prev, it_next
+      real*4  :: wt
+      !
+      ! qsrc is not zeroed here. The water-level update at the end of the
+      ! previous step clears qsrc(nm) for every active cell, and
+      ! update_meteo_forcing has by now accumulated prcp*area into it for
+      ! the current step. update_discharges and the remaining continuity
+      ! steps just keep adding on top.
+      !
+      if (nr_discharge_points <= 0) return
+      !
+      call timer_start('discharges')
+      !
+      ! Locate the bracketing interval in tsrc and compute the interpolation
+      ! weight once. Then run a single parallel loop that both interpolates
+      ! qtsrc and accumulates it into qsrc.
+      !
+      it_prev = itsrclast
+      it_next = itsrclast + 1
+      !
       do itsrc = itsrclast, ntsrc
-         ! Find first point in time series large than t
+         !
          if (tsrc(itsrc) > t) then
-            do isrc = 1, nsrc
-               qtsrc(isrc) = qsrc(isrc, itsrc - 1) + (qsrc(isrc, itsrc) - qsrc(isrc, itsrc - 1)) * (t - tsrc(itsrc - 1)) / (tsrc(itsrc) - tsrc(itsrc - 1))
-            enddo
-            itsrclast = itsrc - 1
+            !
+            it_prev = itsrc - 1
+            it_next = itsrc
+            itsrclast = it_prev
             exit
+            !
          endif
+         !
       enddo
       !
-      !$acc update device(qtsrc)
+      ! Clamp to valid bracket. If t is outside [tsrc(1), tsrc(ntsrc)] (which
+      ! can happen on the netcdf path, where the srcfile pre-padding is not
+      ! applied), hold the endpoint value rather than read out of bounds.
       !
-   endif
+      it_prev = min(max(it_prev, 1), ntsrc - 1)
+      it_next = it_prev + 1
+      !
+      wt = (t - tsrc(it_prev)) / (tsrc(it_next) - tsrc(it_prev))
+      !
+      ! Atomic accumulation because two river sources (or a river and a
+      ! structure) can share a cell.
+      !
+      !$acc parallel loop present( qsrc, qtsrc, nmindsrc, qsrc_ts ) private( nm )
+      !$omp parallel do private( nm ) schedule ( static )
+      do isrc = 1, nr_discharge_points
+         !
+         qtsrc(isrc) = qsrc_ts(isrc, it_prev) + (qsrc_ts(isrc, it_next) - qsrc_ts(isrc, it_prev)) * wt
+         nm = nmindsrc(isrc)
+         !
+         if (nm > 0) then
+            !
+            !$acc atomic update
+            !$omp atomic
+            qsrc(nm) = qsrc(nm) + qtsrc(isrc)
+            !
+         endif
+         !
+      enddo
+      !$omp end parallel do
+      !$acc end parallel loop
+      !
+      call timer_stop('discharges')
+      !
+   end subroutine
    !
-   if (ndrn > 0) then
+   !-----------------------------------------------------------------------------------------------------!
+   !
+   subroutine count_tokens(line, ntok)
       !
-      !$acc serial, present( z_volume, zs, zb, nmindsrc, qtsrc, drainage_type, drainage_params )
-      do idrn = 1, ndrn
+      ! Count the number of whitespace-separated tokens in a string.
+      ! Whitespace = spaces and tabs. Empty string returns 0.
+      !
+      ! Called from: initialize_discharges (this module) to disambiguate the
+      ! 2-column vs 3-column srcfile layout.
+      !
+      implicit none
+      !
+      character(len=*), intent(in)  :: line
+      integer,          intent(out) :: ntok
+      !
+      integer :: i, n
+      logical :: in_tok
+      character(len=1) :: c
+      !
+      ntok   = 0
+      in_tok = .false.
+      n      = len_trim(line)
+      !
+      do i = 1, n
          !
-         jin  = nsrc + idrn * 2 - 1
-         jout = nsrc + idrn * 2
+         c = line(i:i)
          !
-         nmin  = nmindsrc(jin)
-         nmout = nmindsrc(jout)
-         !
-         if (nmin > 0 .and. nmout > 0) then
+         if (c == ' ' .or. c == char(9)) then
             !
-            select case(drainage_type(idrn))
-               !
-               case(1)
-                  !
-                  ! Pump
-                  !
-                  qq = drainage_params(idrn, 1)
-                  !
-               case(2)
-                  !
-                  ! Culvert
-                  !
-                  if (zs(nmin)>zs(nmout)) then
-                     !
-                     qq  = drainage_params(idrn, 1) * sqrt(zs(nmin) - zs(nmout))
-                     !
-                  else
-                     !
-                     qq  = -drainage_params(idrn, 1) * sqrt(zs(nmout) - zs(nmin))
-                     !
-                  endif
-                  !
-               case(3)
-                  !
-                  ! Check valve (same as culvert, but only works in one direction)
-                  !
-                  if (zs(nmin) > zs(nmout)) then
-                     !
-                     qq = drainage_params(idrn, 1) * sqrt(zs(nmin) - zs(nmout))
-                     !
-                  else
-                     !
-                     qq = -drainage_params(idrn, 1) * sqrt(zs(nmout) - zs(nmin))
-                     !
-                  endif
-                  !
-                  ! Make sure it can only flow from intake to outfall point
-                  !
-                  qq = max(qq, 0.0)
-                  !
-               case(4)
-                  !
-                  ! Controlled gate. Gate opens when water level at intake point is between zmin and zmax.
-                  !
-                  wdt   = drainage_params(idrn, 1)                        ! width
-                  zsill = drainage_params(idrn, 2)                        ! sill elevation
-                  mng   = drainage_params(idrn, 3)                        ! Manning's n
-                  zmin  = drainage_params(idrn, 4)                        ! min water level for open
-                  zmax  = drainage_params(idrn, 5)                        ! max water level for open
-                  tcls  = drainage_params(idrn, 6)                        ! closing time (seconds)
-                  !
-                  dzds = (zs(nmout) - zs(nmin)) / drainage_distance(idrn) ! water level slope
-                  frac = drainage_fraction_open(idrn)                     ! fraction open (from previous time step)
-                  hgate = max(max(zs(nmin), zs(nmout)) - zsill, 0.0)      ! water depth
-                  dfrac = dt / tcls                                       ! change in fraction open per time step
-                  !
-                  qq0 = -qtsrc(jin) / (wdt * max(frac, 0.001))            ! discharge (in m2/s) from previous time step, excluding fraction open
-                  !
-                  ! Get status of gate
-                  !
-                  if (drainage_status(idrn) == 0) then
-                     !
-                     ! Gate fully closed
-                     !
-                     if (zs(nmin) > zmin .and. zs(nmin) < zmax) then
-                        !
-                        ! Water level is in allowable range, so need to open the gate
-                        !
-                        drainage_status(idrn) = 3
-                        !
-                        ! Lines below only work with Windows intel compiler, can be used for debugging
-                        !
-                        ! Actual discharges through drainage structure can always be checked if 'storeqdrain=1' in sfincs.inp
-                        !
-                        !write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Opening structure ',idrn,' at t= ',t
-                        !call write_log(logstr, 0)            
-                        !
-                     endif
-                     !
-                  elseif (drainage_status(idrn) == 1) then
-                     !
-                     ! Gate fully open
-                     !
-                     if (zs(nmin) <= zmin .or. zs(nmin) >= zmax) then
-                        !
-                        ! Water level is NOT in allowable range, so need to close the gate
-                        !
-                        drainage_status(idrn) = 2
-                        !                                        
-                        !write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Closing structure ',idrn,' at t= ',t
-                        !call write_log(logstr, 0)
-                        !                        
-                     endif
-                     !
-                  endif                        
-                  !
-                  ! Update fraction open
-                  !
-                  if (drainage_status(idrn) == 2) then
-                     !
-                     ! Gate is closing
-                     !
-                     frac = frac - dfrac
-                     !
-                     if (frac < 0.0) then
-                        !
-                        ! Gate is now fully closed
-                        !
-                        frac = 0.0
-                        drainage_status(idrn) = 0
-                        !
-                     endif
-                     !
-                  elseif (drainage_status(idrn) == 3) then
-                     !
-                     ! Gate is opening
-                     !
-                     frac = frac + dfrac
-                     !
-                     if (frac > 1.0) then
-                        !
-                        ! Gate is now fully open
-                        !
-                        frac = 1.0
-                        drainage_status(idrn) = 1
-                        !
-                     endif
-                     !
-                  endif
-                  !
-                  drainage_fraction_open(idrn) = frac
-                  !
-                  ! Use Bates et al. (2010) formulation to include inertia effects
-                  !
-                  qq = (qq0 - g * hgate * dzds * dt) / (1.0 + g * mng**2 * dt * abs(qq0) / hgate**(7.0 / 3.0))
-                  !
-                  ! Multiply with width and fraction open to get discharge in m3/s
-                  !
-                  qq = qq * wdt * frac
-                  !
-               case(5)
-                  !
-                  ! Controlled gate. Gate opens and closes at set user input times (only, and once), still using closing time.
-                  !
-                  wdt   = drainage_params(idrn, 1)                        ! width
-                  zsill = drainage_params(idrn, 2)                        ! sill elevation
-                  mng   = drainage_params(idrn, 3)                        ! Manning's n
-                  tclose = drainage_params(idrn, 4)                       ! time wrt tref for closing gate
-                  topen  = drainage_params(idrn, 5)                       ! time wrt tref for opening gate
-                  tcls  = drainage_params(idrn, 6)                        ! closing time (seconds)
-                  !
-                  dzds = (zs(nmout) - zs(nmin)) / drainage_distance(idrn) ! water level slope
-                  frac = drainage_fraction_open(idrn)                     ! fraction open (from previous time step)
-                  hgate = max(max(zs(nmin), zs(nmout)) - zsill, 0.0)      ! water depth
-                  dfrac = dt / tcls                                       ! change in fraction open per time step
-                  !
-                  qq0 = -qtsrc(jin) / (wdt * max(frac, 0.001))            ! discharge (in m2/s) from previous time step, excluding fraction open
-                  !
-                  ! Get status of gate
-                  !
-                  if (drainage_status(idrn) == 0) then
-                     !
-                     ! Gate fully closed
-                     !
-                     if (t >= topen) then
-                        !
-                        ! Time has passed 'topen', so need to open the gate
-                        !
-                        drainage_status(idrn) = 3
-                        !
-                        !write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Opening structure ',idrn,' at t= ',t
-                        !call write_log(logstr, 0)                        
-                        !
-                     endif
-                     !
-                  elseif (drainage_status(idrn) == 1) then
-                     !
-                     ! Gate fully open
-                     !
-                     if (t >= tclose .and. t < topen) then
-                        !
-                        ! Time has passed 'tclose', so need to close the gate
-                        !
-                        drainage_status(idrn) = 2
-                        !
-                        !write(logstr,'(a,i0,a,f0.1)')'INFO Gates - Closing structure ',idrn,' at t= ',t
-                        !call write_log(logstr, 0)
-                        !                        
-                     endif
-                     !
-                  endif                        
-                  !
-                  ! Update fraction open
-                  !
-                  if (drainage_status(idrn) == 2) then
-                     !
-                     ! Gate is closing
-                     !
-                     frac = frac - dfrac
-                     !
-                     if (frac < 0.0) then
-                        !
-                        ! Gate is now fully closed
-                        !
-                        frac = 0.0
-                        drainage_status(idrn) = 0
-                        !
-                     endif
-                     !
-                  elseif (drainage_status(idrn) == 3) then
-                     !
-                     ! Gate is opening
-                     !
-                     frac = frac + dfrac
-                     !
-                     if (frac > 1.0) then
-                        !
-                        ! Gate is now fully open
-                        !
-                        frac = 1.0
-                        drainage_status(idrn) = 1
-                        !
-                     endif
-                     !
-                  endif
-                  !
-                  drainage_fraction_open(idrn) = frac
-                  !
-                  ! Use Bates et al. (2010) formulation to include inertia effects
-                  !
-                  qq = (qq0 - g * hgate * dzds * dt) / (1.0 + g * mng**2 * dt * abs(qq0) / hgate**(7.0 / 3.0))
-                  !
-                  ! Multiply with width and fraction open to get discharge in m3/s
-                  !
-                  qq = qq * wdt * frac
-                  !                  
-            end select
+            in_tok = .false.
             !
-            ! Add some relaxation
-            ! structure_relax in seconds => gives ratio between new and old discharge (default 10s)
-            !   
-            qq = 1.0 / (structure_relax / dt) * qq + (1.0 - (1.0 / (structure_relax / dt))) * -qtsrc(jin)
-            !   
-            ! Limit discharge based on available volume in cell (regular or subgrid)
-            !    
-            if (subgrid) then
+         else
+            !
+            if (.not. in_tok) then
                !
-               if (qq > 0.0) then
-                  qq = min(qq, max(z_volume(nmin), 0.0) / dt)
-               else
-                  qq = max(qq, -max(z_volume(nmout), 0.0) / dt)
-               endif
-               !
-            else
-               !
-               if (qq > 0.0) then
-                  qq = min(qq, max((zs(nmin) - zb(nmin)) * cell_area(z_flags_iref(nmin)), 0.0) / dt)
-               else
-                  qq = max(qq, -max((zs(nmout) - zb(nmout)) * cell_area(z_flags_iref(nmout)), 0.0) / dt)
-               endif
+               ntok   = ntok + 1
+               in_tok = .true.
                !
             endif
-            !      
-            qtsrc(jin)  = -qq 
-            qtsrc(jout) = qq
             !
          endif
          !
       enddo
-      !$acc end serial
       !
-   endif
-   !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0 * (count1 - count0) / count_rate
-   !
    end subroutine
-
+   !
 end module

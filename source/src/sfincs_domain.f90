@@ -24,8 +24,6 @@ contains
    !
    call initialize_roughness()
    !
-   call initialize_infiltration() ! see: sfincs_infiltration.f90
-   !
    call initialize_storage_volume()
    !
    call initialize_hydro()
@@ -1740,24 +1738,88 @@ contains
    !
    end subroutine
    
-   subroutine compute_zbuvmx()
+   subroutine update_bed_level()
+   !
+   ! Apply the externally-supplied delta bed level (dzbext) to the kernel's
+   ! bed-level arrays and refresh derived quantities at uv points.
+   !
+   ! Non-subgrid mode:
+   !    zb           = zb           + dzbext           (cell centres)
+   !    zbuvmx(ip)   = max(zb(nm), zb(nmu)) + huthresh (uv points, rebuilt)
+   !
+   ! Subgrid mode:
+   !    subgrid_z_zmin/zmax shift rigidly by dzbext at the cell centre.
+   !    subgrid_uv_zmin/zmax shift rigidly by the average dzbext of the two
+   !    neighbouring cells, with subgrid_uv_zmin clamped from below by the
+   !    larger of the two updated cell-centre subgrid_z_zmin values so the uv
+   !    minimum can never sit below either neighbour's minimum.
+   !
+   ! The caller (Python via BMI) owns the lifecycle of dzbext: this routine
+   ! does not zero it out after applying.  When use_dzbext is .false. the
+   ! routine still rebuilds zbuvmx in non-subgrid mode (cheap, and matches the
+   ! historical behaviour of compute_zbuvmx).
    !
    use sfincs_data
    !
    integer :: ip
    integer :: nm
    integer :: nmu
+   real*4  :: avg_dzb
    !
-   do ip = 1, npuv
+   if (.not. subgrid) then
       !
-      nm  = uv_index_z_nm(ip)
-      nmu = uv_index_z_nmu(ip)
+      ! Non-subgrid path: shift zb, then rebuild zbuvmx for every uv point.
       !
-      zbuvmx(ip) = max(zb(nm), zb(nmu)) + huthresh
-      !   
-   enddo      
+      if (use_dzbext) then
+         !
+         zb(:) = zb(:) + dzbext(:)
+         !
+      endif
+      !
+      do ip = 1, npuv
+         !
+         nm  = uv_index_z_nm(ip)
+         nmu = uv_index_z_nmu(ip)
+         !
+         zbuvmx(ip) = max(zb(nm), zb(nmu)) + huthresh
+         !
+      enddo
+      !
+   else
+      !
+      ! Subgrid path: only do anything when an external delta has been set.
+      !
+      if (use_dzbext) then
+         !
+         ! Cell-centre arrays shift rigidly with dzbext.
+         !
+         subgrid_z_zmin(:) = subgrid_z_zmin(:) + dzbext(:)
+         subgrid_z_zmax(:) = subgrid_z_zmax(:) + dzbext(:)
+         !
+         ! UV-point arrays shift by the average delta of the two neighbours,
+         ! then clamp uv_zmin from below by the higher of the two updated
+         ! cell-centre minima.
+         !
+         do ip = 1, npuv
+            !
+            nm  = uv_index_z_nm(ip)
+            nmu = uv_index_z_nmu(ip)
+            !
+            avg_dzb = 0.5 * (dzbext(nm) + dzbext(nmu))
+            !
+            subgrid_uv_zmin(ip) = subgrid_uv_zmin(ip) + avg_dzb
+            subgrid_uv_zmax(ip) = subgrid_uv_zmax(ip) + avg_dzb
+            !
+            subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), &
+                                      max(subgrid_z_zmin(nm), subgrid_z_zmin(nmu)))
+            !
+         enddo
+         !
+      endif
+      !
+   endif
    !
-   end subroutine
+   end subroutine update_bed_level
 
    subroutine initialize_boundaries()
    !
@@ -2199,12 +2261,18 @@ contains
    allocate(uv0(npuv + ncuv + 1))
    !
    allocate(kfuv(npuv))
-   ! 
-   zs  = 0.0
-   q   = 0.0
-   q0  = 0.0
-   uv  = 0.0
-   uv0 = 0.0
+   !
+   ! Cell-wise discharge accumulator (point sources + drainage structures),
+   ! read by sfincs_continuity.
+   !
+   allocate(qsrc(np))
+   !
+   zs   = 0.0
+   q    = 0.0
+   q0   = 0.0
+   uv   = 0.0
+   uv0  = 0.0
+   qsrc = 0.0
    !
    kfuv = 0 
    !
