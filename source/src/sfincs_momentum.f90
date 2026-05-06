@@ -597,7 +597,8 @@ contains
                ! facmax = 0.25*sqrt(g)*rhow*gammax**2
                ! fmax = facmax*hu*sqrt(hu)/tp/rhow (we already divided by rhow in sfincs_snapwave)
                !
-               fwmax = 0.8 * hwet * sqrt(hwet) / 15
+               !fwmax = 0.8 * hwet * sqrt(hwet) / 15
+               fwmax = 999
                !
                frc = frc + phi * sign(min(abs(fwuv(ip)), fwmax), fwuv(ip))
                !
