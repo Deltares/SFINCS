@@ -2,7 +2,6 @@
 module sfincs_ncoutput
    !
    use netcdf
-   use sfincs_nchelper
    !
    implicit none
    !
@@ -64,7 +63,8 @@ module sfincs_ncoutput
    type(map_type) :: map_file
    type(his_type) :: his_file
    !
-   real*4, parameter :: FILL_VALUE = -99999.0
+   real*4,  parameter :: FILL_VALUE     = -99999.0
+   integer, parameter :: FILL_VALUE_INT = -999
 
 contains
 
@@ -219,6 +219,9 @@ contains
    real*4,    dimension(:),   allocatable :: vtmp
    integer*4, dimension(:),   allocatable :: vtmpi
    !
+   ! Pre-computed source for subgridslope (crsgeo branch lives in the expression)
+   real*4,    dimension(:),   allocatable :: slope_buf
+   !
    ! -------------------------------------------------------
    ! Setup dimension abstraction
    ! -------------------------------------------------------
@@ -346,39 +349,9 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'face_node_connectivity',    'mesh2d_face_nodes'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'face_dimension',            'nmesh2d_face'))
       !
-      if (crsgeo) then
-         NF90(nf90_def_var(map_file%ncid, 'mesh2d_node_x', NF90_FLOAT, (/map_file%nmesh2d_node_dimid/), map_file%mesh2d_node_x_varid))
-         NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_node_x_varid, 1, 1, nc_deflate_level))
-         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'units',         'degrees'))
-         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'standard_name', 'longitude'))
-         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'long_name',     'longitude'))
-         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'mesh',          'mesh2d'))
-         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'location',      'node'))
-         !
-         NF90(nf90_def_var(map_file%ncid, 'mesh2d_node_y', NF90_FLOAT, (/map_file%nmesh2d_node_dimid/), map_file%mesh2d_node_y_varid))
-         NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_node_y_varid, 1, 1, nc_deflate_level))
-         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'units',         'degrees'))
-         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'standard_name', 'latitude'))
-         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'long_name',     'latitude'))
-         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'mesh',          'mesh2d'))
-         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'location',      'node'))
-      else
-         NF90(nf90_def_var(map_file%ncid, 'mesh2d_node_x', NF90_DOUBLE, (/map_file%nmesh2d_node_dimid/), map_file%mesh2d_node_x_varid))
-         NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_node_x_varid, 1, 1, nc_deflate_level))
-         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'units',         'm'))
-         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'standard_name', 'projection_x_coordinate'))
-         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'long_name',     'x-coordinate of mesh nodes'))
-         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'mesh',          'mesh2d'))
-         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'location',      'node'))
-         !
-         NF90(nf90_def_var(map_file%ncid, 'mesh2d_node_y', NF90_DOUBLE, (/map_file%nmesh2d_node_dimid/), map_file%mesh2d_node_y_varid))
-         NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_node_y_varid, 1, 1, nc_deflate_level))
-         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'units',         'm'))
-         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'standard_name', 'projection_y_coordinate'))
-         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'long_name',     'y-coordinate of mesh nodes'))
-         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'mesh',          'mesh2d'))
-         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'location',      'node'))
-      endif
+      call def_mesh2d_node_coord('x', map_file%mesh2d_node_x_varid)
+      !
+      call def_mesh2d_node_coord('y', map_file%mesh2d_node_y_varid)
       !
       NF90(nf90_def_var(map_file%ncid, 'mesh2d_face_nodes', NF90_INT, &
            (/map_file%max_nmesh2d_face_nodes_dimid, map_file%nmesh2d_face_dimid/), map_file%mesh2d_face_nodes_varid))
@@ -471,14 +444,12 @@ contains
    ! msk (INT+no-coord for quadtree, FLOAT+coord for regular)
    ! -------------------------------------------------------
    if (use_quadtree) then
-      call ncdef_int_var(map_file%ncid, 'msk', dims_s(1:nsd), map_file%msk_varid, &
-           'msk_active_cells', &
+      call def_static_cell_int('msk', map_file%msk_varid, 'msk_active_cells', &
            description='inactive=0, active=1, normal_boundary=2, outflow_boundary=3, wavemaker=4')
       NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'units',        '-'))
       NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'standard_name','mask'))
    else
-      call ncdef_float_var(map_file%ncid, 'msk', dims_s(1:nsd), map_file%msk_varid, &
-           '-', 'msk_active_cells', standard_name='land_binary_mask', coordinates='x y', &
+      call def_static_cell_float('msk', map_file%msk_varid, '-', 'msk_active_cells', standard_name='land_binary_mask', &
            description='inactive=0, active=1, normal_boundary=2, outflow_boundary=3')
    endif
    !
@@ -487,25 +458,19 @@ contains
    ! -------------------------------------------------------
    if (infiltration) then
       if (inftype == 'cna') then
-         call ncdef_float_var(map_file%ncid, 'qinf', dims_s(1:nsd), map_file%qinf_varid, &
-              'm', 'moisture storage (S) capacity - Curve number', &
-              standard_name='S', coordinates=coord_str)
+         call def_static_cell_float('qinf', map_file%qinf_varid, 'm', 'moisture storage (S) capacity - Curve number', &
+              standard_name='S')
       elseif (inftype == 'cnb') then
-         call ncdef_float_var(map_file%ncid, 'qinf', dims_s(1:nsd), map_file%qinf_varid, &
-              'm', 'maximum moisture storage (Smax) capacity - Curve number', &
-              standard_name='Smax', coordinates=coord_str)
+         call def_static_cell_float('qinf', map_file%qinf_varid, 'm', 'maximum moisture storage (Smax) capacity - Curve number', &
+              standard_name='Smax')
       elseif (inftype == 'gai') then
-         call ncdef_float_var(map_file%ncid, 'qinf', dims_s(1:nsd), map_file%qinf_varid, &
-              'm', 'suction head at the wetting front - Green and Ampt', &
-              standard_name='psi', coordinates=coord_str)
+         call def_static_cell_float('qinf', map_file%qinf_varid, 'm', 'suction head at the wetting front - Green and Ampt', &
+              standard_name='psi')
       elseif (inftype == 'hor') then
-         call ncdef_float_var(map_file%ncid, 'qinf', dims_s(1:nsd), map_file%qinf_varid, &
-              'm', 'initial infiltration rate - Horton', &
-              standard_name='f0', coordinates=coord_str)
+         call def_static_cell_float('qinf', map_file%qinf_varid, 'm', 'initial infiltration rate - Horton', standard_name='f0')
       else
-         call ncdef_float_var(map_file%ncid, 'qinf', dims_s(1:nsd), map_file%qinf_varid, &
-              'mm h-1', 'infiltration rate - constant in time', &
-              standard_name='qinf', coordinates=coord_str)
+         call def_static_cell_float('qinf', map_file%qinf_varid, 'mm h-1', 'infiltration rate - constant in time', &
+              standard_name='qinf')
       endif
    endif
    !
@@ -513,28 +478,23 @@ contains
    ! zb: always static for quadtree; optional time-varying for regular
    ! -------------------------------------------------------
    if (use_quadtree) then
-      call ncdef_float_var(map_file%ncid, 'zb', dims_s(1:nsd), map_file%zb_varid, &
-           'm', 'bed_level_above_reference_level', standard_name='altitude')
+      call def_static_cell_float('zb', map_file%zb_varid, 'm', 'bed_level_above_reference_level', standard_name='altitude')
    else
       if (store_dynamic_bed_level) then
-         call ncdef_float_var(map_file%ncid, 'zb', dims_st(1:nsd+1), map_file%zb_varid, &
-              'm', 'bed_level_above_reference_level', standard_name='altitude', coordinates='x y')
+         call def_time_cell_float('zb', map_file%zb_varid, 'm', 'bed_level_above_reference_level', standard_name='altitude')
       else
-         call ncdef_float_var(map_file%ncid, 'zb', dims_s(1:nsd), map_file%zb_varid, &
-              'm', 'bed_level_above_reference_level', standard_name='altitude', coordinates='x y')
+         call def_static_cell_float('zb', map_file%zb_varid, 'm', 'bed_level_above_reference_level', standard_name='altitude')
       endif
    endif
    !
    ! manning (both grid types, dims_s)
    if (.not. subgrid) then
-      call ncdef_float_var(map_file%ncid, 'manning', dims_s(1:nsd), map_file%manning_varid, &
-           's/m^1/3', 'manning_roughness', standard_name='manning', coordinates=coord_str)
+      call def_static_cell_float('manning', map_file%manning_varid, 's/m^1/3', 'manning_roughness', standard_name='manning')
    endif
    !
    ! subgrid slope
    if (subgrid .and. store_hsubgrid .and. store_hmean) then
-      call ncdef_float_var(map_file%ncid, 'subgridslope', dims_s(1:nsd), map_file%subgridslope_varid, &
-           '-', 'subgrid_slope', standard_name='subgrid_slope', coordinates=coord_str)
+      call def_static_cell_float('subgridslope', map_file%subgridslope_varid, '-', 'subgrid_slope', standard_name='subgrid_slope')
    endif
    !
    ! -------------------------------------------------------
@@ -549,53 +509,40 @@ contains
    ! -------------------------------------------------------
    ! Time-varying water level / depth / velocity
    ! -------------------------------------------------------
-   call ncdef_float_var(map_file%ncid, 'zs', dims_st(1:nsd+1), map_file%zs_varid, &
-        'm', 'water_level', &
-        standard_name='sea_surface_height_above_reference_level', coordinates=coord_str)
+   call def_time_cell_float('zs', map_file%zs_varid, 'm', 'water_level', standard_name='sea_surface_height_above_reference_level')
    !
    if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
-      call ncdef_float_var(map_file%ncid, 'h', dims_st(1:nsd+1), map_file%h_varid, &
-           'm', 'water_depth', &
-           standard_name='depth', coordinates=coord_str)
+      call def_time_cell_float('h', map_file%h_varid, 'm', 'water_depth', standard_name='depth')
    endif
    !
    if (store_velocity) then
-      call ncdef_float_var(map_file%ncid, 'u', dims_st(1:nsd+1), map_file%u_varid, &
-           'm s-1', 'flow_velocity_x_direction', &
-           standard_name='eastward_sea_water_velocity', coordinates=coord_str)
-      call ncdef_float_var(map_file%ncid, 'v', dims_st(1:nsd+1), map_file%v_varid, &
-           'm s-1', 'flow_velocity_y_direction', &
-           standard_name='northward_sea_water_velocity', coordinates=coord_str)
+      call def_time_cell_float('u', map_file%u_varid, 'm s-1', 'flow_velocity_x_direction', &
+           standard_name='eastward_sea_water_velocity')
+      !
+      call def_time_cell_float('v', map_file%v_varid, 'm s-1', 'flow_velocity_y_direction', &
+           standard_name='northward_sea_water_velocity')
    endif
    !
    ! Subgrid volumes
    if (subgrid) then
       if (store_zvolume) then
-         call ncdef_float_var(map_file%ncid, 'subgrid_volume', dims_st(1:nsd+1), map_file%zvolume_varid, &
-              'm3', 'subgrid_volume_in_cell', &
-              standard_name='subgrid_volume_in_cell', coordinates=coord_str)
+         call def_time_cell_float('subgrid_volume', map_file%zvolume_varid, 'm3', 'subgrid_volume_in_cell', &
+              standard_name='subgrid_volume_in_cell')
       endif
       if (store_storagevolume) then
-         call ncdef_float_var(map_file%ncid, 'storage_volume', dims_st(1:nsd+1), map_file%storagevolume_varid, &
-              'm3', 'storage_volume_in_cell', &
-              standard_name='storage_volume_in_cell', coordinates=coord_str)
+         call def_time_cell_float('storage_volume', map_file%storagevolume_varid, 'm3', 'storage_volume_in_cell', &
+              standard_name='storage_volume_in_cell')
       endif
    endif
    !
    ! Infiltration state vars (regular only: Seff/sigma/f)
    if (.not. use_quadtree) then
       if (inftype == 'cnb') then
-         call ncdef_float_var(map_file%ncid, 'Seff', dims_st(1:nsd+1), map_file%Seff_varid, &
-              'm', 'current moisture storage (Se) capacity', &
-              standard_name='Se', coordinates='corner_x corner_y')
+         call def_time_cell_float('Seff', map_file%Seff_varid, 'm', 'current moisture storage (Se) capacity', standard_name='Se')
       elseif (inftype == 'gai') then
-         call ncdef_float_var(map_file%ncid, 'sigma', dims_st(1:nsd+1), map_file%Seff_varid, &
-              '-', 'maximum soil moisture deficit', &
-              standard_name='sigma', coordinates='corner_x corner_y')
+         call def_time_cell_float('sigma', map_file%Seff_varid, '-', 'maximum soil moisture deficit', standard_name='sigma')
       elseif (inftype == 'hor') then
-         call ncdef_float_var(map_file%ncid, 'f', dims_st(1:nsd+1), map_file%Seff_varid, &
-              'mm h-1', 'current infiltration capacity', &
-              standard_name='sigma', coordinates='corner_x corner_y')
+         call def_time_cell_float('f', map_file%Seff_varid, 'mm h-1', 'current infiltration capacity', standard_name='sigma')
       endif
    endif
    !
@@ -610,70 +557,52 @@ contains
    endif
    !
    if (store_maximum_waterlevel) then
-      call ncdef_float_var(map_file%ncid, 'zsmax', dims_sm(1:nsd+1), map_file%zsmax_varid, &
-           'm', 'maximum_water_level', &
-           standard_name='maximum of sea_surface_height_above_reference_level', coordinates=coord_str)
+      call def_maxtime_cell_float('zsmax', map_file%zsmax_varid, 'm', 'maximum_water_level', &
+           standard_name='maximum of sea_surface_height_above_reference_level')
    endif
    !
    if (store_cumulative_precipitation) then
-      call ncdef_float_var(map_file%ncid, 'cumprcp', dims_sm(1:nsd+1), map_file%cumprcp_varid, &
-           'm', 'cumulative_precipitation_depth', &
-           standard_name='cumulative_precipitation_depth', &
-           cell_methods='time: sum', coordinates=coord_str)
+      call def_maxtime_cell_float('cumprcp', map_file%cumprcp_varid, 'm', 'cumulative_precipitation_depth', &
+           standard_name='cumulative_precipitation_depth', cell_methods='time: sum')
    endif
    !
    if (store_twet) then
-      call ncdef_float_var(map_file%ncid, 'tmax', dims_sm(1:nsd+1), map_file%tmax_varid, &
-           'seconds', 'duration_wet_cell', &
-           standard_name='duration cell is considered wet', &
-           cell_methods='time: sum', coordinates=coord_str)
+      call def_maxtime_cell_float('tmax', map_file%tmax_varid, 'seconds', 'duration_wet_cell', &
+           standard_name='duration cell is considered wet', cell_methods='time: sum')
    endif
    !
    if (store_t_zsmax) then
-      call ncdef_float_var(map_file%ncid, 't_zsmax', dims_sm(1:nsd+1), map_file%t_zsmax_varid, &
-           'seconds since ' // trim(trefstr_iso8601), 'time when zsmax occurs', &
-           standard_name='time of max water level', &
-           cell_methods='time: max', coordinates=coord_str)
+      call def_maxtime_cell_float('t_zsmax', map_file%t_zsmax_varid, 'seconds since ' // trim(trefstr_iso8601), &
+           'time when zsmax occurs', standard_name='time of max water level', cell_methods='time: max')
    endif
    !
    if (store_maximum_waterlevel) then
       if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
-         call ncdef_float_var(map_file%ncid, 'hmax', dims_sm(1:nsd+1), map_file%hmax_varid, &
-              'm', 'maximum_water_depth', &
-              standard_name='sea_floor_depth_below_sea_surface', &
-              cell_methods='time: maximum', coordinates=coord_str)
+         call def_maxtime_cell_float('hmax', map_file%hmax_varid, 'm', 'maximum_water_depth', &
+              standard_name='sea_floor_depth_below_sea_surface', cell_methods='time: maximum')
       endif
    endif
    !
    if (store_maximum_velocity) then
-      call ncdef_float_var(map_file%ncid, 'vmax', dims_sm(1:nsd+1), map_file%vmax_varid, &
-           'm s-1', 'maximum_flow_velocity', &
-           standard_name='maximum_flow_velocity', &
-           cell_methods='time: maximum', coordinates=coord_str)
+      call def_maxtime_cell_float('vmax', map_file%vmax_varid, 'm s-1', 'maximum_flow_velocity', &
+           standard_name='maximum_flow_velocity', cell_methods='time: maximum')
    endif
    !
    if (store_maximum_flux) then
-      call ncdef_float_var(map_file%ncid, 'qmax', dims_sm(1:nsd+1), map_file%qmax_varid, &
-           'm^2 s-1', 'maximum_flux', &
-           standard_name='maximum_flux', &
-           cell_methods='time: maximum', coordinates=coord_str)
+      call def_maxtime_cell_float('qmax', map_file%qmax_varid, 'm^2 s-1', 'maximum_flux', standard_name='maximum_flux', &
+           cell_methods='time: maximum')
    endif
    !
    if (timestep_analysis) then
-      call ncdef_float_var(map_file%ncid, 'average_required_timestep', dims_s(1:nsd), map_file%average_required_timestep_varid, &
-           's', 'average_required_timestep', &
-           standard_name='average_required_timestep', &
-           cell_methods='time: average', coordinates=coord_str)
-      call ncdef_float_var(map_file%ncid, 'percentage_limiting_timestep', dims_s(1:nsd), map_file%percentage_limiting_varid, &
-           '%', 'percentage_cell_was_limiting_timestep', &
-           standard_name='percentage_limiting_timestep', &
-           cell_methods='time: maximum', coordinates=coord_str)
+      call def_static_cell_float('average_required_timestep', map_file%average_required_timestep_varid, 's', &
+           'average_required_timestep', standard_name='average_required_timestep', cell_methods='time: average')
+      !
+      call def_static_cell_float('percentage_limiting_timestep', map_file%percentage_limiting_varid, '%', &
+           'percentage_cell_was_limiting_timestep', standard_name='percentage_limiting_timestep', cell_methods='time: maximum')
    endif
    !
    if (store_cumulative_precipitation) then
-      call ncdef_float_var(map_file%ncid, 'cuminf', dims_sm(1:nsd+1), map_file%cuminf_varid, &
-           'm', 'cumulative_infiltration_depth', &
-           cell_methods='time: sum', coordinates=coord_str)
+      call def_maxtime_cell_float('cuminf', map_file%cuminf_varid, 'm', 'cumulative_infiltration_depth', cell_methods='time: sum')
    endif
    !
    ! -------------------------------------------------------
@@ -681,41 +610,34 @@ contains
    ! -------------------------------------------------------
    if (store_meteo) then
       if (wind) then
-         call ncdef_float_var(map_file%ncid, 'wind_u', dims_st(1:nsd+1), map_file%wind_u_varid, &
-              'm s-1', 'wind_speed_u', &
-              standard_name='eastward_wind', coordinates=coord_str)
-         call ncdef_float_var(map_file%ncid, 'wind_v', dims_st(1:nsd+1), map_file%wind_v_varid, &
-              'm s-1', 'wind_speed_v', &
-              standard_name='northward_wind', coordinates=coord_str)
+         call def_time_cell_float('wind_u', map_file%wind_u_varid, 'm s-1', 'wind_speed_u', standard_name='eastward_wind')
+         !
+         call def_time_cell_float('wind_v', map_file%wind_v_varid, 'm s-1', 'wind_speed_v', standard_name='northward_wind')
          !
          ! windmax: different dims and condition for regular vs quadtree
          if (use_quadtree) then
             if (store_wind_max) then
-               call ncdef_float_var(map_file%ncid, 'windmax', dims_sm(1:nsd+1), map_file%windmax_varid, &
-                    'm s-1', 'maximum_wind_speed', &
+               call def_maxtime_cell_float('windmax', map_file%windmax_varid, 'm s-1', 'maximum_wind_speed', &
                     cell_methods='time: maximum')
             endif
          else
             if (meteo3d .and. store_wind_max) then
-               call ncdef_float_var(map_file%ncid, 'windmax', dims_s(1:nsd), map_file%windmax_varid, &
-                    'm s-1', 'maximum_wind_speed', &
-                    cell_methods='time: sum', coordinates='x y')
+               call def_static_cell_float('windmax', map_file%windmax_varid, 'm s-1', 'maximum_wind_speed', &
+                    cell_methods='time: sum')
             endif
          endif
       endif
       !
       if (patmos) then
-         call ncdef_float_var(map_file%ncid, 'surface_air_pressure', dims_st(1:nsd+1), map_file%patm_varid, &
-              'N m-2', 'surface_air_pressure', &
-              standard_name='surface_air_pressure', coordinates=coord_str)
+         call def_time_cell_float('surface_air_pressure', map_file%patm_varid, 'N m-2', 'surface_air_pressure', &
+              standard_name='surface_air_pressure')
       endif
       !
       ! precipitation_rate: regular only
       if (.not. use_quadtree) then
          if (precip) then
-            call ncdef_float_var(map_file%ncid, 'precipitation_rate', dims_st(1:nsd+1), map_file%precip_varid, &
-                 'mm h-1', 'precipitation_rate', &
-                 standard_name='precipitation_rate', coordinates=coord_str)
+            call def_time_cell_float('precipitation_rate', map_file%precip_varid, 'mm h-1', 'precipitation_rate', &
+                 standard_name='precipitation_rate')
          endif
       endif
    endif
@@ -727,49 +649,45 @@ contains
       !
       ! snapwavemsk: INT no-coord (quadtree), FLOAT+coord (regular)
       if (use_quadtree) then
-         call ncdef_int_var(map_file%ncid, 'snapwavemsk', dims_s(1:nsd), map_file%snapwavemsk_varid, &
-              'snapwave_msk_active_cells', &
+         call def_static_cell_int('snapwavemsk', map_file%snapwavemsk_varid, 'snapwave_msk_active_cells', &
               description='inactive=0, active=1, wave_boundary=2, neumann_boundary=3')
          NF90(nf90_put_att(map_file%ncid, map_file%snapwavemsk_varid, 'units',        '-'))
          NF90(nf90_put_att(map_file%ncid, map_file%snapwavemsk_varid, 'standard_name','snapwavemask'))
       else
-         call ncdef_float_var(map_file%ncid, 'snapwavemsk', dims_s(1:nsd), map_file%snapwavemsk_varid, &
-              '-', 'snapwave_msk_active_cells', standard_name='snapwavemask', coordinates='x y', &
-              description='inactive=0, active=1, wave_boundary=2, neumann_boundary=3')
+         call def_static_cell_float('snapwavemsk', map_file%snapwavemsk_varid, '-', 'snapwave_msk_active_cells', &
+              standard_name='snapwavemask', description='inactive=0, active=1, wave_boundary=2, neumann_boundary=3')
       endif
       !
-      call ncdef_float_var(map_file%ncid, 'hm0', dims_st(1:nsd+1), map_file%hm0_varid, &
-           'm', 'Hm0 wave height', standard_name='hm0_wave_height', coordinates=coord_str)
-      call ncdef_float_var(map_file%ncid, 'hm0ig', dims_st(1:nsd+1), map_file%hm0ig_varid, &
-           'm', 'Hm0 infragravity wave height', standard_name='hm0_ig_wave_height', coordinates=coord_str)
+      call def_time_cell_float('hm0', map_file%hm0_varid, 'm', 'Hm0 wave height', standard_name='hm0_wave_height')
+      !
+      call def_time_cell_float('hm0ig', map_file%hm0ig_varid, 'm', 'Hm0 infragravity wave height', &
+           standard_name='hm0_ig_wave_height')
       !
       if (store_wave_forces) then
-         call ncdef_float_var(map_file%ncid, 'fwx', dims_st(1:nsd+1), map_file%fwx_varid, &
-              'm', 'Wave force in x-direction', standard_name='wave_force_x', coordinates=coord_str)
-         call ncdef_float_var(map_file%ncid, 'fwy', dims_st(1:nsd+1), map_file%fwy_varid, &
-              'm', 'Wave force in y-direction', standard_name='wave_force_y', coordinates=coord_str)
-         call ncdef_float_var(map_file%ncid, 'tp', dims_st(1:nsd+1), map_file%tp_varid, &
-              's', 'Peak wave period', standard_name='peak_wave_period', coordinates=coord_str)
-         call ncdef_float_var(map_file%ncid, 'tpig', dims_st(1:nsd+1), map_file%tpig_varid, &
-              's', 'Peak infragravity wave period', standard_name='peak_ig_wave_period', coordinates=coord_str)
-         call ncdef_float_var(map_file%ncid, 'beta', dims_st(1:nsd+1), map_file%beta_varid, &
-              '-', 'directionally averaged local bed slope', &
-              standard_name='directionally_averaged_local_bed_slope', coordinates=coord_str)
-         call ncdef_float_var(map_file%ncid, 'snapwavedepth', dims_st(1:nsd+1), map_file%snapwavedepth_varid, &
-              'm', 'Interpolated water depth in Snapwave', &
-              standard_name='snapwave_waterdepth', coordinates=coord_str)
+         call def_time_cell_float('fwx', map_file%fwx_varid, 'm', 'Wave force in x-direction', standard_name='wave_force_x')
+         !
+         call def_time_cell_float('fwy', map_file%fwy_varid, 'm', 'Wave force in y-direction', standard_name='wave_force_y')
+         !
+         call def_time_cell_float('tp', map_file%tp_varid, 's', 'Peak wave period', standard_name='peak_wave_period')
+         !
+         call def_time_cell_float('tpig', map_file%tpig_varid, 's', 'Peak infragravity wave period', &
+              standard_name='peak_ig_wave_period')
+         !
+         call def_time_cell_float('beta', map_file%beta_varid, '-', 'directionally averaged local bed slope', &
+              standard_name='directionally_averaged_local_bed_slope')
+         !
+         call def_time_cell_float('snapwavedepth', map_file%snapwavedepth_varid, 'm', 'Interpolated water depth in Snapwave', &
+              standard_name='snapwave_waterdepth')
       endif
       !
       ! wavdir: quadtree only
       if (use_quadtree .and. store_wave_direction) then
-         call ncdef_float_var(map_file%ncid, 'wavdir', dims_st(1:nsd+1), map_file%wavdir_varid, &
-              'degrees', 'Mean wave direction', standard_name='mean_wave_direction')
+         call def_time_cell_float('wavdir', map_file%wavdir_varid, 'degrees', 'Mean wave direction', &
+              standard_name='mean_wave_direction')
       endif
       !
       if (wavemaker) then
-         call ncdef_float_var(map_file%ncid, 'zsm', dims_st(1:nsd+1), map_file%zsm_varid, &
-              'm', 'Filtered water level', &
-              standard_name='mean_water_level', coordinates=coord_str)
+         call def_time_cell_float('zsm', map_file%zsm_varid, 'm', 'Filtered water level', standard_name='mean_water_level')
       endif
       !
    endif
@@ -777,26 +695,25 @@ contains
    ! tsunami_arrival_time: time-varying for quadtree, static for regular
    if (store_tsunami_arrival_time) then
       if (use_quadtree) then
-         call ncdef_float_var(map_file%ncid, 'tsunami_arrival_time', dims_st(1:nsd+1), &
-              map_file%tsunami_arrival_time_varid, '-', 'tsunami_arrival_time', &
+         call def_time_cell_float('tsunami_arrival_time', map_file%tsunami_arrival_time_varid, '-', 'tsunami_arrival_time', &
               standard_name='tsunami_arrival_time')
       else
-         call ncdef_float_var(map_file%ncid, 'tsunami_arrival_time', dims_s(1:nsd), &
-              map_file%tsunami_arrival_time_varid, '-', 'tsunami_arrival_time', &
-              standard_name='tsunami_arrival_time', coordinates='x y')
+         call def_static_cell_float('tsunami_arrival_time', map_file%tsunami_arrival_time_varid, '-', 'tsunami_arrival_time', &
+              standard_name='tsunami_arrival_time')
       endif
    endif
    !
    if (nonhydrostatic) then
-      call ncdef_float_var(map_file%ncid, 'pnonh', dims_st(1:nsd+1), map_file%pnonh_varid, &
-           'N m-2', 'non_hydrostatic_pressure', coordinates=coord_str)
+      call def_time_cell_float('pnonh', map_file%pnonh_varid, 'N m-2', 'non_hydrostatic_pressure')
    endif
    !
    ! Runtime scalars
    call ncdef_float_var(map_file%ncid, 'total_runtime', (/map_file%runtime_dimid/), map_file%total_runtime_varid, &
         's', 'total_model_runtime_in_seconds')
+   !
    call ncdef_float_var(map_file%ncid, 'average_dt', (/map_file%runtime_dimid/), map_file%average_dt_varid, &
         's', 'model_average_timestep_in_seconds')
+   !
    call ncdef_float_var(map_file%ncid, 'status', (/map_file%runtime_dimid/), map_file%status_varid, &
         '-', 'status of SFINCS simulation - 0 is no error')
    !
@@ -808,97 +725,17 @@ contains
    ! -------------------------------------------------------
    ! Write static grid data
    ! -------------------------------------------------------
+   !
+   ! Topology / coordinate axes — grid-type-specific
    if (use_quadtree) then
-      !
-      NF90(nf90_put_var(map_file%ncid, map_file%mesh2d_node_x_varid, nodes_x))
-      NF90(nf90_put_var(map_file%ncid, map_file%mesh2d_node_y_varid, nodes_y))
+      NF90(nf90_put_var(map_file%ncid, map_file%mesh2d_node_x_varid,    nodes_x))
+      NF90(nf90_put_var(map_file%ncid, map_file%mesh2d_node_y_varid,    nodes_y))
       NF90(nf90_put_var(map_file%ncid, map_file%mesh2d_face_nodes_varid, face_nodes))
-      NF90(nf90_put_var(map_file%ncid, map_file%crs_varid, epsg))
-      !
-      ! zb
-      vtmp = FILL_VALUE
-      if (subgrid) then
-         do nmq = 1, quadtree_nr_points
-            nm = index_sfincs_in_quadtree(nmq)
-            if (nm > 0) vtmp(nmq) = subgrid_z_zmin(nm)
-         enddo
-      else
-         do nmq = 1, quadtree_nr_points
-            nm = index_sfincs_in_quadtree(nmq)
-            if (nm > 0) vtmp(nmq) = zb(nm)
-         enddo
-      endif
-      NF90(nf90_put_var(map_file%ncid, map_file%zb_varid, vtmp))
-      !
-      ! subgrid slope
-      if (subgrid .and. store_hsubgrid .and. store_hmean) then
-         vtmp = FILL_VALUE
-         do nmq = 1, quadtree_nr_points
-            nm = index_sfincs_in_quadtree(nmq)
-            if (nm > 0) then
-               if (crsgeo) then
-                  vtmp(nmq) = (subgrid_z_zmax(nm) - subgrid_z_zmin(nm)) / sqrt(cell_area_m2(nm))
-               else
-                  vtmp(nmq) = (subgrid_z_zmax(nm) - subgrid_z_zmin(nm)) / sqrt(cell_area(z_flags_iref(nm)))
-               endif
-            endif
-         enddo
-         NF90(nf90_put_var(map_file%ncid, map_file%subgridslope_varid, vtmp))
-      endif
-      !
-      ! msk
-      vtmpi = 0
-      do nmq = 1, quadtree_nr_points
-         nm = index_sfincs_in_quadtree(nmq)
-         if (nm > 0) vtmpi(nmq) = kcs(nm)
-      enddo
-      NF90(nf90_put_var(map_file%ncid, map_file%msk_varid, vtmpi))
-      !
-      ! snapwave msk
-      if (snapwave) then
-         vtmpi = 0
-         do nmq = 1, quadtree_nr_points
-            nm = index_sw_in_qt(nmq)
-            if (nm > 0) vtmpi(nmq) = snapwave_mask(nm)
-         enddo
-         NF90(nf90_put_var(map_file%ncid, map_file%snapwavemsk_varid, vtmpi))
-      endif
-      !
-      ! Manning
-      if (.not. subgrid .and. manning2d) then
-         vtmp = FILL_VALUE
-         do nmq = 1, quadtree_nr_points
-            nm = index_sfincs_in_quadtree(nmq)
-            if (nm > 0) vtmp(nmq) = rghfield(nm)
-         enddo
-         NF90(nf90_put_var(map_file%ncid, map_file%manning_varid, vtmp))
-      endif
-      !
-      ! Infiltration map
-      if (infiltration) then
-         vtmp = FILL_VALUE
-         if (inftype == 'con' .or. inftype == 'c2d') then
-            do nmq = 1, quadtree_nr_points
-               nm = index_sfincs_in_quadtree(nmq)
-               if (nm > 0) vtmp(nmq) = qinffield(nm) * 3600 * 1000
-            enddo
-         else
-            do nmq = 1, quadtree_nr_points
-               nm = index_sfincs_in_quadtree(nmq)
-               if (nm > 0) vtmp(nmq) = qinffield(nm)
-            enddo
-         endif
-         NF90(nf90_put_var(map_file%ncid, map_file%qinf_varid, vtmp))
-      endif
-      !
    else
-      !
-      ! Regular grid
-      allocate(xz(mmax, nmax))
-      allocate(yz(mmax, nmax))
+      allocate(xz(mmax,     nmax))
+      allocate(yz(mmax,     nmax))
       allocate(xg(mmax + 1, nmax + 1))
       allocate(yg(mmax + 1, nmax + 1))
-      !
       do n = 1, nmax
          do m = 1, mmax
             xz(m, n) = x0 + cosrot*(1.0*(m - 0.5))*dx - sinrot*(1.0*(n - 0.5))*dy
@@ -911,94 +748,254 @@ contains
             yg(m, n) = y0 + sinrot*(1.0*(m - 1))*dx + cosrot*(1.0*(n - 1))*dy
          enddo
       enddo
-      !
-      NF90(nf90_put_var(map_file%ncid, map_file%face_x_varid,   xz, (/1, 1/)))
-      NF90(nf90_put_var(map_file%ncid, map_file%face_y_varid,   yz, (/1, 1/)))
-      NF90(nf90_put_var(map_file%ncid, map_file%corner_x_varid, xg, (/1, 1/)))
-      NF90(nf90_put_var(map_file%ncid, map_file%corner_y_varid, yg, (/1, 1/)))
-      NF90(nf90_put_var(map_file%ncid, map_file%crs_varid, epsg))
-      !
+      call put_2d(map_file%face_x_varid,   xz)
+      call put_2d(map_file%face_y_varid,   yz)
+      call put_2d(map_file%corner_x_varid, xg)
+      call put_2d(map_file%corner_y_varid, yg)
       allocate(zsg(mmax, nmax))
-      zsg = FILL_VALUE
-      !
-      ! zb static
-      if (.not. store_dynamic_bed_level) then
-         do nm = 1, np
-            n = z_index_z_n(nm)
-            m = z_index_z_m(nm)
-            if (subgrid) then
-               zsg(m, n) = subgrid_z_zmin(nm)
-            else
-               zsg(m, n) = zb(nm)
-            endif
-         enddo
-         NF90(nf90_put_var(map_file%ncid, map_file%zb_varid, zsg, (/1, 1/)))
+   endif
+   NF90(nf90_put_var(map_file%ncid, map_file%crs_varid, epsg))
+   !
+   ! Cell-data writes — uniform via gather/put helpers
+   !
+   ! zb (always static for quadtree; on regular only when bed level is static)
+   if (use_quadtree .or. .not. store_dynamic_bed_level) then
+      if (subgrid) then
+         call put_static_cell_float(map_file%zb_varid, subgrid_z_zmin, FILL_VALUE)
+      else
+         call put_static_cell_float(map_file%zb_varid, zb, FILL_VALUE)
       endif
-      !
-      zsg = FILL_VALUE
-      ! subgrid slope
-      if (subgrid .and. store_hsubgrid .and. store_hmean) then
+   endif
+   !
+   ! subgrid slope (precompute the source — denominator depends on crsgeo)
+   if (subgrid .and. store_hsubgrid .and. store_hmean) then
+      allocate(slope_buf(np))
+      if (crsgeo) then
          do nm = 1, np
-            n = z_index_z_n(nm)
-            m = z_index_z_m(nm)
-            if (crsgeo) then
-               zsg(m, n) = (subgrid_z_zmax(nm) - subgrid_z_zmin(nm)) / sqrt(cell_area_m2(nm))
-            else
-               zsg(m, n) = (subgrid_z_zmax(nm) - subgrid_z_zmin(nm)) / sqrt(cell_area(z_flags_iref(nm)))
-            endif
+            slope_buf(nm) = (subgrid_z_zmax(nm) - subgrid_z_zmin(nm)) / sqrt(cell_area_m2(nm))
          enddo
-         NF90(nf90_put_var(map_file%ncid, map_file%subgridslope_varid, zsg, (/1, 1/)))
-      endif
-      !
-      ! msk
-      zsg = 0
-      do nm = 1, np
-         n = z_index_z_n(nm)
-         m = z_index_z_m(nm)
-         zsg(m, n) = kcs(nm)
-      enddo
-      NF90(nf90_put_var(map_file%ncid, map_file%msk_varid, zsg, (/1, 1/)))
-      !
-      ! snapwave msk
-      if (snapwave) then
-         zsg = 0
+      else
          do nm = 1, np
-            n = z_index_z_n(nm)
-            m = z_index_z_m(nm)
-            zsg(m, n) = snapwave_mask(nm)
+            slope_buf(nm) = (subgrid_z_zmax(nm) - subgrid_z_zmin(nm)) / sqrt(cell_area(z_flags_iref(nm)))
          enddo
-         NF90(nf90_put_var(map_file%ncid, map_file%snapwavemsk_varid, zsg, (/1, 1/)))
       endif
-      !
-      ! Manning
-      if (.not. subgrid .and. manning2d) then
-         zsg = FILL_VALUE
-         do nm = 1, np
-            n = z_index_z_n(nm)
-            m = z_index_z_m(nm)
-            zsg(m, n) = rghfield(nm)
-         enddo
-         NF90(nf90_put_var(map_file%ncid, map_file%manning_varid, zsg, (/1, 1/)))
+      call put_static_cell_float(map_file%subgridslope_varid, slope_buf, FILL_VALUE)
+      deallocate(slope_buf)
+   endif
+   !
+   ! msk (kcs is integer*1 — cast to real*4 for the generic mask helper)
+   call put_static_cell_mask(map_file%msk_varid, real(kcs, 4))
+   !
+   ! snapwave msk (real*4 source; uses snapwave's own quadtree index)
+   if (snapwave) then
+      call put_static_cell_mask(map_file%snapwavemsk_varid, snapwave_mask, sw_index=.true.)
+   endif
+   !
+   ! Manning
+   if (.not. subgrid .and. manning2d) then
+      call put_static_cell_float(map_file%manning_varid, rghfield, FILL_VALUE)
+   endif
+   !
+   ! Infiltration map (cna/c2d are stored as mm h-1, others use raw qinffield units)
+   if (infiltration) then
+      if (inftype == 'con' .or. inftype == 'c2d') then
+         call put_static_cell_float(map_file%qinf_varid, qinffield, FILL_VALUE, scale=3.6e6)
+      else
+         call put_static_cell_float(map_file%qinf_varid, qinffield, FILL_VALUE)
       endif
-      !
-      ! Infiltration map
-      if (infiltration) then
-         zsg = FILL_VALUE
-         do nm = 1, np
-            n = z_index_z_n(nm)
-            m = z_index_z_m(nm)
-            if (inftype == 'con' .or. inftype == 'c2d') then
-               zsg(m, n) = qinffield(nm) * 3600 * 1000
-            else
-               zsg(m, n) = qinffield(nm)
-            endif
-         enddo
-         NF90(nf90_put_var(map_file%ncid, map_file%qinf_varid, zsg, (/1, 1/)))
-      endif
-      !
    endif
    !
    NF90(nf90_sync(map_file%ncid))
+   !
+   contains
+   !
+   ! ---------------------------------------------------------------
+   ! Internal shape wrappers — host-associate nsd / dims_* / coord_str
+   ! so call sites carry only var-specific info (name, varid, units,
+   ! long_name, optional attrs). Pick the wrapper by variable shape:
+   !
+   !   def_static_cell_float   : dims_s(1:nsd)        + coord_str
+   !   def_static_cell_int     : dims_s(1:nsd)        (no coord)
+   !   def_time_cell_float     : dims_st(1:nsd+1)     + coord_str
+   !   def_maxtime_cell_float  : dims_sm(1:nsd+1)     + coord_str
+   !   def_mesh2d_node_coord   : mesh2d node coord var (geo|projected)
+   ! ---------------------------------------------------------------
+   !
+   subroutine def_static_cell_float(name, varid, units, long_name, &
+                                     standard_name, cell_methods, description)
+      character(*), intent(in)           :: name
+      integer,      intent(out)          :: varid
+      character(*), intent(in)           :: units, long_name
+      character(*), intent(in), optional :: standard_name, cell_methods, description
+      call ncdef_float_var(map_file%ncid, name, dims_s(1:nsd), varid, units, long_name, &
+           standard_name=standard_name, coordinates=coord_str,                          &
+           cell_methods=cell_methods, description=description,                          &
+           deflate_level=nc_deflate_level)
+   end subroutine def_static_cell_float
+   !
+   subroutine def_static_cell_int(name, varid, long_name, fill_value, description)
+      character(*), intent(in)           :: name
+      integer,      intent(out)          :: varid
+      character(*), intent(in)           :: long_name
+      integer,      intent(in), optional :: fill_value
+      character(*), intent(in), optional :: description
+      call ncdef_int_var(map_file%ncid, name, dims_s(1:nsd), varid, long_name, &
+           fill_value=fill_value, description=description,                     &
+           deflate_level=nc_deflate_level)
+   end subroutine def_static_cell_int
+   !
+   subroutine def_time_cell_float(name, varid, units, long_name, &
+                                   standard_name, cell_methods, description)
+      character(*), intent(in)           :: name
+      integer,      intent(out)          :: varid
+      character(*), intent(in)           :: units, long_name
+      character(*), intent(in), optional :: standard_name, cell_methods, description
+      call ncdef_float_var(map_file%ncid, name, dims_st(1:nsd+1), varid, units, long_name, &
+           standard_name=standard_name, coordinates=coord_str,                             &
+           cell_methods=cell_methods, description=description,                             &
+           deflate_level=nc_deflate_level)
+   end subroutine def_time_cell_float
+   !
+   subroutine def_maxtime_cell_float(name, varid, units, long_name, &
+                                      standard_name, cell_methods, description)
+      character(*), intent(in)           :: name
+      integer,      intent(out)          :: varid
+      character(*), intent(in)           :: units, long_name
+      character(*), intent(in), optional :: standard_name, cell_methods, description
+      call ncdef_float_var(map_file%ncid, name, dims_sm(1:nsd+1), varid, units, long_name, &
+           standard_name=standard_name, coordinates=coord_str,                             &
+           cell_methods=cell_methods, description=description,                             &
+           deflate_level=nc_deflate_level)
+   end subroutine def_maxtime_cell_float
+   !
+   subroutine def_mesh2d_node_coord(axis, varid)
+      ! Define mesh2d_node_x / mesh2d_node_y for UGRID quadtree topology.
+      ! Picks NF90_FLOAT+degrees (geographic) or NF90_DOUBLE+m (projected) via crsgeo.
+      character,     intent(in)  :: axis      ! 'x' or 'y'
+      integer,       intent(out) :: varid
+      character(len=14) :: vname
+      character(len=32) :: std_name, long_name, units
+      integer           :: nctype
+      !
+      vname = 'mesh2d_node_' // axis
+      if (crsgeo) then
+         nctype = NF90_FLOAT
+         units  = 'degrees'
+         if (axis == 'x') then
+            std_name  = 'longitude'
+            long_name = 'longitude'
+         else
+            std_name  = 'latitude'
+            long_name = 'latitude'
+         endif
+      else
+         nctype = NF90_DOUBLE
+         units  = 'm'
+         if (axis == 'x') then
+            std_name  = 'projection_x_coordinate'
+            long_name = 'x-coordinate of mesh nodes'
+         else
+            std_name  = 'projection_y_coordinate'
+            long_name = 'y-coordinate of mesh nodes'
+         endif
+      endif
+      NF90(nf90_def_var(map_file%ncid, trim(vname), nctype, (/map_file%nmesh2d_node_dimid/), varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, varid, 'units',         trim(units)))
+      NF90(nf90_put_att(map_file%ncid, varid, 'standard_name', trim(std_name)))
+      NF90(nf90_put_att(map_file%ncid, varid, 'long_name',     trim(long_name)))
+      NF90(nf90_put_att(map_file%ncid, varid, 'mesh',          'mesh2d'))
+      NF90(nf90_put_att(map_file%ncid, varid, 'location',      'node'))
+   end subroutine def_mesh2d_node_coord
+   !
+   ! ---------------------------------------------------------------
+   ! Static-cell write helpers — gather a SFINCS-indexed source array
+   ! into the right per-grid buffer (vtmp/vtmpi for quadtree, zsg for
+   ! regular) and write it via nf90_put_var. Hides the use_quadtree
+   ! branch and the index-map choice.
+   !
+   !   put_static_cell_float : real*4 source, optional scale,
+   !                            optional sw_index for snapwave-indexed sources
+   !   put_static_cell_mask  : real*4 source written to NF90_INT (quadtree)
+   !                            or NF90_FLOAT (regular); cast int*1 sources
+   !                            via real(.,4) at the call site
+   ! ---------------------------------------------------------------
+   !
+   subroutine put_static_cell_float(varid, source, fill, scale, sw_index)
+      integer, intent(in)           :: varid
+      real*4,  intent(in)           :: source(:)
+      real*4,  intent(in)           :: fill
+      real*4,  intent(in), optional :: scale     ! default: 1.0
+      logical, intent(in), optional :: sw_index  ! default: .false. (use sfincs index)
+      real*4  :: sc
+      logical :: usesw
+      integer :: nmq_l, nm_l
+      sc = 1.0
+      if (present(scale)) sc = scale
+      usesw = .false.
+      if (present(sw_index)) usesw = sw_index
+      if (use_quadtree) then
+         vtmp = fill
+         do nmq_l = 1, quadtree_nr_points
+            if (usesw) then
+               nm_l = index_sw_in_qt(nmq_l)
+            else
+               nm_l = index_sfincs_in_quadtree(nmq_l)
+            endif
+            if (nm_l > 0) vtmp(nmq_l) = source(nm_l) * sc
+         enddo
+         NF90(nf90_put_var(map_file%ncid, varid, vtmp))
+      else
+         zsg = fill
+         do nm_l = 1, np
+            zsg(z_index_z_m(nm_l), z_index_z_n(nm_l)) = source(nm_l) * sc
+         enddo
+         NF90(nf90_put_var(map_file%ncid, varid, zsg, (/1, 1/)))
+      endif
+   end subroutine put_static_cell_float
+   !
+   subroutine put_static_cell_mask(varid, source, sw_index)
+      ! Mask-style write: var is NF90_INT on quadtree, NF90_FLOAT on regular.
+      ! Source is real*4 — callers pass real(kcs, 4) for int*1 masks
+      ! (kcs) or snapwave_mask directly (already real*4).
+      integer, intent(in)           :: varid
+      real*4,  intent(in)           :: source(:)
+      logical, intent(in), optional :: sw_index
+      logical :: usesw
+      integer :: nmq_l, nm_l
+      usesw = .false.
+      if (present(sw_index)) usesw = sw_index
+      if (use_quadtree) then
+         vtmpi = 0
+         do nmq_l = 1, quadtree_nr_points
+            if (usesw) then
+               nm_l = index_sw_in_qt(nmq_l)
+            else
+               nm_l = index_sfincs_in_quadtree(nmq_l)
+            endif
+            if (nm_l > 0) vtmpi(nmq_l) = int(source(nm_l), 4)
+         enddo
+         NF90(nf90_put_var(map_file%ncid, varid, vtmpi))
+      else
+         zsg = 0
+         do nm_l = 1, np
+            zsg(z_index_z_m(nm_l), z_index_z_n(nm_l)) = source(nm_l)
+         enddo
+         NF90(nf90_put_var(map_file%ncid, varid, zsg, (/1, 1/)))
+      endif
+   end subroutine put_static_cell_mask
+   !
+   ! ---------------------------------------------------------------
+   ! put_2d : nf90_put_var for a 2D real*4 array (face/corner coords).
+   ! Hides the (/1, 1/) start-index boilerplate; varargs keep their
+   ! actual shape (xz/yz are (m,n); xg/yg are (m+1,n+1)).
+   ! ---------------------------------------------------------------
+   !
+   subroutine put_2d(varid, arr)
+      integer, intent(in) :: varid
+      real*4,  intent(in) :: arr(:,:)
+      NF90(nf90_put_var(map_file%ncid, varid, arr, (/1, 1/)))
+   end subroutine put_2d
    !
    end subroutine ncoutput_map_init
 
@@ -1176,108 +1173,106 @@ contains
    !
    ! Time varying map output
    !
-   call ncdef_float_var(his_file%ncid, 'point_zs', (/his_file%points_dimid, his_file%time_dimid/), his_file%zs_varid, &
-        'm', 'water_level', standard_name='sea_surface_height_above_reference_level', coordinates=pt_coord)
+   call def_time_point_float('point_zs', his_file%zs_varid, 'm', 'water_level', &
+        standard_name='sea_surface_height_above_reference_level')
    !
    if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
-      call ncdef_float_var(his_file%ncid, 'point_h', (/his_file%points_dimid, his_file%time_dimid/), his_file%h_varid, &
-           'm', 'water_depth', standard_name='depth', coordinates=pt_coord)
+      call def_time_point_float('point_h', his_file%h_varid, 'm', 'water_depth', standard_name='depth')
    endif
    !
    if (store_velocity) then
-      call ncdef_float_var(his_file%ncid, 'point_u', (/his_file%points_dimid, his_file%time_dimid/), his_file%u_varid, &
-           'm s-1', 'flow_velocity_x_direction', standard_name='sea_water_x_velocity', coordinates=pt_coord)
-      call ncdef_float_var(his_file%ncid, 'point_v', (/his_file%points_dimid, his_file%time_dimid/), his_file%v_varid, &
-           'm s-1', 'flow_velocity_y_direction', standard_name='sea_water_y_velocity', coordinates=pt_coord)
-      call ncdef_float_var(his_file%ncid, 'point_uvmag', (/his_file%points_dimid, his_file%time_dimid/), his_file%uvmag_varid, &
-           'm s-1', 'flow_velocity_magnitude', standard_name='sea_water_velocity', coordinates=pt_coord)
-      call ncdef_float_var(his_file%ncid, 'point_uvdir', (/his_file%points_dimid, his_file%time_dimid/), his_file%uvdir_varid, &
-           'degrees', 'flow_velocity_direction', standard_name='sea_water_velocity_direction', coordinates=pt_coord)
+      call def_time_point_float('point_u', his_file%u_varid, 'm s-1', 'flow_velocity_x_direction', &
+           standard_name='sea_water_x_velocity')
+      !
+      call def_time_point_float('point_v', his_file%v_varid, 'm s-1', 'flow_velocity_y_direction', &
+           standard_name='sea_water_y_velocity')
+      !
+      call def_time_point_float('point_uvmag', his_file%uvmag_varid, 'm s-1', 'flow_velocity_magnitude', &
+           standard_name='sea_water_velocity')
+      !
+      call def_time_point_float('point_uvdir', his_file%uvdir_varid, 'degrees', 'flow_velocity_direction', &
+           standard_name='sea_water_velocity_direction')
    endif
    !
    ! Add infiltration
    !
    if (infiltration) then
-      call ncdef_float_var(his_file%ncid, 'point_qinf', (/his_file%points_dimid, his_file%time_dimid/), his_file%qinf_varid, &
-           'mm hr-1', 'infiltration_rate', coordinates=pt_coord)
+      call def_time_point_float('point_qinf', his_file%qinf_varid, 'mm hr-1', 'infiltration_rate')
    endif
    !
    if (inftype == 'cnb') then
-      call ncdef_float_var(his_file%ncid, 'point_S', (/his_file%points_dimid, his_file%time_dimid/), his_file%S_varid, &
-           'm', 'current moisture storage (Se) capacity', coordinates=pt_coord)
+      call def_time_point_float('point_S', his_file%S_varid, 'm', 'current moisture storage (Se) capacity')
    endif
    !
    if (inftype == 'gai') then
-      call ncdef_float_var(his_file%ncid, 'point_S', (/his_file%points_dimid, his_file%time_dimid/), his_file%S_varid, &
-           'm', 'maximum soil moisture deficit', coordinates=pt_coord)
+      call def_time_point_float('point_S', his_file%S_varid, 'm', 'maximum soil moisture deficit')
    endif
    !
    if (snapwave) then
-      call ncdef_float_var(his_file%ncid, 'point_hm0', (/his_file%points_dimid, his_file%time_dimid/), his_file%hm0_varid, &
-           'm', 'Hm0 wave height', standard_name='hm0_wave_height', coordinates=pt_coord)
-      call ncdef_float_var(his_file%ncid, 'point_hm0ig', (/his_file%points_dimid, his_file%time_dimid/), his_file%hm0ig_varid, &
-           'm', 'Hm0 infragravity wave height', standard_name='hm0_ig_wave_height', coordinates=pt_coord)
-      call ncdef_float_var(his_file%ncid, 'point_tp', (/his_file%points_dimid, his_file%time_dimid/), his_file%tp_varid, &
-           's', 'Peak wave period', standard_name='peak_wave_period', coordinates=pt_coord)
-      call ncdef_float_var(his_file%ncid, 'point_tpig', (/his_file%points_dimid, his_file%time_dimid/), his_file%tpig_varid, &
-           's', 'Peak wave period Infragravity wave', standard_name='ig_peak_wave_period', coordinates=pt_coord)
+      call def_time_point_float('point_hm0', his_file%hm0_varid, 'm', 'Hm0 wave height', standard_name='hm0_wave_height')
+      !
+      call def_time_point_float('point_hm0ig', his_file%hm0ig_varid, 'm', 'Hm0 infragravity wave height', &
+           standard_name='hm0_ig_wave_height')
+      !
+      call def_time_point_float('point_tp', his_file%tp_varid, 's', 'Peak wave period', standard_name='peak_wave_period')
+      !
+      call def_time_point_float('point_tpig', his_file%tpig_varid, 's', 'Peak wave period Infragravity wave', &
+           standard_name='ig_peak_wave_period')
       !
       if (store_wave_direction) then
-         call ncdef_float_var(his_file%ncid, 'point_wavdir', (/his_file%points_dimid, his_file%time_dimid/), his_file%wavdir_varid, &
-              'degrees', 'Mean wave direction', standard_name='mean_wave_direction', coordinates=pt_coord)
-         call ncdef_float_var(his_file%ncid, 'point_dirspr', (/his_file%points_dimid, his_file%time_dimid/), his_file%dirspr_varid, &
-              's', 'Wave directional spreading', standard_name='wave_directional_spreading', coordinates=pt_coord)
+         call def_time_point_float('point_wavdir', his_file%wavdir_varid, 'degrees', 'Mean wave direction', &
+              standard_name='mean_wave_direction')
+         !
+         call def_time_point_float('point_dirspr', his_file%dirspr_varid, 's', 'Wave directional spreading', &
+              standard_name='wave_directional_spreading')
       endif
       !
       if (wavemaker) then
-         call ncdef_float_var(his_file%ncid, 'point_zsm', (/his_file%points_dimid, his_file%time_dimid/), his_file%zsm_varid, &
-              'm', 'Filtered water level', standard_name='filtered_water_level', coordinates=pt_coord)
+         call def_time_point_float('point_zsm', his_file%zsm_varid, 'm', 'Filtered water level', &
+              standard_name='filtered_water_level')
       endif
       !
       if (store_wave_forces) then
-         call ncdef_float_var(his_file%ncid, 'point_dw', (/his_file%points_dimid, his_file%time_dimid/), his_file%dw_varid, &
-              'm', 'directionally averaged wave breaking dissipation', &
-              standard_name='directionally_averaged_wave_breaking_dissipation', coordinates=pt_coord)
-         call ncdef_float_var(his_file%ncid, 'point_df', (/his_file%points_dimid, his_file%time_dimid/), his_file%df_varid, &
-              'm', 'directionally averaged wave friction dissipation', &
-              standard_name='directionally_averaged_wave_friction_dissipation', coordinates=pt_coord)
-         call ncdef_float_var(his_file%ncid, 'point_dwig', (/his_file%points_dimid, his_file%time_dimid/), his_file%dwig_varid, &
-              'm', 'directionally averaged wave breaking dissipation ig', &
-              standard_name='directionally_averaged_wave_breaking_dissipation_ig', coordinates=pt_coord)
-         call ncdef_float_var(his_file%ncid, 'point_dfig', (/his_file%points_dimid, his_file%time_dimid/), his_file%dfig_varid, &
-              'm', 'directionally averaged wave friction dissipation ig', &
-              standard_name='directionally_averaged_wave_friction_dissipation_ig', coordinates=pt_coord)
-         call ncdef_float_var(his_file%ncid, 'point_cg', (/his_file%points_dimid, his_file%time_dimid/), his_file%cg_varid, &
-              'm/s', 'wave group velocity', standard_name='wave_group_velocity', coordinates=pt_coord)
-         call ncdef_float_var(his_file%ncid, 'point_beta', (/his_file%points_dimid, his_file%time_dimid/), his_file%beta_varid, &
-              '-', 'directionally averaged normalised bed slope', &
-              standard_name='directionally_averaged_local_bed_slope', coordinates=pt_coord)
-         call ncdef_float_var(his_file%ncid, 'point_srcig', (/his_file%points_dimid, his_file%time_dimid/), his_file%srcig_varid, &
-              '-', 'directionally averaged ig energy source', &
-              standard_name='directionally_averaged_ig_energy_source', coordinates=pt_coord)
-         call ncdef_float_var(his_file%ncid, 'point_alphaig', (/his_file%points_dimid, his_file%time_dimid/), his_file%alphaig_varid, &
-              '-', 'directionally averaged infragravity waves shoaling factor', &
-              standard_name='directionally_averaged_infragravity_waves_shoaling_factor', coordinates=pt_coord)
+         call def_time_point_float('point_dw', his_file%dw_varid, 'm', 'directionally averaged wave breaking dissipation', &
+              standard_name='directionally_averaged_wave_breaking_dissipation')
+         !
+         call def_time_point_float('point_df', his_file%df_varid, 'm', 'directionally averaged wave friction dissipation', &
+              standard_name='directionally_averaged_wave_friction_dissipation')
+         !
+         call def_time_point_float('point_dwig', his_file%dwig_varid, 'm', 'directionally averaged wave breaking dissipation ig', &
+              standard_name='directionally_averaged_wave_breaking_dissipation_ig')
+         !
+         call def_time_point_float('point_dfig', his_file%dfig_varid, 'm', 'directionally averaged wave friction dissipation ig', &
+              standard_name='directionally_averaged_wave_friction_dissipation_ig')
+         !
+         call def_time_point_float('point_cg', his_file%cg_varid, 'm/s', 'wave group velocity', &
+              standard_name='wave_group_velocity')
+         !
+         call def_time_point_float('point_beta', his_file%beta_varid, '-', 'directionally averaged normalised bed slope', &
+              standard_name='directionally_averaged_local_bed_slope')
+         !
+         call def_time_point_float('point_srcig', his_file%srcig_varid, '-', 'directionally averaged ig energy source', &
+              standard_name='directionally_averaged_ig_energy_source')
+         !
+         call def_time_point_float('point_alphaig', his_file%alphaig_varid, '-', &
+              'directionally averaged infragravity waves shoaling factor', &
+              standard_name='directionally_averaged_infragravity_waves_shoaling_factor')
       endif
    endif
    !
    if (store_meteo) then
       if (wind) then
-         call ncdef_float_var(his_file%ncid, 'point_wind_speed', (/his_file%points_dimid, his_file%time_dimid/), his_file%wind_speed_varid, &
-              'm s-1', 'wind_speed', coordinates=pt_coord)
-         call ncdef_float_var(his_file%ncid, 'point_wind_direction', (/his_file%points_dimid, his_file%time_dimid/), his_file%wind_dir_varid, &
-              'degrees', 'wind_direction', coordinates=pt_coord)
+         call def_time_point_float('point_wind_speed', his_file%wind_speed_varid, 'm s-1', 'wind_speed')
+         !
+         call def_time_point_float('point_wind_direction', his_file%wind_dir_varid, 'degrees', 'wind_direction')
       endif
       if (patmos) then
-         call ncdef_float_var(his_file%ncid, 'point_patm', (/his_file%points_dimid, his_file%time_dimid/), his_file%patm_varid, &
-              'Pa', 'surface_air_pressure', coordinates=pt_coord)
+         call def_time_point_float('point_patm', his_file%patm_varid, 'Pa', 'surface_air_pressure')
       endif
       if (precip) then
-         call ncdef_float_var(his_file%ncid, 'point_prcp', (/his_file%points_dimid, his_file%time_dimid/), his_file%prcp_varid, &
-              'mm hr-1', 'precipitation_rate', coordinates=pt_coord)
+         call def_time_point_float('point_prcp', his_file%prcp_varid, 'mm hr-1', 'precipitation_rate')
          if (store_cumulative_precipitation) then
-            call ncdef_float_var(his_file%ncid, 'point_cumprcp', (/his_file%points_dimid, his_file%time_dimid/), his_file%cumprcp_varid, &
-                 'm', 'cumulative_precipitation', coordinates=pt_coord)
+            call def_time_point_float('point_cumprcp', his_file%cumprcp_varid, 'm', 'cumulative_precipitation')
          endif
       endif
    endif
@@ -1299,8 +1294,10 @@ contains
    !
    call ncdef_float_var(his_file%ncid, 'total_runtime', (/his_file%runtime_dimid/), his_file%total_runtime_varid, &
         's', 'total_model_runtime_in_seconds')
+   !
    call ncdef_float_var(his_file%ncid, 'average_dt', (/his_file%runtime_dimid/), his_file%average_dt_varid, &
         's', 'model_average_timestep_in_seconds')
+   !
    call ncdef_float_var(his_file%ncid, 'status', (/his_file%runtime_dimid/), his_file%status_varid, &
         '-', 'status of SFINCS simulation - 0 is no error')
    !    
@@ -1378,10 +1375,34 @@ contains
    !     
    NF90(nf90_sync(his_file%ncid)) !write away intermediate data
    !
-   end subroutine
+   contains
+   !
+   ! ---------------------------------------------------------------
+   ! Internal shape wrapper for the dominant his shape:
+   !   def_time_point_float : (/points_dimid, time_dimid/) + pt_coord
+   !
+   ! One-off shapes (point_zb, structure_height, crosssection/drain/
+   ! runup_gauge discharge/zs) are kept as direct ncdef_float_var calls.
+   ! ---------------------------------------------------------------
+   !
+   subroutine def_time_point_float(name, varid, units, long_name, &
+                                    standard_name, cell_methods, description)
+      character(*), intent(in)           :: name
+      integer,      intent(out)          :: varid
+      character(*), intent(in)           :: units, long_name
+      character(*), intent(in), optional :: standard_name, cell_methods, description
+      call ncdef_float_var(his_file%ncid, name,                           &
+           (/his_file%points_dimid, his_file%time_dimid/), varid,         &
+           units, long_name,                                              &
+           standard_name=standard_name, coordinates=pt_coord,             &
+           cell_methods=cell_methods, description=description,            &
+           deflate_level=nc_deflate_level)
+   end subroutine def_time_point_float
+   !
+   end subroutine ncoutput_his_init
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   !  
+   !
 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
@@ -2584,9 +2605,110 @@ contains
    enddo
    !
    end subroutine
-   !   
+   !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   !   
+   !
+   ! Generic NetCDF variable definition helpers.
+   ! ncdef_float_var / ncdef_int_var replace the 6-7 line def_var boilerplate
+   ! that repeats across ncoutput_map_init and ncoutput_his_init.
+   !
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !
+   subroutine ncdef_float_var(ncid, varname, dimids, varid, &
+                               units, long_name,             &
+                               standard_name, coordinates,   &
+                               cell_methods, description,    &
+                               deflate_level)
+      !
+      ! Define a NF90_FLOAT variable and set standard attributes in one call.
+      ! Optional attributes are only written when present and non-empty.
+      !
+      integer,      intent(in)           :: ncid
+      character(*), intent(in)           :: varname
+      integer,      intent(in)           :: dimids(:)
+      integer,      intent(out)          :: varid
+      character(*), intent(in)           :: units
+      character(*), intent(in)           :: long_name
+      character(*), intent(in), optional :: standard_name
+      character(*), intent(in), optional :: coordinates
+      character(*), intent(in), optional :: cell_methods
+      character(*), intent(in), optional :: description
+      integer,      intent(in), optional :: deflate_level
+      !
+      integer :: nc_deflate
+      !
+      nc_deflate = 6
+      if (present(deflate_level)) nc_deflate = deflate_level
+      !
+      NF90(nf90_def_var(ncid, trim(varname), NF90_FLOAT, dimids, varid))
+      NF90(nf90_def_var_deflate(ncid, varid, 1, 1, nc_deflate))
+      NF90(nf90_put_att(ncid, varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(ncid, varid, 'units', trim(units)))
+      if (present(standard_name)) then
+         if (len_trim(standard_name) > 0) then
+            NF90(nf90_put_att(ncid, varid, 'standard_name', trim(standard_name)))
+         endif
+      endif
+      NF90(nf90_put_att(ncid, varid, 'long_name', trim(long_name)))
+      if (present(coordinates)) then
+         if (len_trim(coordinates) > 0) then
+            NF90(nf90_put_att(ncid, varid, 'coordinates', trim(coordinates)))
+         endif
+      endif
+      if (present(cell_methods)) then
+         if (len_trim(cell_methods) > 0) then
+            NF90(nf90_put_att(ncid, varid, 'cell_methods', trim(cell_methods)))
+         endif
+      endif
+      if (present(description)) then
+         if (len_trim(description) > 0) then
+            NF90(nf90_put_att(ncid, varid, 'description', trim(description)))
+         endif
+      endif
+      !
+   end subroutine ncdef_float_var
+   !
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !
+   subroutine ncdef_int_var(ncid, varname, dimids, varid, &
+                             long_name,                    &
+                             fill_value, description,      &
+                             deflate_level)
+      !
+      ! Define a NF90_INT variable and set standard attributes in one call.
+      ! Topology variables with many unique attributes (mesh2d, crs, sfincsgrid,
+      ! mesh2d_face_nodes) should still be defined manually.
+      !
+      integer,      intent(in)           :: ncid
+      character(*), intent(in)           :: varname
+      integer,      intent(in)           :: dimids(:)
+      integer,      intent(out)          :: varid
+      character(*), intent(in)           :: long_name
+      integer,      intent(in), optional :: fill_value    ! default: FILL_VALUE_INT (-999)
+      character(*), intent(in), optional :: description
+      integer,      intent(in), optional :: deflate_level ! default: 6
+      !
+      integer :: nc_deflate, nc_fill
+      !
+      nc_deflate = 6
+      if (present(deflate_level)) nc_deflate = deflate_level
+      nc_fill = FILL_VALUE_INT
+      if (present(fill_value)) nc_fill = fill_value
+      !
+      NF90(nf90_def_var(ncid, trim(varname), NF90_INT, dimids, varid))
+      NF90(nf90_def_var_deflate(ncid, varid, 1, 1, nc_deflate))
+      NF90(nf90_put_att(ncid, varid, '_FillValue', nc_fill))
+      NF90(nf90_put_att(ncid, varid, 'long_name', trim(long_name)))
+      if (present(description)) then
+         if (len_trim(description) > 0) then
+            NF90(nf90_put_att(ncid, varid, 'description', trim(description)))
+         endif
+      endif
+      !
+   end subroutine ncdef_int_var
+   !
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !
    subroutine handle_err(status,file,line)
       !
       integer, intent ( in)    :: status
