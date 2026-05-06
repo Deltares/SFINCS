@@ -96,6 +96,7 @@ module sfincs_src_structures
    integer, parameter :: structure_culvert_simple = 2
    integer, parameter :: structure_culvert        = 3
    integer, parameter :: structure_gate           = 4
+   integer, parameter :: structure_dike_breach    = 5
    !
    ! Direction filter codes (culvert_simple / culvert). Controls which sign
    ! of discharge is allowed through the structure. Default is "both".
@@ -175,6 +176,15 @@ module sfincs_src_structures
       real :: invert_2
       real :: submergence_ratio
       !
+      ! Dike breach parameters (structure_dike_breach only)
+      !
+      real    :: z_crest      ! initial crest elevation (m)
+      real    :: t_breach     ! breach start time (s since t=0)
+      real    :: z_min        ! minimum breach level (m)
+      real    :: B0           ! initial breach width at start of phase 2 (m)
+      real    :: t0           ! duration of phase 1: crest lowering (s)
+      integer :: dike_core    ! core material: 1=sand, 2=clay
+      !
       ! Gate control rule expressions (raw strings; parsed by marshal).
       ! Either or both may be unallocated, meaning "no trigger for this action".
       !
@@ -252,6 +262,20 @@ module sfincs_src_structures
    ! Detailed-culvert submergence threshold
    !
    real*4, dimension(:), allocatable, public :: src_struc_submergence_ratio  ! culvert submergence threshold h_dn/h_up (-)
+   !
+   ! Dike breach parameters
+   !
+   real*4,  dimension(:), allocatable, public :: src_struc_z_crest      ! initial crest elevation (m)
+   real*4,  dimension(:), allocatable, public :: src_struc_t_breach     ! breach start time (s)
+   real*4,  dimension(:), allocatable, public :: src_struc_z_min        ! minimum breach level (m)
+   real*4,  dimension(:), allocatable, public :: src_struc_B0           ! initial breach width (m)
+   real*4,  dimension(:), allocatable, public :: src_struc_t0           ! phase-1 duration (s)
+   integer, dimension(:), allocatable, public :: src_struc_dike_core    ! 1=sand, 2=clay
+   !
+   ! Dike breach runtime state
+   !
+   real*4, dimension(:), allocatable, public :: src_struc_breach_width  ! current breach width (m)
+   real*4, dimension(:), allocatable, public :: src_struc_breach_level  ! current breach crest level (m)
    !
    ! Runtime state
    !
@@ -460,6 +484,14 @@ contains
       allocate(src_struc_invert_1(nr_src_structures))
       allocate(src_struc_invert_2(nr_src_structures))
       allocate(src_struc_submergence_ratio(nr_src_structures))
+      allocate(src_struc_z_crest(nr_src_structures))
+      allocate(src_struc_t_breach(nr_src_structures))
+      allocate(src_struc_z_min(nr_src_structures))
+      allocate(src_struc_B0(nr_src_structures))
+      allocate(src_struc_t0(nr_src_structures))
+      allocate(src_struc_dike_core(nr_src_structures))
+      allocate(src_struc_breach_width(nr_src_structures))
+      allocate(src_struc_breach_level(nr_src_structures))
       allocate(src_struc_rule_open(nr_src_structures))
       allocate(src_struc_rule_close(nr_src_structures))
       allocate(src_struc_rule_open_src(nr_src_structures))
@@ -501,6 +533,14 @@ contains
       src_struc_invert_1         = 0.0
       src_struc_invert_2         = 0.0
       src_struc_submergence_ratio = 0.667
+      src_struc_z_crest          = 0.0
+      src_struc_t_breach         = 0.0
+      src_struc_z_min            = 0.0
+      src_struc_B0               = 0.0
+      src_struc_t0               = 0.0
+      src_struc_dike_core        = 1
+      src_struc_breach_width     = 0.0
+      src_struc_breach_level     = 0.0
       !
       ! Copy scalar / coord / string / parameter fields from src_structures(:)
       ! into the flat arrays, and parse rule source strings via add_rule.
@@ -573,6 +613,17 @@ contains
          src_struc_invert_1(i)          = src_structures(i)%invert_1
          src_struc_invert_2(i)          = src_structures(i)%invert_2
          src_struc_submergence_ratio(i) = src_structures(i)%submergence_ratio
+         !
+         if (src_structures(i)%structure_type == structure_dike_breach) then
+            src_struc_z_crest(i)      = src_structures(i)%z_crest
+            src_struc_t_breach(i)     = src_structures(i)%t_breach
+            src_struc_z_min(i)        = src_structures(i)%z_min
+            src_struc_B0(i)           = src_structures(i)%B0
+            src_struc_t0(i)           = src_structures(i)%t0
+            src_struc_dike_core(i)    = src_structures(i)%dike_core
+            src_struc_breach_level(i) = src_structures(i)%z_crest  ! starts at crest
+            src_struc_breach_width(i) = 0.0
+         endif
          !
          ! Parse rule expressions. Missing / empty strings leave the
          ! rule_id at 0, which the evaluator interprets as "never fires".
@@ -668,6 +719,8 @@ contains
          call write_log(logstr, 0)
          !
       endif
+      !
+      dike_breaching = any(src_struc_type == structure_dike_breach)
       !
       ! Write the per-structure descriptive block to the log file.
       ! Emitted before the gate-status seeding so the per-gate init status
@@ -792,6 +845,11 @@ contains
       real*4  :: h_up, h_dn, qq_sign
       logical :: open_fires, close_fires
       !
+      real*4  :: crest_breach, width_breach, z_crest_breach, z_min_breach
+      real*4  :: tstart_breach, tstart_widening, t_phase1_deepening
+      real*4  :: vk_f1, vk_f2, uc_material, elapsed_widening_hr, dt_hr
+      real*4  :: widening_deceleration, widening_rate
+      !
       if (nr_src_structures <= 0) return
       !
       call timer_start('drainage structures')
@@ -807,6 +865,9 @@ contains
       !$acc                        src_struc_height, &
       !$acc                        src_struc_invert_1, src_struc_invert_2, &
       !$acc                        src_struc_submergence_ratio, &
+      !$acc                        src_struc_z_crest, src_struc_t_breach, src_struc_z_min, &
+      !$acc                        src_struc_B0, src_struc_t0, src_struc_dike_core, &
+      !$acc                        src_struc_breach_width, src_struc_breach_level, &
       !$acc                        src_struc_distance, src_struc_status, src_struc_fraction_open, &
       !$acc                        src_struc_t_state, &
       !$acc                        src_struc_rule_open, src_struc_rule_close, &
@@ -816,13 +877,21 @@ contains
       !$acc                       zs_o1, zs_o2, frac, wdt, mng, zsill, dist, dzds, hgate, qq0, alpha, &
       !$acc                       dh, a_eff, &
       !$acc                       h_up, h_dn, qq_sign, &
-      !$acc                       open_fires, close_fires )
+      !$acc                       open_fires, close_fires, &
+      !$acc                       crest_breach, width_breach, z_crest_breach, z_min_breach, &
+      !$acc                       tstart_breach, tstart_widening, t_phase1_deepening, &
+      !$acc                       vk_f1, vk_f2, uc_material, elapsed_widening_hr, dt_hr, &
+      !$acc                       widening_deceleration, widening_rate )
       !$omp parallel do &
       !$omp   private( nm_s1, nm_s2, nm_o1, nm_o2, qq, elapsed, &
       !$omp            zs_o1, zs_o2, frac, wdt, mng, zsill, dist, dzds, hgate, qq0, alpha, &
       !$omp            dh, a_eff, &
       !$omp            h_up, h_dn, qq_sign, &
-      !$omp            open_fires, close_fires ) &
+      !$omp            open_fires, close_fires, &
+      !$omp            crest_breach, width_breach, z_crest_breach, z_min_breach, &
+      !$omp            tstart_breach, tstart_widening, t_phase1_deepening, &
+      !$omp            vk_f1, vk_f2, uc_material, elapsed_widening_hr, dt_hr, &
+      !$omp            widening_deceleration, widening_rate ) &
       !$omp   schedule ( static )
       do istruc = 1, nr_src_structures
          !
@@ -1075,6 +1144,96 @@ contains
                      !
                      qq = 0.0
                      !
+                  endif
+                  !
+               case(structure_dike_breach)
+                  !
+                  ! Verheij-Knaap (2003): two-phase dike breach.
+                  ! Water levels are read from the obs pair (obs_1 = inside /
+                  ! high-head side; obs_2 = outside / low-head side), which
+                  ! default to the src pair when not user-specified.
+                  ! Flow direction and submergence follow the same pattern
+                  ! as structure_culvert (h_up / h_dn / src_struc_submergence_ratio).
+                  !
+                  nm_o1 = src_struc_nm_o1(istruc)
+                  nm_o2 = src_struc_nm_o2(istruc)
+                  !
+                  z_crest_breach      = src_struc_z_crest(istruc)
+                  z_min_breach        = src_struc_z_min(istruc)
+                  tstart_breach       = src_struc_t_breach(istruc)
+                  tstart_widening     = src_struc_t0(istruc)
+                  t_phase1_deepening  = tstart_breach + tstart_widening
+                  !
+                  width_breach = src_struc_breach_width(istruc)
+                  crest_breach = src_struc_breach_level(istruc)
+                  !
+                  if (src_struc_dike_core(istruc) == 1) then
+                     vk_f1 = 1.3; vk_f2 = 0.04; uc_material = 0.2  ! sand
+                  else
+                     vk_f1 = 1.3; vk_f2 = 0.04; uc_material = 0.5  ! clay
+                  endif
+                  !
+                  ! --- Breach geometry update ---
+                  !
+                  if (real(t, 4) >= tstart_breach) then
+                     !
+                     if (real(t, 4) < t_phase1_deepening) then
+                        !
+                        ! Phase 1: crest lowers linearly to z_min over t0; width = B0
+                        !
+                        crest_breach = z_crest_breach - (z_crest_breach - z_min_breach) * &
+                                       (real(t, 4) - tstart_breach) / tstart_widening
+                        width_breach = src_struc_B0(istruc)
+                        !
+                     else
+                        !
+                        ! Phase 2: crest at z_min, breach widens via Verheij formula.
+                        ! Driving head H = upstream head above z_min minus downstream.
+                        !
+                        crest_breach        = z_min_breach
+                        elapsed_widening_hr = (real(t, 4) - t_phase1_deepening) / 3600.0
+                        dt_hr               = dt / 3600.0
+                        ! Only widen when obs_1 (inside) is higher than obs_2 (outside).
+                        ! Reversed flow (ebb/return) is allowed but does not erode further.
+                        if (real(zs(nm_o1), 4) > real(zs(nm_o2), 4)) then
+                           h_up                 = max(real(zs(nm_o1), 4) - z_min_breach, 0.0)
+                           h_dn                 = max(real(zs(nm_o2), 4) - z_min_breach, 0.0)
+                           dh                   = max(h_up - h_dn, 0.0)
+                           widening_deceleration = max(1.0 + (vk_f2 * g / uc_material) * elapsed_widening_hr, 1.0e-12)
+                           widening_rate         = (vk_f1 * vk_f2 / log(10.0)) * (g * dh)**1.5 / &
+                                                   (uc_material * uc_material * widening_deceleration)
+                           width_breach = width_breach + max(widening_rate, 0.0) * dt_hr
+                        endif
+                        !
+                     endif
+                     !
+                  else
+                     crest_breach = z_crest_breach
+                     width_breach = 0.0
+                  endif
+                  !
+                  src_struc_breach_level(istruc) = crest_breach
+                  src_struc_breach_width(istruc) = width_breach
+                  !
+                  ! --- Discharge through breach (culvert-style, obs-point WLs) ---
+                  !
+                  dh = real(zs(nm_o1), 4) - real(zs(nm_o2), 4)
+                  if (dh >= 0.0) then
+                     h_up    = max(real(zs(nm_o1), 4) - crest_breach, 0.0)
+                     h_dn    = max(real(zs(nm_o2), 4) - crest_breach, 0.0)
+                     qq_sign = 1.0
+                  else
+                     h_up    = max(real(zs(nm_o2), 4) - crest_breach, 0.0)
+                     h_dn    = max(real(zs(nm_o1), 4) - crest_breach, 0.0)
+                     qq_sign = -1.0
+                  endif
+                  !
+                  if (h_up <= 0.0 .or. width_breach <= 0.0) then
+                     qq = 0.0
+                  elseif (h_dn / h_up >= src_struc_submergence_ratio(istruc)) then
+                     qq = qq_sign * width_breach * h_up * sqrt(2.0 * g * abs(dh))
+                  else
+                     qq = qq_sign * 1.71 * width_breach * sqrt(g) * h_up**1.5
                   endif
                   !
             end select
@@ -1347,6 +1506,13 @@ contains
                call check_required_coord_pair(tbl_struct, 'src_1', i, ierr)
                call check_required_coord_pair(tbl_struct, 'src_2', i, ierr)
                !
+            case (structure_dike_breach)
+               !
+               call check_required(tbl_struct, [ character(len=16) :: &
+                    'name', 'z_crest', 't_breach', 'z_min', 'B0', 't0' ], i, ierr)
+               call check_required_coord_pair(tbl_struct, 'src_1', i, ierr)
+               call check_required_coord_pair(tbl_struct, 'src_2', i, ierr)
+               !
          end select
          !
          if (ierr /= 0) then
@@ -1420,6 +1586,15 @@ contains
          call get_value(tbl_struct, 'invert_1',          structures(i)%invert_1,          0.0,   stat=stat)
          call get_value(tbl_struct, 'invert_2',          structures(i)%invert_2,          0.0,   stat=stat)
          call get_value(tbl_struct, 'submergence_ratio', structures(i)%submergence_ratio, 0.667, stat=stat)
+         !
+         ! Dike breach parameters (ignored for other types)
+         !
+         call get_value(tbl_struct, 'z_crest',   structures(i)%z_crest,   0.0, stat=stat)
+         call get_value(tbl_struct, 't_breach',  structures(i)%t_breach,  0.0, stat=stat)
+         call get_value(tbl_struct, 'z_min',     structures(i)%z_min,     0.0, stat=stat)
+         call get_value(tbl_struct, 'B0',        structures(i)%B0,        0.0, stat=stat)
+         call get_value(tbl_struct, 't0',        structures(i)%t0,        0.0, stat=stat)
+         call get_value(tbl_struct, 'dike_core', structures(i)%dike_core, 1,   stat=stat)
          !
          ! Optional direction filter (culvert_simple / culvert). Default is
          ! direction_both. Unknown strings are a hard error.
@@ -1666,6 +1841,10 @@ contains
             !
             code = structure_culvert
             !
+         case ('dike_breach')
+            !
+            code = structure_dike_breach
+            !
          case default
             !
             ierr = 1
@@ -1796,6 +1975,10 @@ contains
                !
                type_str = 'gate'
                !
+            case (structure_dike_breach)
+               !
+               type_str = 'dike_breach'
+               !
             case default
                !
                type_str = 'unknown'
@@ -1817,10 +2000,11 @@ contains
          write(logstr,'(a22,1x,a,a,a,a,a)')      '  src_2              :',             '(', trim(fmt_real(src_struc_x_s2(i), 3)), ', ', trim(fmt_real(src_struc_y_s2(i), 3)), ')'
          call write_log(logstr, 0)
          !
-         ! obs coords are meaningful for culvert_simple / gate.
+         ! obs coords are meaningful for culvert_simple / gate / dike_breach.
          !
          if (src_struc_type(i) == structure_culvert_simple .or. &
-             src_struc_type(i) == structure_gate) then
+             src_struc_type(i) == structure_gate           .or. &
+             src_struc_type(i) == structure_dike_breach) then
             !
             write(logstr,'(a22,1x,a,a,a,a,a)')   '  obs_1              :',              '(', trim(fmt_real(src_struc_x_o1(i), 3)), ', ', trim(fmt_real(src_struc_y_o1(i), 3)), ')'
             call write_log(logstr, 0)
@@ -1911,6 +2095,32 @@ contains
             call write_log(logstr, 0)
             !
             write(logstr,'(a22,1x,a,a)')            '  closing_duration   :',   trim(fmt_real(src_struc_closing_duration(i), 2)),  ' (s)'
+            call write_log(logstr, 0)
+            !
+         endif
+         !
+         if (src_struc_type(i) == structure_dike_breach) then
+            !
+            write(logstr,'(a22,a,a)')            '  z_crest:',            trim(fmt_real(src_struc_z_crest(i), 4)),           ' (m)'
+            call write_log(logstr, 0)
+            !
+            write(logstr,'(a22,a,a)')            '  z_min:',              trim(fmt_real(src_struc_z_min(i), 4)),             ' (m)'
+            call write_log(logstr, 0)
+            !
+            write(logstr,'(a22,a,a)')            '  t_breach:',           trim(fmt_real(src_struc_t_breach(i), 2)),          ' (s)'
+            call write_log(logstr, 0)
+            !
+            write(logstr,'(a22,a,a)')            '  t0:',                 trim(fmt_real(src_struc_t0(i), 2)),                ' (s)'
+            call write_log(logstr, 0)
+            !
+            write(logstr,'(a22,a,a)')            '  B0:',                 trim(fmt_real(src_struc_B0(i), 4)),                ' (m)'
+            call write_log(logstr, 0)
+            !
+            if (src_struc_dike_core(i) == 1) then
+               write(logstr,'(a22,a)')           '  dike_core:',          'sand (1)'
+            else
+               write(logstr,'(a22,a)')           '  dike_core:',          'clay (2)'
+            endif
             call write_log(logstr, 0)
             !
          endif
