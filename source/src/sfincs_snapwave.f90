@@ -554,10 +554,13 @@ contains
    snapwave_beta                  = beta
    snapwave_srcig                 = srcig
    snapwave_alphaig               = alphaig   
-   !
+   !   
    ! Convert wave force to correct unit [Dw/C] as expected by SFINCS, assumed to be piecewise (seems to work)
    snapwave_Fx                    = Fx * rho * depth
    snapwave_Fy                    = Fy * rho * depth
+   !
+   ! Pre-alculate wave forces limiter factor
+   !fwmaxfac = 0.25 * sqrt(g) * rho * gammax**2 / tpmean_bwv   
    !
    ! Loop over points and set Tp, cg, direction, spreading to 0 where H and/or H_ig are zero
    ! TL: needed because e.g. Tp is set to Tpini initially, so shows values even if cell remains dry with H=0
