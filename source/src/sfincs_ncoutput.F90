@@ -5,29 +5,33 @@
 !                   and the his point file (sfincs_his.nc).
 !
 ! Handles regular and quadtree grids through a single set of helpers.
-! Caller code never has to write `if (use_quadtree) … else … endif` for
-! standard cell-centered or point-station outputs.
+! Caller code does not need separate `if (use_quadtree) … else …` branches
+! for standard cell-centered or point-station outputs.
 !
 ! ----------------------------------------------------------------------------
 ! HOW TO ADD A NEW OUTPUT VARIABLE
 ! ----------------------------------------------------------------------------
 !
-! Map-file (cell-centered) output, time-varying — e.g. a new wave field 'foo':
-!   1. Add `integer :: foo_varid` to `map_type` below.
-!   2. In ncoutput_map_init, define the var:
-!         call def_time_cell_float('foo', map_file%foo_varid, 'units', &
-!              'long_name', standard_name='cf_standard_name')
-!   3. In ncoutput_update_map, write it each timestep:
-!         call write_cell_var(map_file%ncid, map_file%foo_varid, foo, ntmapout)
+! In the recipes below, 'waterlevel' is just a placeholder — replace it with
+! the real name of the variable you are adding.
 !
-! Map-file output, max-aggregated — e.g. 'foomax' (zsmax / hmax / vmax style):
-!   1. Add `integer :: foomax_varid` to `map_type`.
+! Map-file (cell-centered) output, time-varying — e.g. a new field 'waterlevel':
+!   1. Add `integer :: waterlevel_varid` to `map_type` below.
+!   2. In ncoutput_map_init, define the var:
+!         call def_time_cell_float('waterlevel', map_file%waterlevel_varid, &
+!              'units', 'long_name', standard_name='cf_standard_name')
+!   3. In ncoutput_update_map, write it each timestep:
+!         call write_cell_var(map_file%ncid, map_file%waterlevel_varid, &
+!              waterlevel, ntmapout)
+!
+! Map-file output, max-aggregated — e.g. 'waterlevel_max' (zsmax / hmax / vmax style):
+!   1. Add `integer :: waterlevel_max_varid` to `map_type`.
 !   2. In ncoutput_map_init:
-!         call def_maxtime_cell_float('foomax', map_file%foomax_varid, &
+!         call def_maxtime_cell_float('waterlevel_max', map_file%waterlevel_max_varid, &
 !              'units', 'long_name', cell_methods='time: maximum')
 !   3. In ncoutput_update_max:
-!         call write_cell_var(map_file%ncid, map_file%foomax_varid, foomax, &
-!              ntmaxout, check_kcs=.true.)
+!         call write_cell_var(map_file%ncid, map_file%waterlevel_max_varid, &
+!              waterlevel_max, ntmaxout, check_kcs=.true.)
 !
 ! Map-file output, static (single value per cell, written once) — e.g. 'soil':
 !   1. Add `integer :: soil_varid` to `map_type`.
@@ -37,8 +41,8 @@
 !   3. In ncoutput_map_init's static-write block (after nf90_enddef):
 !         call put_static_cell_float(map_file%ncid, map_file%soil_varid, soil, FILL_VALUE)
 !
-! Map-file output, static integer mask (NF90_INT on quadtree, NF90_FLOAT on
-! regular) — e.g. a 'valid_cell' flag:
+! Map-file output, static integer mask (stored as integer on quadtree,
+! float on regular grid) — e.g. a 'valid_cell' flag:
 !   1. Add `integer :: valid_cell_varid` to `map_type`.
 !   2. In ncoutput_map_init:
 !         call def_static_cell_int('valid_cell', map_file%valid_cell_varid, &
@@ -48,15 +52,15 @@
 !         call put_static_cell_mask(map_file%ncid, map_file%valid_cell_varid, &
 !              real(valid_cell, 4))    ! cast int*1/int*4 source to real*4
 !
-! His-file (point/station) output, time-varying — e.g. 'point_foo':
-!   1. Add `integer :: foo_varid` to `his_type`.
+! His-file (point/station) output, time-varying — e.g. 'point_waterlevel':
+!   1. Add `integer :: waterlevel_varid` to `his_type`.
 !   2. In ncoutput_his_init:
-!         call def_time_point_float('point_foo', his_file%foo_varid, &
+!         call def_time_point_float('point_waterlevel', his_file%waterlevel_varid, &
 !              'units', 'long_name', standard_name='...')
-!   3. In ncoutput_update_his: gather source values at observation points
-!      into the legacy hisobs-style buffer and write via nf90_put_var.
-!      (NOTE: ncoutput_update_his has not yet been refactored to use a
-!       generic write_point_var helper — see TODO at that subroutine.)
+!   3. In ncoutput_update_his: gather values at the observation points and
+!      write via nf90_put_var. (NOTE: ncoutput_update_his has not yet been
+!      refactored to use a generic write_point_var helper — see TODO at that
+!      subroutine.)
 !
 ! Conditions (subgrid, snapwave, infiltration, etc.) belong in the caller's
 ! `if (...)` guard around the def + write pair, not inside helpers.
@@ -84,30 +88,37 @@
 !   write_cell_var_wet  (ncid, varid, source, zref, nt, output_delta,
 !                        [check_wet])
 !
-! Internal to ncoutput_map_init (host-associate dims_*/coord_str):
-!   def_static_cell_float / def_static_cell_int    dims_s
-!   def_time_cell_float                            dims_st (time dim)
-!   def_maxtime_cell_float                         dims_sm (timemax dim)
-!   def_mesh2d_node_coord     UGRID node coord (geo NF90_FLOAT / proj NF90_DOUBLE)
-!   def_grid_axis_coord       SGRID face/corner coord (always NF90_FLOAT)
+! Definition wrappers used inside ncoutput_map_init (these reuse the
+! enclosing scope's dims_* / coord_str / crsgeo / nc_deflate_level so call
+! sites stay one-liners):
+!   def_static_cell_float / def_static_cell_int    static cell variables
+!   def_time_cell_float                            time-varying cell variables
+!   def_maxtime_cell_float                         max-aggregated cell variables
+!   def_mesh2d_node_coord     UGRID node coord (float for geographic, double for projected)
+!   def_grid_axis_coord       SGRID face/corner coord (always float)
 !   put_2d                    nf90_put_var with (/1, 1/) start
 !
-! Internal to ncoutput_his_init (host-associates pt_coord):
+! Definition wrapper used inside ncoutput_his_init:
 !   def_time_point_float                           (points × time)
 !
-! Internal to ncoutput_update_map:
-!   compute_uv_at_cell_centers                     SFINCS-indexed (np)
-!   compute_pnh_unwrapped                          SFINCS-indexed (np)
+! Precompute helpers used inside ncoutput_update_map (return arrays
+! indexed by SFINCS cell number):
+!   compute_uv_at_cell_centers
+!   compute_pnh_unwrapped
 !
 ! ----------------------------------------------------------------------------
 ! GRID-TYPE BRANCH STILL NEEDED WHEN
 ! ----------------------------------------------------------------------------
 !
-! - the variable only exists on one grid type (e.g. precipitation_rate is
-!   regular only; mesh2d / face_x are grid-specific topology vars);
+! - the variable is grid-specific topology (UGRID mesh2d / face_node_connectivity
+!   on quadtree vs SGRID face_x / corner_x / sfincsgrid on regular) and the
+!   Conventions string that goes with it;
 ! - source array names differ per grid (SnapWave: snapwave_H on quadtree,
-!   hm0 on regular — fix in sfincs_snapwave is a separate cleanup target);
-! - storage shape genuinely differs (none today after the windmax fix).
+!   hm0 on regular — fix in sfincs_snapwave is a separate cleanup target).
+!
+! Model-physics asymmetries that propagate into output (not a netCDF concern):
+! - dynamic bed level (`store_dynamic_bed_level`) only updates on regular
+!   non-subgrid runs, so zb is time-varying there and static everywhere else.
 !
 ! ============================================================================
 module sfincs_ncoutput
@@ -369,9 +380,9 @@ contains
    end subroutine put_static_cell_float
 
    subroutine put_static_cell_mask(ncid, varid, source, sw_index)
-      ! Mask-style write: var is NF90_INT on quadtree, NF90_FLOAT on regular.
-      ! Source is real*4 — callers pass real(kcs, 4) for int*1 masks
-      ! (kcs) or snapwave_mask directly (already real*4).
+      ! Mask-style write: NF90_INT on both grid types — 1D `face` on quadtree,
+      ! 2D `(m, n)` on regular. Source is real*4 — callers pass real(kcs, 4)
+      ! for int*1 masks (kcs) or snapwave_mask directly (already real*4).
       use sfincs_data
       use sfincs_snapwave, only: index_sw_in_qt
       use quadtree
@@ -381,13 +392,16 @@ contains
       logical, intent(in), optional :: sw_index
       !
       integer*4, allocatable :: buf_qi(:)
-      real*4,    allocatable :: buf_r(:,:)
+      integer*4, allocatable :: buf_ri(:,:)
       logical :: usesw
       integer :: nmq, nm
       !
       usesw = .false.
       if (present(sw_index)) usesw = sw_index
       !
+      ! Source is real*4 — int() truncates toward zero. Used only for mask
+      ! vars (kcs, snapwave_mask) whose values are small non-negative
+      ! integers, so truncation is exact.
       if (use_quadtree) then
          allocate(buf_qi(quadtree_nr_points))
          buf_qi = 0
@@ -397,22 +411,19 @@ contains
             else
                nm = index_sfincs_in_quadtree(nmq)
             endif
-            ! source is real*4 — int() truncates toward zero. Used only for
-            ! mask vars (kcs, snapwave_mask) whose values are small non-negative
-            ! integers, so truncation is exact.
             if (nm > 0) buf_qi(nmq) = int(source(nm), 4)
          enddo
          NF90(nf90_put_var(ncid, varid, buf_qi))
       else
-         allocate(buf_r(mmax, nmax))
-         ! Initialise to FILL_VALUE so cells outside np (the active SFINCS domain)
-         ! read as fill, not as a valid mask=0. Cells with kcs(nm)==0 inside np
-         ! are still written as 0 (a valid inactive-but-present-in-domain marker).
-         buf_r = FILL_VALUE
+         allocate(buf_ri(mmax, nmax))
+         ! Initialise to FILL_VALUE_INT so cells outside np (the active SFINCS
+         ! domain) read as fill, not as a valid mask=0. Cells with kcs(nm)==0
+         ! inside np are still written as 0 (a valid inactive-but-present marker).
+         buf_ri = FILL_VALUE_INT
          do nm = 1, np
-            buf_r(z_index_z_m(nm), z_index_z_n(nm)) = source(nm)
+            buf_ri(z_index_z_m(nm), z_index_z_n(nm)) = int(source(nm), 4)
          enddo
-         NF90(nf90_put_var(ncid, varid, buf_r, (/1, 1/)))
+         NF90(nf90_put_var(ncid, varid, buf_ri, (/1, 1/)))
       endif
    end subroutine put_static_cell_mask
 
@@ -543,10 +554,12 @@ contains
    dims_sm(1:nsd)   = sp_dimids(1:nsd);  dims_sm(nsd+1) = map_file%timemax_dimid
    !
    ! Global metadata
+   ! CF version unified at 1.8 across both grid types and the his file.
+   ! TODO: Confirm with Deltares whether this convention extension should also apply to the SGRID regular-grid
    if (use_quadtree) then
       NF90(nf90_put_att(map_file%ncid, nf90_global, "Conventions", "CF-1.8 UGRID-1.0 Deltares-0.10"))
    else
-      NF90(nf90_put_att(map_file%ncid, nf90_global, "Conventions", "CF-1.6 SGRID-0.3"))
+      NF90(nf90_put_att(map_file%ncid, nf90_global, "Conventions", "CF-1.8 SGRID-0.3"))
    endif
    NF90(nf90_put_att(map_file%ncid, nf90_global, "Build-Revision-Date-Netcdf-library", trim(nf90_inq_libvers())))
    NF90(nf90_put_att(map_file%ncid, nf90_global, "Producer", "SFINCS model: Super-Fast INundation of CoastS"))
@@ -613,16 +626,15 @@ contains
    endif
    !
    ! -------------------------------------------------------
-   ! msk (INT+no-coord for quadtree, FLOAT+coord for regular)
+   ! msk: NF90_INT on both grid types, described via CF flag_values /
+   ! flag_meanings. No CF standard_name exists for multi-valued masks
+   ! (the previously-used 'land_binary_mask' is strict 0/1 only).
    ! -------------------------------------------------------
-   if (use_quadtree) then
-      call def_static_cell_int('msk', map_file%msk_varid, 'msk_active_cells', &
-           units='-', standard_name='mask', &
-           description='inactive=0, active=1, normal_boundary=2, outflow_boundary=3, wavemaker=4')
-   else
-      call def_static_cell_float('msk', map_file%msk_varid, '-', 'msk_active_cells', standard_name='land_binary_mask', &
-           description='inactive=0, active=1, normal_boundary=2, outflow_boundary=3')
-   endif
+   call def_static_cell_int('msk', map_file%msk_varid, 'msk_active_cells', &
+        units='-', &
+        description='inactive=0, active=1, normal_boundary=2, outflow_boundary=3, wavemaker=4', &
+        flag_values=(/0, 1, 2, 3, 4/), &
+        flag_meanings='inactive active normal_boundary outflow_boundary wavemaker')
    !
    ! -------------------------------------------------------
    ! Infiltration map (qinf) - both grid types, slightly different
@@ -704,15 +716,16 @@ contains
       endif
    endif
    !
-   ! Infiltration state vars (regular only: Seff/sigma/f)
-   if (.not. use_quadtree) then
-      if (inftype == 'cnb') then
-         call def_time_cell_float('Seff', map_file%infstate_varid, 'm', 'current moisture storage (Se) capacity', standard_name='Se')
-      elseif (inftype == 'gai') then
-         call def_time_cell_float('sigma', map_file%infstate_varid, '-', 'maximum soil moisture deficit', standard_name='sigma')
-      elseif (inftype == 'hor') then
-         call def_time_cell_float('f', map_file%infstate_varid, 'mm h-1', 'current infiltration capacity', standard_name='f')
-      endif
+   ! Infiltration state vars (Seff / sigma / f). Source arrays scs_Se,
+   ! GA_sigma and qinfmap are allocated unconditionally by sfincs_infiltration
+   ! whenever the corresponding inftype is active, on both regular and
+   ! quadtree grids.
+   if (inftype == 'cnb') then
+      call def_time_cell_float('Seff', map_file%infstate_varid, 'm', 'current moisture storage (Se) capacity', standard_name='Se')
+   elseif (inftype == 'gai') then
+      call def_time_cell_float('sigma', map_file%infstate_varid, '-', 'maximum soil moisture deficit', standard_name='sigma')
+   elseif (inftype == 'hor') then
+      call def_time_cell_float('f', map_file%infstate_varid, 'mm h-1', 'current infiltration capacity', standard_name='f')
    endif
    !
    ! -------------------------------------------------------
@@ -796,12 +809,11 @@ contains
               standard_name='surface_air_pressure')
       endif
       !
-      ! precipitation_rate: regular only
-      if (.not. use_quadtree) then
-         if (precip) then
-            call def_time_cell_float('precipitation_rate', map_file%precip_varid, 'mm h-1', 'precipitation_rate', &
-                 standard_name='precipitation_rate')
-         endif
+      ! precipitation_rate (prcp source array is np-shaped on both grids;
+      ! sfincs_meteo applies precip identically regardless of grid type)
+      if (precip) then
+         call def_time_cell_float('precipitation_rate', map_file%precip_varid, 'mm h-1', 'precipitation_rate', &
+              standard_name='precipitation_rate')
       endif
    endif
    !
@@ -810,15 +822,13 @@ contains
    ! -------------------------------------------------------
    if (snapwave) then
       !
-      ! snapwavemsk: INT no-coord (quadtree), FLOAT+coord (regular)
-      if (use_quadtree) then
-         call def_static_cell_int('snapwavemsk', map_file%snapwavemsk_varid, 'snapwave_msk_active_cells', &
-              units='-', standard_name='snapwavemask', &
-              description='inactive=0, active=1, wave_boundary=2, neumann_boundary=3')
-      else
-         call def_static_cell_float('snapwavemsk', map_file%snapwavemsk_varid, '-', 'snapwave_msk_active_cells', &
-              standard_name='snapwavemask', description='inactive=0, active=1, wave_boundary=2, neumann_boundary=3')
-      endif
+      ! snapwavemsk: NF90_INT on both grid types, described via CF
+      ! flag_values / flag_meanings.
+      call def_static_cell_int('snapwavemsk', map_file%snapwavemsk_varid, 'snapwave_msk_active_cells', &
+           units='-', &
+           description='inactive=0, active=1, wave_boundary=2, neumann_boundary=3', &
+           flag_values=(/0, 1, 2, 3/), &
+           flag_meanings='inactive active wave_boundary neumann_boundary')
       !
       call def_time_cell_float('hm0', map_file%hm0_varid, 'm', 'Hm0 wave height', standard_name='hm0_wave_height')
       !
@@ -995,13 +1005,16 @@ contains
    end subroutine def_static_cell_float
    !
    subroutine def_static_cell_int(name, varid, long_name, &
-                                   units, standard_name, fill_value, description)
+                                   units, standard_name, fill_value, description, &
+                                   flag_values, flag_meanings)
       character(*), intent(in)           :: name
       integer,      intent(out)          :: varid
       character(*), intent(in)           :: long_name
       character(*), intent(in), optional :: units, standard_name
       integer,      intent(in), optional :: fill_value
       character(*), intent(in), optional :: description
+      integer,      intent(in), optional :: flag_values(:)
+      character(*), intent(in), optional :: flag_meanings
       call ncdef_int_var(map_file%ncid, name, dims_s(1:nsd), varid, long_name, &
            fill_value=fill_value, description=description,                     &
            deflate_level=nc_deflate_level)
@@ -1010,6 +1023,21 @@ contains
       endif
       if (present(standard_name)) then
          if (len_trim(standard_name) > 0) NF90(nf90_put_att(map_file%ncid, varid, 'standard_name', trim(standard_name)))
+      endif
+      ! coordinates attribute: empty on quadtree (UGRID uses mesh="mesh2d"
+      ! / location="face" instead, added below), 'x y' on SGRID regular grid.
+      if (len_trim(coord_str) > 0) then
+         NF90(nf90_put_att(map_file%ncid, varid, 'coordinates', trim(coord_str)))
+      endif
+      ! CF flag-variable convention: flag_values + flag_meanings together
+      ! describe the categorical values of the variable.
+      if (present(flag_values)) then
+         NF90(nf90_put_att(map_file%ncid, varid, 'flag_values', flag_values))
+      endif
+      if (present(flag_meanings)) then
+         if (len_trim(flag_meanings) > 0) then
+            NF90(nf90_put_att(map_file%ncid, varid, 'flag_meanings', trim(flag_meanings)))
+         endif
       endif
       call add_ugrid_face_attrs(varid)
    end subroutine def_static_cell_int
@@ -1208,8 +1236,16 @@ contains
    NF90(nf90_def_dim(his_file%ncid, 'pointnamelength', 256, his_file%pointnamelength_dimid)) ! length of station_name per obs point  
    NF90(nf90_def_dim(his_file%ncid, 'runtime', 1, his_file%runtime_dimid)) ! total_runtime, average_dt    
    !
-   ! Some metadata attributes 
-   NF90(nf90_put_att(his_file%ncid,nf90_global, "Conventions", "CF-1.6 SGRID-0.3"))
+   ! Some metadata attributes
+   ! TODO: the his file stores station/timeseries data (point_x, point_y,
+   ! station_id indexed by `points`), not a structured grid, so the
+   ! SGRID-0.3 claim here is incorrect. The CF idiom for station data is
+   ! the discrete-sampling-geometries pattern: drop SGRID-0.3 and add
+   !   featureType  = "timeSeries"  (global)
+   !   cf_role      = "timeseries_id"  on station_id / station_name
+   ! Leaving SGRID-0.3 in place for now to avoid breaking downstream
+   ! readers; revisit once consumers (FEWS, xarray pipelines) are checked.
+   NF90(nf90_put_att(his_file%ncid,nf90_global, "Conventions", "CF-1.8 SGRID-0.3"))
    NF90(nf90_put_att(his_file%ncid,nf90_global, "Build-Revision-Date-Netcdf-library", trim(nf90_inq_libvers()))) ! version of netcdf library
    NF90(nf90_put_att(his_file%ncid,nf90_global, "Producer", "SFINCS model: Super-Fast INundation of CoastS"))
    NF90(nf90_put_att(his_file%ncid,nf90_global, "Build-Revision", trim(build_revision))) 
@@ -1631,16 +1667,14 @@ contains
    endif
    !
    ! -------------------------------------------------------
-   ! Infiltration state (regular grid only)
+   ! Infiltration state
    ! -------------------------------------------------------
-   if (.not. use_quadtree) then
-      if (inftype == 'cnb') then
-         call write_cell_var(map_file%ncid, map_file%infstate_varid, scs_Se,   ntmapout)
-      elseif (inftype == 'gai') then
-         call write_cell_var(map_file%ncid, map_file%infstate_varid, GA_sigma, ntmapout)
-      elseif (inftype == 'hor') then
-         call write_cell_var(map_file%ncid, map_file%infstate_varid, qinfmap,  ntmapout)
-      endif
+   if (inftype == 'cnb') then
+      call write_cell_var(map_file%ncid, map_file%infstate_varid, scs_Se,   ntmapout)
+   elseif (inftype == 'gai') then
+      call write_cell_var(map_file%ncid, map_file%infstate_varid, GA_sigma, ntmapout)
+   elseif (inftype == 'hor') then
+      call write_cell_var(map_file%ncid, map_file%infstate_varid, qinfmap,  ntmapout)
    endif
    !
    ! -------------------------------------------------------
@@ -1654,7 +1688,7 @@ contains
       if (patmos) then
          call write_cell_var(map_file%ncid, map_file%patm_varid, patm, ntmapout)
       endif
-      if (.not. use_quadtree .and. precip) then
+      if (precip) then
          call write_cell_var(map_file%ncid, map_file%precip_varid, prcp, ntmapout, scale=3600000.0)
       endif
    endif
