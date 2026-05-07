@@ -1,4 +1,115 @@
 #define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)
+!
+! ============================================================================
+! sfincs_ncoutput — NetCDF output for the SFINCS map file (sfincs_map.nc)
+!                   and the his point file (sfincs_his.nc).
+!
+! Handles regular and quadtree grids through a single set of helpers.
+! Caller code never has to write `if (use_quadtree) … else … endif` for
+! standard cell-centered or point-station outputs.
+!
+! ----------------------------------------------------------------------------
+! HOW TO ADD A NEW OUTPUT VARIABLE
+! ----------------------------------------------------------------------------
+!
+! Map-file (cell-centered) output, time-varying — e.g. a new wave field 'foo':
+!   1. Add `integer :: foo_varid` to `map_type` below.
+!   2. In ncoutput_map_init, define the var:
+!         call def_time_cell_float('foo', map_file%foo_varid, 'units', &
+!              'long_name', standard_name='cf_standard_name')
+!   3. In ncoutput_update_map, write it each timestep:
+!         call write_cell_var(map_file%ncid, map_file%foo_varid, foo, ntmapout)
+!
+! Map-file output, max-aggregated — e.g. 'foomax' (zsmax / hmax / vmax style):
+!   1. Add `integer :: foomax_varid` to `map_type`.
+!   2. In ncoutput_map_init:
+!         call def_maxtime_cell_float('foomax', map_file%foomax_varid, &
+!              'units', 'long_name', cell_methods='time: maximum')
+!   3. In ncoutput_update_max:
+!         call write_cell_var(map_file%ncid, map_file%foomax_varid, foomax, &
+!              ntmaxout, check_kcs=.true.)
+!
+! Map-file output, static (single value per cell, written once) — e.g. 'soil':
+!   1. Add `integer :: soil_varid` to `map_type`.
+!   2. In ncoutput_map_init:
+!         call def_static_cell_float('soil', map_file%soil_varid, 'units', &
+!              'long_name', standard_name='...')
+!   3. In ncoutput_map_init's static-write block (after nf90_enddef):
+!         call put_static_cell_float(map_file%ncid, map_file%soil_varid, soil, FILL_VALUE)
+!
+! Map-file output, static integer mask (NF90_INT on quadtree, NF90_FLOAT on
+! regular) — e.g. a 'valid_cell' flag:
+!   1. Add `integer :: valid_cell_varid` to `map_type`.
+!   2. In ncoutput_map_init:
+!         call def_static_cell_int('valid_cell', map_file%valid_cell_varid, &
+!              'long_name', units='1', standard_name='valid_cell_mask', &
+!              description='inactive=0, active=1')
+!   3. In ncoutput_map_init's static-write block:
+!         call put_static_cell_mask(map_file%ncid, map_file%valid_cell_varid, &
+!              real(valid_cell, 4))    ! cast int*1/int*4 source to real*4
+!
+! His-file (point/station) output, time-varying — e.g. 'point_foo':
+!   1. Add `integer :: foo_varid` to `his_type`.
+!   2. In ncoutput_his_init:
+!         call def_time_point_float('point_foo', his_file%foo_varid, &
+!              'units', 'long_name', standard_name='...')
+!   3. In ncoutput_update_his: gather source values at observation points
+!      into the legacy hisobs-style buffer and write via nf90_put_var.
+!      (NOTE: ncoutput_update_his has not yet been refactored to use a
+!       generic write_point_var helper — see TODO at that subroutine.)
+!
+! Conditions (subgrid, snapwave, infiltration, etc.) belong in the caller's
+! `if (...)` guard around the def + write pair, not inside helpers.
+!
+! GPU note: when running on GPU (OpenACC), the source array of any new
+! time-varying output must be synced back to the host before the write call
+! using `!$acc update host(<source>)`.  The helpers themselves run on the
+! host; they only read host-resident data.
+!
+! ----------------------------------------------------------------------------
+! HELPER INVENTORY
+! ----------------------------------------------------------------------------
+!
+! Generic NetCDF (bottom of file):
+!   ncdef_float_var, ncdef_int_var          one-call var-def + attribute set
+!   handle_err                              NF90 macro error handler
+!
+! Module-level static-cell writers:
+!   put_static_cell_float(ncid, varid, source, fill, [scale, sw_index, min_value])
+!   put_static_cell_mask (ncid, varid, source, [sw_index])
+!
+! Module-level time-varying cell writers:
+!   write_cell_var      (ncid, varid, source, nt, [use_sw_index, check_kcs,
+!                                                  scale, min_value])
+!   write_cell_var_wet  (ncid, varid, source, zref, nt, output_delta,
+!                        [check_wet])
+!
+! Internal to ncoutput_map_init (host-associate dims_*/coord_str):
+!   def_static_cell_float / def_static_cell_int    dims_s
+!   def_time_cell_float                            dims_st (time dim)
+!   def_maxtime_cell_float                         dims_sm (timemax dim)
+!   def_mesh2d_node_coord     UGRID node coord (geo NF90_FLOAT / proj NF90_DOUBLE)
+!   def_grid_axis_coord       SGRID face/corner coord (always NF90_FLOAT)
+!   put_2d                    nf90_put_var with (/1, 1/) start
+!
+! Internal to ncoutput_his_init (host-associates pt_coord):
+!   def_time_point_float                           (points × time)
+!
+! Internal to ncoutput_update_map:
+!   compute_uv_at_cell_centers                     SFINCS-indexed (np)
+!   compute_pnh_unwrapped                          SFINCS-indexed (np)
+!
+! ----------------------------------------------------------------------------
+! GRID-TYPE BRANCH STILL NEEDED WHEN
+! ----------------------------------------------------------------------------
+!
+! - the variable only exists on one grid type (e.g. precipitation_rate is
+!   regular only; mesh2d / face_x are grid-specific topology vars);
+! - source array names differ per grid (SnapWave: snapwave_H on quadtree,
+!   hm0 on regular — fix in sfincs_snapwave is a separate cleanup target);
+! - storage shape genuinely differs (none today after the windmax fix).
+!
+! ============================================================================
 module sfincs_ncoutput
    !
    use netcdf
@@ -15,11 +126,11 @@ module sfincs_ncoutput
       integer :: corner_x_varid, corner_y_varid, face_x_varid, face_y_varid, crs_varid, grid_varid
       integer :: zb_varid, msk_varid, qinf_varid
       integer :: time_varid, timemax_varid
-      integer :: zs_varid, zsmax_varid, h_varid, u_varid, v_varid, tmax_varid, Seff_varid, t_zsmax_varid
+      integer :: zs_varid, zsmax_varid, h_varid, u_varid, v_varid, tmax_varid, infstate_varid, t_zsmax_varid
       integer :: zvolume_varid, storagevolume_varid
       integer :: hmax_varid, vmax_varid, qmax_varid, cumprcp_varid, cuminf_varid, windmax_varid
       integer :: patm_varid, wind_u_varid, wind_v_varid, precip_varid
-      integer :: hm0_varid, hm0ig_varid, snapwavemsk_varid, tp_varid, tpig_varid, wavdir_varid, dirspr_varid
+      integer :: hm0_varid, hm0ig_varid, snapwavemsk_varid, tp_varid, tpig_varid, wavdir_varid
       integer :: fwx_varid, fwy_varid, beta_varid, snapwavedepth_varid
       integer :: zsm_varid, tsunami_arrival_time_varid, average_required_timestep_varid, percentage_limiting_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid
@@ -48,13 +159,13 @@ module sfincs_ncoutput
       integer :: crosssection_name_varid
       integer :: structure_height_varid, structure_x_varid, structure_y_varid
       integer :: thindam_x_varid, thindam_y_varid
-      integer :: drain_varid, drain_name_varid
+      integer :: drain_varid
       integer :: zb_varid
       integer :: time_varid
       integer :: zs_varid, h_varid, u_varid, v_varid, prcp_varid, cumprcp_varid, discharge_varid, uvmag_varid, uvdir_varid
       integer :: patm_varid, wind_speed_varid, wind_dir_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid
-      integer :: hm0_varid, hm0ig_varid, zsm_varid, tp_varid, tpig_varid, wavdir_varid, dirspr_varid
+      integer :: hm0_varid, hm0ig_varid, zsm_varid, tp_varid, tpig_varid, wavdir_varid
       integer :: dw_varid, df_varid, dwig_varid, dfig_varid, cg_varid, beta_varid, srcig_varid, alphaig_varid
       integer :: runup_gauge_name_varid, runup_gauge_zs_varid
       !
@@ -78,13 +189,15 @@ contains
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-   subroutine write_cell_var(ncid, varid, source, nt, use_sw_index, check_kcs, scale)
+   subroutine write_cell_var(ncid, varid, source, nt, use_sw_index, check_kcs, scale, min_value)
       !
       ! Scatter SFINCS cell-centered source(:) into the file-shaped buffer
       ! and put it to the NetCDF variable at timestep nt.
       !   use_sw_index=.true. -> quadtree gather uses index_sw_in_qt (snapwave)
       !   check_kcs=.true.    -> quadtree skips cells with kcs<=0 (max-file style)
       !   scale               -> multiply source by scale on write (unit conversions)
+      !   min_value           -> only write cells where source(nm) > min_value
+      !                          (used for t_zsmax to mask never-reached cells)
       !
       use sfincs_data
       use sfincs_snapwave, only: index_sw_in_qt
@@ -93,16 +206,18 @@ contains
       integer, intent(in)           :: ncid, varid, nt
       real*4,  intent(in)           :: source(:)
       logical, intent(in), optional :: use_sw_index, check_kcs
-      real*4,  intent(in), optional :: scale
+      real*4,  intent(in), optional :: scale, min_value
       !
       real*4,  allocatable :: buf_q(:), buf_r(:,:)
-      logical :: use_sw, filt_kcs
-      real*4  :: fac
+      logical :: use_sw, filt_kcs, filt_min
+      real*4  :: fac, vmin
       integer :: nm, nmq
       !
       use_sw   = .false.; if (present(use_sw_index)) use_sw   = use_sw_index
       filt_kcs = .false.; if (present(check_kcs))    filt_kcs = check_kcs
+      filt_min = .false.; if (present(min_value))    filt_min = .true.
       fac      = 1.0;     if (present(scale))        fac      = scale
+      vmin     = 0.0;     if (present(min_value))    vmin     = min_value
       !
       if (use_quadtree) then
          allocate(buf_q(quadtree_nr_points))
@@ -113,19 +228,18 @@ contains
             else
                nm = index_sfincs_in_quadtree(nmq)
             endif
-            if (nm > 0) then
-               if (filt_kcs) then
-                  if (kcs(nm) > 0) buf_q(nmq) = fac * source(nm)
-               else
-                  buf_q(nmq) = fac * source(nm)
-               endif
-            endif
+            if (nm <= 0) cycle
+            if (filt_kcs .and. kcs(nm) <= 0) cycle
+            if (filt_min .and. source(nm) <= vmin) cycle
+            buf_q(nmq) = fac * source(nm)
          enddo
          NF90(nf90_put_var(ncid, varid, buf_q, (/1, nt/)))
       else
          allocate(buf_r(mmax, nmax))
          buf_r = FILL_VALUE
          do nm = 1, np
+            if (filt_kcs .and. kcs(nm) <= 0) cycle
+            if (filt_min .and. source(nm) <= vmin) cycle
             buf_r(z_index_z_m(nm), z_index_z_n(nm)) = fac * source(nm)
          enddo
          NF90(nf90_put_var(ncid, varid, buf_r, (/1, 1, nt/)))
@@ -189,6 +303,119 @@ contains
       endif
    end subroutine write_cell_var_wet
 
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !
+   ! Static-cell write helpers
+   !
+   ! Gather a SFINCS-indexed source array into the right per-grid buffer
+   ! (1D for quadtree, 2D for regular) and write it via nf90_put_var.
+   ! Hides the use_quadtree branch, the index-map choice and the buffer
+   ! allocation. Used by ncoutput_map_init (static map fields),
+   ! ncoutput_write_tsunami_arrival_time, and ncoutput_write_timestep_analysis.
+   !
+   !   put_static_cell_float : real*4 source, optional scale,
+   !                           optional sw_index for snapwave-indexed sources
+   !   put_static_cell_mask  : real*4 source written to NF90_INT (quadtree)
+   !                           or NF90_FLOAT (regular); cast int*1 sources
+   !                           via real(.,4) at the call site
+   !
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+   subroutine put_static_cell_float(ncid, varid, source, fill, scale, sw_index, min_value)
+      use sfincs_data
+      use sfincs_snapwave, only: index_sw_in_qt
+      use quadtree
+      !
+      integer, intent(in)           :: ncid, varid
+      real*4,  intent(in)           :: source(:)
+      real*4,  intent(in)           :: fill
+      real*4,  intent(in), optional :: scale     ! default: 1.0
+      logical, intent(in), optional :: sw_index  ! default: .false. (use sfincs index)
+      real*4,  intent(in), optional :: min_value ! only write cells where source(nm) > min_value
+      !
+      real*4, allocatable :: buf_q(:), buf_r(:,:)
+      real*4  :: sc, vmin
+      logical :: usesw, filt_min
+      integer :: nmq, nm
+      !
+      sc = 1.0;       if (present(scale))     sc       = scale
+      usesw = .false.; if (present(sw_index)) usesw    = sw_index
+      filt_min = .false.; if (present(min_value)) filt_min = .true.
+      vmin = 0.0;     if (present(min_value)) vmin     = min_value
+      !
+      if (use_quadtree) then
+         allocate(buf_q(quadtree_nr_points))
+         buf_q = fill
+         do nmq = 1, quadtree_nr_points
+            if (usesw) then
+               nm = index_sw_in_qt(nmq)
+            else
+               nm = index_sfincs_in_quadtree(nmq)
+            endif
+            if (nm <= 0) cycle
+            if (filt_min .and. source(nm) <= vmin) cycle
+            buf_q(nmq) = source(nm) * sc
+         enddo
+         NF90(nf90_put_var(ncid, varid, buf_q))
+      else
+         allocate(buf_r(mmax, nmax))
+         buf_r = fill
+         do nm = 1, np
+            if (filt_min .and. source(nm) <= vmin) cycle
+            buf_r(z_index_z_m(nm), z_index_z_n(nm)) = source(nm) * sc
+         enddo
+         NF90(nf90_put_var(ncid, varid, buf_r, (/1, 1/)))
+      endif
+   end subroutine put_static_cell_float
+
+   subroutine put_static_cell_mask(ncid, varid, source, sw_index)
+      ! Mask-style write: var is NF90_INT on quadtree, NF90_FLOAT on regular.
+      ! Source is real*4 — callers pass real(kcs, 4) for int*1 masks
+      ! (kcs) or snapwave_mask directly (already real*4).
+      use sfincs_data
+      use sfincs_snapwave, only: index_sw_in_qt
+      use quadtree
+      !
+      integer, intent(in)           :: ncid, varid
+      real*4,  intent(in)           :: source(:)
+      logical, intent(in), optional :: sw_index
+      !
+      integer*4, allocatable :: buf_qi(:)
+      real*4,    allocatable :: buf_r(:,:)
+      logical :: usesw
+      integer :: nmq, nm
+      !
+      usesw = .false.
+      if (present(sw_index)) usesw = sw_index
+      !
+      if (use_quadtree) then
+         allocate(buf_qi(quadtree_nr_points))
+         buf_qi = 0
+         do nmq = 1, quadtree_nr_points
+            if (usesw) then
+               nm = index_sw_in_qt(nmq)
+            else
+               nm = index_sfincs_in_quadtree(nmq)
+            endif
+            ! source is real*4 — int() truncates toward zero. Used only for
+            ! mask vars (kcs, snapwave_mask) whose values are small non-negative
+            ! integers, so truncation is exact.
+            if (nm > 0) buf_qi(nmq) = int(source(nm), 4)
+         enddo
+         NF90(nf90_put_var(ncid, varid, buf_qi))
+      else
+         allocate(buf_r(mmax, nmax))
+         ! Initialise to FILL_VALUE so cells outside np (the active SFINCS domain)
+         ! read as fill, not as a valid mask=0. Cells with kcs(nm)==0 inside np
+         ! are still written as 0 (a valid inactive-but-present-in-domain marker).
+         buf_r = FILL_VALUE
+         do nm = 1, np
+            buf_r(z_index_z_m(nm), z_index_z_n(nm)) = source(nm)
+         enddo
+         NF90(nf90_put_var(ncid, varid, buf_r, (/1, 1/)))
+      endif
+   end subroutine put_static_cell_mask
+
    subroutine ncoutput_map_init()
    !
    ! Merged init for both regular and quadtree grids.
@@ -210,14 +437,12 @@ contains
    integer :: sp_dimids(2), dims_s(3), dims_st(3), dims_sm(3)
    character(4) :: coord_str
    !
-   ! Regular-grid temporaries
-   real*4, dimension(:,:), allocatable :: zsg, xz, yz, xg, yg
+   ! Regular-grid coordinate arrays (xz/yz at face centres, xg/yg at corners)
+   real*4, dimension(:,:), allocatable :: xz, yz, xg, yg
    !
-   ! Quadtree temporaries
+   ! Quadtree topology arrays
    real,      dimension(:),   allocatable :: nodes_x, nodes_y
    integer*4, dimension(:,:), allocatable :: face_nodes
-   real*4,    dimension(:),   allocatable :: vtmp
-   integer*4, dimension(:),   allocatable :: vtmpi
    !
    ! Pre-computed source for subgridslope (crsgeo branch lives in the expression)
    real*4,    dimension(:),   allocatable :: slope_buf
@@ -244,8 +469,6 @@ contains
       allocate(nodes_x(n_nodes))
       allocate(nodes_y(n_nodes))
       allocate(face_nodes(4, n_faces))
-      allocate(vtmp(n_faces))
-      allocate(vtmpi(n_faces))
       !
       nodes_x    = 0.0
       nodes_y    = 0.0
@@ -321,9 +544,9 @@ contains
    !
    ! Global metadata
    if (use_quadtree) then
-      NF90(nf90_put_att(map_file%ncid, nf90_global, "Conventions", "Conventions = 'CF-1.8 UGRID-1.0 Deltares-0.10'"))
+      NF90(nf90_put_att(map_file%ncid, nf90_global, "Conventions", "CF-1.8 UGRID-1.0 Deltares-0.10"))
    else
-      NF90(nf90_put_att(map_file%ncid, nf90_global, "Conventions", "Conventions = 'CF-1.6, SGRID-0.3"))
+      NF90(nf90_put_att(map_file%ncid, nf90_global, "Conventions", "CF-1.6 SGRID-0.3"))
    endif
    NF90(nf90_put_att(map_file%ncid, nf90_global, "Build-Revision-Date-Netcdf-library", trim(nf90_inq_libvers())))
    NF90(nf90_put_att(map_file%ncid, nf90_global, "Producer", "SFINCS model: Super-Fast INundation of CoastS"))
@@ -368,62 +591,11 @@ contains
       !
    else
       !
-      ! Regular: x, y face coordinates
-      NF90(nf90_def_var(map_file%ncid, 'x', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid/), map_file%face_x_varid))
-      NF90(nf90_def_var_deflate(map_file%ncid, map_file%face_x_varid, 1, 1, nc_deflate_level))
-      NF90(nf90_put_att(map_file%ncid, map_file%face_x_varid, '_FillValue', FILL_VALUE))
-      if (crsgeo) then
-         NF90(nf90_put_att(map_file%ncid, map_file%face_x_varid, 'units',         'degrees'))
-         NF90(nf90_put_att(map_file%ncid, map_file%face_x_varid, 'standard_name', 'longitude'))
-      else
-         NF90(nf90_put_att(map_file%ncid, map_file%face_x_varid, 'units',         'm'))
-         NF90(nf90_put_att(map_file%ncid, map_file%face_x_varid, 'standard_name', 'projection_x_coordinate'))
-      endif
-      NF90(nf90_put_att(map_file%ncid, map_file%face_x_varid, 'long_name',    'face_x'))
-      NF90(nf90_put_att(map_file%ncid, map_file%face_x_varid, 'grid_mapping', 'crs'))
-      NF90(nf90_put_att(map_file%ncid, map_file%face_x_varid, 'grid',         'sfincsgrid'))
-      !
-      NF90(nf90_def_var(map_file%ncid, 'y', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid/), map_file%face_y_varid))
-      NF90(nf90_def_var_deflate(map_file%ncid, map_file%face_y_varid, 1, 1, nc_deflate_level))
-      NF90(nf90_put_att(map_file%ncid, map_file%face_y_varid, '_FillValue', FILL_VALUE))
-      if (crsgeo) then
-         NF90(nf90_put_att(map_file%ncid, map_file%face_y_varid, 'units',         'degrees'))
-         NF90(nf90_put_att(map_file%ncid, map_file%face_y_varid, 'standard_name', 'latitude'))
-      else
-         NF90(nf90_put_att(map_file%ncid, map_file%face_y_varid, 'units',         'm'))
-         NF90(nf90_put_att(map_file%ncid, map_file%face_y_varid, 'standard_name', 'projection_y_coordinate'))
-      endif
-      NF90(nf90_put_att(map_file%ncid, map_file%face_y_varid, 'long_name',    'face_y'))
-      NF90(nf90_put_att(map_file%ncid, map_file%face_y_varid, 'grid_mapping', 'crs'))
-      NF90(nf90_put_att(map_file%ncid, map_file%face_y_varid, 'grid',         'sfincsgrid'))
-      !
-      NF90(nf90_def_var(map_file%ncid, 'corner_x', NF90_FLOAT, (/map_file%corner_m_dimid, map_file%corner_n_dimid/), map_file%corner_x_varid))
-      NF90(nf90_def_var_deflate(map_file%ncid, map_file%corner_x_varid, 1, 1, nc_deflate_level))
-      NF90(nf90_put_att(map_file%ncid, map_file%corner_x_varid, '_FillValue', FILL_VALUE))
-      if (crsgeo) then
-         NF90(nf90_put_att(map_file%ncid, map_file%corner_x_varid, 'units',         'degrees'))
-         NF90(nf90_put_att(map_file%ncid, map_file%corner_x_varid, 'standard_name', 'longitude'))
-      else
-         NF90(nf90_put_att(map_file%ncid, map_file%corner_x_varid, 'units',         'm'))
-         NF90(nf90_put_att(map_file%ncid, map_file%corner_x_varid, 'standard_name', 'projection_x_coordinate'))
-      endif
-      NF90(nf90_put_att(map_file%ncid, map_file%corner_x_varid, 'long_name',    'corner_x'))
-      NF90(nf90_put_att(map_file%ncid, map_file%corner_x_varid, 'grid_mapping', 'crs'))
-      NF90(nf90_put_att(map_file%ncid, map_file%corner_x_varid, 'grid',         'sfincsgrid'))
-      !
-      NF90(nf90_def_var(map_file%ncid, 'corner_y', NF90_FLOAT, (/map_file%corner_m_dimid, map_file%corner_n_dimid/), map_file%corner_y_varid))
-      NF90(nf90_def_var_deflate(map_file%ncid, map_file%corner_y_varid, 1, 1, nc_deflate_level))
-      NF90(nf90_put_att(map_file%ncid, map_file%corner_y_varid, '_FillValue', FILL_VALUE))
-      if (crsgeo) then
-         NF90(nf90_put_att(map_file%ncid, map_file%corner_y_varid, 'units',         'degrees'))
-         NF90(nf90_put_att(map_file%ncid, map_file%corner_y_varid, 'standard_name', 'latitude'))
-      else
-         NF90(nf90_put_att(map_file%ncid, map_file%corner_y_varid, 'units',         'm'))
-         NF90(nf90_put_att(map_file%ncid, map_file%corner_y_varid, 'standard_name', 'projection_y_coordinate'))
-      endif
-      NF90(nf90_put_att(map_file%ncid, map_file%corner_y_varid, 'long_name',    'corner_y'))
-      NF90(nf90_put_att(map_file%ncid, map_file%corner_y_varid, 'grid_mapping', 'crs'))
-      NF90(nf90_put_att(map_file%ncid, map_file%corner_y_varid, 'grid',         'sfincsgrid'))
+      ! Regular: face / corner coordinate axes
+      call def_grid_axis_coord('x',        'x', (/map_file%m_dimid,        map_file%n_dimid/),        map_file%face_x_varid,   'face_x')
+      call def_grid_axis_coord('y',        'y', (/map_file%m_dimid,        map_file%n_dimid/),        map_file%face_y_varid,   'face_y')
+      call def_grid_axis_coord('corner_x', 'x', (/map_file%corner_m_dimid, map_file%corner_n_dimid/), map_file%corner_x_varid, 'corner_x')
+      call def_grid_axis_coord('corner_y', 'y', (/map_file%corner_m_dimid, map_file%corner_n_dimid/), map_file%corner_y_varid, 'corner_y')
       !
       NF90(nf90_def_var(map_file%ncid, 'crs', NF90_INT, map_file%crs_varid))
       NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'EPSG',      '-'))
@@ -445,9 +617,8 @@ contains
    ! -------------------------------------------------------
    if (use_quadtree) then
       call def_static_cell_int('msk', map_file%msk_varid, 'msk_active_cells', &
+           units='-', standard_name='mask', &
            description='inactive=0, active=1, normal_boundary=2, outflow_boundary=3, wavemaker=4')
-      NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'units',        '-'))
-      NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'standard_name','mask'))
    else
       call def_static_cell_float('msk', map_file%msk_varid, '-', 'msk_active_cells', standard_name='land_binary_mask', &
            description='inactive=0, active=1, normal_boundary=2, outflow_boundary=3')
@@ -475,20 +646,18 @@ contains
    endif
    !
    ! -------------------------------------------------------
-   ! zb: always static for quadtree; optional time-varying for regular
+   ! zb: time-varying only on regular non-subgrid runs with store_dynamic_bed_level;
+   ! static for quadtree, subgrid, or static-bed regular runs.
+   ! Def condition matches the write condition in ncoutput_update_map.
    ! -------------------------------------------------------
-   if (use_quadtree) then
-      call def_static_cell_float('zb', map_file%zb_varid, 'm', 'bed_level_above_reference_level', standard_name='altitude')
+   if (.not. use_quadtree .and. store_dynamic_bed_level .and. .not. subgrid) then
+      call def_time_cell_float('zb', map_file%zb_varid, 'm', 'bed_level_above_reference_level', standard_name='altitude')
    else
-      if (store_dynamic_bed_level) then
-         call def_time_cell_float('zb', map_file%zb_varid, 'm', 'bed_level_above_reference_level', standard_name='altitude')
-      else
-         call def_static_cell_float('zb', map_file%zb_varid, 'm', 'bed_level_above_reference_level', standard_name='altitude')
-      endif
+      call def_static_cell_float('zb', map_file%zb_varid, 'm', 'bed_level_above_reference_level', standard_name='altitude')
    endif
    !
-   ! manning (both grid types, dims_s)
-   if (.not. subgrid) then
+   ! manning (only meaningful when manning2d, i.e. per-cell field, is set)
+   if (.not. subgrid .and. manning2d) then
       call def_static_cell_float('manning', map_file%manning_varid, 's/m^1/3', 'manning_roughness', standard_name='manning')
    endif
    !
@@ -538,11 +707,11 @@ contains
    ! Infiltration state vars (regular only: Seff/sigma/f)
    if (.not. use_quadtree) then
       if (inftype == 'cnb') then
-         call def_time_cell_float('Seff', map_file%Seff_varid, 'm', 'current moisture storage (Se) capacity', standard_name='Se')
+         call def_time_cell_float('Seff', map_file%infstate_varid, 'm', 'current moisture storage (Se) capacity', standard_name='Se')
       elseif (inftype == 'gai') then
-         call def_time_cell_float('sigma', map_file%Seff_varid, '-', 'maximum soil moisture deficit', standard_name='sigma')
+         call def_time_cell_float('sigma', map_file%infstate_varid, '-', 'maximum soil moisture deficit', standard_name='sigma')
       elseif (inftype == 'hor') then
-         call def_time_cell_float('f', map_file%Seff_varid, 'mm h-1', 'current infiltration capacity', standard_name='sigma')
+         call def_time_cell_float('f', map_file%infstate_varid, 'mm h-1', 'current infiltration capacity', standard_name='f')
       endif
    endif
    !
@@ -558,7 +727,7 @@ contains
    !
    if (store_maximum_waterlevel) then
       call def_maxtime_cell_float('zsmax', map_file%zsmax_varid, 'm', 'maximum_water_level', &
-           standard_name='maximum of sea_surface_height_above_reference_level')
+           standard_name='maximum_sea_surface_height_above_reference_level')
    endif
    !
    if (store_cumulative_precipitation) then
@@ -568,12 +737,12 @@ contains
    !
    if (store_twet) then
       call def_maxtime_cell_float('tmax', map_file%tmax_varid, 'seconds', 'duration_wet_cell', &
-           standard_name='duration cell is considered wet', cell_methods='time: sum')
+           standard_name='duration_wet', cell_methods='time: sum')
    endif
    !
    if (store_t_zsmax) then
       call def_maxtime_cell_float('t_zsmax', map_file%t_zsmax_varid, 'seconds since ' // trim(trefstr_iso8601), &
-           'time when zsmax occurs', standard_name='time of max water level', cell_methods='time: max')
+           'time when zsmax occurs', standard_name='t_zsmax', cell_methods='time: maximum')
    endif
    !
    if (store_maximum_waterlevel) then
@@ -595,13 +764,14 @@ contains
    !
    if (timestep_analysis) then
       call def_static_cell_float('average_required_timestep', map_file%average_required_timestep_varid, 's', &
-           'average_required_timestep', standard_name='average_required_timestep', cell_methods='time: average')
+           'time-averaged required timestep over the simulation', standard_name='average_required_timestep')
       !
       call def_static_cell_float('percentage_limiting_timestep', map_file%percentage_limiting_varid, '%', &
-           'percentage_cell_was_limiting_timestep', standard_name='percentage_limiting_timestep', cell_methods='time: maximum')
+           'percentage of simulation steps in which this cell was the limiting cell', &
+           standard_name='percentage_limiting_timestep')
    endif
    !
-   if (store_cumulative_precipitation) then
+   if (store_cumulative_precipitation .and. infiltration) then
       call def_maxtime_cell_float('cuminf', map_file%cuminf_varid, 'm', 'cumulative_infiltration_depth', cell_methods='time: sum')
    endif
    !
@@ -614,17 +784,10 @@ contains
          !
          call def_time_cell_float('wind_v', map_file%wind_v_varid, 'm s-1', 'wind_speed_v', standard_name='northward_wind')
          !
-         ! windmax: different dims and condition for regular vs quadtree
-         if (use_quadtree) then
-            if (store_wind_max) then
-               call def_maxtime_cell_float('windmax', map_file%windmax_varid, 'm s-1', 'maximum_wind_speed', &
-                    cell_methods='time: maximum')
-            endif
-         else
-            if (meteo3d .and. store_wind_max) then
-               call def_static_cell_float('windmax', map_file%windmax_varid, 'm s-1', 'maximum_wind_speed', &
-                    cell_methods='time: sum')
-            endif
+         ! windmax (treated like all other max fields: max-time-varying)
+         if (store_wind_max .and. meteo3d) then
+            call def_maxtime_cell_float('windmax', map_file%windmax_varid, 'm s-1', 'maximum_wind_speed', &
+                 cell_methods='time: maximum')
          endif
       endif
       !
@@ -650,9 +813,8 @@ contains
       ! snapwavemsk: INT no-coord (quadtree), FLOAT+coord (regular)
       if (use_quadtree) then
          call def_static_cell_int('snapwavemsk', map_file%snapwavemsk_varid, 'snapwave_msk_active_cells', &
+              units='-', standard_name='snapwavemask', &
               description='inactive=0, active=1, wave_boundary=2, neumann_boundary=3')
-         NF90(nf90_put_att(map_file%ncid, map_file%snapwavemsk_varid, 'units',        '-'))
-         NF90(nf90_put_att(map_file%ncid, map_file%snapwavemsk_varid, 'standard_name','snapwavemask'))
       else
          call def_static_cell_float('snapwavemsk', map_file%snapwavemsk_varid, '-', 'snapwave_msk_active_cells', &
               standard_name='snapwavemask', description='inactive=0, active=1, wave_boundary=2, neumann_boundary=3')
@@ -692,15 +854,10 @@ contains
       !
    endif
    !
-   ! tsunami_arrival_time: time-varying for quadtree, static for regular
+   ! tsunami_arrival_time (single value per cell, written once at finalize)
    if (store_tsunami_arrival_time) then
-      if (use_quadtree) then
-         call def_time_cell_float('tsunami_arrival_time', map_file%tsunami_arrival_time_varid, '-', 'tsunami_arrival_time', &
-              standard_name='tsunami_arrival_time')
-      else
-         call def_static_cell_float('tsunami_arrival_time', map_file%tsunami_arrival_time_varid, '-', 'tsunami_arrival_time', &
-              standard_name='tsunami_arrival_time')
-      endif
+      call def_static_cell_float('tsunami_arrival_time', map_file%tsunami_arrival_time_varid, &
+           '-', 'tsunami_arrival_time', standard_name='tsunami_arrival_time')
    endif
    !
    if (nonhydrostatic) then
@@ -752,18 +909,21 @@ contains
       call put_2d(map_file%face_y_varid,   yz)
       call put_2d(map_file%corner_x_varid, xg)
       call put_2d(map_file%corner_y_varid, yg)
-      allocate(zsg(mmax, nmax))
    endif
    NF90(nf90_put_var(map_file%ncid, map_file%crs_varid, epsg))
    !
    ! Cell-data writes — uniform via gather/put helpers
    !
-   ! zb (always static for quadtree; on regular only when bed level is static)
-   if (use_quadtree .or. .not. store_dynamic_bed_level) then
+   ! zb static write — fires whenever the def chose the static shape.
+   ! That is: quadtree, OR regular without dynamic bed level, OR subgrid
+   ! (subgrid_z_zmin is a single value per cell so dynamic bed level does
+   ! not apply). The complement (regular + dynamic bed level + non-subgrid)
+   ! is written each timestep in ncoutput_update_map instead.
+   if (use_quadtree .or. .not. store_dynamic_bed_level .or. subgrid) then
       if (subgrid) then
-         call put_static_cell_float(map_file%zb_varid, subgrid_z_zmin, FILL_VALUE)
+         call put_static_cell_float(map_file%ncid, map_file%zb_varid, subgrid_z_zmin, FILL_VALUE)
       else
-         call put_static_cell_float(map_file%zb_varid, zb, FILL_VALUE)
+         call put_static_cell_float(map_file%ncid, map_file%zb_varid, zb, FILL_VALUE)
       endif
    endif
    !
@@ -779,29 +939,29 @@ contains
             slope_buf(nm) = (subgrid_z_zmax(nm) - subgrid_z_zmin(nm)) / sqrt(cell_area(z_flags_iref(nm)))
          enddo
       endif
-      call put_static_cell_float(map_file%subgridslope_varid, slope_buf, FILL_VALUE)
+      call put_static_cell_float(map_file%ncid, map_file%subgridslope_varid, slope_buf, FILL_VALUE)
       deallocate(slope_buf)
    endif
    !
    ! msk (kcs is integer*1 — cast to real*4 for the generic mask helper)
-   call put_static_cell_mask(map_file%msk_varid, real(kcs, 4))
+   call put_static_cell_mask(map_file%ncid, map_file%msk_varid, real(kcs, 4))
    !
    ! snapwave msk (real*4 source; uses snapwave's own quadtree index)
    if (snapwave) then
-      call put_static_cell_mask(map_file%snapwavemsk_varid, snapwave_mask, sw_index=.true.)
+      call put_static_cell_mask(map_file%ncid, map_file%snapwavemsk_varid, snapwave_mask, sw_index=.true.)
    endif
    !
    ! Manning
    if (.not. subgrid .and. manning2d) then
-      call put_static_cell_float(map_file%manning_varid, rghfield, FILL_VALUE)
+      call put_static_cell_float(map_file%ncid, map_file%manning_varid, rghfield, FILL_VALUE)
    endif
    !
    ! Infiltration map (cna/c2d are stored as mm h-1, others use raw qinffield units)
    if (infiltration) then
       if (inftype == 'con' .or. inftype == 'c2d') then
-         call put_static_cell_float(map_file%qinf_varid, qinffield, FILL_VALUE, scale=3.6e6)
+         call put_static_cell_float(map_file%ncid, map_file%qinf_varid, qinffield, FILL_VALUE, scale=3.6e6)
       else
-         call put_static_cell_float(map_file%qinf_varid, qinffield, FILL_VALUE)
+         call put_static_cell_float(map_file%ncid, map_file%qinf_varid, qinffield, FILL_VALUE)
       endif
    endif
    !
@@ -831,17 +991,27 @@ contains
            standard_name=standard_name, coordinates=coord_str,                          &
            cell_methods=cell_methods, description=description,                          &
            deflate_level=nc_deflate_level)
+      call add_ugrid_face_attrs(varid)
    end subroutine def_static_cell_float
    !
-   subroutine def_static_cell_int(name, varid, long_name, fill_value, description)
+   subroutine def_static_cell_int(name, varid, long_name, &
+                                   units, standard_name, fill_value, description)
       character(*), intent(in)           :: name
       integer,      intent(out)          :: varid
       character(*), intent(in)           :: long_name
+      character(*), intent(in), optional :: units, standard_name
       integer,      intent(in), optional :: fill_value
       character(*), intent(in), optional :: description
       call ncdef_int_var(map_file%ncid, name, dims_s(1:nsd), varid, long_name, &
            fill_value=fill_value, description=description,                     &
            deflate_level=nc_deflate_level)
+      if (present(units)) then
+         if (len_trim(units) > 0) NF90(nf90_put_att(map_file%ncid, varid, 'units', trim(units)))
+      endif
+      if (present(standard_name)) then
+         if (len_trim(standard_name) > 0) NF90(nf90_put_att(map_file%ncid, varid, 'standard_name', trim(standard_name)))
+      endif
+      call add_ugrid_face_attrs(varid)
    end subroutine def_static_cell_int
    !
    subroutine def_time_cell_float(name, varid, units, long_name, &
@@ -854,6 +1024,7 @@ contains
            standard_name=standard_name, coordinates=coord_str,                             &
            cell_methods=cell_methods, description=description,                             &
            deflate_level=nc_deflate_level)
+      call add_ugrid_face_attrs(varid)
    end subroutine def_time_cell_float
    !
    subroutine def_maxtime_cell_float(name, varid, units, long_name, &
@@ -866,14 +1037,27 @@ contains
            standard_name=standard_name, coordinates=coord_str,                             &
            cell_methods=cell_methods, description=description,                             &
            deflate_level=nc_deflate_level)
+      call add_ugrid_face_attrs(varid)
    end subroutine def_maxtime_cell_float
+   !
+   subroutine add_ugrid_face_attrs(varid)
+      ! On quadtree (UGRID) output, every cell-centred data variable must
+      ! carry mesh="mesh2d" and location="face". On regular grid (SGRID) the
+      ! topology var declares the grid; cell vars use coordinates='x y' (set
+      ! elsewhere) and these attributes are not used.
+      integer, intent(in) :: varid
+      if (use_quadtree) then
+         NF90(nf90_put_att(map_file%ncid, varid, 'mesh',     'mesh2d'))
+         NF90(nf90_put_att(map_file%ncid, varid, 'location', 'face'))
+      endif
+   end subroutine add_ugrid_face_attrs
    !
    subroutine def_mesh2d_node_coord(axis, varid)
       ! Define mesh2d_node_x / mesh2d_node_y for UGRID quadtree topology.
       ! Picks NF90_FLOAT+degrees (geographic) or NF90_DOUBLE+m (projected) via crsgeo.
-      character,     intent(in)  :: axis      ! 'x' or 'y'
-      integer,       intent(out) :: varid
-      character(len=14) :: vname
+      character(len=*), intent(in)  :: axis   ! 'x' or 'y'
+      integer,          intent(out) :: varid
+      character(len=64) :: vname
       character(len=32) :: std_name, long_name, units
       integer           :: nctype
       !
@@ -908,82 +1092,42 @@ contains
       NF90(nf90_put_att(map_file%ncid, varid, 'location',      'node'))
    end subroutine def_mesh2d_node_coord
    !
-   ! ---------------------------------------------------------------
-   ! Static-cell write helpers — gather a SFINCS-indexed source array
-   ! into the right per-grid buffer (vtmp/vtmpi for quadtree, zsg for
-   ! regular) and write it via nf90_put_var. Hides the use_quadtree
-   ! branch and the index-map choice.
-   !
-   !   put_static_cell_float : real*4 source, optional scale,
-   !                            optional sw_index for snapwave-indexed sources
-   !   put_static_cell_mask  : real*4 source written to NF90_INT (quadtree)
-   !                            or NF90_FLOAT (regular); cast int*1 sources
-   !                            via real(.,4) at the call site
-   ! ---------------------------------------------------------------
-   !
-   subroutine put_static_cell_float(varid, source, fill, scale, sw_index)
-      integer, intent(in)           :: varid
-      real*4,  intent(in)           :: source(:)
-      real*4,  intent(in)           :: fill
-      real*4,  intent(in), optional :: scale     ! default: 1.0
-      logical, intent(in), optional :: sw_index  ! default: .false. (use sfincs index)
-      real*4  :: sc
-      logical :: usesw
-      integer :: nmq_l, nm_l
-      sc = 1.0
-      if (present(scale)) sc = scale
-      usesw = .false.
-      if (present(sw_index)) usesw = sw_index
-      if (use_quadtree) then
-         vtmp = fill
-         do nmq_l = 1, quadtree_nr_points
-            if (usesw) then
-               nm_l = index_sw_in_qt(nmq_l)
-            else
-               nm_l = index_sfincs_in_quadtree(nmq_l)
-            endif
-            if (nm_l > 0) vtmp(nmq_l) = source(nm_l) * sc
-         enddo
-         NF90(nf90_put_var(map_file%ncid, varid, vtmp))
+   subroutine def_grid_axis_coord(name, axis, dimids, varid, long_name)
+      ! Define a regular-grid coordinate axis variable (face_x/face_y/corner_x/
+      ! corner_y) with the right CF attributes:
+      !   crsgeo  : NF90_FLOAT, units='degrees', standard_name=longitude/latitude
+      !   else    : NF90_FLOAT, units='m',       standard_name=projection_{x,y}_coordinate
+      character(len=*), intent(in)  :: name
+      character(len=*), intent(in)  :: axis   ! 'x' or 'y'
+      integer,          intent(in)  :: dimids(:)
+      integer,          intent(out) :: varid
+      character(len=*), intent(in)  :: long_name
+      character(len=32) :: units, std_name
+      !
+      if (crsgeo) then
+         units = 'degrees'
+         if (axis == 'x') then
+            std_name = 'longitude'
+         else
+            std_name = 'latitude'
+         endif
       else
-         zsg = fill
-         do nm_l = 1, np
-            zsg(z_index_z_m(nm_l), z_index_z_n(nm_l)) = source(nm_l) * sc
-         enddo
-         NF90(nf90_put_var(map_file%ncid, varid, zsg, (/1, 1/)))
+         units = 'm'
+         if (axis == 'x') then
+            std_name = 'projection_x_coordinate'
+         else
+            std_name = 'projection_y_coordinate'
+         endif
       endif
-   end subroutine put_static_cell_float
-   !
-   subroutine put_static_cell_mask(varid, source, sw_index)
-      ! Mask-style write: var is NF90_INT on quadtree, NF90_FLOAT on regular.
-      ! Source is real*4 — callers pass real(kcs, 4) for int*1 masks
-      ! (kcs) or snapwave_mask directly (already real*4).
-      integer, intent(in)           :: varid
-      real*4,  intent(in)           :: source(:)
-      logical, intent(in), optional :: sw_index
-      logical :: usesw
-      integer :: nmq_l, nm_l
-      usesw = .false.
-      if (present(sw_index)) usesw = sw_index
-      if (use_quadtree) then
-         vtmpi = 0
-         do nmq_l = 1, quadtree_nr_points
-            if (usesw) then
-               nm_l = index_sw_in_qt(nmq_l)
-            else
-               nm_l = index_sfincs_in_quadtree(nmq_l)
-            endif
-            if (nm_l > 0) vtmpi(nmq_l) = int(source(nm_l), 4)
-         enddo
-         NF90(nf90_put_var(map_file%ncid, varid, vtmpi))
-      else
-         zsg = 0
-         do nm_l = 1, np
-            zsg(z_index_z_m(nm_l), z_index_z_n(nm_l)) = source(nm_l)
-         enddo
-         NF90(nf90_put_var(map_file%ncid, varid, zsg, (/1, 1/)))
-      endif
-   end subroutine put_static_cell_mask
+      NF90(nf90_def_var(map_file%ncid, name, NF90_FLOAT, dimids, varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, varid, '_FillValue',    FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, varid, 'units',         trim(units)))
+      NF90(nf90_put_att(map_file%ncid, varid, 'standard_name', trim(std_name)))
+      NF90(nf90_put_att(map_file%ncid, varid, 'long_name',     long_name))
+      NF90(nf90_put_att(map_file%ncid, varid, 'grid_mapping',  'crs'))
+      NF90(nf90_put_att(map_file%ncid, varid, 'grid',          'sfincsgrid'))
+   end subroutine def_grid_axis_coord
    !
    ! ---------------------------------------------------------------
    ! put_2d : nf90_put_var for a 2D real*4 array (face/corner coords).
@@ -1065,7 +1209,7 @@ contains
    NF90(nf90_def_dim(his_file%ncid, 'runtime', 1, his_file%runtime_dimid)) ! total_runtime, average_dt    
    !
    ! Some metadata attributes 
-   NF90(nf90_put_att(his_file%ncid,nf90_global, "Conventions", "Conventions = 'CF-1.6, SGRID-0.3")) 
+   NF90(nf90_put_att(his_file%ncid,nf90_global, "Conventions", "CF-1.6 SGRID-0.3"))
    NF90(nf90_put_att(his_file%ncid,nf90_global, "Build-Revision-Date-Netcdf-library", trim(nf90_inq_libvers()))) ! version of netcdf library
    NF90(nf90_put_att(his_file%ncid,nf90_global, "Producer", "SFINCS model: Super-Fast INundation of CoastS"))
    NF90(nf90_put_att(his_file%ncid,nf90_global, "Build-Revision", trim(build_revision))) 
@@ -1094,32 +1238,11 @@ contains
    !NF90(nf90_put_att(his_file%ncid, his_file%station_name_varid, 'units', '-')) !not wanted in fews   
    !
    ! Domain
-   NF90(nf90_def_var(his_file%ncid, 'station_x', NF90_FLOAT, (/his_file%points_dimid/), his_file%station_x_varid))   ! non snapped input coordinate 
-   NF90(nf90_put_att(his_file%ncid, his_file%station_x_varid, 'units', 'm'))
-   NF90(nf90_put_att(his_file%ncid, his_file%station_x_varid, 'standard_name', 'projection_x_coordinate'))
-   NF90(nf90_put_att(his_file%ncid, his_file%station_x_varid, 'long_name', 'original_x_coordinate_of_station'))
-   NF90(nf90_put_att(his_file%ncid, his_file%station_x_varid, 'grid_mapping', 'crs'))   
-   !NF90(nf90_put_att(his_file%ncid, his_file%station_x_varid, 'grid', 'sfincsgrid'))   !keep this?
-   !
-   NF90(nf90_def_var(his_file%ncid, 'station_y', NF90_FLOAT, (/his_file%points_dimid/), his_file%station_y_varid)) 
-   NF90(nf90_put_att(his_file%ncid, his_file%station_y_varid, 'units', 'm'))
-   NF90(nf90_put_att(his_file%ncid, his_file%station_y_varid, 'standard_name', 'projection_y_coordinate'))
-   NF90(nf90_put_att(his_file%ncid, his_file%station_y_varid, 'long_name', 'original_y_coordinate_of_station'))
-   NF90(nf90_put_att(his_file%ncid, his_file%station_y_varid, 'grid_mapping', 'crs'))   
-   !
-   NF90(nf90_def_var(his_file%ncid, 'point_x', NF90_FLOAT, (/his_file%points_dimid/), his_file%point_x_varid))  ! snapped coordinate as used in sfincs
-   NF90(nf90_put_att(his_file%ncid, his_file%point_x_varid, 'units', 'm'))
-   NF90(nf90_put_att(his_file%ncid, his_file%point_x_varid, 'standard_name', 'projection_x_coordinate'))
-   NF90(nf90_put_att(his_file%ncid, his_file%point_x_varid, 'long_name', 'point_x'))    
-   NF90(nf90_put_att(his_file%ncid, his_file%point_x_varid, 'grid_mapping', 'crs'))   
-   !NF90(nf90_put_att(his_file%ncid, his_file%point_x_varid, 'grid', 'sfincsgrid'))   !keep this?
-   !
-   NF90(nf90_def_var(his_file%ncid, 'point_y', NF90_FLOAT, (/his_file%points_dimid/), his_file%point_y_varid)) 
-   NF90(nf90_put_att(his_file%ncid, his_file%point_y_varid, 'units', 'm'))
-   NF90(nf90_put_att(his_file%ncid, his_file%point_y_varid, 'standard_name', 'projection_y_coordinate'))
-   NF90(nf90_put_att(his_file%ncid, his_file%point_y_varid, 'long_name', 'point_y'))
-   NF90(nf90_put_att(his_file%ncid, his_file%point_y_varid, 'grid_mapping', 'crs'))   
-   !NF90(nf90_put_att(his_file%ncid, his_file%point_y_varid, 'grid', 'sfincsgrid'))   !keep this?   
+   ! Station coordinates: input lat/lon or x/y (CRS-aware via crsgeo)
+   call def_his_point_coord('station_x', 'x', his_file%station_x_varid, 'original_x_coordinate_of_station')
+   call def_his_point_coord('station_y', 'y', his_file%station_y_varid, 'original_y_coordinate_of_station')
+   call def_his_point_coord('point_x',   'x', his_file%point_x_varid,   'point_x')
+   call def_his_point_coord('point_y',   'y', his_file%point_y_varid,   'point_y')
    !
    NF90(nf90_def_var(his_file%ncid, 'crs', NF90_INT, his_file%crs_varid)) ! For EPSG code
    NF90(nf90_put_att(his_file%ncid, his_file%crs_varid, 'EPSG', '-'))     
@@ -1200,12 +1323,12 @@ contains
       call def_time_point_float('point_qinf', his_file%qinf_varid, 'mm hr-1', 'infiltration_rate')
    endif
    !
-   if (inftype == 'cnb') then
-      call def_time_point_float('point_S', his_file%S_varid, 'm', 'current moisture storage (Se) capacity')
-   endif
-   !
-   if (inftype == 'gai') then
-      call def_time_point_float('point_S', his_file%S_varid, 'm', 'maximum soil moisture deficit')
+   if (infiltration) then
+      if (inftype == 'cnb') then
+         call def_time_point_float('point_S', his_file%S_varid, 'm', 'current moisture storage (Se) capacity')
+      elseif (inftype == 'gai') then
+         call def_time_point_float('point_S', his_file%S_varid, 'm', 'maximum soil moisture deficit')
+      endif
    endif
    !
    if (snapwave) then
@@ -1222,9 +1345,9 @@ contains
       if (store_wave_direction) then
          call def_time_point_float('point_wavdir', his_file%wavdir_varid, 'degrees', 'Mean wave direction', &
               standard_name='mean_wave_direction')
-         !
-         call def_time_point_float('point_dirspr', his_file%dirspr_varid, 's', 'Wave directional spreading', &
-              standard_name='wave_directional_spreading')
+         ! point_dirspr is gathered in ncoutput_update_his but the put_var is
+         ! currently commented out — do not define here either, otherwise the
+         ! file carries an empty variable.
       endif
       !
       if (wavemaker) then
@@ -1284,7 +1407,7 @@ contains
    !
    if (ndrn>0) then
       call ncdef_float_var(his_file%ncid, 'drainage_discharge', (/his_file%drain_dimid, his_file%time_dimid/), his_file%drain_varid, &
-           'm3 s-1', 'discharge through drainage structure', coordinates='drainage_name')
+           'm3 s-1', 'discharge through drainage structure')
    endif
    !
    if (nr_runup_gauges > 0) then
@@ -1399,6 +1522,36 @@ contains
            deflate_level=nc_deflate_level)
    end subroutine def_time_point_float
    !
+   subroutine def_his_point_coord(name, axis, varid, long_name)
+      ! Define a his-file station coordinate variable with CRS-aware attrs.
+      character(len=*), intent(in)  :: name      ! 'station_x', 'point_y', etc.
+      character(len=*), intent(in)  :: axis      ! 'x' or 'y'
+      integer,          intent(out) :: varid
+      character(len=*), intent(in)  :: long_name
+      character(len=32) :: units, std_name
+      !
+      if (crsgeo) then
+         units = 'degrees'
+         if (axis == 'x') then
+            std_name = 'longitude'
+         else
+            std_name = 'latitude'
+         endif
+      else
+         units = 'm'
+         if (axis == 'x') then
+            std_name = 'projection_x_coordinate'
+         else
+            std_name = 'projection_y_coordinate'
+         endif
+      endif
+      NF90(nf90_def_var(his_file%ncid, name, NF90_FLOAT, (/his_file%points_dimid/), varid))
+      NF90(nf90_put_att(his_file%ncid, varid, 'units',         trim(units)))
+      NF90(nf90_put_att(his_file%ncid, varid, 'standard_name', trim(std_name)))
+      NF90(nf90_put_att(his_file%ncid, varid, 'long_name',     long_name))
+      NF90(nf90_put_att(his_file%ncid, varid, 'grid_mapping',  'crs'))
+   end subroutine def_his_point_coord
+   !
    end subroutine ncoutput_his_init
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1408,7 +1561,10 @@ contains
    !
    subroutine ncoutput_update_map(t,ntmapout)
    !
-   ! Write time-varying output to map file (handles both regular and quadtree grids)
+   ! Write time-varying output to map file. Single linear flow — the
+   ! grid-type branch is hidden inside write_cell_var / write_cell_var_wet
+   ! and the two precompute helpers (compute_uv_at_cell_centers,
+   ! compute_pnh_unwrapped) below.
    !
    use sfincs_data
    use sfincs_nonhydrostatic
@@ -1417,210 +1573,54 @@ contains
    !
    implicit none
    !
-   real*8                       :: t
-   real*4                       :: uz, vz, sq2
+   real*8  :: t
+   integer :: ntmapout
+   real*4  :: sq2
+   real*4, dimension(:), allocatable :: uxy, vxy, pnh_full
    !
-   integer  :: ntmapout
+   sq2 = sqrt(2.0)
    !
-   integer                      :: nm, nmq, n, m, nmd1, nmu1, ndm1, num1
-   real*4, dimension(:,:), allocatable :: zsg, zsgu, zsgv
-   real*4, dimension(:),   allocatable :: utmp, vtmp
+   NF90(nf90_put_var(map_file%ncid, map_file%time_varid, t, (/ntmapout/)))
    !
-   NF90(nf90_put_var(map_file%ncid, map_file%time_varid, t, (/ntmapout/))) ! write time
-   !
-   if (use_quadtree) then
-      !
-      allocate(utmp(quadtree_nr_points))
-      allocate(vtmp(quadtree_nr_points))
-      !
-      sq2 = sqrt(2.0)
-      !
-      ! zs: wet-cell filter, write zs itself
-      if (subgrid) then
-         call write_cell_var_wet(map_file%ncid, map_file%zs_varid, real(zs,4), subgrid_z_zmin, ntmapout, output_delta=.false.)
-      else
-         call write_cell_var_wet(map_file%ncid, map_file%zs_varid, real(zs,4), zb, ntmapout, output_delta=.false.)
-      endif
-      !
-      ! h: wet-cell filter, write delta (zs - zref)
-      if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
-         if (subgrid) then
-            call write_cell_var_wet(map_file%ncid, map_file%h_varid, real(zs,4), subgrid_z_zmin, ntmapout, output_delta=.true.)
-         else
-            call write_cell_var_wet(map_file%ncid, map_file%h_varid, real(zs,4), zb, ntmapout, output_delta=.true.)
-         endif
-      endif
-      !
-      if (store_velocity) then
-         !
-         utmp = FILL_VALUE
-         vtmp = FILL_VALUE
-         !
-         do nmq = 1, quadtree_nr_points
-            !
-            nm = index_sfincs_in_quadtree(nmq)
-            !
-            if (nm>0) then
-               !
-               ! Regular point with four surrounding cells of the same size
-               !
-               n = z_index_z_n(nm)
-               m = z_index_z_m(nm)
-               nmd1 = z_index_uv_md(nm)
-               nmu1 = z_index_uv_mu(nm)
-               ndm1 = z_index_uv_nd(nm)
-               num1 = z_index_uv_nu(nm)
-               uz = 0.5*(uv(nmd1) + uv(nmu1))
-               vz = 0.5*(uv(ndm1) + uv(num1))
-               !
-               utmp(nmq) = cosrot*uz - sinrot*vz            
-               vtmp(nmq) = sinrot*uz + cosrot*vz  
-               !
-            endif
-            !
-         enddo
-         !
-         NF90(nf90_put_var(map_file%ncid, map_file%u_varid, utmp, (/1, ntmapout/)))
-         NF90(nf90_put_var(map_file%ncid, map_file%v_varid, vtmp, (/1, ntmapout/)))
-         !
-      endif
-      !
-      if (subgrid) then
-         if (store_zvolume) then
-            call write_cell_var(map_file%ncid, map_file%zvolume_varid, real(z_volume,4), ntmapout)
-         endif
-         if (store_storagevolume) then
-            call write_cell_var(map_file%ncid, map_file%storagevolume_varid, storage_volume, ntmapout)
-         endif
-      endif
-      !
-      if (store_meteo) then
-         if (wind) then
-            call write_cell_var(map_file%ncid, map_file%wind_u_varid, windu, ntmapout)
-            call write_cell_var(map_file%ncid, map_file%wind_v_varid, windv, ntmapout)
-         endif
-         if (patmos) then
-            call write_cell_var(map_file%ncid, map_file%patm_varid, patm, ntmapout)
-         endif
-      endif
-      !
-      if (snapwave) then
-         call write_cell_var(map_file%ncid, map_file%hm0_varid,   snapwave_H,    ntmapout, use_sw_index=.true., scale=sq2)
-         call write_cell_var(map_file%ncid, map_file%hm0ig_varid, snapwave_H_ig, ntmapout, use_sw_index=.true., scale=sq2)
-         !
-         if (store_wave_forces) then
-            call write_cell_var(map_file%ncid, map_file%fwx_varid,           fwx,            ntmapout)
-            call write_cell_var(map_file%ncid, map_file%fwy_varid,           fwy,            ntmapout)
-            call write_cell_var(map_file%ncid, map_file%tp_varid,            snapwave_Tp,    ntmapout, use_sw_index=.true.)
-            call write_cell_var(map_file%ncid, map_file%tpig_varid,          snapwave_Tp_ig, ntmapout, use_sw_index=.true.)
-            call write_cell_var(map_file%ncid, map_file%beta_varid,          betamean,       ntmapout)
-            call write_cell_var(map_file%ncid, map_file%snapwavedepth_varid, snapwave_depth, ntmapout, use_sw_index=.true.)
-         endif
-         !
-         if (store_wave_direction) then
-            call write_cell_var(map_file%ncid, map_file%wavdir_varid, snapwave_mean_direction, ntmapout, use_sw_index=.true.)
-         endif
-         !
-         if (wavemaker) then
-            call write_cell_var(map_file%ncid, map_file%zsm_varid, zsm, ntmapout)
-         endif
-      endif
-      !
-      if (nonhydrostatic) then
-         !
-         vtmp = FILL_VALUE     
-         !
-         do nmq = 1, quadtree_nr_points
-            !
-            nm = index_sfincs_in_quadtree(nmq)
-            !
-            if (nm>0) then            
-               !
-               ! Look up pressure in 'limited' nonh array that only has values where nonh mask is set to active
-               !
-               if (row_index_of_nm(nm) > 0) then
-                  !
-                  vtmp(nmq) = pnh(row_index_of_nm(nm))
-                  !
-               endif   
-               !
-            endif   
-         enddo
-         !
-         NF90(nf90_put_var(map_file%ncid, map_file%pnonh_varid, vtmp, (/1, ntmapout/)))
-         !
-      endif
-
-   else
-   !
-   allocate(zsg(mmax, nmax))    ! still used by velocity & nonhydro blocks below
-   !
-   ! zs: wet-cell filter
+   ! -------------------------------------------------------
+   ! Water level / depth
+   ! -------------------------------------------------------
    if (subgrid) then
       call write_cell_var_wet(map_file%ncid, map_file%zs_varid, real(zs,4), subgrid_z_zmin, ntmapout, output_delta=.false.)
    else
-      call write_cell_var_wet(map_file%ncid, map_file%zs_varid, real(zs,4), zb, ntmapout, output_delta=.false.)
+      call write_cell_var_wet(map_file%ncid, map_file%zs_varid, real(zs,4), zb,             ntmapout, output_delta=.false.)
    endif
    !
-   if (store_dynamic_bed_level .and. .not. subgrid) then
+   ! Optional time-varying zb (regular grid, non-subgrid)
+   if (.not. use_quadtree .and. store_dynamic_bed_level .and. .not. subgrid) then
       call write_cell_var(map_file%ncid, map_file%zb_varid, zb, ntmapout)
    endif
    !
-   ! h: delta (zs - zref), no wet filter (preserves legacy regular-grid behavior)
+   ! h = zs - zref. Quadtree filters wet cells (legacy); regular keeps all.
    if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
       if (subgrid) then
-         call write_cell_var_wet(map_file%ncid, map_file%h_varid, real(zs,4), subgrid_z_zmin, ntmapout, output_delta=.true., check_wet=.false.)
+         call write_cell_var_wet(map_file%ncid, map_file%h_varid, real(zs,4), subgrid_z_zmin, ntmapout, &
+              output_delta=.true., check_wet=use_quadtree)
       else
-         call write_cell_var_wet(map_file%ncid, map_file%h_varid, real(zs,4), zb, ntmapout, output_delta=.true., check_wet=.false.)
+         call write_cell_var_wet(map_file%ncid, map_file%h_varid, real(zs,4), zb,             ntmapout, &
+              output_delta=.true., check_wet=use_quadtree)
       endif
    endif
    !
+   ! -------------------------------------------------------
+   ! Velocity (cell-centered, computed once via 4-face average)
+   ! -------------------------------------------------------
    if (store_velocity) then
-      !
-      allocate(zsgu(mmax, nmax))
-      allocate(zsgv(mmax, nmax))
-      zsgu = FILL_VALUE
-      zsgv = FILL_VALUE
-      !
-      do nm = 1, np
-         !
-         n    = z_index_z_n(nm)
-         m    = z_index_z_m(nm)
-         !
-         nmd1 = z_index_uv_md(nm)
-         nmu1 = z_index_uv_mu(nm)
-         uz = 0.0
-         if (nmd1>0) then
-            uz = uz + 0.5*uv(nmd1)
-         endif   
-         if (nmu1>0) then
-            uz = uz + 0.5*uv(nmu1)
-         endif   
-         !
-         ndm1 = z_index_uv_nd(nm)
-         num1 = z_index_uv_nu(nm)
-         vz = 0.0
-         if (ndm1>0) then
-            vz = vz + 0.5*uv(ndm1)
-         endif   
-         if (num1>0) then
-            vz = vz + 0.5*uv(num1)
-         endif   
-         !         
-         zsgu(m, n) = cosrot*uz - sinrot*vz            
-         zsgv(m, n) = sinrot*uz + cosrot*vz
-         !
-      enddo   
-      !
-      NF90(nf90_put_var(map_file%ncid, map_file%u_varid, zsgu, (/1, 1, ntmapout/)))
-      !
-      NF90(nf90_put_var(map_file%ncid, map_file%v_varid, zsgv, (/1, 1, ntmapout/)))
-      !
-      deallocate(zsgu)
-      deallocate(zsgv)
-      !
+      allocate(uxy(np), vxy(np))
+      call compute_uv_at_cell_centers(uxy, vxy)
+      call write_cell_var(map_file%ncid, map_file%u_varid, uxy, ntmapout)
+      call write_cell_var(map_file%ncid, map_file%v_varid, vxy, ntmapout)
+      deallocate(uxy, vxy)
    endif
    !
+   ! -------------------------------------------------------
+   ! Subgrid volumes
+   ! -------------------------------------------------------
    if (subgrid) then
       if (store_zvolume) then
          call write_cell_var(map_file%ncid, map_file%zvolume_varid, real(z_volume,4), ntmapout)
@@ -1630,14 +1630,22 @@ contains
       endif
    endif
    !
-   if (inftype == 'cnb') then
-      call write_cell_var(map_file%ncid, map_file%Seff_varid, scs_Se,   ntmapout)
-   elseif (inftype == 'gai') then
-      call write_cell_var(map_file%ncid, map_file%Seff_varid, GA_sigma, ntmapout)
-   elseif (inftype == 'hor') then
-      call write_cell_var(map_file%ncid, map_file%Seff_varid, qinfmap,  ntmapout)
+   ! -------------------------------------------------------
+   ! Infiltration state (regular grid only)
+   ! -------------------------------------------------------
+   if (.not. use_quadtree) then
+      if (inftype == 'cnb') then
+         call write_cell_var(map_file%ncid, map_file%infstate_varid, scs_Se,   ntmapout)
+      elseif (inftype == 'gai') then
+         call write_cell_var(map_file%ncid, map_file%infstate_varid, GA_sigma, ntmapout)
+      elseif (inftype == 'hor') then
+         call write_cell_var(map_file%ncid, map_file%infstate_varid, qinfmap,  ntmapout)
+      endif
    endif
    !
+   ! -------------------------------------------------------
+   ! Meteo
+   ! -------------------------------------------------------
    if (store_meteo) then
       if (wind) then
          call write_cell_var(map_file%ncid, map_file%wind_u_varid, windu, ntmapout)
@@ -1646,67 +1654,124 @@ contains
       if (patmos) then
          call write_cell_var(map_file%ncid, map_file%patm_varid, patm, ntmapout)
       endif
-      if (precip) then
+      if (.not. use_quadtree .and. precip) then
          call write_cell_var(map_file%ncid, map_file%precip_varid, prcp, ntmapout, scale=3600000.0)
       endif
    endif
    !
+   ! -------------------------------------------------------
+   ! SnapWave (source-array names differ between grid types)
+   ! -------------------------------------------------------
    if (snapwave) then
-      call write_cell_var(map_file%ncid, map_file%hm0_varid,   hm0,    ntmapout)
-      call write_cell_var(map_file%ncid, map_file%hm0ig_varid, hm0_ig, ntmapout)
-      if (store_wave_forces) then
-         call write_cell_var(map_file%ncid, map_file%fwx_varid,           fwx,            ntmapout)
-         call write_cell_var(map_file%ncid, map_file%fwy_varid,           fwy,            ntmapout)
-         call write_cell_var(map_file%ncid, map_file%tp_varid,            sw_tp,          ntmapout)
-         call write_cell_var(map_file%ncid, map_file%tpig_varid,          sw_tp_ig,       ntmapout)
-         call write_cell_var(map_file%ncid, map_file%beta_varid,          betamean,       ntmapout)
-         call write_cell_var(map_file%ncid, map_file%snapwavedepth_varid, snapwave_depth, ntmapout)
+      if (use_quadtree) then
+         call write_cell_var(map_file%ncid, map_file%hm0_varid,   snapwave_H,    ntmapout, use_sw_index=.true., scale=sq2)
+         call write_cell_var(map_file%ncid, map_file%hm0ig_varid, snapwave_H_ig, ntmapout, use_sw_index=.true., scale=sq2)
+         if (store_wave_forces) then
+            call write_cell_var(map_file%ncid, map_file%fwx_varid,           fwx,            ntmapout)
+            call write_cell_var(map_file%ncid, map_file%fwy_varid,           fwy,            ntmapout)
+            call write_cell_var(map_file%ncid, map_file%tp_varid,            snapwave_Tp,    ntmapout, use_sw_index=.true.)
+            call write_cell_var(map_file%ncid, map_file%tpig_varid,          snapwave_Tp_ig, ntmapout, use_sw_index=.true.)
+            call write_cell_var(map_file%ncid, map_file%beta_varid,          betamean,       ntmapout)
+            call write_cell_var(map_file%ncid, map_file%snapwavedepth_varid, snapwave_depth, ntmapout, use_sw_index=.true.)
+         endif
+         if (store_wave_direction) then
+            call write_cell_var(map_file%ncid, map_file%wavdir_varid, snapwave_mean_direction, ntmapout, use_sw_index=.true.)
+         endif
+      else
+         call write_cell_var(map_file%ncid, map_file%hm0_varid,   hm0,    ntmapout)
+         call write_cell_var(map_file%ncid, map_file%hm0ig_varid, hm0_ig, ntmapout)
+         if (store_wave_forces) then
+            call write_cell_var(map_file%ncid, map_file%fwx_varid,           fwx,            ntmapout)
+            call write_cell_var(map_file%ncid, map_file%fwy_varid,           fwy,            ntmapout)
+            call write_cell_var(map_file%ncid, map_file%tp_varid,            sw_tp,          ntmapout)
+            call write_cell_var(map_file%ncid, map_file%tpig_varid,          sw_tp_ig,       ntmapout)
+            call write_cell_var(map_file%ncid, map_file%beta_varid,          betamean,       ntmapout)
+            call write_cell_var(map_file%ncid, map_file%snapwavedepth_varid, snapwave_depth, ntmapout)
+         endif
       endif
       if (wavemaker) then
          call write_cell_var(map_file%ncid, map_file%zsm_varid, zsm, ntmapout)
       endif
    endif
    !
+   ! -------------------------------------------------------
+   ! Non-hydrostatic pressure (precompute then write)
+   ! -------------------------------------------------------
    if (nonhydrostatic) then
-      !
-      zsg = FILL_VALUE       
-      !
-      do nm = 1, np
-         !
-         n    = z_index_z_n(nm)
-         m    = z_index_z_m(nm)
-         !
-         ! Look up pressure in 'limited' nonh array that only has values where nonh mask is set to active
-         !
-         if (row_index_of_nm(nm) > 0) then
-            !
-            zsg(m, n) = pnh(row_index_of_nm(nm))
-            !
-         endif   
-         !
-      enddo
-      !
-      NF90(nf90_put_var(map_file%ncid, map_file%pnonh_varid, zsg, (/1, 1, ntmapout/))) ! write h
-      !
-   endif
-
+      allocate(pnh_full(np))
+      call compute_pnh_unwrapped(pnh_full)
+      call write_cell_var(map_file%ncid, map_file%pnonh_varid, pnh_full, ntmapout)
+      deallocate(pnh_full)
    endif
    !
-   NF90(nf90_sync(map_file%ncid)) !write away intermediate data
+   NF90(nf90_sync(map_file%ncid))
+   !
+   contains
+   !
+   ! ---------------------------------------------------------------
+   ! Internal precompute helpers — produce SFINCS-indexed (np-shaped)
+   ! source arrays so that grid-type-aware write_cell_var handles the
+   ! gather/put. Keeps ncoutput_update_map free of the use_quadtree
+   ! branch for these writes.
+   ! ---------------------------------------------------------------
+   !
+   subroutine compute_uv_at_cell_centers(uxy, vxy)
+      ! Cell-centered (u, v) by averaging the 4 surrounding UV faces.
+      ! Boundary cells contribute half (when one of nmd1/nmu1/ndm1/num1 is 0).
+      real*4, intent(out) :: uxy(:), vxy(:)
+      integer :: nm, nmd1, nmu1, ndm1, num1
+      real*4  :: uz, vz
+      uxy = FILL_VALUE
+      vxy = FILL_VALUE
+      do nm = 1, np
+         nmd1 = z_index_uv_md(nm)
+         nmu1 = z_index_uv_mu(nm)
+         ndm1 = z_index_uv_nd(nm)
+         num1 = z_index_uv_nu(nm)
+         uz = 0.0
+         if (nmd1 > 0) uz = uz + 0.5*uv(nmd1)
+         if (nmu1 > 0) uz = uz + 0.5*uv(nmu1)
+         vz = 0.0
+         if (ndm1 > 0) vz = vz + 0.5*uv(ndm1)
+         if (num1 > 0) vz = vz + 0.5*uv(num1)
+         uxy(nm) = cosrot*uz - sinrot*vz
+         vxy(nm) = sinrot*uz + cosrot*vz
+      enddo
+   end subroutine compute_uv_at_cell_centers
+   !
+   subroutine compute_pnh_unwrapped(pnh_full)
+      ! Map row-indexed nonhydrostatic pressure to SFINCS-indexed array.
+      real*4, intent(out) :: pnh_full(:)
+      integer :: nm
+      pnh_full = FILL_VALUE
+      do nm = 1, np
+         if (row_index_of_nm(nm) > 0) pnh_full(nm) = pnh(row_index_of_nm(nm))
+      enddo
+   end subroutine compute_pnh_unwrapped
    !
    end subroutine ncoutput_update_map
 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
    subroutine ncoutput_update_his(t,nthisout)
-   ! Write time, zs, u, v, prcp of points 
    !
-   use sfincs_data   
+   ! Write time, zs, u, v, prcp etc. at observation points.
+   !
+   ! TODO (next refactor pass): this routine still uses the legacy pattern
+   ! of per-variable nobs-shaped temp arrays + a single iobs gather loop +
+   ! repeated `nf90_put_var(..., (/1, nthisout/))` calls. The map side has
+   ! been collapsed via write_cell_var; the his side would benefit from an
+   ! analogous `write_point_var(varid, source_full, nthisout, [scale])` that
+   ! gathers source(nm) at nmindobs(iobs) internally. Adding a new his var
+   ! today therefore costs ~5 edits (type field, def, temp array, gather
+   ! loop entry, put_var) instead of the 2 edits the map side now needs.
+   !
+   use sfincs_data
    use sfincs_crosssections
    use sfincs_runup_gauges
    use sfincs_snapwave
    !
-   implicit none   
+   implicit none
    !
    integer :: iobs, nm, idrn
    !
@@ -1733,8 +1798,7 @@ contains
    real*4, dimension(nobs) :: tpobs
    real*4, dimension(nobs) :: tpigobs   
    real*4, dimension(nobs) :: wavdirobs
-   real*4, dimension(nobs) :: dirsprobs
-   real*4, dimension(ndrn) :: q_drain   
+   real*4, dimension(ndrn) :: q_drain
    real*4, dimension(nobs) :: dwobs
    real*4, dimension(nobs) :: dfobs
    real*4, dimension(nobs) :: dwigobs
@@ -1747,12 +1811,12 @@ contains
    !
    zobs         = FILL_VALUE
    zsmobs       = FILL_VALUE
-   hobs         = FILL_VALUE         
-   hm0obs       = FILL_VALUE         
-   hm0igobs     = FILL_VALUE         
-   tpobs        = FILL_VALUE         
-   wavdirobs    = FILL_VALUE         
-   dirsprobs    = FILL_VALUE         
+   hobs         = FILL_VALUE
+   hm0obs       = FILL_VALUE
+   hm0igobs     = FILL_VALUE
+   tpobs        = FILL_VALUE
+   tpigobs      = FILL_VALUE
+   wavdirobs    = FILL_VALUE
    tprcp        = FILL_VALUE
    tcumprcp     = FILL_VALUE
    tqinf        = FILL_VALUE
@@ -1763,10 +1827,16 @@ contains
    q_drain      = FILL_VALUE
    dwobs        = FILL_VALUE
    dfobs        = FILL_VALUE
+   dwigobs      = FILL_VALUE
+   dfigobs      = FILL_VALUE
    cgobs        = FILL_VALUE
    betaobs      = FILL_VALUE
    srcigobs     = FILL_VALUE
-   alphaigobs   = FILL_VALUE   
+   alphaigobs   = FILL_VALUE
+   uobs         = FILL_VALUE
+   vobs         = FILL_VALUE
+   uvmag        = FILL_VALUE
+   uvdir        = FILL_VALUE
    !
    do iobs = 1, nobs ! determine zs and prcp of obervation points at required timestep
       !
@@ -1789,7 +1859,7 @@ contains
             nmd1 = z_index_uv_md(nm)
             nmu1 = z_index_uv_mu(nm)
             ndm1 = z_index_uv_nd(nm)
-            num1 = z_index_uv_mu(nm)
+            num1 = z_index_uv_nu(nm)
             uz  = 0.5 * (uv(nmd1) + uv(nmu1))
             vz  = 0.5 * (uv(ndm1) + uv(num1))
             !
@@ -1857,10 +1927,7 @@ contains
             tpigobs(iobs)  = sw_tp_ig(nm)            
             !
             if (store_wave_direction) then
-               !
-               wavdirobs(iobs)   = mean_wave_direction(nm)
-               dirsprobs(iobs)   = wave_directional_spreading(nm)
-               !
+               wavdirobs(iobs) = mean_wave_direction(nm)
             endif
             !            
             if (wavemaker) then
@@ -1917,10 +1984,7 @@ contains
       NF90(nf90_put_var(his_file%ncid, his_file%tpig_varid, tpigobs, (/1, nthisout/)))      
       !
       if (store_wave_direction) then
-         !
          NF90(nf90_put_var(his_file%ncid, his_file%wavdir_varid, wavdirobs, (/1, nthisout/)))
-         !NF90(nf90_put_var(his_file%ncid, his_file%dirspr_varid, dirsprobs, (/1, nthisout/)))
-         !
       endif
       !            
       if (wavemaker) then
@@ -1977,25 +2041,18 @@ contains
    endif
    !
    if (nrcrosssections>0) then
-      !
       !$acc update host(q)
-      !      
-      ! Get fluxes through cross sections
-      !
+      ! Get fluxes through cross sections (callee allocates qq)
       call get_discharges_through_crosssections(qq)
-      !
-      NF90(nf90_put_var(his_file%ncid, his_file%discharge_varid, qq, (/1, nthisout/))) ! write discharge
-      !
+      NF90(nf90_put_var(his_file%ncid, his_file%discharge_varid, qq, (/1, nthisout/)))
+      if (allocated(qq)) deallocate(qq)
    endif
    !
    if (nr_runup_gauges>0) then
-      !
-      ! Get run-up elevations
-      !
+      ! Get run-up elevations (callee allocates zz)
       call get_runup_levels(zz)
-      !
-      NF90(nf90_put_var(his_file%ncid, his_file%runup_gauge_zs_varid, zz, (/1, nthisout/))) ! write run up level
-      !
+      NF90(nf90_put_var(his_file%ncid, his_file%runup_gauge_zs_varid, zz, (/1, nthisout/)))
+      if (allocated(zz)) deallocate(zz)
    endif
    !
    if (ndrn>0) then
@@ -2040,23 +2097,26 @@ contains
    !
    implicit none
    !
-   real*8                              :: t
-   integer                             :: ntmaxout, nm, n, m
-   real*4, dimension(:,:), allocatable :: zstmp
-   real*4, dimension(:),   allocatable :: hmax_out, hmean
+   real*8                            :: t
+   integer                           :: ntmaxout, nm
+   real*4, dimension(:), allocatable :: hmax_out, hmean
    !
-   ! Scalar time of this max-record
-   NF90(nf90_put_var(map_file%ncid, map_file%timemax_varid, t, (/ntmaxout/)))
+   ! Scalar time of this max-record (defined only when store_maximum_waterlevel)
+   if (store_maximum_waterlevel) then
+      NF90(nf90_put_var(map_file%ncid, map_file%timemax_varid, t, (/ntmaxout/)))
+   endif
    !
    ! Maximum water level
-   if (subgrid) then
-      call write_cell_var_wet(map_file%ncid, map_file%zsmax_varid, zsmax, subgrid_z_zmin, ntmaxout, output_delta=.false.)
-   else
-      call write_cell_var_wet(map_file%ncid, map_file%zsmax_varid, zsmax, zb,             ntmaxout, output_delta=.false.)
+   if (store_maximum_waterlevel) then
+      if (subgrid) then
+         call write_cell_var_wet(map_file%ncid, map_file%zsmax_varid, zsmax, subgrid_z_zmin, ntmaxout, output_delta=.false.)
+      else
+         call write_cell_var_wet(map_file%ncid, map_file%zsmax_varid, zsmax, zb,             ntmaxout, output_delta=.false.)
+      endif
    endif
    !
    ! Maximum water depth (optional, supports subgrid mean-depth)
-   if (.not. subgrid .or. store_hsubgrid) then
+   if (store_maximum_waterlevel .and. (.not. subgrid .or. store_hsubgrid)) then
       allocate(hmax_out(np))
       hmax_out = FILL_VALUE
       if (store_hmean .and. subgrid) then
@@ -2083,10 +2143,13 @@ contains
       if (allocated(hmean)) deallocate(hmean)
    endif
    !
-   ! Cumulative rainfall and infiltration
+   ! Cumulative rainfall (always when store_cumulative_precipitation) and
+   ! cumulative infiltration (only when infiltration is on — same gate as the def)
    if (store_cumulative_precipitation) then
       call write_cell_var(map_file%ncid, map_file%cumprcp_varid, cumprcp, ntmaxout, check_kcs=.true.)
-      call write_cell_var(map_file%ncid, map_file%cuminf_varid,  cuminf,  ntmaxout, check_kcs=.true.)
+      if (infiltration) then
+         call write_cell_var(map_file%ncid, map_file%cuminf_varid, cuminf, ntmaxout, check_kcs=.true.)
+      endif
    endif
    !
    ! Maximum flow velocity / flux
@@ -2102,25 +2165,15 @@ contains
       call write_cell_var(map_file%ncid, map_file%tmax_varid, twet, ntmaxout, check_kcs=.true.)
    endif
    !
-   ! When zsmax occurred — quadtree uses helper; regular grid preserves legacy >0 filter
+   ! When zsmax occurred (only cells where it actually happened, i.e. t_zsmax > 0)
    if (store_t_zsmax) then
-      if (use_quadtree) then
-         call write_cell_var(map_file%ncid, map_file%t_zsmax_varid, t_zsmax, ntmaxout, check_kcs=.true.)
-      else
-         allocate(zstmp(mmax, nmax))
-         zstmp = FILL_VALUE
-         do nm = 1, np
-            n = z_index_z_n(nm)
-            m = z_index_z_m(nm)
-            if (t_zsmax(nm) > 0) zstmp(m, n) = t_zsmax(nm)
-         enddo
-         NF90(nf90_put_var(map_file%ncid, map_file%t_zsmax_varid, zstmp, (/1, 1, ntmaxout/)))
-         deallocate(zstmp)
-      endif
+      call write_cell_var(map_file%ncid, map_file%t_zsmax_varid, t_zsmax, ntmaxout, &
+           check_kcs=.true., min_value=0.0)
    endif
    !
-   ! Maximum wind speed
-   if (wind .and. store_wind_max .and. meteo3d) then
+   ! Maximum wind speed (def is gated on store_meteo .and. wind .and.
+   ! store_wind_max .and. meteo3d in ncoutput_map_init; mirror that here)
+   if (store_meteo .and. wind .and. store_wind_max .and. meteo3d) then
       call write_cell_var(map_file%ncid, map_file%windmax_varid, windmax, ntmaxout, check_kcs=.true.)
    endif
    !
@@ -2158,123 +2211,32 @@ contains
    !
    subroutine ncoutput_write_timestep_analysis()
    !
-   ! Write timestep_analysis_average_required_timestep and timestep_analysis_percentage_limiting_per_cell once at end of simulation (no time dimension)
+   ! Write per-cell timestep statistics once at the end of simulation
+   ! (no time dimension).
    !
    use sfincs_data
-   use quadtree
    !
    implicit none
    !
-   real*4, dimension(:),   allocatable :: vtmp1, vtmp2, vtmp3
-   real*4, dimension(:,:), allocatable :: zsg1, zsg2
-   integer :: nm, nmq, n, m
-   !
-   if (use_quadtree) then
-      !
-      allocate(vtmp1(quadtree_nr_points))
-      allocate(vtmp2(quadtree_nr_points))
-      !
-      vtmp1 = FILL_VALUE
-      vtmp2 = FILL_VALUE
-      !
-      do nm = 1, np
-         !
-         nmq = index_quadtree_in_sfincs(nm)
-         !
-         if (timestep_analysis_average_required_timestep_per_cell(nm) > 0.0) then
-            !
-            vtmp1(nmq) = timestep_analysis_average_required_timestep_per_cell(nm)
-            !
-         endif
-         !
-         vtmp2(nmq) = timestep_analysis_percentage_limiting_per_cell(nm)
-         ! 
-      enddo
-      !
-      NF90(nf90_put_var(map_file%ncid, map_file%average_required_timestep_varid, vtmp1))
-      NF90(nf90_put_var(map_file%ncid, map_file%percentage_limiting_varid, vtmp2))
-      !
-      deallocate(vtmp1)
-      deallocate(vtmp2)
-      !
-   else
-      !
-      allocate(zsg1(mmax, nmax))
-      allocate(zsg2(mmax, nmax))
-      !
-      zsg1 = FILL_VALUE
-      zsg2 = FILL_VALUE
-      !
-      do nm = 1, np
-         !
-         n = z_index_z_n(nm)
-         m = z_index_z_m(nm)
-         !
-         if (timestep_analysis_average_required_timestep_per_cell(nm) > 0.0) then
-            !
-            zsg1(m, n) = timestep_analysis_average_required_timestep_per_cell(nm)
-            !
-         endif
-         !
-         zsg2(m, n) = timestep_analysis_percentage_limiting_per_cell(nm)
-         ! 
-      enddo
-      !
-      NF90(nf90_put_var(map_file%ncid, map_file%average_required_timestep_varid, zsg1))
-      NF90(nf90_put_var(map_file%ncid, map_file%percentage_limiting_varid, zsg2))
-      !
-      deallocate(zsg1)
-      deallocate(zsg2)
-      !
-   endif   
+   call put_static_cell_float(map_file%ncid, map_file%average_required_timestep_varid, &
+        timestep_analysis_average_required_timestep_per_cell, FILL_VALUE, min_value=0.0)
+   call put_static_cell_float(map_file%ncid, map_file%percentage_limiting_varid, &
+        timestep_analysis_percentage_limiting_per_cell, FILL_VALUE)
    !
    end subroutine ncoutput_write_timestep_analysis
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   subroutine ncoutput_write_tsunami_arrival_time() 
-   ! Add tsunami_arrival_time
+   subroutine ncoutput_write_tsunami_arrival_time()
+   ! Write tsunami_arrival_time once at finalize.
+   ! min_value=0.0 → cells the tsunami never reached are written as
+   ! _FillValue, not 0 (which would otherwise read as "arrived at t=0").
    use sfincs_data
-   !   
-   implicit none  
    !
-   real*4, dimension(:,:), allocatable :: zsg
-   real*4,    dimension(:),   allocatable :: vtmp   
-   integer    :: nm, nmq, n, m, n_faces, quadtree_nr_points   
+   implicit none
    !
-   if (use_quadtree) then
-       !
-       allocate(vtmp(n_faces))          
-       vtmp = FILL_VALUE   
-       !
-       do nmq = 1, quadtree_nr_points
-           nm = index_sfincs_in_quadtree(nmq)
-           if (nm>0) then
-           vtmp(nmq) = tsunami_arrival_time(nm)
-           endif
-       enddo
-       !
-       ! write tsunami_arrival_time_varid              
-       NF90(nf90_put_var(map_file%ncid, map_file%tsunami_arrival_time_varid, zsg))         
-       !
-   else
-       ! regular grid
-       allocate(zsg(mmax, nmax))   
-       zsg = FILL_VALUE
-       !   
-       do nm = 1, np
-           !
-           n    = z_index_z_n(nm)
-           m    = z_index_z_m(nm)
-           !       
-           zsg(m, n) = tsunami_arrival_time(nm)
-           !
-       enddo
-       !
-       ! write tsunami_arrival_time_varid       
-       NF90(nf90_put_var(map_file%ncid, map_file%tsunami_arrival_time_varid, zsg, (/1, 1/)))     
-       !
-   endif     
+   call put_static_cell_float(map_file%ncid, map_file%tsunami_arrival_time_varid, tsunami_arrival_time, &
+        FILL_VALUE, min_value=0.0)
    !
    end subroutine   
    !
@@ -2287,9 +2249,13 @@ contains
    !   
    implicit none   
    !   
-   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nrthindams==0 .and. ndrn==0) then ! If no observation points, cross-sections, structures 9weir or thin dam), or drains; hisfile        
-        return
-   endif   
+   ! Mirror the early-return condition from ncoutput_his_init exactly: if
+   ! none of these are present, no his file was created. (Note: thindams
+   ! alone do NOT trigger his-file creation in init, so they're not in
+   ! this list either.)
+   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0 .and. nr_runup_gauges==0) then
+      return
+   endif
    !
    NF90(nf90_put_var(his_file%ncid, his_file%total_runtime_varid, tfinish_all - tstart_all)) 
    NF90(nf90_put_var(his_file%ncid, his_file%average_dt_varid,  dtavg)) 
@@ -2710,20 +2676,15 @@ contains
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
    subroutine handle_err(status,file,line)
-      !
-      integer, intent ( in)    :: status
+      ! Reports NetCDF errors to stderr. Does NOT close any file (the failing
+      ! call could have been on either map_file%ncid or his_file%ncid; closing
+      ! map_file unconditionally was misleading and pre-existing). Both files
+      ! are closed by their respective finalize routines on normal shutdown.
+      integer,      intent(in) :: status
       character(*), intent(in) :: file
-      integer, intent ( in)    :: line
-      integer :: status2
-
-      if(status /= nf90_noerr) then
-         !UNIT=6 for stdout and UNIT=0 for stderr.
-         write(0,'("NETCDF ERROR: ",a,i6,":",a)') file,line,trim(nf90_strerror(status))
-         write(0,*) 'closing file'
-         status2 = nf90_close(map_file%ncid)
-         if (status2 /= nf90_noerr) then
-            write(0,*) 'NETCDF ERROR: ', __FILE__,__LINE__,trim(nf90_strerror(status2))
-         end if
+      integer,      intent(in) :: line
+      if (status /= nf90_noerr) then
+         write(0,'("NETCDF ERROR: ",a,i6,":",a)') file, line, trim(nf90_strerror(status))
       end if
    end subroutine handle_err
    !
