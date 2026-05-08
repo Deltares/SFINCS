@@ -610,7 +610,7 @@ contains
             !      
             call determine_infragravity_source_sink_term(inner, no_nodes, ntheta, w, ds, prev, dtheta, cg_ig, nwav, depth, zb, H, &
                                                          ee, ee_ig, ig_opt, alphaigfac, &
-                                                         alphaig_local, beta_local, srcig_local)
+                                                         alphaig_local, beta_local, srcig_local, gamma, gamma_fac_br)
             !
          endif
          !

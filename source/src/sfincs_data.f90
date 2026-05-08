@@ -419,6 +419,9 @@ module sfincs_data
       !
       real*4, dimension(:),   allocatable :: uvmean
       !
+      ! Wave forces limiter determined in sfincs_snapwave
+      real*4 :: fwmaxfac
+      !
       !!! Wave makers
       !
       character*256 :: wavemaker_wvmfile ! polylines

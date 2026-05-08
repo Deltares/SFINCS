@@ -37,6 +37,7 @@ module sfincs_snapwave
    real*4                                    :: snapwave_hsmean
    real*4                                    :: snapwave_tpmean
    real*4                                    :: snapwave_tpigmean   
+   real*4                                    :: snapwave_fwmaxfac   
    !
 contains
    !
@@ -512,6 +513,9 @@ contains
    !
    !$acc update device(fwuv)
    !
+   ! Set wave forces fwmaxfac factor
+   fwmaxfac = snapwave_fwmaxfac   
+   !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
    !
@@ -560,7 +564,9 @@ contains
    snapwave_Fy                    = Fy * rho * depth
    !
    ! Pre-alculate wave forces limiter factor
-   !fwmaxfac = 0.25 * sqrt(g) * rho * gammax**2 / tpmean_bwv   
+   snapwave_fwmaxfac = 0.25 * sqrt(g) * rho * gammax**2 / tpmean_bwv    
+   !
+   ! FIXME - should we limit snapwave_fwmaxfac to a certain range?
    !
    ! Loop over points and set Tp, cg, direction, spreading to 0 where H and/or H_ig are zero
    ! TL: needed because e.g. Tp is set to Tpini initially, so shows values even if cell remains dry with H=0
