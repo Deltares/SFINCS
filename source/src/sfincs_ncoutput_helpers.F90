@@ -18,10 +18,12 @@
 !   - His-init def wrappers: def_time_point_float, def_his_point_coord
 !   - His-update writer: write_point_var
 !   - His-update precompute: compute_uv_at_obs_points, compute_wind_at_obs_points
-!   - Map-update precompute: compute_uv_at_cell_centers, compute_pnh_unwrapped
+!   - Map-update precompute: compute_uv_at_cell_centers, compute_pnh_unwrapped,
+!       compute_subgrid_mean_depth
 !   - Finalize helpers: ncoutput_write_timestep_analysis,
 !       ncoutput_write_tsunami_arrival_time
-!   - Generic NetCDF wrappers: ncdef_float_var, ncdef_int_var, handle_err
+!   - Generic NetCDF wrappers: ncdef_float_var, ncdef_int_var, logical2int,
+!       handle_err
 !
 ! sfincs_ncoutput uses this module and supplies the public init/update/finalize
 ! subroutines.
@@ -715,6 +717,46 @@ contains
       enddo
    end subroutine compute_pnh_unwrapped
 
+   subroutine compute_subgrid_mean_depth(z, hmean)
+   ! Converts subgrid water level to mean cell depth via the volume table.
+   ! Output-layer concern; lives here to keep sfincs_subgrid focused on table I/O.
+      use sfincs_data
+      implicit none
+      real*4, intent(in)  :: z(np)
+      real*4, intent(out) :: hmean(np)
+      integer :: nm, ivol, ilevel
+      real*8  :: volume
+      real*4  :: dzvol, facint
+      do nm = 1, np
+         if (z(nm) >= subgrid_z_zmax(nm)) then
+            ! Entire cell is wet — extend volume linearly above table maximum
+            if (crsgeo) then
+               volume = subgrid_z_volmax(nm) + cell_area_m2(nm)            * (z(nm) - max(subgrid_z_zmax(nm), -20.0))
+            else
+               volume = subgrid_z_volmax(nm) + cell_area(z_flags_iref(nm)) * (z(nm) - max(subgrid_z_zmax(nm), -20.0))
+            endif
+         else
+            ! Interpolation within the volume table
+            ivol = 1
+            do ilevel = 2, subgrid_nlevels
+               if (subgrid_z_dep(ilevel, nm) > z(nm)) then
+                  ivol = ilevel - 1
+                  exit
+               endif
+            enddo
+            dzvol  = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
+            facint = (z(nm) - subgrid_z_dep(ivol, nm)) / &
+                     max(subgrid_z_dep(ivol + 1, nm) - subgrid_z_dep(ivol, nm), 0.001)
+            volume = (ivol - 1) * dzvol + facint * dzvol
+         endif
+         if (crsgeo) then
+            hmean(nm) = volume / cell_area_m2(nm)
+         else
+            hmean(nm) = volume / cell_area(z_flags_iref(nm))
+         endif
+      enddo
+   end subroutine compute_subgrid_mean_depth
+
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
    ! Finalize-time single-write helpers
@@ -848,6 +890,13 @@ contains
       endif
       !
    end subroutine ncdef_int_var
+
+   integer function logical2int(lgc)
+   ! Returns 1 for .true., 0 for .false. — used by ncoutput_add_params for
+   ! integer-typed NetCDF attributes that encode Fortran logical flags.
+      logical, intent(in) :: lgc
+      logical2int = merge(1, 0, lgc)
+   end function logical2int
 
    subroutine handle_err(status,file,line)
       ! Reports NetCDF errors to stderr. Does NOT close any file (the failing

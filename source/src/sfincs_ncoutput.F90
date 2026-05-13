@@ -73,8 +73,9 @@
 ! HELPER INVENTORY
 ! ----------------------------------------------------------------------------
 !
-! Generic NetCDF (bottom of file):
+! Generic NetCDF (bottom of helpers file):
 !   ncdef_float_var, ncdef_int_var          one-call var-def + attribute set
+!   logical2int(lgc)                        returns 1/.true. or 0/.false.
 !   handle_err                              NF90 macro error handler
 !
 ! Module-level static-cell writers:
@@ -113,6 +114,7 @@
 ! indexed by SFINCS cell number):
 !   compute_uv_at_cell_centers
 !   compute_pnh_unwrapped
+!   compute_subgrid_mean_depth  (also used by ncoutput_update_max)
 !
 ! Finalize helpers (write once at end of simulation):
 !   ncoutput_write_timestep_analysis
@@ -1756,85 +1758,5 @@ contains
         NF90(nf90_put_att(ncid, varid, 'snapwave_bdsfile',snapwave_bdsfile))         
         !
    end subroutine
-   !
-   subroutine compute_subgrid_mean_depth(z, hmean)
-   !
-   ! This subroutine cannot sit in sfincs_subgrid.f90 because that uses the same netcdf module
-   !
-   use sfincs_data
-   !
-   implicit none
-   !
-   real*4, intent(in)  :: z(np) ! max water level
-   real*4, intent(out) :: hmean(np) 
-   !
-   integer    :: nm, m, n, ivol, ilevel, ip
-   real*8     :: volume
-   real*4     :: dzvol
-   real*4     :: facint
-   real*4     :: one_minus_facint 
-   !
-   ! Compute volumes and mean depths
-   !
-   do nm = 1, np
-      !
-      if (z(nm) >= subgrid_z_zmax(nm)) then
-         !
-         ! Entire cell is wet, no interpolation from table needed
-         !
-         if (crsgeo) then
-            volume = subgrid_z_volmax(nm) + cell_area_m2(nm) * (z(nm) - max(subgrid_z_zmax(nm), -20.0))
-         else   
-            volume = subgrid_z_volmax(nm) + cell_area(z_flags_iref(nm)) * (z(nm) - max(subgrid_z_zmax(nm), -20.0))
-         endif
-         !
-      else   
-         !
-         ! Interpolation required
-         !
-         ivol = 1
-         do ilevel = 2, subgrid_nlevels
-            if (subgrid_z_dep(ilevel, nm) > z(nm)) then
-               ivol = ilevel - 1
-               exit
-            endif
-         enddo
-         !
-         dzvol  = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
-         facint = (z(nm) - subgrid_z_dep(ivol, nm)) / max(subgrid_z_dep(ivol + 1, nm) - subgrid_z_dep(ivol, nm), 0.001)
-         volume = (ivol - 1) * dzvol + facint * dzvol
-         !
-      endif
-      !
-      ! Compute mean depth in cell
-      !
-      if (crsgeo) then
-         !
-         hmean(nm) = volume / cell_area_m2(nm)
-         !
-      else   
-         !
-         hmean(nm) = volume / cell_area(z_flags_iref(nm))
-         !
-      endif
-      !
-   enddo
-   !
-   end subroutine
-   !
-   function logical2int(lgc) result (i)
-   !
-   implicit none
-   !
-   logical              :: lgc
-   integer              :: i
-   !
-   if (lgc) then
-      i = 1
-   else
-      i = 0
-   endif
-   !
-   end function   
    !
    end module
