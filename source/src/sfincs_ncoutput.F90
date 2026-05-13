@@ -335,9 +335,9 @@ contains
    ! -------------------------------------------------------
    call def_static_cell_int('msk', map_file%msk_varid, 'msk_active_cells', &
         units='-', &
-        description='inactive=0, active=1, normal_boundary=2, outflow_boundary=3, wavemaker=4', &
-        flag_values=(/0, 1, 2, 3, 4/), &
-        flag_meanings='inactive active normal_boundary outflow_boundary wavemaker')
+        description='inactive=0, active=1, normal_boundary=2, outflow_boundary=3, wavemaker=4, downstream_boundary=5, neumann_boundary=6', &
+        flag_values=(/0, 1, 2, 3, 4, 5, 6/), &
+        flag_meanings='inactive active normal_boundary outflow_boundary wavemaker downstream_boundary neumann_boundary')
    !
    ! -------------------------------------------------------
    ! Infiltration map (qinf) - both grid types, slightly different
