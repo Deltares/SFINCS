@@ -759,15 +759,8 @@ contains
    NF90(nf90_def_dim(his_file%ncid, 'runtime', 1, his_file%runtime_dimid)) ! total_runtime, average_dt    
    !
    ! Some metadata attributes
-   ! TODO: the his file stores station/timeseries data (point_x, point_y,
-   ! station_id indexed by `points`), not a structured grid, so the
-   ! SGRID-0.3 claim here is incorrect. The CF idiom for station data is
-   ! the discrete-sampling-geometries pattern: drop SGRID-0.3 and add
-   !   featureType  = "timeSeries"  (global)
-   !   cf_role      = "timeseries_id"  on station_id / station_name
-   ! Leaving SGRID-0.3 in place for now to avoid breaking downstream
-   ! readers; revisit once consumers (FEWS, xarray pipelines) are checked.
-   NF90(nf90_put_att(his_file%ncid,nf90_global, "Conventions", "CF-1.8 SGRID-0.3"))
+   NF90(nf90_put_att(his_file%ncid, nf90_global, "Conventions",   "CF-1.8"))
+   NF90(nf90_put_att(his_file%ncid, nf90_global, "featureType",   "timeSeries"))
    NF90(nf90_put_att(his_file%ncid,nf90_global, "Build-Revision-Date-Netcdf-library", trim(nf90_inq_libvers()))) ! version of netcdf library
    NF90(nf90_put_att(his_file%ncid,nf90_global, "Producer", "SFINCS model: Super-Fast INundation of CoastS"))
    NF90(nf90_put_att(his_file%ncid,nf90_global, "Build-Revision", trim(build_revision))) 
@@ -783,7 +776,7 @@ contains
    !NF90(nf90_put_att(his_file%ncid, his_file%station_id_varid, 'units', '-')) !not wanted in fews
    !
    NF90(nf90_def_var(his_file%ncid, 'station_name', NF90_CHAR, (/his_file%pointnamelength_dimid, his_file%points_dimid/), his_file%station_name_varid))
-   !NF90(nf90_put_att(his_file%ncid, his_file%station_name_varid, 'units', '-')) !not wanted in fews   
+   NF90(nf90_put_att(his_file%ncid, his_file%station_name_varid, 'cf_role', 'timeseries_id'))
    !
    if (nrcrosssections>0) then
       NF90(nf90_def_var(his_file%ncid, 'crosssection_name', NF90_CHAR, (/his_file%pointnamelength_dimid, his_file%crosssections_dimid/), his_file%crosssection_name_varid))
