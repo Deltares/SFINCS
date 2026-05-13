@@ -93,17 +93,30 @@
 !   def_static_cell_float / def_static_cell_int    static cell variables
 !   def_time_cell_float                            time-varying cell variables
 !   def_maxtime_cell_float                         max-aggregated cell variables
+!   add_ugrid_face_attrs      attach mesh2d_face_face_link attrs to a varid
 !   def_mesh2d_node_coord     UGRID node coord (float for geographic, double for projected)
 !   def_grid_axis_coord       SGRID face/corner coord (always float)
 !   put_2d                    nf90_put_var with (/1, 1/) start
 !
-! Definition wrapper used inside ncoutput_his_init:
+! Definition wrappers used inside ncoutput_his_init:
 !   def_time_point_float                           (points × time)
+!   def_his_point_coord                            station coordinate variable
+!
+! His-update writer (gathers nmindobs internally):
+!   write_point_var(varid, source, nt, [scale])
+!
+! Precompute helpers used inside ncoutput_update_his:
+!   compute_uv_at_obs_points   face-averaged, rotated (u,v), magnitude, direction
+!   compute_wind_at_obs_points speed + meteorological direction (270 convention)
 !
 ! Precompute helpers used inside ncoutput_update_map (return arrays
 ! indexed by SFINCS cell number):
 !   compute_uv_at_cell_centers
 !   compute_pnh_unwrapped
+!
+! Finalize helpers (write once at end of simulation):
+!   ncoutput_write_timestep_analysis
+!   ncoutput_write_tsunami_arrival_time
 !
 ! ----------------------------------------------------------------------------
 ! GRID-TYPE BRANCH STILL NEEDED WHEN

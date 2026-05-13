@@ -10,8 +10,18 @@
 !   - Dimension-context module variables set once by ncoutput_map_init before
 !     any def_* calls: nsd, dims_s, dims_st, dims_sm, coord_str
 !   - pt_coord parameter used by def_time_point_float / def_his_point_coord
-!   - All helper subroutines (cell writers, def wrappers, generic ncdef helpers,
-!     handle_err)
+!   - Map-output writers: write_cell_var, write_cell_var_wet,
+!       put_static_cell_float, put_static_cell_mask
+!   - Map-init def wrappers: def_static_cell_float, def_static_cell_int,
+!       def_time_cell_float, def_maxtime_cell_float, add_ugrid_face_attrs,
+!       def_mesh2d_node_coord, def_grid_axis_coord, put_2d
+!   - His-init def wrappers: def_time_point_float, def_his_point_coord
+!   - His-update writer: write_point_var
+!   - His-update precompute: compute_uv_at_obs_points, compute_wind_at_obs_points
+!   - Map-update precompute: compute_uv_at_cell_centers, compute_pnh_unwrapped
+!   - Finalize helpers: ncoutput_write_timestep_analysis,
+!       ncoutput_write_tsunami_arrival_time
+!   - Generic NetCDF wrappers: ncdef_float_var, ncdef_int_var, handle_err
 !
 ! sfincs_ncoutput uses this module and supplies the public init/update/finalize
 ! subroutines.
