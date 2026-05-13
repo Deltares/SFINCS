@@ -1528,7 +1528,8 @@ contains
    ! Because of overlapping names, only important specific values from snapwave_data
    use snapwave_data, only: gamma, gammax, alpha, hmin, fw0, fw0_ig, dt, tol, dtheta, crit, nr_sweeps, baldock_opt, baldock_ratio, &
        igwaves_opt, alpha_ig, gamma_ig, shinc2ig, alphaigfac, baldock_ratio_ig, ig_opt, herbers_opt, tpig_opt, eeinc2ig, tinc2ig, &
-       snapwave_jonswapfile, snapwave_encfile, snapwave_bndfile, snapwave_bhsfile, snapwave_btpfile, snapwave_bwdfile, snapwave_bdsfile, upwfile, gridfile
+       snapwave_jonswapfile, snapwave_encfile, snapwave_bndfile, snapwave_bhsfile, snapwave_btpfile, snapwave_bwdfile, snapwave_bdsfile, upwfile, gridfile, &
+       jonswapgam, Tpini, sector, fwratio, fwigratio
    
    !
    implicit none   
@@ -1569,7 +1570,8 @@ contains
         NF90(nf90_put_att(ncid, varid, 'dtmax',dtmax))        
         NF90(nf90_put_att(ncid, varid, 'dtmin',dtmin))  
         NF90(nf90_put_att(ncid, varid, 'hmin_cfl',hmin_cfl))        
-        NF90(nf90_put_att(ncid, varid, 'huthresh',huthresh))        
+        NF90(nf90_put_att(ncid, varid, 'huthresh',huthresh))
+        NF90(nf90_put_att(ncid, varid, 'huvmin',huvmin))
         NF90(nf90_put_att(ncid, varid, 'rhoa',rhoa))        
         NF90(nf90_put_att(ncid, varid, 'rhow',rhow))        
         NF90(nf90_put_att(ncid, varid, 'inputformat',inputtype))        
@@ -1578,9 +1580,6 @@ contains
         NF90(nf90_put_att(ncid, varid, 'outputtype_his',outputtype_his))
         NF90(nf90_put_att(ncid, varid, 'bndtype',bndtype))
         NF90(nf90_put_att(ncid, varid, 'advection',logical2int(advection)))  
-        NF90(nf90_put_att(ncid, varid, 'wavemaker_nfreqs_ig', wavemaker_nfreqs_ig))  
-        NF90(nf90_put_att(ncid, varid, 'wavemaker_freqmin_ig',wavemaker_freqmin_ig))  
-        NF90(nf90_put_att(ncid, varid, 'wavemaker_freqmax_ig',wavemaker_freqmax_ig))  
         NF90(nf90_put_att(ncid, varid, 'latitude',latitude))  
         NF90(nf90_put_att(ncid, varid, 'pavbnd',pavbnd))  
         NF90(nf90_put_att(ncid, varid, 'gapres',gapres))  
@@ -1624,7 +1623,24 @@ contains
         NF90(nf90_put_att(ncid, varid, 'wavemaker_hm0_inc_factor',wavemaker_hm0_inc_factor))         
         NF90(nf90_put_att(ncid, varid, 'wavemaker_gammax',wavemaker_gammax))         
         NF90(nf90_put_att(ncid, varid, 'wavemaker_tpmin',wavemaker_tpmin))
-        NF90(nf90_put_att(ncid, varid, 'horton_kr_kd',horton_kr_kd))         
+        NF90(nf90_put_att(ncid, varid, 'horton_kr_kd',horton_kr_kd))
+        NF90(nf90_put_att(ncid, varid, 'nuviscdim',nuviscdim))
+        NF90(nf90_put_att(ncid, varid, 'nuviscfac',nuviscfac))
+        NF90(nf90_put_att(ncid, varid, 'btrelax',btrelax))
+        NF90(nf90_put_att(ncid, varid, 'structure_relax',structure_relax))
+        NF90(nf90_put_att(ncid, varid, 'wave_enhanced_roughness',logical2int(wave_enhanced_roughness)))
+        NF90(nf90_put_att(ncid, varid, 'bathtub',logical2int(bathtub)))
+        NF90(nf90_put_att(ncid, varid, 'bathtub_fac_hs',bathtub_fac_hs))
+        NF90(nf90_put_att(ncid, varid, 'bathtub_dt',bathtub_dt))
+        NF90(nf90_put_att(ncid, varid, 'factor_wind',factor_wind))
+        NF90(nf90_put_att(ncid, varid, 'factor_pres',factor_pres))
+        NF90(nf90_put_att(ncid, varid, 'factor_prcp',factor_prcp))
+        NF90(nf90_put_att(ncid, varid, 'factor_spw_size',factor_spw_size))
+        NF90(nf90_put_att(ncid, varid, 'nonh',logical2int(nonhydrostatic)))
+        NF90(nf90_put_att(ncid, varid, 'nh_fnudge',nh_fnudge))
+        NF90(nf90_put_att(ncid, varid, 'nh_tstop',nh_tstop))
+        NF90(nf90_put_att(ncid, varid, 'nh_tol',nh_tol))
+        NF90(nf90_put_att(ncid, varid, 'nh_itermax',nh_itermax))
         !
         ! Domain
         !
@@ -1638,7 +1654,11 @@ contains
         NF90(nf90_put_att(ncid, varid, 'thdfile',thdfile))        
         NF90(nf90_put_att(ncid, varid, 'weirfile',weirfile))        
         NF90(nf90_put_att(ncid, varid, 'manningfile',manningfile))    
-        NF90(nf90_put_att(ncid, varid, 'drnfile',drnfile))    
+        NF90(nf90_put_att(ncid, varid, 'drnfile',drnfile))
+        NF90(nf90_put_att(ncid, varid, 'rugfile',rugfile))
+        NF90(nf90_put_att(ncid, varid, 'cstfile',cstfile))
+        NF90(nf90_put_att(ncid, varid, 'volfile',volfile))
+        NF90(nf90_put_att(ncid, varid, 'bcafile',bcafile))
         !
         ! Forcing
         !
@@ -1665,9 +1685,17 @@ contains
         NF90(nf90_put_att(ncid, varid, 'sefffile',sefffile)) 
         NF90(nf90_put_att(ncid, varid, 'ksfile',ksfile)) 
         NF90(nf90_put_att(ncid, varid, 'psifile',psifile)) 
-        NF90(nf90_put_att(ncid, varid, 'sigmafile',sigmafile)) 
-        NF90(nf90_put_att(ncid, varid, 'z0lfile',z0lfile)) 
-        NF90(nf90_put_att(ncid, varid, 'wavemaker_wvmfile',wavemaker_wvmfile)) 
+        NF90(nf90_put_att(ncid, varid, 'sigmafile',sigmafile))
+        NF90(nf90_put_att(ncid, varid, 'f0file',f0file))
+        NF90(nf90_put_att(ncid, varid, 'fcfile',fcfile))
+        NF90(nf90_put_att(ncid, varid, 'kdfile',kdfile))
+        NF90(nf90_put_att(ncid, varid, 'z0lfile',z0lfile))
+        NF90(nf90_put_att(ncid, varid, 'wavemaker_wvmfile',wavemaker_wvmfile))
+        !
+        ! Infiltration configuration
+        !
+        NF90(nf90_put_att(ncid, varid, 'infiltration_file',infiltrationfile))
+        NF90(nf90_put_att(ncid, varid, 'infiltration_type',inftype))
         !
         ! Netcdf input
         NF90(nf90_put_att(ncid, varid, 'netbndbzsbzifile',netbndbzsbzifile))
@@ -1699,7 +1727,16 @@ contains
         NF90(nf90_put_att(ncid, varid, 'storemeteo',storemeteo)) 
         NF90(nf90_put_att(ncid, varid, 'storemaxwind',logical2int(store_wind_max))) 
         NF90(nf90_put_att(ncid, varid, 'storefw',logical2int(store_wave_forces)))         
-        NF90(nf90_put_att(ncid, varid, 'storewavdir', logical2int(store_wave_direction))) 
+        NF90(nf90_put_att(ncid, varid, 'storewavdir', logical2int(store_wave_direction)))
+        NF90(nf90_put_att(ncid, varid, 'storetzsmax',storetzsmax))
+        NF90(nf90_put_att(ncid, varid, 'storestoragevolume',storestoragevolume))
+        NF90(nf90_put_att(ncid, varid, 'storehmean',logical2int(store_hmean)))
+        NF90(nf90_put_att(ncid, varid, 'timestep_analysis',logical2int(timestep_analysis)))
+        NF90(nf90_put_att(ncid, varid, 'store_dynamic_bed_level',logical2int(store_dynamic_bed_level)))
+        NF90(nf90_put_att(ncid, varid, 'regular_output_on_mesh',logical2int(use_quadtree_output)))
+        NF90(nf90_put_att(ncid, varid, 'rugdepth',runup_gauge_depth))
+        NF90(nf90_put_att(ncid, varid, 'percentage_done',percdoneval))
+        NF90(nf90_put_att(ncid, varid, 'nc_deflate_level',nc_deflate_level))
         !
         NF90(nf90_put_att(ncid, varid, 'cdnrb', cd_nr))   
         NF90(nf90_put_att(ncid, varid, 'cdwnd', cd_wnd))        
@@ -1731,10 +1768,15 @@ contains
         NF90(nf90_put_att(ncid, varid, 'snapwave_baldock_opt',baldock_opt)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_baldock_ratio',baldock_ratio)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_waveforces_factor',waveforces_factor))
+        NF90(nf90_put_att(ncid, varid, 'snapwave_sector',sector))
+        NF90(nf90_put_att(ncid, varid, 'snapwave_Tpini',Tpini))
+        NF90(nf90_put_att(ncid, varid, 'snapwave_fw_ratio',fwratio))
+        NF90(nf90_put_att(ncid, varid, 'snapwave_fwig_ratio',fwigratio))
         !
         ! SnapWave IG
         !
-        NF90(nf90_put_att(ncid, varid, 'snapwave_igwaves',igwaves_opt))         
+        NF90(nf90_put_att(ncid, varid, 'snapwave_jonswapgamma',jonswapgam))
+        NF90(nf90_put_att(ncid, varid, 'snapwave_igwaves',igwaves_opt))
         NF90(nf90_put_att(ncid, varid, 'snapwave_alpha_ig',alpha_ig)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_gammaig',gamma_ig)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_shinc2ig',shinc2ig)) 
@@ -1748,9 +1790,10 @@ contains
         !
         ! SnapWave input files
         !
-        NF90(nf90_put_att(ncid, varid, 'snapwave_jonswapfile',snapwave_jonswapfile)) 
-        NF90(nf90_put_att(ncid, varid, 'snapwave_encfile',snapwave_encfile)) 
-        NF90(nf90_put_att(ncid, varid, 'snapwave_upwfile',upwfile)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_ncfile',gridfile))
+        NF90(nf90_put_att(ncid, varid, 'snapwave_jonswapfile',snapwave_jonswapfile))
+        NF90(nf90_put_att(ncid, varid, 'snapwave_encfile',snapwave_encfile))
+        NF90(nf90_put_att(ncid, varid, 'snapwave_upwfile',upwfile))
         NF90(nf90_put_att(ncid, varid, 'snapwave_bndfile',snapwave_bndfile))            
         NF90(nf90_put_att(ncid, varid, 'snapwave_bhsfile',snapwave_bhsfile)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_btpfile',snapwave_btpfile)) 
