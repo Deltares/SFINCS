@@ -27,14 +27,15 @@ module sfincs_ncoutput
       integer :: pnonh_varid
       integer :: subgridslope_varid
       !
-      integer :: mesh2d_varid
-      integer :: mesh2d_node_x_varid, mesh2d_node_y_varid
-      integer :: mesh2d_face_nodes_varid
-      integer :: nmesh2d_node_dimid
-      integer :: nmesh2d_face_dimid
-      integer :: max_nmesh2d_face_nodes_dimid
-      !
-   end type
+         integer :: mesh2d_varid
+         integer :: mesh2d_node_x_varid, mesh2d_node_y_varid
+         integer :: mesh2d_face_x_varid, mesh2d_face_y_varid
+         integer :: mesh2d_face_nodes_varid
+         integer :: nmesh2d_node_dimid
+         integer :: nmesh2d_face_dimid
+         integer :: max_nmesh2d_face_nodes_dimid
+         !
+      end type
    !
    type his_type
       !
@@ -101,7 +102,7 @@ contains
    NF90(nf90_def_dim(map_file%ncid, 'runtime', 1, map_file%runtime_dimid)) ! total_runtime, average_dt       
    !
    ! Some metadata attributes 
-   NF90(nf90_put_att(map_file%ncid,nf90_global, "Conventions", "Conventions = 'CF-1.6, SGRID-0.3")) 
+   NF90(nf90_put_att(map_file%ncid,nf90_global, "Conventions", "CF-1.8 UGRID-1.0 Deltares-0.10"))
    NF90(nf90_put_att(map_file%ncid,nf90_global, "Build-Revision-Date-Netcdf-library", trim(nf90_inq_libvers()))) ! version of netcdf library
    NF90(nf90_put_att(map_file%ncid,nf90_global, "Producer", "SFINCS model: Super-Fast INundation of CoastS"))
    NF90(nf90_put_att(map_file%ncid,nf90_global, "Build-Revision", trim(build_revision))) 
@@ -173,8 +174,13 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%corner_y_varid, 'grid', 'sfincsgrid'))   
    !
    NF90(nf90_def_var(map_file%ncid, 'crs', NF90_INT, map_file%crs_varid)) ! For EPSG code   
-   NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'EPSG', '-'))      
-   NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'epsg_code', 'EPSG:' // trim(epsg_code) ))   !--> add epsg_code like FEWS wants   
+   NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'epsg', epsg))
+   NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'epsg_code', 'EPSG:' // trim(epsg_code) ))   !--> add epsg_code like FEWS wants
+   ! Add WKT for QGIS compatibility
+   if (trim(wkt_string) /= 'nil' .and. len_trim(wkt_string) > 0) then
+      NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'crs_wkt', trim(wkt_string)))
+      NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'spatial_ref', trim(wkt_string)))
+   endif
    !
    NF90(nf90_def_var(map_file%ncid, 'sfincsgrid', NF90_INT, map_file%grid_varid)) ! For neat grid clarification   
    NF90(nf90_put_att(map_file%ncid, map_file%grid_varid, 'cf_role', 'grid_topology'))
@@ -970,6 +976,7 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'long_name', 'Topology data of 2D network'))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'topology_dimension', 2))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'node_coordinates', 'mesh2d_node_x mesh2d_node_y'))
+   NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'face_coordinates', 'mesh2d_face_x mesh2d_face_y'))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'node_dimension', 'nmesh2d_node'))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'max_face_nodes_dimension', 'max_nmesh2d_face_nodes'))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'face_node_connectivity', 'mesh2d_face_nodes'))
@@ -979,19 +986,21 @@ contains
       !
       NF90(nf90_def_var(map_file%ncid, 'mesh2d_node_x', NF90_FLOAT, (/map_file%nmesh2d_node_dimid/), map_file%mesh2d_node_x_varid)) ! location of zb, zs etc. in cell centre
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_node_x_varid, 1, 1, nc_deflate_level))
-      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'units', 'degrees'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'units', 'degrees_east'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'standard_name', 'longitude'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'long_name', 'longitude'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'mesh', 'mesh2d'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'location', 'node'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'grid_mapping', 'crs'))
       !
       NF90(nf90_def_var(map_file%ncid, 'mesh2d_node_y', NF90_FLOAT, (/map_file%nmesh2d_node_dimid/), map_file%mesh2d_node_y_varid)) ! location of zb, zs etc. in cell centre
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_node_y_varid, 1, 1, nc_deflate_level))
-      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'units', 'degrees'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'units', 'degrees_north'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'standard_name', 'latitude'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'long_name', 'latitude'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'mesh', 'mesh2d'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'location', 'node'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'grid_mapping', 'crs'))
       !
    else
       !
@@ -1002,6 +1011,7 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'long_name', 'x-coordinate of mesh nodes'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'mesh', 'mesh2d'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'location', 'node'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_x_varid, 'grid_mapping', 'crs'))
       !
       NF90(nf90_def_var(map_file%ncid, 'mesh2d_node_y', NF90_DOUBLE, (/map_file%nmesh2d_node_dimid/), map_file%mesh2d_node_y_varid)) ! location of zb, zs etc. in cell centre
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_node_y_varid, 1, 1, nc_deflate_level))
@@ -1010,6 +1020,7 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'long_name', 'y-coordinate of mesh nodes'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'mesh', 'mesh2d'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'location', 'node'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_node_y_varid, 'grid_mapping', 'crs'))
       !
    endif
    !
@@ -1022,8 +1033,58 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_nodes_varid, 'start_index', 1))
    NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_nodes_varid, '_FillValue', -999))
    !
+   ! Face centroid coordinates (x and y at face centers)
+   !
+   if (crsgeo) then
+      !
+      NF90(nf90_def_var(map_file%ncid, 'mesh2d_face_x', NF90_FLOAT, (/map_file%nmesh2d_face_dimid/), map_file%mesh2d_face_x_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_face_x_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'units', 'degrees_east'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'standard_name', 'longitude'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'long_name', 'Characteristic longitude of mesh face'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'mesh', 'mesh2d'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'location', 'face'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'grid_mapping', 'crs'))
+      !
+      NF90(nf90_def_var(map_file%ncid, 'mesh2d_face_y', NF90_FLOAT, (/map_file%nmesh2d_face_dimid/), map_file%mesh2d_face_y_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_face_y_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'units', 'degrees_north'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'standard_name', 'latitude'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'long_name', 'Characteristic latitude of mesh face'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'mesh', 'mesh2d'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'location', 'face'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'grid_mapping', 'crs'))
+      !
+   else
+      !
+      NF90(nf90_def_var(map_file%ncid, 'mesh2d_face_x', NF90_DOUBLE, (/map_file%nmesh2d_face_dimid/), map_file%mesh2d_face_x_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_face_x_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'units', 'm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'standard_name', 'projection_x_coordinate'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'long_name', 'Characteristic x-coordinate of mesh face'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'mesh', 'mesh2d'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'location', 'face'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'grid_mapping', 'crs'))
+      !
+      NF90(nf90_def_var(map_file%ncid, 'mesh2d_face_y', NF90_DOUBLE, (/map_file%nmesh2d_face_dimid/), map_file%mesh2d_face_y_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_face_y_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'units', 'm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'standard_name', 'projection_y_coordinate'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'long_name', 'Characteristic y-coordinate of mesh face'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'mesh', 'mesh2d'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'location', 'face'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'grid_mapping', 'crs'))
+      !
+   endif
+   !
    NF90(nf90_def_var(map_file%ncid, 'crs', NF90_INT, map_file%crs_varid)) ! For EPSG code
-   NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'EPSG', '-'))
+   NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'epsg', epsg))
+   NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'epsg_code', 'EPSG:' // trim(epsg_code) ))   !--> add epsg_code like FEWS wants
+   ! Add WKT for QGIS compatibility
+   if (trim(wkt_string) /= 'nil' .and. len_trim(wkt_string) > 0) then
+      NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'crs_wkt', trim(wkt_string)))
+      NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'spatial_ref', trim(wkt_string)))
+   endif
    !
    NF90(nf90_def_var(map_file%ncid, 'zb', NF90_FLOAT, (/map_file%nmesh2d_face_dimid/), map_file%zb_varid)) ! bed level in cell centre
    NF90(nf90_def_var_deflate(map_file%ncid, map_file%zb_varid, 1, 1, nc_deflate_level))
@@ -1082,7 +1143,11 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, '_FillValue', FILL_VALUE))
    NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'units', 'm'))
    NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'standard_name', 'sea_surface_height_above_reference_level')) 
-   NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'long_name', 'water_level'))  
+   NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'long_name', 'water_level'))
+   NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'mesh', 'mesh2d'))
+   NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'location', 'face'))
+   NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'coordinates', 'mesh2d_face_x mesh2d_face_y'))
+   NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'grid_mapping', 'crs'))
    !
    if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then   
       NF90(nf90_def_var(map_file%ncid, 'h', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%h_varid)) ! time-varying water level map
@@ -1473,6 +1538,20 @@ contains
    ! 
    NF90(nf90_put_var(map_file%ncid, map_file%mesh2d_face_nodes_varid, face_nodes))
    !
+   ! Compute and write face centroids (average of node coordinates)
+   !
+   vtmp = FILL_VALUE
+   do nmq = 1, n_faces
+      vtmp(nmq) = sum(nodes_x(face_nodes(:,nmq))) / 4.0
+   enddo
+   NF90(nf90_put_var(map_file%ncid, map_file%mesh2d_face_x_varid, vtmp)) ! write face centroid x
+   !
+   vtmp = FILL_VALUE
+   do nmq = 1, n_faces
+      vtmp(nmq) = sum(nodes_y(face_nodes(:,nmq))) / 4.0
+   enddo
+   NF90(nf90_put_var(map_file%ncid, map_file%mesh2d_face_y_varid, vtmp)) ! write face centroid y
+   !
 !   ! now for cell edges
 !   NF90(nf90_put_var(map_file%ncid, map_file%face_x_varid, xz(2:nmax+1-1, 2:mmax+1-1), (/1, 1/))) ! write xz of edges
 !   !
@@ -1725,8 +1804,13 @@ contains
    !NF90(nf90_put_att(his_file%ncid, his_file%point_y_varid, 'grid', 'sfincsgrid'))   !keep this?   
    !
    NF90(nf90_def_var(his_file%ncid, 'crs', NF90_INT, his_file%crs_varid)) ! For EPSG code
-   NF90(nf90_put_att(his_file%ncid, his_file%crs_varid, 'EPSG', '-'))     
-   NF90(nf90_put_att(his_file%ncid, his_file%crs_varid, 'epsg_code', 'EPSG:' // trim(epsg_code) ))   !--> add epsg_code like FEWS wants   
+   NF90(nf90_put_att(his_file%ncid, his_file%crs_varid, 'epsg', epsg))
+   NF90(nf90_put_att(his_file%ncid, his_file%crs_varid, 'epsg_code', 'EPSG:' // trim(epsg_code) ))   !--> add epsg_code like FEWS wants
+   ! Add WKT for QGIS compatibility
+   if (trim(wkt_string) /= 'nil' .and. len_trim(wkt_string) > 0) then
+      NF90(nf90_put_att(his_file%ncid, his_file%crs_varid, 'crs_wkt', trim(wkt_string)))
+      NF90(nf90_put_att(his_file%ncid, his_file%crs_varid, 'spatial_ref', trim(wkt_string)))
+   endif
    !
    NF90(nf90_def_var(his_file%ncid, 'point_zb', NF90_FLOAT, (/his_file%points_dimid/), his_file%zb_varid)) ! bed level in cell centre, for points
    NF90(nf90_put_att(his_file%ncid, his_file%zb_varid, '_FillValue', FILL_VALUE))   
@@ -3974,7 +4058,10 @@ contains
         NF90(nf90_put_att(ncid, varid, 'baro',baro))  
         NF90(nf90_put_att(ncid, varid, 'utmzone',utmzone))  
         NF90(nf90_put_att(ncid, varid, 'epsg',epsg))  
-        NF90(nf90_put_att(ncid, varid, 'epsg_code',epsg_code))  
+        NF90(nf90_put_att(ncid, varid, 'epsg_code',epsg_code))
+        if (trim(wkt_string) /= 'nil' .and. len_trim(wkt_string) > 0) then
+           NF90(nf90_put_att(ncid, varid, 'wkt_string',trim(wkt_string)))
+        endif
         NF90(nf90_put_att(ncid, varid, 'advlim',advlim))  
         NF90(nf90_put_att(ncid, varid, 'uvlim',uvlim))  
         NF90(nf90_put_att(ncid, varid, 'uvmax',uvmax))  

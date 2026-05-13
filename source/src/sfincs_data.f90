@@ -180,6 +180,7 @@ module sfincs_data
       character*3   :: inftype
       integer       :: epsg
       character*15  :: epsg_code
+      character*2048 :: wkt_string
       integer       :: nc_deflate_level
       integer       :: percdoneval
       !
