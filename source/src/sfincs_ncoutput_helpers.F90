@@ -588,6 +588,79 @@ contains
 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
+   ! His-update point writer
+   !
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+   subroutine write_point_var(varid, source, nt, scale)
+   ! Gathers source(nmindobs(iobs)) for each obs point and writes to his_file.
+   ! Optional scale is applied only to non-fill values.
+      use sfincs_data, only: nobs, nmindobs
+      integer, intent(in)           :: varid
+      real*4,  intent(in)           :: source(:)
+      integer, intent(in)           :: nt
+      real*4,  intent(in), optional :: scale
+      real*4  :: obs(nobs)
+      integer :: iobs, nm
+      obs = FILL_VALUE
+      do iobs = 1, nobs
+         nm = nmindobs(iobs)
+         if (nm > 0) obs(iobs) = source(nm)
+      enddo
+      if (present(scale)) then
+         where (obs /= FILL_VALUE) obs = obs * scale
+      endif
+      NF90(nf90_put_var(his_file%ncid, varid, obs, (/1, nt/)))
+   end subroutine write_point_var
+
+   subroutine compute_uv_at_obs_points(uobs, vobs, uvmag, uvdir)
+   ! Face-averaged, rotated (u,v) and derived magnitude/direction at obs points.
+      use sfincs_data, only: nobs, nmindobs, z_index_uv_md, z_index_uv_mu, &
+                             z_index_uv_nd, z_index_uv_nu, uv, cosrot, sinrot, pi
+      real*4, intent(out) :: uobs(:), vobs(:), uvmag(:), uvdir(:)
+      integer :: iobs, nm, nmd1, nmu1, ndm1, num1
+      real*4  :: uz, vz
+      uobs  = FILL_VALUE
+      vobs  = FILL_VALUE
+      uvmag = FILL_VALUE
+      uvdir = FILL_VALUE
+      do iobs = 1, nobs
+         nm = nmindobs(iobs)
+         if (nm > 0) then
+            nmd1 = z_index_uv_md(nm)
+            nmu1 = z_index_uv_mu(nm)
+            ndm1 = z_index_uv_nd(nm)
+            num1 = z_index_uv_nu(nm)
+            uz = 0.5 * (uv(nmd1) + uv(nmu1))
+            vz = 0.5 * (uv(ndm1) + uv(num1))
+            uobs(iobs)  = cosrot * uz - sinrot * vz
+            vobs(iobs)  = sinrot * uz + cosrot * vz
+            uvmag(iobs) = sqrt(uobs(iobs)**2 + vobs(iobs)**2)
+            uvdir(iobs) = atan2(vobs(iobs), uobs(iobs)) * 180 / pi
+         endif
+      enddo
+   end subroutine compute_uv_at_obs_points
+
+   subroutine compute_wind_at_obs_points(wmag, wdir)
+   ! Wind speed and meteorological direction (270 - math angle) at obs points.
+      use sfincs_data, only: nobs, nmindobs, windu, windv, pi
+      real*4, intent(out) :: wmag(:), wdir(:)
+      integer :: iobs, nm
+      wmag = FILL_VALUE
+      wdir = FILL_VALUE
+      do iobs = 1, nobs
+         nm = nmindobs(iobs)
+         if (nm > 0) then
+            wmag(iobs) = sqrt(windu(nm)**2 + windv(nm)**2)
+            wdir(iobs) = 270.0 - atan2(windv(nm), windu(nm)) * 180 / pi
+            if (wdir(iobs) < 0.0)   wdir(iobs) = wdir(iobs) + 360.0
+            if (wdir(iobs) > 360.0) wdir(iobs) = wdir(iobs) - 360.0
+         endif
+      enddo
+   end subroutine compute_wind_at_obs_points
+
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !
    ! Update-map precompute helpers
    !
    ! Produce SFINCS-indexed (np-shaped) source arrays so that grid-type-aware

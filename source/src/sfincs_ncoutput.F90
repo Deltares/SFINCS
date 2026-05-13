@@ -57,10 +57,9 @@
 !   2. In ncoutput_his_init:
 !         call def_time_point_float('point_waterlevel', his_file%waterlevel_varid, &
 !              'units', 'long_name', standard_name='...')
-!   3. In ncoutput_update_his: gather values at the observation points and
-!      write via nf90_put_var. (NOTE: ncoutput_update_his has not yet been
-!      refactored to use a generic write_point_var helper — see TODO at that
-!      subroutine.)
+!   3. In ncoutput_update_his: call write_point_var(his_file%waterlevel_varid,
+!      source_array, nthisout) — it gathers nmindobs and writes for you.
+!      Use optional scale= for unit conversion (e.g. scale=3600000.0 for mm/hr).
 !
 ! Conditions (subgrid, snapwave, infiltration, etc.) belong in the caller's
 ! `if (...)` guard around the def + write pair, not inside helpers.
@@ -1204,15 +1203,6 @@ contains
    !
    ! Write time, zs, u, v, prcp etc. at observation points.
    !
-   ! TODO (next refactor pass): this routine still uses the legacy pattern
-   ! of per-variable nobs-shaped temp arrays + a single iobs gather loop +
-   ! repeated `nf90_put_var(..., (/1, nthisout/))` calls. The map side has
-   ! been collapsed via write_cell_var; the his side would benefit from an
-   ! analogous `write_point_var(varid, source_full, nthisout, [scale])` that
-   ! gathers source(nm) at nmindobs(iobs) internally. Adding a new his var
-   ! today therefore costs ~5 edits (type field, def, temp array, gather
-   ! loop entry, put_var) instead of the 2 edits the map side now needs.
-   !
    use sfincs_data
    use sfincs_crosssections
    use sfincs_runup_gauges
@@ -1221,241 +1211,83 @@ contains
    implicit none
    !
    integer :: iobs, nm, idrn
-   !
-   integer :: nthisout      
-   integer :: nmd1, nmu1, ndm1, num1
-   !
-   real*4                  :: uz, vz
-   real*8                  :: t
-!   real*4, dimension(nobs) :: zobs, hobs
-   real*4, dimension(nobs) :: uobs
-   real*4, dimension(nobs) :: vobs   
-   real*4, dimension(nobs) :: uvmag   
-   real*4, dimension(nobs) :: uvdir   
-   real*4, dimension(nobs) :: tprcp
-   real*4, dimension(nobs) :: tcumprcp
-   real*4, dimension(nobs) :: tqinf
-   real*4, dimension(nobs) :: tS_effective
-   real*4, dimension(nobs) :: tpatm
-   real*4, dimension(nobs) :: twndmag
-   real*4, dimension(nobs) :: twnddir
-   real*4, dimension(nobs) :: hm0obs
-   real*4, dimension(nobs) :: hm0igobs
-   real*4, dimension(nobs) :: zsmobs
-   real*4, dimension(nobs) :: tpobs
-   real*4, dimension(nobs) :: tpigobs   
-   real*4, dimension(nobs) :: wavdirobs
+   integer :: nthisout
+   real*8  :: t
+   real*4, dimension(nobs) :: uobs, vobs, uvmag, uvdir
+   real*4, dimension(nobs) :: twndmag, twnddir
    real*4, dimension(ndrn) :: q_drain
-   real*4, dimension(nobs) :: dwobs
-   real*4, dimension(nobs) :: dfobs
-   real*4, dimension(nobs) :: dwigobs
-   real*4, dimension(nobs) :: dfigobs
-   real*4, dimension(nobs) :: cgobs
-   real*4, dimension(nobs) :: betaobs
-   real*4, dimension(nobs) :: srcigobs
-   real*4, dimension(nobs) :: alphaigobs
    real*4, dimension(:), allocatable :: qq, zz
    !
-   zobs         = FILL_VALUE
-   zsmobs       = FILL_VALUE
-   hobs         = FILL_VALUE
-   hm0obs       = FILL_VALUE
-   hm0igobs     = FILL_VALUE
-   tpobs        = FILL_VALUE
-   tpigobs      = FILL_VALUE
-   wavdirobs    = FILL_VALUE
-   tprcp        = FILL_VALUE
-   tcumprcp     = FILL_VALUE
-   tqinf        = FILL_VALUE
-   tS_effective = FILL_VALUE
-   tpatm        = FILL_VALUE
-   twndmag      = FILL_VALUE
-   twnddir      = FILL_VALUE
-   q_drain      = FILL_VALUE
-   dwobs        = FILL_VALUE
-   dfobs        = FILL_VALUE
-   dwigobs      = FILL_VALUE
-   dfigobs      = FILL_VALUE
-   cgobs        = FILL_VALUE
-   betaobs      = FILL_VALUE
-   srcigobs     = FILL_VALUE
-   alphaigobs   = FILL_VALUE
-   uobs         = FILL_VALUE
-   vobs         = FILL_VALUE
-   uvmag        = FILL_VALUE
-   uvdir        = FILL_VALUE
+   zobs    = FILL_VALUE
+   hobs    = FILL_VALUE
+   q_drain = FILL_VALUE
    !
-   do iobs = 1, nobs ! determine zs and prcp of obervation points at required timestep
-      !
+   do iobs = 1, nobs
       nm = nmindobs(iobs)
-      !
       if (nm>0) then
-         !
-         zobs(iobs)  = zs(nm)
-         !
+         zobs(iobs) = zs(nm)
          if (subgrid) then
-            hobs(iobs)  = zs(nm) - subgrid_z_zmin(nm)
+            hobs(iobs) = zs(nm) - subgrid_z_zmin(nm)
          else
-            hobs(iobs)  = zs(nm) - zb(nm)
+            hobs(iobs) = zs(nm) - zb(nm)
          endif
-         !
-         if (store_velocity) then
-            !
-            ! Regular point with four surrounding cells of the same size
-            !
-            nmd1 = z_index_uv_md(nm)
-            nmu1 = z_index_uv_mu(nm)
-            ndm1 = z_index_uv_nd(nm)
-            num1 = z_index_uv_nu(nm)
-            uz  = 0.5 * (uv(nmd1) + uv(nmu1))
-            vz  = 0.5 * (uv(ndm1) + uv(num1))
-            !
-            uobs(iobs)  = cosrot * uz - sinrot * vz                         
-            vobs(iobs)  = sinrot * uz + cosrot * vz
-            uvmag(iobs) = sqrt(uobs(iobs)**2 + vobs(iobs)**2)
-            uvdir(iobs) = atan2(vobs(iobs), uobs(iobs)) * 180 / pi
-            !
-         endif
-         !
-         if (infiltration) then
-            !
-            tqinf(iobs) = qinfmap(nm) * 3600000 ! show as mm/hr
-            ! 
-            ! Output for CN and GA method
-            !
-            if (inftype == 'cnb') then
-               !
-               tS_effective(iobs) = scs_Se(nm)
-               !
-            elseif (inftype == 'gai') then
-               !
-               tS_effective(iobs) = GA_sigma(nm)
-               !
-            endif
-            !
-         endif  
-         !
-         if (store_meteo) then
-            !
-            if (wind) then
-               !
-               twndmag(iobs) = sqrt(windu(nm)**2 + windv(nm)**2)
-               twnddir(iobs) = 270.0 - atan2(windv(nm), windu(nm)) * 180 / pi
-               if (twnddir(iobs) < 0.0) twnddir(iobs) = twnddir(iobs) + 360.0
-               if (twnddir(iobs) > 360.0) twnddir(iobs) = twnddir(iobs) - 360.0
-               !
-            endif   
-            !
-            if (patmos) then
-               !
-               tpatm(iobs) = patm(nm)
-               !
-            endif   
-            !
-            if (precip) then
-               !
-               tprcp(iobs) = prcp(nm) * 3600000 ! show as mm/hr
-               !
-               if (store_cumulative_precipitation) then
-                  !
-                  tcumprcp(iobs) = cumprcp(nm) ! show as m
-                  !
-               endif   
-               !
-            endif
-            !         
-         endif
-         !
-         if (snapwave) then
-            !
-            hm0obs(iobs)   = hm0(nm)
-            hm0igobs(iobs) = hm0_ig(nm)
-            tpobs(iobs)    = sw_tp(nm)
-            tpigobs(iobs)  = sw_tp_ig(nm)            
-            !
-            if (store_wave_direction) then
-               wavdirobs(iobs) = mean_wave_direction(nm)
-            endif
-            !            
-            if (wavemaker) then
-               !
-               zsmobs(iobs)   = zsm(nm)
-               !
-            endif   
-            !
-            if (store_wave_forces) then
-               !
-               dwobs(iobs)    = dw(nm)
-               dfobs(iobs)    = df(nm)
-               dwigobs(iobs)  = dwig(nm)
-               dfigobs(iobs)  = dfig(nm)
-               cgobs(iobs)    = cg(nm) 
-               betaobs(iobs)  = betamean(nm)               
-               srcigobs(iobs) = srcig(nm)               
-               alphaigobs(iobs) = alphaig(nm)                              
-               ! 
-            endif
-            !
-         endif   
-         !
       endif
-   enddo   
-   !   
-   NF90(nf90_put_var(his_file%ncid, his_file%time_varid, t, (/nthisout/))) ! write time
-   !   
-   NF90(nf90_put_var(his_file%ncid, his_file%zs_varid, zobs, (/1, nthisout/))) ! write point_zs
+   enddo
+   if (store_velocity)          call compute_uv_at_obs_points(uobs, vobs, uvmag, uvdir)
+   if (store_meteo .and. wind)  call compute_wind_at_obs_points(twndmag, twnddir)
    !
-   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then   
+   NF90(nf90_put_var(his_file%ncid, his_file%time_varid, t, (/nthisout/)))
+   !
+   NF90(nf90_put_var(his_file%ncid, his_file%zs_varid, zobs, (/1, nthisout/)))
+   !
+   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
       !
-      NF90(nf90_put_var(his_file%ncid, his_file%h_varid, hobs, (/1, nthisout/))) ! write point_h   
+      NF90(nf90_put_var(his_file%ncid, his_file%h_varid, hobs, (/1, nthisout/)))
       !
    endif
    !
    if (infiltration) then
       !
-      NF90(nf90_put_var(his_file%ncid, his_file%qinf_varid, tqinf, (/1, nthisout/))) ! write qinf
+      call write_point_var(his_file%qinf_varid, qinfmap, nthisout, scale=3600000.0)
       !
       if (inftype == 'cnb') then
-         NF90(nf90_put_var(his_file%ncid, his_file%S_varid, tS_effective, (/1, nthisout/))) ! write S
+         call write_point_var(his_file%S_varid, scs_Se, nthisout)
       elseif (inftype == 'gai') then
-         NF90(nf90_put_var(his_file%ncid, his_file%S_varid, tS_effective, (/1, nthisout/))) ! write S
+         call write_point_var(his_file%S_varid, GA_sigma, nthisout)
       endif
       !
    endif
    !
-   if (snapwave) then  
+   if (snapwave) then
       !
-      NF90(nf90_put_var(his_file%ncid, his_file%hm0_varid, hm0obs, (/1, nthisout/)))
-      NF90(nf90_put_var(his_file%ncid, his_file%hm0ig_varid, hm0igobs, (/1, nthisout/)))
-      NF90(nf90_put_var(his_file%ncid, his_file%tp_varid, tpobs, (/1, nthisout/)))
-      NF90(nf90_put_var(his_file%ncid, his_file%tpig_varid, tpigobs, (/1, nthisout/)))      
+      call write_point_var(his_file%hm0_varid,   hm0,                nthisout)
+      call write_point_var(his_file%hm0ig_varid,  hm0_ig,             nthisout)
+      call write_point_var(his_file%tp_varid,     sw_tp,              nthisout)
+      call write_point_var(his_file%tpig_varid,   sw_tp_ig,           nthisout)
       !
       if (store_wave_direction) then
-         NF90(nf90_put_var(his_file%ncid, his_file%wavdir_varid, wavdirobs, (/1, nthisout/)))
+         call write_point_var(his_file%wavdir_varid, mean_wave_direction, nthisout)
       endif
-      !            
+      !
       if (wavemaker) then
          !
-         NF90(nf90_put_var(his_file%ncid, his_file%zsm_varid, zsmobs, (/1, nthisout/)))
+         call write_point_var(his_file%zsm_varid, zsm, nthisout)
          !
       endif
       !
       if (store_wave_forces) then
          !
-         NF90(nf90_put_var(his_file%ncid, his_file%dw_varid, dwobs, (/1, nthisout/)))
-         NF90(nf90_put_var(his_file%ncid, his_file%df_varid, dfobs, (/1, nthisout/)))        
-         ! 
-         NF90(nf90_put_var(his_file%ncid, his_file%dwig_varid, dwigobs, (/1, nthisout/)))
-         NF90(nf90_put_var(his_file%ncid, his_file%dfig_varid, dfigobs, (/1, nthisout/)))        
+         call write_point_var(his_file%dw_varid,      dw,       nthisout)
+         call write_point_var(his_file%df_varid,      df,       nthisout)
+         call write_point_var(his_file%dwig_varid,    dwig,     nthisout)
+         call write_point_var(his_file%dfig_varid,    dfig,     nthisout)
+         call write_point_var(his_file%cg_varid,      cg,       nthisout)
+         call write_point_var(his_file%beta_varid,    betamean, nthisout)
+         call write_point_var(his_file%srcig_varid,   srcig,    nthisout)
+         call write_point_var(his_file%alphaig_varid, alphaig,  nthisout)
          !
-         NF90(nf90_put_var(his_file%ncid, his_file%cg_varid, cgobs, (/1, nthisout/)))
-         !
-         NF90(nf90_put_var(his_file%ncid, his_file%beta_varid, betaobs, (/1, nthisout/)))
-         NF90(nf90_put_var(his_file%ncid, his_file%srcig_varid, srcigobs, (/1, nthisout/)))                  
-         NF90(nf90_put_var(his_file%ncid, his_file%alphaig_varid, alphaigobs, (/1, nthisout/)))         
-         !            
       endif
-      !      
+      !
    endif
    !
    if (store_meteo) then
@@ -1464,27 +1296,27 @@ contains
          !
          NF90(nf90_put_var(his_file%ncid, his_file%wind_speed_varid, twndmag, (/1, nthisout/)))
          NF90(nf90_put_var(his_file%ncid, his_file%wind_dir_varid,   twnddir, (/1, nthisout/)))
-        !
-      endif      
+         !
+      endif
       !
       if (patmos) then
          !
-         NF90(nf90_put_var(his_file%ncid, his_file%patm_varid, tpatm, (/1, nthisout/))) ! write patmos
+         call write_point_var(his_file%patm_varid, patm, nthisout)
          !
-      endif   
+      endif
       !
       if (precip) then
          !
-         NF90(nf90_put_var(his_file%ncid, his_file%prcp_varid, tprcp, (/1, nthisout/))) ! write prcp
+         call write_point_var(his_file%prcp_varid, prcp, nthisout, scale=3600000.0)
          !
          if (store_cumulative_precipitation) then
             !
-            NF90(nf90_put_var(his_file%ncid, his_file%cumprcp_varid, tcumprcp, (/1, nthisout/))) ! write cumulative prcp
+            call write_point_var(his_file%cumprcp_varid, cumprcp, nthisout)
             !
-         endif   
+         endif
          !
       endif
-      !   
+      !
    endif
    !
    if (nrcrosssections>0) then
@@ -1505,29 +1337,29 @@ contains
    if (ndrn>0) then
       !
       !$acc update host(qtsrc)
-      ! Get fluxes through drainage structure             
+      ! Get fluxes through drainage structure
       !
       idrn = 0
       do iobs = nsrc + 1, nsrcdrn, 2 !TL: as in sfincs_output.f90
          idrn = idrn + 1
          q_drain(idrn) = qtsrc(iobs)
-      enddo      
+      enddo
       !
-      NF90(nf90_put_var(his_file%ncid, his_file%drain_varid, q_drain, (/1, nthisout/))) ! write discharge of sink point
-      !         
+      NF90(nf90_put_var(his_file%ncid, his_file%drain_varid, q_drain, (/1, nthisout/)))
+      !
    endif
    !
    if (store_velocity) then
       !
-      NF90(nf90_put_var(his_file%ncid, his_file%u_varid, uobs, (/1, nthisout/)))
-      NF90(nf90_put_var(his_file%ncid, his_file%v_varid, vobs, (/1, nthisout/)))   
-      NF90(nf90_put_var(his_file%ncid, his_file%uvmag_varid, uvmag, (/1, nthisout/)))   
-      NF90(nf90_put_var(his_file%ncid, his_file%uvdir_varid, uvdir, (/1, nthisout/)))   
+      NF90(nf90_put_var(his_file%ncid, his_file%u_varid,     uobs,  (/1, nthisout/)))
+      NF90(nf90_put_var(his_file%ncid, his_file%v_varid,     vobs,  (/1, nthisout/)))
+      NF90(nf90_put_var(his_file%ncid, his_file%uvmag_varid, uvmag, (/1, nthisout/)))
+      NF90(nf90_put_var(his_file%ncid, his_file%uvdir_varid, uvdir, (/1, nthisout/)))
       !
    endif
    !
-   NF90(nf90_sync(his_file%ncid)) !write away intermediate data ! TL: in first test it seems to be faster to let the file update than keep in memory
-   !   
+   NF90(nf90_sync(his_file%ncid)) !TL: in first test it seems to be faster to let the file update than keep in memory
+   !
    end subroutine
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   

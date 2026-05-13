@@ -95,7 +95,7 @@ module sfincs_lib
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
    build_revision = "$Rev: v2.3.2 mt. Faber+branch:netcdf refactor"
-   build_date     = "$Date: 2025-04-13"
+   build_date     = "$Date: 2025-05-13"
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)
