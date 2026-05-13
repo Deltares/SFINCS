@@ -270,7 +270,6 @@ contains
    !
    ! Global metadata
    ! CF version unified at 1.8 across both grid types and the his file.
-   ! TODO: Confirm with Deltares whether this convention extension should also apply to the SGRID regular-grid
    if (use_quadtree) then
       NF90(nf90_put_att(map_file%ncid, nf90_global, "Conventions", "CF-1.8 UGRID-1.0 Deltares-0.10"))
    else
