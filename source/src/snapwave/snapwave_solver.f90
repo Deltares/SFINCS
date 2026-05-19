@@ -1,4 +1,4 @@
-module snapwave_solver
+﻿module snapwave_solver
    
    use sfincs_log
     
@@ -81,7 +81,7 @@ contains
          !
          cg_ig   = Cg
          expon   = -(sigm_ig * sqrt(depth / g))**2.5
-         kwav_ig = sig**2 / g * (1.0 - exp(expon))**-0.4
+         kwav_ig = sigm_ig**2 / g * (1.0 - exp(expon))**-0.4
          !
       else
          !
@@ -103,8 +103,8 @@ contains
             !
             ! Why is this different from Hmx for regular waves where we use gamma * h?
             !
-            !Hmx_ig(k) = 0.88 / kwav_ig(k) * tanh(gamma_ig * kwav_ig(k) * depth(k) / 0.88) ! Note - uses gamma_ig
-            Hmx_ig(k)    = gamma_ig * depth(k)
+            Hmx_ig(k) = 0.88 / kwav_ig(k) * tanh(gamma_ig * kwav_ig(k) * depth(k) / 0.88) ! Note - uses gamma_ig
+            !Hmx_ig(k)    = gamma_ig * depth(k)
             !
          endif
          !
@@ -170,6 +170,7 @@ contains
                                          beta, srcig, alphaig, Dw_ig, Df_ig, qb, gam, &
                                          steep_fac1, steep_fac2, steep_fac3, steep_fac4, steep_fac5, &          
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
+                                         zb, nwav, ig_opt, alpha_ig, gamma_ig, gamma_fac_br, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
                                          zb, nwav, ig_opt, alpha_ig, gamma_ig, gamma_fac_br, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
       !
       call timer(t3)
@@ -461,12 +462,23 @@ contains
    !
    if (wind) then
       !
-      DoverA = 0.0      
+      DoverA = 0.0
       ndissip = 3.0
       WsorE = 0.0
       WsorA = 0.0
       Ak = waveps / sigmax
-      Tp = Tpini
+      !
+      ! Re-initialise Tp at inner / neumann-connected cells only;
+      ! boundary cells must keep their prescribed Tp (set by
+      ! update_boundaries) so the wind iteration starts from the
+      ! correct boundary forcing.
+      !
+      do k = 1, no_nodes
+         !
+         if (inner(k)) Tp(k) = Tpini
+         if (neumannconnected(k) > 0) Tp(neumannconnected(k)) = Tpini
+         !
+      enddo
       !
       do k = 1, no_nodes
          !
@@ -479,7 +491,7 @@ contains
          !
          call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:,k))
          !
-      enddo         
+      enddo
       !
    endif
    !   
