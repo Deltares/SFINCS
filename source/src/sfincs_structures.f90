@@ -14,6 +14,7 @@
    implicit none
    !
    ! First thin dams (kcs will be set to 0)
+   ! This now also processes buildings as thin dams
    !
    call read_thin_dams()
    !
@@ -384,14 +385,16 @@
    
    subroutine read_thin_dams()
    !
-   ! Reads thd file
+   ! Reads thd file and processes buildings as thin dams
    !
    use sfincs_data
+   use sfincs_buildings
    use quadtree
    !
    implicit none
    !
    integer ip, nm, nthd, nstruc, nrows, ncols, irow, stat, ithd, nr_points, total_nr_points, iuv, indx
+   integer ibld, i
    !
    real      :: dst, dstmin, xxx, yyy, dstx, dsty
    real      :: dummy
@@ -492,6 +495,46 @@
       !
    endif   
    !
+	 ! Process buildings as thin dams 
+     !
+  if (has_buildings .and. nbuildings > 0) then
+	 !
+	 write (*, '(a,i0,a)') 'Info    : processing ', nbuildings, ' buildings as thin dams'
+	 !
+	 do ibld = 1, nbuildings
+		!
+		nrows = buildings(ibld)%npoints
+		allocate (xthd(nrows))
+		allocate (ythd(nrows))
+		!
+		! Convert to single precision 
+		do i = 1, nrows
+		   xthd(i) = real(buildings(ibld)%x(i), 4)
+		   ythd(i) = real(buildings(ibld)%y(i), 4)
+		end do
+		!
+		! Use exact same logic as file-based thin dams
+		call find_uv_points_intersected_by_polyline(uv_indices, vertices, nr_points, xthd, ythd, nrows)
+		!
+		! Mark as thin dams 
+		do iuv = 1, nr_points
+		   !
+		   indx = uv_indices(iuv)
+		   kcuv(indx) = 0
+		   !
+		end do
+		!
+		!
+		deallocate (xthd)
+		deallocate (ythd)
+		!
+	 end do
+	 !
+	 write (*, '(a,i0,a)') 'Info    : processed ', nbuildings, ' buildings as thin dams'
+	 !
+  end if
+     !
+   
    end subroutine
 
    

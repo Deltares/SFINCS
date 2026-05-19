@@ -815,6 +815,58 @@ module sfincs_data
       character*256, dimension(:), allocatable :: runup_gauge_name
       integer, dimension(:),     allocatable   :: runup_gauge_nrp
       !
+      !!! Buildings
+      integer                                  :: ios_bld
+
+      type building_type
+         character(len=256) :: name                       
+         integer :: npoints                               
+         real*8, allocatable :: x(:)                      
+         real*8, allocatable :: y(:)                     
+
+         integer, allocatable :: cells_inside(:)         
+         integer :: ncells_inside                     
+
+         integer, allocatable :: cells_perimeter(:)       
+         integer :: ncells_perimeter             
+         
+         integer, allocatable :: cells_gutter(:)         
+         integer :: ncells_gutter                     
+
+         real*8 :: total_area                        
+         real*8 :: accumulated_rainfall                  
+         real*8 :: accumulated_runoff             
+         
+         ! Detention and gutter properties
+         real*8 :: detention_volume                     
+         real*8 :: current_detention                   
+         real*8 :: gutter_spacing                   
+         real*8 :: perimeter_length                  
+         
+      end type building_type
+
+      integer :: nbuildings = 0                        
+      type(building_type), allocatable :: buildings(:)   
+
+      ! Grid masks (allocated for all cells: np = mmax * nmax)
+      logical, allocatable :: is_building_cell(:)        
+      logical, allocatable :: is_perimeter_cell(:)       
+      logical, allocatable :: is_gutter_cell(:)       
+      integer, allocatable :: building_id(:)     
+
+      ! Statistics
+      real*8 :: total_rain_on_buildings = 0.0d0         
+      real*8 :: total_runoff_from_buildings = 0.0d0   
+      real*8 :: total_detention_stored = 0.0d0         
+
+      ! Control flags
+      logical :: has_buildings = .false.                
+      logical :: has_building_properties = .false.     
+      logical :: use_building_detention = .false.       
+      logical :: use_building_gutters = .false.        
+      character(len=256) :: bldfile = ''               
+      character(len=256) :: bprfile = ''                
+
       real*4 :: waveage
       !
       real*4 :: bathtub_dt
