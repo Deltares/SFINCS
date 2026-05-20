@@ -171,7 +171,6 @@ contains
                                          steep_fac1, steep_fac2, steep_fac3, steep_fac4, steep_fac5, &          
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
                                          zb, nwav, ig_opt, alpha_ig, gamma_ig, gamma_fac_br, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
-                                         zb, nwav, ig_opt, alpha_ig, gamma_ig, gamma_fac_br, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
       !
       call timer(t3)
       !
