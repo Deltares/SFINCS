@@ -300,6 +300,7 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'max_face_nodes_dimension',  'max_nmesh2d_face_nodes'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'face_node_connectivity',    'mesh2d_face_nodes'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'face_dimension',            'nmesh2d_face'))
+      NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_varid, 'face_coordinates',          'mesh2d_face_x mesh2d_face_y'))
       !
       call def_mesh2d_node_coord('x', map_file%mesh2d_node_x_varid)
       !
@@ -315,8 +316,48 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_nodes_varid, 'start_index', 1))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_nodes_varid, '_FillValue', -999))
       !
+      ! Face centroid coordinates (required by UGRID and MDAL/QGIS)
+      if (crsgeo) then
+         NF90(nf90_def_var(map_file%ncid, 'mesh2d_face_x', NF90_FLOAT, (/map_file%nmesh2d_face_dimid/), map_file%mesh2d_face_x_varid))
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_face_x_varid, 1, 1, nc_deflate_level))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'units',         'degrees_east'))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'standard_name', 'longitude'))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'long_name',     'Characteristic longitude of mesh face'))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'grid_mapping',  'crs'))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'mesh',          'mesh2d'))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'location',      'face'))
+         !
+         NF90(nf90_def_var(map_file%ncid, 'mesh2d_face_y', NF90_FLOAT, (/map_file%nmesh2d_face_dimid/), map_file%mesh2d_face_y_varid))
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_face_y_varid, 1, 1, nc_deflate_level))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'units',         'degrees_north'))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'standard_name', 'latitude'))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'long_name',     'Characteristic latitude of mesh face'))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'grid_mapping',  'crs'))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'mesh',          'mesh2d'))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'location',      'face'))
+      else
+         NF90(nf90_def_var(map_file%ncid, 'mesh2d_face_x', NF90_DOUBLE, (/map_file%nmesh2d_face_dimid/), map_file%mesh2d_face_x_varid))
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_face_x_varid, 1, 1, nc_deflate_level))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'units',         'm'))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'standard_name', 'projection_x_coordinate'))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'long_name',     'Characteristic x-coordinate of mesh face'))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'grid_mapping',  'crs'))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'mesh',          'mesh2d'))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_x_varid, 'location',      'face'))
+         !
+         NF90(nf90_def_var(map_file%ncid, 'mesh2d_face_y', NF90_DOUBLE, (/map_file%nmesh2d_face_dimid/), map_file%mesh2d_face_y_varid))
+         NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_face_y_varid, 1, 1, nc_deflate_level))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'units',         'm'))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'standard_name', 'projection_y_coordinate'))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'long_name',     'Characteristic y-coordinate of mesh face'))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'grid_mapping',  'crs'))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'mesh',          'mesh2d'))
+         NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_y_varid, 'location',      'face'))
+      endif
+      !
       NF90(nf90_def_var(map_file%ncid, 'crs', NF90_INT, map_file%crs_varid))
-      NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'EPSG', '-'))
+      NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'epsg',      epsg))
+      NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'epsg_code', 'EPSG:' // trim(epsg_code)))
       !
    else
       !
@@ -327,7 +368,7 @@ contains
       call def_grid_axis_coord('corner_y', 'y', (/map_file%corner_m_dimid, map_file%corner_n_dimid/), map_file%corner_y_varid, 'corner_y')
       !
       NF90(nf90_def_var(map_file%ncid, 'crs', NF90_INT, map_file%crs_varid))
-      NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'EPSG',      '-'))
+      NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'epsg',      epsg))
       NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'epsg_code', 'EPSG:' // trim(epsg_code)))
       !
       NF90(nf90_def_var(map_file%ncid, 'sfincsgrid', NF90_INT, map_file%grid_varid))
@@ -346,7 +387,7 @@ contains
    ! flag_meanings. No CF standard_name exists for multi-valued masks
    ! (the previously-used 'land_binary_mask' is strict 0/1 only).
    ! -------------------------------------------------------
-   call def_static_cell_int('msk', map_file%msk_varid, 'msk_active_cells', &
+   call def_static_cell_int('msk', map_file%msk_varid, 'Active cells mask', &
         units='-', &
         description='inactive=0, active=1, normal_boundary=2, outflow_boundary=3, wavemaker=4, downstream_boundary=5, neumann_boundary=6', &
         flag_values=(/0, 1, 2, 3, 4, 5, 6/), &
@@ -379,19 +420,19 @@ contains
    ! Def condition matches the write condition in ncoutput_update_map.
    ! -------------------------------------------------------
    if (.not. use_quadtree .and. store_dynamic_bed_level .and. .not. subgrid) then
-      call def_time_cell_float('zb', map_file%zb_varid, 'm', 'bed_level_above_reference_level', standard_name='altitude')
+      call def_time_cell_float('zb', map_file%zb_varid, 'm', 'Bed level above reference level', standard_name='altitude')
    else
-      call def_static_cell_float('zb', map_file%zb_varid, 'm', 'bed_level_above_reference_level', standard_name='altitude')
+      call def_static_cell_float('zb', map_file%zb_varid, 'm', 'Bed level above reference level', standard_name='altitude')
    endif
    !
    ! manning (only meaningful when manning2d, i.e. per-cell field, is set)
    if (.not. subgrid .and. manning2d) then
-      call def_static_cell_float('manning', map_file%manning_varid, 's/m^1/3', 'manning_roughness', standard_name='manning')
+      call def_static_cell_float('manning', map_file%manning_varid, 's/m^1/3', 'Manning roughness coefficient', standard_name='manning')
    endif
    !
    ! subgrid slope
    if (subgrid .and. store_hsubgrid .and. store_hmean) then
-      call def_static_cell_float('subgridslope', map_file%subgridslope_varid, '-', 'subgrid_slope', standard_name='subgrid_slope')
+      call def_static_cell_float('subgridslope', map_file%subgridslope_varid, '-', 'Subgrid slope', standard_name='subgrid_slope')
    endif
    !
    ! -------------------------------------------------------
@@ -406,28 +447,28 @@ contains
    ! -------------------------------------------------------
    ! Time-varying water level / depth / velocity
    ! -------------------------------------------------------
-   call def_time_cell_float('zs', map_file%zs_varid, 'm', 'water_level', standard_name='sea_surface_height_above_reference_level')
+   call def_time_cell_float('zs', map_file%zs_varid, 'm', 'Water level', standard_name='sea_surface_height_above_reference_level')
    !
    if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
-      call def_time_cell_float('h', map_file%h_varid, 'm', 'water_depth', standard_name='depth')
+      call def_time_cell_float('h', map_file%h_varid, 'm', 'Water depth', standard_name='water_depth')
    endif
    !
    if (store_velocity) then
-      call def_time_cell_float('u', map_file%u_varid, 'm s-1', 'flow_velocity_x_direction', &
+      call def_time_cell_float('u', map_file%u_varid, 'm s-1', 'Flow velocity x-component', &
            standard_name='eastward_sea_water_velocity')
       !
-      call def_time_cell_float('v', map_file%v_varid, 'm s-1', 'flow_velocity_y_direction', &
+      call def_time_cell_float('v', map_file%v_varid, 'm s-1', 'Flow velocity y-component', &
            standard_name='northward_sea_water_velocity')
    endif
    !
    ! Subgrid volumes
    if (subgrid) then
       if (store_zvolume) then
-         call def_time_cell_float('subgrid_volume', map_file%zvolume_varid, 'm3', 'subgrid_volume_in_cell', &
+         call def_time_cell_float('subgrid_volume', map_file%zvolume_varid, 'm3', 'Subgrid volume in cell', &
               standard_name='subgrid_volume_in_cell')
       endif
       if (store_storagevolume) then
-         call def_time_cell_float('storage_volume', map_file%storagevolume_varid, 'm3', 'storage_volume_in_cell', &
+         call def_time_cell_float('storage_volume', map_file%storagevolume_varid, 'm3', 'Storage volume in cell', &
               standard_name='storage_volume_in_cell')
       endif
    endif
@@ -455,17 +496,17 @@ contains
    endif
    !
    if (store_maximum_waterlevel) then
-      call def_maxtime_cell_float('zsmax', map_file%zsmax_varid, 'm', 'maximum_water_level', &
+      call def_maxtime_cell_float('zsmax', map_file%zsmax_varid, 'm', 'Maximum water level', &
            standard_name='maximum_sea_surface_height_above_reference_level')
    endif
    !
    if (store_cumulative_precipitation) then
-      call def_maxtime_cell_float('cumprcp', map_file%cumprcp_varid, 'm', 'cumulative_precipitation_depth', &
+      call def_maxtime_cell_float('cumprcp', map_file%cumprcp_varid, 'm', 'Cumulative precipitation depth', &
            standard_name='cumulative_precipitation_depth', cell_methods='time: sum')
    endif
    !
    if (store_twet) then
-      call def_maxtime_cell_float('tmax', map_file%tmax_varid, 'seconds', 'duration_wet_cell', &
+      call def_maxtime_cell_float('tmax', map_file%tmax_varid, 'seconds', 'Time cell was wet', &
            standard_name='duration_wet', cell_methods='time: sum')
    endif
    !
@@ -476,13 +517,13 @@ contains
    !
    if (store_maximum_waterlevel) then
       if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
-         call def_maxtime_cell_float('hmax', map_file%hmax_varid, 'm', 'maximum_water_depth', &
+         call def_maxtime_cell_float('hmax', map_file%hmax_varid, 'm', 'Maximum water depth', &
               standard_name='sea_floor_depth_below_sea_surface', cell_methods='time: maximum')
       endif
    endif
    !
    if (store_maximum_velocity) then
-      call def_maxtime_cell_float('vmax', map_file%vmax_varid, 'm s-1', 'maximum_flow_velocity', &
+      call def_maxtime_cell_float('vmax', map_file%vmax_varid, 'm s-1', 'Maximum flow velocity', &
            standard_name='maximum_flow_velocity', cell_methods='time: maximum')
    endif
    !
@@ -509,26 +550,26 @@ contains
    ! -------------------------------------------------------
    if (store_meteo) then
       if (wind) then
-         call def_time_cell_float('wind_u', map_file%wind_u_varid, 'm s-1', 'wind_speed_u', standard_name='eastward_wind')
+         call def_time_cell_float('wind_u', map_file%wind_u_varid, 'm s-1', 'Wind speed u-component', standard_name='eastward_wind')
          !
-         call def_time_cell_float('wind_v', map_file%wind_v_varid, 'm s-1', 'wind_speed_v', standard_name='northward_wind')
+         call def_time_cell_float('wind_v', map_file%wind_v_varid, 'm s-1', 'Wind speed v-component', standard_name='northward_wind')
          !
          ! windmax (treated like all other max fields: max-time-varying)
          if (store_wind_max .and. meteo3d) then
-            call def_maxtime_cell_float('windmax', map_file%windmax_varid, 'm s-1', 'maximum_wind_speed', &
+            call def_maxtime_cell_float('windmax', map_file%windmax_varid, 'm s-1', 'Maximum wind speed', &
                  cell_methods='time: maximum')
          endif
       endif
       !
       if (patmos) then
-         call def_time_cell_float('surface_air_pressure', map_file%patm_varid, 'N m-2', 'surface_air_pressure', &
+         call def_time_cell_float('surface_air_pressure', map_file%patm_varid, 'N m-2', 'Surface air pressure', &
               standard_name='surface_air_pressure')
       endif
       !
       ! precipitation_rate (prcp source array is np-shaped on both grids;
       ! sfincs_meteo applies precip identically regardless of grid type)
       if (precip) then
-         call def_time_cell_float('precipitation_rate', map_file%precip_varid, 'mm h-1', 'precipitation_rate', &
+         call def_time_cell_float('precipitation_rate', map_file%precip_varid, 'mm h-1', 'Precipitation rate', &
               standard_name='precipitation_rate')
       endif
    endif
@@ -540,7 +581,7 @@ contains
       !
       ! snapwavemsk: NF90_INT on both grid types, described via CF
       ! flag_values / flag_meanings.
-      call def_static_cell_int('snapwavemsk', map_file%snapwavemsk_varid, 'snapwave_msk_active_cells', &
+      call def_static_cell_int('snapwavemsk', map_file%snapwavemsk_varid, 'SnapWave active cells mask', &
            units='-', &
            description='inactive=0, active=1, wave_boundary=2, neumann_boundary=3', &
            flag_values=(/0, 1, 2, 3/), &
@@ -552,16 +593,16 @@ contains
            standard_name='hm0_ig_wave_height')
       !
       if (store_wave_forces) then
-         call def_time_cell_float('fwx', map_file%fwx_varid, 'm', 'Wave force in x-direction', standard_name='wave_force_x')
+         call def_time_cell_float('fwx', map_file%fwx_varid, 'm', 'Wave force x-component', standard_name='wave_force_x')
          !
-         call def_time_cell_float('fwy', map_file%fwy_varid, 'm', 'Wave force in y-direction', standard_name='wave_force_y')
+         call def_time_cell_float('fwy', map_file%fwy_varid, 'm', 'Wave force y-component', standard_name='wave_force_y')
          !
          call def_time_cell_float('tp', map_file%tp_varid, 's', 'Peak wave period', standard_name='peak_wave_period')
          !
          call def_time_cell_float('tpig', map_file%tpig_varid, 's', 'Peak infragravity wave period', &
               standard_name='peak_ig_wave_period')
          !
-         call def_time_cell_float('beta', map_file%beta_varid, '-', 'directionally averaged local bed slope', &
+         call def_time_cell_float('beta', map_file%beta_varid, '-', 'Mean local bed slope', &
               standard_name='directionally_averaged_local_bed_slope')
          !
          call def_time_cell_float('snapwavedepth', map_file%snapwavedepth_varid, 'm', 'Interpolated water depth in Snapwave', &
@@ -570,7 +611,7 @@ contains
       !
       ! wavdir: quadtree only
       if (use_quadtree .and. store_wave_direction) then
-         call def_time_cell_float('wavdir', map_file%wavdir_varid, 'degrees', 'Mean wave direction', &
+         call def_time_cell_float('wavdir', map_file%wavdir_varid, 'degrees', 'Mean wave angle (deg)', &
               standard_name='mean_wave_direction')
       endif
       !
@@ -583,19 +624,19 @@ contains
    ! tsunami_arrival_time (single value per cell, written once at finalize)
    if (store_tsunami_arrival_time) then
       call def_static_cell_float('tsunami_arrival_time', map_file%tsunami_arrival_time_varid, &
-           '-', 'tsunami_arrival_time', standard_name='tsunami_arrival_time')
+           '-', 'Tsunami arrival time', standard_name='tsunami_arrival_time')
    endif
    !
    if (nonhydrostatic) then
-      call def_time_cell_float('pnonh', map_file%pnonh_varid, 'N m-2', 'non_hydrostatic_pressure')
+      call def_time_cell_float('pnonh', map_file%pnonh_varid, 'N m-2', 'Non-hydrostatic pressure')
    endif
    !
    ! Runtime scalars
    call ncdef_float_var(map_file%ncid, 'total_runtime', (/map_file%runtime_dimid/), map_file%total_runtime_varid, &
-        's', 'total_model_runtime_in_seconds')
+        's', 'Total model runtime (s)')
    !
    call ncdef_float_var(map_file%ncid, 'average_dt', (/map_file%runtime_dimid/), map_file%average_dt_varid, &
-        's', 'model_average_timestep_in_seconds')
+        's', 'Average model time step (s)')
    !
    call ncdef_float_var(map_file%ncid, 'status', (/map_file%runtime_dimid/), map_file%status_varid, &
         '-', 'status of SFINCS simulation - 0 is no error')
@@ -611,9 +652,28 @@ contains
    !
    ! Topology / coordinate axes — grid-type-specific
    if (use_quadtree) then
-      NF90(nf90_put_var(map_file%ncid, map_file%mesh2d_node_x_varid,    nodes_x))
-      NF90(nf90_put_var(map_file%ncid, map_file%mesh2d_node_y_varid,    nodes_y))
+      NF90(nf90_put_var(map_file%ncid, map_file%mesh2d_node_x_varid,     nodes_x))
+      NF90(nf90_put_var(map_file%ncid, map_file%mesh2d_node_y_varid,     nodes_y))
       NF90(nf90_put_var(map_file%ncid, map_file%mesh2d_face_nodes_varid, face_nodes))
+      ! Write face centroid coordinates (cell centres)
+      block
+         real, allocatable :: face_cx(:), face_cy(:)
+         integer :: ifac, iref2
+         real    :: dxx2, dyy2
+         allocate(face_cx(n_faces), face_cy(n_faces))
+         do ifac = 1, n_faces
+            n    = quadtree_n(ifac)
+            m    = quadtree_m(ifac)
+            iref2 = quadtree_level(ifac)
+            dxx2  = quadtree_dxr(iref2)
+            dyy2  = quadtree_dyr(iref2)
+            face_cx(ifac) = x0 + cosrot*(m - 0.5)*dxx2 - sinrot*(n - 0.5)*dyy2
+            face_cy(ifac) = y0 + sinrot*(m - 0.5)*dxx2 + cosrot*(n - 0.5)*dyy2
+         enddo
+         NF90(nf90_put_var(map_file%ncid, map_file%mesh2d_face_x_varid, face_cx))
+         NF90(nf90_put_var(map_file%ncid, map_file%mesh2d_face_y_varid, face_cy))
+         deallocate(face_cx, face_cy)
+      end block
    else
       allocate(xz(mmax,     nmax))
       allocate(yz(mmax,     nmax))
@@ -797,11 +857,11 @@ contains
    call def_his_point_coord('point_y',   'y', his_file%point_y_varid,   'point_y')
    !
    NF90(nf90_def_var(his_file%ncid, 'crs', NF90_INT, his_file%crs_varid)) ! For EPSG code
-   NF90(nf90_put_att(his_file%ncid, his_file%crs_varid, 'EPSG', '-'))     
-   NF90(nf90_put_att(his_file%ncid, his_file%crs_varid, 'epsg_code', 'EPSG:' // trim(epsg_code) ))   !--> add epsg_code like FEWS wants   
+   NF90(nf90_put_att(his_file%ncid, his_file%crs_varid, 'epsg',      epsg))
+   NF90(nf90_put_att(his_file%ncid, his_file%crs_varid, 'epsg_code', 'EPSG:' // trim(epsg_code) ))   !--> add epsg_code like FEWS wants
    !
    call ncdef_float_var(his_file%ncid, 'point_zb', (/his_file%points_dimid/), his_file%zb_varid, &
-        'm', 'bed_level_above_reference_level', standard_name='altitude', coordinates=pt_coord)
+        'm', 'Bed level above reference level', standard_name='altitude', coordinates=pt_coord)
    !
    if (nrstructures>0) then
       !
@@ -848,31 +908,31 @@ contains
    !
    ! Time varying map output
    !
-   call def_time_point_float('point_zs', his_file%zs_varid, 'm', 'water_level', &
+   call def_time_point_float('point_zs', his_file%zs_varid, 'm', 'Water level', &
         standard_name='sea_surface_height_above_reference_level')
    !
    if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
-      call def_time_point_float('point_h', his_file%h_varid, 'm', 'water_depth', standard_name='depth')
+      call def_time_point_float('point_h', his_file%h_varid, 'm', 'Water depth', standard_name='depth')
    endif
    !
    if (store_velocity) then
-      call def_time_point_float('point_u', his_file%u_varid, 'm s-1', 'flow_velocity_x_direction', &
+      call def_time_point_float('point_u', his_file%u_varid, 'm s-1', 'Flow velocity x-component', &
            standard_name='sea_water_x_velocity')
       !
-      call def_time_point_float('point_v', his_file%v_varid, 'm s-1', 'flow_velocity_y_direction', &
+      call def_time_point_float('point_v', his_file%v_varid, 'm s-1', 'Flow velocity y-component', &
            standard_name='sea_water_y_velocity')
       !
-      call def_time_point_float('point_uvmag', his_file%uvmag_varid, 'm s-1', 'flow_velocity_magnitude', &
+      call def_time_point_float('point_uvmag', his_file%uvmag_varid, 'm s-1', 'Flow velocity magnitude', &
            standard_name='sea_water_velocity')
       !
-      call def_time_point_float('point_uvdir', his_file%uvdir_varid, 'degrees', 'flow_velocity_direction', &
+      call def_time_point_float('point_uvdir', his_file%uvdir_varid, 'degrees', 'Flow velocity bearing (deg)', &
            standard_name='sea_water_velocity_direction')
    endif
    !
    ! Add infiltration
    !
    if (infiltration) then
-      call def_time_point_float('point_qinf', his_file%qinf_varid, 'mm hr-1', 'infiltration_rate')
+      call def_time_point_float('point_qinf', his_file%qinf_varid, 'mm hr-1', 'Infiltration rate')
    endif
    !
    if (infiltration) then
@@ -895,7 +955,7 @@ contains
            standard_name='ig_peak_wave_period')
       !
       if (store_wave_direction) then
-         call def_time_point_float('point_wavdir', his_file%wavdir_varid, 'degrees', 'Mean wave direction', &
+         call def_time_point_float('point_wavdir', his_file%wavdir_varid, 'degrees', 'Mean wave angle (deg)', &
               standard_name='mean_wave_direction')
          ! point_dirspr is gathered in ncoutput_update_his but the put_var is
          ! currently commented out — do not define here either, otherwise the
@@ -937,17 +997,17 @@ contains
    !
    if (store_meteo) then
       if (wind) then
-         call def_time_point_float('point_wind_speed', his_file%wind_speed_varid, 'm s-1', 'wind_speed')
+         call def_time_point_float('point_wind_speed', his_file%wind_speed_varid, 'm s-1', 'Wind speed')
          !
-         call def_time_point_float('point_wind_direction', his_file%wind_dir_varid, 'degrees', 'wind_direction')
+         call def_time_point_float('point_wind_direction', his_file%wind_dir_varid, 'degrees', 'Wind direction (deg)')
       endif
       if (patmos) then
-         call def_time_point_float('point_patm', his_file%patm_varid, 'Pa', 'surface_air_pressure')
+         call def_time_point_float('point_patm', his_file%patm_varid, 'Pa', 'Surface air pressure')
       endif
       if (precip) then
-         call def_time_point_float('point_prcp', his_file%prcp_varid, 'mm hr-1', 'precipitation_rate')
+         call def_time_point_float('point_prcp', his_file%prcp_varid, 'mm hr-1', 'Precipitation rate')
          if (store_cumulative_precipitation) then
-            call def_time_point_float('point_cumprcp', his_file%cumprcp_varid, 'm', 'cumulative_precipitation')
+            call def_time_point_float('point_cumprcp', his_file%cumprcp_varid, 'm', 'Cumulative precipitation')
          endif
       endif
    endif
@@ -968,10 +1028,10 @@ contains
    endif
    !
    call ncdef_float_var(his_file%ncid, 'total_runtime', (/his_file%runtime_dimid/), his_file%total_runtime_varid, &
-        's', 'total_model_runtime_in_seconds')
+        's', 'Total model runtime (s)')
    !
    call ncdef_float_var(his_file%ncid, 'average_dt', (/his_file%runtime_dimid/), his_file%average_dt_varid, &
-        's', 'model_average_timestep_in_seconds')
+        's', 'Average model time step (s)')
    !
    call ncdef_float_var(his_file%ncid, 'status', (/his_file%runtime_dimid/), his_file%status_varid, &
         '-', 'status of SFINCS simulation - 0 is no error')
