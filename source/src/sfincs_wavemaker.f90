@@ -1540,7 +1540,7 @@
          !
          fm_inc = 1.0 / tp_inc ! Wave period
          !
-         do ifreq = 1, wavemaker_nfreqs_ig
+         do ifreq = 1, wavemaker_nfreqs_inc
             !
             wavemaker_phi_inc(ifreq) = modulo(wavemaker_phi_inc(ifreq) + wavemaker_dphi_inc(ifreq) * dt, 2 * pi)
             wavemaker_cost_inc(ifreq) = cos(2 * pi * t * wavemaker_freq_inc(ifreq) + wavemaker_phi_inc(ifreq))
@@ -1593,7 +1593,7 @@
    !
    !write(*,*)'t, a , zwav_ig = ',t, a, zwav_ig
 
-   write(*,*)'hm0_ig min - mean - max = ',minval(hm0_ig(wavemaker_index_uv)), SUM(hm0_ig(wavemaker_index_uv))/real(size(hm0_ig(wavemaker_index_uv))), maxval(hm0_ig(wavemaker_index_uv))
+   write(*,*)'hm0_ig min - mean - max = ',minval(hm0_ig(wavemaker_index_nmb)), SUM(hm0_ig(wavemaker_index_nmb))/real(size(hm0_ig(wavemaker_index_nmb))), maxval(hm0_ig(wavemaker_index_nmb))
 
    ! UV fluxes at wave makers
    !
