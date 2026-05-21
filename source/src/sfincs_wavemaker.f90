@@ -1596,7 +1596,7 @@
    !
    !write(*,*)'t, a , zwav_ig = ',t, a, zwav_ig
 
-   write(*,*)'hm0_ig min - mean - max = ',minval(hm0_ig(wavemaker_index_uv)), SUM(hm0_ig(wavemaker_index_uv))/real(size(hm0_ig(wavemaker_index_uv))), maxval(hm0_ig(wavemaker_index_uv))
+   write(*,*)'hm0_ig min - mean - max = ',minval(hm0_ig(wavemaker_index_nmb)), SUM(hm0_ig(wavemaker_index_nmb))/real(size(hm0_ig(wavemaker_index_nmb))), maxval(hm0_ig(wavemaker_index_nmb))
 
    ! UV fluxes at wave makers
    !
