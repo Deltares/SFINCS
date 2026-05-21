@@ -807,6 +807,8 @@
                   wavemaker_idir(iwm)      = 1
                   wavemaker_angfac(iwm)    = max(cos(phi(ip) - 0.0), 0.0)
                   !
+                  wavemaker_nmu(nok) = iwm
+                  !
                endif
                !
             endif   
@@ -850,6 +852,8 @@
                   wavemaker_index_nmb(iwm) = ip
                   wavemaker_idir(iwm)      = 1
                   wavemaker_angfac(iwm)    = max(sin(phi(ip) - 0.0), 0.0)
+                  !
+                  wavemaker_num(nok) = iwm
                   !
                endif
                !
@@ -897,6 +901,8 @@
                   wavemaker_idir(iwm)      = -1
                   wavemaker_angfac(iwm)    = max(cos(pi - phi(ip)), 0.0)
                   !
+                  wavemaker_nmd(nok) = iwm
+                  !
                endif
                !
             endif   
@@ -940,6 +946,8 @@
                   wavemaker_index_nmb(iwm) = ip
                   wavemaker_idir(iwm)      = 1
                   wavemaker_angfac(iwm)    = max(sin(phi(ip) - 0.0), 0.0)
+                  !
+                  wavemaker_num(nok) = iwm
                   !
                endif
                !
@@ -987,6 +995,8 @@
                   wavemaker_idir(iwm)      = -1
                   wavemaker_angfac(iwm)    = max(cos(pi - phi(ip)), 0.0)
                   !
+                  wavemaker_nmd(nok) = iwm
+                  !
                endif
                !
             endif   
@@ -1030,6 +1040,8 @@
                   wavemaker_index_nmb(iwm) = ip
                   wavemaker_idir(iwm)      = -1
                   wavemaker_angfac(iwm)    = max(-sin(phi(ip)), 0.0)
+                  !
+                  wavemaker_ndm(nok) = iwm
                   !
                endif
                !
@@ -1076,6 +1088,8 @@
                   wavemaker_idir(iwm)      = 1
                   wavemaker_angfac(iwm)    = max(cos(phi(ip) - 0.0), 0.0)
                   !
+                  wavemaker_nmu(nok) = iwm
+                  !
                endif
                !
             endif   
@@ -1119,6 +1133,8 @@
                   wavemaker_index_nmb(iwm) = ip
                   wavemaker_idir(iwm)      = -1
                   wavemaker_angfac(iwm)    = max(-sin(phi(ip)), 0.0)
+                  !
+                  wavemaker_ndm(nok) = iwm
                   !
                endif
                !
