@@ -1007,7 +1007,7 @@
                   wavemaker_index_nmi(iwm) = iz
                   wavemaker_index_nmb(iwm) = ip
                   wavemaker_idir(iwm)      = -1
-                  wavemaker_angfac(iwm)    = max(sin(pi - phi(ip)), 0.0)
+                  wavemaker_angfac(iwm)    = max(-sin(phi(ip)), 0.0)
                   !
                   wavemaker_ndm(nok) = iwm
                   !
@@ -1029,7 +1029,7 @@
                   wavemaker_index_nmi(iwm) = iz
                   wavemaker_index_nmb(iwm) = ip
                   wavemaker_idir(iwm)      = -1
-                  wavemaker_angfac(iwm)    = max(sin(pi - phi(ip)), 0.0)
+                  wavemaker_angfac(iwm)    = max(-sin(phi(ip)), 0.0)
                   !
                endif
                !
@@ -1096,7 +1096,7 @@
                   wavemaker_index_nmi(iwm) = iz
                   wavemaker_index_nmb(iwm) = ip
                   wavemaker_idir(iwm)      = -1
-                  wavemaker_angfac(iwm)    = max(sin(pi - phi(ip)), 0.0)
+                  wavemaker_angfac(iwm)    = max(-sin(phi(ip)), 0.0)
                   !
                   wavemaker_ndm(nok) = iwm
                   !
@@ -1118,7 +1118,7 @@
                   wavemaker_index_nmi(iwm) = iz
                   wavemaker_index_nmb(iwm) = ip
                   wavemaker_idir(iwm)      = -1
-                  wavemaker_angfac(iwm)    = max(sin(pi - phi(ip)), 0.0)
+                  wavemaker_angfac(iwm)    = max(-sin(phi(ip)), 0.0)
                   !
                endif
                !
@@ -1485,7 +1485,9 @@
       !
       tp_ig = max(tp_ig, wavemaker_tpmin)      
       ! 
-   endif      
+   endif    
+   !
+   write(*,*)'tp_ig at wave maker: ', tp_ig
    !
    ! Now determine zwav_ig and zwav_inc based on spectrum or monochromatic signal.
    ! Time series of zwav_ig and zwav_inc will be used to modulate water level at wave maker points.
@@ -1575,7 +1577,12 @@
       !
    endif
    !
-   ! UV fluxes at wave makers - No OMP acceleration here?
+   !
+   write(*,*)'t, a , zwav_ig = ',t, a, zwav_ig
+
+   write(*,*)'hm0_ig min - mean - max = ',minval(hm0_ig), SUM(hm0_ig)/real(size(hm0_ig)), maxval(hm0_ig)
+
+   ! UV fluxes at wave makers
    !
    ! Push time-interpolated forcing values to GPU before parallel region
    !
@@ -1632,6 +1639,11 @@
          ! Limit incident wave height
          !
          zsnmb  = zs0nmb + min(zinc + zig,  wavemaker_gammax * dwvm) ! total water level in wave maker (i.e. mean water level plus wave)
+         !
+         if (( zinc + zig) > wavemaker_gammax * dwvm) then
+             write(*,*)'WARNING! Incident wave height at wave maker exceeds maximum allowed value based on local water depth! Value: ', zinc + zig, ' Max allowed: ', wavemaker_gammax * dwvm
+         endif
+         
          !
       endif   
       !
@@ -1703,6 +1715,10 @@
          wavemaker_uvmean(ib) = 0.0
          !
       endif
+      !
+      !if (ib == 1) then
+      !    write(*,*)'ib, ip, q(ip), zsnmb, zs0nmb, hnmb, hm0_ig(nmb), zig, wavemaker_uvmean(ib), wavemaker_uvtrend(ib) = ', ib, ip, q(ip), zsnmb, zs0nmb, hnmb, hm0_ig(nmb), zig, wavemaker_uvmean(ib), wavemaker_uvtrend(ib)
+      !endif
       !
    enddo
    !$acc end parallel
