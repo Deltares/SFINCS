@@ -1,0 +1,58 @@
+# SFINCS CPU image built with the Intel ifx compiler.
+#
+# Build from the SFINCS source ROOT (so the COPY context is the whole tree):
+#     docker build -f build_scripts/Dockerfile.cpu.ifx -t sfincs-cpu-ifx:local .
+#
+# Mirrors HurryWave's build_scripts/Dockerfile.cpu.ifx. Two stages: compile on
+# the oneAPI HPC kit (which ships ifx) with the Intel runtime linked statically
+# (-static-intel -qopenmp-link=static), then copy the install onto a slim ubuntu
+# base. Static-linking keeps the final image ~1 GB instead of dragging in the
+# multi-GB intel/oneapi-runtime image (MKL/MPI/TBB that SFINCS never uses).
+#
+# netcdf: Ubuntu's libnetcdff is gfortran-built and its .mod files are
+# ABI-incompatible with ifx, so we let ./configure compile the BUNDLED
+# netcdf-fortran (third_party_open/netcdf) with ifx. libnetcdf-dev supplies only
+# the C library. (This is also why the gfortran -fallow-argument-mismatch flag
+# from the gfortran Dockerfile is dropped here — it was a gfortran-only
+# workaround for building netcdf-fortran; ifx neither needs nor understands it.)
+
+# ---- build stage ----------------------------------------------------------
+FROM intel/oneapi-hpckit:latest AS build
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt update && apt install -y dos2unix libnetcdf-dev build-essential \
+        autoconf automake libtool pkg-config tzdata m4
+
+COPY . /usr/src/sfincs
+WORKDIR /usr/src/sfincs
+
+# Normalise line endings of anything that may have arrived as CRLF (Windows checkout).
+RUN find . \( -name '*.m4' -o -name '*.ac' -o -name '*.am' \
+           -o -name '*.f90' -o -name '*.F90' -o -name '*.sh' \) | xargs dos2unix
+
+# Build with ifx.
+#   -static-intel / -qopenmp-link=static : link the Intel runtime into the
+#       binary so it runs on the slim runtime stage (no oneAPI libs needed).
+#   --disable-openacc : pure CPU/OpenMP build (matches the gfortran CPU image).
+#   --disable-shared  : force static libs, incl. the bundled netcdf-fortran.
+# The oneAPI image already sourced setvars.sh (SETVARS_COMPLETED set, ifx on
+# PATH) — do NOT re-source it: re-running setvars.sh without --force exits
+# non-zero and would abort this RUN.
+#
+# NOTE: -fp-model fast=2 / -no-prec-div / -fno-alias / -fno-fnalias match
+# HurryWave's ifx build (aggressive floating-point optimisation). Switch to
+# -fp-model precise if you need tighter FP reproducibility vs the gfortran build.
+RUN autoreconf -vif && \
+    FC=ifx \
+    FCFLAGS="-fpp -qopenmp -O3 -fp-model fast=2 -no-prec-div -fno-alias -fno-fnalias -w -static-intel -qopenmp-link=static" \
+    FFLAGS="-fpp -qopenmp -O3 -fp-model fast=2 -no-prec-div -fno-alias -fno-fnalias -w -static-intel -qopenmp-link=static" \
+        ./configure --disable-openacc --disable-shared && \
+    make && make install
+
+# ---- runtime stage --------------------------------------------------------
+FROM ubuntu:jammy
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt update && apt install -y libnetcdf-dev tzdata && rm -rf /var/lib/apt/lists/*
+COPY --from=build /usr/local /usr/local
+VOLUME /data
+WORKDIR /data
+CMD ["sfincs"]
