@@ -287,6 +287,12 @@ contains
          call write_log('Drainage structures  : no', 1)
       endif
       !
+      if (dike_breaching) then
+         call write_log('Dike breaching       : yes', 1)
+      else
+         call write_log('Dike breaching       : no', 1)
+      endif
+      !
       if (urban_drainage) then
          call write_log('Urban drainage       : yes', 1)
       else

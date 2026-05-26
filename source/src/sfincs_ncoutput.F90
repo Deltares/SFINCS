@@ -50,7 +50,7 @@ module sfincs_ncoutput
       integer :: crosssection_name_varid
       integer :: structure_height_varid, structure_x_varid, structure_y_varid
       integer :: thindam_x_varid, thindam_y_varid      
-      integer :: drain_varid, drain_name_varid
+      integer :: drain_varid, drain_name_varid, breach_width_varid
       integer :: river_varid, river_name_varid
       integer :: urbdrain_varid, urbdrain_name_varid
       integer :: zb_varid
@@ -1716,7 +1716,7 @@ contains
    use sfincs_date
    use sfincs_data
    use sfincs_structures
-   use sfincs_src_structures, only: nr_src_structures, src_struc_name
+   use sfincs_src_structures, only: nr_src_structures, src_struc_name, src_struc_type, structure_dike_breach
    use sfincs_discharges,     only: src_name, nr_discharge_points
    use sfincs_urban_drainage, only: nr_urban_drainage_zones, urb_zone_name
    !
@@ -2199,6 +2199,14 @@ contains
       NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, 'units', 'm3 s-1'))
       NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, 'long_name', 'discharge through drainage structure'))
       NF90(nf90_put_att(his_file%ncid, his_file%drain_varid, 'coordinates', 'drainage_name'))
+      !
+      if (any(src_struc_type == structure_dike_breach)) then
+         NF90(nf90_def_var(his_file%ncid, 'breach_width', NF90_FLOAT, (/his_file%drain_dimid, his_file%time_dimid/), his_file%breach_width_varid))
+         NF90(nf90_put_att(his_file%ncid, his_file%breach_width_varid, '_FillValue', FILL_VALUE))
+         NF90(nf90_put_att(his_file%ncid, his_file%breach_width_varid, 'units', 'm'))
+         NF90(nf90_put_att(his_file%ncid, his_file%breach_width_varid, 'long_name', 'dike breach width'))
+         NF90(nf90_put_att(his_file%ncid, his_file%breach_width_varid, 'coordinates', 'drainage_name'))
+      endif
       !
    endif
    !
@@ -3274,7 +3282,7 @@ contains
    use sfincs_crosssections
    use sfincs_runup_gauges
    use sfincs_snapwave
-   use sfincs_src_structures, only: nr_src_structures, src_struc_q_now
+   use sfincs_src_structures, only: nr_src_structures, src_struc_q_now, src_struc_breach_width, src_struc_type, structure_dike_breach
    use sfincs_discharges,     only: qtsrc, nr_discharge_points
    use sfincs_urban_drainage, only: nr_urban_drainage_zones, urban_drainage_q_total
    !
@@ -3573,6 +3581,11 @@ contains
       !$acc update host(src_struc_q_now)
       !
       NF90(nf90_put_var(his_file%ncid, his_file%drain_varid, src_struc_q_now, (/1, nthisout/))) ! write per-structure discharge
+      !
+      if (any(src_struc_type == structure_dike_breach)) then
+         !$acc update host(src_struc_breach_width)
+         NF90(nf90_put_var(his_file%ncid, his_file%breach_width_varid, src_struc_breach_width, (/1, nthisout/))) ! write breach width
+      endif
       !
    endif
    !
