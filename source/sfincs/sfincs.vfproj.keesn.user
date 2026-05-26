@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<VisualStudioUserFile ProjectCreator="Intel Fortran" Keyword="Console Application" Version="11.0" ProjectIdGuid="{84DFC66B-C675-4F50-8A9A-62E7E483ACDD}">
-	<Configurations>
-		<Configuration Name="Debug|x64" WorkingDirectory="d:\software\SFINCS\test_model\infiltration_testbed\05_bucket\local\">
-		</Configuration>
-		<Configuration Name="Release|x64" WorkingDirectory="d:\software\SFINCS\test_model\infiltration_testbed\05_bucket\local\">
-		</Configuration>
-	</Configurations></VisualStudioUserFile>
