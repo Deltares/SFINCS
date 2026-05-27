@@ -23,12 +23,16 @@ contains
    !$acc               uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
    !$acc               nmindsrc, qtsrc, drainage_type, drainage_params, &
    !$acc               z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, &
+   !$acc               wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, &
+   !$acc               wavemaker_idir, wavemaker_angfac, wavemaker_uvtrend, &
+   !$acc               wavemaker_index_wmfp1, wavemaker_index_wmfp2, wavemaker_fac_wmfp, &
+   !$acc               wavemaker_forcing_hm0_ig_t, wavemaker_forcing_tp_ig_t, wavemaker_forcing_setup_t, &
    !$acc               structure_uv_index, structure_parameters, structure_type, structure_length, &
-   !$acc               fwuv, &
+   !$acc               fwuv, hm0, hm0_ig, &
    !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
-   !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, & 
+   !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, &
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
-   !$acc               prcp, prcp0, prcp1, cumprcp, netprcp, prcp, qext, & 
+   !$acc               prcp, prcp0, prcp1, cumprcp, netprcp, prcp, qext, &
    !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dyrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
    !$acc               gn2uv, fcorio2d, storage_volume, nuvisc, &
    !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
@@ -53,12 +57,16 @@ contains
    !$acc               uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
    !$acc               nmindsrc, qtsrc, drainage_type, drainage_params, &
    !$acc               z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, &
+   !$acc               wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, &
+   !$acc               wavemaker_idir, wavemaker_angfac, wavemaker_uvtrend, &
+   !$acc               wavemaker_index_wmfp1, wavemaker_index_wmfp2, wavemaker_fac_wmfp, &
+   !$acc               wavemaker_forcing_hm0_ig_t, wavemaker_forcing_tp_ig_t, wavemaker_forcing_setup_t, &
    !$acc               structure_uv_index, structure_parameters, structure_type, structure_length, &
-   !$acc               fwuv, &
+   !$acc               fwuv, hm0, hm0_ig, &
    !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
-   !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, & 
+   !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, &
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
-   !$acc               prcp, prcp0, prcp1, cumprcp, netprcp, prcp, qext, & 
+   !$acc               prcp, prcp0, prcp1, cumprcp, netprcp, prcp, qext, &
    !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
    !$acc               gn2uv, fcorio2d, storage_volume, nuvisc, &
    !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
