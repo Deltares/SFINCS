@@ -51,7 +51,7 @@
    real*4, dimension(:),     allocatable :: wavemaker_xfp
    real*4, dimension(:),     allocatable :: wavemaker_yfp   
    !
-   logical :: iok, ok
+   logical :: iok, ok, refinement_warning
    !
    integer ib1, ib2, ib, ic, nmb, nrwvm
    !
@@ -759,6 +759,8 @@
    write(logstr,*)'Setting wave makers ...'
    call write_log(logstr, 0)   
    !
+   refinement_warning = .false. ! set to true if we find a wavemaker point that has refinemed neighbor
+   !
    do ip = 1, np
       !
       if (kcs(ip)==4) then
@@ -798,6 +800,8 @@
                iz = uv_index_z_nmu(nmu)
                !
                if (kcs(iz) == 1) then
+                  !
+                  refinement_warning = .true.
                   !
                   iwm = iwm + 1
                   !               
@@ -844,6 +848,8 @@
                iz = uv_index_z_nmu(nmu)
                !
                if (kcs(iz) == 1) then
+                  !
+                  refinement_warning = .true.
                   !
                   iwm = iwm + 1
                   !               
@@ -893,6 +899,8 @@
                !
                if (kcs(iz) == 1) then
                   !
+                  refinement_warning = .true.
+                  !
                   iwm = iwm + 1
                   !               
                   wavemaker_index_uv(iwm)  = nmu
@@ -938,6 +946,8 @@
                iz = uv_index_z_nmu(nmu)
                !
                if (kcs(iz) == 1) then
+                  !
+                  refinement_warning = .true.
                   !
                   iwm = iwm + 1
                   !               
@@ -987,6 +997,8 @@
                !
                if (kcs(iz) == 1) then
                   !
+                  refinement_warning = .true.
+                  !
                   iwm = iwm + 1
                   !               
                   wavemaker_index_uv(iwm)  = nmu
@@ -1032,6 +1044,8 @@
                iz = uv_index_z_nm(nmu)
                !
                if (kcs(iz) == 1) then
+                  !
+                  refinement_warning = .true.
                   !
                   iwm = iwm + 1
                   !               
@@ -1080,6 +1094,8 @@
                !
                if (kcs(iz) == 1) then
                   !
+                  refinement_warning = .true.
+                  !
                   iwm = iwm + 1
                   !               
                   wavemaker_index_uv(iwm)  = nmu
@@ -1126,6 +1142,8 @@
                !
                if (kcs(iz) == 1) then
                   !
+                  refinement_warning = .true.
+                  !
                   iwm = iwm + 1
                   !               
                   wavemaker_index_uv(iwm)  = nmu
@@ -1143,6 +1161,15 @@
          endif
       endif
    enddo
+   !
+   ! Give warning if we found a wavemaker point that has refined neighbor
+   !
+   if (refinement_warning) then
+      !
+      write(logstr,'(a)')' WARNING! Found wavemaker point along quadtree refinement boundary ! This is not recommended.'
+      call write_log(logstr, 1)
+      !
+   endif   
    !
    ! Set flags for kcuv points
    !
