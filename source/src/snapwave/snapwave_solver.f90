@@ -1106,7 +1106,7 @@ contains
             call momeqveg(no_nodes, no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, H(k), Tp(k), unl(k,:), Fvw(k))
             ! NOTE - TL: for now replaced 'Trep' by 'Tp(k)'       
             !
-            F(k) = F(k) + Fvw(k) ! FIXME - still *kwav(k)/sig(k) ???
+            F(k) = F(k) + Fvw(k) 
             !
          endif
          !
