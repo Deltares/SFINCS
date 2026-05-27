@@ -1650,7 +1650,7 @@ contains
          nm = index_sfincs_in_quadtree(nmq)
          if (nm > 0) then
             do isec = 1, vegetation_vertical_segments
-               vtmp2d(nmq, isec) = vegetation_cd(nm, isec)
+               vtmp2d(nmq, isec) = vegetation_stems_cd(nm, isec)
             enddo
          endif
       enddo
@@ -1672,7 +1672,7 @@ contains
          nm = index_sfincs_in_quadtree(nmq)
          if (nm > 0) then
             do isec = 1, vegetation_vertical_segments
-               vtmp2d(nmq, isec) = vegetation_stems_width(nm, isec)
+               vtmp2d(nmq, isec) = vegetation_stems_diameter(nm, isec)
             enddo
          endif
       enddo
