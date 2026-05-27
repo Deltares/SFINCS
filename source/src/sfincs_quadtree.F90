@@ -47,9 +47,10 @@ module quadtree
    integer*1,          dimension(:),   allocatable :: quadtree_snapwave_mask
    integer*1,          dimension(:),   allocatable :: quadtree_nonh_mask
    !
+   !
    type net_type_qtr
        integer :: ncid
-       integer :: np_dimid
+       integer :: np_dimid, nsec_dimid
        integer :: n_varid, m_varid
        integer :: level_varid
        integer :: nu_varid, mu_varid, nd_varid, md_varid
@@ -301,7 +302,7 @@ contains
    logical, intent(in)       :: snapwave, nonhydrostatic
    !
    integer*1 :: iversion
-   integer   :: np, ip, iepsg, status
+   integer   :: np, nm, ip, iepsg, status
    !
    write(logstr,'(a,a)')'Info    : reading QuadTree netCDF file ', trim(qtrfile)
    call write_log(logstr, 0)
@@ -343,7 +344,7 @@ contains
       NF90(nf90_inq_varid(net_file_qtr%ncid, 'snapwave_mask',  net_file_qtr%snapwave_mask_varid))
       !
       allocate(quadtree_snapwave_mask(np))
-      !      
+      !    
    endif
    !
    ! Allocate variables   
@@ -391,7 +392,9 @@ contains
    NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%mask_varid,  quadtree_mask(:)))
    !
    if (snapwave) then    
+      !
       NF90(nf90_get_var(net_file_qtr%ncid, net_file_qtr%snapwave_mask_varid,  quadtree_snapwave_mask(:)))
+      !
    endif
    !
    ! Nonhydrostatic mask
