@@ -26,7 +26,7 @@ contains
    !$acc               wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, &
    !$acc               wavemaker_idir, wavemaker_angfac, wavemaker_uvtrend, &
    !$acc               wavemaker_index_wmfp1, wavemaker_index_wmfp2, wavemaker_fac_wmfp, &
-   !$acc               wavemaker_forcing_hm0_ig_t, wavemaker_forcing_setup_t, &
+   !$acc               wavemaker_forcing_hm0_ig_t, wavemaker_forcing_tp_ig_t, wavemaker_forcing_setup_t, &
    !$acc               structure_uv_index, structure_parameters, structure_type, structure_length, &
    !$acc               fwuv, &
    !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
@@ -60,7 +60,7 @@ contains
    !$acc               wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, &
    !$acc               wavemaker_idir, wavemaker_angfac, wavemaker_uvtrend, &
    !$acc               wavemaker_index_wmfp1, wavemaker_index_wmfp2, wavemaker_fac_wmfp, &
-   !$acc               wavemaker_forcing_hm0_ig_t, wavemaker_forcing_setup_t, &
+   !$acc               wavemaker_forcing_hm0_ig_t, wavemaker_forcing_tp_ig_t, wavemaker_forcing_setup_t, &
    !$acc               structure_uv_index, structure_parameters, structure_type, structure_length, &
    !$acc               fwuv, &
    !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
