@@ -73,3 +73,4 @@ source/sfincs/sfincs.opt.yaml
 /source/Dockerfile.gpu.update01
 /source/Dockerfile.gpu
 /source/Dockerfile.gpu.25.5.ccall
+/docs/_build

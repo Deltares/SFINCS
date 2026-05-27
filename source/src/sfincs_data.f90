@@ -432,6 +432,8 @@ module sfincs_data
       real*4,             dimension(:,:),   allocatable :: vegetation_stems_diameter
       real*4,             dimension(:,:),   allocatable :: vegetation_stems_density
       integer,            dimension(:),     allocatable :: vegetation_type_index       ! per-cell integer type id from NetCDF
+      ! Wave forces limiter determined in sfincs_snapwave
+      real*4 :: fwmaxfac
       !
       !!! Wave makers
       !
