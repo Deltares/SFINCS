@@ -181,7 +181,7 @@ contains
                 !
                 vegetation_stems_height_uv(ip,iveg) = 0.5*(vegetation_stems_height(nm,iveg)+vegetation_stems_height(nmu,iveg))
                 !
-                vegetation_stems_cd_diameter_density_uv(ip,iveg) = 0.5 * (0.5 * (vegetation_stems_cd(nm,iveg) + vegetation_stems_cd(nmu,iveg))) * (0.5 * (vegetation_stems_diameter(nm,iveg) + vegetation_stems_diameter(nmu,iveg))) * (0.5 * (vegetation_stems_density(nm,iveg) + vegetation_stems_density(nmu,iveg)))  / rhow
+                vegetation_stems_cd_diameter_density_uv(ip,iveg) = 0.5 * (0.5 * (vegetation_stems_cd(nm,iveg) + vegetation_stems_cd(nmu,iveg))) * (0.5 * (vegetation_stems_diameter(nm,iveg) + vegetation_stems_diameter(nmu,iveg))) * (0.5 * (vegetation_stems_density(nm,iveg) + vegetation_stems_density(nmu,iveg))) 
                 !
                 ! vegetation_stems_cd_diameter_density = 0.5 * cd * stems_diameter * stems_density / rhow, so everything that is precalculatable
                 !
