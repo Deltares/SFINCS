@@ -1189,7 +1189,7 @@ contains
                !
             else
                !
-               prcp0(nm) = 0.0
+               prcp1(nm) = 0.0
                !
             endif
             !

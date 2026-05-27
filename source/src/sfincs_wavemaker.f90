@@ -16,7 +16,7 @@
    use quadtree
    !
    implicit none
-   !
+   !wavemaker_nfreqs_ig
    integer*4 :: nrows
    integer*4 :: ncols
    integer*4 :: stat
@@ -304,7 +304,7 @@
             !
             if (nmu>0) then
                !
-               iz = uv_index_z_nm(ip)
+               iz = uv_index_z_nm(nmu)
                !
                if (indwm(iz)==0) then
                   !
@@ -1213,6 +1213,7 @@
       !
       allocate(wavemaker_forcing_setup(wavemaker_nr_forcing_points, wavemaker_nr_forcing_timesteps))
       wavemaker_forcing_setup = 0.0
+      !
       if (wavemaker_wstfile(1:4) /= 'none') then
          !
          ok = check_file_exists(wavemaker_wstfile, 'Wave maker wst file', .true.)
@@ -1308,6 +1309,16 @@
          !
       enddo
       !
+      ! Allocate for case of time-series input:
+      !
+      allocate(wavemaker_forcing_hm0_ig_t(wavemaker_nr_forcing_points))
+      allocate(wavemaker_forcing_tp_ig_t(wavemaker_nr_forcing_points))
+      allocate(wavemaker_forcing_setup_t(wavemaker_nr_forcing_points))
+      !
+      wavemaker_forcing_hm0_ig_t = 0.0
+      wavemaker_forcing_tp_ig_t  = 0.0
+      wavemaker_forcing_setup_t  = 0.0
+      !
    endif   
    !
    ! Infragravity frequencies
@@ -1366,10 +1377,6 @@
    integer  :: count_max
    real     :: tloop
    !
-   real*4, dimension(:),     allocatable :: wavemaker_forcing_hm0_ig_t
-   real*4, dimension(:),     allocatable :: wavemaker_forcing_tp_ig_t
-   real*4, dimension(:),     allocatable :: wavemaker_forcing_setup_t   
-   !
    call system_clock(count0, count_rate, count_max)
    !
    ! Factors for double-exponential filtering
@@ -1383,10 +1390,6 @@
    if (wavemaker_timeseries) then
       !
       ! Only IG wave forcing supported at the moment !
-      !
-      allocate(wavemaker_forcing_hm0_ig_t(wavemaker_nr_forcing_points))
-      allocate(wavemaker_forcing_tp_ig_t(wavemaker_nr_forcing_points))
-      allocate(wavemaker_forcing_setup_t(wavemaker_nr_forcing_points))
       !
       ! Interpolate boundary conditions in time
       !
@@ -1522,7 +1525,7 @@
          !
          fm_inc = 1.0 / tp_inc ! Wave period
          !
-         do ifreq = 1, wavemaker_nfreqs_ig
+         do ifreq = 1, wavemaker_nfreqs_inc
             !
             wavemaker_phi_inc(ifreq) = modulo(wavemaker_phi_inc(ifreq) + wavemaker_dphi_inc(ifreq) * dt, 2 * pi)
             wavemaker_cost_inc(ifreq) = cos(2 * pi * t * wavemaker_freq_inc(ifreq) + wavemaker_phi_inc(ifreq))
@@ -1572,9 +1575,15 @@
       !
    endif
    !
-   ! UV fluxes at wave makers
+   ! UV fluxes at wave makers - No OMP acceleration here?
    !
-   ! No OMP acceleration here?
+   ! Push time-interpolated forcing values to GPU before parallel region
+   !
+   if (wavemaker_timeseries) then
+      !$acc update device(wavemaker_forcing_hm0_ig_t, wavemaker_forcing_setup_t)
+   else
+      !$acc update device(hm0, hm0_ig)
+   endif
    !
    !$acc parallel present( wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, &
    !$acc                  zs, q, hm0, hm0_ig, zb, zbuv, subgrid_z_zmax, &
