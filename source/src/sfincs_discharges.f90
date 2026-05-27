@@ -2,7 +2,7 @@ module sfincs_discharges
    
    use sfincs_log
    use sfincs_error
-
+   !
 contains
    !
    subroutine read_discharges()
@@ -47,7 +47,9 @@ contains
          read(500,*,iostat = stat)dummy
          if (stat < 0) exit
          nsrc = nsrc + 1
+         !
       enddo
+      !
       rewind(500)
       !
    elseif (netsrcdisfile(1:4) /= 'none') then    ! FEWS compatible Netcdf discharge time-series input
@@ -100,6 +102,7 @@ contains
       do n = 1, nsrc
          read(500,*)xsrc(n), ysrc(n)
       enddo
+      !
       close(500)
       !
       ! Read discharge time series
@@ -111,13 +114,16 @@ contains
          read(502,*,iostat = stat)dummy
          if (stat < 0) exit
          ntsrc = ntsrc + 1
+         !
       enddo
+      !
       rewind(502)
       allocate(tsrc(ntsrc))
       allocate(qsrc(nsrc,ntsrc))
       do itsrc = 1, ntsrc
          read(502,*)tsrc(itsrc), (qsrc(isrc, itsrc), isrc = 1, nsrc)
       enddo
+      !
       close(502)
       !
       if ((tsrc(1) > (t0 + 1.0)) .or. (tsrc(ntsrc) < (t1 - 1.0))) then
@@ -347,7 +353,9 @@ contains
             enddo
             itsrclast = itsrc - 1
             exit
+            !
          endif
+         !
       enddo
       !
       !$acc update device(qtsrc)
