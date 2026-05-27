@@ -50,7 +50,7 @@ module quadtree
    !
    type net_type_qtr
        integer :: ncid
-       integer :: np_dimid, nsec_dimid
+       integer :: np_dimid
        integer :: n_varid, m_varid
        integer :: level_varid
        integer :: nu_varid, mu_varid, nd_varid, md_varid
