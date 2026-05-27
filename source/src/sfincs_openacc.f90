@@ -28,7 +28,7 @@ contains
    !$acc               wavemaker_index_wmfp1, wavemaker_index_wmfp2, wavemaker_fac_wmfp, &
    !$acc               wavemaker_forcing_hm0_ig_t, wavemaker_forcing_tp_ig_t, wavemaker_forcing_setup_t, &
    !$acc               structure_uv_index, structure_parameters, structure_type, structure_length, &
-   !$acc               fwuv, &
+   !$acc               fwuv, hm0, hm0_ig, &
    !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
    !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, &
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
@@ -62,7 +62,7 @@ contains
    !$acc               wavemaker_index_wmfp1, wavemaker_index_wmfp2, wavemaker_fac_wmfp, &
    !$acc               wavemaker_forcing_hm0_ig_t, wavemaker_forcing_tp_ig_t, wavemaker_forcing_setup_t, &
    !$acc               structure_uv_index, structure_parameters, structure_type, structure_length, &
-   !$acc               fwuv, &
+   !$acc               fwuv, hm0, hm0_ig, &
    !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
    !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, &
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
