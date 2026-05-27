@@ -1166,7 +1166,7 @@
    !
    if (refinement_warning) then
       !
-      write(logstr,'(a)')' WARNING! Found wavemaker point along quadtree refinement boundary ! This is not recommended.'
+      write(logstr,'(a)')' WARNING! Found wavemaker point along quadtree refinement boundary, this is not recommended! The simulation will continue.'
       call write_log(logstr, 1)
       !
    endif   
@@ -1751,10 +1751,6 @@
          wavemaker_uvmean(ib) = 0.0
          !
       endif
-      !
-      !if (ib == 1) then
-      !    write(*,*)'ib, ip, q(ip), zsnmb, zs0nmb, hnmb, hm0_ig(nmb), zig, wavemaker_uvmean(ib), wavemaker_uvtrend(ib) = ', ib, ip, q(ip), zsnmb, zs0nmb, hnmb, hm0_ig(nmb), zig, wavemaker_uvmean(ib), wavemaker_uvtrend(ib)
-      !endif
       !
    enddo
    !$acc end parallel
