@@ -51,7 +51,7 @@
    real*4, dimension(:),     allocatable :: wavemaker_xfp
    real*4, dimension(:),     allocatable :: wavemaker_yfp   
    !
-   logical :: iok, ok
+   logical :: iok, ok, refinement_warning
    !
    integer ib1, ib2, ib, ic, nmb, nrwvm
    !
@@ -304,7 +304,7 @@
             !
             if (nmu>0) then
                !
-               iz = uv_index_z_nm(ip)
+               iz = uv_index_z_nm(nmu)
                !
                if (indwm(iz)==0) then
                   !
@@ -759,6 +759,8 @@
    write(logstr,*)'Setting wave makers ...'
    call write_log(logstr, 0)   
    !
+   refinement_warning = .false. ! set to true if we find a wavemaker point that has refinemed neighbor
+   !
    do ip = 1, np
       !
       if (kcs(ip)==4) then
@@ -799,6 +801,8 @@
                !
                if (kcs(iz) == 1) then
                   !
+                  refinement_warning = .true.
+                  !
                   iwm = iwm + 1
                   !               
                   wavemaker_index_uv(iwm)  = nmu
@@ -806,6 +810,8 @@
                   wavemaker_index_nmb(iwm) = ip
                   wavemaker_idir(iwm)      = 1
                   wavemaker_angfac(iwm)    = max(cos(phi(ip) - 0.0), 0.0)
+                  !
+                  wavemaker_nmu(nok) = iwm
                   !
                endif
                !
@@ -843,6 +849,8 @@
                !
                if (kcs(iz) == 1) then
                   !
+                  refinement_warning = .true.
+                  !
                   iwm = iwm + 1
                   !               
                   wavemaker_index_uv(iwm)  = nmu
@@ -850,6 +858,8 @@
                   wavemaker_index_nmb(iwm) = ip
                   wavemaker_idir(iwm)      = 1
                   wavemaker_angfac(iwm)    = max(sin(phi(ip) - 0.0), 0.0)
+                  !
+                  wavemaker_num(nok) = iwm
                   !
                endif
                !
@@ -889,6 +899,8 @@
                !
                if (kcs(iz) == 1) then
                   !
+                  refinement_warning = .true.
+                  !
                   iwm = iwm + 1
                   !               
                   wavemaker_index_uv(iwm)  = nmu
@@ -896,6 +908,8 @@
                   wavemaker_index_nmb(iwm) = ip
                   wavemaker_idir(iwm)      = -1
                   wavemaker_angfac(iwm)    = max(cos(pi - phi(ip)), 0.0)
+                  !
+                  wavemaker_nmd(nok) = iwm
                   !
                endif
                !
@@ -933,6 +947,8 @@
                !
                if (kcs(iz) == 1) then
                   !
+                  refinement_warning = .true.
+                  !
                   iwm = iwm + 1
                   !               
                   wavemaker_index_uv(iwm)  = nmu
@@ -940,6 +956,8 @@
                   wavemaker_index_nmb(iwm) = ip
                   wavemaker_idir(iwm)      = 1
                   wavemaker_angfac(iwm)    = max(sin(phi(ip) - 0.0), 0.0)
+                  !
+                  wavemaker_num(nok) = iwm
                   !
                endif
                !
@@ -979,6 +997,8 @@
                !
                if (kcs(iz) == 1) then
                   !
+                  refinement_warning = .true.
+                  !
                   iwm = iwm + 1
                   !               
                   wavemaker_index_uv(iwm)  = nmu
@@ -986,6 +1006,8 @@
                   wavemaker_index_nmb(iwm) = ip
                   wavemaker_idir(iwm)      = -1
                   wavemaker_angfac(iwm)    = max(cos(pi - phi(ip)), 0.0)
+                  !
+                  wavemaker_nmd(nok) = iwm
                   !
                endif
                !
@@ -1007,7 +1029,7 @@
                   wavemaker_index_nmi(iwm) = iz
                   wavemaker_index_nmb(iwm) = ip
                   wavemaker_idir(iwm)      = -1
-                  wavemaker_angfac(iwm)    = max(sin(pi - phi(ip)), 0.0)
+                  wavemaker_angfac(iwm)    = max(-sin(phi(ip)), 0.0)
                   !
                   wavemaker_ndm(nok) = iwm
                   !
@@ -1023,13 +1045,17 @@
                !
                if (kcs(iz) == 1) then
                   !
+                  refinement_warning = .true.
+                  !
                   iwm = iwm + 1
                   !               
                   wavemaker_index_uv(iwm)  = nmu
                   wavemaker_index_nmi(iwm) = iz
                   wavemaker_index_nmb(iwm) = ip
                   wavemaker_idir(iwm)      = -1
-                  wavemaker_angfac(iwm)    = max(sin(pi - phi(ip)), 0.0)
+                  wavemaker_angfac(iwm)    = max(-sin(phi(ip)), 0.0)
+                  !
+                  wavemaker_ndm(nok) = iwm
                   !
                endif
                !
@@ -1068,6 +1094,8 @@
                !
                if (kcs(iz) == 1) then
                   !
+                  refinement_warning = .true.
+                  !
                   iwm = iwm + 1
                   !               
                   wavemaker_index_uv(iwm)  = nmu
@@ -1075,6 +1103,8 @@
                   wavemaker_index_nmb(iwm) = ip
                   wavemaker_idir(iwm)      = 1
                   wavemaker_angfac(iwm)    = max(cos(phi(ip) - 0.0), 0.0)
+                  !
+                  wavemaker_nmu(nok) = iwm
                   !
                endif
                !
@@ -1096,7 +1126,7 @@
                   wavemaker_index_nmi(iwm) = iz
                   wavemaker_index_nmb(iwm) = ip
                   wavemaker_idir(iwm)      = -1
-                  wavemaker_angfac(iwm)    = max(sin(pi - phi(ip)), 0.0)
+                  wavemaker_angfac(iwm)    = max(-sin(phi(ip)), 0.0)
                   !
                   wavemaker_ndm(nok) = iwm
                   !
@@ -1112,13 +1142,17 @@
                !
                if (kcs(iz) == 1) then
                   !
+                  refinement_warning = .true.
+                  !
                   iwm = iwm + 1
                   !               
                   wavemaker_index_uv(iwm)  = nmu
                   wavemaker_index_nmi(iwm) = iz
                   wavemaker_index_nmb(iwm) = ip
                   wavemaker_idir(iwm)      = -1
-                  wavemaker_angfac(iwm)    = max(sin(pi - phi(ip)), 0.0)
+                  wavemaker_angfac(iwm)    = max(-sin(phi(ip)), 0.0)
+                  !
+                  wavemaker_ndm(nok) = iwm
                   !
                endif
                !
@@ -1127,6 +1161,15 @@
          endif
       endif
    enddo
+   !
+   ! Give warning if we found a wavemaker point that has refined neighbor
+   !
+   if (refinement_warning) then
+      !
+      write(logstr,'(a)')' WARNING! Found wavemaker point along quadtree refinement boundary, this is not recommended! The simulation will continue.'
+      call write_log(logstr, 1)
+      !
+   endif   
    !
    ! Set flags for kcuv points
    !
@@ -1482,7 +1525,7 @@
       !
       tp_ig = max(tp_ig, wavemaker_tpmin)      
       ! 
-   endif      
+   endif    
    !
    ! Now determine zwav_ig and zwav_inc based on spectrum or monochromatic signal.
    ! Time series of zwav_ig and zwav_inc will be used to modulate water level at wave maker points.
@@ -1522,7 +1565,7 @@
          !
          fm_inc = 1.0 / tp_inc ! Wave period
          !
-         do ifreq = 1, wavemaker_nfreqs_ig
+         do ifreq = 1, wavemaker_nfreqs_inc
             !
             wavemaker_phi_inc(ifreq) = modulo(wavemaker_phi_inc(ifreq) + wavemaker_dphi_inc(ifreq) * dt, 2 * pi)
             wavemaker_cost_inc(ifreq) = cos(2 * pi * t * wavemaker_freq_inc(ifreq) + wavemaker_phi_inc(ifreq))
@@ -1623,6 +1666,11 @@
          ! Limit incident wave height
          !
          zsnmb  = zs0nmb + min(zinc + zig,  wavemaker_gammax * dwvm) ! total water level in wave maker (i.e. mean water level plus wave)
+         !
+         if (( zinc + zig) > wavemaker_gammax * dwvm) then
+             write(*,*)'WARNING! Incident wave height at wave maker exceeds maximum allowed value based on local water depth! Value: ', zinc + zig, ' Max allowed: ', wavemaker_gammax * dwvm
+         endif
+         
          !
       endif   
       !
