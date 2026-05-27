@@ -36,7 +36,8 @@ contains
    !$acc               gnapp2, &
    !$acc               timestep_analysis_required_timestep, timestep_analysis_average_required_timestep, timestep_analysis_times_wet, timestep_analysis_times_limiting, &
    !$acc               qinffield, qinfmap, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, &
-   !$acc               ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, horton_kd, horton_fc, horton_f0 )
+   !$acc               ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, horton_kd, horton_fc, horton_f0, &
+   !$acc               vegetation_cd_sum_table, vegetation_cd_slope_table, vegetation_lookup_hmin_uv, vegetation_lookup_hmax_uv, vegetation_lookup_dh_uv )
    !
    end subroutine
    !
@@ -66,7 +67,8 @@ contains
    !$acc               gnapp2, &
    !$acc               timestep_analysis_required_timestep, timestep_analysis_average_required_timestep, timestep_analysis_times_wet, timestep_analysis_times_limiting, &   
    !$acc               qinffield, qinfmap, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, &
-   !$acc               ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, horton_kd, horton_fc, horton_f0 )
+   !$acc               ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, horton_kd, horton_fc, horton_f0, &
+   !$acc               vegetation_cd_sum_table, vegetation_cd_slope_table, vegetation_lookup_hmin_uv, vegetation_lookup_hmax_uv, vegetation_lookup_dh_uv )
    !
    end subroutine finalize_openacc
    !
