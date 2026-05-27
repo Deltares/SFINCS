@@ -1500,8 +1500,6 @@
       ! 
    endif    
    !
-   write(*,*)'tp_ig at wave maker: ', tp_ig
-   !
    ! Now determine zwav_ig and zwav_inc based on spectrum or monochromatic signal.
    ! Time series of zwav_ig and zwav_inc will be used to modulate water level at wave maker points.
    ! They both give at Hm0 of 1.0 m, and therefore need to be scaled with the data at the wave maker points (either from time series or SnapWave boundary conditions)
@@ -1590,11 +1588,6 @@
       !
    endif
    !
-   !
-   !write(*,*)'t, a , zwav_ig = ',t, a, zwav_ig
-
-   write(*,*)'hm0_ig min - mean - max = ',minval(hm0_ig(wavemaker_index_nmb)), SUM(hm0_ig(wavemaker_index_nmb))/real(size(hm0_ig(wavemaker_index_nmb))), maxval(hm0_ig(wavemaker_index_nmb))
-
    ! UV fluxes at wave makers
    !
    ! No OMP acceleration here?
