@@ -676,5 +676,15 @@ Structures
 	  :description:		Drainage pumps, culverts and check valves are both specified using the same format file, put with a different indication of the type (type=1 is drainage pump, type=2 is culvert and type=3 is check valve).
 	  :units:		coordinates: m in projected UTM zone, discharges in m^3/s.
 	  :required:		no
-	  :format:		asc	 
-	  
+	  :format:		asc
+	bldfile = sfincs.bld
+	  :description:		Building footprint polygons. Each building is described by a header line ``name npoints ncols`` followed by ``npoints`` rows of ``x y`` coordinates (m, projected UTM). The polygon must be closed (first and last point identical). Flow through grid edges intersected by a building outline is blocked (thin dam). Rainfall falling on cells inside a building footprint is captured and redistributed to perimeter cells (or gutter outlets if bprfile is provided). Setting bldfile activates the building drainage module.
+	  :units:		coordinates: m in projected UTM zone.
+	  :required:		no
+	  :format:		asc
+	bprfile = sfincs.bpr
+	  :description:		Optional building properties file. Each line contains ``name detention_volume gutter_spacing``, matching building names defined in bldfile. ``detention_volume`` [m³] is the on-roof storage capacity before runoff is released. ``gutter_spacing`` [m] sets the distance between gutter outlet cells along the building perimeter; set to 0 to distribute runoff uniformly over all perimeter cells.
+	  :units:		detention_volume in m³, gutter_spacing in m.
+	  :required:		no
+	  :format:		asc
+

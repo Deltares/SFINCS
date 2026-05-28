@@ -14,6 +14,7 @@ module sfincs_lib
    use sfincs_meteo
    use sfincs_infiltration
    use sfincs_data
+   use sfincs_buildings, only: setup_buildings, update_buildings, finalize_buildings
    use sfincs_date
    use sfincs_output
    use sfincs_ncinput
@@ -154,6 +155,10 @@ module sfincs_lib
    call initialize_domain()     ! Reads dep, msk, index files, creates index, flag and depth arrays, initializes hydro quantities
    !
    call read_structures()       ! Reads thd files and sets kcuv to zero where necessary
+   !
+   if (has_buildings) then
+      call setup_buildings()    ! Add structures for buildings and set up building parameters
+   endif
    !
    call read_boundary_data()    ! Reads bnd, bzs, etc files
    !
@@ -529,6 +534,12 @@ module sfincs_lib
          !
          call update_meteo_forcing(t, dt, tloopwnd2)
          !
+         ! Buildings: accumulate rainfall and redistribute to perimeter
+         !
+         if (has_buildings) then
+            call update_buildings(prcp, zs, real(dt, 8))
+         endif
+         !
          ! Update infiltration
          !
          if (infiltration) then
@@ -800,7 +811,9 @@ module sfincs_lib
    !
    call write_log('----------- Closing off SFINCS -----------', 1)
    !
-   ! call finalize_parameters()
+   call finalize_parameters()
+   !
+   if (has_buildings) call finalize_buildings()   
    !
    ierr = 0
    !

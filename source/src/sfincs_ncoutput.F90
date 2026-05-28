@@ -26,6 +26,8 @@ module sfincs_ncoutput
       integer :: manning_varid
       integer :: pnonh_varid
       integer :: subgridslope_varid
+      integer :: building_msk_varid
+      integer :: detention_level_varid
       !
       integer :: mesh2d_varid
       integer :: mesh2d_node_x_varid, mesh2d_node_y_varid
@@ -74,10 +76,11 @@ contains
    !
    use sfincs_date
    use sfincs_data
-   use sfincs_snapwave   
+   use sfincs_snapwave
+   use sfincs_buildings, only: is_building_cell, use_building_detention
    !
-   implicit none   
-   !   
+   implicit none
+   !
    integer                      :: nm, n, m, ntmx
    !
    real*4, dimension(:,:), allocatable :: zsg
@@ -185,14 +188,36 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%grid_varid, 'face_coordinates', 'x y'))
    NF90(nf90_put_att(map_file%ncid, map_file%grid_varid, 'corner_coordinates', 'corner_x corner_y'))   
    !
-   NF90(nf90_def_var(map_file%ncid, 'msk', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid/), map_file%msk_varid)) ! input msk value in cell centre   
-   NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, '_FillValue', FILL_VALUE))      
+   NF90(nf90_def_var(map_file%ncid, 'msk', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid/), map_file%msk_varid)) ! input msk value in cell centre
+   NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, '_FillValue', FILL_VALUE))
    NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'units', '-'))
    NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'standard_name', 'land_binary_mask')) ! land_binary_mask but with added boundary=2
-   NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'long_name', 'msk_active_cells')) 
-   NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'description', 'inactive=0, active=1, normal_boundary=2, outflow_boundary=3'))    
-   NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'coordinates', 'x y'))   
+   NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'long_name', 'msk_active_cells'))
+   NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'description', 'inactive=0, active=1, normal_boundary=2, outflow_boundary=3'))
+   NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'coordinates', 'x y'))
    NF90(nf90_def_var_deflate(map_file%ncid, map_file%msk_varid, 1, 1, nc_deflate_level)) ! deflate
+   !
+   if (has_buildings) then
+      NF90(nf90_def_var(map_file%ncid, 'building_msk', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid/), map_file%building_msk_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%building_msk_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%building_msk_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%building_msk_varid, 'units', '-'))
+      NF90(nf90_put_att(map_file%ncid, map_file%building_msk_varid, 'standard_name', 'building_binary_mask'))
+      NF90(nf90_put_att(map_file%ncid, map_file%building_msk_varid, 'long_name', 'building_footprint_mask'))
+      NF90(nf90_put_att(map_file%ncid, map_file%building_msk_varid, 'description', 'outside_building=0, inside_building=1'))
+      NF90(nf90_put_att(map_file%ncid, map_file%building_msk_varid, 'coordinates', 'x y'))
+   end if
+   !
+   if (has_buildings .and. use_building_detention) then
+      NF90(nf90_def_var(map_file%ncid, 'detention_level', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%detention_level_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%detention_level_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%detention_level_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%detention_level_varid, 'units', 'm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%detention_level_varid, 'standard_name', 'building_detention_equivalent_depth'))
+      NF90(nf90_put_att(map_file%ncid, map_file%detention_level_varid, 'long_name', 'building_detention_storage_equivalent_depth'))
+      NF90(nf90_put_att(map_file%ncid, map_file%detention_level_varid, 'description', 'current_detention_volume_divided_by_building_footprint_area'))
+      NF90(nf90_put_att(map_file%ncid, map_file%detention_level_varid, 'coordinates', 'x y'))
+   end if
    !
    ! Infiltration map
    !
@@ -783,7 +808,26 @@ contains
       !
    enddo
    !
-   NF90(nf90_put_var(map_file%ncid, map_file%msk_varid, zsg, (/1, 1/))) ! write msk     
+   NF90(nf90_put_var(map_file%ncid, map_file%msk_varid, zsg, (/1, 1/))) ! write msk
+   !
+   ! Write building mask
+   !
+   if (has_buildings) then
+      !
+      zsg = 0
+      !
+      do nm = 1, np
+         !
+         n    = z_index_z_n(nm)
+         m    = z_index_z_m(nm)
+         !
+         if (is_building_cell(nm)) zsg(m, n) = 1.0
+         !
+      enddo
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%building_msk_varid, zsg, (/1, 1/))) ! write building mask
+      !
+   endif
    !
    ! Write SnapWave msk
    !
@@ -863,12 +907,13 @@ contains
    ! 2. write grid/msk/zb to file
    !
    use sfincs_date
-   use sfincs_data   
-   use sfincs_snapwave   
+   use sfincs_data
+   use sfincs_snapwave
    use quadtree
+   use sfincs_buildings, only: is_building_cell, use_building_detention
    !
-   implicit none   
-   !   
+   implicit none
+   !
    integer    :: nm, nmq, nmu1, num1, n, m, nn, ntmx, n_nodes, n_faces, iref
    real*4     :: dxx, dyy
    !
@@ -1060,13 +1105,33 @@ contains
    !
    NF90(nf90_def_var(map_file%ncid, 'msk', NF90_INT, (/map_file%nmesh2d_face_dimid/), map_file%msk_varid)) ! input msk value in cell centre
    NF90(nf90_def_var_deflate(map_file%ncid, map_file%msk_varid, 1, 1, nc_deflate_level))
-   NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, '_FillValue', -999))      
+   NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, '_FillValue', -999))
    NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'units', '-'))
    NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'standard_name', 'mask'))
-   NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'long_name', 'msk_active_cells')) 
-   NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'description', 'inactive=0, active=1, normal_boundary=2, outflow_boundary=3, wavemaker=4'))    
+   NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'long_name', 'msk_active_cells'))
+   NF90(nf90_put_att(map_file%ncid, map_file%msk_varid, 'description', 'inactive=0, active=1, normal_boundary=2, outflow_boundary=3, wavemaker=4'))
    !
-   ! Time variables   
+   if (has_buildings) then
+      NF90(nf90_def_var(map_file%ncid, 'building_msk', NF90_INT, (/map_file%nmesh2d_face_dimid/), map_file%building_msk_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%building_msk_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%building_msk_varid, '_FillValue', -999))
+      NF90(nf90_put_att(map_file%ncid, map_file%building_msk_varid, 'units', '-'))
+      NF90(nf90_put_att(map_file%ncid, map_file%building_msk_varid, 'standard_name', 'building_binary_mask'))
+      NF90(nf90_put_att(map_file%ncid, map_file%building_msk_varid, 'long_name', 'building_footprint_mask'))
+      NF90(nf90_put_att(map_file%ncid, map_file%building_msk_varid, 'description', 'outside_building=0, inside_building=1'))
+   end if
+   !
+   if (has_buildings .and. use_building_detention) then
+      NF90(nf90_def_var(map_file%ncid, 'detention_level', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%detention_level_varid))
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%detention_level_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%detention_level_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%detention_level_varid, 'units', 'm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%detention_level_varid, 'standard_name', 'building_detention_equivalent_depth'))
+      NF90(nf90_put_att(map_file%ncid, map_file%detention_level_varid, 'long_name', 'building_detention_storage_equivalent_depth'))
+      NF90(nf90_put_att(map_file%ncid, map_file%detention_level_varid, 'description', 'current_detention_volume_divided_by_building_footprint_area'))
+   end if
+   !
+   ! Time variables
    !
    trefstr_iso8601 = date_to_iso8601(trefstr)
    !
@@ -1532,7 +1597,24 @@ contains
       endif
    enddo 
    !
-   NF90(nf90_put_var(map_file%ncid, map_file%msk_varid, vtmpi)) ! write msk 
+   NF90(nf90_put_var(map_file%ncid, map_file%msk_varid, vtmpi)) ! write msk
+   !
+   ! Write building mask
+   !
+   if (has_buildings) then
+      !
+      vtmpi = 0
+      !
+      do nmq = 1, quadtree_nr_points
+         nm = index_sfincs_in_quadtree(nmq)
+         if (nm > 0) then
+            if (is_building_cell(nm)) vtmpi(nmq) = 1
+         endif
+      enddo
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%building_msk_varid, vtmpi)) ! write building mask
+      !
+   endif
    !
    ! Write SnapWave msk
    !
@@ -2156,11 +2238,12 @@ contains
    !  
    subroutine ncoutput_update_regular_map(t,ntmapout)
    !
-   ! Write time, zs, u, v  
+   ! Write time, zs, u, v
    !
    use sfincs_data
    use sfincs_nonhydrostatic
    use sfincs_snapwave
+   use sfincs_buildings, only: detention_level_cell, use_building_detention
    !
    implicit none   
    !
@@ -2589,7 +2672,26 @@ contains
       NF90(nf90_put_var(map_file%ncid, map_file%pnonh_varid, zsg, (/1, 1, ntmapout/))) ! write h
       !
    endif
-   !           
+   !
+   ! Write building detention equivalent depth (time-varying)
+   !
+   if (has_buildings .and. use_building_detention) then
+      !
+      zsg = FILL_VALUE
+      !
+      do nm = 1, np
+         !
+         n    = z_index_z_n(nm)
+         m    = z_index_z_m(nm)
+         !
+         zsg(m, n) = detention_level_cell(nm)
+         !
+      enddo
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%detention_level_varid, zsg, (/1, 1, ntmapout/))) ! write detention_level
+      !
+   endif
+   !
    NF90(nf90_sync(map_file%ncid)) !write away intermediate data ! TL: in first test it seems to be faster to let the file update than keep in memory
    !
    end subroutine
@@ -2597,12 +2699,13 @@ contains
    
    subroutine ncoutput_update_quadtree_map(t,ntmapout)
       !
-      ! Write time, zs, u, v  
+      ! Write time, zs, u, v
       !
-      use sfincs_data   
+      use sfincs_data
       use sfincs_snapwave
       use sfincs_nonhydrostatic
       use quadtree
+      use sfincs_buildings, only: detention_level_cell, use_building_detention
       ! use snapwave_data
       !
       implicit none   
@@ -2990,8 +3093,25 @@ contains
          !
       endif
       !
+      ! Write building detention equivalent depth (time-varying)
+      !
+      if (has_buildings .and. use_building_detention) then
+         !
+         vtmp = FILL_VALUE
+         !
+         do nmq = 1, quadtree_nr_points
+            nm = index_sfincs_in_quadtree(nmq)
+            if (nm > 0) then
+               vtmp(nmq) = detention_level_cell(nm)
+            endif
+         enddo
+         !
+         NF90(nf90_put_var(map_file%ncid, map_file%detention_level_varid, vtmp, (/1, ntmapout/))) ! write detention_level
+         !
+      endif
+      !
       NF90(nf90_sync(map_file%ncid)) !write away intermediate data ! TL: in first test it seems to be faster to let the file update than keep in memory
-      !      
+      !
    end subroutine
    
    

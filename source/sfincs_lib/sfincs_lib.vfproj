@@ -60,6 +60,7 @@
 			<File RelativePath="..\src\sfincs_crosssections.f90"/>
 			<File RelativePath="..\src\sfincs_data.f90">
 			</File>
+			<File RelativePath="..\src\sfincs_buildings.f90"/>
 			<File RelativePath="..\src\sfincs_date.f90"/>
 			<File RelativePath="..\src\sfincs_discharges.f90"/>
 			<File RelativePath="..\src\sfincs_domain.f90">

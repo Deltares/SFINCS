@@ -19,6 +19,7 @@ libsfincs_la_SOURCES = \
 	sfincs_date.f90 \
 	sfincs_spiderweb.f90 \
 	sfincs_data.f90 \
+	sfincs_buildings.f90 \
     ../third_party_open/Delft3D/astro.f90 \
 	../third_party_open/utils/geometry.f90 \
 	sfincs_error.f90 \		
