@@ -491,6 +491,9 @@ module sfincs_data
       real*4, dimension(:,:),   allocatable :: wavemaker_forcing_hm0_ig
       real*4, dimension(:,:),   allocatable :: wavemaker_forcing_tp_ig
       real*4, dimension(:,:),   allocatable :: wavemaker_forcing_setup
+      real*4, dimension(:),     allocatable :: wavemaker_forcing_hm0_ig_t
+      real*4, dimension(:),     allocatable :: wavemaker_forcing_tp_ig_t
+      real*4, dimension(:),     allocatable :: wavemaker_forcing_setup_t
       !
       ! Following is for mobile wave makers.
       ! This feature has been turned off, but we keep the variables here in case
