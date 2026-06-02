@@ -27,11 +27,11 @@ contains
     real*4,            allocatable :: veg_bstems_lookup(:,:)
     real*4,            allocatable :: veg_nstems_lookup(:,:)
     !
-    if (use_quadtree .eqv. .false.) then
-        call stop_sfincs('Error ! Netcdf vegetation input format can only be specified for quadtree mesh model !', 1)
-    endif
-    !
     if (store_vegetation) then
+        !
+        if (use_quadtree .eqv. .false.) then
+            call stop_sfincs('Error ! Netcdf vegetation input format can only be specified for quadtree mesh model !', 1)
+        endif        
         !
         write(logstr,'(a,a)')'Info    : reading vegetation file ',trim(veggiefile)
         call write_log(logstr, 0)
