@@ -613,7 +613,7 @@ contains
    ! Input section
    !
    call read_real_input(500,'snapwave_gamma',gamma,0.7)
-   call read_real_input(500,'snapwave_gammax',gammax,2.0) ! MvO - Changed default gammax from 0.6 to 2.0     
+   call read_real_input(500,'snapwave_gammax',gammax,999.0)
    call read_real_input(500,'snapwave_alpha',alpha,1.0)
    call read_real_input(500,'snapwave_hmin',hmin,0.1)
    call read_real_input(500,'snapwave_fw',fw0,0.01)
