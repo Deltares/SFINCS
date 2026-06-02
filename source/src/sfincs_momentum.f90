@@ -174,7 +174,7 @@ contains
             zmin = subgrid_uv_zmin(ip)
             zmax = subgrid_uv_zmax(ip)
             !
-            if (zsu>zmin + huthresh) then ! In the 'new' subgrid formulations, zmin is lowest pixel + huthresh. Huthresh was already applied when building the subgrid tables. In sfincs_domain, huthresh is set to 0.0 to acount for this.
+            if (zsu > zmin) then ! In the 'new' subgrid formulations, zmin is lowest pixel + huthresh. Huthresh was already applied when building the subgrid tables. In sfincs_domain, huthresh is set to 0.0 to acount for this.
                iok = .true.
             endif   
             !
@@ -494,21 +494,78 @@ contains
                      if (uu < -1.0e-6) then
                         dqyudy = dqyudy + uu * ( qy_nmu - qy_ndmu ) * dyuvinv
                      endif
-                     !  
+                     !
+                  elseif (advection_scheme == 2) then
+                     !
+                     ! Stelling & Duijnmeijer (2003) momentum-conservative scheme.
+                     !
+                     ! Discretises d(h*u*u)/dx and d(h*v*u)/dy on the u-control-volume
+                     ! with first-order upwinding applied to the *transported velocity*
+                     ! (not to u alone). Combined with the energy-head correction added
+                     ! to the pressure term below, this yields a scheme that conserves
+                     ! momentum across hydraulic jumps / bores while remaining
+                     ! energy-conserving in smooth subcritical flow.
+                     !
+                     ! d (h*u*u) / dx
+                     !
+                     qd = 0.5 * (qx_nmd + qx_nm)    ! h*u at left  face of u-CV (= z-cell nm)
+                     qu = 0.5 * (qx_nm  + qx_nmu)   ! h*u at right face of u-CV (= z-cell nmu)
+                     !
+                     if (qd >= 0.0) then
+                        ud = uu_nmd                  ! upwind: take u from left
+                     else
+                        ud = uu_nm
+                     endif
+                     !
+                     if (qu >= 0.0) then
+                        uu = uu_nm                   ! upwind: take u from left
+                     else
+                        uu = uu_nmu
+                     endif
+                     !
+                     dqxudx = (qu * uu - qd * ud) * dxuvinv
+                     !
+                     ! d (h*v*u) / dy
+                     !
+                     qd = 0.5 * (qy_ndm + qy_ndmu)  ! h*v at lower face of u-CV
+                     qu = 0.5 * (qy_nm  + qy_nmu )  ! h*v at upper face of u-CV
+                     !
+                     if (qd >= 0.0) then
+                        ud = uu_ndm                  ! upwind: take u from below
+                     else
+                        ud = uu_nm
+                     endif
+                     !
+                     if (qu >= 0.0) then
+                        uu = uu_nm                   ! upwind: take u from below
+                     else
+                        uu = uu_num
+                     endif
+                     !
+                     dqyudy = (qu * uu - qd * ud) * dyuvinv
+                     !
                   endif
                   !
                   adv = - phi * (dqxudx + dqyudy)
                   !
                   ! Limit advection term such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2)
-                  ! Default advlim is 1.0 m/s2
+                  ! Default advlim is 1.0 m/s2.
+                  ! NOTE: scheme 2 (S&D03) is momentum-conservative by construction, so the
+                  ! tight 1 m/s^2 cap would re-introduce exactly the loss the scheme is
+                  ! designed to avoid. A looser cap (5x advlim) still suppresses wet/dry
+                  ! noise without choking the conservative momentum flux at real bores.
                   !
-                  adv = min(max(adv, - advlim * hu), advlim * hu) 
+                  if (advection_scheme == 2) then
+                     adv = min(max(adv, - 5.0 * advlim * hu), 5.0 * advlim * hu)
+                  else
+                     adv = min(max(adv, - advlim * hu), advlim * hu)
+                  endif
                   !
                   frc = frc + adv
                   !
                endif
-               !   
-            endif   
+               !
+            endif
             !
             ! Viscosity term
             !
@@ -669,7 +726,7 @@ contains
                hu73 = hu**2 * hu**expo
                !
             endif
-            ! 
+            !
             q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / hu73)
             !
             if (subgrid .and. wiggle_suppression) then 
@@ -777,7 +834,7 @@ contains
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
    !
-   end subroutine      
+   end subroutine
    !
    !
    function power7over3(hu) result(hu73)

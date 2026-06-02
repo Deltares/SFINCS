@@ -192,7 +192,21 @@ contains
    call read_real_input(500, 'nh_tstop', nh_tstop, -999.0)
    call read_real_input(500, 'nh_tol', nh_tol, 0.001)
    call read_int_input(500, 'nh_itermax', nh_itermax, 100)
-   call read_logical_input(500, 'h73table', h73table, .false.)   
+   call read_int_input(500, 'nonh_solver', nonh_solver, 1)   ! 1 = legacy BiCGSTAB-ILU, 2 = matrix-free SPD CG (rewrite)
+   call read_int_input(500, 'nh_sponge_width', nh_sponge_width, 0)      ! open-boundary nonh sponge width (cells); 0 = off
+   call read_real_input(500, 'nh_sponge_coef', nh_sponge_coef, 2.0)     ! open-boundary nonh sponge strength
+   call read_real_input(500, 'nh_relax', nh_relax, 1.0)                 ! under-relaxation of nonh velocity correction (1 = full)
+   call read_real_input(500, 'nh_filter', nh_filter, 0.0)               ! spatial 2dx filter on pnh (0 = off, ~0.25-0.5 damps grid mode)
+   call read_int_input(500, 'nh_dryfront', nh_dryfront, 0)              ! 1 = nonh cells with a dry neighbour go hydrostatic (wet/dry front); 0 = off (didn't help wall run-up)
+   call read_real_input(500, 'nh_runuph0', nh_runuph0, 0.0)             ! run-up depth taper: full hydrostatic at/below this depth (0 = off)
+   call read_real_input(500, 'nh_runuph1', nh_runuph1, 0.0)             ! run-up depth taper: full nonh at/above this depth
+   call read_real_input(500, 'nh_dzbmax', nh_dzbmax, 0.1)               ! cap on |d(zb)/dx| in bottom kinematic wb (default 0.1; clips near-vertical walls, leaves real slopes); 0 = no cap
+   call read_int_input(500, 'nh_fadein', nh_fadein, 0)                  ! open-boundary nonh fade-in width (cells): nonh ramps 0->full over N cells from the boundary; 0 = off
+   call read_real_input(500, 'nh_brsteep', nh_brsteep, 0.0)             ! XBeach HFA breaking criterion: cell goes hydrostatic when dzdt (=-d(hu)/dx) > nh_brsteep*sqrt(g*h); 0 = off (XBeach default 0.4)
+   call read_real_input(500, 'nh_reformsteep', nh_reformsteep, 0.0)     ! lower threshold for a cell next to a breaking cell to start breaking (XBeach reformsteep); 0 = use 0.25*nh_brsteep
+   call read_real_input(500, 'nh_smoothbnd', nh_smoothbnd, 0.5)         ! strength of localized 2dx pnh smoothing in the fade-in zone (weight at boundary, ramps to 0 with nh_fade) and shallow zone; 0 = off
+   call read_real_input(500, 'nh_smoothdep', nh_smoothdep, 0.0)         ! depth (m) below which the localized pnh smoothing also acts (shallow run-up / wall 2dx noise); weight ramps from full at D=0 to 0 at D=nh_smoothdep; 0 = off
+   call read_logical_input(500, 'h73table', h73table, .false.)
    call read_real_input(500, 'rugdepth', runup_gauge_depth, 0.05)
    call read_logical_input(500, 'wave_enhanced_roughness', wave_enhanced_roughness, .false.)
    call read_logical_input(500, 'use_bcafile', use_bcafile, .true.)   
@@ -666,6 +680,15 @@ contains
       elseif (trim(advstr) == 'upw1') then
          advection_scheme = 1
          call write_log('Info    : advection scheme : first-order upwind', 0)
+      elseif (trim(advstr) == 'upw_div') then
+         advection_scheme = 2
+         call write_log('Info    : advection scheme : first-order upwind divergence (momentum-conservative form, similar to SWASH eq. 6.2)', 0)
+      elseif (trim(advstr) == 'sd03') then
+         ! Deprecated alias for 'upw_div'. The scheme is structurally similar to
+         ! Stelling & Duijnmeijer (2003) in flux form but does not implement their
+         ! upwind h_u or energy/momentum switch — see upw_div instead.
+         advection_scheme = 2
+         call write_log('Info    : advection scheme : upwind divergence (legacy keyword sd03 -> upw_div)', 0)
       else
          write(logstr,*)'Warning : advection scheme ', trim(advstr), ' not recognized! Using default upw1 instead!'
          call write_log(logstr, 1)

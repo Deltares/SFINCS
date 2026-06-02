@@ -607,9 +607,13 @@ module sfincs_lib
                !
                ! Apply non-hydrostatic pressure corrections to q and uv
                !
-               call compute_nonhydrostatic(dt, tloopnonh)
+               if (nonh_solver == 2) then
+                  call compute_nonhydrostatic2(dt, tloopnonh)
+               else
+                  call compute_nonhydrostatic(dt, tloopnonh)
+               endif
                !
-            endif   
+            endif
             !
          endif
          !      

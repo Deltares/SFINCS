@@ -1271,7 +1271,12 @@ contains
          !
          if (kcs(nm) /= 1) cycle ! not a regular point
          !
-         ! Check if point has 4 neighbors with kcs = 1
+         ! Check that the point has regular (kcs = 1) neighbors. In the general
+         ! 2D case all four (left/right/bottom/top) are required. For a true 1-D
+         ! model (nmax == 1) cells legitimately have no bottom/top neighbor, so
+         ! only left/right are required there; the non-hydrostatic solver then
+         ! degrades to a 1-D (x-only) pressure Poisson problem, which all the
+         ! downstream assembly already supports through its per-direction guards.
          !
          ! Left
          !
@@ -1281,7 +1286,7 @@ contains
          !
          if (nmd == 0) cycle ! no neighbor
          !
-         if (kcs(nmd) /= 1) cycle ! neighbor is not a regular point
+         if (kcs(nmd) < 1 .or. kcs(nmd) > 3) cycle ! allow regular (1) or open-boundary (2/3) neighbour
          !
          ! Right
          !
@@ -1291,29 +1296,33 @@ contains
          !
          if (nmu == 0) cycle ! no neighbor
          !
-         if (kcs(nmu) /= 1) cycle ! neighbor is not a regular point
+         if (kcs(nmu) < 1 .or. kcs(nmu) > 3) cycle ! allow regular (1) or open-boundary (2/3) neighbour
          !
-         ! Bottom
+         if (nmax > 1) then
+            !
+            ! Bottom
+            !
+            if (z_flags_nd(nm) /= 0) cycle ! not a regular neighbor
+            !
+            ndm = z_index_z_nd1(nm)
+            !
+            if (ndm == 0) cycle ! no neighbor
+            !
+            if (kcs(ndm) < 1 .or. kcs(ndm) > 3) cycle ! allow regular (1) or open-boundary (2/3) neighbour
+            !
+            ! Top
+            !
+            if (z_flags_nu(nm) /= 0) cycle ! not a regular neighbor
+            !
+            num = z_index_z_nu1(nm)
+            !
+            if (num == 0) cycle ! no neighbor
+            !
+            if (kcs(num) < 1 .or. kcs(num) > 3) cycle ! allow regular (1) or open-boundary (2/3) neighbour
+            !
+         endif
          !
-         if (z_flags_nd(nm) /= 0) cycle ! not a regular neighbor
-         !
-         ndm = z_index_z_nd1(nm)
-         !
-         if (ndm == 0) cycle ! no neighbor
-         !
-         if (kcs(ndm) /= 1) cycle ! neighbor is not a regular point
-         !
-         ! Top
-         !
-         if (z_flags_nu(nm) /= 0) cycle ! not a regular neighbor
-         !
-         num = z_index_z_nu1(nm)
-         !
-         if (num == 0) cycle ! no neighbor
-         !
-         if (kcs(num) /= 1) cycle ! neighbor is not a regular point
-         !
-         ! This cell has 4 regular neighbors, so copy from quadtree mask
+         ! This cell has the required regular neighbors, so copy from quadtree mask
          !
          mask_nonh(nm) = quadtree_nonh_mask(index_quadtree_in_sfincs(nm))
          !

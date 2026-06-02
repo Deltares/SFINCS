@@ -21,6 +21,28 @@ module sfincs_nonhydrostatic
    real*4,  dimension(:), allocatable   :: dzbdx
    real*4,  dimension(:), allocatable   :: dzbdy
    !
+   ! Work arrays for the matrix-free SPD conjugate-gradient solver (nonh_solver = 2)
+   !
+   real*4,  dimension(:), allocatable   :: nh_dvert   ! vertical-accel diagonal term   (nrows)
+   real*4,  dimension(:), allocatable   :: nh_diag    ! Jacobi diagonal of A           (nrows)
+   real*4,  dimension(:), allocatable   :: nh_sponge_ramp ! open-boundary sponge ramp 0..1 (nrows)
+   real*4,  dimension(:), allocatable   :: nh_spongediag  ! sponge diagonal contribution   (nrows)
+   real*4,  dimension(:), allocatable   :: nh_fade        ! open-boundary nonh fade-in 0..1 (nrows)
+   integer, dimension(:), allocatable   :: nh_breaking    ! breaking flag (HFA): 0/1, 2/-1 transient (nrows)
+   integer, dimension(:), allocatable   :: nh_isfront     ! 1 if cell has a dry neighbour  (nrows)
+   real*4,  dimension(:), allocatable   :: cg_r       ! CG residual                    (nrows)
+   real*4,  dimension(:), allocatable   :: cg_z       ! CG preconditioned residual     (nrows)
+   real*4,  dimension(:), allocatable   :: cg_d       ! CG search direction            (nrows)
+   real*4,  dimension(:), allocatable   :: cg_Ap      ! CG operator-times-direction    (nrows)
+   !
+   integer, dimension(:), allocatable   :: nh_faceuv  ! full uv index of each nh face  (nhuv)
+   integer, dimension(:), allocatable   :: nh_faceL   ! row index of left/bottom cell  (nhuv, 0 = boundary)
+   integer, dimension(:), allocatable   :: nh_faceR   ! row index of right/top cell    (nhuv, 0 = boundary)
+   real*4,  dimension(:), allocatable   :: nh_cf      ! 0.5/dx static gradient weight  (nhuv)
+   real*4,  dimension(:), allocatable   :: nh_cR      ! gradient coeff of p(R) per face(nhuv)
+   real*4,  dimension(:), allocatable   :: nh_cL      ! gradient coeff of p(L) per face(nhuv)
+   real*4,  dimension(:), allocatable   :: nh_hu      ! water depth at face this step  (nhuv)
+   !
    real*4    :: huthresh_nh
    !
    integer   :: nrows
@@ -76,6 +98,31 @@ contains
    allocate(nm_index_of_row(nrows))
    allocate(nh_uv_index(4, nrows))
    allocate(nh_nm_index(4, nrows))
+   !
+   ! Work arrays for the matrix-free CG solver (nonh_solver = 2)
+   !
+   allocate(nh_dvert(nrows))
+   allocate(nh_diag(nrows))
+   allocate(nh_sponge_ramp(nrows))
+   allocate(nh_spongediag(nrows))
+   allocate(nh_fade(nrows))
+   nh_fade = 1.0
+   allocate(nh_breaking(nrows))
+   nh_breaking = 0
+   allocate(nh_isfront(nrows))
+   nh_isfront = 0
+   allocate(cg_r(nrows))
+   allocate(cg_z(nrows))
+   allocate(cg_d(nrows))
+   allocate(cg_Ap(nrows))
+   nh_dvert = 0.0
+   nh_diag = 0.0
+   nh_sponge_ramp = 0.0
+   nh_spongediag  = 0.0
+   cg_r = 0.0
+   cg_z = 0.0
+   cg_d = 0.0
+   cg_Ap = 0.0
    !
    huthresh_nh = max(huthresh, 0.01)
    !
@@ -140,7 +187,24 @@ contains
    !
    allocate(uv_index_of_nhuv(nhuv))
    uv_index_of_nhuv = 0
-   !   
+   !
+   ! Face arrays for the matrix-free CG solver (nonh_solver = 2)
+   !
+   allocate(nh_faceuv(nhuv))
+   allocate(nh_faceL(nhuv))
+   allocate(nh_faceR(nhuv))
+   allocate(nh_cf(nhuv))
+   allocate(nh_cR(nhuv))
+   allocate(nh_cL(nhuv))
+   allocate(nh_hu(nhuv))
+   nh_faceuv = 0
+   nh_faceL  = 0
+   nh_faceR  = 0
+   nh_cf     = 0.0
+   nh_cR     = 0.0
+   nh_cL     = 0.0
+   nh_hu     = 0.0
+   !
    ! Now find neigboring indices of nh uv points
    !
    inhuv = 0
@@ -383,11 +447,141 @@ contains
          !
       endif
       !
-   enddo   
+   enddo
+   !
+   ! Static per-face data for the matrix-free CG solver (nonh_solver = 2).
+   ! nh_cf = 0.5 / dx is the (depth-averaged) gradient weight; the factor 0.5
+   ! reflects that the linearly-varying non-hydrostatic pressure has a depth
+   ! mean of p_bed/2. Single refinement level here, so dxrinv(1) / dyrinv(1).
+   !
+   do ip = 1, nhuv
+      !
+      inhuv = uv_index_of_nhuv(ip)
+      nh_faceuv(ip) = inhuv
+      nh_faceL(ip)  = row_index_of_nm(uv_index_z_nm(inhuv))
+      nh_faceR(ip)  = row_index_of_nm(uv_index_z_nmu(inhuv))
+      !
+      if (uv_flags_dir(inhuv) == 0) then
+         nh_cf(ip) = 0.5 * dxrinv(1)
+      else
+         nh_cf(ip) = 0.5 * dyrinv(1)
+      endif
+      !
+   enddo
+   !
+   ! Open-boundary non-hydrostatic sponge ramp (nonh_solver = 2). A relaxation
+   ! layer nh_sponge_width cells deep inside each water-level / outflow (kcs 2/3)
+   ! boundary, where a ramped term is added to the pressure-operator diagonal so
+   ! that pnh is smoothly driven to zero towards the boundary. This absorbs the
+   ! outgoing non-hydrostatic (dispersive) energy that would otherwise resonate.
+   ! The cell-distance to the nearest open boundary is found by Bellman-Ford
+   ! relaxation over the non-hydrostatic face graph.
+   !
+   nh_sponge_ramp = 0.0
+   !
+   if (nh_sponge_width > 0) then
+      !
+      block
+         integer, dimension(:), allocatable :: idist
+         integer :: pass, nmL, nmR, rL, rR, d
+         real*4  :: rampval
+         !
+         allocate(idist(nrows))
+         idist = nh_sponge_width + 1
+         !
+         ! Seed: nonh cells that border an open boundary cell (distance 0)
+         !
+         do ip = 1, nhuv
+            inhuv = uv_index_of_nhuv(ip)
+            nmL = uv_index_z_nm(inhuv)
+            nmR = uv_index_z_nmu(inhuv)
+            rL  = nh_faceL(ip)
+            rR  = nh_faceR(ip)
+            if (rL > 0 .and. rR == 0) then
+               if (kcs(nmR) == 2 .or. kcs(nmR) == 3) idist(rL) = 0
+            endif
+            if (rR > 0 .and. rL == 0) then
+               if (kcs(nmL) == 2 .or. kcs(nmL) == 3) idist(rR) = 0
+            endif
+         enddo
+         !
+         ! Propagate distance inward (nh_sponge_width passes suffice)
+         !
+         do pass = 1, nh_sponge_width
+            do ip = 1, nhuv
+               rL = nh_faceL(ip)
+               rR = nh_faceR(ip)
+               if (rL > 0 .and. rR > 0) then
+                  if (idist(rL) + 1 < idist(rR)) idist(rR) = idist(rL) + 1
+                  if (idist(rR) + 1 < idist(rL)) idist(rL) = idist(rR) + 1
+               endif
+            enddo
+         enddo
+         !
+         ! Smooth (quadratic) ramp: 1 at the boundary, 0 at the inner edge
+         !
+         do irow = 1, nrows
+            d = idist(irow)
+            if (d < nh_sponge_width) then
+               rampval = real(nh_sponge_width - d) / real(nh_sponge_width)
+               nh_sponge_ramp(irow) = rampval * rampval
+            endif
+         enddo
+         !
+         deallocate(idist)
+      end block
+      !
+   endif
+   !
+   ! Open-boundary non-hydrostatic FADE-IN (nonh_solver = 2). Over nh_fadein cells
+   ! inside each open (water level / outflow) boundary, ramp the non-hydrostatic
+   ! coupling from 0 (at the boundary) to full (nh_fadein cells in). The incident
+   ! wave then enters hydrostatically at the boundary and the nonh turns on
+   ! gradually, avoiding the sharp pnh=0 -> full-nonh transition that reflects an
+   ! incoming dispersive wave. nh_fade is 1 everywhere by default (no fade).
+   !
+   if (nh_fadein > 0) then
+      !
+      block
+         integer, dimension(:), allocatable :: idist
+         integer :: pass, nmL, nmR, rL, rR
+         !
+         allocate(idist(nrows))
+         idist = nh_fadein + 1
+         do ip = 1, nhuv
+            inhuv = uv_index_of_nhuv(ip)
+            nmL = uv_index_z_nm(inhuv)
+            nmR = uv_index_z_nmu(inhuv)
+            rL  = nh_faceL(ip)
+            rR  = nh_faceR(ip)
+            if (rL > 0 .and. rR == 0) then
+               if (kcs(nmR) == 2 .or. kcs(nmR) == 3) idist(rL) = 0
+            endif
+            if (rR > 0 .and. rL == 0) then
+               if (kcs(nmL) == 2 .or. kcs(nmL) == 3) idist(rR) = 0
+            endif
+         enddo
+         do pass = 1, nh_fadein
+            do ip = 1, nhuv
+               rL = nh_faceL(ip)
+               rR = nh_faceR(ip)
+               if (rL > 0 .and. rR > 0) then
+                  if (idist(rL) + 1 < idist(rR)) idist(rR) = idist(rL) + 1
+                  if (idist(rR) + 1 < idist(rL)) idist(rL) = idist(rR) + 1
+               endif
+            enddo
+         enddo
+         do irow = 1, nrows
+            nh_fade(irow) = min(1.0, real(idist(irow)) / real(nh_fadein))
+         enddo
+         deallocate(idist)
+      end block
+      !
+   endif
    !
    end subroutine
 
-   
+
    subroutine compute_nonhydrostatic(dt, tloop)
    !
    ! Non-hydrostatic pressure correction on fluxes and velocities 
@@ -428,7 +622,9 @@ contains
    real*4    :: Dnmu
    real*4    :: hnmu
    real*4    :: unh
-   !   
+   real*4    :: pnhnm
+   real*4    :: pnhnmu
+   !
    real*4    :: hnb
    !
    real*4    :: dtover2rhodx2
@@ -635,7 +831,7 @@ contains
    dtover2rhodx = (dt * dxrinv(1) / (2 * rhow))
    !
    !$omp parallel &
-   !$omp private ( ip, ipuv, nm, nmu, nhnm, nhnmu, hu, unh )
+   !$omp private ( ip, ipuv, nm, nmu, nhnm, nhnmu, pnhnm, pnhnmu, hu, unh )
    !$omp do schedule ( dynamic, 256 )
    do ip = 1, nhuv
       !
@@ -644,7 +840,7 @@ contains
       if (kfuv(ipuv) == 1) then
          !
          ! Indices of neighbors in full zs array
-         ! 
+         !
          nm    = uv_index_z_nm(ipuv)
          nmu   = uv_index_z_nmu(ipuv)
          !
@@ -653,11 +849,24 @@ contains
          nhnm  = row_index_of_nm(nm)
          nhnmu = row_index_of_nm(nmu)
          !
+         ! Non-hydrostatic pressure at the two neighbours. A neighbour that is
+         ! not itself a non-hydrostatic cell (row index 0) is an open boundary
+         ! (water level / outflow) where the flow is hydrostatic: impose the
+         ! Dirichlet condition pnh = 0 there. This is consistent with the matrix
+         ! assembly, which already adds the centre-diagonal contribution for such
+         ! a face without an off-diagonal term, and it removes the out-of-bounds
+         ! pnh(0) read that previously occurred at the edge of the nonh region.
+         !
+         pnhnm  = 0.0
+         pnhnmu = 0.0
+         if (nhnm  > 0) pnhnm  = pnh(nhnm)
+         if (nhnmu > 0) pnhnmu = pnh(nhnmu)
+         !
          hu = max(zs(nm), zs(nmu)) - 0.5 * (zb(nm) + zb(nmu))
          !
          if (hu > huthresh_nh) then
             !
-            unh = - 1.0 * dtover2rhodx * ( AB(ip) * (pnh(nhnmu) + pnh(nhnm)) + pnh(nhnmu) - pnh(nhnm) )
+            unh = - 1.0 * dtover2rhodx * ( AB(ip) * (pnhnmu + pnhnm) + pnhnmu - pnhnm )
             !
             ! Do some nudging to avoid 2dx waves
             !
@@ -712,24 +921,34 @@ contains
          wb(irow) = wb(irow) - 0.5 * uv(iuv) * (hnb - hnm) * dxrinv(1)
       endif
       !
-      ! Bottom
-      !      
-      iuv = z_index_uv_nd(nm)     ! uv index
+      ! Bottom and Top contribute only when there is more than one row. For a
+      ! 1-D model (nmax == 1) the cell has no y-neighbours and z_index_uv_nd/nu
+      ! point at the dummy slot (npuv+ncuv+1), which would index kfuv (size npuv)
+      ! out of bounds. The y-direction bed kinematic term is identically zero
+      ! there anyway, so skip it.
       !
-      if (kfuv(iuv) > 0) then
-         nmn = uv_index_z_nm(iuv) ! nm index of neighbor
-         hnb = zs(nmn) - zb(nmn)  ! water depth at neighbor
-         wb(irow) = wb(irow) - 0.5 * uv(iuv) * (hnm - hnb) * dyrinv(1)
-      endif
-      !
-      ! Top
-      !
-      iuv = z_index_uv_nu(nm)      ! uv index
-      !
-      if (kfuv(iuv) > 0) then
-         nmn = uv_index_z_nmu(iuv) ! nm index of neighbor
-         hnb = zs(nmn) - zb(nmn)   ! water depth at neighbor
-         wb(irow) = wb(irow) - 0.5 * uv(iuv) * (hnb - hnm) * dyrinv(1)
+      if (nmax > 1) then
+         !
+         ! Bottom
+         !
+         iuv = z_index_uv_nd(nm)     ! uv index
+         !
+         if (kfuv(iuv) > 0) then
+            nmn = uv_index_z_nm(iuv) ! nm index of neighbor
+            hnb = zs(nmn) - zb(nmn)  ! water depth at neighbor
+            wb(irow) = wb(irow) - 0.5 * uv(iuv) * (hnm - hnb) * dyrinv(1)
+         endif
+         !
+         ! Top
+         !
+         iuv = z_index_uv_nu(nm)      ! uv index
+         !
+         if (kfuv(iuv) > 0) then
+            nmn = uv_index_z_nmu(iuv) ! nm index of neighbor
+            hnb = zs(nmn) - zb(nmn)   ! water depth at neighbor
+            wb(irow) = wb(irow) - 0.5 * uv(iuv) * (hnb - hnm) * dyrinv(1)
+         endif
+         !
       endif
       !
       ws(irow) = ws(irow) - (wb(irow) - wb0(irow)) + (2 * dt / (rhow * Dnm(irow))) * pnh(irow) ! this is ws m+1 in the next time step
@@ -741,6 +960,545 @@ contains
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
    !
-   end subroutine      
+   end subroutine
+
+
+   subroutine compute_nonhydrostatic2(dt, tloop)
+   !
+   ! Matrix-free, symmetric-positive-definite non-hydrostatic pressure
+   ! projection, solved with Jacobi-preconditioned conjugate gradients.
+   !
+   ! The pressure-gradient (momentum force) operator G and the divergence
+   ! operator are exact negative transposes (D = -G^T), so the pressure operator
+   !
+   !     A = (dt/rho) G^T G  +  diag( 2 dt /(rho H^2) )
+   !
+   ! is SPD and CG applies. This replaces the legacy non-symmetric assembly and
+   ! the sequential BiCGSTAB-ILU solve, and needs no anti-2dx nudging because the
+   ! pressure gradient shares the momentum stencil. Single refinement level
+   ! (quadtree transitions handled in a later phase).
+   !
+   use sfincs_data
+   !
+   implicit none
+   !
+   integer   :: count0, count1, count_rate, count_max
+   real      :: tloop
+   real*4    :: dt
+   !
+   integer   :: ip, ipuv, nm, nmu, nmn, irow, iuv, iter
+   real*4    :: dtrho, abf, hu, Dnm1, Dnmu, unh, gf, pL, pR, fdep, sl, slmax
+   real*4    :: rz, rznew, dAd, alpha, beta, bnorm, rnorm
+   real*4    :: dzdt, wmax, breform, qr, ql
+   integer   :: iuvr, iuvl, rl, rr, ineighbour
+   logical   :: bndok
+   real*4, dimension(:), allocatable :: bb
+   !
+   call system_clock(count0, count_rate, count_max)
+   !
+   if (nrows == 0) return
+   !
+   allocate(bb(nrows))
+   !
+   dtrho = dt / rhow
+   !
+   ! 1) Layer depth per row
+   !
+   do irow = 1, nrows
+      nm = nm_index_of_row(irow)
+      Dnm(irow) = max(zs(nm) - zb(nm), huthresh_nh)
+   enddo
+   !
+   ! 1b) Hydrostatic-front (wave-breaking) switch -- XBeach HFA (Smit, Zijlema &
+   !     Stelling 2013), as in XBeach's default subroutine nonh_break (nhbreaker=1).
+   !     A breaking wave is a bore: it is well described hydrostatically, and the
+   !     non-hydrostatic pressure there is both wrong and destabilizing. Detect
+   !     breaking from the SURFACE RATE OF RISE, built from the flux divergence
+   !     (= d(zs)/dt by continuity), which is the Miche steepness criterion:
+   !         d(zs)/dx = max steepness   and   d(zs)/dx = (d(zs)/dt)/c = dzdt/sqrt(g h)
+   !         ->  break when  dzdt > nh_brsteep * sqrt(g h).
+   !     A cell next to a breaking cell breaks at the lower nh_reformsteep
+   !     threshold; a breaking cell stops when dzdt < 0 (crest passed). The 2/-1
+   !     staging mirrors XBeach: a cell that (un)breaks this sweep is not seen as
+   !     a breaking neighbour until the sweep completes. A breaking cell is dropped
+   !     from the pressure solve (faces get zero coupling, pnh forced to 0).
+   !
+   if (nh_brsteep > 0.0) then
+      breform = nh_reformsteep
+      if (breform <= 0.0) breform = 0.25 * nh_brsteep
+      do irow = 1, nrows
+         nm   = nm_index_of_row(irow)
+         iuvr = z_index_uv_mu(nm)
+         iuvl = z_index_uv_md(nm)
+         qr = 0.0 ; ql = 0.0
+         if (iuvr > 0) qr = q(iuvr)
+         if (iuvl > 0) ql = q(iuvl)
+         dzdt = - (qr - ql) * dxrinv(1)
+         ineighbour = 0
+         if (iuvl > 0) then
+            rl = row_index_of_nm(uv_index_z_nm(iuvl))
+            if (rl > 0) then ; if (nh_breaking(rl) == 1) ineighbour = 1 ; endif
+         endif
+         if (iuvr > 0) then
+            rr = row_index_of_nm(uv_index_z_nmu(iuvr))
+            if (rr > 0) then ; if (nh_breaking(rr) == 1) ineighbour = 1 ; endif
+         endif
+         if (nmax > 1) then
+            iuvr = z_index_uv_nu(nm)
+            iuvl = z_index_uv_nd(nm)
+            qr = 0.0 ; ql = 0.0
+            if (iuvr > 0) qr = q(iuvr)
+            if (iuvl > 0) ql = q(iuvl)
+            dzdt = dzdt - (qr - ql) * dyrinv(1)
+            if (iuvl > 0) then
+               rl = row_index_of_nm(uv_index_z_nm(iuvl))
+               if (rl > 0) then ; if (nh_breaking(rl) == 1) ineighbour = 1 ; endif
+            endif
+            if (iuvr > 0) then
+               rr = row_index_of_nm(uv_index_z_nmu(iuvr))
+               if (rr > 0) then ; if (nh_breaking(rr) == 1) ineighbour = 1 ; endif
+            endif
+         endif
+         wmax = sqrt(g * Dnm(irow))
+         if (nh_breaking(irow) == 0) then
+            if (dzdt > nh_brsteep * wmax) then
+               nh_breaking(irow) = 2
+            elseif (dzdt > breform * wmax .and. ineighbour == 1) then
+               nh_breaking(irow) = 2
+            endif
+         elseif (nh_breaking(irow) == 1) then
+            if (dzdt < 0.0) nh_breaking(irow) = -1
+         endif
+      enddo
+      do irow = 1, nrows
+         if (nh_breaking(irow) == 2)  nh_breaking(irow) = 1
+         if (nh_breaking(irow) == -1) nh_breaking(irow) = 0
+         if (nh_breaking(irow) == 1)  pnh(irow) = 0.0   ! hydrostatic: zero non-hydrostatic pressure
+      enddo
+   else
+      nh_breaking = 0
+   endif
+   !
+   ! 2) Per-face gradient coefficients. These depend on the water level (through
+   !    the bed-slope / layer term AB) and on which faces are wet and active this
+   !    step; inactive faces get zero coefficients (no pressure coupling).
+   !
+   do ip = 1, nhuv
+      ipuv = nh_faceuv(ip)
+      nm   = uv_index_z_nm(ipuv)
+      nmu  = uv_index_z_nmu(ipuv)
+      nh_cR(ip) = 0.0
+      nh_cL(ip) = 0.0
+      nh_hu(ip) = 0.0
+      ! Hydrostatic-front switch: no pressure coupling across a face touching a
+      ! breaking cell (the bore is hydrostatic). Leaves cR/cL/hu at zero.
+      if (nh_brsteep > 0.0) then
+         if (nh_faceL(ip) > 0) then
+            if (nh_breaking(nh_faceL(ip)) == 1) cycle
+         endif
+         if (nh_faceR(ip) > 0) then
+            if (nh_breaking(nh_faceR(ip)) == 1) cycle
+         endif
+      endif
+      ! Open (water-level/outflow, kcs 2/3) boundary faces. Two regimes:
+      !  - sponge OFF (nh_sponge_width = 0): SKIP the face (homogeneous Neumann).
+      !    The boundary flux is handled hydrostatically; this is reflective for the
+      !    non-hydrostatic part (the incident-wave collapse), the legacy behaviour.
+      !  - sponge ON  (nh_sponge_width > 0): keep the face ACTIVE. The boundary cell
+      !    is row 0, so it carries pnh = 0 (true Dirichlet) while the interior
+      !    smoothing stays intact, and the ramped sponge diagonal (step 3) absorbs
+      !    the outgoing non-hydrostatic energy -> a radiation/absorbing boundary.
+      ! Closed walls (kcs 0) and Neumann boundaries (kcs 6) keep kfuv = 0 / are
+      ! excluded here -> homogeneous Neumann, which is the correct solid-wall BC.
+      if (nh_sponge_width > 0) then
+         bndok = (kcs(nm)  == 1 .or. kcs(nm)  == 2 .or. kcs(nm)  == 3) .and. &
+                 (kcs(nmu) == 1 .or. kcs(nmu) == 2 .or. kcs(nmu) == 3)
+      else
+         bndok = (kcs(nm) == 1 .and. kcs(nmu) == 1)
+      endif
+      if (kfuv(ipuv) == 1 .and. bndok) then
+         if (zs(nm) > zb(nm) + huthresh_nh .and. zs(nmu) > zb(nmu) + huthresh_nh) then
+            hu = max(zs(nm), zs(nmu)) - 0.5 * (zb(nm) + zb(nmu))
+            if (hu > huthresh_nh) then
+               Dnm1 = max(zs(nm)  - zb(nm),  huthresh_nh)
+               Dnmu = max(zs(nmu) - zb(nmu), huthresh_nh)
+               abf  = ( (zs(nmu) + zb(nmu)) - (zs(nm) + zb(nm)) ) / (Dnm1 + Dnmu)
+               nh_cR(ip) = nh_cf(ip) * (1.0 + abf)
+               nh_cL(ip) = nh_cf(ip) * (abf - 1.0)
+               !
+               ! Conveyance depth for the flux correction and the depth-weighted
+               ! operator. SFINCS sets uv = q/max(hu,huvmin) in momentum, so q/uv
+               ! IS that depth. Using it keeps the corrected q and uv consistent
+               ! (same sign) and matches the depth continuity uses for the flux.
+               ! Falls back to the max-surface depth for a still (uv=0) face.
+               !
+               if (uv(ipuv) /= 0.0) then
+                  nh_hu(ip) = q(ipuv) / uv(ipuv)
+               else
+                  nh_hu(ip) = hu
+               endif
+               !
+               ! Run-up depth taper: ramp the non-hydrostatic response to zero in
+               ! thin water (full hydrostatic at/below nh_runuph0, full nonh
+               ! at/above nh_runuph1). Caps the single-layer nonh overshoot in the
+               ! steep wall run-up without touching the deeper shelf/shoaling.
+               !
+               if (nh_runuph1 > nh_runuph0) then
+                  fdep = (hu - nh_runuph0) / (nh_runuph1 - nh_runuph0)
+                  fdep = max(0.0, min(1.0, fdep))
+                  nh_cR(ip) = nh_cR(ip) * fdep
+                  nh_cL(ip) = nh_cL(ip) * fdep
+               endif
+               !
+               ! Open-boundary fade-in: ramp the coupling 0 -> full over nh_fadein
+               ! cells from the boundary, so the incident wave enters hydrostatically.
+               !
+               if (nh_fadein > 0) then
+                  fdep = 1.0
+                  if (nh_faceL(ip) > 0) fdep = min(fdep, nh_fade(nh_faceL(ip)))
+                  if (nh_faceR(ip) > 0) fdep = min(fdep, nh_fade(nh_faceR(ip)))
+                  nh_cR(ip) = nh_cR(ip) * fdep
+                  nh_cL(ip) = nh_cL(ip) * fdep
+               endif
+            endif
+         endif
+      endif
+   enddo
+   !
+   ! 2b) Wet/dry front: a non-hydrostatic cell with a dry neighbour is only
+   !     coupled on its wet side, so its pnh is under-constrained and spikes
+   !     (the wall run-up overshoot + shed 2dx). Switch such cells to hydrostatic
+   !     by zeroing every face coefficient that touches them. (nh_dryfront = 1)
+   !
+   if (nh_dryfront == 1) then
+      do irow = 1, nrows
+         nh_isfront(irow) = 0
+      enddo
+      do ip = 1, nhuv
+         ipuv = nh_faceuv(ip)
+         nm   = uv_index_z_nm(ipuv)
+         nmu  = uv_index_z_nmu(ipuv)
+         if (nh_faceL(ip) > 0 .and. zs(nmu) <= zb(nmu) + huthresh_nh) nh_isfront(nh_faceL(ip)) = 1
+         if (nh_faceR(ip) > 0 .and. zs(nm)  <= zb(nm)  + huthresh_nh) nh_isfront(nh_faceR(ip)) = 1
+      enddo
+      do ip = 1, nhuv
+         if (nh_faceL(ip) > 0) then
+            if (nh_isfront(nh_faceL(ip)) == 1) then
+               nh_cR(ip) = 0.0 ; nh_cL(ip) = 0.0
+            endif
+         endif
+         if (nh_faceR(ip) > 0) then
+            if (nh_isfront(nh_faceR(ip)) == 1) then
+               nh_cR(ip) = 0.0 ; nh_cL(ip) = 0.0
+            endif
+         endif
+      enddo
+   endif
+   !
+   ! 3) Vertical-acceleration diagonal, Laplacian diagonal, open-boundary sponge,
+   !    and the resulting Jacobi diagonal of A. nh_diag accumulates the Laplacian
+   !    diagonal here; the sponge then adds a ramped multiple of that Laplacian
+   !    diagonal near open boundaries (stored in nh_spongediag so apply_A_nh2
+   !    reproduces the same operator).
+   !
+   !    DEPTH-WEIGHTED (flux-divergence) form, consistent with the continuity
+   !    equation and with XBeach: each face Laplacian term carries the face depth
+   !    nh_hu, and the whole per-cell equation is in flux units (so the vertical
+   !    diagonal is 2 dt/(rho H), not 2 dt/(rho H^2)). This makes the projection
+   !    null the same flux divergence that continuity uses - essential where the
+   !    depth varies (shoaling / run-up).
+   !
+   do irow = 1, nrows
+      nh_dvert(irow)     = 2.0 * dt / (rhow * Dnm(irow))
+      nh_diag(irow)      = 0.0
+      nh_spongediag(irow) = 0.0
+   enddo
+   do ip = 1, nhuv
+      if (nh_faceR(ip) > 0) nh_diag(nh_faceR(ip)) = nh_diag(nh_faceR(ip)) + dtrho * nh_hu(ip) * nh_cR(ip)**2
+      if (nh_faceL(ip) > 0) nh_diag(nh_faceL(ip)) = nh_diag(nh_faceL(ip)) + dtrho * nh_hu(ip) * nh_cL(ip)**2
+   enddo
+   if (nh_sponge_width > 0) then
+      do irow = 1, nrows
+         nh_spongediag(irow) = nh_sponge_ramp(irow) * nh_sponge_coef * nh_diag(irow)
+      enddo
+   endif
+   do irow = 1, nrows
+      nh_diag(irow) = nh_diag(irow) + nh_dvert(irow) + nh_spongediag(irow)
+   enddo
+   !
+   ! 4) Right-hand side (flux-divergence form):  b = G^T (hu u*) - (ws + wb0 - 2 wb)
+   !    The divergence uses the flux hu*u* (depth-weighted), and the vertical
+   !    source is in flux units (no division by H), matching the operator above.
+   !
+   do irow = 1, nrows
+      bb(irow) = - (ws(irow) + wb0(irow) - 2.0 * wb(irow))
+   enddo
+   if (nh_brsteep > 0.0) then
+      do irow = 1, nrows
+         if (nh_breaking(irow) == 1) bb(irow) = 0.0   ! breaking cell: no vertical source (hydrostatic)
+      enddo
+   endif
+   do ip = 1, nhuv
+      if (nh_cR(ip) == 0.0 .and. nh_cL(ip) == 0.0) cycle
+      unh = nh_hu(ip) * uv(nh_faceuv(ip))   ! provisional flux  hu*u*  at this face
+      if (nh_faceR(ip) > 0) bb(nh_faceR(ip)) = bb(nh_faceR(ip)) + nh_cR(ip) * unh
+      if (nh_faceL(ip) > 0) bb(nh_faceL(ip)) = bb(nh_faceL(ip)) + nh_cL(ip) * unh
+   enddo
+   !
+   ! 5) Jacobi-preconditioned CG:  A pnh = b   (warm start from previous pnh)
+   !
+   call apply_A_nh2(pnh, cg_Ap, dtrho)
+   do irow = 1, nrows
+      cg_r(irow) = bb(irow) - cg_Ap(irow)
+      cg_z(irow) = cg_r(irow) / nh_diag(irow)
+      cg_d(irow) = cg_z(irow)
+   enddo
+   rz    = 0.0
+   bnorm = 0.0
+   do irow = 1, nrows
+      rz    = rz    + cg_r(irow) * cg_z(irow)
+      bnorm = bnorm + bb(irow) * bb(irow)
+   enddo
+   bnorm = sqrt(bnorm)
+   if (bnorm <= 0.0) bnorm = 1.0
+   !
+   iter = 0
+   do
+      rnorm = 0.0
+      do irow = 1, nrows
+         rnorm = rnorm + cg_r(irow) * cg_r(irow)
+      enddo
+      rnorm = sqrt(rnorm)
+      if (rnorm / bnorm < nh_tol) exit
+      if (iter >= nh_itermax) exit
+      !
+      call apply_A_nh2(cg_d, cg_Ap, dtrho)
+      dAd = 0.0
+      do irow = 1, nrows
+         dAd = dAd + cg_d(irow) * cg_Ap(irow)
+      enddo
+      if (dAd <= 0.0) exit            ! safeguard against round-off breakdown
+      alpha = rz / dAd
+      do irow = 1, nrows
+         pnh(irow)  = pnh(irow)  + alpha * cg_d(irow)
+         cg_r(irow) = cg_r(irow) - alpha * cg_Ap(irow)
+         cg_z(irow) = cg_r(irow) / nh_diag(irow)
+      enddo
+      rznew = 0.0
+      do irow = 1, nrows
+         rznew = rznew + cg_r(irow) * cg_z(irow)
+      enddo
+      beta = rznew / rz
+      do irow = 1, nrows
+         cg_d(irow) = cg_z(irow) + beta * cg_d(irow)
+      enddo
+      rz = rznew
+      iter = iter + 1
+   enddo
+   !write(*,*)'iter=', iter
+   !
+   ! 5b) Spatial 2dx filter on pnh (nh_filter > 0). Damps the persistent grid-
+   !     scale (2dx) mode without touching the resolved smooth pressure: the
+   !     neighbour-mean of a 2dx pattern is -pnh (strongly damped), of a smooth
+   !     field +pnh (passes through). One Jacobi smoothing pass over nonh
+   !     neighbours; cg_d/cg_r/cg_z are free scratch after the CG solve.
+   !
+   if (nh_filter > 0.0) then
+      do irow = 1, nrows
+         cg_d(irow) = pnh(irow)
+         cg_r(irow) = 0.0
+         cg_z(irow) = 0.0
+      enddo
+      do ip = 1, nhuv
+         if (nh_faceL(ip) > 0 .and. nh_faceR(ip) > 0) then
+            cg_r(nh_faceL(ip)) = cg_r(nh_faceL(ip)) + cg_d(nh_faceR(ip))
+            cg_z(nh_faceL(ip)) = cg_z(nh_faceL(ip)) + 1.0
+            cg_r(nh_faceR(ip)) = cg_r(nh_faceR(ip)) + cg_d(nh_faceL(ip))
+            cg_z(nh_faceR(ip)) = cg_z(nh_faceR(ip)) + 1.0
+         endif
+      enddo
+      do irow = 1, nrows
+         if (cg_z(irow) > 0.0) then
+            pnh(irow) = (1.0 - nh_filter) * cg_d(irow) + nh_filter * cg_r(irow) / cg_z(irow)
+         endif
+      enddo
+   endif
+   !
+   ! 5c) Localized 2dx smoothing of pnh in the marginal-nonh zones. The grid-scale
+   !     (2dx) pressure mode the vertical source excites is normally suppressed by
+   !     the horizontal Laplacian; it re-appears wherever that coupling is weak:
+   !       - the open-boundary FADE-IN zone (nh_fade < 1), and
+   !       - SHALLOW run-up water near a wall (D < nh_smoothdep), where the layer
+   !         term dominates and the wave is near-hydrostatic anyway.
+   !     One Jacobi neighbour-mean pass, weighted per cell by nh_smoothbnd times the
+   !     larger of the two triggers, so it is identically zero in the resolved
+   !     interior (nh_fade = 1 and D >= nh_smoothdep) and never touches the physical
+   !     trailing waves in deeper water. A 2dx checkerboard has neighbour-mean =
+   !     -pnh, so weight w damps it by (1-2w); a smooth field passes through.
+   !     cg_d/cg_r/cg_z are free scratch after the CG solve.
+   !
+   if (nh_smoothbnd > 0.0 .and. (nh_fadein > 0 .or. nh_smoothdep > 0.0)) then
+      do irow = 1, nrows
+         cg_d(irow) = pnh(irow)
+         cg_r(irow) = 0.0
+         cg_z(irow) = 0.0
+      enddo
+      do ip = 1, nhuv
+         if (nh_faceL(ip) > 0 .and. nh_faceR(ip) > 0) then
+            cg_r(nh_faceL(ip)) = cg_r(nh_faceL(ip)) + cg_d(nh_faceR(ip))
+            cg_z(nh_faceL(ip)) = cg_z(nh_faceL(ip)) + 1.0
+            cg_r(nh_faceR(ip)) = cg_r(nh_faceR(ip)) + cg_d(nh_faceL(ip))
+            cg_z(nh_faceR(ip)) = cg_z(nh_faceR(ip)) + 1.0
+         endif
+      enddo
+      do irow = 1, nrows
+         if (cg_z(irow) > 0.0) then
+            fdep = 0.0
+            if (nh_fadein > 0)        fdep = 1.0 - nh_fade(irow)               ! fade-zone trigger
+            if (nh_smoothdep > 0.0)   fdep = max(fdep, (nh_smoothdep - Dnm(irow)) / nh_smoothdep)  ! shallow trigger
+            gf = nh_smoothbnd * max(0.0, min(1.0, fdep))   ! local weight; 0 in resolved interior
+            pnh(irow) = (1.0 - gf) * cg_d(irow) + gf * cg_r(irow) / cg_z(irow)
+         endif
+      enddo
+   endif
+   !
+   ! 6) Correct fluxes / velocities with the pressure gradient. This is the
+   !    momentum force -(dt/rho) G pnh integrated over the step; no nudging.
+   !
+   do ip = 1, nhuv
+      if (nh_cR(ip) == 0.0 .and. nh_cL(ip) == 0.0) cycle
+      ipuv = nh_faceuv(ip)
+      pR = 0.0
+      pL = 0.0
+      if (nh_faceR(ip) > 0) pR = pnh(nh_faceR(ip))
+      if (nh_faceL(ip) > 0) pL = pnh(nh_faceL(ip))
+      gf  = nh_cR(ip) * pR + nh_cL(ip) * pL          ! (G pnh)_face
+      unh = - dtrho * gf                              ! velocity increment
+      uv(ipuv) = uv(ipuv) + nh_relax * unh
+      q(ipuv)  = q(ipuv)  + nh_hu(ip) * nh_relax * unh
+   enddo
+   !
+   ! 7) Update surface/bottom vertical velocities for the next step's forcing.
+   !    The bottom kinematic condition is w_b = u . d(zb)/dx : the flow follows
+   !    the (static) BED slope, built from the bed levels zb directly. The bed
+   !    slope is optionally capped at +/- nh_dzbmax: a near-vertical wall step
+   !    (|d(zb)/dx| ~ 20-80 here) would otherwise produce an enormous spurious
+   !    w_b when a thin wall cell wets, triggering a 2dt explicit instability.
+   !    Real bed slopes (<= 1:13 here) are well below the cap and untouched.
+   !
+   slmax = nh_dzbmax
+   if (slmax <= 0.0) slmax = huge(1.0)   ! 0 = no cap
+   !
+   do irow = 1, nrows
+      nm  = nm_index_of_row(irow)
+      !
+      ! Non-hydrostatically dry cell (h <= huthresh_nh): carry NO non-hydrostatic
+      ! state. Reset pnh/ws/wb to zero so the cell is fully hydrostatic and starts
+      ! clean when it next wets. (A just-wetted thin cell otherwise re-enters the
+      ! solve with stale ws/wb/pnh, which is the residual wet/dry artifact at the
+      ! repeatedly wetting/drying wall cell.)
+      !
+      if (zs(nm) - zb(nm) <= huthresh_nh) then
+         wb0(irow) = 0.0
+         wb(irow)  = 0.0
+         ws(irow)  = 0.0
+         pnh(irow) = 0.0
+         nh_breaking(irow) = 0   ! clear breaking so a re-wetting cell starts clean
+         cycle
+      endif
+      !
+      wb0(irow) = wb(irow)
+      wb(irow)  = 0.0
+      !
+      ! Only sum faces to NON-HYDROSTATICALLY-wet neighbours (h > huthresh_nh).
+      ! Gating on kfuv alone (the SFINCS wet flag, h > huthresh ~ 1e-4) lets a
+      ! repeatedly wetting/drying thin neighbour toggle a term in wb every step.
+      !
+      iuv = z_index_uv_md(nm)
+      if (kfuv(iuv) > 0) then
+         nmn = uv_index_z_nm(iuv)
+         if (zs(nmn) - zb(nmn) > huthresh_nh) then
+            sl  = (zb(nmn) - zb(nm)) * dxrinv(1)
+            sl  = max(-slmax, min(slmax, sl))
+            wb(irow) = wb(irow) - 0.5 * uv(iuv) * sl
+         endif
+      endif
+      iuv = z_index_uv_mu(nm)
+      if (kfuv(iuv) > 0) then
+         nmn = uv_index_z_nmu(iuv)
+         if (zs(nmn) - zb(nmn) > huthresh_nh) then
+            sl  = (zb(nm) - zb(nmn)) * dxrinv(1)
+            sl  = max(-slmax, min(slmax, sl))
+            wb(irow) = wb(irow) - 0.5 * uv(iuv) * sl
+         endif
+      endif
+      if (nmax > 1) then
+         iuv = z_index_uv_nd(nm)
+         if (kfuv(iuv) > 0) then
+            nmn = uv_index_z_nm(iuv)
+            if (zs(nmn) - zb(nmn) > huthresh_nh) then
+               sl  = (zb(nmn) - zb(nm)) * dyrinv(1)
+               sl  = max(-slmax, min(slmax, sl))
+               wb(irow) = wb(irow) - 0.5 * uv(iuv) * sl
+            endif
+         endif
+         iuv = z_index_uv_nu(nm)
+         if (kfuv(iuv) > 0) then
+            nmn = uv_index_z_nmu(iuv)
+            if (zs(nmn) - zb(nmn) > huthresh_nh) then
+               sl  = (zb(nm) - zb(nmn)) * dyrinv(1)
+               sl  = max(-slmax, min(slmax, sl))
+               wb(irow) = wb(irow) - 0.5 * uv(iuv) * sl
+            endif
+         endif
+      endif
+      !
+      ws(irow) = ws(irow) - (wb(irow) - wb0(irow)) + (2.0 * dt / (rhow * Dnm(irow))) * pnh(irow)
+   enddo
+   !
+   deallocate(bb)
+   !
+   call system_clock(count1, count_rate, count_max)
+   tloop = tloop + 1.0*(count1 - count0)/count_rate
+   !
+   end subroutine
+
+
+   subroutine apply_A_nh2(p, Ap, dtrho)
+   !
+   ! Matrix-free SPD operator (depth-weighted / flux-divergence form, XBeach-
+   ! consistent):  Ap = (dt/rho) G^T diag(hu) G p  +  diag( 2 dt/(rho H) ) p .
+   ! Each face Laplacian term carries the face depth nh_hu, so the operator nulls
+   ! the same flux divergence the continuity equation uses. Still SPD (hu > 0,
+   ! Gram form). Boundary cells (row index 0) carry p = 0 (Dirichlet), realised
+   ! by not gathering/scattering them.
+   !
+   implicit none
+   !
+   real*4, intent(in)  :: p(:)
+   real*4, intent(out) :: Ap(:)
+   real*4, intent(in)  :: dtrho
+   !
+   integer :: ip, rL, rR, irow
+   real*4  :: pL, pR, hf
+   !
+   do irow = 1, nrows
+      Ap(irow) = (nh_dvert(irow) + nh_spongediag(irow)) * p(irow)
+   enddo
+   !
+   do ip = 1, nhuv
+      if (nh_cR(ip) == 0.0 .and. nh_cL(ip) == 0.0) cycle
+      rL = nh_faceL(ip)
+      rR = nh_faceR(ip)
+      pL = 0.0
+      pR = 0.0
+      if (rR > 0) pR = p(rR)
+      if (rL > 0) pL = p(rL)
+      hf = dtrho * nh_hu(ip) * (nh_cR(ip) * pR + nh_cL(ip) * pL)
+      if (rR > 0) Ap(rR) = Ap(rR) + nh_cR(ip) * hf
+      if (rL > 0) Ap(rL) = Ap(rL) + nh_cL(ip) * hf
+   enddo
+   !
+   end subroutine
 
 end module
