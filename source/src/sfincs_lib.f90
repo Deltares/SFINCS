@@ -14,6 +14,7 @@ module sfincs_lib
    use sfincs_meteo
    use sfincs_infiltration
    use sfincs_data
+   use sfincs_buildings				  
    use sfincs_date
    use sfincs_output
    use sfincs_ncinput
@@ -528,6 +529,11 @@ module sfincs_lib
          ! Update forcing used in momentum and continuity equations (this does happen every time step)
          !
          call update_meteo_forcing(t, dt, tloopwnd2)
+		 
+		 ! Accumulate rainfall on buildings (before applying to grid)
+		 if (nbuildings > 0) then
+			 call accumulate_building_rainfall(prcp, real(dt, 8))
+		 endif
          !
          ! Update infiltration
          !
@@ -616,8 +622,13 @@ module sfincs_lib
          ! Update water levels
          !
          call compute_water_levels(t, dt, tloopcont)
-         !
-      endif   
+	  !
+	  ! Redistribute accumulated building water to perimeter
+		if (nbuildings > 0) then
+			call redistribute_building_water(zs, real(dt, 8))
+		 endif
+		 !
+	  endif   ! end of if (bathtub) then ... else
       !
       ! OUTPUT
       !      
