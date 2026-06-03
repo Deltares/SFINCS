@@ -72,6 +72,7 @@ module sfincs_data
       real*4 pavbnd
       real*4 gapres
       real*4 advlim
+      real*4 adv_wiggle
       real*4 slopelim
       real*4 twet_threshold
       real*4, dimension(:), allocatable :: cd_wnd
@@ -111,9 +112,15 @@ module sfincs_data
       real*4 nh_runuph1
       real*4 nh_dzbmax
       real*4 nh_brsteep
+      real*4 nh_brwidth
       real*4 nh_reformsteep
       real*4 nh_smoothbnd
       real*4 nh_smoothdep
+      real*4 nh_disp
+      real*4 nh_pmax
+      integer nh_subiter
+      integer nh_brdilate
+      real*4 nh_omega
       real*4 nh_tol
       real*4 runup_gauge_depth
       real*4 factor_wind

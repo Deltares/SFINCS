@@ -28,7 +28,7 @@ module sfincs_nonhydrostatic
    real*4,  dimension(:), allocatable   :: nh_sponge_ramp ! open-boundary sponge ramp 0..1 (nrows)
    real*4,  dimension(:), allocatable   :: nh_spongediag  ! sponge diagonal contribution   (nrows)
    real*4,  dimension(:), allocatable   :: nh_fade        ! open-boundary nonh fade-in 0..1 (nrows)
-   integer, dimension(:), allocatable   :: nh_breaking    ! breaking flag (HFA): 0/1, 2/-1 transient (nrows)
+   real*4,  dimension(:), allocatable   :: nh_brfac       ! HFA breaking factor 1=full nonh .. 0=hydrostatic (nrows)
    integer, dimension(:), allocatable   :: nh_isfront     ! 1 if cell has a dry neighbour  (nrows)
    real*4,  dimension(:), allocatable   :: cg_r       ! CG residual                    (nrows)
    real*4,  dimension(:), allocatable   :: cg_z       ! CG preconditioned residual     (nrows)
@@ -107,8 +107,8 @@ contains
    allocate(nh_spongediag(nrows))
    allocate(nh_fade(nrows))
    nh_fade = 1.0
-   allocate(nh_breaking(nrows))
-   nh_breaking = 0
+   allocate(nh_brfac(nrows))
+   nh_brfac = 1.0
    allocate(nh_isfront(nrows))
    nh_isfront = 0
    allocate(cg_r(nrows))
@@ -862,7 +862,8 @@ contains
          if (nhnm  > 0) pnhnm  = pnh(nhnm)
          if (nhnmu > 0) pnhnmu = pnh(nhnmu)
          !
-         hu = max(zs(nm), zs(nmu)) - 0.5 * (zb(nm) + zb(nmu))
+         !hu = max(zs(nm), zs(nmu)) - 0.5 * (zb(nm) + zb(nmu))
+         hu = max(zs(nm), zs(nmu)) - max(zb(nm), zb(nmu))
          !
          if (hu > huthresh_nh) then
             !
@@ -907,8 +908,8 @@ contains
       !
       if (kfuv(iuv) > 0) then
          nmn = uv_index_z_nm(iuv)  ! nm index of neighbor
-         hnb = zs(nmn) - zb(nmn)   ! water depth at neighbor
-         wb(irow) = wb(irow) - 0.5 * uv(iuv) * (hnm - hnb) * dxrinv(1)
+         !hnb = zs(nmn) - zb(nmn)   ! water depth at neighbor
+         wb(irow) = wb(irow) - 0.5 * uv(iuv) * (zb(nmn) - zb(nm)) * dxrinv(1)
       endif
       !
       ! Right
@@ -917,8 +918,8 @@ contains
       !
       if (kfuv(iuv) > 0) then
          nmn = uv_index_z_nmu(iuv) ! nm index of neighbor
-         hnb = zs(nmn) - zb(nmn)   ! water depth at neighbor
-         wb(irow) = wb(irow) - 0.5 * uv(iuv) * (hnb - hnm) * dxrinv(1)
+         !hnb = zs(nmn) - zb(nmn)   ! water depth at neighbor
+         wb(irow) = wb(irow) - 0.5 * uv(iuv) * (zb(nm) - zb(nmn)) * dxrinv(1)
       endif
       !
       ! Bottom and Top contribute only when there is more than one row. For a
@@ -935,8 +936,8 @@ contains
          !
          if (kfuv(iuv) > 0) then
             nmn = uv_index_z_nm(iuv) ! nm index of neighbor
-            hnb = zs(nmn) - zb(nmn)  ! water depth at neighbor
-            wb(irow) = wb(irow) - 0.5 * uv(iuv) * (hnm - hnb) * dyrinv(1)
+            !hnb = zs(nmn) - zb(nmn)  ! water depth at neighbor
+            wb(irow) = wb(irow) - 0.5 * uv(iuv) * (zb(nmn) - zb(nm)) * dyrinv(1)
          endif
          !
          ! Top
@@ -945,8 +946,8 @@ contains
          !
          if (kfuv(iuv) > 0) then
             nmn = uv_index_z_nmu(iuv) ! nm index of neighbor
-            hnb = zs(nmn) - zb(nmn)   ! water depth at neighbor
-            wb(irow) = wb(irow) - 0.5 * uv(iuv) * (hnb - hnm) * dyrinv(1)
+            !hnb = zs(nmn) - zb(nmn)   ! water depth at neighbor
+            wb(irow) = wb(irow) - 0.5 * uv(iuv) * (zb(nm) - zb(nmn)) * dyrinv(1)
          endif
          !
       endif
@@ -989,7 +990,7 @@ contains
    integer   :: ip, ipuv, nm, nmu, nmn, irow, iuv, iter
    real*4    :: dtrho, abf, hu, Dnm1, Dnmu, unh, gf, pL, pR, fdep, sl, slmax
    real*4    :: rz, rznew, dAd, alpha, beta, bnorm, rnorm
-   real*4    :: dzdt, wmax, breform, qr, ql
+   real*4    :: dzdt, wmax, breform, qr, ql, kbfac, bf, ratio, pcap
    integer   :: iuvr, iuvl, rl, rr, ineighbour
    logical   :: bndok
    real*4, dimension(:), allocatable :: bb
@@ -997,6 +998,13 @@ contains
    call system_clock(count0, count_rate, count_max)
    !
    if (nrows == 0) return
+   !
+   ! Keller-box vertical factor: 2.0 = linear-pressure single layer (solver 2).
+   ! Solver 3 makes it tunable (nh_disp); >2 strengthens the short-wave pressure
+   ! feedback, adding dispersion to flatten c(k) toward Airy.
+   !
+   kbfac = 2.0
+   if (nonh_solver == 3) kbfac = nh_disp
    !
    allocate(bb(nrows))
    !
@@ -1009,74 +1017,178 @@ contains
       Dnm(irow) = max(zs(nm) - zb(nm), huthresh_nh)
    enddo
    !
-   ! 1b) Hydrostatic-front (wave-breaking) switch -- XBeach HFA (Smit, Zijlema &
-   !     Stelling 2013), as in XBeach's default subroutine nonh_break (nhbreaker=1).
-   !     A breaking wave is a bore: it is well described hydrostatically, and the
-   !     non-hydrostatic pressure there is both wrong and destabilizing. Detect
-   !     breaking from the SURFACE RATE OF RISE, built from the flux divergence
-   !     (= d(zs)/dt by continuity), which is the Miche steepness criterion:
-   !         d(zs)/dx = max steepness   and   d(zs)/dx = (d(zs)/dt)/c = dzdt/sqrt(g h)
-   !         ->  break when  dzdt > nh_brsteep * sqrt(g h).
-   !     A cell next to a breaking cell breaks at the lower nh_reformsteep
-   !     threshold; a breaking cell stops when dzdt < 0 (crest passed). The 2/-1
-   !     staging mirrors XBeach: a cell that (un)breaks this sweep is not seen as
-   !     a breaking neighbour until the sweep completes. A breaking cell is dropped
-   !     from the pressure solve (faces get zero coupling, pnh forced to 0).
+   ! 1b) Hydrostatic-front (wave-breaking) reduction -- a GRADUAL form of the XBeach
+   !     HFA (Smit, Zijlema & Stelling 2013). A breaking wave becomes a bore, well
+   !     described hydrostatically; the non-hydrostatic pressure there is wrong and
+   !     destabilizing. We detect steepening from the surface rate of rise, built
+   !     from the flux divergence (= d(zs)/dt by continuity = Miche steepness):
+   !         d(zs)/dx = (d(zs)/dt)/c = dzdt / sqrt(g h),  threshold = nh_brsteep.
+   !     Instead of XBeach's hard on/off (which abruptly decouples the front and makes
+   !     the wave fall apart), we ramp a per-cell factor nh_brfac smoothly from 1 (full
+   !     non-hydrostatic, at/below the threshold) to 0 (fully hydrostatic, at a steepness
+   !     ratio of 1+nh_brwidth). nh_brfac then scales BOTH the horizontal face coupling
+   !     (step 2) and the vertical source (step 4), so the cell transitions smoothly to
+   !     a hydrostatic bore -- SPD-consistent, no abrupt collapse. nh_brwidth = 0 gives
+   !     the old hard binary switch. Only the rising front (dzdt > 0) is reduced.
    !
    if (nh_brsteep > 0.0) then
       breform = nh_reformsteep
       if (breform <= 0.0) breform = 0.25 * nh_brsteep
+      ! --- (a) raw surface rate-of-rise  dzdt = -div(q)  (= d(zs)/dt by continuity) into cg_z ---
       do irow = 1, nrows
          nm   = nm_index_of_row(irow)
-         iuvr = z_index_uv_mu(nm)
-         iuvl = z_index_uv_md(nm)
+         iuvr = z_index_uv_mu(nm) ; iuvl = z_index_uv_md(nm)
          qr = 0.0 ; ql = 0.0
          if (iuvr > 0) qr = q(iuvr)
          if (iuvl > 0) ql = q(iuvl)
          dzdt = - (qr - ql) * dxrinv(1)
-         ineighbour = 0
-         if (iuvl > 0) then
-            rl = row_index_of_nm(uv_index_z_nm(iuvl))
-            if (rl > 0) then ; if (nh_breaking(rl) == 1) ineighbour = 1 ; endif
-         endif
-         if (iuvr > 0) then
-            rr = row_index_of_nm(uv_index_z_nmu(iuvr))
-            if (rr > 0) then ; if (nh_breaking(rr) == 1) ineighbour = 1 ; endif
-         endif
          if (nmax > 1) then
-            iuvr = z_index_uv_nu(nm)
-            iuvl = z_index_uv_nd(nm)
+            iuvr = z_index_uv_nu(nm) ; iuvl = z_index_uv_nd(nm)
             qr = 0.0 ; ql = 0.0
             if (iuvr > 0) qr = q(iuvr)
             if (iuvl > 0) ql = q(iuvl)
             dzdt = dzdt - (qr - ql) * dyrinv(1)
-            if (iuvl > 0) then
-               rl = row_index_of_nm(uv_index_z_nm(iuvl))
-               if (rl > 0) then ; if (nh_breaking(rl) == 1) ineighbour = 1 ; endif
+         endif
+         cg_z(irow) = dzdt
+      enddo
+      ! --- (b) SMOOTH dzdt before thresholding. Raw dzdt carries a 2dx component, so the
+      !     per-cell criterion trips on noise -> scattered, isolated pnh=0 cells (no spatial
+      !     coherence; the non-breaking gaps in between keep their source-driven pnh -> a
+      !     2dx sawtooth). Two [1 2 1]/4 diffusion passes over the nh faces make the criterion
+      !     fire over a CONNECTED front -> a contiguous breaking block. cg_z = raw -> smoothed. ---
+      do iter = 1, 2
+         do irow = 1, nrows
+            cg_d(irow) = cg_z(irow)
+         enddo
+         do ip = 1, nhuv
+            ipuv = nh_faceuv(ip)
+            rl = row_index_of_nm(uv_index_z_nm(ipuv))
+            rr = row_index_of_nm(uv_index_z_nmu(ipuv))
+            if (rl > 0 .and. rr > 0) then
+               cg_d(rl) = cg_d(rl) + 0.25 * (cg_z(rr) - cg_z(rl))
+               cg_d(rr) = cg_d(rr) + 0.25 * (cg_z(rl) - cg_z(rr))
             endif
-            if (iuvr > 0) then
-               rr = row_index_of_nm(uv_index_z_nmu(iuvr))
-               if (rr > 0) then ; if (nh_breaking(rr) == 1) ineighbour = 1 ; endif
-            endif
+         enddo
+         do irow = 1, nrows
+            cg_z(irow) = cg_d(irow)
+         enddo
+      enddo
+      ! --- (c) snapshot last step's breaking state (cg_r is free until the solve) ---
+      do irow = 1, nrows
+         cg_r(irow) = nh_brfac(irow)
+      enddo
+      ! --- (d) hysteretic state machine on the SMOOTHED dzdt ---
+      do irow = 1, nrows
+         nm   = nm_index_of_row(irow)
+         dzdt = cg_z(irow)
+         ! is a neighbour already breaking? (read the snapshot -> no within-sweep contamination)
+         ineighbour = 0
+         iuvl = z_index_uv_md(nm)
+         if (iuvl > 0) then ; rl = row_index_of_nm(uv_index_z_nm(iuvl))
+            if (rl > 0) then ; if (cg_r(rl) < 1.0) ineighbour = 1 ; endif ; endif
+         iuvr = z_index_uv_mu(nm)
+         if (iuvr > 0) then ; rr = row_index_of_nm(uv_index_z_nmu(iuvr))
+            if (rr > 0) then ; if (cg_r(rr) < 1.0) ineighbour = 1 ; endif ; endif
+         if (nmax > 1) then
+            iuvl = z_index_uv_nd(nm)
+            if (iuvl > 0) then ; rl = row_index_of_nm(uv_index_z_nm(iuvl))
+               if (rl > 0) then ; if (cg_r(rl) < 1.0) ineighbour = 1 ; endif ; endif
+            iuvr = z_index_uv_nu(nm)
+            if (iuvr > 0) then ; rr = row_index_of_nm(uv_index_z_nmu(iuvr))
+               if (rr > 0) then ; if (cg_r(rr) < 1.0) ineighbour = 1 ; endif ; endif
          endif
          wmax = sqrt(g * Dnm(irow))
-         if (nh_breaking(irow) == 0) then
+         ! Hysteretic state machine (XBeach nonh_break): onset at nh_brsteep, spread to a
+         ! breaking neighbour at the lower nh_reformsteep, and -- the key for limiting the
+         ! leading wave -- a breaking cell STAYS breaking (pnh=0) until the surface falls
+         ! (dzdt < 0), so it remains hydrostatic through the whole crest passage, not just
+         ! the steep front -> a sustained, connected hydrostatic roller that dissipates.
+         if (cg_r(irow) >= 1.0) then                                   ! was not breaking
             if (dzdt > nh_brsteep * wmax) then
-               nh_breaking(irow) = 2
+               nh_brfac(irow) = 0.0
             elseif (dzdt > breform * wmax .and. ineighbour == 1) then
-               nh_breaking(irow) = 2
+               nh_brfac(irow) = 0.0
+            else
+               nh_brfac(irow) = 1.0
             endif
-         elseif (nh_breaking(irow) == 1) then
-            if (dzdt < 0.0) nh_breaking(irow) = -1
+         else                                                          ! was breaking
+            if (dzdt < 0.0) then
+               nh_brfac(irow) = 1.0                                    ! release only when surface falls
+            else
+               nh_brfac(irow) = 0.0
+            endif
          endif
+         if (nh_brfac(irow) < 1.0) pnh(irow) = 0.0          ! breaking cell -> pnh = 0 Dirichlet (held through the solve)
       enddo
-      do irow = 1, nrows
-         if (nh_breaking(irow) == 2)  nh_breaking(irow) = 1
-         if (nh_breaking(irow) == -1) nh_breaking(irow) = 0
-         if (nh_breaking(irow) == 1)  pnh(irow) = 0.0   ! hydrostatic: zero non-hydrostatic pressure
+      !
+      ! Close interior holes so the breaking region is CONTIGUOUS. dzdt has a 2dx
+      ! component in the steep front, so the per-cell criterion flips breaking on/off
+      ! cell-to-cell -> alternating pnh=0 / pnh!=0 -> a 2dx sawtooth in pnh and the water
+      ! level. A non-breaking cell flanked by breaking cells (both x-sides, or both y-sides
+      ! in 2D) is filled in, repeated a few times to close wider gaps. (Conservative: only
+      ! fills internal holes, never grows the region outward.)
+      do iter = 1, 3
+         do irow = 1, nrows
+            cg_r(irow) = nh_brfac(irow)
+         enddo
+         do irow = 1, nrows
+            if (cg_r(irow) >= 1.0) then
+               nm = nm_index_of_row(irow)
+               ineighbour = 0
+               iuvl = z_index_uv_md(nm)
+               if (iuvl > 0) then ; rl = row_index_of_nm(uv_index_z_nm(iuvl))
+                  if (rl > 0) then ; if (cg_r(rl) < 1.0) ineighbour = ineighbour + 1 ; endif ; endif
+               iuvr = z_index_uv_mu(nm)
+               if (iuvr > 0) then ; rr = row_index_of_nm(uv_index_z_nmu(iuvr))
+                  if (rr > 0) then ; if (cg_r(rr) < 1.0) ineighbour = ineighbour + 2 ; endif ; endif
+               if (ineighbour == 3) then        ! breaking on both x-sides -> fill the hole
+                  nh_brfac(irow) = 0.0 ; pnh(irow) = 0.0
+               endif
+               if (nmax > 1 .and. nh_brfac(irow) >= 1.0) then
+                  ineighbour = 0
+                  iuvl = z_index_uv_nd(nm)
+                  if (iuvl > 0) then ; rl = row_index_of_nm(uv_index_z_nm(iuvl))
+                     if (rl > 0) then ; if (cg_r(rl) < 1.0) ineighbour = ineighbour + 1 ; endif ; endif
+                  iuvr = z_index_uv_nu(nm)
+                  if (iuvr > 0) then ; rr = row_index_of_nm(uv_index_z_nmu(iuvr))
+                     if (rr > 0) then ; if (cg_r(rr) < 1.0) ineighbour = ineighbour + 2 ; endif ; endif
+                  if (ineighbour == 3) then ; nh_brfac(irow) = 0.0 ; pnh(irow) = 0.0 ; endif
+               endif
+            endif
+         enddo
+      enddo
+      !
+      ! Dilate the breaking block outward by nh_brdilate cells. The block edge otherwise
+      ! ends at the crest, so the first NON-breaking cell on the back face carries a steep
+      ! nh source pinned against a pnh=0 neighbour -> a ~2x-hydrostatic one-cell pnh spike
+      ! that radiates 2dx noise down the trailing wave. Growing the pnh=0 region one cell
+      ! puts its edge in the gentle (dzdt<0) back, where the adjacent source is small.
+      do iter = 1, nh_brdilate
+         do irow = 1, nrows
+            cg_r(irow) = nh_brfac(irow)
+         enddo
+         do irow = 1, nrows
+            if (cg_r(irow) >= 1.0) then        ! non-breaking: break if ANY neighbour breaks
+               nm = nm_index_of_row(irow)
+               iuvl = z_index_uv_md(nm)
+               if (iuvl > 0) then ; rl = row_index_of_nm(uv_index_z_nm(iuvl))
+                  if (rl > 0) then ; if (cg_r(rl) < 1.0) then ; nh_brfac(irow) = 0.0 ; pnh(irow) = 0.0 ; endif ; endif ; endif
+               iuvr = z_index_uv_mu(nm)
+               if (iuvr > 0) then ; rr = row_index_of_nm(uv_index_z_nmu(iuvr))
+                  if (rr > 0) then ; if (cg_r(rr) < 1.0) then ; nh_brfac(irow) = 0.0 ; pnh(irow) = 0.0 ; endif ; endif ; endif
+               if (nmax > 1) then
+                  iuvl = z_index_uv_nd(nm)
+                  if (iuvl > 0) then ; rl = row_index_of_nm(uv_index_z_nm(iuvl))
+                     if (rl > 0) then ; if (cg_r(rl) < 1.0) then ; nh_brfac(irow) = 0.0 ; pnh(irow) = 0.0 ; endif ; endif ; endif
+                  iuvr = z_index_uv_nu(nm)
+                  if (iuvr > 0) then ; rr = row_index_of_nm(uv_index_z_nmu(iuvr))
+                     if (rr > 0) then ; if (cg_r(rr) < 1.0) then ; nh_brfac(irow) = 0.0 ; pnh(irow) = 0.0 ; endif ; endif ; endif
+               endif
+            endif
+         enddo
       enddo
    else
-      nh_breaking = 0
+      nh_brfac = 1.0
    endif
    !
    ! 2) Per-face gradient coefficients. These depend on the water level (through
@@ -1090,16 +1202,6 @@ contains
       nh_cR(ip) = 0.0
       nh_cL(ip) = 0.0
       nh_hu(ip) = 0.0
-      ! Hydrostatic-front switch: no pressure coupling across a face touching a
-      ! breaking cell (the bore is hydrostatic). Leaves cR/cL/hu at zero.
-      if (nh_brsteep > 0.0) then
-         if (nh_faceL(ip) > 0) then
-            if (nh_breaking(nh_faceL(ip)) == 1) cycle
-         endif
-         if (nh_faceR(ip) > 0) then
-            if (nh_breaking(nh_faceR(ip)) == 1) cycle
-         endif
-      endif
       ! Open (water-level/outflow, kcs 2/3) boundary faces. Two regimes:
       !  - sponge OFF (nh_sponge_width = 0): SKIP the face (homogeneous Neumann).
       !    The boundary flux is handled hydrostatically; this is reflective for the
@@ -1160,6 +1262,15 @@ contains
                   nh_cR(ip) = nh_cR(ip) * fdep
                   nh_cL(ip) = nh_cL(ip) * fdep
                endif
+               !
+               ! Gradual breaking (HFA): the face coupling is intentionally LEFT ACTIVE
+               ! here (unlike a hard decoupling). The non-hydrostatic effect is removed
+               ! gradually via the vertical SOURCE only (step 4, scaled by nh_brfac), so a
+               ! breaking cell keeps its pressure-gradient coupling to its neighbours
+               ! (XBeach-style pnh~0 Dirichlet) and the steep front still gets the one-
+               ! sided shoreward push from the soliton behind -> it hands over to a
+               ! propagating hydrostatic bore instead of decoupling and stalling.
+               !
             endif
          endif
       endif
@@ -1209,7 +1320,7 @@ contains
    !    depth varies (shoaling / run-up).
    !
    do irow = 1, nrows
-      nh_dvert(irow)     = 2.0 * dt / (rhow * Dnm(irow))
+      nh_dvert(irow)     = kbfac * dt / (rhow * Dnm(irow))
       nh_diag(irow)      = 0.0
       nh_spongediag(irow) = 0.0
    enddo
@@ -1233,11 +1344,8 @@ contains
    do irow = 1, nrows
       bb(irow) = - (ws(irow) + wb0(irow) - 2.0 * wb(irow))
    enddo
-   if (nh_brsteep > 0.0) then
-      do irow = 1, nrows
-         if (nh_breaking(irow) == 1) bb(irow) = 0.0   ! breaking cell: no vertical source (hydrostatic)
-      enddo
-   endif
+   ! (breaking is applied post-solve by scaling pnh -> 0 at breaking cells, keeping the
+   !  faces active so the front keeps its one-sided pressure-gradient correction)
    do ip = 1, nhuv
       if (nh_cR(ip) == 0.0 .and. nh_cL(ip) == 0.0) cycle
       unh = nh_hu(ip) * uv(nh_faceuv(ip))   ! provisional flux  hu*u*  at this face
@@ -1245,11 +1353,27 @@ contains
       if (nh_faceL(ip) > 0) bb(nh_faceL(ip)) = bb(nh_faceL(ip)) + nh_cL(ip) * unh
    enddo
    !
-   ! 5) Jacobi-preconditioned CG:  A pnh = b   (warm start from previous pnh)
+   ! 5) Pressure solve. Solvers 2/3: Jacobi-preconditioned CG (warm start).
+   !     Solver 4: reduction-free weighted-Jacobi relaxation -- a fixed number of
+   !     LOCAL sweeps (no global dot-products, no convergence check), warm-started
+   !     from the previous step. This is the explicit artificial-compressibility /
+   !     hyperbolized pressure update: embarrassingly parallel, GPU / quadtree-native
+   !     (the global CG reductions are the parallel bottleneck this removes).
+   !
+   if (nonh_solver == 4) then
+      do iter = 1, nh_subiter
+         call apply_A_nh2(pnh, cg_Ap, dtrho)
+         do irow = 1, nrows
+            if (nh_brfac(irow) >= 1.0) &      ! breaking cells held at pnh = 0 (Dirichlet)
+               pnh(irow) = pnh(irow) + nh_omega * (bb(irow) - cg_Ap(irow)) / nh_diag(irow)
+         enddo
+      enddo
+   else
    !
    call apply_A_nh2(pnh, cg_Ap, dtrho)
    do irow = 1, nrows
       cg_r(irow) = bb(irow) - cg_Ap(irow)
+      if (nh_brfac(irow) < 1.0) cg_r(irow) = 0.0   ! pnh=0 Dirichlet at breaking cells (faces stay active)
       cg_z(irow) = cg_r(irow) / nh_diag(irow)
       cg_d(irow) = cg_z(irow)
    enddo
@@ -1282,6 +1406,7 @@ contains
       do irow = 1, nrows
          pnh(irow)  = pnh(irow)  + alpha * cg_d(irow)
          cg_r(irow) = cg_r(irow) - alpha * cg_Ap(irow)
+         if (nh_brfac(irow) < 1.0) cg_r(irow) = 0.0   ! hold breaking cells at pnh=0
          cg_z(irow) = cg_r(irow) / nh_diag(irow)
       enddo
       rznew = 0.0
@@ -1295,7 +1420,7 @@ contains
       rz = rznew
       iter = iter + 1
    enddo
-   !write(*,*)'iter=', iter
+   endif   ! end pressure solve (CG for solvers 2/3, Jacobi relaxation for solver 4)
    !
    ! 5b) Spatial 2dx filter on pnh (nh_filter > 0). Damps the persistent grid-
    !     scale (2dx) mode without touching the resolved smooth pressure: the
@@ -1362,6 +1487,24 @@ contains
       enddo
    endif
    !
+   ! 5d) (Breaking is now applied AS A DIRICHLET pnh=0 CONSTRAINT INSIDE the solve --
+   !      breaking cells are held at pnh=0 with their faces left active, so the pressure
+   !      field goes smoothly to zero at the front and the gradient is the consistent
+   !      projection. This avoids the artificial pnh cliff a post-solve zeroing created.)
+   !
+   ! 5e) Depth limiter: cap the non-hydrostatic (bed) pressure at a fraction nh_pmax of
+   !     the hydrostatic bed pressure rho*g*H. The total bed pressure rho*g*H + pnh then
+   !     stays >= 0 for nh_pmax <= 1 (no "suction"). Resolved waves have |pnh| << rho*g*H
+   !     so are untouched; this only clips the unphysical spikes at steep wall run-up,
+   !     breaking fronts and grid-scale (2dx) modes -- a physically-scaled safety cap.
+   !
+   if (nh_pmax > 0.0) then
+      do irow = 1, nrows
+         pcap = nh_pmax * rhow * g * Dnm(irow)
+         pnh(irow) = max(-pcap, min(pcap, pnh(irow)))
+      enddo
+   endif
+   !
    ! 6) Correct fluxes / velocities with the pressure gradient. This is the
    !    momentum force -(dt/rho) G pnh integrated over the step; no nudging.
    !
@@ -1374,8 +1517,15 @@ contains
       if (nh_faceL(ip) > 0) pL = pnh(nh_faceL(ip))
       gf  = nh_cR(ip) * pR + nh_cL(ip) * pL          ! (G pnh)_face
       unh = - dtrho * gf                              ! velocity increment
-      uv(ipuv) = uv(ipuv) + nh_relax * unh
-      q(ipuv)  = q(ipuv)  + nh_hu(ip) * nh_relax * unh
+      
+!      uv(ipuv) = uv(ipuv) + nh_relax * unh
+!      q(ipuv)  = q(ipuv)  + nh_hu(ip) * nh_relax * unh
+ 
+      uv(ipuv) = (1.0 - nh_fnudge) * uv(ipuv) + nh_fnudge * (uv(ipuv) + unh)
+      q(ipuv)  = (1.0 - nh_fnudge) * q(ipuv) + nh_fnudge * (q(ipuv) + nh_hu(ip) * unh)
+
+   
+   
    enddo
    !
    ! 7) Update surface/bottom vertical velocities for the next step's forcing.
@@ -1403,7 +1553,7 @@ contains
          wb(irow)  = 0.0
          ws(irow)  = 0.0
          pnh(irow) = 0.0
-         nh_breaking(irow) = 0   ! clear breaking so a re-wetting cell starts clean
+         nh_brfac(irow) = 1.0   ! clear breaking so a re-wetting cell starts clean
          cycle
       endif
       !
@@ -1453,7 +1603,7 @@ contains
          endif
       endif
       !
-      ws(irow) = ws(irow) - (wb(irow) - wb0(irow)) + (2.0 * dt / (rhow * Dnm(irow))) * pnh(irow)
+      ws(irow) = ws(irow) - (wb(irow) - wb0(irow)) + (kbfac * dt / (rhow * Dnm(irow))) * pnh(irow)
    enddo
    !
    deallocate(bb)

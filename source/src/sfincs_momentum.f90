@@ -80,6 +80,8 @@ contains
    real*4    :: ud
    real*4    :: qy
    real*4    :: dzdx
+   real*4    :: wx
+   real*4    :: wy
    !
    real*4    :: hwet
    real*4    :: phi
@@ -150,7 +152,7 @@ contains
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73,min_dt_ip ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,wx,wy,hwet,phi,adv,mdrv,hu73,min_dt_ip ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop, reduction( min : min_dt ), gang, vector
@@ -525,6 +527,22 @@ contains
                      !
                      dqxudx = (qu * uu - qd * ud) * dxuvinv
                      !
+                     ! TVD-style 2dx limiter (adv_wiggle>0): the conservative scheme uses a
+                     ! CENTRAL face flux (qd,qu = mean), which passes a 2dx wiggle in hu
+                     ! straight through -> grid-scale noise (e.g. radiated from the breaking
+                     ! pnh=0 edge spike). Add a selective numerical diffusion ~ |q|*lap(u),
+                     ! switched on ONLY where u zig-zags at the grid scale (wx ~ 1) and off in
+                     ! smooth flow (wx ~ 0) -> upw1-like smoothing locally, upw_div accuracy
+                     ! (and run-up) elsewhere. Stays in divergence form -> still conservative.
+                     !
+                     if (adv_wiggle > 0.0) then
+                        wx = (uu_nm - uu_nmd) * (uu_nmu - uu_nm)   ! slope_left * slope_right
+                        if (wx < 0.0) then     ! local EXTREMUM only -> 2dx zigzag, NOT a monotonic run-up front
+                           dqxudx = dqxudx - adv_wiggle * 0.5 * (abs(qd) + abs(qu)) * &
+                                    (uu_nmu - 2.0*uu_nm + uu_nmd) * dxuvinv
+                        endif
+                     endif
+                     !
                      ! d (h*v*u) / dy
                      !
                      qd = 0.5 * (qy_ndm + qy_ndmu)  ! h*v at lower face of u-CV
@@ -543,6 +561,14 @@ contains
                      endif
                      !
                      dqyudy = (qu * uu - qd * ud) * dyuvinv
+                     !
+                     if (adv_wiggle > 0.0) then
+                        wy = (uu_nm - uu_ndm) * (uu_num - uu_nm)   ! slope_below * slope_above
+                        if (wy < 0.0) then     ! local EXTREMUM only
+                           dqyudy = dqyudy - adv_wiggle * 0.5 * (abs(qd) + abs(qu)) * &
+                                    (uu_num - 2.0*uu_nm + uu_ndm) * dyuvinv
+                        endif
+                     endif
                      !
                   endif
                   !

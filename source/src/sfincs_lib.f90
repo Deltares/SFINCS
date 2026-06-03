@@ -607,8 +607,8 @@ module sfincs_lib
                !
                ! Apply non-hydrostatic pressure corrections to q and uv
                !
-               if (nonh_solver == 2) then
-                  call compute_nonhydrostatic2(dt, tloopnonh)
+               if (nonh_solver >= 2 .and. nonh_solver <= 4) then
+                  call compute_nonhydrostatic2(dt, tloopnonh)   ! 2=CG, 3=CG+tunable dispersion, 4=Jacobi relaxation (reduction-free)
                else
                   call compute_nonhydrostatic(dt, tloopnonh)
                endif
