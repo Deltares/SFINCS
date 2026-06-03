@@ -86,7 +86,7 @@ contains
       use sfincs_data
       use sfincs_date
       use sfincs_error
-      use sfincs_src_structures, only: drnfile
+      use sfincs_src_structures, only: drnfile, dkbfile
       use sfincs_discharges,     only: srcfile, disfile, netsrcdisfile
       !
       implicit none
@@ -243,6 +243,7 @@ contains
       call get_keyword(500, 'weirfile',                        weirfile,                        'none')            ! weirs polyline file
       call get_keyword(500, 'manningfile',                     manningfile,                     'none')            ! spatially-varying Manning n file
       call get_keyword(500, 'drnfile',                         drnfile,                         'none')            ! drainage-structures (pumps/gates/culverts) TOML file
+      call get_keyword(500, 'dkbfile',                         dkbfile,                         'none')            ! dike breach structures TOML file
       call get_keyword(500, 'urbfile',                         urbfile,                         'none')            ! urban drainage zones TOML file
       call get_keyword(500, 'volfile',                         volfile,                         'none')            ! depression-storage volume file
       !
@@ -590,6 +591,7 @@ contains
          disfile       = 'none'
          netsrcdisfile = 'none'
          drnfile       = 'none'
+         dkbfile       = 'none'
          urbfile       = 'none'
          !
          meteo3d        = .false.

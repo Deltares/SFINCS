@@ -223,6 +223,12 @@ module sfincs_src_structures
    !
    character(len=256), public :: drnfile
    !
+   ! Input file path (sfincs.inp keyword 'dkbfile'); 'none' when no dike
+   ! breach file is supplied.  Entries are appended to the same flat arrays
+   ! as drnfile structures so the runtime sees one unified pool.
+   !
+   character(len=256), public :: dkbfile
+   !
    ! Cell mapping
    !
    integer, public :: nr_src_structures
@@ -334,6 +340,12 @@ contains
       logical                       :: ok, is_toml
       character(len=512)            :: toml_path
       !
+      ! dkbfile locals
+      !
+      type(t_src_structure), allocatable :: src_structures_dkb(:)
+      type(t_src_structure), allocatable :: src_structures_all(:)
+      integer                            :: n_drn, n_dkb
+      !
       ! Marshal locals
       !
       integer                       :: i, ierr_parse
@@ -353,55 +365,75 @@ contains
       !
       drainage_structures = .false.
       !
-      if (drnfile(1:4) == 'none') return
+      if (drnfile(1:4) == 'none' .and. dkbfile(1:4) == 'none') return
       !
-      ! Existence check
+      ! Read drnfile (drainage structures: pumps / culverts / gates).
+      ! Skipped when drnfile = 'none'; dkbfile-only runs are valid.
       !
-      ok = check_file_exists(drnfile, 'Drainage points drn file', .true.)
-      !
-      ! Probe TOML / convert legacy / re-read TOML
-      !
-      ! Probe: try to parse as TOML. This is a cheap check; on success we
-      ! discard the probe table and let read_toml_src_structures re-parse,
-      ! which keeps the two code paths decoupled.
-      !
-      call toml_load(probe_top, drnfile, error=probe_err)
-      !
-      is_toml = .not. allocated(probe_err)
-      !
-      if (allocated(probe_err)) deallocate(probe_err)
-      if (allocated(probe_top)) deallocate(probe_top)
-      !
-      if (is_toml) then
+      if (drnfile(1:4) /= 'none') then
          !
-         ! TOML path: read drnfile directly.
+         ok = check_file_exists(drnfile, 'Drainage points drn file', .true.)
          !
-         toml_path = drnfile
+         ! Probe TOML / convert legacy / re-read TOML
          !
-      else
+         call toml_load(probe_top, drnfile, error=probe_err)
          !
-         ! Legacy path: transcribe to a TOML sibling file, then fall through
-         ! to the TOML reader. The converter derives its own output path from
-         ! drnfile.
+         is_toml = .not. allocated(probe_err)
          !
-         call convert_legacy_to_toml(drnfile, toml_path, ierr_conv)
+         if (allocated(probe_err)) deallocate(probe_err)
+         if (allocated(probe_top)) deallocate(probe_top)
          !
-         if (ierr_conv /= 0) then
-            !
-            write(logstr,'(a,a,a)')' Error ! Failed to convert legacy drn file "', trim(drnfile), &
-                 '" to TOML; see preceding log entries for the reason'
+         if (is_toml) then
+            toml_path = drnfile
+         else
+            call convert_legacy_to_toml(drnfile, toml_path, ierr_conv)
+            if (ierr_conv /= 0) then
+               write(logstr,'(a,a,a)')' Error ! Failed to convert legacy drn file "', trim(drnfile), &
+                    '" to TOML; see preceding log entries for the reason'
+               call stop_sfincs(trim(logstr), -1)
+            endif
+         endif
+         !
+         call read_toml_src_structures(trim(toml_path), src_structures, ierr_toml)
+         !
+         if (ierr_toml /= 0) then
+            write(logstr,'(a,a,a)')' Error ! Failed to load TOML src_structures file ', trim(toml_path), ' !'
             call stop_sfincs(trim(logstr), -1)
-            !
          endif
          !
       endif
       !
-      call read_toml_src_structures(trim(toml_path), src_structures, ierr_toml)
+      ! If a dike breach file is also provided, read it and append its
+      ! entries to src_structures so the marshal sees one unified array.
       !
-      if (ierr_toml /= 0) then
+      if (dkbfile(1:4) /= 'none') then
          !
-         write(logstr,'(a,a,a)')' Error ! Failed to load TOML src_structures file ', trim(toml_path), ' !'
-         call stop_sfincs(trim(logstr), -1)
+         ok = check_file_exists(dkbfile, 'Dike breach dkb file', .true.)
+         !
+         call read_toml_src_structures(trim(dkbfile), src_structures_dkb, ierr_toml)
+         !
+         if (ierr_toml /= 0) then
+            write(logstr,'(a,a,a)')' Error ! Failed to load TOML dkb file ', trim(dkbfile), ' !'
+            call stop_sfincs(trim(logstr), -1)
+         endif
+         !
+         if (allocated(src_structures_dkb)) then
+            !
+            n_drn = 0
+            if (allocated(src_structures)) n_drn = size(src_structures)
+            n_dkb = size(src_structures_dkb)
+            !
+            allocate(src_structures_all(n_drn + n_dkb))
+            !
+            if (n_drn > 0) src_structures_all(1:n_drn)             = src_structures(1:n_drn)
+            src_structures_all(n_drn+1 : n_drn+n_dkb) = src_structures_dkb(1:n_dkb)
+            !
+            if (allocated(src_structures))     deallocate(src_structures)
+            if (allocated(src_structures_dkb)) deallocate(src_structures_dkb)
+            !
+            call move_alloc(src_structures_all, src_structures)
+            !
+         endif
          !
       endif
       !
@@ -449,7 +481,9 @@ contains
          !
       endif
       !
-      drainage_structures = .true.
+      ! drainage_structures is set after marshalling once src_struc_type is
+      ! populated; dike_breaching is set the same way (line ~755).
+      ! Both are resolved below via any() on the flat type array.
       !
       ! Allocate flat arrays to size nr_src_structures and seed defaults.
       !
@@ -720,7 +754,8 @@ contains
          !
       endif
       !
-      dike_breaching = any(src_struc_type == structure_dike_breach)
+      dike_breaching      = any(src_struc_type == structure_dike_breach)
+      drainage_structures = any(src_struc_type /= structure_dike_breach)
       !
       ! Write the per-structure descriptive block to the log file.
       ! Emitted before the gate-status seeding so the per-gate init status
