@@ -947,15 +947,20 @@ contains
             !
             ! Infiltrating here
             !
-            ! Count how long this is already going
+            ! Count how long this is already going.
+            ! If rain_T1 was positive (recovery phase), reset it to 0 for this storm onset
+            ! and do NOT apply the decrement yet — otherwise the first time step of a new
+            ! storm would start with rain_T1 = -dt, underestimating infiltration capacity.
             !
             if (rain_T1(nm) > 0.0) then
                !
                rain_T1(nm) = 0.0
                !
+            else
+               !
+               rain_T1(nm) = rain_T1(nm) - dt                                           ! negative amount of how long it is infiltrating
+               !
             endif
-            !
-            rain_T1(nm) = rain_T1(nm) - dt                                              ! negative amount of how long it is infiltrating
             ! 
             ! Compute estimate of infiltration                                          ! Note that qinffield = horton_fc
             !
