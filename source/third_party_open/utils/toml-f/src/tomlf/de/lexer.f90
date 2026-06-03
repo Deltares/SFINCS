@@ -434,7 +434,8 @@ subroutine next_dstring(lexer, token)
    type(toml_token), intent(inout) :: token
 
    character(1, tfc) :: ch
-   character(*, tfc), parameter :: hexnum = "0123456789ABCDEF", valid_escape = "betnfr\"""
+   character(*, tfc), parameter :: hexnum = "0123456789ABCDEF"
+   character(*, tfc), parameter :: valid_escape = "betnfr" // achar(92, kind=tfc) // """"
    integer :: prev, pos, expect, it, hex
    logical :: escape, valid, space
 
