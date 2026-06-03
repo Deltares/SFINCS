@@ -191,6 +191,13 @@ module sfincs_src_structures
       character(len=:), allocatable :: rule_open
       character(len=:), allocatable :: rule_close
       !
+      ! interruptible - when .true., an in-progress opening transition can be
+      ! reversed by the close rule mid-ramp (and a closing transition by the
+      ! open rule). When .false. (default), a transition always runs to
+      ! completion before the opposite rule is re-checked.
+      !
+      logical :: interruptible
+      !
    end type t_src_structure
    !
    ! Module-level storage for structures parsed from a TOML input file.
@@ -241,6 +248,12 @@ module sfincs_src_structures
    ! Only meaningful for structure_gate; ignored for other types.
    !
    real*4,    dimension(:), allocatable, public :: src_struc_t_state
+   !
+   ! Interruptible-transition flag. 1 = an opening/closing ramp can be reversed
+   ! mid-way by the opposite rule; 0 = the ramp runs to completion before rules
+   ! are re-checked. Only meaningful for rule-driven structures.
+   !
+   integer*1, dimension(:), allocatable, public :: src_struc_interruptible
    !
    ! Coordinates
    !
@@ -498,6 +511,7 @@ contains
       allocate(src_struc_status(nr_src_structures))
       allocate(src_struc_fraction_open(nr_src_structures))
       allocate(src_struc_t_state(nr_src_structures))
+      allocate(src_struc_interruptible(nr_src_structures))
       allocate(src_struc_name(nr_src_structures))
       allocate(src_struc_x_s1(nr_src_structures))
       allocate(src_struc_y_s1(nr_src_structures))
@@ -547,6 +561,7 @@ contains
       src_struc_fraction_open  = 1.0   ! default "fully open": structures without rules bypass the state machine and use this as a no-op multiplier in the common-tail scaling
       src_struc_status         = 1     ! 0=closed, 1=open, 2=opening, 3=closing; default open (see above). Rule-driven structures overwrite this in the init-time seeding below.
       src_struc_t_state        = 0.0
+      src_struc_interruptible  = 0     ! default: transitions run to completion (not reversible mid-ramp)
       src_struc_name           = ' '
       src_struc_x_s1           = 0.0
       src_struc_y_s1           = 0.0
@@ -643,6 +658,12 @@ contains
          src_struc_mannings_n(i)        = src_structures(i)%mannings_n
          src_struc_opening_duration(i)  = src_structures(i)%opening_duration
          src_struc_closing_duration(i)  = src_structures(i)%closing_duration
+         !
+         if (src_structures(i)%interruptible) then
+            src_struc_interruptible(i) = 1
+         else
+            src_struc_interruptible(i) = 0
+         endif
          src_struc_height(i)            = src_structures(i)%height
          src_struc_invert_1(i)          = src_structures(i)%invert_1
          src_struc_invert_2(i)          = src_structures(i)%invert_2
@@ -904,7 +925,7 @@ contains
       !$acc                        src_struc_B0, src_struc_t0, src_struc_dike_core, &
       !$acc                        src_struc_breach_width, src_struc_breach_level, &
       !$acc                        src_struc_distance, src_struc_status, src_struc_fraction_open, &
-      !$acc                        src_struc_t_state, &
+      !$acc                        src_struc_t_state, src_struc_interruptible, &
       !$acc                        src_struc_rule_open, src_struc_rule_close, &
       !$acc                        rule_opcode, rule_atom, rule_cmp, rule_threshold, &
       !$acc                        rule_start, rule_length ) &
@@ -1003,37 +1024,103 @@ contains
                      !
                   case (2)
                      !
-                     ! opening - advance on elapsed time; do not re-check rules
+                     ! opening - advance on elapsed time. If interruptible and
+                     ! the close rule fires, reverse into closing, resuming the
+                     ! ramp from the current fraction_open so there is no jump.
                      !
-                     elapsed = real(t, 4) - src_struc_t_state(istruc)
+                     close_fires = .false.
                      !
-                     if (src_struc_opening_duration(istruc) <= 0.0 .or. &
-                         elapsed >= src_struc_opening_duration(istruc)) then
+                     if (src_struc_interruptible(istruc) == 1 .and. src_struc_rule_close(istruc) > 0) then
                         !
-                        src_struc_status(istruc)        = 1
-                        src_struc_fraction_open(istruc) = 1.0
+                        close_fires = evaluate_rule(src_struc_rule_close(istruc), zs_o1, zs_o2)
+                        !
+                     endif
+                     !
+                     if (close_fires) then
+                        !
+                        ! Re-seed t_state so closing continues from the current
+                        ! fraction f: in closing, f = 1 - elapsed/closing_duration,
+                        ! so elapsed = (1 - f) * closing_duration.
+                        !
+                        if (src_struc_closing_duration(istruc) > 0.0) then
+                           !
+                           src_struc_t_state(istruc) = real(t, 4) - &
+                                (1.0 - src_struc_fraction_open(istruc)) * src_struc_closing_duration(istruc)
+                           !
+                        else
+                           !
+                           src_struc_t_state(istruc) = real(t, 4)
+                           !
+                        endif
+                        !
+                        src_struc_status(istruc) = 3
                         !
                      else
                         !
-                        src_struc_fraction_open(istruc) = elapsed / src_struc_opening_duration(istruc)
+                        elapsed = real(t, 4) - src_struc_t_state(istruc)
+                        !
+                        if (src_struc_opening_duration(istruc) <= 0.0 .or. &
+                            elapsed >= src_struc_opening_duration(istruc)) then
+                           !
+                           src_struc_status(istruc)        = 1
+                           src_struc_fraction_open(istruc) = 1.0
+                           !
+                        else
+                           !
+                           src_struc_fraction_open(istruc) = elapsed / src_struc_opening_duration(istruc)
+                           !
+                        endif
                         !
                      endif
                      !
                   case (3)
                      !
-                     ! closing - advance on elapsed time; do not re-check rules
+                     ! closing - advance on elapsed time. If interruptible and
+                     ! the open rule fires, reverse into opening, resuming the
+                     ! ramp from the current fraction_open so there is no jump.
                      !
-                     elapsed = real(t, 4) - src_struc_t_state(istruc)
+                     open_fires = .false.
                      !
-                     if (src_struc_closing_duration(istruc) <= 0.0 .or. &
-                         elapsed >= src_struc_closing_duration(istruc)) then
+                     if (src_struc_interruptible(istruc) == 1 .and. src_struc_rule_open(istruc) > 0) then
                         !
-                        src_struc_status(istruc)        = 0
-                        src_struc_fraction_open(istruc) = 0.0
+                        open_fires = evaluate_rule(src_struc_rule_open(istruc), zs_o1, zs_o2)
+                        !
+                     endif
+                     !
+                     if (open_fires) then
+                        !
+                        ! Re-seed t_state so opening continues from the current
+                        ! fraction f: in opening, f = elapsed/opening_duration,
+                        ! so elapsed = f * opening_duration.
+                        !
+                        if (src_struc_opening_duration(istruc) > 0.0) then
+                           !
+                           src_struc_t_state(istruc) = real(t, 4) - &
+                                src_struc_fraction_open(istruc) * src_struc_opening_duration(istruc)
+                           !
+                        else
+                           !
+                           src_struc_t_state(istruc) = real(t, 4)
+                           !
+                        endif
+                        !
+                        src_struc_status(istruc) = 2
                         !
                      else
                         !
-                        src_struc_fraction_open(istruc) = 1.0 - elapsed / src_struc_closing_duration(istruc)
+                        elapsed = real(t, 4) - src_struc_t_state(istruc)
+                        !
+                        if (src_struc_closing_duration(istruc) <= 0.0 .or. &
+                            elapsed >= src_struc_closing_duration(istruc)) then
+                           !
+                           src_struc_status(istruc)        = 0
+                           src_struc_fraction_open(istruc) = 0.0
+                           !
+                        else
+                           !
+                           src_struc_fraction_open(istruc) = 1.0 - elapsed / src_struc_closing_duration(istruc)
+                           !
+                        endif
                         !
                      endif
                      !
@@ -1375,6 +1462,10 @@ contains
       !    submergence_ratio = ...                      ! culvert submergence threshold h_dn/h_up (-)
       !    rules_open  = "(z1<0.5 | z2-z1>0.05) & z2<1.5"   ! optional trigger expr
       !    rules_close = "z2>2.0"                           ! optional trigger expr
+      !    interruptible = true                             ! optional, default false:
+      !                                 ! allow an in-progress opening/closing ramp to be
+      !                                 ! reversed mid-way by the opposite rule (resumes
+      !                                 ! from the current fraction; no jump).
       !
       ! Per-type required keys (enforced on parse):
       !    pump           : name, src_1, src_2, q
@@ -1679,6 +1770,11 @@ contains
          if (allocated(rule_str)) deallocate(rule_str)
          call get_value(tbl_struct, 'rules_close', rule_str, stat=stat)
          if (allocated(rule_str)) structures(i)%rule_close = rule_str
+         !
+         ! Optional: allow an in-progress transition to be reversed mid-ramp by
+         ! the opposite rule. Default false (transitions run to completion).
+         !
+         call get_value(tbl_struct, 'interruptible', structures(i)%interruptible, .false., stat=stat)
          !
       enddo
       !
@@ -2185,6 +2281,25 @@ contains
             else
                !
                write(logstr,'(a22,1x,a)')           '  rules_close        :',      '(set)'
+               !
+            endif
+            !
+            call write_log(logstr, 0)
+            !
+         endif
+         !
+         ! Interruptible flag, only meaningful (and only printed) for rule-driven
+         ! structures.
+         !
+         if (src_struc_rule_open(i) > 0 .or. src_struc_rule_close(i) > 0) then
+            !
+            if (src_struc_interruptible(i) == 1) then
+               !
+               write(logstr,'(a22,1x,a)')           '  interruptible      :',      'true'
+               !
+            else
+               !
+               write(logstr,'(a22,1x,a)')           '  interruptible      :',      'false'
                !
             endif
             !

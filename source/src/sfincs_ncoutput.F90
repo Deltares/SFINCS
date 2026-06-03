@@ -50,7 +50,7 @@ module sfincs_ncoutput
       integer :: crosssection_name_varid
       integer :: structure_height_varid, structure_x_varid, structure_y_varid
       integer :: thindam_x_varid, thindam_y_varid      
-      integer :: drain_varid, drain_name_varid, breach_width_varid
+      integer :: drain_varid, drain_name_varid, breach_width_varid, drain_fraction_open_varid
       integer :: river_varid, river_name_varid
       integer :: urbdrain_varid, urbdrain_name_varid
       integer :: zb_varid
@@ -2208,6 +2208,12 @@ contains
          NF90(nf90_put_att(his_file%ncid, his_file%breach_width_varid, 'coordinates', 'drainage_name'))
       endif
       !
+      NF90(nf90_def_var(his_file%ncid, 'drainage_fraction_open', NF90_FLOAT, (/his_file%drain_dimid, his_file%time_dimid/), his_file%drain_fraction_open_varid)) ! time-varying gate open fraction (1=open, 0=closed)
+      NF90(nf90_put_att(his_file%ncid, his_file%drain_fraction_open_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(his_file%ncid, his_file%drain_fraction_open_varid, 'units', '1'))
+      NF90(nf90_put_att(his_file%ncid, his_file%drain_fraction_open_varid, 'long_name', 'gate open fraction (1 = fully open, 0 = fully closed)'))
+      NF90(nf90_put_att(his_file%ncid, his_file%drain_fraction_open_varid, 'coordinates', 'drainage_name'))
+      !
    endif
    !
    if (nr_discharge_points>0 .and. store_river_discharge) then
@@ -3282,7 +3288,7 @@ contains
    use sfincs_crosssections
    use sfincs_runup_gauges
    use sfincs_snapwave
-   use sfincs_src_structures, only: nr_src_structures, src_struc_q_now, src_struc_breach_width, src_struc_type, structure_dike_breach
+   use sfincs_src_structures, only: nr_src_structures, src_struc_q_now, src_struc_breach_width, src_struc_type, structure_dike_breach, src_struc_fraction_open
    use sfincs_discharges,     only: qtsrc, nr_discharge_points
    use sfincs_urban_drainage, only: nr_urban_drainage_zones, urban_drainage_q_total
    !
@@ -3578,9 +3584,10 @@ contains
    !
    if (nr_src_structures>0) then
       !
-      !$acc update host(src_struc_q_now)
+      !$acc update host(src_struc_q_now, src_struc_fraction_open)
       !
       NF90(nf90_put_var(his_file%ncid, his_file%drain_varid, src_struc_q_now, (/1, nthisout/))) ! write per-structure discharge
+      NF90(nf90_put_var(his_file%ncid, his_file%drain_fraction_open_varid, src_struc_fraction_open, (/1, nthisout/))) ! write per-structure gate open fraction
       !
       if (any(src_struc_type == structure_dike_breach)) then
          !$acc update host(src_struc_breach_width)

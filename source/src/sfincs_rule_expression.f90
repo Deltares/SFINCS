@@ -7,7 +7,7 @@ module sfincs_rule_expression
    !    or_expr  := and_expr ( '|' and_expr )*
    !    and_expr := comp     ( '&' comp     )*
    !    comp     := '(' expr ')' | atom cmp_op number
-   !    atom     := 'z1' | 'z2' | 'z2-z1'          (case-insensitive)
+   !    atom     := 'z1' | 'z2' | 'z2-z1' | 'z1-z2'  (case-insensitive)
    !    cmp_op   := '<' | '>' | '<=' | '>=' | '=' | '=='
    !    number   := real literal
    !
@@ -56,6 +56,7 @@ module sfincs_rule_expression
    integer, parameter :: atom_z1              = 1
    integer, parameter :: atom_z2              = 2
    integer, parameter :: atom_z2_minus_z1     = 3
+   integer, parameter :: atom_z1_minus_z2     = 4
    !
    ! Comparator codes.
    !
@@ -320,6 +321,10 @@ contains
                   !
                   zval = z2 - z1
                   !
+               case (atom_z1_minus_z2)
+                  !
+                  zval = z1 - z2
+                  !
                case default
                   !
                   zval = 0.0
@@ -490,7 +495,7 @@ contains
    character(len=*), intent(out) :: errmsg
    !
    ! Token kinds:
-   !   1 = ident (z1/z2/z2-z1)    payload: atom code in tok_atom
+   !   1 = ident (z1/z2/z2-z1/z1-z2)  payload: atom code in tok_atom
    !   2 = number                 payload: real in tok_num
    !   3 = lparen
    !   4 = rparen
@@ -808,9 +813,9 @@ contains
          !
       endif
       !
-      ! Identifiers: z1, z2, z2-z1. The 'z2-z1' atom contains a '-',
-      ! which would otherwise be eaten by the number path; we match it
-      ! as a longest-match-first prefix here.
+      ! Identifiers: z1, z2, z2-z1, z1-z2. The 'z2-z1' / 'z1-z2' atoms
+      ! contain a '-', which would otherwise be eaten by the number path;
+      ! we match them as longest-match-first prefixes here.
       !
       kstart = pos
       !
@@ -823,6 +828,16 @@ contains
                if (lower(pos:pos+4) == 'z2-z1') then
                   !
                   atom_code = atom_z2_minus_z1
+                  n_tokens = n_tokens + 1
+                  tok_kind(n_tokens) = tok_ident
+                  tok_atom(n_tokens) = atom_code
+                  tok_pos (n_tokens) = kstart
+                  pos = pos + 5
+                  cycle
+                  !
+               elseif (lower(pos:pos+4) == 'z1-z2') then
+                  !
+                  atom_code = atom_z1_minus_z2
                   n_tokens = n_tokens + 1
                   tok_kind(n_tokens) = tok_ident
                   tok_atom(n_tokens) = atom_code
@@ -1057,7 +1072,7 @@ contains
    if (tok_kind(ip) /= tok_ident) then
       !
       ierr = 1
-      write(errmsg,'(a,i0)') 'expected atom (z1/z2/z2-z1) at position ', tok_pos(ip)
+      write(errmsg,'(a,i0)') 'expected atom (z1/z2/z2-z1/z1-z2) at position ', tok_pos(ip)
       return
       !
    endif
