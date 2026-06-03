@@ -87,7 +87,8 @@ pure function new_path2(key1, key2) result(path)
    type(toml_path) :: path
 
    allocate(path%path(2))
-   path%path(:) = [toml_key(key1), toml_key(key2)]
+   path%path(1)%key = key1
+   path%path(2)%key = key2
 end function new_path2
 
 
@@ -107,7 +108,9 @@ pure function new_path3(key1, key2, key3) result(path)
    type(toml_path) :: path
 
    allocate(path%path(3))
-   path%path(:) = [toml_key(key1), toml_key(key2), toml_key(key3)]
+   path%path(1)%key = key1
+   path%path(2)%key = key2
+   path%path(3)%key = key3
 end function new_path3
 
 
@@ -130,7 +133,10 @@ pure function new_path4(key1, key2, key3, key4) result(path)
    type(toml_path) :: path
 
    allocate(path%path(4))
-   path%path(:) = [toml_key(key1), toml_key(key2), toml_key(key3), toml_key(key4)]
+   path%path(1)%key = key1
+   path%path(2)%key = key2
+   path%path(3)%key = key3
+   path%path(4)%key = key4
 end function new_path4
 
 

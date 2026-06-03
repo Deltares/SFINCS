@@ -364,10 +364,10 @@ subroutine get_value_string(self, val, stat, origin)
    integer, intent(out), optional :: origin
 
    integer :: info
-   character(:, tfc), pointer :: dummy
+   character(:, tfc), allocatable :: dummy
 
    call self%get(dummy)
-   if (associated(dummy)) then
+   if (allocated(dummy)) then
       val = dummy
       info = toml_stat%success
    else
