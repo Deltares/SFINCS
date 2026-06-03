@@ -32,7 +32,7 @@ Releases Changelog
 Official open source version 2026.01: v2.4.0 Galibier release release
 ^^^^^
 
-The first official 2026 release of SFINCS, the v2.4.0 Galibier release, 'XXXX Slogan ZZZZZ', is now available!
+The first official 2026 release of SFINCS, the v2.4.0 Galibier release, 'Generating Accurate Large-scale Inundation: Better Insights for Emergency Response', is now available!
 
 This contains open access to the source code from Github: https://github.com/Deltares/SFINCS/releases/tag/v2.4.0_Galibier_release.
 
@@ -51,8 +51,7 @@ The code consists of all functionality of the 2025.02 'v2.3.0 mt. Faber' release
 * Added option for timestep analysis (sfincs.inp: timestep_analysis = 1). Flag to write timestep limiter variables average_required_timestep and percentage_limiting_timestep to the sfincs_map.nc file and screen to analyse what cells are limiting the global timestep.
 * Added input variable 'huvmin', minimum depth for calculating velocity (uv = q / max(hu, huvmin)), used for output and advection.
 * Added input variable 'snapwave_waveforces_factor' which you can set to 0 to turn off wave forces and thus incident wave setup.
-* Made sfincs_his.nc file variables related to waves consistent with other variable (e.g. point_hm0), breaking change for post-processing scripts. Thanks to 
-EgemenAnder for the commits!
+* Made sfincs_his.nc file variables related to waves consistent with other variable (e.g. point_hm0), breaking change for post-processing scripts. Thanks to EgemenAnder for the commits!
 * Renaming of wavemaker related input variables (e.g. wavemaker_wvmfile), contains legacy variables for backward compatibility.
 * Added multiple validation tests in the skillbed report
 
