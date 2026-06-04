@@ -746,6 +746,11 @@ module sfincs_lib
    if (nonhydrostatic) then
       write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in non-hydrostatic: ', tloopnonh, ' (', 100 * tloopnonh / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
+      if (nh_solve_count > 0) then
+         write(logstr,'(a,f8.2,a,i0,a,i0,a)') ' CG iterations          : ', &
+            real(nh_iter_total) / real(nh_solve_count), ' avg / ', nh_iter_max, ' max  (', nh_solve_count, ' solves)'
+         call write_log(logstr, 1)
+      endif
    endif
    !
    if (nrstructures>0) then
