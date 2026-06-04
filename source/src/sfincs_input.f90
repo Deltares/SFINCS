@@ -193,7 +193,6 @@ contains
    call read_real_input(500, 'nh_tstop', nh_tstop, -999.0)
    call read_real_input(500, 'nh_tol', nh_tol, 0.001)
    call read_int_input(500, 'nh_itermax', nh_itermax, 100)
-   call read_int_input(500, 'nonh_solver', nonh_solver, 1)   ! 1 = legacy BiCGSTAB-ILU, 2 = matrix-free SPD CG (rewrite), 3 = (2)+tunable dispersion, 4 = explicit pressure-relaxation (hyperbolized)
    call read_int_input(500, 'nh_sponge_width', nh_sponge_width, 0)      ! open-boundary nonh sponge width (cells); 0 = off
    call read_real_input(500, 'nh_sponge_coef', nh_sponge_coef, 2.0)     ! open-boundary nonh sponge strength
    call read_real_input(500, 'nh_relax', nh_relax, 1.0)                 ! under-relaxation of nonh velocity correction (1 = full)
@@ -205,14 +204,11 @@ contains
    call read_int_input(500, 'nh_fadein', nh_fadein, 0)                  ! open-boundary nonh fade-in width (cells): nonh ramps 0->full over N cells from the boundary; 0 = off
    call read_real_input(500, 'nh_brsteep', nh_brsteep, 0.0)             ! HFA breaking onset: nonh starts reducing when dzdt (=-d(hu)/dx) > nh_brsteep*sqrt(g*h); 0 = off (XBeach default 0.4)
    call read_real_input(500, 'nh_brwidth', nh_brwidth, 0.0)             ! HFA ramp width: pnh scaled full->0 as steepness ratio goes 1 -> 1+nh_brwidth; 0 = sharp switch (recommended; gradual tends to overshoot). pnh=0 at breaking but FACES STAY ACTIVE (XBeach-style)
-   call read_real_input(500, 'nh_reformsteep', nh_reformsteep, 0.0)     ! lower threshold for a cell next to a breaking cell to start breaking (XBeach reformsteep); 0 = use 0.25*nh_brsteep
    call read_real_input(500, 'nh_smoothbnd', nh_smoothbnd, 0.5)         ! strength of localized 2dx pnh smoothing in the fade-in zone (weight at boundary, ramps to 0 with nh_fade) and shallow zone; 0 = off
    call read_real_input(500, 'nh_smoothdep', nh_smoothdep, 0.0)         ! depth (m) below which the localized pnh smoothing also acts (shallow run-up / wall 2dx noise); weight ramps from full at D=0 to 0 at D=nh_smoothdep; 0 = off
    call read_real_input(500, 'nh_disp', nh_disp, 2.0)                   ! solver 3: Keller-box vertical factor (default 2.0 = solver 2 identical); ~1.0 flattens c(k) toward Airy (best dispersion)
    call read_real_input(500, 'nh_pmax', nh_pmax, 0.0)                   ! depth limiter: cap |pnh| <= nh_pmax*rho*g*H post-solve (caps wall/breaking/2dx spikes, leaves resolved waves untouched); 0 = off, ~1-2 typical
-   call read_int_input(500, 'nh_subiter', nh_subiter, 20)               ! solver 4: number of weighted-Jacobi pressure-relaxation sweeps per step (reduction-free; no global CG)
    call read_int_input(500, 'nh_brdilate', nh_brdilate, 0)              ! HFA: grow the pnh=0 breaking block this many cells outward so its edge lands on the gentle back face, not the steep crest-back (kills the ~2x-hydrostatic one-cell pnh spike that radiates 2dx noise); 0 = off, 1 typical
-   call read_real_input(500, 'nh_omega', nh_omega, 0.66)                ! solver 4: Jacobi relaxation weight (~2/3 optimal for the Laplacian operator)
    call read_logical_input(500, 'h73table', h73table, .false.)
    call read_real_input(500, 'rugdepth', runup_gauge_depth, 0.05)
    call read_logical_input(500, 'wave_enhanced_roughness', wave_enhanced_roughness, .false.)

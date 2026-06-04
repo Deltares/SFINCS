@@ -21,7 +21,7 @@ module sfincs_nonhydrostatic
    real*4,  dimension(:), allocatable   :: dzbdx
    real*4,  dimension(:), allocatable   :: dzbdy
    !
-   ! Work arrays for the matrix-free SPD conjugate-gradient solver (nonh_solver = 2)
+   ! Work arrays for the matrix-free SPD conjugate-gradient solver
    !
    real*4,  dimension(:), allocatable   :: nh_dvert   ! vertical-accel diagonal term   (nrows)
    real*4,  dimension(:), allocatable   :: nh_diag    ! Jacobi diagonal of A           (nrows)
@@ -99,7 +99,7 @@ contains
    allocate(nh_uv_index(4, nrows))
    allocate(nh_nm_index(4, nrows))
    !
-   ! Work arrays for the matrix-free CG solver (nonh_solver = 2)
+   ! Work arrays for the matrix-free CG solver
    !
    allocate(nh_dvert(nrows))
    allocate(nh_diag(nrows))
@@ -188,7 +188,7 @@ contains
    allocate(uv_index_of_nhuv(nhuv))
    uv_index_of_nhuv = 0
    !
-   ! Face arrays for the matrix-free CG solver (nonh_solver = 2)
+   ! Face arrays for the matrix-free CG solver
    !
    allocate(nh_faceuv(nhuv))
    allocate(nh_faceL(nhuv))
@@ -449,7 +449,7 @@ contains
       !
    enddo
    !
-   ! Static per-face data for the matrix-free CG solver (nonh_solver = 2).
+   ! Static per-face data for the matrix-free CG solver.
    ! nh_cf = 0.5 / dx is the (depth-averaged) gradient weight; the factor 0.5
    ! reflects that the linearly-varying non-hydrostatic pressure has a depth
    ! mean of p_bed/2. Single refinement level here, so dxrinv(1) / dyrinv(1).
@@ -469,7 +469,7 @@ contains
       !
    enddo
    !
-   ! Open-boundary non-hydrostatic sponge ramp (nonh_solver = 2). A relaxation
+   ! Open-boundary non-hydrostatic sponge ramp. A relaxation
    ! layer nh_sponge_width cells deep inside each water-level / outflow (kcs 2/3)
    ! boundary, where a ramped term is added to the pressure-operator diagonal so
    ! that pnh is smoothly driven to zero towards the boundary. This absorbs the
@@ -533,7 +533,7 @@ contains
       !
    endif
    !
-   ! Open-boundary non-hydrostatic FADE-IN (nonh_solver = 2). Over nh_fadein cells
+   ! Open-boundary non-hydrostatic FADE-IN. Over nh_fadein cells
    ! inside each open (water level / outflow) boundary, ramp the non-hydrostatic
    ! coupling from 0 (at the boundary) to full (nh_fadein cells in). The incident
    ! wave then enters hydrostatically at the boundary and the nonh turns on
@@ -582,388 +582,6 @@ contains
    end subroutine
 
 
-   subroutine compute_nonhydrostatic(dt, tloop)
-   !
-   ! Non-hydrostatic pressure correction on fluxes and velocities 
-   !
-   use sfincs_data
-   use bicgstab_solver_ilu
-   !
-   implicit none
-   !
-   integer   :: count0
-   integer   :: count1
-   integer   :: count_rate
-   integer   :: count_max
-   real      :: tloop
-   !
-   real*4    :: dt
-   !
-   integer   :: ip
-   integer   :: ipuv
-   integer   :: nm
-   integer   :: nmu
-   integer   :: nmd
-   integer   :: num
-   integer   :: ndm
-   integer   :: nmn
-   integer   :: j
-   integer   :: irow
-   integer   :: nhnm
-   integer   :: nhnmu
-   integer   :: iuv
-   !
-   integer   :: iter
-   !
-   real*4    :: hu
-   !
-   real*4    :: Dnm1
-   real*4    :: hnm
-   real*4    :: Dnmu
-   real*4    :: hnmu
-   real*4    :: unh
-   real*4    :: pnhnm
-   real*4    :: pnhnmu
-   !
-   real*4    :: hnb
-   !
-   real*4    :: dtover2rhodx2
-   real*4    :: dtover2rhodx
-   !
-   real*4, dimension(npuv)            :: AB
-   real*4, dimension(:), allocatable  :: QQ
-   real*4, dimension(:), allocatable  :: AA
-   real*4                             :: relres
-   !
-   call system_clock(count0, count_rate, count_max)
-   !
-   allocate(QQ(nrows))
-   allocate(AA(nr_vals_in_matrix))
-   !
-   ! Compute AB (A and B)
-   !
-   AB = 0.0
-   !
-   !$omp parallel &
-   !$omp private ( nm, irow )
-   !$omp do schedule ( dynamic, 256 )
-   do irow = 1, nrows
-      !
-      nm = nm_index_of_row(irow)
-      !
-      Dnm(irow)  = max(zs(nm) - zb(nm), huthresh_nh)
-      !
-   enddo
-   !$omp end do
-   !$omp end parallel
-   !   
-   !$omp parallel &
-   !$omp private ( ip, ipuv, nm, nmu, num, hnm, hnmu, Dnm1, Dnmu )
-   !$omp do schedule ( dynamic, 256 )
-   do ip = 1, nhuv
-      !
-      ! Get water levels of neighboring cells
-      !
-      ! First get index of 'complete' uv array
-      !
-      ipuv = uv_index_of_nhuv(ip)
-      !
-      nm   = uv_index_z_nm(ipuv)
-      nmu  = uv_index_z_nmu(ipuv)
-      !
-      if (kfuv(ipuv) == 1) then
-         if (zs(nm) > zb(nm) + huthresh_nh .and. zs(nmu) > zb(nmu) + huthresh_nh) then
-            !
-            hnm  = - zb(nm)
-            Dnm1 = max(zs(nm) - zb(nm), huthresh_nh)
-            !
-            hnmu = - zb(nmu)
-            Dnmu = max(zs(nmu) - zb(nmu), huthresh_nh)
-            !          
-            AB(ip) = ( (zs(nmu) - hnmu) - (zs(nm) - hnm) ) / (Dnm1 + Dnmu)
-            !
-         endif
-      endif   
-      !
-   enddo
-   !$omp end do
-   !$omp end parallel
-   !
-   ! Compute non-hydrostatic pressure by solving matrix AA * PP = QQ, where AA is a sparse matrix, PP is the nonh pressure, and QQ is the forcing
-   !
-   AA = 0.0
-   QQ = 0.0
-   !
-   dtover2rhodx2 = (dt * dxr2inv(1) / (2 * rhow))
-   !
-   ! Fill sparse matrix
-   !
-   !$omp parallel &
-   !$omp private ( ip, nm, j, nmd, nmu, ndm, num )
-   !$omp do schedule ( dynamic, 256 )
-   do irow = 1, nrows
-      !
-      ! Indices in nh uv array of neighboring uv points
-      !
-      nmd = nh_uv_index(1, irow)
-      nmu = nh_uv_index(2, irow)
-      ndm = nh_uv_index(3, irow)
-      num = nh_uv_index(4, irow)
-      !
-      ! Left
-      !
-      if (nmd > 0) then
-         !
-         j = index_sparse_matrix(1, irow)
-         !
-         if (j>0) then
-            !
-            AA(j) = dtover2rhodx2 * (-1.0 + AB(nmd))
-            !
-         endif
-         !
-      endif
-      !
-      ! Right
-      !
-      if (nmu > 0) then
-         !
-         j = index_sparse_matrix(2, irow)
-         !
-         if (j>0) then
-            !
-            AA(j) = dtover2rhodx2 * (-1.0 - AB(nmu))            
-            !
-         endif
-         !
-      endif
-      !
-      ! Bottom
-      !
-      if (ndm > 0) then
-         !
-         j = index_sparse_matrix(3, irow)
-         !
-         if (j>0) then
-            !
-            AA(j) = dtover2rhodx2 * (-1.0 + AB(ndm))
-            !
-         endif
-         !
-      endif
-      !
-      ! Top
-      !
-      if (num > 0) then
-         !
-         j = index_sparse_matrix(4, irow)
-         !
-         if (j>0) then
-            !
-            AA(j) = dtover2rhodx2 * (-1.0 - AB(num))            
-            !
-         endif
-         !
-      endif
-      !
-      ! Centre
-      !
-      j = index_sparse_matrix(5, irow)
-      !
-      ! if (j>0) then
-      !
-      AA(j) = 2 * dt / ( rhow * Dnm(irow)**2 )
-      !
-      ! endif
-      !
-      ! Forcing
-      !
-      QQ(irow) = 0.0
-      !
-      ! if (bnd(irow) == 0) then   
-      !         
-      QQ(irow) = - (ws(irow) + wb0(irow) - 2 * wb(irow)) / Dnm(irow)
-      !
-      if (nmd > 0) then
-         !
-         AA(j) = AA(j) + dtover2rhodx2 * (1.0 + AB(nmd))
-         !
-         QQ(irow) = QQ(irow) - (- uv(uv_index_of_nhuv(nmd))) * dxrinv(1)
-         !
-      endif
-      !
-      if (nmu > 0) then
-         !
-         AA(j) = AA(j) + dtover2rhodx2 * (1.0 - AB(nmu))
-         !
-         QQ(irow) = QQ(irow) - (uv(uv_index_of_nhuv(nmu))) * dxrinv(1)
-         !
-      endif
-      !
-      if (ndm > 0) then
-         !
-         AA(j) = AA(j) + dtover2rhodx2 * (1.0 + AB(ndm))
-         !
-         QQ(irow) = QQ(irow) - (- uv(uv_index_of_nhuv(ndm))) * dxrinv(1)
-         !
-      endif
-      !
-      if (num > 0) then
-         !
-         AA(j) = AA(j) + dtover2rhodx2 * (1.0 - AB(num))
-         !
-         QQ(irow) = QQ(irow) - (uv(uv_index_of_nhuv(num))) * dxrinv(1)
-         !
-      endif
-      !
-      ! endif
-      !
-   enddo
-   !$omp end do
-   !$omp end parallel
-   !
-   ! Solve matrix
-   !
-   call bicgstab_solve(nrows, AA, col_idx, row_ptr, QQ, pnh, nh_tol, nh_itermax, iter, relres, .true.)
-   !
-   ! Adjust fluxes   
-   !
-   dtover2rhodx = (dt * dxrinv(1) / (2 * rhow))
-   !
-   !$omp parallel &
-   !$omp private ( ip, ipuv, nm, nmu, nhnm, nhnmu, pnhnm, pnhnmu, hu, unh )
-   !$omp do schedule ( dynamic, 256 )
-   do ip = 1, nhuv
-      !
-      ipuv = uv_index_of_nhuv(ip)
-      !
-      if (kfuv(ipuv) == 1) then
-         !
-         ! Indices of neighbors in full zs array
-         !
-         nm    = uv_index_z_nm(ipuv)
-         nmu   = uv_index_z_nmu(ipuv)
-         !
-         ! Indices of neighbors in nonh zs array
-         !
-         nhnm  = row_index_of_nm(nm)
-         nhnmu = row_index_of_nm(nmu)
-         !
-         ! Non-hydrostatic pressure at the two neighbours. A neighbour that is
-         ! not itself a non-hydrostatic cell (row index 0) is an open boundary
-         ! (water level / outflow) where the flow is hydrostatic: impose the
-         ! Dirichlet condition pnh = 0 there. This is consistent with the matrix
-         ! assembly, which already adds the centre-diagonal contribution for such
-         ! a face without an off-diagonal term, and it removes the out-of-bounds
-         ! pnh(0) read that previously occurred at the edge of the nonh region.
-         !
-         pnhnm  = 0.0
-         pnhnmu = 0.0
-         if (nhnm  > 0) pnhnm  = pnh(nhnm)
-         if (nhnmu > 0) pnhnmu = pnh(nhnmu)
-         !
-         !hu = max(zs(nm), zs(nmu)) - 0.5 * (zb(nm) + zb(nmu))
-         hu = max(zs(nm), zs(nmu)) - max(zb(nm), zb(nmu))
-         !
-         if (hu > huthresh_nh) then
-            !
-            unh = - 1.0 * dtover2rhodx * ( AB(ip) * (pnhnmu + pnhnm) + pnhnmu - pnhnm )
-            !
-            ! Do some nudging to avoid 2dx waves
-            !
-            q(ipuv)  = (1.0 - nh_fnudge) * q(ipuv) + nh_fnudge * (q(ipuv) + hu * unh)
-            uv(ipuv) = (1.0 - nh_fnudge) * uv(ipuv) + nh_fnudge * (uv(ipuv) + unh)
-            !
-         endif
-         !
-      endif
-      !
-   enddo   
-   !$omp end do
-   !$omp end parallel   
-   !
-   ! Update vertical velocity ws and wb
-   !
-   !$omp parallel &
-   !$omp private ( nm, iuv, irow, nmn, hnm, hnb)
-   !$omp do schedule ( dynamic, 256 )
-   do irow = 1, nrows
-      !
-      ! Copy wb0 from previous time step
-      !
-      wb0(irow) = wb(irow) 
-      !
-      wb(irow) = 0.0
-      !
-      nm = nm_index_of_row(irow)
-      hnm  = zs(nm) - zb(nm)
-      !
-      ! This will not yet work for quadtree !
-      !
-      ! Indices of neighboring cells
-      !
-      ! Left
-      !
-      iuv = z_index_uv_md(nm)      ! uv index
-      !
-      if (kfuv(iuv) > 0) then
-         nmn = uv_index_z_nm(iuv)  ! nm index of neighbor
-         !hnb = zs(nmn) - zb(nmn)   ! water depth at neighbor
-         wb(irow) = wb(irow) - 0.5 * uv(iuv) * (zb(nmn) - zb(nm)) * dxrinv(1)
-      endif
-      !
-      ! Right
-      !
-      iuv = z_index_uv_mu(nm)      ! uv index
-      !
-      if (kfuv(iuv) > 0) then
-         nmn = uv_index_z_nmu(iuv) ! nm index of neighbor
-         !hnb = zs(nmn) - zb(nmn)   ! water depth at neighbor
-         wb(irow) = wb(irow) - 0.5 * uv(iuv) * (zb(nm) - zb(nmn)) * dxrinv(1)
-      endif
-      !
-      ! Bottom and Top contribute only when there is more than one row. For a
-      ! 1-D model (nmax == 1) the cell has no y-neighbours and z_index_uv_nd/nu
-      ! point at the dummy slot (npuv+ncuv+1), which would index kfuv (size npuv)
-      ! out of bounds. The y-direction bed kinematic term is identically zero
-      ! there anyway, so skip it.
-      !
-      if (nmax > 1) then
-         !
-         ! Bottom
-         !
-         iuv = z_index_uv_nd(nm)     ! uv index
-         !
-         if (kfuv(iuv) > 0) then
-            nmn = uv_index_z_nm(iuv) ! nm index of neighbor
-            !hnb = zs(nmn) - zb(nmn)  ! water depth at neighbor
-            wb(irow) = wb(irow) - 0.5 * uv(iuv) * (zb(nmn) - zb(nm)) * dyrinv(1)
-         endif
-         !
-         ! Top
-         !
-         iuv = z_index_uv_nu(nm)      ! uv index
-         !
-         if (kfuv(iuv) > 0) then
-            nmn = uv_index_z_nmu(iuv) ! nm index of neighbor
-            !hnb = zs(nmn) - zb(nmn)   ! water depth at neighbor
-            wb(irow) = wb(irow) - 0.5 * uv(iuv) * (zb(nm) - zb(nmn)) * dyrinv(1)
-         endif
-         !
-      endif
-      !
-      ws(irow) = ws(irow) - (wb(irow) - wb0(irow)) + (2 * dt / (rhow * Dnm(irow))) * pnh(irow) ! this is ws m+1 in the next time step
-      !
-   enddo   
-   !$omp end do
-   !$omp end parallel
-   !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
-   !
-   end subroutine
-
-
    subroutine compute_nonhydrostatic2(dt, tloop)
    !
    ! Matrix-free, symmetric-positive-definite non-hydrostatic pressure
@@ -999,12 +617,11 @@ contains
    !
    if (nrows == 0) return
    !
-   ! Keller-box vertical factor: 2.0 = linear-pressure single layer (solver 2).
-   ! Solver 3 makes it tunable (nh_disp); >2 strengthens the short-wave pressure
-   ! feedback, adding dispersion to flatten c(k) toward Airy.
+   ! Keller-box vertical factor (nh_disp): 2.0 = linear-pressure single layer;
+   ! lowering it (<2) strengthens the short-wave pressure feedback, flattening
+   ! c(k) toward Airy (~1.0 optimal). Default 2.0.
    !
-   kbfac = 2.0
-   if (nonh_solver == 3) kbfac = nh_disp
+   kbfac = nh_disp
    !
    allocate(bb(nrows))
    !
@@ -1032,8 +649,7 @@ contains
    !     the old hard binary switch. Only the rising front (dzdt > 0) is reduced.
    !
    if (nh_brsteep > 0.0) then
-      breform = nh_reformsteep
-      if (breform <= 0.0) breform = 0.25 * nh_brsteep
+      breform = 0.25 * nh_brsteep        ! XBeach reformsteep default (neighbour-spread threshold)
       ! --- (a) raw surface rate-of-rise  dzdt = -div(q)  (= d(zs)/dt by continuity) into cg_z ---
       do irow = 1, nrows
          nm   = nm_index_of_row(irow)
@@ -1099,7 +715,7 @@ contains
          endif
          wmax = sqrt(g * Dnm(irow))
          ! Hysteretic state machine (XBeach nonh_break): onset at nh_brsteep, spread to a
-         ! breaking neighbour at the lower nh_reformsteep, and -- the key for limiting the
+         ! breaking neighbour at the lower 0.25*nh_brsteep (XBeach reformsteep default), and -- key for limiting the
          ! leading wave -- a breaking cell STAYS breaking (pnh=0) until the surface falls
          ! (dzdt < 0), so it remains hydrostatic through the whole crest passage, not just
          ! the steep front -> a sustained, connected hydrostatic roller that dissipates.
@@ -1353,22 +969,8 @@ contains
       if (nh_faceL(ip) > 0) bb(nh_faceL(ip)) = bb(nh_faceL(ip)) + nh_cL(ip) * unh
    enddo
    !
-   ! 5) Pressure solve. Solvers 2/3: Jacobi-preconditioned CG (warm start).
-   !     Solver 4: reduction-free weighted-Jacobi relaxation -- a fixed number of
-   !     LOCAL sweeps (no global dot-products, no convergence check), warm-started
-   !     from the previous step. This is the explicit artificial-compressibility /
-   !     hyperbolized pressure update: embarrassingly parallel, GPU / quadtree-native
-   !     (the global CG reductions are the parallel bottleneck this removes).
-   !
-   if (nonh_solver == 4) then
-      do iter = 1, nh_subiter
-         call apply_A_nh2(pnh, cg_Ap, dtrho)
-         do irow = 1, nrows
-            if (nh_brfac(irow) >= 1.0) &      ! breaking cells held at pnh = 0 (Dirichlet)
-               pnh(irow) = pnh(irow) + nh_omega * (bb(irow) - cg_Ap(irow)) / nh_diag(irow)
-         enddo
-      enddo
-   else
+   ! 5) Pressure solve: Jacobi-preconditioned conjugate gradient, warm-started from
+   !     the previous step. pnh = 0 Dirichlet at breaking cells (faces stay active).
    !
    call apply_A_nh2(pnh, cg_Ap, dtrho)
    do irow = 1, nrows
@@ -1420,7 +1022,6 @@ contains
       rz = rznew
       iter = iter + 1
    enddo
-   endif   ! end pressure solve (CG for solvers 2/3, Jacobi relaxation for solver 4)
    !
    ! 5b) Spatial 2dx filter on pnh (nh_filter > 0). Damps the persistent grid-
    !     scale (2dx) mode without touching the resolved smooth pressure: the
