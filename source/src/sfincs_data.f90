@@ -101,22 +101,14 @@ module sfincs_data
       real*4 nh_fnudge
       real*4 nh_tstop
       integer nh_itermax
-      integer nh_sponge_width
-      integer nh_dryfront
       integer nh_fadein
-      real*4 nh_sponge_coef
-      real*4 nh_relax
       real*4 nh_filter
-      real*4 nh_runuph0
-      real*4 nh_runuph1
       real*4 nh_dzbmax
       real*4 nh_brsteep
-      real*4 nh_brwidth
       real*4 nh_smoothbnd
       real*4 nh_smoothdep
       real*4 nh_disp
       real*4 nh_pmax
-      integer nh_brdilate
       real*4 nh_tol
       real*4 runup_gauge_depth
       real*4 factor_wind
