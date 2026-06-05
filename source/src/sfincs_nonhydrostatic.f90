@@ -487,7 +487,51 @@ contains
    !     coupling (step 2) and the vertical source (step 4) -> hands over to a hydrostatic
    !     bore (XBeach pnh=0, faces active). Only the rising front (dzdt > 0) is reduced.
    !
-   if (nh_brsteep > 0.0) then
+   if (nh_brfr > 0.0) then
+      !
+      ! OPTIONAL Froude breaking criterion (NEOWAVE NH-Hybrid; Yamazaki, Kowalik & Cheung 2009,
+      ! eqs 33/34). A cell is set hydrostatic (pnh = 0) when the local flow Froude number
+      ! Fr = |U| / sqrt(g D) exceeds the onset nh_brfr (~0.5), and reactivated when Fr drops below
+      ! 0.3*nh_brfr (~0.15) -- NEOWAVE's 0.15/0.5 hysteresis ratio. Unlike the steepness criterion
+      ! below, this is purely LOCAL: it uses the cell velocity and depth directly, with no dzdt
+      ! flux-divergence and therefore no smoothing / neighbour-spread / hole-filling. It is robust
+      ! (no 2dx noise to smooth) and tracks a bore through its life (stays on while the flow is
+      ! supercritical). Enabled by nh_brfr > 0; default nh_brfr = 0 -> use the steepness criterion.
+      !
+      !$omp parallel &
+      !$omp private ( irow, nm, iuvl, iuvr, ql, qr, dzdt )
+      !$omp do schedule ( dynamic, 256 )
+      do irow = 1, nrows
+         nm = nm_index_of_row(irow)
+         ! cell-centre velocity components = mean of the two opposite face velocities
+         ql = 0.0 ; qr = 0.0
+         iuvl = z_index_uv_md(nm) ; iuvr = z_index_uv_mu(nm)
+         if (iuvl > 0) ql = uv(iuvl)
+         if (iuvr > 0) qr = uv(iuvr)
+         dzdt = (0.5 * (ql + qr))**2                       ! u_cell^2  (dzdt reused as |U|^2 accumulator)
+         if (nmax > 1) then
+            ql = 0.0 ; qr = 0.0
+            iuvl = z_index_uv_nd(nm) ; iuvr = z_index_uv_nu(nm)
+            if (iuvl > 0) ql = uv(iuvl)
+            if (iuvr > 0) qr = uv(iuvr)
+            dzdt = dzdt + (0.5 * (ql + qr))**2             ! + v_cell^2
+         endif
+         dzdt = sqrt(dzdt) / sqrt(g * Dnm(irow))           ! Fr = |U| / sqrt(g D)
+         if (nh_brfac(irow) >= 1.0) then                   ! was not breaking
+            if (dzdt > nh_brfr) nh_brfac(irow) = 0.0        ! onset
+         else                                              ! was breaking -> release only when slow
+            if (dzdt < 0.3 * nh_brfr) then
+               nh_brfac(irow) = 1.0
+            else
+               nh_brfac(irow) = 0.0
+            endif
+         endif
+         if (nh_brfac(irow) < 1.0) pnh(irow) = 0.0         ! breaking cell -> pnh = 0 Dirichlet
+      enddo
+      !$omp end do
+      !$omp end parallel
+      !
+   elseif (nh_brsteep > 0.0) then
       breform = 0.25 * nh_brsteep        ! XBeach reformsteep default (neighbour-spread threshold)
       ! --- (a) raw surface rate-of-rise  dzdt = -div(q)  (= d(zs)/dt by continuity) into cg_z ---
       !$omp parallel &

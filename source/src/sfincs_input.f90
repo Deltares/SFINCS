@@ -40,7 +40,8 @@ contains
    logical ok
    !
    character*256 wmsigstr 
-   character*256 advstr 
+   character*256 advstr
+   character*256 momstr
    !   
    ok = check_file_exists('sfincs.inp', 'SFINCS input file', .true.)
    !
@@ -175,7 +176,8 @@ contains
    call read_logical_input(500, 'wavemaker_hinc',        wavemaker_hinc,           .false.)    ! wavemaker include incident waves
    !
    ! Numerical parameters
-   call read_char_input(500,'advection_scheme',advstr,'upw1')   
+   call read_char_input(500,'advection_scheme',advstr,'upw1')
+   call read_char_input(500,'scheme',momstr,'bates')
    call read_real_input(500,'btrelax',btrelax,3600.0)
    call read_logical_input(500,'wiggle_suppression', wiggle_suppression, .true.)
    call read_real_input(500,'structure_relax',structure_relax,10.0)
@@ -197,6 +199,7 @@ contains
    call read_real_input(500, 'nh_dzbmax', nh_dzbmax, 0.1)               ! cap on |d(zb)/dx| in bottom kinematic wb (default 0.1; clips near-vertical walls, leaves real slopes); 0 = no cap
    call read_int_input(500, 'nh_fadein', nh_fadein, 0)                  ! open-boundary nonh fade-in width (cells): nonh ramps 0->full over N cells from the boundary; 0 = off
    call read_real_input(500, 'nh_brsteep', nh_brsteep, 0.0)             ! HFA breaking onset: nonh starts reducing when dzdt (=-d(hu)/dx) > nh_brsteep*sqrt(g*h); 0 = off (XBeach default 0.4)
+   call read_real_input(500, 'nh_brfr', nh_brfr, 0.0)                   ! OPTIONAL NEOWAVE Froude breaking criterion: pnh=0 when |U|/sqrt(g*D) > nh_brfr (~0.5), release < 0.3*nh_brfr (~0.15); 0 = off -> use nh_brsteep instead
    call read_real_input(500, 'nh_smoothbnd', nh_smoothbnd, 0.5)         ! strength of localized 2dx pnh smoothing in the fade-in zone (weight at boundary, ramps to 0 with nh_fade) and shallow zone; 0 = off
    call read_real_input(500, 'nh_smoothdep', nh_smoothdep, 0.0)         ! depth (m) below which the localized pnh smoothing also acts (shallow run-up / wall 2dx noise); weight ramps from full at D=0 to 0 at D=nh_smoothdep; 0 = off
    call read_real_input(500, 'nh_disp', nh_disp, 1.0)                   ! Keller-box vertical factor (default 1.0 = best dispersion, c(k) flat to Airy ~kd 2.5); 2.0 = strict linear-pressure single layer
@@ -661,6 +664,19 @@ contains
       endif
    endif
    !
+   ! Momentum scheme : Bates flux form (default) or Yamazaki/NEOWAVE velocity form
+   !
+   if (trim(momstr) == 'yamazaki' .or. trim(momstr) == 'velocity') then
+      momentum_scheme = 1
+      call write_log('Info    : momentum scheme : Yamazaki (NEOWAVE velocity form)', 0)
+   else
+      momentum_scheme = 0
+      if (trim(momstr) /= 'bates') then
+         write(logstr,*)'Warning : momentum scheme ', trim(momstr), ' not recognized! Using default bates instead!'
+         call write_log(logstr, 1)
+      endif
+   endif
+   !
    if (advection) then
       !
       ! Make 1st order upwind the default scheme
@@ -684,6 +700,11 @@ contains
          ! upwind h_u or energy/momentum switch — see upw_div instead.
          advection_scheme = 2
          call write_log('Info    : advection scheme : upwind divergence (legacy keyword sd03 -> upw_div)', 0)
+      elseif (trim(advstr) == 'mca' .or. trim(advstr) == 'upw_div_upw') then
+         ! NEOWAVE/Mader-style momentum-conserved advection: upwind streamwise mass
+         ! flux (2dx-dissipative, bore-capturing) in divergence form (Yamazaki et al. 2009).
+         advection_scheme = 3
+         call write_log('Info    : advection scheme : upwind-flux momentum-conservative (MCA, NEOWAVE/Mader)', 0)
       else
          write(logstr,*)'Warning : advection scheme ', trim(advstr), ' not recognized! Using default upw1 instead!'
          call write_log(logstr, 1)

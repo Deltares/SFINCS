@@ -75,6 +75,8 @@
 			</File>
 			<File RelativePath="..\src\sfincs_momentum.f90">
 			</File>
+			<File RelativePath="..\src\sfincs_momentum_velocity.f90">
+			</File>
 			<File RelativePath="..\src\sfincs_ncinput.F90">
 				<FileConfiguration Name="Release|x64">
 					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>

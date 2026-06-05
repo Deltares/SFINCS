@@ -105,6 +105,7 @@ module sfincs_data
       real*4 nh_filter
       real*4 nh_dzbmax
       real*4 nh_brsteep
+      real*4 nh_brfr
       real*4 nh_smoothbnd
       real*4 nh_smoothdep
       real*4 nh_disp
@@ -123,6 +124,7 @@ module sfincs_data
       integer cd_nr
       integer baro
       integer advection_scheme
+      integer momentum_scheme   ! 0 = Bates flux form (default), 1 = Yamazaki/NEOWAVE velocity form
       !
       character*256 :: depfile
       character*256 :: mskfile

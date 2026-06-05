@@ -1,4 +1,4 @@
-module sfincs_momentum
+module sfincs_momentum_velocity
    !
    use sfincs_data
    !
@@ -6,7 +6,7 @@ module sfincs_momentum
    !
 contains
    !
-   subroutine compute_fluxes(dt, tloop)
+   subroutine compute_fluxes_velocity(dt, tloop)
    !
    ! Computes fluxes over subgrid u and v points
    !
@@ -419,225 +419,51 @@ contains
             !
             frc = - g * hu * dzdx
             !
-            ! Advection term
+            ! Advection term  (NEOWAVE momentum-conserved, VELOCITY form)
             !
+            adv = 0.0
             if (advection) then
                !
-               ! Turn off advection next to open boundaries
-               !
                if (mask_adv(ip) == 1) then
-                  ! 
-                  dqxudx = 0.0  
-                  dqyudy = 0.0  
                   !
-                  if (advection_scheme == 0) then
-                     !
-                     ! Original (not very good, but reasonably robust)
-                     !
-                     if (qx_nm > 1.0e-6) then
-                        !
-                        dqxudx = (qx_nm*uu_nm - qx_nmd*uu_nmd) * dxuvinv                  
-                        ! 
-                     elseif (qx_nm < -1.0e-6) then
-                        !
-                        dqxudx = (qx_nmu*uu_nmu - qx_nm*uu_nm) * dxuvinv
-                        !
-                     endif
-                     !
-                     qy = qy_ndm + qy_ndmu + qy_nm + qy_nmu
-                     !
-                     if ( qy > 1.0e-6 ) then
-                        !
-                        dqyudy = ( qy_ndm + qy_ndmu ) * (uu_nm - uu_ndm) * dyuvinv / 2
-                        ! 
-                     elseif ( qy < -1.0e-6 ) then
-                        !
-                        dqyudy = (qy_nm + qy_nmu) * (uu_num - uu_nm) * dyuvinv / 2
-                        !
-                     endif
-                     !
-                  elseif (advection_scheme == 1) then
-                     !
-                     ! 1st order upwind (upw1)
-                     !
-                     ! d qu u / dx = qu du / dx + u d qu / dx
-                     ! d qv u / dy = qv du / dy + u d qv / dy
-                     !
-                     ! d qu u / dx
-                     !
-                     qd = (qx_nmd + qx_nm) / 2
-                     qu = (qx_nm + qx_nmu) / 2
-                     !
-                     if (qd > 1.0e-6) then
-                        ud = (uu_nmd + uu_nm) / 2
-                        dqxudx = ( qd * (uu_nm - uu_nmd) + ud * (qx_nm - qx_nmd) ) * dxuvinv
-                     endif
-                     !
-                     if (qu < -1.0e-6) then
-                        uu = (uu_nm + uu_nmu) / 2
-                        dqxudx = dqxudx + ( qu*(uu_nmu - uu_nm) + uu * (qx_nmu - qx_nm) ) * dxuvinv
-                     endif
-                     ! 
-                     ! d qv u / dy
-                     !
-                     ! qv d u / d y
-                     ! 
-                     qu = (qy_nm + qy_nmu) / 2
-                     qd = (qy_ndm + qy_ndmu) / 2
-                     !
-                     if (qd > 1.0e-6) then
-                        dqyudy = qd * (uu_nm - uu_ndm) * dyuvinv
-                     endif
-                     !
-                     if (qu < -1.0e-6) then
-                        dqyudy = dqyudy + qu * (uu_num - uu_nm) * dyuvinv
-                     endif
-                     ! 
-                     ! u d qv / dy
-                     ! 
-                     ud = (uu_nmd + uu_nm) / 2
-                     uu = (uu_nm + uu_nmu) / 2
-                     !
-                     if (ud > 1.0e-6) then
-                        dqyudy = dqyudy + ud * ( qy_nm - qy_ndm ) * dyuvinv
-                     endif   
-                     !
-                     if (uu < -1.0e-6) then
-                        dqyudy = dqyudy + uu * ( qy_nmu - qy_ndmu ) * dyuvinv
-                     endif
-                     !
-                  elseif (advection_scheme == 2) then
-                     !
-                     ! Stelling & Duijnmeijer (2003) momentum-conservative scheme.
-                     !
-                     ! Discretises d(h*u*u)/dx and d(h*v*u)/dy on the u-control-volume in
-                     ! divergence form with a CENTRAL cell-centred mass flux and first-order
-                     ! upwinding applied to the *transported velocity*. Conserves momentum by
-                     ! telescoping. The central flux passes a 2dx wiggle, though -> see scheme 3
-                     ! (upw_div_upw) for the upwind-flux (Mader/NEOWAVE) variant that damps it.
-                     !
-                     ! d (h*u*u) / dx
-                     !
-                     qd = 0.5 * (qx_nmd + qx_nm)    ! h*u at left  face of u-CV (= z-cell nm)
-                     qu = 0.5 * (qx_nm  + qx_nmu)   ! h*u at right face of u-CV (= z-cell nmu)
-                     !
-                     if (qd >= 0.0) then
-                        ud = uu_nmd                  ! upwind: take u from left
-                     else
-                        ud = uu_nm
-                     endif
-                     !
-                     if (qu >= 0.0) then
-                        uu = uu_nm                   ! upwind: take u from left
-                     else
-                        uu = uu_nmu
-                     endif
-                     !
-                     dqxudx = (qu * uu - qd * ud) * dxuvinv
-                     !
-                     ! d (h*v*u) / dy
-                     !
-                     qd = 0.5 * (qy_ndm + qy_ndmu)  ! h*v at lower face of u-CV
-                     qu = 0.5 * (qy_nm  + qy_nmu )  ! h*v at upper face of u-CV
-                     !
-                     if (qd >= 0.0) then
-                        ud = uu_ndm                  ! upwind: take u from below
-                     else
-                        ud = uu_nm
-                     endif
-                     !
-                     if (qu >= 0.0) then
-                        uu = uu_nm                   ! upwind: take u from below
-                     else
-                        uu = uu_num
-                     endif
-                     !
-                     dqyudy = (qu * uu - qd * ud) * dyuvinv
-                     !
-                  elseif (advection_scheme == 3) then
-                     !
-                     ! NEOWAVE momentum-conserved advection (Yamazaki, Kowalik & Cheung 2009,
-                     ! eqs 18, 20-22). VELOCITY-form advection with advective speeds built from
-                     ! the Mader upwind flux  FLU = mean(U) * ( still-depth h + UPWIND surface zeta ),
-                     ! where zeta is reconstructed 2nd-order (upwind face, ±2 stencil) when the
-                     ! upwind velocity is co-directional, else 1st-order upwind zeta. Upwinding
-                     ! only the (small) surface zeta -- not the full depth D = zeta + h -- keeps
-                     ! the diffusion minimal so run-up is preserved, while a breaking front is
-                     ! still captured as a bore. SFINCS is flux-form (q = hu*uv), so the
-                     ! velocity-form tendency is multiplied by hu to give the flux force.
-                     ! STREAMWISE term only; the cross term d/dy uses the scheme-2 form (exact in
-                     ! 1-D; the full 2-D NEOWAVE cross term is a later step).
-                     !
-                     ! surface elevation on the ±2 streamwise stencil (guarded near boundaries)
-                     !
-                     ipw = uv_index_u_nmd(ip) ; ipe = uv_index_u_nmu(ip)
-                     zs2w = zs(nm)  ; if (ipw > 0) zs2w = zs(uv_index_z_nm(ipw))     ! zeta_{j-2}
-                     zs1e = zs(nmu) ; if (ipe > 0) zs1e = zs(uv_index_z_nmu(ipe))    ! zeta_{j+1}
-                     !
-                     ! Mader cell-centred mass flux at the west cell (qd) and east cell (qu):
-                     !   q_cell = mean(U) * ( zeta_recon - zb_cell )
-                     ! with zeta_recon = upwind surface, 2nd-order (upwind face) when the upwind
-                     ! velocity is co-directional, else 1st-order. NOTE: this is SFINCS's
-                     ! CONSERVATIVE flux-divergence form (telescopes -> momentum conserved -> run-up
-                     ! preserved). NEOWAVE's literal *velocity* form (Uhat = 2*FLU/(D+D), * hu)
-                     ! is NOT conservative in a flux solver and under-predicts run-up; here we keep
-                     ! NEOWAVE's key idea -- upwinding only the (small) surface zeta -- inside the
-                     ! divergence form.
-                     !
-                     if (uu_nmd >= 0.0) then
-                        zrec = 0.5 * (zs2w + zs(nm))     ! co-directional -> 2nd-order (upwind face)
-                     else
-                        zrec = zs(nm)                    ! else 1st-order (cell value)
-                     endif
-                     qd = 0.5 * (uu_nmd + uu_nm) * max(zrec - zb(nm), 0.0)          ! mass flux, west cell
-                     !
-                     if (uu_nmu <= 0.0) then
-                        zrec = 0.5 * (zs(nmu) + zs1e)
-                     else
-                        zrec = zs(nmu)
-                     endif
-                     qu = 0.5 * (uu_nm + uu_nmu) * max(zrec - zb(nmu), 0.0)         ! mass flux, east cell
-                     !
-                     ! d(q*u)/dx : momentum-conserving divergence, upwind transported velocity
-                     !
-                     if (qd >= 0.0) then ; ud = uu_nmd ; else ; ud = uu_nm ; endif
-                     if (qu >= 0.0) then ; uu = uu_nm  ; else ; uu = uu_nmu ; endif
-                     dqxudx = (qu * uu - qd * ud) * dxuvinv
-                     !
-                     ! cross term d(h*v*u)/dy : scheme-2 form (central v-flux + upwind transported u)
-                     !
-                     qd = 0.5 * (qy_ndm + qy_ndmu)
-                     qu = 0.5 * (qy_nm  + qy_nmu )
-                     if (qd >= 0.0) then
-                        ud = uu_ndm
-                     else
-                        ud = uu_nm
-                     endif
-                     if (qu >= 0.0) then
-                        uu = uu_nm
-                     else
-                        uu = uu_num
-                     endif
-                     dqyudy = (qu * uu - qd * ud) * dyuvinv
-                     !
-                  endif
+                  ! NEOWAVE momentum-conserved advection (Yamazaki, Kowalik & Cheung 2009,
+                  ! eqs 18/20/22), VELOCITY form. Streamwise advective speeds from the Mader
+                  ! upwind-zeta flux  FLU = mean(U)*(upwind surface zeta + still-depth h), h=-zb;
+                  ! zeta reconstructed 2nd-order (upwind face, +/-2 stencil) when co-directional,
+                  ! else 1st-order. Cross term advects u by the transverse velocity vu (upwind).
+                  ! 'adv' is a VELOCITY tendency [m/s^2] (added to frc/hu below).
                   !
-                  adv = - phi * (dqxudx + dqyudy)
+                  ipw = uv_index_u_nmd(ip) ; ipe = uv_index_u_nmu(ip)
+                  zs2w = zs(nm)  ; if (ipw > 0) zs2w = zs(uv_index_z_nm(ipw))
+                  zs1e = zs(nmu) ; if (ipe > 0) zs1e = zs(uv_index_z_nmu(ipe))
                   !
-                  ! Limit advection term such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2)
-                  ! Default advlim is 1.0 m/s2.
-                  ! NOTE: scheme 2 (S&D03) is momentum-conservative by construction, so the
-                  ! tight 1 m/s^2 cap would re-introduce exactly the loss the scheme is
-                  ! designed to avoid. A looser cap (5x advlim) still suppresses wet/dry
-                  ! noise without choking the conservative momentum flux at real bores.
-                  !
-                  if (advection_scheme >= 2) then
-                     adv = min(max(adv, - 5.0 * advlim * hu), 5.0 * advlim * hu)   ! schemes 2/3 are momentum-conservative
+                  if (uu_nmd >= 0.0) then
+                     zrec = 0.5 * (zs2w + zs(nm))
                   else
-                     adv = min(max(adv, - advlim * hu), advlim * hu)
+                     zrec = zs(nm)
+                  endif
+                  qd = 0.5 * (uu_nmd + uu_nm) * max(zrec - zb(nm), 0.0)      ! FLU_p (west cell)
+                  if (uu_nmu <= 0.0) then
+                     zrec = 0.5 * (zs(nmu) + zs1e)
+                  else
+                     zrec = zs(nmu)
+                  endif
+                  qu = 0.5 * (uu_nm + uu_nmu) * max(zrec - zb(nmu), 0.0)     ! FLU_n (east cell)
+                  !
+                  dnm = max(zs(nm) - zb(nm), 0.0) + max(zs(nmu) - zb(nmu), 0.0)
+                  dnm = max(dnm, huthresh)
+                  ud  = max(2.0 * qd / dnm, 0.0)        ! U_p  (advective speed, from west)
+                  uu  = min(2.0 * qu / dnm, 0.0)        ! U_n  (advective speed, from east)
+                  dqxudx = ( ud * (uu_nm - uu_nmd) + uu * (uu_nmu - uu_nm) ) * dxuvinv
+                  !
+                  if (vu >= 0.0) then                   ! cross term: u advected by vu (upwind)
+                     dqyudy = vu * (uu_nm - uu_ndm) * dyuvinv
+                  else
+                     dqyudy = vu * (uu_num - uu_nm) * dyuvinv
                   endif
                   !
-                  frc = frc + adv
+                  adv = - phi * (dqxudx + dqyudy)        ! velocity tendency [m/s^2]
+                  adv = min(max(adv, -advlim), advlim)   ! limit advective acceleration
                   !
                endif
                !
@@ -736,6 +562,12 @@ contains
                !
             endif
             !
+            ! Convert the accumulated flux forces (pressure, viscosity, coriolis, wind, atm,
+            ! wave) to a VELOCITY tendency (/hu) and add the velocity-form advection -> the whole
+            ! momentum equation is now velocity-form (NEOWAVE); uv is updated directly below.
+            !
+            frc = frc / max(hu, huvmin) + adv
+            !
             ! Compute flux qfr used for friction term
             !
             if (kfuv(ip) == 0) then
@@ -754,7 +586,7 @@ contains
                   !
                else
                   !
-                  ! Computed friction term with only qx (original Bates et al. (2010))
+                  ! Friction velocity proxy from the streamwise flux (Manning)
                   !
                   qfr = abs(qx_nm) ! flux to be used in the friction term
                   !
@@ -787,7 +619,7 @@ contains
                !
             endif            
             !
-            ! Compute new flux for this uv point (Bates et al., 2010)
+            ! Update the velocity for this uv point (Yamazaki velocity form; semi-implicit Manning)
             ! 
             if (h73table) then
                !
@@ -803,54 +635,31 @@ contains
                !
             endif
             !
-            q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / hu73)
+            ! VELOCITY-form update (NEOWAVE): solve uv directly. frc is now a velocity tendency;
+            ! the implicit friction factor matches the flux form (|q|/hu^(7/3) = |u|/hu^(4/3)).
             !
-            if (subgrid .and. wiggle_suppression) then 
-               !
-               ! If the acceleration of water level in cell nm is large and positive and in nmu large and negative, or vice versa, apply limiter to the flux. Only for subgrid.
-               !
-               mdrv = abs(zsderv(nm) - zsderv(nmu)) - wiggle_threshold
-               !
-               if (mdrv > 0.0) then
-                  !
-                  q(ip) = q(ip) * wiggle_threshold / (wiggle_factor * mdrv + wiggle_threshold)
-                  !
-               endif
-               !
-            endif
+            uv(ip) = (uv0(ip) + frc * dt) / (1.0 + gnavg2 * dt * qfr / hu73)
             !
-            ! Making sure that no water can flow out of a cell when its water depth is negative
-            !            
+            ! velocity limiter (default 10 m/s)
+            uv(ip) = min(max(uv(ip), - uvlim), uvlim)
+            !
+            ! no flow out of a cell that is (going) dry
+            if (zs(nm)  < zb(nm))  uv(ip) = min(uv(ip), 0.0)
+            if (zs(nmu) < zb(nmu)) uv(ip) = max(uv(ip), 0.0)
+            !
+            ! NEOWAVE/Mader continuity flux: q = U * ( upwind surface zeta + average still-depth ),
+            ! still-depth h = -zb (datum z=0), zeta from the upwind cell. Subgrid not handled here
+            ! (ignored for now) -> q = hu*uv when subgrid is on.
             if (subgrid) then
-               !
-               if (z_volume(nm) < 0.0) then
-                  q(ip) = min(q(ip), 0.0)
-               endif
-               !
-               if (z_volume(nmu) < 0.0) then
-                  q(ip) = max(q(ip), 0.0)
-               endif
-               !
+               q(ip) = uv(ip) * hu
             else
-               !
-               if (zs(nm) < zb(nm)) then
-                  q(ip) = min(q(ip), 0.0)
+               if (uv(ip) >= 0.0) then
+                  zrec = zs(nm)
+               else
+                  zrec = zs(nmu)
                endif
-               !
-               if (zs(nmu) < zb(nmu)) then
-                  q(ip) = max(q(ip), 0.0)
-               endif
-               !
+               q(ip) = uv(ip) * max(zrec - 0.5 * (zb(nm) + zb(nmu)), 0.0)
             endif
-            !
-            ! Apply flux limiter (default 10 m/s)
-            !
-            q(ip) = min(max(q(ip), - hu * uvlim), hu * uvlim)
-            !
-            ! Compute wet-averaged velocity. hu can become extremely small in subgrid mode,
-            ! so use huvmin to prevent unrealistically high velocities.
-            !
-            uv(ip) = q(ip) / max(hu, huvmin)
             !
             kfuv(ip) = 1
             !

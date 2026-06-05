@@ -19,6 +19,7 @@ module sfincs_lib
    use sfincs_ncinput
    use sfincs_ncoutput
    use sfincs_momentum
+   use sfincs_momentum_velocity, only : compute_fluxes_velocity
    use sfincs_continuity
    use sfincs_snapwave
    use sfincs_wavemaker
@@ -581,7 +582,11 @@ module sfincs_lib
          !
          ! First compute fluxes
          !
-         call compute_fluxes(dt, tloopflux)
+         if (momentum_scheme == 1) then
+            call compute_fluxes_velocity(dt, tloopflux)
+         else
+            call compute_fluxes(dt, tloopflux)
+         endif
          !
          if (timestep_analysis) then
              !
