@@ -153,7 +153,7 @@ contains
    !$acc                    uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc                    uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
    !$acc                    zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, &
-   !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, gnapp2, x73, timestep_analysis_required_timestep ) num_gangs( 1024 ) vector_length( 128 )
+   !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, cell_area, cell_area_m2, z_flags_iref, gnapp2, x73, timestep_analysis_required_timestep ) num_gangs( 1024 ) vector_length( 128 )
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
@@ -434,6 +434,7 @@ contains
             ! Advection term  (NEOWAVE momentum-conserved, VELOCITY form)
             !
             adv = 0.0
+            !
             if (advection) then
                !
                if (mask_adv(ip) == 1) then
@@ -445,25 +446,50 @@ contains
                   ! else 1st-order. Cross term advects u by the transverse velocity vu (upwind).
                   ! 'adv' is a VELOCITY tendency [m/s^2] (added to frc/hu below).
                   !
-                  ipw = uv_index_u_nmd(ip) ; ipe = uv_index_u_nmu(ip)
-                  zs2w = zs(nm)  ; if (ipw > 0) zs2w = zs(uv_index_z_nm(ipw))
-                  zs1e = zs(nmu) ; if (ipe > 0) zs1e = zs(uv_index_z_nmu(ipe))
+                  ! Cell flow depths D_nm (west), D_nmu (east). NON-subgrid: D = max(zeta - zb, 0)
+                  ! with the Mader upwind-reconstructed surface zeta (2nd-order when co-directional).
+                  ! SUBGRID: zb is not a valid conveyance bed -> use the subgrid cell-averaged water
+                  ! depth from the cell volume, D = z_volume / cell_area (the upwind-zeta surface
+                  ! reconstruction is dropped; the subgrid tables already supply dissipation).
                   !
-                  if (uu_nmd >= 0.0) then
-                     zrec = 0.5 * (zs2w + zs(nm))
+                  if (subgrid) then
+                     !
+                     if (crsgeo) then
+                        dnm  = z_volume(nm)  / cell_area_m2(nm)
+                        dnmu = z_volume(nmu) / cell_area_m2(nmu)
+                     else
+                        dnm  = z_volume(nm)  / cell_area(z_flags_iref(nm))
+                        dnmu = z_volume(nmu) / cell_area(z_flags_iref(nmu))
+                     endif
+                     dnm  = max(dnm,  0.0)
+                     dnmu = max(dnmu, 0.0)
+                     qd   = 0.5 * (uu_nmd + uu_nm) * dnm                       ! FLU_p (west cell)
+                     qu   = 0.5 * (uu_nm + uu_nmu) * dnmu                      ! FLU_n (east cell)
+                     !
                   else
-                     zrec = zs(nm)
+                     !
+                     ipw = uv_index_u_nmd(ip)
+                     ipe = uv_index_u_nmu(ip)
+                     zs2w = zs(nm)  ; if (ipw > 0) zs2w = zs(uv_index_z_nm(ipw))
+                     zs1e = zs(nmu) ; if (ipe > 0) zs1e = zs(uv_index_z_nmu(ipe))
+                     if (uu_nmd >= 0.0) then
+                        zrec = 0.5 * (zs2w + zs(nm))
+                     else
+                        zrec = zs(nm)
+                     endif
+                     qd = 0.5 * (uu_nmd + uu_nm) * max(zrec - zb(nm), 0.0)     ! FLU_p (west cell)
+                     if (uu_nmu <= 0.0) then
+                        zrec = 0.5 * (zs(nmu) + zs1e)
+                     else
+                        zrec = zs(nmu)
+                     endif
+                     qu = 0.5 * (uu_nm + uu_nmu) * max(zrec - zb(nmu), 0.0)    ! FLU_n (east cell)
+                     dnm  = max(zs(nm)  - zb(nm),  0.0)
+                     dnmu = max(zs(nmu) - zb(nmu), 0.0)
+                     !
                   endif
-                  qd = 0.5 * (uu_nmd + uu_nm) * max(zrec - zb(nm), 0.0)      ! FLU_p (west cell)
-                  if (uu_nmu <= 0.0) then
-                     zrec = 0.5 * (zs(nmu) + zs1e)
-                  else
-                     zrec = zs(nmu)
-                  endif
-                  qu = 0.5 * (uu_nm + uu_nmu) * max(zrec - zb(nmu), 0.0)     ! FLU_n (east cell)
                   !
-                  dnm = max(zs(nm) - zb(nm), 0.0) + max(zs(nmu) - zb(nmu), 0.0)
-                  dnm = max(dnm, huthresh)
+                  dnm = max(dnm + dnmu, huthresh)       ! D_nm + D_nmu
                   ud  = max(2.0 * qd / dnm, 0.0)        ! U_p  (advective speed, from west)
                   uu  = min(2.0 * qu / dnm, 0.0)        ! U_n  (advective speed, from east)
                   dqxudx = ( ud * (uu_nm - uu_nmd) + uu * (uu_nmu - uu_nm) ) * dxuvinv
@@ -476,6 +502,7 @@ contains
                   !
                   adv = - phi * (dqxudx + dqyudy)        ! velocity tendency [m/s^2]
                   adv = min(max(adv, -advlim), advlim)   ! limit advective acceleration
+                  !adv = 0.0
                   !
                endif
                !
@@ -665,12 +692,12 @@ contains
             ! propagating wave. flux2nd = .false.: 1st-order upwind-zeta flux (eq 13), q = U*hu
             ! (hu already = upwind zeta + average still depth). Subgrid -> q = hu*uv (ignored for now).
             !
-            if (subgrid .or. .not. flux2nd) then
-               q(ip) = uv(ip) * hu
-            else
-               hufl  = 0.5 * (max(zs(nm) - zb(nm), 0.0) + max(zs(nmu) - zb(nmu), 0.0))
-               q(ip) = uv(ip) * hufl
-            endif
+!            if (subgrid .or. .not. flux2nd) then
+            q(ip) = uv(ip) * hu
+!            else
+!               hufl  = 0.5 * (max(zs(nm) - zb(nm), 0.0) + max(zs(nmu) - zb(nmu), 0.0))
+!               q(ip) = uv(ip) * hufl
+!            endif
             !
             kfuv(ip) = 1
             !

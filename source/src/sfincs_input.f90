@@ -42,6 +42,7 @@ contains
    character*256 wmsigstr 
    character*256 advstr
    character*256 momstr
+   character*256 convstr
    !   
    ok = check_file_exists('sfincs.inp', 'SFINCS input file', .true.)
    !
@@ -178,7 +179,8 @@ contains
    ! Numerical parameters
    call read_char_input(500,'advection_scheme',advstr,'upw1')
    call read_char_input(500,'scheme',momstr,'bates')
-   call read_logical_input(500,'flux2nd',flux2nd,.true.)   ! Yamazaki: 2nd-order central continuity flux (eq 15)
+   call read_char_input(500,'conveyance',convstr,'upw')   ! 'max' (default) or 'upw' (upwind surface + average bed)
+   call read_logical_input(500,'flux2nd',flux2nd,.false.)   ! Yamazaki: 2nd-order central continuity flux (eq 15)
    call read_real_input(500,'btrelax',btrelax,3600.0)
    call read_logical_input(500,'wiggle_suppression', wiggle_suppression, .true.)
    call read_real_input(500,'structure_relax',structure_relax,10.0)
@@ -678,6 +680,21 @@ contains
       endif
    endif
    !
+   ! Conveyance (face surface + flow depth) : Bates max-surface/max-bed (default), or
+   ! NEOWAVE upwind-surface + average-bed (subgrid-safe surface; average bed only in
+   ! non-subgrid mode -> waterline can climb a slope, stronger run-up).
+   !
+   if (trim(convstr(1:3)) == 'upw') then
+      conveyance_scheme = 1
+      call write_log('Info    : conveyance : upwind surface + average bed', 0)
+   else
+      conveyance_scheme = 0
+      if (trim(convstr) /= 'max') then
+         write(logstr,*)'Warning : conveyance ', trim(convstr), ' not recognized! Using default max instead!'
+         call write_log(logstr, 1)
+      endif
+   endif
+   !
    if (advection) then
       !
       ! Make 1st order upwind the default scheme
@@ -706,6 +723,12 @@ contains
          ! flux (2dx-dissipative, bore-capturing) in divergence form (Yamazaki et al. 2009).
          advection_scheme = 3
          call write_log('Info    : advection scheme : upwind-flux momentum-conservative (MCA, NEOWAVE/Mader)', 0)
+      elseif (trim(advstr) == 'upw_flux' .or. trim(advstr) == 'mca_sg') then
+         ! Subgrid-safe upwind-flux MCA: like upw_div but the cell-centred streamwise mass
+         ! flux is upwinded from the stored fluxes q0 (no zs-zb reconstruction), so it works
+         ! with subgrid (q0 already carries the subgrid conveyance).
+         advection_scheme = 4
+         call write_log('Info    : advection scheme : subgrid-safe upwind-flux momentum-conservative (upw_flux)', 0)
       else
          write(logstr,*)'Warning : advection scheme ', trim(advstr), ' not recognized! Using default upw1 instead!'
          call write_log(logstr, 1)

@@ -1720,18 +1720,24 @@ contains
       ! Read subgrid data
       !
       call read_subgrid_file()
+      ! 
+      allocate(zb(np))
+      !
+      do ip = 1, np
+         zb(ip) = quadtree_zz(index_quadtree_in_sfincs(ip))
+      enddo
       !
       ! In case of nonh, we also need zb
       !
       if (nonhydrostatic) then
          !
-         allocate(zb(np))
+         !allocate(zb(np))
          !
          if (use_quadtree) then
-            !
-            do ip = 1, np
-               zb(ip) = quadtree_zz(index_quadtree_in_sfincs(ip))
-            enddo   
+            !         
+            !do ip = 1, np
+            !   zb(ip) = quadtree_zz(index_quadtree_in_sfincs(ip))
+            !enddo   
             !
          else
             !
