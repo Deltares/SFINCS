@@ -90,6 +90,8 @@ contains
    real*4    :: hu73
    !
    real*4    :: zs2w, zs1e, dnm, dnmu, zrec     ! advection_scheme 3 (NEOWAVE MCA) work vars
+   real*4    :: zbavg                           ! NEOWAVE average still bed at u-point = 0.5*(zb(nm)+zb(nmu))
+   real*4    :: hufl                            ! NEOWAVE 2nd-order continuity-flux depth = 0.5*(D_nm+D_nmu) (eq 15)
    integer   :: ipw, ipe
    !
    real*4    :: min_dt_ip
@@ -155,7 +157,7 @@ contains
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,wx,wy,hwet,phi,adv,mdrv,hu73,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,ipw,ipe ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,wx,wy,hwet,phi,adv,mdrv,hu73,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbavg,hufl,ipw,ipe ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop, reduction( min : min_dt ), gang, vector
@@ -172,13 +174,17 @@ contains
          !
          iok  = .false.
          !
-!         if (uv0(ip) > 1.0e-6) then
-!            zsu = zs(nm)             
-!         elseif (uv0(ip) < -1.0e-6) then
-!            zsu = zs(nmu)
-!         else    
-            zsu = max(zs(nm), zs(nmu)) ! water level at u point
-!         endif
+         ! NEOWAVE upwind surface at the u-point (Yamazaki et al. 2009): take the surface from
+         ! the cell the flow comes from (sign of the previous-step velocity); tie-break to the
+         ! higher surface. This is the upwind zeta of the Mader flux (eq 13).
+         !
+         if (uv0(ip) > 1.0e-6) then
+            zsu = zs(nm)
+         elseif (uv0(ip) < -1.0e-6) then
+            zsu = zs(nmu)
+         else
+            zsu = max(zs(nm), zs(nmu))
+         endif
          !
          if (subgrid) then
             !
@@ -187,14 +193,20 @@ contains
             !
             if (zsu > zmin) then ! In the 'new' subgrid formulations, zmin is lowest pixel + huthresh. Huthresh was already applied when building the subgrid tables. In sfincs_domain, huthresh is set to 0.0 to acount for this.
                iok = .true.
-            endif   
+            endif
             !
          else
-            !            
-            if (zsu>zbuvmx(ip)) then ! zbuvmx = max(zb(nm), zb(nmu)) + huthresh
+            !
+            ! NEOWAVE flow depth at the u-point: D = upwind surface + average still depth (h = -zb),
+            ! i.e. zsu - 0.5*(zb(nm)+zb(nmu)). Uses the AVERAGE bed (not the max as in the Bates
+            ! conveyance), so the waterline can advance up a slope -> stronger run-up.
+            !
+            zbavg = 0.5 * (zb(nm) + zb(nmu))
+            !
+            if (zsu - zbavg > huthresh) then
                iok = .true.
-            endif   
-            !            
+            endif
+            !
          endif
          !
          if (iok) then
@@ -392,7 +404,7 @@ contains
                !
             else
                !
-               hu     = max(zsu - zbuvmx(ip), huthresh)
+               hu     = max(zsu - zbavg, huthresh)   ! NEOWAVE flow depth D = upwind zeta + avg still depth
                gnavg2 = gn2uv(ip)
                !
             endif
@@ -647,18 +659,17 @@ contains
             if (zs(nm)  < zb(nm))  uv(ip) = min(uv(ip), 0.0)
             if (zs(nmu) < zb(nmu)) uv(ip) = max(uv(ip), 0.0)
             !
-            ! NEOWAVE/Mader continuity flux: q = U * ( upwind surface zeta + average still-depth ),
-            ! still-depth h = -zb (datum z=0), zeta from the upwind cell. Subgrid not handled here
-            ! (ignored for now) -> q = hu*uv when subgrid is on.
-            if (subgrid) then
+            ! NEOWAVE continuity flux. flux2nd = .true. (default): 2nd-order central flux
+            ! (Yamazaki et al. 2009, eq 15) q = U * 0.5*(D_nm + D_nmu), D = max(zs - zb, 0) per
+            ! cell - central (non-upwind), so it avoids the O(dx) diffusion that smears the
+            ! propagating wave. flux2nd = .false.: 1st-order upwind-zeta flux (eq 13), q = U*hu
+            ! (hu already = upwind zeta + average still depth). Subgrid -> q = hu*uv (ignored for now).
+            !
+            if (subgrid .or. .not. flux2nd) then
                q(ip) = uv(ip) * hu
             else
-               if (uv(ip) >= 0.0) then
-                  zrec = zs(nm)
-               else
-                  zrec = zs(nmu)
-               endif
-               q(ip) = uv(ip) * max(zrec - 0.5 * (zb(nm) + zb(nmu)), 0.0)
+               hufl  = 0.5 * (max(zs(nm) - zb(nm), 0.0) + max(zs(nmu) - zb(nmu), 0.0))
+               q(ip) = uv(ip) * hufl
             endif
             !
             kfuv(ip) = 1
