@@ -18,8 +18,8 @@ contains
    !
    character*256 :: varname
    !
-   character(len=3), parameter :: allowed_types(5) = &
-        ['c2d', 'cna', 'cnb', 'gai', 'hor']   
+   character(len=3), parameter :: allowed_types(6) = &
+        ['c2d', 'cna', 'cnb', 'gai', 'hor', 'r2d']   
 
    logical :: inftype_exists   
    !
@@ -32,7 +32,7 @@ contains
    infiltration   = .false.
    netcdf_infiltration   = .false.   
    !
-   ! Four options for infiltration:
+   ! Seven options for infiltration:
    !
    ! 1) Spatially-uniform constant infiltration
    !    Requires: -
@@ -46,6 +46,8 @@ contains
    !    Requires: qinfmap, qinffield, ksfield, GA_head, GA_sigma_max, GA_Lu
    ! 6) Spatially-varying infiltration with the modified Horton Equation 
    !    Requires: qinfmap, qinffield, horton_fc, horton_f0     
+   ! 7) Spatially-varying constant run-off (specified as a percentage)
+   !    Requires: qinfmap, qinffield, cuminf
    !
    ! cumprcp and cuminf are stored in the netcdf output if store_cumulative_precipitation == .true. which is the default
    !
@@ -83,7 +85,7 @@ contains
             !
          else
             !
-            write(logstr,*)'Error    : infiltration input type ',trim(inftype),' is not part of supported types c2d cna cnb gai hor !'
+            write(logstr,*)'Error    : infiltration input type ',trim(inftype),' is not part of supported types c2d cna cnb gai hor r2d!'
             call stop_sfincs(trim(logstr), 1)   
             !
          end if        
@@ -131,6 +133,13 @@ contains
          inftype        = 'hor'
          infiltration   = .true.
          store_meteo    = .true.
+         !
+	  elseif (runofffile /= 'none') then
+         !
+         ! Spatially-varying constant run off
+         !
+         inftype = 'r2d'
+         infiltration = .true.      
          !
       endif
       !
@@ -591,6 +600,23 @@ contains
          allocate(rain_T1(np))
          rain_T1 = 0.0
          !
+	   elseif (inftype == 'r2d') then
+	   
+		  !
+		  write(logstr,'(a)')'Info    : turning on spatially-varying constant run-off'
+		  call write_log(logstr, 0)
+		  !
+		  write(logstr,'(a,a)')'Info    : reading runoff file ', trim(runofffile)
+		  call write_log(logstr, 0)
+		  !
+		  ok = check_file_exists(runofffile, 'Runoff file', .true.)
+		  !
+		  allocate(qinffield(np))
+		  open(unit = 500, file = trim(runofffile), form = 'unformatted', access = 'stream')
+		  read(500)qinffield
+		  close(500)
+		  !
+	   
       endif
       !
    else
@@ -618,6 +644,7 @@ contains
    real*4  :: I
    real*4  :: hh_local, a
    real*4  :: dt   
+   real*4  :: infil_frac
    !
    integer   :: count0
    integer   :: count1
@@ -1024,6 +1051,50 @@ contains
       !$omp end parallel 
       !$acc end parallel
       !
+	elseif (inftype == 'r2d') then	  
+		  !
+		  ! Run-off coefficient map
+		  !
+		  !$omp parallel &
+		  !$omp private ( nm, infil_frac)
+		  !$omp do
+		  !$acc parallel present( qinfmap, qinffield, z_volume, zs, zb, netprcp, cuminf )
+          !$acc loop independent gang vector private( infil_frac )
+		  do nm = 1, np
+			 !
+			 qinfmap(nm) = qinffield(nm)
+			 !
+			 ! No infiltration if there is no water
+			 !  
+			 if (subgrid) then
+				if (z_volume(nm)<=0.0) then
+				   qinfmap(nm) = 100.0
+				endif
+			 else
+				if (zs(nm)<=zb(nm)) then
+				   qinfmap(nm) = 100.0
+				endif
+			 endif
+			 !
+			 ! Fraction of net precip that infiltrates
+			 !
+			 infil_frac = 1.0 - qinfmap(nm)/100.0
+		     !
+			 if (store_cumulative_precipitation) then
+				!
+				! Compute cumulative infiltration (using net precip BEFORE it is reduced)
+				!
+				cuminf(nm) = cuminf(nm) + infil_frac * netprcp(nm) * dt
+				!
+			 endif		
+             netprcp(nm) = netprcp(nm) - infil_frac * netprcp(nm)			 
+			 !
+		  enddo
+		  !$omp end do
+		  !$omp end parallel
+          !$acc end parallel
+		  !			  
+	  
    endif
    !
    call system_clock(count1, count_rate, count_max)
