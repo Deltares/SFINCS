@@ -37,7 +37,7 @@ contains
    real*4    :: fcoriouv
    real*4    :: frc
    !
-   real*4    :: qfr
+   real*4    :: ufr
    !
    real*4    :: uu_nm
    real*4    :: uu_nmd
@@ -58,14 +58,17 @@ contains
    real*4    :: dqyudy
    real*4    :: qu
    real*4    :: qd
-   real*4    :: uu
-   real*4    :: ud
+   real*4    :: un                              ! U_n advective speed (from east)
+   real*4    :: up                              ! U_p advective speed (from west)
+   real*4    :: dnminv                           ! 1/(D_nm + D_nmu) reused for both advective speeds
    real*4    :: dzdx
    !
    real*4    :: hwet
    real*4    :: phi
    !
-   real*4    :: hu73
+   real*4    :: hu43
+   real*4    :: y_cbrt                          ! cube-root approximation hu^(1/3)
+   integer*4 :: i_cbrt                          ! bit pattern of hu/y_cbrt for the cube-root seed
    !
    real*4    :: zs2w, zs1e, dnm, dnmu, zrec     ! NEOWAVE advection work vars
    real*4    :: zbavg                           ! NEOWAVE average still bed at u-point = 0.5*(zb(nm)+zb(nmu))
@@ -73,10 +76,7 @@ contains
    !
    real*4    :: min_dt_ip
    !
-   real*4, parameter :: expo = 1.0 / 3.0
-   !integer, parameter :: expo = 1
-   !
-   logical   :: iok
+   logical   :: iwet
    !
    call system_clock(count0, count_rate, count_max)
    !
@@ -120,20 +120,20 @@ contains
    !$omp end do
    !$omp end parallel
    !
-   !$acc parallel, present( kcuv, kfuv, zs, q, uv, uv0, zsderv, &
+   !$omp parallel &
+   !$omp private ( ip,hu,ufr,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
+   !$omp           uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, &
+   !$omp           fcoriouv,gnavg2,iwet,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,dqxudx,dqyudy,un,up,dnminv,qu,qd,hwet,phi,adv,hu43,y_cbrt,i_cbrt,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbavg,ipw,ipe ) &
+   !$omp reduction ( min : min_dt  )
+   !$omp do schedule ( dynamic, 256 )
+   !$acc parallel, present( kcuv, kfuv, zs, q, uv, uv0, &
    !$acc                    uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
    !$acc                    subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
    !$acc                    subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
    !$acc                    uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc                    uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
-   !$acc                    zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, &
-   !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, cell_area, cell_area_m2, z_flags_iref, gnapp2, x73, timestep_analysis_required_timestep ) num_gangs( 1024 ) vector_length( 128 )
-   !$omp parallel &
-   !$omp private ( ip,hu,qfr,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
-   !$omp           uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, &
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,dqxudx,dqyudy,uu,ud,qu,qd,hwet,phi,adv,hu73,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbavg,ipw,ipe ) &
-   !$omp reduction ( min : min_dt  )
-   !$omp do schedule ( dynamic, 256 )
+   !$acc                    zb, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, &
+   !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, cell_area, cell_area_m2, z_flags_iref, gnapp2, timestep_analysis_required_timestep ) num_gangs( 1024 ) vector_length( 128 )
    !$acc loop, reduction( min : min_dt ), gang, vector
    do ip = 1, npuv
       !
@@ -146,11 +146,9 @@ contains
          nm  = uv_index_z_nm(ip)
          nmu = uv_index_z_nmu(ip)
          !
-         iok  = .false.
+         iwet  = .false.
          !
-         ! NEOWAVE upwind surface at the u-point (Yamazaki et al. 2009): take the surface from
-         ! the cell the flow comes from (sign of the previous-step velocity); tie-break to the
-         ! higher surface. This is the upwind zeta of the Mader flux (eq 13).
+         ! Upwind surface at the u-point: take the surface from the cell the flow comes from (sign of the previous-step velocity)
          !
          if (uv0(ip) > 1.0e-6) then
             zsu = zs(nm)
@@ -165,25 +163,25 @@ contains
             zmin = subgrid_uv_zmin(ip)
             zmax = subgrid_uv_zmax(ip)
             !
-            if (zsu > zmin) then ! In the 'new' subgrid formulations, zmin is lowest pixel + huthresh. Huthresh was already applied when building the subgrid tables. In sfincs_domain, huthresh is set to 0.0 to acount for this.
-               iok = .true.
+            if (zsu > zmin) then ! In the subgrid formulations, zmin is lowest pixel + huthresh. Huthresh was already applied when building the subgrid tables. In sfincs_domain, huthresh is set to 0.0 to acount for this.
+               iwet = .true.
             endif
             !
          else
             !
-            ! NEOWAVE flow depth at the u-point: D = upwind surface + average still depth (h = -zb),
-            ! i.e. zsu - 0.5*(zb(nm)+zb(nmu)). Uses the AVERAGE bed (not the max as in the Bates
+            ! Flow depth at the u-point: D = upwind surface + average still depth (h = -zb),
+            ! i.e. zsu - 0.5*(zb(nm)+zb(nmu)). Uses the AVERAGE bed (not the max as in the original Bates
             ! conveyance), so the waterline can advance up a slope -> stronger run-up.
             !
             zbavg = 0.5 * (zb(nm) + zb(nmu))
             !
             if (zsu - zbavg > huthresh) then
-               iok = .true.
+               iwet = .true.
             endif
             !
          endif
          !
-         if (iok) then
+         if (iwet) then
             !
             ! UV point is wet 
             !
@@ -394,20 +392,22 @@ contains
                !
             endif
             !
-            frc = - g * hu * dzdx
+            ! Velocity form: build frc directly as an acceleration [m/s^2]. Forces that scale
+            ! with depth (pressure, viscosity, Coriolis, atm) are written WITHOUT hu -- their hu
+            ! would only be divided out again. Only the surface stresses (wind, waves) keep a /hu.
             !
-            adv = 0.0
+            frc = - g * dzdx
             !
             if (advection) then
                !
                if (mask_adv(ip) == 1) then
                   !
-                  ! NEOWAVE momentum-conserved advection (Yamazaki, Kowalik & Cheung 2009,
+                  ! Momentum-conserved advection (Yamazaki, Kowalik & Cheung 2009,
                   ! eqs 18/20/22), VELOCITY form. Streamwise advective speeds from the Mader
                   ! upwind-zeta flux  FLU = mean(U)*(upwind surface zeta + still-depth h), h=-zb;
                   ! zeta reconstructed 2nd-order (upwind face, +/-2 stencil) when co-directional,
                   ! else 1st-order. Cross term advects u by the transverse velocity vu (upwind).
-                  ! 'adv' is a VELOCITY tendency [m/s^2] (added to frc/hu below).
+                  ! 'adv' is a VELOCITY tendency [m/s^2] (added straight into frc).
                   !
                   ! Cell flow depths D_nm (west), D_nmu (east). NON-subgrid: D = max(zeta - zb, 0)
                   ! with the Mader upwind-reconstructed surface zeta (2nd-order when co-directional).
@@ -424,8 +424,10 @@ contains
                         dnm  = z_volume(nm)  / cell_area(z_flags_iref(nm))
                         dnmu = z_volume(nmu) / cell_area(z_flags_iref(nmu))
                      endif
+                     !
                      dnm  = max(dnm,  0.0)
-                     dnmu = max(dnmu, 0.0)
+                     dnmu = max(dnmu, 0.0)                     
+                     !
                      qd   = 0.5 * (uu_nmd + uu_nm) * dnm                       ! FLU_p (west cell)
                      qu   = 0.5 * (uu_nm + uu_nmu) * dnmu                      ! FLU_n (east cell)
                      !
@@ -433,29 +435,51 @@ contains
                      !
                      ipw = uv_index_u_nmd(ip)
                      ipe = uv_index_u_nmu(ip)
-                     zs2w = zs(nm)  ; if (ipw > 0) zs2w = zs(uv_index_z_nm(ipw))
-                     zs1e = zs(nmu) ; if (ipe > 0) zs1e = zs(uv_index_z_nmu(ipe))
+                     !
+                     ! Only use the +/-2 stencil when the neighbor is a REGULAR uv point
+                     ! (<= npuv). At a quadtree refinement boundary uv_index_u_nm* points to a
+                     ! COMBINED uv point (index > npuv), for which uv_index_z_* is out of bounds
+                     ! (those arrays are sized npuv); fall back to 1st order there. Note ipw/ipe
+                     ! are never 0 (sfincs_domain sets a missing neighbor to ip), so the old
+                     ! "> 0" test never triggered the fallback.
+                     !
+                     if (ipw > 0 .and. ipw <= npuv) then
+                        zs2w = zs(uv_index_z_nm(ipw))
+                     else
+                        zs2w = zs(nm)
+                     endif
+                     !
+                     if (ipe > 0 .and. ipe <= npuv) then
+                        zs1e = zs(uv_index_z_nmu(ipe))
+                     else
+                        zs1e = zs(nmu)
+                     endif
+                     !
                      if (uu_nmd >= 0.0) then
                         zrec = 0.5 * (zs2w + zs(nm))
                      else
                         zrec = zs(nm)
                      endif
+                     !
                      qd = 0.5 * (uu_nmd + uu_nm) * max(zrec - zb(nm), 0.0)     ! FLU_p (west cell)
+                     !
                      if (uu_nmu <= 0.0) then
                         zrec = 0.5 * (zs(nmu) + zs1e)
                      else
                         zrec = zs(nmu)
                      endif
+                     !
                      qu = 0.5 * (uu_nm + uu_nmu) * max(zrec - zb(nmu), 0.0)    ! FLU_n (east cell)
                      dnm  = max(zs(nm)  - zb(nm),  0.0)
                      dnmu = max(zs(nmu) - zb(nmu), 0.0)
                      !
                   endif
                   !
-                  dnm = max(dnm + dnmu, huthresh)       ! D_nm + D_nmu
-                  ud  = max(2.0 * qd / dnm, 0.0)        ! U_p  (advective speed, from west)
-                  uu  = min(2.0 * qu / dnm, 0.0)        ! U_n  (advective speed, from east)
-                  dqxudx = ( ud * (uu_nm - uu_nmd) + uu * (uu_nmu - uu_nm) ) * dxuvinv
+                  dnm    = max(dnm + dnmu, huthresh)    ! D_nm + D_nmu
+                  dnminv = 2.0 / dnm
+                  up  = max(qd * dnminv, 0.0)           ! U_p  (advective speed, from west)
+                  un  = min(qu * dnminv, 0.0)           ! U_n  (advective speed, from east)
+                  dqxudx = ( up * (uu_nm - uu_nmd) + un * (uu_nmu - uu_nm) ) * dxuvinv
                   !
                   if (vu >= 0.0) then                   ! cross term: u advected by vu (upwind)
                      dqyudy = vu * (uu_nm - uu_ndm) * dyuvinv
@@ -464,7 +488,8 @@ contains
                   endif
                   !
                   adv = - phi * (dqxudx + dqyudy)        ! velocity tendency [m/s^2]
-                  adv = min(max(adv, -advlim), advlim)   ! limit advective acceleration
+                  !
+                  frc = frc + min(max(adv, -advlim), advlim)   ! add limited advective acceleration
                   !
                endif
                !
@@ -475,14 +500,14 @@ contains
             if (viscosity) then
                !
                if (itype == 0) then
-                  ! 
-                  frc = frc + nuvisc(iref) * hu * ( (uu_nmu - 2*uu_nm + uu_nmd ) * dxuv2inv + (uu_num - 2*uu_nm + uu_ndm ) * dyuv2inv )
+                  !
+                  frc = frc + nuvisc(iref) * ( (uu_nmu - 2*uu_nm + uu_nmd ) * dxuv2inv + (uu_num - 2*uu_nm + uu_ndm ) * dyuv2inv )
                   !
                else
                   !
                   ! Increase viscosity to prevent instabilities on refinement (related to advection?)
                   !
-                  frc = frc + nuviscfac * nuvisc(iref) * hu * ( (uu_nmu - 2*uu_nm + uu_nmd ) * dxuv2inv + (uu_num - 2*uu_nm + uu_ndm ) * dyuv2inv )
+                  frc = frc + nuviscfac * nuvisc(iref) * ( (uu_nmu - 2*uu_nm + uu_nmd ) * dxuv2inv + (uu_num - 2*uu_nm + uu_ndm ) * dyuv2inv )
                   !
                endif               
                !
@@ -494,11 +519,11 @@ contains
                !
                if (idir==0) then
                   !
-                  frc = frc + fcoriouv * hu * vu ! U
+                  frc = frc + fcoriouv * vu ! U
                   !
                else
                   !
-                  frc = frc - fcoriouv * hu * vu ! V
+                  frc = frc - fcoriouv * vu ! V
                   !
                endif
                !
@@ -510,31 +535,31 @@ contains
                !
                if (hwet > 0.25) then
                   !
+                  ! Wind stress is a surface force -> acceleration = stress / depth
+                  !
                   if (idir==0) then
                      !
-                     frc = frc + phi * tauwu(nm)
+                     frc = frc + phi * tauwu(nm) / max(hu, huvmin)
                      !
                   else
                      !
-                     frc = frc + phi * tauwv(nm)
+                     frc = frc + phi * tauwv(nm) / max(hu, huvmin)
                      !
-                  endif   
+                  endif
                   !
                else
                   !
-                  ! Reduce wind drag at water depths < 0.25 m
+                  ! Reduce wind drag at water depths < 0.25 m (tauw*hu*4 / hu = tauw*4)
                   !
                   if (idir==0) then
                      !
-                     ! frc = frc + phi * tauwu(nm) * hwet * 4
-                     frc = frc + tauwu(nm) * hu * 4
+                     frc = frc + tauwu(nm) * 4
                      !
                   else
                      !
-                     ! frc = frc + phi * tauwv(nm) * hwet * 4
-                     frc = frc + tauwv(nm) * hu * 4
+                     frc = frc + tauwv(nm) * 4
                      !
-                  endif   
+                  endif
                   !
                endif
                !
@@ -544,7 +569,7 @@ contains
             !
             if (patmos) then
                !
-               frc = frc + hu * (patm(nm) - patm(nmu)) * dxuvinv / rhow
+               frc = frc + (patm(nm) - patm(nmu)) * dxuvinv / rhow
                !
             endif
             !
@@ -559,68 +584,62 @@ contains
                !
                fwmax = 0.8 * hwet * sqrt(hwet) / 15
                !
-               frc = frc + phi * sign(min(abs(fwuv(ip)), fwmax), fwuv(ip))
+               ! Wave force is a surface force -> acceleration = force / depth
+               !
+               frc = frc + phi * sign(min(abs(fwuv(ip)), fwmax), fwuv(ip)) / max(hu, huvmin)
                !
             endif
             !
-            ! Convert the accumulated flux forces (pressure, viscosity, coriolis, wind, atm,
-            ! wave) to a VELOCITY tendency (/hu) and add the velocity-form advection -> the whole
-            ! momentum equation is now velocity-form (NEOWAVE); uv is updated directly below.
+            ! hu**(1/3) and hu**(4/3) for the velocity-form Manning friction, via a fast cube
+            ! root: an integer bit-hack seed (magic constant 709921077) refined by one Newton
+            ! iteration (y <- y - (y^3 - hu)/(3 y^2)). ~0.1% accurate over the depth range,
+            ! no pow, no table. y_cbrt = hu^(1/3) is reused for the newly-wet estimate below.
             !
-            frc = frc / max(hu, huvmin) + adv
+            i_cbrt = transfer(hu, i_cbrt)
+            i_cbrt = i_cbrt / 3 + 709921077
+            y_cbrt = transfer(i_cbrt, y_cbrt)
+            y_cbrt = y_cbrt - (y_cbrt * y_cbrt * y_cbrt - hu) / (3.0 * y_cbrt * y_cbrt)
+            hu43   = hu * y_cbrt
             !
-            ! Friction flux proxy qfr (velocity form: qfr = |u|*hu, so the implicit factor
-            ! gnavg2*qfr/hu^(7/3) = gnavg2*|u|/hu^(4/3) is the velocity-form Manning term; no q0).
+            ! Friction velocity proxy ufr (velocity form: the implicit Manning factor is
+            ! gnavg2*ufr/hu^(4/3) with ufr the friction-driving velocity magnitude).
             !
             if (kfuv(ip) == 0) then
                !
-               ! This uv point just became wet, so estimate equilibrium flux
+               ! This uv point just became wet, so estimate the equilibrium velocity
+               ! (hu^(2/3) = (hu^(1/3))^2 = y_cbrt^2, reusing the cube root above)
                !
-               qfr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * hu ** (5.0 / 3.0)
+               ufr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * y_cbrt * y_cbrt
                !
             else
                !
                if (friction2d) then
                   !
-                  ! Both velocity components: qfr = hu*sqrt(u^2 + v^2)
+                  ! Both velocity components: ufr = sqrt(u^2 + v^2)
                   !
-                  qfr = hu * sqrt(uv0(ip)**2 + vu**2)
+                  ufr = sqrt(uv0(ip)**2 + vu**2)
                   !
                else
                   !
-                  ! Streamwise velocity only: qfr = |u|*hu
+                  ! Streamwise velocity only: ufr = |u|
                   !
-                  qfr = abs(uv0(ip)) * hu
+                  ufr = abs(uv0(ip))
                   !
                endif
                !
             endif
             !
-            ! Update the velocity for this uv point (Yamazaki velocity form; semi-implicit Manning)
-            ! 
-            if (h73table) then
-               !
-               ! Get hu**(7/3) from look-up table
-               !
-               hu73 = power7over3(max(hu, 1.0e-6))
-               !
-            else
-               !
-               ! Compute hu**(7/3)
-               !
-               hu73 = hu**2 * hu**expo
-               !
-            endif
+            ! VELOCITY-form update: solve uv directly. frc is a velocity tendency and the
+            ! implicit friction factor is the velocity-form Manning term gnavg2*|u|/hu^(4/3).
             !
-            ! VELOCITY-form update: solve uv directly. frc is now a velocity tendency;
-            ! the implicit friction factor matches the flux form (|q|/hu^(7/3) = |u|/hu^(4/3)).
+            uv(ip) = (uv0(ip) + frc * dt) / (1.0 + gnavg2 * dt * ufr / hu43)
             !
-            uv(ip) = (uv0(ip) + frc * dt) / (1.0 + gnavg2 * dt * qfr / hu73)
+            ! velocity limiter (default 10 m/s)            
             !
-            ! velocity limiter (default 10 m/s)
             uv(ip) = min(max(uv(ip), - uvlim), uvlim)
             !
             ! no flow out of a cell that is (going) dry
+            !
             if (zs(nm)  < zb(nm))  uv(ip) = min(uv(ip), 0.0)
             if (zs(nmu) < zb(nmu)) uv(ip) = max(uv(ip), 0.0)
             !
@@ -687,41 +706,5 @@ contains
    tloop = tloop + 1.0*(count1 - count0)/count_rate
    !
    end subroutine
-   !
-   !
-   function power7over3(hu) result(hu73)
-   !
-   ! Computes hu^(7/3) using a table for hu < 10^4 and hu^(7/3) for hu >= 10^4
-   !
-   real*4, intent(in) :: hu
-   real*4             :: hu73
-   !
-   !!$acc routine(power7over3) seq
-   !
-   if (hu < 0.00001) then
-      hu73 = x73(int(1e8 * hu), 1)
-   elseif (hu < 0.0001) then
-      hu73 = x73(int(1e7 * hu), 2)
-   elseif (hu < 0.001) then
-      hu73 = x73(int(1e6 * hu), 3)
-   elseif (hu < 0.01) then
-      hu73 = x73(int(1e5 * hu), 4)
-   elseif (hu < 0.1) then
-      hu73 = x73(int(1e4 * hu), 5)
-   elseif (hu < 1.0) then
-      hu73 = x73(int(1e3 * hu), 6)
-   elseif (hu < 10.0) then
-      hu73 = x73(int(100 * hu), 7)
-   elseif (hu < 100.0) then
-      hu73 = x73(int(10 * hu), 8)
-   elseif (hu < 1000.0) then
-      hu73 = x73(int(1 * hu), 9)
-   elseif (hu < 10000.0) then
-      hu73 = x73(int(0.1 * hu), 10)
-   else
-      hu73 = 10000.0 ** (7.0/3.0)
-   endif    
-   !
-   end function
    !
 end module

@@ -407,6 +407,7 @@ contains
                else
                   hu  = max(zsu - zbuvmx(ip), huthresh)
                endif
+               !
                gnavg2 = gn2uv(ip)
                !
             endif

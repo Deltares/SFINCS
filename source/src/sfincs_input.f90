@@ -178,7 +178,7 @@ contains
    !
    ! Numerical parameters
    call read_char_input(500,'advection_scheme',advstr,'upw1')
-   call read_char_input(500,'scheme',momstr,'bates')
+   call read_char_input(500,'momentum_scheme',momstr,'velocity')
    call read_char_input(500,'conveyance',convstr,'upw')   ! 'max' (default) or 'upw' (upwind surface + average bed)
    call read_real_input(500,'btrelax',btrelax,3600.0)
    call read_logical_input(500,'wiggle_suppression', wiggle_suppression, .true.)
@@ -666,16 +666,18 @@ contains
       endif
    endif
    !
-   ! Momentum scheme : Bates flux form (default) or Yamazaki/NEOWAVE velocity form
+   ! Momentum scheme : velocity form (default) or Bates flux form
    !
-   if (trim(momstr) == 'yamazaki' .or. trim(momstr) == 'velocity') then
-      momentum_scheme = 1
-      call write_log('Info    : momentum scheme : Yamazaki (NEOWAVE velocity form)', 0)
-   else
+   if (trim(momstr) == 'bates') then
       momentum_scheme = 0
-      if (trim(momstr) /= 'bates') then
-         write(logstr,*)'Warning : momentum scheme ', trim(momstr), ' not recognized! Using default bates instead!'
+      call write_log('Info    : momentum scheme : Bates (flux form)', 0)
+   else
+      momentum_scheme = 1
+      if (trim(momstr) /= 'velocity') then
+         write(logstr,*)'Warning : momentum scheme ', trim(momstr), ' not recognized! Using default velocity instead!'
          call write_log(logstr, 1)
+      else
+         call write_log('Info    : momentum scheme : velocity form', 0)
       endif
    endif
    !

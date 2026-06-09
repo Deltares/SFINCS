@@ -125,7 +125,7 @@ module sfincs_data
       integer baro
       integer advection_scheme
       integer conveyance_scheme ! 0 = Bates (max surface, max bed; default), 1 = NEOWAVE (upwind surface + average bed)
-      integer momentum_scheme   ! 0 = Bates flux form (default), 1 = Yamazaki/NEOWAVE velocity form
+      integer momentum_scheme   ! 1 = velocity form (default), 0 = Bates flux form
       !
       character*256 :: depfile
       character*256 :: mskfile

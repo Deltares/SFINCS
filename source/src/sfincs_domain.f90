@@ -2358,7 +2358,7 @@ contains
    ! NOTE: do NOT reset uv here. set_initial_conditions() (called above) computes the initial
    ! velocity uv = q/hu from the restart/initial flux. The flux-form (Bates) scheme carries q and
    ! recomputes uv every step, so this stray reset was harmless there, but the velocity-form
-   ! (Yamazaki, scheme=yamazaki) scheme carries uv0 and needs the initial velocity preserved.
+   ! (momentum_scheme=velocity) scheme carries uv0 and needs the initial velocity preserved.
    !
    if (wind) then
       !

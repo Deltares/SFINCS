@@ -583,9 +583,17 @@ module sfincs_lib
          ! First compute fluxes
          !
          if (momentum_scheme == 1) then
+            !
+            ! Momentum scheme 1 (velocity based)
+            ! 
             call compute_fluxes_velocity(dt, tloopflux)
+            !
          else
+            !
+            ! Original momentum scheme (flux based)
+            !
             call compute_fluxes(dt, tloopflux)
+            !
          endif
          !
          if (timestep_analysis) then
