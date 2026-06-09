@@ -126,7 +126,6 @@ module sfincs_data
       integer advection_scheme
       integer conveyance_scheme ! 0 = Bates (max surface, max bed; default), 1 = NEOWAVE (upwind surface + average bed)
       integer momentum_scheme   ! 0 = Bates flux form (default), 1 = Yamazaki/NEOWAVE velocity form
-      logical flux2nd           ! Yamazaki velocity scheme: .true. = 2nd-order central continuity flux (eq 15, default), .false. = 1st-order upwind flux (eq 13)
       !
       character*256 :: depfile
       character*256 :: mskfile

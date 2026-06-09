@@ -180,7 +180,6 @@ contains
    call read_char_input(500,'advection_scheme',advstr,'upw1')
    call read_char_input(500,'scheme',momstr,'bates')
    call read_char_input(500,'conveyance',convstr,'upw')   ! 'max' (default) or 'upw' (upwind surface + average bed)
-   call read_logical_input(500,'flux2nd',flux2nd,.false.)   ! Yamazaki: 2nd-order central continuity flux (eq 15)
    call read_real_input(500,'btrelax',btrelax,3600.0)
    call read_logical_input(500,'wiggle_suppression', wiggle_suppression, .true.)
    call read_real_input(500,'structure_relax',structure_relax,10.0)

@@ -21,17 +21,12 @@ contains
    integer   :: ip
    integer   :: nm
    integer   :: nmu
-   integer   :: n
-   integer   :: m
-
+   !
    integer   :: idir
    integer   :: iref
    integer   :: itype
    integer   :: iuv
-   integer   :: ind
    integer   :: icuv
-   integer   :: iuv1
-   integer   :: iuv2
    !
    real*4    :: hu
    real*4    :: dxuvinv
@@ -41,26 +36,15 @@ contains
    real*4    :: adv
    real*4    :: fcoriouv
    real*4    :: frc
-   real*4    :: gammax
-   real*4    :: facmax
-   real*4    :: wsumax
    !
-   real*4    :: qx_nm
-   real*4    :: qx_nmd
-   real*4    :: qx_nmu
-   real*4    :: qy_nm
-   real*4    :: qy_nmu
-   real*4    :: qy_ndm
-   real*4    :: qy_ndmu
    real*4    :: qfr
-   !   
+   !
    real*4    :: uu_nm
    real*4    :: uu_nmd
    real*4    :: uu_nmu
    real*4    :: uu_ndm
    real*4    :: uu_num
    real*4    :: vu
-   real*4    :: qvt
    !
    real*4    :: zsu
    real*4    :: dzuv
@@ -69,7 +53,6 @@ contains
    real*4    :: fwmax
    real*4    :: zmax
    real*4    :: zmin
-   real*4    :: one_minus_facint 
    !
    real*4    :: dqxudx
    real*4    :: dqyudy
@@ -77,20 +60,15 @@ contains
    real*4    :: qd
    real*4    :: uu
    real*4    :: ud
-   real*4    :: qy
    real*4    :: dzdx
-   real*4    :: wx
-   real*4    :: wy
    !
    real*4    :: hwet
    real*4    :: phi
    !
-   real*4    :: mdrv
    real*4    :: hu73
    !
-   real*4    :: zs2w, zs1e, dnm, dnmu, zrec     ! advection_scheme 3 (NEOWAVE MCA) work vars
+   real*4    :: zs2w, zs1e, dnm, dnmu, zrec     ! NEOWAVE advection work vars
    real*4    :: zbavg                           ! NEOWAVE average still bed at u-point = 0.5*(zb(nm)+zb(nmu))
-   real*4    :: hufl                            ! NEOWAVE 2nd-order continuity-flux depth = 0.5*(D_nm+D_nmu) (eq 15)
    integer   :: ipw, ipe
    !
    real*4    :: min_dt_ip
@@ -126,16 +104,15 @@ contains
    !
    ! For some reason, it is necessary to set num_gangs here! Without, the program launches only 1 gang, and everything becomes VERY slow!
    !
-   ! Copy flux and velocity from previous time step
+   ! Copy velocity from previous time step (velocity form carries uv, not q)
    !
-   !$acc parallel, present( q, q0, uv, uv0 )
+   !$acc parallel, present( uv, uv0 )
    !$omp parallel &
    !$omp private ( ip )
    !$omp do
    !$acc loop gang vector
    do ip = 1, npuv + ncuv
       !
-      q0(ip)  = q(ip)
       uv0(ip) = uv(ip)
       !
    enddo
@@ -143,9 +120,7 @@ contains
    !$omp end do
    !$omp end parallel
    !
-   ! Copy flux and velocity from previous time step
-   !
-   !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, zsderv, &
+   !$acc parallel, present( kcuv, kfuv, zs, q, uv, uv0, zsderv, &
    !$acc                    uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
    !$acc                    subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
    !$acc                    subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
@@ -154,9 +129,9 @@ contains
    !$acc                    zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, &
    !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, cell_area, cell_area_m2, z_flags_iref, gnapp2, x73, timestep_analysis_required_timestep ) num_gangs( 1024 ) vector_length( 128 )
    !$omp parallel &
-   !$omp private ( ip,hu,qfr,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
-   !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,wx,wy,hwet,phi,adv,mdrv,hu73,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbavg,hufl,ipw,ipe ) &
+   !$omp private ( ip,hu,qfr,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
+   !$omp           uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,dqxudx,dqyudy,uu,ud,qu,qd,hwet,phi,adv,hu73,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbavg,ipw,ipe ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop, reduction( min : min_dt ), gang, vector
@@ -334,20 +309,11 @@ contains
                !
             endif
             !
-            ! Get fluxes and velocities from previous time step
+            ! Get velocities from the previous time step
             !
-            qx_nm = q0(ip)
-            !
-            if (advection .or. coriolis .or. viscosity .or. friction2d .or. thetasmoothing) then
+            if (advection .or. coriolis .or. viscosity .or. friction2d) then
                !
                ! Get the neighbors
-               !
-               qx_nmd  = q0(uv_index_u_nmd(ip))
-               qx_nmu  = q0(uv_index_u_nmu(ip))
-               qy_nm   = q0(uv_index_v_nm(ip))
-               qy_nmu  = q0(uv_index_v_nmu(ip))
-               qy_ndm  = q0(uv_index_v_ndm(ip))
-               qy_ndmu = q0(uv_index_v_ndmu(ip))
                !
                uu_nm   = uv0(ip)
                uu_nmd  = uv0(uv_index_u_nmd(ip))
@@ -603,27 +569,28 @@ contains
             !
             frc = frc / max(hu, huvmin) + adv
             !
-            ! Compute flux qfr used for friction term
+            ! Friction flux proxy qfr (velocity form: qfr = |u|*hu, so the implicit factor
+            ! gnavg2*qfr/hu^(7/3) = gnavg2*|u|/hu^(4/3) is the velocity-form Manning term; no q0).
             !
             if (kfuv(ip) == 0) then
                !
-               ! This uv point just became wet, so estimate equilibrium flux 
+               ! This uv point just became wet, so estimate equilibrium flux
                !
                qfr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * hu ** (5.0 / 3.0)
                !
-            else   
+            else
                !
                if (friction2d) then
                   !
-                  ! Computed friction term with both qx and qy
+                  ! Both velocity components: qfr = hu*sqrt(u^2 + v^2)
                   !
-                  qfr = sqrt(qx_nm**2 + (hu * vu)**2)
+                  qfr = hu * sqrt(uv0(ip)**2 + vu**2)
                   !
                else
                   !
-                  ! Friction velocity proxy from the streamwise flux (Manning)
+                  ! Streamwise velocity only: qfr = |u|*hu
                   !
-                  qfr = abs(qx_nm) ! flux to be used in the friction term
+                  qfr = abs(uv0(ip)) * hu
                   !
                endif
                !
@@ -657,18 +624,9 @@ contains
             if (zs(nm)  < zb(nm))  uv(ip) = min(uv(ip), 0.0)
             if (zs(nmu) < zb(nmu)) uv(ip) = max(uv(ip), 0.0)
             !
-            ! NEOWAVE continuity flux. flux2nd = .true. (default): 2nd-order central flux
-            ! (Yamazaki et al. 2009, eq 15) q = U * 0.5*(D_nm + D_nmu), D = max(zs - zb, 0) per
-            ! cell - central (non-upwind), so it avoids the O(dx) diffusion that smears the
-            ! propagating wave. flux2nd = .false.: 1st-order upwind-zeta flux (eq 13), q = U*hu
-            ! (hu already = upwind zeta + average still depth). Subgrid -> q = hu*uv (ignored for now).
+            ! Continuity flux from the updated velocity and the conveyance depth.
             !
-!            if (subgrid .or. .not. flux2nd) then
             q(ip) = uv(ip) * hu
-!            else
-!               hufl  = 0.5 * (max(zs(nm) - zb(nm), 0.0) + max(zs(nmu) - zb(nmu), 0.0))
-!               q(ip) = uv(ip) * hufl
-!            endif
             !
             kfuv(ip) = 1
             !
