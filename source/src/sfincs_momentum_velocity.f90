@@ -53,7 +53,6 @@ contains
    real*4    :: qy_ndm
    real*4    :: qy_ndmu
    real*4    :: qfr
-   real*4    :: qsm
    !   
    real*4    :: uu_nm
    real*4    :: uu_nmd
@@ -155,7 +154,7 @@ contains
    !$acc                    zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, &
    !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, cell_area, cell_area_m2, z_flags_iref, gnapp2, x73, timestep_analysis_required_timestep ) num_gangs( 1024 ) vector_length( 128 )
    !$omp parallel &
-   !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
+   !$omp private ( ip,hu,qfr,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
    !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,wx,wy,hwet,phi,adv,mdrv,hu73,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbavg,hufl,ipw,ipe ) &
    !$omp reduction ( min : min_dt  )
@@ -431,8 +430,6 @@ contains
             !
             frc = - g * hu * dzdx
             !
-            ! Advection term  (NEOWAVE momentum-conserved, VELOCITY form)
-            !
             adv = 0.0
             !
             if (advection) then
@@ -502,7 +499,6 @@ contains
                   !
                   adv = - phi * (dqxudx + dqyudy)        ! velocity tendency [m/s^2]
                   adv = min(max(adv, -advlim), advlim)   ! limit advective acceleration
-                  !adv = 0.0
                   !
                endif
                !
@@ -633,31 +629,6 @@ contains
                !
             endif
             !
-            ! Apply some smoothing if theta < 1.0 (not recommended anymore!)
-            !
-            qsm = qx_nm
-            !
-            if (thetasmoothing) then
-               ! 
-               ! Apply theta smoothing 
-               ! 
-               if ( kcuv(uv_index_u_nmd(ip))==1 .and. kcuv(uv_index_u_nmu(ip))==1 ) then 
-                  !
-                  ! But only at regular points
-                  ! 
-                  if (abs(qx_nmd) > 1.0e-6 .and. abs(qx_nmu) > 1.0e-6) then
-                     ! if (kfu(uv_index_u_nmd(ip))==1 .and. kfu(uv_index_u_nmu(ip))==1) then
-                     !
-                     ! And if both uv neighbors are active
-                     ! 
-                     qsm = theta*qx_nm + 0.5 * (1.0 - theta) * (qx_nmu + qx_nmd)
-                     ! 
-                  endif
-                  ! 
-               endif
-               !
-            endif            
-            !
             ! Update the velocity for this uv point (Yamazaki velocity form; semi-implicit Manning)
             ! 
             if (h73table) then
@@ -674,7 +645,7 @@ contains
                !
             endif
             !
-            ! VELOCITY-form update (NEOWAVE): solve uv directly. frc is now a velocity tendency;
+            ! VELOCITY-form update: solve uv directly. frc is now a velocity tendency;
             ! the implicit friction factor matches the flux form (|q|/hu^(7/3) = |u|/hu^(4/3)).
             !
             uv(ip) = (uv0(ip) + frc * dt) / (1.0 + gnavg2 * dt * qfr / hu73)
