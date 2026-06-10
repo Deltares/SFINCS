@@ -72,7 +72,6 @@ module sfincs_data
       real*4 pavbnd
       real*4 gapres
       real*4 advlim
-      real*4 adv_wiggle
       real*4 slopelim
       real*4 twet_threshold
       real*4, dimension(:), allocatable :: cd_wnd
@@ -124,7 +123,6 @@ module sfincs_data
       integer cd_nr
       integer baro
       integer advection_scheme
-      integer conveyance_scheme ! 0 = Bates (max surface, max bed; default), 1 = NEOWAVE (upwind surface + average bed)
       integer momentum_scheme   ! 1 = velocity form (default), 0 = Bates flux form
       !
       character*256 :: depfile

@@ -42,8 +42,7 @@ contains
    character*256 wmsigstr 
    character*256 advstr
    character*256 momstr
-   character*256 convstr
-   !   
+   !
    ok = check_file_exists('sfincs.inp', 'SFINCS input file', .true.)
    !
    open(500, file='sfincs.inp')   
@@ -97,7 +96,6 @@ contains
    call read_int_input(500,'epsg',epsg,0)
    call read_char_input(500,'epsg',epsg_code,'nil')      
    call read_real_input(500, 'advlim', advlim, 1.0)
-   call read_real_input(500, 'adv_wiggle', adv_wiggle, 0.0)            ! upw_div (scheme 2) TVD-style 2dx limiter: selective numerical diffusion ~adv_wiggle*0.5*|q|*lap(u), gated by a 2dx wiggle sensor (1 at zigzag, 0 smooth); damps grid-scale noise w/o the global over-diffusion of upw1. 0 = off, ~0.5-1.0 typical
    call read_real_input(500,'slopelim',slopelim,9999.9)
    call read_real_input(500,'qinf_zmin',qinf_zmin,0.0)
    call read_real_input(500,'btfilter',btfilter,60.0)
@@ -179,7 +177,6 @@ contains
    ! Numerical parameters
    call read_char_input(500,'advection_scheme',advstr,'upw1')
    call read_char_input(500,'momentum_scheme',momstr,'velocity')
-   call read_char_input(500,'conveyance',convstr,'upw')   ! 'max' (default) or 'upw' (upwind surface + average bed)
    call read_real_input(500,'btrelax',btrelax,3600.0)
    call read_logical_input(500,'wiggle_suppression', wiggle_suppression, .true.)
    call read_real_input(500,'structure_relax',structure_relax,10.0)
@@ -678,21 +675,6 @@ contains
          call write_log(logstr, 1)
       else
          call write_log('Info    : momentum scheme : velocity form', 0)
-      endif
-   endif
-   !
-   ! Conveyance (face surface + flow depth) : Bates max-surface/max-bed (default), or
-   ! NEOWAVE upwind-surface + average-bed (subgrid-safe surface; average bed only in
-   ! non-subgrid mode -> waterline can climb a slope, stronger run-up).
-   !
-   if (trim(convstr(1:3)) == 'upw') then
-      conveyance_scheme = 1
-      call write_log('Info    : conveyance : upwind surface + average bed', 0)
-   else
-      conveyance_scheme = 0
-      if (trim(convstr) /= 'max') then
-         write(logstr,*)'Warning : conveyance ', trim(convstr), ' not recognized! Using default max instead!'
-         call write_log(logstr, 1)
       endif
    endif
    !
