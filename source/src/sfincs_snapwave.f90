@@ -51,8 +51,8 @@ contains
    !
    logical       :: crsgeo
    !
-   build_revision = '$Rev: svn 197-branch:SnapWave_IG' 
-   build_date     = '$Date: 2025-04-14'
+   build_revision = '$Rev: git SFINCS_SnapWave:main' 
+   build_date     = '$Date: 2026-06-10'
    !
    call write_log('', 1)
    call write_log('----------- Welcome to SnapWave ---------', 1)
