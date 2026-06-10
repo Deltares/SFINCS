@@ -17,6 +17,14 @@ module sfincs_nonhydrostatic
    real*4,  dimension(:), allocatable   :: dzbdx
    real*4,  dimension(:), allocatable   :: dzbdy
    !
+   ! Per-row inverse grid spacing in metres (handles quadtree refinement levels and
+   ! geographic crsgeo lat-dependence). nh_dxr/nh_dyr are the per-CELL 1/dx, 1/dy used
+   ! for the bed slope, the w_b kinematic term and the breaking divergence; nh_cf (below)
+   ! is the per-FACE 0.5/dx used in the pressure operator.
+   !
+   real*4,  dimension(:), allocatable   :: nh_dxr     ! per-row 1/dx in metres         (nrows)
+   real*4,  dimension(:), allocatable   :: nh_dyr     ! per-row 1/dy in metres         (nrows)
+   !
    ! Work arrays for the matrix-free SPD conjugate-gradient solver
    !
    real*4,  dimension(:), allocatable   :: nh_dvert   ! vertical-accel diagonal term   (nrows)
@@ -105,6 +113,8 @@ contains
    allocate(dzbdy(nrows))
    allocate(nm_index_of_row(nrows))
    allocate(nh_nm_index(4, nrows))
+   allocate(nh_dxr(nrows))
+   allocate(nh_dyr(nrows))
    !
    ! Work arrays for the matrix-free CG solver
    !
@@ -151,8 +161,19 @@ contains
          irow = irow + 1
          row_index_of_nm(nm) = irow
          nm_index_of_row(irow) = nm
+         !
+         ! Per-cell inverse grid spacing in metres. y-spacing is uniform per refinement
+         ! level (dyrinv) in both projected and geographic mode. x-spacing is uniform per
+         ! level (dxrinv) when projected, but lat-dependent per cell (1/dxm) when crsgeo.
+         !
+         nh_dyr(irow) = dyrinv(z_flags_iref(nm))
+         if (crsgeo) then
+            nh_dxr(irow) = 1.0 / dxm(nm)
+         else
+            nh_dxr(irow) = dxrinv(z_flags_iref(nm))
+         endif
       endif
-   enddo      
+   enddo
    !
    ! Find velocity points needed for nh computations
    !
@@ -294,7 +315,7 @@ contains
       if (nh_nm_index(1, irow) > 0) then
          !
          nmd = nm_index_of_row(nh_nm_index(1, irow))
-         dzbdx(irow) = dzbdx(irow) + 0.5 * (zb(nm) - zb(nmd)) * dxrinv(1)
+         dzbdx(irow) = dzbdx(irow) + 0.5 * (zb(nm) - zb(nmd)) * nh_dxr(irow)
          !
       endif   
       !
@@ -303,7 +324,7 @@ contains
       if (nh_nm_index(2, irow) > 0) then
          !
          nmu = nm_index_of_row(nh_nm_index(2, irow))
-         dzbdx(irow) = dzbdx(irow) + 0.5 * (zb(nmu) - zb(nm)) * dxrinv(1)
+         dzbdx(irow) = dzbdx(irow) + 0.5 * (zb(nmu) - zb(nm)) * nh_dxr(irow)
          !
       endif
       !
@@ -312,7 +333,7 @@ contains
       if (nh_nm_index(3, irow) > 0) then
          !
          ndm = nm_index_of_row(nh_nm_index(3, irow))
-         dzbdy(irow) = dzbdy(irow) + 0.5 * (zb(nm) - zb(ndm)) * dxrinv(1)
+         dzbdy(irow) = dzbdy(irow) + 0.5 * (zb(nm) - zb(ndm)) * nh_dyr(irow)
          !
       endif
       !
@@ -321,7 +342,7 @@ contains
       if (nh_nm_index(4, irow) > 0) then
          !
          num = nm_index_of_row(nh_nm_index(4, irow))
-         dzbdy(irow) = dzbdy(irow) + 0.5 * (zb(num) - zb(nm)) * dxrinv(1)
+         dzbdy(irow) = dzbdy(irow) + 0.5 * (zb(num) - zb(nm)) * nh_dyr(irow)
          !
       endif
       !
@@ -330,7 +351,12 @@ contains
    ! Static per-face data for the matrix-free CG solver.
    ! nh_cf = 0.5 / dx is the (depth-averaged) gradient weight; the factor 0.5
    ! reflects that the linearly-varying non-hydrostatic pressure has a depth
-   ! mean of p_bed/2. Single refinement level here, so dxrinv(1) / dyrinv(1).
+   ! mean of p_bed/2. The spacing is taken PER FACE so it is correct across
+   ! quadtree refinement levels and for geographic (crsgeo) grids: x-faces use the
+   ! per-uv-point metre spacing dxminv (crsgeo) or the per-level dxrinv (projected),
+   ! y-faces the per-level dyrinv (uniform in both modes). nh_cf is a single value
+   ! per face, used identically by the gradient and its transpose divergence, so the
+   ! operator A = G^T diag(hu) G stays symmetric regardless of spacing variation.
    !
    do ip = 1, nhuv
       !
@@ -340,9 +366,13 @@ contains
       nh_faceR(ip)  = row_index_of_nm(uv_index_z_nmu(inhuv))
       !
       if (uv_flags_dir(inhuv) == 0) then
-         nh_cf(ip) = 0.5 * dxrinv(1)
+         if (crsgeo) then
+            nh_cf(ip) = 0.5 * dxminv(inhuv)
+         else
+            nh_cf(ip) = 0.5 * dxrinv(uv_flags_iref(inhuv))
+         endif
       else
-         nh_cf(ip) = 0.5 * dyrinv(1)
+         nh_cf(ip) = 0.5 * dyrinv(uv_flags_iref(inhuv))
       endif
       !
    enddo
@@ -543,13 +573,13 @@ contains
          qr = 0.0 ; ql = 0.0
          if (iuvr > 0) qr = q(iuvr)
          if (iuvl > 0) ql = q(iuvl)
-         dzdt = - (qr - ql) * dxrinv(1)
+         dzdt = - (qr - ql) * nh_dxr(irow)
          if (nmax > 1) then
             iuvr = z_index_uv_nu(nm) ; iuvl = z_index_uv_nd(nm)
             qr = 0.0 ; ql = 0.0
             if (iuvr > 0) qr = q(iuvr)
             if (iuvl > 0) ql = q(iuvl)
-            dzdt = dzdt - (qr - ql) * dyrinv(1)
+            dzdt = dzdt - (qr - ql) * nh_dyr(irow)
          endif
          cg_z(irow) = dzdt
       enddo
@@ -1052,7 +1082,7 @@ contains
       if (kfuv(iuv) > 0) then
          nmn = uv_index_z_nm(iuv)
          if (zs(nmn) - zb(nmn) > huthresh_nh) then
-            sl  = (zb(nmn) - zb(nm)) * dxrinv(1)
+            sl  = (zb(nmn) - zb(nm)) * nh_dxr(irow)
             sl  = max(-slmax, min(slmax, sl))
             wb(irow) = wb(irow) - 0.5 * uv(iuv) * sl
          endif
@@ -1061,7 +1091,7 @@ contains
       if (kfuv(iuv) > 0) then
          nmn = uv_index_z_nmu(iuv)
          if (zs(nmn) - zb(nmn) > huthresh_nh) then
-            sl  = (zb(nm) - zb(nmn)) * dxrinv(1)
+            sl  = (zb(nm) - zb(nmn)) * nh_dxr(irow)
             sl  = max(-slmax, min(slmax, sl))
             wb(irow) = wb(irow) - 0.5 * uv(iuv) * sl
          endif
@@ -1071,7 +1101,7 @@ contains
          if (kfuv(iuv) > 0) then
             nmn = uv_index_z_nm(iuv)
             if (zs(nmn) - zb(nmn) > huthresh_nh) then
-               sl  = (zb(nmn) - zb(nm)) * dyrinv(1)
+               sl  = (zb(nmn) - zb(nm)) * nh_dyr(irow)
                sl  = max(-slmax, min(slmax, sl))
                wb(irow) = wb(irow) - 0.5 * uv(iuv) * sl
             endif
@@ -1080,7 +1110,7 @@ contains
          if (kfuv(iuv) > 0) then
             nmn = uv_index_z_nmu(iuv)
             if (zs(nmn) - zb(nmn) > huthresh_nh) then
-               sl  = (zb(nm) - zb(nmn)) * dyrinv(1)
+               sl  = (zb(nm) - zb(nmn)) * nh_dyr(irow)
                sl  = max(-slmax, min(slmax, sl))
                wb(irow) = wb(irow) - 0.5 * uv(iuv) * sl
             endif
