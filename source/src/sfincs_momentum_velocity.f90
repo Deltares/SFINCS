@@ -60,7 +60,7 @@ contains
    real*4    :: qd
    real*4    :: un                              ! U_n advective speed (from east)
    real*4    :: up                              ! U_p advective speed (from west)
-   real*4    :: dnminv                           ! 1/(D_nm + D_nmu) reused for both advective speeds
+   real*4    :: dnminv                          ! 1/(D_nm + D_nmu) reused for both advective speeds
    real*4    :: dzdx
    !
    real*4    :: hwet
@@ -70,9 +70,11 @@ contains
    real*4    :: y_cbrt                          ! cube-root approximation hu^(1/3)
    integer*4 :: i_cbrt                          ! bit pattern of hu/y_cbrt for the cube-root seed
    !
-   real*4    :: zs2w, zs1e, dnm, dnmu, zrec     ! NEOWAVE advection work vars
-   real*4    :: zbavg                           ! NEOWAVE average still bed at u-point = 0.5*(zb(nm)+zb(nmu))
+   real*4    :: zs2w, zs1e, dnm, dnmu, zrec     ! advection work vars
+   real*4    :: zbavg                           ! average still bed at u-point = 0.5*(zb(nm)+zb(nmu))
    integer   :: ipw, ipe
+   real*4    :: zbnm, zbnmu                     ! bed at the west/east cell for subgrid advection (not necessarily zb)
+   real*4    :: mdrv                            ! subgrid wiggle suppression driver
    !
    real*4    :: min_dt_ip
    !
@@ -123,7 +125,8 @@ contains
    !$omp parallel &
    !$omp private ( ip,hu,ufr,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, &
-   !$omp           fcoriouv,gnavg2,iwet,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,dqxudx,dqyudy,un,up,dnminv,qu,qd,hwet,phi,adv,hu43,y_cbrt,i_cbrt,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbavg,ipw,ipe ) &
+   !$omp           fcoriouv,gnavg2,iwet,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,dqxudx,dqyudy,un,up, &
+   !$omp           dnminv,qu,qd,hwet,phi,adv,hu43,y_cbrt,i_cbrt,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbavg,ipw,ipe,zbnm,zbnmu ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc parallel, present( kcuv, kfuv, zs, q, uv, uv0, &
@@ -367,7 +370,7 @@ contains
                !
             else
                !
-               hu     = max(zsu - zbavg, huthresh)   ! NEOWAVE flow depth D = upwind zeta + avg still depth
+               hu     = max(zsu - zbavg, huthresh)   ! Flow depth D = upwind zeta + avg still depth
                gnavg2 = gn2uv(ip)
                !
             endif
@@ -409,11 +412,12 @@ contains
                   ! else 1st-order. Cross term advects u by the transverse velocity vu (upwind).
                   ! 'adv' is a VELOCITY tendency [m/s^2] (added straight into frc).
                   !
-                  ! Cell flow depths D_nm (west), D_nmu (east). NON-subgrid: D = max(zeta - zb, 0)
-                  ! with the Mader upwind-reconstructed surface zeta (2nd-order when co-directional).
-                  ! SUBGRID: zb is not a valid conveyance bed -> use the subgrid cell-averaged water
-                  ! depth from the cell volume, D = z_volume / cell_area (the upwind-zeta surface
-                  ! reconstruction is dropped; the subgrid tables already supply dissipation).
+                  ! Both paths use the SAME Mader upwind-surface reconstruction; they differ only
+                  ! in the cell bed (zbnm, zbnmu) fed to it. NON-subgrid: zbnm = zb (the cell bed),
+                  ! so D = max(zrec - zb, 0). SUBGRID: zb is not a valid conveyance bed, so use the
+                  ! EFFECTIVE bed implied by the subgrid cell-mean depth, zbnm = zs - z_volume/cell_area;
+                  ! then zrec - zbnm = D_cell + 0.5*(upwind dzs) -- centered depth when flat, with the
+                  ! upwind-surface boost at a front (subgrid-consistent Mader reconstruction).
                   !
                   if (subgrid) then
                      !
@@ -428,57 +432,66 @@ contains
                      dnm  = max(dnm,  0.0)
                      dnmu = max(dnmu, 0.0)                     
                      !
-                     qd   = 0.5 * (uu_nmd + uu_nm) * dnm                       ! FLU_p (west cell)
-                     qu   = 0.5 * (uu_nm + uu_nmu) * dnmu                      ! FLU_n (east cell)
+                     zbnm = zs(nm) - dnm
+                     zbnmu = zs(nmu) - dnmu
                      !
                   else
-                     !
-                     ipw = uv_index_u_nmd(ip)
-                     ipe = uv_index_u_nmu(ip)
-                     !
-                     ! Only use the +/-2 stencil when the neighbor is a REGULAR uv point
-                     ! (<= npuv). At a quadtree refinement boundary uv_index_u_nm* points to a
-                     ! COMBINED uv point (index > npuv), for which uv_index_z_* is out of bounds
-                     ! (those arrays are sized npuv); fall back to 1st order there. Note ipw/ipe
-                     ! are never 0 (sfincs_domain sets a missing neighbor to ip), so the old
-                     ! "> 0" test never triggered the fallback.
-                     !
-                     if (ipw > 0 .and. ipw <= npuv) then
-                        zs2w = zs(uv_index_z_nm(ipw))
-                     else
-                        zs2w = zs(nm)
-                     endif
-                     !
-                     if (ipe > 0 .and. ipe <= npuv) then
-                        zs1e = zs(uv_index_z_nmu(ipe))
-                     else
-                        zs1e = zs(nmu)
-                     endif
-                     !
-                     if (uu_nmd >= 0.0) then
-                        zrec = 0.5 * (zs2w + zs(nm))
-                     else
-                        zrec = zs(nm)
-                     endif
-                     !
-                     qd = 0.5 * (uu_nmd + uu_nm) * max(zrec - zb(nm), 0.0)     ! FLU_p (west cell)
-                     !
-                     if (uu_nmu <= 0.0) then
-                        zrec = 0.5 * (zs(nmu) + zs1e)
-                     else
-                        zrec = zs(nmu)
-                     endif
-                     !
-                     qu = 0.5 * (uu_nm + uu_nmu) * max(zrec - zb(nmu), 0.0)    ! FLU_n (east cell)
+                     ! 
                      dnm  = max(zs(nm)  - zb(nm),  0.0)
                      dnmu = max(zs(nmu) - zb(nmu), 0.0)
                      !
+                     zbnm = zb(nm)
+                     zbnmu = zb(nmu)
+                     !
+                  endif   
+                  !
+                  ipw = uv_index_u_nmd(ip)
+                  ipe = uv_index_u_nmu(ip)
+                  !
+                  ! Only use the +/-2 stencil when the neighbor is a REGULAR uv point
+                  ! (<= npuv). At a quadtree refinement boundary uv_index_u_nm* points to a
+                  ! COMBINED uv point (index > npuv), for which uv_index_z_* is out of bounds
+                  ! (those arrays are sized npuv); fall back to 1st order there. Note ipw/ipe
+                  ! are never 0 (sfincs_domain sets a missing neighbor to ip), so the old
+                  ! "> 0" test never triggered the fallback.
+                  !
+                  if (ipw > 0 .and. ipw <= npuv) then
+                     zs2w = zs(uv_index_z_nm(ipw))
+                  else
+                     zs2w = zs(nm)
                   endif
+                  !
+                  if (ipe > 0 .and. ipe <= npuv) then
+                     zs1e = zs(uv_index_z_nmu(ipe))
+                  else
+                     zs1e = zs(nmu)
+                  endif
+                  !
+                  if (uu_nmd >= 0.0) then
+                     zrec = 0.5 * (zs2w + zs(nm))
+                  else
+                     zrec = zs(nm)
+                  endif
+                  !
+                  qd = 0.5 * (uu_nmd + uu_nm) * max(zrec - zbnm, 0.0)       ! FLU_p (west cell)
+                  !
+                  if (uu_nmu <= 0.0) then
+                     zrec = 0.5 * (zs(nmu) + zs1e)
+                  else
+                     zrec = zs(nmu)
+                  endif
+                  !
+                  qu = 0.5 * (uu_nm + uu_nmu) * max(zrec - zbnmu, 0.0)      ! FLU_n (east cell)
+                  !
+                  dnm  = max(zs(nm)  - zb(nm),  0.0)
+                  dnmu = max(zs(nmu) - zb(nmu), 0.0)
                   !
                   dnm    = max(dnm + dnmu, huthresh)    ! D_nm + D_nmu
                   dnminv = 2.0 / dnm
+                  !
                   up  = max(qd * dnminv, 0.0)           ! U_p  (advective speed, from west)
-                  un  = min(qu * dnminv, 0.0)           ! U_n  (advective speed, from east)
+                  un  = min(qu * dnminv, 0.0)           ! U_n  (advective speed, from east)                  
+                  !
                   dqxudx = ( up * (uu_nm - uu_nmd) + un * (uu_nmu - uu_nm) ) * dxuvinv
                   !
                   if (vu >= 0.0) then                   ! cross term: u advected by vu (upwind)
@@ -629,16 +642,30 @@ contains
                !
             endif
             !
-            ! VELOCITY-form update: solve uv directly. frc is a velocity tendency and the
+            ! Velocity update. frc is a velocity tendency and the
             ! implicit friction factor is the velocity-form Manning term gnavg2*|u|/hu^(4/3).
             !
             uv(ip) = (uv0(ip) + frc * dt) / (1.0 + gnavg2 * dt * ufr / hu43)
             !
-            ! velocity limiter (default 10 m/s)            
+            if (subgrid .and. wiggle_suppression) then 
+               !
+               ! If the acceleration of water level in cell nm is large and positive and in nmu large and negative, or vice versa, apply limiter to the flux. Only for subgrid.
+               !
+               mdrv = abs(zsderv(nm) - zsderv(nmu)) - wiggle_threshold
+               !
+               if (mdrv > 0.0) then
+                  !
+                  uv(ip) = uv(ip) * wiggle_threshold / (wiggle_factor * mdrv + wiggle_threshold)
+                  !
+               endif
+               !
+            endif
+            !
+            ! Velocity limiter (default 10 m/s)            
             !
             uv(ip) = min(max(uv(ip), - uvlim), uvlim)
             !
-            ! no flow out of a cell that is (going) dry
+            ! No flow out of a cell that is (going) dry
             !
             if (zs(nm)  < zb(nm))  uv(ip) = min(uv(ip), 0.0)
             if (zs(nmu) < zb(nmu)) uv(ip) = max(uv(ip), 0.0)

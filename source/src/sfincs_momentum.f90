@@ -80,8 +80,6 @@ contains
    real*4    :: ud
    real*4    :: qy
    real*4    :: dzdx
-   real*4    :: wx
-   real*4    :: wy
    !
    real*4    :: hwet
    real*4    :: phi
@@ -89,15 +87,12 @@ contains
    real*4    :: mdrv
    real*4    :: hu73
    !
-   real*4    :: zs2w, zs1e, dnm, dnmu, zrec     ! advection_scheme 3 (NEOWAVE MCA) work vars
-   real*4    :: zbavg                           ! conveyance_scheme 1: average still bed 0.5*(zb(nm)+zb(nmu))
-   real*4    :: zwet                            ! threshold surface above which the u-point is wet
-   integer   :: ipw, ipe
-   !
    real*4    :: min_dt_ip
    !
    real*4, parameter :: expo = 1.0 / 3.0
    !integer, parameter :: expo = 1
+   !
+   logical   :: iok
    !
    call system_clock(count0, count_rate, count_max)
    !
@@ -155,7 +150,7 @@ contains
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,wx,wy,hwet,phi,adv,mdrv,hu73,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbavg,zwet,ipw,ipe ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73,min_dt_ip ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop, reduction( min : min_dt ), gang, vector
@@ -170,44 +165,28 @@ contains
          nm  = uv_index_z_nm(ip)
          nmu = uv_index_z_nmu(ip)
          !
-         ! Surface at the u-point. conveyance_scheme 0 (default): MAX of the two
-         ! cell surfaces. conveyance_scheme 1 (keyword conveyance=upwind): upwind
-         ! surface -- from the cell the flow comes from (sign of uv0), tie-break to higher
-         ! surface. Subgrid-safe (no zb); feeds both the subgrid table lookup and the check.
+         iok  = .false.
          !
-         if (conveyance_scheme == 1) then
-            !
-            if (uv0(ip) > 1.0e-6) then
-               zsu = zs(nm)
-            elseif (uv0(ip) < -1.0e-6) then
-               zsu = zs(nmu)
-            else
-               zsu = max(zs(nm), zs(nmu))
-            endif
-            !
-         else
-            !
-            zsu = max(zs(nm), zs(nmu)) ! water level at u point
-            !
-         endif
-         !
-         ! Threshold surface zwet above which the u-point is wet (single comparison below):
-         !   subgrid          -> zmin (lowest pixel + huthresh, baked into the subgrid tables)
-         !   Mean (conv 1)    -> average still bed + huthresh (waterline can climb a slope)
-         !   Max  (conv 0)    -> zbuvmx = max(zb(nm), zb(nmu)) + huthresh
+         zsu = max(zs(nm), zs(nmu)) ! water level at u point
          !
          if (subgrid) then
+            !
             zmin = subgrid_uv_zmin(ip)
             zmax = subgrid_uv_zmax(ip)
-            zwet = zmin
-         elseif (conveyance_scheme == 1) then
-            zbavg = 0.5 * (zb(nm) + zb(nmu))
-            zwet  = zbavg + huthresh
+            !
+            if (zsu>zmin + huthresh) then ! In the 'new' subgrid formulations, zmin is lowest pixel + huthresh. Huthresh was already applied when building the subgrid tables. In sfincs_domain, huthresh is set to 0.0 to acount for this.
+               iok = .true.
+            endif   
+            !
          else
-            zwet  = zbuvmx(ip)
+            !            
+            if (zsu>zbuvmx(ip)) then ! zbuvmx = max(zb(nm), zb(nmu)) + huthresh
+               iok = .true.
+            endif   
+            !            
          endif
          !
-         if (zsu > zwet) then
+         if (iok) then
             !
             ! UV point is wet 
             !
@@ -402,12 +381,7 @@ contains
                !
             else
                !
-               if (conveyance_scheme == 1) then
-                  hu  = max(zsu - 0.5 * (zb(nm) + zb(nmu)), huthresh)   ! average-bed depth
-               else
-                  hu  = max(zsu - zbuvmx(ip), huthresh)
-               endif
-               !
+               hu     = max(zsu - zbuvmx(ip), huthresh)
                gnavg2 = gn2uv(ip)
                !
             endif
@@ -520,181 +494,21 @@ contains
                      if (uu < -1.0e-6) then
                         dqyudy = dqyudy + uu * ( qy_nmu - qy_ndmu ) * dyuvinv
                      endif
-                     !
-                  elseif (advection_scheme == 2) then
-                     !
-                     ! Stelling & Duijnmeijer (2003) momentum-conservative scheme.
-                     !
-                     ! Discretises d(h*u*u)/dx and d(h*v*u)/dy on the u-control-volume in
-                     ! divergence form with a CENTRAL cell-centred mass flux and first-order
-                     ! upwinding applied to the *transported velocity*. Conserves momentum by
-                     ! telescoping. The central flux passes a 2dx wiggle, though -> see scheme 3
-                     ! (upw_div_upw) for the upwind-flux (Mader/NEOWAVE) variant that damps it.
-                     !
-                     ! d (h*u*u) / dx
-                     !
-                     qd = 0.5 * (qx_nmd + qx_nm)    ! h*u at left  face of u-CV (= z-cell nm)
-                     qu = 0.5 * (qx_nm  + qx_nmu)   ! h*u at right face of u-CV (= z-cell nmu)
-                     !
-                     if (qd >= 0.0) then
-                        ud = uu_nmd                  ! upwind: take u from left
-                     else
-                        ud = uu_nm
-                     endif
-                     !
-                     if (qu >= 0.0) then
-                        uu = uu_nm                   ! upwind: take u from left
-                     else
-                        uu = uu_nmu
-                     endif
-                     !
-                     dqxudx = (qu * uu - qd * ud) * dxuvinv
-                     !
-                     ! d (h*v*u) / dy
-                     !
-                     qd = 0.5 * (qy_ndm + qy_ndmu)  ! h*v at lower face of u-CV
-                     qu = 0.5 * (qy_nm  + qy_nmu )  ! h*v at upper face of u-CV
-                     !
-                     if (qd >= 0.0) then
-                        ud = uu_ndm                  ! upwind: take u from below
-                     else
-                        ud = uu_nm
-                     endif
-                     !
-                     if (qu >= 0.0) then
-                        uu = uu_nm                   ! upwind: take u from below
-                     else
-                        uu = uu_num
-                     endif
-                     !
-                     dqyudy = (qu * uu - qd * ud) * dyuvinv
-                     !
-                  elseif (advection_scheme == 3) then
-                     !
-                     ! NEOWAVE momentum-conserved advection (Yamazaki, Kowalik & Cheung 2009,
-                     ! eqs 18, 20-22). VELOCITY-form advection with advective speeds built from
-                     ! the Mader upwind flux  FLU = mean(U) * ( still-depth h + UPWIND surface zeta ),
-                     ! where zeta is reconstructed 2nd-order (upwind face, ±2 stencil) when the
-                     ! upwind velocity is co-directional, else 1st-order upwind zeta. Upwinding
-                     ! only the (small) surface zeta -- not the full depth D = zeta + h -- keeps
-                     ! the diffusion minimal so run-up is preserved, while a breaking front is
-                     ! still captured as a bore. SFINCS is flux-form (q = hu*uv), so the
-                     ! velocity-form tendency is multiplied by hu to give the flux force.
-                     ! STREAMWISE term only; the cross term d/dy uses the scheme-2 form (exact in
-                     ! 1-D; the full 2-D NEOWAVE cross term is a later step).
-                     !
-                     ! surface elevation on the ±2 streamwise stencil (guarded near boundaries)
-                     !
-                     ipw = uv_index_u_nmd(ip) ; ipe = uv_index_u_nmu(ip)
-                     zs2w = zs(nm)  ; if (ipw > 0) zs2w = zs(uv_index_z_nm(ipw))     ! zeta_{j-2}
-                     zs1e = zs(nmu) ; if (ipe > 0) zs1e = zs(uv_index_z_nmu(ipe))    ! zeta_{j+1}
-                     !
-                     ! Mader cell-centred mass flux at the west cell (qd) and east cell (qu):
-                     !   q_cell = mean(U) * ( zeta_recon - zb_cell )
-                     ! with zeta_recon = upwind surface, 2nd-order (upwind face) when the upwind
-                     ! velocity is co-directional, else 1st-order. NOTE: this is SFINCS's
-                     ! CONSERVATIVE flux-divergence form (telescopes -> momentum conserved -> run-up
-                     ! preserved). NEOWAVE's literal *velocity* form (Uhat = 2*FLU/(D+D), * hu)
-                     ! is NOT conservative in a flux solver and under-predicts run-up; here we keep
-                     ! NEOWAVE's key idea -- upwinding only the (small) surface zeta -- inside the
-                     ! divergence form.
-                     !
-                     if (uu_nmd >= 0.0) then
-                        zrec = 0.5 * (zs2w + zs(nm))     ! co-directional -> 2nd-order (upwind face)
-                     else
-                        zrec = zs(nm)                    ! else 1st-order (cell value)
-                     endif
-                     qd = 0.5 * (uu_nmd + uu_nm) * max(zrec - zb(nm), 0.0)          ! mass flux, west cell
-                     !
-                     if (uu_nmu <= 0.0) then
-                        zrec = 0.5 * (zs(nmu) + zs1e)
-                     else
-                        zrec = zs(nmu)
-                     endif
-                     qu = 0.5 * (uu_nm + uu_nmu) * max(zrec - zb(nmu), 0.0)         ! mass flux, east cell
-                     !
-                     ! d(q*u)/dx : momentum-conserving divergence, upwind transported velocity
-                     !
-                     if (qd >= 0.0) then ; ud = uu_nmd ; else ; ud = uu_nm ; endif
-                     if (qu >= 0.0) then ; uu = uu_nm  ; else ; uu = uu_nmu ; endif
-                     dqxudx = (qu * uu - qd * ud) * dxuvinv
-                     !
-                     ! cross term d(h*v*u)/dy : scheme-2 form (central v-flux + upwind transported u)
-                     !
-                     qd = 0.5 * (qy_ndm + qy_ndmu)
-                     qu = 0.5 * (qy_nm  + qy_nmu )
-                     if (qd >= 0.0) then
-                        ud = uu_ndm
-                     else
-                        ud = uu_nm
-                     endif
-                     if (qu >= 0.0) then
-                        uu = uu_nm
-                     else
-                        uu = uu_num
-                     endif
-                     dqyudy = (qu * uu - qd * ud) * dyuvinv
-                     !
-                  elseif (advection_scheme == 4) then
-                     !
-                     ! Subgrid-safe upwind-flux momentum-conservative advection. Same
-                     ! conservative divergence as scheme 2, but the cell-centred streamwise
-                     ! mass flux is UPWINDED from the stored face fluxes q0 (by the sign of
-                     ! the cell velocity) instead of central-averaged -- damps the 2dx wiggle /
-                     ! captures bores like scheme 3, but WITHOUT reconstructing depth as zs-zb,
-                     ! so it works with subgrid (q0 already carries the subgrid conveyance).
-                     ! Telescopes (shared-face flux identical from both sides) -> momentum
-                     ! conserved. Cross term: scheme-2 form.
-                     !
-                     ! d(h*u*u)/dx : upwind cell mass flux from q0
-                     !
-                     ud = 0.5 * (uu_nmd + uu_nm)         ! velocity at west cell (nm) centre
-                     if (ud >= 0.0) then
-                        qd = qx_nmd                      ! upwind: flux from the west face
-                     else
-                        qd = qx_nm
-                     endif
-                     uu = 0.5 * (uu_nm + uu_nmu)         ! velocity at east cell (nmu) centre
-                     if (uu >= 0.0) then
-                        qu = qx_nm
-                     else
-                        qu = qx_nmu                      ! upwind: flux from the east face
-                     endif
-                     ! upwind the transported velocity by the (upwinded) mass-flux sign
-                     if (qd >= 0.0) then ; ud = uu_nmd ; else ; ud = uu_nm ; endif
-                     if (qu >= 0.0) then ; uu = uu_nm  ; else ; uu = uu_nmu ; endif
-                     dqxudx = (qu * uu - qd * ud) * dxuvinv
-                     !
-                     ! cross term d(h*v*u)/dy : scheme-2 form (central v-flux, upwind transported u)
-                     !
-                     qd = 0.5 * (qy_ndm + qy_ndmu)
-                     qu = 0.5 * (qy_nm  + qy_nmu )
-                     if (qd >= 0.0) then ; ud = uu_ndm ; else ; ud = uu_nm ; endif
-                     if (qu >= 0.0) then ; uu = uu_nm  ; else ; uu = uu_num ; endif
-                     dqyudy = (qu * uu - qd * ud) * dyuvinv
-                     !
+                     !  
                   endif
                   !
                   adv = - phi * (dqxudx + dqyudy)
                   !
                   ! Limit advection term such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2)
-                  ! Default advlim is 1.0 m/s2.
-                  ! NOTE: scheme 2 (S&D03) is momentum-conservative by construction, so the
-                  ! tight 1 m/s^2 cap would re-introduce exactly the loss the scheme is
-                  ! designed to avoid. A looser cap (5x advlim) still suppresses wet/dry
-                  ! noise without choking the conservative momentum flux at real bores.
+                  ! Default advlim is 1.0 m/s2
                   !
-                  if (advection_scheme >= 2) then
-                     adv = min(max(adv, - 5.0 * advlim * hu), 5.0 * advlim * hu)   ! schemes 2/3 are momentum-conservative
-                  else
-                     adv = min(max(adv, - advlim * hu), advlim * hu)
-                  endif
+                  adv = min(max(adv, - advlim * hu), advlim * hu) 
                   !
                   frc = frc + adv
                   !
                endif
-               !
-            endif
+               !   
+            endif   
             !
             ! Viscosity term
             !
@@ -855,7 +669,7 @@ contains
                hu73 = hu**2 * hu**expo
                !
             endif
-            !
+            ! 
             q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / hu73)
             !
             if (subgrid .and. wiggle_suppression) then 
@@ -963,7 +777,7 @@ contains
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
    !
-   end subroutine
+   end subroutine      
    !
    !
    function power7over3(hu) result(hu73)
