@@ -366,7 +366,7 @@ subroutine get_value_string(self, val, stat, origin)
    integer :: info
    character(:, tfc), allocatable :: dummy
 
-   call self%get(dummy)
+   call self%get_string(dummy)
    if (allocated(dummy)) then
       val = dummy
       info = toml_stat%success

@@ -72,7 +72,7 @@ module tomlf_type_keyval
    contains
 
       !> Get the value stored in the key-value pair
-      generic :: get => get_float, get_integer, get_boolean, get_datetime, get_string
+      generic :: get => get_float, get_integer, get_boolean, get_datetime
       procedure :: get_float
       procedure :: get_integer
       procedure :: get_boolean
