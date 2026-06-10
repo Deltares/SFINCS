@@ -58,6 +58,7 @@ module sfincs_ncoutput_helpers
       !
       integer :: mesh2d_varid
       integer :: mesh2d_node_x_varid, mesh2d_node_y_varid
+      integer :: mesh2d_face_x_varid, mesh2d_face_y_varid
       integer :: mesh2d_face_nodes_varid
       integer :: nmesh2d_node_dimid
       integer :: nmesh2d_face_dimid
@@ -469,11 +470,12 @@ contains
       vname = 'mesh2d_node_' // axis
       if (crsgeo) then
          nctype = NF90_FLOAT
-         units  = 'degrees'
          if (axis == 'x') then
+            units     = 'degrees_east'
             std_name  = 'longitude'
             long_name = 'longitude'
          else
+            units     = 'degrees_north'
             std_name  = 'latitude'
             long_name = 'latitude'
          endif
@@ -493,6 +495,7 @@ contains
       NF90(nf90_put_att(map_file%ncid, varid, 'units',         trim(units)))
       NF90(nf90_put_att(map_file%ncid, varid, 'standard_name', trim(std_name)))
       NF90(nf90_put_att(map_file%ncid, varid, 'long_name',     trim(long_name)))
+      NF90(nf90_put_att(map_file%ncid, varid, 'grid_mapping',  'crs'))
       NF90(nf90_put_att(map_file%ncid, varid, 'mesh',          'mesh2d'))
       NF90(nf90_put_att(map_file%ncid, varid, 'location',      'node'))
    end subroutine def_mesh2d_node_coord
