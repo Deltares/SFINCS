@@ -71,7 +71,7 @@ contains
    integer*4 :: i_cbrt                          ! bit pattern of hu/y_cbrt for the cube-root seed
    !
    real*4    :: zs2w, zs1e, dnm, dnmu, zrec     ! advection work vars
-   real*4    :: zbavg                           ! average still bed at u-point = 0.5*(zb(nm)+zb(nmu))
+   real*4    :: zbup                            ! upwind still bed at u-point (bed of the cell the flow comes from)
    integer   :: ipw, ipe
    real*4    :: zbnm, zbnmu                     ! bed at the west/east cell for subgrid advection (not necessarily zb)
    real*4    :: mdrv                            ! subgrid wiggle suppression driver
@@ -126,7 +126,7 @@ contains
    !$omp private ( ip,hu,ufr,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, &
    !$omp           fcoriouv,gnavg2,iwet,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,dqxudx,dqyudy,un,up, &
-   !$omp           dnminv,qu,qd,hwet,phi,adv,hu43,y_cbrt,i_cbrt,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbavg,ipw,ipe,zbnm,zbnmu ) &
+   !$omp           dnminv,qu,qd,hwet,phi,adv,hu43,y_cbrt,i_cbrt,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbup,ipw,ipe,zbnm,zbnmu ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc parallel, present( kcuv, kfuv, zs, q, uv, uv0, &
@@ -151,7 +151,9 @@ contains
          !
          iwet  = .false.
          !
-         ! Upwind surface at the u-point: take the surface from the cell the flow comes from (sign of the previous-step velocity)
+         ! Upwind surface at the u-point: take the surface from the cell the flow comes from
+         ! (sign of the previous-step velocity). The upwind bed (zbup) is only needed for the
+         ! regular-grid conveyance and is set in the non-subgrid branch below.
          !
          if (uv0(ip) > 1.0e-6) then
             zsu = zs(nm)
@@ -172,13 +174,24 @@ contains
             !
          else
             !
-            ! Flow depth at the u-point: D = upwind surface + average still depth (h = -zb),
-            ! i.e. zsu - 0.5*(zb(nm)+zb(nmu)). Uses the AVERAGE bed (not the max as in the original Bates
-            ! conveyance), so the waterline can advance up a slope -> stronger run-up.
+            ! Flow depth at the u-point: D = upwind surface - upwind bed = zsu - zbup, i.e. the water
+            ! depth in the cell the flow comes from. The upwind bed follows the same flow direction
+            ! that selected zsu. The face is wet when that upwind depth exceeds huthresh. This avoids
+            ! the average-bed depth overshoot on steep downslopes while still allowing run-up.
             !
-            zbavg = 0.5 * (zb(nm) + zb(nmu))
+            if (uv0(ip) > 1.0e-6) then
+               zbup = zb(nm)
+            elseif (uv0(ip) < -1.0e-6) then
+               zbup = zb(nmu)
+            else
+               if (zs(nm) >= zs(nmu)) then
+                  zbup = zb(nm)
+               else
+                  zbup = zb(nmu)
+               endif
+            endif
             !
-            if (zsu - zbavg > huthresh) then
+            if (zsu - zbup > huthresh) then
                iwet = .true.
             endif
             !
@@ -370,7 +383,7 @@ contains
                !
             else
                !
-               hu     = max(zsu - zbavg, huthresh)   ! Flow depth D = upwind zeta + avg still depth
+               hu     = zsu - zbup    ! Flow depth D = upwind zeta - upwind bed
                gnavg2 = gn2uv(ip)
                !
             endif
