@@ -25,6 +25,15 @@ module sfincs_nonhydrostatic
    real*4,  dimension(:), allocatable   :: nh_dxr     ! per-row 1/dx in metres         (nrows)
    real*4,  dimension(:), allocatable   :: nh_dyr     ! per-row 1/dy in metres         (nrows)
    !
+   ! Bed slopes for the bottom kinematic condition w_b (step 7), FROZEN at
+   ! initialization from the bed as read from file, and capped at +/- nh_dzbmax.
+   ! They must NOT follow the per-step effective bed zs - z_volume/area that
+   ! subgrid models maintain (zb_effective): that bed moves with the wet fraction
+   ! every step and its slope jitter would feed straight into w_b/ws. The real
+   ! bed slope is constant in time.
+   !
+   real*4,  dimension(:,:), allocatable :: nh_slbed   ! (4, nrows) slots: 1 left(md), 2 right(mu), 3 below(nd), 4 above(nu)
+   !
    ! Work arrays for the matrix-free SPD conjugate-gradient solver
    !
    real*4,  dimension(:), allocatable   :: nh_dvert   ! vertical-accel diagonal term   (nrows)
@@ -348,6 +357,60 @@ contains
       !
    enddo
    !
+   ! Frozen, capped per-face bed slopes for the bottom kinematic condition
+   ! w_b = u . d(zb)/dx (step 7). Computed here, from the FILE bed, exactly as
+   ! step 7 used to compute them inline each step; on subgrid models zb is later
+   ! overwritten with the per-step effective bed (zb_effective), so the slopes
+   ! must be taken now. The cap at +/- nh_dzbmax clips near-vertical wall steps
+   ! that would otherwise produce an enormous spurious w_b when a thin wall cell
+   ! wets (2dt explicit instability); real bed slopes are well below it.
+   !
+   allocate(nh_slbed(4, nrows))
+   nh_slbed = 0.0
+   !
+   block
+      integer :: iuv, nmn
+      real*4  :: slc
+      !
+      slc = nh_dzbmax
+      if (slc <= 0.0) slc = huge(1.0)   ! 0 = no cap
+      !
+      do irow = 1, nrows
+         !
+         nm = nm_index_of_row(irow)
+         !
+         iuv = z_index_uv_md(nm)
+         if (iuv > 0) then
+            nmn = uv_index_z_nm(iuv)
+            nh_slbed(1, irow) = max(-slc, min(slc, (zb(nmn) - zb(nm)) * nh_dxr(irow)))
+         endif
+         !
+         iuv = z_index_uv_mu(nm)
+         if (iuv > 0) then
+            nmn = uv_index_z_nmu(iuv)
+            nh_slbed(2, irow) = max(-slc, min(slc, (zb(nm) - zb(nmn)) * nh_dxr(irow)))
+         endif
+         !
+         if (nmax > 1) then
+            !
+            iuv = z_index_uv_nd(nm)
+            if (iuv > 0) then
+               nmn = uv_index_z_nm(iuv)
+               nh_slbed(3, irow) = max(-slc, min(slc, (zb(nmn) - zb(nm)) * nh_dyr(irow)))
+            endif
+            !
+            iuv = z_index_uv_nu(nm)
+            if (iuv > 0) then
+               nmn = uv_index_z_nmu(iuv)
+               nh_slbed(4, irow) = max(-slc, min(slc, (zb(nm) - zb(nmn)) * nh_dyr(irow)))
+            endif
+            !
+         endif
+         !
+      enddo
+      !
+   end block
+   !
    ! Static per-face data for the matrix-free CG solver.
    ! nh_cf = 0.5 / dx is the (depth-averaged) gradient weight; the factor 0.5
    ! reflects that the linearly-varying non-hydrostatic pressure has a depth
@@ -472,7 +535,7 @@ contains
    real*4    :: dt
    !
    integer   :: ip, ipuv, nm, nmu, nmn, irow, iuv, iter
-   real*4    :: dtrho, abf, hu, Dnm1, Dnmu, unh, gf, pL, pR, fdep, sl, slmax
+   real*4    :: dtrho, abf, hu, Dnm1, Dnmu, unh, gf, pL, pR, fdep
    real*4    :: gamma, gamma_new, delta, pAp, alpha, beta, bnorm, resn
    real*4    :: dzdt, wmax, breform, qr, ql, kbfac, pcap
    integer   :: iuvr, iuvl, rl, rr, ineighbour
@@ -1041,17 +1104,14 @@ contains
    !
    ! 7) Update surface/bottom vertical velocities for the next step's forcing.
    !    The bottom kinematic condition is w_b = u . d(zb)/dx : the flow follows
-   !    the (static) BED slope, built from the bed levels zb directly. The bed
-   !    slope is optionally capped at +/- nh_dzbmax: a near-vertical wall step
-   !    (|d(zb)/dx| ~ 20-80 here) would otherwise produce an enormous spurious
-   !    w_b when a thin wall cell wets, triggering a 2dt explicit instability.
-   !    Real bed slopes (<= 1:13 here) are well below the cap and untouched.
-   !
-   slmax = nh_dzbmax
-   if (slmax <= 0.0) slmax = huge(1.0)   ! 0 = no cap
+   !    the BED slope. The slopes (capped at +/- nh_dzbmax) are FROZEN at
+   !    initialization in nh_slbed -- on subgrid models zb is the per-step
+   !    effective bed zs - V/A (zb_effective), whose slope jitter must not feed
+   !    into w_b. The wet checks below DO use the current (effective) zb: they
+   !    are depth checks.
    !
    !$omp parallel &
-   !$omp private ( irow, nm, iuv, nmn, sl )
+   !$omp private ( irow, nm, iuv, nmn )
    !$omp do schedule ( dynamic, 256 )
    do irow = 1, nrows
       nm  = nm_index_of_row(irow)
@@ -1082,18 +1142,14 @@ contains
       if (kfuv(iuv) > 0) then
          nmn = uv_index_z_nm(iuv)
          if (zs(nmn) - zb(nmn) > huthresh_nh) then
-            sl  = (zb(nmn) - zb(nm)) * nh_dxr(irow)
-            sl  = max(-slmax, min(slmax, sl))
-            wb(irow) = wb(irow) - 0.5 * uv(iuv) * sl
+            wb(irow) = wb(irow) - 0.5 * uv(iuv) * nh_slbed(1, irow)
          endif
       endif
       iuv = z_index_uv_mu(nm)
       if (kfuv(iuv) > 0) then
          nmn = uv_index_z_nmu(iuv)
          if (zs(nmn) - zb(nmn) > huthresh_nh) then
-            sl  = (zb(nm) - zb(nmn)) * nh_dxr(irow)
-            sl  = max(-slmax, min(slmax, sl))
-            wb(irow) = wb(irow) - 0.5 * uv(iuv) * sl
+            wb(irow) = wb(irow) - 0.5 * uv(iuv) * nh_slbed(2, irow)
          endif
       endif
       if (nmax > 1) then
@@ -1101,18 +1157,14 @@ contains
          if (kfuv(iuv) > 0) then
             nmn = uv_index_z_nm(iuv)
             if (zs(nmn) - zb(nmn) > huthresh_nh) then
-               sl  = (zb(nmn) - zb(nm)) * nh_dyr(irow)
-               sl  = max(-slmax, min(slmax, sl))
-               wb(irow) = wb(irow) - 0.5 * uv(iuv) * sl
+               wb(irow) = wb(irow) - 0.5 * uv(iuv) * nh_slbed(3, irow)
             endif
          endif
          iuv = z_index_uv_nu(nm)
          if (kfuv(iuv) > 0) then
             nmn = uv_index_z_nmu(iuv)
             if (zs(nmn) - zb(nmn) > huthresh_nh) then
-               sl  = (zb(nm) - zb(nmn)) * nh_dyr(irow)
-               sl  = max(-slmax, min(slmax, sl))
-               wb(irow) = wb(irow) - 0.5 * uv(iuv) * sl
+               wb(irow) = wb(irow) - 0.5 * uv(iuv) * nh_slbed(4, irow)
             endif
          endif
       endif

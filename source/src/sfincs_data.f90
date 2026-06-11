@@ -110,6 +110,8 @@ module sfincs_data
       real*4 nh_disp
       real*4 nh_pmax
       real*4 nh_tol
+      integer nh_version
+      logical zb_effective ! subgrid + (velocity scheme or nonh): zb is recomputed every step in continuity as the effective bed zs - z_volume/area
       real*4 runup_gauge_depth
       real*4 factor_wind
       real*4 factor_pres

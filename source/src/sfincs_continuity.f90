@@ -569,6 +569,15 @@ contains
             !
          endif
          !
+         ! Effective bed for subgrid models with velocity-form advection and/or
+         ! non-hydrostatics: zb = zs - V/A, the bed consistent with the volume
+         ! continuity conserves (the file zb is not a valid conveyance bed).
+         ! Bed SLOPES elsewhere stay frozen at their initialization values.
+         !
+         if (zb_effective) then
+            zb(nm) = zs(nm) - max(z_volume(nm) / a, 0.0)
+         endif
+         !
          !
          if (wiggle_suppression) then 
             ! 
@@ -618,9 +627,40 @@ contains
    enddo
    !$omp end do
    !$omp end parallel
-   !         
+   !
    !$acc end parallel
-   !         
+   !
+   end subroutine
+
+
+   subroutine initialize_zb_effective()
+   !
+   ! One-time fill of the effective bed zb = zs - z_volume/area once the initial
+   ! volumes are known (subsequently maintained every step in
+   ! compute_water_levels_subgrid). Must run AFTER the non-hydrostatic
+   ! initialization, which freezes its bed slopes from the file zb first.
+   !
+   use sfincs_data
+   !
+   implicit none
+   !
+   integer :: nm
+   real*4  :: a
+   !
+   if (.not. zb_effective) return
+   !
+   do nm = 1, np
+      !
+      if (crsgeo) then
+         a = cell_area_m2(nm)
+      else
+         a = cell_area(z_flags_iref(nm))
+      endif
+      !
+      zb(nm) = zs(nm) - max(z_volume(nm) / a, 0.0)
+      !
+   enddo
+   !
    end subroutine
    
    subroutine compute_store_variables(dt)

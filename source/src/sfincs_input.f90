@@ -194,6 +194,7 @@ contains
    call read_real_input(500, 'nh_tstop', nh_tstop, -999.0)
    call read_real_input(500, 'nh_tol', nh_tol, 0.001)
    call read_int_input(500, 'nh_itermax', nh_itermax, 100)
+   call read_int_input(500, 'nh_version', nh_version, 1)                ! non-hydrostatic solver version: 1 = matrix-free CG, 2 = assembled-stencil CG (GPU-ready, sfincs_nonhydrostatic_v2)
    call read_real_input(500, 'nh_filter', nh_filter, 0.0)               ! spatial 2dx filter on pnh (0 = off, ~0.25-0.5 damps grid mode)
    call read_real_input(500, 'nh_dzbmax', nh_dzbmax, 0.1)               ! cap on |d(zb)/dx| in bottom kinematic wb (default 0.1; clips near-vertical walls, leaves real slopes); 0 = no cap
    call read_int_input(500, 'nh_fadein', nh_fadein, 0)                  ! open-boundary nonh fade-in width (cells): nonh ramps 0->full over N cells from the boundary; 0 = off
@@ -676,6 +677,18 @@ contains
       else
          call write_log('Info    : momentum scheme : velocity form', 0)
       endif
+   endif
+   !
+   ! Effective bed level. Subgrid models have no reliable per-cell zb (the file
+   ! value is just the quadtree cell elevation), but the velocity-form advection
+   ! and the non-hydrostatic solver need one. For those combinations zb is
+   ! recomputed every step in sfincs_continuity as zs - z_volume/area: the bed
+   ! consistent with the volume continuity actually conserves. Bed SLOPES stay
+   ! frozen at their initialization (file zb) values (see sfincs_nonhydrostatic).
+   !
+   zb_effective = subgrid .and. (momentum_scheme == 1 .or. nonhydrostatic)
+   if (zb_effective) then
+      call write_log('Info    : subgrid: using effective bed level zb = zs - V/A (velocity scheme / nonh)', 0)
    endif
    !
    if (advection) then

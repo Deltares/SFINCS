@@ -1721,9 +1721,14 @@ contains
       !
       call read_subgrid_file()
       !
-      ! In case of nonh, we also need zb
+      ! In case of nonh or the velocity-form momentum scheme, we also need a per-cell zb.
+      ! For nonh the FILE bed (quadtree zz) is required: the frozen bed slopes for the
+      ! bottom kinematic condition are computed from it at initialization. For the
+      ! velocity scheme alone any placeholder works, because zb is overwritten with the
+      ! effective bed zs - z_volume/area before the first step and maintained every step
+      ! in continuity (zb_effective).
       !
-      if (nonhydrostatic) then
+      if (nonhydrostatic .or. momentum_scheme == 1) then
          !
          allocate(zb(np))
          !
@@ -1733,11 +1738,19 @@ contains
                zb(ip) = quadtree_zz(index_quadtree_in_sfincs(ip))
             enddo
             !
-         else
+         elseif (nonhydrostatic) then
             !
             ! Produce error message
             !
-            call write_log('Error!    : combination of nonhydrostatic solver with quadtree grid with nr_levels > 1 is not supported ', 1)             
+            call write_log('Error!    : combination of nonhydrostatic solver with quadtree grid with nr_levels > 1 is not supported ', 1)
+            !
+         else
+            !
+            ! Placeholder (lowest subgrid pixel); replaced by the effective bed at initialization
+            !
+            do ip = 1, np
+               zb(ip) = subgrid_z_zmin(ip)
+            enddo
             !
          endif
          !

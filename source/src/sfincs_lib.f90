@@ -24,6 +24,7 @@ module sfincs_lib
    use sfincs_snapwave
    use sfincs_wavemaker
    use sfincs_nonhydrostatic
+   use sfincs_nonhydrostatic_v2
    use sfincs_bathtub
    use sfincs_openacc
    use sfincs_log
@@ -172,11 +173,26 @@ module sfincs_lib
       !
       ! Initialize non-hydrostatic solver
       !
-      call write_log('Initialize non-hydrostatic solver ...', 0) 
+      call write_log('Initialize non-hydrostatic solver ...', 0)
       !
-      call initialize_nonhydrostatic()
+      if (nh_version == 2) then
+         call initialize_nonhydrostatic_v2()   ! assembled-stencil CG (GPU-ready); also runs the v1 init for the shared maps
+      else
+         call initialize_nonhydrostatic()
+      endif
       !
-   endif   
+   endif
+   !
+   if (zb_effective) then
+      !
+      ! Subgrid effective bed: overwrite zb with zs - z_volume/area now that the
+      ! initial volumes are known (the non-hydrostatic initialization above froze
+      ! its bed slopes from the file zb first). Maintained every step in
+      ! compute_water_levels_subgrid.
+      !
+      call initialize_zb_effective()
+      !
+   endif
    !
    if (wavemaker) then
       !
@@ -620,7 +636,11 @@ module sfincs_lib
                !
                ! Apply non-hydrostatic pressure corrections to q and uv
                !
-               call compute_nonhydrostatic2(dt, tloopnonh)   ! matrix-free SPD CG + tunable dispersion (nh_disp)
+               if (nh_version == 2) then
+                  call compute_nonhydrostatic_v2(dt, tloopnonh)   ! assembled-stencil SPD CG (GPU-ready)
+               else
+                  call compute_nonhydrostatic2(dt, tloopnonh)     ! matrix-free SPD CG + tunable dispersion (nh_disp)
+               endif
                !
             endif
             !

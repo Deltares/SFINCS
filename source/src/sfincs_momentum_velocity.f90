@@ -425,38 +425,19 @@ contains
                   ! else 1st-order. Cross term advects u by the transverse velocity vu (upwind).
                   ! 'adv' is a VELOCITY tendency [m/s^2] (added straight into frc).
                   !
-                  ! Both paths use the SAME Mader upwind-surface reconstruction; they differ only
-                  ! in the cell bed (zbnm, zbnmu) fed to it. NON-subgrid: zbnm = zb (the cell bed),
-                  ! so D = max(zrec - zb, 0). SUBGRID: zb is not a valid conveyance bed, so use the
-                  ! EFFECTIVE bed implied by the subgrid cell-mean depth, zbnm = zs - z_volume/cell_area;
-                  ! then zrec - zbnm = D_cell + 0.5*(upwind dzs) -- centered depth when flat, with the
-                  ! upwind-surface boost at a front (subgrid-consistent Mader reconstruction).
+                  ! One path for regular and subgrid bathymetry: on subgrid models zb
+                  ! is the EFFECTIVE bed zs - z_volume/area maintained every step in
+                  ! continuity (zb_effective; the file zb is not a valid conveyance
+                  ! bed), so D = zs - zb is the subgrid cell-mean depth there. Then
+                  ! zrec - zbnm = D_cell + 0.5*(upwind dzs) -- centered depth when
+                  ! flat, with the upwind-surface boost at a front (subgrid-consistent
+                  ! Mader reconstruction).
                   !
-                  if (subgrid) then
-                     !
-                     if (crsgeo) then
-                        dnm  = z_volume(nm)  / cell_area_m2(nm)
-                        dnmu = z_volume(nmu) / cell_area_m2(nmu)
-                     else
-                        dnm  = z_volume(nm)  / cell_area(z_flags_iref(nm))
-                        dnmu = z_volume(nmu) / cell_area(z_flags_iref(nmu))
-                     endif
-                     !
-                     dnm  = max(dnm,  0.0)
-                     dnmu = max(dnmu, 0.0)                     
-                     !
-                     zbnm = zs(nm) - dnm
-                     zbnmu = zs(nmu) - dnmu
-                     !
-                  else
-                     ! 
-                     dnm  = max(zs(nm)  - zb(nm),  0.0)
-                     dnmu = max(zs(nmu) - zb(nmu), 0.0)
-                     !
-                     zbnm = zb(nm)
-                     zbnmu = zb(nmu)
-                     !
-                  endif   
+                  dnm   = max(zs(nm)  - zb(nm),  0.0)
+                  dnmu  = max(zs(nmu) - zb(nmu), 0.0)
+                  !
+                  zbnm  = zb(nm)
+                  zbnmu = zb(nmu)
                   !
                   ipw = uv_index_u_nmd(ip)
                   ipe = uv_index_u_nmu(ip)
@@ -495,9 +476,6 @@ contains
                   endif
                   !
                   qu = 0.5 * (uu_nm + uu_nmu) * max(zrec - zbnmu, 0.0)      ! FLU_n (east cell)
-                  !
-                  dnm  = max(zs(nm)  - zb(nm),  0.0)
-                  dnmu = max(zs(nmu) - zb(nmu), 0.0)
                   !
                   dnm    = max(dnm + dnmu, huthresh)    ! D_nm + D_nmu
                   dnminv = 2.0 / dnm

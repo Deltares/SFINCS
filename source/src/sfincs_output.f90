@@ -84,6 +84,7 @@ module sfincs_output
    subroutine write_output(t,write_map,write_his,write_max,write_rst,ntmapout,ntmaxout,nthisout,tloop)
    !
    use sfincs_data
+   use sfincs_nonhydrostatic, only: pnh
    !
    implicit none
    !
@@ -113,6 +114,16 @@ module sfincs_output
    if (write_map .or. write_his .or. write_rst) then
       !
       !$acc update host(zs)
+      !
+      if (nonhydrostatic .and. write_map) then
+         !
+         ! Non-hydrostatic pressure is written to the map file. Resident on the
+         ! GPU with solver v2 (nh_version=2); if_present makes this a no-op for
+         ! v1 (no device copy) and CPU builds.
+         !
+         !$acc update host(pnh) if_present
+         !
+      endif
       !
       if (store_cumulative_precipitation) then
          !      
