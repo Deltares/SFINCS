@@ -50,7 +50,6 @@
 				<File RelativePath="..\src\snapwave\snapwave_windsource.f90"/>
 			</Filter>
 			<File RelativePath="..\third_party_open\Delft3D\astro.f90"/>
-			<File RelativePath="..\third_party_open\bicgstab\bicgstab_solver_ilu.f90"/>
 			<File RelativePath="..\third_party_open\utils\deg2utm.f90"/>
 			<File RelativePath="..\third_party_open\utils\geometry.f90"/>
 			<File RelativePath="..\src\sfincs_bathtub.f90">
@@ -94,7 +93,6 @@
 				</FileConfiguration>
 			</File>
 			<File RelativePath="..\src\sfincs_nonhydrostatic.f90"/>
-			<File RelativePath="..\src\sfincs_nonhydrostatic_v2.f90"/>
 			<File RelativePath="..\src\sfincs_obspoints.f90"/>
 			<File RelativePath="..\src\sfincs_openacc.f90">
 			</File>

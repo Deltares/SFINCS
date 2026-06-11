@@ -1,32 +1,109 @@
-! Non-hydrostatic code. Works with regular grids (a quadtree netcdf file is fine as long as
-! there are no refinement levels). Matrix-free, symmetric-positive-definite (SPD) pressure
-! projection solved with a Jacobi-preconditioned conjugate gradient (compute_nonhydrostatic2).
-
+! Non-hydrostatic pressure projection (single-layer Keller-box), GPU-ready.
+!
+! The depth-averaged momentum/continuity set is closed with a linearly-varying
+! non-hydrostatic pressure pnh (bed value; depth mean pnh/2). Eliminating the
+! provisional velocities gives a symmetric-positive-definite pressure operator
+!
+!     A = (dt/rho) G^T diag(hu) G  +  diag( kbfac dt / (rho H) ) ,
+!
+! built on the momentum stencil (G and the divergence are exact negative
+! transposes), solved with a Chronopoulos-Gear (single-reduction) conjugate
+! gradient, warm-started from the previous step. Works on regular and quadtree
+! grids (refinement-transition cells are excluded from the nonh mask and stay
+! hydrostatic, so every nonh face joins two same-level cells) and on projected
+! and geographic (crsgeo) grids via per-face/per-row metric spacing.
+!
+! The solver machinery is designed for memory bandwidth and GPU offload:
+!
+!  1) ASSEMBLED 5-POINT STENCIL. The symmetric operator is assembled ONCE PER
+!     SOLVE into four off-diagonal arrays (nh_aw/ae/as/an) with STATIC neighbour
+!     indices (nh_nbw/nbe/nbs/nbn). The matvec is then a single loop:
+!         w(i) = r(i) + aw*r(nbw) + ae*r(nbe) + as*r(nbs) + an*r(nbn)
+!     instead of a per-iteration two-pass face form.
+!
+!  2) SYMMETRIC JACOBI SCALING BAKED IN. The system is solved as
+!         (S A S) y = S b,   pnh = S y,   S = diag(1/sqrt(diag(A))),
+!     so the scaled operator has UNIT diagonal: no preconditioner work in the
+!     iteration, and <r,z> = <r,r> removes one reduction term.
+!
+!  3) BREAKING DIRICHLET BAKED IN. The row AND column of a breaking cell are
+!     zeroed at assembly time (nh_sclo = nh_scl * activity, symmetric), the
+!     scaled diagonal stays 1, and b=0 there -> pnh=0 is held exactly with NO
+!     per-iteration branch (faces stay active for the flux correction).
+!
+!  4) GHOST ELEMENT 0. CG vectors run (0:nrows) with element 0 pinned at zero;
+!     a missing neighbour has index 0 and a zero coefficient (nh_sclo(0)=0), so
+!     the matvec has NO conditionals at all -- fully vectorizable on CPU,
+!     coalesced on GPU.
+!
+!  5) TWO FUSED KERNELS PER ITERATION:
+!         kernel B:  w = A r  fused with the dots  gam=<r,r>, del=<r,w>
+!         kernel A:  p=r+beta*p ; s=w+beta*s ; y+=alpha*p ; r-=alpha*s
+!     One host synchronisation point per iteration (the reduction). Dot products
+!     accumulate in real*8 (the real*4 vectors are unchanged).
+!
+!  6) DUAL DIRECTIVES. Every kernel carries both !$omp (CPU, schedule(static))
+!     and !$acc (GPU) directives, following the sfincs_momentum.f90 convention.
+!     All module arrays are made device-resident at initialization (enter data);
+!     per-step work then runs entirely on the device. The host copy of pnh is
+!     refreshed only at map output times ('update host(pnh) if_present' in
+!     sfincs_output, alongside the other output transfers).
+!
+! NOTE: the convergence test uses the SCALED residual norm ||S r|| / ||S b||
+! (the natural Jacobi-CG norm); nonh_tol applies to that.
+!
+! On subgrid models zb is the EFFECTIVE bed zs - z_volume/area maintained every
+! step in continuity (zb_effective), so all depth checks here see the volume-
+! consistent depth. The bed SLOPES for the bottom kinematic condition w_b are
+! FROZEN at initialization (nh_slbed): file bed on regular grids, subgrid
+! cell-mean bed z_zmax - z_volmax/area on subgrid models.
+!
 module sfincs_nonhydrostatic
-   !   
+   !
+   implicit none
+   !
+   ! Input parameters (sfincs.inp, read in sfincs_input)
+   !
+   real*4    :: nonh_fnudge      ! fraction of the pressure correction applied to uv/q
+   real*4    :: nonh_tstop       ! time (s, absolute after input processing) to stop applying nonh corrections
+   integer   :: nonh_itermax     ! max CG iterations per solve
+   integer   :: nonh_fadein      ! open-boundary nonh fade-in width (cells); 0 = off
+   real*4    :: nonh_filter      ! global 2dx pnh filter weight; 0 = off
+   real*4    :: nonh_dzbmax      ! cap on |d(zb)/dx| in the bottom kinematic w_b; 0 = no cap
+   real*4    :: nonh_brsteep     ! HFA steepness breaking onset; 0 = off
+   real*4    :: nonh_brfr        ! Froude breaking onset (NEOWAVE); 0 = off -> use nonh_brsteep
+   real*4    :: nonh_smoothbnd   ! localized 2dx pnh smoothing strength (fade-in / shallow zones)
+   real*4    :: nonh_smoothdep   ! depth below which the localized smoothing also acts; 0 = off
+   real*4    :: nonh_disp        ! Keller-box vertical factor (dispersion tuning; 1.0 ~ Airy, 2.0 strict)
+   real*4    :: nonh_pmax        ! depth limiter: |pnh| <= nonh_pmax * rho g H; 0 = off
+   real*4    :: nonh_tol         ! CG relative tolerance (scaled residual norm)
+   !
+   ! Non-hydrostatic cell mask (filled from the quadtree file in sfincs_domain)
+   !
+   integer*1, dimension(:), allocatable :: mask_nonh
+   !
    integer, dimension(:), allocatable   :: nm_index_of_row
    integer, dimension(:), allocatable   :: row_index_of_nm
    integer, dimension(:), allocatable   :: uv_index_of_nhuv
    !
-   real*4, dimension(:),   allocatable  :: pnh
-   real*4, dimension(:),   allocatable  :: ws
-   real*4, dimension(:),   allocatable  :: wb
-   real*4, dimension(:),   allocatable  :: wb0
+   real*4, dimension(:),   allocatable  :: pnh        ! non-hydrostatic bed pressure   (nrows)
+   real*4, dimension(:),   allocatable  :: ws         ! surface vertical velocity      (nrows)
+   real*4, dimension(:),   allocatable  :: wb         ! bottom vertical velocity       (nrows)
+   real*4, dimension(:),   allocatable  :: wb0        ! previous bottom v. velocity    (nrows)
    !
-   real*4,  dimension(:), allocatable   :: Dnm
-   real*4,  dimension(:), allocatable   :: dzbdx
-   real*4,  dimension(:), allocatable   :: dzbdy
+   real*4,  dimension(:), allocatable   :: Dnm        ! layer depth per row            (nrows)
    !
    ! Per-row inverse grid spacing in metres (handles quadtree refinement levels and
    ! geographic crsgeo lat-dependence). nh_dxr/nh_dyr are the per-CELL 1/dx, 1/dy used
-   ! for the bed slope, the w_b kinematic term and the breaking divergence; nh_cf (below)
-   ! is the per-FACE 0.5/dx used in the pressure operator.
+   ! by the breaking dzdt divergence and the frozen bed slopes; nh_cf (below) is the
+   ! per-FACE 0.5/dx used in the pressure operator.
    !
    real*4,  dimension(:), allocatable   :: nh_dxr     ! per-row 1/dx in metres         (nrows)
    real*4,  dimension(:), allocatable   :: nh_dyr     ! per-row 1/dy in metres         (nrows)
    !
    ! Bed slopes for the bottom kinematic condition w_b (step 7), FROZEN at
-   ! initialization from the bed as read from file, and capped at +/- nh_dzbmax.
+   ! initialization (file bed on regular grids, subgrid cell-mean bed
+   ! z_zmax - z_volmax/area on subgrid models) and capped at +/- nonh_dzbmax.
    ! They must NOT follow the per-step effective bed zs - z_volume/area that
    ! subgrid models maintain (zb_effective): that bed moves with the wet fraction
    ! every step and its slope jitter would feed straight into w_b/ws. The real
@@ -34,17 +111,9 @@ module sfincs_nonhydrostatic
    !
    real*4,  dimension(:,:), allocatable :: nh_slbed   ! (4, nrows) slots: 1 left(md), 2 right(mu), 3 below(nd), 4 above(nu)
    !
-   ! Work arrays for the matrix-free SPD conjugate-gradient solver
-   !
    real*4,  dimension(:), allocatable   :: nh_dvert   ! vertical-accel diagonal term   (nrows)
-   real*4,  dimension(:), allocatable   :: nh_diag    ! Jacobi diagonal of A           (nrows)
-   real*4,  dimension(:), allocatable   :: nh_fade        ! open-boundary nonh fade-in 0..1 (nrows)
-   real*4,  dimension(:), allocatable   :: nh_brfac       ! HFA breaking factor 1=full nonh .. 0=hydrostatic (nrows)
-   real*4,  dimension(:), allocatable   :: cg_r       ! CG residual                    (nrows)
-   real*4,  dimension(:), allocatable   :: cg_z       ! CG preconditioned residual     (nrows)
-   real*4,  dimension(:), allocatable   :: cg_d       ! CG search direction            (nrows)
-   real*4,  dimension(:), allocatable   :: cg_Ap      ! CG s = A p  (nrows)
-   real*4,  dimension(:), allocatable   :: cg_w       ! CG w = A z  (single-reduction CG, nrows)
+   real*4,  dimension(:), allocatable   :: nh_fade    ! open-boundary nonh fade-in 0..1 (nrows)
+   real*4,  dimension(:), allocatable   :: nh_brfac   ! HFA breaking factor 1=full nonh .. 0=hydrostatic (nrows)
    !
    integer, dimension(:), allocatable   :: nh_faceuv  ! full uv index of each nh face  (nhuv)
    integer, dimension(:), allocatable   :: nh_faceL   ! row index of left/bottom cell  (nhuv, 0 = boundary)
@@ -54,9 +123,8 @@ module sfincs_nonhydrostatic
    real*4,  dimension(:), allocatable   :: nh_cL      ! gradient coeff of p(L) per face(nhuv)
    real*4,  dimension(:), allocatable   :: nh_hu      ! water depth at face this step  (nhuv)
    !
-   ! Per-row incident-face map for the matrix-free operator in GATHER form (race-free,
-   ! OpenMP/OpenACC friendly). For each row, the (up to 4) non-hydrostatic faces touching
-   ! it, and implicitly which side the row is on:
+   ! Per-row incident-face map. For each row, the (up to 4) non-hydrostatic faces
+   ! touching it, and implicitly which side the row is on:
    !   slot 1 = left  face -> row is the R-cell -> use nh_cR ; "other" cell = nh_faceL
    !   slot 2 = right face -> row is the L-cell -> use nh_cL ; "other" cell = nh_faceR
    !   slot 3 = below face -> row is the R-cell -> use nh_cR ; "other" cell = nh_faceL
@@ -64,8 +132,27 @@ module sfincs_nonhydrostatic
    ! 0 = no face on that side.
    !
    integer, dimension(:,:), allocatable :: nh_cellface  ! (4, nrows)
-   real*4,  dimension(:),   allocatable :: nh_hf         ! per-face scratch (gradient flux) (nhuv)
-   real*4,  dimension(:),   allocatable :: nh_bb         ! CG right-hand side, allocated once (nrows)
+   !
+   ! Static 5-point neighbour map: row index of the West/East/South/North
+   ! neighbour of each row (0 = no nonh neighbour on that side -> ghost row 0).
+   !
+   integer, dimension(:), allocatable   :: nh_nbw, nh_nbe, nh_nbs, nh_nbn      ! (nrows)
+   !
+   ! Assembled, symmetrically-scaled off-diagonals of the operator (unit diagonal),
+   ! rebuilt every solve (wet/dry, depths and breaking change each step).
+   !
+   real*4, dimension(:), allocatable    :: nh_aw, nh_ae, nh_as, nh_an          ! (nrows)
+   real*4, dimension(:), allocatable    :: nh_scl     ! 1/sqrt(diag(A))          (nrows)
+   real*4, dimension(:), allocatable    :: nh_sclo    ! scl * breaking-activity  (0:nrows), ghost 0
+   !
+   ! CG vectors, ghost element 0 pinned at zero (never written by any kernel).
+   !
+   real*4, dimension(:), allocatable    :: nh_y       ! scaled pressure iterate  (0:nrows)
+   real*4, dimension(:), allocatable    :: nh_r       ! residual                 (0:nrows)
+   real*4, dimension(:), allocatable    :: nh_p       ! search direction         (0:nrows)
+   real*4, dimension(:), allocatable    :: nh_s       ! s = A p (recurrence)     (0:nrows)
+   real*4, dimension(:), allocatable    :: nh_w       ! w = A r                  (0:nrows)
+   real*4, dimension(:), allocatable    :: nh_b       ! scaled right-hand side   (0:nrows)
    !
    real*4    :: huthresh_nh
    !
@@ -82,18 +169,16 @@ contains
    !
    subroutine initialize_nonhydrostatic()
    !
-   ! Initialization of pardiso solver
+   ! Builds the row<->cell maps, the nonh face maps, the static neighbour map,
+   ! the frozen bed slopes and the open-boundary fade-in, allocates the solver
+   ! work arrays and pushes everything the per-step kernels touch onto the GPU.
    !
    use sfincs_data
+   use sfincs_log
    !
    implicit none
    !
-   integer nm, nmu, nmd, num, ndm, irow, inb, ip
-   integer inhuv, rl, rr
-   !
-   ! Temporary arrays
-   !
-   integer, dimension(:,:), allocatable :: nh_nm_index
+   integer :: nm, irow, ip, inhuv, rl, rr, i, f
    !
    allocate(row_index_of_nm(np))
    !
@@ -118,48 +203,24 @@ contains
    allocate(wb(nrows))
    allocate(wb0(nrows))
    allocate(Dnm(nrows))
-   allocate(dzbdx(nrows))
-   allocate(dzbdy(nrows))
    allocate(nm_index_of_row(nrows))
-   allocate(nh_nm_index(4, nrows))
    allocate(nh_dxr(nrows))
    allocate(nh_dyr(nrows))
-   !
-   ! Work arrays for the matrix-free CG solver
-   !
    allocate(nh_dvert(nrows))
-   allocate(nh_diag(nrows))
    allocate(nh_fade(nrows))
-   nh_fade = 1.0
    allocate(nh_brfac(nrows))
-   nh_brfac = 1.0
-   allocate(cg_r(nrows))
-   allocate(cg_z(nrows))
-   allocate(cg_d(nrows))
-   allocate(cg_Ap(nrows))
-   allocate(cg_w(nrows))
-   cg_w = 0.0
+   !
+   pnh      = 0.0
+   ws       = 0.0
+   wb       = 0.0
+   wb0      = 0.0
+   Dnm      = 0.0
    nh_dvert = 0.0
-   nh_diag = 0.0
-   cg_r = 0.0
-   cg_z = 0.0
-   cg_d = 0.0
-   cg_Ap = 0.0
+   nh_fade  = 1.0
+   nh_brfac = 1.0
+   nm_index_of_row = 0
    !
    huthresh_nh = max(huthresh, 0.01)
-   !
-   pnh = 0.0
-   ws  = 0.0       
-   wb  = 0.0       
-   wb0 = 0.0       
-   !
-   irow = 0
-   Dnm = 0.0
-   dzbdx = 0.0
-   dzbdy = 0.0
-   nm_index_of_row = 0
-   nh_nm_index = 0
-   ! bnd = 0
    !
    ! Map row indices to nm indices and vice versa
    !
@@ -184,21 +245,8 @@ contains
       endif
    enddo
    !
-   ! Find velocity points needed for nh computations
-   !
-   !               4
-   !        +------|------+
-   !        |             | 
-   !        |       irow  | 
-   !     1  -      + 5    -  2
-   !        |             | 
-   !        |             | 
-   !        +------|------+
-   !               3
-   !
-   ! Loop through all uv points to get nh uv points (any uv point that touches nh cell)
-   !
-   ! First just count them
+   ! Find velocity points needed for nh computations: any uv point that touches
+   ! a nonh cell. First count, then store.
    !
    nhuv = 0
    !
@@ -215,7 +263,20 @@ contains
    allocate(uv_index_of_nhuv(nhuv))
    uv_index_of_nhuv = 0
    !
-   ! Face arrays for the matrix-free CG solver
+   inhuv = 0
+   !
+   do ip = 1, npuv
+      !
+      if (mask_nonh(uv_index_z_nm(ip)) == 1 .or. mask_nonh(uv_index_z_nmu(ip)) == 1) then
+         !
+         inhuv = inhuv + 1
+         uv_index_of_nhuv(inhuv) = ip
+         !
+      endif
+      !
+   enddo
+   !
+   ! Face arrays
    !
    allocate(nh_faceuv(nhuv))
    allocate(nh_faceL(nhuv))
@@ -232,138 +293,78 @@ contains
    nh_cL     = 0.0
    nh_hu     = 0.0
    !
-   ! Now find neigboring indices of nh uv points
+   ! Static per-face data. nh_cf = 0.5 / dx is the (depth-averaged) gradient
+   ! weight; the factor 0.5 reflects that the linearly-varying non-hydrostatic
+   ! pressure has a depth mean of p_bed/2. The spacing is taken PER FACE so it is
+   ! correct across quadtree refinement levels and for geographic (crsgeo) grids:
+   ! x-faces use the per-uv-point metre spacing dxminv (crsgeo) or the per-level
+   ! dxrinv (projected), y-faces the per-level dyrinv (uniform in both modes).
+   ! nh_cf is a single value per face, used identically by the gradient and its
+   ! transpose divergence, so the operator A = G^T diag(hu) G stays symmetric
+   ! regardless of spacing variation.
    !
-   inhuv = 0
-   !
-   do ip = 1, npuv
+   do ip = 1, nhuv
       !
-      nm  = uv_index_z_nm(ip)
-      nmu = uv_index_z_nmu(ip)
+      inhuv = uv_index_of_nhuv(ip)
+      nh_faceuv(ip) = inhuv
+      nh_faceL(ip)  = row_index_of_nm(uv_index_z_nm(inhuv))
+      nh_faceR(ip)  = row_index_of_nm(uv_index_z_nmu(inhuv))
       !
-      if (mask_nonh(nm) == 1 .or. mask_nonh(nmu) == 1) then
-         !
-         inhuv = inhuv + 1
-         !
-         uv_index_of_nhuv(inhuv) = ip ! uv index of this nhuv point
-         !
-         ! Get direction of point
-         !
-         if (uv_flags_dir(ip) == 0) then
-            !
-            ! x
-            !
-            if (mask_nonh(nm) == 1) then
-               !
-               ! nm point
-               !
-               irow = row_index_of_nm(nm)
-               inb  = row_index_of_nm(nmu)
-               !
-               nh_nm_index(2, irow) = inb
-               !
-            endif   
-            !
-            if (mask_nonh(nmu) == 1) then
-               !
-               ! nmu point
-               !
-               inb  = row_index_of_nm(nm)
-               irow = row_index_of_nm(nmu)
-               !
-               nh_nm_index(1, irow) = inb
-               !
-            endif   
-            !
+      if (uv_flags_dir(inhuv) == 0) then
+         if (crsgeo) then
+            nh_cf(ip) = 0.5 * dxminv(inhuv)
          else
-            !
-            ! y
-            !
-            if (mask_nonh(nm) == 1) then
-               !
-               ! nm point
-               !
-               irow = row_index_of_nm(nm)
-               inb  = row_index_of_nm(nmu)
-               !
-               nh_nm_index(4, irow) = inb
-               !
-            endif   
-            !
-            if (mask_nonh(nmu) == 1) then
-               !
-               ! nmu point
-               !
-               inb  = row_index_of_nm(nm)
-               irow = row_index_of_nm(nmu)
-               !
-               nh_nm_index(3, irow) = inb
-               !
-            endif   
-            !
-         endif            
-         !
-      endif
-      !
-   enddo   
-   !
-   !
-   ! Compute bed level slopes
-   !
-   do irow = 1, nrows
-      !
-      nm = nm_index_of_row(irow)
-      !
-      nmd = 0
-      nmu = 0
-      ndm = 0
-      num = 0
-      !
-      ! Left
-      !
-      if (nh_nm_index(1, irow) > 0) then
-         !
-         nmd = nm_index_of_row(nh_nm_index(1, irow))
-         dzbdx(irow) = dzbdx(irow) + 0.5 * (zb(nm) - zb(nmd)) * nh_dxr(irow)
-         !
-      endif   
-      !
-      ! Right
-      !
-      if (nh_nm_index(2, irow) > 0) then
-         !
-         nmu = nm_index_of_row(nh_nm_index(2, irow))
-         dzbdx(irow) = dzbdx(irow) + 0.5 * (zb(nmu) - zb(nm)) * nh_dxr(irow)
-         !
-      endif
-      !
-      ! Below
-      !
-      if (nh_nm_index(3, irow) > 0) then
-         !
-         ndm = nm_index_of_row(nh_nm_index(3, irow))
-         dzbdy(irow) = dzbdy(irow) + 0.5 * (zb(nm) - zb(ndm)) * nh_dyr(irow)
-         !
-      endif
-      !
-      ! Above
-      !
-      if (nh_nm_index(4, irow) > 0) then
-         !
-         num = nm_index_of_row(nh_nm_index(4, irow))
-         dzbdy(irow) = dzbdy(irow) + 0.5 * (zb(num) - zb(nm)) * nh_dyr(irow)
-         !
+            nh_cf(ip) = 0.5 * dxrinv(uv_flags_iref(inhuv))
+         endif
+      else
+         nh_cf(ip) = 0.5 * dyrinv(uv_flags_iref(inhuv))
       endif
       !
    enddo
    !
+   ! Per-row incident-face map (see header). Walk the faces once: each face is
+   ! the RIGHT face of its L-cell and the LEFT face of its R-cell (x), or the
+   ! ABOVE face of its L-cell and the BELOW face of its R-cell (y).
+   !
+   allocate(nh_cellface(4, nrows))
+   nh_cellface = 0
+   do ip = 1, nhuv
+      inhuv = nh_faceuv(ip)
+      rl    = nh_faceL(ip)
+      rr    = nh_faceR(ip)
+      if (uv_flags_dir(inhuv) == 0) then
+         if (rl > 0) nh_cellface(2, rl) = ip   ! face is the L-cell's RIGHT face
+         if (rr > 0) nh_cellface(1, rr) = ip   ! face is the R-cell's LEFT face
+      else
+         if (rl > 0) nh_cellface(4, rl) = ip   ! face is the L-cell's ABOVE face
+         if (rr > 0) nh_cellface(3, rr) = ip   ! face is the R-cell's BELOW face
+      endif
+   enddo
+   !
+   ! Static 5-point neighbour map: neighbour row of each row through its (up to 4)
+   ! incident nonh faces. nh_faceL/R are 0 on a domain/open-boundary side ->
+   ! neighbour 0 -> ghost element.
+   !
+   allocate(nh_nbw(nrows))
+   allocate(nh_nbe(nrows))
+   allocate(nh_nbs(nrows))
+   allocate(nh_nbn(nrows))
+   !
+   do i = 1, nrows
+      nh_nbw(i) = 0 ; f = nh_cellface(1, i) ; if (f > 0) nh_nbw(i) = nh_faceL(f)
+      nh_nbe(i) = 0 ; f = nh_cellface(2, i) ; if (f > 0) nh_nbe(i) = nh_faceR(f)
+      nh_nbs(i) = 0 ; f = nh_cellface(3, i) ; if (f > 0) nh_nbs(i) = nh_faceL(f)
+      nh_nbn(i) = 0 ; f = nh_cellface(4, i) ; if (f > 0) nh_nbn(i) = nh_faceR(f)
+   enddo
+   !
    ! Frozen, capped per-face bed slopes for the bottom kinematic condition
-   ! w_b = u . d(zb)/dx (step 7). Computed here, from the FILE bed, exactly as
-   ! step 7 used to compute them inline each step; on subgrid models zb is later
-   ! overwritten with the per-step effective bed (zb_effective), so the slopes
-   ! must be taken now. The cap at +/- nh_dzbmax clips near-vertical wall steps
-   ! that would otherwise produce an enormous spurious w_b when a thin wall cell
-   ! wets (2dt explicit instability); real bed slopes are well below it.
+   ! w_b = u . d(zb)/dx (step 7). Computed here from the initialization-time zb
+   ! (file bed on regular grids; subgrid cell-mean bed from sfincs_domain); on
+   ! subgrid models zb is overwritten with the water-level-dependent effective
+   ! bed every step (zb_effective), so the slopes must be taken now. The cap at +/- nonh_dzbmax
+   ! clips near-vertical wall steps that would otherwise produce an enormous
+   ! spurious w_b when a thin wall cell wets (2dt explicit instability); real
+   ! bed slopes are well below it.
    !
    allocate(nh_slbed(4, nrows))
    nh_slbed = 0.0
@@ -372,7 +373,7 @@ contains
       integer :: iuv, nmn
       real*4  :: slc
       !
-      slc = nh_dzbmax
+      slc = nonh_dzbmax
       if (slc <= 0.0) slc = huge(1.0)   ! 0 = no cap
       !
       do irow = 1, nrows
@@ -411,73 +412,21 @@ contains
       !
    end block
    !
-   ! Static per-face data for the matrix-free CG solver.
-   ! nh_cf = 0.5 / dx is the (depth-averaged) gradient weight; the factor 0.5
-   ! reflects that the linearly-varying non-hydrostatic pressure has a depth
-   ! mean of p_bed/2. The spacing is taken PER FACE so it is correct across
-   ! quadtree refinement levels and for geographic (crsgeo) grids: x-faces use the
-   ! per-uv-point metre spacing dxminv (crsgeo) or the per-level dxrinv (projected),
-   ! y-faces the per-level dyrinv (uniform in both modes). nh_cf is a single value
-   ! per face, used identically by the gradient and its transpose divergence, so the
-   ! operator A = G^T diag(hu) G stays symmetric regardless of spacing variation.
-   !
-   do ip = 1, nhuv
-      !
-      inhuv = uv_index_of_nhuv(ip)
-      nh_faceuv(ip) = inhuv
-      nh_faceL(ip)  = row_index_of_nm(uv_index_z_nm(inhuv))
-      nh_faceR(ip)  = row_index_of_nm(uv_index_z_nmu(inhuv))
-      !
-      if (uv_flags_dir(inhuv) == 0) then
-         if (crsgeo) then
-            nh_cf(ip) = 0.5 * dxminv(inhuv)
-         else
-            nh_cf(ip) = 0.5 * dxrinv(uv_flags_iref(inhuv))
-         endif
-      else
-         nh_cf(ip) = 0.5 * dyrinv(uv_flags_iref(inhuv))
-      endif
-      !
-   enddo
-   !
-   ! Per-row incident-face map for the gather-form matrix-free operator (see header).
-   ! Walk the faces once: each face is the RIGHT face of its L-cell and the LEFT face of
-   ! its R-cell (x), or the ABOVE face of its L-cell and the BELOW face of its R-cell (y).
-   !
-   allocate(nh_cellface(4, nrows))
-   allocate(nh_hf(nhuv))
-   allocate(nh_bb(nrows))
-   nh_cellface = 0
-   nh_hf       = 0.0
-   nh_bb       = 0.0
-   do ip = 1, nhuv
-      inhuv = nh_faceuv(ip)
-      rl    = nh_faceL(ip)
-      rr    = nh_faceR(ip)
-      if (uv_flags_dir(inhuv) == 0) then
-         if (rl > 0) nh_cellface(2, rl) = ip   ! face is the L-cell's RIGHT face
-         if (rr > 0) nh_cellface(1, rr) = ip   ! face is the R-cell's LEFT face
-      else
-         if (rl > 0) nh_cellface(4, rl) = ip   ! face is the L-cell's ABOVE face
-         if (rr > 0) nh_cellface(3, rr) = ip   ! face is the R-cell's BELOW face
-      endif
-   enddo
-   !
-   ! Open-boundary non-hydrostatic FADE-IN. Over nh_fadein cells
+   ! Open-boundary non-hydrostatic FADE-IN. Over nonh_fadein cells
    ! inside each open (water level / outflow) boundary, ramp the non-hydrostatic
-   ! coupling from 0 (at the boundary) to full (nh_fadein cells in). The incident
+   ! coupling from 0 (at the boundary) to full (nonh_fadein cells in). The incident
    ! wave then enters hydrostatically at the boundary and the nonh turns on
    ! gradually, avoiding the sharp pnh=0 -> full-nonh transition that reflects an
    ! incoming dispersive wave. nh_fade is 1 everywhere by default (no fade).
    !
-   if (nh_fadein > 0) then
+   if (nonh_fadein > 0) then
       !
       block
          integer, dimension(:), allocatable :: idist
          integer :: pass, nmL, nmR, rL, rR
          !
          allocate(idist(nrows))
-         idist = nh_fadein + 1
+         idist = nonh_fadein + 1
          do ip = 1, nhuv
             inhuv = uv_index_of_nhuv(ip)
             nmL = uv_index_z_nm(inhuv)
@@ -491,7 +440,7 @@ contains
                if (kcs(nmL) == 2 .or. kcs(nmL) == 3) idist(rR) = 0
             endif
          enddo
-         do pass = 1, nh_fadein
+         do pass = 1, nonh_fadein
             do ip = 1, nhuv
                rL = nh_faceL(ip)
                rR = nh_faceR(ip)
@@ -502,29 +451,76 @@ contains
             enddo
          enddo
          do irow = 1, nrows
-            nh_fade(irow) = min(1.0, real(idist(irow)) / real(nh_fadein))
+            nh_fade(irow) = min(1.0, real(idist(irow)) / real(nonh_fadein))
          enddo
          deallocate(idist)
       end block
       !
    endif
    !
+   ! Solver work arrays: assembled stencil, scaling and CG vectors (ghost
+   ! element 0). First-touch initialization (NUMA page placement matches the
+   ! static loop partition the per-step kernels use); ghost stays 0 forever.
+   !
+   allocate(nh_aw(nrows))
+   allocate(nh_ae(nrows))
+   allocate(nh_as(nrows))
+   allocate(nh_an(nrows))
+   allocate(nh_scl(nrows))
+   allocate(nh_sclo(0:nrows))
+   allocate(nh_y(0:nrows))
+   allocate(nh_r(0:nrows))
+   allocate(nh_p(0:nrows))
+   allocate(nh_s(0:nrows))
+   allocate(nh_w(0:nrows))
+   allocate(nh_b(0:nrows))
+   !
+   !$omp parallel do schedule ( static ) private ( i )
+   do i = 1, nrows
+      nh_aw(i)   = 0.0
+      nh_ae(i)   = 0.0
+      nh_as(i)   = 0.0
+      nh_an(i)   = 0.0
+      nh_scl(i)  = 1.0
+      nh_sclo(i) = 1.0
+      nh_y(i)    = 0.0
+      nh_r(i)    = 0.0
+      nh_p(i)    = 0.0
+      nh_s(i)    = 0.0
+      nh_w(i)    = 0.0
+      nh_b(i)    = 0.0
+   enddo
+   !$omp end parallel do
+   nh_sclo(0) = 0.0
+   nh_y(0)    = 0.0
+   nh_r(0)    = 0.0
+   nh_p(0)    = 0.0
+   nh_s(0)    = 0.0
+   nh_w(0)    = 0.0
+   nh_b(0)    = 0.0
+   !
+   ! Device residency for everything the per-step kernels read or write. The
+   ! global sfincs_data arrays (zs, zb, uv, q, kfuv, kcs, z_index_uv_*,
+   ! uv_index_z_*) are already on the device via initialize_openacc.
+   !
+   !$acc enter data copyin( nh_nbw, nh_nbe, nh_nbs, nh_nbn, &
+   !$acc                    nh_aw, nh_ae, nh_as, nh_an, nh_scl, nh_sclo, &
+   !$acc                    nh_y, nh_r, nh_p, nh_s, nh_w, nh_b, &
+   !$acc                    pnh, ws, wb, wb0, Dnm, nm_index_of_row, &
+   !$acc                    nh_dvert, nh_fade, nh_brfac, nh_dxr, nh_dyr, nh_slbed, &
+   !$acc                    nh_faceuv, nh_faceL, nh_faceR, nh_cellface, &
+   !$acc                    nh_cf, nh_cR, nh_cL, nh_hu )
+   !
+   write(logstr,'(a,i0,a,i0,a)')'Non-hydrostatic solver (assembled-stencil CG): ', nrows, ' cells, ', nhuv, ' faces'
+   call write_log(logstr, 0)
+   !
    end subroutine
 
 
-   subroutine compute_nonhydrostatic2(dt, tloop)
+   subroutine compute_nonhydrostatic(dt, tloop)
    !
-   ! Matrix-free, symmetric-positive-definite non-hydrostatic pressure
-   ! projection, solved with Jacobi-preconditioned conjugate gradients.
-   !
-   ! The pressure-gradient (momentum force) operator G and the divergence
-   ! operator are exact negative transposes (D = -G^T), so the pressure operator
-   !
-   !     A = (dt/rho) G^T G  +  diag( 2 dt /(rho H^2) )
-   !
-   ! is SPD and CG applies. The pressure gradient shares the momentum stencil, so the
-   ! interior is free of the 2dx mode a mismatched stencil would excite. Single
-   ! refinement level (quadtree transitions handled in a later phase).
+   ! Per-step non-hydrostatic pressure projection (see module header). Every
+   ! numbered kernel below is one !$omp / !$acc loop.
    !
    use sfincs_data
    !
@@ -534,74 +530,57 @@ contains
    real      :: tloop
    real*4    :: dt
    !
-   integer   :: ip, ipuv, nm, nmu, nmn, irow, iuv, iter
-   real*4    :: dtrho, abf, hu, Dnm1, Dnmu, unh, gf, pL, pR, fdep
-   real*4    :: gamma, gamma_new, delta, pAp, alpha, beta, bnorm, resn
-   real*4    :: dzdt, wmax, breform, qr, ql, kbfac, pcap
-   integer   :: iuvr, iuvl, rl, rr, ineighbour
-   integer   :: f, o, cnt
-   real*4    :: accv, sumn
-   logical   :: bndok, nh_breakdown
+   integer   :: i, ip, ipuv, nm, nmn, nmu, iuv, iuvl, iuvr, j, jl, jr, f, iter, ipass, cnt, ineighbour
+   real*4    :: dtrho, kbfac, hu, Dnm1, Dnmu, abf, fdep, tf, dval, sq, braw, accv, sumn
+   real*4    :: qr, ql, dzdt, wmax, breform, pcap, gf, pL, pR, unh
+   real*4    :: alpha, beta
+   real*8    :: gam8, del8, bn8, gamold8, alpha8, beta8, pap8, bnorm8
+   logical   :: bndok
    !
    call system_clock(count0, count_rate, count_max)
    !
    if (nrows == 0) return
    !
-   ! Keller-box vertical factor (nh_disp): 2.0 = strict linear-pressure single layer;
+   ! Keller-box vertical factor (nonh_disp): 2.0 = strict linear-pressure single layer;
    ! lowering it (<2) strengthens the short-wave pressure feedback, flattening
    ! c(k) toward Airy (~1.0 optimal). Default 1.0.
    !
-   kbfac = nh_disp
-   !
+   kbfac = nonh_disp
    dtrho = dt / rhow
    !
-   ! 1) Layer depth per row, and the vertical-acceleration diagonal nh_dvert that
-   !    depends only on it (merged here; Dnm is unchanged before it is used in step 3).
+   ! 1) Layer depth per row and the vertical-acceleration diagonal.
    !
-   !$omp parallel &
-   !$omp private ( irow, nm )
-   !$omp do schedule ( dynamic, 256 )
-   do irow = 1, nrows
-      nm = nm_index_of_row(irow)
-      Dnm(irow)      = max(zs(nm) - zb(nm), huthresh_nh)
-      nh_dvert(irow) = kbfac * dt / (rhow * Dnm(irow))
+   !$acc parallel loop default(present)
+   !$omp parallel do schedule ( static ) private ( i, nm )
+   do i = 1, nrows
+      nm = nm_index_of_row(i)
+      Dnm(i)      = max(zs(nm) - zb(nm), huthresh_nh)
+      nh_dvert(i) = kbfac * dt / (rhow * Dnm(i))
    enddo
-   !$omp end do
-   !$omp end parallel
+   !$omp end parallel do
    !
-   ! 1b) Hydrostatic-front (wave-breaking) reduction -- a GRADUAL form of the XBeach
-   !     HFA (Smit, Zijlema & Stelling 2013). A breaking wave becomes a bore, well
-   !     described hydrostatically; the non-hydrostatic pressure there is wrong and
-   !     destabilizing. We detect steepening from the surface rate of rise, built
-   !     from the flux divergence (= d(zs)/dt by continuity = Miche steepness):
-   !         d(zs)/dx = (d(zs)/dt)/c = dzdt / sqrt(g h),  threshold = nh_brsteep.
-   !     A breaking cell is set hydrostatic via a per-cell factor nh_brfac (1 = full
-   !     non-hydrostatic, 0 = hydrostatic). nh_brfac scales BOTH the horizontal face
-   !     coupling (step 2) and the vertical source (step 4) -> hands over to a hydrostatic
-   !     bore (XBeach pnh=0, faces active). Only the rising front (dzdt > 0) is reduced.
+   ! 1b) Breaking criterion -> nh_brfac (1 = full nonh, <1 = hydrostatic pnh=0).
+   !     Froude (NEOWAVE; Yamazaki, Kowalik & Cheung 2009, eqs 33/34) when
+   !     nonh_brfr > 0, else steepness/HFA (Smit, Zijlema & Stelling 2013) when
+   !     nonh_brsteep > 0.
    !
-   if (nh_brfr > 0.0) then
+   if (nonh_brfr > 0.0) then
       !
-      ! OPTIONAL Froude breaking criterion (NEOWAVE NH-Hybrid; Yamazaki, Kowalik & Cheung 2009,
-      ! eqs 33/34). A cell is set hydrostatic (pnh = 0) when the local flow Froude number
-      ! Fr = |U| / sqrt(g D) exceeds the onset nh_brfr (~0.5), and reactivated when Fr drops below
-      ! 0.3*nh_brfr (~0.15) -- NEOWAVE's 0.15/0.5 hysteresis ratio. Unlike the steepness criterion
-      ! below, this is purely LOCAL: it uses the cell velocity and depth directly, with no dzdt
-      ! flux-divergence and therefore no smoothing / neighbour-spread / hole-filling. It is robust
-      ! (no 2dx noise to smooth) and tracks a bore through its life (stays on while the flow is
-      ! supercritical). Enabled by nh_brfr > 0; default nh_brfr = 0 -> use the steepness criterion.
+      ! Froude criterion: a cell is set hydrostatic (pnh = 0) when the local flow
+      ! Froude number Fr = |U| / sqrt(g D) exceeds the onset nonh_brfr (~0.5), and
+      ! reactivated when Fr drops below 0.3*nonh_brfr -- NEOWAVE's hysteresis ratio.
+      ! Purely LOCAL (no smoothing / neighbour-spread / hole-filling needed) and
+      ! tracks a bore through its life.
       !
-      !$omp parallel &
-      !$omp private ( irow, nm, iuvl, iuvr, ql, qr, dzdt )
-      !$omp do schedule ( dynamic, 256 )
-      do irow = 1, nrows
-         nm = nm_index_of_row(irow)
-         ! cell-centre velocity components = mean of the two opposite face velocities
+      !$acc parallel loop default(present)
+      !$omp parallel do schedule ( static ) private ( i, nm, iuvl, iuvr, ql, qr, dzdt )
+      do i = 1, nrows
+         nm = nm_index_of_row(i)
          ql = 0.0 ; qr = 0.0
          iuvl = z_index_uv_md(nm) ; iuvr = z_index_uv_mu(nm)
          if (iuvl > 0) ql = uv(iuvl)
          if (iuvr > 0) qr = uv(iuvr)
-         dzdt = (0.5 * (ql + qr))**2                       ! u_cell^2  (dzdt reused as |U|^2 accumulator)
+         dzdt = (0.5 * (ql + qr))**2                       ! u_cell^2
          if (nmax > 1) then
             ql = 0.0 ; qr = 0.0
             iuvl = z_index_uv_nd(nm) ; iuvr = z_index_uv_nu(nm)
@@ -609,182 +588,162 @@ contains
             if (iuvr > 0) qr = uv(iuvr)
             dzdt = dzdt + (0.5 * (ql + qr))**2             ! + v_cell^2
          endif
-         dzdt = sqrt(dzdt) / sqrt(g * Dnm(irow))           ! Fr = |U| / sqrt(g D)
-         if (nh_brfac(irow) >= 1.0) then                   ! was not breaking
-            if (dzdt > nh_brfr) nh_brfac(irow) = 0.0        ! onset
+         dzdt = sqrt(dzdt) / sqrt(g * Dnm(i))              ! Fr = |U| / sqrt(g D)
+         if (nh_brfac(i) >= 1.0) then                      ! was not breaking
+            if (dzdt > nonh_brfr) nh_brfac(i) = 0.0          ! onset
          else                                              ! was breaking -> release only when slow
-            if (dzdt < 0.3 * nh_brfr) then
-               nh_brfac(irow) = 1.0
+            if (dzdt < 0.3 * nonh_brfr) then
+               nh_brfac(i) = 1.0
             else
-               nh_brfac(irow) = 0.0
+               nh_brfac(i) = 0.0
             endif
          endif
-         if (nh_brfac(irow) < 1.0) pnh(irow) = 0.0         ! breaking cell -> pnh = 0 Dirichlet
+         if (nh_brfac(i) < 1.0) pnh(i) = 0.0
       enddo
-      !$omp end do
-      !$omp end parallel
+      !$omp end parallel do
       !
-   elseif (nh_brsteep > 0.0) then
-      breform = 0.25 * nh_brsteep        ! XBeach reformsteep default (neighbour-spread threshold)
-      ! --- (a) raw surface rate-of-rise  dzdt = -div(q)  (= d(zs)/dt by continuity) into cg_z ---
-      !$omp parallel &
-      !$omp private ( irow, nm, iuvr, iuvl, qr, ql, dzdt )
-      !$omp do schedule ( dynamic, 256 )
-      do irow = 1, nrows
-         nm   = nm_index_of_row(irow)
+   elseif (nonh_brsteep > 0.0) then
+      !
+      ! Steepness/HFA criterion (gradual XBeach hydrostatic-front approximation).
+      ! Detect steepening from the surface rate of rise built from the flux
+      ! divergence: d(zs)/dx = dzdt / sqrt(g h), threshold nonh_brsteep. Only the
+      ! rising front (dzdt > 0) is reduced; a breaking cell stays breaking until
+      ! the surface falls.
+      !
+      breform = 0.25 * nonh_brsteep        ! XBeach reformsteep default (neighbour-spread threshold)
+      !
+      ! (a) raw surface rate-of-rise dzdt = -div(q) into nh_w
+      !
+      !$acc parallel loop default(present)
+      !$omp parallel do schedule ( static ) private ( i, nm, iuvl, iuvr, ql, qr, dzdt )
+      do i = 1, nrows
+         nm   = nm_index_of_row(i)
          iuvr = z_index_uv_mu(nm) ; iuvl = z_index_uv_md(nm)
          qr = 0.0 ; ql = 0.0
          if (iuvr > 0) qr = q(iuvr)
          if (iuvl > 0) ql = q(iuvl)
-         dzdt = - (qr - ql) * nh_dxr(irow)
+         dzdt = - (qr - ql) * nh_dxr(i)
          if (nmax > 1) then
             iuvr = z_index_uv_nu(nm) ; iuvl = z_index_uv_nd(nm)
             qr = 0.0 ; ql = 0.0
             if (iuvr > 0) qr = q(iuvr)
             if (iuvl > 0) ql = q(iuvl)
-            dzdt = dzdt - (qr - ql) * nh_dyr(irow)
+            dzdt = dzdt - (qr - ql) * nh_dyr(i)
          endif
-         cg_z(irow) = dzdt
-      enddo
-      !$omp end do
-      !$omp end parallel
-      ! --- (b) SMOOTH dzdt before thresholding. Raw dzdt carries a 2dx component, so the
-      !     per-cell criterion trips on noise -> scattered, isolated pnh=0 cells (no spatial
-      !     coherence; the non-breaking gaps in between keep their source-driven pnh -> a
-      !     2dx sawtooth). Two [1 2 1]/4 diffusion passes over the nh faces make the criterion
-      !     fire over a CONNECTED front -> a contiguous breaking block. cg_z = raw -> smoothed. ---
-      do iter = 1, 2
-         ! gather form: each row sums 0.25*(neighbour-self) over its interior incident faces
-         ! (race-free; equivalent to the old per-face scatter, summation order aside)
-         !$omp parallel &
-         !$omp private ( irow, accv, f, o )
-         !$omp do schedule ( dynamic, 256 )
-         do irow = 1, nrows
-            accv = cg_z(irow)
-            f = nh_cellface(1, irow) ; if (f > 0) then ; o = nh_faceL(f) ; if (o > 0) accv = accv + 0.25 * (cg_z(o) - cg_z(irow)) ; endif
-            f = nh_cellface(2, irow) ; if (f > 0) then ; o = nh_faceR(f) ; if (o > 0) accv = accv + 0.25 * (cg_z(o) - cg_z(irow)) ; endif
-            f = nh_cellface(3, irow) ; if (f > 0) then ; o = nh_faceL(f) ; if (o > 0) accv = accv + 0.25 * (cg_z(o) - cg_z(irow)) ; endif
-            f = nh_cellface(4, irow) ; if (f > 0) then ; o = nh_faceR(f) ; if (o > 0) accv = accv + 0.25 * (cg_z(o) - cg_z(irow)) ; endif
-            cg_d(irow) = accv
-         enddo
-         !$omp end do
-         !$omp do schedule ( dynamic, 256 )
-         do irow = 1, nrows
-            cg_z(irow) = cg_d(irow)
-         enddo
-         !$omp end do
-         !$omp end parallel
-      enddo
-      ! --- (c) snapshot last step's breaking state (cg_r is free until the solve) ---
-      !$omp parallel do private ( irow ) schedule ( dynamic, 256 )
-      do irow = 1, nrows
-         cg_r(irow) = nh_brfac(irow)
+         nh_w(i) = dzdt
       enddo
       !$omp end parallel do
-      ! --- (d) hysteretic state machine on the SMOOTHED dzdt ---
-      !$omp parallel &
-      !$omp private ( irow, nm, dzdt, ineighbour, iuvl, iuvr, rl, rr, wmax )
-      !$omp do schedule ( dynamic, 256 )
-      do irow = 1, nrows
-         nm   = nm_index_of_row(irow)
-         dzdt = cg_z(irow)
-         ! is a neighbour already breaking? (read the snapshot -> no within-sweep contamination)
-         ineighbour = 0
-         iuvl = z_index_uv_md(nm)
-         if (iuvl > 0) then ; rl = row_index_of_nm(uv_index_z_nm(iuvl))
-            if (rl > 0) then ; if (cg_r(rl) < 1.0) ineighbour = 1 ; endif ; endif
-         iuvr = z_index_uv_mu(nm)
-         if (iuvr > 0) then ; rr = row_index_of_nm(uv_index_z_nmu(iuvr))
-            if (rr > 0) then ; if (cg_r(rr) < 1.0) ineighbour = 1 ; endif ; endif
-         if (nmax > 1) then
-            iuvl = z_index_uv_nd(nm)
-            if (iuvl > 0) then ; rl = row_index_of_nm(uv_index_z_nm(iuvl))
-               if (rl > 0) then ; if (cg_r(rl) < 1.0) ineighbour = 1 ; endif ; endif
-            iuvr = z_index_uv_nu(nm)
-            if (iuvr > 0) then ; rr = row_index_of_nm(uv_index_z_nmu(iuvr))
-               if (rr > 0) then ; if (cg_r(rr) < 1.0) ineighbour = 1 ; endif ; endif
-         endif
-         wmax = sqrt(g * Dnm(irow))
-         ! Hysteretic state machine (XBeach nonh_break): onset at nh_brsteep, spread to a
-         ! breaking neighbour at the lower 0.25*nh_brsteep (XBeach reformsteep default), and -- key for limiting the
-         ! leading wave -- a breaking cell STAYS breaking (pnh=0) until the surface falls
-         ! (dzdt < 0), so it remains hydrostatic through the whole crest passage, not just
-         ! the steep front -> a sustained, connected hydrostatic roller that dissipates.
-         if (cg_r(irow) >= 1.0) then                                   ! was not breaking
-            if (dzdt > nh_brsteep * wmax) then
-               nh_brfac(irow) = 0.0
-            elseif (dzdt > breform * wmax .and. ineighbour == 1) then
-               nh_brfac(irow) = 0.0
-            else
-               nh_brfac(irow) = 1.0
-            endif
-         else                                                          ! was breaking
-            if (dzdt < 0.0) then
-               nh_brfac(irow) = 1.0                                    ! release only when surface falls
-            else
-               nh_brfac(irow) = 0.0
-            endif
-         endif
-         if (nh_brfac(irow) < 1.0) pnh(irow) = 0.0          ! breaking cell -> pnh = 0 Dirichlet (held through the solve)
-      enddo
-      !$omp end do
-      !$omp end parallel
       !
-      ! Close interior holes so the breaking region is CONTIGUOUS. dzdt has a 2dx
-      ! component in the steep front, so the per-cell criterion flips breaking on/off
-      ! cell-to-cell -> alternating pnh=0 / pnh!=0 -> a 2dx sawtooth in pnh and the water
-      ! level. A non-breaking cell flanked by breaking cells (both x-sides, or both y-sides
-      ! in 2D) is filled in, repeated a few times to close wider gaps. (Conservative: only
-      ! fills internal holes, never grows the region outward.)
-      do iter = 1, 3
-         !$omp parallel do private ( irow ) schedule ( dynamic, 256 )
-         do irow = 1, nrows
-            cg_r(irow) = nh_brfac(irow)
+      ! (b) two [1 2 1]/4 smoothing passes (2dx noise -> connected front)
+      !
+      do ipass = 1, 2
+         !$acc parallel loop default(present)
+         !$omp parallel do schedule ( static ) private ( i, accv, j )
+         do i = 1, nrows
+            accv = nh_w(i)
+            j = nh_nbw(i) ; if (j > 0) accv = accv + 0.25 * (nh_w(j) - nh_w(i))
+            j = nh_nbe(i) ; if (j > 0) accv = accv + 0.25 * (nh_w(j) - nh_w(i))
+            j = nh_nbs(i) ; if (j > 0) accv = accv + 0.25 * (nh_w(j) - nh_w(i))
+            j = nh_nbn(i) ; if (j > 0) accv = accv + 0.25 * (nh_w(j) - nh_w(i))
+            nh_p(i) = accv
          enddo
          !$omp end parallel do
-         !$omp parallel &
-         !$omp private ( irow, nm, ineighbour, iuvl, iuvr, rl, rr )
-         !$omp do schedule ( dynamic, 256 )
-         do irow = 1, nrows
-            if (cg_r(irow) >= 1.0) then
-               nm = nm_index_of_row(irow)
+         !$acc parallel loop default(present)
+         !$omp parallel do schedule ( static ) private ( i )
+         do i = 1, nrows
+            nh_w(i) = nh_p(i)
+         enddo
+         !$omp end parallel do
+      enddo
+      !
+      ! (c) snapshot last step's breaking state (no within-sweep contamination)
+      !
+      !$acc parallel loop default(present)
+      !$omp parallel do schedule ( static ) private ( i )
+      do i = 1, nrows
+         nh_r(i) = nh_brfac(i)
+      enddo
+      !$omp end parallel do
+      !
+      ! (d) hysteretic state machine on the smoothed dzdt (onset / neighbour-spread /
+      !     release only when the surface falls)
+      !
+      !$acc parallel loop default(present)
+      !$omp parallel do schedule ( static ) private ( i, dzdt, ineighbour, j, wmax )
+      do i = 1, nrows
+         dzdt = nh_w(i)
+         ineighbour = 0
+         j = nh_nbw(i) ; if (j > 0) then ; if (nh_r(j) < 1.0) ineighbour = 1 ; endif
+         j = nh_nbe(i) ; if (j > 0) then ; if (nh_r(j) < 1.0) ineighbour = 1 ; endif
+         j = nh_nbs(i) ; if (j > 0) then ; if (nh_r(j) < 1.0) ineighbour = 1 ; endif
+         j = nh_nbn(i) ; if (j > 0) then ; if (nh_r(j) < 1.0) ineighbour = 1 ; endif
+         wmax = sqrt(g * Dnm(i))
+         if (nh_r(i) >= 1.0) then                                   ! was not breaking
+            if (dzdt > nonh_brsteep * wmax) then
+               nh_brfac(i) = 0.0
+            elseif (dzdt > breform * wmax .and. ineighbour == 1) then
+               nh_brfac(i) = 0.0
+            else
+               nh_brfac(i) = 1.0
+            endif
+         else                                                       ! was breaking
+            if (dzdt < 0.0) then
+               nh_brfac(i) = 1.0                                    ! release only when surface falls
+            else
+               nh_brfac(i) = 0.0
+            endif
+         endif
+         if (nh_brfac(i) < 1.0) pnh(i) = 0.0
+      enddo
+      !$omp end parallel do
+      !
+      ! (e) close interior holes (a non-breaking cell flanked on both x-sides, or
+      !     both y-sides, by breaking cells is filled in; 3 passes)
+      !
+      do ipass = 1, 3
+         !$acc parallel loop default(present)
+         !$omp parallel do schedule ( static ) private ( i )
+         do i = 1, nrows
+            nh_r(i) = nh_brfac(i)
+         enddo
+         !$omp end parallel do
+         !$acc parallel loop default(present)
+         !$omp parallel do schedule ( static ) private ( i, ineighbour, jl, jr )
+         do i = 1, nrows
+            if (nh_r(i) >= 1.0) then
                ineighbour = 0
-               iuvl = z_index_uv_md(nm)
-               if (iuvl > 0) then ; rl = row_index_of_nm(uv_index_z_nm(iuvl))
-                  if (rl > 0) then ; if (cg_r(rl) < 1.0) ineighbour = ineighbour + 1 ; endif ; endif
-               iuvr = z_index_uv_mu(nm)
-               if (iuvr > 0) then ; rr = row_index_of_nm(uv_index_z_nmu(iuvr))
-                  if (rr > 0) then ; if (cg_r(rr) < 1.0) ineighbour = ineighbour + 2 ; endif ; endif
-               if (ineighbour == 3) then        ! breaking on both x-sides -> fill the hole
-                  nh_brfac(irow) = 0.0 ; pnh(irow) = 0.0
+               jl = nh_nbw(i) ; if (jl > 0) then ; if (nh_r(jl) < 1.0) ineighbour = ineighbour + 1 ; endif
+               jr = nh_nbe(i) ; if (jr > 0) then ; if (nh_r(jr) < 1.0) ineighbour = ineighbour + 2 ; endif
+               if (ineighbour == 3) then
+                  nh_brfac(i) = 0.0 ; pnh(i) = 0.0
                endif
-               if (nmax > 1 .and. nh_brfac(irow) >= 1.0) then
+               if (nmax > 1 .and. nh_brfac(i) >= 1.0) then
                   ineighbour = 0
-                  iuvl = z_index_uv_nd(nm)
-                  if (iuvl > 0) then ; rl = row_index_of_nm(uv_index_z_nm(iuvl))
-                     if (rl > 0) then ; if (cg_r(rl) < 1.0) ineighbour = ineighbour + 1 ; endif ; endif
-                  iuvr = z_index_uv_nu(nm)
-                  if (iuvr > 0) then ; rr = row_index_of_nm(uv_index_z_nmu(iuvr))
-                     if (rr > 0) then ; if (cg_r(rr) < 1.0) ineighbour = ineighbour + 2 ; endif ; endif
-                  if (ineighbour == 3) then ; nh_brfac(irow) = 0.0 ; pnh(irow) = 0.0 ; endif
+                  jl = nh_nbs(i) ; if (jl > 0) then ; if (nh_r(jl) < 1.0) ineighbour = ineighbour + 1 ; endif
+                  jr = nh_nbn(i) ; if (jr > 0) then ; if (nh_r(jr) < 1.0) ineighbour = ineighbour + 2 ; endif
+                  if (ineighbour == 3) then ; nh_brfac(i) = 0.0 ; pnh(i) = 0.0 ; endif
                endif
             endif
          enddo
-         !$omp end do
-         !$omp end parallel
+         !$omp end parallel do
       enddo
       !
    else
-      nh_brfac = 1.0
+      !
+      !$acc parallel loop default(present)
+      !$omp parallel do schedule ( static ) private ( i )
+      do i = 1, nrows
+         nh_brfac(i) = 1.0
+      enddo
+      !$omp end parallel do
+      !
    endif
    !
-   ! 2) Per-face gradient coefficients. These depend on the water level (through
-   !    the bed-slope / layer term AB) and on which faces are wet and active this
-   !    step; inactive faces get zero coefficients (no pressure coupling).
+   ! 2) Per-face gradient coefficients (wet/dry, layer term abf, conveyance depth,
+   !    open-boundary fade-in).
    !
-   !$omp parallel &
-   !$omp private ( ip, ipuv, nm, nmu, hu, Dnm1, Dnmu, abf, fdep, bndok )
-   !$omp do schedule ( dynamic, 256 )
+   !$acc parallel loop default(present)
+   !$omp parallel do schedule ( static ) private ( ip, ipuv, nm, nmu, hu, Dnm1, Dnmu, abf, fdep, bndok )
    do ip = 1, nhuv
       ipuv = nh_faceuv(ip)
       nm   = uv_index_z_nm(ipuv)
@@ -792,9 +751,8 @@ contains
       nh_cR(ip) = 0.0
       nh_cL(ip) = 0.0
       nh_hu(ip) = 0.0
-      ! Open (water-level/outflow, kcs 2/3) boundary faces are SKIPPED (homogeneous
-      ! Neumann); the boundary flux is handled hydrostatically. Closed walls (kcs 0)
-      ! and Neumann boundaries (kcs 6) keep kfuv = 0 -> the correct solid-wall BC.
+      ! Open (kcs 2/3) boundary faces are skipped (handled hydrostatically);
+      ! closed walls / Neumann keep kfuv = 0 -> correct solid-wall BC.
       bndok = (kcs(nm) == 1 .and. kcs(nmu) == 1)
       if (kfuv(ipuv) == 1 .and. bndok) then
          if (zs(nm) > zb(nm) + huthresh_nh .and. zs(nmu) > zb(nmu) + huthresh_nh) then
@@ -805,288 +763,279 @@ contains
                abf  = ( (zs(nmu) + zb(nmu)) - (zs(nm) + zb(nm)) ) / (Dnm1 + Dnmu)
                nh_cR(ip) = nh_cf(ip) * (1.0 + abf)
                nh_cL(ip) = nh_cf(ip) * (abf - 1.0)
-               !
-               ! Conveyance depth for the flux correction and the depth-weighted
-               ! operator. SFINCS sets uv = q/max(hu,huvmin) in momentum, so q/uv
-               ! IS that depth. Using it keeps the corrected q and uv consistent
-               ! (same sign) and matches the depth continuity uses for the flux.
-               ! Falls back to the max-surface depth for a still (uv=0) face.
-               !
+               ! Conveyance depth q/uv keeps the corrected q and uv consistent
                if (uv(ipuv) /= 0.0) then
                   nh_hu(ip) = q(ipuv) / uv(ipuv)
                else
                   nh_hu(ip) = hu
                endif
-               !
-               ! Open-boundary fade-in: ramp the coupling 0 -> full over nh_fadein
-               ! cells from the boundary, so the incident wave enters hydrostatically.
-               !
-               if (nh_fadein > 0) then
+               if (nonh_fadein > 0) then
                   fdep = 1.0
                   if (nh_faceL(ip) > 0) fdep = min(fdep, nh_fade(nh_faceL(ip)))
                   if (nh_faceR(ip) > 0) fdep = min(fdep, nh_fade(nh_faceR(ip)))
                   nh_cR(ip) = nh_cR(ip) * fdep
                   nh_cL(ip) = nh_cL(ip) * fdep
                endif
-               !
-               ! Gradual breaking (HFA): the face coupling is intentionally LEFT ACTIVE
-               ! here (unlike a hard decoupling). The non-hydrostatic effect is removed
-               ! gradually via the vertical SOURCE only (step 4, scaled by nh_brfac), so a
-               ! breaking cell keeps its pressure-gradient coupling to its neighbours
-               ! (XBeach-style pnh~0 Dirichlet) and the steep front still gets the one-
-               ! sided shoreward push from the soliton behind -> it hands over to a
-               ! propagating hydrostatic bore instead of decoupling and stalling.
-               !
             endif
          endif
       endif
    enddo
-   !$omp end do
-   !$omp end parallel
+   !$omp end parallel do
    !
+   ! 3) ASSEMBLY (once per solve). Per row: raw off-diagonals a_ij = dtrho*hu*cR*cL
+   !    (one product per incident face, same both ways -> symmetric), the diagonal
+   !    dval = dvert + sum dtrho*hu*coef^2, the scaling scl = 1/sqrt(dval), the
+   !    breaking-masked scaling sclo, the SCALED right-hand side
+   !    b = scl * [ G^T (hu u*) - (ws + wb0 - 2 wb) ], and the warm start
+   !    y0 = pnh * sqrt(dval) (scaled previous pressure; 0 at breaking cells).
    !
-   ! 3) Jacobi diagonal of A = vertical-acceleration diagonal (nh_dvert, from step 1)
-   !    + the depth-weighted Laplacian diagonal. GATHER form (race-free): each row
-   !    sums dtrho*hu*coef^2 over its incident faces (coef = nh_cR on the left/below
-   !    side, nh_cL on the right/above side -- see nh_cellface). Flux-divergence /
-   !    XBeach-consistent: the vertical diagonal is 2 dt/(rho H), not 2 dt/(rho H^2).
-   !
-   !$omp parallel &
-   !$omp private ( irow, accv, f )
-   !$omp do schedule ( dynamic, 256 )
-   do irow = 1, nrows
-      accv = nh_dvert(irow)
-      f = nh_cellface(1, irow) ; if (f > 0) accv = accv + dtrho * nh_hu(f) * nh_cR(f)**2
-      f = nh_cellface(2, irow) ; if (f > 0) accv = accv + dtrho * nh_hu(f) * nh_cL(f)**2
-      f = nh_cellface(3, irow) ; if (f > 0) accv = accv + dtrho * nh_hu(f) * nh_cR(f)**2
-      f = nh_cellface(4, irow) ; if (f > 0) accv = accv + dtrho * nh_hu(f) * nh_cL(f)**2
-      nh_diag(irow) = accv
-   enddo
-   !$omp end do
-   !$omp end parallel
-   !
-   ! 4) Right-hand side (flux-divergence form):  b = G^T (hu u*) - (ws + wb0 - 2 wb)
-   !    The divergence uses the flux hu*u* (depth-weighted), and the vertical
-   !    source is in flux units (no division by H), matching the operator above.
-   !
-   ! (breaking is applied post-solve by scaling pnh -> 0 at breaking cells, keeping the
-   !  faces active so the front keeps its one-sided pressure-gradient correction)
-   ! Per-face provisional flux hu*u* into scratch (race-free), then GATHER to the RHS.
-   !$omp parallel do private ( ip ) schedule ( dynamic, 256 )
-   do ip = 1, nhuv
-      nh_hf(ip) = nh_hu(ip) * uv(nh_faceuv(ip))   ! provisional flux  hu*u*  at this face
+   !$acc parallel loop default(present)
+   !$omp parallel do schedule ( static ) private ( i, dval, braw, f, tf, sq )
+   do i = 1, nrows
+      dval = nh_dvert(i)
+      braw = - (ws(i) + wb0(i) - 2.0 * wb(i))
+      f = nh_cellface(1, i)
+      if (f > 0) then
+         tf = dtrho * nh_hu(f)
+         nh_aw(i) = tf * nh_cR(f) * nh_cL(f)
+         dval = dval + tf * nh_cR(f)**2
+         braw = braw + nh_cR(f) * nh_hu(f) * uv(nh_faceuv(f))
+      else
+         nh_aw(i) = 0.0
+      endif
+      f = nh_cellface(2, i)
+      if (f > 0) then
+         tf = dtrho * nh_hu(f)
+         nh_ae(i) = tf * nh_cL(f) * nh_cR(f)
+         dval = dval + tf * nh_cL(f)**2
+         braw = braw + nh_cL(f) * nh_hu(f) * uv(nh_faceuv(f))
+      else
+         nh_ae(i) = 0.0
+      endif
+      f = nh_cellface(3, i)
+      if (f > 0) then
+         tf = dtrho * nh_hu(f)
+         nh_as(i) = tf * nh_cR(f) * nh_cL(f)
+         dval = dval + tf * nh_cR(f)**2
+         braw = braw + nh_cR(f) * nh_hu(f) * uv(nh_faceuv(f))
+      else
+         nh_as(i) = 0.0
+      endif
+      f = nh_cellface(4, i)
+      if (f > 0) then
+         tf = dtrho * nh_hu(f)
+         nh_an(i) = tf * nh_cL(f) * nh_cR(f)
+         dval = dval + tf * nh_cL(f)**2
+         braw = braw + nh_cL(f) * nh_hu(f) * uv(nh_faceuv(f))
+      else
+         nh_an(i) = 0.0
+      endif
+      sq = sqrt(dval)              ! dval >= dvert > 0 always (Dnm capped)
+      nh_scl(i) = 1.0 / sq
+      if (nh_brfac(i) < 1.0) then
+         ! breaking cell: zero row/column (via sclo), b=0, y0=0 -> pnh held at 0
+         nh_sclo(i) = 0.0
+         nh_b(i)    = 0.0
+         nh_y(i)    = 0.0
+      else
+         nh_sclo(i) = nh_scl(i)
+         nh_b(i)    = braw * nh_scl(i)
+         nh_y(i)    = pnh(i) * sq
+      endif
    enddo
    !$omp end parallel do
-   !$omp parallel &
-   !$omp private ( irow, accv, f )
-   !$omp do schedule ( dynamic, 256 )
-   do irow = 1, nrows
-      accv = - (ws(irow) + wb0(irow) - 2.0 * wb(irow))
-      f = nh_cellface(1, irow) ; if (f > 0) accv = accv + nh_cR(f) * nh_hf(f)
-      f = nh_cellface(2, irow) ; if (f > 0) accv = accv + nh_cL(f) * nh_hf(f)
-      f = nh_cellface(3, irow) ; if (f > 0) accv = accv + nh_cR(f) * nh_hf(f)
-      f = nh_cellface(4, irow) ; if (f > 0) accv = accv + nh_cL(f) * nh_hf(f)
-      nh_bb(irow) = accv
+   !
+   ! 3b) Scale the off-diagonals: a_ij <- a_ij * sclo(i) * sclo(j). Needs the
+   !     completed sclo of the NEIGHBOUR -> separate kernel. sclo(0) = 0 zeroes
+   !     coefficients to missing neighbours (the scaled diagonal is exactly 1).
+   !
+   !$acc parallel loop default(present)
+   !$omp parallel do schedule ( static ) private ( i )
+   do i = 1, nrows
+      nh_aw(i) = nh_aw(i) * nh_sclo(i) * nh_sclo(nh_nbw(i))
+      nh_ae(i) = nh_ae(i) * nh_sclo(i) * nh_sclo(nh_nbe(i))
+      nh_as(i) = nh_as(i) * nh_sclo(i) * nh_sclo(nh_nbs(i))
+      nh_an(i) = nh_an(i) * nh_sclo(i) * nh_sclo(nh_nbn(i))
    enddo
-   !$omp end do
-   !$omp end parallel
+   !$omp end parallel do
    !
-   ! 5) Pressure solve: Jacobi-preconditioned conjugate gradient, warm-started from
-   !     the previous step. pnh = 0 Dirichlet at breaking cells (faces stay active).
+   ! 4) CG solve of the scaled system (unit diagonal -> no preconditioner work).
+   !    Chronopoulos-Gear single-reduction CG: per iteration ONE fused
+   !    matvec+dots kernel and ONE fused vector-update kernel.
    !
-   ! SINGLE-REDUCTION (Chronopoulos-Gear) CG inside ONE parallel region (SPMD). The two
-   ! standard dot products <r,z> and <z,Az> -- plus the residual <r,r> for the stopping
-   ! test -- are formed at the SAME point and folded into ONE !$omp do reduction, so there
-   ! is ONE synchronising barrier for all dots instead of three separate reductions. The
-   ! search direction s=Ap is carried by the recurrence s = w + beta*s (w = A z), so there
-   ! is still only ONE matvec per iteration; alpha is advanced by recurrence too,
-   ! alpha = gamma/(delta - beta*gamma/alpha), with a pAp<=0 breakdown guard. The stopping
-   ! test is unchanged (||r||/||b|| < nh_tol; resn = <r,r>). The CG iteration `do` runs
-   ! redundantly on every thread; row work is split by orphaned !$omp do (incl. inside
-   ! apply_A_nh2), the fused dot by !$omp do reduction, scalars by !$omp single. All
-   ! reduction scalars and alpha/beta/gamma/iter are SHARED and identical on every thread
-   ! after each barrier, so the exit tests are taken consistently by the whole team.
+   ! 4a) initial residual: w = A y0 (branch-free ghost matvec), r = b - w
    !
-   !$omp parallel default(shared) private(irow)
-   !
-   ! --- setup: r0 = b - A x0,  z0 = M^-1 r0,  p0 = z0,  s0 = A p0 ---
-   call apply_A_nh2(pnh, cg_Ap, dtrho)                ! cg_Ap = A*pnh (residual temp)
-   !$omp do schedule ( dynamic, 256 )
-   do irow = 1, nrows
-      cg_r(irow) = nh_bb(irow) - cg_Ap(irow)
-      if (nh_brfac(irow) < 1.0) cg_r(irow) = 0.0      ! pnh=0 Dirichlet at breaking cells (faces stay active)
-      cg_z(irow) = cg_r(irow) / nh_diag(irow)
-      cg_d(irow) = cg_z(irow)                         ! p0 = z0
+   !$acc parallel loop default(present)
+   !$omp parallel do schedule ( static ) private ( i )
+   do i = 1, nrows
+      nh_w(i) = nh_y(i) + nh_aw(i) * nh_y(nh_nbw(i)) &
+                        + nh_ae(i) * nh_y(nh_nbe(i)) &
+                        + nh_as(i) * nh_y(nh_nbs(i)) &
+                        + nh_an(i) * nh_y(nh_nbn(i))
    enddo
-   !$omp end do
-   call apply_A_nh2(cg_d, cg_Ap, dtrho)               ! cg_Ap = s0 = A p0
-   !$omp single
-   gamma = 0.0 ; pAp = 0.0 ; bnorm = 0.0 ; resn = 0.0
-   !$omp end single
-   !$omp do reduction ( + : gamma, pAp, bnorm, resn ) schedule ( dynamic, 256 )
-   do irow = 1, nrows
-      gamma = gamma + cg_r(irow) * cg_z(irow)         ! <r0,z0>
-      pAp   = pAp   + cg_d(irow) * cg_Ap(irow)        ! <p0,s0>
-      bnorm = bnorm + nh_bb(irow) * nh_bb(irow)       ! ||b||^2
-      resn  = resn  + cg_r(irow) * cg_r(irow)         ! ||r0||^2
+   !$omp end parallel do
+   !
+   bn8 = 0.0d0
+   !$acc parallel loop default(present) reduction(+:bn8)
+   !$omp parallel do schedule ( static ) private ( i ) reduction(+:bn8)
+   do i = 1, nrows
+      nh_r(i) = nh_b(i) - nh_w(i)
+      nh_p(i) = 0.0
+      nh_s(i) = 0.0
+      bn8 = bn8 + nh_b(i) * nh_b(i)
    enddo
-   !$omp end do
-   !$omp single
-   bnorm = sqrt(bnorm)
-   if (bnorm <= 0.0) bnorm = 1.0
-   nh_breakdown = (pAp <= 0.0)
-   if (.not. nh_breakdown) alpha = gamma / pAp
-   iter = 0
-   !$omp end single
+   !$omp end parallel do
+   !
+   bnorm8 = sqrt(bn8)
+   if (bnorm8 <= 0.0d0) bnorm8 = 1.0d0
+   !
+   ! 4b) iterate. Convergence on the scaled residual: ||S r|| / ||S b|| < nonh_tol.
+   !
+   iter    = 0
+   gamold8 = 1.0d0
+   alpha8  = 1.0d0
    !
    do
-      ! shared resn/bnorm/iter/nh_breakdown -> identical decision on every thread
-      if (sqrt(resn) / bnorm < nh_tol) exit
-      if (iter >= nh_itermax) exit
-      if (nh_breakdown) exit
-      ! --- x += a p ; r -= a s ; z = M^-1 r  (fused) ---
-      !$omp do schedule ( dynamic, 256 )
-      do irow = 1, nrows
-         pnh(irow)  = pnh(irow)  + alpha * cg_d(irow)
-         cg_r(irow) = cg_r(irow) - alpha * cg_Ap(irow)
-         if (nh_brfac(irow) < 1.0) cg_r(irow) = 0.0   ! hold breaking cells at pnh=0
-         cg_z(irow) = cg_r(irow) / nh_diag(irow)
+      !
+      ! kernel B: w = A r fused with gam = <r,r>, del = <r,w> (real*8 accumulators)
+      !
+      gam8 = 0.0d0
+      del8 = 0.0d0
+      !$acc parallel loop default(present) reduction(+:gam8,del8)
+      !$omp parallel do schedule ( static ) private ( i, accv ) reduction(+:gam8,del8)
+      do i = 1, nrows
+         accv = nh_r(i) + nh_aw(i) * nh_r(nh_nbw(i)) &
+                        + nh_ae(i) * nh_r(nh_nbe(i)) &
+                        + nh_as(i) * nh_r(nh_nbs(i)) &
+                        + nh_an(i) * nh_r(nh_nbn(i))
+         nh_w(i) = accv
+         gam8 = gam8 + nh_r(i) * nh_r(i)
+         del8 = del8 + nh_r(i) * accv
       enddo
-      !$omp end do
-      ! --- w = A z ---
-      call apply_A_nh2(cg_z, cg_w, dtrho)
-      ! --- fused SINGLE reduction: <r,z>, <z,w>, <r,r> ---
-      !$omp single
-      gamma_new = 0.0 ; delta = 0.0 ; resn = 0.0
-      !$omp end single
-      !$omp do reduction ( + : gamma_new, delta, resn ) schedule ( dynamic, 256 )
-      do irow = 1, nrows
-         gamma_new = gamma_new + cg_r(irow) * cg_z(irow)
-         delta     = delta     + cg_z(irow) * cg_w(irow)
-         resn      = resn      + cg_r(irow) * cg_r(irow)
+      !$omp end parallel do
+      !
+      if (sqrt(gam8) < nonh_tol * bnorm8) exit
+      if (iter >= nonh_itermax) exit
+      !
+      ! scalar recurrences (Chronopoulos-Gear): beta, pAp, alpha
+      !
+      if (iter == 0) then
+         beta8 = 0.0d0
+         pap8  = del8
+      else
+         beta8 = gam8 / gamold8
+         pap8  = del8 - beta8 * gam8 / alpha8     ! = <p_new, A p_new>
+      endif
+      if (pap8 <= 0.0d0) exit                     ! breakdown guard (SPD -> pAp > 0)
+      alpha8  = gam8 / pap8
+      gamold8 = gam8
+      alpha   = real(alpha8, 4)
+      beta    = real(beta8, 4)
+      !
+      ! kernel A: p = r + beta p ; s = w + beta s ; y += alpha p ; r -= alpha s
+      !
+      !$acc parallel loop default(present)
+      !$omp parallel do schedule ( static ) private ( i )
+      do i = 1, nrows
+         nh_p(i) = nh_r(i) + beta * nh_p(i)
+         nh_s(i) = nh_w(i) + beta * nh_s(i)
+         nh_y(i) = nh_y(i) + alpha * nh_p(i)
+         nh_r(i) = nh_r(i) - alpha * nh_s(i)
       enddo
-      !$omp end do
-      !$omp single
-      iter  = iter + 1
-      beta  = gamma_new / gamma
-      pAp   = delta - beta * gamma_new / alpha        ! = <p_{k+1}, A p_{k+1}>
-      nh_breakdown = (pAp <= 0.0)
-      if (.not. nh_breakdown) alpha = gamma_new / pAp
-      gamma = gamma_new
-      !$omp end single
-      ! --- p = z + b p ; s = w + b s  (fused) ---
-      !$omp do schedule ( dynamic, 256 )
-      do irow = 1, nrows
-         cg_d(irow)  = cg_z(irow) + beta * cg_d(irow)
-         cg_Ap(irow) = cg_w(irow) + beta * cg_Ap(irow)
-      enddo
-      !$omp end do
+      !$omp end parallel do
+      !
+      iter = iter + 1
+      !
    enddo
    !
-   !$omp end parallel
-   !
-   ! CG iteration diagnostics (cumulative; reported in the end-of-run timing summary)
+   ! diagnostics (reported in the end-of-run timing summary)
    !
    nh_iter_total  = nh_iter_total + iter
    nh_solve_count = nh_solve_count + 1
    if (iter > nh_iter_max) nh_iter_max = iter
    !
-   ! 5b) Spatial 2dx filter on pnh (nh_filter > 0). Damps the persistent grid-
-   !     scale (2dx) mode without touching the resolved smooth pressure: the
-   !     neighbour-mean of a 2dx pattern is -pnh (strongly damped), of a smooth
-   !     field +pnh (passes through). One Jacobi smoothing pass over nonh
-   !     neighbours; cg_d/cg_r/cg_z are free scratch after the CG solve.
+   ! 4c) unscale: pnh = S y (breaking rows have y = 0 -> pnh = 0 held exactly)
    !
-   if (nh_filter > 0.0) then
-      ! snapshot pnh (race-free), then GATHER the interior-neighbour mean per row
-      !$omp parallel do private ( irow ) schedule ( dynamic, 256 )
-      do irow = 1, nrows
-         cg_d(irow) = pnh(irow)
+   !$acc parallel loop default(present)
+   !$omp parallel do schedule ( static ) private ( i )
+   do i = 1, nrows
+      pnh(i) = nh_scl(i) * nh_y(i)
+   enddo
+   !$omp end parallel do
+   !
+   ! 5b) Optional global 2dx filter on pnh (nonh_filter > 0): one Jacobi
+   !     neighbour-mean pass; snapshot into nh_w first (race-free). Damps the
+   !     persistent grid-scale mode without touching the resolved smooth pressure.
+   !
+   if (nonh_filter > 0.0) then
+      !$acc parallel loop default(present)
+      !$omp parallel do schedule ( static ) private ( i )
+      do i = 1, nrows
+         nh_w(i) = pnh(i)
       enddo
       !$omp end parallel do
-      !$omp parallel &
-      !$omp private ( irow, sumn, cnt, f, o )
-      !$omp do schedule ( dynamic, 256 )
-      do irow = 1, nrows
+      !$acc parallel loop default(present)
+      !$omp parallel do schedule ( static ) private ( i, sumn, cnt, j )
+      do i = 1, nrows
          sumn = 0.0 ; cnt = 0
-         f = nh_cellface(1, irow) ; if (f > 0) then ; o = nh_faceL(f) ; if (o > 0) then ; sumn = sumn + cg_d(o) ; cnt = cnt + 1 ; endif ; endif
-         f = nh_cellface(2, irow) ; if (f > 0) then ; o = nh_faceR(f) ; if (o > 0) then ; sumn = sumn + cg_d(o) ; cnt = cnt + 1 ; endif ; endif
-         f = nh_cellface(3, irow) ; if (f > 0) then ; o = nh_faceL(f) ; if (o > 0) then ; sumn = sumn + cg_d(o) ; cnt = cnt + 1 ; endif ; endif
-         f = nh_cellface(4, irow) ; if (f > 0) then ; o = nh_faceR(f) ; if (o > 0) then ; sumn = sumn + cg_d(o) ; cnt = cnt + 1 ; endif ; endif
-         if (cnt > 0) pnh(irow) = (1.0 - nh_filter) * cg_d(irow) + nh_filter * sumn / real(cnt)
+         j = nh_nbw(i) ; if (j > 0) then ; sumn = sumn + nh_w(j) ; cnt = cnt + 1 ; endif
+         j = nh_nbe(i) ; if (j > 0) then ; sumn = sumn + nh_w(j) ; cnt = cnt + 1 ; endif
+         j = nh_nbs(i) ; if (j > 0) then ; sumn = sumn + nh_w(j) ; cnt = cnt + 1 ; endif
+         j = nh_nbn(i) ; if (j > 0) then ; sumn = sumn + nh_w(j) ; cnt = cnt + 1 ; endif
+         if (cnt > 0) pnh(i) = (1.0 - nonh_filter) * nh_w(i) + nonh_filter * sumn / real(cnt)
       enddo
-      !$omp end do
-      !$omp end parallel
+      !$omp end parallel do
    endif
    !
-   ! 5c) Localized 2dx smoothing of pnh in the marginal-nonh zones. The grid-scale
-   !     (2dx) pressure mode the vertical source excites is normally suppressed by
-   !     the horizontal Laplacian; it re-appears wherever that coupling is weak:
-   !       - the open-boundary FADE-IN zone (nh_fade < 1), and
-   !       - SHALLOW run-up water near a wall (D < nh_smoothdep), where the layer
-   !         term dominates and the wave is near-hydrostatic anyway.
-   !     One Jacobi neighbour-mean pass, weighted per cell by nh_smoothbnd times the
-   !     larger of the two triggers, so it is identically zero in the resolved
-   !     interior (nh_fade = 1 and D >= nh_smoothdep) and never touches the physical
-   !     trailing waves in deeper water. A 2dx checkerboard has neighbour-mean =
-   !     -pnh, so weight w damps it by (1-2w); a smooth field passes through.
-   !     cg_d/cg_r/cg_z are free scratch after the CG solve.
+   ! 5c) Localized 2dx smoothing in the marginal-nonh zones (fade-in zone and/or
+   !     shallow run-up water, D < nonh_smoothdep); zero in the resolved interior.
    !
-   if (nh_smoothbnd > 0.0 .and. (nh_fadein > 0 .or. nh_smoothdep > 0.0)) then
-      ! snapshot pnh (race-free), then GATHER the weighted interior-neighbour mean per row
-      !$omp parallel do private ( irow ) schedule ( dynamic, 256 )
-      do irow = 1, nrows
-         cg_d(irow) = pnh(irow)
+   if (nonh_smoothbnd > 0.0 .and. (nonh_fadein > 0 .or. nonh_smoothdep > 0.0)) then
+      !$acc parallel loop default(present)
+      !$omp parallel do schedule ( static ) private ( i )
+      do i = 1, nrows
+         nh_w(i) = pnh(i)
       enddo
       !$omp end parallel do
-      !$omp parallel &
-      !$omp private ( irow, sumn, cnt, f, o, fdep, gf )
-      !$omp do schedule ( dynamic, 256 )
-      do irow = 1, nrows
+      !$acc parallel loop default(present)
+      !$omp parallel do schedule ( static ) private ( i, sumn, cnt, j, fdep, gf )
+      do i = 1, nrows
          sumn = 0.0 ; cnt = 0
-         f = nh_cellface(1, irow) ; if (f > 0) then ; o = nh_faceL(f) ; if (o > 0) then ; sumn = sumn + cg_d(o) ; cnt = cnt + 1 ; endif ; endif
-         f = nh_cellface(2, irow) ; if (f > 0) then ; o = nh_faceR(f) ; if (o > 0) then ; sumn = sumn + cg_d(o) ; cnt = cnt + 1 ; endif ; endif
-         f = nh_cellface(3, irow) ; if (f > 0) then ; o = nh_faceL(f) ; if (o > 0) then ; sumn = sumn + cg_d(o) ; cnt = cnt + 1 ; endif ; endif
-         f = nh_cellface(4, irow) ; if (f > 0) then ; o = nh_faceR(f) ; if (o > 0) then ; sumn = sumn + cg_d(o) ; cnt = cnt + 1 ; endif ; endif
+         j = nh_nbw(i) ; if (j > 0) then ; sumn = sumn + nh_w(j) ; cnt = cnt + 1 ; endif
+         j = nh_nbe(i) ; if (j > 0) then ; sumn = sumn + nh_w(j) ; cnt = cnt + 1 ; endif
+         j = nh_nbs(i) ; if (j > 0) then ; sumn = sumn + nh_w(j) ; cnt = cnt + 1 ; endif
+         j = nh_nbn(i) ; if (j > 0) then ; sumn = sumn + nh_w(j) ; cnt = cnt + 1 ; endif
          if (cnt > 0) then
             fdep = 0.0
-            if (nh_fadein > 0)        fdep = 1.0 - nh_fade(irow)               ! fade-zone trigger
-            if (nh_smoothdep > 0.0)   fdep = max(fdep, (nh_smoothdep - Dnm(irow)) / nh_smoothdep)  ! shallow trigger
-            gf = nh_smoothbnd * max(0.0, min(1.0, fdep))   ! local weight; 0 in resolved interior
-            pnh(irow) = (1.0 - gf) * cg_d(irow) + gf * sumn / real(cnt)
+            if (nonh_fadein > 0)      fdep = 1.0 - nh_fade(i)
+            if (nonh_smoothdep > 0.0) fdep = max(fdep, (nonh_smoothdep - Dnm(i)) / nonh_smoothdep)
+            gf = nonh_smoothbnd * max(0.0, min(1.0, fdep))
+            pnh(i) = (1.0 - gf) * nh_w(i) + gf * sumn / real(cnt)
          endif
-      enddo
-      !$omp end do
-      !$omp end parallel
-   endif
-   !
-   ! 5d) (Breaking is now applied AS A DIRICHLET pnh=0 CONSTRAINT INSIDE the solve --
-   !      breaking cells are held at pnh=0 with their faces left active, so the pressure
-   !      field goes smoothly to zero at the front and the gradient is the consistent
-   !      projection. This avoids the artificial pnh cliff a post-solve zeroing created.)
-   !
-   ! 5e) Depth limiter: cap the non-hydrostatic (bed) pressure at a fraction nh_pmax of
-   !     the hydrostatic bed pressure rho*g*H. The total bed pressure rho*g*H + pnh then
-   !     stays >= 0 for nh_pmax <= 1 (no "suction"). Resolved waves have |pnh| << rho*g*H
-   !     so are untouched; this only clips the unphysical spikes at steep wall run-up,
-   !     breaking fronts and grid-scale (2dx) modes -- a physically-scaled safety cap.
-   !
-   if (nh_pmax > 0.0) then
-      !$omp parallel do private ( irow, pcap ) schedule ( dynamic, 256 )
-      do irow = 1, nrows
-         pcap = nh_pmax * rhow * g * Dnm(irow)
-         pnh(irow) = max(-pcap, min(pcap, pnh(irow)))
       enddo
       !$omp end parallel do
    endif
    !
-   ! 6) Correct fluxes / velocities with the pressure gradient. This is the
-   !    momentum force -(dt/rho) G pnh integrated over the step; no nudging.
-   !    Each face writes its own uv/q point (nh_faceuv is one-to-one), so race-free.
+   ! 5e) Depth limiter: |pnh| <= nonh_pmax * rho g H. The total bed pressure
+   !     rho*g*H + pnh then stays >= 0 for nonh_pmax <= 1 (no "suction"); resolved
+   !     waves have |pnh| << rho*g*H so are untouched -- this only clips spikes
+   !     at steep wall run-up, breaking fronts and grid-scale modes.
    !
-   !$omp parallel &
-   !$omp private ( ip, ipuv, pR, pL, gf, unh )
-   !$omp do schedule ( dynamic, 256 )
+   if (nonh_pmax > 0.0) then
+      !$acc parallel loop default(present)
+      !$omp parallel do schedule ( static ) private ( i, pcap )
+      do i = 1, nrows
+         pcap = nonh_pmax * rhow * g * Dnm(i)
+         pnh(i) = max(-pcap, min(pcap, pnh(i)))
+      enddo
+      !$omp end parallel do
+   endif
+   !
+   ! 6) Correct fluxes / velocities with the pressure gradient -(dt/rho) G pnh.
+   !    Each face writes only its own uv/q point -> race-free.
+   !
+   !$acc parallel loop default(present)
+   !$omp parallel do schedule ( static ) private ( ip, ipuv, pL, pR, gf, unh )
    do ip = 1, nhuv
       if (nh_cR(ip) == 0.0 .and. nh_cL(ip) == 0.0) cycle
       ipuv = nh_faceuv(ip)
@@ -1094,62 +1043,51 @@ contains
       pL = 0.0
       if (nh_faceR(ip) > 0) pR = pnh(nh_faceR(ip))
       if (nh_faceL(ip) > 0) pL = pnh(nh_faceL(ip))
-      gf  = nh_cR(ip) * pR + nh_cL(ip) * pL          ! (G pnh)_face
-      unh = - dtrho * gf                              ! velocity increment
-      uv(ipuv) = (1.0 - nh_fnudge) * uv(ipuv) + nh_fnudge * (uv(ipuv) + unh)
-      q(ipuv)  = (1.0 - nh_fnudge) * q(ipuv) + nh_fnudge * (q(ipuv) + nh_hu(ip) * unh)
+      gf  = nh_cR(ip) * pR + nh_cL(ip) * pL
+      unh = - dtrho * gf
+      uv(ipuv) = (1.0 - nonh_fnudge) * uv(ipuv) + nonh_fnudge * (uv(ipuv) + unh)
+      q(ipuv)  = (1.0 - nonh_fnudge) * q(ipuv) + nonh_fnudge * (q(ipuv) + nh_hu(ip) * unh)
    enddo
-   !$omp end do
-   !$omp end parallel
+   !$omp end parallel do
    !
-   ! 7) Update surface/bottom vertical velocities for the next step's forcing.
-   !    The bottom kinematic condition is w_b = u . d(zb)/dx : the flow follows
-   !    the BED slope. The slopes (capped at +/- nh_dzbmax) are FROZEN at
-   !    initialization in nh_slbed -- on subgrid models zb is the per-step
-   !    effective bed zs - V/A (zb_effective), whose slope jitter must not feed
-   !    into w_b. The wet checks below DO use the current (effective) zb: they
-   !    are depth checks.
+   ! 7) Update surface/bottom vertical velocities for the next step's forcing
+   !    (bottom kinematic condition w_b = u . d(zb)/dx with the slopes FROZEN at
+   !    initialization in nh_slbed; the wet checks use the current, possibly
+   !    effective, zb -- they are depth checks).
    !
-   !$omp parallel &
-   !$omp private ( irow, nm, iuv, nmn )
-   !$omp do schedule ( dynamic, 256 )
-   do irow = 1, nrows
-      nm  = nm_index_of_row(irow)
+   !$acc parallel loop default(present)
+   !$omp parallel do schedule ( static ) private ( i, nm, iuv, nmn )
+   do i = 1, nrows
+      nm = nm_index_of_row(i)
       !
-      ! Non-hydrostatically dry cell (h <= huthresh_nh): carry NO non-hydrostatic
-      ! state. Reset pnh/ws/wb to zero so the cell is fully hydrostatic and starts
-      ! clean when it next wets. (A just-wetted thin cell otherwise re-enters the
-      ! solve with stale ws/wb/pnh, which is the residual wet/dry artifact at the
-      ! repeatedly wetting/drying wall cell.)
+      ! Non-hydrostatically dry cell: carry no nonh state (clean re-wetting).
       !
       if (zs(nm) - zb(nm) <= huthresh_nh) then
-         wb0(irow) = 0.0
-         wb(irow)  = 0.0
-         ws(irow)  = 0.0
-         pnh(irow) = 0.0
-         nh_brfac(irow) = 1.0   ! clear breaking so a re-wetting cell starts clean
+         wb0(i) = 0.0
+         wb(i)  = 0.0
+         ws(i)  = 0.0
+         pnh(i) = 0.0
+         nh_brfac(i) = 1.0
          cycle
       endif
       !
-      wb0(irow) = wb(irow)
-      wb(irow)  = 0.0
+      wb0(i) = wb(i)
+      wb(i)  = 0.0
       !
-      ! Only sum faces to NON-HYDROSTATICALLY-wet neighbours (h > huthresh_nh).
-      ! Gating on kfuv alone (the SFINCS wet flag, h > huthresh ~ 1e-4) lets a
-      ! repeatedly wetting/drying thin neighbour toggle a term in wb every step.
+      ! w_b over faces to non-hydrostatically wet neighbours only.
       !
       iuv = z_index_uv_md(nm)
       if (kfuv(iuv) > 0) then
          nmn = uv_index_z_nm(iuv)
          if (zs(nmn) - zb(nmn) > huthresh_nh) then
-            wb(irow) = wb(irow) - 0.5 * uv(iuv) * nh_slbed(1, irow)
+            wb(i) = wb(i) - 0.5 * uv(iuv) * nh_slbed(1, i)
          endif
       endif
       iuv = z_index_uv_mu(nm)
       if (kfuv(iuv) > 0) then
          nmn = uv_index_z_nmu(iuv)
          if (zs(nmn) - zb(nmn) > huthresh_nh) then
-            wb(irow) = wb(irow) - 0.5 * uv(iuv) * nh_slbed(2, irow)
+            wb(i) = wb(i) - 0.5 * uv(iuv) * nh_slbed(2, i)
          endif
       endif
       if (nmax > 1) then
@@ -1157,87 +1095,24 @@ contains
          if (kfuv(iuv) > 0) then
             nmn = uv_index_z_nm(iuv)
             if (zs(nmn) - zb(nmn) > huthresh_nh) then
-               wb(irow) = wb(irow) - 0.5 * uv(iuv) * nh_slbed(3, irow)
+               wb(i) = wb(i) - 0.5 * uv(iuv) * nh_slbed(3, i)
             endif
          endif
          iuv = z_index_uv_nu(nm)
          if (kfuv(iuv) > 0) then
             nmn = uv_index_z_nmu(iuv)
             if (zs(nmn) - zb(nmn) > huthresh_nh) then
-               wb(irow) = wb(irow) - 0.5 * uv(iuv) * nh_slbed(4, irow)
+               wb(i) = wb(i) - 0.5 * uv(iuv) * nh_slbed(4, i)
             endif
          endif
       endif
       !
-      ws(irow) = ws(irow) - (wb(irow) - wb0(irow)) + (kbfac * dt / (rhow * Dnm(irow))) * pnh(irow)
+      ws(i) = ws(i) - (wb(i) - wb0(i)) + (kbfac * dt / (rhow * Dnm(i))) * pnh(i)
    enddo
-   !$omp end do
-   !$omp end parallel
+   !$omp end parallel do
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
-   !
-   end subroutine
-
-
-   subroutine apply_A_nh2(p, Ap, dtrho)
-   !
-   ! Matrix-free SPD operator (depth-weighted / flux-divergence form, XBeach-
-   ! consistent):  Ap = (dt/rho) G^T diag(hu) G p  +  diag( 2 dt/(rho H) ) p .
-   ! Each face Laplacian term carries the face depth nh_hu, so the operator nulls
-   ! the same flux divergence the continuity equation uses. Still SPD (hu > 0,
-   ! Gram form). Boundary cells (row index 0) carry p = 0 (Dirichlet).
-   !
-   ! GATHER form (race-free, OpenMP/OpenACC friendly), two passes:
-   !   pass 1 - per face f, the gradient flux  hf(f) = dtrho*hu*(cR*p(rR)+cL*p(rL))
-   !            (each face writes only its own nh_hf -> no race);
-   !   pass 2 - per row, Ap = dvert*p + sum over the (<=4) incident faces of coef*hf
-   !            (coef = nh_cR on the left/below side, nh_cL on the right/above side;
-   !            see nh_cellface). Mathematically identical to the old scatter
-   !            G^T diag(hu) G p, only the per-row summation order differs.
-   !
-   implicit none
-   !
-   real*4, intent(in)  :: p(:)
-   real*4, intent(out) :: Ap(:)
-   real*4, intent(in)  :: dtrho
-   !
-   integer :: ip, rL, rR, irow, f
-   real*4  :: pL, pR, s
-   !
-   ! ORPHANED worksharing: this routine is called from inside the CG !$omp parallel
-   ! region (see compute_nonhydrostatic2 step 5), so it uses bare !$omp do (no parallel
-   ! of its own) to share the work across the existing team. The two passes are
-   ! separated by the implicit barrier of the first !$omp end do (pass 2 reads nh_hf
-   ! written by pass 1). If ever called outside a parallel region it simply runs serial.
-   ! Subroutine locals (rL/rR/pL/pR/s/f) are per-thread (own stack), hence private.
-   !
-   ! pass 1: gradient flux per face
-   !
-   !$omp do private ( rL, rR, pL, pR ) schedule ( dynamic, 256 )
-   do ip = 1, nhuv
-      rL = nh_faceL(ip)
-      rR = nh_faceR(ip)
-      pL = 0.0
-      pR = 0.0
-      if (rR > 0) pR = p(rR)
-      if (rL > 0) pL = p(rL)
-      nh_hf(ip) = dtrho * nh_hu(ip) * (nh_cR(ip) * pR + nh_cL(ip) * pL)
-   enddo
-   !$omp end do
-   !
-   ! pass 2: gather the incident-face contributions per row
-   !
-   !$omp do private ( s, f ) schedule ( dynamic, 256 )
-   do irow = 1, nrows
-      s = nh_dvert(irow) * p(irow)
-      f = nh_cellface(1, irow) ; if (f > 0) s = s + nh_cR(f) * nh_hf(f)
-      f = nh_cellface(2, irow) ; if (f > 0) s = s + nh_cL(f) * nh_hf(f)
-      f = nh_cellface(3, irow) ; if (f > 0) s = s + nh_cR(f) * nh_hf(f)
-      f = nh_cellface(4, irow) ; if (f > 0) s = s + nh_cL(f) * nh_hf(f)
-      Ap(irow) = s
-   enddo
-   !$omp end do
    !
    end subroutine
 

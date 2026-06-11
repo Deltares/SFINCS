@@ -97,20 +97,6 @@ module sfincs_data
       !real*4 dzdsbnd
       !real*4 manningbnd
       real*4 nuviscfac ! Factor on viscosity for 'difficult' points. Used in sfincs_momentum.f90.
-      real*4 nh_fnudge
-      real*4 nh_tstop
-      integer nh_itermax
-      integer nh_fadein
-      real*4 nh_filter
-      real*4 nh_dzbmax
-      real*4 nh_brsteep
-      real*4 nh_brfr
-      real*4 nh_smoothbnd
-      real*4 nh_smoothdep
-      real*4 nh_disp
-      real*4 nh_pmax
-      real*4 nh_tol
-      integer nh_version
       logical zb_effective ! subgrid + (velocity scheme or nonh): zb is recomputed every step in continuity as the effective bed zs - z_volume/area
       real*4 runup_gauge_depth
       real*4 factor_wind
@@ -343,7 +329,6 @@ module sfincs_data
       integer*1,          dimension(:),   allocatable :: kfuv
       integer*1,          dimension(:),   allocatable :: mask_adv
       integer*1,          dimension(:),   allocatable :: scs_rain   ! logic if previous time step was raining
-      integer*1,          dimension(:),   allocatable :: mask_nonh
       !
       ! Quadtree
       !

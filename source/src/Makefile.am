@@ -32,6 +32,7 @@ libsfincs_la_SOURCES = \
 	snapwave/snapwave_domain.f90 \
 	snapwave/snapwave_windsource.f90 \
 	snapwave/snapwave_solver.f90 \
+	sfincs_nonhydrostatic.f90 \
 	sfincs_input.f90 \
 	sfincs_ncinput.F90 \
 	sfincs_initial_conditions.f90 \
@@ -50,9 +51,6 @@ libsfincs_la_SOURCES = \
 	sfincs_snapwave.f90 \
 	../third_party_open/utils/deg2utm.f90 \
 	sfincs_meteo.f90 \
-    ../third_party_open/bicgstab/bicgstab_solver_ilu.f90 \
-	sfincs_nonhydrostatic.f90 \
-	sfincs_nonhydrostatic_v2.f90 \
 	sfincs_ncoutput.F90 \
 	sfincs_output.f90 \
 	sfincs_momentum.f90 \

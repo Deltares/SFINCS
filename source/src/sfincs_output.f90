@@ -117,9 +117,8 @@ module sfincs_output
       !
       if (nonhydrostatic .and. write_map) then
          !
-         ! Non-hydrostatic pressure is written to the map file. Resident on the
-         ! GPU with solver v2 (nh_version=2); if_present makes this a no-op for
-         ! v1 (no device copy) and CPU builds.
+         ! Non-hydrostatic pressure is written to the map file (device-resident
+         ! in GPU builds; comment / no-op in CPU builds)
          !
          !$acc update host(pnh) if_present
          !

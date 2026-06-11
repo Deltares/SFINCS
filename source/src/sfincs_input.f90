@@ -7,6 +7,7 @@ contains
    ! Reads sfincs.inp
    !
    use sfincs_data
+   use sfincs_nonhydrostatic   ! nonh_* input parameters live in the solver module
    use sfincs_date
    use sfincs_log
    use sfincs_error
@@ -189,21 +190,20 @@ contains
    ! call read_real_input(500, 'dzdsbnd', dzdsbnd, 0.0001)
    ! call read_real_input(500, 'manningbnd', manningbnd, 0.024)
    call read_real_input(500, 'nuviscfac', nuviscfac, 100.0)
-   call read_logical_input(500, 'nonh', nonhydrostatic, .false.)   
-   call read_real_input(500, 'nh_fnudge', nh_fnudge, 0.9)
-   call read_real_input(500, 'nh_tstop', nh_tstop, -999.0)
-   call read_real_input(500, 'nh_tol', nh_tol, 0.001)
-   call read_int_input(500, 'nh_itermax', nh_itermax, 100)
-   call read_int_input(500, 'nh_version', nh_version, 1)                ! non-hydrostatic solver version: 1 = matrix-free CG, 2 = assembled-stencil CG (GPU-ready, sfincs_nonhydrostatic_v2)
-   call read_real_input(500, 'nh_filter', nh_filter, 0.0)               ! spatial 2dx filter on pnh (0 = off, ~0.25-0.5 damps grid mode)
-   call read_real_input(500, 'nh_dzbmax', nh_dzbmax, 0.1)               ! cap on |d(zb)/dx| in bottom kinematic wb (default 0.1; clips near-vertical walls, leaves real slopes); 0 = no cap
-   call read_int_input(500, 'nh_fadein', nh_fadein, 0)                  ! open-boundary nonh fade-in width (cells): nonh ramps 0->full over N cells from the boundary; 0 = off
-   call read_real_input(500, 'nh_brsteep', nh_brsteep, 0.0)             ! HFA breaking onset: nonh starts reducing when dzdt (=-d(hu)/dx) > nh_brsteep*sqrt(g*h); 0 = off (XBeach default 0.4)
-   call read_real_input(500, 'nh_brfr', nh_brfr, 0.0)                   ! OPTIONAL NEOWAVE Froude breaking criterion: pnh=0 when |U|/sqrt(g*D) > nh_brfr (~0.5), release < 0.3*nh_brfr (~0.15); 0 = off -> use nh_brsteep instead
-   call read_real_input(500, 'nh_smoothbnd', nh_smoothbnd, 0.5)         ! strength of localized 2dx pnh smoothing in the fade-in zone (weight at boundary, ramps to 0 with nh_fade) and shallow zone; 0 = off
-   call read_real_input(500, 'nh_smoothdep', nh_smoothdep, 0.0)         ! depth (m) below which the localized pnh smoothing also acts (shallow run-up / wall 2dx noise); weight ramps from full at D=0 to 0 at D=nh_smoothdep; 0 = off
-   call read_real_input(500, 'nh_disp', nh_disp, 1.0)                   ! Keller-box vertical factor (default 1.0 = best dispersion, c(k) flat to Airy ~kd 2.5); 2.0 = strict linear-pressure single layer
-   call read_real_input(500, 'nh_pmax', nh_pmax, 0.0)                   ! depth limiter: cap |pnh| <= nh_pmax*rho*g*H post-solve (caps wall/breaking/2dx spikes, leaves resolved waves untouched); 0 = off, ~1-2 typical
+   call read_logical_input(500, 'nonhydrostatic', nonhydrostatic, .false.)
+   call read_real_input(500, 'nonh_fnudge', nonh_fnudge, 0.9)
+   call read_real_input(500, 'nonh_tstop', nonh_tstop, -999.0)
+   call read_real_input(500, 'nonh_tol', nonh_tol, 0.001)
+   call read_int_input(500, 'nonh_itermax', nonh_itermax, 100)
+   call read_real_input(500, 'nonh_filter', nonh_filter, 0.0)               ! spatial 2dx filter on pnh (0 = off, ~0.25-0.5 damps grid mode)
+   call read_real_input(500, 'nonh_dzbmax', nonh_dzbmax, 0.1)               ! cap on |d(zb)/dx| in bottom kinematic wb (default 0.1; clips near-vertical walls, leaves real slopes); 0 = no cap
+   call read_int_input(500, 'nonh_fadein', nonh_fadein, 0)                  ! open-boundary nonh fade-in width (cells): nonh ramps 0->full over N cells from the boundary; 0 = off
+   call read_real_input(500, 'nonh_brsteep', nonh_brsteep, 0.0)             ! HFA breaking onset: nonh starts reducing when dzdt (=-d(hu)/dx) > nonh_brsteep*sqrt(g*h); 0 = off (XBeach default 0.4)
+   call read_real_input(500, 'nonh_brfr', nonh_brfr, 0.0)                   ! OPTIONAL NEOWAVE Froude breaking criterion: pnh=0 when |U|/sqrt(g*D) > nonh_brfr (~0.5), release < 0.3*nonh_brfr (~0.15); 0 = off -> use nonh_brsteep instead
+   call read_real_input(500, 'nonh_smoothbnd', nonh_smoothbnd, 0.5)         ! strength of localized 2dx pnh smoothing in the fade-in zone (weight at boundary, ramps to 0 over the fade-in) and shallow zone; 0 = off
+   call read_real_input(500, 'nonh_smoothdep', nonh_smoothdep, 0.0)         ! depth (m) below which the localized pnh smoothing also acts (shallow run-up / wall 2dx noise); weight ramps from full at D=0 to 0 at D=nonh_smoothdep; 0 = off
+   call read_real_input(500, 'nonh_disp', nonh_disp, 1.0)                   ! Keller-box vertical factor (default 1.0 = best dispersion, c(k) flat to Airy ~kd 2.5); 2.0 = strict linear-pressure single layer
+   call read_real_input(500, 'nonh_pmax', nonh_pmax, 0.0)                   ! depth limiter: cap |pnh| <= nonh_pmax*rho*g*H post-solve (caps wall/breaking/2dx spikes, leaves resolved waves untouched); 0 = off, ~1-2 typical
    call read_logical_input(500, 'h73table', h73table, .false.)
    call read_real_input(500, 'rugdepth', runup_gauge_depth, 0.05)
    call read_logical_input(500, 'wave_enhanced_roughness', wave_enhanced_roughness, .false.)
@@ -734,17 +734,17 @@ contains
    !
    if (nonhydrostatic) then
       !
-      if (nh_tstop > 0.0) then
+      if (nonh_tstop > 0.0) then
          !
          ! tstopnonh is provided so set it with respect to model reference time
          !
-         nh_tstop = t0 + nh_tstop
+         nonh_tstop = t0 + nonh_tstop
          !
       else
          !
          ! tstopnonh is not provided so set it to tstop time + 999.0 s
          !
-         nh_tstop = t1 + 999.0
+         nonh_tstop = t1 + 999.0
          !          
       endif    
       !

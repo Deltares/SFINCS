@@ -142,6 +142,7 @@ contains
    ! Initialize SFINCS domain (indices, flags and neighbors)
    !
    use sfincs_data
+   use sfincs_nonhydrostatic, only: mask_nonh
    use quadtree
    !
    implicit none
@@ -1721,38 +1722,27 @@ contains
       !
       call read_subgrid_file()
       !
-      ! In case of nonh or the velocity-form momentum scheme, we also need a per-cell zb.
-      ! For nonh the FILE bed (quadtree zz) is required: the frozen bed slopes for the
-      ! bottom kinematic condition are computed from it at initialization. For the
-      ! velocity scheme alone any placeholder works, because zb is overwritten with the
-      ! effective bed zs - z_volume/area before the first step and maintained every step
-      ! in continuity (zb_effective).
+      ! In case of nonh or the velocity-form momentum scheme, we also need a per-cell
+      ! bed level. Subgrid models have no reliable file zb, so use the EFFECTIVE bed
+      ! implied by the subgrid tables at full wetness, zb = z_zmax - z_volmax/area:
+      ! the cell-mean bed. From the first time step onward continuity maintains the
+      ! water-level-dependent effective bed zb = zs - z_volume/area (zb_effective).
+      ! The non-hydrostatic initialization freezes its w_b bed slopes from the
+      ! cell-mean bed computed here.
       !
       if (nonhydrostatic .or. momentum_scheme == 1) then
          !
          allocate(zb(np))
          !
-         if (use_quadtree) then
+         do ip = 1, np
             !
-            do ip = 1, np
-               zb(ip) = quadtree_zz(index_quadtree_in_sfincs(ip))
-            enddo
+            if (crsgeo) then
+               zb(ip) = subgrid_z_zmax(ip) - subgrid_z_volmax(ip) / cell_area_m2(ip)
+            else
+               zb(ip) = subgrid_z_zmax(ip) - subgrid_z_volmax(ip) / cell_area(z_flags_iref(ip))
+            endif
             !
-         elseif (nonhydrostatic) then
-            !
-            ! Produce error message
-            !
-            call write_log('Error!    : combination of nonhydrostatic solver with quadtree grid with nr_levels > 1 is not supported ', 1)
-            !
-         else
-            !
-            ! Placeholder (lowest subgrid pixel); replaced by the effective bed at initialization
-            !
-            do ip = 1, np
-               zb(ip) = subgrid_z_zmin(ip)
-            enddo
-            !
-         endif
+         enddo
          !
       endif
       !
