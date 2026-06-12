@@ -6,10 +6,10 @@ SFINCS has continuely being developed since 2017, and many great features have b
 Development status
 -----
 
-See here a schematic overview of the SFINCS development status at June 2026, at the time of the v2.4.0 Galibier 2026.01 release.
-Indicated are new functionality for SFINCS itself (core), and model setup/post-processing using HydroMT-SFINCS (Python).
+See here a table overview of the SFINCS development status at June 2026, at the time of the v2.4.0 Galibier 2026.01 release.
+Indicated are SFINCS itself (model) and model setup/post-processing using HydroMT-SFINCS (Python), green indicates existing General Available (GA) functionality.
 
-.. figure:: ./figures/Overview_status_SFINCS-2026.01.drawio.png
+.. figure:: ./figures/SFINCS_development_status_Galibier_2026_01_release.png
    :width: 600px
    :align: center
 
@@ -74,6 +74,15 @@ Advanced user options - currently as alpha/beta functionality:
 * Choice to also for incident wave energy at wavemaker.
 * Added hyper-fast, but scandalous, bathtub option.
 * Improved GPU immplementation
+
+See here a schematic overview of the SFINCS development status at June 2026, at the time of the v2.4.0 Galibier 2026.01 release.
+Indicated are new functionality for SFINCS itself (core), and model setup/post-processing using HydroMT-SFINCS (Python).
+
+.. figure:: ./figures/Overview_status_SFINCS-2026.01.drawio.png
+   :width: 600px
+   :align: center
+
+   Overview of SFINCS development status 2026.01 Release
 
 Official open source version 2025.02: v2.3.0 mt. Faber release
 ^^^^^
