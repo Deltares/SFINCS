@@ -49,11 +49,12 @@ Changes:
 The code consists of all functionality of the 2025.02 'v2.3.0 mt. Faber' release, with the following main changes/additions:
 
 * Added option for timestep analysis (sfincs.inp: timestep_analysis = 1). Flag to write timestep limiter variables average_required_timestep and percentage_limiting_timestep to the sfincs_map.nc file and screen to analyse what cells are limiting the global timestep.
+* Quadtree netcdf output sfincs_map.nc files can now directly be loaded and visuallised in QGIS.
 * Added input variable 'huvmin', minimum depth for calculating velocity (uv = q / max(hu, huvmin)), used for output and advection.
 * Added input variable 'snapwave_waveforces_factor' which you can set to 0 to turn off wave forces and thus incident wave setup.
 * Made sfincs_his.nc file variables related to waves consistent with other variable (e.g. point_hm0), breaking change for post-processing scripts. Thanks to EgemenAnder for the commits!
 * Renaming of wavemaker related input variables (e.g. wavemaker_wvmfile), contains legacy variables for backward compatibility.
-* Added multiple validation tests in the skillbed report
+* Added multiple validation tests in the renewed testbed report of the new quality control testbed version 2.0.
 
 * New Python setup tools HydroMT-SFINCS release > recommended to use this new version (v2.0.0) instead of the last release!
 
@@ -71,7 +72,7 @@ Advanced user options - currently as alpha/beta functionality:
 
 * Improvements of the integrated SnapWave solver for wave breaking, and resulting wave-induced setup, on steeper coasts.
 * Added vegetation effects in the integrated SnapWave solver.
-* Choice to also for incident wave energy at wavemaker.
+* Added option of forcing incident wave energy at wavemaker.
 * Added hyper-fast, but scandalous, bathtub option.
 * Improved GPU immplementation
 
