@@ -54,7 +54,7 @@ The code consists of all functionality of the 2025.02 'v2.3.0 mt. Faber' release
 * Added input variable 'snapwave_waveforces_factor' which you can set to 0 to turn off wave forces and thus incident wave setup.
 * Made sfincs_his.nc file variables related to waves consistent with other variable (e.g. point_hm0), breaking change for post-processing scripts. Thanks to EgemenAnder for the commits!
 * Renaming of wavemaker related input variables (e.g. wavemaker_wvmfile), contains legacy variables for backward compatibility.
-* Added multiple validation tests in the renewed testbed report of the new quality control testbed version 2.0.
+* Added multiple validation tests in the renewed testbed report of the new quality control testbed version 2.0, now doubled in number of tests!
 
 * New Python setup tools HydroMT-SFINCS release > recommended to use this new version (v2.0.0) instead of the last release!
 
