@@ -1,25 +1,25 @@
 SFINCS
-Deltares SFINCS FreeWare Software License Agreement ñ Version of 29 November 2024
+Deltares SFINCS FreeWare Software License Agreement ‚Äì Version of 29 November 2024
 
 If you require a printed version of this Software License Agreement, e.g. prior to accepting these terms and conditions, please find this here: https://download.deltares.nl/documents/d/download/licensing-conditions-deltares-freeware-executable, or use the print function of your browser.
 READ THIS SOFTWARE LICENSE AGREEMENT CAREFULLY
 
-This is a legal agreement between the prospective user, either an individual or an entity, (hereafter: ìLicenseeî) and Deltares (hereafter ìDeltaresî) to license the computer program subject to this contracting-procedure.
+This is a legal agreement between the prospective user, either an individual or an entity, (hereafter: ‚ÄúLicensee‚Äù) and Deltares (hereafter ‚ÄúDeltares‚Äù) to license the computer program subject to this contracting-procedure.
  
-By clicking on the checkbox with ìLicensing conditions for Deltares Freeware executableî and pressing the ìNextî - button:
+By clicking on the checkbox with ‚ÄúLicensing conditions for Deltares Freeware executable‚Äù and pressing the ‚ÄúNext‚Äù - button:
 
-1.	You expressly declare being authorized to act on behalf of Licensee for the purposes of accepting this software license agreement (hereafter ìLicense Agreementî);
+1.	You expressly declare being authorized to act on behalf of Licensee for the purposes of accepting this software license agreement (hereafter ‚ÄúLicense Agreement‚Äù);
 2.	Licensee expressly accepts this License Agreement and accepts to be legally bound by the terms and conditions contained therein. 
 
-If you are not authorized to act on behalf of Licensee to agree upon this License Agreement or if Licensee does not agree with the License Agreement, please do not click the ìNextî- button and exit this download portal.
+If you are not authorized to act on behalf of Licensee to agree upon this License Agreement or if Licensee does not agree with the License Agreement, please do not click the ‚ÄúNext‚Äù- button and exit this download portal.
 
 WHEREAS:
 
-ï	Deltares is a not-for-profit independent institute for applied research in the field of water, subsurface and infrastructure. Throughout the world, Deltares works on smart solutions, innovations and applications for people, environment and society; 
-ï	Deltares owns the intellectual property of the computer programs developed by Deltares, as described in Appendix 1 under A. Specification of SFINCS Software, hereinafter referred to as ìSFINCS Softwareî;
-ï	SFINCS Software is to be used for simulation purposes; 
-ï	Licensee wishes to acquire a non-exclusive and non-transferable license, without the right of sub-licensing, to use SFINCS Software within Licensee's organisation;  
-ï	Deltares grants Licensee a license for SFINCS Software on the following conditions.
+‚Ä¢	Deltares is a not-for-profit independent institute for applied research in the field of water, subsurface and infrastructure. Throughout the world, Deltares works on smart solutions, innovations and applications for people, environment and society; 
+‚Ä¢	Deltares owns the intellectual property of the computer programs developed by Deltares, as described in Appendix 1 under A. Specification of SFINCS Software, hereinafter referred to as ‚ÄúSFINCS Software‚Äù;
+‚Ä¢	SFINCS Software is to be used for simulation purposes; 
+‚Ä¢	Licensee wishes to acquire a non-exclusive and non-transferable license, without the right of sub-licensing, to use SFINCS Software within Licensee's organisation;  
+‚Ä¢	Deltares grants Licensee a license for SFINCS Software on the following conditions.
 
 Agree as Follows:
 
@@ -50,7 +50,7 @@ b.	is for an indefinite period; and
 c.	is non-exclusive, non-transferable, non-sub-licensable; and
 d.	authorizes Licensee solely to use SFINCS Software and the Deltares Software Documentation within its own organization and for its own use.
 
-3.	In addition to paragraph 2 sub d. this license authorizes Licensee, subject to the next sentence, to have contractors use SFINCS Software and the Deltares Software Documentation if and to the extent these contractors are working for Licensee and in such a way that their products are continuously embedded within the Licenseeís quality control (QC) processes. If Licensee engages third parties/contractors Licensee shall limit these third parties/contractorsí user rights in accordance with this Agreement and in prior writing.
+3.	In addition to paragraph 2 sub d. this license authorizes Licensee, subject to the next sentence, to have contractors use SFINCS Software and the Deltares Software Documentation if and to the extent these contractors are working for Licensee and in such a way that their products are continuously embedded within the Licensee‚Äôs quality control (QC) processes. If Licensee engages third parties/contractors Licensee shall limit these third parties/contractors‚Äô user rights in accordance with this Agreement and in prior writing.
 	
 	However, Licensee contractors who are not continuously embedded within the Licensee QC processes, for example, those working for periods on a project without direct Licensee supervision in their own offices, must obtain a SFINCS Software license agreement from Deltares. 
 4.  While Deltares supplies SFINCS Software to Licensee, the instantiation is in the discretion of Licensee and solely at its risk. SFINCS Software should only be used by skilled persons, who have experience in the relevant field and who have sufficient knowledge of the properties, possibilities, limitations and the purpose of SFINCS Software. Licensee should study the Deltares Software Documentation prior to using SFINCS Software. And Licensee should ensure thorough testing and validation of each instantiation created with SFINCS Software to ensure its accuracy, prior to using the outcomes of running SFINCS Software. This paragraph does not apply to the extent the instantiation is set-up by Deltares.   
@@ -121,7 +121,7 @@ Article 12  Other provisions
 
 2. 	Changes in and/or deviations to the Agreement are valid only if they are explicitly agreed between the parties in writing.
 
-3. 	The parties are not allowed to assign any rights and/or obligations under the Agreement entirely or in part to third parties without the other partyís prior written consent.
+3. 	The parties are not allowed to assign any rights and/or obligations under the Agreement entirely or in part to third parties without the other party‚Äôs prior written consent.
 
 4. 	Any dispute arising from the Agreement or from agreements arising therefrom shall be submitted solely to the competent court of The Hague.
 
@@ -142,7 +142,7 @@ B.	Specification of Operational System
 HARDWARE PLATFORM and OPERATING SYSTEM and SYSTEM SOFTWARE
 The minimum hardware and software specifications for proper use of the software:
 OPERATING SYSTEM: 
-Microsoft Windows 10 64bits
+Microsoft Windows 11 64bits
 SYSTEM SOFTWARE: 
 System software to run on [operating system] and .dll-library files supplied to Licensee as part of the DELTARES SFINCS FREE SIMULATION SOFTWARE
 HARDWARE PLATFORM:
