@@ -56,6 +56,7 @@ contains
    !
    real*4    :: dqxudx
    real*4    :: dqyudy
+   real*4    :: vp, vn                          ! flux-based cross-advective speeds (Yamazaki eq. 22)
    real*4    :: qu
    real*4    :: qd
    real*4    :: un                              ! U_n advective speed (from east)
@@ -106,9 +107,11 @@ contains
    !
    ! For some reason, it is necessary to set num_gangs here! Without, the program launches only 1 gang, and everything becomes VERY slow!
    !
-   ! Copy velocity from previous time step (velocity form carries uv, not q)
+   ! Copy velocity and flux from the previous time step (the velocity form
+   ! advects uv0; q0 provides the consistent previous-step fluxes for the
+   ! momentum-conserving cross-advection speeds)
    !
-   !$acc parallel, present( uv, uv0 )
+   !$acc parallel, present( uv, uv0, q, q0 )
    !$omp parallel &
    !$omp private ( ip )
    !$omp do
@@ -116,6 +119,7 @@ contains
    do ip = 1, npuv + ncuv
       !
       uv0(ip) = uv(ip)
+      q0(ip)  = q(ip)
       !
    enddo
    !$acc end parallel
@@ -125,11 +129,11 @@ contains
    !$omp parallel &
    !$omp private ( ip,hu,ufr,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, &
-   !$omp           fcoriouv,gnavg2,iwet,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,dqxudx,dqyudy,un,up, &
+   !$omp           fcoriouv,gnavg2,iwet,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,dqxudx,dqyudy,un,up,vp,vn, &
    !$omp           dnminv,qu,qd,hwet,phi,adv,hu43,y_cbrt,i_cbrt,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbup,ipw,ipe,zbnm,zbnmu ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
-   !$acc parallel, present( kcuv, kfuv, zs, q, uv, uv0, &
+   !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, &
    !$acc                    uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
    !$acc                    subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
    !$acc                    subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
@@ -422,7 +426,7 @@ contains
                   ! eqs 18/20/22), VELOCITY form. Streamwise advective speeds from the Mader
                   ! upwind-zeta flux  FLU = mean(U)*(upwind surface zeta + still-depth h), h=-zb;
                   ! zeta reconstructed 2nd-order (upwind face, +/-2 stencil) when co-directional,
-                  ! else 1st-order. Cross term advects u by the transverse velocity vu (upwind).
+                  ! else 1st-order. Cross term: flux-based two-sided upwind (eq. 22, see below).
                   ! 'adv' is a VELOCITY tendency [m/s^2] (added straight into frc).
                   !
                   ! One path for regular and subgrid bathymetry: on subgrid models zb
@@ -485,11 +489,27 @@ contains
                   !
                   dqxudx = ( up * (uu_nm - uu_nmd) + un * (uu_nmu - uu_nm) ) * dxuvinv
                   !
-                  if (vu >= 0.0) then                   ! cross term: u advected by vu (upwind)
-                     dqyudy = vu * (uu_nm - uu_ndm) * dyuvinv
-                  else
-                     dqyudy = vu * (uu_num - uu_nm) * dyuvinv
-                  endif
+                  ! Cross-advection of u by v -- momentum-conserving two-sided upwind
+                  ! (Yamazaki et al. 2009, eq. 22): advective speeds from the y-FLUXES
+                  ! through the faces below/above the u-point (mean of the two flanking
+                  ! v-point fluxes, previous time step q0), normalized by the same total
+                  ! depth as the streamwise term (dnminv). Transport INTO the point from
+                  ! either side contributes; at a collision line (v converging from both
+                  ! sides) both terms stay active, where the velocity-average form below
+                  ! gave ~zero cross-advection.
+                  !
+                  vp = max( 0.5 * (q0(uv_index_v_ndm(ip)) + q0(uv_index_v_ndmu(ip))) * dnminv, 0.0 )
+                  vn = min( 0.5 * (q0(uv_index_v_nm(ip))  + q0(uv_index_v_nmu(ip)))  * dnminv, 0.0 )
+                  !
+                  dqyudy = ( vp * (uu_nm - uu_ndm) + vn * (uu_num - uu_nm) ) * dyuvinv
+                  !
+                  ! Previous (velocity-average, single-sided upwind) form -- kept for reference:
+                  !
+                  ! if (vu >= 0.0) then                   ! cross term: u advected by vu (upwind)
+                  !    dqyudy = vu * (uu_nm - uu_ndm) * dyuvinv
+                  ! else
+                  !    dqyudy = vu * (uu_num - uu_nm) * dyuvinv
+                  ! endif
                   !
                   adv = - phi * (dqxudx + dqyudy)        ! velocity tendency [m/s^2]
                   !

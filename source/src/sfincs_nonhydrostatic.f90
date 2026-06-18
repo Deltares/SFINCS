@@ -72,6 +72,9 @@ module sfincs_nonhydrostatic
    real*4    :: nonh_dzbmax      ! cap on |d(zb)/dx| in the bottom kinematic w_b; 0 = no cap
    real*4    :: nonh_brsteep     ! HFA steepness breaking onset; 0 = off
    real*4    :: nonh_brfr        ! Froude breaking onset (NEOWAVE); 0 = off -> use nonh_brsteep
+   integer   :: nonh_brsmooth    ! breaking-flag smoothing passes: ramps pnh out over ~brsmooth+1 cells at the breaking-zone edges; 0 = sharp (one face)
+   integer   :: nonh_slsmooth    ! frozen-bed-slope smoothing passes: bounds bed curvature d2zb/dx2 at slope breaks (e.g. island toe); 0 = off
+   real*4    :: nonh_treform     ! breaking reformation time scale (s): released cells recover gradually, brfac += dt/treform; 0 = instant
    real*4    :: nonh_smoothbnd   ! localized 2dx pnh smoothing strength (fade-in / shallow zones)
    real*4    :: nonh_smoothdep   ! depth below which the localized smoothing also acts; 0 = off
    real*4    :: nonh_disp        ! Keller-box vertical factor (dispersion tuning; 1.0 ~ Airy, 2.0 strict)
@@ -113,7 +116,8 @@ module sfincs_nonhydrostatic
    !
    real*4,  dimension(:), allocatable   :: nh_dvert   ! vertical-accel diagonal term   (nrows)
    real*4,  dimension(:), allocatable   :: nh_fade    ! open-boundary nonh fade-in 0..1 (nrows)
-   real*4,  dimension(:), allocatable   :: nh_brfac   ! HFA breaking factor 1=full nonh .. 0=hydrostatic (nrows)
+   real*4,  dimension(:), allocatable   :: nh_brfac   ! breaking STATE 1=full nonh .. 0=hydrostatic (nrows; hysteresis memory, unsmoothed)
+   real*4,  dimension(:), allocatable   :: nh_bract   ! breaking ACTIVITY used by the pressure operator (nrows; = nh_brfac, optionally smoothed)
    !
    integer, dimension(:), allocatable   :: nh_faceuv  ! full uv index of each nh face  (nhuv)
    integer, dimension(:), allocatable   :: nh_faceL   ! row index of left/bottom cell  (nhuv, 0 = boundary)
@@ -209,6 +213,7 @@ contains
    allocate(nh_dvert(nrows))
    allocate(nh_fade(nrows))
    allocate(nh_brfac(nrows))
+   allocate(nh_bract(nrows))
    !
    pnh      = 0.0
    ws       = 0.0
@@ -218,6 +223,7 @@ contains
    nh_dvert = 0.0
    nh_fade  = 1.0
    nh_brfac = 1.0
+   nh_bract = 1.0
    nm_index_of_row = 0
    !
    huthresh_nh = max(huthresh, 0.01)
@@ -412,6 +418,46 @@ contains
       !
    end block
    !
+   ! Optional smoothing of the frozen bed slopes (nonh_slsmooth passes of a
+   ! [1 2 1]/4 stencil over the nonh neighbours, per direction). The single-layer
+   ! bottom kinematic condition w_b = u.d(zb)/dx makes the non-hydrostatic source
+   ! sensitive to the bed CURVATURE d2(zb)/dx2: at a slope break (e.g. the toe of
+   ! the conical island, where d(zb)/dx jumps over one cell) the per-cell w_b
+   ! jumps by ~ u.dx.d2(zb)/dx2, an impulsive grid-scale forcing that radiates a
+   ! trailing train of short dispersive waves. Smoothing ramps the slope over a
+   ! few cells, bounding the curvature (~ slope/(N.dx) instead of slope/dx) and
+   ! suppressing the wiggles at the source. Slopes are still frozen; this is the
+   ! curvature analogue of the nonh_dzbmax slope cap. Default 0 = no smoothing.
+   !
+   if (nonh_slsmooth > 0) then
+      block
+         real*4, dimension(:,:), allocatable :: sltmp
+         integer :: ps, ii, s, jw, je, js, jn
+         real*4  :: accs
+         allocate(sltmp(4, nrows))
+         do ps = 1, nonh_slsmooth
+            sltmp = nh_slbed
+            do ii = 1, nrows
+               jw = nh_nbw(ii) ; je = nh_nbe(ii)
+               do s = 1, 2                       ! x-slopes smoothed along x-neighbours
+                  accs = sltmp(s, ii)
+                  if (jw > 0) accs = accs + 0.25 * (sltmp(s, jw) - sltmp(s, ii))
+                  if (je > 0) accs = accs + 0.25 * (sltmp(s, je) - sltmp(s, ii))
+                  nh_slbed(s, ii) = accs
+               enddo
+               js = nh_nbs(ii) ; jn = nh_nbn(ii)
+               do s = 3, 4                       ! y-slopes smoothed along y-neighbours
+                  accs = sltmp(s, ii)
+                  if (js > 0) accs = accs + 0.25 * (sltmp(s, js) - sltmp(s, ii))
+                  if (jn > 0) accs = accs + 0.25 * (sltmp(s, jn) - sltmp(s, ii))
+                  nh_slbed(s, ii) = accs
+               enddo
+            enddo
+         enddo
+         deallocate(sltmp)
+      end block
+   endif
+   !
    ! Open-boundary non-hydrostatic FADE-IN. Over nonh_fadein cells
    ! inside each open (water level / outflow) boundary, ramp the non-hydrostatic
    ! coupling from 0 (at the boundary) to full (nonh_fadein cells in). The incident
@@ -507,7 +553,7 @@ contains
    !$acc                    nh_aw, nh_ae, nh_as, nh_an, nh_scl, nh_sclo, &
    !$acc                    nh_y, nh_r, nh_p, nh_s, nh_w, nh_b, &
    !$acc                    pnh, ws, wb, wb0, Dnm, nm_index_of_row, &
-   !$acc                    nh_dvert, nh_fade, nh_brfac, nh_dxr, nh_dyr, nh_slbed, &
+   !$acc                    nh_dvert, nh_fade, nh_brfac, nh_bract, nh_dxr, nh_dyr, nh_slbed, &
    !$acc                    nh_faceuv, nh_faceL, nh_faceR, nh_cellface, &
    !$acc                    nh_cf, nh_cR, nh_cL, nh_hu )
    !
@@ -531,7 +577,7 @@ contains
    real*4    :: dt
    !
    integer   :: i, ip, ipuv, nm, nmn, nmu, iuv, iuvl, iuvr, j, jl, jr, f, iter, ipass, cnt, ineighbour
-   real*4    :: dtrho, kbfac, hu, Dnm1, Dnmu, abf, fdep, tf, dval, sq, braw, accv, sumn
+   real*4    :: dtrho, kbfac, hu, Dnm1, Dnmu, abf, fdep, tf, dval, sq, braw, accv, sumn, brrec, act
    real*4    :: qr, ql, dzdt, wmax, breform, pcap, gf, pL, pR, unh
    real*4    :: alpha, beta
    real*8    :: gam8, del8, bn8, gamold8, alpha8, beta8, pap8, bnorm8
@@ -547,6 +593,11 @@ contains
    !
    kbfac = nonh_disp
    dtrho = dt / rhow
+   !
+   ! breaking recovery per step: instant unless a reformation time is set
+   !
+   brrec = 1.0
+   if (nonh_treform > 0.0) brrec = dt / nonh_treform
    !
    ! 1) Layer depth per row and the vertical-acceleration diagonal.
    !
@@ -593,12 +644,11 @@ contains
             if (dzdt > nonh_brfr) nh_brfac(i) = 0.0          ! onset
          else                                              ! was breaking -> release only when slow
             if (dzdt < 0.3 * nonh_brfr) then
-               nh_brfac(i) = 1.0
+               nh_brfac(i) = min(1.0, nh_brfac(i) + brrec)  ! recover (gradually if nonh_treform > 0)
             else
                nh_brfac(i) = 0.0
             endif
          endif
-         if (nh_brfac(i) < 1.0) pnh(i) = 0.0
       enddo
       !$omp end parallel do
       !
@@ -688,12 +738,11 @@ contains
             endif
          else                                                       ! was breaking
             if (dzdt < 0.0) then
-               nh_brfac(i) = 1.0                                    ! release only when surface falls
+               nh_brfac(i) = min(1.0, nh_r(i) + brrec)              ! release only when surface falls (gradually if nonh_treform > 0)
             else
                nh_brfac(i) = 0.0
             endif
          endif
-         if (nh_brfac(i) < 1.0) pnh(i) = 0.0
       enddo
       !$omp end parallel do
       !
@@ -715,13 +764,13 @@ contains
                jl = nh_nbw(i) ; if (jl > 0) then ; if (nh_r(jl) < 1.0) ineighbour = ineighbour + 1 ; endif
                jr = nh_nbe(i) ; if (jr > 0) then ; if (nh_r(jr) < 1.0) ineighbour = ineighbour + 2 ; endif
                if (ineighbour == 3) then
-                  nh_brfac(i) = 0.0 ; pnh(i) = 0.0
+                  nh_brfac(i) = 0.0
                endif
                if (nmax > 1 .and. nh_brfac(i) >= 1.0) then
                   ineighbour = 0
                   jl = nh_nbs(i) ; if (jl > 0) then ; if (nh_r(jl) < 1.0) ineighbour = ineighbour + 1 ; endif
                   jr = nh_nbn(i) ; if (jr > 0) then ; if (nh_r(jr) < 1.0) ineighbour = ineighbour + 2 ; endif
-                  if (ineighbour == 3) then ; nh_brfac(i) = 0.0 ; pnh(i) = 0.0 ; endif
+                  if (ineighbour == 3) nh_brfac(i) = 0.0
                endif
             endif
          enddo
@@ -738,6 +787,40 @@ contains
       !$omp end parallel do
       !
    endif
+   !
+   ! 1c) Breaking ACTIVITY for the pressure operator: nh_bract = nh_brfac,
+   !     optionally smoothed over the nonh neighbours (nonh_brsmooth passes of a
+   !     [1 2 1]/4 stencil). The binary flag switches the pressure off across a
+   !     single face, which prints a kink on the surface at the rear edge of the
+   !     breaking region; the smoothed activity ramps the pressure out over a few
+   !     cells instead. The hysteresis STATE stays in nh_brfac (unsmoothed).
+   !
+   !$acc parallel loop default(present)
+   !$omp parallel do schedule ( static ) private ( i )
+   do i = 1, nrows
+      nh_bract(i) = nh_brfac(i)
+   enddo
+   !$omp end parallel do
+   !
+   do ipass = 1, nonh_brsmooth
+      !$acc parallel loop default(present)
+      !$omp parallel do schedule ( static ) private ( i )
+      do i = 1, nrows
+         nh_w(i) = nh_bract(i)
+      enddo
+      !$omp end parallel do
+      !$acc parallel loop default(present)
+      !$omp parallel do schedule ( static ) private ( i, accv, j )
+      do i = 1, nrows
+         accv = nh_w(i)
+         j = nh_nbw(i) ; if (j > 0) accv = accv + 0.25 * (nh_w(j) - nh_w(i))
+         j = nh_nbe(i) ; if (j > 0) accv = accv + 0.25 * (nh_w(j) - nh_w(i))
+         j = nh_nbs(i) ; if (j > 0) accv = accv + 0.25 * (nh_w(j) - nh_w(i))
+         j = nh_nbn(i) ; if (j > 0) accv = accv + 0.25 * (nh_w(j) - nh_w(i))
+         nh_bract(i) = accv
+      enddo
+      !$omp end parallel do
+   enddo
    !
    ! 2) Per-face gradient coefficients (wet/dry, layer term abf, conveyance depth,
    !    open-boundary fade-in).
@@ -790,7 +873,7 @@ contains
    !    y0 = pnh * sqrt(dval) (scaled previous pressure; 0 at breaking cells).
    !
    !$acc parallel loop default(present)
-   !$omp parallel do schedule ( static ) private ( i, dval, braw, f, tf, sq )
+   !$omp parallel do schedule ( static ) private ( i, dval, braw, f, tf, sq, act )
    do i = 1, nrows
       dval = nh_dvert(i)
       braw = - (ws(i) + wb0(i) - 2.0 * wb(i))
@@ -832,16 +915,16 @@ contains
       endif
       sq = sqrt(dval)              ! dval >= dvert > 0 always (Dnm capped)
       nh_scl(i) = 1.0 / sq
-      if (nh_brfac(i) < 1.0) then
-         ! breaking cell: zero row/column (via sclo), b=0, y0=0 -> pnh held at 0
-         nh_sclo(i) = 0.0
-         nh_b(i)    = 0.0
-         nh_y(i)    = 0.0
-      else
-         nh_sclo(i) = nh_scl(i)
-         nh_b(i)    = braw * nh_scl(i)
-         nh_y(i)    = pnh(i) * sq
-      endif
+      !
+      ! Breaking activity act in [0,1]: act = 1 full nonh; act = 0 holds pnh = 0
+      ! (row+column zeroed via sclo, unit scaled diagonal). Fractional act (from
+      ! nonh_brsmooth / nonh_treform) ramps the pressure out smoothly; the
+      ! operator stays SPD (T A T + diag(1 - act^2), act <= 1).
+      !
+      act = nh_bract(i)
+      nh_sclo(i) = nh_scl(i) * act
+      nh_b(i)    = braw * nh_scl(i) * act
+      nh_y(i)    = pnh(i) * sq * act
    enddo
    !$omp end parallel do
    !

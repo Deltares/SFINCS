@@ -191,15 +191,18 @@ contains
    ! call read_real_input(500, 'manningbnd', manningbnd, 0.024)
    call read_real_input(500, 'nuviscfac', nuviscfac, 100.0)
    call read_logical_input(500, 'nonhydrostatic', nonhydrostatic, .false.)
-   call read_real_input(500, 'nonh_fnudge', nonh_fnudge, 0.9)
+   call read_real_input(500, 'nonh_fnudge', nonh_fnudge, 1.0)
    call read_real_input(500, 'nonh_tstop', nonh_tstop, -999.0)
-   call read_real_input(500, 'nonh_tol', nonh_tol, 0.001)
+   call read_real_input(500, 'nonh_tol', nonh_tol, 0.01)
    call read_int_input(500, 'nonh_itermax', nonh_itermax, 100)
-   call read_real_input(500, 'nonh_filter', nonh_filter, 0.0)               ! spatial 2dx filter on pnh (0 = off, ~0.25-0.5 damps grid mode)
+   call read_real_input(500, 'nonh_filter', nonh_filter, 0.5)               ! spatial 2dx filter on pnh (0 = off, ~0.25-0.5 damps grid mode)
    call read_real_input(500, 'nonh_dzbmax', nonh_dzbmax, 0.1)               ! cap on |d(zb)/dx| in bottom kinematic wb (default 0.1; clips near-vertical walls, leaves real slopes); 0 = no cap
    call read_int_input(500, 'nonh_fadein', nonh_fadein, 0)                  ! open-boundary nonh fade-in width (cells): nonh ramps 0->full over N cells from the boundary; 0 = off
-   call read_real_input(500, 'nonh_brsteep', nonh_brsteep, 0.0)             ! HFA breaking onset: nonh starts reducing when dzdt (=-d(hu)/dx) > nonh_brsteep*sqrt(g*h); 0 = off (XBeach default 0.4)
-   call read_real_input(500, 'nonh_brfr', nonh_brfr, 0.0)                   ! OPTIONAL NEOWAVE Froude breaking criterion: pnh=0 when |U|/sqrt(g*D) > nonh_brfr (~0.5), release < 0.3*nonh_brfr (~0.15); 0 = off -> use nonh_brsteep instead
+   call read_real_input(500, 'nonh_brsteep', nonh_brsteep, 0.4)             ! HFA breaking onset: nonh starts reducing when dzdt (=-d(hu)/dx) > nonh_brsteep*sqrt(g*h); 0 = off (XBeach default 0.4)
+   call read_real_input(500, 'nonh_brfr', nonh_brfr, 0.5)                   ! OPTIONAL NEOWAVE Froude breaking criterion: pnh=0 when |U|/sqrt(g*D) > nonh_brfr (~0.5), release < 0.3*nonh_brfr (~0.15); 0 = off -> use nonh_brsteep instead
+   call read_int_input(500, 'nonh_brsmooth', nonh_brsmooth, 0)              ! breaking-flag smoothing passes ([1 2 1]/4 over nonh neighbours): ramps pnh out over ~brsmooth+1 cells at the breaking-zone edges instead of one face; 0 = sharp
+   call read_int_input(500, 'nonh_slsmooth', nonh_slsmooth, 0)              ! frozen-bed-slope smoothing passes ([1 2 1]/4): bounds bed curvature d2zb/dx2 at slope breaks (island toe) -> suppresses trailing waves; 0 = off
+   call read_real_input(500, 'nonh_treform', nonh_treform, 1.0)             ! breaking reformation time scale (s): released cells recover the nonh pressure gradually (brfac += dt/treform); 0 = instant recovery
    call read_real_input(500, 'nonh_smoothbnd', nonh_smoothbnd, 0.5)         ! strength of localized 2dx pnh smoothing in the fade-in zone (weight at boundary, ramps to 0 over the fade-in) and shallow zone; 0 = off
    call read_real_input(500, 'nonh_smoothdep', nonh_smoothdep, 0.0)         ! depth (m) below which the localized pnh smoothing also acts (shallow run-up / wall 2dx noise); weight ramps from full at D=0 to 0 at D=nonh_smoothdep; 0 = off
    call read_real_input(500, 'nonh_disp', nonh_disp, 1.0)                   ! Keller-box vertical factor (default 1.0 = best dispersion, c(k) flat to Airy ~kd 2.5); 2.0 = strict linear-pressure single layer
