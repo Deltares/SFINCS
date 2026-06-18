@@ -6,14 +6,14 @@ SFINCS has continuely being developed since 2017, and many great features have b
 Development status
 -----
 
-See here a schematic overview of the SFINCS development status at November 2025, at the time of the v2.3.0 mt. Faber release.
-Indicated are new functionality for SFINCS itself (core), and model setup/post-processing using HydroMT-SFINCS (Python).
+See here a table overview of the SFINCS development status at June 2026, at the time of the v2.4.0 Galibier 2026.01 release.
+Indicated are SFINCS itself (model) and model setup/post-processing using HydroMT-SFINCS (Python), green indicates existing General Available (GA) functionality.
 
-.. figure:: ./figures/Overview_status_SFINCS-2025.02.drawio.png
+.. figure:: ./figures/SFINCS_development_status_Galibier_2026_01_release.png
    :width: 600px
    :align: center
 
-   Overview of SFINCS development status 2025.02 Release
+   Overview of SFINCS development status 2026.01 Release
 
 Known issues
 -----
@@ -24,10 +24,66 @@ Known issues/warnings of the current SFINCS main version and last release are li
 * The BMI implementation in SFINCS is up to date with XMI (BMI + extensions - Hughes et al. 2022), to be used with 'xmipy' (https://github.com/Deltares/xmipy) and related functions (https://deltares.github.io/xmipy/xmipy.html), which is however not up to date with the latests CSDMS standard BMI implementation 2.0.
 * The combination of netspwfile with large difference in reference time between the spiderweb and the SFINCS simulation itself, might not run correctly in the Docker version. Use the ascii spwfile input or the Windows build executable which work correctly.
 * Docker GPU version of Deltares latest is not fully functional, and therefore removed from the repo. If you'd want to use the GPU version of SFINCS, get in touch to set up a collaboration.
-* Issue in SFINCS v2.3.0 mt Faber Release regarding Curve Number infiltration if storecumprcp = 0 (default), then infiltration is not processed correctly and can result to unrealistic results! Simple solution for now: put storecumprcp = 1 when using this infiltration option. This issue is already fixed in SFINCS main, and therefore also in the next official release!
+* Issue in SFINCS v2.3.0 mt Faber Release regarding Curve Number infiltration if storecumprcp = 0 (default), then infiltration is not processed correctly and can result to unrealistic results! Simple solution for now: put storecumprcp = 1 when using this infiltration option. This issue is fixed in the 2026.01 Galibier Release!
 
 Releases Changelog
 -----
+
+Official open source version 2026.01: v2.4.0 Galibier release release
+^^^^^
+
+The first official 2026 release of SFINCS, the v2.4.0 Galibier release, 'Generating Accurate Large-scale Inundation: Better Insights for Emergency Response', is now available!
+
+This contains open access to the source code from Github: https://github.com/Deltares/SFINCS/releases/tag/v2.4.0_Galibier_release.
+
+As pre-compiled Windows executable:
+
+https://download.deltares.nl/en/sfincs/
+
+As Docker container:
+
+docker pull deltares/sfincs-cpu:sfincs-v2.4.0-Galibier-Release
+
+Changes:
+
+The code consists of all functionality of the 2025.02 'v2.3.0 mt. Faber' release, with the following main changes/additions:
+
+* Added option for timestep analysis (sfincs.inp: timestep_analysis = 1). Flag to write timestep limiter variables average_required_timestep and percentage_limiting_timestep to the sfincs_map.nc file and screen to analyse what cells are limiting the global timestep.
+* Quadtree netcdf output sfincs_map.nc files can now directly be loaded and visuallised in QGIS.
+* Added input variable 'huvmin', minimum depth for calculating velocity (uv = q / max(hu, huvmin)), used for output and advection.
+* Added input variable 'snapwave_waveforces_factor' which you can set to 0 to turn off wave forces and thus incident wave setup.
+* Made sfincs_his.nc file variables related to waves consistent with other variable (e.g. point_hm0), breaking change for post-processing scripts. Thanks to EgemenAnder for the commits!
+* Renaming of wavemaker related input variables (e.g. wavemaker_wvmfile), contains legacy variables for backward compatibility.
+* Added multiple validation tests in the renewed testbed report of the new quality control testbed version 2.0, now doubled in number of tests!
+
+* New Python setup tools HydroMT-SFINCS release > recommended to use this new version (v2.0.0) instead of the last release!
+
+Bugfixes:
+
+* Fixed bug with Curve Number infiltration if storecumprcp = 0 (default).
+* Fixed bug with wavemakers, with waves forced from the north.
+* Fixed bug in old binary sbgfile for regular grid (legacy code). 
+* Fixed bug in neumann boundary for sfincs (msk=6) for specific cases.
+* Fixed bug in SnapWave IG source term implementation, with thanks to Yasmine Elmessary.
+
+Advanced user options - currently as alpha/beta functionality:
+
+* NOTE - please contact Deltares-SFINCS group in case you want to use any of this functionality.
+
+* Improvements of the integrated SnapWave solver for wave breaking, and resulting wave-induced setup, on steeper coasts.
+* Added vegetation effects in the integrated SnapWave solver.
+* Added option of forcing incident wave energy at wavemaker.
+* Added hyper-fast, but scandalous, bathtub option.
+* Improved GPU immplementation
+
+See here a schematic overview of the SFINCS development status at June 2026, at the time of the v2.4.0 Galibier 2026.01 release.
+Indicated are new functionality for SFINCS itself (core), and model setup/post-processing using HydroMT-SFINCS (Python).
+
+.. figure:: ./figures/Overview_status_SFINCS-2026.01.drawio.png
+   :width: 600px
+   :align: center
+
+   Overview of SFINCS development status 2026.01 Release
 
 Official open source version 2025.02: v2.3.0 mt. Faber release
 ^^^^^

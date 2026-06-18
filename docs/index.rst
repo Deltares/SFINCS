@@ -36,7 +36,7 @@ For more, see “Support Packages” or contact software@deltares.nl
 **Scientific Foundation and model adoptation:** 
 
 SFINCS has been widely validated and applied in numerous scientific studies and practical applications worldwide.
-The model has been adopted by both the scientific community, where the main SFINCS publications have reached 150+ citations and are listed below for reference.
+The model has been adopted by both the scientific community, where the main SFINCS publications have reached 200+ citations and are listed below for reference.
 SFINCS has also been adopted by practitioners for flood risk assessment, emergency planning, and climate adaptation strategies, with 1000+ downloads of the SFINCS executable and counting...
 
 Key publications:

@@ -103,7 +103,7 @@ module sfincs_data
       real*4 factor_pres
       real*4 factor_prcp
       real*4 factor_spw_size
-      real*4 waveforces_factor
+      real*4 waveforces_ratio
       !
       integer mmax
       integer nmax
@@ -163,6 +163,8 @@ module sfincs_data
       character*256 :: z0lfile
       character*256 :: qtrfile
       character*256 :: volfile
+      character*256 :: veggiefile
+      character*256 :: veggietype_toml       ! TOML lookup table companion to veggiefile
       !
       character*256 :: trefstr_iso8601
       character*41  :: treftimefews
@@ -191,6 +193,8 @@ module sfincs_data
       logical       :: subgrid
       logical       :: manning2d ! spatially-varying roughness
       logical       :: coriolis
+      logical       :: vegetation 
+      logical       :: snapwave_vegetation
       logical       :: store_cumulative_precipitation
       logical       :: store_maximum_waterlevel
       logical       :: store_maximum_waterdepth
@@ -205,6 +209,7 @@ module sfincs_data
       logical       :: store_zvolume
       logical       :: store_storagevolume            
       logical       :: store_meteo
+      logical       :: store_vegetation
       logical       :: store_wind      
       logical       :: store_wind_max
       logical       :: store_wave_forces
@@ -416,6 +421,17 @@ module sfincs_data
       ! Mean velocity at boundaries
       !
       real*4, dimension(:),   allocatable :: uvmean
+      !
+      ! Vegetation
+      !
+      integer                                           :: vegetation_vertical_segments ! nr of vegetation sections in vertical
+      real*4,             dimension(:,:),   allocatable :: vegetation_stems_cd
+      real*4,             dimension(:,:),   allocatable :: vegetation_stems_height
+      real*4,             dimension(:,:),   allocatable :: vegetation_stems_diameter
+      real*4,             dimension(:,:),   allocatable :: vegetation_stems_density
+      integer,            dimension(:),     allocatable :: vegetation_type_index       ! per-cell integer type id from NetCDF
+      ! Wave forces limiter determined in sfincs_snapwave
+      real*4 :: fwmaxfac
       !
       !!! Wave makers
       !
