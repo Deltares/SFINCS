@@ -710,37 +710,17 @@ contains
    if (advection) then
       !
       ! Make 1st order upwind the default scheme
-      !  
+      !
       advection_scheme = 1
       !
       call write_log('Info    : turning on advection', 0)
-      ! 
+      !
       if (trim(advstr) == 'original') then
          advection_scheme = 0
          call write_log('Info    : advection scheme : Original', 0)
       elseif (trim(advstr) == 'upw1') then
          advection_scheme = 1
          call write_log('Info    : advection scheme : first-order upwind', 0)
-      elseif (trim(advstr) == 'upw_div') then
-         advection_scheme = 2
-         call write_log('Info    : advection scheme : first-order upwind divergence (momentum-conservative form, similar to SWASH eq. 6.2)', 0)
-      elseif (trim(advstr) == 'sd03') then
-         ! Deprecated alias for 'upw_div'. The scheme is structurally similar to
-         ! Stelling & Duijnmeijer (2003) in flux form but does not implement their
-         ! upwind h_u or energy/momentum switch — see upw_div instead.
-         advection_scheme = 2
-         call write_log('Info    : advection scheme : upwind divergence (legacy keyword sd03 -> upw_div)', 0)
-      elseif (trim(advstr) == 'mca' .or. trim(advstr) == 'upw_div_upw') then
-         ! NEOWAVE/Mader-style momentum-conserved advection: upwind streamwise mass
-         ! flux (2dx-dissipative, bore-capturing) in divergence form (Yamazaki et al. 2009).
-         advection_scheme = 3
-         call write_log('Info    : advection scheme : upwind-flux momentum-conservative (MCA, NEOWAVE/Mader)', 0)
-      elseif (trim(advstr) == 'upw_flux' .or. trim(advstr) == 'mca_sg') then
-         ! Subgrid-safe upwind-flux MCA: like upw_div but the cell-centred streamwise mass
-         ! flux is upwinded from the stored fluxes q0 (no zs-zb reconstruction), so it works
-         ! with subgrid (q0 already carries the subgrid conveyance).
-         advection_scheme = 4
-         call write_log('Info    : advection scheme : subgrid-safe upwind-flux momentum-conservative (upw_flux)', 0)
       else
          write(logstr,*)'Warning : advection scheme ', trim(advstr), ' not recognized! Using default upw1 instead!'
          call write_log(logstr, 1)
