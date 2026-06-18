@@ -44,9 +44,8 @@ contains
    !$acc               src_struc_z_crest, src_struc_t_breach, src_struc_z_min, &
    !$acc               src_struc_B0, src_struc_t0, src_struc_dike_core, &
    !$acc               src_struc_breach_width, src_struc_breach_level, &
-   !$acc               src_struc_distance, src_struc_status, src_struc_fraction_open, src_struc_t_state, &
-   !$acc               src_struc_interruptible, &
-   !$acc               src_struc_rule_open, src_struc_rule_close, &
+   !$acc               src_struc_distance, src_struc_fraction_open, &
+   !$acc               src_struc_rule_start, src_struc_rule_count, rule_list_op, rule_list_id, &
    !$acc               rule_opcode, rule_atom, rule_cmp, rule_threshold, rule_start, rule_length, &
    !$acc               z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, &
    !$acc               structure_uv_index, structure_parameters, structure_type, structure_length, &
@@ -95,9 +94,8 @@ contains
    !$acc               src_struc_z_crest, src_struc_t_breach, src_struc_z_min, &
    !$acc               src_struc_B0, src_struc_t0, src_struc_dike_core, &
    !$acc               src_struc_breach_width, src_struc_breach_level, &
-   !$acc               src_struc_distance, src_struc_status, src_struc_fraction_open, src_struc_t_state, &
-   !$acc               src_struc_interruptible, &
-   !$acc               src_struc_rule_open, src_struc_rule_close, &
+   !$acc               src_struc_distance, src_struc_fraction_open, &
+   !$acc               src_struc_rule_start, src_struc_rule_count, rule_list_op, rule_list_id, &
    !$acc               rule_opcode, rule_atom, rule_cmp, rule_threshold, rule_start, rule_length, &
    !$acc               z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, &
    !$acc               structure_uv_index, structure_parameters, structure_type, structure_length, &

@@ -39,14 +39,15 @@ module sfincs_src_structures
    !   initialize_src_structures()
    !     Main entry point. Detects legacy vs TOML, dispatches through the
    !     TOML reader, flattens into src_struc_* arrays, resolves grid-cell
-   !     indices, and seeds rule-driven gate statuses from the initial zs.
+   !     indices, and seeds rule-driven gate positions from the initial zs.
    !     Called from sfincs_lib at init time.
    !
    !   update_src_structures(t, dt)
-   !     Advances the open/close state machine for rule-driven structures,
-   !     evaluates the per-type flux formula, and accumulates signed
-   !     discharges into qsrc and src_struc_q_now. Called from update_continuity
-   !     (sfincs_continuity) once per time step, after update_discharges.
+   !     Evaluates each rule-driven structure's ordered rule list to set a
+   !     target gate position and ramps fraction_open toward it, evaluates the
+   !     per-type flux formula, and accumulates signed discharges into qsrc and
+   !     src_struc_q_now. Called from update_continuity (sfincs_continuity)
+   !     once per time step, after update_discharges.
    !
    !   read_toml_src_structures(filename, structures, ierr)
    !     Parse a TOML drn file into an allocatable t_src_structure(:) array.
@@ -86,7 +87,7 @@ module sfincs_src_structures
    use sfincs_error
    use sfincs_rule_expression, only: add_rule, evaluate_rule, finalize_rule_storage
    !
-   private :: parse_structure_type, parse_direction, to_lower, check_required
+   private :: parse_structure_type, parse_direction, parse_operation, to_lower, check_required
    private :: convert_legacy_to_toml
    private :: write_src_structures_log_summary
    !
@@ -111,13 +112,29 @@ module sfincs_src_structures
    !
    real*4, parameter :: pump_reduction_depth = 0.1
    !
+   ! Gate operation codes for rule-driven structures. Each rule sets a
+   ! target gate position: open -> fraction 1.0, close -> 0.0, hold ->
+   ! freeze at the current fraction. These are the only operations.
+   !
+   integer, parameter :: gate_op_close = 0
+   integer, parameter :: gate_op_open  = 1
+   integer, parameter :: gate_op_hold  = 2
+   !
+   ! A single gate control rule: an operation plus the boolean expression
+   ! (in the sfincs_rule_expression mini-language, e.g. "z1>-0.15 & z1-z2>0.09")
+   ! that, when true, selects that operation. Rules are evaluated in order
+   ! and the first whose expression fires wins; if none fires the gate holds.
+   !
+   type :: t_gate_rule
+      integer                       :: op       ! gate_op_*
+      character(len=:), allocatable :: when     ! trigger expression (raw string)
+   end type t_gate_rule
+   !
    ! Derived type for the TOML-based src structure input.
    !
-   ! Gate open/close triggers are described by small boolean expressions
-   ! in strings (e.g. "(z1<0.5 | z2-z1>0.05) & z2<1.5"). Those strings
-   ! live here as raw characters on the derived type; the parser runs
-   ! during marshalling and emits bytecode into the shared rule_*
-   ! streams owned by the sfincs_rule_expression module.
+   ! Gate control is an ordered list of (operation, when) rules; the parser
+   ! runs during marshalling and emits each "when" expression as bytecode
+   ! into the shared rule_* streams owned by the sfincs_rule_expression module.
    !
    type :: t_src_structure
       !
@@ -185,18 +202,11 @@ module sfincs_src_structures
       real    :: t0           ! duration of phase 1: crest lowering (s)
       integer :: dike_core    ! core material: 1=sand, 2=clay
       !
-      ! Gate control rule expressions (raw strings; parsed by marshal).
-      ! Either or both may be unallocated, meaning "no trigger for this action".
+      ! Ordered list of gate control rules (parsed by marshal). Unallocated
+      ! or zero-length means "no rules": the structure stays fully open and
+      ! the runtime skips the rule machinery entirely.
       !
-      character(len=:), allocatable :: rule_open
-      character(len=:), allocatable :: rule_close
-      !
-      ! interruptible - when .true., an in-progress opening transition can be
-      ! reversed by the close rule mid-ramp (and a closing transition by the
-      ! open rule). When .false. (default), a transition always runs to
-      ! completion before the opposite rule is re-checked.
-      !
-      logical :: interruptible
+      type(t_gate_rule), allocatable :: rules(:)
       !
    end type t_src_structure
    !
@@ -221,7 +231,6 @@ module sfincs_src_structures
    !
    integer*1, dimension(:), allocatable, public :: src_struc_type
    integer,   dimension(:), allocatable, public :: src_struc_direction   ! direction_* code; honoured by culvert_simple and culvert
-   integer*1, dimension(:), allocatable, public :: src_struc_status
    real*4,    dimension(:), allocatable, public :: src_struc_distance
    real*4,    dimension(:), allocatable, public :: src_struc_fraction_open
    !
@@ -243,17 +252,6 @@ module sfincs_src_structures
    integer*4, dimension(:), allocatable, public :: src_struc_nm_s2     ! (nr_src_structures) endpoint-2 cell indices
    integer*4, dimension(:), allocatable, public :: src_struc_nm_o1     ! (nr_src_structures) obs-1 cell indices (gate rule inputs; defaults to endpoint-1 cell)
    integer*4, dimension(:), allocatable, public :: src_struc_nm_o2     ! (nr_src_structures) obs-2 cell indices (gate rule inputs; defaults to endpoint-2 cell)
-   !
-   ! Gate transition timer (simulation time at which current status was entered).
-   ! Only meaningful for structure_gate; ignored for other types.
-   !
-   real*4,    dimension(:), allocatable, public :: src_struc_t_state
-   !
-   ! Interruptible-transition flag. 1 = an opening/closing ramp can be reversed
-   ! mid-way by the opposite rule; 0 = the ramp runs to completion before rules
-   ! are re-checked. Only meaningful for rule-driven structures.
-   !
-   integer*1, dimension(:), allocatable, public :: src_struc_interruptible
    !
    ! Coordinates
    !
@@ -300,18 +298,26 @@ module sfincs_src_structures
    !
    real*4, dimension(:), allocatable, public :: src_struc_q_now               ! (nr_src_structures) signed discharge this step per structure, mirrors the qsrc pattern
    !
-   ! Per-structure rule ids into the registry owned by sfincs_rule_expression.
-   ! A rule_id of 0 means "no rule; never fires".
+   ! Ordered gate-rule lists, flattened across all structures into shared
+   ! concatenated arrays (mirrors the rule_* bytecode registry pattern so
+   ! the data is GPU-friendly - no ragged arrays, no allocatable components).
    !
-   ! src_struc_rule_open_src / src_struc_rule_close_src hold the raw source strings
-   ! (for log emission only); these do not need to travel to GPU.
+   ! src_struc_rule_start(i) is the 1-based offset into rule_list_* of the
+   ! first rule for structure i (0 = structure has no rules); src_struc_rule_count(i)
+   ! is how many rules it has. rule_list_op(j) is the operation (gate_op_*) and
+   ! rule_list_id(j) the rule_id into the sfincs_rule_expression registry.
+   ! rule_list_src(j) holds the raw "when" string for log emission only and
+   ! does not travel to GPU.
    !
-   integer, dimension(:), allocatable, public :: src_struc_rule_open       ! (nr_src_structures) rule_id for open action, 0 = no rule
-   integer, dimension(:), allocatable, public :: src_struc_rule_close      ! (nr_src_structures) rule_id for close action, 0 = no rule
+   integer, dimension(:), allocatable, public :: src_struc_rule_start      ! (nr_src_structures) 1-based start in rule_list_*, 0 = no rules
+   integer, dimension(:), allocatable, public :: src_struc_rule_count      ! (nr_src_structures) number of rules
+   !
+   integer, public                            :: nr_rule_list = 0          ! total length of the concatenated rule lists
+   integer, dimension(:), allocatable, public :: rule_list_op              ! (nr_rule_list) gate_op_* per rule
+   integer, dimension(:), allocatable, public :: rule_list_id              ! (nr_rule_list) rule_id into sfincs_rule_expression registry
    !
    integer, parameter :: src_struc_rule_src_len = 256
-   character(len=src_struc_rule_src_len), dimension(:), allocatable, public :: src_struc_rule_open_src
-   character(len=src_struc_rule_src_len), dimension(:), allocatable, public :: src_struc_rule_close_src
+   character(len=src_struc_rule_src_len), dimension(:), allocatable, public :: rule_list_src   ! (nr_rule_list) raw "when" string, log only
    !
 contains
    !
@@ -361,7 +367,7 @@ contains
       !
       ! Marshal locals
       !
-      integer                       :: i, ierr_parse
+      integer                       :: i, j, ierr_parse, irule, nr_rules_i
       character(len=256)            :: errmsg
       !
       ! Cell-index / distance locals
@@ -369,11 +375,10 @@ contains
       integer                       :: istruc, nmq
       real*4                        :: x_s1_tmp, y_s1_tmp, x_s2_tmp, y_s2_tmp
       !
-      ! Gate-status seeding locals
+      ! Gate-position seeding locals
       !
-      integer                       :: nm_o1, nm_o2
+      integer                       :: nm_o1, nm_o2, k, iop
       real                          :: zs_o1, zs_o2
-      logical                       :: open_fires, close_fires
       character(len=16)             :: status_str
       !
       drainage_structures = .false.
@@ -508,10 +513,9 @@ contains
       allocate(src_struc_type(nr_src_structures))
       allocate(src_struc_direction(nr_src_structures))
       allocate(src_struc_distance(nr_src_structures))
-      allocate(src_struc_status(nr_src_structures))
       allocate(src_struc_fraction_open(nr_src_structures))
-      allocate(src_struc_t_state(nr_src_structures))
-      allocate(src_struc_interruptible(nr_src_structures))
+      allocate(src_struc_rule_start(nr_src_structures))
+      allocate(src_struc_rule_count(nr_src_structures))
       allocate(src_struc_name(nr_src_structures))
       allocate(src_struc_x_s1(nr_src_structures))
       allocate(src_struc_y_s1(nr_src_structures))
@@ -540,15 +544,9 @@ contains
       allocate(src_struc_dike_core(nr_src_structures))
       allocate(src_struc_breach_width(nr_src_structures))
       allocate(src_struc_breach_level(nr_src_structures))
-      allocate(src_struc_rule_open(nr_src_structures))
-      allocate(src_struc_rule_close(nr_src_structures))
-      allocate(src_struc_rule_open_src(nr_src_structures))
-      allocate(src_struc_rule_close_src(nr_src_structures))
       !
-      src_struc_rule_open      = 0
-      src_struc_rule_close     = 0
-      src_struc_rule_open_src  = ' '
-      src_struc_rule_close_src = ' '
+      src_struc_rule_start     = 0
+      src_struc_rule_count     = 0
       !
       src_struc_nm_s1          = 0
       src_struc_nm_s2          = 0
@@ -558,10 +556,7 @@ contains
       src_struc_type           = 0
       src_struc_direction      = direction_both
       src_struc_distance       = 0.0
-      src_struc_fraction_open  = 1.0   ! default "fully open": structures without rules bypass the state machine and use this as a no-op multiplier in the common-tail scaling
-      src_struc_status         = 1     ! 0=closed, 1=open, 2=opening, 3=closing; default open (see above). Rule-driven structures overwrite this in the init-time seeding below.
-      src_struc_t_state        = 0.0
-      src_struc_interruptible  = 0     ! default: transitions run to completion (not reversible mid-ramp)
+      src_struc_fraction_open  = 1.0   ! default "fully open": structures without rules use this as a no-op multiplier in the common-tail scaling. Rule-driven structures are re-seeded at init below.
       src_struc_name           = ' '
       src_struc_x_s1           = 0.0
       src_struc_y_s1           = 0.0
@@ -591,8 +586,24 @@ contains
       src_struc_breach_width     = 0.0
       src_struc_breach_level     = 0.0
       !
+      ! Count the total number of gate rules across all structures and allocate
+      ! the concatenated rule_list_* arrays (size 0 when no structure has rules,
+      ! so the downstream openacc directives can still reference them safely).
+      !
+      nr_rule_list = 0
+      do i = 1, nr_src_structures
+         if (allocated(src_structures(i)%rules)) nr_rule_list = nr_rule_list + size(src_structures(i)%rules)
+      enddo
+      !
+      allocate(rule_list_op(nr_rule_list))
+      allocate(rule_list_id(nr_rule_list))
+      allocate(rule_list_src(nr_rule_list))
+      !
       ! Copy scalar / coord / string / parameter fields from src_structures(:)
-      ! into the flat arrays, and parse rule source strings via add_rule.
+      ! into the flat arrays, and concatenate each structure's gate-rule list
+      ! into rule_list_* (parsing each "when" expression via add_rule).
+      !
+      irule = 0
       !
       do i = 1, nr_src_structures
          !
@@ -614,9 +625,6 @@ contains
          !
          src_struc_type(i)      = int(src_structures(i)%structure_type, 1)
          src_struc_direction(i) = src_structures(i)%direction
-         !
-         ! src_struc_status is runtime-only (not on the TOML type); leave it at
-         ! the default of 0 (closed) set above.
          !
          src_struc_x_s1(i) = src_structures(i)%x_s1
          src_struc_y_s1(i) = src_structures(i)%y_s1
@@ -658,12 +666,6 @@ contains
          src_struc_mannings_n(i)        = src_structures(i)%mannings_n
          src_struc_opening_duration(i)  = src_structures(i)%opening_duration
          src_struc_closing_duration(i)  = src_structures(i)%closing_duration
-         !
-         if (src_structures(i)%interruptible) then
-            src_struc_interruptible(i) = 1
-         else
-            src_struc_interruptible(i) = 0
-         endif
          src_struc_height(i)            = src_structures(i)%height
          src_struc_invert_1(i)          = src_structures(i)%invert_1
          src_struc_invert_2(i)          = src_structures(i)%invert_2
@@ -680,43 +682,42 @@ contains
             src_struc_breach_width(i) = 0.0
          endif
          !
-         ! Parse rule expressions. Missing / empty strings leave the
-         ! rule_id at 0, which the evaluator interprets as "never fires".
-         ! Stash the source string for the init-time log summary.
+         ! Gate control rules: concatenate this structure's ordered list into
+         ! the shared rule_list_* arrays. Each "when" expression is compiled to
+         ! bytecode via add_rule; the operation code and raw string travel
+         ! alongside the resulting rule_id.
          !
-         if (allocated(src_structures(i)%rule_open)) then
+         if (allocated(src_structures(i)%rules)) then
             !
-            call add_rule(src_structures(i)%rule_open, &
-                 src_struc_rule_open(i), ierr_parse, errmsg)
+            nr_rules_i = size(src_structures(i)%rules)
             !
-            if (ierr_parse /= 0) then
+            if (nr_rules_i > 0) then
                !
-               write(logstr,'(a,a,a,a)')' Error ! src_structure "', trim(src_struc_name(i)), &
-                    '" rules_open parse failed: ', trim(errmsg)
-               call write_log(logstr, 1)
-               call stop_sfincs(trim(logstr), -1)
+               src_struc_rule_start(i) = irule + 1
+               src_struc_rule_count(i) = nr_rules_i
+               !
+               do j = 1, nr_rules_i
+                  !
+                  irule = irule + 1
+                  !
+                  call add_rule(src_structures(i)%rules(j)%when, &
+                       rule_list_id(irule), ierr_parse, errmsg)
+                  !
+                  if (ierr_parse /= 0) then
+                     !
+                     write(logstr,'(a,a,a,i0,a,a)')' Error ! src_structure "', trim(src_struc_name(i)), &
+                          '" rule ', j, ' parse failed: ', trim(errmsg)
+                     call write_log(logstr, 1)
+                     call stop_sfincs(trim(logstr), -1)
+                     !
+                  endif
+                  !
+                  rule_list_op(irule)  = src_structures(i)%rules(j)%op
+                  rule_list_src(irule) = src_structures(i)%rules(j)%when
+                  !
+               enddo
                !
             endif
-            !
-            src_struc_rule_open_src(i) = src_structures(i)%rule_open
-            !
-         endif
-         !
-         if (allocated(src_structures(i)%rule_close)) then
-            !
-            call add_rule(src_structures(i)%rule_close, &
-                 src_struc_rule_close(i), ierr_parse, errmsg)
-            !
-            if (ierr_parse /= 0) then
-               !
-               write(logstr,'(a,a,a,a)')' Error ! src_structure "', trim(src_struc_name(i)), &
-                    '" rules_close parse failed: ', trim(errmsg)
-               call write_log(logstr, 1)
-               call stop_sfincs(trim(logstr), -1)
-               !
-            endif
-            !
-            src_struc_rule_close_src(i) = src_structures(i)%rule_close
             !
          endif
          !
@@ -779,90 +780,75 @@ contains
       drainage_structures = any(src_struc_type /= structure_dike_breach)
       !
       ! Write the per-structure descriptive block to the log file.
-      ! Emitted before the gate-status seeding so the per-gate init status
-      ! lines trail the structure block they annotate.
+      ! Emitted before the gate-position seeding so the per-gate init lines
+      ! trail the structure block they annotate.
       !
       call write_src_structures_log_summary()
       !
-      ! Initial-status seeding for rule-driven structures.
+      ! Initial-position seeding for rule-driven structures.
       !
       ! zs(:) has already been populated by initialize_domain -> initialize_hydro
       ! -> set_initial_conditions by the time we get here, so obs-point lookups
-      ! against zs are valid. For structures with no rule expressions the defaults
-      ! assigned above (status=1=open, fraction_open=1.0) already encode "no-op":
-      ! the state machine is skipped at runtime and the common-tail scaling by
-      ! fraction_open is a 1.0 multiply.
+      ! against zs are valid. Structures without rules keep the default
+      ! fraction_open = 1.0 ("always open"), a no-op in the common-tail scaling.
       !
-      ! Status encoding: 0=closed, 1=open, 2=opening, 3=closing.
+      ! For rule-driven structures the rule list is evaluated once (first match
+      ! wins) and the gate is snapped to the resulting target: open -> 1.0,
+      ! close -> 0.0. If the first match is "hold", or no rule fires, there is
+      ! no prior position to hold, so the gate starts closed (0.0).
       !
       do istruc = 1, nr_src_structures
          !
-         ! Skip structures without rules - keep the "always open" defaults.
+         ! Skip structures without rules - keep the "always open" default.
          !
-         if (src_struc_rule_open(istruc) <= 0 .and. src_struc_rule_close(istruc) <= 0) cycle
+         if (src_struc_rule_count(istruc) <= 0) cycle
          !
          nm_o1 = src_struc_nm_o1(istruc)
          nm_o2 = src_struc_nm_o2(istruc)
          !
          if (nm_o1 > 0) then
-            !
             zs_o1 = real(zs(nm_o1), 4)
-            !
          else
-            !
             zs_o1 = 0.0
-            !
          endif
          !
          if (nm_o2 > 0) then
-            !
             zs_o2 = real(zs(nm_o2), 4)
-            !
          else
-            !
             zs_o2 = 0.0
-            !
          endif
          !
-         open_fires  = evaluate_rule(src_struc_rule_open(istruc),  zs_o1, zs_o2)
-         close_fires = evaluate_rule(src_struc_rule_close(istruc), zs_o1, zs_o2)
+         ! First matching rule wins; default to hold (-> closed at init).
          !
-         if (open_fires .and. .not. close_fires) then
+         iop = gate_op_hold
+         !
+         do k = 1, src_struc_rule_count(istruc)
             !
-            src_struc_status(istruc)        = 1
+            if (evaluate_rule(rule_list_id(src_struc_rule_start(istruc) + k - 1), zs_o1, zs_o2)) then
+               !
+               iop = rule_list_op(src_struc_rule_start(istruc) + k - 1)
+               exit
+               !
+            endif
+            !
+         enddo
+         !
+         if (iop == gate_op_open) then
+            !
             src_struc_fraction_open(istruc) = 1.0
-            status_str                  = 'open'
-            !
-         elseif (.not. open_fires .and. close_fires) then
-            !
-            src_struc_status(istruc)        = 0
-            src_struc_fraction_open(istruc) = 0.0
-            status_str                  = 'closed'
-            !
-         elseif (open_fires .and. close_fires) then
-            !
-            src_struc_status(istruc)        = 1
-            src_struc_fraction_open(istruc) = 1.0
-            status_str                  = 'open'
-            write(logstr,'(a,a,a,a)')'Warning ! structure ', trim(src_struc_name(istruc)), &
-                 ': both open and close rules fire at init; keeping structure open'
-            call write_log(logstr, 0)
+            status_str                      = 'open'
             !
          else
             !
-            src_struc_status(istruc)        = 0
+            ! close, or hold/none at init (no prior position to hold)
+            !
             src_struc_fraction_open(istruc) = 0.0
-            status_str                  = 'closed'
+            status_str                      = 'closed'
             !
          endif
-         !
-         ! Transition timer is only consulted after a transition triggers;
-         ! seed with t0 so the first rule-driven transition has a sane baseline.
-         !
-         src_struc_t_state(istruc) = t0
          !
          write(logstr,'(a,a,a,a)')'structure ', trim(src_struc_name(istruc)), &
-              ' initialised status=', trim(status_str)
+              ' initialised ', trim(status_str)
          call write_log(logstr, 0)
          !
       enddo
@@ -894,12 +880,11 @@ contains
       real*8  :: t
       real*4  :: dt
       !
-      integer :: istruc, nm_s1, nm_s2, nm_o1, nm_o2
-      real*4  :: qq, elapsed, zs_o1, zs_o2
+      integer :: istruc, nm_s1, nm_s2, nm_o1, nm_o2, k, iop
+      real*4  :: qq, zs_o1, zs_o2, target_frac
       real*4  :: frac, wdt, mng, zsill, dist, dzds, hgate, qq0, alpha
       real*4  :: dh, a_eff
       real*4  :: h_up, h_dn, qq_sign
-      logical :: open_fires, close_fires
       !
       real*4  :: crest_breach, width_breach, z_crest_breach, z_min_breach
       real*4  :: tstart_breach, tstart_widening, t_phase1_deepening
@@ -924,26 +909,24 @@ contains
       !$acc                        src_struc_z_crest, src_struc_t_breach, src_struc_z_min, &
       !$acc                        src_struc_B0, src_struc_t0, src_struc_dike_core, &
       !$acc                        src_struc_breach_width, src_struc_breach_level, &
-      !$acc                        src_struc_distance, src_struc_status, src_struc_fraction_open, &
-      !$acc                        src_struc_t_state, src_struc_interruptible, &
-      !$acc                        src_struc_rule_open, src_struc_rule_close, &
+      !$acc                        src_struc_distance, src_struc_fraction_open, &
+      !$acc                        src_struc_rule_start, src_struc_rule_count, &
+      !$acc                        rule_list_op, rule_list_id, &
       !$acc                        rule_opcode, rule_atom, rule_cmp, rule_threshold, &
       !$acc                        rule_start, rule_length ) &
-      !$acc              private( nm_s1, nm_s2, nm_o1, nm_o2, qq, elapsed, &
+      !$acc              private( nm_s1, nm_s2, nm_o1, nm_o2, qq, k, iop, target_frac, &
       !$acc                       zs_o1, zs_o2, frac, wdt, mng, zsill, dist, dzds, hgate, qq0, alpha, &
       !$acc                       dh, a_eff, &
       !$acc                       h_up, h_dn, qq_sign, &
-      !$acc                       open_fires, close_fires, &
       !$acc                       crest_breach, width_breach, z_crest_breach, z_min_breach, &
       !$acc                       tstart_breach, tstart_widening, t_phase1_deepening, &
       !$acc                       vk_f1, vk_f2, uc_material, elapsed_widening_hr, dt_hr, &
       !$acc                       widening_deceleration, widening_rate )
       !$omp parallel do &
-      !$omp   private( nm_s1, nm_s2, nm_o1, nm_o2, qq, elapsed, &
+      !$omp   private( nm_s1, nm_s2, nm_o1, nm_o2, qq, k, iop, target_frac, &
       !$omp            zs_o1, zs_o2, frac, wdt, mng, zsill, dist, dzds, hgate, qq0, alpha, &
       !$omp            dh, a_eff, &
       !$omp            h_up, h_dn, qq_sign, &
-      !$omp            open_fires, close_fires, &
       !$omp            crest_breach, width_breach, z_crest_breach, z_min_breach, &
       !$omp            tstart_breach, tstart_widening, t_phase1_deepening, &
       !$omp            vk_f1, vk_f2, uc_material, elapsed_widening_hr, dt_hr, &
@@ -956,175 +939,84 @@ contains
          !
          if (nm_s1 > 0 .and. nm_s2 > 0) then
             !
-            ! Open/close rule state machine (any structure type, any status).
+            ! Ordered gate-rule list (any structure type).
             !
-            ! Only runs if the user provided at least one of rules_open /
-            ! rules_close. Structures without rules stay at the init-time
-            ! defaults (status=1=open, fraction_open=1.0), which turns the
-            ! common-tail scaling below into a no-op.
+            ! Only runs if the structure has rules. Structures without rules
+            ! stay at the init-time default fraction_open = 1.0 ("always open"),
+            ! which turns the common-tail scaling below into a no-op.
             !
-            ! Status codes: 0=closed, 1=open, 2=opening, 3=closing.
-            ! Transient states 2 and 3 advance purely on elapsed time so the
-            ! state machine cannot thrash; rule evaluation happens in the
-            ! terminal states 0 and 1 only. Obs points feed the rule inputs
-            ! and default to the src pair in the marshal.
+            ! Each step the rules are evaluated in order; the first whose "when"
+            ! expression fires sets the target gate position (open -> 1.0,
+            ! close -> 0.0, hold -> freeze at the current fraction). If no rule
+            ! fires the gate holds. The gate then ramps toward the target at
+            ! 1/opening_duration (opening) or 1/closing_duration (closing); a
+            ! target that flips mid-ramp simply reverses direction from the
+            ! current fraction, so the scheme is interruptible by construction.
+            ! Obs points feed the rule inputs and default to the src pair.
             !
-            if (src_struc_rule_open(istruc) > 0 .or. src_struc_rule_close(istruc) > 0) then
+            if (src_struc_rule_count(istruc) > 0) then
                !
                nm_o1 = src_struc_nm_o1(istruc)
                nm_o2 = src_struc_nm_o2(istruc)
                !
                if (nm_o1 > 0) then
-                  !
                   zs_o1 = real(zs(nm_o1), 4)
-                  !
                else
-                  !
                   zs_o1 = 0.0
-                  !
                endif
                !
                if (nm_o2 > 0) then
-                  !
                   zs_o2 = real(zs(nm_o2), 4)
-                  !
                else
-                  !
                   zs_o2 = 0.0
+               endif
+               !
+               ! First matching rule wins; default to hold when none fires.
+               !
+               iop = gate_op_hold
+               !
+               do k = 1, src_struc_rule_count(istruc)
+                  !
+                  if (evaluate_rule(rule_list_id(src_struc_rule_start(istruc) + k - 1), zs_o1, zs_o2)) then
+                     !
+                     iop = rule_list_op(src_struc_rule_start(istruc) + k - 1)
+                     exit
+                     !
+                  endif
+                  !
+               enddo
+               !
+               frac = src_struc_fraction_open(istruc)
+               !
+               if (iop == gate_op_open) then
+                  target_frac = 1.0
+               elseif (iop == gate_op_close) then
+                  target_frac = 0.0
+               else
+                  target_frac = frac   ! hold: freeze at current fraction
+               endif
+               !
+               ! Ramp toward the target. A zero/negative duration snaps instantly.
+               !
+               if (target_frac > frac) then
+                  !
+                  if (src_struc_opening_duration(istruc) <= 0.0) then
+                     frac = target_frac
+                  else
+                     frac = min(frac + dt / src_struc_opening_duration(istruc), target_frac)
+                  endif
+                  !
+               elseif (target_frac < frac) then
+                  !
+                  if (src_struc_closing_duration(istruc) <= 0.0) then
+                     frac = target_frac
+                  else
+                     frac = max(frac - dt / src_struc_closing_duration(istruc), target_frac)
+                  endif
                   !
                endif
                !
-               select case (int(src_struc_status(istruc)))
-                  !
-                  case (0)
-                     !
-                     ! closed - look for an open trigger
-                     !
-                     open_fires = evaluate_rule(src_struc_rule_open(istruc), zs_o1, zs_o2)
-                     !
-                     if (open_fires) then
-                        !
-                        src_struc_status(istruc)  = 2
-                        src_struc_t_state(istruc) = real(t, 4)
-                        !
-                     endif
-                     !
-                  case (1)
-                     !
-                     ! open - look for a close trigger
-                     !
-                     close_fires = evaluate_rule(src_struc_rule_close(istruc), zs_o1, zs_o2)
-                     !
-                     if (close_fires) then
-                        !
-                        src_struc_status(istruc)  = 3
-                        src_struc_t_state(istruc) = real(t, 4)
-                        !
-                     endif
-                     !
-                  case (2)
-                     !
-                     ! opening - advance on elapsed time. If interruptible and
-                     ! the close rule fires, reverse into closing, resuming the
-                     ! ramp from the current fraction_open so there is no jump.
-                     !
-                     close_fires = .false.
-                     !
-                     if (src_struc_interruptible(istruc) == 1 .and. src_struc_rule_close(istruc) > 0) then
-                        !
-                        close_fires = evaluate_rule(src_struc_rule_close(istruc), zs_o1, zs_o2)
-                        !
-                     endif
-                     !
-                     if (close_fires) then
-                        !
-                        ! Re-seed t_state so closing continues from the current
-                        ! fraction f: in closing, f = 1 - elapsed/closing_duration,
-                        ! so elapsed = (1 - f) * closing_duration.
-                        !
-                        if (src_struc_closing_duration(istruc) > 0.0) then
-                           !
-                           src_struc_t_state(istruc) = real(t, 4) - &
-                                (1.0 - src_struc_fraction_open(istruc)) * src_struc_closing_duration(istruc)
-                           !
-                        else
-                           !
-                           src_struc_t_state(istruc) = real(t, 4)
-                           !
-                        endif
-                        !
-                        src_struc_status(istruc) = 3
-                        !
-                     else
-                        !
-                        elapsed = real(t, 4) - src_struc_t_state(istruc)
-                        !
-                        if (src_struc_opening_duration(istruc) <= 0.0 .or. &
-                            elapsed >= src_struc_opening_duration(istruc)) then
-                           !
-                           src_struc_status(istruc)        = 1
-                           src_struc_fraction_open(istruc) = 1.0
-                           !
-                        else
-                           !
-                           src_struc_fraction_open(istruc) = elapsed / src_struc_opening_duration(istruc)
-                           !
-                        endif
-                        !
-                     endif
-                     !
-                  case (3)
-                     !
-                     ! closing - advance on elapsed time. If interruptible and
-                     ! the open rule fires, reverse into opening, resuming the
-                     ! ramp from the current fraction_open so there is no jump.
-                     !
-                     open_fires = .false.
-                     !
-                     if (src_struc_interruptible(istruc) == 1 .and. src_struc_rule_open(istruc) > 0) then
-                        !
-                        open_fires = evaluate_rule(src_struc_rule_open(istruc), zs_o1, zs_o2)
-                        !
-                     endif
-                     !
-                     if (open_fires) then
-                        !
-                        ! Re-seed t_state so opening continues from the current
-                        ! fraction f: in opening, f = elapsed/opening_duration,
-                        ! so elapsed = f * opening_duration.
-                        !
-                        if (src_struc_opening_duration(istruc) > 0.0) then
-                           !
-                           src_struc_t_state(istruc) = real(t, 4) - &
-                                src_struc_fraction_open(istruc) * src_struc_opening_duration(istruc)
-                           !
-                        else
-                           !
-                           src_struc_t_state(istruc) = real(t, 4)
-                           !
-                        endif
-                        !
-                        src_struc_status(istruc) = 2
-                        !
-                     else
-                        !
-                        elapsed = real(t, 4) - src_struc_t_state(istruc)
-                        !
-                        if (src_struc_closing_duration(istruc) <= 0.0 .or. &
-                            elapsed >= src_struc_closing_duration(istruc)) then
-                           !
-                           src_struc_status(istruc)        = 0
-                           src_struc_fraction_open(istruc) = 0.0
-                           !
-                        else
-                           !
-                           src_struc_fraction_open(istruc) = 1.0 - elapsed / src_struc_closing_duration(istruc)
-                           !
-                        endif
-                        !
-                     endif
-                     !
-               end select
+               src_struc_fraction_open(istruc) = frac
                !
             endif
             !
@@ -1460,12 +1352,18 @@ contains
       !    height = ...                                 ! culvert pipe height (m)
       !    invert_1 = ... ; invert_2 = ...              ! culvert invert elevations at src_1/src_2 ends
       !    submergence_ratio = ...                      ! culvert submergence threshold h_dn/h_up (-)
-      !    rules_open  = "(z1<0.5 | z2-z1>0.05) & z2<1.5"   ! optional trigger expr
-      !    rules_close = "z2>2.0"                           ! optional trigger expr
-      !    interruptible = true                             ! optional, default false:
-      !                                 ! allow an in-progress opening/closing ramp to be
-      !                                 ! reversed mid-way by the opposite rule (resumes
-      !                                 ! from the current fraction; no jump).
+      !    [[src_structure.rule]]      ! optional, ordered list of gate control rules
+      !    operation = "close"         !   one of "open" / "close" / "hold"
+      !    when      = "z1-z2 < -0.03" !   trigger expression (rule mini-language)
+      !    [[src_structure.rule]]
+      !    operation = "open"
+      !    when      = "z1 > -0.15 & z1-z2 > 0.09"
+      !                                 ! Rules are evaluated in order; the first whose
+      !                                 ! "when" fires sets the target (open=1, close=0,
+      !                                 ! hold=freeze). If none fires the gate holds.
+      !                                 ! The gate ramps toward the target over
+      !                                 ! opening_duration / closing_duration; a target
+      !                                 ! flip mid-ramp reverses smoothly (interruptible).
       !
       ! Per-type required keys (enforced on parse):
       !    pump           : name, src_1, src_2, q
@@ -1496,8 +1394,10 @@ contains
       type(toml_error), allocatable    :: err
       type(toml_array), pointer        :: arr_structs
       type(toml_table), pointer        :: tbl_struct
-      character(len=:), allocatable    :: name_str, type_str, rule_str, dir_str, type_str_lc
-      integer                          :: n_struct, i, stat, ierr_parse
+      type(toml_array), pointer        :: arr_rules
+      type(toml_table), pointer        :: tbl_rule
+      character(len=:), allocatable    :: name_str, type_str, rule_str, dir_str, type_str_lc, op_str
+      integer                          :: n_struct, n_rule, i, j, stat, ierr_parse
       !
       ierr = 0
       !
@@ -1759,22 +1659,91 @@ contains
             !
          endif
          !
-         ! Optional rules_open / rules_close string expressions. Absent keys
-         ! leave the rule strings unallocated on the derived type; marshal
-         ! treats that as "no trigger".
+         ! Optional ordered list of gate control rules under the sub-key
+         ! "rule" (an array of tables). Absent / empty leaves rules(:)
+         ! unallocated, which the marshal treats as "no rules".
          !
-         if (allocated(rule_str)) deallocate(rule_str)
-         call get_value(tbl_struct, 'rules_open', rule_str, stat=stat)
-         if (allocated(rule_str)) structures(i)%rule_open = rule_str
+         nullify(arr_rules)
+         call get_value(tbl_struct, 'rule', arr_rules, requested=.false., stat=stat)
          !
-         if (allocated(rule_str)) deallocate(rule_str)
-         call get_value(tbl_struct, 'rules_close', rule_str, stat=stat)
-         if (allocated(rule_str)) structures(i)%rule_close = rule_str
-         !
-         ! Optional: allow an in-progress transition to be reversed mid-ramp by
-         ! the opposite rule. Default false (transitions run to completion).
-         !
-         call get_value(tbl_struct, 'interruptible', structures(i)%interruptible, .false., stat=stat)
+         if (associated(arr_rules)) then
+            !
+            if (.not. is_array_of_tables(arr_rules)) then
+               !
+               write(logstr,'(a,i0,a)')' Error ! Key "rule" must be an array of tables in src_structure entry ', i, &
+                    ' (use [[src_structure.rule]])'
+               call write_log(logstr, 1)
+               ierr = 1
+               call cleanup_on_error()
+               return
+               !
+            endif
+            !
+            n_rule = len(arr_rules)
+            !
+            if (n_rule > 0) then
+               !
+               allocate(structures(i)%rules(n_rule))
+               !
+               do j = 1, n_rule
+                  !
+                  nullify(tbl_rule)
+                  call get_value(arr_rules, j, tbl_rule, stat=stat)
+                  !
+                  if (.not. associated(tbl_rule)) then
+                     write(logstr,'(a,i0,a,i0,a)')' Error ! rule ', j, ' in src_structure entry ', i, ' is not a table'
+                     call write_log(logstr, 1)
+                     ierr = 1
+                     call cleanup_on_error()
+                     return
+                  endif
+                  !
+                  ! operation (required): open / close / hold
+                  !
+                  if (allocated(op_str)) deallocate(op_str)
+                  call get_value(tbl_rule, 'operation', op_str, stat=stat)
+                  !
+                  if (.not. allocated(op_str)) then
+                     write(logstr,'(a,i0,a,i0)')' Error ! Missing "operation" in rule ', j, &
+                          ' of src_structure entry ', i
+                     call write_log(logstr, 1)
+                     ierr = 1
+                     call cleanup_on_error()
+                     return
+                  endif
+                  !
+                  call parse_operation(op_str, structures(i)%rules(j)%op, ierr_parse)
+                  !
+                  if (ierr_parse /= 0) then
+                     write(logstr,'(a,a,a,i0,a,i0)')' Error ! Unknown operation "', trim(op_str), &
+                          '" in rule ', j, ' of src_structure entry ', i
+                     call write_log(logstr, 1)
+                     ierr = 1
+                     call cleanup_on_error()
+                     return
+                  endif
+                  !
+                  ! when (required): the trigger expression
+                  !
+                  if (allocated(rule_str)) deallocate(rule_str)
+                  call get_value(tbl_rule, 'when', rule_str, stat=stat)
+                  !
+                  if (.not. allocated(rule_str)) then
+                     write(logstr,'(a,i0,a,i0)')' Error ! Missing "when" in rule ', j, &
+                          ' of src_structure entry ', i
+                     call write_log(logstr, 1)
+                     ierr = 1
+                     call cleanup_on_error()
+                     return
+                  endif
+                  !
+                  structures(i)%rules(j)%when = rule_str
+                  !
+               enddo
+               !
+            endif
+            !
+         endif
          !
       enddo
       !
@@ -2030,6 +1999,50 @@ contains
    !
    !-----------------------------------------------------------------------------------------------------!
    !
+   subroutine parse_operation(str, code, ierr)
+      !
+      ! Translate a gate-rule "operation" string to one of the gate_op_* codes.
+      ! Accepts "open" / "close" / "hold" case-insensitively.
+      !
+      ! Called from: read_toml_src_structures (this module), once per rule in
+      ! a structure's [[src_structure.rule]] list.
+      !
+      implicit none
+      !
+      character(len=*), intent(in) :: str
+      integer, intent(out)         :: code
+      integer, intent(out)         :: ierr
+      !
+      character(len=:), allocatable :: s
+      !
+      ierr = 0
+      code = gate_op_hold
+      s    = to_lower(str)
+      !
+      select case (s)
+         !
+         case ('open')
+            !
+            code = gate_op_open
+            !
+         case ('close')
+            !
+            code = gate_op_close
+            !
+         case ('hold')
+            !
+            code = gate_op_hold
+            !
+         case default
+            !
+            ierr = 1
+            !
+      end select
+      !
+   end subroutine
+   !
+   !-----------------------------------------------------------------------------------------------------!
+   !
    function to_lower(str) result(lower)
       !
       ! Return a lowercase copy of str (ASCII only).
@@ -2073,8 +2086,8 @@ contains
       !
       implicit none
       !
-      integer :: i
-      character(len=32) :: type_str, dir_str
+      integer :: i, k
+      character(len=32) :: type_str, dir_str, op_str
       !
       if (nr_src_structures <= 0) return
       !
@@ -2256,54 +2269,24 @@ contains
             !
          endif
          !
-         if (src_struc_rule_open(i) > 0) then
+         if (src_struc_rule_count(i) > 0) then
             !
-            if (len_trim(src_struc_rule_open_src(i)) > 0) then
-               !
-               write(logstr,'(a22,1x,a,a,a)')       '  rules_open         :',       '"', trim(src_struc_rule_open_src(i)), '"'
-               !
-            else
-               !
-               write(logstr,'(a22,1x,a)')           '  rules_open         :',       '(set)'
-               !
-            endif
-            !
+            write(logstr,'(a22,1x,i0)')             '  rules              :',      src_struc_rule_count(i)
             call write_log(logstr, 0)
             !
-         endif
-         !
-         if (src_struc_rule_close(i) > 0) then
-            !
-            if (len_trim(src_struc_rule_close_src(i)) > 0) then
+            do k = 1, src_struc_rule_count(i)
                !
-               write(logstr,'(a22,1x,a,a,a)')       '  rules_close        :',      '"', trim(src_struc_rule_close_src(i)), '"'
+               select case (rule_list_op(src_struc_rule_start(i) + k - 1))
+                  case (gate_op_open);  op_str = 'open'
+                  case (gate_op_close); op_str = 'close'
+                  case default;         op_str = 'hold'
+               end select
                !
-            else
+               write(logstr,'(a,i0,1x,a8,1x,a,a,a)') '    ', k, adjustl(op_str), &
+                    '"', trim(rule_list_src(src_struc_rule_start(i) + k - 1)), '"'
+               call write_log(logstr, 0)
                !
-               write(logstr,'(a22,1x,a)')           '  rules_close        :',      '(set)'
-               !
-            endif
-            !
-            call write_log(logstr, 0)
-            !
-         endif
-         !
-         ! Interruptible flag, only meaningful (and only printed) for rule-driven
-         ! structures.
-         !
-         if (src_struc_rule_open(i) > 0 .or. src_struc_rule_close(i) > 0) then
-            !
-            if (src_struc_interruptible(i) == 1) then
-               !
-               write(logstr,'(a22,1x,a)')           '  interruptible      :',      'true'
-               !
-            else
-               !
-               write(logstr,'(a22,1x,a)')           '  interruptible      :',      'false'
-               !
-            endif
-            !
-            call write_log(logstr, 0)
+            enddo
             !
          endif
          !
@@ -2313,7 +2296,7 @@ contains
          !
          if (src_struc_type(i) /= structure_gate) then
             !
-            if ((src_struc_rule_open(i)  > 0 .or. src_struc_rule_close(i) > 0) .and. &
+            if (src_struc_rule_count(i) > 0 .and. &
                 (src_struc_opening_duration(i) > 0.0 .or. src_struc_closing_duration(i) > 0.0)) then
                !
                write(logstr,'(a22,1x,a,a)')         '  opening_duration   :',  trim(fmt_real(src_struc_opening_duration(i), 2)),  ' (s)'
@@ -2544,8 +2527,12 @@ contains
                write(u_out,'(a,es14.6)')  'mannings_n       = ', g_mann
                write(u_out,'(a,es14.6)')  'opening_duration = ', g_tcls
                write(u_out,'(a,es14.6)')  'closing_duration = ', g_tcls
-               write(u_out,'(a,a,a)')     'rules_open       = "', trim(rule_open_str),  '"'
-               write(u_out,'(a,a,a)')     'rules_close      = "', trim(rule_close_str), '"'
+               write(u_out,'(a)')         '[[src_structure.rule]]'
+               write(u_out,'(a)')         'operation = "open"'
+               write(u_out,'(a,a,a)')     'when      = "', trim(rule_open_str),  '"'
+               write(u_out,'(a)')         '[[src_structure.rule]]'
+               write(u_out,'(a)')         'operation = "close"'
+               write(u_out,'(a,a,a)')     'when      = "', trim(rule_close_str), '"'
                write(u_out,'(a)')         ''
                !
                cycle
