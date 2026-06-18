@@ -503,14 +503,6 @@ contains
                   !
                   dqyudy = ( vp * (uu_nm - uu_ndm) + vn * (uu_num - uu_nm) ) * dyuvinv
                   !
-                  ! Previous (velocity-average, single-sided upwind) form -- kept for reference:
-                  !
-                  ! if (vu >= 0.0) then                   ! cross term: u advected by vu (upwind)
-                  !    dqyudy = vu * (uu_nm - uu_ndm) * dyuvinv
-                  ! else
-                  !    dqyudy = vu * (uu_num - uu_nm) * dyuvinv
-                  ! endif
-                  !
                   adv = - phi * (dqxudx + dqyudy)        ! velocity tendency [m/s^2]
                   !
                   frc = frc + min(max(adv, -advlim), advlim)   ! add limited advective acceleration
