@@ -80,6 +80,7 @@ module sfincs_nonhydrostatic
    real*4    :: nonh_disp        ! Keller-box vertical factor (dispersion tuning; 1.0 ~ Airy, 2.0 strict)
    real*4    :: nonh_pmax        ! depth limiter: |pnh| <= nonh_pmax * rho g H; 0 = off
    real*4    :: nonh_tol         ! CG relative tolerance (scaled residual norm)
+   logical   :: nonh_movingbed   ! add d(zb)/dt (= dzbext/dt) to the bottom kinematic w_b, so a moving seafloor radiates a depth-filtered (Kajiura-like) surface response
    !
    ! Non-hydrostatic cell mask (filled from the quadtree file in sfincs_domain)
    !
@@ -1193,6 +1194,24 @@ contains
       ws(i) = ws(i) - (wb(i) - wb0(i)) + (kbfac * dt / (rhow * Dnm(i))) * pnh(i)
    enddo
    !$omp end parallel do
+   !
+   ! Optional moving-bed source: add d(zb)/dt = dzbext/dt to the bottom kinematic
+   ! w_b (full condition w_b = d(zb)/dt + u.d(zb)/dx), so a moving seafloor
+   ! radiates a depth-filtered (Kajiura-like) surface response instead of being
+   ! stamped onto zs.  Kept in a SEPARATE flag-guarded loop so the step-7 loop
+   ! above is byte-for-byte the original when the feature is off.  Adding the term
+   ! here (wb += d(zb)/dt, ws -= d(zb)/dt) is algebraically identical to carrying
+   ! it inside step 7 (it cancels through the ws = ws - (wb - wb0) update).
+   if (nonh_movingbed .and. use_dzbext .and. dt > 0.0) then
+      !$omp parallel do schedule ( static ) private ( i, nm )
+      do i = 1, nrows
+         nm = nm_index_of_row(i)
+         if (zs(nm) - zb(nm) <= huthresh_nh) cycle
+         wb(i) = wb(i) + dzbext(nm) / dt
+         ws(i) = ws(i) - dzbext(nm) / dt
+      enddo
+      !$omp end parallel do
+   endif
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate

@@ -1781,6 +1781,7 @@ contains
    integer :: ip
    integer :: nm
    integer :: nmu
+   integer :: ilevel
    real*4  :: avg_dzb
    !
    if (.not. subgrid) then
@@ -1812,6 +1813,17 @@ contains
          !
          subgrid_z_zmin(:) = subgrid_z_zmin(:) + dzbext(:)
          subgrid_z_zmax(:) = subgrid_z_zmax(:) + dzbext(:)
+         !
+         ! The per-level volume->water-level table holds ABSOLUTE levels, so it
+         ! must translate with the bed as well -- otherwise partially-wet cells
+         ! (0 < z_volume < volmax, the interpolation branch in
+         ! compute_water_levels_subgrid) would not follow the moving bed.  A rigid
+         ! vertical shift leaves the volume bins (volmax / dzvol) unchanged, so
+         ! only the levels move.  Keep the -20 m floor used in the level lookups.
+         !
+         do ilevel = 1, subgrid_nlevels
+            subgrid_z_dep(ilevel, :) = max(subgrid_z_dep(ilevel, :) + dzbext(:), -20.0)
+         enddo
          !
          ! UV-point arrays shift by the average delta of the two neighbours,
          ! then clamp uv_zmin from below by the higher of the two updated

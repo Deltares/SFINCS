@@ -196,6 +196,7 @@ contains
    call read_real_input(500, 'nonh_tstop', nonh_tstop, -999.0)
    call read_real_input(500, 'nonh_tol', nonh_tol, 0.01)
    call read_int_input(500, 'nonh_itermax', nonh_itermax, 100)
+   call read_logical_input(500, 'nonh_movingbed', nonh_movingbed, .false.)  ! add d(zb)/dt to the bottom kinematic w_b (moving-seafloor source via dzbext)
    call read_real_input(500, 'nonh_filter', nonh_filter, 0.5)               ! spatial 2dx filter on pnh (0 = off, ~0.25-0.5 damps grid mode)
    call read_real_input(500, 'nonh_dzbmax', nonh_dzbmax, 0.1)               ! cap on |d(zb)/dx| in bottom kinematic wb (default 0.1; clips near-vertical walls, leaves real slopes); 0 = no cap
    call read_int_input(500, 'nonh_fadein', nonh_fadein, 0)                  ! open-boundary nonh fade-in width (cells): nonh ramps 0->full over N cells from the boundary; 0 = off
