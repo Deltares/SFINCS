@@ -85,8 +85,8 @@
 ! Module-level time-varying cell writers:
 !   write_cell_var      (ncid, varid, source, nt, [use_sw_index, check_kcs,
 !                                                  scale, min_value])
-!   write_cell_var_wet  (ncid, varid, source, zref, nt, output_delta,
-!                        [check_wet])
+!   write_cell_var_wet  (ncid, varid, source, zref, nt, [check_wet])
+!   write_cell_var_depth(ncid, varid, water_level, bed_level, nt, [check_wet])
 !
 ! Definition wrappers used inside ncoutput_map_init (these reuse the
 ! enclosing scope's dims_* / coord_str / crsgeo / nc_deflate_level so call
@@ -1143,9 +1143,9 @@ contains
    ! Water level / depth
    ! -------------------------------------------------------
    if (subgrid) then
-      call write_cell_var_wet(map_file%ncid, map_file%zs_varid, real(zs,4), subgrid_z_zmin, ntmapout, output_delta=.false.)
+      call write_cell_var_wet(map_file%ncid, map_file%zs_varid, real(zs,4), subgrid_z_zmin, ntmapout)
    else
-      call write_cell_var_wet(map_file%ncid, map_file%zs_varid, real(zs,4), zb,             ntmapout, output_delta=.false.)
+      call write_cell_var_wet(map_file%ncid, map_file%zs_varid, real(zs,4), zb,             ntmapout)
    endif
    !
    ! Optional time-varying zb (regular grid, non-subgrid)
@@ -1156,11 +1156,11 @@ contains
    ! h = zs - zref. Quadtree filters wet cells (legacy); regular keeps all.
    if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
       if (subgrid) then
-         call write_cell_var_wet(map_file%ncid, map_file%h_varid, real(zs,4), subgrid_z_zmin, ntmapout, &
-              output_delta=.true., check_wet=use_quadtree)
+         call write_cell_var_depth(map_file%ncid, map_file%h_varid, real(zs,4), subgrid_z_zmin, ntmapout, &
+              check_wet=use_quadtree)
       else
-         call write_cell_var_wet(map_file%ncid, map_file%h_varid, real(zs,4), zb,             ntmapout, &
-              output_delta=.true., check_wet=use_quadtree)
+         call write_cell_var_depth(map_file%ncid, map_file%h_varid, real(zs,4), zb,             ntmapout, &
+              check_wet=use_quadtree)
       endif
    endif
    !
@@ -1442,38 +1442,39 @@ contains
    ! Maximum water level
    if (store_maximum_waterlevel) then
       if (subgrid) then
-         call write_cell_var_wet(map_file%ncid, map_file%zsmax_varid, zsmax, subgrid_z_zmin, ntmaxout, output_delta=.false.)
+         call write_cell_var_wet(map_file%ncid, map_file%zsmax_varid, zsmax, subgrid_z_zmin, ntmaxout)
       else
-         call write_cell_var_wet(map_file%ncid, map_file%zsmax_varid, zsmax, zb,             ntmaxout, output_delta=.false.)
+         call write_cell_var_wet(map_file%ncid, map_file%zsmax_varid, zsmax, zb,             ntmaxout)
       endif
    endif
    !
    ! Maximum water depth (optional, supports subgrid mean-depth)
    if (store_maximum_waterlevel .and. (.not. subgrid .or. store_hsubgrid)) then
-      allocate(hmax_out(np))
-      hmax_out = FILL_VALUE
-      if (store_hmean .and. subgrid) then
+      if (subgrid .and. store_hmean) then
+         ! 
+         ! Subgrid mean depth needs a per-cell precompute; mask to wet cells and write.
+         allocate(hmax_out(np))
          allocate(hmean(np))
+         hmax_out = FILL_VALUE
+         !
          call compute_subgrid_mean_depth(zsmax, hmean)
-      endif
-      do nm = 1, np
-         if (subgrid) then
+         !
+         do nm = 1, np
             if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
-               if (store_hmean) then
-                  hmax_out(nm) = hmean(nm)
-               else
-                  hmax_out(nm) = zsmax(nm) - subgrid_z_zmin(nm)
-               endif
+               hmax_out(nm) = hmean(nm)
             endif
-         else
-            if ( (zsmax(nm) - zb(nm)) > huthresh) then
-               hmax_out(nm) = zsmax(nm) - zb(nm)
-            endif
-         endif
-      enddo
-      call write_cell_var(map_file%ncid, map_file%hmax_varid, hmax_out, ntmaxout, check_kcs=.true.)
-      deallocate(hmax_out)
-      if (allocated(hmean)) deallocate(hmean)
+         enddo
+         !
+         call write_cell_var(map_file%ncid, map_file%hmax_varid, hmax_out, ntmaxout, check_kcs=.true.)
+         !
+         deallocate(hmax_out)
+         deallocate(hmean)
+         !
+      elseif (subgrid) then
+         call write_cell_var_depth(map_file%ncid, map_file%hmax_varid, zsmax, subgrid_z_zmin, ntmaxout)
+      else
+         call write_cell_var_depth(map_file%ncid, map_file%hmax_varid, zsmax, zb,             ntmaxout)
+      endif
    endif
    !
    ! Cumulative rainfall (always when store_cumulative_precipitation) and

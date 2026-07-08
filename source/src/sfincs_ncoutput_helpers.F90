@@ -10,7 +10,7 @@
 !   - Dimension-context module variables set once by ncoutput_map_init before
 !     any def_* calls: nsd, dims_s, dims_st, dims_sm, coord_str
 !   - pt_coord parameter used by def_time_point_float / def_his_point_coord
-!   - Map-output writers: write_cell_var, write_cell_var_wet,
+!   - Map-output writers: write_cell_var, write_cell_var_wet, write_cell_var_depth,
 !       put_static_cell_float, put_static_cell_mask
 !   - Map-init def wrappers: def_static_cell_float, def_static_cell_int,
 !       def_time_cell_float, def_maxtime_cell_float, add_ugrid_face_attrs,
@@ -180,25 +180,23 @@ contains
       endif
    end subroutine write_cell_var
 
-   subroutine write_cell_var_wet(ncid, varid, source, zref, nt, output_delta, check_wet)
+   subroutine write_cell_var_wet(ncid, varid, source, zref, nt, check_wet)
       !
-      ! Wet-cell filtered writer for zs/h/zsmax/hmax.
-      ! On quadtree: skips kcs<=0 cells. On both grids: when check_wet (default .true.),
-      ! only writes cells with (source-zref) > huthresh. If output_delta, writes the
-      ! delta instead of source.
+      ! Wet-cell filtered writer for a cell variable (e.g. zs / zsmax).
+      ! On quadtree: skips kcs<=0 cells. On both grids: when check_wet (default
+      ! .true.), only writes cells where (source-zref) > huthresh, i.e. the cell
+      ! is wet. To write the depth (source-zref) itself, use write_cell_var_depth.
       !
       use sfincs_data
       use quadtree
       !
       integer, intent(in)           :: ncid, varid, nt
       real*4,  intent(in)           :: source(:), zref(:)
-      logical, intent(in)           :: output_delta
       logical, intent(in), optional :: check_wet
       !
       real*4,  allocatable :: buf_q(:), buf_r(:,:)
       logical :: filt_wet
       integer :: nm, nmq
-      real*4  :: val
       !
       filt_wet = .true.; if (present(check_wet)) filt_wet = check_wet
       !
@@ -210,11 +208,7 @@ contains
             if (nm > 0) then
                if (kcs(nm) > 0) then
                   if (.not. filt_wet .or. (source(nm) - zref(nm)) > huthresh) then
-                     if (output_delta) then
-                        buf_q(nmq) = source(nm) - zref(nm)
-                     else
-                        buf_q(nmq) = source(nm)
-                     endif
+                     buf_q(nmq) = source(nm)
                   endif
                endif
             endif
@@ -225,17 +219,62 @@ contains
          buf_r = FILL_VALUE
          do nm = 1, np
             if (.not. filt_wet .or. (source(nm) - zref(nm)) > huthresh) then
-               if (output_delta) then
-                  val = source(nm) - zref(nm)
-               else
-                  val = source(nm)
-               endif
-               buf_r(z_index_z_m(nm), z_index_z_n(nm)) = val
+               buf_r(z_index_z_m(nm), z_index_z_n(nm)) = source(nm)
             endif
          enddo
          NF90(nf90_put_var(ncid, varid, buf_r, (/1, 1, nt/)))
       endif
    end subroutine write_cell_var_wet
+
+   subroutine write_cell_var_depth(ncid, varid, water_level, bed_level, nt, check_wet)
+      !
+      ! Wet-cell filtered writer for the water depth (h).
+      ! Writes depth = water_level - bed_level, only in cells that are wet, i.e.
+      ! where that depth exceeds huthresh. When check_wet is .false. the depth
+      ! test is skipped and the depth is written in every cell.
+      ! On quadtree: additionally skips kcs<=0 cells.
+      !
+      use sfincs_data
+      use quadtree
+      !
+      integer, intent(in)           :: ncid, varid, nt
+      real*4,  intent(in)           :: water_level(:), bed_level(:)
+      logical, intent(in), optional :: check_wet
+      !
+      real*4,  allocatable :: buf_q(:), buf_r(:,:)
+      logical :: filt_wet
+      integer :: nm, nmq
+      real*4  :: depth
+      !
+      filt_wet = .true.; if (present(check_wet)) filt_wet = check_wet
+      !
+      if (use_quadtree) then
+         allocate(buf_q(quadtree_nr_points))
+         buf_q = FILL_VALUE
+         do nmq = 1, quadtree_nr_points
+            nm = index_sfincs_in_quadtree(nmq)
+            if (nm > 0) then
+               if (kcs(nm) > 0) then
+                  depth = water_level(nm) - bed_level(nm)
+                  if (.not. filt_wet .or. depth > huthresh) then
+                     buf_q(nmq) = depth
+                  endif
+               endif
+            endif
+         enddo
+         NF90(nf90_put_var(ncid, varid, buf_q, (/1, nt/)))
+      else
+         allocate(buf_r(mmax, nmax))
+         buf_r = FILL_VALUE
+         do nm = 1, np
+            depth = water_level(nm) - bed_level(nm)
+            if (.not. filt_wet .or. depth > huthresh) then
+               buf_r(z_index_z_m(nm), z_index_z_n(nm)) = depth
+            endif
+         enddo
+         NF90(nf90_put_var(ncid, varid, buf_r, (/1, 1, nt/)))
+      endif
+   end subroutine write_cell_var_depth
 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
