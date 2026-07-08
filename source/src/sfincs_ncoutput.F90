@@ -127,8 +127,8 @@
 ! - the variable is grid-specific topology (UGRID mesh2d / face_node_connectivity
 !   on quadtree vs SGRID face_x / corner_x / sfincsgrid on regular) and the
 !   Conventions string that goes with it;
-! - source array names differ per grid (SnapWave: snapwave_H on quadtree,
-!   hm0 on regular — fix in sfincs_snapwave is a separate cleanup target).
+! - the variable itself is grid-agnostic (SnapWave output now reads the
+!   snapwave_* node arrays via use_sw_index on both quadtree and regular).
 !
 ! Model-physics asymmetries that propagate into output (not a netCDF concern):
 ! - dynamic bed level (`store_dynamic_bed_level`) only updates on regular
@@ -592,15 +592,15 @@ contains
       call def_time_cell_float('hm0ig', map_file%hm0ig_varid, 'm', 'Hm0 infragravity wave height', &
            standard_name='hm0_ig_wave_height')
       !
+      call def_time_cell_float('tp', map_file%tp_varid, 's', 'Peak wave period', standard_name='peak_wave_period')
+      !
+      call def_time_cell_float('tpig', map_file%tpig_varid, 's', 'Peak infragravity wave period', &
+           standard_name='peak_ig_wave_period')
+      !
       if (store_wave_forces) then
          call def_time_cell_float('fwx', map_file%fwx_varid, 'm', 'Wave force x-component', standard_name='wave_force_x')
          !
          call def_time_cell_float('fwy', map_file%fwy_varid, 'm', 'Wave force y-component', standard_name='wave_force_y')
-         !
-         call def_time_cell_float('tp', map_file%tp_varid, 's', 'Peak wave period', standard_name='peak_wave_period')
-         !
-         call def_time_cell_float('tpig', map_file%tpig_varid, 's', 'Peak infragravity wave period', &
-              standard_name='peak_ig_wave_period')
          !
          call def_time_cell_float('beta', map_file%beta_varid, '-', 'Mean local bed slope', &
               standard_name='directionally_averaged_local_bed_slope')
@@ -609,8 +609,7 @@ contains
               standard_name='snapwave_waterdepth')
       endif
       !
-      ! wavdir: quadtree only
-      if (use_quadtree .and. store_wave_direction) then
+      if (store_wave_direction) then
          call def_time_cell_float('wavdir', map_file%wavdir_varid, 'degrees', 'Mean wave angle (deg)', &
               standard_name='mean_wave_direction')
       endif
@@ -1216,34 +1215,22 @@ contains
    endif
    !
    ! -------------------------------------------------------
-   ! SnapWave (source-array names differ between grid types)
+   ! SnapWave (all fields read the snapwave_* node arrays via use_sw_index,
+   ! so quadtree and regular grids share the same output path)
    ! -------------------------------------------------------
    if (snapwave) then
-      if (use_quadtree) then
-         call write_cell_var(map_file%ncid, map_file%hm0_varid,   snapwave_H,    ntmapout, use_sw_index=.true., scale=sq2)
-         call write_cell_var(map_file%ncid, map_file%hm0ig_varid, snapwave_H_ig, ntmapout, use_sw_index=.true., scale=sq2)
-         if (store_wave_forces) then
-            call write_cell_var(map_file%ncid, map_file%fwx_varid,           fwx,            ntmapout)
-            call write_cell_var(map_file%ncid, map_file%fwy_varid,           fwy,            ntmapout)
-            call write_cell_var(map_file%ncid, map_file%tp_varid,            snapwave_Tp,    ntmapout, use_sw_index=.true.)
-            call write_cell_var(map_file%ncid, map_file%tpig_varid,          snapwave_Tp_ig, ntmapout, use_sw_index=.true.)
-            call write_cell_var(map_file%ncid, map_file%beta_varid,          betamean,       ntmapout)
-            call write_cell_var(map_file%ncid, map_file%snapwavedepth_varid, snapwave_depth, ntmapout, use_sw_index=.true.)
-         endif
-         if (store_wave_direction) then
-            call write_cell_var(map_file%ncid, map_file%wavdir_varid, snapwave_mean_direction, ntmapout, use_sw_index=.true.)
-         endif
-      else
-         call write_cell_var(map_file%ncid, map_file%hm0_varid,   hm0,    ntmapout)
-         call write_cell_var(map_file%ncid, map_file%hm0ig_varid, hm0_ig, ntmapout)
-         if (store_wave_forces) then
-            call write_cell_var(map_file%ncid, map_file%fwx_varid,           fwx,            ntmapout)
-            call write_cell_var(map_file%ncid, map_file%fwy_varid,           fwy,            ntmapout)
-            call write_cell_var(map_file%ncid, map_file%tp_varid,            sw_tp,          ntmapout)
-            call write_cell_var(map_file%ncid, map_file%tpig_varid,          sw_tp_ig,       ntmapout)
-            call write_cell_var(map_file%ncid, map_file%beta_varid,          betamean,       ntmapout)
-            call write_cell_var(map_file%ncid, map_file%snapwavedepth_varid, snapwave_depth, ntmapout)
-         endif
+      call write_cell_var(map_file%ncid, map_file%hm0_varid,   snapwave_H,    ntmapout, use_sw_index=.true., scale=sq2)
+      call write_cell_var(map_file%ncid, map_file%hm0ig_varid, snapwave_H_ig, ntmapout, use_sw_index=.true., scale=sq2)
+      call write_cell_var(map_file%ncid, map_file%tp_varid,    snapwave_Tp,    ntmapout, use_sw_index=.true.)
+      call write_cell_var(map_file%ncid, map_file%tpig_varid,  snapwave_Tp_ig, ntmapout, use_sw_index=.true.)
+      if (store_wave_forces) then
+         call write_cell_var(map_file%ncid, map_file%fwx_varid,           snapwave_Fx,    ntmapout, use_sw_index=.true.)
+         call write_cell_var(map_file%ncid, map_file%fwy_varid,           snapwave_Fy,    ntmapout, use_sw_index=.true.)
+         call write_cell_var(map_file%ncid, map_file%beta_varid,          snapwave_beta,  ntmapout, use_sw_index=.true.)
+         call write_cell_var(map_file%ncid, map_file%snapwavedepth_varid, snapwave_depth, ntmapout, use_sw_index=.true.)
+      endif
+      if (store_wave_direction) then
+         call write_cell_var(map_file%ncid, map_file%wavdir_varid, snapwave_mean_direction, ntmapout, use_sw_index=.true.)
       endif
       if (wavemaker) then
          call write_cell_var(map_file%ncid, map_file%zsm_varid, zsm, ntmapout)
@@ -1327,13 +1314,13 @@ contains
    !
    if (snapwave) then
       !
-      call write_point_var(his_file%hm0_varid,   hm0,                nthisout)
-      call write_point_var(his_file%hm0ig_varid,  hm0_ig,             nthisout)
-      call write_point_var(his_file%tp_varid,     sw_tp,              nthisout)
-      call write_point_var(his_file%tpig_varid,   sw_tp_ig,           nthisout)
+      call write_point_var(his_file%hm0_varid,    snapwave_H,     nthisout, use_sw_index=.true., scale=sqrt(2.0))
+      call write_point_var(his_file%hm0ig_varid,  snapwave_H_ig,  nthisout, use_sw_index=.true., scale=sqrt(2.0))
+      call write_point_var(his_file%tp_varid,     snapwave_Tp,    nthisout, use_sw_index=.true.)
+      call write_point_var(his_file%tpig_varid,   snapwave_Tp_ig, nthisout, use_sw_index=.true.)
       !
       if (store_wave_direction) then
-         call write_point_var(his_file%wavdir_varid, mean_wave_direction, nthisout)
+         call write_point_var(his_file%wavdir_varid, snapwave_mean_direction, nthisout, use_sw_index=.true.)
       endif
       !
       if (wavemaker) then
@@ -1344,14 +1331,14 @@ contains
       !
       if (store_wave_forces) then
          !
-         call write_point_var(his_file%dw_varid,      dw,       nthisout)
-         call write_point_var(his_file%df_varid,      df,       nthisout)
-         call write_point_var(his_file%dwig_varid,    dwig,     nthisout)
-         call write_point_var(his_file%dfig_varid,    dfig,     nthisout)
-         call write_point_var(his_file%cg_varid,      cg,       nthisout)
-         call write_point_var(his_file%beta_varid,    betamean, nthisout)
-         call write_point_var(his_file%srcig_varid,   srcig,    nthisout)
-         call write_point_var(his_file%alphaig_varid, alphaig,  nthisout)
+         call write_point_var(his_file%dw_varid,      snapwave_Dw,      nthisout, use_sw_index=.true.)
+         call write_point_var(his_file%df_varid,      snapwave_Df,      nthisout, use_sw_index=.true.)
+         call write_point_var(his_file%dwig_varid,    snapwave_Dwig,    nthisout, use_sw_index=.true.)
+         call write_point_var(his_file%dfig_varid,    snapwave_Dfig,    nthisout, use_sw_index=.true.)
+         call write_point_var(his_file%cg_varid,      snapwave_cg,      nthisout, use_sw_index=.true.)
+         call write_point_var(his_file%beta_varid,    snapwave_beta,    nthisout, use_sw_index=.true.)
+         call write_point_var(his_file%srcig_varid,   snapwave_srcig,   nthisout, use_sw_index=.true.)
+         call write_point_var(his_file%alphaig_varid, snapwave_alphaig, nthisout, use_sw_index=.true.)
          !
       endif
       !
@@ -1589,8 +1576,7 @@ contains
    use snapwave_data, only: gamma, gammax, alpha, hmin, fw0, fw0_ig, dt, tol, dtheta, crit, nr_sweeps, baldock_opt, baldock_ratio, &
        igwaves_opt, alpha_ig, gamma_ig, shinc2ig, alphaigfac, baldock_ratio_ig, ig_opt, herbers_opt, tpig_opt, eeinc2ig, tinc2ig, &
        snapwave_jonswapfile, snapwave_encfile, snapwave_bndfile, snapwave_bhsfile, snapwave_btpfile, snapwave_bwdfile, snapwave_bdsfile, upwfile, gridfile, &
-       jonswapgam, Tpini, sector, fwratio, fwigratio
-   
+       jonswapgam, Tpini, sector, fwratio, fwigratio   
    !
    implicit none   
    !

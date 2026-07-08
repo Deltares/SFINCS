@@ -128,7 +128,7 @@ contains
       !                          (used for t_zsmax to mask never-reached cells)
       !
       use sfincs_data
-      use sfincs_snapwave, only: index_sw_in_qt
+      use sfincs_snapwave, only: index_sw_in_qt, index_snapwave_in_sfincs
       use quadtree
       !
       integer, intent(in)           :: ncid, varid, nt
@@ -139,7 +139,7 @@ contains
       real*4,  allocatable :: buf_q(:), buf_r(:,:)
       logical :: use_sw, filt_kcs, filt_min
       real*4  :: fac, vmin
-      integer :: nm, nmq
+      integer :: nm, nmq, nms
       !
       use_sw   = .false.; if (present(use_sw_index)) use_sw   = use_sw_index
       filt_kcs = .false.; if (present(check_kcs))    filt_kcs = check_kcs
@@ -166,9 +166,15 @@ contains
          allocate(buf_r(mmax, nmax))
          buf_r = FILL_VALUE
          do nm = 1, np
+            if (use_sw) then
+               nms = index_snapwave_in_sfincs(nm)
+            else
+               nms = nm
+            endif
+            if (nms <= 0) cycle
             if (filt_kcs .and. kcs(nm) <= 0) cycle
-            if (filt_min .and. source(nm) <= vmin) cycle
-            buf_r(z_index_z_m(nm), z_index_z_n(nm)) = fac * source(nm)
+            if (filt_min .and. source(nms) <= vmin) cycle
+            buf_r(z_index_z_m(nm), z_index_z_n(nm)) = fac * source(nms)
          enddo
          NF90(nf90_put_var(ncid, varid, buf_r, (/1, 1, nt/)))
       endif
@@ -607,20 +613,31 @@ contains
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-   subroutine write_point_var(varid, source, nt, scale)
+   subroutine write_point_var(varid, source, nt, scale, use_sw_index)
    ! Gathers source(nmindobs(iobs)) for each obs point and writes to his_file.
    ! Optional scale is applied only to non-fill values.
+   !   use_sw_index=.true. -> source is snapwave-indexed; map the obs cell to its
+   !                          snapwave node via index_snapwave_in_sfincs first.
       use sfincs_data, only: nobs, nmindobs
+      use sfincs_snapwave, only: index_snapwave_in_sfincs
       integer, intent(in)           :: varid
       real*4,  intent(in)           :: source(:)
       integer, intent(in)           :: nt
       real*4,  intent(in), optional :: scale
+      logical, intent(in), optional :: use_sw_index
       real*4  :: obs(nobs)
       integer :: iobs, nm
+      logical :: use_sw
+      use_sw = .false.; if (present(use_sw_index)) use_sw = use_sw_index
       obs = FILL_VALUE
       do iobs = 1, nobs
          nm = nmindobs(iobs)
-         if (nm > 0) obs(iobs) = source(nm)
+         if (nm <= 0) cycle
+         if (use_sw) then
+            nm = index_snapwave_in_sfincs(nm)
+            if (nm <= 0) cycle
+         endif
+         obs(iobs) = source(nm)
       enddo
       if (present(scale)) then
          where (obs /= FILL_VALUE) obs = obs * scale
