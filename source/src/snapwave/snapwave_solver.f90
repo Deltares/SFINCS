@@ -788,13 +788,30 @@ contains
             !
          enddo
          !
-         A(1) = - ctheta(ntheta, k) * oneover2dtheta
-         B(1) = oneoverdt + cg(k) / ds(1, k) + DoverE(k)
-         C(1) = ctheta(2, k) * oneover2dtheta
+         ! Directional edge BCs: first-order upwind, open at the grid ends.
+         ! (solve_tridiag is a plain Thomas solver and ignores A(1)/C(ntheta),
+         !  so a periodic wrap here is silently dropped; use the same upwind
+         !  scheme as the IG (ee_ig) and action (aa) balances instead.)
          !
-         A(ntheta) = -ctheta(ntheta - 1, k) * oneover2dtheta
-         B(ntheta) =  oneoverdt + cg(k) / ds(ntheta, k) + DoverE(k)
-         C(ntheta) =  ctheta(1, k) * oneover2dtheta
+         if (ctheta(1, k) < 0.0) then
+            A(1) = 0.0
+            B(1) = oneoverdt - ctheta(1, k) / dtheta + cg(k) / ds(1, k) + DoverE(k)
+            C(1) = ctheta(2, k) / dtheta
+         else
+            A(1) = 0.0
+            B(1) = oneoverdt + cg(k) / ds(1, k) + DoverE(k)
+            C(1) = 0.0
+         endif
+         !
+         if (ctheta(ntheta, k) > 0.0) then
+            A(ntheta) = -ctheta(ntheta - 1, k) / dtheta
+            B(ntheta) =  oneoverdt + ctheta(ntheta, k) / dtheta + cg(k) / ds(ntheta, k) + DoverE(k)
+            C(ntheta) =  0.0
+         else
+            A(ntheta) = 0.0
+            B(ntheta) = oneoverdt + cg(k) / ds(ntheta, k) + DoverE(k)
+            C(ntheta) = 0.0
+         endif
          !
          if (wind) R(:) = R(:) + WsorE(:, k)
          !
