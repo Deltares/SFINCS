@@ -265,6 +265,10 @@ contains
    NF90(nf90_def_dim(map_file%ncid, 'timemax', ntmx, map_file%timemax_dimid))
    NF90(nf90_def_dim(map_file%ncid, 'runtime', 1,    map_file%runtime_dimid))
    !
+   if (store_vegetation) then
+      NF90(nf90_def_dim(map_file%ncid, 'nsec', vegetation_vertical_segments, map_file%nsec_dimid)) ! number of vegetation vertical sections
+   endif
+   !
    ! Build dim arrays
    dims_s (1:nsd)   = sp_dimids(1:nsd)
    dims_st(1:nsd)   = sp_dimids(1:nsd);  dims_st(nsd+1) = map_file%time_dimid
@@ -433,6 +437,14 @@ contains
    ! subgrid slope
    if (subgrid .and. store_hsubgrid .and. store_hmean) then
       call def_static_cell_float('subgridslope', map_file%subgridslope_varid, '-', 'Subgrid slope', standard_name='subgrid_slope')
+   endif
+   !
+   ! vegetation stem properties (static, per vertical section)
+   if (store_vegetation) then
+      call def_static_veg_float('vegetation_stems_cd',       map_file%veg_cd_varid,     '-',   'Bulk drag coefficient per vegetation section',         map_file%nsec_dimid, standard_name='vegetation_stems_cd')
+      call def_static_veg_float('vegetation_stems_height',   map_file%veg_ah_varid,     'm',   'Vegetation section thickness',                        map_file%nsec_dimid, standard_name='vegetation_stems_height')
+      call def_static_veg_float('vegetation_stems_diameter', map_file%veg_bstems_varid, 'm',   'Diameter of individual vegetation stems per section', map_file%nsec_dimid, standard_name='vegetation_stems_diameter')
+      call def_static_veg_float('vegetation_stems_density',  map_file%veg_Nstems_varid, 'm-2', 'Number of stems per unit horizontal area per section', map_file%nsec_dimid, standard_name='vegetation_stems_density')
    endif
    !
    ! -------------------------------------------------------
@@ -748,6 +760,14 @@ contains
       else
          call put_static_cell_float(map_file%ncid, map_file%qinf_varid, qinffield, FILL_VALUE)
       endif
+   endif
+   !
+   ! Vegetation stem properties (static, written once at init)
+   if (store_vegetation) then
+      call put_static_veg_float(map_file%ncid, map_file%veg_cd_varid,     vegetation_stems_cd,       vegetation_vertical_segments, FILL_VALUE)
+      call put_static_veg_float(map_file%ncid, map_file%veg_ah_varid,     vegetation_stems_height,   vegetation_vertical_segments, FILL_VALUE)
+      call put_static_veg_float(map_file%ncid, map_file%veg_bstems_varid, vegetation_stems_diameter, vegetation_vertical_segments, FILL_VALUE)
+      call put_static_veg_float(map_file%ncid, map_file%veg_Nstems_varid, vegetation_stems_density,  vegetation_vertical_segments, FILL_VALUE)
    endif
    !
    NF90(nf90_sync(map_file%ncid))
@@ -1574,8 +1594,8 @@ contains
    use sfincs_data
    !
    ! Because of overlapping names, only important specific values from snapwave_data
-   use snapwave_data, only: gamma, gammax, alpha, hmin, fw0, fw0_ig, dt, tol, dtheta, crit, nr_sweeps, baldock_opt, baldock_ratio, &
-       igwaves_opt, alpha_ig, gamma_ig, shinc2ig, alphaigfac, baldock_ratio_ig, ig_opt, herbers_opt, tpig_opt, eeinc2ig, tinc2ig, &
+   use snapwave_data, only: gamma, gammax, alpha, hmin, fw0, fw0_ig, dt, tol, dtheta, crit, nr_sweeps, baldock_exponent, baldock_ratio, &
+       igwaves_opt, alpha_ig, gamma_ig, gamma_fac_br, shinc2ig, alphaigfac, baldock_ratio_ig, ig_opt, herbers_opt, tpig_opt, eeinc2ig, tinc2ig, &
        snapwave_jonswapfile, snapwave_encfile, snapwave_bndfile, snapwave_bhsfile, snapwave_btpfile, snapwave_bwdfile, snapwave_bdsfile, upwfile, gridfile, &
        jonswapgam, Tpini, sector, fwratio, fwigratio   
    !
@@ -1812,9 +1832,9 @@ contains
         NF90(nf90_put_att(ncid, varid, 'snapwave_dtheta',dtheta)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_crit',crit)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_nrsweeps',nr_sweeps)) 
-        NF90(nf90_put_att(ncid, varid, 'snapwave_baldock_opt',baldock_opt)) 
-        NF90(nf90_put_att(ncid, varid, 'snapwave_baldock_ratio',baldock_ratio)) 
-        NF90(nf90_put_att(ncid, varid, 'snapwave_waveforces_factor',waveforces_factor))
+        NF90(nf90_put_att(ncid, varid, 'snapwave_baldock_exponent',baldock_exponent))
+        NF90(nf90_put_att(ncid, varid, 'snapwave_baldock_ratio',baldock_ratio))
+        NF90(nf90_put_att(ncid, varid, 'snapwave_waveforces_ratio',waveforces_ratio))
         NF90(nf90_put_att(ncid, varid, 'snapwave_sector',sector))
         NF90(nf90_put_att(ncid, varid, 'snapwave_Tpini',Tpini))
         NF90(nf90_put_att(ncid, varid, 'snapwave_fw_ratio',fwratio))
@@ -1825,8 +1845,9 @@ contains
         NF90(nf90_put_att(ncid, varid, 'snapwave_jonswapgamma',jonswapgam))
         NF90(nf90_put_att(ncid, varid, 'snapwave_igwaves',igwaves_opt))
         NF90(nf90_put_att(ncid, varid, 'snapwave_alpha_ig',alpha_ig)) 
-        NF90(nf90_put_att(ncid, varid, 'snapwave_gammaig',gamma_ig)) 
-        NF90(nf90_put_att(ncid, varid, 'snapwave_shinc2ig',shinc2ig)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_gammaig',gamma_ig))
+        NF90(nf90_put_att(ncid, varid, 'snapwave_gamma_fac_br',gamma_fac_br))
+        NF90(nf90_put_att(ncid, varid, 'snapwave_shinc2ig',shinc2ig))
         NF90(nf90_put_att(ncid, varid, 'snapwave_alphaigfac',alphaigfac)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_baldock_ratio_ig',baldock_ratio_ig)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_ig_opt',ig_opt)) 

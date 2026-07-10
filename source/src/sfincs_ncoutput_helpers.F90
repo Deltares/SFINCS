@@ -55,6 +55,9 @@ module sfincs_ncoutput_helpers
       integer :: manning_varid
       integer :: pnonh_varid
       integer :: subgridslope_varid
+      ! Vegetation
+      integer :: nsec_dimid
+      integer :: veg_cd_varid, veg_ah_varid, veg_bstems_varid, veg_Nstems_varid
       !
       integer :: mesh2d_varid
       integer :: mesh2d_node_x_varid, mesh2d_node_y_varid
@@ -341,6 +344,43 @@ contains
       endif
    end subroutine put_static_cell_float
 
+   subroutine put_static_veg_float(ncid, varid, source, nsec, fill)
+      ! 2D static write: face x nsec (vegetation stem properties).
+      ! source is (nm, isec) on the SFINCS cell index. 1D `face` on quadtree,
+      ! 2D `(m, n)` on regular, both with a trailing nsec dimension.
+      use sfincs_data
+      use quadtree
+      !
+      integer, intent(in) :: ncid, varid, nsec
+      real*4,  intent(in) :: source(:,:)
+      real*4,  intent(in) :: fill
+      !
+      real*4, allocatable :: buf_q(:,:), buf_r(:,:,:)
+      integer :: nmq, nm, isec
+      !
+      if (use_quadtree) then
+         allocate(buf_q(quadtree_nr_points, nsec))
+         buf_q = fill
+         do nmq = 1, quadtree_nr_points
+            nm = index_sfincs_in_quadtree(nmq)
+            if (nm <= 0) cycle
+            do isec = 1, nsec
+               buf_q(nmq, isec) = source(nm, isec)
+            enddo
+         enddo
+         NF90(nf90_put_var(ncid, varid, buf_q))
+      else
+         allocate(buf_r(mmax, nmax, nsec))
+         buf_r = fill
+         do nm = 1, np
+            do isec = 1, nsec
+               buf_r(z_index_z_m(nm), z_index_z_n(nm), isec) = source(nm, isec)
+            enddo
+         enddo
+         NF90(nf90_put_var(ncid, varid, buf_r, (/1, 1, 1/)))
+      endif
+   end subroutine put_static_veg_float
+
    subroutine put_static_cell_mask(ncid, varid, source, sw_index)
       ! Mask-style write: NF90_INT on both grid types — 1D `face` on quadtree,
       ! 2D `(m, n)` on regular. Source is real*4 — callers pass real(kcs, 4)
@@ -421,6 +461,24 @@ contains
            deflate_level=nc_deflate_level)
       call add_ugrid_face_attrs(varid)
    end subroutine def_static_cell_float
+
+   subroutine def_static_veg_float(name, varid, units, long_name, nsec_dimid, &
+                                    standard_name)
+      ! Static 2D face variable with a trailing nsec (vegetation section) dim.
+      use sfincs_data, only: nc_deflate_level
+      character(*), intent(in)           :: name
+      integer,      intent(out)          :: varid
+      character(*), intent(in)           :: units, long_name
+      integer,      intent(in)           :: nsec_dimid
+      character(*), intent(in), optional :: standard_name
+      integer :: vdims(3)
+      vdims(1:nsd) = dims_s(1:nsd)
+      vdims(nsd+1) = nsec_dimid
+      call ncdef_float_var(map_file%ncid, name, vdims(1:nsd+1), varid, units, long_name, &
+           standard_name=standard_name, coordinates=coord_str,                          &
+           deflate_level=nc_deflate_level)
+      call add_ugrid_face_attrs(varid)
+   end subroutine def_static_veg_float
 
    subroutine def_static_cell_int(name, varid, long_name, &
                                    units, standard_name, fill_value, description, &
