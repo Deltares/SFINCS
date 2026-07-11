@@ -173,8 +173,113 @@ contains
       !
       call timer(t3)
       !
-      Fx = F * cos(thetam)
-      Fy = F * sin(thetam)
+      if (wave_force_radstress) then
+         !
+         ! Wave force from radiation-stress gradients : F = -div(S)/(rho*h).
+         !
+         call compute_radstress_force()
+         !
+      else
+         !
+         ! Default : dissipation (Dingemans) form. F = Dw*k/sig/rho/h was set in
+         ! the solver; here it is projected onto the mean wave direction.
+         !
+         Fx = F * cos(thetam)
+         Fy = F * sin(thetam)
+         !
+      endif
+      !
+   end subroutine
+
+
+   subroutine compute_radstress_force()
+      !
+      ! Radiation-stress wave force, used when snapwave_wave_force = 'radstress'.
+      !
+      ! The radiation-stress tensor is rebuilt every force update directly from
+      ! the directional energy ee(theta,k) and nwav(k) - independent of the IG
+      ! block (which only fills Sxx when IG waves are on). Using the same energy
+      ! convention as the IG Sxx (Sxx = (2n-0.5)*E with E = sum(ee)*dtheta), the
+      ! tensor is dimensionally identical to the existing Sxx, so the resulting
+      ! force matches the units of the dissipation F it replaces.
+      !
+      ! For shore-normal energy (all energy in theta = 0): Sxx -> (2n - 0.5)*E,
+      ! confirming consistency with the existing Sxx = (2*nwav - 0.5)*E_local.
+      !
+      use snapwave_data
+      use snapwave_domain, only: snapwave_node_gradient
+      !
+      implicit none
+      !
+      integer :: k, itheta
+      real*4  :: n, th, cth, sth
+      real*4, dimension(:), allocatable :: dSxxdx, dSxxdy
+      real*4, dimension(:), allocatable :: dSyydx, dSyydy
+      real*4, dimension(:), allocatable :: dSxydx, dSxydy
+      !
+      allocate(dSxxdx(no_nodes), dSxxdy(no_nodes))
+      allocate(dSyydx(no_nodes), dSyydy(no_nodes))
+      allocate(dSxydx(no_nodes), dSxydy(no_nodes))
+      !
+      ! Build the radiation-stress tensor per node from ee(theta,k) and nwav(k).
+      !
+      !$omp parallel do schedule(static) private(itheta, n, th, cth, sth)
+      do k = 1, no_nodes
+         !
+         Sxx_rs(k) = 0.0
+         Syy_rs(k) = 0.0
+         Sxy_rs(k) = 0.0
+         !
+         n = max(0.0, min(1.0, nwav(k)))
+         !
+         do itheta = 1, ntheta
+            !
+            th  = theta(itheta)
+            cth = cos(th)
+            sth = sin(th)
+            !
+            Sxx_rs(k) = Sxx_rs(k) + ee(itheta, k) * (n * (cth*cth + 1.0) - 0.5) * dtheta
+            Syy_rs(k) = Syy_rs(k) + ee(itheta, k) * (n * (sth*sth + 1.0) - 0.5) * dtheta
+            Sxy_rs(k) = Sxy_rs(k) + ee(itheta, k) * (n * sth * cth) * dtheta
+            !
+         enddo
+         !
+      enddo
+      !$omp end parallel do
+      !
+      ! Spatial gradients via the surrounding-point stencil (same as dhdx/dhdy).
+      !
+      call snapwave_node_gradient(Sxx_rs, dSxxdx, dSxxdy)
+      call snapwave_node_gradient(Syy_rs, dSyydx, dSyydy)
+      call snapwave_node_gradient(Sxy_rs, dSxydx, dSxydy)
+      !
+      ! Form the force per unit mass : Fx = -(dSxx/dx + dSxy/dy)/(rho*h), etc.
+      ! Edges / incomplete stencils were zeroed in snapwave_node_gradient, so the
+      ! force is zero there; non-inner nodes get no force.
+      !
+      !$omp parallel do schedule(static)
+      do k = 1, no_nodes
+         !
+         if (inner(k) .and. depth(k) > hmin) then
+            !
+            Fx(k) = -(dSxxdx(k) + dSxydy(k)) / (rho * max(depth(k), hmin))
+            Fy(k) = -(dSxydx(k) + dSyydy(k)) / (rho * max(depth(k), hmin))
+            !
+         else
+            !
+            Fx(k) = 0.0
+            Fy(k) = 0.0
+            !
+         endif
+         !
+         ! Scalar magnitude for output.
+         !
+         F(k) = sqrt(Fx(k)*Fx(k) + Fy(k)*Fy(k))
+         !
+      enddo
+      !$omp end parallel do
+      !
+      deallocate(dSxxdx, dSxxdy, dSyydx, dSyydy, dSxydx, dSxydy)
       !
    end subroutine
    
@@ -199,6 +304,7 @@ contains
                                          zb, nwav, ig_opt, alfa_ig, gamma_ig, gamma_fac_br, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
    !
    use snapwave_windsource
+   use snapwave_data, only: snapwave_1d
    !
    implicit none
    !
@@ -511,10 +617,14 @@ contains
             !
             inner(k) = .false.
             !
-         elseif (k1==1 .and. k2==1) then ! TL: for now still needed for a working IG solver
+         elseif (k1==1 .and. k2==1 .and. .not. snapwave_1d) then ! TL: for now still needed for a working IG solver
+            !
+            ! In true 1-D mode node index 1 can be a legitimate (offshore
+            ! boundary) upwind point, so this prev==1 sentinel must not fire;
+            ! the no-upwind edge case is flagged via prev==0 above instead.
             !
 			   inner(k) = .false.
-            exit                       
+            exit
             !
          endif
          !

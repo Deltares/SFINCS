@@ -420,7 +420,7 @@ contains
             !
             if (advection) then
                !
-               if (mask_adv(ip) == 1) then
+!               if (mask_adv(ip) == 1) then
                   !
                   ! Momentum-conserved advection (Yamazaki, Kowalik & Cheung 2009,
                   ! eqs 18/20/22), VELOCITY form. Streamwise advective speeds from the Mader
@@ -505,9 +505,10 @@ contains
                   !
                   adv = - phi * (dqxudx + dqyudy)        ! velocity tendency [m/s^2]
                   !
-                  frc = frc + min(max(adv, -advlim), advlim)   ! add limited advective acceleration
+!                  frc = frc + min(max(adv, -advlim), advlim)   ! add limited advective acceleration
+                  frc = frc + adv   ! do not apply advection limiter
                   !
-               endif
+!               endif
                !
             endif
             !
