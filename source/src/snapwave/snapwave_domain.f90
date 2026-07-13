@@ -130,6 +130,9 @@ contains
    allocate(F(no_nodes))
    allocate(Fx(no_nodes))
    allocate(Fy(no_nodes))
+   allocate(Sxx_rs(no_nodes))
+   allocate(Syy_rs(no_nodes))
+   allocate(Sxy_rs(no_nodes))
    allocate(u10(no_nodes))
    allocate(u10dir(no_nodes))   
    allocate(Df(no_nodes))
@@ -355,6 +358,9 @@ contains
 
    subroutine find_upwind_neighbours(x,y,no_nodes,sferic,theta,ntheta,kp,np,w,prev,ds)
    !
+   use snapwave_data, only: snapwave_1d
+   use quadtree, only: quadtree_dx
+   !
    integer,                               intent(in)        :: no_nodes,ntheta     ! length of x,y; length of theta
    integer,                               intent(in)        :: sferic             ! sferic (1) or cartesian (0) grid
    real*8,  dimension(no_nodes),          intent(in)        :: x,y                 ! x, y coordinates of grid
@@ -369,12 +375,67 @@ contains
    integer                                            :: ind1,ind2
    integer                                            :: ip,nploc
    integer                                            :: k, itheta
+   integer                                            :: kupw
+   real*8                                             :: cth, dx1d, eps1d
    real*8                                             :: circumf_eq=40075017.,circumf_pole=40007863.
    !
    ! Find upwind neighbours for each cell in an unstructured grid x,y (1d
    ! vectors) given vector of directions theta
    !
    pi = 4*atan(1.0)
+   !
+   if (snapwave_1d) then
+      !
+      ! True 1-D : the upwind cell is the offshore neighbour (kp(1,k)) when the
+      ! wave has an onshore x-component, otherwise the onshore neighbour (kp(2,k)).
+      ! No ray-trace is needed; weights collapse to a single upwind cell.
+      !
+      dx1d   = quadtree_dx
+      eps1d  = 1.0d-3
+      !
+      do k = 1, no_nodes
+         !
+         do itheta = 1, ntheta
+            !
+            cth = cos(theta(itheta))
+            !
+            if (cth >= 0.0d0) then
+               ! Wave propagates onshore : energy comes from offshore neighbour
+               kupw = kp(1, k)
+            else
+               ! Wave propagates offshore : energy comes from onshore neighbour
+               kupw = kp(2, k)
+            endif
+            !
+            if (kupw > 0) then
+               !
+               prev(1, itheta, k) = kupw
+               prev(2, itheta, k) = kupw
+               w(1, itheta, k)    = 1.0d0
+               w(2, itheta, k)    = 0.0d0
+               ds(itheta, k)      = dx1d / max(abs(cth), eps1d)
+               !
+            else
+               !
+               ! Domain edge : no upwind point. Flag with prev==0 (caught by the
+               ! solver's k1*k2==0 no-upwind test) so the node becomes a
+               ! boundary/no-upwind node. prev==1 is not used here because node
+               ! index 1 can be a legitimate offshore upwind in 1-D.
+               !
+               prev(1, itheta, k) = 0
+               prev(2, itheta, k) = 0
+               w(1, itheta, k)    = 0.0d0
+               w(2, itheta, k)    = 0.0d0
+               !
+            endif
+            !
+         enddo
+         !
+      enddo
+      !
+      return
+      !
+   endif
    !
    do k = 1, no_nodes
       call findloc(kp(:,k), np, 0, nploc)
@@ -456,6 +517,9 @@ contains
 
    subroutine fm_surrounding_points(xn,yn,zn,no_nodes,sferic,face_nodes,no_faces,kp,np,dhdx,dhdy)
    !
+   use snapwave_data, only: snapwave_1d, kp_offshore, kp_onshore
+   use quadtree, only: quadtree_dx
+   !
    real*8,  dimension(no_nodes),                 intent(in)  :: xn,yn              ! coordinates of network nodes
    real*4,  dimension(no_nodes),                 intent(in)  :: zn                 ! coordinates of network nodes
    integer,                                      intent(in)  :: no_nodes           ! number of network nodes
@@ -476,6 +540,55 @@ contains
    real*4,  dimension(np)                       :: xp,yp,zp              ! x,y,z of sorted surrounding nodes for each node
    real*8                                       :: circumf_eq=40075017.,circumf_pole=40007863.
    real*4                                       :: dxp,dyp
+   real*4                                        :: dx1d
+   integer                                       :: koff, kon
+   !
+   if (snapwave_1d) then
+      !
+      ! True 1-D : surrounding points are the offshore and onshore neighbours,
+      ! bed slope is the cross-shore gradient (central / one-sided at the ends).
+      !
+      kp   = 0
+      dhdx = 0.0
+      dhdy = 0.0
+      !
+      dx1d = quadtree_dx
+      !
+      do kn = 1, no_nodes
+         !
+         koff = kp_offshore(kn)
+         kon  = kp_onshore(kn)
+         !
+         kp(1, kn) = koff
+         kp(2, kn) = kon
+         !
+         if (koff > 0 .and. kon > 0) then
+            !
+            ! Central difference
+            !
+            dhdx(kn) = (zn(kon) - zn(koff)) / (2.0 * dx1d)
+            !
+         elseif (kon > 0) then
+            !
+            ! One-sided at offshore edge
+            !
+            dhdx(kn) = (zn(kon) - zn(kn)) / dx1d
+            !
+         elseif (koff > 0) then
+            !
+            ! One-sided at onshore edge
+            !
+            dhdx(kn) = (zn(kn) - zn(koff)) / dx1d
+            !
+         endif
+         !
+         dhdy(kn) = 0.0
+         !
+      enddo
+      !
+      return
+      !
+   endif
    !
    allocate(no_connected_cells(no_nodes))
    allocate(connected_cells(12,no_nodes))
@@ -1159,6 +1272,22 @@ contains
    endif   
    !
    ! Now loop through all quadtree points and set depth
+   !
+   if (snapwave_1d) then
+      !
+      ! True 1-D mode : single-row grid, no up-neighbour, so no faces can be
+      ! formed. Build the mesh directly from all quadtree points with mask > 0
+      ! and derive cross-shore connectivity from the m-neighbours.
+      !
+      call build_snapwave_1d_mesh(msk_tmp, zb_tmp)
+      !
+      deallocate(msk_tmp)
+      deallocate(msk_tmp2)
+      deallocate(zb_tmp)
+      !
+      return
+      !
+   endif
    !
    ! STEP 4 - Make faces
    !
@@ -2092,5 +2221,275 @@ contains
    endif
    !
    end subroutine
-   
+
+
+   subroutine build_snapwave_1d_mesh(msk_tmp, zb_tmp)
+   !
+   ! True 1-D SnapWave mesh for a single-row quadtree grid.
+   !
+   ! No faces are formed (no up-neighbour exists). Active nodes are simply all
+   ! quadtree points with snapwave mask > 0. Cross-shore connectivity is taken
+   ! straight from the quadtree m-neighbours : offshore = md1 (smaller x),
+   ! onshore = mu1 (larger x), mapped to snapwave node indices.
+   !
+   use snapwave_data
+   use quadtree
+   use sfincs_data, only: vegetation_stems_cd, vegetation_stems_height, &
+                          vegetation_stems_diameter, vegetation_stems_density, &
+                          vegetation_vertical_segments
+   !
+   integer*1, dimension(quadtree_nr_points), intent(in) :: msk_tmp
+   real*4,    dimension(quadtree_nr_points), intent(in) :: zb_tmp
+   !
+   integer :: ip
+   integer :: nac
+   integer :: iq
+   integer :: md1q
+   integer :: mu1q
+   !
+   ! Active nodes = all quadtree points with msk_tmp > 0
+   !
+   nac = 0
+   !
+   do ip = 1, quadtree_nr_points
+      !
+      if (msk_tmp(ip) > 0) then
+         nac = nac + 1
+      endif
+      !
+   enddo
+   !
+   no_nodes = nac
+   no_faces = 0
+   !
+   ! Allocate nodes
+   !
+   allocate(x(no_nodes))
+   allocate(y(no_nodes))
+   allocate(xs(no_nodes))
+   allocate(ys(no_nodes))
+   allocate(zb(no_nodes))
+   allocate(msk(no_nodes))
+   allocate(index_quadtree_in_snapwave(no_nodes))
+   allocate(kp_offshore(no_nodes))
+   allocate(kp_onshore(no_nodes))
+   !
+   index_quadtree_in_snapwave = 0
+   kp_offshore = 0
+   kp_onshore  = 0
+   !
+   ! No faces in 1-D : allocate an empty face_nodes array so downstream code
+   ! that loops over no_faces (= 0) and the netcdf mesh writer stay valid.
+   !
+   allocate(face_nodes(4, 0))
+   !
+   ! Re-map and set node values
+   !
+   nac = 0
+   !
+   do ip = 1, quadtree_nr_points
+      !
+      index_snapwave_in_quadtree(ip) = 0
+      !
+      if (msk_tmp(ip) > 0) then
+         !
+         nac = nac + 1
+         !
+         index_snapwave_in_quadtree(ip)  = nac
+         index_quadtree_in_snapwave(nac) = ip
+         !
+         zb(nac)  = quadtree_zz(ip)
+         x(nac)   = quadtree_xz(ip)
+         y(nac)   = quadtree_yz(ip)
+         xs(nac)  = quadtree_xz(ip)
+         ys(nac)  = quadtree_yz(ip)
+         msk(nac) = msk_tmp(ip)
+         !
+      endif
+      !
+   enddo
+   !
+   ! Cross-shore connectivity from quadtree m-neighbours, mapped to snapwave nodes
+   !
+   do nac = 1, no_nodes
+      !
+      ip   = index_quadtree_in_snapwave(nac)
+      md1q = quadtree_md1(ip)
+      mu1q = quadtree_mu1(ip)
+      !
+      ! Offshore neighbour (smaller x)
+      !
+      if (md1q > 0) then
+         if (msk_tmp(md1q) > 0) then
+            kp_offshore(nac) = index_snapwave_in_quadtree(md1q)
+         endif
+      endif
+      !
+      ! Onshore neighbour (larger x)
+      !
+      if (mu1q > 0) then
+         if (msk_tmp(mu1q) > 0) then
+            kp_onshore(nac) = index_snapwave_in_quadtree(mu1q)
+         endif
+      endif
+      !
+   enddo
+   !
+   ! Vegetation (same as STEP 9 of the 2-D mesh builder)
+   !
+   no_secveg = vegetation_vertical_segments
+   !
+   allocate(veg_Cd(no_nodes, no_secveg))
+   allocate(veg_ah(no_nodes, no_secveg))
+   allocate(veg_bstems(no_nodes, no_secveg))
+   allocate(veg_Nstems(no_nodes, no_secveg))
+   !
+   veg_Cd = 0.0
+   veg_ah = 0.0
+   veg_bstems = 0.0
+   veg_Nstems = 0.0
+   !
+   if (vegetation) then
+      !
+      nac = 0
+      !
+      do ip = 1, quadtree_nr_points
+         !
+         if (msk_tmp(ip) > 0) then
+            !
+            nac = nac + 1
+            !
+            do iq = 1, no_secveg
+               veg_Cd(nac,iq)     = vegetation_stems_cd(ip,iq)
+               veg_ah(nac,iq)     = vegetation_stems_height(ip,iq)
+               veg_bstems(nac,iq) = vegetation_stems_diameter(ip,iq)
+               veg_Nstems(nac,iq) = vegetation_stems_density(ip,iq)
+            enddo
+            !
+         endif
+         !
+      enddo
+      !
+   endif
+   !
+   end subroutine
+
+
+   subroutine snapwave_node_gradient(s, dsdx, dsdy)
+   !
+   ! Spatial gradient of a generic scalar nodal field s, computed with the same
+   ! surrounding-point (kp) least-squares stencil that fm_surrounding_points uses
+   ! to build dhdx/dhdy. Unlike fm_surrounding_points (which runs once at init on
+   ! the static bed and flips sign to turn bed slope into depth slope), this can
+   ! be called every force update and returns the plain gradient of s.
+   !
+   ! Works for the 2-D unstructured grid (kp = ring of surrounding nodes) and for
+   ! the single-row 1-D case (kp_offshore/kp_onshore neighbours, dsdy = 0).
+   ! Nodes with an incomplete stencil (boundary / non-inner) get a zero gradient.
+   !
+   use snapwave_data, only: no_nodes, kp, inner, x, y, sferic, &
+                            snapwave_1d, kp_offshore, kp_onshore
+   use quadtree, only: quadtree_dx
+   !
+   implicit none
+   !
+   real*4, dimension(no_nodes), intent(in)  :: s          ! scalar field at nodes
+   real*4, dimension(no_nodes), intent(out) :: dsdx, dsdy ! gradients of s
+   !
+   integer :: kn, j, kj
+   integer :: koff, kon
+   real*8  :: sxz, syz, sx2, sy2
+   real*8  :: dxp, dyp
+   real*8  :: pi
+   real*8  :: circumf_eq = 40075017.d0, circumf_pole = 40007863.d0
+   real*4  :: dx1d
+   !
+   pi = 4.d0 * atan(1.d0)
+   !
+   dsdx = 0.0
+   dsdy = 0.0
+   !
+   if (snapwave_1d) then
+      !
+      ! True 1-D : cross-shore gradient from the offshore/onshore neighbours,
+      ! central where both exist, one-sided at the ends, zero if isolated.
+      ! dsdy is identically zero (single row).
+      !
+      dx1d = quadtree_dx
+      !
+      do kn = 1, no_nodes
+         !
+         if (.not. inner(kn)) cycle
+         !
+         koff = kp_offshore(kn)
+         kon  = kp_onshore(kn)
+         !
+         if (koff > 0 .and. kon > 0) then
+            !
+            dsdx(kn) = (s(kon) - s(koff)) / (2.0 * dx1d)
+            !
+         elseif (kon > 0) then
+            !
+            dsdx(kn) = (s(kon) - s(kn)) / dx1d
+            !
+         elseif (koff > 0) then
+            !
+            dsdx(kn) = (s(kn) - s(koff)) / dx1d
+            !
+         endif
+         !
+      enddo
+      !
+      return
+      !
+   endif
+   !
+   ! 2-D : least-squares plane fit over the surrounding nodes kp(:,kn).
+   !
+   do kn = 1, no_nodes
+      !
+      if (.not. inner(kn)) cycle
+      !
+      if (sum(kp(:,kn)) <= 0) cycle
+      !
+      sxz = 0.d0
+      syz = 0.d0
+      sx2 = 0.d0
+      sy2 = 0.d0
+      !
+      do j = 1, size(kp, 1)
+         !
+         kj = kp(j, kn)
+         !
+         if (kj <= 0) cycle
+         !
+         if (sferic==0) then
+            !
+            sxz = sxz + (x(kj) - x(kn)) * (s(kj) - s(kn))
+            syz = syz + (y(kj) - y(kn)) * (s(kj) - s(kn))
+            sx2 = sx2 + (x(kj) - x(kn))**2
+            sy2 = sy2 + (y(kj) - y(kn))**2
+            !
+         else
+            !
+            dxp = (x(kj) - x(kn)) * circumf_eq / 360.d0 * cos(y(kn) * 180.d0 / pi)
+            dyp = (y(kj) - y(kn)) * circumf_pole / 360.d0
+            sxz = sxz + dxp * (s(kj) - s(kn))
+            syz = syz + dyp * (s(kj) - s(kn))
+            sx2 = sx2 + dxp**2
+            sy2 = sy2 + dyp**2
+            !
+         endif
+         !
+      enddo
+      !
+      ! Plain gradient of s (no bed-to-depth sign flip, unlike fm_surrounding_points)
+      !
+      dsdx(kn) = real(sxz / max(sx2, 1.0d-10), 4)
+      dsdy(kn) = real(syz / max(sy2, 1.0d-10), 4)
+      !
+   enddo
+   !
+   end subroutine
+
 end module
