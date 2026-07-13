@@ -1640,7 +1640,7 @@ contains
    real*4,intent(out)               :: t
    integer*8                        :: count,count_rate,count_max
    call system_clock (count,count_rate, count_max)
-   t = real(count) / count_rate
+   t = real(dble(count) / dble(count_rate), 4)
    end subroutine timer
 
    subroutine vegatt(sigm, no_nodes, kwav, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, depth, rho, g, H, Dveg) 
