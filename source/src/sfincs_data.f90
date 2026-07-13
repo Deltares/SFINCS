@@ -645,23 +645,9 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: windv1
       real*4, dimension(:),   allocatable :: windmax
       !
-      real*4, dimension(:),   allocatable :: fwx
-      real*4, dimension(:),   allocatable :: fwy
       real*4, dimension(:),   allocatable :: hm0
       real*4, dimension(:),   allocatable :: hm0_ig
-      real*4, dimension(:),   allocatable :: sw_tp
-      real*4, dimension(:),   allocatable :: sw_tp_ig      
       real*4, dimension(:),   allocatable :: fwuv
-      real*4, dimension(:),   allocatable :: mean_wave_direction
-      real*4, dimension(:),   allocatable :: wave_directional_spreading
-      real*4, dimension(:),   allocatable :: dw
-      real*4, dimension(:),   allocatable :: df      
-      real*4, dimension(:),   allocatable :: dwig
-      real*4, dimension(:),   allocatable :: dfig
-      real*4, dimension(:),   allocatable :: cg    
-      real*4, dimension(:),   allocatable :: betamean
-      real*4, dimension(:),   allocatable :: srcig      
-      real*4, dimension(:),   allocatable :: alphaig      
       !!!
       !!! Boundary data
       !!!
