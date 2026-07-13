@@ -17,7 +17,6 @@ module sfincs_snapwave
    real*4,    dimension(:),   allocatable    :: snapwave_Tp
    real*4,    dimension(:),   allocatable    :: snapwave_Tp_ig   
    real*4,    dimension(:),   allocatable    :: snapwave_mean_direction
-   real*4,    dimension(:),   allocatable    :: snapwave_directional_spreading
    real*4,    dimension(:),   allocatable    :: snapwave_u10
    real*4,    dimension(:),   allocatable    :: snapwave_u10dir   
    real*4,    dimension(:),   allocatable    :: snapwave_Fx
@@ -298,15 +297,6 @@ contains
    !
    real*4,    dimension(:), allocatable       :: fwx0
    real*4,    dimension(:), allocatable       :: fwy0
-   real*4,    dimension(:), allocatable       :: dw0
-   real*4,    dimension(:), allocatable       :: df0
-   real*4,    dimension(:), allocatable       :: dwig0
-   real*4,    dimension(:), allocatable       :: dfig0
-   real*4,    dimension(:), allocatable       :: cg0
-   !real*4,    dimension(:), allocatable       :: qb0
-   real*4,    dimension(:), allocatable       :: beta0
-   real*4,    dimension(:), allocatable       :: srcig0
-   real*4,    dimension(:), allocatable       :: alphaig0
    integer   :: ip, nm, nmu, idir
    real*8    :: t
    real*4    :: t3, t4
@@ -317,27 +307,9 @@ contains
    !
    allocate(fwx0(np))
    allocate(fwy0(np))
-   allocate(dw0(np))
-   allocate(df0(np))   
-   allocate(dwig0(np))
-   allocate(dfig0(np))  
-   allocate(cg0(np))  
-   !allocate(qb0(np))   
-   allocate(beta0(np))   
-   allocate(srcig0(np))      
-   allocate(alphaig0(np))      
    !
    fwx0 = 0.0
    fwy0 = 0.0
-   dw0 = 0.0
-   df0 = 0.0   
-   dwig0 = 0.0
-   dfig0 = 0.0
-   cg0 = 0.0
-   !qb0 = 0.0
-   beta0 = 0.0
-   srcig0 = 0.0
-   alphaig0 = 0.0   
    !
    ! Determine SnapWave water depth
    !
@@ -419,25 +391,10 @@ contains
       !
       if (ip>0) then
          !
-         hm0(nm)    = snapwave_H(ip)   
-         hm0_ig(nm) = snapwave_H_ig(ip) 
-         sw_tp(nm)    = snapwave_Tp(ip)         
-         sw_tp_ig(nm) = snapwave_Tp_ig(ip)         
-         fwx0(nm)   = snapwave_Fx(ip)   
-         fwy0(nm)   = snapwave_Fy(ip) 
-         dw0(nm)    = snapwave_Dw(ip)   
-         df0(nm)    = snapwave_Df(ip)     
-         dwig0(nm)  = snapwave_Dwig(ip)   
-         dfig0(nm)  = snapwave_Dfig(ip)
-         cg0(nm)    = snapwave_cg(ip)
-         !qb0(nm)    = snapwave_Qb(ip)
-         beta0(nm)  = snapwave_beta(ip)
-         srcig0(nm) = snapwave_srcig(ip)
-         alphaig0(nm) = snapwave_alphaig(ip)
-         if (store_wave_direction) then
-            mean_wave_direction(nm) = snapwave_mean_direction(ip)             
-            wave_directional_spreading(nm) = snapwave_directional_spreading(ip)*180/pi   
-         endif
+         hm0(nm)    = snapwave_H(ip)
+         hm0_ig(nm) = snapwave_H_ig(ip)
+         fwx0(nm)   = snapwave_Fx(ip)
+         fwy0(nm)   = snapwave_Fy(ip)
          !
       else
          !
@@ -445,44 +402,13 @@ contains
          !
          hm0(nm)    = 0.0
          hm0_ig(nm) = 0.0
-         sw_tp(nm)  = 0.0
-         sw_tp_ig(nm) = 0.0         
          fwx0(nm)   = 0.0
-         fwy0(nm)   = 0.0   
-         dw0(nm)    = 0.0
-         df0(nm)    = 0.0         
-         dwig0(nm)  = 0.0
-         dfig0(nm)  = 0.0
-         cg0(nm)    = 0.0
-         !qb0(nm)    = 0.0
-         beta0(nm)  = 0.0
-         srcig0(nm) = 0.0
-         alphaig0(nm) = 0.0         
-         if (store_wave_direction) then
-            mean_wave_direction(nm)        = 0.0
-            wave_directional_spreading(nm) = 0.0  
-         endif
+         fwy0(nm)   = 0.0
          !
-      endif   
+      endif
       !
-      if (store_wave_forces) then
-         !
-         fwx(nm)        = fwx0(nm)
-         fwy(nm)        = fwy0(nm)
-         dw(nm)         = dw0(nm)
-         df(nm)         = df0(nm)         
-         dwig(nm)       = dwig0(nm)
-         dfig(nm)       = dfig0(nm)
-         cg(nm)         = cg0(nm)   
-         !qb(nm)         = qb0(nm)         
-         betamean(nm)   = beta0(nm)         
-         srcig(nm)      = srcig0(nm)         
-         alphaig(nm)    = alphaig0(nm)                  
-         !
-      endif   
-      !
-   enddo   
-   !   
+   enddo
+   !
    hm0 = hm0 * sqrt(2.0)
    hm0_ig = hm0_ig * sqrt(2.0)
    !
@@ -552,7 +478,6 @@ contains
    snapwave_Tp                    = Tp
    snapwave_Tp_ig                 = Tp_ig   
    snapwave_mean_direction        = modulo(270.0 - thetam * 180 / pi + 360.0, 360.0)
-   snapwave_directional_spreading = thetam  ! TL: CORRECT? > is not spreading but mean direction?
    snapwave_Dw                    = Dw
    snapwave_Df                    = Df
    snapwave_Dwig                  = Dw_ig
@@ -577,7 +502,6 @@ contains
        if (snapwave_H(k) <= 0.0) then
            snapwave_Tp(k) = 0.0
            snapwave_mean_direction(k) = 0.0
-           snapwave_directional_spreading(k) = 0.0
            snapwave_cg(k) = 0.0
        endif
        !

@@ -130,6 +130,14 @@
 					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
 				</FileConfiguration>
 			</File>
+			<File RelativePath="..\src\sfincs_ncoutput_helpers.F90">
+				<FileConfiguration Name="Release|x64">
+					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
+				</FileConfiguration>
+				<FileConfiguration Name="Debug|x64">
+					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
+				</FileConfiguration>
+			</File>
 			<File RelativePath="..\src\sfincs_ncoutput.F90">
 				<FileConfiguration Name="Release|x64">
 					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>

@@ -85,8 +85,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.4.0 Galibier Release"
-   build_date     = "$Date: 2026-06-11"
+   build_revision = "$Rev: v2.4.0 Galibier+"
+   build_date     = "$Date: 2026-07-13"
    !
    call write_startup_log()
    !

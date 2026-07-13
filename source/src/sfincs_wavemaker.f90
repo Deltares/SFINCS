@@ -1613,7 +1613,7 @@
       !
    endif
    !
-   ! UV fluxes at wave makers
+   ! UV fluxes at wave makers - No OMP acceleration here?
    !
    ! Push time-interpolated forcing values to GPU before parallel region
    !
