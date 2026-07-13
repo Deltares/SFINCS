@@ -1702,11 +1702,11 @@ contains
         NF90(nf90_put_att(ncid, varid, 'factor_pres',factor_pres))
         NF90(nf90_put_att(ncid, varid, 'factor_prcp',factor_prcp))
         NF90(nf90_put_att(ncid, varid, 'factor_spw_size',factor_spw_size))
-        NF90(nf90_put_att(ncid, varid, 'nonh',logical2int(nonhydrostatic)))
-        NF90(nf90_put_att(ncid, varid, 'nh_fnudge',nh_fnudge))
-        NF90(nf90_put_att(ncid, varid, 'nh_tstop',nh_tstop))
-        NF90(nf90_put_att(ncid, varid, 'nh_tol',nh_tol))
-        NF90(nf90_put_att(ncid, varid, 'nh_itermax',nh_itermax))
+        !NF90(nf90_put_att(ncid, varid, 'nonh',logical2int(nonhydrostatic)))
+        !NF90(nf90_put_att(ncid, varid, 'nonh_fnudge',nonh_fnudge))
+        !NF90(nf90_put_att(ncid, varid, 'nonh_tstop',nonh_tstop))
+        !NF90(nf90_put_att(ncid, varid, 'nonh_tol',nonh_tol))
+        !NF90(nf90_put_att(ncid, varid, 'nonh_itermax',nonh_itermax))
         !
         ! Domain
         !
