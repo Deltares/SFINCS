@@ -90,12 +90,10 @@ contains
       implicit none
       !
       integer*8          :: dtsec
-      logical            :: ok
       character(len=256) :: wmsigstr
       character(len=256) :: advstr
-      character(len=256) :: removed_input
       !
-      ok = check_file_exists('sfincs.inp', 'SFINCS input file', .true.)
+      call check_file_exists('sfincs.inp', 'SFINCS input file', .true.)
       !
       open(500, file='sfincs.inp')
       !
