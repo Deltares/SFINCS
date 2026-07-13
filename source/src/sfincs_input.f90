@@ -1063,10 +1063,7 @@ contains
             !
          endif
          !
-      enddo
-      !
-      ilen = len_trim(outstr(:ipos))
-      !
+      ilen = len_trim(outstr)
    end subroutine
    !
 end module
