@@ -94,8 +94,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.4.0 Galibier Release"
-   build_date     = "$Date: 2026-06-11"
+   build_revision = "$Rev: v2.4.0 Galibier+branch:fix_snapwave_wind_directional_dependency"
+   build_date     = "$Date: 2026-07-10"
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)

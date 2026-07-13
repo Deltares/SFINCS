@@ -788,10 +788,8 @@ contains
             !
          enddo
          !
-         ! Directional edge BCs: first-order upwind, open at the grid ends.
-         ! (solve_tridiag is a plain Thomas solver and ignores A(1)/C(ntheta),
-         !  so a periodic wrap here is silently dropped; use the same upwind
-         !  scheme as the IG (ee_ig) and action (aa) balances instead.)
+         ! Directional edge BCs: first-order upwind, open at the grid ends, 
+         ! same upwind scheme as the IG (ee_ig) and action (aa) balances
          !
          if (ctheta(1, k) < 0.0) then
             A(1) = 0.0
