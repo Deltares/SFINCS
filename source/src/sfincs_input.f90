@@ -258,7 +258,7 @@ contains
       call get_keyword(500, 'amufile',                         amufile,                         'none')            ! 2D wind u-component file
       call get_keyword(500, 'amvfile',                         amvfile,                         'none')            ! 2D wind v-component file
       call get_keyword(500, 'ampfile',                         ampfile,                         'none')            ! 2D atmospheric pressure file
-      call get_keyword(500, 'amrfile',                         amprfile,                        'none',    ['amprfile'])            ! 2D precipitation rate file
+      call get_keyword(500, 'amprfile',                        amprfile,                        'none',    ['amrfile'])            ! 2D precipitation rate file
       call get_keyword(500, 'z0lfile',                         z0lfile,                         'none')            ! 2D land roughness (z0) file
       !
       ! NetCDF-format forcing files (FEWS-style)
