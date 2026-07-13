@@ -112,7 +112,7 @@ module sfincs_data
       integer cd_nr
       integer baro
       integer advection_scheme
-      integer momentum_scheme   ! 1 = velocity form (default), 0 = Bates flux form
+      integer momentum_scheme   ! 0 = Bates flux form (default), 1 = velocity form
       !
       character*256 :: depfile
       character*256 :: mskfile
