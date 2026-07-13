@@ -178,7 +178,7 @@ contains
    !
    ! Numerical parameters
    call read_char_input(500,'advection_scheme',advstr,'upw1')
-   call read_char_input(500,'momentum_scheme',momstr,'velocity')
+   call read_char_input(500,'momentum_scheme',momstr,'bates')
    call read_real_input(500,'btrelax',btrelax,3600.0)
    call read_logical_input(500,'wiggle_suppression', wiggle_suppression, .true.)
    call read_real_input(500,'structure_relax',structure_relax,10.0)
