@@ -466,7 +466,7 @@ contains
          pct    = 100.0_8 * t_el / denom
          tname  = timer_name_by_index(i)
          !
-         write(line, '(1x,a,1x,a,t31,a,f10.3,a,f5.1,a,a,a)') &
+         write(line, '(1x,a,1x,a,t31,a,f10.3,a,f5.1,a)') &
             'Time in', trim(tname), ': ', t_el, ' (', pct, '%)'
          !
          call write_log(trim(line), to_screen)
