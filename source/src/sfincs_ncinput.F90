@@ -170,13 +170,21 @@ module sfincs_ncinput
 
    
    
-   subroutine read_netcdf_discharge_data()
+   subroutine read_netcdf_discharge_data(netsrcdisfile, nr_discharge_points)
    !
-   use sfincs_date   
+   ! Read FEWS-compatible netCDF river-discharge input. netsrcdisfile is
+   ! passed in rather than pulled from a module to avoid a circular
+   ! dependency (the owning module sfincs_discharges `use`s this module
+   ! for the procedure).
+   !
+   use sfincs_date
    use netcdf
-   use sfincs_data   
+   use sfincs_data
    !
-   implicit none   
+   implicit none
+   !
+   character(len=*), intent(in)  :: netsrcdisfile
+   integer,          intent(out) :: nr_discharge_points
    !
    ! Variable names for Fews compatible netcdf input
    !
@@ -206,7 +214,7 @@ module sfincs_ncinput
    !
    ! Get dimensions sizes: time, stations      
    NF90(nf90_inquire_dimension(net_file_srcdis%ncid, net_file_srcdis%time_dimid,   len = ntsrc))   !nr of timesteps in file
-   NF90(nf90_inquire_dimension(net_file_srcdis%ncid, net_file_srcdis%points_dimid, len = nsrc))  !nr of discharge points     
+   NF90(nf90_inquire_dimension(net_file_srcdis%ncid, net_file_srcdis%points_dimid, len = nr_discharge_points))  !nr of discharge points
    !
    ! Get variable id's
    NF90(nf90_inq_varid(net_file_srcdis%ncid, x_varname,    net_file_srcdis%x_varid) )  ! Has to be in the same UTM zone as SFINCS grid
@@ -215,16 +223,16 @@ module sfincs_ncinput
    NF90(nf90_inq_varid(net_file_srcdis%ncid, q_varname,    net_file_srcdis%q_varid) )    
    !
    ! Allocate variables   
-   allocate(xsrc(nsrc))
-   allocate(ysrc(nsrc)) 
+   allocate(xsrc(nr_discharge_points))
+   allocate(ysrc(nr_discharge_points))
    allocate(tsrc(ntsrc))
-   allocate(qsrc(nsrc,ntsrc))
+   allocate(qsrc_ts(nr_discharge_points,ntsrc))
    !
    ! Read values
    NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%x_varid,    xsrc(:)) )
    NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%y_varid,    ysrc(:)) )
-   NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%time_varid, tsrc(:)) ) 
-   NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%q_varid,    qsrc(:,:)) )   
+   NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%time_varid, tsrc(:)) )
+   NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%q_varid,    qsrc_ts(:,:)) )
    !   
    ! Read time attibute
    !
