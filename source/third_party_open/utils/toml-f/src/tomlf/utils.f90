@@ -49,6 +49,7 @@ subroutine toml_escape_string(raw, escaped, multiline)
 
    integer :: i
    logical :: preserve_newline
+   character(1, tfc), parameter :: bs = achar(92, kind=tfc)
 
    preserve_newline = .false.
    if (present(multiline)) preserve_newline = multiline
@@ -57,18 +58,18 @@ subroutine toml_escape_string(raw, escaped, multiline)
    do i = 1, len(raw)
       select case(raw(i:i))
       case default; escaped = escaped // raw(i:i)
-      case('\'); escaped = escaped // '\\'
-      case('"'); escaped = escaped // '\"'
+      case(bs); escaped = escaped // bs // bs
+      case('"'); escaped = escaped // bs // '"'
       case(TOML_NEWLINE)
          if (preserve_newline) then
             escaped = escaped // raw(i:i)
          else
-            escaped = escaped // '\n'
+            escaped = escaped // bs // 'n'
          end if
-      case(TOML_FORMFEED); escaped = escaped // '\f'
-      case(TOML_CARRIAGE_RETURN); escaped = escaped // '\r'
-      case(TOML_TABULATOR); escaped = escaped // '\t'
-      case(TOML_BACKSPACE); escaped = escaped // '\b'
+      case(TOML_FORMFEED); escaped = escaped // bs // 'f'
+      case(TOML_CARRIAGE_RETURN); escaped = escaped // bs // 'r'
+      case(TOML_TABULATOR); escaped = escaped // bs // 't'
+      case(TOML_BACKSPACE); escaped = escaped // bs // 'b'
       end select
    end do
    escaped = escaped // '"'

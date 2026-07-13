@@ -67,13 +67,16 @@
 				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\version.f90"/>
 			</Filter>
 			<Filter Name="snapwave">
-				<File RelativePath="..\src\snapwave\interp.F90"/>
+				<File RelativePath="..\src\snapwave\interp.F90">
+				</File>
 				<File RelativePath="..\src\snapwave\snapwave_boundaries.f90">
 				</File>
 				<File RelativePath="..\src\snapwave\snapwave_data.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_date.f90"/>
-				<File RelativePath="..\src\snapwave\snapwave_domain.f90"/>
-				<File RelativePath="..\src\snapwave\snapwave_infragravity.f90"/>
+				<File RelativePath="..\src\snapwave\snapwave_domain.f90">
+				</File>
+				<File RelativePath="..\src\snapwave\snapwave_infragravity.f90">
+				</File>
 				<File RelativePath="..\src\snapwave\snapwave_ncinput.F90">
 					<FileConfiguration Name="Release|x64">
 						<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
@@ -82,18 +85,64 @@
 						<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
 					</FileConfiguration>
 				</File>
+				<File RelativePath="..\src\snapwave\snapwave_ncoutput.F90">
+					<FileConfiguration Name="Release|x64">
+						<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
+					</FileConfiguration>
+					<FileConfiguration Name="Debug|x64">
+						<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
+					</FileConfiguration>
+				</File>
+				<File RelativePath="..\src\snapwave\snapwave_RFtable.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_solver.f90">
 				</File>
 				<File RelativePath="..\src\snapwave\snapwave_windsource.f90"/>
+			</Filter>
+			<Filter Name="toml-f">
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\de\abc.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\all.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\type\array.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\structure\array_list.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\build.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\build\build_array.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\build\build_keyval.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\build\build_table.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\constants.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\de\context.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\datetime.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\de.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\diagnostic.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\error.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\utils\io.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\type\keyval.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\de\lexer.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\structure\list.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\structure\map.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\build\merge.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\structure\node.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\structure\ordered_map.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\de\parser.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\build\path.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\ser.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\utils\sort.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\structure.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\type\table.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\terminal.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\de\token.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\type.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\utils.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\type\value.f90"/>
+				<File RelativePath="..\third_party_open\utils\toml-f\src\tomlf\version.f90"/>
 			</Filter>
 			<File RelativePath="..\third_party_open\Delft3D\astro.f90"/>
 			<File RelativePath="..\third_party_open\bicgstab\bicgstab_solver_ilu.f90"/>
 			<File RelativePath="..\third_party_open\utils\deg2utm.f90"/>
 			<File RelativePath="..\third_party_open\utils\geometry.f90"/>
-			<File RelativePath="..\src\sfincs_bathtub.f90">
-			</File>
+			<File RelativePath="..\src\sfincs_bathtub.f90"/>
 			<File RelativePath="..\src\sfincs_boundaries.f90"/>
-			<File RelativePath="..\src\sfincs_continuity.f90"/>
+			<File RelativePath="..\src\sfincs_continuity.f90">
+			</File>
 			<File RelativePath="..\src\sfincs_crosssections.f90"/>
 			<File RelativePath="..\src\sfincs_data.f90">
 			</File>
@@ -107,14 +156,11 @@
 			<File RelativePath="..\src\sfincs_error.f90"/>
 			<File RelativePath="..\src\sfincs_infiltration.f90"/>
 			<File RelativePath="..\src\sfincs_initial_conditions.F90"/>
-			<File RelativePath="..\src\sfincs_input.f90">
-			</File>
+			<File RelativePath="..\src\sfincs_input.f90"/>
 			<File RelativePath="..\src\sfincs_lib.f90"/>
 			<File RelativePath="..\src\sfincs_log.f90"/>
-			<File RelativePath="..\src\sfincs_meteo.f90">
-			</File>
-			<File RelativePath="..\src\sfincs_momentum.f90">
-			</File>
+			<File RelativePath="..\src\sfincs_meteo.f90"/>
+			<File RelativePath="..\src\sfincs_momentum.f90"/>
 			<File RelativePath="..\src\sfincs_ncinput.F90">
 				<FileConfiguration Name="Release|x64">
 					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
@@ -133,8 +179,7 @@
 			</File>
 			<File RelativePath="..\src\sfincs_nonhydrostatic.f90"/>
 			<File RelativePath="..\src\sfincs_obspoints.f90"/>
-			<File RelativePath="..\src\sfincs_openacc.f90">
-			</File>
+			<File RelativePath="..\src\sfincs_openacc.f90"/>
 			<File RelativePath="..\src\sfincs_output.f90"/>
 			<File RelativePath="..\src\sfincs_quadtree.F90">
 				<FileConfiguration Name="Release|x64">
@@ -144,8 +189,10 @@
 					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
 				</FileConfiguration>
 			</File>
+			<File RelativePath="..\src\sfincs_read.f90"/>
 			<File RelativePath="..\src\sfincs_runup_gauges.f90"/>
-			<File RelativePath="..\src\sfincs_snapwave.f90"/>
+			<File RelativePath="..\src\sfincs_snapwave.f90">
+			</File>
 			<File RelativePath="..\src\sfincs_spiderweb.f90"/>
 			<File RelativePath="..\src\sfincs_structures.f90"/>
 			<File RelativePath="..\src\sfincs_subgrid.F90">
@@ -156,7 +203,8 @@
 					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
 				</FileConfiguration>
 			</File>
-			<File RelativePath="..\src\sfincs_timestep_analysis.f90">
+			<File RelativePath="..\src\sfincs_timestep_analysis.f90"/>
+			<File RelativePath="..\src\sfincs_vegetation.f90">
 			</File>
 			<File RelativePath="..\src\utils\sfincs_polygons.f90"/>
 			<File RelativePath="..\src\sfincs_urban_drainage.f90"/>

@@ -270,7 +270,7 @@ subroutine visit_keyval(visitor, keyval)
 
    character(kind=tfc, len=:), allocatable :: key, str
    type(toml_datetime), pointer :: dval
-   character(:, tfc), pointer :: sval
+   character(:, tfc), allocatable :: sval
    integer(tfi), pointer :: ival
    real(tfr), pointer :: rval
    logical, pointer :: lval
@@ -279,7 +279,7 @@ subroutine visit_keyval(visitor, keyval)
 
    select case(keyval%get_type())
    case(toml_type%string)
-      call keyval%get(sval)
+      call keyval%get_string(sval)
       call toml_escape_string(sval, str)
    case(toml_type%int)
       call keyval%get(ival)
@@ -322,7 +322,7 @@ recursive subroutine visit_array(visitor, array)
    class(toml_value), pointer :: ptr
    character(kind=tfc, len=:), allocatable :: key, str
    type(toml_datetime), pointer :: dval
-   character(:, tfc), pointer :: sval
+   character(:, tfc), allocatable :: sval
    integer(tfi), pointer :: ival
    real(tfr), pointer :: rval
    logical, pointer :: lval
@@ -337,7 +337,7 @@ recursive subroutine visit_array(visitor, array)
 
          select case(ptr%get_type())
          case(toml_type%string)
-            call ptr%get(sval)
+            call ptr%get_string(sval)
             call toml_escape_string(sval, str)
          case(toml_type%int)
             call ptr%get(ival)

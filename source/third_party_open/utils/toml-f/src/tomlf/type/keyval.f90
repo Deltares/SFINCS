@@ -72,7 +72,7 @@ module tomlf_type_keyval
    contains
 
       !> Get the value stored in the key-value pair
-      generic :: get => get_float, get_integer, get_boolean, get_datetime, get_string
+      generic :: get => get_float, get_integer, get_boolean, get_datetime
       procedure :: get_float
       procedure :: get_integer
       procedure :: get_boolean
@@ -110,8 +110,6 @@ subroutine new_keyval(self)
 
    !> Instance of the TOML key-value pair
    type(toml_keyval), intent(out) :: self
-
-   associate(self => self); end associate
 
 end subroutine new_keyval
 
@@ -192,9 +190,9 @@ subroutine get_string(self, val)
    class(toml_keyval), intent(in) :: self
 
    !> Value to be assigned
-   character(:, tfc), pointer, intent(out) :: val
+   character(:, tfc), allocatable, intent(out) :: val
 
-   val => cast_string(self%val)
+   if (allocated(self%val)) val = cast_string(self%val)
 end subroutine get_string
 
 
@@ -353,14 +351,13 @@ function cast_datetime(val) result(ptr)
    end select
 end function cast_datetime
 
-function cast_string(val) result(ptr)
-   class(generic_value), intent(in), target :: val
-   character(:, tfc), pointer :: ptr
+function cast_string(val) result(str)
+   class(generic_value), intent(in) :: val
+   character(:, tfc), allocatable :: str
 
-   nullify(ptr)
    select type(val)
    type is(string_value)
-      ptr => val%raw
+      if (allocated(val%raw)) str = val%raw
    end select
 end function cast_string
 

@@ -331,7 +331,18 @@ contains
       ! Coupled SnapWave solver parameters
       !
       call get_keyword(500, 'snapwave_wind',                   snapwavewind,                    .false.)           ! feed wind into SnapWave (implies storing wind speed/direction)
-      call get_keyword(500, 'snapwave_waveforces_factor',      waveforces_factor,               1.0)               ! multiplier on SnapWave wave forces
+      call get_keyword(500, 'snapwave_waveforces_ratio',       waveforces_ratio,                1.0, ['snapwave_waveforces_factor'])   ! multiplier on SnapWave wave forces
+      call get_keyword(500, 'snapwave_vegetation',             snapwave_vegetation,             .false.)           ! enable vegetation dissipation in SnapWave
+      !
+      ! Vegetation
+      !
+      call get_keyword(500, 'vegetation',                      vegetation,                      .false.)           ! enable vegetation drag in SFINCS
+      call get_keyword(500, 'vegetationfile',                  veggiefile,                      'none')            ! vegetation characteristics file
+      call get_keyword(500, 'vegetationtype_toml',             veggietype_toml,                 'none')            ! companion TOML lookup table; if set, vegetationfile holds only vegetation_type integers
+      !
+      ! Vegetation can be used in SnapWave and/or SFINCS calculations
+      !
+      store_vegetation = (vegetation .or. snapwave_vegetation)
       !
       ! Wind drag coefficient table
       !

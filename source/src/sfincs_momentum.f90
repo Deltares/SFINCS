@@ -18,7 +18,7 @@ contains
    integer   :: nmu
    integer   :: n
    integer   :: m
-
+   !
    integer   :: idir
    integer   :: iref
    integer   :: itype
@@ -592,9 +592,13 @@ contains
                ! facmax = 0.25*sqrt(g)*rhow*gammax**2
                ! fmax = facmax*hu*sqrt(hu)/tp/rhow (we already divided by rhow in sfincs_snapwave)
                !
-               fwmax = 0.8 * hwet * sqrt(hwet) / 15
+               ! old: fwmax = 0.8 * hwet * sqrt(hwet) / 15
+               ! fix for lab cases: fwmax = 999
                !
-               frc = frc + phi * sign(min(abs(fwuv(ip)), fwmax), fwuv(ip))
+               fwmax = fwmaxfac * hwet * sqrt(hwet)     
+               ! Note, fwmaxfac is determined in sfincs_snapwave every 'update_wave_field' call
+               !
+               frc = frc + phi * sign(min(abs(fwuv(ip)), fwmax), fwuv(ip))               
                !
             endif
             !

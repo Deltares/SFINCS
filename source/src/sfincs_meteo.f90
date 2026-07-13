@@ -629,6 +629,10 @@ contains
          ind1(4) = idstspw + 1
          if (ind1(3) > spw_nrows) cycle
          dj1     = (dstspw - dradspw * idstspw) / dradspw
+         ! When dstspw < dradspw (point within first radial bin), idstspw is clamped to 1
+         ! but the raw dj1 formula yields a negative value. Clamp to 0 so bilinear weights
+         ! remain in [0,1] and do not produce unphysical negative contributions.
+         dj1     = max(dj1, 0.0)
          phispw  = 0.5*pi - atan2(dye, dxe) ! Geographic
          phispw  = modulo(phispw, 2 * pi)
          !

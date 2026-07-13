@@ -48,8 +48,12 @@ contains
    !$acc               src_struc_rule_start, src_struc_rule_count, rule_list_op, rule_list_id, &
    !$acc               rule_opcode, rule_atom, rule_cmp, rule_threshold, rule_start, rule_length, &
    !$acc               z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, &
+   !$acc               wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, &
+   !$acc               wavemaker_idir, wavemaker_angfac, wavemaker_uvtrend, &
+   !$acc               wavemaker_index_wmfp1, wavemaker_index_wmfp2, wavemaker_fac_wmfp, &
+   !$acc               wavemaker_forcing_hm0_ig_t, wavemaker_forcing_tp_ig_t, wavemaker_forcing_setup_t, &
    !$acc               structure_uv_index, structure_parameters, structure_type, structure_length, &
-   !$acc               fwuv, &
+   !$acc               fwuv, hm0, hm0_ig, &
    !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
    !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, &
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
@@ -98,8 +102,12 @@ contains
    !$acc               src_struc_rule_start, src_struc_rule_count, rule_list_op, rule_list_id, &
    !$acc               rule_opcode, rule_atom, rule_cmp, rule_threshold, rule_start, rule_length, &
    !$acc               z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, &
+   !$acc               wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, &
+   !$acc               wavemaker_idir, wavemaker_angfac, wavemaker_uvtrend, &
+   !$acc               wavemaker_index_wmfp1, wavemaker_index_wmfp2, wavemaker_fac_wmfp, &
+   !$acc               wavemaker_forcing_hm0_ig_t, wavemaker_forcing_tp_ig_t, wavemaker_forcing_setup_t, &
    !$acc               structure_uv_index, structure_parameters, structure_type, structure_length, &
-   !$acc               fwuv, &
+   !$acc               fwuv, hm0, hm0_ig, &
    !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
    !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, &
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &

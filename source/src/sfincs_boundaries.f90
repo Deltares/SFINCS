@@ -200,8 +200,6 @@ contains
             !
             iok = 0
             !
-            zs_bnd(ib, itb) = 0.0
-            !
          endif
          !
       enddo 
@@ -209,7 +207,7 @@ contains
    !
    if (iok == 0) then
       ! 
-      write(logstr,'(a)')'Warning! Very low, very high or NaN values found in boundary conditions file ! These have now been replaced with zeros. Please check !'
+      write(logstr,'(a)')'Warning! Very low, very high or NaN values found in boundary conditions file ! Please check !'
       call write_log(logstr, 1)
       ! 
    endif

@@ -50,7 +50,7 @@ module tomlf_de_lexer
       character(3, tfc) :: squote3 = repeat(tfc_"'", 3)
       character(1, tfc) :: dquote = tfc_""""
       character(3, tfc) :: dquote3 = repeat(tfc_"""", 3)
-      character(1, tfc) :: backslash = tfc_"\"
+      character(1, tfc) :: backslash = achar(92, kind=tfc)
       character(1, tfc) :: dot = tfc_"."
       character(1, tfc) :: comma = tfc_","
       character(1, tfc) :: equal = tfc_"="
@@ -434,7 +434,8 @@ subroutine next_dstring(lexer, token)
    type(toml_token), intent(inout) :: token
 
    character(1, tfc) :: ch
-   character(*, tfc), parameter :: hexnum = "0123456789ABCDEF", valid_escape = "betnfr\"""
+   character(*, tfc), parameter :: hexnum = "0123456789ABCDEF"
+   character(*, tfc), parameter :: valid_escape = "betnfr" // achar(92, kind=tfc) // """"
    integer :: prev, pos, expect, it, hex
    logical :: escape, valid, space
 
@@ -1190,7 +1191,7 @@ subroutine extract_string(lexer, token, string)
          if (escape) then
             escape = .false.
             select case(ch)
-            case("""", "\");  string = string // ch
+            case("""", achar(92, kind=tfc));  string = string // ch
             case("b"); string = string // TOML_BACKSPACE
             case("e"); string = string // TOML_ESC
             case("t"); string = string // TOML_TABULATOR
@@ -1217,7 +1218,7 @@ subroutine extract_string(lexer, token, string)
          if (escape) then
             escape = .false.
             select case(ch)
-            case("""", "\");  string = string // ch
+            case("""", achar(92, kind=tfc));  string = string // ch
             case("b"); string = string // TOML_BACKSPACE
             case("e"); string = string // TOML_ESC
             case("t"); string = string // TOML_TABULATOR

@@ -183,8 +183,12 @@ module sfincs_output
          !$acc update host(cumprcp)
       endif
       !
-      if (precip .and. scsfile(1:4) /= 'none') then !!! also include other infiltration 
+      if (precip .and. scsfile(1:4) /= 'none') then !!! also include other infiltration
          !$acc update host(cuminf)
+      endif
+      !
+      if (store_wind_max) then
+         !$acc update host(windmax)
       endif
       !
       if (outputtype_map == 'net') then

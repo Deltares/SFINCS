@@ -53,23 +53,27 @@ libsfincs_la_SOURCES = \
 	sfincs_log.f90 \
 	sfincs_timers.f90 \
 	sfincs_date.f90 \
+	sfincs_read.f90 \
 	sfincs_spiderweb.f90 \
 	sfincs_data.f90 \
-    ../third_party_open/Delft3D/astro.f90 \
+        ../third_party_open/Delft3D/astro.f90 \
 	../third_party_open/utils/geometry.f90 \
-	sfincs_error.f90 \		
+	sfincs_error.f90 \
 	sfincs_quadtree.f90 \
+	sfincs_ncinput.F90 \
+	sfincs_vegetation.f90 \
 	snapwave/interp.F90 \
 	snapwave/snapwave_data.f90 \
-	snapwave/snapwave_ncinput.F90 \		
-	snapwave/snapwave_infragravity.f90 \	
+	snapwave/snapwave_ncinput.F90 \
+	snapwave/snapwave_ncoutput.F90 \
+	snapwave/snapwave_infragravity.f90 \
 	snapwave/snapwave_boundaries.f90 \
 	snapwave/snapwave_date.f90 \
 	snapwave/snapwave_domain.f90 \
 	snapwave/snapwave_windsource.f90 \
+	snapwave/snapwave_RFtable.f90 \
 	snapwave/snapwave_solver.f90 \
 	sfincs_input.f90 \
-	sfincs_ncinput.F90 \
 	sfincs_initial_conditions.f90 \
 	sfincs_boundaries.f90 \
 	sfincs_continuity.f90 \
@@ -90,7 +94,7 @@ libsfincs_la_SOURCES = \
 	sfincs_snapwave.f90 \
 	../third_party_open/utils/deg2utm.f90 \
 	sfincs_meteo.f90 \
-    ../third_party_open/bicgstab/bicgstab_solver_ilu.f90 \
+        ../third_party_open/bicgstab/bicgstab_solver_ilu.f90 \
 	sfincs_nonhydrostatic.f90 \
 	sfincs_ncoutput.F90 \
 	sfincs_output.f90 \

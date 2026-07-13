@@ -87,8 +87,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.3.2 Mount Faber + branch-redo-infiltration + urban_drainage + discharges + timers + screendump"
-   build_date     = "$Date: 2026-04-19"
+   build_revision = "$Rev: v2.4.0 Galibier Release + urban_drainage"
+   build_date     = "$Date: 2026-07-13"
    !
    call write_startup_log()
    !
