@@ -430,9 +430,10 @@ The rules use a small expression language. The building blocks are:
 
 - ``z1`` — water level at the ``obs_1`` cell (m)
 - ``z2`` — water level at the ``obs_2`` cell (m)
-- ``z2-z1`` — the head difference (m); note there is no ``z1-z2`` form, so flip the comparison sign instead (``z1-z2 > 0.1`` becomes ``z2-z1 < -0.1``)
+- ``z2-z1`` — the head difference (m)
+- ``z1-z2`` — the negative head difference (m)
 
-You compare one of these against a number using ``<`` or ``>`` (the ``<=`` and ``>=`` forms are not supported). Multiple comparisons can be combined with ``&`` for "and" and ``|`` for "or", and you can use parentheses to group them. All names are case-insensitive.
+You compare one of these against a number using ``<``, ``>``, ``<=``, ``>=`` or ``=`` (``==`` is accepted as an alias for ``=``). Multiple comparisons can be combined with ``&`` for "and" and ``|`` for "or", and you can use parentheses to group them. All names are case-insensitive.
 
 Examples:
 
