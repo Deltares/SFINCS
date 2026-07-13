@@ -47,6 +47,7 @@ module sfincs_ncoutput_helpers
       integer :: zs_varid, zsmax_varid, h_varid, u_varid, v_varid, tmax_varid, infstate_varid, t_zsmax_varid
       integer :: zvolume_varid, storagevolume_varid
       integer :: hmax_varid, vmax_varid, qmax_varid, cumprcp_varid, cuminf_varid, windmax_varid
+      integer :: cumulative_urbdrain_varid
       integer :: patm_varid, wind_u_varid, wind_v_varid, precip_varid
       integer :: hm0_varid, hm0ig_varid, snapwavemsk_varid, tp_varid, tpig_varid, wavdir_varid
       integer :: fwx_varid, fwy_varid, beta_varid, snapwavedepth_varid
@@ -74,14 +75,17 @@ module sfincs_ncoutput_helpers
       integer :: ncid
       integer :: time_dimid
       integer :: points_dimid, pointnamelength_dimid
-      integer :: crosssections_dimid, structures_dimid, thindams_dimid, drain_dimid, runup_gauges_dimid
+      integer :: crosssections_dimid, structures_dimid, thindams_dimid, drain_dimid, runup_gauges_dimid, river_dimid
+      integer :: urbdrain_dimid
       integer :: runtime_dimid
       integer :: point_x_varid, point_y_varid, station_x_varid, station_y_varid, crs_varid, qinf_varid, S_varid
       integer :: station_id_varid, station_name_varid
       integer :: crosssection_name_varid
       integer :: structure_height_varid, structure_x_varid, structure_y_varid
       integer :: thindam_x_varid, thindam_y_varid
-      integer :: drain_varid
+      integer :: drain_varid, drain_name_varid, breach_width_varid, drain_fraction_open_varid
+      integer :: river_varid, river_name_varid
+      integer :: urbdrain_varid, urbdrain_name_varid
       integer :: zb_varid
       integer :: time_varid
       integer :: zs_varid, h_varid, u_varid, v_varid, prcp_varid, cumprcp_varid, discharge_varid, uvmag_varid, uvdir_varid

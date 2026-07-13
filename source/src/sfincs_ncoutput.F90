@@ -411,6 +411,9 @@ contains
               standard_name='psi')
       elseif (inftype == 'hor') then
          call def_static_cell_float('qinf', map_file%qinf_varid, 'm', 'initial infiltration rate - Horton', standard_name='f0')
+      elseif (inftype == 'bkt') then
+         call def_static_cell_float('qinf', map_file%qinf_varid, 'mm', 'maximum bucket storage capacity', &
+              standard_name='bucket_capacity')
       else
          call def_static_cell_float('qinf', map_file%qinf_varid, 'mm h-1', 'infiltration rate - constant in time', &
               standard_name='qinf')
@@ -554,6 +557,11 @@ contains
    !
    if (store_cumulative_precipitation .and. infiltration) then
       call def_maxtime_cell_float('cuminf', map_file%cuminf_varid, 'm', 'cumulative_infiltration_depth', cell_methods='time: sum')
+   endif
+   !
+   if (store_cumulative_urban_drainage .and. urban_drainage) then
+      call def_maxtime_cell_float('urban_drainage_cumulative_depth', map_file%cumulative_urbdrain_varid, 'm', &
+           'cumulative_urban_drainage_depth', cell_methods='time: sum')
    endif
    !
    ! -------------------------------------------------------
@@ -756,8 +764,15 @@ contains
    if (infiltration) then
       if (inftype == 'con' .or. inftype == 'c2d') then
          call put_static_cell_float(map_file%ncid, map_file%qinf_varid, qinffield, FILL_VALUE, scale=3.6e6)
+      elseif (inftype == 'bkt') then
+         ! Bucket model: write the maximum storage capacity (m -> mm)
+         if (allocated(bucket_capacity)) then
+            call put_static_cell_float(map_file%ncid, map_file%qinf_varid, bucket_capacity, FILL_VALUE, scale=1000.0)
+         endif
       else
-         call put_static_cell_float(map_file%ncid, map_file%qinf_varid, qinffield, FILL_VALUE)
+         if (allocated(qinffield)) then
+            call put_static_cell_float(map_file%ncid, map_file%qinf_varid, qinffield, FILL_VALUE)
+         endif
       endif
    endif
    !
@@ -1062,9 +1077,29 @@ contains
            'm3 s-1', 'discharge', coordinates='crosssection_name')
    endif
    !
-   if (ndrn>0) then
+   if (nr_src_structures>0) then
+      !
       call ncdef_float_var(his_file%ncid, 'drainage_discharge', (/his_file%drain_dimid, his_file%time_dimid/), his_file%drain_varid, &
-           'm3 s-1', 'discharge through drainage structure')
+           'm3 s-1', 'discharge through drainage structure', coordinates='drainage_name')
+      !
+      if (any(src_struc_type == structure_dike_breach)) then
+         call ncdef_float_var(his_file%ncid, 'breach_width', (/his_file%drain_dimid, his_file%time_dimid/), his_file%breach_width_varid, &
+              'm', 'dike breach width', coordinates='drainage_name')
+      endif
+      !
+      call ncdef_float_var(his_file%ncid, 'drainage_fraction_open', (/his_file%drain_dimid, his_file%time_dimid/), his_file%drain_fraction_open_varid, &
+           '1', 'gate open fraction (1 = fully open, 0 = fully closed)', coordinates='drainage_name')
+      !
+   endif
+   !
+   if (nr_discharge_points>0 .and. store_river_discharge) then
+      call ncdef_float_var(his_file%ncid, 'river_discharge', (/his_file%river_dimid, his_file%time_dimid/), his_file%river_varid, &
+           'm3 s-1', 'river point discharge', coordinates='river_name')
+   endif
+   !
+   if (nr_urban_drainage_zones > 0 .and. store_urban_drainage_discharge) then
+      call ncdef_float_var(his_file%ncid, 'urban_drainage_discharge', (/his_file%urbdrain_dimid, his_file%time_dimid/), his_file%urbdrain_varid, &
+           'm3 s-1', 'urban drainage zone net outfall discharge', coordinates='urban_drainage_zone_name')
    endif
    !
    if (nr_runup_gauges > 0) then
@@ -1368,17 +1403,15 @@ contains
    !
    implicit none
    !
-   integer :: iobs, nm, idrn
+   integer :: iobs, nm
    integer :: nthisout
    real*8  :: t
    real*4, dimension(nobs) :: uobs, vobs, uvmag, uvdir
    real*4, dimension(nobs) :: twndmag, twnddir
-   real*4, dimension(ndrn) :: q_drain
    real*4, dimension(:), allocatable :: qq, zz
    !
    zobs    = FILL_VALUE
    hobs    = FILL_VALUE
-   q_drain = FILL_VALUE
    !
    do iobs = 1, nobs
       nm = nmindobs(iobs)
@@ -1509,15 +1542,14 @@ contains
    if (nr_discharge_points>0 .and. store_river_discharge) then
       !
       !$acc update host(qtsrc)
-      ! Get fluxes through drainage structure
       !
-      idrn = 0
-      do iobs = nsrc + 1, nsrcdrn, 2 !TL: as in sfincs_output.f90
-         idrn = idrn + 1
-         q_drain(idrn) = qtsrc(iobs)
-      enddo
+      NF90(nf90_put_var(his_file%ncid, his_file%river_varid, qtsrc, (/1, nthisout/))) ! write per-river-source discharge
       !
-      NF90(nf90_put_var(his_file%ncid, his_file%drain_varid, q_drain, (/1, nthisout/)))
+   endif
+   !
+   if (nr_urban_drainage_zones > 0 .and. store_urban_drainage_discharge) then
+      !
+      NF90(nf90_put_var(his_file%ncid, his_file%urbdrain_varid, urban_drainage_q_total, (/1, nthisout/))) ! write per-zone total discharge
       !
    endif
    !
@@ -1552,6 +1584,7 @@ contains
    real*8                            :: t
    integer                           :: ntmaxout, nm
    real*4, dimension(:), allocatable :: hmax_out, hmean
+   real*4, dimension(:), allocatable :: urbdrain_depth
    !
    ! Scalar time of this max-record (defined only when store_maximum_waterlevel)
    if (store_maximum_waterlevel) then
@@ -1603,6 +1636,20 @@ contains
       if (infiltration) then
          call write_cell_var(map_file%ncid, map_file%cuminf_varid, cuminf, ntmaxout, check_kcs=.true.)
       endif
+   endif
+   !
+   ! Cumulative urban drainage depth (drained volume / cell area)
+   if (store_cumulative_urban_drainage .and. urban_drainage) then
+      allocate(urbdrain_depth(np))
+      do nm = 1, np
+         if (crsgeo) then
+            urbdrain_depth(nm) = urban_drainage_cumulative_volume(nm) / cell_area_m2(nm)
+         else
+            urbdrain_depth(nm) = urban_drainage_cumulative_volume(nm) / cell_area(z_flags_iref(nm))
+         endif
+      enddo
+      call write_cell_var(map_file%ncid, map_file%cumulative_urbdrain_varid, urbdrain_depth, ntmaxout)
+      deallocate(urbdrain_depth)
    endif
    !
    ! Maximum flow velocity / flux
@@ -1667,21 +1714,18 @@ contains
    ! Add total runtime, dtavg to file and close
    !
    use sfincs_data
-   !   
-   implicit none   
-   !   
-   ! Mirror the early-return condition from ncoutput_his_init exactly: if
-   ! none of these are present, no his file was created. (Note: thindams
-   ! alone do NOT trigger his-file creation in init, so they're not in
-   ! this list either.)
-   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0 .and. nr_runup_gauges==0) then
-      return
-   endif
+   use sfincs_src_structures, only: nr_src_structures
+   use sfincs_discharges,     only: nr_discharge_points
+   use sfincs_urban_drainage, only: nr_urban_drainage_zones
    !
    implicit none
    !
-   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nrthindams==0 .and. nr_src_structures==0 .and. .not. (nr_discharge_points>0 .and. store_river_discharge) .and. .not. (nr_urban_drainage_zones>0 .and. store_urban_drainage_discharge)) then ! If no observation points, cross-sections, structures (weir or thin dam), drains, river sources or urban drainage zones; hisfile
-        return
+   ! Mirror the early-return condition from ncoutput_his_init exactly: if
+   ! none of these are present, no his file was created. (Note: thindams
+   ! alone do NOT trigger his-file creation in init, so they are not in
+   ! this list either.)
+   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nr_src_structures==0 .and. .not. (nr_discharge_points>0 .and. store_river_discharge) .and. .not. (nr_urban_drainage_zones>0 .and. store_urban_drainage_discharge) .and. nr_runup_gauges==0) then
+      return
    endif
    !
    NF90(nf90_put_var(his_file%ncid, his_file%total_runtime_varid, tfinish_all - tstart_all))
