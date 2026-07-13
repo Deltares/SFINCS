@@ -2312,47 +2312,13 @@ contains
       !
       allocate(hm0(np))
       allocate(hm0_ig(np))
-      allocate(sw_tp(np))
-      allocate(sw_tp_ig(np))      
       allocate(fwuv(npuv))
       !
       hm0    = 0.0
       hm0_ig = 0.0
-      sw_tp     = 0.0
-      sw_tp_ig  = 0.0      
       fwuv   = 0.0
       !
-      if (store_wave_forces) then
-         allocate(fwx(np))
-         allocate(fwy(np))
-         fwx = 0.0
-         fwy = 0.0
-         allocate(dw(np))
-         allocate(df(np))
-         dw = 0.0
-         df = 0.0
-         allocate(dwig(np))
-         allocate(dfig(np))
-         dwig = 0.0
-         dfig = 0.0   
-         allocate(cg(np))
-         cg = 0.0
-         allocate(betamean(np))
-         betamean = 0.0     
-         allocate(srcig(np))
-         srcig = 0.0           
-         allocate(alphaig(np))
-         alphaig = 0.0            
-      endif
-      !
-      if (store_wave_direction) then
-         allocate(mean_wave_direction(np))
-         allocate(wave_directional_spreading(np))
-         mean_wave_direction        = 0.0
-         wave_directional_spreading = 0.0
-      endif   
-      !
-   endif   
+   endif
    !
    if (wavemaker .or. snapwave) then !TL: zsm also used in sfincs_continuity if 'snapwave=true' > todo: check if needed, or only for wavemaker 
       allocate(zsm(np))

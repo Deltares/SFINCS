@@ -89,6 +89,7 @@ libsfincs_la_SOURCES = \
 	../third_party_open/utils/deg2utm.f90 \
 	sfincs_meteo.f90 \
 	sfincs_nonhydrostatic.f90 \
+	sfincs_ncoutput_helpers.F90 \
 	sfincs_ncoutput.F90 \
 	sfincs_output.f90 \
 	sfincs_momentum.f90 \
