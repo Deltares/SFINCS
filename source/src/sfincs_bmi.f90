@@ -157,6 +157,10 @@ contains
       case("qext")
          var_shape(1) = size(qext)
       case("dzbext")
+         if (.not. allocated(dzbext)) then
+            allocate(dzbext(np))
+            dzbext = 0.0
+         endif
          var_shape(1) = size(dzbext)
       case default
          ierr = -1
