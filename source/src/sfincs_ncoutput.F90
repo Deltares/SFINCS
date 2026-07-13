@@ -310,8 +310,7 @@ contains
       !
       call def_mesh2d_node_coord('y', map_file%mesh2d_node_y_varid)
       !
-      NF90(nf90_def_var(map_file%ncid, 'mesh2d_face_nodes', NF90_INT, &
-           (/map_file%max_nmesh2d_face_nodes_dimid, map_file%nmesh2d_face_dimid/), map_file%mesh2d_face_nodes_varid))
+      NF90(nf90_def_var(map_file%ncid, 'mesh2d_face_nodes', NF90_INT, (/map_file%max_nmesh2d_face_nodes_dimid, map_file%nmesh2d_face_dimid/), map_file%mesh2d_face_nodes_varid))
       NF90(nf90_def_var_deflate(map_file%ncid, map_file%mesh2d_face_nodes_varid, 1, 1, nc_deflate_level))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_nodes_varid, 'cf_role',   'face_node_connectivity'))
       NF90(nf90_put_att(map_file%ncid, map_file%mesh2d_face_nodes_varid, 'mesh',      'mesh2d'))
