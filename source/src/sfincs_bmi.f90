@@ -120,6 +120,10 @@ contains
       case("qext")
          c_data = c_loc(qext)
       case("dzbext")
+         if (.not. allocated(dzbext)) then
+            allocate(dzbext(np))
+            dzbext = 0.0
+         endif
          c_data = c_loc(dzbext)
       case("uorb")
          c_data = c_loc(uorb)
