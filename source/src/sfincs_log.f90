@@ -441,7 +441,6 @@ contains
       real(8)        :: pct
       integer        :: i
       integer        :: n
-      integer        :: ncalls
       character(32)  :: tname
       character(256) :: line
       !
