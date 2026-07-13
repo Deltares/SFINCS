@@ -289,7 +289,7 @@ contains
    !
    use sfincs_data
    use sfincs_timers
-   use sfincs_date, only: timer
+   use omp_lib
    !
    implicit none
    !
@@ -299,9 +299,9 @@ contains
    real*4,    dimension(:), allocatable       :: fwy0
    integer   :: ip, nm, nmu, idir
    real*8    :: t
-   real*4    :: t3, t4
+   real(8)   :: t3, t4
    !
-   call timer(t3)
+   t3 = omp_get_wtime()
    !
    call timer_start('SnapWave')
    !
@@ -443,7 +443,7 @@ contains
    !
    call timer_stop('SnapWave')
    !
-   call timer(t4)
+   t4 = omp_get_wtime()
    !
    write(logstr,'(a,f10.1,a,f6.2,a)')'Computing SnapWave at t = ', t, ' s took ', t4 - t3, ' seconds'
    call write_log(logstr, 0)
