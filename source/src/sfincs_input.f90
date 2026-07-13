@@ -681,7 +681,7 @@ contains
       endif
    endif
    !
-   ! Momentum scheme : velocity form (default) or Bates flux form
+   ! Momentum scheme : Bates flux form (default) or form (default)
    !
    if (trim(momstr) == 'bates') then
       momentum_scheme = 0
