@@ -491,7 +491,7 @@ contains
    endif 
    !
    store_vegetation = .false.   
-   if (vegetation==.true. .or. snapwave_vegetation==.true.) then
+   if (vegetation .eqv. .true. .or. snapwave_vegetation .eqv. .true.) then
        !
        store_vegetation = .true.
        ! vegetation can be used in SnapWave and/or SFINCS calculations
