@@ -272,8 +272,8 @@ contains
       !
       ! Infiltration and losses
       !
-      call get_keyword(500, 'infiltrationfile',                infiltrationfile,                'none')            ! infiltration parameters TOML file
-      call get_keyword(500, 'infiltrationtype',                inftype,                         'none')            ! infiltration flavor (con, c2d, cna, cnb, gai, hor, bkt)
+      call get_keyword(500, 'infiltrationfile',                infiltrationfile,                'none', ['infiltration_file'])   ! infiltration parameters TOML file
+      call get_keyword(500, 'infiltrationtype',                inftype,                         'none', ['infiltration_type'])   ! infiltration flavor (con, c2d, cna, cnb, gai, hor, bkt)
       !
       ! Legacy binary infiltration inputs (kept for backward compatibility).
       !
