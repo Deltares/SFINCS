@@ -986,11 +986,10 @@ contains
       !
       call notabs(line0, line, ilen)
       !
-      ! Remove Windows-style `\r` line ending if present.
+      ! Remove Windows-style CR (carriage return) line ending if present.
       !
-      jn = index(line, '\r')
+      jn = index(line, achar(13))
       if (jn > 0) line = line(1:jn - 1)
-      !
       line = trim(line)
       !
       if (line(1:1) == '#' .or. line(1:1) == '!' .or. line(1:1) == '@') return
