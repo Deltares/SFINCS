@@ -8,6 +8,7 @@ module sfincs_output
    subroutine initialize_output(tmapout,tmaxout,thisout, trstout)
    !
    use sfincs_data
+   use sfincs_timers
    !
    implicit none
    !
@@ -81,17 +82,12 @@ module sfincs_output
    end subroutine
 
    
-   subroutine write_output(t,write_map,write_his,write_max,write_rst,ntmapout,ntmaxout,nthisout,tloop)
+   subroutine write_output(t,write_map,write_his,write_max,write_rst,ntmapout,ntmaxout,nthisout)
    !
    use sfincs_data
    !
    implicit none
    !
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
    !
    logical  :: write_map   
    logical  :: write_max
@@ -104,7 +100,7 @@ module sfincs_output
    !
    real*8   :: t
    !
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('output')
    !
    ! Time-varying water level output maps
    !
@@ -264,12 +260,11 @@ module sfincs_output
       !
    endif
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
+   call timer_stop('output')
    !   
    end subroutine
    
-   subroutine finalize_output(t, ntmaxout, tloopoutput, tmaxout)
+   subroutine finalize_output(t, ntmaxout, tmaxout)
    !
    use sfincs_data
    !
@@ -277,7 +272,6 @@ module sfincs_output
    !
    integer  :: ntmaxout
    real*8   :: t, t2
-   real     :: tloopoutput 
    real*8   :: tmaxout   
    !   
    if (dtmaxout>1.e-6 .and. ntmaxout == 0) then 
@@ -287,7 +281,7 @@ module sfincs_output
       call write_log('', 1)
       call write_log('Info : Write maximum values at final timestep since t=dtmaxout was not reached yet...', 1)
       ntmaxout = 1
-      call write_output(t,.false.,.false.,.true.,.false.,0,ntmaxout,0,tloopoutput)
+      call write_output(t,.false.,.false.,.true.,.false.,0,ntmaxout,0)
       !
    elseif (dtmaxout>1.e-6 .and. ntmaxout>0 .and. t < tmaxout) then
       !
@@ -298,7 +292,7 @@ module sfincs_output
       ! Write 'tstop' as timemax instead of actual (unrounded) 't'
       t2 = t1
       !
-      call write_output(t2,.false.,.false.,.true.,.false.,0,ntmaxout,0,tloopoutput)       
+      call write_output(t2,.false.,.false.,.true.,.false.,0,ntmaxout,0)       
       !
    endif
    !

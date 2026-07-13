@@ -3898,6 +3898,7 @@ contains
    ! Add total runtime, dtavg to file and close
    !
    use sfincs_data
+   use sfincs_timers, only: timer_elapsed
    !   
    implicit none   
    !
@@ -3913,7 +3914,7 @@ contains
        !
    endif   
    !
-   NF90(nf90_put_var(map_file%ncid, map_file%total_runtime_varid, tfinish_all - tstart_all))
+   NF90(nf90_put_var(map_file%ncid, map_file%total_runtime_varid, real(timer_elapsed('simulation'), 4)))
    NF90(nf90_put_var(map_file%ncid, map_file%average_dt_varid,  dtavg))
    NF90(nf90_put_var(map_file%ncid, map_file%status_varid,  error))
    !
@@ -4051,6 +4052,7 @@ contains
    ! Add total runtime, dtavg to file and close
    !
    use sfincs_data
+   use sfincs_timers, only: timer_elapsed
    !   
    implicit none   
    !   
@@ -4058,7 +4060,7 @@ contains
         return
    endif   
    !
-   NF90(nf90_put_var(his_file%ncid, his_file%total_runtime_varid, tfinish_all - tstart_all)) 
+   NF90(nf90_put_var(his_file%ncid, his_file%total_runtime_varid, real(timer_elapsed('simulation'), 4))) 
    NF90(nf90_put_var(his_file%ncid, his_file%average_dt_varid,  dtavg)) 
    NF90(nf90_put_var(his_file%ncid, his_file%status_varid,  error))       
    !   
