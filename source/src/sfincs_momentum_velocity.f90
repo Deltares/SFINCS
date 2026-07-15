@@ -505,8 +505,8 @@ contains
                   !
                   adv = - phi * (dqxudx + dqyudy)        ! velocity tendency [m/s^2]
                   !
-!                  frc = frc + min(max(adv, -advlim), advlim)   ! add limited advective acceleration
-                  frc = frc + adv   ! do not apply advection limiter
+                  frc = frc + min(max(adv, -advlim), advlim)   ! add limited advective acceleration
+!                  frc = frc + adv   ! do not apply advection limiter
                   !
 !               endif
                !
