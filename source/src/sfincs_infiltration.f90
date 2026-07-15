@@ -8,6 +8,7 @@ contains
    subroutine initialize_infiltration()
    !
    use sfincs_data
+   use sfincs_timers
    use sfincs_ncinput   
    !
    implicit none
@@ -604,7 +605,7 @@ contains
    end subroutine
    
    
-   subroutine update_infiltration_map(dt, tloop)
+   subroutine update_infiltration_map(dt)
    !
    ! Update infiltration rates in each grid cell
    !
@@ -619,13 +620,8 @@ contains
    real*4  :: hh_local, a
    real*4  :: dt   
    !
-   integer   :: count0
-   integer   :: count1
-   integer   :: count_rate
-   integer   :: count_max
-   real      :: tloop
    !
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('infiltration')
    !
    if (inftype == 'con' .or. inftype == 'c2d') then
       !
@@ -1031,8 +1027,7 @@ contains
       !
    endif
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0 * (count1 - count0) / count_rate
+   call timer_stop('infiltration')
    !
    end subroutine   
 

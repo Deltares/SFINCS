@@ -10,6 +10,7 @@ contains
    ! Reads discharge files
    !
    use sfincs_data
+   use sfincs_timers
    use sfincs_ncinput
    use quadtree
    !
@@ -322,7 +323,7 @@ contains
    !
    !
    !
-   subroutine update_discharges(t, dt, tloop)
+   subroutine update_discharges(t, dt)
    !
    ! Update discharges
    !
@@ -330,11 +331,6 @@ contains
    !
    implicit none
    !
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
    !
    real*8           :: t
    real*4           :: dt
@@ -346,7 +342,7 @@ contains
    !
    integer isrc, itsrc, idrn, jin, jout, nmin, nmout
    !
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('discharges')
    !
    ! Compute instantaneous discharges from point sources
    !
@@ -654,8 +650,7 @@ contains
       !
    endif
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0 * (count1 - count0) / count_rate
+   call timer_stop('discharges')
    !
    end subroutine
 

@@ -285,26 +285,25 @@ contains
    end subroutine
 
    
-   subroutine update_wave_field(t, tloop)
+   subroutine update_wave_field(t)
    !
    use sfincs_data
+   use sfincs_timers
+   use omp_lib
    !
    implicit none
    !
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
-   !
    real*4   :: u10, u10dir
-   !   
+   !
    real*4,    dimension(:), allocatable       :: fwx0
    real*4,    dimension(:), allocatable       :: fwy0
    integer   :: ip, nm, nmu, idir
    real*8    :: t
+   real(8)   :: t3, t4
    !
-   call system_clock(count0, count_rate, count_max)
+   t3 = omp_get_wtime()
+   !
+   call timer_start('SnapWave')
    !
    allocate(fwx0(np))
    allocate(fwy0(np))
@@ -440,10 +439,14 @@ contains
    !$acc update device(fwuv)
    !
    ! Set wave forces fwmaxfac factor
-   fwmaxfac = snapwave_fwmaxfac   
+   fwmaxfac = snapwave_fwmaxfac
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
+   call timer_stop('SnapWave')
+   !
+   t4 = omp_get_wtime()
+   !
+   write(logstr,'(a,f10.1,a,f6.2,a)')'Computing SnapWave at t = ', t, ' s took ', t4 - t3, ' seconds'
+   call write_log(logstr, 0)
    !
    end subroutine
 

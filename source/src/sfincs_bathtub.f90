@@ -114,23 +114,18 @@ contains
    end subroutine
 
    
-   subroutine bathtub_compute_water_levels(tloop)
+   subroutine bathtub_compute_water_levels()
    !
    use sfincs_data
+   use sfincs_timers
    use geometry
    !
    implicit none
    !
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
-   !
    integer :: nm, i1, i2
    real*4  :: zbt, w1, w2
    !
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('continuity')
    !
    !$omp parallel &
    !$omp private ( nm, i1, i2, w1, w2 )
@@ -168,8 +163,7 @@ contains
    !
    !$acc update device( zs, zsmax )
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0 * (count1 - count0) / count_rate
+   call timer_stop('continuity')
    !
    end subroutine
 

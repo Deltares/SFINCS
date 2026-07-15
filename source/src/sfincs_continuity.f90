@@ -2,22 +2,18 @@ module sfincs_continuity
 
 contains
    
-   subroutine compute_water_levels(t, dt, tloop)
+   subroutine compute_water_levels(t, dt)
    !
    use sfincs_data
+   use sfincs_timers
    !
    implicit none
    !
    real*4           :: dt
    real*8           :: t
    !
-   integer          :: count0
-   integer          :: count1
-   integer          :: count_rate
-   integer          :: count_max
-   real             :: tloop
    !
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('continuity')
    !
    if (subgrid) then
       !
@@ -37,8 +33,7 @@ contains
       !    
    endif
    !   
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
+   call timer_stop('continuity')
    !
    end subroutine
 
