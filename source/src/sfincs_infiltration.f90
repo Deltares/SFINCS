@@ -108,7 +108,8 @@ contains
          ! Spatially-varying infiltration with CN numbers (old)
          !
          inftype = 'cna'
-         infiltration = .true.      
+         infiltration = .true.     
+         store_cumulative_precipitation = .true.         
          !
       elseif (sefffile /= 'none') then  
          !
@@ -116,6 +117,7 @@ contains
          !
          inftype = 'cnb'
          infiltration = .true.      
+         store_cumulative_precipitation = .true.         
          !
       elseif (psifile /= 'none') then  
          !
