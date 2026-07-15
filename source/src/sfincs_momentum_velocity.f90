@@ -61,6 +61,7 @@ contains
    real*4    :: qd
    real*4    :: un                              ! U_n advective speed (from east)
    real*4    :: up                              ! U_p advective speed (from west)
+   real*4    :: umax                            ! local characteristic speed bound sqrt(g*hu) + |u|
    real*4    :: dnminv                          ! 1/(D_nm + D_nmu) reused for both advective speeds
    real*4    :: dzdx
    !
@@ -129,7 +130,7 @@ contains
    !$omp parallel &
    !$omp private ( ip,hu,ufr,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, &
-   !$omp           fcoriouv,gnavg2,iwet,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,dqxudx,dqyudy,un,up,vp,vn, &
+   !$omp           fcoriouv,gnavg2,iwet,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,dqxudx,dqyudy,un,up,vp,vn,umax, &
    !$omp           dnminv,qu,qd,hwet,phi,adv,hu43,y_cbrt,i_cbrt,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbup,ipw,ipe,zbnm,zbnmu ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
@@ -484,8 +485,16 @@ contains
                   dnm    = max(dnm + dnmu, huthresh)    ! D_nm + D_nmu
                   dnminv = 2.0 / dnm
                   !
-                  up  = max(qd * dnminv, 0.0)           ! U_p  (advective speed, from west)
-                  un  = min(qu * dnminv, 0.0)           ! U_n  (advective speed, from east)                  
+                  ! Clamp the advective speeds to the local characteristic speed
+                  ! sqrt(g*hu) + |u|, the bound the time-step limiter guarantees to
+                  ! resolve. On subgrid grids the cell-mean depth D used in dnminv can
+                  ! be far smaller than the conveyance depth hu, so q/D can otherwise
+                  ! exceed the advective CFL and blow up (e.g. steep valleys).
+                  !
+                  umax = sqrt(g * hu) + abs(uv0(ip))
+                  !
+                  up  = min(max(qd * dnminv, 0.0),  umax)   ! U_p  (advective speed, from west)
+                  un  = max(min(qu * dnminv, 0.0), -umax)   ! U_n  (advective speed, from east)
                   !
                   dqxudx = ( up * (uu_nm - uu_nmd) + un * (uu_nmu - uu_nm) ) * dxuvinv
                   !
@@ -498,15 +507,15 @@ contains
                   ! sides) both terms stay active, where the velocity-average form below
                   ! gave ~zero cross-advection.
                   !
-                  vp = max( 0.5 * (q0(uv_index_v_ndm(ip)) + q0(uv_index_v_ndmu(ip))) * dnminv, 0.0 )
-                  vn = min( 0.5 * (q0(uv_index_v_nm(ip))  + q0(uv_index_v_nmu(ip)))  * dnminv, 0.0 )
+                  vp = min(max( 0.5 * (q0(uv_index_v_ndm(ip)) + q0(uv_index_v_ndmu(ip))) * dnminv, 0.0 ),  umax)
+                  vn = max(min( 0.5 * (q0(uv_index_v_nm(ip))  + q0(uv_index_v_nmu(ip)))  * dnminv, 0.0 ), -umax)
                   !
                   dqyudy = ( vp * (uu_nm - uu_ndm) + vn * (uu_num - uu_nm) ) * dyuvinv
                   !
                   adv = - phi * (dqxudx + dqyudy)        ! velocity tendency [m/s^2]
                   !
-                  frc = frc + min(max(adv, -advlim), advlim)   ! add limited advective acceleration
-!                  frc = frc + adv   ! do not apply advection limiter
+!                  frc = frc + min(max(adv, -advlim), advlim)   ! add limited advective acceleration
+                  frc = frc + adv   ! advective speeds are already clamped to umax above
                   !
 !               endif
                !
