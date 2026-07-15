@@ -7,6 +7,7 @@ contains
    ! Reads sfincs.inp
    !
    use sfincs_data
+   use sfincs_nonhydrostatic   ! nonh_* input parameters live in the solver module
    use sfincs_date
    use sfincs_log
    use sfincs_error
@@ -41,8 +42,9 @@ contains
    logical ok
    !
    character*256 wmsigstr 
-   character*256 advstr 
-   !   
+   character*256 advstr
+   character*256 momstr
+   !
    ok = check_file_exists('sfincs.inp', 'SFINCS input file', .true.)
    !
    open(500, file='sfincs.inp')   
@@ -175,7 +177,8 @@ contains
    call read_logical_input(500, 'wavemaker_hinc',        wavemaker_hinc,           .false.)    ! wavemaker include incident waves
    !
    ! Numerical parameters
-   call read_char_input(500,'advection_scheme',advstr,'upw1')   
+   call read_char_input(500,'advection_scheme',advstr,'upw1')
+   call read_char_input(500,'momentum_scheme',momstr,'bates')
    call read_real_input(500,'btrelax',btrelax,3600.0)
    call read_logical_input(500,'wiggle_suppression', wiggle_suppression, .true.)
    call read_real_input(500,'structure_relax',structure_relax,10.0)
@@ -188,12 +191,25 @@ contains
    ! call read_real_input(500, 'dzdsbnd', dzdsbnd, 0.0001)
    ! call read_real_input(500, 'manningbnd', manningbnd, 0.024)
    call read_real_input(500, 'nuviscfac', nuviscfac, 100.0)
-   call read_logical_input(500, 'nonh', nonhydrostatic, .false.)   
-   call read_real_input(500, 'nh_fnudge', nh_fnudge, 0.9)
-   call read_real_input(500, 'nh_tstop', nh_tstop, -999.0)
-   call read_real_input(500, 'nh_tol', nh_tol, 0.001)
-   call read_int_input(500, 'nh_itermax', nh_itermax, 100)
-   call read_logical_input(500, 'h73table', h73table, .false.)   
+   call read_logical_input(500, 'nonhydrostatic', nonhydrostatic, .false.)
+   call read_real_input(500, 'nonh_fnudge', nonh_fnudge, 1.0)
+   call read_real_input(500, 'nonh_tstop', nonh_tstop, -999.0)
+   call read_real_input(500, 'nonh_tol', nonh_tol, 0.01)
+   call read_int_input(500, 'nonh_itermax', nonh_itermax, 100)
+   call read_logical_input(500, 'nonh_movingbed', nonh_movingbed, .false.)  ! add d(zb)/dt to the bottom kinematic w_b (moving-seafloor source via dzbext)
+   call read_real_input(500, 'nonh_filter', nonh_filter, 0.5)               ! spatial 2dx filter on pnh (0 = off, ~0.25-0.5 damps grid mode)
+   call read_real_input(500, 'nonh_dzbmax', nonh_dzbmax, 0.1)               ! cap on |d(zb)/dx| in bottom kinematic wb (default 0.1; clips near-vertical walls, leaves real slopes); 0 = no cap
+   call read_int_input(500, 'nonh_fadein', nonh_fadein, 0)                  ! open-boundary nonh fade-in width (cells): nonh ramps 0->full over N cells from the boundary; 0 = off
+   call read_real_input(500, 'nonh_brsteep', nonh_brsteep, 0.4)             ! HFA breaking onset: nonh starts reducing when dzdt (=-d(hu)/dx) > nonh_brsteep*sqrt(g*h); 0 = off (XBeach default 0.4)
+   call read_real_input(500, 'nonh_brfr', nonh_brfr, 0.5)                   ! OPTIONAL NEOWAVE Froude breaking criterion: pnh=0 when |U|/sqrt(g*D) > nonh_brfr (~0.5), release < 0.3*nonh_brfr (~0.15); 0 = off -> use nonh_brsteep instead
+   call read_int_input(500, 'nonh_brsmooth', nonh_brsmooth, 0)              ! breaking-flag smoothing passes ([1 2 1]/4 over nonh neighbours): ramps pnh out over ~brsmooth+1 cells at the breaking-zone edges instead of one face; 0 = sharp
+   call read_int_input(500, 'nonh_slsmooth', nonh_slsmooth, 0)              ! frozen-bed-slope smoothing passes ([1 2 1]/4): bounds bed curvature d2zb/dx2 at slope breaks (island toe) -> suppresses trailing waves; 0 = off
+   call read_real_input(500, 'nonh_treform', nonh_treform, 1.0)             ! breaking reformation time scale (s): released cells recover the nonh pressure gradually (brfac += dt/treform); 0 = instant recovery
+   call read_real_input(500, 'nonh_smoothbnd', nonh_smoothbnd, 0.5)         ! strength of localized 2dx pnh smoothing in the fade-in zone (weight at boundary, ramps to 0 over the fade-in) and shallow zone; 0 = off
+   call read_real_input(500, 'nonh_smoothdep', nonh_smoothdep, 0.0)         ! depth (m) below which the localized pnh smoothing also acts (shallow run-up / wall 2dx noise); weight ramps from full at D=0 to 0 at D=nonh_smoothdep; 0 = off
+   call read_real_input(500, 'nonh_disp', nonh_disp, 1.0)                   ! Keller-box vertical factor (default 1.0 = best dispersion, c(k) flat to Airy ~kd 2.5); 2.0 = strict linear-pressure single layer
+   call read_real_input(500, 'nonh_pmax', nonh_pmax, 0.0)                   ! depth limiter: cap |pnh| <= nonh_pmax*rho*g*H post-solve (caps wall/breaking/2dx spikes, leaves resolved waves untouched); 0 = off, ~1-2 typical
+   call read_logical_input(500, 'h73table', h73table, .false.)
    call read_real_input(500, 'rugdepth', runup_gauge_depth, 0.05)
    call read_logical_input(500, 'wave_enhanced_roughness', wave_enhanced_roughness, .false.)
    call read_logical_input(500, 'use_bcafile', use_bcafile, .true.)   
@@ -665,14 +681,41 @@ contains
       endif
    endif
    !
+   ! Momentum scheme : Bates flux form (default) or form (default)
+   !
+   if (trim(momstr) == 'bates') then
+      momentum_scheme = 0
+      call write_log('Info    : momentum scheme : Bates (flux form)', 0)
+   else
+      momentum_scheme = 1
+      if (trim(momstr) /= 'velocity') then
+         write(logstr,*)'Warning : momentum scheme ', trim(momstr), ' not recognized! Using default velocity instead!'
+         call write_log(logstr, 1)
+      else
+         call write_log('Info    : momentum scheme : velocity form', 0)
+      endif
+   endif
+   !
+   ! Effective bed level. Subgrid models have no reliable per-cell zb (the file
+   ! value is just the quadtree cell elevation), but the velocity-form advection
+   ! and the non-hydrostatic solver need one. For those combinations zb is
+   ! recomputed every step in sfincs_continuity as zs - z_volume/area: the bed
+   ! consistent with the volume continuity actually conserves. Bed SLOPES stay
+   ! frozen at their initialization (file zb) values (see sfincs_nonhydrostatic).
+   !
+   zb_effective = subgrid .and. (momentum_scheme == 1 .or. nonhydrostatic)
+   if (zb_effective) then
+      call write_log('Info    : subgrid: using effective bed level zb = zs - V/A (velocity scheme / nonh)', 0)
+   endif
+   !
    if (advection) then
       !
       ! Make 1st order upwind the default scheme
-      !  
+      !
       advection_scheme = 1
       !
       call write_log('Info    : turning on advection', 0)
-      ! 
+      !
       if (trim(advstr) == 'original') then
          advection_scheme = 0
          call write_log('Info    : advection scheme : Original', 0)
@@ -688,17 +731,17 @@ contains
    !
    if (nonhydrostatic) then
       !
-      if (nh_tstop > 0.0) then
+      if (nonh_tstop > 0.0) then
          !
          ! tstopnonh is provided so set it with respect to model reference time
          !
-         nh_tstop = t0 + nh_tstop
+         nonh_tstop = t0 + nonh_tstop
          !
       else
          !
          ! tstopnonh is not provided so set it to tstop time + 999.0 s
          !
-         nh_tstop = t1 + 999.0
+         nonh_tstop = t1 + 999.0
          !          
       endif    
       !

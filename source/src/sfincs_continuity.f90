@@ -569,6 +569,15 @@ contains
             !
          endif
          !
+         ! Effective bed for subgrid models with velocity-form advection and/or
+         ! non-hydrostatics: zb = zs - V/A, the bed consistent with the volume
+         ! continuity conserves (the file zb is not a valid conveyance bed).
+         ! Bed SLOPES elsewhere stay frozen at their initialization values.
+         !
+         if (zb_effective) then
+            zb(nm) = zs(nm) - max(z_volume(nm) / a, 0.0)
+         endif
+         !
          !
          if (wiggle_suppression) then 
             ! 
@@ -618,9 +627,9 @@ contains
    enddo
    !$omp end do
    !$omp end parallel
-   !         
+   !
    !$acc end parallel
-   !         
+   !
    end subroutine
    
    subroutine compute_store_variables(dt)

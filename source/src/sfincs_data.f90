@@ -16,6 +16,7 @@ module sfincs_data
       !!!
       logical       :: bmi
       logical       :: use_qext
+      logical       :: use_dzbext
       !!!
       !!! Constants
       !!!
@@ -97,10 +98,7 @@ module sfincs_data
       !real*4 dzdsbnd
       !real*4 manningbnd
       real*4 nuviscfac ! Factor on viscosity for 'difficult' points. Used in sfincs_momentum.f90.
-      real*4 nh_fnudge
-      real*4 nh_tstop
-      integer nh_itermax
-      real*4 nh_tol
+      logical zb_effective ! subgrid + (velocity scheme or nonh): zb is recomputed every step in continuity as the effective bed zs - z_volume/area
       real*4 runup_gauge_depth
       real*4 factor_wind
       real*4 factor_pres
@@ -114,6 +112,7 @@ module sfincs_data
       integer cd_nr
       integer baro
       integer advection_scheme
+      integer momentum_scheme   ! 0 = Bates flux form (default), 1 = velocity form
       !
       character*256 :: depfile
       character*256 :: mskfile
@@ -336,7 +335,6 @@ module sfincs_data
       integer*1,          dimension(:),   allocatable :: kfuv
       integer*1,          dimension(:),   allocatable :: mask_adv
       integer*1,          dimension(:),   allocatable :: scs_rain   ! logic if previous time step was raining
-      integer*1,          dimension(:),   allocatable :: mask_nonh
       !
       ! Quadtree
       !
@@ -597,6 +595,7 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: zs0
       real*4, dimension(:),   allocatable :: zsderv
       real*4, dimension(:),   allocatable, target :: qext
+      real*4, dimension(:),   allocatable, target :: dzbext
       real*4, dimension(:),   allocatable, target :: uorb
       real*4, dimension(:),   allocatable :: gnapp2
       !
@@ -1018,6 +1017,7 @@ module sfincs_data
     if(allocated(uv0)) deallocate(uv0)
     if(allocated(twet)) deallocate(twet)
     if(allocated(qext)) deallocate(qext)
+    if(allocated(dzbext)) deallocate(dzbext)
     !
 !    if(allocated(huu)) deallocate(huu)
 !    if(allocated(hvv)) deallocate(hvv)
