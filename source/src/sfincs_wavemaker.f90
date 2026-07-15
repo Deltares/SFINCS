@@ -1676,10 +1676,9 @@
          !
          zsnmb  = zs0nmb + min(zinc + zig,  wavemaker_gammax * dwvm) ! total water level in wave maker (i.e. mean water level plus wave)
          !
-         if (( zinc + zig) > wavemaker_gammax * dwvm) then
-             write(*,*)'WARNING! Incident wave height at wave maker exceeds maximum allowed value based on local water depth! Value: ', zinc + zig, ' Max allowed: ', wavemaker_gammax * dwvm
-         endif
-         
+         !if (( zinc + zig) > wavemaker_gammax * dwvm) then
+         !    write(*,*)'WARNING! Incident wave height at wave maker exceeds maximum allowed value based on local water depth! Value: ', zinc + zig, ' Max allowed: ', wavemaker_gammax * dwvm
+         !endif         
          !
       endif   
       !
