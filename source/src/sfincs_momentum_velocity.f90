@@ -131,7 +131,7 @@ contains
    !$omp private ( ip,hu,ufr,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, &
    !$omp           fcoriouv,gnavg2,iwet,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,dqxudx,dqyudy,un,up,vp,vn,umax, &
-   !$omp           dnminv,qu,qd,hwet,phi,adv,hu43,y_cbrt,i_cbrt,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbup,ipw,ipe,zbnm,zbnmu ) &
+   !$omp           dnminv,qu,qd,hwet,phi,adv,mdrv,hu43,y_cbrt,i_cbrt,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbup,ipw,ipe,zbnm,zbnmu ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, &
