@@ -11,6 +11,8 @@ module sfincs_lib
    use sfincs_crosssections
    use sfincs_runup_gauges
    use sfincs_discharges
+   use sfincs_src_structures
+   use sfincs_urban_drainage
    use sfincs_meteo
    use sfincs_infiltration
    use sfincs_data
@@ -75,7 +77,7 @@ module sfincs_lib
    logical  :: update_meteo
    logical  :: update_waves
    !
-   real :: tstart, tfinish, tloopflux, tloopcont, tloopstruc, tloopbnd, tloopsrc, tloopwnd1, tloopwnd2, tloopinf, tloopoutput, tloopsnapwave, tloopwavemaker, tloopnonh
+   real :: tstart, tfinish, tloopflux, tloopcont, tloopstruc, tloopbnd, tloopwnd1, tloopwnd2, tloopoutput, tloopsnapwave, tloopwavemaker, tloopnonh
    real :: time_per_timestep
    real :: tinput
    real :: percdone,percdonenext,trun,trem
@@ -165,7 +167,13 @@ module sfincs_lib
    !
    call read_rug_file()         ! Read runup gauge file
    !
-   call read_discharges()       ! Reads dis and src file
+   call initialize_infiltration()     ! Reads qinf / scs / gai / horton / bucket infiltration inputs
+   !
+   call initialize_discharges()       ! Reads dis and src file (river point discharges)
+   !
+   call initialize_src_structures()   ! Reads drn file (pumps / culverts / check valves / gates)
+   !
+   call initialize_urban_drainage()   ! Reads urb file (per-zone polygon drainage + outfall)
    !
    if (nonhydrostatic) then
       !
@@ -302,10 +310,8 @@ module sfincs_lib
    tloopcont      = 0.0
    tloopstruc     = 0.0
    tloopbnd       = 0.0
-   tloopsrc       = 0.0
    tloopwnd1      = 0.0
    tloopwnd2      = 0.0
-   tloopinf       = 0.0
    tloopsnapwave  = 0.0
    tloopwavemaker = 0.0
    tloopnonh      = 0.0
@@ -529,25 +535,11 @@ module sfincs_lib
          !
          call update_meteo_forcing(t, dt, tloopwnd2)
          !
-         ! Update infiltration
-         !
-         if (infiltration) then
-             !
-             ! Compute infiltration rates
-             !
-             call update_infiltration_map(dt, tloopinf)
-             !
-         endif
-         !
-      endif   
+      endif
       !
       ! Update boundary conditions
       !
       call update_boundaries(t, dt, tloopbnd)
-      !
-      ! Update discharges
-      !
-      call update_discharges(t, dt, tloopsrc)
       !
       if (snapwave .and. update_waves) then
          !
@@ -613,9 +605,9 @@ module sfincs_lib
             !
          endif
          !      
-         ! Update water levels
+         ! Update water levels (also adds discharges, drainage structures, infiltration and urban drainage to qsrc)
          !
-         call compute_water_levels(t, dt, tloopcont)
+         call update_continuity(t, dt, tloopcont)
          !
       endif   
       !
@@ -720,11 +712,6 @@ module sfincs_lib
       call write_log(logstr, 1)
    endif   
    !
-   if (nsrc>0 .or. ndrn>0) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in discharges     : ', tloopsrc, ' (', 100 * tloopsrc / (tfinish_all - tstart_all), '%)'
-      call write_log(logstr, 1)
-   endif   
-   !
    if (meteo3d)  then
       write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in meteo fields   : ', tloopwnd1, ' (', 100 * tloopwnd1 / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
@@ -734,11 +721,6 @@ module sfincs_lib
       write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in meteo forcing  : ', tloopwnd2, ' (', 100 * tloopwnd2 / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
    endif   
-   !
-   if (infiltration) then
-      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in infiltration   : ', tloopinf, ' (', 100 * tloopinf / (tfinish_all - tstart_all), '%)'
-      call write_log(logstr, 1)
-   endif
    !
    write(logstr,'(a,f10.3,a,f5.1,a)')    ' Time in momentum       : ', tloopflux, ' (', 100 * tloopflux / (tfinish_all - tstart_all), '%)'
    call write_log(logstr, 1)
@@ -787,10 +769,8 @@ module sfincs_lib
       write(123,'(f10.3,a)')tfinish_all - tstart_all,' % total'
       write(123,'(f10.3,a)')tinput,' % input'
       write(123,'(f10.3,a)')tloopbnd,' % boundaries'
-      write(123,'(f10.3,a)')tloopsrc,' % discharges'
       write(123,'(f10.3,a)')tloopwnd1,' % meteo1'
       write(123,'(f10.3,a)')tloopwnd2,' % meteo2'
-      write(123,'(f10.3,a)')tloopinf,' % infiltration'
       write(123,'(f10.3,a)')tloopflux,' % momentum'
       write(123,'(f10.3,a)')tloopstruc,' % structures'
       write(123,'(f10.3,a)')tloopcont,' % continuity'

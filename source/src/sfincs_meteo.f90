@@ -1250,20 +1250,20 @@ contains
    use sfincs_data
    !
    implicit none
-   !   
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
    !
    real*8                           :: t
    real*4                           :: dt
+   real                             :: tloop
    real*4                           :: twfact
    real*4                           :: onemintwfact
    real*4                           :: smfac
    real*4                           :: oneminsmfac
    integer                          :: nm, ib
+   !
+   integer                          :: count0
+   integer                          :: count1
+   integer                          :: count_rate
+   integer                          :: count_max
    !
    call system_clock(count0, count_rate, count_max)
    !
@@ -1278,7 +1278,7 @@ contains
       !$acc parallel, present( tauwu, tauwv,  tauwu0, tauwv0, tauwu1, tauwv1, &
       !$acc                    windu, windv, windu0, windv0, windu1, windv1, windmax, &
       !$acc                    patm, patm0, patm1, &
-      !$acc                    prcp, prcp0, prcp1, cumprcp, netprcp, &
+      !$acc                    prcp, prcp0, prcp1, cumprcp, &
       !$acc                    zs, zb, z_volume )
       !$acc loop independent gang vector
       do nm = 1, np
@@ -1354,40 +1354,38 @@ contains
          !$omp parallel &
          !$omp private ( nm )
          !$omp do
-         !$acc parallel, present( tauwu, tauwv, patm, prcp, netprcp, zs, zb, z_volume )
-         !$acc loop independent gang vector
+         !$acc parallel, present( tauwu, tauwv, patm, prcp, zs, zb, z_volume )
+         !$acc loop gang vector
          do nm = 1, np
             !
             if (wind) then
                tauwu(nm) = tauwu(nm) * smfac
                tauwv(nm) = tauwv(nm) * smfac
-            endif   
+            endif
             !
             if (patmos) then
                patm(nm)  = patm(nm) * smfac + gapres * oneminsmfac
             endif   
             !
             if (precip) then
-               !  
-               netprcp(nm) = netprcp(nm) * smfac
-               !  
-               ! Don't allow negative netprcp during spinup (e.g. hardfixing infiltration/evaporation on model when forcing effective rainfall) when there's no water in the cell (same as check for constant infiltration)
-               !  
-               if (netprcp(nm) < 0.0) then
-                  !  
-                  ! No effective infiltration if there is no water
-                  !  
+               !
+               prcp(nm) = prcp(nm) * smfac
+               !
+               ! Don't allow negative precip during spinup when there's no water in the cell
+               !
+               if (prcp(nm) < 0.0) then
+                  !
                   if (subgrid) then
                      if (z_volume(nm) <= 0.0) then
-                        netprcp(nm) = 0.0
+                        prcp(nm) = 0.0
                      endif
                   else
                      if (zs(nm) <= zb(nm)) then
-                        netprcp(nm) = 0.0
+                        prcp(nm) = 0.0
                      endif
-                  endif            
-                  !  
-               endif               
+                  endif
+                  !
+               endif
             endif   
             !
          enddo   
@@ -1432,13 +1430,35 @@ contains
    !
    if (prcpfile(1:4) /= 'none') then
       !
-      call update_precipitation_from_timeseries(t, dt) 
+      call update_precipitation_from_timeseries(t, dt)
+      !
+   endif
+   !
+   ! Apply rainfall to the point-source field qsrc (m3/s). prcp is m/s,
+   ! so multiply by cell area. qsrc was zeroed at the end of the previous
+   ! step inside the water-level update loops, so this is the first
+   ! accumulation into qsrc for the current step.
+   !
+   if (precip) then
+      !
+      !$acc parallel loop present( qsrc, prcp, cell_area, cell_area_m2, z_flags_iref )
+      !$omp parallel do default(shared) private(nm) schedule(static)
+      do nm = 1, np
+         !
+         if (crsgeo) then
+            qsrc(nm) = qsrc(nm) + prcp(nm) * cell_area_m2(nm)
+         else
+            qsrc(nm) = qsrc(nm) + prcp(nm) * cell_area(z_flags_iref(nm))
+         endif
+         !
+      enddo
+      !$omp end parallel do
       !
    endif
    !
    call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0 * (count1 - count0) / count_rate
-   !         
+   tloop = tloop + 1.0*(count1 - count0)/count_rate
+   !
    end subroutine
 
 
@@ -1537,12 +1557,11 @@ contains
    !$omp parallel &
    !$omp private ( nm )
    !$omp do
-   !$acc parallel present( prcp, cumprcp, netprcp )
-   !$acc loop independent gang vector
+   !$acc parallel present( prcp, cumprcp )
+   !$acc loop gang vector
    do nm = 1, np
       !
       prcp(nm)    = ptmp
-      netprcp(nm) = ptmp
       !
       if (store_cumulative_precipitation) then
          cumprcp(nm) = cumprcp(nm) + ptmp * dt
@@ -1566,15 +1585,15 @@ contains
    !
    implicit none
    !
+   integer  :: nm
+   !
+   real*8   :: t
+   real     :: tloop
+   !
    integer  :: count0
    integer  :: count1
    integer  :: count_rate
    integer  :: count_max
-   real     :: tloop
-   !
-   integer  :: nm
-   !
-   real*8   :: t
    !
    call system_clock(count0, count_rate, count_max)
    !
@@ -1620,7 +1639,7 @@ contains
    !
    call system_clock(count1, count_rate, count_max)
    tloop = tloop + 1.0*(count1 - count0)/count_rate
-   !         
-   end subroutine   
+   !
+   end subroutine
 
 end module
