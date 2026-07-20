@@ -42,6 +42,7 @@ module sfincs_ncoutput_helpers
       integer :: timemax_dimid
       integer :: runtime_dimid
       integer :: corner_x_varid, corner_y_varid, face_x_varid, face_y_varid, crs_varid, grid_varid
+      integer :: m_coord_varid, n_coord_varid
       integer :: zb_varid, msk_varid, qinf_varid
       integer :: time_varid, timemax_varid
       integer :: zs_varid, zsmax_varid, h_varid, u_varid, v_varid, tmax_varid, infstate_varid, t_zsmax_varid
@@ -551,12 +552,16 @@ contains
       ! On quadtree (UGRID) output, every cell-centred data variable must
       ! carry mesh="mesh2d" and location="face". On regular grid (SGRID) the
       ! topology var declares the grid; cell vars use coordinates='x y' (set
-      ! elsewhere) and these attributes are not used.
-      use sfincs_data, only: use_quadtree
+      ! elsewhere). On an UNROTATED regular grid the cell vars additionally
+      ! carry grid_mapping='crs', so that GDAL/QGIS can georeference them as
+      ! rasters via the 1-D m/n dimension coordinates (see def_dim_axis_coord).
+      use sfincs_data, only: use_quadtree, rotation
       integer, intent(in) :: varid
       if (use_quadtree) then
          NF90(nf90_put_att(map_file%ncid, varid, 'mesh',     'mesh2d'))
          NF90(nf90_put_att(map_file%ncid, varid, 'location', 'face'))
+      elseif (rotation == 0.0) then
+         NF90(nf90_put_att(map_file%ncid, varid, 'grid_mapping', 'crs'))
       endif
    end subroutine add_ugrid_face_attrs
 
@@ -640,6 +645,47 @@ contains
       NF90(nf90_put_att(map_file%ncid, varid, 'grid_mapping',  'crs'))
       NF90(nf90_put_att(map_file%ncid, varid, 'grid',          'sfincsgrid'))
    end subroutine def_grid_axis_coord
+
+   subroutine def_dim_axis_coord(name, axis, dimid, varid)
+      ! Define a 1-D dimension coordinate variable (m(m) or n(n), holding the
+      ! cell-centre x resp. y coordinates) for the regular UNROTATED grid.
+      ! GDAL/QGIS derives the raster geotransform from these; the 2-D
+      ! face_x/face_y arrays cannot be used for that. Only written when
+      ! rotation == 0 (a rotated grid cannot be represented as a raster).
+      use sfincs_data, only: crsgeo
+      character(len=*), intent(in)  :: name
+      character(len=*), intent(in)  :: axis   ! 'x' or 'y'
+      integer,          intent(in)  :: dimid
+      integer,          intent(out) :: varid
+      character(len=32) :: units, std_name, long_name, axis_str
+      !
+      if (axis == 'x') then
+         axis_str  = 'X'
+         long_name = 'x coordinate of cell centre'
+         if (crsgeo) then
+            units    = 'degrees_east'
+            std_name = 'longitude'
+         else
+            units    = 'm'
+            std_name = 'projection_x_coordinate'
+         endif
+      else
+         axis_str  = 'Y'
+         long_name = 'y coordinate of cell centre'
+         if (crsgeo) then
+            units    = 'degrees_north'
+            std_name = 'latitude'
+         else
+            units    = 'm'
+            std_name = 'projection_y_coordinate'
+         endif
+      endif
+      NF90(nf90_def_var(map_file%ncid, name, NF90_DOUBLE, (/dimid/), varid))
+      NF90(nf90_put_att(map_file%ncid, varid, 'units',         trim(units)))
+      NF90(nf90_put_att(map_file%ncid, varid, 'standard_name', trim(std_name)))
+      NF90(nf90_put_att(map_file%ncid, varid, 'long_name',     trim(long_name)))
+      NF90(nf90_put_att(map_file%ncid, varid, 'axis',          trim(axis_str)))
+   end subroutine def_dim_axis_coord
 
    subroutine put_2d(varid, arr)
       ! nf90_put_var for a 2D real*4 array (face/corner coords).

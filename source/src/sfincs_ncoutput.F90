@@ -370,9 +370,32 @@ contains
       call def_grid_axis_coord('corner_x', 'x', (/map_file%corner_m_dimid, map_file%corner_n_dimid/), map_file%corner_x_varid, 'corner_x')
       call def_grid_axis_coord('corner_y', 'y', (/map_file%corner_m_dimid, map_file%corner_n_dimid/), map_file%corner_y_varid, 'corner_y')
       !
+      if (rotation == 0.0) then
+         !
+         ! Unrotated grid: also write 1-D dimension coordinates m(m) and n(n)
+         ! (cell-centre x resp. y), so that GDAL/QGIS can load the file as a
+         ! georeferenced raster (the 2-D face_x/face_y arrays cannot be used
+         ! for that). The cell data variables get grid_mapping='crs' via
+         ! add_ugrid_face_attrs.
+         !
+         call def_dim_axis_coord('m', 'x', map_file%m_dimid, map_file%m_coord_varid)
+         call def_dim_axis_coord('n', 'y', map_file%n_dimid, map_file%n_coord_varid)
+         !
+      endif
+      !
       NF90(nf90_def_var(map_file%ncid, 'crs', NF90_INT, map_file%crs_varid))
       NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'epsg',      epsg))
       NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'epsg_code', 'EPSG:' // trim(epsg_code)))
+      !
+      if (crsgeo) then
+         !
+         ! CF grid mapping, so that GDAL/QGIS identifies the CRS without help.
+         ! Projected grids only carry the EPSG code (no proj library available
+         ! to expand it); there the CRS must be assigned manually in QGIS.
+         !
+         NF90(nf90_put_att(map_file%ncid, map_file%crs_varid, 'grid_mapping_name', 'latitude_longitude'))
+         !
+      endif
       !
       NF90(nf90_def_var(map_file%ncid, 'sfincsgrid', NF90_INT, map_file%grid_varid))
       NF90(nf90_put_att(map_file%ncid, map_file%grid_varid, 'cf_role',           'grid_topology'))
@@ -705,6 +728,26 @@ contains
       call put_2d(map_file%face_y_varid,   yz)
       call put_2d(map_file%corner_x_varid, xg)
       call put_2d(map_file%corner_y_varid, yg)
+      !
+      if (rotation == 0.0) then
+         !
+         ! 1-D dimension coordinates for GDAL/QGIS (defined above)
+         !
+         block
+            real*8, allocatable :: xcoord(:), ycoord(:)
+            allocate(xcoord(mmax), ycoord(nmax))
+            do m = 1, mmax
+               xcoord(m) = x0 + (m - 0.5d0)*dx
+            enddo
+            do n = 1, nmax
+               ycoord(n) = y0 + (n - 0.5d0)*dy
+            enddo
+            NF90(nf90_put_var(map_file%ncid, map_file%m_coord_varid, xcoord))
+            NF90(nf90_put_var(map_file%ncid, map_file%n_coord_varid, ycoord))
+            deallocate(xcoord, ycoord)
+         end block
+         !
+      endif
    endif
    NF90(nf90_put_var(map_file%ncid, map_file%crs_varid, epsg))
    !
