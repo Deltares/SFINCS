@@ -818,7 +818,7 @@ The default value is 1.0 which is recommended for the regular version of SFINCS,
 'advection' sets whether to turn on or off the advection term used in the momentum equation, varying between the default of turned on (advection = 1, default), or off (advection = 0).
 Recommended is to turn the advection term always on.
 
-'advection_scheme' selects the advection scheme option. It is possible to select the new (2024.01 release) advection scheme using 'advection_scheme = upw1' = default, or the original implementation from Leijnse et al. (2021) can be selected as 'advection_scheme = original' for backwards compatability.  NOTE - from SFINCS 2024.01 release onwards.
+'advection_scheme' selects the advection scheme. The default 'advection_scheme = upw1' is the first-order upwind scheme introduced in the 2024.01 release, and 'advection_scheme = original' selects the original implementation from Leijnse et al. (2021) for backwards compatibility. From the 2026 release onwards there is also a second-order option, 'advection_scheme = muscl'. This is a MUSCL reconstruction with a van Leer flux limiter (van Leer, 1979) applied to the momentum-conservative staggered discretization of Stelling & Duinmeijer (2003). It has less numerical diffusion than the first-order upwind scheme, so it reaches a given channel-conveyance accuracy at a coarser resolution, and it falls back to first order at flow extrema to stay monotone (Sweby, 1984). It is recommended for advection-dominated open-channel flow. NOTE - upw1 remains the default.
 
 'advlim' sets the possibility to limit the advection term in the momentum equation for increased stability, default is set to 1 (2025.01 release onwards).
 

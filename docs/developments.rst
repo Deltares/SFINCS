@@ -29,6 +29,13 @@ Known issues/warnings of the current SFINCS main version and last release are li
 Releases Changelog
 -----
 
+Main (development version, not yet released)
+^^^^^
+
+Changes on the main branch since the v2.4.0 Galibier release:
+
+* New second-order advection scheme 'advection_scheme = muscl': a MUSCL reconstruction with a van Leer flux limiter (van Leer, 1979) on the momentum-conservative staggered discretization of Stelling & Duinmeijer (2003). It has lower numerical diffusion than the default 'upw1', reaches the same steady channel discharge at a coarser resolution, and stays stable across quadtree refinement interfaces and at hydraulic jumps. The default remains 'upw1'.
+
 Official open source version 2026.01: v2.4.0 Galibier release release
 ^^^^^
 

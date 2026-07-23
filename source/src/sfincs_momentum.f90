@@ -81,6 +81,27 @@ contains
    real*4    :: qy
    real*4    :: dzdx
    !
+   ! Locals for limited 2nd-order (MUSCL/TVD) advection scheme (advection_scheme = 2)
+   real*4    :: uu_nmdd
+   real*4    :: uu_nmuu
+   real*4    :: uu_ndmm
+   real*4    :: uu_numm
+   real*4    :: slnm
+   real*4    :: slnmd
+   real*4    :: slnmu
+   real*4    :: slynm
+   real*4    :: slndm
+   real*4    :: slnum
+   real*4    :: qxe
+   real*4    :: qxw
+   real*4    :: qyn
+   real*4    :: qys
+   real*4    :: ufe
+   real*4    :: ufw
+   real*4    :: ufn
+   real*4    :: ufs
+   integer   :: kk
+   !
    real*4    :: hwet
    real*4    :: phi
    !
@@ -93,6 +114,11 @@ contains
    !integer, parameter :: expo = 1
    !
    logical   :: iok
+   !
+   ! Statement function: van Leer flux limiter (smooth, 2nd-order accurate, convergent)
+   real*4    :: fa, fb
+   real*4    :: flim
+   flim(fa, fb) = (fa*abs(fb) + abs(fa)*fb) / (abs(fa) + abs(fb) + 1.0e-12)
    !
    call system_clock(count0, count_rate, count_max)
    !
@@ -150,7 +176,8 @@ contains
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73,min_dt_ip ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73,min_dt_ip, &
+   !$omp           uu_nmdd,uu_nmuu,uu_ndmm,uu_numm,slnm,slnmd,slnmu,slynm,slndm,slnum,qxe,qxw,qyn,qys,ufe,ufw,ufn,ufs,kk ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop, reduction( min : min_dt ), gang, vector
@@ -494,7 +521,80 @@ contains
                      if (uu < -1.0e-6) then
                         dqyudy = dqyudy + uu * ( qy_nmu - qy_ndmu ) * dyuvinv
                      endif
-                     !  
+                     !
+                  elseif (advection_scheme == 2) then
+                     !
+                     ! Limited 2nd-order MUSCL advection (advection_scheme = muscl). Conservative
+                     ! momentum-flux divergence d(qu u)/dx + d(qv u)/dy with a van Leer flux-limited
+                     ! linear reconstruction of the advected velocity at the cell faces
+                     ! (van Leer, 1979): 2nd-order and low-diffusion in smooth flow, reverting to
+                     ! 1st-order upwind at extrema for TVD monotonicity (Sweby, 1984). The flux
+                     ! form on the staggered (Arakawa-C) grid follows the momentum-conservative
+                     ! discretization of Stelling & Duinmeijer (2003) (no hu scaling).
+                     !
+                     ! Fetch 2-away velocity neighbours (guarded; fall back to 1-away => local
+                     ! 1st-order near boundaries and refinement transitions).
+                     !
+                     kk = uv_index_u_nmd(ip)
+                     if (kk > 0 .and. kk <= npuv) then
+                        kk = uv_index_u_nmd(kk)
+                        if (kk > 0 .and. kk <= npuv) then; uu_nmdd = uv0(kk); else; uu_nmdd = uu_nmd; endif
+                     else
+                        uu_nmdd = uu_nmd
+                     endif
+                     kk = uv_index_u_nmu(ip)
+                     if (kk > 0 .and. kk <= npuv) then
+                        kk = uv_index_u_nmu(kk)
+                        if (kk > 0 .and. kk <= npuv) then; uu_nmuu = uv0(kk); else; uu_nmuu = uu_nmu; endif
+                     else
+                        uu_nmuu = uu_nmu
+                     endif
+                     kk = uv_index_u_ndm(ip)
+                     if (kk > 0 .and. kk <= npuv) then
+                        kk = uv_index_u_ndm(kk)
+                        if (kk > 0 .and. kk <= npuv) then; uu_ndmm = uv0(kk); else; uu_ndmm = uu_ndm; endif
+                     else
+                        uu_ndmm = uu_ndm
+                     endif
+                     kk = uv_index_u_num(ip)
+                     if (kk > 0 .and. kk <= npuv) then
+                        kk = uv_index_u_num(kk)
+                        if (kk > 0 .and. kk <= npuv) then; uu_numm = uv0(kk); else; uu_numm = uu_num; endif
+                     else
+                        uu_numm = uu_num
+                     endif
+                     !
+                     ! van Leer limited slopes (statement function flim)
+                     !
+                     slnmd = flim(uu_nmd - uu_nmdd, uu_nm   - uu_nmd )
+                     slnm  = flim(uu_nm  - uu_nmd,  uu_nmu  - uu_nm  )
+                     slnmu = flim(uu_nmu - uu_nm,   uu_nmuu - uu_nmu )
+                     slndm = flim(uu_ndm - uu_ndmm, uu_nm   - uu_ndm )
+                     slynm = flim(uu_nm  - uu_ndm,  uu_num  - uu_nm  )
+                     slnum = flim(uu_num - uu_nm,   uu_numm - uu_num )
+                     !
+                     ! Streamwise : d(qu u)/dx  (MUSCL face states, upwind pick by face-flux sign)
+                     !
+                     qxe = 0.5*(qx_nm  + qx_nmu)
+                     qxw = 0.5*(qx_nmd + qx_nm )
+                     if (qxe >= 0.0) then; ufe = uu_nm  + 0.5*slnm;  else; ufe = uu_nmu - 0.5*slnmu; endif
+                     if (qxw >= 0.0) then; ufw = uu_nmd + 0.5*slnmd; else; ufw = uu_nm  - 0.5*slnm;  endif
+                     ! Bound each face state to its two straddling cell velocities (no new extrema).
+                     ! Guarantees monotonicity even where the stencil spans coarse/fine transitions.
+                     ufe = min(max(ufe, min(uu_nm,  uu_nmu)), max(uu_nm,  uu_nmu))
+                     ufw = min(max(ufw, min(uu_nmd, uu_nm )), max(uu_nmd, uu_nm ))
+                     dqxudx = ( qxe*ufe - qxw*ufw ) * dxuvinv
+                     !
+                     ! Cross : d(qv u)/dy
+                     !
+                     qyn = 0.5*(qy_nm  + qy_nmu )
+                     qys = 0.5*(qy_ndm + qy_ndmu)
+                     if (qyn >= 0.0) then; ufn = uu_nm  + 0.5*slynm; else; ufn = uu_num - 0.5*slnum; endif
+                     if (qys >= 0.0) then; ufs = uu_ndm + 0.5*slndm; else; ufs = uu_nm  - 0.5*slynm; endif
+                     ufn = min(max(ufn, min(uu_nm,  uu_num)), max(uu_nm,  uu_num))
+                     ufs = min(max(ufs, min(uu_ndm, uu_nm )), max(uu_ndm, uu_nm ))
+                     dqyudy = ( qyn*ufn - qys*ufs ) * dyuvinv
+                     !
                   endif
                   !
                   adv = - phi * (dqxudx + dqyudy)
