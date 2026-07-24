@@ -60,8 +60,9 @@ contains
          !
          iok = check_file_exists(zsinifile, 'Initial conditions ini file', .true.)
          !
+         nchar=len(trim(zsinifile))
          if (zsinifile(nchar - 1 : nchar) == 'nc') then
-             !
+            !
             ! Read netcdf (!) initial water level file
             ! Note - newer type real*8 for zs 
             !
