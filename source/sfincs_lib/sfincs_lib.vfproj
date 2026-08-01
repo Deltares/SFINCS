@@ -109,6 +109,7 @@
 			<File RelativePath="..\src\sfincs_crosssections.f90"/>
 			<File RelativePath="..\src\sfincs_data.f90"/>
 			<File RelativePath="..\src\sfincs_data.f90"/>
+			<File RelativePath="..\src\sfincs_timers.f90"/>
 			<File RelativePath="..\src\sfincs_date.f90"/>
 			<File RelativePath="..\src\sfincs_discharges.f90">
 			</File>

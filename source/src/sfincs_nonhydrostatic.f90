@@ -388,20 +388,15 @@ contains
    end subroutine
 
    
-   subroutine compute_nonhydrostatic(dt, tloop)
+   subroutine compute_nonhydrostatic(dt)
    !
-   ! Non-hydrostatic pressure correction on fluxes and velocities 
+   ! Non-hydrostatic pressure correction on fluxes and velocities
    !
    use sfincs_data
+   use sfincs_timers
    use bicgstab_solver_ilu
    !
    implicit none
-   !
-   integer   :: count0
-   integer   :: count1
-   integer   :: count_rate
-   integer   :: count_max
-   real      :: tloop
    !
    real*4    :: dt
    !
@@ -439,7 +434,7 @@ contains
    real*4, dimension(:), allocatable  :: AA
    real*4                             :: relres
    !
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('non-hydrostatic')
    !
    allocate(QQ(nrows))
    allocate(AA(nr_vals_in_matrix))
@@ -738,9 +733,8 @@ contains
    !$omp end do
    !$omp end parallel
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
+   call timer_stop('non-hydrostatic')
    !
-   end subroutine      
+   end subroutine
 
 end module
