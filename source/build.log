@@ -1,0 +1,200 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile_cpu_local
+#1 transferring dockerfile: 1.19kB 0.1s done
+#1 DONE 0.1s
+
+#2 [internal] load metadata for docker.io/library/ubuntu:jammy
+#2 ...
+
+#3 [auth] library/ubuntu:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/ubuntu:jammy
+#2 DONE 2.8s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B 0.1s done
+#4 DONE 0.1s
+
+#5 [stage-0  1/11] FROM docker.io/library/ubuntu:jammy@sha256:3b06811b2afd352be909dd088a004166d665dc76d38b13eada33522a9d915c6f
+#5 resolve docker.io/library/ubuntu:jammy@sha256:3b06811b2afd352be909dd088a004166d665dc76d38b13eada33522a9d915c6f 0.0s done
+#5 sha256:39a945af8df2ad9343f141c82355d3f2c4b576d432eda34c460d630607462b60 0B / 29.74MB 0.2s
+#5 sha256:39a945af8df2ad9343f141c82355d3f2c4b576d432eda34c460d630607462b60 2.10MB / 29.74MB 0.3s
+#5 sha256:39a945af8df2ad9343f141c82355d3f2c4b576d432eda34c460d630607462b60 4.19MB / 29.74MB 0.5s
+#5 sha256:39a945af8df2ad9343f141c82355d3f2c4b576d432eda34c460d630607462b60 6.29MB / 29.74MB 0.6s
+#5 sha256:39a945af8df2ad9343f141c82355d3f2c4b576d432eda34c460d630607462b60 8.39MB / 29.74MB 0.8s
+#5 sha256:39a945af8df2ad9343f141c82355d3f2c4b576d432eda34c460d630607462b60 10.49MB / 29.74MB 0.9s
+#5 sha256:39a945af8df2ad9343f141c82355d3f2c4b576d432eda34c460d630607462b60 12.58MB / 29.74MB 1.1s
+#5 sha256:39a945af8df2ad9343f141c82355d3f2c4b576d432eda34c460d630607462b60 14.68MB / 29.74MB 1.2s
+#5 sha256:39a945af8df2ad9343f141c82355d3f2c4b576d432eda34c460d630607462b60 18.87MB / 29.74MB 1.5s
+#5 sha256:39a945af8df2ad9343f141c82355d3f2c4b576d432eda34c460d630607462b60 20.97MB / 29.74MB 1.7s
+#5 sha256:39a945af8df2ad9343f141c82355d3f2c4b576d432eda34c460d630607462b60 24.12MB / 29.74MB 1.8s
+#5 sha256:39a945af8df2ad9343f141c82355d3f2c4b576d432eda34c460d630607462b60 26.21MB / 29.74MB 2.0s
+#5 sha256:39a945af8df2ad9343f141c82355d3f2c4b576d432eda34c460d630607462b60 28.31MB / 29.74MB 2.1s
+#5 sha256:39a945af8df2ad9343f141c82355d3f2c4b576d432eda34c460d630607462b60 29.74MB / 29.74MB 2.2s done
+#5 extracting sha256:39a945af8df2ad9343f141c82355d3f2c4b576d432eda34c460d630607462b60
+#5 extracting sha256:39a945af8df2ad9343f141c82355d3f2c4b576d432eda34c460d630607462b60 1.1s done
+#5 DONE 3.4s
+
+#6 [internal] load build context
+#6 transferring context: 114.80MB 4.9s
+#6 transferring context: 114.93MB 10.0s
+#6 transferring context: 120.00MB 11.6s done
+#6 DONE 11.7s
+
+#7 [stage-0  2/11] RUN apt update && apt install -y dos2unix
+#7 0.532 
+#7 0.532 WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+#7 0.532 
+#7 0.642 Get:1 http://archive.ubuntu.com/ubuntu jammy InRelease [270 kB]
+#7 0.741 Get:2 http://archive.ubuntu.com/ubuntu jammy-updates InRelease [128 kB]
+#7 0.825 Get:3 http://archive.ubuntu.com/ubuntu jammy-backports InRelease [127 kB]
+#7 0.868 Get:4 http://security.ubuntu.com/ubuntu jammy-security InRelease [129 kB]
+#7 0.917 Get:5 http://archive.ubuntu.com/ubuntu jammy/main amd64 Packages [1792 kB]
+#7 1.262 Get:6 http://archive.ubuntu.com/ubuntu jammy/multiverse amd64 Packages [266 kB]
+#7 1.373 Get:7 http://archive.ubuntu.com/ubuntu jammy/restricted amd64 Packages [164 kB]
+#7 1.495 Get:8 http://security.ubuntu.com/ubuntu jammy-security/multiverse amd64 Packages [84.1 kB]
+#7 1.547 Get:9 http://archive.ubuntu.com/ubuntu jammy/universe amd64 Packages [17.5 MB]
+#7 1.964 Get:10 http://security.ubuntu.com/ubuntu jammy-security/main amd64 Packages [4190 kB]
+#7 3.623 Get:11 http://security.ubuntu.com/ubuntu jammy-security/restricted amd64 Packages [7545 kB]
+#7 4.012 Get:12 http://archive.ubuntu.com/ubuntu jammy-updates/multiverse amd64 Packages [92.7 kB]
+#7 4.127 Get:13 http://archive.ubuntu.com/ubuntu jammy-updates/restricted amd64 Packages [7848 kB]
+#7 5.897 Get:14 http://archive.ubuntu.com/ubuntu jammy-updates/main amd64 Packages [4528 kB]
+#7 6.028 Get:15 http://security.ubuntu.com/ubuntu jammy-security/universe amd64 Packages [1314 kB]
+#7 6.480 Get:16 http://archive.ubuntu.com/ubuntu jammy-updates/universe amd64 Packages [1616 kB]
+#7 6.738 Get:17 http://archive.ubuntu.com/ubuntu jammy-backports/universe amd64 Packages [35.6 kB]
+#7 6.821 Get:18 http://archive.ubuntu.com/ubuntu jammy-backports/main amd64 Packages [82.8 kB]
+#7 7.394 Fetched 47.7 MB in 7s (6942 kB/s)
+#7 7.394 Reading package lists...
+#7 8.740 Building dependency tree...
+#7 8.963 Reading state information...
+#7 8.982 2 packages can be upgraded. Run 'apt list --upgradable' to see them.
+#7 8.986 
+#7 8.986 WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+#7 8.986 
+#7 9.015 Reading package lists...
+#7 ...
+
+#8 [stage-1 2/4] RUN apt update && apt install -y libnetcdf-dev build-essential
+#8 0.547 
+#8 0.547 WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+#8 0.547 
+#8 0.636 Get:1 http://archive.ubuntu.com/ubuntu jammy InRelease [270 kB]
+#8 0.748 Get:2 http://archive.ubuntu.com/ubuntu jammy-updates InRelease [128 kB]
+#8 0.838 Get:3 http://archive.ubuntu.com/ubuntu jammy-backports InRelease [127 kB]
+#8 0.853 Get:4 http://security.ubuntu.com/ubuntu jammy-security InRelease [129 kB]
+#8 0.943 Get:5 http://archive.ubuntu.com/ubuntu jammy/main amd64 Packages [1792 kB]
+#8 1.265 Get:6 http://archive.ubuntu.com/ubuntu jammy/multiverse amd64 Packages [266 kB]
+#8 1.399 Get:7 http://archive.ubuntu.com/ubuntu jammy/universe amd64 Packages [17.5 MB]
+#8 1.475 Get:8 http://security.ubuntu.com/ubuntu jammy-security/main amd64 Packages [4190 kB]
+#8 3.333 Get:9 http://security.ubuntu.com/ubuntu jammy-security/restricted amd64 Packages [7545 kB]
+#8 4.150 Get:10 http://archive.ubuntu.com/ubuntu jammy/restricted amd64 Packages [164 kB]
+#8 4.293 Get:11 http://archive.ubuntu.com/ubuntu jammy-updates/main amd64 Packages [4528 kB]
+#8 5.456 Get:12 http://archive.ubuntu.com/ubuntu jammy-updates/universe amd64 Packages [1616 kB]
+#8 5.730 Get:13 http://security.ubuntu.com/ubuntu jammy-security/universe amd64 Packages [1314 kB]
+#8 5.895 Get:14 http://archive.ubuntu.com/ubuntu jammy-updates/multiverse amd64 Packages [92.7 kB]
+#8 5.997 Get:15 http://archive.ubuntu.com/ubuntu jammy-updates/restricted amd64 Packages [7848 kB]
+#8 6.935 Get:16 http://archive.ubuntu.com/ubuntu jammy-backports/universe amd64 Packages [35.6 kB]
+#8 7.021 Get:17 http://archive.ubuntu.com/ubuntu jammy-backports/main amd64 Packages [82.8 kB]
+#8 7.238 Get:18 http://security.ubuntu.com/ubuntu jammy-security/multiverse amd64 Packages [84.1 kB]
+#8 7.333 Fetched 47.7 MB in 7s (7019 kB/s)
+#8 7.333 Reading package lists...
+#8 8.720 Building dependency tree...
+#8 8.947 Reading state information...
+#8 8.966 2 packages can be upgraded. Run 'apt list --upgradable' to see them.
+#8 8.970 
+#8 8.970 WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+#8 8.970 
+#8 8.999 Reading package lists...
+#8 10.05 Building dependency tree...
+#8 ...
+
+#7 [stage-0  2/11] RUN apt update && apt install -y dos2unix
+#7 9.015 Reading package lists...
+#7 10.08 Building dependency tree...
+#7 10.29 Reading state information...
+#7 10.51 The following NEW packages will be installed:
+#7 10.52   dos2unix
+#7 10.58 0 upgraded, 1 newly installed, 0 to remove and 2 not upgraded.
+#7 10.58 Need to get 384 kB of archives.
+#7 10.58 After this operation, 1367 kB of additional disk space will be used.
+#7 10.58 Get:1 http://archive.ubuntu.com/ubuntu jammy/universe amd64 dos2unix amd64 7.4.2-2 [384 kB]
+#7 11.08 debconf: delaying package configuration, since apt-utils is not installed
+#7 11.11 Fetched 384 kB in 0s (822 kB/s)
+#7 11.13 Selecting previously unselected package dos2unix.
+#7 11.13 (Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 4393 files and directories currently installed.)
+#7 11.13 Preparing to unpack .../dos2unix_7.4.2-2_amd64.deb ...
+#7 11.14 Unpacking dos2unix (7.4.2-2) ...
+#7 11.17 Setting up dos2unix (7.4.2-2) ...
+#7 DONE 11.4s
+
+#8 [stage-1 2/4] RUN apt update && apt install -y libnetcdf-dev build-essential
+#8 10.05 Building dependency tree...
+#8 10.26 Reading state information...
+#8 10.49 The following additional packages will be installed:
+#8 10.49   binutils binutils-common binutils-x86-64-linux-gnu bzip2 ca-certificates cpp
+#8 10.49   cpp-11 dirmngr dpkg-dev fakeroot fontconfig-config fonts-dejavu-core g++
+#8 10.49   g++-11 gcc gcc-11 gcc-11-base gnupg gnupg-l10n gnupg-utils gpg gpg-agent
+#8 10.49   gpg-wks-client gpg-wks-server gpgconf gpgsm hdf5-helpers libaec-dev libaec0
+#8 10.49   libalgorithm-diff-perl libalgorithm-diff-xs-perl libalgorithm-merge-perl
+#8 10.49   libasan6 libassuan0 libatomic1 libbinutils libbrotli1 libbsd0 libc-dev-bin
+#8 10.49   libc-devtools libc6-dev libcc1-0 libcrypt-dev libctf-nobfd0 libctf0 libcurl4
+#8 10.49   libcurl4-openssl-dev libdeflate0 libdpkg-perl libexpat1 libfakeroot
+#8 10.49   libfile-fcntllock-perl libfontconfig1 libfreetype6 libgcc-11-dev libgd3
+#8 10.49   libgdbm-compat4 libgdbm6 libgfortran5 libglib2.0-0 libglib2.0-data libgomp1
+#8 10.49   libhdf5-103-1 libhdf5-cpp-103-1 libhdf5-dev libhdf5-fortran-102
+#8 10.49   libhdf5-hl-100 libhdf5-hl-cpp-100 libhdf5-hl-fortran-100 libicu70 libisl23
+#8 10.49   libitm1 libjbig0 libjpeg-dev libjpeg-turbo8 libjpeg-turbo8-dev libjpeg8
+#8 10.49   libjpeg8-dev libksba8 libldap-2.5-0 libldap-common liblocale-gettext-perl
+#8 10.49   liblsan0 libmd0 libmpc3 libmpfr6 libnetcdf19 libnghttp2-14 libnpth0
+#8 10.49   libnsl-dev libperl5.34 libpng16-16 libpsl5 libquadmath0 libreadline8
+#8 10.49   librtmp1 libsasl2-2 libsasl2-modules libsasl2-modules-db libsqlite3-0
+#8 10.49   libssh-4 libssl-dev libstdc++-11-dev libsz2 libtiff5 libtirpc-dev libtsan0
+#8 10.49   libubsan1 libwebp7 libx11-6 libx11-data libxau6 libxcb1 libxdmcp6 libxml2
+#8 10.49   libxpm4 linux-libc-dev lto-disabled-list make manpages manpages-dev netbase
+#8 10.49   openssl patch perl perl-modules-5.34 pinentry-curses pkg-config publicsuffix
+#8 10.49   readline-common rpcsvc-proto shared-mime-info ucf xdg-user-dirs xz-utils
+#8 10.49   zlib1g-dev
+#8 10.50 Suggested packages:
+#8 10.50   binutils-doc bzip2-doc cpp-doc gcc-11-locales dbus-user-session
+#8 10.50   libpam-systemd pinentry-gnome3 tor debian-keyring g++-multilib
+#8 10.50   g++-11-multilib gcc-11-doc gcc-multilib autoconf automake libtool flex bison
+#8 10.50   gdb gcc-doc gcc-11-multilib parcimonie xloadimage scdaemon glibc-doc
+#8 10.50   libcurl4-doc libidn11-dev libkrb5-dev libldap2-dev librtmp-dev libssh2-1-dev
+#8 10.50   git bzr libgd-tools gdbm-l10n libhdf5-doc netcdf-bin netcdf-doc
+#8 10.50   libsasl2-modules-gssapi-mit | libsasl2-modules-gssapi-heimdal
+#8 10.50   libsasl2-modules-ldap libsasl2-modules-otp libsasl2-modules-sql libssl-doc
+#8 10.50   libstdc++-11-doc make-doc man-browser ed diffutils-doc perl-doc
+#8 10.50   libterm-readline-gnu-perl | libterm-readline-perl-perl
+#8 10.50   libtap-harness-archive-perl pinentry-doc readline-doc
+#8 10.71 The following NEW packages will be installed:
+#8 10.71   binutils binutils-common binutils-x86-64-linux-gnu build-essential bzip2
+#8 10.71   ca-certificates cpp cpp-11 dirmngr dpkg-dev fakeroot fontconfig-config
+#8 10.71   fonts-dejavu-core g++ g++-11 gcc gcc-11 gcc-11-base gnupg gnupg-l10n
+#8 10.71   gnupg-utils gpg gpg-agent gpg-wks-client gpg-wks-server gpgconf gpgsm
+#8 10.71   hdf5-helpers libaec-dev libaec0 libalgorithm-diff-perl
+#8 10.71   libalgorithm-diff-xs-perl libalgorithm-merge-perl libasan6 libassuan0
+#8 10.71   libatomic1 libbinutils libbrotli1 libbsd0 libc-dev-bin libc-devtools
+#8 10.71   libc6-dev libcc1-0 libcrypt-dev libctf-nobfd0 libctf0 libcurl4
+#8 10.71   libcurl4-openssl-dev libdeflate0 libdpkg-perl libexpat1 libfakeroot
+#8 10.71   libfile-fcntllock-perl libfontconfig1 libfreetype6 libgcc-11-dev libgd3
+#8 10.72   libgdbm-compat4 libgdbm6 libgfortran5 libglib2.0-0 libglib2.0-data libgomp1
+#8 10.72   libhdf5-103-1 libhdf5-cpp-103-1 libhdf5-dev libhdf5-fortran-102
+#8 10.72   libhdf5-hl-100 libhdf5-hl-cpp-100 libhdf5-hl-fortran-100 libicu70 libisl23
+#8 10.72   libitm1 libjbig0 libjpeg-dev libjpeg-turbo8 libjpeg-turbo8-dev libjpeg8
+#8 10.72   libjpeg8-dev libksba8 libldap-2.5-0 libldap-common liblocale-gettext-perl
+#8 10.72   liblsan0 libmd0 libmpc3 libmpfr6 libnetcdf-dev libnetcdf19 libnghttp2-14
+#8 10.72   libnpth0 libnsl-dev libperl5.34 libpng16-16 libpsl5 libquadmath0
+#8 10.72   libreadline8 librtmp1 libsasl2-2 libsasl2-modules libsasl2-modules-db
+#8 10.72   libsqlite3-0 libssh-4 libssl-dev libstdc++-11-dev libsz2 libtiff5
+#8 10.72   libtirpc-dev libtsan0 libubsan1 libwebp7 libx11-6 libx11-data libxau6
+#8 10.72   libxcb1 libxdmcp6 libxml2 libxpm4 linux-libc-dev lto-disabled-list make
+#8 10.72   manpages manpages-dev netbase openssl patch perl perl-modules-5.34
+#8 10.72   pinentry-curses pkg-config publicsuffix readline-common rpcsvc-proto
+#8 10.72   shared-mime-info ucf xdg-user-dirs xz-utils zlib1g-dev
+#8 10.77 0 upgraded, 138 newly installed, 0 to remove and 2 not upgraded.
+#8 10.77 Need to get 108 MB of archives.
+#8 10.77 After this operation, 380 MB of additional disk space will be used.
+#8 10.77 Get:1 http://archive.ubuntu.com/ubuntu jammy/main amd64 liblocale-gettext-perl amd64 1.07-4build3 [17.1 kB]
+#8 11.18 Get:2 http://archive.ubuntu.com/ubuntu jammy-updates/main amd64 perl-modules-5.34 all 5.34.0-3ubuntu1.7 [2977 kB]
