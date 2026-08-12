@@ -1063,10 +1063,21 @@ contains
       NF90(nf90_put_var(his_file%ncid, his_file%station_id_varid, idobs))  ! write station_id   
       !   
       NF90(nf90_put_var(his_file%ncid, his_file%station_name_varid, nameobs))  ! write station_name
+      !
+      NF90(nf90_put_var(his_file%ncid, his_file%station_x_varid, xobs)) ! write station_x, input xobs
+      !    
+      NF90(nf90_put_var(his_file%ncid, his_file%station_y_varid, yobs)) ! write station_y, input yobs
+      !   
+      NF90(nf90_put_var(his_file%ncid, his_file%point_x_varid, xgobs)) ! write point_x, now actual value on grid is written rather than input xobs
+      !    
+      NF90(nf90_put_var(his_file%ncid, his_file%point_y_varid, ygobs)) ! write point_y, now actual value on grid is written rather than input yobs
+      !  
+      NF90(nf90_put_var(his_file%ncid, his_file%zb_varid, zbobs)) ! write point_zb
+      !
    endif
    !
    if (nrcrosssections>0) then
-      NF90(nf90_put_var(his_file%ncid, his_file%crosssection_name_varid, namecrs))  ! write station_name      ! , (/1, nobs/)
+      NF90(nf90_put_var(his_file%ncid, his_file%crosssection_name_varid, namecrs))  ! write crosssection_name
    endif   
    !
    if (nr_runup_gauges > 0) then
@@ -1116,18 +1127,6 @@ contains
       !
       NF90(nf90_put_var(his_file%ncid,  his_file%thindam_y_varid, thindam_y)) ! write thindam_y
       !       
-   endif   
-   !
-   if (nobs>0) then
-      NF90(nf90_put_var(his_file%ncid, his_file%station_x_varid, xobs)) ! write station_x, input xobs
-      !    
-      NF90(nf90_put_var(his_file%ncid, his_file%station_y_varid, yobs)) ! write station_y, input yobs
-      !   
-      NF90(nf90_put_var(his_file%ncid, his_file%point_x_varid, xgobs)) ! write point_x, now actual value on grid is written rather than input xobs
-      !    
-      NF90(nf90_put_var(his_file%ncid, his_file%point_y_varid, ygobs)) ! write point_y, now actual value on grid is written rather than input yobs
-      !  
-      NF90(nf90_put_var(his_file%ncid, his_file%zb_varid, zbobs)) ! write point_zb
    endif
    !     
    NF90(nf90_sync(his_file%ncid)) !write away intermediate data
@@ -1312,8 +1311,6 @@ contains
             endif
          endif
       enddo
-      if (store_velocity)          call compute_uv_at_obs_points(uobs, vobs, uvmag, uvdir)
-      if (store_meteo .and. wind)  call compute_wind_at_obs_points(twndmag, twnddir)
       !
       NF90(nf90_put_var(his_file%ncid, his_file%zs_varid, zobs, (/1, nthisout/)))
       !
@@ -1321,26 +1318,37 @@ contains
          NF90(nf90_put_var(his_file%ncid, his_file%h_varid, hobs, (/1, nthisout/)))
       endif
       !
+      if (store_velocity)          call compute_uv_at_obs_points(uobs, vobs, uvmag, uvdir)
+      !
+      if (store_meteo .and. wind)  call compute_wind_at_obs_points(twndmag, twnddir)
+      !
       if (infiltration) then
+         ! 
          call write_point_var(his_file%qinf_varid, qinfmap, nthisout, scale=3600000.0)
+         !
          if (inftype == 'cnb') then
             call write_point_var(his_file%S_varid, scs_Se, nthisout)
          elseif (inftype == 'gai') then
             call write_point_var(his_file%S_varid, GA_sigma, nthisout)
          endif
+         !
       endif
       !
       if (snapwave) then
+         !
          call write_point_var(his_file%hm0_varid,    snapwave_H,     nthisout, use_sw_index=.true., scale=sqrt(2.0))
          call write_point_var(his_file%hm0ig_varid,  snapwave_H_ig,  nthisout, use_sw_index=.true., scale=sqrt(2.0))
          call write_point_var(his_file%tp_varid,     snapwave_Tp,    nthisout, use_sw_index=.true.)
          call write_point_var(his_file%tpig_varid,   snapwave_Tp_ig, nthisout, use_sw_index=.true.)
+         !
          if (store_wave_direction) then
             call write_point_var(his_file%wavdir_varid, snapwave_mean_direction, nthisout, use_sw_index=.true.)
          endif
+         !
          if (wavemaker) then
             call write_point_var(his_file%zsm_varid, zsm, nthisout)
          endif
+         !
          if (store_wave_forces) then
             call write_point_var(his_file%dw_varid,      snapwave_Dw,      nthisout, use_sw_index=.true.)
             call write_point_var(his_file%df_varid,      snapwave_Df,      nthisout, use_sw_index=.true.)
@@ -1351,22 +1359,27 @@ contains
             call write_point_var(his_file%srcig_varid,   snapwave_srcig,   nthisout, use_sw_index=.true.)
             call write_point_var(his_file%alphaig_varid, snapwave_alphaig, nthisout, use_sw_index=.true.)
          endif
+         !
       endif
       !
       if (store_meteo) then
+         !
          if (wind) then
             NF90(nf90_put_var(his_file%ncid, his_file%wind_speed_varid, twndmag, (/1, nthisout/)))
             NF90(nf90_put_var(his_file%ncid, his_file%wind_dir_varid,   twnddir, (/1, nthisout/)))
          endif
+         !
          if (patmos) then
             call write_point_var(his_file%patm_varid, patm, nthisout)
          endif
+         !
          if (precip) then
             call write_point_var(his_file%prcp_varid, prcp, nthisout, scale=3600000.0)
             if (store_cumulative_precipitation) then
                call write_point_var(his_file%cumprcp_varid, cumprcp, nthisout)
             endif
          endif
+         !
       endif
       !
       if (store_velocity) then
@@ -1382,14 +1395,18 @@ contains
       !$acc update host(q)
       ! Get fluxes through cross sections (callee allocates qq)
       call get_discharges_through_crosssections(qq)
+      !
       NF90(nf90_put_var(his_file%ncid, his_file%discharge_varid, qq, (/1, nthisout/)))
+      !
       if (allocated(qq)) deallocate(qq)
    endif
    !
    if (nr_runup_gauges>0) then
       ! Get run-up elevations (callee allocates zz)
       call get_runup_levels(zz)
+      !
       NF90(nf90_put_var(his_file%ncid, his_file%runup_gauge_zs_varid, zz, (/1, nthisout/)))
+      !
       if (allocated(zz)) deallocate(zz)
    endif
    !
