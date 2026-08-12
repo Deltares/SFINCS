@@ -1059,9 +1059,11 @@ contains
    !
    NF90(nf90_put_var(his_file%ncid, his_file%crs_varid, epsg))  ! write epsg
    !
-   NF90(nf90_put_var(his_file%ncid, his_file%station_id_varid, idobs))  ! write station_id   
-   !   
-   NF90(nf90_put_var(his_file%ncid, his_file%station_name_varid, nameobs))  ! write station_name      ! , (/1, nobs/)
+   if (nobs>0) then
+      NF90(nf90_put_var(his_file%ncid, his_file%station_id_varid, idobs))  ! write station_id   
+      !   
+      NF90(nf90_put_var(his_file%ncid, his_file%station_name_varid, nameobs))  ! write station_name
+   endif
    !
    if (nrcrosssections>0) then
       NF90(nf90_put_var(his_file%ncid, his_file%crosssection_name_varid, namecrs))  ! write station_name      ! , (/1, nobs/)
@@ -1116,15 +1118,17 @@ contains
       !       
    endif   
    !
-   NF90(nf90_put_var(his_file%ncid, his_file%station_x_varid, xobs)) ! write station_x, input xobs
-   !    
-   NF90(nf90_put_var(his_file%ncid, his_file%station_y_varid, yobs)) ! write station_y, input yobs
-   !   
-   NF90(nf90_put_var(his_file%ncid, his_file%point_x_varid, xgobs)) ! write point_x, now actual value on grid is written rather than input xobs
-   !    
-   NF90(nf90_put_var(his_file%ncid, his_file%point_y_varid, ygobs)) ! write point_y, now actual value on grid is written rather than input yobs
-   !  
-   NF90(nf90_put_var(his_file%ncid, his_file%zb_varid, zbobs)) ! write point_zb
+   if (nobs>0) then
+      NF90(nf90_put_var(his_file%ncid, his_file%station_x_varid, xobs)) ! write station_x, input xobs
+      !    
+      NF90(nf90_put_var(his_file%ncid, his_file%station_y_varid, yobs)) ! write station_y, input yobs
+      !   
+      NF90(nf90_put_var(his_file%ncid, his_file%point_x_varid, xgobs)) ! write point_x, now actual value on grid is written rather than input xobs
+      !    
+      NF90(nf90_put_var(his_file%ncid, his_file%point_y_varid, ygobs)) ! write point_y, now actual value on grid is written rather than input yobs
+      !  
+      NF90(nf90_put_var(his_file%ncid, his_file%zb_varid, zbobs)) ! write point_zb
+   endif
    !     
    NF90(nf90_sync(his_file%ncid)) !write away intermediate data
    !
@@ -1291,103 +1295,85 @@ contains
    real*4, dimension(ndrn) :: q_drain
    real*4, dimension(:), allocatable :: qq, zz
    !
-   zobs    = FILL_VALUE
-   hobs    = FILL_VALUE
-   q_drain = FILL_VALUE
-   !
-   do iobs = 1, nobs
-      nm = nmindobs(iobs)
-      if (nm>0) then
-         zobs(iobs) = zs(nm)
-         if (subgrid) then
-            hobs(iobs) = zs(nm) - subgrid_z_zmin(nm)
-         else
-            hobs(iobs) = zs(nm) - zb(nm)
-         endif
-      endif
-   enddo
-   if (store_velocity)          call compute_uv_at_obs_points(uobs, vobs, uvmag, uvdir)
-   if (store_meteo .and. wind)  call compute_wind_at_obs_points(twndmag, twnddir)
-   !
    NF90(nf90_put_var(his_file%ncid, his_file%time_varid, t, (/nthisout/)))
    !
-   NF90(nf90_put_var(his_file%ncid, his_file%zs_varid, zobs, (/1, nthisout/)))
-   !
-   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
+   if (nobs>0) then
       !
-      NF90(nf90_put_var(his_file%ncid, his_file%h_varid, hobs, (/1, nthisout/)))
-      !
-   endif
-   !
-   if (infiltration) then
-      !
-      call write_point_var(his_file%qinf_varid, qinfmap, nthisout, scale=3600000.0)
-      !
-      if (inftype == 'cnb') then
-         call write_point_var(his_file%S_varid, scs_Se, nthisout)
-      elseif (inftype == 'gai') then
-         call write_point_var(his_file%S_varid, GA_sigma, nthisout)
-      endif
-      !
-   endif
-   !
-   if (snapwave) then
-      !
-      call write_point_var(his_file%hm0_varid,    snapwave_H,     nthisout, use_sw_index=.true., scale=sqrt(2.0))
-      call write_point_var(his_file%hm0ig_varid,  snapwave_H_ig,  nthisout, use_sw_index=.true., scale=sqrt(2.0))
-      call write_point_var(his_file%tp_varid,     snapwave_Tp,    nthisout, use_sw_index=.true.)
-      call write_point_var(his_file%tpig_varid,   snapwave_Tp_ig, nthisout, use_sw_index=.true.)
-      !
-      if (store_wave_direction) then
-         call write_point_var(his_file%wavdir_varid, snapwave_mean_direction, nthisout, use_sw_index=.true.)
-      endif
-      !
-      if (wavemaker) then
-         !
-         call write_point_var(his_file%zsm_varid, zsm, nthisout)
-         !
-      endif
-      !
-      if (store_wave_forces) then
-         !
-         call write_point_var(his_file%dw_varid,      snapwave_Dw,      nthisout, use_sw_index=.true.)
-         call write_point_var(his_file%df_varid,      snapwave_Df,      nthisout, use_sw_index=.true.)
-         call write_point_var(his_file%dwig_varid,    snapwave_Dwig,    nthisout, use_sw_index=.true.)
-         call write_point_var(his_file%dfig_varid,    snapwave_Dfig,    nthisout, use_sw_index=.true.)
-         call write_point_var(his_file%cg_varid,      snapwave_cg,      nthisout, use_sw_index=.true.)
-         call write_point_var(his_file%beta_varid,    snapwave_beta,    nthisout, use_sw_index=.true.)
-         call write_point_var(his_file%srcig_varid,   snapwave_srcig,   nthisout, use_sw_index=.true.)
-         call write_point_var(his_file%alphaig_varid, snapwave_alphaig, nthisout, use_sw_index=.true.)
-         !
-      endif
-      !
-   endif
-   !
-   if (store_meteo) then
-      !
-      if (wind) then
-         !
-         NF90(nf90_put_var(his_file%ncid, his_file%wind_speed_varid, twndmag, (/1, nthisout/)))
-         NF90(nf90_put_var(his_file%ncid, his_file%wind_dir_varid,   twnddir, (/1, nthisout/)))
-         !
-      endif
-      !
-      if (patmos) then
-         !
-         call write_point_var(his_file%patm_varid, patm, nthisout)
-         !
-      endif
-      !
-      if (precip) then
-         !
-         call write_point_var(his_file%prcp_varid, prcp, nthisout, scale=3600000.0)
-         !
-         if (store_cumulative_precipitation) then
-            !
-            call write_point_var(his_file%cumprcp_varid, cumprcp, nthisout)
-            !
+      zobs = FILL_VALUE
+      hobs = FILL_VALUE
+      do iobs = 1, nobs
+         nm = nmindobs(iobs)
+         if (nm>0) then
+            zobs(iobs) = zs(nm)
+            if (subgrid) then
+               hobs(iobs) = zs(nm) - subgrid_z_zmin(nm)
+            else
+               hobs(iobs) = zs(nm) - zb(nm)
+            endif
          endif
-         !
+      enddo
+      if (store_velocity)          call compute_uv_at_obs_points(uobs, vobs, uvmag, uvdir)
+      if (store_meteo .and. wind)  call compute_wind_at_obs_points(twndmag, twnddir)
+      !
+      NF90(nf90_put_var(his_file%ncid, his_file%zs_varid, zobs, (/1, nthisout/)))
+      !
+      if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
+         NF90(nf90_put_var(his_file%ncid, his_file%h_varid, hobs, (/1, nthisout/)))
+      endif
+      !
+      if (infiltration) then
+         call write_point_var(his_file%qinf_varid, qinfmap, nthisout, scale=3600000.0)
+         if (inftype == 'cnb') then
+            call write_point_var(his_file%S_varid, scs_Se, nthisout)
+         elseif (inftype == 'gai') then
+            call write_point_var(his_file%S_varid, GA_sigma, nthisout)
+         endif
+      endif
+      !
+      if (snapwave) then
+         call write_point_var(his_file%hm0_varid,    snapwave_H,     nthisout, use_sw_index=.true., scale=sqrt(2.0))
+         call write_point_var(his_file%hm0ig_varid,  snapwave_H_ig,  nthisout, use_sw_index=.true., scale=sqrt(2.0))
+         call write_point_var(his_file%tp_varid,     snapwave_Tp,    nthisout, use_sw_index=.true.)
+         call write_point_var(his_file%tpig_varid,   snapwave_Tp_ig, nthisout, use_sw_index=.true.)
+         if (store_wave_direction) then
+            call write_point_var(his_file%wavdir_varid, snapwave_mean_direction, nthisout, use_sw_index=.true.)
+         endif
+         if (wavemaker) then
+            call write_point_var(his_file%zsm_varid, zsm, nthisout)
+         endif
+         if (store_wave_forces) then
+            call write_point_var(his_file%dw_varid,      snapwave_Dw,      nthisout, use_sw_index=.true.)
+            call write_point_var(his_file%df_varid,      snapwave_Df,      nthisout, use_sw_index=.true.)
+            call write_point_var(his_file%dwig_varid,    snapwave_Dwig,    nthisout, use_sw_index=.true.)
+            call write_point_var(his_file%dfig_varid,    snapwave_Dfig,    nthisout, use_sw_index=.true.)
+            call write_point_var(his_file%cg_varid,      snapwave_cg,      nthisout, use_sw_index=.true.)
+            call write_point_var(his_file%beta_varid,    snapwave_beta,    nthisout, use_sw_index=.true.)
+            call write_point_var(his_file%srcig_varid,   snapwave_srcig,   nthisout, use_sw_index=.true.)
+            call write_point_var(his_file%alphaig_varid, snapwave_alphaig, nthisout, use_sw_index=.true.)
+         endif
+      endif
+      !
+      if (store_meteo) then
+         if (wind) then
+            NF90(nf90_put_var(his_file%ncid, his_file%wind_speed_varid, twndmag, (/1, nthisout/)))
+            NF90(nf90_put_var(his_file%ncid, his_file%wind_dir_varid,   twnddir, (/1, nthisout/)))
+         endif
+         if (patmos) then
+            call write_point_var(his_file%patm_varid, patm, nthisout)
+         endif
+         if (precip) then
+            call write_point_var(his_file%prcp_varid, prcp, nthisout, scale=3600000.0)
+            if (store_cumulative_precipitation) then
+               call write_point_var(his_file%cumprcp_varid, cumprcp, nthisout)
+            endif
+         endif
+      endif
+      !
+      if (store_velocity) then
+         NF90(nf90_put_var(his_file%ncid, his_file%u_varid,     uobs,  (/1, nthisout/)))
+         NF90(nf90_put_var(his_file%ncid, his_file%v_varid,     vobs,  (/1, nthisout/)))
+         NF90(nf90_put_var(his_file%ncid, his_file%uvmag_varid, uvmag, (/1, nthisout/)))
+         NF90(nf90_put_var(his_file%ncid, his_file%uvdir_varid, uvdir, (/1, nthisout/)))
       endif
       !
    endif
@@ -1419,15 +1405,6 @@ contains
       enddo
       !
       NF90(nf90_put_var(his_file%ncid, his_file%drain_varid, q_drain, (/1, nthisout/)))
-      !
-   endif
-   !
-   if (store_velocity) then
-      !
-      NF90(nf90_put_var(his_file%ncid, his_file%u_varid,     uobs,  (/1, nthisout/)))
-      NF90(nf90_put_var(his_file%ncid, his_file%v_varid,     vobs,  (/1, nthisout/)))
-      NF90(nf90_put_var(his_file%ncid, his_file%uvmag_varid, uvmag, (/1, nthisout/)))
-      NF90(nf90_put_var(his_file%ncid, his_file%uvdir_varid, uvdir, (/1, nthisout/)))
       !
    endif
    !
