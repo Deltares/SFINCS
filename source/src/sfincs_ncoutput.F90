@@ -1751,6 +1751,8 @@ contains
         NF90(nf90_put_att(ncid, varid, 'kdfile',kdfile))
         NF90(nf90_put_att(ncid, varid, 'z0lfile',z0lfile))
         NF90(nf90_put_att(ncid, varid, 'wavemaker_wvmfile',wavemaker_wvmfile))
+        NF90(nf90_put_att(ncid, varid, 'wavemaker_timeseries_wvmfile',wavemaker_wvmfile_src(wm_ts)))
+        NF90(nf90_put_att(ncid, varid, 'wavemaker_snapwave_wvmfile',wavemaker_wvmfile_src(wm_sw)))
         !
         ! Infiltration configuration
         !
@@ -1810,6 +1812,10 @@ contains
         NF90(nf90_put_att(ncid, varid, 'wavemaker_spectrum', logical2int(wavemaker_spectrum)))  
         NF90(nf90_put_att(ncid, varid, 'wavemaker_hig', logical2int(wavemaker_hig)))  
         NF90(nf90_put_att(ncid, varid, 'wavemaker_hinc', logical2int(wavemaker_hinc)))          
+        NF90(nf90_put_att(ncid, varid, 'wavemaker_timeseries_hig', logical2int(wavemaker_hig_src(wm_ts))))
+        NF90(nf90_put_att(ncid, varid, 'wavemaker_timeseries_hinc', logical2int(wavemaker_hinc_src(wm_ts))))
+        NF90(nf90_put_att(ncid, varid, 'wavemaker_snapwave_hig', logical2int(wavemaker_hig_src(wm_sw))))
+        NF90(nf90_put_att(ncid, varid, 'wavemaker_snapwave_hinc', logical2int(wavemaker_hinc_src(wm_sw))))
         !
         ! SnapWave related:
         !

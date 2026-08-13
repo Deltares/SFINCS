@@ -174,6 +174,18 @@ contains
    call read_logical_input(500, 'wavemaker_hig',         wavemaker_hig,            .true.)     ! wavemaker include IG waves
    call read_logical_input(500, 'wavemaker_hinc',        wavemaker_hinc,           .false.)    ! wavemaker include incident waves
    !
+   ! Wave maker polylines and settings per forcing source. This makes it possible to combine a
+   ! wave maker forced by time series with a wave maker forced by SnapWave in one model.
+   ! The keywords above act as the default for both sources.
+   !
+   call read_char_input(500, 'wavemaker_timeseries_wvmfile', wavemaker_wvmfile_src(wm_ts), 'none') ! polyline file of time series forced wavemaker
+   call read_char_input(500, 'wavemaker_snapwave_wvmfile',   wavemaker_wvmfile_src(wm_sw), 'none') ! polyline file of SnapWave forced wavemaker
+   !
+   call read_logical_input(500, 'wavemaker_timeseries_hig',  wavemaker_hig_src(wm_ts),  wavemaker_hig)
+   call read_logical_input(500, 'wavemaker_timeseries_hinc', wavemaker_hinc_src(wm_ts), wavemaker_hinc)
+   call read_logical_input(500, 'wavemaker_snapwave_hig',    wavemaker_hig_src(wm_sw),  wavemaker_hig)
+   call read_logical_input(500, 'wavemaker_snapwave_hinc',   wavemaker_hinc_src(wm_sw), wavemaker_hinc)
+   !
    ! Numerical parameters
    call read_char_input(500,'advection_scheme',advstr,'upw1')   
    call read_real_input(500,'btrelax',btrelax,3600.0)
@@ -626,7 +638,40 @@ contains
    wavemaker = .false.
    wavemaker_spectrum = .true.
    !
+   ! Assign the wave maker polylines to their forcing source.
+   ! The legacy keyword wavemaker_wvmfile (or wvmfile) does not state its forcing source, so it is
+   ! forced by time series if forcing point are given, and by SnapWave otherwise.
+   !
    if (wavemaker_wvmfile(1:4) /= 'none') then
+      !
+      if (wavemaker_wfpfile(1:4) /= 'none') then
+         !
+         if (wavemaker_wvmfile_src(wm_ts)(1:4) /= 'none') then
+            call stop_sfincs('both wavemaker_wvmfile and wavemaker_timeseries_wvmfile are given, ' // &
+                             'while wave maker forcing points are provided ! Please use only one of these keywords.', 1)
+         endif
+         !
+         wavemaker_wvmfile_src(wm_ts) = wavemaker_wvmfile
+         !
+      else
+         !
+         if (wavemaker_wvmfile_src(wm_sw)(1:4) /= 'none') then
+            call stop_sfincs('both wavemaker_wvmfile and wavemaker_snapwave_wvmfile are given, ' // &
+                             'while no wave maker forcing points are provided ! Please use only one of these keywords.', 1)
+         endif
+         !
+         wavemaker_wvmfile_src(wm_sw) = wavemaker_wvmfile
+         !
+      endif
+      !
+   endif
+   !
+   wavemaker_src_active(wm_ts) = wavemaker_wvmfile_src(wm_ts)(1:4) /= 'none'
+   wavemaker_src_active(wm_sw) = wavemaker_wvmfile_src(wm_sw)(1:4) /= 'none'
+   !
+   wavemaker_timeseries = wavemaker_src_active(wm_ts)
+   !
+   if (wavemaker_src_active(wm_ts) .or. wavemaker_src_active(wm_sw)) then
       !
       wavemaker = .true.
       iwavemaker = 1
@@ -642,6 +687,34 @@ contains
          call write_log('Info    : use monochromatic wave spectrum', 0)
          !
       endif   
+      !
+      if (wavemaker_src_active(wm_ts)) then
+         !
+         if (wavemaker_wfpfile(1:4) == 'none' .or. wavemaker_whifile(1:4) == 'none' .or. wavemaker_wtifile(1:4) == 'none') then
+            call stop_sfincs('a time series forced wave maker requires wavemaker_wfpfile, ' // &
+                             'wavemaker_whifile and wavemaker_wtifile !', 1)
+         endif
+         !
+         write(logstr,'(a,a,a,i1,a,i1)')'Info    : wave maker ', trim(wavemaker_wvmfile_src(wm_ts)), &
+            ' forced by time series, hig = ', merge(1, 0, wavemaker_hig_src(wm_ts)), &
+            ', hinc = ', merge(1, 0, wavemaker_hinc_src(wm_ts))
+         call write_log(logstr, 0)
+         !
+      endif
+      !
+      if (wavemaker_src_active(wm_sw)) then
+         !
+         if (.not. snapwave) then
+            call stop_sfincs('a SnapWave forced wave maker requires SnapWave to be turned on !', 1)
+         endif
+         !
+         write(logstr,'(a,a,a,i1,a,i1)')'Info    : wave maker ', trim(wavemaker_wvmfile_src(wm_sw)), &
+            ' forced by SnapWave, hig = ', merge(1, 0, wavemaker_hig_src(wm_sw)), &
+            ', hinc = ', merge(1, 0, wavemaker_hinc_src(wm_sw))
+         call write_log(logstr, 0)
+         !
+      endif
+      !
    endif
    !
    store_wave_direction = .false.

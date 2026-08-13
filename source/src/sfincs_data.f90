@@ -452,6 +452,19 @@ module sfincs_data
       logical       :: wavemaker_random
       logical       :: wavemaker_timeseries
       !
+      ! Wave maker forcing sources. A model may have one wave maker polyline forced by time series
+      ! and one forced by SnapWave, each with their own IG/incident wave settings.
+      !
+      integer, parameter :: wm_ts = 1 ! forced by time series (wfp/whi/wti/wst files)
+      integer, parameter :: wm_sw = 2 ! forced by SnapWave
+      !
+      character*256, dimension(2) :: wavemaker_wvmfile_src ! polyline file per forcing source
+      logical,       dimension(2) :: wavemaker_hig_src     ! include IG waves, per forcing source
+      logical,       dimension(2) :: wavemaker_hinc_src    ! include incident waves, per forcing source
+      logical,       dimension(2) :: wavemaker_src_active  ! whether this forcing source is used
+      !
+      integer*1, dimension(:), allocatable :: wavemaker_index_src ! forcing source of each wave maker u/v point
+      !
       integer*4                            :: wavemaker_nr_uv_points
       real*4                               :: wavemaker_filter_time
       real*4                               :: wavemaker_filter_fred      
@@ -1064,6 +1077,8 @@ module sfincs_data
     if(allocated(wavemaker_cost_ig)) deallocate(wavemaker_cost_ig)
     if(allocated(wavemaker_phi_ig)) deallocate(wavemaker_phi_ig)
     if(allocated(wavemaker_dphi_ig)) deallocate(wavemaker_dphi_ig)
+    !
+    if(allocated(wavemaker_index_src)) deallocate(wavemaker_index_src)
     !
     if(allocated(spw_times)) deallocate(spw_times)
     if(allocated(spw_xe)) deallocate(spw_xe)
