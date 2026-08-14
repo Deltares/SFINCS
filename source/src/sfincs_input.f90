@@ -171,14 +171,15 @@ contains
    call read_real_input(500, 'wavemaker_hm0_inc_factor', wavemaker_hm0_inc_factor, 1.0)        ! wavemaker Hm0 inc wave factor
    call read_real_input(500, 'wavemaker_gammax',         wavemaker_gammax,         1.0)        ! wavemaker gammax
    call read_real_input(500, 'wavemaker_tpmin',          wavemaker_tpmin,          1.0)        ! wavemaker tpmin
-   call read_logical_input(500, 'wavemaker_hig',         wavemaker_hig,            .true.)     ! wavemaker include IG waves
-   call read_logical_input(500, 'wavemaker_hinc',        wavemaker_hinc,           .false.)    ! wavemaker include incident waves
+   call read_logical_input(500, 'wavemaker_hig',         wavemaker_hig,            .true.)     ! wavemaker include IG waves (SnapWave forced)
+   call read_logical_input(500, 'wavemaker_hinc',        wavemaker_hinc,           .false.)    ! wavemaker include incident waves (SnapWave forced)
    !
    ! Wave maker polylines per forcing source. This makes it possible to combine a wave maker forced
    ! by time series with a wave maker forced by SnapWave in one model.
    ! wavemaker_hig and wavemaker_hinc above apply to both, except that a time series forced wave
    ! maker never includes incident waves, since whifile and wtifile hold the IG wave height and
-   ! period and there is no incident wave input.
+   ! period and there is no incident wave input. 
+   ! NOTE - the 2 wavemaker types should NOT directly neighbour eachother!
    !
    call read_char_input(500, 'wavemaker_timeseries_wvmfile', wavemaker_wvmfile_src(wm_ts), 'none') ! polyline file of time series forced wavemaker
    call read_char_input(500, 'wavemaker_snapwave_wvmfile',   wavemaker_wvmfile_src(wm_sw), 'none') ! polyline file of SnapWave forced wavemaker
