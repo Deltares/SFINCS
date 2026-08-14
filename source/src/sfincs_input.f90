@@ -174,17 +174,13 @@ contains
    call read_logical_input(500, 'wavemaker_hig',         wavemaker_hig,            .true.)     ! wavemaker include IG waves
    call read_logical_input(500, 'wavemaker_hinc',        wavemaker_hinc,           .false.)    ! wavemaker include incident waves
    !
-   ! Wave maker polylines and settings per forcing source. This makes it possible to combine a
-   ! wave maker forced by time series with a wave maker forced by SnapWave in one model.
-   ! The keywords above act as the default for both sources.
+   ! Wave maker polylines per forcing source. This makes it possible to combine a wave maker forced
+   ! by time series with a wave maker forced by SnapWave in one model.
+   ! wavemaker_hig and wavemaker_hinc above apply to both, except that a time series forced wave
+   ! maker never includes incident waves (see below).
    !
    call read_char_input(500, 'wavemaker_timeseries_wvmfile', wavemaker_wvmfile_src(wm_ts), 'none') ! polyline file of time series forced wavemaker
    call read_char_input(500, 'wavemaker_snapwave_wvmfile',   wavemaker_wvmfile_src(wm_sw), 'none') ! polyline file of SnapWave forced wavemaker
-   !
-   call read_logical_input(500, 'wavemaker_timeseries_hig',  wavemaker_hig_src(wm_ts),  wavemaker_hig)
-   call read_logical_input(500, 'wavemaker_timeseries_hinc', wavemaker_hinc_src(wm_ts), wavemaker_hinc)
-   call read_logical_input(500, 'wavemaker_snapwave_hig',    wavemaker_hig_src(wm_sw),  wavemaker_hig)
-   call read_logical_input(500, 'wavemaker_snapwave_hinc',   wavemaker_hinc_src(wm_sw), wavemaker_hinc)
    !
    ! Numerical parameters
    call read_char_input(500,'advection_scheme',advstr,'upw1')   
@@ -671,6 +667,11 @@ contains
    !
    wavemaker_timeseries = wavemaker_src_active(wm_ts)
    !
+   ! Incident waves are only available for a SnapWave forced wave maker. For time series forcing,
+   ! whifile and wtifile hold the IG wave height and period, there is no incident wave input.
+   !
+   wavemaker_any_hinc = wavemaker_hinc .and. wavemaker_src_active(wm_sw)
+   !
    if (wavemaker_src_active(wm_ts) .or. wavemaker_src_active(wm_sw)) then
       !
       wavemaker = .true.
@@ -695,9 +696,8 @@ contains
                              'wavemaker_whifile and wavemaker_wtifile !', 1)
          endif
          !
-         write(logstr,'(a,a,a,i1,a,i1)')'Info    : wave maker ', trim(wavemaker_wvmfile_src(wm_ts)), &
-            ' forced by time series, hig = ', merge(1, 0, wavemaker_hig_src(wm_ts)), &
-            ', hinc = ', merge(1, 0, wavemaker_hinc_src(wm_ts))
+         write(logstr,'(a,a,a,i1)')'Info    : wave maker ', trim(wavemaker_wvmfile_src(wm_ts)), &
+            ' forced by time series (IG waves), hig = ', merge(1, 0, wavemaker_hig)
          call write_log(logstr, 0)
          !
       endif
@@ -709,8 +709,8 @@ contains
          endif
          !
          write(logstr,'(a,a,a,i1,a,i1)')'Info    : wave maker ', trim(wavemaker_wvmfile_src(wm_sw)), &
-            ' forced by SnapWave, hig = ', merge(1, 0, wavemaker_hig_src(wm_sw)), &
-            ', hinc = ', merge(1, 0, wavemaker_hinc_src(wm_sw))
+            ' forced by SnapWave, hig = ', merge(1, 0, wavemaker_hig), &
+            ', hinc = ', merge(1, 0, wavemaker_hinc)
          call write_log(logstr, 0)
          !
       endif

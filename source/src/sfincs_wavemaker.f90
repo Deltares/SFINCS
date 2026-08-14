@@ -1437,7 +1437,7 @@
       wavemaker_dphi_ig(ifreq) = 1.0e-6 * 2 * 3.1416 / wavemaker_freq_ig(ifreq)
    enddo
    !
-   if (wavemaker_hinc_src(wm_ts) .or. wavemaker_hinc_src(wm_sw)) then
+   if (wavemaker_any_hinc) then
       !
       allocate(wavemaker_freq_inc(wavemaker_nfreqs_inc))
       allocate(wavemaker_cost_inc(wavemaker_nfreqs_inc))
@@ -1500,7 +1500,7 @@
          !
       enddo
       !
-      if (wavemaker_hinc_src(wm_ts) .or. wavemaker_hinc_src(wm_sw)) then
+      if (wavemaker_any_hinc) then
          !
          do ifreq = 1, wavemaker_nfreqs_inc
             !
@@ -1576,7 +1576,7 @@
       tp_ig = tpsum / wavemaker_nr_forcing_points ! Take average Tp from boundary points
       tp_inc = 10.0 ! Later make it possible to also specify Tp_inc in time series forcing, but for now just add a fixed value (that is not used)
       !
-      call compute_wavemaker_signal(t, wavemaker_hig_src(wm_ts), wavemaker_hinc_src(wm_ts), tp_ig, tp_inc, zwav_ig_ts, zwav_inc_ts)
+      call compute_wavemaker_signal(t, wavemaker_hig, .false., tp_ig, tp_inc, zwav_ig_ts, zwav_inc_ts) ! no incident waves from time series
       !
    endif    
    !
@@ -1628,7 +1628,7 @@
       !
       tp_ig = max(tp_ig, wavemaker_tpmin)      
       ! 
-      call compute_wavemaker_signal(t, wavemaker_hig_src(wm_sw), wavemaker_hinc_src(wm_sw), tp_ig, tp_inc, zwav_ig_sw, zwav_inc_sw)
+      call compute_wavemaker_signal(t, wavemaker_hig, wavemaker_hinc, tp_ig, tp_inc, zwav_ig_sw, zwav_inc_sw)
       !
    endif    
    !

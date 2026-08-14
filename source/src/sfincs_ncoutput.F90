@@ -1812,10 +1812,6 @@ contains
         NF90(nf90_put_att(ncid, varid, 'wavemaker_spectrum', logical2int(wavemaker_spectrum)))  
         NF90(nf90_put_att(ncid, varid, 'wavemaker_hig', logical2int(wavemaker_hig)))  
         NF90(nf90_put_att(ncid, varid, 'wavemaker_hinc', logical2int(wavemaker_hinc)))          
-        NF90(nf90_put_att(ncid, varid, 'wavemaker_timeseries_hig', logical2int(wavemaker_hig_src(wm_ts))))
-        NF90(nf90_put_att(ncid, varid, 'wavemaker_timeseries_hinc', logical2int(wavemaker_hinc_src(wm_ts))))
-        NF90(nf90_put_att(ncid, varid, 'wavemaker_snapwave_hig', logical2int(wavemaker_hig_src(wm_sw))))
-        NF90(nf90_put_att(ncid, varid, 'wavemaker_snapwave_hinc', logical2int(wavemaker_hinc_src(wm_sw))))
         !
         ! SnapWave related:
         !

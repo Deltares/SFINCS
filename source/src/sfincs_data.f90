@@ -459,9 +459,9 @@ module sfincs_data
       integer, parameter :: wm_sw = 2 ! forced by SnapWave
       !
       character*256, dimension(2) :: wavemaker_wvmfile_src ! polyline file per forcing source
-      logical,       dimension(2) :: wavemaker_hig_src     ! include IG waves, per forcing source
-      logical,       dimension(2) :: wavemaker_hinc_src    ! include incident waves, per forcing source
       logical,       dimension(2) :: wavemaker_src_active  ! whether this forcing source is used
+      !
+      logical       :: wavemaker_any_hinc ! whether any active wave maker includes incident waves
       !
       integer*1, dimension(:), allocatable :: wavemaker_index_src ! forcing source of each wave maker u/v point
       !
