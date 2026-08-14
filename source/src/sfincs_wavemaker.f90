@@ -1518,7 +1518,7 @@
    ! They both give at Hm0 of 1.0 m, and therefore need to be scaled with the data at the wave maker points (either from time series or SnapWave boundary conditions)
    !
    zwav_ig_ts  = 0.0
-   zwav_inc_ts = 0.0
+   zwav_inc_ts = 0.0 ! not used, see the compute_wavemaker_signal call for the time series source
    zwav_ig_sw  = 0.0
    zwav_inc_sw = 0.0
    !
@@ -1577,7 +1577,9 @@
       tp_inc = 10.0 ! Later make it possible to also specify Tp_inc in time series forcing, but for now just add a fixed value (that is not used)
       !
       ! Incident waves are not available here: whifile and wtifile hold the IG wave height and
-      ! period, there is no incident wave input for time series forcing.
+      ! period, there is no incident wave input for time series forcing. zwav_inc_ts is therefore
+      ! always 0.0 and is not used; it is kept, like tp_inc above, for when incident wave time
+      ! series forcing is added.
       !
       call compute_wavemaker_signal(t, wavemaker_hig, .false., tp_ig, tp_inc, zwav_ig_ts, zwav_inc_ts)
       !
