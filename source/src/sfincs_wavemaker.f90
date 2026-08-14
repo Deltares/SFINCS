@@ -1591,43 +1591,49 @@
       !
       ! We may want to use Herbers for computation of IG waves in SnapWave, but we want to have control over peak IG period at wave makers.
       !
-      if (wavemaker_Tinc2ig > 0.0) then
-         !
-         ! Use factor on mean Tp_inc at boundaries
-         !
-         tp_ig = snapwave_tpmean * wavemaker_Tinc2ig
-         !
-!      elseif (wavemaker_surfslope > 0.0) then ! Dean a
-!         !
-!         ! Turn this option off now, because snapwave_hsmean is not available in current branch
-!         ! Will need to be updated if we want to use this option, but it is not a priority at the moment
-!         !
-!         ! Estimate surfzone slope from Dean's a, using gambr = 1.0
-!         !
-!         betas = snapwave_hsmean / (snapwave_hsmean / (1.0 * wavemaker_surfslope))**(3.0 / 2.0)
-!         !
-!         wave_steepness = snapwave_hsmean / (1.56 * snapwave_tpmean**2)
-!         !
-!         ! From empirical run-up equation (van Ormondt et al., 2021), but slightly adjusted
-!         !
-!         tp_ig = snapwave_tpmean * max(1.86 * betas**-0.43 * wave_steepness**0.07, 5.0)
-!         !
+      if (wavemaker_hig) then 
+          if (wavemaker_Tinc2ig > 0.0) then
+             !
+             ! Use factor on mean Tp_inc at boundaries
+             !
+             tp_ig = snapwave_tpmean * wavemaker_Tinc2ig
+             !
+    !      elseif (wavemaker_surfslope > 0.0) then ! Dean a
+    !         !
+    !         ! Turn this option off now, because snapwave_hsmean is not available in current branch
+    !         ! Will need to be updated if we want to use this option, but it is not a priority at the moment
+    !         !
+    !         ! Estimate surfzone slope from Dean's a, using gambr = 1.0
+    !         !
+    !         betas = snapwave_hsmean / (snapwave_hsmean / (1.0 * wavemaker_surfslope))**(3.0 / 2.0)
+    !         !
+    !         wave_steepness = snapwave_hsmean / (1.56 * snapwave_tpmean**2)
+    !         !
+    !         ! From empirical run-up equation (van Ormondt et al., 2021), but slightly adjusted
+    !         !
+    !         tp_ig = snapwave_tpmean * max(1.86 * betas**-0.43 * wave_steepness**0.07, 5.0)
+    !         !
+          else
+              !
+              ! Use mean peak period from SnapWave boundary conditions
+              !
+              tp_ig = snapwave_tpigmean ! TL: Now calculated in SnapWave, different options for using a period based on Herbers spectrum (snapwave_tpig_opt, if snapwave_use_herbers=1, or user defined snapwave_Tinc2ig ratio (if snapwave_use_herbers = 0)
+              !          
+              if (tp_ig < 10.0) then
+                 ! These warnings should not occur here
+	             write(logstr,*)'DEBUG SFINCS_SnapWave - incoming tp for IG wave at wavemaker might be unrealistically small! value: ',tp_ig
+                 call write_log(logstr, 0)           
+              elseif (tp_ig > 250.0) then
+	             write(logstr,*)'DEBUG SFINCS_SnapWave - incoming tp for IG wave at wavemaker might be unrealistically large! value: ',tp_ig
+                 call write_log(logstr, 0)   
+              endif	          
+              !
+          endif
       else
           !
-          ! Use mean peak period from SnapWave boundary conditions
+          tp_ig = 10.0
           !
-          tp_ig = snapwave_tpigmean ! TL: Now calculated in SnapWave, different options for using a period based on Herbers spectrum (snapwave_tpig_opt, if snapwave_use_herbers=1, or user defined snapwave_Tinc2ig ratio (if snapwave_use_herbers = 0)
-          !          
-          if (tp_ig < 10.0) then
-             ! These warnings should not occur here
-	         write(logstr,*)'DEBUG SFINCS_SnapWave - incoming tp for IG wave at wavemaker might be unrealistically small! value: ',tp_ig
-             call write_log(logstr, 0)           
-          elseif (tp_ig > 250.0) then
-	         write(logstr,*)'DEBUG SFINCS_SnapWave - incoming tp for IG wave at wavemaker might be unrealistically large! value: ',tp_ig
-             call write_log(logstr, 0)   
-          endif	          
-          !
-      endif
+      endif      
       !
       tp_inc = max(snapwave_tpmean, wavemaker_tpmin)
       !

@@ -694,7 +694,7 @@ contains
          endif
          !
          write(logstr,'(a,a,a,i1)')'Info    : wave maker ', trim(wavemaker_wvmfile_src(wm_ts)), &
-            ' forced by time series (IG waves), hig = ', merge(1, 0, wavemaker_hig)
+            ' forced by time series (IG waves)'
          call write_log(logstr, 0)
          !
       endif
