@@ -1580,6 +1580,12 @@
       tp_ig_ts = tpsum / wavemaker_nr_forcing_points ! Take average Tp from boundary points
       tp_inc_ts = 10.0 ! Later make it possible to also specify Tp_inc in time series forcing, but for now just add a fixed value (that is not used)
       !
+      ! Apply the same minimum wave period as for SnapWave forcing. This guards against a zero or
+      ! very small Tp in the wti file, which would otherwise give a division by zero in the wave
+      ! spectrum (fm_ig = 1.0 / tp_ig).
+      !
+      tp_ig_ts = max(tp_ig_ts, wavemaker_tpmin)
+      !
       ! Incident waves are not available here: whifile and wtifile hold the IG wave height and
       ! period, there is no incident wave input for time series forcing. zwav_inc_ts is therefore
       ! always 0.0 and is not used; it is kept, like tp_inc_ts above, for when incident wave time
