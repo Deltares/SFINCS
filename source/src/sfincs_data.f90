@@ -461,8 +461,6 @@ module sfincs_data
       character*256, dimension(2) :: wavemaker_wvmfile_src ! polyline file per forcing source
       logical,       dimension(2) :: wavemaker_src_active  ! whether this forcing source is used
       !
-      logical       :: wavemaker_any_hinc ! whether any active wave maker includes incident waves
-      !
       integer*1, dimension(:), allocatable :: wavemaker_index_src ! forcing source of each wave maker u/v point
       !
       integer*4                            :: wavemaker_nr_uv_points

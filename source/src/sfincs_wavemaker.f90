@@ -1437,7 +1437,7 @@
       wavemaker_dphi_ig(ifreq) = 1.0e-6 * 2 * 3.1416 / wavemaker_freq_ig(ifreq)
    enddo
    !
-   if (wavemaker_any_hinc) then
+   if (wavemaker_hinc) then
       !
       allocate(wavemaker_freq_inc(wavemaker_nfreqs_inc))
       allocate(wavemaker_cost_inc(wavemaker_nfreqs_inc))
@@ -1500,7 +1500,7 @@
          !
       enddo
       !
-      if (wavemaker_any_hinc) then
+      if (wavemaker_hinc) then
          !
          do ifreq = 1, wavemaker_nfreqs_inc
             !
@@ -1576,7 +1576,10 @@
       tp_ig = tpsum / wavemaker_nr_forcing_points ! Take average Tp from boundary points
       tp_inc = 10.0 ! Later make it possible to also specify Tp_inc in time series forcing, but for now just add a fixed value (that is not used)
       !
-      call compute_wavemaker_signal(t, wavemaker_hig, .false., tp_ig, tp_inc, zwav_ig_ts, zwav_inc_ts) ! no incident waves from time series
+      ! Incident waves are not available here: whifile and wtifile hold the IG wave height and
+      ! period, there is no incident wave input for time series forcing.
+      !
+      call compute_wavemaker_signal(t, wavemaker_hig, .false., tp_ig, tp_inc, zwav_ig_ts, zwav_inc_ts)
       !
    endif    
    !
