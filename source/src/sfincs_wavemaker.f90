@@ -1470,7 +1470,8 @@
    real*4  :: zwav_ig_ts, zwav_inc_ts, zwav_ig_sw, zwav_inc_sw
    real*4  :: alpha, beta
    real*8  :: t, tb
-   real*4  :: tbfac, hs, tp_ig, tp_inc, tpsum, setup, fm_ig, a, fm_inc
+   real*4  :: tbfac, hs, tpsum, setup, fm_ig, a, fm_inc
+   real*4  :: tp_ig_ts, tp_inc_ts, tp_ig_sw, tp_inc_sw
    real*4  :: wave_steepness, betas, zinc, zig, dwvm, ztot, hm0_inc
    real*4  :: ui, ub, dzuv, facint, zsuv, depthuv, uvm0
    !
@@ -1516,6 +1517,9 @@
    ! Now determine zwav_ig and zwav_inc per forcing source, based on spectrum or monochromatic signal.
    ! Time series of zwav_ig and zwav_inc will be used to modulate water level at wave maker points.
    ! They both give at Hm0 of 1.0 m, and therefore need to be scaled with the data at the wave maker points (either from time series or SnapWave boundary conditions)
+   !
+   ! Each forcing source has its own wave periods (tp_ig_ts/tp_inc_ts and tp_ig_sw/tp_inc_sw) and its
+   ! own signal, so the two wave makers do not influence each other.
    !
    zwav_ig_ts  = 0.0
    zwav_inc_ts = 0.0 ! not used, see the compute_wavemaker_signal call for the time series source
@@ -1563,25 +1567,25 @@
       do ib = 1, wavemaker_nr_forcing_points ! Loop along forcing points
          !
          hs    = wavemaker_forcing_hm0_ig(ib, itb0) + (wavemaker_forcing_hm0_ig(ib, itb1) - wavemaker_forcing_hm0_ig(ib, itb0)) * tbfac
-         tp_ig = wavemaker_forcing_tp_ig(ib, itb0)  + (wavemaker_forcing_tp_ig(ib, itb1)  - wavemaker_forcing_tp_ig(ib, itb0)) * tbfac
+         tp_ig_ts = wavemaker_forcing_tp_ig(ib, itb0)  + (wavemaker_forcing_tp_ig(ib, itb1)  - wavemaker_forcing_tp_ig(ib, itb0)) * tbfac
          setup = wavemaker_forcing_setup(ib, itb0)  + (wavemaker_forcing_setup(ib, itb1)  - wavemaker_forcing_setup(ib, itb0)) * tbfac
          !
          wavemaker_forcing_hm0_ig_t(ib) = hs
          wavemaker_forcing_setup_t(ib)  = setup
          !
-         tpsum = tpsum + tp_ig
+         tpsum = tpsum + tp_ig_ts
          !
       enddo
       !
-      tp_ig = tpsum / wavemaker_nr_forcing_points ! Take average Tp from boundary points
-      tp_inc = 10.0 ! Later make it possible to also specify Tp_inc in time series forcing, but for now just add a fixed value (that is not used)
+      tp_ig_ts = tpsum / wavemaker_nr_forcing_points ! Take average Tp from boundary points
+      tp_inc_ts = 10.0 ! Later make it possible to also specify Tp_inc in time series forcing, but for now just add a fixed value (that is not used)
       !
       ! Incident waves are not available here: whifile and wtifile hold the IG wave height and
       ! period, there is no incident wave input for time series forcing. zwav_inc_ts is therefore
-      ! always 0.0 and is not used; it is kept, like tp_inc above, for when incident wave time
+      ! always 0.0 and is not used; it is kept, like tp_inc_ts above, for when incident wave time
       ! series forcing is added.
       !
-      call compute_wavemaker_signal(t, wavemaker_hig, .false., tp_ig, tp_inc, zwav_ig_ts, zwav_inc_ts)
+      call compute_wavemaker_signal(t, wavemaker_hig, .false., tp_ig_ts, tp_inc_ts, zwav_ig_ts, zwav_inc_ts)
       !
    endif    
    !
@@ -1596,7 +1600,7 @@
              !
              ! Use factor on mean Tp_inc at boundaries
              !
-             tp_ig = snapwave_tpmean * wavemaker_Tinc2ig
+             tp_ig_sw = snapwave_tpmean * wavemaker_Tinc2ig
              !
     !      elseif (wavemaker_surfslope > 0.0) then ! Dean a
     !         !
@@ -1611,35 +1615,35 @@
     !         !
     !         ! From empirical run-up equation (van Ormondt et al., 2021), but slightly adjusted
     !         !
-    !         tp_ig = snapwave_tpmean * max(1.86 * betas**-0.43 * wave_steepness**0.07, 5.0)
+    !         tp_ig_sw = snapwave_tpmean * max(1.86 * betas**-0.43 * wave_steepness**0.07, 5.0)
     !         !
           else
               !
               ! Use mean peak period from SnapWave boundary conditions
               !
-              tp_ig = snapwave_tpigmean ! TL: Now calculated in SnapWave, different options for using a period based on Herbers spectrum (snapwave_tpig_opt, if snapwave_use_herbers=1, or user defined snapwave_Tinc2ig ratio (if snapwave_use_herbers = 0)
+              tp_ig_sw = snapwave_tpigmean ! TL: Now calculated in SnapWave, different options for using a period based on Herbers spectrum (snapwave_tpig_opt, if snapwave_use_herbers=1, or user defined snapwave_Tinc2ig ratio (if snapwave_use_herbers = 0)
               !          
-              if (tp_ig < 10.0) then
+              if (tp_ig_sw < 10.0) then
                  ! These warnings should not occur here
-	             write(logstr,*)'DEBUG SFINCS_SnapWave - incoming tp for IG wave at wavemaker might be unrealistically small! value: ',tp_ig
+	             write(logstr,*)'DEBUG SFINCS_SnapWave - incoming tp for IG wave at wavemaker might be unrealistically small! value: ',tp_ig_sw
                  call write_log(logstr, 0)           
-              elseif (tp_ig > 250.0) then
-	             write(logstr,*)'DEBUG SFINCS_SnapWave - incoming tp for IG wave at wavemaker might be unrealistically large! value: ',tp_ig
+              elseif (tp_ig_sw > 250.0) then
+	             write(logstr,*)'DEBUG SFINCS_SnapWave - incoming tp for IG wave at wavemaker might be unrealistically large! value: ',tp_ig_sw
                  call write_log(logstr, 0)   
               endif	          
               !
           endif
       else
           !
-          tp_ig = 10.0
+          tp_ig_sw = 10.0
           !
       endif      
       !
-      tp_inc = max(snapwave_tpmean, wavemaker_tpmin)
+      tp_inc_sw = max(snapwave_tpmean, wavemaker_tpmin)
       !
-      tp_ig = max(tp_ig, wavemaker_tpmin)      
+      tp_ig_sw = max(tp_ig_sw, wavemaker_tpmin)      
       ! 
-      call compute_wavemaker_signal(t, wavemaker_hig, wavemaker_hinc, tp_ig, tp_inc, zwav_ig_sw, zwav_inc_sw)
+      call compute_wavemaker_signal(t, wavemaker_hig, wavemaker_hinc, tp_ig_sw, tp_inc_sw, zwav_ig_sw, zwav_inc_sw)
       !
    endif    
    !
