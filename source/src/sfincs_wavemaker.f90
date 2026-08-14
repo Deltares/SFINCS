@@ -1594,6 +1594,8 @@
       !
       call compute_wavemaker_signal(t, .true., .false., tp_ig_ts, tp_inc_ts, zwav_ig_ts, zwav_inc_ts)
       !
+      !write(*,*)'tp_ig_ts= ',tp_ig_ts
+      
    endif    
    !
    ! For forcing with SnapWave, we only need to determine Tp_ig
@@ -1652,6 +1654,9 @@
       ! 
       call compute_wavemaker_signal(t, wavemaker_hig, wavemaker_hinc, tp_ig_sw, tp_inc_sw, zwav_ig_sw, zwav_inc_sw)
       !
+      !write(*,*)'tp_inc_sw= ',tp_inc_sw
+      !write(*,*)'tp_ig_sw= ',tp_ig_sw
+      
    endif    
    !
    ! UV fluxes at wave makers - No OMP acceleration here?
@@ -1693,6 +1698,7 @@
          zs0nmb = zs(nmb) + setup            ! average water level inside model without waves (this should be zs)
          zsnmb  = zs0nmb + zwav_ig_ts * hs   ! total water level in wave maker (i.e. mean water level plus wave)         
          !
+         !write(*,*)'time-series wavemaker engaged at time: ',t, ' ib= ',ib, ' hs= ',hs, ' setup= ',setup, ' zwav_ig_ts= ',zwav_ig_ts, ' zsnmb= ',zsnmb
       else
          !
          ! Take wave height from SnapWave
@@ -1718,6 +1724,7 @@
          !    write(*,*)'WARNING! Incident wave height at wave maker exceeds maximum allowed value based on local water depth! Value: ', zinc + zig, ' Max allowed: ', wavemaker_gammax * dwvm
          !endif         
          !
+         !write(*,*)'snapwave wavemaker engaged at time: ',t, ' ib= ',ib, 'hm0_ig(nmb)= ',hm0_ig(nmb), 'hm0(nmb)= ',hm0(nmb), ' zwav_ig_sw= ',zwav_ig_sw, ' zwav_inc_sw= ',zwav_inc_sw, ' zsnmb= ',zsnmb         
       endif   
       !
       if (subgrid) then
