@@ -1586,12 +1586,13 @@
       !
       tp_ig_ts = max(tp_ig_ts, wavemaker_tpmin)
       !
-      ! Incident waves are not available here: whifile and wtifile hold the IG wave height and
-      ! period, there is no incident wave input for time series forcing. zwav_inc_ts is therefore
-      ! always 0.0 and is not used; it is kept, like tp_inc_ts above, for when incident wave time
-      ! series forcing is added.
+      ! A time series forced wave maker always forces IG waves: that is its purpose, and whifile and
+      ! wtifile hold the IG wave height and period. wavemaker_hig and wavemaker_hinc are switches for
+      ! the SnapWave forced wave maker only, so they are deliberately not used here. There is no
+      ! incident wave input for time series forcing, so zwav_inc_ts is always 0.0 and is not used;
+      ! it is kept, like tp_inc_ts above, for when incident wave time series forcing is added.
       !
-      call compute_wavemaker_signal(t, wavemaker_hig, .false., tp_ig_ts, tp_inc_ts, zwav_ig_ts, zwav_inc_ts)
+      call compute_wavemaker_signal(t, .true., .false., tp_ig_ts, tp_inc_ts, zwav_ig_ts, zwav_inc_ts)
       !
    endif    
    !

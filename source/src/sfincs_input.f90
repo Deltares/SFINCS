@@ -176,9 +176,9 @@ contains
    !
    ! Wave maker polylines per forcing source. This makes it possible to combine a wave maker forced
    ! by time series with a wave maker forced by SnapWave in one model.
-   ! wavemaker_hig and wavemaker_hinc above apply to both, except that a time series forced wave
-   ! maker never includes incident waves, since whifile and wtifile hold the IG wave height and
-   ! period and there is no incident wave input. 
+   ! wavemaker_hig and wavemaker_hinc above are switches for the SnapWave forced wave maker only.
+   ! A time series forced wave maker always forces IG waves and never incident waves, since whifile
+   ! and wtifile hold the IG wave height and period and there is no incident wave input.
    ! NOTE - the 2 wavemaker types should NOT directly neighbour eachother!
    !
    call read_char_input(500, 'wavemaker_timeseries_wvmfile', wavemaker_wvmfile_src(wm_ts), 'none') ! polyline file of time series forced wavemaker
@@ -693,7 +693,7 @@ contains
                              'wavemaker_whifile and wavemaker_wtifile !', 1)
          endif
          !
-         write(logstr,'(a,a,a,i1)')'Info    : wave maker ', trim(wavemaker_wvmfile_src(wm_ts)), &
+         write(logstr,'(a,a,a)')'Info    : wave maker ', trim(wavemaker_wvmfile_src(wm_ts)), &
             ' forced by time series (IG waves)'
          call write_log(logstr, 0)
          !
