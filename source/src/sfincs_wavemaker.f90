@@ -143,7 +143,17 @@
                      !
                   elseif (indwm(ip) /= isrc) then
                      !
+                     ! This cell is covered by both wavemaker polyline files. Give it to the SnapWave
+                     ! forced wave maker, independent of the order in which the files are read.
+                     !
                      nrwovl = nrwovl + 1
+                     !
+                     if (isrc == wm_sw) then
+                        !
+                        indwm(ip) = wm_sw
+                        phi(ip)   = phip
+                        !
+                     endif
                      !
                   endif   
                endif             
@@ -163,8 +173,9 @@
    !
    if (nrwovl > 0) then
       !
-      write(logstr,*)'WARNING! Number of cells claimed by both wavemaker polyline files : ', nrwovl, &
-                     ' These cells keep the forcing source of the first polyline file.'
+      write(logstr,'(a,i0,a)')' WARNING! ', nrwovl, ' cells are covered by both wavemaker polyline files !'
+      call write_log(logstr, 1)
+      write(logstr,'(a)')' WARNING! These cells are forced by SnapWave. Note that the 2 wavemaker types should NOT overlap or directly neighbour eachother!'
       call write_log(logstr, 1)
       !
    endif
