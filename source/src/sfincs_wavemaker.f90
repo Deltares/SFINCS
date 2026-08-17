@@ -44,6 +44,8 @@
    !
    character :: cdummy
    !
+   character*256 :: wvmfile ! polyline file of the forcing source being read
+   !
    real*4,    dimension(:),     allocatable :: xpol
    real*4,    dimension(:),     allocatable :: ypol
    real*4,    dimension(:),     allocatable :: phi
@@ -75,20 +77,25 @@
    !
    do isrc = 1, 2
       !
-      if (wavemaker_wvmfile_src(isrc)(1:4) == 'none') cycle
+      ! Select the polyline file of this forcing source
+      !
+      if (isrc == wavemaker_index_timeseries) then
+         wvmfile = wavemaker_timeseries_wvmfile
+         write(logstr,*)'Reading wavemaker polyline file (forced by time series) ...'
+      else
+         wvmfile = wavemaker_wvmfile
+         write(logstr,*)'Reading wavemaker polyline file (forced by SnapWave) ...'
+      endif
+      !
+      if (wvmfile(1:4) == 'none') cycle
+      !
+      call write_log(logstr, 0)
       !
       nrwvm = 0
       !
-      if (isrc == wavemaker_index_timeseries) then
-         write(logstr,*)'Reading wavemaker polyline file (forced by time series) ...'
-      else
-         write(logstr,*)'Reading wavemaker polyline file (forced by SnapWave) ...'
-      endif
-      call write_log(logstr, 0)
+      ok = check_file_exists(wvmfile, 'Wave maker wvm file', .true.)
       !
-      ok = check_file_exists(wavemaker_wvmfile_src(isrc), 'Wave maker wvm file', .true.)
-      !
-      open(500, file=trim(wavemaker_wvmfile_src(isrc)))
+      open(500, file=trim(wvmfile))
       do while(.true.)
          read(500,*,iostat = stat)cdummy
          if (stat<0) exit      

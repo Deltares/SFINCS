@@ -458,7 +458,8 @@ module sfincs_data
       integer, parameter :: wavemaker_index_timeseries = 1 ! forced by time series (wfp/whi/wti/wst files)
       integer, parameter :: wavemaker_index_snapwave   = 2 ! forced by SnapWave
       !
-      character*256, dimension(2) :: wavemaker_wvmfile_src ! polyline file per forcing source
+      character*256 :: wavemaker_wvmfile            ! polyline file of the SnapWave forced wave maker
+      character*256 :: wavemaker_timeseries_wvmfile ! polyline file of the time series forced wave maker
       !
       integer*1, dimension(:), allocatable :: wavemaker_index_type ! forcing source of each wave maker u/v point
       !
