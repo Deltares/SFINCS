@@ -94,7 +94,7 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.4.0 Galibier+branch:wavemaker-two-forcing-sources"
+   build_revision = "$Rev: v2.4.1 Galibier+"
    build_date     = "$Date: 2026-08-17"
    !
    call write_log('', 1)

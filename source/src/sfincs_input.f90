@@ -126,10 +126,9 @@ contains
    ! NOTE - the 2 wavemaker types should NOT directly neighbour eachother!
    !
    call read_char_input(500, 'wavemaker_wvmfile',            wavemaker_wvmfile,            'none') ! wavemaker polyline file (forced by SnapWave)
+   if (wavemaker_wvmfile(1:4) == 'none') call read_char_input(500, 'wvmfile', wavemaker_wvmfile, 'none') ! old keyword          
    !
    call read_char_input(500, 'wavemaker_timeseries_wvmfile', wavemaker_timeseries_wvmfile, 'none') ! wavemaker polyline file (forced by IG timeseries)
-   !
-   if (wavemaker_wvmfile(1:4) == 'none') call read_char_input(500, 'wvmfile', wavemaker_wvmfile, 'none') ! old keyword       
    !   
    call read_char_input(500, 'wavemaker_wfpfile',        wavemaker_wfpfile,        'none')     ! wavemaker forcing points file
    if (wavemaker_wfpfile(1:4) == 'none') call read_char_input(500, 'wfpfile',    wavemaker_wfpfile,        'none')   
