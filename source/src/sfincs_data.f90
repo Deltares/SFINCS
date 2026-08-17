@@ -438,7 +438,6 @@ module sfincs_data
       !
       !!! Wave makers
       !
-      character*256 :: wavemaker_wvmfile ! polylines
       character*256 :: wavemaker_wfpfile ! forcing points
       character*256 :: wavemaker_whifile ! wave heights
       character*256 :: wavemaker_wtifile ! wave periods
@@ -453,7 +452,7 @@ module sfincs_data
       logical       :: wavemaker_timeseries
       !
       ! Wave maker forcing sources. A model may have one wave maker polyline forced by time series
-      ! and one forced by SnapWave, each with their own IG/incident wave settings.
+      ! (wavemaker_timeseries_wvmfile) and one forced by SnapWave (wavemaker_wvmfile).
       !
       integer, parameter :: wm_ts = 1 ! forced by time series (wfp/whi/wti/wst files)
       integer, parameter :: wm_sw = 2 ! forced by SnapWave

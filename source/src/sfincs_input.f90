@@ -118,8 +118,8 @@ contains
    !
    ! First read some deprecated keywords for backward compatibility (to be removed later)
    !
-   call read_char_input(500, 'wavemaker_wvmfile',        wavemaker_wvmfile,        'none')     ! wavemaker polyline file
-   if (wavemaker_wvmfile(1:4) == 'none') call read_char_input(500, 'wvmfile',    wavemaker_wvmfile,        'none') ! old keyword       
+   call read_char_input(500, 'wavemaker_wvmfile',        wavemaker_wvmfile_src(wm_sw), 'none')     ! wavemaker polyline file (forced by SnapWave)
+   if (wavemaker_wvmfile_src(wm_sw)(1:4) == 'none') call read_char_input(500, 'wvmfile', wavemaker_wvmfile_src(wm_sw), 'none') ! old keyword       
    !   
    call read_char_input(500, 'wavemaker_wfpfile',        wavemaker_wfpfile,        'none')     ! wavemaker forcing points file
    if (wavemaker_wfpfile(1:4) == 'none') call read_char_input(500, 'wfpfile',    wavemaker_wfpfile,        'none')   
@@ -174,15 +174,15 @@ contains
    call read_logical_input(500, 'wavemaker_hig',         wavemaker_hig,            .true.)     ! wavemaker include IG waves (SnapWave forced)
    call read_logical_input(500, 'wavemaker_hinc',        wavemaker_hinc,           .false.)    ! wavemaker include incident waves (SnapWave forced)
    !
-   ! Wave maker polylines per forcing source. This makes it possible to combine a wave maker forced
-   ! by time series with a wave maker forced by SnapWave in one model.
-   ! wavemaker_hig and wavemaker_hinc above are switches for the SnapWave forced wave maker only.
-   ! A time series forced wave maker always forces IG waves and never incident waves, since whifile
-   ! and wtifile hold the IG wave height and period and there is no incident wave input.
+   ! Wave maker polyline files. wavemaker_wvmfile above is the standard wave maker, forced by
+   ! SnapWave, to which wavemaker_hig and wavemaker_hinc apply.
+   ! A second wave maker forced by IG wave time series can be added with the keyword below. It
+   ! always forces IG waves and never incident waves, since whifile and wtifile hold the IG wave
+   ! height and period and there is no incident wave input. It uses the wfp/whi/wti/wst files.
+   ! Both can be used in the same model.
    ! NOTE - the 2 wavemaker types should NOT directly neighbour eachother!
    !
    call read_char_input(500, 'wavemaker_timeseries_wvmfile', wavemaker_wvmfile_src(wm_ts), 'none') ! polyline file of time series forced wavemaker
-   call read_char_input(500, 'wavemaker_snapwave_wvmfile',   wavemaker_wvmfile_src(wm_sw), 'none') ! polyline file of SnapWave forced wavemaker
    !
    ! Numerical parameters
    call read_char_input(500,'advection_scheme',advstr,'upw1')   
@@ -636,31 +636,18 @@ contains
    wavemaker = .false.
    wavemaker_spectrum = .true.
    !
-   ! Assign the wave maker polylines to their forcing source.
-   ! The legacy keyword wavemaker_wvmfile (or wvmfile) does not state its forcing source, so it is
-   ! forced by time series if forcing point are given, and by SnapWave otherwise.
+   ! Backward compatibility: wavemaker_wvmfile used to mean a time series forced wave maker when wave
+   ! maker forcing points were given. Move it to the time series source, so that such a model keeps
+   ! running as before.
    !
-   if (wavemaker_wvmfile(1:4) /= 'none') then
+   if (wavemaker_wvmfile_src(wm_sw)(1:4) /= 'none' .and. wavemaker_wfpfile(1:4) /= 'none' .and. &
+       wavemaker_wvmfile_src(wm_ts)(1:4) == 'none') then
       !
-      if (wavemaker_wfpfile(1:4) /= 'none') then
-         !
-         if (wavemaker_wvmfile_src(wm_ts)(1:4) /= 'none') then
-            call stop_sfincs('both wavemaker_wvmfile and wavemaker_timeseries_wvmfile are given, ' // &
-                             'while wave maker forcing points are provided ! Please use only one of these keywords.', 1)
-         endif
-         !
-         wavemaker_wvmfile_src(wm_ts) = wavemaker_wvmfile
-         !
-      else
-         !
-         if (wavemaker_wvmfile_src(wm_sw)(1:4) /= 'none') then
-            call stop_sfincs('both wavemaker_wvmfile and wavemaker_snapwave_wvmfile are given, ' // &
-                             'while no wave maker forcing points are provided ! Please use only one of these keywords.', 1)
-         endif
-         !
-         wavemaker_wvmfile_src(wm_sw) = wavemaker_wvmfile
-         !
-      endif
+      call write_log('Warning : wavemaker_wvmfile combined with wave maker forcing points is deprecated ! ' // &
+                     'Please use wavemaker_timeseries_wvmfile instead. This wave maker is forced by time series.', 1)
+      !
+      wavemaker_wvmfile_src(wm_ts) = wavemaker_wvmfile_src(wm_sw)
+      wavemaker_wvmfile_src(wm_sw) = 'none'
       !
    endif
    !
