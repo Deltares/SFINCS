@@ -653,12 +653,10 @@ contains
    endif       
    !
    ! Determine true/false flags for both types of active wave makers
-   wavemaker_src_active(wm_ts) = wavemaker_wvmfile_src(wm_ts)(1:4) /= 'none'
-   wavemaker_src_active(wm_sw) = wavemaker_wvmfile_src(wm_sw)(1:4) /= 'none'
+   wavemaker_timeseries = wavemaker_wvmfile_src(wm_ts)(1:4) /= 'none'
+   wavemaker_snapwave   = wavemaker_wvmfile_src(wm_sw)(1:4) /= 'none'
    !
-   wavemaker_timeseries = wavemaker_src_active(wm_ts)
-   !
-   if (wavemaker_src_active(wm_ts) .or. wavemaker_src_active(wm_sw)) then
+   if (wavemaker_timeseries .or. wavemaker_snapwave) then
       !
       wavemaker = .true.
       iwavemaker = 1
@@ -675,7 +673,7 @@ contains
          !
       endif   
       !
-      if (wavemaker_src_active(wm_ts)) then
+      if (wavemaker_timeseries) then
          !
          if (wavemaker_wfpfile(1:4) == 'none' .or. wavemaker_whifile(1:4) == 'none' .or. wavemaker_wtifile(1:4) == 'none') then
             call stop_sfincs('Error! A time series forced wave maker requires wavemaker_wfpfile, ' // &
@@ -688,7 +686,7 @@ contains
          !
       endif
       !
-      if (wavemaker_src_active(wm_sw)) then
+      if (wavemaker_snapwave) then
          !
          if (.not. snapwave) then
             call stop_sfincs('Error! A SnapWave forced wave maker requires SnapWave to be turned on !', 1)

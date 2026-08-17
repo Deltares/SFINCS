@@ -75,7 +75,7 @@
    !
    do isrc = 1, 2
       !
-      if (.not. wavemaker_src_active(isrc)) cycle
+      if (wavemaker_wvmfile_src(isrc)(1:4) == 'none') cycle
       !
       nrwvm = 0
       !
@@ -1240,7 +1240,7 @@
       !
    enddo
    !
-   if (wavemaker_src_active(wm_ts) .and. wavemaker_src_active(wm_sw)) then
+   if (wavemaker_timeseries .and. wavemaker_snapwave) then
       !
       write(logstr,*)'Number of wavemaker u/v points forced by time series : ', nrwsrc(wm_ts)
       call write_log(logstr, 0)
@@ -1539,7 +1539,7 @@
    !
    ! For time series forcing, we now update values at the forcing points and determine Tp_ig
    !
-   if (wavemaker_src_active(wm_ts)) then
+   if (wavemaker_timeseries) then
       !
       ! Only IG wave forcing supported at the moment !
       !
@@ -1611,7 +1611,7 @@
    !
    ! For forcing with SnapWave, we only need to determine Tp_ig
    !
-   if (wavemaker_src_active(wm_sw)) then
+   if (wavemaker_snapwave) then
       !
       ! We may want to use Herbers for computation of IG waves in SnapWave, but we want to have control over peak IG period at wave makers.
       !
@@ -1674,11 +1674,11 @@
    !
    ! Push time-interpolated forcing values to GPU before parallel region
    !
-   if (wavemaker_src_active(wm_ts)) then
+   if (wavemaker_timeseries) then
       !$acc update device(wavemaker_forcing_hm0_ig_t, wavemaker_forcing_setup_t)
    endif
    !
-   if (wavemaker_src_active(wm_sw)) then
+   if (wavemaker_snapwave) then
       !$acc update device(hm0, hm0_ig)
    endif
    !

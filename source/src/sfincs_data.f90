@@ -449,7 +449,8 @@ module sfincs_data
       logical       :: wavemaker_hinc
       logical       :: wavemaker_spectrum
       logical       :: wavemaker_random
-      logical       :: wavemaker_timeseries
+      logical       :: wavemaker_timeseries ! a time series forced wave maker is present
+      logical       :: wavemaker_snapwave   ! a SnapWave forced wave maker is present
       !
       ! Wave maker forcing sources. A model may have one wave maker polyline forced by time series
       ! (wavemaker_timeseries_wvmfile) and one forced by SnapWave (wavemaker_wvmfile).
@@ -458,7 +459,6 @@ module sfincs_data
       integer, parameter :: wm_sw = 2 ! forced by SnapWave
       !
       character*256, dimension(2) :: wavemaker_wvmfile_src ! polyline file per forcing source
-      logical,       dimension(2) :: wavemaker_src_active  ! whether this forcing source is used
       !
       integer*1, dimension(:), allocatable :: wavemaker_index_src ! forcing source of each wave maker u/v point
       !
