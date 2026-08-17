@@ -125,11 +125,11 @@ contains
    ! Both can be used in the same model.
    ! NOTE - the 2 wavemaker types should NOT directly neighbour eachother!
    !
-   call read_char_input(500, 'wavemaker_wvmfile',        wavemaker_wvmfile_src(wm_sw), 'none')     ! wavemaker polyline file (forced by SnapWave)
+   call read_char_input(500, 'wavemaker_wvmfile',        wavemaker_wvmfile_src(wavemaker_index_snapwave), 'none')     ! wavemaker polyline file (forced by SnapWave)
    !
-   call read_char_input(500, 'wavemaker_timeseries_wvmfile', wavemaker_wvmfile_src(wm_ts), 'none') ! wavemaker polyline file (forced by IG timeseries)
+   call read_char_input(500, 'wavemaker_timeseries_wvmfile', wavemaker_wvmfile_src(wavemaker_index_timeseries), 'none') ! wavemaker polyline file (forced by IG timeseries)
    !
-   if (wavemaker_wvmfile_src(wm_sw)(1:4) == 'none') call read_char_input(500, 'wvmfile', wavemaker_wvmfile_src(wm_sw), 'none') ! old keyword       
+   if (wavemaker_wvmfile_src(wavemaker_index_snapwave)(1:4) == 'none') call read_char_input(500, 'wvmfile', wavemaker_wvmfile_src(wavemaker_index_snapwave), 'none') ! old keyword       
    !   
    call read_char_input(500, 'wavemaker_wfpfile',        wavemaker_wfpfile,        'none')     ! wavemaker forcing points file
    if (wavemaker_wfpfile(1:4) == 'none') call read_char_input(500, 'wfpfile',    wavemaker_wfpfile,        'none')   
@@ -640,21 +640,21 @@ contains
    ! Backward compatibility: wavemaker_wvmfile used to mean a time series forced wave maker when wfpfile input wave given. 
    ! Move it to the time series source, so that such a model keeps running as before - including a warning.
    !
-   if (wavemaker_wvmfile_src(wm_sw)(1:4) /= 'none' .and. wavemaker_wfpfile(1:4) /= 'none' .and. &
-       wavemaker_wvmfile_src(wm_ts)(1:4) == 'none') then
+   if (wavemaker_wvmfile_src(wavemaker_index_snapwave)(1:4) /= 'none' .and. wavemaker_wfpfile(1:4) /= 'none' .and. &
+       wavemaker_wvmfile_src(wavemaker_index_timeseries)(1:4) == 'none') then
       !
       call write_log('Warning : wavemaker_wvmfile combined with wavemaker_wfpfile input description is deprecated ! ' // &
                      'Please use wavemaker_timeseries_wvmfile instead. The simulation will continue. ' // & 
                      'This wave maker is forced by time series.', 1)
       !
-      wavemaker_wvmfile_src(wm_ts) = wavemaker_wvmfile_src(wm_sw)
-      wavemaker_wvmfile_src(wm_sw) = 'none'
+      wavemaker_wvmfile_src(wavemaker_index_timeseries) = wavemaker_wvmfile_src(wavemaker_index_snapwave)
+      wavemaker_wvmfile_src(wavemaker_index_snapwave) = 'none'
       !
    endif       
    !
    ! Determine true/false flags for both types of active wave makers
-   wavemaker_timeseries = wavemaker_wvmfile_src(wm_ts)(1:4) /= 'none'
-   wavemaker_snapwave   = wavemaker_wvmfile_src(wm_sw)(1:4) /= 'none'
+   wavemaker_timeseries = wavemaker_wvmfile_src(wavemaker_index_timeseries)(1:4) /= 'none'
+   wavemaker_snapwave   = wavemaker_wvmfile_src(wavemaker_index_snapwave)(1:4) /= 'none'
    !
    if (wavemaker_timeseries .or. wavemaker_snapwave) then
       !
@@ -680,7 +680,7 @@ contains
                              'wavemaker_whifile and wavemaker_wtifile !', 1)
          endif
          !
-         write(logstr,'(a,a,a)')'Info    : wave maker ', trim(wavemaker_wvmfile_src(wm_ts)), &
+         write(logstr,'(a,a,a)')'Info    : wave maker ', trim(wavemaker_wvmfile_src(wavemaker_index_timeseries)), &
             ' forced by time series (IG waves)'
          call write_log(logstr, 0)
          !
@@ -692,7 +692,7 @@ contains
             call stop_sfincs('Error! A SnapWave forced wave maker requires SnapWave to be turned on !', 1)
          endif
          !
-         write(logstr,'(a,a,a,i1,a,i1)')'Info    : wave maker ', trim(wavemaker_wvmfile_src(wm_sw)), &
+         write(logstr,'(a,a,a,i1,a,i1)')'Info    : wave maker ', trim(wavemaker_wvmfile_src(wavemaker_index_snapwave)), &
             ' forced by SnapWave, hig = ', merge(1, 0, wavemaker_hig), &
             ', hinc = ', merge(1, 0, wavemaker_hinc)
          call write_log(logstr, 0)

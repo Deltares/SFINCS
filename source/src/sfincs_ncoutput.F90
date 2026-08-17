@@ -1750,8 +1750,8 @@ contains
         NF90(nf90_put_att(ncid, varid, 'fcfile',fcfile))
         NF90(nf90_put_att(ncid, varid, 'kdfile',kdfile))
         NF90(nf90_put_att(ncid, varid, 'z0lfile',z0lfile))
-        NF90(nf90_put_att(ncid, varid, 'wavemaker_wvmfile',wavemaker_wvmfile_src(wm_sw)))
-        NF90(nf90_put_att(ncid, varid, 'wavemaker_timeseries_wvmfile',wavemaker_wvmfile_src(wm_ts)))
+        NF90(nf90_put_att(ncid, varid, 'wavemaker_wvmfile',wavemaker_wvmfile_src(wavemaker_index_snapwave)))
+        NF90(nf90_put_att(ncid, varid, 'wavemaker_timeseries_wvmfile',wavemaker_wvmfile_src(wavemaker_index_timeseries)))
         !
         ! Infiltration configuration
         !

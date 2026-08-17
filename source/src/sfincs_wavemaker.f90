@@ -79,7 +79,7 @@
       !
       nrwvm = 0
       !
-      if (isrc == wm_ts) then
+      if (isrc == wavemaker_index_timeseries) then
          write(logstr,*)'Reading wavemaker polyline file (forced by time series) ...'
       else
          write(logstr,*)'Reading wavemaker polyline file (forced by SnapWave) ...'
@@ -148,9 +148,9 @@
                      !
                      nrwovl = nrwovl + 1
                      !
-                     if (isrc == wm_sw) then
+                     if (isrc == wavemaker_index_snapwave) then
                         !
-                        indwm(ip) = wm_sw
+                        indwm(ip) = wavemaker_index_snapwave
                         phi(ip)   = phip
                         !
                      endif
@@ -1226,7 +1226,7 @@
    ! wavemaker_index_nmb points to the wave maker cell behind the u/v point, which carries the
    ! forcing source of the polyline it was found on.
    !
-   allocate(wavemaker_index_src(wavemaker_nr_uv_points))
+   allocate(wavemaker_index_type(wavemaker_nr_uv_points))
    !
    nrwsrc = 0
    !
@@ -1234,7 +1234,7 @@
       !
       isrc = indwm(wavemaker_index_nmb(iwm))
       !
-      wavemaker_index_src(iwm) = isrc
+      wavemaker_index_type(iwm) = isrc
       !
       nrwsrc(isrc) = nrwsrc(isrc) + 1
       !
@@ -1242,9 +1242,9 @@
    !
    if (wavemaker_timeseries .and. wavemaker_snapwave) then
       !
-      write(logstr,*)'Number of wavemaker u/v points forced by time series : ', nrwsrc(wm_ts)
+      write(logstr,*)'Number of wavemaker u/v points forced by time series : ', nrwsrc(wavemaker_index_timeseries)
       call write_log(logstr, 0)
-      write(logstr,*)'Number of wavemaker u/v points forced by SnapWave    : ', nrwsrc(wm_sw)
+      write(logstr,*)'Number of wavemaker u/v points forced by SnapWave    : ', nrwsrc(wavemaker_index_snapwave)
       call write_log(logstr, 0)
       !
    endif
@@ -1372,7 +1372,7 @@
       !
       do iwm = 1, wavemaker_nr_uv_points
          !
-         if (wavemaker_index_src(iwm) /= wm_ts) cycle ! this point is not forced by time series
+         if (wavemaker_index_type(iwm) /= wavemaker_index_timeseries) cycle ! this point is not forced by time series
          !
          nmb    = wavemaker_index_nmb(iwm)
          !
@@ -1682,7 +1682,7 @@
       !$acc update device(hm0, hm0_ig)
    endif
    !
-   !$acc parallel present( wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, wavemaker_index_src, &
+   !$acc parallel present( wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, wavemaker_index_type, &
    !$acc                  zs, q, hm0, hm0_ig, zb, zbuv, subgrid_z_zmax, &
    !$acc                  wavemaker_forcing_hm0_ig_t, wavemaker_forcing_setup_t, wavemaker_index_wmfp1, wavemaker_index_wmfp2, wavemaker_fac_wmfp, &
    !$acc                  wavemaker_uvmean, wavemaker_idir, wavemaker_angfac, wavemaker_uvtrend, & 
@@ -1699,7 +1699,7 @@
       ! Now determine total water levels (zs0nmb and zsnmb) on boundary (i.e. wave maker) side,
       ! which is based on mean water level plus wave height
       !
-      if (wavemaker_index_src(ib) == wm_ts) then
+      if (wavemaker_index_type(ib) == wavemaker_index_timeseries) then
          !
          ! Take wave height from boundary conditions file (weighted average of two nearby forcing points)
          !
