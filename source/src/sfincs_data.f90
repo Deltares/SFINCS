@@ -438,7 +438,6 @@ module sfincs_data
       !
       !!! Wave makers
       !
-      character*256 :: wavemaker_wvmfile ! polylines
       character*256 :: wavemaker_wfpfile ! forcing points
       character*256 :: wavemaker_whifile ! wave heights
       character*256 :: wavemaker_wtifile ! wave periods
@@ -450,7 +449,19 @@ module sfincs_data
       logical       :: wavemaker_hinc
       logical       :: wavemaker_spectrum
       logical       :: wavemaker_random
-      logical       :: wavemaker_timeseries
+      logical       :: wavemaker_timeseries ! a time series forced wave maker is present
+      logical       :: wavemaker_snapwave   ! a SnapWave forced wave maker is present
+      !
+      ! Wave maker forcing sources. A model may have one wave maker polyline forced by time series
+      ! (wavemaker_timeseries_wvmfile) and one forced by SnapWave (wavemaker_wvmfile).
+      !
+      integer, parameter :: wavemaker_index_timeseries = 1 ! forced by time series (wfp/whi/wti/wst files)
+      integer, parameter :: wavemaker_index_snapwave   = 2 ! forced by SnapWave
+      !
+      character*256 :: wavemaker_wvmfile            ! polyline file of the SnapWave forced wave maker
+      character*256 :: wavemaker_timeseries_wvmfile ! polyline file of the time series forced wave maker
+      !
+      integer*1, dimension(:), allocatable :: wavemaker_index_type ! forcing source of each wave maker u/v point
       !
       integer*4                            :: wavemaker_nr_uv_points
       real*4                               :: wavemaker_filter_time
@@ -1064,6 +1075,8 @@ module sfincs_data
     if(allocated(wavemaker_cost_ig)) deallocate(wavemaker_cost_ig)
     if(allocated(wavemaker_phi_ig)) deallocate(wavemaker_phi_ig)
     if(allocated(wavemaker_dphi_ig)) deallocate(wavemaker_dphi_ig)
+    !
+    if(allocated(wavemaker_index_type)) deallocate(wavemaker_index_type)
     !
     if(allocated(spw_times)) deallocate(spw_times)
     if(allocated(spw_xe)) deallocate(spw_xe)

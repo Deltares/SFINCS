@@ -23,7 +23,7 @@ contains
    !$acc               uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
    !$acc               nmindsrc, qtsrc, drainage_type, drainage_params, &
    !$acc               z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, &
-   !$acc               wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, &
+   !$acc               wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, wavemaker_index_type, &
    !$acc               wavemaker_idir, wavemaker_angfac, wavemaker_uvtrend, &
    !$acc               wavemaker_index_wmfp1, wavemaker_index_wmfp2, wavemaker_fac_wmfp, &
    !$acc               wavemaker_forcing_hm0_ig_t, wavemaker_forcing_tp_ig_t, wavemaker_forcing_setup_t, &
@@ -57,7 +57,7 @@ contains
    !$acc               uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, &
    !$acc               nmindsrc, qtsrc, drainage_type, drainage_params, &
    !$acc               z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, &
-   !$acc               wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, &
+   !$acc               wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, wavemaker_index_type, &
    !$acc               wavemaker_idir, wavemaker_angfac, wavemaker_uvtrend, &
    !$acc               wavemaker_index_wmfp1, wavemaker_index_wmfp2, wavemaker_fac_wmfp, &
    !$acc               wavemaker_forcing_hm0_ig_t, wavemaker_forcing_tp_ig_t, wavemaker_forcing_setup_t, &

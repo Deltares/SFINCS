@@ -1751,6 +1751,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'kdfile',kdfile))
         NF90(nf90_put_att(ncid, varid, 'z0lfile',z0lfile))
         NF90(nf90_put_att(ncid, varid, 'wavemaker_wvmfile',wavemaker_wvmfile))
+        NF90(nf90_put_att(ncid, varid, 'wavemaker_timeseries_wvmfile',wavemaker_timeseries_wvmfile))
         !
         ! Infiltration configuration
         !
