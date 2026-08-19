@@ -315,9 +315,8 @@ contains
          !
          nm = nmindsrc(isrc)
          !
-         if ((z_volume(nm) >= 0) .or. ((qtsrc(isrc)<0.0) .and. (z_volume(nm) >= 0))) then
-            z_volume(nm) = z_volume(nm) + qtsrc(isrc) * dt
-         endif
+         ! Apply the source/drain volume change and floor at zero
+         z_volume(nm) = max(z_volume(nm) + qtsrc(isrc) * dt, 0.0)
          !
       enddo
       !$acc end serial

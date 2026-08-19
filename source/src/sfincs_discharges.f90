@@ -619,13 +619,7 @@ contains
                   !                  
             end select
             !
-            ! Add some relaxation
-            ! structure_relax in seconds => gives ratio between new and old discharge (default 10s)
-            !   
-            qq = 1.0 / (structure_relax / dt) * qq + (1.0 - (1.0 / (structure_relax / dt))) * -qtsrc(jin)
-            !   
-            ! Limit discharge based on available volume in cell (regular or subgrid)
-            !    
+            ! Limit discharge based on available volume in cell (regular or subgrid).
             if (subgrid) then
                !
                if (qq > 0.0) then
@@ -643,8 +637,11 @@ contains
                endif
                !
             endif
-            !      
-            qtsrc(jin)  = -qq 
+            !
+            ! Add some relaxation (applied LAST, so the applied discharge is a smooth low-pass).
+            qq = 1.0 / (structure_relax / dt) * qq + (1.0 - (1.0 / (structure_relax / dt))) * -qtsrc(jin)
+            !
+            qtsrc(jin)  = -qq
             qtsrc(jout) = qq
             !
          endif
