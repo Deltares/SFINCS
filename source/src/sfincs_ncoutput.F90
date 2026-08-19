@@ -649,7 +649,7 @@ contains
         's', 'Average model time step (s)')
    !
    call ncdef_float_var(map_file%ncid, 'status', (/map_file%runtime_dimid/), map_file%status_varid, &
-        '-', 'status of SFINCS simulation - 0 is no error')
+        '-', 'status of SFINCS simulation - 0 = no error, 1 = error (simulation stopped, e.g. instability), 2 = completed with warning (e.g. NaN or out-of-range boundary conditions)')
    !
    ! -------------------------------------------------------
    ! Finish definitions
@@ -1052,7 +1052,7 @@ contains
         's', 'Average model time step (s)')
    !
    call ncdef_float_var(his_file%ncid, 'status', (/his_file%runtime_dimid/), his_file%status_varid, &
-        '-', 'status of SFINCS simulation - 0 is no error')
+        '-', 'status of SFINCS simulation - 0 = no error, 1 = error (simulation stopped, e.g. instability), 2 = completed with warning (e.g. NaN or out-of-range boundary conditions)')
    !    
    ! Finish definitions
    NF90(nf90_enddef(his_file%ncid))
@@ -1526,13 +1526,39 @@ contains
    !
    end subroutine ncoutput_update_max
 
-   subroutine ncoutput_map_finalize() 
+   integer function run_status()
+   !
+   ! Combined status code written to the NetCDF 'status' variable:
+   !   0 = no error
+   !   1 = error, simulation stopped (e.g. instability)
+   !   2 = completed with a warning (e.g. NaN / out-of-range boundary conditions)
+   ! A fatal error takes precedence over a warning.
+   !
+   use sfincs_data
+   !
+   implicit none
+   !
+   if (error > 0) then
+      run_status = error
+   elseif (warning > 0) then
+      run_status = 2
+   else
+      run_status = 0
+   endif
+   !
+   end function run_status
+   !
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !
+   subroutine ncoutput_map_finalize()
    !
    ! Add total runtime, dtavg to file and close
    !
    use sfincs_data
-   !   
-   implicit none   
+   !
+   implicit none
+   !
+   integer :: status_code
    !
    if (store_tsunami_arrival_time) then
       !
@@ -1546,9 +1572,11 @@ contains
        !
    endif   
    !
+   status_code = run_status()
+   !
    NF90(nf90_put_var(map_file%ncid, map_file%total_runtime_varid, tfinish_all - tstart_all))
    NF90(nf90_put_var(map_file%ncid, map_file%average_dt_varid,  dtavg))
-   NF90(nf90_put_var(map_file%ncid, map_file%status_varid,  error))
+   NF90(nf90_put_var(map_file%ncid, map_file%status_varid,  status_code))
    !
    NF90(nf90_close(map_file%ncid))
    !
@@ -1561,9 +1589,11 @@ contains
    ! Add total runtime, dtavg to file and close
    !
    use sfincs_data
-   !   
-   implicit none   
-   !   
+   !
+   implicit none
+   !
+   integer :: status_code
+   !
    ! Mirror the early-return condition from ncoutput_his_init exactly: if
    ! none of these are present, no his file was created. (Note: thindams
    ! alone do NOT trigger his-file creation in init, so they're not in
@@ -1572,9 +1602,11 @@ contains
       return
    endif
    !
-   NF90(nf90_put_var(his_file%ncid, his_file%total_runtime_varid, tfinish_all - tstart_all)) 
-   NF90(nf90_put_var(his_file%ncid, his_file%average_dt_varid,  dtavg)) 
-   NF90(nf90_put_var(his_file%ncid, his_file%status_varid,  error))       
+   status_code = run_status()
+   !
+   NF90(nf90_put_var(his_file%ncid, his_file%total_runtime_varid, tfinish_all - tstart_all))
+   NF90(nf90_put_var(his_file%ncid, his_file%average_dt_varid,  dtavg))
+   NF90(nf90_put_var(his_file%ncid, his_file%status_varid,  status_code))
    !   
    NF90(nf90_close(his_file%ncid))
    !

@@ -89,6 +89,7 @@ module sfincs_lib
    call open_log()   
    !
    error = 0 ! Error code. This is now only set to 1 in case of instabilities. Could also use other error codes, e.g. for missing files.
+   warning = 0 ! Non-fatal warning flag. Written to the NetCDF 'status' variable as 2 (e.g. NaN/out-of-range boundary conditions). Does not affect the exit code.
    !
    ierr = 0 ! Always 0 or 1  ! Always 0 or 1 
    !
