@@ -190,25 +190,19 @@ contains
    endif
    !
    ! Check for 'weird' values (very low, very high, or NaN).
-   ! A NaN fails EVERY ordered comparison, so testing the negation of the
-   ! in-range condition catches low, high AND NaN in a single test:
-   !    .not. (x >= -99.0 .and. x <= 990.0)  is .true. for x < -99, x > 990, or NaN.
-   ! (The old form  x < -99.0 .or. x > 990.0  is both-false for a NaN and misses it.)
-   ! This deliberately avoids ieee_arithmetic: its ieee_is_nan pulls a UCRT frexp
-   ! that clashes with Intel's libmmd at link time (LNK2005) in this toolchain.
    !
    iok = 1
    !
    do ib = 1, nbnd
       do itb = 1, ntbnd
          !
-         if (.not. (zs_bnd(ib, itb) >= -99.0 .and. zs_bnd(ib, itb) <= 990.0)) then
+         if (zs_bnd(ib, itb) < -99.0 .or. zs_bnd(ib, itb) > 990.0) then
             !
             iok = 0
             !
          endif
          !
-      enddo
+      enddo 
    enddo
    !
    if (iok == 0) then
@@ -216,9 +210,7 @@ contains
       write(logstr,'(a)')'Warning! Very low, very high or NaN values found in boundary conditions file ! Please check !'
       call write_log(logstr, 1)
       !
-      ! Flag a non-fatal warning. The run continues, but the NetCDF 'status'
-      ! variable will report 2 (completed with warning) instead of 0.
-      !
+      ! Flag a non-fatal warning.
       warning = 1
       !
    endif
