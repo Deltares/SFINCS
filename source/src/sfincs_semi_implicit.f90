@@ -39,7 +39,7 @@ module sfincs_semi_implicit
    integer, dimension(:), allocatable :: si_row_face_slot   ! slot in si_AA, 0 = Dirichlet
    integer, dimension(:), allocatable :: si_row_face_side   ! 1=left 2=right 3=bottom 4=top
    !
-   ! Position of the diagonal within each CSR row. Replaces si_index_sparse(5,:) and is
+   ! Position of the diagonal within each CSR row. This is
    ! what lets the preconditioner split lower from upper without a fixed stencil.
    !
    integer, dimension(:), allocatable :: si_diag_ptr     ! nrows_si
@@ -66,10 +66,11 @@ contains
    integer :: nm, ip, irow, icol, k
    integer :: nmu_z, nmd_z, num_z, ndm_z
    integer :: inb
-   integer :: idir, nfaces_si, maxrow
+   integer :: idir, nfaces_si, maxrow, ndiag
    !
    integer, dimension(:), allocatable :: row_count
    integer, dimension(:,:), allocatable :: si_nm_index  ! neighbor row indices (4, nrows_si)
+   integer, dimension(:,:), allocatable :: slot_of_dir ! direction -> slot in si_AA, build only
    !
    ! Phase 1 guard: only regular grid without subgrid
    !
@@ -102,10 +103,10 @@ contains
    ! Allocate solver arrays
    !
    allocate(si_nm_of_row(nrows_si))
-   allocate(si_index_sparse(5, nrows_si))
    allocate(si_row_ptr(nrows_si + 1))
    allocate(si_uv_index(4, nrows_si))
    allocate(si_nm_index(4, nrows_si))
+   allocate(slot_of_dir(4, nrows_si))
    allocate(si_rhs(nrows_si))
    allocate(si_x(nrows_si))
    allocate(si_q_star(npuv))
@@ -120,10 +121,10 @@ contains
    allocate(cg_diag(nrows_si))
    !
    si_nm_of_row = 0
-   si_index_sparse = 0
    si_row_ptr = 0
    si_uv_index = 0
    si_nm_index = 0
+   slot_of_dir = 0
    si_rhs = 0.0
    si_x = 0.0
    si_q_star = 0.0
@@ -262,33 +263,32 @@ contains
       if (icol > 0) then
          k = k + 1
          si_col_idx(k) = icol
-         si_index_sparse(1, irow) = k
+         slot_of_dir(1, irow) = k
       endif
       !
       icol = si_nm_index(3, irow)             ! bottom
       if (icol > 0) then
          k = k + 1
          si_col_idx(k) = icol
-         si_index_sparse(3, irow) = k
+         slot_of_dir(3, irow) = k
       endif
       !
       k = k + 1                               ! centre
       si_col_idx(k) = irow
-      si_index_sparse(5, irow) = k
       si_diag_ptr(irow) = k
       !
       icol = si_nm_index(4, irow)             ! top
       if (icol > 0) then
          k = k + 1
          si_col_idx(k) = icol
-         si_index_sparse(4, irow) = k
+         slot_of_dir(4, irow) = k
       endif
       !
       icol = si_nm_index(2, irow)             ! right
       if (icol > 0) then
          k = k + 1
          si_col_idx(k) = icol
-         si_index_sparse(2, irow) = k
+         slot_of_dir(2, irow) = k
       endif
       !
    enddo
@@ -326,7 +326,7 @@ contains
          if (ip > 0) then
             k = k + 1
             si_row_face_ip(k)   = ip
-            si_row_face_slot(k) = si_index_sparse(idir, irow)   ! 0 means Dirichlet neighbour
+            si_row_face_slot(k) = slot_of_dir(idir, irow)   ! 0 means Dirichlet neighbour
             si_row_face_side(k) = idir
          endif
       enddo
@@ -338,15 +338,34 @@ contains
    ! up (a coarse cell next to refinement reaches up to 9). If that stays at 5 on a
    ! quadtree model, the face list is not seeing the refinement transitions.
    !
+   ! Check the CSR invariants the preconditioner relies on. It splits lower from upper by
+   ! comparing the column index against the row index, so every row must contain exactly
+   ! one entry on the diagonal, si_diag_ptr must point at it, and every other entry must
+   ! be strictly off-diagonal. If the quadtree row builder ever emits a duplicate column
+   ! or misses the diagonal, SSOR would silently stop being a valid preconditioner.
+   !
    maxrow = 0
    do irow = 1, nrows_si
       maxrow = max(maxrow, si_row_ptr(irow + 1) - si_row_ptr(irow))
+      ndiag = 0
+      do k = si_row_ptr(irow), si_row_ptr(irow + 1) - 1
+         if (si_col_idx(k) == irow) ndiag = ndiag + 1
+      enddo
+      if (ndiag /= 1) then
+         write(*,*) 'Error: semi-implicit row ', irow, ' has ', ndiag, ' diagonal entries'
+         stop
+      endif
+      if (si_col_idx(si_diag_ptr(irow)) /= irow) then
+         write(*,*) 'Error: semi-implicit si_diag_ptr does not point at the diagonal, row ', irow
+         stop
+      endif
    enddo
    !
    write(*,'(a,i10,a,i10,a,i3,a,i10)') ' Semi-implicit: rows ', nrows_si, &
       '  nonzeros ', nnz_si, '  max row ', maxrow, '  faces ', nfaces_si
    !
    deallocate(si_nm_index)
+   deallocate(slot_of_dir)
    !
    end subroutine initialize_semi_implicit
    !
@@ -489,7 +508,7 @@ contains
       !
       ! Set diagonal
       !
-      si_AA(si_index_sparse(5, irow)) = diag
+      si_AA(si_diag_ptr(irow)) = diag
       !
    enddo
    !$omp end parallel do
@@ -514,7 +533,7 @@ contains
    ! Conjugate Gradient solver with SSOR preconditioning.
    !
    ! For SPD systems. Uses the known 5-point stencil structure
-   ! (si_index_sparse) for efficient SSOR forward/backward sweeps.
+   ! via si_diag_ptr for efficient SSOR forward/backward sweeps.
    !
    ! All scalar accumulators use double precision for robustness
    ! with large cell counts (>1M cells).
@@ -538,7 +557,7 @@ contains
    !
    !$omp parallel do private(i) schedule(static)
    do i = 1, n
-      cg_diag(i) = val(si_index_sparse(5, i))
+      cg_diag(i) = val(si_diag_ptr(i))
    enddo
    !$omp end parallel do
    !
@@ -646,16 +665,17 @@ contains
    !
    ! Symmetric Successive Over-Relaxation (SSOR) preconditioner.
    !
-   ! Uses the known 5-point stencil structure stored in si_index_sparse:
-   !   1 = left, 2 = right, 3 = bottom, 4 = top, 5 = center (diagonal)
+   ! Works on the CSR structure directly. Lower and upper are separated by comparing the
+   ! column index against the row index, so this makes no assumption about how many
+   ! entries a row has or what order they are stored in — which is what a quadtree row
+   ! needs. The diagonal is located via si_diag_ptr rather than a fixed stencil slot.
    !
    ! SSOR = (D/omega + L) * D^{-1} * (D/omega + U)
    !
    ! Forward sweep:  (D/omega + L) * y = r
    ! Backward sweep: (D/omega + U) * z = D/omega * y
    !
-   ! This is inherently sequential, but the stencil structure avoids
-   ! CSR index searches. For the Helmholtz system, SSOR typically
+   ! Both sweeps are inherently sequential. For the Helmholtz system SSOR typically
    ! reduces CG iterations by 3-5x compared to Jacobi.
    !
    implicit none
@@ -664,32 +684,21 @@ contains
    real*4,  intent(in)  :: val(*), r(n), omega
    real*4,  intent(out) :: z(n)
    !
-   integer :: i, idx
-   real*4  :: diag_i, tmp, dom
+   integer :: i, k, icol
+   real*4  :: diag_i, tmp
    !
    ! Forward sweep: (D/omega + L) * z = r
-   ! L = lower triangular part = left (1) and bottom (3) neighbors
-   ! These neighbors have LOWER row indices (irow < i)
+   ! Ascending k, taking entries whose column lies below the diagonal.
    !
    do i = 1, n
       !
-      diag_i = val(si_index_sparse(5, i))
-      dom = diag_i / omega
+      diag_i = val(si_diag_ptr(i))
       tmp = r(i)
       !
-      ! Left neighbor (index 1) — lower triangle
-      !
-      idx = si_index_sparse(1, i)
-      if (idx > 0) then
-         tmp = tmp - val(idx) * z(si_col_idx(idx))
-      endif
-      !
-      ! Bottom neighbor (index 3) — lower triangle
-      !
-      idx = si_index_sparse(3, i)
-      if (idx > 0) then
-         tmp = tmp - val(idx) * z(si_col_idx(idx))
-      endif
+      do k = si_row_ptr(i), si_row_ptr(i + 1) - 1
+         icol = si_col_idx(k)
+         if (icol < i) tmp = tmp - val(k) * z(icol)
+      enddo
       !
       z(i) = omega * tmp / diag_i
       !
@@ -699,33 +708,25 @@ contains
    !
    !$omp parallel do private(i) schedule(static)
    do i = 1, n
-      z(i) = val(si_index_sparse(5, i)) / omega * z(i)
+      z(i) = val(si_diag_ptr(i)) / omega * z(i)
    enddo
    !$omp end parallel do
    !
    ! Backward sweep: (D/omega + U) * z_new = z_old
-   ! U = upper triangular part = right (2) and top (4) neighbors
-   ! These neighbors have HIGHER row indices (irow > i)
+   ! Descending k, taking entries whose column lies above the diagonal.
+   ! Descending rather than ascending on purpose: with the historical emission order
+   ! (left, bottom, centre, top, right) it visits right before top, which is the order
+   ! the previous slot-indexed version used, so the sum rounds identically.
    !
    do i = n, 1, -1
       !
-      diag_i = val(si_index_sparse(5, i))
-      dom = diag_i / omega
+      diag_i = val(si_diag_ptr(i))
       tmp = z(i)
       !
-      ! Right neighbor (index 2) — upper triangle
-      !
-      idx = si_index_sparse(2, i)
-      if (idx > 0) then
-         tmp = tmp - val(idx) * z(si_col_idx(idx))
-      endif
-      !
-      ! Top neighbor (index 4) — upper triangle
-      !
-      idx = si_index_sparse(4, i)
-      if (idx > 0) then
-         tmp = tmp - val(idx) * z(si_col_idx(idx))
-      endif
+      do k = si_row_ptr(i + 1) - 1, si_row_ptr(i), -1
+         icol = si_col_idx(k)
+         if (icol > i) tmp = tmp - val(k) * z(icol)
+      enddo
       !
       z(i) = omega * tmp / diag_i
       !
