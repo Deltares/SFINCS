@@ -821,6 +821,14 @@ contains
          q(cuv_index_uv(icuv))  = (q(cuv_index_uv1(icuv)) + q(cuv_index_uv2(icuv))) / 2
          uv(cuv_index_uv(icuv)) = (uv(cuv_index_uv1(icuv)) + uv(cuv_index_uv2(icuv))) / 2
          !
+         ! The semi-implicit explicit-flux part needs the same treatment: its divergence is
+         ! taken over the combined points, so they have to carry the average too.
+         !
+         if (semi_implicit) then
+            si_q_star(cuv_index_uv(icuv)) = (si_q_star(cuv_index_uv1(icuv)) + &
+                                             si_q_star(cuv_index_uv2(icuv))) / 2
+         endif
+         !
       enddo
       !$acc end parallel
       !$omp end do

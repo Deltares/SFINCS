@@ -116,8 +116,15 @@ contains
    allocate(face_slot(8, nrows_si))
    allocate(si_rhs(nrows_si))
    allocate(si_x(nrows_si))
-   allocate(si_q_star(npuv))
-   allocate(si_coeff(npuv))
+   ! Sized exactly like q and uv (sfincs_domain.f90:2196), NOT npuv.
+   !
+   ! A quadtree creates ncuv combined uv points that live past npuv, and div_qstar below
+   ! reads z_index_uv_md/mu/nd/nu, which point at those combined points next to a
+   ! refinement transition. The +1 is the sentinel slot sfincs_domain.f90:1251 assigns to
+   ! unset indices. Allocating only npuv read past the end -- silently, in Release.
+   !
+   allocate(si_q_star(npuv + ncuv + 1))
+   allocate(si_coeff(npuv + ncuv + 1))
    !
    ! CG work arrays (allocated once, reused every timestep)
    !
