@@ -39,6 +39,11 @@ module sfincs_semi_implicit
    integer, dimension(:), allocatable :: si_row_face_slot   ! slot in si_AA, 0 = Dirichlet
    integer, dimension(:), allocatable :: si_row_face_side   ! 1=left 2=right 3=bottom 4=top
    !
+   ! Position of the diagonal within each CSR row. Replaces si_index_sparse(5,:) and is
+   ! what lets the preconditioner split lower from upper without a fixed stencil.
+   !
+   integer, dimension(:), allocatable :: si_diag_ptr     ! nrows_si
+   !
    ! Timing and diagnostics
    !
    real    :: tloop_si
@@ -61,9 +66,9 @@ contains
    integer :: nm, ip, irow, icol, k
    integer :: nmu_z, nmd_z, num_z, ndm_z
    integer :: inb
-   integer :: idir, nfaces_si
+   integer :: idir, nfaces_si, maxrow
    !
-   integer, dimension(:), allocatable :: col_idx0
+   integer, dimension(:), allocatable :: row_count
    integer, dimension(:,:), allocatable :: si_nm_index  ! neighbor row indices (4, nrows_si)
    !
    ! Phase 1 guard: only regular grid without subgrid
@@ -99,7 +104,6 @@ contains
    allocate(si_nm_of_row(nrows_si))
    allocate(si_index_sparse(5, nrows_si))
    allocate(si_row_ptr(nrows_si + 1))
-   allocate(col_idx0(5 * nrows_si))
    allocate(si_uv_index(4, nrows_si))
    allocate(si_nm_index(4, nrows_si))
    allocate(si_rhs(nrows_si))
@@ -118,7 +122,6 @@ contains
    si_nm_of_row = 0
    si_index_sparse = 0
    si_row_ptr = 0
-   col_idx0 = 0
    si_uv_index = 0
    si_nm_index = 0
    si_rhs = 0.0
@@ -215,69 +218,83 @@ contains
    ! Order: left(1), bottom(3), center(5), top(4), right(2)
    ! Same ordering as sfincs_nonhydrostatic.f90
    !
-   k = 0
+   ! Pass 1: count the entries in each row, then prefix-sum into si_row_ptr.
+   ! Rows are variable length. Nothing below assumes five entries, which is what makes
+   ! room for a quadtree row (up to eight neighbours plus the diagonal) later.
+   !
+   allocate(row_count(nrows_si))
+   !
+   do irow = 1, nrows_si
+      row_count(irow) = 1                     ! the diagonal is always present
+      do idir = 1, 4
+         if (si_nm_index(idir, irow) > 0) row_count(irow) = row_count(irow) + 1
+      enddo
+   enddo
+   !
+   si_row_ptr(1) = 1
+   do irow = 1, nrows_si
+      si_row_ptr(irow + 1) = si_row_ptr(irow) + row_count(irow)
+   enddo
+   !
+   nnz_si = si_row_ptr(nrows_si + 1) - 1
+   !
+   deallocate(row_count)
+   !
+   allocate(si_col_idx(nnz_si))
+   allocate(si_diag_ptr(nrows_si))
+   !
+   si_col_idx = 0
+   si_diag_ptr = 0
+   !
+   ! Pass 2: fill each row.
+   ! Entries are emitted in the historical order left(1), bottom(3), center(5), top(4),
+   ! right(2). Columns are therefore NOT sorted ascending, and they do not need to be:
+   ! the preconditioner splits lower from upper by comparing si_col_idx against the row
+   ! index, which works for any ordering. Keeping the original order keeps the CSR layout
+   ! byte-for-byte what it was, so the matrix-vector product sums in the same sequence and
+   ! the refactor stays bit-identical.
    !
    do irow = 1, nrows_si
       !
-      ! Left neighbor
+      k = si_row_ptr(irow) - 1
       !
-      icol = si_nm_index(1, irow)
+      icol = si_nm_index(1, irow)             ! left
       if (icol > 0) then
          k = k + 1
-         col_idx0(k) = icol
+         si_col_idx(k) = icol
          si_index_sparse(1, irow) = k
-         if (si_row_ptr(irow) == 0) si_row_ptr(irow) = k
       endif
       !
-      ! Bottom neighbor
-      !
-      icol = si_nm_index(3, irow)
+      icol = si_nm_index(3, irow)             ! bottom
       if (icol > 0) then
          k = k + 1
-         col_idx0(k) = icol
+         si_col_idx(k) = icol
          si_index_sparse(3, irow) = k
-         if (si_row_ptr(irow) == 0) si_row_ptr(irow) = k
       endif
       !
-      ! Center (always present)
-      !
-      k = k + 1
-      col_idx0(k) = irow
+      k = k + 1                               ! centre
+      si_col_idx(k) = irow
       si_index_sparse(5, irow) = k
-      if (si_row_ptr(irow) == 0) si_row_ptr(irow) = k
+      si_diag_ptr(irow) = k
       !
-      ! Top neighbor
-      !
-      icol = si_nm_index(4, irow)
+      icol = si_nm_index(4, irow)             ! top
       if (icol > 0) then
          k = k + 1
-         col_idx0(k) = icol
+         si_col_idx(k) = icol
          si_index_sparse(4, irow) = k
-         if (si_row_ptr(irow) == 0) si_row_ptr(irow) = k
       endif
       !
-      ! Right neighbor
-      !
-      icol = si_nm_index(2, irow)
+      icol = si_nm_index(2, irow)             ! right
       if (icol > 0) then
          k = k + 1
-         col_idx0(k) = icol
+         si_col_idx(k) = icol
          si_index_sparse(2, irow) = k
-         if (si_row_ptr(irow) == 0) si_row_ptr(irow) = k
       endif
       !
    enddo
    !
-   nnz_si = k
-   si_row_ptr(nrows_si + 1) = k + 1
-   !
-   allocate(si_col_idx(nnz_si))
-   si_col_idx(1:nnz_si) = col_idx0(1:nnz_si)
-   !
    allocate(si_AA(nnz_si))
    si_AA = 0.0
-   !
-   deallocate(col_idx0)
    !
    ! Build the per-row face list.
    ! Faces are listed in the original direction order (left, right, bottom, top) so the
@@ -315,6 +332,19 @@ contains
       enddo
    enddo
    si_row_face_ptr(nrows_si + 1) = k + 1
+   !
+   ! Report the sparse structure. The maximum row length is the useful number: 5 means a
+   ! plain regular grid, and anything above 5 means quadtree connectivity is being picked
+   ! up (a coarse cell next to refinement reaches up to 9). If that stays at 5 on a
+   ! quadtree model, the face list is not seeing the refinement transitions.
+   !
+   maxrow = 0
+   do irow = 1, nrows_si
+      maxrow = max(maxrow, si_row_ptr(irow + 1) - si_row_ptr(irow))
+   enddo
+   !
+   write(*,'(a,i10,a,i10,a,i3,a,i10)') ' Semi-implicit: rows ', nrows_si, &
+      '  nonzeros ', nnz_si, '  max row ', maxrow, '  faces ', nfaces_si
    !
    deallocate(si_nm_index)
    !
