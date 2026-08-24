@@ -291,3 +291,19 @@ Recent advancements in speed: GPU enabled
 The SFINCS source code has now been GPU enabled to make optimal use of fast Graphics Processing Unit computers.
 For more information get in touch with us!
 
+
+Semi-implicit scheme
+-----
+An optional semi-implicit (Casulli-style theta-method) treatment of the pressure term is
+available via the keyword ``semi_implicit = 1``. Instead of updating water levels explicitly,
+it assembles a Helmholtz system for the free surface each time step and solves it with a
+Conjugate Gradient method preconditioned by SSOR.
+
+The scheme supports both regular and quadtree grids. On a quadtree, a coarse cell adjacent to
+a refinement transition is coupled to each of the two finer cells on that side separately,
+which is what keeps the assembled matrix symmetric and therefore keeps CG valid.
+
+Subgrid is not yet supported in combination with ``semi_implicit``. Subgrid makes the system
+mildly nonlinear, because the storage relation lands on the matrix diagonal and its derivative
+is the wetted area, which depends on the water level being solved for. That requires a
+nonlinear outer iteration which has not been added yet.

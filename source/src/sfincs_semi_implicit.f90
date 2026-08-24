@@ -2,9 +2,17 @@ module sfincs_semi_implicit
    !
    ! Semi-implicit pressure treatment for SFINCS (Casulli-style theta-method)
    !
-   ! Phase 1: Regular grid only (no subgrid, no quadtree)
-   ! Solves Helmholtz equation for free surface elevation:
-   !   eta^{n+1} - theta^2 * g * dt^2 * div(H * grad(eta^{n+1})) / A = RHS
+   ! Supports regular and quadtree grids. Subgrid is not supported yet: it makes the
+   ! system mildly nonlinear, because the storage term V(eta) lands on the diagonal and
+   ! its derivative is the wet area, which depends on the solution.
+   !
+   ! Solves a Helmholtz equation for free surface elevation:
+   !   eta^{n+1} - theta * g * dt^2 * div(H * grad(eta^{n+1})) / A = RHS
+   !
+   ! NOTE the single power of theta. The assembled coefficient carries theta once, from
+   ! si_coeff in sfincs_momentum.f90; the RHS applies no (1-theta) weighting, so continuity
+   ! is fully implicit while momentum is theta-weighted. Earlier comments here claimed
+   ! theta^2, which the code has never done.
    !
    ! Uses Conjugate Gradient solver with SSOR preconditioning.
    ! The system is SPD so CG is the natural choice.
@@ -37,7 +45,8 @@ module sfincs_semi_implicit
    integer, dimension(:), allocatable :: si_row_face_ptr    ! nrows_si+1, CSR-style
    integer, dimension(:), allocatable :: si_row_face_ip     ! UV point index
    integer, dimension(:), allocatable :: si_row_face_slot   ! slot in si_AA, 0 = Dirichlet
-   integer, dimension(:), allocatable :: si_row_face_side   ! 1=left 2=right 3=bottom 4=top
+   integer, dimension(:), allocatable :: si_row_face_isy    ! 0 = x-direction, 1 = y
+   integer, dimension(:), allocatable :: si_row_face_bnd    ! cell to read zs from when Dirichlet
    !
    ! Position of the diagonal within each CSR row. This is
    ! what lets the preconditioner split lower from upper without a fixed stencil.
@@ -56,33 +65,29 @@ contains
    subroutine initialize_semi_implicit()
    !
    ! Build the sparse matrix structure (CSR format) for the pressure Helmholtz system.
-   ! The sparsity pattern is static (5-point stencil on regular grid).
-   ! Only the values change each timestep.
-   !
-   ! Phase 1: regular grid only (subgrid=.false., use_quadtree=.false.)
+   ! The sparsity pattern is static; only the values change each timestep.
+   ! Rows are variable length: 5 entries on a regular grid, up to 9 next to a quadtree
+   ! refinement transition.
    !
    implicit none
    !
    integer :: nm, ip, irow, icol, k
-   integer :: nmu_z, nmd_z, num_z, ndm_z
-   integer :: inb
-   integer :: idir, nfaces_si, maxrow, ndiag
+   integer :: j, nb, nfaces_si, maxrow, ndiag
    !
    integer, dimension(:), allocatable :: row_count
-   integer, dimension(:,:), allocatable :: si_nm_index  ! neighbor row indices (4, nrows_si)
-   integer, dimension(:,:), allocatable :: slot_of_dir ! direction -> slot in si_AA, build only
+   integer, dimension(:,:), allocatable :: face_ip    ! (8, nrows_si) UV point per face slot
+   integer, dimension(:,:), allocatable :: face_nb    ! (8, nrows_si) neighbour row, 0 = Dirichlet
+   integer, dimension(:,:), allocatable :: face_bnd   ! (8, nrows_si) neighbour cell index
+   integer, dimension(:,:), allocatable :: face_isy   ! (8, nrows_si) 0 = x, 1 = y
+   integer, dimension(:,:), allocatable :: face_slot  ! (8, nrows_si) slot in si_AA
    !
-   ! Phase 1 guard: only regular grid without subgrid
+   ! Subgrid needs a nonlinear outer iteration that does not exist yet.
    !
    if (subgrid) then
       write(*,*) 'Error: semi_implicit is not yet supported with subgrid=.true. (Phase 2)'
       stop
    endif
    !
-   if (use_quadtree) then
-      write(*,*) 'Error: semi_implicit is not yet supported with use_quadtree=.true. (Phase 3)'
-      stop
-   endif
    !
    ! Allocate row mapping arrays
    !
@@ -104,9 +109,11 @@ contains
    !
    allocate(si_nm_of_row(nrows_si))
    allocate(si_row_ptr(nrows_si + 1))
-   allocate(si_uv_index(4, nrows_si))
-   allocate(si_nm_index(4, nrows_si))
-   allocate(slot_of_dir(4, nrows_si))
+   allocate(face_ip(8, nrows_si))
+   allocate(face_nb(8, nrows_si))
+   allocate(face_bnd(8, nrows_si))
+   allocate(face_isy(8, nrows_si))
+   allocate(face_slot(8, nrows_si))
    allocate(si_rhs(nrows_si))
    allocate(si_x(nrows_si))
    allocate(si_q_star(npuv))
@@ -122,9 +129,11 @@ contains
    !
    si_nm_of_row = 0
    si_row_ptr = 0
-   si_uv_index = 0
-   si_nm_index = 0
-   slot_of_dir = 0
+   face_ip = 0
+   face_nb = 0
+   face_bnd = 0
+   face_isy = 0
+   face_slot = 0
    si_rhs = 0.0
    si_x = 0.0
    si_q_star = 0.0
@@ -151,84 +160,65 @@ contains
       endif
    enddo
    !
-   ! Find neighboring UV points and neighbor row indices for each row
-   ! Uses the same stencil convention as sfincs_nonhydrostatic.f90:
+   ! Enumerate each row's faces from the per-cell UV index arrays.
    !
-   !              4 (top/nu)
-   !       +------|------+
-   !       |             |
-   !       |       irow  |
-   !    1  -      + 5    -  2
-   !  (md) |       (c)   | (mu)
-   !       |             |
-   !       +------|------+
-   !              3 (bottom/nd)
+   ! A cell has up to EIGHT faces, not four: sfincs_data.f90:302-309 holds md1/md2, mu1/mu2,
+   ! nd1/nd2 and nu1/nu2, and on a quadtree a coarse cell facing refinement uses both slots
+   ! on that side (sfincs_domain.f90:806-860 emits two UV points there, each pairing the
+   ! coarse cell with one fine cell). On a regular grid only the *1 slots are set, so the
+   ! same code produces the old four-face stencil.
    !
-   do ip = 1, npuv
+   ! The slot order below is deliberate: 1-4 come before the diagonal and 5-8 after it, so a
+   ! regular grid reproduces the historical CSR order left, bottom, centre, top, right.
+   !
+   do irow = 1, nrows_si
       !
-      nm  = uv_index_z_nm(ip)
-      nmu_z = uv_index_z_nmu(ip)
+      nm = si_nm_of_row(irow)
       !
-      ! Only process UV points that touch at least one interior cell
+      face_ip(1, irow) = z_index_uv_md1(nm)   ! left
+      face_ip(2, irow) = z_index_uv_md2(nm)   ! left, second fine neighbour
+      face_ip(3, irow) = z_index_uv_nd1(nm)   ! bottom
+      face_ip(4, irow) = z_index_uv_nd2(nm)   ! bottom, second
+      face_ip(5, irow) = z_index_uv_nu1(nm)   ! top
+      face_ip(6, irow) = z_index_uv_nu2(nm)   ! top, second
+      face_ip(7, irow) = z_index_uv_mu1(nm)   ! right
+      face_ip(8, irow) = z_index_uv_mu2(nm)   ! right, second
       !
-      if (kcs(nm) == 1 .or. kcs(nmu_z) == 1) then
+      do j = 1, 8
          !
-         if (uv_flags_dir(ip) == 0) then
-            !
-            ! x-direction UV point
-            !
-            if (kcs(nm) == 1) then
-               irow = si_row_of_nm(nm)
-               inb  = si_row_of_nm(nmu_z)  ! 0 if nmu is boundary
-               si_uv_index(2, irow) = ip   ! right UV
-               si_nm_index(2, irow) = inb  ! right neighbor row (0 if boundary)
-            endif
-            !
-            if (kcs(nmu_z) == 1) then
-               irow = si_row_of_nm(nmu_z)
-               inb  = si_row_of_nm(nm)     ! 0 if nm is boundary
-               si_uv_index(1, irow) = ip   ! left UV
-               si_nm_index(1, irow) = inb  ! left neighbor row (0 if boundary)
-            endif
-            !
+         ip = face_ip(j, irow)
+         if (ip <= 0) cycle
+         !
+         ! The neighbour is whichever end of the face is not this cell.
+         !
+         if (uv_index_z_nm(ip) == nm) then
+            nb = uv_index_z_nmu(ip)
          else
-            !
-            ! y-direction UV point
-            !
-            if (kcs(nm) == 1) then
-               irow = si_row_of_nm(nm)
-               inb  = si_row_of_nm(nmu_z)
-               si_uv_index(4, irow) = ip   ! top UV
-               si_nm_index(4, irow) = inb
-            endif
-            !
-            if (kcs(nmu_z) == 1) then
-               irow = si_row_of_nm(nmu_z)
-               inb  = si_row_of_nm(nm)
-               si_uv_index(3, irow) = ip   ! bottom UV
-               si_nm_index(3, irow) = inb
-            endif
-            !
+            nb = uv_index_z_nm(ip)
          endif
          !
-      endif
+         face_nb(j, irow)  = si_row_of_nm(nb)   ! 0 when the neighbour is a Dirichlet cell
+         face_bnd(j, irow) = nb                 ! cell to read zs from in that case
+         !
+         if (j <= 2 .or. j >= 7) then
+            face_isy(j, irow) = 0               ! x-direction
+         else
+            face_isy(j, irow) = 1               ! y-direction
+         endif
+         !
+      enddo
       !
    enddo
    !
-   ! Build CSR sparsity pattern
-   ! Order: left(1), bottom(3), center(5), top(4), right(2)
-   ! Same ordering as sfincs_nonhydrostatic.f90
-   !
-   ! Pass 1: count the entries in each row, then prefix-sum into si_row_ptr.
-   ! Rows are variable length. Nothing below assumes five entries, which is what makes
-   ! room for a quadtree row (up to eight neighbours plus the diagonal) later.
+   ! Build the CSR sparsity pattern. Rows are variable length: 5 entries on a regular grid,
+   ! up to 9 next to a refinement transition.
    !
    allocate(row_count(nrows_si))
    !
    do irow = 1, nrows_si
-      row_count(irow) = 1                     ! the diagonal is always present
-      do idir = 1, 4
-         if (si_nm_index(idir, irow) > 0) row_count(irow) = row_count(irow) + 1
+      row_count(irow) = 1                       ! the diagonal is always present
+      do j = 1, 8
+         if (face_nb(j, irow) > 0) row_count(irow) = row_count(irow) + 1
       enddo
    enddo
    !
@@ -247,102 +237,76 @@ contains
    si_col_idx = 0
    si_diag_ptr = 0
    !
-   ! Pass 2: fill each row.
-   ! Entries are emitted in the historical order left(1), bottom(3), center(5), top(4),
-   ! right(2). Columns are therefore NOT sorted ascending, and they do not need to be:
-   ! the preconditioner splits lower from upper by comparing si_col_idx against the row
-   ! index, which works for any ordering. Keeping the original order keeps the CSR layout
-   ! byte-for-byte what it was, so the matrix-vector product sums in the same sequence and
-   ! the refactor stays bit-identical.
+   ! Columns are NOT sorted ascending. They do not need to be: the preconditioner separates
+   ! lower from upper by comparing the column index against the row index.
    !
    do irow = 1, nrows_si
       !
       k = si_row_ptr(irow) - 1
       !
-      icol = si_nm_index(1, irow)             ! left
-      if (icol > 0) then
-         k = k + 1
-         si_col_idx(k) = icol
-         slot_of_dir(1, irow) = k
-      endif
+      do j = 1, 4                               ! faces emitted before the diagonal
+         if (face_nb(j, irow) > 0) then
+            k = k + 1
+            si_col_idx(k) = face_nb(j, irow)
+            face_slot(j, irow) = k
+         endif
+      enddo
       !
-      icol = si_nm_index(3, irow)             ! bottom
-      if (icol > 0) then
-         k = k + 1
-         si_col_idx(k) = icol
-         slot_of_dir(3, irow) = k
-      endif
-      !
-      k = k + 1                               ! centre
+      k = k + 1
       si_col_idx(k) = irow
       si_diag_ptr(irow) = k
       !
-      icol = si_nm_index(4, irow)             ! top
-      if (icol > 0) then
-         k = k + 1
-         si_col_idx(k) = icol
-         slot_of_dir(4, irow) = k
-      endif
-      !
-      icol = si_nm_index(2, irow)             ! right
-      if (icol > 0) then
-         k = k + 1
-         si_col_idx(k) = icol
-         slot_of_dir(2, irow) = k
-      endif
+      do j = 5, 8                               ! faces emitted after the diagonal
+         if (face_nb(j, irow) > 0) then
+            k = k + 1
+            si_col_idx(k) = face_nb(j, irow)
+            face_slot(j, irow) = k
+         endif
+      enddo
       !
    enddo
    !
    allocate(si_AA(nnz_si))
    si_AA = 0.0
    !
-   ! Build the per-row face list.
-   ! Faces are listed in the original direction order (left, right, bottom, top) so the
-   ! diagonal accumulates in exactly the same sequence as the previous hard-coded version
-   ! and the assembly stays bit-for-bit identical on a regular grid.
-   ! When quadtree support lands this loop is the only place that needs to change: it
-   ! walks whatever faces a row has, and nothing downstream assumes there are four.
+   ! Flatten into the per-row face list the assembly walks.
    !
    allocate(si_row_face_ptr(nrows_si + 1))
    si_row_face_ptr = 0
    !
    k = 0
    do irow = 1, nrows_si
-      do idir = 1, 4
-         if (si_uv_index(idir, irow) > 0) k = k + 1
+      do j = 1, 8
+         if (face_ip(j, irow) > 0) k = k + 1
       enddo
    enddo
    nfaces_si = k
    !
    allocate(si_row_face_ip(nfaces_si))
    allocate(si_row_face_slot(nfaces_si))
-   allocate(si_row_face_side(nfaces_si))
+   allocate(si_row_face_isy(nfaces_si))
+   allocate(si_row_face_bnd(nfaces_si))
    !
    k = 0
    do irow = 1, nrows_si
       si_row_face_ptr(irow) = k + 1
-      do idir = 1, 4
-         ip = si_uv_index(idir, irow)
-         if (ip > 0) then
+      do j = 1, 8
+         if (face_ip(j, irow) > 0) then
             k = k + 1
-            si_row_face_ip(k)   = ip
-            si_row_face_slot(k) = slot_of_dir(idir, irow)   ! 0 means Dirichlet neighbour
-            si_row_face_side(k) = idir
+            si_row_face_ip(k)   = face_ip(j, irow)
+            si_row_face_slot(k) = face_slot(j, irow)   ! 0 means Dirichlet neighbour
+            si_row_face_isy(k)  = face_isy(j, irow)
+            si_row_face_bnd(k)  = face_bnd(j, irow)
          endif
       enddo
    enddo
    si_row_face_ptr(nrows_si + 1) = k + 1
    !
-   ! Report the sparse structure. The maximum row length is the useful number: 5 means a
-   ! plain regular grid, and anything above 5 means quadtree connectivity is being picked
-   ! up (a coarse cell next to refinement reaches up to 9). If that stays at 5 on a
-   ! quadtree model, the face list is not seeing the refinement transitions.
-   !
    ! Check the CSR invariants the preconditioner relies on. It splits lower from upper by
    ! comparing the column index against the row index, so every row must contain exactly
-   ! one entry on the diagonal, si_diag_ptr must point at it, and every other entry must
-   ! be strictly off-diagonal. If the quadtree row builder ever emits a duplicate column
-   ! or misses the diagonal, SSOR would silently stop being a valid preconditioner.
+   ! one entry on the diagonal and si_diag_ptr must point at it. If the row builder ever
+   ! emits a duplicate column or misses the diagonal, SSOR would silently stop being a
+   ! valid preconditioner rather than failing visibly.
    !
    maxrow = 0
    do irow = 1, nrows_si
@@ -361,11 +325,18 @@ contains
       endif
    enddo
    !
+   ! The maximum row length is the useful number: 5 on a regular grid, above 5 once
+   ! quadtree connectivity is picked up (a coarse cell next to refinement reaches 9).
+   ! If it stays at 5 on a quadtree model, the refinement transitions are not being seen.
+   !
    write(*,'(a,i10,a,i10,a,i3,a,i10)') ' Semi-implicit: rows ', nrows_si, &
       '  nonzeros ', nnz_si, '  max row ', maxrow, '  faces ', nfaces_si
    !
-   deallocate(si_nm_index)
-   deallocate(slot_of_dir)
+   deallocate(face_ip)
+   deallocate(face_nb)
+   deallocate(face_bnd)
+   deallocate(face_isy)
+   deallocate(face_slot)
    !
    end subroutine initialize_semi_implicit
    !
@@ -374,7 +345,7 @@ contains
    !
    ! Assemble the Helmholtz pressure matrix and RHS, then solve.
    !
-   ! For regular grid (Phase 1), the system is:
+   ! The system is:
    !   eta(nm) - theta^2 * g * dt^2 * sum_neighbors[ h_uv / (dx^2) * (eta_nb - eta_nm) ] = RHS
    !
    ! where RHS = zs(nm) - dt * div(q_star) + dt * sources
@@ -390,7 +361,7 @@ contains
    integer :: count0, count1, count_rate, count_max
    real*4  :: relres
    real*4  :: div_qstar
-   integer :: kface, iside, islot
+   integer :: kface, islot
    real*4  :: coeff_face
    real*4  :: diag
    real*4  :: dxr_val, dyr_val
@@ -413,7 +384,7 @@ contains
    ! Assemble matrix and RHS row by row
    !
    !$omp parallel do private(irow, nm, nmd, nmu, ndm, num, dxr_val, dyr_val, &
-   !$omp                      div_qstar, diag, ip, kface, iside, islot, coeff_face) &
+   !$omp                      div_qstar, diag, ip, kface, islot, coeff_face) &
    !$omp schedule(static)
    do irow = 1, nrows_si
       !
@@ -481,10 +452,9 @@ contains
       do kface = si_row_face_ptr(irow), si_row_face_ptr(irow + 1) - 1
          !
          ip    = si_row_face_ip(kface)
-         iside = si_row_face_side(kface)
          islot = si_row_face_slot(kface)
          !
-         if (iside <= 2) then
+         if (si_row_face_isy(kface) == 0) then
             coeff_face = si_coeff(ip) * dt / dxr_val
          else
             coeff_face = si_coeff(ip) * dt / dyr_val
@@ -496,12 +466,10 @@ contains
             ! Interior neighbour
             si_AA(islot) = -coeff_face
          else
-            ! Boundary neighbour (kcs==2): known eta, move to RHS
-            if (iside == 1 .or. iside == 3) then
-               si_rhs(irow) = si_rhs(irow) + coeff_face * real(zs(uv_index_z_nm(ip)))
-            else
-               si_rhs(irow) = si_rhs(irow) + coeff_face * real(zs(uv_index_z_nmu(ip)))
-            endif
+            ! Boundary neighbour (kcs==2): known eta, move to RHS.
+            ! si_row_face_bnd already holds whichever end of the face is not this cell,
+            ! so there is no left/right special case to get wrong.
+            si_rhs(irow) = si_rhs(irow) + coeff_face * real(zs(si_row_face_bnd(kface)))
          endif
          !
       enddo
