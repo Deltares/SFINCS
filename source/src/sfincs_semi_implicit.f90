@@ -25,6 +25,20 @@ module sfincs_semi_implicit
    real*4, dimension(:), allocatable :: cg_Ap     ! matrix-vector product
    real*4, dimension(:), allocatable :: cg_diag   ! diagonal (for Jacobi preconditioner)
    !
+   ! Per-row face list. The assembly walks the faces belonging to each row instead of
+   ! four hard-coded directions, so it does not care how many neighbours a row has.
+   ! On a regular grid every row has up to 4. On a quadtree a row next to a refinement
+   ! transition has up to 8, because a coarse-to-fine face is stored as TWO UV points
+   ! (z_index_uv_mu1/mu2 and friends, sfincs_data.f90:302-309).
+   ! Keeping the outer loop over rows rather than over faces matters: a bare face loop
+   ! would race on the diagonal under OpenMP, and fixing that with atomics would make
+   ! the summation order non-deterministic between runs.
+   !
+   integer, dimension(:), allocatable :: si_row_face_ptr    ! nrows_si+1, CSR-style
+   integer, dimension(:), allocatable :: si_row_face_ip     ! UV point index
+   integer, dimension(:), allocatable :: si_row_face_slot   ! slot in si_AA, 0 = Dirichlet
+   integer, dimension(:), allocatable :: si_row_face_side   ! 1=left 2=right 3=bottom 4=top
+   !
    ! Timing and diagnostics
    !
    real    :: tloop_si
@@ -47,6 +61,7 @@ contains
    integer :: nm, ip, irow, icol, k
    integer :: nmu_z, nmd_z, num_z, ndm_z
    integer :: inb
+   integer :: idir, nfaces_si
    !
    integer, dimension(:), allocatable :: col_idx0
    integer, dimension(:,:), allocatable :: si_nm_index  ! neighbor row indices (4, nrows_si)
@@ -263,6 +278,44 @@ contains
    si_AA = 0.0
    !
    deallocate(col_idx0)
+   !
+   ! Build the per-row face list.
+   ! Faces are listed in the original direction order (left, right, bottom, top) so the
+   ! diagonal accumulates in exactly the same sequence as the previous hard-coded version
+   ! and the assembly stays bit-for-bit identical on a regular grid.
+   ! When quadtree support lands this loop is the only place that needs to change: it
+   ! walks whatever faces a row has, and nothing downstream assumes there are four.
+   !
+   allocate(si_row_face_ptr(nrows_si + 1))
+   si_row_face_ptr = 0
+   !
+   k = 0
+   do irow = 1, nrows_si
+      do idir = 1, 4
+         if (si_uv_index(idir, irow) > 0) k = k + 1
+      enddo
+   enddo
+   nfaces_si = k
+   !
+   allocate(si_row_face_ip(nfaces_si))
+   allocate(si_row_face_slot(nfaces_si))
+   allocate(si_row_face_side(nfaces_si))
+   !
+   k = 0
+   do irow = 1, nrows_si
+      si_row_face_ptr(irow) = k + 1
+      do idir = 1, 4
+         ip = si_uv_index(idir, irow)
+         if (ip > 0) then
+            k = k + 1
+            si_row_face_ip(k)   = ip
+            si_row_face_slot(k) = si_index_sparse(idir, irow)   ! 0 means Dirichlet neighbour
+            si_row_face_side(k) = idir
+         endif
+      enddo
+   enddo
+   si_row_face_ptr(nrows_si + 1) = k + 1
+   !
    deallocate(si_nm_index)
    !
    end subroutine initialize_semi_implicit
@@ -288,7 +341,8 @@ contains
    integer :: count0, count1, count_rate, count_max
    real*4  :: relres
    real*4  :: div_qstar
-   real*4  :: coeff_left, coeff_right, coeff_bottom, coeff_top
+   integer :: kface, iside, islot
+   real*4  :: coeff_face
    real*4  :: diag
    real*4  :: dxr_val, dyr_val
    !
@@ -310,7 +364,7 @@ contains
    ! Assemble matrix and RHS row by row
    !
    !$omp parallel do private(irow, nm, nmd, nmu, ndm, num, dxr_val, dyr_val, &
-   !$omp                      div_qstar, diag, ip, coeff_left, coeff_right, coeff_bottom, coeff_top) &
+   !$omp                      div_qstar, diag, ip, kface, iside, islot, coeff_face) &
    !$omp schedule(static)
    do irow = 1, nrows_si
       !
@@ -368,64 +422,40 @@ contains
       !
       diag = 1.0
       !
-      ! Left (direction 1): UV point at left face, x-direction
+      ! Walk this row's faces. Grid-agnostic: nothing here assumes there are four.
+      ! Sides 1 and 2 are x-direction, 3 and 4 are y-direction.
+      ! For a Dirichlet neighbour (kcs==2) the coefficient stays on the diagonal and the
+      ! known water level moves to the RHS. Which of the two cells on the face is the
+      ! boundary depends on the side: for left/bottom it is uv_index_z_nm, for right/top
+      ! it is uv_index_z_nmu.
       !
-      ip = si_uv_index(1, irow)
-      if (ip > 0) then
-         coeff_left = si_coeff(ip) * dt / dxr_val
-         diag = diag + coeff_left
+      do kface = si_row_face_ptr(irow), si_row_face_ptr(irow + 1) - 1
          !
-         if (si_index_sparse(1, irow) > 0) then
-            ! Interior neighbor
-            si_AA(si_index_sparse(1, irow)) = -coeff_left
-         else
-            ! Boundary neighbor (kcs==2): known eta, move to RHS
-            si_rhs(irow) = si_rhs(irow) + coeff_left * real(zs(uv_index_z_nm(ip)))
-         endif
-      endif
-      !
-      ! Right (direction 2): UV point at right face, x-direction
-      !
-      ip = si_uv_index(2, irow)
-      if (ip > 0) then
-         coeff_right = si_coeff(ip) * dt / dxr_val
-         diag = diag + coeff_right
+         ip    = si_row_face_ip(kface)
+         iside = si_row_face_side(kface)
+         islot = si_row_face_slot(kface)
          !
-         if (si_index_sparse(2, irow) > 0) then
-            si_AA(si_index_sparse(2, irow)) = -coeff_right
+         if (iside <= 2) then
+            coeff_face = si_coeff(ip) * dt / dxr_val
          else
-            ! Boundary: right UV, boundary cell is uv_index_z_nmu(ip)
-            si_rhs(irow) = si_rhs(irow) + coeff_right * real(zs(uv_index_z_nmu(ip)))
+            coeff_face = si_coeff(ip) * dt / dyr_val
          endif
-      endif
-      !
-      ! Bottom (direction 3): UV point at bottom face, y-direction
-      !
-      ip = si_uv_index(3, irow)
-      if (ip > 0) then
-         coeff_bottom = si_coeff(ip) * dt / dyr_val
-         diag = diag + coeff_bottom
          !
-         if (si_index_sparse(3, irow) > 0) then
-            si_AA(si_index_sparse(3, irow)) = -coeff_bottom
-         else
-            si_rhs(irow) = si_rhs(irow) + coeff_bottom * real(zs(uv_index_z_nm(ip)))
-         endif
-      endif
-      !
-      ! Top (direction 4): UV point at top face, y-direction
-      !
-      ip = si_uv_index(4, irow)
-      if (ip > 0) then
-         coeff_top = si_coeff(ip) * dt / dyr_val
-         diag = diag + coeff_top
+         diag = diag + coeff_face
          !
-         if (si_index_sparse(4, irow) > 0) then
-            si_AA(si_index_sparse(4, irow)) = -coeff_top
+         if (islot > 0) then
+            ! Interior neighbour
+            si_AA(islot) = -coeff_face
          else
-            si_rhs(irow) = si_rhs(irow) + coeff_top * real(zs(uv_index_z_nmu(ip)))
+            ! Boundary neighbour (kcs==2): known eta, move to RHS
+            if (iside == 1 .or. iside == 3) then
+               si_rhs(irow) = si_rhs(irow) + coeff_face * real(zs(uv_index_z_nm(ip)))
+            else
+               si_rhs(irow) = si_rhs(irow) + coeff_face * real(zs(uv_index_z_nmu(ip)))
+            endif
          endif
-      endif
+         !
+      enddo
       !
       ! Set diagonal
       !
