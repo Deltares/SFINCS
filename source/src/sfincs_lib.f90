@@ -185,12 +185,10 @@ module sfincs_lib
    ! gw_write_output below happily writes a file containing timestamps and no head data at all.
    ! Exit code zero, no warning, and an empty result.
    !
-   if (gwflow .and. .not. semi_implicit) then
-      call write_log('Error   : gwflow = 1 requires semi_implicit = 1. The aquifer is solved '// &
-                     'in the semi-implicit pressure system and has no explicit path. '// &
-                     'SFINCS has stopped!', 1)
-      stop
-   endif
+   ! Groundwater runs either way now: coupled into the pressure matrix when semi-implicit, or
+   ! advanced explicitly alongside the explicit solver. Initialise it before either.
+   !
+   if (gwflow) call initialize_groundwater()
    !
    if (semi_implicit) then
       !
@@ -198,7 +196,6 @@ module sfincs_lib
       !
       call write_log('Initialize semi-implicit solver ...', 0)
       !
-      if (gwflow) call initialize_groundwater()
       call initialize_semi_implicit()
       !
    endif
@@ -663,6 +660,12 @@ module sfincs_lib
          ! Update water levels
          !
          call compute_water_levels(t, dt, tloopcont)
+         !
+         ! Explicit groundwater. After continuity, so the aquifer sees the water level the
+         ! surface actually ended the step with. The semi-implicit path does not come through
+         ! here at all -- there the aquifer is part of the pressure solve.
+         !
+         if (gwflow .and. .not. semi_implicit) call gw_explicit_step(dt)
          !
       endif   
       !

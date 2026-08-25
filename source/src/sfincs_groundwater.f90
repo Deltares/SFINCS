@@ -25,7 +25,7 @@ module sfincs_groundwater
    private
    public :: initialize_groundwater, gw_face_transmissivity, gw_exchange_terms
    public :: gw_cell_storage, gw_diffusion_number, gw_budget_update, gw_budget_report
-   public :: gw_write_output, gw_subgrid_level
+   public :: gw_write_output, gw_subgrid_level, gw_explicit_step
    !
    ! Cumulative water budget, m3. Recharge and exfiltration are integrated as they are applied.
    !
@@ -430,6 +430,193 @@ contains
    enddo
    !
    end subroutine gw_budget_update
+   !
+   !
+   subroutine gw_explicit_step(dt)
+   !
+   ! Advance the aquifer explicitly, for use with the explicit surface solver.
+   !
+   ! The aquifer is a diffusion problem, so an explicit update is limited by
+   !
+   !     dt <= Sy dx^2 / (4 K b)
+   !
+   ! which sounds restrictive but is not, because the explicit surface solver is already crawling
+   ! at the gravity-wave CFL and water diffuses through an aquifer far more slowly than a shallow
+   ! water wave propagates. Measured against dt = alfa dx / sqrt(g h) the aquifer limit is 93x
+   ! looser on the tidal island case, 3000x on the polder, and 6800x on a sandy coast. Only very
+   ! high conductivity on a fine grid brings the two together, and that is what the sub-cycling
+   ! below is for: the aquifer block is small, so taking several sub-steps of it per surface step
+   ! is cheap.
+   !
+   ! Geometry is deliberately identical to what the semi-implicit assembly uses -- same face
+   ! widths, same centre-to-centre distances, same 1.5x factor across a refinement transition. The
+   ! whole point of having two paths is that they can be compared, and that only works if the
+   ! discretisation is the same and only the time integration differs.
+   !
+   ! Conservative by construction: each face is visited once and its flux is added to one cell and
+   ! subtracted from the other, and any water that will not fit under the topographic ceiling is
+   ! handed to the surface as seepage rather than discarded.
+   !
+   use sfincs_data
+   !
+   implicit none
+   !
+   real*4, intent(in) :: dt
+   !
+   integer :: ip, nm, nmu, isub, nsub, it
+   real*4  :: tface, wface, dinv, qface, dtsub, numax
+   real*4  :: acell, vol, dvol, volcap, hcap, excess, hnew
+   real*4  :: csym, qexpl, qex
+   !
+   if (.not. allocated(gw_dvol)) allocate(gw_dvol(np))
+   if (.not. allocated(gw_qsurf)) allocate(gw_qsurf(np))
+   !
+   ! How many sub-steps does stability demand?
+   !
+   ! Where the aquifer meets a prescribed water level, its head is that water level. The
+   ! semi-implicit path does this when it seeds the outer iterate; the explicit path has no outer
+   ! iterate, so it has to be done here. Without it a tidal boundary drives nothing: the Ferris
+   ! case came back with a completely flat aquifer, no decay length at all, because the boundary
+   ! head never moved.
+   !
+   if (gw_bnd_from_zs) then
+      do nm = 1, np
+         if (kcs(nm) == 2) gw_head(nm) = real(zs(nm))
+      enddo
+   endif
+   !
+   call gw_diffusion_number(dt, numax)
+   nsub = max(1, min(int(numax / gw_numax) + 1, 100))
+   dtsub = dt / nsub
+   gw_qsurf = 0.0
+   !
+   do isub = 1, nsub
+      !
+      gw_dvol = 0.0
+      !
+      ! Lateral flux, one pass over the faces.
+      !
+      do ip = 1, npuv
+         !
+         nm  = uv_index_z_nm(ip)
+         nmu = uv_index_z_nmu(ip)
+         if (nm == 0 .or. nmu == 0) cycle
+         if (kcs(nm) == 0 .or. kcs(nmu) == 0) cycle
+         !
+         call gw_face_transmissivity(ip, tface)
+         if (tface <= 0.0) cycle
+         !
+         if (uv_flags_dir(ip) == 0) then
+            wface = dyrm(uv_flags_iref(ip))
+            dinv  = dxrinv(uv_flags_iref(ip))
+         else
+            wface = dxrm(uv_flags_iref(ip))
+            dinv  = dyrinv(uv_flags_iref(ip))
+         endif
+         if (uv_flags_type(ip) /= 0) dinv = dinv / 1.5
+         !
+         qface = tface * wface * dinv * (gw_head(nm) - gw_head(nmu))
+         !
+         gw_dvol(nm)  = gw_dvol(nm)  - qface * dtsub
+         gw_dvol(nmu) = gw_dvol(nmu) + qface * dtsub
+         !
+      enddo
+      !
+      ! Recharge, exchange with the surface, and the new head.
+      !
+      do nm = 1, np
+         !
+         if (kcs(nm) /= 1) cycle
+         !
+         call gw_cell_area(nm, acell)
+         gw_dvol(nm) = gw_dvol(nm) + acell * gw_recharge(nm) * dtsub
+         !
+         call gw_exchange_terms(nm, real(zs(nm)), gw_head(nm), csym, qexpl)
+         qex = csym * (real(zs(nm)) - gw_head(nm)) + qexpl     ! positive: surface into aquifer
+         gw_dvol(nm) = gw_dvol(nm) + qex * dtsub
+         gw_qsurf(nm) = gw_qsurf(nm) - qex * dtsub             ! and the surface loses it
+         !
+         ! Convert the volume change into a head, honouring the topographic ceiling. Anything
+         ! that will not fit below the ceiling has nowhere to go underground and becomes surface
+         ! water, which is what a seepage face is.
+         !
+         call gw_cell_storage(nm, gw_head(nm), vol, dvol)
+         vol = vol + gw_dvol(nm)
+         !
+         if (subgrid) then
+            hcap = max(subgrid_z_zmax(nm), real(zs(nm)))
+         else
+            hcap = max(zb(nm), real(zs(nm)))
+         endif
+         call gw_cell_storage(nm, hcap, volcap, dvol)
+         !
+         if (vol > volcap) then
+            excess = vol - volcap
+            vol    = volcap
+            gw_qsurf(nm) = gw_qsurf(nm) + excess
+         endif
+         !
+         vol = max(vol, 0.0)
+         !
+         ! Invert the storage relation. It is piecewise linear, so a few Newton steps are exact
+         ! to round-off; the guard on the derivative only matters at a saturated cell.
+         !
+         hnew = gw_head(nm)
+         do it = 1, 3
+            call gw_cell_storage(nm, hnew, dvol, csym)
+            hnew = hnew + (vol - dvol) / max(csym, 1.0e-12)
+            hnew = min(max(hnew, gw_zbase(nm)), hcap)
+         enddo
+         gw_head(nm) = hnew
+         !
+      enddo
+      !
+   enddo
+   !
+   ! Hand the surface its share. Volume, not level, so that the subgrid path stays consistent
+   ! with how continuity converts one to the other.
+   !
+   do nm = 1, np
+      if (kcs(nm) /= 1 .or. gw_qsurf(nm) == 0.0) cycle
+      call gw_cell_area(nm, acell)
+      if (subgrid) then
+         z_volume(nm) = max(z_volume(nm) + dble(gw_qsurf(nm)), 0.0d0)
+         call gw_level_from_volume(nm, acell)
+      else
+         zs(nm) = max(zs(nm) + dble(gw_qsurf(nm) / acell), dble(zb(nm)))
+      endif
+   enddo
+   !
+   end subroutine gw_explicit_step
+   !
+   !
+   subroutine gw_level_from_volume(nm, acell)
+   !
+   ! Water level from cell volume, mirroring sfincs_continuity.f90:562-583. Duplicated rather
+   ! than shared because continuity does it inline inside its own loop; if that logic changes,
+   ! this has to follow.
+   !
+   implicit none
+   !
+   integer, intent(in) :: nm
+   real*4,  intent(in) :: acell
+   !
+   integer :: iuv
+   real*4  :: dzvol, facint
+   !
+   if (z_volume(nm) >= subgrid_z_volmax(nm) * 0.999) then
+      zs(nm) = max(subgrid_z_zmax(nm), -20.0) + (z_volume(nm) - subgrid_z_volmax(nm)) / acell
+   elseif (z_volume(nm) <= 1.0e-6) then
+      zs(nm) = max(subgrid_z_zmin(nm), -20.0)
+   else
+      dzvol  = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
+      iuv    = int(z_volume(nm) / dzvol) + 1
+      facint = (z_volume(nm) - (iuv - 1) * dzvol) / dzvol
+      zs(nm) = subgrid_z_dep(iuv, nm) &
+             + (subgrid_z_dep(iuv + 1, nm) - subgrid_z_dep(iuv, nm)) * facint
+   endif
+   !
+   end subroutine gw_level_from_volume
    !
    !
    subroutine gw_write_output(tnow)

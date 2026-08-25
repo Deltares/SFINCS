@@ -284,6 +284,8 @@ module sfincs_data
       character*256 :: gwrechargefile
       logical       :: gw_bnd_from_zs
       real*4, dimension(:), allocatable :: gw_head_n   ! head at time level n
+      real*4, dimension(:), allocatable :: gw_dvol     ! explicit path: volume change per step
+      real*4, dimension(:), allocatable :: gw_qsurf    ! explicit path: volume handed to the surface
       real*4, parameter :: gw_awet_floor = 0.01
       real*4, dimension(:), allocatable :: gw_head      ! head above datum, m
       real*4, dimension(:), allocatable :: gw_kh        ! hydraulic conductivity, m/s
