@@ -179,6 +179,19 @@ module sfincs_lib
       !
    endif
    !
+   ! Groundwater is solved inside the semi-implicit pressure system -- the aquifer head is a
+   ! second block of the same matrix. There is no explicit path for it. Without this check the
+   ! run LOOKS fine: initialize_groundwater is never reached, so gw_head is never allocated, and
+   ! gw_write_output below happily writes a file containing timestamps and no head data at all.
+   ! Exit code zero, no warning, and an empty result.
+   !
+   if (gwflow .and. .not. semi_implicit) then
+      call write_log('Error   : gwflow = 1 requires semi_implicit = 1. The aquifer is solved '// &
+                     'in the semi-implicit pressure system and has no explicit path. '// &
+                     'SFINCS has stopped!', 1)
+      stop
+   endif
+   !
    if (semi_implicit) then
       !
       ! Initialize semi-implicit pressure solver
