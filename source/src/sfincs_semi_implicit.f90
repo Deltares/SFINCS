@@ -497,6 +497,7 @@ contains
    real*4  :: acell, vol_n, vol_k, awet_n, awet_k, diag_store, dmax_outer, dmax_prev
    integer :: jrow
    real*4  :: cexch, tface, gvol_n, gvol_k, gdvol, hk, resid
+   integer :: nmb
    real*4  :: diag
    real*4  :: dxr_val, dyr_val
    !
@@ -733,7 +734,7 @@ contains
    if (gwflow) then
       !
       !$omp parallel do private(irow, nm, jrow, kface, ip, islot, acell, tface, coeff_face, &
-      !$omp                     diag, cexch, gvol_n, gvol_k, gdvol, hk) schedule(static)
+      !$omp                     diag, cexch, gvol_n, gvol_k, gdvol, hk, nmb) schedule(static)
       do irow = 1, nrows_si
          !
          nm   = si_nm_of_row(irow)
@@ -758,20 +759,36 @@ contains
             ip    = si_row_face_ip(kface)
             islot = si_row_face_gwslot(kface)
             !
+            ! The cell on the other side of this face, whether or not it is an unknown.
+            !
+            nmb = uv_index_z_nm(ip)
+            if (nmb == nm) nmb = uv_index_z_nmu(ip)
+            !
             call gw_face_transmissivity(ip, tface)
             !
             if (si_row_face_isy(kface) == 0) then
-               coeff_face = gw_theta * tface * dyrm(uv_flags_iref(ip)) * si_row_face_dinv(kface) * dt
+               coeff_face = tface * dyrm(uv_flags_iref(ip)) * si_row_face_dinv(kface) * dt
             else
-               coeff_face = gw_theta * tface * dxrm(uv_flags_iref(ip)) * si_row_face_dinv(kface) * dt
+               coeff_face = tface * dxrm(uv_flags_iref(ip)) * si_row_face_dinv(kface) * dt
             endif
             !
-            diag = diag + coeff_face
+            ! theta-weighted in time: theta on the new level, (1 - theta) on the old.
+            !
+            ! The explicit half is NOT optional. Leaving it out integrates
+            ! Sy dh/dt = theta * L(h^{n+1}), so the aquifer runs at an effective diffusivity of
+            ! theta*D. A steady case cannot see this -- theta multiplies both sides and cancels,
+            ! which is why the Dupuit parabola came out right to 0.003% while the transient was
+            ! 25% slow. The Edelman step response fits D_eff/D = 0.75 = theta exactly.
+            !
+            diag = diag + gw_theta * coeff_face
+            !
+            si_rhs(jrow) = si_rhs(jrow) &
+                         + (1.0 - gw_theta) * coeff_face * (gw_head_n(nmb) - gw_head_n(nm))
             !
             if (islot > 0) then
-               si_AA(islot) = -coeff_face
+               si_AA(islot) = -gw_theta * coeff_face
             else
-               si_rhs(jrow) = si_rhs(jrow) + coeff_face * gw_head(si_row_face_bnd(kface))
+               si_rhs(jrow) = si_rhs(jrow) + gw_theta * coeff_face * gw_head(nmb)
             endif
             !
          enddo
