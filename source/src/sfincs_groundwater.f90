@@ -23,7 +23,7 @@ module sfincs_groundwater
    implicit none
    !
    private
-   public :: initialize_groundwater, gw_face_transmissivity, gw_exchange_conductance
+   public :: initialize_groundwater, gw_face_transmissivity, gw_exchange_terms
    public :: gw_cell_storage, gw_diffusion_number, gw_budget_update, gw_budget_report
    public :: gw_write_output, gw_subgrid_level
    !
@@ -164,21 +164,45 @@ contains
    end subroutine gw_face_transmissivity
    !
    !
-   subroutine gw_exchange_conductance(nm, cexch)
+   subroutine gw_exchange_terms(nm, zs_k, h_k, csym, qexpl)
    !
-   ! Surface/aquifer exchange, as a conductance in m3/s per m of head difference.
+   ! Surface/aquifer exchange, split into a symmetric implicit part and a lagged remainder.
    !
-   ! The SAME value is written to both off-diagonal blocks of the coupled matrix and added to
-   ! both diagonals. That symmetry is what keeps the system SPD: a spike measured the coupled
-   ! matrix at exactly 0.000e+00 symmetry residual with this construction, and anything one-sided
-   ! leaves CG converging confidently to the wrong answer.
+   ! The exchange is NOT simply C*(zs - h). A cell whose surface is dry has no water to give: with
+   ! the unconditional form, a dry cell sitting above its water table pumps water that does not
+   ! exist into the aquifer and drives zs below the bed. Measured on a flat dry test the water
+   ! table climbed from -5 m to -0.833 m, exactly the level it would reach by equilibrating with a
+   ! phantom reservoir at the bed.
+   !
+   ! The physical form is the MODFLOW river/drain switch, written against the level zref at which
+   ! the cell starts to hold water:
+   !
+   !    Q = C * ( max(zs, zref) - max(h, zref) )        positive = surface into aquifer
+   !
+   ! which gives, in the four cases that matter:
+   !    wet surface, connected water table   Q = C (zs - h)     ordinary two-way exchange
+   !    wet surface, deep water table        Q = C (zs - zref)  infiltration set by ponded depth
+   !    dry surface, deep water table        Q = 0              nothing to infiltrate
+   !    dry surface, water table above ground  Q = C (zref - h) < 0   seepage out of the ground
+   !
+   ! Those max() branches make the two cross-derivatives unequal whenever only one side is
+   ! connected, and an asymmetric matrix would cost us CG. So only the part that IS symmetric goes
+   ! into the matrix, and the rest is lagged onto the right-hand side:
+   !
+   !    Q = csym * (zs - h)  +  qexpl
+   !
+   ! with csym = C when BOTH sides are connected and zero otherwise. qexpl is whatever the exact
+   ! Q is minus what the implicit part already accounts for, so at outer convergence the pair
+   ! reproduces Q exactly. Because the same qexpl is subtracted from the surface and added to the
+   ! aquifer, the split stays conservative whichever branch it is in.
    !
    implicit none
    !
    integer, intent(in)  :: nm
-   real*4,  intent(out) :: cexch
+   real*4,  intent(in)  :: zs_k, h_k
+   real*4,  intent(out) :: csym, qexpl
    !
-   real*4 :: acell, vsurf, awet
+   real*4 :: acell, vsurf, awet, cexch, zref, qk
    !
    call gw_cell_area(nm, acell)
    !
@@ -190,16 +214,28 @@ contains
       ! losing its exchange term entirely as a cell dries, which is what the eigenvalue guard in
       ! initialize_groundwater relies on.
       !
-      call gw_subgrid_level(nm, real(zs(nm)), vsurf, awet)
+      call gw_subgrid_level(nm, zs_k, vsurf, awet)
       cexch = gw_leakance * min(max(awet, gw_awet_floor * acell), acell)
+      zref  = subgrid_z_zmin(nm)
       !
    else
       !
       cexch = gw_leakance * acell
+      zref  = zb(nm)
       !
    endif
    !
-   end subroutine gw_exchange_conductance
+   qk = cexch * (max(zs_k, zref) - max(h_k, zref))
+   !
+   if (zs_k > zref .and. h_k > zref) then
+      csym = cexch
+   else
+      csym = 0.0
+   endif
+   !
+   qexpl = qk - csym * (zs_k - h_k)
+   !
+   end subroutine gw_exchange_terms
    !
    !
    subroutine gw_subgrid_level(nm, z, vsurf, awet)
@@ -292,15 +328,33 @@ contains
    real*4,  intent(in)  :: head
    real*4,  intent(out) :: vol, dvol
    !
-   real*4  :: acell, b, v0, a0, v1, a1, adry
+   real*4  :: acell, b, v0, a0, v1, a1, adry, zcap
    !
    call gw_cell_area(nm, acell)
    b = max(head - gw_zbase(nm), 0.0)
    !
    if (.not. subgrid) then
       !
+      ! Topographic ceiling. Without subgrid the hypsometry is a step at the bed, so the ceiling
+      ! is a single level -- but it is NOT simply zb. Where the ground is exposed the water table
+      ! cannot rise above it, because water above the ground is surface water and has to seep out
+      ! instead. Where the cell is flooded there is no such limit: the ground beneath a pond is
+      ! saturated, and the table can stand as high as the free surface.
+      !
+      ! So the cap is max(zb, zs). Capping at zb alone would be wrong for a submerged cell and
+      ! would freeze the aquifer under standing water; leaving it uncapped altogether let the
+      ! table climb 1.70 m above dry ground in the compound case, held back only by how fast
+      ! leakance could drain it.
+      !
+      zcap = max(zb(nm), real(zs(nm)))
+      b    = max(min(head, zcap) - gw_zbase(nm), 0.0)
       vol  = gw_sy(nm) * b * acell
-      dvol = gw_sy(nm) * acell
+      !
+      if (head < zcap) then
+         dvol = gw_sy(nm) * acell
+      else
+         dvol = gw_sy(nm) * gw_awet_floor * acell
+      endif
       !
    else
       !

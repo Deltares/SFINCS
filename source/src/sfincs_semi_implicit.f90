@@ -496,7 +496,7 @@ contains
    real*4  :: coeff_face
    real*4  :: acell, vol_n, vol_k, awet_n, awet_k, diag_store, dmax_outer, dmax_prev
    integer :: jrow
-   real*4  :: cexch, tface, gvol_n, gvol_k, gdvol, hk, resid
+   real*4  :: cexch, tface, gvol_n, gvol_k, gdvol, hk, resid, qexpl
    integer :: nmb
    real*4  :: diag
    real*4  :: dxr_val, dyr_val
@@ -522,7 +522,7 @@ contains
    ! branch then reduces to exactly the linear form, so a subgrid model starts from the same
    ! place a non-subgrid one would.
    !
-   if (subgrid) then
+   if (subgrid .or. gwflow) then
       do irow = 1, nrows_si
          si_eta_k(irow) = real(zs(si_nm_of_row(irow)))
       enddo
@@ -566,7 +566,7 @@ contains
    !
    !$omp parallel do private(irow, nm, nmd, nmu, ndm, num, dxr_val, dyr_val, &
    !$omp                      div_qstar, diag, ip, kface, islot, coeff_face, &
-   !$omp                      acell, vol_n, vol_k, awet_n, awet_k, diag_store, cexch) &
+   !$omp                      acell, vol_n, vol_k, awet_n, awet_k, diag_store, cexch, qexpl) &
    !$omp schedule(static)
    do irow = 1, nrows_si
       !
@@ -712,10 +712,11 @@ contains
       ! rather than failing.
       !
       if (gwflow) then
-         call gw_exchange_conductance(nm, cexch)
+         call gw_exchange_terms(nm, si_eta_k(irow), si_eta_k(nrows_si + irow), cexch, qexpl)
          cexch = cexch * dt
          si_AA(si_exch_ptr(irow)) = -cexch
          si_AA(si_diag_ptr(irow)) = si_AA(si_diag_ptr(irow)) + cexch
+         si_rhs(irow) = si_rhs(irow) - dt * qexpl
       endif
       !
    enddo
@@ -734,7 +735,7 @@ contains
    if (gwflow) then
       !
       !$omp parallel do private(irow, nm, jrow, kface, ip, islot, acell, tface, coeff_face, &
-      !$omp                     diag, cexch, gvol_n, gvol_k, gdvol, hk, nmb) schedule(static)
+      !$omp                     diag, cexch, gvol_n, gvol_k, gdvol, hk, nmb, qexpl) schedule(static)
       do irow = 1, nrows_si
          !
          nm   = si_nm_of_row(irow)
@@ -793,10 +794,11 @@ contains
             !
          enddo
          !
-         call gw_exchange_conductance(nm, cexch)
+         call gw_exchange_terms(nm, si_eta_k(irow), hk, cexch, qexpl)
          cexch = cexch * dt
          si_AA(si_exch_ptr(jrow)) = -cexch
          diag = diag + cexch
+         si_rhs(jrow) = si_rhs(jrow) + dt * qexpl
          !
          si_AA(si_diag_ptr(jrow)) = diag
          !
