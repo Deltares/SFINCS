@@ -566,7 +566,7 @@ contains
    !
    !$omp parallel do private(irow, nm, nmd, nmu, ndm, num, dxr_val, dyr_val, &
    !$omp                      div_qstar, diag, ip, kface, islot, coeff_face, &
-   !$omp                      acell, vol_n, vol_k, awet_n, awet_k, diag_store) &
+   !$omp                      acell, vol_n, vol_k, awet_n, awet_k, diag_store, cexch) &
    !$omp schedule(static)
    do irow = 1, nrows_si
       !
@@ -878,6 +878,7 @@ contains
          do irow = 1, nrows_si
             gw_head(si_nm_of_row(irow)) = si_x(nrows_si + irow)
          enddo
+         !
       endif
       !
       si_outer_total = si_outer_total + 1

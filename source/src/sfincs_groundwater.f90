@@ -25,7 +25,7 @@ module sfincs_groundwater
    private
    public :: initialize_groundwater, gw_face_transmissivity, gw_exchange_conductance
    public :: gw_cell_storage, gw_diffusion_number, gw_budget_update, gw_budget_report
-   public :: gw_write_output
+   public :: gw_write_output, gw_subgrid_level
    !
    ! Cumulative water budget, m3. Recharge and exfiltration are integrated as they are applied.
    !
@@ -178,27 +178,113 @@ contains
    integer, intent(in)  :: nm
    real*4,  intent(out) :: cexch
    !
-   real*4 :: acell
+   real*4 :: acell, vsurf, awet
    !
    call gw_cell_area(nm, acell)
-   cexch = gw_leakance * acell
+   !
+   if (subgrid) then
+      !
+      ! Partial seepage area. Surface water and the aquifer are only in contact over the part of
+      ! the cell that is actually wet, so a cell holding water in a single channel exchanges over
+      ! that channel's footprint, not over the whole cell. A floor keeps the coupled matrix from
+      ! losing its exchange term entirely as a cell dries, which is what the eigenvalue guard in
+      ! initialize_groundwater relies on.
+      !
+      call gw_subgrid_level(nm, real(zs(nm)), vsurf, awet)
+      cexch = gw_leakance * min(max(awet, gw_awet_floor * acell), acell)
+      !
+   else
+      !
+      cexch = gw_leakance * acell
+      !
+   endif
    !
    end subroutine gw_exchange_conductance
    !
    !
+   subroutine gw_subgrid_level(nm, z, vsurf, awet)
+   !
+   ! Surface water volume and wet area of a cell at level z, read from the subgrid table.
+   !
+   ! The table stores the level as a function of UNIFORMLY BINNED volume, so within a bin the
+   ! volume is linear in z and the wet area dV/dz is piecewise constant. Both are returned from
+   ! the same bin, which keeps awet the exact derivative of vsurf -- the residual form below
+   ! depends on that consistency.
+   !
+   implicit none
+   !
+   integer, intent(in)  :: nm
+   real*4,  intent(in)  :: z
+   real*4,  intent(out) :: vsurf, awet
+   !
+   integer :: ilevel, ivol
+   real*4  :: acell, dzvol, dz, zmn, zmx
+   !
+   call gw_cell_area(nm, acell)
+   !
+   zmn   = subgrid_z_zmin(nm)
+   zmx   = subgrid_z_zmax(nm)
+   dzvol = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
+   !
+   if (z <= zmn) then
+      !
+      ! Below the lowest point in the cell: nothing wet, the aquifer has the whole footprint.
+      !
+      vsurf = 0.0
+      awet  = 0.0
+      !
+   elseif (z >= zmx) then
+      !
+      ! Above the highest point: the cell is fully flooded and there is no unsaturated ground
+      ! left to store water in. This is the topographic ceiling.
+      !
+      vsurf = subgrid_z_volmax(nm)
+      awet  = acell
+      !
+   else
+      !
+      ivol = 1
+      do ilevel = 2, subgrid_nlevels
+         if (subgrid_z_dep(ilevel, nm) > z) then
+            ivol = ilevel - 1
+            exit
+         endif
+      enddo
+      !
+      dz    = max(subgrid_z_dep(ivol + 1, nm) - subgrid_z_dep(ivol, nm), 1.0e-6)
+      awet  = dzvol / dz
+      vsurf = (ivol - 1) * dzvol + awet * (z - subgrid_z_dep(ivol, nm))
+      !
+   endif
+   !
+   awet = min(max(awet, 0.0), acell)
+   !
+   end subroutine gw_subgrid_level
+   !
+   !
    subroutine gw_cell_storage(nm, head, vol, dvol)
    !
-   ! Stored volume and its derivative at a given head.
+   ! Stored groundwater volume and its derivative at a given head.
    !
-   ! Without subgrid the aquifer fills the whole cell, so storage is Sy * area per metre. With
-   ! subgrid the water table only occupies the part of the cell below it, so the derivative is
-   ! Sy times the WET AREA at that level, taken from the same table the surface uses.
+   ! Without subgrid the aquifer fills the whole cell footprint, so storage is Sy * area per
+   ! metre of head.
    !
-   ! The derivative is bounded to [gw_awet_floor, 1] x cell area. Bounding is safe because it
-   ! only linearises: the residual form carries the volume exactly on the right-hand side, so a
-   ! bound changes how fast the outer loop converges, not the answer it converges to. Leaving it
-   ! unbounded put a millionfold spread on the diagonal in an earlier version and stalled CG
-   ! completely.
+   ! With subgrid it does not. At level z the cell is partly flooded: over the wet area the water
+   ! is SURFACE water, and only over the remaining dry area is there unsaturated ground able to
+   ! store groundwater. So the storage area is acell - awet(z), not awet(z), and the stored
+   ! volume is its integral from the aquifer base up to the head:
+   !
+   !    vol(h) = Sy * [ acell * (h - zbase) - ( vsurf(h) - vsurf(zbase) ) ]
+   !
+   ! which is exact given the table, because vsurf is exactly the integral of awet. Written this
+   ! way the topographic ceiling falls out on its own: as the head approaches the highest point
+   ! in the cell the storage area goes to zero, so any further recharge has nowhere to go and
+   ! must leave as exfiltration rather than pushing the water table above the ground.
+   !
+   ! Only the DERIVATIVE is floored, never the volume. The residual form carries vol exactly on
+   ! the right-hand side, so flooring dvol changes how fast the outer loop converges, not the
+   ! answer it converges to -- while leaving it unfloored puts a zero on the diagonal exactly
+   ! when a cell saturates.
    !
    implicit none
    !
@@ -206,8 +292,7 @@ contains
    real*4,  intent(in)  :: head
    real*4,  intent(out) :: vol, dvol
    !
-   integer :: ilevel, ivol
-   real*4  :: acell, b, awet, dzvol, dz, zmn, zmx
+   real*4  :: acell, b, v0, a0, v1, a1, adry
    !
    call gw_cell_area(nm, acell)
    b = max(head - gw_zbase(nm), 0.0)
@@ -219,32 +304,13 @@ contains
       !
    else
       !
-      zmn = max(subgrid_z_zmin(nm), -20.0)
-      zmx = max(subgrid_z_zmax(nm), -20.0)
+      call gw_subgrid_level(nm, gw_zbase(nm), v0, a0)
+      call gw_subgrid_level(nm, head,         v1, a1)
       !
-      if (head >= zmx) then
-         awet = acell
-      elseif (head <= zmn) then
-         dzvol = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
-         dz    = max(subgrid_z_dep(2, nm) - subgrid_z_dep(1, nm), 0.001)
-         awet  = dzvol / dz
-      else
-         ivol = 1
-         do ilevel = 2, subgrid_nlevels
-            if (subgrid_z_dep(ilevel, nm) > head) then
-               ivol = ilevel - 1
-               exit
-            endif
-         enddo
-         dzvol = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
-         dz    = max(subgrid_z_dep(ivol + 1, nm) - subgrid_z_dep(ivol, nm), 0.001)
-         awet  = dzvol / dz
-      endif
+      vol  = gw_sy(nm) * max(acell * b - max(v1 - v0, 0.0), 0.0)
       !
-      awet = min(max(awet, gw_awet_floor * acell), acell)
-      !
-      vol  = gw_sy(nm) * b * awet
-      dvol = gw_sy(nm) * awet
+      adry = min(max(acell - a1, gw_awet_floor * acell), acell)
+      dvol = gw_sy(nm) * adry
       !
    endif
    !
