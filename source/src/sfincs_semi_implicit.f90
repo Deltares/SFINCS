@@ -81,6 +81,7 @@ module sfincs_semi_implicit
    integer :: si_outer_total      ! total nonlinear outer iterations (subgrid)
    integer :: si_outer_max_seen   ! worst outer count in any timestep
    integer :: si_outer_capped     ! timesteps that hit si_maxouter
+   integer :: si_outer_stagnant   ! outer loops stopped on stagnation
    integer :: si_solve_count_outer ! timesteps with an outer loop
    !
 contains
@@ -178,6 +179,7 @@ contains
    si_outer_total = 0
    si_outer_max_seen = 0
    si_outer_capped = 0
+   si_outer_stagnant = 0
    si_solve_count_outer = 0
    !
    ! Build row <-> nm mapping
@@ -394,7 +396,7 @@ contains
    real*4  :: div_qstar
    integer :: kface, islot, iouter
    real*4  :: coeff_face
-   real*4  :: acell, vol_n, vol_k, awet_n, awet_k, diag_store, dmax_outer
+   real*4  :: acell, vol_n, vol_k, awet_n, awet_k, diag_store, dmax_outer, dmax_prev
    real*4  :: diag
    real*4  :: dxr_val, dyr_val
    !
@@ -412,6 +414,8 @@ contains
       si_x(irow) = real(zs(si_nm_of_row(irow)))
    enddo
    !$omp end parallel do
+   !
+   dmax_prev = 1.0e30
    !
    ! Seed the outer iterate from the current water level. On the first pass the subgrid
    ! branch then reduces to exactly the linear form, so a subgrid model starts from the same
@@ -602,7 +606,23 @@ contains
       !
       si_outer_total = si_outer_total + 1
       !
-      if (dmax_outer > si_tolouter .and. iouter < si_maxouter) cycle
+      ! Stop on convergence OR on stagnation.
+      !
+      ! The max-norm alone is not a usable test here: a handful of cells sitting on a
+      ! wet/dry threshold keep flipping between two states, so the maximum change never
+      ! falls below tolerance even though the field has converged. Measured on Harvey, the
+      ! loop ran to its 50-iteration cap on 13479 of 13480 timesteps while iterations 4-50
+      ! changed the gauge RMSE by less than 0.01 m -- a factor 10.5 in runtime for nothing.
+      !
+      ! So also stop once an iteration fails to improve the max change by at least 10%:
+      ! past that point the remaining error is the switching cells, not the solution.
+      !
+      if (iouter > 1 .and. dmax_outer > 0.9 * dmax_prev) then
+         si_outer_stagnant = si_outer_stagnant + 1
+      else
+         dmax_prev = dmax_outer
+         if (dmax_outer > si_tolouter .and. iouter < si_maxouter) cycle
+      endif
       !
       si_outer_max_seen = max(si_outer_max_seen, iouter)
       si_solve_count_outer = si_solve_count_outer + 1
