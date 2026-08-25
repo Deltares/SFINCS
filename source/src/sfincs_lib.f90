@@ -24,6 +24,7 @@ module sfincs_lib
    use sfincs_wavemaker
    use sfincs_nonhydrostatic
    use sfincs_semi_implicit
+   use sfincs_groundwater
    use sfincs_bathtub
    use sfincs_openacc
    use sfincs_log
@@ -184,6 +185,7 @@ module sfincs_lib
       !
       call write_log('Initialize semi-implicit solver ...', 0)
       !
+      if (gwflow) call initialize_groundwater()
       call initialize_semi_implicit()
       !
    endif
@@ -659,6 +661,8 @@ module sfincs_lib
          !
          call write_output(tout, write_map, write_his, write_max, write_rst, ntmapout, ntmaxout, nthisout, tloopoutput)
          !
+         if (gwflow .and. write_map) call gw_write_output(tout)
+         !
       endif
       !      
       ! Stop loop in case of instabilities (make sure time step 'dtmin' does not get too small compared to 'uvmax' flow velocity)
@@ -674,6 +678,8 @@ module sfincs_lib
          ntmaxout = ntmaxout + 1 ! Max sure that max output is not called again through 'finalize_output' 
          !
          call write_output(t, .true., .true., .true., .false., ntmapout + 1, ntmaxout, nthisout + 1, tloopoutput)
+         !
+         if (gwflow) call gw_write_output(t)
          !
          t = t1 + 1.0
          !

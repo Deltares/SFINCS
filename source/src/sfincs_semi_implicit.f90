@@ -18,6 +18,7 @@ module sfincs_semi_implicit
    ! The system is SPD so CG is the natural choice.
    !
    use sfincs_data
+   use sfincs_groundwater
    !
    implicit none
    !
@@ -48,11 +49,20 @@ module sfincs_semi_implicit
    integer, dimension(:), allocatable :: si_row_face_slot   ! slot in si_AA, 0 = Dirichlet
    integer, dimension(:), allocatable :: si_row_face_isy    ! 0 = x-direction, 1 = y
    integer, dimension(:), allocatable :: si_row_face_bnd    ! cell to read zs from when Dirichlet
+   integer, dimension(:), allocatable :: si_row_face_gwslot ! slot in si_AA, aquifer block
+   real*4,  dimension(:), allocatable :: si_row_face_dinv   ! 1 / centre-to-centre distance
    !
    ! Position of the diagonal within each CSR row. This is
    ! what lets the preconditioner split lower from upper without a fixed stencil.
    !
-   integer, dimension(:), allocatable :: si_diag_ptr     ! nrows_si
+   integer, dimension(:), allocatable :: si_diag_ptr     ! nrows_tot
+   !
+   ! Groundwater block bookkeeping: where each aquifer face and each exchange entry
+   ! lands in si_AA, and the total row count including the aquifer half.
+   !
+   integer, dimension(:,:), allocatable :: gw_face_slot  ! (8, nrows_si)
+   integer, dimension(:), allocatable :: si_exch_ptr     ! nrows_tot
+   integer :: nrows_tot
    !
    ! Lower bound on the wet-area derivative, as a fraction of cell area. Sets the worst
    ! spread the coupled diagonal can take, and so the conditioning CG has to cope with.
@@ -97,6 +107,7 @@ contains
    !
    integer :: nm, ip, irow, icol, k
    integer :: j, nb, nfaces_si, maxrow, ndiag
+   real*4  :: dref
    !
    integer, dimension(:), allocatable :: row_count
    integer, dimension(:,:), allocatable :: face_ip    ! (8, nrows_si) UV point per face slot
@@ -122,17 +133,28 @@ contains
       endif
    enddo
    !
+   ! Total unknowns. With groundwater the aquifer head is a second block of the same size, so
+   ! every solver work array below is sized for both.
+   !
+   if (gwflow) then
+      nrows_tot = 2 * nrows_si
+   else
+      nrows_tot = nrows_si
+   endif
+   !
    ! Allocate solver arrays
    !
    allocate(si_nm_of_row(nrows_si))
-   allocate(si_row_ptr(nrows_si + 1))
+   allocate(si_row_ptr(nrows_tot + 1))
    allocate(face_ip(8, nrows_si))
    allocate(face_nb(8, nrows_si))
    allocate(face_bnd(8, nrows_si))
    allocate(face_isy(8, nrows_si))
    allocate(face_slot(8, nrows_si))
-   allocate(si_rhs(nrows_si))
-   allocate(si_x(nrows_si))
+   allocate(si_rhs(nrows_tot))
+   allocate(si_x(nrows_tot))
+   allocate(si_dx(nrows_tot))
+   allocate(si_b(nrows_tot))
    ! Sized exactly like q and uv (sfincs_domain.f90:2196), NOT npuv.
    !
    ! A quadtree creates ncuv combined uv points that live past npuv, and div_qstar below
@@ -145,13 +167,13 @@ contains
    !
    ! CG work arrays (allocated once, reused every timestep)
    !
-   allocate(cg_r(nrows_si))
-   allocate(cg_z(nrows_si))
-   allocate(cg_p(nrows_si))
-   allocate(cg_Ap(nrows_si))
-   allocate(cg_diag(nrows_si))
-   allocate(si_eta_k(nrows_si))
-   allocate(si_scale(nrows_si))
+   allocate(cg_r(nrows_tot))
+   allocate(cg_z(nrows_tot))
+   allocate(cg_p(nrows_tot))
+   allocate(cg_Ap(nrows_tot))
+   allocate(cg_diag(nrows_tot))
+   allocate(si_eta_k(nrows_tot))
+   allocate(si_scale(nrows_tot))
    !
    si_nm_of_row = 0
    si_row_ptr = 0
@@ -246,26 +268,42 @@ contains
    ! Build the CSR sparsity pattern. Rows are variable length: 5 entries on a regular grid,
    ! up to 9 next to a refinement transition.
    !
-   allocate(row_count(nrows_si))
+   ! With groundwater the system carries two unknowns per cell: surface head in rows
+   ! 1..nrows_si, aquifer head in rows nrows_si+1..2*nrows_si. A groundwater row has the same
+   ! lateral connectivity as its surface counterpart, and both gain one exchange entry linking
+   ! them. Nothing below assumes a stencil size, so this is a row-count change and not a
+   ! restructuring.
+   !
+   allocate(row_count(nrows_tot))
    !
    do irow = 1, nrows_si
       row_count(irow) = 1                       ! the diagonal is always present
       do j = 1, 8
          if (face_nb(j, irow) > 0) row_count(irow) = row_count(irow) + 1
       enddo
+      if (gwflow) then
+         row_count(irow) = row_count(irow) + 1              ! exchange with the aquifer
+         row_count(nrows_si + irow) = row_count(irow)       ! same lateral pattern + exchange
+      endif
    enddo
    !
    si_row_ptr(1) = 1
-   do irow = 1, nrows_si
+   do irow = 1, nrows_tot
       si_row_ptr(irow + 1) = si_row_ptr(irow) + row_count(irow)
    enddo
    !
-   nnz_si = si_row_ptr(nrows_si + 1) - 1
+   nnz_si = si_row_ptr(nrows_tot + 1) - 1
    !
    deallocate(row_count)
    !
    allocate(si_col_idx(nnz_si))
-   allocate(si_diag_ptr(nrows_si))
+   allocate(si_diag_ptr(nrows_tot))
+   if (gwflow) then
+      allocate(gw_face_slot(8, nrows_si))
+      allocate(si_exch_ptr(nrows_tot))
+      gw_face_slot = 0
+      si_exch_ptr = 0
+   endif
    !
    si_col_idx = 0
    si_diag_ptr = 0
@@ -297,7 +335,47 @@ contains
          endif
       enddo
       !
+      if (gwflow) then
+         k = k + 1
+         si_col_idx(k) = nrows_si + irow         ! exchange, upper block
+         si_exch_ptr(irow) = k
+      endif
+      !
    enddo
+   !
+   if (gwflow) then
+      !
+      do irow = 1, nrows_si
+         !
+         k = si_row_ptr(nrows_si + irow) - 1
+         !
+         k = k + 1
+         si_col_idx(k) = irow                    ! exchange, lower block
+         si_exch_ptr(nrows_si + irow) = k
+         !
+         do j = 1, 4
+            if (face_nb(j, irow) > 0) then
+               k = k + 1
+               si_col_idx(k) = nrows_si + face_nb(j, irow)
+               gw_face_slot(j, irow) = k
+            endif
+         enddo
+         !
+         k = k + 1
+         si_col_idx(k) = nrows_si + irow
+         si_diag_ptr(nrows_si + irow) = k
+         !
+         do j = 5, 8
+            if (face_nb(j, irow) > 0) then
+               k = k + 1
+               si_col_idx(k) = nrows_si + face_nb(j, irow)
+               gw_face_slot(j, irow) = k
+            endif
+         enddo
+         !
+      enddo
+      !
+   endif
    !
    allocate(si_AA(nnz_si))
    si_AA = 0.0
@@ -319,6 +397,10 @@ contains
    allocate(si_row_face_slot(nfaces_si))
    allocate(si_row_face_isy(nfaces_si))
    allocate(si_row_face_bnd(nfaces_si))
+   allocate(si_row_face_gwslot(nfaces_si))
+   allocate(si_row_face_dinv(nfaces_si))
+   si_row_face_gwslot = 0
+   si_row_face_dinv = 0.0
    !
    k = 0
    do irow = 1, nrows_si
@@ -330,6 +412,22 @@ contains
             si_row_face_slot(k) = face_slot(j, irow)   ! 0 means Dirichlet neighbour
             si_row_face_isy(k)  = face_isy(j, irow)
             si_row_face_bnd(k)  = face_bnd(j, irow)
+            if (gwflow) si_row_face_gwslot(k) = gw_face_slot(j, irow)
+            !
+            ! Centre-to-centre distance for this face, matching what momentum uses.
+            ! Same refinement level: the cell size at that level. Across a transition:
+            ! 1.5 x the FINE cell size, which is coarse-half plus fine-half
+            ! (sfincs_momentum.f90:239 computes exactly this).
+            !
+            ip = face_ip(j, irow)
+            if (face_isy(j, irow) == 0) then
+               dref = 1.0 / dxrinv(uv_flags_iref(ip))
+            else
+               dref = 1.0 / dyrinv(uv_flags_iref(ip))
+            endif
+            if (uv_flags_type(ip) /= 0) dref = 1.5 * dref
+            si_row_face_dinv(k) = 1.0 / dref
+            !
          endif
       enddo
    enddo
@@ -342,7 +440,7 @@ contains
    ! valid preconditioner rather than failing visibly.
    !
    maxrow = 0
-   do irow = 1, nrows_si
+   do irow = 1, nrows_tot
       maxrow = max(maxrow, si_row_ptr(irow + 1) - si_row_ptr(irow))
       ndiag = 0
       do k = si_row_ptr(irow), si_row_ptr(irow + 1) - 1
@@ -362,7 +460,7 @@ contains
    ! quadtree connectivity is picked up (a coarse cell next to refinement reaches 9).
    ! If it stays at 5 on a quadtree model, the refinement transitions are not being seen.
    !
-   write(*,'(a,i10,a,i10,a,i3,a,i10)') ' Semi-implicit: rows ', nrows_si, &
+   write(*,'(a,i10,a,i10,a,i3,a,i10)') ' Semi-implicit: rows ', nrows_tot, &
       '  nonzeros ', nnz_si, '  max row ', maxrow, '  faces ', nfaces_si
    !
    deallocate(face_ip)
@@ -397,6 +495,8 @@ contains
    integer :: kface, islot, iouter
    real*4  :: coeff_face
    real*4  :: acell, vol_n, vol_k, awet_n, awet_k, diag_store, dmax_outer, dmax_prev
+   integer :: jrow
+   real*4  :: cexch, tface, gvol_n, gvol_k, gdvol, hk, resid
    real*4  :: diag
    real*4  :: dxr_val, dyr_val
    !
@@ -425,6 +525,38 @@ contains
       do irow = 1, nrows_si
          si_eta_k(irow) = real(zs(si_nm_of_row(irow)))
       enddo
+   endif
+   !
+   if (gwflow) then
+      !
+      ! Snapshot the head at time level n BEFORE the outer loop starts.
+      !
+      ! gw_head itself is overwritten every outer iteration, because the transmissivity lag and
+      ! the storage linearisation both read the latest iterate. The old-time storage term must
+      ! NOT: if it reads gw_head it sees the current iterate, the storage residual cancels to
+      ! zero, and the aquifer jumps to the steady state of the diffusion operator on the first
+      ! timestep and then sits there with dh/dt identically zero.
+      !
+      ! Where the aquifer meets a prescribed-water-level boundary, its head is that water
+      ! level. This lets an ordinary bzs time series drive a tidal aquifer boundary, instead of
+      ! groundwater needing forcing machinery of its own. Off by default, because a boundary
+      ! cell with no bzs forcing carries zs = zsini, which would overwrite a prescribed head.
+      !
+      if (gw_bnd_from_zs) then
+         do nm = 1, np
+            if (kcs(nm) == 2) gw_head(nm) = real(zs(nm))
+         enddo
+      endif
+      !
+      do nm = 1, np
+         gw_head_n(nm) = gw_head(nm)
+      enddo
+      !
+      do irow = 1, nrows_si
+         si_eta_k(nrows_si + irow) = gw_head(si_nm_of_row(irow))
+         si_x(nrows_si + irow)     = gw_head(si_nm_of_row(irow))
+      enddo
+      !
    endif
    !
    do iouter = 1, si_maxouter
@@ -484,24 +616,27 @@ contains
       ! multiplicative coefficient, which is a period-2 limit cycle at every timestep.
       ! The nonlinearity is diagonal-only, so the matrix stays symmetric and CG is retained.
       !
+      if (crsgeo) then
+         acell = cell_area_m2(nm)
+      else
+         acell = cell_area(z_flags_iref(nm))
+      endif
+      !
+      ! Volumetric: every term below is a volume per timestep, not a level. Diagonal scaling
+      ! before the solve removes the resulting O(1e5) magnitudes, so CG is unaffected.
+      !
       if (subgrid) then
-         !
-         if (crsgeo) then
-            acell = cell_area_m2(nm)
-         else
-            acell = cell_area(z_flags_iref(nm))
-         endif
          !
          call subgrid_storage(nm, real(zs(nm)), vol_n, awet_n)
          call subgrid_storage(nm, si_eta_k(irow), vol_k, awet_k)
          !
-         diag_store = awet_k / acell
-         si_rhs(irow) = (vol_n - vol_k + awet_k * si_eta_k(irow)) / acell + dt * div_qstar
+         diag_store = awet_k
+         si_rhs(irow) = (vol_n - vol_k + awet_k * si_eta_k(irow)) + acell * dt * div_qstar
          !
       else
          !
-         diag_store = 1.0
-         si_rhs(irow) = real(zs(nm)) + dt * div_qstar
+         diag_store = acell
+         si_rhs(irow) = acell * (real(zs(nm)) + dt * div_qstar)
          !
       endif
       !
@@ -509,13 +644,13 @@ contains
       ! accounts for the added volume when computing fluxes
       !
       if (precip) then
-         si_rhs(irow) = si_rhs(irow) + dt * netprcp(nm)
+         si_rhs(irow) = si_rhs(irow) + acell * dt * netprcp(nm)
       endif
       !
       ! Include external sources (e.g. from BMI/XMI coupling)
       !
       if (use_qext) then
-         si_rhs(irow) = si_rhs(irow) + dt * qext(nm)
+         si_rhs(irow) = si_rhs(irow) + acell * dt * qext(nm)
       endif
       !
       ! Now assemble matrix coefficients
@@ -536,10 +671,18 @@ contains
          ip    = si_row_face_ip(kface)
          islot = si_row_face_slot(kface)
          !
+         ! Volumetric. si_coeff is per unit face width, so multiply by the width of THIS
+         ! face, taken from the face's own refinement level rather than the cell's. On a
+         ! regular grid this is the same number for both cells and reduces to the old form
+         ! times cell area. At a quadtree transition the coarse cell's two fine faces get
+         ! half the coarse width each, which is what the explicit side does by averaging the
+         ! two fluxes over the full face -- and it makes A(coarse,fine) equal A(fine,coarse),
+         ! so symmetry survives.
+         !
          if (si_row_face_isy(kface) == 0) then
-            coeff_face = si_coeff(ip) * dt / dxr_val
+            coeff_face = si_coeff(ip) * dt * dyrm(uv_flags_iref(ip))
          else
-            coeff_face = si_coeff(ip) * dt / dyr_val
+            coeff_face = si_coeff(ip) * dt * dxrm(uv_flags_iref(ip))
          endif
          !
          diag = diag + coeff_face
@@ -560,18 +703,100 @@ contains
       !
       si_AA(si_diag_ptr(irow)) = diag
       !
+      ! Exchange with the aquifer, written symmetrically.
+      !
+      ! The SAME conductance goes into A(i, N+i) and A(N+i, i) and onto both diagonals. A spike
+      ! measured the coupled matrix at exactly 0.000e+00 symmetry residual with this
+      ! construction; anything one-sided leaves CG converging confidently to a wrong answer
+      ! rather than failing.
+      !
+      if (gwflow) then
+         call gw_exchange_conductance(nm, cexch)
+         cexch = cexch * dt
+         si_AA(si_exch_ptr(irow)) = -cexch
+         si_AA(si_diag_ptr(irow)) = si_AA(si_diag_ptr(irow)) + cexch
+      endif
+      !
    enddo
    !$omp end parallel do
+   !
+   ! Aquifer rows.
+   !
+   !    Sy dh/dt = div( K b grad h ) + R + exchange
+   !
+   ! written volumetrically and expanded about the current outer iterate, so the storage term
+   ! contributes its derivative to the diagonal and the residual to the right-hand side. The
+   ! transmissivity K*b is LAGGED from the previous iterate (Picard), which keeps the aquifer
+   ! block symmetric and lets CG stay. That lag is safe here because at SFINCS timesteps the head
+   ! moves ~1e-4 m per step; the spike measured roughly 150x margin before it fails.
+   !
+   if (gwflow) then
+      !
+      !$omp parallel do private(irow, nm, jrow, kface, ip, islot, acell, tface, coeff_face, &
+      !$omp                     diag, cexch, gvol_n, gvol_k, gdvol, hk) schedule(static)
+      do irow = 1, nrows_si
+         !
+         nm   = si_nm_of_row(irow)
+         jrow = nrows_si + irow
+         hk   = si_eta_k(jrow)
+         !
+         if (crsgeo) then
+            acell = cell_area_m2(nm)
+         else
+            acell = cell_area(z_flags_iref(nm))
+         endif
+         !
+         call gw_cell_storage(nm, gw_head_n(nm), gvol_n, gdvol)
+         call gw_cell_storage(nm, hk, gvol_k, gdvol)
+         !
+         diag = gdvol
+         si_rhs(jrow) = (gvol_n - gvol_k + gdvol * hk) &
+                      + acell * dt * gw_recharge(nm)
+         !
+         do kface = si_row_face_ptr(irow), si_row_face_ptr(irow + 1) - 1
+            !
+            ip    = si_row_face_ip(kface)
+            islot = si_row_face_gwslot(kface)
+            !
+            call gw_face_transmissivity(ip, tface)
+            !
+            if (si_row_face_isy(kface) == 0) then
+               coeff_face = gw_theta * tface * dyrm(uv_flags_iref(ip)) * si_row_face_dinv(kface) * dt
+            else
+               coeff_face = gw_theta * tface * dxrm(uv_flags_iref(ip)) * si_row_face_dinv(kface) * dt
+            endif
+            !
+            diag = diag + coeff_face
+            !
+            if (islot > 0) then
+               si_AA(islot) = -coeff_face
+            else
+               si_rhs(jrow) = si_rhs(jrow) + coeff_face * gw_head(si_row_face_bnd(kface))
+            endif
+            !
+         enddo
+         !
+         call gw_exchange_conductance(nm, cexch)
+         cexch = cexch * dt
+         si_AA(si_exch_ptr(jrow)) = -cexch
+         diag = diag + cexch
+         !
+         si_AA(si_diag_ptr(jrow)) = diag
+         !
+      enddo
+      !$omp end parallel do
+      !
+   endif
    !
    ! Symmetric diagonal scaling: solve (D A D) y = D b with D = diag(1/sqrt(diag A)),
    ! then recover x = D y. Every scaled diagonal becomes exactly 1, so CG sees a system
    ! whose conditioning no longer depends on the spread between dry and wet cells.
    !
-   do irow = 1, nrows_si
+   do irow = 1, nrows_tot
       si_scale(irow) = 1.0 / sqrt(max(si_AA(si_diag_ptr(irow)), 1.0e-20))
    enddo
    !
-   do irow = 1, nrows_si
+   do irow = 1, nrows_tot
       do kface = si_row_ptr(irow), si_row_ptr(irow + 1) - 1
          si_AA(kface) = si_AA(kface) * si_scale(irow) * si_scale(si_col_idx(kface))
       enddo
@@ -581,11 +806,37 @@ contains
    !
    ! Solve using CG with SSOR preconditioning
    !
-   call cg_solve(nrows_si, nnz_si, si_AA, si_col_idx, si_row_ptr, &
-                  si_rhs, si_x, si_tol, si_maxiter, iter, relres)
+   ! Solve for the INCREMENT, not the level.
    !
-   do irow = 1, nrows_si
-      si_x(irow) = si_x(irow) * si_scale(irow)
+   ! Two things go wrong when the absolute level is the unknown. First, CG's stopping test is
+   ! ||r|| / ||b||, and ||b|| is dominated by rows that carry no information: a dry cell
+   ! contributes acell * zs, so a domain sitting 50 m above datum inflates ||b|| by three orders
+   ! of magnitude and the tolerance stops constraining anything. With groundwater that is fatal --
+   ! the aquifer's per-step head change is ~6e-5 m while the effective tolerance permits ~2e-3 m,
+   ! so CG returns "converged" after zero iterations and the water table freezes mid-transient.
+   ! Second, si_x is real*4: at zs = 50 m the representable step is ~4e-6 m, and the increment is
+   ! often smaller than that, so it is lost to rounding before the solver ever sees it.
+   !
+   ! Solving A dx = b - A x0 fixes both. The datum offset cancels out of the right-hand side, so
+   ! ||b|| becomes the actual residual and the tolerance means what it says, and the full real*4
+   ! mantissa is spent on the increment instead of on the datum.
+   !
+   !$omp parallel do private(irow, kface, resid) schedule(static)
+   do irow = 1, nrows_tot
+      resid = si_rhs(irow)
+      do kface = si_row_ptr(irow), si_row_ptr(irow + 1) - 1
+         resid = resid - si_AA(kface) * si_x(si_col_idx(kface))
+      enddo
+      si_b(irow)  = resid
+      si_dx(irow) = 0.0
+   enddo
+   !$omp end parallel do
+   !
+   call cg_solve(nrows_tot, nnz_si, si_AA, si_col_idx, si_row_ptr, &
+                  si_b, si_dx, si_tol, si_maxiter, iter, relres)
+   !
+   do irow = 1, nrows_tot
+      si_x(irow) = (si_x(irow) + si_dx(irow)) * si_scale(irow)
    enddo
    !
    si_iter_total = si_iter_total + iter
@@ -595,14 +846,22 @@ contains
    ! Nonlinear outer iteration, subgrid only. Without subgrid the system is linear and one
    ! pass is exact, so this costs nothing there.
    !
-   if (subgrid) then
+   if (subgrid .or. gwflow) then
       !
       dmax_outer = 0.0
-      do irow = 1, nrows_si
+      do irow = 1, nrows_tot
          dmax_outer = max(dmax_outer, abs(si_x(irow) - si_eta_k(irow)))
       enddo
       !
-      si_eta_k(1:nrows_si) = si_x(1:nrows_si)
+      si_eta_k(1:nrows_tot) = si_x(1:nrows_tot)
+      !
+      ! Feed the aquifer head back so the next iterate relags transmissivity and storage.
+      !
+      if (gwflow) then
+         do irow = 1, nrows_si
+            gw_head(si_nm_of_row(irow)) = si_x(nrows_si + irow)
+         enddo
+      endif
       !
       si_outer_total = si_outer_total + 1
       !

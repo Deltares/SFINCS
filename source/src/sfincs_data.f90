@@ -268,6 +268,28 @@ module sfincs_data
       integer       :: si_maxiter
       real*4        :: si_tol
       real*4        :: si_tolouter
+      !
+      ! Groundwater
+      !
+      logical       :: gwflow
+      real*4        :: gw_theta
+      real*4        :: gw_leakance
+      real*4        :: gw_numax
+      real*4        :: gw_zsini
+      real*4        :: gw_kh_uniform
+      real*4        :: gw_sy_uniform
+      real*4        :: gw_zbase_uniform
+      real*4        :: gw_recharge_uniform
+      character*256 :: gwheadfile
+      logical       :: gw_bnd_from_zs
+      real*4, dimension(:), allocatable :: gw_head_n   ! head at time level n
+      real*4, parameter :: gw_awet_floor = 0.01
+      real*4, dimension(:), allocatable :: gw_head      ! head above datum, m
+      real*4, dimension(:), allocatable :: gw_kh        ! hydraulic conductivity, m/s
+      real*4, dimension(:), allocatable :: gw_sy        ! specific yield, -
+      real*4, dimension(:), allocatable :: gw_zbase     ! aquifer base elevation, m
+      real*4, dimension(:), allocatable :: gw_recharge  ! recharge, m/s
+      real*4, dimension(:), allocatable :: gw_qexch     ! exchange flux to surface, m/s
       integer       :: si_maxouter
       logical       :: h73table
       logical       :: wave_enhanced_roughness
@@ -571,6 +593,8 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: si_coeff        ! Implicit pressure coupling coeff per UV (npuv)
       real*4, dimension(:),   allocatable :: si_rhs          ! RHS vector (nrows_si)
       real*4, dimension(:),   allocatable :: si_x            ! Solution vector eta^{n+1} (nrows_si)
+      real*4, dimension(:),   allocatable :: si_dx           ! Increment solved for, x = x0 + dx
+      real*4, dimension(:),   allocatable :: si_b            ! Residual b - A x0, the CG right-hand side
       real*4, dimension(:),   allocatable :: si_AA           ! Sparse matrix values (nnz_si)
       integer, dimension(:,:), allocatable :: si_index_sparse ! Sparse matrix index (5, nrows_si)
       integer, dimension(:),  allocatable :: si_col_idx      ! CSR column indices (nnz_si)

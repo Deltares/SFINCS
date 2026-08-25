@@ -14,6 +14,8 @@ contains
    implicit none
    !
    integer*8 dtsec
+   integer :: gwflow_int
+   integer :: gwbndzs_int
    !
    ! Temporary variables
    !
@@ -147,6 +149,25 @@ contains
    ! to its cap on every timestep even when the answer had converged.
    call read_real_input(500, 'si_tolouter', si_tolouter, 1.0e-3)
    call read_int_input(500, 'si_maxouter', si_maxouter, 50)
+   !
+   ! Groundwater. Defaults are the Dupuit conceptual case, so a model that sets only
+   ! gwflow = 1 runs rather than failing. gw_theta matches the theta_si default.
+   ! There is deliberately no gw_maxouter/gw_tolouter: groundwater reuses the existing
+   ! nonlinear outer loop and its stagnation exit.
+   !
+   call read_int_input(500, 'gwflow', gwflow_int, 0)
+   call read_real_input(500, 'gw_kh', gw_kh_uniform, 1.0e-2)
+   call read_real_input(500, 'gw_sy', gw_sy_uniform, 0.05)
+   call read_real_input(500, 'gw_zbase', gw_zbase_uniform, 0.0)
+   call read_real_input(500, 'gw_recharge', gw_recharge_uniform, 0.0)
+   call read_real_input(500, 'gw_leakance', gw_leakance, 1.0e-5)
+   call read_real_input(500, 'gw_theta', gw_theta, 0.75)
+   call read_real_input(500, 'gw_numax', gw_numax, 4.0)
+   call read_real_input(500, 'gw_zsini', gw_zsini, -999.0)
+   call read_char_input(500, 'gw_headfile', gwheadfile, 'none')
+   call read_int_input(500, 'gw_bnd_from_zs', gwbndzs_int, 0)
+   gwflow = (gwflow_int == 1)
+   gw_bnd_from_zs = (gwbndzs_int == 1)
    call read_real_input(500, 'alfa_si', alfa_si, 0.75)
    call read_real_input(500, 'rugdepth', runup_gauge_depth, 0.05)
    call read_logical_input(500, 'wave_enhanced_roughness', wave_enhanced_roughness, .false.)
