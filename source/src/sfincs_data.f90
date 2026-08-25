@@ -267,6 +267,8 @@ module sfincs_data
       real*4        :: theta_si
       integer       :: si_maxiter
       real*4        :: si_tol
+      real*4        :: si_tolouter
+      integer       :: si_maxouter
       logical       :: h73table
       logical       :: wave_enhanced_roughness
       logical       :: use_bcafile

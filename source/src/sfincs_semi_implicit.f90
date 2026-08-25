@@ -24,6 +24,7 @@ module sfincs_semi_implicit
    private
    public :: initialize_semi_implicit, assemble_and_solve_pressure, backsubstitute_fluxes_si
    public :: get_tloop_si, get_si_iter_avg, get_si_iter_max
+   public :: get_si_outer_avg, get_si_outer_max, get_si_outer_capped
    !
    ! CG solver work arrays (allocated once in initialize, reused each timestep)
    !
@@ -53,12 +54,34 @@ module sfincs_semi_implicit
    !
    integer, dimension(:), allocatable :: si_diag_ptr     ! nrows_si
    !
+   ! Lower bound on the wet-area derivative, as a fraction of cell area. Sets the worst
+   ! spread the coupled diagonal can take, and so the conditioning CG has to cope with.
+   !
+   real*4, parameter :: awet_floor = 0.01
+   !
+   ! Current outer-iterate water level, used only when subgrid is on. The subgrid
+   ! storage relation V(eta) sits on the diagonal and its derivative is the wetted
+   ! area, which depends on the level being solved for, so the system is mildly
+   ! nonlinear and needs an outer iteration.
+   !
+   real*4, dimension(:), allocatable :: si_eta_k       ! nrows_si
+   !
+   ! Symmetric (Jacobi) scaling factors, 1/sqrt(diagonal). The subgrid diagonal spans
+   ! several orders of magnitude between isolated dry cells and well-connected wet
+   ! ones, which stalls CG. Scaling preserves symmetry and definiteness.
+   !
+   real*4, dimension(:), allocatable :: si_scale       ! nrows_si
+   !
    ! Timing and diagnostics
    !
    real    :: tloop_si
    integer :: si_iter_total       ! total CG iterations across all timesteps
    integer :: si_solve_count      ! number of solver calls
    integer :: si_iter_max_seen    ! max iterations in any single solve
+   integer :: si_outer_total      ! total nonlinear outer iterations (subgrid)
+   integer :: si_outer_max_seen   ! worst outer count in any timestep
+   integer :: si_outer_capped     ! timesteps that hit si_maxouter
+   integer :: si_solve_count_outer ! timesteps with an outer loop
    !
 contains
    !
@@ -80,13 +103,6 @@ contains
    integer, dimension(:,:), allocatable :: face_bnd   ! (8, nrows_si) neighbour cell index
    integer, dimension(:,:), allocatable :: face_isy   ! (8, nrows_si) 0 = x, 1 = y
    integer, dimension(:,:), allocatable :: face_slot  ! (8, nrows_si) slot in si_AA
-   !
-   ! Subgrid needs a nonlinear outer iteration that does not exist yet.
-   !
-   if (subgrid) then
-      write(*,*) 'Error: semi_implicit is not yet supported with subgrid=.true. (Phase 2)'
-      stop
-   endif
    !
    !
    ! Allocate row mapping arrays
@@ -119,9 +135,9 @@ contains
    ! Sized exactly like q and uv (sfincs_domain.f90:2196), NOT npuv.
    !
    ! A quadtree creates ncuv combined uv points that live past npuv, and div_qstar below
-   ! reads z_index_uv_md/mu/nd/nu, which point at those combined points next to a
-   ! refinement transition. The +1 is the sentinel slot sfincs_domain.f90:1251 assigns to
-   ! unset indices. Allocating only npuv read past the end -- silently, in Release.
+   ! reads z_index_uv_md/mu/nd/nu, which point at those combined points next to a refinement
+   ! transition. The +1 is the sentinel slot sfincs_domain.f90:1251 assigns to unset indices.
+   ! Allocating only npuv reads past the end -- silently in Release, and it did.
    !
    allocate(si_q_star(npuv + ncuv + 1))
    allocate(si_coeff(npuv + ncuv + 1))
@@ -133,6 +149,8 @@ contains
    allocate(cg_p(nrows_si))
    allocate(cg_Ap(nrows_si))
    allocate(cg_diag(nrows_si))
+   allocate(si_eta_k(nrows_si))
+   allocate(si_scale(nrows_si))
    !
    si_nm_of_row = 0
    si_row_ptr = 0
@@ -150,11 +168,17 @@ contains
    cg_p = 0.0
    cg_Ap = 0.0
    cg_diag = 0.0
+   si_eta_k = 0.0
+   si_scale = 1.0
    !
    tloop_si = 0.0
    si_iter_total = 0
    si_solve_count = 0
    si_iter_max_seen = 0
+   si_outer_total = 0
+   si_outer_max_seen = 0
+   si_outer_capped = 0
+   si_solve_count_outer = 0
    !
    ! Build row <-> nm mapping
    !
@@ -368,8 +392,9 @@ contains
    integer :: count0, count1, count_rate, count_max
    real*4  :: relres
    real*4  :: div_qstar
-   integer :: kface, islot
+   integer :: kface, islot, iouter
    real*4  :: coeff_face
+   real*4  :: acell, vol_n, vol_k, awet_n, awet_k, diag_store, dmax_outer
    real*4  :: diag
    real*4  :: dxr_val, dyr_val
    !
@@ -388,10 +413,23 @@ contains
    enddo
    !$omp end parallel do
    !
+   ! Seed the outer iterate from the current water level. On the first pass the subgrid
+   ! branch then reduces to exactly the linear form, so a subgrid model starts from the same
+   ! place a non-subgrid one would.
+   !
+   if (subgrid) then
+      do irow = 1, nrows_si
+         si_eta_k(irow) = real(zs(si_nm_of_row(irow)))
+      enddo
+   endif
+   !
+   do iouter = 1, si_maxouter
+   !
    ! Assemble matrix and RHS row by row
    !
    !$omp parallel do private(irow, nm, nmd, nmu, ndm, num, dxr_val, dyr_val, &
-   !$omp                      div_qstar, diag, ip, kface, islot, coeff_face) &
+   !$omp                      div_qstar, diag, ip, kface, islot, coeff_face, &
+   !$omp                      acell, vol_n, vol_k, awet_n, awet_k, diag_store) &
    !$omp schedule(static)
    do irow = 1, nrows_si
       !
@@ -428,7 +466,40 @@ contains
       ! RHS = current zs + dt * div(q_star) + dt * sources
       ! (div_qstar already has the sign convention: inflow positive)
       !
-      si_rhs(irow) = real(zs(nm)) + dt * div_qstar
+      ! Storage term.
+      !
+      ! Without subgrid, V = A*eta so the storage contributes 1 on the diagonal and eta^n
+      ! on the RHS, which is what the two branches below reduce to.
+      !
+      ! With subgrid the relation is nonlinear. Expand it about the current outer iterate:
+      !
+      !   V(eta^{n+1}) ~= V(eta^k) + A_wet(eta^k) * (eta^{n+1} - eta^k)
+      !
+      ! and divide through by the cell area to match the form of the flux terms. This is
+      ! Newton written in residual/increment form. It is NOT the same as lagging A_wet as a
+      ! multiplicative coefficient, which is a period-2 limit cycle at every timestep.
+      ! The nonlinearity is diagonal-only, so the matrix stays symmetric and CG is retained.
+      !
+      if (subgrid) then
+         !
+         if (crsgeo) then
+            acell = cell_area_m2(nm)
+         else
+            acell = cell_area(z_flags_iref(nm))
+         endif
+         !
+         call subgrid_storage(nm, real(zs(nm)), vol_n, awet_n)
+         call subgrid_storage(nm, si_eta_k(irow), vol_k, awet_k)
+         !
+         diag_store = awet_k / acell
+         si_rhs(irow) = (vol_n - vol_k + awet_k * si_eta_k(irow)) / acell + dt * div_qstar
+         !
+      else
+         !
+         diag_store = 1.0
+         si_rhs(irow) = real(zs(nm)) + dt * div_qstar
+         !
+      endif
       !
       ! Include precipitation in the pressure system so that the solver
       ! accounts for the added volume when computing fluxes
@@ -447,7 +518,7 @@ contains
       ! The coefficient comes from substituting the momentum into continuity.
       ! For regular grid: cell_area = dxr * dyr
       !
-      diag = 1.0
+      diag = diag_store
       !
       ! Walk this row's faces. Grid-agnostic: nothing here assumes there are four.
       ! Sides 1 and 2 are x-direction, 3 and 4 are y-direction.
@@ -488,19 +559,144 @@ contains
    enddo
    !$omp end parallel do
    !
-   ! Solve using CG with Jacobi preconditioning
+   ! Symmetric diagonal scaling: solve (D A D) y = D b with D = diag(1/sqrt(diag A)),
+   ! then recover x = D y. Every scaled diagonal becomes exactly 1, so CG sees a system
+   ! whose conditioning no longer depends on the spread between dry and wet cells.
+   !
+   do irow = 1, nrows_si
+      si_scale(irow) = 1.0 / sqrt(max(si_AA(si_diag_ptr(irow)), 1.0e-20))
+   enddo
+   !
+   do irow = 1, nrows_si
+      do kface = si_row_ptr(irow), si_row_ptr(irow + 1) - 1
+         si_AA(kface) = si_AA(kface) * si_scale(irow) * si_scale(si_col_idx(kface))
+      enddo
+      si_rhs(irow) = si_rhs(irow) * si_scale(irow)
+      si_x(irow)   = si_x(irow) / si_scale(irow)
+   enddo
+   !
+   ! Solve using CG with SSOR preconditioning
    !
    call cg_solve(nrows_si, nnz_si, si_AA, si_col_idx, si_row_ptr, &
                   si_rhs, si_x, si_tol, si_maxiter, iter, relres)
+   !
+   do irow = 1, nrows_si
+      si_x(irow) = si_x(irow) * si_scale(irow)
+   enddo
    !
    si_iter_total = si_iter_total + iter
    si_solve_count = si_solve_count + 1
    si_iter_max_seen = max(si_iter_max_seen, iter)
    !
+   ! Nonlinear outer iteration, subgrid only. Without subgrid the system is linear and one
+   ! pass is exact, so this costs nothing there.
+   !
+   if (subgrid) then
+      !
+      dmax_outer = 0.0
+      do irow = 1, nrows_si
+         dmax_outer = max(dmax_outer, abs(si_x(irow) - si_eta_k(irow)))
+      enddo
+      !
+      si_eta_k(1:nrows_si) = si_x(1:nrows_si)
+      !
+      si_outer_total = si_outer_total + 1
+      !
+      if (dmax_outer > si_tolouter .and. iouter < si_maxouter) cycle
+      !
+      si_outer_max_seen = max(si_outer_max_seen, iouter)
+      si_solve_count_outer = si_solve_count_outer + 1
+      if (iouter >= si_maxouter) si_outer_capped = si_outer_capped + 1
+      !
+   endif
+   !
+   exit
+   !
+   enddo
+   !
    call system_clock(count1, count_rate, count_max)
    tloop_si = tloop_si + 1.0 * (count1 - count0) / count_rate
    !
    end subroutine assemble_and_solve_pressure
+   !
+   !
+   subroutine subgrid_storage(nm, eta, vol, awet)
+   !
+   ! Volume and wetted area of a subgrid cell at water level eta.
+   !
+   ! Mirrors the table inversion in sfincs_ncoutput.F90:4160-4181. The subgrid table stores
+   ! level as a function of volume, binned uniformly in volume, so awet = dV/deta is
+   ! piecewise CONSTANT and jumps at bin edges. That discontinuous derivative is why the
+   ! outer iteration below has to be written in residual form: lagging awet as a
+   ! multiplicative coefficient does not converge at any timestep.
+   !
+   implicit none
+   !
+   integer, intent(in)  :: nm
+   real*4,  intent(in)  :: eta
+   real*4,  intent(out) :: vol, awet
+   !
+   integer :: ilevel, ivol
+   real*4  :: acell, dzvol, dz, facint, zmn, zmx
+   !
+   if (crsgeo) then
+      acell = cell_area_m2(nm)
+   else
+      acell = cell_area(z_flags_iref(nm))
+   endif
+   !
+   zmn = max(subgrid_z_zmin(nm), -20.0)
+   zmx = max(subgrid_z_zmax(nm), -20.0)
+   !
+   if (eta >= zmx) then
+      !
+      ! Cell fully wet: storage grows with the full cell area
+      !
+      vol  = subgrid_z_volmax(nm) + acell * (eta - zmx)
+      awet = acell
+      !
+   elseif (eta <= zmn) then
+      !
+      ! Cell dry. Use the wet area of the FIRST table bin: that is the area the first water
+      ! entering the cell would occupy, and it is continuous with the interior branch below.
+      !
+      ! An earlier version used a token 1e-6*acell here to keep the row non-singular. That
+      ! put a millionfold spread on the diagonal, CG hit its iteration ceiling every step,
+      ! and the solution never moved off its initial guess -- gauges stayed frozen at their
+      ! starting level through the whole event.
+      !
+      dzvol = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
+      dz    = max(subgrid_z_dep(2, nm) - subgrid_z_dep(1, nm), 0.001)
+      vol   = 0.0
+      awet  = dzvol / dz
+      !
+   else
+      !
+      ivol = 1
+      do ilevel = 2, subgrid_nlevels
+         if (subgrid_z_dep(ilevel, nm) > eta) then
+            ivol = ilevel - 1
+            exit
+         endif
+      enddo
+      !
+      dzvol  = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
+      dz     = max(subgrid_z_dep(ivol + 1, nm) - subgrid_z_dep(ivol, nm), 0.001)
+      facint = (eta - subgrid_z_dep(ivol, nm)) / dz
+      vol    = (ivol - 1) * dzvol + facint * dzvol
+      awet   = dzvol / dz
+      !
+   endif
+   !
+   ! Keep the derivative inside a sane range. A flat bench in the table makes dz tiny and
+   ! awet enormous; a steep one makes it vanish. Either wrecks the conditioning of the
+   ! coupled matrix. Clamping is safe because awet is only the linearisation derivative --
+   ! the residual form carries V(eta) exactly on the RHS, so this changes the convergence
+   ! rate of the outer loop, not the solution it converges to.
+   !
+   awet = min(max(awet, awet_floor * acell), acell)
+   !
+   end subroutine subgrid_storage
    !
    !
    subroutine cg_solve(n, nnz, val, col_ind, row_ptr, b, x, tol, maxiter, iter, relres)
@@ -719,6 +915,7 @@ contains
    !
    implicit none
    !
+   !
    real*4, intent(in) :: dt
    !
    integer :: ip, nm, nmu_z, irow
@@ -731,7 +928,13 @@ contains
    !$omp do schedule ( dynamic, 256 )
    do ip = 1, npuv
       !
-      if (kfuv(ip) == 1 .or. si_coeff(ip) > 0.0) then
+      ! Strictly the wet flag. The old test also accepted si_coeff(ip) > 0.0, which let DRY
+      ! faces through: sfincs_momentum.f90:793-797 sets q = 0 and kfuv = 0 for a dry face but
+      ! leaves si_q_star and si_coeff at whatever they held when the face was last wet, so
+      ! backsubstitution overwrote that zero with a spurious flux built from stale
+      ! coefficients. Every face that ever wetted then kept injecting water forever.
+      !
+      if (kfuv(ip) == 1) then
          !
          nm    = uv_index_z_nm(ip)
          nmu_z = uv_index_z_nmu(ip)
@@ -754,19 +957,48 @@ contains
          !
          q(ip) = si_q_star(ip) - si_coeff(ip) * (eta_nmu - eta_nm)
          !
-         ! Apply dry-cell limiter
+         ! Stop water flowing out of a cell that has no water in it.
          !
-         if (eta_nm < zb(nm)) then
-            q(ip) = min(q(ip), 0.0)
-         endif
+         ! sfincs_momentum.f90:713 skips this when semi_implicit, on the understanding that
+         ! backsubstitution applies it instead, so the criterion has to match what momentum
+         ! would have used. With subgrid that is the negative-VOLUME test, not a level
+         ! comparison: the subgrid table is inverted from z_volume, so letting a volume go
+         ! negative sends the interpolation index to garbage and the run dies inside
+         ! compute_water_levels_subgrid.
          !
-         if (eta_nmu < zb(nmu_z)) then
-            q(ip) = max(q(ip), 0.0)
+         if (subgrid) then
+            !
+            if (z_volume(nm) < 0.0) then
+               q(ip) = min(q(ip), 0.0)
+            endif
+            !
+            if (z_volume(nmu_z) < 0.0) then
+               q(ip) = max(q(ip), 0.0)
+            endif
+            !
+         else
+            !
+            if (eta_nm < zb(nm)) then
+               q(ip) = min(q(ip), 0.0)
+            endif
+            !
+            if (eta_nmu < zb(nmu_z)) then
+               q(ip) = max(q(ip), 0.0)
+            endif
+            !
          endif
          !
          ! Apply flux limiter
          !
-         hu = max(real(max(zs(nm), zs(nmu_z))) - zbuvmx(ip), huthresh)
+         ! With subgrid there is no zbuvmx; the face reference level is subgrid_uv_zmin,
+         ! which already has huthresh folded in when the tables are built (see the comment
+         ! at sfincs_momentum.f90:177).
+         !
+         if (subgrid) then
+            hu = max(real(max(zs(nm), zs(nmu_z))) - subgrid_uv_zmin(ip), huthresh)
+         else
+            hu = max(real(max(zs(nm), zs(nmu_z))) - zbuvmx(ip), huthresh)
+         endif
          q(ip) = min(max(q(ip), -hu * uvlim), hu * uvlim)
          !
          ! Update velocity
@@ -811,5 +1043,24 @@ contains
       integer :: m
       m = si_iter_max_seen
    end function get_si_iter_max
+   !
+   function get_si_outer_avg() result(avg)
+      real :: avg
+      if (si_outer_total == 0) then
+         avg = 0.0
+      else
+         avg = 1.0 * si_outer_total / max(si_solve_count_outer, 1)
+      endif
+   end function get_si_outer_avg
+   !
+   function get_si_outer_max() result(m)
+      integer :: m
+      m = si_outer_max_seen
+   end function get_si_outer_max
+   !
+   function get_si_outer_capped() result(m)
+      integer :: m
+      m = si_outer_capped
+   end function get_si_outer_capped
    !
 end module sfincs_semi_implicit

@@ -142,6 +142,11 @@ contains
    call read_real_input(500, 'theta_si', theta_si, 0.75)
    call read_int_input(500, 'si_maxiter', si_maxiter, 500)
    call read_real_input(500, 'si_tol', si_tol, 1.0e-6)
+   ! 1 mm. The old 1e-5 m default was unreachable: against water levels of order 10 m that
+   ! is a relative tolerance of 1e-6, below real*4 epsilon (1.2e-7), so the outer loop ran
+   ! to its cap on every timestep even when the answer had converged.
+   call read_real_input(500, 'si_tolouter', si_tolouter, 1.0e-3)
+   call read_int_input(500, 'si_maxouter', si_maxouter, 50)
    call read_real_input(500, 'alfa_si', alfa_si, 0.75)
    call read_real_input(500, 'rugdepth', runup_gauge_depth, 0.05)
    call read_logical_input(500, 'wave_enhanced_roughness', wave_enhanced_roughness, .false.)

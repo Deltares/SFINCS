@@ -792,6 +792,11 @@ module sfincs_lib
       write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in SI solver      : ', get_tloop_si(), ' (', 100 * get_tloop_si() / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
       write(logstr,'(a,f6.1,a,i0)') ' SI CG iterations avg   :  ', get_si_iter_avg(), '  max: ', get_si_iter_max()
+      call write_log(logstr, 0)
+      if (subgrid) then
+         write(logstr,'(a,f6.1,a,i0,a,i0)') ' SI outer iterations avg:  ', get_si_outer_avg(), &
+            '  max: ', get_si_outer_max(), '  capped: ', get_si_outer_capped()
+      endif
       call write_log(logstr, 1)
    endif
    !

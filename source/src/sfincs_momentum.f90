@@ -796,6 +796,14 @@ contains
             uv(ip) = 0.0
             kfuv(ip) = 0
             !
+            ! Clear the semi-implicit coefficients too. Leaving them at their last wet values
+            ! is what let backsubstitution resurrect a flux on a dry face.
+            !
+            if (semi_implicit) then
+               si_q_star(ip) = 0.0
+               si_coeff(ip)  = 0.0
+            endif
+            !
          endif
          !
       endif
