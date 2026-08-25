@@ -1011,12 +1011,46 @@ contains
             uv(ip)     = 0.0
             uvmean(ib) = 0.0
             !
+            if (semi_implicit) then
+               si_q_star(ip) = 0.0
+               si_coeff(ip)  = 0.0
+            endif
+            !
          else
             !
             ui = sqrt(g / hnmb) * (zsnmb - zs0nmb)
             ub = ibuvdir(ib) * (2 * ui - sqrt(g / hnmb) * (zsnmi - zs0nmb))
             !
             q(ip) = ub * hnmb + uvmean(ib)            
+            !
+            ! Hand the same relation to the semi-implicit solver, implicitly.
+            !
+            ! sfincs_momentum only visits kcuv == 1 and 6, so a boundary point never got a
+            ! si_q_star or si_coeff and the semi-implicit system saw NO flux across it at all. A
+            ! prescribed water level then drove nothing: on a 50-cell basin held at 1 m the
+            ! explicit scheme filled the interior to 1.24 m while the semi-implicit one sat at
+            ! exactly 0.0000 m. Every model forced by bzs was affected; it went unnoticed because
+            ! none of the semi-implicit regression cases use a water level boundary.
+            !
+            ! Expanding the line above,
+            !
+            !    q = ibuvdir * sqrt(g h) * (2 zsb - zs0 - zsi) + uvmean
+            !
+            ! which is LINEAR in the interior level, so it maps exactly onto the solver's own
+            ! face form q = q_star - coeff * (eta_nmu - eta_nm) with
+            !
+            !    coeff  = sqrt(g h)
+            !    q_star = ibuvdir * sqrt(g h) * (zsb - zs0) + uvmean
+            !
+            ! for either orientation. Writing it this way keeps the boundary weakly reflective
+            ! rather than turning it into a hard Dirichlet wall, and keeps it implicit, which
+            ! matters because the semi-implicit timestep is well past the gravity-wave CFL that
+            ! an explicit boundary flux would need.
+            !
+            if (semi_implicit) then
+               si_coeff(ip)  = sqrt(g * hnmb)
+               si_q_star(ip) = ibuvdir(ib) * sqrt(g * hnmb) * (zsnmb - zs0nmb) + uvmean(ib)
+            endif
             !
             ! Riemann
             !
