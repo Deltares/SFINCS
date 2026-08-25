@@ -165,6 +165,7 @@ contains
    call read_real_input(500, 'gw_numax', gw_numax, 4.0)
    call read_real_input(500, 'gw_zsini', gw_zsini, -999.0)
    call read_char_input(500, 'gw_headfile', gwheadfile, 'none')
+   call read_char_input(500, 'gw_rechargefile', gwrechargefile, 'none')
    call read_int_input(500, 'gw_bnd_from_zs', gwbndzs_int, 0)
    gwflow = (gwflow_int == 1)
    gw_bnd_from_zs = (gwbndzs_int == 1)

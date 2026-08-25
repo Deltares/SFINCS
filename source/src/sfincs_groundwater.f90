@@ -82,6 +82,18 @@ contains
       enddo
    endif
    !
+   !
+   ! Optional spatial recharge, same flat-binary-over-active-cells convention as the head file.
+   ! A NEGATIVE value is a sink: that is how a polder's ditch network is represented, as drainage
+   ! removed from the aquifer over the drained area rather than from the surface.
+   !
+   if (gwrechargefile(1:4) /= 'none') then
+      write(*,'(a,a)') ' Groundwater: reading recharge file ', trim(gwrechargefile)
+      open(unit = 503, file = trim(gwrechargefile), form = 'unformatted', access = 'stream')
+      read(503) gw_recharge
+      close(503)
+   endif
+   !
    gw_head_n = gw_head
    !
    ! Guard the eigenvalue floor.

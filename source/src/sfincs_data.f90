@@ -281,6 +281,7 @@ module sfincs_data
       real*4        :: gw_zbase_uniform
       real*4        :: gw_recharge_uniform
       character*256 :: gwheadfile
+      character*256 :: gwrechargefile
       logical       :: gw_bnd_from_zs
       real*4, dimension(:), allocatable :: gw_head_n   ! head at time level n
       real*4, parameter :: gw_awet_floor = 0.01
