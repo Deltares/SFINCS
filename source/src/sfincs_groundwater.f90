@@ -32,6 +32,8 @@ module sfincs_groundwater
    real*8 :: gw_vol_recharge = 0.0d0
    real*8 :: gw_vol_exfiltration = 0.0d0
    real*8 :: gw_vol_initial = 0.0d0
+   integer, parameter :: gw_maxsub = 10000
+   integer :: gw_nsub_max = 0
    !
 contains
    !
@@ -463,8 +465,8 @@ contains
    !
    real*4, intent(in) :: dt
    !
-   integer :: ip, nm, nmu, isub, nsub, it
-   real*4  :: tface, wface, dinv, qface, dtsub, numax
+   integer :: ip, nm, nmu, nsub, it
+   real*4  :: tface, wface, dinv, qface, dtsub, nurate, tsub
    real*4  :: acell, vol, dvol, volcap, hcap, excess, hnew
    real*4  :: csym, qexpl, qex
    !
@@ -485,12 +487,44 @@ contains
       enddo
    endif
    !
-   call gw_diffusion_number(dt, numax)
-   nsub = max(1, min(int(numax / gw_numax) + 1, 100))
-   dtsub = dt / nsub
-   gw_qsurf = 0.0
+   ! Sub-step to whatever explicit stability demands, recomputing the limit each pass.
    !
-   do isub = 1, nsub
+   ! Forward-in-time centred-in-space diffusion is stable only for
+   !
+   !     Nu = K b dt / (Sy dx^2) <= 1/4   in two dimensions
+   !
+   ! Recomputed every sub-step rather than once, because the saturated thickness b moves with the
+   ! head and a step that was stable at the start of the surface timestep need not stay so.
+   ! Wflow.jl does the same in its groundwater module, calling the coefficient alpha and citing
+   ! Chu & Willis (1984); its default is 0.25, which is where gw_numax's default now sits too.
+   !
+   ! It did NOT sit there originally. gw_numax defaulted to 4.0, chosen for the Picard convergence
+   ! limit of the semi-implicit path -- which is unconditionally stable and never calls this
+   ! routine. Sub-stepping an EXPLICIT scheme down to Nu = 4 is 16x past the limit. No test caught
+   ! it because every case already ran at Nu below 0.5, so the sub-stepping never engaged; raising
+   ! Dupuit's conductivity to 1e-1 m/s puts Nu at 5.0 and the head reaches 1.6e6 m.
+   !
+   gw_qsurf = 0.0
+   tsub = 0.0
+   nsub = 0
+   !
+   do while (tsub < dt)
+      !
+      call gw_diffusion_number(1.0, nurate)     ! diffusion number per second
+      if (nurate > 0.0) then
+         dtsub = gw_numax / nurate
+      else
+         dtsub = dt
+      endif
+      dtsub = min(dtsub, dt - tsub)
+      !
+      nsub = nsub + 1
+      if (nsub > gw_maxsub) then
+         write(*,*) 'Error: groundwater explicit sub-stepping exceeded ', gw_maxsub, ' steps.'
+         write(*,*) '       Diffusion number per second is ', nurate
+         write(*,*) '       The aquifer is much stiffer than the surface here; use semi_implicit = 1.'
+         stop
+      endif
       !
       gw_dvol = 0.0
       !
@@ -571,7 +605,11 @@ contains
          !
       enddo
       !
+      tsub = tsub + dtsub
+      !
    enddo
+   !
+   gw_nsub_max = max(gw_nsub_max, nsub)
    !
    ! Hand the surface its share. Volume, not level, so that the subgrid path stays consistent
    ! with how continuity converts one to the other.

@@ -162,7 +162,7 @@ contains
    call read_real_input(500, 'gw_recharge', gw_recharge_uniform, 0.0)
    call read_real_input(500, 'gw_leakance', gw_leakance, 1.0e-5)
    call read_real_input(500, 'gw_theta', gw_theta, 0.75)
-   call read_real_input(500, 'gw_numax', gw_numax, 4.0)
+   call read_real_input(500, 'gw_numax', gw_numax, 0.25)
    call read_real_input(500, 'gw_zsini', gw_zsini, -999.0)
    call read_char_input(500, 'gw_headfile', gwheadfile, 'none')
    call read_char_input(500, 'gw_rechargefile', gwrechargefile, 'none')
