@@ -64,6 +64,20 @@ module sfincs_semi_implicit
    integer, dimension(:), allocatable :: si_exch_ptr     ! nrows_tot
    integer :: nrows_tot
    !
+   ! What the LAST assembly pass actually put into the matrix, kept so the water budget can
+   ! measure the operator that was applied rather than re-deriving it.
+   !
+   ! Re-deriving is not good enough. Transmissivity and the exchange conductance are both lagged
+   ! one Picard iterate behind the solution, so evaluating them from the converged head gives a
+   ! slightly different operator -- on the Edelman step response that alone put the reported
+   ! closure at 0.03% when the scheme itself was conserving to round-off. A budget that measures
+   ! a different operator from the one the solver used cannot tell a leak from its own lag.
+   !
+   real*4, dimension(:), allocatable :: gw_coeff_applied  ! nfaces_si, transmissivity * width / d * dt
+   real*4, dimension(:), allocatable :: gw_cexch_applied  ! nrows_si, exchange conductance * dt
+   real*4, dimension(:), allocatable :: gw_qexpl_applied  ! nrows_si, lagged exchange remainder
+   real*4, dimension(:), allocatable :: gw_cseep_applied  ! nrows_si, seepage conductance * dt
+   !
    ! Lower bound on the wet-area derivative, as a fraction of cell area. Sets the worst
    ! spread the coupled diagonal can take, and so the conditioning CG has to cope with.
    !
@@ -74,7 +88,7 @@ module sfincs_semi_implicit
    ! area, which depends on the level being solved for, so the system is mildly
    ! nonlinear and needs an outer iteration.
    !
-   real*4, dimension(:), allocatable :: si_eta_k       ! nrows_si
+   real*8, dimension(:), allocatable :: si_eta_k       ! nrows_si
    !
    ! Symmetric (Jacobi) scaling factors, 1/sqrt(diagonal). The subgrid diagonal spans
    ! several orders of magnitude between isolated dry cells and well-connected wet
@@ -402,6 +416,17 @@ contains
    si_row_face_gwslot = 0
    si_row_face_dinv = 0.0
    !
+   if (gwflow) then
+      allocate(gw_coeff_applied(nfaces_si))
+      allocate(gw_cexch_applied(nrows_si))
+      allocate(gw_qexpl_applied(nrows_si))
+      gw_coeff_applied = 0.0
+      gw_cexch_applied = 0.0
+      gw_qexpl_applied = 0.0
+      allocate(gw_cseep_applied(nrows_si))
+      gw_cseep_applied = 0.0
+   endif
+   !
    k = 0
    do irow = 1, nrows_si
       si_row_face_ptr(irow) = k + 1
@@ -494,12 +519,15 @@ contains
    real*4  :: div_qstar
    integer :: kface, islot, iouter
    real*4  :: coeff_face
-   real*4  :: acell, vol_n, vol_k, awet_n, awet_k, diag_store, dmax_outer, dmax_prev
+   real*4  :: acell, awet_n, awet_k, diag_store, dmax_outer, dmax_prev
+   real*8  :: vol_n, vol_k
    integer :: jrow
-   real*4  :: cexch, tface, gvol_n, gvol_k, gdvol, hk, resid, qexpl
+   real*4  :: cexch, tface, gdvol, qexpl, cseep
+   real*8  :: gvol_n, gvol_k, hk, resid, zceil, xi
    integer :: nmb
    real*4  :: diag
    real*4  :: dxr_val, dyr_val
+   real*8  :: bv_rech, bv_exch, bv_bnd, bv_ceil, bv_gross, bv_term
    !
    call system_clock(count0, count_rate, count_max)
    !
@@ -512,7 +540,7 @@ contains
    !
    !$omp parallel do private(irow) schedule(static)
    do irow = 1, nrows_si
-      si_x(irow) = real(zs(si_nm_of_row(irow)))
+      si_x(irow) = zs(si_nm_of_row(irow))
    enddo
    !$omp end parallel do
    !
@@ -522,11 +550,15 @@ contains
    ! branch then reduces to exactly the linear form, so a subgrid model starts from the same
    ! place a non-subgrid one would.
    !
-   if (subgrid .or. gwflow) then
-      do irow = 1, nrows_si
-         si_eta_k(irow) = real(zs(si_nm_of_row(irow)))
-      enddo
-   endif
+   ! Unconditionally, for EVERY model. This used to be guarded by (subgrid .or. gwflow),
+   ! because si_eta_k was only a linearisation point and a linear model has nothing to
+   ! linearise. It is now also the point the residual is expanded about -- si_rhs holds
+   ! b - rowsum*si_eta_k -- so a plain model that left it at zero got a residual that was not
+   ! a residual at all, and blew up to 1e16 m on the first Bates test.
+   !
+   do irow = 1, nrows_si
+      si_eta_k(irow) = zs(si_nm_of_row(irow))
+   enddo
    !
    if (gwflow) then
       !
@@ -566,7 +598,8 @@ contains
    !
    !$omp parallel do private(irow, nm, nmd, nmu, ndm, num, dxr_val, dyr_val, &
    !$omp                      div_qstar, diag, ip, kface, islot, coeff_face, &
-   !$omp                      acell, vol_n, vol_k, awet_n, awet_k, diag_store, cexch, qexpl) &
+   !$omp                      acell, vol_n, vol_k, awet_n, awet_k, diag_store, cexch, qexpl, &
+   !$omp                      cseep, zceil) &
    !$omp schedule(static)
    do irow = 1, nrows_si
       !
@@ -628,16 +661,26 @@ contains
       !
       if (subgrid) then
          !
-         call subgrid_storage(nm, real(zs(nm)), vol_n, awet_n)
+         call subgrid_storage(nm, zs(nm), vol_n, awet_n)
          call subgrid_storage(nm, si_eta_k(irow), vol_k, awet_k)
          !
+         ! si_rhs holds the DIAGONAL-REDUCED RESIDUAL, not the right-hand side -- see the
+         ! header of the residual loop below. The storage term contributes awet_k * eta^k to the
+         ! right-hand side and awet_k to the diagonal, so the two cancel exactly and what is
+         ! left is vol_n - vol_k: the volume the cell actually has to shed this step.
+         !
          diag_store = awet_k
-         si_rhs(irow) = (vol_n - vol_k + awet_k * si_eta_k(irow)) + acell * dt * div_qstar
+         si_rhs(irow) = (vol_n - vol_k) + dble(acell) * dble(dt) * dble(div_qstar)
          !
       else
          !
+         ! Same cancellation, written out: acell * zs^n on the right-hand side against acell
+         ! on the diagonal leaves acell * (zs^n - eta^k), which is the subgrid form's
+         ! vol_n - vol_k with a constant wet area.
+         !
          diag_store = acell
-         si_rhs(irow) = acell * (real(zs(nm)) + dt * div_qstar)
+         si_rhs(irow) = dble(acell) * (zs(nm) - si_eta_k(irow)) &
+                      + dble(acell) * dble(dt) * dble(div_qstar)
          !
       endif
       !
@@ -695,7 +738,12 @@ contains
             ! Boundary neighbour (kcs==2): known eta, move to RHS.
             ! si_row_face_bnd already holds whichever end of the face is not this cell,
             ! so there is no left/right special case to get wrong.
-            si_rhs(irow) = si_rhs(irow) + coeff_face * real(zs(si_row_face_bnd(kface)))
+            ! Against this row's own iterate. A Dirichlet coefficient sits on the diagonal
+            ! AND puts the known level on the right-hand side, so the pair reduces to a level
+            ! difference across the boundary face.
+            !
+            si_rhs(irow) = si_rhs(irow) &
+                         + dble(coeff_face) * (zs(si_row_face_bnd(kface)) - si_eta_k(irow))
          endif
          !
       enddo
@@ -716,7 +764,25 @@ contains
          cexch = cexch * dt
          si_AA(si_exch_ptr(irow)) = -cexch
          si_AA(si_diag_ptr(irow)) = si_AA(si_diag_ptr(irow)) + cexch
-         si_rhs(irow) = si_rhs(irow) - dt * qexpl
+         si_rhs(irow) = si_rhs(irow) - dble(dt) * dble(qexpl)
+         !
+         ! Seepage face, arriving as surface water. LAGGED, not implicit.
+         !
+         ! Q_seep depends on the aquifer head but not on the surface level, so writing it
+         ! implicitly on both rows would give A(i, N+i) = -(cexch + cseep)*dt against
+         ! A(N+i, i) = -cexch*dt. That asymmetry costs us CG, and a spike measured the coupled
+         ! matrix at exactly 0.000e+00 symmetry residual with the current construction. So the
+         ! aquifer keeps the implicit half, where stability needs it, and the surface takes the
+         ! lagged half, where it only needs to be conservative. At outer convergence the two are
+         ! the same number; if the loop exits on stagnation they differ, and the water balance
+         ! reports the difference rather than hiding it.
+         !
+         ! si_rhs is volumetric here, like every other term in this row, so a discharge times dt
+         ! is the right thing to add.
+         !
+         call gw_seepage_terms(nm, si_eta_k(irow), si_eta_k(nrows_si + irow), dt, cseep, zceil)
+         si_rhs(irow) = si_rhs(irow) &
+                      + dble(cseep) * dble(dt) * (si_eta_k(nrows_si + irow) - zceil)
       endif
       !
    enddo
@@ -735,7 +801,8 @@ contains
    if (gwflow) then
       !
       !$omp parallel do private(irow, nm, jrow, kface, ip, islot, acell, tface, coeff_face, &
-      !$omp                     diag, cexch, gvol_n, gvol_k, gdvol, hk, nmb, qexpl) schedule(static)
+      !$omp                     diag, cexch, gvol_n, gvol_k, gdvol, hk, nmb, qexpl, &
+      !$omp                     cseep, zceil) schedule(static)
       do irow = 1, nrows_si
          !
          nm   = si_nm_of_row(irow)
@@ -748,12 +815,20 @@ contains
             acell = cell_area(z_flags_iref(nm))
          endif
          !
+         ! gvol_n is the storage at time n and takes the time-n ceiling, which is what zs(nm)
+         ! still holds. gvol_k is the new iterate and takes the new iterate's surface level: the
+         ! ceiling moves with the pond, and a cell whose table is pinned to the ground stores
+         ! Sy*A more per metre the pond deepens. Freezing the ceiling at zs^n instead ejects that
+         ! water as seepage and then finds it back in the storage a step later, unaccounted.
+         !
          call gw_cell_storage(nm, gw_head_n(nm), gvol_n, gdvol)
-         call gw_cell_storage(nm, hk, gvol_k, gdvol)
+         call gw_cell_storage(nm, hk, gvol_k, gdvol, si_eta_k(irow))
          !
          diag = gdvol
-         si_rhs(jrow) = (gvol_n - gvol_k + gdvol * hk) &
-                      + acell * dt * gw_recharge(nm)
+         ! gdvol * hk against gdvol on the diagonal: cancels, leaving gvol_n - gvol_k.
+         !
+         si_rhs(jrow) = (gvol_n - gvol_k) &
+                      + dble(acell) * dble(dt) * dble(gw_recharge(nm))
          !
          do kface = si_row_face_ptr(irow), si_row_face_ptr(irow + 1) - 1
             !
@@ -773,6 +848,8 @@ contains
                coeff_face = tface * dxrm(uv_flags_iref(ip)) * si_row_face_dinv(kface) * dt
             endif
             !
+            gw_coeff_applied(kface) = coeff_face
+            !
             ! theta-weighted in time: theta on the new level, (1 - theta) on the old.
             !
             ! The explicit half is NOT optional. Leaving it out integrates
@@ -784,12 +861,13 @@ contains
             diag = diag + gw_theta * coeff_face
             !
             si_rhs(jrow) = si_rhs(jrow) &
-                         + (1.0 - gw_theta) * coeff_face * (gw_head_n(nmb) - gw_head_n(nm))
+                         + dble((1.0 - gw_theta) * coeff_face) * (gw_head_n(nmb) - gw_head_n(nm))
             !
             if (islot > 0) then
                si_AA(islot) = -gw_theta * coeff_face
             else
-               si_rhs(jrow) = si_rhs(jrow) + gw_theta * coeff_face * gw_head(nmb)
+               si_rhs(jrow) = si_rhs(jrow) &
+                            + dble(gw_theta * coeff_face) * (gw_head(nmb) - hk)
             endif
             !
          enddo
@@ -798,7 +876,23 @@ contains
          cexch = cexch * dt
          si_AA(si_exch_ptr(jrow)) = -cexch
          diag = diag + cexch
-         si_rhs(jrow) = si_rhs(jrow) + dt * qexpl
+         si_rhs(jrow) = si_rhs(jrow) + dble(dt) * dble(qexpl)
+         !
+         gw_cexch_applied(irow) = cexch
+         gw_qexpl_applied(irow) = qexpl
+         !
+         ! Seepage face. Implicit here, because this is where stability needs it: cseep*dt sits on
+         ! the diagonal and grows the outflow as the head rises, which is what stops the runaway.
+         ! The matching term on the surface row is lagged -- see the surface loop for why.
+         !
+         call gw_seepage_terms(nm, si_eta_k(irow), hk, dt, cseep, zceil)
+         diag = diag + cseep * dt
+         ! cseep*dt*zceil against cseep*dt on the diagonal: cancels to the head's excess
+         ! above the ceiling, which is what the seepage face actually responds to.
+         !
+         si_rhs(jrow) = si_rhs(jrow) - dble(cseep) * dble(dt) * (hk - zceil)
+         !
+         gw_cseep_applied(irow) = cseep * dt
          !
          si_AA(si_diag_ptr(jrow)) = diag
          !
@@ -815,64 +909,108 @@ contains
       si_scale(irow) = 1.0 / sqrt(max(si_AA(si_diag_ptr(irow)), 1.0e-20))
    enddo
    !
+   ! Solve for the INCREMENT, and never form the datum.
+   !
+   ! CG's stopping test is ||r|| / ||b||, and if the unknown is the absolute level then ||b|| is
+   ! dominated by rows that carry no information: a dry cell contributes acell * zs, so a domain
+   ! sitting 50 m above datum inflates ||b|| by three orders of magnitude and the tolerance stops
+   ! constraining anything. With groundwater that is fatal -- the aquifer's per-step head change
+   ! is ~6e-5 m while the effective tolerance would permit ~2e-3 m, so CG returns "converged"
+   ! after zero iterations and the water table freezes mid-transient.
+   !
+   ! Solving A dx = b - A x0 fixes the tolerance, but computing that difference NUMERICALLY does
+   ! not get the datum out. Written out,
+   !
+   !    b - A x0  =  [ b - rowsum(i) * x0(i) ]  -  sum_j A_ij * ( x0(j) - x0(i) )
+   !
+   ! the second sum is harmless: every coefficient multiplies a level DIFFERENCE between
+   ! neighbours, millimetres at most, so a real*4 coefficient's ~6e-8 relative error is scaled by
+   ! the gradient. The bracket is where the datum lives, and it cannot be rescued by widening
+   ! anything: rowsum is an accumulation of real*4 coefficients, x0(i) carries the datum, and one
+   ! rounding of the diagonal against a 10 m datum is already 6e-7 m against a residual whose
+   ! true size is ~5e-6 m. Widening si_AA to real*8 was tried and did NOT fix it -- it improved
+   ! the datum-free cases and left the datum ones worse, which is the signature of paying for
+   ! precision instead of removing a cancellation.
+   !
+   ! So the bracket is never computed. It cancels analytically, term by term: the storage term
+   ! contributes gdvol*h^k to b and gdvol to the diagonal; each Dirichlet coefficient puts its
+   ! known level in b and itself on the diagonal; the seepage conductance does the same. Every
+   ! one of those pairs reduces to a level difference, and the assembly above writes si_rhs as
+   ! the already-reduced quantity. si_rhs is therefore the RESIDUAL, not the right-hand side.
+   !
+   ! What is left here is the neighbour sum, and the exchange coefficient, which cancels between
+   ! the diagonal and the coupling entry and so needs no special treatment.
+   !
+   ! Done BEFORE the diagonal scaling, because the scaling breaks the difference form: the scaled
+   ! unknown is x(j)/s(j) with s varying row to row, so x_scaled(j) - x_scaled(i) is no longer a
+   ! level difference. Form the residual unscaled, then scale the one number that comes out.
+   !
+   !$omp parallel do private(irow, kface, resid, xi) schedule(static)
    do irow = 1, nrows_tot
-      do kface = si_row_ptr(irow), si_row_ptr(irow + 1) - 1
-         si_AA(kface) = si_AA(kface) * si_scale(irow) * si_scale(si_col_idx(kface))
-      enddo
-      si_rhs(irow) = si_rhs(irow) * si_scale(irow)
-      si_x(irow)   = si_x(irow) / si_scale(irow)
-   enddo
-   !
-   ! Solve using CG with SSOR preconditioning
-   !
-   ! Solve for the INCREMENT, not the level.
-   !
-   ! Two things go wrong when the absolute level is the unknown. First, CG's stopping test is
-   ! ||r|| / ||b||, and ||b|| is dominated by rows that carry no information: a dry cell
-   ! contributes acell * zs, so a domain sitting 50 m above datum inflates ||b|| by three orders
-   ! of magnitude and the tolerance stops constraining anything. With groundwater that is fatal --
-   ! the aquifer's per-step head change is ~6e-5 m while the effective tolerance permits ~2e-3 m,
-   ! so CG returns "converged" after zero iterations and the water table freezes mid-transient.
-   ! Second, si_x is real*4: at zs = 50 m the representable step is ~4e-6 m, and the increment is
-   ! often smaller than that, so it is lost to rounding before the solver ever sees it.
-   !
-   ! Solving A dx = b - A x0 fixes both. The datum offset cancels out of the right-hand side, so
-   ! ||b|| becomes the actual residual and the tolerance means what it says, and the full real*4
-   ! mantissa is spent on the increment instead of on the datum.
-   !
-   !$omp parallel do private(irow, kface, resid) schedule(static)
-   do irow = 1, nrows_tot
+      xi    = si_x(irow)
       resid = si_rhs(irow)
       do kface = si_row_ptr(irow), si_row_ptr(irow + 1) - 1
-         resid = resid - si_AA(kface) * si_x(si_col_idx(kface))
+         resid = resid - dble(si_AA(kface)) * (si_x(si_col_idx(kface)) - xi)
       enddo
-      si_b(irow)  = resid
+      !
+      si_b(irow)  = real(resid * dble(si_scale(irow)))
       si_dx(irow) = 0.0
    enddo
    !$omp end parallel do
    !
+   ! Now scale the matrix, and the current solution with it.
+   !
+   do irow = 1, nrows_tot
+      do kface = si_row_ptr(irow), si_row_ptr(irow + 1) - 1
+         si_AA(kface) = si_AA(kface) * si_scale(irow) * si_scale(si_col_idx(kface))
+      enddo
+      si_x(irow) = si_x(irow) / dble(si_scale(irow))
+   enddo
+   !
+   ! Solve using CG with SSOR preconditioning
+   !
+   !
    call cg_solve(nrows_tot, nnz_si, si_AA, si_col_idx, si_row_ptr, &
                   si_b, si_dx, si_tol, si_maxiter, iter, relres)
    !
+   ! Undo the diagonal scaling and add the increment.
+   !
+   ! si_x IS round-tripped through si_scale: x -> x/s -> (x/s + dx)*s. Not round-tripping it --
+   ! keeping the unscaled level and adding dx*s to it -- was tried and reverted: it helped Dupuit
+   ! slightly and clearly hurt Edelman (normalised error 2.59e-3 -> 3.65e-3, closure 0.030 % ->
+   ! 0.531 %). Both variants were dominated by real*4 noise, which is why neither won.
+   !
+   ! That argument is now moot for the quantity it was about, because si_x is real*8: two
+   ! roundings of a real*8 level cost 2e-16 relative rather than 2e-7, which is far below
+   ! anything else in the step. The round trip is kept because it is the simpler code.
+   !
    do irow = 1, nrows_tot
-      si_x(irow) = (si_x(irow) + si_dx(irow)) * si_scale(irow)
+      si_x(irow) = (si_x(irow) + dble(si_dx(irow))) * dble(si_scale(irow))
    enddo
    !
    si_iter_total = si_iter_total + iter
    si_solve_count = si_solve_count + 1
    si_iter_max_seen = max(si_iter_max_seen, iter)
    !
+   ! Advance the expansion point. Unconditional for the same reason it is seeded
+   ! unconditionally: the residual is expanded about si_eta_k whether or not anything here is
+   ! nonlinear. For a linear model the loop exits after this one pass, so it costs a copy.
+   !
+   ! The change is measured BEFORE the copy -- it is the distance between the new solution and
+   ! the point the residual was expanded about, which is exactly what the convergence test below
+   ! wants, and it is identically zero if the copy happens first.
+   !
+   dmax_outer = 0.0
+   do irow = 1, nrows_tot
+      dmax_outer = max(dmax_outer, real(abs(si_x(irow) - si_eta_k(irow))))
+   enddo
+   !
+   si_eta_k(1:nrows_tot) = si_x(1:nrows_tot)
+   !
    ! Nonlinear outer iteration, subgrid only. Without subgrid the system is linear and one
    ! pass is exact, so this costs nothing there.
    !
    if (subgrid .or. gwflow) then
-      !
-      dmax_outer = 0.0
-      do irow = 1, nrows_tot
-         dmax_outer = max(dmax_outer, abs(si_x(irow) - si_eta_k(irow)))
-      enddo
-      !
-      si_eta_k(1:nrows_tot) = si_x(1:nrows_tot)
       !
       ! Feed the aquifer head back so the next iterate relags transmissivity and storage.
       !
@@ -913,6 +1051,105 @@ contains
    !
    enddo
    !
+   ! Aquifer water budget for this timestep.
+   !
+   ! The implicit path's fluxes live inside the matrix, so they have to be recovered from the
+   ! converged heads by one extra pass over the same face list the assembly walks. That pass is
+   ! cheap, and it is the only way to be sure the budget measures what the solver did rather
+   ! than what it was supposed to do.
+   !
+   ! Three things this has to match exactly or the closure number means nothing:
+   !   - the surface level is si_eta_k(irow), NOT zs(nm). zs is not updated until
+   !     backsubstitute_fluxes_si runs, so reading it here would use last step's level.
+   !   - the lateral flux is theta-weighted between gw_head_n and gw_head, the same split the
+   !     assembly applies. Using only the new-time heads leaves a (1 - theta) share of every
+   !     lateral flux unaccounted, which on Edelman is the whole signal.
+   !   - a face is a boundary face when its aquifer slot is zero, which is precisely the branch
+   !     where the assembly moved the neighbour's head to the right-hand side.
+   !
+   ! There is no ceiling term: the implicit path enforces the ceiling through the storage
+   ! relation rather than by moving a discrete excess volume to the surface.
+   !
+   if (gwflow) then
+      !
+      bv_rech  = 0.0d0
+      bv_exch  = 0.0d0
+      bv_bnd   = 0.0d0
+      bv_ceil  = 0.0d0
+      bv_gross = 0.0d0
+      !
+      do irow = 1, nrows_si
+         !
+         nm = si_nm_of_row(irow)
+         !
+         if (crsgeo) then
+            acell = cell_area_m2(nm)
+         else
+            acell = cell_area(z_flags_iref(nm))
+         endif
+         !
+         bv_term  = dble(acell) * dble(gw_recharge(nm)) * dble(dt)
+         bv_rech  = bv_rech + bv_term
+         bv_gross = bv_gross + abs(bv_term)
+         !
+         ! Exchange, with the conductance and the lagged remainder the matrix carried, applied to
+         ! the converged levels. si_eta_k(irow) is the new surface level: zs is not updated until
+         ! backsubstitute_fluxes_si runs, so reading zs here would use last step's level.
+         !
+         bv_term  = dble(gw_cexch_applied(irow)) &
+                  * (dble(si_eta_k(irow)) - dble(gw_head(nm))) &
+                  + dble(gw_qexpl_applied(irow)) * dble(dt)
+         bv_exch  = bv_exch + bv_term
+         bv_gross = bv_gross + abs(bv_term)
+         !
+         ! Seepage out of the aquifer at the ceiling. Signed as every other term is: negative
+         ! because it LEAVES. Applied CONDUCTANCE against CONVERGED levels, exactly as the
+         ! exchange term above -- the on/off switch the matrix made is honoured through
+         ! gw_cseep_applied, and the ceiling is re-evaluated at the level the surface actually
+         ! reached.
+         !
+         ! The ceiling has to be the converged one, not the lagged one the assembly used. A
+         ! saturated cell under a deepening pond stores Sy*A more per metre of pond, so the row's
+         ! storage term and its seepage term BOTH shift when the ceiling moves, by Sy*A*dzs each,
+         ! and the two shifts cancel in the head -- which is why the ceiling case gets the right
+         ! water level either way. They do not cancel in the budget: gw_total_storage measures
+         ! against the new ceiling, so the seepage has to as well. Measured against the lagged
+         ! ceiling it over-reports by Sy*A*dzs per step, which on the ceiling case is 77.3 m3 over
+         ! the run and reads as a 5.8 % closure error against a state that is in fact correct.
+         !
+         call gw_seepage_terms(nm, si_eta_k(irow), gw_head(nm), dt, cseep, zceil)
+         bv_term  = -dble(gw_cseep_applied(irow)) * (dble(gw_head(nm)) - dble(zceil))
+         bv_ceil  = bv_ceil + bv_term
+         bv_gross = bv_gross + abs(bv_term)
+         !
+         ! Lateral flux across faces whose neighbour is not an unknown -- exactly the branch where
+         ! the assembly moved the neighbour's head to the right-hand side. Theta-weighted the same
+         ! way the assembly weighted it: using only the new-time heads would leave a (1 - theta)
+         ! share of every boundary flux unaccounted, which on Edelman is the whole signal.
+         !
+         do kface = si_row_face_ptr(irow), si_row_face_ptr(irow + 1) - 1
+            !
+            if (si_row_face_gwslot(kface) /= 0) cycle
+            !
+            ip  = si_row_face_ip(kface)
+            nmb = uv_index_z_nm(ip)
+            if (nmb == nm) nmb = uv_index_z_nmu(ip)
+            !
+            bv_term = dble(gw_coeff_applied(kface)) &
+                    * (dble(gw_theta) * (dble(gw_head(nmb)) - dble(gw_head(nm))) &
+                     + (1.0d0 - dble(gw_theta)) &
+                     * (dble(gw_head_n(nmb)) - dble(gw_head_n(nm))))
+            bv_bnd   = bv_bnd + bv_term
+            bv_gross = bv_gross + abs(bv_term)
+            !
+         enddo
+         !
+      enddo
+      !
+      call gw_budget_add(bv_rech, bv_exch, bv_bnd, bv_ceil, bv_gross)
+      !
+   endif
+   !
    call system_clock(count1, count_rate, count_max)
    tloop_si = tloop_si + 1.0 * (count1 - count0) / count_rate
    !
@@ -932,8 +1169,9 @@ contains
    implicit none
    !
    integer, intent(in)  :: nm
-   real*4,  intent(in)  :: eta
-   real*4,  intent(out) :: vol, awet
+   real*8,  intent(in)  :: eta
+   real*8,  intent(out) :: vol
+   real*4,  intent(out) :: awet
    !
    integer :: ilevel, ivol
    real*4  :: acell, dzvol, dz, facint, zmn, zmx

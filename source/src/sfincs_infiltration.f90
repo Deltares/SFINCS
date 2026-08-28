@@ -608,6 +608,26 @@ contains
    !
    ! Update infiltration rates in each grid cell
    !
+   ! With gw_from_infiltration on, the infiltrated water also becomes aquifer recharge instead of
+   ! being discarded. Until then qinfmap was subtracted from netprcp and never used again: the
+   ! water left the surface and ceased to exist. Routing it underground costs one line per scheme
+   ! and gives the aquifer the unsaturated-zone behaviour it otherwise lacks -- a moisture
+   ! dependent rate with a wetting front -- without any new solver, because Green-Ampt, Curve
+   ! Number and Horton already model exactly that.
+   !
+   ! The line is an ASSIGNMENT, not an accumulation. gw_recharge is a per-cell field that persists
+   ! between timesteps, so adding to it here would compound the same water every step. The uniform
+   ! gw_recharge keyword is the background rate this sits on top of; a gw_rechargefile is refused
+   ! at input, because a spatial field and this switch would both own the array.
+   !
+   ! This runs before the groundwater solve within the timestep (sfincs_lib.f90 calls it well
+   ! ahead of assemble_and_solve_pressure and gw_explicit_step), so the recharge is applied in the
+   ! same step the water infiltrated.
+   !
+   ! Note for a future OpenACC build: gw_recharge is not in the acc present() clauses below,
+   ! because it is only allocated when gwflow is on. Groundwater is CPU-only today, so the two
+   ! never meet; they will have to be reconciled before that changes.
+   !
    use sfincs_data
    !
    implicit none
@@ -660,6 +680,8 @@ contains
          !
          netprcp(nm) = netprcp(nm) - qinfmap(nm)
          !
+         if (gw_from_infiltration) gw_recharge(nm) = gw_recharge_uniform + qinfmap(nm)
+         !
          if (store_cumulative_precipitation) then
             !
             ! Compute cumulative infiltration
@@ -705,6 +727,8 @@ contains
          ! Compute nett precip
          !
          netprcp(nm) = netprcp(nm) - qinfmap(nm)
+         !
+         if (gw_from_infiltration) gw_recharge(nm) = gw_recharge_uniform + qinfmap(nm)
          ! 
          if (store_cumulative_precipitation) then
             !
@@ -812,6 +836,8 @@ contains
          !
          netprcp(nm) = netprcp(nm) - qinfmap(nm)
          !
+         if (gw_from_infiltration) gw_recharge(nm) = gw_recharge_uniform + qinfmap(nm)
+         !
          if (store_cumulative_precipitation) then
             !
             ! Compute cumulative infiltration
@@ -895,6 +921,8 @@ contains
          !
          !qinffield(nm)  = qinfmap(nm) ! Really ? Why ?
          netprcp(nm)    = netprcp(nm) - qinfmap(nm)
+         !
+         if (gw_from_infiltration) gw_recharge(nm) = gw_recharge_uniform + qinfmap(nm)
          !
          if (store_cumulative_precipitation) then
             !
@@ -1010,6 +1038,8 @@ contains
          ! Compute nett precip
          !
          netprcp(nm)    = netprcp(nm) - qinfmap(nm)
+         !
+         if (gw_from_infiltration) gw_recharge(nm) = gw_recharge_uniform + qinfmap(nm)
          !
          if (store_cumulative_precipitation) then
             !

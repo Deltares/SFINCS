@@ -15,6 +15,7 @@ contains
    !
    integer*8 dtsec
    integer :: gwflow_int
+   integer :: gwfrominf_int
    integer :: gwbndzs_int
    !
    ! Temporary variables
@@ -166,9 +167,47 @@ contains
    call read_real_input(500, 'gw_zsini', gw_zsini, -999.0)
    call read_char_input(500, 'gw_headfile', gwheadfile, 'none')
    call read_char_input(500, 'gw_rechargefile', gwrechargefile, 'none')
+   call read_char_input(500, 'gw_khfile', gwkhfile, 'none')
+   call read_char_input(500, 'gw_syfile', gwsyfile, 'none')
+   call read_char_input(500, 'gw_zbasefile', gwzbasefile, 'none')
    call read_int_input(500, 'gw_bnd_from_zs', gwbndzs_int, 0)
+   !
+   ! Route infiltrated water into the aquifer instead of discarding it. Default OFF: turning it on
+   ! changes the water balance of every existing model that infiltrates, so it has to be asked for.
+   !
+   call read_int_input(500, 'gw_from_infiltration', gwfrominf_int, 0)
+   !
+   ! Seepage-face strength, as a multiple of the storage the cell would have needed to hold the
+   ! water above its ceiling. 1.0 removes exactly that volume in one timestep, which is what the
+   ! explicit path does when it hands the excess to gw_qsurf. Lower it for a slower, more
+   ! physical seepage face; 0.0 disables the seepage face and restores the old behaviour, which
+   ! loses water and is kept only so the defect can be reproduced.
+   !
+   call read_real_input(500, 'gw_seepage_fac', gw_seepage_fac, 1.0)
+   !
    gwflow = (gwflow_int == 1)
    gw_bnd_from_zs = (gwbndzs_int == 1)
+   gw_from_infiltration = (gwfrominf_int == 1)
+   !
+   if (gw_from_infiltration) then
+      !
+      if (.not. gwflow) then
+         write(*,*) 'Error: gw_from_infiltration = 1 needs gwflow = 1.'
+         write(*,*) '       There is no aquifer to route the infiltrated water into.'
+         stop
+      endif
+      !
+      ! A spatial recharge field and this switch would both own gw_recharge, and whichever wrote
+      ! last would win silently. Refuse the combination rather than pick one.
+      !
+      if (gwrechargefile(1:4) /= 'none') then
+         write(*,*) 'Error: gw_from_infiltration = 1 cannot be combined with gw_rechargefile.'
+         write(*,*) '       Both write gw_recharge; use the uniform gw_recharge keyword as the'
+         write(*,*) '       background rate instead.'
+         stop
+      endif
+      !
+   endif
    call read_real_input(500, 'alfa_si', alfa_si, 0.75)
    call read_real_input(500, 'rugdepth', runup_gauge_depth, 0.05)
    call read_logical_input(500, 'wave_enhanced_roughness', wave_enhanced_roughness, .false.)

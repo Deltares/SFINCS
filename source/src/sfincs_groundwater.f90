@@ -19,19 +19,39 @@ module sfincs_groundwater
    ! storage term, with a stagnation exit; groundwater reassembles inside it.
    !
    use sfincs_data
+   use sfincs_log
    !
    implicit none
    !
    private
-   public :: initialize_groundwater, gw_face_transmissivity, gw_exchange_terms
-   public :: gw_cell_storage, gw_diffusion_number, gw_budget_update, gw_budget_report
-   public :: gw_write_output, gw_subgrid_level, gw_explicit_step
+   public :: initialize_groundwater, gw_face_transmissivity, gw_exchange_terms, gw_seepage_terms
+   public :: gw_cell_storage, gw_diffusion_number, gw_budget_add, gw_budget_report
+   public :: gw_subgrid_level, gw_explicit_step
    !
-   ! Cumulative water budget, m3. Recharge and exfiltration are integrated as they are applied.
+   ! Cumulative volumes since the start of the run, m3. Signed so that a positive value is water
+   ! ENTERING the aquifer. real*8 throughout: these are running totals over ~1e5 timesteps and
+   ! real*4 would lose the small per-step increments entirely.
    !
-   real*8 :: gw_vol_recharge = 0.0d0
-   real*8 :: gw_vol_exfiltration = 0.0d0
-   real*8 :: gw_vol_initial = 0.0d0
+   real*8 :: gw_vol_initial   = 0.0d0   ! storage at t = 0
+   real*8 :: gw_vol_recharge  = 0.0d0   ! from gw_recharge, negative where it is drainage
+   real*8 :: gw_vol_exchange  = 0.0d0   ! from the surface via leakance, negative = exfiltration
+   real*8 :: gw_vol_boundary  = 0.0d0   ! lateral flux across faces to cells that are not unknowns
+   real*8 :: gw_vol_ceiling   = 0.0d0   ! forced out by the topographic ceiling (seepage)
+   !
+   ! Water that actually moved, m3: the sum of the MAGNITUDES of every elementary contribution --
+   ! each face, each cell, each timestep. This is the scale the closure error has to be judged
+   ! against, and it cannot be reconstructed from the signed totals above.
+   !
+   ! The signed totals hide two different cancellations, and both are the normal case rather than
+   ! the exception. In TIME, a tidal aquifer takes water in on the flood and gives it back on the
+   ! ebb, so the boundary total over a run is near zero while the water crossing the boundary is
+   ! enormous -- Ferris read 12% closure that way against a residual of a few parts in ten
+   ! thousand. In SPACE, a steady seepage problem has water entering one boundary and leaving the
+   ! other in equal measure, so even the per-timestep net is near zero -- Dupuit read 0.86%
+   ! against a true 0.08%. Only accumulating magnitudes at the point each contribution is computed
+   ! sees through both.
+   !
+   real*8 :: gw_vol_gross     = 0.0d0
    integer, parameter :: gw_maxsub = 10000
    integer :: gw_nsub_max = 0
    !
@@ -42,7 +62,7 @@ contains
    implicit none
    !
    integer :: nm
-   real*4  :: acell
+   real*4, dimension(:), allocatable :: rtmp4   ! real*4 buffer for the flat head file
    !
    allocate(gw_head(np))
    allocate(gw_head_n(np))
@@ -50,13 +70,44 @@ contains
    allocate(gw_sy(np))
    allocate(gw_zbase(np))
    allocate(gw_recharge(np))
-   allocate(gw_qexch(np))
    !
    gw_kh       = gw_kh_uniform
    gw_sy       = gw_sy_uniform
    gw_zbase    = gw_zbase_uniform
    gw_recharge = gw_recharge_uniform
-   gw_qexch    = 0.0
+   !
+   ! Optional spatial aquifer properties, each a flat binary over active cells in internal order
+   ! -- the same convention manningfile and the head file use (sfincs_domain.f90:2005).
+   !
+   ! These are read BEFORE the initial head below, because the head is clamped to gw_zbase there
+   ! and to the zbase FIELD if one was given. Reading them afterwards would clamp against the
+   ! uniform value and then silently leave the head below the aquifer base wherever the field is
+   ! higher, which shows up much later as a cell that stores nothing.
+   !
+   ! A distinct unit number per read: a stale handle here would read the wrong file into a
+   ! parameter that is never printed, and nothing downstream would look wrong until the answer
+   ! was.
+   !
+   if (gwkhfile(1:4) /= 'none') then
+      write(*,'(a,a)') ' Groundwater: reading conductivity file ', trim(gwkhfile)
+      open(unit = 504, file = trim(gwkhfile), form = 'unformatted', access = 'stream')
+      read(504) gw_kh
+      close(504)
+   endif
+   !
+   if (gwsyfile(1:4) /= 'none') then
+      write(*,'(a,a)') ' Groundwater: reading specific yield file ', trim(gwsyfile)
+      open(unit = 505, file = trim(gwsyfile), form = 'unformatted', access = 'stream')
+      read(505) gw_sy
+      close(505)
+   endif
+   !
+   if (gwzbasefile(1:4) /= 'none') then
+      write(*,'(a,a)') ' Groundwater: reading aquifer base file ', trim(gwzbasefile)
+      open(unit = 506, file = trim(gwzbasefile), form = 'unformatted', access = 'stream')
+      read(506) gw_zbase
+      close(506)
+   endif
    !
    ! Initial head: gw_zsini if given, otherwise the initial surface level.
    !
@@ -77,7 +128,16 @@ contains
    if (gwheadfile(1:4) /= 'none') then
       write(*,'(a,a)') ' Groundwater: reading head file ', trim(gwheadfile)
       open(unit = 501, file = trim(gwheadfile), form = 'unformatted', access = 'stream')
-      read(501) gw_head
+      !
+      ! Through a real*4 buffer. The file is a flat real*4 stream and gw_head is real*8, so
+      ! reading straight into it would consume two file records per cell and produce a plausible
+      ! but wrong field -- the same class of failure as reading a netCDF initial condition as
+      ! binary.
+      !
+      allocate(rtmp4(np))
+      read(501) rtmp4
+      gw_head = dble(rtmp4)
+      deallocate(rtmp4)
       close(501)
       do nm = 1, np
          gw_head(nm) = max(gw_head(nm), gw_zbase(nm))
@@ -96,7 +156,54 @@ contains
       close(503)
    endif
    !
+   !
+   ! The seepage face only exists on the semi-implicit path. The explicit path already handles the
+   ! ceiling by moving the excess volume to gw_qsurf, and this flag is what keeps that path bit
+   ! identical: it gates the storage-derivative floor in gw_cell_storage below.
+   !
+   gw_seepage_active = (semi_implicit .and. gw_seepage_fac > 0.0)
+   !
+   ! The ceiling the explicit path used last step. It has to be remembered, because the ceiling
+   ! moves with the surface: when a pond drains the ground under it is exposed again and the
+   ! ceiling FALLS. Storage above the new ceiling is then real water that has to seep out, and
+   ! measuring the old head against the new ceiling drops it instead. See gw_explicit_step.
+   !
+   allocate(gw_zceil_n(np))
+   do nm = 1, np
+      if (subgrid) then
+         gw_zceil_n(nm) = max(subgrid_z_zmax(nm), real(zs(nm)))
+      else
+         gw_zceil_n(nm) = max(zb(nm), real(zs(nm)))
+      endif
+   enddo
+   !
+   if (gw_seepage_active) then
+      write(*,'(a,f8.3)') ' Groundwater: seepage face active, gw_seepage_fac = ', gw_seepage_fac
+   else
+      write(*,'(a)')      ' Groundwater: seepage face OFF - water is lost where the aquifer saturates'
+   endif
+   !
    gw_head_n = gw_head
+   !
+   ! Check what the spatial fields actually contain.
+   !
+   ! A zero or negative conductivity silently removes a cell from the lateral system without
+   ! removing it from the matrix: the row keeps its storage term, so the solve still converges
+   ! and the cell simply never exchanges water with its neighbours. That is far harder to
+   ! diagnose from the answer than a stop is from the log. A negative specific yield is worse --
+   ! it puts a negative number on the diagonal and breaks the SPD property CG depends on.
+   !
+   do nm = 1, np
+      if (kcs(nm) == 0) cycle
+      if (gw_kh(nm) <= 0.0) then
+         write(*,*) 'Error: gw_kh <= 0 at cell ', nm, ' value ', gw_kh(nm)
+         stop
+      endif
+      if (gw_sy(nm) < 0.0) then
+         write(*,*) 'Error: gw_sy < 0 at cell ', nm, ' value ', gw_sy(nm)
+         stop
+      endif
+   enddo
    !
    ! Guard the eigenvalue floor.
    !
@@ -115,16 +222,11 @@ contains
       enddo
    endif
    !
-   ! Record the initial stored volume so the budget can be closed later.
+   ! Record the initial stored volume so the budget can be closed later. Through the same helper
+   ! the report uses, so the two ends of the balance are measured the same way -- including the
+   ! subgrid storage area and the topographic ceiling, which the old inline Sy*(h-zbase)*A ignored.
    !
-   gw_vol_initial = 0.0d0
-   do nm = 1, np
-      if (kcs(nm) > 0) then
-         call gw_cell_area(nm, acell)
-         gw_vol_initial = gw_vol_initial + &
-            dble(gw_sy(nm)) * dble(max(gw_head(nm) - gw_zbase(nm), 0.0)) * dble(acell)
-      endif
-   enddo
+   call gw_total_storage(gw_vol_initial)
    !
    write(*,'(a,i10,a,e12.4,a,e12.4)') ' Groundwater: cells ', np, &
       '  initial storage ', gw_vol_initial, ' m3   leakance ', gw_leakance
@@ -213,10 +315,11 @@ contains
    implicit none
    !
    integer, intent(in)  :: nm
-   real*4,  intent(in)  :: zs_k, h_k
+   real*8,  intent(in)  :: zs_k, h_k
    real*4,  intent(out) :: csym, qexpl
    !
-   real*4 :: acell, vsurf, awet, cexch, zref, qk
+   real*4 :: acell, awet, cexch
+   real*8 :: vsurf, zref, qk
    !
    call gw_cell_area(nm, acell)
    !
@@ -230,16 +333,16 @@ contains
       !
       call gw_subgrid_level(nm, zs_k, vsurf, awet)
       cexch = gw_leakance * min(max(awet, gw_awet_floor * acell), acell)
-      zref  = subgrid_z_zmin(nm)
+      zref  = dble(subgrid_z_zmin(nm))
       !
    else
       !
       cexch = gw_leakance * acell
-      zref  = zb(nm)
+      zref  = dble(zb(nm))
       !
    endif
    !
-   qk = cexch * (max(zs_k, zref) - max(h_k, zref))
+   qk = dble(cexch) * (max(zs_k, zref) - max(h_k, zref))
    !
    if (zs_k > zref .and. h_k > zref) then
       csym = cexch
@@ -247,9 +350,56 @@ contains
       csym = 0.0
    endif
    !
-   qexpl = qk - csym * (zs_k - h_k)
+   ! The two terms are nearly equal and their difference is the whole signal, so the
+   ! subtraction happens in real*8 and only the small remainder is rounded back down.
+   !
+   qexpl = real(qk - dble(csym) * (zs_k - h_k))
    !
    end subroutine gw_exchange_terms
+   !
+   !
+   subroutine gw_seepage_terms(nm, zs_k, h_k, dt, cseep, zceil)
+   !
+   ! Seepage face: the outflow a saturated cell needs so that water arriving at a full aquifer
+   ! becomes surface water instead of disappearing.
+   !
+   !    Q = cseep * (h - zceil)     for h > zceil, positive OUT of the aquifer
+   !
+   ! zceil is the level above which there is no pore space left, and it is the same expression
+   ! gw_explicit_step uses for its hcap -- the two paths have to agree on where the ceiling is or
+   ! they cannot be compared. It is max(ground, surface level) rather than just the ground,
+   ! because the ground beneath standing water is saturated and the table can stand as high as the
+   ! free surface there.
+   !
+   ! cseep * dt = Sy * A means one timestep removes exactly the volume that would have been stored
+   ! above the ceiling, which is the implicit statement of what the explicit path does when it
+   ! moves the excess to gw_qsurf. That leaves no free parameter at the default.
+   !
+   implicit none
+   !
+   integer, intent(in)  :: nm
+   real*8,  intent(in)  :: zs_k, h_k
+   real*4,  intent(in)  :: dt
+   real*4,  intent(out) :: cseep
+   real*8,  intent(out) :: zceil
+   !
+   real*4 :: acell
+   !
+   call gw_cell_area(nm, acell)
+   !
+   if (subgrid) then
+      zceil = max(dble(subgrid_z_zmax(nm)), zs_k)
+   else
+      zceil = max(dble(zb(nm)), zs_k)
+   endif
+   !
+   if (h_k > zceil .and. gw_seepage_active) then
+      cseep = gw_seepage_fac * gw_sy(nm) * acell / dt
+   else
+      cseep = 0.0
+   endif
+   !
+   end subroutine gw_seepage_terms
    !
    !
    subroutine gw_subgrid_level(nm, z, vsurf, awet)
@@ -264,11 +414,13 @@ contains
    implicit none
    !
    integer, intent(in)  :: nm
-   real*4,  intent(in)  :: z
-   real*4,  intent(out) :: vsurf, awet
+   real*8,  intent(in)  :: z
+   real*8,  intent(out) :: vsurf
+   real*4,  intent(out) :: awet
    !
    integer :: ilevel, ivol
-   real*4  :: acell, dzvol, dz, zmn, zmx
+   real*4  :: acell, dz
+   real*8  :: dzvol, zmn, zmx
    !
    call gw_cell_area(nm, acell)
    !
@@ -280,7 +432,7 @@ contains
       !
       ! Below the lowest point in the cell: nothing wet, the aquifer has the whole footprint.
       !
-      vsurf = 0.0
+      vsurf = 0.0d0
       awet  = 0.0
       !
    elseif (z >= zmx) then
@@ -288,7 +440,18 @@ contains
       ! Above the highest point: the cell is fully flooded and there is no unsaturated ground
       ! left to store water in. This is the topographic ceiling.
       !
-      vsurf = subgrid_z_volmax(nm)
+      ! The table stops at zmax, so the volume has to be extended by hand above it, and the
+      ! extension is the same one sfincs_continuity uses when it inverts a full cell:
+      ! volmax + acell*(z - zmax). Returning a FLAT volmax here -- which is what this did -- is
+      ! inconsistent with returning awet = acell, because awet is supposed to be d(vsurf)/dz. The
+      ! inconsistency lands in gw_cell_storage, whose subgrid branch computes the aquifer volume
+      ! as Sy*(acell*b - vsurf): with vsurf flat, that keeps GROWING at Sy*acell per metre above
+      ! the ceiling while dvol correctly reports zero. So a submerged subgrid cell could store
+      ! unbounded groundwater above its own ground, which is the mirror image of the ceiling
+      ! defect on the non-subgrid side. With the extension the aquifer volume comes out constant
+      ! above zmax, which is what "no unsaturated ground left" means.
+      !
+      vsurf = dble(subgrid_z_volmax(nm)) + dble(acell) * (z - zmx)
       awet  = acell
       !
    else
@@ -302,8 +465,8 @@ contains
       enddo
       !
       dz    = max(subgrid_z_dep(ivol + 1, nm) - subgrid_z_dep(ivol, nm), 1.0e-6)
-      awet  = dzvol / dz
-      vsurf = (ivol - 1) * dzvol + awet * (z - subgrid_z_dep(ivol, nm))
+      awet  = real(dzvol / dz)
+      vsurf = (ivol - 1) * dzvol + dble(awet) * (z - dble(subgrid_z_dep(ivol, nm)))
       !
    endif
    !
@@ -312,7 +475,7 @@ contains
    end subroutine gw_subgrid_level
    !
    !
-   subroutine gw_cell_storage(nm, head, vol, dvol)
+   subroutine gw_cell_storage(nm, head, vol, dvol, zs_in)
    !
    ! Stored groundwater volume and its derivative at a given head.
    !
@@ -339,13 +502,33 @@ contains
    implicit none
    !
    integer, intent(in)  :: nm
-   real*4,  intent(in)  :: head
-   real*4,  intent(out) :: vol, dvol
+   real*8,  intent(in)  :: head
+   real*8,  intent(out) :: vol
+   real*4,  intent(out) :: dvol
+   real*8,  intent(in), optional :: zs_in
    !
-   real*4  :: acell, b, v0, a0, v1, a1, adry, zcap
+   ! zs_in overrides the surface level the ceiling is taken from. The semi-implicit assembly needs
+   ! it: zs(nm) still holds the level at time n during assembly, so capping the NEW iterate's
+   ! storage at it freezes the ceiling for the whole step. All the recharge arriving at a
+   ! saturated cell is then ejected as seepage, and the storage the aquifer gains under the
+   ! deepening pond -- Sy*A*dzs, real water -- appears at the next step with no flux having
+   ! supplied it. On the ceiling case that is 77.3 m3 over the run and a 5.8 % closure error.
+   ! gw_total_storage measures the new-time cap, so the row has to as well.
+   !
+   ! Absent, the level is zs(nm), which is what the explicit path wants: it sub-steps within one
+   ! surface level, so time n is the only level it has.
+   !
+   real*4  :: acell, a0, a1, adry
+   real*8  :: b, v0, v1, zcap, zsurf
    !
    call gw_cell_area(nm, acell)
-   b = max(head - gw_zbase(nm), 0.0)
+   b = max(head - dble(gw_zbase(nm)), 0.0d0)
+   !
+   if (present(zs_in)) then
+      zsurf = zs_in
+   else
+      zsurf = zs(nm)
+   endif
    !
    if (.not. subgrid) then
       !
@@ -360,24 +543,36 @@ contains
       ! table climb 1.70 m above dry ground in the compound case, held back only by how fast
       ! leakance could drain it.
       !
-      zcap = max(zb(nm), real(zs(nm)))
-      b    = max(min(head, zcap) - gw_zbase(nm), 0.0)
-      vol  = gw_sy(nm) * b * acell
+      zcap = max(dble(zb(nm)), zsurf)
+      b    = max(min(head, zcap) - dble(gw_zbase(nm)), 0.0d0)
+      vol  = dble(gw_sy(nm)) * b * dble(acell)
+      !
+      ! Above the cap the stored volume genuinely stops changing, so the true derivative is zero.
+      ! The floor below is not physics -- it exists so the matrix diagonal does not vanish. Once
+      ! the seepage face is carrying cseep*dt on that diagonal the floor is unnecessary, and it is
+      ! actively harmful: it is a store the budget cannot see, and it is what let the head reach
+      ! +232 m on the ceiling case.
       !
       if (head < zcap) then
          dvol = gw_sy(nm) * acell
+      elseif (gw_seepage_active) then
+         dvol = 0.0
       else
          dvol = gw_sy(nm) * gw_awet_floor * acell
       endif
       !
    else
       !
-      call gw_subgrid_level(nm, gw_zbase(nm), v0, a0)
+      call gw_subgrid_level(nm, dble(gw_zbase(nm)), v0, a0)
       call gw_subgrid_level(nm, head,         v1, a1)
       !
-      vol  = gw_sy(nm) * max(acell * b - max(v1 - v0, 0.0), 0.0)
+      vol  = dble(gw_sy(nm)) * max(dble(acell) * b - max(v1 - v0, 0.0d0), 0.0d0)
       !
-      adry = min(max(acell - a1, gw_awet_floor * acell), acell)
+      if (gw_seepage_active) then
+         adry = min(max(acell - a1, 0.0), acell)
+      else
+         adry = min(max(acell - a1, gw_awet_floor * acell), acell)
+      endif
       dvol = gw_sy(nm) * adry
       !
    endif
@@ -417,21 +612,57 @@ contains
    end subroutine gw_diffusion_number
    !
    !
-   subroutine gw_budget_update(dt)
+   subroutine gw_budget_add(v_recharge, v_exchange, v_boundary, v_ceiling, v_gross)
+   !
+   ! Accumulate one timestep's worth of aquifer volume terms. Called by whichever solver path is
+   ! active, with volumes it has already computed -- recomputing them here would risk the budget
+   ! measuring something subtly different from what the solver did, which is the one thing a
+   ! budget must not do.
    !
    implicit none
-   real*4, intent(in) :: dt
+   !
+   real*8, intent(in) :: v_recharge, v_exchange, v_boundary, v_ceiling
+   real*8, intent(in) :: v_gross
+   !
+   gw_vol_recharge = gw_vol_recharge + v_recharge
+   gw_vol_exchange = gw_vol_exchange + v_exchange
+   gw_vol_boundary = gw_vol_boundary + v_boundary
+   gw_vol_ceiling  = gw_vol_ceiling  + v_ceiling
+   !
+   gw_vol_gross = gw_vol_gross + v_gross
+   !
+   end subroutine gw_budget_add
+   !
+   !
+   subroutine gw_total_storage(vtot)
+   !
+   ! Total stored groundwater volume over the control volume, m3.
+   !
+   ! The control volume is the interior cells only. A cell with kcs == 2 carries a prescribed head
+   ! and is not an unknown, so it sits OUTSIDE the balance and the water crossing into it is
+   ! counted as lateral boundary flux instead.
+   !
+   ! Through gw_cell_storage rather than Sy*(h - zbase)*A, so that the subgrid storage area and
+   ! the topographic ceiling are included -- the budget has to measure the same volume the solver
+   ! conserves, not an idealisation of it.
+   !
+   implicit none
+   !
+   real*8, intent(out) :: vtot
+   !
    integer :: nm
-   real*4  :: acell
+   real*8  :: vol
+   real*4  :: dvol
+   !
+   vtot = 0.0d0
    !
    do nm = 1, np
       if (kcs(nm) /= 1) cycle
-      call gw_cell_area(nm, acell)
-      gw_vol_recharge = gw_vol_recharge + dble(gw_recharge(nm)) * dble(dt) * dble(acell)
-      gw_vol_exfiltration = gw_vol_exfiltration + dble(gw_qexch(nm)) * dble(dt) * dble(acell)
+      call gw_cell_storage(nm, gw_head(nm), vol, dvol)
+      vtot = vtot + vol
    enddo
    !
-   end subroutine gw_budget_update
+   end subroutine gw_total_storage
    !
    !
    subroutine gw_explicit_step(dt)
@@ -467,8 +698,12 @@ contains
    !
    integer :: ip, nm, nmu, nsub, it
    real*4  :: tface, wface, dinv, qface, dtsub, nurate, tsub
-   real*4  :: acell, vol, dvol, volcap, hcap, excess, hnew
+   real*4  :: acell, dvol
+   real*8  :: vol, volcap, hcap, excess, hnew
    real*4  :: csym, qexpl, qex
+   real*8  :: volh
+   real*4  :: dvolh
+   real*8  :: bv_rech, bv_exch, bv_bnd, bv_ceil, bv_gross
    !
    if (.not. allocated(gw_dvol)) allocate(gw_dvol(np))
    if (.not. allocated(gw_qsurf)) allocate(gw_qsurf(np))
@@ -483,7 +718,7 @@ contains
    !
    if (gw_bnd_from_zs) then
       do nm = 1, np
-         if (kcs(nm) == 2) gw_head(nm) = real(zs(nm))
+         if (kcs(nm) == 2) gw_head(nm) = zs(nm)
       enddo
    endif
    !
@@ -508,6 +743,20 @@ contains
    tsub = 0.0
    nsub = 0
    !
+   ! Budget terms for this surface timestep, signed as water entering the aquifer. Accumulated
+   ! over the sub-steps and handed over once, so the budget sees the same volumes the scheme
+   ! actually moved rather than a re-derivation of them.
+   !
+   ! Not accumulated: the vol = max(vol, 0.0) floor further down, and the three-step Newton
+   ! inversion of the storage relation. Those are numerics, not fluxes, and leaving them out is
+   ! deliberate -- they are exactly what the reported closure error is there to expose.
+   !
+   bv_rech  = 0.0d0
+   bv_exch  = 0.0d0
+   bv_bnd   = 0.0d0
+   bv_ceil  = 0.0d0
+   bv_gross = 0.0d0
+   !
    do while (tsub < dt)
       !
       call gw_diffusion_number(1.0, nurate)     ! diffusion number per second
@@ -526,7 +775,7 @@ contains
          stop
       endif
       !
-      gw_dvol = 0.0
+      gw_dvol = 0.0d0
       !
       ! Lateral flux, one pass over the faces.
       !
@@ -551,8 +800,23 @@ contains
          !
          qface = tface * wface * dinv * (gw_head(nm) - gw_head(nmu))
          !
-         gw_dvol(nm)  = gw_dvol(nm)  - qface * dtsub
-         gw_dvol(nmu) = gw_dvol(nmu) + qface * dtsub
+         gw_dvol(nm)  = gw_dvol(nm)  - dble(qface) * dble(dtsub)
+         gw_dvol(nmu) = gw_dvol(nmu) + dble(qface) * dble(dtsub)
+         !
+         ! Lateral boundary flux. A cell with kcs == 2 holds a prescribed head and is not part of
+         ! the control volume, so a face touching one carries water across the boundary. qface is
+         ! signed from nm towards nmu, so it ENTERS the control volume when nm is the outside
+         ! cell and LEAVES when nmu is. A face with kcs == 2 on both sides nets to zero, which is
+         ! right: neither cell is inside.
+         !
+         if (kcs(nm)  == 2) then
+            bv_bnd   = bv_bnd + dble(qface) * dble(dtsub)
+            bv_gross = bv_gross + abs(dble(qface) * dble(dtsub))
+         endif
+         if (kcs(nmu) == 2) then
+            bv_bnd   = bv_bnd - dble(qface) * dble(dtsub)
+            bv_gross = bv_gross + abs(dble(qface) * dble(dtsub))
+         endif
          !
       enddo
       !
@@ -563,51 +827,66 @@ contains
          if (kcs(nm) /= 1) cycle
          !
          call gw_cell_area(nm, acell)
-         gw_dvol(nm) = gw_dvol(nm) + acell * gw_recharge(nm) * dtsub
+         gw_dvol(nm) = gw_dvol(nm) + dble(acell) * dble(gw_recharge(nm)) * dble(dtsub)
+         bv_rech  = bv_rech + dble(acell) * dble(gw_recharge(nm)) * dble(dtsub)
+         bv_gross = bv_gross + abs(dble(acell) * dble(gw_recharge(nm)) * dble(dtsub))
          !
-         call gw_exchange_terms(nm, real(zs(nm)), gw_head(nm), csym, qexpl)
-         qex = csym * (real(zs(nm)) - gw_head(nm)) + qexpl     ! positive: surface into aquifer
-         gw_dvol(nm) = gw_dvol(nm) + qex * dtsub
+         call gw_exchange_terms(nm, dble(zs(nm)), gw_head(nm), csym, qexpl)
+         qex = real(dble(csym) * (zs(nm) - gw_head(nm))) + qexpl   ! positive: surface into aquifer
+         gw_dvol(nm) = gw_dvol(nm) + dble(qex) * dble(dtsub)
          gw_qsurf(nm) = gw_qsurf(nm) - qex * dtsub             ! and the surface loses it
+         bv_exch  = bv_exch + dble(qex) * dble(dtsub)
+         bv_gross = bv_gross + abs(dble(qex) * dble(dtsub))
          !
          ! Convert the volume change into a head, honouring the topographic ceiling. Anything
          ! that will not fit below the ceiling has nowhere to go underground and becomes surface
          ! water, which is what a seepage face is.
          !
-         call gw_cell_storage(nm, gw_head(nm), vol, dvol)
+         ! Against the ceiling this cell had at the END of the last step, not the one it has
+         ! now. The two differ whenever the surface moved, and taking the new one here loses the
+         ! difference silently -- it never reaches the excess test below and never becomes
+         ! seepage. With the ceiling FALLING, which is what a draining pond does, that is water
+         ! destroyed: -5.6 % on the seepslope case before this line was made explicit.
+         !
+         call gw_cell_storage(nm, gw_head(nm), vol, dvol, gw_zceil_n(nm))
          vol = vol + gw_dvol(nm)
          !
          if (subgrid) then
-            hcap = max(subgrid_z_zmax(nm), real(zs(nm)))
+            hcap = max(dble(subgrid_z_zmax(nm)), zs(nm))
          else
-            hcap = max(zb(nm), real(zs(nm)))
+            hcap = max(dble(zb(nm)), zs(nm))
          endif
          call gw_cell_storage(nm, hcap, volcap, dvol)
          !
          if (vol > volcap) then
             excess = vol - volcap
             vol    = volcap
-            gw_qsurf(nm) = gw_qsurf(nm) + excess
+            gw_qsurf(nm) = gw_qsurf(nm) + real(excess)
+            bv_ceil  = bv_ceil - excess               ! leaves the aquifer, so negative
+            bv_gross = bv_gross + abs(excess)
          endif
          !
-         vol = max(vol, 0.0)
+         vol = max(vol, 0.0d0)
          !
          ! Invert the storage relation. It is piecewise linear, so a few Newton steps are exact
          ! to round-off; the guard on the derivative only matters at a saturated cell.
          !
          hnew = gw_head(nm)
          do it = 1, 3
-            call gw_cell_storage(nm, hnew, dvol, csym)
-            hnew = hnew + (vol - dvol) / max(csym, 1.0e-12)
-            hnew = min(max(hnew, gw_zbase(nm)), hcap)
+            call gw_cell_storage(nm, hnew, volh, dvolh)
+            hnew = hnew + (vol - volh) / dble(max(dvolh, 1.0e-12))
+            hnew = min(max(hnew, dble(gw_zbase(nm))), hcap)
          enddo
          gw_head(nm) = hnew
+         gw_zceil_n(nm) = hcap
          !
       enddo
       !
       tsub = tsub + dtsub
       !
    enddo
+   !
+   call gw_budget_add(bv_rech, bv_exch, bv_bnd, bv_ceil, bv_gross)
    !
    gw_nsub_max = max(gw_nsub_max, nsub)
    !
@@ -657,60 +936,56 @@ contains
    end subroutine gw_level_from_volume
    !
    !
-   subroutine gw_write_output(tnow)
-   !
-   ! Append the aquifer head to a flat stream file: one record of (time, head over all active
-   ! cells in internal order) per map output time.
-   !
-   ! Deliberately not routed through sfincs_ncoutput. The aquifer is still being verified against
-   ! analytical solutions, and this keeps that verification independent of the netCDF module.
-   ! Promote it once the solver is settled.
-   !
-   implicit none
-   !
-   real*8, intent(in) :: tnow
-   !
-   logical, save :: opened = .false.
-   !
-   if (.not. opened) then
-      open(unit = 502, file = 'gw_head.dat', form = 'unformatted', access = 'stream', &
-           status = 'replace')
-      opened = .true.
-   endif
-   !
-   write(502) tnow
-   write(502) gw_head
-   flush(502)
-   !
-   end subroutine gw_write_output
-   !
-   !
    subroutine gw_budget_report()
    !
-   ! Close the budget: recharge in must equal storage change plus exfiltration out.
+   ! Closure is the only number here that matters. Everything else is context for it.
+   !
+   ! Every term is signed as water ENTERING the aquifer, so the storage change must equal their
+   ! sum. The residual is judged against gw_vol_gross, the water that actually moved, and not
+   ! against the net inflow -- see the comment on gw_vol_gross for why the two differ so much on
+   ! anything tidal.
+   !
+   ! Through write_log rather than write(*,*), so the balance lands in sfincs.log next to the
+   ! rest of the run summary. On the cluster stdout is not always kept, and a diagnostic that only
+   ! exists in a terminal that has since closed is not a diagnostic.
    !
    implicit none
-   integer :: nm
-   real*4  :: acell
-   real*8  :: vnow, resid, scale
    !
-   vnow = 0.0d0
-   do nm = 1, np
-      if (kcs(nm) > 0) then
-         call gw_cell_area(nm, acell)
-         vnow = vnow + dble(gw_sy(nm)) * dble(max(gw_head(nm) - gw_zbase(nm), 0.0)) * dble(acell)
-      endif
-   enddo
+   real*8 :: vnow, dstore, vin, resid
    !
-   resid = gw_vol_recharge - (vnow - gw_vol_initial) - gw_vol_exfiltration
-   scale = max(abs(gw_vol_recharge), abs(vnow - gw_vol_initial), 1.0d0)
+   call gw_total_storage(vnow)
    !
-   write(*,'(a)')        ' Groundwater budget (m3)'
-   write(*,'(a,e14.6)')  '   recharge in       : ', gw_vol_recharge
-   write(*,'(a,e14.6)')  '   storage change    : ', vnow - gw_vol_initial
-   write(*,'(a,e14.6)')  '   exfiltration out  : ', gw_vol_exfiltration
-   write(*,'(a,e14.6,a,f9.5,a)') '   residual          : ', resid, &
-      '   (', 100.0d0 * resid / scale, ' %)'
+   dstore = vnow - gw_vol_initial
+   vin    = gw_vol_recharge + gw_vol_exchange + gw_vol_boundary + gw_vol_ceiling
+   resid  = dstore - vin
+   !
+   call write_log('', 1)
+   call write_log(' ---------- Groundwater water balance ----------', 1)
+   write(logstr,'(a,e14.6,a)') ' Initial storage      : ', gw_vol_initial,  ' m3'
+   call write_log(logstr, 1)
+   write(logstr,'(a,e14.6,a)') ' Final storage        : ', vnow,            ' m3'
+   call write_log(logstr, 1)
+   write(logstr,'(a,e14.6,a)') ' Storage change       : ', dstore,          ' m3'
+   call write_log(logstr, 1)
+   write(logstr,'(a,e14.6,a)') '   recharge           : ', gw_vol_recharge, ' m3'
+   call write_log(logstr, 1)
+   write(logstr,'(a,e14.6,a)') '   exchange w/ surface: ', gw_vol_exchange, ' m3'
+   call write_log(logstr, 1)
+   write(logstr,'(a,e14.6,a)') '   lateral boundary   : ', gw_vol_boundary, ' m3'
+   call write_log(logstr, 1)
+   write(logstr,'(a,e14.6,a)') '   ceiling seepage    : ', gw_vol_ceiling,  ' m3'
+   call write_log(logstr, 1)
+   write(logstr,'(a,e14.6,a)') ' Throughput           : ', gw_vol_gross,    ' m3'
+   call write_log(logstr, 1)
+   write(logstr,'(a,e14.6,a)') ' Closure error        : ', resid,           ' m3'
+   call write_log(logstr, 1)
+   if (gw_vol_gross > 0.0d0) then
+      write(logstr,'(a,f12.6,a)') ' Closure error        : ', &
+         100.0d0 * resid / gw_vol_gross, ' % of throughput'
+      call write_log(logstr, 1)
+   endif
+   call write_log(' -----------------------------------------------', 1)
+   call write_log('', 1)
    !
    end subroutine gw_budget_report
    !

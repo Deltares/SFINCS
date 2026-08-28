@@ -17,6 +17,7 @@ module sfincs_ncoutput
       integer :: time_varid, timemax_varid
       integer :: zs_varid, zsmax_varid, h_varid, u_varid, v_varid, tmax_varid, Seff_varid, t_zsmax_varid
       integer :: zvolume_varid, storagevolume_varid
+      integer :: gw_head_varid
       integer :: hmax_varid, vmax_varid, qmax_varid, cumprcp_varid, cuminf_varid, windmax_varid
       integer :: patm_varid, wind_u_varid, wind_v_varid, precip_varid        
       integer :: hm0_varid, hm0ig_varid, snapwavemsk_varid, tp_varid, tpig_varid, wavdir_varid, dirspr_varid
@@ -285,6 +286,20 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'standard_name', 'sea_surface_height_above_reference_level')) 
    NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'long_name', 'water_level'))  
    NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'coordinates', 'x y'))
+   !
+   ! Aquifer head. Written wherever the cell is active, wet or dry -- unlike zs, which is masked
+   ! below huthresh. A water table under dry ground is the normal state of an aquifer and is
+   ! usually the thing being looked at, so masking it would hide the signal.
+   !
+   if (gwflow) then
+      NF90(nf90_def_var(map_file%ncid, 'gw_head', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%gw_head_varid)) ! time-varying aquifer head map
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%gw_head_varid, 1, 1, nc_deflate_level)) ! deflate
+      NF90(nf90_put_att(map_file%ncid, map_file%gw_head_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%gw_head_varid, 'units', 'm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%gw_head_varid, 'standard_name', 'groundwater_head_above_reference_level'))
+      NF90(nf90_put_att(map_file%ncid, map_file%gw_head_varid, 'long_name', 'groundwater_head'))
+      NF90(nf90_put_att(map_file%ncid, map_file%gw_head_varid, 'coordinates', 'x y'))
+   endif
    !
    if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then   
       NF90(nf90_def_var(map_file%ncid, 'h', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%time_dimid/), map_file%h_varid)) ! time-varying water depth map
@@ -1083,6 +1098,19 @@ contains
    NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'units', 'm'))
    NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'standard_name', 'sea_surface_height_above_reference_level')) 
    NF90(nf90_put_att(map_file%ncid, map_file%zs_varid, 'long_name', 'water_level'))  
+   !
+   ! Aquifer head. Written wherever the cell is active, wet or dry -- unlike zs, which is masked
+   ! below huthresh. A water table under dry ground is the normal state of an aquifer and is
+   ! usually the thing being looked at, so masking it would hide the signal.
+   !
+   if (gwflow) then
+      NF90(nf90_def_var(map_file%ncid, 'gw_head', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%gw_head_varid)) ! time-varying aquifer head map
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%gw_head_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%gw_head_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%gw_head_varid, 'units', 'm'))
+      NF90(nf90_put_att(map_file%ncid, map_file%gw_head_varid, 'standard_name', 'groundwater_head_above_reference_level'))
+      NF90(nf90_put_att(map_file%ncid, map_file%gw_head_varid, 'long_name', 'groundwater_head'))
+   endif
    !
    if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then   
       NF90(nf90_def_var(map_file%ncid, 'h', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%time_dimid/), map_file%h_varid)) ! time-varying water level map
@@ -2198,6 +2226,25 @@ contains
    !
    NF90(nf90_put_var(map_file%ncid, map_file%zs_varid, zsg, (/1, 1, ntmapout/))) ! write zs
    !
+   if (gwflow) then
+      !
+      zsg = FILL_VALUE
+      !
+      do nm = 1, np
+         !
+         if (kcs(nm) == 0) cycle
+         !
+         n    = z_index_z_n(nm)
+         m    = z_index_z_m(nm)
+         !
+         zsg(m, n) = gw_head(nm)
+         !
+      enddo
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%gw_head_varid, zsg, (/1, 1, ntmapout/))) ! write gw_head
+      !
+   endif
+   !
    if (store_dynamic_bed_level .and. .not. subgrid) then
       !
       do nm = 1, np
@@ -2648,6 +2695,24 @@ contains
       enddo
       !
       NF90(nf90_put_var(map_file%ncid, map_file%zs_varid, vtmp, (/1, ntmapout/))) ! write zs
+      !
+      if (gwflow) then
+         !
+         vtmp = FILL_VALUE
+         !
+         do nmq = 1, quadtree_nr_points
+            !
+            nm = index_sfincs_in_quadtree(nmq)
+            !
+            if (nm > 0) then
+               if (kcs(nm) > 0) vtmp(nmq) = gw_head(nm)
+            endif
+            !
+         enddo
+         !
+         NF90(nf90_put_var(map_file%ncid, map_file%gw_head_varid, vtmp, (/1, ntmapout/))) ! write gw_head
+         !
+      endif
       ! 
       ! Water depth 
       !

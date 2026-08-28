@@ -179,14 +179,10 @@ module sfincs_lib
       !
    endif
    !
-   ! Groundwater is solved inside the semi-implicit pressure system -- the aquifer head is a
-   ! second block of the same matrix. There is no explicit path for it. Without this check the
-   ! run LOOKS fine: initialize_groundwater is never reached, so gw_head is never allocated, and
-   ! gw_write_output below happily writes a file containing timestamps and no head data at all.
-   ! Exit code zero, no warning, and an empty result.
-   !
-   ! Groundwater runs either way now: coupled into the pressure matrix when semi-implicit, or
-   ! advanced explicitly alongside the explicit solver. Initialise it before either.
+   ! Groundwater runs either way: coupled into the pressure matrix when semi-implicit, or
+   ! advanced explicitly alongside the explicit solver. Initialise it before either, and before
+   ! the output files are defined -- sfincs_ncoutput adds gw_head to the map file whenever gwflow
+   ! is on, so gw_head has to be allocated by then.
    !
    if (gwflow) call initialize_groundwater()
    !
@@ -677,8 +673,6 @@ module sfincs_lib
          !
          call write_output(tout, write_map, write_his, write_max, write_rst, ntmapout, ntmaxout, nthisout, tloopoutput)
          !
-         if (gwflow .and. write_map) call gw_write_output(tout)
-         !
       endif
       !      
       ! Stop loop in case of instabilities (make sure time step 'dtmin' does not get too small compared to 'uvmax' flow velocity)
@@ -694,8 +688,6 @@ module sfincs_lib
          ntmaxout = ntmaxout + 1 ! Max sure that max output is not called again through 'finalize_output' 
          !
          call write_output(t, .true., .true., .true., .false., ntmapout + 1, ntmaxout, nthisout + 1, tloopoutput)
-         !
-         if (gwflow) call gw_write_output(t)
          !
          t = t1 + 1.0
          !
@@ -815,11 +807,18 @@ module sfincs_lib
       call write_log(logstr, 1)
       write(logstr,'(a,f6.1,a,i0)') ' SI CG iterations avg   :  ', get_si_iter_avg(), '  max: ', get_si_iter_max()
       call write_log(logstr, 0)
-      if (subgrid) then
+      !
+      ! The outer loop runs for gwflow as well as subgrid, and the count is the diagnostic that
+      ! says whether the nonlinear switches -- wet/dry, the seepage face, the moving ceiling --
+      ! are being resolved or merely lagged. It was reported for subgrid only, so a groundwater
+      ! run never showed it. The write_log call also sat OUTSIDE this branch, so a model with
+      ! neither printed the CG line a second time with the outer label's contents never set.
+      !
+      if (subgrid .or. gwflow) then
          write(logstr,'(a,f6.1,a,i0,a,i0)') ' SI outer iterations avg:  ', get_si_outer_avg(), &
             '  max: ', get_si_outer_max(), '  capped: ', get_si_outer_capped()
+         call write_log(logstr, 1)
       endif
-      call write_log(logstr, 1)
    endif
    !
    if (snapwave) then
@@ -836,6 +835,8 @@ module sfincs_lib
    call write_log(logstr, 1)
    !
    call write_log('', 1)
+   !
+   if (gwflow) call gw_budget_report()
    !
    write(logstr,'(a,20f10.3)')           ' Average time step (s)  : ', dtavg
    call write_log(logstr, 1)

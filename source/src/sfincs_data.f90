@@ -282,17 +282,28 @@ module sfincs_data
       real*4        :: gw_recharge_uniform
       character*256 :: gwheadfile
       character*256 :: gwrechargefile
+      character*256 :: gwkhfile
+      character*256 :: gwsyfile
+      character*256 :: gwzbasefile
       logical       :: gw_bnd_from_zs
-      real*4, dimension(:), allocatable :: gw_head_n   ! head at time level n
-      real*4, dimension(:), allocatable :: gw_dvol     ! explicit path: volume change per step
+      logical       :: gw_from_infiltration
+      real*4        :: gw_seepage_fac
+      logical       :: gw_seepage_active
+      real*8, dimension(:), allocatable :: gw_head_n   ! head at time level n
+      real*8, dimension(:), allocatable :: gw_dvol     ! explicit path: volume change per step
       real*4, dimension(:), allocatable :: gw_qsurf    ! explicit path: volume handed to the surface
+      real*8, dimension(:), allocatable :: gw_zceil_n  ! explicit path: ceiling at the previous step
       real*4, parameter :: gw_awet_floor = 0.01
-      real*4, dimension(:), allocatable :: gw_head      ! head above datum, m
+      ! real*8, not real*4. The head is a LEVEL: it carries the datum, and the datum is
+      ! information the scheme does not need but the mantissa has to pay for. At a 10 m datum a
+      ! real*4 head resolves 1.2e-6 m against a per-step change of ~5e-6 m, and Edelman's closure
+      ! degrades from 0.0012 % to 0.030 % purely from that. Conductances and areas stay real*4 --
+      ! they carry no datum, and the matrix is the one array where the width would actually cost.
+      real*8, dimension(:), allocatable :: gw_head      ! head above datum, m
       real*4, dimension(:), allocatable :: gw_kh        ! hydraulic conductivity, m/s
       real*4, dimension(:), allocatable :: gw_sy        ! specific yield, -
       real*4, dimension(:), allocatable :: gw_zbase     ! aquifer base elevation, m
       real*4, dimension(:), allocatable :: gw_recharge  ! recharge, m/s
-      real*4, dimension(:), allocatable :: gw_qexch     ! exchange flux to surface, m/s
       integer       :: si_maxouter
       logical       :: h73table
       logical       :: wave_enhanced_roughness
@@ -594,8 +605,11 @@ module sfincs_data
       !
       real*4, dimension(:),   allocatable :: si_q_star       ! Explicit flux part (npuv)
       real*4, dimension(:),   allocatable :: si_coeff        ! Implicit pressure coupling coeff per UV (npuv)
-      real*4, dimension(:),   allocatable :: si_rhs          ! RHS vector (nrows_si)
-      real*4, dimension(:),   allocatable :: si_x            ! Solution vector eta^{n+1} (nrows_si)
+      ! Despite the name this holds the DIAGONAL-REDUCED RESIDUAL, b - rowsum*x^k, assembled
+      ! directly as level differences so the datum is never formed. See the residual loop in
+      ! sfincs_semi_implicit. real*8 because those differences are ~1e-5 m on levels of ~10 m.
+      real*8, dimension(:),   allocatable :: si_rhs          ! residual vector (nrows_tot)
+      real*8, dimension(:),   allocatable :: si_x            ! Solution vector eta^{n+1} (nrows_si)
       real*4, dimension(:),   allocatable :: si_dx           ! Increment solved for, x = x0 + dx
       real*4, dimension(:),   allocatable :: si_b            ! Residual b - A x0, the CG right-hand side
       real*4, dimension(:),   allocatable :: si_AA           ! Sparse matrix values (nnz_si)
