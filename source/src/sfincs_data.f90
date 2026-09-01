@@ -306,6 +306,7 @@ module sfincs_data
       real*4, dimension(:), allocatable :: gw_zbase     ! aquifer base elevation, m
       real*4, dimension(:), allocatable :: gw_recharge  ! recharge, m/s
       integer       :: si_maxouter
+      integer       :: si_precond     ! 0 lexicographic SSOR, 1 multicolour SSOR, 2 Jacobi
       logical       :: h73table
       logical       :: wave_enhanced_roughness
       logical       :: use_bcafile

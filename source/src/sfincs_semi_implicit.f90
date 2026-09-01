@@ -110,6 +110,14 @@ module sfincs_semi_implicit
    !
    real*4, dimension(:), allocatable :: si_AA_scaled   ! nnz_si
    !
+   ! Graph colouring of the rows, for the multicolour SSOR (si_precond = 1). Rows of one colour
+   ! share no matrix entry, so a Gauss-Seidel sweep over a colour is embarrassingly parallel and
+   ! its result does not depend on the thread count.
+   integer :: si_ncolor
+   integer, dimension(:), allocatable :: si_color_of    ! nrows_tot
+   integer, dimension(:), allocatable :: si_color_ptr   ! si_ncolor + 1
+   integer, dimension(:), allocatable :: si_color_rows  ! nrows_tot, rows grouped by colour
+   !
    ! Timing and diagnostics
    !
    real    :: tloop_si
@@ -146,6 +154,9 @@ contains
    !
    integer :: nm, ip, irow, icol, k
    integer :: j, nb, nfaces_si, maxrow, ndiag, kn, nperm
+   integer, parameter :: maxrow_alloc = 16          ! more colours than any row has neighbours
+   logical, dimension(:), allocatable :: color_used
+   integer, dimension(:), allocatable :: color_fill
    real*4  :: dref
    !
    integer, dimension(:), allocatable :: row_count
@@ -500,6 +511,61 @@ contains
    !
    deallocate(perm)
    deallocate(col_tmp)
+   !
+   ! Greedy colouring in row order: each row takes the smallest colour none of its neighbours
+   ! has yet. Two colours on a regular grid; a few more where quadtree transitions or the
+   ! groundwater exchange add edges. Rows are then grouped by colour for the coloured sweeps.
+   !
+   allocate(si_color_of(nrows_tot))
+   si_color_of = 0
+   allocate(color_used(maxrow_alloc))
+   si_ncolor = 0
+   do irow = 1, nrows_tot
+      color_used = .false.
+      do k = si_row_ptr(irow), si_row_ptr(irow + 1) - 1
+         icol = si_col_idx(k)
+         if (icol /= irow .and. si_color_of(icol) > 0) color_used(si_color_of(icol)) = .true.
+      enddo
+      do j = 1, maxrow_alloc
+         if (.not. color_used(j)) exit
+      enddo
+      si_color_of(irow) = j
+      si_ncolor = max(si_ncolor, j)
+   enddo
+   deallocate(color_used)
+   !
+   allocate(si_color_ptr(si_ncolor + 1))
+   allocate(si_color_rows(nrows_tot))
+   si_color_ptr = 0
+   do irow = 1, nrows_tot
+      si_color_ptr(si_color_of(irow) + 1) = si_color_ptr(si_color_of(irow) + 1) + 1
+   enddo
+   si_color_ptr(1) = 1
+   do j = 1, si_ncolor
+      si_color_ptr(j + 1) = si_color_ptr(j) + si_color_ptr(j + 1)
+   enddo
+   allocate(color_fill(si_ncolor))
+   color_fill = si_color_ptr(1:si_ncolor)
+   do irow = 1, nrows_tot
+      j = si_color_of(irow)
+      si_color_rows(color_fill(j)) = irow
+      color_fill(j) = color_fill(j) + 1
+   enddo
+   deallocate(color_fill)
+   !
+   ! No two neighbours may share a colour; otherwise the coloured sweep would race.
+   !
+   do irow = 1, nrows_tot
+      do k = si_row_ptr(irow), si_row_ptr(irow + 1) - 1
+         icol = si_col_idx(k)
+         if (icol /= irow .and. si_color_of(icol) == si_color_of(irow)) then
+            write(*,*) 'Error: semi-implicit colouring gives neighbours ', irow, icol, ' the same colour'
+            stop
+         endif
+      enddo
+   enddo
+   !
+   write(*,'(a,i0,a)') ' Semi-implicit CSR: ', si_ncolor, ' colours'
    !
    ! Flatten into the per-row face list the assembly walks.
    !
@@ -1537,6 +1603,18 @@ contains
    integer :: i, k
    real*4  :: diag_i, tmp
    !
+   if (si_precond == 2) then
+      !$omp parallel do private(i) schedule(static)
+      do i = 1, n
+         z(i) = r(i) / val(si_diag_ptr(i))
+      enddo
+      !$omp end parallel do
+      return
+   elseif (si_precond == 1) then
+      call apply_ssor_color(n, val, r, z, omega)
+      return
+   endif
+   !
    ! Forward sweep: (D/omega + L) * z = r
    ! Ascending k over the lower slots only.
    !
@@ -1581,6 +1659,65 @@ contains
    enddo
    !
    end subroutine apply_ssor_precond
+   !
+   !
+   subroutine apply_ssor_color(n, val, r, z, omega)
+   !
+   ! SSOR in the multicolour ordering. Same factorisation as apply_ssor_precond,
+   ! (D/omega + L) D^{-1} (D/omega + U), but lower and upper are defined by colour: a
+   ! neighbour of a lower colour is L, of a higher colour is U. Rows of one colour share no
+   ! entry, so each colour is a parallel loop whose reads all refer to colours already
+   ! finished (forward: lower colours; backward: higher). The sum order inside a row is fixed,
+   ! so the result does not depend on the thread count.
+   !
+   implicit none
+   !
+   integer, intent(in)  :: n
+   real*4,  intent(in)  :: val(*), r(n), omega
+   real*4,  intent(out) :: z(n)
+   !
+   integer :: i, k, ic, kk, ci
+   real*4  :: tmp
+   !
+   ! Forward: (D/omega + L) z = r, colours ascending.
+   !
+   do ic = 1, si_ncolor
+      !$omp parallel do private(kk, i, k, tmp) schedule(static)
+      do kk = si_color_ptr(ic), si_color_ptr(ic + 1) - 1
+         i = si_color_rows(kk)
+         tmp = r(i)
+         do k = si_row_ptr(i), si_row_ptr(i + 1) - 1
+            if (si_color_of(si_col_idx(k)) < ic) tmp = tmp - val(k) * z(si_col_idx(k))
+         enddo
+         z(i) = omega * tmp / val(si_diag_ptr(i))
+      enddo
+      !$omp end parallel do
+   enddo
+   !
+   ! Scale: z = D/omega * z
+   !
+   !$omp parallel do private(i) schedule(static)
+   do i = 1, n
+      z(i) = val(si_diag_ptr(i)) / omega * z(i)
+   enddo
+   !$omp end parallel do
+   !
+   ! Backward: (D/omega + U) z_new = z_old, colours descending.
+   !
+   do ic = si_ncolor, 1, -1
+      !$omp parallel do private(kk, i, k, tmp) schedule(static)
+      do kk = si_color_ptr(ic), si_color_ptr(ic + 1) - 1
+         i = si_color_rows(kk)
+         tmp = z(i)
+         do k = si_row_ptr(i), si_row_ptr(i + 1) - 1
+            if (si_color_of(si_col_idx(k)) > ic) tmp = tmp - val(k) * z(si_col_idx(k))
+         enddo
+         z(i) = omega * tmp / val(si_diag_ptr(i))
+      enddo
+      !$omp end parallel do
+   enddo
+   !
+   end subroutine apply_ssor_color
    !
    !
    subroutine backsubstitute_fluxes_si(dt)
