@@ -638,7 +638,7 @@ contains
    real*4  :: div_qstar
    integer :: kface, islot, iouter, nbad, nbad_prev, nbad_tol
    real*4  :: coeff_face
-   real*4  :: acell, awet_n, awet_k, diag_store, dmax_outer, dchg
+   real*4  :: acell, awet_n, awet_k, diag_store, dmax_outer, dchg, scale_i
    real*8  :: vol_n, vol_k
    integer :: jrow
    real*4  :: cexch, tface, gdvol, qexpl, cseep
@@ -1023,9 +1023,11 @@ contains
    ! then recover x = D y. Every scaled diagonal becomes exactly 1, so CG sees a system
    ! whose conditioning no longer depends on the spread between dry and wet cells.
    !
+   !$omp parallel do private(irow) schedule(static)
    do irow = 1, nrows_tot
       si_scale(irow) = 1.0 / sqrt(max(si_AA(si_diag_ptr(irow)), 1.0e-20))
    enddo
+   !$omp end parallel do
    !
    ! Solve for the INCREMENT, and never form the datum.
    !
@@ -1063,30 +1065,27 @@ contains
    ! unknown is x(j)/s(j) with s varying row to row, so x_scaled(j) - x_scaled(i) is no longer a
    ! level difference. Form the residual unscaled, then scale the one number that comes out.
    !
-   !$omp parallel do private(irow, kface, resid, xi) schedule(static)
+   ! The scaled matrix row is written in the same pass: it needs exactly the entries the
+   ! residual just touched (si_AA, si_col_idx, si_scale of row and column), so the row's data
+   ! is in cache and the matrix is walked once instead of twice. Into a separate array:
+   ! si_AA must stay unscaled, because its surface off-diagonals are assembled once per
+   ! timestep and reused by every outer iteration. The loop only reads si_x, so writing
+   ! si_AA_scaled here is race-free.
+   !
+   !$omp parallel do private(irow, kface, resid, xi, scale_i) schedule(static)
    do irow = 1, nrows_tot
-      xi    = si_x(irow)
-      resid = si_rhs(irow)
+      xi      = si_x(irow)
+      scale_i = si_scale(irow)
+      resid   = si_rhs(irow)
       do kface = si_row_ptr(irow), si_row_ptr(irow + 1) - 1
          resid = resid - dble(si_AA(kface)) * (si_x(si_col_idx(kface)) - xi)
+         si_AA_scaled(kface) = si_AA(kface) * scale_i * si_scale(si_col_idx(kface))
       enddo
       !
-      si_b(irow)  = real(resid * dble(si_scale(irow)))
+      si_b(irow)  = real(resid * dble(scale_i))
       si_dx(irow) = 0.0
    enddo
    !$omp end parallel do
-   !
-   ! Now scale the matrix, and the current solution with it.
-   !
-   ! Into a separate array: si_AA must stay unscaled, because its surface off-diagonals are
-   ! assembled once per timestep and reused by every outer iteration.
-   !
-   do irow = 1, nrows_tot
-      do kface = si_row_ptr(irow), si_row_ptr(irow + 1) - 1
-         si_AA_scaled(kface) = si_AA(kface) * si_scale(irow) * si_scale(si_col_idx(kface))
-      enddo
-      si_x(irow) = si_x(irow) / dble(si_scale(irow))
-   enddo
    !
    ! Solve using CG with SSOR preconditioning
    !
@@ -1094,20 +1093,20 @@ contains
    call cg_solve(nrows_tot, nnz_si, si_AA_scaled, si_col_idx, si_row_ptr, &
                   si_b, si_dx, si_tol, si_maxiter, iter, relres)
    !
-   ! Undo the diagonal scaling and add the increment.
+   ! Add the increment, unscaled. CG solved for dx in the scaled unknown x/s, so the level
+   ! change is dx*s.
    !
-   ! si_x IS round-tripped through si_scale: x -> x/s -> (x/s + dx)*s. Not round-tripping it --
-   ! keeping the unscaled level and adding dx*s to it -- was tried and reverted: it helped Dupuit
-   ! slightly and clearly hurt Edelman (normalised error 2.59e-3 -> 3.65e-3, closure 0.030 % ->
-   ! 0.531 %). Both variants were dominated by real*4 noise, which is why neither won.
+   ! si_x used to be round-tripped through si_scale (x -> x/s -> (x/s + dx)*s). When si_x was
+   ! real*4 the two forms differed measurably (Dupuit slightly better, Edelman clearly worse
+   ! without the round trip) and both were dominated by real*4 noise. si_x is real*8 now, so
+   ! the difference is 2e-16 relative, and the round trip cost a serial pass over si_x that
+   ! the residual loop could not be fused with (it reads neighbours' si_x).
    !
-   ! That argument is now moot for the quantity it was about, because si_x is real*8: two
-   ! roundings of a real*8 level cost 2e-16 relative rather than 2e-7, which is far below
-   ! anything else in the step. The round trip is kept because it is the simpler code.
-   !
+   !$omp parallel do private(irow) schedule(static)
    do irow = 1, nrows_tot
-      si_x(irow) = (si_x(irow) + dble(si_dx(irow))) * dble(si_scale(irow))
+      si_x(irow) = si_x(irow) + dble(si_dx(irow)) * dble(si_scale(irow))
    enddo
+   !$omp end parallel do
    !
    si_iter_total = si_iter_total + iter
    si_solve_count = si_solve_count + 1
