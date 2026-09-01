@@ -757,10 +757,13 @@ contains
                ! Only advective CFL remains (when advection is on).
                ! Use higher velocity floor and only count sufficiently wet cells.
                !
-               if (advection .and. hu > 2.0 * huthresh) then
-                  !
-                  ! Only apply advective CFL for cells with meaningful water depth
-                  ! to avoid thin-film cells with spurious high velocities
+               ! Only faces with meaningful water depth enter the advective CFL. 2*huthresh
+               ! (0.1 m by default) is not enough: on Harvey the time step was set by faces
+               ! between a channel cell and a bank cell ~10 m higher, where a 10-20 cm film
+               ! runs at 5-10 m/s down the bank -- not flow, the momentum equation's response
+               ! to a dry bank. si_cfl_hmin (m, default 0 = old behaviour) raises the floor.
+               !
+               if (advection .and. hu > max(2.0 * huthresh, si_cfl_hmin)) then
                   !
                   min_dt_ip = 1.0 / ( max(abs(uv(ip)), 1.0e-3) * dxuvinv)
                   !

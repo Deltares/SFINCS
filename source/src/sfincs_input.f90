@@ -150,6 +150,7 @@ contains
    ! to its cap on every timestep even when the answer had converged.
    call read_real_input(500, 'si_tolouter', si_tolouter, 1.0e-3)
    call read_int_input(500, 'si_maxouter', si_maxouter, 50)
+   call read_real_input(500, 'si_cfl_hmin', si_cfl_hmin, 0.0)
    !
    ! Groundwater. Defaults are the Dupuit conceptual case, so a model that sets only
    ! gwflow = 1 runs rather than failing. gw_theta matches the theta_si default.

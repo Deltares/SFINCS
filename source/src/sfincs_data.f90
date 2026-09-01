@@ -268,6 +268,7 @@ module sfincs_data
       integer       :: si_maxiter
       real*4        :: si_tol
       real*4        :: si_tolouter
+      real*4        :: si_cfl_hmin     ! m, faces shallower than this do not enter the advective CFL (semi-implicit)
       !
       ! Groundwater
       !
