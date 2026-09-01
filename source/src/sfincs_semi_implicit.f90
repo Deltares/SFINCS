@@ -96,6 +96,19 @@ module sfincs_semi_implicit
    !
    real*4, dimension(:), allocatable :: si_scale       ! nrows_si
    !
+   ! Per-timestep parts of the surface rows that do NOT depend on the outer iterate. Built once
+   ! before the outer loop in assemble_and_solve_pressure; the loop adds only the storage term.
+   !
+   real*4, dimension(:), allocatable :: si_cface       ! nrows_si, sum of face conductances on the row
+   real*4, dimension(:), allocatable :: si_cbnd        ! nrows_si, the Dirichlet share of si_cface
+   real*8, dimension(:), allocatable :: si_rhs_const   ! nrows_si, flux divergence + sources + known boundary levels
+   real*8, dimension(:), allocatable :: si_vol_n       ! nrows_si, subgrid volume at the old-time level
+   !
+   ! Diagonally scaled copy of the matrix handed to CG. si_AA itself stays unscaled so that the
+   ! hoisted off-diagonals survive from one outer iteration to the next.
+   !
+   real*4, dimension(:), allocatable :: si_AA_scaled   ! nnz_si
+   !
    ! Timing and diagnostics
    !
    real    :: tloop_si
@@ -188,6 +201,10 @@ contains
    allocate(cg_diag(nrows_tot))
    allocate(si_eta_k(nrows_tot))
    allocate(si_scale(nrows_tot))
+   allocate(si_cface(nrows_si))
+   allocate(si_cbnd(nrows_si))
+   allocate(si_rhs_const(nrows_si))
+   allocate(si_vol_n(nrows_si))
    !
    si_nm_of_row = 0
    si_row_ptr = 0
@@ -393,6 +410,8 @@ contains
    !
    allocate(si_AA(nnz_si))
    si_AA = 0.0
+   allocate(si_AA_scaled(nnz_si))
+   si_AA_scaled = 0.0
    !
    ! Flatten into the per-row face list the assembly walks.
    !
@@ -528,6 +547,8 @@ contains
    real*4  :: diag
    real*4  :: dxr_val, dyr_val
    real*8  :: bv_rech, bv_exch, bv_bnd, bv_ceil, bv_gross, bv_term
+   real*4  :: csum_face, cbnd_face
+   real*8  :: rhs_c
    !
    call system_clock(count0, count_rate, count_max)
    !
@@ -592,9 +613,104 @@ contains
       !
    endif
    !
+   !
+   ! Per-timestep assembly of everything that does NOT depend on the outer iterate.
+   !
+   ! si_coeff and si_q_star come from the momentum predictor and are fixed for the step, and so is
+   ! the geometry. So every off-diagonal entry of a surface row, the face sum on its diagonal, the
+   ! flux-divergence and source part of its right-hand side, and the known boundary levels are the
+   ! same in every outer iteration. Measured on Harvey the outer loop ran 2.7 times per step to feed
+   ! 14 CG iterations, and rebuilt all of this each time. It is built once here; the loop below adds
+   ! only the storage term, which is the one thing the iterate changes.
+   !
+   ! The Dirichlet term coeff * (zs_bnd - eta_k) is split: coeff * zs_bnd goes into the constant
+   ! part, and the row's total boundary conductance si_cbnd multiplies -eta_k inside the loop.
+   !
+   ! si_AA stays UNSCALED from here on. The diagonal scaling before each solve writes into
+   ! si_AA_scaled instead of overwriting in place, which is what lets these off-diagonals survive
+   ! from one outer iteration to the next.
+   !
+   !$omp parallel do private(irow, nm, nmd, nmu, ndm, num, div_qstar, acell, kface, ip, islot, &
+   !$omp                      coeff_face, csum_face, cbnd_face, rhs_c, vol_n, awet_n) &
+   !$omp schedule(static)
+   do irow = 1, nrows_si
+      !
+      nm = si_nm_of_row(irow)
+      !
+      nmd = z_index_uv_md(nm)
+      nmu = z_index_uv_mu(nm)
+      ndm = z_index_uv_nd(nm)
+      num = z_index_uv_nu(nm)
+      !
+      ! Flux divergence of q_star. Same formula as compute_water_levels_regular in
+      ! sfincs_continuity.f90; inflow positive.
+      !
+      if (crsgeo) then
+         div_qstar = (si_q_star(nmd) - si_q_star(nmu)) / dxm(nm) &
+                   + (si_q_star(ndm) - si_q_star(num)) * dyrinv(z_flags_iref(nm))
+         acell = cell_area_m2(nm)
+      else
+         div_qstar = (si_q_star(nmd) - si_q_star(nmu)) * dxrinv(z_flags_iref(nm)) &
+                   + (si_q_star(ndm) - si_q_star(num)) * dyrinv(z_flags_iref(nm))
+         acell = cell_area(z_flags_iref(nm))
+      endif
+      !
+      ! Volumetric, like every other term in the row.
+      !
+      rhs_c = dble(acell) * dble(dt) * dble(div_qstar)
+      if (precip)   rhs_c = rhs_c + acell * dt * netprcp(nm)
+      if (use_qext) rhs_c = rhs_c + acell * dt * qext(nm)
+      !
+      ! Walk this row's faces. Grid-agnostic: nothing here assumes there are four.
+      ! si_coeff is per unit face width, so multiply by the width of THIS face, taken from the
+      ! face's own refinement level. At a quadtree transition the coarse cell's two fine faces get
+      ! half the coarse width each, which keeps A(coarse,fine) equal to A(fine,coarse).
+      !
+      csum_face = 0.0
+      cbnd_face = 0.0
+      !
+      do kface = si_row_face_ptr(irow), si_row_face_ptr(irow + 1) - 1
+         !
+         ip    = si_row_face_ip(kface)
+         islot = si_row_face_slot(kface)
+         !
+         if (si_row_face_isy(kface) == 0) then
+            coeff_face = si_coeff(ip) * dt * dyrm(uv_flags_iref(ip))
+         else
+            coeff_face = si_coeff(ip) * dt * dxrm(uv_flags_iref(ip))
+         endif
+         !
+         csum_face = csum_face + coeff_face
+         !
+         if (islot > 0) then
+            ! Interior neighbour: the off-diagonal entry, constant for the step
+            si_AA(islot) = -coeff_face
+         else
+            ! Boundary neighbour (kcs==2): known level to the constant right-hand side, and the
+            ! conductance remembered so the loop can subtract coeff * eta_k against it
+            cbnd_face = cbnd_face + coeff_face
+            rhs_c     = rhs_c + dble(coeff_face) * dble(zs(si_row_face_bnd(kface)))
+         endif
+         !
+      enddo
+      !
+      si_cface(irow)     = csum_face
+      si_cbnd(irow)      = cbnd_face
+      si_rhs_const(irow) = rhs_c
+      !
+      ! Subgrid volume at the OLD level, needed by the storage residual every iteration
+      !
+      if (subgrid) then
+         call subgrid_storage(nm, zs(nm), vol_n, awet_n)
+         si_vol_n(irow) = vol_n
+      endif
+      !
+   enddo
+   !$omp end parallel do
+   !
    do iouter = 1, si_maxouter
    !
-   ! Assemble matrix and RHS row by row
+   ! Assemble the iterate-dependent part of the matrix and RHS row by row
    !
    !$omp parallel do private(irow, nm, nmd, nmu, ndm, num, dxr_val, dyr_val, &
    !$omp                      div_qstar, diag, ip, kface, islot, coeff_face, &
@@ -605,50 +721,9 @@ contains
       !
       nm = si_nm_of_row(irow)
       !
-      ! Get UV indices for flux divergence
-      !
-      nmd = z_index_uv_md(nm)  ! left UV
-      nmu = z_index_uv_mu(nm)  ! right UV
-      ndm = z_index_uv_nd(nm)  ! bottom UV
-      num = z_index_uv_nu(nm)  ! top UV
-      !
-      ! Grid spacing (for regular grid, use reference level)
-      !
-      if (crsgeo) then
-         dxr_val = dxm(nm)
-         dyr_val = 1.0 / dyrinv(z_flags_iref(nm))
-      else
-         dxr_val = 1.0 / dxrinv(z_flags_iref(nm))
-         dyr_val = 1.0 / dyrinv(z_flags_iref(nm))
-      endif
-      !
-      ! Compute flux divergence of q_star for RHS
-      ! Same formula as sfincs_continuity.f90 compute_water_levels_regular
-      !
-      if (crsgeo) then
-         div_qstar = (si_q_star(nmd) - si_q_star(nmu)) / dxm(nm) &
-                   + (si_q_star(ndm) - si_q_star(num)) * dyrinv(z_flags_iref(nm))
-      else
-         div_qstar = (si_q_star(nmd) - si_q_star(nmu)) * dxrinv(z_flags_iref(nm)) &
-                   + (si_q_star(ndm) - si_q_star(num)) * dyrinv(z_flags_iref(nm))
-      endif
-      !
-      ! RHS = current zs + dt * div(q_star) + dt * sources
-      ! (div_qstar already has the sign convention: inflow positive)
-      !
-      ! Storage term.
-      !
-      ! Without subgrid, V = A*eta so the storage contributes 1 on the diagonal and eta^n
-      ! on the RHS, which is what the two branches below reduce to.
-      !
-      ! With subgrid the relation is nonlinear. Expand it about the current outer iterate:
-      !
-      !   V(eta^{n+1}) ~= V(eta^k) + A_wet(eta^k) * (eta^{n+1} - eta^k)
-      !
-      ! and divide through by the cell area to match the form of the flux terms. This is
-      ! Newton written in residual/increment form. It is NOT the same as lagging A_wet as a
-      ! multiplicative coefficient, which is a period-2 limit cycle at every timestep.
-      ! The nonlinearity is diagonal-only, so the matrix stays symmetric and CG is retained.
+      ! Everything that does not depend on the outer iterate -- off-diagonals, the face sum
+      ! si_cface, the boundary conductance si_cbnd and the constant right-hand side si_rhs_const --
+      ! was assembled once for this timestep before the loop. What is left is the storage term.
       !
       if (crsgeo) then
          acell = cell_area_m2(nm)
@@ -656,101 +731,43 @@ contains
          acell = cell_area(z_flags_iref(nm))
       endif
       !
-      ! Volumetric: every term below is a volume per timestep, not a level. Diagonal scaling
-      ! before the solve removes the resulting O(1e5) magnitudes, so CG is unaffected.
+      ! Storage term.
+      !
+      ! Without subgrid, V = A*eta so the storage contributes A on the diagonal and A*eta^n on
+      ! the RHS, which is what the two branches below reduce to.
+      !
+      ! With subgrid the relation is nonlinear. Expand it about the current outer iterate:
+      !
+      !   V(eta^{n+1}) ~= V(eta^k) + A_wet(eta^k) * (eta^{n+1} - eta^k)
+      !
+      ! This is Newton written in residual/increment form. It is NOT the same as lagging A_wet as
+      ! a multiplicative coefficient, which is a period-2 limit cycle at every timestep. The
+      ! nonlinearity is diagonal-only, so the matrix stays symmetric and CG is retained.
+      !
+      ! si_rhs holds the DIAGONAL-REDUCED RESIDUAL, not the right-hand side -- see the header of
+      ! the residual loop below. The storage term contributes awet_k * eta^k to the right-hand
+      ! side and awet_k to the diagonal, so the two cancel exactly and what is left is
+      ! vol_n - vol_k: the volume the cell actually has to shed this step. The Dirichlet faces
+      ! reduce the same way: their known levels sit in si_rhs_const and their conductance times
+      ! this row's iterate is subtracted here.
+      !
+      ! Volumetric: every term is a volume per timestep, not a level. Diagonal scaling before the
+      ! solve removes the resulting O(1e5) magnitudes, so CG is unaffected.
       !
       if (subgrid) then
-         !
-         call subgrid_storage(nm, zs(nm), vol_n, awet_n)
          call subgrid_storage(nm, si_eta_k(irow), vol_k, awet_k)
-         !
-         ! si_rhs holds the DIAGONAL-REDUCED RESIDUAL, not the right-hand side -- see the
-         ! header of the residual loop below. The storage term contributes awet_k * eta^k to the
-         ! right-hand side and awet_k to the diagonal, so the two cancel exactly and what is
-         ! left is vol_n - vol_k: the volume the cell actually has to shed this step.
-         !
-         diag_store = awet_k
-         si_rhs(irow) = (vol_n - vol_k) + dble(acell) * dble(dt) * dble(div_qstar)
-         !
+         diag_store   = awet_k
+         si_rhs(irow) = (si_vol_n(irow) - vol_k) + si_rhs_const(irow) &
+                      - dble(si_cbnd(irow)) * si_eta_k(irow)
       else
-         !
-         ! Same cancellation, written out: acell * zs^n on the right-hand side against acell
-         ! on the diagonal leaves acell * (zs^n - eta^k), which is the subgrid form's
-         ! vol_n - vol_k with a constant wet area.
-         !
-         diag_store = acell
-         si_rhs(irow) = dble(acell) * (zs(nm) - si_eta_k(irow)) &
-                      + dble(acell) * dble(dt) * dble(div_qstar)
-         !
+         diag_store   = acell
+         si_rhs(irow) = dble(acell) * (zs(nm) - si_eta_k(irow)) + si_rhs_const(irow) &
+                      - dble(si_cbnd(irow)) * si_eta_k(irow)
       endif
       !
-      ! Include precipitation in the pressure system so that the solver
-      ! accounts for the added volume when computing fluxes
+      ! Set diagonal: storage derivative plus the per-step face sum
       !
-      if (precip) then
-         si_rhs(irow) = si_rhs(irow) + acell * dt * netprcp(nm)
-      endif
-      !
-      ! Include external sources (e.g. from BMI/XMI coupling)
-      !
-      if (use_qext) then
-         si_rhs(irow) = si_rhs(irow) + acell * dt * qext(nm)
-      endif
-      !
-      ! Now assemble matrix coefficients
-      ! The coefficient comes from substituting the momentum into continuity.
-      ! For regular grid: cell_area = dxr * dyr
-      !
-      diag = diag_store
-      !
-      ! Walk this row's faces. Grid-agnostic: nothing here assumes there are four.
-      ! Sides 1 and 2 are x-direction, 3 and 4 are y-direction.
-      ! For a Dirichlet neighbour (kcs==2) the coefficient stays on the diagonal and the
-      ! known water level moves to the RHS. Which of the two cells on the face is the
-      ! boundary depends on the side: for left/bottom it is uv_index_z_nm, for right/top
-      ! it is uv_index_z_nmu.
-      !
-      do kface = si_row_face_ptr(irow), si_row_face_ptr(irow + 1) - 1
-         !
-         ip    = si_row_face_ip(kface)
-         islot = si_row_face_slot(kface)
-         !
-         ! Volumetric. si_coeff is per unit face width, so multiply by the width of THIS
-         ! face, taken from the face's own refinement level rather than the cell's. On a
-         ! regular grid this is the same number for both cells and reduces to the old form
-         ! times cell area. At a quadtree transition the coarse cell's two fine faces get
-         ! half the coarse width each, which is what the explicit side does by averaging the
-         ! two fluxes over the full face -- and it makes A(coarse,fine) equal A(fine,coarse),
-         ! so symmetry survives.
-         !
-         if (si_row_face_isy(kface) == 0) then
-            coeff_face = si_coeff(ip) * dt * dyrm(uv_flags_iref(ip))
-         else
-            coeff_face = si_coeff(ip) * dt * dxrm(uv_flags_iref(ip))
-         endif
-         !
-         diag = diag + coeff_face
-         !
-         if (islot > 0) then
-            ! Interior neighbour
-            si_AA(islot) = -coeff_face
-         else
-            ! Boundary neighbour (kcs==2): known eta, move to RHS.
-            ! si_row_face_bnd already holds whichever end of the face is not this cell,
-            ! so there is no left/right special case to get wrong.
-            ! Against this row's own iterate. A Dirichlet coefficient sits on the diagonal
-            ! AND puts the known level on the right-hand side, so the pair reduces to a level
-            ! difference across the boundary face.
-            !
-            si_rhs(irow) = si_rhs(irow) &
-                         + dble(coeff_face) * (zs(si_row_face_bnd(kface)) - si_eta_k(irow))
-         endif
-         !
-      enddo
-      !
-      ! Set diagonal
-      !
-      si_AA(si_diag_ptr(irow)) = diag
+      si_AA(si_diag_ptr(irow)) = diag_store + si_cface(irow)
       !
       ! Exchange with the aquifer, written symmetrically.
       !
@@ -960,9 +977,12 @@ contains
    !
    ! Now scale the matrix, and the current solution with it.
    !
+   ! Into a separate array: si_AA must stay unscaled, because its surface off-diagonals are
+   ! assembled once per timestep and reused by every outer iteration.
+   !
    do irow = 1, nrows_tot
       do kface = si_row_ptr(irow), si_row_ptr(irow + 1) - 1
-         si_AA(kface) = si_AA(kface) * si_scale(irow) * si_scale(si_col_idx(kface))
+         si_AA_scaled(kface) = si_AA(kface) * si_scale(irow) * si_scale(si_col_idx(kface))
       enddo
       si_x(irow) = si_x(irow) / dble(si_scale(irow))
    enddo
@@ -970,7 +990,7 @@ contains
    ! Solve using CG with SSOR preconditioning
    !
    !
-   call cg_solve(nrows_tot, nnz_si, si_AA, si_col_idx, si_row_ptr, &
+   call cg_solve(nrows_tot, nnz_si, si_AA_scaled, si_col_idx, si_row_ptr, &
                   si_b, si_dx, si_tol, si_maxiter, iter, relres)
    !
    ! Undo the diagonal scaling and add the increment.
