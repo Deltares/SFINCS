@@ -145,10 +145,12 @@ contains
    implicit none
    !
    integer :: nm, ip, irow, icol, k
-   integer :: j, nb, nfaces_si, maxrow, ndiag
+   integer :: j, nb, nfaces_si, maxrow, ndiag, kn, nperm
    real*4  :: dref
    !
    integer, dimension(:), allocatable :: row_count
+   integer, dimension(:), allocatable :: perm       ! old CSR slot -> new CSR slot
+   integer, dimension(:), allocatable :: col_tmp
    integer, dimension(:,:), allocatable :: face_ip    ! (8, nrows_si) UV point per face slot
    integer, dimension(:,:), allocatable :: face_nb    ! (8, nrows_si) neighbour row, 0 = Dirichlet
    integer, dimension(:,:), allocatable :: face_bnd   ! (8, nrows_si) neighbour cell index
@@ -358,8 +360,8 @@ contains
    si_col_idx = 0
    si_diag_ptr = 0
    !
-   ! Columns are NOT sorted ascending. They do not need to be: the preconditioner separates
-   ! lower from upper by comparing the column index against the row index.
+   ! Columns are emitted in face order, not sorted ascending. After the row builder, every row
+   ! is reordered once into [lower | diagonal | upper] (see below); the SSOR sweeps rely on it.
    !
    do irow = 1, nrows_si
       !
@@ -431,6 +433,73 @@ contains
    si_AA = 0.0
    allocate(si_AA_scaled(nnz_si))
    si_AA_scaled = 0.0
+   !
+   ! Order every row as [lower | diagonal | upper] so the SSOR sweeps run over bounded index
+   ! ranges instead of testing each column against the row. The row builder emits faces 1-4
+   ! before the diagonal and 5-8 after it; on a regular grid that already is the split, on a
+   ! quadtree a neighbour across a refinement transition can land on the wrong side. A stable
+   ! partition keeps the relative order within each side, so wherever nothing moves the sums
+   ! in the sweeps round exactly as before. Every table that points into si_AA is remapped.
+   !
+   allocate(perm(nnz_si))
+   allocate(col_tmp(nnz_si))
+   col_tmp = si_col_idx
+   nperm = 0
+   !
+   do irow = 1, nrows_tot
+      kn = si_row_ptr(irow) - 1
+      do k = si_row_ptr(irow), si_row_ptr(irow + 1) - 1
+         if (col_tmp(k) < irow) then
+            kn = kn + 1
+            perm(k) = kn
+         endif
+      enddo
+      do k = si_row_ptr(irow), si_row_ptr(irow + 1) - 1
+         if (col_tmp(k) == irow) then
+            kn = kn + 1
+            perm(k) = kn
+         endif
+      enddo
+      do k = si_row_ptr(irow), si_row_ptr(irow + 1) - 1
+         if (col_tmp(k) > irow) then
+            kn = kn + 1
+            perm(k) = kn
+         endif
+      enddo
+      do k = si_row_ptr(irow), si_row_ptr(irow + 1) - 1
+         if (perm(k) /= k) then
+            nperm = nperm + 1
+            exit
+         endif
+      enddo
+   enddo
+   !
+   do k = 1, nnz_si
+      si_col_idx(perm(k)) = col_tmp(k)
+   enddo
+   do irow = 1, nrows_tot
+      si_diag_ptr(irow) = perm(si_diag_ptr(irow))
+   enddo
+   do irow = 1, nrows_si
+      do j = 1, 8
+         if (face_slot(j, irow) > 0) face_slot(j, irow) = perm(face_slot(j, irow))
+      enddo
+   enddo
+   if (gwflow) then
+      do irow = 1, nrows_tot
+         si_exch_ptr(irow) = perm(si_exch_ptr(irow))
+      enddo
+      do irow = 1, nrows_si
+         do j = 1, 8
+            if (gw_face_slot(j, irow) > 0) gw_face_slot(j, irow) = perm(gw_face_slot(j, irow))
+         enddo
+      enddo
+   endif
+   !
+   write(*,'(a,i0,a,i0,a)') ' Semi-implicit CSR: ', nperm, ' of ', nrows_tot, ' rows reordered to lower/diag/upper'
+   !
+   deallocate(perm)
+   deallocate(col_tmp)
    !
    ! Flatten into the per-row face list the assembly walks.
    !
@@ -517,6 +586,18 @@ contains
          write(*,*) 'Error: semi-implicit si_diag_ptr does not point at the diagonal, row ', irow
          stop
       endif
+      do k = si_row_ptr(irow), si_diag_ptr(irow) - 1
+         if (si_col_idx(k) >= irow) then
+            write(*,*) 'Error: semi-implicit row ', irow, ' has an upper entry before the diagonal'
+            stop
+         endif
+      enddo
+      do k = si_diag_ptr(irow) + 1, si_row_ptr(irow + 1) - 1
+         if (si_col_idx(k) <= irow) then
+            write(*,*) 'Error: semi-implicit row ', irow, ' has a lower entry after the diagonal'
+            stop
+         endif
+      enddo
    enddo
    !
    ! The maximum row length is the useful number: 5 on a regular grid, above 5 once
@@ -1435,10 +1516,10 @@ contains
    !
    ! Symmetric Successive Over-Relaxation (SSOR) preconditioner.
    !
-   ! Works on the CSR structure directly. Lower and upper are separated by comparing the
-   ! column index against the row index, so this makes no assumption about how many
-   ! entries a row has or what order they are stored in — which is what a quadtree row
-   ! needs. The diagonal is located via si_diag_ptr rather than a fixed stencil slot.
+   ! Works on the CSR structure directly. Every row is stored as [lower | diagonal | upper]
+   ! (enforced once at setup and checked there), so the lower part of row i is the slots
+   ! si_row_ptr(i) .. si_diag_ptr(i)-1 and the upper part si_diag_ptr(i)+1 .. si_row_ptr(i+1)-1.
+   ! No assumption about how many entries a row has, which is what a quadtree row needs.
    !
    ! SSOR = (D/omega + L) * D^{-1} * (D/omega + U)
    !
@@ -1454,20 +1535,19 @@ contains
    real*4,  intent(in)  :: val(*), r(n), omega
    real*4,  intent(out) :: z(n)
    !
-   integer :: i, k, icol
+   integer :: i, k
    real*4  :: diag_i, tmp
    !
    ! Forward sweep: (D/omega + L) * z = r
-   ! Ascending k, taking entries whose column lies below the diagonal.
+   ! Ascending k over the lower slots only.
    !
    do i = 1, n
       !
       diag_i = val(si_diag_ptr(i))
       tmp = r(i)
       !
-      do k = si_row_ptr(i), si_row_ptr(i + 1) - 1
-         icol = si_col_idx(k)
-         if (icol < i) tmp = tmp - val(k) * z(icol)
+      do k = si_row_ptr(i), si_diag_ptr(i) - 1
+         tmp = tmp - val(k) * z(si_col_idx(k))
       enddo
       !
       z(i) = omega * tmp / diag_i
@@ -1483,19 +1563,18 @@ contains
    !$omp end parallel do
    !
    ! Backward sweep: (D/omega + U) * z_new = z_old
-   ! Descending k, taking entries whose column lies above the diagonal.
-   ! Descending rather than ascending on purpose: with the historical emission order
-   ! (left, bottom, centre, top, right) it visits right before top, which is the order
-   ! the previous slot-indexed version used, so the sum rounds identically.
+   ! Descending k over the upper slots only. Descending rather than ascending on purpose:
+   ! with the historical emission order (left, bottom, centre, top, right) it visits right
+   ! before top, which is the order the old slot-indexed version used, so the sum rounds
+   ! identically.
    !
    do i = n, 1, -1
       !
       diag_i = val(si_diag_ptr(i))
       tmp = z(i)
       !
-      do k = si_row_ptr(i + 1) - 1, si_row_ptr(i), -1
-         icol = si_col_idx(k)
-         if (icol > i) tmp = tmp - val(k) * z(icol)
+      do k = si_row_ptr(i + 1) - 1, si_diag_ptr(i) + 1, -1
+         tmp = tmp - val(k) * z(si_col_idx(k))
       enddo
       !
       z(i) = omega * tmp / diag_i
