@@ -26,6 +26,7 @@ module sfincs_semi_implicit
    public :: initialize_semi_implicit, assemble_and_solve_pressure, backsubstitute_fluxes_si
    public :: get_tloop_si, get_si_iter_avg, get_si_iter_max
    public :: get_si_outer_avg, get_si_outer_max, get_si_outer_capped
+   public :: get_si_outer_profile
    !
    ! CG solver work arrays (allocated once in initialize, reused each timestep)
    !
@@ -119,6 +120,17 @@ module sfincs_semi_implicit
    integer :: si_outer_max_seen   ! worst outer count in any timestep
    integer :: si_outer_capped     ! timesteps that hit si_maxouter
    integer :: si_outer_stagnant   ! outer loops stopped on stagnation
+   !
+   ! Per outer-iteration index: how many timesteps reached it, and the summed nbad and
+   ! dmax_outer there. Says how fast the nonlinear iteration actually converges.
+   integer,   dimension(:), allocatable :: si_prof_count
+   integer*8, dimension(:), allocatable :: si_prof_nbad
+   real*8,    dimension(:), allocatable :: si_prof_dmax
+   !
+   ! Outer-loop convergence: the field counts as converged when at most this fraction of rows
+   ! still changes by more than si_tolouter. A handful of rows sitting on a wet/dry threshold
+   ! flip between two states every iteration and would keep a max-norm test from ever passing.
+   real*4, parameter :: si_outer_frac = 1.0e-3
    integer :: si_solve_count_outer ! timesteps with an outer loop
    !
 contains
@@ -234,6 +246,13 @@ contains
    si_outer_capped = 0
    si_outer_stagnant = 0
    si_solve_count_outer = 0
+   !
+   allocate(si_prof_count(si_maxouter))
+   allocate(si_prof_nbad(si_maxouter))
+   allocate(si_prof_dmax(si_maxouter))
+   si_prof_count = 0
+   si_prof_nbad  = 0
+   si_prof_dmax  = 0.0d0
    !
    ! Build row <-> nm mapping
    !
@@ -536,9 +555,9 @@ contains
    integer :: count0, count1, count_rate, count_max
    real*4  :: relres
    real*4  :: div_qstar
-   integer :: kface, islot, iouter
+   integer :: kface, islot, iouter, nbad, nbad_prev, nbad_tol
    real*4  :: coeff_face
-   real*4  :: acell, awet_n, awet_k, diag_store, dmax_outer, dmax_prev
+   real*4  :: acell, awet_n, awet_k, diag_store, dmax_outer, dchg
    real*8  :: vol_n, vol_k
    integer :: jrow
    real*4  :: cexch, tface, gdvol, qexpl, cseep
@@ -565,7 +584,8 @@ contains
    enddo
    !$omp end parallel do
    !
-   dmax_prev = 1.0e30
+   nbad_prev = huge(nbad)
+   nbad_tol  = ceiling(si_outer_frac * nrows_tot)
    !
    ! Seed the outer iterate from the current water level. On the first pass the subgrid
    ! branch then reduces to exactly the linear form, so a subgrid model starts from the same
@@ -1021,9 +1041,18 @@ contains
    ! wants, and it is identically zero if the copy happens first.
    !
    dmax_outer = 0.0
+   nbad = 0
+   !$omp parallel do private(irow, dchg) reduction(+:nbad) reduction(max:dmax_outer) schedule(static)
    do irow = 1, nrows_tot
-      dmax_outer = max(dmax_outer, real(abs(si_x(irow) - si_eta_k(irow))))
+      dchg = real(abs(si_x(irow) - si_eta_k(irow)))
+      dmax_outer = max(dmax_outer, dchg)
+      if (dchg > si_tolouter) nbad = nbad + 1
    enddo
+   !$omp end parallel do
+   !
+   si_prof_count(iouter) = si_prof_count(iouter) + 1
+   si_prof_nbad(iouter)  = si_prof_nbad(iouter) + nbad
+   si_prof_dmax(iouter)  = si_prof_dmax(iouter) + dmax_outer
    !
    si_eta_k(1:nrows_tot) = si_x(1:nrows_tot)
    !
@@ -1043,22 +1072,35 @@ contains
       !
       si_outer_total = si_outer_total + 1
       !
-      ! Stop on convergence OR on stagnation.
+      ! Stop when the bulk of the field has converged, or when that stops improving.
       !
-      ! The max-norm alone is not a usable test here: a handful of cells sitting on a
-      ! wet/dry threshold keep flipping between two states, so the maximum change never
-      ! falls below tolerance even though the field has converged. Measured on Harvey, the
-      ! loop ran to its 50-iteration cap on 13479 of 13480 timesteps while iterations 4-50
+      ! The max-norm is not a usable test here: a handful of cells sitting on a wet/dry
+      ! threshold keep flipping between two states, so the maximum change never falls below
+      ! tolerance even though the field has converged. Measured on Harvey, a pure max-norm
+      ! test ran to the 50-iteration cap on 13479 of 13480 timesteps while iterations 4-50
       ! changed the gauge RMSE by less than 0.01 m -- a factor 10.5 in runtime for nothing.
+      ! A 10 %-improvement test on that same max-norm was tried next and turned out to be
+      ! decided by rounding: the maximum is set by whichever threshold cell flipped hardest,
+      ! an O(1 m) quantity that is random from one iteration to the next, so the outer count
+      ! (and the answer) changed with the thread count and with any reordering of the sums.
       !
-      ! So also stop once an iteration fails to improve the max change by at least 10%:
-      ! past that point the remaining error is the switching cells, not the solution.
+      ! So judge the bulk instead: nbad is the number of rows still moving by more than
+      ! si_tolouter. Converged when nbad is down to a fraction si_outer_frac of the rows.
+      ! Stop as well when an iteration fails to at least halve nbad: what is left then is
+      ! the population that does not contract at all. Measured on Harvey (profile in the
+      ! log): 38 % of rows moving after iteration 1, 6.6 % after 2, 5.0 % after 3, then a
+      ! plateau of ~4.3 % that flips by ~0.25 m every iteration for as long as the loop
+      ! runs -- cells at a kink of the subgrid storage curve, on which the Newton update
+      ! oscillates. Iterating on them changes the gauges by nothing (RMSE identical to four
+      ! decimals between 2 and 11 iterations) and costs a full solve each. An integer count
+      ! compared against half of itself is only perturbed by rounding when the count sits
+      ! within one row of the threshold, not whenever the worst cell wobbles.
       !
-      if (iouter > 1 .and. dmax_outer > 0.9 * dmax_prev) then
+      if (iouter > 1 .and. 2 * nbad > nbad_prev) then
          si_outer_stagnant = si_outer_stagnant + 1
       else
-         dmax_prev = dmax_outer
-         if (dmax_outer > si_tolouter .and. iouter < si_maxouter) cycle
+         nbad_prev = nbad
+         if (nbad > nbad_tol .and. iouter < si_maxouter) cycle
       endif
       !
       si_outer_max_seen = max(si_outer_max_seen, iouter)
@@ -1619,5 +1661,22 @@ contains
       integer :: m
       m = si_outer_capped
    end function get_si_outer_capped
+   !
+   subroutine get_si_outer_profile(i, nsteps, mean_nbad, mean_dmax, nrows)
+      ! Profile of outer iteration i: timesteps that reached it, mean rows still moving by
+      ! more than si_tolouter, mean max change (m), and the row count for the fraction.
+      integer, intent(in)  :: i
+      integer, intent(out) :: nsteps, nrows
+      real*4,  intent(out) :: mean_nbad, mean_dmax
+      nsteps = si_prof_count(i)
+      nrows  = nrows_tot
+      if (nsteps > 0) then
+         mean_nbad = real(si_prof_nbad(i)) / nsteps
+         mean_dmax = real(si_prof_dmax(i) / nsteps)
+      else
+         mean_nbad = 0.0
+         mean_dmax = 0.0
+      endif
+   end subroutine get_si_outer_profile
    !
 end module sfincs_semi_implicit
