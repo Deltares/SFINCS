@@ -169,6 +169,13 @@ contains
    integer, dimension(:,:), allocatable :: face_slot  ! (8, nrows_si) slot in si_AA
    !
    !
+   ! Geographic grids: the metrics below are wired (dxminv per uv point instead of dxrinv per
+   ! level), and the setup and assembly run, but the only geographic case tried so far -- the
+   ! Ian Gulf quadtree, Sept 2026 -- gives water levels that depart from the explicit solution
+   ! domain-wide within three hours (mean +3.9 m, up to 57 m), with either preconditioner. Until
+   ! that is understood a wrong answer must not come out silently, so stop here. Delete this
+   ! block to run anyway when debugging.
+   !
    ! Allocate row mapping arrays
    !
    allocate(si_row_of_nm(np))
@@ -209,10 +216,12 @@ contains
    allocate(si_b(nrows_tot))
    ! Sized exactly like q and uv (sfincs_domain.f90:2196), NOT npuv.
    !
-   ! A quadtree creates ncuv combined uv points that live past npuv, and div_qstar below
-   ! reads z_index_uv_md/mu/nd/nu, which point at those combined points next to a refinement
-   ! transition. The +1 is the sentinel slot sfincs_domain.f90:1251 assigns to unset indices.
-   ! Allocating only npuv reads past the end -- silently in Release, and it did.
+   ! A quadtree creates ncuv combined uv points that live past npuv; z_index_uv_md/mu/nd/nu
+   ! point at them next to a refinement transition, and the momentum predictor writes them
+   ! wherever it writes q. The +1 is the sentinel slot sfincs_domain.f90:1251 assigns to unset
+   ! indices. Allocating only npuv reads past the end -- silently in Release, and it did.
+   ! (The assembly no longer reads the combined points: the flux divergence is summed over the
+   ! row's real faces, see the per-step loop in assemble_and_solve_pressure.)
    !
    allocate(si_q_star(npuv + ncuv + 1))
    allocate(si_coeff(npuv + ncuv + 1))
@@ -617,9 +626,17 @@ contains
             ! 1.5 x the FINE cell size, which is coarse-half plus fine-half
             ! (sfincs_momentum.f90:239 computes exactly this).
             !
+            ! On a geographic grid (crsgeo) dx in metres varies with latitude, so there is no
+            ! dxrinv per level: the domain builder gives dxminv per uv point instead (that is
+            ! what momentum uses too). dy is a constant per level in either case.
+            !
             ip = face_ip(j, irow)
             if (face_isy(j, irow) == 0) then
-               dref = 1.0 / dxrinv(uv_flags_iref(ip))
+               if (crsgeo) then
+                  dref = 1.0 / dxminv(ip)
+               else
+                  dref = 1.0 / dxrinv(uv_flags_iref(ip))
+               endif
             else
                dref = 1.0 / dyrinv(uv_flags_iref(ip))
             endif
@@ -698,10 +715,8 @@ contains
    real*4, intent(in) :: dt
    !
    integer :: irow, nm, ip, iter
-   integer :: nmd, nmu, ndm, num
    integer :: count0, count1, count_rate, count_max
    real*4  :: relres
-   real*4  :: div_qstar
    integer :: kface, islot, iouter, nbad, nbad_prev, nbad_tol
    real*4  :: coeff_face
    real*4  :: acell, awet_n, awet_k, diag_store, dmax_outer, dchg, scale_i
@@ -713,7 +728,7 @@ contains
    real*4  :: diag
    real*4  :: dxr_val, dyr_val
    real*8  :: bv_rech, bv_exch, bv_bnd, bv_ceil, bv_gross, bv_term
-   real*4  :: csum_face, cbnd_face
+   real*4  :: csum_face, cbnd_face, width
    real*8  :: rhs_c
    !
    call system_clock(count0, count_rate, count_max)
@@ -797,41 +812,41 @@ contains
    ! si_AA_scaled instead of overwriting in place, which is what lets these off-diagonals survive
    ! from one outer iteration to the next.
    !
-   !$omp parallel do private(irow, nm, nmd, nmu, ndm, num, div_qstar, acell, kface, ip, islot, &
+   !$omp parallel do private(irow, nm, acell, kface, ip, islot, width, &
    !$omp                      coeff_face, csum_face, cbnd_face, rhs_c, vol_n, awet_n) &
    !$omp schedule(static)
    do irow = 1, nrows_si
       !
       nm = si_nm_of_row(irow)
       !
-      nmd = z_index_uv_md(nm)
-      nmu = z_index_uv_mu(nm)
-      ndm = z_index_uv_nd(nm)
-      num = z_index_uv_nu(nm)
-      !
-      ! Flux divergence of q_star. Same formula as compute_water_levels_regular in
-      ! sfincs_continuity.f90; inflow positive.
-      !
       if (crsgeo) then
-         div_qstar = (si_q_star(nmd) - si_q_star(nmu)) / dxm(nm) &
-                   + (si_q_star(ndm) - si_q_star(num)) * dyrinv(z_flags_iref(nm))
          acell = cell_area_m2(nm)
       else
-         div_qstar = (si_q_star(nmd) - si_q_star(nmu)) * dxrinv(z_flags_iref(nm)) &
-                   + (si_q_star(ndm) - si_q_star(num)) * dyrinv(z_flags_iref(nm))
          acell = cell_area(z_flags_iref(nm))
       endif
       !
-      ! Volumetric, like every other term in the row.
+      ! Sources, volumetric like every other term in the row.
       !
-      rhs_c = dble(acell) * dble(dt) * dble(div_qstar)
+      rhs_c = 0.0d0
       if (precip)   rhs_c = rhs_c + acell * dt * netprcp(nm)
       if (use_qext) rhs_c = rhs_c + acell * dt * qext(nm)
       !
       ! Walk this row's faces. Grid-agnostic: nothing here assumes there are four.
+      !
+      ! The explicit flux q_star is summed over the same faces, as volume: q_star is per unit
+      ! width, positive from the face's nm side to its nmu side, so a face on which this cell is
+      ! the nm side loses q_star * width * dt. This replaces the regular-grid divergence formula
+      ! (q_md - q_mu)/dx + (q_nd - q_nu)/dy, which on a quadtree reads the COMBINED uv point of a
+      ! coarse cell facing two fine cells -- a point the semi-implicit predictor never fills, so
+      ! the flux across every refinement transition was missing from the right-hand side while
+      ! the implicit part of the same face was on the matrix. Summing the real faces is exact on
+      ! both grids and needs no dx per level, which a geographic grid does not have.
+      !
       ! si_coeff is per unit face width, so multiply by the width of THIS face, taken from the
       ! face's own refinement level. At a quadtree transition the coarse cell's two fine faces get
-      ! half the coarse width each, which keeps A(coarse,fine) equal to A(fine,coarse).
+      ! half the coarse width each, which keeps A(coarse,fine) equal to A(fine,coarse). An x-face
+      ! is dy long, a y-face dx long; on a geographic grid dx in metres comes per uv point
+      ! (dxminv), there is no dxrm per level.
       !
       csum_face = 0.0
       cbnd_face = 0.0
@@ -842,10 +857,20 @@ contains
          islot = si_row_face_slot(kface)
          !
          if (si_row_face_isy(kface) == 0) then
-            coeff_face = si_coeff(ip) * dt * dyrm(uv_flags_iref(ip))
+            width = dyrm(uv_flags_iref(ip))
+         elseif (crsgeo) then
+            width = 1.0 / dxminv(ip)
          else
-            coeff_face = si_coeff(ip) * dt * dxrm(uv_flags_iref(ip))
+            width = dxrm(uv_flags_iref(ip))
          endif
+         !
+         if (uv_index_z_nm(ip) == nm) then
+            rhs_c = rhs_c - dble(si_q_star(ip)) * dble(width) * dble(dt)
+         else
+            rhs_c = rhs_c + dble(si_q_star(ip)) * dble(width) * dble(dt)
+         endif
+         !
+         coeff_face = si_coeff(ip) * dt * width
          !
          csum_face = csum_face + coeff_face
          !
@@ -879,8 +904,8 @@ contains
    !
    ! Assemble the iterate-dependent part of the matrix and RHS row by row
    !
-   !$omp parallel do private(irow, nm, nmd, nmu, ndm, num, dxr_val, dyr_val, &
-   !$omp                      div_qstar, diag, ip, kface, islot, coeff_face, &
+   !$omp parallel do private(irow, nm, dxr_val, dyr_val, &
+   !$omp                      diag, ip, kface, islot, coeff_face, &
    !$omp                      acell, vol_n, vol_k, awet_n, awet_k, diag_store, cexch, qexpl, &
    !$omp                      cseep, zceil) &
    !$omp schedule(static)
@@ -1028,6 +1053,8 @@ contains
             !
             if (si_row_face_isy(kface) == 0) then
                coeff_face = tface * dyrm(uv_flags_iref(ip)) * si_row_face_dinv(kface) * dt
+            elseif (crsgeo) then
+               coeff_face = tface / dxminv(ip) * si_row_face_dinv(kface) * dt
             else
                coeff_face = tface * dxrm(uv_flags_iref(ip)) * si_row_face_dinv(kface) * dt
             endif
