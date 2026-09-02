@@ -26,7 +26,7 @@ module sfincs_groundwater
    private
    public :: initialize_groundwater, gw_face_transmissivity, gw_exchange_terms, gw_seepage_terms
    public :: gw_cell_storage, gw_diffusion_number, gw_budget_add, gw_budget_report
-   public :: gw_subgrid_level, gw_explicit_step
+   public :: gw_subgrid_level, gw_explicit_step, gw_drain_terms
    !
    ! Cumulative volumes since the start of the run, m3. Signed so that a positive value is water
    ! ENTERING the aquifer. real*8 throughout: these are running totals over ~1e5 timesteps and
@@ -37,6 +37,7 @@ module sfincs_groundwater
    real*8 :: gw_vol_exchange  = 0.0d0   ! from the surface via leakance, negative = exfiltration
    real*8 :: gw_vol_boundary  = 0.0d0   ! lateral flux across faces to cells that are not unknowns
    real*8 :: gw_vol_ceiling   = 0.0d0   ! forced out by the topographic ceiling (seepage)
+   real*8 :: gw_vol_drain     = 0.0d0   ! removed by the drain boundary, negative
    !
    ! Water that actually moved, m3: the sum of the MAGNITUDES of every elementary contribution --
    ! each face, each cell, each timestep. This is the scale the closure error has to be judged
@@ -70,11 +71,13 @@ contains
    allocate(gw_sy(np))
    allocate(gw_zbase(np))
    allocate(gw_recharge(np))
+   allocate(gw_zdrain(np))
    !
    gw_kh       = gw_kh_uniform
    gw_sy       = gw_sy_uniform
    gw_zbase    = gw_zbase_uniform
    gw_recharge = gw_recharge_uniform
+   gw_zdrain   = gw_zdrain_uniform
    !
    ! Optional spatial aquifer properties, each a flat binary over active cells in internal order
    ! -- the same convention manningfile and the head file use (sfincs_domain.f90:2005).
@@ -154,6 +157,20 @@ contains
       open(unit = 503, file = trim(gwrechargefile), form = 'unformatted', access = 'stream')
       read(503) gw_recharge
       close(503)
+   endif
+   !
+   ! Optional spatial drain level, same convention.
+   !
+   if (gwzdrainfile(1:4) /= 'none') then
+      write(*,'(a,a)') ' Groundwater: reading drain level file ', trim(gwzdrainfile)
+      open(unit = 503, file = trim(gwzdrainfile), form = 'unformatted', access = 'stream')
+      read(503) gw_zdrain
+      close(503)
+   endif
+   !
+   gw_drain_active = (gw_cdrain > 0.0 .and. (gw_zdrain_uniform > -998.0 .or. gwzdrainfile(1:4) /= 'none'))
+   if (gw_drain_active) then
+      write(*,'(a,e12.4,a)') ' Groundwater: drain boundary on, gw_cdrain = ', gw_cdrain, ' 1/s'
    endif
    !
    !
@@ -402,6 +419,33 @@ contains
    end subroutine gw_seepage_terms
    !
    !
+   subroutine gw_drain_terms(nm, h_k, cdrn, zdrn)
+   !
+   ! Drain boundary: Q = cdrn * (h - zdrn) for h > zdrn, positive OUT of the aquifer, gone from
+   ! the model. The switch is evaluated at the outer iterate, the conductance is implicit on
+   ! the aquifer diagonal, and there is no surface partner, so symmetry is untouched.
+   !
+   implicit none
+   !
+   integer, intent(in)  :: nm
+   real*8,  intent(in)  :: h_k
+   real*4,  intent(out) :: cdrn
+   real*8,  intent(out) :: zdrn
+   !
+   real*4 :: acell
+   !
+   call gw_cell_area(nm, acell)
+   zdrn = dble(gw_zdrain(nm))
+   !
+   if (gw_drain_active .and. zdrn > dble(gw_zbase(nm)) .and. h_k > zdrn) then
+      cdrn = gw_cdrain * acell
+   else
+      cdrn = 0.0
+   endif
+   !
+   end subroutine gw_drain_terms
+   !
+   !
    subroutine gw_subgrid_level(nm, z, vsurf, awet)
    !
    ! Surface water volume and wet area of a cell at level z, read from the subgrid table.
@@ -612,7 +656,7 @@ contains
    end subroutine gw_diffusion_number
    !
    !
-   subroutine gw_budget_add(v_recharge, v_exchange, v_boundary, v_ceiling, v_gross)
+   subroutine gw_budget_add(v_recharge, v_exchange, v_boundary, v_ceiling, v_drain, v_gross)
    !
    ! Accumulate one timestep's worth of aquifer volume terms. Called by whichever solver path is
    ! active, with volumes it has already computed -- recomputing them here would risk the budget
@@ -621,13 +665,14 @@ contains
    !
    implicit none
    !
-   real*8, intent(in) :: v_recharge, v_exchange, v_boundary, v_ceiling
+   real*8, intent(in) :: v_recharge, v_exchange, v_boundary, v_ceiling, v_drain
    real*8, intent(in) :: v_gross
    !
    gw_vol_recharge = gw_vol_recharge + v_recharge
    gw_vol_exchange = gw_vol_exchange + v_exchange
    gw_vol_boundary = gw_vol_boundary + v_boundary
    gw_vol_ceiling  = gw_vol_ceiling  + v_ceiling
+   gw_vol_drain    = gw_vol_drain    + v_drain
    !
    gw_vol_gross = gw_vol_gross + v_gross
    !
@@ -703,7 +748,9 @@ contains
    real*4  :: csym, qexpl, qex
    real*8  :: volh
    real*4  :: dvolh
-   real*8  :: bv_rech, bv_exch, bv_bnd, bv_ceil, bv_gross
+   real*8  :: bv_rech, bv_exch, bv_bnd, bv_ceil, bv_drain, bv_gross
+   real*4  :: cdrn
+   real*8  :: zdrn, qdrn
    !
    if (.not. allocated(gw_dvol)) allocate(gw_dvol(np))
    if (.not. allocated(gw_qsurf)) allocate(gw_qsurf(np))
@@ -755,6 +802,7 @@ contains
    bv_exch  = 0.0d0
    bv_bnd   = 0.0d0
    bv_ceil  = 0.0d0
+   bv_drain = 0.0d0
    bv_gross = 0.0d0
    !
    do while (tsub < dt)
@@ -831,6 +879,14 @@ contains
          bv_rech  = bv_rech + dble(acell) * dble(gw_recharge(nm)) * dble(dtsub)
          bv_gross = bv_gross + abs(dble(acell) * dble(gw_recharge(nm)) * dble(dtsub))
          !
+         ! Drain boundary, explicit in the sub-step's head. Leaves the model.
+         !
+         call gw_drain_terms(nm, gw_head(nm), cdrn, zdrn)
+         qdrn = dble(cdrn) * (gw_head(nm) - zdrn) * dble(dtsub)
+         gw_dvol(nm) = gw_dvol(nm) - qdrn
+         bv_drain = bv_drain - qdrn
+         bv_gross = bv_gross + abs(qdrn)
+         !
          call gw_exchange_terms(nm, dble(zs(nm)), gw_head(nm), csym, qexpl)
          qex = real(dble(csym) * (zs(nm) - gw_head(nm))) + qexpl   ! positive: surface into aquifer
          gw_dvol(nm) = gw_dvol(nm) + dble(qex) * dble(dtsub)
@@ -886,7 +942,7 @@ contains
       !
    enddo
    !
-   call gw_budget_add(bv_rech, bv_exch, bv_bnd, bv_ceil, bv_gross)
+   call gw_budget_add(bv_rech, bv_exch, bv_bnd, bv_ceil, bv_drain, bv_gross)
    !
    gw_nsub_max = max(gw_nsub_max, nsub)
    !
@@ -956,7 +1012,7 @@ contains
    call gw_total_storage(vnow)
    !
    dstore = vnow - gw_vol_initial
-   vin    = gw_vol_recharge + gw_vol_exchange + gw_vol_boundary + gw_vol_ceiling
+   vin    = gw_vol_recharge + gw_vol_exchange + gw_vol_boundary + gw_vol_ceiling + gw_vol_drain
    resid  = dstore - vin
    !
    call write_log('', 1)
@@ -974,6 +1030,8 @@ contains
    write(logstr,'(a,e14.6,a)') '   lateral boundary   : ', gw_vol_boundary, ' m3'
    call write_log(logstr, 1)
    write(logstr,'(a,e14.6,a)') '   ceiling seepage    : ', gw_vol_ceiling,  ' m3'
+   call write_log(logstr, 1)
+   write(logstr,'(a,e14.6,a)') '   drainage           : ', gw_vol_drain,    ' m3'
    call write_log(logstr, 1)
    write(logstr,'(a,e14.6,a)') ' Throughput           : ', gw_vol_gross,    ' m3'
    call write_log(logstr, 1)

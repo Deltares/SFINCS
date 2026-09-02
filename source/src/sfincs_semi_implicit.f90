@@ -80,6 +80,7 @@ module sfincs_semi_implicit
    real*4, dimension(:), allocatable :: gw_qexpl_applied  ! nrows_si, lagged exchange remainder
    real*4, dimension(:), allocatable :: gw_cseep_applied  ! nrows_si, seepage conductance * dt
    logical, dimension(:), allocatable :: gw_lagged        ! nrows_si, row carries a lagged coupling term this iterate
+   real*4, dimension(:), allocatable :: gw_cdrain_applied ! nrows_si, drain conductance * dt
    !
    ! Lower bound on the wet-area derivative, as a fraction of cell area. Sets the worst
    ! spread the coupled diagonal can take, and so the conditioning CG has to cope with.
@@ -634,6 +635,8 @@ contains
       gw_cseep_applied = 0.0
       allocate(gw_lagged(nrows_si))
       gw_lagged = .false.
+      allocate(gw_cdrain_applied(nrows_si))
+      gw_cdrain_applied = 0.0
    endif
    !
    k = 0
@@ -752,12 +755,12 @@ contains
    real*4  :: acell, awet_n, awet_k, diag_store, dmax_outer, dchg, scale_i
    real*8  :: vol_n, vol_k
    integer :: jrow
-   real*4  :: cexch, tface, gdvol, qexpl, cseep
-   real*8  :: gvol_n, gvol_k, hk, resid, zceil, xi
+   real*4  :: cexch, tface, gdvol, qexpl, cseep, cdrn
+   real*8  :: gvol_n, gvol_k, hk, resid, zceil, xi, zdrn
    integer :: nmb
    real*4  :: diag
    real*4  :: dxr_val, dyr_val
-   real*8  :: bv_rech, bv_exch, bv_bnd, bv_ceil, bv_gross, bv_term
+   real*8  :: bv_rech, bv_exch, bv_bnd, bv_ceil, bv_drain, bv_gross, bv_term
    real*4  :: csum_face, cbnd_face, width
    real*8  :: rhs_c
    !
@@ -1048,7 +1051,7 @@ contains
       !
       !$omp parallel do private(irow, nm, jrow, kface, ip, islot, acell, tface, coeff_face, &
       !$omp                     diag, cexch, gvol_n, gvol_k, gdvol, hk, nmb, qexpl, &
-      !$omp                     cseep, zceil) schedule(static)
+      !$omp                     cseep, zceil, cdrn, zdrn) schedule(static)
       do irow = 1, nrows_si
          !
          nm   = si_nm_of_row(irow)
@@ -1141,6 +1144,14 @@ contains
          si_rhs(jrow) = si_rhs(jrow) - dble(cseep) * dble(dt) * (hk - zceil)
          !
          gw_cseep_applied(irow) = cseep * dt
+         !
+         ! Drain boundary: same shape as the seepage face, implicit on the diagonal, but with no
+         ! surface partner -- the water leaves the model. Not a lagged term.
+         !
+         call gw_drain_terms(nm, hk, cdrn, zdrn)
+         diag = diag + cdrn * dt
+         si_rhs(jrow) = si_rhs(jrow) - dble(cdrn) * dble(dt) * (hk - zdrn)
+         gw_cdrain_applied(irow) = cdrn * dt
          !
          ! A row is "lagged" when part of its coupling is evaluated at the previous iterate:
          ! an active seepage face (implicit here, lagged on the surface row) or an exchange
@@ -1401,6 +1412,7 @@ contains
       bv_exch  = 0.0d0
       bv_bnd   = 0.0d0
       bv_ceil  = 0.0d0
+      bv_drain = 0.0d0
       bv_gross = 0.0d0
       !
       do irow = 1, nrows_si
@@ -1447,6 +1459,12 @@ contains
          bv_ceil  = bv_ceil + bv_term
          bv_gross = bv_gross + abs(bv_term)
          !
+         ! Drain boundary: applied conductance against the converged head.
+         !
+         bv_term  = -dble(gw_cdrain_applied(irow)) * (dble(gw_head(nm)) - dble(gw_zdrain(nm)))
+         bv_drain = bv_drain + bv_term
+         bv_gross = bv_gross + abs(bv_term)
+         !
          ! Lateral flux across faces whose neighbour is not an unknown -- exactly the branch where
          ! the assembly moved the neighbour's head to the right-hand side. Theta-weighted the same
          ! way the assembly weighted it: using only the new-time heads would leave a (1 - theta)
@@ -1471,7 +1489,7 @@ contains
          !
       enddo
       !
-      call gw_budget_add(bv_rech, bv_exch, bv_bnd, bv_ceil, bv_gross)
+      call gw_budget_add(bv_rech, bv_exch, bv_bnd, bv_ceil, bv_drain, bv_gross)
       !
    endif
    !

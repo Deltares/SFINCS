@@ -197,6 +197,18 @@ contains
    call read_real_input(500, 'gw_seepage_fac', gw_seepage_fac, 1.0)
    call read_real_input(500, 'gw_tolouter', gw_tolouter, 1.0e-5)
    !
+   ! Drain boundary: Q = gw_cdrain * A * max(h - gw_zdrain, 0), out of the aquifer and out of the
+   ! model (ditch water is pumped away). gw_cdrain is a conductance per unit area, 1/s, like
+   ! gw_leakance. Off unless gw_cdrain > 0 and a drain level is given (uniform gw_zdrain, or
+   ! gw_zdrainfile as a real*4 binary over active cells like gw_rechargefile). A cell whose
+   ! drain level is below the aquifer base has no drain. A uniform gw_zdrain drains EVERY cell
+   ! whose head is above it, sea bed and levee included (the first ditch run pumped 55.8 m3/s
+   ! instead of 0.22 that way); a polder wants gw_zdrainfile with -999 outside the ditches.
+   !
+   call read_real_input(500, 'gw_zdrain', gw_zdrain_uniform, -999.0)
+   call read_char_input(500, 'gw_zdrainfile', gwzdrainfile, 'none')
+   call read_real_input(500, 'gw_cdrain', gw_cdrain, 0.0)
+   !
    gwflow = (gwflow_int == 1)
    gw_bnd_from_zs = (gwbndzs_int == 1)
    gw_from_infiltration = (gwfrominf_int == 1)

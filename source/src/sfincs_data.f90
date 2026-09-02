@@ -285,6 +285,7 @@ module sfincs_data
       real*4        :: gw_recharge_uniform
       character*256 :: gwheadfile
       character*256 :: gwrechargefile
+      character*256 :: gwzdrainfile
       character*256 :: gwkhfile
       character*256 :: gwsyfile
       character*256 :: gwzbasefile
@@ -292,6 +293,9 @@ module sfincs_data
       logical       :: gw_from_infiltration
       real*4        :: gw_seepage_fac
       real*4        :: gw_tolouter        ! outer-loop tolerance on rows carrying a lagged groundwater coupling term, m
+      real*4        :: gw_zdrain_uniform  ! drain level, m (-999 = none)
+      real*4        :: gw_cdrain          ! drain conductance per unit area, 1/s
+      logical       :: gw_drain_active
       logical       :: gw_seepage_active
       real*8, dimension(:), allocatable :: gw_head_n   ! head at time level n
       real*8, dimension(:), allocatable :: gw_dvol     ! explicit path: volume change per step
@@ -308,6 +312,7 @@ module sfincs_data
       real*4, dimension(:), allocatable :: gw_sy        ! specific yield, -
       real*4, dimension(:), allocatable :: gw_zbase     ! aquifer base elevation, m
       real*4, dimension(:), allocatable :: gw_recharge  ! recharge, m/s
+      real*4, dimension(:), allocatable :: gw_zdrain    ! drain level, m
       integer       :: si_maxouter
       integer       :: si_precond     ! 0 lexicographic SSOR, 1 multicolour SSOR, 2 Jacobi
       integer       :: si_check_continuity   ! >0: after each SI step recompute zs from the fluxes with the explicit formula and print the worst cell, for the first N steps
