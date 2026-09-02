@@ -269,6 +269,8 @@ module sfincs_data
       real*4        :: si_tol
       real*4        :: si_tolouter
       real*4        :: si_cfl_hmin     ! m, faces shallower than this do not enter the advective CFL (semi-implicit)
+      real*4        :: si_outer_frac   ! semi-implicit: outer loop converged when at most this fraction of rows still moves by more than si_tolouter
+      real*4        :: si_awet_floor   ! semi-implicit: the subgrid storage derivative is clamped below at this fraction of the cell area (conditioning)
       !
       ! Groundwater
       !

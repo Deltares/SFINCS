@@ -148,11 +148,13 @@ contains
    ! 1 mm. The old 1e-5 m default was unreachable: against water levels of order 10 m that
    ! is a relative tolerance of 1e-6, below real*4 epsilon (1.2e-7), so the outer loop ran
    ! to its cap on every timestep even when the answer had converged.
-   call read_real_input(500, 'si_tolouter', si_tolouter, 1.0e-3)
+   call read_real_input(500, 'si_tolouter', si_tolouter, 0.01)
    call read_int_input(500, 'si_maxouter', si_maxouter, 50)
    call read_int_input(500, 'si_precond', si_precond, 0)
    call read_real_input(500, 'si_cfl_hmin', si_cfl_hmin, 0.0)
    call read_int_input(500, 'si_check_continuity', si_check_continuity, 0)
+   call read_real_input(500, 'si_awet_floor', si_awet_floor, 0.01)
+   call read_real_input(500, 'si_outer_frac', si_outer_frac, 0.005)
    !
    ! Groundwater. Defaults are the Dupuit conceptual case, so a model that sets only
    ! gwflow = 1 runs rather than failing. gw_theta matches the theta_si default.

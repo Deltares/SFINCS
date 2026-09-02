@@ -739,7 +739,7 @@ module sfincs_lib
    !
    integer :: ierr
    integer :: i_prof, nsteps_prof, nrows_prof
-   real*4  :: nbad_prof, dmax_prof
+   real*4  :: nbad_prof, nflip_prof, nfloor_prof, nbad10_prof, nbad100_prof, dmax_prof
    !
    call system_clock(count1, count_rate, count_max)
    !
@@ -830,9 +830,11 @@ module sfincs_lib
          ! were still moving by more than si_tolouter, and the max change.
          !
          do i_prof = 1, get_si_outer_max()
-            call get_si_outer_profile(i_prof, nsteps_prof, nbad_prof, dmax_prof, nrows_prof)
-            write(logstr,'(a,i3,a,i7,a,f9.1,a,f7.3,a,es10.3)') ' SI outer profile ', i_prof, ': steps ', nsteps_prof, &
-               '  nbad ', nbad_prof, ' (', 100.0 * nbad_prof / max(nrows_prof, 1), ' %)  dmax ', dmax_prof
+            call get_si_outer_profile(i_prof, nsteps_prof, nbad_prof, nflip_prof, nfloor_prof, nbad10_prof, nbad100_prof, &
+                                      dmax_prof, nrows_prof)
+            write(logstr,'(a,i3,a,i7,a,f9.1,a,f7.3,a,f9.1,a,f9.1,a,f9.1,a,f9.1,a,es10.3)') ' SI outer profile ', i_prof, &
+               ': steps ', nsteps_prof, '  nbad ', nbad_prof, ' (', 100.0 * nbad_prof / max(nrows_prof, 1), ' %)  nflip ', nflip_prof, &
+               '  nfloor ', nfloor_prof, '  >10tol ', nbad10_prof, '  >100tol ', nbad100_prof, '  dmax ', dmax_prof
             call write_log(logstr, 0)
          enddo
       endif

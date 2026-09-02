@@ -83,7 +83,7 @@ module sfincs_semi_implicit
    ! Lower bound on the wet-area derivative, as a fraction of cell area. Sets the worst
    ! spread the coupled diagonal can take, and so the conditioning CG has to cope with.
    !
-   real*4, parameter :: awet_floor = 0.01
+   ! The floor is the keyword si_awet_floor (default 0.01); see sfincs_input.f90.
    !
    ! Current outer-iterate water level, used only when subgrid is on. The subgrid
    ! storage relation V(eta) sits on the diagonal and its derivative is the wetted
@@ -91,6 +91,12 @@ module sfincs_semi_implicit
    ! nonlinear and needs an outer iteration.
    !
    real*8, dimension(:), allocatable :: si_eta_k       ! nrows_si
+   !
+   ! Outer-loop diagnostics per row, for the convergence profile in the log: the last Newton
+   ! increment (sign flips) and whether the table derivative sat at the clamp floor.
+   !
+   real*4, dimension(:), allocatable :: si_deta_prev    ! nrows_tot, increment of the last iteration
+   logical, dimension(:), allocatable :: si_at_floor     ! nrows_tot, table derivative sat at the clamp floor
    !
    ! Symmetric (Jacobi) scaling factors, 1/sqrt(diagonal). The subgrid diagonal spans
    ! several orders of magnitude between isolated dry cells and well-connected wet
@@ -135,12 +141,16 @@ module sfincs_semi_implicit
    ! dmax_outer there. Says how fast the nonlinear iteration actually converges.
    integer,   dimension(:), allocatable :: si_prof_count
    integer*8, dimension(:), allocatable :: si_prof_nbad
+   integer*8, dimension(:), allocatable :: si_prof_nflip  ! rows whose increment changed sign
+   integer*8, dimension(:), allocatable :: si_prof_nfloor ! rows whose table derivative sat at the clamp floor
+   integer*8, dimension(:), allocatable :: si_prof_nbad10  ! rows moving by more than 10 * si_tolouter
+   integer*8, dimension(:), allocatable :: si_prof_nbad100 ! rows moving by more than 100 * si_tolouter
    real*8,    dimension(:), allocatable :: si_prof_dmax
    !
    ! Outer-loop convergence: the field counts as converged when at most this fraction of rows
    ! still changes by more than si_tolouter. A handful of rows sitting on a wet/dry threshold
    ! flip between two states every iteration and would keep a max-norm test from ever passing.
-   real*4, parameter :: si_outer_frac = 1.0e-3
+   ! The fraction is the keyword si_outer_frac (default 1e-3); see sfincs_input.f90.
    integer :: si_solve_count_outer ! timesteps with an outer loop
    !
 contains
@@ -229,6 +239,10 @@ contains
    allocate(cg_Ap(nrows_tot))
    allocate(cg_diag(nrows_tot))
    allocate(si_eta_k(nrows_tot))
+   allocate(si_deta_prev(nrows_tot))
+   allocate(si_at_floor(nrows_tot))
+   si_deta_prev = 0.0
+   si_at_floor = .false.
    allocate(si_scale(nrows_tot))
    allocate(si_cface(nrows_si))
    allocate(si_cbnd(nrows_si))
@@ -268,9 +282,17 @@ contains
    !
    allocate(si_prof_count(si_maxouter))
    allocate(si_prof_nbad(si_maxouter))
+   allocate(si_prof_nflip(si_maxouter))
+   allocate(si_prof_nfloor(si_maxouter))
+   allocate(si_prof_nbad10(si_maxouter))
+   allocate(si_prof_nbad100(si_maxouter))
    allocate(si_prof_dmax(si_maxouter))
    si_prof_count = 0
    si_prof_nbad  = 0
+   si_prof_nflip = 0
+   si_prof_nfloor = 0
+   si_prof_nbad10 = 0
+   si_prof_nbad100 = 0
    si_prof_dmax  = 0.0d0
    !
    ! Build row <-> nm mapping
@@ -714,7 +736,8 @@ contains
    integer :: irow, nm, ip, iter
    integer :: count0, count1, count_rate, count_max
    real*4  :: relres
-   integer :: kface, islot, iouter, nbad, nbad_prev, nbad_tol
+   integer :: kface, islot, iouter, nbad, nbad_prev, nbad_tol, nflip, nfloor, nbad10, nbad100
+   real*4  :: deta
    real*4  :: coeff_face
    real*4  :: acell, awet_n, awet_k, diag_store, dmax_outer, dchg, scale_i
    real*8  :: vol_n, vol_k
@@ -760,6 +783,10 @@ contains
       si_eta_k(irow) = zs(si_nm_of_row(irow))
       si_zs_old(irow) = zs(si_nm_of_row(irow))   ! time-n level, kept for check_si_continuity
    enddo
+   !
+   ! No increment yet this step (profile: sign flips are counted from the second iteration).
+   !
+   si_deta_prev = 0.0
    !
    if (gwflow) then
       !
@@ -946,6 +973,7 @@ contains
       !
       if (subgrid) then
          call subgrid_storage(nm, si_eta_k(irow), vol_k, awet_k)
+         si_at_floor(irow) = (awet_k <= si_awet_floor * acell * 1.0001)
          diag_store   = awet_k
          si_rhs(irow) = (si_vol_n(irow) - vol_k) + si_rhs_const(irow) &
                       - dble(si_cbnd(irow)) * si_eta_k(irow)
@@ -1213,16 +1241,32 @@ contains
    !
    dmax_outer = 0.0
    nbad = 0
-   !$omp parallel do private(irow, dchg) reduction(+:nbad) reduction(max:dmax_outer) schedule(static)
+   nflip = 0
+   nfloor = 0
+   nbad10 = 0
+   nbad100 = 0
+   !$omp parallel do private(irow, dchg, deta) reduction(+:nbad, nflip, nfloor, nbad10, nbad100) reduction(max:dmax_outer) schedule(static)
    do irow = 1, nrows_tot
-      dchg = real(abs(si_x(irow) - si_eta_k(irow)))
+      deta = real(si_x(irow) - si_eta_k(irow))
+      dchg = abs(deta)
       dmax_outer = max(dmax_outer, dchg)
-      if (dchg > si_tolouter) nbad = nbad + 1
+      if (dchg > si_tolouter) then
+         nbad = nbad + 1
+         if (iouter > 1 .and. deta * si_deta_prev(irow) < 0.0) nflip = nflip + 1
+         if (irow <= nrows_si .and. si_at_floor(irow)) nfloor = nfloor + 1
+         if (dchg > 10.0 * si_tolouter) nbad10 = nbad10 + 1
+         if (dchg > 100.0 * si_tolouter) nbad100 = nbad100 + 1
+      endif
+      si_deta_prev(irow) = deta
    enddo
    !$omp end parallel do
    !
    si_prof_count(iouter) = si_prof_count(iouter) + 1
    si_prof_nbad(iouter)  = si_prof_nbad(iouter) + nbad
+   si_prof_nflip(iouter) = si_prof_nflip(iouter) + nflip
+   si_prof_nfloor(iouter) = si_prof_nfloor(iouter) + nfloor
+   si_prof_nbad10(iouter) = si_prof_nbad10(iouter) + nbad10
+   si_prof_nbad100(iouter) = si_prof_nbad100(iouter) + nbad100
    si_prof_dmax(iouter)  = si_prof_dmax(iouter) + dmax_outer
    !
    si_eta_k(1:nrows_tot) = si_x(1:nrows_tot)
@@ -1258,14 +1302,20 @@ contains
       ! So judge the bulk instead: nbad is the number of rows still moving by more than
       ! si_tolouter. Converged when nbad is down to a fraction si_outer_frac of the rows.
       ! Stop as well when an iteration fails to at least halve nbad: what is left then is
-      ! the population that does not contract at all. Measured on Harvey (profile in the
-      ! log): 38 % of rows moving after iteration 1, 6.6 % after 2, 5.0 % after 3, then a
-      ! plateau of ~4.3 % that flips by ~0.25 m every iteration for as long as the loop
-      ! runs -- cells at a kink of the subgrid storage curve, on which the Newton update
-      ! oscillates. Iterating on them changes the gauges by nothing (RMSE identical to four
-      ! decimals between 2 and 11 iterations) and costs a full solve each. An integer count
-      ! compared against half of itself is only perturbed by rounding when the count sits
-      ! within one row of the threshold, not whenever the worst cell wobbles.
+      ! the population that does not contract at all. An integer count compared against half
+      ! of itself is only perturbed by rounding when the count sits within one row of the
+      ! threshold, not whenever the worst cell wobbles.
+      !
+      ! What that population is (Harvey 500 m, profile in the log, 2026-09-02): with a 1 mm
+      ! tolerance ~4-5 % of the rows are still moving at iteration 3, but 92 % of them by
+      ! 1-10 mm and in the same direction as before (no sign flips), i.e. a slowly converging
+      ! millimetre tail, not a limit cycle; ~30 rows move by more than 1 cm and 4-5 wet/dry
+      ! threshold cells by more than 10 cm at every iteration and never converge at any
+      ! tolerance. Half of the tail sat at the derivative clamp floor (si_awet_floor); a
+      ! secant derivative did not change the count. Iterating on the tail changes the gauges
+      ! by nothing, so the defaults are a 1 cm tolerance and 0.5 % of the rows
+      ! (si_tolouter = 0.01, si_outer_frac = 0.005): on Harvey that stops after one solve on
+      ! half the steps, 1.6 iterations on average instead of 3.1, gauge RMSE unchanged to 1 mm.
       !
       if (iouter > 1 .and. 2 * nbad > nbad_prev) then
          si_outer_stagnant = si_outer_stagnant + 1
@@ -1464,7 +1514,7 @@ contains
    ! the residual form carries V(eta) exactly on the RHS, so this changes the convergence
    ! rate of the outer loop, not the solution it converges to.
    !
-   awet = min(max(awet, awet_floor * acell), acell)
+   awet = min(max(awet, si_awet_floor * acell), acell)
    !
    end subroutine subgrid_storage
    !
@@ -2097,20 +2147,29 @@ contains
       m = si_outer_capped
    end function get_si_outer_capped
    !
-   subroutine get_si_outer_profile(i, nsteps, mean_nbad, mean_dmax, nrows)
+   subroutine get_si_outer_profile(i, nsteps, mean_nbad, mean_nflip, mean_nfloor, mean_nbad10, mean_nbad100, mean_dmax, nrows)
       ! Profile of outer iteration i: timesteps that reached it, mean rows still moving by
-      ! more than si_tolouter, mean max change (m), and the row count for the fraction.
+      ! more than si_tolouter, mean rows among those whose increment changed sign against the
+      ! previous iteration, mean max change (m), and the row count for the fraction.
       integer, intent(in)  :: i
       integer, intent(out) :: nsteps, nrows
-      real*4,  intent(out) :: mean_nbad, mean_dmax
+      real*4,  intent(out) :: mean_nbad, mean_nflip, mean_nfloor, mean_nbad10, mean_nbad100, mean_dmax
       nsteps = si_prof_count(i)
       nrows  = nrows_tot
       if (nsteps > 0) then
-         mean_nbad = real(si_prof_nbad(i)) / nsteps
-         mean_dmax = real(si_prof_dmax(i) / nsteps)
+         mean_nbad  = real(si_prof_nbad(i)) / nsteps
+         mean_nflip = real(si_prof_nflip(i)) / nsteps
+         mean_nfloor = real(si_prof_nfloor(i)) / nsteps
+         mean_nbad10 = real(si_prof_nbad10(i)) / nsteps
+         mean_nbad100 = real(si_prof_nbad100(i)) / nsteps
+         mean_dmax  = real(si_prof_dmax(i) / nsteps)
       else
-         mean_nbad = 0.0
-         mean_dmax = 0.0
+         mean_nbad  = 0.0
+         mean_nflip = 0.0
+         mean_nfloor = 0.0
+         mean_nbad10 = 0.0
+         mean_nbad100 = 0.0
+         mean_dmax  = 0.0
       endif
    end subroutine get_si_outer_profile
    !
