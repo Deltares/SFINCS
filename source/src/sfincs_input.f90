@@ -189,6 +189,8 @@ contains
    call read_real_input(500,'btrelax',btrelax,3600.0)
    call read_logical_input(500,'wiggle_suppression', wiggle_suppression, .true.)
    call read_real_input(500,'structure_relax',structure_relax,10.0)
+   call read_real_input(500,'drainage_volfrac',drainage_volfrac,0.5)
+   drainage_volfrac = min(max(drainage_volfrac, 0.05), 1.0)
    call read_real_input(500,'wiggle_factor',wiggle_factor,0.1)
    call read_real_input(500,'wiggle_threshold',wiggle_threshold,0.1)
    call read_real_input(500, 'uvlim', uvlim, 10.0)

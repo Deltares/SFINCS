@@ -370,7 +370,7 @@ contains
    !
    if (ndrn > 0) then
       !
-      !$acc serial, present( z_volume, zs, zb, nmindsrc, qtsrc, drainage_type, drainage_params )
+      !$acc serial, present( z_volume, zs, zb, nmindsrc, qtsrc, drainage_type, drainage_params ) copyin( drainage_volfrac )
       do idrn = 1, ndrn
          !
          jin  = nsrc + idrn * 2 - 1
@@ -619,21 +619,23 @@ contains
                   !                  
             end select
             !
-            ! Limit discharge based on available volume in cell (regular or subgrid).
+            ! Limit discharge to a fraction of the available volume in the donor cell (regular or subgrid).
+            ! With drainage_volfrac < 1 the cell volume decays geometrically instead of hitting zero,
+            ! so the limited discharge converges smoothly to the inflow instead of switching on and off.
             if (subgrid) then
                !
                if (qq > 0.0) then
-                  qq = min(qq, max(z_volume(nmin), 0.0) / dt)
+                  qq = min(qq, drainage_volfrac * max(z_volume(nmin), 0.0) / dt)
                else
-                  qq = max(qq, -max(z_volume(nmout), 0.0) / dt)
+                  qq = max(qq, -drainage_volfrac * max(z_volume(nmout), 0.0) / dt)
                endif
                !
             else
                !
                if (qq > 0.0) then
-                  qq = min(qq, max((zs(nmin) - zb(nmin)) * cell_area(z_flags_iref(nmin)), 0.0) / dt)
+                  qq = min(qq, drainage_volfrac * max((zs(nmin) - zb(nmin)) * cell_area(z_flags_iref(nmin)), 0.0) / dt)
                else
-                  qq = max(qq, -max((zs(nmout) - zb(nmout)) * cell_area(z_flags_iref(nmout)), 0.0) / dt)
+                  qq = max(qq, -drainage_volfrac * max((zs(nmout) - zb(nmout)) * cell_area(z_flags_iref(nmout)), 0.0) / dt)
                endif
                !
             endif

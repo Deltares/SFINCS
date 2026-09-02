@@ -89,6 +89,7 @@ module sfincs_data
       real*4 horton_kr_kd
       real*4 btrelax
       real*4 structure_relax
+      real*4 drainage_volfrac   ! max fraction of the donor cell volume a drain may remove per time step (0-1)
       real*4 wiggle_factor
       real*4 wiggle_threshold
       real*4 uvlim
