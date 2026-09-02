@@ -291,6 +291,7 @@ module sfincs_data
       logical       :: gw_bnd_from_zs
       logical       :: gw_from_infiltration
       real*4        :: gw_seepage_fac
+      real*4        :: gw_tolouter        ! outer-loop tolerance on rows carrying a lagged groundwater coupling term, m
       logical       :: gw_seepage_active
       real*8, dimension(:), allocatable :: gw_head_n   ! head at time level n
       real*8, dimension(:), allocatable :: gw_dvol     ! explicit path: volume change per step

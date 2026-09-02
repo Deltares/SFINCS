@@ -158,8 +158,14 @@ contains
    !
    ! Groundwater. Defaults are the Dupuit conceptual case, so a model that sets only
    ! gwflow = 1 runs rather than failing. gw_theta matches the theta_si default.
-   ! There is deliberately no gw_maxouter/gw_tolouter: groundwater reuses the existing
-   ! nonlinear outer loop and its stagnation exit.
+   ! gw_tolouter: the outer loop keeps iterating while any row that carries a LAGGED coupling
+   ! term (an active seepage face, or a one-sided exchange remainder) still moves by more than
+   ! this. The surface bulk rule (si_tolouter, si_outer_frac) cannot see those rows: the
+   ! aquifer moves ~1e-4 m per step and a few saturated cells are far below si_outer_frac of the
+   ! rows, so the seepage removed from the aquifer (implicit) and added to the surface (lagged)
+   ! differ by Sy*A*(h_new - h_k) per cell and the budget reports it. 1e-5 m closes seepslope
+   ! to 2e-6 %. Costs one extra solve on steps where a lagged row moved; nothing on models
+   ! without gwflow. There is still no gw_maxouter: si_maxouter caps both.
    !
    call read_int_input(500, 'gwflow', gwflow_int, 0)
    call read_real_input(500, 'gw_kh', gw_kh_uniform, 1.0e-2)
@@ -189,6 +195,7 @@ contains
    ! loses water and is kept only so the defect can be reproduced.
    !
    call read_real_input(500, 'gw_seepage_fac', gw_seepage_fac, 1.0)
+   call read_real_input(500, 'gw_tolouter', gw_tolouter, 1.0e-5)
    !
    gwflow = (gwflow_int == 1)
    gw_bnd_from_zs = (gwbndzs_int == 1)

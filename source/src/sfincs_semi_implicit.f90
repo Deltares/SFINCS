@@ -26,7 +26,7 @@ module sfincs_semi_implicit
    public :: initialize_semi_implicit, assemble_and_solve_pressure, backsubstitute_fluxes_si
    public :: check_si_continuity
    public :: get_tloop_si, get_si_iter_avg, get_si_iter_max
-   public :: get_si_outer_avg, get_si_outer_max, get_si_outer_capped
+   public :: get_si_outer_avg, get_si_outer_max, get_si_outer_capped, get_si_outer_gwstalled
    public :: get_si_outer_profile
    !
    ! CG solver work arrays (allocated once in initialize, reused each timestep)
@@ -79,6 +79,7 @@ module sfincs_semi_implicit
    real*4, dimension(:), allocatable :: gw_cexch_applied  ! nrows_si, exchange conductance * dt
    real*4, dimension(:), allocatable :: gw_qexpl_applied  ! nrows_si, lagged exchange remainder
    real*4, dimension(:), allocatable :: gw_cseep_applied  ! nrows_si, seepage conductance * dt
+   logical, dimension(:), allocatable :: gw_lagged        ! nrows_si, row carries a lagged coupling term this iterate
    !
    ! Lower bound on the wet-area derivative, as a fraction of cell area. Sets the worst
    ! spread the coupled diagonal can take, and so the conditioning CG has to cope with.
@@ -136,6 +137,7 @@ module sfincs_semi_implicit
    integer :: si_outer_max_seen   ! worst outer count in any timestep
    integer :: si_outer_capped     ! timesteps that hit si_maxouter
    integer :: si_outer_stagnant   ! outer loops stopped on stagnation
+   integer :: si_outer_gwstalled  ! of those, with a lagged groundwater row still moving
    !
    ! Per outer-iteration index: how many timesteps reached it, and the summed nbad and
    ! dmax_outer there. Says how fast the nonlinear iteration actually converges.
@@ -145,6 +147,7 @@ module sfincs_semi_implicit
    integer*8, dimension(:), allocatable :: si_prof_nfloor ! rows whose table derivative sat at the clamp floor
    integer*8, dimension(:), allocatable :: si_prof_nbad10  ! rows moving by more than 10 * si_tolouter
    integer*8, dimension(:), allocatable :: si_prof_nbad100 ! rows moving by more than 100 * si_tolouter
+   integer*8, dimension(:), allocatable :: si_prof_nbadgw  ! lagged groundwater rows moving by more than gw_tolouter
    real*8,    dimension(:), allocatable :: si_prof_dmax
    !
    ! Outer-loop convergence: the field counts as converged when at most this fraction of rows
@@ -278,6 +281,7 @@ contains
    si_outer_max_seen = 0
    si_outer_capped = 0
    si_outer_stagnant = 0
+   si_outer_gwstalled = 0
    si_solve_count_outer = 0
    !
    allocate(si_prof_count(si_maxouter))
@@ -286,6 +290,7 @@ contains
    allocate(si_prof_nfloor(si_maxouter))
    allocate(si_prof_nbad10(si_maxouter))
    allocate(si_prof_nbad100(si_maxouter))
+   allocate(si_prof_nbadgw(si_maxouter))
    allocate(si_prof_dmax(si_maxouter))
    si_prof_count = 0
    si_prof_nbad  = 0
@@ -293,6 +298,7 @@ contains
    si_prof_nfloor = 0
    si_prof_nbad10 = 0
    si_prof_nbad100 = 0
+   si_prof_nbadgw = 0
    si_prof_dmax  = 0.0d0
    !
    ! Build row <-> nm mapping
@@ -626,6 +632,8 @@ contains
       gw_qexpl_applied = 0.0
       allocate(gw_cseep_applied(nrows_si))
       gw_cseep_applied = 0.0
+      allocate(gw_lagged(nrows_si))
+      gw_lagged = .false.
    endif
    !
    k = 0
@@ -737,6 +745,8 @@ contains
    integer :: count0, count1, count_rate, count_max
    real*4  :: relres
    integer :: kface, islot, iouter, nbad, nbad_prev, nbad_tol, nflip, nfloor, nbad10, nbad100
+   integer :: nbad_gw, nbad_gw_prev
+   logical :: gw_more
    real*4  :: deta
    real*4  :: coeff_face
    real*4  :: acell, awet_n, awet_k, diag_store, dmax_outer, dchg, scale_i
@@ -767,6 +777,7 @@ contains
    !$omp end parallel do
    !
    nbad_prev = huge(nbad)
+   nbad_gw_prev = huge(nbad_gw)
    nbad_tol  = ceiling(si_outer_frac * nrows_tot)
    !
    ! Seed the outer iterate from the current water level. On the first pass the subgrid
@@ -1131,6 +1142,14 @@ contains
          !
          gw_cseep_applied(irow) = cseep * dt
          !
+         ! A row is "lagged" when part of its coupling is evaluated at the previous iterate:
+         ! an active seepage face (implicit here, lagged on the surface row) or an exchange
+         ! whose symmetric part is zero so the whole flux sits in qexpl. Only these rows can
+         ! leave a budget residual when the outer loop stops early, so only these rows are
+         ! held to gw_tolouter. cexch here is csym*dt, zero exactly when the exchange is one-sided.
+         !
+         gw_lagged(irow) = (cseep > 0.0) .or. (cexch == 0.0 .and. qexpl /= 0.0)
+         !
          si_AA(si_diag_ptr(jrow)) = diag
          !
       enddo
@@ -1245,11 +1264,24 @@ contains
    nfloor = 0
    nbad10 = 0
    nbad100 = 0
-   !$omp parallel do private(irow, dchg, deta) reduction(+:nbad, nflip, nfloor, nbad10, nbad100) reduction(max:dmax_outer) schedule(static)
+   nbad_gw = 0
+   !$omp parallel do private(irow, dchg, deta) reduction(+:nbad, nflip, nfloor, nbad10, nbad100, nbad_gw) reduction(max:dmax_outer) schedule(static)
    do irow = 1, nrows_tot
       deta = real(si_x(irow) - si_eta_k(irow))
       dchg = abs(deta)
       dmax_outer = max(dmax_outer, dchg)
+      !
+      ! Groundwater: both halves of a lagged pair are held to gw_tolouter -- the surface half
+      ! because the seepage source landed on it, the aquifer half because the seepage
+      ! conductance was switched on it.
+      !
+      if (gwflow) then
+         if (irow > nrows_si) then
+            if (gw_lagged(irow - nrows_si) .and. dchg > gw_tolouter) nbad_gw = nbad_gw + 1
+         else
+            if (gw_lagged(irow) .and. dchg > gw_tolouter) nbad_gw = nbad_gw + 1
+         endif
+      endif
       if (dchg > si_tolouter) then
          nbad = nbad + 1
          if (iouter > 1 .and. deta * si_deta_prev(irow) < 0.0) nflip = nflip + 1
@@ -1267,6 +1299,7 @@ contains
    si_prof_nfloor(iouter) = si_prof_nfloor(iouter) + nfloor
    si_prof_nbad10(iouter) = si_prof_nbad10(iouter) + nbad10
    si_prof_nbad100(iouter) = si_prof_nbad100(iouter) + nbad100
+   si_prof_nbadgw(iouter) = si_prof_nbadgw(iouter) + nbad_gw
    si_prof_dmax(iouter)  = si_prof_dmax(iouter) + dmax_outer
    !
    si_eta_k(1:nrows_tot) = si_x(1:nrows_tot)
@@ -1317,11 +1350,20 @@ contains
       ! (si_tolouter = 0.01, si_outer_frac = 0.005): on Harvey that stops after one solve on
       ! half the steps, 1.6 iterations on average instead of 3.1, gauge RMSE unchanged to 1 mm.
       !
-      if (iouter > 1 .and. 2 * nbad > nbad_prev) then
+      ! Groundwater: keep going while a lagged row is still moving AND the count of such rows
+      ! is still falling. A strict decrease, not the halving used for the bulk: the count is a
+      ! handful, and 3 -> 2 is progress. When it stops falling the remainder is a threshold
+      ! cell that will not converge at any tolerance, and the budget reports what it left.
+      !
+      gw_more = (nbad_gw > 0 .and. nbad_gw < nbad_gw_prev)
+      !
+      if (iouter > 1 .and. 2 * nbad > nbad_prev .and. .not. gw_more) then
          si_outer_stagnant = si_outer_stagnant + 1
+         if (nbad_gw > 0) si_outer_gwstalled = si_outer_gwstalled + 1
       else
-         nbad_prev = nbad
-         if (nbad > nbad_tol .and. iouter < si_maxouter) cycle
+         nbad_prev    = nbad
+         nbad_gw_prev = nbad_gw
+         if ((nbad > nbad_tol .or. gw_more) .and. iouter < si_maxouter) cycle
       endif
       !
       si_outer_max_seen = max(si_outer_max_seen, iouter)
@@ -2147,13 +2189,18 @@ contains
       m = si_outer_capped
    end function get_si_outer_capped
    !
-   subroutine get_si_outer_profile(i, nsteps, mean_nbad, mean_nflip, mean_nfloor, mean_nbad10, mean_nbad100, mean_dmax, nrows)
+   function get_si_outer_gwstalled() result(m)
+      integer :: m
+      m = si_outer_gwstalled
+   end function get_si_outer_gwstalled
+   !
+   subroutine get_si_outer_profile(i, nsteps, mean_nbad, mean_nflip, mean_nfloor, mean_nbad10, mean_nbad100, mean_nbadgw, mean_dmax, nrows)
       ! Profile of outer iteration i: timesteps that reached it, mean rows still moving by
       ! more than si_tolouter, mean rows among those whose increment changed sign against the
       ! previous iteration, mean max change (m), and the row count for the fraction.
       integer, intent(in)  :: i
       integer, intent(out) :: nsteps, nrows
-      real*4,  intent(out) :: mean_nbad, mean_nflip, mean_nfloor, mean_nbad10, mean_nbad100, mean_dmax
+      real*4,  intent(out) :: mean_nbad, mean_nflip, mean_nfloor, mean_nbad10, mean_nbad100, mean_nbadgw, mean_dmax
       nsteps = si_prof_count(i)
       nrows  = nrows_tot
       if (nsteps > 0) then
@@ -2162,6 +2209,7 @@ contains
          mean_nfloor = real(si_prof_nfloor(i)) / nsteps
          mean_nbad10 = real(si_prof_nbad10(i)) / nsteps
          mean_nbad100 = real(si_prof_nbad100(i)) / nsteps
+         mean_nbadgw = real(si_prof_nbadgw(i)) / nsteps
          mean_dmax  = real(si_prof_dmax(i) / nsteps)
       else
          mean_nbad  = 0.0
@@ -2169,6 +2217,7 @@ contains
          mean_nfloor = 0.0
          mean_nbad10 = 0.0
          mean_nbad100 = 0.0
+         mean_nbadgw = 0.0
          mean_dmax  = 0.0
       endif
    end subroutine get_si_outer_profile
