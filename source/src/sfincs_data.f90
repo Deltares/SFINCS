@@ -307,6 +307,7 @@ module sfincs_data
       real*4, dimension(:), allocatable :: gw_recharge  ! recharge, m/s
       integer       :: si_maxouter
       integer       :: si_precond     ! 0 lexicographic SSOR, 1 multicolour SSOR, 2 Jacobi
+      integer       :: si_check_continuity   ! >0: after each SI step recompute zs from the fluxes with the explicit formula and print the worst cell, for the first N steps
       logical       :: h73table
       logical       :: wave_enhanced_roughness
       logical       :: use_bcafile
@@ -607,6 +608,7 @@ module sfincs_data
       !
       real*4, dimension(:),   allocatable :: si_q_star       ! Explicit flux part (npuv)
       real*4, dimension(:),   allocatable :: si_coeff        ! Implicit pressure coupling coeff per UV (npuv)
+      real*4, dimension(:),   allocatable :: si_bnd_h        ! Depth at each kcuv==2 face (nkcuv2), set by update_boundary_fluxes
       ! Despite the name this holds the DIAGONAL-REDUCED RESIDUAL, b - rowsum*x^k, assembled
       ! directly as level differences so the datum is never formed. See the residual loop in
       ! sfincs_semi_implicit. real*8 because those differences are ~1e-5 m on levels of ~10 m.
@@ -1067,6 +1069,7 @@ module sfincs_data
     !
     if(allocated(si_q_star)) deallocate(si_q_star)
     if(allocated(si_coeff)) deallocate(si_coeff)
+    if(allocated(si_bnd_h)) deallocate(si_bnd_h)
     if(allocated(si_rhs)) deallocate(si_rhs)
     if(allocated(si_x)) deallocate(si_x)
     if(allocated(si_AA)) deallocate(si_AA)

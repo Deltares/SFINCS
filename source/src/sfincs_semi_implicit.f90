@@ -24,6 +24,7 @@ module sfincs_semi_implicit
    !
    private
    public :: initialize_semi_implicit, assemble_and_solve_pressure, backsubstitute_fluxes_si
+   public :: check_si_continuity
    public :: get_tloop_si, get_si_iter_avg, get_si_iter_max
    public :: get_si_outer_avg, get_si_outer_max, get_si_outer_capped
    public :: get_si_outer_profile
@@ -104,6 +105,7 @@ module sfincs_semi_implicit
    real*4, dimension(:), allocatable :: si_cbnd        ! nrows_si, the Dirichlet share of si_cface
    real*8, dimension(:), allocatable :: si_rhs_const   ! nrows_si, flux divergence + sources + known boundary levels
    real*8, dimension(:), allocatable :: si_vol_n       ! nrows_si, subgrid volume at the old-time level
+   real*8, dimension(:), allocatable :: si_zs_old      ! nrows_si, level at time n, for check_si_continuity
    !
    ! Diagonally scaled copy of the matrix handed to CG. si_AA itself stays unscaled so that the
    ! hoisted off-diagonals survive from one outer iteration to the next.
@@ -168,21 +170,6 @@ contains
    integer, dimension(:,:), allocatable :: face_isy   ! (8, nrows_si) 0 = x, 1 = y
    integer, dimension(:,:), allocatable :: face_slot  ! (8, nrows_si) slot in si_AA
    !
-   !
-   ! Geographic grids: the metrics below are wired (dxminv per uv point instead of dxrinv per
-   ! level), and the setup and assembly run, but the only geographic case tried so far -- the
-   ! Ian Gulf quadtree, Sept 2026 -- gives water levels that depart from the explicit solution
-   ! domain-wide within three hours (mean +3.9 m, up to 57 m), with either preconditioner. Until
-   ! that is understood a wrong answer must not come out silently, so stop here. Delete this
-   ! block to run anyway when debugging.
-   !
-   if (crsgeo) then
-      write(*,*) 'Error: semi_implicit = 1 on a geographic grid (crsgeo) is not validated:'
-      write(*,*) '       it gives wrong water levels on the Ian test (2026-09).'
-      write(*,*) '       Use a projected grid or semi_implicit = 0.'
-      stop
-   endif
-   !
    ! Allocate row mapping arrays
    !
    allocate(si_row_of_nm(np))
@@ -232,6 +219,7 @@ contains
    !
    allocate(si_q_star(npuv + ncuv + 1))
    allocate(si_coeff(npuv + ncuv + 1))
+   allocate(si_bnd_h(max(nkcuv2, 1)))
    !
    ! CG work arrays (allocated once, reused every timestep)
    !
@@ -246,6 +234,7 @@ contains
    allocate(si_cbnd(nrows_si))
    allocate(si_rhs_const(nrows_si))
    allocate(si_vol_n(nrows_si))
+   allocate(si_zs_old(nrows_si))
    !
    si_nm_of_row = 0
    si_row_ptr = 0
@@ -258,6 +247,7 @@ contains
    si_x = 0.0
    si_q_star = 0.0
    si_coeff = 0.0
+   si_bnd_h = 0.0
    cg_r = 0.0
    cg_z = 0.0
    cg_p = 0.0
@@ -768,6 +758,7 @@ contains
    !
    do irow = 1, nrows_si
       si_eta_k(irow) = zs(si_nm_of_row(irow))
+      si_zs_old(irow) = zs(si_nm_of_row(irow))   ! time-n level, kept for check_si_continuity
    enddo
    !
    if (gwflow) then
@@ -1766,7 +1757,7 @@ contains
    !
    real*4, intent(in) :: dt
    !
-   integer :: ip, nm, nmu_z, irow
+   integer :: ip, nm, nmu_z, irow, icuv, ib, nmb, nmi
    real*4  :: eta_nm, eta_nmu, hu
    !
    ! Back-substitute fluxes
@@ -1859,6 +1850,79 @@ contains
    !$omp end do
    !$omp end parallel
    !
+   ! Water level boundary faces (kcuv == 2). The loop above never reaches them: kfuv is set
+   ! by sfincs_momentum.f90:750 for kcuv 1 and 6 only, so a boundary face keeps the EXPLICIT
+   ! weakly-reflective flux that update_boundary_fluxes wrote from the time-n interior level
+   ! (sfincs_boundaries.f90, q = ub * hnmb + uvmean). The matrix, however, took the same
+   ! relation implicitly: q = q_star - coeff * (eta_nmu - eta_nm) with the SOLVED interior
+   ! level, the boundary cell's zs on the right-hand side and coeff * dt * width on the
+   ! diagonal (see the face loop in assemble_and_solve_pressure). The level it returns is
+   ! consistent only with that implicit flux; the difference to the explicit one is
+   ! sqrt(g h) * (zs^{n+1} - zs^n), which check_si_continuity shows as 1.25e-2 m on the
+   ! boundary column of the projected basin.
+   !
+   ! Without subgrid that is only a blemish, because the regular continuity is skipped under
+   ! semi_implicit and zs = si_x below stands. With subgrid it is fatal:
+   ! compute_water_levels_subgrid has no semi-implicit guard, re-integrates z_volume from q
+   ! for every kcs == 1 cell and recomputes zs from the table, overwriting si_x -- so the
+   ! boundary-adjacent cells are integrated with an explicit boundary flux at the
+   ! semi-implicit time step. At Ian's ~200 m deep open Gulf boundary with dt 750 s that is
+   ! sqrt(g h) dt / dx of 10-20 against a stability bound near 2; the level there went
+   ! 1 m, 100 m, 1e4 m in three steps and the blow-up spread inward.
+   !
+   ! So write the implicit flux onto every boundary face, visiting them with the same index
+   ! arrays update_boundary_fluxes uses. The boundary cell's level is zs(nmb), exactly what
+   ! the assembly read through si_row_face_bnd (update_boundary_fluxes set zs(nmb) = zsb
+   ! before the step, and its own zsnmb is that same clamped zsb). Faces the boundary routine
+   ! zeroed (dry, or also a structure) have si_coeff = 0 and keep their zero. The velocity
+   ! uses the depth hnmb the boundary routine used, kept in si_bnd_h so the subgrid table is
+   ! not read a second time, and the same +-4 m/s cap.
+   !
+   !$omp parallel do private(ib, ip, nmb, nmi, eta_nm, eta_nmu) schedule(static)
+   do ib = 1, nkcuv2
+      !
+      nmb = nmbkcuv2(ib)
+      if (kcs(nmb) == 6) cycle           ! lateral boundary (kcuv 6): momentum owns it, done above
+      !
+      ip = index_kcuv2(ib)
+      if (si_coeff(ip) <= 0.0) cycle
+      !
+      nmi = nmikcuv2(ib)
+      if (si_row_of_nm(nmi) <= 0) cycle
+      !
+      ! nm is the low side of the face and nmu the high side; the boundary cell can be either
+      ! (ibuvdir = 1 when it is nm, -1 when it is nmu).
+      !
+      if (uv_index_z_nm(ip) == nmb) then
+         eta_nm  = real(zs(nmb))
+         eta_nmu = real(si_x(si_row_of_nm(nmi)))
+      else
+         eta_nm  = real(si_x(si_row_of_nm(nmi)))
+         eta_nmu = real(zs(nmb))
+      endif
+      !
+      q(ip)  = si_q_star(ip) - si_coeff(ip) * (eta_nmu - eta_nm)
+      uv(ip) = max(min(q(ip) / si_bnd_h(ib), 4.0), -4.0)
+      !
+   enddo
+   !$omp end parallel do
+   !
+   ! Refresh the combined uv points. On a quadtree a coarse cell facing two fine cells has a
+   ! combined uv point that the regular-grid neighbour indices (z_index_uv_mu and friends) point
+   ! at. sfincs_momentum.f90:826-840 fills it with the average of the two fine faces, but under
+   ! semi_implicit that average is taken BEFORE the fluxes are corrected here, so the continuity
+   ! (subgrid path), the advection stencil and the output read a stale transition flux. Redo the
+   ! average with the corrected q, exactly as momentum does it.
+   !
+   if (ncuv > 0) then
+      !$omp parallel do private(icuv) schedule(static)
+      do icuv = 1, ncuv
+         q(cuv_index_uv(icuv))  = (q(cuv_index_uv1(icuv)) + q(cuv_index_uv2(icuv))) / 2
+         uv(cuv_index_uv(icuv)) = (uv(cuv_index_uv1(icuv)) + uv(cuv_index_uv2(icuv))) / 2
+      enddo
+      !$omp end parallel do
+   endif
+   !
    ! Update water levels from solver solution
    !
    !$omp parallel do private(irow, nm) schedule(static)
@@ -1871,6 +1935,128 @@ contains
    !$omp end parallel do
    !
    end subroutine backsubstitute_fluxes_si
+   !
+   !
+   subroutine check_si_continuity(dt, nt)
+   !
+   ! Independent check of the SI step: with the back-substituted fluxes q, does the new level
+   ! satisfy continuity when the divergence is formed the way the explicit scheme forms it
+   ! (regular-grid neighbour indices and metrics, sfincs_continuity.f90:140-165 and 364-393)?
+   ! On a regular grid the two divergences are the same sum, so the difference must be rounding
+   ! (plus the CG / outer tolerance). Anything larger points at the assembly (widths, areas,
+   ! signs, boundary rows), not at the predictor.
+   !
+   ! Must be called directly after backsubstitute_fluxes_si and before compute_water_levels:
+   ! that is the only moment zs holds the pressure solution si_x (with subgrid, the continuity
+   ! routine afterwards recomputes zs from z_volume and the very same fluxes).
+   !
+   ! Without subgrid the level is compared directly. With subgrid V(eta) is nonlinear, so the
+   ! volume at the new level (subgrid_storage, the same table inversion the assembly used) is
+   ! compared with the old volume plus the explicit flux volume; |dvol| / acell is printed in
+   ! metres so the two branches read alike.
+   !
+   ! Two maxima are printed. Rows with a Dirichlet (kcs == 2) neighbour are KNOWN to differ:
+   ! the boundary face gets its q from update_boundary_fluxes with the time-n interior level,
+   ! and backsubstitute_fluxes_si never rewrites it (it only visits kfuv == 1 faces, which
+   ! momentum sets for kcuv 1 and 6 only), so q there is sqrt(g h) * (zs^{n+1} - zs^n) off the
+   ! implicit relation the matrix used. On the 500 m basin that is 1.2e-2 m per step in the
+   ! first interior column and exactly zero elsewhere. The second maximum, over rows without a
+   ! Dirichlet face, is the assembly test proper.
+   !
+   implicit none
+   !
+   real*4,  intent(in) :: dt
+   integer, intent(in) :: nt
+   !
+   integer :: irow, nm, nmd, nmu, ndm, num, nm_worst, iref, kface, nm_worst_int, nbnd
+   real*8  :: zs_chk, dz, dz_worst, dz_sum, vol_chk, vol_new, dvol_flux, dz_worst_int
+   real*4  :: awet_new, acell
+   logical :: has_bnd
+   !
+   dz_worst     = 0.0d0
+   dz_sum       = 0.0d0
+   nm_worst     = 0
+   dz_worst_int = 0.0d0
+   nm_worst_int = 0
+   nbnd         = 0
+   !
+   do irow = 1, nrows_si
+      !
+      nm   = si_nm_of_row(irow)
+      iref = z_flags_iref(nm)
+      nmd  = z_index_uv_md(nm)
+      nmu  = z_index_uv_mu(nm)
+      ndm  = z_index_uv_nd(nm)
+      num  = z_index_uv_nu(nm)
+      !
+      if (subgrid) then
+         !
+         ! Flux volume as sfincs_continuity.f90:368/389 forms it: an x-face is dyrm long,
+         ! a y-face dxm (per cell, geographic) or dxrm (per level, projected) long.
+         !
+         if (crsgeo) then
+            acell     = cell_area_m2(nm)
+            dvol_flux = ( dble(q(nmd) - q(nmu)) * dble(dyrm(iref)) &
+                        + dble(q(ndm) - q(num)) * dble(dxm(nm)) ) * dble(dt)
+         else
+            acell     = cell_area(iref)
+            dvol_flux = ( dble(q(nmd) - q(nmu)) * dble(dyrm(iref)) &
+                        + dble(q(ndm) - q(num)) * dble(dxrm(iref)) ) * dble(dt)
+         endif
+         !
+         vol_chk = si_vol_n(irow) + dvol_flux
+         if (precip)   vol_chk = vol_chk + dble(acell) * dble(dt) * dble(netprcp(nm))
+         if (use_qext) vol_chk = vol_chk + dble(acell) * dble(dt) * dble(qext(nm))
+         !
+         call subgrid_storage(nm, zs(nm), vol_new, awet_new)
+         !
+         dz = abs(vol_chk - vol_new) / dble(acell)
+         !
+      else
+         !
+         if (crsgeo) then
+            zs_chk = si_zs_old(irow) + ( dble(q(nmd) - q(nmu)) / dble(dxm(nm)) &
+                                       + dble(q(ndm) - q(num)) * dble(dyrinv(iref)) ) * dble(dt)
+         else
+            zs_chk = si_zs_old(irow) + ( dble(q(nmd) - q(nmu)) * dble(dxrinv(iref)) &
+                                       + dble(q(ndm) - q(num)) * dble(dyrinv(iref)) ) * dble(dt)
+         endif
+         if (precip)   zs_chk = zs_chk + dble(netprcp(nm)) * dble(dt)
+         if (use_qext) zs_chk = zs_chk + dble(qext(nm)) * dble(dt)
+         !
+         dz = abs(zs_chk - zs(nm))
+         !
+      endif
+      !
+      dz_sum = dz_sum + dz
+      if (dz > dz_worst) then
+         dz_worst = dz
+         nm_worst = nm
+      endif
+      !
+      ! Does this row touch a Dirichlet cell? slot 0 marks a boundary neighbour.
+      !
+      has_bnd = .false.
+      do kface = si_row_face_ptr(irow), si_row_face_ptr(irow + 1) - 1
+         if (si_row_face_slot(kface) == 0) has_bnd = .true.
+      enddo
+      if (has_bnd) then
+         nbnd = nbnd + 1
+      elseif (dz > dz_worst_int) then
+         dz_worst_int = dz
+         nm_worst_int = nm
+      endif
+      !
+   enddo
+   !
+   write(*,'(a,i7,a,es10.3,a,es10.3,a,i9,a,i2,a,f12.4,a,f12.4,a,i7,a,es10.3,a,i9,a,i2,a,f12.4,a,f12.4)') &
+      ' SI continuity check step ', nt, &
+      '  max|dz| ', dz_worst, '  mean|dz| ', dz_sum / max(nrows_si, 1), '  cell ', nm_worst, &
+      '  level ', z_flags_iref(max(nm_worst, 1)), '  x ', z_xz(max(nm_worst, 1)), '  y ', z_yz(max(nm_worst, 1)), &
+      '  | no-bnd rows (', nrows_si - nbnd, ')  max|dz| ', dz_worst_int, '  cell ', nm_worst_int, &
+      '  level ', z_flags_iref(max(nm_worst_int, 1)), '  x ', z_xz(max(nm_worst_int, 1)), '  y ', z_yz(max(nm_worst_int, 1))
+   !
+   end subroutine check_si_continuity
    !
    !
    function get_tloop_si() result(t)

@@ -639,6 +639,11 @@ module sfincs_lib
             call assemble_and_solve_pressure(dt)
             call backsubstitute_fluxes_si(dt)
             !
+            ! Diagnostic: recompute the level from the corrected fluxes with the explicit
+            ! continuity formula and print the worst cell, for the first si_check_continuity steps
+            !
+            if (si_check_continuity > 0 .and. nt <= si_check_continuity) call check_si_continuity(dt, nt)
+            !
          endif
          !
          if (nonhydrostatic) then

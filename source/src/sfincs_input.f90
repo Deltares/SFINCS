@@ -152,6 +152,7 @@ contains
    call read_int_input(500, 'si_maxouter', si_maxouter, 50)
    call read_int_input(500, 'si_precond', si_precond, 0)
    call read_real_input(500, 'si_cfl_hmin', si_cfl_hmin, 0.0)
+   call read_int_input(500, 'si_check_continuity', si_check_continuity, 0)
    !
    ! Groundwater. Defaults are the Dupuit conceptual case, so a model that sets only
    ! gwflow = 1 runs rather than failing. gw_theta matches the theta_si default.

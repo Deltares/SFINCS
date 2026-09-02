@@ -1050,6 +1050,7 @@ contains
             if (semi_implicit) then
                si_coeff(ip)  = sqrt(g * hnmb)
                si_q_star(ip) = ibuvdir(ib) * sqrt(g * hnmb) * (zsnmb - zs0nmb) + uvmean(ib)
+               si_bnd_h(ib)  = hnmb   ! backsubstitute_fluxes_si divides by the same depth for uv
             endif
             !
             ! Riemann
