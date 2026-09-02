@@ -802,6 +802,8 @@ module sfincs_data
       real*4, dimension(:),     allocatable :: drainage_distance
       integer*1, dimension(:),  allocatable :: drainage_status
       real*4, dimension(:),     allocatable :: drainage_fraction_open
+      real*8                                :: srcdrn_vol_withdrawn   ! volume nominally withdrawn by drains/negative sources (m3)
+      real*8                                :: srcdrn_vol_shortfall   ! part of that not actually moved because the donor cell ran dry (m3)
       real*4, dimension(:),     allocatable :: xsrc
       real*4, dimension(:),     allocatable :: ysrc
       !!!

@@ -281,6 +281,8 @@ module sfincs_lib
    dt          = 1.0e-6 ! First time step very small
    min_dt      = 1.0e-6 ! First time step very small
    dtavg       = 0.0    ! average time step
+   srcdrn_vol_withdrawn = 0.0d0
+   srcdrn_vol_shortfall = 0.0d0
    maxdepth    = 999.0  ! maximum depth over time step
    maxmaxdepth = 0.0    ! maximum depth over entire simulation
    nt          = 0      ! number of time steps
@@ -773,6 +775,12 @@ module sfincs_lib
    !
    write(logstr,'(a,20f10.3)')           ' Average time step (s)  : ', dtavg
    call write_log(logstr, 1)
+   !
+   if (nsrcdrn > 0 .and. srcdrn_vol_withdrawn > 0.0d0) then
+      write(logstr,'(a,f14.1,a,f12.1,a,f7.3,a)') ' Drain/source withdrawal: ', srcdrn_vol_withdrawn, ' m3, not removed (dry cell): ', &
+                                                  srcdrn_vol_shortfall, ' m3 (', 100.0d0 * srcdrn_vol_shortfall / srcdrn_vol_withdrawn, '%)'
+      call write_log(logstr, 1)
+   endif
    !
    call write_log('', 1)
    !

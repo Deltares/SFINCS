@@ -54,6 +54,8 @@ contains
    !
    integer          :: nm
    integer          :: isrc
+   integer          :: idrn, jin, jout, nmin, nmout
+   real*4           :: dv, dva, zold, a, ain, aout
    !
    integer          :: iwm
    !
@@ -67,7 +69,7 @@ contains
    real*4           :: qnum
    real*4           :: qndm
    real*4           :: factime
-   real*4           :: dvol    
+   real*4           :: dvol
    !
    if (snapwave) then ! need to compute filtered water levels for snapwave
       !
@@ -85,24 +87,72 @@ contains
    ! First discharges (don't do this parallel, as it's probably not worth it)
    !
    if (nsrcdrn > 0) then
-      ! 
-      !$acc loop
-      do isrc = 1, nsrcdrn
-         ! 
+      !
+      ! Plain point sources: apply the volume change and floor at the bed
+      !
+      !$acc loop seq
+      do isrc = 1, nsrc
+         !
          nm = nmindsrc(isrc)
-         ! 
+         !
          if (crsgeo) then
-            ! 
-            zs(nmindsrc(isrc)) = max(zs(nm) + qtsrc(isrc) * dt / cell_area_m2(nm), zb(nm))
-            ! 
+            a = cell_area_m2(nm)
          else
-            ! 
-            zs(nmindsrc(isrc)) = max(zs(nm) + qtsrc(isrc) * dt / cell_area(z_flags_iref(nm)), zb(nm))
-            ! 
+            a = cell_area(z_flags_iref(nm))
          endif
-         ! 
+         !
+         dv = qtsrc(isrc) * dt
+         if (dv < 0.0) then
+            srcdrn_vol_withdrawn = srcdrn_vol_withdrawn - dv
+            srcdrn_vol_shortfall = srcdrn_vol_shortfall + max(-((zs(nm) - zb(nm)) * a + dv), 0.0)
+         endif
+         !
+         zs(nm) = max(zs(nm) + dv / a, zb(nm))
+         !
       enddo
-      ! 
+      !
+      ! Drainage structures: the donor cell is floored at the bed and the receiving cell
+      ! gets exactly the volume that was actually removed, so the pair conserves mass.
+      !
+      !$acc loop seq
+      do idrn = 1, ndrn
+         !
+         jin   = nsrc + idrn * 2 - 1
+         jout  = nsrc + idrn * 2
+         nmin  = nmindsrc(jin)
+         nmout = nmindsrc(jout)
+         !
+         if (nmin > 0 .and. nmout > 0) then
+            !
+            if (crsgeo) then
+               ain  = cell_area_m2(nmin)
+               aout = cell_area_m2(nmout)
+            else
+               ain  = cell_area(z_flags_iref(nmin))
+               aout = cell_area(z_flags_iref(nmout))
+            endif
+            !
+            dv = qtsrc(jout) * dt          ! volume moved from intake to outfall this step (negative = reverse flow)
+            !
+            if (dv >= 0.0) then
+               zold      = zs(nmin)
+               zs(nmin)  = max(zold - dv / ain, zb(nmin))
+               dva       = max((zold - zs(nmin)) * ain, 0.0)
+               zs(nmout) = zs(nmout) + dva / aout
+            else
+               zold      = zs(nmout)
+               zs(nmout) = max(zold + dv / aout, zb(nmout))
+               dva       = max((zold - zs(nmout)) * aout, 0.0)
+               zs(nmin)  = zs(nmin) + dva / ain
+            endif
+            !
+            srcdrn_vol_withdrawn = srcdrn_vol_withdrawn + abs(dv)
+            srcdrn_vol_shortfall = srcdrn_vol_shortfall + (abs(dv) - dva)
+            !
+         endif
+         !
+      enddo
+      !
    endif
    !
    !$omp parallel &
@@ -273,6 +323,8 @@ contains
    !
    integer          :: nm
    integer          :: isrc
+   integer          :: idrn, jin, jout, nmin, nmout
+   real*4           :: dva, zold
    !
    integer          :: iwm
    integer          :: ind
@@ -311,12 +363,52 @@ contains
    if (nsrcdrn > 0) then
       !
       !$acc serial present( z_volume, nmindsrc, qtsrc )
-      do isrc = 1, nsrcdrn
+      !
+      ! Plain point sources: apply the volume change and floor at zero
+      !
+      do isrc = 1, nsrc
          !
          nm = nmindsrc(isrc)
          !
-         ! Apply the source/drain volume change and floor at zero
-         z_volume(nm) = max(z_volume(nm) + qtsrc(isrc) * dt, 0.0)
+         dv = qtsrc(isrc) * dt
+         if (dv < 0.0) then
+            srcdrn_vol_withdrawn = srcdrn_vol_withdrawn - dv
+            srcdrn_vol_shortfall = srcdrn_vol_shortfall + (max(z_volume(nm) + dv, 0.0) - (z_volume(nm) + dv))
+         endif
+         z_volume(nm) = max(z_volume(nm) + dv, 0.0)
+         !
+      enddo
+      !
+      ! Drainage structures: the donor cell is floored at zero and the receiving cell
+      ! gets exactly the volume that was actually removed, so the pair conserves mass.
+      !
+      do idrn = 1, ndrn
+         !
+         jin   = nsrc + idrn * 2 - 1
+         jout  = nsrc + idrn * 2
+         nmin  = nmindsrc(jin)
+         nmout = nmindsrc(jout)
+         !
+         if (nmin > 0 .and. nmout > 0) then
+            !
+            dv = qtsrc(jout) * dt          ! volume moved from intake to outfall this step (negative = reverse flow)
+            !
+            if (dv >= 0.0) then
+               zold           = z_volume(nmin)
+               z_volume(nmin) = max(zold - dv, 0.0)
+               dva            = max(zold - z_volume(nmin), 0.0)
+               z_volume(nmout) = max(z_volume(nmout) + dva, 0.0)
+            else
+               zold            = z_volume(nmout)
+               z_volume(nmout) = max(zold + dv, 0.0)
+               dva             = max(zold - z_volume(nmout), 0.0)
+               z_volume(nmin)  = max(z_volume(nmin) + dva, 0.0)
+            endif
+            !
+            srcdrn_vol_withdrawn = srcdrn_vol_withdrawn + abs(dv)
+            srcdrn_vol_shortfall = srcdrn_vol_shortfall + (abs(dv) - dva)
+            !
+         endif
          !
       enddo
       !$acc end serial
