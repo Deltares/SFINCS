@@ -176,6 +176,13 @@ contains
    ! that is understood a wrong answer must not come out silently, so stop here. Delete this
    ! block to run anyway when debugging.
    !
+   if (crsgeo) then
+      write(*,*) 'Error: semi_implicit = 1 on a geographic grid (crsgeo) is not validated:'
+      write(*,*) '       it gives wrong water levels on the Ian test (2026-09).'
+      write(*,*) '       Use a projected grid or semi_implicit = 0.'
+      stop
+   endif
+   !
    ! Allocate row mapping arrays
    !
    allocate(si_row_of_nm(np))
