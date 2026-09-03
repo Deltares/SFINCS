@@ -483,13 +483,21 @@ contains
             !
          endif
          !
-         if (precip .or. use_qext) then
+         ! In semi-implicit mode, precip and qext are already included as volumetric source
+         ! terms in the pressure system RHS (sfincs_semi_implicit.f90, rhs_c), same as the
+         ! regular-grid path guards this above (line ~121). Without this guard they were added
+         ! a second time here, on top of the flux-divergence dvol which already reflects the
+         ! solve, blowing up z_volume(nm) within the first step and sending the subgrid table
+         ! lookup index (iuv, line 579 below) out of bounds -- reproduced in
+         ! gw_cases/island/dbg_si_rain, traceback at sfincs_continuity.f90:581
+         ! (SUBGRID_Z_DEP subscript out of bounds).
+         if ((precip .or. use_qext) .and. .not. semi_implicit) then
             !
             dzsdt = 0.0
-            !   
+            !
             if (precip) then
                !
-               ! Add nett rainfall 
+               ! Add nett rainfall
                !
                dzsdt = dzsdt + netprcp(nm)
                !
@@ -497,16 +505,16 @@ contains
             !
             if (use_qext) then
                !
-               ! Add external source (e.g. from XMI coupling) 
-               ! 
+               ! Add external source (e.g. from XMI coupling)
+               !
                dzsdt = dzsdt + qext(nm)
                !
             endif
             !
             ! dzsdt is still in m/s, so multiply with a * dt to get m^3
             !
-            dvol = dvol + dzsdt * a * dt         
-            !      
+            dvol = dvol + dzsdt * a * dt
+            !
          endif
          !
          if (use_storage_volume) then
