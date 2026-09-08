@@ -315,7 +315,9 @@ contains
    ! Coupled SnapWave solver related
    call read_int_input(500,'snapwave_wind',iwind,0)
    call read_logical_input(500,'snapwave_vegetation',snapwave_vegetation,.false.)
-   call read_real_input(500,'snapwave_waveforces_ratio',waveforces_ratio,1.0)
+   !
+   call read_real_input(500,'waveforces_ratio',waveforces_ratio,1.0) ! Add in case someone puts in the wrong name without 'snapwave_'
+   call read_real_input(500,'snapwave_waveforces_ratio',waveforces_ratio,waveforces_ratio)
    !
    ! Wind drag
    !
