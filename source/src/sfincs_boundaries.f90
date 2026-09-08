@@ -189,27 +189,32 @@ contains
       !
    endif
    !
-   ! Check for 'weird' values
+   ! Check for 'weird' values (very low, very high, or NaN).
+   ! Negating the in-range test catches NaN too, which fails every ordered compare.
+   ! (The form  x < -99.0 .or. x > 990.0  is both-false for a NaN and misses it.)
    !
    iok = 1
-   ! 
+   !
    do ib = 1, nbnd
       do itb = 1, ntbnd
          !
-         if (zs_bnd(ib, itb) < -99.0 .or. zs_bnd(ib, itb) > 990.0) then
+         if (.not. (zs_bnd(ib, itb) >= -99.0 .and. zs_bnd(ib, itb) <= 990.0)) then
             !
             iok = 0
             !
          endif
          !
       enddo 
-   enddo    
+   enddo
    !
    if (iok == 0) then
-      ! 
+      !
       write(logstr,'(a)')'Warning! Very low, very high or NaN values found in boundary conditions file ! Please check !'
       call write_log(logstr, 1)
-      ! 
+      !
+      ! Flag a non-fatal warning.
+      warning = 1
+      !
    endif
    !
    ! Now the downstream river boundaries. No time series, just points, slope and direction

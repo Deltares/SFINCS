@@ -11,6 +11,9 @@ module sfincs_data
       !!! Error code
       integer :: error
       character*256 :: error_message
+      !!! Non-fatal warning flag (0 = none, 1 = warning). Written to the NetCDF
+      !!! 'status' variable as 2. Does NOT affect the process exit code (ierr).
+      integer :: warning
       !!!
       !!! BMI
       !!!
