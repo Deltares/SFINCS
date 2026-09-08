@@ -89,6 +89,7 @@ module sfincs_data
       real*4 horton_kr_kd
       real*4 btrelax
       real*4 structure_relax
+      real*4 drainage_volfrac   ! max fraction of the donor cell volume a drain may remove per time step (0-1)
       real*4 wiggle_factor
       real*4 wiggle_threshold
       real*4 uvlim
@@ -802,6 +803,8 @@ module sfincs_data
       real*4, dimension(:),     allocatable :: drainage_distance
       integer*1, dimension(:),  allocatable :: drainage_status
       real*4, dimension(:),     allocatable :: drainage_fraction_open
+      real*8                                :: srcdrn_vol_withdrawn   ! volume nominally withdrawn by drains/negative sources (m3)
+      real*8                                :: srcdrn_vol_shortfall   ! part of that not actually moved because the donor cell ran dry (m3)
       real*4, dimension(:),     allocatable :: xsrc
       real*4, dimension(:),     allocatable :: ysrc
       !!!
