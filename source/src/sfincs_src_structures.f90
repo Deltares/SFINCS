@@ -85,7 +85,13 @@ module sfincs_src_structures
    !
    use sfincs_log
    use sfincs_error
-   use sfincs_rule_expression, only: add_rule, evaluate_rule, finalize_rule_storage
+   ! The rule bytecode arrays are named in the !$acc present() clause of
+   ! update_src_structures: evaluate_rule is an acc routine seq and reads
+   ! them on the device, so they must be in scope in this module too.
+   !
+   use sfincs_rule_expression, only: add_rule, evaluate_rule, finalize_rule_storage, &
+                                     rule_opcode, rule_atom, rule_cmp, rule_threshold, &
+                                     rule_start, rule_length
    !
    private :: parse_structure_type, parse_direction, parse_operation, to_lower, check_required
    private :: convert_legacy_to_toml
