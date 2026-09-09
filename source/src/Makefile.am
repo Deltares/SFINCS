@@ -38,7 +38,6 @@ libsfincs_la_SOURCES = \
 	../third_party_open/utils/toml-f/src/tomlf/type/keyval.f90 \
 	../third_party_open/utils/toml-f/src/tomlf/type/table.f90 \
 	../third_party_open/utils/toml-f/src/tomlf/type.f90 \
-	../third_party_open/utils/toml-f/src/tomlf/ser.f90 \
 	../third_party_open/utils/toml-f/src/tomlf/de/lexer.f90 \
 	../third_party_open/utils/toml-f/src/tomlf/de/parser.f90 \
 	../third_party_open/utils/toml-f/src/tomlf/de.f90 \
