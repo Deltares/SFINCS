@@ -19,6 +19,7 @@ module sfincs_lib
    use sfincs_ncinput
    use sfincs_ncoutput
    use sfincs_momentum
+   use sfincs_momentum_velocity, only : compute_fluxes_velocity
    use sfincs_continuity
    use sfincs_snapwave
    use sfincs_wavemaker
@@ -171,11 +172,11 @@ module sfincs_lib
       !
       ! Initialize non-hydrostatic solver
       !
-      call write_log('Initialize non-hydrostatic solver ...', 0) 
+      call write_log('Initialize non-hydrostatic solver ...', 0)
       !
       call initialize_nonhydrostatic()
       !
-   endif   
+   endif
    !
    if (wavemaker) then
       !
@@ -581,7 +582,19 @@ module sfincs_lib
          !
          ! First compute fluxes
          !
-         call compute_fluxes(dt, tloopflux)
+         if (momentum_scheme == 1) then
+            !
+            ! Momentum scheme 1 (velocity based)
+            ! 
+            call compute_fluxes_velocity(dt, tloopflux)
+            !
+         else
+            !
+            ! Original momentum scheme (flux based)
+            !
+            call compute_fluxes(dt, tloopflux)
+            !
+         endif
          !
          if (timestep_analysis) then
              !
@@ -603,13 +616,13 @@ module sfincs_lib
          !      
          if (nonhydrostatic) then
             !
-            if (t < nh_tstop) then ! Check if non-hydrostatic corrections still need to be made
+            if (t < nonh_tstop) then ! Check if non-hydrostatic corrections still need to be made
                !
                ! Apply non-hydrostatic pressure corrections to q and uv
                !
                call compute_nonhydrostatic(dt, tloopnonh)
                !
-            endif   
+            endif
             !
          endif
          !      
@@ -746,6 +759,11 @@ module sfincs_lib
    if (nonhydrostatic) then
       write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in non-hydrostatic: ', tloopnonh, ' (', 100 * tloopnonh / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
+      if (nh_solve_count > 0) then
+         write(logstr,'(a,f8.2,a,i0,a,i0,a)') ' CG iterations          : ', &
+            real(nh_iter_total) / real(nh_solve_count), ' avg / ', nh_iter_max, ' max  (', nh_solve_count, ' solves)'
+         call write_log(logstr, 1)
+      endif
    endif
    !
    if (nrstructures>0) then

@@ -88,12 +88,12 @@ libsfincs_la_SOURCES = \
 	sfincs_snapwave.f90 \
 	../third_party_open/utils/deg2utm.f90 \
 	sfincs_meteo.f90 \
-        ../third_party_open/bicgstab/bicgstab_solver_ilu.f90 \
 	sfincs_nonhydrostatic.f90 \
 	sfincs_ncoutput_helpers.F90 \
 	sfincs_ncoutput.F90 \
 	sfincs_output.f90 \
 	sfincs_momentum.f90 \
+	sfincs_momentum_velocity.f90 \
 	sfincs_wavemaker.f90 \
 	sfincs_bathtub.f90 \
 	sfincs_openacc.f90 \

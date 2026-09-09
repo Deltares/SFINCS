@@ -145,6 +145,7 @@ contains
    ! Initialize SFINCS domain (indices, flags and neighbors)
    !
    use sfincs_data
+   use sfincs_nonhydrostatic, only: mask_nonh
    use quadtree
    !
    implicit none
@@ -1274,7 +1275,12 @@ contains
          !
          if (kcs(nm) /= 1) cycle ! not a regular point
          !
-         ! Check if point has 4 neighbors with kcs = 1
+         ! Check that the point has regular (kcs = 1) neighbors. In the general
+         ! 2D case all four (left/right/bottom/top) are required. For a true 1-D
+         ! model (nmax == 1) cells legitimately have no bottom/top neighbor, so
+         ! only left/right are required there; the non-hydrostatic solver then
+         ! degrades to a 1-D (x-only) pressure Poisson problem, which all the
+         ! downstream assembly already supports through its per-direction guards.
          !
          ! Left
          !
@@ -1284,7 +1290,7 @@ contains
          !
          if (nmd == 0) cycle ! no neighbor
          !
-         if (kcs(nmd) /= 1) cycle ! neighbor is not a regular point
+         if (kcs(nmd) < 1 .or. kcs(nmd) > 3) cycle ! allow regular (1) or open-boundary (2/3) neighbour
          !
          ! Right
          !
@@ -1294,29 +1300,33 @@ contains
          !
          if (nmu == 0) cycle ! no neighbor
          !
-         if (kcs(nmu) /= 1) cycle ! neighbor is not a regular point
+         if (kcs(nmu) < 1 .or. kcs(nmu) > 3) cycle ! allow regular (1) or open-boundary (2/3) neighbour
          !
-         ! Bottom
+         if (nmax > 1) then
+            !
+            ! Bottom
+            !
+            if (z_flags_nd(nm) /= 0) cycle ! not a regular neighbor
+            !
+            ndm = z_index_z_nd1(nm)
+            !
+            if (ndm == 0) cycle ! no neighbor
+            !
+            if (kcs(ndm) < 1 .or. kcs(ndm) > 3) cycle ! allow regular (1) or open-boundary (2/3) neighbour
+            !
+            ! Top
+            !
+            if (z_flags_nu(nm) /= 0) cycle ! not a regular neighbor
+            !
+            num = z_index_z_nu1(nm)
+            !
+            if (num == 0) cycle ! no neighbor
+            !
+            if (kcs(num) < 1 .or. kcs(num) > 3) cycle ! allow regular (1) or open-boundary (2/3) neighbour
+            !
+         endif
          !
-         if (z_flags_nd(nm) /= 0) cycle ! not a regular neighbor
-         !
-         ndm = z_index_z_nd1(nm)
-         !
-         if (ndm == 0) cycle ! no neighbor
-         !
-         if (kcs(ndm) /= 1) cycle ! neighbor is not a regular point
-         !
-         ! Top
-         !
-         if (z_flags_nu(nm) /= 0) cycle ! not a regular neighbor
-         !
-         num = z_index_z_nu1(nm)
-         !
-         if (num == 0) cycle ! no neighbor
-         !
-         if (kcs(num) /= 1) cycle ! neighbor is not a regular point
-         !
-         ! This cell has 4 regular neighbors, so copy from quadtree mask
+         ! This cell has the required regular neighbors, so copy from quadtree mask
          !
          mask_nonh(nm) = quadtree_nonh_mask(index_quadtree_in_sfincs(nm))
          !
@@ -1715,25 +1725,27 @@ contains
       !
       call read_subgrid_file()
       !
-      ! In case of nonh, we also need zb
+      ! In case of nonh or the velocity-form momentum scheme, we also need a per-cell
+      ! bed level. Subgrid models have no reliable file zb, so use the EFFECTIVE bed
+      ! implied by the subgrid tables at full wetness, zb = z_zmax - z_volmax/area:
+      ! the cell-mean bed. From the first time step onward continuity maintains the
+      ! water-level-dependent effective bed zb = zs - z_volume/area (zb_effective).
+      ! The non-hydrostatic initialization freezes its w_b bed slopes from the
+      ! cell-mean bed computed here.
       !
-      if (nonhydrostatic) then
+      if (nonhydrostatic .or. momentum_scheme == 1) then
          !
          allocate(zb(np))
          !
-         if (use_quadtree) then
+         do ip = 1, np
             !
-            do ip = 1, np
-               zb(ip) = quadtree_zz(index_quadtree_in_sfincs(ip))
-            enddo   
+            if (crsgeo) then
+               zb(ip) = subgrid_z_zmax(ip) - subgrid_z_volmax(ip) / cell_area_m2(ip)
+            else
+               zb(ip) = subgrid_z_zmax(ip) - subgrid_z_volmax(ip) / cell_area(z_flags_iref(ip))
+            endif
             !
-         else
-            !
-            ! Produce error message
-            !
-            call write_log('Error!    : combination of nonhydrostatic solver with quadtree grid with nr_levels > 1 is not supported ', 1)             
-            !
-         endif
+         enddo
          !
       endif
       !
@@ -1743,24 +1755,100 @@ contains
    !
    end subroutine
    
-   subroutine compute_zbuvmx()
+   subroutine update_bed_level()
+   !
+   ! Apply the externally-supplied delta bed level (dzbext) to the kernel's
+   ! bed-level arrays and refresh derived quantities at uv points.
+   !
+   ! Non-subgrid mode:
+   !    zb           = zb           + dzbext           (cell centres)
+   !    zbuvmx(ip)   = max(zb(nm), zb(nmu)) + huthresh (uv points, rebuilt)
+   !
+   ! Subgrid mode:
+   !    subgrid_z_zmin/zmax shift rigidly by dzbext at the cell centre.
+   !    subgrid_uv_zmin/zmax shift rigidly by the average dzbext of the two
+   !    neighbouring cells, with subgrid_uv_zmin clamped from below by the
+   !    larger of the two updated cell-centre subgrid_z_zmin values so the uv
+   !    minimum can never sit below either neighbour's minimum.
+   !
+   ! The caller (Python via BMI) owns the lifecycle of dzbext: this routine
+   ! does not zero it out after applying.  When use_dzbext is .false. the
+   ! routine still rebuilds zbuvmx in non-subgrid mode (cheap, and matches the
+   ! historical behaviour of compute_zbuvmx).
    !
    use sfincs_data
    !
    integer :: ip
    integer :: nm
    integer :: nmu
+   integer :: ilevel
+   real*4  :: avg_dzb
    !
-   do ip = 1, npuv
+   if (.not. subgrid) then
       !
-      nm  = uv_index_z_nm(ip)
-      nmu = uv_index_z_nmu(ip)
+      ! Non-subgrid path: shift zb, then rebuild zbuvmx for every uv point.
       !
-      zbuvmx(ip) = max(zb(nm), zb(nmu)) + huthresh
-      !   
-   enddo      
+      if (use_dzbext) then
+         !
+         zb(:) = zb(:) + dzbext(:)
+         !
+      endif
+      !
+      do ip = 1, npuv
+         !
+         nm  = uv_index_z_nm(ip)
+         nmu = uv_index_z_nmu(ip)
+         !
+         zbuvmx(ip) = max(zb(nm), zb(nmu)) + huthresh
+         !
+      enddo
+      !
+   else
+      !
+      ! Subgrid path: only do anything when an external delta has been set.
+      !
+      if (use_dzbext) then
+         !
+         ! Cell-centre arrays shift rigidly with dzbext.
+         !
+         subgrid_z_zmin(:) = subgrid_z_zmin(:) + dzbext(:)
+         subgrid_z_zmax(:) = subgrid_z_zmax(:) + dzbext(:)
+         !
+         ! The per-level volume->water-level table holds ABSOLUTE levels, so it
+         ! must translate with the bed as well -- otherwise partially-wet cells
+         ! (0 < z_volume < volmax, the interpolation branch in
+         ! compute_water_levels_subgrid) would not follow the moving bed.  A rigid
+         ! vertical shift leaves the volume bins (volmax / dzvol) unchanged, so
+         ! only the levels move.  Keep the -20 m floor used in the level lookups.
+         !
+         do ilevel = 1, subgrid_nlevels
+            subgrid_z_dep(ilevel, :) = max(subgrid_z_dep(ilevel, :) + dzbext(:), -20.0)
+         enddo
+         !
+         ! UV-point arrays shift by the average delta of the two neighbours,
+         ! then clamp uv_zmin from below by the higher of the two updated
+         ! cell-centre minima.
+         !
+         do ip = 1, npuv
+            !
+            nm  = uv_index_z_nm(ip)
+            nmu = uv_index_z_nmu(ip)
+            !
+            avg_dzb = 0.5 * (dzbext(nm) + dzbext(nmu))
+            !
+            subgrid_uv_zmin(ip) = subgrid_uv_zmin(ip) + avg_dzb
+            subgrid_uv_zmax(ip) = subgrid_uv_zmax(ip) + avg_dzb
+            !
+            subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), &
+                                      max(subgrid_z_zmin(nm), subgrid_z_zmin(nmu)))
+            !
+         enddo
+         !
+      endif
+      !
+   endif
    !
-   end subroutine
+   end subroutine update_bed_level
 
    subroutine initialize_boundaries()
    !
@@ -2309,7 +2397,10 @@ contains
       t_zsmax = -999.0
    endif
    !
-   uv = 0.0
+   ! NOTE: do NOT reset uv here. set_initial_conditions() (called above) computes the initial
+   ! velocity uv = q/hu from the restart/initial flux. The flux-form (Bates) scheme carries q and
+   ! recomputes uv every step, so this stray reset was harmless there, but the velocity-form
+   ! (momentum_scheme=velocity) scheme carries uv0 and needs the initial velocity preserved.
    !
    if (wind) then
       !

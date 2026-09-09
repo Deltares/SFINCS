@@ -15,8 +15,9 @@ program sfincs
       !
       ! Set BMI flags to false 
       ! 
-      bmi = .false. 
+      bmi = .false.
       use_qext = .false.
+      use_dzbext = .false.
       ! 
       ierr = sfincs_initialize()
       ! 
