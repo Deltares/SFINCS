@@ -72,19 +72,19 @@ libsfincs_la_SOURCES = \
 	snapwave/snapwave_windsource.f90 \
 	snapwave/snapwave_RFtable.f90 \
 	snapwave/snapwave_solver.f90 \
-	sfincs_input.f90 \
 	sfincs_initial_conditions.f90 \
 	sfincs_boundaries.f90 \
-	sfincs_continuity.f90 \
 	sfincs_crosssections.f90 \
 	sfincs_discharges.f90 \
 	sfincs_rule_expression.f90 \
 	sfincs_src_structures.f90 \
+	sfincs_input.f90 \
 	utils/sfincs_polygons.f90 \
 	sfincs_urban_drainage.f90 \
 	sfincs_subgrid.F90 \
-	sfincs_timestep_analysis.f90 \	
-	sfincs_infiltration.f90 \	
+	sfincs_timestep_analysis.f90 \
+	sfincs_infiltration.f90 \
+	sfincs_continuity.f90 \
 	sfincs_domain.f90 \
 	sfincs_structures.f90 \
 	sfincs_obspoints.f90 \
