@@ -1248,9 +1248,9 @@ contains
                   if (h_up <= 0.0 .or. width_breach <= 0.0) then
                      qq = 0.0
                   elseif (h_dn / h_up >= src_struc_submergence_ratio(istruc)) then
-                     qq = qq_sign * width_breach * h_up * sqrt(2.0 * g * abs(dh))
+                     qq = qq_sign * width_breach * h_dn * sqrt(2.0 * g * abs(dh))
                   else
-                     qq = qq_sign * 1.71 * width_breach * sqrt(g) * h_up**1.5
+                     qq = qq_sign * 1.71 * width_breach * h_up**1.5
                   endif
                   !
             end select
