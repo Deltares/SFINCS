@@ -752,6 +752,14 @@ module sfincs_data
       real*4, dimension(:,:),   allocatable :: qsrc
       real*4, dimension(:),     allocatable :: qtsrc
       integer*4, dimension(:),  allocatable :: nmindsrc
+      integer*4, dimension(:),  allocatable :: nmindsrc_neighbor_right
+      integer*4, dimension(:),  allocatable :: nmindsrc_neighbor_left
+      integer*4, dimension(:),  allocatable :: nmindsrc_neighbor_up
+      integer*4, dimension(:),  allocatable :: nmindsrc_neighbor_down
+      integer*4, dimension(:),  allocatable :: nmindsrc_neighbor_upright
+      integer*4, dimension(:),  allocatable :: nmindsrc_neighbor_downright
+      integer*4, dimension(:),  allocatable :: nmindsrc_neighbor_upleft
+      integer*4, dimension(:),  allocatable :: nmindsrc_neighbor_downleft
       integer*1, dimension(:),  allocatable :: drainage_type
       real*4, dimension(:,:),   allocatable :: drainage_params
       real*4, dimension(:),     allocatable :: drainage_distance
@@ -769,12 +777,13 @@ module sfincs_data
       real*4, dimension(:),     allocatable :: breach_width ! used for breach_width_total in Visser
       
       !! Needed for Visser breaching model
-      real*4, dimension(:),     allocatable :: running_Visser_phase1
+      real*4, dimension(:),     allocatable :: Initial_Visser
       real*4, dimension(:),     allocatable :: running_Visser_phase2
       real*4, dimension(:),     allocatable :: discharge_t1
       real*4, dimension(:),     allocatable :: t1_Visser
       real*4, dimension(:),     allocatable :: breach_bottom_Visser
       real*4, dimension(:),     allocatable :: breach_width_waterline_Visser
+      real*4, dimension(:),     allocatable :: breach_width_avg_water_depth_Visser
       real*4, dimension(:),     allocatable :: gamma0_Visser
       real*4, dimension(:),     allocatable :: discharge_t2
       real*4, dimension(:),     allocatable :: t2_Visser

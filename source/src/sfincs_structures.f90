@@ -702,7 +702,7 @@
                !
                ! free flow
                !
-               qstruc = Cd*cweir*h1**1.5
+               qstruc = Cd* cweir *h1**1.5
                !
             endif 
             !
