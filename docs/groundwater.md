@@ -145,15 +145,17 @@ that is really just cancellation.
 
 ## Conceptual test cases
 
-From `D:/ClaudeProjects/sfincs-dev/gw_cases/RESULTS.md`. Each case isolates something the
-others cannot see (e.g. the Dupuit parabola can be exact in discharge while the transient runs
-25% slow, because at steady state `theta` cancels and only Edelman would catch it).
+From `D:/ClaudeProjects/sfincs-dev/gw_cases/RESULTS.md`; the suite's entry point is
+`gw_cases/README.md` (one exe folder, one runner, 44 case folders all gated against
+`reference.json`; last full run 2026-09-12 on `8cadae6`, 44 of 44 pass). Each case isolates
+something the others cannot see (e.g. the Dupuit parabola can be exact in discharge while the
+transient runs 25% slow, because at steady state `theta` cancels and only Edelman would catch it).
 
 | case | what it constrains | accuracy reached |
 |---|---|---|
 | Dupuit steady seepage | the lateral operator, at steady state | head within 0.06%, discharge within 0.003%, uniform flux |
 | Edelman step response | the transient — the time weighting | 0.26% of amplitude at delta/h0 = 1% |
-| Ferris tidal wave | decay and phase together | amplitude within 0.4%, phase within 0.4%, fitted decay length 99.50 m vs 99.42 m exact |
+| Ferris tidal wave | decay and phase together | amplitude within 0.3%, phase within 0.3%, fitted decay length 99.15 m vs 99.42 m exact |
 | Exchange relaxation | that the surface/aquifer coupling is symmetric | tau within 0.09%, equilibrium level within 1.8e-3 m |
 | Two-zone Dupuit | face transmissivity under heterogeneous K | heads within 0.25%, flux within 1.9%, interface step <1% |
 | Topographic ceiling | what happens to recharge a full aquifer cannot store | both paths close to 0.05%, and agree on head and pond to 0.3 mm |
@@ -174,8 +176,10 @@ outer iterate — a scheme choice, not an error.
 
 ## Known limits (unresolved as of this writing)
 
-- SI + subgrid + precipitation crashes at the first timestep, with or without `gwflow` — a
-  surface-solver defect, not root-caused in source.
+- (Resolved 2026-09-02, `df5b749`.) SI + subgrid + precipitation crashed at the first timestep,
+  with or without `gwflow`: precipitation and `qext` were added twice per step on the subgrid
+  continuity path when `semi_implicit`, since 2026-03-30. Any semi-implicit subgrid run with
+  rainfall or `qext` before that fix carried doubled source volumes.
 - The subgrid aquifer budget does not close on a moving tidal shore (island cases, -72% to -81%
   of throughput); the non-subgrid budget on the same kind of case closes to 1e-5%. Likely a
   budget-measurement gap rather than a physical leak, not yet instrumented further.
@@ -184,7 +188,8 @@ outer iterate — a scheme choice, not an error.
   the sea sits measurably below MSL.
 - Upstream (not harmonic-mean) face transmissivity biases flux about 1.4% high at a tenfold K
   contrast; accepted, because a harmonic mean would freeze any dried cell permanently.
-- Infiltration-to-recharge is verified only for the constant-rate and Green-Ampt schemes; Curve
-  Number and Horton carry the same hookup untested.
+- Infiltration-to-recharge is verified for the constant-rate, Green-Ampt, Curve Number (`cna`)
+  and Horton schemes (`gw_cases/basin/`, all within 0.02 %); Curve Number with recovery (`cnb`,
+  `sefffile`) carries the same hookup untested.
 - No confined aquifers, wells, or exponential conductivity with depth (all present in wflow).
 - No separate infiltration/exfiltration leakance.
