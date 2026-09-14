@@ -124,7 +124,7 @@ contains
       call get_keyword(500, 'amprblock',                       ampr_block,                      .true.)            ! treat 2D rainfall as block (true) or linearly interpolated (false)
       call get_keyword(500, 'spwmergefrac',                    spw_merge_frac,                  0.5)               ! merge factor for spiderweb wind composite
       call get_keyword(500, 'usespwprecip',                    use_spw_precip,                  .true.)            ! use precipitation field from spiderweb file
-      call get_keyword(500, 'global',                          global,                          .false.)           ! treat grid as global (wrap in x)
+      call get_keyword(500, 'global_model',                    global,                          .false., ['global'])  ! treat grid as global (wrap in x)
       call get_keyword(500, 'nuvisc',                          nuviscdim,                       0.01)              ! viscosity coefficient (m2/s)
       call get_keyword(500, 'viscosity',                       viscosity,                       .false.)           ! enable horizontal viscosity term
       call get_keyword(500, 'spinup_meteo',                    spinup_meteo,                    .false.)           ! ramp wind/pressure from zero during tspinup
