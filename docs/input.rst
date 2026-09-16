@@ -575,18 +575,6 @@ The ``infiltrationfile`` must contain the following variables:
 The former separate inputs ``bucketfile`` and ``bucket_loss_frac`` are no longer supported.
 
 
-Drainage mimic:
-%%%%%
-
-Drainage mimic is configured separately from infiltration and now only supports ``drainagefile``:
-
-.. code-block:: text
-
-	drainagefile = sfincs.drainage
-
-This file may be a binary map or a NetCDF file containing ``drainage_rate`` in mm/hr. The former uniform ``qdrain`` keyword has been removed.
-
-
 Storage volume
 ^^^^^
 

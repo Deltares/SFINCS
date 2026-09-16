@@ -493,11 +493,6 @@ Domain
 	  :units:		-
 	  :required:		Only when infiltrationfile is used
 	  :format:		asc
-	drainagefile = sfincs.drainage
-	  :description:		Spatially varying drainage mimic input in mm/hr. Can be a binary map or a NetCDF file with variable drainage_rate. This replaces the removed qdrain keyword.
-	  :units:		mm/hr
-	  :required:		no
-	  :format:		bin or net
 	qinffile = sfincs.qinf
 	  :description:		Backward compatibility only. For spatially varying constant in time infiltration values per cell prefer infiltrationfile with infiltrationtype = c2d.
 	  :units:		mm/hr
