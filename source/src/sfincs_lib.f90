@@ -691,11 +691,15 @@ module sfincs_lib
       !
    endif     
    !
+   ! Compute average time step before finalize_output, which writes dtavg to map/his files
+   !
+   if (nt > 1) then
+      dtavg = dtavg / (nt - 1)
+   endif
+   !
    call finalize_output(t, ntmaxout, tloopoutput, tmaxout)
    !
    call finalize_openacc() ! Exit data region
-   !
-   dtavg = dtavg / (nt - 1)
    !
    call write_log('', 1)
    call write_log('---------- Simulation finished -----------', 1)                  
