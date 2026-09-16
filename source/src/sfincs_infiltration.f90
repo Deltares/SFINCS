@@ -49,12 +49,12 @@ contains
    ! 7) 'bkt' - Bucket model (linear reservoir, HBV/wflow style)
    !    Requires: infiltrationfile with bucket_smax, bucket_k and bucket_loss
    !
-   ! cumprcp and cuminf are stored in the netcdf output if store_cumulative_precipitation == .true. which is the default
+   ! cumprcp and cuminf are stored in the netcdf output if store_cumulative_precipitation == .true. (storecumprcp = 1)
    !
-   ! We need to keep cumprcp and cuminf in memory when:
+   ! We need to keep cumprcp and cuminf updated when:
    !   a) store_cumulative_precipitation == .true.
-   ! or:  
-   !   b) inftype == 'cna' or inftype == 'cnb'
+   ! or:
+   !   b) inftype == 'cna' or inftype == 'cnb' (store_cumulative_precipitation is then forced to .true.)
    !   
    !!!!!!!!!!!!!!!!!!!!!
    ! Initializing steps:
@@ -87,7 +87,13 @@ contains
             netcdf_infiltration = .true.  
             !
             write(logstr,'(a,a)')'Info    : specified infiltrationtype is ', trim(inftype)
-            call write_log(logstr, 0)            
+            call write_log(logstr, 0)
+            !
+            ! Curve Number methods need cumprcp and cuminf to be updated (same as binary input path)
+            !
+            if (inftype == 'cna' .or. inftype == 'cnb') then
+               store_cumulative_precipitation = .true.
+            endif
             !
          else
             !
