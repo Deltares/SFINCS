@@ -781,6 +781,30 @@ contains
          nmq = find_quadtree_cell(src_struc_x_o2(istruc), src_struc_y_o2(istruc))
          if (nmq > 0) src_struc_nm_o2(istruc) = index_sfincs_in_quadtree(nmq)
          !
+         ! Obs points that do not fall in an active cell fall back to the
+         ! corresponding endpoint cell, so rule evaluation and dike breach
+         ! water levels never index zs(0).
+         !
+         if (src_struc_nm_o1(istruc) <= 0) then
+            !
+            src_struc_nm_o1(istruc) = src_struc_nm_s1(istruc)
+            !
+            write(logstr,'(a,a,a)') 'Warning ! obs_1 of structure "', trim(src_struc_name(istruc)), &
+                 '" not in an active grid cell; using src_1 cell instead'
+            call write_log(logstr, 0)
+            !
+         endif
+         !
+         if (src_struc_nm_o2(istruc) <= 0) then
+            !
+            src_struc_nm_o2(istruc) = src_struc_nm_s2(istruc)
+            !
+            write(logstr,'(a,a,a)') 'Warning ! obs_2 of structure "', trim(src_struc_name(istruc)), &
+                 '" not in an active grid cell; using src_2 cell instead'
+            call write_log(logstr, 0)
+            !
+         endif
+         !
          if (src_struc_nm_s1(istruc) > 0 .and. src_struc_nm_s2(istruc) > 0) then
             !
             x_s1_tmp = z_xz(src_struc_nm_s1(istruc))
