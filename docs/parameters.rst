@@ -396,6 +396,11 @@ Parameters for model output
 	storeqdrain
 	  :description:		Flag to turn on writing away drainage discharge during simulation (storeqdrain = 1)
 	  :units:		-
+	  :default:		1
+	store_river_discharge
+	  :description:		Flag to turn on writing away per-source river discharge ('river_discharge') and source names ('river_name') to 'sfincs_his.nc' on 'dthisout' interval (only effective when 'srcfile' or 'netsrcdisfile' is specified).
+	  					NOTE - this is the prescribed discharge from the dis/netsrcdis input, linearly interpolated to the model time (instantaneous value), not a computed or time-averaged inflow.
+	  :units:		-
 	  :default:		0
 	store_urban_drainage_discharge
 	  :description:		Flag to turn on writing away per-zone outfall discharge to 'sfincs_his.nc' on 'dthisout' interval (only effective when 'urbfile' is specified).

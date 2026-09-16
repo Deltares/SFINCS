@@ -157,6 +157,18 @@ Discharge points
 	300000 	1500000
 	380000 	1650000
 
+Optionally, a third column with a name per discharge point can be added (a single word without spaces, max. 128 characters).
+If no name is given, SFINCS generates the names 'discharge_0001', 'discharge_0002', etc.
+Each line needs either 2 or 3 columns; any other number of columns gives an error.
+
+.. code-block:: text
+
+	<src1 x1> <src1 y1> <src1 name>
+
+	e.g.
+	300000 	1500000	rhine
+	380000 	1650000	meuse
+
 Discharge time-series
 ^^^^^^^^^
 
@@ -202,9 +214,21 @@ Netcdf format input
 ^^^^^^^^^
 
 As alternative, the src/dis data can also be specified using a single Netcdf file with FEWS input type format 'netsrcdisfile'.
-SFINCS assumes that the input variables 'x', 'y', 'time', 'discharge' and 'stations' are available in the netcdf file, including a reference time as UNIT in variable 'time' of the Fews time format: "minutes since 1970-01-01 00:00:00.0 +0000"  
+SFINCS assumes that the input variables 'x', 'y', 'time', 'discharge' and 'stations' are available in the netcdf file, including a reference time as UNIT in variable 'time' of the Fews time format: "minutes since 1970-01-01 00:00:00.0 +0000"
+Names are not read from the netcdf file, so the discharge points are named 'discharge_0001', 'discharge_0002', etc. in the output.
 
 **NOTE - There is not a specific Python function for this yet**
+
+Discharge output
+^^^^^^^^^
+
+With 'store_river_discharge = 1' in sfincs.inp, the discharge per point ('river_discharge', m3/s) and the point names ('river_name') are written to 'sfincs_his.nc' at every 'dthisout' interval.
+This works for both the src/dis input and the 'netsrcdisfile' input.
+River discharges, drainage structures and urban drainage zones all add their discharge to the same source term in each grid cell, so the map output cannot show how much each of them contributed.
+This output gives the river contribution per discharge point, next to 'drainage_discharge' (with 'storeqdrain = 1') and 'urban_drainage_discharge' (with 'store_urban_drainage_discharge = 1').
+Because a model can have many discharge points, this output is off by default.
+Note that this is the prescribed discharge, linearly interpolated to the model time (instantaneous value), and not a computed inflow.
+A point that falls outside the active model domain is still reported, even though its discharge does not enter the model.
 	
 Meteo
 ---------
