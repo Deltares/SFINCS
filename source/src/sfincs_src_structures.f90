@@ -1,13 +1,19 @@
 module sfincs_src_structures
    !
-   ! Point structures that move water between two grid cells by user-specified
-   ! rules rather than by momentum conservation:
+   ! Point structures that move water between two grid cells by prescribed
+   ! structure formulas rather than by momentum conservation:
    !    type 1 - pump           (fixed discharge)
    !    type 2 - culvert_simple (bidirectional, optional direction filter)
    !    type 3 - culvert        (physics-based pipe flow with entrance /
    !                             friction / exit losses, bidirectional,
    !                             optional direction filter)
-   !    type 4 - gate           (rule-driven state machine, bidirectional)
+   !    type 4 - gate           (bidirectional)
+   !    type 5 - dike_breach    (Verheij-Knaap two-phase breach, read from
+   !                             dkbfile)
+   !
+   ! Any structure can carry an optional ordered list of open/close/hold
+   ! rules that set its target fraction_open; without rules it stays fully
+   ! open.
    !
    ! Legacy TOML alias accepted by the parser:
    !    "check_valve" -> culvert_simple + direction = "positive"
@@ -38,8 +44,9 @@ module sfincs_src_structures
    !
    !   initialize_src_structures()
    !     Main entry point. Detects legacy vs TOML, dispatches through the
-   !     TOML reader, flattens into src_struc_* arrays, resolves grid-cell
-   !     indices, and seeds rule-driven gate positions from the initial zs.
+   !     TOML reader, appends dike breaches from dkbfile, flattens into
+   !     src_struc_* arrays, resolves grid-cell indices, and seeds
+   !     rule-driven gate positions from the initial zs.
    !     Called from sfincs_lib at init time.
    !
    !   update_src_structures(t, dt)
@@ -59,6 +66,14 @@ module sfincs_src_structures
    !     required-key list is present in a given TOML table. Called from
    !     read_toml_src_structures (this module).
    !
+   !   check_required_coord_pair(table, key_base, seq_index, ierr)
+   !     Helper for read_toml_src_structures: verifies that a required
+   !     "<key_base> = [x, y]" coordinate pair is present.
+   !
+   !   read_coord_pair(table, key_base, x, y, seq_index, ierr)
+   !     Read a "<key_base> = [x, y]" coordinate pair from a TOML table.
+   !     Called from read_toml_src_structures (this module).
+   !
    !   parse_structure_type(str, code, ierr)
    !     Translate a TOML "type" string to one of the structure_* codes.
    !     Called from read_toml_src_structures (this module).
@@ -66,6 +81,11 @@ module sfincs_src_structures
    !   parse_direction(str, code, ierr)
    !     Translate a TOML "direction" string to one of the direction_* codes.
    !     Called from read_toml_src_structures (this module).
+   !
+   !   parse_operation(str, code, ierr)
+   !     Translate a rule "operation" string (open / close / hold) to one of
+   !     the gate_op_* codes. Called from read_toml_src_structures (this
+   !     module).
    !
    !   to_lower(str) result(lower)
    !     Return a lowercase copy of a string (ASCII). Called from

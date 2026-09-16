@@ -171,7 +171,7 @@ module sfincs_lib
    !
    call initialize_discharges()       ! Reads dis and src file (river point discharges)
    !
-   call initialize_src_structures()   ! Reads drn file (pumps / culverts / check valves / gates)
+   call initialize_src_structures()   ! Reads drn file (pumps / culverts / check valves / gates) and dkb file (dike breaches)
    !
    call initialize_urban_drainage()   ! Reads urb file (per-zone polygon drainage + outfall)
    !
