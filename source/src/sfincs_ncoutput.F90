@@ -1553,6 +1553,8 @@ contains
    !
    if (nr_urban_drainage_zones > 0 .and. store_urban_drainage_discharge) then
       !
+      !$acc update host(urban_drainage_q_total)
+      !
       NF90(nf90_put_var(his_file%ncid, his_file%urbdrain_varid, urban_drainage_q_total, (/1, nthisout/))) ! write per-zone total discharge
       !
    endif
@@ -1635,6 +1637,7 @@ contains
    !
    ! Cumulative urban drainage depth (drained volume / cell area)
    if (store_cumulative_urban_drainage .and. urban_drainage) then
+      !$acc update host(urban_drainage_cumulative_volume)
       allocate(urbdrain_depth(np))
       do nm = 1, np
          if (crsgeo) then
