@@ -199,17 +199,17 @@ Every ``[[src_structure]]`` block carries a small set of keys that are shared ac
    * - **type**
      - string
      - One of ``"pump"``, ``"culvert_simple"``, ``"culvert"``, ``"gate"``. The legacy alias ``"check_valve"`` maps to ``culvert_simple`` with ``direction = "positive"``. Required.
-   * - **src_1_x, src_1_y**
-     - real
-     - Coordinates of the intake (``src_1``) cell, in the grid CRS. Required.
-   * - **src_2_x, src_2_y**
-     - real
-     - Coordinates of the outfall (``src_2``) cell, in the grid CRS. Required.
-   * - obs_1_x, obs_1_y
-     - real
+   * - **src_1**
+     - [x, y]
+     - Coordinates of the intake cell, in the grid CRS. Required.
+   * - **src_2**
+     - [x, y]
+     - Coordinates of the outfall cell, in the grid CRS. Required.
+   * - obs_1
+     - [x, y]
      - Coordinates of the observation cell feeding the ``z1`` atom in rule expressions. Default: the ``src_1`` coordinates.
-   * - obs_2_x, obs_2_y
-     - real
+   * - obs_2
+     - [x, y]
      - Coordinates of the observation cell feeding the ``z2`` atom in rule expressions. Default: the ``src_2`` coordinates.
    * - direction
      - string
@@ -220,12 +220,9 @@ Every ``[[src_structure]]`` block carries a small set of keys that are shared ac
    * - closing_duration
      - real
      - Ramp time (s) for the open → closed transition. Same defaults as ``opening_duration``.
-   * - rules_open
-     - string
-     - Water-level expression that triggers opening. See :ref:`open/close rules <drn_rules>`.
-   * - rules_close
-     - string
-     - Water-level expression that triggers closing. See :ref:`open/close rules <drn_rules>`.
+   * - rule
+     - array of tables
+     - Ordered list of ``[[src_structure.rule]]`` control rules, each with an ``operation`` (``"open"``, ``"close"`` or ``"hold"``) and a ``when`` expression. See :ref:`control rules <drn_rules>`.
 
 Pump
 ^^^^
@@ -247,20 +244,24 @@ A drainage pump moves water from the intake cell ``src_1`` to the outfall cell `
      - real
      - Nominal pump discharge in m³/s. Required. The dry-prevention scaling above is an internal safety and is not user-tunable.
 
-All common keys (``name``, ``type``, ``src_*``, ``obs_*``, ``direction``, ``opening_duration``, ``closing_duration``, ``rules_open``, ``rules_close``) are accepted as documented in the common-keys table above.
+All common keys (``name``, ``type``, ``src_*``, ``obs_*``, ``direction``, ``opening_duration``, ``closing_duration``, ``rule``) are accepted as documented in the common-keys table above.
 
 .. code-block:: toml
 
    [[src_structure]]
    name        = "south_pump"
    type        = "pump"
-   src_1_x     =  50.0
-   src_1_y     =  25.0
-   src_2_x     = 150.0
-   src_2_y     =  25.0
+   src_1       = [50.0, 25.0]
+   src_2       = [150.0, 25.0]
    q           = 0.345
-   rules_open  = "z1 > 0.20"
-   rules_close = "z1 < 0.05"
+
+   [[src_structure.rule]]
+   operation = "open"
+   when      = "z1 > 0.20"
+
+   [[src_structure.rule]]
+   operation = "close"
+   when      = "z1 < 0.05"
 
 Culvert (simple)
 ^^^^^^^^^^^^^^^^
@@ -292,10 +293,8 @@ All common keys are accepted. Set ``direction = "positive"`` (or use ``type = "c
    name      = "north_check_valve"
    type      = "culvert_simple"
    direction = "positive"
-   src_1_x   =  75.0
-   src_1_y   =  25.0
-   src_2_x   = 125.0
-   src_2_y   =  25.0
+   src_1     = [75.0, 25.0]
+   src_2     = [125.0, 25.0]
    flow_coef = 0.345
 
 Culvert (detailed)
@@ -346,10 +345,8 @@ All common keys are accepted.
    [[src_structure]]
    name              = "west_culvert"
    type              = "culvert"
-   src_1_x           = 100.0
-   src_1_y           =  50.0
-   src_2_x           = 100.0
-   src_2_y           = 150.0
+   src_1             = [100.0, 50.0]
+   src_2             = [100.0, 150.0]
    width             = 1.2
    height            = 1.0
    invert_1          = 0.20
@@ -399,50 +396,81 @@ All common keys are accepted. The gate defaults ``opening_duration`` and ``closi
    [[src_structure]]
    name             = "east_tide_gate"
    type             = "gate"
-   src_1_x          = 200.0
-   src_1_y          =  25.0
-   src_2_x          = 250.0
-   src_2_y          =  25.0
-   obs_2_x          = 260.0   # observe water level just outside the gate
-   obs_2_y          =  25.0
+   src_1            = [200.0, 25.0]
+   src_2            = [250.0, 25.0]
+   obs_2            = [260.0, 25.0]   # observe water level just outside the gate
    width            = 3.0
    sill_elevation   = 0.20
    mannings_n       = 0.024
    opening_duration = 300.0
    closing_duration = 300.0
-   rules_open       = "z2-z1 > 0.10"
-   rules_close      = "z2-z1 < 0.0 | z2>1.0"
+
+   [[src_structure.rule]]
+   operation = "close"
+   when      = "z2-z1 < 0.0 | z2 > 1.0"
+
+   [[src_structure.rule]]
+   operation = "open"
+   when      = "z2-z1 > 0.10"
 
 .. _drn_rules:
 
-**Open/close rules and the state machine**
+**Control rules**
 
-Each structure has an internal state machine with four states:
+Any structure can carry an ordered list of control rules, written as ``[[src_structure.rule]]`` tables directly below its ``[[src_structure]]`` block. Each rule has two keys:
 
-- ``0`` — closed
-- ``1`` — open
-- ``2`` — opening (transient, time-based)
-- ``3`` — closing (transient, time-based)
+- ``operation`` — one of ``"open"``, ``"close"`` or ``"hold"``
+- ``when`` — a boolean expression (see below)
 
-At every time step, SFINCS checks the current state of the structure. If the structure is closed, it evaluates the ``rules_open`` expression; when that rule becomes true, the structure starts opening and ``fraction_open`` increases linearly from 0 to 1 over ``opening_duration`` seconds. If the structure is open, it evaluates the ``rules_close`` expression; when that rule becomes true, the structure starts closing and ``fraction_open`` decreases linearly from 1 to 0 over ``closing_duration`` seconds. While a structure is opening or closing, SFINCS only looks at the clock — the rules are not re-checked — so the structure cannot rapidly toggle on and off. Set ``opening_duration`` or ``closing_duration`` to ``0.0`` for an instantaneous transition. A structure without rules simply stays fully open for the entire simulation.
+Every time step SFINCS evaluates the rules in the order they are written. The first rule whose ``when`` expression is true sets the target position of the structure: ``open`` sets it to fully open (``fraction_open = 1``), ``close`` to fully closed (``fraction_open = 0``), and ``hold`` keeps the current position. If no rule is true, the structure also holds its current position. Because the first match wins, put the rule that should take priority (for example a safety closure) first.
 
-The rules use a small expression language. The building blocks are:
+The structure then moves towards its target: ``fraction_open`` increases by ``dt / opening_duration`` or decreases by ``dt / closing_duration`` per time step. If the target changes halfway through a transition, the structure simply turns around from its current position. Set ``opening_duration`` or ``closing_duration`` to ``0.0`` for an instantaneous transition. Leaving a gap between the open and close conditions (as in the pump example above) prevents the structure from rapidly toggling.
+
+At the start of the simulation the rules are evaluated once. The structure starts fully open if the first matching rule is ``open``, and fully closed otherwise (including when no rule matches). A structure without any rules stays fully open for the entire simulation.
+
+The ``when`` expressions use a small expression language. The building blocks are:
 
 - ``z1`` — water level at the ``obs_1`` cell (m)
 - ``z2`` — water level at the ``obs_2`` cell (m)
 - ``z2-z1`` — the head difference (m)
 - ``z1-z2`` — the negative head difference (m)
+- ``t`` — model time in seconds since ``tref`` (s)
 
-You compare one of these against a number using ``<``, ``>``, ``<=``, ``>=`` or ``=`` (``==`` is accepted as an alias for ``=``). Multiple comparisons can be combined with ``&`` for "and" and ``|`` for "or", and you can use parentheses to group them. All names are case-insensitive.
+You compare one of these against a number using ``<``, ``>``, ``<=``, ``>=`` or ``=`` (``==`` is accepted as an alias for ``=``). Multiple comparisons can be combined with ``&`` for "and" and ``|`` for "or", and you can use parentheses to group them. All names are case-insensitive. Thresholds are stored in single precision, so time thresholds are exact for whole seconds up to about 1.6e7 s (~190 days) after ``tref``.
 
 Examples:
 
 .. code-block:: text
 
-   rules_open  = "z1 > 0.5"                               # open whenever intake rises above 0.5 m
-   rules_close = "z2 > 2.0"                               # close when the outfall floods above 2 m
-   rules_open  = "(z1 < 0.5 | z2-z1 > 0.05) & z2 < 1.5"   # complex trigger
-   rules_close = "z2-z1 > 0.3"                            # close when outfall gets 0.3 m higher than intake
+   when = "z1 > 0.5"                               # intake rises above 0.5 m
+   when = "z2 > 2.0"                               # outfall floods above 2 m
+   when = "(z1 < 0.5 | z2-z1 > 0.05) & z2 < 1.5"   # combined trigger
+   when = "z2-z1 > 0.3"                            # outfall 0.3 m higher than intake
+   when = "t >= 168600 & t < 201600"               # time window (s since tref)
+   when = "t > 3600 & z2 > 1.0"                    # time and water level combined
+
+A gate that is closed during a fixed time window and open otherwise:
+
+.. code-block:: toml
+
+   [[src_structure]]
+   name             = "scheduled_gate"
+   type             = "gate"
+   src_1            = [36638.3, 402759.4]
+   src_2            = [37062.1, 402754.2]
+   width            = 140.4
+   sill_elevation   = -10.0
+   mannings_n       = 0.03
+   opening_duration = 4500.0
+   closing_duration = 4500.0
+
+   [[src_structure.rule]]
+   operation = "close"
+   when      = "t >= 168600 & t < 201600"
+
+   [[src_structure.rule]]
+   operation = "open"
+   when      = "t < 168600 | t >= 201600"
 
 **Discharge relaxation: structure_relax**
 
@@ -467,31 +495,31 @@ Set ``storeqdrain = 1`` in ``sfincs.inp`` to write the time-series discharge per
    [[src_structure]]
    name             = "south_pump"
    type             = "pump"
-   src_1_x          =  50.0
-   src_1_y          =  25.0
-   src_2_x          = 150.0
-   src_2_y          =  25.0
+   src_1            = [50.0, 25.0]
+   src_2            = [150.0, 25.0]
    q                = 0.345                     # pump discharge (m^3/s)
-   rules_open       = "z1 > 0.20"               # start pumping when intake > 0.20 m
-   rules_close      = "z1 < 0.05"               # stop pumping when intake drops below 0.05 m
+
+   [[src_structure.rule]]
+   operation = "open"
+   when      = "z1 > 0.20"                      # start pumping when intake > 0.20 m
+
+   [[src_structure.rule]]
+   operation = "close"
+   when      = "z1 < 0.05"                      # stop pumping when intake drops below 0.05 m
 
    [[src_structure]]
    name             = "north_check_valve"
    type             = "culvert_simple"
    direction        = "positive"                # one-way; blocks backflow
-   src_1_x          =  75.0
-   src_1_y          =  25.0
-   src_2_x          = 125.0
-   src_2_y          =  25.0
+   src_1            = [75.0, 25.0]
+   src_2            = [125.0, 25.0]
    flow_coef        = 0.345
 
    [[src_structure]]
    name             = "west_culvert"
    type             = "culvert"
-   src_1_x          = 100.0
-   src_1_y          =  50.0
-   src_2_x          = 100.0
-   src_2_y          = 150.0
+   src_1            = [100.0, 50.0]
+   src_2            = [100.0, 150.0]
    width            = 1.2
    height           = 1.0
    invert_1         = 0.20
@@ -502,19 +530,22 @@ Set ``storeqdrain = 1`` in ``sfincs.inp`` to write the time-series discharge per
    [[src_structure]]
    name             = "east_tide_gate"
    type             = "gate"
-   src_1_x          = 200.0
-   src_1_y          =  25.0
-   src_2_x          = 250.0
-   src_2_y          =  25.0
-   obs_2_x          = 260.0                     # observe water level just outside the gate
-   obs_2_y          =  25.0
+   src_1            = [200.0, 25.0]
+   src_2            = [250.0, 25.0]
+   obs_2            = [260.0, 25.0]                     # observe water level just outside the gate
    width            = 3.0
    sill_elevation   = 0.20
    mannings_n       = 0.024
    opening_duration = 300.0                     # 5-minute ramp open
    closing_duration = 300.0
-   rules_open       = "z2-z1 > 0.10"            # open when outer level exceeds inner by 0.10 m
-   rules_close      = "z2-z1 < 0.0 | z2>1.0"    # close on reversal (prevents backflow) or when outer water level exceeds 1.0 m
+
+   [[src_structure.rule]]
+   operation = "close"
+   when      = "z2-z1 < 0.0 | z2 > 1.0"         # close on reversal (prevents backflow) or when outer water level exceeds 1.0 m
+
+   [[src_structure.rule]]
+   operation = "open"
+   when      = "z2-z1 > 0.10"                   # open when outer level exceeds inner by 0.10 m
 
 **Python example using HydroMT-SFINCS**
 
@@ -545,6 +576,18 @@ where ``type`` is:
 - ``2`` — culvert (``par1`` = ``flow_coef``; maps to ``culvert_simple``)
 - ``3`` — check valve (``par1`` = ``flow_coef``; maps to ``culvert_simple`` with ``direction = "positive"``)
 
+Gates use six parameter columns instead of one:
+
+.. code-block:: text
+
+   <x1> <y1> <x2> <y2> 4 <width> <sill_elevation> <mannings_n> <zmin>   <zmax>  <t_ramp>
+   <x1> <y1> <x2> <y2> 5 <width> <sill_elevation> <mannings_n> <tclose> <topen> <t_ramp>
+
+- ``4`` — water-level-controlled gate: open while ``zmin < z1 < zmax``, closed otherwise
+- ``5`` — time-controlled gate: closed while ``tclose <= t < topen``, open otherwise (``tclose`` and ``topen`` in seconds since ``tref``)
+
+``t_ramp`` is used for both ``opening_duration`` and ``closing_duration``.
+
 Example:
 
 .. code-block:: text
@@ -557,7 +600,10 @@ Example:
     50.00  25.00 150.00  25.00  2  0.345
     75.00  25.00 125.00  25.00  2  0.345
 
-When SFINCS sees a legacy ``.drn`` file it automatically transcribes it to a sibling TOML file (``sfincs.toml.drn`` if the input was ``sfincs.drn``) and then reads that. Water-level-triggered legacy gates (``type = 4``) are converted to TOML ``gate`` blocks with synthesised ``rules_open`` / ``rules_close`` expressions derived from the legacy ``zmin`` / ``zmax`` columns. Schedule-triggered legacy gates (``type = 5``) are refused; the rule grammar is water-level-only and has no time atom — rewrite those as TOML gates driven by observed water levels.
+   # time-controlled gate (closed from t = 168600 s to t = 201600 s):
+   36638.3 402759.4 37062.1 402754.2  5  140.4  -10.0  0.03  168600.0  201600.0  4500.0
+
+When SFINCS sees a legacy ``.drn`` file it automatically transcribes it to a sibling TOML file (``sfincs.toml.drn`` if the input was ``sfincs.drn``) and then reads that. Legacy gates are converted to TOML ``gate`` blocks with an ``open`` and a ``close`` rule: ``type = 4`` gates get ``z1`` rules derived from the ``zmin`` / ``zmax`` columns, and ``type = 5`` gates get ``t`` rules derived from the ``tclose`` / ``topen`` columns.
 
 .. important::
 
@@ -566,8 +612,9 @@ When SFINCS sees a legacy ``.drn`` file it automatically transcribes it to a sib
    file) and pointing ``drnfile`` at it.** Future simulations will then read
    the TOML directly, skipping the transcription step and giving you a single
    source of truth that you can edit, version-control, and extend with the
-   newer keywords (``rules_open`` / ``rules_close``, ``reduction_depth``,
-   ``submergence_ratio``, ``direction``, per-structure invert pairs, etc.)
+   newer keywords (``[[src_structure.rule]]`` control rules, ``obs_1`` /
+   ``obs_2``, ``submergence_ratio``, ``direction``, per-structure invert
+   pairs, etc.)
    that the legacy format cannot express. Keep a backup of the original
    legacy file elsewhere if you need it for reference.
 

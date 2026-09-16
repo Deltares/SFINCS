@@ -798,8 +798,9 @@ contains
       ! against zs are valid. Structures without rules keep the default
       ! fraction_open = 1.0 ("always open"), a no-op in the common-tail scaling.
       !
-      ! For rule-driven structures the rule list is evaluated once (first match
-      ! wins) and the gate is snapped to the resulting target: open -> 1.0,
+      ! For rule-driven structures the rule list is evaluated once at the
+      ! start time t0 (first match wins) and the gate is snapped to the
+      ! resulting target: open -> 1.0,
       ! close -> 0.0. If the first match is "hold", or no rule fires, there is
       ! no prior position to hold, so the gate starts closed (0.0).
       !
@@ -830,7 +831,7 @@ contains
          !
          do k = 1, src_struc_rule_count(istruc)
             !
-            if (evaluate_rule(rule_list_id(src_struc_rule_start(istruc) + k - 1), zs_o1, zs_o2)) then
+            if (evaluate_rule(rule_list_id(src_struc_rule_start(istruc) + k - 1), zs_o1, zs_o2, real(t0, 8))) then
                !
                iop = rule_list_op(src_struc_rule_start(istruc) + k - 1)
                exit
@@ -980,7 +981,7 @@ contains
                !
                do k = 1, src_struc_rule_count(istruc)
                   !
-                  if (evaluate_rule(rule_list_id(src_struc_rule_start(istruc) + k - 1), zs_o1, zs_o2)) then
+                  if (evaluate_rule(rule_list_id(src_struc_rule_start(istruc) + k - 1), zs_o1, zs_o2, t)) then
                      !
                      iop = rule_list_op(src_struc_rule_start(istruc) + k - 1)
                      exit
@@ -2323,10 +2324,10 @@ contains
       ! Transcribe a legacy fixed-column drn file into a TOML sibling file,
       ! so that downstream code only has to consume the TOML schema. One
       ! [[src_structure]] block is emitted per non-blank, non-comment line
-      ! of the legacy file. Water-level-triggered gates (legacy dtype 4) are
-      ! converted to TOML gate blocks with synthesised rule expressions.
-      ! Schedule-triggered gates (legacy dtype 5) are refused; the new rule
-      ! grammar is water-level-only and has no time atom.
+      ! of the legacy file. Water-level-triggered gates (legacy dtype 4) and
+      ! schedule-triggered gates (legacy dtype 5) are converted to TOML gate
+      ! blocks with synthesised rule expressions (z1 atom for dtype 4, t atom
+      ! for dtype 5).
       !
       ! The output path is derived from legacy_path: if it ends in ".drn"
       ! (case-insensitive) the suffix ".toml" is inserted before the ".drn",
@@ -2350,11 +2351,11 @@ contains
       integer            :: u_in, u_out, stat, n_struct, dtype
       integer            :: len_in, ext_pos
       real*4             :: x2, y2, x1, y1, par
-      real*4             :: g_width, g_sill, g_mann, g_zmin, g_zmax, g_tcls
+      real*4             :: g_width, g_sill, g_mann, g_par4, g_par5, g_tcls
       character(len=512) :: line, trimmed
       character(len=32)  :: name_str
       character(len=16)  :: type_name, par_name, dir_name
-      character(len=13)  :: zmin_str, zmax_str
+      character(len=13)  :: par4_str, par5_str
       character(len=128) :: rule_open_str, rule_close_str
       !
       ierr     = 0
@@ -2447,7 +2448,7 @@ contains
             !
          endif
          !
-         ! Branch on dtype. Gates (4, 5) and unknown codes set ierr and bail.
+         ! Branch on dtype. Unknown codes set ierr and bail.
          !
          ! dir_name is left blank unless dtype pins a direction filter; a blank
          ! dir_name causes the emitter below to skip the direction key entirely,
@@ -2477,18 +2478,21 @@ contains
                par_name  = 'flow_coef'
                dir_name  = 'positive'
                !
-            case (4)
+            case (4, 5)
                !
-               ! Water-level-triggered gate. Legacy columns past dtype:
-               !   width, sill_elevation, mannings_n, zmin, zmax, t_close.
+               ! Rule-driven gate. Legacy columns past dtype:
+               !   dtype 4: width, sill_elevation, mannings_n, zmin,   zmax,  t_close
+               !   dtype 5: width, sill_elevation, mannings_n, tclose, topen, t_close
+               ! dtype 4 is open while zmin < z1 < zmax. dtype 5 is closed while
+               ! tclose <= t < topen (t in s since tref) and open otherwise.
                ! Re-read the whole line to pull those extra columns.
                !
                read(line, *, iostat=stat) x1, y1, x2, y2, dtype, &
-                    g_width, g_sill, g_mann, g_zmin, g_zmax, g_tcls
+                    g_width, g_sill, g_mann, g_par4, g_par5, g_tcls
                !
                if (stat /= 0) then
                   !
-                  write(logstr,'(a,a,a)')' Error ! Could not parse legacy dtype-4 gate line in "', trim(legacy_path), '"'
+                  write(logstr,'(a,i0,a,a,a)')' Error ! Could not parse legacy dtype-', dtype, ' gate line in "', trim(legacy_path), '"'
                   call write_log(logstr, 1)
                   write(logstr,'(a,a)')'        line: ', trim(line)
                   call write_log(logstr, 1)
@@ -2500,19 +2504,35 @@ contains
                endif
                !
                ! Synthesise rule strings with the legacy numeric values baked in.
-               ! Grammar accepts '<', '>', '&', '|' only (no '<=' / '>=').
                !
-               write(zmin_str,'(es13.6)') g_zmin
-               write(zmax_str,'(es13.6)') g_zmax
-               write(rule_open_str, '(a,a,a,a)') 'z1>', trim(adjustl(zmin_str)), ' & z1<', trim(adjustl(zmax_str))
-               write(rule_close_str,'(a,a,a,a)') 'z1<', trim(adjustl(zmin_str)), ' | z1>', trim(adjustl(zmax_str))
+               write(par4_str,'(es13.6)') g_par4
+               write(par5_str,'(es13.6)') g_par5
                !
                n_struct = n_struct + 1
                !
-               if (g_zmin >= g_zmax) then
+               if (dtype == 4) then
                   !
-                  write(logstr,'(a,i0,a)')' Warning ! legacy gate entry ', n_struct, ': zmin >= zmax, open rule will never fire'
-                  call write_log(logstr, 0)
+                  write(rule_open_str, '(a,a,a,a)') 'z1>', trim(adjustl(par4_str)), ' & z1<', trim(adjustl(par5_str))
+                  write(rule_close_str,'(a,a,a,a)') 'z1<', trim(adjustl(par4_str)), ' | z1>', trim(adjustl(par5_str))
+                  !
+                  if (g_par4 >= g_par5) then
+                     !
+                     write(logstr,'(a,i0,a)')' Warning ! legacy gate entry ', n_struct, ': zmin >= zmax, open rule will never fire'
+                     call write_log(logstr, 0)
+                     !
+                  endif
+                  !
+               else
+                  !
+                  write(rule_open_str, '(a,a,a,a)') 't<', trim(adjustl(par4_str)), ' | t>=', trim(adjustl(par5_str))
+                  write(rule_close_str,'(a,a,a,a)') 't>=', trim(adjustl(par4_str)), ' & t<', trim(adjustl(par5_str))
+                  !
+                  if (g_par4 >= g_par5) then
+                     !
+                     write(logstr,'(a,i0,a)')' Warning ! legacy gate entry ', n_struct, ': tclose >= topen, close rule will never fire'
+                     call write_log(logstr, 0)
+                     !
+                  endif
                   !
                endif
                !
@@ -2537,15 +2557,6 @@ contains
                write(u_out,'(a)')         ''
                !
                cycle
-               !
-            case (5)
-               !
-               write(logstr,'(a)')' Error ! legacy schedule-triggered gate (dtype 5) not supported - rewrite as TOML with rule-based triggers or file an issue to add a time atom to the rule grammar'
-               call write_log(logstr, 1)
-               close(u_in)
-               close(u_out)
-               ierr = 1
-               return
                !
             case default
                !

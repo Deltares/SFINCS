@@ -7,11 +7,15 @@ module sfincs_rule_expression
    !    or_expr  := and_expr ( '|' and_expr )*
    !    and_expr := comp     ( '&' comp     )*
    !    comp     := '(' expr ')' | atom cmp_op number
-   !    atom     := 'z1' | 'z2' | 'z2-z1' | 'z1-z2'  (case-insensitive)
+   !    atom     := 'z1' | 'z2' | 'z2-z1' | 'z1-z2' | 't'  (case-insensitive)
    !    cmp_op   := '<' | '>' | '<=' | '>=' | '=' | '=='
    !    number   := real literal
    !
    ! Precedence: paren > comp > '&' > '|'. Left-associative.
+   !
+   ! The 't' atom is model time in seconds since tref (same time base as
+   ! the SFINCS clock). Thresholds are stored single precision, so time
+   ! thresholds are exact for whole seconds up to ~1.6e7 s (~194 days).
    !
    ! Each rule is compiled to a reverse-polish bytecode stream in four
    ! parallel module-level arrays (opcode / atom / cmp / threshold) and
@@ -57,6 +61,7 @@ module sfincs_rule_expression
    integer, parameter :: atom_z2              = 2
    integer, parameter :: atom_z2_minus_z1     = 3
    integer, parameter :: atom_z1_minus_z2     = 4
+   integer, parameter :: atom_t               = 5
    !
    ! Comparator codes.
    !
@@ -269,11 +274,14 @@ contains
    end subroutine
    !
    !
-   pure function evaluate_rule(rule_id, z1, z2) result(fired)
+   pure function evaluate_rule(rule_id, z1, z2, t) result(fired)
    !
    ! Fixed-depth stack machine that evaluates a compiled rule against
-   ! the two water levels z1 (intake) and z2 (outfall). A rule_id of 0
-   ! short-circuits to .false. ("never fires").
+   ! the two water levels z1 (intake) and z2 (outfall) and the model
+   ! time t (s since tref). A rule_id of 0 short-circuits to .false.
+   ! ("never fires"). Comparisons are done in double precision so that
+   ! t keeps its full resolution; for the z atoms this gives the same
+   ! result as a single-precision comparison.
    !
    !$acc routine seq
    !
@@ -281,11 +289,12 @@ contains
    !
    integer, intent(in) :: rule_id
    real,    intent(in) :: z1, z2
+   real*8,  intent(in) :: t
    logical             :: fired
    !
    logical :: stack(expr_stack_max)
    integer :: sp, k, idx, rs, rl
-   real    :: zval
+   real*8  :: zval, thr
    logical :: a, b
    !
    fired = .false.
@@ -325,36 +334,42 @@ contains
                   !
                   zval = z1 - z2
                   !
+               case (atom_t)
+                  !
+                  zval = t
+                  !
                case default
                   !
-                  zval = 0.0
+                  zval = 0.0d0
                   !
             end select
             !
             if (sp >= expr_stack_max) return
             sp = sp + 1
             !
+            thr = rule_threshold(idx)
+            !
             select case (rule_cmp(idx))
                !
                case (cmp_lt)
                   !
-                  stack(sp) = zval < rule_threshold(idx)
+                  stack(sp) = zval < thr
                   !
                case (cmp_gt)
                   !
-                  stack(sp) = zval > rule_threshold(idx)
+                  stack(sp) = zval > thr
                   !
                case (cmp_le)
                   !
-                  stack(sp) = zval <= rule_threshold(idx)
+                  stack(sp) = zval <= thr
                   !
                case (cmp_ge)
                   !
-                  stack(sp) = zval >= rule_threshold(idx)
+                  stack(sp) = zval >= thr
                   !
                case (cmp_eq)
                   !
-                  stack(sp) = zval == rule_threshold(idx)
+                  stack(sp) = zval == thr
                   !
                case default
                   !
@@ -495,7 +510,7 @@ contains
    character(len=*), intent(out) :: errmsg
    !
    ! Token kinds:
-   !   1 = ident (z1/z2/z2-z1/z1-z2)  payload: atom code in tok_atom
+   !   1 = ident (z1/z2/z2-z1/z1-z2/t)  payload: atom code in tok_atom
    !   2 = number                 payload: real in tok_num
    !   3 = lparen
    !   4 = rparen
@@ -813,7 +828,7 @@ contains
          !
       endif
       !
-      ! Identifiers: z1, z2, z2-z1, z1-z2. The 'z2-z1' / 'z1-z2' atoms
+      ! Identifiers: z1, z2, z2-z1, z1-z2, t. The 'z2-z1' / 'z1-z2' atoms
       ! contain a '-', which would otherwise be eaten by the number path;
       ! we match them as longest-match-first prefixes here.
       !
@@ -878,6 +893,15 @@ contains
             ierr = 1
             write(errmsg,'(a,i0)') 'unknown z-identifier at position ', pos
             return
+            !
+         case ('t')
+            !
+            n_tokens = n_tokens + 1
+            tok_kind(n_tokens) = tok_ident
+            tok_atom(n_tokens) = atom_t
+            tok_pos (n_tokens) = kstart
+            pos = pos + 1
+            cycle
             !
          case default
             !
@@ -1072,7 +1096,7 @@ contains
    if (tok_kind(ip) /= tok_ident) then
       !
       ierr = 1
-      write(errmsg,'(a,i0)') 'expected atom (z1/z2/z2-z1/z1-z2) at position ', tok_pos(ip)
+      write(errmsg,'(a,i0)') 'expected atom (z1/z2/z2-z1/z1-z2/t) at position ', tok_pos(ip)
       return
       !
    endif
