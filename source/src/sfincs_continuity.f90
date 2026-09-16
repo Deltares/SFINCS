@@ -121,17 +121,14 @@ contains
       !
       if (use_qext) then
          !
-         !$omp parallel &
-         !$omp private ( nm )
-         !$omp do
-         !$acc loop gang vector
+         !$acc parallel loop present( qsrc, qext )
+         !$omp parallel do private( nm ) schedule( static )
          do nm = 1, np
             !
             qsrc(nm) = qsrc(nm) + qext(nm)
             !
          enddo
-         !$acc end loop
-         !$omp end parallel
+         !$omp end parallel do
          !
       endif
       !
