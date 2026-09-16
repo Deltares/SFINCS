@@ -9,6 +9,8 @@ module sfincs_output
    !
    use sfincs_data
    use sfincs_src_structures, only: nr_src_structures
+   use sfincs_discharges,     only: nr_discharge_points
+   use sfincs_urban_drainage, only: nr_urban_drainage_zones
    !
    implicit none
    !
@@ -16,6 +18,12 @@ module sfincs_output
    real*8   :: tmaxout
    real*8   :: trstout
    real*8   :: thisout
+   !
+   logical  :: his_rivers
+   logical  :: his_urban
+   !
+   his_rivers = (nr_discharge_points > 0 .and. store_river_discharge)
+   his_urban  = (nr_urban_drainage_zones > 0 .and. store_urban_drainage_discharge)
    !
    if (dtmapout>1.0e-6) then
       tmapout     = t0out
@@ -57,9 +65,9 @@ module sfincs_output
       !
    endif
    !
-   ! Create his file if either observation points, cross-sections, structures or drains present
+   ! Create his file if either observation points, cross-sections, structures, drains, stored river discharges or stored urban drainage present
    !
-   if (dthisout>1.0e-6 .and. (nobs>0 .or. nrcrosssections>0 .or. nrstructures>0 .or. nrthindams>0 .or. nr_src_structures>0 .or. nr_runup_gauges>0 )) then
+   if (dthisout>1.0e-6 .and. (nobs>0 .or. nrcrosssections>0 .or. nrstructures>0 .or. nrthindams>0 .or. nr_src_structures>0 .or. his_rivers .or. his_urban .or. nr_runup_gauges>0 )) then
       !
       thisout     = t0
       !
@@ -82,6 +90,8 @@ module sfincs_output
    !
    use sfincs_data
    use sfincs_src_structures, only: nr_src_structures
+   use sfincs_discharges,     only: nr_discharge_points
+   use sfincs_urban_drainage, only: nr_urban_drainage_zones
    !
    implicit none
    !
@@ -240,7 +250,9 @@ module sfincs_output
    !      
    ! Water level time series
    !
-   if (write_his .and. (nobs>0 .or. nrcrosssections>0 .or. nr_src_structures>0 .or. nr_runup_gauges>0)) then
+   if (write_his .and. (nobs>0 .or. nrcrosssections>0 .or. nr_src_structures>0 .or. nr_runup_gauges>0 .or. &
+       (nr_discharge_points>0 .and. store_river_discharge) .or. &
+       (nr_urban_drainage_zones>0 .and. store_urban_drainage_discharge))) then
       !      
       if (outputtype_his == 'net') then
          !      
