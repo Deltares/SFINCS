@@ -48,7 +48,7 @@ contains
    !$acc               src_struc_rule_start, src_struc_rule_count, rule_list_op, rule_list_id, &
    !$acc               rule_opcode, rule_atom, rule_cmp, rule_threshold, rule_start, rule_length, &
    !$acc               z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, &
-   !$acc               wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, &
+   !$acc               wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, wavemaker_index_type, &
    !$acc               wavemaker_idir, wavemaker_angfac, wavemaker_uvtrend, &
    !$acc               wavemaker_index_wmfp1, wavemaker_index_wmfp2, wavemaker_fac_wmfp, &
    !$acc               wavemaker_forcing_hm0_ig_t, wavemaker_forcing_tp_ig_t, wavemaker_forcing_setup_t, &
@@ -102,7 +102,7 @@ contains
    !$acc               src_struc_rule_start, src_struc_rule_count, rule_list_op, rule_list_id, &
    !$acc               rule_opcode, rule_atom, rule_cmp, rule_threshold, rule_start, rule_length, &
    !$acc               z_index_wavemaker, wavemaker_uvmean, wavemaker_nmd, wavemaker_nmu, wavemaker_ndm, wavemaker_num, &
-   !$acc               wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, &
+   !$acc               wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, wavemaker_index_type, &
    !$acc               wavemaker_idir, wavemaker_angfac, wavemaker_uvtrend, &
    !$acc               wavemaker_index_wmfp1, wavemaker_index_wmfp2, wavemaker_fac_wmfp, &
    !$acc               wavemaker_forcing_hm0_ig_t, wavemaker_forcing_tp_ig_t, wavemaker_forcing_setup_t, &

@@ -126,6 +126,19 @@ contains
             spw_ye(it) = yy
          enddo
          !
+      else
+         !
+         ! utmzone not set: sanity check for a projected SFINCS model combined with
+         ! spiderweb eye coordinates that still look like geographic lon/lat (degrees).
+         ! In that case the spiderweb will not overlap the projected grid -> zero wind.
+         !
+         if (.not. crsgeo .and. abs(spw_xe(1)) <= 360.0 .and. abs(spw_ye(1)) <= 90.0) then
+            !
+            call write_log('Warning : SFINCS model is projected but utmzone is not set, while the spiderweb eye coordinates look like geographic lon/lat (degrees).', 1)
+            call write_log('Warning : the spiderweb likely does not overlap the model domain, resulting in (near-)zero wind. Set "utmzone" in sfincs.inp to reproject the spiderweb.', 1)
+            !
+         endif
+         !
       endif
       !
    endif   
