@@ -430,7 +430,7 @@ Dike breach
 
 **NOTE - Prototype status: this functionality is field-tested, but is still being improved iteratively**
 
-A dike breach lets water flow through a dike that fails at a given time. The breach first deepens and then widens, following the two-phase breach model of Verheij & Van der Knaap (2003). Like the other structures, a dike breach moves water from ``src_1`` to ``src_2`` (or back) and does not change the model bathymetry. The dike itself must therefore be represented in the model, for example by the topography or a weir, which the breach then bypasses.
+A dike breach has been implemented as source-sink structure type of element, both the location and timing of the breach are predefined. The development of the breach width (and therefore discharge) depend on the outside and inside waterlevels. The breach first deepens and then widens, following the two-phase breach model of Verheij & Van der Knaap (2003). Like the other structures, a dike breach moves water from ``src_1`` to ``src_2`` (or back) and does not change the model bathymetry. The dike itself must therefore be represented in the model, for example by the topography or a weir, which the breach then bypasses.
 
 Dike breaches are specified in a separate TOML file, referenced from ``sfincs.inp`` with the ``dkbfile`` keyword. The file uses the same ``[[src_structure]]`` blocks as the drainage structures file, with ``type = "dike_breach"``. A ``dkbfile`` can be used with or without a ``drnfile``:
 
