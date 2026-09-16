@@ -1057,13 +1057,11 @@ contains
 
    subroutine initialize_bucket_model()
    !
-   use netcdf
    use sfincs_data
    use sfincs_ncinput
    !
    implicit none
    !
-   integer :: status, ncid, varid
    character*256 :: varname
    !
    if (netcdf_infiltration) then
@@ -1087,8 +1085,8 @@ contains
       bucket_loss       = 0.0
       bucket_runoff     = 0.0
       !
-      !
       ! Read from infiltrationfile (netcdf) - works for both regular and quadtree grids
+      ! (read_netcdf_quadtree_to_sfincs stops if a variable is missing)
       !
       varname = 'bucket_smax'
       call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, bucket_capacity)
@@ -1098,25 +1096,12 @@ contains
       call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, bucket_k)
       bucket_k = bucket_k / 3600.0   ! 1/hr to 1/s
       !
-      status = nf90_open(trim(infiltrationfile), NF90_NOWRITE, ncid)
-      if (status /= nf90_noerr) then
-         call stop_sfincs('Error ! Cannot open infiltrationfile for bucket model input !', 1)
-      endif
-      !
-      status = nf90_inq_varid(ncid, 'bucket_loss', varid)
-      if (nf90_close(ncid) /= nf90_noerr) then
-         call stop_sfincs('Error ! Cannot close infiltrationfile after checking bucket model variables !', 1)
-      endif
-      !
-      if (status /= nf90_noerr) then
-         call stop_sfincs('Error ! Bucket model requires variable bucket_loss in infiltrationfile !', 1)
-      endif
-      !
       varname = 'bucket_loss'
       call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, bucket_loss)
-      call write_log('Info    : read spatially-varying bucket_loss from infiltrationfile', 0)
       !
       write(logstr,'(a,f10.4,a)')'Info    : bucket max capacity = ', maxval(bucket_capacity) * 1000.0, ' mm'
+      call write_log(logstr, 0)
+      write(logstr,'(a,f10.4,a)')'Info    : bucket max k        = ', maxval(bucket_k) * 3600.0, ' 1/hr'
       call write_log(logstr, 0)
       write(logstr,'(a,f6.3)')'Info    : bucket loss fraction = ', maxval(bucket_loss)
       call write_log(logstr, 0)
