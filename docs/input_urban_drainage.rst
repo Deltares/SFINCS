@@ -1,6 +1,10 @@
 Urban Drainage
 ==============
 
+**NOTE - Available from SFINCS v2026.02 Hautacam release onwards**
+
+**NOTE - Prototype status: this functionality is field-tested, but is still being improved iteratively**
+
 Overview
 --------
 

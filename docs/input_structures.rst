@@ -159,7 +159,9 @@ Drainage Structures
 
 **Overview**
 
-SFINCS supports four types of internal drainage structures that move water between two grid cells without resolving the flow through a physical momentum equation. They are configured through a single file (typically sfincs.drn, TOML format), referenced from ``sfincs.inp`` with the ``drnfile`` keyword:
+SFINCS supports four types of internal drainage structures that move water between two grid cells without resolving the flow through a physical momentum equation. They are configured through a single file (typically sfincs.drn), referenced from ``sfincs.inp`` with the ``drnfile`` keyword. Dike breaches use the same file format, but are read from a separate file (see :ref:`dike breach <dkb>` below).
+
+**NOTE - The TOML format of this file is available from SFINCS v2026.02 Hautacam release onwards. The legacy fixed-column format is still accepted (see below).**
 
 .. code-block:: text
 
@@ -167,10 +169,10 @@ SFINCS supports four types of internal drainage structures that move water betwe
 
 The four structure types are:
 
-- ``pump`` — drainage pump. Moves a prescribed discharge ``q`` from ``src_1`` to ``src_2``, limited by available water.
-- ``culvert_simple`` — lumped one-coefficient culvert. Bidirectional by default.
-- ``culvert`` — regime-aware detailed culvert with geometry (width, height, invert elevations) and a submergence threshold.
-- ``gate`` — bidirectional gate with a sill and an inertial culvert-style momentum update (Bates et al., 2010).
+- ``pump`` — drainage pump. Moves a prescribed discharge ``q`` from ``src_1`` to ``src_2``, limited by available water. Same as the original drainage pump (legacy ``type = 1``).
+- ``culvert_simple`` — lumped one-coefficient culvert. Bidirectional by default. Same as the original culvert (legacy ``type = 2``) and check valve (legacy ``type = 3``).
+- ``culvert`` — regime-aware detailed culvert with geometry (width, height, invert elevations) and a submergence threshold. New from SFINCS v2026.02 Hautacam release onwards.
+- ``gate`` — bidirectional gate with a sill and an inertial culvert-style momentum update (Bates et al., 2010). Generalises the original water-level- and time-controlled gates (legacy ``type = 4`` and ``5``); rule-based control is available from SFINCS v2026.02 Hautacam release onwards.
 
 All structures can be driven by optional rule expressions (see :ref:`open/close rules <drn_rules>` below) that open or close the structure based on water levels at user-chosen observation cells.
 
@@ -300,6 +302,10 @@ All common keys are accepted. Set ``direction = "positive"`` (or use ``type = "c
 Culvert (detailed)
 ^^^^^^^^^^^^^^^^^^
 
+**NOTE - Available from SFINCS v2026.02 Hautacam release onwards**
+
+**NOTE - Prototype status: this functionality is field-tested, but is still being improved iteratively**
+
 The detailed culvert resolves the two usual culvert regimes — submerged (orifice-like) and free / inlet-controlled — based on the ratio of downstream to upstream heads above the controlling sill. The controlling sill is the higher of the two inverts, :math:`z_\text{sill} = \max(\text{invert}_1, \text{invert}_2)`; upstream and downstream are assigned on the fly from the sign of :math:`\Delta h`, so the structure is bidirectional (restrict with ``direction`` if needed).
 
 Let :math:`h_\text{up}`, :math:`h_\text{dn}` be the upstream and downstream depths above :math:`z_\text{sill}`, and :math:`A_\text{eff} = w \cdot \min(h_\text{up}, H)` (capped at barrel height). Then
@@ -333,7 +339,7 @@ Let :math:`h_\text{up}`, :math:`h_\text{dn}` be the upstream and downstream dept
      - Invert elevation at the ``src_2`` end (m, same datum as ``zb``). Required.
    * - flow_coef
      - real
-     - Orifice discharge coefficient :math:`c_f`. Default: **0.6**.
+     - Discharge coefficient :math:`c_f`. Default: **0.6**.
    * - submergence_ratio
      - real
      - Threshold :math:`r_\text{sub}` on :math:`h_\text{dn}/h_\text{up}` that switches between the two regimes. Default: **0.667** (the classic broad-crested-weir / Villemonte value).
@@ -353,6 +359,8 @@ All common keys are accepted.
    invert_2          = 0.15
    flow_coef         = 0.6
    submergence_ratio = 0.667
+
+There is no separate orifice structure type. To model an orifice, use ``type = "culvert"`` with ``submergence_ratio = 0.0``, so that the submerged formula above is always used.
 
 Gate
 ^^^^
@@ -413,9 +421,109 @@ All common keys are accepted. The gate defaults ``opening_duration`` and ``closi
    operation = "open"
    when      = "z2-z1 > 0.10"
 
+.. _dkb:
+
+Dike breach
+^^^^^^^^^^^
+
+**NOTE - Available from SFINCS v2026.02 Hautacam release onwards**
+
+**NOTE - Prototype status: this functionality is field-tested, but is still being improved iteratively**
+
+A dike breach lets water flow through a dike that fails at a given time. The breach first deepens and then widens, following the two-phase breach model of Verheij & Van der Knaap (2003). Like the other structures, a dike breach moves water from ``src_1`` to ``src_2`` (or back) and does not change the model bathymetry. The dike itself must therefore be represented in the model, for example by the topography or a weir, which the breach then bypasses.
+
+Dike breaches are specified in a separate TOML file, referenced from ``sfincs.inp`` with the ``dkbfile`` keyword. The file uses the same ``[[src_structure]]`` blocks as the drainage structures file, with ``type = "dike_breach"``. A ``dkbfile`` can be used with or without a ``drnfile``:
+
+.. code-block:: text
+
+   dkbfile = sfincs.dkb
+
+Place ``src_1`` (and ``obs_1``) on the side the flood water comes from (for example the river or sea side), and ``src_2`` (and ``obs_2``) on the side that floods (for example the polder).
+
+**Phase 1 - deepening.** From ``t_breach`` onwards, the breach has a fixed width :math:`B_0` and its crest level :math:`z_b` drops linearly from ``z_crest`` to ``z_min`` in ``t0`` seconds:
+
+.. math::
+
+   z_b(t) = z_\text{crest} - (z_\text{crest} - z_\text{min}) \, \frac{t - t_\text{breach}}{t_0}
+
+**Phase 2 - widening.** After ``t_breach + t0`` the crest stays at ``z_min`` and the breach widens at the rate
+
+.. math::
+
+   \frac{dB}{dt} = \frac{f_1 f_2}{\ln 10} \, \frac{(g \, \Delta H)^{3/2}}{u_c^2} \, \frac{1}{1 + \dfrac{f_2 \, g}{u_c} \, T}
+
+with :math:`B` in m, :math:`dt` and :math:`T` (the time since the start of phase 2) in hours, :math:`f_1 = 1.3`, :math:`f_2 = 0.04`, and :math:`\Delta H` the difference in head above ``z_min`` between ``obs_1`` and ``obs_2``. The critical flow velocity :math:`u_c` depends on the dike core material: 0.2 m/s for sand (``dike_core = 1``) and 0.5 m/s for clay (``dike_core = 2``). The breach only widens while the water level at ``obs_1`` is higher than at ``obs_2``; flow in the other direction is allowed, but does not widen the breach.
+
+**Discharge.** The discharge through the breach uses the water levels at ``obs_1`` and ``obs_2``. With :math:`h_\text{up}` and :math:`h_\text{dn}` the upstream and downstream depths above the breach crest :math:`z_b`:
+
+.. math::
+
+   Q =
+   \begin{cases}
+   B \cdot h_\text{dn} \cdot \sqrt{2 g\, |\Delta z_s|}, & h_\text{dn}/h_\text{up} \ge r_\text{sub} \quad\text{(submerged)} \\
+   1.71 \cdot B \cdot h_\text{up}^{3/2}, & h_\text{dn}/h_\text{up} < r_\text{sub} \quad\text{(free flow)}
+   \end{cases}
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 14 64
+
+   * - Key
+     - Type
+     - Description
+   * - **z_crest**
+     - real
+     - Initial dike crest elevation (m, same datum as ``zb``). Required.
+   * - **z_min**
+     - real
+     - Final (lowest) breach crest elevation (m, same datum as ``zb``). Required.
+   * - **t_breach**
+     - real
+     - Time at which the breach starts (s since ``tref``). Required.
+   * - **t0**
+     - real
+     - Duration of phase 1, the deepening from ``z_crest`` to ``z_min`` (s). Required.
+   * - **B0**
+     - real
+     - Breach width during phase 1, and the initial width of phase 2 (m). Required.
+   * - dike_core
+     - integer
+     - Dike core material: ``1`` = sand, ``2`` = clay. Default: **1**.
+   * - submergence_ratio
+     - real
+     - Threshold :math:`r_\text{sub}` on :math:`h_\text{dn}/h_\text{up}` that switches between the two regimes. Default: **0.667**.
+
+All common keys are accepted. The breach width in time is written to ``sfincs_his.nc`` as ``breach_width``.
+
+.. code-block:: toml
+
+   # sfincs.dkb
+
+   [[src_structure]]
+   name      = "north_breach"
+   type      = "dike_breach"
+   src_1     = [1000.0, 2100.0]   # river side
+   src_2     = [1000.0, 1900.0]   # polder side
+   z_crest   = 5.0                # initial crest elevation (m)
+   z_min     = 1.0                # final breach crest elevation (m)
+   t_breach  = 36000.0            # breach starts 10 hours after tref
+   t0        = 3600.0             # 1 hour of deepening
+   B0        = 10.0               # initial breach width (m)
+   dike_core = 2                  # clay core
+
+**Python example using HydroMT-SFINCS (TOML format)**
+
+.. code-block:: python
+
+   # Will be added soon: HydroMT-SFINCS support for writing dike breaches in the TOML format.
+
 .. _drn_rules:
 
 **Control rules**
+
+**NOTE - Available from SFINCS v2026.02 Hautacam release onwards**
+
+**NOTE - Prototype status: this functionality is field-tested, but is still being improved iteratively**
 
 Any structure can carry an ordered list of control rules, written as ``[[src_structure.rule]]`` tables directly below its ``[[src_structure]]`` block. Each rule has two keys:
 
@@ -524,7 +632,7 @@ The time-series discharge per structure is always written to ``sfincs_his.nc`` a
    height           = 1.0
    invert_1         = 0.20
    invert_2         = 0.15
-   flow_coef        = 0.6                       # orifice discharge coefficient
+   flow_coef        = 0.6                       # discharge coefficient
    submergence_ratio = 0.667                    # h_dn/h_up threshold between submerged and inlet control
 
    [[src_structure]]
@@ -547,7 +655,13 @@ The time-series discharge per structure is always written to ``sfincs_his.nc`` a
    operation = "open"
    when      = "z2-z1 > 0.10"                   # open when outer level exceeds inner by 0.10 m
 
-**Python example using HydroMT-SFINCS**
+**Python example using HydroMT-SFINCS (TOML format)**
+
+.. code-block:: python
+
+   # Will be added soon: HydroMT-SFINCS support for writing drainage structures in the TOML format.
+
+**Python example using HydroMT-SFINCS (legacy format)**
 
 .. code-block:: python
 
@@ -604,18 +718,3 @@ Example:
    36638.3 402759.4 37062.1 402754.2  5  140.4  -10.0  0.03  168600.0  201600.0  4500.0
 
 When SFINCS sees a legacy ``.drn`` file it automatically transcribes it to a sibling TOML file (``sfincs.toml.drn`` if the input was ``sfincs.drn``) and then reads that. Legacy gates are converted to TOML ``gate`` blocks with an ``open`` and a ``close`` rule: ``type = 4`` gates get ``z1`` rules derived from the ``zmin`` / ``zmax`` columns, and ``type = 5`` gates get ``t`` rules derived from the ``tclose`` / ``topen`` columns.
-
-.. important::
-
-   **After a legacy transcription, strongly consider renaming the generated
-   ``sfincs.toml.drn`` file to ``sfincs.drn`` (overwriting the original legacy
-   file) and pointing ``drnfile`` at it.** Future simulations will then read
-   the TOML directly, skipping the transcription step and giving you a single
-   source of truth that you can edit, version-control, and extend with the
-   newer keywords (``[[src_structure.rule]]`` control rules, ``obs_1`` /
-   ``obs_2``, ``submergence_ratio``, ``direction``, per-structure invert
-   pairs, etc.)
-   that the legacy format cannot express. Keep a backup of the original
-   legacy file elsewhere if you need it for reference.
-
-New models should be written directly in TOML; the legacy reader exists purely so that pre-TOML input decks keep running.

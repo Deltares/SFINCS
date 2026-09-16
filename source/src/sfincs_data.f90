@@ -1154,12 +1154,6 @@ module sfincs_data
     if(allocated(qsrc)) deallocate(qsrc)
     if(allocated(tsrc)) deallocate(tsrc)
     if(allocated(qsrc_ts)) deallocate(qsrc_ts)
-    !
-    ! River-point-discharge module-private state (qtsrc, nmindsrc, src_name)
-    ! is owned by sfincs_discharges and is deallocated there.
-    !
-    ! Src-point structure state is owned by sfincs_src_structures and is
-    ! deallocated there.
     !!!
     !!! Structures
     !!!
