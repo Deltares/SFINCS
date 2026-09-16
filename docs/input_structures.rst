@@ -174,7 +174,7 @@ The four structure types are:
 
 All structures can be driven by optional rule expressions (see :ref:`open/close rules <drn_rules>` below) that open or close the structure based on water levels at user-chosen observation cells.
 
-You can record how much discharge each structure extracts in the ``sfincs_his.nc`` output by setting ``storeqdrain = 1`` in ``sfincs.inp``.
+The discharge through each structure is always written to the ``sfincs_his.nc`` output as ``drainage_discharge``.
 
 .. figure:: ./figures/SFINCS_drainage_grid.png
    :width: 400px
@@ -484,7 +484,7 @@ where :math:`N` is set by the ``structure_relax`` keyword in ``sfincs.inp`` — 
 
 **Output: storing structure discharges**
 
-Set ``storeqdrain = 1`` in ``sfincs.inp`` to write the time-series discharge per structure into ``sfincs_his.nc``.
+The time-series discharge per structure is always written to ``sfincs_his.nc`` as ``drainage_discharge`` (along with ``drainage_fraction_open``, and ``breach_width`` for dike breaches), on the ``dthisout`` interval.
 
 **Example sfincs.drn file**
 

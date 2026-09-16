@@ -1936,7 +1936,6 @@ contains
         NF90(nf90_put_att(ncid, varid, 'twet_threshold',twet_threshold))
         NF90(nf90_put_att(ncid, varid, 'store_tsunami_arrival_time',logical2int(store_tsunami_arrival_time)))
         NF90(nf90_put_att(ncid, varid, 'tsunami_arrival_threshold',tsunami_arrival_threshold))
-        NF90(nf90_put_att(ncid, varid, 'storeqdrain',logical2int(store_qdrain)))
         NF90(nf90_put_att(ncid, varid, 'storezvolume',logical2int(store_zvolume)))
         NF90(nf90_put_att(ncid, varid, 'writeruntime',logical2int(write_time_output)))
         NF90(nf90_put_att(ncid, varid, 'debug',logical2int(debug)))

@@ -204,7 +204,6 @@ module sfincs_data
       logical       :: store_twet
       logical       :: store_hsubgrid
       logical       :: store_hmean      
-      logical       :: store_qdrain
       logical       :: store_river_discharge
       logical       :: store_zvolume
       logical       :: store_storagevolume            
@@ -272,7 +271,6 @@ module sfincs_data
       integer storecumprcp
       integer storetwet
       integer storetzsmax
-      integer storeqdrain
       integer storezvolume
       integer storestoragevolume      
       integer storemeteo

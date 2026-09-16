@@ -225,7 +225,7 @@ Discharge output
 With 'store_river_discharge = 1' in sfincs.inp, the discharge per point ('river_discharge', m3/s) and the point names ('river_name') are written to 'sfincs_his.nc' at every 'dthisout' interval.
 This works for both the src/dis input and the 'netsrcdisfile' input.
 River discharges, drainage structures and urban drainage zones all add their discharge to the same source term in each grid cell, so the map output cannot show how much each of them contributed.
-This output gives the river contribution per discharge point, next to 'drainage_discharge' (with 'storeqdrain = 1') and 'urban_drainage_discharge' (with 'store_urban_drainage_discharge = 1').
+This output gives the river contribution per discharge point, next to 'drainage_discharge' (always written when drainage structures are present) and 'urban_drainage_discharge' (with 'store_urban_drainage_discharge = 1').
 Because a model can have many discharge points, this output is off by default.
 Note that this is the prescribed discharge, linearly interpolated to the model time (instantaneous value), and not a computed inflow.
 A point that falls outside the active model domain is still reported, even though its discharge does not enter the model.

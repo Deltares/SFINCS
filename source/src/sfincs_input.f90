@@ -300,7 +300,6 @@ contains
    call read_int_input(500,'store_tsunami_arrival_time',itsunamitime,0)
    call read_real_input(500,'tsunami_arrival_threshold',tsunami_arrival_threshold,0.01)
    call read_logical_input(500,'timestep_analysis',timestep_analysis,.false.)
-   call read_int_input(500,'storeqdrain',storeqdrain,1)
    call read_int_input(500,'storezvolume',storezvolume,0)
    call read_int_input(500,'storestoragevolume',storestoragevolume,0)
    call read_int_input(500,'writeruntime',wrttimeoutput,0)
@@ -530,12 +529,6 @@ contains
    store_cumulative_precipitation = .false.
    if (storecumprcp==1) then
       store_cumulative_precipitation = .true.
-   endif
-   !   
-   if (storeqdrain==0) then
-      store_qdrain = .false.
-   else
-      store_qdrain = .true.
    endif
    !   
    write_time_output = .false.
