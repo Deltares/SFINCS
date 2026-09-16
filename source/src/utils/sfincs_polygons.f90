@@ -177,8 +177,12 @@ contains
       integer :: i, j
       !
       inside = .false.
-      j = nv - 1
-      if (j < 1) j = nv
+      !
+      ! Start with the edge (v_nv, v_1) so every edge is visited exactly once.
+      ! For a closed ring (v_nv == v_1) this first edge has zero length and is
+      ! skipped by the straddle test.
+      !
+      j = nv
       do i = 1, nv
          if (((yv(i) > yp) .neqv. (yv(j) > yp)) .and. &
              (xp < (xv(j) - xv(i)) * (yp - yv(i)) / (yv(j) - yv(i) + tiny(1.0)) + xv(i))) then
