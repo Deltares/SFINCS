@@ -309,30 +309,46 @@ contains
       ! weight once. Then run a single parallel loop that both interpolates
       ! qtsrc and accumulates it into qsrc.
       !
-      it_prev = itsrclast
-      it_next = itsrclast + 1
-      !
-      do itsrc = itsrclast, ntsrc
+      if (ntsrc <= 1) then
          !
-         if (tsrc(itsrc) > t) then
-            !
-            it_prev = itsrc - 1
-            it_next = itsrc
-            itsrclast = it_prev
-            exit
-            !
-         endif
+         ! Single time level: constant discharge
          !
-      enddo
-      !
-      ! Clamp to valid bracket. If t is outside [tsrc(1), tsrc(ntsrc)] (which
-      ! can happen on the netcdf path, where the srcfile pre-padding is not
-      ! applied), hold the endpoint value rather than read out of bounds.
-      !
-      it_prev = min(max(it_prev, 1), ntsrc - 1)
-      it_next = it_prev + 1
-      !
-      wt = (t - tsrc(it_prev)) / (tsrc(it_next) - tsrc(it_prev))
+         it_prev = 1
+         it_next = 1
+         wt      = 0.0
+         !
+      else
+         !
+         ! Default (t beyond last time): last interval
+         !
+         it_prev = ntsrc - 1
+         !
+         do itsrc = max(itsrclast, 1), ntsrc
+            !
+            if (tsrc(itsrc) > t) then
+               !
+               it_prev = itsrc - 1
+               exit
+               !
+            endif
+            !
+         enddo
+         !
+         ! Clamp to a valid bracket. If t is before tsrc(1) (possible on the
+         ! netcdf path, where the srcfile pre-padding is not applied), use the
+         ! first interval.
+         !
+         it_prev   = min(max(it_prev, 1), ntsrc - 1)
+         it_next   = it_prev + 1
+         itsrclast = it_prev
+         !
+         ! Clamp the weight so values outside [tsrc(1), tsrc(ntsrc)] hold the
+         ! endpoint value instead of being extrapolated.
+         !
+         wt = (t - tsrc(it_prev)) / (tsrc(it_next) - tsrc(it_prev))
+         wt = min(max(wt, 0.0), 1.0)
+         !
+      endif
       !
       ! Atomic accumulation because two river sources (or a river and a
       ! structure) can share a cell.
