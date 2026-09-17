@@ -1352,11 +1352,12 @@ contains
             if (src_struc_direction(istruc) == direction_positive .and. qq < 0.0) qq = 0.0
             if (src_struc_direction(istruc) == direction_negative .and. qq > 0.0) qq = 0.0
             !
-            ! Relaxation: blend new and previous discharge to damp oscillations.
-            ! structure_relax is a dimensionless step count: alpha = 1/N damps
-            ! the discharge response over roughly N time steps. Typical 1-10.
+            ! Relaxation: first-order lag of the structure discharge with time
+            ! constant structure_relax (s, default 10). alpha = dt/T makes the
+            ! response independent of the time step; the clamp at 1 keeps the
+            ! blend stable when dt exceeds the time constant.
             !
-            alpha = 1.0 / structure_relax
+            alpha = min(dt / max(structure_relax, 1.0e-6), 1.0)
             qq = alpha * qq + (1.0 - alpha) * src_struc_q_now(istruc)
             !
             ! Limit discharge by available volume in the donor cell (endpoint 1
