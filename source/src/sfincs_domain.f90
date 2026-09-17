@@ -2346,6 +2346,10 @@ contains
       allocate(zsmax(np))
    endif
    !
+   if (store_maximum_waterlevel .and. store_zvolume) then
+      allocate(zvolmax(np))
+   endif
+   !
    if (store_maximum_velocity) then
       allocate(vmax(np))
    endif
@@ -2397,6 +2401,10 @@ contains
    !
    if (store_maximum_waterlevel) then
       zsmax = -999.0
+   endif
+   !
+   if (store_maximum_waterlevel .and. store_zvolume) then
+      zvolmax = 0.0
    endif
    !
    if (store_maximum_velocity) then

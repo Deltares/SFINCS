@@ -15,7 +15,7 @@ module sfincs_ncoutput
       integer :: corner_x_varid, corner_y_varid, face_x_varid, face_y_varid, crs_varid, grid_varid 
       integer :: zb_varid, msk_varid, qinf_varid
       integer :: time_varid, timemax_varid
-      integer :: zs_varid, zsmax_varid, h_varid, u_varid, v_varid, tmax_varid, Seff_varid, t_zsmax_varid
+      integer :: zs_varid, zsmax_varid, zvolmax_varid, h_varid, u_varid, v_varid, tmax_varid, Seff_varid, t_zsmax_varid
       integer :: zvolume_varid, storagevolume_varid
       integer :: hmax_varid, vmax_varid, qmax_varid, cumprcp_varid, cuminf_varid, windmax_varid
       integer :: cumulative_urbdrain_varid
@@ -421,6 +421,16 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%zsmax_varid, 'standard_name', 'maximum_sea_surface_height_above_reference_level')) 
       NF90(nf90_put_att(map_file%ncid, map_file%zsmax_varid, 'long_name', 'Maximum water level'))
       NF90(nf90_put_att(map_file%ncid, map_file%zsmax_varid, 'coordinates', 'x y'))
+   endif
+   !
+   if (store_maximum_waterlevel .and. store_zvolume) then
+      NF90(nf90_def_var(map_file%ncid, 'zvolmax', NF90_FLOAT, (/map_file%m_dimid, map_file%n_dimid, map_file%timemax_dimid/), map_file%zvolmax_varid)) ! time-varying maximum subgrid volume map
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%zvolmax_varid, 1, 1, nc_deflate_level)) ! deflate
+      NF90(nf90_put_att(map_file%ncid, map_file%zvolmax_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%zvolmax_varid, 'units', 'm3'))
+      NF90(nf90_put_att(map_file%ncid, map_file%zvolmax_varid, 'standard_name', 'maximum_subgrid_volume_in_cell'))
+      NF90(nf90_put_att(map_file%ncid, map_file%zvolmax_varid, 'long_name', 'Maximum subgrid volume in cell'))
+      NF90(nf90_put_att(map_file%ncid, map_file%zvolmax_varid, 'coordinates', 'x y'))
    endif
    !
    if (store_cumulative_precipitation) then
@@ -1310,7 +1320,16 @@ contains
       NF90(nf90_put_att(map_file%ncid, map_file%zsmax_varid, '_FillValue', FILL_VALUE))
       NF90(nf90_put_att(map_file%ncid, map_file%zsmax_varid, 'units', 'm'))
       NF90(nf90_put_att(map_file%ncid, map_file%zsmax_varid, 'standard_name', 'maximum of sea_surface_height_above_reference_level')) 
-      NF90(nf90_put_att(map_file%ncid, map_file%zsmax_varid, 'long_name', 'Maximum water level'))        
+      NF90(nf90_put_att(map_file%ncid, map_file%zsmax_varid, 'long_name', 'Maximum water level'))
+   endif
+   !
+   if (store_maximum_waterlevel .and. store_zvolume) then
+      NF90(nf90_def_var(map_file%ncid, 'zvolmax', NF90_FLOAT, (/map_file%nmesh2d_face_dimid, map_file%timemax_dimid/), map_file%zvolmax_varid)) ! time-varying maximum subgrid volume map
+      NF90(nf90_def_var_deflate(map_file%ncid, map_file%zvolmax_varid, 1, 1, nc_deflate_level))
+      NF90(nf90_put_att(map_file%ncid, map_file%zvolmax_varid, '_FillValue', FILL_VALUE))
+      NF90(nf90_put_att(map_file%ncid, map_file%zvolmax_varid, 'units', 'm3'))
+      NF90(nf90_put_att(map_file%ncid, map_file%zvolmax_varid, 'standard_name', 'maximum_subgrid_volume_in_cell'))
+      NF90(nf90_put_att(map_file%ncid, map_file%zvolmax_varid, 'long_name', 'Maximum subgrid volume in cell'))
    endif
    !
    if (store_twet) then
@@ -3831,7 +3850,28 @@ contains
    endif
    !
    NF90(nf90_put_var(map_file%ncid, map_file%timemax_varid, t, (/ntmaxout/))) ! write time_max
-   NF90(nf90_put_var(map_file%ncid, map_file%zsmax_varid, zstmp, (/1, 1, ntmaxout/))) ! write zsmax      
+   NF90(nf90_put_var(map_file%ncid, map_file%zsmax_varid, zstmp, (/1, 1, ntmaxout/))) ! write zsmax
+   !
+   ! Write maximum subgrid volume (same wet mask as zsmax)
+   !
+   if (subgrid .and. store_zvolume) then
+      !
+      zstmp = FILL_VALUE
+      !
+      do nm = 1, np
+         !
+         n = z_index_z_n(nm)
+         m = z_index_z_m(nm)
+         !
+         if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
+            zstmp(m, n) = zvolmax(nm)
+         endif
+         !
+      enddo
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%zvolmax_varid, zstmp, (/1, 1, ntmaxout/))) ! write zvolmax
+      !
+   endif
    !
    ! Write maximum water depth (optional)   
    if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
@@ -4049,7 +4089,35 @@ contains
    enddo
    !
    NF90(nf90_put_var(map_file%ncid, map_file%timemax_varid, t, (/ntmaxout/)))       ! write time_max
-   NF90(nf90_put_var(map_file%ncid, map_file%zsmax_varid, zstmp, (/1, ntmaxout/)))  ! write zsmax   
+   NF90(nf90_put_var(map_file%ncid, map_file%zsmax_varid, zstmp, (/1, ntmaxout/)))  ! write zsmax
+   !
+   ! Write maximum subgrid volume (same wet mask as zsmax)
+   !
+   if (subgrid .and. store_zvolume) then
+      !
+      zstmp = FILL_VALUE
+      !
+      do nmq = 1, quadtree_nr_points
+         !
+         nm = index_sfincs_in_quadtree(nmq)
+         !
+         if (nm > 0) then
+            !
+            if (kcs(nm) > 0) then
+               !
+               if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
+                  zstmp(nmq) = zvolmax(nm)
+               endif
+               !
+            endif
+            !
+         endif
+         !
+      enddo
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%zvolmax_varid, zstmp, (/1, ntmaxout/))) ! write zvolmax
+      !
+   endif
    !
    ! Write maximum water depth
    !

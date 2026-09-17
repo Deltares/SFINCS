@@ -579,6 +579,7 @@ module sfincs_data
       ! The only double precision arrays are zs and z_volume. 
       !
       real*4, dimension(:),   allocatable :: zsmax
+      real*4, dimension(:),   allocatable :: zvolmax
       real*4, dimension(:),   allocatable :: vmax
       real*4, dimension(:),   allocatable :: qmax
       real*8, dimension(:),   allocatable, target :: zs
@@ -1031,6 +1032,7 @@ module sfincs_data
     !!! Dynamic data on the grid
     !!!
     if(allocated(zsmax)) deallocate(zsmax)
+    if(allocated(zvolmax)) deallocate(zvolmax)
     if(allocated(vmax)) deallocate(vmax)
     if(allocated(qmax)) deallocate(qmax)
     if(allocated(zs)) deallocate(zs)
