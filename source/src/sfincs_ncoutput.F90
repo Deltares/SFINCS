@@ -514,6 +514,11 @@ contains
            standard_name='maximum_sea_surface_height_above_reference_level')
    endif
    !
+   if (store_maximum_waterlevel .and. store_zvolume) then
+      call def_maxtime_cell_float('zvolmax', map_file%zvolmax_varid, 'm3', 'Maximum subgrid volume in cell', &
+           standard_name='maximum_subgrid_volume_in_cell')
+   endif
+   !
    if (store_cumulative_precipitation) then
       call def_maxtime_cell_float('cumprcp', map_file%cumprcp_varid, 'm', 'Cumulative precipitation depth', &
            standard_name='cumulative_precipitation_depth', cell_methods='time: sum')
@@ -1580,7 +1585,7 @@ contains
    !
    real*8                            :: t
    integer                           :: ntmaxout, nm
-   real*4, dimension(:), allocatable :: hmax_out, hmean
+   real*4, dimension(:), allocatable :: hmax_out, hmean, zvolmax_out
    real*4, dimension(:), allocatable :: urbdrain_depth
    !
    ! Scalar time of this max-record (defined only when store_maximum_waterlevel)
@@ -1595,6 +1600,19 @@ contains
       else
          call write_cell_var_wet(map_file%ncid, map_file%zsmax_varid, zsmax, zb,             ntmaxout)
       endif
+   endif
+   !
+   ! Maximum subgrid volume (same wet mask as zsmax)
+   if (store_maximum_waterlevel .and. store_zvolume) then
+      allocate(zvolmax_out(np))
+      zvolmax_out = FILL_VALUE
+      do nm = 1, np
+         if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
+            zvolmax_out(nm) = zvolmax(nm)
+         endif
+      enddo
+      call write_cell_var(map_file%ncid, map_file%zvolmax_varid, zvolmax_out, ntmaxout, check_kcs=.true.)
+      deallocate(zvolmax_out)
    endif
    !
    ! Maximum water depth (optional, supports subgrid mean-depth)
