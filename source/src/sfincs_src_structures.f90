@@ -4,9 +4,10 @@ module sfincs_src_structures
    ! structure formulas rather than by momentum conservation:
    !    type 1 - pump           (fixed discharge)
    !    type 2 - culvert_simple (bidirectional, optional direction filter)
-   !    type 3 - culvert        (physics-based pipe flow with entrance /
-   !                             friction / exit losses, bidirectional,
-   !                             optional direction filter)
+   !    type 3 - culvert        (rectangular barrel, min of inlet control
+   !                             and outlet control with entrance / friction /
+   !                             exit losses, bidirectional, optional
+   !                             direction filter)
    !    type 4 - gate           (bidirectional)
    !    type 5 - dike_breach    (Verheij-Knaap two-phase breach, read from
    !                             dkbfile)
@@ -17,9 +18,6 @@ module sfincs_src_structures
    !
    ! Legacy TOML alias accepted by the parser:
    !    "check_valve" -> culvert_simple + direction = "positive"
-   !
-   ! Orifice behaviour is not a first-class type; use type = "culvert"
-   ! with submergence_ratio = 0.0 to reproduce it.
    !
    ! These used to live in sfincs_discharges.f90 alongside the river point
    ! discharges read from src/dis/netsrcdis. They have been split out so that
@@ -195,14 +193,15 @@ module sfincs_src_structures
       ! q                 - pump discharge
       ! width             - gate / culvert width
       ! sill_elevation    - gate sill elevation
-      ! mannings_n        - gate Manning's n
+      ! mannings_n        - gate / culvert barrel Manning's n
       ! opening_duration  - time (s) to go from closed to fully open
       ! closing_duration  - time (s) to go from open to fully closed
       ! flow_coef         - culvert_simple / check_valve / culvert flow coefficient
       ! height            - culvert pipe height (m, rectangular cross-section)
       ! invert_1          - culvert bed elevation at endpoint 1 (m)
       ! invert_2          - culvert bed elevation at endpoint 2 (m)
-      ! submergence_ratio - culvert submergence threshold h_dn/h_up (-)
+      ! length            - culvert barrel length (m), friction loss
+      ! submergence_ratio - dike breach submergence threshold h_dn/h_up (-)
       !
       real :: q
       real :: width
@@ -212,11 +211,12 @@ module sfincs_src_structures
       real :: closing_duration
       real :: flow_coef
       !
-      ! Detailed-culvert geometry + submergence threshold
+      ! Detailed-culvert geometry + losses, dike-breach submergence threshold
       !
       real :: height
       real :: invert_1
       real :: invert_2
+      real :: length
       real :: submergence_ratio
       !
       ! Dike breach parameters (structure_dike_breach only)
@@ -301,10 +301,11 @@ module sfincs_src_structures
    real*4, dimension(:), allocatable, public :: src_struc_height             ! culvert pipe height (m)
    real*4, dimension(:), allocatable, public :: src_struc_invert_1           ! culvert bed elevation at endpoint 1 (m)
    real*4, dimension(:), allocatable, public :: src_struc_invert_2           ! culvert bed elevation at endpoint 2 (m)
+   real*4, dimension(:), allocatable, public :: src_struc_length             ! culvert barrel length (m)
    !
-   ! Detailed-culvert submergence threshold
+   ! Dike-breach submergence threshold
    !
-   real*4, dimension(:), allocatable, public :: src_struc_submergence_ratio  ! culvert submergence threshold h_dn/h_up (-)
+   real*4, dimension(:), allocatable, public :: src_struc_submergence_ratio  ! dike breach submergence threshold h_dn/h_up (-)
    !
    ! Dike breach parameters
    !
@@ -561,6 +562,7 @@ contains
       allocate(src_struc_height(nr_src_structures))
       allocate(src_struc_invert_1(nr_src_structures))
       allocate(src_struc_invert_2(nr_src_structures))
+      allocate(src_struc_length(nr_src_structures))
       allocate(src_struc_submergence_ratio(nr_src_structures))
       allocate(src_struc_z_crest(nr_src_structures))
       allocate(src_struc_t_breach(nr_src_structures))
@@ -602,6 +604,7 @@ contains
       src_struc_height           = 0.0
       src_struc_invert_1         = 0.0
       src_struc_invert_2         = 0.0
+      src_struc_length           = 0.0
       src_struc_submergence_ratio = 0.667
       src_struc_z_crest          = 0.0
       src_struc_t_breach         = 0.0
@@ -695,6 +698,7 @@ contains
          src_struc_height(i)            = src_structures(i)%height
          src_struc_invert_1(i)          = src_structures(i)%invert_1
          src_struc_invert_2(i)          = src_structures(i)%invert_2
+         src_struc_length(i)            = src_structures(i)%length
          src_struc_submergence_ratio(i) = src_structures(i)%submergence_ratio
          !
          if (src_structures(i)%structure_type == structure_dike_breach) then
@@ -935,6 +939,7 @@ contains
       real*4  :: frac, wdt, mng, zsill, dist, dzds, hgate, qq0, alpha
       real*4  :: dh, a_eff
       real*4  :: h_up, h_dn, qq_sign
+      real*4  :: d_bar, h_in, r_hyd, k_tot, q_in, q_out
       !
       real*4  :: crest_breach, width_breach, z_crest_breach, z_min_breach
       real*4  :: tstart_breach, tstart_widening, t_phase1_deepening
@@ -953,6 +958,7 @@ contains
       !$acc                        src_struc_opening_duration, src_struc_closing_duration, &
       !$acc                        src_struc_height, &
       !$acc                        src_struc_invert_1, src_struc_invert_2, &
+      !$acc                        src_struc_length, &
       !$acc                        src_struc_submergence_ratio, &
       !$acc                        src_struc_z_crest, src_struc_t_breach, src_struc_z_min, &
       !$acc                        src_struc_B0, src_struc_t0, src_struc_dike_core, &
@@ -966,6 +972,7 @@ contains
       !$acc                       zs_o1, zs_o2, frac, wdt, mng, zsill, dist, dzds, hgate, qq0, alpha, &
       !$acc                       dh, a_eff, &
       !$acc                       h_up, h_dn, qq_sign, &
+      !$acc                       d_bar, h_in, r_hyd, k_tot, q_in, q_out, &
       !$acc                       crest_breach, width_breach, z_crest_breach, z_min_breach, &
       !$acc                       tstart_breach, tstart_widening, t_phase1_deepening, &
       !$acc                       vk_f1, vk_f2, uc_material, elapsed_widening_hr, dt_hr, &
@@ -975,6 +982,7 @@ contains
       !$omp            zs_o1, zs_o2, frac, wdt, mng, zsill, dist, dzds, hgate, qq0, alpha, &
       !$omp            dh, a_eff, &
       !$omp            h_up, h_dn, qq_sign, &
+      !$omp            d_bar, h_in, r_hyd, k_tot, q_in, q_out, &
       !$omp            crest_breach, width_breach, z_crest_breach, z_min_breach, &
       !$omp            tstart_breach, tstart_widening, t_phase1_deepening, &
       !$omp            vk_f1, vk_f2, uc_material, elapsed_widening_hr, dt_hr, &
@@ -1111,25 +1119,39 @@ contains
                   !
                case(structure_culvert)
                   !
-                  ! Regime-aware culvert. The controlling sill is the higher
+                  ! Detailed culvert: rectangular barrel (width x height)
+                  ! between two inverts. The controlling sill is the higher
                   ! of the two inverts (flow cannot pass until the upstream
                   ! water level reaches it). Upstream / downstream are picked
                   ! by the water-level difference, so the structure is
                   ! bidirectional and the direction filter in the common tail
                   ! below restricts the sign when requested.
                   !
-                  ! Two regimes, selected by h_dn/h_up against the user-set
-                  ! submergence_ratio threshold (default 2/3 = 0.667, the
-                  ! standard broad-crested-weir / Villemonte value):
+                  ! The discharge is the smaller of two candidate regimes
+                  ! (standard culvert practice, cf. FHWA HDS-5): whichever
+                  ! passes the least flow is the one that controls. Both
+                  ! candidates are continuous in (h_up, h_dn), so the result
+                  ! is continuous across every regime change.
                   !
-                  !    submerged (h_dn/h_up >= threshold):
-                  !       qq = flow_coef * a_eff * sqrt(2 g |dh|)
-                  !    free / inlet-controlled (h_dn/h_up < threshold):
-                  !       qq = flow_coef * a_eff * sqrt(2 g  h_up)
+                  !    inlet control (barrel and tailwater do not limit):
+                  !       q_in  = flow_coef * a_eff * sqrt(2 g h_in)
+                  !       h_in is the head above the centroid of the flow
+                  !       area: h_up/2 for a free-surface inlet (weir-like,
+                  !       equal to flow_coef*sqrt(g)*width*h_up^1.5) and
+                  !       h_up - height/2 for a drowned inlet (orifice).
+                  !
+                  !    outlet control (barrel losses / tailwater limit):
+                  !       q_out = a_eff * sqrt(2 g |dh| / k_tot)
+                  !       k_tot = 1 / flow_coef^2 + 2 g length n^2 / r_hyd^(4/3)
+                  !       The local (entrance + exit) losses are the same
+                  !       lumped flow_coef as in inlet control (0.6 <=> a
+                  !       loss coefficient of 2.8); Manning friction over the
+                  !       barrel length is added on top. The driving head is
+                  !       the water-level difference, so a drowned outlet
+                  !       ends up in outlet control by itself.
                   !
                   ! The flow area a_eff = width * min(h_up, height) caps at
-                  ! the barrel height, so a deeply-submerged inlet can't
-                  ! give unbounded discharge.
+                  ! the barrel height.
                   !
                   zsill = max(src_struc_invert_1(istruc), src_struc_invert_2(istruc))
                   !
@@ -1149,23 +1171,43 @@ contains
                      !
                   endif
                   !
-                  if (h_up <= 0.0) then
+                  if (h_up <= 0.0 .or. src_struc_flow_coef(istruc) <= 0.0) then
                      !
                      qq = 0.0
                      !
                   else
                      !
-                     a_eff = src_struc_width(istruc) * min(h_up, src_struc_height(istruc))
+                     wdt   = src_struc_width(istruc)
+                     d_bar = min(h_up, src_struc_height(istruc))
+                     a_eff = wdt * d_bar
                      !
-                     if (h_dn / h_up >= src_struc_submergence_ratio(istruc)) then
+                     ! Inlet control: head above the centroid of the flow area
+                     !
+                     h_in = h_up - 0.5 * d_bar
+                     q_in = src_struc_flow_coef(istruc) * a_eff * sqrt(2.0 * g * h_in)
+                     !
+                     ! Outlet control: lumped local losses (1/flow_coef^2) plus
+                     ! Manning friction over the barrel. Hydraulic radius of a
+                     ! box section, closed (four walls) when the barrel runs
+                     ! full, open otherwise.
+                     !
+                     if (d_bar >= src_struc_height(istruc)) then
                         !
-                        qq = qq_sign * src_struc_flow_coef(istruc) * a_eff * sqrt(2.0 * g * abs(dh))
+                        r_hyd = a_eff / (2.0 * (wdt + d_bar))
                         !
                      else
                         !
-                        qq = qq_sign * src_struc_flow_coef(istruc) * a_eff * sqrt(2.0 * g * h_up)
+                        r_hyd = a_eff / (wdt + 2.0 * d_bar)
                         !
                      endif
+                     !
+                     mng   = src_struc_mannings_n(istruc)
+                     k_tot = 1.0 / src_struc_flow_coef(istruc)**2 + &
+                             2.0 * g * src_struc_length(istruc) * mng * mng / r_hyd**(4.0 / 3.0)
+                     !
+                     q_out = a_eff * sqrt(2.0 * g * abs(dh) / k_tot)
+                     !
+                     qq = qq_sign * min(q_in, q_out)
                      !
                   endif
                   !
@@ -1214,8 +1256,8 @@ contains
                   ! Water levels are read from the obs pair (obs_1 = inside /
                   ! high-head side; obs_2 = outside / low-head side), which
                   ! default to the src pair when not user-specified.
-                  ! Flow direction and submergence follow the same pattern
-                  ! as structure_culvert (h_up / h_dn / src_struc_submergence_ratio).
+                  ! Flow direction follows the same pattern as structure_culvert
+                  ! (h_up / h_dn); submergence uses src_struc_submergence_ratio.
                   !
                   nm_o1 = src_struc_nm_o1(istruc)
                   nm_o2 = src_struc_nm_o2(istruc)
@@ -1383,8 +1425,7 @@ contains
       !                                 ! legacy alias: "check_valve" -> culvert_simple + direction="positive"
       !                                 ! note: "culvert" now resolves to the detailed-culvert physics type;
       !                                 !       users wanting the lumped one-coefficient form must say
-      !                                 !       "culvert_simple" explicitly. Orifice behaviour is recoverable
-      !                                 !       as "culvert" with submergence_ratio = 0.0.
+      !                                 !       "culvert_simple" explicitly.
       !    direction = "both"           ! optional, culvert_simple/culvert only
       !                                 ! one of "both" (default), "positive", "negative"
       !                                 ! positive: allow flow src_1 -> src_2 only
@@ -1392,12 +1433,13 @@ contains
       !    src_1 = [x, y] ; src_2 = [x, y]
       !    obs_1 = [x, y] ; obs_2 = [x, y]
       !    q = ...                      ! pump discharge
-      !    width = ... ; sill_elevation = ... ; mannings_n = ...
+      !    width = ... ; sill_elevation = ... ; mannings_n = ...   ! gate (mannings_n also culvert barrel)
       !    opening_duration = ... ; closing_duration = ...
       !    flow_coef = ...              ! culvert_simple / culvert flow coefficient
       !    height = ...                                 ! culvert pipe height (m)
       !    invert_1 = ... ; invert_2 = ...              ! culvert invert elevations at src_1/src_2 ends
-      !    submergence_ratio = ...                      ! culvert submergence threshold h_dn/h_up (-)
+      !    length = ...                                 ! culvert barrel length (m), Manning friction loss
+      !    submergence_ratio = ...                      ! dike breach submergence threshold h_dn/h_up (-)
       !    [[src_structure.rule]]      ! optional, ordered list of gate control rules
       !    operation = "close"         !   one of "open" / "close" / "hold"
       !    when      = "z1-z2 < -0.03" !   trigger expression (rule mini-language)
@@ -1417,7 +1459,7 @@ contains
       !    gate           : name, src_1, src_2, width, sill_elevation
       !    culvert        : name, src_1, src_2,
       !                     width, height, invert_1, invert_2
-      !                     (optional: flow_coef=0.6, submergence_ratio=0.667)
+      !                     (optional: flow_coef=0.6, length=0, mannings_n=0.013)
       !
       ! On success, structures is allocated to the exact number of entries
       ! (can be 0). On any I/O or parse failure, structures is left
@@ -1646,17 +1688,30 @@ contains
             !
          endif
          !
-         ! mannings_n (gate only). Default 0.024 for concrete-lined gate sill.
+         ! mannings_n. Default 0.024 for a concrete-lined gate sill, 0.013
+         ! for a concrete culvert barrel.
          !
-         call get_value(tbl_struct, 'mannings_n', structures(i)%mannings_n, 0.024, stat=stat)
+         if (structures(i)%structure_type == structure_culvert) then
+            !
+            call get_value(tbl_struct, 'mannings_n', structures(i)%mannings_n, 0.013, stat=stat)
+            !
+         else
+            !
+            call get_value(tbl_struct, 'mannings_n', structures(i)%mannings_n, 0.024, stat=stat)
+            !
+         endif
          !
-         ! Detailed-culvert geometry + submergence threshold. Geometry keys
-         ! are required (enforced above); submergence_ratio defaults to 2/3
-         ! (0.667), the standard broad-crested-weir / Villemonte value.
+         ! Detailed-culvert geometry + friction. Geometry keys are required
+         ! (enforced above); length defaults to 0 (no friction loss).
          !
          call get_value(tbl_struct, 'height',            structures(i)%height,            0.0,   stat=stat)
          call get_value(tbl_struct, 'invert_1',          structures(i)%invert_1,          0.0,   stat=stat)
          call get_value(tbl_struct, 'invert_2',          structures(i)%invert_2,          0.0,   stat=stat)
+         call get_value(tbl_struct, 'length',            structures(i)%length,            0.0,   stat=stat)
+         !
+         ! Dike-breach submergence threshold. Defaults to 2/3 (0.667), the
+         ! standard broad-crested-weir / Villemonte value.
+         !
          call get_value(tbl_struct, 'submergence_ratio', structures(i)%submergence_ratio, 0.667, stat=stat)
          !
          ! Dike breach parameters (ignored for other types)
@@ -2262,10 +2317,13 @@ contains
             write(logstr,'(a22,1x,a,a)')            '  invert_2           :',           trim(fmt_real(src_struc_invert_2(i), 4)),          ' (m)'
             call write_log(logstr, 0)
             !
+            write(logstr,'(a22,1x,a,a)')            '  length             :',             trim(fmt_real(src_struc_length(i), 4)),            ' (m)'
+            call write_log(logstr, 0)
+            !
             write(logstr,'(a22,1x,a)')              '  flow_coef          :',          trim(fmt_real(src_struc_flow_coef(i), 4))
             call write_log(logstr, 0)
             !
-            write(logstr,'(a22,1x,a)')              '  submergence_ratio  :',  trim(fmt_real(src_struc_submergence_ratio(i), 4))
+            write(logstr,'(a22,1x,a)')              '  mannings_n         :',         trim(fmt_real(src_struc_mannings_n(i), 4))
             call write_log(logstr, 0)
             !
          endif
