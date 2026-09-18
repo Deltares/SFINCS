@@ -19,6 +19,7 @@
             real*4 :: breach_bottom
             real*4 :: breach_level
             real*4 :: breach_width_avg_water_depth
+            real*4 :: afvoercoeff
        end type NormalFlow
        
        contains
@@ -1276,6 +1277,7 @@
        results_t4%breach_level  = breach_level
        results_t4%breach_bottom = breach_bottom
        results_t4%breach_width_avg_water_depth = breach_width_avg_water_depth
+       results_t4%afvoercoeff = discharge_coeff
        write(logstr,'(a,f12.4,a,f12.4,a,f12.4,a,f12.4,a,f12.4,a,f12.4)') 'STAGE 4 - Qbr:', discharge, ' - dc:', crit_water_depth, ' - theta:', theta, ' - stt:', stt, '- adap_length_sediment:', adap_length_sediment,' - breach_width_total:', breach_width_total
        call write_log(logstr,0)
        
@@ -1358,6 +1360,7 @@
        results_t5%breach_level  = breach_level
        results_t5%breach_bottom = breach_bottom
        results_t5%breach_width_avg_water_depth = breach_width_avg_water_depth
+       results_t5%afvoercoeff = discharge_coeff
        write(logstr,'(a,f12.1,a,f12.1,a,f12.1,a,f12.1,a,f12.1,a,f12.1)') 'STAGE 5 - Qbr:', discharge, ' - discharge_coeff:', discharge_coeff, ' - polder_water_level:', polder_water_level, ' - outside_water_level:', outside_water_level, ' - breach_level:', breach_level, ' - breach_width_avg_water_depth:', breach_width_avg_water_depth
        call write_log(logstr,0)
        end function

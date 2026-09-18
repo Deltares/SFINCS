@@ -788,7 +788,8 @@ module sfincs_data
       real*4, dimension(:),     allocatable :: discharge_t2
       real*4, dimension(:),     allocatable :: t2_Visser
       real*4, dimension(:),     allocatable :: end_breaching
-      
+      real*4, dimension(:),     allocatable :: breach_started
+      real*4, dimension(:),     allocatable :: breach_initial_duration  
       !!!
       !!! Structures
       !!!
