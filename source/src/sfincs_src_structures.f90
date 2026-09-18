@@ -136,6 +136,15 @@ module sfincs_src_structures
    !
    real*4, parameter :: pump_reduction_depth = 0.1
    !
+   ! Maximum fraction of the donor cell volume a structure may remove in one
+   ! time step. With the full volume (1.0) a volume-limited structure empties
+   ! its cell in a single step; the cell then toggles between wet and dry and
+   ! the limited discharge switches on and off. With a fraction the donor
+   ! volume decays geometrically, the cell stays wet, and the discharge
+   ! converges smoothly to the inflow. Fixed constant, not user-tunable.
+   !
+   real*4, parameter :: donor_volume_fraction = 0.5
+   !
    ! Gate operation codes for rule-driven structures. Each rule sets a
    ! target gate position: open -> fraction 1.0, close -> 0.0, hold ->
    ! freeze at the current fraction. These are the only operations.
@@ -940,7 +949,6 @@ contains
       real*4  :: dh, a_eff
       real*4  :: h_up, h_dn, qq_sign
       real*4  :: d_bar, h_in, r_hyd, k_tot, q_in, q_out
-      real*4  :: area_s1, area_s2, stiff
       !
       real*4  :: crest_breach, width_breach, z_crest_breach, z_min_breach
       real*4  :: tstart_breach, tstart_widening, t_phase1_deepening
@@ -974,7 +982,6 @@ contains
       !$acc                       dh, a_eff, &
       !$acc                       h_up, h_dn, qq_sign, &
       !$acc                       d_bar, h_in, r_hyd, k_tot, q_in, q_out, &
-      !$acc                       area_s1, area_s2, stiff, &
       !$acc                       crest_breach, width_breach, z_crest_breach, z_min_breach, &
       !$acc                       tstart_breach, tstart_widening, t_phase1_deepening, &
       !$acc                       vk_f1, vk_f2, uc_material, elapsed_widening_hr, dt_hr, &
@@ -985,7 +992,6 @@ contains
       !$omp            dh, a_eff, &
       !$omp            h_up, h_dn, qq_sign, &
       !$omp            d_bar, h_in, r_hyd, k_tot, q_in, q_out, &
-      !$omp            area_s1, area_s2, stiff, &
       !$omp            crest_breach, width_breach, z_crest_breach, z_min_breach, &
       !$omp            tstart_breach, tstart_widening, t_phase1_deepening, &
       !$omp            vk_f1, vk_f2, uc_material, elapsed_widening_hr, dt_hr, &
@@ -1356,65 +1362,28 @@ contains
             if (src_struc_direction(istruc) == direction_negative .and. qq > 0.0) qq = 0.0
             !
             ! Relaxation: first-order lag of the structure discharge with time
-            ! constant structure_relax (s, default 10). alpha = dt/T makes the
-            ! response independent of the time step; the clamp at 1 keeps the
-            ! blend stable when dt exceeds the time constant.
+            ! constant structure_relax (s, default 10), in backward-Euler form
+            ! alpha = dt / (T + dt). This equals dt/T for small time steps, so
+            ! the response is independent of dt, and it stays below 1 for any
+            ! dt, so the relaxation never switches itself off when the time
+            ! step exceeds the time constant. T = 0 gives no relaxation.
             !
-            alpha = min(dt / max(structure_relax, 1.0e-6), 1.0)
+            alpha = dt / (max(structure_relax, 0.0) + dt)
             qq = alpha * qq + (1.0 - alpha) * src_struc_q_now(istruc)
             !
-            ! Implicit head damping for head-driven structures. The explicit
-            ! coupling of two cells is stiff when the structure conductance
-            ! C = |qq| / |dh| exceeds a_eff / dt, with a_eff the series plan
-            ! area of the two cells: one step then moves more water than the
-            ! head can sustain, the head reverses and the discharge flips sign
-            ! every step. Evaluating the discharge on the linearised
-            ! end-of-step head, qq / (1 + C dt / a_eff), lets a step at most
-            ! equalise the two levels and never reverse them. No parameter,
-            ! and it reduces to the explicit value for dt -> 0. Pumps push
-            ! against the head by design and the dike breach is driven by its
-            ! obs pair, so both are skipped. For subgrid cells the plan area
-            ! overestimates the wet area of a partially wet cell.
-            !
-            if (src_struc_type(istruc) == structure_culvert_simple .or. &
-                src_struc_type(istruc) == structure_culvert .or. &
-                src_struc_type(istruc) == structure_gate) then
-               !
-               dh = real(zs(nm_s1), 4) - real(zs(nm_s2), 4)
-               !
-               if (qq * dh > 0.0) then
-                  !
-                  if (crsgeo) then
-                     !
-                     area_s1 = cell_area_m2(nm_s1)
-                     area_s2 = cell_area_m2(nm_s2)
-                     !
-                  else
-                     !
-                     area_s1 = cell_area(z_flags_iref(nm_s1))
-                     area_s2 = cell_area(z_flags_iref(nm_s2))
-                     !
-                  endif
-                  !
-                  stiff = abs(qq) / abs(dh) * dt * (1.0 / area_s1 + 1.0 / area_s2)
-                  qq    = qq / (1.0 + stiff)
-                  !
-               endif
-               !
-            endif
-            !
-            ! Limit discharge by available volume in the donor cell (endpoint 1
-            ! for qq > 0, endpoint 2 for qq < 0).
+            ! Limit discharge to a fraction of the available volume in the donor
+            ! cell (endpoint 1 for qq > 0, endpoint 2 for qq < 0), see
+            ! donor_volume_fraction at the top of the module.
             !
             if (subgrid) then
                !
                if (qq > 0.0) then
                   !
-                  qq = min(qq,  max(z_volume(nm_s1), 0.0) / dt)
+                  qq = min(qq,  donor_volume_fraction * max(z_volume(nm_s1), 0.0) / dt)
                   !
                else
                   !
-                  qq = max(qq, -max(z_volume(nm_s2), 0.0) / dt)
+                  qq = max(qq, -donor_volume_fraction * max(z_volume(nm_s2), 0.0) / dt)
                   !
                endif
                !
@@ -1422,11 +1391,11 @@ contains
                !
                if (qq > 0.0) then
                   !
-                  qq = min(qq,  max((zs(nm_s1) - zb(nm_s1)) * cell_area(z_flags_iref(nm_s1)), 0.0) / dt)
+                  qq = min(qq,  donor_volume_fraction * max((zs(nm_s1) - zb(nm_s1)) * cell_area(z_flags_iref(nm_s1)), 0.0) / dt)
                   !
                else
                   !
-                  qq = max(qq, -max((zs(nm_s2) - zb(nm_s2)) * cell_area(z_flags_iref(nm_s2)), 0.0) / dt)
+                  qq = max(qq, -donor_volume_fraction * max((zs(nm_s2) - zb(nm_s2)) * cell_area(z_flags_iref(nm_s2)), 0.0) / dt)
                   !
                endif
                !
