@@ -114,6 +114,7 @@ module sfincs_data
       integer cd_nr
       integer baro
       integer advection_scheme
+      real*4  muscl_cfac               ! Courant multiplier in the MUSCL anti-diffusive correction
       !
       character*256 :: depfile
       character*256 :: mskfile
