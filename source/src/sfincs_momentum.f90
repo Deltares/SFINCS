@@ -81,6 +81,23 @@ contains
    real*4    :: qy
    real*4    :: dzdx
    !
+   ! Locals for limited 2nd-order (MUSCL/TVD) advection scheme (advection_scheme = 2)
+   real*4    :: uu_nmdd
+   real*4    :: uu_nmuu
+   real*4    :: qx_nmdd
+   real*4    :: qx_nmuu
+   real*4    :: fx_nm
+   real*4    :: fx_nmd
+   real*4    :: fx_nmu
+   real*4    :: fx_nmdd
+   real*4    :: fx_nmuu
+   real*4    :: sfnm
+   real*4    :: sfnmd
+   real*4    :: sfnmu
+   real*4    :: cfe
+   real*4    :: cfw
+   integer   :: kk
+   !
    real*4    :: hwet
    real*4    :: phi
    !
@@ -93,6 +110,11 @@ contains
    !integer, parameter :: expo = 1
    !
    logical   :: iok
+   !
+   ! Statement function: van Leer flux limiter (smooth, 2nd-order accurate, convergent)
+   real*4    :: fa, fb
+   real*4    :: flim
+   flim(fa, fb) = (fa*abs(fb) + abs(fa)*fb) / (abs(fa) + abs(fb) + 1.0e-12)
    !
    call system_clock(count0, count_rate, count_max)
    !
@@ -150,7 +172,8 @@ contains
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73,min_dt_ip ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73,min_dt_ip, &
+   !$omp           uu_nmdd,uu_nmuu,qx_nmdd,qx_nmuu,fx_nm,fx_nmd,fx_nmu,fx_nmdd,fx_nmuu,sfnm,sfnmd,sfnmu,cfe,cfw,kk ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop, reduction( min : min_dt ), gang, vector
@@ -504,7 +527,146 @@ contains
                      if (uu < -1.0e-6) then
                         dqyudy = dqyudy + uu * ( qy_nmu - qy_ndmu ) * dyuvinv
                      endif
-                     !  
+                     !
+                  elseif (advection_scheme == 2) then
+                     !
+                     ! Limited 2nd-order advection (advection_scheme = muscl), built as a TVD
+                     ! correction ON TOP OF the upw1 operator -- not as a separate conservative
+                     ! flux form.
+                     !
+                     ! Why not the plain conservative form d(qu u)/dx with centrally averaged
+                     ! face fluxes, which is what this scheme used to do: linearised about a
+                     ! uniform state (h frozen, q' = H u') it is
+                     !    [ Q (u'_j - u'_jm1) + U (q'_jp1 - q'_jm1)/2 ] / dx ,
+                     ! i.e. half upwind and half CENTRED. The centred half carries no numerical
+                     ! dissipation, and on SFINCS's explicit Euler step that is FTCS:
+                     ! |G|^2 = 1 + C^2 sin^2(k dx) > 1, growing a 4 dx wave without bound. It was
+                     ! measured doing exactly that on a uniform supercritical channel (dominant
+                     ! mode 4.1-4.8 dx, an exactly flat solution destroyed within 600 s). Neither
+                     ! slope limiting nor CFL damping removes it, because it sits in the
+                     ! FIRST-order part of the flux.
+                     !
+                     ! upw1's product-rule form
+                     !    [ qd (u_j - u_jm1) + ud (q_j - q_jm1) ] / dx
+                     ! is fully one-sided and linearises to 2 Q (u'_j - u'_jm1) / dx: upwind, and
+                     ! with the correct effective speed, since momentum-flux divergence advects at
+                     ! 2u (d(qu)/dx = 2u dq/dx with h frozen), not u.
+                     !
+                     ! So upw1 is the base, and 2nd order is added as the standard flux-limited
+                     ! (Sweby, 1984) anti-diffusive correction
+                     !    d phi  ->  d phi + 0.5 (1 - C) ( sigma_j - sigma_jm1 )
+                     ! with sigma the van Leer (1979) limited slope and C = muscl_cfac |u| dt/dx
+                     ! the Courant number of the operator (muscl_cfac = 2 for the 2u speed above).
+                     ! For smooth data this reduces to Lax-Wendroff, |G| <= 1 for C <= 1; where the
+                     ! limiter shuts off, or where C >= 1/muscl_cfac, it returns EXACTLY upw1. The
+                     ! scheme therefore cannot be less stable than the default, and
+                     ! muscl_cfac = 1e9 is an identity check against upw1.
+                     !
+                     ! Fetch 2-away neighbours of u AND q (guarded; fall back to the 1-away value,
+                     ! which zeroes the local correction => 1st-order upwind near closed
+                     ! boundaries and at refinement transitions).
+                     !
+                     kk = uv_index_u_nmd(ip)
+                     if (kk > 0 .and. kk <= npuv) then
+                        kk = uv_index_u_nmd(kk)
+                        if (kk > 0 .and. kk <= npuv) then
+                           uu_nmdd = uv0(kk); qx_nmdd = q0(kk)
+                        else
+                           uu_nmdd = uu_nmd;  qx_nmdd = qx_nmd
+                        endif
+                     else
+                        uu_nmdd = uu_nmd;     qx_nmdd = qx_nmd
+                     endif
+                     kk = uv_index_u_nmu(ip)
+                     if (kk > 0 .and. kk <= npuv) then
+                        kk = uv_index_u_nmu(kk)
+                        if (kk > 0 .and. kk <= npuv) then
+                           uu_nmuu = uv0(kk); qx_nmuu = q0(kk)
+                        else
+                           uu_nmuu = uu_nmu;  qx_nmuu = qx_nmu
+                        endif
+                     else
+                        uu_nmuu = uu_nmu;     qx_nmuu = qx_nmu
+                     endif
+                     !
+                     ! The advection term of upw1,
+                     !    [ qd (u_j - u_jm1) + ud (q_j - q_jm1) ] / dx
+                     ! with qd = (q_jm1 + q_j)/2 and ud = (u_jm1 + u_j)/2, expands EXACTLY to
+                     !    ( q_j u_j - q_jm1 u_jm1 ) / dx ,
+                     ! a telescoping difference of the momentum flux F = q u sampled at the uv
+                     ! points, with the upstream point as donor. upw1 is therefore already a
+                     ! conservative 1st-order upwind flux scheme, and F is the quantity the
+                     ! 2nd-order correction has to be built on.
+                     !
+                     ! Limiting u and q separately and recombining them through the product rule
+                     ! does NOT telescope, because the coefficients qd and ud vary from point to
+                     ! point. That correction is non-conservative, and a non-conservative scheme
+                     ! converges to the wrong shock speed (Lax and Wendroff, 1960): it ran the
+                     ! Stoker dam-break bore 6-10 m long at t = 10 s. Limiting F itself keeps the
+                     ! flux-difference form, so the bore speed stays right.
+                     !
+                     fx_nm   = qx_nm   * uu_nm
+                     fx_nmd  = qx_nmd  * uu_nmd
+                     fx_nmu  = qx_nmu  * uu_nmu
+                     fx_nmdd = qx_nmdd * uu_nmdd
+                     fx_nmuu = qx_nmuu * uu_nmuu
+                     !
+                     sfnmd = flim(fx_nmd - fx_nmdd, fx_nm   - fx_nmd )
+                     sfnm  = flim(fx_nm  - fx_nmd,  fx_nmu  - fx_nm  )
+                     sfnmu = flim(fx_nmu - fx_nm,   fx_nmuu - fx_nmu )
+                     !
+                     ! Streamwise : d qu u / dx = ( F_donor+ - F_donor- ) / dx, donor picked by the
+                     ! sign of the face flux exactly as upw1 does, plus the limited anti-diffusive
+                     ! correction 0.5 (1 - C) ( sigma_j - sigma_jm1 ).
+                     !
+                     dqxudx = 0.0
+                     dqyudy = 0.0
+                     !
+                     qd = (qx_nmd + qx_nm) / 2
+                     qu = (qx_nm + qx_nmu) / 2
+                     !
+                     if (qd > 1.0e-6) then
+                        ud  = (uu_nmd + uu_nm) / 2
+                        cfw = max(0.0, 1.0 - muscl_cfac * abs(ud) * dt * dxuvinv)
+                        dqxudx = ( (fx_nm - fx_nmd) + 0.5*cfw*(sfnm - sfnmd) ) * dxuvinv
+                     endif
+                     !
+                     if (qu < -1.0e-6) then
+                        uu  = (uu_nm + uu_nmu) / 2
+                        cfe = max(0.0, 1.0 - muscl_cfac * abs(uu) * dt * dxuvinv)
+                        dqxudx = dqxudx + ( (fx_nmu - fx_nm) - 0.5*cfe*(sfnmu - sfnm) ) * dxuvinv
+                     endif
+                     !
+                     ! Cross : d qv u / dy. Left at the upw1 discretisation. Its two halves do not
+                     ! pair into a telescoping flux the way the streamwise ones do (the guards sit
+                     ! on different quantities and qd, ud are averaged over different neighbours),
+                     ! so there is no conservative flux here to limit. Making this direction
+                     ! 2nd order needs the cross term recast in flux form first; until then the
+                     ! correction is streamwise only, which is where the dominant advection sits
+                     ! for both the U and the V momentum equation.
+                     !
+                     qu = (qy_nm + qy_nmu) / 2
+                     qd = (qy_ndm + qy_ndmu) / 2
+                     !
+                     if (qd > 1.0e-6) then
+                        dqyudy = qd * (uu_nm - uu_ndm) * dyuvinv
+                     endif
+                     !
+                     if (qu < -1.0e-6) then
+                        dqyudy = dqyudy + qu * (uu_num - uu_nm) * dyuvinv
+                     endif
+                     !
+                     ud = (uu_nmd + uu_nm) / 2
+                     uu = (uu_nm + uu_nmu) / 2
+                     !
+                     if (ud > 1.0e-6) then
+                        dqyudy = dqyudy + ud * ( qy_nm - qy_ndm ) * dyuvinv
+                     endif
+                     !
+                     if (uu < -1.0e-6) then
+                        dqyudy = dqyudy + uu * ( qy_nmu - qy_ndmu ) * dyuvinv
+                     endif
+                     !
                   endif
                   !
                   adv = - phi * (dqxudx + dqyudy)
