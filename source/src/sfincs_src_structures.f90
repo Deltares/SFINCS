@@ -4,10 +4,10 @@ module sfincs_src_structures
    ! structure formulas rather than by momentum conservation:
    !    type 1 - pump           (fixed discharge)
    !    type 2 - culvert_simple (bidirectional, optional direction filter)
-   !    type 3 - culvert        (rectangular barrel, min of inlet control
-   !                             and outlet control with entrance / friction /
-   !                             exit losses, bidirectional, optional
-   !                             direction filter)
+   !    type 3 - culvert        (rectangular or circular barrel, min of inlet
+   !                             control and outlet control with entrance /
+   !                             friction / exit losses, bidirectional,
+   !                             optional direction filter)
    !    type 4 - gate           (bidirectional)
    !    type 5 - dike_breach    (Verheij-Knaap two-phase breach, read from
    !                             dkbfile)
@@ -80,6 +80,10 @@ module sfincs_src_structures
    !     Translate a TOML "direction" string to one of the direction_* codes.
    !     Called from read_toml_src_structures (this module).
    !
+   !   parse_shape(str, code, ierr)
+   !     Translate a TOML culvert "shape" string to one of the shape_* codes.
+   !     Called from read_toml_src_structures (this module).
+   !
    !   parse_operation(str, code, ierr)
    !     Translate a rule "operation" string (open / close / hold) to one of
    !     the gate_op_* codes. Called from read_toml_src_structures (this
@@ -111,7 +115,7 @@ module sfincs_src_structures
                                      rule_opcode, rule_atom, rule_cmp, rule_threshold, &
                                      rule_start, rule_length
    !
-   private :: parse_structure_type, parse_direction, parse_operation, to_lower, check_required
+   private :: parse_structure_type, parse_direction, parse_shape, parse_operation, to_lower, check_required
    private :: convert_legacy_to_toml
    private :: write_src_structures_log_summary
    !
@@ -125,6 +129,9 @@ module sfincs_src_structures
    !
    ! Direction filter codes (culvert_simple / culvert). Controls which sign
    ! of discharge is allowed through the structure. Default is "both".
+   !
+   integer, parameter :: shape_rectangular  = 1
+   integer, parameter :: shape_circular     = 2
    !
    integer, parameter :: direction_both     = 1
    integer, parameter :: direction_positive = 2
@@ -184,6 +191,7 @@ module sfincs_src_structures
       ! Honoured only for culvert_simple and culvert; other types ignore it.
       !
       integer :: direction
+      integer :: shape
       !
       ! Geometry - x_s1/y_s1 and x_s2/y_s2 define the two endpoint cell
       ! coordinates; x_o1/y_o1 and x_o2/y_o2 are optional observation-point
@@ -206,7 +214,8 @@ module sfincs_src_structures
       ! opening_duration  - time (s) to go from closed to fully open
       ! closing_duration  - time (s) to go from open to fully closed
       ! flow_coef         - culvert_simple / check_valve / culvert flow coefficient
-      ! height            - culvert pipe height (m, rectangular cross-section)
+      ! height            - culvert barrel height (m, rectangular cross-section)
+      ! diameter          - culvert barrel diameter (m, circular cross-section)
       ! invert_1          - culvert bed elevation at endpoint 1 (m)
       ! invert_2          - culvert bed elevation at endpoint 2 (m)
       ! length            - culvert barrel length (m), friction loss
@@ -223,6 +232,7 @@ module sfincs_src_structures
       ! Detailed-culvert geometry + losses, dike-breach submergence threshold
       !
       real :: height
+      real :: diameter
       real :: invert_1
       real :: invert_2
       real :: length
@@ -265,6 +275,7 @@ module sfincs_src_structures
    ! Kind / state
    !
    integer*1, dimension(:), allocatable, public :: src_struc_type
+   integer,   dimension(:), allocatable, public :: src_struc_shape       ! shape_* code of the culvert barrel (culvert only)
    integer,   dimension(:), allocatable, public :: src_struc_direction   ! direction_* code; honoured by culvert_simple and culvert
    real*4,    dimension(:), allocatable, public :: src_struc_distance
    real*4,    dimension(:), allocatable, public :: src_struc_fraction_open
@@ -548,6 +559,7 @@ contains
       allocate(src_struc_q_now(nr_src_structures))
       allocate(src_struc_type(nr_src_structures))
       allocate(src_struc_direction(nr_src_structures))
+      allocate(src_struc_shape(nr_src_structures))
       allocate(src_struc_distance(nr_src_structures))
       allocate(src_struc_fraction_open(nr_src_structures))
       allocate(src_struc_rule_start(nr_src_structures))
@@ -592,6 +604,7 @@ contains
       src_struc_q_now          = 0.0
       src_struc_type           = 0
       src_struc_direction      = direction_both
+      src_struc_shape          = shape_rectangular
       src_struc_distance       = 0.0
       src_struc_fraction_open  = 1.0   ! default "fully open": structures without rules use this as a no-op multiplier in the common-tail scaling. Rule-driven structures are re-seeded at init below.
       src_struc_name           = ' '
@@ -663,6 +676,7 @@ contains
          !
          src_struc_type(i)      = int(src_structures(i)%structure_type, 1)
          src_struc_direction(i) = src_structures(i)%direction
+         src_struc_shape(i)     = src_structures(i)%shape
          !
          src_struc_x_s1(i) = src_structures(i)%x_s1
          src_struc_y_s1(i) = src_structures(i)%y_s1
@@ -705,6 +719,17 @@ contains
          src_struc_opening_duration(i)  = src_structures(i)%opening_duration
          src_struc_closing_duration(i)  = src_structures(i)%closing_duration
          src_struc_height(i)            = src_structures(i)%height
+         !
+         ! A circular barrel stores its diameter in the height slot (the barrel
+         ! is full when the depth reaches it) and in the width slot for the log.
+         !
+         if (src_structures(i)%shape == shape_circular) then
+            !
+            src_struc_height(i) = src_structures(i)%diameter
+            src_struc_width(i)  = src_structures(i)%diameter
+            !
+         endif
+         !
          src_struc_invert_1(i)          = src_structures(i)%invert_1
          src_struc_invert_2(i)          = src_structures(i)%invert_2
          src_struc_length(i)            = src_structures(i)%length
@@ -949,6 +974,7 @@ contains
       real*4  :: dh, a_eff
       real*4  :: h_up, h_dn, qq_sign
       real*4  :: d_bar, h_in, r_hyd, k_tot, q_in, q_out
+      real*4  :: hgt, angle_seg, y_cen
       !
       real*4  :: crest_breach, width_breach, z_crest_breach, z_min_breach
       real*4  :: tstart_breach, tstart_widening, t_phase1_deepening
@@ -960,7 +986,7 @@ contains
       !$acc parallel loop present( z_volume, zs, zb, qsrc, src_struc_q_now, &
       !$acc                        src_struc_nm_s1, src_struc_nm_s2, &
       !$acc                        src_struc_nm_o1, src_struc_nm_o2, &
-      !$acc                        src_struc_type, src_struc_direction, &
+      !$acc                        src_struc_type, src_struc_direction, src_struc_shape, &
       !$acc                        src_struc_q, src_struc_flow_coef, &
       !$acc                        src_struc_width, src_struc_sill_elevation, &
       !$acc                        src_struc_mannings_n, &
@@ -982,6 +1008,7 @@ contains
       !$acc                       dh, a_eff, &
       !$acc                       h_up, h_dn, qq_sign, &
       !$acc                       d_bar, h_in, r_hyd, k_tot, q_in, q_out, &
+      !$acc                       hgt, angle_seg, y_cen, &
       !$acc                       crest_breach, width_breach, z_crest_breach, z_min_breach, &
       !$acc                       tstart_breach, tstart_widening, t_phase1_deepening, &
       !$acc                       vk_f1, vk_f2, uc_material, elapsed_widening_hr, dt_hr, &
@@ -992,6 +1019,7 @@ contains
       !$omp            dh, a_eff, &
       !$omp            h_up, h_dn, qq_sign, &
       !$omp            d_bar, h_in, r_hyd, k_tot, q_in, q_out, &
+      !$omp            hgt, angle_seg, y_cen, &
       !$omp            crest_breach, width_breach, z_crest_breach, z_min_breach, &
       !$omp            tstart_breach, tstart_widening, t_phase1_deepening, &
       !$omp            vk_f1, vk_f2, uc_material, elapsed_widening_hr, dt_hr, &
@@ -1128,8 +1156,8 @@ contains
                   !
                case(structure_culvert)
                   !
-                  ! Detailed culvert: rectangular barrel (width x height)
-                  ! between two inverts. The controlling sill is the higher
+                  ! Detailed culvert: rectangular (width x height) or circular
+                  ! (diameter) barrel between two inverts. The controlling sill is the higher
                   ! of the two inverts (flow cannot pass until the upstream
                   ! water level reaches it). Upstream / downstream are picked
                   ! by the water-level difference, so the structure is
@@ -1145,9 +1173,10 @@ contains
                   !    inlet control (barrel and tailwater do not limit):
                   !       q_in  = flow_coef * a_eff * sqrt(2 g h_in)
                   !       h_in is the head above the centroid of the flow
-                  !       area: h_up/2 for a free-surface inlet (weir-like,
-                  !       equal to flow_coef*sqrt(g)*width*h_up^1.5) and
+                  !       area. Rectangular: h_up/2 for a free-surface inlet
+                  !       (weir-like, flow_coef*sqrt(g)*width*h_up^1.5) and
                   !       h_up - height/2 for a drowned inlet (orifice).
+                  !       Circular: the centroid of the circular segment.
                   !
                   !    outlet control (barrel losses / tailwater limit):
                   !       q_out = a_eff * sqrt(2 g |dh| / k_tot)
@@ -1159,8 +1188,13 @@ contains
                   !       the water-level difference, so a drowned outlet
                   !       ends up in outlet control by itself.
                   !
-                  ! The flow area a_eff = width * min(h_up, height) caps at
-                  ! the barrel height.
+                  ! The flow area is that of the barrel filled to the depth
+                  ! d_bar = min(h_up, height or diameter), so it caps when the
+                  ! barrel runs full. For a circular barrel the area, wetted
+                  ! perimeter and centroid follow from the circular segment with
+                  ! central angle 2 acos(1 - 2 d_bar / diameter). Below
+                  ! 1% filling the segment is replaced by its parabolic limit,
+                  ! which avoids the cancellation in angle - sin(angle).
                   !
                   zsill = max(src_struc_invert_1(istruc), src_struc_invert_2(istruc))
                   !
@@ -1187,28 +1221,69 @@ contains
                   else
                      !
                      wdt   = src_struc_width(istruc)
-                     d_bar = min(h_up, src_struc_height(istruc))
-                     a_eff = wdt * d_bar
+                     hgt   = src_struc_height(istruc)
+                     d_bar = min(h_up, hgt)
                      !
-                     ! Inlet control: head above the centroid of the flow area
+                     ! Barrel geometry at depth d_bar: flow area a_eff, hydraulic
+                     ! radius r_hyd and height y_cen of the area centroid above
+                     ! the invert.
                      !
-                     h_in = h_up - 0.5 * d_bar
-                     q_in = src_struc_flow_coef(istruc) * a_eff * sqrt(2.0 * g * h_in)
-                     !
-                     ! Outlet control: lumped local losses (1/flow_coef^2) plus
-                     ! Manning friction over the barrel. Hydraulic radius of a
-                     ! box section, closed (four walls) when the barrel runs
-                     ! full, open otherwise.
-                     !
-                     if (d_bar >= src_struc_height(istruc)) then
+                     if (src_struc_shape(istruc) == shape_circular) then
                         !
-                        r_hyd = a_eff / (2.0 * (wdt + d_bar))
+                        if (d_bar >= hgt) then
+                           !
+                           ! Full pipe
+                           !
+                           a_eff = 0.25 * pi * hgt * hgt
+                           r_hyd = 0.25 * hgt
+                           y_cen = 0.5 * hgt
+                           !
+                        elseif (d_bar < 0.01 * hgt) then
+                           !
+                           ! Nearly empty pipe: parabolic limit of the segment
+                           !
+                           a_eff = 4.0 / 3.0 * d_bar * sqrt(hgt * d_bar)
+                           r_hyd = 2.0 / 3.0 * d_bar
+                           y_cen = 0.6 * d_bar
+                           !
+                        else
+                           !
+                           ! Circular segment
+                           !
+                           angle_seg = 2.0 * acos(1.0 - 2.0 * d_bar / hgt)
+                           a_eff     = 0.125 * hgt * hgt * (angle_seg - sin(angle_seg))
+                           r_hyd     = a_eff / (0.5 * hgt * angle_seg)
+                           y_cen     = 0.5 * hgt - 2.0 * hgt * sin(0.5 * angle_seg)**3 / (3.0 * (angle_seg - sin(angle_seg)))
+                           !
+                        endif
                         !
                      else
                         !
-                        r_hyd = a_eff / (wdt + 2.0 * d_bar)
+                        ! Box section, closed (four walls) when the barrel runs
+                        ! full, open otherwise
+                        !
+                        a_eff = wdt * d_bar
+                        y_cen = 0.5 * d_bar
+                        !
+                        if (d_bar >= hgt) then
+                           !
+                           r_hyd = a_eff / (2.0 * (wdt + d_bar))
+                           !
+                        else
+                           !
+                           r_hyd = a_eff / (wdt + 2.0 * d_bar)
+                           !
+                        endif
                         !
                      endif
+                     !
+                     ! Inlet control: head above the centroid of the flow area
+                     !
+                     h_in = h_up - y_cen
+                     q_in = src_struc_flow_coef(istruc) * a_eff * sqrt(2.0 * g * h_in)
+                     !
+                     ! Outlet control: lumped local losses (1/flow_coef^2) plus
+                     ! Manning friction over the barrel.
                      !
                      mng   = src_struc_mannings_n(istruc)
                      k_tot = 1.0 / src_struc_flow_coef(istruc)**2 + &
@@ -1449,7 +1524,9 @@ contains
       !    width = ... ; sill_elevation = ... ; mannings_n = ...   ! gate (mannings_n also culvert barrel)
       !    opening_duration = ... ; closing_duration = ...
       !    flow_coef = ...              ! culvert_simple / culvert flow coefficient
-      !    height = ...                                 ! culvert pipe height (m)
+      !    shape = "rectangular"                        ! culvert barrel shape, "rectangular" (default) or "circular"
+      !    height = ...                                 ! culvert barrel height (m), rectangular only
+      !    diameter = ...                               ! culvert barrel diameter (m), circular only
       !    invert_1 = ... ; invert_2 = ...              ! culvert invert elevations at src_1/src_2 ends
       !    length = ...                                 ! culvert barrel length (m), Manning friction loss
       !    submergence_ratio = ...                      ! dike breach submergence threshold h_dn/h_up (-)
@@ -1470,8 +1547,9 @@ contains
       !    pump           : name, src_1, src_2, q
       !    culvert_simple : name, src_1, src_2, flow_coef
       !    gate           : name, src_1, src_2, width, sill_elevation
-      !    culvert        : name, src_1, src_2,
-      !                     width, height, invert_1, invert_2
+      !    culvert        : name, src_1, src_2, invert_1, invert_2, and
+      !                     width + height (shape = "rectangular", default)
+      !                     or diameter (shape = "circular")
       !                     (optional: flow_coef=0.6, length=0, mannings_n=0.013)
       !
       ! On success, structures is allocated to the exact number of entries
@@ -1497,7 +1575,7 @@ contains
       type(toml_table), pointer        :: tbl_struct
       type(toml_array), pointer        :: arr_rules
       type(toml_table), pointer        :: tbl_rule
-      character(len=:), allocatable    :: name_str, type_str, rule_str, dir_str, type_str_lc, op_str
+      character(len=:), allocatable    :: name_str, type_str, rule_str, dir_str, type_str_lc, op_str, shape_str
       integer                          :: n_struct, n_rule, i, j, stat, ierr_parse
       !
       ierr = 0
@@ -1600,6 +1678,32 @@ contains
             !
          endif
          !
+         ! Optional culvert barrel shape. Read before the required-field check
+         ! because it decides which geometry keys a culvert needs. Unknown
+         ! strings are a hard error.
+         !
+         structures(i)%shape = shape_rectangular
+         !
+         if (allocated(shape_str)) deallocate(shape_str)
+         call get_value(tbl_struct, 'shape', shape_str, stat=stat)
+         !
+         if (allocated(shape_str)) then
+            !
+            call parse_shape(shape_str, structures(i)%shape, ierr_parse)
+            !
+            if (ierr_parse /= 0) then
+               !
+               ierr = ierr_parse
+               write(logstr,'(a,a,a,i0)')' Error ! Unknown shape "', trim(shape_str), &
+                    '" in src_structure entry ', i
+               call write_log(logstr, 1)
+               call cleanup_on_error()
+               return
+               !
+            endif
+            !
+         endif
+         !
          ! Per-type required-field validation. Checked by key presence
          ! (has_key) so that 0.0 remains a legal input value.
          !
@@ -1621,8 +1725,18 @@ contains
                !
             case (structure_culvert)
                !
-               call check_required(tbl_struct, [ character(len=16) :: &
-                    'name', 'width', 'height', 'invert_1', 'invert_2' ], i, ierr)
+               if (structures(i)%shape == shape_circular) then
+                  !
+                  call check_required(tbl_struct, [ character(len=16) :: &
+                       'name', 'diameter', 'invert_1', 'invert_2' ], i, ierr)
+                  !
+               else
+                  !
+                  call check_required(tbl_struct, [ character(len=16) :: &
+                       'name', 'width', 'height', 'invert_1', 'invert_2' ], i, ierr)
+                  !
+               endif
+               !
                call check_required_coord_pair(tbl_struct, 'src_1', i, ierr)
                call check_required_coord_pair(tbl_struct, 'src_2', i, ierr)
                !
@@ -1718,6 +1832,7 @@ contains
          ! (enforced above); length defaults to 0 (no friction loss).
          !
          call get_value(tbl_struct, 'height',            structures(i)%height,            0.0,   stat=stat)
+         call get_value(tbl_struct, 'diameter',          structures(i)%diameter,          0.0,   stat=stat)
          call get_value(tbl_struct, 'invert_1',          structures(i)%invert_1,          0.0,   stat=stat)
          call get_value(tbl_struct, 'invert_2',          structures(i)%invert_2,          0.0,   stat=stat)
          call get_value(tbl_struct, 'length',            structures(i)%length,            0.0,   stat=stat)
@@ -2113,6 +2228,46 @@ contains
    !
    !-----------------------------------------------------------------------------------------------------!
    !
+   subroutine parse_shape(str, code, ierr)
+      !
+      ! Translate a TOML culvert "shape" string to one of the shape_* codes.
+      ! Accepts "rectangular" / "circular" case-insensitively.
+      !
+      ! Called from: read_toml_src_structures (this module) when an optional
+      ! "shape" key is present on a structure entry.
+      !
+      implicit none
+      !
+      character(len=*), intent(in) :: str
+      integer, intent(out)         :: code
+      integer, intent(out)         :: ierr
+      !
+      character(len=:), allocatable :: s
+      !
+      ierr = 0
+      code = 0
+      s    = to_lower(str)
+      !
+      select case (s)
+         !
+         case ('rectangular')
+            !
+            code = shape_rectangular
+            !
+         case ('circular')
+            !
+            code = shape_circular
+            !
+         case default
+            !
+            ierr = 1
+            !
+      end select
+      !
+   end subroutine parse_shape
+   !
+   !-----------------------------------------------------------------------------------------------------!
+   !
    subroutine parse_operation(str, code, ierr)
       !
       ! Translate a gate-rule "operation" string to one of the gate_op_* codes.
@@ -2318,11 +2473,26 @@ contains
          !
          if (src_struc_type(i) == structure_culvert) then
             !
-            write(logstr,'(a22,1x,a,a)')            '  width              :',              trim(fmt_real(src_struc_width(i), 4)),             ' (m)'
-            call write_log(logstr, 0)
-            !
-            write(logstr,'(a22,1x,a,a)')            '  height             :',             trim(fmt_real(src_struc_height(i), 4)),            ' (m)'
-            call write_log(logstr, 0)
+            if (src_struc_shape(i) == shape_circular) then
+               !
+               write(logstr,'(a22,1x,a)')           '  shape              :',              'circular'
+               call write_log(logstr, 0)
+               !
+               write(logstr,'(a22,1x,a,a)')         '  diameter           :',           trim(fmt_real(src_struc_height(i), 4)),            ' (m)'
+               call write_log(logstr, 0)
+               !
+            else
+               !
+               write(logstr,'(a22,1x,a)')           '  shape              :',              'rectangular'
+               call write_log(logstr, 0)
+               !
+               write(logstr,'(a22,1x,a,a)')         '  width              :',              trim(fmt_real(src_struc_width(i), 4)),             ' (m)'
+               call write_log(logstr, 0)
+               !
+               write(logstr,'(a22,1x,a,a)')         '  height             :',             trim(fmt_real(src_struc_height(i), 4)),            ' (m)'
+               call write_log(logstr, 0)
+               !
+            endif
             !
             write(logstr,'(a22,1x,a,a)')            '  invert_1           :',           trim(fmt_real(src_struc_invert_1(i), 4)),          ' (m)'
             call write_log(logstr, 0)
