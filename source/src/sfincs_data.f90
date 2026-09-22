@@ -278,6 +278,8 @@ module sfincs_data
       logical       :: gwflow
       real*4        :: gw_theta
       real*4        :: gw_leakance
+      integer       :: gw_storage_mode   ! storage convention above the ground under standing water: 0 = status quo, 1 = confined storativity, 2 = non-subgrid adopts the subgrid rule
+      real*4        :: gw_ss             ! confined/elastic storativity used above the ground by gw_storage_mode = 1, 1/m (a genuine storativity, not Sy)
       real*4        :: gw_numax
       real*4        :: gw_zsini
       real*4        :: gw_kh_uniform

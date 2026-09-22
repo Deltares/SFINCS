@@ -41,6 +41,8 @@ All defaults and units below are read directly from `source/src/sfincs_input.f90
 | `gw_bnd_from_zs` | int (0/1) | 0 | - | at open-boundary cells (`kcs == 2`) the aquifer head is reset to the current surface level `zs` every outer iterate, instead of staying at whatever it was given |
 | `gw_from_infiltration` | int (0/1) | 0 | - | routes infiltrated water into `gw_recharge` instead of discarding it; requires `gwflow = 1` and cannot be combined with `gw_rechargefile` (both would write `gw_recharge`) |
 | `gw_seepage_fac` | real | 1.0 | - | seepage-face strength as a multiple of the volume stored above the ceiling; 1.0 removes exactly that volume in one timestep; 0.0 disables the seepage face (kept only to reproduce the old defect where water above the ceiling was simply lost) |
+| `gw_storage_mode` | int (0/1/2) | 0 | - | storage convention above the ground under standing water: `0` = status quo (the two branches disagree, see Coupling); `1` = confined storativity at `gw_ss` above the ground in both branches; `2` = non-subgrid adopts the subgrid rule (capped at the ground, nothing stored above it) |
+| `gw_ss` | real | 1.0e-4 | 1/m | confined/elastic storativity applied above the ground when `gw_storage_mode = 1`; unused otherwise |
 | `gw_tolouter` | real | 1.0e-5 | m | outer-loop tolerance for rows carrying a lagged coupling term (an active seepage face, or a one-sided surface/aquifer exchange); the bulk surface tolerances (`si_tolouter`, `si_outer_frac`) cannot see these rows because the aquifer moves ~1e-4 m/step |
 | `gw_zdrain` | real | -999.0 | m | uniform drain level; the drain is off unless this or `gw_zdrainfile` is set **and** `gw_cdrain > 0`. A uniform value drains *every* cell whose head exceeds it, sea bed and levees included |
 | `gw_zdrainfile` | char | 'none' | - | spatial drain-level field (see Files); use `-999` outside the drained area (e.g. outside a polder's ditches) so nothing else drains |
@@ -101,6 +103,16 @@ property the CG solver depends on.
   the sloping seepage-face case. Lowering the seepage ceiling to the ground closes that band but
   pins the head at the bed under a pond, which is wrong for a submerged aquifer. The convention is
   still open; see `gw_cases/RESULTS.md`.
+- **`gw_storage_mode`.** Two candidates against that status quo are available behind this keyword,
+  measured but not yet chosen between. `gw_storage_mode = 0` (default) is the status quo above,
+  bit for bit. `gw_storage_mode = 1` gives the cell a small, real storage capacity above the
+  ground instead of either extreme: below the ground it is `Sy` per metre as always, and above it
+  the pond plays no part — the cell instead stores `gw_ss` (a confined/elastic storativity) per
+  metre of confined aquifer thickness, in both branches alike, so they agree with each other for
+  the first time. `gw_storage_mode = 2` makes the non-subgrid branch adopt the subgrid rule as-is:
+  capped at the ground alone, nothing stored above it, no pond term. Both leave the seepage
+  ceiling (`max(ground, zs)`) untouched — only what happens to storage between the ground and that
+  ceiling changes.
 - **How the surface receives its share.** Without subgrid the level the semi-implicit solve
   returns is the state, and the surface row already carried rain, `qext`, the exchange and the
   seepage. With subgrid the state is the cell volume: the continuity re-integrates `z_volume`

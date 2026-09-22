@@ -543,6 +543,12 @@ contains
    ! answer it converges to -- while leaving it unfloored puts a zero on the diagonal exactly
    ! when a cell saturates.
    !
+   ! gw_storage_mode selects the convention used ABOVE the ground under standing water; it is the
+   ! only thing this routine varies, and everything downstream (both solver paths, the explicit
+   ! sub-step, the budget) gets its storage from here, so changing the mode changes all of them at
+   ! once. See the gw_storage_mode read in sfincs_input.f90 for what each mode means; below the
+   ! ground every mode is identical to today (Sy per metre in both branches).
+   !
    implicit none
    !
    integer, intent(in)  :: nm
@@ -562,8 +568,11 @@ contains
    ! Absent, the level is zs(nm), which is what the explicit path wants: it sub-steps within one
    ! surface level, so time n is the only level it has.
    !
+   ! zs_in (and zsurf below) is only ever consulted by mode 0 -- modes 1 and 2 do not let the
+   ! pond into the storage rule at all, which is the point of both candidates.
+   !
    real*4  :: acell, a0, a1, adry
-   real*8  :: b, v0, v1, zcap, zsurf
+   real*8  :: b, v0, v1, zcap, zsurf, z_ground, b_conf
    !
    call gw_cell_area(nm, acell)
    b = max(head - dble(gw_zbase(nm)), 0.0d0)
@@ -574,50 +583,135 @@ contains
       zsurf = zs(nm)
    endif
    !
+   ! z_ground is the ground level the cap is measured from: zb without subgrid, the highest
+   ! subgrid pixel (subgrid_z_zmax) with it. Fortran .and. does not short-circuit, so this stays
+   ! inside the existing subgrid/non-subgrid branch rather than being combined into one test --
+   ! zb is not allocated with subgrid (except the separate nonhydrostatic case) and
+   ! subgrid_z_zmax is not allocated without it. b_conf is the confined thickness gw_ss applies
+   ! to in mode 1: the depth of aquifer between the base and the ground, once and for all, so it
+   ! does not have to be recomputed in every branch below.
+   !
    if (.not. subgrid) then
       !
-      ! Topographic ceiling. Without subgrid the hypsometry is a step at the bed, so the ceiling
-      ! is a single level -- but it is NOT simply zb. Where the ground is exposed the water table
-      ! cannot rise above it, because water above the ground is surface water and has to seep out
-      ! instead. Where the cell is flooded there is no such limit: the ground beneath a pond is
-      ! saturated, and the table can stand as high as the free surface.
+      z_ground = dble(zb(nm))
+      b_conf   = max(z_ground - dble(gw_zbase(nm)), 0.0d0)
       !
-      ! So the cap is max(zb, zs). Capping at zb alone would be wrong for a submerged cell and
-      ! would freeze the aquifer under standing water; leaving it uncapped altogether let the
-      ! table climb 1.70 m above dry ground in the compound case, held back only by how fast
-      ! leakance could drain it.
-      !
-      zcap = max(dble(zb(nm)), zsurf)
-      b    = max(min(head, zcap) - dble(gw_zbase(nm)), 0.0d0)
-      vol  = dble(gw_sy(nm)) * b * dble(acell)
-      !
-      ! Above the cap the stored volume genuinely stops changing, so the true derivative is zero.
-      ! The floor below is not physics -- it exists so the matrix diagonal does not vanish. Once
-      ! the seepage face is carrying cseep*dt on that diagonal the floor is unnecessary, and it is
-      ! actively harmful: it is a store the budget cannot see, and it is what let the head reach
-      ! +232 m on the ceiling case.
-      !
-      if (head < zcap) then
-         dvol = gw_sy(nm) * acell
-      elseif (gw_seepage_active) then
-         dvol = 0.0
+      if (gw_storage_mode == 1) then
+         !
+         ! Mode 1, candidate A: confined storativity above the ground. Below the ground this is
+         ! Sy*A per metre, same as mode 0. Above it, the surface level plays no part any more --
+         ! the store keeps growing, but at gw_ss (a real confined/elastic storativity) times the
+         ! confined thickness b_conf, not at Sy and not at zero. That is a small, bounded,
+         ! physical capacity rather than mode 0's unbounded Sy store under a deepening pond, and
+         ! it makes vol and dvol continuous at z_ground with no floor needed anywhere: there is
+         ! always some real storage left, so the derivative never has to be propped up.
+         !
+         b   = max(min(head, z_ground) - dble(gw_zbase(nm)), 0.0d0)
+         vol = dble(gw_sy(nm)) * b * dble(acell)
+         !
+         if (head > z_ground) then
+            vol = vol + dble(gw_ss) * b_conf * dble(acell) * (head - z_ground)
+         endif
+         !
+         if (head < z_ground) then
+            dvol = gw_sy(nm) * acell
+         else
+            dvol = gw_ss * real(b_conf) * acell
+         endif
+         !
       else
-         dvol = gw_sy(nm) * gw_awet_floor * acell
+         !
+         ! Modes 0 and 2 share this expression and differ only in where zcap sits.
+         !
+         if (gw_storage_mode == 2) then
+            !
+            ! Mode 2, candidate C: non-subgrid adopts the subgrid rule. Cap at the ground alone,
+            ! not max(ground, surface) -- a pond sitting on the cell stops feeding the aquifer at
+            ! exactly the point the subgrid branch already stops at today, instead of continuing
+            ! to fill at Sy per metre of pond depth.
+            !
+            zcap = z_ground
+         else
+            !
+            ! Mode 0, status quo. Topographic ceiling. Without subgrid the hypsometry is a step
+            ! at the bed, so the ceiling is a single level -- but it is NOT simply zb. Where the
+            ! ground is exposed the water table cannot rise above it, because water above the
+            ! ground is surface water and has to seep out instead. Where the cell is flooded
+            ! there is no such limit: the ground beneath a pond is saturated, and the table can
+            ! stand as high as the free surface.
+            !
+            ! So the cap is max(zb, zs). Capping at zb alone would be wrong for a submerged cell
+            ! and would freeze the aquifer under standing water; leaving it uncapped altogether
+            ! let the table climb 1.70 m above dry ground in the compound case, held back only by
+            ! how fast leakance could drain it.
+            !
+            zcap = max(z_ground, zsurf)
+         endif
+         !
+         b    = max(min(head, zcap) - dble(gw_zbase(nm)), 0.0d0)
+         vol  = dble(gw_sy(nm)) * b * dble(acell)
+         !
+         ! Above the cap the stored volume genuinely stops changing, so the true derivative is
+         ! zero. The floor below is not physics -- it exists so the matrix diagonal does not
+         ! vanish. Once the seepage face is carrying cseep*dt on that diagonal the floor is
+         ! unnecessary, and it is actively harmful: it is a store the budget cannot see, and it
+         ! is what let the head reach +232 m on the ceiling case.
+         !
+         if (head < zcap) then
+            dvol = gw_sy(nm) * acell
+         elseif (gw_seepage_active) then
+            dvol = 0.0
+         else
+            dvol = gw_sy(nm) * gw_awet_floor * acell
+         endif
+         !
       endif
       !
    else
+      !
+      z_ground = dble(subgrid_z_zmax(nm))
+      b_conf   = max(z_ground - dble(gw_zbase(nm)), 0.0d0)
+      !
+      ! Modes 0 and 2 are identical here: the table already caps storage at the highest subgrid
+      ! pixel and does not consult zs anywhere in this expression (the "goes flat above z_zmax"
+      ! property noted where subgrid_z_volmax is used above), which is exactly the subgrid rule
+      ! that mode 2 asks the non-subgrid branch to adopt too.
       !
       call gw_subgrid_level(nm, dble(gw_zbase(nm)), v0, a0)
       call gw_subgrid_level(nm, head,         v1, a1)
       !
       vol  = dble(gw_sy(nm)) * max(dble(acell) * b - max(v1 - v0, 0.0d0), 0.0d0)
       !
-      if (gw_seepage_active) then
+      if (gw_storage_mode == 1) then
+         !
+         ! Mode 1 with subgrid: add the same confined term used above, for the part of head above
+         ! the ground. This is the piece the subgrid branch is missing today -- it stores nothing
+         ! at all once the highest pixel is submerged, however deep the pond gets, which is the
+         ! mirror image of mode 0's unbounded Sy store on the non-subgrid side.
+         !
+         if (head > z_ground) then
+            vol = vol + dble(gw_ss) * b_conf * dble(acell) * (head - z_ground)
+         endif
+         !
+      endif
+      !
+      ! adry: the dry fraction of the cell footprint the table gives at this head. Mode 1 never
+      ! floors it -- once the confined term above takes over there is always some real capacity,
+      ! so the numerical floor that props up modes 0/2 near saturation is not needed and would
+      ! only mask the confined term's own, smaller derivative right at the crossover.
+      !
+      if (gw_storage_mode == 1) then
+         adry = min(max(acell - a1, 0.0), acell)
+      elseif (gw_seepage_active) then
          adry = min(max(acell - a1, 0.0), acell)
       else
          adry = min(max(acell - a1, gw_awet_floor * acell), acell)
       endif
       dvol = gw_sy(nm) * adry
+      !
+      if (gw_storage_mode == 1 .and. head > z_ground) then
+         dvol = dvol + gw_ss * real(b_conf) * acell
+      endif
       !
    endif
    !
