@@ -94,6 +94,26 @@ contains
    !
    logical   :: iok
    !
+   ! Locals for limited 2nd-order (MUSCL/TVD) advection scheme (advection_scheme = 2)
+   real*4    :: uu_nmdd
+   real*4    :: uu_nmuu
+   real*4    :: qx_nmdd
+   real*4    :: qx_nmuu
+   real*4    :: fx_nm
+   real*4    :: fx_nmd
+   real*4    :: fx_nmu
+   real*4    :: fx_nmdd
+   real*4    :: fx_nmuu
+   real*4    :: sfnm
+   real*4    :: sfnmd
+   real*4    :: sfnmu
+   real*4    :: cfe
+   real*4    :: cfw
+   integer   :: kk
+   real*4    :: fa, fb
+   real*4    :: flim
+   flim(fa, fb) = (fa*abs(fb) + abs(fa)*fb) / (abs(fa) + abs(fb) + 1.0e-12)
+   !
    call system_clock(count0, count_rate, count_max)
    !
    min_dt = dtmax
@@ -150,7 +170,8 @@ contains
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73,min_dt_ip ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73,min_dt_ip, &
+   !$omp           uu_nmdd,uu_nmuu,qx_nmdd,qx_nmuu,fx_nm,fx_nmd,fx_nmu,fx_nmdd,fx_nmuu,sfnm,sfnmd,sfnmu,cfe,cfw,kk ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop, reduction( min : min_dt ), gang, vector
@@ -495,6 +516,99 @@ contains
                         dqyudy = dqyudy + uu * ( qy_nmu - qy_ndmu ) * dyuvinv
                      endif
                      !  
+                  elseif (advection_scheme == 2) then
+                     !
+                     ! Limited 2nd-order advection (advection_scheme = muscl), built as a TVD
+                     ! correction ON TOP OF the upw1 operator, not as a separate conservative
+                     ! flux form.
+                     !
+                     kk = uv_index_u_nmd(ip)
+                     if (kk > 0 .and. kk <= npuv) then
+                        kk = uv_index_u_nmd(kk)
+                        if (kk > 0 .and. kk <= npuv) then
+                           uu_nmdd = uv0(kk); qx_nmdd = q0(kk)
+                        else
+                           uu_nmdd = uu_nmd;  qx_nmdd = qx_nmd
+                        endif
+                     else
+                        uu_nmdd = uu_nmd;     qx_nmdd = qx_nmd
+                     endif
+                     kk = uv_index_u_nmu(ip)
+                     if (kk > 0 .and. kk <= npuv) then
+                        kk = uv_index_u_nmu(kk)
+                        if (kk > 0 .and. kk <= npuv) then
+                           uu_nmuu = uv0(kk); qx_nmuu = q0(kk)
+                        else
+                           uu_nmuu = uu_nmu;  qx_nmuu = qx_nmu
+                        endif
+                     else
+                        uu_nmuu = uu_nmu;     qx_nmuu = qx_nmu
+                     endif
+                     !
+                     ! The advection term of upw1,
+                     !    [ qd (u_j - u_jm1) + ud (q_j - q_jm1) ] / dx
+                     ! with qd = (q_jm1 + q_j)/2 and ud = (u_jm1 + u_j)/2, expands EXACTLY to
+                     !    ( q_j u_j - q_jm1 u_jm1 ) / dx ,
+                     ! a telescoping difference of the momentum flux F = q u. Limiting F itself
+                     ! keeps the flux-difference form, so the bore speed stays right.
+                     !
+                     fx_nm   = qx_nm   * uu_nm
+                     fx_nmd  = qx_nmd  * uu_nmd
+                     fx_nmu  = qx_nmu  * uu_nmu
+                     fx_nmdd = qx_nmdd * uu_nmdd
+                     fx_nmuu = qx_nmuu * uu_nmuu
+                     !
+                     sfnmd = flim(fx_nmd - fx_nmdd, fx_nm   - fx_nmd )
+                     sfnm  = flim(fx_nm  - fx_nmd,  fx_nmu  - fx_nm  )
+                     sfnmu = flim(fx_nmu - fx_nm,   fx_nmuu - fx_nmu )
+                     !
+                     ! Streamwise : d qu u / dx = ( F_donor+ - F_donor- ) / dx, donor picked by the
+                     ! sign of the face flux exactly as upw1 does, plus the limited anti-diffusive
+                     ! correction 0.5 (1 - C) ( sigma_j - sigma_jm1 ), with sigma the van Leer
+                     ! (1979) limited slope of F and C = muscl_cfac |u| dt/dx.
+                     !
+                     dqxudx = 0.0
+                     dqyudy = 0.0
+                     !
+                     qd = (qx_nmd + qx_nm) / 2
+                     qu = (qx_nm + qx_nmu) / 2
+                     !
+                     if (qd > 1.0e-6) then
+                        ud  = (uu_nmd + uu_nm) / 2
+                        cfw = max(0.0, 1.0 - muscl_cfac * abs(ud) * dt * dxuvinv)
+                        dqxudx = ( (fx_nm - fx_nmd) + 0.5*cfw*(sfnm - sfnmd) ) * dxuvinv
+                     endif
+                     !
+                     if (qu < -1.0e-6) then
+                        uu  = (uu_nm + uu_nmu) / 2
+                        cfe = max(0.0, 1.0 - muscl_cfac * abs(uu) * dt * dxuvinv)
+                        dqxudx = dqxudx + ( (fx_nmu - fx_nm) - 0.5*cfe*(sfnmu - sfnm) ) * dxuvinv
+                     endif
+                     !
+                     ! Cross : d qv u / dy. Left at the upw1 discretisation.
+                     !
+                     qu = (qy_nm + qy_nmu) / 2
+                     qd = (qy_ndm + qy_ndmu) / 2
+                     !
+                     if (qd > 1.0e-6) then
+                        dqyudy = qd * (uu_nm - uu_ndm) * dyuvinv
+                     endif
+                     !
+                     if (qu < -1.0e-6) then
+                        dqyudy = dqyudy + qu * (uu_num - uu_nm) * dyuvinv
+                     endif
+                     !
+                     ud = (uu_nmd + uu_nm) / 2
+                     uu = (uu_nm + uu_nmu) / 2
+                     !
+                     if (ud > 1.0e-6) then
+                        dqyudy = dqyudy + ud * ( qy_nm - qy_ndm ) * dyuvinv
+                     endif
+                     !
+                     if (uu < -1.0e-6) then
+                        dqyudy = dqyudy + uu * ( qy_nmu - qy_ndmu ) * dyuvinv
+                     endif
+                     !
                   endif
                   !
                   adv = - phi * (dqxudx + dqyudy)

@@ -55,11 +55,17 @@ Parameters for model input
 	  :min:			0
 	  :max:			1
 	advection_scheme	
-	  :description:		Advection scheme selection, new scheme is 'upw1', default. Original implementation from Leijnse et al. (2021) can be selected as 'advection_scheme = original' for backwards compatability. NOTE - from SFINCS 2024.01 release onwards.
+	  :description:		Advection scheme selection. The default 'upw1' is the first-order upwind scheme; 'original' is the implementation from Leijnse et al. (2021), kept for backwards compatibility; 'muscl' is a second-order MUSCL scheme with a van Leer limiter (van Leer, 1979) on the momentum-conservative staggered discretization of Stelling & Duinmeijer (2003), with lower numerical diffusion. NOTE - upw1/original from the 2024.01 release, muscl from the 2026 release onwards.
 	  :units:		-	
 	  :default:		upw1	
 	  :min:			upw1	
-	  :max:			original	  
+	  :max:			muscl
+	muscl_cfac
+	  :description:		Courant multiplier in the anti-diffusive correction of the 'muscl' advection scheme. The correction switches off wherever muscl_cfac*|u|*dt/dx exceeds 1, so the scheme returns to first-order upwind at high Courant number. The derivation gives 2, which is the stability floor rather than the best operating point; 5 is the default and performs at least as well as 'upw1' across the conceptual benchmark tests. A very large value disables the correction and reproduces 'upw1'.
+	  :units:		-
+	  :default:		5.0
+	  :min:			2.0
+	  :max:			1e9
 	advlim
 	  :description:		Limit advection term (when advection > 0) such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2, so limiter turned on by default
 	  :units:		m/s2

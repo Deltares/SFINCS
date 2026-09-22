@@ -186,6 +186,7 @@ contains
    !
    ! Numerical parameters
    call read_char_input(500,'advection_scheme',advstr,'upw1')   
+   call read_real_input(500,'muscl_cfac',muscl_cfac,5.0)
    call read_real_input(500,'btrelax',btrelax,3600.0)
    call read_logical_input(500,'wiggle_suppression', wiggle_suppression, .true.)
    call read_real_input(500,'structure_relax',structure_relax,10.0)
@@ -737,6 +738,9 @@ contains
       elseif (trim(advstr) == 'upw1') then
          advection_scheme = 1
          call write_log('Info    : advection scheme : first-order upwind', 0)
+      elseif (trim(advstr) == 'muscl') then
+         advection_scheme = 2
+         call write_log('Info    : advection scheme : upwind + limited 2nd-order correction (MUSCL / van Leer / Sweby)', 0)
       else
          write(logstr,*)'Warning : advection scheme ', trim(advstr), ' not recognized! Using default upw1 instead!'
          call write_log(logstr, 1)

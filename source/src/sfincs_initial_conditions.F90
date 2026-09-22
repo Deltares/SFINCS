@@ -60,6 +60,11 @@ contains
          !
          iok = check_file_exists(zsinifile, 'Initial conditions ini file', .true.)
          !
+         ! nchar must be set before the extension test; left uninitialised it makes
+         ! the NetCDF/binary ini branch effectively random (a .nc ini then gets read
+         ! as a raw real*4 stream -> garbage zs -> immediate blow-up).
+         nchar = len_trim(zsinifile)
+         !
          if (zsinifile(nchar - 1 : nchar) == 'nc') then
              !
             ! Read netcdf (!) initial water level file
