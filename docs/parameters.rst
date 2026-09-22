@@ -60,6 +60,12 @@ Parameters for model input
 	  :default:		upw1	
 	  :min:			upw1	
 	  :max:			muscl
+	muscl_cfac
+	  :description:		Courant multiplier in the anti-diffusive correction of the 'muscl' advection scheme. The correction switches off wherever muscl_cfac*|u|*dt/dx exceeds 1, so the scheme returns to first-order upwind at high Courant number. The derivation gives 2, which is the stability floor rather than the best operating point; 5 is the default and performs at least as well as 'upw1' across the conceptual benchmark tests. A very large value disables the correction and reproduces 'upw1'.
+	  :units:		-
+	  :default:		5.0
+	  :min:			2.0
+	  :max:			1e9
 	advlim
 	  :description:		Limit advection term (when advection > 0) such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2, so limiter turned on by default
 	  :units:		m/s2

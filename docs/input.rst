@@ -820,6 +820,8 @@ Recommended is to turn the advection term always on.
 
 'advection_scheme' selects the advection scheme. The default 'advection_scheme = upw1' is the first-order upwind scheme introduced in the 2024.01 release, and 'advection_scheme = original' selects the original implementation from Leijnse et al. (2021) for backwards compatibility. From the 2026 release onwards there is also a second-order option, 'advection_scheme = muscl'. This is a MUSCL reconstruction with a van Leer flux limiter (van Leer, 1979) applied to the momentum-conservative staggered discretization of Stelling & Duinmeijer (2003). It has less numerical diffusion than the first-order upwind scheme, so it reaches a given channel-conveyance accuracy at a coarser resolution, and it falls back to first order at flow extrema to stay monotone (Sweby, 1984). It is recommended for advection-dominated open-channel flow. NOTE - upw1 remains the default.
 
+'muscl_cfac' sets the Courant multiplier in the anti-diffusive correction of the 'muscl' advection scheme, default is 5. The correction switches off where muscl_cfac times the local Courant number exceeds 1, so the scheme returns to first-order upwind in fast flow; a very large value reproduces 'upw1'.
+
 'advlim' sets the possibility to limit the advection term in the momentum equation for increased stability, default is set to 1 (2025.01 release onwards).
 
 .. code-block:: text

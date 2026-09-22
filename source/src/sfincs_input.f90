@@ -186,13 +186,6 @@ contains
    !
    ! Numerical parameters
    call read_char_input(500,'advection_scheme',advstr,'upw1')   
-   ! Courant multiplier in the MUSCL anti-diffusive correction (advection_scheme = muscl).
-   ! The derivation gives 2 -- momentum-flux divergence advects at 2u -- but that is the
-   ! stability floor, not the best operating point: at 2 the Stoker dam break is still ~15 %
-   ! worse than upw1. Scanned over the conceptual benchmark suite (1-D dam break, 2-D dam
-   ! break, hydraulic jump, meander conveyance), 5 is the value at which every case is at
-   ! least as good as upw1. Larger values keep improving the dam break and give back the
-   ! jump; smaller values do the reverse.
    call read_real_input(500,'muscl_cfac',muscl_cfac,5.0)
    call read_real_input(500,'btrelax',btrelax,3600.0)
    call read_logical_input(500,'wiggle_suppression', wiggle_suppression, .true.)
@@ -747,7 +740,7 @@ contains
          call write_log('Info    : advection scheme : first-order upwind', 0)
       elseif (trim(advstr) == 'muscl') then
          advection_scheme = 2
-         call write_log('Info    : advection scheme : upwind + limited 2nd-order correction (van Leer / Sweby)', 0)
+         call write_log('Info    : advection scheme : upwind + limited 2nd-order correction (MUSCL / van Leer / Sweby)', 0)
       else
          write(logstr,*)'Warning : advection scheme ', trim(advstr), ' not recognized! Using default upw1 instead!'
          call write_log(logstr, 1)
