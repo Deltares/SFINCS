@@ -225,9 +225,10 @@ previous outer iterate, a scheme choice.
   under-delivered its sources (a basin under 20 mm/h of rain infiltrated nothing); those runs,
   the Harvey semi-implicit runs with subgrid included, have to be redone.
 - The two branches store different things under standing water (Sy per metre of pond above the
-  bed without subgrid, nothing above the highest pixel with subgrid), so the subgrid island
-  budgets on a moving tidal shore are gated on health only until the convention is decided;
-  the explicit and semi-implicit paths now agree with each other within each convention.
+  bed without subgrid, nothing above the highest pixel with subgrid). The convention is still
+  open; the explicit and semi-implicit paths agree with each other within each. The subgrid
+  island budgets, which read -72 to -83 % of throughput on 8cadae6, close to 0.005 % since
+  2026-09-21: that error was the missing surface hand-off, not the convention.
 - The seepage face is asymmetric under standing water: head above `zs` is ejected in one step on
   a falling tide, but refill on a rising tide goes through leakance, so the tidal-mean head under
   the sea sits measurably below MSL.
