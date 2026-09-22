@@ -1637,10 +1637,24 @@ contains
    !
    integer  :: i, k, idx
    real*8   :: rz, rz_new, pAp, bnorm2, rnorm2
+   real*8   :: bnorm2_s, bnorm2_g, rnorm2_s, rnorm2_g
    real*4   :: alpha, beta, tmp
    real*4   :: omega
+   logical  :: blockwise
    !
    omega = 1.5  ! SSOR relaxation parameter (1.0 = SGS, 1.5 = typical SSOR)
+   !
+   ! With the aquifer coupled in, this system is two blocks glued by exchange terms: rows
+   ! 1..nrows_si are the surface, nrows_si+1..n the aquifer. On Edelman d010 uni_si_nosbg,
+   ! call 2 of the run has one near-dry surface cell whose scaled right-hand side is 22,000x
+   ! the aquifer block's; a single combined norm let CG stop with the surface converged and
+   ! the aquifer sitting at a relative residual of 3e-3, and that call's aquifer residual
+   ! (+6.51e-5 m3) was the entire closure error of the run (-0.0028%). The surface decides
+   ! how converged the aquifer is, which is backwards -- so judge each block against its own
+   ! right-hand side. An empty block (bnorm2 ~ 0, e.g. the subgrid twin's surface row here)
+   ! is judged against the total norm instead, so the test is never stricter than before.
+   !
+   blockwise = gwflow .and. (n == 2 * nrows_si)
    !
    ! Extract diagonal
    !
@@ -1652,26 +1666,70 @@ contains
    !
    ! Initial residual: r = b - A*x (using stencil structure, not CSR traversal)
    !
-   bnorm2 = 0.0d0
-   rnorm2 = 0.0d0
-   !$omp parallel do private(i, k, idx, tmp) reduction(+:bnorm2, rnorm2) schedule(static)
-   do i = 1, n
-      tmp = b(i)
-      do k = row_ptr(i), row_ptr(i + 1) - 1
-         tmp = tmp - val(k) * x(col_ind(k))
+   if (blockwise) then
+      !
+      bnorm2_s = 0.0d0
+      bnorm2_g = 0.0d0
+      rnorm2_s = 0.0d0
+      rnorm2_g = 0.0d0
+      !$omp parallel do private(i, k, idx, tmp) reduction(+:bnorm2_s, rnorm2_s) schedule(static)
+      do i = 1, nrows_si
+         tmp = b(i)
+         do k = row_ptr(i), row_ptr(i + 1) - 1
+            tmp = tmp - val(k) * x(col_ind(k))
+         enddo
+         cg_r(i) = tmp
+         bnorm2_s = bnorm2_s + dble(b(i)) * dble(b(i))
+         rnorm2_s = rnorm2_s + dble(tmp) * dble(tmp)
       enddo
-      cg_r(i) = tmp
-      bnorm2 = bnorm2 + dble(b(i)) * dble(b(i))
-      rnorm2 = rnorm2 + dble(tmp) * dble(tmp)
-   enddo
-   !$omp end parallel do
-   !
-   bnorm2 = max(bnorm2, 1.0d-60)
-   relres = real(sqrt(rnorm2 / bnorm2))
-   !
-   if (relres <= tol) then
-      iter = 0
-      return
+      !$omp end parallel do
+      !$omp parallel do private(i, k, idx, tmp) reduction(+:bnorm2_g, rnorm2_g) schedule(static)
+      do i = nrows_si + 1, n
+         tmp = b(i)
+         do k = row_ptr(i), row_ptr(i + 1) - 1
+            tmp = tmp - val(k) * x(col_ind(k))
+         enddo
+         cg_r(i) = tmp
+         bnorm2_g = bnorm2_g + dble(b(i)) * dble(b(i))
+         rnorm2_g = rnorm2_g + dble(tmp) * dble(tmp)
+      enddo
+      !$omp end parallel do
+      !
+      bnorm2 = bnorm2_s + bnorm2_g
+      bnorm2 = max(bnorm2, 1.0d-60)
+      if (bnorm2_s <= 1.0d-60) bnorm2_s = bnorm2
+      if (bnorm2_g <= 1.0d-60) bnorm2_g = bnorm2
+      relres = real(max(sqrt(rnorm2_s / bnorm2_s), sqrt(rnorm2_g / bnorm2_g)))
+      !
+      if (rnorm2_s <= dble(tol)**2 * bnorm2_s .and. rnorm2_g <= dble(tol)**2 * bnorm2_g) then
+         iter = 0
+         return
+      endif
+      !
+   else
+      !
+      bnorm2 = 0.0d0
+      rnorm2 = 0.0d0
+      !$omp parallel do private(i, k, idx, tmp) reduction(+:bnorm2, rnorm2) schedule(static)
+      do i = 1, n
+         tmp = b(i)
+         do k = row_ptr(i), row_ptr(i + 1) - 1
+            tmp = tmp - val(k) * x(col_ind(k))
+         enddo
+         cg_r(i) = tmp
+         bnorm2 = bnorm2 + dble(b(i)) * dble(b(i))
+         rnorm2 = rnorm2 + dble(tmp) * dble(tmp)
+      enddo
+      !$omp end parallel do
+      !
+      bnorm2 = max(bnorm2, 1.0d-60)
+      relres = real(sqrt(rnorm2 / bnorm2))
+      !
+      if (relres <= tol) then
+         iter = 0
+         return
+      endif
+      !
    endif
    !
    ! Apply SSOR preconditioner: z = M^{-1} r
@@ -1710,17 +1768,43 @@ contains
       !
       ! x += alpha*p, r -= alpha*Ap, compute rnorm2
       !
-      rnorm2 = 0.0d0
-      !$omp parallel do private(i) reduction(+:rnorm2) schedule(static)
-      do i = 1, n
-         x(i) = x(i) + alpha * cg_p(i)
-         cg_r(i) = cg_r(i) - alpha * cg_Ap(i)
-         rnorm2 = rnorm2 + dble(cg_r(i)) * dble(cg_r(i))
-      enddo
-      !$omp end parallel do
-      !
-      relres = real(sqrt(rnorm2 / bnorm2))
-      if (relres <= tol) exit
+      if (blockwise) then
+         !
+         rnorm2_s = 0.0d0
+         rnorm2_g = 0.0d0
+         !$omp parallel do private(i) reduction(+:rnorm2_s) schedule(static)
+         do i = 1, nrows_si
+            x(i) = x(i) + alpha * cg_p(i)
+            cg_r(i) = cg_r(i) - alpha * cg_Ap(i)
+            rnorm2_s = rnorm2_s + dble(cg_r(i)) * dble(cg_r(i))
+         enddo
+         !$omp end parallel do
+         !$omp parallel do private(i) reduction(+:rnorm2_g) schedule(static)
+         do i = nrows_si + 1, n
+            x(i) = x(i) + alpha * cg_p(i)
+            cg_r(i) = cg_r(i) - alpha * cg_Ap(i)
+            rnorm2_g = rnorm2_g + dble(cg_r(i)) * dble(cg_r(i))
+         enddo
+         !$omp end parallel do
+         !
+         relres = real(max(sqrt(rnorm2_s / bnorm2_s), sqrt(rnorm2_g / bnorm2_g)))
+         if (rnorm2_s <= dble(tol)**2 * bnorm2_s .and. rnorm2_g <= dble(tol)**2 * bnorm2_g) exit
+         !
+      else
+         !
+         rnorm2 = 0.0d0
+         !$omp parallel do private(i) reduction(+:rnorm2) schedule(static)
+         do i = 1, n
+            x(i) = x(i) + alpha * cg_p(i)
+            cg_r(i) = cg_r(i) - alpha * cg_Ap(i)
+            rnorm2 = rnorm2 + dble(cg_r(i)) * dble(cg_r(i))
+         enddo
+         !$omp end parallel do
+         !
+         relres = real(sqrt(rnorm2 / bnorm2))
+         if (relres <= tol) exit
+         !
+      endif
       !
       ! Apply SSOR preconditioner: z = M^{-1} r
       !
