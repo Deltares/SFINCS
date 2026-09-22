@@ -101,6 +101,25 @@ property the CG solver depends on.
   the sloping seepage-face case. Lowering the seepage ceiling to the ground closes that band but
   pins the head at the bed under a pond, which is wrong for a submerged aquifer. The convention is
   still open; see `gw_cases/RESULTS.md`.
+- **How the surface receives its share.** Without subgrid the level the semi-implicit solve
+  returns is the state, and the surface row already carried rain, `qext`, the exchange and the
+  seepage. With subgrid the state is the cell volume: the continuity re-integrates `z_volume`
+  from the back-substituted fluxes and inverts the table, so the solve records the source
+  volume it applied to each surface row (`si_qsrc`, m3) and the continuity adds it. From
+  2026-09-02 to 2026-09-21 that hand-off was missing: a semi-implicit subgrid run received no
+  rain, no `qext`, no exchange and no seepage on the surface (see Known limits). On the explicit
+  path the aquifer sub-steps hand their net volume to the surface once per step (`gw_qsurf`).
+- **Explicit path under a pond (subgrid).** The subgrid storage curve is flat between the highest
+  pixel and the pond level, so a saturated submerged cell's head is set by the exchange alone.
+  The explicit sub-step takes the symmetric part of the exchange implicitly in the cell's own
+  head (Newton on `V(h) + C dt h = vol + C dt zs`, iterated to tolerance) and, for a cell that was
+  saturated and submerged at the start of the sub-step, holds the head at the pond level and
+  refills from the pond whatever the lateral flow took. Sub-stepping the flat band explicitly is
+  otherwise a Jacobi sweep of an elliptic problem whose off-diagonal (`K b w / dx`) exceeds its
+  diagonal (`leakance * awet`): the compound test case ran a crest/pond checkerboard under its
+  pond with 65,000 m3 cycling through the exchange where the coupled solve moved 2,800. What the
+  rule gives up is the rate-limited drawdown the coupled solve shows at a pond edge draining
+  into the dry slope (6 cm on the compound case, 1e-4 m elsewhere).
 - **Drain boundary.** `Q = gw_cdrain * A * max(h - gw_zdrain, 0)`, out of the aquifer and out of
   the model entirely (representing pumped ditch water), implicit on the aquifer diagonal,
   switched at the outer iterate the same way the seepage face is.
@@ -145,44 +164,70 @@ that is really just cancellation.
 
 ## Conceptual test cases
 
-From `D:/ClaudeProjects/sfincs-dev/gw_cases/RESULTS.md`; the suite's entry point is
-`gw_cases/README.md` (one exe folder, one runner, 44 case folders all gated against
-`reference.json`; last full run 2026-09-12 on `8cadae6`, 44 of 44 pass). Each case isolates
-something the others cannot see (e.g. the Dupuit parabola can be exact in discharge while the
-transient runs 25% slow, because at steady state `theta` cancels and only Edelman would catch it).
+The suite's entry point is `D:/ClaudeProjects/sfincs-dev/gw_cases/README.md` (one exe folder,
+one runner, one `reference.json` gate); the long-form records are the RESULTS files it points to.
+Since 2026-09-21 the cases are three tiers, and every family in the first two is built in all
+eight combinations of grid (regular / quadtree with one refinement), solver (explicit /
+semi-implicit) and storage (without / with subgrid tables), `{uni|qt}_{exp|si}_{nosbg|sbg}`:
 
-| case | what it constrains | accuracy reached |
+| tier | families | runs |
 |---|---|---|
-| Dupuit steady seepage | the lateral operator, at steady state | head within 0.06%, discharge within 0.003%, uniform flux |
-| Edelman step response | the transient — the time weighting | 0.26% of amplitude at delta/h0 = 1% |
-| Ferris tidal wave | decay and phase together | amplitude within 0.3%, phase within 0.3%, fitted decay length 99.15 m vs 99.42 m exact |
-| Exchange relaxation | that the surface/aquifer coupling is symmetric | tau within 0.09%, equilibrium level within 1.8e-3 m |
-| Two-zone Dupuit | face transmissivity under heterogeneous K | heads within 0.25%, flux within 1.9%, interface step <1% |
-| Topographic ceiling | what happens to recharge a full aquifer cannot store | both paths close to 0.05%, and agree on head and pond to 0.3 mm |
-| Sloping seepage face | that seeped water reaches the right surface cell, within the step | both close; heads agree to 0.014 m, ponded volume to 2.2% |
-| Closed basin | infiltration routed into the aquifer | recharge within 0.02% of the closed form |
+| `01_analytical` | Dupuit, Edelman (1 m and 0.1 m steps), Ferris, two-zone Dupuit | 40 |
+| `02_coupling` | basin (infiltration to recharge), ceiling, exchange, sloping seepage face, compound (+ a `gwflow = 0` control) | 41 |
+| `03_application` | polder (levee seepage, drains, pump failure), tidal island (2D, with and without subgrid and rain) | 16 |
 
-The isolated ceiling case (`gw_cases/ceiling/`) ponds at **0.1933 m** rather than the
-464 m3 / 2000 m2 = 0.232 m the raw excess implies, because the non-subgrid storage cap lets the
-saturated cell hold part of that excess as groundwater above its own bed. The factor is
-`1 / (1 + Sy)`. See the storage-ceiling note above.
+Each family isolates something the others cannot see (the Dupuit parabola can be exact in
+discharge while the transient runs 25% slow, because at steady state `theta` cancels and only
+Edelman would catch it). Per family the reference is exact where one exists:
 
-Internal water-balance closure, once the balance was implemented to measure the same volumes the
-solver already computed rather than reconstructing them in Python, reaches machine precision
-(1e-5 to 1e-7 %) on every case whose ceiling does not move during the run. The three cases with an
-active seepage face or a moving ceiling (`ceiling`, `seepslope`, `polder`) close to a few
-thousandths of a percent instead, because the seepage/ceiling switch is evaluated at the previous
-outer iterate — a scheme choice, not an error.
+| family | what it constrains | accuracy reached (all 8 combinations unless noted) |
+|---|---|---|
+| Dupuit steady seepage | the lateral operator, both grids, the refinement transition | discharge +0.008% (regular) / +0.115% (quadtree); flux jump at the transition 0.000% |
+| Edelman step response | the transient, and its linearisation (the error must scale tenfold from a 1 m to a 0.1 m step) | normalised max error 0.019 at 1 m, 0.0020 at 0.1 m |
+| Ferris tidal wave | decay and phase together | fitted decay length 99.16 m vs 99.42 m exact (-0.27%), phase length +0.27% |
+| Two-zone Dupuit | face transmissivity under a tenfold K contrast | flux +1.39% (regular) / +1.78% (quadtree, zone 2 coarse), interface step 0.000% |
+| Closed basin | infiltration routed into the aquifer | recharge within 0.02% of rate x time x area on every mesh |
+| Topographic ceiling | recharge a full aquifer cannot store becomes surface water | pond 0.1933 m (non-subgrid, `V/(A(1+Sy))`) and 0.2360 m (subgrid, `V/A` + 4 mm of table relief); explicit = semi-implicit to 0.2 mm within each |
+| Exchange relaxation | the surface/aquifer coupling is symmetric | tau within 0.09% (non-subgrid); with subgrid the head meets the pond at once, by convention |
+| Sloping seepage face | seeped water reaches the right surface cell | both paths close to 2e-4%; heads agree to 0.6 mm, ponded volumes 1145 / 2290 m3 (regular / quadtree, non-subgrid) |
+| Compound | rain, runoff, infiltration, lateral flow and seepage in one step | 120 mm of rain against 119.98 mm stored (non-subgrid), 120.6 mm (subgrid) |
+
+Across the matrix (`check_matrix.py`): explicit = semi-implicit to 1e-6 m on the analytical
+families and 1e-4 m on the coupling families; subgrid = non-subgrid bit-identical on a flat bed;
+quadtree = regular to 5 mm (Dupuit), 13 mm (two-zone), 8 mm (seepage face). The pairs where the
+two storage conventions differ by design (ceiling, seepage face, compound, exchange with subgrid)
+are reported and not gated. The quadtree strip is one level-1 row 2dx wide, so its volumes and
+discharges are double the regular ones by construction.
+
+The 2026-09-21 matrix exposed three defects, all fixed the same day and recorded in
+`plans/2026-09-21-gw-cases-matrix-tier1-2-RESULTS.md`: the semi-implicit subgrid hand-off
+(above), the semi-implicit budget booking seepage against the wrong ceiling with subgrid (17 m3,
+1.3% on the ceiling case, while the state was right), and the explicit path's crest/pond
+checkerboard under a pond (above). A fourth was in the test tables, not the model: a face table
+whose sill lies below the neighbouring cell's lowest pixel reads zero depth on a face SFINCS
+flags wet, and the predictor's friction term divided 0 by 0; the builder now applies the
+hydromt convention, and the predictor floors the depth as its lookup-table branch already did.
+
+Internal water-balance closure reaches machine precision (1e-5 to 1e-7 %) on every case whose
+ceiling does not move during the run. Cases with an active seepage face or a moving ceiling
+close to a few thousandths of a percent, because the seepage/ceiling switch is evaluated at the
+previous outer iterate, a scheme choice.
 
 ## Known limits (unresolved as of this writing)
 
-- (Resolved 2026-09-02, `df5b749`.) SI + subgrid + precipitation crashed at the first timestep,
-  with or without `gwflow`: precipitation and `qext` were added twice per step on the subgrid
-  continuity path when `semi_implicit`, since 2026-03-30. Any semi-implicit subgrid run with
-  rainfall or `qext` before that fix carried doubled source volumes.
-- The subgrid aquifer budget does not close on a moving tidal shore (island cases, -72% to -81%
-  of throughput); the non-subgrid budget on the same kind of case closes to 1e-5%. Likely a
-  budget-measurement gap rather than a physical leak, not yet instrumented further.
+- (Resolved 2026-09-21.) Semi-implicit + subgrid received no surface sources at all between
+  `df5b749` (2026-09-02) and this fix: rain, `qext`, the aquifer exchange and the seepage face
+  were on the surface row of the pressure solve but never reached `z_volume`, which is the
+  state on the subgrid path. `df5b749` had removed the continuity's rain term as a supposed
+  double count and put nothing in its place; the crash it was chasing was a NaN from a face
+  table with zero depth on a wet face (see the test-case section), not a doubled volume. Any
+  semi-implicit subgrid run with rainfall, `qext` or `gwflow` from 2026-09-02 to 2026-09-21
+  under-delivered its sources (a basin under 20 mm/h of rain infiltrated nothing); those runs,
+  the Harvey semi-implicit runs with subgrid included, have to be redone.
+- The two branches store different things under standing water (Sy per metre of pond above the
+  bed without subgrid, nothing above the highest pixel with subgrid), so the subgrid island
+  budgets on a moving tidal shore are gated on health only until the convention is decided;
+  the explicit and semi-implicit paths now agree with each other within each convention.
 - The seepage face is asymmetric under standing water: head above `zs` is ejected in one step on
   a falling tide, but refill on a rising tide goes through leakance, so the tidal-mean head under
   the sea sits measurably below MSL.

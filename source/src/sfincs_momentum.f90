@@ -838,7 +838,13 @@ contains
                !
                ! Compute hu**(7/3)
                !
-               hu73 = hu**2 * hu**expo
+               ! Floored like the table branch above. A face is wet when zsu > uv_zmin, but the
+               ! depth column can still read exactly zero there (SFINCS lifts uv_zmin to the
+               ! neighbouring cells' lowest pixel on read and keeps the file's havg), and then
+               ! qfr / hu73 is 0 / 0 -- a NaN that reaches every level through the pressure
+               ! solve. Seen on gw_cases 02_coupling/seepslope with a table sampled from a slope.
+               !
+               hu73 = max(hu, 1.0e-6)**2 * max(hu, 1.0e-6)**expo
                !
             endif
             ! 

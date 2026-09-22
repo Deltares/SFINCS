@@ -483,15 +483,21 @@ contains
             !
          endif
          !
-         ! In semi-implicit mode, precip and qext are already included as volumetric source
-         ! terms in the pressure system RHS (sfincs_semi_implicit.f90, rhs_c), same as the
-         ! regular-grid path guards this above (line ~121). Without this guard they were added
-         ! a second time here, on top of the flux-divergence dvol which already reflects the
-         ! solve, blowing up z_volume(nm) within the first step and sending the subgrid table
-         ! lookup index (iuv, line 579 below) out of bounds -- reproduced in
-         ! gw_cases/island/dbg_si_rain, traceback at sfincs_continuity.f90:581
-         ! (SUBGRID_Z_DEP subscript out of bounds).
-         if ((precip .or. use_qext) .and. .not. semi_implicit) then
+         ! Sources. Explicit: rain and qext as a level rate times the cell area. Semi-implicit:
+         ! the pressure solve already carried rain, qext and the aquifer exchange and seepage on
+         ! this row (sfincs_semi_implicit.f90, rhs_c and the budget loop), and the level it
+         ! returned is about to be overwritten by the volume integrated here -- so the same
+         ! source volume, si_qsrc, has to be added to z_volume or it is lost. df5b749 guarded
+         ! the explicit rain term under semi_implicit (as the regular path does, where the solved
+         ! level is kept) but put nothing in its place; from then until 2026-09-21 a semi-implicit
+         ! subgrid run received no rain and no seepage at all (gw_cases 02_coupling basin,
+         ! ceiling, seepslope: recharge 0, pond never forms while the aquifer budget closes).
+         !
+         if (semi_implicit) then
+            !
+            dvol = dvol + si_qsrc(nm)
+            !
+         elseif (precip .or. use_qext) then
             !
             dzsdt = 0.0
             !

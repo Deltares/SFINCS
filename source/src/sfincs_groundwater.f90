@@ -744,7 +744,8 @@ contains
    integer :: ip, nm, nmu, nsub, it
    real*4  :: tface, wface, dinv, qface, dtsub, nurate, tsub
    real*4  :: acell, dvol
-   real*8  :: vol, volcap, hcap, excess, hnew
+   real*8  :: vol, volcap, hcap, excess, hnew, cx, rhs, resid
+   logical :: hsat, pin
    real*4  :: csym, qexpl, qex
    real*8  :: volh
    real*4  :: dvolh
@@ -888,15 +889,24 @@ contains
          bv_gross = bv_gross + abs(qdrn)
          !
          call gw_exchange_terms(nm, dble(zs(nm)), gw_head(nm), csym, qexpl)
-         qex = real(dble(csym) * (zs(nm) - gw_head(nm))) + qexpl   ! positive: surface into aquifer
-         gw_dvol(nm) = gw_dvol(nm) + dble(qex) * dble(dtsub)
-         gw_qsurf(nm) = gw_qsurf(nm) - qex * dtsub             ! and the surface loses it
-         bv_exch  = bv_exch + dble(qex) * dble(dtsub)
-         bv_gross = bv_gross + abs(dble(qex) * dble(dtsub))
          !
-         ! Convert the volume change into a head, honouring the topographic ceiling. Anything
-         ! that will not fit below the ceiling has nowhere to go underground and becomes surface
-         ! water, which is what a seepage face is.
+         ! Volume before the exchange: last sub-step's storage, the lateral, recharge and drain
+         ! volumes collected above, and the lagged part of the exchange (qexpl, the branch of the
+         ! MODFLOW switch that does not depend on this cell's head). The symmetric part
+         ! csym * (zs - h) is taken IMPLICITLY in h below, inside the storage inversion.
+         !
+         ! Why implicit. A submerged subgrid cell has no storage between its highest pixel and
+         ! the pond level (gw_cell_storage: storage area acell - awet = 0 there), so its head is
+         ! pinned to the pond by the exchange alone. Taken explicitly, one sub-step of lateral
+         ! outflow dropped the head from the pond level to the crest, the next sub-step's exchange
+         ! saw a metre of driving head and refilled it, and the excess went straight back to the
+         ! surface as seepage: the compound case cycled 65,000 m3 through its aquifer where the
+         ! semi-implicit solver, which carries this term implicitly, moved 2,800, and the head
+         ! under the pond flip-flopped between crest and pond level every sub-step. With the
+         ! exchange implicit the head settles at zs minus the small drawdown the lateral loss
+         ! needs, as the semi-implicit path has it. That alone was not enough (see the pinning
+         ! below), but it is what makes the inversion well-posed in the flat band: the linear
+         ! term gives the residual a slope where the storage curve has none.
          !
          ! Against the ceiling this cell had at the END of the last step, not the one it has
          ! now. The two differ whenever the surface moved, and taking the new one here loses the
@@ -905,7 +915,12 @@ contains
          ! destroyed: -5.6 % on the seepslope case before this line was made explicit.
          !
          call gw_cell_storage(nm, gw_head(nm), vol, dvol, gw_zceil_n(nm))
-         vol = vol + gw_dvol(nm)
+         vol = vol + gw_dvol(nm) + dble(qexpl) * dble(dtsub)
+         hsat = .false.
+         if (subgrid) hsat = (gw_head(nm) >= dble(subgrid_z_zmax(nm)) .and. zs(nm) > dble(subgrid_z_zmax(nm)))
+         !
+         ! Topographic ceiling: anything that will not fit below it has nowhere to go
+         ! underground and becomes surface water, which is what a seepage face is.
          !
          if (subgrid) then
             hcap = max(dble(subgrid_z_zmax(nm)), zs(nm))
@@ -914,25 +929,77 @@ contains
          endif
          call gw_cell_storage(nm, hcap, volcap, dvol)
          !
+         ! Invert   V(h) + csym dtsub h = vol + csym dtsub zs   for h.
+         !
+         ! V(h) is piecewise linear, increasing and concave (the storage area shrinks as the head
+         ! rises), and the exchange adds a linear term, so the left-hand side is increasing and
+         ! concave with slope at least csym*dtsub: Newton from BELOW the root converges
+         ! monotonically without overshoot, one table segment per step at worst. From above it can
+         ! land on the flat band of a saturated cell, jump to the base and then climb, so iterate to
+         ! a tolerance rather than a fixed count (three fixed steps left 1.9 % on the compound
+         ! case). Exits in one or two steps in the common case.
+         !
+         cx   = dble(csym) * dble(dtsub)
+         rhs  = vol + cx * zs(nm)
+         hnew = min(gw_head(nm), hcap)
+         ! The step is always taken before the test: a sub-step's volume change can be below any
+         ! tolerance (the far field of Edelman moves 1e-9 m3 per sub-step) and skipping it leaves
+         ! that volume in the budget but not in the head, 0.007 % of throughput on Dupuit.
+         !
+         do it = 1, 30
+            call gw_cell_storage(nm, hnew, volh, dvolh)
+            resid = rhs - (volh + cx * hnew)
+            hnew = hnew + resid / max(dble(dvolh) + cx, 1.0d-12)
+            hnew = min(max(hnew, dble(gw_zbase(nm))), hcap)
+            if (abs(resid) <= 1.0d-9 * dble(acell)) exit
+         enddo
+         !
+         ! The exchange the cell actually took, at the head it ends up with (positive: surface
+         ! into aquifer). The surface loses the same volume.
+         !
+         pin = .false.
+         if (subgrid) pin = (hsat .or. hnew > dble(subgrid_z_zmax(nm)))   ! separate test: no short-circuit in Fortran, and subgrid_z_zmax is not allocated otherwise
+         if (pin) then
+            !
+            ! Saturated under a pond: the water table IS the pond. The subgrid storage curve is
+            ! flat between the highest pixel and the pond level, so the head there is set by the
+            ! exchange balance alone, with no storage to damp it. Sub-stepping that explicitly is
+            ! a Jacobi sweep of an elliptic problem whose off-diagonal (lateral conductance K b w
+            ! / dx) exceeds its diagonal (leakance * awet): the compound case settled into a
+            ! crest/pond checkerboard under its pond, each cell draining into a neighbour a metre
+            ! lower and refilling from the pond next sub-step, 34,000 m3 cycling through the
+            ! exchange where the semi-implicit solver -- which carries the same equations
+            ! implicitly and finds the uniform solution -- moved 2,800. So a cell that was
+            ! saturated at the start of the sub-step, or whose root lands in the flat band, is
+            ! held at the pond level: the pond refills whatever the lateral flow took (that is
+            ! the exchange), and anything more than fits leaves as seepage below. What this
+            ! drops is the drawdown a rate-limited refill would show, zs - deficit/(csym dtsub),
+            ! 0.03 m on the compound pond in the semi-implicit run.
+            !
+            hnew = hcap
+            qex  = qexpl + real(max(volcap - vol, 0.0d0) / dble(dtsub))   ! vol already holds qexpl's share
+            vol  = max(vol, volcap)
+         else
+            qex = real(dble(csym) * (zs(nm) - hnew)) + qexpl
+            vol = vol + cx * (zs(nm) - hnew)
+         endif
+         gw_qsurf(nm) = gw_qsurf(nm) - qex * dtsub
+         bv_exch  = bv_exch + dble(qex) * dble(dtsub)
+         bv_gross = bv_gross + abs(dble(qex) * dble(dtsub))
+         !
+         ! Above the ceiling: the root was clamped at hcap and the volume does not fit. The
+         ! excess seeps out, and the cell reports the ceiling, which is where a saturated cell's
+         ! water table is (the semi-implicit and the non-subgrid paths report the same level).
+         !
          if (vol > volcap) then
             excess = vol - volcap
             vol    = volcap
+            hnew   = hcap
             gw_qsurf(nm) = gw_qsurf(nm) + real(excess)
             bv_ceil  = bv_ceil - excess               ! leaves the aquifer, so negative
             bv_gross = bv_gross + abs(excess)
          endif
          !
-         vol = max(vol, 0.0d0)
-         !
-         ! Invert the storage relation. It is piecewise linear, so a few Newton steps are exact
-         ! to round-off; the guard on the derivative only matters at a saturated cell.
-         !
-         hnew = gw_head(nm)
-         do it = 1, 3
-            call gw_cell_storage(nm, hnew, volh, dvolh)
-            hnew = hnew + (vol - volh) / dble(max(dvolh, 1.0e-12))
-            hnew = min(max(hnew, dble(gw_zbase(nm))), hcap)
-         enddo
          gw_head(nm) = hnew
          gw_zceil_n(nm) = hcap
          !

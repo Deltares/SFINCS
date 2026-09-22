@@ -301,6 +301,7 @@ module sfincs_data
       real*8, dimension(:), allocatable :: gw_head_n   ! head at time level n
       real*8, dimension(:), allocatable :: gw_dvol     ! explicit path: volume change per step
       real*4, dimension(:), allocatable :: gw_qsurf    ! explicit path: volume handed to the surface
+      real*8, dimension(:), allocatable :: si_qsrc     ! semi-implicit path: source volume (m3) the pressure solve applied to each surface row this step (rain, qext, aquifer exchange, seepage); the subgrid continuity adds it to z_volume
       real*8, dimension(:), allocatable :: gw_zceil_n  ! explicit path: ceiling at the previous step
       real*4, parameter :: gw_awet_floor = 0.01
       ! real*8, not real*4. The head is a LEVEL: it carries the datum, and the datum is
