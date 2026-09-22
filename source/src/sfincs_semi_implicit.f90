@@ -80,6 +80,7 @@ module sfincs_semi_implicit
    real*4, dimension(:), allocatable :: gw_qexpl_applied  ! nrows_si, lagged exchange remainder
    real*4, dimension(:), allocatable :: gw_cseep_applied  ! nrows_si, seepage conductance * dt
    real*8, dimension(:), allocatable :: gw_zceil_applied  ! nrows_si, the ceiling the aquifer row was assembled against (last outer iteration)
+   real*8, dimension(:), allocatable :: gw_qseep_surf     ! nrows_si, lagged seepage volume the surface row received (last outer iteration)
    logical, dimension(:), allocatable :: gw_lagged        ! nrows_si, row carries a lagged coupling term this iterate
    real*4, dimension(:), allocatable :: gw_cdrain_applied ! nrows_si, drain conductance * dt
    !
@@ -638,6 +639,8 @@ contains
       gw_cseep_applied = 0.0
       allocate(gw_zceil_applied(nrows_si))
       gw_zceil_applied = 0.0d0
+      allocate(gw_qseep_surf(nrows_si))
+      gw_qseep_surf = 0.0d0
       allocate(gw_lagged(nrows_si))
       gw_lagged = .false.
       allocate(gw_cdrain_applied(nrows_si))
@@ -1047,8 +1050,8 @@ contains
          ! is the right thing to add.
          !
          call gw_seepage_terms(nm, si_eta_k(irow), si_eta_k(nrows_si + irow), dt, cseep, zceil)
-         si_rhs(irow) = si_rhs(irow) &
-                      + dble(cseep) * dble(dt) * (si_eta_k(nrows_si + irow) - zceil)
+         gw_qseep_surf(irow) = dble(cseep) * dble(dt) * (si_eta_k(nrows_si + irow) - zceil)
+         si_rhs(irow) = si_rhs(irow) + gw_qseep_surf(irow)
       endif
       !
    enddo
@@ -1461,41 +1464,51 @@ contains
          ! (si_qsrc, see the rhs_c loop) so z_volume moves by exactly the volume the budget
          ! books. The seepage term below is added the same way.
          !
+         ! The exchange's lagged remainder needs no analogous correction: the surface row
+         ! receives -dt*qexpl_k explicitly (the surface loop, si_rhs), and the budget above
+         ! books gw_qexpl_applied(irow)*dt from that SAME iterate's qexpl -- the two are the
+         ! same number by construction, not two measurements of one flux that can drift apart
+         ! the way the seepage terms below did.
+         !
          si_qsrc(nm) = si_qsrc(nm) - bv_term
          !
          ! Seepage out of the aquifer at the ceiling. Signed as every other term is: negative
-         ! because it LEAVES. Applied CONDUCTANCE against CONVERGED levels, exactly as the
-         ! exchange term above -- the on/off switch the matrix made is honoured through
-         ! gw_cseep_applied, and the ceiling is re-evaluated at the level the surface actually
-         ! reached.
+         ! because it LEAVES. Applied CONDUCTANCE against the APPLIED ceiling: gw_zceil_applied
+         ! is the ceiling the aquifer row was actually assembled against at the last outer
+         ! iteration, in every mode and both branches, so cseep*dt*(h_new - zceil_applied) is
+         ! exactly the volume the matrix removed -- the budget should describe the operator the
+         ! solver ran, not a ceiling re-evaluated at some other level.
          !
-         ! WITHOUT subgrid the ceiling has to be the converged one, not the lagged one the
-         ! assembly used. A saturated cell under a deepening pond stores Sy*A more per metre of
-         ! pond, so the row's storage term and its seepage term BOTH shift when the ceiling moves,
-         ! by Sy*A*dzs each, and the two shifts cancel in the head -- which is why the ceiling
-         ! case gets the right water level either way. They do not cancel in the budget:
-         ! gw_total_storage measures against the new ceiling, so the seepage has to as well.
-         ! Measured against the lagged ceiling it over-reports by Sy*A*dzs per step, which on the
-         ! ceiling case is 77.3 m3 over the run and reads as a 5.8 % closure error against a
-         ! state that is in fact correct.
+         ! The old non-subgrid rule re-evaluated the ceiling at the converged surface level
+         ! instead. That was a compensation for an outer loop that did not converge tightly: it
+         ! happened to cancel against the storage term's own re-evaluation at the converged
+         ! ceiling (a Sy*A*dzs shift each, which is why the ceiling case's head came out right
+         ! either way), but it left the surface hand-off booking a number the pond's surface row
+         ! never actually received -- the row got the LAGGED cseep*dt*(h_k - zceil_k) written in
+         ! the surface loop above, not this converged-ceiling number. With gw_tolouter now tight
+         ! and the surface hand-off corrected just above to match what the row received, that
+         ! compensation is no longer needed and the applied-operator rule is the honest one in
+         ! both branches.
          !
-         ! WITH subgrid the storage relation does not see the pond at all (gw_cell_storage: the
-         ! storage area is acell - awet(h), nothing above the crest), so there is no shift to
-         ! cancel and the volume the row removed is exactly cseep*dt*(h - zceil_lagged). Booking
-         ! it against the converged ceiling over-reports by Sy*A*dzs per step: 17.0 m3 (1.26 %)
-         ! on ceiling uni_si_sbg, 45 m3 on seepslope, while the storage change matched the
-         ! explicit twin to 4 digits. The surface hand-off (si_qsrc) has to be this same number,
-         ! or the pond receives water the aquifer never lost.
-         !
-         if (subgrid) then
-            zceil = gw_zceil_applied(irow)
-         else
-            call gw_seepage_terms(nm, si_eta_k(irow), gw_head(nm), dt, cseep, zceil)
-         endif
+         zceil    = gw_zceil_applied(irow)
          bv_term  = -dble(gw_cseep_applied(irow)) * (dble(gw_head(nm)) - dble(zceil))
          bv_ceil  = bv_ceil + bv_term
          bv_gross = bv_gross + abs(bv_term)
          si_qsrc(nm) = si_qsrc(nm) - bv_term
+         !
+         ! Non-subgrid surface hand-off: the aquifer row above removed -bv_term (bv_term is
+         ! negative, water leaving), but the surface row's si_rhs only ever received the LAGGED
+         ! gw_qseep_surf(irow) = cseep*dt*(h_k - zceil_k) from the last assembly. At outer
+         ! convergence the two agree to gw_tolouter; short of that, or systematically at any
+         ! tolerance, they do not, and it is the surface state -- not the aquifer's, which the
+         ! matrix already applied -- that has to absorb the difference so the pond ends up
+         ! holding exactly what the budget books. With subgrid this is unnecessary: the surface
+         ! state there is rebuilt from si_qsrc by compute_water_levels_subgrid, so the pond
+         ! already receives exactly what the budget booked above.
+         !
+         if (.not. subgrid) then
+            si_x(irow) = si_x(irow) + (-bv_term - gw_qseep_surf(irow)) / dble(acell)
+         endif
          !
          ! Drain boundary: applied conductance against the converged head.
          !
