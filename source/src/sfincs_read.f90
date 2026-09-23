@@ -1,9 +1,7 @@
 module sfincs_read
    !
-   ! Keyword readers for SFINCS input files. The legacy read_*_input
-   ! helpers are kept for callers outside sfincs_input (snapwave,
-   ! spiderweb); new code should use the generic get_keyword(...)
-   ! interface, which supports deprecated-alias lists.
+   ! Keyword readers for SFINCS input files. Use the generic
+   ! get_keyword(...) interface, which supports deprecated-alias lists.
    !
    use sfincs_log, only: write_log
    !
@@ -16,196 +14,7 @@ module sfincs_read
    !
 
 contains
-   
-   subroutine read_real_input(fileid,keyword,value,default)
    !
-   character(*), intent(in) :: keyword
-   character(len=256)       :: keystr
-   character(len=256)       :: valstr
-   character(len=256)       :: line
-   integer, intent(in)      :: fileid
-   real*4, intent(out)      :: value
-   real*4, intent(in)       :: default
-   integer j,stat,ilen
-   !
-   value = default
-   !
-   rewind(fileid)   
-   !
-   do while(.true.)
-      !
-      read(fileid,'(a)',iostat = stat)line
-      !
-      if (stat==-1) exit
-      !
-      call read_line(line, keystr, valstr)
-      !
-      if (trim(keystr)==trim(keyword)) then
-         !
-         read(valstr,*)value         
-         !
-         exit
-         !
-      endif
-      !
-   enddo 
-   !
-   end  subroutine  
-
-   subroutine read_real_array_input(fileid,keyword,value,default,nr)
-   !
-   character(*), intent(in) :: keyword
-   character(len=256)       :: keystr
-   character(len=256)       :: valstr
-   character(len=256)       :: line
-   integer, intent(in)      :: fileid
-   integer, intent(in)      :: nr
-   real*4, dimension(:), intent(out), allocatable :: value
-   real*4, intent(in)       :: default
-   integer j,stat, m,ilen
-   !
-   allocate(value(nr))
-   !
-   value = default
-   !
-   rewind(fileid)   
-   !
-   do while(.true.)
-      !
-      read(fileid,'(a)',iostat = stat)line
-      !
-      if (stat==-1) exit
-      !
-      call read_line(line, keystr, valstr)
-      !
-      if (trim(keystr)==trim(keyword)) then
-         !
-         read(valstr,*)(value(m), m = 1, nr)
-         !
-         exit
-         !
-      endif
-      !
-   enddo 
-   !
-   end  subroutine  
-
-   
-   subroutine read_int_input(fileid,keyword,value,default)
-   !
-   character(*), intent(in) :: keyword
-   character(len=256)       :: keystr
-   character(len=256)       :: valstr
-   character(len=256)       :: line
-   integer, intent(in)      :: fileid
-   integer, intent(out)     :: value
-   integer, intent(in)      :: default
-   integer j,stat,ilen
-   !
-   value = default
-   !
-   rewind(fileid)   
-   !
-   do while(.true.)
-      !
-      read(fileid,'(a)',iostat = stat)line
-      !
-      if (stat==-1) exit
-      !
-      call read_line(line, keystr, valstr)
-      !
-      if (trim(keystr)==trim(keyword)) then
-         !
-         read(valstr,*)value         
-         !
-         exit
-         !
-      endif
-      !
-   enddo 
-   !
-   end subroutine
-
-   
-   subroutine read_char_input(fileid,keyword,value,default)
-   !
-   character(*), intent(in)  :: keyword
-   character(len=256)        :: keystr0
-   character(len=256)        :: keystr
-   character(len=256)        :: valstr
-   character(len=256)        :: line
-   integer, intent(in)       :: fileid
-   character(*), intent(in)  :: default
-   character(*), intent(out) :: value
-   integer j,stat,ilen,jn
-   !
-   value = default
-   !
-   rewind(fileid)   
-   !
-   do while(.true.)
-      !
-      read(fileid,'(a)',iostat = stat)line
-      !
-      if (stat==-1) exit
-      !
-      call read_line(line, keystr, valstr)
-      !
-      if (trim(keystr)==trim(keyword)) then
-         !
-         value = valstr
-         !
-         exit
-         !
-      endif
-      !
-   enddo 
-   !
-   end subroutine 
-
-
-   subroutine read_logical_input(fileid,keyword,value,default)
-   !
-   character(*), intent(in)  :: keyword
-   character(len=256)        :: keystr0
-   character(len=256)        :: keystr
-   character(len=256)        :: valstr
-   character(len=256)        :: line
-   integer, intent(in)       :: fileid
-   logical, intent(in)       :: default
-   logical, intent(out)      :: value
-   integer j,stat,ilen
-   !
-   value = default
-   !
-   rewind(fileid)   
-   !
-   do while(.true.)
-      !
-      read(fileid,'(a)',iostat = stat)line
-      !
-      if (stat==-1) exit
-      !
-      call read_line(line, keystr, valstr)
-      !
-      if (trim(keystr)==trim(keyword)) then
-         !
-         if (valstr(1:1) == '1' .or. valstr(1:1) == 'y' .or. valstr(1:1) == 'Y' .or. valstr(1:1) == 't' .or. valstr(1:1) == 'T') then
-            value = .true.
-         else
-            value = .false.
-         endif 
-         !
-         exit
-         !
-      endif
-      !
-   enddo 
-   !
-   end subroutine 
-
-
-   
    !-----------------------------------------------------------------------------------------------------!
    !
    subroutine get_keyword_real(fileid, keyword, value, default, legacy)
@@ -215,7 +24,8 @@ contains
       ! one-line deprecation warning per matched alias. Falls back to
       ! `default` when nothing matches.
       !
-      ! Called from: read_sfincs_input (sfincs_input).
+      ! Called from: read_sfincs_input (sfincs_input), read_snapwave_input (sfincs_snapwave),
+      ! read_spw_dimensions / read_amuv_dimensions (sfincs_spiderweb).
       !
       implicit none
       !
@@ -261,7 +71,8 @@ contains
       !
       ! Read one integer keyword. See get_keyword_real for the semantics.
       !
-      ! Called from: read_sfincs_input (sfincs_input).
+      ! Called from: read_sfincs_input (sfincs_input), read_snapwave_input (sfincs_snapwave),
+      ! read_spw_dimensions / read_amuv_dimensions (sfincs_spiderweb).
       !
       implicit none
       !
@@ -309,7 +120,7 @@ contains
       ! semantics. The entire right-hand side (after trailing comments
       ! are stripped) becomes `value`.
       !
-      ! Called from: read_sfincs_input (sfincs_input).
+      ! Called from: read_sfincs_input (sfincs_input), read_snapwave_input (sfincs_snapwave).
       !
       implicit none
       !
@@ -357,7 +168,7 @@ contains
       ! anything else (including absence → `default`, and `0`, `n`, `N`,
       ! `f`, `F`) as false.
       !
-      ! Called from: read_sfincs_input (sfincs_input).
+      ! Called from: read_sfincs_input (sfincs_input), read_snapwave_input (sfincs_snapwave).
       !
       implicit none
       !
@@ -544,7 +355,7 @@ contains
       ! comment. Blank lines and lines starting with `#`, `!`, or `@`
       ! return empty strings.
       !
-      ! Called from: find_value, and the legacy read_*_input helpers above.
+      ! Called from: find_value (this module).
       !
       implicit none
       !
