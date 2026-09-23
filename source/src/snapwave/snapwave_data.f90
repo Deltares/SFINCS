@@ -241,11 +241,9 @@ module snapwave_data
    real*4                                    :: Tini
    real*4                                    :: sigmin
    real*4                                    :: sigmax   
-   integer                                   :: wind_opt     ! option of wind growth on (1) or off (0)         
    !
    ! Vegetation parameters
    !
-   integer                                      :: vegetation_opt
    character*232                                :: vegmapfile   ! name of vegetation map file (Delft3D .dep format)
    integer                                      :: nveg         ! Number of vegetation species used [-]
    integer                                      :: no_secveg    ! Number of sections used in vertical schematization of vegetation [-]

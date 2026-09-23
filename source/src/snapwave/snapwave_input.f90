@@ -80,11 +80,11 @@ contains
    !
    ! Wind
    !
-   call get_keyword(500, 'snapwave_wind',                   wind_opt,             0)                           ! Flag whether to include windgrowth in SnapWave (1) or not (0, default)
+   call get_keyword(500, 'snapwave_wind',                   wind,                 .false.)                     ! Include wind growth in SnapWave (default off)
    !
    ! Vegetation input
    !
-   call get_keyword(500, 'snapwave_vegetation',             vegetation_opt,       0)
+   call get_keyword(500, 'snapwave_vegetation',             vegetation,           .false.)                     ! Include vegetation dissipation in SnapWave (default off)
    !
    ! Input files
    !
@@ -131,17 +131,6 @@ contains
       endif
       !
    endif
-   !
-   wind = .true.
-   if (wind_opt==0) then
-      wind = .false.
-   endif   
-   !
-   vegetation = .true.
-   !
-   if (vegetation_opt == 0) then
-      vegetation = .false.
-   endif   
    !
    if (nr_sweeps /= 1 .and. nr_sweeps /= 4) then
       !

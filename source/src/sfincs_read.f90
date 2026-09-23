@@ -5,6 +5,8 @@ module sfincs_read
    !
    use sfincs_log, only: write_log
    !
+   implicit none
+   !
    interface get_keyword
       module procedure get_keyword_real
       module procedure get_keyword_int

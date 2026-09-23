@@ -464,6 +464,8 @@ contains
       ! meteo map output); storemaxwind is only meaningful if we are
       ! storing the wind in the first place.
       !
+      store_wind = .false.
+      !
       if (store_meteo)      store_wind     = .true.
       if (.not. store_wind) store_wind_max = .false.
       !
