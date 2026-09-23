@@ -113,6 +113,16 @@ property the CG solver depends on.
   capped at the ground alone, nothing stored above it, no pond term. Both leave the seepage
   ceiling (`max(ground, zs)`) untouched — only what happens to storage between the ground and that
   ceiling changes.
+  Measured 2026-09-22 over the whole case matrix (`plans/2026-09-22-groundwater-solver-defects-RESULTS.md`
+  in the project folder): mode 2 fails the way the rejected 2026-09-02 attempt did (explicit and
+  semi-implicit disagree by up to 1.8 m in the band with neither storage nor seepage); mode 1
+  makes the two branches agree wherever storage was their difference (ceiling pond 0.232 m in
+  both, seepslope 1374 m3 in both, the exchange case meets at 0.60 m in both) and puts the
+  tidal-mean head under the sea on the polder case at mean sea level to a millimetre (mode 0:
+  0.084 m below), because a falling tide no longer ejects `Sy * A * dzs`. Its cost is on the
+  semi-implicit path, where the seepage-switch chatter that was confined to subgrid rows reaches
+  the non-subgrid rows too (thousands of stalled outer steps per polder run, closure still
+  within 0.01 %). Mode 1 is the recommended default; the switch has not been flipped yet.
 - **How the surface receives its share.** Without subgrid the level the semi-implicit solve
   returns is the state, and the surface row already carried rain, `qext`, the exchange and the
   seepage. With subgrid the state is the cell volume: the continuity re-integrates `z_volume`
@@ -132,6 +142,17 @@ property the CG solver depends on.
   pond with 65,000 m3 cycling through the exchange where the coupled solve moved 2,800. What the
   rule gives up is the rate-limited drawdown the coupled solve shows at a pond edge draining
   into the dry slope (6 cm on the compound case, 1e-4 m elsewhere).
+- **Infiltration under a thin sheet depends on cell size with subgrid tables.** The exchange
+  acts over the table's wet area, `C * awet(zs)`, and a rain sheet a few millimetres deep wets a
+  small fraction of a cell whose pixels span a slope: a 20 m cell on the compound slope is about
+  half as wet as a 10 m cell at the same sheet depth, so it infiltrates about half as much. That
+  is the convention doing what it says, not a defect, but it makes the recharge under a rain
+  sheet a function of the level of refinement. Measured: on the compound case the quadtree
+  upslope head is 0.10 m below the regular grid's after 24 h; on the tidal island 29.3 % of the
+  rain reaches the aquifer with subgrid against 39.8 % without, on either grid. Without subgrid
+  the exchange acts over the whole cell as soon as it is wet, so it does not see the sheet depth
+  at all. The one knob a user has is resolution over the infiltrating area: a finer level there
+  brings the wet fraction, and the recharge, up towards the non-subgrid value.
 - **Drain boundary.** `Q = gw_cdrain * A * max(h - gw_zdrain, 0)`, out of the aquifer and out of
   the model entirely (representing pumped ditch water), implicit on the aquifer diagonal,
   switched at the outer iterate the same way the seepage face is.
