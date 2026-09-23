@@ -24,7 +24,7 @@ contains
       ! one-line deprecation warning per matched alias. Falls back to
       ! `default` when nothing matches.
       !
-      ! Called from: read_sfincs_input (sfincs_input), read_snapwave_input (sfincs_snapwave),
+      ! Called from: read_sfincs_input (sfincs_input), read_snapwave_input (snapwave_input),
       ! read_spw_dimensions / read_amuv_dimensions (sfincs_spiderweb).
       !
       implicit none
@@ -71,7 +71,7 @@ contains
       !
       ! Read one integer keyword. See get_keyword_real for the semantics.
       !
-      ! Called from: read_sfincs_input (sfincs_input), read_snapwave_input (sfincs_snapwave),
+      ! Called from: read_sfincs_input (sfincs_input), read_snapwave_input (snapwave_input),
       ! read_spw_dimensions / read_amuv_dimensions (sfincs_spiderweb).
       !
       implicit none
@@ -120,7 +120,7 @@ contains
       ! semantics. The entire right-hand side (after trailing comments
       ! are stripped) becomes `value`.
       !
-      ! Called from: read_sfincs_input (sfincs_input), read_snapwave_input (sfincs_snapwave).
+      ! Called from: read_sfincs_input (sfincs_input), read_snapwave_input (snapwave_input).
       !
       implicit none
       !
@@ -168,7 +168,7 @@ contains
       ! anything else (including absence → `default`, and `0`, `n`, `N`,
       ! `f`, `F`) as false.
       !
-      ! Called from: read_sfincs_input (sfincs_input), read_snapwave_input (sfincs_snapwave).
+      ! Called from: read_sfincs_input (sfincs_input), read_snapwave_input (snapwave_input).
       !
       implicit none
       !
