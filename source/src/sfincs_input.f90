@@ -10,7 +10,9 @@ contains
    use sfincs_date
    use sfincs_log
    use sfincs_error
-   use sfincs_read   
+   use sfincs_read
+   use sfincs_discharges,     only: srcfile, disfile, netsrcdisfile
+   use sfincs_src_structures, only: drnfile, dkbfile
    !
    implicit none
    !
@@ -230,6 +232,8 @@ contains
    call read_char_input(500,'weirfile',weirfile,'none')
    call read_char_input(500,'manningfile',manningfile,'none')   
    call read_char_input(500,'drnfile',drnfile,'none')
+   call read_char_input(500,'dkbfile',dkbfile,'none')
+   call read_char_input(500,'urbfile',urbfile,'none')
    call read_char_input(500,'volfile',volfile,'none')
    call read_char_input(500,'vegetationfile',veggiefile,'none')
    call read_char_input(500,'vegetationtype_toml',veggietype_toml,'none')   ! companion TOML lookup table; if set, veggiefile holds only vegetation_type integers
@@ -277,8 +281,8 @@ contains
    call read_char_input(500,'netampfile',netampfile,'none')      
    call read_char_input(500,'netspwfile',netspwfile,'none')
    !
-   call read_char_input(500,'infiltration_file',infiltrationfile,'none')   
-   call read_char_input(500,'infiltration_type',inftype,'none')
+   call read_char_input(500,'inffile',inffile,'none')   
+   call read_char_input(500,'inftype',inftype,'none')
    !
    ! Output
    call read_char_input(500,'obsfile',obsfile,'none')
@@ -296,7 +300,6 @@ contains
    call read_int_input(500,'store_tsunami_arrival_time',itsunamitime,0)
    call read_real_input(500,'tsunami_arrival_threshold',tsunami_arrival_threshold,0.01)
    call read_logical_input(500,'timestep_analysis',timestep_analysis,.false.)
-   call read_int_input(500,'storeqdrain',storeqdrain,1)
    call read_int_input(500,'storezvolume',storezvolume,0)
    call read_int_input(500,'storestoragevolume',storestoragevolume,0)
    call read_int_input(500,'writeruntime',wrttimeoutput,0)
@@ -307,6 +310,9 @@ contains
    call read_int_input(500,'storewavdir', istorewavdir, 0)
    call read_logical_input(500,'regular_output_on_mesh',use_quadtree_output,.false.)
    call read_logical_input(500, 'store_dynamic_bed_level', store_dynamic_bed_level, .false.)
+   call read_logical_input(500,'store_river_discharge',store_river_discharge,.false.)
+   call read_logical_input(500,'store_urban_drainage_discharge',store_urban_drainage_discharge,.false.)
+   call read_logical_input(500,'store_cumulative_urban_drainage',store_cumulative_urban_drainage,.false.)
    call read_logical_input(500,'snapwave_use_nearest',snapwave_use_nearest,.true.)   
    call read_int_input(500,'percentage_done',percdoneval,5)
    ! Limit to range (0,100)
@@ -523,12 +529,6 @@ contains
    store_cumulative_precipitation = .false.
    if (storecumprcp==1) then
       store_cumulative_precipitation = .true.
-   endif
-   !   
-   if (storeqdrain==0) then
-      store_qdrain = .false.
-   else
-      store_qdrain = .true.
    endif
    !   
    write_time_output = .false.
@@ -780,8 +780,12 @@ contains
       !
       ! Turn off some processes not needed for bathtub flooding
       !
-      nsrc = 0
-      ndrn = 0
+      srcfile       = 'none'
+      disfile       = 'none'
+      netsrcdisfile = 'none'
+      drnfile       = 'none'
+      dkbfile       = 'none'
+      urbfile       = 'none'
       !
       meteo3d = .false.
       wind = .false.
