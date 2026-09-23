@@ -205,23 +205,30 @@ contains
    call read_real_input(500, 'gw_seepage_fac', gw_seepage_fac, 1.0)
    !
    ! Storage convention above the ground under standing water. gw_cell_storage caps the aquifer
-   ! at the ground today (mode 0), but the two solver branches disagree on what "at the ground"
-   ! means once a pond sits on top: without subgrid the water table keeps rising at Sy per metre
-   ! of pond depth (uncapped by the pond, only by leakance), while with subgrid it stops dead at
-   ! the highest subgrid pixel and stores nothing further no matter how deep the pond gets. On the
-   ! ceiling case that is a 0.193 m pond (subgrid) against 0.236 m (non-subgrid); on the island
-   ! case it is 29.3 % of rain delivered to the aquifer (subgrid) against 39.8 % (non-subgrid).
+   ! at the ground, but the two solver branches disagree on what "at the ground" means once a
+   ! pond sits on top: without subgrid the water table keeps rising at Sy per metre of pond depth
+   ! (uncapped by the pond, only by leakance), while with subgrid it stops dead at the highest
+   ! subgrid pixel and stores nothing further no matter how deep the pond gets. On the ceiling
+   ! case that is a 0.193 m pond (subgrid) against 0.236 m (non-subgrid); on the island case it
+   ! is 29.3 % of rain delivered to the aquifer (subgrid) against 39.8 % (non-subgrid).
    !
-   !    gw_storage_mode = 0 : status quo, the two branches as described above (default).
-   !    gw_storage_mode = 1 : confined storativity above the ground. The pond plays no part in
-   !                          the cap; instead, once the head rises past the ground the cell
-   !                          keeps a small, genuine storage capacity at gw_ss (a confined/elastic
-   !                          storativity, per metre of confined aquifer thickness) rather than
-   !                          Sy or nothing. Same rule in both branches, so they agree.
+   ! Mode 1 is the default since 2026-09-23: confined storativity above the ground, in both
+   ! branches alike -- Sy per metre up to the ground, and a confined storativity gw_ss *
+   ! thickness above it. Mode 0 is the pre-2026-09-23 behaviour (the two branches disagree as
+   ! above) kept for comparison. Surface-only models (gwflow = 0) are unaffected in every mode.
+   !
+   !    gw_storage_mode = 0 : pre-2026-09-23 status quo, the two branches disagree as above.
+   !    gw_storage_mode = 1 : confined storativity above the ground (default since 2026-09-23).
+   !                          The pond plays no part in the cap; instead, once the head rises
+   !                          past the ground the cell keeps a small, genuine storage capacity
+   !                          at gw_ss (a confined/elastic storativity, per metre of confined
+   !                          aquifer thickness) rather than Sy or nothing. Same rule in both
+   !                          branches, so they agree.
    !    gw_storage_mode = 2 : non-subgrid adopts the subgrid rule -- capped at the ground alone,
-   !                          nothing stored above it, matching what subgrid already does.
+   !                          nothing stored above it, matching what subgrid already does. Kept
+   !                          only because its failure was measured.
    !
-   call read_int_input(500, 'gw_storage_mode', gw_storage_mode, 0)
+   call read_int_input(500, 'gw_storage_mode', gw_storage_mode, 1)
    call read_real_input(500, 'gw_ss', gw_ss, 1.0e-4)
    call read_real_input(500, 'gw_tolouter', gw_tolouter, 1.0e-5)
    !

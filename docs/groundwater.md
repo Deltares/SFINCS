@@ -41,7 +41,7 @@ All defaults and units below are read directly from `source/src/sfincs_input.f90
 | `gw_bnd_from_zs` | int (0/1) | 0 | - | at open-boundary cells (`kcs == 2`) the aquifer head is reset to the current surface level `zs` every outer iterate, instead of staying at whatever it was given |
 | `gw_from_infiltration` | int (0/1) | 0 | - | routes infiltrated water into `gw_recharge` instead of discarding it; requires `gwflow = 1` and cannot be combined with `gw_rechargefile` (both would write `gw_recharge`) |
 | `gw_seepage_fac` | real | 1.0 | - | seepage-face strength as a multiple of the volume stored above the ceiling; 1.0 removes exactly that volume in one timestep; 0.0 disables the seepage face (kept only to reproduce the old defect where water above the ceiling was simply lost) |
-| `gw_storage_mode` | int (0/1/2) | 0 | - | storage convention above the ground under standing water: `0` = status quo (the two branches disagree, see Coupling); `1` = confined storativity at `gw_ss` above the ground in both branches; `2` = non-subgrid adopts the subgrid rule (capped at the ground, nothing stored above it) |
+| `gw_storage_mode` | int (0/1/2) | 1 | - | storage convention above the ground under standing water: `0` = pre-2026-09-23 status quo (the two branches disagree, see Coupling); `1` = confined storativity at `gw_ss` above the ground in both branches; `2` = non-subgrid adopts the subgrid rule (capped at the ground, nothing stored above it) |
 | `gw_ss` | real | 1.0e-4 | 1/m | confined/elastic storativity applied above the ground when `gw_storage_mode = 1`; unused otherwise |
 | `gw_tolouter` | real | 1.0e-5 | m | outer-loop tolerance for rows carrying a lagged coupling term (an active seepage face, or a one-sided surface/aquifer exchange); the bulk surface tolerances (`si_tolouter`, `si_outer_frac`) cannot see these rows because the aquifer moves ~1e-4 m/step |
 | `gw_zdrain` | real | -999.0 | m | uniform drain level; the drain is off unless this or `gw_zdrainfile` is set **and** `gw_cdrain > 0`. A uniform value drains *every* cell whose head exceeds it, sea bed and levees included |
@@ -122,7 +122,7 @@ property the CG solver depends on.
   0.084 m below), because a falling tide no longer ejects `Sy * A * dzs`. Its cost is on the
   semi-implicit path, where the seepage-switch chatter that was confined to subgrid rows reaches
   the non-subgrid rows too (thousands of stalled outer steps per polder run, closure still
-  within 0.01 %). Mode 1 is the recommended default; the switch has not been flipped yet.
+  within 0.01 %). Mode 1 is the default since 2026-09-23.
 - **How the surface receives its share.** Without subgrid the level the semi-implicit solve
   returns is the state, and the surface row already carried rain, `qext`, the exchange and the
   seepage. With subgrid the state is the cell volume: the continuity re-integrates `z_volume`
