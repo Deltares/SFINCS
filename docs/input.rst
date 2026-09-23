@@ -371,7 +371,7 @@ Spatially uniform infiltration is still specified directly in sfincs.inp with ``
 NetCDF infiltration input (recommended):
 %%%%%
 
-**NOTE - Available from SFINCS v2026.02 Hautacam release onwards**
+**NOTE - Available from SFINCS v2026.02 Hautecam release onwards**
 
 For all spatially varying infiltration methods the recommended interface is:
 
@@ -561,7 +561,7 @@ This option also supports restart functionality.
 The bucket model:
 %%%%%
 
-**NOTE - Available from SFINCS v2026.02 Hautacam release onwards**
+**NOTE - Available from SFINCS v2026.02 Hautecam release onwards**
 
 The bucket model is a linear-reservoir representation of infiltration and losses. It is configured with:
 
