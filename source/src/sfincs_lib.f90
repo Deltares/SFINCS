@@ -96,7 +96,7 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.4.2-alpha Galibier+branch:qsrc"
+   build_revision = "$Rev: v2.4.2-alpha Galibier+branch:input_rewrite"
    build_date     = "$Date: 2026-09-23"
    !
    call write_log('', 1)

@@ -354,6 +354,10 @@ contains
          !
       endif
       !
+      ! Backward compatibility for the obsolete advection = 2
+      !
+      call read_legacy_advection(500)
+      !
       close(500)
       !
       ! Done with reading input
@@ -644,6 +648,31 @@ contains
          store_maximum_velocity = .false.
          !
       endif
+      !
+   end subroutine
+   !
+   !-----------------------------------------------------------------------------------------------------!
+   !
+   subroutine read_legacy_advection(fileid)
+      !
+      ! Backward compatibility for the obsolete 'advection = 2' (2D advection),
+      ! which used to switch advection on. get_keyword_logical only accepts
+      ! '1', 'y' or 't' as true, so '2' would silently turn advection off.
+      !
+      ! Called from: read_sfincs_input (this module).
+      !
+      use sfincs_data, only: advection
+      !
+      implicit none
+      !
+      integer, intent(in) :: fileid
+      !
+      character(len=256) :: valstr
+      logical            :: found
+      !
+      call find_value(fileid, 'advection', valstr, found)
+      !
+      if (found .and. valstr(1:1) == '2') advection = .true.
       !
    end subroutine
    !
