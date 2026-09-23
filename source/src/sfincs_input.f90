@@ -225,7 +225,7 @@ contains
       call get_keyword(500, 'disfile',                         disfile,                         'none')            ! river-point discharge time series
       call get_keyword(500, 'spwfile',                         spwfile,                         'none')            ! spiderweb tropical-cyclone file
       call get_keyword(500, 'wndfile',                         wndfile,                         'none')            ! uniform wind time series
-      call get_keyword(500, 'prcfile',                         prcpfile,                        'none',    ['prcpfile','precipfile']) ! uniform precipitation time series
+      call get_keyword(500, 'prcfile',                         prcpfile,                        'none',    [character(len=10) :: 'prcpfile', 'precipfile']) ! uniform precipitation time series
       call get_keyword(500, 'amufile',                         amufile,                         'none')            ! 2D wind u-component file
       call get_keyword(500, 'amvfile',                         amvfile,                         'none')            ! 2D wind v-component file
       call get_keyword(500, 'ampfile',                         ampfile,                         'none')            ! 2D atmospheric pressure file
@@ -278,7 +278,7 @@ contains
       call get_keyword(500, 'store_tsunami_arrival_time',      store_tsunami_arrival_time,      .false.)           ! store tsunami arrival time per cell
       call get_keyword(500, 'tsunami_arrival_threshold',       tsunami_arrival_threshold,       0.01)              ! water-depth threshold for tsunami arrival
       call get_keyword(500, 'timestep_analysis',               timestep_analysis,               .false.)           ! write per-cell timestep limiter diagnostics
-      call get_keyword(500, 'storezvolume',                    store_zvolume,                   .false.)           ! store subgrid cell volume (requires subgrid)
+      call get_keyword(500, 'storezvolume',                    store_zvolume,                   .true.)           ! store subgrid cell volume (requires subgrid)
       call get_keyword(500, 'storestoragevolume',              store_storagevolume,             .false.)           ! store remaining storage volume (requires subgrid + volfile)
       call get_keyword(500, 'writeruntime',                    write_time_output,               .false.)           ! write runtimes.txt at end of simulation
       call get_keyword(500, 'debug',                           debug,                           .false.)           ! debug output at every time step
@@ -345,7 +345,7 @@ contains
          cd_wnd(3) =  50.0
          cd_val(1) = 0.0010
          cd_val(2) = 0.0025
-         cd_val(3) = 0.0025
+         cd_val(3) = 0.0015
          !
       else
          !
