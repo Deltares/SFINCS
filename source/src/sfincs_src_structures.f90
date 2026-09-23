@@ -1837,6 +1837,35 @@ contains
          call get_value(tbl_struct, 'invert_2',          structures(i)%invert_2,          0.0,   stat=stat)
          call get_value(tbl_struct, 'length',            structures(i)%length,            0.0,   stat=stat)
          !
+         ! Barrel dimensions must be positive: a zero dimension gives a zero
+         ! hydraulic radius and a NaN discharge in the culvert formulation.
+         !
+         if (structures(i)%structure_type == structure_culvert) then
+            !
+            if (structures(i)%shape == shape_circular) then
+               !
+               if (structures(i)%diameter <= 0.0) then
+                  !
+                  ierr = 1
+                  write(logstr,'(a,i0)')' Error ! Culvert diameter must be > 0 in src_structure entry ', i
+                  call write_log(logstr, 1)
+                  call cleanup_on_error()
+                  return
+                  !
+               endif
+               !
+            elseif (structures(i)%width <= 0.0 .or. structures(i)%height <= 0.0) then
+               !
+               ierr = 1
+               write(logstr,'(a,i0)')' Error ! Culvert width and height must be > 0 in src_structure entry ', i
+               call write_log(logstr, 1)
+               call cleanup_on_error()
+               return
+               !
+            endif
+            !
+         endif
+         !
          ! Dike-breach submergence threshold. Defaults to 2/3 (0.667), the
          ! standard broad-crested-weir / Villemonte value.
          !

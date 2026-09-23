@@ -397,7 +397,7 @@ There is no separate orifice structure type. To model an orifice, use ``type = "
 Gate
 ^^^^
 
-The gate is a bidirectional opening with a horizontal sill. Discharge is computed from an inertial culvert-style momentum update (Bates et al., 2010), per unit width, and then multiplied by the gate ``width``. The previous-step discharge :math:`q^n` is carried through the relaxation blend, so the gate has memory on the order of ``structure_relax`` time steps.
+The gate is a bidirectional opening with a horizontal sill. Discharge is computed from an inertial culvert-style momentum update (Bates et al., 2010), per unit width, and then multiplied by the gate ``width``. The previous-step discharge :math:`q^n` is carried through the relaxation blend, so the gate has memory on the order of ``structure_relax`` seconds.
 
 With :math:`h = \max(\max(z_{s,1}, z_{s,2}) - z_\text{sill},\, 0)` and :math:`\partial z_s/\partial s = (z_{s,2} - z_{s,1})/L`:
 
@@ -618,9 +618,9 @@ Discharges from drainage structures are relaxation-blended between time steps to
 
 .. math::
 
-   q^{n+1}_{\text{blended}} = \alpha \, q^{n+1}_{\text{raw}} + (1 - \alpha) \, q^{n}, \qquad \alpha = \frac{1}{N}
+   q^{n+1}_{\text{blended}} = \alpha \, q^{n+1}_{\text{raw}} + (1 - \alpha) \, q^{n}, \qquad \alpha = \frac{\Delta t}{T + \Delta t}
 
-where :math:`N` is set by the ``structure_relax`` keyword in ``sfincs.inp`` — a dimensionless step count: a value of :math:`N` damps the discharge response over roughly :math:`N` time steps. Default is ``4.0``; typical range is 1 (no smoothing) to 10.
+where :math:`T` is the relaxation time constant in seconds, set by the ``structure_relax`` keyword in ``sfincs.inp``, and :math:`\Delta t` is the model time step. This is a first-order lag: the structure discharge follows the raw formula value with a response time of about :math:`T` seconds, independent of the time step. Default is ``10`` s; ``0`` disables the relaxation.
 
 **Output: storing structure discharges**
 

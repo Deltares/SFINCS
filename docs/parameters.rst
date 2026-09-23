@@ -273,10 +273,10 @@ More parameters for model input (only for advanced users)
 	  :min:			0
 	  :max:			1		    
 	structure_relax
-	  :description:		Structure_relax in seconds gives ratio between new and old discharge (default 10s), as relaxation factor
+	  :description:		Relaxation time constant for drainage structure discharges: the discharge follows the structure formula with a first-order lag of about structure_relax seconds (alpha = dt / (structure_relax + dt)). 0 disables the relaxation.
 	  :units:		s
 	  :default:		10
-	  :min:			1
+	  :min:			0
 	  :max:			86400	  
 	  
 	**Drag coefficients:**
