@@ -225,7 +225,7 @@ contains
       call get_keyword(500, 'disfile',                         disfile,                         'none')            ! river-point discharge time series
       call get_keyword(500, 'spwfile',                         spwfile,                         'none')            ! spiderweb tropical-cyclone file
       call get_keyword(500, 'wndfile',                         wndfile,                         'none')            ! uniform wind time series
-      call get_keyword(500, 'prcfile',                         prcpfile,                        'none',    ['precipfile']) ! uniform precipitation time series
+      call get_keyword(500, 'prcfile',                         prcpfile,                        'none',    ['prcpfile','precipfile']) ! uniform precipitation time series
       call get_keyword(500, 'amufile',                         amufile,                         'none')            ! 2D wind u-component file
       call get_keyword(500, 'amvfile',                         amvfile,                         'none')            ! 2D wind v-component file
       call get_keyword(500, 'ampfile',                         ampfile,                         'none')            ! 2D atmospheric pressure file
@@ -319,8 +319,8 @@ contains
       ! Vegetation
       !
       call get_keyword(500, 'vegetation',                      vegetation,                      .false.)           ! enable vegetation drag in SFINCS
-      call get_keyword(500, 'vegetationfile',                  veggiefile,                      'none')            ! vegetation characteristics file
-      call get_keyword(500, 'vegetationtype_toml',             veggietype_toml,                 'none')            ! companion TOML lookup table; if set, vegetationfile holds only vegetation_type integers
+      call get_keyword(500, 'vegfile',                         veggiefile,                      'none',    ['vegetationfile'])       ! vegetation characteristics file
+      call get_keyword(500, 'vegtype',                         veggietype_toml,                 'none',    ['vegetationtype_toml'])  ! companion TOML lookup table; if set, vegfile holds only vegetation_type integers
       !
       ! Vegetation can be used in SnapWave and/or SFINCS calculations
       !

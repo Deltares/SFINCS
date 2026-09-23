@@ -2053,7 +2053,7 @@ contains
       enddo   
    enddo   
    !
-   ! STEP 9 - if vegetation, re-map veggie input from quadtree netcdf vegetationfile
+   ! STEP 9 - if vegetation, re-map veggie input from quadtree netcdf vegfile
    ! Set 'no_secveg' from sfincs_vegetation.f90 for use in snapwave_data
    !
    no_secveg = vegetation_vertical_segments
