@@ -103,10 +103,10 @@ The SFINCS team also includes Koen van Asselt, Tycho Bovenschen, Ap van Dongeren
    :maxdepth: 3
    :hidden:
    :caption: User manual:
-   
+
    input
    input_forcing
-   input_structures     
+   input_structures
 
 .. toctree::
    :maxdepth: 3   

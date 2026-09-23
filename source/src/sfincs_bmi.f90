@@ -118,6 +118,12 @@ contains
       case("subgrid_z_zmin")
          c_data = c_loc(subgrid_z_zmin)
       case("qext")
+         !
+         ! qext(np): external source/sink per cell in m3/s (positive = water
+         ! added to the cell). It is added to qsrc in update_continuity.
+         ! NOTE: before the qsrc restructuring qext was a rate in m/s; couplers
+         ! that still provide m/s must now multiply by the cell area.
+         !
          c_data = c_loc(qext)
       case("uorb")
          c_data = c_loc(uorb)
@@ -226,6 +232,9 @@ contains
       !
       select case(flag_name)
       case("qext")
+         !
+         ! Switch the external source/sink qext (m3/s per cell) on or off
+         !
          use_qext = bval
          !write(*,*)'use_qext = ', use_qext 
       case default

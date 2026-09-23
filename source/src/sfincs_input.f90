@@ -46,6 +46,8 @@ contains
       use sfincs_data
       use sfincs_date
       use sfincs_error
+      use sfincs_discharges,     only: srcfile, disfile, netsrcdisfile
+      use sfincs_src_structures, only: drnfile, dkbfile
       !
       implicit none
       !
@@ -132,7 +134,15 @@ contains
       !
       ! Wave maker parameters
       !
-      call get_keyword(500, 'wavemaker_wvmfile',               wavemaker_wvmfile,               'none',    ['wvmfile'])    ! wavemaker polyline file
+      ! Wave maker polyline files. wavemaker_wvmfile is the standard wave maker, forced by
+      ! SnapWave, to which wavemaker_hig and wavemaker_hinc apply.
+      ! A second wave maker forced by IG wave time series can be added with 'wavemaker_timeseries_wvmfile'.
+      ! It always forces IG waves and never incident waves, it uses the wfp/whi/wti/wst files.
+      ! Both can be used in the same model.
+      ! NOTE - the 2 wavemaker types should NOT directly neighbour each other!
+      !
+      call get_keyword(500, 'wavemaker_wvmfile',               wavemaker_wvmfile,               'none',    ['wvmfile'])    ! wavemaker polyline file (forced by SnapWave)
+      call get_keyword(500, 'wavemaker_timeseries_wvmfile',    wavemaker_timeseries_wvmfile,    'none')                    ! wavemaker polyline file (forced by IG time series)
       call get_keyword(500, 'wavemaker_wfpfile',               wavemaker_wfpfile,               'none',    ['wfpfile'])    ! wavemaker forcing points file
       call get_keyword(500, 'wavemaker_whifile',               wavemaker_whifile,               'none',    ['whifile'])    ! wavemaker wave-height time series file
       call get_keyword(500, 'wavemaker_wtifile',               wavemaker_wtifile,               'none',    ['wtifile'])    ! wavemaker wave-period time series file
@@ -153,8 +163,8 @@ contains
       call get_keyword(500, 'wavemaker_hm0_inc_factor',        wavemaker_hm0_inc_factor,        1.0)                       ! wavemaker incident Hm0 scaling factor
       call get_keyword(500, 'wavemaker_gammax',                wavemaker_gammax,                1.0)                       ! wavemaker maximum Hrms/h
       call get_keyword(500, 'wavemaker_tpmin',                 wavemaker_tpmin,                 1.0)                       ! wavemaker minimum Tp (s)
-      call get_keyword(500, 'wavemaker_hig',                   wavemaker_hig,                   .true.)                    ! wavemaker include IG waves
-      call get_keyword(500, 'wavemaker_hinc',                  wavemaker_hinc,                  .false.)                   ! wavemaker include incident waves
+      call get_keyword(500, 'wavemaker_hig',                   wavemaker_hig,                   .true.)                    ! wavemaker include IG waves (SnapWave forced)
+      call get_keyword(500, 'wavemaker_hinc',                  wavemaker_hinc,                  .false.)                   ! wavemaker include incident waves (SnapWave forced)
       !
       ! Numerical parameters
       !
@@ -200,6 +210,8 @@ contains
       call get_keyword(500, 'weirfile',                        weirfile,                        'none')            ! weirs polyline file
       call get_keyword(500, 'manningfile',                     manningfile,                     'none')            ! spatially-varying Manning n file
       call get_keyword(500, 'drnfile',                         drnfile,                         'none')            ! drainage structures file
+      call get_keyword(500, 'dkbfile',                         dkbfile,                         'none')            ! dike breaches file
+      call get_keyword(500, 'urbfile',                         urbfile,                         'none')            ! urban drainage zones file
       call get_keyword(500, 'volfile',                         volfile,                         'none')            ! depression-storage volume file
       !
       ! Forcing files (ascii / binary)
@@ -231,8 +243,8 @@ contains
       !
       ! Infiltration and losses
       !
-      call get_keyword(500, 'infiltrationfile',                infiltrationfile,                'none', ['infiltration_file'])   ! infiltration parameters TOML file
-      call get_keyword(500, 'infiltrationtype',                inftype,                         'none', ['infiltration_type'])   ! infiltration flavor (con, c2d, cna, cnb, gai, hor, bkt)
+      call get_keyword(500, 'inffile',                         inffile,                         'none', [character(len=17) :: 'infiltrationfile', 'infiltration_file'])   ! infiltration parameters TOML file
+      call get_keyword(500, 'inftype',                         inftype,                         'none', [character(len=17) :: 'infiltrationtype', 'infiltration_type'])   ! infiltration flavor (con, c2d, cna, cnb, gai, hor, bkt)
       !
       ! Legacy binary infiltration inputs (kept for backward compatibility).
       !
@@ -266,7 +278,6 @@ contains
       call get_keyword(500, 'store_tsunami_arrival_time',      store_tsunami_arrival_time,      .false.)           ! store tsunami arrival time per cell
       call get_keyword(500, 'tsunami_arrival_threshold',       tsunami_arrival_threshold,       0.01)              ! water-depth threshold for tsunami arrival
       call get_keyword(500, 'timestep_analysis',               timestep_analysis,               .false.)           ! write per-cell timestep limiter diagnostics
-      call get_keyword(500, 'storeqdrain',                     store_qdrain,                    .true.)            ! store per-drainage-structure discharge in his file
       call get_keyword(500, 'storezvolume',                    store_zvolume,                   .false.)           ! store subgrid cell volume (requires subgrid)
       call get_keyword(500, 'storestoragevolume',              store_storagevolume,             .false.)           ! store remaining storage volume (requires subgrid + volfile)
       call get_keyword(500, 'writeruntime',                    write_time_output,               .false.)           ! write runtimes.txt at end of simulation
@@ -277,6 +288,9 @@ contains
       call get_keyword(500, 'storewavdir',                     store_wave_direction,            .false.)           ! store wave direction
       call get_keyword(500, 'output_on_quadtree_mesh',         use_quadtree_output,             .false., ['regular_output_on_mesh']) ! write quadtree output to quadtree mesh (only relevant for regular meshed grids)
       call get_keyword(500, 'store_dynamic_bed_level',         store_dynamic_bed_level,         .false.)           ! store time-varying bed level (subgrid)
+      call get_keyword(500, 'store_river_discharge',           store_river_discharge,           .false.)           ! store river point discharges in his file
+      call get_keyword(500, 'store_urban_drainage_discharge',  store_urban_drainage_discharge,  .false.)           ! store urban drainage discharges in his file
+      call get_keyword(500, 'store_cumulative_urban_drainage', store_cumulative_urban_drainage, .false.)           ! store cumulative urban drainage
       call get_keyword(500, 'snapwave_use_nearest',            snapwave_use_nearest,            .true.)            ! use nearest-neighbour lookup for SnapWave boundary points
       call get_keyword(500, 'percentage_done',                 percdoneval,                     5)                 ! progress-reporter interval (% complete)
       !
@@ -290,7 +304,6 @@ contains
       storecumprcp       = merge(1, 0, store_cumulative_precipitation)
       storetwet          = merge(1, 0, store_twet)
       storetzsmax        = merge(1, 0, store_t_zsmax)
-      storeqdrain        = merge(1, 0, store_qdrain)
       storezvolume       = merge(1, 0, store_zvolume)
       storestoragevolume = merge(1, 0, store_storagevolume)
       storemeteo         = merge(1, 0, store_meteo)
@@ -300,7 +313,7 @@ contains
       ! Coupled SnapWave solver parameters
       !
       call get_keyword(500, 'snapwave_wind',                   snapwavewind,                    .false.)           ! feed wind into SnapWave (implies storing wind speed/direction)
-      call get_keyword(500, 'snapwave_waveforces_ratio',       waveforces_ratio,                1.0, ['snapwave_waveforces_factor'])   ! multiplier on SnapWave wave forces
+      call get_keyword(500, 'snapwave_waveforces_ratio',       waveforces_ratio,                1.0, [character(len=26) :: 'snapwave_waveforces_factor', 'waveforces_ratio'])   ! multiplier on SnapWave wave forces
       call get_keyword(500, 'snapwave_vegetation',             snapwave_vegetation,             .false.)           ! enable vegetation dissipation in SnapWave
       !
       ! Vegetation
@@ -494,7 +507,27 @@ contains
       wavemaker          = .false.
       wavemaker_spectrum = .true.
       !
-      if (wavemaker_wvmfile(1:4) /= 'none') then
+      ! Backward compatibility: wavemaker_wvmfile used to mean a time series forced wave maker when wfpfile input wave given.
+      ! Move it to the time series source, so that such a model keeps running as before - including a warning.
+      !
+      if (wavemaker_wvmfile(1:4) /= 'none' .and. wavemaker_wfpfile(1:4) /= 'none' .and. &
+          wavemaker_timeseries_wvmfile(1:4) == 'none') then
+         !
+         call write_log('Warning : wavemaker_wvmfile combined with wavemaker_wfpfile input description is deprecated ! ' // &
+                        'Please use wavemaker_timeseries_wvmfile instead. The simulation will continue. ' // &
+                        'This wave maker is forced by time series.', 1)
+         !
+         wavemaker_timeseries_wvmfile = wavemaker_wvmfile
+         wavemaker_wvmfile            = 'none'
+         !
+      endif
+      !
+      ! Determine true/false flags for both types of active wave makers
+      !
+      wavemaker_timeseries = wavemaker_timeseries_wvmfile(1:4) /= 'none'
+      wavemaker_snapwave   = wavemaker_wvmfile(1:4) /= 'none'
+      !
+      if (wavemaker_timeseries .or. wavemaker_snapwave) then
          !
          wavemaker = .true.
          !
@@ -503,6 +536,32 @@ contains
             wavemaker_spectrum = .false.
             !
             call write_log('Info    : use monochromatic wave spectrum for wave makers', 0)
+            !
+         endif
+         !
+         if (wavemaker_timeseries) then
+            !
+            if (wavemaker_wfpfile(1:4) == 'none' .or. wavemaker_whifile(1:4) == 'none' .or. wavemaker_wtifile(1:4) == 'none') then
+               call stop_sfincs('Error! A time series forced wave maker requires wavemaker_wfpfile, ' // &
+                                'wavemaker_whifile and wavemaker_wtifile !', 1)
+            endif
+            !
+            write(logstr,'(a,a,a)')'Info    : wave maker ', trim(wavemaker_timeseries_wvmfile), &
+               ' forced by time series (IG waves)'
+            call write_log(logstr, 0)
+            !
+         endif
+         !
+         if (wavemaker_snapwave) then
+            !
+            if (.not. snapwave) then
+               call stop_sfincs('Error! A SnapWave forced wave maker requires SnapWave to be turned on !', 1)
+            endif
+            !
+            write(logstr,'(a,a,a,i1,a,i1)')'Info    : wave maker ', trim(wavemaker_wvmfile), &
+               ' forced by SnapWave, hig = ', merge(1, 0, wavemaker_hig), &
+               ', hinc = ', merge(1, 0, wavemaker_hinc)
+            call write_log(logstr, 0)
             !
          endif
          !
@@ -568,9 +627,8 @@ contains
          disfile       = 'none'
          netsrcdisfile = 'none'
          drnfile       = 'none'
-         !
-         nsrc = 0
-         ndrn = 0
+         dkbfile       = 'none'
+         urbfile       = 'none'
          !
          meteo3d        = .false.
          wind           = .false.
