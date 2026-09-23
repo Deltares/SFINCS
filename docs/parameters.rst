@@ -486,65 +486,65 @@ Domain
 	  :units:		s/m^(1/3)
 	  :required:		no in case of regular mode, ignored in case of subgrid mode	  
 	  :format:		bin	 
-	infiltrationfile = sfincs.infiltration.nc
-	  :description:		Recommended NetCDF input for spatially varying infiltration and bucket-model losses. Use together with infiltrationtype.
+	inffile = sfincs.infiltration.nc
+	  :description:		Recommended NetCDF input for spatially varying infiltration and bucket-model losses. Use together with inftype.
 	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
-	  :units:		depends on selected infiltrationtype and variables in the NetCDF file
+	  :units:		depends on selected inftype and variables in the NetCDF file
 	  :required:		no
 	  :format:		net
-	infiltrationtype = c2d | cna | cnb | gai | hor | bkt
-	  :description:		Selects which infiltration method is read from infiltrationfile. Bucket mode requires bucket_smax, bucket_k and bucket_loss in infiltrationfile.
+	inftype = c2d | cna | cnb | gai | hor | bkt
+	  :description:		Selects which infiltration method is read from inffile. Bucket mode requires bucket_smax, bucket_k and bucket_loss in inffile.
 	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
 	  :units:		-
-	  :required:		Only when infiltrationfile is used
+	  :required:		Only when inffile is used
 	  :format:		asc
 	qinffile = sfincs.qinf
-	  :description:		Backward compatibility only. For spatially varying constant in time infiltration values per cell prefer infiltrationfile with infiltrationtype = c2d.
+	  :description:		Backward compatibility only. For spatially varying constant in time infiltration values per cell prefer inffile with inftype = c2d.
 	  :units:		mm/hr
 	  :required:		no	  
 	  :format:		bin	  
 	scsfile = sfincs.scs
-	  :description:		Backward compatibility only. For Curve Number method A (without recovery) prefer infiltrationfile with infiltrationtype = cna.
+	  :description:		Backward compatibility only. For Curve Number method A (without recovery) prefer inffile with inftype = cna.
 	  :units:		-
 	  :required:		no	  
 	  :format:		bin	  	  
 	smaxfile = sfincs.smax
-	  :description:		Backward compatibility only. For Curve Number method B (with recovery) prefer infiltrationfile with infiltrationtype = cnb. The smaxfile contains the maximum soil moisture storage capacity in m.
+	  :description:		Backward compatibility only. For Curve Number method B (with recovery) prefer inffile with inftype = cnb. The smaxfile contains the maximum soil moisture storage capacity in m.
 	  :units:		m
 	  :required:		no	  
 	  :format:		bin	  	
 	sefffile = sfincs.seff
-	  :description:		Backward compatibility only. For Curve Number method B (with recovery) prefer infiltrationfile with infiltrationtype = cnb. The sefffile contains soil moisture storage capacity at the start in m.
+	  :description:		Backward compatibility only. For Curve Number method B (with recovery) prefer inffile with inftype = cnb. The sefffile contains soil moisture storage capacity at the start in m.
 	  :units:		m
 	  :required:		no	  
 	  :format:		bin	  
 	ksfile = sfincs.ks
-	  :description:		Backward compatibility only. For Curve Number method B (with recovery) and Green & Ampt infiltration prefer infiltrationfile with infiltrationtype = cnb or gai. The ksfile contains saturated hydraulic conductivity in mm/hr.
+	  :description:		Backward compatibility only. For Curve Number method B (with recovery) and Green & Ampt infiltration prefer inffile with inftype = cnb or gai. The ksfile contains saturated hydraulic conductivity in mm/hr.
 	  :units:		mm/hr
 	  :required:		no	  
 	  :format:		bin	  
 	sigmafile = sfincs.sigma
-	  :description:		Backward compatibility only. For Green & Ampt infiltration prefer infiltrationfile with infiltrationtype = gai. The sigmafile contains soil moisture deficit in [-].
+	  :description:		Backward compatibility only. For Green & Ampt infiltration prefer inffile with inftype = gai. The sigmafile contains soil moisture deficit in [-].
 	  :units:		-
 	  :required:		no	  
 	  :format:		bin	 
 	psifile = sfincs.psi
-	  :description:		Backward compatibility only. For Green & Ampt infiltration prefer infiltrationfile with infiltrationtype = gai. The psifile contains suction head at the wetting front in mm.
+	  :description:		Backward compatibility only. For Green & Ampt infiltration prefer inffile with inftype = gai. The psifile contains suction head at the wetting front in mm.
 	  :units:		mm
 	  :required:		no	  
 	  :format:		bin	 
 	f0file = sfincs.f0
-	  :description:		Backward compatibility only. For Horton infiltration prefer infiltrationfile with infiltrationtype = hor. The f0file contains maximum (initial) infiltration capacity in mm/hr.
+	  :description:		Backward compatibility only. For Horton infiltration prefer inffile with inftype = hor. The f0file contains maximum (initial) infiltration capacity in mm/hr.
 	  :units:		mm/hr
 	  :required:		no	  
 	  :format:		bin	
 	fcfile = sfincs.fc
-	  :description:		Backward compatibility only. For Horton infiltration prefer infiltrationfile with infiltrationtype = hor. The fcfile contains the minimum (asymptotic) infiltration rate in mm/hr.
+	  :description:		Backward compatibility only. For Horton infiltration prefer inffile with inftype = hor. The fcfile contains the minimum (asymptotic) infiltration rate in mm/hr.
 	  :units:		mm/hr
 	  :required:		no	  
 	  :format:		bin	 	
 	kdfile = sfincs.kd
-	  :description:		Backward compatibility only. For Horton infiltration prefer infiltrationfile with infiltrationtype = hor. The kdfile contains the empirical decay constant in hr-1.
+	  :description:		Backward compatibility only. For Horton infiltration prefer inffile with inftype = hor. The kdfile contains the empirical decay constant in hr-1.
 	  :units:		hr-1
 	  :required:		no	  
 	  :format:		bin	 		  	   	  

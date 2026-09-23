@@ -1895,8 +1895,8 @@ contains
         NF90(nf90_put_att(ncid, varid, 'amvfile',amvfile))  
         NF90(nf90_put_att(ncid, varid, 'ampfile',ampfile))              
         NF90(nf90_put_att(ncid, varid, 'amprfile',amprfile))  
-        NF90(nf90_put_att(ncid, varid, 'infiltrationfile',infiltrationfile))
-        NF90(nf90_put_att(ncid, varid, 'infiltrationtype',inftype))
+        NF90(nf90_put_att(ncid, varid, 'inffile',inffile))
+        NF90(nf90_put_att(ncid, varid, 'inftype',inftype))
         NF90(nf90_put_att(ncid, varid, 'qinffile',qinffile))
         NF90(nf90_put_att(ncid, varid, 'scsfile',scsfile)) 
         NF90(nf90_put_att(ncid, varid, 'smaxfile',smaxfile)) 
@@ -1910,11 +1910,6 @@ contains
         NF90(nf90_put_att(ncid, varid, 'z0lfile',z0lfile))
         NF90(nf90_put_att(ncid, varid, 'wavemaker_wvmfile',wavemaker_wvmfile))
         NF90(nf90_put_att(ncid, varid, 'wavemaker_timeseries_wvmfile',wavemaker_timeseries_wvmfile))
-        !
-        ! Infiltration configuration
-        !
-        NF90(nf90_put_att(ncid, varid, 'infiltration_file',infiltrationfile))
-        NF90(nf90_put_att(ncid, varid, 'infiltration_type',inftype))
         !
         ! Netcdf input
         NF90(nf90_put_att(ncid, varid, 'netbndbzsbzifile',netbndbzsbzifile))

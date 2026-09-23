@@ -32,17 +32,17 @@ contains
    ! 1) 'con' - Spatially-uniform constant infiltration
    !    Requires: qinf (mm/hr in sfincs.inp)
    ! 2) 'c2d' - Spatially-varying constant infiltration
-   !    Requires: qinffile or infiltrationfile
+   !    Requires: qinffile or inffile
    ! 3) 'cna' - SCS Curve Number (old, no recovery)
-   !    Requires: scsfile or infiltrationfile
+   !    Requires: scsfile or inffile
    ! 4) 'cnb' - SCS Curve Number (new, with recovery)
-   !    Requires: sefffile or infiltrationfile
+   !    Requires: sefffile or inffile
    ! 5) 'gai' - Green-Ampt infiltration
-   !    Requires: psifile or infiltrationfile
+   !    Requires: psifile or inffile
    ! 6) 'hor' - Modified Horton equation
-   !    Requires: f0file or infiltrationfile
+   !    Requires: f0file or inffile
    ! 7) 'bkt' - Bucket model (linear reservoir, HBV/wflow style)
-   !    Requires: infiltrationfile with bucket_smax, bucket_k and bucket_loss
+   !    Requires: inffile with bucket_smax, bucket_k and bucket_loss
    !
    ! cumprcp and cuminf are stored in the netcdf output if store_cumulative_precipitation == .true. (storecumprcp = 1)
    !
@@ -59,13 +59,13 @@ contains
    !
    if (precip) then
       !
-      if (inftype == 'bkt' .and. infiltrationfile == 'none') then
+      if (inftype == 'bkt' .and. inffile == 'none') then
          !
-         call stop_sfincs('Error ! Bucket model requires infiltrationfile together with infiltrationtype = bkt !', 1)
+         call stop_sfincs('Error ! Bucket model requires inffile together with inftype = bkt !', 1)
          !
       endif
       !
-      if (infiltrationfile  /= 'none') then
+      if (inffile  /= 'none') then
          !
          ! inftype is user defined, keyword: 'inftype' in sfincs.inp:
          !
@@ -81,7 +81,7 @@ contains
             infiltration = .true.
             netcdf_infiltration = .true.  
             !
-            write(logstr,'(a,a)')'Info    : specified infiltrationtype is ', trim(inftype)
+            write(logstr,'(a,a)')'Info    : specified inftype is ', trim(inftype)
             call write_log(logstr, 0)
             !
             ! Curve Number methods need cumprcp and cuminf to be updated (same as binary input path)
@@ -169,10 +169,10 @@ contains
          write(logstr,'(a)')'Info    : turning on infiltration from netcdf input file'      
          call write_log(logstr, 0)
          !
-         write(logstr,'(a,a)')'Info    : reading netcdf infiltration file ', trim(infiltrationfile)
+         write(logstr,'(a,a)')'Info    : reading netcdf infiltration file ', trim(inffile)
          call write_log(logstr, 0)
          !
-         ok = check_file_exists(infiltrationfile, 'Infiltration netcdf file', .true.)
+         ok = check_file_exists(inffile, 'Infiltration netcdf file', .true.)
          !
       endif
       !
@@ -188,7 +188,7 @@ contains
             !
             if (use_quadtree .eqv. .true.) then
                !
-               call stop_sfincs('Error ! Infiltration input for quadtree mesh model can only be specified using the infiltrationfile Netcdf format! !', 1)
+               call stop_sfincs('Error ! Infiltration input for quadtree mesh model can only be specified using the inffile Netcdf format! !', 1)
                !
             endif
             !
@@ -529,7 +529,7 @@ contains
    subroutine read_infiltration_field(varname, binfile, field)
    !
    ! Read one spatially-varying infiltration parameter, either from the netcdf
-   ! infiltrationfile (variable varname) or from a legacy binary file (regular grids only)
+   ! inffile (variable varname) or from a legacy binary file (regular grids only)
    !
    use sfincs_data
    use sfincs_ncinput
@@ -546,7 +546,7 @@ contains
    if (netcdf_infiltration) then
       !
       ncvarname = varname
-      call read_netcdf_quadtree_to_sfincs(infiltrationfile, ncvarname, field)
+      call read_netcdf_quadtree_to_sfincs(inffile, ncvarname, field)
       !
    else
       !
@@ -1047,19 +1047,19 @@ contains
       bucket_loss       = 0.0
       bucket_runoff     = 0.0
       !
-      ! Read from infiltrationfile (netcdf) - works for both regular and quadtree grids
+      ! Read from inffile (netcdf) - works for both regular and quadtree grids
       ! (read_netcdf_quadtree_to_sfincs stops if a variable is missing)
       !
       varname = 'bucket_smax'
-      call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, bucket_capacity)
+      call read_netcdf_quadtree_to_sfincs(inffile, varname, bucket_capacity)
       bucket_capacity = bucket_capacity / 1000.0   ! mm to m
       !
       varname = 'bucket_k'
-      call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, bucket_k)
+      call read_netcdf_quadtree_to_sfincs(inffile, varname, bucket_k)
       bucket_k = bucket_k / 3600.0   ! 1/hr to 1/s
       !
       varname = 'bucket_loss'
-      call read_netcdf_quadtree_to_sfincs(infiltrationfile, varname, bucket_loss)
+      call read_netcdf_quadtree_to_sfincs(inffile, varname, bucket_loss)
       !
       write(logstr,'(a,f10.4,a)')'Info    : bucket max capacity = ', maxval(bucket_capacity) * 1000.0, ' mm'
       call write_log(logstr, 0)

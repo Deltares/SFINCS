@@ -6,11 +6,11 @@ SFINCS has continuely being developed since 2017, and many great features have b
 Development status
 -----
 
-See here a table overview of the SFINCS development status at November 2026, at the time of the v2.5.0 Hautecam 2026.02 release.
+See here a table overview of the SFINCS development status at November 2026, at the time of the v2.5.0 Hautacam 2026.02 release.
 Indicated are SFINCS itself (model) and model setup/post-processing using HydroMT-SFINCS (Python), green indicates existing General Available (GA) functionality.
 See the legend for more details regarding the GA/Stable/Prototype/Concept status differentiation.
 
-.. figure:: ./figures/SFINCS_development_status_Hautecam_2026_02_release.png
+.. figure:: ./figures/SFINCS_development_status_Hautacam_2026_02_release.png
    :width: 600px
    :align: center
 
