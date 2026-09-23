@@ -171,7 +171,7 @@ The four structure types are:
 
 - ``pump`` — drainage pump. Moves a prescribed discharge ``q`` from ``src_1`` to ``src_2``, limited by available water. Same as the original drainage pump (legacy ``type = 1``).
 - ``culvert_simple`` — lumped one-coefficient culvert. Bidirectional by default. Same as the original culvert (legacy ``type = 2``) and check valve (legacy ``type = 3``).
-- ``culvert`` — regime-aware detailed culvert with geometry (width, height, invert elevations) and a submergence threshold. New from SFINCS v2026.02 Hautacam release onwards.
+- ``culvert`` — detailed culvert with a rectangular or circular barrel (``shape``), invert elevations and barrel friction, taking the minimum of inlet and outlet control. New from SFINCS v2026.02 Hautacam release onwards.
 - ``gate`` — bidirectional gate with a sill and an inertial culvert-style momentum update (Bates et al., 2010). Generalises the original water-level- and time-controlled gates (legacy ``type = 4`` and ``5``); rule-based control is available from SFINCS v2026.02 Hautacam release onwards.
 
 All structures can be driven by optional rule expressions (see :ref:`open/close rules <drn_rules>` below) that open or close the structure based on water levels at user-chosen observation cells.
@@ -306,17 +306,24 @@ Culvert (detailed)
 
 **NOTE - Prototype status: this functionality is field-tested, but is still being improved iteratively**
 
-The detailed culvert resolves the two usual culvert regimes — submerged (orifice-like) and free / inlet-controlled — based on the ratio of downstream to upstream heads above the controlling sill. The controlling sill is the higher of the two inverts, :math:`z_\text{sill} = \max(\text{invert}_1, \text{invert}_2)`; upstream and downstream are assigned on the fly from the sign of :math:`\Delta h`, so the structure is bidirectional (restrict with ``direction`` if needed).
+The detailed culvert models a barrel with a rectangular (``width`` × ``height``) or circular (``diameter``) cross-section, selected with ``shape``. The controlling sill is the higher of the two inverts, :math:`z_\text{sill} = \max(\text{invert}_1, \text{invert}_2)`; upstream and downstream are assigned on the fly from the sign of :math:`\Delta h = z_{s,1} - z_{s,2}`, so the structure is bidirectional (restrict with ``direction`` if needed).
 
-Let :math:`h_\text{up}`, :math:`h_\text{dn}` be the upstream and downstream depths above :math:`z_\text{sill}`, and :math:`A_\text{eff} = w \cdot \min(h_\text{up}, H)` (capped at barrel height). Then
+Let :math:`h_\text{up}` be the upstream depth above :math:`z_\text{sill}`. The barrel is filled to :math:`d = \min(h_\text{up}, D)`, where :math:`D` is the barrel ``height`` (rectangular) or ``diameter`` (circular), so the flow area :math:`A(d)` stops growing once the barrel runs full. As in standard culvert practice (e.g. FHWA HDS-5), the discharge is the smaller of an inlet-control and an outlet-control estimate:
 
 .. math::
 
-   Q =
-   \begin{cases}
-   c_f \cdot A_\text{eff} \cdot \sqrt{2 g\, |\Delta h|}, & h_\text{dn}/h_\text{up} \ge r_\text{sub} \quad\text{(submerged)} \\
-   c_f \cdot A_\text{eff} \cdot \sqrt{2 g\, h_\text{up}}, & h_\text{dn}/h_\text{up} < r_\text{sub} \quad\text{(free / inlet-controlled)}
-   \end{cases}
+   Q = \operatorname{sign}(\Delta h) \cdot \min\left(Q_\text{in},\, Q_\text{out}\right)
+
+.. math::
+
+   Q_\text{in}  = c_f \, A \, \sqrt{2 g \,(h_\text{up} - y_c)}, \qquad
+   Q_\text{out} = A \, \sqrt{\frac{2 g\, |\Delta h|}{K}}, \qquad
+   K = \frac{1}{c_f^2} + \frac{2 g\, L\, n^2}{R^{4/3}}
+
+where :math:`y_c` is the height of the flow-area centroid above the invert, :math:`R` the hydraulic radius, :math:`L` the barrel ``length`` and :math:`n` its ``mannings_n``. Inlet control covers both a free-surface (weir-like) inlet and a drowned (orifice-like) inlet. Outlet control accounts for local entrance/exit losses (lumped in :math:`c_f`), barrel friction and the tailwater level. Both estimates are continuous in the water levels, so the discharge is continuous across regime changes. The cross-section geometry follows from ``shape``:
+
+- ``"rectangular"``: :math:`A = w\,d`, :math:`y_c = d/2`. :math:`R` uses the open-channel wetted perimeter :math:`w + 2d` when partially full and the closed perimeter :math:`2(w + d)` when full.
+- ``"circular"``: :math:`A`, :math:`y_c` and :math:`R` are those of the circular segment with central angle :math:`\theta = 2 \arccos(1 - 2d/D)`, i.e. :math:`A = \tfrac{D^2}{8}(\theta - \sin\theta)` and wetted perimeter :math:`\tfrac{D}{2}\theta`. At full flow, :math:`A = \pi D^2/4` and :math:`R = D/4`.
 
 .. list-table::
    :header-rows: 1
@@ -325,12 +332,18 @@ Let :math:`h_\text{up}`, :math:`h_\text{dn}` be the upstream and downstream dept
    * - Key
      - Type
      - Description
+   * - shape
+     - string
+     - Barrel cross-section: ``"rectangular"`` (default) or ``"circular"`` (case-insensitive). Determines which geometry keys are required. Any other value is an error.
    * - **width**
      - real
-     - Culvert barrel width (m). Required.
+     - Barrel width (m). Required for ``shape = "rectangular"``; ignored for ``"circular"``.
    * - **height**
      - real
-     - Culvert barrel height (m). Used to cap the flow area. Required.
+     - Barrel height (m). Caps the flow area when the barrel runs full. Required for ``shape = "rectangular"``; ignored for ``"circular"``.
+   * - **diameter**
+     - real
+     - Barrel diameter (m). Required for ``shape = "circular"``; ignored for ``"rectangular"``.
    * - **invert_1**
      - real
      - Invert elevation at the ``src_1`` end (m, same datum as ``zb``). Required.
@@ -339,28 +352,47 @@ Let :math:`h_\text{up}`, :math:`h_\text{dn}` be the upstream and downstream dept
      - Invert elevation at the ``src_2`` end (m, same datum as ``zb``). Required.
    * - flow_coef
      - real
-     - Discharge coefficient :math:`c_f`. Default: **0.6**.
-   * - submergence_ratio
+     - Discharge coefficient :math:`c_f`, used for inlet control and as the lumped entrance/exit loss :math:`1/c_f^2` in outlet control. Default: **0.6**.
+   * - length
      - real
-     - Threshold :math:`r_\text{sub}` on :math:`h_\text{dn}/h_\text{up}` that switches between the two regimes. Default: **0.667** (the classic broad-crested-weir / Villemonte value).
+     - Barrel length :math:`L` (m) for the Manning friction loss. Default: **0.0** (no friction loss).
+   * - mannings_n
+     - real
+     - Manning roughness :math:`n` of the barrel (s/m\ :sup:`1/3`). Default: **0.013** (concrete).
 
-All common keys are accepted.
+All common keys are accepted. A rectangular box culvert:
 
 .. code-block:: toml
 
    [[src_structure]]
-   name              = "west_culvert"
-   type              = "culvert"
-   src_1             = [100.0, 50.0]
-   src_2             = [100.0, 150.0]
-   width             = 1.2
-   height            = 1.0
-   invert_1          = 0.20
-   invert_2          = 0.15
-   flow_coef         = 0.6
-   submergence_ratio = 0.667
+   name       = "west_culvert"
+   type       = "culvert"
+   src_1      = [100.0, 50.0]
+   src_2      = [100.0, 150.0]
+   width      = 1.2
+   height     = 1.0
+   invert_1   = 0.20
+   invert_2   = 0.15
+   length     = 20.0
+   flow_coef  = 0.6
 
-There is no separate orifice structure type. To model an orifice, use ``type = "culvert"`` with ``submergence_ratio = 0.0``, so that the submerged formula above is always used.
+A circular pipe culvert:
+
+.. code-block:: toml
+
+   [[src_structure]]
+   name       = "road_pipe"
+   type       = "culvert"
+   shape      = "circular"
+   src_1      = [200.0, 50.0]
+   src_2      = [200.0, 150.0]
+   diameter   = 0.8
+   invert_1   = 0.10
+   invert_2   = 0.05
+   length     = 15.0
+   mannings_n = 0.013
+
+There is no separate orifice structure type. To model an orifice, use ``type = "culvert"`` with ``length = 0`` (the default): with no friction loss, the outlet-control estimate is :math:`c_f A \sqrt{2 g |\Delta h|}`, the classic orifice formula.
 
 Gate
 ^^^^
@@ -628,12 +660,13 @@ The time-series discharge per structure is always written to ``sfincs_his.nc`` a
    type             = "culvert"
    src_1            = [100.0, 50.0]
    src_2            = [100.0, 150.0]
+   shape            = "rectangular"             # "rectangular" (default, width + height) or "circular" (diameter)
    width            = 1.2
    height           = 1.0
    invert_1         = 0.20
    invert_2         = 0.15
+   length           = 20.0                      # barrel length for Manning friction (m)
    flow_coef        = 0.6                       # discharge coefficient
-   submergence_ratio = 0.667                    # h_dn/h_up threshold between submerged and inlet control
 
    [[src_structure]]
    name             = "east_tide_gate"
