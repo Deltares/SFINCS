@@ -27,6 +27,7 @@ module sfincs_groundwater
    public :: initialize_groundwater, gw_face_transmissivity, gw_exchange_terms, gw_seepage_terms
    public :: gw_cell_storage, gw_diffusion_number, gw_budget_add, gw_budget_report
    public :: gw_subgrid_level, gw_explicit_step, gw_drain_terms
+   public :: get_gw_nsub_avg, get_gw_nsub_max
    !
    ! Cumulative volumes since the start of the run, m3. Signed so that a positive value is water
    ! ENTERING the aquifer. real*8 throughout: these are running totals over ~1e5 timesteps and
@@ -55,6 +56,8 @@ module sfincs_groundwater
    real*8 :: gw_vol_gross     = 0.0d0
    integer, parameter :: gw_maxsub = 10000
    integer :: gw_nsub_max = 0
+   integer*8 :: gw_nsub_sum = 0      ! sub-steps taken over the run, for the average
+   integer   :: gw_nstep   = 0       ! surface steps the explicit aquifer was called for
    !
 contains
    !
@@ -1106,6 +1109,8 @@ contains
    call gw_budget_add(bv_rech, bv_exch, bv_bnd, bv_ceil, bv_drain, bv_gross)
    !
    gw_nsub_max = max(gw_nsub_max, nsub)
+   gw_nsub_sum = gw_nsub_sum + nsub
+   gw_nstep = gw_nstep + 1
    !
    ! Hand the surface its share. Volume, not level, so that the subgrid path stays consistent
    ! with how continuity converts one to the other.
@@ -1207,5 +1212,16 @@ contains
    call write_log('', 1)
    !
    end subroutine gw_budget_report
+   !
+   function get_gw_nsub_avg() result(a)
+      real :: a
+      a = 0.0
+      if (gw_nstep > 0) a = real(gw_nsub_sum) / real(gw_nstep)
+   end function get_gw_nsub_avg
+
+   function get_gw_nsub_max() result(m)
+      integer :: m
+      m = gw_nsub_max
+   end function get_gw_nsub_max
    !
 end module sfincs_groundwater

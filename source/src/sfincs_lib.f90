@@ -77,7 +77,7 @@ module sfincs_lib
    logical  :: update_meteo
    logical  :: update_waves
    !
-   real :: tstart, tfinish, tloopflux, tloopcont, tloopstruc, tloopbnd, tloopsrc, tloopwnd1, tloopwnd2, tloopinf, tloopoutput, tloopsnapwave, tloopwavemaker, tloopnonh
+   real :: tstart, tfinish, tloopflux, tloopcont, tloopstruc, tloopbnd, tloopsrc, tloopwnd1, tloopwnd2, tloopinf, tloopoutput, tloopsnapwave, tloopwavemaker, tloopnonh, tloopgw
    real :: time_per_timestep
    real :: tinput
    real :: percdone,percdonenext,trun,trem
@@ -324,6 +324,7 @@ module sfincs_lib
    !
    tloopflux      = 0.0
    tloopcont      = 0.0
+   tloopgw        = 0.0
    tloopstruc     = 0.0
    tloopbnd       = 0.0
    tloopsrc       = 0.0
@@ -365,6 +366,7 @@ module sfincs_lib
    real*8                        :: tend !< end of update interval
    real*4                        :: dtchk !< dt to check for instability
    logical                       :: single_time_step
+   integer*8                     :: count0gw, count1gw
    !
    ierr = 0
    !
@@ -666,7 +668,12 @@ module sfincs_lib
          ! surface actually ended the step with. The semi-implicit path does not come through
          ! here at all -- there the aquifer is part of the pressure solve.
          !
-         if (gwflow .and. .not. semi_implicit) call gw_explicit_step(dt)
+         if (gwflow .and. .not. semi_implicit) then
+            call system_clock(count0gw, count_rate, count_max)
+            call gw_explicit_step(dt)
+            call system_clock(count1gw, count_rate, count_max)
+            tloopgw = tloopgw + 1.0 * (count1gw - count0gw) / count_rate
+         endif
          !
       endif   
       !
@@ -808,6 +815,13 @@ module sfincs_lib
    !
    write(logstr,'(a,f10.3,a,f5.1,a)')    ' Time in continuity     : ', tloopcont, ' (', 100 * tloopcont / (tfinish_all - tstart_all), '%)'
    call write_log(logstr, 1)
+   !
+   if (gwflow .and. .not. semi_implicit) then
+      write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in groundwater    : ', tloopgw, ' (', 100 * tloopgw / (tfinish_all - tstart_all), '%)'
+      call write_log(logstr, 1)
+      write(logstr,'(a,f6.1,a,i0)') ' GW sub-steps avg       :  ', get_gw_nsub_avg(), '  max: ', get_gw_nsub_max()
+      call write_log(logstr, 0)
+   endif
    !
    if (semi_implicit) then
       write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in SI solver      : ', get_tloop_si(), ' (', 100 * get_tloop_si() / (tfinish_all - tstart_all), '%)'
