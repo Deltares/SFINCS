@@ -184,6 +184,8 @@ contains
    call read_real_input(500,'structure_relax',structure_relax,10.0)
    call read_real_input(500,'wiggle_factor',wiggle_factor,0.1)
    call read_real_input(500,'wiggle_threshold',wiggle_threshold,0.1)
+   call read_real_input(500,'wiggle_facmin',wiggle_facmin,0.1)
+   call read_logical_input(500,'wiggle_detect',wiggle_detect,.false.)
    call read_real_input(500, 'uvlim', uvlim, 10.0)
    call read_real_input(500, 'uvmax', uvmax, 1000.0)
    call read_logical_input(500,'friction2d',friction2d,.true.)

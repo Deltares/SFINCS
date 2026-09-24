@@ -92,6 +92,7 @@ module sfincs_data
       real*4 structure_relax
       real*4 wiggle_factor
       real*4 wiggle_threshold
+      real*4 wiggle_facmin
       real*4 uvlim
       real*4 uvmax
       !real*4 normbnd
@@ -251,6 +252,7 @@ module sfincs_data
       logical       :: friction2d
       logical       :: advection_mask
       logical       :: wiggle_suppression
+      logical       :: wiggle_detect
       logical       :: store_dynamic_bed_level
       logical       :: nonhydrostatic
       logical       :: h73table
@@ -594,6 +596,7 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: tsunami_arrival_time
       real*4, dimension(:),   allocatable :: zs0
       real*4, dimension(:),   allocatable :: zsderv
+      real*4, dimension(:),   allocatable :: z_wetfrac
       real*4, dimension(:),   allocatable, target :: qext
       real*4, dimension(:),   allocatable, target :: dzbext
       real*4, dimension(:),   allocatable, target :: uorb

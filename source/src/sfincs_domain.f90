@@ -2303,8 +2303,10 @@ contains
       ! 
       allocate(zs0(np))
       allocate(zsderv(np))
+      allocate(z_wetfrac(np))
       zs0 = 0.0
       zsderv = 0.0
+      z_wetfrac = 1.0
       ! 
    endif
    !

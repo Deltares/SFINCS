@@ -77,6 +77,8 @@ contains
    integer   :: ipw, ipe
    real*4    :: zbnm, zbnmu                     ! bed at the west/east cell for subgrid advection (not necessarily zb)
    real*4    :: mdrv                            ! subgrid wiggle suppression driver
+   real*4    :: phiz                            ! wet-area fraction of the least wet neighbouring cell
+   real*4    :: fac                             ! under-relaxation factor for wiggle suppression
    !
    real*4    :: min_dt_ip
    !
@@ -131,10 +133,10 @@ contains
    !$omp private ( ip,hu,ufr,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, &
    !$omp           fcoriouv,gnavg2,iwet,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,dqxudx,dqyudy,un,up,vp,vn,umax, &
-   !$omp           dnminv,qu,qd,hwet,phi,adv,mdrv,hu43,y_cbrt,i_cbrt,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbup,ipw,ipe,zbnm,zbnmu ) &
+   !$omp           dnminv,qu,qd,hwet,phi,adv,mdrv,phiz,fac,hu43,y_cbrt,i_cbrt,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbup,ipw,ipe,zbnm,zbnmu ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
-   !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, &
+   !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, zsderv, z_wetfrac, &
    !$acc                    uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
    !$acc                    subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
    !$acc                    subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
@@ -660,15 +662,35 @@ contains
             !
             uv(ip) = (uv0(ip) + frc * dt) / (1.0 + gnavg2 * dt * ufr / hu43)
             !
-            if (subgrid .and. wiggle_suppression) then 
+            if (subgrid .and. wiggle_suppression) then
                !
-               ! If the acceleration of water level in cell nm is large and positive and in nmu large and negative, or vice versa, apply limiter to the flux. Only for subgrid.
+               ! Wiggle suppression for cells in which only a few subgrid pixels are wet (large dzs/dV).
+               ! There the local gravity-wave speed is sqrt(g * hu / phiz) with phiz the wet-area
+               ! fraction of the cell, which exceeds the speed sqrt(g * hu) the time step was set for.
+               ! Under-relax the velocity increment with fac = phiz / alfa**2 (floored at wiggle_facmin).
+               ! Steady flow (uv = uv0) is not affected, 2*dt modes are damped. Fully wet cells give fac = 1.
+               ! With wiggle_detect, only relax when the level accelerations of the two cells diverge
+               ! by more than wiggle_threshold (anti-phase sloshing across this uv point).
                !
-               mdrv = abs(zsderv(nm) - zsderv(nmu)) - wiggle_threshold
+               phiz = min(z_wetfrac(nm), z_wetfrac(nmu))
+               phiz = phi
+               fac  = min(max(phiz / alfa**2, wiggle_facmin), 1.0)
                !
-               if (mdrv > 0.0) then
+               if (fac < 1.0) then
                   !
-                  uv(ip) = uv(ip) * wiggle_threshold / (wiggle_factor * mdrv + wiggle_threshold)
+                  if (wiggle_detect) then
+                     !
+                     mdrv = abs(zsderv(nm) - zsderv(nmu)) - wiggle_threshold
+                     !
+                     if (mdrv > 0.0) then
+                        uv(ip) = uv0(ip) + fac * (uv(ip) - uv0(ip))
+                     endif
+                     !
+                  else
+                     !
+                     uv(ip) = uv0(ip) + fac * (uv(ip) - uv0(ip))
+                     !
+                  endif
                   !
                endif
                !
