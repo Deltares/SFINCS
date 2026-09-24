@@ -1762,7 +1762,7 @@ contains
    !
    ! Because of overlapping names, only important specific values from snapwave_data
    use snapwave_data, only: gamma, gammax, alpha, hmin, fw0, fw0_ig, dt, tol, dtheta, crit, nr_sweeps, baldock_exponent, baldock_ratio, &
-       igwaves_opt, alpha_ig, gamma_ig, gamma_fac_br, shinc2ig, alphaigfac, baldock_ratio_ig, ig_opt, herbers_opt, tpig_opt, eeinc2ig, tinc2ig, &
+       igwaves, alpha_ig, gamma_ig, gamma_fac_br, shinc2ig, alphaigfac, baldock_ratio_ig, ig_opt, igherbers, tpig_opt, eeinc2ig, tinc2ig, &
        snapwave_jonswapfile, snapwave_encfile, snapwave_bndfile, snapwave_bhsfile, snapwave_btpfile, snapwave_bwdfile, snapwave_bdsfile, upwfile, gridfile, &
        jonswapgam, Tpini, sector, fwratio, fwigratio   
    !
@@ -2008,7 +2008,7 @@ contains
         ! SnapWave IG
         !
         NF90(nf90_put_att(ncid, varid, 'snapwave_jonswapgamma',jonswapgam))
-        NF90(nf90_put_att(ncid, varid, 'snapwave_igwaves',igwaves_opt))
+        NF90(nf90_put_att(ncid, varid, 'snapwave_igwaves',logical2int(igwaves)))
         NF90(nf90_put_att(ncid, varid, 'snapwave_alpha_ig',alpha_ig)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_gammaig',gamma_ig))
         NF90(nf90_put_att(ncid, varid, 'snapwave_gamma_fac_br',gamma_fac_br))
@@ -2016,7 +2016,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'snapwave_alphaigfac',alphaigfac)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_baldock_ratio_ig',baldock_ratio_ig)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_ig_opt',ig_opt)) 
-        NF90(nf90_put_att(ncid, varid, 'snapwave_use_herbers',herbers_opt)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_use_herbers',logical2int(igherbers))) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_tpig_opt',tpig_opt)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_eeinc2ig',eeinc2ig)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_Tinc2ig',Tinc2ig)) 

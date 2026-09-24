@@ -61,7 +61,7 @@ contains
    call get_keyword(500, 'snapwave_relax_factor_DoverE',    relax_factor_DoverE,  0.25)                        ! underrelaxation factor for DoverE (set to 1.0 to disable)
    !
    ! Settings related to IG waves:   
-   call get_keyword(500, 'snapwave_igwaves',                igwaves_opt,          1)
+   call get_keyword(500, 'snapwave_igwaves',                igwaves,              .true.)                      ! Include IG waves in SnapWave (default on)
    call get_keyword(500, 'snapwave_alpha_ig',               alpha_ig,             1.0)                         !TODO choose whether snapwave_alphaig or snapwave_gamma_ig
    call get_keyword(500, 'snapwave_gammaig',                gamma_ig,             0.7)                         ! Wave breaking parameter for IG waves, default=0.7
    call get_keyword(500, 'snapwave_gamma_fac_br',           gamma_fac_br,         0.45)                        ! factor times gamma that is used to determine the maximum incident wave breaking point in the surf zone using local incident wave height over water depth ratio, among others used to set the IG source term to 0 shallower than this point
@@ -69,10 +69,10 @@ contains
    call get_keyword(500, 'snapwave_alphaigfac',             alphaigfac,           1.0)                         ! Multiplication factor for IG shoaling source/sink term
    call get_keyword(500, 'snapwave_baldock_ratio_ig',       baldock_ratio_ig,     0.2)
    call get_keyword(500, 'snapwave_ig_opt',                 ig_opt,               1)
-   call get_keyword(500, 'snapwave_iterative_srcig',        iterative_srcig_opt,  0)                           ! Option whether to calculate IG source/sink term in iterative lower (better, but potentially slower, 1=default), or effectively based on previous timestep (faster, potential mismatch, =0)
+   call get_keyword(500, 'snapwave_iterative_srcig',        iterative_srcig,      .false.)                     ! Calculate IG source/sink term in the iterative loop (better, but potentially slower), or effectively based on previous timestep (faster, potential mismatch, default)
    !
    ! IG boundary conditions options:
-   call get_keyword(500, 'snapwave_use_herbers',            herbers_opt,          1)                           ! Choice whether you want IG Hm0&Tp be calculated by herbers (=1, default), or want to specify user defined values (0> then snapwave_eeinc2ig & snapwave_Tinc2ig are used)
+   call get_keyword(500, 'snapwave_use_herbers',            igherbers,            .true.)                      ! Calculate IG Hm0&Tp with Herbers (default), or use user defined values (false > then snapwave_eeinc2ig & snapwave_Tinc2ig are used)
    call get_keyword(500, 'snapwave_tpig_opt',               tpig_opt,             1)                           ! IG wave period option based on Herbers calculated spectrum, only used if snapwave_use_herbers = 1. Options are: 1=Tm01 (default), 2=Tpsmooth, 3=Tp, 4=Tm-1,0
    call get_keyword(500, 'snapwave_jonswapgamma',           jonswapgam,           3.3)                         ! JONSWAP gamma value for determination offshore spectrum and IG wave conditions using Herbers, default=3.3, only used if snapwave_use_herbers = 1
    call get_keyword(500, 'snapwave_eeinc2ig',               eeinc2ig,             0.01)                        ! Only used if snapwave_use_herbers = 0
@@ -105,30 +105,17 @@ contains
    !
    close(500)
    !
-   igwaves          = .true.
-   igherbers        = .false.
-   iterative_srcig  = .false.   
+   ! Herbers and iterative IG source term are only used when IG waves are on
    !
-   if (igwaves_opt==0) then
+   if (.not. igwaves) then
       !
-      igwaves       = .false.
+      igherbers       = .false.
+      iterative_srcig = .false.
       !
-   else
-      ! 
-      if (iterative_srcig_opt==1) then
-         iterative_srcig = .true.
-      endif      
+   elseif (.not. igherbers) then
       !
-      if (herbers_opt==0) then
-         !
-         write(logstr,*)'SnapWave: IG bc using use eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
-         call write_log(logstr, 0)         
-         !
-      else
-         !
-         igherbers     = .true.          
-         !
-      endif
+      write(logstr,*)'SnapWave: IG bc using eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
+      call write_log(logstr, 0)
       !
    endif
    !
