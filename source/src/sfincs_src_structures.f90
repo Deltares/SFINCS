@@ -547,8 +547,7 @@ contains
       endif
       !
       ! drainage_structures is set after marshalling once src_struc_type is
-      ! populated; dike_breaching is set the same way (line ~755).
-      ! Both are resolved below via any() on the flat type array.
+      ! populated, via any() on the flat type array (see below).
       !
       ! Allocate flat arrays to size nr_src_structures and seed defaults.
       !
@@ -864,7 +863,6 @@ contains
          !
       endif
       !
-      dike_breaching      = any(src_struc_type == structure_dike_breach)
       drainage_structures = any(src_struc_type /= structure_dike_breach)
       !
       ! Write the per-structure descriptive block to the log file.

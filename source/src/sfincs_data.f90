@@ -196,7 +196,6 @@ module sfincs_data
       logical       :: snapwave_vegetation
       logical       :: store_cumulative_precipitation
       logical       :: store_maximum_waterlevel
-      logical       :: store_maximum_waterdepth
       logical       :: store_maximum_velocity
       logical       :: store_maximum_flux
       logical       :: store_t_zsmax
@@ -214,15 +213,11 @@ module sfincs_data
       logical       :: store_wind_max
       logical       :: store_wave_forces
       logical       :: store_wave_direction
-      logical       :: useqxy0
-      logical       :: usehuv
-      logical       :: usehuv0
       logical       :: write_time_output
       logical       :: bziwaves
       logical       :: infiltration
       logical       :: discharges
       logical       :: drainage_structures
-      logical       :: dike_breaching
       logical       :: urban_drainage
       logical       :: store_urban_drainage_discharge
       logical       :: store_cumulative_urban_drainage
@@ -243,15 +238,12 @@ module sfincs_data
       logical       :: outflow_boundaries_in_mask
       logical       :: downstream_river_boundaries_in_mask
       logical       :: neumann_boundaries_in_mask
-      logical       :: use_uv
       logical       :: use_quadtree
       logical       :: use_quadtree_output
-      logical       :: interpolate_zst
       logical       :: advection
       logical       :: thetasmoothing            
       logical       :: fixed_output_intervals
       logical       :: use_storage_volume
-      logical       :: output_irregular_grid
       logical       :: use_spw_precip
       logical       :: friction2d
       logical       :: advection_mask
@@ -265,19 +257,6 @@ module sfincs_data
       logical       :: bathtub
       logical       :: bathtub_snapwave      
       !!!
-      !!! sfincs_input.f90 switches
-      integer storevelmax
-      integer storefluxmax
-      integer storevel
-      integer storecumprcp
-      integer storetwet
-      integer storetzsmax
-      integer storezvolume
-      integer storestoragevolume      
-      integer storemeteo
-      integer storehsubgrid
-      integer wrttimeoutput
-      !!!
       !!! Static data
       !!!
       integer*4 :: np
@@ -288,11 +267,6 @@ module sfincs_data
       ! Temp for reading ascii depfile in initialize_bathymetry().
       !
       integer*1, dimension(:,:), allocatable :: kcsg
-      !
-      ! Internal wave maker
-      !
-      integer*4 :: nkcs4
-      integer*4 :: nkcuv4
       !
       ! Indices
       !
@@ -409,7 +383,6 @@ module sfincs_data
       !
       ! Bucket model - finite capacity reservoir with linear drainage
       !
-      logical       :: use_bucket_model = .false.
       real*4, dimension(:),   allocatable :: bucket_volume                     ! current storage (m)
       real*4, dimension(:),   allocatable :: bucket_capacity                   ! max capacity S_max (m)
       real*4, dimension(:),   allocatable :: bucket_k                          ! drainage coefficient (1/s)
@@ -662,7 +635,6 @@ module sfincs_data
       !!!
       !!! Boundary data
       !!!
-      integer ntb
       integer nbnd
       integer nbdr
       integer ngbnd, itbndlast, ntbnd
@@ -915,10 +887,6 @@ module sfincs_data
       !
       ! Parameters for sfincs.f90
       integer                       :: nt
-      integer                       :: itmapout
-      integer                       :: itmaxout
-      integer                       :: itrstout
-      integer                       :: ithisout
       !
       real*8                       :: t
       real*4                       :: dt
@@ -936,10 +904,6 @@ module sfincs_data
       maxdepth    = 999.0
       maxmaxdepth = 0.0
       nt          = 0
-      itmapout    = 0
-      itmaxout    = 0
-      itrstout    = 0
-      ithisout    = 0
       twindupd    = t0
       !
       tloop2      = 0.0

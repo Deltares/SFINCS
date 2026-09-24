@@ -1028,8 +1028,6 @@ contains
    !
    if (netcdf_infiltration) then
       !
-      use_bucket_model = .true.
-      !
       write(logstr,'(a)')'Info    : turning on bucket model (linear reservoir)'
       call write_log(logstr, 0)
       !

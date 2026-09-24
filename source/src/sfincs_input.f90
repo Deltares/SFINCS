@@ -294,22 +294,6 @@ contains
       call get_keyword(500, 'snapwave_use_nearest',            snapwave_use_nearest,            .true.)            ! use nearest-neighbour lookup for SnapWave boundary points
       call get_keyword(500, 'percentage_done',                 percdoneval,                     5)                 ! progress-reporter interval (% complete)
       !
-      ! Legacy integer switches: sfincs_ncoutput still writes these as
-      ! netcdf attributes, so derive them from the logicals here until
-      ! the output side is updated.
-      !
-      storevelmax        = merge(1, 0, store_maximum_velocity)
-      storefluxmax       = merge(1, 0, store_maximum_flux)
-      storevel           = merge(1, 0, store_velocity)
-      storecumprcp       = merge(1, 0, store_cumulative_precipitation)
-      storetwet          = merge(1, 0, store_twet)
-      storetzsmax        = merge(1, 0, store_t_zsmax)
-      storezvolume       = merge(1, 0, store_zvolume)
-      storestoragevolume = merge(1, 0, store_storagevolume)
-      storemeteo         = merge(1, 0, store_meteo)
-      storehsubgrid      = merge(1, 0, store_hsubgrid)
-      wrttimeoutput      = merge(1, 0, write_time_output)
-      !
       ! Coupled SnapWave solver parameters
       !
       call get_keyword(500, 'snapwave_wind',                   snapwavewind,                    .false.)           ! feed wind into SnapWave (implies storing wind speed/direction)
