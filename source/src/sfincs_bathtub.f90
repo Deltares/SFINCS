@@ -177,7 +177,7 @@ contains
    !
    use snapwave_data
    use snapwave_boundaries
-   use sfincs_snapwave
+   use snapwave_input, only: read_snapwave_input
    !
    ! Read SnapWave input file from sfincs.inp (this will store boundary file names in snapwave_data)
    !

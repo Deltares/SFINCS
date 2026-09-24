@@ -73,6 +73,7 @@
 				</File>
 				<File RelativePath="..\src\snapwave\snapwave_data.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_date.f90"/>
+				<File RelativePath="..\src\snapwave\snapwave_input.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_domain.f90">
 				</File>
 				<File RelativePath="..\src\snapwave\snapwave_infragravity.f90">

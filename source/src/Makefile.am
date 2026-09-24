@@ -67,6 +67,7 @@ libsfincs_la_SOURCES = \
 	snapwave/snapwave_infragravity.f90 \
 	snapwave/snapwave_boundaries.f90 \
 	snapwave/snapwave_date.f90 \
+	snapwave/snapwave_input.f90 \
 	snapwave/snapwave_domain.f90 \
 	snapwave/snapwave_windsource.f90 \
 	snapwave/snapwave_RFtable.f90 \

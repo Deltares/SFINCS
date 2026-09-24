@@ -213,6 +213,11 @@ module sfincs_output
          !$acc update device(zsmax)
       endif
       !
+      if (store_zvolume_max) then
+         zvolmax = 0.0 ! Set zvolmax back to zero
+         !$acc update device(zvolmax)
+      endif
+      !
       if (store_maximum_velocity) then
          vmax = -999.0 ! Set vmax back to a small value
          !$acc update device(vmax)

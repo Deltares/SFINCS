@@ -514,6 +514,11 @@ contains
            standard_name='maximum_sea_surface_height_above_reference_level')
    endif
    !
+   if (store_zvolume_max) then
+      call def_maxtime_cell_float('zvolmax', map_file%zvolmax_varid, 'm3', 'Maximum subgrid volume in cell', &
+           standard_name='maximum_subgrid_volume_in_cell')
+   endif
+   !
    if (store_cumulative_precipitation) then
       call def_maxtime_cell_float('cumprcp', map_file%cumprcp_varid, 'm', 'Cumulative precipitation depth', &
            standard_name='cumulative_precipitation_depth', cell_methods='time: sum')
@@ -1580,7 +1585,7 @@ contains
    !
    real*8                            :: t
    integer                           :: ntmaxout, nm
-   real*4, dimension(:), allocatable :: hmax_out, hmean
+   real*4, dimension(:), allocatable :: hmax_out, hmean, zvolmax_out
    real*4, dimension(:), allocatable :: urbdrain_depth
    !
    ! Scalar time of this max-record (defined only when store_maximum_waterlevel)
@@ -1595,6 +1600,19 @@ contains
       else
          call write_cell_var_wet(map_file%ncid, map_file%zsmax_varid, zsmax, zb,             ntmaxout)
       endif
+   endif
+   !
+   ! Maximum subgrid volume (same wet mask as zsmax)
+   if (store_zvolume_max) then
+      allocate(zvolmax_out(np))
+      zvolmax_out = FILL_VALUE
+      do nm = 1, np
+         if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
+            zvolmax_out(nm) = zvolmax(nm)
+         endif
+      enddo
+      call write_cell_var(map_file%ncid, map_file%zvolmax_varid, zvolmax_out, ntmaxout, check_kcs=.true.)
+      deallocate(zvolmax_out)
    endif
    !
    ! Maximum water depth (optional, supports subgrid mean-depth)
@@ -1744,7 +1762,7 @@ contains
    !
    ! Because of overlapping names, only important specific values from snapwave_data
    use snapwave_data, only: gamma, gammax, alpha, hmin, fw0, fw0_ig, dt, tol, dtheta, crit, nr_sweeps, baldock_exponent, baldock_ratio, &
-       igwaves_opt, alpha_ig, gamma_ig, gamma_fac_br, shinc2ig, alphaigfac, baldock_ratio_ig, ig_opt, herbers_opt, tpig_opt, eeinc2ig, tinc2ig, &
+       igwaves, alpha_ig, gamma_ig, gamma_fac_br, shinc2ig, alphaigfac, baldock_ratio_ig, ig_opt, igherbers, tpig_opt, eeinc2ig, tinc2ig, &
        snapwave_jonswapfile, snapwave_encfile, snapwave_bndfile, snapwave_bhsfile, snapwave_btpfile, snapwave_bwdfile, snapwave_bdsfile, upwfile, gridfile, &
        jonswapgam, Tpini, sector, fwratio, fwigratio   
    !
@@ -1935,14 +1953,15 @@ contains
         NF90(nf90_put_att(ncid, varid, 'store_tsunami_arrival_time',logical2int(store_tsunami_arrival_time)))
         NF90(nf90_put_att(ncid, varid, 'tsunami_arrival_threshold',tsunami_arrival_threshold))
         NF90(nf90_put_att(ncid, varid, 'storezvolume',logical2int(store_zvolume)))
+        NF90(nf90_put_att(ncid, varid, 'storezvolmax',logical2int(store_zvolume_max)))
         NF90(nf90_put_att(ncid, varid, 'writeruntime',logical2int(write_time_output)))
         NF90(nf90_put_att(ncid, varid, 'debug',logical2int(debug)))
         NF90(nf90_put_att(ncid, varid, 'storemeteo',logical2int(store_meteo)))
         NF90(nf90_put_att(ncid, varid, 'storemaxwind',logical2int(store_wind_max))) 
         NF90(nf90_put_att(ncid, varid, 'storefw',logical2int(store_wave_forces)))         
         NF90(nf90_put_att(ncid, varid, 'storewavdir', logical2int(store_wave_direction)))
-        NF90(nf90_put_att(ncid, varid, 'storetzsmax',storetzsmax))
-        NF90(nf90_put_att(ncid, varid, 'storestoragevolume',storestoragevolume))
+        NF90(nf90_put_att(ncid, varid, 'storetzsmax',logical2int(store_t_zsmax)))
+        NF90(nf90_put_att(ncid, varid, 'storestoragevolume',logical2int(store_storagevolume)))
         NF90(nf90_put_att(ncid, varid, 'storehmean',logical2int(store_hmean)))
         NF90(nf90_put_att(ncid, varid, 'timestep_analysis',logical2int(timestep_analysis)))
         NF90(nf90_put_att(ncid, varid, 'store_dynamic_bed_level',logical2int(store_dynamic_bed_level)))
@@ -1989,7 +2008,7 @@ contains
         ! SnapWave IG
         !
         NF90(nf90_put_att(ncid, varid, 'snapwave_jonswapgamma',jonswapgam))
-        NF90(nf90_put_att(ncid, varid, 'snapwave_igwaves',igwaves_opt))
+        NF90(nf90_put_att(ncid, varid, 'snapwave_igwaves',logical2int(igwaves)))
         NF90(nf90_put_att(ncid, varid, 'snapwave_alpha_ig',alpha_ig)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_gammaig',gamma_ig))
         NF90(nf90_put_att(ncid, varid, 'snapwave_gamma_fac_br',gamma_fac_br))
@@ -1997,7 +2016,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'snapwave_alphaigfac',alphaigfac)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_baldock_ratio_ig',baldock_ratio_ig)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_ig_opt',ig_opt)) 
-        NF90(nf90_put_att(ncid, varid, 'snapwave_use_herbers',herbers_opt)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_use_herbers',logical2int(igherbers))) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_tpig_opt',tpig_opt)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_eeinc2ig',eeinc2ig)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_Tinc2ig',Tinc2ig)) 
