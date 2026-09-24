@@ -208,7 +208,7 @@ module sfincs_lib
    else   
       call write_log('Subgrid topography   : no', 1)
    endif
-   if (use_quadtree) then
+   if (use_quadtree .and. nref > 1) then
       call write_log('Quadtree refinement  : yes', 1)
    else   
       call write_log('Quadtree refinement  : no', 1)
