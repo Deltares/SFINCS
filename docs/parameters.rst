@@ -409,9 +409,13 @@ Parameters for model output
 	  :units:		-
 	  :default:		0
 	storezvolume
-	  :description:		Flag to turn on writing away water volumes for the subgrid mode during simulation (storezvolume = 1)
+	  :description:		Flag to turn on writing away water volumes 'subgrid_volume' for the subgrid mode on 'dtmapout' interval during simulation (storezvolume = 1)
 	  :units:		-
-	  :default:		0	
+	  :default:		0
+	storezvolmax
+	  :description:		Flag to turn on writing away the maximum water volume 'zvolmax' in subgrid cells on 'dtmaxout' interval during simulation (storezvolmax = 1). Used for improved downscaling of flood maps. Only for subgrid models, and only if dtmaxout > 0.
+	  :units:		-
+	  :default:		1
 	storestoragevolume
 	  :description:		Flag to turn on writing away storage volumes for the subgrid mode during simulation (storestoragevolume = 1)
 	  :units:		-

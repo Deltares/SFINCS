@@ -76,7 +76,7 @@ contains
       call get_keyword(500, 't0out',                           t0out,                           -999.0)            ! output start time (s rel. tref); -999 = t0
       call get_keyword(500, 't1out',                           t1out,                           -999.0)            ! output stop time  (s rel. tref); -999 = t1
       call get_keyword(500, 'dtmapout',                        dtmapout,                        0.0, ['dtout'])    ! map output interval (s); 0 = no map output
-      call get_keyword(500, 'dtmaxout',                        dtmaxout,                        9999999.0)         ! zsmax etc. interval (s); 0 = end-of-run only
+      call get_keyword(500, 'dtmaxout',                        dtmaxout,                        9999999.0)         ! zsmax etc. interval (s); <= 0 = no max output
       call get_keyword(500, 'dtrstout',                        dtrstout,                        0.0)               ! restart interval (s); 0 = no periodic restart
       call get_keyword(500, 'trstout',                         trst,                            -999.0)            ! single restart time (s rel. tref); -999 = unused
       call get_keyword(500, 'dthisout',                        dthisout,                        600.0)             ! his output interval (s)
@@ -265,7 +265,6 @@ contains
       call get_keyword(500, 'obsfile',                         obsfile,                         'none')            ! observation-point locations file
       call get_keyword(500, 'crsfile',                         crsfile,                         'none')            ! cross-section polyline file
       call get_keyword(500, 'rugfile',                         rugfile,                         'none')            ! runup-gauge locations file
-      call get_keyword(500, 'store_maximum_waterlevel',        store_maximum_waterlevel,        .true.)            ! store maximum water level on dtmaxout interval (only if dtmaxout > 0)
       call get_keyword(500, 'storevelmax',                     store_maximum_velocity,          .false.)           ! store maximum flow velocity on dtmaxout interval (only if dtmaxout > 0)
       call get_keyword(500, 'storefluxmax',                    store_maximum_flux,              .false.)           ! store maximum flux on dtmaxout interval (only if dtmaxout > 0)
       call get_keyword(500, 'storevel',                        store_velocity,                  .false.)           ! store velocity on dtout interval
@@ -278,7 +277,8 @@ contains
       call get_keyword(500, 'store_tsunami_arrival_time',      store_tsunami_arrival_time,      .false.)           ! store tsunami arrival time per cell
       call get_keyword(500, 'tsunami_arrival_threshold',       tsunami_arrival_threshold,       0.01)              ! water-depth threshold for tsunami arrival
       call get_keyword(500, 'timestep_analysis',               timestep_analysis,               .false.)           ! write per-cell timestep limiter diagnostics
-      call get_keyword(500, 'storezvolume',                    store_zvolume,                   .true.)           ! store subgrid cell volume (requires subgrid)
+      call get_keyword(500, 'storezvolume',                    store_zvolume,                   .false.)           ! store subgrid cell volume on dtmapout interval (requires subgrid)
+      call get_keyword(500, 'storezvolmax',                    store_zvolume_max,               .true.)            ! store maximum subgrid cell volume on dtmaxout interval (requires subgrid)
       call get_keyword(500, 'storestoragevolume',              store_storagevolume,             .false.)           ! store remaining storage volume (requires subgrid + volfile)
       call get_keyword(500, 'writeruntime',                    write_time_output,               .false.)           ! write runtimes.txt at end of simulation
       call get_keyword(500, 'debug',                           debug,                           .false.)           ! debug output at every time step
@@ -446,17 +446,17 @@ contains
       t0out = max(t0out, t0)
       if (t1out < -900.0) t1out = t1
       !
-      if (dtmaxout > 0.0) store_maximum_waterlevel = .true.
+      ! Maximum output is only written when dtmaxout > 0, so switch off the
+      ! max flags otherwise (keeps them from being allocated/computed for nothing).
       !
-      ! Apply gates to the flags now that the full set of inputs has been read.
+      store_maximum_waterlevel = .true.
       !
       if (dtmaxout <= 0.0) then
-         !
-         ! Are there more to be added here?
          !
          store_maximum_waterlevel = .false.
          store_maximum_velocity   = .false.
          store_maximum_flux       = .false.
+         store_zvolume_max        = .false.
          !
       endif
       !
@@ -503,9 +503,10 @@ contains
          !
       endif
       !
-      ! store_zvolume / store_storagevolume are subgrid-only.
+      ! store_zvolume / store_zvolume_max / store_storagevolume are subgrid-only.
       !
-      if (.not. subgrid) store_zvolume = .false.
+      if (.not. subgrid) store_zvolume     = .false.
+      if (.not. subgrid) store_zvolume_max = .false.
       !
       thetasmoothing = .false.
       if (theta < 0.9999) thetasmoothing = .true.      ! use 0.9999 instead of 1.0 for numerical robustness
@@ -648,6 +649,7 @@ contains
          infiltration           = .false.
          store_velocity         = .false.
          store_maximum_velocity = .false.
+         store_zvolume_max      = .false.
          !
       endif
       !

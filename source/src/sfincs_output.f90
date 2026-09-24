@@ -213,7 +213,7 @@ module sfincs_output
          !$acc update device(zsmax)
       endif
       !
-      if (store_maximum_waterlevel .and. store_zvolume) then
+      if (store_zvolume_max) then
          zvolmax = 0.0 ! Set zvolmax back to zero
          !$acc update device(zvolmax)
       endif

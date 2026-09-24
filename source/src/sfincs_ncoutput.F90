@@ -514,7 +514,7 @@ contains
            standard_name='maximum_sea_surface_height_above_reference_level')
    endif
    !
-   if (store_maximum_waterlevel .and. store_zvolume) then
+   if (store_zvolume_max) then
       call def_maxtime_cell_float('zvolmax', map_file%zvolmax_varid, 'm3', 'Maximum subgrid volume in cell', &
            standard_name='maximum_subgrid_volume_in_cell')
    endif
@@ -1603,7 +1603,7 @@ contains
    endif
    !
    ! Maximum subgrid volume (same wet mask as zsmax)
-   if (store_maximum_waterlevel .and. store_zvolume) then
+   if (store_zvolume_max) then
       allocate(zvolmax_out(np))
       zvolmax_out = FILL_VALUE
       do nm = 1, np
@@ -1953,6 +1953,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'store_tsunami_arrival_time',logical2int(store_tsunami_arrival_time)))
         NF90(nf90_put_att(ncid, varid, 'tsunami_arrival_threshold',tsunami_arrival_threshold))
         NF90(nf90_put_att(ncid, varid, 'storezvolume',logical2int(store_zvolume)))
+        NF90(nf90_put_att(ncid, varid, 'storezvolmax',logical2int(store_zvolume_max)))
         NF90(nf90_put_att(ncid, varid, 'writeruntime',logical2int(write_time_output)))
         NF90(nf90_put_att(ncid, varid, 'debug',logical2int(debug)))
         NF90(nf90_put_att(ncid, varid, 'storemeteo',logical2int(store_meteo)))

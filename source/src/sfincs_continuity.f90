@@ -691,7 +691,7 @@ contains
             !
             ! Store the maximum subgrid volume (written with zsmax per dtmaxout)
             !
-            if (store_zvolume) then
+            if (store_zvolume_max) then
                !
                zvolmax(nm) = max(zvolmax(nm), real(z_volume(nm), 4))
                !

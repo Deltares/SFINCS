@@ -206,6 +206,7 @@ module sfincs_data
       logical       :: store_hmean      
       logical       :: store_river_discharge
       logical       :: store_zvolume
+      logical       :: store_zvolume_max
       logical       :: store_storagevolume            
       logical       :: store_meteo
       logical       :: store_vegetation
