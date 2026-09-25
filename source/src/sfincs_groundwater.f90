@@ -247,6 +247,7 @@ contains
    enddo
    deallocate(fill)
    allocate(gw_qface(npuv)); gw_qface = 0.0d0
+   allocate(gw_pinned(np)); gw_pinned = .false.
    !
    ! Sanity check: every face with both cells nonzero contributes one entry to each of its two
    ! cells, so the total entry count must be exactly twice the face count counted above.
@@ -1027,6 +1028,30 @@ contains
             cycle
          endif
          !
+         ! No lateral flux between two surface-held cells: a cell pinned at the last call (its
+         ! head IS the pond/sea level, from the pin above) or a boundary cell (kcs == 2, head is
+         ! the prescribed water level). Between two such cells that flux would land on the sea
+         ! surface one aquifer interval late -- a lagged explicit diffusion of the sea surface
+         ! through the aquifer, strength K b T / dx^2 (1.3e-3 per 5.8 s interval on the island's
+         ! 40 m sea cells at b = 35 m). At an interval equal to half the period of the 2-dx gravity
+         ! mode of the CFL-setting cells (11-13 s at 4-5 m depth here; gw_dtmult = 2 at alpha = 0.5
+         ! always lands there because the surface step is a quarter of that period) the lag turns
+         ! diffusion into anti-diffusion: a wave on the 40 m sea cells doubled every 1.4 h and
+         ! saturated at 8 cm before this fix, gone at gw_kh/10, worse (45 cm) at gw_ss/100 -- a
+         ! structural resonance of the coupling, not something the confined storage can buffer
+         ! away. The flux this drops is groundwater carrying sea water between two submerged cells
+         ! along the sea-surface slope, of order 1e-5 of the surface conveyance -- negligible by
+         ! construction, since two surface-held cells differ only by whatever the surface itself
+         ! has not already equalised. Flux between a held cell and an unpinned one (the shoreline,
+         ! the tidal forcing of the aquifer) is untouched: that is real recharge/discharge, not a
+         ! sea-to-sea loop. gw_pinned is allocated on every path (initialize_groundwater), so the
+         ! kcs == 2 fallback in the .or. is always safe to evaluate.
+         !
+         if ((gw_pinned(nm) .or. kcs(nm) == 2) .and. (gw_pinned(nmu) .or. kcs(nmu) == 2)) then
+            gw_qface(ip) = 0.0d0
+            cycle
+         endif
+         !
          call gw_face_transmissivity(ip, tface)
          if (tface <= 0.0) then
             gw_qface(ip) = 0.0d0
@@ -1193,6 +1218,12 @@ contains
          elseif (gw_storage_mode /= 0) then
             pin = (hsat .or. hnew > dble(zb(nm)))
          endif
+         !
+         ! Remembered for the NEXT sub-step's face pass: a cell pinned here has its head fixed at
+         ! the surface level, so the lateral flux it exchanges with another such cell (see the face
+         ! pass above) is dropped rather than diffused explicitly one interval late.
+         !
+         gw_pinned(nm) = pin
          if (pin) then
             !
             ! Saturated under a pond: the water table IS the pond. The subgrid storage curve is

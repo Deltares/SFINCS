@@ -319,6 +319,7 @@ module sfincs_data
       integer, dimension(:), allocatable :: gw_cf_idx  ! explicit path, threaded gather: face index (into uv_index_z_*) touching each cell
       integer, dimension(:), allocatable :: gw_cf_sgn  ! explicit path, threaded gather: +-1, the sign of that face's flux seen from the cell
       real*8, dimension(:), allocatable :: gw_qface    ! explicit path, threaded gather: per-face signed volume this sub-step, qface * dtsub
+      logical, dimension(:), allocatable :: gw_pinned  ! explicit path: cell was surface-held (pin) at the last sub-step -- skips lateral flux between two such cells
       real*4, parameter :: gw_awet_floor = 0.01
       ! real*8, not real*4. The head is a LEVEL: it carries the datum, and the datum is
       ! information the scheme does not need but the mantissa has to pay for. At a 10 m datum a
