@@ -2303,11 +2303,29 @@ contains
       ! 
       allocate(zs0(np))
       allocate(zsderv(np))
-      allocate(z_wetfrac(np))
       zs0 = 0.0
       zsderv = 0.0
-      z_wetfrac = 1.0
       ! 
+   endif
+   !
+   if (wiggle_suppression .or. slope_driven_flow) then
+      !
+      allocate(z_wetfrac(np))
+      z_wetfrac = 1.0
+      !
+   endif
+   !
+   if (slope_driven_flow) then
+      !
+      allocate(z_hwet(np))
+      allocate(z_wface(np))
+      allocate(w_uv(npuv))
+      allocate(iup_uv(npuv))
+      z_hwet = 0.0
+      z_wface = 0.0
+      w_uv = 0.0
+      iup_uv = 0
+      !
    endif
    !
    if (snapwave) then

@@ -82,6 +82,25 @@ contains
    !
    real*4    :: min_dt_ip
    !
+   integer   :: iup                             ! upwind cell of the uv point
+   integer   :: idn                             ! downstream cell of the uv point
+   real*4    :: w                               ! face regime weight (0 level-driven, 1 slope-driven)
+   real*4    :: s_s                             ! bed-plane slope of the upwind cell along the face normal
+   real*4    :: hwet_up                         ! level-based wet depth of the upwind cell (floored)
+   real*4    :: d_up                            ! cell-mean depth of the upwind cell
+   real*4    :: zb_face                         ! bed at the face (subgrid uv zmin)
+   real*4    :: tol_edge                        ! tolerance of the face bed above the lowest pixel of the upwind cell
+   real*4    :: r_slope                         ! bed drop over the face stencil / wet depth
+   real*4    :: hu_flux                         ! (blended) depth for the flux and time step
+   real*4    :: hu_fric                         ! (blended) depth for the friction
+   real*4    :: dzdx_eff                        ! driving surface gradient
+   !
+   integer   :: iside                           ! face counter for the z_wface diagnostic
+   integer   :: iface
+   integer   :: jface
+   real*4    :: wq_sum
+   real*4    :: q_sum
+   !
    logical   :: iwet
    !
    call system_clock(count0, count_rate, count_max)
@@ -133,7 +152,8 @@ contains
    !$omp private ( ip,hu,ufr,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, &
    !$omp           fcoriouv,gnavg2,iwet,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,dqxudx,dqyudy,un,up,vp,vn,umax, &
-   !$omp           dnminv,qu,qd,hwet,phi,adv,mdrv,phiz,fac,hu43,y_cbrt,i_cbrt,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbup,ipw,ipe,zbnm,zbnmu ) &
+   !$omp           dnminv,qu,qd,hwet,phi,adv,mdrv,phiz,fac,hu43,y_cbrt,i_cbrt,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbup,ipw,ipe,zbnm,zbnmu, &
+   !$omp           iup,idn,w,s_s,hwet_up,d_up,zb_face,tol_edge,r_slope,hu_flux,hu_fric,dzdx_eff ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, zsderv, z_wetfrac, &
@@ -143,9 +163,15 @@ contains
    !$acc                    uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc                    uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
    !$acc                    zb, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, &
+   !$acc                    z_hwet, subgrid_z_dzbdm, subgrid_z_dzbdn, subgrid_z_zmin, w_uv, iup_uv, &
    !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, cell_area, cell_area_m2, z_flags_iref, gnapp2, timestep_analysis_required_timestep ) num_gangs( 1024 ) vector_length( 128 )
    !$acc loop, reduction( min : min_dt ), gang, vector
    do ip = 1, npuv
+      !
+      if (slope_driven_flow) then
+         w_uv(ip)   = 0.0
+         iup_uv(ip) = 0
+      endif
       !
       if (kcuv(ip) == 1 .or. kcuv(ip) == 6) then
          !
@@ -158,17 +184,26 @@ contains
          !
          iwet  = .false.
          !
-         ! Upwind surface at the u-point: take the surface from the cell the flow comes from
-         ! (sign of the previous-step velocity). The upwind bed (zbup) is only needed for the
-         ! regular-grid conveyance and is set in the non-subgrid branch below.
+         ! Upwind cell of the uv point, from the sign of the previous-step velocity, else the
+         ! higher water level; zsu and, for regular grids, zbup follow it
          !
          if (uv0(ip) > 1.0e-6) then
-            zsu = zs(nm)
+            iup = nm
+            idn = nmu
          elseif (uv0(ip) < -1.0e-6) then
-            zsu = zs(nmu)
+            iup = nmu
+            idn = nm
          else
-            zsu = max(zs(nm), zs(nmu))
+            if (zs(nm) >= zs(nmu)) then
+               iup = nm
+               idn = nmu
+            else
+               iup = nmu
+               idn = nm
+            endif
          endif
+         !
+         zsu = zs(iup)
          !
          if (subgrid) then
             !
@@ -186,17 +221,7 @@ contains
             ! that selected zsu. The face is wet when that upwind depth exceeds huthresh. This avoids
             ! the average-bed depth overshoot on steep downslopes while still allowing run-up.
             !
-            if (uv0(ip) > 1.0e-6) then
-               zbup = zb(nm)
-            elseif (uv0(ip) < -1.0e-6) then
-               zbup = zb(nmu)
-            else
-               if (zs(nm) >= zs(nmu)) then
-                  zbup = zb(nm)
-               else
-                  zbup = zb(nmu)
-               endif
-            endif
+            zbup = zb(iup)
             !
             if (zsu - zbup > huthresh) then
                iwet = .true.
@@ -395,10 +420,6 @@ contains
                !
             endif
             !
-            ! Compute wet average depth hwet (used in wind and wave forcing)
-            !
-            hwet = hu / phi
-            !
             ! FORCING TERMS
             !
             ! Pressure term 
@@ -415,11 +436,89 @@ contains
                !
             endif
             !
+            ! Level-driven vs slope-driven flow (slope_driven_flow, subgrid only). A face is
+            ! slope-driven when a sheet leaves the upwind cell over its low edge into a downstream
+            ! water surface below the face bed (free overfall or dry neighbour). The face weight w
+            ! follows from the ratio of the bed drop over the face stencil along the face normal
+            ! and the level-based wet depth of the upwind cell. With w > 0 the flux and friction
+            ! depths and g*n^2 are blended with those of a sheet over the upwind cell (cell-mean
+            ! depth, deep-water g*n^2), and the driving gradient is at least the bed slope.
+            ! With w = 0 everything below is as without the option.
+            !
+            w        = 0.0
+            hu_flux  = hu
+            hu_fric  = hu
+            dzdx_eff = dzdx
+            !
+            if (slope_driven_flow) then
+               !
+               ! Bed-plane slope of the upwind cell along the face normal (positive = bed rising
+               ! in +m / +n, same sign convention as dzdx)
+               !
+               if (uv_flags_dir(ip) == 0) then
+                  s_s = subgrid_z_dzbdm(iup)
+               else
+                  s_s = subgrid_z_dzbdn(iup)
+               endif
+               !
+               hwet_up  = max(z_hwet(iup), slope_driven_hmin)
+               d_up     = max(real(zs(iup) - zb(iup), 4), 0.0)
+               zb_face  = subgrid_uv_zmin(ip)
+               tol_edge = max(5.0 * slope_driven_hmin, 0.25 * hwet_up)
+               !
+               ! Face at the low edge of the upwind cell, downstream surface below the face bed,
+               ! and a bed slope along the face normal (nested, no short-circuit in Fortran)
+               !
+               if (zb_face - subgrid_z_zmin(iup) <= tol_edge) then
+                  !
+                  if (zs(idn) < zb_face) then
+                     !
+                     if (abs(s_s) > 1.0e-6) then
+                        !
+                        r_slope = abs(s_s) / (dxuvinv * hwet_up)
+                        w = r_slope**2 / (r_slope**2 + slope_driven_ratio0**2)
+                        !
+                     endif
+                     !
+                  endif
+                  !
+               endif
+               !
+               if (w > 1.0e-6) then
+                  !
+                  hu_flux = (1.0 - w) * hu + w * d_up
+                  hu_fric = (1.0 - w) * hu + w * max(d_up, slope_driven_hmin)
+                  gnavg2  = (1.0 - w) * gnavg2 + w * subgrid_uv_navg_w(ip)
+                  !
+                  ! The downstream surface cannot exert hydrostatic back-pressure: the driving
+                  ! gradient is at least the bed slope in the downslope direction
+                  !
+                  if (dzdx * s_s > 0.0) then
+                     dzdx_eff = sign(max(abs(dzdx), abs(s_s)), dzdx)
+                  endif
+                  !
+               else
+                  !
+                  w = 0.0
+                  !
+               endif
+               !
+               ! Store the face weight and the upwind cell for the diagnostic z_wface
+               !
+               w_uv(ip)   = w
+               iup_uv(ip) = iup
+               !
+            endif
+            !
+            ! Compute wet average depth hwet (used in wind and wave forcing)
+            !
+            hwet = hu_flux / phi
+            !
             ! Velocity form: build frc directly as an acceleration [m/s^2]. Forces that scale
             ! with depth (pressure, viscosity, Coriolis, atm) are written WITHOUT hu -- their hu
             ! would only be divided out again. Only the surface stresses (wind, waves) keep a /hu.
             !
-            frc = - g * dzdx
+            frc = - g * dzdx_eff
             !
             if (advection) then
                !
@@ -515,6 +614,14 @@ contains
                   dqyudy = ( vp * (uu_nm - uu_ndm) + vn * (uu_num - uu_nm) ) * dyuvinv
                   !
                   adv = - phi * (dqxudx + dqyudy)        ! velocity tendency [m/s^2]
+                  !
+                  if (w > 0.0) then
+                     !
+                     ! No inertia in the kinematic (slope-driven) limit
+                     !
+                     adv = (1.0 - w) * adv
+                     !
+                  endif
                   !
 !                  frc = frc + min(max(adv, -advlim), advlim)   ! add limited advective acceleration
                   frc = frc + adv   ! advective speeds are already clamped to umax above
@@ -623,11 +730,11 @@ contains
             ! iteration (y <- y - (y^3 - hu)/(3 y^2)). ~0.1% accurate over the depth range,
             ! no pow, no table. y_cbrt = hu^(1/3) is reused for the newly-wet estimate below.
             !
-            i_cbrt = transfer(hu, i_cbrt)
+            i_cbrt = transfer(hu_fric, i_cbrt)
             i_cbrt = i_cbrt / 3 + 709921077
             y_cbrt = transfer(i_cbrt, y_cbrt)
-            y_cbrt = y_cbrt - (y_cbrt * y_cbrt * y_cbrt - hu) / (3.0 * y_cbrt * y_cbrt)
-            hu43   = hu * y_cbrt
+            y_cbrt = y_cbrt - (y_cbrt * y_cbrt * y_cbrt - hu_fric) / (3.0 * y_cbrt * y_cbrt)
+            hu43   = hu_fric * y_cbrt
             !
             ! Friction velocity proxy ufr (velocity form: the implicit Manning factor is
             ! gnavg2*ufr/hu^(4/3) with ufr the friction-driving velocity magnitude).
@@ -673,8 +780,16 @@ contains
                ! by more than wiggle_threshold (anti-phase sloshing across this uv point).
                !
                phiz = min(z_wetfrac(nm), z_wetfrac(nmu))
-               phiz = phi
+               !
                fac  = min(max(phiz / alfa**2, wiggle_facmin), 1.0)
+               !
+               if (w > 0.0) then
+                  !
+                  ! Relaxation fades out in slope-driven faces
+                  !
+                  fac = 1.0 - (1.0 - w) * (1.0 - fac)
+                  !
+               endif
                !
                if (fac < 1.0) then
                   !
@@ -707,14 +822,14 @@ contains
             !
             ! Continuity flux from the updated velocity and the conveyance depth.
             !
-            q(ip) = uv(ip) * hu
+            q(ip) = uv(ip) * hu_flux
             !
             kfuv(ip) = 1
             !
             ! Determine minimum time step (alpha is added later on in sfincs_lib.f90) of all uv points
             ! Use maximum of sqrt(gh) and current velocity
             !
-            min_dt_ip = 1.0 / ( max(sqrt(g * hu), abs(uv(ip)) ) * dxuvinv)
+            min_dt_ip = 1.0 / ( max(sqrt(g * hu_flux), abs(uv(ip)) ) * dxuvinv)
             !
             min_dt = min(min_dt, min_dt_ip)
             !
@@ -761,6 +876,72 @@ contains
       !$acc end parallel
       !$omp end do
       !$omp end parallel
+      !
+   endif
+   !
+   if (slope_driven_flow) then
+      !
+      ! Diagnostic z_wface: face regime weight used above, flux-weighted over the outflow faces of
+      ! each cell, i.e. the faces for which the cell is the upwind cell (combined quadtree uv points
+      ! via their two sub-faces). A cell without outflow faces gets 0. Cell-parallel, no atomics.
+      !
+      !$omp parallel &
+      !$omp private ( nm,iside,iface,jface,icuv,wq_sum,q_sum )
+      !$omp do schedule ( dynamic, 256 )
+      !$acc parallel present( z_wface, w_uv, iup_uv, q, z_index_uv_md, z_index_uv_mu, z_index_uv_nd, z_index_uv_nu, &
+      !$acc                   cuv_index_uv1, cuv_index_uv2 )
+      !$acc loop gang vector
+      do nm = 1, np
+         !
+         wq_sum = 0.0
+         q_sum  = 0.0
+         !
+         do iside = 1, 4
+            !
+            if (iside == 1) then
+               iface = z_index_uv_md(nm)
+            elseif (iside == 2) then
+               iface = z_index_uv_mu(nm)
+            elseif (iside == 3) then
+               iface = z_index_uv_nd(nm)
+            else
+               iface = z_index_uv_nu(nm)
+            endif
+            !
+            if (iface <= npuv) then
+               !
+               if (iup_uv(iface) == nm) then
+                  wq_sum = wq_sum + w_uv(iface) * abs(q(iface))
+                  q_sum  = q_sum + abs(q(iface))
+               endif
+               !
+            elseif (iface <= npuv + ncuv) then
+               !
+               icuv  = iface - npuv
+               jface = cuv_index_uv1(icuv)
+               !
+               if (jface <= npuv .and. iup_uv(min(jface, npuv)) == nm) then
+                  wq_sum = wq_sum + w_uv(jface) * abs(q(jface))
+                  q_sum  = q_sum + abs(q(jface))
+               endif
+               !
+               jface = cuv_index_uv2(icuv)
+               !
+               if (jface <= npuv .and. iup_uv(min(jface, npuv)) == nm) then
+                  wq_sum = wq_sum + w_uv(jface) * abs(q(jface))
+                  q_sum  = q_sum + abs(q(jface))
+               endif
+               !
+            endif
+            !
+         enddo
+         !
+         z_wface(nm) = wq_sum / max(q_sum, 1.0e-12)
+         !
+      enddo
+      !$omp end do
+      !$omp end parallel
+      !$acc end parallel
       !
    endif
    !

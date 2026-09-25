@@ -46,6 +46,7 @@ module sfincs_ncoutput_helpers
       integer :: time_varid, timemax_varid
       integer :: zs_varid, zsmax_varid, h_varid, u_varid, v_varid, tmax_varid, infstate_varid, t_zsmax_varid
       integer :: zvolume_varid, storagevolume_varid
+      integer :: wface_varid, hwet_varid
       integer :: hmax_varid, vmax_varid, qmax_varid, cumprcp_varid, cuminf_varid, windmax_varid
       integer :: patm_varid, wind_u_varid, wind_v_varid, precip_varid
       integer :: hm0_varid, hm0ig_varid, snapwavemsk_varid, tp_varid, tpig_varid, wavdir_varid

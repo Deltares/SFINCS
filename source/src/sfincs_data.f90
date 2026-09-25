@@ -93,6 +93,8 @@ module sfincs_data
       real*4 wiggle_factor
       real*4 wiggle_threshold
       real*4 wiggle_facmin
+      real*4 slope_driven_ratio0 ! crossover slope ratio of the level-driven / slope-driven regime weight
+      real*4 slope_driven_hmin   ! floor on the wet depth used in the slope ratio (m)
       real*4 uvlim
       real*4 uvmax
       !real*4 normbnd
@@ -253,6 +255,8 @@ module sfincs_data
       logical       :: advection_mask
       logical       :: wiggle_suppression
       logical       :: wiggle_detect
+      logical       :: slope_driven_flow
+      logical       :: store_slope_regime
       logical       :: store_dynamic_bed_level
       logical       :: nonhydrostatic
       logical       :: h73table
@@ -565,6 +569,9 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: subgrid_z_zmax
       real*4, dimension(:),   allocatable :: subgrid_z_volmax
       real*4, dimension(:,:), allocatable :: subgrid_z_dep
+      real*4, dimension(:),   allocatable :: subgrid_z_dzbdm  ! bed-plane slope in grid m direction
+      real*4, dimension(:),   allocatable :: subgrid_z_dzbdn  ! bed-plane slope in grid n direction
+      logical                             :: subgrid_has_slopes
       !
       real*4, dimension(:),   allocatable :: subgrid_uv_zmin
       real*4, dimension(:),   allocatable :: subgrid_uv_zmax
@@ -597,6 +604,10 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: zs0
       real*4, dimension(:),   allocatable :: zsderv
       real*4, dimension(:),   allocatable :: z_wetfrac
+      real*4, dimension(:),   allocatable :: z_hwet    ! level-based depth over the wet part of the cell
+      real*4, dimension(:),   allocatable :: z_wface   ! diagnostic: flux-weighted face regime weight per cell
+      real*4, dimension(:),   allocatable :: w_uv      ! face regime weight used in momentum (per uv point)
+      integer, dimension(:),  allocatable :: iup_uv    ! upwind cell of each uv point used in momentum (0 if not set)
       real*4, dimension(:),   allocatable, target :: qext
       real*4, dimension(:),   allocatable, target :: dzbext
       real*4, dimension(:),   allocatable, target :: uorb
@@ -996,6 +1007,8 @@ module sfincs_data
     if(allocated(subgrid_z_zmax)) deallocate(subgrid_z_zmax)
     if(allocated(subgrid_z_dep)) deallocate(subgrid_z_dep)
     if(allocated(subgrid_z_volmax)) deallocate(subgrid_z_volmax)
+    if(allocated(subgrid_z_dzbdm)) deallocate(subgrid_z_dzbdm)
+    if(allocated(subgrid_z_dzbdn)) deallocate(subgrid_z_dzbdn)
 !    if(allocated(subgrid_u_zmin)) deallocate(subgrid_u_zmin)
 !    if(allocated(subgrid_u_zmax)) deallocate(subgrid_u_zmax)
 !    if(allocated(subgrid_u_hrep)) deallocate(subgrid_u_hrep)

@@ -484,6 +484,15 @@ contains
       endif
    endif
    !
+   ! Level-driven vs slope-driven flow regime
+   if (store_slope_regime) then
+      call def_time_cell_float('wface', map_file%wface_varid, '-', &
+           'Face regime weight used in momentum, flux-weighted over the outflow faces, 0 level-driven 1 slope-driven', &
+           standard_name='face_slope_regime_weight')
+      call def_time_cell_float('hwet', map_file%hwet_varid, 'm', 'Level-based depth over the wet part of the cell', &
+           standard_name='wet_part_water_depth')
+   endif
+   !
    ! Infiltration state vars (Seff / sigma / f). Source arrays scs_Se,
    ! GA_sigma and qinfmap are allocated unconditionally by sfincs_infiltration
    ! whenever the corresponding inftype is active, on both regular and
@@ -1207,6 +1216,14 @@ contains
    endif
    !
    ! -------------------------------------------------------
+   ! Level-driven vs slope-driven flow regime
+   ! -------------------------------------------------------
+   if (store_slope_regime) then
+      call write_cell_var(map_file%ncid, map_file%wface_varid, z_wface, ntmapout)
+      call write_cell_var(map_file%ncid, map_file%hwet_varid, z_hwet, ntmapout)
+   endif
+   !
+   ! -------------------------------------------------------
    ! Infiltration state
    ! -------------------------------------------------------
    if (inftype == 'cnb') then
@@ -1661,6 +1678,9 @@ contains
         NF90(nf90_put_att(ncid, varid, 'wiggle_suppression',logical2int(wiggle_suppression)))  
         NF90(nf90_put_att(ncid, varid, 'wiggle_factor',wiggle_factor))  
         NF90(nf90_put_att(ncid, varid, 'wiggle_threshold',wiggle_threshold)) 
+        NF90(nf90_put_att(ncid, varid, 'slope_driven_flow',logical2int(slope_driven_flow)))  
+        NF90(nf90_put_att(ncid, varid, 'slope_driven_ratio0',slope_driven_ratio0))  
+        NF90(nf90_put_att(ncid, varid, 'slope_driven_hmin',slope_driven_hmin))  
         NF90(nf90_put_att(ncid, varid, 'slopelim',slopelim))            
         NF90(nf90_put_att(ncid, varid, 'qinf_zmin',qinf_zmin))    
         NF90(nf90_put_att(ncid, varid, 'btfilter', btfilter))                     
@@ -1799,6 +1819,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'storehmean',logical2int(store_hmean)))
         NF90(nf90_put_att(ncid, varid, 'timestep_analysis',logical2int(timestep_analysis)))
         NF90(nf90_put_att(ncid, varid, 'store_dynamic_bed_level',logical2int(store_dynamic_bed_level)))
+        NF90(nf90_put_att(ncid, varid, 'store_slope_regime',logical2int(store_slope_regime)))
         NF90(nf90_put_att(ncid, varid, 'regular_output_on_mesh',logical2int(use_quadtree_output)))
         NF90(nf90_put_att(ncid, varid, 'rugdepth',runup_gauge_depth))
         NF90(nf90_put_att(ncid, varid, 'percentage_done',percdoneval))

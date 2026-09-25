@@ -11,6 +11,7 @@ module sfincs_subgrid
        integer :: npuv_dimid
        integer :: nlevels_dimid
        integer :: z_zmin_varid, z_zmax_varid, z_volmax_varid, z_dep_varid
+       integer :: z_dzbdx_varid, z_dzbdy_varid
        integer :: uv_zmin_varid, uv_zmax_varid, uv_fnfit_varid, uv_navg_w_varid, uv_nrep_varid, uv_havg_varid, uv_pwet_varid
    end type      
    type(net_type_subgrid) :: net_file_sbg
@@ -50,6 +51,15 @@ contains
       call read_subgrid_file_original()
       !
    endif
+   !
+   if (slope_driven_flow .and. .not. subgrid_has_slopes) then
+      !
+      call write_log('Warning : subgrid file does not contain bed slopes (z_dzbdx, z_dzbdy), slope_driven_flow is turned off!', 1)
+      !
+      slope_driven_flow  = .false.
+      store_slope_regime = .false.
+      !
+   endif
    ! 
    end subroutine
 
@@ -83,6 +93,10 @@ contains
    integer :: npuvs
    integer :: np_nc
    integer :: npuv_nc
+   integer :: status_dzbdx
+   integer :: status_dzbdy
+   real*4  :: dzbdx
+   real*4  :: dzbdy
    logical :: subgrid_warning
    !
    subgrid_warning = .false.
@@ -120,6 +134,13 @@ contains
    NF90(nf90_inq_varid(net_file_sbg%ncid, 'uv_havg',    net_file_sbg%uv_havg_varid))
    NF90(nf90_inq_varid(net_file_sbg%ncid, 'uv_nrep',    net_file_sbg%uv_nrep_varid))
    NF90(nf90_inq_varid(net_file_sbg%ncid, 'uv_pwet',    net_file_sbg%uv_pwet_varid))
+   !
+   ! Optional bed-plane slopes (only in newer subgrid files, so no NF90 error macro here)
+   !
+   status_dzbdx = nf90_inq_varid(net_file_sbg%ncid, 'z_dzbdx', net_file_sbg%z_dzbdx_varid)
+   status_dzbdy = nf90_inq_varid(net_file_sbg%ncid, 'z_dzbdy', net_file_sbg%z_dzbdy_varid)
+   !
+   subgrid_has_slopes = (status_dzbdx == nf90_noerr .and. status_dzbdy == nf90_noerr)
    !
    ! ! Check if dimensions match
    ! !
@@ -298,6 +319,34 @@ contains
          subgrid_z_dep(ilevel, ip) = rtmpz2(ilevel, z_index(ip))
       enddo   
    enddo
+   !
+   if (subgrid_has_slopes .and. slope_driven_flow) then
+      !
+      ! Bed-plane slopes in true x and y (positive = bed rising in +x / +y).
+      ! Rotate to the grid m and n directions.
+      !
+      allocate(subgrid_z_dzbdm(np))
+      allocate(subgrid_z_dzbdn(np))
+      !
+      NF90(nf90_get_var(net_file_sbg%ncid, net_file_sbg%z_dzbdx_varid, rtmpz(:)))
+      !
+      do ip = 1, np
+         subgrid_z_dzbdm(ip) = rtmpz(z_index(ip))
+      enddo   
+      !
+      NF90(nf90_get_var(net_file_sbg%ncid, net_file_sbg%z_dzbdy_varid, rtmpz(:)))
+      !
+      do ip = 1, np
+         !
+         dzbdx = subgrid_z_dzbdm(ip)
+         dzbdy = rtmpz(z_index(ip))
+         !
+         subgrid_z_dzbdm(ip) = dzbdx * cosrot + dzbdy * sinrot
+         subgrid_z_dzbdn(ip) = -dzbdx * sinrot + dzbdy * cosrot
+         !
+      enddo   
+      !
+   endif
    !
    ! Read UV points
    !
@@ -479,6 +528,10 @@ contains
    integer :: npzq
    integer :: npuvq
    integer :: npuvs
+   !
+   ! The binary format does not contain bed slopes
+   !
+   subgrid_has_slopes = .false.
    !
    ! Read subgrid data
    !

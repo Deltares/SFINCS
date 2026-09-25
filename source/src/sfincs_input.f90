@@ -186,6 +186,9 @@ contains
    call read_real_input(500,'wiggle_threshold',wiggle_threshold,0.1)
    call read_real_input(500,'wiggle_facmin',wiggle_facmin,0.1)
    call read_logical_input(500,'wiggle_detect',wiggle_detect,.false.)
+   call read_logical_input(500,'slope_driven_flow',slope_driven_flow,.false.)
+   call read_real_input(500,'slope_driven_ratio0',slope_driven_ratio0,1.0)
+   call read_real_input(500,'slope_driven_hmin',slope_driven_hmin,0.01)
    call read_real_input(500, 'uvlim', uvlim, 10.0)
    call read_real_input(500, 'uvmax', uvmax, 1000.0)
    call read_logical_input(500,'friction2d',friction2d,.true.)
@@ -315,6 +318,7 @@ contains
    call read_int_input(500,'storewavdir', istorewavdir, 0)
    call read_logical_input(500,'regular_output_on_mesh',use_quadtree_output,.false.)
    call read_logical_input(500, 'store_dynamic_bed_level', store_dynamic_bed_level, .false.)
+   call read_logical_input(500, 'store_slope_regime', store_slope_regime, .false.)
    call read_logical_input(500,'snapwave_use_nearest',snapwave_use_nearest,.true.)   
    call read_int_input(500,'percentage_done',percdoneval,5)
    ! Limit to range (0,100)
@@ -708,6 +712,27 @@ contains
    zb_effective = subgrid .and. (momentum_scheme == 1 .or. nonhydrostatic)
    if (zb_effective) then
       call write_log('Info    : subgrid: using effective bed level zb = zs - V/A (velocity scheme / nonh)', 0)
+   endif
+   !
+   ! Level-driven vs slope-driven flow regime (subgrid + velocity-form momentum only).
+   ! Whether the subgrid table actually contains bed slopes is checked in read_subgrid_file.
+   !
+   if (slope_driven_flow) then
+      !
+      if (.not. subgrid) then
+         call stop_sfincs('slope_driven_flow requires a subgrid model (sbgfile)!', 1)
+      endif
+      !
+      if (momentum_scheme /= 1) then
+         call stop_sfincs('slope_driven_flow requires momentum_scheme = velocity!', 1)
+      endif
+      !
+      call write_log('Info    : turning on slope-driven flow regime detection', 0)
+      !
+   else
+      !
+      store_slope_regime = .false.
+      !
    endif
    !
    if (advection) then
