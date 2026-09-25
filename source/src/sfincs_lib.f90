@@ -11,6 +11,8 @@ module sfincs_lib
    use sfincs_crosssections
    use sfincs_runup_gauges
    use sfincs_discharges
+   use sfincs_src_structures
+   use sfincs_urban_drainage
    use sfincs_meteo
    use sfincs_infiltration
    use sfincs_data
@@ -85,8 +87,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.4.0 Galibier+"
-   build_date     = "$Date: 2026-07-13"
+   build_revision = "$Rev: v2.4.2-alpha Galibier+branch"
+   build_date     = "$Date: 2026-09-24"
    !
    call write_startup_log()
    !
@@ -122,7 +124,13 @@ module sfincs_lib
    !
    call read_rug_file()         ! Read runup gauge file
    !
-   call read_discharges()       ! Reads dis and src file
+   call initialize_infiltration()     ! Reads qinf / scs / gai / horton / bucket infiltration inputs
+   !
+   call initialize_discharges()       ! Reads dis and src file (river point discharges)
+   !
+   call initialize_src_structures()   ! Reads drn file (pumps / culverts / check valves / gates) and dkb file (dike breaches)
+   !
+   call initialize_urban_drainage()   ! Reads urb file (per-zone polygon drainage + outfall)
    !
    if (nonhydrostatic) then
       !
@@ -398,27 +406,11 @@ module sfincs_lib
          !
          call update_meteo_forcing(t, dt)
          !
-         ! Update infiltration
-         !
-         if (infiltration) then
-             !
-             ! Compute infiltration rates
-             !
-             call update_infiltration_map(dt)
-             !
-         endif
-         !
       endif
       !
       ! Update boundary conditions
       !
       call update_boundaries(t, dt)
-      !
-      ! Update discharges
-      !
-      call update_discharges(t, dt)
-      !
-      ! Update SnapWave
       !
       if (snapwave .and. update_waves) then
          !
@@ -472,9 +464,9 @@ module sfincs_lib
             !
          endif
          !      
-         ! Update water levels
+         ! Update water levels (also adds discharges, drainage structures, infiltration and urban drainage to qsrc)
          !
-         call compute_water_levels(t, dt)
+         call update_continuity(t, dt)
          !
       endif   
       !
@@ -535,11 +527,15 @@ module sfincs_lib
       !
    endif
    !
+   ! Compute average time step before finalize_output, which writes dtavg to map/his files
+   !
+   if (nt > 1) then
+      dtavg = dtavg / (nt - 1)
+   endif
+   !
    call finalize_output(t, ntmaxout, tmaxout)
    !
    call finalize_openacc() ! Exit data region
-   !
-   dtavg = dtavg / (nt - 1)
    !
    call write_finished_log(dtavg)
    !

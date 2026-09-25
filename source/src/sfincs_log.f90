@@ -225,7 +225,7 @@ contains
          call write_log('Subgrid topography   : no', 1)
       endif
       !
-      if (use_quadtree) then
+      if (use_quadtree .and. nref > 1) then
          call write_log('Quadtree refinement  : yes', 1)
       else
          call write_log('Quadtree refinement  : no', 1)
@@ -493,10 +493,8 @@ contains
       write(unit, '(f10.3,a)') real(timer_elapsed('simulation'),     4), ' % total'
       write(unit, '(f10.3,a)') real(timer_elapsed('input'),               4), ' % input'
       write(unit, '(f10.3,a)') real(timer_elapsed('boundaries'),          4), ' % boundaries'
-      write(unit, '(f10.3,a)') real(timer_elapsed('discharges'),          4), ' % discharges'
       write(unit, '(f10.3,a)') real(timer_elapsed('meteo fields'),        4), ' % meteo1'
       write(unit, '(f10.3,a)') real(timer_elapsed('meteo forcing'),       4), ' % meteo2'
-      write(unit, '(f10.3,a)') real(timer_elapsed('infiltration'),        4), ' % infiltration'
       write(unit, '(f10.3,a)') real(timer_elapsed('momentum'),            4), ' % momentum'
       write(unit, '(f10.3,a)') real(timer_elapsed('structures'),          4), ' % structures'
       write(unit, '(f10.3,a)') real(timer_elapsed('continuity'),          4), ' % continuity'
@@ -505,5 +503,42 @@ contains
       close(unit)
       !
    end subroutine write_runtimes_file
+   !
+   function fmt_real(val, decimals) result(s)
+      !
+      ! Format a real with minimum width and a guaranteed leading zero
+      ! for |val| < 1. ifx's "f0.d" descriptor drops the leading zero in
+      ! that range, which is not standard-conforming; this helper rewrites
+      ! the result so the log output always reads "0.6670" rather than
+      ! ".6670".
+      !
+      ! Called from: write_src_structures_log_summary (sfincs_src_structures),
+      ! urban_drainage log summary (sfincs_urban_drainage), and anywhere
+      ! else a real needs to be embedded in a log line with the smallest
+      ! reasonable field width.
+      !
+      implicit none
+      !
+      real,    intent(in) :: val
+      integer, intent(in) :: decimals
+      character(len=32)   :: s
+      !
+      character(len=16)   :: fmt
+      !
+      write(fmt,'(a,i0,a)') '(f0.', decimals, ')'
+      write(s,fmt) val
+      s = adjustl(s)
+      !
+      if (s(1:1) == '.') then
+         !
+         s = '0' // s(1:len_trim(s))
+         !
+      else if (s(1:2) == '-.') then
+         !
+         s = '-0' // trim(s(2:))
+         !
+      endif
+      !
+   end function fmt_real
    !
 end module sfincs_log
