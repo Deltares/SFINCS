@@ -32,7 +32,7 @@ All defaults and units below are read directly from `source/src/sfincs_input.f90
 | `gw_leakance` | real | 1.0e-5 | 1/s | surface/aquifer exchange conductance per unit area |
 | `gw_theta` | real | 0.75 | - | time weighting of the aquifer diffusion term (matches `theta_si`'s default) |
 | `gw_numax` | real | 0.25 | - | diffusion-number cap, `Nu = K*b*dt/(Sy*dx^2)`, that limits the explicit path's sub-step |
-| `gw_dtmult` | int | 1 | - | aquifer clock: the explicit aquifer advances once every `gw_dtmult` surface steps over the interval they covered; its exchange and seepage reach the surface as equal shares over the following `gw_dtmult` steps. Capped by stability each call (see below). 1 is the 1-1 coupling |
+| `gw_dtmult` | int | 1 | - | aquifer clock: the explicit aquifer advances once every `gw_dtmult` surface steps over the interval they covered; its exchange and seepage reach the surface as equal shares over the following `gw_dtmult` steps. Capped by stability at the start of each call and again as the accumulated interval grows, so a small start-up step that later grows cannot carry the plan past the stable interval (see below). 1 is the 1-1 coupling |
 | `gw_exchmax` | real | 0.5 | - | cap on `gw_leakance` times the aquifer interval; with `gw_numax` it sets the largest stable interval, which cuts `gw_dtmult` down when the aquifer is stiff |
 | `gw_zsini` | real | -999.0 | m | initial aquifer head; if left at default the initial head is the initial surface level `zs`, clamped to `gw_zbase` |
 | `gw_headfile` | char | 'none' | - | spatial initial head field (see Files) |
@@ -169,7 +169,37 @@ property the CG solver depends on.
   aquifer reads the surface again. A user sees the effective multiple in `sfincs.log`
   (`GW aquifer calls ... multiple avg ... max`); at `gw_dtmult = 1` the only change from calling
   the aquifer every step is that the hand-off lands one surface step later. The 1% verification
-  against the 1-1 coupling is in `plans/2026-09-24-gw-aquifer-clock-openmp-RESULTS.md`.
+  against the 1-1 coupling is in `plans/2026-09-24-gw-aquifer-clock-openmp-RESULTS.md` (sfincs-dev
+  project). Measured on the quadtree tidal island (explicit, 8332 cells, 40 m over the island and
+  the nearshore, 80 m at sea, 49.7 h): at `gw_dtmult = 1` the aquifer takes 250 s of a 315 s run
+  with subgrid; at 5, 54 s of 118 s; at 10, 30 s of 93 s. Against the 1-1 run, exchange, seepage
+  and throughput stay within 0.5% through 10 on both the subgrid and non-subgrid path, the water
+  level within 5 mm everywhere, the tidal-mean head within 5 mm, and the 99th percentile of the
+  head difference within 4 mm; at 20 the subgrid volumes drift to 2.3%, at 50 to 27%. A single
+  output frame can still show a shoreline cell's instantaneous head off by 15-23 cm, because the
+  moment a cell is pinned at the pond level (see "Explicit path under a pond", above) moves by up
+  to one aquifer interval between multiples — a timing effect, not a solution error. Recommended
+  for production: `gw_dtmult = 5`; 10 if 0.5% on the volumes is acceptable. The default stays 1.
+- **Two rules the clock made necessary, in the explicit step.** Widening the interval between
+  aquifer calls exposed two ways the explicit step could destabilise itself that the 1-1 coupling's
+  every-step exchange had been damping by accident; both apply on the explicit path only. First,
+  under storage modes without `Sy` above the ground (`gw_storage_mode = 1` and `2`), a cell whose
+  surface is wet and whose head has reached the ground is now held at the surface level in the
+  explicit step, on the non-subgrid path as well as the subgrid one (the subgrid path already did
+  this — see "Explicit path under a pond", above). The reason: the band above the ground stores
+  only `gw_ss * b_conf` per metre there, so the explicit lateral step has a diffusivity
+  `K b / (Ss b_conf)`, about 100x the `K b / Sy` that sets the sub-step; on the island's 40 m sea
+  cells that passed the explicit limit at any `gw_dtmult` above 1, and the head under the sea fell
+  to the bed. What it drops is the same thing the subgrid pin already dropped: the rate-limited
+  drawdown a coupled solve shows at a pond edge (6 cm on the compound case, item 2 of the status
+  note). The semi-implicit path carries the full coupled equations and needs neither rule. Second,
+  there is no lateral aquifer flux between two cells that are both held at the surface level
+  (pinned, or a water-level boundary cell). The reason: with the clock, that flux lands on the sea
+  surface one interval late — a lagged diffusion of the sea surface through the aquifer — and at an
+  interval of half the period of the 2-dx gravity mode of the cells that set the CFL (which
+  `gw_dtmult = 2` always is, at `alpha = 0.5`) the lag turns into anti-diffusion: a wave on the
+  island's 40 m sea cells doubled every 1.4 h. What it drops is groundwater carrying sea water
+  between two submerged cells along the sea-surface slope, of order 1e-5 of the surface conveyance.
 
 ## Outputs and the water balance
 
@@ -286,3 +316,5 @@ previous outer iterate, a scheme choice.
   `sefffile`) carries the same hookup untested.
 - No confined aquifers, wells, or exponential conductivity with depth (all present in wflow).
 - No separate infiltration/exfiltration leakance.
+- The head at a shoreline cell in the explicit step is resolved in time to one aquifer interval
+  (the pin/unpin transition under `gw_dtmult`, above).
