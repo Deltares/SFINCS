@@ -28,6 +28,8 @@ module sfincs_groundwater
    public :: gw_cell_storage, gw_diffusion_number, gw_budget_add, gw_budget_report
    public :: gw_subgrid_level, gw_explicit_step, gw_drain_terms
    public :: get_gw_nsub_avg, get_gw_nsub_max
+   public :: gw_apply_handoff, gw_flush_handoff, gw_plan_next_interval
+   public :: get_gw_ncall, get_gw_kmax_avg, get_gw_kmax_max
    !
    ! Cumulative volumes since the start of the run, m3. Signed so that a positive value is water
    ! ENTERING the aquifer. real*8 throughout: these are running totals over ~1e5 timesteps and
@@ -67,6 +69,7 @@ contains
    !
    integer :: nm
    real*4, dimension(:), allocatable :: rtmp4   ! real*4 buffer for the flat head file
+   real*4  :: nurate
    !
    allocate(gw_head(np))
    allocate(gw_head_n(np))
@@ -75,12 +78,27 @@ contains
    allocate(gw_zbase(np))
    allocate(gw_recharge(np))
    allocate(gw_zdrain(np))
+   allocate(gw_qshare(np))
+   allocate(gw_rech_acc(np))
    !
    gw_kh       = gw_kh_uniform
    gw_sy       = gw_sy_uniform
    gw_zbase    = gw_zbase_uniform
    gw_recharge = gw_recharge_uniform
    gw_zdrain   = gw_zdrain_uniform
+   gw_qshare   = 0.0
+   gw_rech_acc = 0.0
+   !
+   ! Aquifer clock state. gw_kmax starts at gw_dtmult and is cut below, once the initial head
+   ! gives a stability plan, so the very first interval is capped too if the aquifer is stiff.
+   !
+   gw_tacc         = 0.0
+   gw_kacc         = 0
+   gw_nshare_left  = 0
+   gw_kmax         = gw_dtmult
+   gw_ncall        = 0
+   gw_kmax_sum     = 0
+   gw_kmax_max     = 0
    !
    ! Optional spatial aquifer properties, each a flat binary over active cells in internal order
    ! -- the same convention manningfile and the head file use (sfincs_domain.f90:2005).
@@ -250,6 +268,20 @@ contains
    !
    write(*,'(a,i10,a,e12.4,a,e12.4)') ' Groundwater: cells ', np, &
       '  initial storage ', gw_vol_initial, ' m3   leakance ', gw_leakance
+   !
+   ! Stability plan for the FIRST interval, from the initial head -- the same three lines
+   ! gw_explicit_step uses after every call. Without this the first interval would have no plan
+   ! to cap against and gw_dtmult would run uncapped until the first aquifer call returned one.
+   !
+   call gw_diffusion_number(1.0, nurate)
+   gw_dt_stable = huge(1.0)
+   if (nurate > 0.0)      gw_dt_stable = min(gw_dt_stable, gw_numax / nurate)
+   if (gw_leakance > 0.0) gw_dt_stable = min(gw_dt_stable, gw_exchmax / gw_leakance)
+   !
+   call gw_plan_next_interval(dtmax)
+   !
+   write(*,'(a,i0,a,e12.4,a,i0)') ' Groundwater: aquifer clock gw_dtmult = ', gw_dtmult, &
+      '  gw_dt_stable = ', gw_dt_stable, ' s   first gw_kmax (at dtmax) = ', gw_kmax
    !
    end subroutine initialize_groundwater
    !
@@ -849,6 +881,7 @@ contains
    real*8  :: bv_rech, bv_exch, bv_bnd, bv_ceil, bv_drain, bv_gross
    real*4  :: cdrn
    real*8  :: zdrn, qdrn
+   real*4  :: gw_rech_rate   ! aquifer clock: interval-averaged recharge, gw_rech_acc(nm) / dt
    !
    if (.not. allocated(gw_dvol)) allocate(gw_dvol(np))
    if (.not. allocated(gw_qsurf)) allocate(gw_qsurf(np))
@@ -973,9 +1006,18 @@ contains
          if (kcs(nm) /= 1) cycle
          !
          call gw_cell_area(nm, acell)
-         gw_dvol(nm) = gw_dvol(nm) + dble(acell) * dble(gw_recharge(nm)) * dble(dtsub)
-         bv_rech  = bv_rech + dble(acell) * dble(gw_recharge(nm)) * dble(dtsub)
-         bv_gross = bv_gross + abs(dble(acell) * dble(gw_recharge(nm)) * dble(dtsub))
+         !
+         ! Interval-averaged recharge. With gw_dtmult = 1, dt is one surface step and gw_rech_acc
+         ! holds exactly that step's gw_recharge(nm) * dt, so gw_rech_rate = gw_recharge(nm) and
+         ! nothing changes. With gw_dtmult > 1 the lib accumulates gw_recharge(nm) * dt every
+         ! surface step into gw_rech_acc over the whole interval; dividing by dt here recovers the
+         ! interval-mean rate, which is what a recharge that varies step to step (gw_from_infiltration)
+         ! needs to be represented by a single call.
+         !
+         gw_rech_rate = gw_rech_acc(nm) / dt
+         gw_dvol(nm) = gw_dvol(nm) + dble(acell) * dble(gw_rech_rate) * dble(dtsub)
+         bv_rech  = bv_rech + dble(acell) * dble(gw_rech_rate) * dble(dtsub)
+         bv_gross = bv_gross + abs(dble(acell) * dble(gw_rech_rate) * dble(dtsub))
          !
          ! Drain boundary, explicit in the sub-step's head. Leaves the model.
          !
@@ -1112,21 +1154,80 @@ contains
    gw_nsub_sum = gw_nsub_sum + nsub
    gw_nstep = gw_nstep + 1
    !
-   ! Hand the surface its share. Volume, not level, so that the subgrid path stays consistent
-   ! with how continuity converts one to the other.
+   ! Stability plan for the NEXT interval: the diffusion limit and the exchange limit, evaluated
+   ! at the head this call ended with. gw_plan_next_interval turns this into an effective
+   ! multiple once the lib knows the next surface dt.
    !
+   call gw_diffusion_number(1.0, nurate)
+   gw_dt_stable = huge(1.0)
+   if (nurate > 0.0)      gw_dt_stable = min(gw_dt_stable, gw_numax / nurate)
+   if (gw_leakance > 0.0) gw_dt_stable = min(gw_dt_stable, gw_exchmax / gw_leakance)
+   !
+   gw_ncall    = gw_ncall + 1
+   gw_kmax_sum = gw_kmax_sum + gw_kmax
+   gw_kmax_max = max(gw_kmax_max, gw_kmax)
+   !
+   ! Plan the delivery: equal shares over the gw_kmax surface steps that follow. Volume, not
+   ! level, so the subgrid path stays consistent with how continuity converts one to the other
+   ! -- gw_apply_handoff does the actual delivery, one share per surface step.
+   !
+   gw_nshare_left = gw_kmax
    do nm = 1, np
-      if (kcs(nm) /= 1 .or. gw_qsurf(nm) == 0.0) cycle
-      call gw_cell_area(nm, acell)
-      if (subgrid) then
-         z_volume(nm) = max(z_volume(nm) + dble(gw_qsurf(nm)), 0.0d0)
-         call gw_level_from_volume(nm, acell)
-      else
-         zs(nm) = max(zs(nm) + dble(gw_qsurf(nm) / acell), dble(zb(nm)))
-      endif
+      gw_qshare(nm) = gw_qsurf(nm) / real(gw_kmax)
    enddo
+   gw_rech_acc = 0.0
    !
    end subroutine gw_explicit_step
+   !
+   !
+   subroutine gw_apply_handoff()
+   !
+   ! One surface step's share of the last aquifer interval's exchange and seepage, delivered
+   ! to the surface. Volume, not level, so the subgrid path stays consistent with continuity.
+   ! Identical to the loop that used to close gw_explicit_step, divided over gw_kmax steps.
+   !
+   implicit none
+   integer :: nm
+   real*4  :: acell
+   if (gw_nshare_left <= 0) return
+   do nm = 1, np
+      if (kcs(nm) /= 1 .or. gw_qshare(nm) == 0.0) cycle
+      call gw_cell_area(nm, acell)
+      if (subgrid) then
+         z_volume(nm) = max(z_volume(nm) + dble(gw_qshare(nm)), 0.0d0)
+         call gw_level_from_volume(nm, acell)
+      else
+         zs(nm) = max(zs(nm) + dble(gw_qshare(nm) / acell), dble(zb(nm)))
+      endif
+   enddo
+   gw_nshare_left = gw_nshare_left - 1
+   end subroutine gw_apply_handoff
+   !
+   !
+   subroutine gw_flush_handoff()
+   !
+   ! Deliver every share still outstanding at once. Called before an aquifer call that comes
+   ! early (the cap shortened the interval) and at the last step, so the surface has received
+   ! the whole volume the budget booked before the aquifer reads the surface again.
+   !
+   implicit none
+   if (gw_nshare_left <= 0) return
+   gw_qshare = gw_qshare * real(gw_nshare_left)
+   gw_nshare_left = 1
+   call gw_apply_handoff()
+   end subroutine gw_flush_handoff
+   !
+   !
+   subroutine gw_plan_next_interval(dt)
+   !
+   ! Effective multiple for the coming interval: the user's gw_dtmult, cut to what the
+   ! stability plan of the last call allows at the current surface step.
+   !
+   implicit none
+   real*4, intent(in) :: dt
+   gw_kmax = gw_dtmult
+   if (dt > 0.0) gw_kmax = min(gw_kmax, max(1, int(gw_dt_stable / dt)))
+   end subroutine gw_plan_next_interval
    !
    !
    subroutine gw_level_from_volume(nm, acell)
@@ -1223,5 +1324,21 @@ contains
       integer :: m
       m = gw_nsub_max
    end function get_gw_nsub_max
+   !
+   function get_gw_ncall() result(n)
+      integer :: n
+      n = gw_ncall
+   end function get_gw_ncall
+
+   function get_gw_kmax_avg() result(a)
+      real :: a
+      a = 0.0
+      if (gw_ncall > 0) a = real(gw_kmax_sum) / real(gw_ncall)
+   end function get_gw_kmax_avg
+
+   function get_gw_kmax_max() result(m)
+      integer :: m
+      m = gw_kmax_max
+   end function get_gw_kmax_max
    !
 end module sfincs_groundwater

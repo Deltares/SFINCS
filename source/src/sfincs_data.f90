@@ -281,6 +281,14 @@ module sfincs_data
       integer       :: gw_storage_mode   ! storage convention above the ground under standing water: 0 = status quo, 1 = confined storativity, 2 = non-subgrid adopts the subgrid rule
       real*4        :: gw_ss             ! confined/elastic storativity used above the ground by gw_storage_mode = 1, 1/m (a genuine storativity, not Sy)
       real*4        :: gw_numax
+      integer       :: gw_dtmult          ! aquifer clock: call the explicit aquifer every gw_dtmult surface steps
+      real*4        :: gw_exchmax         ! cap on gw_leakance * aquifer interval
+      real*4        :: gw_tacc            ! surface time accumulated since the last aquifer call
+      integer       :: gw_kacc            ! surface steps accumulated since the last aquifer call
+      integer       :: gw_kmax            ! effective multiple planned for the current interval
+      real*4        :: gw_dt_stable       ! largest stable aquifer interval at the last call
+      integer       :: gw_nshare_left     ! shares of the last hand-off still to deliver
+      integer       :: gw_ncall, gw_kmax_sum, gw_kmax_max
       real*4        :: gw_zsini
       real*4        :: gw_kh_uniform
       real*4        :: gw_sy_uniform
@@ -303,6 +311,8 @@ module sfincs_data
       real*8, dimension(:), allocatable :: gw_head_n   ! head at time level n
       real*8, dimension(:), allocatable :: gw_dvol     ! explicit path: volume change per step
       real*4, dimension(:), allocatable :: gw_qsurf    ! explicit path: volume handed to the surface
+      real*4, dimension(:), allocatable :: gw_qshare   ! aquifer clock: per-cell hand-off volume per surface step (m3)
+      real*4, dimension(:), allocatable :: gw_rech_acc ! aquifer clock: recharge integrated over the interval (m)
       real*8, dimension(:), allocatable :: si_qsrc     ! semi-implicit path: source volume (m3) the pressure solve applied to each surface row this step (rain, qext, aquifer exchange, seepage); the subgrid continuity adds it to z_volume
       real*8, dimension(:), allocatable :: gw_zceil_n  ! explicit path: ceiling at the previous step
       real*4, parameter :: gw_awet_floor = 0.01

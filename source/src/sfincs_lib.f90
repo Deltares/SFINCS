@@ -367,6 +367,7 @@ module sfincs_lib
    real*4                        :: dtchk !< dt to check for instability
    logical                       :: single_time_step
    integer*8                     :: count0gw, count1gw
+   integer                       :: nm   !< aquifer clock: recharge accumulation loop
    !
    ierr = 0
    !
@@ -670,7 +671,28 @@ module sfincs_lib
          !
          if (gwflow .and. .not. semi_implicit) then
             call system_clock(count0gw, count_rate, count_max)
-            call gw_explicit_step(dt)
+            !
+            ! Aquifer clock. Deliver this step's share of the last interval, accumulate this
+            ! step, and advance the aquifer when the planned multiple is reached. A cap that
+            ! shortened the plan flushes the outstanding shares first, so the aquifer never
+            ! reads a surface that still owes it volume. The last step always flushes -- t was
+            ! already advanced by dt above (t = t + dt), so "last step" is simply t >= tend, the
+            ! same test the time loop itself uses (do while (t < tend)).
+            !
+            call gw_apply_handoff()
+            gw_tacc = gw_tacc + dt
+            gw_kacc = gw_kacc + 1
+            do nm = 1, np
+               gw_rech_acc(nm) = gw_rech_acc(nm) + gw_recharge(nm) * dt
+            enddo
+            if (gw_kacc >= gw_kmax .or. .not. (t < tend)) then
+               call gw_flush_handoff()
+               call gw_explicit_step(gw_tacc)
+               gw_tacc = 0.0
+               gw_kacc = 0
+               call gw_plan_next_interval(dt)
+            endif
+            if (.not. (t < tend)) call gw_flush_handoff()
             call system_clock(count1gw, count_rate, count_max)
             tloopgw = tloopgw + 1.0 * (count1gw - count0gw) / count_rate
          endif
@@ -820,6 +842,8 @@ module sfincs_lib
       write(logstr,'(a,f10.3,a,f5.1,a)') ' Time in groundwater    : ', tloopgw, ' (', 100 * tloopgw / (tfinish_all - tstart_all), '%)'
       call write_log(logstr, 1)
       write(logstr,'(a,f6.1,a,i0)') ' GW sub-steps avg       :  ', get_gw_nsub_avg(), '  max: ', get_gw_nsub_max()
+      call write_log(logstr, 0)
+      write(logstr,'(a,i0,a,f6.2,a,i0)') ' GW aquifer calls       :  ', get_gw_ncall(), '  multiple avg: ', get_gw_kmax_avg(), '  max: ', get_gw_kmax_max()
       call write_log(logstr, 0)
    endif
    !

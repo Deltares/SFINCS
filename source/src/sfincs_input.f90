@@ -230,6 +230,18 @@ contains
    !
    call read_int_input(500, 'gw_storage_mode', gw_storage_mode, 1)
    call read_real_input(500, 'gw_ss', gw_ss, 1.0e-4)
+   !
+   ! Aquifer clock. The explicit aquifer step is called once every gw_dtmult surface steps,
+   ! over the interval those steps covered, and the exchange and seepage volume it produces
+   ! reaches the surface as equal shares over the gw_dtmult steps that follow. 1 is the 1-1
+   ! coupling. The multiple is capped by stability each call: the diffusion limit gw_numax
+   ! (K b dt / (Sy dx^2)) and the exchange limit gw_exchmax (gw_leakance * interval), so a
+   ! large gw_dtmult on a stiff aquifer degrades to whatever is stable, never to instability.
+   ! The effective multiple is in the log ('GW aquifer calls').
+   !
+   call read_int_input(500, 'gw_dtmult', gw_dtmult, 1)
+   call read_real_input(500, 'gw_exchmax', gw_exchmax, 0.5)
+   gw_dtmult = max(gw_dtmult, 1)
    call read_real_input(500, 'gw_tolouter', gw_tolouter, 1.0e-5)
    !
    ! Drain boundary: Q = gw_cdrain * A * max(h - gw_zdrain, 0), out of the aquifer and out of the

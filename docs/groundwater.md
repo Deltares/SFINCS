@@ -32,6 +32,8 @@ All defaults and units below are read directly from `source/src/sfincs_input.f90
 | `gw_leakance` | real | 1.0e-5 | 1/s | surface/aquifer exchange conductance per unit area |
 | `gw_theta` | real | 0.75 | - | time weighting of the aquifer diffusion term (matches `theta_si`'s default) |
 | `gw_numax` | real | 0.25 | - | diffusion-number cap, `Nu = K*b*dt/(Sy*dx^2)`, that limits the explicit path's sub-step |
+| `gw_dtmult` | int | 1 | - | aquifer clock: the explicit aquifer advances once every `gw_dtmult` surface steps over the interval they covered; its exchange and seepage reach the surface as equal shares over the following `gw_dtmult` steps. Capped by stability each call (see below). 1 is the 1-1 coupling |
+| `gw_exchmax` | real | 0.5 | - | cap on `gw_leakance` times the aquifer interval; with `gw_numax` it sets the largest stable interval, which cuts `gw_dtmult` down when the aquifer is stiff |
 | `gw_zsini` | real | -999.0 | m | initial aquifer head; if left at default the initial head is the initial surface level `zs`, clamped to `gw_zbase` |
 | `gw_headfile` | char | 'none' | - | spatial initial head field (see Files) |
 | `gw_rechargefile` | char | 'none' | - | spatial recharge field (see Files) |
@@ -156,6 +158,18 @@ property the CG solver depends on.
 - **Drain boundary.** `Q = gw_cdrain * A * max(h - gw_zdrain, 0)`, out of the aquifer and out of
   the model entirely (representing pumped ditch water), implicit on the aquifer diagonal,
   switched at the outer iterate the same way the seepage face is.
+- **The aquifer clock.** On the explicit path the aquifer's own stability limit is 80x looser
+  than the surface CFL on the tidal island case (`Nu` about 0.003 per surface step against 0.25),
+  so calling it once per surface step is mostly waste. `gw_dtmult` (default 1) instead calls
+  `gw_explicit_step` once every `gw_dtmult` surface steps, over the interval those steps covered,
+  with recharge integrated over the interval; the exchange and seepage volume that call produces
+  reaches the surface as equal shares over the following `gw_dtmult` steps, and any shares still
+  outstanding are flushed before an early call (the stability cap on `gw_numax` and `gw_exchmax`
+  shortened the plan) or at the last step, so the budget and the surface agree by the time the
+  aquifer reads the surface again. A user sees the effective multiple in `sfincs.log`
+  (`GW aquifer calls ... multiple avg ... max`); at `gw_dtmult = 1` the only change from calling
+  the aquifer every step is that the hand-off lands one surface step later. The 1% verification
+  against the 1-1 coupling is in `plans/2026-09-24-gw-aquifer-clock-openmp-RESULTS.md`.
 
 ## Outputs and the water balance
 
