@@ -49,6 +49,7 @@ libsfincs_la_SOURCES = \
 	../third_party_open/utils/toml-f/src/tomlf/build.f90 \
 	../third_party_open/utils/toml-f/src/tomlf/all.f90 \
 	../third_party_open/utils/toml-f/src/tomlf.f90 \
+	sfincs_timers.f90 \
 	sfincs_log.f90 \
 	sfincs_date.f90 \
 	sfincs_read.f90 \

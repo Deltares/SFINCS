@@ -16,7 +16,7 @@ module sfincs_continuity
    !
    ! Subroutines:
    !
-   !   update_continuity(t, dt, tloop)
+   !   update_continuity(t, dt)
    !     Main per-timestep entry. Orchestrates river discharges, drainage
    !     structures, optional BMI qext, infiltration, and dispatches the
    !     water-level update. Called from sfincs_lib (main time-stepping
@@ -39,7 +39,7 @@ contains
    !
    !-----------------------------------------------------------------------------------------------------!
    !
-   subroutine update_continuity(t, dt, tloop)
+   subroutine update_continuity(t, dt)
       !
       ! Unified continuity update: orchestrates all water balance terms
       ! for one time step. Advances zs (and z_volume on the subgrid path),
@@ -73,21 +73,16 @@ contains
       use sfincs_discharges
       use sfincs_src_structures
       use sfincs_urban_drainage
+      use sfincs_timers
       !
       implicit none
       !
       real*8           :: t
       real*4           :: dt
-      real             :: tloop
       !
       integer          :: nm
       !
-      integer          :: count0
-      integer          :: count1
-      integer          :: count_rate
-      integer          :: count_max
-      !
-      call system_clock(count0, count_rate, count_max)
+      call timer_start('continuity')
       !
       ! 1. Precipitation was already accumulated into qsrc by
       !    update_meteo_forcing (called from sfincs_lib before this routine).
@@ -152,8 +147,7 @@ contains
          !
       endif
       !
-      call system_clock(count1, count_rate, count_max)
-      tloop = tloop + 1.0*(count1 - count0)/count_rate
+      call timer_stop('continuity')
       !
    end subroutine
    !

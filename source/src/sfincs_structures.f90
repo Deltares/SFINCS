@@ -589,11 +589,12 @@
    end subroutine
 
    
-   subroutine compute_fluxes_over_structures(tloop)
+   subroutine compute_fluxes_over_structures()
    !
    ! Computes fluxes over structures (THIS HAS TO BE SERIOUSLY IMPROVED!!!)
    !
    use sfincs_data
+   use sfincs_timers
 !   use quadtree
    !
    implicit none
@@ -614,13 +615,7 @@
    real*4                       :: h2
    real*4                       :: qstruc
    !
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
-   !   
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('structures')
    !
    !$acc parallel, present(zs, q, uv, structure_uv_index, uv_index_z_nm, uv_index_z_nmu, structure_parameters, structure_type, structure_length)
    !$acc loop independent gang vector
@@ -691,9 +686,8 @@
    enddo
    !$acc end parallel
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
-   !         
+   call timer_stop('structures')
+   !
    end subroutine
    
    
