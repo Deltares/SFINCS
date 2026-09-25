@@ -826,19 +826,25 @@ contains
       ! cell with no bzs forcing carries zs = zsini, which would overwrite a prescribed head.
       !
       if (gw_bnd_from_zs) then
+         !$omp parallel do private(nm) schedule(static)
          do nm = 1, np
             if (kcs(nm) == 2) gw_head(nm) = real(zs(nm))
          enddo
+         !$omp end parallel do
       endif
       !
+      !$omp parallel do private(nm) schedule(static)
       do nm = 1, np
          gw_head_n(nm) = gw_head(nm)
       enddo
+      !$omp end parallel do
       !
+      !$omp parallel do private(irow) schedule(static)
       do irow = 1, nrows_si
          si_eta_k(nrows_si + irow) = gw_head(si_nm_of_row(irow))
          si_x(nrows_si + irow)     = gw_head(si_nm_of_row(irow))
       enddo
+      !$omp end parallel do
       !
    endif
    !
@@ -1344,9 +1350,11 @@ contains
       ! Feed the aquifer head back so the next iterate relags transmissivity and storage.
       !
       if (gwflow) then
+         !$omp parallel do private(irow) schedule(static)
          do irow = 1, nrows_si
             gw_head(si_nm_of_row(irow)) = si_x(nrows_si + irow)
          enddo
+         !$omp end parallel do
          !
       endif
       !
@@ -1436,6 +1444,8 @@ contains
       bv_drain = 0.0d0
       bv_gross = 0.0d0
       !
+      !$omp parallel do private(irow, nm, acell, bv_term, zceil, kface, ip, nmb) &
+      !$omp    reduction(+:bv_rech, bv_exch, bv_ceil, bv_drain, bv_bnd, bv_gross) schedule(static)
       do irow = 1, nrows_si
          !
          nm = si_nm_of_row(irow)
@@ -1539,6 +1549,7 @@ contains
          enddo
          !
       enddo
+      !$omp end parallel do
       !
       call gw_budget_add(bv_rech, bv_exch, bv_bnd, bv_ceil, bv_drain, bv_gross)
       !
