@@ -210,6 +210,10 @@ In case of netcdf output, the given parameters mean the following:
 	  :description:		Maximum water level per 'dtmaxout' timestep, only given if dtmaxout>0, corresponding with netcdf variable 'timemax'.
 	  :standard_name:	maximum of sea_surface_height_above_mean_sea_level	  
 	  :units:		m above reference level
+	zvolmax
+	  :description:		Maximum subgrid volume in cell per 'dtmaxout' timestep, only given if dtmaxout>0, subgrid is used and storezvolmax = 1 (default), corresponding with netcdf variable 'timemax'.
+	  :standard_name:	maximum_subgrid_volume_in_cell
+	  :units:		m^3
 	t_zsmax
 	  :description:		Time of max water level per cell and per 'dtmaxout' timestep, only given if dtmaxout>0, corresponding with netcdf variable 'timemax'.
 	  :standard_name:	maximum of sea_surface_height_above_mean_sea_level	  
@@ -241,7 +245,7 @@ In case of netcdf output, the given parameters mean the following:
 Parameters netcdf file observation points (sfincs_his.nc)
 -----	
 
-This file is only created if observation points are supplied in the 'obsfile', or if weirs/cross-sections are supplied.
+This file is only created if at least one of the following is supplied: observation points ('obsfile'), cross-sections, weirs, drainage structures, run-up gauges, river discharge points combined with 'store_river_discharge = 1', or urban drainage zones combined with 'store_urban_drainage_discharge = 1'.
 
 	point_x
 	  :description:		x coordinate of interpreted observation points in projected reference system
@@ -326,4 +330,11 @@ This file is only created if observation points are supplied in the 'obsfile', o
 	drainage_discharge
 	  :description:		Discharge through drainage structure per 'dthisout' timestep, corresponding with netcdf variable 'time'.
 	  :standard_name:	discharge	  
+	  :units:		m3/s
+	river_name
+	  :description:		Name of each river discharge point, taken from the optional 3rd column of the 'srcfile', or auto-generated as 'discharge_0001', 'discharge_0002', etc. when no name is given (always the case for 'netsrcdisfile'). Only written when 'store_river_discharge = 1'.
+	  :units:		-
+	river_discharge
+	  :description:		Discharge per river discharge point per 'dthisout' timestep, corresponding with netcdf variable 'time'. This is the prescribed discharge from the dis/netsrcdis input, linearly interpolated to the model time (instantaneous value, not time-averaged). It is not corrected afterwards, so a point that falls outside the active model domain is still reported, even though its discharge does not enter the model. Only written when 'store_river_discharge = 1'.
+	  :standard_name:	discharge
 	  :units:		m3/s

@@ -225,7 +225,7 @@ contains
          call write_log('Subgrid topography   : no', 1)
       endif
       !
-      if (use_quadtree) then
+      if (use_quadtree .and. nref > 1) then
          call write_log('Quadtree refinement  : yes', 1)
       else
          call write_log('Quadtree refinement  : no', 1)
@@ -493,10 +493,8 @@ contains
       write(unit, '(f10.3,a)') real(timer_elapsed('simulation'),     4), ' % total'
       write(unit, '(f10.3,a)') real(timer_elapsed('input'),               4), ' % input'
       write(unit, '(f10.3,a)') real(timer_elapsed('boundaries'),          4), ' % boundaries'
-      write(unit, '(f10.3,a)') real(timer_elapsed('discharges'),          4), ' % discharges'
       write(unit, '(f10.3,a)') real(timer_elapsed('meteo fields'),        4), ' % meteo1'
       write(unit, '(f10.3,a)') real(timer_elapsed('meteo forcing'),       4), ' % meteo2'
-      write(unit, '(f10.3,a)') real(timer_elapsed('infiltration'),        4), ' % infiltration'
       write(unit, '(f10.3,a)') real(timer_elapsed('momentum'),            4), ' % momentum'
       write(unit, '(f10.3,a)') real(timer_elapsed('structures'),          4), ' % structures'
       write(unit, '(f10.3,a)') real(timer_elapsed('continuity'),          4), ' % continuity'
