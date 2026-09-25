@@ -901,7 +901,9 @@ contains
    ! looser on the tidal island case, 3000x on the polder, and 6800x on a sandy coast. Only very
    ! high conductivity on a fine grid brings the two together, and that is what the sub-cycling
    ! below is for: the aquifer block is small, so taking several sub-steps of it per surface step
-   ! is cheap.
+   ! is cheap. That margin holds for the Sy band only; above the ground under gw_storage_mode /= 0
+   ! the confined storativity makes the local diffusivity ~100x larger, and it is the pin on a
+   ! saturated cell below, not the sub-step margin, that keeps that band stable.
    !
    ! Geometry is deliberately identical to what the semi-implicit assembly uses -- same face
    ! widths, same centre-to-centre distances, same 1.5x factor across a refinement transition. The
@@ -1141,7 +1143,11 @@ contains
          call gw_cell_storage(nm, gw_head(nm), vol, dvol, gw_zceil_n(nm))
          vol = vol + gw_dvol(nm) + dble(qexpl) * dble(dtsub)
          hsat = .false.
-         if (subgrid) hsat = (gw_head(nm) >= dble(subgrid_z_zmax(nm)) .and. zs(nm) > dble(subgrid_z_zmax(nm)))
+         if (subgrid) then
+            hsat = (gw_head(nm) >= dble(subgrid_z_zmax(nm)) .and. zs(nm) > dble(subgrid_z_zmax(nm)))
+         elseif (gw_storage_mode /= 0) then
+            hsat = (gw_head(nm) >= dble(zb(nm)) .and. zs(nm) > dble(zb(nm)))
+         endif
          !
          ! Topographic ceiling: anything that will not fit below it has nowhere to go
          ! underground and becomes surface water, which is what a seepage face is.
@@ -1182,7 +1188,11 @@ contains
          ! into aquifer). The surface loses the same volume.
          !
          pin = .false.
-         if (subgrid) pin = (hsat .or. hnew > dble(subgrid_z_zmax(nm)))   ! separate test: no short-circuit in Fortran, and subgrid_z_zmax is not allocated otherwise
+         if (subgrid) then
+            pin = (hsat .or. hnew > dble(subgrid_z_zmax(nm)))   ! separate test: no short-circuit in Fortran, and subgrid_z_zmax is not allocated otherwise
+         elseif (gw_storage_mode /= 0) then
+            pin = (hsat .or. hnew > dble(zb(nm)))
+         endif
          if (pin) then
             !
             ! Saturated under a pond: the water table IS the pond. The subgrid storage curve is
@@ -1199,6 +1209,23 @@ contains
             ! the exchange), and anything more than fits leaves as seepage below. What this
             ! drops is the drawdown a rate-limited refill would show, zs - deficit/(csym dtsub),
             ! 0.03 m on the compound pond in the semi-implicit run.
+            !
+            ! Without subgrid the same instability shows up a different way when gw_storage_mode
+            ! /= 0: above the ground that mode stores only gw_ss * b_conf per metre (a genuine but
+            ! small confined storativity) instead of Sy, so the lateral explicit step's effective
+            ! diffusivity there is K b / (Ss b_conf), not K b / Sy -- about 100x larger on the
+            ! island (roughly 120 m2/s against the Sy value gw_diffusion_number sub-steps to). At
+            ! gw_dtmult = 2 the resulting aquifer interval (5.8 s) gave a diffusion number of 0.43
+            ! on the 40 m sea cells, past the explicit limit of 0.25: the head under the sea
+            ! detached from sea level, fell to the bed and snapped back, hundreds of cells at a
+            ! time, cycling 300x the exchange and ceiling-seepage volume with closure still at
+            ! zero (the scheme stayed conservative, just wrong). At the 1-1 coupling (gw_dtmult =
+            ! 1, Nu = 0.22 there) the every-step exchange happened to damp it, which is why this
+            ! was never caught before the clock could space the calls out. Pinning a saturated
+            ! non-subgrid cell here the same way the subgrid path already does turns that cell
+            ! into a Dirichlet condition, so its lateral flux cannot destabilise it either -- mode
+            ! 0 is excluded because it keeps real Sy storage under the pond and its lag there is
+            ! physics, not a numerical artifact.
             !
             hnew = hcap
             qex  = qexpl + real(max(volcap - vol, 0.0d0) / dble(dtsub))   ! vol already holds qexpl's share
