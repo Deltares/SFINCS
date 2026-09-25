@@ -677,7 +677,11 @@ module sfincs_lib
             ! shortened the plan flushes the outstanding shares first, so the aquifer never
             ! reads a surface that still owes it volume. The last step always flushes -- t was
             ! already advanced by dt above (t = t + dt), so "last step" is simply t >= tend, the
-            ! same test the time loop itself uses (do while (t < tend)).
+            ! same test the time loop itself uses (do while (t < tend)). The interval is also
+            ! called once the accumulated time would pass gw_dt_stable, because gw_kmax is planned
+            ! from the step length at call time and a small start-up step can plan a multiple whose
+            ! interval outgrows the stability plan once the step grows; gw_dt_stable is huge(1.0)
+            ! when no cap applies, so this test is inert then.
             !
             call gw_apply_handoff()
             gw_tacc = gw_tacc + dt
@@ -685,7 +689,7 @@ module sfincs_lib
             do nm = 1, np
                gw_rech_acc(nm) = gw_rech_acc(nm) + gw_recharge(nm) * dt
             enddo
-            if (gw_kacc >= gw_kmax .or. .not. (t < tend)) then
+            if (gw_kacc >= gw_kmax .or. gw_tacc + dt >= gw_dt_stable .or. .not. (t < tend)) then
                call gw_flush_handoff()
                call gw_explicit_step(gw_tacc)
                gw_tacc = 0.0
