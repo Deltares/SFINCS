@@ -315,6 +315,10 @@ module sfincs_data
       real*4, dimension(:), allocatable :: gw_rech_acc ! aquifer clock: recharge integrated over the interval (m)
       real*8, dimension(:), allocatable :: si_qsrc     ! semi-implicit path: source volume (m3) the pressure solve applied to each surface row this step (rain, qext, aquifer exchange, seepage); the subgrid continuity adds it to z_volume
       real*8, dimension(:), allocatable :: gw_zceil_n  ! explicit path: ceiling at the previous step
+      integer, dimension(:), allocatable :: gw_cf_ptr  ! explicit path, threaded gather: CSR row pointer into gw_cf_idx/gw_cf_sgn, size np + 1
+      integer, dimension(:), allocatable :: gw_cf_idx  ! explicit path, threaded gather: face index (into uv_index_z_*) touching each cell
+      integer, dimension(:), allocatable :: gw_cf_sgn  ! explicit path, threaded gather: +-1, the sign of that face's flux seen from the cell
+      real*8, dimension(:), allocatable :: gw_qface    ! explicit path, threaded gather: per-face signed volume this sub-step, qface * dtsub
       real*4, parameter :: gw_awet_floor = 0.01
       ! real*8, not real*4. The head is a LEVEL: it carries the datum, and the datum is
       ! information the scheme does not need but the mantissa has to pay for. At a 10 m datum a

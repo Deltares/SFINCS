@@ -67,7 +67,9 @@ contains
    !
    implicit none
    !
-   integer :: nm
+   integer :: nm, nmu, ip
+   integer :: n_faces_both, n_touch
+   integer, dimension(:), allocatable :: fill
    real*4, dimension(:), allocatable :: rtmp4   ! real*4 buffer for the flat head file
    real*4  :: nurate
    !
@@ -214,6 +216,48 @@ contains
          gw_zceil_n(nm) = max(zb(nm), real(zs(nm)))
       endif
    enddo
+   !
+   ! Cell-to-face list for the threaded gather (explicit path only): for every active cell the
+   ! faces that touch it and the sign of the face flux seen from that cell (qface is signed
+   ! nm -> nmu, so it leaves the nm side and enters the nmu side). Built once here, from
+   ! uv_index_z_nm/uv_index_z_nmu directly rather than the z_index_uv_* arrays, whose quadtree
+   ! conventions this module does not otherwise depend on. The face loop in gw_explicit_step
+   ! otherwise scatters into both cells of a face, which cannot be threaded without atomics.
+   !
+   n_faces_both = 0
+   allocate(gw_cf_ptr(np + 1)); gw_cf_ptr = 0
+   do ip = 1, npuv
+      nm = uv_index_z_nm(ip); nmu = uv_index_z_nmu(ip)
+      if (nm == 0 .or. nmu == 0) cycle
+      gw_cf_ptr(nm + 1)  = gw_cf_ptr(nm + 1)  + 1
+      gw_cf_ptr(nmu + 1) = gw_cf_ptr(nmu + 1) + 1
+      n_faces_both = n_faces_both + 1
+   enddo
+   gw_cf_ptr(1) = 1
+   do nm = 1, np
+      gw_cf_ptr(nm + 1) = gw_cf_ptr(nm) + gw_cf_ptr(nm + 1)
+   enddo
+   allocate(gw_cf_idx(gw_cf_ptr(np + 1) - 1), gw_cf_sgn(gw_cf_ptr(np + 1) - 1))
+   allocate(fill(np)); fill = gw_cf_ptr(1:np)
+   do ip = 1, npuv
+      nm = uv_index_z_nm(ip); nmu = uv_index_z_nmu(ip)
+      if (nm == 0 .or. nmu == 0) cycle
+      gw_cf_idx(fill(nm))  = ip; gw_cf_sgn(fill(nm))  = -1; fill(nm)  = fill(nm)  + 1
+      gw_cf_idx(fill(nmu)) = ip; gw_cf_sgn(fill(nmu)) = +1; fill(nmu) = fill(nmu) + 1
+   enddo
+   deallocate(fill)
+   allocate(gw_qface(npuv)); gw_qface = 0.0d0
+   !
+   ! Sanity check: every face with both cells nonzero contributes one entry to each of its two
+   ! cells, so the total entry count must be exactly twice the face count counted above.
+   !
+   n_touch = gw_cf_ptr(np + 1) - 1
+   write(*,'(a,i0,a,i0)') ' Groundwater: cell-to-face list, faces (both sides active) ', &
+      n_faces_both, '  total cell-face entries ', n_touch
+   if (n_touch /= 2 * n_faces_both) then
+      write(*,*) 'Error: groundwater cell-to-face list is inconsistent: ', n_touch, ' /= 2 * ', n_faces_both
+      stop
+   endif
    !
    if (gw_seepage_active) then
       write(*,'(a,f8.3)') ' Groundwater: seepage face active, gw_seepage_fac = ', gw_seepage_fac
@@ -773,6 +817,10 @@ contains
    !
    numax_seen = 0.0
    !
+   ! Threaded: every iteration only reads (kcs, gw_sy, gw_head, gw_zbase, dxrinv, z_flags_iref)
+   ! and writes only its private scratch, with numax_seen as a max-reduction.
+   !
+   !$omp parallel do private(nm, b, dxr, nu) reduction(max:numax_seen) schedule(static)
    do nm = 1, np
       if (kcs(nm) /= 1) cycle
       if (gw_sy(nm) <= 0.0) cycle
@@ -870,7 +918,7 @@ contains
    !
    real*4, intent(in) :: dt
    !
-   integer :: ip, nm, nmu, nsub, it
+   integer :: ip, nm, nmu, nsub, it, k
    real*4  :: tface, wface, dinv, qface, dtsub, nurate, tsub
    real*4  :: acell, dvol
    real*8  :: vol, volcap, hcap, excess, hnew, cx, rhs, resid
@@ -954,19 +1002,34 @@ contains
          stop
       endif
       !
-      gw_dvol = 0.0d0
+      ! Lateral flux, two passes: a per-face flux (threaded, no cross-cell write) and a per-cell
+      ! gather over the cell-to-face list built once in initialize_groundwater. The face loop used
+      ! to scatter into both gw_dvol(nm) and gw_dvol(nmu) directly, which cannot be threaded
+      ! without atomics; storing the signed face volume once and having each cell sum its own
+      ! faces afterwards needs none. Skipped faces set gw_qface(ip) = 0 explicitly, because the
+      ! array is shared across sub-steps and every entry has to be current before the gather reads
+      ! it.
       !
-      ! Lateral flux, one pass over the faces.
-      !
+      !$omp parallel do private(ip, nm, nmu, tface, wface, dinv, qface) &
+      !$omp reduction(+:bv_bnd, bv_gross) schedule(static)
       do ip = 1, npuv
          !
          nm  = uv_index_z_nm(ip)
          nmu = uv_index_z_nmu(ip)
-         if (nm == 0 .or. nmu == 0) cycle
-         if (kcs(nm) == 0 .or. kcs(nmu) == 0) cycle
+         if (nm == 0 .or. nmu == 0) then
+            gw_qface(ip) = 0.0d0
+            cycle
+         endif
+         if (kcs(nm) == 0 .or. kcs(nmu) == 0) then
+            gw_qface(ip) = 0.0d0
+            cycle
+         endif
          !
          call gw_face_transmissivity(ip, tface)
-         if (tface <= 0.0) cycle
+         if (tface <= 0.0) then
+            gw_qface(ip) = 0.0d0
+            cycle
+         endif
          !
          if (uv_flags_dir(ip) == 0) then
             wface = dyrm(uv_flags_iref(ip))
@@ -978,9 +1041,7 @@ contains
          if (uv_flags_type(ip) /= 0) dinv = dinv / 1.5
          !
          qface = tface * wface * dinv * (gw_head(nm) - gw_head(nmu))
-         !
-         gw_dvol(nm)  = gw_dvol(nm)  - dble(qface) * dble(dtsub)
-         gw_dvol(nmu) = gw_dvol(nmu) + dble(qface) * dble(dtsub)
+         gw_qface(ip) = dble(qface) * dble(dtsub)
          !
          ! Lateral boundary flux. A cell with kcs == 2 holds a prescribed head and is not part of
          ! the control volume, so a face touching one carries water across the boundary. qface is
@@ -989,18 +1050,42 @@ contains
          ! right: neither cell is inside.
          !
          if (kcs(nm)  == 2) then
-            bv_bnd   = bv_bnd + dble(qface) * dble(dtsub)
-            bv_gross = bv_gross + abs(dble(qface) * dble(dtsub))
+            bv_bnd   = bv_bnd + gw_qface(ip)
+            bv_gross = bv_gross + abs(gw_qface(ip))
          endif
          if (kcs(nmu) == 2) then
-            bv_bnd   = bv_bnd - dble(qface) * dble(dtsub)
-            bv_gross = bv_gross + abs(dble(qface) * dble(dtsub))
+            bv_bnd   = bv_bnd - gw_qface(ip)
+            bv_gross = bv_gross + abs(gw_qface(ip))
          endif
          !
       enddo
       !
-      ! Recharge, exchange with the surface, and the new head.
+      ! Gather: each cell sums the signed volume of every face that touches it. Replaces the old
+      ! gw_dvol = 0.0d0 reset -- every entry is assigned here, dry or inactive cells included
+      ! (their faces contribute zero, set above).
       !
+      !$omp parallel do private(nm, k) schedule(static)
+      do nm = 1, np
+         gw_dvol(nm) = 0.0d0
+         do k = gw_cf_ptr(nm), gw_cf_ptr(nm + 1) - 1
+            gw_dvol(nm) = gw_dvol(nm) + dble(gw_cf_sgn(k)) * gw_qface(gw_cf_idx(k))
+         enddo
+      enddo
+      !
+      ! Recharge, exchange with the surface, and the new head. Threaded: every routine called
+      ! below (gw_cell_area, gw_drain_terms, gw_exchange_terms, gw_cell_storage) writes only its
+      ! intent(out) arguments and reads module state that is not written elsewhere in this loop,
+      ! so cells are independent given a private copy of every loop-local scratch variable. The
+      ! per-cell writes -- gw_dvol(nm), gw_qsurf(nm), gw_head(nm), gw_zceil_n(nm) -- are disjoint
+      ! across nm. csym and gw_rech_rate are included in private though the plan's snippet did
+      ! not list them: both are ordinary loop-local scratch (set by gw_exchange_terms / the
+      ! recharge line and consumed later in the same iteration), and leaving either shared would
+      ! race between threads working different cells at once.
+      !
+      !$omp parallel do private(nm, acell, dvol, vol, volcap, hcap, excess, hnew, cx, rhs, resid, &
+      !$omp                     hsat, pin, csym, qexpl, qex, volh, dvolh, cdrn, zdrn, qdrn, it, &
+      !$omp                     gw_rech_rate) &
+      !$omp reduction(+:bv_rech, bv_exch, bv_ceil, bv_drain, bv_gross) schedule(static)
       do nm = 1, np
          !
          if (kcs(nm) /= 1) cycle
@@ -1190,6 +1275,12 @@ contains
    integer :: nm
    real*4  :: acell
    if (gw_nshare_left <= 0) return
+   !
+   ! Threaded: gw_cell_area and gw_level_from_volume write only their arguments/z_volume(nm) or
+   ! zs(nm), which are disjoint per cell, and read only per-cell state plus the read-only subgrid
+   ! tables.
+   !
+   !$omp parallel do private(nm, acell) schedule(static)
    do nm = 1, np
       if (kcs(nm) /= 1 .or. gw_qshare(nm) == 0.0) cycle
       call gw_cell_area(nm, acell)
