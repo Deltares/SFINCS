@@ -2308,7 +2308,7 @@ contains
       ! 
    endif
    !
-   if (wiggle_suppression .or. slope_driven_flow) then
+   if (compute_wetfrac) then
       !
       allocate(z_wetfrac(np))
       z_wetfrac = 1.0
@@ -2318,32 +2318,18 @@ contains
    if (slope_driven_flow) then
       !
       allocate(z_hwet(np))
-      allocate(z_wface(np))
-      allocate(w_uv(npuv))
-      allocate(iup_uv(npuv))
       z_hwet = 0.0
-      z_wface = 0.0
-      w_uv = 0.0
-      iup_uv = 0
       !
    endif
    !
-   if (store_forcing_terms) then
+   if (store_slope_regime) then
       !
-      allocate(frc_pres_uv(npuv))
-      allocate(frc_adv_uv(npuv))
-      allocate(frc_visc_uv(npuv))
-      allocate(frc_cor_uv(npuv))
-      allocate(frc_ext_uv(npuv))
-      allocate(frc_fric_uv(npuv))
-      allocate(frc_tot_uv(npuv))
-      frc_pres_uv = 0.0
-      frc_adv_uv = 0.0
-      frc_visc_uv = 0.0
-      frc_cor_uv = 0.0
-      frc_ext_uv = 0.0
-      frc_fric_uv = 0.0
-      frc_tot_uv = 0.0
+      allocate(z_wface(np))
+      allocate(w_uv(npuv))
+      allocate(iup_uv(npuv))
+      z_wface = 0.0
+      w_uv = 0.0
+      iup_uv = 0
       !
    endif
    !

@@ -320,7 +320,6 @@ contains
    call read_logical_input(500,'regular_output_on_mesh',use_quadtree_output,.false.)
    call read_logical_input(500, 'store_dynamic_bed_level', store_dynamic_bed_level, .false.)
    call read_logical_input(500, 'store_slope_regime', store_slope_regime, .false.)
-   call read_logical_input(500, 'store_forcing_terms', store_forcing_terms, .false.)
    call read_logical_input(500,'snapwave_use_nearest',snapwave_use_nearest,.true.)   
    call read_int_input(500,'percentage_done',percdoneval,5)
    ! Limit to range (0,100)
@@ -716,16 +715,6 @@ contains
       call write_log('Info    : subgrid: using effective bed level zb = zs - V/A (velocity scheme / nonh)', 0)
    endif
    !
-   ! Momentum-equation terms are only stored by the velocity-form momentum scheme
-   !
-   if (store_forcing_terms .and. momentum_scheme /= 1) then
-      !
-      call write_log('Warning : store_forcing_terms is only supported for momentum_scheme = velocity, keyword ignored!', 1)
-      !
-      store_forcing_terms = .false.
-      !
-   endif
-   !
    ! Level-driven vs slope-driven flow regime (subgrid + velocity-form momentum only).
    ! Whether the subgrid table actually contains bed slopes is checked in read_subgrid_file.
    !
@@ -746,6 +735,11 @@ contains
       store_slope_regime = .false.
       !
    endif
+   !
+   ! The cell wet fraction z_wetfrac is only used by the velocity-form momentum scheme
+   ! (wiggle suppression and slope-driven flow regime); skip it in the flux-form scheme.
+   !
+   compute_wetfrac = momentum_scheme == 1 .and. (wiggle_suppression .or. slope_driven_flow)
    !
    if (advection) then
       !

@@ -589,10 +589,10 @@ contains
             !
          endif
          !
-         if (wiggle_suppression .or. slope_driven_flow) then
+         if (compute_wetfrac) then
             !
             ! Wet-area fraction of the cell (dV/dzs)/A from the subgrid volume table.
-            ! Used by the wiggle suppression in the momentum equation and by the slope-driven flow regime.
+            ! Only used by the velocity-form momentum scheme (wiggle suppression and slope-driven flow regime).
             !
             if (z_volume(nm) >= subgrid_z_volmax(nm) * 0.999) then
                z_wetfrac(nm) = 1.0

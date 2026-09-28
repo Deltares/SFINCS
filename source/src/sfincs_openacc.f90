@@ -14,7 +14,6 @@ contains
    ! 
    !$acc enter data, copyin( kcs, kfuv, kcuv, zs, zs0, zsderv, z_wetfrac, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, maxzsm, qmax, vmax, twet, zsm, z_volume, &
    !$acc               z_hwet, z_wface, w_uv, iup_uv, subgrid_z_dzbdm, subgrid_z_dzbdn, &
-   !$acc               frc_pres_uv, frc_adv_uv, frc_visc_uv, frc_cor_uv, frc_ext_uv, frc_fric_uv, frc_tot_uv, &
    !$acc               z_flags_iref, uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
    !$acc               index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, zsb, zsb0, ibuvdir, uvmean, &
    !$acc               subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
@@ -50,7 +49,6 @@ contains
    !
    !$acc exit data delete( kcs, kfuv, kcuv, zs, zs0, zsderv, z_wetfrac, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, maxzsm, qmax, vmax, twet, zsm, z_volume, &
    !$acc               z_hwet, z_wface, w_uv, iup_uv, subgrid_z_dzbdm, subgrid_z_dzbdn, &
-   !$acc               frc_pres_uv, frc_adv_uv, frc_visc_uv, frc_cor_uv, frc_ext_uv, frc_fric_uv, frc_tot_uv, &
    !$acc               z_flags_iref, uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
    !$acc               index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, zsb, zsb0, ibuvdir, uvmean, &
    !$acc               subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
