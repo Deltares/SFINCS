@@ -2328,6 +2328,25 @@ contains
       !
    endif
    !
+   if (store_forcing_terms) then
+      !
+      allocate(frc_pres_uv(npuv))
+      allocate(frc_adv_uv(npuv))
+      allocate(frc_visc_uv(npuv))
+      allocate(frc_cor_uv(npuv))
+      allocate(frc_ext_uv(npuv))
+      allocate(frc_fric_uv(npuv))
+      allocate(frc_tot_uv(npuv))
+      frc_pres_uv = 0.0
+      frc_adv_uv = 0.0
+      frc_visc_uv = 0.0
+      frc_cor_uv = 0.0
+      frc_ext_uv = 0.0
+      frc_fric_uv = 0.0
+      frc_tot_uv = 0.0
+      !
+   endif
+   !
    if (snapwave) then
       !
       allocate(hm0(np))

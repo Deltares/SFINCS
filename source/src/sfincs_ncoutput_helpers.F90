@@ -47,6 +47,7 @@ module sfincs_ncoutput_helpers
       integer :: zs_varid, zsmax_varid, h_varid, u_varid, v_varid, tmax_varid, infstate_varid, t_zsmax_varid
       integer :: zvolume_varid, storagevolume_varid
       integer :: wface_varid, hwet_varid
+      integer :: fterm_varid(14)   ! forcing terms (store_forcing_terms), x and y per term
       integer :: hmax_varid, vmax_varid, qmax_varid, cumprcp_varid, cuminf_varid, windmax_varid
       integer :: patm_varid, wind_u_varid, wind_v_varid, precip_varid
       integer :: hm0_varid, hm0ig_varid, snapwavemsk_varid, tp_varid, tpig_varid, wavdir_varid
@@ -822,6 +823,100 @@ contains
          vxy(nm) = sinrot*uz + cosrot*vz
       enddo
    end subroutine compute_uv_at_cell_centers
+
+   subroutine compute_uv_term_at_cell_centers(fuv, fx, fy)
+      !
+      ! Cell-centred x and y components of a uv-point quantity: x = 0.5*(md + mu), y = 0.5*(nd + nu).
+      ! Combined quadtree faces are averaged over their sub-faces, missing faces contribute 0.
+      ! Rotated from grid axes to true x and y in the same way as the velocities.
+      !
+      use sfincs_data
+      real*4, intent(in)  :: fuv(:)
+      real*4, intent(out) :: fx(:), fy(:)
+      integer :: nm
+      real*4  :: fm, fn
+      !
+      !$omp parallel do private ( nm, fm, fn ) schedule ( static )
+      do nm = 1, np
+         fm = 0.5 * (face_value(fuv, z_index_uv_md(nm)) + face_value(fuv, z_index_uv_mu(nm)))
+         fn = 0.5 * (face_value(fuv, z_index_uv_nd(nm)) + face_value(fuv, z_index_uv_nu(nm)))
+         fx(nm) = cosrot * fm - sinrot * fn
+         fy(nm) = sinrot * fm + cosrot * fn
+      enddo
+      !$omp end parallel do
+      !
+   end subroutine compute_uv_term_at_cell_centers
+
+   function face_value(fuv, iface) result(val)
+      !
+      ! Value of a uv-point quantity at face iface (regular uv point, combined quadtree point
+      ! = mean of its sub-faces, or 0 for a missing face)
+      !
+      use sfincs_data
+      real*4, intent(in) :: fuv(:)
+      integer, intent(in) :: iface
+      real*4  :: val
+      integer :: icuv, n
+      !
+      val = 0.0
+      !
+      if (iface >= 1 .and. iface <= npuv) then
+         val = fuv(iface)
+      elseif (iface > npuv .and. iface <= npuv + ncuv) then
+         icuv = iface - npuv
+         n = 0
+         if (cuv_index_uv1(icuv) <= npuv) then
+            val = val + fuv(cuv_index_uv1(icuv))
+            n = n + 1
+         endif
+         if (cuv_index_uv2(icuv) <= npuv) then
+            val = val + fuv(cuv_index_uv2(icuv))
+            n = n + 1
+         endif
+         if (n > 0) val = val / n
+      endif
+      !
+   end function face_value
+
+   subroutine write_uv_term(fuv, ivar, nt)
+      !
+      ! Write a uv-point quantity as cell-centred x and y components (map_file%fterm_varid(ivar:ivar+1))
+      !
+      use sfincs_data, only: np
+      real*4, intent(in)  :: fuv(:)
+      integer, intent(in) :: ivar
+      integer, intent(in) :: nt
+      real*4, dimension(:), allocatable :: fx, fy
+      !
+      allocate(fx(np), fy(np))
+      call compute_uv_term_at_cell_centers(fuv, fx, fy)
+      call write_cell_var(map_file%ncid, map_file%fterm_varid(ivar), fx, nt)
+      call write_cell_var(map_file%ncid, map_file%fterm_varid(ivar + 1), fy, nt)
+      deallocate(fx, fy)
+      !
+   end subroutine write_uv_term
+
+   subroutine def_forcing_terms()
+      !
+      ! Define the momentum-equation terms (store_forcing_terms) as cell-centred x and y components
+      !
+      character(len=8),  dimension(7) :: tname
+      character(len=40), dimension(7) :: tlong
+      integer :: k
+      !
+      tname = [character(len=8)  :: 'fpres', 'fadv', 'fvisc', 'fcor', 'fext', 'ffric', 'ftot']
+      tlong = [character(len=40) :: 'Pressure-gradient acceleration', 'Advective acceleration', &
+               'Viscous acceleration', 'Coriolis acceleration', 'External forcing acceleration', &
+               'Friction acceleration', 'Net acceleration']
+      !
+      do k = 1, 7
+         call def_time_cell_float(trim(tname(k)) // '_x', map_file%fterm_varid(2 * k - 1), 'm s-2', &
+              trim(tlong(k)) // ', x-component')
+         call def_time_cell_float(trim(tname(k)) // '_y', map_file%fterm_varid(2 * k), 'm s-2', &
+              trim(tlong(k)) // ', y-component')
+      enddo
+      !
+   end subroutine def_forcing_terms
 
    subroutine compute_pnh_unwrapped(pnh_full)
       ! Map row-indexed nonhydrostatic pressure to SFINCS-indexed array.

@@ -485,6 +485,10 @@ contains
    endif
    !
    ! Level-driven vs slope-driven flow regime
+   if (store_forcing_terms) then
+      call def_forcing_terms()
+   endif
+   !
    if (store_slope_regime) then
       call def_time_cell_float('wface', map_file%wface_varid, '-', &
            'Face regime weight used in momentum, flux-weighted over the outflow faces, 0 level-driven 1 slope-driven', &
@@ -1218,6 +1222,16 @@ contains
    ! -------------------------------------------------------
    ! Level-driven vs slope-driven flow regime
    ! -------------------------------------------------------
+   if (store_forcing_terms) then
+      call write_uv_term(frc_pres_uv, 1, ntmapout)
+      call write_uv_term(frc_adv_uv, 3, ntmapout)
+      call write_uv_term(frc_visc_uv, 5, ntmapout)
+      call write_uv_term(frc_cor_uv, 7, ntmapout)
+      call write_uv_term(frc_ext_uv, 9, ntmapout)
+      call write_uv_term(frc_fric_uv, 11, ntmapout)
+      call write_uv_term(frc_tot_uv, 13, ntmapout)
+   endif
+   !
    if (store_slope_regime) then
       call write_cell_var(map_file%ncid, map_file%wface_varid, z_wface, ntmapout)
       call write_cell_var(map_file%ncid, map_file%hwet_varid, z_hwet, ntmapout)
@@ -1663,6 +1677,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'outputtype_his',outputtype_his))
         NF90(nf90_put_att(ncid, varid, 'bndtype',bndtype))
         NF90(nf90_put_att(ncid, varid, 'advection',logical2int(advection)))  
+        NF90(nf90_put_att(ncid, varid, 'advection_fade_power',advection_fade_power))  
         NF90(nf90_put_att(ncid, varid, 'latitude',latitude))  
         NF90(nf90_put_att(ncid, varid, 'pavbnd',pavbnd))  
         NF90(nf90_put_att(ncid, varid, 'gapres',gapres))  
@@ -1820,6 +1835,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'timestep_analysis',logical2int(timestep_analysis)))
         NF90(nf90_put_att(ncid, varid, 'store_dynamic_bed_level',logical2int(store_dynamic_bed_level)))
         NF90(nf90_put_att(ncid, varid, 'store_slope_regime',logical2int(store_slope_regime)))
+        NF90(nf90_put_att(ncid, varid, 'store_forcing_terms',logical2int(store_forcing_terms)))
         NF90(nf90_put_att(ncid, varid, 'regular_output_on_mesh',logical2int(use_quadtree_output)))
         NF90(nf90_put_att(ncid, varid, 'rugdepth',runup_gauge_depth))
         NF90(nf90_put_att(ncid, varid, 'percentage_done',percdoneval))

@@ -90,6 +90,7 @@ contains
    call read_int_input(500,'nc_deflate_level',nc_deflate_level,2)
    call read_int_input(500,'bndtype',bndtype,1)
    call read_int_input(500,'advection',iadvection,1)
+   call read_int_input(500,'advection_fade_power',advection_fade_power,0)
    call read_real_input(500,'latitude',latitude,0.0)
    call read_real_input(500,'pavbnd',pavbnd,0.0)
    call read_real_input(500,'gapres',gapres,101200.0)
@@ -319,6 +320,7 @@ contains
    call read_logical_input(500,'regular_output_on_mesh',use_quadtree_output,.false.)
    call read_logical_input(500, 'store_dynamic_bed_level', store_dynamic_bed_level, .false.)
    call read_logical_input(500, 'store_slope_regime', store_slope_regime, .false.)
+   call read_logical_input(500, 'store_forcing_terms', store_forcing_terms, .false.)
    call read_logical_input(500,'snapwave_use_nearest',snapwave_use_nearest,.true.)   
    call read_int_input(500,'percentage_done',percdoneval,5)
    ! Limit to range (0,100)
@@ -712,6 +714,16 @@ contains
    zb_effective = subgrid .and. (momentum_scheme == 1 .or. nonhydrostatic)
    if (zb_effective) then
       call write_log('Info    : subgrid: using effective bed level zb = zs - V/A (velocity scheme / nonh)', 0)
+   endif
+   !
+   ! Momentum-equation terms are only stored by the velocity-form momentum scheme
+   !
+   if (store_forcing_terms .and. momentum_scheme /= 1) then
+      !
+      call write_log('Warning : store_forcing_terms is only supported for momentum_scheme = velocity, keyword ignored!', 1)
+      !
+      store_forcing_terms = .false.
+      !
    endif
    !
    ! Level-driven vs slope-driven flow regime (subgrid + velocity-form momentum only).

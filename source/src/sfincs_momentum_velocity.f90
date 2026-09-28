@@ -95,6 +95,13 @@ contains
    real*4    :: hu_fric                         ! (blended) depth for the friction
    real*4    :: dzdx_eff                        ! driving surface gradient
    !
+   real*4    :: f_pres                          ! momentum-equation terms [m/s2] (store_forcing_terms)
+   real*4    :: f_adv
+   real*4    :: f_visc
+   real*4    :: f_cor
+   real*4    :: f_ext
+   real*4    :: f_fric
+   !
    integer   :: iside                           ! face counter for the z_wface diagnostic
    integer   :: iface
    integer   :: jface
@@ -148,12 +155,29 @@ contains
    !$omp end do
    !$omp end parallel
    !
+   if (store_forcing_terms) then
+      !
+      ! Momentum-equation terms: dry faces keep 0
+      !
+      !$acc kernels present( frc_pres_uv, frc_adv_uv, frc_visc_uv, frc_cor_uv, frc_ext_uv, frc_fric_uv, frc_tot_uv )
+      frc_pres_uv = 0.0
+      frc_adv_uv  = 0.0
+      frc_visc_uv = 0.0
+      frc_cor_uv  = 0.0
+      frc_ext_uv  = 0.0
+      frc_fric_uv = 0.0
+      frc_tot_uv  = 0.0
+      !$acc end kernels
+      !
+   endif
+   !
    !$omp parallel &
    !$omp private ( ip,hu,ufr,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, &
    !$omp           fcoriouv,gnavg2,iwet,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,dqxudx,dqyudy,un,up,vp,vn,umax, &
    !$omp           dnminv,qu,qd,hwet,phi,adv,mdrv,phiz,fac,hu43,y_cbrt,i_cbrt,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbup,ipw,ipe,zbnm,zbnmu, &
-   !$omp           iup,idn,w,s_s,hwet_up,d_up,zb_face,tol_edge,r_slope,hu_flux,hu_fric,dzdx_eff ) &
+   !$omp           iup,idn,w,s_s,hwet_up,d_up,zb_face,tol_edge,r_slope,hu_flux,hu_fric,dzdx_eff, &
+   !$omp           f_pres,f_adv,f_visc,f_cor,f_ext,f_fric ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, zsderv, z_wetfrac, &
@@ -164,6 +188,7 @@ contains
    !$acc                    uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
    !$acc                    zb, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, &
    !$acc                    z_hwet, subgrid_z_dzbdm, subgrid_z_dzbdn, subgrid_z_zmin, w_uv, iup_uv, &
+   !$acc                    frc_pres_uv, frc_adv_uv, frc_visc_uv, frc_cor_uv, frc_ext_uv, frc_fric_uv, frc_tot_uv, &
    !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, cell_area, cell_area_m2, z_flags_iref, gnapp2, timestep_analysis_required_timestep ) num_gangs( 1024 ) vector_length( 128 )
    !$acc loop, reduction( min : min_dt ), gang, vector
    do ip = 1, npuv
@@ -615,6 +640,14 @@ contains
                   !
                   adv = - phi * (dqxudx + dqyudy)        ! velocity tendency [m/s^2]
                   !
+                  if (subgrid .and. advection_fade_power > 0) then
+                     !
+                     ! Fade advection on partly wet subgrid faces (phi = wet fraction of the face)
+                     !
+                     adv = adv * max(phi, 0.0)**advection_fade_power
+                     !
+                  endif
+                  !
                   if (w > 0.0) then
                      !
                      ! No inertia in the kinematic (slope-driven) limit
@@ -823,6 +856,57 @@ contains
             ! Continuity flux from the updated velocity and the conveyance depth.
             !
             q(ip) = uv(ip) * hu_flux
+            !
+            if (store_forcing_terms) then
+               !
+               ! Momentum-equation terms as accelerations, evaluated here from the quantities of
+               ! this iteration so that the computation above is untouched. pres + adv + visc + cor
+               ! + ext = frc; ext (wind, atmospheric pressure, waves) is the remainder of frc.
+               ! fric uses the velocity right after the implicit update, so pres + adv + visc + cor
+               ! + ext + fric is the tendency before wiggle relaxation and limiter; tot is the net
+               ! tendency after them.
+               !
+               f_pres = - g * dzdx_eff
+               f_adv  = 0.0
+               f_visc = 0.0
+               f_cor  = 0.0
+               !
+               if (advection) then
+                  f_adv = adv
+               endif
+               !
+               if (viscosity) then
+                  !
+                  f_visc = nuvisc(iref) * ( (uu_nmu - 2*uu_nm + uu_nmd ) * dxuv2inv + (uu_num - 2*uu_nm + uu_ndm ) * dyuv2inv )
+                  !
+                  if (itype /= 0) then
+                     f_visc = nuviscfac * f_visc
+                  endif
+                  !
+               endif
+               !
+               if (coriolis) then
+                  !
+                  if (idir == 0) then
+                     f_cor = fcoriouv * vu
+                  else
+                     f_cor = - fcoriouv * vu
+                  endif
+                  !
+               endif
+               !
+               f_ext  = frc - (f_pres + f_adv + f_visc + f_cor)
+               f_fric = - gnavg2 * ufr * ((uv0(ip) + frc * dt) / (1.0 + gnavg2 * dt * ufr / hu43)) / hu43
+               !
+               frc_pres_uv(ip) = f_pres
+               frc_adv_uv(ip)  = f_adv
+               frc_visc_uv(ip) = f_visc
+               frc_cor_uv(ip)  = f_cor
+               frc_ext_uv(ip)  = f_ext
+               frc_fric_uv(ip) = f_fric
+               frc_tot_uv(ip)  = (uv(ip) - uv0(ip)) / dt
+               !
+            endif
             !
             kfuv(ip) = 1
             !

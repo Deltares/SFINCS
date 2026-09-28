@@ -504,6 +504,14 @@ contains
                   !
                   adv = min(max(adv, - advlim * hu), advlim * hu) 
                   !
+                  if (subgrid .and. advection_fade_power > 0) then
+                     !
+                     ! Fade advection on partly wet subgrid faces (phi = wet fraction of the face)
+                     !
+                     adv = adv * max(phi, 0.0)**advection_fade_power
+                     !
+                  endif
+                  !
                   frc = frc + adv
                   !
                endif

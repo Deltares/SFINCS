@@ -116,6 +116,7 @@ module sfincs_data
       integer baro
       integer advection_scheme
       integer momentum_scheme   ! 0 = Bates flux form (default), 1 = velocity form
+      integer advection_fade_power ! adv is multiplied by phi**advection_fade_power (phi = subgrid uv wet fraction), 0 = no fade
       !
       character*256 :: depfile
       character*256 :: mskfile
@@ -257,6 +258,7 @@ module sfincs_data
       logical       :: wiggle_detect
       logical       :: slope_driven_flow
       logical       :: store_slope_regime
+      logical       :: store_forcing_terms
       logical       :: store_dynamic_bed_level
       logical       :: nonhydrostatic
       logical       :: h73table
@@ -608,6 +610,16 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: z_wface   ! diagnostic: flux-weighted face regime weight per cell
       real*4, dimension(:),   allocatable :: w_uv      ! face regime weight used in momentum (per uv point)
       integer, dimension(:),  allocatable :: iup_uv    ! upwind cell of each uv point used in momentum (0 if not set)
+      !
+      ! Momentum-equation terms per uv point as accelerations [m/s2] (store_forcing_terms, velocity route)
+      !
+      real*4, dimension(:),   allocatable :: frc_pres_uv   ! pressure gradient -g*dzdx_eff
+      real*4, dimension(:),   allocatable :: frc_adv_uv    ! advection (after all fades)
+      real*4, dimension(:),   allocatable :: frc_visc_uv   ! viscosity
+      real*4, dimension(:),   allocatable :: frc_cor_uv    ! Coriolis
+      real*4, dimension(:),   allocatable :: frc_ext_uv    ! wind, atmospheric pressure and waves
+      real*4, dimension(:),   allocatable :: frc_fric_uv   ! implicit friction -gnavg2*ufr*uv/hu43
+      real*4, dimension(:),   allocatable :: frc_tot_uv    ! net (uv - uv0)/dt
       real*4, dimension(:),   allocatable, target :: qext
       real*4, dimension(:),   allocatable, target :: dzbext
       real*4, dimension(:),   allocatable, target :: uorb
