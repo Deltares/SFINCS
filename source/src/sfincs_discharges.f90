@@ -829,7 +829,7 @@ contains
 					uc = 0.5   
                   elseif (dike_core == 3.0) then
 				    !
-					! dike core made of clay
+					! Dune
 					!
 					f1 = 0.5
 					f2 = 0.04
@@ -1313,7 +1313,7 @@ contains
                   !
                   ! Now that the breaching geometry is updated, compute discharge through the breach
                   !
-                  if (t >= t0_Visser) then
+                  if (t >= tbreach) then
                       if (breach_level_gather(idrn) > MAX(zs(nmin), zs(nmout))) then
                             !
                             ! Dike crest higher than out- and inside water level, so no flow
@@ -1328,26 +1328,21 @@ contains
                             if (zs(nmout)>zs(nmin)) then
                                 qq = -qq ! return flow
                             end if
-                            write(logstr,'(a,f12.4,a,f12.4,a,f12.4,a,f12.4, a,f12.4)') 'DISCHARGE FULLY SUBMERGED: ', qq,  ' - zs(nmin)', zs(nmin), ' - zs(nmout)', zs(nmout), '- breach_level_gather(idrn)', breach_level_gather(idrn), ' - breach_width_avg_water_depth_Visser(idrn)', breach_width_avg_water_depth_Visser(idrn)
-                            call write_log(logstr, 0) 
                       else
                             !
                             ! Free flow
                             !
-                            r = breach_width_avg_water_depth_Visser(idrn)/breach_width_waterline_Visser(idrn)
                             h_breach = max(max(zs(nmin),zs(nmout))- breach_level_gather(idrn), 0.0)
-                            qq =m_afvoercoeff* SQRT(9.81)*SQRT(r)*2**(3/2)/(2+r)**(3/2)* breach_width_avg_water_depth_Visser(idrn) * (h_breach)**1.5
+                            qq = 1.71 * breach_width_avg_water_depth_Visser(idrn)* (h_breach)**1.5 
                             if (zs(nmout)>zs(nmin)) then
                               qq = -qq ! return flow
                             end if
-                            write(logstr,'(a,f12.4,a,f12.4,a,f12.4,a,f12.4, a,f12.4)') 'DISCHARGE FREE FLOW: ', qq,  ' - zs(nmin)', zs(nmin), ' - zs(nmout)', zs(nmout), '- breach_level_gather(idrn)', breach_level_gather(idrn), ' - breach_width_avg_water_depth_Visser(idrn)', breach_width_avg_water_depth_Visser(idrn)
-                            call write_log(logstr, 0) 
                       endif
                   else
                       !
-                      ! No discharge through dike if t<tbreach
-                      !
-			          qq = 0.0 
+                      ! No discharge through dike if t<tbreach 
+			          !
+                      qq = 0.0 
                   endif
                    
 
