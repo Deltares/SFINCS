@@ -34,7 +34,7 @@
        ! Parameter 2 : dike normal angle in degrees (0 degrees is north, increasing clockwise)
       if (snapwave) then
           call write_log('------------ CALCULATING OVERTOPPING AND OVERFLOW ------------', 1)
-          call read_structure_file(weirfile, 2, 2) ! if there are waves, use weir type 2, which contains wave overtopping
+          call read_structure_file(weirfile, 1, 2) ! if there are waves, use weir type 2, which contains wave overtopping
       else
           call write_log('------------ CALCULATING OVERFLOW ------------', 1)
           call read_structure_file(weirfile, 1, 2) 

@@ -48,15 +48,13 @@
 				<File RelativePath="..\src\snapwave\snapwave_windsource.f90"/>
 			</Filter>
 			<File RelativePath="..\third_party_open\Delft3D\astro.f90"/>
-			<File RelativePath="..\third_party_open\bicgstab\bicgstab_solver_ilu.f90">
-			</File>
+			<File RelativePath="..\third_party_open\bicgstab\bicgstab_solver_ilu.f90"/>
 			<File RelativePath="..\third_party_open\utils\deg2utm.f90"/>
 			<File RelativePath="..\third_party_open\utils\geometry.f90"/>
 			<File RelativePath="..\src\sfincs_boundaries.f90"/>
 			<File RelativePath="..\src\sfincs_continuity.f90"/>
 			<File RelativePath="..\src\sfincs_crosssections.f90"/>
-			<File RelativePath="..\src\sfincs_data.f90">
-			</File>
+			<File RelativePath="..\src\sfincs_data.f90"/>
 			<File RelativePath="..\src\sfincs_date.f90"/>
 			<File RelativePath="..\src\sfincs_discharges.f90"/>
 			<File RelativePath="..\src\sfincs_domain.f90"/>
@@ -99,7 +97,8 @@
 			<File RelativePath="..\src\sfincs_runup_gauges.f90"/>
 			<File RelativePath="..\src\sfincs_snapwave.f90"/>
 			<File RelativePath="..\src\sfincs_spiderweb.f90"/>
-			<File RelativePath="..\src\sfincs_structures.f90"/>
+			<File RelativePath="..\src\sfincs_structures.f90">
+			</File>
 			<File RelativePath="..\src\sfincs_subgrid.F90">
 				<FileConfiguration Name="Release|x64">
 					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
@@ -108,8 +107,7 @@
 					<Tool Name="VFFortranCompilerTool" Preprocess="preprocessYes"/>
 				</FileConfiguration>
 			</File>
-			<File RelativePath=".\sfincs_Visser.f90">
-			</File>
+			<File RelativePath=".\sfincs_Visser.f90"/>
 			<File RelativePath="..\src\sfincs_wave_enhanced_roughness.f90"/>
 			<File RelativePath="..\src\sfincs_wavemaker.f90"/>
 		</Filter>
