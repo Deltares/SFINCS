@@ -82,25 +82,40 @@ contains
       !
       integer          :: nm
       !
-      call timer_start('continuity')
+      ! Source terms 2-5 each have their own timer (only registered when the
+      ! feature is active), so they are not counted under 'continuity'.
       !
       ! 1. Precipitation was already accumulated into qsrc by
       !    update_meteo_forcing (called from sfincs_lib before this routine).
       !
       ! 2. River discharges => update_discharges (adds to qsrc)
       !
-      call update_discharges(t, dt)
+      if (nr_discharge_points > 0) then
+         !
+         call timer_start('discharges')
+         call update_discharges(t, dt)
+         call timer_stop('discharges')
+         !
+      endif
       !
       ! 3. Drainage structures (pumps/gates/culverts/...) => update_src_structures (adds to qsrc)
       !
-      call update_src_structures(t, dt)
+      if (nr_src_structures > 0) then
+         !
+         call timer_start('drainage structures')
+         call update_src_structures(t, dt)
+         call timer_stop('drainage structures')
+         !
+      endif
       !
       ! 4. Compute infiltration rates; update_infiltration_map also subtracts
       !    qinfmap * cell_area from qsrc.
       !
       if (infiltration) then
          !
+         call timer_start('infiltration')
          call update_infiltration_map(dt)
+         call timer_stop('infiltration')
          !
       endif
       !
@@ -108,9 +123,13 @@ contains
       !
       if (urban_drainage) then
          !
+         call timer_start('urban drainage')
          call update_urban_drainage(t, dt)
+         call timer_stop('urban drainage')
          !
       endif
+      !
+      call timer_start('continuity')
       !
       ! 6. External source/sink (+/-) => add qext to qsrc (set via BMI coupling)
       !

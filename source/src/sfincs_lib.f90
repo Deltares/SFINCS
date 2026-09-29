@@ -452,7 +452,9 @@ module sfincs_lib
          !
          if (timestep_analysis) then
              !
+             call timer_start('timestep analysis')
              call timestep_analysis_update(min_dt)
+             call timer_stop('timestep analysis')
              !
          endif           
          !

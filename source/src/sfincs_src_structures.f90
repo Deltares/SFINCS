@@ -293,7 +293,7 @@ module sfincs_src_structures
    !
    ! Cell mapping
    !
-   integer, public :: nr_src_structures
+   integer, public :: nr_src_structures = 0
    integer*4, dimension(:), allocatable, public :: src_struc_nm_s1     ! (nr_src_structures) endpoint-1 cell indices
    integer*4, dimension(:), allocatable, public :: src_struc_nm_s2     ! (nr_src_structures) endpoint-2 cell indices
    integer*4, dimension(:), allocatable, public :: src_struc_nm_o1     ! (nr_src_structures) obs-1 cell indices (gate rule inputs; defaults to endpoint-1 cell)
