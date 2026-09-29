@@ -348,9 +348,9 @@ contains
       !
       ! Now do some post-processing and consistency checks on the inputs, and emit
       !
-      ! Limit progress reporter to (0, 100]%
+      ! Limit progress reporter to [1, 100]%
       !
-      percdoneval = max(min(percdoneval, 100), 0)
+      percdoneval = max(min(percdoneval, 100), 1)
       !
       if (epsg == 0) then
          !
