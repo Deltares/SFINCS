@@ -463,7 +463,7 @@ contains
    ! -------------------------------------------------------
    call def_time_cell_float('zs', map_file%zs_varid, 'm', 'Water level', standard_name='sea_surface_height_above_reference_level')
    !
-   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
+   if (.not. subgrid .or. store_hsubgrid) then
       call def_time_cell_float('h', map_file%h_varid, 'm', 'Water depth', standard_name='water_depth')
    endif
    !
@@ -535,7 +535,7 @@ contains
    endif
    !
    if (store_maximum_waterlevel) then
-      if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
+      if (.not. subgrid .or. store_hsubgrid) then
          call def_maxtime_cell_float('hmax', map_file%hmax_varid, 'm', 'Maximum water depth', &
               standard_name='sea_floor_depth_below_sea_surface', cell_methods='time: maximum')
       endif
@@ -976,7 +976,7 @@ contains
    call def_time_point_float('point_zs', his_file%zs_varid, 'm', 'Water level', &
         standard_name='sea_surface_height_above_reference_level')
    !
-   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
+   if (.not. subgrid .or. store_hsubgrid) then
       call def_time_point_float('point_h', his_file%h_varid, 'm', 'Water depth', standard_name='depth')
    endif
    !
@@ -1298,7 +1298,7 @@ contains
    endif
    !
    ! h = zs - zref. Quadtree filters wet cells (legacy); regular keeps all.
-   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
+   if (.not. subgrid .or. store_hsubgrid) then
       if (subgrid) then
          call write_cell_var_depth(map_file%ncid, map_file%h_varid, real(zs,4), subgrid_z_zmin, ntmapout, &
               check_wet=use_quadtree)
@@ -1438,7 +1438,7 @@ contains
       !
       NF90(nf90_put_var(his_file%ncid, his_file%zs_varid, zobs, (/1, nthisout/)))
       !
-      if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
+      if (.not. subgrid .or. store_hsubgrid) then
          NF90(nf90_put_var(his_file%ncid, his_file%h_varid, hobs, (/1, nthisout/)))
       endif
       !

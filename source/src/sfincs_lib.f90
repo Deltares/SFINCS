@@ -88,7 +88,7 @@ module sfincs_lib
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
    build_revision = "$Rev: v2.4.2-beta Galibier+branch"
-   build_date     = "$Date: 2026-09-28"
+   build_date     = "$Date: 2026-09-29"
    !
    call write_startup_log()
    !
@@ -154,18 +154,21 @@ module sfincs_lib
       !
       call initialize_bathtub()
       !
-   endif   
+   endif
+   !
+   ! Write processes overview before SnapWave coupling, so the SFINCS
+   ! summary is not buried below the SnapWave start-up output
+   !
+   call write_processes_log()
    !
    if (snapwave) then
       !
       call write_log('Coupling with SnapWave ...', 1)
       call couple_snapwave(crsgeo)
       !
-   endif   
+   endif
    !
    call timer_stop('input')
-   !
-   call write_processes_log()
    !
    ! Initialize some parameters
    !

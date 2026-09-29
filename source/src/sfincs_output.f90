@@ -270,10 +270,7 @@ module sfincs_output
       !$acc update device(qmax)
    endif
    !
-!   if (precip .and. store_cumulative_precipitation) then
-!      cumprcp = 0.0 ! Set cumprcp back to a 0.0
-!      !$acc update device(cumprcp)
-!   endif
+   ! Note: cumprcp is deliberately not reset; it is cumulative since t=0 and used by the Curve Number infiltration
    !
    if (store_twet) then
       twet = 0.0 ! Set twet back to 0.0

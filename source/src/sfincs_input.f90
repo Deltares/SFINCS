@@ -482,11 +482,11 @@ contains
          !
       endif
       !
-      if (subgrid .eqv. .true. .and. store_hsubgrid .eqv. .true. .and. store_hmean .eqv. .false.) then
+      if (subgrid .and. store_hsubgrid .and. .not. store_hmean) then
          !
          call write_log('Info    : storing maximum depth in subgrid cell for hmax output', 0)
          !
-      elseif (subgrid .eqv. .true. .and. store_hsubgrid .eqv. .true. .and. store_hmean .eqv. .true.) then
+      elseif (subgrid .and. store_hsubgrid .and. store_hmean) then
          !
          call write_log('Info    : storing mean depth in subgrid cell for hmax output', 0)
          !
