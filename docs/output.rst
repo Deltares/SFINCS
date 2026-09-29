@@ -13,6 +13,7 @@ The following times the percentual progress % is shown, a rough estimate of the 
 
 Once '---Simulation is finished---', your model has run succesfully and is writing away the model output files.
 Additionaly some information is written to the screen regarding total runtime, time consumption per section, the average time step, and the maximum occured water depth in the entire computation.
+With 'writeruntime = 1' the runtime per section is also written to a file 'runtimes.txt' (from SFINCS v2026.02 Hautacam release onwards).
 If you know the initial water depth, this can give an indication whether the model has encountered instabilities or not.
 Hereafter SFINCS is closed off, ready to start a new simulation.
 

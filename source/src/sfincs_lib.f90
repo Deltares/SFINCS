@@ -288,9 +288,17 @@ module sfincs_lib
       t = t + dt
       dtavg = dtavg + dt
       !
+      ! Start the first max output window at t0out: discard maxima collected before it
+      !
+      if (t0out > t0 .and. t - dt < t0out .and. t >= t0out) then
+         !
+         call reset_max_output()
+         !
+      endif
+      !
       ! Check whether map output is required at this time step (if so, change dt)
       !
-      if (t >= tmapout) then
+      if (t >= tmapout .and. tmapout <= t1out) then
          !
          write_map = .true.
          ntmapout  = ntmapout + 1
@@ -307,15 +315,20 @@ module sfincs_lib
          ntmaxout  = ntmaxout + 1    ! now also keep track of nr of max output
          tout      = max(tmaxout, t - dt) 
          !
-         if (t < t1) then
+         if (tmaxout < t1out) then
             !
-            tmaxout   = tmaxout + dtmaxout
+            ! Next window, capped so the last (possibly shorter) window ends at t1out
             !
-            ! in case the last 'dt' made us exactly past tstop time 't1', 
-            ! then we don't want to flag later another dtmax output timestep in 'finalize_output' check,
-            ! so if t > t1 don't add 'dtmaxout' again
+            tmaxout   = min(tmaxout + dtmaxout, 1.0d0 * t1out)
             !
-         endif         
+         else
+            !
+            ! Window ending at t1out written: no more max output
+            ! (tmaxout > t1out also tells 'finalize_output' not to write another one)
+            !
+            tmaxout   = 1.0e9
+            !
+         endif
          !
       endif
       !
@@ -344,7 +357,7 @@ module sfincs_lib
       !
       ! Check whether history output is required at this time step
       !
-      if (t >= thisout) then
+      if (t >= thisout .and. thisout <= t1out) then
          !
          write_his = .true.
          nthisout  = nthisout + 1
@@ -353,7 +366,7 @@ module sfincs_lib
          !
       endif
       !
-      if (debug .and. t >= t0out) then
+      if (debug .and. t >= t0out .and. t - dt < t1out) then
          !
          ! Write every time step to map and his file when in debug mode
          !

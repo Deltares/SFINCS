@@ -317,6 +317,16 @@ Parameters for model output
 	  :description:		Stop date in 'yyyymmdd HHMMSS'
 	  :units:		m
 	  :default:		20000101 000000
+	t0out
+	  :description:		Start time of the map, his and max output window, in seconds since 'tref'. Map and his output start at 't0out', and the first max output covers 't0out' until 't0out + dtmaxout' (maxima before 't0out' are discarded). Also the 'dtrstout' interval counts from 't0out'. Values before 'tstart' are set to 'tstart'.
+	  					NOTE - his output and the max window start at 't0out' from SFINCS v2026.02 Hautacam release onwards.
+	  :units:		s
+	  :default:		'tstart' in seconds since 'tref'
+	t1out
+	  :description:		Stop time of the map, his and max output window, in seconds since 'tref'. No map or his output is written after 't1out', and the last max output covers the (possibly shorter) window ending at 't1out'. Restart output is not affected. Values after 'tstop' are set to 'tstop'.
+	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
+	  :units:		s
+	  :default:		'tstop' in seconds since 'tref'
 	trstout
 	  :description:		Specific time in seconds since 'tref' for restart file output being written away, turned of by default.
 	  :units:		s
@@ -440,6 +450,11 @@ Parameters for model output
 	  :description:		Flag to turn on writing away every timestep to output as debug mode (debug = 1)
 	  :units:		-
 	  :default:		0	
+	writeruntime
+	  :description:		Flag to turn on writing a 'runtimes.txt' file at the end of the simulation (writeruntime = 1), with the wall-clock time in seconds spent in total (simulation loop), on input, and in the boundaries, meteo (fields 'meteo1' and forcing 'meteo2'), momentum, structures, continuity and output phases.
+	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
+	  :units:		-
+	  :default:		0
 	percentage_done
 	  :description:		Setting of how frequent to show progress of SFINCS in terms of % and time remaining, default = 5%
 	  :units:		integer

@@ -424,11 +424,16 @@ contains
          call write_log('Info    : no Coriolis, as latitude is not specified in sfincs.inp', 0)
       endif
       !
-      ! Map/his output window: default to tstart..tstop.
+      ! Map/his/max output window: default to tstart..tstop, and never outside it.
       !
       if (t0out < -900.0) t0out = t0
       t0out = max(t0out, t0)
       if (t1out < -900.0) t1out = t1
+      t1out = min(t1out, t1)
+      !
+      if (t1out <= t0out) then
+         call write_log('Warning : t1out <= t0out, no map or his output will be written', 1)
+      endif
       !
       ! Maximum output is only written when dtmaxout > 0, so switch off the
       ! max flags otherwise (keeps them from being allocated/computed for nothing).

@@ -37,7 +37,7 @@ module sfincs_output
    endif
    !
    if (dtmaxout>1.0e-6) then
-      tmaxout     = t0out + dtmaxout
+      tmaxout     = min(t0out + dtmaxout, t1out) ! last window may be shorter, ending at t1out
       if (outputtype_map /= 'net') then
          call open_max_output()   ! For netcdf output this is written to mapfile
       endif
@@ -69,9 +69,9 @@ module sfincs_output
    !
    if (dthisout>1.0e-6 .and. (nobs>0 .or. nrcrosssections>0 .or. nrstructures>0 .or. nrthindams>0 .or. nr_src_structures>0 .or. his_rivers .or. his_urban .or. nr_runup_gauges>0 )) then
       !
-      thisout     = t0
+      thisout     = t0out
       !
-      if (outputtype_his == 'net') then    
+      if (outputtype_his == 'net') then
          call ncoutput_his_init()
       else      
          call open_his_output()
@@ -203,40 +203,8 @@ module sfincs_output
          !      
       endif
       !
-      if (store_maximum_waterlevel) then
-         zsmax = -999.0 ! Set zsmax back to a small value
-         !$acc update device(zsmax)
-      endif
+      call reset_max_output()
       !
-      if (store_zvolume_max) then
-         zvolmax = 0.0 ! Set zvolmax back to zero
-         !$acc update device(zvolmax)
-      endif
-      !
-      if (store_maximum_velocity) then
-         vmax = -999.0 ! Set vmax back to a small value
-         !$acc update device(vmax)
-      endif
-      !
-      if (store_maximum_flux) then
-         qmax = -999.0 ! Set qmax back to a small value
-         !$acc update device(qmax)
-      endif      
-      !      
-!      if (precip .and. store_cumulative_precipitation) then
-!         cumprcp = 0.0 ! Set cumprcp back to a 0.0
-!         !$acc update device(cumprcp)
-!      endif            
-      !
-      if (store_twet) then
-         twet = 0.0 ! Set twet back to 0.0
-         !$acc update device(twet)
-      endif
-      !      
-      if (store_t_zsmax) then
-         t_zsmax = -999.0 ! Set t_zsmax back to a small value
-         !$acc update device(t_zsmax)
-      endif
    endif
    !
    !      
@@ -270,6 +238,56 @@ module sfincs_output
    !
    end subroutine
 
+
+   subroutine reset_max_output()
+   !
+   ! Reset the running maxima (and wet duration) to start a new max output window.
+   !
+   ! Called from: write_output (after each max write) and sfincs_update (sfincs_lib)
+   ! when t0out is crossed, so the first window only covers t >= t0out.
+   !
+   use sfincs_data
+   !
+   implicit none
+   !
+   if (store_maximum_waterlevel) then
+      zsmax = -999.0 ! Set zsmax back to a small value
+      !$acc update device(zsmax)
+   endif
+   !
+   if (store_zvolume_max) then
+      zvolmax = 0.0 ! Set zvolmax back to zero
+      !$acc update device(zvolmax)
+   endif
+   !
+   if (store_maximum_velocity) then
+      vmax = -999.0 ! Set vmax back to a small value
+      !$acc update device(vmax)
+   endif
+   !
+   if (store_maximum_flux) then
+      qmax = -999.0 ! Set qmax back to a small value
+      !$acc update device(qmax)
+   endif
+   !
+!   if (precip .and. store_cumulative_precipitation) then
+!      cumprcp = 0.0 ! Set cumprcp back to a 0.0
+!      !$acc update device(cumprcp)
+!   endif
+   !
+   if (store_twet) then
+      twet = 0.0 ! Set twet back to 0.0
+      !$acc update device(twet)
+   endif
+   !
+   if (store_t_zsmax) then
+      t_zsmax = -999.0 ! Set t_zsmax back to a small value
+      !$acc update device(t_zsmax)
+   endif
+   !
+   end subroutine
+
+
    subroutine finalize_output(t, ntmaxout, tmaxout)
    !
    use sfincs_data
@@ -289,7 +307,9 @@ module sfincs_output
       ntmaxout = 1
       call write_output(t,.false.,.false.,.true.,.false.,0,ntmaxout,0)
       !
-   elseif (dtmaxout>1.e-6 .and. ntmaxout>0 .and. t < tmaxout) then
+   elseif (dtmaxout>1.e-6 .and. ntmaxout>0 .and. t < tmaxout .and. tmaxout <= t1out) then
+      !
+      ! tmaxout > t1out means the last max window (ending at t1out) has already been written
       !
       call write_log('', 1)
       call write_log('Info : Write maximum values at final timestep since t=dtmaxout was not reached yet for final interval...', 1)
