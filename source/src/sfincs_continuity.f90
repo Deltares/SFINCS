@@ -16,7 +16,7 @@ module sfincs_continuity
    !
    ! Subroutines:
    !
-   !   update_continuity(t, dt, tloop)
+   !   update_continuity(t, dt)
    !     Main per-timestep entry. Orchestrates river discharges, drainage
    !     structures, optional BMI qext, infiltration, and dispatches the
    !     water-level update. Called from sfincs_lib (main time-stepping
@@ -39,7 +39,7 @@ contains
    !
    !-----------------------------------------------------------------------------------------------------!
    !
-   subroutine update_continuity(t, dt, tloop)
+   subroutine update_continuity(t, dt)
       !
       ! Unified continuity update: orchestrates all water balance terms
       ! for one time step. Advances zs (and z_volume on the subgrid path),
@@ -73,39 +73,49 @@ contains
       use sfincs_discharges
       use sfincs_src_structures
       use sfincs_urban_drainage
+      use sfincs_timers
       !
       implicit none
       !
       real*8           :: t
       real*4           :: dt
-      real             :: tloop
       !
       integer          :: nm
       !
-      integer          :: count0
-      integer          :: count1
-      integer          :: count_rate
-      integer          :: count_max
-      !
-      call system_clock(count0, count_rate, count_max)
+      ! Source terms 2-5 each have their own timer (only registered when the
+      ! feature is active), so they are not counted under 'continuity'.
       !
       ! 1. Precipitation was already accumulated into qsrc by
       !    update_meteo_forcing (called from sfincs_lib before this routine).
       !
       ! 2. River discharges => update_discharges (adds to qsrc)
       !
-      call update_discharges(t, dt)
+      if (nr_discharge_points > 0) then
+         !
+         call timer_start('discharges')
+         call update_discharges(t, dt)
+         call timer_stop('discharges')
+         !
+      endif
       !
       ! 3. Drainage structures (pumps/gates/culverts/...) => update_src_structures (adds to qsrc)
       !
-      call update_src_structures(t, dt)
+      if (nr_src_structures > 0) then
+         !
+         call timer_start('drainage structures')
+         call update_src_structures(t, dt)
+         call timer_stop('drainage structures')
+         !
+      endif
       !
       ! 4. Compute infiltration rates; update_infiltration_map also subtracts
       !    qinfmap * cell_area from qsrc.
       !
       if (infiltration) then
          !
+         call timer_start('infiltration')
          call update_infiltration_map(dt)
+         call timer_stop('infiltration')
          !
       endif
       !
@@ -113,9 +123,13 @@ contains
       !
       if (urban_drainage) then
          !
+         call timer_start('urban drainage')
          call update_urban_drainage(t, dt)
+         call timer_stop('urban drainage')
          !
       endif
+      !
+      call timer_start('continuity')
       !
       ! 6. External source/sink (+/-) => add qext to qsrc (set via BMI coupling)
       !
@@ -152,8 +166,7 @@ contains
          !
       endif
       !
-      call system_clock(count1, count_rate, count_max)
-      tloop = tloop + 1.0*(count1 - count0)/count_rate
+      call timer_stop('continuity')
       !
    end subroutine
    !

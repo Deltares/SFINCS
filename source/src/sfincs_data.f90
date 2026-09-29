@@ -4,7 +4,6 @@ module sfincs_data
       character*256 :: build_revision, build_date
       !!!!
       !!! Time variables
-      real    :: tstart_all, tfinish_all
       real*4  :: dtavg
       real*4  :: min_dt
       !!!
@@ -34,8 +33,6 @@ module sfincs_data
       real*4 gn2
       real*4 t0
       real*4 t1
-      real*4 t3
-      real*4 t4      
       real*4 dx
       real*4 dy
       real*4 dxinv

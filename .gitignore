@@ -75,3 +75,4 @@ source/sfincs/sfincs.opt.yaml
 /source/Dockerfile.gpu.25.5.ccall
 /docs/_build
 source/build_docker_local_gpu_TL.sh
+/source/*.log

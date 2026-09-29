@@ -348,9 +348,9 @@ contains
       !
       ! Now do some post-processing and consistency checks on the inputs, and emit
       !
-      ! Limit progress reporter to (0, 100]%
+      ! Limit progress reporter to [1, 100]%
       !
-      percdoneval = max(min(percdoneval, 100), 0)
+      percdoneval = max(min(percdoneval, 100), 1)
       !
       if (epsg == 0) then
          !
@@ -424,11 +424,16 @@ contains
          call write_log('Info    : no Coriolis, as latitude is not specified in sfincs.inp', 0)
       endif
       !
-      ! Map/his output window: default to tstart..tstop.
+      ! Map/his/max output window: default to tstart..tstop, and never outside it.
       !
       if (t0out < -900.0) t0out = t0
       t0out = max(t0out, t0)
       if (t1out < -900.0) t1out = t1
+      t1out = min(t1out, t1)
+      !
+      if (t1out <= t0out) then
+         call write_log('Warning : t1out <= t0out, no map or his output will be written', 1)
+      endif
       !
       ! Maximum output is only written when dtmaxout > 0, so switch off the
       ! max flags otherwise (keeps them from being allocated/computed for nothing).
@@ -477,11 +482,11 @@ contains
          !
       endif
       !
-      if (subgrid .eqv. .true. .and. store_hsubgrid .eqv. .true. .and. store_hmean .eqv. .false.) then
+      if (subgrid .and. store_hsubgrid .and. .not. store_hmean) then
          !
          call write_log('Info    : storing maximum depth in subgrid cell for hmax output', 0)
          !
-      elseif (subgrid .eqv. .true. .and. store_hsubgrid .eqv. .true. .and. store_hmean .eqv. .true.) then
+      elseif (subgrid .and. store_hsubgrid .and. store_hmean) then
          !
          call write_log('Info    : storing mean depth in subgrid cell for hmax output', 0)
          !
