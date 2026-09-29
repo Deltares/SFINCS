@@ -330,7 +330,7 @@ contains
    !$omp private ( dvol,dzsdt,nmd,nmu,ndm,num,a,iuv,facint,dzvol,ind,iwm,qnmd,qnmu,qndm,qnum,dv,zs00,zs11, &
    !$omp           hwet )
    !$omp do schedule ( dynamic, 256 )
-   !$acc parallel present( kcs, zs, zs0, zb, z_volume, zsmax, zsm, maxzsm, zsderv, z_wetfrac, &
+   !$acc parallel present( kcs, zs, zs0, zb, z_volume, zsmax, zvolmax, zsm, maxzsm, zsderv, z_wetfrac, &
    !$acc                   z_hwet, &
    !$acc                   subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
    !$acc                   netprcp, prcp, q, qext, z_flags_iref, uv_flags_iref, &
@@ -659,6 +659,14 @@ contains
          ! Store the maximum water level itself
          !
          zsmax(nm) = max(zsmax(nm), zs(nm))
+         !
+         ! Store the maximum subgrid volume (written with zsmax per dtmaxout)
+         !
+         if (store_zvolume_max) then
+            !
+            zvolmax(nm) = max(zvolmax(nm), real(z_volume(nm), 4))
+            !
+         endif
          !
       endif
       !

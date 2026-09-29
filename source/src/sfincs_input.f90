@@ -310,6 +310,7 @@ contains
    call read_logical_input(500,'timestep_analysis',timestep_analysis,.false.)
    call read_int_input(500,'storeqdrain',storeqdrain,1)
    call read_int_input(500,'storezvolume',storezvolume,0)
+   call read_int_input(500,'storezvolmax',storezvolmax,1)
    call read_int_input(500,'storestoragevolume',storestoragevolume,0)
    call read_int_input(500,'writeruntime',wrttimeoutput,0)
    call read_logical_input(500,'debug',debug,.false.)
@@ -602,6 +603,16 @@ contains
    if (subgrid) then
        if (storezvolume==1) then
           store_zvolume = .true.
+       endif
+   endif
+   !
+   ! Maximum subgrid volume (written with zsmax per dtmaxout, subgrid only)
+   !
+   store_zvolume_max = .false.
+   !
+   if (subgrid .and. store_maximum_waterlevel) then
+       if (storezvolmax==1) then
+          store_zvolume_max = .true.
        endif
    endif
    !

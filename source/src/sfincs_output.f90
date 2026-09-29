@@ -169,6 +169,10 @@ module sfincs_output
       !
       !$acc update host(zsmax)
       !
+      if (store_zvolume_max) then
+         !$acc update host(zvolmax)
+      endif
+      !
       if (store_maximum_velocity) then
          !$acc update host(vmax)
       endif
@@ -209,6 +213,11 @@ module sfincs_output
       if (store_maximum_waterlevel) then
          zsmax = -999.0 ! Set zsmax back to a small value
          !$acc update device(zsmax)
+      endif
+      !
+      if (store_zvolume_max) then
+         zvolmax = 0.0 ! Set zvolmax back to zero
+         !$acc update device(zvolmax)
       endif
       !
       if (store_maximum_velocity) then

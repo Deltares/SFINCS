@@ -212,6 +212,7 @@ module sfincs_data
       logical       :: store_hmean      
       logical       :: store_qdrain
       logical       :: store_zvolume
+      logical       :: store_zvolume_max
       logical       :: store_storagevolume            
       logical       :: store_meteo
       logical       :: store_vegetation
@@ -277,6 +278,7 @@ module sfincs_data
       integer storetzsmax
       integer storeqdrain
       integer storezvolume
+      integer storezvolmax
       integer storestoragevolume      
       integer storemeteo
       integer storehsubgrid
@@ -590,6 +592,7 @@ module sfincs_data
       ! The only double precision arrays are zs and z_volume. 
       !
       real*4, dimension(:),   allocatable :: zsmax
+      real*4, dimension(:),   allocatable :: zvolmax
       real*4, dimension(:),   allocatable :: vmax
       real*4, dimension(:),   allocatable :: qmax
       real*8, dimension(:),   allocatable, target :: zs
@@ -1025,6 +1028,7 @@ module sfincs_data
     !!! Dynamic data on the grid
     !!!
     if(allocated(zsmax)) deallocate(zsmax)
+    if(allocated(zvolmax)) deallocate(zvolmax)
     if(allocated(vmax)) deallocate(vmax)
     if(allocated(qmax)) deallocate(qmax)
     if(allocated(zs)) deallocate(zs)
