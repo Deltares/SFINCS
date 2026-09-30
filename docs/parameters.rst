@@ -401,6 +401,10 @@ Parameters for model output
 	  :description:		Flag to turn on writing away water volumes for the subgrid mode during simulation (storezvolume = 1)
 	  :units:		-
 	  :default:		0	
+	store_dynamic_bed_level
+	  :description:		Flag to turn on writing away the bed level 'zb' on 'dtmapout' interval during simulation (store_dynamic_bed_level = 1), for bed levels that change during the run (e.g. set through the BMI 'dzbext' array). For subgrid mode 'zb' holds the minimum subgrid bed level per cell (z_zmin). Works for regular and quadtree grids.
+	  :units:		-
+	  :default:		0
 	storestoragevolume
 	  :description:		Flag to turn on writing away storage volumes for the subgrid mode during simulation (storestoragevolume = 1)
 	  :units:		-

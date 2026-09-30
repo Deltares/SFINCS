@@ -130,9 +130,8 @@
 ! - the variable itself is grid-agnostic (SnapWave output now reads the
 !   snapwave_* node arrays via use_sw_index on both quadtree and regular).
 !
-! Model-physics asymmetries that propagate into output (not a netCDF concern):
-! - dynamic bed level (`store_dynamic_bed_level`) only updates on regular
-!   non-subgrid runs, so zb is time-varying there and static everywhere else.
+! Dynamic bed level (`store_dynamic_bed_level`): zb gets a time dimension on
+! all grid types. For subgrid runs zb holds subgrid_z_zmin.
 !
 ! ============================================================================
 module sfincs_ncoutput
@@ -418,11 +417,11 @@ contains
    endif
    !
    ! -------------------------------------------------------
-   ! zb: time-varying only on regular non-subgrid runs with store_dynamic_bed_level;
-   ! static for quadtree, subgrid, or static-bed regular runs.
+   ! zb: time-varying with store_dynamic_bed_level (bed can change through
+   ! BMI dzbext), static otherwise. For subgrid runs zb holds subgrid_z_zmin.
    ! Def condition matches the write condition in ncoutput_update_map.
    ! -------------------------------------------------------
-   if (.not. use_quadtree .and. store_dynamic_bed_level .and. .not. subgrid) then
+   if (store_dynamic_bed_level) then
       call def_time_cell_float('zb', map_file%zb_varid, 'm', 'Bed level above reference level', standard_name='altitude')
    else
       call def_static_cell_float('zb', map_file%zb_varid, 'm', 'Bed level above reference level', standard_name='altitude')
@@ -710,12 +709,10 @@ contains
    !
    ! Cell-data writes — uniform via gather/put helpers
    !
-   ! zb static write — fires whenever the def chose the static shape.
-   ! That is: quadtree, OR regular without dynamic bed level, OR subgrid
-   ! (subgrid_z_zmin is a single value per cell so dynamic bed level does
-   ! not apply). The complement (regular + dynamic bed level + non-subgrid)
-   ! is written each timestep in ncoutput_update_map instead.
-   if (use_quadtree .or. .not. store_dynamic_bed_level .or. subgrid) then
+   ! zb static write — only when the def chose the static shape. With
+   ! store_dynamic_bed_level, zb is written each timestep in
+   ! ncoutput_update_map instead.
+   if (.not. store_dynamic_bed_level) then
       if (subgrid) then
          call put_static_cell_float(map_file%ncid, map_file%zb_varid, subgrid_z_zmin, FILL_VALUE)
       else
@@ -1167,9 +1164,13 @@ contains
       call write_cell_var_wet(map_file%ncid, map_file%zs_varid, real(zs,4), zb,             ntmapout)
    endif
    !
-   ! Optional time-varying zb (regular grid, non-subgrid)
-   if (.not. use_quadtree .and. store_dynamic_bed_level .and. .not. subgrid) then
-      call write_cell_var(map_file%ncid, map_file%zb_varid, zb, ntmapout)
+   ! Optional time-varying zb (subgrid_z_zmin for subgrid runs)
+   if (store_dynamic_bed_level) then
+      if (subgrid) then
+         call write_cell_var(map_file%ncid, map_file%zb_varid, subgrid_z_zmin, ntmapout)
+      else
+         call write_cell_var(map_file%ncid, map_file%zb_varid, zb,             ntmapout)
+      endif
    endif
    !
    ! h = zs - zref. Quadtree filters wet cells (legacy); regular keeps all.
