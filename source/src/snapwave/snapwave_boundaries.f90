@@ -78,27 +78,41 @@ contains
       ! Also needed:
       allocate(deptht_bwv(nwbnd))      
       !
-   endif    
-   !
-   ! Convert to cartesian, going-to, radians - independent of input type
-   !
-   wd_bwv = (270.0 - wd_bwv)*pi/180
-   !   
-   ! Convert directional spreading input to radians - independent of input type
-   ds_bwv = ds_bwv * pi / 180      
+   endif
    !
    ! Write number of input points sounds - independent of input type
    write(logstr,*)'Input wave boundary points found: ',nwbnd
    call write_log(logstr, 0)
    !
+   if (nwbnd == 0) then
+      !
+      ! No wave boundary conditions: only allowed with wind growth
+      !
+      if (.not. wind) then
+         call stop_sfincs('Error ! SnapWave has no wave boundary conditions (snapwave_bndfile, snapwave_jonswapfile or netsnapwavefile) and snapwave_wind = 0 !', 1)
+      endif
+      !
+      call write_log('Info SnapWave - no wave boundary conditions given, running with wind growth only (zero wave energy at boundary cells)', 0)
+      !
+      return
+      !
+   endif
+   !
+   ! Convert to cartesian, going-to, radians - independent of input type
+   !
+   wd_bwv = (270.0 - wd_bwv)*pi/180
+   !
+   ! Convert directional spreading input to radians - independent of input type
+   ds_bwv = ds_bwv * pi / 180
+   !
    ! Check length time-series - independent of input type
    !
    if ((t_bwv(1) > (t0 + 1.0)) .or. (t_bwv(ntwbnd) < (t1 - 1.0))) then
-       ! 
-       write(logstr,'(a)')' WARNING! Times in wave boundary conditions file do not cover entire simulation period!'
-       call write_log(logstr, 1)   
        !
-   endif      
+       write(logstr,'(a)')' WARNING! Times in wave boundary conditions file do not cover entire simulation period!'
+       call write_log(logstr, 1)
+       !
+   endif
    !
    end subroutine
 
@@ -544,6 +558,19 @@ subroutine update_boundary_points(t, just_time_series)
    !
    update_grid_boundary_points = .true.
    !
+   if (nwbnd == 0) then
+      !
+      ! No wave boundary conditions (wind-only run): no boundary spectra, safe mean values
+      !
+      hsmean_bwv    = 0.0
+      tpmean_bwv    = Tpini
+      tpmean_bwv_ig = Tpini * Tinc2ig
+      wdmean_bwv    = 0.0
+      !
+      return
+      !
+   endif
+   !
    ! Interpolate boundary conditions in time
    !
    if (t_bwv(1) > (t - 1.0e-3)) then ! use first time in boundary conditions
@@ -871,7 +898,10 @@ subroutine update_boundaries()
    !
    integer ib, i, k
    !
-   !      
+   ! No wave boundary conditions (wind-only run): ee and ee_ig at msk=2 cells stay 0 (set in initialize_snapwave_domain)
+   !
+   if (nwbnd == 0) return
+   !
    ! Set wave parameters in all boundary points on grid
    !
    ! Loop through grid boundary points
