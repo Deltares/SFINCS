@@ -78,27 +78,41 @@ contains
       ! Also needed:
       allocate(deptht_bwv(nwbnd))      
       !
-   endif    
-   !
-   ! Convert to cartesian, going-to, radians - independent of input type
-   !
-   wd_bwv = (270.0 - wd_bwv)*pi/180
-   !   
-   ! Convert directional spreading input to radians - independent of input type
-   ds_bwv = ds_bwv * pi / 180      
+   endif
    !
    ! Write number of input points sounds - independent of input type
    write(logstr,*)'Input wave boundary points found: ',nwbnd
    call write_log(logstr, 0)
    !
+   if (nwbnd == 0) then
+      !
+      ! No wave boundary conditions: only allowed with wind growth
+      !
+      if (.not. wind) then
+         call stop_sfincs('Error ! SnapWave has no wave boundary conditions (snapwave_bndfile, snapwave_jonswapfile or netsnapwavefile) and snapwave_wind = 0 !', 1)
+      endif
+      !
+      call write_log('Info SnapWave - no wave boundary conditions given, running with wind growth only (zero wave energy at boundary cells)', 0)
+      !
+      return
+      !
+   endif
+   !
+   ! Convert to cartesian, going-to, radians - independent of input type
+   !
+   wd_bwv = (270.0 - wd_bwv)*pi/180
+   !
+   ! Convert directional spreading input to radians - independent of input type
+   ds_bwv = ds_bwv * pi / 180
+   !
    ! Check length time-series - independent of input type
    !
    if ((t_bwv(1) > (t0 + 1.0)) .or. (t_bwv(ntwbnd) < (t1 - 1.0))) then
-       ! 
-       write(logstr,'(a)')' WARNING! Times in wave boundary conditions file do not cover entire simulation period!'
-       call write_log(logstr, 1)   
        !
-   endif      
+       write(logstr,'(a)')' WARNING! Times in wave boundary conditions file do not cover entire simulation period!'
+       call write_log(logstr, 1)
+       !
+   endif
    !
    end subroutine
 
@@ -508,9 +522,9 @@ subroutine update_boundary_conditions(t)
       !
    endif 
    !
-   ! Build spectra on the boundary support points
+   ! Build spectra on the boundary support points (on the final theta grid)
    !
-   !call build_boundary_support_points_spectra() TODO - TL: later can clean up this code by also using this function
+   call build_boundary_support_points_spectra()
    !
    ! Update boundary conditions at grid points
    !
@@ -543,6 +557,19 @@ subroutine update_boundary_points(t, just_time_series)
    ! First interpolate boundary conditions in timeseries to boundary points
    !
    update_grid_boundary_points = .true.
+   !
+   if (nwbnd == 0) then
+      !
+      ! No wave boundary conditions (wind-only run): no boundary spectra, safe mean values
+      !
+      hsmean_bwv    = 0.0
+      tpmean_bwv    = Tpini
+      tpmean_bwv_ig = Tpini * Tinc2ig
+      wdmean_bwv    = 0.0
+      !
+      return
+      !
+   endif
    !
    ! Interpolate boundary conditions in time
    !
@@ -711,35 +738,9 @@ subroutine update_boundary_points(t, just_time_series)
       call make_theta_grid(u10dmean)
    endif 
    !
-   ! Build spectra on wave boundary support points
+   ! Spectra on the support points are built in build_boundary_support_points_spectra,
+   ! after the final theta grid is known (see update_boundary_conditions)
    !
-   do ib = 1, nwbnd ! Loop along boundary points
-      !
-      E0   = 0.0625 * rho * g * hst_bwv(ib)**2
-      ms   = 1.0 / dst_bwv(ib)**2 - 1.0
-      dist = sign(1.0,cos(theta - thetamean))*abs(cos(theta - thetamean))**ms
-      where (abs(mod(pi+theta - thetamean,2.0*pi)-pi)>0.999*pi/2.0) dist = 0.0      
-      !
-      eet_bwv(:,ib) = dist/sum(dist)*E0/dtheta
-      !      
-   enddo
-   !
-   ! Build IG spectra on wave boundary support points   
-   if (igwaves) then   
-      if (igherbers) then 
-          do ib = 1, nwbnd ! Loop along boundary points    
-             !          
-             E0_ig   = 0.0625 * rho * g * hst_bwv_ig(ib)**2
-             ms   = 1.0 / dst_bwv(ib)**2 - 1.0
-             dist = sign(1.0,cos(theta - thetamean))*abs(cos(theta - thetamean))**ms
-             where (abs(mod(pi+theta - thetamean,2.0*pi)-pi)>0.999*pi/2.0) dist = 0.0                  
-             !         
-             eet_bwv_ig(:,ib) = dist / sum(dist) * E0_ig / dtheta          
-             !      
-          enddo
-      endif
-   endif
-   !         
 end subroutine update_boundary_points
 !
 subroutine update_wind_field()
@@ -831,7 +832,9 @@ end subroutine make_theta_grid
 !
 subroutine build_boundary_support_points_spectra()
    !
-   ! Update directional spectra on boundary points from time series
+   ! Build directional spectra on the wave boundary support points on the current theta
+   ! grid, centered on the mean imposed wave direction (wdmean_bwv), which is not the
+   ! grid center (thetamean) when the grid is made around the wind direction
    !
    use snapwave_data
    !
@@ -839,15 +842,49 @@ subroutine build_boundary_support_points_spectra()
    !
    integer :: ib
    !
-   real*4  :: E0, ms
-   !  
+   real*4  :: E0, ms, E0_ig, sdist
+   logical, save :: warned_sector = .false.
+   !
+   if (wind .and. ntwbnd > 0 .and. sector < 359.999 .and. .not. warned_sector) then
+      write(logstr,'(a,f6.1,a)') 'Warning SnapWave - imposed wave boundary with wind and snapwave_sector = ', &
+         sector, ' : wave energy more than sector/2 from the wind direction is not included'
+      call write_log(logstr, 1)
+      warned_sector = .true.
+   endif
+   !
    do ib = 1, nwbnd ! Loop along boundary points
-      E0   = 0.0625*rho*g*hst_bwv(ib)**2
-      ms = 1.0/dst_bwv(ib)**2-1.0
-      dist = sign(1.0,cos(theta - thetamean))*abs(cos(theta - thetamean))**ms
-      where (abs(mod(pi+theta - thetamean,2.0*pi)-pi)>0.999*pi/2.0) dist = 0.0
-      eet_bwv(:,ib) = dist/sum(dist)*E0/dtheta
+      !
+      E0   = 0.0625 * rho * g * hst_bwv(ib)**2
+      ms   = 1.0 / dst_bwv(ib)**2 - 1.0
+      dist = sign(1.0, cos(theta - wdmean_bwv)) * abs(cos(theta - wdmean_bwv))**ms
+      where (abs(mod(pi + theta - wdmean_bwv, 2.0*pi) - pi) > 0.999*pi/2.0) dist = 0.0
+      sdist = sum(dist)
+      if (sdist > 0.0) then
+         eet_bwv(:,ib) = dist / sdist * E0 / dtheta
+      else
+         eet_bwv(:,ib) = 0.0
+      endif
+      !
    enddo
+   !
+   if (igwaves) then
+      if (igherbers) then
+         do ib = 1, nwbnd ! Loop along boundary points
+            !
+            E0_ig = 0.0625 * rho * g * hst_bwv_ig(ib)**2
+            ms    = 1.0 / dst_bwv(ib)**2 - 1.0
+            dist  = sign(1.0, cos(theta - wdmean_bwv)) * abs(cos(theta - wdmean_bwv))**ms
+            where (abs(mod(pi + theta - wdmean_bwv, 2.0*pi) - pi) > 0.999*pi/2.0) dist = 0.0
+            sdist = sum(dist)
+            if (sdist > 0.0) then
+               eet_bwv_ig(:,ib) = dist / sdist * E0_ig / dtheta
+            else
+               eet_bwv_ig(:,ib) = 0.0
+            endif
+            !
+         enddo
+      endif
+   endif
    !
 end subroutine build_boundary_support_points_spectra
 !
@@ -861,7 +898,10 @@ subroutine update_boundaries()
    !
    integer ib, i, k
    !
-   !      
+   ! No wave boundary conditions (wind-only run): ee and ee_ig at msk=2 cells stay 0 (set in initialize_snapwave_domain)
+   !
+   if (nwbnd == 0) return
+   !
    ! Set wave parameters in all boundary points on grid
    !
    ! Loop through grid boundary points
