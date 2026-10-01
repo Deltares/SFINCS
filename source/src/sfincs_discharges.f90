@@ -914,7 +914,7 @@ contains
 
                         if (h_breach == 0.0) then
                             qq = 0.0
-                        else if (h_down <= breach_level .or. h_down < threshold - epsilon) then
+                        else if (h_down <= breach_level_gather(idrn) .or. h_down < threshold - epsilon) then
                             ! Free flow - either downstream below crest, or below submergence threshold
                             qq = 1.71 * breach_width(idrn)  * h_breach**1.5
                         else if (h_down > threshold + epsilon) then
@@ -1143,7 +1143,7 @@ contains
 
                         if (h_breach == 0.0) then
                             qq = 0.0
-                        else if (h_down <= breach_level .or. h_down < threshold - epsilon) then
+                        else if (h_down <= breach_level_gather(idrn) .or. h_down < threshold - epsilon) then
                             ! Free flow - either downstream below crest, or below submergence threshold
                             qq = 1.71 * breach_width(idrn)  * h_breach**1.5
                         else if (h_down > threshold + epsilon) then
@@ -1356,7 +1356,7 @@ contains
 
                         if (h_breach == 0.0) then
                             qq = 0.0
-                        else if (h_down <= breach_level .or. h_down < threshold - epsilon) then
+                        else if (h_down <= breach_level_gather(idrn) .or. h_down < threshold - epsilon) then
                             ! Free flow - either downstream below crest, or below submergence threshold
                             qq = 1.71 * breach_width(idrn)  * h_breach**1.5
                         else if (h_down > threshold + epsilon) then
@@ -1493,9 +1493,7 @@ contains
                             h_up = max(zs(nmin), zs_polder)   ! upstream level
                             h_down = min(zs(nmin), zs_polder) ! downstream level
                         end if
-                      
-                            
-
+                                               
                         ! h_breach based on upstream head (always positive), no flow if h_up < breach_level
                         h_breach = max(h_up - breach_level_gather(idrn), 0.0)
                         h_breach_sub = max(h_down - breach_level_gather(idrn), 0.0)
@@ -1509,7 +1507,7 @@ contains
                             
                         if (h_breach == 0.0) then
                             qq = 0.0
-                        else if (h_down <= breach_level .or. h_down < threshold - epsilon) then
+                        else if (h_down <= breach_level_gather(idrn) .or. h_down < threshold - epsilon) then
                             ! Free flow - either downstream below crest, or below submergence threshold
                             qq = 1.71 * breach_width(idrn)  * h_breach**1.5
                             write(logstr,'(a,f12.4,a,f12.4)') 'FREE FLOW -qq:', qq* smooth_sign , ' - sea water level:', zs(nmin)
