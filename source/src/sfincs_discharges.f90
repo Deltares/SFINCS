@@ -510,7 +510,8 @@ contains
    real*4           :: discharge_coeff, crit_water_depth, flow_velocity, water_depth, breach_width_avg_water_depth
    real*4           :: cell_width,zs_polder, r,h_crit
    real*4           :: hm01, tm01, Rc, Lm01, sm10, breaker_parameter, Cd, dike_normal_deg, wave_direction_deg,uc_cumbelas
-   real*4           :: Ru2, Ru2_max, u, Pov, N_ow, D_step, angle_dike_wave, gamma_beta, gamma_f, gamma_b
+   real*4           :: Ru2, Ru2_max, u, Pov, N_ow, D_step, angle_dike_wave, gamma_beta, gamma_f, gamma_b, include_discharge
+   real*4           :: dh, h_up, h_down, h_breach_sub, h_diff, threshold, epsilon, qq_free, qq_sub, smooth_sign
    character*256 :: formula
    type(NormalFlow) :: results_t1,results_t2,results_t3,results_t4,results_t5
    
@@ -895,30 +896,42 @@ contains
                   ! Now that the breaching geometry is updated, compute discharge through the breach
                   !
                   if (t >= tbreach) then
-                      if (breach_level_gather(idrn) > MAX(zs(nmin), zs(nmout))) then
-                            !
-                            ! Dike crest higher than out- and inside water level, so no flow
-                            !
+                      
+                        dh = zs(nmin) - zs(nmout)   ! signed, negative = return flow
+                        h_up = max(zs(nmin), zs(nmout))   ! upstream level
+                        h_down = min(zs(nmin), zs(nmout)) ! downstream level
+
+                        ! h_breach based on upstream head (always positive), no flow if h_up < breach_level
+                        h_breach = max(h_up - breach_level_gather(idrn), 0.0)
+                        h_breach_sub = max(h_down - breach_level_gather(idrn), 0.0)
+
+                        ! submergence ratio determines free vs submerged
+                        h_diff = max(h_up - h_down, 0.0)  ! always >= 0
+                        
+                        threshold = (2.0/3.0) * h_up
+                        epsilon = 1.0e-1  !
+                        smooth_sign = dh / (abs(dh) + epsilon)
+
+                        if (h_breach == 0.0) then
                             qq = 0.0
-                      elseif (min(zs(nmin),zs(nmout)) > (2.0/3.0)*max(zs(nmin),zs(nmout))) then
-                            !
-                            ! Fully submerged flow
-                            !
-                            h_breach = max(min(zs(nmin),zs(nmout))- breach_level_gather(idrn), 0.0)
-				            qq = m_afvoercoeff * breach_width(idrn)  * h_breach * sqrt(2.0 * 9.81 * (max(MAX(zs(nmin), zs(nmout))-MIN(zs(nmin), zs(nmout)),0.0))) 
-                            if (zs(nmout)>zs(nmin)) then
-                                qq = -qq ! return flow
-                            end if
-                      else
-                            !
-                            ! Free flow
-                            !
-                            h_breach = max(max(zs(nmin),zs(nmout))- breach_level_gather(idrn), 0.0)
-                            qq = 1.71 * breach_width(idrn)* (h_breach)**1.5 
-                            if (zs(nmout)>zs(nmin)) then
-                              qq = -qq ! return flow
-                            end if
-                      endif
+                        else if (h_down <= breach_level .or. h_down < threshold - epsilon) then
+                            ! Free flow - either downstream below crest, or below submergence threshold
+                            qq = 1.71 * breach_width(idrn)  * h_breach**1.5
+                        else if (h_down > threshold + epsilon) then
+                            ! Submerged flow
+                            qq = m_afvoercoeff * breach_width(idrn)  * h_breach_sub * sqrt(2.0 * 9.81 * h_diff)
+                        else
+                            ! Transition zone
+                            alpha = (h_down - (threshold - epsilon)) / (2.0 * epsilon)
+                            qq_free = 1.71 * breach_width(idrn)  * h_breach**1.5
+                            qq_sub  = m_afvoercoeff * breach_width(idrn)  * h_breach_sub * sqrt(2.0 * 9.81 * h_diff)
+                            qq = (1.0 - alpha) * qq_free + alpha * qq_sub
+                        end if
+
+                        qq = qq * smooth_sign 
+                        
+                        
+                      
                   else
                       !
                       ! No discharge through dike if t<tbreach 
@@ -1112,33 +1125,47 @@ contains
                   ! Now that the breaching geometry is updated, compute discharge through the breach
                   !
                   if (t >= tbreach) then
-                      if (breach_level_gather(idrn) > MAX(zs(nmin), zs(nmout))) then
-                            !
-                            ! Dike crest higher than out- and inside water level, so no flow
-                            !
+                      
+                        dh = zs(nmin) - zs(nmout)   ! signed, negative = return flow
+                        h_up = max(zs(nmin), zs(nmout))   ! upstream level
+                        h_down = min(zs(nmin), zs(nmout)) ! downstream level
+
+                        ! h_breach based on upstream head (always positive), no flow if h_up < breach_level
+                        h_breach = max(h_up - breach_level_gather(idrn), 0.0)
+                        h_breach_sub = max(h_down - breach_level_gather(idrn), 0.0)
+
+                        ! submergence ratio determines free vs submerged
+                        h_diff = max(h_up - h_down, 0.0)  ! always >= 0
+                        
+                        threshold = (2.0/3.0) * h_up
+                        epsilon = 1.0e-1  !
+                        smooth_sign = dh / (abs(dh) + epsilon)
+
+                        if (h_breach == 0.0) then
                             qq = 0.0
-                      elseif (min(zs(nmin),zs(nmout)) > (2.0/3.0)*max(zs(nmin),zs(nmout))) then
-                            !
-                            ! Fully submerged flow
-                            !
-                            h_breach = max(min(zs(nmin),zs(nmout))- breach_level_gather(idrn), 0.0)
-				            qq = m_afvoercoeff * breach_width(idrn)  * h_breach * sqrt(2.0 * 9.81 * (max(MAX(zs(nmin), zs(nmout))-MIN(zs(nmin), zs(nmout)),0.0)))  
-                            if (zs(nmout)>zs(nmin)) then
-                              qq = -qq! return flow
-                            end if
-                      else
-                            !
-                            ! Free flow
-                            !
-                            h_breach = max(max(zs(nmin),zs(nmout))- breach_level_gather(idrn), 0.0)
-                            qq = 1.71 * breach_width(idrn) * (h_breach)**1.5
-                            if (zs(nmout)>zs(nmin)) then
-                              qq = -qq ! return flow
-                            end if
-                      endif
+                        else if (h_down <= breach_level .or. h_down < threshold - epsilon) then
+                            ! Free flow - either downstream below crest, or below submergence threshold
+                            qq = 1.71 * breach_width(idrn)  * h_breach**1.5
+                        else if (h_down > threshold + epsilon) then
+                            ! Submerged flow
+                            qq = m_afvoercoeff * breach_width(idrn)  * h_breach_sub * sqrt(2.0 * 9.81 * h_diff)
+                        else
+                            ! Transition zone
+                            alpha = (h_down - (threshold - epsilon)) / (2.0 * epsilon)
+                            qq_free = 1.71 * breach_width(idrn)  * h_breach**1.5
+                            qq_sub  = m_afvoercoeff * breach_width(idrn)  * h_breach_sub * sqrt(2.0 * 9.81 * h_diff)
+                            qq = (1.0 - alpha) * qq_free + alpha * qq_sub
+                        end if
+
+                        qq = qq * smooth_sign 
+                        
+                        
+                      
                   else
-                      ! No discharge through dike if t<tbreach and water level is below crest level
-			          qq = 0.0 
+                      !
+                      ! No discharge through dike if t<tbreach 
+			          !
+                      qq = 0.0 
                   endif
                    
                case(9)                 
@@ -1216,16 +1243,15 @@ contains
                             breach_bottom_Visser(idrn) = breach_bottom
                             breach_level_gather(idrn) = breach_level
                             breach_width_waterline_Visser(idrn) = results_t1%breach_width_waterline
-                            breach_width_avg_water_depth_Visser(idrn) = results_t1%breach_width_avg_water_depth
-                            breach_width(idrn) = results_t1%breach_width_total
+                            breach_width(idrn) = results_t1%breach_width_avg_water_depth
                             gamma0_Visser(idrn) = gamma0
                             Initial_Visser(idrn) = 1.0
                             
 
                             !write(logstr,'(a,f12.1,a,f12.1)')'Phase 1 -- t2_Visser(idrn): ', t2_Visser(idrn),' and breach_width(idrn): ',breach_width(idrn)
                             !call write_log(logstr, 0) 
-                            write(logstr,'(a, f12.1)') 'TIME: ', t
-                            call write_log(logstr, 0) 
+                            !write(logstr,'(a, f12.1)') 'TIME: ', t
+                            !call write_log(logstr, 0) 
                       elseif (t1_Visser(idrn) < t .AND. t < t2_Visser(idrn)  .AND. outside_water_level>breach_level_gather(idrn) ) then
                             !
                             ! Phase 2, calculate only once
@@ -1236,13 +1262,12 @@ contains
                             breach_bottom_Visser(idrn) = breach_bottom
                             breach_level_gather(idrn) = breach_level
                             breach_width_waterline_Visser(idrn) = results_t2%breach_width_waterline
-                            breach_width_avg_water_depth_Visser(idrn) = results_t2%breach_width_avg_water_depth
-                            breach_width(idrn) = results_t2%breach_width_total
+                            breach_width(idrn) = results_t2%breach_width_avg_water_depth
                             gamma0_Visser(idrn) = gamma0
                             !write(logstr,'(a,f12.1,a,f12.1)')'Phase 2 -- t2_Visser(idrn): ', t2_Visser(idrn),' and breach_width(idrn): ',breach_width(idrn)
                             !call write_log(logstr, 0) 
-                            write(logstr,'(a, f12.1)') 'TIME: ', t
-                            call write_log(logstr, 0) 
+                            !write(logstr,'(a, f12.1)') 'TIME: ', t
+                            !call write_log(logstr, 0) 
                       elseif (t> t2_Visser(idrn)  .AND. outside_water_level>breach_level_gather(idrn) ) then
                               !breach_bottom = breach_bottom_Visser(idrn)
                               !breach_level = breach_level_gather(idrn)
@@ -1262,10 +1287,9 @@ contains
                                     breach_bottom_Visser(idrn) = results_t3%breach_bottom
                                     breach_level_gather(idrn) = results_t3%breach_level
                                     breach_width_waterline_Visser(idrn) = results_t3%breach_width_waterline 
-                                    breach_width_avg_water_depth_Visser(idrn) = results_t3%breach_width_avg_water_depth
-                                    breach_width(idrn) = results_t3%breach_width_total 
+                                    breach_width(idrn) = results_t3%breach_width_avg_water_depth 
                                     gamma0_Visser(idrn) = results_t3%gamma0
-                                    !write(logstr,'(a,f12.1,a,f12.1)')'Phase 3 -- breach_level_gather(idrn): ', breach_level_gather(idrn),' and breach_width(idrn): ',breach_width(idrn)
+                                    !write(logstr,'(a,f12.1,a,f12.1)')'Phase 3 -- discharge: ', results_t3%discharge,' and breach_width(idrn): ',breach_width(idrn)
                                     !call write_log(logstr, 0) 
                       
                               else if (polder_water_level - breach_level_gather(idrn) <= crit_water_depth) then
@@ -1278,8 +1302,7 @@ contains
                                     breach_bottom_Visser(idrn) = results_t4%breach_bottom
                                     breach_level_gather(idrn) = results_t4%breach_level
                                     breach_width_waterline_Visser(idrn) = results_t4%breach_width_waterline 
-                                    breach_width_avg_water_depth_Visser(idrn) = results_t4%breach_width_avg_water_depth
-                                    breach_width(idrn) = results_t4%breach_width_total 
+                                    breach_width(idrn) = results_t4%breach_width_avg_water_depth 
                                     gamma0_Visser(idrn) = gamma0
                                     m_afvoercoeff = results_t4%afvoercoeff
                       
@@ -1291,9 +1314,8 @@ contains
                                     breach_bottom_Visser(idrn) = results_t5%breach_bottom
                                     breach_level_gather(idrn) = results_t5%breach_level
                                     breach_width_waterline_Visser(idrn) = results_t5%breach_width_waterline 
-                                    breach_width_avg_water_depth_Visser(idrn) = results_t5%breach_width_avg_water_depth
                                     
-                                    breach_width(idrn) = results_t5%breach_width_total 
+                                    breach_width(idrn) = results_t5%breach_width_avg_water_depth 
                                     gamma0_Visser(idrn) = gamma0
                                     m_afvoercoeff = results_t5%afvoercoeff
                                     !write(logstr,'(a,f12.1,a,f12.1)')'Phase 5 -- breach_level_gather(idrn): ', breach_level_gather(idrn),' and breach_width(idrn): ',breach_width(idrn)
@@ -1313,31 +1335,45 @@ contains
                   !
                   ! Now that the breaching geometry is updated, compute discharge through the breach
                   !
+                  
+                  
                   if (t >= tbreach) then
-                      if (breach_level_gather(idrn) > MAX(zs(nmin), zs(nmout))) then
-                            !
-                            ! Dike crest higher than out- and inside water level, so no flow
-                            !
+                      
+                        dh = zs(nmin) - zs(nmout)   ! signed, negative = return flow
+                        h_up = max(zs(nmin), zs(nmout))   ! upstream level
+                        h_down = min(zs(nmin), zs(nmout)) ! downstream level
+
+                        ! h_breach based on upstream head (always positive), no flow if h_up < breach_level
+                        h_breach = max(h_up - breach_level_gather(idrn), 0.0)
+                        h_breach_sub = max(h_down - breach_level_gather(idrn), 0.0)
+
+                        ! submergence ratio determines free vs submerged
+                        h_diff = max(h_up - h_down, 0.0)  ! always >= 0
+                        
+                        threshold = (2.0/3.0) * h_up
+                        epsilon = 1.0e-1  !
+                        smooth_sign = dh / (abs(dh) + epsilon)
+
+                        if (h_breach == 0.0) then
                             qq = 0.0
-                      elseif (min(zs(nmin),zs(nmout)) > (2.0/3.0)*max(zs(nmin),zs(nmout))) then
-                            !
-                            ! Fully submerged flow
-                            !
-                            h_breach = max(min(zs(nmin),zs(nmout))- breach_level_gather(idrn), 0.0)
-				            qq = m_afvoercoeff * breach_width_avg_water_depth_Visser(idrn)  * h_breach * sqrt(2.0 * 9.81 * (max(MAX(zs(nmin), zs(nmout))-MIN(zs(nmin), zs(nmout)),0.0))) 
-                            if (zs(nmout)>zs(nmin)) then
-                                qq = -qq ! return flow
-                            end if
-                      else
-                            !
-                            ! Free flow
-                            !
-                            h_breach = max(max(zs(nmin),zs(nmout))- breach_level_gather(idrn), 0.0)
-                            qq = 1.71 * breach_width_avg_water_depth_Visser(idrn)* (h_breach)**1.5 
-                            if (zs(nmout)>zs(nmin)) then
-                              qq = -qq ! return flow
-                            end if
-                      endif
+                        else if (h_down <= breach_level .or. h_down < threshold - epsilon) then
+                            ! Free flow - either downstream below crest, or below submergence threshold
+                            qq = 1.71 * breach_width(idrn)  * h_breach**1.5
+                        else if (h_down > threshold + epsilon) then
+                            ! Submerged flow
+                            qq = m_afvoercoeff * breach_width(idrn)  * h_breach_sub * sqrt(2.0 * 9.81 * h_diff)
+                        else
+                            ! Transition zone
+                            alpha = (h_down - (threshold - epsilon)) / (2.0 * epsilon)
+                            qq_free = 1.71 * breach_width(idrn)  * h_breach**1.5
+                            qq_sub  = m_afvoercoeff * breach_width(idrn)  * h_breach_sub * sqrt(2.0 * 9.81 * h_diff)
+                            qq = (1.0 - alpha) * qq_free + alpha * qq_sub
+                        end if
+
+                        qq = qq * smooth_sign 
+                        
+                        
+                      
                   else
                       !
                       ! No discharge through dike if t<tbreach 
@@ -1358,7 +1394,7 @@ contains
                   z_min  = drainage_params(idrn, 3)                ! lowest elevation of breach
                   cell_width   = drainage_params(idrn, 4)          ! cell width or distance to use neighboring cell for the inside water level !! CAREFUL WITH COORDINATE SYSTEM, if EPSG29882 you can just add a width, but might not work with other coordinate systems
                   t_0  = drainage_params(idrn, 5)                  ! time to reach lowest breach elevation
-                  dike_core = drainage_params(idrn, 6)             ! material of dike core (1 = sand and 2 = clay)
+                  include_discharge = drainage_params(idrn, 6)             ! 0 means does not include discharge, 1 means includes discharge
                   !
 				  t_phase1 = tbreach + t_0
 				  m_afvoercoeff = 1.0   ! afvoercoefficient
@@ -1367,7 +1403,10 @@ contains
                   zs_polder = (zs(nmout)+ zs(nmindsrc_neighbor_right(idrn))+ zs(nmindsrc_neighbor_left(idrn))+ zs(nmindsrc_neighbor_up(idrn))+ zs(nmindsrc_neighbor_down(idrn))+ zs(nmindsrc_neighbor_upright(idrn))+ zs(nmindsrc_neighbor_upleft(idrn))+ zs(nmindsrc_neighbor_downright(idrn))+ zs(nmindsrc_neighbor_downleft(idrn)))/9 ! inside water level
                   !zs_polder = zs(nmindsrc_neighbor_right(idrn))! (zs(nmout)+ zs(nmindsrc_neighbor_right(idrn)))/2 ! inside water level
                   B_old = breach_width(idrn)
+                  write(logstr,'(a,f12.4,a,f12.4,a,f12.4)') 't: ', t, 'polder water level:', zs(nmout), ' - average of neighbor cells:', zs_polder
+                  call write_log(logstr,0)
                   
+                  dike_core = 1.0
                   
 				  if (dike_core == 1.0) then
 				    !
@@ -1443,38 +1482,61 @@ contains
                   !
                   ! Now that the breaching geometry is updated, compute discharge through the breach
                   !
-                  
-                  if (t >= tbreach) then
-                      if (breach_level_gather(idrn) > MAX(zs(nmin), zs(nmout))) then
-                            !
-                            ! Dike crest higher than out- and inside water level, so no flow
-                            !
+                   
+                    if (t >= tbreach) then
+                        if (include_discharge == 0.0) then ! does NOT include zs_polder in discharge calculations
+                            dh = zs(nmin) - zs(nmout)   ! signed, negative = return flow
+                            h_up = max(zs(nmin), zs(nmout))   ! upstream level
+                            h_down = min(zs(nmin), zs(nmout)) ! downstream level
+                        elseif (include_discharge == 1.0) then ! does  include zs_polder in discharge calculations
+                            dh = zs(nmin) - zs_polder   ! signed, negative = return flow
+                            h_up = max(zs(nmin), zs_polder)   ! upstream level
+                            h_down = min(zs(nmin), zs_polder) ! downstream level
+                        end if
+                      
+                            
+
+                        ! h_breach based on upstream head (always positive), no flow if h_up < breach_level
+                        h_breach = max(h_up - breach_level_gather(idrn), 0.0)
+                        h_breach_sub = max(h_down - breach_level_gather(idrn), 0.0)
+
+                        ! submergence ratio determines free vs submerged
+                        h_diff = max(h_up - h_down, 0.0)  ! always >= 0
+                        
+                        threshold = (2.0/3.0) * h_up
+                        epsilon = 1.0e-1  !
+                        smooth_sign = dh / (abs(dh) + epsilon)
+                            
+                        if (h_breach == 0.0) then
                             qq = 0.0
-                      elseif (min(zs(nmin),zs(nmout)) > (2.0/3.0)*max(zs(nmin),zs(nmout))) then
-                            !
-                            ! Fully submerged flow
-                            !
-                            h_breach = max(min(zs(nmin),zs(nmout))- breach_level_gather(idrn), 0.0)
-				            qq = m_afvoercoeff * breach_width(idrn)  * h_breach * sqrt(2.0 * 9.81 * (max(MAX(zs(nmin), zs(nmout))-MIN(zs(nmin), zs(nmout)),0.0))) 
-                            if (zs(nmout)>zs(nmin)) then
-                                qq = -qq ! return flow
-                            end if
-                      else
-                            !
-                            ! Free flow
-                            !
-                            h_breach = max(max(zs(nmin),zs(nmout))- breach_level_gather(idrn), 0.0)
-                            qq = 1.71 * breach_width(idrn)* (h_breach)**1.5 
-                            if (zs(nmout)>zs(nmin)) then
-                              qq = -qq ! return flow
-                            end if
-                      endif
-                  else
-                      !
-                      ! No discharge through dike if t<tbreach 
-			          !
-                      qq = 0.0 
-                  endif
+                        else if (h_down <= breach_level .or. h_down < threshold - epsilon) then
+                            ! Free flow - either downstream below crest, or below submergence threshold
+                            qq = 1.71 * breach_width(idrn)  * h_breach**1.5
+                            write(logstr,'(a,f12.4,a,f12.4)') 'FREE FLOW -qq:', qq* smooth_sign , ' - sea water level:', zs(nmin)
+                            call write_log(logstr,0)
+                        else if (h_down > threshold + epsilon) then
+                            ! Submerged flow
+                            qq = m_afvoercoeff * breach_width(idrn)  * h_breach_sub * sqrt(2.0 * 9.81 * h_diff)
+                            write(logstr,'(a,f12.4,a,f12.4)') 'SUBMERGED FLOW -qq:', qq* smooth_sign , ' - sea water level:', zs(nmin)
+                            call write_log(logstr,0)    
+                        else
+                            ! Transition zone
+                            alpha = (h_down - (threshold - epsilon)) / (2.0 * epsilon)
+                            qq_free = 1.71 * breach_width(idrn)  * h_breach**1.5
+                            qq_sub  = m_afvoercoeff * breach_width(idrn)  * h_breach_sub * sqrt(2.0 * 9.81 * h_diff)
+                            qq = (1.0 - alpha) * qq_free + alpha * qq_sub
+                        end if
+                            
+                        qq = qq * smooth_sign 
+                        
+                    else
+                        !
+                        ! No discharge through dike if t<tbreach 
+			            !
+                        qq = 0.0 
+                    endif
+        
+                  
              case(11)
                   ! CRITERIA FOR START OF BREACHING BASED ON CRITICAL WATER LEVEL
                   ! Dike breaching based on Verheij (2003) 

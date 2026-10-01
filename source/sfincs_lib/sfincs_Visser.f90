@@ -887,7 +887,7 @@
        results_t1%breach_width_avg_water_depth = normal_breach_width_avg_water_depth
        
        
-       write(logstr,'(a,f12.4,a,f12.4,a,f12.4,a,f12.4,a,f12.4,a,f12.4,a,f12.4,a,f12.4,a,f12.4)') 'STAGE 1 - Qbr:', discharge, ' - dc:', crit_water_depth, ' - theta:', theta, ' - stt:', stt, '- adap_length_sediment:', adap_length_sediment, ' - slope_loc:', slope_loc, ' - froude_number:', froude_number, ' - t1:', t1, ' - breach_width_total:', breach_width_total
+       write(logstr,'(a,f12.4,a,f12.4)') 'STAGE 1 - Qbr:', discharge, ' discharge_coeff: ', discharge_coeff
        call write_log(logstr,0)
        
        end function
@@ -1038,7 +1038,7 @@
        results_t2%breach_width_waterline = breach_width_waterline
        results_t2%breach_width_total  = breach_width_total
        results_t2%breach_width_avg_water_depth = normal_breach_width_avg_water_depth
-       write(logstr,'(a,f12.1,a,f12.1,a,f12.1,a,f12.1,a,f12.1,a,f12.1,a,f12.1,a,f12.1,a,f12.1)') 'STAGE 2 - Qbr:', discharge, ' - dc:', crit_water_depth, ' - theta:', theta, ' - stt:', stt, '- adap_length_sediment:', adap_length_sediment, ' - slope_loc:', slope_loc, ' - froude_number:', froude_number, ' - t2:', t2, ' - breach_width_total:', breach_width_total
+       write(logstr,'(a,f12.4,a,f12.4)') 'STAGE 2 - Qbr:', discharge, ' discharge_coeff: ', discharge_coeff
        call write_log(logstr,0)
        end function
    
@@ -1189,10 +1189,9 @@
        results_t3%breach_bottom = breach_bottom
        results_t3%gamma0 = gamma0
        results_t3%breach_width_avg_water_depth = normal_breach_width_avg_water_depth
-       write(logstr,'(a,f12.4,a,f12.4,a,f12.4,a,f12.4,a,f12.4,a,f12.4,a,f12.4,a,f12.4)') 'STAGE 3 - gamma 0', gamma0, ' - Qbr:', discharge, ' - dc:', crit_water_depth, ' - theta:', theta, ' - stt:', stt, '- adap_length_sediment:', adap_length_sediment, ' - slope_loc:', slope_loc, ' - froude_number:', froude_number
+       write(logstr,'(a,f12.4,a,f12.4)') 'STAGE 3 - Qbr:', discharge, ' discharge_coeff: ', discharge_coeff
        call write_log(logstr,0)
-       write(logstr,'(a,f12.1,a,f12.1,a,f12.1)') ' - breach_width_total:', breach_width_total, ' - breach_level:', breach_level, ' - breach_bottom:', breach_bottom
-       call write_log(logstr,0)
+
        end function
    
        function stage_4(dt, breach_width_total, breach_width_waterline, theta_crit, ni, dstar, k, rhos, rhow, outside_level, polder_level, breach_bottom, breach_level, polder_water_level, outside_water_level, gamma1, alpha, crest_level, d50, d90, Cf, kappa, delta, p, phi, sediment_fall_velocity) result(results_t4) !  
@@ -1278,7 +1277,7 @@
        results_t4%breach_bottom = breach_bottom
        results_t4%breach_width_avg_water_depth = breach_width_avg_water_depth
        results_t4%afvoercoeff = discharge_coeff
-       write(logstr,'(a,f12.4,a,f12.4,a,f12.4,a,f12.4,a,f12.4,a,f12.4)') 'STAGE 4 - Qbr:', discharge, ' - dc:', crit_water_depth, ' - theta:', theta, ' - stt:', stt, '- adap_length_sediment:', adap_length_sediment,' - breach_width_total:', breach_width_total
+       write(logstr,'(a,f12.4,a,f12.4)') 'STAGE 4 - Qbr:', discharge, ' discharge_coeff: ', discharge_coeff
        call write_log(logstr,0)
        
        end function
@@ -1319,6 +1318,8 @@
        if (breach_level > polder_level) then
            discharge_coeff = calc_discharge_coeff('Zerihun2020', alpha, beta1, outside_water_level, breach_level, crest_level-breach_level)
            discharge_coeff = submerged_weir_flow (outside_water_level, breach_level, polder_water_level, discharge_coeff)
+           write(logstr,'(a,f12.4,a,f12.4)') 'Using Zerihun2020 -Breach level:', breach_level, ' polder level: ', polder_level
+           call write_log(logstr,0)
        else
            discharge_coeff = 1.3
        end if
@@ -1361,7 +1362,7 @@
        results_t5%breach_bottom = breach_bottom
        results_t5%breach_width_avg_water_depth = breach_width_avg_water_depth
        results_t5%afvoercoeff = discharge_coeff
-       write(logstr,'(a,f12.1,a,f12.1,a,f12.1,a,f12.1,a,f12.1,a,f12.1)') 'STAGE 5 - Qbr:', discharge, ' - discharge_coeff:', discharge_coeff, ' - polder_water_level:', polder_water_level, ' - outside_water_level:', outside_water_level, ' - breach_level:', breach_level, ' - breach_width_avg_water_depth:', breach_width_avg_water_depth
+       write(logstr,'(a,f12.4,a,f12.4)') 'STAGE 5 - Qbr:', discharge, ' discharge_coeff: ', discharge_coeff
        call write_log(logstr,0)
        end function
    end module
