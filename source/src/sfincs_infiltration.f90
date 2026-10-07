@@ -303,7 +303,9 @@ contains
    ! update_meteo_forcing) plus any discharges / src-structures updates
    ! done earlier in update_continuity.
    !
-   !$acc parallel loop present( qsrc, qinfmap, cell_area, cell_area_m2, z_flags_iref )
+   ! Also keep track of the cumulative infiltration (m), for all infiltration types
+   !
+   !$acc parallel loop present( qsrc, qinfmap, cuminf, cell_area, cell_area_m2, z_flags_iref )
    !$omp parallel do default(shared) private(nm) schedule(static)
    do nm = 1, np
       !
@@ -311,6 +313,10 @@ contains
          qsrc(nm) = qsrc(nm) - qinfmap(nm) * cell_area_m2(nm)
       else
          qsrc(nm) = qsrc(nm) - qinfmap(nm) * cell_area(z_flags_iref(nm))
+      endif
+      !
+      if (store_cumulative_precipitation) then
+         cuminf(nm) = cuminf(nm) + qinfmap(nm) * dt
       endif
       !
    enddo
@@ -629,7 +635,7 @@ contains
    !$omp parallel &
    !$omp private ( nm )
    !$omp do
-   !$acc parallel present( qinfmap, qinffield, z_volume, zs, zb, cuminf )
+   !$acc parallel present( qinfmap, qinffield, z_volume, zs, zb )
    !$acc loop independent gang vector
    do nm = 1, np
       !
@@ -648,14 +654,6 @@ contains
          if (zs(nm) <= zb(nm)) then
             qinfmap(nm) = 0.0
          endif
-         !
-      endif
-      !
-      if (store_cumulative_precipitation) then
-         !
-         ! Compute cumulative infiltration
-         !
-         cuminf(nm) = cuminf(nm) + qinfmap(nm) * dt
          !
       endif
       !
@@ -706,14 +704,6 @@ contains
          !
       endif   
       !
-      if (store_cumulative_precipitation) then
-         !
-         ! Compute cumulative infiltration
-         !
-         cuminf(nm) = cuminf(nm) + qinfmap(nm) * dt
-         !
-      endif
-      !
    enddo
    !$omp end do
    !$omp end parallel
@@ -739,7 +729,7 @@ contains
    !$omp parallel &
    !$omp private ( Qq,I,nm )       
    !$omp do       
-   !$acc parallel present( qinfmap, prcp, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, qinffield, inf_kr )
+   !$acc parallel present( qinfmap, prcp, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, qinffield, inf_kr )
    !$acc loop independent gang vector
    do nm = 1, np
       !
@@ -821,14 +811,6 @@ contains
          !
       endif
       !
-      if (store_cumulative_precipitation) then
-         !
-         ! Compute cumulative infiltration
-         !
-         cuminf(nm) = cuminf(nm) + qinfmap(nm)*dt
-         !
-      endif
-      !
    enddo
    !$omp end do
    !$omp end parallel
@@ -852,7 +834,7 @@ contains
    !$omp parallel &
    !$omp private ( nm )
    !$omp do              
-   !$acc parallel present( qinfmap, prcp, cuminf, rain_T1,  &
+   !$acc parallel present( qinfmap, prcp, rain_T1,  &
    !$acc                  ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr )
    !$acc loop independent gang vector
    do nm = 1, np
@@ -920,14 +902,6 @@ contains
             !
          endif
       endif
-      ! 
-      if (store_cumulative_precipitation) then
-         !
-         ! Compute cumulative infiltration
-         !
-         cuminf(nm)  = cuminf(nm) + qinfmap(nm) * dt
-         !
-      endif
       !
    enddo
    !$omp end do
@@ -955,7 +929,7 @@ contains
    !$omp parallel &
    !$omp private  ( nm, Qq, I, hh_local )
    !$omp do              
-   !$acc parallel present( qinfmap, prcp, cuminf, cell_area_m2, cell_area, z_flags_iref, z_volume, zs, zb, rain_T1,  &
+   !$acc parallel present( qinfmap, prcp, cell_area_m2, cell_area, z_flags_iref, z_volume, zs, zb, rain_T1,  &
    !$acc                  horton_kd, horton_fc, horton_f0 )
    !$acc loop independent gang vector
    do nm = 1, np
@@ -1051,14 +1025,6 @@ contains
          !
       endif
       !
-      if (store_cumulative_precipitation) then
-         !
-         ! Compute cumulative infiltration
-         !
-         cuminf(nm)  = cuminf(nm) + qinfmap(nm) * dt
-         !
-      endif
-      !
    enddo
    !$omp end do
    !$omp end parallel
@@ -1082,7 +1048,7 @@ contains
    !$omp parallel &
    !$omp private ( nm )
    !$omp do
-   !$acc parallel present( qinfmap, qinffield, prcp, cuminf )
+   !$acc parallel present( qinfmap, qinffield, prcp )
    !$acc loop independent gang vector
    do nm = 1, np
       !
@@ -1090,14 +1056,6 @@ contains
       ! Only acts on the rainfall of this time step, so never on water that is already in the cell
       !
       qinfmap(nm) = qinffield(nm) * max(prcp(nm), 0.0)   ! infiltration in m/s
-      !
-      if (store_cumulative_precipitation) then
-         !
-         ! Compute cumulative infiltration
-         !
-         cuminf(nm) = cuminf(nm) + qinfmap(nm) * dt
-         !
-      endif
       !
    enddo
    !$omp end do
@@ -1207,7 +1165,7 @@ contains
    real*4           :: precip_rate
    !
    !$omp parallel do private(nm, exp_factor, drain_vol, P_eff, available_cap, actual_inflow, precip_rate)
-   !$acc parallel present( kcs, prcp, qinfmap, cuminf, bucket_volume, bucket_capacity, bucket_k, &
+   !$acc parallel present( kcs, prcp, qinfmap, bucket_volume, bucket_capacity, bucket_k, &
    !$acc                   bucket_drain_rate, bucket_loss, bucket_runoff )
    !$acc loop independent gang vector
    do nm = 1, np
@@ -1250,10 +1208,6 @@ contains
          qinfmap(nm) = precip_rate * bucket_loss(nm) + actual_inflow / dt - bucket_runoff(nm)
          !
          bucket_drain_rate(nm) = bucket_runoff(nm)
-         !
-         if (store_cumulative_precipitation) then
-            cuminf(nm) = cuminf(nm) + qinfmap(nm) * dt
-         endif
          !
       else
          !
