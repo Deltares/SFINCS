@@ -460,4 +460,33 @@ contains
       !
    end subroutine
    !
+   !-----------------------------------------------------------------------------------------------------!
+   !
+   function is_netcdf_file(file_name) result(is_netcdf)
+      !
+      ! Check whether a file name ends with the '.nc' extension, to
+      ! choose between the netcdf and binary reader of an input file.
+      !
+      ! Called from: initialize_roughness and initialize_storage_volume
+      ! (sfincs_domain), set_initial_conditions (sfincs_initial_conditions),
+      ! quadtree_read_file (quadtree).
+      !
+      implicit none
+      !
+      character(len=*), intent(in) :: file_name
+      logical                      :: is_netcdf
+      integer                      :: nchar
+      !
+      is_netcdf = .false.
+      !
+      nchar = len_trim(file_name)
+      !
+      if (nchar >= 3) then
+         !
+         is_netcdf = (file_name(nchar - 2 : nchar) == '.nc')
+         !
+      endif
+      !
+   end function
+   !
 end module
