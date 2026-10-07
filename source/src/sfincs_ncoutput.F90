@@ -411,12 +411,6 @@ contains
               standard_name='psi')
       elseif (inftype == 'hor') then
          call def_static_cell_float('qinf', map_file%qinf_varid, 'm', 'initial infiltration rate - Horton', standard_name='f0')
-      elseif (inftype == 'bkt') then
-         call def_static_cell_float('qinf', map_file%qinf_varid, 'mm', 'maximum bucket storage capacity', &
-              standard_name='bucket_capacity')
-      elseif (inftype == 'gwt') then
-         call def_static_cell_float('qinf', map_file%qinf_varid, 'mm h-1', 'maximum infiltration rate - groundwater table model', &
-              standard_name='fmax')
       else
          call def_static_cell_float('qinf', map_file%qinf_varid, 'mm h-1', 'infiltration rate - constant in time', &
               standard_name='qinf')
@@ -500,9 +494,11 @@ contains
       call def_time_cell_float('sigma', map_file%infstate_varid, '-', 'maximum soil moisture deficit', standard_name='sigma')
    elseif (inftype == 'hor') then
       call def_time_cell_float('f', map_file%infstate_varid, 'mm h-1', 'current infiltration capacity', standard_name='f')
-   elseif (inftype == 'gwt') then
-      call def_time_cell_float('gw_level', map_file%infstate_varid, 'm', 'groundwater table elevation', standard_name='gw_level')
-      call def_time_cell_float('gw_seepage', map_file%gwseep_varid, 'mm h-1', 'groundwater seepage rate', standard_name='gw_seepage')
+   endif
+   !
+   if (groundwater) then
+      call def_time_cell_float('gw_level', map_file%gwlevel_varid, 'm', 'groundwater table elevation', standard_name='gw_level')
+      call def_time_cell_float('gw_seepage', map_file%gwseep_varid, 'mm h-1', 'groundwater exchange delivered to the surface', standard_name='gw_seepage')
    endif
    !
    ! -------------------------------------------------------
@@ -570,7 +566,7 @@ contains
       call def_maxtime_cell_float('cuminf', map_file%cuminf_varid, 'm', 'cumulative_infiltration_depth', cell_methods='time: sum')
    endif
    !
-   if (store_cumulative_precipitation .and. inftype == 'gwt') then
+   if (store_cumulative_precipitation .and. groundwater) then
       call def_maxtime_cell_float('cumseep', map_file%cumseep_varid, 'm', 'cumulative_groundwater_seepage_depth', cell_methods='time: sum')
    endif
    !
@@ -779,14 +775,6 @@ contains
    if (infiltration) then
       if (inftype == 'con' .or. inftype == 'c2d') then
          call put_static_cell_float(map_file%ncid, map_file%qinf_varid, qinffield, FILL_VALUE, scale=3.6e6)
-      elseif (inftype == 'bkt') then
-         ! Bucket model: write the maximum storage capacity (m -> mm)
-         if (allocated(bucket_capacity)) then
-            call put_static_cell_float(map_file%ncid, map_file%qinf_varid, bucket_capacity, FILL_VALUE, scale=1000.0)
-         endif
-      elseif (inftype == 'gwt') then
-         ! Groundwater table model: write the maximum infiltration rate (m/s -> mm/hr)
-         call put_static_cell_float(map_file%ncid, map_file%qinf_varid, gw_fmax, FILL_VALUE, scale=3.6e6)
       else
          if (allocated(qinffield)) then
             call put_static_cell_float(map_file%ncid, map_file%qinf_varid, qinffield, FILL_VALUE)
@@ -1013,7 +1001,7 @@ contains
       call def_time_point_float('point_qinf', his_file%qinf_varid, 'mm hr-1', 'Infiltration rate')
    endif
    !
-   if (inftype == 'gwt') then
+   if (groundwater) then
       call def_time_point_float('point_gw_level', his_file%gwlevel_varid, 'm', 'Groundwater table elevation')
    endif
    !
@@ -1357,9 +1345,11 @@ contains
       call write_cell_var(map_file%ncid, map_file%infstate_varid, GA_sigma, ntmapout)
    elseif (inftype == 'hor') then
       call write_cell_var(map_file%ncid, map_file%infstate_varid, qinfmap,  ntmapout)
-   elseif (inftype == 'gwt') then
-      call write_cell_var(map_file%ncid, map_file%infstate_varid, gw_level, ntmapout)
-      call write_cell_var(map_file%ncid, map_file%gwseep_varid, gw_seepage, ntmapout, scale=3.6e6)
+   endif
+   !
+   if (groundwater) then
+      call write_cell_var(map_file%ncid, map_file%gwlevel_varid, real(gw_level, 4), ntmapout)
+      call write_cell_var(map_file%ncid, map_file%gwseep_varid, gw_surface_exchange, ntmapout, scale=3.6e6)
    endif
    !
    ! -------------------------------------------------------
@@ -1474,8 +1464,10 @@ contains
             call write_point_var(his_file%S_varid, scs_Se, nthisout)
          elseif (inftype == 'gai') then
             call write_point_var(his_file%S_varid, GA_sigma, nthisout)
-         elseif (inftype == 'gwt') then
-            call write_point_var(his_file%gwlevel_varid, gw_level, nthisout)
+         endif
+         !
+         if (groundwater) then
+            call write_point_var(his_file%gwlevel_varid, real(gw_level, 4), nthisout)
          endif
          !
       endif
@@ -1673,7 +1665,7 @@ contains
       if (infiltration) then
          call write_cell_var(map_file%ncid, map_file%cuminf_varid, cuminf, ntmaxout, check_kcs=.true.)
       endif
-      if (inftype == 'gwt') then
+      if (groundwater) then
          call write_cell_var(map_file%ncid, map_file%cumseep_varid, gw_cumseep, ntmaxout, check_kcs=.true.)
       endif
    endif

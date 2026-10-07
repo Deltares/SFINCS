@@ -704,11 +704,31 @@ module sfincs_output
    ! 4: zs, q, uvmean and cnb infiltration (writing scs_Se)
    ! 5: zs, q, uvmean and gai infiltration (writing GA_sigma & GA_F)
    ! 6: zs, q, uvmean and hor infiltration (writing rain_T1)
-   ! 7: zs, q, uvmean and gwt infiltration (writing gw_rise, the water-table rise above baseline)
+   ! 7: zs, q, uvmean, the infiltration state of cnb / gai / hor (as 4 / 5 / 6) and the groundwater table gw_level plus the recharge since the last groundwater step
    !
    ! Write for Infiltration methods (rsttype 4, 5, 6 or 7)
    !
-   if (inftype == 'cnb' .or. inftype == 'gai' .or. inftype == 'hor' .or. inftype == 'gwt') then
+   if (groundwater) then
+      !
+      write(911)7
+      write(911)zs4
+      write(911)q
+      write(911)uvmean
+      !
+      if (inftype == 'cnb') then
+         write(911)scs_Se
+      elseif (inftype == 'gai') then
+         write(911)GA_sigma
+         write(911)GA_F
+      elseif (inftype == 'hor') then
+         write(911)rain_T1
+      endif
+      !
+      write(911)gw_level
+      write(911)gw_recharge
+      write(911)gw_time_acc
+!
+   elseif (inftype == 'cnb' .or. inftype == 'gai' .or. inftype == 'hor') then
       !
       if (inftype == 'cnb') then
          !
@@ -734,14 +754,6 @@ module sfincs_output
          write(911)q
          write(911)uvmean
          write(911)rain_T1
-         !
-      elseif (inftype == 'gwt') then
-         !
-         write(911)7
-         write(911)zs4
-         write(911)q
-         write(911)uvmean
-         write(911)gw_rise
          !
       endif
       !

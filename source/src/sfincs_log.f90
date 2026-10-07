@@ -273,6 +273,14 @@ contains
          call write_log('Infiltration         : no', 1)
       endif
       !
+      if (groundwater) then
+         if (gw_lateral == 1) then
+            call write_log('Groundwater          : yes (2D lateral flow)', 1)
+         else
+            call write_log('Groundwater          : yes (storage only)', 1)
+         endif
+      endif
+      !
       if (snapwave) then
          call write_log('SnapWave             : yes', 1)
       else

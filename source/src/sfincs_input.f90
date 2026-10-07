@@ -244,20 +244,23 @@ contains
       ! Infiltration and losses
       !
       call get_keyword(500, 'inffile',                         inffile,                         'none', [character(len=17) :: 'infiltrationfile', 'infiltration_file'])   ! infiltration parameters TOML file
-      call get_keyword(500, 'inftype',                         inftype,                         'none', [character(len=17) :: 'infiltrationtype', 'infiltration_type'])   ! infiltration flavor (con, c2d, cna, cnb, gai, hor, bkt, gwt)
+      call get_keyword(500, 'inftype',                         inftype,                         'none', [character(len=17) :: 'infiltrationtype', 'infiltration_type'])   ! infiltration flavor (con, c2d, cna, cnb, gai, hor)
       !
-      ! Groundwater table model (inftype = gwt). Uniform values override inffile fields when >= 0.
+      ! Groundwater table model (groundwater = 1, combined with any inftype). Uniform values override inffile fields when >= 0.
       !
-      call get_keyword(500, 'gw_depth_ini',                    gw_depth_ini,                    -999.0)            ! uniform initial depth to groundwater (m)
-      call get_keyword(500, 'gw_fmax',                         gw_fmax_uniform,                 -999.0)            ! uniform maximum infiltration rate (mm/hr)
-      call get_keyword(500, 'gw_phi',                          gw_phi_uniform,                  -999.0)            ! uniform pervious fraction (-)
-      call get_keyword(500, 'gw_sy',                           gw_sy_uniform,                   -999.0)            ! uniform specific yield (-)
-      call get_keyword(500, 'gw_keff',                         gw_keff_uniform,                 -999.0)            ! uniform effective hydraulic conductivity (mm/hr)
-      call get_keyword(500, 'gw_l0',                           gw_l0_uniform,                   -999.0)            ! uniform seepage distance (m)
-      call get_keyword(500, 'gw_seepage_mode',                 gw_seepage_mode,                 'receiver')        ! seepage destination: receiver, loss or local
+      call get_keyword(500, 'groundwater',                    groundwater,                          .false.)    ! groundwater table model under the infiltration method
       !
-      if (gw_fmax_uniform >= 0.0) gw_fmax_uniform = gw_fmax_uniform / 3.6e6   ! mm/hr to m/s
-      if (gw_keff_uniform >= 0.0) gw_keff_uniform = gw_keff_uniform / 3.6e6   ! mm/hr to m/s
+      call get_keyword(500, 'gw_initial_depth',               gw_initial_depth_uniform,             -999.0)     ! uniform initial depth to groundwater (m)
+      call get_keyword(500, 'gw_initial_level',               gw_initial_level_uniform,             -999.0)     ! uniform initial water-table elevation (m, datum); overrides gw_initial_depth
+      call get_keyword(500, 'gw_initial_wet_open_water',      gw_initial_wet_open_water,            1)          ! 1 = cells wet at the start are open water for the groundwater model
+      call get_keyword(500, 'gw_specific_yield',              gw_specific_yield_uniform,            -999.0)     ! uniform specific yield (-)
+      call get_keyword(500, 'gw_lateral',                     gw_lateral,                           0)          ! 1 = 2D lateral groundwater flow (replaces the seepage term)
+      gw_time_acc_rst = -999.0
+      call get_keyword(500, 'gw_dt',gw_dt,                                60.0)       ! groundwater time step (s), upper bound; the stable lateral step is used when smaller
+      call get_keyword(500, 'gw_conductivity',                gw_conductivity_uniform,              -999.0)     ! uniform horizontal hydraulic conductivity (m/day)
+      call get_keyword(500, 'gw_aquifer_thickness',           gw_aquifer_thickness_uniform,         -999.0)     ! uniform aquifer thickness (m)
+      !
+      if (gw_conductivity_uniform >= 0.0) gw_conductivity_uniform = gw_conductivity_uniform / 86400.0            ! m/day to m/s
       !
       ! Legacy binary infiltration inputs (kept for backward compatibility).
       !

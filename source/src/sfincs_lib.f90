@@ -15,6 +15,7 @@ module sfincs_lib
    use sfincs_urban_drainage
    use sfincs_meteo
    use sfincs_infiltration
+   use sfincs_groundwater
    use sfincs_data
    use sfincs_date
    use sfincs_output
@@ -124,8 +125,12 @@ module sfincs_lib
    !
    call read_rug_file()         ! Read runup gauge file
    !
-   call initialize_infiltration()     ! Reads qinf / scs / gai / horton / bucket infiltration inputs
+   call initialize_infiltration()     ! Reads qinf / scs / gai / horton infiltration inputs
    !
+   if (groundwater) then
+      call initialize_groundwater()   ! Groundwater table model (storage, optional lateral flow)
+   endif
+!
    call initialize_discharges()       ! Reads dis and src file (river point discharges)
    !
    call initialize_src_structures()   ! Reads drn file (pumps / culverts / check valves / gates) and dkb file (dike breaches)

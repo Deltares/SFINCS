@@ -53,9 +53,10 @@ contains
       !    2. River discharges (+/-)               => update_discharges (adds to qsrc)
       !    3. Drainage structures (+/-)            => update_src_structures (adds to qsrc)
       !    4. Infiltration rate field qinfmap (-)  => update_infiltration_map (-qinfmap * cell area,
-      !                                              flavors: con, c2d, cna, cnb, gai, hor, bkt)
-      !    5. Urban drainage (+/-)                 => update_urban_drainage
-      !    6. External source/sink qext (+/-)      => added to qsrc here (BMI coupling)
+      !                                              flavors: con, c2d, cna, cnb, gai, hor; optionally with groundwater = 1)
+      !    5. Groundwater exchange (+/-)           => update_groundwater (adds to qsrc)
+      !    6. Urban drainage (+/-)                 => update_urban_drainage
+      !    7. External source/sink qext (+/-)      => added to qsrc here (BMI coupling)
       !
       ! qsrc itself is cleared at the end of compute_water_levels_{regular,
       ! subgrid} (per active cell), so steps 1-6 above start from zero every
@@ -70,6 +71,7 @@ contains
       !
       use sfincs_data
       use sfincs_infiltration
+   use sfincs_groundwater
       use sfincs_discharges
       use sfincs_src_structures
       use sfincs_urban_drainage
@@ -119,10 +121,21 @@ contains
          !
       endif
       !
-      ! 5. Urban drainage => update_urban_drainage (adds to qsrc)
+      ! 5. Groundwater => update_groundwater (books the recharge from qinfmap, adds the
+      !    exchange with the surface to qsrc, advances the aquifer every gw_dt)
+      !
+      if (groundwater) then
+         !
+         call timer_start('groundwater')
+         call update_groundwater(dt)
+         call timer_stop('groundwater')
+         !
+      endif
+      !
+      ! 6. Urban drainage => update_urban_drainage (adds to qsrc)
       !
       if (urban_drainage) then
-         !
+!
          call timer_start('urban drainage')
          call update_urban_drainage(t, dt)
          call timer_stop('urban drainage')
@@ -131,7 +144,7 @@ contains
       !
       call timer_start('continuity')
       !
-      ! 6. External source/sink (+/-) => add qext to qsrc (set via BMI coupling)
+      ! 7. External source/sink (+/-) => add qext to qsrc (set via BMI coupling)
       !
       if (use_qext) then
          !

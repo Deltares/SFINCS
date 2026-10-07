@@ -378,7 +378,7 @@ For all spatially varying infiltration methods the recommended interface is:
 .. code-block:: text
 
 	inffile = sfincs.infiltration.nc
-	inftype = c2d | cna | cnb | gai | hor | bkt | gwt
+	inftype = c2d | cna | cnb | gai | hor
 
 The required variables in ``inffile`` depend on ``inftype``:
 
@@ -387,8 +387,8 @@ The required variables in ``inffile`` depend on ``inftype``:
 * ``cnb``: ``smax``, ``seff``, ``ks``
 * ``gai``: ``psi``, ``sigma``, ``ks``
 * ``hor``: ``f0``, ``fc``, ``kd``
-* ``bkt``: ``bucket_smax``, ``bucket_k``, ``bucket_loss``
-* ``gwt``: optional ``gw_depth0``, ``gw_fmax``, ``gw_phi``, ``gw_sy``, ``gw_keff``, ``gw_l0`` (each can also be given as a uniform ``gw_*`` keyword in sfincs.inp, in which case ``inffile`` may be omitted)
+
+With ``groundwater = 1`` the same file may hold the optional groundwater fields (see the groundwater table model below). ``cnb`` and ``gai`` also infiltrate ponded water (at ``ks`` while retention is left, and through the Green-Ampt capacity, respectively); ``con``, ``c2d`` and ``hor`` always did; ``cna`` infiltrates rain only.
 
 The older separate binary infiltration keywords are still supported for backward compatibility only.
 
@@ -559,59 +559,38 @@ The recovery of the infiltration rate during dry weather (kr) is calculated as f
 This option also supports restart functionality. 
 
 
-The bucket model:
-%%%%%
-
-**NOTE - Available from SFINCS v2026.02 Hautacam release onwards**
-
-**NOTE - Prototype status: this functionality is field-tested, but is still being improved iteratively**
-
-The bucket model is a linear-reservoir representation of infiltration and losses. It is configured with:
-
-.. code-block:: text
-
-	inffile = sfincs.infiltration.nc
-	inftype = bkt
-
-The ``inffile`` must contain the following variables:
-
-* ``bucket_smax``: maximum bucket storage in mm
-* ``bucket_k``: drainage coefficient in 1/hr
-* ``bucket_loss``: loss fraction in the range 0-1
-
-
 The groundwater table model:
 %%%%%
 
 **NOTE - Prototype status: new functionality, not yet field-tested**
 
-The groundwater table model is a zero-dimensional (per cell, no lateral groundwater flow) water-table model after Sanders et al. (2025). Each cell tracks the water-table elevation. Infiltration runs at the maximum rate ``gw_fmax`` when water is ponded, at the rainfall rate (capped by ``gw_fmax``) when the cell is dry, and stops when the water table reaches the ground level. The water table rises by the infiltrated depth divided by the specific yield, and drains by seepage proportional to its rise above the initial level, with rate coefficient ``gw_keff / gw_l0``. Infiltration is only applied over the pervious fraction ``gw_phi`` of each cell. Cells with a ground level below ``qinf_zmin`` (open water) have no aquifer. Unlike the other infiltration methods it does not require precipitation: ponded water from a surge or river flood infiltrates as well.
+The groundwater table model (after Sanders et al. 2025) is switched on with ``groundwater = 1``, with or without an infiltration method. Each cell tracks the water-table elevation. The infiltration method (constant, curve number, Green-Ampt, Horton) sets the surface infiltration rate as usual; the groundwater model caps it by the space left above the water table, so infiltration stops when the table reaches the ground level, and raises the water table by the remaining depth divided by the specific yield. With ``gw_lateral = 1`` the table drains by 2D lateral flow towards neighbouring cells and open water; without it the aquifer acts as storage only. Imperviousness is the surface method's business: a composite curve number already contains it, and Green-Ampt, Horton or constant-rate fields should be zero on paved cells. The PRIMo model of Sanders et al. corresponds to ``inftype = con`` (constant rate ``qinf``, or a land-use-weighted ``qinffile``) with ``groundwater = 1``; its zero-dimensional seepage routing is not included, lateral flow takes its place.
+
+The former bucket model (``inftype = bkt``, a linear reservoir with a loss fraction returning its drainage to the cell) has been removed; its storage and drainage behaviour correspond to this model with ``gw_specific_yield = 1``, ``gw_initial_depth`` equal to the bucket capacity; its drainage has no equivalent other than lateral flow.
 
 It is configured with:
 
 .. code-block:: text
 
-	inftype = gwt
-	gw_depth_ini = 1.0
-	gw_fmax = 30.0
-	gw_phi = 0.6
-	gw_sy = 0.3
-	gw_keff = 20.0
-	gw_l0 = 500.0
-	gw_seepage_mode = loss
+	inftype = con
+	qinf = 30.0
+	groundwater = 1
+	gw_initial_depth = 1.0
+	gw_specific_yield = 0.3
 
 or with spatially varying fields in ``inffile`` (all optional, a uniform keyword overrides the field when given):
 
-* ``gw_depth0``: initial depth to groundwater in m
-* ``gw_fmax``: maximum infiltration rate in mm/hr
-* ``gw_phi``: pervious fraction (1 - imperviousness)
-* ``gw_sy``: specific yield
-* ``gw_keff``: effective hydraulic conductivity in mm/hr
-* ``gw_l0``: seepage distance in m
+* ``gw_initial_depth``: initial depth to groundwater in m
+* ``gw_initial_level``: initial water-table elevation in m (datum); takes precedence over the depth
+* ``gw_specific_yield``: specific yield
+* ``gw_conductivity``: horizontal hydraulic conductivity in m/day (lateral flow)
+* ``gw_aquifer_thickness``: aquifer thickness in m (lateral flow)
 
-Seepage is routed to a receiving surface-water cell (``gw_seepage_mode = receiver``, the default), treated as a loss (``loss``) or returned to the same cell (``local``). Receiver mode requires the integer field ``gw_receiver`` in ``inffile``: for every cell the 1-based quadtree index (position along ``mesh2d_nFaces``) of the cell that receives its seepage, typically the nearest canal, pond or sea cell. Cells with ``gw_receiver = 0`` lose their seepage. The seepage rate itself depends only on the rise of the water table in the source cell (Keff / l0 times the rise), not on the water level in the receiving cell, so it is always directed from the aquifer to the receiver.
+Seepage into canals, ponds and the sea is modelled with ``gw_lateral = 1``.
 
-Output: the map file contains the water-table elevation ``gw_level`` and the seepage rate ``gw_seepage`` at every ``dtout``; the his file contains ``point_gw_level``. With ``storecumprcp = 1`` the cumulative seepage depth ``cumseep`` is added to the max output. The restart file (``rsttype = 7``) carries the water-table rise above its initial level, so a restarted run must use the same ``gw_depth_ini`` or ``gw_depth0`` as the original run.
+With ``gw_lateral = 1`` the aquifer exchanges water by explicit 2D lateral groundwater flow between neighbouring cells with transmissivity ``gw_conductivity * gw_aquifer_thickness`` (harmonic mean across a face). Open-water cells (ground below ``qinf_zmin``) act as boundary condition at their current water level, so canals, ponds and the sea both receive seepage and recharge the aquifer when their level is higher, without any extra input. Water arriving in an open-water cell, and water exfiltrating where the table reaches the ground, is added to the surface. The aquifer advances every ``gw_dt`` seconds (default 60 s), or at the stable explicit step when that is smaller: the infiltration accumulated since the last step is added to the table in one lump, lateral flow is computed, and the exchange with the surface (seepage into open water, exfiltration) is set as a constant rate for the next interval. Between groundwater steps the table does not move; the infiltration methods are limited by the space left so that saturation is exact within the interval. Interval, stable step and substeps are written to the log.
+
+Output: the map file contains the water-table elevation ``gw_level`` and the exchange with the surface ``gw_seepage`` (lateral flow into open water, exfiltration) at every ``dtout``; the his file contains ``point_gw_level``. With ``storecumprcp = 1`` the cumulative exchange ``cumseep`` is added to the max output. The restart file (``rsttype = 7``) carries the water-table rise above its initial level, so a restarted run must use the same ``gw_initial_depth`` or ``gw_initial_depth`` as the original run.
 
 
 Storage volume

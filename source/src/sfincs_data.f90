@@ -74,14 +74,18 @@ module sfincs_data
       real*4, dimension(:), allocatable :: cd_wnd
       real*4, dimension(:), allocatable :: cd_val
       real*4 qinf_zmin
-      real*4 gw_depth_ini                 ! uniform initial depth to groundwater (m), < 0 = not set
-      real*4 gw_fmax_uniform              ! uniform max infiltration rate (m/s after conversion), < 0 = not set
-      real*4 gw_phi_uniform               ! uniform pervious fraction (-), < 0 = not set
-      real*4 gw_sy_uniform                ! uniform specific yield (-), < 0 = not set
-      real*4 gw_keff_uniform              ! uniform effective conductivity (m/s after conversion), < 0 = not set
-      real*4 gw_l0_uniform                ! uniform seepage distance (m), < 0 = not set
-      character*8 gw_seepage_mode         ! 'receiver', 'loss' or 'local'
-      integer gw_seepage_imode            ! 0 = loss, 1 = local, 2 = receiver
+      real*4 gw_initial_depth_uniform                 ! uniform initial depth to groundwater (m), < 0 = not set
+      real*4 gw_initial_level_uniform                 ! uniform initial water-table elevation (m, datum), -999 = not set
+      integer gw_initial_wet_open_water               ! 1 = cells wet at the start are open water (table at the surface, no infiltration)
+      logical groundwater                 ! groundwater table model on (keyword groundwater = 1)
+      real*4 gw_specific_yield_uniform                ! uniform specific yield (-), < 0 = not set
+      integer gw_lateral                  ! 1 = 2D lateral groundwater flow between cells
+      real*4 gw_dt                                ! groundwater time step (s), upper bound; actual = min(this, stable lateral step)
+      real*4 gw_conductivity_uniform                 ! uniform horizontal conductivity (m/s after conversion), < 0 = not set
+      real*4 gw_aquifer_thickness_uniform                 ! uniform aquifer thickness (m), < 0 = not set
+      real*4 gw_time_acc                          ! time accumulated since the last groundwater step (s)
+      real*4 gw_time_acc_rst                      ! same, read from restart file (-999 = none)
+real*4 gw_dt_stable                         ! stable explicit lateral substep (s)
       real*4 btfilter
       real*4 sfacinf
       real*4 dym
@@ -386,29 +390,21 @@ module sfincs_data
       !
       real*4, dimension(:),   allocatable :: storage_volume  ! Storage volume green infra
       !
-      ! Bucket model - finite capacity reservoir with linear drainage
-      !
-      real*4, dimension(:),   allocatable :: bucket_volume                     ! current storage (m)
-      real*4, dimension(:),   allocatable :: bucket_capacity                   ! max capacity S_max (m)
-      real*4, dimension(:),   allocatable :: bucket_k                          ! drainage coefficient (1/s)
-      real*4, dimension(:),   allocatable :: bucket_drain_rate                 ! net removal from surface this step (m/s)
-      real*4, dimension(:),   allocatable :: bucket_loss                       ! loss fraction per cell (0-1), ET/deep percolation
-      real*4, dimension(:),   allocatable :: bucket_runoff                     ! bucket drainage returned as surface runoff (m/s)
-      !
       ! Groundwater table model (0D, PRIMo-style: Sanders et al. 2025)
       !
-      real*4, dimension(:),   allocatable :: gw_rise                           ! water-table rise above baseline (m), the model state
-      real*4, dimension(:),   allocatable :: gw_level                          ! water-table elevation gw_level0 + gw_rise (m, datum), for output
-      real*4, dimension(:),   allocatable :: gw_level0                         ! initial water-table elevation (m, datum), seepage baseline
-      real*4, dimension(:),   allocatable :: gw_zground                        ! ground level used for depth to groundwater (m)
-      real*4, dimension(:),   allocatable :: gw_fmax                           ! max infiltration rate (m/s)
-      real*4, dimension(:),   allocatable :: gw_phi                            ! pervious fraction (-), 0 = no aquifer
-      real*4, dimension(:),   allocatable :: gw_sy                             ! specific yield (-)
-      real*4, dimension(:),   allocatable :: gw_kappa                          ! seepage rate coefficient Keff / l0 (1/s)
-      real*4, dimension(:),   allocatable :: gw_seepage                        ! seepage rate this step (m/s water)
-      real*4, dimension(:),   allocatable :: gw_cumseep                        ! cumulative seepage depth (m)
-      real*4, dimension(:),   allocatable :: gw_rise_rst                       ! water-table rise read from restart file (temporary)
-      integer*4, dimension(:), allocatable :: gw_receiver                      ! sfincs index of receiving cell, 0 = none
+      real*8, dimension(:),   allocatable :: gw_level                          ! water-table elevation (m, datum), the model state (double: tiny increments)
+      real*4, dimension(:),   allocatable :: gw_ground_level                        ! ground level used for depth to groundwater (m)
+      real*4, dimension(:),   allocatable :: gw_infiltration_cap               ! largest surface infiltration rate the aquifer can take this step (m/s)
+      real*4, dimension(:),   allocatable :: gw_space                          ! space above the table at the last groundwater step, (ground - H) * Sy (m)
+      real*4, dimension(:),   allocatable :: gw_recharge                       ! infiltrated depth since the last groundwater step (m)
+      real*4, dimension(:),   allocatable :: gw_recharge_rst                   ! recharge read from restart file (temporary)
+      real*4, dimension(:),   allocatable :: gw_specific_yield                             ! specific yield (-)
+      real*4, dimension(:),   allocatable :: gw_cumseep                        ! cumulative lateral exchange delivered to the surface (m), with storecumprcp
+      real*8, dimension(:),   allocatable :: gw_level_rst                      ! water-table elevation read from restart file (temporary)
+      integer*4, dimension(:), allocatable :: gw_cell_type                          ! 0 = inactive, 1 = aquifer, 2 = open water (boundary)
+      real*4, dimension(:),   allocatable :: gw_surface_exchange                           ! lateral exchange delivered to the surface (m/s, + = source)
+      real*4, dimension(:),   allocatable :: gw_lateral_volume                             ! work array: lateral volume change per substep (m3)
+      real*4, dimension(:),   allocatable :: gw_face_conductance                      ! (npuv) face conductance T * width / distance (m2/s)
       !
       ! Wind reduction for spiderweb winds
       !
@@ -973,24 +969,19 @@ module sfincs_data
     if(allocated(qinffield)) deallocate(qinffield)
     if(allocated(ksfield)) deallocate(ksfield)
     if(allocated(scs_Se)) deallocate(scs_Se)
-    if(allocated(bucket_volume)) deallocate(bucket_volume)
-    if(allocated(bucket_capacity)) deallocate(bucket_capacity)
-    if(allocated(bucket_k)) deallocate(bucket_k)
-    if(allocated(bucket_drain_rate)) deallocate(bucket_drain_rate)
-    if(allocated(bucket_loss)) deallocate(bucket_loss)
-    if(allocated(bucket_runoff)) deallocate(bucket_runoff)
-    if(allocated(gw_rise)) deallocate(gw_rise)
     if(allocated(gw_level)) deallocate(gw_level)
-    if(allocated(gw_level0)) deallocate(gw_level0)
-    if(allocated(gw_zground)) deallocate(gw_zground)
-    if(allocated(gw_fmax)) deallocate(gw_fmax)
-    if(allocated(gw_phi)) deallocate(gw_phi)
-    if(allocated(gw_sy)) deallocate(gw_sy)
-    if(allocated(gw_kappa)) deallocate(gw_kappa)
-    if(allocated(gw_seepage)) deallocate(gw_seepage)
+    if(allocated(gw_ground_level)) deallocate(gw_ground_level)
+    if(allocated(gw_infiltration_cap)) deallocate(gw_infiltration_cap)
+    if(allocated(gw_space)) deallocate(gw_space)
+    if(allocated(gw_recharge)) deallocate(gw_recharge)
+    if(allocated(gw_recharge_rst)) deallocate(gw_recharge_rst)
+    if(allocated(gw_specific_yield)) deallocate(gw_specific_yield)
     if(allocated(gw_cumseep)) deallocate(gw_cumseep)
-    if(allocated(gw_rise_rst)) deallocate(gw_rise_rst)
-    if(allocated(gw_receiver)) deallocate(gw_receiver)
+    if(allocated(gw_level_rst)) deallocate(gw_level_rst)
+    if(allocated(gw_cell_type)) deallocate(gw_cell_type)
+    if(allocated(gw_surface_exchange)) deallocate(gw_surface_exchange)
+    if(allocated(gw_lateral_volume)) deallocate(gw_lateral_volume)
+    if(allocated(gw_face_conductance)) deallocate(gw_face_conductance)
     if(allocated(nuvisc)) deallocate(nuvisc)
     !
     ! Boundary velocity points

@@ -256,15 +256,35 @@ contains
             write(logstr,'(a,a)')'Info    : reading rain_T1 from rstfile, complements input values of ', trim(fcfile)
             call write_log(logstr, 0)
             !
-         elseif (rsttype==7) then ! Infiltration method gwt (groundwater table)
+         elseif (rsttype==7) then ! groundwater table model, with the infiltration state of cnb / gai / hor
             !
-            ! Infiltration arrays are allocated later (initialize_infiltration), so park the
-            ! water-table rise in gw_rise_rst; initialize_groundwater_table picks it up.
+            if (inftype == 'cnb') then
+               read(500)rdummy
+               read(500)scs_Se
+            elseif (inftype == 'gai') then
+               read(500)rdummy
+               read(500)GA_sigma
+               read(500)rdummy
+               read(500)GA_F
+            elseif (inftype == 'hor') then
+               read(500)rdummy
+               read(500)rain_T1
+            endif
             !
-            allocate(gw_rise_rst(np))
+            ! Groundwater arrays are allocated later (initialize_infiltration), so park the
+            ! water table in gw_level_rst; initialize_groundwater picks it up.
+            !
+            allocate(gw_level_rst(np))
             read(500)rdummy
-            read(500)gw_rise_rst
-            call write_log('Info    : reading gw_rise from rstfile, water table starts above the gw_depth0 baseline', 0)
+            read(500)gw_level_rst
+            read(500)rdummy
+            allocate(gw_recharge_rst(np))
+            read(500)rdummy
+            read(500)gw_recharge_rst
+            read(500)rdummy
+            read(500)rdummy
+            read(500)gw_time_acc_rst
+call write_log('Info    : reading gw_level from rstfile', 0)
             !
          endif
          !

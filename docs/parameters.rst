@@ -506,44 +506,52 @@ Domain
 	  :required:		no in case of regular mode, ignored in case of subgrid mode	  
 	  :format:		bin	 
 	inffile = sfincs.infiltration.nc
-	  :description:		Recommended NetCDF input for spatially varying infiltration and bucket-model losses. Use together with inftype.
+	  :description:		Recommended NetCDF input for spatially varying infiltration and groundwater parameters. Use together with inftype.
 	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
 	  :units:		depends on selected inftype and variables in the NetCDF file
 	  :required:		no
 	  :format:		net
-	inftype = c2d | cna | cnb | gai | hor | bkt | gwt
-	  :description:		Selects which infiltration method is read from inffile. Bucket mode requires bucket_smax, bucket_k and bucket_loss in inffile. Groundwater table mode (gwt) reads optional fields gw_depth0, gw_fmax, gw_phi, gw_sy, gw_keff and gw_l0 from inffile, or uses the uniform gw_* keywords below.
+	inftype = c2d | cna | cnb | gai | hor
+	  :description:		Selects which infiltration method is read from inffile. Any method can be combined with the groundwater table model (groundwater = 1), which reads its optional gw_* fields from the same inffile or uses the uniform gw_* keywords below.
 	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
 	  :units:		-
 	  :required:		Only when inffile is used
 	  :format:		asc
-	gw_depth_ini = -999
-	  :description:		Groundwater table model (inftype = gwt): uniform initial depth to groundwater below the ground level. Overrides the gw_depth0 field in inffile when >= 0. Defaults to 1.0 m when neither is given.
+	groundwater = 0
+	  :description:		Switches on the groundwater table model underneath the infiltration method: the infiltration rate of the method is capped by the space above the water table, infiltrated water raises the table, and with gw_lateral = 1 the table drains by lateral flow to neighbouring cells and open water. Works with any infiltration method (the method then limits its rate to the space above the table) and also without one, in which case the aquifer only exchanges water with the surface through lateral flow. Does not require precipitation.
+	  :units:		-
+	  :required:		no
+	gw_initial_depth = -999
+	  :description:		Groundwater table model: uniform initial depth to groundwater below the ground level. Overrides the gw_initial_depth field in inffile when >= 0. Defaults to 1.0 m when neither is given. The resulting table is never below zsini (unless gw_initial_wet_open_water = 0) and never above the ground.
 	  :units:		m
 	  :required:		no
-	gw_fmax = -999
-	  :description:		Groundwater table model: uniform maximum infiltration rate. Overrides the gw_fmax field in inffile when >= 0. Either the keyword or the field is required.
-	  :units:		mm/hr
-	  :required:		yes for inftype = gwt (keyword or inffile field)
-	gw_phi = -999
-	  :description:		Groundwater table model: uniform pervious fraction of the land surface (1 - imperviousness). Overrides the gw_phi field in inffile when >= 0. Defaults to 1.0.
+	gw_initial_level = -999
+	  :description:		Groundwater table model: uniform initial water-table elevation. When given (keyword or gw_initial_level field in inffile) it takes precedence over gw_initial_depth. Use this when groundwater levels from a model or wells are available, or to start a 2D run in equilibrium with the canals.
+	  :units:		m (datum)
+	  :required:		no
+	gw_initial_wet_open_water = 1
+	  :description:		Groundwater table model: 1 = cells that hold water at the start (rivers, lakes, sea) are open water: their water table is their water level, they do not infiltrate, and in 2D mode they act as boundary condition. Automatically off in a restart run. 0 = only cells with ground below qinf_zmin are open water.
 	  :units:		-
 	  :required:		no
-	gw_sy = -999
-	  :description:		Groundwater table model: uniform specific yield of the aquifer. Overrides the gw_sy field in inffile when >= 0. Defaults to 0.3.
+	gw_specific_yield = -999
+	  :description:		Groundwater table model: uniform specific yield of the aquifer. Overrides the gw_specific_yield field in inffile when >= 0. Defaults to 0.3.
 	  :units:		-
 	  :required:		no
-	gw_keff = -999
-	  :description:		Groundwater table model: uniform effective hydraulic conductivity for seepage (Keff = 2 b K / L for aquifer thickness b, conductivity K and floodplain width L). Seepage rate is Keff / gw_l0 times the water-table rise. Overrides the gw_keff field in inffile when >= 0. Seepage is off when gw_keff or gw_l0 is missing.
-	  :units:		mm/hr
+	gw_lateral = 0
+	  :description:		Groundwater table model: 1 switches on 2D lateral groundwater flow between cells (transmissivity gw_conductivity * gw_aquifer_thickness) with open-water cells as boundary condition at their water level. Without it the aquifer acts as storage only.
+	  :units:		-
 	  :required:		no
-	gw_l0 = -999
-	  :description:		Groundwater table model: uniform seepage distance to the receiving surface water. Overrides the gw_l0 field in inffile when >= 0.
+	gw_dt = 60
+	  :description:		Groundwater table model: time step of the aquifer. Between groundwater steps the infiltration is accumulated and the water table does not move; at each step the accumulated recharge is added, lateral flow is computed and the exchange with the surface is set for the next interval. The stable explicit step of the lateral flow is used when it is smaller; both are logged.
+	  :units:		s
+	  :required:		no
+	gw_conductivity = -999
+	  :description:		Groundwater table model: uniform horizontal hydraulic conductivity for lateral flow. Overrides the gw_conductivity field in inffile when >= 0. Required (keyword or field) when gw_lateral = 1.
+	  :units:		m/day
+	  :required:		no
+	gw_aquifer_thickness = -999
+	  :description:		Groundwater table model: uniform aquifer thickness for lateral flow (transmissivity = gw_conductivity * gw_aquifer_thickness). Overrides the gw_aquifer_thickness field in inffile when >= 0. Required (keyword or field) when gw_lateral = 1.
 	  :units:		m
-	  :required:		no
-	gw_seepage_mode = receiver
-	  :description:		Groundwater table model: where seepage goes. receiver = added to the receiving surface-water cell given by the integer gw_receiver field in inffile (1-based quadtree index, 0 = lost), loss = leaves the model, local = returns to the same cell.
-	  :units:		-
 	  :required:		no
 	qinffile = sfincs.qinf
 	  :description:		Backward compatibility only. For spatially varying constant in time infiltration values per cell prefer inffile with inftype = c2d.
