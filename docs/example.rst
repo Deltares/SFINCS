@@ -42,7 +42,7 @@ Executable
 We provide pre-compiled versions of SFINCS for you to use directly:
 
 * Windows: https://download.deltares.nl/en/sfincs  
-* Platform independent through Docker (Windows/linux/singularity/HPC): https://hub.docker.com/r/deltares/sfincs-cpu 
+* Platform independent through Docker (Windows/linux/apptainer/HPC): https://hub.docker.com/r/deltares/sfincs-cpu 
 
 Compiling yourself
 =====
@@ -89,7 +89,7 @@ On linux
 Dedicated linux compiled version
 ^^^^^
 
-Generally for Linux (HPC) systems, running using Docker or Singularity is the most generic and succesfull way.
+Generally for Linux (HPC) systems, running using Docker or Apptainer is the most generic and succesfull way.
 In case you need a dedicated Linux build, get in touch and we can create a version specifically for you.
 We have experience doing this for our own Deltares cluster.
 
@@ -97,7 +97,7 @@ Using Docker
 -----
 
 For always using the last build version of SFINCS on Windows, Mac, Linux or a cloud based cluster a convenient solution is running a Docker container version of SFINCS.
-This can be done on a local desktop or in a cloud based cluster supporting docker (or using singularity, see below).
+This can be done on a local desktop or in a cloud based cluster supporting docker (or using Apptainer, see below).
 
 **Note that this Docker version of SFINCS is available under the same GNU GPL-v3 License as the windows executable.**
 
@@ -128,14 +128,14 @@ Cloud based cluster
 
 The same principle is also possible on a cloud based cluster that supports running docker containers
 
-Using Singularity
+Using Apptainer
 -----
 
-On cloud based clusters like Surfsara/Azure/Amazon that **supports singularity**, it is possible to run the Docker container version of SFINCS directly.
+On cloud based clusters like Surfsara/Azure/Amazon that **supports Apptainer** (formerly known as Singularity), it is possible to run the Docker container version of SFINCS directly.
 Depending on the application it could be wise to pull the docker container once and save as new image, after which this image can be run multiple times.
 This prevents unnesissarily loading the Docker container every time a simulation is performed.
 
-**Note that this Docker version of SFINCS is available under the same GNU GPL-v3 License as the windows executable.**
+**Note that this Docker version of SFINCS is available under the same Freeware License as the windows executable.**
 
 **Example**
 
@@ -143,14 +143,13 @@ This prevents unnesissarily loading the Docker container every time a simulation
 	
 	Pulling and running the docker container immediately:
 	
-		singularity run -B$(pwd):/data --nv docker://deltares/sfincs-cpu
-
+		apptainer exec -B $(PWD):/mnt/data --nv docker://deltares/sfincs-cpu
 	
-	First pulling the docker container and creating a singularity image, then running this image:
+	First pulling the docker container and creating an apptainer image, then running this image:
 	
-		singularity pull docker://deltares/sfincs-cpu sfincs-cpu.img
+		apptainer build sfincs-cpu.sif docker://deltares/sfincs-cpu:latest
 
-		singularity run -B$(pwd):/data sfincs-cpu.img
+		apptainer exec -B$(pwd):/mnt/data sfincs-cpu.sif sfincs
 	
 Also here, instead of using the latest automatically cmpiled version, you can also pull a verified tagged release from: https://hub.docker.com/r/deltares/sfincs-cpu/tags
 This can be for instance the open source release version 'sfincs-v2.0.3-Cauberg'.

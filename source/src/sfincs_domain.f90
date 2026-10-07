@@ -10,6 +10,7 @@ contains
    use sfincs_data
    use quadtree
    use sfincs_infiltration   
+   use sfincs_vegetation
    use sfincs_timestep_analysis   
    !
    implicit none
@@ -24,10 +25,10 @@ contains
    !
    call initialize_roughness()
    !
-   call initialize_infiltration() ! see: sfincs_infiltration.f90
-   !
    call initialize_storage_volume()
    !
+   call initialize_vegetation()
+   !   
    call initialize_hydro()
    !
    if (timestep_analysis) then
@@ -2199,12 +2200,18 @@ contains
    allocate(uv0(npuv + ncuv + 1))
    !
    allocate(kfuv(npuv))
-   ! 
-   zs  = 0.0
-   q   = 0.0
-   q0  = 0.0
-   uv  = 0.0
-   uv0 = 0.0
+   !
+   ! Cell-wise discharge accumulator (point sources + drainage structures),
+   ! read by sfincs_continuity.
+   !
+   allocate(qsrc(np))
+   !
+   zs   = 0.0
+   q    = 0.0
+   q0   = 0.0
+   uv   = 0.0
+   uv0  = 0.0
+   qsrc = 0.0
    !
    kfuv = 0 
    !
@@ -2221,47 +2228,13 @@ contains
       !
       allocate(hm0(np))
       allocate(hm0_ig(np))
-      allocate(sw_tp(np))
-      allocate(sw_tp_ig(np))      
       allocate(fwuv(npuv))
       !
       hm0    = 0.0
       hm0_ig = 0.0
-      sw_tp     = 0.0
-      sw_tp_ig  = 0.0      
       fwuv   = 0.0
       !
-      if (store_wave_forces) then
-         allocate(fwx(np))
-         allocate(fwy(np))
-         fwx = 0.0
-         fwy = 0.0
-         allocate(dw(np))
-         allocate(df(np))
-         dw = 0.0
-         df = 0.0
-         allocate(dwig(np))
-         allocate(dfig(np))
-         dwig = 0.0
-         dfig = 0.0   
-         allocate(cg(np))
-         cg = 0.0
-         allocate(betamean(np))
-         betamean = 0.0     
-         allocate(srcig(np))
-         srcig = 0.0           
-         allocate(alphaig(np))
-         alphaig = 0.0            
-      endif
-      !
-      if (store_wave_direction) then
-         allocate(mean_wave_direction(np))
-         allocate(wave_directional_spreading(np))
-         mean_wave_direction        = 0.0
-         wave_directional_spreading = 0.0
-      endif   
-      !
-   endif   
+   endif
    !
    if (wavemaker .or. snapwave) then !TL: zsm also used in sfincs_continuity if 'snapwave=true' > todo: check if needed, or only for wavemaker 
       allocate(zsm(np))
@@ -2273,6 +2246,10 @@ contains
    !
    if (store_maximum_waterlevel) then
       allocate(zsmax(np))
+   endif
+   !
+   if (store_zvolume_max) then
+      allocate(zvolmax(np))
    endif
    !
    if (store_maximum_velocity) then
@@ -2326,6 +2303,10 @@ contains
    !
    if (store_maximum_waterlevel) then
       zsmax = -999.0
+   endif
+   !
+   if (store_zvolume_max) then
+      zvolmax = 0.0
    endif
    !
    if (store_maximum_velocity) then

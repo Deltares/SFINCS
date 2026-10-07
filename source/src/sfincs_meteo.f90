@@ -126,6 +126,19 @@ contains
             spw_ye(it) = yy
          enddo
          !
+      else
+         !
+         ! utmzone not set: sanity check for a projected SFINCS model combined with
+         ! spiderweb eye coordinates that still look like geographic lon/lat (degrees).
+         ! In that case the spiderweb will not overlap the projected grid -> zero wind.
+         !
+         if (.not. crsgeo .and. abs(spw_xe(1)) <= 360.0 .and. abs(spw_ye(1)) <= 90.0) then
+            !
+            call write_log('Warning : SFINCS model is projected but utmzone is not set, while the spiderweb eye coordinates look like geographic lon/lat (degrees).', 1)
+            call write_log('Warning : the spiderweb likely does not overlap the model domain, resulting in (near-)zero wind. Set "utmzone" in sfincs.inp to reproject the spiderweb.', 1)
+            !
+         endif
+         !
       endif
       !
    endif   
@@ -629,6 +642,10 @@ contains
          ind1(4) = idstspw + 1
          if (ind1(3) > spw_nrows) cycle
          dj1     = (dstspw - dradspw * idstspw) / dradspw
+         ! When dstspw < dradspw (point within first radial bin), idstspw is clamped to 1
+         ! but the raw dj1 formula yields a negative value. Clamp to 0 so bilinear weights
+         ! remain in [0,1] and do not produce unphysical negative contributions.
+         dj1     = max(dj1, 0.0)
          phispw  = 0.5*pi - atan2(dye, dxe) ! Geographic
          phispw  = modulo(phispw, 2 * pi)
          !
@@ -1226,19 +1243,14 @@ contains
    end subroutine
 
 
-   subroutine update_meteo_forcing(t, dt, tloop)
+   subroutine update_meteo_forcing(t, dt)
    !
    ! Update wind stresses and precipitation (this happens every time step)
    !
    use sfincs_data
+   use sfincs_timers
    !
    implicit none
-   !   
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
    !
    real*8                           :: t
    real*4                           :: dt
@@ -1248,7 +1260,7 @@ contains
    real*4                           :: oneminsmfac
    integer                          :: nm, ib
    !
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('meteo forcing')
    !
    if (meteo3d) then
       !
@@ -1261,7 +1273,7 @@ contains
       !$acc parallel, present( tauwu, tauwv,  tauwu0, tauwv0, tauwu1, tauwv1, &
       !$acc                    windu, windv, windu0, windv0, windu1, windv1, windmax, &
       !$acc                    patm, patm0, patm1, &
-      !$acc                    prcp, prcp0, prcp1, cumprcp, netprcp, &
+      !$acc                    prcp, prcp0, prcp1, cumprcp, &
       !$acc                    zs, zb, z_volume )
       !$acc loop independent gang vector
       do nm = 1, np
@@ -1337,40 +1349,38 @@ contains
          !$omp parallel &
          !$omp private ( nm )
          !$omp do
-         !$acc parallel, present( tauwu, tauwv, patm, prcp, netprcp, zs, zb, z_volume )
-         !$acc loop independent gang vector
+         !$acc parallel, present( tauwu, tauwv, patm, prcp, zs, zb, z_volume )
+         !$acc loop gang vector
          do nm = 1, np
             !
             if (wind) then
                tauwu(nm) = tauwu(nm) * smfac
                tauwv(nm) = tauwv(nm) * smfac
-            endif   
+            endif
             !
             if (patmos) then
                patm(nm)  = patm(nm) * smfac + gapres * oneminsmfac
             endif   
             !
             if (precip) then
-               !  
-               netprcp(nm) = netprcp(nm) * smfac
-               !  
-               ! Don't allow negative netprcp during spinup (e.g. hardfixing infiltration/evaporation on model when forcing effective rainfall) when there's no water in the cell (same as check for constant infiltration)
-               !  
-               if (netprcp(nm) < 0.0) then
-                  !  
-                  ! No effective infiltration if there is no water
-                  !  
+               !
+               prcp(nm) = prcp(nm) * smfac
+               !
+               ! Don't allow negative precip during spinup when there's no water in the cell
+               !
+               if (prcp(nm) < 0.0) then
+                  !
                   if (subgrid) then
                      if (z_volume(nm) <= 0.0) then
-                        netprcp(nm) = 0.0
+                        prcp(nm) = 0.0
                      endif
                   else
                      if (zs(nm) <= zb(nm)) then
-                        netprcp(nm) = 0.0
+                        prcp(nm) = 0.0
                      endif
-                  endif            
-                  !  
-               endif               
+                  endif
+                  !
+               endif
             endif   
             !
          enddo   
@@ -1415,13 +1425,34 @@ contains
    !
    if (prcpfile(1:4) /= 'none') then
       !
-      call update_precipitation_from_timeseries(t, dt) 
+      call update_precipitation_from_timeseries(t, dt)
       !
    endif
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0 * (count1 - count0) / count_rate
-   !         
+   ! Apply rainfall to the point-source field qsrc (m3/s). prcp is m/s,
+   ! so multiply by cell area. qsrc was zeroed at the end of the previous
+   ! step inside the water-level update loops, so this is the first
+   ! accumulation into qsrc for the current step.
+   !
+   if (precip) then
+      !
+      !$acc parallel loop present( qsrc, prcp, cell_area, cell_area_m2, z_flags_iref )
+      !$omp parallel do default(shared) private(nm) schedule(static)
+      do nm = 1, np
+         !
+         if (crsgeo) then
+            qsrc(nm) = qsrc(nm) + prcp(nm) * cell_area_m2(nm)
+         else
+            qsrc(nm) = qsrc(nm) + prcp(nm) * cell_area(z_flags_iref(nm))
+         endif
+         !
+      enddo
+      !$omp end parallel do
+      !
+   endif
+   !
+   call timer_stop('meteo forcing')
+   !
    end subroutine
 
 
@@ -1520,12 +1551,11 @@ contains
    !$omp parallel &
    !$omp private ( nm )
    !$omp do
-   !$acc parallel present( prcp, cumprcp, netprcp )
-   !$acc loop independent gang vector
+   !$acc parallel present( prcp, cumprcp )
+   !$acc loop gang vector
    do nm = 1, np
       !
       prcp(nm)    = ptmp
-      netprcp(nm) = ptmp
       !
       if (store_cumulative_precipitation) then
          cumprcp(nm) = cumprcp(nm) + ptmp * dt
@@ -1541,25 +1571,20 @@ contains
    end subroutine   
 
    
-   subroutine update_meteo_fields(t, tloop)
+   subroutine update_meteo_fields(t)
    !
    ! Update values at boundary points
    !
    use sfincs_data
+   use sfincs_timers
    !
    implicit none
-   !
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
    !
    integer  :: nm
    !
    real*8   :: t
    !
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('meteo fields')
    !
    if (amufile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none') then
       !
@@ -1601,9 +1626,8 @@ contains
       !
    endif
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
-   !         
-   end subroutine   
+   call timer_stop('meteo fields')
+   !
+   end subroutine
 
 end module
