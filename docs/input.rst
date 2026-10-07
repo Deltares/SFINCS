@@ -360,6 +360,7 @@ SFINCS allows the specification of the following options for accounting for infi
 4.	The Green-Ampt method: empirical rainfall-runoff model
 5.	The Horton infiltration method
 6.	The bucket model: linear reservoir with losses
+7.	Spatially varying constant-in-time run-off coefficient
 
 Spatially uniform infiltration is still specified directly in sfincs.inp with ``qinf``. All modern spatially varying infiltration and bucket-model input should be provided through ``inffile`` together with ``inftype``. The older binary keywords (``qinffile``, ``scsfile``, ``smaxfile``, ``sefffile``, ``ksfile``, ``psifile``, ``sigmafile``, ``f0file``, ``fcfile`` and ``kdfile``) remain available for backward compatibility only and will be removed in a future release of SFINCS.
 
@@ -378,7 +379,7 @@ For all spatially varying infiltration methods the recommended interface is:
 .. code-block:: text
 
 	inffile = sfincs.infiltration.nc
-	inftype = c2d | cna | cnb | gai | hor | bkt
+	inftype = c2d | cna | cnb | gai | hor | bkt | r2d
 
 The required variables in ``inffile`` depend on ``inftype``:
 
@@ -388,6 +389,7 @@ The required variables in ``inffile`` depend on ``inftype``:
 * ``gai``: ``psi``, ``sigma``, ``ks``
 * ``hor``: ``f0``, ``fc``, ``kd``
 * ``bkt``: ``bucket_smax``, ``bucket_k``, ``bucket_loss``
+* ``r2d``: ``runoff``
 
 The older separate binary infiltration keywords are still supported for backward compatibility only.
 
@@ -595,6 +597,34 @@ A constant-in-time, spatially varying removal rate representing subsurface drain
 	drainagefile = sfincs.drainage.nc
 
 The ``drainagefile`` must be a NetCDF file containing the variable ``drainage_rate`` in mm/hr, in the same format as ``inffile`` (works for both regular and quadtree grids).
+
+
+The run-off coefficient method:
+%%%%%
+
+**NOTE - Available from SFINCS v2026.02 Hautacam release onwards**
+
+With the run-off coefficient method, a fixed percentage of the rainfall in a cell runs off, and the remainder infiltrates.
+Where the spatially varying constant in time method (``c2d``) removes an absolute infiltration rate in mm/hr, this method removes a relative part of the rainfall:
+
+**qinf = (1 - runoff / 100) * precipitation**
+
+A run-off coefficient of 100 % therefore means that all rainfall runs off (no infiltration), and a value of 0 % means that all rainfall infiltrates.
+Values outside the range 0-100 are not accepted.
+The method only acts on the rainfall of the current time step, so water that is already in a cell does not infiltrate.
+
+For spatially varying run-off coefficients per cell use ``inffile`` with ``inftype = r2d``, for both regular and quadtree grids:
+
+.. code-block:: text
+
+	inffile = sfincs.infiltration.nc
+	inftype = r2d
+
+The ``inffile`` must contain the following variable:
+
+* ``runoff``: run-off coefficient in %
+
+**NOTE - The run-off coefficient method is only available through the NetCDF ``inffile``, there is no separate binary file option**
 
 
 Storage volume
