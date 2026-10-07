@@ -46,7 +46,7 @@ contains
             call read_netcdf_quadtree_get_dimension(veggiefile, varname, vegetation_vertical_segments)
             !
             if (vegetation_vertical_segments > 64) then
-                call stop_sfincs('Error ! vegetation_vertical_segments exceeds 64, check vegetationfile !', 1)
+                call stop_sfincs('Error ! vegetation_vertical_segments exceeds 64, check vegfile !', 1)
             endif
             !
             allocate(vegetation_stems_cd(np, vegetation_vertical_segments))
