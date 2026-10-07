@@ -1532,11 +1532,12 @@ contains
    real*4  :: qinf_loc
    real*4  :: rise
    real*4  :: rise_new
-   real*4  :: efac
+   real*4  :: afac
+   real*4  :: rfac
    real*4  :: w
    real*4  :: area_loc
    !
-   !$omp parallel do private(nm, nmr, hh_local, pr, depth, f, qinf_loc, rise, rise_new, efac, w, area_loc) schedule(static)
+   !$omp parallel do private(nm, nmr, hh_local, pr, depth, f, qinf_loc, rise, rise_new, afac, rfac, w, area_loc) schedule(static)
    !$acc parallel present( kcs, prcp, zs, zb, z_volume, cell_area, cell_area_m2, z_flags_iref, subgrid_z_zmin, qinfmap, cuminf, qsrc, &
    !$acc                   gw_rise, gw_level, gw_level0, gw_zground, gw_fmax, gw_phi, gw_sy, gw_kappa, gw_seepage, gw_cumseep, gw_receiver )
    !$acc loop independent gang vector
@@ -1595,9 +1596,21 @@ contains
          !
          if (gw_kappa(nm) > 0.0) then
             !
-            efac = exp(-gw_kappa(nm) * dt / gw_sy(nm))
-            rise_new = rise * efac + qinf_loc / gw_kappa(nm) * (1.0 - efac)
-            w = max(qinf_loc - (rise_new - rise) * gw_sy(nm) / dt, 0.0)
+            ! a = kappa dt / Sy, r = (1 - exp(-a)) / a. The seepage over the step is
+            ! w = q (1 - r) + kappa rise r, which is exact for both a -> 0 (w -> kappa rise)
+            ! and a -> inf (steady state q / kappa) and avoids the 1 - exp(-a)
+            ! cancellation in single precision for very small time steps.
+            !
+            afac = gw_kappa(nm) * dt / gw_sy(nm)
+            !
+            if (afac > 1.0e-4) then
+               rfac = (1.0 - exp(-afac)) / afac
+            else
+               rfac = 1.0 - 0.5 * afac + afac * afac / 6.0
+            endif
+            !
+            w = max(qinf_loc * (1.0 - rfac) + gw_kappa(nm) * rise * rfac, 0.0)
+            rise_new = rise + (qinf_loc - w) * dt / gw_sy(nm)
             !
          else
             !
