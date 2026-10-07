@@ -378,7 +378,7 @@ For all spatially varying infiltration methods the recommended interface is:
 .. code-block:: text
 
 	inffile = sfincs.infiltration.nc
-	inftype = c2d | cna | cnb | gai | hor | bkt
+	inftype = c2d | cna | cnb | gai | hor | bkt | gwt
 
 The required variables in ``inffile`` depend on ``inftype``:
 
@@ -388,6 +388,7 @@ The required variables in ``inffile`` depend on ``inftype``:
 * ``gai``: ``psi``, ``sigma``, ``ks``
 * ``hor``: ``f0``, ``fc``, ``kd``
 * ``bkt``: ``bucket_smax``, ``bucket_k``, ``bucket_loss``
+* ``gwt``: optional ``gw_depth0``, ``gw_fmax``, ``gw_phi``, ``gw_sy``, ``gw_keff``, ``gw_l0`` (each can also be given as a uniform ``gw_*`` keyword in sfincs.inp, in which case ``inffile`` may be omitted)
 
 The older separate binary infiltration keywords are still supported for backward compatibility only.
 
@@ -577,6 +578,40 @@ The ``inffile`` must contain the following variables:
 * ``bucket_smax``: maximum bucket storage in mm
 * ``bucket_k``: drainage coefficient in 1/hr
 * ``bucket_loss``: loss fraction in the range 0-1
+
+
+The groundwater table model:
+%%%%%
+
+**NOTE - Prototype status: new functionality, not yet field-tested**
+
+The groundwater table model is a zero-dimensional (per cell, no lateral groundwater flow) water-table model after Sanders et al. (2025). Each cell tracks the water-table elevation. Infiltration runs at the maximum rate ``gw_fmax`` when water is ponded, at the rainfall rate (capped by ``gw_fmax``) when the cell is dry, and stops when the water table reaches the ground level. The water table rises by the infiltrated depth divided by the specific yield, and drains by seepage proportional to its rise above the initial level, with rate coefficient ``gw_keff / gw_l0``. Infiltration is only applied over the pervious fraction ``gw_phi`` of each cell. Cells with a ground level below ``qinf_zmin`` (open water) have no aquifer. Like all infiltration methods it requires precipitation to be switched on.
+
+It is configured with:
+
+.. code-block:: text
+
+	inftype = gwt
+	gw_depth_ini = 1.0
+	gw_fmax = 30.0
+	gw_phi = 0.6
+	gw_sy = 0.3
+	gw_keff = 20.0
+	gw_l0 = 500.0
+	gw_seepage_mode = loss
+
+or with spatially varying fields in ``inffile`` (all optional, a uniform keyword overrides the field when given):
+
+* ``gw_depth0``: initial depth to groundwater in m
+* ``gw_fmax``: maximum infiltration rate in mm/hr
+* ``gw_phi``: pervious fraction (1 - imperviousness)
+* ``gw_sy``: specific yield
+* ``gw_keff``: effective hydraulic conductivity in mm/hr
+* ``gw_l0``: seepage distance in m
+
+Seepage is routed to a receiving surface-water cell (``gw_seepage_mode = receiver``, the default), treated as a loss (``loss``) or returned to the same cell (``local``). Receiver mode requires the integer field ``gw_receiver`` in ``inffile``: for every cell the 1-based quadtree index (position along ``mesh2d_nFaces``) of the cell that receives its seepage, typically the nearest canal, pond or sea cell. Cells with ``gw_receiver = 0`` lose their seepage. The seepage rate itself depends only on the rise of the water table in the source cell (Keff / l0 times the rise), not on the water level in the receiving cell, so it is always directed from the aquifer to the receiver.
+
+Output: the map file contains the water-table elevation ``gw_level`` and the seepage rate ``gw_seepage`` at every ``dtout``; the his file contains ``point_gw_level``. With ``storecumprcp = 1`` the cumulative seepage depth ``cumseep`` is added to the max output. The restart file (``rsttype = 7``) carries the water-table rise above its initial level, so a restarted run must use the same ``gw_depth_ini`` or ``gw_depth0`` as the original run.
 
 
 Storage volume

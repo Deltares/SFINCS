@@ -47,6 +47,7 @@ module sfincs_ncoutput_helpers
       integer :: zs_varid, zsmax_varid, zvolmax_varid, h_varid, u_varid, v_varid, tmax_varid, infstate_varid, t_zsmax_varid
       integer :: zvolume_varid, storagevolume_varid
       integer :: hmax_varid, vmax_varid, qmax_varid, cumprcp_varid, cuminf_varid, windmax_varid
+      integer :: gwseep_varid, cumseep_varid
       integer :: cumulative_urbdrain_varid
       integer :: patm_varid, wind_u_varid, wind_v_varid, precip_varid
       integer :: hm0_varid, hm0ig_varid, snapwavemsk_varid, tp_varid, tpig_varid, wavdir_varid
@@ -89,6 +90,7 @@ module sfincs_ncoutput_helpers
       integer :: zb_varid
       integer :: time_varid
       integer :: zs_varid, h_varid, u_varid, v_varid, prcp_varid, cumprcp_varid, discharge_varid, uvmag_varid, uvdir_varid
+      integer :: gwlevel_varid
       integer :: patm_varid, wind_speed_varid, wind_dir_varid
       integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid
       integer :: hm0_varid, hm0ig_varid, zsm_varid, tp_varid, tpig_varid, wavdir_varid

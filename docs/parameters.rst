@@ -511,12 +511,40 @@ Domain
 	  :units:		depends on selected inftype and variables in the NetCDF file
 	  :required:		no
 	  :format:		net
-	inftype = c2d | cna | cnb | gai | hor | bkt
-	  :description:		Selects which infiltration method is read from inffile. Bucket mode requires bucket_smax, bucket_k and bucket_loss in inffile.
+	inftype = c2d | cna | cnb | gai | hor | bkt | gwt
+	  :description:		Selects which infiltration method is read from inffile. Bucket mode requires bucket_smax, bucket_k and bucket_loss in inffile. Groundwater table mode (gwt) reads optional fields gw_depth0, gw_fmax, gw_phi, gw_sy, gw_keff and gw_l0 from inffile, or uses the uniform gw_* keywords below.
 	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
 	  :units:		-
 	  :required:		Only when inffile is used
 	  :format:		asc
+	gw_depth_ini = -999
+	  :description:		Groundwater table model (inftype = gwt): uniform initial depth to groundwater below the ground level. Overrides the gw_depth0 field in inffile when >= 0. Defaults to 1.0 m when neither is given.
+	  :units:		m
+	  :required:		no
+	gw_fmax = -999
+	  :description:		Groundwater table model: uniform maximum infiltration rate. Overrides the gw_fmax field in inffile when >= 0. Either the keyword or the field is required.
+	  :units:		mm/hr
+	  :required:		yes for inftype = gwt (keyword or inffile field)
+	gw_phi = -999
+	  :description:		Groundwater table model: uniform pervious fraction of the land surface (1 - imperviousness). Overrides the gw_phi field in inffile when >= 0. Defaults to 1.0.
+	  :units:		-
+	  :required:		no
+	gw_sy = -999
+	  :description:		Groundwater table model: uniform specific yield of the aquifer. Overrides the gw_sy field in inffile when >= 0. Defaults to 0.3.
+	  :units:		-
+	  :required:		no
+	gw_keff = -999
+	  :description:		Groundwater table model: uniform effective hydraulic conductivity for seepage (Keff = 2 b K / L for aquifer thickness b, conductivity K and floodplain width L). Seepage rate is Keff / gw_l0 times the water-table rise. Overrides the gw_keff field in inffile when >= 0. Seepage is off when gw_keff or gw_l0 is missing.
+	  :units:		mm/hr
+	  :required:		no
+	gw_l0 = -999
+	  :description:		Groundwater table model: uniform seepage distance to the receiving surface water. Overrides the gw_l0 field in inffile when >= 0.
+	  :units:		m
+	  :required:		no
+	gw_seepage_mode = receiver
+	  :description:		Groundwater table model: where seepage goes. receiver = added to the receiving surface-water cell given by the integer gw_receiver field in inffile (1-based quadtree index, 0 = lost), loss = leaves the model, local = returns to the same cell.
+	  :units:		-
+	  :required:		no
 	qinffile = sfincs.qinf
 	  :description:		Backward compatibility only. For spatially varying constant in time infiltration values per cell prefer inffile with inftype = c2d.
 	  :units:		mm/hr

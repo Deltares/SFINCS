@@ -244,7 +244,20 @@ contains
       ! Infiltration and losses
       !
       call get_keyword(500, 'inffile',                         inffile,                         'none', [character(len=17) :: 'infiltrationfile', 'infiltration_file'])   ! infiltration parameters TOML file
-      call get_keyword(500, 'inftype',                         inftype,                         'none', [character(len=17) :: 'infiltrationtype', 'infiltration_type'])   ! infiltration flavor (con, c2d, cna, cnb, gai, hor, bkt)
+      call get_keyword(500, 'inftype',                         inftype,                         'none', [character(len=17) :: 'infiltrationtype', 'infiltration_type'])   ! infiltration flavor (con, c2d, cna, cnb, gai, hor, bkt, gwt)
+      !
+      ! Groundwater table model (inftype = gwt). Uniform values override inffile fields when >= 0.
+      !
+      call get_keyword(500, 'gw_depth_ini',                    gw_depth_ini,                    -999.0)            ! uniform initial depth to groundwater (m)
+      call get_keyword(500, 'gw_fmax',                         gw_fmax_uniform,                 -999.0)            ! uniform maximum infiltration rate (mm/hr)
+      call get_keyword(500, 'gw_phi',                          gw_phi_uniform,                  -999.0)            ! uniform pervious fraction (-)
+      call get_keyword(500, 'gw_sy',                           gw_sy_uniform,                   -999.0)            ! uniform specific yield (-)
+      call get_keyword(500, 'gw_keff',                         gw_keff_uniform,                 -999.0)            ! uniform effective hydraulic conductivity (mm/hr)
+      call get_keyword(500, 'gw_l0',                           gw_l0_uniform,                   -999.0)            ! uniform seepage distance (m)
+      call get_keyword(500, 'gw_seepage_mode',                 gw_seepage_mode,                 'receiver')        ! seepage destination: receiver, loss or local
+      !
+      if (gw_fmax_uniform >= 0.0) gw_fmax_uniform = gw_fmax_uniform / 3.6e6   ! mm/hr to m/s
+      if (gw_keff_uniform >= 0.0) gw_keff_uniform = gw_keff_uniform / 3.6e6   ! mm/hr to m/s
       !
       ! Legacy binary infiltration inputs (kept for backward compatibility).
       !

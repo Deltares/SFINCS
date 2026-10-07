@@ -363,8 +363,94 @@ module sfincs_ncinput
    !   
    NF90(nf90_close(net_file_generic%ncid))       
    ! 
-   end subroutine   
-   
+   end subroutine
+
+
+   logical function netcdf_quadtree_variable_exists(ncfile, varname)
+   !
+   ! Returns .true. when variable varname is present in netcdf file ncfile.
+   ! Used for optional fields (e.g. groundwater table inputs).
+   !
+   use netcdf
+   !
+   implicit none
+   !
+   character*256 :: ncfile
+   character*256 :: varname
+   !
+   integer :: ncid, varid, status
+   !
+   netcdf_quadtree_variable_exists = .false.
+   !
+   status = nf90_open(trim(ncfile), NF90_NOWRITE, ncid)
+   if (status /= nf90_noerr) return
+   !
+   status = nf90_inq_varid(ncid, trim(varname), varid)
+   netcdf_quadtree_variable_exists = (status == nf90_noerr)
+   !
+   status = nf90_close(ncid)
+   !
+   end function netcdf_quadtree_variable_exists
+
+
+   subroutine read_netcdf_quadtree_to_sfincs_int(ncfile, varname, var)
+   !
+   ! Integer variant of read_netcdf_quadtree_to_sfincs (e.g. receiver cell indices).
+   ! Values are copied as stored in the file; the caller interprets them.
+   !
+   use netcdf
+   use sfincs_data
+   use quadtree
+   !
+   implicit none
+   !
+   integer :: nm, ip, nrcells, status
+   !
+   character*256 :: ncfile
+   character*256 :: varname
+   !
+   integer*4, dimension(np), intent(inout) :: var
+   !
+   integer*4, dimension(:), allocatable :: vartmp
+   !
+   NF90(nf90_open(trim(ncfile), NF90_NOWRITE, net_file_generic%ncid))
+   !
+   NF90(nf90_inq_dimid(net_file_generic%ncid, "mesh2d_nFaces", net_file_generic%np_dimid))
+   NF90(nf90_inquire_dimension(net_file_generic%ncid, net_file_generic%np_dimid, len = nrcells))
+   !
+   if (nrcells /= quadtree_nr_points) then
+      write(logstr,*)'Error    : netcdf input file ',trim(ncfile),' contains: ',nrcells, 'input points, while expected is: ',quadtree_nr_points,' as in sfincs.nc quadtree grid'
+      call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   status = nf90_inq_varid(net_file_generic%ncid, varname, net_file_generic%gen_varid)
+   !
+   if (status /= nf90_noerr) then
+       write(logstr,'(a,a,a,a,a)')'Error    : netcdf input file ',trim(ncfile),' does not contain needed variable: ',trim(varname),' !'
+       call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   allocate(vartmp(nrcells))
+   !
+   NF90(nf90_get_var(net_file_generic%ncid, net_file_generic%gen_varid, vartmp(:)))
+   !
+   do ip = 1, quadtree_nr_points
+      !
+      nm = index_sfincs_in_quadtree(ip)
+      !
+      if (nm > 0) then
+         var(nm) = vartmp(ip)
+      endif
+      !
+   enddo
+   !
+   deallocate(vartmp)
+   !
+   NF90(nf90_close(net_file_generic%ncid))
+   !
+   end subroutine read_netcdf_quadtree_to_sfincs_int
+
+
    subroutine read_netcdf_quadtree_to_sfincs_real8(ncfile, varname, var)
    ! For instance: storage_volume.nc, vol, storage_volume
    !

@@ -74,6 +74,14 @@ module sfincs_data
       real*4, dimension(:), allocatable :: cd_wnd
       real*4, dimension(:), allocatable :: cd_val
       real*4 qinf_zmin
+      real*4 gw_depth_ini                 ! uniform initial depth to groundwater (m), < 0 = not set
+      real*4 gw_fmax_uniform              ! uniform max infiltration rate (m/s after conversion), < 0 = not set
+      real*4 gw_phi_uniform               ! uniform pervious fraction (-), < 0 = not set
+      real*4 gw_sy_uniform                ! uniform specific yield (-), < 0 = not set
+      real*4 gw_keff_uniform              ! uniform effective conductivity (m/s after conversion), < 0 = not set
+      real*4 gw_l0_uniform                ! uniform seepage distance (m), < 0 = not set
+      character*8 gw_seepage_mode         ! 'receiver', 'loss' or 'local'
+      integer gw_seepage_imode            ! 0 = loss, 1 = local, 2 = receiver
       real*4 btfilter
       real*4 sfacinf
       real*4 dym
@@ -386,6 +394,21 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: bucket_drain_rate                 ! net removal from surface this step (m/s)
       real*4, dimension(:),   allocatable :: bucket_loss                       ! loss fraction per cell (0-1), ET/deep percolation
       real*4, dimension(:),   allocatable :: bucket_runoff                     ! bucket drainage returned as surface runoff (m/s)
+      !
+      ! Groundwater table model (0D, PRIMo-style: Sanders et al. 2025)
+      !
+      real*4, dimension(:),   allocatable :: gw_rise                           ! water-table rise above baseline (m), the model state
+      real*4, dimension(:),   allocatable :: gw_level                          ! water-table elevation gw_level0 + gw_rise (m, datum), for output
+      real*4, dimension(:),   allocatable :: gw_level0                         ! initial water-table elevation (m, datum), seepage baseline
+      real*4, dimension(:),   allocatable :: gw_zground                        ! ground level used for depth to groundwater (m)
+      real*4, dimension(:),   allocatable :: gw_fmax                           ! max infiltration rate (m/s)
+      real*4, dimension(:),   allocatable :: gw_phi                            ! pervious fraction (-), 0 = no aquifer
+      real*4, dimension(:),   allocatable :: gw_sy                             ! specific yield (-)
+      real*4, dimension(:),   allocatable :: gw_kappa                          ! seepage rate coefficient Keff / l0 (1/s)
+      real*4, dimension(:),   allocatable :: gw_seepage                        ! seepage rate this step (m/s water)
+      real*4, dimension(:),   allocatable :: gw_cumseep                        ! cumulative seepage depth (m)
+      real*4, dimension(:),   allocatable :: gw_rise_rst                       ! water-table rise read from restart file (temporary)
+      integer*4, dimension(:), allocatable :: gw_receiver                      ! sfincs index of receiving cell, 0 = none
       !
       ! Wind reduction for spiderweb winds
       !
@@ -956,6 +979,18 @@ module sfincs_data
     if(allocated(bucket_drain_rate)) deallocate(bucket_drain_rate)
     if(allocated(bucket_loss)) deallocate(bucket_loss)
     if(allocated(bucket_runoff)) deallocate(bucket_runoff)
+    if(allocated(gw_rise)) deallocate(gw_rise)
+    if(allocated(gw_level)) deallocate(gw_level)
+    if(allocated(gw_level0)) deallocate(gw_level0)
+    if(allocated(gw_zground)) deallocate(gw_zground)
+    if(allocated(gw_fmax)) deallocate(gw_fmax)
+    if(allocated(gw_phi)) deallocate(gw_phi)
+    if(allocated(gw_sy)) deallocate(gw_sy)
+    if(allocated(gw_kappa)) deallocate(gw_kappa)
+    if(allocated(gw_seepage)) deallocate(gw_seepage)
+    if(allocated(gw_cumseep)) deallocate(gw_cumseep)
+    if(allocated(gw_rise_rst)) deallocate(gw_rise_rst)
+    if(allocated(gw_receiver)) deallocate(gw_receiver)
     if(allocated(nuvisc)) deallocate(nuvisc)
     !
     ! Boundary velocity points

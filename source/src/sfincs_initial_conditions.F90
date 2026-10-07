@@ -206,11 +206,11 @@ contains
       write(logstr,'(a,i0)')'Info    : found rsttype = ', rsttype
       call write_log(logstr, 0)
       !
-      if (rsttype < 1 .or. rsttype > 6) then
+      if (rsttype < 1 .or. rsttype > 7) then
          !
          ! Give warning, rstfile input rsttype not recognized
          !
-         write(logstr,'(a,i0)')'Warning! rstfile not recognized, skipping restart file input! rsttype should be 1-6, but found rsttype = ', rsttype 
+         write(logstr,'(a,i0)')'Warning! rstfile not recognized, skipping restart file input! rsttype should be 1-7, but found rsttype =', rsttype 
          call write_log(logstr, 1)
          !          
          close(500)      
@@ -224,7 +224,7 @@ contains
          !      
          ! Read fluxes q
          !
-         if (rsttype==1 .or. rsttype==2 .or. rsttype==4 .or. rsttype==5 .or. rsttype==6) then     
+         if (rsttype==1 .or. rsttype==2 .or. rsttype==4 .or. rsttype==5 .or. rsttype==6 .or. rsttype==7) then
             read(500)rdummy
             read(500)iniq
             read(500)rdummy
@@ -251,12 +251,22 @@ contains
             !
          elseif (rsttype==6) then ! Infiltration method horton
             !
-            read(500)rdummy                               
+            read(500)rdummy
             read(500)rain_T1
-            write(logstr,'(a,a)')'Info    : reading rain_T1 from rstfile, complements input values of ', trim(fcfile) 
+            write(logstr,'(a,a)')'Info    : reading rain_T1 from rstfile, complements input values of ', trim(fcfile)
             call write_log(logstr, 0)
-            !              
-         endif          
+            !
+         elseif (rsttype==7) then ! Infiltration method gwt (groundwater table)
+            !
+            ! Infiltration arrays are allocated later (initialize_infiltration), so park the
+            ! water-table rise in gw_rise_rst; initialize_groundwater_table picks it up.
+            !
+            allocate(gw_rise_rst(np))
+            read(500)rdummy
+            read(500)gw_rise_rst
+            call write_log('Info    : reading gw_rise from rstfile, water table starts above the gw_depth0 baseline', 0)
+            !
+         endif
          !
          close(500)      
          !
