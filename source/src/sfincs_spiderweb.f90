@@ -1,6 +1,7 @@
 module sfincs_spiderweb
 
     use sfincs_log
+    use sfincs_read
     
 contains
 
@@ -248,10 +249,10 @@ contains
       !
       open(888,file=filename)   
       !
-      call read_int_input(888,'n_cols',ncols,0)
-      call read_int_input(888,'n_rows',nrows,0)
-      call read_int_input(888,'n_quantity',nquant,0)
-      call read_real_input(888,'spw_radius',spwrad,0.0)
+      call get_keyword(888, 'n_cols',     ncols,      0)
+      call get_keyword(888, 'n_rows',     nrows,      0)
+      call get_keyword(888, 'n_quantity', nquant,     0)
+      call get_keyword(888, 'spw_radius', spwrad,     0.0)
       !   
       close(888)
       !
@@ -340,13 +341,13 @@ contains
       !
       open(888, file=filename)   
       !
-      call read_int_input(888,'n_cols',ncols,0)
-      call read_int_input(888,'n_rows',nrows,0)
-      call read_int_input(888,'n_quantity',nquant,0)
-      call read_real_input(888,'x_llcorner',x_llcorner,0.0)
-      call read_real_input(888,'y_llcorner',y_llcorner,0.0)
-      call read_real_input(888,'dx',dx,0.0)
-      call read_real_input(888,'dy',dy,0.0)
+      call get_keyword(888, 'n_cols',     ncols,      0)
+      call get_keyword(888, 'n_rows',     nrows,      0)
+      call get_keyword(888, 'n_quantity', nquant,     0)
+      call get_keyword(888, 'x_llcorner', x_llcorner, 0.0)
+      call get_keyword(888, 'y_llcorner', y_llcorner, 0.0)
+      call get_keyword(888, 'dx',         dx,         0.0)
+      call get_keyword(888, 'dy',         dy,         0.0)
       !   
       close(888)
       !
@@ -404,61 +405,6 @@ contains
      !
    end subroutine
 
-   
-   subroutine read_real_input(fileid,keyword,value,default)
-   !
-   character(*), intent(in) :: keyword
-   character(len=256)       :: keystr
-   character(len=256)       :: valstr
-   character(len=256)       :: line
-   integer, intent(in)      :: fileid
-   real*4, intent(out)      :: value
-   real*4, intent(in)       :: default
-   integer j,stat
-   !
-   value = default
-   rewind(fileid)   
-   do while(.true.)
-      read(fileid,'(a)',iostat = stat)line
-      if (stat<0) exit
-      j=index(line,'=')      
-      keystr = trim(line(1:j-1))
-      if (trim(keystr)==trim(keyword)) then
-         valstr = trim(line(j+1:256))
-         read(valstr,*)value
-         exit
-      endif
-   enddo 
-   !
-   end  subroutine  
-
-   
-   subroutine read_int_input(fileid,keyword,value,default)
-   !
-   character(*), intent(in) :: keyword
-   character(len=256)       :: keystr
-   character(len=256)       :: valstr
-   character(len=256)       :: line
-   integer, intent(in)      :: fileid
-   integer, intent(out)     :: value
-   integer, intent(in)      :: default
-   integer j,stat
-   !
-   value = default
-   rewind(fileid)   
-   do while(.true.)
-      read(fileid,'(a)',iostat = stat)line
-      if (stat<0) exit
-      j=index(line,'=')      
-      keystr = trim(line(1:j-1))
-      if (trim(keystr)==trim(keyword)) then
-         valstr = trim(line(j+1:256))
-         read(valstr,*)value         
-         exit
-      endif
-   enddo 
-   !
-   end subroutine
 
    
    subroutine compute_time_in_seconds(line,trefstr,dtsec)

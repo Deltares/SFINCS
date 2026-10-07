@@ -126,6 +126,19 @@ contains
             spw_ye(it) = yy
          enddo
          !
+      else
+         !
+         ! utmzone not set: sanity check for a projected SFINCS model combined with
+         ! spiderweb eye coordinates that still look like geographic lon/lat (degrees).
+         ! In that case the spiderweb will not overlap the projected grid -> zero wind.
+         !
+         if (.not. crsgeo .and. abs(spw_xe(1)) <= 360.0 .and. abs(spw_ye(1)) <= 90.0) then
+            !
+            call write_log('Warning : SFINCS model is projected but utmzone is not set, while the spiderweb eye coordinates look like geographic lon/lat (degrees).', 1)
+            call write_log('Warning : the spiderweb likely does not overlap the model domain, resulting in (near-)zero wind. Set "utmzone" in sfincs.inp to reproject the spiderweb.', 1)
+            !
+         endif
+         !
       endif
       !
    endif   
@@ -629,6 +642,10 @@ contains
          ind1(4) = idstspw + 1
          if (ind1(3) > spw_nrows) cycle
          dj1     = (dstspw - dradspw * idstspw) / dradspw
+         ! When dstspw < dradspw (point within first radial bin), idstspw is clamped to 1
+         ! but the raw dj1 formula yields a negative value. Clamp to 0 so bilinear weights
+         ! remain in [0,1] and do not produce unphysical negative contributions.
+         dj1     = max(dj1, 0.0)
          phispw  = 0.5*pi - atan2(dye, dxe) ! Geographic
          phispw  = modulo(phispw, 2 * pi)
          !
@@ -1189,7 +1206,7 @@ contains
                !
             else
                !
-               prcp0(nm) = 0.0
+               prcp1(nm) = 0.0
                !
             endif
             !
@@ -1226,19 +1243,14 @@ contains
    end subroutine
 
 
-   subroutine update_meteo_forcing(t, dt, tloop)
+   subroutine update_meteo_forcing(t, dt)
    !
    ! Update wind stresses and precipitation (this happens every time step)
    !
    use sfincs_data
+   use sfincs_timers
    !
    implicit none
-   !   
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
    !
    real*8                           :: t
    real*4                           :: dt
@@ -1248,7 +1260,7 @@ contains
    real*4                           :: oneminsmfac
    integer                          :: nm, ib
    !
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('meteo forcing')
    !
    if (meteo3d) then
       !
@@ -1413,13 +1425,34 @@ contains
    !
    if (prcpfile(1:4) /= 'none') then
       !
-      call update_precipitation_from_timeseries(t, dt) 
+      call update_precipitation_from_timeseries(t, dt)
       !
    endif
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0 * (count1 - count0) / count_rate
-   !         
+   ! Apply rainfall to the point-source field qsrc (m3/s). prcp is m/s,
+   ! so multiply by cell area. qsrc was zeroed at the end of the previous
+   ! step inside the water-level update loops, so this is the first
+   ! accumulation into qsrc for the current step.
+   !
+   if (precip) then
+      !
+      !$acc parallel loop present( qsrc, prcp, cell_area, cell_area_m2, z_flags_iref )
+      !$omp parallel do default(shared) private(nm) schedule(static)
+      do nm = 1, np
+         !
+         if (crsgeo) then
+            qsrc(nm) = qsrc(nm) + prcp(nm) * cell_area_m2(nm)
+         else
+            qsrc(nm) = qsrc(nm) + prcp(nm) * cell_area(z_flags_iref(nm))
+         endif
+         !
+      enddo
+      !$omp end parallel do
+      !
+   endif
+   !
+   call timer_stop('meteo forcing')
+   !
    end subroutine
 
 
@@ -1538,25 +1571,20 @@ contains
    end subroutine   
 
    
-   subroutine update_meteo_fields(t, tloop)
+   subroutine update_meteo_fields(t)
    !
    ! Update values at boundary points
    !
    use sfincs_data
+   use sfincs_timers
    !
    implicit none
-   !
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
    !
    integer  :: nm
    !
    real*8   :: t
    !
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('meteo fields')
    !
    if (amufile(1:4) /= 'none' .or. netamuamvfile(1:4) /= 'none') then
       !
@@ -1598,9 +1626,8 @@ contains
       !
    endif
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
-   !         
-   end subroutine   
+   call timer_stop('meteo fields')
+   !
+   end subroutine
 
 end module

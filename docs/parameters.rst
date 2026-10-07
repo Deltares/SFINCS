@@ -273,10 +273,10 @@ More parameters for model input (only for advanced users)
 	  :min:			0
 	  :max:			1		    
 	structure_relax
-	  :description:		Structure_relax in seconds gives ratio between new and old discharge (default 10s), as relaxation factor
+	  :description:		Relaxation time constant for drainage structure discharges: the discharge follows the structure formula with a first-order lag of about structure_relax seconds (alpha = dt / (structure_relax + dt)). 0 disables the relaxation.
 	  :units:		s
 	  :default:		10
-	  :min:			1
+	  :min:			0
 	  :max:			86400	  
 	  
 	**Drag coefficients:**
@@ -317,6 +317,16 @@ Parameters for model output
 	  :description:		Stop date in 'yyyymmdd HHMMSS'
 	  :units:		m
 	  :default:		20000101 000000
+	t0out
+	  :description:		Start time of the map, his and max output window, in seconds since 'tref'. Map and his output start at 't0out', and the first max output covers 't0out' until 't0out + dtmaxout' (maxima before 't0out' are discarded). Also the 'dtrstout' interval counts from 't0out'. Values before 'tstart' are set to 'tstart'.
+	  					NOTE - his output and the max window start at 't0out' from SFINCS v2026.02 Hautacam release onwards.
+	  :units:		s
+	  :default:		'tstart' in seconds since 'tref'
+	t1out
+	  :description:		Stop time of the map, his and max output window, in seconds since 'tref'. No map or his output is written after 't1out', and the last max output covers the (possibly shorter) window ending at 't1out'. Restart output is not affected. Values after 'tstop' are set to 'tstop'.
+	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
+	  :units:		s
+	  :default:		'tstop' in seconds since 'tref'
 	trstout
 	  :description:		Specific time in seconds since 'tref' for restart file output being written away, turned of by default.
 	  :units:		s
@@ -393,14 +403,29 @@ Parameters for model output
 	  					NOTE - only used if subgrid model, and if storehsubgrid = 1
 	  :units:		logical
 	  :default:		0		   
-	storeqdrain
-	  :description:		Flag to turn on writing away drainage discharge during simulation (storeqdrain = 1)
+	store_river_discharge
+	  :description:		Flag to turn on writing away per-source river discharge ('river_discharge') and source names ('river_name') to 'sfincs_his.nc' on 'dthisout' interval (only effective when 'srcfile' or 'netsrcdisfile' is specified).
+	  					NOTE - this is the prescribed discharge from the dis/netsrcdis input, linearly interpolated to the model time (instantaneous value), not a computed or time-averaged inflow.
 	  :units:		-
-	  :default:		0	
+	  :default:		0
+	store_urban_drainage_discharge
+	  :description:		Flag to turn on writing away per-zone outfall discharge to 'sfincs_his.nc' on 'dthisout' interval (only effective when 'urbfile' is specified).
+	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
+	  :units:		-
+	  :default:		0
+	store_cumulative_urban_drainage
+	  :description:		Flag to turn on writing away cumulative urban drainage depth (drained volume / cell area, in m) per cell to 'sfincs_map.nc' on 'dtmaxout' interval (only effective when 'urbfile' is specified).
+	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
+	  :units:		-
+	  :default:		0
 	storezvolume
-	  :description:		Flag to turn on writing away water volumes for the subgrid mode during simulation (storezvolume = 1)
+	  :description:		Flag to turn on writing away water volumes 'subgrid_volume' for the subgrid mode on 'dtmapout' interval during simulation (storezvolume = 1)
 	  :units:		-
-	  :default:		0	
+	  :default:		0
+	storezvolmax
+	  :description:		Flag to turn on writing away the maximum water volume 'zvolmax' in subgrid cells on 'dtmaxout' interval during simulation (storezvolmax = 1). Used for improved downscaling of flood maps. Only for subgrid models, and only if dtmaxout > 0.
+	  :units:		-
+	  :default:		1
 	storestoragevolume
 	  :description:		Flag to turn on writing away storage volumes for the subgrid mode during simulation (storestoragevolume = 1)
 	  :units:		-
@@ -425,6 +450,11 @@ Parameters for model output
 	  :description:		Flag to turn on writing away every timestep to output as debug mode (debug = 1)
 	  :units:		-
 	  :default:		0	
+	writeruntime
+	  :description:		Flag to turn on writing a 'runtimes.txt' file at the end of the simulation (writeruntime = 1), with the wall-clock time in seconds spent in total (simulation loop), on input, and in the boundaries, meteo (fields 'meteo1' and forcing 'meteo2'), momentum, structures, continuity and output phases.
+	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
+	  :units:		-
+	  :default:		0
 	percentage_done
 	  :description:		Setting of how frequent to show progress of SFINCS in terms of % and time remaining, default = 5%
 	  :units:		integer
@@ -475,71 +505,73 @@ Domain
 	  :units:		s/m^(1/3)
 	  :required:		no in case of regular mode, ignored in case of subgrid mode	  
 	  :format:		bin	 
-	infiltrationfile = sfincs.infiltration.nc
-	  :description:		Recommended NetCDF input for spatially varying infiltration and bucket-model losses. Use together with infiltrationtype.
-	  :units:		depends on selected infiltrationtype and variables in the NetCDF file
+	inffile = sfincs.infiltration.nc
+	  :description:		Recommended NetCDF input for spatially varying infiltration and bucket-model losses. Use together with inftype.
+	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
+	  :units:		depends on selected inftype and variables in the NetCDF file
 	  :required:		no
 	  :format:		net
-	infiltrationtype = c2d | cna | cnb | gai | hor | bkt
-	  :description:		Selects which infiltration method is read from infiltrationfile. Bucket mode requires bucket_smax, bucket_k and bucket_loss in infiltrationfile.
+	inftype = c2d | cna | cnb | gai | hor | bkt
+	  :description:		Selects which infiltration method is read from inffile. Bucket mode requires bucket_smax, bucket_k and bucket_loss in inffile.
+	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
 	  :units:		-
-	  :required:		Only when infiltrationfile is used
+	  :required:		Only when inffile is used
 	  :format:		asc
-	drainagefile = sfincs.drainage
-	  :description:		Spatially varying drainage mimic input in mm/hr. Can be a binary map or a NetCDF file with variable drainage_rate. This replaces the removed qdrain keyword.
-	  :units:		mm/hr
-	  :required:		no
-	  :format:		bin or net
 	qinffile = sfincs.qinf
-	  :description:		Backward compatibility only. For spatially varying constant in time infiltration values per cell prefer infiltrationfile with infiltrationtype = c2d.
+	  :description:		Backward compatibility only. For spatially varying constant in time infiltration values per cell prefer inffile with inftype = c2d.
 	  :units:		mm/hr
 	  :required:		no	  
 	  :format:		bin	  
 	scsfile = sfincs.scs
-	  :description:		Backward compatibility only. For Curve Number method A (without recovery) prefer infiltrationfile with infiltrationtype = cna.
+	  :description:		Backward compatibility only. For Curve Number method A (without recovery) prefer inffile with inftype = cna.
 	  :units:		-
 	  :required:		no	  
 	  :format:		bin	  	  
 	smaxfile = sfincs.smax
-	  :description:		Backward compatibility only. For Curve Number method B (with recovery) prefer infiltrationfile with infiltrationtype = cnb. The smaxfile contains the maximum soil moisture storage capacity in m.
+	  :description:		Backward compatibility only. For Curve Number method B (with recovery) prefer inffile with inftype = cnb. The smaxfile contains the maximum soil moisture storage capacity in m.
 	  :units:		m
 	  :required:		no	  
 	  :format:		bin	  	
 	sefffile = sfincs.seff
-	  :description:		Backward compatibility only. For Curve Number method B (with recovery) prefer infiltrationfile with infiltrationtype = cnb. The sefffile contains soil moisture storage capacity at the start in m.
+	  :description:		Backward compatibility only. For Curve Number method B (with recovery) prefer inffile with inftype = cnb. The sefffile contains soil moisture storage capacity at the start in m.
 	  :units:		m
 	  :required:		no	  
 	  :format:		bin	  
 	ksfile = sfincs.ks
-	  :description:		Backward compatibility only. For Curve Number method B (with recovery) and Green & Ampt infiltration prefer infiltrationfile with infiltrationtype = cnb or gai. The ksfile contains saturated hydraulic conductivity in mm/hr.
+	  :description:		Backward compatibility only. For Curve Number method B (with recovery) and Green & Ampt infiltration prefer inffile with inftype = cnb or gai. The ksfile contains saturated hydraulic conductivity in mm/hr.
 	  :units:		mm/hr
 	  :required:		no	  
 	  :format:		bin	  
 	sigmafile = sfincs.sigma
-	  :description:		Backward compatibility only. For Green & Ampt infiltration prefer infiltrationfile with infiltrationtype = gai. The sigmafile contains soil moisture deficit in [-].
+	  :description:		Backward compatibility only. For Green & Ampt infiltration prefer inffile with inftype = gai. The sigmafile contains soil moisture deficit in [-].
 	  :units:		-
 	  :required:		no	  
 	  :format:		bin	 
 	psifile = sfincs.psi
-	  :description:		Backward compatibility only. For Green & Ampt infiltration prefer infiltrationfile with infiltrationtype = gai. The psifile contains suction head at the wetting front in mm.
+	  :description:		Backward compatibility only. For Green & Ampt infiltration prefer inffile with inftype = gai. The psifile contains suction head at the wetting front in mm.
 	  :units:		mm
 	  :required:		no	  
 	  :format:		bin	 
 	f0file = sfincs.f0
-	  :description:		Backward compatibility only. For Horton infiltration prefer infiltrationfile with infiltrationtype = hor. The f0file contains maximum (initial) infiltration capacity in mm/hr.
+	  :description:		Backward compatibility only. For Horton infiltration prefer inffile with inftype = hor. The f0file contains maximum (initial) infiltration capacity in mm/hr.
 	  :units:		mm/hr
 	  :required:		no	  
 	  :format:		bin	
 	fcfile = sfincs.fc
-	  :description:		Backward compatibility only. For Horton infiltration prefer infiltrationfile with infiltrationtype = hor. The fcfile contains the minimum (asymptotic) infiltration rate in mm/hr.
+	  :description:		Backward compatibility only. For Horton infiltration prefer inffile with inftype = hor. The fcfile contains the minimum (asymptotic) infiltration rate in mm/hr.
 	  :units:		mm/hr
 	  :required:		no	  
 	  :format:		bin	 	
 	kdfile = sfincs.kd
-	  :description:		Backward compatibility only. For Horton infiltration prefer infiltrationfile with infiltrationtype = hor. The kdfile contains the empirical decay constant in hr-1.
+	  :description:		Backward compatibility only. For Horton infiltration prefer inffile with inftype = hor. The kdfile contains the empirical decay constant in hr-1.
 	  :units:		hr-1
 	  :required:		no	  
 	  :format:		bin	 		  	   	  
+	drainagefile = sfincs.drainage.nc
+	  :description:		Spatially varying drainage mimic rate, a constant-in-time removal of water from wet cells representing subsurface drainage. Either a NetCDF file (extension .nc) with variable drainage_rate, or a binary map (regular grids only).
+	  :units:		mm/hr
+	  :required:		no
+	  :format:		net or bin
 	sbgfile = sfincs.sbg
 	  :description:		File containing subgrid tables, only needed by SFINCS if you want to run your model in the subgrid mode. Recommended netcdf file input option available from SFINCS 2024.01 release onwards as in Van Ormondt et al. 2024, binary file option still possible for backwards compatability.
 	  :units:		-
@@ -687,8 +719,27 @@ Structures
 	  :required:		no
 	  :format:		asc	 
 	drnfile = sfincs.drn
-	  :description:		Drainage pumps, culverts and check valves are both specified using the same format file, put with a different indication of the type (type=1 is drainage pump, type=2 is culvert and type=3 is check valve).
+	  :description:		Drainage structures (pumps, culverts, check valves and gates), specified in a TOML file with one [[src_structure]] block per structure. The legacy fixed-column ASCII format (type=1 is drainage pump, type=2 is culvert, type=3 is check valve, type=4/5 is gate) is still accepted. See 'Drainage Structures' in the user manual for the full schema.
+	  					NOTE - TOML format from SFINCS v2026.02 Hautacam release onwards.
 	  :units:		coordinates: m in projected UTM zone, discharges in m^3/s.
 	  :required:		no
-	  :format:		asc	 
-	  
+	  :format:		toml or asc (legacy)
+	dkbfile = sfincs.dkb
+	  :description:		Dike breaches, specified in a TOML file with one [[src_structure]] block (type = "dike_breach") per breach. The breach deepens and then widens in time following Verheij & Van der Knaap (2003). See 'Dike breach' in the user manual for the full schema.
+	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
+	  					NOTE - Prototype status: field-tested, but still being improved iteratively.
+	  :units:		coordinates: m in projected UTM zone, elevations in m above reference level, times in s.
+	  :required:		no
+	  :format:		toml
+
+Urban drainage
+-----
+
+	urbfile = sfincs.urb
+	  :description:		TOML file declaring one or more urban-drainage zones. Each zone is a polygon mapped to a single outfall cell; zone cells drain to the outfall at a design rate (specified either as design_precip in mm/hr or max_outfall_rate in m^3/s), and the outfall can push water back into the cells unless a check valve is set. See 'Urban Drainage' in the user manual for the full schema.
+	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
+	  					NOTE - Prototype status: field-tested, but still being improved iteratively.
+	  :units:		coordinates: m in projected UTM zone; design rate in mm/hr or m^3/s; thresholds in m.
+	  :required:		no
+	  :format:		toml
+

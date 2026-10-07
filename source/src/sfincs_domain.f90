@@ -10,6 +10,7 @@ contains
    use sfincs_data
    use quadtree
    use sfincs_infiltration   
+   use sfincs_vegetation
    use sfincs_timestep_analysis   
    !
    implicit none
@@ -24,12 +25,10 @@ contains
    !
    call initialize_roughness()
    !
-   call initialize_infiltration() ! see: sfincs_infiltration.f90 (includes bucket model if infiltrationtype='bkt')
-   !
-   call initialize_drainage_mimic()
-   !
    call initialize_storage_volume()
    !
+   call initialize_vegetation()
+   !   
    call initialize_hydro()
    !
    if (timestep_analysis) then
@@ -2060,76 +2059,6 @@ contains
    end subroutine
 
 
-   subroutine initialize_drainage_mimic()
-   !
-   use sfincs_data
-   use sfincs_ncinput
-   !
-   implicit none
-   !
-   integer :: nm
-   integer :: nchar
-   logical :: ok
-   character*256 :: varname
-   !
-   ! Check if drainage is enabled
-   !
-   if (drainagefile /= 'none') then
-      !
-      drainage = .true.
-      !
-      allocate(qdrain_rate(np))
-      !
-      !
-      ! Spatially-varying drainage rate
-      !
-      write(logstr,'(a)')'Info    : turning on drainage mimic (spatially-varying)'
-      call write_log(logstr, 0)
-      !
-      nchar = len_trim(drainagefile)
-      ok = check_file_exists(drainagefile, 'Drainage file', .true.)
-      !
-      if (drainagefile(nchar - 1 : nchar) == 'nc') then
-         !
-         varname = 'drainage_rate'
-         call read_netcdf_quadtree_to_sfincs(drainagefile, varname, qdrain_rate)
-         !
-         ! Convert from mm/hr to m/s
-         !
-         qdrain_rate = qdrain_rate / 3600.0 / 1000.0
-         !
-      else
-         !
-         ! Read from binary file (assumed to be in mm/hr)
-         !
-         open(unit = 500, file = trim(drainagefile), form = 'unformatted', access = 'stream')
-         read(500)qdrain_rate
-         close(500)
-         !
-         ! Convert from mm/hr to m/s
-         !
-         qdrain_rate = qdrain_rate / 3600.0 / 1000.0
-         !
-      endif
-      !
-   else
-      !
-      ! Allocate minimal arrays for OpenACC compatibility
-      !
-      allocate(qdrain_rate(1))
-      qdrain_rate = 0.0
-      !
-      if (manningfile(1:4) /= 'none') then 
-         !
-         call write_log('Warning   : manningfile input will be ignored because SFINCS will use the friction information from sbgfile!', 1)
-         !
-      endif
-       !
-   endif
-   !
-   end subroutine
-
-
    subroutine initialize_storage_volume()
    !
    use sfincs_data
@@ -2271,12 +2200,18 @@ contains
    allocate(uv0(npuv + ncuv + 1))
    !
    allocate(kfuv(npuv))
-   ! 
-   zs  = 0.0
-   q   = 0.0
-   q0  = 0.0
-   uv  = 0.0
-   uv0 = 0.0
+   !
+   ! Cell-wise discharge accumulator (point sources + drainage structures),
+   ! read by sfincs_continuity.
+   !
+   allocate(qsrc(np))
+   !
+   zs   = 0.0
+   q    = 0.0
+   q0   = 0.0
+   uv   = 0.0
+   uv0  = 0.0
+   qsrc = 0.0
    !
    kfuv = 0 
    !
@@ -2293,47 +2228,13 @@ contains
       !
       allocate(hm0(np))
       allocate(hm0_ig(np))
-      allocate(sw_tp(np))
-      allocate(sw_tp_ig(np))      
       allocate(fwuv(npuv))
       !
       hm0    = 0.0
       hm0_ig = 0.0
-      sw_tp     = 0.0
-      sw_tp_ig  = 0.0      
       fwuv   = 0.0
       !
-      if (store_wave_forces) then
-         allocate(fwx(np))
-         allocate(fwy(np))
-         fwx = 0.0
-         fwy = 0.0
-         allocate(dw(np))
-         allocate(df(np))
-         dw = 0.0
-         df = 0.0
-         allocate(dwig(np))
-         allocate(dfig(np))
-         dwig = 0.0
-         dfig = 0.0   
-         allocate(cg(np))
-         cg = 0.0
-         allocate(betamean(np))
-         betamean = 0.0     
-         allocate(srcig(np))
-         srcig = 0.0           
-         allocate(alphaig(np))
-         alphaig = 0.0            
-      endif
-      !
-      if (store_wave_direction) then
-         allocate(mean_wave_direction(np))
-         allocate(wave_directional_spreading(np))
-         mean_wave_direction        = 0.0
-         wave_directional_spreading = 0.0
-      endif   
-      !
-   endif   
+   endif
    !
    if (wavemaker .or. snapwave) then !TL: zsm also used in sfincs_continuity if 'snapwave=true' > todo: check if needed, or only for wavemaker 
       allocate(zsm(np))
@@ -2345,6 +2246,10 @@ contains
    !
    if (store_maximum_waterlevel) then
       allocate(zsmax(np))
+   endif
+   !
+   if (store_zvolume_max) then
+      allocate(zvolmax(np))
    endif
    !
    if (store_maximum_velocity) then
@@ -2398,6 +2303,10 @@ contains
    !
    if (store_maximum_waterlevel) then
       zsmax = -999.0
+   endif
+   !
+   if (store_zvolume_max) then
+      zvolmax = 0.0
    endif
    !
    if (store_maximum_velocity) then

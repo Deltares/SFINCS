@@ -1,20 +1,15 @@
 module sfincs_momentum
    !
    use sfincs_data
+   use sfincs_timers
    !
    implicit none
    !
 contains
    !
-   subroutine compute_fluxes(dt, tloop)
+   subroutine compute_fluxes(dt)
    !
    ! Computes fluxes over subgrid u and v points
-   !
-   integer   :: count0
-   integer   :: count1
-   integer   :: count_rate
-   integer   :: count_max
-   real      :: tloop
    !
    real*4    :: dt
    !
@@ -23,7 +18,7 @@ contains
    integer   :: nmu
    integer   :: n
    integer   :: m
-
+   !
    integer   :: idir
    integer   :: iref
    integer   :: itype
@@ -94,7 +89,7 @@ contains
    !
    logical   :: iok
    !
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('momentum')
    !
    min_dt = dtmax
    !
@@ -597,9 +592,13 @@ contains
                ! facmax = 0.25*sqrt(g)*rhow*gammax**2
                ! fmax = facmax*hu*sqrt(hu)/tp/rhow (we already divided by rhow in sfincs_snapwave)
                !
-               fwmax = 0.8 * hwet * sqrt(hwet) / 15
+               ! old: fwmax = 0.8 * hwet * sqrt(hwet) / 15
+               ! fix for lab cases: fwmax = 999
                !
-               frc = frc + phi * sign(min(abs(fwuv(ip)), fwmax), fwuv(ip))
+               fwmax = fwmaxfac * hwet * sqrt(hwet)     
+               ! Note, fwmaxfac is determined in sfincs_snapwave every 'update_wave_field' call
+               !
+               frc = frc + phi * sign(min(abs(fwuv(ip)), fwmax), fwuv(ip))               
                !
             endif
             !
@@ -734,6 +733,7 @@ contains
                 !
                 timestep_analysis_required_timestep(ip) = min_dt_ip
                 !
+                
             endif            
             !
          else
@@ -774,10 +774,9 @@ contains
       !
    endif
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
+   call timer_stop('momentum')
    !
-   end subroutine      
+   end subroutine
    !
    !
    function power7over3(hu) result(hu73)

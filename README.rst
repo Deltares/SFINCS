@@ -57,14 +57,6 @@ This means (summarised, for details always read license):
 	
 The SFINCS pre-compiled executables on Windows and Docker(linux) are available under the conditions as indicated when downloading SFINCS from https://download.deltares.nl/sfincs.
 
--For SFINCS versions v2.1.1 or OLDER-
-SFINCS is available under Deltares free-trial license without monetary fee, meaning (summarised, for details always read license):
-	- Permissions: No commercial use, Research publishing allowed, no distribution, no modification
-	- Conditions: Disclose source, License and copyright notice, Same license (so no distribution of closed source versions), no changes
-	- Limitations: No liability, no warranty
-	- Support: The Software is provided to Licensee as is without any support from Deltares
-
--For SFINCS versions of 2025 or later-
 SFINCS is available under Deltares Freeware license without monetary fee, meaning (summarised, for details always read license):
 	- Permissions: Commercial use allowed, Research publishing allowed, no distribution, no modification
     	- IP, ownership: Deltares owns the copyright to SFINCS Software and the Deltares Software Documentation

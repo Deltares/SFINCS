@@ -90,8 +90,9 @@ module sfincs_ncinput
    character (len=256)            :: y_varname
    character (len=256), parameter :: time_varname = 'time'
    character (len=256), parameter :: zs_varname   = 'zs'
-   character (len=256), parameter :: zi_varname   = 'zi'   
-   character (len=256), parameter :: units        = 'units'  
+   character (len=256), parameter :: zi_varname   = 'zi'
+   character (len=256), parameter :: units        = 'units'
+   integer                        :: status
    !
    !   if (crsgeo) then
    !      x_varname    = 'lon'
@@ -120,12 +121,20 @@ module sfincs_ncinput
    NF90(nf90_inq_varid(net_file_bndbzsbzi%ncid, y_varname, net_file_bndbzsbzi%y_varid) )
    NF90(nf90_inq_varid(net_file_bndbzsbzi%ncid, time_varname, net_file_bndbzsbzi%time_varid) )
    NF90(nf90_inq_varid(net_file_bndbzsbzi%ncid, zs_varname, net_file_bndbzsbzi%zs_varid) )    
-   !try: block
-   NF90(nf90_inq_varid(net_file_bndbzsbzi%ncid, zi_varname, net_file_bndbzsbzi%zi_varid) )   ! add try statement ?       
-   !     exit try ! Exit the try block in case of normal execution
-   !     !continue ! Jump here in case of an error
-   !     write(*,*)'No bziwaves specified in netbndbzsbzifile'
-   !end block try
+   !
+   ! zi is optional — query without the NF90 error macro so absence is not treated as an error
+   !
+   bziwaves = .true.
+   !
+   status = nf90_inq_varid(net_file_bndbzsbzi%ncid, zi_varname, net_file_bndbzsbzi%zi_varid)
+   !
+   if (status /= nf90_noerr) then
+      !
+      bziwaves = .false.   ! turn off flag
+      !
+      call write_log('Info    : no zi variable in netbndbzsbzifile; bziwaves disabled.', 0)
+      !
+   endif
    !
    ! Allocate variables   
    allocate(x_bnd(nbnd))
@@ -140,9 +149,7 @@ module sfincs_ncinput
    NF90(nf90_get_var(net_file_bndbzsbzi%ncid, net_file_bndbzsbzi%time_varid, t_bnd(:)) ) 
    NF90(nf90_get_var(net_file_bndbzsbzi%ncid, net_file_bndbzsbzi%zs_varid, zs_bnd(:,:)) )   
    !   
-   if (net_file_bndbzsbzi%zi_varid /= 0) then     ! Allocate and read if bzi data is present
-      bziwaves = .true.   ! turn on flag
-      !write(*,*)'   Incident waves are forced...'      
+   if (bziwaves) then     ! Allocate and read if bzi data is present      
       !      
       allocate(zsi_bnd(nbnd,ntbnd))
       allocate(zsit_bnd(nbnd))
@@ -163,13 +170,21 @@ module sfincs_ncinput
 
    
    
-   subroutine read_netcdf_discharge_data()
+   subroutine read_netcdf_discharge_data(netsrcdisfile, nr_discharge_points)
    !
-   use sfincs_date   
+   ! Read FEWS-compatible netCDF river-discharge input. netsrcdisfile is
+   ! passed in rather than pulled from a module to avoid a circular
+   ! dependency (the owning module sfincs_discharges `use`s this module
+   ! for the procedure).
+   !
+   use sfincs_date
    use netcdf
-   use sfincs_data   
+   use sfincs_data
    !
-   implicit none   
+   implicit none
+   !
+   character(len=*), intent(in)  :: netsrcdisfile
+   integer,          intent(out) :: nr_discharge_points
    !
    ! Variable names for Fews compatible netcdf input
    !
@@ -199,7 +214,7 @@ module sfincs_ncinput
    !
    ! Get dimensions sizes: time, stations      
    NF90(nf90_inquire_dimension(net_file_srcdis%ncid, net_file_srcdis%time_dimid,   len = ntsrc))   !nr of timesteps in file
-   NF90(nf90_inquire_dimension(net_file_srcdis%ncid, net_file_srcdis%points_dimid, len = nsrc))  !nr of discharge points     
+   NF90(nf90_inquire_dimension(net_file_srcdis%ncid, net_file_srcdis%points_dimid, len = nr_discharge_points))  !nr of discharge points
    !
    ! Get variable id's
    NF90(nf90_inq_varid(net_file_srcdis%ncid, x_varname,    net_file_srcdis%x_varid) )  ! Has to be in the same UTM zone as SFINCS grid
@@ -208,16 +223,16 @@ module sfincs_ncinput
    NF90(nf90_inq_varid(net_file_srcdis%ncid, q_varname,    net_file_srcdis%q_varid) )    
    !
    ! Allocate variables   
-   allocate(xsrc(nsrc))
-   allocate(ysrc(nsrc)) 
+   allocate(xsrc(nr_discharge_points))
+   allocate(ysrc(nr_discharge_points))
    allocate(tsrc(ntsrc))
-   allocate(qsrc(nsrc,ntsrc))
+   allocate(qsrc_ts(nr_discharge_points,ntsrc))
    !
    ! Read values
    NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%x_varid,    xsrc(:)) )
    NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%y_varid,    ysrc(:)) )
-   NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%time_varid, tsrc(:)) ) 
-   NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%q_varid,    qsrc(:,:)) )   
+   NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%time_varid, tsrc(:)) )
+   NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%q_varid,    qsrc_ts(:,:)) )
    !   
    ! Read time attibute
    !
@@ -243,6 +258,46 @@ module sfincs_ncinput
 
    ! 
    end subroutine
+   
+   subroutine read_netcdf_quadtree_get_dimension(ncfile, varname, var)
+   ! For instance: vegetationfile, nsec, vegetation_vertical_segments
+   !
+   use netcdf
+   use sfincs_data
+   use quadtree
+   !
+   implicit none   
+   !
+   integer :: nm, ip, nrcells, status
+   !
+   character*256 :: ncfile   
+   character*256 :: varname  
+   !
+   integer, intent(inout)       :: var ! variable that we are mapping to
+   !
+   real*4, dimension(:), allocatable :: vartmp
+   !
+   ! Open netcdf file
+   !
+   NF90(nf90_open(trim(ncfile), NF90_CLOBBER, net_file_generic%ncid))
+   !
+   ! Get dimensions id's: nr points  
+   !
+   NF90(nf90_inq_dimid(net_file_generic%ncid, varname, net_file_generic%np_dimid))
+   !
+   ! Get dimensions sizes    
+   !
+   status = nf90_inquire_dimension(net_file_generic%ncid, net_file_generic%np_dimid, len = var)
+   !
+   ! Stop SFINCS if wanted variable was not found
+   if (status /= nf90_noerr) then
+       write(logstr,'(a,a,a,a,a)')'Error    : netcdf input file ',trim(ncfile),' does not contain needed variable: ',trim(varname),' !'       
+       call stop_sfincs(trim(logstr), 1)
+   endif
+   !   
+   NF90(nf90_close(net_file_generic%ncid))       
+   ! 
+   end subroutine   
    
    subroutine read_netcdf_quadtree_to_sfincs(ncfile, varname, var)
    ! For instance: storage_volume.nc, vol, storage_volume
@@ -372,11 +427,155 @@ module sfincs_ncinput
       !
    enddo   
    !   
-   NF90(nf90_close(net_file_generic%ncid))       
-   ! 
-   end subroutine   
-   
-   
+   NF90(nf90_close(net_file_generic%ncid))
+   !
+   end subroutine
+
+
+   subroutine read_netcdf_quadtree_integer(ncfile, varname, var)
+   ! Read a 1D integer variable from a quadtree NetCDF file and map to SFINCS active cells
+   !
+   use netcdf
+   use sfincs_data
+   use quadtree
+   !
+   implicit none
+   !
+   integer :: nm, ip, nrcells, status
+   !
+   character*256 :: ncfile
+   character*256 :: varname
+   !
+   integer, dimension(np), intent(inout) :: var
+   !
+   integer, dimension(:), allocatable :: vartmp
+   !
+   NF90(nf90_open(trim(ncfile), NF90_CLOBBER, net_file_generic%ncid))
+   !
+   NF90(nf90_inq_dimid(net_file_generic%ncid, "mesh2d_nFaces", net_file_generic%np_dimid))
+   !
+   NF90(nf90_inquire_dimension(net_file_generic%ncid, net_file_generic%np_dimid, len = nrcells))
+   !
+   if (nrcells /= quadtree_nr_points) then
+      write(logstr,*)'Error    : netcdf input file ',trim(ncfile),' contains: ',nrcells, &
+          ' input points, while expected is: ',quadtree_nr_points,' as in sfincs.nc quadtree grid'
+      call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   status = nf90_inq_varid(net_file_generic%ncid, varname, net_file_generic%gen_varid)
+   !
+   if (status /= nf90_noerr) then
+       write(logstr,'(a,a,a,a,a)')'Error    : netcdf input file ',trim(ncfile), &
+           ' does not contain needed variable: ',trim(varname),' !'
+       call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   allocate(vartmp(nrcells))
+   !
+   NF90(nf90_get_var(net_file_generic%ncid, net_file_generic%gen_varid, vartmp(:)))
+   !
+   do ip = 1, quadtree_nr_points
+      nm = index_sfincs_in_quadtree(ip)
+      if (nm > 0) var(nm) = vartmp(ip)
+   enddo
+   !
+   deallocate(vartmp)
+   !
+   NF90(nf90_close(net_file_generic%ncid))
+   !
+   end subroutine
+
+
+   subroutine read_netcdf_flag_meanings(ncfile, varname, flag_values, flag_meanings, nflags)
+   ! Read CF convention flag_values (integer array) and flag_meanings (space-separated string)
+   ! attributes from a NetCDF variable and return them as separate arrays.
+   !
+   use netcdf
+   use sfincs_error
+   use sfincs_log
+   !
+   implicit none
+   !
+   character*256, intent(in)                             :: ncfile
+   character*256, intent(in)                             :: varname
+   integer,            allocatable, intent(out)          :: flag_values(:)
+   character(len=64),  allocatable, intent(out)          :: flag_meanings(:)
+   integer,                         intent(out)          :: nflags
+   !
+   integer            :: ncid, varid, status, att_len
+   character(len=4096) :: meanings_str
+   integer            :: i, istart, itype
+   !
+   ! Open file in read-only mode
+   !
+   status = nf90_open(trim(ncfile), NF90_NOWRITE, ncid)
+   if (status /= nf90_noerr) then
+       write(logstr,'(a,a,a)')'Error    : cannot open NetCDF file ', trim(ncfile), ' !'
+       call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   status = nf90_inq_varid(ncid, trim(varname), varid)
+   if (status /= nf90_noerr) then
+       write(logstr,'(a,a,a,a,a)')'Error    : NetCDF file ',trim(ncfile), &
+           ' does not contain variable: ',trim(varname),' !'
+       call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   ! flag_values: CF attribute giving the integer id for each type; its length is nflags
+   !
+   status = nf90_inquire_attribute(ncid, varid, 'flag_values', len=nflags)
+   if (status /= nf90_noerr) then
+       write(logstr,'(a,a,a)')'Error    : variable ',trim(varname), &
+           ' in vegetation NetCDF has no flag_values attribute !'
+       call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   allocate(flag_values(nflags))
+   status = nf90_get_att(ncid, varid, 'flag_values', flag_values)
+   if (status /= nf90_noerr) then
+       write(logstr,'(a,a,a)')'Error    : cannot read flag_values attribute from variable ', &
+           trim(varname), ' !'
+       call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   ! flag_meanings: CF attribute with space-separated type names
+   !
+   status = nf90_inquire_attribute(ncid, varid, 'flag_meanings', len=att_len)
+   if (status /= nf90_noerr) then
+       write(logstr,'(a,a,a)')'Error    : variable ',trim(varname), &
+           ' in vegetation NetCDF has no flag_meanings attribute !'
+       call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   meanings_str = ' '
+   status = nf90_get_att(ncid, varid, 'flag_meanings', meanings_str)
+   if (status /= nf90_noerr) then
+       write(logstr,'(a,a,a)')'Error    : cannot read flag_meanings attribute from variable ', &
+           trim(varname), ' !'
+       call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   status = nf90_close(ncid)
+   !
+   ! Split space-separated flag_meanings string into individual name strings
+   !
+   allocate(flag_meanings(nflags))
+   flag_meanings = ' '
+   itype = 0
+   istart = 1
+   do i = 1, len_trim(meanings_str) + 1
+       if (i > len_trim(meanings_str) .or. meanings_str(i:i) == ' ') then
+           if (i > istart) then
+               itype = itype + 1
+               if (itype <= nflags) flag_meanings(itype) = meanings_str(istart:i-1)
+           endif
+           istart = i + 1
+       endif
+   enddo
+   !
+   end subroutine
+
+
    subroutine read_netcdf_amuv_data()
    !
    ! Output is made exactly the same as original read_amuv_dimensions & read_amuv_file subroutines but then with data given by netcdf file
