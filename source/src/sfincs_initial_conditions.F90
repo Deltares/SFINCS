@@ -14,6 +14,7 @@ contains
    subroutine set_initial_conditions()
       !
       use sfincs_ncinput      
+      use sfincs_read, only: is_netcdf_file
       !
       ! Initialize SFINCS variables (qx, qy, zs etc.)
       !
@@ -26,8 +27,7 @@ contains
       real*4     :: zmin
       real*4     :: huv
       real*4     :: zsuv   
-      ! 
-      integer :: nchar      
+      !
       logical   :: iok
       character*256 :: varname      
       !
@@ -60,8 +60,7 @@ contains
          !
          iok = check_file_exists(zsinifile, 'Initial conditions ini file', .true.)
          !
-         nchar=len(trim(zsinifile))
-         if (zsinifile(nchar - 1 : nchar) == 'nc') then
+         if (is_netcdf_file(zsinifile)) then
             !
             ! Read netcdf (!) initial water level file
             ! Note - newer type real*8 for zs 
