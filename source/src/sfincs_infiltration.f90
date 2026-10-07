@@ -557,7 +557,7 @@ contains
    !
    call write_log('Info    : turning on spatially-varying constant run-off coefficient', 0)
    !
-   ! qinffield is the run-off coefficient (input in %)
+   ! Run-off coefficient (input in %), converted below to the fraction of rainfall that infiltrates (stored in qinffield)
    !
    allocate(qinffield(np))
    qinffield = 0.0
@@ -570,6 +570,8 @@ contains
       call stop_sfincs('Error ! Run-off coefficients should be specified as a percentage between 0 and 100 !', 1)
       !
    endif
+   !
+   qinffield = 1.0 - qinffield / 100.0   ! convert run-off coefficient in % to infiltrating fraction (-)
    !
    end subroutine
 
@@ -1084,10 +1086,10 @@ contains
    !$acc loop independent gang vector
    do nm = 1, np
       !
-      ! qinffield is the run-off coefficient in %, so the remaining fraction of the rainfall infiltrates
+      ! qinffield is the fraction of the rainfall that infiltrates (1 - run-off coefficient)
       ! Only acts on the rainfall of this time step, so never on water that is already in the cell
       !
-      qinfmap(nm) = (1.0 - qinffield(nm) / 100.0) * max(prcp(nm), 0.0)   ! infiltration in m/s
+      qinfmap(nm) = qinffield(nm) * max(prcp(nm), 0.0)   ! infiltration in m/s
       !
       if (store_cumulative_precipitation) then
          !

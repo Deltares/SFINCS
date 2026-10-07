@@ -415,8 +415,8 @@ contains
          call def_static_cell_float('qinf', map_file%qinf_varid, 'mm', 'maximum bucket storage capacity', &
               standard_name='bucket_capacity')
       elseif (inftype == 'r2d') then
-         call def_static_cell_float('qinf', map_file%qinf_varid, '%', 'run-off coefficient - constant in time', &
-              standard_name='runoff')
+         call def_static_cell_float('qinf', map_file%qinf_varid, '-', 'fraction of rainfall that infiltrates - constant in time', &
+              standard_name='infiltration_fraction')
       else
          call def_static_cell_float('qinf', map_file%qinf_varid, 'mm h-1', 'infiltration rate - constant in time', &
               standard_name='qinf')
