@@ -1921,7 +1921,6 @@ contains
         NF90(nf90_put_att(ncid, varid, 'inffile',inffile))
         NF90(nf90_put_att(ncid, varid, 'inftype',inftype))
         NF90(nf90_put_att(ncid, varid, 'qinffile',qinffile))
-        NF90(nf90_put_att(ncid, varid, 'runofffile',runofffile))
         NF90(nf90_put_att(ncid, varid, 'scsfile',scsfile)) 
         NF90(nf90_put_att(ncid, varid, 'smaxfile',smaxfile)) 
         NF90(nf90_put_att(ncid, varid, 'sefffile',sefffile)) 

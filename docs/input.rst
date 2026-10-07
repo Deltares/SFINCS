@@ -595,7 +595,7 @@ A run-off coefficient of 100 % therefore means that all rainfall runs off (no in
 Values outside the range 0-100 are not accepted.
 The method only acts on the rainfall of the current time step, so water that is already in a cell does not infiltrate.
 
-For spatially varying run-off coefficients per cell use ``inffile`` with ``inftype = r2d``:
+For spatially varying run-off coefficients per cell use ``inffile`` with ``inftype = r2d``, for both regular and quadtree grids:
 
 .. code-block:: text
 
@@ -606,19 +606,7 @@ The ``inffile`` must contain the following variable:
 
 * ``runoff``: run-off coefficient in %
 
-For regular grids, the run-off coefficients can alternatively be specified per cell with the same grid based input as the depfile using a binary file:
-
-**runofffile = sfincs.runoff**
-
-.. code-block:: text
-
-	<runoffcoefficient x0,y0> <runoffcoefficient x1,y0> 
-
-	<runoffcoefficient x0,y1> <runoffcoefficient x1,y1>
-
-	e.g.
-	100.0 	50.0
-	0.0	80.0
+**NOTE - The run-off coefficient method is only available through the NetCDF ``inffile``, there is no separate binary file option**
 
 
 Storage volume

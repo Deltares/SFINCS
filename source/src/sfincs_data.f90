@@ -141,7 +141,6 @@ module sfincs_data
       character*256 :: thdfile
       character*256 :: weirfile
       character*256 :: qinffile
-      character*256 :: runofffile
       character*256 :: netbndbzsbzifile
       character*256 :: netamuamvfile
       character*256 :: netampfile

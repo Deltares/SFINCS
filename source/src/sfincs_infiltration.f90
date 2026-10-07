@@ -44,7 +44,7 @@ contains
    ! 7) 'bkt' - Bucket model (linear reservoir, HBV/wflow style)
    !    Requires: inffile with bucket_smax, bucket_k and bucket_loss
    ! 8) 'r2d' - Spatially-varying constant run-off coefficient (% of rainfall that runs off)
-   !    Requires: runofffile or inffile
+   !    Requires: inffile with runoff
    !
    ! cumprcp and cuminf are stored in the netcdf output if store_cumulative_precipitation == .true. (storecumprcp = 1)
    !
@@ -64,6 +64,12 @@ contains
       if (inftype == 'bkt' .and. inffile == 'none') then
          !
          call stop_sfincs('Error ! Bucket model requires inffile together with inftype = bkt !', 1)
+         !
+      endif
+      !
+      if (inftype == 'r2d' .and. inffile == 'none') then
+         !
+         call stop_sfincs('Error ! Run-off coefficient method requires inffile together with inftype = r2d !', 1)
          !
       endif
       !
@@ -144,13 +150,6 @@ contains
          inftype        = 'hor'
          infiltration   = .true.
          store_meteo    = .true.
-         !
-      elseif (runofffile /= 'none') then
-         !
-         ! Spatially-varying constant run-off coefficient
-         !
-         inftype = 'r2d'
-         infiltration = .true.      
          !
       endif
       !
@@ -547,9 +546,14 @@ contains
    !
    ! Spatially-varying constant run-off coefficient (specified as % of rainfall that runs off)
    !
+   ! Note : Only available through the netcdf inffile, there is no binary file equivalent
+   !
    use sfincs_data
+   use sfincs_ncinput
    !
    implicit none
+   !
+   character*256 :: varname
    !
    call write_log('Info    : turning on spatially-varying constant run-off coefficient', 0)
    !
@@ -558,7 +562,8 @@ contains
    allocate(qinffield(np))
    qinffield = 0.0
    !
-   call read_infiltration_field('runoff', runofffile, qinffield)
+   varname = 'runoff'
+   call read_netcdf_quadtree_to_sfincs(inffile, varname, qinffield)
    !
    if (minval(qinffield) < 0.0 .or. maxval(qinffield) > 100.0) then
       !

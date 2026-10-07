@@ -258,7 +258,6 @@ contains
       call get_keyword(500, 'f0file',                          f0file,                          'none')            ! Horton initial infiltration capacity F0 (legacy binary)
       call get_keyword(500, 'fcfile',                          fcfile,                          'none')            ! Horton asymptotic infiltration rate Fc (legacy binary)
       call get_keyword(500, 'kdfile',                          kdfile,                          'none')            ! Horton decay constant k (legacy binary, 1/hr)
-      call get_keyword(500, 'runofffile',                      runofffile,                      'none')            ! Run-off coefficient field (binary, %)
       call get_keyword(500, 'horton_kr_kd',                    horton_kr_kd,                    10.0)              ! Horton recovery/decay ratio
       !
       ! Output
