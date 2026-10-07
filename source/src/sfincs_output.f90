@@ -134,6 +134,14 @@ module sfincs_output
          !$acc update host(q)
          !$acc update host(uvmean)
          !
+         if (inftype == 'cnb') then
+            !$acc update host(scs_Se)
+         elseif (inftype == 'gai') then
+            !$acc update host(GA_sigma, GA_F)
+         elseif (inftype == 'hor') then
+            !$acc update host(rain_T1)
+         endif
+         !
       endif
       !
       if (store_meteo) then
