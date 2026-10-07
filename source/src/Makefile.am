@@ -84,6 +84,7 @@ libsfincs_la_SOURCES = \
 	sfincs_urban_drainage.f90 \
 	sfincs_subgrid.F90 \
 	sfincs_timestep_analysis.f90 \
+	sfincs_groundwater.f90 \
 	sfincs_infiltration.f90 \
 	sfincs_continuity.f90 \
 	sfincs_domain.f90 \
