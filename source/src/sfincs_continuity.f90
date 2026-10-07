@@ -54,6 +54,7 @@ contains
       !    3. Drainage structures (+/-)            => update_src_structures (adds to qsrc)
       !    4. Infiltration rate field qinfmap (-)  => update_infiltration_map (-qinfmap * cell area,
       !                                              flavors: con, c2d, cna, cnb, gai, hor, bkt, r2d)
+      !    4b. Drainage mimic qdrain_rate (-)      => update_drainage_mimic (-qdrain_rate * cell area)
       !    5. Urban drainage (+/-)                 => update_urban_drainage
       !    6. External source/sink qext (+/-)      => added to qsrc here (BMI coupling)
       !
@@ -116,6 +117,16 @@ contains
          call timer_start('infiltration')
          call update_infiltration_map(dt)
          call timer_stop('infiltration')
+         !
+      endif
+      !
+      ! 4b. Drainage mimic => update_drainage_mimic (-qdrain_rate * cell area)
+      !
+      if (drainage_mimic) then
+         !
+         call timer_start('drainage_mimic')
+         call update_drainage_mimic()
+         call timer_stop('drainage_mimic')
          !
       endif
       !

@@ -299,6 +299,42 @@ module sfincs_ncinput
    ! 
    end subroutine   
    
+   subroutine open_netcdf_quadtree_file(ncfile, nrcells)
+   !
+   ! Open a quadtree-format netcdf input file (e.g. inffile, drainagefile, volfile)
+   ! into net_file_generic and return its number of cells (dimension mesh2d_nFaces).
+   ! Stops SFINCS with a clear message if the file cannot be opened as netcdf
+   ! (e.g. a legacy binary file) or does not contain the mesh2d_nFaces dimension.
+   !
+   use netcdf
+   use sfincs_error
+   !
+   implicit none
+   !
+   character*256, intent(in) :: ncfile
+   integer, intent(out)      :: nrcells
+   !
+   integer :: status
+   !
+   status = nf90_open(trim(ncfile), NF90_NOWRITE, net_file_generic%ncid)
+   !
+   if (status /= nf90_noerr) then
+      write(logstr,'(a,a,a,a)')'Error    : could not open ', trim(ncfile), ' as netcdf file: ', trim(nf90_strerror(status))
+      call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   status = nf90_inq_dimid(net_file_generic%ncid, "mesh2d_nFaces", net_file_generic%np_dimid)
+   !
+   if (status /= nf90_noerr) then
+      write(logstr,'(a,a,a)')'Error    : netcdf input file ', trim(ncfile), ' does not contain dimension mesh2d_nFaces !'
+      call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   NF90(nf90_inquire_dimension(net_file_generic%ncid, net_file_generic%np_dimid, len = nrcells))
+   !
+   end subroutine
+
+
    subroutine read_netcdf_quadtree_to_sfincs(ncfile, varname, var)
    ! For instance: storage_volume.nc, vol, storage_volume
    !
@@ -317,17 +353,9 @@ module sfincs_ncinput
    !
    real*4, dimension(:), allocatable :: vartmp
    !
-   ! Open netcdf file
+   ! Open netcdf file and get nr of cells (stops with a clear message if not a valid quadtree netcdf file)
    !
-   NF90(nf90_open(trim(ncfile), NF90_CLOBBER, net_file_generic%ncid))
-   !
-   ! Get dimensions id's: nr points  
-   !
-   NF90(nf90_inq_dimid(net_file_generic%ncid, "mesh2d_nFaces", net_file_generic%np_dimid))
-   !
-   ! Get dimensions sizes    
-   !
-   NF90(nf90_inquire_dimension(net_file_generic%ncid, net_file_generic%np_dimid, len = nrcells))   ! nr of cells
+   call open_netcdf_quadtree_file(ncfile, nrcells)
    !
    ! Check that number of values in the cell matches quadtree_nr_points 
    ! (=all quadtree cells, not just the active ones)
@@ -383,17 +411,9 @@ module sfincs_ncinput
    !
    real*4, dimension(:), allocatable :: vartmp
    !
-   ! Open netcdf file
+   ! Open netcdf file and get nr of cells (stops with a clear message if not a valid quadtree netcdf file)
    !
-   NF90(nf90_open(trim(ncfile), NF90_CLOBBER, net_file_generic%ncid))
-   !
-   ! Get dimensions id's: nr points  
-   !
-   NF90(nf90_inq_dimid(net_file_generic%ncid, "mesh2d_nFaces", net_file_generic%np_dimid))
-   !
-   ! Get dimensions sizes    
-   !
-   NF90(nf90_inquire_dimension(net_file_generic%ncid, net_file_generic%np_dimid, len = nrcells))   ! nr of cells
+   call open_netcdf_quadtree_file(ncfile, nrcells)
    !
    ! Check that number of values in the cell matches quadtree_nr_points 
    ! (=all quadtree cells, not just the active ones)
@@ -450,11 +470,7 @@ module sfincs_ncinput
    !
    integer, dimension(:), allocatable :: vartmp
    !
-   NF90(nf90_open(trim(ncfile), NF90_CLOBBER, net_file_generic%ncid))
-   !
-   NF90(nf90_inq_dimid(net_file_generic%ncid, "mesh2d_nFaces", net_file_generic%np_dimid))
-   !
-   NF90(nf90_inquire_dimension(net_file_generic%ncid, net_file_generic%np_dimid, len = nrcells))
+   call open_netcdf_quadtree_file(ncfile, nrcells)
    !
    if (nrcells /= quadtree_nr_points) then
       write(logstr,*)'Error    : netcdf input file ',trim(ncfile),' contains: ',nrcells, &

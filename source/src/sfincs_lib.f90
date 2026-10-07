@@ -126,6 +126,8 @@ module sfincs_lib
    !
    call initialize_infiltration()     ! Reads qinf / scs / gai / horton / bucket infiltration inputs
    !
+   call initialize_drainage_mimic()   ! Reads drainagefile (spatially-varying drainage rate)
+   !
    call initialize_discharges()       ! Reads dis and src file (river point discharges)
    !
    call initialize_src_structures()   ! Reads drn file (pumps / culverts / check valves / gates) and dkb file (dike breaches)

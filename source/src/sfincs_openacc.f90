@@ -66,7 +66,7 @@ contains
    !$acc               timestep_analysis_required_timestep, timestep_analysis_average_required_timestep, timestep_analysis_times_wet, timestep_analysis_times_limiting, &
    !$acc               qinffield, qinfmap, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, &
    !$acc               ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, horton_kd, horton_fc, horton_f0, &
-   !$acc               bucket_volume, bucket_capacity, bucket_k, bucket_drain_rate, bucket_loss, bucket_runoff, &
+   !$acc               bucket_volume, bucket_capacity, bucket_k, bucket_drain_rate, bucket_loss, bucket_runoff, qdrain_rate, &
    !$acc               urban_drainage_zone_indices, urban_drainage_outfall_index, urban_drainage_qmax, urban_drainage_backflow_coef, &
    !$acc               urban_drainage_q_total, urban_drainage_cumulative_volume, &
    !$acc               urb_zone_type_id, urb_zone_injection_rate, urb_zone_maximum_capacity, &
@@ -120,7 +120,7 @@ contains
    !$acc               timestep_analysis_required_timestep, timestep_analysis_average_required_timestep, timestep_analysis_times_wet, timestep_analysis_times_limiting, &   
    !$acc               qinffield, qinfmap, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, &
    !$acc               ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, horton_kd, horton_fc, horton_f0, &
-   !$acc               bucket_volume, bucket_capacity, bucket_k, bucket_drain_rate, bucket_loss, bucket_runoff, &
+   !$acc               bucket_volume, bucket_capacity, bucket_k, bucket_drain_rate, bucket_loss, bucket_runoff, qdrain_rate, &
    !$acc               urban_drainage_zone_indices, urban_drainage_outfall_index, urban_drainage_qmax, urban_drainage_backflow_coef, &
    !$acc               urban_drainage_q_total, urban_drainage_cumulative_volume, &
    !$acc               urb_zone_type_id, urb_zone_injection_rate, urb_zone_maximum_capacity, &

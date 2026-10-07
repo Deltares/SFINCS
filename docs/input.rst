@@ -580,6 +580,24 @@ The ``inffile`` must contain the following variables:
 * ``bucket_k``: drainage coefficient in 1/hr
 * ``bucket_loss``: loss fraction in the range 0-1
 
+The map output contains the current bucket storage per cell (``bucket_volume``, in m) and the his output contains it per observation point (``point_S``).
+
+
+Drainage mimic:
+%%%%%
+
+**NOTE - Available from SFINCS v2026.02 Hautacam release onwards**
+
+**NOTE - Prototype status: this functionality is still being improved iteratively**
+
+A constant-in-time, spatially varying removal rate representing subsurface drainage. It is configured separately from infiltration, works with or without precipitation, and is only applied in wet cells:
+
+.. code-block:: text
+
+	drainagefile = sfincs.drainage.nc
+
+The ``drainagefile`` must be a NetCDF file containing the variable ``drainage_rate`` in mm/hr, in the same format as ``inffile`` (works for both regular and quadtree grids).
+
 
 The run-off coefficient method:
 %%%%%
