@@ -498,7 +498,8 @@ contains
    elseif (inftype == 'hor') then
       call def_time_cell_float('f', map_file%infstate_varid, 'mm h-1', 'current infiltration capacity', standard_name='f')
    elseif (inftype == 'bkt') then
-      call def_time_cell_float('bucket_volume', map_file%infstate_varid, 'm', 'current bucket storage', standard_name='bucket_volume')
+      call def_time_cell_float('bucket_volume', map_file%infstate_varid, 'm', 'current bucket storage', &
+           standard_name='bucket_volume')
    endif
    !
    ! -------------------------------------------------------
@@ -1341,10 +1342,13 @@ contains
    ! Infiltration state
    ! -------------------------------------------------------
    if (inftype == 'cnb') then
+      !$acc update host(scs_Se)
       call write_cell_var(map_file%ncid, map_file%infstate_varid, scs_Se,   ntmapout)
    elseif (inftype == 'gai') then
+      !$acc update host(GA_sigma)
       call write_cell_var(map_file%ncid, map_file%infstate_varid, GA_sigma, ntmapout)
    elseif (inftype == 'hor') then
+      !$acc update host(qinfmap)
       call write_cell_var(map_file%ncid, map_file%infstate_varid, qinfmap,  ntmapout, scale=3600000.0)
    elseif (inftype == 'bkt') then
       !$acc update host(bucket_volume)
@@ -1456,12 +1460,15 @@ contains
       if (store_meteo .and. wind)  call compute_wind_at_obs_points(twndmag, twnddir)
       !
       if (infiltration) then
-         ! 
+         !
+         !$acc update host(qinfmap)
          call write_point_var(his_file%qinf_varid, qinfmap, nthisout, scale=3600000.0)
          !
          if (inftype == 'cnb') then
+            !$acc update host(scs_Se)
             call write_point_var(his_file%S_varid, scs_Se, nthisout)
          elseif (inftype == 'gai') then
+            !$acc update host(GA_sigma)
             call write_point_var(his_file%S_varid, GA_sigma, nthisout)
          elseif (inftype == 'hor') then
             call write_point_var(his_file%S_varid, qinfmap, nthisout, scale=3600000.0)
