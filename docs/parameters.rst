@@ -511,7 +511,7 @@ Domain
 	  :units:		depends on selected inftype and variables in the NetCDF file
 	  :required:		no
 	  :format:		net
-	inftype = c2d | cna | cnb | gai | hor | bkt
+	inftype = c2d | cna | cnb | gai | hor | bkt | r2d
 	  :description:		Selects which infiltration method is read from inffile. Bucket mode requires bucket_smax, bucket_k and bucket_loss in inffile.
 	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
 	  :units:		-
@@ -520,6 +520,11 @@ Domain
 	qinffile = sfincs.qinf
 	  :description:		Backward compatibility only. For spatially varying constant in time infiltration values per cell prefer inffile with inftype = c2d.
 	  :units:		mm/hr
+	  :required:		no	  
+	  :format:		bin	  
+	runofffile = sfincs.runoff
+	  :description:		For spatially varying constant in time run-off coefficients per cell (percentage of the rainfall that runs off, the remainder infiltrates) on a regular grid. Alternatively use inffile with inftype = r2d.
+	  :units:		%
 	  :required:		no	  
 	  :format:		bin	  
 	scsfile = sfincs.scs
