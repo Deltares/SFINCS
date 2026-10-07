@@ -123,24 +123,30 @@ contains
 
    function direction(ax, ay, bx, by, cx, cy) result(dr)
    !
-   real*4             :: ax, ay, bx, by, cx, cy
-   real*8             :: val, abx, aby, cbx, cby
-   integer            :: dr
+   implicit none
+   !
+   real*4, intent(in)   :: ax, ay, bx, by, cx, cy
+   real*8               :: val, bax, bay, cbx, cby
+   integer              :: dr
    !
    ! Orientation of point c relative to directed segment a->b.
-   ! Differences are taken relative to point b and promoted to double
-   ! precision: this avoids catastrophic cancellation for large-magnitude
-   ! coordinates (e.g. geographic lon/lat) and makes the test scale-
-   ! independent, so the fixed absolute tolerance (calibrated for metres)
-   ! is no longer needed. Strict-zero comparison keeps projected results
-   ! unchanged while fixing missed/mis-snapped crossings in degree units.
    !
-   abx = real(ax, 8) - real(bx, 8)
-   aby = real(ay, 8) - real(by, 8)
+   ! The sign of val is compared against zero, without tolerance. A fixed
+   ! absolute tolerance (previously 1.0e-6) only works for coordinates in
+   ! metres: in geographic coordinates val is of the order of
+   ! (cell size)*(segment length) in degrees squared, which is so small that
+   ! nearly all points were flagged as collinear and crossings were missed.
+   !
+   ! The differences are computed in double precision to limit round-off in
+   ! the products. Note that the coordinates themselves are single precision,
+   ! so this does not add any precision to the input.
+   !
+   bax = real(bx, 8) - real(ax, 8)
+   bay = real(by, 8) - real(ay, 8)
    cbx = real(cx, 8) - real(bx, 8)
    cby = real(cy, 8) - real(by, 8)
    !
-   val = aby*cbx - abx*cby   ! == (by-ay)*(cx-bx) - (bx-ax)*(cy-by)
+   val = bay*cbx - bax*cby
    !
    if (val < 0.0d0) then
       dr = -1
