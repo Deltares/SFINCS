@@ -65,6 +65,8 @@ contains
    !
    ! Reads quadtree file
    !
+   use sfincs_read, only: is_netcdf_file
+   !
    implicit none
    !
    character*256, intent(in)                       :: qtrfile
@@ -83,10 +85,7 @@ contains
    quadtree_nmax = 0
    quadtree_mmax = 0
    ! 
-   quadtree_netcdf = .false.
-   if (index(qtrfile, '.nc') > 0) then
-      quadtree_netcdf = .true.
-   endif
+   quadtree_netcdf = is_netcdf_file(qtrfile)
    !
    ok = check_file_exists(qtrfile, 'Quadtree qtr file', .true.)
    !
