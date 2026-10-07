@@ -124,9 +124,9 @@ contains
       !
       if (drainage_mimic) then
          !
-         call timer_start('infiltration')
+         call timer_start('drainage_mimic')
          call update_drainage_mimic()
-         call timer_stop('infiltration')
+         call timer_stop('drainage_mimic')
          !
       endif
       !

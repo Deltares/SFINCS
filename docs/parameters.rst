@@ -568,10 +568,10 @@ Domain
 	  :required:		no	  
 	  :format:		bin	 		  	   	  
 	drainagefile = sfincs.drainage.nc
-	  :description:		Spatially varying drainage mimic rate, a constant-in-time removal of water from wet cells representing subsurface drainage. Either a NetCDF file (extension .nc) with variable drainage_rate, or a binary map (regular grids only).
+	  :description:		Spatially varying drainage mimic rate, a constant-in-time removal of water from wet cells representing subsurface drainage. NetCDF file with variable drainage_rate, in the same format as inffile.
 	  :units:		mm/hr
 	  :required:		no
-	  :format:		net or bin
+	  :format:		net
 	sbgfile = sfincs.sbg
 	  :description:		File containing subgrid tables, only needed by SFINCS if you want to run your model in the subgrid mode. Recommended netcdf file input option available from SFINCS 2024.01 release onwards as in Van Ormondt et al. 2024, binary file option still possible for backwards compatability.
 	  :units:		-

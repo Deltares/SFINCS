@@ -1183,8 +1183,8 @@ contains
    subroutine initialize_drainage_mimic()
    !
    ! Drainage mimic: constant-in-time, spatially-varying removal rate (mm/hr)
-   ! representing subsurface drainage. Read from drainagefile, either a binary
-   ! map (regular grids) or a netcdf file with variable 'drainage_rate'.
+   ! representing subsurface drainage. Read from the netcdf drainagefile
+   ! (variable 'drainage_rate'), for both regular and quadtree grids.
    ! Independent of infiltration and precipitation.
    !
    use sfincs_data
@@ -1192,7 +1192,6 @@ contains
    !
    implicit none
    !
-   integer       :: nchar
    logical       :: ok
    character*256 :: varname
    !
@@ -1207,26 +1206,13 @@ contains
       allocate(qdrain_rate(np))
       qdrain_rate = 0.0
       !
-      ok = check_file_exists(drainagefile, 'Drainage file', .true.)
+      ok = check_file_exists(drainagefile, 'Drainage netcdf file', .true.)
       !
-      nchar = len_trim(drainagefile)
+      ! Read from drainagefile (netcdf) - works for both regular and quadtree grids
+      ! (read_netcdf_quadtree_to_sfincs stops if the variable is missing)
       !
-      if (index(drainagefile, '.nc', back=.true.) == nchar - 2) then
-         !
-         varname = 'drainage_rate'
-         call read_netcdf_quadtree_to_sfincs(drainagefile, varname, qdrain_rate)
-         !
-      else
-         !
-         if (use_quadtree) then
-            call stop_sfincs('Error ! Drainage input for quadtree mesh model can only be specified as a netcdf drainagefile !', 1)
-         endif
-         !
-         open(unit = 500, file = trim(drainagefile), form = 'unformatted', access = 'stream')
-         read(500)qdrain_rate
-         close(500)
-         !
-      endif
+      varname = 'drainage_rate'
+      call read_netcdf_quadtree_to_sfincs(drainagefile, varname, qdrain_rate)
       !
       qdrain_rate = qdrain_rate / 3600.0 / 1000.0   ! mm/hr to m/s
       !
@@ -1273,6 +1259,7 @@ contains
       endif
       !
    enddo
+   !$acc end parallel loop
    !$omp end parallel do
    !
    end subroutine
