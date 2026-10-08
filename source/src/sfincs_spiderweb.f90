@@ -249,10 +249,10 @@ contains
       !
       open(888,file=filename)   
       !
-      call read_int_input(888,'n_cols',ncols,0)
-      call read_int_input(888,'n_rows',nrows,0)
-      call read_int_input(888,'n_quantity',nquant,0)
-      call read_real_input(888,'spw_radius',spwrad,0.0)
+      call get_keyword(888, 'n_cols',     ncols,      0)
+      call get_keyword(888, 'n_rows',     nrows,      0)
+      call get_keyword(888, 'n_quantity', nquant,     0)
+      call get_keyword(888, 'spw_radius', spwrad,     0.0)
       !   
       close(888)
       !
@@ -341,13 +341,13 @@ contains
       !
       open(888, file=filename)   
       !
-      call read_int_input(888,'n_cols',ncols,0)
-      call read_int_input(888,'n_rows',nrows,0)
-      call read_int_input(888,'n_quantity',nquant,0)
-      call read_real_input(888,'x_llcorner',x_llcorner,0.0)
-      call read_real_input(888,'y_llcorner',y_llcorner,0.0)
-      call read_real_input(888,'dx',dx,0.0)
-      call read_real_input(888,'dy',dy,0.0)
+      call get_keyword(888, 'n_cols',     ncols,      0)
+      call get_keyword(888, 'n_rows',     nrows,      0)
+      call get_keyword(888, 'n_quantity', nquant,     0)
+      call get_keyword(888, 'x_llcorner', x_llcorner, 0.0)
+      call get_keyword(888, 'y_llcorner', y_llcorner, 0.0)
+      call get_keyword(888, 'dx',         dx,         0.0)
+      call get_keyword(888, 'dy',         dy,         0.0)
       !   
       close(888)
       !

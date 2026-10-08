@@ -123,18 +123,38 @@ contains
 
    function direction(ax, ay, bx, by, cx, cy) result(dr)
    !
-   real    :: val
-   integer :: dr
+   implicit none
    !
-   val = (by - ay)*(cx - bx) - (bx - ax)*(cy - by)
-   !   
-   if (val<-1.0e-6) then
+   real*4, intent(in)   :: ax, ay, bx, by, cx, cy
+   real*8               :: val, bax, bay, cbx, cby
+   integer              :: dr
+   !
+   ! Orientation of point c relative to directed segment a->b.
+   !
+   ! The sign of val is compared against zero, without tolerance. A fixed
+   ! absolute tolerance (previously 1.0e-6) only works for coordinates in
+   ! metres: in geographic coordinates val is of the order of
+   ! (cell size)*(segment length) in degrees squared, which is so small that
+   ! nearly all points were flagged as collinear and crossings were missed.
+   !
+   ! The differences are computed in double precision to limit round-off in
+   ! the products. Note that the coordinates themselves are single precision,
+   ! so this does not add any precision to the input.
+   !
+   bax = real(bx, 8) - real(ax, 8)
+   bay = real(by, 8) - real(ay, 8)
+   cbx = real(cx, 8) - real(bx, 8)
+   cby = real(cy, 8) - real(by, 8)
+   !
+   val = bay*cbx - bax*cby
+   !
+   if (val < 0.0d0) then
       dr = -1
-   elseif (val>1.0e-6) then
+   elseif (val > 0.0d0) then
       dr = 1
    else
       dr = 0
-   endif   
+   endif
    !
    end function
 

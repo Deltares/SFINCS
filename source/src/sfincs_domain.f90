@@ -25,8 +25,6 @@ contains
    !
    call initialize_roughness()
    !
-   call initialize_infiltration() ! see: sfincs_infiltration.f90
-   !
    call initialize_storage_volume()
    !
    call initialize_vegetation()
@@ -1961,6 +1959,7 @@ contains
    !
    use sfincs_data
    use sfincs_ncinput   
+   use sfincs_read, only: is_netcdf_file
    !
    implicit none
    !
@@ -1970,7 +1969,6 @@ contains
    integer :: nmu
    logical :: ok
    !
-   integer :: nchar
    character*256 :: varname
    !
    ! FRICTION COEFFICIENTS (only for regular bathymetry, as for subgrid the Manning's n values are stored in the tables)
@@ -1991,11 +1989,9 @@ contains
          write(logstr,'(a,a)')'Info    : reading roughness file ',trim(manningfile)
          call write_log(logstr, 0)
          !
-         nchar = len_trim(manningfile)
-         !         
          ok = check_file_exists(manningfile, 'Roughness file', .true.)
          !
-         if (manningfile(nchar - 1 : nchar) == 'nc') then
+         if (is_netcdf_file(manningfile)) then
             !
             ! Call the generic quadtree nc file reader function
             varname = 'manning'
@@ -2065,12 +2061,12 @@ contains
    !
    use sfincs_data
    use sfincs_ncinput
+   use sfincs_read, only: is_netcdf_file
    !
    implicit none
    !
-   integer :: nchar
    logical :: ok
-   character*256 :: varname   
+   character*256 :: varname
    !
    if (use_storage_volume) then 
       !
@@ -2086,11 +2082,9 @@ contains
       write(logstr,'(a,a)')'Info    : reading vol file ',trim(volfile)
       call write_log(logstr, 0)
       !
-      nchar = len_trim(volfile)
-      !
       ok = check_file_exists(volfile, 'Storage volume vol file', .true.)
       !
-      if (volfile(nchar - 1 : nchar) == 'nc') then
+      if (is_netcdf_file(volfile)) then
          !
          ! Call the generic quadtree nc file reader function
          varname = 'vol'
@@ -2202,12 +2196,18 @@ contains
    allocate(uv0(npuv + ncuv + 1))
    !
    allocate(kfuv(npuv))
-   ! 
-   zs  = 0.0
-   q   = 0.0
-   q0  = 0.0
-   uv  = 0.0
-   uv0 = 0.0
+   !
+   ! Cell-wise discharge accumulator (point sources + drainage structures),
+   ! read by sfincs_continuity.
+   !
+   allocate(qsrc(np))
+   !
+   zs   = 0.0
+   q    = 0.0
+   q0   = 0.0
+   uv   = 0.0
+   uv0  = 0.0
+   qsrc = 0.0
    !
    kfuv = 0 
    !
@@ -2242,6 +2242,10 @@ contains
    !
    if (store_maximum_waterlevel) then
       allocate(zsmax(np))
+   endif
+   !
+   if (store_zvolume_max) then
+      allocate(zvolmax(np))
    endif
    !
    if (store_maximum_velocity) then
@@ -2295,6 +2299,10 @@ contains
    !
    if (store_maximum_waterlevel) then
       zsmax = -999.0
+   endif
+   !
+   if (store_zvolume_max) then
+      zvolmax = 0.0
    endif
    !
    if (store_maximum_velocity) then
