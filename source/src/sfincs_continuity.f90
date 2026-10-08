@@ -53,7 +53,7 @@ contains
       !    2. River discharges (+/-)               => update_discharges (adds to qsrc)
       !    3. Drainage structures (+/-)            => update_src_structures (adds to qsrc)
       !    4. Infiltration rate field qinfmap (-)  => update_infiltration_map (-qinfmap * cell area,
-      !                                              flavors: con, c2d, cna, cnb, gai, hor; optionally with groundwater = 1)
+      !                                              flavors: con, c2d, cna, cnb, gai, hor, bkt; optionally with groundwater = 1)
       !    5. Groundwater exchange (+/-)           => update_groundwater (adds to qsrc)
       !    6. Urban drainage (+/-)                 => update_urban_drainage
       !    7. External source/sink qext (+/-)      => added to qsrc here (BMI coupling)

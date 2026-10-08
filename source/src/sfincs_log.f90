@@ -274,7 +274,7 @@ contains
       endif
       !
       if (groundwater) then
-         if (gw_lateral == 1) then
+         if (gw_lateral) then
             call write_log('Groundwater          : yes (2D lateral flow)', 1)
          else
             call write_log('Groundwater          : yes (storage only)', 1)

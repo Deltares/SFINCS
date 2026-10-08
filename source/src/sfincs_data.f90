@@ -79,7 +79,7 @@ module sfincs_data
       integer gw_initial_wet_open_water               ! 1 = cells wet at the start are open water (table at the surface, no infiltration)
       logical groundwater                 ! groundwater table model on (keyword groundwater = 1)
       real*4 gw_specific_yield_uniform                ! uniform specific yield (-), < 0 = not set
-      integer gw_lateral                  ! 1 = 2D lateral groundwater flow between cells
+      logical gw_lateral                  ! 2D lateral groundwater flow on (conductivity and thickness given)
       real*4 gw_dt                                ! groundwater time step (s), upper bound; actual = min(this, stable lateral step)
       real*4 gw_conductivity_uniform                 ! uniform horizontal conductivity (m/s after conversion), < 0 = not set
       real*4 gw_aquifer_thickness_uniform                 ! uniform aquifer thickness (m), < 0 = not set
@@ -389,6 +389,15 @@ real*4 gw_dt_stable                         ! stable explicit lateral substep (s
       ! Storage volume
       !
       real*4, dimension(:),   allocatable :: storage_volume  ! Storage volume green infra
+      !
+      ! Bucket model - finite capacity reservoir with linear drainage
+      !
+      real*4, dimension(:),   allocatable :: bucket_volume                     ! current storage (m)
+      real*4, dimension(:),   allocatable :: bucket_capacity                   ! max capacity S_max (m)
+      real*4, dimension(:),   allocatable :: bucket_k                          ! drainage coefficient (1/s)
+      real*4, dimension(:),   allocatable :: bucket_drain_rate                 ! net removal from surface this step (m/s)
+      real*4, dimension(:),   allocatable :: bucket_loss                       ! loss fraction per cell (0-1), ET/deep percolation
+      real*4, dimension(:),   allocatable :: bucket_runoff                     ! bucket drainage returned as surface runoff (m/s)
       !
       ! Groundwater table model (0D, PRIMo-style: Sanders et al. 2025)
       !
@@ -969,6 +978,12 @@ real*4 gw_dt_stable                         ! stable explicit lateral substep (s
     if(allocated(qinffield)) deallocate(qinffield)
     if(allocated(ksfield)) deallocate(ksfield)
     if(allocated(scs_Se)) deallocate(scs_Se)
+    if(allocated(bucket_volume)) deallocate(bucket_volume)
+    if(allocated(bucket_capacity)) deallocate(bucket_capacity)
+    if(allocated(bucket_k)) deallocate(bucket_k)
+    if(allocated(bucket_drain_rate)) deallocate(bucket_drain_rate)
+    if(allocated(bucket_loss)) deallocate(bucket_loss)
+    if(allocated(bucket_runoff)) deallocate(bucket_runoff)
     if(allocated(gw_level)) deallocate(gw_level)
     if(allocated(gw_ground_level)) deallocate(gw_ground_level)
     if(allocated(gw_infiltration_cap)) deallocate(gw_infiltration_cap)

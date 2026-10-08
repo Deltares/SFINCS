@@ -511,14 +511,14 @@ Domain
 	  :units:		depends on selected inftype and variables in the NetCDF file
 	  :required:		no
 	  :format:		net
-	inftype = c2d | cna | cnb | gai | hor
-	  :description:		Selects which infiltration method is read from inffile. Any method can be combined with the groundwater table model (groundwater = 1), which reads its optional gw_* fields from the same inffile or uses the uniform gw_* keywords below.
+	inftype = c2d | cna | cnb | gai | hor | bkt
+	  :description:		Selects which infiltration method is read from inffile. Bucket mode requires bucket_smax, bucket_k and bucket_loss in inffile. Any method can be combined with the groundwater table model (groundwater = 1), which reads its optional gw_* fields from the same inffile or uses the uniform gw_* keywords below.
 	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
 	  :units:		-
 	  :required:		Only when inffile is used
 	  :format:		asc
 	groundwater = 0
-	  :description:		Switches on the groundwater table model underneath the infiltration method: the infiltration rate of the method is capped by the space above the water table, infiltrated water raises the table, and with gw_lateral = 1 the table drains by lateral flow to neighbouring cells and open water. Works with any infiltration method (the method then limits its rate to the space above the table) and also without one, in which case the aquifer only exchanges water with the surface through lateral flow. Does not require precipitation.
+	  :description:		Switches on the groundwater table model underneath the infiltration method: the infiltration rate of the method is capped by the space above the water table, infiltrated water raises the table, and, when gw_conductivity and gw_aquifer_thickness are given, the table drains by 2D lateral flow to neighbouring cells and open water. Works with any infiltration method (the method then limits its rate to the space above the table) and also without one, in which case the aquifer only exchanges water with the surface through lateral flow. Does not require precipitation.
 	  :units:		-
 	  :required:		no
 	gw_initial_depth = -999
@@ -537,20 +537,16 @@ Domain
 	  :description:		Groundwater table model: uniform specific yield of the aquifer. Overrides the gw_specific_yield field in inffile when >= 0. Defaults to 0.3.
 	  :units:		-
 	  :required:		no
-	gw_lateral = 0
-	  :description:		Groundwater table model: 1 switches on 2D lateral groundwater flow between cells (transmissivity gw_conductivity * gw_aquifer_thickness) with open-water cells as boundary condition at their water level. Without it the aquifer acts as storage only.
-	  :units:		-
-	  :required:		no
 	gw_dt = 60
 	  :description:		Groundwater table model: time step of the aquifer. Between groundwater steps the infiltration is accumulated and the water table does not move; at each step the accumulated recharge is added, lateral flow is computed and the exchange with the surface is set for the next interval. The stable explicit step of the lateral flow is used when it is smaller; both are logged.
 	  :units:		s
 	  :required:		no
 	gw_conductivity = -999
-	  :description:		Groundwater table model: uniform horizontal hydraulic conductivity for lateral flow. Overrides the gw_conductivity field in inffile when >= 0. Required (keyword or field) when gw_lateral = 1.
+	  :description:		Groundwater table model: uniform horizontal hydraulic conductivity for lateral flow. Overrides the gw_conductivity field in inffile when >= 0. Giving it together with gw_aquifer_thickness switches on 2D lateral groundwater flow.
 	  :units:		m/day
 	  :required:		no
 	gw_aquifer_thickness = -999
-	  :description:		Groundwater table model: uniform aquifer thickness for lateral flow (transmissivity = gw_conductivity * gw_aquifer_thickness). Overrides the gw_aquifer_thickness field in inffile when >= 0. Required (keyword or field) when gw_lateral = 1.
+	  :description:		Groundwater table model: uniform aquifer thickness for lateral flow (transmissivity = gw_conductivity * gw_aquifer_thickness). Overrides the gw_aquifer_thickness field in inffile when >= 0. Giving it together with gw_conductivity switches on 2D lateral groundwater flow.
 	  :units:		m
 	  :required:		no
 	qinffile = sfincs.qinf

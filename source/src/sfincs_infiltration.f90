@@ -2,7 +2,6 @@ module sfincs_infiltration
 
    use sfincs_log
    use sfincs_error
-use sfincs_timers
     
 contains
 
@@ -14,15 +13,15 @@ contains
    !
    logical :: ok
    !
-   character(len=3), parameter :: allowed_types(5) = &
-        ['c2d', 'cna', 'cnb', 'gai', 'hor']
+   character(len=3), parameter :: allowed_types(6) = &
+        ['c2d', 'cna', 'cnb', 'gai', 'hor', 'bkt']   
 
    logical :: inftype_exists   
    !
    ! INFILTRATION
    !
-   ! Infiltration only works when rainfall is activated, except in combination with the groundwater
-   ! table model (groundwater = 1), which also infiltrates ponded water without a precipitation file.
+   ! Infiltration only works when rainfall is activated, except with the groundwater model (groundwater = 1),
+   ! which also infiltrates ponded water without a precipitation file.
    !
    ! Note, infiltration methods not designed to be stacked
    !
@@ -43,8 +42,8 @@ contains
    !    Requires: psifile or inffile
    ! 6) 'hor' - Modified Horton equation
    !    Requires: f0file or inffile
-   ! With the groundwater table model (groundwater = 1, module sfincs_groundwater) every method limits its
-   ! rate with gw_infiltration_cap, the only coupling between the two modules.
+   ! 7) 'bkt' - Bucket model (linear reservoir, HBV/wflow style)
+   !    Requires: inffile with bucket_smax, bucket_k and bucket_loss
    !
    ! cumprcp and cuminf are stored in the netcdf output if store_cumulative_precipitation == .true. (storecumprcp = 1)
    !
@@ -60,6 +59,12 @@ contains
    ! 1) First we determine infiltration type
    !
    if (precip .or. groundwater) then
+      !
+      if (inftype == 'bkt' .and. inffile == 'none') then
+         !
+         call stop_sfincs('Error ! Bucket model requires inffile together with inftype = bkt !', 1)
+         !
+      endif
       !
       if (inffile  /= 'none') then
          !
@@ -98,13 +103,13 @@ contains
             !
          else
             !
-            write(logstr,*)'Error    : infiltration input type ',trim(inftype),' is not part of supported types c2d cna cnb gai hor !'
-call stop_sfincs(trim(logstr), 1)   
+            write(logstr,*)'Error    : infiltration input type ',trim(inftype),' is not part of supported types c2d cna cnb gai hor bkt !'
+            call stop_sfincs(trim(logstr), 1)   
             !
-         end if
+         end if        
          !
          !
-      elseif (qinf > 0.0) then
+      elseif (qinf > 0.0) then   
          !
          ! Spatially-uniform constant infiltration (specified as +mm/hr)
          !
@@ -200,7 +205,7 @@ call stop_sfincs(trim(logstr), 1)
                call write_log('Warning : legacy binary infiltration files on a quadtree mesh are read as one value per active cell in sfincs cell order; use inffile (netcdf) when in doubt', 0)
                !
             endif
-!
+            !
          endif
          !
       endif      
@@ -231,16 +236,30 @@ call stop_sfincs(trim(logstr), 1)
          !
          call initialize_infiltration_hor()
          !
+      elseif (inftype == 'bkt') then
+         !
+         ! Bucket model (linear reservoir) - mimics hydrology models like wflow/HBV
+         !
+         call write_log('Info    : turning on process infiltration (via bucket model)', 0)
+         !
+         call initialize_bucket_model()
+         !
       endif
       !
-else
+   else
       !
-      ! Overrule input
+      ! Overrule input: without precipitation (and without the groundwater model) no infiltration
+      ! method is initialised, so make sure nothing downstream acts on inftype
       !
       store_cumulative_precipitation = .false.
       !
+      if (inftype /= 'none') then
+         call write_log('Warning : infiltration input ignored because precipitation is off (use a precipitation file with zeros to infiltrate ponded water)', 0)
+         inftype = 'none'
+      endif
+      !
    endif
-   !
+!
    end subroutine
    
    
@@ -276,9 +295,13 @@ else
       !
       call compute_infiltration_hor(dt)
       !
+   elseif (inftype == 'bkt') then
+      !
+      call compute_bucket_drainage(dt)
+      !
    endif
    !
-! Apply the resulting infiltration-rate field to the point-source field
+   ! Apply the resulting infiltration-rate field to the point-source field
    ! qsrc (m3/s). qinfmap is m/s, so multiply by cell area and subtract.
    ! qsrc already holds this step's prcp*area contribution (from
    ! update_meteo_forcing) plus any discharges / src-structures updates
@@ -564,7 +587,7 @@ else
       open(unit = 500, file = trim(binfile), form = 'unformatted', access = 'stream')
       read(500)field
       close(500)
-!
+      !
    endif
    !
    end subroutine
@@ -592,28 +615,12 @@ else
    do nm = 1, np
       !
       qinfmap(nm) = qinffield(nm) ! Set spatially varying infiltration field
-!
-      ! No infiltration if there is no water. With the groundwater model the rate is
-      ! limited to the water available this step (ponded depth plus rain) and to
-      ! what the aquifer can take, like the other methods do.
       !
-      if (.not. groundwater) then
-!
-         if (subgrid) then
-            !
-            if (z_volume(nm) <= 0.0) then
-               qinfmap(nm) = 0.0
-            endif
-            !
-         else
-            !
-            if (zs(nm) <= zb(nm)) then
-               qinfmap(nm) = 0.0
-            endif
-            !
-         endif
-         !
-      else
+      ! No infiltration if there is no water. With the groundwater model the rate is
+      ! instead limited to the water available this step (ponded depth plus rain) and
+      ! to what the aquifer can take (gw_infiltration_cap).
+      !
+      if (groundwater) then
          !
          if (subgrid) then
             if (crsgeo) then
@@ -633,6 +640,18 @@ else
          endif
          !
          qinfmap(nm) = min(qinfmap(nm), gw_infiltration_cap(nm), (hh_local + pr * dt) / dt)
+         !
+      elseif (subgrid) then
+         !
+         if (z_volume(nm) <= 0.0) then
+            qinfmap(nm) = 0.0
+         endif
+         !
+      else
+         !
+         if (zs(nm) <= zb(nm)) then
+            qinfmap(nm) = 0.0
+         endif
          !
       endif
 !
@@ -737,7 +756,7 @@ else
    do nm = 1, np
       !
       ! Ponded water on the surface (m): it infiltrates at the saturated conductivity ks
-      ! while retention is left, on top of the curve-number response to rain.
+      ! while retention is left, on top of the curve-number response to rain
       !
       if (subgrid) then
          if (crsgeo) then
@@ -751,7 +770,7 @@ else
       hh_local = max(hh_local, 0.0)
       !
       if (precip) then
-         pr = prcp(nm)
+         pr = max(prcp(nm), 0.0)
       else
          pr = 0.0
       endif
@@ -759,7 +778,7 @@ else
       ! If there is precip in this grid cell for this time step
       !
       if (pr > 0.0) then
-         !
+!
          ! Is raining now
          !
          if (scs_rain(nm) == 1) then
@@ -779,7 +798,7 @@ else
          ! 
          !  Compute cum rainfall
          ! 
-         scs_P1(nm) = scs_P1(nm) + prcp(nm) * dt
+         scs_P1(nm) = scs_P1(nm) + pr * dt
          ! 
          ! Compute runoff
          ! 
@@ -794,7 +813,7 @@ else
             !
             Qq          = 0.0                                   ! no runoff
             scs_F1(nm)  = scs_P1(nm)                            ! all rainfall is infiltrated
-            qinfmap(nm) = prcp(nm)                              ! infiltration rate = rainfall rate
+            qinfmap(nm) = pr                                    ! infiltration rate = rainfall rate
             !
          endif
          ! 
@@ -807,14 +826,14 @@ else
          ! Compute "remaining S", but note that scs_Se is not used in computation
          !
          scs_Se(nm)  = max(scs_Se(nm) - qinfmap(nm) * dt, 0.0)
-         !
+!
       else
          !
          ! It is not raining here
          !
          if (scs_rain(nm) == 1) then
             !
-            ! if it was raining before; cange logic and set rate to 0
+            ! if it was raining before; change logic
             !
             scs_rain(nm)   = 0
             rain_T1(nm)    = 0.0
@@ -829,7 +848,7 @@ else
       !
       if (hh_local > 0.0 .and. scs_Se(nm) > 0.0) then
          !
-         qpond = min(ksfield(nm), hh_local / dt, scs_Se(nm) / dt)
+         qpond = min(ksfield(nm) / 3.6e6, hh_local / dt, scs_Se(nm) / dt)   ! ksfield is in mm/hr for cnb
          !
          if (groundwater) then
             qpond = min(qpond, max(gw_infiltration_cap(nm) - qinfmap(nm), 0.0))
@@ -891,8 +910,8 @@ else
    !$omp private ( nm, hh_local, supply )
    !$omp do
    !$acc parallel present( qinfmap, prcp, cuminf, rain_T1,  &
-   !$acc                  ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, &
-   !$acc                  z_volume, zs, zb, cell_area, cell_area_m2, z_flags_iref, gw_infiltration_cap )
+   !$acc                  ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr, gw_infiltration_cap, &
+   !$acc                  z_volume, zs, zb, cell_area, cell_area_m2, z_flags_iref )
    !$acc loop independent gang vector
    do nm = 1, np
       !
@@ -928,29 +947,22 @@ else
             !
             ! Larger supply - Equation 4-27 from SWMM manual
             !
-            if (GA_F(nm) < 1.0e-10) then
-               !
-               ! No cumulative infiltration yet (first timestep) - all supply infiltrates
-               !
-               qinfmap(nm) = supply
-               !
-            else
-               !
-               qinfmap(nm) = (ksfield(nm) * (1.0 + (GA_head(nm) * GA_sigma(nm)) / GA_F(nm)))
-               qinfmap(nm) = max(min(qinfmap(nm), supply), 0.0)     ! never more than the supply and never negative
-               !
-            endif
+            ! Capacity with a 1 mm floor on the cumulative infiltration F, so that the
+            ! Green-Ampt singularity at F = 0 does not swallow a pond in a single step
             !
+            qinfmap(nm) = ksfield(nm) * (1.0 + (GA_head(nm) * GA_sigma(nm)) / max(GA_F(nm), 1.0e-3))
+            qinfmap(nm) = max(min(qinfmap(nm), supply), 0.0)        ! never more than the supply and never negative
+!
          endif
-         !
+!
          if (groundwater) then
             qinfmap(nm) = min(qinfmap(nm), gw_infiltration_cap(nm))
          endif
          !
-         ! Update sigma 
+         ! Update sigma
          !
          GA_sigma(nm) = max(GA_sigma(nm) - (qinfmap(nm) * dt / GA_Lu(nm)), 0.0)
-         ! 
+! 
          ! Update others
          !
          GA_F(nm)    = GA_F(nm) + qinfmap(nm) * dt   ! internal cumulative rainfall from Green-Ampt
@@ -1017,7 +1029,7 @@ else
    !$omp private  ( nm, Qq, I, hh_local )
    !$omp do              
    !$acc parallel present( qinfmap, prcp, cuminf, cell_area_m2, cell_area, z_flags_iref, z_volume, zs, zb, rain_T1,  &
-   !$acc                  horton_kd, horton_fc, horton_f0 )
+   !$acc                  horton_kd, horton_fc, horton_f0, gw_infiltration_cap )
    !$acc loop independent gang vector
    do nm = 1, np
       !
@@ -1128,6 +1140,169 @@ else
    !$omp end do
    !$omp end parallel
    !$acc end parallel
+   !
+   end subroutine
+
+
+   subroutine initialize_bucket_model()
+   !
+   use sfincs_data
+   use sfincs_ncinput
+   !
+   implicit none
+   !
+   character*256 :: varname
+   !
+   if (netcdf_infiltration) then
+      !
+      write(logstr,'(a)')'Info    : turning on bucket model (linear reservoir)'
+      call write_log(logstr, 0)
+      !
+      allocate(bucket_capacity(np))
+      allocate(bucket_k(np))
+      allocate(bucket_volume(np))
+      allocate(bucket_drain_rate(np))
+      allocate(bucket_loss(np))
+      allocate(bucket_runoff(np))
+      !
+      bucket_capacity   = 0.0
+      bucket_k          = 0.0
+      bucket_volume     = 0.0
+      bucket_drain_rate = 0.0
+      bucket_loss       = 0.0
+      bucket_runoff     = 0.0
+      !
+      ! Read from inffile (netcdf) - works for both regular and quadtree grids
+      ! (read_netcdf_quadtree_to_sfincs stops if a variable is missing)
+      !
+      varname = 'bucket_smax'
+      call read_netcdf_quadtree_to_sfincs(inffile, varname, bucket_capacity)
+      bucket_capacity = bucket_capacity / 1000.0   ! mm to m
+      !
+      varname = 'bucket_k'
+      call read_netcdf_quadtree_to_sfincs(inffile, varname, bucket_k)
+      bucket_k = bucket_k / 3600.0   ! 1/hr to 1/s
+      !
+      varname = 'bucket_loss'
+      call read_netcdf_quadtree_to_sfincs(inffile, varname, bucket_loss)
+      !
+      write(logstr,'(a,f10.4,a)')'Info    : bucket max capacity = ', maxval(bucket_capacity) * 1000.0, ' mm'
+      call write_log(logstr, 0)
+      write(logstr,'(a,f10.4,a)')'Info    : bucket max k        = ', maxval(bucket_k) * 3600.0, ' 1/hr'
+      call write_log(logstr, 0)
+      write(logstr,'(a,f6.3)')'Info    : bucket loss fraction = ', maxval(bucket_loss)
+      call write_log(logstr, 0)
+      !
+   else
+      !
+      ! Allocate minimal arrays for OpenACC compatibility
+      !
+      allocate(bucket_capacity(1))
+      allocate(bucket_k(1))
+      allocate(bucket_volume(1))
+      allocate(bucket_drain_rate(1))
+      allocate(bucket_loss(1))
+      allocate(bucket_runoff(1))
+      bucket_capacity   = 0.0
+      bucket_k          = 0.0
+      bucket_volume     = 0.0
+      bucket_drain_rate = 0.0
+      bucket_loss       = 0.0
+      bucket_runoff     = 0.0
+      !
+   endif
+   !
+   end subroutine
+
+
+   subroutine compute_bucket_drainage(dt)
+   !
+   ! Bucket model with loss: linear reservoir + loss fraction (HBV/wflow style)
+   !
+   ! Steps per cell:
+   !   1. P_eff = P * (1 - loss)       -- fraction lost to ET/deep percolation
+   !   2. Fill bucket with P_eff (up to Smax capacity)
+   !   3. Drain bucket: S(t+dt) = S(t)*exp(-k*dt), drainage returned as runoff
+   !   4. qinfmap = P - runoff         -- net removal from surface
+   !
+   ! In continuity: zs += prcp*dt - qinfmap*dt = bucket_runoff*dt
+   ! => Only bucket drainage reaches the surface water level
+   !
+   ! Literature: Linear reservoir (Nash, 1957), HBV soil moisture bucket (Bergstrom, 1995)
+   !
+   use sfincs_data
+   !
+   implicit none
+   !
+   real*4           :: dt
+   integer          :: nm
+   real*4           :: exp_factor
+   real*4           :: drain_vol
+   real*4           :: P_eff
+   real*4           :: available_cap
+   real*4           :: actual_inflow
+   real*4           :: precip_rate
+   !
+   !$omp parallel do private(nm, exp_factor, drain_vol, P_eff, available_cap, actual_inflow, precip_rate)
+   !$acc parallel present( kcs, prcp, qinfmap, cuminf, bucket_volume, bucket_capacity, bucket_k, &
+   !$acc                   bucket_drain_rate, bucket_loss, bucket_runoff )
+   !$acc loop independent gang vector
+   do nm = 1, np
+      !
+      if (kcs(nm) == 1 .and. bucket_k(nm) > 0.0) then
+         !
+         ! Step 1: Compute effective precipitation (after loss)
+         !
+         precip_rate = max(prcp(nm), 0.0)
+         P_eff = precip_rate * (1.0 - bucket_loss(nm))             ! m/s after loss
+         !
+         ! Step 2: Fill bucket with effective precip (up to capacity)
+         !
+         if (bucket_capacity(nm) > 0.0) then
+            available_cap = bucket_capacity(nm) - bucket_volume(nm)
+            actual_inflow = min(P_eff * dt, available_cap)          ! m
+         else
+            ! No capacity limit (Smax = 0 means infinite)
+            actual_inflow = P_eff * dt                              ! m
+         endif
+         bucket_volume(nm) = bucket_volume(nm) + actual_inflow
+         !
+         ! Step 3: Drain bucket (analytical linear reservoir)
+         ! S(t+dt) = S(t) * exp(-k*dt), drainage = S(t) - S(t+dt)
+         !
+         exp_factor = exp(-bucket_k(nm) * dt)
+         drain_vol = bucket_volume(nm) * (1.0 - exp_factor)        ! m drained this step
+         bucket_volume(nm) = bucket_volume(nm) * exp_factor
+         !
+         ! Step 4: Bucket drainage becomes runoff returned to surface
+         !
+         bucket_runoff(nm) = drain_vol / dt                         ! m/s
+         !
+         ! Step 5: Set qinfmap = loss + what entered bucket - what drained back
+         ! In continuity: zs += prcp*dt - qinfmap*dt
+         ! Water balance: qinfmap = prcp*loss + actual_inflow/dt - bucket_runoff
+         ! When bucket has room:  actual_inflow = P_eff*dt => qinfmap = prcp - bucket_runoff
+         ! When bucket is full:   actual_inflow = 0       => qinfmap can be negative (drainage > inflow)
+         !
+         qinfmap(nm) = precip_rate * bucket_loss(nm) + actual_inflow / dt - bucket_runoff(nm)
+         !
+         bucket_drain_rate(nm) = bucket_runoff(nm)
+         !
+         if (store_cumulative_precipitation) then
+            cuminf(nm) = cuminf(nm) + qinfmap(nm) * dt
+         endif
+         !
+      else
+         !
+         qinfmap(nm) = 0.0
+         bucket_drain_rate(nm) = 0.0
+         bucket_runoff(nm) = 0.0
+         !
+      endif
+      !
+   enddo
+   !$acc end parallel
+   !$omp end parallel do
    !
    end subroutine
 

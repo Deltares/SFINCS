@@ -411,6 +411,9 @@ contains
               standard_name='psi')
       elseif (inftype == 'hor') then
          call def_static_cell_float('qinf', map_file%qinf_varid, 'm', 'initial infiltration rate - Horton', standard_name='f0')
+      elseif (inftype == 'bkt') then
+         call def_static_cell_float('qinf', map_file%qinf_varid, 'mm', 'maximum bucket storage capacity', &
+              standard_name='bucket_capacity')
       else
          call def_static_cell_float('qinf', map_file%qinf_varid, 'mm h-1', 'infiltration rate - constant in time', &
               standard_name='qinf')
@@ -775,6 +778,11 @@ contains
    if (infiltration) then
       if (inftype == 'con' .or. inftype == 'c2d') then
          call put_static_cell_float(map_file%ncid, map_file%qinf_varid, qinffield, FILL_VALUE, scale=3.6e6)
+      elseif (inftype == 'bkt') then
+         ! Bucket model: write the maximum storage capacity (m -> mm)
+         if (allocated(bucket_capacity)) then
+            call put_static_cell_float(map_file%ncid, map_file%qinf_varid, bucket_capacity, FILL_VALUE, scale=1000.0)
+         endif
       else
          if (allocated(qinffield)) then
             call put_static_cell_float(map_file%ncid, map_file%qinf_varid, qinffield, FILL_VALUE)

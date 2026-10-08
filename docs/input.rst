@@ -378,7 +378,7 @@ For all spatially varying infiltration methods the recommended interface is:
 .. code-block:: text
 
 	inffile = sfincs.infiltration.nc
-	inftype = c2d | cna | cnb | gai | hor
+	inftype = c2d | cna | cnb | gai | hor | bkt
 
 The required variables in ``inffile`` depend on ``inftype``:
 
@@ -387,8 +387,9 @@ The required variables in ``inffile`` depend on ``inftype``:
 * ``cnb``: ``smax``, ``seff``, ``ks``
 * ``gai``: ``psi``, ``sigma``, ``ks``
 * ``hor``: ``f0``, ``fc``, ``kd``
+* ``bkt``: ``bucket_smax``, ``bucket_k``, ``bucket_loss``
 
-With ``groundwater = 1`` the same file may hold the optional groundwater fields (see the groundwater table model below). ``cnb`` and ``gai`` also infiltrate ponded water (at ``ks`` while retention is left, and through the Green-Ampt capacity, respectively); ``con``, ``c2d`` and ``hor`` always did; ``cna`` infiltrates rain only.
+With ``groundwater = 1`` the same file may hold the optional groundwater fields (see the groundwater table model below). ``con``, ``c2d``, ``hor``, ``gai`` and ``cnb`` infiltrate ponded water as well as rain (``cnb`` at ``ks`` while retention is left, ``gai`` through the Green-Ampt capacity); ``cna`` and ``bkt`` act on rain only.
 
 The older separate binary infiltration keywords are still supported for backward compatibility only.
 
@@ -559,14 +560,34 @@ The recovery of the infiltration rate during dry weather (kr) is calculated as f
 This option also supports restart functionality. 
 
 
+The bucket model:
+%%%%%
+
+**NOTE - Available from SFINCS v2026.02 Hautacam release onwards**
+
+**NOTE - Prototype status: this functionality is field-tested, but is still being improved iteratively**
+
+The bucket model is a linear-reservoir representation of infiltration and losses. It is configured with:
+
+.. code-block:: text
+
+	inffile = sfincs.infiltration.nc
+	inftype = bkt
+
+The ``inffile`` must contain the following variables:
+
+* ``bucket_smax``: maximum bucket storage in mm
+* ``bucket_k``: drainage coefficient in 1/hr
+* ``bucket_loss``: loss fraction in the range 0-1
+
+
 The groundwater table model:
 %%%%%
 
 **NOTE - Prototype status: new functionality, not yet field-tested**
 
-The groundwater table model (after Sanders et al. 2025) is switched on with ``groundwater = 1``, with or without an infiltration method. Each cell tracks the water-table elevation. The infiltration method (constant, curve number, Green-Ampt, Horton) sets the surface infiltration rate as usual; the groundwater model caps it by the space left above the water table, so infiltration stops when the table reaches the ground level, and raises the water table by the remaining depth divided by the specific yield. With ``gw_lateral = 1`` the table drains by 2D lateral flow towards neighbouring cells and open water; without it the aquifer acts as storage only. Imperviousness is the surface method's business: a composite curve number already contains it, and Green-Ampt, Horton or constant-rate fields should be zero on paved cells. The PRIMo model of Sanders et al. corresponds to ``inftype = con`` (constant rate ``qinf``, or a land-use-weighted ``qinffile``) with ``groundwater = 1``; its zero-dimensional seepage routing is not included, lateral flow takes its place.
+The groundwater table model (after Sanders et al. 2025) is switched on with ``groundwater = 1``, with or without an infiltration method. Each cell tracks the water-table elevation. The infiltration method (constant, curve number, Green-Ampt, Horton) sets the surface infiltration rate as usual; the groundwater model caps it by the space left above the water table, so infiltration stops when the table reaches the ground level, and raises the water table by the remaining depth divided by the specific yield. When ``gw_conductivity`` and ``gw_aquifer_thickness`` are given the table drains by 2D lateral flow towards neighbouring cells and open water; without them the aquifer acts as storage only. Imperviousness is the surface method's business: a composite curve number already contains it, and Green-Ampt, Horton or constant-rate fields should be zero on paved cells. The PRIMo model of Sanders et al. corresponds to ``inftype = con`` (constant rate ``qinf``, or a land-use-weighted ``qinffile``) with ``groundwater = 1``; its zero-dimensional seepage routing is not included, lateral flow takes its place.
 
-The former bucket model (``inftype = bkt``, a linear reservoir with a loss fraction returning its drainage to the cell) has been removed; its storage and drainage behaviour correspond to this model with ``gw_specific_yield = 1``, ``gw_initial_depth`` equal to the bucket capacity; its drainage has no equivalent other than lateral flow.
 
 It is configured with:
 
@@ -586,9 +607,9 @@ or with spatially varying fields in ``inffile`` (all optional, a uniform keyword
 * ``gw_conductivity``: horizontal hydraulic conductivity in m/day (lateral flow)
 * ``gw_aquifer_thickness``: aquifer thickness in m (lateral flow)
 
-Seepage into canals, ponds and the sea is modelled with ``gw_lateral = 1``.
+Seepage into canals, ponds and the sea is modelled by lateral groundwater flow, switched on by giving ``gw_conductivity`` and ``gw_aquifer_thickness``.
 
-With ``gw_lateral = 1`` the aquifer exchanges water by explicit 2D lateral groundwater flow between neighbouring cells with transmissivity ``gw_conductivity * gw_aquifer_thickness`` (harmonic mean across a face). Open-water cells (ground below ``qinf_zmin``) act as boundary condition at their current water level, so canals, ponds and the sea both receive seepage and recharge the aquifer when their level is higher, without any extra input. Water arriving in an open-water cell, and water exfiltrating where the table reaches the ground, is added to the surface. The aquifer advances every ``gw_dt`` seconds (default 60 s), or at the stable explicit step when that is smaller: the infiltration accumulated since the last step is added to the table in one lump, lateral flow is computed, and the exchange with the surface (seepage into open water, exfiltration) is set as a constant rate for the next interval. Between groundwater steps the table does not move; the infiltration methods are limited by the space left so that saturation is exact within the interval. Interval, stable step and substeps are written to the log.
+With ``gw_conductivity`` and ``gw_aquifer_thickness`` given, the aquifer exchanges water by explicit 2D lateral groundwater flow between neighbouring cells with transmissivity ``gw_conductivity * gw_aquifer_thickness`` (harmonic mean across a face). Open-water cells (ground below ``qinf_zmin``) act as boundary condition at their current water level, so canals, ponds and the sea both receive seepage and recharge the aquifer when their level is higher, without any extra input. Water arriving in an open-water cell, and water exfiltrating where the table reaches the ground, is added to the surface. The aquifer advances every ``gw_dt`` seconds (default 60 s), or at the stable explicit step when that is smaller: the infiltration accumulated since the last step is added to the table in one lump, lateral flow is computed, and the exchange with the surface (seepage into open water, exfiltration) is set as a constant rate for the next interval. Between groundwater steps the table does not move; the infiltration methods are limited by the space left so that saturation is exact within the interval. Interval, stable step and substeps are written to the log.
 
 Output: the map file contains the water-table elevation ``gw_level`` and the exchange with the surface ``gw_seepage`` (lateral flow into open water, exfiltration) at every ``dtout``; the his file contains ``point_gw_level``. With ``storecumprcp = 1`` the cumulative exchange ``cumseep`` is added to the max output. The restart file (``rsttype = 7``) carries the water-table rise above its initial level, so a restarted run must use the same ``gw_initial_depth`` or ``gw_initial_depth`` as the original run.
 

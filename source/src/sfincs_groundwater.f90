@@ -1,8 +1,8 @@
 module sfincs_groundwater
    !
    ! Groundwater table model (after Sanders et al. 2025, PRIMo). Each active cell
-   ! carries a water table that rises by infiltration and, with gw_lateral = 1,
-   ! drains by lateral flow to its neighbours and to open water. Switched on with
+   ! carries a water table that rises by infiltration and, when gw_conductivity and
+   ! gw_aquifer_thickness are given, drains by lateral flow to its neighbours and to open water. Switched on with
    ! groundwater = 1 underneath any infiltration method (inftype).
    !
    ! The aquifer has its own clock. Between groundwater steps the table does not
@@ -15,7 +15,7 @@ module sfincs_groundwater
 !
    !    every gw_dt seconds (default 60 s, groundwater_step):
    !       H += gw_recharge / Sy                           vertical, in one lump
-   !       lateral substeps (gw_lateral = 1)              Sy A dH = sum C_f (H_nb - H) dt
+   !       lateral substeps (lateral flow on)             Sy A dH = sum C_f (H_nb - H) dt
    !       H > ground: excess exfiltrates                 open-water cells receive / supply
    !       gw_surface_exchange = delivered depth / gw_dt  rate for the coming interval
    !       gw_space = (ground - H) * Sy, gw_recharge = 0
@@ -68,11 +68,11 @@ contains
    integer       :: ip, nmu, iref, itype, idir
    real*4        :: tr1, tr2, trf, dist, width
    !
-   if (gw_lateral == 1) then
-      call write_log('Info    : turning on groundwater table model with 2D lateral flow', 0)
-   else
-      call write_log('Info    : turning on groundwater table model (storage only, no lateral flow)', 0)
+   if (inftype == 'bkt') then
+      call stop_sfincs('Error ! The bucket model (inftype = bkt) is itself a storage model and cannot be combined with groundwater = 1 !', 1)
    endif
+   !
+   call write_log('Info    : turning on groundwater table model', 0)
    !
    allocate(gw_level(np))
    allocate(gw_level_ini(np))
@@ -218,16 +218,16 @@ contains
       gw_specific_yield = 0.3
    endif
    !
-   if (gw_lateral == 1) then
-      !
-      if (.not. (have_k .and. have_b)) then
-         call stop_sfincs('Error ! gw_lateral = 1 requires gw_conductivity and gw_aquifer_thickness in sfincs.inp or as fields in inffile !', 1)
-      endif
-      !
+   ! Lateral flow is on when both the conductivity and the aquifer thickness are given
+   !
+   gw_lateral = have_k .and. have_b
+   !
+   if (gw_lateral) then
+      call write_log('Info    : 2D lateral groundwater flow on (gw_conductivity and gw_aquifer_thickness given)', 0)
+   elseif (have_k .or. have_b) then
+      call stop_sfincs('Error ! lateral groundwater flow needs both gw_conductivity and gw_aquifer_thickness (keyword or inffile field) !', 1)
    else
-      !
       call write_log('Info    : no lateral groundwater flow, the aquifer acts as storage only', 0)
-      !
    endif
    !
    ! 4) Cell types: 0 inactive, 1 aquifer, 2 open water (ground below qinf_zmin, or
@@ -311,13 +311,13 @@ contains
       if (gw_time_acc_rst >= 0.0) then
          gw_time_acc = gw_time_acc_rst    ! keep the phase of the groundwater clock
       endif
-!
+      !
    endif
    !
    ! 6) Lateral flow: face conductance T * width / distance per uv point, and the
    !    stable explicit substep 0.5 * Sy * A / sum(conductances) over aquifer cells.
    !
-   if (gw_lateral == 1) then
+   if (gw_lateral) then
       !
       allocate(gw_face_conductance(npuv))
       allocate(csum(np))
@@ -438,7 +438,7 @@ contains
    write(logstr,'(a,f10.3,a)')'Info    : gw time step        = ', gw_dt, ' s'
    call write_log(logstr, 0)
    !
-   if (gw_lateral == 1) then
+   if (gw_lateral) then
       write(logstr,'(a,f10.3,a,i0,a)')'Info    : gw stable substep   = ', gw_dt_stable, ' s (', max(1, ceiling(gw_dt / max(gw_dt_stable, 1.0e-6))), ' substep(s) per groundwater step)'
       call write_log(logstr, 0)
    endif
@@ -548,7 +548,7 @@ contains
    ! Advance the aquifer over dtgw (the time since the last groundwater step):
    !
    !    1) recharge: H += gw_recharge / Sy
-   !    2) lateral flow (gw_lateral = 1): explicit substeps within the stability limit,
+   !    2) lateral flow (when on): explicit substeps within the stability limit,
    !       Sy A dH = sum over faces of C_f (H_nb - H) dts; open-water cells hold H = zs
    !    3) exfiltration: H above the ground returns the excess to the surface
    !    4) the delivered depth becomes the exchange rate gw_surface_exchange for the
@@ -597,7 +597,7 @@ contains
    !
    ! 2) Lateral flow
    !
-   if (gw_lateral == 1) then
+   if (gw_lateral) then
       !
       nsub = max(1, ceiling(dtgw / max(gw_dt_stable, 1.0e-6)))
       dts = dtgw / nsub
