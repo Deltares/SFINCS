@@ -290,7 +290,7 @@ contains
       call get_keyword(500, 'store_dynamic_bed_level',         store_dynamic_bed_level,         .false.)           ! store time-varying bed level (subgrid)
       call get_keyword(500, 'store_river_discharge',           store_river_discharge,           .false.)           ! store river point discharges in his file
       call get_keyword(500, 'store_urban_drainage_discharge',  store_urban_drainage_discharge,  .false.)           ! store urban drainage discharges in his file
-      call get_keyword(500, 'store_cumulative_urban_drainage', store_cumulative_urban_drainage, .false.)           ! store cumulative urban drainage
+      call get_keyword(500, 'store_cumulative_urban_drainage', store_cumulative_urban_drainage, .false.)           ! store cumulative urban drainage in map file
       call get_keyword(500, 'snapwave_use_nearest',            snapwave_use_nearest,            .true.)            ! use nearest-neighbour lookup for SnapWave boundary points
       call get_keyword(500, 'percentage_done',                 percdoneval,                     5)                 ! progress-reporter interval (% complete)
       !

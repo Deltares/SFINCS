@@ -102,6 +102,7 @@ module sfincs_urban_drainage
    character(len=64),  dimension(:), allocatable, public :: urb_zone_name
    character(len=64),  dimension(:), allocatable, public :: urb_zone_type      ! original TOML type string (for logging)
    character(len=256), dimension(:), allocatable         :: urb_zone_polygon_file
+   logical,            dimension(:), allocatable         :: urb_zone_whole_grid        ! zone covers all active cells (no polygon)
    integer,            dimension(:), allocatable, public :: urb_zone_type_id   ! one of urb_type_*
    !
    real*4,  dimension(:), allocatable, public :: urb_zone_outfall_x          ! m (piped_drainage)
@@ -207,11 +208,22 @@ contains
       ! Stamp cells per zone. Polygons are cached per unique file so that
       ! multiple zones sharing a polygon file only trigger one file read.
       ! Within a file each polygon name is matched against urb_zone_name.
+      ! Zones with whole_grid = true have no polygon and take all active cells.
       !
       allocate(inside(np))
       last_file = ''
       !
       do iz = 1, nr_urban_drainage_zones
+         !
+         if (urb_zone_whole_grid(iz)) then
+            !
+            ! Last-zone-wins also holds here: later zones overwrite this one.
+            !
+            urban_drainage_zone_indices = iz
+            !
+            cycle
+            !
+         endif
          !
          if (trim(urb_zone_polygon_file(iz)) == '') then
             write(logstr,'(a,a,a)')' Error ! Urban drainage zone "', trim(urb_zone_name(iz)), &
@@ -635,8 +647,12 @@ contains
          write(logstr,'(a,a)')         '  type:             ', trim(urb_zone_type(iz))
          call write_log(logstr, 0)
          !
-         write(logstr,'(a,a)')         '  polygon_file:     ', trim(urb_zone_polygon_file(iz))
-         call write_log(logstr, 0)
+         if (urb_zone_whole_grid(iz)) then
+            call write_log('  polygon_file:     (none, whole_grid = true: all active cells)', 0)
+         else
+            write(logstr,'(a,a)')      '  polygon_file:     ', trim(urb_zone_polygon_file(iz))
+            call write_log(logstr, 0)
+         endif
          !
          write(logstr,'(a,i0)')        '  cells_assigned:   ', urb_zone_n_cells(iz)
          call write_log(logstr, 0)
@@ -720,7 +736,9 @@ contains
       !    [[urban_drainage_zone]]
       !    name              = "area 1"            ! required, string (matches polygon name)
       !    type              = "piped_drainage"    ! required, one of: "piped_drainage", "injection_well"
-      !    polygon_file      = "zones.tek"         ! required
+      !    polygon_file      = "zones.tek"         ! required, unless whole_grid = true
+      !    whole_grid        = true                ! alternative to polygon_file: zone covers all active cells
+      !                                            ! (piped_drainage with include_outfall = false only)
       !
       !    # piped_drainage keys:
       !    outfall           = [950.0, 150.0]      ! required if include_outfall = true, [x, y] pair
@@ -799,6 +817,7 @@ contains
       allocate(urb_zone_type(nz))
       allocate(urb_zone_type_id(nz))
       allocate(urb_zone_polygon_file(nz))
+      allocate(urb_zone_whole_grid(nz))
       allocate(urb_zone_outfall_x(nz))
       allocate(urb_zone_outfall_y(nz))
       allocate(urb_zone_design_precip(nz))
@@ -814,6 +833,7 @@ contains
       urb_zone_type             = ''
       urb_zone_type_id          = 0
       urb_zone_polygon_file     = ''
+      urb_zone_whole_grid       = .false.
       urb_zone_outfall_x        = 0.0
       urb_zone_outfall_y        = 0.0
       urb_zone_design_precip    = 0.0
@@ -873,16 +893,37 @@ contains
             return
          end select
          !
-         if (allocated(poly_str)) deallocate(poly_str)
-         call get_value(tbl_zone, 'polygon_file', poly_str, stat=stat)
-         if (.not. allocated(poly_str)) then
-            write(logstr,'(a,a,a)')' Error ! Missing required "polygon_file" in urban_drainage_zone "', &
-                 trim(urb_zone_name(i)), '"'
-            call write_log(logstr, 1)
-            ierr = 1
-            return
+         ! Exactly one of polygon_file / whole_grid = true must be given.
+         !
+         if (tbl_zone%has_key('whole_grid')) then
+            call get_value(tbl_zone, 'whole_grid', l_tmp, stat=stat)
+            if (stat == 0) urb_zone_whole_grid(i) = l_tmp
          endif
-         urb_zone_polygon_file(i) = poly_str
+         !
+         if (urb_zone_whole_grid(i)) then
+            !
+            if (tbl_zone%has_key('polygon_file')) then
+               write(logstr,'(a,a,a)')' Error ! urban_drainage_zone "', trim(urb_zone_name(i)), &
+                    '" has both "polygon_file" and "whole_grid = true"; specify only one'
+               call write_log(logstr, 1)
+               ierr = 1
+               return
+            endif
+            !
+         else
+            !
+            if (allocated(poly_str)) deallocate(poly_str)
+            call get_value(tbl_zone, 'polygon_file', poly_str, stat=stat)
+            if (.not. allocated(poly_str)) then
+               write(logstr,'(a,a,a)')' Error ! Missing required "polygon_file" (or "whole_grid = true") in ' // &
+                    'urban_drainage_zone "', trim(urb_zone_name(i)), '"'
+               call write_log(logstr, 1)
+               ierr = 1
+               return
+            endif
+            urb_zone_polygon_file(i) = poly_str
+            !
+         endif
          !
          ! h_threshold is common to both types.
          !
@@ -1002,6 +1043,18 @@ contains
             urb_zone_include_outfall(i) = .false.
             urb_zone_check_valve(i)     = .false.
             !
+         endif
+         !
+         ! whole_grid is only meant for a sink without outfall.
+         !
+         if (urb_zone_whole_grid(i)) then
+            if (urb_zone_type_id(i) /= urb_type_piped_drainage .or. urb_zone_include_outfall(i)) then
+               write(logstr,'(a,a,a)')' Error ! urban_drainage_zone "', trim(urb_zone_name(i)), &
+                    '" has "whole_grid = true", which is only allowed for type "piped_drainage" with "include_outfall = false"'
+               call write_log(logstr, 1)
+               ierr = 1
+               return
+            endif
          endif
          !
       enddo
