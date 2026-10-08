@@ -245,7 +245,6 @@ contains
       !
       call get_keyword(500, 'inffile',                         inffile,                         'none', [character(len=17) :: 'infiltrationfile', 'infiltration_file'])   ! infiltration parameters TOML file
       call get_keyword(500, 'inftype',                         inftype,                         'none', [character(len=17) :: 'infiltrationtype', 'infiltration_type'])   ! infiltration flavor (con, c2d, cna, cnb, gai, hor, bkt, r2d)
-      call get_keyword(500, 'drainagefile',                    drainagefile,                    'none')            ! drainage mimic rate field (binary or netCDF 'drainage_rate', mm/hr)
       !
       ! Legacy binary infiltration inputs (kept for backward compatibility).
       !

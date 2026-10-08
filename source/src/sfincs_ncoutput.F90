@@ -1954,7 +1954,6 @@ contains
         NF90(nf90_put_att(ncid, varid, 'f0file',f0file))
         NF90(nf90_put_att(ncid, varid, 'fcfile',fcfile))
         NF90(nf90_put_att(ncid, varid, 'kdfile',kdfile))
-        NF90(nf90_put_att(ncid, varid, 'drainagefile',drainagefile))
         NF90(nf90_put_att(ncid, varid, 'z0lfile',z0lfile))
         NF90(nf90_put_att(ncid, varid, 'wavemaker_wvmfile',wavemaker_wvmfile))
         NF90(nf90_put_att(ncid, varid, 'wavemaker_timeseries_wvmfile',wavemaker_timeseries_wvmfile))

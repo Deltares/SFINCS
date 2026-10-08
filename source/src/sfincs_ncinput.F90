@@ -301,7 +301,7 @@ module sfincs_ncinput
    
    subroutine open_netcdf_quadtree_file(ncfile, nrcells)
    !
-   ! Open a quadtree-format netcdf input file (e.g. inffile, drainagefile, volfile)
+   ! Open a quadtree-format netcdf input file (e.g. inffile, volfile)
    ! into net_file_generic and return its number of cells (dimension mesh2d_nFaces).
    ! Stops SFINCS with a clear message if the file cannot be opened as netcdf
    ! (e.g. a legacy binary file) or does not contain the mesh2d_nFaces dimension.

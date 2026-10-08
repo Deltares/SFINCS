@@ -156,7 +156,6 @@ module sfincs_data
       character*256 :: f0file
       character*256 :: fcfile
       character*256 :: kdfile
-      character*256 :: drainagefile
       character*256 :: z0lfile
       character*256 :: qtrfile
       character*256 :: volfile
@@ -214,7 +213,6 @@ module sfincs_data
       logical       :: write_time_output
       logical       :: bziwaves
       logical       :: infiltration
-      logical       :: drainage_mimic
       logical       :: discharges
       logical       :: drainage_structures
       logical       :: urban_drainage
@@ -388,10 +386,6 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: bucket_drain_rate                 ! net removal from surface this step (m/s)
       real*4, dimension(:),   allocatable :: bucket_loss                       ! loss fraction per cell (0-1), ET/deep percolation
       real*4, dimension(:),   allocatable :: bucket_runoff                     ! bucket drainage returned as surface runoff (m/s)
-      !
-      ! Drainage mimic - constant-in-time removal rate representing subsurface drainage
-      !
-      real*4, dimension(:),   allocatable :: qdrain_rate                       ! drainage rate per cell (m/s)
       !
       ! Wind reduction for spiderweb winds
       !
@@ -962,7 +956,6 @@ module sfincs_data
     if(allocated(bucket_drain_rate)) deallocate(bucket_drain_rate)
     if(allocated(bucket_loss)) deallocate(bucket_loss)
     if(allocated(bucket_runoff)) deallocate(bucket_runoff)
-    if(allocated(qdrain_rate)) deallocate(qdrain_rate)
     if(allocated(nuvisc)) deallocate(nuvisc)
     !
     ! Boundary velocity points

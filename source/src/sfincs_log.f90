@@ -273,12 +273,6 @@ contains
          call write_log('Infiltration         : no', 1)
       endif
       !
-      if (drainage_mimic) then
-         call write_log('Drainage mimic       : yes', 1)
-      else
-         call write_log('Drainage mimic       : no', 1)
-      endif
-      !
       if (snapwave) then
          call write_log('SnapWave             : yes', 1)
       else
