@@ -840,16 +840,41 @@ subroutine build_boundary_support_points_spectra()
    !
    implicit none
    !
-   integer :: ib
+   integer :: ib, nbin, nbin360
    !
    real*4  :: E0, ms, E0_ig, sdist
-   logical, save :: warned_sector = .false.
+   logical, save :: warned_truncated = .false.
+   logical, save :: warned_outside   = .false.
    !
-   if (wind .and. ntwbnd > 0 .and. sector < 359.999 .and. .not. warned_sector) then
-      write(logstr,'(a,f6.1,a)') 'Warning SnapWave - imposed wave boundary with wind and snapwave_sector = ', &
-         sector, ' : wave energy more than sector/2 from the wind direction is not included'
-      call write_log(logstr, 1)
-      warned_sector = .true.
+   ! With wind the theta grid is made around the mean wind direction, so part (or all) of the
+   ! imposed spectrum (+-90 degrees around wdmean_bwv) can fall outside the grid. The spectrum
+   ! is normalized over the bins that are on the grid, so energy is only lost without overlap
+   !
+   if (wind .and. ntwbnd > 0 .and. ntheta < ntheta360) then
+      !
+      nbin    = count(abs(mod(pi + theta    - wdmean_bwv, 2.0*pi) - pi) <= 0.999*pi/2.0)
+      nbin360 = count(abs(mod(pi + theta360 - wdmean_bwv, 2.0*pi) - pi) <= 0.999*pi/2.0)
+      !
+      if (nbin == 0) then
+         !
+         if (.not. warned_outside) then
+            write(logstr,'(a,f6.1,a)') 'Warning SnapWave - imposed wave direction is outside the directional grid around the mean wind direction (snapwave_sector = ', &
+               sector, ') : no wave energy imposed at the boundary'
+            call write_log(logstr, 1)
+            warned_outside = .true.
+         endif
+         !
+      elseif (nbin < nbin360) then
+         !
+         if (.not. warned_truncated) then
+            write(logstr,'(a,f6.1,a)') 'Warning SnapWave - imposed wave spectrum is truncated by the directional grid around the mean wind direction (snapwave_sector = ', &
+               sector, ') : total energy is preserved, but mean wave direction shifts towards the wind'
+            call write_log(logstr, 1)
+            warned_truncated = .true.
+         endif
+         !
+      endif
+      !
    endif
    !
    do ib = 1, nwbnd ! Loop along boundary points

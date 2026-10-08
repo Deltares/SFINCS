@@ -94,8 +94,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.4.2-alpha Galibier+branch-snapwave-wind-only-no-bnd"
-   build_date     = "$Date: 2026-10-07"
+   build_revision = "$Rev: v2.5.0-beta Hautacam"
+   build_date     = "$Date: 2026-10-08"
    !
    call write_log('', 1)
    call write_log('------------ Welcome to SFINCS ------------', 1)
