@@ -433,6 +433,7 @@ contains
       !
       integer :: nm, iz, io, type_id
       real*4  :: dzs, qd, area_nm, h_cell, ramp
+      logical :: draining
       !
       if (nr_urban_drainage_zones <= 0) return
       !
@@ -445,10 +446,10 @@ contains
       !$acc                        urban_drainage_qmax, urban_drainage_backflow_coef, &
       !$acc                        urban_drainage_q_total, urban_drainage_cumulative_volume, &
       !$acc                        urb_zone_type_id, urb_zone_maximum_capacity, urb_zone_cumulative_injection, &
-      !$acc                        urb_zone_h_threshold, urb_zone_check_valve ) &
+      !$acc                        urb_zone_h_threshold, urb_zone_check_valve, urb_zone_include_outfall ) &
       !$acc                reduction(+:urban_drainage_q_total)
       !$omp parallel do default(shared) &
-      !$omp private(nm, iz, io, type_id, dzs, qd, area_nm, h_cell, ramp) &
+      !$omp private(nm, iz, io, type_id, dzs, qd, area_nm, h_cell, ramp, draining) &
       !$omp reduction(+:urban_drainage_q_total) schedule(static)
       do nm = 1, np
          !
@@ -496,11 +497,28 @@ contains
             ! piped_drainage
             !
             io = urban_drainage_outfall_index(iz)
-            if (io <= 0) cycle
             !
-            dzs = zs(nm) - zs(io)
+            if (io > 0) then
+               !
+               dzs      = zs(nm) - zs(io)
+               draining = dzs > 0.0
+               !
+            elseif (urb_zone_include_outfall(iz)) then
+               !
+               ! Outfall could not be snapped to an active cell: zone is discarded
+               !
+               cycle
+               !
+            else
+               !
+               ! No outfall (include_outfall = false): unconnected sink, cells
+               ! always drain at up to qmax and there is no backflow
+               !
+               draining = .true.
+               !
+            endif
             !
-            if (dzs > 0.0) then
+            if (draining) then
                !
                if (subgrid) then
                   h_cell = zs(nm) - subgrid_z_zmin(nm)

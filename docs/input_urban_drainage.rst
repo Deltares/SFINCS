@@ -97,7 +97,7 @@ Piped drainage keys
 	Coordinates of the single point where all zone discharge is summed and deposited. Snapped to the nearest active cell. If no active cell can be found, zone contributions are silently discarded and a warning is logged.
 
 ``include_outfall`` (optional, bool, default ``true``)
-	Set to ``false`` to disable the outfall deposit step. Flow still leaves (or enters) cells, but does not reappear anywhere — treats the zone as an unconnected sink. Mostly useful for sensitivity tests.
+	Set to ``false`` to run the zone without an outfall. Wet cells then always drain at up to ``design_precip``, there is no backflow, and the water does not reappear anywhere — the zone is an unconnected sink. This can be used to mimic a constant-in-time subsurface drainage rate (mm/hr) over the zone.
 
 ``check_valve`` (optional, bool, default ``false``)
 	When ``true``, the zone only drains outward. Backflow from the outfall into the cells (bay flooding through the pipe) is suppressed. Represents a flap valve / tide gate at the outfall.

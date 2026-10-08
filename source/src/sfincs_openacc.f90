@@ -10,7 +10,7 @@ module sfincs_openacc
                                      urban_drainage_q_total, urban_drainage_cumulative_volume, &
                                      urb_zone_type_id, urb_zone_injection_rate, urb_zone_maximum_capacity, &
                                      urb_zone_cumulative_injection, &
-                                     urb_zone_h_threshold, urb_zone_check_valve, &
+                                     urb_zone_h_threshold, urb_zone_check_valve, urb_zone_include_outfall, &
                                      urb_zone_dh_design_min
    !
    implicit none
@@ -71,7 +71,7 @@ contains
    !$acc               urban_drainage_q_total, urban_drainage_cumulative_volume, &
    !$acc               urb_zone_type_id, urb_zone_injection_rate, urb_zone_maximum_capacity, &
    !$acc               urb_zone_cumulative_injection, &
-   !$acc               urb_zone_h_threshold, urb_zone_check_valve, urb_zone_dh_design_min )
+   !$acc               urb_zone_h_threshold, urb_zone_check_valve, urb_zone_include_outfall, urb_zone_dh_design_min )
    !
    end subroutine
    !
@@ -125,7 +125,7 @@ contains
    !$acc               urban_drainage_q_total, urban_drainage_cumulative_volume, &
    !$acc               urb_zone_type_id, urb_zone_injection_rate, urb_zone_maximum_capacity, &
    !$acc               urb_zone_cumulative_injection, &
-   !$acc               urb_zone_h_threshold, urb_zone_check_valve, urb_zone_dh_design_min )
+   !$acc               urb_zone_h_threshold, urb_zone_check_valve, urb_zone_include_outfall, urb_zone_dh_design_min )
    !
    end
    !
