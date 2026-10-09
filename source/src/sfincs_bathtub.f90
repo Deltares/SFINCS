@@ -38,6 +38,20 @@ contains
       !
       call read_snapwave_boundary_data() ! snapwave_boundaries
       !
+      if (bathtub_snapwave_nwbnd == 0) then
+         !
+         ! No wave boundary conditions given: turn off the wave contribution to the bathtub water levels
+         !
+         call write_log('Warning : bathtub mode with SnapWave but without wave boundary conditions, wave contribution to bathtub water levels is turned off', 1)
+         !
+         bathtub_snapwave = .false.
+         !
+      endif
+      !
+   endif
+   !
+   if (bathtub_snapwave) then
+      !
       ! Determine weights and indices for each wave boundary point
       !
       allocate(bathtub_snapwave_i1(nbnd))
@@ -176,6 +190,12 @@ contains
    ! Read SnapWave input file from sfincs.inp (this will store boundary file names in snapwave_data)
    !
    call read_snapwave_input()
+   !
+   bathtub_snapwave_nwbnd = 0
+   !
+   ! Without wave boundary conditions there is nothing to read (wave part is turned off in initialize_bathtub)
+   !
+   if (snapwave_jonswapfile == 'none' .and. netsnapwavefile == 'none' .and. snapwave_bndfile(1:4) == 'none') return
    !
    ! Use read_boundary data from snapwave_boundaries
    !

@@ -34,7 +34,7 @@ contains
          uu = uv(ip)  
          vu = (uv(uv_index_v_ndm(ip)) + uv(uv_index_v_ndmu(ip)) + uv(uv_index_v_nm(ip)) + uv(uv_index_v_nmu(ip))) / 4
          !
-         Uc = max(sqrt(uu*2 + vu**2) , 0.25)
+         Uc = max(sqrt(uu**2 + vu**2) , 0.25)
          !
          if (Uw < 0.1) cycle
          !
