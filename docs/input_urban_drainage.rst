@@ -37,6 +37,8 @@ Zone definition
 
 Every zone has three required keys regardless of type: ``name``, ``type``, and ``polygon_file`` (or ``whole_grid = true`` instead of a polygon, see below). The rest depends on the type.
 
+Booleans are written as ``true`` or ``false`` and numbers without quotes. A value of the wrong type (e.g. ``check_valve = 1`` or ``design_precip = "20"``) stops SFINCS with an error that names the zone and the key.
+
 Piped drainage example
 ^^^^^^^^^^^^^^^^^^^^^^
 
