@@ -233,6 +233,9 @@ In case of netcdf output, the given parameters mean the following:
 	cumprcp
 	  :description:		Cumulative precipitation depth over whole simulation.
 	  :units:		m	  	  
+	bucket_volume
+	  :description:		Current bucket storage per 'dtout' timestep, only given for inftype = bkt.
+	  :units:		m
 	inp
 	  :description:		Copy of all the supplied input to SFINCS from 'sfincs.inp'.
 	  :units:		-
@@ -324,6 +327,9 @@ This file is only created if at least one of the following is supplied: observat
 	  :description:		Instantaneous infiltration rate per 'dthisout' timestep, corresponding with netcdf variable 'time'.
 	  :standard_name:	point_qinf	  
 	  :units:		m
+	point_S
+	  :description:		Current infiltration state per 'dthisout' timestep: Se (m) for inftype = cnb, soil moisture deficit (-) for gai, infiltration capacity (mm/hr) for hor, bucket storage (m) for bkt.
+	  :units:		depends on inftype
 	crosssection_discharge
 	  :description:		Discharge through cross-section per 'dthisout' timestep, corresponding with netcdf variable 'time'.
 	  :standard_name:	discharge	  

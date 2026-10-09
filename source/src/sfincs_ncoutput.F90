@@ -414,6 +414,9 @@ contains
       elseif (inftype == 'bkt') then
          call def_static_cell_float('qinf', map_file%qinf_varid, 'mm', 'maximum bucket storage capacity', &
               standard_name='bucket_capacity')
+      elseif (inftype == 'r2d') then
+         call def_static_cell_float('qinf', map_file%qinf_varid, '%', 'run-off coefficient - constant in time', &
+              standard_name='runoff')
       else
          call def_static_cell_float('qinf', map_file%qinf_varid, 'mm h-1', 'infiltration rate - constant in time', &
               standard_name='qinf')
@@ -497,6 +500,9 @@ contains
       call def_time_cell_float('sigma', map_file%infstate_varid, '-', 'maximum soil moisture deficit', standard_name='sigma')
    elseif (inftype == 'hor') then
       call def_time_cell_float('f', map_file%infstate_varid, 'mm h-1', 'current infiltration capacity', standard_name='f')
+   elseif (inftype == 'bkt') then
+      call def_time_cell_float('bucket_volume', map_file%infstate_varid, 'm', 'current bucket storage', &
+           standard_name='bucket_volume')
    endif
    !
    ! -------------------------------------------------------
@@ -774,6 +780,9 @@ contains
          if (allocated(bucket_capacity)) then
             call put_static_cell_float(map_file%ncid, map_file%qinf_varid, bucket_capacity, FILL_VALUE, scale=1000.0)
          endif
+      elseif (inftype == 'r2d') then
+         ! Run-off coefficient: qinffield holds the infiltrating fraction, write back the run-off coefficient as specified (%)
+         call put_static_cell_float(map_file%ncid, map_file%qinf_varid, 100.0 * (1.0 - qinffield), FILL_VALUE)
       else
          if (allocated(qinffield)) then
             call put_static_cell_float(map_file%ncid, map_file%qinf_varid, qinffield, FILL_VALUE)
@@ -1005,6 +1014,10 @@ contains
          call def_time_point_float('point_S', his_file%S_varid, 'm', 'current moisture storage (Se) capacity')
       elseif (inftype == 'gai') then
          call def_time_point_float('point_S', his_file%S_varid, 'm', 'maximum soil moisture deficit')
+      elseif (inftype == 'hor') then
+         call def_time_point_float('point_S', his_file%S_varid, 'mm hr-1', 'current infiltration capacity')
+      elseif (inftype == 'bkt') then
+         call def_time_point_float('point_S', his_file%S_varid, 'm', 'current bucket storage')
       endif
    endif
    !
@@ -1335,11 +1348,17 @@ contains
    ! Infiltration state
    ! -------------------------------------------------------
    if (inftype == 'cnb') then
+      !$acc update host(scs_Se)
       call write_cell_var(map_file%ncid, map_file%infstate_varid, scs_Se,   ntmapout)
    elseif (inftype == 'gai') then
+      !$acc update host(GA_sigma)
       call write_cell_var(map_file%ncid, map_file%infstate_varid, GA_sigma, ntmapout)
    elseif (inftype == 'hor') then
-      call write_cell_var(map_file%ncid, map_file%infstate_varid, qinfmap,  ntmapout)
+      !$acc update host(qinfmap)
+      call write_cell_var(map_file%ncid, map_file%infstate_varid, qinfmap,  ntmapout, scale=3600000.0)
+   elseif (inftype == 'bkt') then
+      !$acc update host(bucket_volume)
+      call write_cell_var(map_file%ncid, map_file%infstate_varid, bucket_volume, ntmapout)
    endif
    !
    ! -------------------------------------------------------
@@ -1447,13 +1466,21 @@ contains
       if (store_meteo .and. wind)  call compute_wind_at_obs_points(twndmag, twnddir)
       !
       if (infiltration) then
-         ! 
+         !
+         !$acc update host(qinfmap)
          call write_point_var(his_file%qinf_varid, qinfmap, nthisout, scale=3600000.0)
          !
          if (inftype == 'cnb') then
+            !$acc update host(scs_Se)
             call write_point_var(his_file%S_varid, scs_Se, nthisout)
          elseif (inftype == 'gai') then
+            !$acc update host(GA_sigma)
             call write_point_var(his_file%S_varid, GA_sigma, nthisout)
+         elseif (inftype == 'hor') then
+            call write_point_var(his_file%S_varid, qinfmap, nthisout, scale=3600000.0)
+         elseif (inftype == 'bkt') then
+            !$acc update host(bucket_volume)
+            call write_point_var(his_file%S_varid, bucket_volume, nthisout)
          endif
          !
       endif

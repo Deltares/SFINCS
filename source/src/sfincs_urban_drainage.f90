@@ -68,6 +68,12 @@ module sfincs_urban_drainage
    !     Parses the *.urb TOML file into the per-zone arrays. Called
    !     from initialize_urban_drainage (this module).
    !
+   !   read_zone_logical(tbl_zone, zone_name, key, val, ierr)
+   !   read_zone_real(tbl_zone, zone_name, key, val, ierr)
+   !     Read one optional boolean / numeric key of a zone. A key that
+   !     is present but of the wrong type is an error. Called from
+   !     read_urban_drainage (this module).
+   !
    !   update_urban_drainage(t, dt)
    !     Per-time-step entry: accumulates signed discharges into qsrc
    !     and adds the zone contribution at the outfall cell (for
@@ -102,6 +108,7 @@ module sfincs_urban_drainage
    character(len=64),  dimension(:), allocatable, public :: urb_zone_name
    character(len=64),  dimension(:), allocatable, public :: urb_zone_type      ! original TOML type string (for logging)
    character(len=256), dimension(:), allocatable         :: urb_zone_polygon_file
+   logical,            dimension(:), allocatable         :: urb_zone_whole_grid        ! zone covers all active cells (no polygon)
    integer,            dimension(:), allocatable, public :: urb_zone_type_id   ! one of urb_type_*
    !
    real*4,  dimension(:), allocatable, public :: urb_zone_outfall_x          ! m (piped_drainage)
@@ -207,11 +214,22 @@ contains
       ! Stamp cells per zone. Polygons are cached per unique file so that
       ! multiple zones sharing a polygon file only trigger one file read.
       ! Within a file each polygon name is matched against urb_zone_name.
+      ! Zones with whole_grid = true have no polygon and take all active cells.
       !
       allocate(inside(np))
       last_file = ''
       !
       do iz = 1, nr_urban_drainage_zones
+         !
+         if (urb_zone_whole_grid(iz)) then
+            !
+            ! Last-zone-wins also holds here: later zones overwrite this one.
+            !
+            urban_drainage_zone_indices = iz
+            !
+            cycle
+            !
+         endif
          !
          if (trim(urb_zone_polygon_file(iz)) == '') then
             write(logstr,'(a,a,a)')' Error ! Urban drainage zone "', trim(urb_zone_name(iz)), &
@@ -433,6 +451,7 @@ contains
       !
       integer :: nm, iz, io, type_id
       real*4  :: dzs, qd, area_nm, h_cell, ramp
+      logical :: draining
       !
       if (nr_urban_drainage_zones <= 0) return
       !
@@ -445,10 +464,10 @@ contains
       !$acc                        urban_drainage_qmax, urban_drainage_backflow_coef, &
       !$acc                        urban_drainage_q_total, urban_drainage_cumulative_volume, &
       !$acc                        urb_zone_type_id, urb_zone_maximum_capacity, urb_zone_cumulative_injection, &
-      !$acc                        urb_zone_h_threshold, urb_zone_check_valve ) &
+      !$acc                        urb_zone_h_threshold, urb_zone_check_valve, urb_zone_include_outfall ) &
       !$acc                reduction(+:urban_drainage_q_total)
       !$omp parallel do default(shared) &
-      !$omp private(nm, iz, io, type_id, dzs, qd, area_nm, h_cell, ramp) &
+      !$omp private(nm, iz, io, type_id, dzs, qd, area_nm, h_cell, ramp, draining) &
       !$omp reduction(+:urban_drainage_q_total) schedule(static)
       do nm = 1, np
          !
@@ -496,11 +515,28 @@ contains
             ! piped_drainage
             !
             io = urban_drainage_outfall_index(iz)
-            if (io <= 0) cycle
             !
-            dzs = zs(nm) - zs(io)
+            if (io > 0) then
+               !
+               dzs      = zs(nm) - zs(io)
+               draining = dzs > 0.0
+               !
+            elseif (urb_zone_include_outfall(iz)) then
+               !
+               ! Outfall could not be snapped to an active cell: zone is discarded
+               !
+               cycle
+               !
+            else
+               !
+               ! No outfall (include_outfall = false): unconnected sink, cells
+               ! always drain at up to qmax and there is no backflow
+               !
+               draining = .true.
+               !
+            endif
             !
-            if (dzs > 0.0) then
+            if (draining) then
                !
                if (subgrid) then
                   h_cell = zs(nm) - subgrid_z_zmin(nm)
@@ -617,8 +653,12 @@ contains
          write(logstr,'(a,a)')         '  type:             ', trim(urb_zone_type(iz))
          call write_log(logstr, 0)
          !
-         write(logstr,'(a,a)')         '  polygon_file:     ', trim(urb_zone_polygon_file(iz))
-         call write_log(logstr, 0)
+         if (urb_zone_whole_grid(iz)) then
+            call write_log('  polygon_file:     (none, whole_grid = true: all active cells)', 0)
+         else
+            write(logstr,'(a,a)')      '  polygon_file:     ', trim(urb_zone_polygon_file(iz))
+            call write_log(logstr, 0)
+         endif
          !
          write(logstr,'(a,i0)')        '  cells_assigned:   ', urb_zone_n_cells(iz)
          call write_log(logstr, 0)
@@ -702,7 +742,9 @@ contains
       !    [[urban_drainage_zone]]
       !    name              = "area 1"            ! required, string (matches polygon name)
       !    type              = "piped_drainage"    ! required, one of: "piped_drainage", "injection_well"
-      !    polygon_file      = "zones.tek"         ! required
+      !    polygon_file      = "zones.tek"         ! required, unless whole_grid = true
+      !    whole_grid        = true                ! alternative to polygon_file: zone covers all active cells
+      !                                            ! (piped_drainage with include_outfall = false only)
       !
       !    # piped_drainage keys:
       !    outfall           = [950.0, 150.0]      ! required if include_outfall = true, [x, y] pair
@@ -736,7 +778,7 @@ contains
       character(len=:), allocatable :: name_str, type_str, poly_str
       integer                       :: nz, i, stat
       real(kind=8)                  :: r8_tmp
-      logical                       :: l_tmp, found
+      logical                       :: found
       !
       ierr = 0
       !
@@ -781,6 +823,7 @@ contains
       allocate(urb_zone_type(nz))
       allocate(urb_zone_type_id(nz))
       allocate(urb_zone_polygon_file(nz))
+      allocate(urb_zone_whole_grid(nz))
       allocate(urb_zone_outfall_x(nz))
       allocate(urb_zone_outfall_y(nz))
       allocate(urb_zone_design_precip(nz))
@@ -796,6 +839,7 @@ contains
       urb_zone_type             = ''
       urb_zone_type_id          = 0
       urb_zone_polygon_file     = ''
+      urb_zone_whole_grid       = .false.
       urb_zone_outfall_x        = 0.0
       urb_zone_outfall_y        = 0.0
       urb_zone_design_precip    = 0.0
@@ -855,21 +899,40 @@ contains
             return
          end select
          !
-         if (allocated(poly_str)) deallocate(poly_str)
-         call get_value(tbl_zone, 'polygon_file', poly_str, stat=stat)
-         if (.not. allocated(poly_str)) then
-            write(logstr,'(a,a,a)')' Error ! Missing required "polygon_file" in urban_drainage_zone "', &
-                 trim(urb_zone_name(i)), '"'
-            call write_log(logstr, 1)
-            ierr = 1
-            return
+         ! Exactly one of polygon_file / whole_grid = true must be given.
+         !
+         call read_zone_logical(tbl_zone, urb_zone_name(i), 'whole_grid', urb_zone_whole_grid(i), ierr)
+         if (ierr /= 0) return
+         !
+         if (urb_zone_whole_grid(i)) then
+            !
+            if (tbl_zone%has_key('polygon_file')) then
+               write(logstr,'(a,a,a)')' Error ! urban_drainage_zone "', trim(urb_zone_name(i)), &
+                    '" has both "polygon_file" and "whole_grid = true"; specify only one'
+               call write_log(logstr, 1)
+               ierr = 1
+               return
+            endif
+            !
+         else
+            !
+            if (allocated(poly_str)) deallocate(poly_str)
+            call get_value(tbl_zone, 'polygon_file', poly_str, stat=stat)
+            if (.not. allocated(poly_str)) then
+               write(logstr,'(a,a,a)')' Error ! Missing required "polygon_file" (or "whole_grid = true") in ' // &
+                    'urban_drainage_zone "', trim(urb_zone_name(i)), '"'
+               call write_log(logstr, 1)
+               ierr = 1
+               return
+            endif
+            urb_zone_polygon_file(i) = poly_str
+            !
          endif
-         urb_zone_polygon_file(i) = poly_str
          !
          ! h_threshold is common to both types.
          !
-         call get_value(tbl_zone, 'h_threshold', r8_tmp, stat=stat)
-         if (stat == 0) urb_zone_h_threshold(i) = real(r8_tmp, 4)
+         call read_zone_real(tbl_zone, urb_zone_name(i), 'h_threshold', urb_zone_h_threshold(i), ierr)
+         if (ierr /= 0) return
          !
          ! Type-specific fields.
          !
@@ -881,6 +944,14 @@ contains
                !
                nullify(arr_outfall)
                call get_value(tbl_zone, 'outfall', arr_outfall, requested=.false., stat=stat_arr)
+               !
+               if (tbl_zone%has_key('outfall') .and. .not. associated(arr_outfall)) then
+                  write(logstr,'(a,a,a)')' Error ! urban_drainage_zone "', trim(urb_zone_name(i)), &
+                       '" key "outfall" must be an array [x, y]'
+                  call write_log(logstr, 1)
+                  ierr = 1
+                  return
+               endif
                !
                if (associated(arr_outfall)) then
                   !
@@ -895,9 +966,19 @@ contains
                   endif
                   !
                   call get_value(arr_outfall, 1, r8_tmp, stat=stat_arr)
-                  urb_zone_outfall_x(i) = real(r8_tmp, 4)
+                  if (stat_arr == 0) then
+                     urb_zone_outfall_x(i) = real(r8_tmp, 4)
+                     call get_value(arr_outfall, 2, r8_tmp, stat=stat_arr)
+                  endif
                   !
-                  call get_value(arr_outfall, 2, r8_tmp, stat=stat_arr)
+                  if (stat_arr /= 0) then
+                     write(logstr,'(a,a,a)')' Error ! urban_drainage_zone "', trim(urb_zone_name(i)), &
+                          '" key "outfall" must contain two numbers [x, y]'
+                     call write_log(logstr, 1)
+                     ierr = 1
+                     return
+                  endif
+                  !
                   urb_zone_outfall_y(i) = real(r8_tmp, 4)
                   !
                endif
@@ -926,23 +1007,22 @@ contains
                   return
                endif
                if (has_precip) then
-                  call get_value(tbl_zone, 'design_precip', r8_tmp, stat=stat)
-                  urb_zone_design_precip(i) = real(r8_tmp, 4)
+                  call read_zone_real(tbl_zone, urb_zone_name(i), 'design_precip', urb_zone_design_precip(i), ierr)
                else
-                  call get_value(tbl_zone, 'max_outfall_rate', r8_tmp, stat=stat)
-                  urb_zone_max_outfall_rate(i) = real(r8_tmp, 4)
+                  call read_zone_real(tbl_zone, urb_zone_name(i), 'max_outfall_rate', urb_zone_max_outfall_rate(i), ierr)
                endif
+               if (ierr /= 0) return
             end block
             !
-            call get_value(tbl_zone, 'dh_design_min', r8_tmp, stat=stat)
-            if (stat == 0) urb_zone_dh_design_min(i) = real(r8_tmp, 4)
+            call read_zone_real(tbl_zone, urb_zone_name(i), 'dh_design_min', urb_zone_dh_design_min(i), ierr)
+            if (ierr /= 0) return
             if (urb_zone_dh_design_min(i) <= 0.0) urb_zone_dh_design_min(i) = 0.1
             !
-            call get_value(tbl_zone, 'include_outfall', l_tmp, stat=stat)
-            if (stat == 0) urb_zone_include_outfall(i) = l_tmp
+            call read_zone_logical(tbl_zone, urb_zone_name(i), 'include_outfall', urb_zone_include_outfall(i), ierr)
+            if (ierr /= 0) return
             !
-            call get_value(tbl_zone, 'check_valve', l_tmp, stat=stat)
-            if (stat == 0) urb_zone_check_valve(i) = l_tmp
+            call read_zone_logical(tbl_zone, urb_zone_name(i), 'check_valve', urb_zone_check_valve(i), ierr)
+            if (ierr /= 0) return
             !
             ! Minimal sanity check on outfall: if include_outfall is true,
             ! outfall coords should be specified (warn only; snap will
@@ -966,8 +1046,8 @@ contains
                ierr = 1
                return
             endif
-            call get_value(tbl_zone, 'injection_rate', r8_tmp, stat=stat)
-            urb_zone_injection_rate(i) = real(r8_tmp, 4)
+            call read_zone_real(tbl_zone, urb_zone_name(i), 'injection_rate', urb_zone_injection_rate(i), ierr)
+            if (ierr /= 0) return
             !
             if (.not. tbl_zone%has_key('maximum_capacity')) then
                write(logstr,'(a,a,a)')' Error ! injection_well zone "', trim(urb_zone_name(i)), &
@@ -976,8 +1056,8 @@ contains
                ierr = 1
                return
             endif
-            call get_value(tbl_zone, 'maximum_capacity', r8_tmp, stat=stat)
-            urb_zone_maximum_capacity(i) = real(r8_tmp, 4)
+            call read_zone_real(tbl_zone, urb_zone_name(i), 'maximum_capacity', urb_zone_maximum_capacity(i), ierr)
+            if (ierr /= 0) return
             !
             ! injection_well has no outfall or check valve.
             !
@@ -986,7 +1066,97 @@ contains
             !
          endif
          !
+         ! whole_grid is only meant for a sink without outfall.
+         !
+         if (urb_zone_whole_grid(i)) then
+            if (urb_zone_type_id(i) /= urb_type_piped_drainage .or. urb_zone_include_outfall(i)) then
+               write(logstr,'(a,a,a)')' Error ! urban_drainage_zone "', trim(urb_zone_name(i)), &
+                    '" has "whole_grid = true", which is only allowed for type "piped_drainage" with "include_outfall = false"'
+               call write_log(logstr, 1)
+               ierr = 1
+               return
+            endif
+         endif
+         !
       enddo
+      !
+   end subroutine
+   !
+   !-----------------------------------------------------------------------------------------------------!
+   !
+   subroutine read_zone_logical(tbl_zone, zone_name, key, val, ierr)
+      !
+      ! Read an optional boolean key of an urban drainage zone. val keeps
+      ! its value when the key is absent. A key that is present but not a
+      ! TOML boolean (e.g. 1 or "true") is an error.
+      !
+      ! Called from: read_urban_drainage (this module).
+      !
+      use tomlf
+      !
+      implicit none
+      !
+      type(toml_table), intent(inout) :: tbl_zone
+      character(len=*), intent(in)    :: zone_name
+      character(len=*), intent(in)    :: key
+      logical,          intent(inout) :: val
+      integer,          intent(inout) :: ierr
+      !
+      logical :: l_tmp
+      integer :: stat
+      !
+      if (.not. tbl_zone%has_key(key)) return
+      !
+      call get_value(tbl_zone, key, l_tmp, stat=stat)
+      !
+      if (stat /= 0) then
+         write(logstr,'(a,a,a,a,a)')' Error ! urban_drainage_zone "', trim(zone_name), '" key "', trim(key), &
+              '" must be true or false'
+         call write_log(logstr, 1)
+         ierr = 1
+         return
+      endif
+      !
+      val = l_tmp
+      !
+   end subroutine
+   !
+   !-----------------------------------------------------------------------------------------------------!
+   !
+   subroutine read_zone_real(tbl_zone, zone_name, key, val, ierr)
+      !
+      ! Read an optional numeric key of an urban drainage zone. val keeps
+      ! its value when the key is absent. A key that is present but not a
+      ! number (e.g. "20") is an error.
+      !
+      ! Called from: read_urban_drainage (this module).
+      !
+      use tomlf
+      !
+      implicit none
+      !
+      type(toml_table), intent(inout) :: tbl_zone
+      character(len=*), intent(in)    :: zone_name
+      character(len=*), intent(in)    :: key
+      real*4,           intent(inout) :: val
+      integer,          intent(inout) :: ierr
+      !
+      real(kind=8) :: r8_tmp
+      integer      :: stat
+      !
+      if (.not. tbl_zone%has_key(key)) return
+      !
+      call get_value(tbl_zone, key, r8_tmp, stat=stat)
+      !
+      if (stat /= 0) then
+         write(logstr,'(a,a,a,a,a)')' Error ! urban_drainage_zone "', trim(zone_name), '" key "', trim(key), &
+              '" must be a number'
+         call write_log(logstr, 1)
+         ierr = 1
+         return
+      endif
+      !
+      val = real(r8_tmp, 4)
       !
    end subroutine
    !
