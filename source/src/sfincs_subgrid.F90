@@ -979,5 +979,53 @@ contains
       end if
       !  
    end subroutine handle_err
+   !
+   !
+   subroutine set_subgrid_uv_blocking(ip, zcrest, manning_crest)
+      !
+      ! Replaces the subgrid table of uv point ip by that of a barrier with a flat
+      ! crest at zcrest across the full face: dry below the crest, above it a depth
+      ! of (zs - zcrest) over the whole face with roughness manning_crest. Used for
+      ! flow-blocking features that the grid does not resolve.
+      !
+      ! Called from: sfincs_structures -> read_flow_blocking_file
+      !
+      use sfincs_data
+      !
+      implicit none
+      !
+      integer, intent(in) :: ip
+      real*4,  intent(in) :: zcrest
+      real*4,  intent(in) :: manning_crest
+      !
+      integer :: ilevel
+      real*4  :: dz
+      real*4  :: gn2_crest
+      !
+      gn2_crest = g*max(manning_crest, 0.0001)**2
+      !
+      ! The table spans one centimetre above the crest. Higher water levels take
+      ! the extrapolation branch in sfincs_momentum, which then gives hu = zs - zcrest
+      ! and a constant roughness, since nrep at zmax equals navg_w.
+      !
+      subgrid_uv_zmin(ip) = zcrest + 0.01
+      subgrid_uv_zmax(ip) = subgrid_uv_zmin(ip) + 0.01
+      !
+      dz = (subgrid_uv_zmax(ip) - subgrid_uv_zmin(ip))/(subgrid_nlevels - 1)
+      !
+      do ilevel = 1, subgrid_nlevels
+         !
+         subgrid_uv_havg(ilevel, ip) = subgrid_uv_zmin(ip) + (ilevel - 1)*dz - zcrest
+         subgrid_uv_nrep(ilevel, ip) = gn2_crest
+         subgrid_uv_pwet(ilevel, ip) = 1.0
+         !
+      enddo
+      !
+      subgrid_uv_navg_w(ip)    = gn2_crest
+      subgrid_uv_fnfit(ip)     = 0.0
+      subgrid_uv_havg_zmax(ip) = subgrid_uv_havg(subgrid_nlevels, ip) - subgrid_uv_zmax(ip)
+      subgrid_uv_nrep_zmax(ip) = gn2_crest
+      !
+   end subroutine set_subgrid_uv_blocking
 
 end module

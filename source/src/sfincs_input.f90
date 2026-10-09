@@ -89,6 +89,8 @@ contains
       call get_keyword(500, 'theta',                           theta,                           1.0)               ! semi-implicit theta; <1 adds smoothing
       call get_keyword(500, 'hmin_cfl',                        hmin_cfl,                        0.1)               ! minimum depth used in CFL check (m)
       call get_keyword(500, 'manning',                         manning,                         0.04)              ! uniform Manning n (s/m^(1/3))
+      call get_keyword(500, 'flow_blocking_manning',           flow_blocking_manning,           0.03)              ! Manning n of flow-blocking feature crests (s/m^(1/3))
+      call get_keyword(500, 'flow_blocking_min_zmin',          flow_blocking_min_zmin,          0.0)               ! faces with a table bed level below this (m) are not raised, so that channels under bridges stay open
       call get_keyword(500, 'manning_land',                    manning_land,                    -999.0)            ! Manning n above rghlevland (s/m^(1/3))
       call get_keyword(500, 'manning_sea',                     manning_sea,                     -999.0)            ! Manning n below rghlevland (s/m^(1/3))
       call get_keyword(500, 'rgh_lev_land',                    rghlevland,                      0.0)               ! bed level separating land/sea friction (m)
@@ -208,6 +210,7 @@ contains
       call get_keyword(500, 'sbgfile',                         sbgfile,                         'none')            ! subgrid tables netCDF file
       call get_keyword(500, 'thdfile',                         thdfile,                         'none')            ! thin dams polyline file
       call get_keyword(500, 'weirfile',                        weirfile,                        'none')            ! weirs polyline file
+      call get_keyword(500, 'flow_blocking_file',              flow_blocking_file,              'none')            ! flow-blocking features polyline file (x y crest [manning])
       call get_keyword(500, 'manningfile',                     manningfile,                     'none')            ! spatially-varying Manning n file
       call get_keyword(500, 'drnfile',                         drnfile,                         'none')            ! drainage structures file
       call get_keyword(500, 'dkbfile',                         dkbfile,                         'none')            ! dike breaches file

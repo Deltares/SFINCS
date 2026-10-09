@@ -1889,6 +1889,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'sbgfile',sbgfile))        
         NF90(nf90_put_att(ncid, varid, 'thdfile',thdfile))        
         NF90(nf90_put_att(ncid, varid, 'weirfile',weirfile))        
+        NF90(nf90_put_att(ncid, varid, 'flow_blocking_file',flow_blocking_file))
         NF90(nf90_put_att(ncid, varid, 'manningfile',manningfile))    
         NF90(nf90_put_att(ncid, varid, 'drnfile',drnfile))
         NF90(nf90_put_att(ncid, varid, 'rugfile',rugfile))

@@ -32,6 +32,16 @@
       !
    endif
    !
+   ! Flow-blocking features: no structures, the subgrid uv tables are raised to the crest level
+   !
+   nr_flow_blocking_points = 0
+   !
+   if (flow_blocking_file(1:4) /= 'none') then
+      !
+      call read_flow_blocking_file()
+      !
+   endif
+   !
    end subroutine
 
 
@@ -689,7 +699,219 @@
    call timer_stop('structures')
    !
    end subroutine
-   
-   
-   
+   !
+   !
+   subroutine read_flow_blocking_file()
+      !
+      ! Reads the flow-blocking features file (elevated roads, railways and levees
+      ! that the grid does not resolve), snaps the polylines to the uv points and
+      ! raises the subgrid uv tables (or zbuvmx without subgrid) to the crest level.
+      ! The file has the weir layout: name, "nrows ncols", rows of x y crest [manning].
+      !
+      ! Called from: sfincs_structures -> read_structures
+      !
+      use sfincs_data
+      use sfincs_subgrid
+      use quadtree
+      !
+      implicit none
+      !
+      integer       :: ip
+      integer       :: nm
+      integer       :: nmu
+      integer       :: irow
+      integer       :: ipol
+      integer       :: iuv
+      integer       :: npol
+      integer       :: nrows
+      integer       :: ncols
+      integer       :: nr_points
+      integer       :: nraised
+      integer       :: stat
+      real*4        :: dummy
+      real*4        :: xuv
+      real*4        :: yuv
+      real*4        :: dst1
+      real*4        :: dst2
+      real*4        :: wfac
+      real*4        :: zcrest
+      integer       :: nskip_zmin
+      logical       :: okay
+      character*256 :: cdummy
+      !
+      real*4,  dimension(:), allocatable :: xpol
+      real*4,  dimension(:), allocatable :: ypol
+      real*4,  dimension(:), allocatable :: zpol
+      real*4,  dimension(:), allocatable :: manning_pol
+      real*4,  dimension(:), allocatable :: uv_zcrest
+      real*4,  dimension(:), allocatable :: uv_manning
+      integer, dimension(:), allocatable :: uv_indices
+      integer, dimension(:), allocatable :: vertices
+      !
+      write(logstr,'(a)')'Info    : reading flow-blocking features file'
+      call write_log(logstr, 0)
+      !
+      okay = check_file_exists(flow_blocking_file, 'Flow-blocking features file', .true.)
+      !
+      allocate(uv_zcrest(npuv))
+      allocate(uv_manning(npuv))
+      !
+      uv_zcrest  = -1.0e10
+      uv_manning = flow_blocking_manning
+      !
+      ! Count polylines
+      !
+      npol = 0
+      !
+      open(500, file=trim(flow_blocking_file))
+      !
+      do while (.true.)
+         !
+         read(500,*,iostat=stat)cdummy
+         if (stat<0) exit
+         read(500,*,iostat=stat)nrows,ncols
+         if (stat<0) exit
+         npol = npol + 1
+         !
+         do irow = 1, nrows
+            !
+            read(500,*)dummy
+            !
+         enddo
+         !
+      enddo
+      !
+      rewind(500)
+      !
+      ! Loop through polylines and find the highest crest at each uv point
+      !
+      nskip_zmin = 0
+      !
+      do ipol = 1, npol
+         !
+         read(500,*,iostat=stat)cdummy
+         read(500,*,iostat=stat)nrows,ncols
+         if (stat<0) exit
+         !
+         allocate(xpol(nrows))
+         allocate(ypol(nrows))
+         allocate(zpol(nrows))
+         allocate(manning_pol(nrows))
+         !
+         manning_pol = flow_blocking_manning
+         !
+         do irow = 1, nrows
+            !
+            if (ncols>=4) then
+               !
+               read(500,*)xpol(irow), ypol(irow), zpol(irow), manning_pol(irow)
+               !
+            else
+               !
+               read(500,*)xpol(irow), ypol(irow), zpol(irow)
+               !
+            endif
+            !
+         enddo
+         !
+         call find_uv_points_intersected_by_polyline(uv_indices, vertices, nr_points, xpol, ypol, nrows)
+         !
+         do iuv = 1, nr_points
+            !
+            ip   = uv_indices(iuv)
+            irow = vertices(iuv)
+            nm   = uv_index_z_nm(ip)
+            nmu  = uv_index_z_nmu(ip)
+            !
+            ! Crest level interpolated along the segment to the face centre
+            !
+            xuv  = 0.5*(z_xz(nm) + z_xz(nmu))
+            yuv  = 0.5*(z_yz(nm) + z_yz(nmu))
+            dst1 = sqrt((xuv - xpol(irow))**2 + (yuv - ypol(irow))**2)
+            dst2 = sqrt((xuv - xpol(irow + 1))**2 + (yuv - ypol(irow + 1))**2)
+            wfac = dst1 / max(dst1 + dst2, 1.0e-6)
+            !
+            zcrest = zpol(irow)*(1.0 - wfac) + zpol(irow + 1)*wfac
+            !
+            if (zcrest>uv_zcrest(ip)) then
+               !
+               uv_zcrest(ip)  = zcrest
+               uv_manning(ip) = manning_pol(irow)*(1.0 - wfac) + manning_pol(irow + 1)*wfac
+               !
+            endif
+            !
+         enddo
+         !
+         deallocate(xpol)
+         deallocate(ypol)
+         deallocate(zpol)
+         deallocate(manning_pol)
+         !
+      enddo
+      !
+      close(500)
+      !
+      ! Raise the faces whose tables sit below the crest
+      !
+      nraised = 0
+      !
+      do ip = 1, npuv
+         !
+         if (uv_zcrest(ip)>-1.0e9) then
+            !
+            if (subgrid) then
+               !
+               if (uv_zcrest(ip)>subgrid_uv_zmin(ip)) then
+                  !
+                  ! A face with a table bed level below the given minimum is left
+                  ! alone (channels under bridge decks left in the DTM)
+                  !
+                  if (subgrid_uv_zmin(ip)<flow_blocking_min_zmin) then
+                     !
+                     nskip_zmin = nskip_zmin + 1
+                     !
+                  else
+                     !
+                     call set_subgrid_uv_blocking(ip, uv_zcrest(ip), uv_manning(ip))
+                     nraised = nraised + 1
+                     !
+                  endif
+                  !
+               endif
+               !
+            else
+               !
+               if (uv_zcrest(ip) + huthresh>zbuvmx(ip)) then
+                  !
+                  if (zbuvmx(ip)<flow_blocking_min_zmin) then
+                     !
+                     nskip_zmin = nskip_zmin + 1
+                     !
+                  else
+                     !
+                     zbuvmx(ip) = uv_zcrest(ip) + huthresh
+                     nraised    = nraised + 1
+                     !
+                  endif
+                  !
+               endif
+               !
+            endif
+            !
+         endif
+         !
+      enddo
+      !
+      nr_flow_blocking_points = nraised
+      !
+      write(logstr,'(a,i0,a,i0,a)')'Info    : ', npol, ' flow-blocking polylines read, ', nraised, ' u/v points raised to crest level'
+      call write_log(logstr, 0)
+      write(logstr,'(a,i0,a)')'Info    : flow-blocking u/v points skipped because the bed level is below flow_blocking_min_zmin : ', nskip_zmin
+      call write_log(logstr, 0)
+      !
+      deallocate(uv_zcrest)
+      deallocate(uv_manning)
+      !
+   end subroutine read_flow_blocking_file
+   !
 end module

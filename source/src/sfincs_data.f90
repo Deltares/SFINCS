@@ -796,6 +796,14 @@ module sfincs_data
       !!!
       integer                                  :: nrstructures
       integer,   dimension(:),     allocatable :: structure_uv_index
+      !!!
+      !!! Flow-blocking features (elevated roads, railways, levees not resolved by the grid)
+      !!!
+      character*256 :: flow_blocking_file
+      real*4        :: flow_blocking_manning
+      real*4        :: flow_blocking_min_zmin
+      integer       :: nr_flow_blocking_points
+      !!!
       integer*1, dimension(:),     allocatable :: structure_type
       real*4,    dimension(:,:),   allocatable :: structure_parameters
       real*4,    dimension(:),     allocatable :: structure_length
