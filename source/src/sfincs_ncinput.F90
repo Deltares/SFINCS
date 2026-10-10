@@ -344,7 +344,7 @@ module sfincs_ncinput
    !
    implicit none   
    !
-   integer :: nm, ip, nrcells, status
+   integer :: nm, ip, nrcells, status, nr_nan
    !
    character*256 :: ncfile   
    character*256 :: varname  
@@ -377,7 +377,13 @@ module sfincs_ncinput
    !
    NF90(nf90_get_var(net_file_generic%ncid, net_file_generic%gen_varid, vartmp(:)))
    !
-   ! Map quadtree to sfincs variable
+   ! Map quadtree to sfincs variable, and count NaN values in active cells
+   ! (NaN outside the active cells is allowed)
+   !
+   ! Note : NaN is detected from the bit pattern of the real*4 value (exponent all ones, non-zero mantissa),
+   !        so that the check does not depend on floating-point compiler settings or the ieee_arithmetic module
+   !
+   nr_nan = 0
    !
    do ip = 1, quadtree_nr_points
       !
@@ -385,12 +391,20 @@ module sfincs_ncinput
       !
       if (nm>0) then      
          var(nm) = vartmp(ip)
+         if (iand(transfer(vartmp(ip), 0), 2147483647) > 2139095040) nr_nan = nr_nan + 1
       endif      
       !
    enddo   
    !   
    NF90(nf90_close(net_file_generic%ncid))       
-   ! 
+   !
+   ! Stop SFINCS if the variable contains NaN values in active cells
+   !
+   if (nr_nan > 0) then
+      write(logstr,'(a,a,a,a,a,i0,a)')'Error    : netcdf input file ',trim(ncfile),' variable ',trim(varname),' contains ',nr_nan,' NaN values in active cells !'
+      call stop_sfincs(trim(logstr), 1)
+   endif
+   !
    end subroutine   
    
    subroutine read_netcdf_quadtree_to_sfincs_real8(ncfile, varname, var)
@@ -402,7 +416,7 @@ module sfincs_ncinput
    !
    implicit none   
    !
-   integer :: nm, ip, nrcells, status
+   integer :: nm, ip, nrcells, status, nr_nan
    !
    character*256 :: ncfile   
    character*256 :: varname  
@@ -435,7 +449,13 @@ module sfincs_ncinput
    !
    NF90(nf90_get_var(net_file_generic%ncid, net_file_generic%gen_varid, vartmp(:)))
    !
-   ! Map quadtree to sfincs variable
+   ! Map quadtree to sfincs variable, and count NaN values in active cells
+   ! (NaN outside the active cells is allowed)
+   !
+   ! Note : NaN is detected from the bit pattern of the real*4 value (exponent all ones, non-zero mantissa),
+   !        so that the check does not depend on floating-point compiler settings or the ieee_arithmetic module
+   !
+   nr_nan = 0
    !
    do ip = 1, quadtree_nr_points
       !
@@ -443,11 +463,19 @@ module sfincs_ncinput
       !
       if (nm>0) then      
          var(nm) = vartmp(ip)
+         if (iand(transfer(vartmp(ip), 0), 2147483647) > 2139095040) nr_nan = nr_nan + 1
       endif      
       !
    enddo   
    !   
    NF90(nf90_close(net_file_generic%ncid))
+   !
+   ! Stop SFINCS if the variable contains NaN values in active cells
+   !
+   if (nr_nan > 0) then
+      write(logstr,'(a,a,a,a,a,i0,a)')'Error    : netcdf input file ',trim(ncfile),' variable ',trim(varname),' contains ',nr_nan,' NaN values in active cells !'
+      call stop_sfincs(trim(logstr), 1)
+   endif
    !
    end subroutine
 
