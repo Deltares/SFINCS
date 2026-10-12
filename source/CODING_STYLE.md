@@ -119,6 +119,8 @@ No other banner/divider lines anywhere (`! ---`, `! ===`, `! ***`, etc.). Use pl
 
 ## Documentation headers
 
+Note: most existing headers were generated automatically (October 2026) and have not all been reviewed. The code is the reference; correct a header when you find it wrong.
+
 **Module header**: list each public subroutine/function with a one-line description and its caller(s):
 
 ```fortran
