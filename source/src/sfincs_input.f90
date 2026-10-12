@@ -1,5 +1,7 @@
 module sfincs_input
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Parser for the SFINCS main input file `sfincs.inp`.
    !
    ! `sfincs.inp` is a flat keyword / value text file (one `key = value`
@@ -21,6 +23,34 @@ module sfincs_input
    !     about via get_keyword(), then derives secondary flags (CRS /
    !     Coriolis, subgrid vs. regular, bathtub overrides). Called once
    !     from sfincs_initialize (sfincs_lib).
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
    !
    use sfincs_log, only: write_log, logstr
    use sfincs_read
@@ -651,6 +681,9 @@ contains
       ! Backward compatibility for the obsolete 'advection = 2' (2D advection),
       ! which used to switch advection on. get_keyword_logical only accepts
       ! '1', 'y' or 't' as true, so '2' would silently turn advection off.
+      !
+      ! Input:
+      !   fileid : unit number of the open sfincs.inp file
       !
       ! Called from: read_sfincs_input (this module).
       !

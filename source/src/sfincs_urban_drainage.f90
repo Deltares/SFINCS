@@ -1,5 +1,7 @@
 module sfincs_urban_drainage
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Simple urban-drainage sink/source model for SFINCS.
    !
    ! Each zone is a polygon in the horizontal plane and has one of two
@@ -83,6 +85,34 @@ module sfincs_urban_drainage
    !   write_urban_drainage_log_summary()
    !     Prints a one-block-per-zone summary to the log. Called from
    !     initialize_urban_drainage (this module).
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
    !
    use sfincs_log
    use sfincs_error
@@ -439,6 +469,10 @@ contains
       ! at the outfall cell. injection_well zones don't return water to
       ! the model.
       !
+      ! Input:
+      !   t  : current model time [s since tref]
+      !   dt : time step [s]
+      !
       ! Called from: update_continuity (sfincs_continuity), once per time
       ! step, after update_src_structures.
       !
@@ -761,6 +795,12 @@ contains
       !
       !    # common:
       !    h_threshold       = 0.0                 ! optional, m (default 0.0)
+      !
+      ! Input:
+      !   filename : name of the TOML urban drainage file
+      !
+      ! Output:
+      !   ierr     : error code (0 = success)
       !
       ! Called from: initialize_urban_drainage (this module).
       !
@@ -1090,6 +1130,15 @@ contains
       ! its value when the key is absent. A key that is present but not a
       ! TOML boolean (e.g. 1 or "true") is an error.
       !
+      ! Input:
+      !   zone_name : name of the zone, used in messages
+      !   key       : key to read
+      !
+      ! Input/output:
+      !   tbl_zone  : TOML table of the zone
+      !   val       : value; keeps its input value when the key is absent
+      !   ierr      : error code (0 = success)
+      !
       ! Called from: read_urban_drainage (this module).
       !
       use tomlf
@@ -1128,6 +1177,15 @@ contains
       ! Read an optional numeric key of an urban drainage zone. val keeps
       ! its value when the key is absent. A key that is present but not a
       ! number (e.g. "20") is an error.
+      !
+      ! Input:
+      !   zone_name : name of the zone, used in messages
+      !   key       : key to read
+      !
+      ! Input/output:
+      !   tbl_zone  : TOML table of the zone
+      !   val       : value; keeps its input value when the key is absent
+      !   ierr      : error code (0 = success)
       !
       ! Called from: read_urban_drainage (this module).
       !

@@ -1,5 +1,61 @@
 module sfincs_snapwave
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Coupling of SFINCS with the SnapWave wave solver: maps the two meshes onto each other,
+   ! passes water depths and wind to SnapWave, and returns wave heights, periods and wave
+   ! forces to SFINCS.
+   !
+   ! Subroutines / functions:
+   !
+   !   couple_snapwave(crsgeo)
+   !     Initialize SnapWave and set up the index mapping between the SFINCS and SnapWave
+   !     meshes.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   find_matching_cells(index_quadtree_in_snapwave, index_snapwave_in_quadtree)
+   !     Find, for each SnapWave node and SFINCS cell, the matching (or nearest) cell on the
+   !     other mesh.
+   !     Called from: couple_snapwave (sfincs_snapwave)
+   !
+   !   update_wave_field(t)
+   !     Pass the water depth and wind to SnapWave, run it, and copy the wave field back to
+   !     SFINCS.
+   !     Called from: sfincs_update (sfincs_lib)
+   !
+   !   compute_snapwave(t)
+   !     Update the SnapWave boundary conditions, solve the wave field and post-process the
+   !     wave forces.
+   !     Called from: update_wave_field (sfincs_snapwave)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
    use sfincs_log
    use sfincs_error
    use snapwave_input, only: read_snapwave_input
@@ -42,6 +98,14 @@ module sfincs_snapwave
 contains
    !
    subroutine couple_snapwave(crsgeo)
+   !
+   ! Initialize SnapWave and set up the index mapping between the SFINCS and SnapWave
+   ! meshes.
+   !
+   ! Input:
+   !   crsgeo : SFINCS grid is in geographic coordinates
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    use snapwave_data
    use snapwave_domain
@@ -172,6 +236,15 @@ contains
 
    subroutine find_matching_cells(index_quadtree_in_snapwave, index_snapwave_in_quadtree)
    !
+   ! Find, for each SnapWave node and SFINCS cell, the matching (or nearest) cell on the
+   ! other mesh.
+   !
+   ! Input:
+   !   index_quadtree_in_snapwave : quadtree cell index of each SnapWave node
+   !   index_snapwave_in_quadtree : SnapWave node index of each quadtree cell
+   !
+   ! Called from: couple_snapwave (sfincs_snapwave)
+   !
    use sfincs_data
    use quadtree
    !
@@ -287,6 +360,14 @@ contains
 
    
    subroutine update_wave_field(t)
+   !
+   ! Pass the water depth and wind to SnapWave, run it, and copy the wave field back to
+   ! SFINCS.
+   !
+   ! Input:
+   !   t : current model time [s since tref]
+   !
+   ! Called from: sfincs_update (sfincs_lib)
    !
    use sfincs_data
    use sfincs_timers
@@ -453,6 +534,14 @@ contains
 
 
    subroutine compute_snapwave(t)
+   !
+   ! Update the SnapWave boundary conditions, solve the wave field and post-process the wave
+   ! forces.
+   !
+   ! Input:
+   !   t : current model time [s since tref]
+   !
+   ! Called from: update_wave_field (sfincs_snapwave)
    !
    use snapwave_data
    use snapwave_solver

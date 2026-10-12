@@ -1,6 +1,9 @@
 module snapwave_data
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    !!! Revision data
+   !
    character*256 :: build_revision, build_date
    !
    real*8,  dimension(:),       allocatable    :: x, y                    ! x,y coordinates of grid (double precision)

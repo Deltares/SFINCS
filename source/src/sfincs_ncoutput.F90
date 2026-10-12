@@ -137,6 +137,77 @@
 ! ============================================================================
 module sfincs_ncoutput
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! netCDF output of the map file (sfincs_map.nc) and the his file (sfincs_his.nc). See the
+   ! description above the module statement.
+   !
+   ! Subroutines / functions:
+   !
+   !   ncoutput_map_init()
+   !     Create the map file: define dimensions, variables and attributes, and write the
+   !     static fields.
+   !     Called from: initialize_output (sfincs_output)
+   !
+   !   ncoutput_his_init()
+   !     Create the his file: define dimensions, variables and attributes, and write the
+   !     static fields.
+   !     Called from: initialize_output (sfincs_output)
+   !
+   !   ncoutput_update_map(t, ntmapout)
+   !     Write the time-varying fields to the map file.
+   !     Called from: write_output (sfincs_output)
+   !
+   !   ncoutput_update_his(t, nthisout)
+   !     Write the time series at observation points, cross-sections and structures to the
+   !     his file.
+   !     Called from: write_output (sfincs_output)
+   !
+   !   ncoutput_update_max(t, ntmaxout)
+   !     Write the maximum-value fields to the map file.
+   !     Called from: write_output (sfincs_output)
+   !
+   !   ncoutput_map_finalize()
+   !     Write the run statistics to the map file and close it.
+   !     Called from: finalize_output (sfincs_output)
+   !
+   !   ncoutput_his_finalize()
+   !     Write the run statistics to the his file and close it.
+   !     Called from: finalize_output (sfincs_output)
+   !
+   !   ncoutput_add_params(ncid, varid)
+   !     Add the user input parameters as attributes to a netCDF file.
+   !     Called from: ncoutput_his_init (sfincs_ncoutput),
+   !       ncoutput_map_init (sfincs_ncoutput)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
    use netcdf
    use sfincs_ncoutput_helpers
    !
@@ -150,6 +221,8 @@ contains
    ! Merged init for both regular and quadtree grids.
    ! 1. Initialise dimensions/variables/attributes
    ! 2. Write grid/msk/zb to file
+   !
+   ! Called from: initialize_output (sfincs_output)
    !
    use sfincs_date
    use sfincs_data
@@ -810,6 +883,8 @@ contains
    ! 1. Initialise dimensions/variables/attributes
    ! 2. write grid/msk/zb to file
    !
+   ! Called from: initialize_output (sfincs_output)
+   !
    use sfincs_date
    use sfincs_data
    use sfincs_structures
@@ -1280,6 +1355,12 @@ contains
    ! and the two precompute helpers (compute_uv_at_cell_centers,
    ! compute_pnh_unwrapped) below.
    !
+   ! Input:
+   !   t        : current model time [s since tref]
+   !   ntmapout : index of the map output time
+   !
+   ! Called from: write_output (sfincs_output)
+   !
    use sfincs_data
    use sfincs_nonhydrostatic
    use sfincs_snapwave
@@ -1419,6 +1500,12 @@ contains
    subroutine ncoutput_update_his(t,nthisout)
    !
    ! Write time, zs, u, v, prcp etc. at observation points.
+   !
+   ! Input:
+   !   t        : current model time [s since tref]
+   !   nthisout : index of the his output time
+   !
+   ! Called from: write_output (sfincs_output)
    !
    use sfincs_data
    use sfincs_crosssections
@@ -1604,6 +1691,12 @@ contains
    !
    ! Write maximum values to map file (handles both regular and quadtree grids)
    !
+   ! Input:
+   !   t        : current model time [s since tref]
+   !   ntmaxout : index of the maximum output time
+   !
+   ! Called from: write_output (sfincs_output)
+   !
    use sfincs_data
    use quadtree
    use sfincs_urban_drainage, only: urban_drainage_cumulative_volume
@@ -1726,6 +1819,8 @@ contains
    !
    ! Add total runtime, dtavg to file and close
    !
+   ! Called from: finalize_output (sfincs_output)
+   !
    use sfincs_data
    use sfincs_timers, only: timer_elapsed
    !
@@ -1757,6 +1852,8 @@ contains
    subroutine ncoutput_his_finalize()
    ! Add total runtime, dtavg to file and close
    !
+   ! Called from: finalize_output (sfincs_output)
+   !
    use sfincs_data
    use sfincs_src_structures, only: nr_src_structures
    use sfincs_discharges,     only: nr_discharge_points
@@ -1785,6 +1882,13 @@ contains
    !
    subroutine ncoutput_add_params(ncid, varid)
    ! Add user params to netcdf file (both map & his)
+   !
+   ! Input:
+   !   ncid  : netCDF file id
+   !   varid : id of the variable that holds the parameters as attributes
+   !
+   ! Called from: ncoutput_his_init (sfincs_ncoutput), ncoutput_map_init (sfincs_ncoutput)
+   !
    use sfincs_data
    use sfincs_src_structures, only: drnfile
    use sfincs_discharges,     only: srcfile, disfile, netsrcdisfile

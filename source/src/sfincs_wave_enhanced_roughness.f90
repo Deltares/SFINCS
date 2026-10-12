@@ -1,8 +1,52 @@
 module sfincs_wave_enhanced_roughness
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Wave-enhanced bed roughness: apparent roughness at the uv points due to wave-current
+   ! interaction.
+   !
+   ! Subroutines / functions:
+   !
+   !   update_wave_enhanced_roughness()
+   !     Compute the apparent roughness gnapp2 at the uv points from the wave conditions.
+   !     Called from: update_apparent_roughness (sfincs_bmi)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
 
 contains
 
    subroutine update_wave_enhanced_roughness()
+   !
+   ! Compute the apparent roughness gnapp2 at the uv points from the wave conditions.
+   !
+   ! Called from: update_apparent_roughness (sfincs_bmi)
    !
    use sfincs_data
    !

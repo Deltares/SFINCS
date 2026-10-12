@@ -1,5 +1,52 @@
 module sfincs_lib
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Main driver of SFINCS: initialization, time loop and finalization. Used by both the
+   ! stand-alone executable (sfincs.f90) and the BMI library (sfincs_bmi).
+   !
+   ! Subroutines / functions:
+   !
+   !   sfincs_initialize()
+   !     Read all input and initialize the domain, processes and output.
+   !     Called from: sfincs (main program), initialize (sfincs_bmi)
+   !
+   !   sfincs_update(dtrange)
+   !     Run the time loop, until the end time or over the interval dtrange.
+   !     Called from: sfincs (main program), update and update_until (sfincs_bmi)
+   !
+   !   sfincs_finalize()
+   !     Write the final output and log, and close files.
+   !     Called from: sfincs (main program), finalize (sfincs_bmi)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
    use omp_lib
    !
    use sfincs_spiderweb
@@ -76,6 +123,13 @@ module sfincs_lib
    contains
    !
    function sfincs_initialize() result(ierr)
+   !
+   ! Read all input and initialize the domain, processes and output.
+   !
+   ! Returns:
+   !   ierr : error code (0 = success)
+   !
+   ! Called from: sfincs (main program), initialize (sfincs_bmi)
    !
    integer :: ierr
    !
@@ -219,6 +273,16 @@ module sfincs_lib
    !-----------------------------------------------------------------------------------------------------!
    !
    function sfincs_update(dtrange) result(ierr)
+   !
+   ! Run the time loop, until the end time or over the interval dtrange.
+   !
+   ! Input:
+   !   dtrange : time interval to run [s]; negative runs to the end time
+   !
+   ! Returns:
+   !   ierr    : error code (0 = success)
+   !
+   ! Called from: sfincs (main program), update and update_until (sfincs_bmi)
    !
    double precision, intent(in)  :: dtrange
    integer                       :: ierr
@@ -534,6 +598,13 @@ module sfincs_lib
    !-----------------------------------------------------------------------------------------------------!
    !
    function sfincs_finalize() result(ierr)
+   !
+   ! Write the final output and log, and close files.
+   !
+   ! Returns:
+   !   ierr : error code (0 = success)
+   !
+   ! Called from: sfincs (main program), finalize (sfincs_bmi)
    !
    integer :: ierr
    !

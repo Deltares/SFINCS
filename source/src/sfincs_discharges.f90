@@ -1,5 +1,7 @@
 module sfincs_discharges
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! River point discharges: nr_discharge_points (x,y) locations from srcfile with matching
    ! time series qsrc_ts(:,:) from disfile, OR from a FEWS-style netCDF input
    ! via netsrcdisfile. Interpolates to the current model time every step,
@@ -28,6 +30,34 @@ module sfincs_discharges
    !     Count whitespace-separated tokens in a string; used to decide
    !     between the 2-column (x y) and 3-column (x y name) src formats.
    !     Called from initialize_discharges (this module).
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
    !
    use sfincs_log
    use sfincs_error
@@ -285,6 +315,10 @@ contains
       ! why it owns the qsrc zeroing. Both routines then additively write
       ! their contributions.
       !
+      ! Input:
+      !   t  : current model time [s since tref]
+      !   dt : time step [s]
+      !
       ! Called from: update_continuity (sfincs_continuity), once per time step.
       !
       use sfincs_data
@@ -380,6 +414,12 @@ contains
       !
       ! Count the number of whitespace-separated tokens in a string.
       ! Whitespace = spaces and tabs. Empty string returns 0.
+      !
+      ! Input:
+      !   line : line of text
+      !
+      ! Output:
+      !   ntok : number of whitespace-separated tokens
       !
       ! Called from: initialize_discharges (this module) to disambiguate the
       ! 2-column vs 3-column srcfile layout.

@@ -1,4 +1,117 @@
 module sfincs_infiltration
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Infiltration: constant, Curve Number (with and without recovery), Green-Ampt, Horton
+   ! and run-off coefficient methods, plus the bucket model. Computes the infiltration rate
+   ! per cell every time step.
+   !
+   ! Subroutines / functions:
+   !
+   !   initialize_infiltration()
+   !     Select the infiltration method and call its initialization routine.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   update_infiltration_map(dt)
+   !     Update the infiltration rate in each cell for the active method.
+   !     Called from: update_continuity (sfincs_continuity)
+   !
+   !   initialize_infiltration_con()
+   !     Initialize spatially-uniform constant infiltration.
+   !     Called from: initialize_infiltration (sfincs_infiltration)
+   !
+   !   initialize_infiltration_c2d()
+   !     Initialize spatially-varying constant infiltration.
+   !     Called from: initialize_infiltration (sfincs_infiltration)
+   !
+   !   initialize_infiltration_cna()
+   !     Initialize Curve Number infiltration without recovery.
+   !     Called from: initialize_infiltration (sfincs_infiltration)
+   !
+   !   initialize_infiltration_cnb()
+   !     Initialize Curve Number infiltration with recovery.
+   !     Called from: initialize_infiltration (sfincs_infiltration)
+   !
+   !   initialize_infiltration_gai()
+   !     Initialize Green-Ampt infiltration.
+   !     Called from: initialize_infiltration (sfincs_infiltration)
+   !
+   !   initialize_infiltration_hor()
+   !     Initialize modified Horton infiltration.
+   !     Called from: initialize_infiltration (sfincs_infiltration)
+   !
+   !   initialize_infiltration_r2d()
+   !     Initialize the spatially-varying run-off coefficient.
+   !     Called from: initialize_infiltration (sfincs_infiltration)
+   !
+   !   read_infiltration_field(varname, binfile, field)
+   !     Read one spatially-varying infiltration parameter from netCDF or binary file.
+   !     Called from: initialize_infiltration_c2d (sfincs_infiltration),
+   !       initialize_infiltration_cna (sfincs_infiltration),
+   !       initialize_infiltration_cnb (sfincs_infiltration),
+   !       initialize_infiltration_gai (sfincs_infiltration),
+   !       initialize_infiltration_hor (sfincs_infiltration)
+   !
+   !   compute_infiltration_constant(dt)
+   !     Infiltration rate for the constant methods (con and c2d).
+   !     Called from: update_infiltration_map (sfincs_infiltration)
+   !
+   !   compute_infiltration_cna(dt)
+   !     Infiltration rate with the Curve Number method without recovery.
+   !     Called from: update_infiltration_map (sfincs_infiltration)
+   !
+   !   compute_infiltration_cnb(dt)
+   !     Infiltration rate with the Curve Number method with recovery.
+   !     Called from: update_infiltration_map (sfincs_infiltration)
+   !
+   !   compute_infiltration_gai(dt)
+   !     Infiltration rate with the Green-Ampt model.
+   !     Called from: update_infiltration_map (sfincs_infiltration)
+   !
+   !   compute_infiltration_hor(dt)
+   !     Infiltration rate with the modified Horton model.
+   !     Called from: update_infiltration_map (sfincs_infiltration)
+   !
+   !   compute_infiltration_r2d(dt)
+   !     Infiltration rate from the run-off coefficient.
+   !     Called from: update_infiltration_map (sfincs_infiltration)
+   !
+   !   initialize_bucket_model()
+   !     Read the bucket model parameters and allocate its arrays.
+   !     Called from: initialize_infiltration (sfincs_infiltration)
+   !
+   !   compute_bucket_drainage(dt)
+   !     Fill, drain and spill the bucket (linear reservoir with loss) in each cell.
+   !     Called from: update_infiltration_map (sfincs_infiltration)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
 
    use sfincs_log
    use sfincs_error
@@ -6,6 +119,10 @@ module sfincs_infiltration
 contains
 
    subroutine initialize_infiltration()
+   !
+   ! Select the infiltration method and call its initialization routine.
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    use sfincs_data
    !
@@ -259,6 +376,11 @@ contains
    !
    ! Update infiltration rates in each grid cell
    !
+   ! Input:
+   !   dt : time step [s]
+   !
+   ! Called from: update_continuity (sfincs_continuity)
+   !
    use sfincs_data
    !
    implicit none
@@ -331,6 +453,8 @@ contains
    !
    ! Note : Input directly in sfincs.inp, so no file needs to be read
    !
+   ! Called from: initialize_infiltration (sfincs_infiltration)
+   !
    use sfincs_data
    !
    implicit none
@@ -366,6 +490,8 @@ contains
    !
    ! Spatially-varying constant infiltration (specified as +mm/hr)
    !
+   ! Called from: initialize_infiltration (sfincs_infiltration)
+   !
    use sfincs_data
    !
    implicit none
@@ -385,6 +511,8 @@ contains
    subroutine initialize_infiltration_cna()
    !
    ! Spatially-varying infiltration with CN numbers (old, no recovery)
+   !
+   ! Called from: initialize_infiltration (sfincs_infiltration)
    !
    use sfincs_data
    !
@@ -407,6 +535,8 @@ contains
    subroutine initialize_infiltration_cnb()
    !
    ! Spatially-varying infiltration with CN numbers (new, with recovery)
+   !
+   ! Called from: initialize_infiltration (sfincs_infiltration)
    !
    use sfincs_data
    !
@@ -453,6 +583,8 @@ contains
    subroutine initialize_infiltration_gai()
    !
    ! Spatially-varying infiltration with the Green-Ampt (GA) model
+   !
+   ! Called from: initialize_infiltration (sfincs_infiltration)
    !
    use sfincs_data
    !
@@ -511,6 +643,8 @@ contains
    !
    ! Spatially-varying infiltration with the modified Horton Equation
    !
+   ! Called from: initialize_infiltration (sfincs_infiltration)
+   !
    use sfincs_data
    !
    implicit none
@@ -554,6 +688,8 @@ contains
    !
    ! Note : Only available through the netcdf inffile, there is no binary file equivalent
    !
+   ! Called from: initialize_infiltration (sfincs_infiltration)
+   !
    use sfincs_data
    use sfincs_ncinput
    !
@@ -586,6 +722,19 @@ contains
    !
    ! Read one spatially-varying infiltration parameter, either from the netcdf
    ! inffile (variable varname) or from a legacy binary file (regular grids only)
+   !
+   ! Input:
+   !   varname : name of the variable in the netCDF infiltration file
+   !   binfile : name of the legacy binary file
+   !
+   ! Input/output:
+   !   field   : parameter value in each cell
+   !
+   ! Called from: initialize_infiltration_c2d (sfincs_infiltration),
+   !   initialize_infiltration_cna (sfincs_infiltration),
+   !   initialize_infiltration_cnb (sfincs_infiltration),
+   !   initialize_infiltration_gai (sfincs_infiltration),
+   !   initialize_infiltration_hor (sfincs_infiltration)
    !
    use sfincs_data
    use sfincs_ncinput
@@ -623,6 +772,11 @@ contains
    subroutine compute_infiltration_constant(dt)
    !
    ! Constant infiltration (con and c2d): infiltration rate map stays constant
+   !
+   ! Input:
+   !   dt : time step [s]
+   !
+   ! Called from: update_infiltration_map (sfincs_infiltration)
    !
    use sfincs_data
    !
@@ -668,6 +822,11 @@ contains
    subroutine compute_infiltration_cna(dt)
    !
    ! Infiltration rate with Curve Number (old method; no recovery)
+   !
+   ! Input:
+   !   dt : time step [s]
+   !
+   ! Called from: update_infiltration_map (sfincs_infiltration)
    !
    use sfincs_data
    !
@@ -715,6 +874,11 @@ contains
    subroutine compute_infiltration_cnb(dt)
    !
    ! Infiltration rate with Curve Number with recovery
+   !
+   ! Input:
+   !   dt : time step [s]
+   !
+   ! Called from: update_infiltration_map (sfincs_infiltration)
    !
    use sfincs_data
    !
@@ -823,6 +987,11 @@ contains
    !
    ! Infiltration rate with the Green-Ampt (GA) model
    !
+   ! Input:
+   !   dt : time step [s]
+   !
+   ! Called from: update_infiltration_map (sfincs_infiltration)
+   !
    use sfincs_data
    !
    implicit none
@@ -914,6 +1083,11 @@ contains
    subroutine compute_infiltration_hor(dt)
    !
    ! Infiltration rate with the modified Horton model
+   !
+   ! Input:
+   !   dt : time step [s]
+   !
+   ! Called from: update_infiltration_map (sfincs_infiltration)
    !
    use sfincs_data
    !
@@ -1037,6 +1211,11 @@ contains
    !
    ! Run-off coefficient: fixed percentage of the rainfall runs off, the remainder infiltrates
    !
+   ! Input:
+   !   dt : time step [s]
+   !
+   ! Called from: update_infiltration_map (sfincs_infiltration)
+   !
    use sfincs_data
    !
    implicit none
@@ -1066,6 +1245,10 @@ contains
 
 
    subroutine initialize_bucket_model()
+   !
+   ! Read the bucket model parameters and allocate its arrays.
+   !
+   ! Called from: initialize_infiltration (sfincs_infiltration)
    !
    use sfincs_data
    use sfincs_ncinput
@@ -1150,6 +1333,11 @@ contains
    ! => Only bucket drainage reaches the surface water level
    !
    ! Literature: Linear reservoir (Nash, 1957), HBV soil moisture bucket (Bergstrom, 1995)
+   !
+   ! Input:
+   !   dt : time step [s]
+   !
+   ! Called from: update_infiltration_map (sfincs_infiltration)
    !
    use sfincs_data
    !

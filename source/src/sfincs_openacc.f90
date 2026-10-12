@@ -1,5 +1,48 @@
 module sfincs_openacc
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! OpenACC (GPU) memory management: copies the model arrays to the device and removes them
+   ! again.
+   !
+   ! Subroutines / functions:
+   !
+   !   initialize_openacc()
+   !     Copy the model arrays to GPU memory.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   finalize_openacc()
+   !     Delete the model arrays from GPU memory.
+   !     Called from: sfincs_finalize (sfincs_lib)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
    use sfincs_data
    use sfincs_src_structures
    use sfincs_discharges,      only: qtsrc, nmindsrc
@@ -18,6 +61,10 @@ module sfincs_openacc
 contains
    !
    subroutine initialize_openacc()
+   !
+   ! Copy the model arrays to GPU memory.
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    !call acc_init( acc_device_nvidia )
    !
@@ -76,6 +123,10 @@ contains
    end subroutine
    !
    subroutine finalize_openacc()
+   !
+   ! Delete the model arrays from GPU memory.
+   !
+   ! Called from: sfincs_finalize (sfincs_lib)
    !
    !$acc exit data delete( kcs, kfuv, kcuv, zs, zs0, zsderv, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, zvolmax, maxzsm, qmax, vmax, twet, zsm, z_volume, &
    !$acc               z_flags_iref, uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &

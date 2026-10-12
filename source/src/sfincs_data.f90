@@ -1,4 +1,52 @@
 module sfincs_data
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Global data of SFINCS: input parameters, process flags, grid and index arrays, and all
+   ! state and forcing variables shared between the modules.
+   !
+   ! Subroutines / functions:
+   !
+   !   fill_h73_tables()
+   !     Fill the lookup tables for the h**(7/3) calculations.
+   !     Called from: initialize_domain (sfincs_domain)
+   !
+   !   initialize_parameters()
+   !     Legacy initialization of local time-loop parameters.
+   !     Called from: not called (currently unused)
+   !
+   !   finalize_parameters()
+   !     Deallocate the global arrays.
+   !     Called from: not called (the call in sfincs_finalize (sfincs_lib) is commented out)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
 
       !!! Revision data
       character*256 :: build_revision, build_date
@@ -857,6 +905,8 @@ module sfincs_data
    !
    ! Fill lookup tables for h**(7/3) calculations
    !
+   ! Called from: initialize_domain (sfincs_domain)
+   !
    implicit none
    !
    integer :: j, k
@@ -879,6 +929,10 @@ module sfincs_data
    end subroutine
    
    subroutine initialize_parameters()
+      !
+      ! Legacy initialization of local time-loop parameters.
+      !
+      ! Called from: not called (currently unused)
       !
       implicit none
       !
@@ -915,6 +969,10 @@ module sfincs_data
 
 
    subroutine finalize_parameters()
+   !
+   ! Deallocate the global arrays.
+   !
+   ! Called from: not called (the call in sfincs_finalize (sfincs_lib) is commented out)
    !
    implicit none
    !

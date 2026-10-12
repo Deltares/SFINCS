@@ -3,6 +3,49 @@
 ! Should try to find a solver that can be.   
 
 module sfincs_nonhydrostatic
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Non-hydrostatic pressure correction (regular grids only). See the notes above the
+   ! module statement.
+   !
+   ! Subroutines / functions:
+   !
+   !   initialize_nonhydrostatic()
+   !     Set up the indices and the sparse matrix structure of the non-hydrostatic solver.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   compute_nonhydrostatic(dt)
+   !     Solve for the non-hydrostatic pressure and correct the fluxes and velocities.
+   !     Called from: sfincs_update (sfincs_lib)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
    !   
    integer, dimension(:,:), allocatable :: index_sparse_matrix
    integer, dimension(:,:), allocatable :: nh_uv_index
@@ -32,6 +75,8 @@ contains
    subroutine initialize_nonhydrostatic()
    !
    ! Initialization of pardiso solver
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    use sfincs_data
    !
@@ -391,6 +436,11 @@ contains
    subroutine compute_nonhydrostatic(dt)
    !
    ! Non-hydrostatic pressure correction on fluxes and velocities
+   !
+   ! Input:
+   !   dt : time step [s]
+   !
+   ! Called from: sfincs_update (sfincs_lib)
    !
    use sfincs_data
    use sfincs_timers

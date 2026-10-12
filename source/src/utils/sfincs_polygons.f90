@@ -1,5 +1,7 @@
 module sfincs_polygons
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Minimal polygon helper module for SFINCS.
    !
    ! Provides:
@@ -14,6 +16,34 @@ module sfincs_polygons
    !   points_in_polygon_omp   OMP-parallel sweep of a point array against one
    !                           polygon, writing a logical mask. Called from
    !                           initialize_urban_drainage (sfincs_urban_drainage).
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
    !
    use sfincs_log
    use sfincs_error
@@ -47,6 +77,13 @@ contains
       ! Each polygon is auto-closed: if the last vertex is not equal to the
       ! first, a copy of the first vertex is appended so downstream
       ! point-in-polygon tests can treat the last-to-first edge uniformly.
+      !
+      ! Input:
+      !   filename : name of the tek polygon file
+      !
+      ! Output:
+      !   polygons : polygons read from the file
+      !   ierr     : error code (0 = success)
       !
       ! Called from: initialize_urban_drainage (sfincs_urban_drainage).
       !
@@ -165,6 +202,16 @@ contains
       ! the first nv vertices of (xv, yv). The polygon is assumed closed by
       ! the caller (last vertex == first vertex).
       !
+      ! Input:
+      !   xp     : x coordinate of the point
+      !   yp     : y coordinate of the point
+      !   xv     : x coordinates of the polygon vertices
+      !   yv     : y coordinates of the polygon vertices
+      !   nv     : number of vertices
+      !
+      ! Returns:
+      !   inside : true when the point is inside the polygon
+      !
       ! Called from: points_in_polygon_omp (this module).
       !
       implicit none
@@ -202,6 +249,15 @@ contains
       ! already flagged .true. on entry are preserved (so the caller can
       ! accumulate hits across multiple polygons if desired); this routine
       ! only flips .false. to .true..
+      !
+      ! Input:
+      !   xp     : x coordinates of the points
+      !   yp     : y coordinates of the points
+      !   np_pts : number of points
+      !   poly   : polygon
+      !
+      ! Input/output:
+      !   inside : true for each point inside the polygon
       !
       ! Called from: initialize_urban_drainage (sfincs_urban_drainage).
       !

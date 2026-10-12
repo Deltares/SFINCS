@@ -1,10 +1,30 @@
 module snapwave_RFtable
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Lookup table of Rienecker and Fenton (1981) stream-function wave solutions, used for
+   ! nonlinear wave shapes in the vegetation module.
+   !
+   ! Subroutines / functions:
+   !
+   !   load_RFtable(RFveg)
+   !     Fill the Rienecker-Fenton lookup table RFveg.
+   !     Called from: swvegnonlin (snapwave_solver)
+   !
        
         implicit none
         
     contains
    
     subroutine load_RFtable(RFveg)
+        !
+        ! Fill the Rienecker-Fenton lookup table RFveg.
+        !
+        ! Output:
+        !   RFveg : Rienecker-Fenton lookup table
+        !
+        ! Called from: swvegnonlin (snapwave_solver)
+        !
    
         implicit none
         !

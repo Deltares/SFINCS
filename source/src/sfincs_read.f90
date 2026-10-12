@@ -1,7 +1,97 @@
 module sfincs_read
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Keyword readers for SFINCS input files. Use the generic
    ! get_keyword(...) interface, which supports deprecated-alias lists.
+   !
+   ! Subroutines / functions:
+   !
+   !   get_keyword_real(fileid, keyword, value, default, legacy)
+   !     Read one real*4 keyword, with optional legacy aliases and a default.
+   !     Called from: the generic get_keyword interface, used by read_sfincs_input
+   !       (sfincs_input), read_snapwave_input (snapwave_input) and the readers in
+   !       sfincs_spiderweb
+   !
+   !   get_keyword_int(fileid, keyword, value, default, legacy)
+   !     Read one integer keyword.
+   !     Called from: the generic get_keyword interface, used by read_sfincs_input
+   !       (sfincs_input), read_snapwave_input (snapwave_input) and the readers in
+   !       sfincs_spiderweb
+   !
+   !   get_keyword_char(fileid, keyword, value, default, legacy)
+   !     Read one character-string keyword.
+   !     Called from: the generic get_keyword interface, used by read_sfincs_input
+   !       (sfincs_input), read_snapwave_input (snapwave_input) and the readers in
+   !       sfincs_spiderweb
+   !
+   !   get_keyword_logical(fileid, keyword, value, default, legacy)
+   !     Read one logical keyword.
+   !     Called from: the generic get_keyword interface, used by read_sfincs_input
+   !       (sfincs_input), read_snapwave_input (snapwave_input) and the readers in
+   !       sfincs_spiderweb
+   !
+   !   get_keyword_real_array(fileid, keyword, value, default, nr, legacy)
+   !     Read one whitespace-separated real*4 array keyword.
+   !     Called from: read_sfincs_input (sfincs_input)
+   !
+   !   find_value(fileid, keyword, valstr, found)
+   !     Scan an open input file for a keyword and return its value string.
+   !     Called from: read_legacy_advection (sfincs_input), get_keyword_char (sfincs_read),
+   !       get_keyword_int (sfincs_read), get_keyword_logical (sfincs_read),
+   !       get_keyword_real (sfincs_read), get_keyword_real_array (sfincs_read)
+   !
+   !   warn_legacy(legacy_key, new_key)
+   !     Write a deprecation warning for a matched legacy keyword alias.
+   !     Called from: get_keyword_char (sfincs_read), get_keyword_int (sfincs_read),
+   !       get_keyword_logical (sfincs_read), get_keyword_real (sfincs_read),
+   !       get_keyword_real_array (sfincs_read)
+   !
+   !   parse_logical(valstr)
+   !     Convert an input value string to a logical.
+   !     Called from: get_keyword_logical (sfincs_read)
+   !
+   !   read_line(line0, keystr, valstr)
+   !     Split a 'key = value' line into its key and value strings.
+   !     Called from: find_value (sfincs_read)
+   !
+   !   notabs(instr, outstr, ilen)
+   !     Expand tab characters into spaces.
+   !     Called from: read_line (sfincs_read)
+   !
+   !   is_netcdf_file(file_name)
+   !     Check whether a file name has the '.nc' extension.
+   !     Called from: quadtree_read_file (quadtree), initialize_roughness (sfincs_domain),
+   !       initialize_storage_volume (sfincs_domain),
+   !       set_initial_conditions (sfincs_initial_conditions)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
    !
    use sfincs_log, only: write_log
    !
@@ -25,6 +115,15 @@ contains
       ! the optional `legacy` list of deprecated aliases and emits a
       ! one-line deprecation warning per matched alias. Falls back to
       ! `default` when nothing matches.
+      !
+      ! Input:
+      !   fileid  : unit number of the open input file
+      !   keyword : keyword to look for
+      !   default : default value
+      !   legacy  : deprecated aliases of the keyword (optional)
+      !
+      ! Output:
+      !   value   : value read, or the default when the keyword is absent
       !
       ! Called from: read_sfincs_input (sfincs_input), read_snapwave_input (snapwave_input),
       ! read_spw_dimensions / read_amuv_dimensions (sfincs_spiderweb).
@@ -72,6 +171,15 @@ contains
    subroutine get_keyword_int(fileid, keyword, value, default, legacy)
       !
       ! Read one integer keyword. See get_keyword_real for the semantics.
+      !
+      ! Input:
+      !   fileid  : unit number of the open input file
+      !   keyword : keyword to look for
+      !   default : default value
+      !   legacy  : deprecated aliases of the keyword (optional)
+      !
+      ! Output:
+      !   value   : value read, or the default when the keyword is absent
       !
       ! Called from: read_sfincs_input (sfincs_input), read_snapwave_input (snapwave_input),
       ! read_spw_dimensions / read_amuv_dimensions (sfincs_spiderweb).
@@ -122,6 +230,15 @@ contains
       ! semantics. The entire right-hand side (after trailing comments
       ! are stripped) becomes `value`.
       !
+      ! Input:
+      !   fileid  : unit number of the open input file
+      !   keyword : keyword to look for
+      !   default : default value
+      !   legacy  : deprecated aliases of the keyword (optional)
+      !
+      ! Output:
+      !   value   : value read, or the default when the keyword is absent
+      !
       ! Called from: read_sfincs_input (sfincs_input), read_snapwave_input (snapwave_input).
       !
       implicit none
@@ -170,6 +287,15 @@ contains
       ! anything else (including absence → `default`, and `0`, `n`, `N`,
       ! `f`, `F`) as false.
       !
+      ! Input:
+      !   fileid  : unit number of the open input file
+      !   keyword : keyword to look for
+      !   default : default value
+      !   legacy  : deprecated aliases of the keyword (optional)
+      !
+      ! Output:
+      !   value   : value read, or the default when the keyword is absent
+      !
       ! Called from: read_sfincs_input (sfincs_input), read_snapwave_input (snapwave_input).
       !
       implicit none
@@ -217,6 +343,16 @@ contains
       ! Read one whitespace-separated real*4 array keyword. Allocates
       ! `value(nr)` on the way in and fills it from the matching line.
       ! Same fallback semantics as get_keyword_real.
+      !
+      ! Input:
+      !   fileid  : unit number of the open input file
+      !   keyword : keyword to look for
+      !   default : default value
+      !   nr      : number of values to read
+      !   legacy  : deprecated aliases of the keyword (optional)
+      !
+      ! Output:
+      !   value   : values read, or filled with the default
       !
       ! Called from: read_sfincs_input (sfincs_input).
       !
@@ -269,6 +405,14 @@ contains
       ! Returns the raw right-hand-side value string and whether the key
       ! was matched.
       !
+      ! Input:
+      !   fileid  : unit number of the open input file
+      !   keyword : keyword to look for
+      !
+      ! Output:
+      !   valstr  : value string of the keyword
+      !   found   : true when the keyword was found
+      !
       ! Called from: get_keyword_real / get_keyword_int / get_keyword_char /
       ! get_keyword_logical / get_keyword_real_array.
       !
@@ -312,6 +456,10 @@ contains
       ! a legacy keyword alias was matched; the user can silence this
       ! by migrating the keyword in their sfincs.inp.
       !
+      ! Input:
+      !   legacy_key : deprecated keyword that was matched
+      !   new_key    : keyword that replaces it
+      !
       ! Called from: get_keyword_real / get_keyword_int / get_keyword_char /
       ! get_keyword_logical / get_keyword_real_array.
       !
@@ -335,6 +483,12 @@ contains
       ! Map an sfincs.inp value string to a logical. `1`, `y`, `Y`, `t`,
       ! `T` at position 1 are true; everything else is false.
       !
+      ! Input:
+      !   valstr : value string
+      !
+      ! Returns:
+      !   value  : logical value
+      !
       ! Called from: get_keyword_logical (this module).
       !
       implicit none
@@ -356,6 +510,13 @@ contains
       ! by spaces via notabs), and a trailing `#`-delimited inline
       ! comment. Blank lines and lines starting with `#`, `!`, or `@`
       ! return empty strings.
+      !
+      ! Input:
+      !   line0  : line of text
+      !
+      ! Output:
+      !   keystr : keyword part of the line
+      !   valstr : value part of the line
       !
       ! Called from: find_value (this module).
       !
@@ -408,6 +569,13 @@ contains
       !
       ! Author: John S. Urban. See also GNU/Unix commands expand(1) /
       ! unexpand(1).
+      !
+      ! Input:
+      !   instr  : input line (may contain tab characters)
+      !
+      ! Output:
+      !   outstr : line with tabs expanded to spaces
+      !   ilen   : position of the last character written
       !
       ! Called from: read_line (this module).
       !
@@ -466,6 +634,12 @@ contains
       !
       ! Check whether a file name ends with the '.nc' extension, to
       ! choose between the netcdf and binary reader of an input file.
+      !
+      ! Input:
+      !   file_name : name of the file
+      !
+      ! Returns:
+      !   is_netcdf : true when the name ends with '.nc'
       !
       ! Called from: initialize_roughness and initialize_storage_volume
       ! (sfincs_domain), set_initial_conditions (sfincs_initial_conditions),

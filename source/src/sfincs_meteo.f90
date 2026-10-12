@@ -1,10 +1,86 @@
 module sfincs_meteo
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Meteorological forcing: wind, atmospheric pressure and precipitation from time series,
+   ! spiderweb files and gridded (ASCII or netCDF) files, and their interpolation in space
+   ! and time onto the model grid.
+   !
+   ! Subroutines / functions:
+   !
+   !   read_meteo_data()
+   !     Read all meteo input (spiderweb, gridded wind/pressure/rain, time series).
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   update_spiderweb_data()
+   !     Interpolate the spiderweb wind, pressure and rain to the grid at the meteo time.
+   !     Called from: update_meteo_fields (sfincs_meteo)
+   !
+   !   update_amuv_data()
+   !     Interpolate the gridded wind (amu/amv) to the grid at the meteo time.
+   !     Called from: update_meteo_fields (sfincs_meteo)
+   !
+   !   update_amp_data()
+   !     Interpolate the gridded atmospheric pressure (amp) to the grid at the meteo time.
+   !     Called from: update_meteo_fields (sfincs_meteo)
+   !
+   !   update_ampr_data()
+   !     Interpolate the gridded precipitation (ampr) to the grid at the meteo time.
+   !     Called from: update_meteo_fields (sfincs_meteo)
+   !
+   !   update_meteo_forcing(t, dt)
+   !     Update the wind stresses, pressure and precipitation used in the current time step.
+   !     Called from: sfincs_update (sfincs_lib)
+   !
+   !   update_wind_forcing_from_timeseries(t)
+   !     Interpolate the spatially-uniform wind time series to time t.
+   !     Called from: update_meteo_forcing (sfincs_meteo)
+   !
+   !   update_precipitation_from_timeseries(t, dt)
+   !     Interpolate the spatially-uniform precipitation time series to time t.
+   !     Called from: update_meteo_forcing (sfincs_meteo)
+   !
+   !   update_meteo_fields(t)
+   !     Update the meteo fields from the spatially-varying input at the meteo update
+   !     interval.
+   !     Called from: sfincs_update (sfincs_lib)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
 
 contains
 
    subroutine read_meteo_data()  
    !
    ! Read different meteo input types
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    use sfincs_data
    use sfincs_spiderweb
@@ -449,6 +525,10 @@ contains
    !
    subroutine update_spiderweb_data()   
    !
+   ! Interpolate the spiderweb wind, pressure and rain to the grid at the meteo time.
+   !
+   ! Called from: update_meteo_fields (sfincs_meteo)
+   !
    use sfincs_data
    !
    implicit none
@@ -801,6 +881,10 @@ contains
    !
    subroutine update_amuv_data()   
    !
+   ! Interpolate the gridded wind (amu/amv) to the grid at the meteo time.
+   !
+   ! Called from: update_meteo_fields (sfincs_meteo)
+   !
    use sfincs_data
    !
    implicit none
@@ -979,6 +1063,10 @@ contains
 
    subroutine update_amp_data()   
    !
+   ! Interpolate the gridded atmospheric pressure (amp) to the grid at the meteo time.
+   !
+   ! Called from: update_meteo_fields (sfincs_meteo)
+   !
    use sfincs_data
    !
    implicit none
@@ -1108,6 +1196,10 @@ contains
 
 
    subroutine update_ampr_data()   
+   !
+   ! Interpolate the gridded precipitation (ampr) to the grid at the meteo time.
+   !
+   ! Called from: update_meteo_fields (sfincs_meteo)
    !
    use sfincs_data
    !
@@ -1246,6 +1338,12 @@ contains
    subroutine update_meteo_forcing(t, dt)
    !
    ! Update wind stresses and precipitation (this happens every time step)
+   !
+   ! Input:
+   !   t  : current model time [s since tref]
+   !   dt : time step [s]
+   !
+   ! Called from: sfincs_update (sfincs_lib)
    !
    use sfincs_data
    use sfincs_timers
@@ -1458,7 +1556,12 @@ contains
 
    subroutine update_wind_forcing_from_timeseries(t)
    !
-   ! Update values at boundary points
+   ! Interpolate the spatially-uniform wind time series to time t.
+   !
+   ! Input:
+   !   t : current model time [s since tref]
+   !
+   ! Called from: update_meteo_forcing (sfincs_meteo)
    !
    use sfincs_data
    !
@@ -1523,7 +1626,13 @@ contains
 
    subroutine update_precipitation_from_timeseries(t, dt)
    !
-   ! Update values at boundary points
+   ! Interpolate the spatially-uniform precipitation time series to time t.
+   !
+   ! Input:
+   !   t  : current model time [s since tref]
+   !   dt : time step [s]
+   !
+   ! Called from: update_meteo_forcing (sfincs_meteo)
    !
    use sfincs_data
    !
@@ -1573,7 +1682,12 @@ contains
    
    subroutine update_meteo_fields(t)
    !
-   ! Update values at boundary points
+   ! Update the meteo fields from the spatially-varying input at the meteo update interval.
+   !
+   ! Input:
+   !   t : current model time [s since tref]
+   !
+   ! Called from: sfincs_update (sfincs_lib)
    !
    use sfincs_data
    use sfincs_timers
