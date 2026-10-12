@@ -1,6 +1,18 @@
 #define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)   
 module snapwave_ncinput
    !
+   ! netCDF input for SnapWave: FEWS-compatible wave boundary conditions.
+   !
+   ! Subroutines / functions:
+   !
+   !   read_netcdf_wave_boundary_data()
+   !     Read the wave boundary points and time series from a FEWS-compatible netCDF file.
+   !     Called from: read_boundary_data (snapwave_boundaries)
+   !
+   !   handle_err(status, file, line)
+   !     Report a netCDF error with file name and line number.
+   !     Called from: the NF90 preprocessor macro, used throughout this module
+   !
    use sfincs_log
    use netcdf       
    !
@@ -21,6 +33,10 @@ module snapwave_ncinput
    
     
    subroutine read_netcdf_wave_boundary_data()
+   !
+   ! Read the wave boundary points and time series from a FEWS-compatible netCDF file.
+   !
+   ! Called from: read_boundary_data (snapwave_boundaries)
    !
    use sfincs_date   
    use netcdf
@@ -104,6 +120,10 @@ module snapwave_ncinput
    
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    subroutine handle_err(status,file,line)
+      !
+      ! Report a netCDF error with file name and line number.
+      !
+      ! Called from: the NF90 preprocessor macro, used throughout this module
       !
       integer, intent ( in)    :: status
       character(*), intent(in) :: file

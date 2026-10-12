@@ -23,6 +23,9 @@ contains
    !
    ! Reads snapwave data from sfincs.inp
    !
+   ! Called from: read_snapwave_boundary_data (sfincs_bathtub),
+   !   couple_snapwave (sfincs_snapwave)
+   !
    use snapwave_data   
    use sfincs_read   
    !

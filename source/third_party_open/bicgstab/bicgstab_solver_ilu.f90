@@ -1,5 +1,30 @@
 module bicgstab_solver_ilu
    !
+   ! BiCGStab solver with ILU(0) preconditioner for sparse linear systems in CSR format,
+   ! used by the non-hydrostatic solver.
+   !
+   ! Subroutines / functions:
+   !
+   !   bicgstab_solve(...)
+   !     Solve A x = b with the (preconditioned) BiCGStab method.
+   !     Called from: compute_nonhydrostatic (sfincs_nonhydrostatic)
+   !
+   !   ilu0_factor(n, val, col_ind, row_ptr, LU, diag_ptr)
+   !     Compute the ILU(0) factorization of a CSR matrix.
+   !     Called from: bicgstab_solve (bicgstab_solver_ilu)
+   !
+   !   apply_precond(n, x, y, LU, col_ind, row_ptr, diag_ptr)
+   !     Apply the ILU(0) preconditioner: solve L U y = x.
+   !     Called from: bicgstab_solve (bicgstab_solver_ilu)
+   !
+   !   spmv(n, val, col_ind, row_ptr, x, y)
+   !     Sparse matrix-vector product y = A x for a CSR matrix.
+   !     Called from: bicgstab_solve (bicgstab_solver_ilu)
+   !
+   !   norm2(v)
+   !     Euclidean norm of a vector.
+   !     Called from: bicgstab_solve (bicgstab_solver_ilu)
+   !
    use omp_lib
    implicit none
    private
@@ -10,6 +35,10 @@ module bicgstab_solver_ilu
 contains
    !
    subroutine bicgstab_solve(n, val, col_ind, row_ptr, b, x, tol, maxiter, iter, relres, use_precond)
+      !
+      ! Solve A x = b with the (preconditioned) BiCGStab method.
+      !
+      ! Called from: compute_nonhydrostatic (sfincs_nonhydrostatic)
       !
       integer, intent(in) :: n, col_ind(:), row_ptr(:), maxiter
       real(sp), intent(in) :: val(:), b(:), tol
@@ -104,6 +133,10 @@ contains
 
    subroutine ilu0_factor(n, val, col_ind, row_ptr, LU, diag_ptr)
       !
+      ! Compute the ILU(0) factorization of a CSR matrix.
+      !
+      ! Called from: bicgstab_solve (bicgstab_solver_ilu)
+      !
       integer, intent(in) :: n, col_ind(:), row_ptr(:)
       real(sp), intent(in) :: val(:)
       real(sp), intent(out) :: LU(:)
@@ -158,6 +191,11 @@ contains
    end subroutine ilu0_factor
 
    subroutine apply_precond(n, x, y, LU, col_ind, row_ptr, diag_ptr)
+      !
+      ! Apply the ILU(0) preconditioner: solve L U y = x.
+      !
+      ! Called from: bicgstab_solve (bicgstab_solver_ilu)
+      !
       integer, intent(in) :: n, col_ind(:), row_ptr(:), diag_ptr(:)
       real(sp), intent(in) :: x(:), LU(:)
       real(sp), intent(out) :: y(:)
@@ -204,6 +242,10 @@ contains
 
    subroutine spmv(n, val, col_ind, row_ptr, x, y)
       !
+      ! Sparse matrix-vector product y = A x for a CSR matrix.
+      !
+      ! Called from: bicgstab_solve (bicgstab_solver_ilu)
+      !
       integer, intent(in) :: n, col_ind(:), row_ptr(:)
       real(sp), intent(in) :: val(:), x(:)
       real(sp), intent(out) :: y(:)
@@ -225,6 +267,10 @@ contains
    end subroutine spmv
 
    function norm2(v) result (snorm2)
+      !
+      ! Euclidean norm of a vector.
+      !
+      ! Called from: bicgstab_solve (bicgstab_solver_ilu)
       ! 
       real(sp), intent(in) :: v(:)
       integer :: i

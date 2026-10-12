@@ -1,4 +1,77 @@
 module snapwave_boundaries
+   !
+   ! SnapWave boundary conditions: reads the wave boundary points and time series, and
+   ! updates the wave spectra, wind field and directional grid at the boundary every wave
+   ! time step.
+   !
+   ! Subroutines / functions:
+   !
+   !   read_boundary_data()
+   !     Read the SnapWave wave boundary input (single point, time series or netCDF) and
+   !     find the boundary indices.
+   !     Called from: read_snapwave_boundary_data (sfincs_bathtub),
+   !       couple_snapwave (sfincs_snapwave)
+   !
+   !   read_boundary_enclosure()
+   !     Read the boundary enclosure (enc) file.
+   !     Called from: initialize_snapwave_domain (snapwave_domain)
+   !
+   !   read_boundary_data_singlepoint()
+   !     Read the wave and water level time series for a single boundary point.
+   !     Called from: read_boundary_data (snapwave_boundaries)
+   !
+   !   read_boundary_data_timeseries()
+   !     Read the wave boundary points and their time series of wave height, period,
+   !     direction and spreading.
+   !     Called from: read_boundary_data (snapwave_boundaries)
+   !
+   !   find_boundary_indices()
+   !     Determine, for each boundary node, the indices and weights of the two nearest
+   !     boundary input points.
+   !     Called from: read_boundary_data (snapwave_boundaries)
+   !
+   !   find_nearest_depth_for_boundary_points()
+   !     Find the water depth at the grid node nearest to each boundary input point.
+   !     Called from: update_boundary_points (snapwave_boundaries)
+   !
+   !   update_boundary_conditions(t)
+   !     Update all wave boundary conditions (boundary points, theta grid, wind field,
+   !     spectra) for time t.
+   !     Called from: compute_snapwave (sfincs_snapwave)
+   !
+   !   update_boundary_points(t, just_time_series)
+   !     Interpolate the boundary time series to time t, and determine the infragravity
+   !     boundary conditions.
+   !     Called from: update_snapwave_boundary_data (sfincs_bathtub),
+   !       update_boundary_conditions (snapwave_boundaries)
+   !
+   !   update_wind_field()
+   !     Update the wind speed and direction at all grid nodes.
+   !     Called from: update_boundary_conditions (snapwave_boundaries)
+   !
+   !   make_theta_grid(central_theta)
+   !     Make the directional (theta) grid around the given central direction.
+   !     Called from: update_boundary_conditions (snapwave_boundaries),
+   !       update_boundary_points (snapwave_boundaries)
+   !
+   !   build_boundary_support_points_spectra()
+   !     Build the directional spectra at the boundary support points on the current theta
+   !     grid.
+   !     Called from: update_boundary_conditions (snapwave_boundaries)
+   !
+   !   update_boundaries()
+   !     Interpolate the boundary spectra and wave conditions to the boundary nodes.
+   !     Called from: update_boundary_conditions (snapwave_boundaries)
+   !
+   !   weighted_average(val1, val2, fac, iopt, val3)
+   !     Weighted average of two values, either regular (iopt=1) or of two angles in
+   !     radians.
+   !     Called from: update_boundary_points (snapwave_boundaries)
+   !
+   !   mod2(a, b)
+   !     Modulo of a and b, mapped onto the range 1 to b.
+   !     Called from: make_theta_grid (snapwave_boundaries)
+   !
 
    use sfincs_log
    use sfincs_error   
@@ -6,6 +79,12 @@ module snapwave_boundaries
 contains   
    
    subroutine read_boundary_data()
+   !
+   ! Read the SnapWave wave boundary input (single point, time series or netCDF) and find
+   ! the boundary indices.
+   !
+   ! Called from: read_snapwave_boundary_data (sfincs_bathtub),
+   !   couple_snapwave (sfincs_snapwave)
    !
    ! Reads bnd, bhs, spw etc. files
    !Boundary conditions > lever tp, Hs en wave dir aand (ook dirspr?) en zet om naar spectrum op de randcellen (ntheta, nsigma) > JONSWAP met gamma als user waarde
@@ -121,6 +200,8 @@ contains
    !
    ! Reads enc file
    !
+   ! Called from: initialize_snapwave_domain (snapwave_domain)
+   !
    use snapwave_data
    !
    implicit none
@@ -154,6 +235,8 @@ contains
    !
    ! Reads jonswap and water level file for single point
    ! t(s) Hm0 Tp dir ms zst
+   !
+   ! Called from: read_boundary_data (snapwave_boundaries)
    !
    use snapwave_data   
    !
@@ -200,6 +283,11 @@ contains
 
    
    subroutine read_boundary_data_timeseries()
+   !
+   ! Read the wave boundary points and their time series of wave height, period, direction
+   ! and spreading.
+   !
+   ! Called from: read_boundary_data (snapwave_boundaries)
    !
    ! Reads bnd, bhs, spw etc. files
    ! Boundary conditions > lever tp, Hs en wave dir aand (ook dirspr?) en zet om naar spectrum op de randcellen (ntheta, nsigma) > JONSWAP met gamma als user waarde
@@ -310,6 +398,11 @@ contains
    !
    subroutine find_boundary_indices()
    !
+   ! Determine, for each boundary node, the indices and weights of the two nearest boundary
+   ! input points.
+   !
+   ! Called from: read_boundary_data (snapwave_boundaries)
+   !
    use snapwave_data
    !
    implicit none
@@ -419,6 +512,8 @@ subroutine find_nearest_depth_for_boundary_points()
     ! Find nearest grid index in (xgb,ygb) for every boundary input point (x_bwv(ib), y_bwv(ib))
     ! Output is: deptht_bwv    
     !
+    ! Called from: update_boundary_points (snapwave_boundaries)
+    !
     use snapwave_data
     !
     implicit none
@@ -486,6 +581,8 @@ subroutine update_boundary_conditions(t)
    !
    ! Update all wave boundary conditions
    !
+   ! Called from: compute_snapwave (sfincs_snapwave)
+   !
    use snapwave_data
    !
    implicit none
@@ -535,6 +632,9 @@ end subroutine
 subroutine update_boundary_points(t, just_time_series)
    !
    ! Update vardens at boundary points
+   !
+   ! Called from: update_snapwave_boundary_data (sfincs_bathtub),
+   !   update_boundary_conditions (snapwave_boundaries)
    !
    use snapwave_data
    use snapwave_infragravity
@@ -747,6 +847,8 @@ subroutine update_wind_field()
    !
    ! Update wind field at all grid cells
    !
+   ! Called from: update_boundary_conditions (snapwave_boundaries)
+   !
    use snapwave_data
    !
    implicit none
@@ -779,6 +881,9 @@ end subroutine update_wind_field
 subroutine make_theta_grid(central_theta)
    !
    ! make theta grid based on boundary mean wave direction
+   !
+   ! Called from: update_boundary_conditions (snapwave_boundaries),
+   !   update_boundary_points (snapwave_boundaries)
    !
    use snapwave_data
    !
@@ -835,6 +940,8 @@ subroutine build_boundary_support_points_spectra()
    ! Build directional spectra on the wave boundary support points on the current theta
    ! grid, centered on the mean imposed wave direction (wdmean_bwv), which is not the
    ! grid center (thetamean) when the grid is made around the wind direction
+   !
+   ! Called from: update_boundary_conditions (snapwave_boundaries)
    !
    use snapwave_data
    !
@@ -917,6 +1024,8 @@ subroutine update_boundaries()
    !
    ! Update values at boundary points
    !
+   ! Called from: update_boundary_conditions (snapwave_boundaries)
+   !
    use snapwave_data
    !
    implicit none
@@ -976,6 +1085,10 @@ subroutine update_boundaries()
    
    subroutine weighted_average(val1,val2,fac,iopt,val3) ! as in sfincs_boundaries.f90
    !
+   ! Weighted average of two values, either regular (iopt=1) or of two angles in radians.
+   !
+   ! Called from: update_boundary_points (snapwave_boundaries)
+   !
    implicit none
    !
    integer, intent(in)    :: iopt
@@ -1016,6 +1129,11 @@ subroutine update_boundaries()
    end subroutine
    
    function mod2 (a,b) result (c)
+   !
+   ! Modulo of a and b, mapped onto the range 1 to b.
+   !
+   ! Called from: make_theta_grid (snapwave_boundaries)
+   !
    integer a,b,c
    !
    c = mod(a,b)

@@ -1,8 +1,47 @@
 module astro
+   !
+   ! Astronomical tide: nodal factors and astronomical arguments of tidal constituents (from
+   ! Delft3D).
+   !
+   ! Subroutines / functions:
+   !
+   !   update_nodal_factors(i_date_time, compnames, kc, ntof, hydrbc, omega)
+   !     Compute the frequencies, nodal factors and astronomical arguments of the tidal
+   !     constituents for a given date.
+   !     Called from: read_boundary_data (sfincs_boundaries)
+   !
+   !   asc(w, v0u, fr, kcmp, inaam, & jdate)
+   !     Determine the frequency, astronomical argument (v0+u) and nodal factor (f) of the
+   !     constituents.
+   !     Called from: update_nodal_factors (astro)
+   !
+   !   kompbs(l)
+   !     Fill the table with the names and properties of the tidal constituents.
+   !     Called from: asc (astro)
+   !
+   !   hulpgr(jaar, tm1, v, f)
+   !     Compute the basic astronomical arguments and nodal factors for a given year.
+   !     Called from: asc (astro)
+   !
+   !   datumi(jaar, jdate, t)
+   !     Convert a date to the time in hours since the start of the year.
+   !     Called from: asc (astro)
+   !
+   !   bewvuf(ierrs, kcmp, mxkc, inaam, knaam, & jnaam, w, v0u, fr, v, & f)
+   !     Compute v0+u, f and the frequency of a constituent from the basic astronomical
+   !     arguments.
+   !     Called from: asc (astro)
+   !
    
    contains
 
 subroutine update_nodal_factors(i_date_time, compnames, kc, ntof, hydrbc, omega)
+!
+! Compute the frequencies, nodal factors and astronomical arguments of the tidal
+! constituents for a given date.
+!
+! Called from: read_boundary_data (sfincs_boundaries)
+!
 !----- GPL ---------------------------------------------------------------------
 !                                                                               
 !  Copyright (C)  Stichting Deltares, 2011-2024.                                
@@ -97,6 +136,12 @@ end subroutine update_nodal_factors
 
 subroutine asc(w         ,v0u       ,fr        ,kcmp      ,inaam     , &
              & jdate)
+!
+! Determine the frequency, astronomical argument (v0+u) and nodal factor (f) of the
+! constituents.
+!
+! Called from: update_nodal_factors (astro)
+!
 !----- GPL ---------------------------------------------------------------------
 !                                                                               
 !  Copyright (C)  Stichting Deltares, 2011-2024.                                
@@ -190,6 +235,11 @@ end subroutine asc
 
 
 subroutine kompbs(l         )
+!
+! Fill the table with the names and properties of the tidal constituents.
+!
+! Called from: asc (astro)
+!
 !----- GPL ---------------------------------------------------------------------
 !                                                                               
 !  Copyright (C)  Stichting Deltares, 2011-2024.                                
@@ -480,6 +530,11 @@ end subroutine kompbs
 
 
 subroutine hulpgr(jaar      ,tm1       ,v         ,f         )
+!
+! Compute the basic astronomical arguments and nodal factors for a given year.
+!
+! Called from: asc (astro)
+!
 !----- GPL ---------------------------------------------------------------------
 !                                                                               
 !  Copyright (C)  Stichting Deltares, 2011-2024.                                
@@ -644,6 +699,11 @@ end subroutine hulpgr
 
 
 subroutine datumi(jaar      ,jdate    ,t         )
+!
+! Convert a date to the time in hours since the start of the year.
+!
+! Called from: asc (astro)
+!
 !----- GPL ---------------------------------------------------------------------
 !                                                                               
 !  Copyright (C)  Stichting Deltares, 2011-2024.                                
@@ -750,6 +810,11 @@ end subroutine datumi
 subroutine bewvuf(ierrs     ,kcmp      ,mxkc      ,inaam     ,knaam     , &
                 & jnaam     ,w         ,v0u       ,fr        ,v         , &
                 & f         )
+!
+! Compute v0+u, f and the frequency of a constituent from the basic astronomical arguments.
+!
+! Called from: asc (astro)
+!
 !----- GPL ---------------------------------------------------------------------
 !                                                                               
 !  Copyright (C)  Stichting Deltares, 2011-2024.                                

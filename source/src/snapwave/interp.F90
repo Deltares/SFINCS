@@ -1,4 +1,110 @@
 module interp
+   !
+   ! Interpolation utilities: 1D and 2D linear interpolation, binary search, grid-to-grid
+   ! interpolation maps, and trapezoidal integration.
+   !
+   ! Subroutines / functions:
+   !
+   !   linear_interp_2d(X, nx, Y, ny, Z, xx, yy, zz, method, exception)
+   !     Bilinear interpolation of Z(X, Y) to the point (xx, yy), in real*8.
+   !     Called from: not called (currently unused)
+   !
+   !   linear_interp_2d_real4(X, nx, Y, ny, Z, xx, yy, zz, method, exception)
+   !     Bilinear interpolation of Z(X, Y) to the point (xx, yy), in real*4.
+   !     Called from: compute_herbers (snapwave_infragravity)
+   !
+   !   linear_interp(x, y, n, xx, yy, indint)
+   !     Linear interpolation of y(x) to the point xx, in real*8.
+   !     Called from: trapezoidal_cyclic (interp)
+   !
+   !   linear_interp_real4(x, y, n, xx, yy, indint)
+   !     Linear interpolation of y(x) to the point xx, in real*4.
+   !     Called from: compute_herbers (snapwave_infragravity)
+   !
+   !   binary_search(xx, n, x, j)
+   !     Binary search for the interval of the sorted real*8 array xx that contains x.
+   !     Called from: linear_interp (interp)
+   !
+   !   binary_search_real4(xx, n, x, j)
+   !     Binary search for the interval of the sorted real*4 array xx that contains x.
+   !     Called from: linear_interp_real4 (interp)
+   !
+   !   mkmap(...)
+   !     Make the interpolation map (reference indices and weights) from a curvilinear grid
+   !     to a set of points.
+   !     Called from: not called (currently unused)
+   !
+   !   make_map(...)
+   !     Make the interpolation map from a curvilinear grid to a set of points (variant of
+   !     mkmap).
+   !     Called from: not called (currently unused)
+   !
+   !   make_map_fm(...)
+   !     Make the interpolation map from an unstructured grid to a set of points.
+   !     Called from: not called (currently unused)
+   !
+   !   mkmap_step(...)
+   !     Make the interpolation map from a curvilinear grid to a set of points, by stepping
+   !     along the grid.
+   !     Called from: not called (currently unused)
+   !
+   !   grmap(f1, n1, f2, n2, iref, & w, np, iprint)
+   !     Interpolate values from grid 1 to all points of grid 2 with a given interpolation
+   !     map.
+   !     Called from: not called (currently unused)
+   !
+   !   grmap2(f1, cellsz1i, n1, f2, cellsz2, n2, iref, & w, np)
+   !     Distribute values from grid 2 back onto grid 1 with a given interpolation map
+   !     (reverse of grmap).
+   !     Called from: not called (currently unused)
+   !
+   !   grmap_sg(f1, nref, n1, f2, n2, iref, w, np)
+   !     As grmap2, for an interpolation map with a varying number of reference points.
+   !     Called from: not called (currently unused)
+   !
+   !   ipon(xq, yq, n, xp, yp, inout)
+   !     Check whether point (xq, yq) lies inside, on or outside a polygon.
+   !     Called from: make_map (interp), make_map_fm (interp), mkmap (interp),
+   !       initialize_snapwave_domain (snapwave_domain)
+   !
+   !   hunt(xx, n, x, jlo)
+   !     Find the interval of the sorted array xx that contains x, starting the search at
+   !     jlo.
+   !     Called from: make_map (interp), make_map_fm (interp), mkmap (interp)
+   !
+   !   indexx(n, arrin, indx)
+   !     Make an index array that sorts arrin in ascending order.
+   !     Called from: sort (interp)
+   !
+   !   bilin5(xa, ya, x0, y0, w, ier)
+   !     Compute the bilinear interpolation weights of a point within a quadrilateral.
+   !     Called from: make_map (interp), make_map_fm (interp), mkmap (interp)
+   !
+   !   sort(n, ra, wksp, iwksp)
+   !     Sort an array in ascending order and return the sorting index.
+   !     Called from: make_map (interp), make_map_fm (interp), mkmap (interp)
+   !
+   !   trapezoidal(x, y, n, x1_in, x2_in, integ)
+   !     Integrate y(x) from x1 to x2 with the trapezoidal rule (equidistant x).
+   !     Called from: not called (currently unused)
+   !
+   !   trapezoidal_cyclic(x, y, n, xcycle, x1, x2, integ)
+   !     Integrate a cyclic function y(x) from x1 to x2 with the trapezoidal rule.
+   !     Called from: interp_using_trapez_rule (interp)
+   !
+   !   interp_using_trapez_rule(x, y, n, xcycle, xtarg, ytarg, ntarg)
+   !     Interpolate a cyclic function to a target grid, conserving the integral per target
+   !     bin.
+   !     Called from: not called (currently unused)
+   !
+   !   interp_in_cyclic_function(x, y, n, xcycle, xp, np, yp)
+   !     Linear interpolation in a cyclic function y(x) to the points xp.
+   !     Called from: trapezoidal_cyclic (interp)
+   !
+   !   triangle_intp(x, y, xt, yt, w)
+   !     Compute the linear interpolation weights of a point within a triangle.
+   !     Called from: make_map_fm (interp)
+   !
    implicit none
    private
    public linear_interp, interp_in_cyclic_function, interp_using_trapez_rule,ipon
@@ -7,6 +113,11 @@ module interp
    save
 contains
    pure subroutine linear_interp_2d(X,nx,Y,ny,Z,xx,yy,zz,method,exception)
+      !
+      ! Bilinear interpolation of Z(X, Y) to the point (xx, yy), in real*8.
+      !
+      ! Called from: not called (currently unused)
+      !
 
       implicit none
       ! input/output
@@ -87,6 +198,11 @@ contains
    end subroutine linear_interp_2d
    
  pure subroutine linear_interp_2d_real4(X,nx,Y,ny,Z,xx,yy,zz,method,exception)
+      !
+      ! Bilinear interpolation of Z(X, Y) to the point (xx, yy), in real*4.
+      !
+      ! Called from: compute_herbers (snapwave_infragravity)
+      !
 
       implicit none
       ! input/output
@@ -184,6 +300,11 @@ contains
    ! SOURCE
    !
    pure subroutine linear_interp(x, y, n, xx, yy, indint)
+      !
+      ! Linear interpolation of y(x) to the point xx, in real*8.
+      !
+      ! Called from: trapezoidal_cyclic (interp)
+      !
       integer,              intent(in) :: n
       real*8, dimension(n), intent(in) :: x
       real*8, dimension(n), intent(in) :: y
@@ -256,6 +377,11 @@ contains
    ! SOURCE
    !
    pure subroutine linear_interp_real4(x, y, n, xx, yy, indint)
+      !
+      ! Linear interpolation of y(x) to the point xx, in real*4.
+      !
+      ! Called from: compute_herbers (snapwave_infragravity)
+      !
       integer,              intent(in) :: n
       real*4, dimension(n), intent(in) :: x
       real*4, dimension(n), intent(in) :: y
@@ -331,6 +457,11 @@ contains
    ! SOURCE
    !
    pure subroutine binary_search(xx, n, x, j)
+      !
+      ! Binary search for the interval of the sorted real*8 array xx that contains x.
+      !
+      ! Called from: linear_interp (interp)
+      !
       integer,              intent(in) :: N
       real*8, dimension(N), intent(in) :: xx
       real*8, intent(in)               :: x
@@ -396,6 +527,11 @@ contains
    ! SOURCE
    !
    pure subroutine binary_search_real4(xx, n, x, j)
+      !
+      ! Binary search for the interval of the sorted real*4 array xx that contains x.
+      !
+      ! Called from: linear_interp_real4 (interp)
+      !
       integer,              intent(in) :: N
       real*4, dimension(N), intent(in) :: xx
       real*4, intent(in)               :: x
@@ -444,6 +580,12 @@ contains
    & x2        ,y2        ,n2        ,xs        ,ys        , &
    & nrx       ,nry       ,iflag     ,nrin      ,w         , &
    & iref      ,iprint    ,covered   ,xymiss)
+      !
+      ! Make the interpolation map (reference indices and weights) from a curvilinear grid
+      ! to a set of points.
+      !
+      ! Called from: not called (currently unused)
+      !
       !!--description-----------------------------------------------------------------
       !
       !
@@ -705,6 +847,12 @@ contains
 
    subroutine make_map(code, x1, y1, m1, n1, x2, y2, n2, w, iref, &
    &                   iprint    ,covered   ,xymiss)
+      !
+      ! Make the interpolation map from a curvilinear grid to a set of points (variant of
+      ! mkmap).
+      !
+      ! Called from: not called (currently unused)
+      !
       !!--description-----------------------------------------------------------------
       !
       !
@@ -973,6 +1121,11 @@ contains
    end subroutine make_map
 
    subroutine make_map_fm (x1, y1, face_nodes, no_nodes1, no_faces1, x2, y2, n2, w, iref, nref)
+      !
+      ! Make the interpolation map from an unstructured grid to a set of points.
+      !
+      ! Called from: not called (currently unused)
+      !
       !!--description-----------------------------------------------------------------
       !
       !
@@ -1203,6 +1356,12 @@ contains
    subroutine mkmap_step (x1        ,y1        ,m1        ,n1        ,    &
    &       alfaz     ,dsu       ,dnv       ,               &
    &       x2        ,y2        ,n2        ,w         ,  iref      )
+      !
+      ! Make the interpolation map from a curvilinear grid to a set of points, by stepping
+      ! along the grid.
+      !
+      ! Called from: not called (currently unused)
+      !
       !!--description-----------------------------------------------------------------
       !
       !
@@ -1284,6 +1443,12 @@ contains
 
    subroutine grmap(f1        ,n1        ,f2        ,n2        ,iref      , &
    & w         ,np        ,iprint    )
+      !
+      ! Interpolate values from grid 1 to all points of grid 2 with a given interpolation
+      ! map.
+      !
+      ! Called from: not called (currently unused)
+      !
       !!--description-----------------------------------------------------------------
       !
       ! compute interpolated values for all points on grid 2
@@ -1348,6 +1513,12 @@ contains
 
    subroutine grmap2(f1, cellsz1i     , n1        ,f2  ,cellsz2,  n2        ,iref      , &
    & w         ,np     )
+      !
+      ! Distribute values from grid 2 back onto grid 1 with a given interpolation map
+      ! (reverse of grmap).
+      !
+      ! Called from: not called (currently unused)
+      !
       !!--description-----------------------------------------------------------------
       !
       ! compute interpolated values for all points on grid 1 given reference table
@@ -1394,6 +1565,11 @@ contains
    end subroutine grmap2
 
    subroutine grmap_sg(f1, nref, n1, f2, n2, iref, w, np)
+      !
+      ! As grmap2, for an interpolation map with a varying number of reference points.
+      !
+      ! Called from: not called (currently unused)
+      !
       !!--description-----------------------------------------------------------------
       !
       ! compute interpolated values for all points on grid 1 given reference table
@@ -1440,6 +1616,12 @@ contains
    end subroutine grmap_sg
 
    subroutine ipon(xq     ,yq     ,n      ,xp     ,yp     ,inout     )
+      !
+      ! Check whether point (xq, yq) lies inside, on or outside a polygon.
+      !
+      ! Called from: make_map (interp), make_map_fm (interp), mkmap (interp),
+      !   initialize_snapwave_domain (snapwave_domain)
+      !
       !--description----------------------------------------------------------------
       !
       ! Deltares                                                               *
@@ -1541,6 +1723,12 @@ contains
    end subroutine ipon
 
    subroutine hunt(xx        ,n         ,x         ,jlo       )
+      !
+      ! Find the interval of the sorted array xx that contains x, starting the search at
+      ! jlo.
+      !
+      ! Called from: make_map (interp), make_map_fm (interp), mkmap (interp)
+      !
       !!--description-----------------------------------------------------------------
       ! NONE
       !!--pseudo code and references--------------------------------------------------
@@ -1610,6 +1798,11 @@ contains
    end subroutine hunt
 
    subroutine indexx(n         ,arrin     ,indx      )
+      !
+      ! Make an index array that sorts arrin in ascending order.
+      !
+      ! Called from: sort (interp)
+      !
       !----- GPL ---------------------------------------------------------------------
       !
       !  Copyright (C)  Stichting Deltares, 2011.
@@ -1704,6 +1897,11 @@ contains
    end subroutine indexx
 
    subroutine bilin5(xa, ya, x0, y0, w, ier)
+      !
+      ! Compute the bilinear interpolation weights of a point within a quadrilateral.
+      !
+      ! Called from: make_map (interp), make_map_fm (interp), mkmap (interp)
+      !
       !!--description-----------------------------------------------------------------
       ! NONE
       !!--pseudo code and references--------------------------------------------------
@@ -1836,6 +2034,11 @@ contains
    end subroutine bilin5
 
    subroutine sort(n         ,ra        ,wksp      ,iwksp     )
+      !
+      ! Sort an array in ascending order and return the sorting index.
+      !
+      ! Called from: make_map (interp), make_map_fm (interp), mkmap (interp)
+      !
       !!--description-----------------------------------------------------------------
       ! Sorts an array, routine from Numerical Recipes
       !!--pseudo code and references--------------------------------------------------
@@ -1864,6 +2067,11 @@ contains
    end subroutine sort
 
    subroutine trapezoidal(x,y,n,x1_in,x2_in,integ)
+      !
+      ! Integrate y(x) from x1 to x2 with the trapezoidal rule (equidistant x).
+      !
+      ! Called from: not called (currently unused)
+      !
       ! Compute integral over function y(x) from x1 to x2
       ! x is equidistant
       !(c)2014 Dano Roelvink
@@ -1903,6 +2111,11 @@ contains
    end subroutine trapezoidal
 
    subroutine trapezoidal_cyclic(x,y,n,xcycle,x1,x2,integ)
+      !
+      ! Integrate a cyclic function y(x) from x1 to x2 with the trapezoidal rule.
+      !
+      ! Called from: interp_using_trapez_rule (interp)
+      !
       ! Compute integral over function y(x) from x1 to x2
       ! x is equidistant, function is cyclic so y(x+k*xcycle)=y(x)
       !(c)2014 Dano Roelvink
@@ -1942,6 +2155,12 @@ contains
    end subroutine trapezoidal_cyclic
 
    subroutine interp_using_trapez_rule(x,y,n,xcycle,xtarg,ytarg,ntarg)
+      !
+      ! Interpolate a cyclic function to a target grid, conserving the integral per target
+      ! bin.
+      !
+      ! Called from: not called (currently unused)
+      !
       implicit none
       ! Compute integral over function y(x) from x1 to x2
       ! x is equidistant, function is cyclic so y(x+k*xcycle)=y(x)
@@ -1965,6 +2184,11 @@ contains
    end subroutine interp_using_trapez_rule
 
    subroutine interp_in_cyclic_function(x,y,n,xcycle,xp,np,yp)
+      !
+      ! Linear interpolation in a cyclic function y(x) to the points xp.
+      !
+      ! Called from: trapezoidal_cyclic (interp)
+      !
       implicit none
       integer,               intent(in)    :: n
       real*8, dimension(n),  intent(in)    :: x,y          ! arrays x and y(x)
@@ -2043,6 +2267,11 @@ contains
    end subroutine interp_in_cyclic_function
    
    subroutine triangle_intp(x,y,xt,yt,w)
+      !
+      ! Compute the linear interpolation weights of a point within a triangle.
+      !
+      ! Called from: make_map_fm (interp)
+      !
       real*8, dimension(3), intent(in)      :: x,y
       real*8              , intent(in)      :: xt,yt
       real*8, dimension(3), intent(out)     :: w

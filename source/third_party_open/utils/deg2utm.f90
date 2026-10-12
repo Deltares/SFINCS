@@ -1,5 +1,9 @@
    subroutine deg2utm(la,lo,xx,yy,utmzone)
    !
+   ! Convert latitude and longitude (degrees) to UTM coordinates in the given UTM zone.
+   !
+   ! Called from: read_meteo_data (sfincs_meteo)
+   !
    real         :: la
    real         :: lo
    real         :: xx

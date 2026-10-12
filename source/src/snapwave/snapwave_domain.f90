@@ -1,10 +1,72 @@
 module snapwave_domain
+   !
+   ! SnapWave domain set-up: reads or builds the unstructured mesh, and determines the
+   ! upwind neighbours, bed slopes and boundary nodes.
+   !
+   ! Subroutines / functions:
+   !
+   !   initialize_snapwave_domain()
+   !     Initialize the SnapWave mesh, masks, upwind neighbours and directional grid.
+   !     Called from: couple_snapwave (sfincs_snapwave)
+   !
+   !   find_upwind_neighbours(x, y, no_nodes, sferic, theta, ntheta, kp, np, w, prev, ds)
+   !     Find, per node and wave direction, the two upwind nodes, their weights and the
+   !     upwind distance.
+   !     Called from: initialize_snapwave_domain (snapwave_domain)
+   !
+   !   intersect_angle(x0, y0, phi, x, y, W, ds, xi, yi)
+   !     Find where the ray from (x0, y0) in direction phi intersects a mesh edge, with
+   !     weights and distance.
+   !     Called from: find_upwind_neighbours (snapwave_domain)
+   !
+   !   fm_surrounding_points(...)
+   !     Determine the surrounding nodes of each node and the bed slopes dhdx and dhdy.
+   !     Called from: initialize_snapwave_domain (snapwave_domain)
+   !
+   !   findloc(a, n, b, indx)
+   !     Find the index of value b in the integer array a.
+   !     Called from: find_upwind_neighbours (snapwave_domain),
+   !       fm_surrounding_points (snapwave_domain)
+   !
+   !   linear_interp(x, y, n, xx, yy)
+   !     Linear interpolation of y(x) to the point xx.
+   !     Called from: not called (currently unused)
+   !
+   !   binary_search(xx, n, x, j)
+   !     Binary search for the interval of the sorted array xx that contains x.
+   !     Called from: linear_interp (snapwave_domain)
+   !
+   !   boundaries(...)
+   !     Find the mesh nodes on a boundary polyline, with the indices and weights of the
+   !     polyline points.
+   !     Called from: not called (currently unused)
+   !
+   !   neuboundaries_light(x, y, msk, no_nodes, neumannconnected)
+   !     Find, for each Neumann boundary node, the nearest inner node it is connected to.
+   !     Called from: initialize_snapwave_domain (snapwave_domain)
+   !
+   !   read_snapwave_sfincs_mesh()
+   !     Build the SnapWave mesh from the regular SFINCS grid.
+   !     Called from: initialize_snapwave_domain (snapwave_domain)
+   !
+   !   read_snapwave_ascii_mesh()
+   !     Read the SnapWave mesh from ASCII files.
+   !     Called from: initialize_snapwave_domain (snapwave_domain)
+   !
+   !   read_snapwave_quadtree_mesh(load_quadtree)
+   !     Build the SnapWave mesh (nodes, faces, masks) from the quadtree grid.
+   !     Called from: initialize_snapwave_domain (snapwave_domain)
+   !
 
    use sfincs_log
     
 contains
 
    subroutine initialize_snapwave_domain()
+   !
+   ! Initialize the SnapWave mesh, masks, upwind neighbours and directional grid.
+   !
+   ! Called from: couple_snapwave (sfincs_snapwave)
    !
    use snapwave_data
    use snapwave_boundaries
@@ -355,6 +417,11 @@ contains
 
    subroutine find_upwind_neighbours(x,y,no_nodes,sferic,theta,ntheta,kp,np,w,prev,ds)
    !
+   ! Find, per node and wave direction, the two upwind nodes, their weights and the upwind
+   ! distance.
+   !
+   ! Called from: initialize_snapwave_domain (snapwave_domain)
+   !
    integer,                               intent(in)        :: no_nodes,ntheta     ! length of x,y; length of theta
    integer,                               intent(in)        :: sferic             ! sferic (1) or cartesian (0) grid
    real*8,  dimension(no_nodes),          intent(in)        :: x,y                 ! x, y coordinates of grid
@@ -417,6 +484,11 @@ contains
 
    subroutine intersect_angle(x0, y0, phi, x, y, W, ds, xi, yi)
    !
+   ! Find where the ray from (x0, y0) in direction phi intersects a mesh edge, with weights
+   ! and distance.
+   !
+   ! Called from: find_upwind_neighbours (snapwave_domain)
+   !
    real*8, intent(in)               :: x0, y0, phi
    real*8, dimension(2),intent(in)  :: x, y
    real*8, dimension(2),intent(out) :: W
@@ -455,6 +527,10 @@ contains
 
 
    subroutine fm_surrounding_points(xn,yn,zn,no_nodes,sferic,face_nodes,no_faces,kp,np,dhdx,dhdy)
+   !
+   ! Determine the surrounding nodes of each node and the bed slopes dhdx and dhdy.
+   !
+   ! Called from: initialize_snapwave_domain (snapwave_domain)
    !
    real*8,  dimension(no_nodes),                 intent(in)  :: xn,yn              ! coordinates of network nodes
    real*4,  dimension(no_nodes),                 intent(in)  :: zn                 ! coordinates of network nodes
@@ -599,6 +675,11 @@ contains
 
    subroutine findloc(a,n,b,indx)
    !
+   ! Find the index of value b in the integer array a.
+   !
+   ! Called from: find_upwind_neighbours (snapwave_domain),
+   !   fm_surrounding_points (snapwave_domain)
+   !
    integer, dimension(n) :: a
    integer               :: n,b
    integer               :: indx,i
@@ -630,6 +711,11 @@ contains
    ! SOURCE
    !
    subroutine linear_interp(x, y, n, xx, yy)
+      !
+      ! Linear interpolation of y(x) to the point xx.
+      !
+      ! Called from: not called (currently unused)
+      !
       integer,              intent(in) :: n
       real*4, dimension(n), intent(in) :: x
       real*4, dimension(n), intent(in) :: y
@@ -701,6 +787,11 @@ contains
    ! SOURCE
    !
    subroutine binary_search(xx, n, x, j)
+      !
+      ! Binary search for the interval of the sorted array xx that contains x.
+      !
+      ! Called from: linear_interp (snapwave_domain)
+      !
       integer,              intent(in) :: N
       real*4, dimension(N), intent(in) :: xx
       real*4, intent(in)               :: x
@@ -746,6 +837,12 @@ contains
    end subroutine binary_search
 
    subroutine boundaries(x,y,no_nodes,xb,yb,nb,tol,bndpts,nobndpts,bndindx,bndweight)
+   !
+   ! Find the mesh nodes on a boundary polyline, with the indices and weights of the
+   ! polyline points.
+   !
+   ! Called from: not called (currently unused)
+   !
    
    real*4,  dimension(no_nodes), intent(in)    :: x,y
    integer,                intent(in)    :: no_nodes
@@ -789,6 +886,10 @@ contains
          
 
    subroutine neuboundaries_light(x, y, msk, no_nodes, neumannconnected)
+   !
+   ! Find, for each Neumann boundary node, the nearest inner node it is connected to.
+   !
+   ! Called from: initialize_snapwave_domain (snapwave_domain)
    ! 
    implicit none
    !
@@ -846,6 +947,10 @@ contains
 
 
    subroutine read_snapwave_sfincs_mesh()
+   !
+   ! Build the SnapWave mesh from the regular SFINCS grid.
+   !
+   ! Called from: initialize_snapwave_domain (snapwave_domain)
    !
    use snapwave_data
    !
@@ -981,6 +1086,10 @@ contains
 
    subroutine read_snapwave_ascii_mesh()
    !
+   ! Read the SnapWave mesh from ASCII files.
+   !
+   ! Called from: initialize_snapwave_domain (snapwave_domain)
+   !
    use snapwave_data
    !
    implicit none
@@ -1039,6 +1148,8 @@ contains
    subroutine read_snapwave_quadtree_mesh(load_quadtree)
    !
    ! Determines SnapWave domain (nodes, faces etc.) for quadtree approach
+   !
+   ! Called from: initialize_snapwave_domain (snapwave_domain)
    !
    use snapwave_data
    use quadtree

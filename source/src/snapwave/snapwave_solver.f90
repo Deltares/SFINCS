@@ -1,4 +1,68 @@
 ﻿module snapwave_solver
+   !
+   ! SnapWave solver: stationary 2D wave energy balance for incident and infragravity waves,
+   ! including breaking, bottom friction, wind growth and vegetation.
+   !
+   ! Subroutines / functions:
+   !
+   !   compute_wave_field()
+   !     Compute the wave field for the current conditions: celerities, energy balance and
+   !     derived output.
+   !     Called from: compute_snapwave (sfincs_snapwave)
+   !
+   !   solve_energy_balance2Dstat(...)
+   !     Solve the stationary 2D wave energy (and wave action) balance by sweeping over the
+   !     nodes.
+   !     Called from: compute_wave_field (snapwave_solver)
+   !
+   !   solve_tridiag(a, b, c, d, x, n)
+   !     Solve a tridiagonal system of equations.
+   !     Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
+   !   baldock(rho, g, alfa, gamma, depth, H, T, iexp, Dw, Hmax)
+   !     Wave breaking dissipation according to Baldock et al. (1998).
+   !     Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
+   !   determine_infragravity_source_sink_term(...)
+   !     Determine the infragravity source/sink term from the incident wave energy (Leijnse
+   !     et al., 2024).
+   !     Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
+   !   estimate_shoaling_parameter_alphaig(beta, gam, alphaig)
+   !     Estimate the infragravity shoaling parameter alphaig from the bed slope and
+   !     relative depth.
+   !     Called from: determine_infragravity_source_sink_term (snapwave_solver)
+   !
+   !   hpsort_eps_epw(n, ra, ind, eps)
+   !     Sort an array in ascending order with heapsort, treating values within eps as
+   !     equal.
+   !     Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
+   !   timer(t)
+   !     Return the wall-clock time in seconds from system_clock.
+   !     Called from: compute_wave_field (snapwave_solver)
+   !
+   !   vegatt(...)
+   !     Wave energy dissipation due to vegetation.
+   !     Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
+   !   swvegatt(...)
+   !     Short-wave dissipation due to vegetation, per vertical vegetation section.
+   !     Called from: vegatt (snapwave_solver)
+   !
+   !   bulkdragcoeff(...)
+   !     Bulk drag coefficient for vegetation from the Keulegan-Carpenter number.
+   !     Called from: not called (the call in vegatt is commented out)
+   !
+   !   momeqveg(...)
+   !     Wave-induced force on vegetation from the nonlinear orbital velocities.
+   !     Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
+   !   swvegnonlin(no_nodes, kwav, depth, H, g, Trep, unl, etaw0)
+   !     Nonlinear wave shape (orbital velocity and surface elevation) from the
+   !     Rienecker-Fenton table.
+   !     Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
    
    use sfincs_log
     
@@ -7,6 +71,11 @@
 contains
    
    subroutine compute_wave_field()
+      !
+      ! Compute the wave field for the current conditions: celerities, energy balance and
+      ! derived output.
+      !
+      ! Called from: compute_snapwave (sfincs_snapwave)
       !
       use snapwave_data
       !
@@ -197,6 +266,11 @@ contains
                                          betamean, srcig, alphaig, Dw_ig, Df_ig, &       
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
                                          zb, nwav, ig_opt, alfa_ig, gamma_ig, gamma_fac_br, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
+   !
+   ! Solve the stationary 2D wave energy (and wave action) balance by sweeping over the
+   ! nodes.
+   !
+   ! Called from: compute_wave_field (snapwave_solver)
    !
    use snapwave_windsource
    !
@@ -1137,6 +1211,10 @@ contains
 
    subroutine solve_tridiag(a, b, c, d, x, n)
    !
+   ! Solve a tridiagonal system of equations.
+   !
+   ! Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
    implicit none
    !
    !	 a - sub-diagonal (means it is the diagonal below the main diagonal)
@@ -1179,6 +1257,10 @@ contains
    end subroutine solve_tridiag
 
    subroutine baldock (rho, g, alfa, gamma, depth, H, T, iexp, Dw, Hmax)
+   !
+   ! Wave breaking dissipation according to Baldock et al. (1998).
+   !
+   ! Called from: solve_energy_balance2Dstat (snapwave_solver)
    !
    real*4, intent(in)                :: rho
    real*4, intent(in)                :: g
@@ -1229,6 +1311,8 @@ contains
     ! in: the rest
     !
     ! NOTE - This is based on the energy in the previous SnapWave timestep 'ee' and 'ee_ig', and waveheight 'H', which should therefore be made available.
+    !
+    ! Called from: solve_energy_balance2Dstat (snapwave_solver)
     !   
     implicit none
     !  
@@ -1448,6 +1532,11 @@ contains
    
    subroutine estimate_shoaling_parameter_alphaig(beta, gam, alphaig)
    !
+   ! Estimate the infragravity shoaling parameter alphaig from the bed slope and relative
+   ! depth.
+   !
+   ! Called from: determine_infragravity_source_sink_term (snapwave_solver)
+   !
    real*4, intent(in)                :: beta
    real*4, intent(in)                :: gam 
    real*4, intent(out)               :: alphaig
@@ -1496,6 +1585,11 @@ contains
    end subroutine estimate_shoaling_parameter_alphaig 
    
    subroutine hpsort_eps_epw (n, ra, ind, eps)
+   !
+   ! Sort an array in ascending order with heapsort, treating values within eps as equal.
+   !
+   ! Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
    !---------------------------------------------------------------------
    ! sort an array ra(1:n) into ascending order using heapsort algorithm,
    ! and considering two elements being equal if their values differ
@@ -1637,6 +1731,11 @@ contains
    end subroutine hpsort_eps_epw
 
    subroutine timer(t)
+   !
+   ! Return the wall-clock time in seconds from system_clock.
+   !
+   ! Called from: compute_wave_field (snapwave_solver)
+   !
    real*4,intent(out)               :: t
    integer*8                        :: count,count_rate,count_max
    call system_clock (count,count_rate, count_max)
@@ -1644,6 +1743,11 @@ contains
    end subroutine timer
 
    subroutine vegatt(sigm, no_nodes, kwav, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, depth, rho, g, H, Dveg) 
+        !
+        ! Wave energy dissipation due to vegetation.
+        !
+        ! Called from: solve_energy_balance2Dstat (snapwave_solver)
+        !
         use snapwave_domain
 		
         implicit none
@@ -1700,6 +1804,11 @@ contains
     end subroutine vegatt
     
     subroutine swvegatt(sigm, no_nodes, kwav, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, depth, rho, g, H, Dveg)! Short wave dissipation by vegetation
+        !
+        ! Short-wave dissipation due to vegetation, per vertical vegetation section.
+        !
+        ! Called from: vegatt (snapwave_solver)
+        !
         !use snapwave_data
         !use snapwave_domain
         !
@@ -1768,6 +1877,8 @@ contains
 		!    Michele Bendoni: subroutine to calculate bulk drag coefficient for short wave
 		!    energy dissipation based on the Keulegan-Carpenter number (adapted from XBeach)
 		!    Ozeren et al. (2013) or Mendez and Losada (2004)	 
+      !
+      ! Called from: not called (the call in vegatt is commented out)
       !
 		implicit none
 	   !
@@ -1844,6 +1955,11 @@ contains
     end subroutine bulkdragcoeff
  
 subroutine momeqveg(no_nodes, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, depth, rho, H, Trep, unl, Fvw)
+    !
+    ! Wave-induced force on vegetation from the nonlinear orbital velocities.
+    !
+    ! Called from: solve_energy_balance2Dstat (snapwave_solver)
+    !
     ! INput: no_nodes, no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, H(k), Tp(k), unl(k,:), Fvw(k)
     !
     implicit none
@@ -1892,6 +2008,12 @@ subroutine momeqveg(no_nodes, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd,
 end subroutine momeqveg    
    
 subroutine swvegnonlin(no_nodes, kwav, depth, H, g, Trep, unl, etaw0)
+    !
+    ! Nonlinear wave shape (orbital velocity and surface elevation) from the
+    ! Rienecker-Fenton table.
+    !
+    ! Called from: solve_energy_balance2Dstat (snapwave_solver)
+    !
     use snapwave_RFtable
     !
     implicit none

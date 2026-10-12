@@ -1,10 +1,38 @@
 module snapwave_windsource
    !
+   ! Wind growth in SnapWave: wind input source term, wave celerities and supporting
+   ! routines.
+   !
+   ! Subroutines / functions:
+   !
+   !   numerical_limiter(...)
+   !     Limit the wave energy and wave action to physically realistic values.
+   !     Called from: not called (currently unused)
+   !
+   !   compute_celerities(...)
+   !     Compute the group velocity, refraction speed and wave number at a node.
+   !     Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
+   !   windinput(...)
+   !     Compute the wind input source terms for wave energy and wave action.
+   !     Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
+   !   disper_approx_1(h, Tp, dkk, Cg)
+   !     Approximate solution of the dispersion relation at a single node: wave number and
+   !     group velocity.
+   !     Called from: compute_celerities (snapwave_windsource),
+   !       windinput (snapwave_windsource)
+   !
    implicit none
    !
    contains
    ! 
    subroutine numerical_limiter(ntheta,ee,aa,waveps,hh,dtheta,rho,g,gamma,sigmin,sigmax,H,E,A,sig)
+      !
+      ! Limit the wave energy and wave action to physically realistic values.
+      !
+      ! Called from: not called (currently unused)
+      !
       implicit none
       !
       integer,intent(in)                      :: ntheta
@@ -65,6 +93,11 @@ module snapwave_windsource
    end subroutine numerical_limiter
    !
    subroutine compute_celerities(hh, sig, sinth, costh, ntheta, gamma, dhdx, dhdy, sinhkh, Hmx, kwav, cg, ctheta)
+      !
+      ! Compute the group velocity, refraction speed and wave number at a node.
+      !
+      ! Called from: solve_energy_balance2Dstat (snapwave_solver)
+      !
       implicit none
       integer,  intent(in)                   :: ntheta
       real*4, intent(in)                     :: hh, sig, dhdx, dhdy
@@ -94,6 +127,11 @@ module snapwave_windsource
    end subroutine compute_celerities
    !
    subroutine windinput(u10, rho, g, hh, ntheta, windspreadfac, E, A, cg, eeprev, aaprev, ds, WsorE, WsorA, jadcgdx)
+      !
+      ! Compute the wind input source terms for wave energy and wave action.
+      !
+      ! Called from: solve_energy_balance2Dstat (snapwave_solver)
+      !
       implicit none  
       real*4                                      , intent(in) :: u10             !< [m/s] wind speed        
       real*4                                      , intent(in) :: rho             !< [kg/m3] density of water
@@ -211,6 +249,12 @@ module snapwave_windsource
    end subroutine windinput
    !
    subroutine disper_approx_1(h,Tp,dkk,Cg)
+      !
+      ! Approximate solution of the dispersion relation at a single node: wave number and
+      ! group velocity.
+      !
+      ! Called from: compute_celerities (snapwave_windsource),
+      !   windinput (snapwave_windsource)
       !
       real*4, intent(in)                 :: h
       real*4, intent(in)                 :: Tp
