@@ -35,6 +35,7 @@ If this PR adds model functionality:
 
 ### Self Review
 - [ ] I have reviewed my own changes.
+- [ ] Fortran changes follow the [coding style](https://github.com/Deltares/SFINCS/blob/main/source/CODING_STYLE.md).
 
 ## Additional Notes
 <!-- Anything reviewers should know -->

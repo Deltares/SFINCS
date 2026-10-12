@@ -1,0 +1,170 @@
+# SFINCS Fortran coding style
+
+Complete formatting conventions for all SFINCS and HurryWave Fortran edits — apply to every edit, not just reformatting tasks.
+
+## Indentation
+
+- Module-level declarations and `contains` keyword: 3-space indent
+- Subroutine/function body: 6-space indent (3 spaces relative to the `subroutine` keyword)
+- Each nested control block (`if`/`do`/etc.) adds 3 more spaces
+
+## Assignments
+
+Align `=` signs within any logical block of assignments. The one exception is when a single outlier name is dramatically longer than the rest and would create excessive whitespace — in that case, break it into a separate sub-group or leave it unaligned:
+
+```fortran
+      ! wrong
+      x1 = 313
+      xx2 = 1324
+      a = 123
+
+      ! correct
+      x1  = 313
+      xx2 = 1324
+      a   = 123
+
+      ! correct — logical block; align even when name lengths vary
+      nmindobs(iobs) = nm
+      n              = quadtree_n(nm)
+      m              = quadtree_m(nm)
+      iref           = quadtree_level(nm)
+      zobs(iobs)     = quadtree_zb(nm)
+```
+
+## Variable naming
+
+All-lowercase snake_case. No camelCase, PascalCase, or SHOUTY_CASE:
+
+```fortran
+      drn_type, nm, isrc, it_prev, qsrc_ts   ! correct
+      drnType, NM, iSrc, itPrev              ! wrong
+```
+
+Exceptions only for external library API names or well-established mathematical constants.
+
+## Module structure
+
+A blank `!` line goes directly after `module <name>` and directly after `contains`:
+
+```fortran
+module sfincs_continuity
+   !
+   use ...
+   !
+contains
+   !
+   subroutine ...
+```
+
+## Subroutine separators
+
+Between subroutines/functions inside a module, use 2 blank `!` lines. Same banner before the first subroutine after `contains`:
+
+```fortran
+   end subroutine foo
+   !
+   !
+   subroutine bar()
+```
+
+No other banner/divider lines anywhere (`! ---`, `! ===`, `! ***`, etc.). Use plain blank `!` lines for visual separation instead.
+
+## Blank `!` spacers inside routines
+
+**if-blocks**: `!` after every `then`, `!` before every `endif`/`else`/`elseif`, and `!` between logical groups inside the block:
+
+```fortran
+      if (condition) then
+         !
+         x = 1
+         y = 2
+         !
+         if (other) then
+            !
+            z = 3
+            !
+         endif
+         !
+         call foo()
+         !
+      endif
+```
+
+**do-loops**: `!` after every `do`, `!` before every `enddo`. For regular (non-directive) loops also add `!` before `do` and after `enddo`. Skip the surrounding `!` when an `!$omp` / `!$acc` directive sits immediately adjacent — the directive already provides the visual break:
+
+```fortran
+      do nm = 1, np
+         !
+         ... body ...
+         !
+      enddo
+```
+
+**Exception — tight nested loop-open lines**: do NOT add `!` between consecutive bare `do` lines:
+
+```fortran
+      do nm = 1, np        ! correct: no ! between these
+         do i = 1, ntheta
+            do j = 1, nsigma
+```
+
+**Descriptive comments**: bracket any descriptive `! text` comment with blank `!` lines on both sides — never place code directly above or below:
+
+```fortran
+      !
+      ! Compute friction term using Manning's n.
+      !
+      qq = ...
+```
+
+## Documentation headers
+
+**Module header**: list each public subroutine/function with a one-line description and its caller(s):
+
+```fortran
+module sfincs_continuity
+   !
+   ! Continuity solver: updates water levels each time step.
+   !
+   ! Subroutines:
+   !
+   !   update_continuity(t, dt)
+   !     Main per-timestep entry
+   !     Called from: sfincs_lib
+   !
+   !   compute_water_levels_regular(dt)
+   !     Regular-grid water-level update
+   !     Called from: update_continuity
+   !
+```
+
+**Per-subroutine header**: describe what it does and list (module -> subroutine) who calls it:
+
+```fortran
+   subroutine update_continuity(t, dt)
+      !
+      ! Advance water levels over one time step.
+      !
+      ! Called from: sfincs_lib
+      !
+```
+
+## Naming of end statements
+
+Always name `end subroutine` and `end module`:
+
+```fortran
+   end subroutine update_continuity
+
+end module sfincs_continuity
+```
+
+## implicit none
+
+Every subroutine and function must have `implicit none`.
+
+## Application scope
+
+Apply all rules to every edit — bug fixes, new features, and reformatting alike. When editing existing code, fix style locally in the blocks you touch; do not sweep-format untouched files unless the user explicitly asks.
+
+**Why:** User-defined rules developed across SFINCS and HurryWave sessions; consolidated here so both projects share one authoritative source.
