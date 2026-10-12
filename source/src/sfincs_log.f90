@@ -19,7 +19,8 @@ module sfincs_log
    !     every SFINCS module that emits user-facing output.
    !
    !   write_startup_log()
-   !     Welcome banner + ASCII logo + build-revision / build-date lines.
+   !     Welcome banner + ASCII logo + licence notice + build-revision /
+   !     build-date lines.
    !     Called once from sfincs_initialize (sfincs_lib).
    !
    !   write_processes_log()
@@ -200,7 +201,8 @@ contains
    !
    subroutine write_startup_log()
       !
-      ! Welcome banner, ASCII logo and build-revision / build-date lines.
+      ! Welcome banner, ASCII logo, licence notice and build-revision /
+      ! build-date lines.
       ! Called once at the start of sfincs_initialize (sfincs_lib),
       ! after build_revision and build_date have been set in sfincs_data.
       !
@@ -238,6 +240,14 @@ contains
       call write_log('       ..:~~~~~~~:.......:~~~~~~~:..      ', 1)
       call write_log('          ......................          ', 1)
       call write_log('              ..............              ', 1)
+      call write_log('', 1)
+      call write_log('------------------------------------------', 1)
+      call write_log('', 1)
+      call write_log('By running a SFINCS pre-compiled executable', 1)
+      call write_log('provided by Deltares, you accept the ', 1)
+      call write_log('conditions of the Deltares SFINCS FreeWare', 1)
+      call write_log('Software License Agreement, see:', 1)
+      call write_log('https://download.deltares.nl/sfincs', 1)
       call write_log('', 1)
       call write_log('------------------------------------------', 1)
       call write_log('', 1)
