@@ -168,9 +168,8 @@ module sfincs_continuity
    ! P.O. Box 177
    ! 2600 MH Delft, The Netherlands
    !
-   ! All indications and logos of, and references to, "Delft3D"
-   ! and "Deltares" are registered trademarks of Stichting Deltares,
-   ! and remain the property of Stichting Deltares. All rights reserved.
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
    !
    ! ------------ Copyright notice SFINCS ------------
    !
