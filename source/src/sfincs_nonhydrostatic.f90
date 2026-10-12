@@ -4,6 +4,8 @@
 
 module sfincs_nonhydrostatic
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Non-hydrostatic pressure correction (regular grids only). See the notes above the
    ! module statement.
    !

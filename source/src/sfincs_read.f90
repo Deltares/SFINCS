@@ -1,5 +1,7 @@
 module sfincs_read
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Keyword readers for SFINCS input files. Use the generic
    ! get_keyword(...) interface, which supports deprecated-alias lists.
    !

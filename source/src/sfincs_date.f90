@@ -1,5 +1,7 @@
 module sfincs_date
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Date and time utilities: Julian dates, conversion between date strings and seconds
    ! since the reference time, and time differences. See the notes below.
    !

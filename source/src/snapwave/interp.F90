@@ -1,5 +1,7 @@
 module interp
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Interpolation utilities: 1D and 2D linear interpolation, binary search, grid-to-grid
    ! interpolation maps, and trapezoidal integration.
    !

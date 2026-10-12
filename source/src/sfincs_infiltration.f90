@@ -1,5 +1,7 @@
 module sfincs_infiltration
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Infiltration: constant, Curve Number (with and without recovery), Green-Ampt, Horton
    ! and run-off coefficient methods, plus the bucket model. Computes the infiltration rate
    ! per cell every time step.

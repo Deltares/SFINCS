@@ -1,5 +1,7 @@
 module snapwave_date
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Date utilities of SnapWave (Julian dates and date-string conversions).
    !
    ! Subroutines / functions:

@@ -1,5 +1,7 @@
 module sfincs_timers
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Named wall-clock timers for SFINCS.
    !
    ! Lightweight replacement for the scattered tloop*/tstart_*/tend_*

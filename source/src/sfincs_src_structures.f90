@@ -1,5 +1,7 @@
 module sfincs_src_structures
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Point structures that move water between two grid cells by prescribed
    ! structure formulas rather than by momentum conservation:
    !    type 1 - pump           (fixed discharge)

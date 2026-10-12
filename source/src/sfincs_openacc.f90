@@ -1,5 +1,7 @@
 module sfincs_openacc
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! OpenACC (GPU) memory management: copies the model arrays to the device and removes them
    ! again.
    !

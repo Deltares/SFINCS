@@ -1,5 +1,7 @@
 module sfincs_urban_drainage
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Simple urban-drainage sink/source model for SFINCS.
    !
    ! Each zone is a polygon in the horizontal plane and has one of two

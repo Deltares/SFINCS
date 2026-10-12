@@ -137,6 +137,8 @@
 ! ============================================================================
 module sfincs_ncoutput
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! netCDF output of the map file (sfincs_map.nc) and the his file (sfincs_his.nc). See the
    ! description above the module statement.
    !

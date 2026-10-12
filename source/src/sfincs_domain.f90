@@ -1,5 +1,7 @@
 module sfincs_domain
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Model domain set-up: builds the computational mesh (regular or quadtree), indices,
    ! masks and neighbours, and initializes bathymetry, boundaries, roughness, storage volume
    ! and the hydrodynamic state.

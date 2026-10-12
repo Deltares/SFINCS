@@ -1,5 +1,7 @@
 module sfincs_rule_expression
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Boolean rule mini-language used by gate-like src_structures to decide
    ! when to open or close. The grammar is:
    !

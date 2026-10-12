@@ -1,5 +1,7 @@
 module sfincs_continuity
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Water-level / volume update stage of the SFINCS time step. Runs after
    ! sfincs_momentum has produced the face fluxes q on each cell edge and
    ! is responsible for closing the volume balance on every active cell.

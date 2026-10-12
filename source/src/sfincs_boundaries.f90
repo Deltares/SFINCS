@@ -1,5 +1,7 @@
 module sfincs_boundaries
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Open boundary conditions: reads the boundary points and their time series (water level,
    ! waves, downstream river), and updates the water levels and fluxes at the boundary cells
    ! every time step.

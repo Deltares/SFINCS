@@ -1,5 +1,7 @@
 module snapwave_input
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Reads the SnapWave settings from sfincs.inp into snapwave_data.
    !
    ! Subroutines:

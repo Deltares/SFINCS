@@ -1,5 +1,7 @@
 module geometry
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Geometry helpers: intersection tests between line segments, squares and polylines, and
    ! projection onto line segments.
    !

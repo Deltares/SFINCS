@@ -1,5 +1,7 @@
 module sfincs_momentum
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Momentum equation: computes the fluxes and velocities at the uv points every time step.
    !
    ! Subroutines / functions:

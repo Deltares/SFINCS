@@ -1,5 +1,7 @@
 module snapwave_windsource
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Wind growth in SnapWave: wind input source term, wave celerities and supporting
    ! routines.
    !

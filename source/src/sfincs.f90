@@ -1,5 +1,7 @@
 program sfincs
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Main program of the SFINCS executable. Runs a complete simulation by calling
    ! sfincs_initialize, sfincs_update and sfincs_finalize from sfincs_lib, and exits with
    ! the error code they return.

@@ -1,5 +1,7 @@
 module sfincs_timestep_analysis
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Time step analysis: tracks which uv points limit the time step and reports them at the
    ! end of the run.
    !

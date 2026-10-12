@@ -1,5 +1,7 @@
 module sfincs_bmi
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Basic Model Interface (BMI) of SFINCS. C-bound functions that let an external program
    ! initialize, step and finalize the model, and get pointers to (and metadata of) its
    ! variables.

@@ -121,10 +121,12 @@ No other banner/divider lines anywhere (`! ---`, `! ===`, `! ***`, etc.). Use pl
 
 Note: most existing headers were generated automatically (October 2026) and have not all been reviewed. The code is the reference; correct a header when you find it wrong.
 
-**Module header**: list each public subroutine/function with a one-line description and its caller(s):
+**Module header**: start with the line `! Headers auto-generated, ask main developers in case of doubts` (also in every new file), then list each public subroutine/function with a one-line description and its caller(s):
 
 ```fortran
 module sfincs_continuity
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
    !
    ! Continuity solver: updates water levels each time step.
    !

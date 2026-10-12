@@ -1,5 +1,7 @@
 module sfincs_error
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Error handling: stopping SFINCS with a message, and checking that input files exist.
    !
    ! Subroutines / functions:

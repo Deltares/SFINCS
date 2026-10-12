@@ -1,5 +1,7 @@
 module sfincs_polygons
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Minimal polygon helper module for SFINCS.
    !
    ! Provides:

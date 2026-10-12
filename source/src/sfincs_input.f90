@@ -1,5 +1,7 @@
 module sfincs_input
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Parser for the SFINCS main input file `sfincs.inp`.
    !
    ! `sfincs.inp` is a flat keyword / value text file (one `key = value`

@@ -1,5 +1,7 @@
 module sfincs_data
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Global data of SFINCS: input parameters, process flags, grid and index arrays, and all
    ! state and forcing variables shared between the modules.
    !

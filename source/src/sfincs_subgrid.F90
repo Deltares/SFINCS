@@ -1,6 +1,8 @@
 #define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)
 module sfincs_subgrid
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Subgrid tables: reads the subgrid file (netCDF or binary) and computes the initial cell
    ! volumes.
    !

@@ -1,5 +1,7 @@
 module sfincs_runup_gauges
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Run-up gauges: reads the rug file and determines the run-up level along each gauge
    ! transect.
    !

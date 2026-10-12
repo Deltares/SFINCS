@@ -1,5 +1,7 @@
 module astro
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Astronomical tide: nodal factors and astronomical arguments of tidal constituents (from
    ! Delft3D).
    !

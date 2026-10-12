@@ -1,5 +1,7 @@
 module sfincs_spiderweb
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Readers for the ASCII spiderweb (spw) and gridded meteo (amu, amv, amp, ampr) files.
    !
    ! Subroutines / functions:

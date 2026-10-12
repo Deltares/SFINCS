@@ -1,5 +1,7 @@
 module sfincs_vegetation
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Vegetation: reads the vegetation properties per cell, directly or as vegetation types
    ! with a TOML lookup table.
    !

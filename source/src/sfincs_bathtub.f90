@@ -1,5 +1,7 @@
 module sfincs_bathtub
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Bathtub flooding mode: water levels in all cells are set directly from the interpolated
    ! boundary water levels, without solving the momentum and continuity equations.
    ! Optionally uses SnapWave boundary wave heights.

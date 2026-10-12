@@ -1,5 +1,7 @@
 module sfincs_initial_conditions
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Initial conditions: sets the initial water levels and fluxes, from sfincs.inp, an
    ! initial water level file or a restart file.
    !

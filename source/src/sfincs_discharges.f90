@@ -1,5 +1,7 @@
 module sfincs_discharges
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! River point discharges: nr_discharge_points (x,y) locations from srcfile with matching
    ! time series qsrc_ts(:,:) from disfile, OR from a FEWS-style netCDF input
    ! via netsrcdisfile. Interpolates to the current model time every step,

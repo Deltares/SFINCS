@@ -1,5 +1,7 @@
 module bicgstab_solver_ilu
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! BiCGStab solver with ILU(0) preconditioner for sparse linear systems in CSR format,
    ! used by the non-hydrostatic solver.
    !

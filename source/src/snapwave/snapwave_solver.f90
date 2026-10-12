@@ -1,5 +1,7 @@
 ﻿module snapwave_solver
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! SnapWave solver: stationary 2D wave energy balance for incident and infragravity waves,
    ! including breaking, bottom friction, wind growth and vegetation.
    !

@@ -30,6 +30,8 @@
 ! ============================================================================
 module sfincs_ncoutput_helpers
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Shared types, state and helper routines of the netCDF output layer. See the description
    ! above the module statement.
    !

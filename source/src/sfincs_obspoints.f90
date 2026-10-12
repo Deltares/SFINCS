@@ -1,5 +1,7 @@
 module sfincs_obspoints
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Observation points: reads the obs file and finds the grid cell of each point.
    !
    ! Subroutines / functions:

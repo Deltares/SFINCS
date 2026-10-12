@@ -1,6 +1,8 @@
 #define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)   
 module sfincs_ncinput
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! netCDF input: FEWS-compatible boundary, discharge and meteo files, and generic readers
    ! for variables stored on the quadtree mesh.
    !

@@ -1,5 +1,7 @@
 module snapwave_domain
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! SnapWave domain set-up: reads or builds the unstructured mesh, and determines the
    ! upwind neighbours, bed slopes and boundary nodes.
    !

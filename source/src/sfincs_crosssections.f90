@@ -1,5 +1,7 @@
 module sfincs_crosssections
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Cross-sections: reads the crs file and computes the discharge through each
    ! cross-section.
    !

@@ -1,5 +1,7 @@
 module sfincs_meteo
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Meteorological forcing: wind, atmospheric pressure and precipitation from time series,
    ! spiderweb files and gridded (ASCII or netCDF) files, and their interpolation in space
    ! and time onto the model grid.

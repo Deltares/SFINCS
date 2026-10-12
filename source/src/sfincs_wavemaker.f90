@@ -1,5 +1,7 @@
    module sfincs_wavemaker
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Wave makers: internal boundaries that generate (infragravity) waves along polylines,
    ! forced by time series or by SnapWave.
    !

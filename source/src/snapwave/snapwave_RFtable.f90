@@ -1,5 +1,7 @@
 module snapwave_RFtable
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Lookup table of Rienecker and Fenton (1981) stream-function wave solutions, used for
    ! nonlinear wave shapes in the vegetation module.
    !

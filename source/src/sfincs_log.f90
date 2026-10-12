@@ -1,5 +1,7 @@
 module sfincs_log
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! User-facing log / screen output for SFINCS.
    !
    ! Owns sfincs.log (fid, open_log/close_log/write_log) and all the

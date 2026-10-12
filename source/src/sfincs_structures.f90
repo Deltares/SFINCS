@@ -1,5 +1,7 @@
    module sfincs_structures
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Structures on uv points: weirs and thin dams. Reads the structure files, snaps them to
    ! the grid and computes the fluxes over them.
    !

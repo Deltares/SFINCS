@@ -1,5 +1,7 @@
 module sfincs_output
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Model output: decides when map, maximum, his and restart output is due and writes it,
    ! in netCDF (through sfincs_ncoutput) or in binary/ASCII format.
    !

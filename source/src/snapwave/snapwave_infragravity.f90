@@ -1,5 +1,7 @@
 module snapwave_infragravity
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Infragravity wave boundary conditions at the offshore boundary points, following
    ! Herbers et al. (1994).
    !

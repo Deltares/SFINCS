@@ -1,5 +1,7 @@
 module sfincs_snapwave
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Coupling of SFINCS with the SnapWave wave solver: maps the two meshes onto each other,
    ! passes water depths and wind to SnapWave, and returns wave heights, periods and wave
    ! forces to SFINCS.

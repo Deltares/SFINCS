@@ -1,5 +1,7 @@
 module sfincs_advection_diffusion
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Advection and diffusion of tracers over the uv points (experimental).
    !
    ! Subroutines / functions:

@@ -1,6 +1,8 @@
 #define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)
 module quadtree
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Quadtree mesh: reads the quadtree file (netCDF or binary), builds a quadtree from
    ! regular-grid indices, and provides cell and uv-point search routines.
    !

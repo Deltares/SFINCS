@@ -1,5 +1,7 @@
 module sfincs_wave_enhanced_roughness
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Wave-enhanced bed roughness: apparent roughness at the uv points due to wave-current
    ! interaction.
    !

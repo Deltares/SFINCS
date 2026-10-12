@@ -1,5 +1,7 @@
 module sfincs_lib
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Main driver of SFINCS: initialization, time loop and finalization. Used by both the
    ! stand-alone executable (sfincs.f90) and the BMI library (sfincs_bmi).
    !

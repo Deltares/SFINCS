@@ -1,6 +1,8 @@
 #define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)   
 module snapwave_ncoutput
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! netCDF output for SnapWave: writes the SnapWave mesh to file.
    !
    ! Subroutines / functions:

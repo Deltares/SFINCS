@@ -1,5 +1,7 @@
 module snapwave_boundaries
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! SnapWave boundary conditions: reads the wave boundary points and time series, and
    ! updates the wave spectra, wind field and directional grid at the boundary every wave
    ! time step.
