@@ -1325,6 +1325,10 @@ contains
    ! and the two precompute helpers (compute_uv_at_cell_centers,
    ! compute_pnh_unwrapped) below.
    !
+   ! Input:
+   !   t        : current model time [s since tref]
+   !   ntmapout : index of the map output time
+   !
    ! Called from: write_output (sfincs_output)
    !
    use sfincs_data
@@ -1466,6 +1470,10 @@ contains
    subroutine ncoutput_update_his(t,nthisout)
    !
    ! Write time, zs, u, v, prcp etc. at observation points.
+   !
+   ! Input:
+   !   t        : current model time [s since tref]
+   !   nthisout : index of the his output time
    !
    ! Called from: write_output (sfincs_output)
    !
@@ -1652,6 +1660,10 @@ contains
    subroutine ncoutput_update_max(t,ntmaxout)
    !
    ! Write maximum values to map file (handles both regular and quadtree grids)
+   !
+   ! Input:
+   !   t        : current model time [s since tref]
+   !   ntmaxout : index of the maximum output time
    !
    ! Called from: write_output (sfincs_output)
    !
@@ -1840,6 +1852,10 @@ contains
    !
    subroutine ncoutput_add_params(ncid, varid)
    ! Add user params to netcdf file (both map & his)
+   !
+   ! Input:
+   !   ncid  : netCDF file id
+   !   varid : id of the variable that holds the parameters as attributes
    !
    ! Called from: ncoutput_his_init (sfincs_ncoutput), ncoutput_map_init (sfincs_ncoutput)
    !

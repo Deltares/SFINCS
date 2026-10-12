@@ -86,6 +86,15 @@ contains
       ! one-line deprecation warning per matched alias. Falls back to
       ! `default` when nothing matches.
       !
+      ! Input:
+      !   fileid  : unit number of the open input file
+      !   keyword : keyword to look for
+      !   default : default value
+      !   legacy  : deprecated aliases of the keyword (optional)
+      !
+      ! Output:
+      !   value   : value read, or the default when the keyword is absent
+      !
       ! Called from: read_sfincs_input (sfincs_input), read_snapwave_input (snapwave_input),
       ! read_spw_dimensions / read_amuv_dimensions (sfincs_spiderweb).
       !
@@ -132,6 +141,15 @@ contains
    subroutine get_keyword_int(fileid, keyword, value, default, legacy)
       !
       ! Read one integer keyword. See get_keyword_real for the semantics.
+      !
+      ! Input:
+      !   fileid  : unit number of the open input file
+      !   keyword : keyword to look for
+      !   default : default value
+      !   legacy  : deprecated aliases of the keyword (optional)
+      !
+      ! Output:
+      !   value   : value read, or the default when the keyword is absent
       !
       ! Called from: read_sfincs_input (sfincs_input), read_snapwave_input (snapwave_input),
       ! read_spw_dimensions / read_amuv_dimensions (sfincs_spiderweb).
@@ -182,6 +200,15 @@ contains
       ! semantics. The entire right-hand side (after trailing comments
       ! are stripped) becomes `value`.
       !
+      ! Input:
+      !   fileid  : unit number of the open input file
+      !   keyword : keyword to look for
+      !   default : default value
+      !   legacy  : deprecated aliases of the keyword (optional)
+      !
+      ! Output:
+      !   value   : value read, or the default when the keyword is absent
+      !
       ! Called from: read_sfincs_input (sfincs_input), read_snapwave_input (snapwave_input).
       !
       implicit none
@@ -230,6 +257,15 @@ contains
       ! anything else (including absence → `default`, and `0`, `n`, `N`,
       ! `f`, `F`) as false.
       !
+      ! Input:
+      !   fileid  : unit number of the open input file
+      !   keyword : keyword to look for
+      !   default : default value
+      !   legacy  : deprecated aliases of the keyword (optional)
+      !
+      ! Output:
+      !   value   : value read, or the default when the keyword is absent
+      !
       ! Called from: read_sfincs_input (sfincs_input), read_snapwave_input (snapwave_input).
       !
       implicit none
@@ -277,6 +313,16 @@ contains
       ! Read one whitespace-separated real*4 array keyword. Allocates
       ! `value(nr)` on the way in and fills it from the matching line.
       ! Same fallback semantics as get_keyword_real.
+      !
+      ! Input:
+      !   fileid  : unit number of the open input file
+      !   keyword : keyword to look for
+      !   default : default value
+      !   nr      : number of values to read
+      !   legacy  : deprecated aliases of the keyword (optional)
+      !
+      ! Output:
+      !   value   : values read, or filled with the default
       !
       ! Called from: read_sfincs_input (sfincs_input).
       !
@@ -329,6 +375,14 @@ contains
       ! Returns the raw right-hand-side value string and whether the key
       ! was matched.
       !
+      ! Input:
+      !   fileid  : unit number of the open input file
+      !   keyword : keyword to look for
+      !
+      ! Output:
+      !   valstr  : value string of the keyword
+      !   found   : true when the keyword was found
+      !
       ! Called from: get_keyword_real / get_keyword_int / get_keyword_char /
       ! get_keyword_logical / get_keyword_real_array.
       !
@@ -372,6 +426,10 @@ contains
       ! a legacy keyword alias was matched; the user can silence this
       ! by migrating the keyword in their sfincs.inp.
       !
+      ! Input:
+      !   legacy_key : deprecated keyword that was matched
+      !   new_key    : keyword that replaces it
+      !
       ! Called from: get_keyword_real / get_keyword_int / get_keyword_char /
       ! get_keyword_logical / get_keyword_real_array.
       !
@@ -395,6 +453,12 @@ contains
       ! Map an sfincs.inp value string to a logical. `1`, `y`, `Y`, `t`,
       ! `T` at position 1 are true; everything else is false.
       !
+      ! Input:
+      !   valstr : value string
+      !
+      ! Returns:
+      !   value  : logical value
+      !
       ! Called from: get_keyword_logical (this module).
       !
       implicit none
@@ -416,6 +480,13 @@ contains
       ! by spaces via notabs), and a trailing `#`-delimited inline
       ! comment. Blank lines and lines starting with `#`, `!`, or `@`
       ! return empty strings.
+      !
+      ! Input:
+      !   line0  : line of text
+      !
+      ! Output:
+      !   keystr : keyword part of the line
+      !   valstr : value part of the line
       !
       ! Called from: find_value (this module).
       !
@@ -468,6 +539,13 @@ contains
       !
       ! Author: John S. Urban. See also GNU/Unix commands expand(1) /
       ! unexpand(1).
+      !
+      ! Input:
+      !   instr  : input line (may contain tab characters)
+      !
+      ! Output:
+      !   outstr : line with tabs expanded to spaces
+      !   ilen   : position of the last character written
       !
       ! Called from: read_line (this module).
       !
@@ -526,6 +604,12 @@ contains
       !
       ! Check whether a file name ends with the '.nc' extension, to
       ! choose between the netcdf and binary reader of an input file.
+      !
+      ! Input:
+      !   file_name : name of the file
+      !
+      ! Returns:
+      !   is_netcdf : true when the name ends with '.nc'
       !
       ! Called from: initialize_roughness and initialize_storage_volume
       ! (sfincs_domain), set_initial_conditions (sfincs_initial_conditions),

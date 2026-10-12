@@ -96,6 +96,9 @@ module sfincs_lib
    !
    ! Read all input and initialize the domain, processes and output.
    !
+   ! Returns:
+   !   ierr : error code (0 = success)
+   !
    ! Called from: sfincs (main program), initialize (sfincs_bmi)
    !
    integer :: ierr
@@ -242,6 +245,12 @@ module sfincs_lib
    function sfincs_update(dtrange) result(ierr)
    !
    ! Run the time loop, until the end time or over the interval dtrange.
+   !
+   ! Input:
+   !   dtrange : time interval to run [s]; negative runs to the end time
+   !
+   ! Returns:
+   !   ierr    : error code (0 = success)
    !
    ! Called from: sfincs (main program), update and update_until (sfincs_bmi)
    !
@@ -561,6 +570,9 @@ module sfincs_lib
    function sfincs_finalize() result(ierr)
    !
    ! Write the final output and log, and close files.
+   !
+   ! Returns:
+   !   ierr : error code (0 = success)
    !
    ! Called from: sfincs (main program), finalize (sfincs_bmi)
    !

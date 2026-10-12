@@ -439,6 +439,10 @@ contains
       ! at the outfall cell. injection_well zones don't return water to
       ! the model.
       !
+      ! Input:
+      !   t  : current model time [s since tref]
+      !   dt : time step [s]
+      !
       ! Called from: update_continuity (sfincs_continuity), once per time
       ! step, after update_src_structures.
       !
@@ -761,6 +765,12 @@ contains
       !
       !    # common:
       !    h_threshold       = 0.0                 ! optional, m (default 0.0)
+      !
+      ! Input:
+      !   filename : name of the TOML urban drainage file
+      !
+      ! Output:
+      !   ierr     : error code (0 = success)
       !
       ! Called from: initialize_urban_drainage (this module).
       !
@@ -1090,6 +1100,15 @@ contains
       ! its value when the key is absent. A key that is present but not a
       ! TOML boolean (e.g. 1 or "true") is an error.
       !
+      ! Input:
+      !   zone_name : name of the zone, used in messages
+      !   key       : key to read
+      !
+      ! Input/output:
+      !   tbl_zone  : TOML table of the zone
+      !   val       : value; keeps its input value when the key is absent
+      !   ierr      : error code (0 = success)
+      !
       ! Called from: read_urban_drainage (this module).
       !
       use tomlf
@@ -1128,6 +1147,15 @@ contains
       ! Read an optional numeric key of an urban drainage zone. val keeps
       ! its value when the key is absent. A key that is present but not a
       ! number (e.g. "20") is an error.
+      !
+      ! Input:
+      !   zone_name : name of the zone, used in messages
+      !   key       : key to read
+      !
+      ! Input/output:
+      !   tbl_zone  : TOML table of the zone
+      !   val       : value; keeps its input value when the key is absent
+      !   ierr      : error code (0 = success)
       !
       ! Called from: read_urban_drainage (this module).
       !

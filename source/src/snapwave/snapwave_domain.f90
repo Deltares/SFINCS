@@ -420,6 +420,21 @@ contains
    ! Find, per node and wave direction, the two upwind nodes, their weights and the upwind
    ! distance.
    !
+   ! Input:
+   !   x        : x coordinates of the nodes
+   !   y        : y coordinates of the nodes
+   !   no_nodes : number of grid nodes
+   !   sferic   : 1 for a spherical grid, 0 for cartesian
+   !   theta    : wave directions [rad]
+   !   ntheta   : number of wave directions
+   !   kp       : surrounding node numbers per node
+   !   np       : maximum number of surrounding nodes per node
+   !
+   ! Output:
+   !   w        : weights of the two upwind nodes, per direction and node
+   !   prev     : indices of the two upwind nodes, per direction and node
+   !   ds       : distance to the upwind intersection point, per direction and node
+   !
    ! Called from: initialize_snapwave_domain (snapwave_domain)
    !
    integer,                               intent(in)        :: no_nodes,ntheta     ! length of x,y; length of theta
@@ -487,6 +502,19 @@ contains
    ! Find where the ray from (x0, y0) in direction phi intersects a mesh edge, with weights
    ! and distance.
    !
+   ! Input:
+   !   x0  : x coordinate of the start of the ray
+   !   y0  : y coordinate of the start of the ray
+   !   phi : direction of the ray [rad]
+   !   x   : x coordinates of the two ends of the edge
+   !   y   : y coordinates of the two ends of the edge
+   !
+   ! Output:
+   !   W   : weights of the two ends of the edge
+   !   ds  : distance to the intersection point
+   !   xi  : x coordinate of the intersection point
+   !   yi  : y coordinate of the intersection point
+   !
    ! Called from: find_upwind_neighbours (snapwave_domain)
    !
    real*8, intent(in)               :: x0, y0, phi
@@ -529,6 +557,21 @@ contains
    subroutine fm_surrounding_points(xn,yn,zn,no_nodes,sferic,face_nodes,no_faces,kp,np,dhdx,dhdy)
    !
    ! Determine the surrounding nodes of each node and the bed slopes dhdx and dhdy.
+   !
+   ! Input:
+   !   xn         : x coordinates of the nodes
+   !   yn         : y coordinates of the nodes
+   !   zn         : bed level at the nodes [m]
+   !   no_nodes   : number of grid nodes
+   !   sferic     : 1 for a spherical grid, 0 for cartesian
+   !   face_nodes : node numbers of each face
+   !   no_faces   : number of faces
+   !   np         : maximum number of surrounding nodes per node
+   !
+   ! Output:
+   !   kp         : sorted surrounding node numbers per node
+   !   dhdx       : bed slope in x direction per node
+   !   dhdy       : bed slope in y direction per node
    !
    ! Called from: initialize_snapwave_domain (snapwave_domain)
    !
@@ -677,6 +720,14 @@ contains
    !
    ! Find the index of value b in the integer array a.
    !
+   ! Input:
+   !   a    : array to search
+   !   n    : length of a
+   !   b    : value to find
+   !
+   ! Output:
+   !   indx : index of b in a
+   !
    ! Called from: find_upwind_neighbours (snapwave_domain),
    !   fm_surrounding_points (snapwave_domain)
    !
@@ -713,6 +764,15 @@ contains
    subroutine linear_interp(x, y, n, xx, yy)
       !
       ! Linear interpolation of y(x) to the point xx.
+      !
+      ! Input:
+      !   x  : x values (ascending)
+      !   y  : y values at x
+      !   n  : length of x and y
+      !   xx : x value to interpolate to
+      !
+      ! Output:
+      !   yy : interpolated value
       !
       ! Called from: not called (currently unused)
       !
@@ -790,6 +850,14 @@ contains
       !
       ! Binary search for the interval of the sorted array xx that contains x.
       !
+      ! Input:
+      !   xx : sorted array to search
+      !   n  : length of xx
+      !   x  : value to locate
+      !
+      ! Output:
+      !   j  : index of the interval that contains x
+      !
       ! Called from: linear_interp (snapwave_domain)
       !
       integer,              intent(in) :: N
@@ -841,6 +909,23 @@ contains
    ! Find the mesh nodes on a boundary polyline, with the indices and weights of the
    ! polyline points.
    !
+   ! Input:
+   !   x         : x coordinates of the nodes
+   !   y         : y coordinates of the nodes
+   !   no_nodes  : number of grid nodes
+   !   xb        : x coordinates of the boundary polyline
+   !   yb        : y coordinates of the boundary polyline
+   !   nb        : number of polyline points
+   !   tol       : distance tolerance
+   !
+   ! Input/output:
+   !   nobndpts  : number of boundary nodes
+   !
+   ! Output:
+   !   bndpts    : nodes on the boundary
+   !   bndindx   : indices of the two polyline points around each boundary node
+   !   bndweight : weights of the two polyline points
+   !
    ! Called from: not called (currently unused)
    !
    
@@ -888,6 +973,15 @@ contains
    subroutine neuboundaries_light(x, y, msk, no_nodes, neumannconnected)
    !
    ! Find, for each Neumann boundary node, the nearest inner node it is connected to.
+   !
+   ! Input:
+   !   x                : x coordinates of the nodes
+   !   y                : y coordinates of the nodes
+   !   msk              : node mask (1 = inner, 3 = Neumann boundary)
+   !   no_nodes         : number of grid nodes
+   !
+   ! Output:
+   !   neumannconnected : nearest inner node of each Neumann boundary node
    !
    ! Called from: initialize_snapwave_domain (snapwave_domain)
    ! 
@@ -1148,6 +1242,9 @@ contains
    subroutine read_snapwave_quadtree_mesh(load_quadtree)
    !
    ! Determines SnapWave domain (nodes, faces etc.) for quadtree approach
+   !
+   ! Input:
+   !   load_quadtree : not used
    !
    ! Called from: initialize_snapwave_domain (snapwave_domain)
    !

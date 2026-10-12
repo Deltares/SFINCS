@@ -184,6 +184,17 @@ contains
     ! Parse the TOML vegetation lookup table and return parameter arrays (nflags x max_layers).
     ! Shorter types are zero-padded to max_layers so the output is rectangular.
     !
+    ! Input:
+    !   flag_meanings     : name of each vegetation type
+    !   nflags            : number of vegetation types
+    !
+    ! Output:
+    !   veg_cd_lookup     : drag coefficient per type and layer [-]
+    !   veg_ah_lookup     : layer height per type and layer [m]
+    !   veg_bstems_lookup : stem diameter per type and layer [m]
+    !   veg_nstems_lookup : number of stems per unit area, per type and layer [1/m2]
+    !   max_layers        : largest number of layers of any type
+    !
     ! Called from: initialize_vegetation (sfincs_vegetation)
     !
     use tomlf

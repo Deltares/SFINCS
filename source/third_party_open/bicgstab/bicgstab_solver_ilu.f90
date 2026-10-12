@@ -38,6 +38,23 @@ contains
       !
       ! Solve A x = b with the (preconditioned) BiCGStab method.
       !
+      ! Input:
+      !   n           : number of rows of the matrix
+      !   val         : non-zero values of the matrix (CSR)
+      !   col_ind     : column index of each non-zero value (CSR)
+      !   row_ptr     : start of each row in val (CSR)
+      !   b           : right-hand side
+      !   tol         : relative residual tolerance
+      !   maxiter     : maximum number of iterations
+      !   use_precond : use the ILU(0) preconditioner
+      !
+      ! Input/output:
+      !   x           : initial guess on input, solution on output
+      !
+      ! Output:
+      !   iter        : number of iterations done
+      !   relres      : relative residual reached
+      !
       ! Called from: compute_nonhydrostatic (sfincs_nonhydrostatic)
       !
       integer, intent(in) :: n, col_ind(:), row_ptr(:), maxiter
@@ -135,6 +152,16 @@ contains
       !
       ! Compute the ILU(0) factorization of a CSR matrix.
       !
+      ! Input:
+      !   n        : number of rows of the matrix
+      !   val      : non-zero values of the matrix (CSR)
+      !   col_ind  : column index of each non-zero value (CSR)
+      !   row_ptr  : start of each row in val (CSR)
+      !
+      ! Output:
+      !   LU       : ILU(0) factors, stored with the same sparsity as val
+      !   diag_ptr : position of the diagonal entry of each row
+      !
       ! Called from: bicgstab_solve (bicgstab_solver_ilu)
       !
       integer, intent(in) :: n, col_ind(:), row_ptr(:)
@@ -194,6 +221,17 @@ contains
       !
       ! Apply the ILU(0) preconditioner: solve L U y = x.
       !
+      ! Input:
+      !   n        : number of rows of the matrix
+      !   x        : vector to precondition
+      !   LU       : ILU(0) factors, stored with the same sparsity as val
+      !   col_ind  : column index of each non-zero value (CSR)
+      !   row_ptr  : start of each row in val (CSR)
+      !   diag_ptr : position of the diagonal entry of each row
+      !
+      ! Output:
+      !   y        : preconditioned vector
+      !
       ! Called from: bicgstab_solve (bicgstab_solver_ilu)
       !
       integer, intent(in) :: n, col_ind(:), row_ptr(:), diag_ptr(:)
@@ -244,6 +282,16 @@ contains
       !
       ! Sparse matrix-vector product y = A x for a CSR matrix.
       !
+      ! Input:
+      !   n       : number of rows of the matrix
+      !   val     : non-zero values of the matrix (CSR)
+      !   col_ind : column index of each non-zero value (CSR)
+      !   row_ptr : start of each row in val (CSR)
+      !   x       : vector to multiply
+      !
+      ! Output:
+      !   y       : product A x
+      !
       ! Called from: bicgstab_solve (bicgstab_solver_ilu)
       !
       integer, intent(in) :: n, col_ind(:), row_ptr(:)
@@ -269,6 +317,12 @@ contains
    function norm2(v) result (snorm2)
       !
       ! Euclidean norm of a vector.
+      !
+      ! Input:
+      !   v      : vector
+      !
+      ! Returns:
+      !   snorm2 : Euclidean norm of v
       !
       ! Called from: bicgstab_solve (bicgstab_solver_ilu)
       ! 

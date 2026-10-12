@@ -334,6 +334,15 @@ contains
       ! .true.), only writes cells where (source-zref) > huthresh, i.e. the cell
       ! is wet. To write the depth (source-zref) itself, use write_cell_var_depth.
       !
+      ! Input:
+      !   ncid      : netCDF file id
+      !   varid     : netCDF variable id
+      !   source    : values per cell
+      !   zref      : reference level per cell; a cell is wet when source - zref > huthresh
+      !               [m]
+      !   nt        : index of the output time
+      !   check_wet : only write wet cells (default: true)
+      !
       ! Called from: ncoutput_update_map (sfincs_ncoutput),
       !   ncoutput_update_max (sfincs_ncoutput)
       !
@@ -383,6 +392,14 @@ contains
       ! where that depth exceeds huthresh. When check_wet is .false. the depth
       ! test is skipped and the depth is written in every cell.
       ! On quadtree: additionally skips kcs<=0 cells.
+      !
+      ! Input:
+      !   ncid        : netCDF file id
+      !   varid       : netCDF variable id
+      !   water_level : water level per cell [m]
+      !   bed_level   : bed level per cell [m]
+      !   nt          : index of the output time
+      !   check_wet   : only write wet cells (default: true)
       !
       ! Called from: ncoutput_update_map (sfincs_ncoutput),
       !   ncoutput_update_max (sfincs_ncoutput)
@@ -451,6 +468,15 @@ contains
       !
       ! Write a static (time-independent) real cell variable to the map file.
       !
+      ! Input:
+      !   ncid      : netCDF file id
+      !   varid     : netCDF variable id
+      !   source    : values per cell
+      !   fill      : fill value for cells that are not written
+      !   scale     : factor applied to the values (default: 1.0)
+      !   sw_index  : source is indexed on the SnapWave mesh (default: false)
+      !   min_value : only write cells where the value exceeds min_value (optional)
+      !
       ! Called from: ncoutput_map_init (sfincs_ncoutput),
       !   ncoutput_write_timestep_analysis (sfincs_ncoutput_helpers),
       !   ncoutput_write_tsunami_arrival_time (sfincs_ncoutput_helpers)
@@ -506,6 +532,13 @@ contains
       ! source is (nm, isec) on the SFINCS cell index. 1D `face` on quadtree,
       ! 2D `(m, n)` on regular, both with a trailing nsec dimension.
       !
+      ! Input:
+      !   ncid   : netCDF file id
+      !   varid  : netCDF variable id
+      !   source : values per cell and vertical section
+      !   nsec   : number of vertical vegetation sections
+      !   fill   : fill value for cells that are not written
+      !
       ! Called from: ncoutput_map_init (sfincs_ncoutput)
       !
       use sfincs_data
@@ -545,6 +578,12 @@ contains
       ! Mask-style write: NF90_INT on both grid types — 1D `face` on quadtree,
       ! 2D `(m, n)` on regular. Source is real*4 — callers pass real(kcs, 4)
       ! for int*1 masks (kcs) or snapwave_mask directly (already real*4).
+      !
+      ! Input:
+      !   ncid     : netCDF file id
+      !   varid    : netCDF variable id
+      !   source   : values per cell
+      !   sw_index : source is indexed on the SnapWave mesh (default: false)
       !
       ! Called from: ncoutput_map_init (sfincs_ncoutput)
       !
@@ -616,6 +655,17 @@ contains
       !
       ! Define a static real cell variable in the map file.
       !
+      ! Input:
+      !   name          : name of the netCDF variable
+      !   units         : units attribute
+      !   long_name     : long_name attribute
+      !   standard_name : CF standard_name attribute (optional)
+      !   cell_methods  : CF cell_methods attribute (optional)
+      !   description   : description attribute (optional)
+      !
+      ! Output:
+      !   varid         : id of the new netCDF variable
+      !
       ! Called from: ncoutput_map_init (sfincs_ncoutput)
       !
       use sfincs_data, only: nc_deflate_level
@@ -633,6 +683,16 @@ contains
    subroutine def_static_veg_float(name, varid, units, long_name, nsec_dimid, &
                                     standard_name)
       ! Static 2D face variable with a trailing nsec (vegetation section) dim.
+      !
+      ! Input:
+      !   name          : name of the netCDF variable
+      !   units         : units attribute
+      !   long_name     : long_name attribute
+      !   nsec_dimid    : id of the vertical-section dimension
+      !   standard_name : CF standard_name attribute (optional)
+      !
+      ! Output:
+      !   varid         : id of the new netCDF variable
       !
       ! Called from: ncoutput_map_init (sfincs_ncoutput)
       !
@@ -656,6 +716,19 @@ contains
                                    flag_values, flag_meanings)
       !
       ! Define a static integer cell variable in the map file.
+      !
+      ! Input:
+      !   name          : name of the netCDF variable
+      !   long_name     : long_name attribute
+      !   units         : units attribute (optional)
+      !   standard_name : CF standard_name attribute (optional)
+      !   fill_value    : fill value (default: FILL_VALUE_INT)
+      !   description   : description attribute (optional)
+      !   flag_values   : CF flag_values attribute (optional)
+      !   flag_meanings : CF flag_meanings attribute (optional)
+      !
+      ! Output:
+      !   varid         : id of the new netCDF variable
       !
       ! Called from: ncoutput_map_init (sfincs_ncoutput)
       !
@@ -700,6 +773,17 @@ contains
       !
       ! Define a time-varying real cell variable in the map file.
       !
+      ! Input:
+      !   name          : name of the netCDF variable
+      !   units         : units attribute
+      !   long_name     : long_name attribute
+      !   standard_name : CF standard_name attribute (optional)
+      !   cell_methods  : CF cell_methods attribute (optional)
+      !   description   : description attribute (optional)
+      !
+      ! Output:
+      !   varid         : id of the new netCDF variable
+      !
       ! Called from: ncoutput_map_init (sfincs_ncoutput)
       !
       use sfincs_data, only: nc_deflate_level
@@ -718,6 +802,17 @@ contains
                                       standard_name, cell_methods, description)
       !
       ! Define a real cell variable on the maximum-output time axis in the map file.
+      !
+      ! Input:
+      !   name          : name of the netCDF variable
+      !   units         : units attribute
+      !   long_name     : long_name attribute
+      !   standard_name : CF standard_name attribute (optional)
+      !   cell_methods  : CF cell_methods attribute (optional)
+      !   description   : description attribute (optional)
+      !
+      ! Output:
+      !   varid         : id of the new netCDF variable
       !
       ! Called from: ncoutput_map_init (sfincs_ncoutput)
       !
@@ -739,6 +834,9 @@ contains
       ! topology var declares the grid; cell vars use coordinates='x y' (set
       ! elsewhere) and these attributes are not used.
       !
+      ! Input:
+      !   varid : netCDF variable id
+      !
       ! Called from: def_maxtime_cell_float (sfincs_ncoutput_helpers),
       !   def_static_cell_float (sfincs_ncoutput_helpers),
       !   def_static_cell_int (sfincs_ncoutput_helpers),
@@ -756,6 +854,12 @@ contains
    subroutine def_mesh2d_node_coord(axis, varid)
       ! Define mesh2d_node_x / mesh2d_node_y for UGRID quadtree topology.
       ! Picks NF90_FLOAT+degrees (geographic) or NF90_DOUBLE+m (projected) via crsgeo.
+      !
+      ! Input:
+      !   axis  : 'x' or 'y'
+      !
+      ! Output:
+      !   varid : id of the new netCDF variable
       !
       ! Called from: ncoutput_map_init (sfincs_ncoutput)
       !
@@ -805,6 +909,15 @@ contains
       !   crsgeo  : NF90_FLOAT, units='degrees', standard_name=longitude/latitude
       !   else    : NF90_FLOAT, units='m',       standard_name=projection_{x,y}_coordinate
       !
+      ! Input:
+      !   name      : name of the netCDF variable
+      !   axis      : 'x' or 'y'
+      !   dimids    : dimension ids of the variable
+      !   long_name : long_name attribute
+      !
+      ! Output:
+      !   varid     : id of the new netCDF variable
+      !
       ! Called from: ncoutput_map_init (sfincs_ncoutput)
       !
       use sfincs_data, only: crsgeo, nc_deflate_level
@@ -844,6 +957,10 @@ contains
       ! nf90_put_var for a 2D real*4 array (face/corner coords).
       ! Hides the (/1, 1/) start-index boilerplate.
       !
+      ! Input:
+      !   varid : netCDF variable id
+      !   arr   : values to write
+      !
       ! Called from: ncoutput_map_init (sfincs_ncoutput)
       !
       integer, intent(in) :: varid
@@ -865,6 +982,17 @@ contains
       !
       ! Define a time-varying real point variable in the his file.
       !
+      ! Input:
+      !   name          : name of the netCDF variable
+      !   units         : units attribute
+      !   long_name     : long_name attribute
+      !   standard_name : CF standard_name attribute (optional)
+      !   cell_methods  : CF cell_methods attribute (optional)
+      !   description   : description attribute (optional)
+      !
+      ! Output:
+      !   varid         : id of the new netCDF variable
+      !
       ! Called from: ncoutput_his_init (sfincs_ncoutput)
       !
       use sfincs_data, only: nc_deflate_level
@@ -882,6 +1010,14 @@ contains
 
    subroutine def_his_point_coord(name, axis, varid, long_name)
       ! Define a his-file station coordinate variable with CRS-aware attrs.
+      !
+      ! Input:
+      !   name      : name of the netCDF variable
+      !   axis      : 'x' or 'y'
+      !   long_name : long_name attribute
+      !
+      ! Output:
+      !   varid     : id of the new netCDF variable
       !
       ! Called from: ncoutput_his_init (sfincs_ncoutput)
       !
@@ -926,6 +1062,13 @@ contains
    !   use_sw_index=.true. -> source is snapwave-indexed; map the obs cell to its
    !                          snapwave node via index_snapwave_in_sfincs first.
    !
+   ! Input:
+   !   varid        : netCDF variable id
+   !   source       : values per cell (or per SnapWave node)
+   !   nt           : index of the output time
+   !   scale        : factor applied to the values (default: 1.0)
+   !   use_sw_index : source is indexed on the SnapWave mesh (default: false)
+   !
    ! Called from: ncoutput_update_his (sfincs_ncoutput)
    !
       use sfincs_data, only: nobs, nmindobs
@@ -958,6 +1101,12 @@ contains
    subroutine compute_uv_at_obs_points(uobs, vobs, uvmag, uvdir)
    ! Face-averaged, rotated (u,v) and derived magnitude/direction at obs points.
    !
+   ! Output:
+   !   uobs  : velocity in x direction at each observation point [m/s]
+   !   vobs  : velocity in y direction at each observation point [m/s]
+   !   uvmag : velocity magnitude at each observation point [m/s]
+   !   uvdir : velocity direction at each observation point [deg]
+   !
    ! Called from: ncoutput_update_his (sfincs_ncoutput)
    !
       use sfincs_data, only: nobs, nmindobs, z_index_uv_md, z_index_uv_mu, &
@@ -988,6 +1137,10 @@ contains
 
    subroutine compute_wind_at_obs_points(wmag, wdir)
    ! Wind speed and meteorological direction (270 - math angle) at obs points.
+   !
+   ! Output:
+   !   wmag : wind speed at each observation point [m/s]
+   !   wdir : wind direction at each observation point [deg, nautical]
    !
    ! Called from: ncoutput_update_his (sfincs_ncoutput)
    !
@@ -1020,6 +1173,10 @@ contains
       ! Cell-centered (u, v) by averaging the 4 surrounding UV faces.
       ! Boundary cells contribute half (when one of nmd1/nmu1/ndm1/num1 is 0).
       !
+      ! Output:
+      !   uxy : velocity in x direction per cell [m/s]
+      !   vxy : velocity in y direction per cell [m/s]
+      !
       ! Called from: ncoutput_update_map (sfincs_ncoutput)
       !
       use sfincs_data
@@ -1047,6 +1204,9 @@ contains
    subroutine compute_pnh_unwrapped(pnh_full)
       ! Map row-indexed nonhydrostatic pressure to SFINCS-indexed array.
       !
+      ! Output:
+      !   pnh_full : non-hydrostatic pressure per cell
+      !
       ! Called from: ncoutput_update_map (sfincs_ncoutput)
       !
       use sfincs_data, only: np
@@ -1062,6 +1222,12 @@ contains
    subroutine compute_subgrid_mean_depth(z, hmean)
    ! Converts subgrid water level to mean cell depth via the volume table.
    ! Output-layer concern; lives here to keep sfincs_subgrid focused on table I/O.
+   !
+   ! Input:
+   !   z     : water level per cell [m]
+   !
+   ! Output:
+   !   hmean : mean water depth per cell [m]
    !
    ! Called from: ncoutput_update_max (sfincs_ncoutput)
    !
@@ -1159,6 +1325,21 @@ contains
       ! Define a NF90_FLOAT variable and set standard attributes in one call.
       ! Optional attributes are only written when present and non-empty.
       !
+      ! Input:
+      !   ncid          : netCDF file id
+      !   varname       : name of the netCDF variable
+      !   dimids        : dimension ids of the variable
+      !   units         : units attribute
+      !   long_name     : long_name attribute
+      !   standard_name : CF standard_name attribute (optional)
+      !   coordinates   : coordinates attribute (optional)
+      !   cell_methods  : CF cell_methods attribute (optional)
+      !   description   : description attribute (optional)
+      !   deflate_level : compression level (default: 6)
+      !
+      ! Output:
+      !   varid         : id of the new netCDF variable
+      !
       ! Called from: ncoutput_his_init (sfincs_ncoutput),
       !   ncoutput_map_init (sfincs_ncoutput),
       !   def_maxtime_cell_float (sfincs_ncoutput_helpers),
@@ -1221,6 +1402,18 @@ contains
       ! Topology variables with many unique attributes (mesh2d, crs, sfincsgrid,
       ! mesh2d_face_nodes) should still be defined manually.
       !
+      ! Input:
+      !   ncid          : netCDF file id
+      !   varname       : name of the netCDF variable
+      !   dimids        : dimension ids of the variable
+      !   long_name     : long_name attribute
+      !   fill_value    : fill value (default: FILL_VALUE_INT)
+      !   description   : description attribute (optional)
+      !   deflate_level : compression level (default: 6)
+      !
+      ! Output:
+      !   varid         : id of the new netCDF variable
+      !
       ! Called from: def_static_cell_int (sfincs_ncoutput_helpers)
       !
       integer,      intent(in)           :: ncid
@@ -1255,6 +1448,12 @@ contains
    ! Returns 1 for .true., 0 for .false. — used by ncoutput_add_params for
    ! integer-typed NetCDF attributes that encode Fortran logical flags.
    !
+   ! Input:
+   !   lgc         : logical value
+   !
+   ! Returns:
+   !   logical2int : 1 for true, 0 for false
+   !
    ! Called from: ncoutput_add_params (sfincs_ncoutput)
    !
       logical, intent(in) :: lgc
@@ -1266,6 +1465,11 @@ contains
       ! call could have been on either map_file%ncid or his_file%ncid; closing
       ! map_file unconditionally was misleading and pre-existing). Both files
       ! are closed by their respective finalize routines on normal shutdown.
+      !
+      ! Input:
+      !   status : netCDF status code returned by the call
+      !   file   : name of the source file of the call
+      !   line   : line number of the call
       !
       ! Called from: the NF90 preprocessor macro, used throughout this module and in
       !   sfincs_ncoutput

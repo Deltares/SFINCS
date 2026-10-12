@@ -117,6 +117,11 @@ contains
    !
    ! Reads quadtree file
    !
+   ! Input:
+   !   qtrfile        : name of the quadtree file
+   !   snapwave       : also read the SnapWave mask
+   !   nonhydrostatic : also read the non-hydrostatic mask
+   !
    ! Called from: initialize_mesh (sfincs_domain)
    !
    use sfincs_read, only: is_netcdf_file
@@ -264,6 +269,9 @@ contains
    !
    ! Reads quadtree file
    !
+   ! Input:
+   !   qtrfile : name of the quadtree file
+   !
    ! Called from: quadtree_read_file (quadtree)
    !
    implicit none
@@ -350,6 +358,11 @@ contains
    subroutine quadtree_read_file_netcdf(qtrfile, snapwave, nonhydrostatic)
    !
    ! Reads quadtree file from netcdf file
+   !
+   ! Input:
+   !   qtrfile        : name of the quadtree file
+   !   snapwave       : also read the SnapWave mask
+   !   nonhydrostatic : also read the non-hydrostatic mask
    !
    ! Called from: quadtree_read_file (quadtree)
    !
@@ -502,6 +515,17 @@ contains
 subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, rotation)
    !
    ! Build a single-level quadtree mesh from the active cell indices of a regular grid.
+   !
+   ! Input:
+   !   np       : number of active cells
+   !   indices  : index of each active cell in the regular grid
+   !   nmax     : number of grid rows
+   !   mmax     : number of grid columns
+   !   x0       : x coordinate of the grid origin
+   !   y0       : y coordinate of the grid origin
+   !   dx       : grid spacing in x direction
+   !   dy       : grid spacing in y direction
+   !   rotation : grid rotation [rad]
    !
    ! Called from: initialize_mesh (sfincs_domain)
    !
@@ -733,6 +757,16 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
    !
    ! Builds array cell_indices of all cells intersected by line segment ([xpa ypa],[xpb ypb])
    !
+   ! Input:
+   !   xpa          : x coordinate of the start of the line
+   !   ypa          : y coordinate of the start of the line
+   !   xpb          : x coordinate of the end of the line
+   !   ypb          : y coordinate of the end of the line
+   !
+   ! Output:
+   !   cell_indices : indices of the intersected cells
+   !   nr_cells     : number of intersected cells
+   !
    ! Called from: initialize_wavemakers (sfincs_wavemaker)
    !
    use geometry
@@ -828,6 +862,13 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
    !
    ! Find the index of the quadtree cell that contains point (x, y).
    !
+   ! Input:
+   !   x    : x coordinate of the point
+   !   y    : y coordinate of the point
+   !
+   ! Returns:
+   !   indx : index of the quadtree cell (0 if not found)
+   !
    ! Called from: get_sfincs_cell_index (sfincs_bmi), get_sfincs_cell_indices (sfincs_bmi),
    !   read_boundary_data (sfincs_boundaries), initialize_discharges (sfincs_discharges),
    !   read_obs_points (sfincs_obspoints), read_rug_file (sfincs_runup_gauges),
@@ -894,6 +935,14 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
    !
    ! Find the index of the quadtree cell with grid indices (n, m) at level iref.
    !
+   ! Input:
+   !   n    : row index at the refinement level
+   !   m    : column index at the refinement level
+   !   iref : refinement level
+   !
+   ! Returns:
+   !   indx : index of the quadtree cell (0 if not found)
+   !
    ! Called from: find_uv_points_intersected_by_polyline (quadtree),
    !   find_sfincs_cell (sfincs_boundaries)
    !
@@ -929,6 +978,16 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
    subroutine find_uv_points_intersected_by_polyline(uv_indices,vertices,nint,xpol,ypol,npol)
    !
    ! Builds array of uv-points that are intersected by polyline
+   !
+   ! Input:
+   !   xpol       : x coordinates of the polyline
+   !   ypol       : y coordinates of the polyline
+   !   npol       : number of polyline points
+   !
+   ! Output:
+   !   uv_indices : indices of the intersected uv points
+   !   vertices   : polyline segment that intersects each uv point
+   !   nint       : number of intersected uv points
    !
    ! Called from: read_crs_file (sfincs_crosssections),
    !   read_structure_file (sfincs_structures), read_thin_dams (sfincs_structures)
@@ -1094,6 +1153,14 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
    !
    ! Binary search for value val in the sorted integer array x.
    !
+   ! Input:
+   !   x    : sorted array to search
+   !   n    : length of x
+   !   val  : value to find
+   !
+   ! Returns:
+   !   indx : index of val in x (0 if not found)
+   !
    ! Called from: find_quadtree_cell (quadtree), find_quadtree_cell_by_index (quadtree)
    !
    implicit none
@@ -1145,6 +1212,11 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
    subroutine handle_err(status,file,line)
       !
       ! Report a netCDF error with file name and line number.
+      !
+      ! Input:
+      !   status : netCDF status code returned by the call
+      !   file   : name of the source file of the call
+      !   line   : line number of the call
       !
       ! Called from: the NF90 preprocessor macro, used throughout this module
       !

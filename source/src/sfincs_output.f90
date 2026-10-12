@@ -68,6 +68,12 @@ module sfincs_output
    !
    ! Set the output times and create the output files.
    !
+   ! Output:
+   !   tmapout : time of the first map output [s]
+   !   tmaxout : time of the first maximum output [s]
+   !   thisout : time of the first his output [s]
+   !   trstout : time of the first restart output [s]
+   !
    ! Called from: sfincs_initialize (sfincs_lib)
    !
    use sfincs_data
@@ -152,6 +158,16 @@ module sfincs_output
    subroutine write_output(t,write_map,write_his,write_max,write_rst,ntmapout,ntmaxout,nthisout)
    !
    ! Write the map, maximum, his and restart output that is due at time t.
+   !
+   ! Input:
+   !   t         : current model time [s since tref]
+   !   write_map : write map output at this time
+   !   write_his : write his output at this time
+   !   write_max : write maximum output at this time
+   !   write_rst : write a restart file at this time
+   !   ntmapout  : index of the map output time
+   !   ntmaxout  : index of the maximum output time
+   !   nthisout  : index of the his output time
    !
    ! Called from: sfincs_update (sfincs_lib), finalize_output (sfincs_output)
    !
@@ -363,6 +379,13 @@ module sfincs_output
    subroutine finalize_output(t, ntmaxout, tmaxout)
    !
    ! Write the last maximum output if still needed and close the output files.
+   !
+   ! Input:
+   !   t        : current model time [s since tref]
+   !   tmaxout  : time of the next maximum output [s]
+   !
+   ! Input/output:
+   !   ntmaxout : index of the maximum output time
    !
    ! Called from: sfincs_finalize (sfincs_lib)
    !
@@ -726,6 +749,9 @@ module sfincs_output
    !
    ! Write the time series at observation points and cross-sections to the ASCII his output.
    !
+   ! Input:
+   !   t : current model time [s since tref]
+   !
    ! Called from: write_output (sfincs_output)
    !
    use sfincs_data
@@ -786,6 +812,9 @@ module sfincs_output
    subroutine write_rst_file(t)
    !
    ! Write a binary restart file for time t.
+   !
+   ! Input:
+   !   t : current model time [s since tref]
    !
    ! Called from: write_output (sfincs_output)
    !

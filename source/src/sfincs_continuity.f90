@@ -45,6 +45,10 @@ contains
       ! for one time step. Advances zs (and z_volume on the subgrid path),
       ! and optionally updates the store_* running maxima.
       !
+      ! Input:
+      !   t  : current model time [s since tref]
+      !   dt : time step [s]
+      !
       ! Called from: sfincs_lib (main time-stepping loop).
       !
       ! Sources and sinks (all accumulated into qsrc, in m3/s):
@@ -179,6 +183,10 @@ contains
       ! flux divergence, handles the optional wavemaker cells (kcs == 4),
       ! updates the snapwave-filtered water level zsm, and accumulates
       ! zsmax / t_zsmax when requested.
+      !
+      ! Input:
+      !   dt : time step [s]
+      !   t  : current model time [s since tref]
       !
       ! Called from: update_continuity (when subgrid is false).
       !
@@ -386,6 +394,10 @@ contains
       ! z_volume, and recovers the new water level via subgrid table
       ! interpolation. Also handles wavemaker cells (kcs == 4), the
       ! snapwave-filtered zsm, and zsmax / t_zsmax accumulation.
+      !
+      ! Input:
+      !   dt : time step [s]
+      !   t  : current model time [s since tref]
       !
       ! Called from: update_continuity (when subgrid is true).
       !
@@ -734,6 +746,9 @@ contains
       ! of the mean of the four surrounding edge values. twet is the
       ! cumulative time a cell has been wet above twet_threshold. Kept
       ! in a separate routine to avoid the overhead when unused.
+      !
+      ! Input:
+      !   dt : time step [s]
       !
       ! Called from: update_continuity (only when any of
       ! store_maximum_velocity, store_maximum_flux or store_twet is

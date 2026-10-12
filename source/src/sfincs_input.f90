@@ -652,6 +652,9 @@ contains
       ! which used to switch advection on. get_keyword_logical only accepts
       ! '1', 'y' or 't' as true, so '2' would silently turn advection off.
       !
+      ! Input:
+      !   fileid : unit number of the open sfincs.inp file
+      !
       ! Called from: read_sfincs_input (this module).
       !
       use sfincs_data, only: advection

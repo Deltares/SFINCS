@@ -24,6 +24,10 @@ module snapwave_ncoutput
       !
       ! Write the SnapWave mesh (nodes, faces, depth and mask) to a netCDF file.
       !
+      ! Input:
+      !   fname  : name of the netCDF file to write
+      !   crsgeo : grid is in geographic coordinates
+      !
       ! Called from: initialize_snapwave_domain (snapwave_domain)
       !
       use snapwave_data
@@ -143,6 +147,11 @@ module snapwave_ncoutput
    subroutine handle_err(status,file,line)
       !
       ! Report a netCDF error with file name and line number.
+      !
+      ! Input:
+      !   status : netCDF status code returned by the call
+      !   file   : name of the source file of the call
+      !   line   : line number of the call
       !
       ! Called from: the NF90 preprocessor macro, used throughout this module
       !

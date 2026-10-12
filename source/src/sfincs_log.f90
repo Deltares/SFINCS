@@ -88,6 +88,10 @@ contains
       ! Write one line to sfincs.log, optionally echoed to stdout.
       ! Called from every SFINCS module that emits user-facing output.
       !
+      ! Input:
+      !   str       : text to write
+      !   to_screen : 1 to also write to the screen, 0 for the log file only
+      !
       implicit none
       !
       character(*), intent(in) :: str
@@ -113,6 +117,13 @@ contains
       !
       ! Use anywhere a real needs to be embedded in a log line with the
       ! smallest reasonable field width.
+      !
+      ! Input:
+      !   val      : value to format
+      !   decimals : number of decimals
+      !
+      ! Returns:
+      !   s        : formatted value
       !
       ! Called from: write_src_structures_log_summary (sfincs_src_structures),
       !   write_urban_drainage_log_summary (sfincs_urban_drainage)
@@ -317,6 +328,11 @@ contains
       !
       ! Called every time step from the main loop in sfincs_lib.
       !
+      ! Input:
+      !   t  : current model time [s since tref]
+      !   t0 : simulation start time [s]
+      !   t1 : simulation end time [s]
+      !
       use sfincs_data, only: percdoneval
       !
       implicit none
@@ -363,6 +379,9 @@ contains
       ! sfincs_finalize (sfincs_lib), after the simulation loop has
       ! stopped and dtavg has been averaged.
       !
+      ! Input:
+      !   dtavg : average time step [s]
+      !
       implicit none
       !
       real, intent(in) :: dtavg
@@ -395,6 +414,9 @@ contains
       !
       ! Write the three 'Total time / Total simulation time / Time in input' header
       ! lines to the log, using the 'input' and 'simulation' named timers.
+      !
+      ! Input:
+      !   to_screen : 1 to also write to the screen, 0 for the log file only
       !
       ! Called from: write_finished_log.
       !
@@ -484,6 +506,10 @@ contains
       ! Write the runtimes.txt payload: simulation-loop wall time, input wall time,
       ! and each phase timer, in the same order and with the same keys as the
       ! previous inline implementation in sfincs_lib.f90.
+      !
+      ! Input:
+      !   unit     : unit number to use for the file
+      !   filename : name of the runtimes file
       !
       ! Called from: sfincs_finalize (sfincs_lib) when write_time_output
       ! is set.

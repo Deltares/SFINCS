@@ -249,6 +249,9 @@ contains
    !
    ! Interpolate the SnapWave boundary wave heights to time tb.
    !
+   ! Input:
+   !   tb : time to interpolate the wave boundary conditions to [s since tref]
+   !
    ! Called from: initialize_bathtub (sfincs_bathtub)
    !
    use snapwave_data

@@ -581,6 +581,9 @@ subroutine update_boundary_conditions(t)
    !
    ! Update all wave boundary conditions
    !
+   ! Input:
+   !   t : current model time [s since tref]
+   !
    ! Called from: compute_snapwave (sfincs_snapwave)
    !
    use snapwave_data
@@ -632,6 +635,11 @@ end subroutine
 subroutine update_boundary_points(t, just_time_series)
    !
    ! Update vardens at boundary points
+   !
+   ! Input:
+   !   t                : current model time [s since tref]
+   !   just_time_series : only interpolate the time series, skip the infragravity boundary
+   !                      conditions
    !
    ! Called from: update_snapwave_boundary_data (sfincs_bathtub),
    !   update_boundary_conditions (snapwave_boundaries)
@@ -882,6 +890,9 @@ subroutine make_theta_grid(central_theta)
    !
    ! make theta grid based on boundary mean wave direction
    !
+   ! Input:
+   !   central_theta : central direction of the theta grid
+   !
    ! Called from: update_boundary_conditions (snapwave_boundaries),
    !   update_boundary_points (snapwave_boundaries)
    !
@@ -1087,6 +1098,15 @@ subroutine update_boundaries()
    !
    ! Weighted average of two values, either regular (iopt=1) or of two angles in radians.
    !
+   ! Input:
+   !   val1 : first value
+   !   val2 : second value
+   !   fac  : weight of val1 (0 to 1)
+   !   iopt : 1 for a regular average, otherwise an average of angles [rad]
+   !
+   ! Output:
+   !   val3 : weighted average
+   !
    ! Called from: update_boundary_points (snapwave_boundaries)
    !
    implicit none
@@ -1131,6 +1151,13 @@ subroutine update_boundaries()
    function mod2 (a,b) result (c)
    !
    ! Modulo of a and b, mapped onto the range 1 to b.
+   !
+   ! Input:
+   !   a : dividend
+   !   b : divisor
+   !
+   ! Returns:
+   !   c : a modulo b, in the range 1 to b
    !
    ! Called from: make_theta_grid (snapwave_boundaries)
    !

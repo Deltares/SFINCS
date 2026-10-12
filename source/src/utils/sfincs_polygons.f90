@@ -48,6 +48,13 @@ contains
       ! first, a copy of the first vertex is appended so downstream
       ! point-in-polygon tests can treat the last-to-first edge uniformly.
       !
+      ! Input:
+      !   filename : name of the tek polygon file
+      !
+      ! Output:
+      !   polygons : polygons read from the file
+      !   ierr     : error code (0 = success)
+      !
       ! Called from: initialize_urban_drainage (sfincs_urban_drainage).
       !
       implicit none
@@ -165,6 +172,16 @@ contains
       ! the first nv vertices of (xv, yv). The polygon is assumed closed by
       ! the caller (last vertex == first vertex).
       !
+      ! Input:
+      !   xp     : x coordinate of the point
+      !   yp     : y coordinate of the point
+      !   xv     : x coordinates of the polygon vertices
+      !   yv     : y coordinates of the polygon vertices
+      !   nv     : number of vertices
+      !
+      ! Returns:
+      !   inside : true when the point is inside the polygon
+      !
       ! Called from: points_in_polygon_omp (this module).
       !
       implicit none
@@ -202,6 +219,15 @@ contains
       ! already flagged .true. on entry are preserved (so the caller can
       ! accumulate hits across multiple polygons if desired); this routine
       ! only flips .false. to .true..
+      !
+      ! Input:
+      !   xp     : x coordinates of the points
+      !   yp     : y coordinates of the points
+      !   np_pts : number of points
+      !   poly   : polygon
+      !
+      ! Input/output:
+      !   inside : true for each point inside the polygon
       !
       ! Called from: initialize_urban_drainage (sfincs_urban_drainage).
       !

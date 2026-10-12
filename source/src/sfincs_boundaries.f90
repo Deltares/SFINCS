@@ -733,6 +733,9 @@ contains
    !
    ! Update values at boundary points
    !
+   ! Input:
+   !   t : current model time [s since tref]
+   !
    ! Called from: update_boundaries (sfincs_boundaries)
    !
    use sfincs_data
@@ -813,6 +816,10 @@ contains
    subroutine update_boundary_conditions(t, dt)
    !
    ! Update water level at boundary grid points
+   !
+   ! Input:
+   !   t  : current model time [s since tref]
+   !   dt : time step [s]
    !
    ! Called from: update_boundaries (sfincs_boundaries)
    !
@@ -978,6 +985,10 @@ contains
    subroutine update_boundary_fluxes(dt, t)
    !
    ! Update fluxes qx and qy at boundary points
+   !
+   ! Input:
+   !   dt : time step [s]
+   !   t  : current model time [s since tref]
    !
    ! Called from: update_boundaries (sfincs_boundaries)
    !
@@ -1183,6 +1194,10 @@ contains
    !
    ! Update all boundary conditions
    !
+   ! Input:
+   !   t  : current model time [s since tref]
+   !   dt : time step [s]
+   !
    ! Called from: sfincs_update (sfincs_lib)
    !
    use sfincs_data
@@ -1232,6 +1247,15 @@ contains
    !
    ! Weighted average of two values, either regular (iopt=1) or of two angles in radians.
    !
+   ! Input:
+   !   val1 : first value
+   !   val2 : second value
+   !   fac  : weight of val1 (0 to 1)
+   !   iopt : 1 for a regular average, otherwise an average of angles [rad]
+   !
+   ! Output:
+   !   val3 : weighted average
+   !
    ! Called from: update_boundary_conditions (sfincs_boundaries)
    !
    implicit none
@@ -1278,6 +1302,14 @@ contains
    !
    ! Find nm index for cell n, m, iref
    !
+   ! Input:
+   !   n    : row index of the cell at its refinement level
+   !   m    : column index of the cell at its refinement level
+   !   iref : refinement level
+   !
+   ! Returns:
+   !   nm   : SFINCS cell index (0 if the cell is not active)
+   !
    ! Called from: find_boundary_indices (sfincs_boundaries)
    !
    use sfincs_data
@@ -1300,6 +1332,12 @@ contains
    function clean_line(s) result(out)
    !
    ! Trim a line read from file and remove a trailing carriage return.
+   !
+   ! Input:
+   !   s   : line as read from file
+   !
+   ! Returns:
+   !   out : trimmed line without carriage return
    !
    ! Called from: read_boundary_data (sfincs_boundaries)
    !

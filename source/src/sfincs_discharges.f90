@@ -285,6 +285,10 @@ contains
       ! why it owns the qsrc zeroing. Both routines then additively write
       ! their contributions.
       !
+      ! Input:
+      !   t  : current model time [s since tref]
+      !   dt : time step [s]
+      !
       ! Called from: update_continuity (sfincs_continuity), once per time step.
       !
       use sfincs_data
@@ -380,6 +384,12 @@ contains
       !
       ! Count the number of whitespace-separated tokens in a string.
       ! Whitespace = spaces and tabs. Empty string returns 0.
+      !
+      ! Input:
+      !   line : line of text
+      !
+      ! Output:
+      !   ntok : number of whitespace-separated tokens
       !
       ! Called from: initialize_discharges (this module) to disambiguate the
       ! 2-column vs 3-column srcfile layout.

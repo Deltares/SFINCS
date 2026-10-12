@@ -155,6 +155,9 @@ contains
    !
    ! Determine the run-up level zru at each run-up gauge.
    !
+   ! Output:
+   !   zru : run-up level at each run-up gauge [m]
+   !
    ! Called from: ncoutput_update_his (sfincs_ncoutput)
    !
    use sfincs_data

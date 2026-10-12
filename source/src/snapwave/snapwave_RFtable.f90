@@ -18,6 +18,9 @@ module snapwave_RFtable
         !
         ! Fill the Rienecker-Fenton lookup table RFveg.
         !
+        ! Output:
+        !   RFveg : Rienecker-Fenton lookup table
+        !
         ! Called from: swvegnonlin (snapwave_solver)
         !
    

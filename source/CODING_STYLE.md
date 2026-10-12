@@ -149,6 +149,27 @@ module sfincs_continuity
       !
 ```
 
+**Arguments**: when a subroutine/function has arguments, describe them between the description and `Called from:`, one line per argument with its meaning and unit. Group them under `Input:`, `Input/output:`, `Output:` and (for a function result) `Returns:`, and align the colons. Routines without arguments get no such block:
+
+```fortran
+   subroutine read_spw_dimensions(filename, nt, nrows, ncols, spwrad, nquant)
+      !
+      ! Read the dimensions (times, rows, columns, radius) of an ASCII spiderweb file.
+      !
+      ! Input:
+      !   filename : name of the meteo file
+      !
+      ! Output:
+      !   nt       : number of time blocks in the file
+      !   nrows    : number of rows
+      !   ncols    : number of columns
+      !   spwrad   : radius of the spiderweb grid [m]
+      !   nquant   : number of quantities per time block
+      !
+      ! Called from: read_meteo_data (sfincs_meteo)
+      !
+```
+
 ## Naming of end statements
 
 Always name `end subroutine` and `end module`:

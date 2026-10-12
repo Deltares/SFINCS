@@ -46,6 +46,23 @@ module snapwave_infragravity
     ! Determine the infragravity wave height and period at a boundary point from the
     ! incident wave conditions.
     !
+    ! Input:
+    !   x_bwv      : x coordinate of the boundary point
+    !   y_bwv      : y coordinate of the boundary point
+    !   hsinc      : incident wave height Hm0 [m]
+    !   tpinc      : incident peak period [s]
+    !   ds         : directional spreading [rad]
+    !   jonswapgam : JONSWAP peak enhancement factor [-]
+    !   Tinc2ig    : ratio of infragravity to incident period, used when positive
+    !   tpig_opt   : which period of the infragravity spectrum to return as tpig
+    !
+    ! Input/output:
+    !   depth      : water depth at the boundary point [m]
+    !
+    ! Output:
+    !   hsig       : infragravity wave height [m]
+    !   tpig       : infragravity wave period [s]
+    !
     ! Called from: update_boundary_points (snapwave_boundaries)
     !
     ! (input, input, input, input, input, input, input, output, output)
@@ -159,6 +176,21 @@ module snapwave_infragravity
     !
     ! Compute the bound infragravity wave spectrum from a JONSWAP spectrum with the Herbers
     ! et al. (1994) method.
+    !
+    ! Input:
+    !   hsinc      : incident wave height Hm0 [m]
+    !   tpinc      : incident peak period [s]
+    !   scoeff     : directional spreading coefficient s [-]
+    !   jonswapgam : JONSWAP peak enhancement factor [-]
+    !   depth      : water depth [m]
+    !   correctHm0 : 1 to correct Hm0 of the constructed spectrum, 0 not to
+    !
+    ! Output:
+    !   hsig       : infragravity wave height [m]
+    !   Tm01       : mean period Tm01 [s]
+    !   Tm10       : mean period Tm-1,0 [s]
+    !   Tp         : peak period [s]
+    !   Tpsmooth   : smoothed peak period [s]
     !
     ! Called from: determine_ig_bc (snapwave_infragravity)
     !
@@ -548,6 +580,13 @@ module snapwave_infragravity
     !
     ! Evaluate the JONSWAP spectral shape for peak enhancement factor gam.
     !
+    ! Input:
+    !   x   : nondimensional frequency f/fp
+    !   gam : peak enhancement factor [-]
+    !
+    ! Input/output:
+    !   y   : JONSWAP spectral shape at x
+    !
     ! Called from: compute_herbers (snapwave_infragravity)
     !
 
@@ -598,6 +637,15 @@ module snapwave_infragravity
    subroutine frange(Sf,firstp,lastp,findlineout,sprdthr)
       !
       ! Find the range of frequencies where the spectrum exceeds the threshold sprdthr.
+      !
+      ! Input:
+      !   Sf          : frequency spectrum
+      !   sprdthr     : threshold as a fraction of the spectral peak
+      !
+      ! Output:
+      !   firstp      : index of the first frequency above the threshold
+      !   lastp       : index of the last frequency above the threshold
+      !   findlineout : 1 where the spectrum exceeds the threshold, else 0
       !
       ! Called from: compute_herbers (snapwave_infragravity)
       !
@@ -712,6 +760,18 @@ module snapwave_infragravity
    subroutine tpDcalc(Sf,f,trepfac,Tm01,Tm10,Tp,Tpsmooth) ! [in,in,in,out,out,out,out]
       !
       ! Compute the wave periods Tm01, Tm-1,0, Tp and smoothed Tp from a frequency spectrum.
+      !
+      ! Input:
+      !   Sf       : frequency spectrum
+      !   f        : frequencies [Hz]
+      !   trepfac  : threshold as a fraction of the spectral peak, used for the smoothed
+      !              peak period
+      !
+      ! Output:
+      !   Tm01     : mean period Tm01 [s]
+      !   Tm10     : mean period Tm-1,0 [s]
+      !   Tp       : peak period [s]
+      !   Tpsmooth : smoothed peak period [s]
       !
       ! Called from: compute_herbers (snapwave_infragravity)
       !

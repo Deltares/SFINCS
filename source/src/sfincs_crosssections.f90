@@ -148,6 +148,9 @@ contains
    !
    ! Sum the fluxes over the uv points of each cross-section into discharges qq.
    !
+   ! Output:
+   !   qq : discharge through each cross-section [m3/s]
+   !
    ! Called from: ncoutput_update_his (sfincs_ncoutput), write_his_output (sfincs_output)
    !
    use sfincs_data

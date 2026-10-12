@@ -55,6 +55,9 @@ module sfincs_timestep_analysis
       ! timestep_analysis_required_timestep was initialised to dtmax in compute_fluxes; wet cells
       ! have a computed value < dtmax, dry cells retain dtmax and are skipped.
       !
+      ! Input:
+      !   min_dt : time step required in this time step [s]
+      !
       ! Called from: sfincs_update (sfincs_lib)
       !
       real*4, intent(in) :: min_dt
@@ -105,6 +108,9 @@ module sfincs_timestep_analysis
    subroutine timestep_analysis_finalize(nt)
    !
    ! Compute average time step per cell and times limiting once at end of simulation
+   !
+   ! Input:
+   !   nt : number of time steps in the simulation
    !
    ! Called from: sfincs_finalize (sfincs_lib)
    !

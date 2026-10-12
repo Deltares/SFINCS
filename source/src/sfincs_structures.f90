@@ -71,6 +71,11 @@
    !
    ! Reads structures file
    !
+   ! Input:
+   !   filename : name of the structure file
+   !   itype    : structure type
+   !   npars    : number of parameters per structure point
+   !
    ! Called from: read_structures (sfincs_structures)
    !
    use sfincs_data
@@ -535,6 +540,9 @@
    !
    ! Subroutine to provide structure information to output
    !
+   ! Output:
+   !   struc_info : x, y and height of each structure point
+   !
    ! Called from: ncoutput_his_init (sfincs_ncoutput)
    !
    use sfincs_data
@@ -585,6 +593,9 @@
    subroutine give_thindam_information(struc_info)
    !
    ! Subroutine to provide structure information to output
+   !
+   ! Output:
+   !   struc_info : x and y of each thin dam point
    !
    ! Called from: ncoutput_his_init (sfincs_ncoutput)
    !

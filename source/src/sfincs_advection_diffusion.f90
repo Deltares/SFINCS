@@ -15,6 +15,13 @@ contains
    !
    ! Compute advective and diffusive tracer fluxes at the uv points.
    !
+   ! Input:
+   !   dt     : time step [s]
+   !   min_dt : not used
+   !
+   ! Input/output:
+   !   tloop  : accumulated wall-clock time spent in this routine [s]
+   !
    ! Called from: not called (currently unused)
    !
    use sfincs_data

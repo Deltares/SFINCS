@@ -346,6 +346,9 @@ contains
    !
    ! Update infiltration rates in each grid cell
    !
+   ! Input:
+   !   dt : time step [s]
+   !
    ! Called from: update_continuity (sfincs_continuity)
    !
    use sfincs_data
@@ -690,6 +693,13 @@ contains
    ! Read one spatially-varying infiltration parameter, either from the netcdf
    ! inffile (variable varname) or from a legacy binary file (regular grids only)
    !
+   ! Input:
+   !   varname : name of the variable in the netCDF infiltration file
+   !   binfile : name of the legacy binary file
+   !
+   ! Input/output:
+   !   field   : parameter value in each cell
+   !
    ! Called from: initialize_infiltration_c2d (sfincs_infiltration),
    !   initialize_infiltration_cna (sfincs_infiltration),
    !   initialize_infiltration_cnb (sfincs_infiltration),
@@ -732,6 +742,9 @@ contains
    subroutine compute_infiltration_constant(dt)
    !
    ! Constant infiltration (con and c2d): infiltration rate map stays constant
+   !
+   ! Input:
+   !   dt : time step [s]
    !
    ! Called from: update_infiltration_map (sfincs_infiltration)
    !
@@ -779,6 +792,9 @@ contains
    subroutine compute_infiltration_cna(dt)
    !
    ! Infiltration rate with Curve Number (old method; no recovery)
+   !
+   ! Input:
+   !   dt : time step [s]
    !
    ! Called from: update_infiltration_map (sfincs_infiltration)
    !
@@ -828,6 +844,9 @@ contains
    subroutine compute_infiltration_cnb(dt)
    !
    ! Infiltration rate with Curve Number with recovery
+   !
+   ! Input:
+   !   dt : time step [s]
    !
    ! Called from: update_infiltration_map (sfincs_infiltration)
    !
@@ -938,6 +957,9 @@ contains
    !
    ! Infiltration rate with the Green-Ampt (GA) model
    !
+   ! Input:
+   !   dt : time step [s]
+   !
    ! Called from: update_infiltration_map (sfincs_infiltration)
    !
    use sfincs_data
@@ -1031,6 +1053,9 @@ contains
    subroutine compute_infiltration_hor(dt)
    !
    ! Infiltration rate with the modified Horton model
+   !
+   ! Input:
+   !   dt : time step [s]
    !
    ! Called from: update_infiltration_map (sfincs_infiltration)
    !
@@ -1156,6 +1181,9 @@ contains
    !
    ! Run-off coefficient: fixed percentage of the rainfall runs off, the remainder infiltrates
    !
+   ! Input:
+   !   dt : time step [s]
+   !
    ! Called from: update_infiltration_map (sfincs_infiltration)
    !
    use sfincs_data
@@ -1275,6 +1303,9 @@ contains
    ! => Only bucket drainage reaches the surface water level
    !
    ! Literature: Linear reservoir (Nash, 1957), HBV soil moisture bucket (Bergstrom, 1995)
+   !
+   ! Input:
+   !   dt : time step [s]
    !
    ! Called from: update_infiltration_map (sfincs_infiltration)
    !

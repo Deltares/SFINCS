@@ -407,6 +407,9 @@ contains
    !
    ! Non-hydrostatic pressure correction on fluxes and velocities
    !
+   ! Input:
+   !   dt : time step [s]
+   !
    ! Called from: sfincs_update (sfincs_lib)
    !
    use sfincs_data

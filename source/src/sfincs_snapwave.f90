@@ -72,6 +72,9 @@ contains
    ! Initialize SnapWave and set up the index mapping between the SFINCS and SnapWave
    ! meshes.
    !
+   ! Input:
+   !   crsgeo : SFINCS grid is in geographic coordinates
+   !
    ! Called from: sfincs_initialize (sfincs_lib)
    !
    use snapwave_data
@@ -206,6 +209,10 @@ contains
    ! Find, for each SnapWave node and SFINCS cell, the matching (or nearest) cell on the
    ! other mesh.
    !
+   ! Input:
+   !   index_quadtree_in_snapwave : quadtree cell index of each SnapWave node
+   !   index_snapwave_in_quadtree : SnapWave node index of each quadtree cell
+   !
    ! Called from: couple_snapwave (sfincs_snapwave)
    !
    use sfincs_data
@@ -326,6 +333,9 @@ contains
    !
    ! Pass the water depth and wind to SnapWave, run it, and copy the wave field back to
    ! SFINCS.
+   !
+   ! Input:
+   !   t : current model time [s since tref]
    !
    ! Called from: sfincs_update (sfincs_lib)
    !
@@ -497,6 +507,9 @@ contains
    !
    ! Update the SnapWave boundary conditions, solve the wave field and post-process the wave
    ! forces.
+   !
+   ! Input:
+   !   t : current model time [s since tref]
    !
    ! Called from: update_wave_field (sfincs_snapwave)
    !

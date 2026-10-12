@@ -1499,6 +1499,10 @@
    !
    ! Update fluxes qx and qy at wave maker points
    !
+   ! Input:
+   !   t  : current model time [s since tref]
+   !   dt : time step [s]
+   !
    ! Called from: sfincs_update (sfincs_lib)
    !
    use sfincs_data
@@ -1841,6 +1845,17 @@
    !
    ! The random phases and the cosine terms are updated once per time step in
    ! update_wavemaker_fluxes, so that they do not advance twice when both forcing sources are used.
+   !
+   ! Input:
+   !   t        : current model time [s since tref]
+   !   hig      : compute the infragravity wave signal
+   !   hinc     : compute the incident wave signal
+   !   tp_ig    : infragravity peak period [s]
+   !   tp_inc   : incident peak period [s]
+   !
+   ! Output:
+   !   zwav_ig  : infragravity signal for Hm0 = 1 m [m]
+   !   zwav_inc : incident wave signal for Hm0 = 1 m [m]
    !
    ! Called from: update_wavemaker_fluxes (sfincs_wavemaker)
    !

@@ -116,6 +116,20 @@ contains
       !
       ! Bilinear interpolation of Z(X, Y) to the point (xx, yy), in real*8.
       !
+      ! Input:
+      !   X         : x values (ascending)
+      !   nx        : length of x
+      !   Y         : y values (ascending)
+      !   ny        : length of y
+      !   Z         : values at (x, y)
+      !   xx        : x value to interpolate to
+      !   yy        : interpolated value
+      !   method    : interpolation method
+      !   exception : value returned outside the range of the data
+      !
+      ! Output:
+      !   zz        : interpolated value
+      !
       ! Called from: not called (currently unused)
       !
 
@@ -200,6 +214,20 @@ contains
  pure subroutine linear_interp_2d_real4(X,nx,Y,ny,Z,xx,yy,zz,method,exception)
       !
       ! Bilinear interpolation of Z(X, Y) to the point (xx, yy), in real*4.
+      !
+      ! Input:
+      !   X         : x values (ascending)
+      !   nx        : length of x
+      !   Y         : y values (ascending)
+      !   ny        : length of y
+      !   Z         : values at (x, y)
+      !   xx        : x value to interpolate to
+      !   yy        : interpolated value
+      !   method    : interpolation method
+      !   exception : value returned outside the range of the data
+      !
+      ! Output:
+      !   zz        : interpolated value
       !
       ! Called from: compute_herbers (snapwave_infragravity)
       !
@@ -303,6 +331,16 @@ contains
       !
       ! Linear interpolation of y(x) to the point xx, in real*8.
       !
+      ! Input:
+      !   x      : x values (ascending)
+      !   y      : y values at x
+      !   n      : length of x and y
+      !   xx     : x value to interpolate to
+      !
+      ! Output:
+      !   yy     : interpolated value
+      !   indint : index of the interval that was used (optional)
+      !
       ! Called from: trapezoidal_cyclic (interp)
       !
       integer,              intent(in) :: n
@@ -379,6 +417,16 @@ contains
    pure subroutine linear_interp_real4(x, y, n, xx, yy, indint)
       !
       ! Linear interpolation of y(x) to the point xx, in real*4.
+      !
+      ! Input:
+      !   x      : x values (ascending)
+      !   y      : y values at x
+      !   n      : length of x and y
+      !   xx     : x value to interpolate to
+      !
+      ! Output:
+      !   yy     : interpolated value
+      !   indint : index of the interval that was used (optional)
       !
       ! Called from: compute_herbers (snapwave_infragravity)
       !
@@ -460,6 +508,14 @@ contains
       !
       ! Binary search for the interval of the sorted real*8 array xx that contains x.
       !
+      ! Input:
+      !   xx : sorted array to search
+      !   n  : length of xx
+      !   x  : value to locate
+      !
+      ! Output:
+      !   j  : index of the interval that contains x (xx(j) <= x < xx(j+1))
+      !
       ! Called from: linear_interp (interp)
       !
       integer,              intent(in) :: N
@@ -530,6 +586,14 @@ contains
       !
       ! Binary search for the interval of the sorted real*4 array xx that contains x.
       !
+      ! Input:
+      !   xx : sorted array to search
+      !   n  : length of xx
+      !   x  : value to locate
+      !
+      ! Output:
+      !   j  : index of the interval that contains x (xx(j) <= x < xx(j+1))
+      !
       ! Called from: linear_interp_real4 (interp)
       !
       integer,              intent(in) :: N
@@ -583,6 +647,31 @@ contains
       !
       ! Make the interpolation map (reference indices and weights) from a curvilinear grid
       ! to a set of points.
+      !
+      ! Input:
+      !   code    : mask of grid 1 (active cells)
+      !   x1      : x coordinates of grid 1
+      !   y1      : y coordinates of grid 1
+      !   m1      : first dimension of grid 1
+      !   n1      : second dimension (or number of points) of grid 1
+      !   x2      : x coordinates of the points of grid 2
+      !   y2      : y coordinates of the points of grid 2
+      !   n2      : number of points of grid 2
+      !   iprint  : print flag for debug output
+      !   xymiss  : missing value in grid 1
+      !
+      ! Input/output:
+      !   xs      : work array
+      !   ys      : work array
+      !   nrx     : work array
+      !   nry     : work array
+      !   iflag   : work array
+      !   nrin    : work array
+      !
+      ! Output:
+      !   w       : interpolation weights per point of grid 2
+      !   iref    : reference indices in grid 1 per point of grid 2
+      !   covered : flag per point of grid 2: covered by grid 1 (1) or not (0)
       !
       ! Called from: not called (currently unused)
       !
@@ -850,6 +939,23 @@ contains
       !
       ! Make the interpolation map from a curvilinear grid to a set of points (variant of
       ! mkmap).
+      !
+      ! Input:
+      !   code    : mask of grid 1 (active cells)
+      !   x1      : x coordinates of grid 1
+      !   y1      : y coordinates of grid 1
+      !   m1      : first dimension of grid 1
+      !   n1      : second dimension (or number of points) of grid 1
+      !   x2      : x coordinates of the points of grid 2
+      !   y2      : y coordinates of the points of grid 2
+      !   n2      : number of points of grid 2
+      !   iprint  : print flag for debug output
+      !   xymiss  : missing value in grid 1
+      !
+      ! Output:
+      !   w       : interpolation weights per point of grid 2
+      !   iref    : reference indices in grid 1 per point of grid 2
+      !   covered : flag per point of grid 2: covered by grid 1 (1) or not (0)
       !
       ! Called from: not called (currently unused)
       !
@@ -1124,6 +1230,21 @@ contains
       !
       ! Make the interpolation map from an unstructured grid to a set of points.
       !
+      ! Input:
+      !   x1         : x coordinates of the nodes of grid 1
+      !   y1         : y coordinates of the nodes of grid 1
+      !   face_nodes : node numbers of each face of grid 1
+      !   no_nodes1  : number of nodes of grid 1
+      !   no_faces1  : number of faces of grid 1
+      !   x2         : x coordinates of the points of grid 2
+      !   y2         : y coordinates of the points of grid 2
+      !   n2         : number of points of grid 2
+      !
+      ! Output:
+      !   w          : interpolation weights per point of grid 2
+      !   iref       : reference indices in grid 1 per point of grid 2
+      !   nref       : number of reference points per point of grid 1
+      !
       ! Called from: not called (currently unused)
       !
       !!--description-----------------------------------------------------------------
@@ -1360,6 +1481,22 @@ contains
       ! Make the interpolation map from a curvilinear grid to a set of points, by stepping
       ! along the grid.
       !
+      ! Input:
+      !   x1    : x coordinates of grid 1
+      !   y1    : y coordinates of grid 1
+      !   m1    : first dimension of grid 1
+      !   n1    : second dimension (or number of points) of grid 1
+      !   alfaz : orientation of the cells of grid 1
+      !   dsu   : cell size of grid 1 in the first grid direction
+      !   dnv   : cell size of grid 1 in the second grid direction
+      !   x2    : x coordinates of the points of grid 2
+      !   y2    : y coordinates of the points of grid 2
+      !   n2    : number of points of grid 2
+      !
+      ! Output:
+      !   w     : interpolation weights per point of grid 2
+      !   iref  : reference indices in grid 1 per point of grid 2
+      !
       ! Called from: not called (currently unused)
       !
       !!--description-----------------------------------------------------------------
@@ -1447,6 +1584,18 @@ contains
       ! Interpolate values from grid 1 to all points of grid 2 with a given interpolation
       ! map.
       !
+      ! Input:
+      !   f1     : values on grid 1
+      !   n1     : second dimension (or number of points) of grid 1
+      !   n2     : number of points of grid 2
+      !   iref   : reference indices in grid 1 per point of grid 2
+      !   w      : interpolation weights per point of grid 2
+      !   np     : number of reference points per point
+      !   iprint : print flag for debug output
+      !
+      ! Output:
+      !   f2     : values interpolated to grid 2
+      !
       ! Called from: not called (currently unused)
       !
       !!--description-----------------------------------------------------------------
@@ -1517,6 +1666,19 @@ contains
       ! Distribute values from grid 2 back onto grid 1 with a given interpolation map
       ! (reverse of grmap).
       !
+      ! Input:
+      !   cellsz1i : 1 / cell size of grid 1
+      !   n1       : second dimension (or number of points) of grid 1
+      !   f2       : values on grid 2
+      !   cellsz2  : cell size of grid 2
+      !   n2       : number of points of grid 2
+      !   iref     : reference indices in grid 1 per point of grid 2
+      !   w        : interpolation weights per point of grid 2
+      !   np       : number of reference points per point
+      !
+      ! Output:
+      !   f1       : values on grid 1
+      !
       ! Called from: not called (currently unused)
       !
       !!--description-----------------------------------------------------------------
@@ -1568,6 +1730,18 @@ contains
       !
       ! As grmap2, for an interpolation map with a varying number of reference points.
       !
+      ! Input:
+      !   nref : number of reference points per point of grid 1
+      !   n1   : second dimension (or number of points) of grid 1
+      !   f2   : values on grid 2
+      !   n2   : number of points of grid 2
+      !   iref : reference indices in grid 1 per point of grid 2
+      !   w    : interpolation weights per point of grid 2
+      !   np   : number of reference points per point
+      !
+      ! Output:
+      !   f1   : values on grid 1
+      !
       ! Called from: not called (currently unused)
       !
       !!--description-----------------------------------------------------------------
@@ -1618,6 +1792,16 @@ contains
    subroutine ipon(xq     ,yq     ,n      ,xp     ,yp     ,inout     )
       !
       ! Check whether point (xq, yq) lies inside, on or outside a polygon.
+      !
+      ! Input:
+      !   xq    : x coordinates of the polygon
+      !   yq    : y coordinates of the polygon
+      !   n     : number of polygon points
+      !   xp    : x coordinate of the point
+      !   yp    : y coordinate of the point
+      !
+      ! Output:
+      !   inout : -1 outside, 0 on the edge, 1 inside
       !
       ! Called from: make_map (interp), make_map_fm (interp), mkmap (interp),
       !   initialize_snapwave_domain (snapwave_domain)
@@ -1727,6 +1911,14 @@ contains
       ! Find the interval of the sorted array xx that contains x, starting the search at
       ! jlo.
       !
+      ! Input:
+      !   xx  : sorted array to search
+      !   n   : length of xx
+      !   x   : value to locate
+      !
+      ! Input/output:
+      !   jlo : start index on input, index of the interval that contains x on output
+      !
       ! Called from: make_map (interp), make_map_fm (interp), mkmap (interp)
       !
       !!--description-----------------------------------------------------------------
@@ -1800,6 +1992,13 @@ contains
    subroutine indexx(n         ,arrin     ,indx      )
       !
       ! Make an index array that sorts arrin in ascending order.
+      !
+      ! Input:
+      !   n     : length of arrin
+      !   arrin : array to index
+      !
+      ! Output:
+      !   indx  : index array that sorts arrin in ascending order
       !
       ! Called from: sort (interp)
       !
@@ -1899,6 +2098,16 @@ contains
    subroutine bilin5(xa, ya, x0, y0, w, ier)
       !
       ! Compute the bilinear interpolation weights of a point within a quadrilateral.
+      !
+      ! Input:
+      !   xa  : x coordinates of the four corners
+      !   ya  : y coordinates of the four corners
+      !   x0  : x coordinate of the point
+      !   y0  : y coordinate of the point
+      !
+      ! Output:
+      !   w   : weight of each corner
+      !   ier : error flag (0 = success)
       !
       ! Called from: make_map (interp), make_map_fm (interp), mkmap (interp)
       !
@@ -2037,6 +2246,14 @@ contains
       !
       ! Sort an array in ascending order and return the sorting index.
       !
+      ! Input:
+      !   n     : length of ra
+      !   ra    : array to sort
+      !
+      ! Output:
+      !   wksp  : sorted array
+      !   iwksp : index array that sorts ra
+      !
       ! Called from: make_map (interp), make_map_fm (interp), mkmap (interp)
       !
       !!--description-----------------------------------------------------------------
@@ -2069,6 +2286,16 @@ contains
    subroutine trapezoidal(x,y,n,x1_in,x2_in,integ)
       !
       ! Integrate y(x) from x1 to x2 with the trapezoidal rule (equidistant x).
+      !
+      ! Input:
+      !   x     : x values (equidistant)
+      !   y     : function values at x
+      !   n     : length of x and y
+      !   x1_in : lower integration limit
+      !   x2_in : upper integration limit
+      !
+      ! Output:
+      !   integ : value of the integral
       !
       ! Called from: not called (currently unused)
       !
@@ -2113,6 +2340,17 @@ contains
    subroutine trapezoidal_cyclic(x,y,n,xcycle,x1,x2,integ)
       !
       ! Integrate a cyclic function y(x) from x1 to x2 with the trapezoidal rule.
+      !
+      ! Input:
+      !   x      : x values (equidistant)
+      !   y      : function values at x
+      !   n      : length of x and y
+      !   xcycle : length of one cycle
+      !   x1     : lower integration limit
+      !   x2     : upper integration limit
+      !
+      ! Output:
+      !   integ  : value of the integral
       !
       ! Called from: interp_using_trapez_rule (interp)
       !
@@ -2159,6 +2397,17 @@ contains
       ! Interpolate a cyclic function to a target grid, conserving the integral per target
       ! bin.
       !
+      ! Input:
+      !   x      : x values (equidistant)
+      !   y      : function values at x
+      !   n      : length of x and y
+      !   xcycle : length of one cycle
+      !   xtarg  : x values to interpolate to
+      !   ntarg  : length of xtarg
+      !
+      ! Output:
+      !   ytarg  : interpolated values
+      !
       ! Called from: not called (currently unused)
       !
       implicit none
@@ -2186,6 +2435,17 @@ contains
    subroutine interp_in_cyclic_function(x,y,n,xcycle,xp,np,yp)
       !
       ! Linear interpolation in a cyclic function y(x) to the points xp.
+      !
+      ! Input:
+      !   x      : x values
+      !   y      : function values at x
+      !   n      : length of x and y
+      !   xcycle : length of one cycle
+      !   xp     : x values to interpolate to
+      !   np     : length of xp
+      !
+      ! Output:
+      !   yp     : interpolated values
       !
       ! Called from: trapezoidal_cyclic (interp)
       !
@@ -2269,6 +2529,15 @@ contains
    subroutine triangle_intp(x,y,xt,yt,w)
       !
       ! Compute the linear interpolation weights of a point within a triangle.
+      !
+      ! Input:
+      !   x  : x coordinates of the triangle corners
+      !   y  : y coordinates of the triangle corners
+      !   xt : x coordinate of the point
+      !   yt : y coordinate of the point
+      !
+      ! Output:
+      !   w  : weight of each corner
       !
       ! Called from: make_map_fm (interp)
       !

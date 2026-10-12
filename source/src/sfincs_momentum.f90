@@ -23,6 +23,9 @@ contains
    !
    ! Computes fluxes over subgrid u and v points
    !
+   ! Input:
+   !   dt : time step [s]
+   !
    ! Called from: sfincs_update (sfincs_lib)
    !
    real*4    :: dt
@@ -796,6 +799,12 @@ contains
    function power7over3(hu) result(hu73)
    !
    ! Computes hu^(7/3) using a table for hu < 10^4 and hu^(7/3) for hu >= 10^4
+   !
+   ! Input:
+   !   hu   : water depth at the uv point [m]
+   !
+   ! Returns:
+   !   hu73 : hu to the power 7/3
    !
    ! Called from: compute_fluxes (sfincs_momentum)
    !

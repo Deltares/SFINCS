@@ -27,6 +27,13 @@ module snapwave_date
        !
        ! Difference in seconds between two date strings (yyyymmdd HHMMSS).
        !
+       ! Input:
+       !   datespw : first date (yyyymmdd HHMMSS)
+       !   datesim : second date (yyyymmdd HHMMSS)
+       !
+       ! Output:
+       !   dtsec   : second date minus first date [s]
+       !
        ! Called from: not called (currently unused)
        !
        integer ijul1, ijul2     
@@ -55,6 +62,14 @@ module snapwave_date
        ! cf Fliegel & Van Flandern, CACM 11(10):657, 1968
        ! example: julian_date(1970,1,1)=2440588
        !
+       ! Input:
+       !   yyyy   : year
+       !   mm     : month
+       !   dd     : day
+       !
+       ! Returns:
+       !   julian : Julian day number
+       !
        ! Called from: convert_fewsdate (snapwave_date), time_difference (snapwave_date)
        !
        INTEGER,INTENT(IN) :: yyyy,mm,dd
@@ -67,6 +82,12 @@ module snapwave_date
    function date_to_iso8601(date_string) result (date_iso8601)
        !
        ! Convert a date string (yyyymmdd HHMMSS) to ISO 8601 format.
+       !
+       ! Input:
+       !   date_string  : date (yyyymmdd HHMMSS)
+       !
+       ! Returns:
+       !   date_iso8601 : date in ISO 8601 format
        !
        ! Called from: not called (currently unused)
        !
@@ -86,6 +107,15 @@ module snapwave_date
    function convert_fewsdate(treftimefews, tbnd, ntbnd) result (tbndout)
        !
        ! Convert FEWS netCDF times to seconds since the SnapWave reference time.
+       !
+       ! Input:
+       !   treftimefews : units attribute of the time variable, holding the reference time
+       !                  of the file
+       !   tbnd         : times from the netCDF file [minutes since its reference time]
+       !   ntbnd        : number of times
+       !
+       ! Returns:
+       !   tbndout      : times [s since the SnapWave reference time]
        !
        ! Called from: not called (currently unused)
        !

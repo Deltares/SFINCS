@@ -123,6 +123,11 @@ module snapwave_ncinput
       !
       ! Report a netCDF error with file name and line number.
       !
+      ! Input:
+      !   status : netCDF status code returned by the call
+      !   file   : name of the source file of the call
+      !   line   : line number of the call
+      !
       ! Called from: the NF90 preprocessor macro, used throughout this module
       !
       integer, intent ( in)    :: status

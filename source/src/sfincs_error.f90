@@ -21,6 +21,10 @@ module sfincs_error
    !
    ! Write an error message to the log and stop SFINCS with the given error code.
    !
+   ! Input:
+   !   message    : error message to write to the log
+   !   error_code : exit code
+   !
    ! Called from: check_file_exists (sfincs_error) and the input and initialization routines
    !   of many modules
    !
@@ -39,6 +43,14 @@ module sfincs_error
    !
    ! Checks if file exists
    ! Returns true or false 
+   !
+   ! Input:
+   !   file_name     : name of the file
+   !   file_type     : description of the file, used in the error message
+   !   stop_on_error : stop SFINCS when the file does not exist
+   !
+   ! Returns:
+   !   exists        : true when the file exists
    !
    ! Called from: the input-reading routines of nearly all modules
    !

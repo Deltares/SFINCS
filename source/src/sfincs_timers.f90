@@ -98,6 +98,12 @@ contains
       !
       ! Return the index of the timer with the given name, or 0 if not present.
       !
+      ! Input:
+      !   name : name of the timer
+      !
+      ! Returns:
+      !   idx  : index of the timer (0 if not registered)
+      !
       ! Called from: timer_find_or_register, timer_stop, timer_reset,
       ! timer_elapsed, timer_count (all within this module).
       !
@@ -123,6 +129,12 @@ contains
       !
       ! Return the index of the timer with the given name, creating a new
       ! record if it did not yet exist. Returns 0 if the table is full.
+      !
+      ! Input:
+      !   name : name of the timer
+      !
+      ! Returns:
+      !   idx  : index of the timer
       !
       ! Called from: timer_start (within this module).
       !
@@ -166,6 +178,9 @@ contains
       ! Start (or resume-and-accumulate-on-stop) the timer with the given name.
       ! Lazily registers a new timer on first call.
       !
+      ! Input:
+      !   name : name of the timer
+      !
       ! Called from: sfincs_lib (main driver, every phase) and
       ! update_wave_field in sfincs_snapwave.
       !
@@ -199,6 +214,9 @@ contains
    subroutine timer_stop(name)
       !
       ! Stop the timer and add the elapsed interval to its accumulated total.
+      !
+      ! Input:
+      !   name : name of the timer
       !
       ! Called from: sfincs_lib (main driver, every phase) and
       ! update_wave_field in sfincs_snapwave.
@@ -240,6 +258,9 @@ contains
       !
       ! Reset a single timer's accumulated time and call count to zero.
       !
+      ! Input:
+      !   name : name of the timer
+      !
       ! Called from: (currently no live callers; part of the public API.)
       !
       character(len=*), intent(in) :: name
@@ -263,6 +284,12 @@ contains
       ! Returns 0 if the timer is unknown. If the timer is currently running,
       ! the interval since the most recent timer_start is included (without
       ! modifying the stored accumulated value).
+      !
+      ! Input:
+      !   name    : name of the timer
+      !
+      ! Returns:
+      !   elapsed : accumulated wall-clock time [s]
       !
       ! Called from: sfincs_log (write_progress_log, write_finished_log,
       ! write_timer_headers_log, write_runtimes_file).
@@ -293,6 +320,12 @@ contains
       !
       ! Number of completed start/stop cycles for the named timer.
       !
+      ! Input:
+      !   name : name of the timer
+      !
+      ! Returns:
+      !   n    : number of times the timer was started
+      !
       ! Called from: (currently no live callers; part of the public API.)
       !
       character(len=*), intent(in) :: name
@@ -315,6 +348,9 @@ contains
       !
       ! Sum of accumulated wall time across all registered timers.
       !
+      ! Returns:
+      !   total : sum of the accumulated wall-clock time of all timers [s]
+      !
       ! Called from: write_timer_summary_log in sfincs_log.
       !
       integer :: i
@@ -335,6 +371,9 @@ contains
       ! routines in sfincs_log to iterate over every timer without
       ! touching module-private state.
       !
+      ! Returns:
+      !   n : number of registered timers
+      !
       ! Called from: write_timer_summary_log in sfincs_log.
       !
       n = n_timers
@@ -347,6 +386,12 @@ contains
       !
       ! Return the stored name of the i-th registered timer, or an empty
       ! string for out-of-range i. Indices run 1 .. timer_num_registered().
+      !
+      ! Input:
+      !   i    : index of the timer (1 to timer_num_registered())
+      !
+      ! Returns:
+      !   name : name of the timer
       !
       ! Called from: write_timer_summary_log in sfincs_log.
       !
@@ -371,6 +416,12 @@ contains
       ! (use timer_elapsed(name) if you need that — the rendering code
       ! runs after the simulation loop has stopped all timers).
       !
+      ! Input:
+      !   i       : index of the timer (1 to timer_num_registered())
+      !
+      ! Returns:
+      !   elapsed : accumulated wall-clock time [s]
+      !
       ! Called from: write_timer_summary_log in sfincs_log.
       !
       integer, intent(in) :: i
@@ -390,6 +441,12 @@ contains
       !
       ! Number of completed start/stop cycles of the i-th registered
       ! timer. Returns 0 for out-of-range i.
+      !
+      ! Input:
+      !   i : index of the timer (1 to timer_num_registered())
+      !
+      ! Returns:
+      !   n : number of times the timer was started
       !
       ! Called from: write_timer_summary_log in sfincs_log.
       !

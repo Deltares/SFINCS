@@ -45,6 +45,19 @@ contains
    !
    ! Check whether a line segment passes through a square.
    !
+   ! Input:
+   !   xx0 : x coordinate of the start of the line
+   !   yy0 : y coordinate of the start of the line
+   !   xx1 : x coordinate of the end of the line
+   !   yy1 : y coordinate of the end of the line
+   !   x11 : x coordinate of the first corner of the square
+   !   y11 : y coordinate of the first corner of the square
+   !   x12 : x coordinate of the opposite corner of the square
+   !   y12 : y coordinate of the opposite corner of the square
+   !
+   ! Returns:
+   !   iok : true when the line passes through the square
+   !
    ! Called from: find_cells_intersected_by_line (quadtree)
    !
    implicit none
@@ -122,6 +135,19 @@ contains
    !
    ! Check whether two line segments intersect.
    !
+   ! Input:
+   !   x11 : x coordinate of the first point of segment 1
+   !   y11 : y coordinate of the first point of segment 1
+   !   x12 : x coordinate of the second point of segment 1
+   !   y12 : y coordinate of the second point of segment 1
+   !   x21 : x coordinate of the first point of segment 2
+   !   y21 : y coordinate of the first point of segment 2
+   !   x22 : x coordinate of the second point of segment 2
+   !   y22 : y coordinate of the second point of segment 2
+   !
+   ! Returns:
+   !   iok : true when the segments intersect
+   !
    ! Called from: check_line_through_square (geometry)
    !
    implicit none
@@ -172,6 +198,17 @@ contains
    !
    ! Orientation of point c relative to the directed segment a->b (-1, 0 or 1).
    !
+   ! Input:
+   !   ax : x coordinate of point a
+   !   ay : y coordinate of point a
+   !   bx : x coordinate of point b
+   !   by : y coordinate of point b
+   !   cx : x coordinate of point c
+   !   cy : y coordinate of point c
+   !
+   ! Returns:
+   !   dr : -1, 0 (collinear) or 1
+   !
    ! Called from: cross (geometry)
    !
    implicit none
@@ -213,6 +250,17 @@ contains
    !
    ! Check whether point p lies within the bounding box of a line segment.
    !
+   ! Input:
+   !   x1  : x coordinate of the first point of the segment
+   !   y1  : y coordinate of the first point of the segment
+   !   x2  : x coordinate of the second point of the segment
+   !   y2  : y coordinate of the second point of the segment
+   !   xp  : x coordinate of the point
+   !   yp  : y coordinate of the point
+   !
+   ! Returns:
+   !   iok : true when the point is within the bounding box of the segment
+   !
    ! Called from: not called (currently unused)
    !
    implicit none
@@ -232,6 +280,19 @@ contains
    function cross(x11,y11,x12,y12,x21,y21,x22,y22) result(iok)
    !
    ! Check whether two line segments cross.
+   !
+   ! Input:
+   !   x11 : x coordinate of the first point of segment 1
+   !   y11 : y coordinate of the first point of segment 1
+   !   x12 : x coordinate of the second point of segment 1
+   !   y12 : y coordinate of the second point of segment 1
+   !   x21 : x coordinate of the first point of segment 2
+   !   y21 : y coordinate of the first point of segment 2
+   !   x22 : x coordinate of the second point of segment 2
+   !   y22 : y coordinate of the second point of segment 2
+   !
+   ! Returns:
+   !   iok : true when the segments cross
    !
    ! Called from: find_uv_points_intersected_by_polyline (quadtree)
    !
@@ -276,6 +337,17 @@ contains
    !
    ! Check whether a point can be projected onto a line segment.
    !
+   ! Input:
+   !   x1      : x coordinate of the first point of the segment
+   !   y1      : y coordinate of the first point of the segment
+   !   x2      : x coordinate of the second point of the segment
+   !   y2      : y coordinate of the second point of the segment
+   !   x       : x coordinate of the point
+   !   y       : y coordinate of the point
+   !
+   ! Returns:
+   !   on_line : true when the point projects onto the segment
+   !
    ! Called from: not called (currently unused)
    !
    real    :: x1, y1, x2, y2
@@ -298,6 +370,20 @@ contains
    function distance_between_points_projected_on_line_segment(x0a,y0a,x0b,y0b,x1,y1,x2,y2,mxdst) result (dst)
    !
    ! Computes distance between two points (x0a, y0a) and (x0b, y0b) projected on a line segment
+   !
+   ! Input:
+   !   x0a   : x coordinate of the first point
+   !   y0a   : y coordinate of the first point
+   !   x0b   : x coordinate of the second point
+   !   y0b   : y coordinate of the second point
+   !   x1    : x coordinate of the first point of the segment
+   !   y1    : y coordinate of the first point of the segment
+   !   x2    : x coordinate of the second point of the segment
+   !   y2    : y coordinate of the second point of the segment
+   !   mxdst : maximum distance of the points to the segment
+   !
+   ! Returns:
+   !   dst   : distance between the projected points
    !
    ! Called from: read_structure_file (sfincs_structures)
    !
@@ -420,6 +506,19 @@ contains
    !  Outputs  :
    !    i1, i2        : indices of chosen data points
    !    w1, w2        : interpolation weights
+   !
+   ! Input:
+   !   x  : x coordinates of the data points
+   !   y  : y coordinates of the data points
+   !   nx : number of data points
+   !   qx : x coordinate of the query point
+   !   qy : y coordinate of the query point
+   !
+   ! Output:
+   !   i1 : index of the first data point to use
+   !   i2 : index of the second data point to use
+   !   w1 : weight of the first data point
+   !   w2 : weight of the second data point
    !
    ! Called from: initialize_bathtub (sfincs_bathtub)
    !

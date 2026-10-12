@@ -1309,6 +1309,10 @@ contains
    !
    ! Update wind stresses and precipitation (this happens every time step)
    !
+   ! Input:
+   !   t  : current model time [s since tref]
+   !   dt : time step [s]
+   !
    ! Called from: sfincs_update (sfincs_lib)
    !
    use sfincs_data
@@ -1524,6 +1528,9 @@ contains
    !
    ! Interpolate the spatially-uniform wind time series to time t.
    !
+   ! Input:
+   !   t : current model time [s since tref]
+   !
    ! Called from: update_meteo_forcing (sfincs_meteo)
    !
    use sfincs_data
@@ -1591,6 +1598,10 @@ contains
    !
    ! Interpolate the spatially-uniform precipitation time series to time t.
    !
+   ! Input:
+   !   t  : current model time [s since tref]
+   !   dt : time step [s]
+   !
    ! Called from: update_meteo_forcing (sfincs_meteo)
    !
    use sfincs_data
@@ -1642,6 +1653,9 @@ contains
    subroutine update_meteo_fields(t)
    !
    ! Update the meteo fields from the spatially-varying input at the meteo update interval.
+   !
+   ! Input:
+   !   t : current model time [s since tref]
    !
    ! Called from: sfincs_update (sfincs_lib)
    !

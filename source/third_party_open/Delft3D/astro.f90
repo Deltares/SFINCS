@@ -40,6 +40,19 @@ subroutine update_nodal_factors(i_date_time, compnames, kc, ntof, hydrbc, omega)
 ! Compute the frequencies, nodal factors and astronomical arguments of the tidal
 ! constituents for a given date.
 !
+! Input:
+!   i_date_time : date and time (year, month, day, hour, minute, second)
+!   compnames   : names of the tidal components
+!   kc          : number of components
+!   ntof        : number of boundary sections
+!
+! Input/output:
+!   hydrbc      : tidal boundary conditions; phases are corrected for the astronomical
+!                 arguments
+!
+! Output:
+!   omega       : angular velocity of the components
+!
 ! Called from: read_boundary_data (sfincs_boundaries)
 !
 !----- GPL ---------------------------------------------------------------------
@@ -140,6 +153,16 @@ subroutine asc(w         ,v0u       ,fr        ,kcmp      ,inaam     , &
 ! Determine the frequency, astronomical argument (v0+u) and nodal factor (f) of the
 ! constituents.
 !
+! Input:
+!   kcmp  : number of tidal components
+!   inaam : names of the components
+!   jdate : date and time (year, month, day, hour, minute, second)
+!
+! Output:
+!   w     : angular velocity of the components
+!   v0u   : astronomical arguments of the components
+!   fr    : amplitude (nodal) factors of the components
+!
 ! Called from: update_nodal_factors (astro)
 !
 !----- GPL ---------------------------------------------------------------------
@@ -237,6 +260,9 @@ end subroutine asc
 subroutine kompbs(l         )
 !
 ! Fill the table with the names and properties of the tidal constituents.
+!
+! Output:
+!   l : table with the definitions of the tidal components
 !
 ! Called from: asc (astro)
 !
@@ -533,6 +559,14 @@ subroutine hulpgr(jaar      ,tm1       ,v         ,f         )
 !
 ! Compute the basic astronomical arguments and nodal factors for a given year.
 !
+! Input:
+!   jaar : year
+!   tm1  : time in hours since the start of the year
+!
+! Output:
+!   v    : help variables for the astronomical arguments
+!   f    : help variables for the nodal factors
+!
 ! Called from: asc (astro)
 !
 !----- GPL ---------------------------------------------------------------------
@@ -702,6 +736,13 @@ subroutine datumi(jaar      ,jdate    ,t         )
 !
 ! Convert a date to the time in hours since the start of the year.
 !
+! Input:
+!   jaar  : year
+!   jdate : date and time (year, month, day, hour, minute, second)
+!
+! Output:
+!   t     : time in hours since the start of the year
+!
 ! Called from: asc (astro)
 !
 !----- GPL ---------------------------------------------------------------------
@@ -812,6 +853,21 @@ subroutine bewvuf(ierrs     ,kcmp      ,mxkc      ,inaam     ,knaam     , &
                 & f         )
 !
 ! Compute v0+u, f and the frequency of a constituent from the basic astronomical arguments.
+!
+! Input:
+!   kcmp  : number of tidal components
+!   mxkc  : number of components in the table
+!   inaam : names of the components
+!   knaam : names of all components in the table
+!   jnaam : composition of each component in the table
+!   v     : help variables for the astronomical arguments
+!   f     : help variables for the nodal factors
+!
+! Output:
+!   ierrs : number of errors
+!   w     : angular velocity of the components
+!   v0u   : astronomical arguments of the components
+!   fr    : amplitude (nodal) factors of the components
 !
 ! Called from: asc (astro)
 !
