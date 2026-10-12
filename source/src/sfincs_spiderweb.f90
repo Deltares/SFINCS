@@ -1,4 +1,30 @@
 module sfincs_spiderweb
+   !
+   ! Readers for the ASCII spiderweb (spw) and gridded meteo (amu, amv, amp, ampr) files.
+   !
+   ! Subroutines / functions:
+   !
+   !   read_spw_file(...)
+   !     Read the wind, pressure and rain data from an ASCII spiderweb file.
+   !     Called from: read_meteo_data (sfincs_meteo)
+   !
+   !   read_amuv_file(filename, nt, nrows, ncols, time, uv, trefstr)
+   !     Read the data blocks from an ASCII gridded meteo file.
+   !     Called from: read_meteo_data (sfincs_meteo)
+   !
+   !   read_spw_dimensions(filename, nt, nrows, ncols, spwrad, nquant)
+   !     Read the dimensions (times, rows, columns, radius) of an ASCII spiderweb file.
+   !     Called from: read_meteo_data (sfincs_meteo)
+   !
+   !   read_amuv_dimensions(...)
+   !     Read the dimensions and grid definition of an ASCII gridded meteo file.
+   !     Called from: read_meteo_data (sfincs_meteo)
+   !
+   !   compute_time_in_seconds(line, trefstr, dtsec)
+   !     Convert a TIME line of a meteo file to seconds since the simulation reference time.
+   !     Called from: read_netcdf_spw_data (sfincs_ncinput),
+   !       read_amuv_file (sfincs_spiderweb), read_spw_file (sfincs_spiderweb)
+   !
 
     use sfincs_log
     use sfincs_read
@@ -6,6 +32,10 @@ module sfincs_spiderweb
 contains
 
    subroutine read_spw_file(filename,nt,nrows,ncols,spwrad,time,xe,ye,vmag,vdir,pdrp,prcp,nquant,trefstr)
+   !
+   ! Read the wind, pressure and rain data from an ASCII spiderweb file.
+   !
+   ! Called from: read_meteo_data (sfincs_meteo)
    !
    implicit none
    !
@@ -134,6 +164,10 @@ contains
    ! Read amu
    subroutine read_amuv_file(filename,nt,nrows,ncols,time,uv,trefstr)
    !
+   ! Read the data blocks from an ASCII gridded meteo file.
+   !
+   ! Called from: read_meteo_data (sfincs_meteo)
+   !
    implicit none
    !
    integer j, j2, it, ip, n, m, nquant, stat, nheader, id
@@ -230,6 +264,10 @@ contains
    
    subroutine read_spw_dimensions(filename,nt,nrows,ncols,spwrad,nquant)
       !
+      ! Read the dimensions (times, rows, columns, radius) of an ASCII spiderweb file.
+      !
+      ! Called from: read_meteo_data (sfincs_meteo)
+      !
       implicit none
       !
       integer j, it, ip, n, m, nquant, stat, nheader, id    
@@ -318,6 +356,10 @@ contains
    !
    !
    subroutine read_amuv_dimensions(filename,nt,nrows,ncols,x_llcorner,y_llcorner,dx,dy,nquant)
+      !
+      ! Read the dimensions and grid definition of an ASCII gridded meteo file.
+      !
+      ! Called from: read_meteo_data (sfincs_meteo)
       !
       implicit none
       !
@@ -408,6 +450,11 @@ contains
 
    
    subroutine compute_time_in_seconds(line,trefstr,dtsec)
+   !
+   ! Convert a TIME line of a meteo file to seconds since the simulation reference time.
+   !
+   ! Called from: read_netcdf_spw_data (sfincs_ncinput), read_amuv_file (sfincs_spiderweb),
+   !   read_spw_file (sfincs_spiderweb)
    !
    use sfincs_date
    !   

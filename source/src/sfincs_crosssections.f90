@@ -1,4 +1,19 @@
 module sfincs_crosssections
+   !
+   ! Cross-sections: reads the crs file and computes the discharge through each
+   ! cross-section.
+   !
+   ! Subroutines / functions:
+   !
+   !   read_crs_file()
+   !     Read the cross-sections file and find the uv points each cross-section intersects.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   get_discharges_through_crosssections(qq)
+   !     Sum the fluxes over the uv points of each cross-section into discharges qq.
+   !     Called from: ncoutput_update_his (sfincs_ncoutput),
+   !       write_his_output (sfincs_output)
+   !
 
    use sfincs_log
    use sfincs_error
@@ -8,6 +23,8 @@ contains
    subroutine read_crs_file()
    !
    ! Reads crs file
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    use sfincs_data
    use geometry
@@ -128,6 +145,10 @@ contains
 
    
    subroutine get_discharges_through_crosssections(qq)
+   !
+   ! Sum the fluxes over the uv points of each cross-section into discharges qq.
+   !
+   ! Called from: ncoutput_update_his (sfincs_ncoutput), write_his_output (sfincs_output)
    !
    use sfincs_data
    !

@@ -1,4 +1,63 @@
 module sfincs_output
+   !
+   ! Model output: decides when map, maximum, his and restart output is due and writes it,
+   ! in netCDF (through sfincs_ncoutput) or in binary/ASCII format.
+   !
+   ! Subroutines / functions:
+   !
+   !   initialize_output(tmapout, tmaxout, thisout, trstout)
+   !     Set the output times and create the output files.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   write_output(...)
+   !     Write the map, maximum, his and restart output that is due at time t.
+   !     Called from: sfincs_update (sfincs_lib), finalize_output (sfincs_output)
+   !
+   !   reset_max_output()
+   !     Reset the maximum-value arrays at the start of a new maximum-output interval.
+   !     Called from: sfincs_update (sfincs_lib), write_output (sfincs_output)
+   !
+   !   finalize_output(t, ntmaxout, tmaxout)
+   !     Write the last maximum output if still needed and close the output files.
+   !     Called from: sfincs_finalize (sfincs_lib)
+   !
+   !   open_map_output()
+   !     Open the binary or ASCII map output file(s).
+   !     Called from: initialize_output (sfincs_output)
+   !
+   !   open_max_output()
+   !     Open the binary maximum output file(s).
+   !     Called from: initialize_output (sfincs_output)
+   !
+   !   write_map_output()
+   !     Write the time-varying fields to the binary or ASCII map output.
+   !     Called from: write_output (sfincs_output)
+   !
+   !   write_max_output()
+   !     Write the maximum-value fields to the binary maximum output.
+   !     Called from: write_output (sfincs_output)
+   !
+   !   close_map_output()
+   !     Close the binary or ASCII map output file(s).
+   !     Called from: finalize_output (sfincs_output)
+   !
+   !   close_max_output()
+   !     Close the binary maximum output file(s).
+   !     Called from: finalize_output (sfincs_output)
+   !
+   !   open_his_output()
+   !     Delete existing ASCII his output files (zst.txt, prcp.txt, qt.txt).
+   !     Called from: initialize_output (sfincs_output)
+   !
+   !   write_his_output(t)
+   !     Write the time series at observation points and cross-sections to the ASCII his
+   !     output.
+   !     Called from: write_output (sfincs_output)
+   !
+   !   write_rst_file(t)
+   !     Write a binary restart file for time t.
+   !     Called from: write_output (sfincs_output)
+   !
 
    use sfincs_ncoutput
    use sfincs_log
@@ -6,6 +65,10 @@ module sfincs_output
    contains
 
    subroutine initialize_output(tmapout,tmaxout,thisout, trstout)
+   !
+   ! Set the output times and create the output files.
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    use sfincs_data
    use sfincs_src_structures, only: nr_src_structures
@@ -87,6 +150,10 @@ module sfincs_output
 
    
    subroutine write_output(t,write_map,write_his,write_max,write_rst,ntmapout,ntmaxout,nthisout)
+   !
+   ! Write the map, maximum, his and restart output that is due at time t.
+   !
+   ! Called from: sfincs_update (sfincs_lib), finalize_output (sfincs_output)
    !
    use sfincs_data
    use sfincs_timers
@@ -295,6 +362,10 @@ module sfincs_output
 
    subroutine finalize_output(t, ntmaxout, tmaxout)
    !
+   ! Write the last maximum output if still needed and close the output files.
+   !
+   ! Called from: sfincs_finalize (sfincs_lib)
+   !
    use sfincs_data
    !
    implicit none
@@ -350,6 +421,10 @@ module sfincs_output
    
    subroutine open_map_output()
    !
+   ! Open the binary or ASCII map output file(s).
+   !
+   ! Called from: initialize_output (sfincs_output)
+   !
    use sfincs_data
    !
    implicit none
@@ -374,6 +449,10 @@ module sfincs_output
    
    
    subroutine open_max_output()
+   !
+   ! Open the binary maximum output file(s).
+   !
+   ! Called from: initialize_output (sfincs_output)
    !
    use sfincs_data
    !
@@ -411,6 +490,10 @@ module sfincs_output
    
 
    subroutine write_map_output()
+   !
+   ! Write the time-varying fields to the binary or ASCII map output.
+   !
+   ! Called from: write_output (sfincs_output)
    !
    use sfincs_data
    !
@@ -493,6 +576,10 @@ module sfincs_output
 
    subroutine write_max_output()
    !
+   ! Write the maximum-value fields to the binary maximum output.
+   !
+   ! Called from: write_output (sfincs_output)
+   !
    use sfincs_data
    !
    implicit none
@@ -558,6 +645,10 @@ module sfincs_output
    
    subroutine close_map_output()
    !
+   ! Close the binary or ASCII map output file(s).
+   !
+   ! Called from: finalize_output (sfincs_output)
+   !
    use sfincs_data
    !
    implicit none
@@ -575,6 +666,10 @@ module sfincs_output
    end subroutine
 
    subroutine close_max_output()
+   !
+   ! Close the binary maximum output file(s).
+   !
+   ! Called from: finalize_output (sfincs_output)
    !
    use sfincs_data
    !
@@ -603,6 +698,10 @@ module sfincs_output
 
    subroutine open_his_output()
    !
+   ! Delete existing ASCII his output files (zst.txt, prcp.txt, qt.txt).
+   !
+   ! Called from: initialize_output (sfincs_output)
+   !
    use sfincs_data
    !
    implicit none
@@ -624,6 +723,10 @@ module sfincs_output
 
 
    subroutine write_his_output(t)
+   !
+   ! Write the time series at observation points and cross-sections to the ASCII his output.
+   !
+   ! Called from: write_output (sfincs_output)
    !
    use sfincs_data
    use sfincs_crosssections
@@ -681,6 +784,10 @@ module sfincs_output
    end subroutine
    
    subroutine write_rst_file(t)
+   !
+   ! Write a binary restart file for time t.
+   !
+   ! Called from: write_output (sfincs_output)
    !
    use sfincs_data
    use sfincs_date

@@ -114,6 +114,9 @@ contains
       ! Use anywhere a real needs to be embedded in a log line with the
       ! smallest reasonable field width.
       !
+      ! Called from: write_src_structures_log_summary (sfincs_src_structures),
+      !   write_urban_drainage_log_summary (sfincs_urban_drainage)
+      !
       implicit none
       !
       real,    intent(in) :: val

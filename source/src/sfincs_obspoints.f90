@@ -1,10 +1,21 @@
 module sfincs_obspoints
+   !
+   ! Observation points: reads the obs file and finds the grid cell of each point.
+   !
+   ! Subroutines / functions:
+   !
+   !   read_obs_points()
+   !     Read the observation points file and find the cell index of each point.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
 
 contains
    ! 
    subroutine read_obs_points()
    !
    ! Reads obs files
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    use sfincs_data
    use sfincs_log

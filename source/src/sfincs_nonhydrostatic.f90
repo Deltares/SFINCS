@@ -3,6 +3,19 @@
 ! Should try to find a solver that can be.   
 
 module sfincs_nonhydrostatic
+   !
+   ! Non-hydrostatic pressure correction (regular grids only). See the notes above the
+   ! module statement.
+   !
+   ! Subroutines / functions:
+   !
+   !   initialize_nonhydrostatic()
+   !     Set up the indices and the sparse matrix structure of the non-hydrostatic solver.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   compute_nonhydrostatic(dt)
+   !     Solve for the non-hydrostatic pressure and correct the fluxes and velocities.
+   !     Called from: sfincs_update (sfincs_lib)
    !   
    integer, dimension(:,:), allocatable :: index_sparse_matrix
    integer, dimension(:,:), allocatable :: nh_uv_index
@@ -32,6 +45,8 @@ contains
    subroutine initialize_nonhydrostatic()
    !
    ! Initialization of pardiso solver
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    use sfincs_data
    !
@@ -391,6 +406,8 @@ contains
    subroutine compute_nonhydrostatic(dt)
    !
    ! Non-hydrostatic pressure correction on fluxes and velocities
+   !
+   ! Called from: sfincs_update (sfincs_lib)
    !
    use sfincs_data
    use sfincs_timers

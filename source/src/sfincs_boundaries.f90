@@ -1,4 +1,48 @@
 module sfincs_boundaries
+   !
+   ! Open boundary conditions: reads the boundary points and their time series (water level,
+   ! waves, downstream river), and updates the water levels and fluxes at the boundary cells
+   ! every time step.
+   !
+   ! Subroutines / functions:
+   !
+   !   read_boundary_data()
+   !     Read the boundary input files (bnd, bzs, etc. or netCDF).
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   find_boundary_indices()
+   !     Determine, for each boundary cell, the indices and weights of the boundary points.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   update_boundary_points(t)
+   !     Interpolate the boundary time series to time t at the boundary points.
+   !     Called from: update_boundaries (sfincs_boundaries)
+   !
+   !   update_boundary_conditions(t, dt)
+   !     Update the water levels at the boundary cells.
+   !     Called from: update_boundaries (sfincs_boundaries)
+   !
+   !   update_boundary_fluxes(dt, t)
+   !     Update the fluxes at the uv points next to the boundary cells.
+   !     Called from: update_boundaries (sfincs_boundaries)
+   !
+   !   update_boundaries(t, dt)
+   !     Update all boundary conditions for the current time step.
+   !     Called from: sfincs_update (sfincs_lib)
+   !
+   !   weighted_average(val1, val2, fac, iopt, val3)
+   !     Weighted average of two values, either regular (iopt=1) or of two angles in
+   !     radians.
+   !     Called from: update_boundary_conditions (sfincs_boundaries)
+   !
+   !   find_sfincs_cell(n, m, iref)
+   !     Find the SFINCS cell index nm for quadtree cell (n, m, iref).
+   !     Called from: find_boundary_indices (sfincs_boundaries)
+   !
+   !   clean_line(s)
+   !     Trim a line read from file and remove a trailing carriage return.
+   !     Called from: read_boundary_data (sfincs_boundaries)
+   !
    
    use sfincs_log
    use sfincs_error
@@ -8,6 +52,8 @@ contains
    subroutine read_boundary_data()
    !
    ! Reads bnd, bzs etc. files
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    use sfincs_ncinput
    use sfincs_data
@@ -454,6 +500,10 @@ contains
 
    subroutine find_boundary_indices()
    !
+   ! Determine, for each boundary cell, the indices and weights of the boundary points.
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
+   !
    use sfincs_data
    !
    implicit none
@@ -683,6 +733,8 @@ contains
    !
    ! Update values at boundary points
    !
+   ! Called from: update_boundaries (sfincs_boundaries)
+   !
    use sfincs_data
    !
    implicit none
@@ -761,6 +813,8 @@ contains
    subroutine update_boundary_conditions(t, dt)
    !
    ! Update water level at boundary grid points
+   !
+   ! Called from: update_boundaries (sfincs_boundaries)
    !
    use sfincs_data
    !
@@ -924,6 +978,8 @@ contains
    subroutine update_boundary_fluxes(dt, t)
    !
    ! Update fluxes qx and qy at boundary points
+   !
+   ! Called from: update_boundaries (sfincs_boundaries)
    !
    use sfincs_data
    !
@@ -1127,6 +1183,8 @@ contains
    !
    ! Update all boundary conditions
    !
+   ! Called from: sfincs_update (sfincs_lib)
+   !
    use sfincs_data
    use sfincs_timers
    !
@@ -1172,6 +1230,10 @@ contains
    !
    subroutine weighted_average(val1,val2,fac,iopt,val3)
    !
+   ! Weighted average of two values, either regular (iopt=1) or of two angles in radians.
+   !
+   ! Called from: update_boundary_conditions (sfincs_boundaries)
+   !
    implicit none
    !
    integer, intent(in)    :: iopt
@@ -1216,6 +1278,8 @@ contains
    !
    ! Find nm index for cell n, m, iref
    !
+   ! Called from: find_boundary_indices (sfincs_boundaries)
+   !
    use sfincs_data
    use quadtree
    !
@@ -1234,6 +1298,10 @@ contains
    end function
    
    function clean_line(s) result(out)
+   !
+   ! Trim a line read from file and remove a trailing carriage return.
+   !
+   ! Called from: read_boundary_data (sfincs_boundaries)
    !
    character(len=*), intent(in) :: s
    character(len=len(s)) :: out

@@ -1,5 +1,17 @@
 module sfincs_momentum
    !
+   ! Momentum equation: computes the fluxes and velocities at the uv points every time step.
+   !
+   ! Subroutines / functions:
+   !
+   !   compute_fluxes(dt)
+   !     Compute the fluxes q and velocities uv at all uv points (regular and subgrid).
+   !     Called from: sfincs_update (sfincs_lib)
+   !
+   !   power7over3(hu)
+   !     Compute hu**(7/3), from a lookup table for small hu.
+   !     Called from: compute_fluxes (sfincs_momentum)
+   !
    use sfincs_data
    use sfincs_timers
    !
@@ -10,6 +22,8 @@ contains
    subroutine compute_fluxes(dt)
    !
    ! Computes fluxes over subgrid u and v points
+   !
+   ! Called from: sfincs_update (sfincs_lib)
    !
    real*4    :: dt
    !
@@ -782,6 +796,8 @@ contains
    function power7over3(hu) result(hu73)
    !
    ! Computes hu^(7/3) using a table for hu < 10^4 and hu^(7/3) for hu >= 10^4
+   !
+   ! Called from: compute_fluxes (sfincs_momentum)
    !
    real*4, intent(in) :: hu
    real*4             :: hu73

@@ -1,10 +1,21 @@
 module sfincs_advection_diffusion
+   !
+   ! Advection and diffusion of tracers over the uv points (experimental).
+   !
+   ! Subroutines / functions:
+   !
+   !   compute_tracer_fluxes(dt, min_dt, tloop)
+   !     Compute advective and diffusive tracer fluxes at the uv points.
+   !     Called from: not called (currently unused)
+   !
    
 contains
 
    subroutine compute_tracer_fluxes(dt, min_dt, tloop)
    !
-   ! Computes fluxes over subgrid u and v points
+   ! Compute advective and diffusive tracer fluxes at the uv points.
+   !
+   ! Called from: not called (currently unused)
    !
    use sfincs_data
    !

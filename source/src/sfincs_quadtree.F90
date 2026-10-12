@@ -1,6 +1,58 @@
 #define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)
 module quadtree
    !
+   ! Quadtree mesh: reads the quadtree file (netCDF or binary), builds a quadtree from
+   ! regular-grid indices, and provides cell and uv-point search routines.
+   !
+   ! Subroutines / functions:
+   !
+   !   quadtree_read_file(qtrfile, snapwave, nonhydrostatic)
+   !     Read the quadtree file, in netCDF or binary format.
+   !     Called from: initialize_mesh (sfincs_domain)
+   !
+   !   quadtree_read_file_binary(qtrfile)
+   !     Read the quadtree mesh from a binary file.
+   !     Called from: quadtree_read_file (quadtree)
+   !
+   !   quadtree_read_file_netcdf(qtrfile, snapwave, nonhydrostatic)
+   !     Read the quadtree mesh from a netCDF file.
+   !     Called from: quadtree_read_file (quadtree)
+   !
+   !   make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, rotation)
+   !     Build a single-level quadtree mesh from the active cell indices of a regular grid.
+   !     Called from: initialize_mesh (sfincs_domain)
+   !
+   !   find_cells_intersected_by_line(cell_indices, nr_cells, xpa, ypa, xpb, ypb)
+   !     Find all cells intersected by a line segment.
+   !     Called from: initialize_wavemakers (sfincs_wavemaker)
+   !
+   !   find_quadtree_cell(x, y)
+   !     Find the index of the quadtree cell that contains point (x, y).
+   !     Called from: get_sfincs_cell_index (sfincs_bmi),
+   !       get_sfincs_cell_indices (sfincs_bmi), read_boundary_data (sfincs_boundaries),
+   !       initialize_discharges (sfincs_discharges), read_obs_points (sfincs_obspoints),
+   !       read_rug_file (sfincs_runup_gauges),
+   !       initialize_src_structures (sfincs_src_structures),
+   !       initialize_urban_drainage (sfincs_urban_drainage)
+   !
+   !   find_quadtree_cell_by_index(n, m, iref)
+   !     Find the index of the quadtree cell with grid indices (n, m) at level iref.
+   !     Called from: find_uv_points_intersected_by_polyline (quadtree),
+   !       find_sfincs_cell (sfincs_boundaries)
+   !
+   !   find_uv_points_intersected_by_polyline(uv_indices, vertices, nint, xpol, ypol, npol)
+   !     Find all uv points intersected by a polyline.
+   !     Called from: read_crs_file (sfincs_crosssections),
+   !       read_structure_file (sfincs_structures), read_thin_dams (sfincs_structures)
+   !
+   !   binary_search(x, n, val)
+   !     Binary search for value val in the sorted integer array x.
+   !     Called from: find_quadtree_cell (quadtree), find_quadtree_cell_by_index (quadtree)
+   !
+   !   handle_err(status, file, line)
+   !     Report a netCDF error with file name and line number.
+   !     Called from: the NF90 preprocessor macro, used throughout this module
+   !
    use sfincs_log
    use sfincs_error
    use netcdf
@@ -64,6 +116,8 @@ contains
    subroutine quadtree_read_file(qtrfile, snapwave, nonhydrostatic)
    !
    ! Reads quadtree file
+   !
+   ! Called from: initialize_mesh (sfincs_domain)
    !
    use sfincs_read, only: is_netcdf_file
    !
@@ -210,6 +264,8 @@ contains
    !
    ! Reads quadtree file
    !
+   ! Called from: quadtree_read_file (quadtree)
+   !
    implicit none
    !
    character*256, intent(in)                       :: qtrfile
@@ -294,6 +350,8 @@ contains
    subroutine quadtree_read_file_netcdf(qtrfile, snapwave, nonhydrostatic)
    !
    ! Reads quadtree file from netcdf file
+   !
+   ! Called from: quadtree_read_file (quadtree)
    !
    implicit none
    !
@@ -442,6 +500,10 @@ contains
 
 
 subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, rotation)
+   !
+   ! Build a single-level quadtree mesh from the active cell indices of a regular grid.
+   !
+   ! Called from: initialize_mesh (sfincs_domain)
    !
    implicit none
    !
@@ -671,6 +733,8 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
    !
    ! Builds array cell_indices of all cells intersected by line segment ([xpa ypa],[xpb ypb])
    !
+   ! Called from: initialize_wavemakers (sfincs_wavemaker)
+   !
    use geometry
    !
    implicit none
@@ -762,6 +826,14 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
    
    function find_quadtree_cell(x, y) result (indx)
    !
+   ! Find the index of the quadtree cell that contains point (x, y).
+   !
+   ! Called from: get_sfincs_cell_index (sfincs_bmi), get_sfincs_cell_indices (sfincs_bmi),
+   !   read_boundary_data (sfincs_boundaries), initialize_discharges (sfincs_discharges),
+   !   read_obs_points (sfincs_obspoints), read_rug_file (sfincs_runup_gauges),
+   !   initialize_src_structures (sfincs_src_structures),
+   !   initialize_urban_drainage (sfincs_urban_drainage)
+   !
    implicit none
    !
    real*4, intent(in)   :: x
@@ -820,6 +892,11 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
 
    function find_quadtree_cell_by_index(n, m, iref) result (indx)
    !
+   ! Find the index of the quadtree cell with grid indices (n, m) at level iref.
+   !
+   ! Called from: find_uv_points_intersected_by_polyline (quadtree),
+   !   find_sfincs_cell (sfincs_boundaries)
+   !
    implicit none
    !
    integer              :: indx
@@ -852,6 +929,9 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
    subroutine find_uv_points_intersected_by_polyline(uv_indices,vertices,nint,xpol,ypol,npol)
    !
    ! Builds array of uv-points that are intersected by polyline
+   !
+   ! Called from: read_crs_file (sfincs_crosssections),
+   !   read_structure_file (sfincs_structures), read_thin_dams (sfincs_structures)
    !
    use geometry
    use sfincs_data
@@ -1012,6 +1092,10 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
       
    function binary_search(x,n,val) result (indx)
    !
+   ! Binary search for value val in the sorted integer array x.
+   !
+   ! Called from: find_quadtree_cell (quadtree), find_quadtree_cell_by_index (quadtree)
+   !
    implicit none
    !
    integer, intent(in)  :: n
@@ -1059,6 +1143,10 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
 
 
    subroutine handle_err(status,file,line)
+      !
+      ! Report a netCDF error with file name and line number.
+      !
+      ! Called from: the NF90 preprocessor macro, used throughout this module
       !
       integer, intent ( in)    :: status
       character(*), intent(in) :: file

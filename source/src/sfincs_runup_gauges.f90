@@ -1,10 +1,26 @@
 module sfincs_runup_gauges
+   !
+   ! Run-up gauges: reads the rug file and determines the run-up level along each gauge
+   ! transect.
+   !
+   ! Subroutines / functions:
+   !
+   !   read_rug_file()
+   !     Read the run-up gauges file and find the grid cells along each transect.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   get_runup_levels(zru)
+   !     Determine the run-up level zru at each run-up gauge.
+   !     Called from: ncoutput_update_his (sfincs_ncoutput)
+   !
 
 contains
 
    subroutine read_rug_file()
    !
    ! Reads rug file
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    use sfincs_data
    use geometry
@@ -136,6 +152,10 @@ contains
 
    
    subroutine get_runup_levels(zru)
+   !
+   ! Determine the run-up level zru at each run-up gauge.
+   !
+   ! Called from: ncoutput_update_his (sfincs_ncoutput)
    !
    use sfincs_data
    !

@@ -1,6 +1,78 @@
 #define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)   
 module sfincs_ncinput
    !
+   ! netCDF input: FEWS-compatible boundary, discharge and meteo files, and generic readers
+   ! for variables stored on the quadtree mesh.
+   !
+   ! Subroutines / functions:
+   !
+   !   read_netcdf_boundary_data()
+   !     Read the water level boundary points and time series from a FEWS-compatible netCDF
+   !     file.
+   !     Called from: read_boundary_data (sfincs_boundaries)
+   !
+   !   read_netcdf_discharge_data(netsrcdisfile, nr_discharge_points)
+   !     Read the river discharge points and time series from a FEWS-compatible netCDF file.
+   !     Called from: initialize_discharges (sfincs_discharges)
+   !
+   !   read_netcdf_storage_volume()
+   !     Empty placeholder for reading the storage volume.
+   !     Called from: not called (currently unused)
+   !
+   !   read_netcdf_quadtree_get_dimension(ncfile, varname, var)
+   !     Return the size of a dimension in a quadtree netCDF file.
+   !     Called from: initialize_vegetation (sfincs_vegetation)
+   !
+   !   open_netcdf_quadtree_file(ncfile, nrcells)
+   !     Open a quadtree-format netCDF input file and return its number of cells.
+   !     Called from: read_netcdf_quadtree_integer (sfincs_ncinput),
+   !       read_netcdf_quadtree_to_sfincs (sfincs_ncinput),
+   !       read_netcdf_quadtree_to_sfincs_real8 (sfincs_ncinput)
+   !
+   !   read_netcdf_quadtree_to_sfincs(ncfile, varname, var)
+   !     Read a real*4 cell variable from a quadtree netCDF file and map it to the active
+   !     SFINCS cells.
+   !     Called from: initialize_roughness (sfincs_domain),
+   !       initialize_storage_volume (sfincs_domain),
+   !       initialize_bucket_model (sfincs_infiltration),
+   !       initialize_infiltration_r2d (sfincs_infiltration),
+   !       read_infiltration_field (sfincs_infiltration),
+   !       initialize_vegetation (sfincs_vegetation)
+   !
+   !   read_netcdf_quadtree_to_sfincs_real8(ncfile, varname, var)
+   !     Read a real*8 cell variable from a quadtree netCDF file and map it to the active
+   !     SFINCS cells.
+   !     Called from: set_initial_conditions (sfincs_initial_conditions)
+   !
+   !   read_netcdf_quadtree_integer(ncfile, varname, var)
+   !     Read an integer cell variable from a quadtree netCDF file and map it to the active
+   !     SFINCS cells.
+   !     Called from: initialize_vegetation (sfincs_vegetation)
+   !
+   !   read_netcdf_flag_meanings(ncfile, varname, flag_values, flag_meanings, nflags)
+   !     Read the CF flag_values and flag_meanings attributes of a netCDF variable.
+   !     Called from: initialize_vegetation (sfincs_vegetation)
+   !
+   !   read_netcdf_amuv_data()
+   !     Read gridded wind (u, v) from a netCDF file.
+   !     Called from: read_meteo_data (sfincs_meteo)
+   !
+   !   read_netcdf_amp_data()
+   !     Read gridded atmospheric pressure from a netCDF file.
+   !     Called from: read_meteo_data (sfincs_meteo)
+   !
+   !   read_netcdf_ampr_data()
+   !     Read gridded precipitation from a netCDF file.
+   !     Called from: read_meteo_data (sfincs_meteo)
+   !
+   !   read_netcdf_spw_data()
+   !     Read spiderweb (tropical cyclone) data from a netCDF file.
+   !     Called from: read_meteo_data (sfincs_meteo)
+   !
+   !   handle_err(status, file, line)
+   !     Report a netCDF error with file name and line number.
+   !     Called from: the NF90 preprocessor macro, used throughout this module
+   !
    use netcdf       
    use sfincs_spiderweb
    use sfincs_log
@@ -77,6 +149,11 @@ module sfincs_ncinput
    contains   
    
    subroutine read_netcdf_boundary_data()
+   !
+   ! Read the water level boundary points and time series from a FEWS-compatible netCDF
+   ! file.
+   !
+   ! Called from: read_boundary_data (sfincs_boundaries)
    !
    use sfincs_date   
    use netcdf
@@ -177,6 +254,8 @@ module sfincs_ncinput
    ! dependency (the owning module sfincs_discharges `use`s this module
    ! for the procedure).
    !
+   ! Called from: initialize_discharges (sfincs_discharges)
+   !
    use sfincs_date
    use netcdf
    use sfincs_data
@@ -249,6 +328,10 @@ module sfincs_ncinput
 
    subroutine read_netcdf_storage_volume()
    !
+   ! Empty placeholder for reading the storage volume.
+   !
+   ! Called from: not called (currently unused)
+   !
    !use netcdf
    use sfincs_data
    use quadtree
@@ -260,6 +343,11 @@ module sfincs_ncinput
    end subroutine
    
    subroutine read_netcdf_quadtree_get_dimension(ncfile, varname, var)
+   !
+   ! Return the size of a dimension in a quadtree netCDF file.
+   !
+   ! Called from: initialize_vegetation (sfincs_vegetation)
+   !
    ! For instance: vegetationfile, nsec, vegetation_vertical_segments
    !
    use netcdf
@@ -306,6 +394,10 @@ module sfincs_ncinput
    ! Stops SFINCS with a clear message if the file cannot be opened as netcdf
    ! (e.g. a legacy binary file) or does not contain the mesh2d_nFaces dimension.
    !
+   ! Called from: read_netcdf_quadtree_integer (sfincs_ncinput),
+   !   read_netcdf_quadtree_to_sfincs (sfincs_ncinput),
+   !   read_netcdf_quadtree_to_sfincs_real8 (sfincs_ncinput)
+   !
    use netcdf
    use sfincs_error
    !
@@ -336,6 +428,17 @@ module sfincs_ncinput
 
 
    subroutine read_netcdf_quadtree_to_sfincs(ncfile, varname, var)
+   !
+   ! Read a real*4 cell variable from a quadtree netCDF file and map it to the active SFINCS
+   ! cells.
+   !
+   ! Called from: initialize_roughness (sfincs_domain),
+   !   initialize_storage_volume (sfincs_domain),
+   !   initialize_bucket_model (sfincs_infiltration),
+   !   initialize_infiltration_r2d (sfincs_infiltration),
+   !   read_infiltration_field (sfincs_infiltration),
+   !   initialize_vegetation (sfincs_vegetation)
+   !
    ! For instance: storage_volume.nc, vol, storage_volume
    !
    use netcdf
@@ -394,6 +497,12 @@ module sfincs_ncinput
    end subroutine   
    
    subroutine read_netcdf_quadtree_to_sfincs_real8(ncfile, varname, var)
+   !
+   ! Read a real*8 cell variable from a quadtree netCDF file and map it to the active SFINCS
+   ! cells.
+   !
+   ! Called from: set_initial_conditions (sfincs_initial_conditions)
+   !
    ! For instance: storage_volume.nc, vol, storage_volume
    !
    use netcdf
@@ -455,6 +564,8 @@ module sfincs_ncinput
    subroutine read_netcdf_quadtree_integer(ncfile, varname, var)
    ! Read a 1D integer variable from a quadtree NetCDF file and map to SFINCS active cells
    !
+   ! Called from: initialize_vegetation (sfincs_vegetation)
+   !
    use netcdf
    use sfincs_data
    use quadtree
@@ -505,6 +616,8 @@ module sfincs_ncinput
    subroutine read_netcdf_flag_meanings(ncfile, varname, flag_values, flag_meanings, nflags)
    ! Read CF convention flag_values (integer array) and flag_meanings (space-separated string)
    ! attributes from a NetCDF variable and return them as separate arrays.
+   !
+   ! Called from: initialize_vegetation (sfincs_vegetation)
    !
    use netcdf
    use sfincs_error
@@ -593,6 +706,10 @@ module sfincs_ncinput
 
 
    subroutine read_netcdf_amuv_data()
+   !
+   ! Read gridded wind (u, v) from a netCDF file.
+   !
+   ! Called from: read_meteo_data (sfincs_meteo)
    !
    ! Output is made exactly the same as original read_amuv_dimensions & read_amuv_file subroutines but then with data given by netcdf file
    !
@@ -719,6 +836,10 @@ module sfincs_ncinput
    
    
    subroutine read_netcdf_amp_data()
+   !
+   ! Read gridded atmospheric pressure from a netCDF file.
+   !
+   ! Called from: read_meteo_data (sfincs_meteo)
    ! 
    ! Output is made exactly the same as original read_amp_dimensions & read_amp_file subroutines but then with data given by netcdf file
    ! 
@@ -833,6 +954,10 @@ module sfincs_ncinput
    
    
    subroutine read_netcdf_ampr_data()
+   !
+   ! Read gridded precipitation from a netCDF file.
+   !
+   ! Called from: read_meteo_data (sfincs_meteo)
    ! 
    ! Output is made exactly the same as original read_amuv_dimensions & read_amuv_file subroutines but then with data given by netcdf file
    ! 
@@ -948,6 +1073,10 @@ module sfincs_ncinput
    !
    ! 
    subroutine read_netcdf_spw_data()
+    !
+    ! Read spiderweb (tropical cyclone) data from a netCDF file.
+    !
+    ! Called from: read_meteo_data (sfincs_meteo)
     !
     ! Read the orginal (Bert) implementation
     ! 
@@ -1099,6 +1228,10 @@ module sfincs_ncinput
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    subroutine handle_err(status,file,line)
+      !
+      ! Report a netCDF error with file name and line number.
+      !
+      ! Called from: the NF90 preprocessor macro, used throughout this module
       !
       integer, intent ( in)    :: status
       character(*), intent(in) :: file

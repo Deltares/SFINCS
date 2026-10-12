@@ -1,8 +1,22 @@
 module sfincs_wave_enhanced_roughness
+   !
+   ! Wave-enhanced bed roughness: apparent roughness at the uv points due to wave-current
+   ! interaction.
+   !
+   ! Subroutines / functions:
+   !
+   !   update_wave_enhanced_roughness()
+   !     Compute the apparent roughness gnapp2 at the uv points from the wave conditions.
+   !     Called from: update_apparent_roughness (sfincs_bmi)
+   !
 
 contains
 
    subroutine update_wave_enhanced_roughness()
+   !
+   ! Compute the apparent roughness gnapp2 at the uv points from the wave conditions.
+   !
+   ! Called from: update_apparent_roughness (sfincs_bmi)
    !
    use sfincs_data
    !

@@ -1,4 +1,23 @@
    module sfincs_wavemaker
+   !
+   ! Wave makers: internal boundaries that generate (infragravity) waves along polylines,
+   ! forced by time series or by SnapWave.
+   !
+   ! Subroutines / functions:
+   !
+   !   initialize_wavemakers()
+   !     Read the wave maker polylines and forcing, and set up the wave maker points and
+   !     weights.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   update_wavemaker_fluxes(t, dt)
+   !     Update the fluxes at the wave maker uv points.
+   !     Called from: sfincs_update (sfincs_lib)
+   !
+   !   compute_wavemaker_signal(t, hig, hinc, tp_ig, tp_inc, zwav_ig, zwav_inc)
+   !     Compute the normalized infragravity and incident wave signals at time t.
+   !     Called from: update_wavemaker_fluxes (sfincs_wavemaker)
+   !
 
    use sfincs_log
    use sfincs_error
@@ -11,6 +30,8 @@
    ! Computes cross sections
    ! Determines interpolation weights
    ! Interpolates bathymetry
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    use sfincs_data
    use quadtree
@@ -1478,6 +1499,8 @@
    !
    ! Update fluxes qx and qy at wave maker points
    !
+   ! Called from: sfincs_update (sfincs_lib)
+   !
    use sfincs_data
    use sfincs_snapwave
    use sfincs_timers
@@ -1818,6 +1841,8 @@
    !
    ! The random phases and the cosine terms are updated once per time step in
    ! update_wavemaker_fluxes, so that they do not advance twice when both forcing sources are used.
+   !
+   ! Called from: update_wavemaker_fluxes (sfincs_wavemaker)
    !
    use sfincs_data
    !

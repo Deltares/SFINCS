@@ -1,5 +1,9 @@
 program sfincs
    !
+   ! Main program of the SFINCS executable. Runs a complete simulation by calling
+   ! sfincs_initialize, sfincs_update and sfincs_finalize from sfincs_lib, and exits with
+   ! the error code they return.
+   !
    use sfincs_data 
    use sfincs_lib
    !

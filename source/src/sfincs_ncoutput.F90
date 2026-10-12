@@ -137,6 +137,47 @@
 ! ============================================================================
 module sfincs_ncoutput
    !
+   ! netCDF output of the map file (sfincs_map.nc) and the his file (sfincs_his.nc). See the
+   ! description above the module statement.
+   !
+   ! Subroutines / functions:
+   !
+   !   ncoutput_map_init()
+   !     Create the map file: define dimensions, variables and attributes, and write the
+   !     static fields.
+   !     Called from: initialize_output (sfincs_output)
+   !
+   !   ncoutput_his_init()
+   !     Create the his file: define dimensions, variables and attributes, and write the
+   !     static fields.
+   !     Called from: initialize_output (sfincs_output)
+   !
+   !   ncoutput_update_map(t, ntmapout)
+   !     Write the time-varying fields to the map file.
+   !     Called from: write_output (sfincs_output)
+   !
+   !   ncoutput_update_his(t, nthisout)
+   !     Write the time series at observation points, cross-sections and structures to the
+   !     his file.
+   !     Called from: write_output (sfincs_output)
+   !
+   !   ncoutput_update_max(t, ntmaxout)
+   !     Write the maximum-value fields to the map file.
+   !     Called from: write_output (sfincs_output)
+   !
+   !   ncoutput_map_finalize()
+   !     Write the run statistics to the map file and close it.
+   !     Called from: finalize_output (sfincs_output)
+   !
+   !   ncoutput_his_finalize()
+   !     Write the run statistics to the his file and close it.
+   !     Called from: finalize_output (sfincs_output)
+   !
+   !   ncoutput_add_params(ncid, varid)
+   !     Add the user input parameters as attributes to a netCDF file.
+   !     Called from: ncoutput_his_init (sfincs_ncoutput),
+   !       ncoutput_map_init (sfincs_ncoutput)
+   !
    use netcdf
    use sfincs_ncoutput_helpers
    !
@@ -150,6 +191,8 @@ contains
    ! Merged init for both regular and quadtree grids.
    ! 1. Initialise dimensions/variables/attributes
    ! 2. Write grid/msk/zb to file
+   !
+   ! Called from: initialize_output (sfincs_output)
    !
    use sfincs_date
    use sfincs_data
@@ -810,6 +853,8 @@ contains
    ! 1. Initialise dimensions/variables/attributes
    ! 2. write grid/msk/zb to file
    !
+   ! Called from: initialize_output (sfincs_output)
+   !
    use sfincs_date
    use sfincs_data
    use sfincs_structures
@@ -1280,6 +1325,8 @@ contains
    ! and the two precompute helpers (compute_uv_at_cell_centers,
    ! compute_pnh_unwrapped) below.
    !
+   ! Called from: write_output (sfincs_output)
+   !
    use sfincs_data
    use sfincs_nonhydrostatic
    use sfincs_snapwave
@@ -1419,6 +1466,8 @@ contains
    subroutine ncoutput_update_his(t,nthisout)
    !
    ! Write time, zs, u, v, prcp etc. at observation points.
+   !
+   ! Called from: write_output (sfincs_output)
    !
    use sfincs_data
    use sfincs_crosssections
@@ -1604,6 +1653,8 @@ contains
    !
    ! Write maximum values to map file (handles both regular and quadtree grids)
    !
+   ! Called from: write_output (sfincs_output)
+   !
    use sfincs_data
    use quadtree
    use sfincs_urban_drainage, only: urban_drainage_cumulative_volume
@@ -1726,6 +1777,8 @@ contains
    !
    ! Add total runtime, dtavg to file and close
    !
+   ! Called from: finalize_output (sfincs_output)
+   !
    use sfincs_data
    use sfincs_timers, only: timer_elapsed
    !
@@ -1757,6 +1810,8 @@ contains
    subroutine ncoutput_his_finalize()
    ! Add total runtime, dtavg to file and close
    !
+   ! Called from: finalize_output (sfincs_output)
+   !
    use sfincs_data
    use sfincs_src_structures, only: nr_src_structures
    use sfincs_discharges,     only: nr_discharge_points
@@ -1785,6 +1840,9 @@ contains
    !
    subroutine ncoutput_add_params(ncid, varid)
    ! Add user params to netcdf file (both map & his)
+   !
+   ! Called from: ncoutput_his_init (sfincs_ncoutput), ncoutput_map_init (sfincs_ncoutput)
+   !
    use sfincs_data
    use sfincs_src_structures, only: drnfile
    use sfincs_discharges,     only: srcfile, disfile, netsrcdisfile

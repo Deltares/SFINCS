@@ -1,10 +1,28 @@
 module sfincs_error
    !
+   ! Error handling: stopping SFINCS with a message, and checking that input files exist.
+   !
+   ! Subroutines / functions:
+   !
+   !   stop_sfincs(message, error_code)
+   !     Write an error message to the log and stop SFINCS with the given error code.
+   !     Called from: check_file_exists (sfincs_error) and the input and initialization
+   !       routines of many modules
+   !
+   !   check_file_exists(file_name, file_type, stop_on_error)
+   !     Check whether a file exists; optionally stop SFINCS when it does not.
+   !     Called from: the input-reading routines of nearly all modules
+   !
    use sfincs_log
    !
    contains
    !
    subroutine stop_sfincs(message, error_code)
+   !
+   ! Write an error message to the log and stop SFINCS with the given error code.
+   !
+   ! Called from: check_file_exists (sfincs_error) and the input and initialization routines
+   !   of many modules
    !
    implicit none
    !
@@ -21,6 +39,8 @@ module sfincs_error
    !
    ! Checks if file exists
    ! Returns true or false 
+   !
+   ! Called from: the input-reading routines of nearly all modules
    !
    use sfincs_data
    !

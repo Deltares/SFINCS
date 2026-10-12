@@ -3,6 +3,66 @@ module sfincs_read
    ! Keyword readers for SFINCS input files. Use the generic
    ! get_keyword(...) interface, which supports deprecated-alias lists.
    !
+   ! Subroutines / functions:
+   !
+   !   get_keyword_real(fileid, keyword, value, default, legacy)
+   !     Read one real*4 keyword, with optional legacy aliases and a default.
+   !     Called from: the generic get_keyword interface, used by read_sfincs_input
+   !       (sfincs_input), read_snapwave_input (snapwave_input) and the readers in
+   !       sfincs_spiderweb
+   !
+   !   get_keyword_int(fileid, keyword, value, default, legacy)
+   !     Read one integer keyword.
+   !     Called from: the generic get_keyword interface, used by read_sfincs_input
+   !       (sfincs_input), read_snapwave_input (snapwave_input) and the readers in
+   !       sfincs_spiderweb
+   !
+   !   get_keyword_char(fileid, keyword, value, default, legacy)
+   !     Read one character-string keyword.
+   !     Called from: the generic get_keyword interface, used by read_sfincs_input
+   !       (sfincs_input), read_snapwave_input (snapwave_input) and the readers in
+   !       sfincs_spiderweb
+   !
+   !   get_keyword_logical(fileid, keyword, value, default, legacy)
+   !     Read one logical keyword.
+   !     Called from: the generic get_keyword interface, used by read_sfincs_input
+   !       (sfincs_input), read_snapwave_input (snapwave_input) and the readers in
+   !       sfincs_spiderweb
+   !
+   !   get_keyword_real_array(fileid, keyword, value, default, nr, legacy)
+   !     Read one whitespace-separated real*4 array keyword.
+   !     Called from: read_sfincs_input (sfincs_input)
+   !
+   !   find_value(fileid, keyword, valstr, found)
+   !     Scan an open input file for a keyword and return its value string.
+   !     Called from: read_legacy_advection (sfincs_input), get_keyword_char (sfincs_read),
+   !       get_keyword_int (sfincs_read), get_keyword_logical (sfincs_read),
+   !       get_keyword_real (sfincs_read), get_keyword_real_array (sfincs_read)
+   !
+   !   warn_legacy(legacy_key, new_key)
+   !     Write a deprecation warning for a matched legacy keyword alias.
+   !     Called from: get_keyword_char (sfincs_read), get_keyword_int (sfincs_read),
+   !       get_keyword_logical (sfincs_read), get_keyword_real (sfincs_read),
+   !       get_keyword_real_array (sfincs_read)
+   !
+   !   parse_logical(valstr)
+   !     Convert an input value string to a logical.
+   !     Called from: get_keyword_logical (sfincs_read)
+   !
+   !   read_line(line0, keystr, valstr)
+   !     Split a 'key = value' line into its key and value strings.
+   !     Called from: find_value (sfincs_read)
+   !
+   !   notabs(instr, outstr, ilen)
+   !     Expand tab characters into spaces.
+   !     Called from: read_line (sfincs_read)
+   !
+   !   is_netcdf_file(file_name)
+   !     Check whether a file name has the '.nc' extension.
+   !     Called from: quadtree_read_file (quadtree), initialize_roughness (sfincs_domain),
+   !       initialize_storage_volume (sfincs_domain),
+   !       set_initial_conditions (sfincs_initial_conditions)
+   !
    use sfincs_log, only: write_log
    !
    implicit none

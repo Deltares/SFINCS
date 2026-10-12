@@ -1,4 +1,22 @@
 module sfincs_data
+   !
+   ! Global data of SFINCS: input parameters, process flags, grid and index arrays, and all
+   ! state and forcing variables shared between the modules.
+   !
+   ! Subroutines / functions:
+   !
+   !   fill_h73_tables()
+   !     Fill the lookup tables for the h**(7/3) calculations.
+   !     Called from: initialize_domain (sfincs_domain)
+   !
+   !   initialize_parameters()
+   !     Legacy initialization of local time-loop parameters.
+   !     Called from: not called (currently unused)
+   !
+   !   finalize_parameters()
+   !     Deallocate the global arrays.
+   !     Called from: not called (the call in sfincs_finalize (sfincs_lib) is commented out)
+   !
 
       !!! Revision data
       character*256 :: build_revision, build_date
@@ -857,6 +875,8 @@ module sfincs_data
    !
    ! Fill lookup tables for h**(7/3) calculations
    !
+   ! Called from: initialize_domain (sfincs_domain)
+   !
    implicit none
    !
    integer :: j, k
@@ -879,6 +899,10 @@ module sfincs_data
    end subroutine
    
    subroutine initialize_parameters()
+      !
+      ! Legacy initialization of local time-loop parameters.
+      !
+      ! Called from: not called (currently unused)
       !
       implicit none
       !
@@ -915,6 +939,10 @@ module sfincs_data
 
 
    subroutine finalize_parameters()
+   !
+   ! Deallocate the global arrays.
+   !
+   ! Called from: not called (the call in sfincs_finalize (sfincs_lib) is commented out)
    !
    implicit none
    !

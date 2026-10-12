@@ -1,5 +1,101 @@
 module sfincs_bmi
    !
+   ! Basic Model Interface (BMI) of SFINCS. C-bound functions that let an external program
+   ! initialize, step and finalize the model, and get pointers to (and metadata of) its
+   ! variables.
+   !
+   ! Subroutines / functions:
+   !
+   !   initialize()
+   !     Initialize the model in BMI mode.
+   !     Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
+   !   update()
+   !     Advance the model by a single time step.
+   !     Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
+   !   update_until(t_target)
+   !     Advance the model over the time interval t_target.
+   !     Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
+   !   finalize()
+   !     Finalize the model.
+   !     Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
+   !   get_value_ptr(c_var_name, c_data)
+   !     Return a C pointer to the model variable with the given name.
+   !     Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
+   !   get_var_shape(c_var_name, var_shape)
+   !     Return the shape of the model variable with the given name.
+   !     Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
+   !   get_var_type(c_var_name, c_type)
+   !     Return the data type of the model variable with the given name.
+   !     Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
+   !   get_var_rank(c_var_name, rank)
+   !     Return the rank of the model variable with the given name.
+   !     Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
+   !   set_logical(c_flag_name, ival)
+   !     Set a logical model flag by name (e.g. switch the external source qext on or off).
+   !     Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
+   !   get_start_time(tstart)
+   !     Return the simulation start time.
+   !     Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
+   !   get_end_time(tend)
+   !     Return the simulation end time.
+   !     Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
+   !   get_time_step(deltat)
+   !     Return the current time step.
+   !     Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
+   !   get_current_time(tcurrent)
+   !     Return the current simulation time.
+   !     Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
+   !   update_zbuv()
+   !     Update the bed level at the uv points.
+   !     Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
+   !   update_apparent_roughness()
+   !     Update the apparent (wave-enhanced) roughness at the uv points.
+   !     Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
+   !   get_sfincs_cell_index(x, y, indx)
+   !     Return the (1-based) index of the SFINCS cell that contains point (x, y).
+   !     Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
+   !   get_sfincs_cell_indices(x, y, indx, n)
+   !     Return the (1-based) SFINCS cell indices for n points (x, y).
+   !     Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
+   !   get_sfincs_cell_area(indx, area)
+   !     Return the area of the cell with the given index.
+   !     Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
+   !   get_last_bmi_error(c_error)
+   !     Return the last BMI error message.
+   !     Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
+   !   strlen(char_array, max_len)
+   !     Length of a null-terminated C character array.
+   !     Called from: get_value_ptr (sfincs_bmi), get_var_rank (sfincs_bmi),
+   !       get_var_shape (sfincs_bmi), get_var_type (sfincs_bmi), set_logical (sfincs_bmi)
+   !
+   !   char_array_to_string(char_array, length)
+   !     Convert a C character array to a Fortran string.
+   !     Called from: get_value_ptr (sfincs_bmi), get_var_rank (sfincs_bmi),
+   !       get_var_shape (sfincs_bmi), get_var_type (sfincs_bmi), set_logical (sfincs_bmi)
+   !
+   !   string_to_char_array(string, length)
+   !     Convert a Fortran string to a null-terminated C character array.
+   !     Called from: get_last_bmi_error (sfincs_bmi), get_var_type (sfincs_bmi)
+   !
    use iso_c_binding
    use sfincs_lib
    use sfincs_data
@@ -55,6 +151,11 @@ contains
    
    function initialize() result(ierr) bind(C, name="initialize")
    !DEC$ ATTRIBUTES DLLEXPORT :: initialize
+      !
+      ! Initialize the model in BMI mode.
+      !
+      ! Called from: external BMI caller, through the C interface (e.g. a model coupler)
+      !
       integer(kind=c_int) :: ierr
       bmi  = .true.
       use_qext = .true.
@@ -64,6 +165,11 @@ contains
    
    function update() result(ierr) bind(C, name="update")
    !DEC$ ATTRIBUTES DLLEXPORT :: update
+      !
+      ! Advance the model by a single time step.
+      !
+      ! Called from: external BMI caller, through the C interface (e.g. a model coupler)
+      !
       integer(kind=c_int) :: ierr
       real*8 :: unused_t
       ! Run single time step      
@@ -74,6 +180,11 @@ contains
    
    function update_until(t_target) result(ierr) bind(C, name="update_until")
    !DEC$ ATTRIBUTES DLLEXPORT :: update_until  
+      !
+      ! Advance the model over the time interval t_target.
+      !
+      ! Called from: external BMI caller, through the C interface (e.g. a model coupler)
+      !
       real(kind=c_double), value, intent(in) :: t_target
       integer(kind=c_int) :: ierr
 
@@ -86,6 +197,11 @@ contains
    
    function finalize() result(ierr) bind(C, name="finalize")
    !DEC$ ATTRIBUTES DLLEXPORT :: finalize
+   !
+   ! Finalize the model.
+   !
+   ! Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
    integer(kind=c_int) :: ierr
    
    ierr = sfincs_finalize()
@@ -95,6 +211,11 @@ contains
    function get_value_ptr(c_var_name, c_data) result(ierr) &
       bind(C, name="get_value_ptr")
    !DIR$ ATTRIBUTES DLLEXPORT :: get_value_ptr
+      !
+      ! Return a C pointer to the model variable with the given name.
+      !
+      ! Called from: external BMI caller, through the C interface (e.g. a model coupler)
+      !
       character(kind=c_char), intent(in) :: c_var_name(*)
       type(c_ptr), intent(inout) :: c_data
       integer(kind=c_int) :: ierr
@@ -137,6 +258,11 @@ contains
    function get_var_shape(c_var_name, var_shape) result(ierr) &
       bind(C, name="get_var_shape")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_var_shape
+      !
+      ! Return the shape of the model variable with the given name.
+      !
+      ! Called from: external BMI caller, through the C interface (e.g. a model coupler)
+      !
       character(kind=c_char), intent(in) :: c_var_name(*)
       integer(c_int), intent(inout) :: var_shape(6)
       character(len=strlen(c_var_name, BMI_LENVARADDRESS)) :: var_name
@@ -165,6 +291,11 @@ contains
    function get_var_type(c_var_name, c_type) result(ierr) &
       bind(C, name="get_var_type")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_var_type   
+      !
+      ! Return the data type of the model variable with the given name.
+      !
+      ! Called from: external BMI caller, through the C interface (e.g. a model coupler)
+      !
       character(kind=c_char), intent(in) :: c_var_name(*)
       character(kind=c_char), intent(out) ::  c_type(BMI_LENVARTYPE)
       character(len=BMI_LENVARADDRESS-1) :: var_name
@@ -193,6 +324,11 @@ contains
    function get_var_rank(c_var_name, rank) result(ierr) &
       bind(C, name="get_var_rank")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_var_rank
+      !
+      ! Return the rank of the model variable with the given name.
+      !
+      ! Called from: external BMI caller, through the C interface (e.g. a model coupler)
+      !
       character(kind=c_char), intent(in) :: c_var_name(*)
       integer(c_int), intent(out) :: rank
       integer(kind=c_int) :: ierr
@@ -214,6 +350,11 @@ contains
 
    function set_logical(c_flag_name, ival) result(ierr) bind(C, name="set_logical")
    !DEC$ ATTRIBUTES DLLEXPORT :: set_logical
+      !
+      ! Set a logical model flag by name (e.g. switch the external source qext on or off).
+      !
+      ! Called from: external BMI caller, through the C interface (e.g. a model coupler)
+      !
       character(kind=c_char), intent(in) :: c_flag_name(*)
       integer(kind=c_int) :: ival(*)
       integer(kind=c_int) :: ierr
@@ -245,6 +386,11 @@ contains
       
    function get_start_time(tstart) result(ierr) bind(C, name="get_start_time")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_start_time
+      !
+      ! Return the simulation start time.
+      !
+      ! Called from: external BMI caller, through the C interface (e.g. a model coupler)
+      !
       real(c_double), intent(out) :: tstart
       integer(kind=c_int) :: ierr
 
@@ -255,6 +401,11 @@ contains
       
    function get_end_time(tend) result(ierr) bind(C, name="get_end_time")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_end_time   
+      !
+      ! Return the simulation end time.
+      !
+      ! Called from: external BMI caller, through the C interface (e.g. a model coupler)
+      !
       real(c_double), intent(out) :: tend
       integer(kind=c_int) :: ierr
 
@@ -265,6 +416,11 @@ contains
       
    function get_time_step(deltat) result(ierr) bind(C, name="get_time_step")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_time_step
+      !
+      ! Return the current time step.
+      !
+      ! Called from: external BMI caller, through the C interface (e.g. a model coupler)
+      !
       real(c_double), intent(out) :: deltat
       integer(kind=c_int) :: ierr
 
@@ -275,6 +431,11 @@ contains
       
    function get_current_time(tcurrent) result(ierr) bind(C, name="get_current_time")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_current_time
+      !
+      ! Return the current simulation time.
+      !
+      ! Called from: external BMI caller, through the C interface (e.g. a model coupler)
+      !
       real(c_double), intent(out) :: tcurrent
       integer(kind=c_int) :: ierr
 
@@ -285,6 +446,9 @@ contains
 
    function update_zbuv() result(ierr) bind(C, name="update_zbuv")
    ! Update bed level at uv points
+   !
+   ! Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
    !DEC$ ATTRIBUTES DLLEXPORT :: update_zbuv
       integer(kind=c_int) :: ierr
       call compute_zbuvmx()
@@ -294,6 +458,9 @@ contains
    
    function update_apparent_roughness() result(ierr) bind(C, name="update_apparent_roughness")
    ! Update apparent roughness at uv points
+   !
+   ! Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
    !DEC$ ATTRIBUTES DLLEXPORT :: update_apparent_roughness
       integer(kind=c_int) :: ierr
       !
@@ -307,6 +474,9 @@ contains
    
    function get_sfincs_cell_index(x, y, indx) result(ierr) bind(C, name="get_sfincs_cell_index")
    ! Return (1-based) cell index of SFINCS domain
+   !
+   ! Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
    !DEC$ ATTRIBUTES DLLEXPORT :: get_sfincs_cell_index
       use quadtree
       !         
@@ -326,6 +496,9 @@ contains
 
    function get_sfincs_cell_indices(x, y, indx, n) result(ierr) bind(C, name="get_sfincs_cell_indices")
    ! Return (1-based) cell index of SFINCS domain
+   !
+   ! Called from: external BMI caller, through the C interface (e.g. a model coupler)
+   !
    !DEC$ ATTRIBUTES DLLEXPORT :: get_sfincs_cell_indices
       use quadtree
       !         
@@ -359,6 +532,10 @@ contains
    
    function get_sfincs_cell_area(indx, area) result(ierr) bind(C, name="get_sfincs_cell_area")
    !DEC$ ATTRIBUTES DLLEXPORT :: get_sfincs_cell_area
+      !
+      ! Return the area of the cell with the given index.
+      !
+      ! Called from: external BMI caller, through the C interface (e.g. a model coupler)
       !         
       integer(kind=c_int), intent(in) :: indx
       real(c_double), intent(out)     :: area
@@ -387,6 +564,11 @@ contains
    function get_last_bmi_error(c_error) result(ierr) &
       bind(C, name="get_last_bmi_error")
    !DIR$ ATTRIBUTES DLLEXPORT :: get_last_bmi_error
+      !
+      ! Return the last BMI error message.
+      !
+      ! Called from: external BMI caller, through the C interface (e.g. a model coupler)
+      !
       character(kind=c_char, len=1), intent(out) :: c_error(BMI_LENERRMESSAGE)
       integer(kind=c_int) :: ierr
 
@@ -398,6 +580,12 @@ contains
    !> @brief Returns the string length without the trailing null character
    !<
    pure function strlen(char_array, max_len) result(string_length)
+      !
+      ! Length of a null-terminated C character array.
+      !
+      ! Called from: get_value_ptr (sfincs_bmi), get_var_rank (sfincs_bmi),
+      !   get_var_shape (sfincs_bmi), get_var_type (sfincs_bmi), set_logical (sfincs_bmi)
+      !
       integer, intent(in) :: max_len
       character(c_char), intent(in) :: char_array(max_len) !< C-style character string
       integer :: string_length !< Fortran string length
@@ -416,6 +604,12 @@ contains
    !> @brief Convert C-style string to Fortran character string
    !<
    pure function char_array_to_string(char_array, length) result(f_string)
+      !
+      ! Convert a C character array to a Fortran string.
+      !
+      ! Called from: get_value_ptr (sfincs_bmi), get_var_rank (sfincs_bmi),
+      !   get_var_shape (sfincs_bmi), get_var_type (sfincs_bmi), set_logical (sfincs_bmi)
+      !
       integer(c_int), intent(in) :: length !< string length without terminating null character
       character(c_char), intent(in) :: char_array(length) !< string to convert
       character(len=length) :: f_string !< Fortran fixed length character string
@@ -430,6 +624,11 @@ contains
    !> @brief Convert Fortran string to C-style character string
    !<
    pure function string_to_char_array(string, length) result(c_array)
+      !
+      ! Convert a Fortran string to a null-terminated C character array.
+      !
+      ! Called from: get_last_bmi_error (sfincs_bmi), get_var_type (sfincs_bmi)
+      !
       integer(c_int), intent(in) :: length !< Fortran string length
       character(len=length), intent(in) :: string !< string to convert
       character(kind=c_char, len=1) :: c_array(length + 1) !< C-style character string

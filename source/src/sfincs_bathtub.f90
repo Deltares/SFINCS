@@ -1,4 +1,27 @@
 module sfincs_bathtub
+   !
+   ! Bathtub flooding mode: water levels in all cells are set directly from the interpolated
+   ! boundary water levels, without solving the momentum and continuity equations.
+   ! Optionally uses SnapWave boundary wave heights.
+   !
+   ! Subroutines / functions:
+   !
+   !   initialize_bathtub()
+   !     Set up the bathtub boundary conditions and the interpolation weights per cell.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   bathtub_compute_water_levels()
+   !     Set the water level in every cell from the weighted boundary water levels.
+   !     Called from: sfincs_update (sfincs_lib)
+   !
+   !   read_snapwave_boundary_data()
+   !     Read the SnapWave input and wave boundary points for use in bathtub mode.
+   !     Called from: initialize_bathtub (sfincs_bathtub)
+   !
+   !   update_snapwave_boundary_data(tb)
+   !     Interpolate the SnapWave boundary wave heights to time tb.
+   !     Called from: initialize_bathtub (sfincs_bathtub)
+   !
 
 integer*4, dimension(:),   allocatable :: bathtub_i1
 integer*4, dimension(:),   allocatable :: bathtub_i2
@@ -16,6 +39,8 @@ contains
    subroutine initialize_bathtub()
    !
    ! Creates bathtub boundary conditions and determines weighting factors
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    use sfincs_data
    use geometry
@@ -130,6 +155,10 @@ contains
    
    subroutine bathtub_compute_water_levels()
    !
+   ! Set the water level in every cell from the weighted boundary water levels.
+   !
+   ! Called from: sfincs_update (sfincs_lib)
+   !
    use sfincs_data
    use sfincs_timers
    use geometry
@@ -183,6 +212,10 @@ contains
 
    subroutine read_snapwave_boundary_data()
    !
+   ! Read the SnapWave input and wave boundary points for use in bathtub mode.
+   !
+   ! Called from: initialize_bathtub (sfincs_bathtub)
+   !
    use snapwave_data
    use snapwave_boundaries
    use snapwave_input, only: read_snapwave_input
@@ -213,6 +246,10 @@ contains
 
    
    subroutine update_snapwave_boundary_data(tb)
+   !
+   ! Interpolate the SnapWave boundary wave heights to time tb.
+   !
+   ! Called from: initialize_bathtub (sfincs_bathtub)
    !
    use snapwave_data
    use snapwave_boundaries   

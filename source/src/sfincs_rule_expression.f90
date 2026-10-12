@@ -27,6 +27,54 @@ module sfincs_rule_expression
    ! The evaluator is a small fixed-depth logical stack machine that is
    ! ACC-safe (no allocations, no strings, no I/O).
    !
+   ! Subroutines / functions:
+   !
+   !   add_rule(src, rule_id, ierr, errmsg)
+   !     Parse a rule expression, store its bytecode and return the new rule_id.
+   !     Called from: initialize_src_structures (sfincs_src_structures)
+   !
+   !   finalize_rule_storage()
+   !     Shrink the rule arrays to their final size.
+   !     Called from: initialize_src_structures (sfincs_src_structures)
+   !
+   !   evaluate_rule(rule_id, z1, z2, t)
+   !     Evaluate a compiled rule for water levels z1, z2 and time t.
+   !     Called from: initialize_src_structures (sfincs_src_structures),
+   !       update_src_structures (sfincs_src_structures)
+   !
+   !   grow_rule_storage(min_capacity)
+   !     Make sure the rule bytecode arrays hold at least min_capacity entries.
+   !     Called from: add_rule (sfincs_rule_expression)
+   !
+   !   grow_rule_registry(min_capacity)
+   !     Make sure the rule registry holds at least min_capacity entries.
+   !     Called from: add_rule (sfincs_rule_expression)
+   !
+   !   parse_rule_expression(src, ops, atoms, cmps, thresholds, nops, ierr, errmsg)
+   !     Compile a rule string to reverse-polish bytecode.
+   !     Called from: add_rule (sfincs_rule_expression)
+   !
+   !   tokenize_rule(...)
+   !     Split a rule string into tokens.
+   !     Called from: parse_rule_expression (sfincs_rule_expression)
+   !
+   !   parse_or_expr(...)
+   !     Parse an or-expression.
+   !     Called from: parse_comp (sfincs_rule_expression),
+   !       parse_rule_expression (sfincs_rule_expression)
+   !
+   !   parse_and_expr(...)
+   !     Parse an and-expression.
+   !     Called from: parse_or_expr (sfincs_rule_expression)
+   !
+   !   parse_comp(...)
+   !     Parse a parenthesised expression or a single comparison.
+   !     Called from: parse_and_expr (sfincs_rule_expression)
+   !
+   !   to_lower_local(str)
+   !     Return a lowercase copy of a string.
+   !     Called from: tokenize_rule (sfincs_rule_expression)
+   !
    implicit none
    !
    private
@@ -112,6 +160,8 @@ contains
    ! src returns rule_id = 0 (the "never fires" sentinel; no registry
    ! entry is created). On parse failure ierr /= 0, rule_id = 0, and
    ! errmsg carries the diagnostic.
+   !
+   ! Called from: initialize_src_structures (sfincs_src_structures)
    !
    implicit none
    !
@@ -210,6 +260,8 @@ contains
    ! everything is allocated to size 0 so downstream openacc directives
    ! can reference the arrays safely.
    !
+   ! Called from: initialize_src_structures (sfincs_src_structures)
+   !
    implicit none
    !
    integer, allocatable :: tmp_i(:)
@@ -282,6 +334,9 @@ contains
    ! ("never fires"). Comparisons are done in double precision so that
    ! t keeps its full resolution; for the z atoms this gives the same
    ! result as a single-precision comparison.
+   !
+   ! Called from: initialize_src_structures (sfincs_src_structures),
+   !   update_src_structures (sfincs_src_structures)
    !
    !$acc routine seq
    !
@@ -406,6 +461,8 @@ contains
    ! max(initial_capacity, min_capacity). On subsequent growth, doubles
    ! until the requested capacity fits. Existing contents are preserved.
    !
+   ! Called from: add_rule (sfincs_rule_expression)
+   !
    implicit none
    !
    integer, intent(in) :: min_capacity
@@ -458,6 +515,8 @@ contains
    ! subsequent growth, doubles until the requested capacity fits.
    ! Existing contents are preserved.
    !
+   ! Called from: add_rule (sfincs_rule_expression)
+   !
    implicit none
    !
    integer, intent(in) :: min_capacity
@@ -497,6 +556,8 @@ contains
    ! Recursive-descent parser that compiles a rule string to reverse-
    ! polish bytecode in four parallel arrays. op_cmp entries use all
    ! three of atoms / cmps / thresholds; op_and / op_or use only opcode.
+   !
+   ! Called from: add_rule (sfincs_rule_expression)
    !
    implicit none
    !
@@ -567,6 +628,8 @@ contains
    ! One-pass tokenizer. Emits fixed-size parallel arrays: kind, atom
    ! code, number value, source position. Token kinds match the
    ! parameters above in parse_rule_expression.
+   !
+   ! Called from: parse_rule_expression (sfincs_rule_expression)
    !
    implicit none
    !
@@ -924,6 +987,9 @@ contains
    ! next token is 'or', consumes it, parses another and-expression,
    ! and emits op_or.
    !
+   ! Called from: parse_comp (sfincs_rule_expression),
+   !   parse_rule_expression (sfincs_rule_expression)
+   !
    implicit none
    !
    integer,          intent(in)    :: tok_kind(:), tok_atom(:), tok_pos(:)
@@ -977,6 +1043,8 @@ contains
    ! Parse an and-expression. Emits a parse_comp, then while the next
    ! token is 'and', consumes it, parses another comp, and emits op_and.
    !
+   ! Called from: parse_or_expr (sfincs_rule_expression)
+   !
    implicit none
    !
    integer,          intent(in)    :: tok_kind(:), tok_atom(:), tok_pos(:)
@@ -1029,6 +1097,8 @@ contains
    !
    ! Parse either a parenthesised expression or a leaf comparison
    ! "atom <|> number". Emits op_cmp for the leaf case.
+   !
+   ! Called from: parse_and_expr (sfincs_rule_expression)
    !
    implicit none
    !
@@ -1184,6 +1254,8 @@ contains
    ! Return a lowercase copy of str (ASCII only). Local to this module
    ! so rule-parsing doesn't depend on sfincs_src_structures for a case
    ! fold; the trivial duplication is worth the decoupling.
+   !
+   ! Called from: tokenize_rule (sfincs_rule_expression)
    !
    implicit none
    !

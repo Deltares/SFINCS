@@ -1,6 +1,31 @@
 #define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)
 module sfincs_subgrid
    !
+   ! Subgrid tables: reads the subgrid file (netCDF or binary) and computes the initial cell
+   ! volumes.
+   !
+   ! Subroutines / functions:
+   !
+   !   read_subgrid_file()
+   !     Read the subgrid file, in netCDF or original binary format.
+   !     Called from: initialize_bathymetry (sfincs_domain)
+   !
+   !   read_subgrid_file_netcdf()
+   !     Read the subgrid tables from a netCDF file.
+   !     Called from: read_subgrid_file (sfincs_subgrid)
+   !
+   !   read_subgrid_file_original()
+   !     Read the subgrid tables from an original (binary) file.
+   !     Called from: read_subgrid_file (sfincs_subgrid)
+   !
+   !   compute_initial_subgrid_volumes()
+   !     Compute the initial water volume in each cell from the subgrid tables.
+   !     Called from: initialize_hydro (sfincs_domain)
+   !
+   !   handle_err(status, file, line)
+   !     Report a netCDF error with file name and line number.
+   !     Called from: the NF90 preprocessor macro, used throughout this module
+   !
    use netcdf       
    use sfincs_log
    use sfincs_error
@@ -18,6 +43,10 @@ module sfincs_subgrid
 contains
 
    subroutine read_subgrid_file()
+   !
+   ! Read the subgrid file, in netCDF or original binary format.
+   !
+   ! Called from: initialize_bathymetry (sfincs_domain)
    !
    use sfincs_data
    !
@@ -55,6 +84,10 @@ contains
 
 
    subroutine read_subgrid_file_netcdf()
+   !
+   ! Read the subgrid tables from a netCDF file.
+   !
+   ! Called from: read_subgrid_file (sfincs_subgrid)
    !
    use sfincs_data
    use quadtree
@@ -456,6 +489,10 @@ contains
 
 
    subroutine read_subgrid_file_original()
+   !
+   ! Read the subgrid tables from an original (binary) file.
+   !
+   ! Called from: read_subgrid_file (sfincs_subgrid)
    !
    use sfincs_data
    use quadtree
@@ -906,6 +943,10 @@ contains
 
    subroutine compute_initial_subgrid_volumes()
    !
+   ! Compute the initial water volume in each cell from the subgrid tables.
+   !
+   ! Called from: initialize_hydro (sfincs_domain)
+   !
    use sfincs_data
    !
    implicit none
@@ -962,6 +1003,10 @@ contains
    end subroutine
 
    subroutine handle_err(status,file,line)
+      !
+      ! Report a netCDF error with file name and line number.
+      !
+      ! Called from: the NF90 preprocessor macro, used throughout this module
       !
       integer, intent ( in)    :: status
       character(*), intent(in) :: file

@@ -1,5 +1,18 @@
 module sfincs_openacc
    !
+   ! OpenACC (GPU) memory management: copies the model arrays to the device and removes them
+   ! again.
+   !
+   ! Subroutines / functions:
+   !
+   !   initialize_openacc()
+   !     Copy the model arrays to GPU memory.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   finalize_openacc()
+   !     Delete the model arrays from GPU memory.
+   !     Called from: sfincs_finalize (sfincs_lib)
+   !
    use sfincs_data
    use sfincs_src_structures
    use sfincs_discharges,      only: qtsrc, nmindsrc
@@ -18,6 +31,10 @@ module sfincs_openacc
 contains
    !
    subroutine initialize_openacc()
+   !
+   ! Copy the model arrays to GPU memory.
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    !call acc_init( acc_device_nvidia )
    !
@@ -76,6 +93,10 @@ contains
    end subroutine
    !
    subroutine finalize_openacc()
+   !
+   ! Delete the model arrays from GPU memory.
+   !
+   ! Called from: sfincs_finalize (sfincs_lib)
    !
    !$acc exit data delete( kcs, kfuv, kcuv, zs, zs0, zsderv, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, zvolmax, maxzsm, qmax, vmax, twet, zsm, z_volume, &
    !$acc               z_flags_iref, uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &

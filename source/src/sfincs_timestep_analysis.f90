@@ -1,5 +1,27 @@
 module sfincs_timestep_analysis
    !
+   ! Time step analysis: tracks which uv points limit the time step and reports them at the
+   ! end of the run.
+   !
+   ! Subroutines / functions:
+   !
+   !   initialize_timestep_analysis()
+   !     Allocate and initialize the time step statistics arrays.
+   !     Called from: initialize_domain (sfincs_domain)
+   !
+   !   timestep_analysis_update(min_dt)
+   !     Update the running time step statistics after the momentum step.
+   !     Called from: sfincs_update (sfincs_lib)
+   !
+   !   timestep_analysis_finalize(nt)
+   !     Compute the average required time step and the percentage of time limiting, per
+   !     cell.
+   !     Called from: sfincs_finalize (sfincs_lib)
+   !
+   !   timestep_analysis_write_log()
+   !     Write the most time step-limiting uv point to the log.
+   !     Called from: sfincs_finalize (sfincs_lib)
+   !
    use sfincs_data
    use sfincs_log
    !
@@ -8,6 +30,10 @@ module sfincs_timestep_analysis
    contains
    !
    subroutine initialize_timestep_analysis()
+      !
+      ! Allocate and initialize the time step statistics arrays.
+      !
+      ! Called from: initialize_domain (sfincs_domain)
       ! 
       allocate(timestep_analysis_average_required_timestep(npuv))
       allocate(timestep_analysis_required_timestep(npuv))
@@ -28,6 +54,8 @@ module sfincs_timestep_analysis
       ! Update running statistics immediately after compute_fluxes.
       ! timestep_analysis_required_timestep was initialised to dtmax in compute_fluxes; wet cells
       ! have a computed value < dtmax, dry cells retain dtmax and are skipped.
+      !
+      ! Called from: sfincs_update (sfincs_lib)
       !
       real*4, intent(in) :: min_dt
       integer            :: ip
@@ -77,6 +105,8 @@ module sfincs_timestep_analysis
    subroutine timestep_analysis_finalize(nt)
    !
    ! Compute average time step per cell and times limiting once at end of simulation
+   !
+   ! Called from: sfincs_finalize (sfincs_lib)
    !
    use sfincs_data
    !
@@ -199,6 +229,10 @@ module sfincs_timestep_analysis
    
    
    subroutine timestep_analysis_write_log()    
+      !
+      ! Write the most time step-limiting uv point to the log.
+      !
+      ! Called from: sfincs_finalize (sfincs_lib)
       !      
       integer :: ip, nm, nmu
       real*4 :: xuv, yuv, percentage_limiting, max_times_limiting, max_times_wet

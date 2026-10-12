@@ -1,4 +1,63 @@
 module sfincs_date
+   !
+   ! Date and time utilities: Julian dates, conversion between date strings and seconds
+   ! since the reference time, and time differences. See the notes below.
+   !
+   ! Subroutines / functions:
+   !
+   !   SetYMD(ky, km, kd, zfraction)
+   !     Convert a calendar date (year, month, day, day fraction) to a Julian date.
+   !     Called from: time_to_string (sfincs_date), time_to_vector (sfincs_date)
+   !
+   !   YMD(julian_day, ky, km, kd, zfraction)
+   !     Convert a Julian date to a calendar date (year, month, day, day fraction).
+   !     Called from: time_to_string (sfincs_date), time_to_vector (sfincs_date)
+   !
+   !   YD(julian_day, ky, kd, zfraction)
+   !     Convert a Julian date to year and day of the year.
+   !     Called from: not called (currently unused)
+   !
+   !   time_difference(datespw, datesim, dtsec)
+   !     Difference in seconds between two date strings (yyyymmdd HHMMSS).
+   !     Called from: read_sfincs_input (sfincs_input),
+   !       compute_time_in_seconds (sfincs_spiderweb)
+   !
+   !   julian_date(yyyy, mm, dd)
+   !     Convert a calendar date to a Julian day number.
+   !     Called from: convert_fewsdate (sfincs_date), convert_spw_nc_date (sfincs_date),
+   !       time_difference (sfincs_date)
+   !
+   !   date_to_iso8601(date_string)
+   !     Convert a date string (yyyymmdd HHMMSS) to ISO 8601 format.
+   !     Called from: ncoutput_his_init (sfincs_ncoutput),
+   !       ncoutput_map_init (sfincs_ncoutput)
+   !
+   !   convert_fewsdate(timein, timent, treftimefews, trefstr)
+   !     Convert FEWS netCDF times (minutes since the reference time in the file) to seconds
+   !     since tref.
+   !     Called from: read_netcdf_amp_data (sfincs_ncinput),
+   !       read_netcdf_ampr_data (sfincs_ncinput), read_netcdf_amuv_data (sfincs_ncinput),
+   !       read_netcdf_boundary_data (sfincs_ncinput),
+   !       read_netcdf_discharge_data (sfincs_ncinput),
+   !       read_netcdf_wave_boundary_data (snapwave_ncinput)
+   !
+   !   convert_spw_nc_date(timein, timent, treftimefews, trefstr)
+   !     Convert netCDF spiderweb times (days since a reference date) to seconds since tref.
+   !     Called from: not called (currently unused)
+   !
+   !   time_to_string(t_sec, tref_string)
+   !     Convert seconds since tref to a date string (yyyymmdd.HHMMSS).
+   !     Called from: write_rst_file (sfincs_output)
+   !
+   !   time_to_vector(t_sec, tref_string)
+   !     Convert seconds since tref to a date-time vector (year, month, day, hour, minute,
+   !     second).
+   !     Called from: read_boundary_data (sfincs_boundaries)
+   !
+   !   timer(t)
+   !     Return the wall-clock time in seconds from system_clock.
+   !     Called from: not called (currently unused)
+   !
 
    
   IMPLICIT NONE
@@ -63,6 +122,11 @@ module sfincs_date
 CONTAINS
 
   FUNCTION SetYMD (ky, km, kd, zfraction) RESULT (julian_day)
+    !
+    ! Convert a calendar date (year, month, day, day fraction) to a Julian date.
+    !
+    ! Called from: time_to_string (sfincs_date), time_to_vector (sfincs_date)
+    !
 
     TYPE (j_date) :: julian_day
     
@@ -115,6 +179,11 @@ CONTAINS
   END FUNCTION SetYMD
 
   SUBROUTINE YMD (julian_day, ky, km, kd, zfraction)
+    !
+    ! Convert a Julian date to a calendar date (year, month, day, day fraction).
+    !
+    ! Called from: time_to_string (sfincs_date), time_to_vector (sfincs_date)
+    !
     
     TYPE (j_date), INTENT(IN) :: julian_day
     INTEGER, INTENT(OUT) :: km, kd, ky
@@ -143,6 +212,11 @@ CONTAINS
   END SUBROUTINE YMD
 
   SUBROUTINE YD (julian_day, ky, kd, zfraction)
+    !
+    ! Convert a Julian date to year and day of the year.
+    !
+    ! Called from: not called (currently unused)
+    !
     
     TYPE (j_date), INTENT(IN) :: julian_day
     INTEGER, INTENT(OUT) :: kd, ky
@@ -182,6 +256,11 @@ CONTAINS
    ! 
    subroutine time_difference(datespw,datesim,dtsec)
        !
+       ! Difference in seconds between two date strings (yyyymmdd HHMMSS).
+       !
+       ! Called from: read_sfincs_input (sfincs_input),
+       !   compute_time_in_seconds (sfincs_spiderweb)
+       !
        integer*8 ijul1, ijul2     
        integer*4 yyyy1,mm1,dd1,hh1,mn1,ss1,yyyy2,mm2,dd2,hh2,mn2,ss2
        integer*8 dtsec,sec1,sec2
@@ -207,6 +286,10 @@ CONTAINS
        ! converts calendar date to Julian date
        ! cf Fliegel & Van Flandern, CACM 11(10):657, 1968
        ! example: julian_date(1970,1,1)=2440588
+       !
+       ! Called from: convert_fewsdate (sfincs_date), convert_spw_nc_date (sfincs_date),
+       !   time_difference (sfincs_date)
+       !
        INTEGER,INTENT(IN) :: yyyy,mm,dd
        INTEGER :: julian
        julian = dd-32075+1461*(yyyy+4800+(mm-14)/12)/4 + &
@@ -215,6 +298,12 @@ CONTAINS
    END FUNCTION julian_date
    !
    function date_to_iso8601(date_string) result (date_iso8601)
+       !
+       ! Convert a date string (yyyymmdd HHMMSS) to ISO 8601 format.
+       !
+       ! Called from: ncoutput_his_init (sfincs_ncoutput),
+       !   ncoutput_map_init (sfincs_ncoutput)
+       !
        character(len=*), intent(in) :: date_string
        character*256 :: date_iso8601
        integer yyyy,mm,dd,hh,mn,ss
@@ -228,6 +317,15 @@ CONTAINS
    end function   
    !   
    function convert_fewsdate(timein, timent, treftimefews, trefstr) result (timeout)
+       !
+       ! Convert FEWS netCDF times (minutes since the reference time in the file) to seconds
+       ! since tref.
+       !
+       ! Called from: read_netcdf_amp_data (sfincs_ncinput),
+       !   read_netcdf_ampr_data (sfincs_ncinput), read_netcdf_amuv_data (sfincs_ncinput),
+       !   read_netcdf_boundary_data (sfincs_ncinput),
+       !   read_netcdf_discharge_data (sfincs_ncinput),
+       !   read_netcdf_wave_boundary_data (snapwave_ncinput)
        !
        implicit none
        !
@@ -261,6 +359,10 @@ CONTAINS
    end function      
    !
    function convert_spw_nc_date(timein, timent, treftimefews, trefstr) result (timeout)
+       !
+       ! Convert netCDF spiderweb times (days since a reference date) to seconds since tref.
+       !
+       ! Called from: not called (currently unused)
        !
        implicit none
        !
@@ -296,6 +398,10 @@ CONTAINS
    end function      
    !   
    function time_to_string(t_sec, tref_string) result (date_string)
+       !
+       ! Convert seconds since tref to a date string (yyyymmdd.HHMMSS).
+       !
+       ! Called from: write_rst_file (sfincs_output)
        !   
        character*15                 :: date_string
        character*15                 :: tref_string
@@ -327,6 +433,11 @@ CONTAINS
    end function
    !
    function time_to_vector(t_sec, tref_string) result (date_time_vector)
+       !
+       ! Convert seconds since tref to a date-time vector (year, month, day, hour, minute,
+       ! second).
+       !
+       ! Called from: read_boundary_data (sfincs_boundaries)
        !   
        character*15                 :: date_string
        character*15                 :: tref_string
@@ -364,6 +475,11 @@ CONTAINS
    end function   
    !
    subroutine timer(t)
+   !
+   ! Return the wall-clock time in seconds from system_clock.
+   !
+   ! Called from: not called (currently unused)
+   !
    real*4,intent(out)               :: t
    integer*8                        :: count,count_rate,count_max
    call system_clock (count,count_rate,count_max)

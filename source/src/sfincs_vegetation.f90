@@ -1,4 +1,18 @@
 module sfincs_vegetation
+   !
+   ! Vegetation: reads the vegetation properties per cell, directly or as vegetation types
+   ! with a TOML lookup table.
+   !
+   ! Subroutines / functions:
+   !
+   !   initialize_vegetation()
+   !     Read the vegetation input and set the vegetation parameters per cell.
+   !     Called from: initialize_domain (sfincs_domain)
+   !
+   !   read_vegetation_toml(...)
+   !     Parse the TOML vegetation lookup table into parameter arrays.
+   !     Called from: initialize_vegetation (sfincs_vegetation)
+   !
 
     use sfincs_log
     use sfincs_error
@@ -6,6 +20,10 @@ module sfincs_vegetation
 contains
 
     subroutine initialize_vegetation()
+    !
+    ! Read the vegetation input and set the vegetation parameters per cell.
+    !
+    ! Called from: initialize_domain (sfincs_domain)
     !
     use sfincs_data
     use sfincs_ncinput
@@ -165,6 +183,8 @@ contains
         veg_cd_lookup, veg_ah_lookup, veg_bstems_lookup, veg_nstems_lookup, max_layers)
     ! Parse the TOML vegetation lookup table and return parameter arrays (nflags x max_layers).
     ! Shorter types are zero-padded to max_layers so the output is rectangular.
+    !
+    ! Called from: initialize_vegetation (sfincs_vegetation)
     !
     use tomlf
     use sfincs_data
