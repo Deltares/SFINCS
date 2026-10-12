@@ -1,0 +1,8 @@
+# Store and check out text files with LF on every platform
+* text=auto eol=lf
+
+# Windows-only files keep CRLF
+*.bat      text eol=crlf
+*.sln      text eol=crlf
+*.vfproj   text eol=crlf
+*.vcxproj  text eol=crlf
