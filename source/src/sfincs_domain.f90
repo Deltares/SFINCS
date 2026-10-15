@@ -1771,6 +1771,8 @@ contains
    !    larger of the two updated cell-centre subgrid_z_zmin values so the uv
    !    minimum can never sit below either neighbour's minimum.
    !
+   ! The bed level at observation points (zbobs) is refreshed in both modes.
+   !
    ! The caller (Python via BMI) owns the lifecycle of dzbext: this routine
    ! does not zero it out after applying.  When use_dzbext is .false. the
    ! routine still rebuilds zbuvmx in non-subgrid mode (cheap, and matches the
@@ -1782,6 +1784,7 @@ contains
    integer :: nm
    integer :: nmu
    integer :: ilevel
+   integer :: iobs
    real*4  :: avg_dzb
    !
    if (.not. subgrid) then
@@ -1845,6 +1848,30 @@ contains
          enddo
          !
       endif
+      !
+   endif
+   !
+   ! Refresh the bed level at observation points, so that the water depth
+   ! written to the his file (hobs = zs - zbobs) follows the moving bed.
+   ! Points outside the domain (nmindobs = 0) keep their -999.0 value.
+   !
+   if (use_dzbext .and. nobs > 0 .and. allocated(zbobs)) then
+      !
+      do iobs = 1, nobs
+         !
+         nm = nmindobs(iobs)
+         !
+         if (nm > 0) then
+            !
+            if (subgrid) then
+               zbobs(iobs) = subgrid_z_zmin(nm)
+            else
+               zbobs(iobs) = zb(nm)
+            endif
+            !
+         endif
+         !
+      enddo
       !
    endif
    !
