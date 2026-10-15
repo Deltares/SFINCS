@@ -1,5 +1,7 @@
 module sfincs_continuity
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Water-level / volume update stage of the SFINCS time step. Runs after
    ! sfincs_momentum has produced the face fluxes q on each cell edge and
    ! is responsible for closing the volume balance on every active cell.
@@ -35,6 +37,34 @@ module sfincs_continuity
    !     from update_continuity only when any of store_maximum_velocity,
    !     store_maximum_flux or store_twet is enabled.
    !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
 contains
    !
    !-----------------------------------------------------------------------------------------------------!
@@ -45,6 +75,10 @@ contains
       ! for one time step. Advances zs (and z_volume on the subgrid path),
       ! and optionally updates the store_* running maxima.
       !
+      ! Input:
+      !   t  : current model time [s since tref]
+      !   dt : time step [s]
+      !
       ! Called from: sfincs_lib (main time-stepping loop).
       !
       ! Sources and sinks (all accumulated into qsrc, in m3/s):
@@ -53,7 +87,7 @@ contains
       !    2. River discharges (+/-)               => update_discharges (adds to qsrc)
       !    3. Drainage structures (+/-)            => update_src_structures (adds to qsrc)
       !    4. Infiltration rate field qinfmap (-)  => update_infiltration_map (-qinfmap * cell area,
-      !                                              flavors: con, c2d, cna, cnb, gai, hor, bkt)
+      !                                              flavors: con, c2d, cna, cnb, gai, hor, bkt, r2d)
       !    5. Urban drainage (+/-)                 => update_urban_drainage
       !    6. External source/sink qext (+/-)      => added to qsrc here (BMI coupling)
       !
@@ -179,6 +213,10 @@ contains
       ! flux divergence, handles the optional wavemaker cells (kcs == 4),
       ! updates the snapwave-filtered water level zsm, and accumulates
       ! zsmax / t_zsmax when requested.
+      !
+      ! Input:
+      !   dt : time step [s]
+      !   t  : current model time [s since tref]
       !
       ! Called from: update_continuity (when subgrid is false).
       !
@@ -386,6 +424,10 @@ contains
       ! z_volume, and recovers the new water level via subgrid table
       ! interpolation. Also handles wavemaker cells (kcs == 4), the
       ! snapwave-filtered zsm, and zsmax / t_zsmax accumulation.
+      !
+      ! Input:
+      !   dt : time step [s]
+      !   t  : current model time [s since tref]
       !
       ! Called from: update_continuity (when subgrid is true).
       !
@@ -734,6 +776,9 @@ contains
       ! of the mean of the four surrounding edge values. twet is the
       ! cumulative time a cell has been wet above twet_threshold. Kept
       ! in a separate routine to avoid the overhead when unused.
+      !
+      ! Input:
+      !   dt : time step [s]
       !
       ! Called from: update_continuity (only when any of
       ! store_maximum_velocity, store_maximum_flux or store_twet is

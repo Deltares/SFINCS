@@ -1,5 +1,47 @@
 module sfincs_momentum
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Momentum equation: computes the fluxes and velocities at the uv points every time step.
+   !
+   ! Subroutines / functions:
+   !
+   !   compute_fluxes(dt)
+   !     Compute the fluxes q and velocities uv at all uv points (regular and subgrid).
+   !     Called from: sfincs_update (sfincs_lib)
+   !
+   !   power7over3(hu)
+   !     Compute hu**(7/3), from a lookup table for small hu.
+   !     Called from: compute_fluxes (sfincs_momentum)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
    use sfincs_data
    use sfincs_timers
    !
@@ -10,6 +52,11 @@ contains
    subroutine compute_fluxes(dt)
    !
    ! Computes fluxes over subgrid u and v points
+   !
+   ! Input:
+   !   dt : time step [s]
+   !
+   ! Called from: sfincs_update (sfincs_lib)
    !
    real*4    :: dt
    !
@@ -782,6 +829,14 @@ contains
    function power7over3(hu) result(hu73)
    !
    ! Computes hu^(7/3) using a table for hu < 10^4 and hu^(7/3) for hu >= 10^4
+   !
+   ! Input:
+   !   hu   : water depth at the uv point [m]
+   !
+   ! Returns:
+   !   hu73 : hu to the power 7/3
+   !
+   ! Called from: compute_fluxes (sfincs_momentum)
    !
    real*4, intent(in) :: hu
    real*4             :: hu73

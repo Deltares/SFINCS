@@ -1,5 +1,7 @@
 module sfincs_log
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! User-facing log / screen output for SFINCS.
    !
    ! Owns sfincs.log (fid, open_log/close_log/write_log) and all the
@@ -17,7 +19,8 @@ module sfincs_log
    !     every SFINCS module that emits user-facing output.
    !
    !   write_startup_log()
-   !     Welcome banner + ASCII logo + build-revision / build-date lines.
+   !     Welcome banner + ASCII logo + licence notice + build-revision /
+   !     build-date lines.
    !     Called once from sfincs_initialize (sfincs_lib).
    !
    !   write_processes_log()
@@ -52,6 +55,34 @@ module sfincs_log
    !     in ifx that drops the leading zero for the "f0.d" edit
    !     descriptor. Returns a 32-char string, left-justified; callers
    !     use trim(fmt_real(...)) when embedding it in a larger format.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
    !
    use sfincs_timers
    !
@@ -88,6 +119,10 @@ contains
       ! Write one line to sfincs.log, optionally echoed to stdout.
       ! Called from every SFINCS module that emits user-facing output.
       !
+      ! Input:
+      !   str       : text to write
+      !   to_screen : 1 to also write to the screen, 0 for the log file only
+      !
       implicit none
       !
       character(*), intent(in) :: str
@@ -113,6 +148,16 @@ contains
       !
       ! Use anywhere a real needs to be embedded in a log line with the
       ! smallest reasonable field width.
+      !
+      ! Input:
+      !   val      : value to format
+      !   decimals : number of decimals
+      !
+      ! Returns:
+      !   s        : formatted value
+      !
+      ! Called from: write_src_structures_log_summary (sfincs_src_structures),
+      !   write_urban_drainage_log_summary (sfincs_urban_drainage)
       !
       implicit none
       !
@@ -155,7 +200,8 @@ contains
    !
    subroutine write_startup_log()
       !
-      ! Welcome banner, ASCII logo and build-revision / build-date lines.
+      ! Welcome banner, ASCII logo, licence notice and build-revision /
+      ! build-date lines.
       ! Called once at the start of sfincs_initialize (sfincs_lib),
       ! after build_revision and build_date have been set in sfincs_data.
       !
@@ -193,6 +239,14 @@ contains
       call write_log('       ..:~~~~~~~:.......:~~~~~~~:..      ', 1)
       call write_log('          ......................          ', 1)
       call write_log('              ..............              ', 1)
+      call write_log('', 1)
+      call write_log('------------------------------------------', 1)
+      call write_log('', 1)
+      call write_log('By running a SFINCS pre-compiled executable', 1)
+      call write_log('provided by Deltares, you accept the ', 1)
+      call write_log('conditions of the Deltares SFINCS FreeWare', 1)
+      call write_log('Software License Agreement, see:', 1)
+      call write_log('https://download.deltares.nl/sfincs', 1)
       call write_log('', 1)
       call write_log('------------------------------------------', 1)
       call write_log('', 1)
@@ -314,6 +368,11 @@ contains
       !
       ! Called every time step from the main loop in sfincs_lib.
       !
+      ! Input:
+      !   t  : current model time [s since tref]
+      !   t0 : simulation start time [s]
+      !   t1 : simulation end time [s]
+      !
       use sfincs_data, only: percdoneval
       !
       implicit none
@@ -360,6 +419,9 @@ contains
       ! sfincs_finalize (sfincs_lib), after the simulation loop has
       ! stopped and dtavg has been averaged.
       !
+      ! Input:
+      !   dtavg : average time step [s]
+      !
       implicit none
       !
       real, intent(in) :: dtavg
@@ -392,6 +454,9 @@ contains
       !
       ! Write the three 'Total time / Total simulation time / Time in input' header
       ! lines to the log, using the 'input' and 'simulation' named timers.
+      !
+      ! Input:
+      !   to_screen : 1 to also write to the screen, 0 for the log file only
       !
       ! Called from: write_finished_log.
       !
@@ -481,6 +546,10 @@ contains
       ! Write the runtimes.txt payload: simulation-loop wall time, input wall time,
       ! and each phase timer, in the same order and with the same keys as the
       ! previous inline implementation in sfincs_lib.f90.
+      !
+      ! Input:
+      !   unit     : unit number to use for the file
+      !   filename : name of the runtimes file
       !
       ! Called from: sfincs_finalize (sfincs_lib) when write_time_output
       ! is set.

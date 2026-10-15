@@ -1,5 +1,53 @@
 module sfincs_initial_conditions
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Initial conditions: sets the initial water levels and fluxes, from sfincs.inp, an
+   ! initial water level file or a restart file.
+   !
+   ! Subroutines / functions:
+   !
+   !   set_initial_conditions()
+   !     Set the initial water levels, fluxes and velocities for the chosen type of initial
+   !     condition.
+   !     Called from: initialize_hydro (sfincs_domain)
+   !
+   !   read_binary_restart_file()
+   !     Read the binary restart file.
+   !     Called from: set_initial_conditions (sfincs_initial_conditions)
+   !
+   !   read_zsini_file()
+   !     Read the binary initial water level file.
+   !     Called from: set_initial_conditions (sfincs_initial_conditions)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
    use sfincs_data
    use sfincs_log
    use sfincs_error
@@ -12,6 +60,11 @@ module sfincs_initial_conditions
 contains
    !
    subroutine set_initial_conditions()
+      !
+      ! Set the initial water levels, fluxes and velocities for the chosen type of initial
+      ! condition.
+      !
+      ! Called from: initialize_hydro (sfincs_domain)
       !
       use sfincs_ncinput      
       use sfincs_read, only: is_netcdf_file
@@ -184,6 +237,8 @@ contains
       !
       ! Binary restart file
       !
+      ! Called from: set_initial_conditions (sfincs_initial_conditions)
+      !
       implicit none
       !
       integer    :: rsttype
@@ -270,6 +325,8 @@ contains
    subroutine read_zsini_file()
       !
       ! Binary zs ini file
+      !
+      ! Called from: set_initial_conditions (sfincs_initial_conditions)
       !
       implicit none
       !

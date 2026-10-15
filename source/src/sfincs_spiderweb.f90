@@ -1,4 +1,60 @@
 module sfincs_spiderweb
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Readers for the ASCII spiderweb (spw) and gridded meteo (amu, amv, amp, ampr) files.
+   !
+   ! Subroutines / functions:
+   !
+   !   read_spw_file(...)
+   !     Read the wind, pressure and rain data from an ASCII spiderweb file.
+   !     Called from: read_meteo_data (sfincs_meteo)
+   !
+   !   read_amuv_file(filename, nt, nrows, ncols, time, uv, trefstr)
+   !     Read the data blocks from an ASCII gridded meteo file.
+   !     Called from: read_meteo_data (sfincs_meteo)
+   !
+   !   read_spw_dimensions(filename, nt, nrows, ncols, spwrad, nquant)
+   !     Read the dimensions (times, rows, columns, radius) of an ASCII spiderweb file.
+   !     Called from: read_meteo_data (sfincs_meteo)
+   !
+   !   read_amuv_dimensions(...)
+   !     Read the dimensions and grid definition of an ASCII gridded meteo file.
+   !     Called from: read_meteo_data (sfincs_meteo)
+   !
+   !   compute_time_in_seconds(line, trefstr, dtsec)
+   !     Convert a TIME line of a meteo file to seconds since the simulation reference time.
+   !     Called from: read_netcdf_spw_data (sfincs_ncinput),
+   !       read_amuv_file (sfincs_spiderweb), read_spw_file (sfincs_spiderweb)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
 
     use sfincs_log
     use sfincs_read
@@ -6,6 +62,28 @@ module sfincs_spiderweb
 contains
 
    subroutine read_spw_file(filename,nt,nrows,ncols,spwrad,time,xe,ye,vmag,vdir,pdrp,prcp,nquant,trefstr)
+   !
+   ! Read the wind, pressure and rain data from an ASCII spiderweb file.
+   !
+   ! Input:
+   !   filename : name of the meteo file
+   !   nt       : number of time blocks in the file
+   !   nrows    : number of rows
+   !   ncols    : number of columns
+   !   spwrad   : radius of the spiderweb grid [m]
+   !   nquant   : number of quantities per time block
+   !   trefstr  : SFINCS reference time (yyyymmdd HHMMSS)
+   !
+   ! Output:
+   !   time     : time of each block [s since tref]
+   !   xe       : x coordinate of the cyclone eye per time
+   !   ye       : y coordinate of the cyclone eye per time
+   !   vmag     : wind speed [m/s]
+   !   vdir     : wind direction [deg]
+   !   pdrp     : atmospheric pressure drop [Pa]
+   !   prcp     : precipitation rate [mm/hr]
+   !
+   ! Called from: read_meteo_data (sfincs_meteo)
    !
    implicit none
    !
@@ -134,6 +212,21 @@ contains
    ! Read amu
    subroutine read_amuv_file(filename,nt,nrows,ncols,time,uv,trefstr)
    !
+   ! Read the data blocks from an ASCII gridded meteo file.
+   !
+   ! Input:
+   !   filename : name of the meteo file
+   !   nt       : number of time blocks in the file
+   !   nrows    : number of rows
+   !   ncols    : number of columns
+   !   trefstr  : SFINCS reference time (yyyymmdd HHMMSS)
+   !
+   ! Output:
+   !   time     : time of each block [s since tref]
+   !   uv       : values of the quantity per time, row and column
+   !
+   ! Called from: read_meteo_data (sfincs_meteo)
+   !
    implicit none
    !
    integer j, j2, it, ip, n, m, nquant, stat, nheader, id
@@ -230,6 +323,20 @@ contains
    
    subroutine read_spw_dimensions(filename,nt,nrows,ncols,spwrad,nquant)
       !
+      ! Read the dimensions (times, rows, columns, radius) of an ASCII spiderweb file.
+      !
+      ! Input:
+      !   filename : name of the meteo file
+      !
+      ! Output:
+      !   nt       : number of time blocks in the file
+      !   nrows    : number of rows
+      !   ncols    : number of columns
+      !   spwrad   : radius of the spiderweb grid [m]
+      !   nquant   : number of quantities per time block
+      !
+      ! Called from: read_meteo_data (sfincs_meteo)
+      !
       implicit none
       !
       integer j, it, ip, n, m, nquant, stat, nheader, id    
@@ -318,6 +425,23 @@ contains
    !
    !
    subroutine read_amuv_dimensions(filename,nt,nrows,ncols,x_llcorner,y_llcorner,dx,dy,nquant)
+      !
+      ! Read the dimensions and grid definition of an ASCII gridded meteo file.
+      !
+      ! Input:
+      !   filename   : name of the meteo file
+      !
+      ! Output:
+      !   nt         : number of time blocks in the file
+      !   nrows      : number of rows
+      !   ncols      : number of columns
+      !   x_llcorner : x coordinate of the lower-left corner
+      !   y_llcorner : y coordinate of the lower-left corner
+      !   dx         : grid spacing in x direction
+      !   dy         : grid spacing in y direction
+      !   nquant     : number of quantities per time block
+      !
+      ! Called from: read_meteo_data (sfincs_meteo)
       !
       implicit none
       !
@@ -408,6 +532,18 @@ contains
 
    
    subroutine compute_time_in_seconds(line,trefstr,dtsec)
+   !
+   ! Convert a TIME line of a meteo file to seconds since the simulation reference time.
+   !
+   ! Input:
+   !   line    : TIME line from the file
+   !   trefstr : SFINCS reference time (yyyymmdd HHMMSS)
+   !
+   ! Output:
+   !   dtsec   : time of the block [s since tref]
+   !
+   ! Called from: read_netcdf_spw_data (sfincs_ncinput), read_amuv_file (sfincs_spiderweb),
+   !   read_spw_file (sfincs_spiderweb)
    !
    use sfincs_date
    !   

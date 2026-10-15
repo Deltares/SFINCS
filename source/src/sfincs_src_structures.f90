@@ -1,5 +1,7 @@
 module sfincs_src_structures
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Point structures that move water between two grid cells by prescribed
    ! structure formulas rather than by momentum conservation:
    !    type 1 - pump           (fixed discharge)
@@ -104,6 +106,34 @@ module sfincs_src_structures
    !     the downstream code only has to consume the TOML schema. Called
    !     from initialize_src_structures (this module) when the drn file
    !     fails TOML probing.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
    !
    use sfincs_log
    use sfincs_error
@@ -957,6 +987,10 @@ contains
       ! Atomic updates on qsrc(nm) guard against two structures (or a river
       ! and a structure) writing to the same cell under parallel execution.
       !
+      ! Input:
+      !   t  : current model time [s since tref]
+      !   dt : time step [s]
+      !
       ! Called from: update_continuity (sfincs_continuity), once per time step.
       !
       use sfincs_data
@@ -1557,6 +1591,13 @@ contains
       ! This routine does not modify module state; it is the caller's job to
       ! decide what to do with the parsed array.
       !
+      ! Input:
+      !   filename   : name of the TOML structures file
+      !
+      ! Output:
+      !   structures : structures read from the file
+      !   ierr       : error code (0 = success)
+      !
       ! Called from: initialize_src_structures (this module).
       !
       use tomlf
@@ -2030,6 +2071,14 @@ contains
       ! is set non-zero. Presence is checked via has_key so that a legal
       ! value of 0.0 is not mistaken for "missing".
       !
+      ! Input:
+      !   table     : TOML table of one structure
+      !   keys      : keys that must be present
+      !   seq_index : sequence number of the structure in the file, used in messages
+      !
+      ! Input/output:
+      !   ierr      : error code (0 = success)
+      !
       ! Called from: read_toml_src_structures (this module), once per
       ! structure entry in the per-type required-field validation block.
       !
@@ -2066,6 +2115,14 @@ contains
       ! Verify that a coordinate pair "<key_base> = [x, y]" is present in the
       ! TOML table. Emits a single missing-key error when absent.
       !
+      ! Input:
+      !   table     : TOML table of one structure
+      !   key_base  : base name of the coordinate pair (keys <base>_x and <base>_y)
+      !   seq_index : sequence number of the structure in the file, used in messages
+      !
+      ! Input/output:
+      !   ierr      : error code (0 = success)
+      !
       ! Called from: read_toml_src_structures (this module), once per required
       ! coordinate pair (src_1, src_2) in the per-type validation block.
       !
@@ -2098,6 +2155,18 @@ contains
       ! If the key is absent, x and y are left at 0.0 and no error is raised
       ! here — presence of required pairs is enforced separately by
       ! check_required_coord_pair.
+      !
+      ! Input:
+      !   table     : TOML table of one structure
+      !   key_base  : base name of the coordinate pair (keys <base>_x and <base>_y)
+      !   seq_index : sequence number of the structure in the file, used in messages
+      !
+      ! Input/output:
+      !   ierr      : error code (0 = success)
+      !
+      ! Output:
+      !   x         : x coordinate
+      !   y         : y coordinate
       !
       ! Called from: read_toml_src_structures (this module), once per
       ! coordinate pair (src_1, src_2, obs_1, obs_2) per structure entry.
@@ -2164,6 +2233,13 @@ contains
       ! physics-based pipe-flow type). Users wanting the lumped one-coefficient
       ! form must say "culvert_simple" explicitly.
       !
+      ! Input:
+      !   str  : string to parse
+      !
+      ! Output:
+      !   code : integer code of the parsed value
+      !   ierr : error code (0 = success)
+      !
       ! Called from: read_toml_src_structures (this module), once per entry
       ! to resolve the required "type" key.
       !
@@ -2216,6 +2292,13 @@ contains
       ! Translate a TOML "direction" string to one of the direction_* codes.
       ! Accepts "both" / "positive" / "negative" case-insensitively.
       !
+      ! Input:
+      !   str  : string to parse
+      !
+      ! Output:
+      !   code : integer code of the parsed value
+      !   ierr : error code (0 = success)
+      !
       ! Called from: read_toml_src_structures (this module) when an optional
       ! "direction" key is present on a structure entry.
       !
@@ -2260,6 +2343,13 @@ contains
       ! Translate a TOML culvert "shape" string to one of the shape_* codes.
       ! Accepts "rectangular" / "circular" case-insensitively.
       !
+      ! Input:
+      !   str  : string to parse
+      !
+      ! Output:
+      !   code : integer code of the parsed value
+      !   ierr : error code (0 = success)
+      !
       ! Called from: read_toml_src_structures (this module) when an optional
       ! "shape" key is present on a structure entry.
       !
@@ -2299,6 +2389,13 @@ contains
       !
       ! Translate a gate-rule "operation" string to one of the gate_op_* codes.
       ! Accepts "open" / "close" / "hold" case-insensitively.
+      !
+      ! Input:
+      !   str  : string to parse
+      !
+      ! Output:
+      !   code : integer code of the parsed value
+      !   ierr : error code (0 = success)
       !
       ! Called from: read_toml_src_structures (this module), once per rule in
       ! a structure's [[src_structure.rule]] list.
@@ -2342,6 +2439,12 @@ contains
    function to_lower(str) result(lower)
       !
       ! Return a lowercase copy of str (ASCII only).
+      !
+      ! Input:
+      !   str   : string
+      !
+      ! Returns:
+      !   lower : lowercase copy
       !
       ! Called from: parse_structure_type, parse_direction, and
       ! convert_legacy_to_toml (all in this module).
@@ -2650,6 +2753,13 @@ contains
       ! duplicate-name detection, no preservation of comments. It exists only
       ! to remove the parallel legacy parsing machinery that used to live
       ! in this module.
+      !
+      ! Input:
+      !   legacy_path : name of the legacy (drn) structures file
+      !
+      ! Output:
+      !   toml_path   : name of the TOML file that was written
+      !   ierr        : error code (0 = success)
       !
       ! Called from: initialize_src_structures (this module) when toml-f
       ! rejects the drn file on the initial probe.

@@ -1,4 +1,49 @@
 module sfincs_crosssections
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Cross-sections: reads the crs file and computes the discharge through each
+   ! cross-section.
+   !
+   ! Subroutines / functions:
+   !
+   !   read_crs_file()
+   !     Read the cross-sections file and find the uv points each cross-section intersects.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   get_discharges_through_crosssections(qq)
+   !     Sum the fluxes over the uv points of each cross-section into discharges qq.
+   !     Called from: ncoutput_update_his (sfincs_ncoutput),
+   !       write_his_output (sfincs_output)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
 
    use sfincs_log
    use sfincs_error
@@ -8,6 +53,8 @@ contains
    subroutine read_crs_file()
    !
    ! Reads crs file
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    use sfincs_data
    use geometry
@@ -128,6 +175,13 @@ contains
 
    
    subroutine get_discharges_through_crosssections(qq)
+   !
+   ! Sum the fluxes over the uv points of each cross-section into discharges qq.
+   !
+   ! Output:
+   !   qq : discharge through each cross-section [m3/s]
+   !
+   ! Called from: ncoutput_update_his (sfincs_ncoutput), write_his_output (sfincs_output)
    !
    use sfincs_data
    !

@@ -1,4 +1,53 @@
    module sfincs_wavemaker
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Wave makers: internal boundaries that generate (infragravity) waves along polylines,
+   ! forced by time series or by SnapWave.
+   !
+   ! Subroutines / functions:
+   !
+   !   initialize_wavemakers()
+   !     Read the wave maker polylines and forcing, and set up the wave maker points and
+   !     weights.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   update_wavemaker_fluxes(t, dt)
+   !     Update the fluxes at the wave maker uv points.
+   !     Called from: sfincs_update (sfincs_lib)
+   !
+   !   compute_wavemaker_signal(t, hig, hinc, tp_ig, tp_inc, zwav_ig, zwav_inc)
+   !     Compute the normalized infragravity and incident wave signals at time t.
+   !     Called from: update_wavemaker_fluxes (sfincs_wavemaker)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
 
    use sfincs_log
    use sfincs_error
@@ -11,6 +60,8 @@
    ! Computes cross sections
    ! Determines interpolation weights
    ! Interpolates bathymetry
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    use sfincs_data
    use quadtree
@@ -1478,6 +1529,12 @@
    !
    ! Update fluxes qx and qy at wave maker points
    !
+   ! Input:
+   !   t  : current model time [s since tref]
+   !   dt : time step [s]
+   !
+   ! Called from: sfincs_update (sfincs_lib)
+   !
    use sfincs_data
    use sfincs_snapwave
    use sfincs_timers
@@ -1818,6 +1875,19 @@
    !
    ! The random phases and the cosine terms are updated once per time step in
    ! update_wavemaker_fluxes, so that they do not advance twice when both forcing sources are used.
+   !
+   ! Input:
+   !   t        : current model time [s since tref]
+   !   hig      : compute the infragravity wave signal
+   !   hinc     : compute the incident wave signal
+   !   tp_ig    : infragravity peak period [s]
+   !   tp_inc   : incident peak period [s]
+   !
+   ! Output:
+   !   zwav_ig  : infragravity signal for Hm0 = 1 m [m]
+   !   zwav_inc : incident wave signal for Hm0 = 1 m [m]
+   !
+   ! Called from: update_wavemaker_fluxes (sfincs_wavemaker)
    !
    use sfincs_data
    !

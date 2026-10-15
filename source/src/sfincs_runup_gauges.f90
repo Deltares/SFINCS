@@ -1,10 +1,56 @@
 module sfincs_runup_gauges
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Run-up gauges: reads the rug file and determines the run-up level along each gauge
+   ! transect.
+   !
+   ! Subroutines / functions:
+   !
+   !   read_rug_file()
+   !     Read the run-up gauges file and find the grid cells along each transect.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   get_runup_levels(zru)
+   !     Determine the run-up level zru at each run-up gauge.
+   !     Called from: ncoutput_update_his (sfincs_ncoutput)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
 
 contains
 
    subroutine read_rug_file()
    !
    ! Reads rug file
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    use sfincs_data
    use geometry
@@ -136,6 +182,13 @@ contains
 
    
    subroutine get_runup_levels(zru)
+   !
+   ! Determine the run-up level zru at each run-up gauge.
+   !
+   ! Output:
+   !   zru : run-up level at each run-up gauge [m]
+   !
+   ! Called from: ncoutput_update_his (sfincs_ncoutput)
    !
    use sfincs_data
    !

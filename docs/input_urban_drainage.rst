@@ -35,7 +35,9 @@ The ``.urb`` file is a TOML document with one or more ``[[urban_drainage_zone]]`
 Zone definition
 ---------------
 
-Every zone has three required keys regardless of type: ``name``, ``type``, and ``polygon_file``. The rest depends on the type.
+Every zone has three required keys regardless of type: ``name``, ``type``, and ``polygon_file`` (or ``whole_grid = true`` instead of a polygon, see below). The rest depends on the type.
+
+Booleans are written as ``true`` or ``false`` and numbers without quotes. A value of the wrong type (e.g. ``check_valve = 1`` or ``design_precip = "20"``) stops SFINCS with an error that names the zone and the key.
 
 Piped drainage example
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -57,6 +59,20 @@ Piped drainage example
 	outfall          = [1020.0, 180.0]
 	max_outfall_rate = 6.0
 
+Whole-grid drainage example
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A constant-in-time drainage rate over all active cells (also rivers and open water), without a polygon and without an outfall:
+
+.. code-block:: toml
+
+	[[urban_drainage_zone]]
+	name             = "background_drainage"
+	type             = "piped_drainage"
+	whole_grid       = true
+	design_precip    = 5.0
+	include_outfall  = false
+
 Injection well example
 ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -73,13 +89,16 @@ Common keys (both types)
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``name`` (required, string)
-	Zone name. Must match a polygon name in ``polygon_file``. Used as the station identifier in ``sfincs_his.nc`` when discharge output is enabled.
+	Zone name. Must match a polygon name in ``polygon_file`` (not needed with ``whole_grid = true``). Used as the station identifier in ``sfincs_his.nc`` when discharge output is enabled.
 
 ``type`` (required, string)
 	One of ``"piped_drainage"`` or ``"injection_well"``. Selects the per-zone physics and the set of remaining required keys.
 
-``polygon_file`` (required, string)
+``polygon_file`` (required unless ``whole_grid = true``, string)
 	Path to a Delft3D-style ``.tek`` polygon file. Multiple zones can share the same file — each zone's ``name`` is matched against polygon names inside the file. See "Polygon file format" below.
+
+``whole_grid`` (optional, bool, default ``false``)
+	Set to ``true`` to let the zone cover all active cells instead of the cells inside a polygon. **Exactly one of** ``polygon_file`` **or** ``whole_grid = true`` **must be given.** Only allowed for ``piped_drainage`` zones with ``include_outfall = false``. Note that the zone then also drains wet cells in open water (sea, rivers, boundary cells); use a polygon if those should be excluded. On overlap the last zone still wins, so list a whole-grid zone first if other zones should override it locally.
 
 ``h_threshold`` (optional, m, default ``0.0``)
 	Depth over which the drainage rate ramps linearly from zero to ``q_max``. At cell ponding depth ``h_cell = 0`` the drainage is zero; at ``h_cell >= h_threshold`` it is at full ``q_max``; in between it is ``(h_cell / h_threshold) * q_max``. Smooths the discharge time series compared to a hard on/off gate. Typical values: 0.02–0.05 m. Set to ``0.0`` to reproduce the hard-cap behaviour (full ``q_max`` for any ``h_cell > 0``).
@@ -97,7 +116,7 @@ Piped drainage keys
 	Coordinates of the single point where all zone discharge is summed and deposited. Snapped to the nearest active cell. If no active cell can be found, zone contributions are silently discarded and a warning is logged.
 
 ``include_outfall`` (optional, bool, default ``true``)
-	Set to ``false`` to disable the outfall deposit step. Flow still leaves (or enters) cells, but does not reappear anywhere — treats the zone as an unconnected sink. Mostly useful for sensitivity tests.
+	Set to ``false`` to run the zone without an outfall. Wet cells then always drain at up to ``design_precip``, there is no backflow, and the water does not reappear anywhere — the zone is an unconnected sink. This can be used to mimic a constant-in-time subsurface drainage rate (mm/hr) over the zone.
 
 ``check_valve`` (optional, bool, default ``false``)
 	When ``true``, the zone only drains outward. Backflow from the outfall into the cells (bay flooding through the pipe) is suppressed. Represents a flap valve / tide gate at the outfall.

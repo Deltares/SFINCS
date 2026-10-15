@@ -1,6 +1,108 @@
 #define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)   
 module sfincs_ncinput
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! netCDF input: FEWS-compatible boundary, discharge and meteo files, and generic readers
+   ! for variables stored on the quadtree mesh.
+   !
+   ! Subroutines / functions:
+   !
+   !   read_netcdf_boundary_data()
+   !     Read the water level boundary points and time series from a FEWS-compatible netCDF
+   !     file.
+   !     Called from: read_boundary_data (sfincs_boundaries)
+   !
+   !   read_netcdf_discharge_data(netsrcdisfile, nr_discharge_points)
+   !     Read the river discharge points and time series from a FEWS-compatible netCDF file.
+   !     Called from: initialize_discharges (sfincs_discharges)
+   !
+   !   read_netcdf_storage_volume()
+   !     Empty placeholder for reading the storage volume.
+   !     Called from: not called (currently unused)
+   !
+   !   read_netcdf_quadtree_get_dimension(ncfile, varname, var)
+   !     Return the size of a dimension in a quadtree netCDF file.
+   !     Called from: initialize_vegetation (sfincs_vegetation)
+   !
+   !   open_netcdf_quadtree_file(ncfile, nrcells)
+   !     Open a quadtree-format netCDF input file and return its number of cells.
+   !     Called from: read_netcdf_quadtree_integer (sfincs_ncinput),
+   !       read_netcdf_quadtree_to_sfincs (sfincs_ncinput),
+   !       read_netcdf_quadtree_to_sfincs_real8 (sfincs_ncinput)
+   !
+   !   read_netcdf_quadtree_to_sfincs(ncfile, varname, var)
+   !     Read a real*4 cell variable from a quadtree netCDF file and map it to the active
+   !     SFINCS cells.
+   !     Called from: initialize_roughness (sfincs_domain),
+   !       initialize_storage_volume (sfincs_domain),
+   !       initialize_bucket_model (sfincs_infiltration),
+   !       initialize_infiltration_r2d (sfincs_infiltration),
+   !       read_infiltration_field (sfincs_infiltration),
+   !       initialize_vegetation (sfincs_vegetation)
+   !
+   !   read_netcdf_quadtree_to_sfincs_real8(ncfile, varname, var)
+   !     Read a real*8 cell variable from a quadtree netCDF file and map it to the active
+   !     SFINCS cells.
+   !     Called from: set_initial_conditions (sfincs_initial_conditions)
+   !
+   !   read_netcdf_quadtree_integer(ncfile, varname, var)
+   !     Read an integer cell variable from a quadtree netCDF file and map it to the active
+   !     SFINCS cells.
+   !     Called from: initialize_vegetation (sfincs_vegetation)
+   !
+   !   read_netcdf_flag_meanings(ncfile, varname, flag_values, flag_meanings, nflags)
+   !     Read the CF flag_values and flag_meanings attributes of a netCDF variable.
+   !     Called from: initialize_vegetation (sfincs_vegetation)
+   !
+   !   read_netcdf_amuv_data()
+   !     Read gridded wind (u, v) from a netCDF file.
+   !     Called from: read_meteo_data (sfincs_meteo)
+   !
+   !   read_netcdf_amp_data()
+   !     Read gridded atmospheric pressure from a netCDF file.
+   !     Called from: read_meteo_data (sfincs_meteo)
+   !
+   !   read_netcdf_ampr_data()
+   !     Read gridded precipitation from a netCDF file.
+   !     Called from: read_meteo_data (sfincs_meteo)
+   !
+   !   read_netcdf_spw_data()
+   !     Read spiderweb (tropical cyclone) data from a netCDF file.
+   !     Called from: read_meteo_data (sfincs_meteo)
+   !
+   !   handle_err(status, file, line)
+   !     Report a netCDF error with file name and line number.
+   !     Called from: the NF90 preprocessor macro, used throughout this module
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
    use netcdf       
    use sfincs_spiderweb
    use sfincs_log
@@ -77,6 +179,11 @@ module sfincs_ncinput
    contains   
    
    subroutine read_netcdf_boundary_data()
+   !
+   ! Read the water level boundary points and time series from a FEWS-compatible netCDF
+   ! file.
+   !
+   ! Called from: read_boundary_data (sfincs_boundaries)
    !
    use sfincs_date   
    use netcdf
@@ -177,6 +284,14 @@ module sfincs_ncinput
    ! dependency (the owning module sfincs_discharges `use`s this module
    ! for the procedure).
    !
+   ! Input:
+   !   netsrcdisfile       : name of the netCDF discharge file
+   !
+   ! Output:
+   !   nr_discharge_points : number of discharge points in the file
+   !
+   ! Called from: initialize_discharges (sfincs_discharges)
+   !
    use sfincs_date
    use netcdf
    use sfincs_data
@@ -249,6 +364,10 @@ module sfincs_ncinput
 
    subroutine read_netcdf_storage_volume()
    !
+   ! Empty placeholder for reading the storage volume.
+   !
+   ! Called from: not called (currently unused)
+   !
    !use netcdf
    use sfincs_data
    use quadtree
@@ -260,6 +379,18 @@ module sfincs_ncinput
    end subroutine
    
    subroutine read_netcdf_quadtree_get_dimension(ncfile, varname, var)
+   !
+   ! Return the size of a dimension in a quadtree netCDF file.
+   !
+   ! Input:
+   !   ncfile  : name of the netCDF file
+   !   varname : name of the dimension in the file
+   !
+   ! Input/output:
+   !   var     : size of the dimension
+   !
+   ! Called from: initialize_vegetation (sfincs_vegetation)
+   !
    ! For instance: vegetationfile, nsec, vegetation_vertical_segments
    !
    use netcdf
@@ -299,7 +430,71 @@ module sfincs_ncinput
    ! 
    end subroutine   
    
+   subroutine open_netcdf_quadtree_file(ncfile, nrcells)
+   !
+   ! Open a quadtree-format netcdf input file (e.g. inffile, volfile)
+   ! into net_file_generic and return its number of cells (dimension mesh2d_nFaces).
+   ! Stops SFINCS with a clear message if the file cannot be opened as netcdf
+   ! (e.g. a legacy binary file) or does not contain the mesh2d_nFaces dimension.
+   !
+   ! Input:
+   !   ncfile  : name of the netCDF file
+   !
+   ! Output:
+   !   nrcells : number of cells in the file (dimension mesh2d_nFaces)
+   !
+   ! Called from: read_netcdf_quadtree_integer (sfincs_ncinput),
+   !   read_netcdf_quadtree_to_sfincs (sfincs_ncinput),
+   !   read_netcdf_quadtree_to_sfincs_real8 (sfincs_ncinput)
+   !
+   use netcdf
+   use sfincs_error
+   !
+   implicit none
+   !
+   character*256, intent(in) :: ncfile
+   integer, intent(out)      :: nrcells
+   !
+   integer :: status
+   !
+   status = nf90_open(trim(ncfile), NF90_NOWRITE, net_file_generic%ncid)
+   !
+   if (status /= nf90_noerr) then
+      write(logstr,'(a,a,a,a)')'Error    : could not open ', trim(ncfile), ' as netcdf file: ', trim(nf90_strerror(status))
+      call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   status = nf90_inq_dimid(net_file_generic%ncid, "mesh2d_nFaces", net_file_generic%np_dimid)
+   !
+   if (status /= nf90_noerr) then
+      write(logstr,'(a,a,a)')'Error    : netcdf input file ', trim(ncfile), ' does not contain dimension mesh2d_nFaces !'
+      call stop_sfincs(trim(logstr), 1)
+   endif
+   !
+   NF90(nf90_inquire_dimension(net_file_generic%ncid, net_file_generic%np_dimid, len = nrcells))
+   !
+   end subroutine
+
+
    subroutine read_netcdf_quadtree_to_sfincs(ncfile, varname, var)
+   !
+   ! Read a real*4 cell variable from a quadtree netCDF file and map it to the active SFINCS
+   ! cells.
+   !
+   ! Input:
+   !   ncfile  : name of the netCDF file
+   !   varname : name of the variable in the file
+   !
+   ! Input/output:
+   !   var     : values in the active SFINCS cells
+   !
+   ! Called from: initialize_roughness (sfincs_domain),
+   !   initialize_storage_volume (sfincs_domain),
+   !   initialize_bucket_model (sfincs_infiltration),
+   !   initialize_infiltration_r2d (sfincs_infiltration),
+   !   read_infiltration_field (sfincs_infiltration),
+   !   initialize_vegetation (sfincs_vegetation)
+   !
    ! For instance: storage_volume.nc, vol, storage_volume
    !
    use netcdf
@@ -317,17 +512,9 @@ module sfincs_ncinput
    !
    real*4, dimension(:), allocatable :: vartmp
    !
-   ! Open netcdf file
+   ! Open netcdf file and get nr of cells (stops with a clear message if not a valid quadtree netcdf file)
    !
-   NF90(nf90_open(trim(ncfile), NF90_CLOBBER, net_file_generic%ncid))
-   !
-   ! Get dimensions id's: nr points  
-   !
-   NF90(nf90_inq_dimid(net_file_generic%ncid, "mesh2d_nFaces", net_file_generic%np_dimid))
-   !
-   ! Get dimensions sizes    
-   !
-   NF90(nf90_inquire_dimension(net_file_generic%ncid, net_file_generic%np_dimid, len = nrcells))   ! nr of cells
+   call open_netcdf_quadtree_file(ncfile, nrcells)
    !
    ! Check that number of values in the cell matches quadtree_nr_points 
    ! (=all quadtree cells, not just the active ones)
@@ -366,6 +553,19 @@ module sfincs_ncinput
    end subroutine   
    
    subroutine read_netcdf_quadtree_to_sfincs_real8(ncfile, varname, var)
+   !
+   ! Read a real*8 cell variable from a quadtree netCDF file and map it to the active SFINCS
+   ! cells.
+   !
+   ! Input:
+   !   ncfile  : name of the netCDF file
+   !   varname : name of the variable in the file
+   !
+   ! Input/output:
+   !   var     : values in the active SFINCS cells
+   !
+   ! Called from: set_initial_conditions (sfincs_initial_conditions)
+   !
    ! For instance: storage_volume.nc, vol, storage_volume
    !
    use netcdf
@@ -383,17 +583,9 @@ module sfincs_ncinput
    !
    real*4, dimension(:), allocatable :: vartmp
    !
-   ! Open netcdf file
+   ! Open netcdf file and get nr of cells (stops with a clear message if not a valid quadtree netcdf file)
    !
-   NF90(nf90_open(trim(ncfile), NF90_CLOBBER, net_file_generic%ncid))
-   !
-   ! Get dimensions id's: nr points  
-   !
-   NF90(nf90_inq_dimid(net_file_generic%ncid, "mesh2d_nFaces", net_file_generic%np_dimid))
-   !
-   ! Get dimensions sizes    
-   !
-   NF90(nf90_inquire_dimension(net_file_generic%ncid, net_file_generic%np_dimid, len = nrcells))   ! nr of cells
+   call open_netcdf_quadtree_file(ncfile, nrcells)
    !
    ! Check that number of values in the cell matches quadtree_nr_points 
    ! (=all quadtree cells, not just the active ones)
@@ -435,6 +627,15 @@ module sfincs_ncinput
    subroutine read_netcdf_quadtree_integer(ncfile, varname, var)
    ! Read a 1D integer variable from a quadtree NetCDF file and map to SFINCS active cells
    !
+   ! Input:
+   !   ncfile  : name of the netCDF file
+   !   varname : name of the variable in the file
+   !
+   ! Input/output:
+   !   var     : values in the active SFINCS cells
+   !
+   ! Called from: initialize_vegetation (sfincs_vegetation)
+   !
    use netcdf
    use sfincs_data
    use quadtree
@@ -450,11 +651,7 @@ module sfincs_ncinput
    !
    integer, dimension(:), allocatable :: vartmp
    !
-   NF90(nf90_open(trim(ncfile), NF90_CLOBBER, net_file_generic%ncid))
-   !
-   NF90(nf90_inq_dimid(net_file_generic%ncid, "mesh2d_nFaces", net_file_generic%np_dimid))
-   !
-   NF90(nf90_inquire_dimension(net_file_generic%ncid, net_file_generic%np_dimid, len = nrcells))
+   call open_netcdf_quadtree_file(ncfile, nrcells)
    !
    if (nrcells /= quadtree_nr_points) then
       write(logstr,*)'Error    : netcdf input file ',trim(ncfile),' contains: ',nrcells, &
@@ -489,6 +686,17 @@ module sfincs_ncinput
    subroutine read_netcdf_flag_meanings(ncfile, varname, flag_values, flag_meanings, nflags)
    ! Read CF convention flag_values (integer array) and flag_meanings (space-separated string)
    ! attributes from a NetCDF variable and return them as separate arrays.
+   !
+   ! Input:
+   !   ncfile        : name of the netCDF file
+   !   varname       : name of the variable in the file
+   !
+   ! Output:
+   !   flag_values   : flag_values attribute
+   !   flag_meanings : flag_meanings attribute, one entry per flag
+   !   nflags        : number of flags
+   !
+   ! Called from: initialize_vegetation (sfincs_vegetation)
    !
    use netcdf
    use sfincs_error
@@ -577,6 +785,10 @@ module sfincs_ncinput
 
 
    subroutine read_netcdf_amuv_data()
+   !
+   ! Read gridded wind (u, v) from a netCDF file.
+   !
+   ! Called from: read_meteo_data (sfincs_meteo)
    !
    ! Output is made exactly the same as original read_amuv_dimensions & read_amuv_file subroutines but then with data given by netcdf file
    !
@@ -703,6 +915,10 @@ module sfincs_ncinput
    
    
    subroutine read_netcdf_amp_data()
+   !
+   ! Read gridded atmospheric pressure from a netCDF file.
+   !
+   ! Called from: read_meteo_data (sfincs_meteo)
    ! 
    ! Output is made exactly the same as original read_amp_dimensions & read_amp_file subroutines but then with data given by netcdf file
    ! 
@@ -817,6 +1033,10 @@ module sfincs_ncinput
    
    
    subroutine read_netcdf_ampr_data()
+   !
+   ! Read gridded precipitation from a netCDF file.
+   !
+   ! Called from: read_meteo_data (sfincs_meteo)
    ! 
    ! Output is made exactly the same as original read_amuv_dimensions & read_amuv_file subroutines but then with data given by netcdf file
    ! 
@@ -932,6 +1152,10 @@ module sfincs_ncinput
    !
    ! 
    subroutine read_netcdf_spw_data()
+    !
+    ! Read spiderweb (tropical cyclone) data from a netCDF file.
+    !
+    ! Called from: read_meteo_data (sfincs_meteo)
     !
     ! Read the orginal (Bert) implementation
     ! 
@@ -1083,6 +1307,15 @@ module sfincs_ncinput
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    subroutine handle_err(status,file,line)
+      !
+      ! Report a netCDF error with file name and line number.
+      !
+      ! Input:
+      !   status : netCDF status code returned by the call
+      !   file   : name of the source file of the call
+      !   line   : line number of the call
+      !
+      ! Called from: the NF90 preprocessor macro, used throughout this module
       !
       integer, intent ( in)    :: status
       character(*), intent(in) :: file

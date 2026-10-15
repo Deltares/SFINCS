@@ -1,5 +1,7 @@
 module sfincs_input
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
    ! Parser for the SFINCS main input file `sfincs.inp`.
    !
    ! `sfincs.inp` is a flat keyword / value text file (one `key = value`
@@ -21,6 +23,34 @@ module sfincs_input
    !     about via get_keyword(), then derives secondary flags (CRS /
    !     Coriolis, subgrid vs. regular, bathtub overrides). Called once
    !     from sfincs_initialize (sfincs_lib).
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
    !
    use sfincs_log, only: write_log, logstr
    use sfincs_read
@@ -247,7 +277,7 @@ contains
       ! Infiltration and losses
       !
       call get_keyword(500, 'inffile',                         inffile,                         'none', [character(len=17) :: 'infiltrationfile', 'infiltration_file'])   ! infiltration parameters TOML file
-      call get_keyword(500, 'inftype',                         inftype,                         'none', [character(len=17) :: 'infiltrationtype', 'infiltration_type'])   ! infiltration flavor (con, c2d, cna, cnb, gai, hor, bkt)
+      call get_keyword(500, 'inftype',                         inftype,                         'none', [character(len=17) :: 'infiltrationtype', 'infiltration_type'])   ! infiltration flavor (con, c2d, cna, cnb, gai, hor, bkt, r2d)
       !
       ! Legacy binary infiltration inputs (kept for backward compatibility).
       !
@@ -293,7 +323,7 @@ contains
       call get_keyword(500, 'store_dynamic_bed_level',         store_dynamic_bed_level,         .false.)           ! store time-varying bed level (subgrid)
       call get_keyword(500, 'store_river_discharge',           store_river_discharge,           .false.)           ! store river point discharges in his file
       call get_keyword(500, 'store_urban_drainage_discharge',  store_urban_drainage_discharge,  .false.)           ! store urban drainage discharges in his file
-      call get_keyword(500, 'store_cumulative_urban_drainage', store_cumulative_urban_drainage, .false.)           ! store cumulative urban drainage
+      call get_keyword(500, 'store_cumulative_urban_drainage', store_cumulative_urban_drainage, .false.)           ! store cumulative urban drainage in map file
       call get_keyword(500, 'snapwave_use_nearest',            snapwave_use_nearest,            .true.)            ! use nearest-neighbour lookup for SnapWave boundary points
       call get_keyword(500, 'percentage_done',                 percdoneval,                     5)                 ! progress-reporter interval (% complete)
       !
@@ -654,6 +684,9 @@ contains
       ! Backward compatibility for the obsolete 'advection = 2' (2D advection),
       ! which used to switch advection on. get_keyword_logical only accepts
       ! '1', 'y' or 't' as true, so '2' would silently turn advection off.
+      !
+      ! Input:
+      !   fileid : unit number of the open sfincs.inp file
       !
       ! Called from: read_sfincs_input (this module).
       !

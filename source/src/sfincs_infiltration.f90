@@ -1,4 +1,117 @@
 module sfincs_infiltration
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Infiltration: constant, Curve Number (with and without recovery), Green-Ampt, Horton
+   ! and run-off coefficient methods, plus the bucket model. Computes the infiltration rate
+   ! per cell every time step.
+   !
+   ! Subroutines / functions:
+   !
+   !   initialize_infiltration()
+   !     Select the infiltration method and call its initialization routine.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   update_infiltration_map(dt)
+   !     Update the infiltration rate in each cell for the active method.
+   !     Called from: update_continuity (sfincs_continuity)
+   !
+   !   initialize_infiltration_con()
+   !     Initialize spatially-uniform constant infiltration.
+   !     Called from: initialize_infiltration (sfincs_infiltration)
+   !
+   !   initialize_infiltration_c2d()
+   !     Initialize spatially-varying constant infiltration.
+   !     Called from: initialize_infiltration (sfincs_infiltration)
+   !
+   !   initialize_infiltration_cna()
+   !     Initialize Curve Number infiltration without recovery.
+   !     Called from: initialize_infiltration (sfincs_infiltration)
+   !
+   !   initialize_infiltration_cnb()
+   !     Initialize Curve Number infiltration with recovery.
+   !     Called from: initialize_infiltration (sfincs_infiltration)
+   !
+   !   initialize_infiltration_gai()
+   !     Initialize Green-Ampt infiltration.
+   !     Called from: initialize_infiltration (sfincs_infiltration)
+   !
+   !   initialize_infiltration_hor()
+   !     Initialize modified Horton infiltration.
+   !     Called from: initialize_infiltration (sfincs_infiltration)
+   !
+   !   initialize_infiltration_r2d()
+   !     Initialize the spatially-varying run-off coefficient.
+   !     Called from: initialize_infiltration (sfincs_infiltration)
+   !
+   !   read_infiltration_field(varname, binfile, field)
+   !     Read one spatially-varying infiltration parameter from netCDF or binary file.
+   !     Called from: initialize_infiltration_c2d (sfincs_infiltration),
+   !       initialize_infiltration_cna (sfincs_infiltration),
+   !       initialize_infiltration_cnb (sfincs_infiltration),
+   !       initialize_infiltration_gai (sfincs_infiltration),
+   !       initialize_infiltration_hor (sfincs_infiltration)
+   !
+   !   compute_infiltration_constant(dt)
+   !     Infiltration rate for the constant methods (con and c2d).
+   !     Called from: update_infiltration_map (sfincs_infiltration)
+   !
+   !   compute_infiltration_cna(dt)
+   !     Infiltration rate with the Curve Number method without recovery.
+   !     Called from: update_infiltration_map (sfincs_infiltration)
+   !
+   !   compute_infiltration_cnb(dt)
+   !     Infiltration rate with the Curve Number method with recovery.
+   !     Called from: update_infiltration_map (sfincs_infiltration)
+   !
+   !   compute_infiltration_gai(dt)
+   !     Infiltration rate with the Green-Ampt model.
+   !     Called from: update_infiltration_map (sfincs_infiltration)
+   !
+   !   compute_infiltration_hor(dt)
+   !     Infiltration rate with the modified Horton model.
+   !     Called from: update_infiltration_map (sfincs_infiltration)
+   !
+   !   compute_infiltration_r2d(dt)
+   !     Infiltration rate from the run-off coefficient.
+   !     Called from: update_infiltration_map (sfincs_infiltration)
+   !
+   !   initialize_bucket_model()
+   !     Read the bucket model parameters and allocate its arrays.
+   !     Called from: initialize_infiltration (sfincs_infiltration)
+   !
+   !   compute_bucket_drainage(dt)
+   !     Fill, drain and spill the bucket (linear reservoir with loss) in each cell.
+   !     Called from: update_infiltration_map (sfincs_infiltration)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
 
    use sfincs_log
    use sfincs_error
@@ -7,14 +120,18 @@ contains
 
    subroutine initialize_infiltration()
    !
+   ! Select the infiltration method and call its initialization routine.
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
+   !
    use sfincs_data
    !
    implicit none
    !
    logical :: ok
    !
-   character(len=3), parameter :: allowed_types(6) = &
-        ['c2d', 'cna', 'cnb', 'gai', 'hor', 'bkt']   
+   character(len=3), parameter :: allowed_types(7) = &
+        ['c2d', 'cna', 'cnb', 'gai', 'hor', 'bkt', 'r2d']   
 
    logical :: inftype_exists   
    !
@@ -27,7 +144,7 @@ contains
    infiltration   = .false.
    netcdf_infiltration   = .false.   
    !
-   ! Seven infiltration flavors (inftype):
+   ! Eight infiltration flavors (inftype):
    !
    ! 1) 'con' - Spatially-uniform constant infiltration
    !    Requires: qinf (mm/hr in sfincs.inp)
@@ -43,6 +160,8 @@ contains
    !    Requires: f0file or inffile
    ! 7) 'bkt' - Bucket model (linear reservoir, HBV/wflow style)
    !    Requires: inffile with bucket_smax, bucket_k and bucket_loss
+   ! 8) 'r2d' - Spatially-varying constant run-off coefficient (% of rainfall that runs off)
+   !    Requires: inffile with runoff
    !
    ! cumprcp and cuminf are stored in the netcdf output if store_cumulative_precipitation == .true. (storecumprcp = 1)
    !
@@ -65,11 +184,17 @@ contains
          !
       endif
       !
+      if (inftype == 'r2d' .and. inffile == 'none') then
+         !
+         call stop_sfincs('Error ! Run-off coefficient method requires inffile together with inftype = r2d !', 1)
+         !
+      endif
+      !
       if (inffile  /= 'none') then
          !
          ! inftype is user defined, keyword: 'inftype' in sfincs.inp:
          !
-         ! inftype is either: c2d, cna, cnb, gai, hor
+         ! inftype is either: c2d, cna, cnb, gai, hor, bkt, r2d
          ! 'inftype = con' is not relevant for netcdf input
          !
          ! Check if specified type is correct
@@ -92,7 +217,7 @@ contains
             !
          else
             !
-            write(logstr,*)'Error    : infiltration input type ',trim(inftype),' is not part of supported types c2d cna cnb gai hor bkt !'
+            write(logstr,*)'Error    : infiltration input type ',trim(inftype),' is not part of supported types c2d cna cnb gai hor bkt r2d !'
             call stop_sfincs(trim(logstr), 1)   
             !
          end if        
@@ -230,6 +355,10 @@ contains
          !
          call initialize_bucket_model()
          !
+      elseif (inftype == 'r2d') then
+         !
+         call initialize_infiltration_r2d()
+         !
       endif
       !
    else
@@ -246,6 +375,11 @@ contains
    subroutine update_infiltration_map(dt)
    !
    ! Update infiltration rates in each grid cell
+   !
+   ! Input:
+   !   dt : time step [s]
+   !
+   ! Called from: update_continuity (sfincs_continuity)
    !
    use sfincs_data
    !
@@ -279,6 +413,10 @@ contains
       !
       call compute_bucket_drainage(dt)
       !
+   elseif (inftype == 'r2d') then
+      !
+      call compute_infiltration_r2d(dt)
+      !
    endif
    !
    ! Apply the resulting infiltration-rate field to the point-source field
@@ -287,7 +425,9 @@ contains
    ! update_meteo_forcing) plus any discharges / src-structures updates
    ! done earlier in update_continuity.
    !
-   !$acc parallel loop present( qsrc, qinfmap, cell_area, cell_area_m2, z_flags_iref )
+   ! Also keep track of the cumulative infiltration (m), for all infiltration types
+   !
+   !$acc parallel loop present( qsrc, qinfmap, cuminf, cell_area, cell_area_m2, z_flags_iref )
    !$omp parallel do default(shared) private(nm) schedule(static)
    do nm = 1, np
       !
@@ -295,6 +435,10 @@ contains
          qsrc(nm) = qsrc(nm) - qinfmap(nm) * cell_area_m2(nm)
       else
          qsrc(nm) = qsrc(nm) - qinfmap(nm) * cell_area(z_flags_iref(nm))
+      endif
+      !
+      if (store_cumulative_precipitation) then
+         cuminf(nm) = cuminf(nm) + qinfmap(nm) * dt
       endif
       !
    enddo
@@ -308,6 +452,8 @@ contains
    ! Spatially-uniform constant infiltration (specified as +mm/hr)
    !
    ! Note : Input directly in sfincs.inp, so no file needs to be read
+   !
+   ! Called from: initialize_infiltration (sfincs_infiltration)
    !
    use sfincs_data
    !
@@ -344,6 +490,8 @@ contains
    !
    ! Spatially-varying constant infiltration (specified as +mm/hr)
    !
+   ! Called from: initialize_infiltration (sfincs_infiltration)
+   !
    use sfincs_data
    !
    implicit none
@@ -363,6 +511,8 @@ contains
    subroutine initialize_infiltration_cna()
    !
    ! Spatially-varying infiltration with CN numbers (old, no recovery)
+   !
+   ! Called from: initialize_infiltration (sfincs_infiltration)
    !
    use sfincs_data
    !
@@ -385,6 +535,8 @@ contains
    subroutine initialize_infiltration_cnb()
    !
    ! Spatially-varying infiltration with CN numbers (new, with recovery)
+   !
+   ! Called from: initialize_infiltration (sfincs_infiltration)
    !
    use sfincs_data
    !
@@ -431,6 +583,8 @@ contains
    subroutine initialize_infiltration_gai()
    !
    ! Spatially-varying infiltration with the Green-Ampt (GA) model
+   !
+   ! Called from: initialize_infiltration (sfincs_infiltration)
    !
    use sfincs_data
    !
@@ -489,6 +643,8 @@ contains
    !
    ! Spatially-varying infiltration with the modified Horton Equation
    !
+   ! Called from: initialize_infiltration (sfincs_infiltration)
+   !
    use sfincs_data
    !
    implicit none
@@ -526,10 +682,59 @@ contains
    end subroutine
 
 
+   subroutine initialize_infiltration_r2d()
+   !
+   ! Spatially-varying constant run-off coefficient (specified as % of rainfall that runs off)
+   !
+   ! Note : Only available through the netcdf inffile, there is no binary file equivalent
+   !
+   ! Called from: initialize_infiltration (sfincs_infiltration)
+   !
+   use sfincs_data
+   use sfincs_ncinput
+   !
+   implicit none
+   !
+   character*256 :: varname
+   !
+   call write_log('Info    : turning on spatially-varying constant run-off coefficient', 0)
+   !
+   ! Run-off coefficient (input in %), converted below to the fraction of rainfall that infiltrates (stored in qinffield)
+   !
+   allocate(qinffield(np))
+   qinffield = 0.0
+   !
+   varname = 'runoff'
+   call read_netcdf_quadtree_to_sfincs(inffile, varname, qinffield)
+   !
+   if (minval(qinffield) < 0.0 .or. maxval(qinffield) > 100.0) then
+      !
+      call stop_sfincs('Error ! Run-off coefficients should be specified as a percentage between 0 and 100 !', 1)
+      !
+   endif
+   !
+   qinffield = 1.0 - qinffield / 100.0   ! convert run-off coefficient in % to infiltrating fraction (-)
+   !
+   end subroutine
+
+
    subroutine read_infiltration_field(varname, binfile, field)
    !
    ! Read one spatially-varying infiltration parameter, either from the netcdf
    ! inffile (variable varname) or from a legacy binary file (regular grids only)
+   !
+   ! Input:
+   !   varname : name of the variable in the netCDF infiltration file
+   !   binfile : name of the legacy binary file
+   !
+   ! Input/output:
+   !   field   : parameter value in each cell
+   !
+   ! Called from: initialize_infiltration_c2d (sfincs_infiltration),
+   !   initialize_infiltration_cna (sfincs_infiltration),
+   !   initialize_infiltration_cnb (sfincs_infiltration),
+   !   initialize_infiltration_gai (sfincs_infiltration),
+   !   initialize_infiltration_hor (sfincs_infiltration)
    !
    use sfincs_data
    use sfincs_ncinput
@@ -568,6 +773,11 @@ contains
    !
    ! Constant infiltration (con and c2d): infiltration rate map stays constant
    !
+   ! Input:
+   !   dt : time step [s]
+   !
+   ! Called from: update_infiltration_map (sfincs_infiltration)
+   !
    use sfincs_data
    !
    implicit none
@@ -579,7 +789,7 @@ contains
    !$omp parallel &
    !$omp private ( nm )
    !$omp do
-   !$acc parallel present( qinfmap, qinffield, z_volume, zs, zb, cuminf )
+   !$acc parallel present( qinfmap, qinffield, z_volume, zs, zb )
    !$acc loop independent gang vector
    do nm = 1, np
       !
@@ -601,14 +811,6 @@ contains
          !
       endif
       !
-      if (store_cumulative_precipitation) then
-         !
-         ! Compute cumulative infiltration
-         !
-         cuminf(nm) = cuminf(nm) + qinfmap(nm) * dt
-         !
-      endif
-      !
    enddo
    !$omp end do
    !$omp end parallel
@@ -620,6 +822,11 @@ contains
    subroutine compute_infiltration_cna(dt)
    !
    ! Infiltration rate with Curve Number (old method; no recovery)
+   !
+   ! Input:
+   !   dt : time step [s]
+   !
+   ! Called from: update_infiltration_map (sfincs_infiltration)
    !
    use sfincs_data
    !
@@ -656,14 +863,6 @@ contains
          !
       endif   
       !
-      if (store_cumulative_precipitation) then
-         !
-         ! Compute cumulative infiltration
-         !
-         cuminf(nm) = cuminf(nm) + qinfmap(nm) * dt
-         !
-      endif
-      !
    enddo
    !$omp end do
    !$omp end parallel
@@ -675,6 +874,11 @@ contains
    subroutine compute_infiltration_cnb(dt)
    !
    ! Infiltration rate with Curve Number with recovery
+   !
+   ! Input:
+   !   dt : time step [s]
+   !
+   ! Called from: update_infiltration_map (sfincs_infiltration)
    !
    use sfincs_data
    !
@@ -689,7 +893,7 @@ contains
    !$omp parallel &
    !$omp private ( Qq,I,nm )       
    !$omp do       
-   !$acc parallel present( qinfmap, prcp, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, qinffield, inf_kr )
+   !$acc parallel present( qinfmap, prcp, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, qinffield, inf_kr )
    !$acc loop independent gang vector
    do nm = 1, np
       !
@@ -771,14 +975,6 @@ contains
          !
       endif
       !
-      if (store_cumulative_precipitation) then
-         !
-         ! Compute cumulative infiltration
-         !
-         cuminf(nm) = cuminf(nm) + qinfmap(nm)*dt
-         !
-      endif
-      !
    enddo
    !$omp end do
    !$omp end parallel
@@ -791,6 +987,11 @@ contains
    !
    ! Infiltration rate with the Green-Ampt (GA) model
    !
+   ! Input:
+   !   dt : time step [s]
+   !
+   ! Called from: update_infiltration_map (sfincs_infiltration)
+   !
    use sfincs_data
    !
    implicit none
@@ -802,7 +1003,7 @@ contains
    !$omp parallel &
    !$omp private ( nm )
    !$omp do              
-   !$acc parallel present( qinfmap, prcp, cuminf, rain_T1,  &
+   !$acc parallel present( qinfmap, prcp, rain_T1,  &
    !$acc                  ksfield, GA_head, GA_sigma, GA_sigma_max, GA_F, GA_Lu, inf_kr )
    !$acc loop independent gang vector
    do nm = 1, np
@@ -870,14 +1071,6 @@ contains
             !
          endif
       endif
-      ! 
-      if (store_cumulative_precipitation) then
-         !
-         ! Compute cumulative infiltration
-         !
-         cuminf(nm)  = cuminf(nm) + qinfmap(nm) * dt
-         !
-      endif
       !
    enddo
    !$omp end do
@@ -890,6 +1083,11 @@ contains
    subroutine compute_infiltration_hor(dt)
    !
    ! Infiltration rate with the modified Horton model
+   !
+   ! Input:
+   !   dt : time step [s]
+   !
+   ! Called from: update_infiltration_map (sfincs_infiltration)
    !
    use sfincs_data
    !
@@ -905,7 +1103,7 @@ contains
    !$omp parallel &
    !$omp private  ( nm, Qq, I, hh_local )
    !$omp do              
-   !$acc parallel present( qinfmap, prcp, cuminf, cell_area_m2, cell_area, z_flags_iref, z_volume, zs, zb, rain_T1,  &
+   !$acc parallel present( qinfmap, prcp, cell_area_m2, cell_area, z_flags_iref, z_volume, zs, zb, rain_T1,  &
    !$acc                  horton_kd, horton_fc, horton_f0 )
    !$acc loop independent gang vector
    do nm = 1, np
@@ -1001,13 +1199,42 @@ contains
          !
       endif
       !
-      if (store_cumulative_precipitation) then
-         !
-         ! Compute cumulative infiltration
-         !
-         cuminf(nm)  = cuminf(nm) + qinfmap(nm) * dt
-         !
-      endif
+   enddo
+   !$omp end do
+   !$omp end parallel
+   !$acc end parallel
+   !
+   end subroutine
+
+
+   subroutine compute_infiltration_r2d(dt)
+   !
+   ! Run-off coefficient: fixed percentage of the rainfall runs off, the remainder infiltrates
+   !
+   ! Input:
+   !   dt : time step [s]
+   !
+   ! Called from: update_infiltration_map (sfincs_infiltration)
+   !
+   use sfincs_data
+   !
+   implicit none
+   !
+   real*4  :: dt
+   !
+   integer :: nm
+   !
+   !$omp parallel &
+   !$omp private ( nm )
+   !$omp do
+   !$acc parallel present( qinfmap, qinffield, prcp )
+   !$acc loop independent gang vector
+   do nm = 1, np
+      !
+      ! qinffield is the fraction of the rainfall that infiltrates (1 - run-off coefficient)
+      ! Only acts on the rainfall of this time step, so never on water that is already in the cell
+      !
+      qinfmap(nm) = qinffield(nm) * max(prcp(nm), 0.0)   ! infiltration in m/s
       !
    enddo
    !$omp end do
@@ -1018,6 +1245,10 @@ contains
 
 
    subroutine initialize_bucket_model()
+   !
+   ! Read the bucket model parameters and allocate its arrays.
+   !
+   ! Called from: initialize_infiltration (sfincs_infiltration)
    !
    use sfincs_data
    use sfincs_ncinput
@@ -1103,6 +1334,11 @@ contains
    !
    ! Literature: Linear reservoir (Nash, 1957), HBV soil moisture bucket (Bergstrom, 1995)
    !
+   ! Input:
+   !   dt : time step [s]
+   !
+   ! Called from: update_infiltration_map (sfincs_infiltration)
+   !
    use sfincs_data
    !
    implicit none
@@ -1117,7 +1353,7 @@ contains
    real*4           :: precip_rate
    !
    !$omp parallel do private(nm, exp_factor, drain_vol, P_eff, available_cap, actual_inflow, precip_rate)
-   !$acc parallel present( kcs, prcp, qinfmap, cuminf, bucket_volume, bucket_capacity, bucket_k, &
+   !$acc parallel present( kcs, prcp, qinfmap, bucket_volume, bucket_capacity, bucket_k, &
    !$acc                   bucket_drain_rate, bucket_loss, bucket_runoff )
    !$acc loop independent gang vector
    do nm = 1, np
@@ -1160,10 +1396,6 @@ contains
          qinfmap(nm) = precip_rate * bucket_loss(nm) + actual_inflow / dt - bucket_runoff(nm)
          !
          bucket_drain_rate(nm) = bucket_runoff(nm)
-         !
-         if (store_cumulative_precipitation) then
-            cuminf(nm) = cuminf(nm) + qinfmap(nm) * dt
-         endif
          !
       else
          !

@@ -1,4 +1,57 @@
 module sfincs_bathtub
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Bathtub flooding mode: water levels in all cells are set directly from the interpolated
+   ! boundary water levels, without solving the momentum and continuity equations.
+   ! Optionally uses SnapWave boundary wave heights.
+   !
+   ! Subroutines / functions:
+   !
+   !   initialize_bathtub()
+   !     Set up the bathtub boundary conditions and the interpolation weights per cell.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   bathtub_compute_water_levels()
+   !     Set the water level in every cell from the weighted boundary water levels.
+   !     Called from: sfincs_update (sfincs_lib)
+   !
+   !   read_snapwave_boundary_data()
+   !     Read the SnapWave input and wave boundary points for use in bathtub mode.
+   !     Called from: initialize_bathtub (sfincs_bathtub)
+   !
+   !   update_snapwave_boundary_data(tb)
+   !     Interpolate the SnapWave boundary wave heights to time tb.
+   !     Called from: initialize_bathtub (sfincs_bathtub)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
 
 integer*4, dimension(:),   allocatable :: bathtub_i1
 integer*4, dimension(:),   allocatable :: bathtub_i2
@@ -16,6 +69,8 @@ contains
    subroutine initialize_bathtub()
    !
    ! Creates bathtub boundary conditions and determines weighting factors
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    use sfincs_data
    use geometry
@@ -130,6 +185,10 @@ contains
    
    subroutine bathtub_compute_water_levels()
    !
+   ! Set the water level in every cell from the weighted boundary water levels.
+   !
+   ! Called from: sfincs_update (sfincs_lib)
+   !
    use sfincs_data
    use sfincs_timers
    use geometry
@@ -183,6 +242,10 @@ contains
 
    subroutine read_snapwave_boundary_data()
    !
+   ! Read the SnapWave input and wave boundary points for use in bathtub mode.
+   !
+   ! Called from: initialize_bathtub (sfincs_bathtub)
+   !
    use snapwave_data
    use snapwave_boundaries
    use snapwave_input, only: read_snapwave_input
@@ -213,6 +276,13 @@ contains
 
    
    subroutine update_snapwave_boundary_data(tb)
+   !
+   ! Interpolate the SnapWave boundary wave heights to time tb.
+   !
+   ! Input:
+   !   tb : time to interpolate the wave boundary conditions to [s since tref]
+   !
+   ! Called from: initialize_bathtub (sfincs_bathtub)
    !
    use snapwave_data
    use snapwave_boundaries   

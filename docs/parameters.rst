@@ -511,8 +511,8 @@ Domain
 	  :units:		depends on selected inftype and variables in the NetCDF file
 	  :required:		no
 	  :format:		net
-	inftype = c2d | cna | cnb | gai | hor | bkt
-	  :description:		Selects which infiltration method is read from inffile. Bucket mode requires bucket_smax, bucket_k and bucket_loss in inffile.
+	inftype = c2d | cna | cnb | gai | hor | bkt | r2d
+	  :description:		Selects which infiltration method is read from inffile. Bucket mode requires bucket_smax, bucket_k and bucket_loss in inffile. Run-off coefficient mode (r2d) requires runoff (in %) in inffile.
 	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
 	  :units:		-
 	  :required:		Only when inffile is used

@@ -137,6 +137,77 @@
 ! ============================================================================
 module sfincs_ncoutput
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! netCDF output of the map file (sfincs_map.nc) and the his file (sfincs_his.nc). See the
+   ! description above the module statement.
+   !
+   ! Subroutines / functions:
+   !
+   !   ncoutput_map_init()
+   !     Create the map file: define dimensions, variables and attributes, and write the
+   !     static fields.
+   !     Called from: initialize_output (sfincs_output)
+   !
+   !   ncoutput_his_init()
+   !     Create the his file: define dimensions, variables and attributes, and write the
+   !     static fields.
+   !     Called from: initialize_output (sfincs_output)
+   !
+   !   ncoutput_update_map(t, ntmapout)
+   !     Write the time-varying fields to the map file.
+   !     Called from: write_output (sfincs_output)
+   !
+   !   ncoutput_update_his(t, nthisout)
+   !     Write the time series at observation points, cross-sections and structures to the
+   !     his file.
+   !     Called from: write_output (sfincs_output)
+   !
+   !   ncoutput_update_max(t, ntmaxout)
+   !     Write the maximum-value fields to the map file.
+   !     Called from: write_output (sfincs_output)
+   !
+   !   ncoutput_map_finalize()
+   !     Write the run statistics to the map file and close it.
+   !     Called from: finalize_output (sfincs_output)
+   !
+   !   ncoutput_his_finalize()
+   !     Write the run statistics to the his file and close it.
+   !     Called from: finalize_output (sfincs_output)
+   !
+   !   ncoutput_add_params(ncid, varid)
+   !     Add the user input parameters as attributes to a netCDF file.
+   !     Called from: ncoutput_his_init (sfincs_ncoutput),
+   !       ncoutput_map_init (sfincs_ncoutput)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
    use netcdf
    use sfincs_ncoutput_helpers
    !
@@ -150,6 +221,8 @@ contains
    ! Merged init for both regular and quadtree grids.
    ! 1. Initialise dimensions/variables/attributes
    ! 2. Write grid/msk/zb to file
+   !
+   ! Called from: initialize_output (sfincs_output)
    !
    use sfincs_date
    use sfincs_data
@@ -414,6 +487,9 @@ contains
       elseif (inftype == 'bkt') then
          call def_static_cell_float('qinf', map_file%qinf_varid, 'mm', 'maximum bucket storage capacity', &
               standard_name='bucket_capacity')
+      elseif (inftype == 'r2d') then
+         call def_static_cell_float('qinf', map_file%qinf_varid, '%', 'run-off coefficient - constant in time', &
+              standard_name='runoff')
       else
          call def_static_cell_float('qinf', map_file%qinf_varid, 'mm h-1', 'infiltration rate - constant in time', &
               standard_name='qinf')
@@ -497,6 +573,9 @@ contains
       call def_time_cell_float('sigma', map_file%infstate_varid, '-', 'maximum soil moisture deficit', standard_name='sigma')
    elseif (inftype == 'hor') then
       call def_time_cell_float('f', map_file%infstate_varid, 'mm h-1', 'current infiltration capacity', standard_name='f')
+   elseif (inftype == 'bkt') then
+      call def_time_cell_float('bucket_volume', map_file%infstate_varid, 'm', 'current bucket storage', &
+           standard_name='bucket_volume')
    endif
    !
    ! -------------------------------------------------------
@@ -774,6 +853,9 @@ contains
          if (allocated(bucket_capacity)) then
             call put_static_cell_float(map_file%ncid, map_file%qinf_varid, bucket_capacity, FILL_VALUE, scale=1000.0)
          endif
+      elseif (inftype == 'r2d') then
+         ! Run-off coefficient: qinffield holds the infiltrating fraction, write back the run-off coefficient as specified (%)
+         call put_static_cell_float(map_file%ncid, map_file%qinf_varid, 100.0 * (1.0 - qinffield), FILL_VALUE)
       else
          if (allocated(qinffield)) then
             call put_static_cell_float(map_file%ncid, map_file%qinf_varid, qinffield, FILL_VALUE)
@@ -800,6 +882,8 @@ contains
    !
    ! 1. Initialise dimensions/variables/attributes
    ! 2. write grid/msk/zb to file
+   !
+   ! Called from: initialize_output (sfincs_output)
    !
    use sfincs_date
    use sfincs_data
@@ -1005,6 +1089,10 @@ contains
          call def_time_point_float('point_S', his_file%S_varid, 'm', 'current moisture storage (Se) capacity')
       elseif (inftype == 'gai') then
          call def_time_point_float('point_S', his_file%S_varid, 'm', 'maximum soil moisture deficit')
+      elseif (inftype == 'hor') then
+         call def_time_point_float('point_S', his_file%S_varid, 'mm hr-1', 'current infiltration capacity')
+      elseif (inftype == 'bkt') then
+         call def_time_point_float('point_S', his_file%S_varid, 'm', 'current bucket storage')
       endif
    endif
    !
@@ -1267,6 +1355,12 @@ contains
    ! and the two precompute helpers (compute_uv_at_cell_centers,
    ! compute_pnh_unwrapped) below.
    !
+   ! Input:
+   !   t        : current model time [s since tref]
+   !   ntmapout : index of the map output time
+   !
+   ! Called from: write_output (sfincs_output)
+   !
    use sfincs_data
    use sfincs_nonhydrostatic
    use sfincs_snapwave
@@ -1335,11 +1429,17 @@ contains
    ! Infiltration state
    ! -------------------------------------------------------
    if (inftype == 'cnb') then
+      !$acc update host(scs_Se)
       call write_cell_var(map_file%ncid, map_file%infstate_varid, scs_Se,   ntmapout)
    elseif (inftype == 'gai') then
+      !$acc update host(GA_sigma)
       call write_cell_var(map_file%ncid, map_file%infstate_varid, GA_sigma, ntmapout)
    elseif (inftype == 'hor') then
-      call write_cell_var(map_file%ncid, map_file%infstate_varid, qinfmap,  ntmapout)
+      !$acc update host(qinfmap)
+      call write_cell_var(map_file%ncid, map_file%infstate_varid, qinfmap,  ntmapout, scale=3600000.0)
+   elseif (inftype == 'bkt') then
+      !$acc update host(bucket_volume)
+      call write_cell_var(map_file%ncid, map_file%infstate_varid, bucket_volume, ntmapout)
    endif
    !
    ! -------------------------------------------------------
@@ -1401,6 +1501,12 @@ contains
    !
    ! Write time, zs, u, v, prcp etc. at observation points.
    !
+   ! Input:
+   !   t        : current model time [s since tref]
+   !   nthisout : index of the his output time
+   !
+   ! Called from: write_output (sfincs_output)
+   !
    use sfincs_data
    use sfincs_crosssections
    use sfincs_runup_gauges
@@ -1447,13 +1553,21 @@ contains
       if (store_meteo .and. wind)  call compute_wind_at_obs_points(twndmag, twnddir)
       !
       if (infiltration) then
-         ! 
+         !
+         !$acc update host(qinfmap)
          call write_point_var(his_file%qinf_varid, qinfmap, nthisout, scale=3600000.0)
          !
          if (inftype == 'cnb') then
+            !$acc update host(scs_Se)
             call write_point_var(his_file%S_varid, scs_Se, nthisout)
          elseif (inftype == 'gai') then
+            !$acc update host(GA_sigma)
             call write_point_var(his_file%S_varid, GA_sigma, nthisout)
+         elseif (inftype == 'hor') then
+            call write_point_var(his_file%S_varid, qinfmap, nthisout, scale=3600000.0)
+         elseif (inftype == 'bkt') then
+            !$acc update host(bucket_volume)
+            call write_point_var(his_file%S_varid, bucket_volume, nthisout)
          endif
          !
       endif
@@ -1577,6 +1691,12 @@ contains
    !
    ! Write maximum values to map file (handles both regular and quadtree grids)
    !
+   ! Input:
+   !   t        : current model time [s since tref]
+   !   ntmaxout : index of the maximum output time
+   !
+   ! Called from: write_output (sfincs_output)
+   !
    use sfincs_data
    use quadtree
    use sfincs_urban_drainage, only: urban_drainage_cumulative_volume
@@ -1699,6 +1819,8 @@ contains
    !
    ! Add total runtime, dtavg to file and close
    !
+   ! Called from: finalize_output (sfincs_output)
+   !
    use sfincs_data
    use sfincs_timers, only: timer_elapsed
    !
@@ -1730,6 +1852,8 @@ contains
    subroutine ncoutput_his_finalize()
    ! Add total runtime, dtavg to file and close
    !
+   ! Called from: finalize_output (sfincs_output)
+   !
    use sfincs_data
    use sfincs_src_structures, only: nr_src_structures
    use sfincs_discharges,     only: nr_discharge_points
@@ -1758,6 +1882,13 @@ contains
    !
    subroutine ncoutput_add_params(ncid, varid)
    ! Add user params to netcdf file (both map & his)
+   !
+   ! Input:
+   !   ncid  : netCDF file id
+   !   varid : id of the variable that holds the parameters as attributes
+   !
+   ! Called from: ncoutput_his_init (sfincs_ncoutput), ncoutput_map_init (sfincs_ncoutput)
+   !
    use sfincs_data
    use sfincs_src_structures, only: drnfile
    use sfincs_discharges,     only: srcfile, disfile, netsrcdisfile
