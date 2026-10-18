@@ -94,13 +94,15 @@ module sfincs_ncinput
    character (len=256), parameter :: units        = 'units'
    integer                        :: status
    !
+   real*8, dimension(:), allocatable :: time_nc   ! netcdf time as read (real*8 to keep fractional units)
+   !
    !   if (crsgeo) then
    !      x_varname    = 'lon'
-   !      y_varname    = 'lat'  
+   !      y_varname    = 'lat'
    !   else
    x_varname    = 'x'
-   y_varname    = 'y'  
-   !   endif   
+   y_varname    = 'y'
+   !   endif
    !
    call write_log('Info    : reading FEWS compatible netcdf type water level boundaries (bnd, bzs, bzi)...', 0)
    !
@@ -140,13 +142,14 @@ module sfincs_ncinput
    allocate(x_bnd(nbnd))
    allocate(y_bnd(nbnd)) 
    allocate(t_bnd(ntbnd))
+   allocate(time_nc(ntbnd))
    allocate(zs_bnd(nbnd,ntbnd))
-   allocate(zst_bnd(nbnd))  
+   allocate(zst_bnd(nbnd))
    !
    ! Read values
    NF90(nf90_get_var(net_file_bndbzsbzi%ncid, net_file_bndbzsbzi%x_varid, x_bnd(:)) )
    NF90(nf90_get_var(net_file_bndbzsbzi%ncid, net_file_bndbzsbzi%y_varid, y_bnd(:)) )
-   NF90(nf90_get_var(net_file_bndbzsbzi%ncid, net_file_bndbzsbzi%time_varid, t_bnd(:)) ) 
+   NF90(nf90_get_var(net_file_bndbzsbzi%ncid, net_file_bndbzsbzi%time_varid, time_nc(:)) )
    NF90(nf90_get_var(net_file_bndbzsbzi%ncid, net_file_bndbzsbzi%zs_varid, zs_bnd(:,:)) )   
    !   
    if (bziwaves) then     ! Allocate and read if bzi data is present      
@@ -162,9 +165,11 @@ module sfincs_ncinput
    NF90(nf90_get_att(net_file_bndbzsbzi%ncid, net_file_bndbzsbzi%time_varid, UNITS, treftimefews))
    !      
    ! Convert input time to sfincs time wrt treftime, time in same timezone as sfincs (UTC)
-   t_bnd = convert_fewsdate(t_bnd, ntbnd, treftimefews, trefstr)
+   t_bnd = convert_fewsdate(time_nc, ntbnd, treftimefews, trefstr)
    !
-   NF90(nf90_close(net_file_bndbzsbzi%ncid))       
+   deallocate(time_nc)
+   !
+   NF90(nf90_close(net_file_bndbzsbzi%ncid))
    ! 
    end subroutine
 
@@ -184,7 +189,9 @@ module sfincs_ncinput
    character (len=256)            :: y_varname
    character (len=256), parameter :: time_varname = 'time'
    character (len=256), parameter :: q_varname    = 'discharge'
-   character (len=256), parameter :: units        = 'units'  
+   character (len=256), parameter :: units        = 'units'
+   !
+   real*8, dimension(:), allocatable :: time_nc   ! netcdf time as read (real*8 to keep fractional units)
    !
    !   if (crsgeo) then
    !      x_varname    = 'lon'
@@ -218,12 +225,13 @@ module sfincs_ncinput
    allocate(xsrc(nsrc))
    allocate(ysrc(nsrc)) 
    allocate(tsrc(ntsrc))
+   allocate(time_nc(ntsrc))
    allocate(qsrc(nsrc,ntsrc))
    !
    ! Read values
    NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%x_varid,    xsrc(:)) )
    NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%y_varid,    ysrc(:)) )
-   NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%time_varid, tsrc(:)) ) 
+   NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%time_varid, time_nc(:)) )
    NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%q_varid,    qsrc(:,:)) )   
    !   
    ! Read time attibute
@@ -232,9 +240,11 @@ module sfincs_ncinput
    !      
    ! Convert input time to sfincs time wrt treftime, time in same timezone as sfincs (UTC)
    !
-   tsrc = convert_fewsdate(tsrc, ntsrc, treftimefews, trefstr)
+   tsrc = convert_fewsdate(time_nc, ntsrc, treftimefews, trefstr)
    !
-   NF90(nf90_close(net_file_srcdis%ncid))       
+   deallocate(time_nc)
+   !
+   NF90(nf90_close(net_file_srcdis%ncid))
    ! 
    end subroutine
 
@@ -590,6 +600,8 @@ module sfincs_ncinput
    real*4, dimension(:),     allocatable :: wx
    real*4, dimension(:),     allocatable :: wy
    !
+   real*8, dimension(:), allocatable :: time_nc   ! netcdf time as read (real*8 to keep fractional units)
+   !
    ! Variable names for Fews compatible netcdf input for amu/amv
    !
    character (len=256)            :: x_varname
@@ -633,6 +645,7 @@ module sfincs_ncinput
    ! Allocate
    !
    allocate(amuv_times(amuv_nt))
+   allocate(time_nc(amuv_nt))
    allocate(wu(amuv_ncols, amuv_nrows, amuv_nt))
    allocate(wv(amuv_ncols, amuv_nrows, amuv_nt))    
    allocate(wutmp(amuv_ncols, amuv_nrows, 1))
@@ -646,7 +659,7 @@ module sfincs_ncinput
    allocate(wy(amuv_nrows))     
    !
    ! Read values 
-   NF90(nf90_get_var(net_file_amuv%ncid, net_file_amuv%time_varid, amuv_times(:)))
+   NF90(nf90_get_var(net_file_amuv%ncid, net_file_amuv%time_varid, time_nc(:)))
    NF90(nf90_get_var(net_file_amuv%ncid, net_file_amuv%wx_varid, wx(:)))
    NF90(nf90_get_var(net_file_amuv%ncid, net_file_amuv%wy_varid, wy(:)))   
    !
@@ -686,9 +699,11 @@ module sfincs_ncinput
    !      
    ! Convert input time to sfincs time wrt treftime, time in same timezone as sfincs (UTC)
    !
-   amuv_times = convert_fewsdate(amuv_times, amuv_nt, treftimefews, trefstr)  
+   amuv_times = convert_fewsdate(time_nc, amuv_nt, treftimefews, trefstr)
    !
-   NF90(nf90_close(net_file_amuv%ncid))   
+   deallocate(time_nc)
+   !
+   NF90(nf90_close(net_file_amuv%ncid))
    !
    end subroutine
 
@@ -706,7 +721,9 @@ module sfincs_ncinput
    !
    integer nt
    !
-   real*4, dimension(:,:,:),   allocatable :: patmtmp 
+   real*8, dimension(:), allocatable :: time_nc   ! netcdf time as read (real*8 to keep fractional units)
+   !
+   real*4, dimension(:,:,:),   allocatable :: patmtmp
    real*4, dimension(:,:,:),   allocatable :: amp_patmtmp 
    !
    real*4, dimension(:),     allocatable :: px
@@ -756,6 +773,7 @@ module sfincs_ncinput
    ! Allocate
    !
    allocate(amp_times(amp_nt))
+   allocate(time_nc(amp_nt))
    allocate(patmtmp(amp_ncols, amp_nrows, 1))
    allocate(amp_patm(amp_nt, amp_nrows, amp_ncols))   
    allocate(amp_patmtmp(1, amp_nrows, amp_ncols))   
@@ -765,7 +783,7 @@ module sfincs_ncinput
    !
    ! Read values 
    !
-   NF90(nf90_get_var(net_file_amp%ncid, net_file_amp%time_varid, amp_times(:)))
+   NF90(nf90_get_var(net_file_amp%ncid, net_file_amp%time_varid, time_nc(:)))
    NF90(nf90_get_var(net_file_amp%ncid, net_file_amp%px_varid, px(:)))
    NF90(nf90_get_var(net_file_amp%ncid, net_file_amp%py_varid, py(:)))
    !
@@ -800,9 +818,11 @@ module sfincs_ncinput
    !         
    ! Convert input time to sfincs time wrt treftime, time in same timezone as sfincs (UTC)
    !         
-   amp_times = convert_fewsdate(amp_times, amp_nt, treftimefews, trefstr)
-   !       
-   NF90(nf90_close(net_file_amp%ncid))     
+   amp_times = convert_fewsdate(time_nc, amp_nt, treftimefews, trefstr)
+   !
+   deallocate(time_nc)
+   !
+   NF90(nf90_close(net_file_amp%ncid))
    !
    end subroutine
 
@@ -820,11 +840,13 @@ module sfincs_ncinput
    !
    integer nt
    !
-   real*4, dimension(:,:,:),   allocatable :: prtmp 
-   real*4, dimension(:,:,:),   allocatable :: ampr_prtmp 
+   real*4, dimension(:,:,:),   allocatable :: prtmp
+   real*4, dimension(:,:,:),   allocatable :: ampr_prtmp
    !
    real*4, dimension(:),     allocatable :: px
    real*4, dimension(:),     allocatable :: py
+   !
+   real*8, dimension(:), allocatable :: time_nc   ! netcdf time as read (real*8 to keep fractional units)
    !
    ! Variable names for Fews compatible netcdf input for prcp
    !
@@ -878,6 +900,7 @@ module sfincs_ncinput
    ! Allocate
    !
    allocate(ampr_times(ampr_nt))
+   allocate(time_nc(ampr_nt))
    allocate(prtmp(ampr_ncols, ampr_nrows,1))
    allocate(ampr_pr(ampr_nt, ampr_nrows, ampr_ncols))   
    allocate(ampr_prtmp(1, ampr_nrows, ampr_ncols))   
@@ -887,7 +910,7 @@ module sfincs_ncinput
    !
    ! Read values 
    !
-   NF90(nf90_get_var(net_file_ampr%ncid, net_file_ampr%time_varid, ampr_times(:)))
+   NF90(nf90_get_var(net_file_ampr%ncid, net_file_ampr%time_varid, time_nc(:)))
    NF90(nf90_get_var(net_file_ampr%ncid, net_file_ampr%px_varid, px(:)))
    NF90(nf90_get_var(net_file_ampr%ncid, net_file_ampr%py_varid, py(:)))
    !
@@ -916,9 +939,11 @@ module sfincs_ncinput
    NF90(nf90_get_att(net_file_ampr%ncid, net_file_ampr%time_varid, UNITS, treftimefews))
    !         
    ! Convert input time to sfincs time wrt treftime, time in same timezone as sfincs (UTC)
-   ampr_times = convert_fewsdate(ampr_times, ampr_nt, treftimefews, trefstr)
-   !       
-   NF90(nf90_close(net_file_ampr%ncid))     
+   ampr_times = convert_fewsdate(time_nc, ampr_nt, treftimefews, trefstr)
+   !
+   deallocate(time_nc)
+   !
+   NF90(nf90_close(net_file_ampr%ncid))
    !
    end subroutine
    !

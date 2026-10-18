@@ -38,6 +38,7 @@ contains
    integer iwavemaker      
    integer iwavemaker_spectrum  
    integer ispwprecip
+   real*4  nonh_movingbed_filter_deprecated
    logical iviscosity
    logical ok
    !
@@ -99,9 +100,11 @@ contains
    call read_int_input(500,'epsg',epsg,0)
    call read_char_input(500,'epsg',epsg_code,'nil')      
    call read_real_input(500, 'advlim', advlim, 1.0)
+   call read_real_input(500, 'advection_umax_factor', advection_umax_factor, 3.0)   ! scale on the advective-speed bound sqrt(g*hu) + |u| in the velocity scheme (3 = run-up fronts unclamped, 1 = strict)
    call read_real_input(500,'slopelim',slopelim,9999.9)
    call read_real_input(500,'qinf_zmin',qinf_zmin,0.0)
    call read_real_input(500,'btfilter',btfilter,60.0)
+   call read_logical_input(500, 'bziwaves', bziwaves_user, .true.)   ! 0 = ignore the incoming-wave signal (bzifile or zi in netbndbzsbzifile) even if present
    call read_real_input(500,'sfacinf',sfacinf,0.2)
    call read_int_input(500,'radstr',iradstr,0)
    call read_int_input(500,'crsgeo',igeo,0)
@@ -203,8 +206,33 @@ contains
    call read_real_input(500, 'nonh_tol', nonh_tol, 0.01)
    call read_int_input(500, 'nonh_itermax', nonh_itermax, 100)
    call read_logical_input(500, 'nonh_movingbed', nonh_movingbed, .false.)  ! add d(zb)/dt to the bottom kinematic w_b (moving-seafloor source via dzbext)
+   call read_int_input(500, 'nonh_movingbed_ws', nonh_movingbed_ws, -1)      ! surface-velocity factor for the moving-bed term (-1 default, 0/+1 diagnostic)
+   call read_logical_input(500, 'nonh_movingbed_slopes', nonh_movingbed_slopes, .true.)  ! refresh bottom-kinematic bed slopes after external bed updates (no = initial slopes only)
    call read_real_input(500, 'nonh_filter', nonh_filter, 0.5)               ! spatial 2dx filter on pnh (0 = off, ~0.25-0.5 damps grid mode)
    call read_real_input(500, 'nonh_dzbmax', nonh_dzbmax, 0.1)               ! cap on |d(zb)/dx| in bottom kinematic wb (default 0.1; clips near-vertical walls, leaves real slopes); 0 = no cap
+   call read_int_input(500, 'nonh_kinematic', nonh_kinematic, 1)            ! bottom kinematic condition: 1 = layer-consistent (bed slope implicit via the layer term, d(zb)/dt as rhs source; default), 0 = legacy explicit lagged w_b = u.grad(zb)
+   !
+   ! Moving bed (dzbext through BMI/XMI, applied by update_bed_level): update_bed_level always lifts the
+   ! free surface of the wet cells with the depth-filtered bed increment, and the non-hydrostatic
+   ! moving-bed source reads the same filtered field; movingbed_filter is the one filter width (0 = raw).
+   ! nonh_movingbed_filter is the old name.
+   !
+   call read_real_input(500, 'movingbed_filter', movingbed_filter, -999.0)   ! depth filter of the moving bed: Gaussian std = factor x depth of the moving cells (default 0.8); 0 = raw, no filter
+   call read_real_input(500, 'nonh_movingbed_filter', nonh_movingbed_filter_deprecated, -999.0)  ! deprecated alias of movingbed_filter
+   if (movingbed_filter < -998.0) then
+      !
+      if (nonh_movingbed_filter_deprecated > -998.0) then
+         !
+         call write_log('Warning : keyword nonh_movingbed_filter is deprecated, use movingbed_filter (same meaning: the width of the surface lift and of the nonh moving-bed source)', 1)
+         movingbed_filter = nonh_movingbed_filter_deprecated
+         !
+      else
+         !
+         movingbed_filter = 0.8
+         !
+      endif
+      !
+   endif
    call read_int_input(500, 'nonh_fadein', nonh_fadein, 0)                  ! open-boundary nonh fade-in width (cells): nonh ramps 0->full over N cells from the boundary; 0 = off
    call read_real_input(500, 'nonh_brsteep', nonh_brsteep, 0.4)             ! HFA breaking onset: nonh starts reducing when dzdt (=-d(hu)/dx) > nonh_brsteep*sqrt(g*h); 0 = off (XBeach default 0.4)
    call read_real_input(500, 'nonh_brfr', nonh_brfr, 0.5)                   ! OPTIONAL NEOWAVE Froude breaking criterion: pnh=0 when |U|/sqrt(g*D) > nonh_brfr (~0.5), release < 0.3*nonh_brfr (~0.15); 0 = off -> use nonh_brsteep instead
@@ -213,8 +241,10 @@ contains
    call read_real_input(500, 'nonh_treform', nonh_treform, 1.0)             ! breaking reformation time scale (s): released cells recover the nonh pressure gradually (brfac += dt/treform); 0 = instant recovery
    call read_real_input(500, 'nonh_smoothbnd', nonh_smoothbnd, 0.5)         ! strength of localized 2dx pnh smoothing in the fade-in zone (weight at boundary, ramps to 0 over the fade-in) and shallow zone; 0 = off
    call read_real_input(500, 'nonh_smoothdep', nonh_smoothdep, 0.0)         ! depth (m) below which the localized pnh smoothing also acts (shallow run-up / wall 2dx noise); weight ramps from full at D=0 to 0 at D=nonh_smoothdep; 0 = off
-   call read_real_input(500, 'nonh_disp', nonh_disp, 1.0)                   ! Keller-box vertical factor (default 1.0 = best dispersion, c(k) flat to Airy ~kd 2.5); 2.0 = strict linear-pressure single layer
+   call read_real_input(500, 'nonh_disp', nonh_disp, 1.0)                   ! Keller-box vertical factor (default 1.0 = strict linear-pressure single layer, c(k) close to Airy to kd ~2.5); larger values make short waves too fast
    call read_real_input(500, 'nonh_pmax', nonh_pmax, 0.0)                   ! depth limiter: cap |pnh| <= nonh_pmax*rho*g*H post-solve (caps wall/breaking/2dx spikes, leaves resolved waves untouched); 0 = off, ~1-2 typical
+   call read_logical_input(500, 'nonh_pade', nonh_pade, .true.)             ! Boussinesq dispersion correction (Madsen-Sorensen type, in the pressure operator): Pade-type relation without frequency cutoff; sets the Keller-box factor to 3/4 internally (nonh_disp ignored); needs nonh_kinematic 1; default on, 0 = Keller box
+   call read_real_input(500, 'nonh_pade_beta', nonh_pade_beta, 0.04)        ! coefficient beta of the nonh_pade correction (default 0.04, NTHMP test bed; 1/15 = Pade [2/2] of Airy, 0 = [0/2])
    call read_logical_input(500, 'h73table', h73table, .false.)
    call read_real_input(500, 'rugdepth', runup_gauge_depth, 0.05)
    call read_logical_input(500, 'wave_enhanced_roughness', wave_enhanced_roughness, .false.)
@@ -788,6 +818,15 @@ contains
          nonh_tstop = t1 + 999.0
          !          
       endif    
+      !
+   endif
+   !
+   ! The Boussinesq correction takes ws from the layer constraint (nonh_kinematic 1)
+   !
+   if (nonhydrostatic .and. nonh_pade .and. nonh_kinematic /= 1) then
+      !
+      call write_log('Warning : nonh_pade requires nonh_kinematic = 1; nonh_kinematic set to 1', 1)
+      nonh_kinematic = 1
       !
    endif
    !

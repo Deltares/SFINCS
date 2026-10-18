@@ -39,6 +39,7 @@ contains
    nbnd      = 0
    ntbnd     = 0
    itbndlast = 1
+   bziwaves  = .false.   ! set to .true. by whichever route reads an incoming-wave signal (bzifile or zi in netbndbzsbzifile)
    !
    if (netbndbzsbzifile(1:4) /= 'none') then    ! FEWS compatible Netcdf water level time-series input
       !
@@ -138,6 +139,8 @@ contains
          enddo
          close(500)
          !
+         bziwaves = .true.
+         !
       endif
       !      
       if ((t_bnd(1) > (t0 + 1.0)) .or. (t_bnd(ntbnd) < (t1 - 1.0))) then
@@ -185,7 +188,34 @@ contains
       t_bnd(1) = t0
       t_bnd(2) = t1
       zs_bnd   = 0.0
-      zst_bnd  = 0.0      
+      zst_bnd  = 0.0
+      !
+   endif
+   !
+   ! Incoming-wave signal (bzi). Keyword bziwaves = 0 switches it off for both input routes.
+   !
+   if (bziwaves .and. .not. bziwaves_user) then
+      !
+      bziwaves = .false.
+      !
+      call write_log('Info    : incoming-wave signal (bzi) found at the water level boundaries but switched off by keyword bziwaves = 0', 0)
+      !
+   endif
+   !
+   if (bziwaves) then
+      !
+      if (netbndbzsbzifile(1:4) /= 'none') then
+         !
+         write(logstr,'(a,a)')'Info    : using incoming-wave signal zi from netbndbzsbzifile ', trim(netbndbzsbzifile)
+         !
+      else
+         !
+         write(logstr,'(a,a)')'Info    : using incoming-wave signal from bzifile ', trim(bzifile)
+         !
+      endif
+      !
+      call write_log(logstr, 0)
+      call write_log('Info    : btfilter is not used at the water level boundaries because an incoming-wave signal is present (uvmean = 0)', 0)
       !
    endif
    !
@@ -745,7 +775,7 @@ contains
       !
       zst_bnd(ib) = zstb
       !
-      if (bzifile(1:4) /= 'none') then
+      if (bziwaves) then
          !
          ! Incoming infragravity waves
          !
@@ -777,9 +807,6 @@ contains
    real*4 zs0act
    real*4 smfac
    real*4 zs0smooth
-   logical :: has_bzi
-   !
-   has_bzi = (bzifile(1:4) /= 'none')
    !
    ! Set water level in all boundary points on grid
    ! This loop is all done on the CPU
@@ -830,7 +857,7 @@ contains
          !
          ! Incoming IG waves from file (this will overrule IG signal computed before)
          !
-         if (has_bzi) then
+         if (bziwaves) then
             !
             if (nbnd > 1) then
                !
@@ -933,6 +960,7 @@ contains
    real*4  hnmb, dt, zsnmi, zsnmb, zs0nmb, facrel
    real*4  factime, one_minus_factime
    real*8           :: t
+   logical          :: use_uvmean
    !
    real*4 ui, ub, dzuv, facint, zsuv, depthuv
    !
@@ -941,6 +969,12 @@ contains
    factime = min(dt / btfilter, 1.0)
    one_minus_factime = 1.0 - factime
    facrel  = 1.0 - min(dt / btrelax, 1.0)
+   !
+   ! Running-mean boundary flux uvmean (time scale btfilter) is only used without an incoming-wave
+   ! signal. With a bzi signal it acts as an integrator that doubles the incoming wave, so the boundary
+   ! is then a clean Riemann condition (q = ub * hnmb). Local scalar so it is available in the acc region.
+   !
+   use_uvmean = (btfilter >= -1.0e-6) .and. (.not. bziwaves)
    !
    ! UV fluxes at boundaries
    !
@@ -1019,7 +1053,15 @@ contains
             ui = sqrt(g / hnmb) * (zsnmb - zs0nmb)
             ub = ibuvdir(ib) * (2 * ui - sqrt(g / hnmb) * (zsnmi - zs0nmb))
             !
-            q(ip) = ub * hnmb + uvmean(ib)            
+            if (use_uvmean) then
+               !
+               q(ip) = ub * hnmb + uvmean(ib)
+               !
+            else
+               !
+               q(ip) = ub * hnmb
+               !
+            endif
             !
             ! Riemann
             !
@@ -1078,7 +1120,7 @@ contains
             !
          endif
          !
-         if (btfilter >= -1.0e-6) then
+         if (use_uvmean) then
             !
             ! Added a little bit of relaxation in uvmean to avoid persistent jets shooting into the model
             ! Using: facrel = 1.0 - min(dt/btrelax, 1.0)

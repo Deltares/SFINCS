@@ -3,6 +3,13 @@ module sfincs_domain
    use sfincs_log
    use sfincs_error
 
+   !
+   ! Moving bed (update_bed_level): cells with less water than this are not stamped and do
+   ! not receive filtered volume; the threshold is max(huthresh, movingbed_hwet_min), as the
+   ! non-hydrostatic solver's huthresh_nh.
+   !
+   real*4, parameter :: movingbed_hwet_min = 0.01
+
 contains
 
    subroutine initialize_domain()
@@ -1771,7 +1778,23 @@ contains
    !    larger of the two updated cell-centre subgrid_z_zmin values so the uv
    !    minimum can never sit below either neighbour's minimum.
    !
-   ! The bed level at observation points (zbobs) is refreshed in both modes.
+   ! Surface lift (always): the increment is depth-filtered into dzbext_filtered
+   ! (filter_moving_bed_increment: wet cells, round-off increments dropped,
+   ! Gaussian of movingbed_filter x depth of the moving cells, 0 = raw, volume of
+   ! the rising and sinking parts kept) and the free surface of the wet cells is
+   ! lifted with it (stamp_moving_bed_surface):
+   !    non-subgrid: zs = zs + dzbext_filtered
+   !    subgrid:     the shifted tables already imply zs + dzbext at the unchanged
+   !                 z_volume; the volume is corrected by V(zs + dzbext_filtered) -
+   !                 V(zs + dzbext) in the shifted table and zs set to the target
+   ! Dry cells and cells whose increment is round-off follow the bed in both
+   ! modes (their depth is unchanged). A moving bed therefore needs no mass
+   ! bookkeeping by the caller on any grid type (a caller must not lift zs as
+   ! well). dzbext_filtered is also the non-hydrostatic moving-bed source
+   ! (d(zb)/dt = dzbext_filtered/dt in sfincs_nonhydrostatic, step 2b), so the
+   ! surface lift and the pressure source share the one filter width.
+   !
+   ! The bed level at observation points (zbobs) is refreshed as well.
    !
    ! The caller (Python via BMI) owns the lifecycle of dzbext: this routine
    ! does not zero it out after applying.  When use_dzbext is .false. the
@@ -1779,6 +1802,7 @@ contains
    ! historical behaviour of compute_zbuvmx).
    !
    use sfincs_data
+   use sfincs_nonhydrostatic, only: compute_nonh_bed_slopes, nonh_movingbed_slopes
    !
    integer :: ip
    integer :: nm
@@ -1845,9 +1869,28 @@ contains
             subgrid_uv_zmin(ip) = max(subgrid_uv_zmin(ip), &
                                       max(subgrid_z_zmin(nm), subgrid_z_zmin(nmu)))
             !
+            ! The fully-wet face depth in momentum is hu = subgrid_uv_havg_zmax + zsu, with
+            ! subgrid_uv_havg_zmax = havg(zmax) - zmax precomputed when the tables are read.
+            ! Refresh it so it follows the shifted zmax; otherwise every fully-wet face keeps
+            ! an hu that is off by the bed change, which goes negative on flat faces where the
+            ! bed subsided (uv = q / max(hu, huvmin) then divides by zero and dt collapses).
+            !
+            subgrid_uv_havg_zmax(ip) = subgrid_uv_havg(subgrid_nlevels, ip) - subgrid_uv_zmax(ip)
+            !
          enddo
          !
       endif
+      !
+   endif
+   !
+   ! Depth-filtered increment of the wet cells (the non-hydrostatic moving-bed
+   ! source reads it as well), then the surface lift.
+   !
+   if (use_dzbext) then
+      !
+      call filter_moving_bed_increment()
+      !
+      call stamp_moving_bed_surface()
       !
    endif
    !
@@ -1875,7 +1918,683 @@ contains
       !
    endif
    !
+   ! The non-hydrostatic bottom kinematic condition uses the bed slopes; refresh
+   ! them so a moving bed does not keep its old flank slopes in w_b.
+   !
+   if (nonhydrostatic .and. use_dzbext .and. nonh_movingbed_slopes) then
+      call compute_nonh_bed_slopes()
+   endif
+   !
    end subroutine update_bed_level
+
+   !
+   !
+   subroutine filter_moving_bed_increment()
+   !
+   ! Builds dzbext_filtered from the caller's bed increment dzbext: the increment of
+   ! the wet cells that move (moving_bed_cell_moves: depth > max(huthresh,
+   ! movingbed_hwet_min) and increment above nh_dzb_ulps float32 ulps of the bed
+   ! level; smaller increments are round-off of the caller's float64 target bed
+   ! minus the float32 kernel bed, and as a bed velocity on the 1e-6 s start-up
+   ! step such noise is an impulse, see sfincs_nonhydrostatic step 2b),
+   ! depth-filtered with depth_filter_cell_field when movingbed_filter > 0. Other
+   ! cells get 0.
+   !
+   ! Called from: update_bed_level
+   !
+   use sfincs_data
+   !
+   integer :: nm
+   real*4, dimension(:), allocatable :: fin
+   !
+   if (.not. allocated(dzbext_filtered)) then
+      !
+      allocate(dzbext_filtered(np))
+      dzbext_filtered = 0.0
+      !
+   endif
+   !
+   allocate(fin(np))
+   !
+   !$omp parallel do schedule ( static ) private ( nm )
+   do nm = 1, np
+      !
+      fin(nm) = 0.0
+      !
+      if (moving_bed_cell_moves(nm)) then
+         !
+         fin(nm) = dzbext(nm)
+         !
+      endif
+      !
+   enddo
+   !$omp end parallel do
+   !
+   if (movingbed_filter > 0.0) then
+      !
+      call depth_filter_cell_field(fin, dzbext_filtered, movingbed_filter)
+      !
+   else
+      !
+      dzbext_filtered = fin
+      !
+   endif
+   !
+   deallocate(fin)
+   !
+   end subroutine filter_moving_bed_increment
+   !
+   !
+   subroutine stamp_moving_bed_surface()
+   !
+   ! Lifts the free surface of the wet cells with the filtered bed increment (which
+   ! extends beyond the moving footprint) plus, where the cell's own increment is
+   ! round-off (below the filter's motion threshold, moving_bed_cell_moves, but
+   ! possibly still a change of the float32 bed), that raw increment, so the
+   ! depth there is unchanged. Dry cells follow the bed with the raw increment
+   ! (their depth, zero or below the threshold, is unchanged: a dry cell whose bed
+   ! sinks must not fill itself).
+   !
+   ! Subgrid: update_bed_level has shifted the level tables by dzbext, so the
+   ! unchanged z_volume now maps to zs + dzbext (every branch of the table lookup
+   ! in compute_water_levels_subgrid is a rigid shift). The volume is corrected by
+   ! V(zs + dzbext_filtered) - V(zs + dzbext) of the shifted table
+   ! (subgrid_volume_at_level: a x dzs above z_zmax, inverse table lookup below
+   ! it as compute_initial_subgrid_volumes), zs is set to the target and the
+   ! effective bed refreshed as continuity does (zb_effective).
+   !
+   ! Host arrays only, as the rest of update_bed_level (on a GPU build the device
+   ! copies of zs, z_volume and zb are not refreshed here).
+   !
+   ! Called from: update_bed_level
+   !
+   use sfincs_data
+   !
+   integer :: nm
+   real*4  :: a
+   real*4  :: hwet
+   real*4  :: dzs
+   real*8  :: zs_raw
+   real*8  :: zs_new
+   !
+   hwet = max(huthresh, movingbed_hwet_min)
+   !
+   if (.not. subgrid) then
+      !
+      !$omp parallel do schedule ( static ) private ( nm, dzs )
+      do nm = 1, np
+         !
+         if (moving_bed_cell_depth(nm) > hwet) then
+            !
+            dzs = stamp_increment(nm)
+            !
+            zs(nm) = zs(nm) + dzs
+            !
+         else
+            !
+            zs(nm) = zs(nm) + dzbext(nm)
+            !
+         endif
+         !
+      enddo
+      !$omp end parallel do
+      !
+   else
+      !
+      !$omp parallel do schedule ( static ) private ( nm, a, dzs, zs_raw, zs_new )
+      do nm = 1, np
+         !
+         a = moving_bed_cell_area(nm)
+         !
+         if (moving_bed_cell_depth(nm) > hwet) then
+            !
+            dzs          = stamp_increment(nm)
+            zs_raw       = zs(nm) + dzbext(nm)
+            zs_new       = zs(nm) + dzs
+            z_volume(nm) = z_volume(nm) + (subgrid_volume_at_level(nm, zs_new, a) - subgrid_volume_at_level(nm, zs_raw, a))
+            zs(nm)       = zs_new
+            !
+         else
+            !
+            zs(nm) = zs(nm) + dzbext(nm)
+            !
+         endif
+         !
+         if (zb_effective) then
+            !
+            zb(nm) = zs(nm) - max(z_volume(nm) / a, 0.0d0)
+            !
+         endif
+         !
+      enddo
+      !$omp end parallel do
+      !
+   endif
+   !
+   contains
+      !
+      function stamp_increment(i) result(dz)
+         !
+         ! Surface increment of a wet cell: the filtered field, plus the cell's
+         ! own raw increment when that is round-off (not in the filtered field,
+         ! but possibly a change of the float32 bed)
+         !
+         integer, intent(in) :: i
+         real*4 :: dz
+         !
+         dz = dzbext_filtered(i)
+         !
+         if (.not. moving_bed_cell_moves(i)) dz = dz + dzbext(i)
+         !
+      end function stamp_increment
+      !
+   end subroutine stamp_moving_bed_surface
+   !
+   !
+   subroutine depth_filter_cell_field(fin, fout, width)
+   !
+   ! Depth filter (Kajiura-type attenuation) of a cell field, e.g. a bed increment:
+   ! Gaussian of standard deviation width x hc, where hc is the |fin|-weighted mean
+   ! depth of the non-zero cells, with a floor of one cell. Separable x/y passes
+   ! along the same-level neighbour chains (the single faces z_index_uv_md1/mu1/
+   ! nd1/nu1 of type 0), scattered from the non-zero cells only, so the cost scales
+   ! with the footprint and the kernel radius (serial host routine: the scatter
+   ! writes to neighbour cells). The rising (> 0) and sinking (< 0) parts are
+   ! filtered separately, masked to the wet cells and rescaled to their own
+   ! area-weighted totals, so each keeps its volume (a translating slide has a net
+   ! volume of ~0 and would lose its shape in a single rescaling).
+   !
+   ! Quadtree grids: the cells of one refinement level form a regular lattice with
+   ! holes. The chains stay within the level (they stop at refinement transitions,
+   ! at the domain edge and at holes), the width in cells follows the level's
+   ! spacing (per cell for crsgeo), so every level is filtered as a regular grid
+   ! and the rescaling restores what the truncated chains lose. Mass is not
+   ! exchanged across a transition: a feature that straddles one is smoothed on
+   ! each side separately (a step of the filtered field at the transition, of the
+   ! order of the smoothing itself), and the part lost at a transition or edge is
+   ! returned to the whole part by the rescaling rather than locally. A non-zero
+   ! cell without a neighbour in a direction keeps its value in that pass (nothing
+   ! to spread to); cells without any neighbour are reported once in the log.
+   !
+   ! Called from: filter_moving_bed_increment (bed increment of a moving bed)
+   !
+   use sfincs_data
+   use sfincs_log
+   !
+   real*4, dimension(:), intent(in)  :: fin
+   real*4, dimension(:), intent(out) :: fout
+   real*4,               intent(in)  :: width
+   !
+   integer, parameter :: rmax = 500
+   !
+   integer :: nm
+   integer :: j
+   integer :: k
+   integer :: r
+   integer :: ipart
+   integer :: nochain
+   real*4  :: hc
+   real*4  :: sig
+   real*4  :: sigprev
+   real*4  :: hwet
+   real*4  :: fac
+   real*8  :: sw8
+   real*8  :: swh8
+   real*8  :: tot08
+   real*8  :: tot8
+   real*4, dimension(0:rmax) :: w
+   real*4, dimension(:), allocatable :: part
+   real*4, dimension(:), allocatable :: tmp
+   real*4, dimension(:), allocatable :: outp
+   logical, save :: warned = .false.
+   !
+   fout = 0.0
+   hwet = max(huthresh, movingbed_hwet_min)
+   !
+   ! |fin|-weighted mean depth of the moving cells: the width scale
+   !
+   sw8     = 0.0d0
+   swh8    = 0.0d0
+   nochain = 0
+   !
+   do nm = 1, np
+      !
+      if (fin(nm) /= 0.0) then
+         !
+         sw8  = sw8 + abs(fin(nm))
+         swh8 = swh8 + abs(fin(nm)) * max(moving_bed_cell_depth(nm), 0.0)
+         !
+         if (nb_mu(nm) == 0 .and. nb_md(nm) == 0 .and. nb_nu(nm) == 0 .and. nb_nd(nm) == 0) then
+            !
+            nochain = nochain + 1
+            !
+         endif
+         !
+      endif
+      !
+   enddo
+   !
+   if (sw8 <= 0.0d0) return
+   !
+   hc = real(swh8 / sw8, 4)
+   !
+   if (nochain > 0 .and. .not. warned) then
+      !
+      write(logstr,'(a,i0,a)')'Warning : moving-bed depth filter: ', nochain, ' moving cells have no same-level neighbour; their increment is not filtered'
+      call write_log(logstr, 0)
+      warned = .true.
+      !
+   endif
+   !
+   allocate(part(np))
+   allocate(tmp(np))
+   allocate(outp(np))
+   !
+   do ipart = 1, 2
+      !
+      ! Rising (ipart = 1) or sinking (ipart = 2) part and its volume
+      !
+      tot08 = 0.0d0
+      !
+      do nm = 1, np
+         !
+         if (ipart == 1) then
+            !
+            part(nm) = max(fin(nm), 0.0)
+            !
+         else
+            !
+            part(nm) = min(fin(nm), 0.0)
+            !
+         endif
+         !
+         tot08 = tot08 + part(nm) * moving_bed_cell_area(nm)
+         !
+      enddo
+      !
+      if (tot08 == 0.0d0) cycle
+      !
+      ! x pass: scatter every non-zero cell along its west/east chain. The width in
+      ! cells is the cell's own (level or, for crsgeo, latitude dependent) spacing,
+      ! floor one cell; the weights are rebuilt when it changes.
+      !
+      tmp     = 0.0
+      sigprev = -1.0
+      r       = 0
+      !
+      do nm = 1, np
+         !
+         if (part(nm) == 0.0) cycle
+         !
+         if (nb_mu(nm) == 0 .and. nb_md(nm) == 0) then
+            !
+            tmp(nm) = tmp(nm) + part(nm)
+            cycle
+            !
+         endif
+         !
+         sig = width * max(hc * moving_bed_dxinv(nm), 1.0)
+         !
+         if (sig /= sigprev) then
+            !
+            r = min(ceiling(4.0 * sig), rmax)
+            call gaussian_weights(sig, r, w)
+            sigprev = sig
+            !
+         endif
+         !
+         tmp(nm) = tmp(nm) + w(0) * part(nm)
+         j       = nm
+         !
+         do k = 1, r
+            !
+            j = nb_mu(j)
+            if (j == 0) exit
+            tmp(j) = tmp(j) + w(k) * part(nm)
+            !
+         enddo
+         !
+         j = nm
+         !
+         do k = 1, r
+            !
+            j = nb_md(j)
+            if (j == 0) exit
+            tmp(j) = tmp(j) + w(k) * part(nm)
+            !
+         enddo
+         !
+      enddo
+      !
+      ! y pass (2-D grids): scatter along the south/north chains
+      !
+      if (nmax > 1) then
+         !
+         outp    = 0.0
+         sigprev = -1.0
+         r       = 0
+         !
+         do nm = 1, np
+            !
+            if (tmp(nm) == 0.0) cycle
+            !
+            if (nb_nu(nm) == 0 .and. nb_nd(nm) == 0) then
+               !
+               outp(nm) = outp(nm) + tmp(nm)
+               cycle
+               !
+            endif
+            !
+            sig = width * max(hc * dyrinv(z_flags_iref(nm)), 1.0)
+            !
+            if (sig /= sigprev) then
+               !
+               r = min(ceiling(4.0 * sig), rmax)
+               call gaussian_weights(sig, r, w)
+               sigprev = sig
+               !
+            endif
+            !
+            outp(nm) = outp(nm) + w(0) * tmp(nm)
+            j        = nm
+            !
+            do k = 1, r
+               !
+               j = nb_nu(j)
+               if (j == 0) exit
+               outp(j) = outp(j) + w(k) * tmp(nm)
+               !
+            enddo
+            !
+            j = nm
+            !
+            do k = 1, r
+               !
+               j = nb_nd(j)
+               if (j == 0) exit
+               outp(j) = outp(j) + w(k) * tmp(nm)
+               !
+            enddo
+            !
+         enddo
+         !
+      else
+         !
+         outp = tmp
+         !
+      endif
+      !
+      ! Wet cells only, rescaled to the volume of this part
+      !
+      tot8 = 0.0d0
+      !
+      do nm = 1, np
+         !
+         if (moving_bed_cell_depth(nm) <= hwet) outp(nm) = 0.0
+         tot8 = tot8 + outp(nm) * moving_bed_cell_area(nm)
+         !
+      enddo
+      !
+      if (tot8 == 0.0d0) cycle
+      !
+      fac = real(tot08 / tot8, 4)
+      !
+      do nm = 1, np
+         !
+         fout(nm) = fout(nm) + outp(nm) * fac
+         !
+      enddo
+      !
+   enddo
+   !
+   deallocate(part, tmp, outp)
+   !
+   contains
+      !
+      function nb_mu(i) result(inb)
+         !
+         ! Same-level neighbour to the right (0 = none: domain edge, hole or refinement transition)
+         !
+         integer, intent(in) :: i
+         integer :: inb
+         integer :: ip
+         !
+         inb = 0
+         ip  = z_index_uv_mu1(i)
+         !
+         if (ip > 0) then
+            !
+            if (uv_flags_type(ip) == 0) inb = uv_index_z_nmu(ip)
+            !
+         endif
+         !
+      end function nb_mu
+      !
+      function nb_md(i) result(inb)
+         !
+         integer, intent(in) :: i
+         integer :: inb
+         integer :: ip
+         !
+         inb = 0
+         ip  = z_index_uv_md1(i)
+         !
+         if (ip > 0) then
+            !
+            if (uv_flags_type(ip) == 0) inb = uv_index_z_nm(ip)
+            !
+         endif
+         !
+      end function nb_md
+      !
+      function nb_nu(i) result(inb)
+         !
+         integer, intent(in) :: i
+         integer :: inb
+         integer :: ip
+         !
+         inb = 0
+         ip  = z_index_uv_nu1(i)
+         !
+         if (ip > 0) then
+            !
+            if (uv_flags_type(ip) == 0) inb = uv_index_z_nmu(ip)
+            !
+         endif
+         !
+      end function nb_nu
+      !
+      function nb_nd(i) result(inb)
+         !
+         integer, intent(in) :: i
+         integer :: inb
+         integer :: ip
+         !
+         inb = 0
+         ip  = z_index_uv_nd1(i)
+         !
+         if (ip > 0) then
+            !
+            if (uv_flags_type(ip) == 0) inb = uv_index_z_nm(ip)
+            !
+         endif
+         !
+      end function nb_nd
+      !
+      subroutine gaussian_weights(sg, rr, ww)
+         !
+         ! One-sided normalized Gaussian weights ww(0:rr), ww(0) + 2 sum ww(1:rr) = 1.
+         !
+         real*4,  intent(in)  :: sg
+         integer, intent(in)  :: rr
+         real*4,  intent(out) :: ww(0:)
+         !
+         integer :: kk
+         real*4  :: wsum
+         !
+         if (sg < 0.1 .or. rr < 1) then
+            !
+            ww(0:rr) = 0.0
+            ww(0)    = 1.0
+            return
+            !
+         endif
+         !
+         do kk = 0, rr
+            !
+            ww(kk) = exp(-0.5 * (real(kk) / sg)**2)
+            !
+         enddo
+         !
+         wsum     = ww(0) + 2.0 * sum(ww(1:rr))
+         ww(0:rr) = ww(0:rr) / wsum
+         !
+      end subroutine gaussian_weights
+      !
+   end subroutine depth_filter_cell_field
+   !
+   !
+   function moving_bed_cell_moves(nm) result(moves)
+   !
+   ! Whether the bed increment dzbext of a cell counts as motion of a wet cell:
+   ! depth > max(huthresh, movingbed_hwet_min) and |dzbext| above nh_dzb_ulps
+   ! float32 ulps of the bed level (zb, or subgrid_z_zmin on subgrid grids).
+   !
+   use sfincs_data
+   use sfincs_nonhydrostatic, only: nh_dzb_ulps
+   !
+   integer, intent(in) :: nm
+   logical :: moves
+   !
+   real*4 :: zbed
+   !
+   if (subgrid) then
+      !
+      zbed = subgrid_z_zmin(nm)
+      !
+   else
+      !
+      zbed = zb(nm)
+      !
+   endif
+   !
+   moves = abs(dzbext(nm)) > nh_dzb_ulps * spacing(max(abs(zbed), 1.0)) .and. &
+           moving_bed_cell_depth(nm) > max(huthresh, movingbed_hwet_min)
+   !
+   end function moving_bed_cell_moves
+   !
+   !
+   function moving_bed_cell_depth(nm) result(h)
+   !
+   ! Water depth of a cell for the moving-bed stamp and filter: zs - zb on regular
+   ! grids, the volume-mean depth z_volume/area on subgrid grids (independent of zb,
+   ! which is the effective bed only with zb_effective).
+   !
+   use sfincs_data
+   !
+   integer, intent(in) :: nm
+   real*4 :: h
+   !
+   if (subgrid) then
+      !
+      h = real(z_volume(nm), 4) / moving_bed_cell_area(nm)
+      !
+   else
+      !
+      h = real(zs(nm) - zb(nm), 4)
+      !
+   endif
+   !
+   end function moving_bed_cell_depth
+   !
+   !
+   function moving_bed_cell_area(nm) result(a)
+   !
+   use sfincs_data
+   !
+   integer, intent(in) :: nm
+   real*4 :: a
+   !
+   if (crsgeo) then
+      !
+      a = cell_area_m2(nm)
+      !
+   else
+      !
+      a = cell_area(z_flags_iref(nm))
+      !
+   endif
+   !
+   end function moving_bed_cell_area
+   !
+   !
+   function moving_bed_dxinv(nm) result(rdx)
+   !
+   ! 1/dx in metres of a cell: per refinement level when projected, per cell
+   ! (latitude dependent) when crsgeo (as nh_dxr in sfincs_nonhydrostatic)
+   !
+   use sfincs_data
+   !
+   integer, intent(in) :: nm
+   real*4 :: rdx
+   !
+   if (crsgeo) then
+      !
+      rdx = 1.0 / dxm(nm)
+      !
+   else
+      !
+      rdx = dxrinv(z_flags_iref(nm))
+      !
+   endif
+   !
+   end function moving_bed_dxinv
+   !
+   !
+   function subgrid_volume_at_level(nm, zsv, a) result(vol)
+   !
+   ! Cell volume of the subgrid table at water level zsv (inverse of the lookup in
+   ! compute_water_levels_subgrid, as compute_initial_subgrid_volumes)
+   !
+   use sfincs_data
+   !
+   integer, intent(in) :: nm
+   real*8,  intent(in) :: zsv
+   real*4,  intent(in) :: a
+   real*8 :: vol
+   !
+   integer :: ivol
+   integer :: ilevel
+   real*4  :: dzvol
+   real*4  :: facint
+   !
+   if (zsv >= subgrid_z_zmax(nm)) then
+      !
+      vol = subgrid_z_volmax(nm) + a * (zsv - max(subgrid_z_zmax(nm), -20.0))
+      !
+   else
+      !
+      ivol = 1
+      !
+      do ilevel = 2, subgrid_nlevels
+         !
+         if (subgrid_z_dep(ilevel, nm) > zsv) then
+            !
+            ivol = ilevel - 1
+            exit
+            !
+         endif
+         !
+      enddo
+      !
+      dzvol  = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
+      facint = real(zsv - subgrid_z_dep(ivol, nm), 4) / max(subgrid_z_dep(ivol + 1, nm) - subgrid_z_dep(ivol, nm), 0.001)
+      facint = min(max(facint, 0.0), 1.0)
+      vol    = (ivol - 1) * dzvol + facint * dzvol
+      !
+   endif
+   !
+   end function subgrid_volume_at_level
 
    subroutine initialize_boundaries()
    !
@@ -2573,15 +3292,15 @@ contains
    !
    ! The following arrays are still needed for the timestep analysis (see sfincs_ncoutput.F90)
    !
+   ! The single-face arrays z_index_uv_md1/mu1/nd1/nu1 are kept: with uv_flags_type they give
+   ! the same-level neighbour of every cell, which the moving-bed depth filter
+   ! (depth_filter_cell_field) walks at run time.
+   !
    if (.not. timestep_analysis) then
       !
-      if (allocated(z_index_uv_md1)) deallocate(z_index_uv_md1)
       if (allocated(z_index_uv_md2)) deallocate(z_index_uv_md2)
-      if (allocated(z_index_uv_mu1)) deallocate(z_index_uv_mu1)
       if (allocated(z_index_uv_mu2)) deallocate(z_index_uv_mu2)
-      if (allocated(z_index_uv_nd1)) deallocate(z_index_uv_nd1)
       if (allocated(z_index_uv_nd2)) deallocate(z_index_uv_nd2)
-      if (allocated(z_index_uv_nu1)) deallocate(z_index_uv_nu1)
       if (allocated(z_index_uv_nu2)) deallocate(z_index_uv_nu2)
       !
    endif

@@ -593,8 +593,12 @@ contains
                   ! resolve. On subgrid grids the cell-mean depth D used in dnminv can
                   ! be far smaller than the conveyance depth hu, so q/D can otherwise
                   ! exceed the advective CFL and blow up (e.g. steep valleys).
+                  ! The bound is scaled by advection_umax_factor (default 3.0): next to
+                  ! a near-dry cell q/D reaches ~2u, so a factor of 1 also cuts the
+                  ! momentum flux into a supercritical run-up tongue (NTHMP BP04
+                  ! breaking run-up 20-25 % low); a factor of 3 leaves such fronts alone.
                   !
-                  umax = sqrt(g * hu) + abs(uv0(ip))
+                  umax = advection_umax_factor * (sqrt(g * hu) + abs(uv0(ip)))
                   !
                   up  = min(max(qd * dnminv, 0.0),  umax)   ! U_p  (advective speed, from west)
                   un  = max(min(qu * dnminv, 0.0), -umax)   ! U_n  (advective speed, from east)

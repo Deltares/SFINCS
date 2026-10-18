@@ -73,6 +73,8 @@ module sfincs_data
       real*4 pavbnd
       real*4 gapres
       real*4 advlim
+      real*4 advection_umax_factor   ! scale on the advective-speed bound sqrt(g*hu) + |u| in the velocity scheme (1 = strict)
+      real*4 movingbed_filter        ! depth filter of the moving bed (dzbext): Gaussian std = factor x depth of the moving cells, applied to the surface lift and to the non-hydrostatic moving-bed source; 0 = raw (no filter)
       real*4 slopelim
       real*4 twet_threshold
       real*4, dimension(:), allocatable :: cd_wnd
@@ -224,7 +226,8 @@ module sfincs_data
       logical       :: usehuv
       logical       :: usehuv0
       logical       :: write_time_output
-      logical       :: bziwaves
+      logical       :: bziwaves         ! incoming-wave signal (bzi file or zi in netbndbzsbzifile) is applied at the water level boundaries; set when reading the boundaries
+      logical       :: bziwaves_user    ! keyword bziwaves (default 1): 0 switches the incoming-wave signal off for both input routes
       logical       :: infiltration
       LOGICAL       :: netcdf_infiltration
       logical       :: debug
@@ -615,6 +618,7 @@ module sfincs_data
       integer, dimension(:),  allocatable :: iup_uv    ! upwind cell of each uv point used in momentum (0 if not set)
       real*4, dimension(:),   allocatable, target :: qext
       real*4, dimension(:),   allocatable, target :: dzbext
+      real*4, dimension(:),   allocatable :: dzbext_filtered   ! depth-filtered bed increment of the last update_bed_level call on wet cells (0 on dry cells): the surface lift and the nonh moving-bed source
       real*4, dimension(:),   allocatable, target :: uorb
       real*4, dimension(:),   allocatable :: gnapp2
       !
@@ -1040,6 +1044,7 @@ module sfincs_data
     if(allocated(twet)) deallocate(twet)
     if(allocated(qext)) deallocate(qext)
     if(allocated(dzbext)) deallocate(dzbext)
+    if(allocated(dzbext_filtered)) deallocate(dzbext_filtered)
     !
 !    if(allocated(huu)) deallocate(huu)
 !    if(allocated(hvv)) deallocate(hvv)

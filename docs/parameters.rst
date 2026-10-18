@@ -575,15 +575,20 @@ Forcing - Water levels and waves
 	  :required:		Only when specifying water levels.
 	  :format:		asc	 	
 	bzifile = sfincs.bzi
-	  :description:		Tn the file 'sfincs.bzi' the quickly varying water level time-series due to incoming waves are specified per input location. Do note that the input timestep should be the same in both the bzs and bzi files!
+	  :description:		In the file 'sfincs.bzi' the quickly varying water level time-series due to incoming waves are specified per input location (ascii route, next to bndfile/bzsfile). Do note that the input timestep should be the same in both the bzs and bzi files! When an incoming-wave signal is present (from this file or from 'zi' in the netbndbzsbzifile), the boundary is a clean weakly-reflective condition: btfilter/uvmean are not used. Has no effect when a netbndbzsbzifile is given.
 	  :units:		m around mean water level of bzsfile
 	  :required:		Only when specifying waves.
-	  :format:		asc		
+	  :format:		asc
 	netbndbzsbzifile = sfincs_netbndbzsbzifile.nc
-	  :description:		To specify all bnd, bzs (and bzi) input in 1 FEWS compatible netcdf input file. Specify either the netcdf version or ascii, not both.
+	  :description:		To specify all bnd, bzs (and bzi) input in 1 FEWS compatible netcdf input file. Specify either the netcdf version or ascii, not both. The variable 'zi' is optional; when present it is applied as the incoming-wave signal (equivalent to a bzifile, no bzifile keyword needed) and btfilter/uvmean are not used.
 	  :units:		m in projected UTM zone, m above reference level & m around mean water level of bzsfile
 	  :required:		Only when specifying water levels and waves using netcdf input file.
-	  :format:		net	 
+	  :format:		net
+	bziwaves = 1
+	  :description:		Switch for the incoming-wave signal at the water level boundaries, for both input routes (bzifile or 'zi' in netbndbzsbzifile). 0 = ignore the signal even if present (only bzs/zs levels are applied and btfilter/uvmean are active again), 1 = apply it when present.
+	  :units:		-
+	  :required:		no
+	  :default:		1
 	  
 Forcing - Discharges
 -----
