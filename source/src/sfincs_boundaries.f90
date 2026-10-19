@@ -116,6 +116,10 @@ contains
    ntbnd     = 0
    itbndlast = 1
    !
+   ! Incoming infragravity wave time series present (from bzifile or the zi variable in netbndbzsbzifile)
+   !
+   bziwaves  = .false.
+   !
    if (netbndbzsbzifile(1:4) /= 'none') then    ! FEWS compatible Netcdf water level time-series input
       !
       ok = check_file_exists(netbndbzsbzifile, 'Netcdf water level input netbndbzsbzi file', .true.)    
@@ -202,6 +206,8 @@ contains
       if (bzifile(1:4) /= 'none') then
          !
          ! Incoming infragravity waves
+         !
+         bziwaves = .true.
          !
          allocate(zsi_bnd(nbnd,ntbnd))
          allocate(zsit_bnd(nbnd))
@@ -830,11 +836,11 @@ contains
       !
       zst_bnd(ib) = zstb
       !
-      if (bzifile(1:4) /= 'none') then
+      if (bziwaves) then
          !
          ! Incoming infragravity waves
          !
-         zsit_bnd(ib) = zsi_bnd(ib, itb0) + (zsi_bnd(ib, itb1) - zsi_bnd(ib, itb0))*tbfac
+         zsit_bnd(ib) =zsi_bnd(ib, itb0) + (zsi_bnd(ib, itb1) - zsi_bnd(ib, itb0))*tbfac
          !
       endif
        !
@@ -870,7 +876,7 @@ contains
    real*4 zs0smooth
    logical :: has_bzi
    !
-   has_bzi = (bzifile(1:4) /= 'none')
+   has_bzi = bziwaves
    !
    ! Set water level in all boundary points on grid
    ! This loop is all done on the CPU
