@@ -1354,8 +1354,15 @@ contains
    !
    integer :: nmq
    !
+   nm = 0
+   !
    nmq = find_quadtree_cell_by_index(n, m, iref)
-   nm = index_sfincs_in_quadtree(nmq) 
+   !
+   if (nmq > 0) then
+      !
+      nm = index_sfincs_in_quadtree(nmq)
+      !
+   endif
    !
    end function
    
