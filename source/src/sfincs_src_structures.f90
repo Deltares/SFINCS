@@ -878,7 +878,20 @@ contains
             y_s1_tmp = z_yz(src_struc_nm_s1(istruc))
             x_s2_tmp = z_xz(src_struc_nm_s2(istruc))
             y_s2_tmp = z_yz(src_struc_nm_s2(istruc))
-            src_struc_distance(istruc) = sqrt( (x_s2_tmp - x_s1_tmp)**2 + (y_s2_tmp - y_s1_tmp)**2 )
+            !
+            if (crsgeo) then
+               !
+               ! Convert the coordinate differences from degrees to metres
+               !
+               src_struc_distance(istruc) = sqrt( ((x_s2_tmp - x_s1_tmp) * 111111.1 &
+                                                   * cos(0.5 * (y_s1_tmp + y_s2_tmp) * pi / 180))**2 &
+                                                + ((y_s2_tmp - y_s1_tmp) * 111111.1)**2 )
+               !
+            else
+               !
+               src_struc_distance(istruc) = sqrt( (x_s2_tmp - x_s1_tmp)**2 + (y_s2_tmp - y_s1_tmp)**2 )
+               !
+            endif
             !
          endif
          !
@@ -1496,13 +1509,32 @@ contains
                !
             else
                !
+               ! Cell area: cell_area (per refinement level) only exists in projected models,
+               ! cell_area_m2 (per cell) only in geographic models
+               !
                if (qq > 0.0) then
                   !
-                  qq = min(qq,  donor_volume_fraction * max((zs(nm_s1) - zb(nm_s1)) * cell_area(z_flags_iref(nm_s1)), 0.0) / dt)
+                  if (crsgeo) then
+                     !
+                     qq = min(qq,  donor_volume_fraction * max((zs(nm_s1) - zb(nm_s1)) * cell_area_m2(nm_s1), 0.0) / dt)
+                     !
+                  else
+                     !
+                     qq = min(qq,  donor_volume_fraction * max((zs(nm_s1) - zb(nm_s1)) * cell_area(z_flags_iref(nm_s1)), 0.0) / dt)
+                     !
+                  endif
                   !
                else
                   !
-                  qq = max(qq, -donor_volume_fraction * max((zs(nm_s2) - zb(nm_s2)) * cell_area(z_flags_iref(nm_s2)), 0.0) / dt)
+                  if (crsgeo) then
+                     !
+                     qq = max(qq, -donor_volume_fraction * max((zs(nm_s2) - zb(nm_s2)) * cell_area_m2(nm_s2), 0.0) / dt)
+                     !
+                  else
+                     !
+                     qq = max(qq, -donor_volume_fraction * max((zs(nm_s2) - zb(nm_s2)) * cell_area(z_flags_iref(nm_s2)), 0.0) / dt)
+                     !
+                  endif
                   !
                endif
                !
