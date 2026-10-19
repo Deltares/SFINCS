@@ -103,9 +103,10 @@ module sfincs_ncinput
    !
    ! ------------ Copyright notice SFINCS ------------
    !
-   use netcdf       
+   use netcdf
    use sfincs_spiderweb
    use sfincs_log
+   use sfincs_error
    !
    implicit none
    !
@@ -1044,11 +1045,12 @@ module sfincs_ncinput
    use netcdf
    use sfincs_data   
    !
-   implicit none   
+   implicit none
    !
    integer nt
+   integer status
    !
-   real*4, dimension(:,:,:),   allocatable :: prtmp 
+   real*4, dimension(:,:,:),   allocatable :: prtmp
    real*4, dimension(:,:,:),   allocatable :: ampr_prtmp 
    !
    real*4, dimension(:),     allocatable :: px
@@ -1093,9 +1095,12 @@ module sfincs_ncinput
    NF90(nf90_inq_varid(net_file_ampr%ncid, x_varname,    net_file_ampr%px_varid) )  ! Has to be same as SFINCS grid
    NF90(nf90_inq_varid(net_file_ampr%ncid, y_varname,    net_file_ampr%py_varid) )  ! Also, has to be a rectilinear raster, not curvilinear! 
    NF90(nf90_inq_varid(net_file_ampr%ncid, time_varname, net_file_ampr%time_varid) )
-   NF90(nf90_inq_varid(net_file_ampr%ncid, prcp_varname, net_file_ampr%prcp_varid) )
    !
-   if (net_file_ampr%prcp_varid == 0) then
+   ! The variable name is either 'Precipitation' or 'precipitation', so the first query may fail
+   !
+   status = nf90_inq_varid(net_file_ampr%ncid, prcp_varname, net_file_ampr%prcp_varid)
+   !
+   if (status /= nf90_noerr) then
       !
       ! Tried with uppercase 'P' but not found, so try lowercase 'p' now
       !
@@ -1308,7 +1313,9 @@ module sfincs_ncinput
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    subroutine handle_err(status,file,line)
       !
-      ! Report a netCDF error with file name and line number.
+      ! Stop SFINCS with a netCDF error message, file name and line number. Continuing would leave
+      ! the forcing arrays with missing or uninitialised data (for example a missing variable).
+      ! Optional variables are queried with a direct status check instead of through this routine.
       !
       ! Input:
       !   status : netCDF status code returned by the call
@@ -1317,14 +1324,20 @@ module sfincs_ncinput
       !
       ! Called from: the NF90 preprocessor macro, used throughout this module
       !
+      implicit none
+      !
       integer, intent ( in)    :: status
       character(*), intent(in) :: file
       integer, intent ( in)    :: line
-      !   
-      if(status /= nf90_noerr) then
-      !   !UNIT=6 for stdout and UNIT=0 for stderr.
-         write(0,'("NETCDF ERROR: ",a,i6,":",a)') file,line,trim(nf90_strerror(status))
-      end if
+      !
+      if (status /= nf90_noerr) then
+         !
+         write(logstr,'(a,a,a,i0,a,a)')'Error ! NetCDF error reading input file (', trim(file), ', line ', line, '): ', &
+            trim(nf90_strerror(status))
+         call stop_sfincs(trim(logstr), 1)
+         !
+      endif
+      !
    end subroutine handle_err
    !
    end module
